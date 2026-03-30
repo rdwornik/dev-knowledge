@@ -628,6 +628,16 @@ Codex reviews. Claude Code builds. Never reverse the roles.
 - Structural changes with N>5 call sites: shim first, migrate incrementally, remove shim last.
 - Any session touching module boundaries must produce or update ARCHITECTURE.md. **[L+M]**
 
+### Post-Structural-Change Documentation
+
+After any change that moves, renames, or reorganizes files or modules, update documentation that describes the changed structure:
+
+- **L:** Update ARCHITECTURE.md + affected module READMEs in src/*/
+- **M:** Update ARCHITECTURE.md if it exists
+- **S:** No structural docs to update beyond CHANGELOG.md
+
+This is not optional for the applicable tier. Stale structural documentation is worse than no documentation — it actively misleads.
+
 ---
 
 ## Appendix A: Claude Code Shortcuts
