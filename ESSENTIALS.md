@@ -99,6 +99,8 @@ Upload ESSENTIALS.md + handoff/context files. See SESSION_SETUP.md for full chec
 
 When a lesson becomes a rule → write rationale in LESSONS.md, write executable rule in `~/.claude/` with verify: line.
 
+**Project Scale Tiers:** Every project declares L / M / S in its CLAUDE.md. Playbook sections tagged [L only] or [L+M] apply only to those tiers. See Playbook for definitions.
+
 ---
 
 ## The 5 Rules That Matter Most
