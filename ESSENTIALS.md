@@ -60,9 +60,10 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 
 1. Full test suite
 2. `git status` — must be clean
-3. CHANGELOG.md — entry if files changed
-4. **Extract lessons** — "what 2-3 things did I learn?" → append to LESSONS.md
-5. Session scorecard logs automatically (Stop hook)
+3. If 3+ files changed or 2+ packages touched → `/review` then Codex review before merge
+4. CHANGELOG.md — entry if files changed
+5. **Extract lessons** — "what 2-3 things did I learn?" → append to LESSONS.md
+6. Session scorecard logs automatically (Stop hook)
 
 **Browser chat checkpoint:** at ~2 hours or when chat gets slow → `wygeneruj handoff` → Copy → Paste to new chat.
 
