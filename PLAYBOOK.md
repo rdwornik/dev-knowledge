@@ -586,6 +586,33 @@ Codex reviews. Claude Code builds. Never reverse the roles.
 
 ---
 
+## 16. Code Quality Audit Process
+
+**When:** Monthly, or before any major refactor, or when a module has grown beyond 2 files unreviewed.
+**Tool:** Codex CLI or Codex Desktop (independent reviewer — no authorship bias)
+**Cycle:** Read-only audit → triage by severity → fix by tier → re-audit
+
+### Severity tiers
+- **CRITICAL** — data loss, security, broken imports that fail at runtime
+- **HIGH** — wrong dependency direction, missing tests on public API, type errors
+- **MEDIUM** — style violations, redundant code, unclear naming
+- **LOW** — suggestions, nitpicks, debatable patterns
+
+### Process
+1. Run audit (read-only): `codex "Audit this repo against AGENTS.md rules. Output findings by severity. Do not fix anything."`
+2. Triage output manually — expect ~30% false positives. Demote miscalibrated patterns in AGENTS.md.
+3. Fix CRITICAL and HIGH first. One commit per logical group.
+4. Re-run audit. Confirm flags resolved.
+5. Update ARCHITECTURE.md if module boundaries or dependency direction changed.
+
+### Rules
+- Audit-first, fix-second. Never fix while auditing.
+- Claude Code fixes. Codex audits. Never reverse the roles.
+- Structural changes with N>5 call sites: shim first, migrate incrementally, remove shim last.
+- Any session touching module boundaries must produce or update ARCHITECTURE.md.
+
+---
+
 ## Appendix A: Claude Code Shortcuts
 
 ### Permission Modes (Shift+Tab cycles)

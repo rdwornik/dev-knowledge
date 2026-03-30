@@ -40,6 +40,8 @@ Every formal prompt starts with:
 
 Then: Title → Read CLAUDE.md + gotchas → Git workflow → UNDERSTAND → Steps with COMMIT markers → What NOT to do.
 
+**Multi-prompt sessions:** If Claude.ai generates 3+ prompts for one feature, check for overlap before running — duplicate context wastes tokens and creates conflicting diffs.
+
 After EVERY step: `pytest -x --tb=short && ruff check && git status`
 
 ---
@@ -80,6 +82,8 @@ Upload ESSENTIALS.md + handoff/context files. See SESSION_SETUP.md for full chec
 **Every correction you make** → logged to `corrections.jsonl` → same mistake 2x → auto-promoted to permanent rule with verify: check.
 
 **Every Friday** → `/evolve` → review corrections, promote/prune rules, check trends.
+
+**Monthly** → Codex full-repo audit → triage flags (expect ~30% false positives) → fix CRITICAL/HIGH → re-audit → See Playbook S16.
 
 **New tool/article/repo** → is it mature (>100 stars, >v1.0)? Does it solve a real problem? If architecture-level → Council debate. Otherwise decide in 30 seconds.
 

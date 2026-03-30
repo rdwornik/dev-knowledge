@@ -101,3 +101,13 @@
 ### 2026-03-30 | universalization session | One governance home, zero exceptions — decisions/ at root alongside docs/ breaks "one home per file type" immediately after establishing the rule | architecture | decisions/ moved to docs/decisions/
 
 ### 2026-03-30 | universalization session | Skills scoping: ~/.claude/skills/ = universal (loads everywhere), repo/.claude/skills/ = project-specific (auto-discovered). When in doubt, project scope — better to load explicitly than pollute globally | tooling | gotchas split 3 universal + 37 project-specific
+
+### 2026-03-30 | Codex audit session | Audit-first, fix-second is the only safe order — jumping straight to fixes without a read-only audit produces thrash: fixes invalidate each other, new issues appear mid-session, scope creeps | process | Established Audit-Fix-Verify cycle: read-only pass → triage by severity → fix by tier → re-audit
+
+### 2026-03-30 | Codex audit session | Two AI reviewers catch different blind spots — Claude Code misses structural violations it introduced; Codex flags them because it has no authorship bias. Reviewer ≠ builder | architecture | Hard rule: Codex reviews, Claude Code builds. Never reverse the roles.
+
+### 2026-03-30 | Codex audit session | Structural refactors need shims, not big-bang rewrites — renaming a module used in 40 places requires a compatibility shim first, then migrate callers incrementally, then remove shim | process | Added to PLAYBOOK S16; applies to any change with N>5 call sites
+
+### 2026-03-30 | Codex audit session | ARCHITECTURE.md is the highest-value deliverable of any major session — code can be re-derived from git, but the "why" behind structural decisions evaporates in 48 hours | architecture | Any session that touches module boundaries or dependency direction must produce or update an ARCHITECTURE.md
+
+### 2026-03-30 | Codex audit session | Automated audit false-positive rate ~30% — calibrate AGENTS.md severity levels against real violations before treating every flag as critical. Over-flagging → flag fatigue → real issues ignored | process | After first audit run: triage flags manually, demote false-positive patterns to MEDIUM/LOW in AGENTS.md
