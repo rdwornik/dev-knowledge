@@ -592,7 +592,7 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 
 ---
 
-## 15. Cross-Tool Review
+## 15. Cross-Tool Review **[L+M]**
 
 **When:** Feature branch touches 3+ files OR 2+ packages OR safety-critical paths (vault writes, OneDrive ops, cleanup/delete)
 **Tool:** Codex CLI or Codex Desktop
@@ -605,7 +605,7 @@ Codex reviews. Claude Code builds. Never reverse the roles.
 
 ## 16. Code Quality Audit Process
 
-**When:** Monthly, or before any major refactor, or when a module has grown beyond 2 files unreviewed.
+**When:** Monthly full audit **[L only]** · On-demand before major refactors **[L+M]** · S projects skip.
 **Tool:** Codex CLI or Codex Desktop (independent reviewer — no authorship bias)
 **Cycle:** Read-only audit → triage by severity → fix by tier → re-audit
 
@@ -620,13 +620,13 @@ Codex reviews. Claude Code builds. Never reverse the roles.
 2. Triage output manually — expect ~30% false positives. Demote miscalibrated patterns in AGENTS.md.
 3. Fix CRITICAL and HIGH first. One commit per logical group.
 4. Re-run audit. Confirm flags resolved.
-5. Update ARCHITECTURE.md if module boundaries or dependency direction changed.
+5. Update ARCHITECTURE.md if module boundaries or dependency direction changed. **[L+M]**
 
 ### Rules
 - Audit-first, fix-second. Never fix while auditing.
 - Claude Code fixes. Codex audits. Never reverse the roles.
 - Structural changes with N>5 call sites: shim first, migrate incrementally, remove shim last.
-- Any session touching module boundaries must produce or update ARCHITECTURE.md.
+- Any session touching module boundaries must produce or update ARCHITECTURE.md. **[L+M]**
 
 ---
 
