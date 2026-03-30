@@ -575,6 +575,17 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 
 ---
 
+## 15. Cross-Tool Review
+
+**When:** Feature branch touches 3+ files OR 2+ packages OR safety-critical paths (vault writes, OneDrive ops, cleanup/delete)
+**Tool:** Codex CLI or Codex Desktop
+**Process:** `/review` in Claude Code → copy command → run in second terminal → address flags → merge
+**Skip when:** Single-file fix, test-only changes, documentation updates
+
+Codex reviews. Claude Code builds. Never reverse the roles.
+
+---
+
 ## Appendix A: Claude Code Shortcuts
 
 ### Permission Modes (Shift+Tab cycles)
