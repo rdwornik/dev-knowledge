@@ -23,6 +23,8 @@ Living knowledge base for Rob's dev practice methodology. NOT a code project —
 - Append lessons after sessions
 - Keep files consistent — if a process is described in PLAYBOOK, ESSENTIALS should have the summary version, not a conflicting one
 - Cross-reference ~/.claude/ files (gotchas, learned-rules, core-invariants) — they are the executable counterpart to what's documented here
+- This is a git repo. Commit after every change. Use /save or commit manually.
+- .claude/rules/git-discipline.md enforces this automatically.
 
 ## What NOT to do
 
@@ -36,6 +38,7 @@ Living knowledge base for Rob's dev practice methodology. NOT a code project —
 ## Related locations
 
 - `~/.claude/` — Claude Code runtime config (skills, gotchas, memory, rules, commands, hooks)
+- `.claude/` — project-level Claude Code config (git-discipline rule, /save command)
 - `ObsidianVault/` — pre-sales work knowledge (separate, do not mix)
 - `Dev/` — code projects (each has own CLAUDE.md)
 
