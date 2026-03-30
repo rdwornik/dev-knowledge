@@ -2,7 +2,7 @@
 
 > **Format:** Date | Source | Lesson | Category | Action taken
 > New entries go at the bottom. Never edit old entries. Never delete.
-> Last updated: 2026-03-29
+> Last updated: 2026-03-30
 
 ---
 
@@ -113,3 +113,5 @@
 ### 2026-03-30 | Codex audit session | Automated audit false-positive rate ~30% — calibrate AGENTS.md severity levels against real violations before treating every flag as critical. Over-flagging → flag fatigue → real issues ignored | process | After first audit run: triage flags manually, demote false-positive patterns to MEDIUM/LOW in AGENTS.md
 
 ### 2026-03-30 | dev-practice session | Universal rules that don't apply universally erode compliance — if a Playbook rule says "update per-module READMEs" but the project has no modules, Claude Code learns that Playbook rules are suggestions. Fix: declare project scale (L/M/S) in CLAUDE.md, tag scale-dependent rules in Playbook, leave universal rules untagged. Rules that apply — apply always. Rules that don't apply — are explicitly scoped out, not silently ignored | process | Added Project Scale Tier system to PLAYBOOK.md and ESSENTIALS.md
+
+### 2026-03-30 | dev-practice session | TODO markers belong in code and tasks/todo.md, never in documentation — TODO in code = technical debt marker (valuable, TODO Tree tracks it). TODO in docs = noise — docs are instructions, not task lists. If a doc needs work, add entry to tasks/todo.md with file reference, don't leave TODO in the doc itself. Applies to all project scales | process | Rule established; applies to all repos
