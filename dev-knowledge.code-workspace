@@ -1,0 +1,115 @@
+{
+	"folders": [
+		{
+			"name": "📓 .dev-knowledge",
+			"path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge"
+		},
+		{
+			"name": "⚙️ ~/.claude (config)",
+			"path": "C:\\Users\\1028120\\.claude"
+		}
+	],
+	"settings": {
+
+		// ── Markdown ────────────────────────────────────────
+		"editor.defaultFormatter": "yzhang.markdown-all-in-one",
+		"[markdown]": {
+			"editor.wordWrap": "on",
+			"editor.wordWrapColumn": 120,
+			"editor.quickSuggestions": {
+        "comments": "off",
+        "strings": "off",
+        "other": "off"
+      },
+			"editor.formatOnSave": false
+		},
+		"markdown.preview.fontSize": 14,
+		"markdown.preview.lineHeight": 1.6,
+    
+		// ── Editor ──────────────────────────────────────────
+		"editor.rulers": [120],
+		"editor.minimap.enabled": false,
+		"editor.stickyScroll.enabled": true,
+		"editor.bracketPairColorization.enabled": true,
+
+		// ── Files ───────────────────────────────────────────
+		// Show only relevant files, hide Claude Code internals
+		"files.exclude": {
+			"**/__pycache__": true,
+			"**/*.pyc": true,
+			"**/projects": true
+		},
+
+		// ── Search ──────────────────────────────────────────
+		// Search across both .dev-knowledge AND ~/.claude
+		"search.exclude": {
+			"**/projects/**": true
+		},
+
+		// ── Terminal ────────────────────────────────────────
+		"terminal.integrated.defaultProfile.windows": "PowerShell",
+		"terminal.integrated.cwd": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge",
+
+		// ── Explorer ────────────────────────────────────────
+		"explorer.sortOrder": "type",
+		"explorer.compactFolders": false,
+
+		// ── Todo Tree ───────────────────────────────────────
+		// Track TODOs, triggers, and review markers across knowledge files
+		"todo-tree.general.tags": [
+			"TODO",
+			"TRIGGER",
+			"REVIEW",
+			"PENDING",
+			"DEPRECATED"
+		],
+		"todo-tree.highlights.customHighlight": {
+			"TRIGGER": {
+				"icon": "alert",
+				"foreground": "#FF8C00"
+			},
+			"REVIEW": {
+				"icon": "eye",
+				"foreground": "#6495ED"
+			}
+		},
+
+		// ── Misc ────────────────────────────────────────────
+		"workbench.editor.highlightModifiedTabs": true,
+		"workbench.startupEditor": "none",
+		"breadcrumbs.enabled": true
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "📊 Count lessons",
+				"type": "shell",
+				"command": "Select-String -Path '${workspaceFolder:📓 .dev-knowledge}\\LESSONS.md' -Pattern '^### ' | Measure-Object | Select-Object -ExpandProperty Count | Write-Host -ForegroundColor Cyan",
+				"group": "none",
+				"presentation": { "reveal": "always", "panel": "shared" }
+			},
+			{
+				"label": "📏 File sizes",
+				"type": "shell",
+				"command": "Get-ChildItem '${workspaceFolder:📓 .dev-knowledge}\\*.md' | ForEach-Object { Write-Host ('{0,-25} {1,5} lines' -f $_.Name, (Get-Content $_.FullName | Measure-Object -Line).Lines) }",
+				"group": "none",
+				"presentation": { "reveal": "always", "panel": "shared" }
+			},
+			{
+				"label": "🔍 Check CLAUDE.md line count",
+				"type": "shell",
+				"command": "(Get-Content $env:USERPROFILE\\.claude\\CLAUDE.md | Measure-Object -Line).Lines | ForEach-Object { if ($_ -gt 200) { Write-Host \"⚠ CLAUDE.md is $_ lines (>200 limit!)\" -ForegroundColor Red } else { Write-Host \"✅ CLAUDE.md is $_ lines\" -ForegroundColor Green } }",
+				"group": "none",
+				"presentation": { "reveal": "always", "panel": "shared" }
+			},
+			{
+				"label": "📋 Learned rules count",
+				"type": "shell",
+				"command": "$f = \"$env:USERPROFILE\\.claude\\memory\\learned-rules.md\"; if (Test-Path $f) { $c = (Get-Content $f | Measure-Object -Line).Lines; if ($c -gt 40) { Write-Host \"⚠ learned-rules.md is $c lines (approaching 50 limit!)\" -ForegroundColor Yellow } else { Write-Host \"✅ learned-rules.md: $c lines\" -ForegroundColor Green } } else { Write-Host 'No learned-rules.md yet' }",
+				"group": "none",
+				"presentation": { "reveal": "always", "panel": "shared" }
+			}
+		]
+	}
+}
