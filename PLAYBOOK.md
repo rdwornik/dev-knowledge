@@ -5,6 +5,23 @@
 
 ---
 
+## Project Scale Tiers
+
+Every project declares its scale in its CLAUDE.md:
+
+```
+## Project Scale: L
+```
+
+Three tiers:
+- **L (Large):** Multi-package repo, 500+ tests, cross-package dependencies. Has ARCHITECTURE.md, per-module READMEs, AGENTS.md for external reviewers.
+- **M (Medium):** Standalone package, 50-500 tests, multiple modules, one namespace. May have ARCHITECTURE.md.
+- **S (Small):** Single script or tool, <50 tests, simple flow. Minimal docs beyond CLAUDE.md and CHANGELOG.md.
+
+Sections in this Playbook marked with a tier tag (e.g. **[L only]** or **[L+M]**) apply only to those tiers. Unmarked sections apply to all projects.
+
+---
+
 ## 1. Starting a New Project
 
 **Every project begins with CLAUDE.md, not code.** If you can't describe what the project does in 3 sentences, you don't understand it yet. For architectural decisions (new database? new package? new integration?), run an AI Council debate before writing a single line.
