@@ -67,7 +67,11 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 5. **Extract lessons** — "what 2-3 things did I learn?" → append to LESSONS.md
 6. Session scorecard logs automatically (Stop hook)
 
-**Browser chat checkpoint:** at ~2 hours or when chat gets slow → `wygeneruj handoff` → Copy → Paste to new chat.
+**Browser chat checkpoint:** at ~2 hours or when chat gets slow →
+1. W przeglądarce: "wygeneruj handoff w formacie markdown, wypisz treść"
+2. Skopiuj output
+3. W Claude Code: zapisz do docs/handoffs/YYYY-MM-DD-[topic].md, commitnij
+4. Nowy chat: upload ESSENTIALS.md + handoff
 
 ---
 
