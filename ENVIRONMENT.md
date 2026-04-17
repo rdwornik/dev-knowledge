@@ -10,6 +10,7 @@
 - **Version:** 2.1.87 (native installer, auto-updates)
 - **Plan:** Claude Max $100/month
 - **Model routing:** opusplan (Opus plans, Sonnet executes)
+- **Available models:** Opus 4.7 (as of 2026-04-16), Sonnet 4.6, Haiku 4.5. xhigh effort level available (Opus only). /ultrareview for cloud-based multi-agent code review.
 
 ### settings.json (key values)
 
@@ -19,6 +20,7 @@
 - CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: 1
 - CLAUDE_CODE_USE_POWERSHELL_TOOL: 1
 - defaultShell: powershell
+- showThinkingSummaries: true — shows Claude thinking before actions. Added 2026-04-15.
 
 ### ~/.claude/ directory
 
@@ -220,7 +222,7 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
 
 | Component   | Version                       | Last checked |
 | ----------- | ----------------------------- | ------------ |
-| Claude Code | 2.1.87 (native, auto-updates) | 2026-03-29   |
+| Claude Code | 2.1.87 (native, auto-updates) | 2026-04-17   |
 | Python      | 3.11+                         | 2026-03-28   |
 | VS Code     | Current + 10 extensions       | 2026-03-29   |
 
