@@ -22,7 +22,7 @@
 | Stop generation | Ctrl+C |
 | Clear screen (not session) | Ctrl+L |
 
-**Slash commands:** `/boot` (start) · `/clear` (between tasks) · `/compact` (shrink context) · `/handoff` (to browser) · `/evolve` (Friday) · `/stats` (tokens)
+**Slash commands:** `/boot` (start) · `/clear` (between tasks) · `/compact` (shrink context) · `/handoff` (to browser) · `/recap` (resume context) · `/evolve` (Friday) · `/stats` (tokens)
 
 ---
 
@@ -33,10 +33,10 @@ Every formal prompt starts with:
 ```
 | Model | Sonnet / Opus |
 | Mode  | auto-accept / plan-then-auto / plan |
-| Effort| low / medium / high |
+| Effort| low / medium / high / xhigh |
 ```
 
-**Sonnet** = "do X the way we always do it." **Opus** = "figure out the right approach."
+**Sonnet** = "do X the way we always do it." **Opus** = "figure out the right approach." **xhigh** = hardest debugging, architecture decisions, magistrala-level verification. Burns more tokens than high.
 
 Then: Title → Read CLAUDE.md + gotchas → Git workflow → UNDERSTAND → Steps with COMMIT markers → What NOT to do.
 
