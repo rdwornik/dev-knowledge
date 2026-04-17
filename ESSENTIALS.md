@@ -70,8 +70,8 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 **Browser chat checkpoint:** at ~2 hours or when chat gets slow →
 1. W przeglądarce: "wygeneruj handoff w formacie markdown, wypisz treść"
 2. Skopiuj output
-3. W Claude Code: zapisz do docs/handoffs/YYYY-MM-DD-[topic].md, commitnij
-4. Nowy chat: upload ESSENTIALS.md + handoff
+3. W Claude Code w odpowiednim repo: wklej handoff + polecenie "zweryfikuj przeciw git log, aktualnym plikom i stanowi repo. Popraw rozbieżności. Zapisz do docs/handoffs/YYYY-MM-DD-[topic].md i commitnij."
+4. Nowy chat: upload ESSENTIALS.md + verified handoff
 
 ---
 
