@@ -101,7 +101,7 @@ Then for each feature:
 | --------- | ----------------------------------- |
 | Model     | Sonnet / Opus                       |
 | Mode      | auto-accept / plan-then-auto / plan |
-| Effort    | low / medium / high                 |
+| Effort    | low / medium / high / xhigh         |
 ```
 
 ### How to choose Model
@@ -122,6 +122,7 @@ Rule of thumb: if the task is "do X the way we always do it" → Sonnet. If the 
 - **low** — single file, <30 min, no architectural decisions. Example: "add a CLI flag", "fix this test", "rename this variable across the file"
 - **medium** — 2-5 files, 30-90 min, may involve design choices within known patterns. Example: "add a new CLI command", "refactor this module to use dataclasses"
 - **high** — 5+ files or 2+ packages, 90+ min, requires UNDERSTAND phase, potential blast radius. Example: "implement search federation", "migrate classifier to new taxonomy"
+- **xhigh** — hardest debugging, end-to-end pipeline verification, Council-level analysis. Opus only. Example: "find why magistrala silently drops events", "verify boundary enforcement across all packages"
 
 ### Structure
 
@@ -595,11 +596,21 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 ## 15. Cross-Tool Review **[L+M]**
 
 **When:** Feature branch touches 3+ files OR 2+ packages OR safety-critical paths (vault writes, OneDrive ops, cleanup/delete)
-**Tool:** Codex CLI or Codex Desktop
-**Process:** `/review` in Claude Code → copy command → run in second terminal → address flags → merge
 **Skip when:** Single-file fix, test-only changes, documentation updates
 
-Codex reviews. Claude Code builds. Never reverse the roles.
+### Review Tools
+
+Two options for code review (A/B test both, then standardize):
+
+**Option A — /ultrareview (Claude Code built-in):**
+Cloud-based multi-agent review. Run without arguments (current branch) or with PR number. No second terminal needed.
+
+**Option B — Codex CLI (second terminal):**
+`/review` prepares diff → copy command to Codex terminal → findings returned. Requires ChatGPT Plus subscription.
+
+Both satisfy S15 review requirement. Choose based on quality of findings after 2-week A/B test.
+
+Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
 
 ---
 
