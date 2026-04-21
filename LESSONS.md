@@ -8,6 +8,8 @@
 
 ## Entries
 
+### 2026-04-21 | browser-chat | Browser-as-tutor defaulting violates three-layer architecture | process | caught + corrected mid-session
+
 ### 2026-03-25 | corp-monorepo session | "Stop debating, start deploying" — council debates are valuable but can become procrastination | process | Hard rule: max 2 debates before implementation
 
 ### 2026-03-26 | corp-monorepo session | HyperAgents: "Last triggered" date on persistent lessons enables data-driven pruning — agents that track frequency improve faster | architecture | Added to gotchas skill format
