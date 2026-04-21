@@ -70,8 +70,24 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 **Browser chat checkpoint:** at ~2 hours or when chat gets slow →
 1. W przeglądarce: "wygeneruj handoff w formacie markdown, wypisz treść"
 2. Skopiuj output
-3. W Claude Code w odpowiednim repo: wklej handoff + polecenie "zweryfikuj przeciw git log, aktualnym plikom i stanowi repo. Popraw rozbieżności. Zapisz do docs/handoffs/YYYY-MM-DD-[topic].md i commitnij."
+3. W Claude Code — prompt **musi** zawierać `Model/Mode/Effort` header:
+   ```
+   Model: Sonnet | Mode: plan-then-auto | Effort: low
+   Zadanie: zapisz handoff z browser chat.
+   Output: JEDEN plik docs/handoffs/YYYY-MM-DD-[topic].md
+   Zweryfikuj przeciw git log + aktualnym plikom → popraw rozbieżności → zapisz → commitnij.
+   Nie twórz HANDOFF.md w docs/. Tylko jeden plik w docs/handoffs/.
+   ```
 4. Nowy chat: upload ESSENTIALS.md + verified handoff
+
+**Handoff format — required sections:**
+OBJECTIVE · STATUS · COMPLETED · PENDING — [scope] · REFERRED OUT — Other Chats · KEY DECISIONS · CONTEXT
+
+**File rule:** `docs/handoffs/YYYY-MM-DD-[topic].md` — nigdy `docs/HANDOFF.md`
+
+**PENDING vs REFERRED OUT:** PENDING = action w tym samym chacie/scope · REFERRED OUT = action w innym chacie, zawsze z named target
+
+Canonical example: `docs/handoffs/2026-04-15-tech-radar-session.md` · Template: `templates/HANDOFF_TEMPLATE.md`
 
 ---
 
