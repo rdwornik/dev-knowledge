@@ -355,7 +355,7 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 ### When context gets heavy
 
 - `/compact` at 40% (aggressive, Council-approved)
-- `/handoff` before switching to Claude.ai for architecture consulting
+- `/session-summary` before switching to Claude.ai for architecture consulting
 - If Claude says "it's done" on a complex operation — VERIFY with filesystem commands
 
 ### Session end protocol
@@ -379,7 +379,7 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 
 ### Handoff A: Claude Code → Browser
 
-1. In Claude Code: `/handoff` → generates token-efficient state summary
+1. In Claude Code: `/session-summary` → generates token-efficient state summary
 2. Paste into Claude.ai browser chat
 3. Discuss architecture, strategy, decisions
 4. Decisions go back to Claude Code as prompts (Section 2 format)
@@ -681,7 +681,7 @@ This is not optional for the applicable tier. Stale structural documentation is 
 | `/compact`         | Mid-session when context heavy                    |
 | `/compact [focus]` | Compress with focus ("focus on API changes")      |
 | `/evolve`          | Weekly Friday — review corrections, promote rules |
-| `/handoff`         | Before switching to Claude.ai browser             |
+| `/session-summary` | Before switching to Claude.ai browser             |
 | `/stats`           | Check token usage                                 |
 | `/plan [prompt]`   | One-shot plan mode without cycling Shift+Tab      |
 | `/model`           | Change model mid-session                          |

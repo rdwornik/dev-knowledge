@@ -22,7 +22,7 @@
 | Stop generation | Ctrl+C |
 | Clear screen (not session) | Ctrl+L |
 
-**Slash commands:** `/boot` (start) · `/clear` (between tasks) · `/compact` (shrink context) · `/handoff` (to browser) · `/recap` (resume context) · `/evolve` (Friday) · `/stats` (tokens)
+**Slash commands:** `/boot` (start) · `/clear` (between tasks) · `/compact` (shrink context) · `/session-summary` (to browser) · `/recap` (resume context) · `/evolve` (Friday) · `/stats` (tokens)
 
 ---
 
