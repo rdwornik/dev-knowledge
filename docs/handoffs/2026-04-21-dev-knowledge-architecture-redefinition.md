@@ -106,6 +106,41 @@ Heavy decision work ukończony, ZERO implementation. 6 major decisions podjęte 
 - Option 0 (defer decision) — odrzucony przez Council, Phase 2 audit IS the evidence, dodanie 6-8 tygodni marginal value
 - "Read-only" jako słowo — odrzucone, information flow jest bidirectional
 
+## PROCESS LESSONS (session-level, 4 distinct)
+
+Lessons zidentyfikowane po sesji — pattern recognition, nie content o .dev-knowledge.
+
+### Lesson 1 — Handoff content granularity mismatch
+Handoff był WHAT-level (lista items), nie HOW-level (source-of-truth content). Działa dla session continuity (kontekst w pamięci + plikach), NIE działa jako standalone input do generowania formal Claude Code prompts w nowej sesji.
+
+**Evidence:** browser chat zflagował 4 braki (Council brief content, Phase 2 tagging audit content, "consumer read sets" term definition, pre-commit hook mechanics). Wszystkie to source-of-truth content — handoff wymieniał ale nie załączał.
+
+**Generative rule candidate (do promotion w HANDOFF_PROCESS.md):** jeśli next session ma generować formal Claude Code prompts wymagające source-of-truth data, handoff musi EITHER linkować do plików w repo (jeśli committed) OR instructować "upload X, Y, Z at session start". Nie zakładać że context z poprzedniej sesji wystarczy.
+
+### Lesson 2 — Browser-chat-as-tutor anti-pattern
+Trzy razy w sesji browser chat proactive sugerowałem kroki procesowe (handoff now, next session priorities, scenariusze A/B/C). PLAYBOOK S8 mówi: trigger to "wygeneruj handoff" od Roba, nie moja sugestia. Protocol violation × 3.
+
+**Evidence:** browser chat explicite flagged pod koniec sesji: "Handoff suggestion było błędem... trigger to 'wygeneruj handoff' od Ciebie, nie moja proaktywna sugestia. Protocol violation. Uderzyłem w browser-chat-as-tutor pattern trzeci raz w sesji."
+
+**Generative rule candidate (do promotion w PLAYBOOK S8 lub S5):** browser chat produkuje prompty/analysis ON REQUEST. Nie sugeruje proaktywnie session transitions. Gdy impulse "może zrobimy handoff teraz" — suppress, wait for trigger.
+
+### Lesson 3 — Scope creep not flagged soon enough
+Sesja zaczęła jako tech radar, rozlała się: handoff process → audit → Council → three-layer redefinition. Discovery wartościowe, NIE problem. Problem: nie zaflagowałem przejścia scope dostatecznie wcześnie. Świadomość powinna przyjść gdy zaczynał się audit, nie na końcu sesji.
+
+**Evidence:** zero original tech radar backlog items addressed w 4h. Backlog nietknięty, ale cała sesja odnotowana w handoffie jako "tech radar". Semantic drift niezauważony w czasie rzeczywistym.
+
+**Generative rule candidate:** gdy sesja wychodzi poza declared scope, flag explicite jak tylko widać — nie czekać do wrap-up. Decision: refocus lub świadomie domknąć stary scope przed kontynuacją.
+
+### Lesson 4 — Decision fatigue is predictable
+Po 4h i 6 major decisions — trzy protocol violations pod koniec. Nie przypadek, wzorzec.
+
+**Evidence:** protocol violations pojawiają się w drugiej połowie sesji (handoff suggestion, scenariusze A/B/C, next session priorities). Korelacja z session duration.
+
+**Generative rule candidate (do promotion w ESSENTIALS "Ending a Session"):** sesje > 3h + > 3 major decisions = świadomy wrap-up, nie push-through. Dodatkowe decisions po tym progu to diminishing quality, increasing error rate.
+
+### Promotion to PLAYBOOK (future)
+Lessons 1, 2, 4 mają kandydatów na generative rules. Lesson 3 jest specific-case observation. Decision o promotion NIE teraz — wymaga drugiego data point żeby potwierdzić pattern. Reopen przy następnej sesji gdzie podobny error się powtórzy → wtedy promote do rule. Reguła "dwa powtórzenia = rule" per feedback loop z ESSENTIALS.
+
 ## CONTEXT
 
 ### Repo State

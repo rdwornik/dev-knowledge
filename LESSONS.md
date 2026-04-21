@@ -123,3 +123,11 @@
 ### 2026-04-15 | corp-monorepo tach-adoption session | Baseline violations are documentation, not blockers — when adopting boundary enforcement (Tach, lint rules), document baseline violations and fix in a separate phase. Phase 1 = instrumentation + documentation. Phase 2 = reclassification fixes. This prevents scope creep and keeps each PR focused. CI may fail between phases — this is known and acceptable if Phase 2 follows immediately. | process | Phased adoption: instrument first, fix in dedicated follow-up PR
 
 ### 2026-04-15 | corp-monorepo council-session | Council debate quality scales with real data — Council #26 brief improved significantly after feeding it real numbers (0 import violations from grep, pytest timing 166s, .pre-commit-config.yaml contents). Briefs without repo-specific data produce generic recommendations. Always run data-gathering audit before Council debate. | process | Gather concrete repo metrics before writing Council brief
+
+---
+Date: 2026-04-21
+Source: .dev-knowledge audit + Council #27 session
+Lesson: Session wyprodukowała 4 process-level lessons about (a) handoff content granularity — WHAT vs HOW-level detail, (b) browser-chat-as-tutor anti-pattern (proactive session transitions violate PLAYBOOK S8), (c) scope creep flagging — real-time detection zamiast post-hoc, (d) decision fatigue predictability at >3h / >3 decisions. See handoff 2026-04-21-dev-knowledge-architecture-redefinition.md for detail and generative rule candidates.
+Category: process | meta
+Action: Lessons 1, 2, 4 mają generative rule candidates — promote to PLAYBOOK/HANDOFF_PROCESS.md przy drugim powtórzeniu pattern (per feedback loop rule). Lesson 3 = specific-case observation.
+---
