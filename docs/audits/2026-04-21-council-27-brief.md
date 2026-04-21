@@ -31,6 +31,40 @@
 
 ---
 
+## Option 0: Defer Decision, Gather Evidence
+
+**Description:** do not commit to A/B/C now. Tag only NEW content with `scope:` frontmatter going forward (no bulk retagging of existing 63 sections). Run 6-week observation window: how many non-dev prompts, lessons, or templates actually get written? Reopen decision in Council #30 with empirical evidence.
+
+**Rationale:** the non-dev consumer hypothesis (presales prompt library, research workflows) is currently speculative. Committing to any of A/B/C bets on a future demand signal that may never materialize. Cost of waiting = bounded (continued mild scope confusion in .dev-knowledge); cost of wrong architecture commit = unbounded (sunk rewrite + forced future migration).
+
+**What triggers re-opening:**
+- 5+ new `[llm]`-tagged sections written in 6 weeks (demand signal real)
+- OR a concrete non-dev consumer project starts (e.g. presales prompt library work begins)
+- OR 8 weeks elapse with no signal → confirm A as default
+
+**Migration cost:**
+- Time: ~30 minutes (add `scope:` tag requirement to new-file checklist in PLAYBOOK + CLAUDE.md)
+- Risk: zero — no destructive changes
+- Steps:
+  1. Update CLAUDE.md: any new section MUST have `scope:` frontmatter
+  2. Update PLAYBOOK file-creation checklist (if exists)
+  3. Schedule Council #30 for 6 weeks out with agenda "revisit #27 with evidence"
+
+**Pros:**
+- Zero commitment cost
+- Lets evidence accumulate organically
+- Compatible with "no big-bang restructures" principle
+- Partial progress on Option A (new content gets tagged — pre-classifies for free if A is chosen later)
+
+**Cons:**
+- Continued mild scope confusion in current content
+- Requires discipline to actually revisit in 6 weeks (not defer again)
+- Can be used as procrastination cover if not time-boxed
+
+**Best for:** when evidence for non-dev demand is weak and decision reversibility matters more than immediate clarity.
+
+---
+
 ## Design Options
 
 ### Option A: Single Repo with Section Tagging
@@ -65,7 +99,7 @@ Consumer flow:
 - Zero new infrastructure, zero new repos.
 - Zero duplicated meta — the 35% stays in one place.
 - Incremental: can tag one file at a time without breaking anything.
-- LESSONS.md stays single and append-only (tag per entry line — compatible with no-edit rule going forward).
+- LESSONS.md — Option A requires choosing grandfather (no retroactive tags, pre-existing entries unfilterable) or explicit rule exception (one-time migration, documented as ADR). Do not claim append-only compatibility for retroactive edits.
 - Reversible: if split later proves right, tags pre-classify the content for free.
 
 **Cons:**
@@ -203,18 +237,20 @@ Consumer flow:
 
 ## Decision Matrix
 
+> **⚠️ Disclaimer on scores:** the numbers below are AI-generated estimates based on migration-cost analysis and architectural heuristics. They are NOT empirically validated and SHOULD be challenged by each Council model independently. Weights in particular encode implicit value judgments (e.g. "scope clarity matters more than onboarding simplicity") that Council must explicitly ratify or override. Do not accept the weighted total as authoritative — use it as a starting point for disagreement.
+
 Scores 1–10 (higher = better). Weights are a proposal; Council may renegotiate.
 
-| Criterion | Weight | A | B | C |
-|-----------|--------|---|---|---|
-| Migration cost (lower is better, so scored inversely) | 30% | 9 | 6 | 3 |
-| Scope clarity (names match contents) | 25% | 4 | 8 | 9 |
-| Future flexibility (accommodates new consumers) | 20% | 5 | 7 | 10 |
-| Maintenance overhead (lower is better, scored inversely) | 15% | 7 | 5 | 6 |
-| Onboarding simplicity | 10% | 8 | 6 | 4 |
-| **Weighted score** | 100% | **6.55** | **6.55** | **6.10** |
+| Criterion | Weight | 0 (Defer) | A | B | C |
+|-----------|--------|-----------|---|---|---|
+| Migration cost (lower is better, so scored inversely) | 30% | 10 | 9 | 6 | 3 |
+| Scope clarity (names match contents) | 25% | 2 | 4 | 8 | 9 |
+| Future flexibility (accommodates new consumers) | 20% | 6 | 5 | 7 | 10 |
+| Maintenance overhead (lower is better, scored inversely) | 15% | 8 | 7 | 5 | 6 |
+| Onboarding simplicity | 10% | 9 | 8 | 6 | 4 |
+| **Weighted score** | 100% | **6.55** | **6.55** | **6.55** | **6.10** |
 
-**Observation:** A and B tie at current weights. The tie collapses the moment Council re-weights "Scope clarity" up (B wins) or "Migration cost" up (A wins). C only wins if **Future flexibility is weighted ≥35%** — i.e. Council is betting that multiple non-dev overlays will exist within 12 months.
+**Observation:** Options 0, A, and B tie at current weights (scores for Option 0 are AI-generated estimates — challenge them). The tie collapses the moment Council re-weights "Scope clarity" up (B wins) or "Migration cost" up (0 wins). C only wins if **Future flexibility is weighted ≥35%** — i.e. Council is betting that multiple non-dev overlays will exist within 12 months. Option 0's low score on "Scope clarity" reflects that it does nothing about current confusion; its high "Migration cost" score reflects near-zero implementation risk.
 
 ---
 
@@ -222,19 +258,28 @@ Scores 1–10 (higher = better). Weights are a proposal; Council may renegotiate
 
 1. **Is there a concrete non-dev consumer today, or is LLM practice still dev-adjacent in reality?** The only mentioned candidate is a presales prompt library — is that work planned, or hypothetical?
 2. **Is the 7/13 "universal structure + dev-specific examples" pattern generative?** If yes → C becomes defensible. If it's just how current content happened to be written → C is premature.
-3. **LESSONS.md disposition:** grandfather as dev-only (simpler, some lessons misclassified), or tag retroactively per entry (respects append-only by adding only a tag column, not editing content)?
+3. **LESSONS.md disposition — honest framing:** retroactive tagging of existing entries IS an edit to the file, which conflicts with the append-only rule. Council must choose:
+   a. **Grandfather:** leave existing 123 lines untouched. Start tagging from first new entry onward. Lessons pre-dating split remain unfilterable — acceptable if filter-by-scope is only for new content discovery.
+   b. **Explicit rule exception:** Council formally loosens append-only for a one-time retroactive tag migration, documents the exception as ADR, then append-only resumes.
+   c. **Split going forward:** new lessons go to LESSONS_DEV.md or LESSONS_LLM.md; LESSONS.md becomes historical archive.
+   
+   These are all legitimate — but all three have trade-offs and none is "compatible with append-only" without either exception or split.
 4. **Meta overhead (35%, 22 sections):** accept duplication across repos (B, C), or keep single governance (A)? What's the marginal cost of maintaining two CLAUDE.md + README sets?
 5. **Acceptable migration timeline:** one sprint (forces A), one month (A or B), one quarter (any)? How much disruption is acceptable to `.dev-knowledge/` given it's the hottest file set (ESSENTIALS/PLAYBOOK/LESSONS = 23 commits in last 30 days)?
-6. **Decision scope for #27 itself:** does Council decide architecture now, or first ratify the problem statement and defer architecture to #28 after a 2-week evidence-gathering period?
+6. **Decision scope for #27 itself:** does Council decide architecture now (choose A/B/C), adopt Option 0 (defer with time-box and evidence trigger), or first ratify only the problem statement and defer architecture to #28? Option 0 is the structured form of deferral — it includes a trigger and deadline; informal defer to #28 does not.
 7. **Runtime (`~/.claude/`) boundary:** confirmed separate from this decision regardless of A/B/C? The 5 `[runtime]` sections in `.dev-knowledge/` (8%) — do they migrate to `~/.claude/` independently as a Phase 4 regardless of architectural choice?
 
 ---
 
 ## Recommendation (non-binding)
 
-**Option A (tag-first), on grounds that the hypothesis "LLM practice has non-dev consumers" is currently weak — the only candidate non-dev use case is a prompt library for presales, which is itself hypothetical.** Option A pre-classifies the content at low cost, so the moment the non-dev hypothesis becomes real, a migration to B is mechanical (extract by tag). Option C is premature until the 7/13 pattern proves to generalize across more than one domain.
+**Option A (tag-first) or Option 0 (defer with evidence trigger)**, on grounds that the hypothesis "LLM practice has non-dev consumers" is currently weak — the only candidate non-dev use case is a prompt library for presales, which is itself hypothetical.
 
-If Council disputes the weakness of the non-dev hypothesis — if a presales prompt library, research workflow, or third consumer is actually imminent within 8 weeks — recommendation shifts to B.
+- If Council agrees the non-dev signal is weak: **Option 0** is most consistent with the incremental-building principle — near-zero cost, evidence accumulates organically, decision reopens at Council #30 with real data. Option A is also defensible if Council wants the tagging work done now regardless.
+- If Council disputes the weakness of the non-dev hypothesis — if a presales prompt library, research workflow, or third consumer is actually imminent within 8 weeks — **recommendation shifts to B**.
+- **Option C is premature** until the 7/13 pattern proves to generalize across more than one domain.
+
+Option 0 is not a non-decision — it is a time-boxed bet that 6 weeks of evidence is worth more than immediate architectural commitment.
 
 ---
 
