@@ -1,7 +1,51 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-03-29
+> Last updated: 2026-04-21
+
+---
+
+## System Architecture
+
+**`.dev-knowledge` is not a journal and not an orchestrator.** It is the passive storage layer in a three-layer architecture. This section describes what is — it does not decree new constraints.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 1 — BROWSER CHAT (Claude.ai)  │  Analytical          │
+│  Analysis, synthesis, critical thinking, Council debates    │
+│  Produces: handoffs, ADRs, session summaries, Council briefs│
+└──────────────────────┬──────────────────────────────────────┘
+                       │ handoff → git commit
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 2 — .dev-knowledge            │  Passive storage     │
+│  Templates, patterns, lessons, ADRs, playbook, handoffs     │
+│  Read by humans, Claude Code, future browser chats          │
+│  No scripts reside here. Library, not daemon.               │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ read / pull as context
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 3 — PROJECTS (Claude Code)    │  Execution           │
+│  corp-monorepo, ai-council, sca-time-automation, etc.       │
+│  Read from Layer 2, run tests, generate artifacts           │
+│  Reflections → back to Layer 1 as new browser chat          │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ reflection → new browser chat
+                       ▼
+                  (cycle closes at Layer 1)
+```
+
+### Rules
+
+- **Layer 2 never executes.** No scripts, no orchestrator, no active daemon residing in `.dev-knowledge/`. Read-only execution semantics.
+- **Write-back via Layer 1 only.** Claude Code (Layer 3) does not directly edit `.dev-knowledge/` files. Reflections flow back through browser chat → handoff → commit.
+- **Bidirectional, not read-only.** Layer 2 is updateable via handoffs/ADRs/lessons from Layer 1. The *execution* direction is one-way (Layer 2 → Layer 3).
+- **Separate from Obsidian vault.** Vault = pre-sales domain knowledge (see Section 12). `.dev-knowledge` = dev methodology. Different domains, different audiences, different write paths.
+
+### Cross-reference
+
+Section 12 "Where Knowledge Lives" describes knowledge **domains** (what lives where). This section describes workflow **layers** (how information flows). Complementary views of the same ecosystem.
 
 ---
 
