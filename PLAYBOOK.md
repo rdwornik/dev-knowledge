@@ -651,8 +651,8 @@ Two options for code review (A/B test both, then standardize):
 **Option A — /ultrareview (Claude Code built-in):**
 Cloud-based multi-agent review. Run without arguments (current branch) or with PR number. No second terminal needed.
 
-**Option B — Codex CLI (second terminal):**
-`/review` prepares diff → copy command to Codex terminal → findings returned. Requires ChatGPT Plus subscription.
+**Option B — Codex CLI (automated, single command):**
+`codex-review -Topic <topic>` (slash command: `/review`) wraps `codex exec --output-last-message`. Produces dated, frontmatter-wrapped audit at `docs/audits/YYYY-MM-DD-codex-{topic}.md`. Read-only sandbox. Opt-in `-AutoCommit`. Requires ChatGPT Plus subscription. See `~/.claude/bin/codex-review.README.md`.
 
 Both satisfy S15 review requirement. Choose based on quality of findings after 2-week A/B test.
 

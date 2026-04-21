@@ -7,6 +7,10 @@ Notable changes to the dev practice knowledge base.
 ## 2026-04-21
 - PLAYBOOK: added "System Architecture" section documenting three-layer architecture (ADR-28)
 - PLAYBOOK: added cross-ref in Section 12 to System Architecture
+- Automated Codex review: `~/.claude/bin/codex-review.ps1` wraps `codex exec --output-last-message`
+- `/review` slash command updated to invoke `codex-review`; PLAYBOOK S15 + ESSENTIALS step 3 updated
+- Replaces manual "copy from TUI → paste to file" workflow
+- Flag `-AutoCommit` for opt-in commit; file-based commit message avoids OneDrive hook
 
 ---
 
