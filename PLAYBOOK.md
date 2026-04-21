@@ -540,6 +540,8 @@ Dev/{project}/packages/X/CLAUDE.md  ← Package rules
 
 **Three domains, three homes, zero overlap.** Council Decision #23 (2026-03-29, unanimous 4-0).
 
+> See also "System Architecture" section — domains (this section) and layers (that section) are complementary frames.
+
 | Domain                     | Location              | Tool                       | Purpose                                                  |
 | -------------------------- | --------------------- | -------------------------- | -------------------------------------------------------- |
 | Pre-sales work knowledge   | `ObsidianVault/`      | Obsidian                   | Clients, products, domains, competitive intel, demo prep |
