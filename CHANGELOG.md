@@ -4,6 +4,12 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-21
+- PLAYBOOK: added "System Architecture" section documenting three-layer architecture (ADR-28)
+- PLAYBOOK: added cross-ref in Section 12 to System Architecture
+
+---
+
 ## 2026-03-29 — Initial Release
 
 ### Added
