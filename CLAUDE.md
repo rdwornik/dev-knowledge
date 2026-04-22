@@ -1,10 +1,12 @@
 # CLAUDE.md — Dev Knowledge
 
 ## What this project is
+<!-- scope: meta -->
 
 Living knowledge base for Rob's dev practice methodology. NOT a code project — a collection of markdown files that document how Rob works with AI-assisted development. Managed via Claude Code and VS Code.
 
 ## Files and their rules
+<!-- scope: meta -->
 
 | File             | Type        | Rule                                                                                         |
 | ---------------- | ----------- | -------------------------------------------------------------------------------------------- |
@@ -18,6 +20,7 @@ Living knowledge base for Rob's dev practice methodology. NOT a code project —
 | README.md        | Living      | Triage rules and file index. Update when files are added/removed.                            |
 
 ## What to do here
+<!-- scope: meta -->
 
 - Update files when processes, config, or decisions change
 - Append lessons after sessions
@@ -27,6 +30,7 @@ Living knowledge base for Rob's dev practice methodology. NOT a code project —
 - .claude/rules/git-discipline.md enforces this automatically.
 
 ## What NOT to do
+<!-- scope: meta -->
 
 - Do not create new markdown files without checking README.md growth triggers (20 files → evaluate DevVault migration)
 - Do not duplicate content between files — ESSENTIALS summarizes PLAYBOOK, not copies it
@@ -36,13 +40,56 @@ Living knowledge base for Rob's dev practice methodology. NOT a code project —
 - Do not edit TOKEN-LOG.md entries — only append
 
 ## Related locations
+<!-- scope: meta -->
 
 - `~/.claude/` — Claude Code runtime config (skills, gotchas, memory, rules, commands, hooks)
 - `.claude/` — project-level Claude Code config (git-discipline rule, /save command)
 - `ObsidianVault/` — pre-sales work knowledge (separate, do not mix)
 - `Dev/` — code projects (each has own CLAUDE.md)
 
+## Scope tags
+<!-- scope: meta -->
+
+**Vocabulary:** `dev | llm | hybrid | runtime | meta` (per ADR-27).
+
+Every section in living files has a scope tag as an HTML comment directly under its header:
+
+```
+## Section Title
+<!-- scope: hybrid -->
+
+Section body...
+```
+
+File-level tag (single comment under H1 title) substitutes for per-section tags when all sections share the same scope (see LESSONS.md — ADR-29).
+
+### Tag definitions
+<!-- scope: meta -->
+
+- `dev` — dev methodology: code, git, testing, programming workflow
+- `llm` — LLM work generally: prompting, model choice, tokens, chat workflow
+- `hybrid` — inseparably both dev and llm; cannot be split without rewriting
+- `runtime` — Claude Code runtime config: skills, shortcuts, hooks, slash commands
+- `meta` — about the repo/knowledge system itself: index, triage, governance, decisions
+
+### Consumer read sets
+<!-- scope: meta -->
+
+| Consumer type            | Tags to include                     |
+| ------------------------ | ----------------------------------- |
+| Functional browser chat  | `llm`, `hybrid`, `meta`             |
+| Programming browser chat | `dev`, `llm`, `hybrid`, `meta`      |
+| Claude Code session      | all tags                            |
+
+### Governance
+<!-- scope: meta -->
+
+- Hybrid ≤25% ceiling (ADR-27). Currently INFO-only in hook; enforcement flips to blocking after Stream A completes.
+- All new sections MUST include a scope tag — pre-commit hook enforces.
+- Evidence-triggered reopening conditions are in ADR-27.
+
 ## Consistency check
+<!-- scope: meta -->
 
 When updating any file here, verify:
 - Does ESSENTIALS still match PLAYBOOK? (ESSENTIALS is the summary)
@@ -51,6 +98,7 @@ When updating any file here, verify:
 - If a process changed in PLAYBOOK, did SESSION_SETUP also get updated?
 
 ## Council decisions governing this project
+<!-- scope: meta -->
 
 - #23: vault = pre-sales, .dev-knowledge = dev methodology, ~/.claude/ = runtime config
 - #24: browser handoff = one format, "wygeneruj handoff", <100 lines, code block
