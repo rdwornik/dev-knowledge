@@ -50,3 +50,9 @@ Notable changes to the dev practice knowledge base.
 ## 2026-04-21 (continued)
 - Added ADR-27: Council #27 scope tagging architecture (Option A, binding)
 - Added ADR-29: LESSONS.md grandfathering under scope tagging
+
+## 2026-04-22
+- Added CLAUDE.md Scope tags section (vocabulary, consumer read sets, governance) per ADR-27
+- Added scripts/validate_scope_tags.py (stdlib-only pre-commit validator)
+- Added .pre-commit-config.yaml and requirements-dev.txt (pre-commit >= 3.5.0)
+- Tagged CLAUDE.md (11 sections) and README.md (5 sections) as meta
