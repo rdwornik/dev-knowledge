@@ -1,0 +1,12 @@
+# Pre-commit hooks for .dev-knowledge
+# Governed by ADR-27 (scope tagging architecture)
+
+repos:
+  - repo: local
+    hooks:
+      - id: scope-tag-validator
+        name: Validate scope tags (ADR-27)
+        entry: python scripts/validate_scope_tags.py
+        language: system
+        types: [markdown]
+        pass_filenames: true
