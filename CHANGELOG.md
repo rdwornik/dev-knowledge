@@ -46,3 +46,7 @@ Notable changes to the dev practice knowledge base.
 ### Council Decisions
 - #23: vault = pre-sales, .dev-knowledge = dev methodology, ~/.claude/ = runtime config
 - #24: browser handoff = one format, "wygeneruj handoff", <100 lines, checkpoint at ~2h
+
+## 2026-04-21 (continued)
+- Added ADR-27: Council #27 scope tagging architecture (Option A, binding)
+- Added ADR-29: LESSONS.md grandfathering under scope tagging
