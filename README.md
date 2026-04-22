@@ -4,6 +4,7 @@ Dev practice methodology — how Rob builds software with AI.
 Separate from pre-sales work knowledge (ObsidianVault/) and Claude Code runtime config (~/.claude/).
 
 ## Files
+<!-- scope: meta -->
 
 | File | When to open | What it is |
 |------|-------------|------------|
@@ -17,6 +18,7 @@ Separate from pre-sales work knowledge (ObsidianVault/) and Claude Code runtime 
 | **CLAUDE.md** | Claude Code reads automatically | Project contract — what to do, what not to do |
 
 ## Triage Rules
+<!-- scope: meta -->
 
 | Content type | Where it goes |
 |---|---|
@@ -25,17 +27,20 @@ Separate from pre-sales work knowledge (ObsidianVault/) and Claude Code runtime 
 | Rules Claude Code must follow, commands, hooks, agent config | `~/.claude/` |
 
 ## When a lesson becomes a rule
+<!-- scope: meta -->
 
 1. Write the rationale in LESSONS.md (why, what happened, context)
 2. Write the executable rule in `~/.claude/` (gotchas, rules/, or learned-rules.md with verify: line)
 3. Cross-reference both with file path
 
 ## Data sanitization
+<!-- scope: meta -->
 
 If a client engagement generates a dev lesson, remove all client names,
 proprietary schemas, and identifying details before writing here.
 
 ## Growth triggers
+<!-- scope: meta -->
 
 - **20 files** here → evaluate migrating to a dedicated Obsidian DevVault
 - **50 entries** in LESSONS.md → split into topic files
