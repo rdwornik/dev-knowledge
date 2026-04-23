@@ -19,6 +19,8 @@ The corp-monorepo Scale L operating model is a **six-layer governance stack** ru
 
 **Documented vs. practiced.** What is documented: branch naming, conventional commits, ADR template (≤20 lines per `docs/decisions/README.md:35`), Codex severity levels, Tach layer rules, Session Protocol (4 steps in `CLAUDE.md:73-77`), Prompt Decision Rule (`CLAUDE.md:90-94`). What is **practiced but not documented**: the multi-PR ADR rollout pattern (PR-1 foundation / PR-2 migration / PR-3 CI in `ADR-27...:88-95`; mirrored in ADR-26's Phase 1 / Phase 2 / Step 12 sequence in `JOURNAL.md:8-21`), `hotfix/*` branch convention (used 2026-04-21 but absent from `CONTRIBUTING.md:5-11`), the `verify:` line on every gotcha and learned-rule (in `CLAUDE.md:65-71` and pervasively in `gotchas.md`, but no doc explains the convention), the Codex re-review-after-amendment cycle (`docs/audits/2026-04-21-codex-hotfix-review.md:92`), and the unique location/naming for the ADR-27 transcript.
 
+**Extensions from verification pass 2026-04-23 (Sections 11-14).** Two governance artifacts operate adjacent to the six-layer stack and are not referenced by any corp-monorepo contract file, bringing the effective surface to **eight layers**: (7) the AI Council debate tool is a **standalone repo** at `C:\Users\1028120\Documents\Dev\ai-council\` with its own `CLAUDE.md` (223 lines) and an 89-file `output/` archive (2026-02-21..2026-04-22); every transcript in `docs/decisions/transcripts/` and every `ADR-27-council-*.md` originates there, yet corp-monorepo contains zero pointer to the ai-council repo path, no script automating the output→transcript copy, and no metadata field linking a transcript back to its source run (`grep "ai-council"` in `docs/decisions/transcripts/*.md` = 0 matches). (8) A `corp-monorepo.code-workspace` (170 lines) encodes Python/Ruff/pytest/debug configuration that no contract file references; `.dev-knowledge` has its own 116-line workspace; ai-council has no workspace file at all. Two additional drift signals: **ADR-27 naming collision** — `docs/decisions/` contains two `ADR-27-*.md` files (184 + 1019 = 1203 lines combined) and no `DECISION_27_*.md` under `transcripts/`, a convention break from the clean `ADR-NN` / `DECISION_NN` split that held for #1..#26; 27 of 29 ADR files (93%) exceed the ≤20-line target from `docs/decisions/README.md:35`. **PLAYBOOK AI Council coverage is conceptual, not infrastructural** — `.dev-knowledge/PLAYBOOK.md:71,253,300` tells the reader *when* to run a Council debate but never *where* the tool lives, what its output directory is called, how outputs are named, or how an output file graduates to `docs/decisions/transcripts/`. The pipeline from Council run → transcript → ADR exists entirely in practice and muscle memory.
+
 ---
 
 ## Section 2 — File Inventory with Roles
@@ -322,6 +324,228 @@ Surfaced during the read but not naturally fitting Sections 1-9.
 
 ---
 
+## Section 11 — AI Council Integration
+
+Added 2026-04-23 from verification pass. Reverse-engineered from the ai-council repo, the corp-monorepo `docs/decisions/` tree, and `.dev-knowledge/PLAYBOOK.md`.
+
+### 11.1 Location & Self-Governance
+
+AI Council is a **standalone Python project** at `C:\Users\1028120\Documents\Dev\ai-council\`, not a subpackage of corp-monorepo and not a sibling under an umbrella repo. Repo layout (top-level entries only): `src/`, `tests/`, `config/`, `scripts/`, `docs/`, `output/`, `council_inbox/`, `tasks/`, `eval/`, plus `CLAUDE.md`, `README.md`, `CHANGELOG.md`, `JOURNAL.md`, `pyproject.toml`, `pytest.ini`.
+
+`ai-council/CLAUDE.md` (223 lines) is project-specific: it declares the architecture (`src/cli.py`, `src/debate.py`, `src/synthesis.py`, `src/output.py`, `src/research/`), lists providers (Claude, Gemini, GPT, Grok, DeepSeek, Perplexity + two OpenAI research variants), the four debate modes (`pick`/`ideas`/`judge`/`research`), a gotchas inline section (`ai-council/CLAUDE.md:192-200`), and a "Folder governance" block (`ai-council/CLAUDE.md:208-218`). It does **not** act as a meta-governance file for the wider Corporate OS ecosystem; its `## Integration points` section (`ai-council/CLAUDE.md:178-183`) simply states "ai-council is fully standalone" and references `ECOSYSTEM.md`, `corp-by-os`, and `corp-os-meta` — the latter two being pre-consolidation repo names that do not appear as current siblings.
+
+No `.code-workspace` file exists in the ai-council repo. Both corp-monorepo and `.dev-knowledge` have one (see Section 14); ai-council does not. This is a gap that neither `ai-council/CLAUDE.md` nor any corp-monorepo document acknowledges.
+
+### 11.2 Output Archive
+
+`ai-council/output/` contains 89 `.md` transcripts and 21 `_metrics.json` companion files as of 2026-04-23, dated `2026-02-21` through `2026-04-22`. Naming convention: `YYYYMMDD_HHMMSS_{slug}.md` (transcript) + `YYYYMMDD_HHMMSS_{slug}_metrics.json` (metrics). Slugs are either the original question (early runs: `20260221_225130_should-we-use-yaml-or-json-for-config.md`, `20260225_173423_should-we-use-rest-or-graphql-for-a-new-.md`) or a prompt-file basename (later runs: `20260415_153109_council-26-tach-adoption-v2.md`, `20260422_181040_COUNCIL_onedrive_centralization.md`). Metrics files appear from `20260326_002437_council_debate_quality_metrics.json` onward; earlier runs predate the metrics-companion convention.
+
+Transcript sizes cluster around 70-100 KB; the largest observed is `20260421_145718_2026-04-21-council-27-brief.md` at 114 KB. Metrics files are 2.0-2.7 KB and contain per-call token counts and cost. One filename carries a `FAILED_` prefix (`20260326_135232_FAILED_2026-03-26T1200_council_mode_system_design.md`) — the only visible failure marker in the archive; all other runs completed successfully to the naming convention.
+
+### 11.3 Integration Gap with corp-monorepo
+
+Observed pipeline, reconstructed from file contents and timestamps:
+
+1. Council run executes in `ai-council/` → writes `ai-council/output/YYYYMMDD_HHMMSS_{slug}.md` + `_metrics.json`.
+2. Human manually copies (or pastes) the transcript into `corp-monorepo/docs/decisions/transcripts/DECISION_NN_{snake_case}.md`.
+3. Human reads transcript, writes a distilled ≤20-line ADR at `corp-monorepo/docs/decisions/ADR-NN-{kebab}.md`.
+4. Metrics JSON is left in the ai-council archive; no metrics field ever lands in the ADR or the transcript.
+
+Every hop is manual. There is no script, no symlink, no shared path variable, and no frontmatter field carrying the ai-council source filename forward into the corp-monorepo transcript. Two grep-able signals confirm the complete lack of programmatic linkage:
+
+- `grep -l "ai-council" corp-monorepo/docs/decisions/transcripts/*.md` → **0 matches**
+- `grep -l "corp-monorepo" ai-council/*.md` (root only) → **0 matches** (three `output/` files and five `council_inbox/archive/` files mention `corp-monorepo` in their prompt bodies, but none of the root-level governance files do)
+
+Consequences observed:
+- The ADR-27 Council transcript at `corp-monorepo/docs/decisions/ADR-27-council-onedrive-centralization.md` (1019 lines) and the ai-council output file `20260422_181040_COUNCIL_onedrive_centralization.md` (92 KB, 2026-04-22 18:10:40) describe the same run. The two files have no reciprocal reference. A reader of the corp-monorepo file cannot find the metrics JSON (`_metrics.json` exists only in the ai-council archive); a reader of the ai-council file cannot find the ADR that was produced from it.
+- Council #25 (diagrams) and Council #26 (Tach) have no `DECISION_25_*.md` or `DECISION_26_*.md` in corp-monorepo (already noted in Section 2), yet `ai-council/output/20260330_162902_council25_diagrams.md` and `ai-council/output/20260415_153109_council-26-tach-adoption-v2.md` both exist. The transcripts are not missing — they were never copied. Without a pipeline step the copy is load-bearing human memory.
+
+### 11.4 PLAYBOOK Coverage
+
+`.dev-knowledge/PLAYBOOK.md` is the ecosystem-level process document. AI Council appears four times (`PLAYBOOK.md:71,224,253,300`):
+
+- Line 71: "For architectural decisions (new database? new package? new integration?), run an AI Council debate before writing a single line."
+- Line 224: "Architecture decision → AI Council debate first, then formal prompt"
+- Lines 252-253: "Architectural decisions (new database, new integration pattern, new package) → AI Council"
+- Line 300: `## 5. Running an AI Council Debate` — full section on *when* to use Council vs decide yourself, plus a debate question format (lines 314-334).
+
+What PLAYBOOK does **not** declare:
+- The filesystem path to the ai-council repo
+- The existence of `ai-council/output/` as the physical landing spot for run artifacts
+- The `YYYYMMDD_HHMMSS_{slug}.md` naming convention
+- The existence of `_metrics.json` companion files
+- The `council_inbox/` drop folder and its `--inbox` batch mode (documented in `ai-council/CLAUDE.md:91-92`)
+- The copy-and-rename step from `output/` → `corp-monorepo/docs/decisions/transcripts/DECISION_NN_*.md`
+- Whether the ADR is written in the same session as the Council run, or later
+
+In short: PLAYBOOK covers the **decision** (when to invoke) but not the **infrastructure** (where outputs live and how they move). The section header (line 302) even says "Full format guide lives in the council project's docs/ folder", which is a pointer — but the pointer does not include a path.
+
+### 11.5 Open Questions (extending Section 9)
+
+11. **Where does the pointer to ai-council live?** Candidates: `corp-monorepo/CLAUDE.md` (would require mentioning a different repo from the one Claude is reading), `.dev-knowledge/PLAYBOOK.md` (fits PLAYBOOK's process-level scope), `~/.claude/settings.json` (ambient env), or ai-council's own `README.md` consumed via cross-repo lookup. Currently: nowhere.
+12. **How is the path encoded if ai-council moves?** All four candidate locations above would hardcode an absolute Windows path, inheriting the same brittleness that would affect `C:\Users\1028120\Documents\Dev\`. No environment variable or workspace-relative resolution is in evidence.
+13. **Should the Council → ADR pipeline be scripted?** Either a script in ai-council that publishes to corp-monorepo (one-way), a script in corp-monorepo that pulls from ai-council (read-only import), or a documented manual checklist. Current state is undeclared manual.
+14. **Should the `_metrics.json` travel with the transcript?** It contains cost and per-model token attribution that is not recoverable from the transcript body. If it is meant to be part of the record, it needs a home in corp-monorepo; if it is meant to stay in ai-council, that should be a documented decision.
+
+---
+
+## Section 12 — ADR-27 Naming Collision & Convention Drift
+
+Added 2026-04-23. Extends the observations at Section 2 note 55 and Section 10 ("Two ADR-27 files exist") with quantified evidence.
+
+### 12.1 The Collision
+
+The folder `corp-monorepo/docs/decisions/` contains two files that sort adjacently under any `ADR-27-*.md` glob:
+
+- `ADR-27-safety-invariants.md` (183 lines) — the actual ADR: `Date: 2026-04-22`, `Status: Accepted`, `Decider: AI Council 2026-04-22 (Decision 1); Rob with Claude review (Decision 2)` (`ADR-27-safety-invariants.md:3-5`). Its header cites `docs/decisions/ADR-27-council-onedrive-centralization.md` as the "Debate transcript" (line 8).
+- `ADR-27-council-onedrive-centralization.md` (1019 lines) — the raw Council transcript, opening with `# AI Council Debate: # AI Council Debate — OneDrive Safety Guard Centralization (ADR-27 prep)` and a panel/synthesizer/cost header at lines 5-13, then two full debate rounds and a synthesized action-items list. Lines 900-950 are a "Risk Mitigation" synthesis; lines 974-1019 are the action items promoted into the ADR.
+
+No `transcripts/DECISION_27_*.md` exists. The two-file ADR-27 pair replaces the previous split between `docs/decisions/ADR-NN-*.md` (distilled) and `docs/decisions/transcripts/DECISION_NN_*.md` (raw) — for this one decision only. Uniqueness of the `ADR-NN` identifier is broken: "ADR-27" now refers to two co-equal, co-located documents that sort together in any directory listing.
+
+### 12.2 Boundary Violation — Evidence
+
+Measured across all 29 `ADR-*.md` files in `corp-monorepo/docs/decisions/`:
+
+- **Min length:** 19 lines (`ADR-03-model-selection.md`, `ADR-04-vault-structure.md`)
+- **Max length:** 1019 lines (`ADR-27-council-onedrive-centralization.md`)
+- **Median:** 23 lines (position 15 of 29, `ADR-25-diagram-strategy.md`)
+- **Mean:** 74 lines (skewed by the 1019-line outlier; mean without outlier = 40 lines)
+- **Files at ≤20 lines:** 2 of 29 (7%). Files at ≤21 lines: 14 of 29 (48%).
+- **Files exceeding the ≤20-line target** stated in `docs/decisions/README.md:35`: **27 of 29 (93%).**
+
+The target ≤20 lines appears to have been the intent for ADR-01..ADR-14 (all but two of which are at 19 or 21 lines) and materially broken from ADR-13/ADR-15 onward (38-line entries), with the real departures at ADR-22 (64), ADR-23 (77), ADR-26 (136), ADR-27-safety-invariants (183), and ADR-27-council-onedrive-centralization (1019). The split "ADR = short distilled decision / DECISION = raw transcript" held cleanly for #1..#26: every transcript under ~1000 lines lived in `transcripts/DECISION_NN_*.md`, every distillation under ~80 lines lived at the top level. ADR-27 is the first case where a transcript (>1000 lines, Council-panel header, debate rounds, risk mitigation, action items) is filed as an ADR.
+
+### 12.3 Consequences
+
+- **Grep ambiguity.** `grep "ADR-27"` in `corp-monorepo/` matches both files with no contextual disambiguation. A reader looking for "the ADR-27 decision" gets two co-equal hits.
+- **Read-by-glob returns 1203 lines.** A Claude session running `Read docs/decisions/ADR-27-*.md` (plausible given the glob pattern used in `.dev-knowledge/PLAYBOOK.md:41-42`-style shortcuts and existing Claude habits) would receive 183 lines of ADR concatenated with 1019 lines of transcript. The model would need to context-switch mid-file between distilled-decision register and raw-debate register.
+- **Count-of-ADRs is now ambiguous.** `corp-monorepo/CLAUDE.md:54` says "Council Decisions: 24"; the live count per filesystem is 29 files with 27 unique numeric identifiers (two ADR-27s, one missing at ADR-NN positions not examined). Even correcting CLAUDE.md's number, whoever does the correction must choose between 27 (unique decisions), 28 (counting ADR-27-council as a transcript), or 29 (file count).
+- **Pattern-drift signal.** ADR-01..ADR-26 followed a chronological distill/transcript convention. The ADR-27 breakthrough coincides with the largest ADR ever produced (183 lines), the largest transcript ever produced (1019 lines), and the first filed-as-ADR transcript. The convention did not bend; it broke at a single decision.
+
+### 12.4 Open Questions (extending Section 9)
+
+15. **Which of the two ADR-27 files should be renumbered or moved?** Options: rename `ADR-27-safety-invariants.md` → `ADR-28-*`; move `ADR-27-council-onedrive-centralization.md` → `transcripts/DECISION_27_onedrive_centralization.md`; leave both and document the exception. Section 9 #5 posed the naming choice prospectively; post-collision, the question is retroactive.
+16. **Why was `DECISION_27_*.md` skipped?** Deliberate (because the transcript was already filed under `ADR-27-*`)? Accidental (because the human forgot to also copy to `transcripts/`)? Neither ADR-27 file declares the reason.
+17. **How is identifier uniqueness enforced going forward?** No pre-commit check, no CI check, no lint rule, no `tach`-style config currently prevents two files from sharing the same `ADR-NN` prefix. The convention is culturally enforced, not mechanically.
+18. **Does the ≤20-line ADR target still apply?** It is cited at `docs/decisions/README.md:35` but violated by 93% of the corpus. Either the target is revised (to ≤80 lines, matching recent practice), or the template is restructured (ADR summary + linked appendices), or `README.md:35` is updated to reflect reality. Currently the target is frozen and routinely broken.
+
+---
+
+## Section 13 — Naming Convention Inventory
+
+Added 2026-04-23. Surfaces the conventions in use across corp-monorepo and whether any file declares them.
+
+### 13.1 Inventory — four parallel conventions
+
+| Folder | Convention | File count (observed) | Examples |
+|--------|-----------|----------------------|----------|
+| repo root | `UPPER_CASE.md` | 6 | `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `README.md`, `JOURNAL.md`, `CHANGELOG.md` |
+| `docs/decisions/` (ADRs) | `ADR-NN-kebab-case.md` | 29 | `ADR-23-monorepo-internal-architecture.md`, `ADR-26-tach-adoption.md`, `ADR-27-safety-invariants.md` |
+| `docs/decisions/transcripts/` | `DECISION_NN_snake_case.md` | 24 (incl. 2 `_SUPERSEDED`) | `DECISION_23_monorepo_internal_architecture.md`, `DECISION_24_mywork_knowledge_architecture.md`, `DECISION_03_..._SUPERSEDED.md` |
+| `docs/handoffs/`, `docs/audits/` | `YYYY-MM-DD-kebab.md` | 1 handoff, 3 audits | `2026-04-15-handoff.md`, `2026-03-30-codex-full-audit.md`, `2026-04-21-codex-hotfix-review.md` |
+
+Four distinct conventions, each internally consistent within its folder (except the ADR-27 collision, Section 12).
+
+### 13.2 By Design vs Accidental
+
+The split between `ADR-NN-kebab` (distilled) and `DECISION_NN_snake` (raw) is explicitly **by design** — one type per folder, different register, different lifecycle (frozen-on-write for transcripts, occasionally amended for ADRs). `corp-monorepo/docs/decisions/README.md:10-22` (the part not truncated) documents this split implicitly by structure, but the distinction is not stated as a rule with rationale.
+
+The split between root `UPPER_CASE.md` (governance contract files) and nested `kebab-case.md` (artifact files) is also by design — governance files are meant to be spotted at a glance during `ls` in the repo root. Again, no file declares this.
+
+The `YYYY-MM-DD-kebab.md` convention for dated session artifacts appears consistent across `docs/handoffs/` (n=1), `docs/audits/` (n=3), and `.dev-knowledge/docs/audits/` (this file, plus the two earlier audits). Whether this is deliberate convergence or copy-paste from the first dated file cannot be determined from content alone — no file cites an earlier file as a template, and no contract file (`CLAUDE.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/ARCHITECTURE.md`) names the convention.
+
+The net: **four by-design conventions, zero documented specifications.** A contributor cannot learn the naming rules from any single file; they must infer from filesystem listings.
+
+### 13.3 Mixed Folders
+
+Only one folder mixes conventions by design: `docs/decisions/`, which contains ADR-NN-kebab files at the top level and the `transcripts/` sub-folder. Every other folder in `corp-monorepo/` is internally consistent:
+
+- `src/corp/` — all `snake_case.py`
+- `tests/` — all `test_*.py` or `conftest.py`
+- `docs/handoffs/` — all `YYYY-MM-DD-kebab.md`
+- `docs/audits/` — all `YYYY-MM-DD-kebab.md`
+- `docs/diagrams/` — `*.mermaid` + `*.svg` + one `conventions.yaml`
+- `scripts/` — mix of `*.ps1` and `*.py` (both standard, both lowercase)
+- `.claude/skills/gotchas/` — `SKILL.md` + `gotchas.md`
+
+So the convention-diversity problem is narrower than it first appears: it is concentrated in `docs/decisions/`, where the ADR-27 collision (Section 12) is the only active violation.
+
+### 13.4 Open Questions (extending Section 9)
+
+19. **Should the four conventions be documented as an explicit spec?** If yes, where — `CONTRIBUTING.md` (fits its workflow-doc scope), `docs/ARCHITECTURE.md` (fits its structural-mirror scope), `docs/decisions/README.md` (currently truncated, could be completed with the spec), or a new `docs/CONVENTIONS.md`.
+20. **Should the conventions be mechanically enforced?** A pre-commit hook checking `docs/decisions/*.md` matches `ADR-NN-*` (with uniqueness), `docs/decisions/transcripts/*.md` matches `DECISION_NN_*`, and dated folders match `YYYY-MM-DD-*` would catch the ADR-27 collision at commit time. No such check exists today.
+21. **What convention applies to new folders?** `.dev-knowledge` adopted `YYYY-MM-DD-kebab.md` for its `docs/audits/` folder (this file). Is that a deliberate echo of corp-monorepo's convention, or coincidence from copying the first filename? No cross-repo convention doc exists.
+
+---
+
+## Section 14 — VS Code Workspace as Governance Layer
+
+Added 2026-04-23. The `.code-workspace` files are technically editor config, but they encode enough Python-env, test-runner, formatter, debug, and todo-filtering configuration that they function as a seventh governance artifact — effectively the IDE contract for anyone opening the repo. None of the contract files (`CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`) mention this layer.
+
+### 14.1 Presence Inventory
+
+| Repo | Workspace file | Lines | Included folders | Content summary |
+|------|----------------|-------|------------------|-----------------|
+| corp-monorepo | `corp-monorepo.code-workspace` | 170 | `.` (repo root) | Python interpreter, Ruff, pytest, analysis paths, `files.exclude`, `search.exclude`, terminal, git, todo-tree, extension recommendations, launch configs, tasks |
+| `.dev-knowledge` | `dev-knowledge.code-workspace` | 116 | `.dev-knowledge` + `C:\Users\1028120\.claude` | Markdown-focused; cross-repo include of `~/.claude/`; custom tasks (lesson count, file sizes, CLAUDE.md line check, learned-rules count) |
+| ai-council | **absent** | — | — | — |
+
+Two of the three repos have a workspace. ai-council does not. No file in ai-council acknowledges this gap.
+
+### 14.2 Workspace Content — corp-monorepo
+
+`corp-monorepo.code-workspace:10-14` pins the Python interpreter to `.venv/Scripts/python.exe`, enables pytest discovery with `["tests", "-x", "--tb=short"]` (matching `CONTRIBUTING.md:38-42`), sets `python.analysis.extraPaths: ["./src"]`, and sets analysis mode to `"basic"`.
+
+Lines 17-24 set Ruff as the default formatter for Python and enable `"source.fixAll"` + `"source.organizeImports"` on save. Lines 26-37 hide `__pycache__`, `.pytest_cache`, `.ruff_cache`, `.hypothesis`, `Thumbs.db`, `desktop.ini`, `data/_outputs`, and `.git` from the file explorer.
+
+Lines 48-54 exclude `data/_outputs`, `node_modules`, `.git`, `eval/cli_snapshot_*`, and `.ecosystem/archive` from search — note the `.ecosystem/archive` entry, which refers to a path eliminated 2026-03-30 per `JOURNAL.md:223`. The workspace file retains the exclusion for a path that no longer exists.
+
+Lines 57-58 pin the terminal to PowerShell with `cwd = ${workspaceFolder}`. Lines 65-80 configure todo-tree: tags `["TODO", "FIXME", "HACK", "XXX", "BUG"]` and explicit exclusions for `docs/archive/`, `docs/decisions/`, `*.json`, `JOURNAL.md`, `CHANGELOG.md`, `.venv/`, `__pycache__/`, `models/`, `data/`, `eval/`. The exclusions are a soft declaration that these paths are "frozen" or "reference-only" from a TODO-tracking perspective — a classification that is not mirrored in any markdown file.
+
+Lines 82-114 list extension recommendations (ms-python.python, ms-python.vscode-pylance, charliermarsh.ruff, ms-python.debugpy, ms-python.pytest-vscode, eamodio.gitlens, oderwat.indent-rainbow, usernamehw.errorlens, gruntfuggly.todo-tree, yzhang.markdown-all-in-one, redhat.vscode-yaml) and explicit `unwantedRecommendations` (black-formatter, flake8, isort, autopep8, pylint — all the pre-Ruff toolchain).
+
+Lines 116-143 define three `launch` configurations: "Python: Current File", "pytest: Current File", "corp CLI". Lines 145-168 define three `tasks`: "Run All Tests" (maps to `pytest tests/ -x --tb=short`), "Ruff Check" (maps to `ruff check src/ tests/ --fix`), "Corp Doctor" (maps to `corp doctor`). The "Corp Doctor" task references a CLI subcommand (`corp doctor`) that is not listed in `CLAUDE.md:28-34`'s CLI table.
+
+### 14.3 Workspace Content — .dev-knowledge
+
+`dev-knowledge.code-workspace:2-11` declares **two folders** in the workspace: `.dev-knowledge` itself and `C:\Users\1028120\.claude`. This is the only cross-repo multi-root workspace observed; it makes the runtime config (`~/.claude/`) visible alongside the knowledge base during editing, supporting the cross-reference pattern declared in `.dev-knowledge/CLAUDE.md` ("Cross-reference ~/.claude/ files — they are the executable counterpart").
+
+Lines 13-34 set markdown-specific editor settings: `wordWrap: "on"`, `wordWrapColumn: 120`, quick-suggestions disabled, `formatOnSave: false`. Lines 58-75 configure todo-tree with tags `["TODO", "TRIGGER", "REVIEW", "PENDING", "DEPRECATED"]` — a different tag set than corp-monorepo's (no `FIXME`/`HACK`/`XXX`/`BUG`, yes `TRIGGER`/`REVIEW`/`PENDING`/`DEPRECATED`). `TRIGGER` and `REVIEW` get custom icons and colors (lines 66-75), signaling that this repo treats trigger-based maintenance (see `CLAUDE.md`'s consistency check block) as a first-class tag.
+
+Lines 82-113 define **four custom tasks** with PowerShell commands, none of which exist in corp-monorepo's workspace:
+
+- "📊 Count lessons" — counts lines matching `^### ` in `LESSONS.md`
+- "📏 File sizes" — prints line counts for every `*.md` in the repo root
+- "🔍 Check CLAUDE.md line count" — warns if `~/.claude/CLAUDE.md` exceeds 200 lines
+- "📋 Learned rules count" — warns if `~/.claude/memory/learned-rules.md` approaches 40 lines (50 limit)
+
+These tasks operationalize maintenance rules that are stated in prose elsewhere (`.dev-knowledge/CLAUDE.md`, `~/.claude/CLAUDE.md`) but not mechanically enforced. The workspace tasks are the closest thing to pre-commit hooks for these docs.
+
+Differences vs corp-monorepo: no Python env (this repo has no Python), no test runner, no linter, no launch configs. Different terminal cwd (hardcoded to `.dev-knowledge` path, line 51). Emoji folder names (`📓 .dev-knowledge`, `⚙️ ~/.claude (config)`). Cross-repo include of `~/.claude/`.
+
+### 14.4 Governance Coverage Gap
+
+Both workspaces are documented in `.dev-knowledge/ENVIRONMENT.md` (per `.dev-knowledge/CLAUDE.md`'s file-index rule), but **neither is referenced from its repo's own governance stack**:
+
+- `corp-monorepo/CLAUDE.md` — no mention of `corp-monorepo.code-workspace`, no declaration that the pytest args in the workspace (`-x --tb=short`) match the pre-merge command in `CONTRIBUTING.md:38-42`.
+- `corp-monorepo/CONTRIBUTING.md` — no mention. The pre-merge command is stated as a shell one-liner; the reader is not told that opening the workspace provides a pytest task that runs the same command via the VS Code test runner.
+- `corp-monorepo/AGENTS.md` — no mention. Codex is a CLI tool, so this is expected, but it means a new contributor using VS Code has to rediscover the dev-loop config.
+- `corp-monorepo/docs/ARCHITECTURE.md` — no mention.
+- `.dev-knowledge/CLAUDE.md` — no mention of `dev-knowledge.code-workspace` or the four PowerShell tasks it defines.
+
+Update protocol is unclear: who edits the workspace (human, apparently)? When (tool adoption, per `.code-workspace` line-count growth in corp-monorepo from an unknown prior state)? What triggers an update — a new linter, a new extension, a changed exclude path? The stale `.ecosystem/archive` exclusion (Section 14.2) is evidence that no update trigger is active.
+
+`ai-council` has no workspace at all. Whether this is a deliberate opt-out (ai-council is small enough that ad-hoc VS Code usage suffices) or an oversight (the other two repos got workspaces and this one didn't) is not recorded.
+
+### 14.5 Open Questions (extending Section 9)
+
+22. **Is a `.code-workspace` file mandatory at Scale L?** corp-monorepo (Scale L) has one; `.dev-knowledge` (Scale S, knowledge base) has one; ai-council (Scale M by test count, 199+1 tests) has none. The three-way sample does not establish a Scale→workspace rule.
+23. **Where do workspace conventions get documented?** Candidate files: `CONTRIBUTING.md` (fits its dev-loop scope), a new `docs/TOOLING.md`, or workspace-level inline comments (each `.code-workspace` already uses `// ===` section headers that double as inline docs).
+24. **ai-council workspace gap — close or document?** Either add `ai-council.code-workspace` to match the other two repos (with Python/pytest/Ruff config mirroring corp-monorepo's) or declare in `ai-council/CLAUDE.md` that the workspace is intentionally absent.
+25. **What triggers a workspace update?** The `.ecosystem/archive` stale exclusion in `corp-monorepo.code-workspace:53` suggests workspace edits do not follow the same "per structural change" cadence as `ARCHITECTURE.md`. A trigger list (new tool, new exclusion, new task) would make the file a living-document instead of a frozen initial-config.
+
+---
+
 ## Provenance
 
 Files read in full: `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `README.md`, `.claude/skills/gotchas/SKILL.md`, `.claude/skills/gotchas/gotchas.md`, `docs/decisions/README.md`, `docs/ARCHITECTURE.md`, `docs/HANDOFF.md`, `JOURNAL.md`, `CHANGELOG.md`, `docs/decisions/ADR-25-diagram-strategy.md`, `docs/decisions/ADR-26-tach-adoption.md`, `docs/decisions/ADR-23-monorepo-internal-architecture.md`, `docs/decisions/ADR-27-safety-invariants.md`, `docs/audits/2026-03-30-codex-full-audit.md`, `docs/audits/2026-04-15-tach-baseline-violations.md`, `docs/audits/2026-04-21-codex-hotfix-review.md`, `docs/handoffs/2026-04-15-handoff.md`, `docs/diagrams/conventions.yaml`, `scripts/update_handoff.py`, `tach.toml`, `pyproject.toml`, `.pre-commit-config.yaml`.
@@ -333,3 +557,15 @@ Files looked-up by directory listing only: `docs/decisions/transcripts/` (24 fil
 Git log range examined: HEAD..40 commits back (covers 2026-04-15..2026-04-22 in detail, plus references to earlier work).
 
 No file in `corp-monorepo` was modified during this analysis. Output committed only to `.dev-knowledge`.
+
+---
+
+## Provenance — 2026-04-23 Extension (Sections 11-14)
+
+Additional files read in full: `ai-council/CLAUDE.md`, `corp-monorepo/corp-monorepo.code-workspace`, `.dev-knowledge/dev-knowledge.code-workspace`, `corp-monorepo/docs/decisions/ADR-27-safety-invariants.md` (first 30 lines), `corp-monorepo/docs/decisions/ADR-27-council-onedrive-centralization.md` (first 50 lines + lines 950-1019), `.dev-knowledge/PLAYBOOK.md:65-334`.
+
+Additional directory listings: `ai-council/` (top-level structure, 14 entries), `ai-council/output/` (110 files: 89 `.md` + 21 `_metrics.json`, dated 2026-02-21 through 2026-04-22), `corp-monorepo/docs/decisions/ADR-*.md` with line counts (29 files, min 19, max 1019, median 23, mean 74).
+
+Grep checks performed: `ai-council` in `corp-monorepo/docs/decisions/transcripts/*.md` → 0 matches; `corp-monorepo` in `ai-council/*.md` (root) → 0 matches; `corp-monorepo` in `ai-council/` recursive → 8 matches (3 in `output/`, 5 in `council_inbox/archive/`, all in prompt bodies, none in governance files).
+
+No file in `corp-monorepo` or `ai-council` was modified. Output committed only to `.dev-knowledge`.
