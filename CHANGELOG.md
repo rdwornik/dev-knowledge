@@ -4,6 +4,32 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-24 — Repo hygiene pass
+
+**Changed:**
+- LESSONS.md: 50-entry split trigger deferred — ADR-29 scope tags provide equivalent filtering
+- `docs/audits/2026-04-21-dev-knowledge-inventory.md`: marked SUPERSEDED (newer inventory 2026-04-24)
+- `ADR-27_council-27-scope-tagging.md` → `ADR-27_scope-tagging.md` (naming consistency with ADR-28/29)
+- `handoff/` → `handoff-prompts/` (disambiguate from `docs/handoffs/`)
+- `README.md` full rewrite — user-first, 87 lines, current state after Stream A
+
+**Fixed:**
+- `scripts/validate_scope_tags.py`: bug in `_enforce_ratio` where staged file with same basename as in-scope file (in skipped directory) corrupted hybrid ratio delta calculation
+- `handoff-prompts/` added to SKIP_PATTERNS (prompt templates, not governance)
+
+**Dropped:**
+- 3 README sections: "lesson→rule" (already in PLAYBOOK), "data sanitization" (moved to ESSENTIALS.md), growth trigger #3 (resolved by ADR-28)
+
+**Not done (deferred):**
+- TOKEN-LOG.md snapshot — Anthropic /stats UX is multi-page interactive TUI, no native export. Adopting `claude-usage` npm tool as permanent solution (separate session).
+
+**Metrics:**
+- Hybrid ratio: 26% → 25% (exactly at ceiling)
+- Commits: 6 (+ merge)
+- Branch: `chore/repo-hygiene-2026-04-24` → master ff-only
+
+---
+
 ## 2026-04-24 — ccusage tool adopted
 - Global npm install: `ccusage` v18.0.11 for Claude Code usage tracking
 - ENVIRONMENT.md entry documenting tool + cadence (under Claude Code CLI section)
