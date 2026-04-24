@@ -1,5 +1,15 @@
 # Stream A Gap Report — 2026-04-24
 
+## Stream A CLOSED — 2026-04-24
+
+All prompts executed. Prompts 1-3 (pre-gap-report), 3.5, 3.6, 4, 5, 6 complete.
+Final state: all IN_SCOPE files tagged, ratio-aware enforcement live per ADR-27 amendment.
+Hybrid ratio at closure: 26% (above 25% ceiling; delta-based enforcement means commits that do not regress the ratio still pass — quarterly hygiene pass will bring it to ≤25%).
+Carried-forward debt: none (ruff E741 fixed in Prompt 6).
+Follow-ups deferred: System Architecture / The 10 Commandments headers identified in Prompt 3.5 sanity check as audit-gap items; no action taken in Stream A.
+
+See follow-up sections below for per-prompt detail.
+
 ## Done (verified)
 
 - Prompt 1 (ADRs 27, 28, 29) — 2026-04-22

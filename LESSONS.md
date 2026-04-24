@@ -125,6 +125,12 @@
 
 ### 2026-04-15 | corp-monorepo council-session | Council debate quality scales with real data — Council #26 brief improved significantly after feeding it real numbers (0 import violations from grep, pytest timing 166s, .pre-commit-config.yaml contents). Briefs without repo-specific data produce generic recommendations. Always run data-gathering audit before Council debate. | process | Gather concrete repo metrics before writing Council brief
 
+### 2026-04-24 | stream-a-finale | Prerequisite guards prevent cascade failures across multi-prompt streams | gotcha | [scope: meta] | added prereq check pattern to prompt template
+
+### 2026-04-24 | stream-a-finale | ADR prescription can drift from validator reality — H1 insertion point for LESSONS.md file-level tag discovered wrong only during implementation | process | [scope: meta] | amend ADR when reality proves prescription wrong, do not reopen the decision
+
+### 2026-04-24 | stream-a-finale | Sanity-check step after any bulk change catches systematic errors — Prompt 3.5 caught 5 of 20 top-level PLAYBOOK tag mismatches | process | [scope: dev] | added sanity-check pattern to prompt template for bulk tagging operations
+
 ---
 Date: 2026-04-21
 Source: .dev-knowledge audit + Council #27 session
