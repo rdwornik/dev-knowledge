@@ -4,6 +4,13 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-24
+- docs: add PLAYBOOK tagging sanity check report
+- verifies top-level tags match Phase 2 audit and subsections inherit parent
+- Stream A prompt 3.5, report at docs/audits/2026-04-24-playbook-tagging-sanity-check.md
+
+---
+
 ## 2026-04-21
 - PLAYBOOK: added "System Architecture" section documenting three-layer architecture (ADR-28)
 - PLAYBOOK: added cross-ref in Section 12 to System Architecture
