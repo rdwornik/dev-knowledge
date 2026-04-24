@@ -295,10 +295,11 @@ Ask yourself: **"What 2-3 things did I learn that I didn't know before this sess
 
 For each, write one entry in LESSONS.md:
 ```
-### YYYY-MM-DD | [source] | [one-line lesson] | [category] | [action taken]
+### YYYY-MM-DD | [source] | [lesson] | [category] | [scope: X] | [action taken]
 ```
 
-Categories: `prompt-craft` / `token-optimization` / `architecture` / `tooling` / `process` / `gotcha`
+Categories: `prompt-craft` / `token-optimization` / `architecture` / `tooling` / `process` / `gotcha`  
+Scope: `dev | llm | hybrid | runtime | meta` (ADR-29 — applies to new entries only; existing 123 entries are grandfathered)
 
 ### What qualifies as a lesson
 <!-- scope: llm -->
