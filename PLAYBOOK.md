@@ -574,6 +574,12 @@ Peak day: $X.XX on YYYY-MM-DD
 Notable: [1-2 line signal e.g. "Opus 4.7 adoption curve", "Haiku routing shift"]
 ```
 
+**Order convention:**
+- TOKEN-LOG.md and CHANGELOG.md: newest-first (prepend). Rationale: logs optimize for current-state scanning.
+- LESSONS.md: append-only (oldest-first). Rationale: chronological narrative; order preserves "what we learned when".
+
+New TOKEN-LOG entries go at the top (after file header, before previous newest entry). /session-summary reads the first matching `## YYYY-MM-DD` header for the staleness check.
+
 **Cache tokens** excluded from in+out for cross-period comparability. Note cache only when notable.
 
 **Rationale:**
