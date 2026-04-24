@@ -1,4 +1,5 @@
 # Lessons Learned — Append-Only Log
+<!-- scope: hybrid -->
 
 > **Format:** Date | Source | Lesson | Category | Action taken
 > New entries go at the bottom. Never edit old entries. Never delete.
