@@ -102,7 +102,7 @@ def parse_file(path: str) -> tuple[list[Violation], dict[str, int]]:
         lines = fh.readlines()
 
     # Strip newlines for easier processing but keep 1-indexed for reporting
-    stripped = [l.rstrip("\n") for l in lines]
+    stripped = [ln.rstrip("\n") for ln in lines]
 
     # Detect file-level tag: scope comment within 3 lines of the first H1
     file_level_tag: str | None = None
