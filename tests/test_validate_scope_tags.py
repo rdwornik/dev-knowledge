@@ -63,7 +63,7 @@ def test_ratio_block_when_increasing_above_ceiling(monkeypatch, tmp_path):
     exit_code, info, err = vst._enforce_ratio([staged])
     assert exit_code == 1
     assert "regression" in err
-    assert "20%" in err and "30%" in err
+    assert "20.0%" in err and "30.0%" in err
 
 
 # ---------------------------------------------------------------------------
