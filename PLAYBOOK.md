@@ -560,7 +560,7 @@ KEY CONTEXT: [max 5 bullets of non-obvious context the new chat needs]
 
 1. Run `/evolve` in Claude Code — review corrections, observations, propose rule promotions/pruning
 2. Review gotchas added this week — any patterns?
-3. Review token usage — is Opus verbosity still the main drain?
+3. Review token usage — `ccusage --json` → append snapshot to TOKEN-LOG.md. Is Opus verbosity still the main drain?
 4. Review LESSONS.md entries from this week — anything to change in PLAYBOOK?
 5. Review OPEN_DECISIONS.md — anything stale? Anything urgent?
 6. Quick project health check (test suite, lint, stale branches)
@@ -829,7 +829,7 @@ This is not optional for the applicable tier. Stale structural documentation is 
 | `/compact [focus]` | Compress with focus ("focus on API changes")      |
 | `/evolve`          | Weekly Friday — review corrections, promote rules |
 | `/session-summary` | Before switching to Claude.ai browser             |
-| `/stats`           | Check token usage                                 |
+| `/stats`           | Check token usage (interactive TUI; use `ccusage --json` for scriptable export) |
 | `/plan [prompt]`   | One-shot plan mode without cycling Shift+Tab      |
 | `/model`           | Change model mid-session                          |
 | `/effort`          | Change effort level                               |
