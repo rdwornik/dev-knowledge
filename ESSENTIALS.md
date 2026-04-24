@@ -71,7 +71,9 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 2. `git status` — must be clean
 3. If 3+ files changed or 2+ packages touched → `codex-review -Topic <topic>` (slash: `/review`) before merge
 4. CHANGELOG.md — entry if files changed
-5. **Extract lessons** — "what 2-3 things did I learn?" → append to LESSONS.md
+5. **Extract lessons** — "what 2-3 things did I learn?" → append to LESSONS.md  
+   Format: `### YYYY-MM-DD | [source] | [lesson] | [category] | [scope: X] | [action taken]`  
+   Scope: `dev | llm | hybrid | runtime | meta` (ADR-29)
 6. Session scorecard logs automatically (Stop hook)
 
 **Browser chat checkpoint:** przy ~2h lub gdy chat zwalnia → see **HANDOFF_PROCESS.md**
