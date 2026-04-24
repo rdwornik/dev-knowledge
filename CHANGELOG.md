@@ -4,6 +4,21 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-24 — ccusage tool adopted
+- Global npm install: `ccusage` v18.0.11 for Claude Code usage tracking
+- ENVIRONMENT.md entry documenting tool + cadence (under Claude Code CLI section)
+- TOKEN-LOG.md: first post-adoption snapshot (delta 2026-03-29 to 2026-04-24, $190.53, 31 sessions)
+- PLAYBOOK.md: /stats table row + weekly cadence step updated to reference ccusage
+- Rationale: /stats is interactive TUI, no scriptable export; ccusage reads local Claude Code data, outputs JSON
+
+## 2026-04-24 — repo hygiene
+- docs(lessons): defer 50-entry split, rationale inline
+- docs(audits): mark 2026-04-21 dev-knowledge inventory as superseded
+- refactor(decisions): ADR-27 filename simplified (drop _council-27 segment)
+- refactor: rename handoff/ → handoff-prompts/ (disambiguate from docs/handoffs/)
+- docs(readme): user-first rewrite, 87 lines, current state after Stream A
+- fix(validator): basename collision bug in ratio enforcer (out-of-scope staged files could corrupt HEAD delta); add handoff-prompts/ to SKIP_PATTERNS
+
 ## 2026-04-24
 - feat(validator): ratio-aware hybrid enforcement (block regressions only, not stuck-above state); ruff E741 fixed
 - docs: ADR-27 amendment for commit-time enforcement prescription; Stream A CLOSED; 3 lessons extracted in new ADR-29 format
