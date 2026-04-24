@@ -56,3 +56,15 @@ Notable changes to the dev practice knowledge base.
 - Added scripts/validate_scope_tags.py (stdlib-only pre-commit validator)
 - Added .pre-commit-config.yaml and requirements-dev.txt (pre-commit >= 3.5.0)
 - Tagged CLAUDE.md (11 sections) and README.md (5 sections) as meta
+
+## 2026-04-24 — Research Archive Structure
+
+Added:
+- `docs/research/` folder for AI Council research mode outputs (distinct from `docs/decisions/` which is for Rob's own decisions)
+- 3 research reports archived from 2026-04-23 and 2026-04-24 sessions
+- Council #28 and #29 transcripts cross-archived in `corp-monorepo/docs/decisions/transcripts/`
+
+Convention:
+- Research reports in `.dev-knowledge/docs/research/YYYY-MM-DD-slug.md`
+- Council debate transcripts in `corp-monorepo/docs/decisions/transcripts/DECISION_NN_slug.md`
+- Research ≠ decision: research informs, decision commits
