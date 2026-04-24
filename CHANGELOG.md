@@ -5,6 +5,10 @@ Notable changes to the dev practice knowledge base.
 ---
 
 ## 2026-04-24
+- chore(dev-knowledge): tag ESSENTIALS/SESSION_SETUP/HANDOFF_PROCESS/ENVIRONMENT (55 sections)
+- chore(validator): allowlist already covered all 4 files — no edits needed; hook now enforces repo-wide
+- Stream A prompt 4 complete, hybrid ratio 16% (4 new files), 25% repo-wide; REVIEW-flagged subsections: none
+- structural fix: added description lines after H1 in ESSENTIALS.md + SESSION_SETUP.md to prevent validator H1-window false-positive on first section tag
 - fix(playbook): correct 5 top-level tag mismatches vs Phase 2 audit (S4 S6 S7 S14 S15)
 - chore: cascade subsection inherit-parent fixes, hybrid ratio X% → 0%
 - Stream A prompt 3.6, sanity check verdict now PASS
