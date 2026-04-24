@@ -4,6 +4,24 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-24 (continued) — TOKEN-LOG order flipped to newest-first
+
+**Changed:**
+- TOKEN-LOG.md: reordered entries newest-first (matches CHANGELOG convention)
+- `~/.claude/commands/session-summary.md`: staleness check step clarified — "first match = most recent entry" (logic already correct, note added)
+- PLAYBOOK.md "Token log cadence": order convention documented (logs = newest-first, LESSONS = append-only)
+
+**Why:**
+- TOKEN-LOG was oldest-first; PLAYBOOK spec said "append to top" — contradiction would break /session-summary on next edit
+- Two distinct categories codified: logs (scan for current state → newest-first) vs append-only narrative (LESSONS → chronological, preserve order)
+- LESSONS.md not modified — append-only is ADR-29 core design, 61 entries, narrative-oriented
+
+**Scope:**
+- User-level /session-summary command clarified (no logic change)
+- LESSONS.md intentionally preserved as-is
+
+---
+
 ## 2026-04-24 (continued) — TOKEN-LOG cadence formalized
 
 **Added:**
