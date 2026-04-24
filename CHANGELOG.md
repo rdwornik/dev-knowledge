@@ -57,6 +57,14 @@ Notable changes to the dev practice knowledge base.
 - Added .pre-commit-config.yaml and requirements-dev.txt (pre-commit >= 3.5.0)
 - Tagged CLAUDE.md (11 sections) and README.md (5 sections) as meta
 
+## 2026-04-23 — Tech Radar Session + Architecture Analysis
+
+Added:
+- Operating model analysis for corp-monorepo (Scale L): `docs/audits/2026-04-21-corp-monorepo-operating-model-analysis.md` (572 lines, extended 2026-04-23 with AI Council integration, ADR-27 collision, naming conventions, VS Code workspace sections)
+- Council #28 research debate executed: community LLM dev patterns ($0.56)
+- Council #29 research debate executed: Spec Kit / Kiro evaluation ($0.21)
+- 3 standalone research reports from Perplexity-backed debates archived to `docs/research/`
+
 ## 2026-04-24 — Research Archive Structure
 
 Added:
@@ -85,3 +93,15 @@ Scope note:
 - corp-monorepo archival deferred (separate session)
 - Debates affecting corp-monorepo architecture (#25 diagrams, #26 Tach) archived in `.dev-knowledge/docs/research/` with `-corp-monorepo` suffix
 - Future mirror to `corp-monorepo/docs/decisions/transcripts/` is separate work
+
+## 2026-04-24 — Supplements (repo sync session)
+
+Added:
+- `docs/audits/2026-04-24-council-28-29-consolidated-actions.md` — triage of P0/P1/P2/P3 action items from Council #28, #29 + 2 research reports
+- `docs/audits/2026-04-24-stream-a-gap-report.md` — Stream A remaining work (Prompts 3.5, 4, 5, 6); supersedes P0-2 in consolidated actions
+- PLAYBOOK: all 78 section headers tagged with scope vocabulary (ad-hoc, under pre-commit hook pressure on 2026-04-24 — not via planned Vibe Code 4 batch workflow)
+- CLAUDE.md: updated PLAYBOOK section count (14 → 16 + System Architecture); added Council #27 to governing decisions list
+- CHANGELOG: retroactive 2026-04-23 entry added (was missing)
+
+Note:
+- Scope tag validator ran clean; no actual `<!-- scope: X -->` placeholder tags found (ADR files reference the syntax in explanatory text only)

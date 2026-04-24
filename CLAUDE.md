@@ -12,7 +12,7 @@ Living knowledge base for Rob's dev practice methodology. NOT a code project —
 | ---------------- | ----------- | -------------------------------------------------------------------------------------------- |
 | ESSENTIALS.md    | Living      | Daily cheat sheet. Keep under 1 page. Update when workflows change.                          |
 | SESSION_SETUP.md | Living      | Browser chat workflow. 5 chronological steps. Update when chat process changes.              |
-| PLAYBOOK.md      | Living      | Full process reference. 14 sections + appendices. Update when new processes are established. |
+| PLAYBOOK.md      | Living      | Full process reference. 16 sections + System Architecture + appendices. Update when new processes are established. |
 | LESSONS.md       | Append-only | NEVER edit old entries. NEVER delete. Only append new entries at the bottom.                 |
 | ENVIRONMENT.md   | Living      | Current setup state. Update when config/tools/decisions change.                              |
 | TOKEN-LOG.md     | Append-only | Weekly /stats snapshots. Never edit previous entries.                                        |
@@ -102,5 +102,6 @@ When updating any file here, verify:
 
 - #23: vault = pre-sales, .dev-knowledge = dev methodology, ~/.claude/ = runtime config
 - #24: browser handoff = one format, "wygeneruj handoff", <100 lines, code block
+- #27: scope tag vocabulary = dev | llm | hybrid | runtime | meta; all sections tagged; hybrid ≤25% ceiling (ADR-27)
 - Trigger: 20 files here → evaluate Obsidian DevVault migration
 - Trigger: 50 entries in LESSONS.md → split into topic files
