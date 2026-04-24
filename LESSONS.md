@@ -140,3 +140,15 @@ Lesson: Session wyprodukowała 4 process-level lessons about (a) handoff content
 Category: process | meta
 Action: Lessons 1, 2, 4 mają generative rule candidates — promote to PLAYBOOK/HANDOFF_PROCESS.md przy drugim powtórzeniu pattern (per feedback loop rule). Lesson 3 = specific-case observation.
 ---
+
+---
+Date: 2026-04-24
+Source: repo hygiene session (handoff/ → handoff-prompts/ rename)
+Lesson: Renames that create basename collisions with in-scope files expose validator path-handling assumptions. When validator uses basename lookups (rather than full-path), a file with the same name in a skipped directory can spoof in-scope file's HEAD content, corrupting ratio calculations. Fix: validators should match on full path + ensure is_in_scope() guard before substituting staged content.
+[scope: dev]
+
+---
+Date: 2026-04-24
+Source: repo hygiene session (README.md rewrite)
+Lesson: File-level scope tag (placed under H1) causes validator to count all sections as 1 for ratio purposes, shrinking denominator and triggering false regressions when the file's headers are counted separately. Prefer per-section tags (each H2 tagged individually) over file-level tag for repos with ratio-based enforcement. File-level tag remains appropriate for append-only logs (LESSONS.md) where section count is not meaningful.
+[scope: dev]
