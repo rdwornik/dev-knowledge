@@ -73,3 +73,14 @@ and ENVIRONMENT.md patterns). HANDOFF_PROCESS.md and ENVIRONMENT.md were unaffec
 2+ non-blank lines between H1 and first ##).
 
 Status: Prompt 4 complete. Remaining: Prompt 5 (LESSONS.md file-level tag) and Prompt 6 (flip ceiling + finalize).
+
+---
+
+## Follow-up — Prompt 5 complete (2026-04-24)
+
+LESSONS.md file-level tag added (hybrid per ADR-29), placed under H1 (not ## Entries).
+Existing 58 entries untouched (append-only preserved).
+ESSENTIALS.md + PLAYBOOK.md Section 4 document [scope: X] inline field for new entries.
+ADR-29 amended: insertion point clarified to H1 per validator reality (3-line H1 detection window).
+Hybrid ratio: 0% (LESSONS.md file-level tag counted once at file level, not per-section).
+Status: Prompt 5 complete. Remaining: Prompt 6 (ratio-aware enforcement design + ADR-27 amendment + flip).
