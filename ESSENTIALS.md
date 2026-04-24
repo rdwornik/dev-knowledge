@@ -1,8 +1,11 @@
 # Daily Essentials
 
+> Daily cheat sheet. Keep under 1 page.
+
 ---
 
 ## Starting a Session
+<!-- scope: runtime -->
 
 1. Open Claude Code in project dir
 2. Type `/boot` — verifies rules, loads memory, checks trends
@@ -12,6 +15,7 @@
 ---
 
 ## Key Shortcuts
+<!-- scope: runtime -->
 
 | What | How |
 |------|-----|
@@ -27,6 +31,7 @@
 ---
 
 ## Writing a Prompt
+<!-- scope: hybrid -->
 
 Every formal prompt starts with:
 
@@ -47,6 +52,7 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 ---
 
 ## Managing Tokens
+<!-- scope: llm -->
 
 - **`/clear` between unrelated tasks** — different feature, different repo, or after high-effort prompt (saves 30-40%)
 - **After 2 failed attempts → `/clear` and rewrite the prompt from scratch.** Polluted context with wrong approaches makes things worse, not better.
@@ -59,6 +65,7 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 ---
 
 ## Ending a Session
+<!-- scope: hybrid -->
 
 1. Full test suite
 2. `git status` — must be clean
@@ -72,12 +79,14 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 ---
 
 ## Starting a New Browser Chat
+<!-- scope: llm -->
 
 Upload ESSENTIALS.md + handoff/context files. See SESSION_SETUP.md for full checklist.
 
 ---
 
 ## Feedback Loop
+<!-- scope: hybrid -->
 
 **Every correction you make** → logged to `corrections.jsonl` → same mistake 2x → auto-promoted to permanent rule with verify: check.
 
@@ -90,6 +99,7 @@ Upload ESSENTIALS.md + handoff/context files. See SESSION_SETUP.md for full chec
 ---
 
 ## Three Homes for Knowledge
+<!-- scope: meta -->
 
 | What | Where |
 |------|-------|
@@ -104,6 +114,7 @@ When a lesson becomes a rule → write rationale in LESSONS.md, write executable
 ---
 
 ## The 5 Rules That Matter Most
+<!-- scope: hybrid -->
 
 1. **Test after each change.** Not at the end.
 2. **Verify, don't trust.** If AI says "done" in a long session — check the filesystem.
