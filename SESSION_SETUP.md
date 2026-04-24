@@ -1,8 +1,11 @@
 # Session Setup
 
+> Browser chat workflow. 5 chronological steps.
+
 ---
 
 ## Step 1: Know Which Chat You're Starting
+<!-- scope: llm -->
 
 Every browser chat falls into one of two types:
 
@@ -15,8 +18,10 @@ If you're not sure: if Claude Code or a code repo is involved, it's programming.
 ---
 
 ## Step 2: Start the Chat
+<!-- scope: llm -->
 
 ### Starting a Functional Chat
+<!-- scope: llm -->
 
 Upload with your first message:
 1. **ESSENTIALS.md** — your working standards and rules
@@ -34,6 +39,7 @@ Potrzebuję pomocy z [topic].
 ```
 
 ### Starting a Programming Chat
+<!-- scope: llm -->
 
 Upload with your first message:
 1. **ESSENTIALS.md** — your working standards and rules
@@ -52,6 +58,7 @@ Cel na dzisiaj: [1-2 objectives, max].
 PLAYBOOK.md is NOT needed here — ESSENTIALS covers daily work. Upload PLAYBOOK only when starting a new project from scratch or establishing a new process.
 
 ### Starting a New Project (from scratch)
+<!-- scope: llm -->
 
 Upload:
 1. **ESSENTIALS.md**
@@ -71,24 +78,29 @@ Pomóż mi:
 ---
 
 ## Step 3: Work in the Chat
+<!-- scope: hybrid -->
 
 ### In functional chats, Claude.ai:
+<!-- scope: hybrid -->
 - Thinks critically — challenges assumptions, identifies risks
 - Provides structured analysis, not generic advice
 - Extracts actionable items, not theory
 - Says "nie" when an idea doesn't make sense
 
 ### In programming chats, Claude.ai:
+<!-- scope: hybrid -->
 - Writes prompts for Claude Code (always with Model/Mode/Effort table)
 - Tells you when to `/clear` between prompts
 - Challenges your approach — pushes back when something conflicts with decisions or gotchas
 - Does NOT generate filesystem commands from memory — always "ask Claude Code to check first"
 
 ### In both types:
+<!-- scope: hybrid -->
 - Max 2 objectives per session. Everything else is backlog.
 - When evaluating new tools: is it mature (>100 stars, >v1.0)? Does it solve a real problem? If architecture-level → Council debate.
 
 ### Decision routing (programming chats):
+<!-- scope: hybrid -->
 
 | Size                   | Where                              |
 | ---------------------- | ---------------------------------- |
@@ -100,10 +112,12 @@ Pomóż mi:
 ---
 
 ## Step 4: Handoff — When the Chat Gets Heavy
+<!-- scope: llm -->
 
 **Same process for both chat types.** Claude auto-adapts the content.
 
 ### When to handoff
+<!-- scope: llm -->
 
 - At ~2 hours of conversation
 - When the chat starts getting slow
@@ -111,17 +125,20 @@ Pomóż mi:
 - Don't wait until context is dead — checkpoint while Claude still remembers
 
 ### How to handoff
+<!-- scope: llm -->
 
 Type: `wygeneruj handoff`
 
 Claude generates a summary in a code block (<100 lines). You don't choose format, sections, or detail level — Claude decides based on the chat content.
 
 ### Transfer to new chat
+<!-- scope: llm -->
 
 1. Click "Copy" on the code block
 2. Open new chat → go back to Step 1 (upload ESSENTIALS.md, paste handoff)
 
 ### What the handoff contains
+<!-- scope: llm -->
 
 Claude includes what's relevant (you don't pick):
 - Objective (one sentence)
@@ -134,6 +151,7 @@ Claude includes what's relevant (you don't pick):
 - Functional chats add: conclusions, references discussed
 
 ### Handoff rules
+<!-- scope: llm -->
 
 - Always in English, always in a single code block
 - If Claude can't see early context: writes `[CONTEXT LOST]` instead of guessing
@@ -142,6 +160,7 @@ Claude includes what's relevant (you don't pick):
 ---
 
 ## Step 5: Extract Lessons (optional but valuable)
+<!-- scope: llm -->
 
 Before closing, ask yourself: "What 2-3 things did I learn?"
 
