@@ -554,11 +554,13 @@ KEY CONTEXT: [max 5 bullets of non-obvious context the new chat needs]
 ### Token log cadence
 <!-- scope: meta -->
 
-Every handoff (triggered by Rob saying "wygeneruj handoff" or running /session-summary in Claude Code) includes a TOKEN-LOG.md snapshot append.
+Every /session-summary run checks TOKEN-LOG.md staleness. If latest entry >7 days old, a new short-format snapshot is appended via `ccusage --json`. Otherwise skipped.
 
-**Trigger:** /session-summary command or manual handoff generation — no standalone ritual needed.
+**Trigger:** /session-summary staleness check; conditional execution (not every session).
 
 **Source:** `ccusage --json` (reads local Claude Code usage data — see ENVIRONMENT.md)
+
+**Threshold:** 7 days. Most recent entry's date extracted from first `## YYYY-MM-DD` header line in TOKEN-LOG.md.
 
 **Format (short, sustainable):**
 
@@ -572,11 +574,13 @@ Peak day: $X.XX on YYYY-MM-DD
 Notable: [1-2 line signal e.g. "Opus 4.7 adoption curve", "Haiku routing shift"]
 ```
 
-**Cache tokens** are excluded from the in+out total for cross-period comparability. Mention cache only when notable (e.g. "cache-read 10× in+out ratio — good prompt caching").
+**Cache tokens** excluded from in+out for cross-period comparability. Note cache only when notable.
 
-**Rationale:** per-session cadence avoids forgetting weekly logs; /session-summary integration makes it zero-friction; short format keeps entries readable when scanned over months.
-
-**Full format** (like 2026-04-24 entry) is reserved for migration snapshots, not weekly cadence.
+**Rationale:**
+- Per-session cadence rejected: ~$0.02/run overhead wasteful for weekly-sufficient data
+- Manual weekly ritual rejected: forgetting risk (4 weeks stale before ccusage adoption)
+- Threshold-based: amortized ~$0.006/run, auto-triggers on staleness, zero forgetting risk
+- Short format keeps entries scannable over months; full format reserved for migrations
 
 ---
 
