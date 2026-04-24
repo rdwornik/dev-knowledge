@@ -7,6 +7,8 @@
 
 ---
 
+> Split trigger at 50 entries (currently 61) deferred 2026-04-24. Rationale: ADR-29 [scope: X] inline field provides equivalent filtering without losing chronology. Reopen if filtering by scope proves insufficient.
+
 ## Entries
 
 ### 2026-04-21 | browser-chat | Browser-as-tutor defaulting violates three-layer architecture | process | caught + corrected mid-session
