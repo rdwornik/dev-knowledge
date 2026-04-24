@@ -4,6 +4,7 @@ Handoff = transfer kontekstu z jednego Claude chatu do drugiego.
 Cel: nie tracić wątku między sesjami.
 
 ## Który typ?
+<!-- scope: llm -->
 
 - **Typ A — Programming / workspace** (masz repo z plikami):
   3 kroki, git + Claude Code, handoff zapisany jako plik, verified
@@ -13,14 +14,17 @@ Cel: nie tracić wątku między sesjami.
 ---
 
 ## Typ A — Programming Handoff
+<!-- scope: dev -->
 
 ### Krok 1 — W starym chacie (Claude.ai browser)
+<!-- scope: dev -->
 
 Wklej zawartość pliku: `handoff/typ-a-step1-browser-prompt.md`
 
 Skopiuj output.
 
 ### Krok 2 — W Claude Code (projekt docelowy)
+<!-- scope: dev -->
 
 Wklej handoff z Kroku 1, potem zawartość pliku:
 `handoff/typ-a-step2-claudecode-prompt.md`
@@ -28,6 +32,7 @@ Wklej handoff z Kroku 1, potem zawartość pliku:
 (Zmień [topic] na slug tematu.)
 
 ### Krok 3 — Nowy chat (Claude.ai browser)
+<!-- scope: dev -->
 
 Upload:
 - ESSENTIALS.md
@@ -42,14 +47,17 @@ Kontynuuję [projekt]. Cel na dzisiaj: [1-2 cele].
 ---
 
 ## Typ B — Conversational Handoff
+<!-- scope: llm -->
 
 ### Krok 1 — W starym chacie
+<!-- scope: llm -->
 
 Wklej zawartość pliku: `handoff/typ-b-step1-browser-prompt.md`
 
 Skopiuj output.
 
 ### Krok 2 — W nowym chacie
+<!-- scope: llm -->
 
 Wklej handoff + pierwsza wiadomość:
 ```
@@ -59,6 +67,7 @@ Kontynuuję [projekt/temat]. Cel: [1-2 cele].
 ---
 
 ## Required Sections — Tabela
+<!-- scope: llm -->
 
 | Sekcja        | Co tu idzie                          | Typ A | Typ B |
 |---------------|--------------------------------------|-------|-------|
@@ -73,6 +82,7 @@ Kontynuuję [projekt/temat]. Cel: [1-2 cele].
 ---
 
 ## Canonical Example
+<!-- scope: meta -->
 
 Typ A: `docs/handoffs/2026-04-15-tech-radar-session.md`
 
@@ -81,6 +91,7 @@ Typ A: `docs/handoffs/2026-04-15-tech-radar-session.md`
 ---
 
 ## Dla Claude Code / modeli czytających ten plik
+<!-- scope: runtime -->
 
 Gdy user pyta "daj mi proces handoff programming project":
 
