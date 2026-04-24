@@ -54,3 +54,22 @@ See supersession note at top of consolidated actions file.
 ## Next session protocol
 
 One chat, one mission: execute Prompts 3.5, 4, 5, 6. No audits, no Council debates, no scope expansion.
+
+---
+
+## Follow-up — Prompt 4 complete (2026-04-24)
+
+Files tagged: ESSENTIALS.md, SESSION_SETUP.md, HANDOFF_PROCESS.md, ENVIRONMENT.md
+Total sections: 55 (30 from audit, 25 inherit-parent, 0 judgment)
+Validator allowlist expanded: no edits needed — all 4 files were already in IN_SCOPE_FILES
+REVIEW-flagged subsections (not changed): none
+Hybrid ratio (4 files only): 16%
+Hybrid ratio (repo-wide, 7 files excl. LESSONS.md): 25% — exactly at ceiling, info-only until Prompt 6
+
+Structural discovery: ESSENTIALS.md and SESSION_SETUP.md had only 1 non-blank line between H1 and
+first ## section, causing the validator's H1-window detection to capture the first section's scope
+tag as a file-level tag. Fix: added brief description lines after H1 (consistent with PLAYBOOK.md
+and ENVIRONMENT.md patterns). HANDOFF_PROCESS.md and ENVIRONMENT.md were unaffected (already had
+2+ non-blank lines between H1 and first ##).
+
+Status: Prompt 4 complete. Remaining: Prompt 5 (LESSONS.md file-level tag) and Prompt 6 (flip ceiling + finalize).
