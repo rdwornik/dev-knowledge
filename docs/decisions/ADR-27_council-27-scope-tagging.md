@@ -87,3 +87,31 @@ Decisive argument (GPT-5.4 R2): Option A is dominant strategy — correct if non
 - Council debate output: `output/20260421_145718_2026-04-21-council-27-brief.md`
 - ADR-28: three-layer architecture (complementary frame)
 - ADR-29: LESSONS.md grandfathering (LESSONS-specific rule under this decision)
+
+## Amendment 2026-04-24: Commit-time enforcement prescription
+
+The original text specified a hybrid ≤25% ceiling with quarterly hygiene pass for remediation but did not prescribe commit-time enforcement behavior. This amendment adds that prescription.
+
+### Ratio-aware enforcement rule
+
+The pre-commit hook enforces the hybrid ceiling using a delta-based predicate across ALL IN_SCOPE_FILES (repo-wide ratio, not per-file):
+
+- **Block** if: `working_ratio > HEAD_ratio` AND `working_ratio > 25%`
+- **Pass** if: `working_ratio ≤ HEAD_ratio` (hygiene in progress or neutral change)
+- **Pass** if: `working_ratio ≤ 25%` (within ceiling regardless of direction)
+- **Genesis case** (no HEAD baseline exists for any IN_SCOPE_FILE): flat 25% ceiling applies
+
+Rationale: flat 25% blocking causes a "stuck above ceiling" failure mode where commits are blocked indefinitely until a full hygiene pass is completed. Delta-based enforcement blocks regressions only, permitting incremental hygiene commits to proceed.
+
+### Genesis case handling
+
+When no IN_SCOPE_FILE exists at HEAD (first commit of the repo), the working-tree ratio must not exceed 25%. This prevents seeding the repo with high-hybrid baseline content.
+
+### Ratio reporting
+
+On every hook run (pass or block), the hook prints:
+`Hybrid ratio: X% (HEAD: Y%, Δ: +/-Z%)`
+
+### Relationship to original text
+
+Decision intent unchanged. This amendment adds prescription for commit-time enforcement behavior that was under-specified in the original text (which addressed quarterly hygiene, not commit-time delta behavior). The 25% threshold, vocabulary, and governance rules are unmodified.
