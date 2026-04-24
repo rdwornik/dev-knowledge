@@ -3,7 +3,7 @@ validate_scope_tags.py — Pre-commit hook for ADR-27 scope tag enforcement.
 
 Validates that all Markdown section headers in in-scope files are annotated
 with a <!-- scope: X --> HTML comment within 3 lines of the header. Governed
-by ADR-27 (docs/decisions/ADR-27_council-27-scope-tagging.md).
+by ADR-27 (docs/decisions/ADR-27_scope-tagging.md).
 
 Vocabulary: dev | llm | hybrid | runtime | meta
 LESSONS.md exception: file-level tag under H1 satisfies the requirement (ADR-29).
