@@ -551,6 +551,33 @@ KEY CONTEXT: [max 5 bullets of non-obvious context the new chat needs]
 - Bad: "Move benchmark.md to eval/"
 - Let Claude Code discover actual state, then propose actions
 
+### Token log cadence
+<!-- scope: meta -->
+
+Every handoff (triggered by Rob saying "wygeneruj handoff" or running /session-summary in Claude Code) includes a TOKEN-LOG.md snapshot append.
+
+**Trigger:** /session-summary command or manual handoff generation — no standalone ritual needed.
+
+**Source:** `ccusage --json` (reads local Claude Code usage data — see ENVIRONMENT.md)
+
+**Format (short, sustainable):**
+
+```
+## YYYY-MM-DD (since YYYY-MM-DD delta)
+
+Cost: $X.XX | Sessions: N | Active days: N
+Tokens (in+out): X.XM
+Top models: Model-A X%, Model-B Y%, Model-C Z%
+Peak day: $X.XX on YYYY-MM-DD
+Notable: [1-2 line signal e.g. "Opus 4.7 adoption curve", "Haiku routing shift"]
+```
+
+**Cache tokens** are excluded from the in+out total for cross-period comparability. Mention cache only when notable (e.g. "cache-read 10× in+out ratio — good prompt caching").
+
+**Rationale:** per-session cadence avoids forgetting weekly logs; /session-summary integration makes it zero-friction; short format keeps entries readable when scanned over months.
+
+**Full format** (like 2026-04-24 entry) is reserved for migration snapshots, not weekly cadence.
+
 ---
 
 ## 9. Weekly Review (Friday)
