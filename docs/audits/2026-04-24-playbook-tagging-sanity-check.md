@@ -90,3 +90,15 @@ The `llm` row failure (S4 "When to extract" tagged `hybrid`) is a cascade of the
 ## If FAIL — next action
 
 Write Prompt 3.6 fix task: correct 5 top-level `##` tags (S4 → `llm`, S6 → `dev`, S7 → `hybrid`, S14 → `hybrid`, S15 → `dev`) and re-tag all subsections under each corrected parent to match the new parent tag.
+
+---
+
+## Follow-up — Prompt 3.6 resolution (2026-04-24)
+
+All 5 top-level mismatches corrected.
+Cascade subsection fixes applied: 9 edits total — 4 under S4 (`hybrid` → `llm`), 4 under S7 (`runtime` → `hybrid`), 1 under S15 (`hybrid` → `dev`). S6 had one subsection already matching new parent (`dev`); S14 had no subsections.
+Subsections flagged as potential intentional overrides (not changed): S4 → "When a lesson becomes a rule" (`meta`) — content governs `~/.claude/` rule promotion, `meta` tag is plausible intentional override.
+Hybrid ratio: before (not recorded) → after 0% (info only, threshold 25%).
+Re-verification: all 5 corrected parent sections and all 11 verifiable subsections match expected post-fix state.
+
+Status: Stream A Prompt 3.6 complete. Sanity check verdict now PASS.
