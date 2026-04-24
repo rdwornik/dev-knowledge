@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import subprocess
 import sys
 from dataclasses import dataclass
 
@@ -156,6 +157,105 @@ def parse_file(path: str) -> tuple[list[Violation], dict[str, int]]:
     return violations, tag_counts
 
 
+def _count_tags_in_content(content: str) -> dict[str, int]:
+    """Count scope tags in a text string using the same rules as parse_file (no violations)."""
+    lines = [line.rstrip("\n") for line in content.splitlines()]
+    counts: dict[str, int] = {v: 0 for v in VOCABULARY}
+    for i, line in enumerate(lines):
+        if H1_RE.match(line):
+            tag_val, _ = _find_tag_in_window(lines, i + 1)
+            if tag_val and tag_val in VOCABULARY:
+                counts[tag_val] += 1
+                return counts
+            break
+    in_fence = False
+    for i, line in enumerate(lines):
+        if line.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if H2_RE.match(line):
+            tag_val, _ = _find_tag_in_window(lines, i + 1)
+            if tag_val and tag_val in VOCABULARY:
+                counts[tag_val] += 1
+    return counts
+
+
+def _head_content(fname: str) -> str | None:
+    """Return file content at HEAD for a bare filename, or None if not present."""
+    result = subprocess.run(
+        ["git", "show", f"HEAD:{fname}"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    return result.stdout if result.returncode == 0 else None
+
+
+def _ratio(counts: dict[str, int]) -> float:
+    total = sum(counts.values())
+    return counts.get("hybrid", 0) / total if total > 0 else 0.0
+
+
+def _enforce_ratio(staged_paths: list[str]) -> tuple[int, str, str]:
+    """
+    Compute repo-wide hybrid ratio at HEAD vs working tree and apply delta enforcement.
+
+    Returns (exit_code, info_line, error_msg).
+    exit_code 0 = pass, 1 = block. error_msg is empty when passing.
+    """
+    staged_basenames = {os.path.basename(p) for p in staged_paths}
+    head_counts: dict[str, int] = {v: 0 for v in VOCABULARY}
+    wt_counts: dict[str, int] = {v: 0 for v in VOCABULARY}
+    any_head = False
+
+    for fname in IN_SCOPE_FILES:
+        head_text = _head_content(fname)
+
+        if head_text is not None:
+            any_head = True
+            for k, v in _count_tags_in_content(head_text).items():
+                head_counts[k] += v
+
+        if fname in staged_basenames:
+            path = next((p for p in staged_paths if os.path.basename(p) == fname), fname)
+            if os.path.isfile(path):
+                _, fc = parse_file(path)
+                for k, v in fc.items():
+                    wt_counts[k] += v
+        elif head_text is not None:
+            # Non-staged IN_SCOPE file: working tree == HEAD (unchanged by this commit)
+            for k, v in _count_tags_in_content(head_text).items():
+                wt_counts[k] += v
+
+    wt_ratio = _ratio(wt_counts)
+
+    if not any_head:
+        # Genesis: no baseline exists — apply flat ceiling
+        head_str, delta_str = "n/a", "n/a"
+        should_block = wt_ratio > HYBRID_CEILING
+        err = (
+            f"Hybrid ratio {wt_ratio:.0%} exceeds {HYBRID_CEILING:.0%} ceiling "
+            f"(genesis commit). Decompose hybrid sections to remediate."
+        ) if should_block else ""
+    else:
+        head_ratio = _ratio(head_counts)
+        delta = wt_ratio - head_ratio
+        head_str = f"{head_ratio:.0%}"
+        delta_str = f"{delta:+.0%}"
+        should_block = wt_ratio > head_ratio and wt_ratio > HYBRID_CEILING
+        err = (
+            f"Hybrid ratio regression: {head_ratio:.0%} → {wt_ratio:.0%} "
+            f"(exceeds {HYBRID_CEILING:.0%} ceiling). "
+            f"Decompose hybrid sections into dev/llm to remediate."
+        ) if should_block else ""
+
+    info = f"Hybrid ratio: {wt_ratio:.0%} (HEAD: {head_str}, delta: {delta_str})"
+    return (1 if should_block else 0), info, err
+
+
 def main(paths: list[str]) -> int:
     all_violations: list[Violation] = []
     total_tags: dict[str, int] = {v: 0 for v in VOCABULARY}
@@ -173,24 +273,19 @@ def main(paths: list[str]) -> int:
     for v in all_violations:
         logger.error(str(v))
 
-    total_sections = sum(total_tags.values())
-    hybrid_count = total_tags.get("hybrid", 0)
-    hybrid_ratio = hybrid_count / total_sections if total_sections > 0 else 0.0
-    hybrid_pct = f"{hybrid_ratio:.0%}"
-
-    ceiling_note = ""
-    if hybrid_ratio > HYBRID_CEILING:
-        ceiling_note = f" *** EXCEEDS {HYBRID_CEILING:.0%} ceiling — hygiene pass needed ***"
+    ratio_exit, ratio_info, ratio_err = _enforce_ratio(paths)
+    if ratio_err:
+        logger.error(ratio_err)
 
     violation_count = len(all_violations)
     file_count = len({v.file for v in all_violations})
     if violation_count:
-        summary = f"Summary: {violation_count} violation(s) across {file_count} file(s). Hybrid ratio: {hybrid_pct} (info only, threshold {HYBRID_CEILING:.0%}).{ceiling_note}"
+        summary = f"Summary: {violation_count} violation(s) across {file_count} file(s). {ratio_info}."
     else:
-        summary = f"Summary: all files pass. Hybrid ratio: {hybrid_pct} (info only, threshold {HYBRID_CEILING:.0%}).{ceiling_note}"
+        summary = f"Summary: all files pass. {ratio_info}."
 
     print(summary)
-    return 1 if all_violations else 0
+    return 1 if (all_violations or ratio_exit) else 0
 
 
 if __name__ == "__main__":
