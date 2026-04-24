@@ -247,7 +247,7 @@ def _enforce_ratio(staged_paths: list[str]) -> tuple[int, str, str]:
         delta_str = f"{delta:+.0%}"
         should_block = wt_ratio > head_ratio and wt_ratio > HYBRID_CEILING
         err = (
-            f"Hybrid ratio regression: {head_ratio:.0%} → {wt_ratio:.0%} "
+            f"Hybrid ratio regression: {head_ratio:.1%} -> {wt_ratio:.1%} "
             f"(exceeds {HYBRID_CEILING:.0%} ceiling). "
             f"Decompose hybrid sections into dev/llm to remediate."
         ) if should_block else ""
