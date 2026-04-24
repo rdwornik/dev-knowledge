@@ -5,6 +5,9 @@ Notable changes to the dev practice knowledge base.
 ---
 
 ## 2026-04-24
+- chore(lessons): add file-level scope tag per ADR-29, preserve append-only (58 entries untouched); placed under H1 per validator reality
+- docs: document [scope: X] inline field in ESSENTIALS Ending-a-Session and PLAYBOOK Section 4
+- docs(adr-29): amend insertion point to H1; Stream A prompt 5 complete, hybrid ratio 0%
 - chore(dev-knowledge): tag ESSENTIALS/SESSION_SETUP/HANDOFF_PROCESS/ENVIRONMENT (55 sections)
 - chore(validator): allowlist already covered all 4 files — no edits needed; hook now enforces repo-wide
 - Stream A prompt 4 complete, hybrid ratio 16% (4 new files), 25% repo-wide; REVIEW-flagged subsections: none
