@@ -276,7 +276,7 @@ WHAT NOT TO DO:
 ---
 
 ## 4. Extracting Lessons from Any Session
-<!-- scope: hybrid -->
+<!-- scope: llm -->
 
 **Lessons die in chat history if not extracted.** Every session — browser chat, Claude Code terminal, Council debate, article analysis — potentially contains lessons. Without an explicit extraction step, they vanish.
 
@@ -424,7 +424,7 @@ Every Council debate output MUST be archived immediately after the debate comple
 ---
 
 ## 6. Code Review with Claude Code
-<!-- scope: hybrid -->
+<!-- scope: dev -->
 
 **Code review stays on Sonnet — security boundary, never Haiku.** This is a Council-binding decision.
 
@@ -439,7 +439,7 @@ Every Council debate output MUST be archived immediately after the debate comple
 ---
 
 ## 7. Managing a Long Claude Code Session
-<!-- scope: runtime -->
+<!-- scope: hybrid -->
 
 **Sessions longer than ~4 hours should be split.** Context degradation is not linear — it accelerates.
 
@@ -694,7 +694,7 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 ---
 
 ## 14. Anti-Patterns — What NOT to Do
-<!-- scope: dev -->
+<!-- scope: hybrid -->
 
 **"I'll organize later"** — If you create a file without knowing where it belongs, you'll never organize it. Know the category BEFORE creating.
 
@@ -729,7 +729,7 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 ---
 
 ## 15. Cross-Tool Review **[L+M]**
-<!-- scope: hybrid -->
+<!-- scope: dev -->
 
 **When:** Feature branch touches 3+ files OR 2+ packages OR safety-critical paths (vault writes, OneDrive ops, cleanup/delete)
 **Skip when:** Single-file fix, test-only changes, documentation updates
