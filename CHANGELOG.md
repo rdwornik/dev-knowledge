@@ -5,6 +5,9 @@ Notable changes to the dev practice knowledge base.
 ---
 
 ## 2026-04-24
+- fix(playbook): correct 5 top-level tag mismatches vs Phase 2 audit (S4 S6 S7 S14 S15)
+- chore: cascade subsection inherit-parent fixes, hybrid ratio X% → 0%
+- Stream A prompt 3.6, sanity check verdict now PASS
 - docs: add PLAYBOOK tagging sanity check report
 - verifies top-level tags match Phase 2 audit and subsections inherit parent
 - Stream A prompt 3.5, report at docs/audits/2026-04-24-playbook-tagging-sanity-check.md
