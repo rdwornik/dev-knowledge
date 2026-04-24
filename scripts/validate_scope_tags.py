@@ -48,6 +48,7 @@ SKIP_PATTERNS = [
     "docs/decisions/",
     "docs/audits/",
     "docs/handoffs/",
+    "handoff-prompts/",
     "templates/",
     ".claude/",
 ]
@@ -221,9 +222,14 @@ def _enforce_ratio(staged_paths: list[str]) -> tuple[int, str, str]:
 
         if fname in staged_basenames:
             path = next((p for p in staged_paths if os.path.basename(p) == fname), fname)
-            if os.path.isfile(path):
+            if os.path.isfile(path) and is_in_scope(path):
                 _, fc = parse_file(path)
                 for k, v in fc.items():
+                    wt_counts[k] += v
+            elif head_text is not None:
+                # Staged file with matching basename is out-of-scope (e.g. skipped dir);
+                # treat the governed file as unchanged.
+                for k, v in _count_tags_in_content(head_text).items():
                     wt_counts[k] += v
         elif head_text is not None:
             # Non-staged IN_SCOPE file: working tree == HEAD (unchanged by this commit)

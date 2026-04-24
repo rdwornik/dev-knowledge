@@ -19,7 +19,7 @@ Cel: nie tracić wątku między sesjami.
 ### Krok 1 — W starym chacie (Claude.ai browser)
 <!-- scope: dev -->
 
-Wklej zawartość pliku: `handoff/typ-a-step1-browser-prompt.md`
+Wklej zawartość pliku: `handoff-prompts/typ-a-step1-browser-prompt.md`
 
 Skopiuj output.
 
@@ -27,7 +27,7 @@ Skopiuj output.
 <!-- scope: dev -->
 
 Wklej handoff z Kroku 1, potem zawartość pliku:
-`handoff/typ-a-step2-claudecode-prompt.md`
+`handoff-prompts/typ-a-step2-claudecode-prompt.md`
 
 (Zmień [topic] na slug tematu.)
 
@@ -52,7 +52,7 @@ Kontynuuję [projekt]. Cel na dzisiaj: [1-2 cele].
 ### Krok 1 — W starym chacie
 <!-- scope: llm -->
 
-Wklej zawartość pliku: `handoff/typ-b-step1-browser-prompt.md`
+Wklej zawartość pliku: `handoff-prompts/typ-b-step1-browser-prompt.md`
 
 Skopiuj output.
 
@@ -96,13 +96,13 @@ Typ A: `docs/handoffs/2026-04-15-tech-radar-session.md`
 Gdy user pyta "daj mi proces handoff programming project":
 
 1. Zwróć strukturę 3 kroków (Krok 1 / Krok 2 / Krok 3)
-2. Dla Kroku 1: wykonaj `cat handoff/typ-a-step1-browser-prompt.md`
+2. Dla Kroku 1: wykonaj `cat handoff-prompts/typ-a-step1-browser-prompt.md`
    i zwróć zawartość verbatim w code blocku
-3. Dla Kroku 2: wykonaj `cat handoff/typ-a-step2-claudecode-prompt.md`
+3. Dla Kroku 2: wykonaj `cat handoff-prompts/typ-a-step2-claudecode-prompt.md`
    i zwróć zawartość verbatim w code blocku
 4. Dla Kroku 3: zwróć listę uploadów + pierwszą wiadomość
 
 NIE skracaj. NIE odsyłaj do "linia X-Y". NIE pisz "pełny prompt jest w pliku".
 User chce copy-paste-able output. Jeśli plik ma 40 linii — zwróć 40 linii.
 
-Analogicznie dla Typ B — cat handoff/typ-b-step1-browser-prompt.md verbatim.
+Analogicznie dla Typ B — cat handoff-prompts/typ-b-step1-browser-prompt.md verbatim.

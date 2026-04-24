@@ -83,7 +83,7 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 ## Starting a New Browser Chat
 <!-- scope: llm -->
 
-Upload ESSENTIALS.md + handoff/context files. See SESSION_SETUP.md for full checklist.
+Upload ESSENTIALS.md + handoff-prompts/context files. See SESSION_SETUP.md for full checklist.
 
 ---
 
