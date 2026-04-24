@@ -6,6 +6,7 @@
 ---
 
 ## System Architecture
+<!-- scope: meta -->
 
 **`.dev-knowledge` is not a journal and not an orchestrator.** It is the passive storage layer in a three-layer architecture. This section describes what is — it does not decree new constraints.
 
@@ -37,6 +38,7 @@
 ```
 
 ### Rules
+<!-- scope: dev -->
 
 - **Layer 2 never executes.** No scripts, no orchestrator, no active daemon residing in `.dev-knowledge/`. Read-only execution semantics.
 - **Write-back via Layer 1 only.** Claude Code (Layer 3) does not directly edit `.dev-knowledge/` files. Reflections flow back through browser chat → handoff → commit.
@@ -44,12 +46,14 @@
 - **Separate from Obsidian vault.** Vault = pre-sales domain knowledge (see Section 12). `.dev-knowledge` = dev methodology. Different domains, different audiences, different write paths.
 
 ### Cross-reference
+<!-- scope: meta -->
 
 Section 12 "Where Knowledge Lives" describes knowledge **domains** (what lives where). This section describes workflow **layers** (how information flows). Complementary views of the same ecosystem.
 
 ---
 
 ## Project Scale Tiers
+<!-- scope: dev -->
 
 Every project declares its scale in its CLAUDE.md:
 
@@ -67,10 +71,12 @@ Sections in this Playbook marked with a tier tag (e.g. **[L only]** or **[L+M]**
 ---
 
 ## 1. Starting a New Project
+<!-- scope: dev -->
 
 **Every project begins with CLAUDE.md, not code.** If you can't describe what the project does in 3 sentences, you don't understand it yet. For architectural decisions (new database? new package? new integration?), run an AI Council debate before writing a single line.
 
 ### Scaffold
+<!-- scope: dev -->
 
 ```bash
 mkdir -p my-project/src/my_package my-project/tests my-project/config my-project/scripts
@@ -80,6 +86,7 @@ touch my-project/tests/conftest.py
 ```
 
 ### CLAUDE.md template (minimum viable)
+<!-- scope: dev -->
 
 ```markdown
 # CLAUDE.md — project-name
@@ -117,6 +124,7 @@ Before modifying code, read ~/.claude/skills/gotchas/gotchas.md
 ```
 
 ### First commit, then dev loop
+<!-- scope: dev -->
 
 ```bash
 git init && git add -A && git commit -m "feat: scaffold project-name"
@@ -135,10 +143,12 @@ Then for each feature:
 ---
 
 ## 2. Creating a Claude Code Prompt
+<!-- scope: hybrid -->
 
 **Rob's prompt format is non-negotiable.** Front-loading the full spec in the first message eliminates 2-3 discovery turns. Every prompt starts with a summary table that determines execution parameters.
 
 ### Summary table (required at top of every formal prompt)
+<!-- scope: hybrid -->
 
 ```
 | Parameter | Value                               |
@@ -149,6 +159,7 @@ Then for each feature:
 ```
 
 ### How to choose Model
+<!-- scope: llm -->
 
 - **Sonnet** — single-file changes, mechanical refactors, test writing, boilerplate generation, file renames, config updates, code review
 - **Opus** — multi-package changes, complex debugging, architecture decisions, anything requiring reasoning across 3+ files, novel logic design
@@ -156,12 +167,14 @@ Then for each feature:
 Rule of thumb: if the task is "do X the way we always do it" → Sonnet. If the task is "figure out the right approach, then do it" → Opus.
 
 ### How to choose Mode
+<!-- scope: runtime -->
 
 - **auto-accept** — read-only tasks, mechanical changes with clear spec, file moves/renames, formatting. You know exactly what should happen, Claude just executes
 - **plan-then-auto** — design decisions embedded in a prompt. Start in plan mode for the UNDERSTAND + PLAN phases, review the plan, then switch to auto-accept for execution. This is the default for most multi-step prompts
 - **plan** (manual approval each step) — risky operations touching production data, OneDrive paths, database migrations, anything with blast radius. Also for learning/exploration where you want to see each step
 
 ### How to choose Effort
+<!-- scope: hybrid -->
 
 - **low** — single file, <30 min, no architectural decisions. Example: "add a CLI flag", "fix this test", "rename this variable across the file"
 - **medium** — 2-5 files, 30-90 min, may involve design choices within known patterns. Example: "add a new CLI command", "refactor this module to use dataclasses"
@@ -169,6 +182,7 @@ Rule of thumb: if the task is "do X the way we always do it" → Sonnet. If the 
 - **xhigh** — hardest debugging, end-to-end pipeline verification, Council-level analysis. Opus only. Example: "find why magistrala silently drops events", "verify boundary enforcement across all packages"
 
 ### Structure
+<!-- scope: hybrid -->
 
 ```
 | Parameter | Value  |
@@ -202,6 +216,7 @@ WHAT NOT TO DO:
 ```
 
 ### Quick-reference examples
+<!-- scope: hybrid -->
 
 | Task                              | Model  | Mode           | Effort |
 | --------------------------------- | ------ | -------------- | ------ |
@@ -217,6 +232,7 @@ WHAT NOT TO DO:
 | New package scaffolding           | Sonnet | auto-accept    | low    |
 
 ### Decision scope for when to write a formal prompt
+<!-- scope: hybrid -->
 
 - **1 file change** → conversational ("hey, fix X in Y") — no summary table needed
 - **2-3 files** → conversational + paste context — summary table optional
@@ -224,6 +240,7 @@ WHAT NOT TO DO:
 - **Architecture decision** → AI Council debate first, then formal prompt
 
 ### Key rules
+<!-- scope: hybrid -->
 
 - Git workflow section is non-negotiable in EVERY prompt, even for non-repo changes (explain why not needed)
 - "What NOT to do" section prevents Claude from over-engineering
@@ -235,10 +252,12 @@ WHAT NOT TO DO:
 ---
 
 ## 3. Absorbing New Information
+<!-- scope: hybrid -->
 
 **Papers, repos, articles, tools → evaluate → extract actionable items → implement or reject.** Don't let "interesting" become "installed."
 
 ### Evaluation flow
+<!-- scope: hybrid -->
 
 1. **Quick triage (30 seconds):** Is this relevant to my work? Is it at my level or below?
    - Tutorial-level content (below Rob's level) → bookmark for reference only, skip
@@ -248,6 +267,7 @@ WHAT NOT TO DO:
 4. **Log:** Add entry to LESSONS.md with category and action taken
 
 ### Council debate threshold
+<!-- scope: hybrid -->
 
 - Tactical choices (which library, which formatter) → decide yourself
 - Architectural decisions (new database, new integration pattern, new package) → AI Council
@@ -256,10 +276,12 @@ WHAT NOT TO DO:
 ---
 
 ## 4. Extracting Lessons from Any Session
+<!-- scope: hybrid -->
 
 **Lessons die in chat history if not extracted.** Every session — browser chat, Claude Code terminal, Council debate, article analysis — potentially contains lessons. Without an explicit extraction step, they vanish.
 
 ### When to extract
+<!-- scope: hybrid -->
 
 - **End of every browser chat** that involved decisions, debugging, or new insights
 - **End of every Claude Code session** (via LESSONS.md entry if applicable)
@@ -267,6 +289,7 @@ WHAT NOT TO DO:
 - **After reading an article/repo/tool** that changed how you think about something
 
 ### How to extract (2 minutes, no more)
+<!-- scope: hybrid -->
 
 Ask yourself: **"What 2-3 things did I learn that I didn't know before this session?"**
 
@@ -278,6 +301,7 @@ For each, write one entry in LESSONS.md:
 Categories: `prompt-craft` / `token-optimization` / `architecture` / `tooling` / `process` / `gotcha`
 
 ### What qualifies as a lesson
+<!-- scope: hybrid -->
 
 - Something that surprised you (expectation ≠ reality)
 - A mistake that cost >10 minutes
@@ -286,28 +310,33 @@ Categories: `prompt-craft` / `token-optimization` / `architecture` / `tooling` /
 - A tool/article insight that changed your approach
 
 ### What does NOT qualify
+<!-- scope: hybrid -->
 
 - Things you already knew (no "learned that tests are important")
 - Pure factual information (that goes to vault or ~/.claude/)
 - Decisions without reasoning (those are ADRs, not lessons)
 
 ### When a lesson becomes a rule
+<!-- scope: meta -->
 
 If you find yourself writing a lesson that sounds like "always do X" or "never do Y" — it might be a rule, not a lesson. Write the lesson in LESSONS.md for context, then also add it to `~/.claude/` (gotchas, rules/, or learned-rules.md) with a verify: line. Cross-reference both.
 
 ---
 
 ## 5. Running an AI Council Debate
+<!-- scope: llm -->
 
 **Council debates are valuable but can become procrastination.** Hard rule: max 2 debates before implementation starts. Full format guide lives in the council project's docs/ folder.
 
 ### When to use Council vs. decide yourself
+<!-- scope: llm -->
 
 - **Council:** New package creation, database choice, integration pattern, tool adoption, major refactor, knowledge organization
 - **Self:** Library version, config format, variable naming, test strategy for single feature
 - **Rule of thumb:** If reverting would take >1 hour, it's architectural → Council
 
 ### Debate question format (summary)
+<!-- scope: llm -->
 
 A Council debate is NOT a Claude Code prompt. No Model/Mode/Effort, no UNDERSTAND, no Steps, no "What NOT to do." It's a question with options.
 
@@ -341,6 +370,7 @@ rounds: 2
 - Total file: 40-80 lines. Over 100 = too much narrative, trim.
 
 ### Running the debate
+<!-- scope: llm -->
 
 ```bash
 # Process debates from inbox
@@ -353,6 +383,7 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 > Exact CLI syntax depends on the council tool — see its CLAUDE.md for current commands.
 
 ### Post-debate protocol
+<!-- scope: llm -->
 
 1. Decision is BINDING once synthesized
 2. Create ADR summary → `docs/decisions/ADR-{NN}_{topic}.md`
@@ -360,13 +391,45 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 4. `git add + commit` both immediately
 5. Never reopen a decided topic unless new evidence appears
 
+### Council Debate Archival Protocol
+<!-- scope: llm -->
+
+Every Council debate output MUST be archived immediately after the debate completes. Skip this and the debate is effectively lost. Retroactive archive 2026-04-24 recovered 5 debates that sat in `ai-council/output/` for weeks.
+
+**Pipeline (3 steps, ~5 min):**
+
+1. **Identify target location** within .dev-knowledge:
+   - Debate about .dev-knowledge itself (pick/judge mode) → `docs/decisions/transcripts/DECISION_NN_slug.md`
+   - Research-mode debate → `docs/research/YYYY-MM-DD-slug.md`
+   - Debate about another repo (e.g., corp-monorepo architecture) → `docs/research/YYYY-MM-DD-council-NN-slug-REPO.md`
+     - Suffix with `-REPO` indicates decision applies elsewhere
+     - Future work: mirror to that repo's transcripts/ folder
+
+2. **Copy** `ai-council/output/YYYYMMDD_HHMMSS_source.md` to target:
+   - Decisions: `DECISION_NN_snake_case.md` (NN optional if no sequential numbering)
+   - Research: `YYYY-MM-DD-kebab-case-slug.md`
+   - Byte-exact copy, preserve original in ai-council/output/
+
+3. **Commit** with message: `docs: archive Council #NN — [topic]`
+
+**Optional follow-up (separate commit):**
+- Pick-mode with clear decision → write ADR in `docs/decisions/` referencing transcript
+- Research-mode → no ADR, transcript/report suffices
+- Judge-mode → depends on verdict
+
+**Anti-pattern:** Accumulating 2+ un-archived debates in `ai-council/output/`. If detected, run retroactive archive before the next Council session.
+
+**Future enforcement:** possible pre-commit hook checking ai-council/output/ for files >7 days old not present in any repo's archive locations.
+
 ---
 
 ## 6. Code Review with Claude Code
+<!-- scope: hybrid -->
 
 **Code review stays on Sonnet — security boundary, never Haiku.** This is a Council-binding decision.
 
 ### Process
+<!-- scope: dev -->
 
 1. Specify scope: which files, which changes, what to focus on
 2. Ask Claude Code to read the diff first, report what it sees
@@ -376,10 +439,12 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 ---
 
 ## 7. Managing a Long Claude Code Session
+<!-- scope: runtime -->
 
 **Sessions longer than ~4 hours should be split.** Context degradation is not linear — it accelerates.
 
 ### Session start protocol
+<!-- scope: runtime -->
 
 1. Review recent CHANGELOG.md entries
 2. Read CLAUDE.md
@@ -388,6 +453,7 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 5. Define 1-2 objectives for this session — everything else is backlog
 
 ### During session
+<!-- scope: runtime -->
 
 - `/clear` between unrelated tasks (saves 30-40% input tokens)
 - Commit after each logical change
@@ -397,12 +463,14 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 - Use line ranges (`@file:15-80`) instead of whole files
 
 ### When context gets heavy
+<!-- scope: runtime -->
 
 - `/compact` at 40% (aggressive, Council-approved)
 - `/session-summary` before switching to Claude.ai for architecture consulting
 - If Claude says "it's done" on a complex operation — VERIFY with filesystem commands
 
 ### Session end protocol
+<!-- scope: runtime -->
 
 1. Run full test suite
 2. Update CHANGELOG.md if files changed
@@ -413,15 +481,18 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 ---
 
 ## 8. Handing Off Between Sessions
+<!-- scope: hybrid -->
 
 **Claude Code executes. Claude.ai architects and challenges.** Three handoff scenarios exist.
 
 ### Roles
+<!-- scope: hybrid -->
 
 - **Claude Code (terminal):** reads files, runs commands, edits code, verifies state, runs tests. Trusts filesystem, not memory.
 - **Claude.ai (browser):** architecture consulting, strategic decisions, critical thinking. **ALWAYS maintains critical thinking** — questions the approach, identifies risks, says "no" when something doesn't make sense. Never rubber-stamps.
 
 ### Handoff A: Claude Code → Browser
+<!-- scope: hybrid -->
 
 1. In Claude Code: `/session-summary` → generates token-efficient state summary
 2. Paste into Claude.ai browser chat
@@ -429,6 +500,7 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 4. Decisions go back to Claude Code as prompts (Section 2 format)
 
 ### Handoff B: Browser → New Browser (Council Decision #24)
+<!-- scope: hybrid -->
 
 **Chats die. Handoffs preserve momentum.** Don't wait until the chat is slow — checkpoint at ~2 hours while context is still fresh.
 
@@ -470,6 +542,7 @@ KEY CONTEXT: [max 5 bullets of non-obvious context the new chat needs]
 - Never inline full prompts or session logs — list file paths only
 
 ### Handoff C: Browser → Claude Code
+<!-- scope: hybrid -->
 
 - Claude.ai writes prompts using Section 2 format (Model/Mode/Effort table)
 - Prompts should be QUESTIONS, not COMMANDS
@@ -480,6 +553,7 @@ KEY CONTEXT: [max 5 bullets of non-obvious context the new chat needs]
 ---
 
 ## 9. Weekly Review (Friday)
+<!-- scope: hybrid -->
 
 **Friday consolidation — 30 minutes max, not a project.**
 
@@ -494,10 +568,12 @@ KEY CONTEXT: [max 5 bullets of non-obvious context the new chat needs]
 ---
 
 ## 10. Evaluating a New Tool/Framework/Model
+<!-- scope: hybrid -->
 
 **Check maturity before investing time.** Fresh repos with <100 stars and v0.1 = too early.
 
 ### Quick eval checklist
+<!-- scope: hybrid -->
 
 1. GitHub stars, last commit date, release cadence
 2. Does it solve a problem I actually have? (not "might have someday")
@@ -506,6 +582,7 @@ KEY CONTEXT: [max 5 bullets of non-obvious context the new chat needs]
 5. Is there a simpler alternative I'm already using?
 
 ### Decision framework
+<!-- scope: hybrid -->
 
 - **Obvious yes:** Solves real pain, mature, good docs, easy to adopt → just do it
 - **Maybe:** Interesting but not urgent → bookmark, revisit in 2 weeks
@@ -515,16 +592,19 @@ KEY CONTEXT: [max 5 bullets of non-obvious context the new chat needs]
 ---
 
 ## 11. Multi-Project Rules
+<!-- scope: dev -->
 
 **Package boundaries are sacred.** Projects/packages should never import directly from each other — they communicate via CLI subprocess, shared schema packages, or well-defined interfaces.
 
 ### Principles
+<!-- scope: dev -->
 
 - Designate one package as the **source of truth** for shared data models, taxonomy, naming, and validation. Other packages depend on it — never duplicate a schema.
 - Orchestrator pattern: one central project calls others via subprocess or API. Tools stay stateless; the orchestrator owns state.
 - Document the architecture in the project's CLAUDE.md, not here. This playbook covers methodology, not project-specific design.
 
 ### Config hierarchy (most specific wins)
+<!-- scope: dev -->
 
 ```
 ~/.claude/CLAUDE.md              ← Global rules (all projects)
@@ -537,6 +617,7 @@ Dev/{project}/packages/X/CLAUDE.md  ← Package rules
 ---
 
 ## 12. Where Knowledge Lives
+<!-- scope: meta -->
 
 **Three domains, three homes, zero overlap.** Council Decision #23 (2026-03-29, unanimous 4-0).
 
@@ -549,12 +630,14 @@ Dev/{project}/packages/X/CLAUDE.md  ← Package rules
 | Claude Code runtime config | `~/.claude/`          | Claude Code auto-discovery | Rules, commands, hooks, agents, memory, gotchas          |
 
 ### "Where does this go?" decision rule
+<!-- scope: meta -->
 
 - Is it about a **client, product, or domain**? → Obsidian vault
 - Is it about **how I work** (process, methodology, lesson learned)? → `.dev-knowledge/`
 - Is it a **rule Claude Code must execute** (gotcha, verify check, command, hook)? → `~/.claude/`
 
 ### When a lesson becomes a rule
+<!-- scope: meta -->
 
 A lesson in LESSONS.md is human context (why, what happened). A rule in `~/.claude/` is machine-executable (verify: line, gotcha check). When a lesson matures into a rule:
 1. Keep the lesson entry in LESSONS.md (provenance)
@@ -562,10 +645,12 @@ A lesson in LESSONS.md is human context (why, what happened). A rule in `~/.clau
 3. Cross-reference both with file path
 
 ### Data sanitization
+<!-- scope: meta -->
 
 If a client engagement generates a dev lesson, strip all client names, proprietary schemas, and identifying details before writing to `.dev-knowledge/`.
 
 ### Migration triggers
+<!-- scope: meta -->
 
 - **20 files** in `.dev-knowledge/` → evaluate creating a dedicated Obsidian DevVault
 - **50 entries** in LESSONS.md → split into topic files
@@ -574,6 +659,7 @@ If a client engagement generates a dev lesson, strip all client names, proprieta
 ---
 
 ## 13. Markdown Governance
+<!-- scope: dev -->
 
 **Every markdown file in the project falls into exactly one category.** If you're about to create a .md file and it doesn't fit any category below — it probably shouldn't exist.
 
@@ -591,6 +677,7 @@ If a client engagement generates a dev lesson, strip all client names, proprieta
 - Living files → date in YAML frontmatter: `last_updated: 2026-03-28`
 
 ### Project governance folder
+<!-- scope: dev -->
 
 Use `docs/` for project-level governance. Define its allowed contents in CLAUDE.md. Standard layout:
 
@@ -607,6 +694,7 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 ---
 
 ## 14. Anti-Patterns — What NOT to Do
+<!-- scope: dev -->
 
 **"I'll organize later"** — If you create a file without knowing where it belongs, you'll never organize it. Know the category BEFORE creating.
 
@@ -625,6 +713,7 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 ---
 
 ## The 10 Commandments
+<!-- scope: hybrid -->
 
 1. **CLAUDE.md first, code second.** Define the project before building it.
 2. **Date everything.** Filename or frontmatter. No undated artifacts.
@@ -640,11 +729,13 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 ---
 
 ## 15. Cross-Tool Review **[L+M]**
+<!-- scope: hybrid -->
 
 **When:** Feature branch touches 3+ files OR 2+ packages OR safety-critical paths (vault writes, OneDrive ops, cleanup/delete)
 **Skip when:** Single-file fix, test-only changes, documentation updates
 
 ### Review Tools
+<!-- scope: hybrid -->
 
 Two options for code review (A/B test both, then standardize):
 
@@ -661,18 +752,21 @@ Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
 ---
 
 ## 16. Code Quality Audit Process
+<!-- scope: dev -->
 
 **When:** Monthly full audit **[L only]** · On-demand before major refactors **[L+M]** · S projects skip.
 **Tool:** Codex CLI or Codex Desktop (independent reviewer — no authorship bias)
 **Cycle:** Read-only audit → triage by severity → fix by tier → re-audit
 
 ### Severity tiers
+<!-- scope: dev -->
 - **CRITICAL** — data loss, security, broken imports that fail at runtime
 - **HIGH** — wrong dependency direction, missing tests on public API, type errors
 - **MEDIUM** — style violations, redundant code, unclear naming
 - **LOW** — suggestions, nitpicks, debatable patterns
 
 ### Process
+<!-- scope: dev -->
 1. Run audit (read-only): `codex "Audit this repo against AGENTS.md rules. Output findings by severity. Do not fix anything."`
 2. Triage output manually — expect ~30% false positives. Demote miscalibrated patterns in AGENTS.md.
 3. Fix CRITICAL and HIGH first. One commit per logical group.
@@ -680,12 +774,14 @@ Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
 5. Update ARCHITECTURE.md if module boundaries or dependency direction changed. **[L+M]**
 
 ### Rules
+<!-- scope: dev -->
 - Audit-first, fix-second. Never fix while auditing.
 - Claude Code fixes. Codex audits. Never reverse the roles.
 - Structural changes with N>5 call sites: shim first, migrate incrementally, remove shim last.
 - Any session touching module boundaries must produce or update ARCHITECTURE.md. **[L+M]**
 
 ### Post-Structural-Change Documentation
+<!-- scope: dev -->
 
 After any change that moves, renames, or reorganizes files or modules, update documentation that describes the changed structure:
 
@@ -698,14 +794,17 @@ This is not optional for the applicable tier. Stale structural documentation is 
 ---
 
 ## Appendix A: Claude Code Shortcuts
+<!-- scope: runtime -->
 
 ### Permission Modes (Shift+Tab cycles)
+<!-- scope: runtime -->
 
 - **Default** — asks permission for everything. For sensitive/unfamiliar work.
 - **Accept Edits** (Shift+Tab x1) — auto-saves files, asks before shell. **Daily driver.**
 - **Plan Mode** (Shift+Tab x2) — read-only. Use when you don't know the approach.
 
 ### Keyboard
+<!-- scope: runtime -->
 
 | Shortcut  | What it does                        |
 | --------- | ----------------------------------- |
@@ -719,6 +818,7 @@ This is not optional for the applicable tier. Stale structural documentation is 
 | Ctrl+V    | Paste image                         |
 
 ### Slash Commands
+<!-- scope: runtime -->
 
 | Command            | When to use                                       |
 | ------------------ | ------------------------------------------------- |
@@ -736,6 +836,7 @@ This is not optional for the applicable tier. Stale structural documentation is 
 | `/resume`          | Resume previous session                           |
 
 ### CLI Flags
+<!-- scope: runtime -->
 
 ```
 claude --permission-mode plan      # start in plan mode
@@ -745,6 +846,7 @@ claude -r "session-name"           # resume named session
 ```
 
 ### The ! Prefix
+<!-- scope: runtime -->
 
 Type `!` before any command to run it directly in shell without Claude processing:
 ```
@@ -757,6 +859,7 @@ Use for quick checks where you don't need Claude to interpret — just inject ou
 ---
 
 ## Appendix B: Model Routing Table
+<!-- scope: llm -->
 
 From ~/.claude/ROUTING.md — deterministic, no judgment calls.
 
@@ -770,6 +873,7 @@ From ~/.claude/ROUTING.md — deterministic, no judgment calls.
 | Council synthesis                 | Gemini         | Cost: $0.04 vs Claude $0.23/debate                                 |
 
 ### Time-Shifting Schedule
+<!-- scope: llm -->
 
 | CET Time    | Activity                           | Rationale                                                         |
 | ----------- | ---------------------------------- | ----------------------------------------------------------------- |
@@ -782,6 +886,7 @@ From ~/.claude/ROUTING.md — deterministic, no judgment calls.
 ---
 
 ## Appendix C: Token Optimization Techniques
+<!-- scope: llm -->
 
 Ranked by impact/effort (Council-approved):
 
@@ -796,9 +901,11 @@ Ranked by impact/effort (Council-approved):
 9. **`!` prefix for quick commands** — `!git status`, `!pytest` run directly in shell, output goes to context without Claude processing. Zero AI tokens for simple checks.
 
 ### Golden Rule
+<!-- scope: llm -->
 
 **After 2 failed attempts at something → `/clear` and rewrite the prompt from scratch.** A fresh context with a clear prompt almost always works better than a polluted context full of failed approaches. Don't keep hammering — reset.
 
 ### CLAUDE.md size limit
+<!-- scope: runtime -->
 
 Keep CLAUDE.md under 200 lines per file. Instruction adherence drops above that. Use `.claude/rules/` for domain-specific rules and `.claude/skills/gotchas/` for institutional memory — these load separately and don't bloat the main prompt.

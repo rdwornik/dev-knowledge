@@ -68,3 +68,20 @@ Convention:
 - Research reports in `.dev-knowledge/docs/research/YYYY-MM-DD-slug.md`
 - Council debate transcripts in `corp-monorepo/docs/decisions/transcripts/DECISION_NN_slug.md`
 - Research ≠ decision: research informs, decision commits
+
+## 2026-04-24 — Council Archival Protocol
+
+Added:
+- PLAYBOOK Section 5: "Council Debate Archival Protocol" — mandatory immediate archival after every debate
+- Retroactive archive of 7 debates + research reports to `docs/research/` and `docs/decisions/transcripts/`
+- `docs/research/README.md` and `docs/decisions/README.md` index files
+
+Why:
+- Knowledge was being lost in `ai-council/output/`
+- No systemic protocol for post-debate archival existed
+- 5-debate backlog discovered during Council #28/#29 review session
+
+Scope note:
+- corp-monorepo archival deferred (separate session)
+- Debates affecting corp-monorepo architecture (#25 diagrams, #26 Tach) archived in `.dev-knowledge/docs/research/` with `-corp-monorepo` suffix
+- Future mirror to `corp-monorepo/docs/decisions/transcripts/` is separate work
