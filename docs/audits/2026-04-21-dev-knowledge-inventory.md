@@ -1,3 +1,5 @@
+> **SUPERSEDED 2026-04-24** — see hygiene inventory session notes 2026-04-24 (no file; inventory output captured in chat/handoff for hygiene cleanup session)
+
 # Dev-Knowledge Inventory — 2026-04-21
 
 > Prepared for Council #27 — LLM Practice Ecosystem Architecture.
