@@ -29,6 +29,8 @@ Retroactive per-entry tagging would edit existing content, violating append-only
 
 3. **File-level section tag.** The LESSONS.md "Entries" section gets a single file-level `<!-- scope: hybrid -->` comment (consistent with Phase 2 audit classification). This satisfies the pre-commit hook's section-tag requirement. Entry-level scope lives within entries per rule 2.
 
+   **2026-04-24 amendment:** insertion point is directly under H1 (`# Lessons Learned — Append-Only Log`), not under `## Entries`. Rationale: validator uses 3-line H1 detection window; H1 placement satisfies the "file-level" intent more literally than `## Entries` placement (which fell outside the detection window). No change to decision intent — only insertion point clarified.
+
 4. **Append-only preserved.** No exception to append-only rule is created. Retroactive tagging would require such an exception; grandfathering sidesteps it entirely.
 
 ### Consequences
