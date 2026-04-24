@@ -281,7 +281,7 @@ WHAT NOT TO DO:
 **Lessons die in chat history if not extracted.** Every session — browser chat, Claude Code terminal, Council debate, article analysis — potentially contains lessons. Without an explicit extraction step, they vanish.
 
 ### When to extract
-<!-- scope: hybrid -->
+<!-- scope: llm -->
 
 - **End of every browser chat** that involved decisions, debugging, or new insights
 - **End of every Claude Code session** (via LESSONS.md entry if applicable)
@@ -289,7 +289,7 @@ WHAT NOT TO DO:
 - **After reading an article/repo/tool** that changed how you think about something
 
 ### How to extract (2 minutes, no more)
-<!-- scope: hybrid -->
+<!-- scope: llm -->
 
 Ask yourself: **"What 2-3 things did I learn that I didn't know before this session?"**
 
@@ -301,7 +301,7 @@ For each, write one entry in LESSONS.md:
 Categories: `prompt-craft` / `token-optimization` / `architecture` / `tooling` / `process` / `gotcha`
 
 ### What qualifies as a lesson
-<!-- scope: hybrid -->
+<!-- scope: llm -->
 
 - Something that surprised you (expectation ≠ reality)
 - A mistake that cost >10 minutes
@@ -310,7 +310,7 @@ Categories: `prompt-craft` / `token-optimization` / `architecture` / `tooling` /
 - A tool/article insight that changed your approach
 
 ### What does NOT qualify
-<!-- scope: hybrid -->
+<!-- scope: llm -->
 
 - Things you already knew (no "learned that tests are important")
 - Pure factual information (that goes to vault or ~/.claude/)
@@ -444,7 +444,7 @@ Every Council debate output MUST be archived immediately after the debate comple
 **Sessions longer than ~4 hours should be split.** Context degradation is not linear — it accelerates.
 
 ### Session start protocol
-<!-- scope: runtime -->
+<!-- scope: hybrid -->
 
 1. Review recent CHANGELOG.md entries
 2. Read CLAUDE.md
@@ -453,7 +453,7 @@ Every Council debate output MUST be archived immediately after the debate comple
 5. Define 1-2 objectives for this session — everything else is backlog
 
 ### During session
-<!-- scope: runtime -->
+<!-- scope: hybrid -->
 
 - `/clear` between unrelated tasks (saves 30-40% input tokens)
 - Commit after each logical change
@@ -463,14 +463,14 @@ Every Council debate output MUST be archived immediately after the debate comple
 - Use line ranges (`@file:15-80`) instead of whole files
 
 ### When context gets heavy
-<!-- scope: runtime -->
+<!-- scope: hybrid -->
 
 - `/compact` at 40% (aggressive, Council-approved)
 - `/session-summary` before switching to Claude.ai for architecture consulting
 - If Claude says "it's done" on a complex operation — VERIFY with filesystem commands
 
 ### Session end protocol
-<!-- scope: runtime -->
+<!-- scope: hybrid -->
 
 1. Run full test suite
 2. Update CHANGELOG.md if files changed
@@ -735,7 +735,7 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 **Skip when:** Single-file fix, test-only changes, documentation updates
 
 ### Review Tools
-<!-- scope: hybrid -->
+<!-- scope: dev -->
 
 Two options for code review (A/B test both, then standardize):
 
