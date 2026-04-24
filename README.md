@@ -1,47 +1,87 @@
-# Dev Knowledge
+# .dev-knowledge
 
-Dev practice methodology — how Rob builds software with AI.
-Separate from pre-sales work knowledge (ObsidianVault/) and Claude Code runtime config (~/.claude/).
+Personal operating system for LLM-augmented dev and presales work.
+Not a journal. Not an orchestrator. A reference library + governance
+for how I work with Claude (Code + browser) and other LLM tools.
 
-## Files
+## For whom
 <!-- scope: meta -->
 
-| File | When to open | What it is |
-|------|-------------|------------|
-| **ESSENTIALS.md** | Every morning | 1-page cheat sheet: shortcuts, tokens, rules |
-| **SESSION_SETUP.md** | Click "New chat" in browser | What to upload, how to communicate, handoff process |
-| **PLAYBOOK.md** | Need full process detail | 14 sections + appendices (shortcuts, routing, optimization) |
-| **LESSONS.md** | End of session (append) + Friday (review) | Append-only log, never edit old entries |
-| **ENVIRONMENT.md** | Config changed | Tools, paths, VS Code, decisions, versions |
-| **TOKEN-LOG.md** | Weekly /stats snapshot | Append-only token usage data |
-| **CHANGELOG.md** | After notable changes | Version history of this knowledge base |
-| **CLAUDE.md** | Claude Code reads automatically | Project contract — what to do, what not to do |
+- **Primary reader:** Rob, when starting a new browser chat or VS Code session
+- **Secondary reader:** Claude (via CLAUDE.md pointer + automatic file reads)
+- **Tertiary:** future contributor (hypothetical — no active second contributor)
 
-## Triage Rules
+## Starting a new browser chat
+<!-- scope: llm -->
+
+Upload to the new chat:
+1. `ESSENTIALS.md` (daily cheat sheet)
+2. `HANDOFF_PROCESS.md` (if continuing from another chat)
+3. Most recent handoff in `docs/handoffs/` (if any)
+4. Project-specific context (CLAUDE.md from target repo if programming)
+
+First message: state objective + 1-2 goals.
+
+## Starting a Claude Code session
+<!-- scope: runtime -->
+
+In terminal, inside project repo: `/boot` (loads rules, memory, trends).
+`.dev-knowledge` is NOT the working repo — it's reference. Claude Code
+reads it only when pointed (e.g. "check .dev-knowledge/PLAYBOOK.md Section X").
+
+## Folder layout
 <!-- scope: meta -->
 
-| Content type | Where it goes |
-|---|---|
-| Client intel, product knowledge, competitive analysis, demo prep | Obsidian vault (`ObsidianVault/`) |
-| How I build software: methodology, lessons, decisions, retros | Here (`Dev/.dev-knowledge/`) |
-| Rules Claude Code must follow, commands, hooks, agent config | `~/.claude/` |
+| Folder | Purpose | Read when |
+|--------|---------|-----------|
+| `(root)` | Core governance files | Daily / session start |
+| `docs/decisions/` | ADRs (decisions binding across sessions) | When making similar architectural decision |
+| `docs/decisions/transcripts/` | AI Council debate raw outputs | When reviewing how a decision was reached |
+| `docs/research/` | Research-mode debates, external research reports | When evaluating new tools / patterns |
+| `docs/audits/` | Point-in-time analyses (dated) | Reference; superseded files marked in-file |
+| `docs/handoffs/` | Per-session handoff summaries | When resuming work after break |
+| `handoff-prompts/` | Live copy-paste templates for generating handoffs | When running a handoff (not archiving) |
+| `scripts/` | Validators + automation | Reference; run via pre-commit |
+| `templates/` | Reusable boilerplate (e.g. AGENTS.md scaffold) | When bootstrapping similar patterns elsewhere |
+| `.claude/` | Claude Code config (skills, commands, rules) | Automatic — Claude Code reads on boot |
 
-## When a lesson becomes a rule
+## Navigation (where to look)
 <!-- scope: meta -->
 
-1. Write the rationale in LESSONS.md (why, what happened, context)
-2. Write the executable rule in `~/.claude/` (gotchas, rules/, or learned-rules.md with verify: line)
-3. Cross-reference both with file path
+- **How do I prompt Claude Code?** → `PLAYBOOK.md` (prompt structure + examples)
+- **What am I supposed to do when starting?** → `ESSENTIALS.md`
+- **What decisions apply?** → `docs/decisions/` (ADR-NN_topic.md)
+- **What did I learn recently?** → `LESSONS.md` (append-only, scope-tagged)
+- **Where are we in current work?** → `docs/handoffs/` (most recent file)
+- **How do I run Council debate?** → `PLAYBOOK.md` Section 5 + Section 5.N (archival)
 
-## Data sanitization
+## Current state (2026-04-24)
 <!-- scope: meta -->
 
-If a client engagement generates a dev lesson, remove all client names,
-proprietary schemas, and identifying details before writing here.
+- Stream A complete: scope tagging live, validator enforces, hybrid ceiling delta-based
+- 30 ADRs active (ADR-01 through ADR-29, plus CLAUDE.md governing this repo)
+- 61 lessons in LESSONS.md, scope-tagged inline per ADR-29
+- Council #1-#29 archived (transcripts in corp-monorepo and/or docs/decisions/transcripts/, research in docs/research/)
+- 19 gaps identified for future streams (see latest audit file)
 
-## Growth triggers
+## Not here (deliberately)
 <!-- scope: meta -->
 
-- **20 files** here → evaluate migrating to a dedicated Obsidian DevVault
-- **50 entries** in LESSONS.md → split into topic files
-- Rob opens Obsidian to look for dev methodology → immediate signal DevVault is needed
+- Client/product/domain knowledge → Obsidian vault
+- Claude Code runtime config (skills, hooks, slash commands) → `~/.claude/` (user-level) + `.claude/` in target repo (project-level)
+- Actual project code → standalone repos (corp-monorepo, ai-council, etc.)
+
+## Conventions
+<!-- scope: meta -->
+
+- **Filenames:** kebab-case for dated (`YYYY-MM-DD-slug.md`), `ADR-NN_topic.md` for ADRs, `DECISION_NN_snake_case.md` for transcripts
+- **Scope tags:** every section in tagged files has `<!-- scope: X -->` (dev|llm|hybrid|runtime|meta). Enforced by pre-commit hook.
+- **Amendment vs reopen:** minor prescription drift → amend ADR in-place. Intent change → new ADR or Council reopen.
+- **Append-only:** LESSONS.md, CHANGELOG.md, TOKEN-LOG.md — never reorder or delete entries.
+
+## How it relates to other repos
+<!-- scope: meta -->
+
+- `corp-monorepo` (Scale L): own governance stack (CLAUDE.md, AGENTS.md, JOURNAL.md, docs/HANDOFF.md living doc). Some patterns shared.
+- `ai-council` (Scale M): own Python project, outputs flow to target repos per PLAYBOOK S5.N archival protocol.
+- This repo is the meta-layer: how I decide, what I learned, how sessions resume.
