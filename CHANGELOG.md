@@ -4,6 +4,26 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-24 (continued) — TOKEN-LOG cadence formalized
+
+**Added:**
+- PLAYBOOK.md: "Token log cadence" section with threshold-based (7-day) trigger spec
+- `~/.claude/commands/session-summary.md`: conditional ccusage --json snapshot step (absolute paths)
+- ENVIRONMENT.md: cross-reference to PLAYBOOK cadence section
+
+**Why:**
+- TOKEN-LOG had 2 entries and no ritual (would go stale again)
+- Per-session cadence rejected — ~$0.02/run overhead for data that changes weekly
+- Manual weekly ritual rejected — forgetting risk (4 weeks stale before ccusage adoption)
+- Threshold-based: amortized ~$0.006/run, auto-triggers on staleness, zero forgetting risk
+
+**Scope:**
+- /session-summary is user-level (`~/.claude/commands/`) — applies to any session with .dev-knowledge accessible
+- TOKEN-LOG global tracker in .dev-knowledge (not per-repo)
+- New entries staged but NOT auto-committed — Rob reviews before committing
+
+---
+
 ## 2026-04-24 — Repo hygiene pass
 
 **Changed:**
