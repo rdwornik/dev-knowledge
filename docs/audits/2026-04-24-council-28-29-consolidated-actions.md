@@ -1,5 +1,14 @@
 # Consolidated Action Items — Council #28 + #29 + 2 Research Reports
 
+> **2026-04-24 update — partially superseded**
+>
+> P0-2 (reopen Council #27) was based on the false premise that ADR-27 did not exist.
+> ADR-27 exists since 2026-04-22 and does NOT contradict Council #28 findings (they
+> operate on different layers: ADR-27 = scope tag vocabulary in .dev-knowledge,
+> Council #28 = governance file structure recommendations). P0-2 removed.
+>
+> For current Stream A status see: `docs/audits/2026-04-24-stream-a-gap-report.md`
+
 **Date:** 2026-04-24
 **Sources:**
 - Council #28 (research, community LLM dev patterns): `corp-monorepo/docs/decisions/transcripts/DECISION_28_community_patterns_research.md`
