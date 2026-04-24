@@ -23,6 +23,7 @@
 - **Cadence:** Per-session or weekly snapshot to TOKEN-LOG.md
 - **Adopted:** 2026-04-24
 - **Rationale:** /stats is a multi-page interactive TUI — cannot be piped or scripted
+- **Cadence:** threshold-based (7 days) via /session-summary staleness check. See PLAYBOOK.md "Token log cadence" for format spec.
 
 ### settings.json (key values)
 <!-- scope: runtime -->
