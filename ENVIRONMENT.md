@@ -13,6 +13,17 @@
 - **Model routing:** opusplan (Opus plans, Sonnet executes)
 - **Available models:** Opus 4.7 (as of 2026-04-16), Sonnet 4.6, Haiku 4.5. xhigh effort level available (Opus only). /ultrareview for cloud-based multi-agent code review.
 
+### Usage tracking: ccusage (npm global)
+<!-- scope: runtime -->
+
+- **Package:** `ccusage` v18.0.11 (npm global)
+- **Purpose:** Export Claude Code usage data to JSON — replaces interactive /stats for logging
+- **Install:** `npm install -g ccusage`
+- **Usage:** `ccusage --json > snapshot.json` | `ccusage session --json --since YYYYMMDD`
+- **Cadence:** Per-session or weekly snapshot to TOKEN-LOG.md
+- **Adopted:** 2026-04-24
+- **Rationale:** /stats is a multi-page interactive TUI — cannot be piped or scripted
+
 ### settings.json (key values)
 <!-- scope: runtime -->
 
