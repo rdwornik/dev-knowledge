@@ -6,6 +6,7 @@
 ---
 
 ## Claude Code CLI
+<!-- scope: runtime -->
 
 - **Version:** 2.1.87 (native installer, auto-updates)
 - **Plan:** Claude Max $100/month
@@ -13,6 +14,7 @@
 - **Available models:** Opus 4.7 (as of 2026-04-16), Sonnet 4.6, Haiku 4.5. xhigh effort level available (Opus only). /ultrareview for cloud-based multi-agent code review.
 
 ### settings.json (key values)
+<!-- scope: runtime -->
 
 - MAX_THINKING_TOKENS: 10000
 - CLAUDE_AUTOCOMPACT_PCT_OVERRIDE: 40
@@ -23,6 +25,7 @@
 - showThinkingSummaries: true — shows Claude thinking before actions. Added 2026-04-15.
 
 ### ~/.claude/ directory
+<!-- scope: runtime -->
 
 ```
 ~/.claude/
@@ -60,8 +63,10 @@ Project-specific skills, gotchas, and rules live in each repo's `.claude/` direc
 ---
 
 ## VS Code
+<!-- scope: dev -->
 
 ### Workspaces
+<!-- scope: dev -->
 
 Two VS Code workspaces:
 - **Coding:** project-level `.code-workspace` file in the main project repo — all code projects + packages
@@ -70,6 +75,7 @@ Two VS Code workspaces:
 Project-specific workspace details (folder count, roots) live in each workspace file.
 
 ### Extensions (10 installed)
+<!-- scope: dev -->
 
 | Extension                | Replaces in Claude Code (0 tokens)                          |
 | ------------------------ | ----------------------------------------------------------- |
@@ -85,6 +91,7 @@ Project-specific workspace details (folder count, roots) live in each workspace 
 | Markdown All in One      | Preview, TOC, shortcuts                                     |
 
 ### Key settings (in workspace file)
+<!-- scope: dev -->
 
 **Testing (pytest in Test Explorer):**
 - pytest enabled, unittest disabled
@@ -110,12 +117,14 @@ Project-specific workspace details (folder count, roots) live in each workspace 
 ---
 
 ## Projects
+<!-- scope: meta -->
 
 All projects live under `Dev/`. Each project has its own CLAUDE.md with architecture, test counts, dependency graphs, and safety rules. This file does not track project-specific details — only the development environment itself.
 
 ---
 
 ## Key Paths
+<!-- scope: meta -->
 
 | What                 | Path                                       |
 | -------------------- | ------------------------------------------ |
@@ -130,6 +139,7 @@ Project-specific paths (database locations, output dirs, exclusion zones) live i
 ---
 
 ## Dev Practice Knowledge
+<!-- scope: meta -->
 
 Location: `Dev/.dev-knowledge/` — visible in VS Code workspace as `📓 .dev-knowledge`
 
@@ -150,6 +160,7 @@ Separation rationale (Council Decision #23): vault = pre-sales work knowledge, .
 ---
 
 ## Obsidian Vault
+<!-- scope: meta -->
 
 Purpose: Pre-sales work knowledge ONLY. No dev practice, no Claude Code config.
 
@@ -165,6 +176,7 @@ Tags: product/, client/, domain/, topic/, type/, source/, comp/, compliance/, tr
 ---
 
 ## Hardware
+<!-- scope: meta -->
 
 - ThinkPad, AMD Ryzen Pro CPU, 32GB RAM, no NVIDIA GPU
 - Not suitable for local LLM inference (rejected by Council)
@@ -173,6 +185,7 @@ Tags: product/, client/, domain/, topic/, type/, source/, comp/, compliance/, tr
 ---
 
 ## API Keys and Providers
+<!-- scope: llm -->
 
 Location: `C:\Users\1028120\Documents\.secrets\.env` — standard key: `GEMINI_API_KEY`
 
@@ -189,8 +202,10 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
 ---
 
 ## Binding Council Decisions
+<!-- scope: meta -->
 
 ### Active
+<!-- scope: meta -->
 
 - Stay on Claude Code as sole interactive tool
 - Code review stays on Sonnet (never Haiku — security boundary)
@@ -204,11 +219,13 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
 - No Codex CLI, no Gemini CLI
 
 ### Pending
+<!-- scope: meta -->
 
 - Council mode system (brainstorm/evaluate/strategy) — prompt ready in inbox
 - GLM-5.1 re-evaluate April 12 only if rate limits >2x/week
 
 ### Rejected (do NOT revisit before Q3)
+<!-- scope: meta -->
 
 - GMKtec local inference ($2,500 ADHD trap, 38-month ROI)
 - Codex CLI (no advantage over Haiku subagents)
@@ -219,6 +236,7 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
 ---
 
 ## Version Tracking
+<!-- scope: meta -->
 
 | Component   | Version                       | Last checked |
 | ----------- | ----------------------------- | ------------ |
