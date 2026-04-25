@@ -167,6 +167,93 @@ If CLAUDE.md grows past 200 lines, split content: most goes to AGENTS.md, only C
 
 ---
 
+## Writing prompts for Claude Code
+<!-- scope: meta -->
+
+**Purpose:** Standardize prompts that browser chat produces for Claude Code execution. Per ADR-28 (three-layer architecture): browser is architect, Claude Code is executor — prompts are the contract between them.
+
+### Why standard format
+<!-- scope: meta -->
+
+Without standard structure, prompts diverge:
+- Different naming for same fields (Model vs LLM, Effort vs Difficulty)
+- Inconsistent COMMIT markers — Claude Code can't tell when to commit
+- Missing UNDERSTAND section → Claude Code makes wrong assumptions
+- Polish prompts → Claude Code outputs Polish (per ESSENTIALS line 25, prompts are English-only)
+- Inline code blocks → can't be saved as artifact, breaks asynchronous workflow
+
+Vibe Code 4 (2026-04-22) established the standard structure during Stream A. This section codifies it as PLAYBOOK protocol.
+
+### Standard structure (8 sections)
+<!-- scope: meta -->
+
+1. **Model/Mode/Effort table** — `| Model | Sonnet | / | Mode | plan-then-auto | / | Effort | medium |`
+2. **Title** (imperative, what gets accomplished)
+3. **Repo + Purpose** (absolute path + one-sentence outcome)
+4. **Read first** (CLAUDE.md, AGENTS.md, gotchas, relevant docs)
+5. **Git workflow** (branch + commit cadence + merge command)
+6. **UNDERSTAND** (problem, what could break, most likely failure mode)
+7. **Steps with COMMIT markers** (numbered, each ends with conventional commit message)
+8. **Final + What NOT to do** (verification + merge + anti-patterns)
+
+Template: `templates/prompt-template.md`
+
+### Per-Scale guidance
+<!-- scope: meta -->
+
+- **Scale S** (single file, <50 lines change): use minimal version — Title + Steps + What NOT to do. Skip UNDERSTAND if change is mechanical.
+- **Scale M** (multi-file): full template, but UNDERSTAND can be 1-2 sentences.
+- **Scale L** (3+ files, architectural): full template required, prefer `plan-then-auto` mode for review checkpoint after Step 1.
+
+### Delivery format
+<!-- scope: meta -->
+
+Prompts are **downloadable `.md` artifacts**, not inline code blocks. Browser chat outputs them as fenced markdown blocks; Rob saves as file, then pastes file content into Claude Code's prompt field.
+
+Why: pasted-as-text is fine, but file form preserves structure for re-use, audit, and handoff.
+
+### Pre-send checklist
+<!-- scope: meta -->
+
+Before delivering a prompt to Claude Code, verify:
+
+- [ ] **English only** — no Polish in prompt body (Rob speaks Polish; prompts are English per ESSENTIALS)
+- [ ] **Model/Mode/Effort table** present at top
+- [ ] **Absolute paths** for all repo/file references (not relative — Claude Code's CWD varies)
+- [ ] **Read first** lists CLAUDE.md and gotchas (always) plus task-relevant docs
+- [ ] **Git workflow** specifies branch name, commit cadence, merge command
+- [ ] **UNDERSTAND section** answers: what's the problem? what could break? most likely failure mode?
+- [ ] **Steps numbered** with imperative titles ("Create X" not "Creating X")
+- [ ] **COMMIT markers** end each step (or explicit "no commit" if grouping)
+- [ ] **What NOT to do** lists at least 3 anti-patterns specific to this task
+- [ ] **Final** has concrete verification commands and merge command
+- [ ] **Out-of-scope items explicit** (e.g., "Do NOT touch corp-monorepo")
+- [ ] **No `!` shortcuts** for state-changing git operations (per Vibe Code 4 protocol)
+- [ ] **Versioning if applicable** — sections in repo files include `<!-- version: X.Y -->` for amendment tracking
+
+Skip checklist items only when not applicable to specific task type. If unsure, include them.
+
+### Anti-patterns
+<!-- scope: meta -->
+
+- **Polish prompts** — even if Rob asks in Polish, prompt body is English
+- **Inline `!` git commits** — Claude Code commits via explicit Bash steps, not shortcuts
+- **Missing UNDERSTAND** — Claude Code without context makes wrong assumptions, especially on Scale L
+- **Unclear out-of-scope** — Claude Code expands work; explicit "Do NOT touch X" prevents
+- **Relative paths** — break when CWD shifts between repos
+
+### Update cadence
+<!-- scope: meta -->
+
+Prompt format updates when:
+- New common failure mode discovered → add to "What could break" guidance
+- New repo with different conventions → may require template variant
+- ADR amendment changes prompt protocol (e.g., new git workflow standard)
+
+This section's history is in PLAYBOOK CHANGELOG entries (search for "prompt template" or "Gap #2").
+
+---
+
 ## Project Scale Tiers
 <!-- scope: dev -->
 
