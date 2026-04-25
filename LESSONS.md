@@ -152,3 +152,9 @@ Date: 2026-04-24
 Source: repo hygiene session (README.md rewrite)
 Lesson: File-level scope tag (placed under H1) causes validator to count all sections as 1 for ratio purposes, shrinking denominator and triggering false regressions when the file's headers are counted separately. Prefer per-section tags (each H2 tagged individually) over file-level tag for repos with ratio-based enforcement. File-level tag remains appropriate for append-only logs (LESSONS.md) where section count is not meaningful.
 [scope: dev]
+
+---
+Date: 2026-04-25
+Source: Gap #1 implementation — validator vs pre-commit hook divergence
+Lesson: validate_scope_tags.py when invoked without arguments (manual sanity check) processed zero files and printed "all files pass" — a vacuous pass. Pre-commit hook correctly passes staged filenames via pass_filenames: true, so it caught missing H3 scope tags that the manual run missed. Both tools apply the same rule (H2 and H3 headings require scope tags, per H2_RE = re.compile(r"^#{2,3}\s+")); the divergence was invocation semantics, not logic. Fix: main() now falls back to scanning all in-scope files when called with no args. Governance tools that share enforcement rules must produce identical results on identical content regardless of invocation mode — "passes here, fails there" is a silent false-negative, not a tolerated difference.
+[scope: dev]
