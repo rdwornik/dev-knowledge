@@ -115,3 +115,21 @@ On every hook run (pass or block), the hook prints:
 ### Relationship to original text
 
 Decision intent unchanged. This amendment adds prescription for commit-time enforcement behavior that was under-specified in the original text (which addressed quarterly hygiene, not commit-time delta behavior). The 25% threshold, vocabulary, and governance rules are unmodified.
+
+## Amendment 2026-04-25: Heading level scope and validator no-args behavior
+
+Two under-specified behaviors clarified based on a divergence discovered during Gap #1 implementation (2026-04-24).
+
+### Heading levels covered
+
+Scope tags are required under **H2 (`##`) and H3 (`###`) headings**. H4+ headings are exempt (they are sub-items of a section, not sections in their own right). The validator already implements this via `H2_RE = re.compile(r"^#{2,3}\s+")`. ADR-27 original text said "section headers" without specifying level; this amendment makes the prescription explicit.
+
+### Validator standalone invocation
+
+When `validate_scope_tags.py` is invoked without filename arguments (manual check), it must scan all in-scope files on disk — not produce a vacuous pass. The pre-commit hook passes staged filenames via `pass_filenames: true`; standalone runs without args must be equivalent to a full-repo check, not a no-op.
+
+**Fix applied:** `main()` now falls back to all `IN_SCOPE_FILES` present on disk when `paths` is empty.
+
+### Discovery context
+
+Validator reported "all files pass" (no-args invocation). Pre-commit hook failed citing missing H3 scope tags. Apparent divergence; actual cause was empty-path vacuous pass. Tools agree on H3 requirement — invocation semantics were the gap.
