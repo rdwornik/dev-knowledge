@@ -4,6 +4,30 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-25 — Gap #5 CLAUDE.md template + PLAYBOOK section
+
+**Added:**
+- `templates/CLAUDE-md-template.md` v1.0 — thin pointer skeleton, 10 sections, ≤200 lines target
+- PLAYBOOK.md "CLAUDE.md as session contract" section (with H3 subsections per ADR-27)
+- Versioned per ADR-29 amendment pattern
+
+**Why:**
+- Per Council #28 community standard: CLAUDE.md ≤200 lines, thin pointer to AGENTS.md and universal rules
+- corp-monorepo CLAUDE.md (4KB, stale numbers) is exactly the failure mode template prevents
+- Companion to AGENTS.md template (Gap #6) — together they form per-repo governance pattern
+
+**Per-repo action items (separate Stream B work):**
+- Trim corp-monorepo CLAUDE.md from 4KB to ≤200 lines using template (P0-1 from consolidated-actions)
+- Verify .dev-knowledge CLAUDE.md alignment with template
+- Verify ai-council CLAUDE.md alignment with template
+
+**Reference:**
+- `docs/audits/2026-04-24-stream-b-gaps-mapping.md` — Gap #5 specification
+- `docs/research/2026-04-24-claude-md-best-practices.md` — research informing structure
+- `templates/AGENTS-md-template.md` — companion template (Gap #6)
+
+---
+
 ## 2026-04-25 — Validator/hook H3 divergence resolved
 
 **Fixed:**
