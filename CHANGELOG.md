@@ -4,6 +4,27 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-25 — Gap #7d amendment (subagents)
+
+**Changed:**
+- PLAYBOOK Section "Claude Code internals" subsection 7d (Subagents) — amended from DEFERRED to active status; documents two real subagents (`ecosystem-snapshot`, `report-generator`)
+- Amendment block added at top of 7d per Gap #19 amendment-vs-reopen pattern
+- tech-radar 2026-Q2.md — subagents moved from any deferred entry to Adopted (active inventory)
+
+**Why:**
+- Verification 2026-04-25 found two active user-level subagents at `~/.claude/agents/` that v1.0 section incorrectly called deferred
+- Amendment, not reopen — intent (disambiguation of 4 mechanisms) preserved; prescription (active vs deferred status) corrected
+- Documentation drift caught quickly; one-day-old v1.0 entry already had factual error
+
+**Lesson candidate:**
+- Section 1 verification steps must include filesystem checks for "absence" claims (e.g. confirm `.claude/agents/` is empty before saying "no subagents"). Spec for Gap #7a-d directed "no subagents in Rob's ecosystem" without verification step — drift propagated.
+
+**Reference:**
+- Gap #19 (Amendment vs Reopen Decision Protocol) — pattern applied
+- ADR-27 amendments precedent — same protocol used 3× during Stream A
+
+---
+
 ## 2026-04-24 (continued) — Gap #7a-d Claude Code internals
 
 **Added:**
