@@ -1,6 +1,10 @@
-# AGENTS.md Template
+# Codex Code Review Configuration — Embeddable Template
 
-> Copy and adapt for each project. Scale L gets full template. Scale M gets simplified version. Scale S does not need AGENTS.md.
+> Codex-specific review configuration content. Embed relevant sections in AGENTS.md Section 5 ("Tools active in this repo") per Scale tier. Scale L gets full version. Scale M gets simplified. Scale S does not embed Codex review (no Codex usage at that scale).
+>
+> **Cross-reference:** `templates/AGENTS-md-template.md` is the parent governance template. This file provides Codex-specific content for Section 5 of that template.
+>
+> **Last updated:** 2026-04-24
 
 ---
 
