@@ -4,6 +4,31 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-25 (continued) — Gap #2 + #3 prompt format template + checklist
+
+**Added:**
+- `templates/prompt-template.md` v1.0 — 8-section skeleton with per-Scale guidance
+- PLAYBOOK.md "Writing prompts for Claude Code" section with Gap #2 rules + Gap #3 checklist subsection
+- Per-Scale variants documented (S minimal, M reduced UNDERSTAND, L full + plan mode)
+
+**Why:**
+- Vibe Code 4 (2026-04-22) established standard structure during Stream A but only in historical prompts
+- Each new browser chat reinvented prompt structure, often with errors (Polish, inline blocks, missing UNDERSTAND)
+- Pre-send checklist makes anti-patterns visible before delivery to Claude Code
+
+**Companion to Gaps #1, #5, #6:**
+- Gap #1 (Roles in ESSENTIALS): browser=architect, Claude Code=executor
+- Gap #6 (AGENTS.md template): cross-tool governance per repo
+- Gap #5 (CLAUDE.md template): Claude Code session contract per repo
+- Gap #2/#3 (this): the artifact format that flows from architect to executor
+
+**Reference:**
+- `docs/audits/2026-04-24-stream-b-gaps-mapping.md` — Gaps #2 and #3 specifications
+- `handoff-prompts/` examples — pattern source from Vibe Code 4
+- ADR-28 — three-layer architecture (browser/.dev-knowledge/projects)
+
+---
+
 ## 2026-04-25 — Gap #5 CLAUDE.md template + PLAYBOOK section
 
 **Added:**
