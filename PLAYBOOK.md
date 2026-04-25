@@ -831,6 +831,97 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 - Cognition "Don't Build Multi-Agents" (cognition.ai blog, June 2025)
 - Stream B Gap #10 (Adoption protocol) — applies to subagent additions/changes
 
+### Adoption protocol — when Claude Code proposes a new skill/command/hook/subagent
+<!-- scope: meta -->
+<!-- version: 1.0 — 2026-04-25 -->
+
+When Claude Code observes a recurring pattern and suggests adding a skill, slash command, hook, or subagent, this protocol decides scope (user-level vs project-level), validates the addition, and ensures it's documented in the right places. Companion to subsections 7a-7d above (what they are) — this is "how to add one safely."
+
+**Distinct from PLAYBOOK Section 6 Continuous Improvement** — that covers external tool/model adoption (Codex, Tach, ccusage). This subsection covers Claude Code's own extension mechanisms.
+
+#### Triage: is the proposal worth adopting?
+<!-- scope: meta -->
+
+Adopt when ALL apply:
+- **Pattern recurs** — Rob has done the same thing ≥3 times across sessions, OR Claude Code recognizes it'll save ≥5 prompts in next month
+- **Stable interface** — what the skill/command/hook does won't change drastically next month
+- **Clear scope** — fits one of the four mechanisms (Gap #7a-d) without forcing
+- **Documentable** — Rob can explain in one sentence what it does and when
+
+Reject if any:
+- One-off pattern unlikely to recur
+- Interface still evolving (premature to codify)
+- Hybrid of multiple mechanisms (might be 2 separate additions instead)
+- Better solved by updating CLAUDE.md or PLAYBOOK directly (not all knowledge needs an extension mechanism)
+
+Defer if:
+- Pattern looks valuable but Rob hasn't tried it manually enough times to validate friction is real
+- Reopen trigger: after N more occurrences (set explicit count)
+
+#### Decision: user-level vs project-level
+<!-- scope: meta -->
+
+**User-level** (`~/.claude/<mechanism>/`) when:
+- Pattern applies across all repos Rob works in (.dev-knowledge, corp-monorepo, ai-council, future)
+- Universal Rob workflow (e.g. `/session-summary`, `/boot`)
+
+**Project-level** (`<repo>/.claude/<mechanism>/`) when:
+- Pattern is repo-specific (corp-monorepo Tach layers, ai-council debate framework)
+- Sensitive content shouldn't leak to other repos
+- Repo's AGENTS.md/CLAUDE.md needs to reference it explicitly
+
+When unclear: start project-level (lower blast radius), promote to user-level if pattern proves universal across 2+ repos.
+
+#### Validation: does it actually work?
+<!-- scope: meta -->
+
+Before "adopted":
+1. **Smoke test** — invoke the mechanism in its intended scenario; verify behavior matches description
+2. **Side-effect check** — does it interfere with existing workflows? (e.g. trigger-word collision: `/handoff` → `/session-summary` rename 2026-04-24 happened because trigger phrase matched user typing)
+3. **Speed check** — hooks <5s; skills/commands <50KB SKILL.md; subagents fresh-context appropriate
+4. **Failure mode** — what happens when mechanism fails? Graceful or noisy?
+
+If any fails: reject or iterate before adopting.
+
+#### Install: where the file lands
+<!-- scope: meta -->
+
+Per mechanism (cross-reference subsection 7a-7d for full structure):
+
+| Mechanism | User-level path | Project-level path |
+|-----------|-----------------|---------------------|
+| Skill | `~/.claude/skills/<name>/SKILL.md` | `<repo>/.claude/skills/<name>/SKILL.md` |
+| Slash command | `~/.claude/commands/<name>.md` | `<repo>/.claude/commands/<name>.md` |
+| Hook (Claude Code) | `~/.claude/settings.json` | `<repo>/.claude/settings.json` |
+| Hook (pre-commit) | n/a (always project-level) | `<repo>/.pre-commit-config.yaml` |
+| Subagent | `~/.claude/agents/<name>.md` | `<repo>/.claude/agents/<name>.md` |
+
+#### Document: where to link
+<!-- scope: meta -->
+
+After install, link from:
+- **AGENTS.md Section 5 ("Tools active in this repo")** — for project-level adoptions; cross-tool agents (Codex, Cursor, Aider) become aware
+- **CLAUDE.md** — for project-level Claude Code-specific behavior (per Gap #5 template Sections 5/6/7)
+- **JOURNAL.md entry** for the session that adopted it
+- **CHANGELOG.md entry** for repo-visible adoptions
+- **tech-radar 2026-Q?.md** Adopted (active inventory) section if user-level (per Gap #17 Continuous Improvement Section 6)
+
+User-level adoptions don't need per-repo AGENTS.md updates (they apply everywhere automatically) but do warrant tech-radar entry for periodic value review.
+
+#### Anti-patterns
+<!-- scope: meta -->
+
+- **Adoption without triage** — every Claude proposal becomes a new file; ecosystem bloats
+- **Project-level when should be user-level** — duplicates same skill across 3 repos; one source of truth lost
+- **User-level when should be project-level** — leaks repo-specific knowledge into universal scope
+- **Skip validation** — broken hook/command/skill propagates and fails silently for weeks
+- **Forget documentation step** — Codex/Cursor never learn about the new tool; cross-tool awareness breaks
+
+#### Section history
+<!-- scope: meta -->
+
+- v1.0 (2026-04-25) — initial. 5-stage pipeline (Triage → Decision → Validation → Install → Document) with cross-reference to Gap #17 (broader tool adoption). Anti-patterns from observed practice. Will refine after live use.
+
 ### Cross-reference to AGENTS.md template Section 5
 <!-- scope: meta -->
 
