@@ -263,6 +263,11 @@ def _enforce_ratio(staged_paths: list[str]) -> tuple[int, str, str]:
 
 
 def main(paths: list[str]) -> int:
+    # When invoked without arguments (manual run), validate all in-scope files on disk
+    # so the result matches what the pre-commit hook sees for a full-repo check.
+    if not paths:
+        paths = [f for f in IN_SCOPE_FILES if os.path.isfile(f)]
+
     all_violations: list[Violation] = []
     total_tags: dict[str, int] = {v: 0 for v in VOCABULARY}
 
