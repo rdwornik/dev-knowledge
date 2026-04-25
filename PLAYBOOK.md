@@ -272,6 +272,101 @@ Sections in this Playbook marked with a tier tag (e.g. **[L only]** or **[L+M]**
 
 ---
 
+## Documentation file types and session continuity
+<!-- scope: meta -->
+<!-- version: 1.0 — 2026-04-24 -->
+
+Two related questions: **what does each documentation file do** (Gap #4) and **which files exist per Scale tier** (Gap #18). Combined here because they answer "when I need to write something down, where does it go?"
+
+### File type taxonomy
+<!-- scope: meta -->
+
+| File | Purpose | Format | Cadence | Audience | Order | Scope |
+|------|---------|--------|---------|----------|-------|-------|
+| `README.md` | User-first navigation, what is this repo | Prose + folder layout | When repo state shifts notably | Rob, future contributors | Living (rewrite) | Per-repo |
+| `CLAUDE.md` | Session contract for Claude Code, thin pointer (≤200 lines) | Sectioned, scope-tagged | When skills/commands/hooks/ADRs change | Claude Code (auto-read) | Living (sections updated) | Per-repo |
+| `AGENTS.md` | Cross-tool canonical governance | 10-section template | Same triggers as CLAUDE.md | Claude Code, Codex, Cursor, Aider | Living (sections updated) | Per-repo |
+| `ESSENTIALS.md` | Rob's daily cheat sheet, universal | Sectioned, scope-tagged | When Rob's working style evolves | Rob + every browser/Claude Code session | Living (sections updated) | Universal (`.dev-knowledge` only) |
+| `PLAYBOOK.md` | Universal protocols, this file | Sectioned, scope-tagged, versioned | Per Stream B implementation gaps | Rob + Claude (browser + Code) | Living + section history | Universal (`.dev-knowledge` only) |
+| `JOURNAL.md` | Tactical per-session log | Append-only, dated entries: Did/Failed/Next | Every Claude Code session | Future Claude Code (last 5 entries on startup) | Append-only (oldest top, newest bottom) | Per-repo (Scale L mandatory; Scale M optional; Scale S no) |
+| `CHANGELOG.md` | Notable changes, release-note style | Newest-first dated entries | Per noteworthy commit | Rob, future contributors | Newest-first (prepend) | Per-repo |
+| `LESSONS.md` | Process lessons learned | Append-only with `[scope: X]` inline (per ADR-29) | When new lesson emerges (auto-promote at 2× repeat) | Rob, future Claude | Append-only | Universal (`.dev-knowledge` only) |
+| `TOKEN-LOG.md` | Claude usage snapshots | Threshold-triggered (7-day) via /session-summary | Auto when stale | Rob | Newest-first (prepend) | Universal (`.dev-knowledge` only) |
+| `ENVIRONMENT.md` | Tooling state, what's installed | Sectioned, scope-tagged | When tool adopted/deprecated | Rob, Claude Code | Living (sections updated) | Per-repo |
+| `docs/decisions/ADR-NN_*.md` | Architectural decisions | Michael Nygard format | When decision binds | Rob, future contributors | Numbered, immutable (amend in-place per ADR-29) | Per-repo |
+| `docs/decisions/transcripts/DECISION_NN_*.md` | Raw Council debate outputs | Multi-model debate transcript | When Council debate concludes (per PLAYBOOK 5.N archival) | Reference for ADR rationale | Numbered, immutable | Per-repo |
+| `docs/handoffs/YYYY-MM-DD-*.md` | Chat-to-chat session summary | Tiered (Scale-dependent) | When session boundary requires continuity | Next browser chat | Dated, immutable | Per-repo |
+| `docs/audits/YYYY-MM-DD-*.md` | Point-in-time analyses | Free-form audit | When deep analysis needed | Reference for follow-up work | Dated, immutable (mark SUPERSEDED if redone) | Per-repo |
+| `docs/research/YYYY-MM-DD-*.md` | Research outputs (Council research mode, standalone reports) | Free-form research | When research generates value | Reference for design decisions | Dated, immutable | Universal (`.dev-knowledge` only — research is methodology) |
+
+### Scale tier presence matrix
+<!-- scope: meta -->
+
+Which files exist per Scale tier (per `Project Scale Tiers` section above):
+
+| File | Scale S | Scale M | Scale L |
+|------|---------|---------|---------|
+| `README.md` | required | required | required |
+| `CLAUDE.md` | required | required | required |
+| `AGENTS.md` | optional | required | required |
+| `ESSENTIALS.md` | n/a (universal `.dev-knowledge`) | n/a | n/a |
+| `PLAYBOOK.md` | n/a (universal `.dev-knowledge`) | n/a | n/a |
+| `JOURNAL.md` | not used | optional | required |
+| `CHANGELOG.md` | optional | required | required |
+| `LESSONS.md` | n/a (universal `.dev-knowledge`) | n/a | n/a |
+| `TOKEN-LOG.md` | n/a (universal `.dev-knowledge`) | n/a | n/a |
+| `ENVIRONMENT.md` | optional | recommended | required |
+| `docs/decisions/` | optional | recommended | required |
+| `docs/handoffs/` | optional | recommended | recommended |
+| `docs/audits/` | optional | optional | recommended |
+
+**Reading the matrix:**
+- **required** — file presence is non-negotiable for the Scale tier
+- **recommended** — strong default; absence requires explicit rationale
+- **optional** — use when value clear, skip otherwise
+- **not used** — actively avoid (overkill at this Scale)
+- **n/a (universal)** — file lives in `.dev-knowledge`, not per-repo
+
+### Common confusions resolved
+<!-- scope: meta -->
+
+**JOURNAL vs handoff:**
+- JOURNAL = within-repo, per-session tactical log. Continuity across Claude Code sessions in same repo.
+- handoff = across-context, browser-chat-to-browser-chat session summary. Continuity when switching chats.
+- Both can coexist. Scale L typically uses both. Scale S/M usually one or the other (often handoffs).
+
+**LESSONS vs ADR:**
+- LESSONS = process lessons (how Rob works, anti-patterns, what tooling drift looked like). Append-only.
+- ADR = architectural decisions (technical commitments). Amendable per ADR-29 pattern.
+- Process generalization → LESSONS. Technical commitment → ADR.
+
+**CHANGELOG vs JOURNAL:**
+- CHANGELOG = strategic, what user/contributor needs to know about repo evolution. Newest-first.
+- JOURNAL = tactical, what Claude Code did session-by-session. Append-only chronological.
+- Same commit might warrant entries in both — different abstraction levels.
+
+**audits vs research:**
+- audits = backward-looking analysis of current state (per-repo, dated)
+- research = forward-looking exploration (universal in `.dev-knowledge`, dated)
+- Council research-mode debates → research/. Council pick-mode debates → transcripts/.
+
+### Order conventions
+<!-- scope: meta -->
+
+Per Token-LOG flip 2026-04-24:
+
+- **Newest-first (prepend):** TOKEN-LOG, CHANGELOG. Rationale: logs optimize for current-state scanning.
+- **Append-only (oldest top):** LESSONS, JOURNAL. Rationale: chronological narrative; order preserves "what we learned when."
+- **Living (in-place updates):** README, CLAUDE.md, AGENTS.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT. Rationale: not logs; current state matters more than history.
+- **Immutable (dated):** ADRs, transcripts, handoffs, audits, research. Rationale: point-in-time records; supersession via new file or in-file marker.
+
+### Section history
+<!-- scope: meta -->
+
+- v1.0 (2026-04-24) — initial. 12-file taxonomy + Scale matrix + 4 common confusions + order conventions. Will refine after live use.
+
+---
+
 ## 1. Starting a New Project
 <!-- scope: dev -->
 
