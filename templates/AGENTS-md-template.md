@@ -64,6 +64,7 @@ If `.dev-knowledge/` is unavailable, proceed with this AGENTS.md alone but flag 
 
 **Code review:**
 - `<e.g. Codex (OpenAI) — mode: full review, severity: P0/P1/P2/P3, threshold: 3+ files for /review>`
+- For full Codex review configuration (severity tiers, review modes, output format), see `.dev-knowledge/templates/codex-review-config-template.md` — embed relevant Scale tier section here.
 
 **Architecture enforcement:**
 - `<e.g. Tach — see tach.toml, layer rules>`
