@@ -4,6 +4,34 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-24 (continued) — Gap #7a-d Claude Code internals
+
+**Added:**
+- PLAYBOOK new section "Claude Code internals" (v1.0) — disambiguation table + 4 subsections covering skills (7a), slash commands (7b), hooks (7c), subagents deferred (7d)
+- Real examples from Rob's ecosystem cited per subsection
+- Cross-reference to AGENTS.md template Section 5 ("Tools active in this repo")
+
+**Why:**
+- Skills, slash commands, hooks, subagents have confusingly similar names — Rob and Claude conflated them multiple times in 2026-04-24 sessions
+- Each new repo and session re-discovered distinctions via failure
+- Subagents documented despite deferred adoption — future reference saves rediscovery cost when reopen trigger hits
+
+**Subagents status:** deferred per tech-radar 2026-Q2 (solo developer scale, AI Council covers multi-perspective need, no identified pain point)
+
+**Companion to prior Stream B gaps:**
+- Gap #6 (AGENTS.md template): Section 5 "Tools active" gets populated from Claude Code internals adoptions
+- Gap #5 (CLAUDE.md template): Section 5 (slash commands), Section 6 (skills), Section 7 (hooks) reference these definitions
+- Gap #16 (Codex archival): hooks subsection establishes "LLMs advise; hooks enforce" pattern Codex review embodies
+- Gap #17 (Continuous Improvement): adoption pipeline (Stages 4-5) applies to new skills/commands/hooks adoption
+
+**Reference:**
+- `docs/audits/2026-04-24-stream-b-gaps-mapping.md` — Gap #7a-d specification
+- `docs/research/2026-04-24-multi-agent-debate-patterns.md` — subagents Council research
+- Cognition "Don't Build Multi-Agents" (June 2025) — subagents anti-pattern source
+- ADR-27 amendments — validator/hook divergence lesson informs hooks subsection anti-patterns
+
+---
+
 ## 2026-04-25 (continued) — Gap #17 Continuous Improvement Process
 
 **Added:**
