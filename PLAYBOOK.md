@@ -367,6 +367,111 @@ Per Token-LOG flip 2026-04-24:
 
 ---
 
+## Session boundaries
+<!-- scope: meta -->
+<!-- version: 1.0 — 2026-04-25 -->
+
+Browser chats and Claude Code sessions have natural quality limits. Pushing past them produces decisions that look fine in the moment but read poorly the next day. This section codifies recognition signals and stop-protocols.
+
+### Scope declaration at start
+<!-- scope: meta -->
+
+Every session opens with explicit scope. If Rob doesn't state it, browser chat asks before proceeding.
+
+**Format (one sentence each):**
+- **In scope:** what this session aims to accomplish
+- **Out of scope:** what this session deliberately defers
+- **Success criterion:** what makes the session "done" (commit merged? decision documented? specific artifact produced?)
+
+**Why explicit:** without scope declaration, every passing thought becomes a candidate detour. Scope is the contract for "is this proposal in scope or scope creep?"
+
+**Example (good):**
+> In scope: implement Gap #13 in PLAYBOOK. Out of scope: per-repo PLAYBOOK rollout, other gaps. Success: new section merged with v1.0 marker.
+
+**Example (bad):**
+> Let's work on .dev-knowledge today. (No scope = unbounded session = guaranteed creep)
+
+### Stop-signs (recognize and act)
+<!-- scope: meta -->
+
+These signals indicate a session should stop or refocus, NOT push through:
+
+- **Decision fatigue:** >3 hours active session AND >3 architectural decisions made. Each subsequent decision is statistically lower quality.
+- **Recursive planning** (anti-pattern, see below) — three consecutive turns producing plans/audits/specs without execution
+- **Scope creep accumulation:** more than 2 "while we're at it" expansions in one session — even if individually small
+- **Re-explanation loops:** Rob explaining the same protocol/context to Claude more than once in a session — signal that earlier context is gone or wasn't applied
+- **"Just one more thing"** at end of natural stopping point — usually the wrong call; the next thing deserves fresh start
+- **Quality regression:** finding errors in prompts/decisions that wouldn't have happened earlier in session
+
+When stop-sign appears, ACTION:
+1. Generate handoff (per HANDOFF_PROCESS.md)
+2. Identify the specific stop-sign that triggered (helpful for next session retrospective)
+3. Stop. Resume with fresh head.
+
+### Decision fatigue threshold
+<!-- scope: meta -->
+
+**Numeric guideline:** >3h elapsed + >3 architectural decisions made = wrap-up zone.
+
+This isn't a hard limit. Session may legitimately need to push past it (e.g., critical fix, time-bound deliverable). But entering wrap-up zone shifts default from "continue" to "wrap up unless reason to continue."
+
+**Why these numbers:** observed empirically from 2026-04-24 session. Quality of decisions visibly degraded after these thresholds — including by the "decider's" own self-assessment in retrospect.
+
+**Counter-indicator:** if session is execution-heavy (running prompts, watching Claude Code commit) rather than decision-heavy, threshold is generous. The fatigue is decision-specific, not pure clock time.
+
+### Recursive planning anti-pattern
+<!-- scope: meta -->
+
+**Detection:** session produces plans/audits/specs about plans/audits/specs without producing any actual artifact change.
+
+**In-vivo example (2026-04-24):** during Stream A→B transition, browser chat repeatedly proposed:
+- "Let's audit what we have"
+- "Let's audit again with mapping"
+- "Let's create reference doc for the gaps"
+- "Let's plan the implementation order"
+
+While useful for some context, this stacked 4 layers of meta-work before any gap was implemented. Pattern only broke when Rob explicitly said "implementacja, nie planowanie" — and even then, it took conscious resistance.
+
+**Symptoms:**
+- Proposing "audit" when implementation is the next logical step
+- Proposing "plan" when a plan already exists
+- Proposing "framework" or "specification" before MVP attempt exists
+- Each output describes what to do, not what was done
+
+**Counter-protocol:**
+- After 2 consecutive planning/audit outputs, FORCE next output to be implementation prompt
+- If implementation feels too risky → spike (4h throwaway branch) instead of more planning
+- Watch for rationalizing: "we need to audit because..." Almost always: we don't.
+
+### Session resumption protocol
+<!-- scope: meta -->
+
+When opening a new session that continues prior work:
+
+**Browser chat resumption:**
+1. Upload `ESSENTIALS.md` (always)
+2. Upload most recent `docs/handoffs/*.md` (if any)
+3. Upload PLAYBOOK.md (if doing dev work — large file, but contains all protocols)
+4. Upload task-specific docs (specific ADRs, Stream B mapping if continuing Stream B, etc.)
+5. First message states: scope (in/out), success criterion, what was last session's stopping point
+
+**Claude Code resumption:**
+1. Read CLAUDE.md (auto on session start)
+2. Read AGENTS.md (auto)
+3. `git status` and `git log --oneline -5`
+4. Read most recent handoff if exists
+5. Read JOURNAL.md last 5 entries (if file exists per Scale)
+6. Wait for prompt — never improvise
+
+**Anti-pattern:** opening new session with bare prompt "continue what we were doing" — without uploading context, both sides reconstruct from memory (browser) or scratch (Claude Code). Quality drops fast.
+
+### Section history
+<!-- scope: meta -->
+
+- v1.0 (2026-04-25) — initial. 5 subsections: scope declaration, stop-signs, decision fatigue threshold, recursive planning anti-pattern, session resumption protocol. Codifies patterns observed in 2026-04-24 sessions. Will refine after live use.
+
+---
+
 ## 1. Starting a New Project
 <!-- scope: dev -->
 
