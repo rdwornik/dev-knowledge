@@ -4,6 +4,31 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-25 (continued) — Gap #17 Continuous Improvement Process
+
+**Added:**
+- PLAYBOOK Section 6 "Continuous Improvement" (v1.0) — 6-stage pipeline (Discovery → Triage → Evaluation → Decision → Implementation → Review), source list, evaluation modes by stake
+- `docs/tech-radar/` folder — quarterly snapshots of adopted/rejected/deferred/discovered tools
+- `docs/tech-radar/README.md` — folder index, distinct-from-research clarification
+- `docs/tech-radar/2026-Q2.md` — bootstrap entry retrospectively capturing 2026-Q1/Q2 adoption activity (ccusage, Perplexity, Codex, Tach, Opus 4.7, scope tagging adopted; MCP memory, GLM/Qwen, multi-agent frameworks, Spec Kit deferred; Kiro rejected)
+- `scripts/validate_scope_tags.py`: `docs/tech-radar/` added to SKIP_PATTERNS (snapshot content, like docs/research)
+
+**Why:**
+- Adoption was organic — Twitter signal → ask browser → decide → execute. No record of why MCP memory was rejected vs deferred. Risk of re-evaluation thrash.
+- 14 Stream B gaps closed today demonstrated the pipeline implicitly: each gap adoption went through stages 1-5. Codifying makes the pattern reusable for future tools.
+- Quarterly review cadence prevents stale "adopted" tools from accumulating without value check.
+
+**Companion to prior Stream B gaps:**
+- Gap #5 (CLAUDE.md template), Gap #6 (AGENTS.md template): "Tools active in this repo" sections feed from tech-radar adoptions
+- Gap #16 (Codex archival): Codex review findings can trigger Continuous Improvement Stage 1 (Discovery) when reviewer suggests new pattern/tool
+- Gap #4 + #18 (Doc files taxonomy): tech-radar/ folder is universal (.dev-knowledge only), not per-repo
+
+**Reference:**
+- `docs/audits/2026-04-24-stream-b-gaps-mapping.md` — Gap #17 specification
+- 2026-Q1/Q2 adoption activity captured in `docs/tech-radar/2026-Q2.md`
+
+---
+
 ## 2026-04-25 (continued) — Gap #15 + #16 testing rules + Codex archival
 
 **Added:**
