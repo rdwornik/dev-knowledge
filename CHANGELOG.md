@@ -4,6 +4,32 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-25 (continued) — Gap #4 + #18 doc files taxonomy + Scale matrix
+
+**Added:**
+- PLAYBOOK.md "Documentation file types and session continuity" section (v1.0)
+- Table 1: 12-file taxonomy (purpose, format, cadence, audience, order, scope)
+- Table 2: Scale tier presence matrix (S/M/L × file requirements)
+- Subsections: common confusions resolved, order conventions, section history
+
+**Why:**
+- 12 documentation file types existed without canonical "what goes where" reference
+- JOURNAL vs handoff confusion documented (within-repo tactical vs across-context summary)
+- LESSONS vs ADR boundary clarified (process lesson vs technical commitment)
+- TOKEN-LOG/LESSONS/ESSENTIALS/PLAYBOOK as universal `.dev-knowledge` files vs per-repo files now explicit
+- Scale matrix prevents over-documenting Scale S projects with full Scale L apparatus
+
+**Companion to prior Stream B gaps:**
+- Gap #6 (AGENTS.md template), Gap #5 (CLAUDE.md template) — file types now have authoritative cross-reference
+- Gap #14 (Token log cadence), order conventions — both linked from this section
+- Future Stream B work referencing file types points to this section
+
+**Reference:**
+- `docs/audits/2026-04-24-stream-b-gaps-mapping.md` — Gaps #4 and #18 specifications
+- `docs/research/2026-04-23-council-28-community-patterns.md` — JOURNAL/handoff faction analysis
+
+---
+
 ## 2026-04-25 (continued) — Gap #2 + #3 prompt format template + checklist
 
 **Added:**
