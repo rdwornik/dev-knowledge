@@ -661,6 +661,192 @@ A tool might appear in BOTH (research debate evaluating it; tech-radar entry rec
 
 ---
 
+## Claude Code internals
+<!-- scope: runtime -->
+<!-- version: 1.0 — 2026-04-24 -->
+
+Claude Code (Anthropic's terminal-based agentic coding tool) has four extension mechanisms with confusingly similar names. Rob and Claude have repeatedly conflated them in 2026 sessions. This section establishes canonical definitions, locations, use cases, and the existing examples in Rob's ecosystem.
+
+### Quick disambiguation
+<!-- scope: runtime -->
+
+| Mechanism | What it is | Where it lives | Trigger |
+|-----------|-----------|----------------|---------|
+| **Skill** | Progressive-disclosure knowledge module | `.claude/skills/<name>/SKILL.md` | Read on-demand by Claude Code when topic matches |
+| **Slash command** | Custom invokable command | `.claude/commands/<name>.md` | Rob types `/<name>` |
+| **Hook** | Lifecycle automation | `.claude/settings.json` OR `.pre-commit-config.yaml` | Auto-fires on event (PreToolUse, pre-commit, PostToolUse) |
+| **Subagent** | Separate Claude instance with narrow focus | `.claude/agents/` | Invoked via Task tool from main agent |
+
+**User-level vs project-level:**
+- User-level: `~/.claude/skills/`, `~/.claude/commands/`, `~/.claude/settings.json` — applies across all repos
+- Project-level: `<repo>/.claude/skills/`, `<repo>/.claude/commands/`, etc. — applies only in that repo
+- Both can coexist; project-level takes precedence when names collide
+
+### 7a. Skills (progressive-disclosure knowledge modules)
+<!-- scope: runtime -->
+
+**What:** Knowledge modules Claude Code reads on demand when context matches a trigger pattern. Designed for content too large for CLAUDE.md but reusable across sessions.
+
+**Structure:**
+```
+<repo>/.claude/skills/<skill-name>/
+  SKILL.md          # main file, <500 lines, trigger description + instructions
+  references/       # additional content loaded only when needed (progressive disclosure)
+  scripts/          # auxiliary executables if applicable
+  examples/         # concrete examples Claude can study
+```
+
+**SKILL.md format (top of file):**
+```
+---
+name: <skill-name>
+trigger: <when does Claude Code load this — e.g. "before making changes to module X" or "when user asks about Y">
+---
+
+# <Skill Title>
+
+[content]
+```
+
+**When to use:**
+- Empirical patterns ("things this repo gets wrong" — see Rob's `gotchas` skill)
+- Domain-specific knowledge that recurs across sessions
+- Workflows too long for CLAUDE.md (which has ≤200 lines target per Council #28)
+
+**When NOT to use:**
+- Knowledge that fits in CLAUDE.md (≤200 lines budget) — keep there for auto-read
+- Universal Rob rules — those go in `.dev-knowledge/PLAYBOOK.md`
+- One-off task — slash command may fit better
+
+**Real example in Rob's ecosystem:**
+- `corp-monorepo/.claude/skills/gotchas/SKILL.md` — empirical patterns this repo has stumbled on (~30 entries, Trigger/Symptom/Fix/verify pattern)
+
+**Anti-patterns:**
+- **Skill files >500 lines** — defeats progressive disclosure; split to references/
+- **Skills with no trigger description** — Claude Code can't know when to read it
+- **Universal content as project skill** — should live in `.dev-knowledge/PLAYBOOK.md` instead
+
+### 7b. Slash commands (custom invokable commands)
+<!-- scope: runtime -->
+
+**What:** Markdown files defining commands Rob can invoke by typing `/<name>` in Claude Code. Each command is a templated prompt Claude Code executes.
+
+**Structure:**
+```
+~/.claude/commands/<name>.md   # user-level (cross-repo)
+<repo>/.claude/commands/<name>.md   # project-level
+```
+
+**File format:** Just markdown. Body is the prompt Claude Code follows when command invoked. May contain `$ARGUMENTS` placeholder for command-line args.
+
+**When to use:**
+- Repeated workflow Rob runs >3× across sessions
+- Multi-step procedures that benefit from consistent prompt
+- Operations crossing multiple files/tools (e.g. session summary, /boot context loading)
+
+**When NOT to use:**
+- One-off task — write inline prompt instead
+- Knowledge lookup — use skill instead
+- Content best fits CLAUDE.md auto-read
+
+**Real examples in Rob's ecosystem (user-level, `~/.claude/commands/`):**
+- `/session-summary` — generate handoff for current session, include TOKEN-LOG snapshot if stale (renamed from `/handoff` 2026-04-24 to avoid trigger-word collision)
+- `/boot` — load context: skills, recent commits, JOURNAL entries
+- `/evolve` — promote learned patterns to skills/rules
+- `/review` — invoke Codex review on staged changes
+
+**Anti-patterns:**
+- **Commands without clear naming** — `/x` or `/do` are unmemorable
+- **Trigger-word collisions** — `/handoff` matched user typing "handoff" in conversation; renamed to `/session-summary` (lesson 2026-04-24)
+- **Treating commands as skills** — commands are invoked actions; skills are read-on-demand knowledge
+
+### 7c. Hooks (lifecycle automation)
+<!-- scope: runtime -->
+
+**What:** Automated actions firing on Claude Code lifecycle events or git lifecycle events. LLMs advise; hooks enforce (per Council #28 community finding).
+
+**Two flavors:**
+
+**Claude Code hooks** — fire on tool/agent lifecycle:
+- Location: `.claude/settings.json` (user or repo)
+- Events: PreToolUse, PostToolUse, others per Claude Code docs
+- Use case: enforce rules before/after Claude takes specific actions
+
+**Pre-commit hooks** — fire on git commit:
+- Location: `.pre-commit-config.yaml` (repo root)
+- Framework: pre-commit.com (Python tool, cross-platform)
+- Use case: enforce rules before code/docs land in repo
+
+**When to use:**
+- Mechanical enforcement of governance rules (scope tags, lint, test pass)
+- Safety nets — block accidental violations LLM advice alone might miss
+- Cost: hooks run on every commit; keep fast (<5 seconds typical)
+
+**When NOT to use:**
+- Rules best left as LLM advice (subjective conventions where context matters)
+- Heavy validation (>30s) — moves to CI/CD instead
+- Ambiguous rules — hooks fail loudly; vague rule = constant friction
+
+**Real examples in Rob's ecosystem:**
+- `.dev-knowledge/.pre-commit-config.yaml` — runs `scripts/validate_scope_tags.py` (Stream A enforcement)
+- corp-monorepo pre-commit (likely): ruff format, pytest collection check (verify per repo)
+
+**Anti-patterns:**
+- **Hooks bypassed with `--no-verify`** — defeats the safety net; should never be habit
+- **Hooks slower than 5s** — incentivizes bypass; move to CI
+- **Validator/hook divergence** — both tools must enforce identically (see ADR-27 amendment 2026-04-25, lesson re: invocation semantics)
+
+### 7d. Subagents (separate Claude instances) — DEFERRED
+<!-- scope: runtime -->
+
+**Status:** Deferred adoption per tech-radar 2026-Q2. Documented here for future reference; no active subagents in Rob's ecosystem.
+
+**What (per Anthropic docs + Council #28 research):** Subagents are spawned Claude instances with narrow focus and fresh context window, invoked via main agent's Task tool. Designed for "read-heavy, write-light" delegation.
+
+**Where they would live:** `.claude/agents/<name>/` (folder-based, parallels skills/ and commands/).
+
+**Anthropic-recommended use cases (read-heavy, write-light):**
+- Code search across large codebase (subagent reads, returns summary)
+- Test running and result interpretation
+- Log analysis
+- Documentation lookups requiring fresh context
+
+**Cognition's "Don't Build Multi-Agents" warning (June 2025):** Subagents as code-generation peers are anti-pattern. They diverge, conflict, and waste tokens. Use as tools, not as collaborators.
+
+**Why deferred for Rob:**
+- Solo developer scale — main agent + skills + slash commands sufficient
+- Existing AI Council (separate Python project, multi-model debate) handles "multiple perspectives" need without Claude Code subagents
+- No identified pain point that subagent would solve
+
+**Reopen trigger (per tech-radar 2026-Q2):**
+- Concrete pressing use case (e.g. corp-monorepo grows large enough that read-heavy code search benefits from fresh context)
+- Anthropic ships pattern that significantly differs from current docs
+
+**When this changes, refer to:**
+- Anthropic Claude Code subagents documentation (docs.anthropic.com or similar)
+- Cognition's "Don't Build Multi-Agents" article (cognition.ai blog, June 2025)
+- Stream B Gap #10 (Adoption protocol) — applies to subagent adoption when triggered
+
+### Cross-reference to AGENTS.md template Section 5
+<!-- scope: meta -->
+
+When a repo has any of the above active (skills, slash commands, hooks, subagents), they get listed in `AGENTS.md` Section 5 "Tools active in this repo" per Gap #6 template. Specifically:
+
+- **Code review:** Codex configuration → see `templates/codex-review-config-template.md`
+- **Architecture enforcement:** Tach configuration if used
+- **Pre-commit hooks:** list active hooks with purpose
+- **Skills:** list active skills with paths
+- **Subagents:** list if any are active (per Rob's ecosystem currently: none)
+
+This keeps cross-tool agents (Codex, Cursor, Aider) aware of the same governance Claude Code operates under.
+
+### Section history
+<!-- scope: meta -->
+
+- v1.0 (2026-04-24) — initial. 4 subsections: skills, slash commands, hooks, subagents (deferred). Disambiguation table at top. Real examples from corp-monorepo (gotchas skill), user-level (/session-summary, /boot, /evolve, /review), .dev-knowledge (scope tag pre-commit hook). Subagents documented from Anthropic docs + Council #28 research, no Rob ecosystem instance.
+
+---
+
 ## 1. Starting a New Project
 <!-- scope: dev -->
 
