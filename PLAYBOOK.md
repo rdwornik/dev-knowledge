@@ -765,6 +765,70 @@ Cost: ~$0.05 + 2min vs Council's $0.50 + 5min. Significantly cheaper for the >70
 - **Council habit-formation** — running Council because "it's how we decide" without checking the gate. Costs add up fast ($0.50 × N decisions).
 - **Single-model laziness** — choosing single-model path when criteria genuinely apply (architectural ripple), then later reopening as Council = wasted first decision.
 
+### Amendment vs Reopen Decision Protocol
+<!-- scope: meta -->
+<!-- version: 1.0 — 2026-04-25 -->
+
+When validator/tooling reality contradicts an ADR's prescription, two paths exist: amend in place (preserve intent, update prescription) or reopen the decision (intent itself was wrong). This protocol decides which.
+
+**Pattern emerged organically 2026-04-24** — used 3 times in sequence:
+1. ADR-27 amendment: delta rule replaced flat-threshold enforcement (validator built differently than ADR prescribed)
+2. ADR-29 amendment: H1 placement for LESSONS file-level tag (collided with validator's 3-line H1 detection window)
+3. ADR-27 amendment: heading levels H2+H3 explicit, invocation semantics clarified (silent vacuous-pass discovered)
+
+#### Decision tree
+<!-- scope: meta -->
+
+**Amend in place** if:
+- Validator/tooling implementation diverged from ADR prescription, but original intent still correct
+- Real-world use revealed prescription was unclear/incomplete; clarification preserves intent
+- New edge case discovered; addressing it doesn't change the decision's core
+- Implementation detail correction (e.g., regex pattern, file path, threshold value tweak)
+
+**Reopen the decision** (full Council or browser+critic per gating above) if:
+- Original intent itself was wrong (not just prescription)
+- Context changed materially: new constraints, new tools available, new evidence contradicting decision premise
+- Multiple ADRs affected by the change (cascading impact)
+- Stakeholder expectations shifted (e.g., adding non-dev contributors changes decision economics)
+
+#### Amendment mechanics
+<!-- scope: meta -->
+
+When amending in place:
+1. Add **Amendment YYYY-MM-DD** block at end of ADR file (do not rewrite original decision text)
+2. Block structure:
+
+   > **Amendment YYYY-MM-DD ([brief topic]):** [What was wrong/unclear in original prescription]. Resolution: [what the prescription now says]. Intent preserved: [why this is amendment not reopen].
+
+3. Update validator/tool/process to match amendment
+4. Add LESSONS.md entry (per ADR-29 format) describing what was discovered
+5. CHANGELOG entry: "ADR-NN amended YYYY-MM-DD — [topic]"
+
+#### Reopen mechanics
+<!-- scope: meta -->
+
+When reopening:
+1. Mark original ADR with **Status: Reopened YYYY-MM-DD** at top
+2. Run Council per gating criteria above (full Council if architectural; browser+critic if not)
+3. Outcome lands as new ADR (e.g., ADR-NN with "Supersedes ADR-MM" reference)
+4. Original ADR retains content (history preserved), but new ADR governs
+
+#### Anti-patterns
+<!-- scope: meta -->
+
+- **Amending intent, not prescription** — if you find yourself rewriting the original decision text to "what we should have said," that's a reopen, not amendment. Don't conflate.
+- **Reopen for prescription drift** — if validator just needs a regex tweak, that's amendment. Reopen ceremony wastes effort.
+- **No amendment record** — silently changing tool to match new behavior without an amendment block in the ADR. Future Claude sees ADR vs reality mismatch with no trail.
+
+#### Examples (2026-04-24)
+<!-- scope: meta -->
+
+| ADR | Trigger | Decision | Reason |
+|-----|---------|----------|--------|
+| ADR-27 (scope tagging) | Validator built with delta-rule enforcement, not flat threshold | Amend | Original intent (≤25% hybrid ceiling, blocking) preserved; mechanism (when to block) clarified |
+| ADR-29 (LESSONS grandfathering) | H1 file-level tag collided with validator's H1 detection window | Amend | Original intent (file-level tag for LESSONS, not per-section) preserved; placement (H1 not `## Entries`) clarified |
+| ADR-27 (scope tagging) | Validator silently passed when called without args; H2 vs H3 ambiguous | Amend | Original intent (every section header tagged) preserved; level scope (H2+H3) and invocation semantics (auto-scan IN_SCOPE_FILES) explicit |
+
 ---
 
 ## 6. Code Review with Claude Code
