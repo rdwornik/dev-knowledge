@@ -4,6 +4,49 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-25 (continued) — Gap #9 Claude Code features inventory audit (Stream B FINAL)
+
+**Added:**
+- `docs/audits/2026-04-25-claude-code-features-inventory.md` — one-time audit, point-in-time snapshot (Claude Code v2.1.119)
+- Tabular inventory: Core mechanisms, Model selection, Context & memory, External integrations, Project-level features, Observability, Cloud & scheduling
+- Adoption status confirmed from filesystem (`~/.claude/` settings, commands, agents, skills) + web search (code.claude.com, Apr 2026)
+- Blind spots section: 5 features with value rationale and evaluation triggers (Ultrareview, Routines, Monitor tool, project hooks audit, xhigh effort)
+- Recommendations for 2026-Q3 triage with specific pilots
+- Cross-link added to `docs/tech-radar/2026-Q2.md` Notes for Q3 section
+
+**Why:**
+- Without audit, "blind spots" persist — features that would help, never discovered
+- Twitter/blog discovery scattered; audit grounds future Continuous Improvement triage
+- Final remaining Stream B gap (19/19)
+
+**Stream B status: COMPLETE.**
+
+19 of 19 gaps from `docs/audits/2026-04-24-stream-b-gaps-mapping.md` implemented:
+- Gaps #1–#6: Foundational (roles, prompt template, CLAUDE.md/AGENTS.md templates, doc taxonomy)
+- Gaps #7a-d, #10: Claude Code internals + adoption protocol
+- Gap #7d amendment 2026-04-25: subagents corrected to active status
+- Gaps #11, #18: Handoff process + session continuity
+- Gaps #12, #19: Council gating + amendment-vs-reopen protocol
+- Gap #13: Session boundaries
+- Gap #14: Token management (ccusage adoption + threshold cadence)
+- Gaps #15, #16: Pytest per Scale + Codex archival
+- Gap #17: Continuous Improvement Process + tech-radar bootstrap
+- Gap #8: VS Code workspace templates per Scale
+- Gap #9: This audit
+
+**Per-repo action items** (separate Stream B work, NOT Stream B-internal):
+- corp-monorepo CLAUDE.md trim per Gap #5 template
+- corp-monorepo AGENTS.md expand per Gap #6 template
+- .dev-knowledge create AGENTS.md
+- ai-council create AGENTS.md
+- ADR-27 collision fix corp-monorepo
+- Read corp-monorepo `settings.local.json` — document project-level hook state (surfaced by Gap #9 audit)
+
+**Reference:**
+- `docs/audits/2026-04-24-stream-b-gaps-mapping.md` — Gap #9 specification + full Stream B mapping
+
+---
+
 ## 2026-04-25 (continued) — Gap #8 VS Code workspace templates per Scale
 
 **Added:**
