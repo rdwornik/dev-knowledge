@@ -4,6 +4,30 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-24 (continued) — Gap #6 AGENTS.md template + PLAYBOOK section
+
+**Added:**
+- `templates/AGENTS-md-template.md` — hybrid governance contract skeleton, 10 sections
+- PLAYBOOK.md "AGENTS.md — canonical per-repo governance contract" section
+- Template documents: pointer to .dev-knowledge for universal rules, per-repo specifics only, cross-tool standard per Council #28
+
+**Why:**
+- Each repo needs canonical governance file (AGENTS.md) — community standard 2025-2026
+- Hybrid pattern (point to PLAYBOOK, don't duplicate) avoids drift when universal rules change
+- Template enables consistent AGENTS.md across corp-monorepo, ai-council, .dev-knowledge, future projects
+
+**Per-repo action items (separate Stream B work, NOT this commit):**
+- Create AGENTS.md in .dev-knowledge using template
+- Expand corp-monorepo AGENTS.md (currently Codex-specific) using template
+- Create AGENTS.md in ai-council using template
+
+**Reference:**
+- `docs/audits/2026-04-24-stream-b-gaps-mapping.md` — Gap #6 specification
+- Council #28 community findings (`docs/research/2026-04-23-council-28-community-patterns.md`)
+- `docs/research/2026-04-24-claude-md-best-practices.md` — informs per-repo CLAUDE.md design (next gap, #5)
+
+---
+
 ## 2026-04-24 (continued) — TOKEN-LOG order flipped to newest-first
 
 **Changed:**
