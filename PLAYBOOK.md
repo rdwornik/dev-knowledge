@@ -523,6 +523,144 @@ When opening a new session that continues prior work:
 
 ---
 
+## Continuous Improvement
+<!-- scope: meta -->
+<!-- version: 1.0 — 2026-04-24 -->
+
+New tools, models, agents, and patterns emerge constantly in 2025-2026 LLM dev (Claude Code releases, OpenAI Codex updates, Chinese models like GLM/Qwen, MCP servers, multi-agent frameworks, Spec Kit/Kiro). Without explicit process, adoption thrashes (re-evaluating same tool quarterly), forgets context (why did we reject MCP memory?), or misses signals (relevant tool sat in tech-radar chat unread for weeks).
+
+This section defines the lifecycle: from "I saw something on Twitter" to "we adopted/rejected/deferred."
+
+### Pipeline overview
+<!-- scope: meta -->
+
+Six stages, executed in order. Stages can be implicit (skipped/quick) for low-stakes evaluations; explicit (full ceremony) for high-stakes ones.
+
+```
+Discovery → Triage → Evaluation → Decision → Implementation → Review
+```
+
+- **Discovery:** something new shows up
+- **Triage:** is it worth evaluating?
+- **Evaluation:** does it actually solve our problem?
+- **Decision:** adopt / reject / defer
+- **Implementation:** if adopt — execute via standard pipeline (ADR + work)
+- **Review:** periodic re-check that adopted things still earn their keep
+
+### Stage 1: Discovery
+<!-- scope: meta -->
+
+**Sources to monitor:**
+- Anthropic engineering blog
+- OpenAI engineering blog (for Codex / GPT-5.x)
+- Karpathy (Twitter)
+- Simon Willison (blog)
+- Latent Space podcast / blog
+- Cursor / Aider / Claude Code release notes
+- agents.md / Spec Kit / Kiro initiatives
+- Chinese model releases (GLM, Qwen, DeepSeek)
+
+**Cadence:** weekly informal scan. No formal time box.
+
+**Capture:** when something looks interesting, drop a one-liner into the next quarterly tech-radar entry under "discovered, not yet triaged" — don't wait for full evaluation.
+
+### Stage 2: Triage
+<!-- scope: meta -->
+
+**Criteria for "worth evaluating":**
+- **Maturity:** v1.0+, ≥100 GitHub stars, or backed by recognized org
+- **Addresses real problem:** maps to existing Rob pain point or unblocks identified gap
+- **Scale fit:** works for solo developer (not team-only)
+- **Platform fit:** runs on Windows/PowerShell (or has portable equivalent)
+- **Cost-bounded:** trial cost <$50 OR API trial available
+
+If 4+ criteria met → proceed to Evaluation. If 3 or fewer → mark "deferred" with reason in tech-radar.
+
+**Anti-pattern:** evaluating every novelty. The job of triage is saying no.
+
+### Stage 3: Evaluation
+<!-- scope: meta -->
+
+Three evaluation modes — pick by stakes:
+
+**Quick check (Scale S decision):**
+- Browser chat reads docs / community feedback
+- ~30 min reading + thinking
+- Output: yes/no/defer with one-paragraph rationale
+
+**Spike (Scale M decision):**
+- Throwaway branch, install tool, attempt real task
+- ≤4 hours
+- Output: works/fails/uncertain with concrete observation
+
+**Research debate (Scale L decision):**
+- AI Council research-mode debate (4 models, 1-2 rounds, ~$0.30-$0.50)
+- 30-60 min from brief to synthesis
+- Output: archived to `docs/research/YYYY-MM-DD-{topic}.md` per PLAYBOOK 5.N
+
+Decision threshold for which mode: per PLAYBOOK Section 5 "When to run Council vs single-model + critic."
+
+### Stage 4: Decision
+<!-- scope: meta -->
+
+Three outcomes:
+
+- **Adopt:** triggers Implementation (Stage 5)
+- **Reject:** record in tech-radar with reason; closed unless evidence changes
+- **Defer:** record in tech-radar with explicit reopen trigger (e.g., "if cost drops below X" or "after solo→team transition")
+
+**Document the decision:** even rejection deserves a paragraph. Future self asks "why didn't we adopt MCP memory?" — answer must exist.
+
+### Stage 5: Implementation (only for "Adopt")
+<!-- scope: meta -->
+
+Standard pipeline:
+1. **ADR if architectural impact** (per Section 5 gating) — module boundaries, dependencies, data model
+2. **Brief Stream B-style gap entry** if it requires multiple changes across files
+3. **Updates to:** AGENTS.md (Section 5: tools active), CLAUDE.md (if Claude Code-specific), ENVIRONMENT.md (if env-level), JOURNAL/CHANGELOG entries
+4. **Hooks/tests/CI** if enforcement needed (LLMs advise; mechanism enforces, per Council #28)
+
+Cross-link from tech-radar entry to the ADR + implementation commits.
+
+### Stage 6: Review (periodic)
+<!-- scope: meta -->
+
+**Cadence:** quarterly tech-radar snapshot (`docs/tech-radar/YYYY-Q.md`).
+
+**Per quarter, for each Adopted item:**
+- Still earning its keep? (concrete value vs cost/maintenance)
+- Configuration drift? (deprecated flags, version skew)
+- Replacement candidate emerged?
+
+**Per quarter, for each Deferred item:**
+- Reopen trigger met?
+- Still relevant or made obsolete by adoption of alternative?
+
+**Per quarter, for each Rejected item:**
+- Re-check if rejected for "wrong reason at the time" (rare but happens)
+
+**Output:** updated tech-radar quarterly entry. NOT each time something changes — quarterly batch keeps cost down.
+
+### Tech radar folder
+<!-- scope: meta -->
+
+Location: `docs/tech-radar/`
+
+**File pattern:** `YYYY-Q.md` for quarterly snapshots; `YYYY-MM-DD-{tool}.md` for per-tool deep-dives when warranted (e.g. Spec Kit eval).
+
+**Distinct from `docs/research/`:**
+- `docs/research/` — research-mode debate outputs (point-in-time, rich content)
+- `docs/tech-radar/` — quarterly inventory of what's adopted/rejected/deferred (snapshot)
+
+A tool might appear in BOTH (research debate evaluating it; tech-radar entry recording the decision and tracking subsequent review).
+
+### Section history
+<!-- scope: meta -->
+
+- v1.0 (2026-04-24) — initial. 6-stage pipeline, source list, evaluation modes by stake, tech-radar folder convention. Codifies organic 2026-Q1/Q2 adoption practice (Codex, Tach, Opus 4.7, ccusage, Perplexity, MCP-memory-deferred, GLM/Qwen-deferred, Spec Kit-evaluated).
+
+---
+
 ## 1. Starting a New Project
 <!-- scope: dev -->
 
