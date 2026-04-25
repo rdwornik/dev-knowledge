@@ -52,6 +52,55 @@ Section 12 "Where Knowledge Lives" describes knowledge **domains** (what lives w
 
 ---
 
+## AGENTS.md — canonical per-repo governance contract
+<!-- scope: meta -->
+
+**Purpose:** Each repo (corp-monorepo, ai-council, .dev-knowledge, future projects) has an `AGENTS.md` at root. This is the canonical governance file — what any LLM-based agent (Claude Code, Codex, Cursor, Aider) reads to understand "how this repo works" before making changes.
+
+**Authority hierarchy:**
+1. `.dev-knowledge/ESSENTIALS.md` + `PLAYBOOK.md` (this file) — universal rules across all Rob's work
+2. `{repo}/AGENTS.md` — per-repo specifics (architecture, conventions, tools active here)
+3. `{repo}/CLAUDE.md` — thin pointer (≤200 lines) referencing both above + Claude Code-specific quirks
+4. `{repo}/.claude/skills/`, `commands/`, `hooks/` — runtime config
+
+**Why hybrid (not duplicate):**
+- AGENTS.md does NOT repeat universal PLAYBOOK content — it points to it (Section 1: "Read first")
+- AGENTS.md covers only repo-specific: architecture, dependencies, conventions, tools, ADRs binding here, gotchas, do-NOTs
+- Avoids drift: when PLAYBOOK rule changes, no per-repo file needs updating
+
+**Cross-tool standard (Council #28 community finding):**
+AGENTS.md is read by Claude Code, Codex, Cursor, Aider, Jules, Factory, and other LLM agents per the agents.md initiative (Sept 2025). Single canonical file vs tool-specific config files.
+
+**Template:**
+See `templates/AGENTS-md-template.md` for the canonical 10-section skeleton. Copy to a new repo's root and fill in placeholders.
+
+**Sections (template):**
+1. Read first (pointer to .dev-knowledge)
+2. Repo identity (name, scale, purpose, status)
+3. Architecture (layer structure, dependencies, enforcement)
+4. Conventions (filenames, branches, commits, testing, linting)
+5. Tools active (review tools, hooks, etc.)
+6. Things this repo gets wrong (pointer to gotchas skill)
+7. Council decisions binding here (ADR list)
+8. Out of scope (what does NOT belong here)
+9. Session start checklist (concrete checks)
+10. Do NOT (rejected patterns + anti-patterns)
+
+**LLMs advise; hooks/tests enforce:**
+AGENTS.md tells the LLM what to do/avoid. Tach, pre-commit hooks, pytest, Codex /review enforce mechanically. Don't put rules in AGENTS.md that aren't backed by enforcement somewhere — they'll drift.
+
+**Update cadence:**
+AGENTS.md updates when:
+- New ADR is binding (Section 7)
+- New tool adopted (Section 5)
+- New gotcha promoted to skill (Section 6)
+- Architecture change (Section 3)
+- Anti-pattern discovered (Section 10)
+
+Stale AGENTS.md = LLMs operating on outdated context. Treat updates as part of the change that triggered them, not separate maintenance.
+
+---
+
 ## Project Scale Tiers
 <!-- scope: dev -->
 
