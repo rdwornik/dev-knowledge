@@ -321,6 +321,84 @@ This cadence catches regressions early and keeps each commit's diff sane to revi
 
 - v1.0 (2026-04-25) — initial. Baseline numbers from observed practice (corp-monorepo 2515 tests at L; ai-council ~200 at M). Coverage targets are guidelines, not enforced thresholds.
 
+### VS Code workspace per Scale tier
+<!-- scope: dev -->
+<!-- version: 1.0 — 2026-04-25 -->
+
+Each repo has a `.code-workspace` file at root that VS Code uses for project-specific settings and recommended extensions. Templates per Scale tier ensure baseline consistency without preventing repo-specific customization.
+
+**Templates location:** `.dev-knowledge/templates/workspace-{S,M,L}.code-workspace`
+
+**Bootstrap workflow:**
+1. Copy template matching repo Scale: `cp .dev-knowledge/templates/workspace-S.code-workspace <repo>/<repo-name>.code-workspace`
+2. Rename to match repo name (e.g. `corp-monorepo.code-workspace`)
+3. Edit `folders` array if multi-folder workspace needed (rare)
+4. Add repo-specific settings/extensions on top of template baseline
+5. Commit `.code-workspace` to repo root (yes, commit it — workspace config is part of dev environment)
+
+#### Scale S (minimal)
+<!-- scope: dev -->
+
+For Scale S repos (<50 tests, single script/tool, simple flow):
+
+**Settings:**
+- Python interpreter via `.venv/`
+- Ruff format-on-save with import organization
+- Trailing whitespace cleanup, final newline
+- Editor rulers at 88 (Ruff default) and 120
+
+**Extensions:**
+- ms-python.python — Python language support
+- charliermarsh.ruff — linter + formatter
+
+That's it. No testing infra, no git tooling, no diagram support — Scale S doesn't need them.
+
+#### Scale M (testing + git tooling)
+<!-- scope: dev -->
+
+For Scale M repos (50-500 tests, standalone package, multiple modules):
+
+**Adds to Scale S:**
+- pytest test discovery (`python.testing.pytestEnabled`)
+- GitLens (eamodio.gitlens) — git history, blame
+- Error Lens (usernamehw.errorlens) — inline diagnostics
+- TODO Tree (gruntfuggly.todo-tree) — surfaces TODO/FIXME comments
+
+**Why these:** at Scale M, test infrastructure is required (per Testing rules subsection above), and git/error tooling becomes worth setup cost.
+
+#### Scale L (full stack)
+<!-- scope: dev -->
+
+For Scale L repos (500+ tests, multi-package monorepo, ARCHITECTURE.md):
+
+**Adds to Scale M:**
+- mypy type checking (`python.analysis.typeCheckingMode: "basic"`)
+- mypy type checker extension (ms-python.mypy-type-checker)
+- TOML support (tamasfe.even-better-toml) — for tach.toml, pyproject.toml, etc.
+- Spell checker (streetsidesoftware.code-spell-checker)
+- Mermaid diagram preview (bierner.markdown-mermaid)
+- TODO Tree extended tag list
+
+**Real example:** `corp-monorepo.code-workspace` (Scale L, currently active) reflects this template with corp-monorepo-specific additions.
+
+**Why these:** at Scale L, architecture diagrams (Mermaid) and type discipline (mypy) become high-leverage. TOML editing matters for Tach, pyproject.toml monorepo-wide configs.
+
+#### Customization
+<!-- scope: dev -->
+
+Template is starting point, not contract. Repos may:
+- Add project-specific extensions (e.g. corp-monorepo adds Tach extension if available)
+- Tighten settings (e.g. require strict type checking instead of basic)
+- Override interpreter path for non-standard venv locations
+- Add custom tasks, debug configurations, multi-folder workspaces
+
+**Don't:** remove template baseline without rationale — that's diverging from baseline, not customizing on top of it.
+
+#### Section history
+<!-- scope: dev -->
+
+- v1.0 (2026-04-25) — initial. Three Scale-tiered templates grounded in `corp-monorepo.code-workspace` actual contents. Will refine based on extension marketplace evolution.
+
 ---
 
 ## Documentation file types and session continuity
