@@ -719,6 +719,52 @@ Every Council debate output MUST be archived immediately after the debate comple
 
 **Future enforcement:** possible pre-commit hook checking ai-council/output/ for files >7 days old not present in any repo's archive locations.
 
+### When to run Council vs single-model + critic
+<!-- scope: meta -->
+<!-- version: 1.0 — 2026-04-25 -->
+
+Per Council #28 community research finding: AI Council debate (4-model panel, 2 rounds, ~$0.50, ~5min) is overkill for normal implementation decisions. Reserve Council for truly ADR-worthy questions; use single-model + critic loop for the rest.
+
+#### Gate Council to ADR-worthy decisions
+<!-- scope: meta -->
+
+Council debate is justified when ALL apply:
+- **Architectural impact** — affects module boundaries, layer taxonomy, dependencies, data model
+- **Multi-ADR ripple** — decision touches 2+ existing ADRs or creates new binding constraint
+- **Reversal cost > 1 hour** — backing out the decision means meaningful rework
+- **Multiple plausible options** — at least 2 genuinely different approaches exist (not "do or skip")
+
+If any criterion fails, prefer single-model + critic loop.
+
+#### Single-model + critic alternative
+<!-- scope: meta -->
+
+For decisions outside the Council gate:
+1. **Browser chat (architect)** drafts the decision (option choice + rationale)
+2. **Codex review** (or analogous critic) checks the drafted decision for risks, edge cases, missed alternatives
+3. **Rob** approves, rejects, or iterates
+4. **Outcome** lands as: ADR (if binding), JOURNAL entry (if tactical), or just commit message (if local)
+
+Cost: ~$0.05 + 2min vs Council's $0.50 + 5min. Significantly cheaper for the >70% of decisions that don't need 4-model debate.
+
+#### Examples (2026-04 sessions)
+<!-- scope: meta -->
+
+| Decision | Path used | Reason |
+|----------|-----------|--------|
+| Scope tagging architecture (Option A) | Council #27 | Affected entire `.dev-knowledge` repo, 3 plausible options, multi-week reversal cost |
+| ADR-29 LESSONS grandfathering format | Council #27 (companion) | Bound to scope tagging decision, multi-format alternatives |
+| TOKEN-LOG cadence (per-session vs threshold) | Browser + Rob | Two clear options, low reversal cost, browser-architect sufficient |
+| TOKEN-LOG order convention (newest-first) | Browser + Rob | Two options, consistent with CHANGELOG, no architectural ripple |
+| Validator/hook H3 divergence fix | Browser + Rob | Implementation bug, single correct fix, no debate needed |
+| AGENTS.md template structure (10 sections) | Browser + Rob | Well-known community pattern (Council #28 research), no need to re-debate |
+
+#### Anti-patterns
+<!-- scope: meta -->
+
+- **Council habit-formation** — running Council because "it's how we decide" without checking the gate. Costs add up fast ($0.50 × N decisions).
+- **Single-model laziness** — choosing single-model path when criteria genuinely apply (architectural ripple), then later reopening as Council = wasted first decision.
+
 ---
 
 ## 6. Code Review with Claude Code
