@@ -796,36 +796,40 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 - **Hooks slower than 5s** — incentivizes bypass; move to CI
 - **Validator/hook divergence** — both tools must enforce identically (see ADR-27 amendment 2026-04-25, lesson re: invocation semantics)
 
-### 7d. Subagents (separate Claude instances) — DEFERRED
+### 7d. Subagents (separate Claude instances)
 <!-- scope: runtime -->
 
-**Status:** Deferred adoption per tech-radar 2026-Q2. Documented here for future reference; no active subagents in Rob's ecosystem.
+**Amendment 2026-04-25 (subagents factually active):** Original v1.0 section called subagents "DEFERRED — no active subagents in Rob's ecosystem." This was incorrect. Verification 2026-04-25 confirmed two active user-level subagents exist at `~/.claude/agents/`. Section now describes actual subagents (Anthropic docs framing preserved as conceptual context). Per Gap #19 amendment-vs-reopen protocol: prescription drift, intent (disambiguation of 4 mechanisms) preserved.
 
-**What (per Anthropic docs + Council #28 research):** Subagents are spawned Claude instances with narrow focus and fresh context window, invoked via main agent's Task tool. Designed for "read-heavy, write-light" delegation.
+**What (per Anthropic docs + Council #28 research):** Subagents are spawned Claude instances with narrow focus and fresh context window, invoked via main agent's Task tool. Designed for "read-heavy, write-light" delegation (per Cognition's June 2025 warning against subagents-as-code-generation-peers).
 
-**Where they would live:** `.claude/agents/<name>/` (folder-based, parallels skills/ and commands/).
+**Where they live:** `~/.claude/agents/<name>.md` (user-level, cross-repo) OR `<repo>/.claude/agents/<name>.md` (project-level).
 
-**Anthropic-recommended use cases (read-heavy, write-light):**
-- Code search across large codebase (subagent reads, returns summary)
-- Test running and result interpretation
-- Log analysis
-- Documentation lookups requiring fresh context
+**File format:** Markdown files describing the subagent's role, trigger conditions, and instructions. Main agent invokes them via Task tool.
 
-**Cognition's "Don't Build Multi-Agents" warning (June 2025):** Subagents as code-generation peers are anti-pattern. They diverge, conflict, and waste tokens. Use as tools, not as collaborators.
+**When to use:**
+- Read-heavy operations (code search across large codebase, log analysis, doc lookups)
+- Tasks benefiting from fresh context window (avoid main agent's context bloat)
+- Operations that should not write/modify (per Cognition warning — subagents as readers, not collaborators)
 
-**Why deferred for Rob:**
-- Solo developer scale — main agent + skills + slash commands sufficient
-- Existing AI Council (separate Python project, multi-model debate) handles "multiple perspectives" need without Claude Code subagents
-- No identified pain point that subagent would solve
+**When NOT to use:**
+- Code generation peers (anti-pattern per Cognition June 2025)
+- Tasks that need main agent's full context (e.g. complex refactoring with cross-file knowledge)
+- One-off operations — slash command may fit better
 
-**Reopen trigger (per tech-radar 2026-Q2):**
-- Concrete pressing use case (e.g. corp-monorepo grows large enough that read-heavy code search benefits from fresh context)
-- Anthropic ships pattern that significantly differs from current docs
+**Real examples in Rob's ecosystem (user-level, `~/.claude/agents/`):**
+- `ecosystem-snapshot.md` — read-only point-in-time snapshot generator across all Corporate OS repos (git status, recent commits, test counts, dirty files); Haiku model; outputs facts only, refuses analysis
+- `report-generator.md` — read-only structured report builder for weekly ecosystem reports and data condensation; Haiku model; markdown tables with source paths, escalates architectural reasoning back to main session
 
-**When this changes, refer to:**
-- Anthropic Claude Code subagents documentation (docs.anthropic.com or similar)
-- Cognition's "Don't Build Multi-Agents" article (cognition.ai blog, June 2025)
-- Stream B Gap #10 (Adoption protocol) — applies to subagent adoption when triggered
+**Anti-patterns:**
+- **Subagents as code-generation peers** — they diverge, conflict, waste tokens (Cognition's "Don't Build Multi-Agents" warning, June 2025)
+- **Heavy write operations in subagents** — main agent loses sight of state changes; coordination breaks
+- **Overusing subagents** — main agent + skills + slash commands sufficient for most workflows; subagents are specialist tool, not default
+
+**For deeper guidance:**
+- Anthropic Claude Code subagents documentation
+- Cognition "Don't Build Multi-Agents" (cognition.ai blog, June 2025)
+- Stream B Gap #10 (Adoption protocol) — applies to subagent additions/changes
 
 ### Cross-reference to AGENTS.md template Section 5
 <!-- scope: meta -->
@@ -836,7 +840,7 @@ When a repo has any of the above active (skills, slash commands, hooks, subagent
 - **Architecture enforcement:** Tach configuration if used
 - **Pre-commit hooks:** list active hooks with purpose
 - **Skills:** list active skills with paths
-- **Subagents:** list if any are active (per Rob's ecosystem currently: none)
+- **Subagents:** list if any are active (per Rob's ecosystem currently: ecosystem-snapshot, report-generator at user-level)
 
 This keeps cross-tool agents (Codex, Cursor, Aider) aware of the same governance Claude Code operates under.
 
