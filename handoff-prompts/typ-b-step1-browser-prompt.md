@@ -12,3 +12,5 @@ Reguły:
 - Głębia: każdy bullet ma konkret — nie general statement
 - Security: sekrety (tokens, client_secret, PAT) zastąp placeholderami
   <TOKEN>, <CLIENT_SECRET>
+- Scale: S (~30 linii) jeśli sesja krótka, M (~60-80 linii) standardowo,
+  L (~120-200 linii) jeśli sesja długa + wiele decyzji

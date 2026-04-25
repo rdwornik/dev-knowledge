@@ -16,3 +16,5 @@ Reguły:
 - Nie omijaj żadnej sekcji — jeśli pusta, napisz "none"
 - PENDING i REFERRED OUT to różne sekcje — PENDING zostaje w tym chacie,
   REFERRED OUT idzie gdzie indziej
+- Scale: S (~30 linii) jeśli sesja była krótka/prosta, M (~60-80 linii)
+  standardowo, L (~120-200 linii) jeśli sesja długa + wiele decyzji

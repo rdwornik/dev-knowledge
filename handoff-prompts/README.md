@@ -1,18 +1,23 @@
 # Handoff Prompts
 
-Gotowe do użycia prompty dla handoff process. Zero kompresji — cat i paste.
+Ready-to-use prompts for the handoff process. No compression — cat and paste.
 
-## Pliki
+**Authoritative protocol:** `HANDOFF_PROCESS.md` — trigger rules, Scale-tiered format, Roles. This folder contains the copy-paste templates only.
+
+## Files
 <!-- scope: llm -->
 
 - `typ-a-step1-browser-prompt.md` — Programming: browser prompt (generate handoff)
 - `typ-a-step2-claudecode-prompt.md` — Programming: Claude Code prompt (save handoff)
 - `typ-b-step1-browser-prompt.md` — Conversational: browser prompt (generate handoff)
 
-Typ B nie ma step 2 — handoff żyje tylko w context window nowego chatu.
+Type B has no step 2 — handoff lives only in the new chat's context window.
 
-## Jak użyć
+## How to use
 <!-- scope: llm -->
 
-Gdy user pyta "daj proces handoff", model czytający HANDOFF_PROCESS.md
-powinien zwrócić zawartość odpowiednich plików verbatim (cat), nie skracać.
+When user asks "give me the handoff process," the model reading `HANDOFF_PROCESS.md`
+should return the content of the relevant files verbatim (cat), not summarize.
+
+Templates are in Polish — this is intentional. `wygeneruj handoff` is the Vibe Code 4 trigger phrase.
+Scale (S/M/L) is specified by Rob at trigger time, not embedded in the template.
