@@ -4,6 +4,34 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-25 (continued) — Gap #8 VS Code workspace templates per Scale
+
+**Added:**
+- `templates/workspace-S.code-workspace` — Scale S minimal (Python + Ruff)
+- `templates/workspace-M.code-workspace` — Scale M (+ pytest + GitLens + Error Lens + TODO Tree)
+- `templates/workspace-L.code-workspace` — Scale L (+ mypy + Mermaid + spell check + TOML)
+- PLAYBOOK Project Scale Tiers section: new "VS Code workspace per Scale tier" subsection (v1.0)
+
+**Why:**
+- Each repo improvised `.code-workspace` config; no baseline per Scale
+- Bootstrap workflow now copy-paste from template, rename, customize
+- Grounded in `corp-monorepo.code-workspace` (Scale L active example)
+
+**Companion to prior Stream B gaps:**
+- Gap #15 (Testing rules per tier): workspace test discovery aligns with pytest cadence
+- Gap #5 (CLAUDE.md template): workspace settings reference align with Section 7 (Hooks active)
+- Gap #6 (AGENTS.md template): repo Scale tier (Section 2) determines workspace template choice
+
+**Per-repo action items (separate work):**
+- Verify ai-council `.code-workspace` aligns with Scale M template
+- Bootstrap any new project from appropriate template
+
+**Reference:**
+- `docs/audits/2026-04-24-stream-b-gaps-mapping.md` — Gap #8 specification
+- `corp-monorepo.code-workspace` — Scale L exemplar source
+
+---
+
 ## 2026-04-25 (continued) — Gap #10 Adoption protocol for Claude Code extensions
 
 **Added:**
