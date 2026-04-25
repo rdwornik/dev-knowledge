@@ -4,6 +4,25 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-25 (continued) — Gap #12 + #19 Council gating and amendment protocol
+
+**Added:**
+- PLAYBOOK Section 5 subsection "When to run Council vs single-model + critic" (v1.0) — gates Council to ADR-worthy decisions per Council #28 finding; provides single-model + critic alternative for ~70% of decisions
+- PLAYBOOK Section 5 subsection "Amendment vs Reopen Decision Protocol" (v1.0) — codifies pattern used 3× organically on 2026-04-24
+- Decision trees, mechanics, anti-patterns, examples in both subsections
+
+**Why:**
+- Gap #12: Council #28 community research flagged AI Council overhead risk — running 4-model debate on every decision wastes ~$0.50 + 5min when ~70% don't need it
+- Gap #19: Amendment pattern emerged 3 times in a single day during Stream A closure (ADR-27 delta rule, ADR-29 H1 placement, ADR-27 heading levels). Without codification, future Claude/Rob would re-discover from scratch or default to expensive reopens.
+
+**Reference:**
+- `docs/audits/2026-04-24-stream-b-gaps-mapping.md` — Gaps #12 and #19 specifications
+- `docs/research/2026-04-23-council-28-community-patterns.md` — community finding on Council overhead
+- ADR-27 amendments (2× on 2026-04-24 and 2026-04-25) — amendment pattern instances
+- ADR-29 amendment (2026-04-24) — amendment pattern instance
+
+---
+
 ## 2026-04-25 (continued) — Gap #11 Handoff process Vibe Code 4 protocol patch
 
 **Changed:**
