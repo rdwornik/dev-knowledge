@@ -4,6 +4,73 @@
 
 ---
 
+## Roles
+<!-- scope: meta -->
+<!-- version: 1.0 — 2026-04-24 -->
+
+Two distinct LLM contexts collaborate on every workstream. Mixing them = chaos.
+
+### Browser chat (architect)
+<!-- scope: meta -->
+
+**Purpose:** strategic thinking, decisions, prompt generation, conversation that won't survive across sessions.
+
+**Does:**
+- Discusses design, architecture, trade-offs with Rob
+- Writes downloadable `.md` prompts for Claude Code
+- Reviews Claude Code session summaries, decides next step
+- Holds context across one session (not across sessions)
+- References `.dev-knowledge` documents when uploaded
+
+**Does NOT:**
+- Touch any repo file directly (no filesystem access)
+- Run commands, tests, or git operations
+- Persist memory between conversations
+- Make state-changing decisions without Rob's confirmation
+
+### Claude Code (executor)
+<!-- scope: meta -->
+
+**Purpose:** execution, file changes, commits, validations, testing.
+
+**Does:**
+- Reads CLAUDE.md, AGENTS.md on session start (auto)
+- Executes downloadable prompts from browser chat
+- Modifies files, runs tests, commits, branches
+- Reports session summary back to Rob
+- Has filesystem and shell access
+
+**Does NOT:**
+- Make architectural decisions without explicit prompt instruction
+- Skip pre-commit hooks or validators
+- Push to remote without Rob's confirmation
+- Operate without a clear prompt — "improvise" is forbidden
+
+### Three-layer flow (per ADR-28)
+<!-- scope: meta -->
+
+```
+Browser chat (analysis)  →  .dev-knowledge (reference)  →  projects (execution)
+                                  ↑
+              both sides read .dev-knowledge for universal rules
+```
+
+- **Information flow:** bidirectional (browser ↔ .dev-knowledge ↔ projects)
+- **Execution flow:** one-way (browser produces prompts → Claude Code executes in projects)
+- **No shortcuts:** browser does not edit project files; Claude Code does not redesign architecture
+
+**When in doubt about which role applies:**
+- "Should we...?" → browser (decision)
+- "Implement X per spec" → Claude Code (execution)
+- "What did we decide about Y?" → either, but check `.dev-knowledge` first
+
+### Section history
+<!-- scope: meta -->
+
+- v1.0 (2026-04-24) — initial. Browser=architect, Claude Code=executor, three-layer flow per ADR-28. Will refine after live use.
+
+---
+
 ## Starting a Session
 <!-- scope: runtime -->
 
