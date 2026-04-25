@@ -101,6 +101,72 @@ Stale AGENTS.md = LLMs operating on outdated context. Treat updates as part of t
 
 ---
 
+## CLAUDE.md as session contract
+<!-- scope: meta -->
+
+**Purpose:** Each repo (corp-monorepo, ai-council, .dev-knowledge, future projects) has a `CLAUDE.md` at root. Auto-read by Claude Code on session start. **Thin pointer (≤200 lines)** to:
+- `AGENTS.md` (cross-tool canonical governance — per Council #28)
+- `.dev-knowledge/ESSENTIALS.md` + `PLAYBOOK.md` (universal Rob rules)
+- Recent ADRs, handoffs, journal entries
+
+### What CLAUDE.md is
+<!-- scope: meta -->
+
+- **Session contract for THIS tool** (Claude Code) operating in THIS repo
+- Lists slash commands, skills, hooks ACTIVE in this repo
+- Critical rules specific to Claude Code's behavior here
+- Anti-patterns Claude Code has gotten wrong in this repo
+
+### What CLAUDE.md is NOT
+<!-- scope: meta -->
+
+- Comprehensive governance — that's AGENTS.md
+- Universal rules — those live in `.dev-knowledge/`
+- Architecture documentation — that's `docs/ARCHITECTURE.md`
+- Decision rationale — that's `docs/decisions/ADR-NN_*.md`
+
+### Why ≤200 lines
+<!-- scope: meta -->
+
+Council #28 community finding: CLAUDE.md grows by accretion in most repos, ending as 1000+ line dump that nobody reads. Solution: thin pointer pattern. CLAUDE.md says "read AGENTS.md, then continue" + Claude-Code-specific quirks. Comprehensive content lives in dedicated files.
+
+corp-monorepo CLAUDE.md (4KB, stale numbers like "24 Council Decisions" when there are 29) is exactly the failure mode this template prevents.
+
+### Authority hierarchy (recap from AGENTS.md section)
+<!-- scope: meta -->
+
+1. `.dev-knowledge/ESSENTIALS.md` + `PLAYBOOK.md` — universal
+2. `{repo}/AGENTS.md` — cross-tool, per-repo
+3. `{repo}/CLAUDE.md` — Claude-Code-specific quirks, thin pointer
+4. `{repo}/.claude/skills/, commands/, hooks/` — runtime config
+
+### Template
+<!-- scope: meta -->
+
+See `templates/CLAUDE-md-template.md` for the canonical 10-section skeleton (≤200 lines).
+
+### Update cadence
+<!-- scope: meta -->
+
+CLAUDE.md updates when:
+- New slash command, skill, or hook added (Sections 5, 6, 7)
+- ADR list rotation needed (Section 9 — keep last 5-10)
+- New anti-pattern discovered for Claude Code specifically (Section 8)
+- AGENTS.md or PLAYBOOK.md restructure (update Section 1 paths)
+
+**Stale CLAUDE.md = Claude Code operating on outdated context every session.** Treat updates as part of the change that triggered them.
+
+### Per-Scale notes
+<!-- scope: meta -->
+
+- **Scale S:** CLAUDE.md may be 50-100 lines (less infrastructure)
+- **Scale M:** CLAUDE.md may be 100-150 lines (some skills, hooks)
+- **Scale L:** CLAUDE.md should approach but not exceed 200 lines (rich tooling, more ADRs to reference)
+
+If CLAUDE.md grows past 200 lines, split content: most goes to AGENTS.md, only Claude-Code-specific stays.
+
+---
+
 ## Project Scale Tiers
 <!-- scope: dev -->
 
