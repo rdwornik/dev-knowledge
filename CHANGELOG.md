@@ -4,6 +4,39 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-25 (continued) — Gap #15 + #16 testing rules + Codex archival
+
+**Added:**
+- PLAYBOOK Project Scale Tiers section: new "Testing rules per tier" subsection (v1.0)
+- PLAYBOOK Section 5: new "Codex review archival protocol" subsection (v1.0)
+
+**Gap #15 (Testing rules):**
+- S/M/L matrix: minimum requirement, coverage target, test types, run command
+- Per-step test cadence (Scale M+) — `pytest -x --tb=short` + ruff + git status after each numbered step
+- Anti-patterns: coverage chasing at S, skipping tests at L, integration-only at L
+
+**Gap #16 (Codex archival):**
+- Trigger criteria (Critical/High findings, non-trivial merges, future work pointers)
+- Target path: `{repo}/docs/audits/YYYY-MM-DD-codex-{slug}.md`
+- Standard format with severity breakdown table and per-finding structure
+- Cross-linking protocol (JOURNAL, commits, CHANGELOG)
+- Anti-patterns including "archive everything" and "Codex output rot"
+
+**Why:**
+- Gap #15: Project Scale Tiers defined sizes but not testing requirements per tier
+- Gap #16: Codex review findings were session-ephemeral; analogous to Council debates which got archival protocol earlier today (5.N)
+
+**Companion to prior Stream B gaps:**
+- Gap #12 + #19 (Council gating + Amendment): Section 5 now covers Council debates, archival, gating, amendment, AND Codex archival — complete decision-making/review lifecycle
+- Gap #2 (Prompt template): per-step test cadence references prompt-template.md
+- Gap #4 + #18 (Doc files + Scale matrix): testing rules align with Scale-tiered file requirements
+
+**Reference:**
+- `docs/audits/2026-04-24-stream-b-gaps-mapping.md` — Gaps #15 and #16 specifications
+- corp-monorepo AGENTS.md — Codex review pattern (severity tiers, modes) source
+
+---
+
 ## 2026-04-25 (continued) — Gap #13 Session boundaries
 
 **Added:**
