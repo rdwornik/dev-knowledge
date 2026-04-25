@@ -4,6 +4,23 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-24 (continued) — AGENTS templates reconciled
+
+**Changed:**
+- `templates/AGENTS.md.template.md` → `templates/codex-review-config-template.md` (rename — file was misnamed; true purpose is Codex review configuration, embeddable in AGENTS.md Section 5)
+- Internal title updated to reflect Codex-specific role
+- New AGENTS template Section 5 cross-links to Codex config template
+
+**Why:**
+- Two files named like AGENTS template caused confusion
+- Old file is NOT full governance — it's Codex review subset
+- Cross-link makes relationship explicit: governance template (parent) embeds Codex config (subset) per Scale
+
+**Per-repo follow-up (NOT this commit):**
+- corp-monorepo AGENTS.md likely originated from old template (Codex-only) — needs expansion to full governance using new template, with Codex content per Codex template embedded in Section 5. Separate Stream B work.
+
+---
+
 ## 2026-04-24 (continued) — Gap #6 AGENTS.md template + PLAYBOOK section
 
 **Added:**
