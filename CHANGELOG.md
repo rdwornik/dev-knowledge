@@ -4,6 +4,38 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-25 (continued) — Gap #11 Handoff process Vibe Code 4 protocol patch
+
+**Changed:**
+- `HANDOFF_PROCESS.md` updated to v1.0:
+  - Translated to English (was entirely Polish)
+  - Explicit trigger rule (Rob explicit, never proactive)
+  - Scale-tiered format (S minimal / M reduced / L full)
+  - Downloadable `.md` artifact requirement
+  - Roles section cross-reference (ESSENTIALS Gap #1)
+  - Related references list
+  - Section history
+- `handoff-prompts/` templates updated minimally:
+  - `README.md`: added cross-reference to HANDOFF_PROCESS.md as authoritative protocol source; translated to English; noted Polish in templates is intentional (Vibe Code 4 trigger phrase)
+  - `typ-a-step1-browser-prompt.md`: added Scale (S/M/L) line
+  - `typ-b-step1-browser-prompt.md`: added Scale (S/M/L) line
+
+**Why:**
+- Vibe Code 4 (2026-04-22) established binding handoff protocol but only in handoff itself
+- Each new browser chat re-discovered "Rob triggers, not Claude" by trial and error
+- Handoffs are the artifact connecting consecutive browser chats — protocol consistency is high-leverage
+
+**Companion to prior Stream B gaps:**
+- Gap #1 (Roles in ESSENTIALS): browser=architect, Claude Code=executor
+- Gap #2/#3 (Prompt format + checklist): downloadable `.md` artifact pattern
+- Gap #4/#18 (Doc files + Scale matrix): handoff is one of 12 file types, Scale-tiered
+
+**Reference:**
+- `docs/audits/2026-04-24-stream-b-gaps-mapping.md` — Gap #11 specification
+- `docs/handoffs/2026-04-22-vibe-code-4-stream-a.md` — original protocol establishment
+
+---
+
 ## 2026-04-25 (continued) — Gap #4 + #18 doc files taxonomy + Scale matrix
 
 **Added:**
