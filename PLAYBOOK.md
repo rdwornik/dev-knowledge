@@ -270,6 +270,57 @@ Three tiers:
 
 Sections in this Playbook marked with a tier tag (e.g. **[L only]** or **[L+M]**) apply only to those tiers. Unmarked sections apply to all projects.
 
+### Testing rules per tier
+<!-- scope: dev -->
+<!-- version: 1.0 — 2026-04-25 -->
+
+Test infrastructure scales with project size. Over-investing in test infra at Scale S wastes effort; under-investing at Scale L creates fragility.
+
+| Scale | Minimum | Coverage target | Test types | Run command |
+|-------|---------|-----------------|------------|-------------|
+| **S** (<50 tests) | optional | n/a — coverage measurement overhead exceeds value | smoke tests at most | `pytest` (single run) |
+| **M** (50-500 tests) | required | ≥60% on `src/`, no untested public API | pytest unit + selective integration | `pytest -x --tb=short` |
+| **L** (500+ tests) | required | ≥80% on `src/`, comprehensive public API coverage, integration suite for critical paths | pytest unit + integration + e2e where applicable | `pytest -x --tb=short` per step + `pytest --co --collect-only` for sanity |
+
+#### Reading the table
+<!-- scope: dev -->
+
+- **required** — tests must exist and pass before merge; CI/CD enforces
+- **optional** — tests welcomed but not blocking; useful when complexity warrants
+- **n/a** — measurement overhead exceeds practical value at this scale
+
+#### Per-step test cadence (Scale M and L)
+<!-- scope: dev -->
+
+Per `templates/prompt-template.md` and PLAYBOOK "Writing prompts for Claude Code" section:
+
+After every numbered step in a Claude Code prompt:
+1. `pytest -x --tb=short` — fail fast, short tracebacks
+2. `ruff check src/ tests/ --fix` — autofix lint issues
+3. `git status` — verify expected file scope
+
+This cadence catches regressions early and keeps each commit's diff sane to review.
+
+#### Test types and when
+<!-- scope: dev -->
+
+- **Unit tests:** all Scale M+. Mock external dependencies. Fast feedback (<10s per file).
+- **Integration tests:** Scale L for critical paths (e.g. data pipeline, auth flow). Real dependencies, isolated DB, slower (1-30s per test).
+- **E2E tests:** Scale L for top user journeys. Real environment, optional in standard CI (run nightly or pre-release).
+- **Smoke tests:** Scale S for "did basic flow break?" Single-file pytest, optional CI.
+
+#### Anti-patterns
+<!-- scope: dev -->
+
+- **Coverage chasing at Scale S** — measuring coverage on <50-test repo wastes 30+ min per session for diminishing return
+- **Skipping tests at Scale L** — "this commit is small" + L-scale repo = recipe for hidden regression
+- **Integration-only at Scale L** — slow feedback discourages running tests; unit tests are the foundation
+
+#### Section history
+<!-- scope: dev -->
+
+- v1.0 (2026-04-25) — initial. Baseline numbers from observed practice (corp-monorepo 2515 tests at L; ai-council ~200 at M). Coverage targets are guidelines, not enforced thresholds.
+
 ---
 
 ## Documentation file types and session continuity
@@ -933,6 +984,100 @@ When reopening:
 | ADR-27 (scope tagging) | Validator built with delta-rule enforcement, not flat threshold | Amend | Original intent (≤25% hybrid ceiling, blocking) preserved; mechanism (when to block) clarified |
 | ADR-29 (LESSONS grandfathering) | H1 file-level tag collided with validator's H1 detection window | Amend | Original intent (file-level tag for LESSONS, not per-section) preserved; placement (H1 not `## Entries`) clarified |
 | ADR-27 (scope tagging) | Validator silently passed when called without args; H2 vs H3 ambiguous | Amend | Original intent (every section header tagged) preserved; level scope (H2+H3) and invocation semantics (auto-scan IN_SCOPE_FILES) explicit |
+
+### Codex review archival protocol
+<!-- scope: meta -->
+<!-- version: 1.0 — 2026-04-25 -->
+
+Codex code review (OpenAI's read-only reviewer) produces findings in terminal output during a session. Without explicit archival, findings disappear when the session ends. This protocol captures Codex output as a durable artifact — analogous to Council Archival Protocol above.
+
+**Pattern parallel to Council Archival:** Council debates → `docs/decisions/transcripts/`. Codex reviews → `docs/audits/YYYY-MM-DD-codex-{slug}.md`.
+
+#### Trigger
+<!-- scope: meta -->
+
+Archive Codex review when ANY apply:
+- Review found ≥1 Critical or High severity finding
+- Review precedes a non-trivial merge (3+ files OR safety-critical paths)
+- Findings reference future work (e.g. "this should be refactored later" with concrete pointer)
+- Rob explicitly requests "archive this Codex output"
+
+Skip archival when:
+- Review found only Low severity polish issues addressed in same session
+- Trivial commits (typo fix, dependency bump, single-file refactor)
+- Review explicitly inconclusive ("could not parse changeset")
+
+#### Target path
+<!-- scope: meta -->
+
+`{repo}/docs/audits/YYYY-MM-DD-codex-{slug}.md`
+
+Where:
+- `YYYY-MM-DD` — date of review
+- `{slug}` — kebab-case identifier (feature, branch, or commit topic)
+
+Example: `docs/audits/2026-04-22-codex-handoff-process-rewrite.md`
+
+#### Format
+<!-- scope: meta -->
+
+```markdown
+# Codex Review — {topic}
+
+**Date:** YYYY-MM-DD
+**Branch:** {branch-name}
+**Commit (HEAD at review):** {short SHA}
+**Reviewer:** Codex (OpenAI)
+**Mode:** {full review | diff review | targeted}
+
+## Severity breakdown
+
+| Severity | Count |
+|----------|-------|
+| Critical | N |
+| High     | N |
+| Medium   | N |
+| Low      | N |
+
+## Findings
+
+### [SEVERITY] file:line — short description
+
+**What:** One sentence.
+**Why:** One sentence.
+**Fix direction:** One sentence.
+**Action:** [resolved in this session / queued / deferred / dismissed with reason]
+
+(Repeat per finding. Group by severity. Omit empty sections.)
+
+## Resolution summary
+
+What was fixed in this session vs queued for later. Cross-link to JOURNAL entry and commits.
+
+## Notes
+
+Reviewer's narrative observations beyond per-finding (e.g. "consistent error handling pattern across module"), if any.
+```
+
+#### Linking from other docs
+<!-- scope: meta -->
+
+After archival, cross-link FROM:
+- **JOURNAL.md entry** for that session: "Codex review archived: docs/audits/YYYY-MM-DD-codex-{slug}.md (N findings, M resolved)"
+- **Commit message** of the resolution merge: "fix(scope): address Codex Critical/High findings — see docs/audits/YYYY-MM-DD-codex-{slug}.md"
+- **CHANGELOG.md** if findings affected user-visible behavior
+
+#### Anti-patterns
+<!-- scope: meta -->
+
+- **Archive everything** — low-severity polish findings don't warrant an audit document; archive only when trigger criteria match
+- **Archive without resolution tracking** — review without clear "what was fixed / what's deferred" loses accountability
+- **Codex output rot** — letting findings linger across sessions without resolution status creates ambiguity over what's still open
+
+#### Section history
+<!-- scope: meta -->
+
+- v1.0 (2026-04-25) — initial. Manual archival protocol mirroring Council Archival pattern. Future enhancement: pre-commit hook checking for un-archived Codex sessions older than N days.
 
 ---
 
