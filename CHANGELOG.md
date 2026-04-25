@@ -4,6 +4,27 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-25 — Validator/hook H3 divergence resolved
+
+**Fixed:**
+- `scripts/validate_scope_tags.py`: no-args invocation now scans all in-scope files on disk instead of vacuously passing on an empty list
+- `docs/decisions/ADR-27_scope-tagging.md`: Amendment 2026-04-25 added — heading levels (H2 + H3) and validator standalone invocation semantics now explicitly specified
+- Validator and pre-commit hook now produce identical results on identical content regardless of invocation mode
+
+**Root cause:**
+- `main(sys.argv[1:])` with no arguments → empty `paths` → zero files validated → `"all files pass"` (vacuous)
+- Pre-commit hook passes staged filenames via `pass_filenames: true` → files actually validated → caught missing H3 scope tags
+- Both tools agreed on the rule (H2_RE covers `##` and `###`); invocation semantics were the gap
+
+**Why:**
+- Discovered during Gap #1 (Roles section in ESSENTIALS): manual validator run passed, hook failed on H3 tags
+- Governance tools sharing enforcement rules cannot diverge by invocation mode — creates silent false-negatives
+- Resolved via Direction C: clarify invocation semantics; no rule change needed
+
+**Lesson recorded:** see LESSONS.md 2026-04-25 entry
+
+---
+
 ## 2026-04-24 (continued) — Gap #1 Roles section in ESSENTIALS
 
 **Added:**
