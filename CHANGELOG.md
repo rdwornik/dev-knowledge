@@ -4,6 +4,32 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-25 (continued) — Gap #13 Session boundaries
+
+**Added:**
+- PLAYBOOK.md "Session boundaries" section (v1.0)
+- 5 subsections: scope declaration, stop-signs, decision fatigue threshold, recursive planning anti-pattern, session resumption protocol
+- Numeric guidelines (>3h + >3 decisions = wrap zone) + qualitative signals
+- In-vivo example from 2026-04-24 session as concrete reference
+
+**Why:**
+- Session-management was tribal knowledge — each new browser chat re-discovered patterns via failure
+- 2026-04-24 sessions ran 8+ hours with multiple recursive-planning episodes; pattern broke only when Rob pushed back explicitly
+- Stop-signs without explicit codification get rationalized away in the moment
+- Session resumption protocol prevents bare "continue what we were doing" anti-pattern
+
+**Companion to prior Stream B gaps:**
+- Gap #1 (Roles): browser=architect — applies to session-mgmt decisions
+- Gap #11 (Handoff process): handoff is the action when stop-sign triggers
+- Gap #18 (Doc files + Scale matrix): handoff and JOURNAL referenced in resumption protocol
+- Gap #12 (Council gating): decision fatigue applies to architectural decisions specifically
+
+**Reference:**
+- `docs/audits/2026-04-24-stream-b-gaps-mapping.md` — Gap #13 specification
+- 2026-04-24 sessions — in-vivo example source
+
+---
+
 ## 2026-04-25 (continued) — Gap #12 + #19 Council gating and amendment protocol
 
 **Added:**
