@@ -4,6 +4,32 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-24 (continued) — Gap #1 Roles section in ESSENTIALS
+
+**Added:**
+- ESSENTIALS.md: new "Roles" section (v1.0)
+- Documents browser chat (architect) vs Claude Code (executor) division
+- References ADR-28 three-layer flow
+- Versioned for amendment tracking
+
+**Why:**
+- Vibe Code 4 (2026-04-22) established binding protocol but lived only in handoff
+- Each new chat re-discovered rule via Rob's reminders
+- ESSENTIALS is uploaded to every browser session — protocol now universal context
+
+**Versioning approach:**
+- v1.0 documents observed practice (not aspiration)
+- Future amendments tracked in section's "Section history" subsection
+- Per ADR-29 amendment pattern: minor drift → amend in place; intent change → new ADR
+- Will refine after live use of v1.0 in next sessions
+
+**Reference:**
+- `docs/audits/2026-04-24-stream-b-gaps-mapping.md` — Gap #1 specification
+- Vibe Code 4 handoff (2026-04-22) — original protocol establishment
+- ADR-28 — three-layer architecture
+
+---
+
 ## 2026-04-24 (continued) — AGENTS templates reconciled
 
 **Changed:**
