@@ -4,6 +4,33 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-25 (continued) — Gap #10 Adoption protocol for Claude Code extensions
+
+**Added:**
+- PLAYBOOK "Claude Code internals" section: new subsection "Adoption protocol — when Claude Code proposes a new skill/command/hook/subagent" (v1.0)
+- 5-stage pipeline (Triage → Decision → Validation → Install → Document)
+- Decision rules: user-level vs project-level scope
+- Install paths matrix per mechanism
+- Documentation linkage (AGENTS.md Section 5, CLAUDE.md, JOURNAL, CHANGELOG, tech-radar)
+- Anti-patterns
+
+**Why:**
+- Gap #7a-d (just merged) documents WHAT skills/commands/hooks/subagents are
+- Without adoption protocol, Claude proposals adopted ad-hoc — ecosystem bloats, AGENTS.md Section 5 stale, validation skipped
+- Companion to Gap #17 Continuous Improvement: that covers external tools (Codex, Tach, ccusage); this covers Claude Code's own extension mechanisms
+
+**Companion to prior Stream B gaps:**
+- Gap #7a-d (Claude Code internals): defines mechanisms; this defines adoption protocol for them
+- Gap #6 (AGENTS.md template): Section 5 "Tools active" gets populated from adoptions
+- Gap #5 (CLAUDE.md template): Sections 5/6/7 reference adoptions per Gap #10 documentation step
+- Gap #17 (Continuous Improvement): broader pipeline pattern (Stages 4-5 are this protocol's "Decision/Install")
+
+**Reference:**
+- `docs/audits/2026-04-24-stream-b-gaps-mapping.md` — Gap #10 specification
+- 2026-04-24 `/handoff` → `/session-summary` rename — trigger-word collision example in Validation stage
+
+---
+
 ## 2026-04-25 — Gap #7d amendment (subagents)
 
 **Changed:**
