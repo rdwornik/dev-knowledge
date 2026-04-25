@@ -48,6 +48,7 @@ SKIP_PATTERNS = [
     "docs/decisions/",
     "docs/audits/",
     "docs/handoffs/",
+    "docs/tech-radar/",
     "handoff-prompts/",
     "templates/",
     ".claude/",
