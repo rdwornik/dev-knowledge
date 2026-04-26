@@ -167,6 +167,77 @@ If CLAUDE.md grows past 200 lines, split content: most goes to AGENTS.md, only C
 
 ---
 
+## Repo conventions
+<!-- scope: meta -->
+<!-- version: 1.0 — 2026-04-26 -->
+
+Universal repo-level conventions binding across all Rob's repos. Each subsection has its own ADR (ADR-30 through ADR-34). Subsections marked `[TBD]` document planned work — placeholders are forward-references, not documentation gaps. Concrete enforcement happens via Claude Code, Codex, hooks, and reviewer judgment; this section is the source of truth.
+
+### Default branch — `main`
+<!-- scope: dev -->
+<!-- version: 1.0 — 2026-04-26 -->
+
+**Rule:** Every Rob's repo uses `main` as the default branch. No exceptions. Per ADR-30.
+
+**New repos:**
+- `git init -b main`, or set `init.defaultBranch = main` in `~/.gitconfig` so `git init` always lands on `main`
+- When creating on GitHub UI, default already correct
+
+**Existing repos still on `master`:**
+
+Procedure (Phase 1 = file changes on feature branch; Phase 2 = destructive remote ops):
+
+Phase 1:
+1. Grep entire repo for hardcoded `master` in CI workflows, hooks, scripts, docs. Update any found alongside the rename
+2. Update repo's CHANGELOG.md and any docs naming the default branch by name
+
+Phase 2 (destructive — explicit confirm before each):
+3. Local rename: `git branch -m master main`
+4. Push `main`: `git push -u origin main`
+5. Set remote HEAD: `git remote set-head origin main`
+6. Delete origin/master: `git push origin --delete master`
+7. GitHub repo Settings → Branches → default branch = `main` (manual UI step if step 5 didn't cover it)
+
+**Anti-patterns:**
+- Phase 2 without grep step from Phase 1 → CI breaks post-rename
+- Renaming on remote without local rename first → divergent state
+- Skipping the GitHub default branch UI update → next PRs target the deleted ref
+
+### File naming conventions
+<!-- scope: meta -->
+
+**[TBD — Stream C session 2, ADR-31]**
+
+Current state: mixed conventions across repo (kebab-case for dated files, snake_case for Python, `ADR-NN_topic.md` pattern for ADRs, `DECISION_NN_snake_case.md` for transcripts, kebab-case for templates). Standardization deferred until session 2 analysis decides per-type rules vs uniform rule, and whether existing files migrate or grandfather.
+
+### Folder structure per Scale tier
+<!-- scope: meta -->
+
+**[TBD — Stream C session 8, ADR-32 (Cluster 2 work)]**
+
+Folder structure (which `docs/` subfolders exist per Scale S/M/L) depends on Scale tier definitions. Cluster 2 may amend Scale assessment process and AGENTS.md scope, which can change folder structure prescription. Deferred until those amendments land.
+
+### Secrets storage path
+<!-- scope: meta -->
+
+**[TBD — Stream C session 3, ADR-33]**
+
+Standardize location of `.secrets/` (currently `C:\Users\1028120\Documents\.secrets\.env` per Rob's environment, not yet PLAYBOOK-documented as standard). Rule covers: path convention, what kinds of repos use this, whether per-repo `.env` is allowed, how the global PowerShell profile auto-loads relate.
+
+### Capitalization conventions
+<!-- scope: meta -->
+
+**[TBD — Stream C session 3, ADR-34]**
+
+File and folder casing rules. Currently mixed: `LESSONS.md` ALLCAPS, `docs/` lowercase, `ESSENTIALS.md` ALLCAPS, kebab-case for dated files. Decision on what casing applies where, and whether existing files migrate.
+
+### Section history
+<!-- scope: meta -->
+
+- v1.0 (2026-04-26) — initial. Default branch subsection filled per ADR-30. Subsections 2–5 reserved as forward-references to ADR-31 through ADR-34, populated in Stream C sessions 2, 3, and Cluster 2.
+
+---
+
 ## Writing prompts for Claude Code
 <!-- scope: meta -->
 
