@@ -1,5 +1,7 @@
 # Handoff Process
-<!-- version: 1.0 — 2026-04-25 (Vibe Code 4 protocol patch) -->
+<!-- version: 1.1 — 2026-04-26 (3-artifact amendment) -->
+
+**Amendment 2026-04-26 (handoff = 3 artifacts):** Original v1.0 documented handoff as single downloadable .md artifact. Real process produces 3 distinct artifacts with different audiences and lifecycles. Section restructured to make this explicit. Per Gap #19 amendment-vs-reopen protocol: prescription drift (artifact count), intent (cross-session context transfer) preserved.
 
 A handoff transfers context from one Claude chat to the next.
 Goal: preserve momentum across session boundaries without losing thread.
@@ -88,25 +90,86 @@ Continuing [project/topic]. Goal: [1-2 objectives].
 ## Handoff format
 <!-- scope: meta -->
 
-Handoffs are **downloadable `.md` artifacts** — browser chat outputs them as fenced markdown code blocks; Rob saves the file to `docs/handoffs/YYYY-MM-DD-slug.md`.
+A complete handoff produces **3 distinct artifacts**, each with a different audience and lifecycle. Conflating them creates self-referential failures (e.g. upload list inside the file being uploaded).
 
-Per `PLAYBOOK.md` "Documentation file types and session continuity," handoff format tiers per Scale:
+### Artifact 1: Handoff document (persistent)
+<!-- scope: meta -->
 
-| Scale | Format | Approximate length |
-|-------|--------|--------------------|
-| **S** (minimal) | What was done + immediate next step | ~30 lines |
-| **M** (reduced) | + decisions made + open questions | ~60–80 lines |
-| **L** (full) | + context for next chat + files-to-upload checklist + protocol reminders | ~120–200 lines |
+**Audience:** future Rob + future browser Claude (in next chat)
+**Lifecycle:** permanent record committed to repo
+**Location:** `<repo>/docs/handoffs/YYYY-MM-DD-<slug>.md`
+**Tier:** Scale-dependent format per Project Scale Tiers section:
+- **Scale S** (minimal): What was done + immediate next step. ~30 lines.
+- **Scale M** (reduced): + decisions made + open questions. ~60–80 lines.
+- **Scale L** (full): + context for next chat + files-to-upload checklist + protocol reminders. ~120–200 lines.
 
 **Required structure (Scale M and L):**
+1. Date + repo + branch state
+2. Objective — what was the session about
+3. Status — what got done, what merged, what's pending
+4. Decisions — with rationale (link to ADRs if applicable)
+5. Pending — what's not done, urgency, effort estimate
+6. Files to upload to next chat — explicit numbered list with paths from repo root
+7. Self-critical note — what didn't work, lessons (becomes LESSONS.md candidate per ADR-29)
 
-1. **Date + repo + branch state**
-2. **Objective** — what was the session about
-3. **Status** — what got done, what merged, what's pending
-4. **Decisions** — with rationale (link to ADRs if applicable)
-5. **Pending** — what's not done, urgency, effort estimate
-6. **Context for next session** — what files to upload, where to start
-7. **Self-critical note** — what didn't work, lessons (becomes LESSONS.md candidate per ADR-29)
+**Does NOT contain:**
+- First message template (that's Artifact 3)
+- Claude Code commit instructions (that's Artifact 2)
+
+### Artifact 2: Claude Code commit prompt (disposable)
+<!-- scope: runtime -->
+
+**Audience:** Claude Code (executor — saves Artifact 1 to repo)
+**Lifecycle:** disposable — used once at handoff generation, can be deleted after
+**Location:** local file on Rob's machine, NOT in repo
+**Format:** standard Claude Code prompt per `templates/prompt-template.md`
+
+**Required content:**
+- Repo path, branch workflow (new branch, single commit, ff-merge to master)
+- Instruction to receive Artifact 1 content from Rob's paste
+- Save to `docs/handoffs/YYYY-MM-DD-<slug>.md`
+- Validator + git status verification
+- Report commit hash and state back to Rob
+
+### Artifact 3: First message template for new chat (disposable)
+<!-- scope: llm -->
+
+**Audience:** new browser Claude (in next chat)
+**Lifecycle:** disposable — pasted once at chat start, can be deleted after
+**Location:** local file on Rob's machine OR clipboard, NOT in repo
+**Format:** plain text suitable for paste into chat input
+
+**Required content:**
+- Greeting + which Stream/session this is
+- Scope: IN/OUT/Success criterion
+- Reference to handoff document (Artifact 1) by upload position number
+- Last session stopping point
+- Protocol reminders (browser=architect, English in prompts, session boundaries, etc.)
+- First task pointer — what specific gap/work to start with
+
+**Why disposable separately:** if first message lived inside Artifact 1, new browser Claude would receive its own instructions as upload context, creating confusion. Separating makes audience clear: Artifact 1 is read material, Artifact 3 is the prompt.
+
+### Workflow at handoff generation
+<!-- scope: meta -->
+
+1. Browser chat (architect) produces Artifact 1 content + Artifact 2 prompt + Artifact 3 template — all in chat output
+2. Rob copies Artifact 1 content to clipboard
+3. Rob pastes Artifact 2 prompt to Claude Code, including Artifact 1 content as part of prompt input
+4. Claude Code saves + commits + reports
+5. Rob saves Artifact 3 template to clipboard or temp file for later use
+
+### Workflow at next chat start
+<!-- scope: llm -->
+
+1. Rob opens new browser chat
+2. Rob uploads files from Artifact 1's "Files to upload" section (in order)
+3. Rob pastes Artifact 3 template as first message
+4. New browser Claude receives full context + scoped first task → responds substantively without "what did you mean by X" follow-ups
+
+### Walk-out test
+<!-- scope: meta -->
+
+Handoff succeeded if new browser Claude's first response is substantive analysis of the scoped first task, with no clarification questions about prior session context. If it asks "what did we decide about X" or "what files should I look at" → handoff failed; previous session must produce better artifacts.
 
 ---
 
@@ -185,4 +248,5 @@ Same for Type B — cat `handoff-prompts/typ-b-step1-browser-prompt.md` verbatim
 ## Section history
 <!-- scope: meta -->
 
-- v1.0 (2026-04-25) — Vibe Code 4 protocol patch. Translated to English. Added: explicit trigger rule, Scale-tiered format, downloadable artifact requirement, Roles cross-reference, related references section, section history. Prior content (Typ A/Typ B structure, Required Sections table, runtime instructions) preserved and translated.
+- v1.1 (2026-04-26) — amended to document handoff = 3 artifacts (persistent doc + commit prompt + first-message template). v1.0 conflated all three into single file, creating self-referential paradox. Discovered in practice during Stream B → Stream C handoff attempt.
+- v1.0 (2026-04-25) — Vibe Code 4 protocol patch. Translated to English. Added: explicit trigger rule, Scale-tiered format, downloadable artifact requirement, Roles cross-reference, related references section, section history. Prior content (Typ A/Typ B structure, Required Sections table, runtime instructions) preserved and translated. (Superseded by v1.1 — single-artifact framing.)
