@@ -59,7 +59,7 @@ reads it only when pointed (e.g. "check .dev-knowledge/PLAYBOOK.md Section X").
 <!-- scope: meta -->
 
 - Stream A complete: scope tagging live, validator enforces, hybrid ceiling delta-based
-- 30 ADRs active (ADR-01 through ADR-29, plus CLAUDE.md governing this repo)
+- 31 ADRs active (ADR-01 through ADR-30, plus CLAUDE.md governing this repo)
 - 61 lessons in LESSONS.md, scope-tagged inline per ADR-29
 - Council #1-#29 archived (transcripts in corp-monorepo and/or docs/decisions/transcripts/, research in docs/research/)
 - 19 gaps identified for future streams (see latest audit file)
