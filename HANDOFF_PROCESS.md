@@ -125,7 +125,7 @@ A complete handoff produces **3 distinct artifacts**, each with a different audi
 **Format:** standard Claude Code prompt per `templates/prompt-template.md`
 
 **Required content:**
-- Repo path, branch workflow (new branch, single commit, ff-merge to master)
+- Repo path, branch workflow (new branch, single commit, ff-merge to main)
 - Instruction to receive Artifact 1 content from Rob's paste
 - Save to `docs/handoffs/YYYY-MM-DD-<slug>.md`
 - Validator + git status verification
