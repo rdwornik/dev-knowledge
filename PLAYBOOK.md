@@ -213,7 +213,7 @@ Current state: mixed conventions across repo (kebab-case for dated files, snake_
 ### Folder structure per Scale tier
 <!-- scope: meta -->
 
-**[TBD — Stream C Cluster 2, ADR-32]**
+**[TBD — Stream C session 8, ADR-32 (Cluster 2 work)]**
 
 Folder structure (which `docs/` subfolders exist per Scale S/M/L) depends on Scale tier definitions. Cluster 2 may amend Scale assessment process and AGENTS.md scope, which can change folder structure prescription. Deferred until those amendments land.
 
