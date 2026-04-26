@@ -4,6 +4,15 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-26 — Stream C session 1: ADR-30 default branch = `main`
+
+- Added ADR-30 prescribing `main` as default branch for all Rob's repos (universal rule)
+- Added PLAYBOOK section "Repo conventions" with 5-subsection skeleton: Default branch FILLED (this session, ADR-30); File naming, Folder structure, Secrets path, Capitalization marked TBD with forward-references to ADR-31 through ADR-34
+- Renamed `.dev-knowledge` default branch from `master` to `main` (per-repo execution for corp-monorepo, ai-council pending — Stream C execution sprint 1)
+- Updated `HANDOFF_PROCESS.md` and `templates/prompt-template.md` to reference `main` instead of `master`
+
+---
+
 ## 2026-04-26 — HANDOFF_PROCESS.md v1.1 amendment
 
 **Changed:**
