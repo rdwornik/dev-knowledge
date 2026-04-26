@@ -4,6 +4,32 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-26 — HANDOFF_PROCESS.md v1.1 amendment
+
+**Changed:**
+- `HANDOFF_PROCESS.md` amended from v1.0 to v1.1
+- Documents handoff as 3 distinct artifacts (persistent doc + Claude Code commit prompt + first-message template), not 1
+- Adds workflow for both handoff generation and next-chat opening
+- Adds walk-out test (next browser Claude's first response = substantive, no clarification needed)
+
+**Why:**
+- v1.0 conflated 3 artifacts into single .md file
+- Discovered failure 2026-04-26: first attempted Stream B → Stream C handoff produced single file with upload checklist + first message + retrospective conflated
+- Self-referential paradox: upload list inside the file being uploaded
+- Reverted single-file commit, redesigning per amendment
+
+**Per Gap #19 protocol:** amendment, not reopen — intent (cross-session context transfer) preserved; prescription (artifact count and structure) corrected.
+
+**Lesson candidate:**
+- Process discovered organically during execution often reveals gaps invisible during specification. v1.0 was specified without going through full handoff cycle; v1.1 codifies what actually works.
+
+**Reference:**
+- Gap #11 (Handoff process) — original implementation
+- Gap #19 (Amendment vs Reopen Decision Protocol) — protocol applied
+- Reverted commit history: docs(handoff) Stream B→C v1 attempt, reset to 1c9ff9a
+
+---
+
 ## 2026-04-25 (continued) — Gap #9 Claude Code features inventory audit (Stream B FINAL)
 
 **Added:**
