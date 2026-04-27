@@ -4,6 +4,19 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-27 — Stream C session 1 bonus scope: Path B numbers cleanup
+
+Living governance docs eliminated maintenance-burden numbers per Path B principle (cached state, arbitrary thresholds drift over time when nobody updates them):
+
+- **Tier A removals (13 fixes):** counts removed from README ("31 ADRs", "69 lessons", "Council #1-#29 archived", "19 gaps"), ENVIRONMENT (gotchas count, core-invariants count, extensions count, vault notes count, MOC folders, tag dimensions, PLAYBOOK section count), PLAYBOOK (test count examples, gotchas skill entry count). Replaced with source pointers.
+- **Tier B replacements (3 fixes):** "20 files → DevVault" trigger → "when navigation overhead emerges"; "50 entries → split LESSONS" → "when LESSONS.md becomes hard to navigate by topic"; "~44 H2 headers" count dropped, kept structural description.
+- **Tier D rationale additions (4 fixes):** legitimate empirical numbers preserved with explicit basis to prevent future strip-as-cleanup (>100 stars/v1.0 maturity heuristic, 60%/80% coverage targets, 3+ files cross-module risk threshold, 4+ criteria majority-of-6 evaluation gate).
+- **Tier E decisions (3 fixes):** ~2h handoff trigger kept as Cat. 4 with cross-ref to PLAYBOOK 3h decision-fatigue threshold; "1 page" UX constraint kept; "24 Council Decisions" example annotated as intentionally stale anti-pattern illustration.
+
+Driven by `docs/audits/2026-04-27-numbers-audit.md` 5-tier classification. 7 commits, 5 living docs modified (README, PLAYBOOK, ESSENTIALS, ENVIRONMENT, SESSION_SETUP).
+
+---
+
 ## 2026-04-26 — Stream C session 1 bonus scope: ESSENTIALS refactor + UI preferences
 
 - ESSENTIALS.md 4-commit refactor: structural cleanup (C1, -6 lines),
