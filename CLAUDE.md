@@ -17,6 +17,7 @@ Living knowledge base for Rob's dev practice methodology. NOT a code project —
 | ENVIRONMENT.md   | Living      | Current setup state. Update when config/tools/decisions change.                              |
 | TOKEN-LOG.md     | Append-only (newest-first) | Threshold-triggered (7-day) via /session-summary. Never edit previous entries.   |
 | CHANGELOG.md     | Append-only | Notable changes. New entry per session that modifies files.                                  |
+| JOURNAL.md       | Append-only (newest-first) | Per-session tactical Did/Failed/Next log. Prepend at session wrap or workday close. Per PLAYBOOK Stream B Gap #4 spec. |
 | README.md        | Living      | Triage rules and file index. Update when files are added/removed.                            |
 
 ## What to do here
@@ -96,6 +97,7 @@ When updating any file here, verify:
 - Does ENVIRONMENT reflect current ~/.claude/ state?
 - Are state references in README current and pointing to live sources?
 - If a process changed in PLAYBOOK, did SESSION_SETUP also get updated?
+- Does JOURNAL reflect last completed Claude Code session?
 
 ## Council decisions governing this project
 <!-- scope: meta -->

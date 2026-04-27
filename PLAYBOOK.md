@@ -490,7 +490,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `AGENTS.md` | Cross-tool canonical governance | 10-section template | Same triggers as CLAUDE.md | Claude Code, Codex, Cursor, Aider | Living (sections updated) | Per-repo |
 | `ESSENTIALS.md` | Rob's daily cheat sheet, universal | Sectioned, scope-tagged | When Rob's working style evolves | Rob + every browser/Claude Code session | Living (sections updated) | Universal (`.dev-knowledge` only) |
 | `PLAYBOOK.md` | Universal protocols, this file | Sectioned, scope-tagged, versioned | Per Stream B implementation gaps | Rob + Claude (browser + Code) | Living + section history | Universal (`.dev-knowledge` only) |
-| `JOURNAL.md` | Tactical per-session log | Append-only, dated entries: Did/Failed/Next | Every Claude Code session | Future Claude Code (last 5 entries on startup) | Append-only (oldest top, newest bottom) | Per-repo (Scale L mandatory; Scale M optional; Scale S no) |
+| `JOURNAL.md` | Tactical per-session log | Append-only, dated entries: Did/Failed/Next | Every Claude Code session | Future Claude Code (last 5 entries on startup) | Newest-first prepend | Per-repo (Scale L mandatory; Scale M optional; Scale S no) |
 | `CHANGELOG.md` | Notable changes, release-note style | Newest-first dated entries | Per noteworthy commit | Rob, future contributors | Newest-first (prepend) | Per-repo |
 | `LESSONS.md` | Process lessons learned | Append-only with `[scope: X]` inline (per ADR-29) | When new lesson emerges (auto-promote at 2× repeat) | Rob, future Claude | Append-only | Universal (`.dev-knowledge` only) |
 | `TOKEN-LOG.md` | Claude usage snapshots | Threshold-triggered (7-day) via /session-summary | Auto when stale | Rob | Newest-first (prepend) | Universal (`.dev-knowledge` only) |
@@ -544,7 +544,7 @@ Which files exist per Scale tier (per `Project Scale Tiers` section above):
 
 **CHANGELOG vs JOURNAL:**
 - CHANGELOG = strategic, what user/contributor needs to know about repo evolution. Newest-first.
-- JOURNAL = tactical, what Claude Code did session-by-session. Append-only chronological.
+- JOURNAL = tactical, what Claude Code did session-by-session. Append-only, newest-first prepend (amended 2026-04-27 from oldest-top per Rob's preference; matches TOKEN-LOG/CHANGELOG convention).
 - Same commit might warrant entries in both — different abstraction levels.
 
 **audits vs research:**
@@ -557,8 +557,8 @@ Which files exist per Scale tier (per `Project Scale Tiers` section above):
 
 Per Token-LOG flip 2026-04-24:
 
-- **Newest-first (prepend):** TOKEN-LOG, CHANGELOG. Rationale: logs optimize for current-state scanning.
-- **Append-only (oldest top):** LESSONS, JOURNAL. Rationale: chronological narrative; order preserves "what we learned when."
+- **Newest-first (prepend):** TOKEN-LOG, CHANGELOG, JOURNAL. Rationale: logs optimize for current-state scanning. (JOURNAL flipped 2026-04-27 — original Stream B Gap #4 spec had oldest-top; amended for consistency with TOKEN-LOG/CHANGELOG.)
+- **Append-only (oldest top):** LESSONS. Rationale: chronological narrative for grandfathered learning patterns; order preserves "what we learned when" per ADR-29.
 - **Living (in-place updates):** README, CLAUDE.md, AGENTS.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT. Rationale: not logs; current state matters more than history.
 - **Immutable (dated):** ADRs, transcripts, handoffs, audits, research. Rationale: point-in-time records; supersession via new file or in-file marker.
 
@@ -566,6 +566,7 @@ Per Token-LOG flip 2026-04-24:
 <!-- scope: meta -->
 
 - v1.0 (2026-04-24) — initial. 12-file taxonomy + Scale matrix + 4 common confusions + order conventions. Will refine after live use.
+- v1.1 (2026-04-27) — JOURNAL ordering amended oldest-top → newest-first prepend per Rob's preference; aligns with TOKEN-LOG/CHANGELOG. LESSONS retains oldest-top (ADR-29 grandfathering). Light-touch amendment, no ADR.
 
 ---
 
