@@ -150,13 +150,14 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 ## Feedback Loop
 <!-- scope: hybrid -->
 
-**Every correction you make** → logged to `corrections.jsonl` → same mistake 2x → auto-promoted to permanent rule with verify: check.
+**Automated** (Stop hook + auto-promotion):
+- Every correction logged to `corrections.jsonl` → same mistake 2x → auto-promoted to permanent rule with verify: check
 
-**Every Friday** → `/evolve` → review corrections, promote/prune rules, check trends.
+**Manual cadence:**
+- **Friday** — `/evolve` → review corrections, promote/prune rules, check trends
+- **Monthly** — Codex full-repo audit → triage flags (expect ~30% false positives) → fix CRITICAL/HIGH → re-audit → see PLAYBOOK Section 16
 
-**Monthly** → Codex full-repo audit → triage flags (expect ~30% false positives) → fix CRITICAL/HIGH → re-audit → See Playbook S16.
-
-**New tool/article/repo** → is it mature (>100 stars, >v1.0)? Does it solve a real problem? If architecture-level → Council debate. Otherwise decide in 30 seconds.
+**New tool/article/repo decision rule:** mature (>100 stars, >v1.0)? Solves a real problem? Architecture-level → Council debate. Otherwise decide in 30 seconds.
 
 ---
 
