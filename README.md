@@ -50,9 +50,9 @@ reads it only when pointed (e.g. "check .dev-knowledge/PLAYBOOK.md Section X").
 
 - **How do I prompt Claude Code?** → `PLAYBOOK.md` (prompt structure + examples)
 - **What am I supposed to do when starting?** → `ESSENTIALS.md`
-- **What decisions apply?** → `docs/decisions/` (ADR-NN_topic.md)
+- **What prescriptive architectural decisions apply?** → `docs/decisions/` (ADR-NN_topic.md, binding across all sessions)
 - **What did I learn recently?** → `LESSONS.md` (append-only, scope-tagged)
-- **Where are we in current work?** → `docs/handoffs/` (most recent file)
+- **Where are stream-level strategic/process decisions and session status?** → `docs/handoffs/` (most recent for active stream; dated files are persistent stream archive — covers session plans, cluster ordering, execution sequencing decisions that aren't ADR-worthy individually but bind stream coordination)
 - **How do I run Council debate?** → `PLAYBOOK.md` Section 5 + Section 5.N (archival)
 
 ## Current state (2026-04-26)
