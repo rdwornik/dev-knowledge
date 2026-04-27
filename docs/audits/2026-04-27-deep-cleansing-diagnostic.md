@@ -153,6 +153,8 @@ All .md files classified by naming convention:
 
 ### ESSENTIALS vs PLAYBOOK alignment
 
+> **2026-04-27 RESOLVED (PARTIALLY-INVALID)**: Verification confirmed PLAYBOOK ### Roles exists at line 1716 (Section 8 handoff context). Audit's "PLAYBOOK never repeats this" claim was wrong. ESSENTIALS Roles holds canonical governance definition; PLAYBOOK has 2-line derivative summary. Cross-reference added to PLAYBOOK per Outcome C Option 1. Both sections legitimate — no removal needed.
+
 **Finding X1 — MEDIUM: Roles section intentionally ESSENTIALS-only**
 - **ESSENTIALS.md § "Roles":** 20–85
 - **PLAYBOOK equivalent:** No exact match; PLAYBOOK Section 12 "Where Knowledge Lives" (1882) addresses infrastructure, not roles
