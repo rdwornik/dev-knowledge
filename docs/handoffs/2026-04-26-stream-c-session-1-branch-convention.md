@@ -198,6 +198,14 @@ Combined with Stream B per-repo pending items (from previous handoff):
     - All commits validator-passed, ad-hoc additions to original session 1
       scope (added retroactively after ADR-30 wrap as "bonus scope" per
       Rob's deeper review request)
+20. LESSONS.md split trigger crossed — CLAUDE.md mówi "Trigger: 50 entries
+    in LESSONS.md → split into topic files." Aktualnie 69 entries (post
+    pre-session-1 promotion). Split decision pending. Stream C session
+    candidate: session 9 (Council CLI decision) lub standalone task.
+    Decision scope: (a) split criteria (chronological vs topical vs scope),
+    (b) target file structure, (c) cross-reference mechanism, (d)
+    backwards compatibility for existing references.
+
 17. Council #27 filter-by-tag rule for chat startup — UNRESOLVED.
     Source: docs/audits/2026-04-21-council-27-brief.md:305 (proposal).
     Status: explicitly flagged as unresolved gap in
