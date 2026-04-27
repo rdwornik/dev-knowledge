@@ -15,7 +15,7 @@ Living knowledge base for Rob's dev practice methodology. NOT a code project —
 | PLAYBOOK.md      | Living      | Full process reference. Numbered sections (1–16) + unnumbered governance sections + appendices. Update when new processes are established. |
 | LESSONS.md       | Append-only | NEVER edit old entries. NEVER delete. Only append new entries at the bottom.                 |
 | ENVIRONMENT.md   | Living      | Current setup state. Update when config/tools/decisions change.                              |
-| TOKEN-LOG.md     | Newest-first prepend | Threshold-triggered (7-day) via /session-summary. Never edit previous entries.   |
+| TOKEN-LOG.md     | Append-only (newest-first) | Threshold-triggered (7-day) via /session-summary. Never edit previous entries.   |
 | CHANGELOG.md     | Append-only | Notable changes. New entry per session that modifies files.                                  |
 | README.md        | Living      | Triage rules and file index. Update when files are added/removed.                            |
 
@@ -84,7 +84,7 @@ File-level tag (single comment under H1 title) substitutes for per-section tags 
 ### Governance
 <!-- scope: meta -->
 
-- Hybrid ≤25% ceiling (ADR-27). Currently INFO-only in hook; enforcement flips to blocking after Stream A completes.
+- Hybrid ≤25% ceiling (ADR-27). Delta-rule enforcement active (blocks regressions only; Stream A closed 2026-04-24).
 - All new sections MUST include a scope tag — pre-commit hook enforces.
 - Evidence-triggered reopening conditions are in ADR-27.
 
@@ -94,7 +94,7 @@ File-level tag (single comment under H1 title) substitutes for per-section tags 
 When updating any file here, verify:
 - Does ESSENTIALS still match PLAYBOOK where they overlap? Some ESSENTIALS sections (e.g., "How Claude thinks") are intentionally ESSENTIALS-only — see Section history in PLAYBOOK CHANGELOG entries
 - Does ENVIRONMENT reflect current ~/.claude/ state?
-- Are lesson counts in README accurate?
+- Are state references in README current and pointing to live sources?
 - If a process changed in PLAYBOOK, did SESSION_SETUP also get updated?
 
 ## Council decisions governing this project
