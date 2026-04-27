@@ -174,6 +174,8 @@ All .md files classified by naming convention:
 
 ### ADR-27 Transcript Deviation
 
+> **2026-04-27 INVALID**: This finding hallucinated specific evidence (1019 lines, exact filename) for a file that does not exist on disk and has no git history. Verified via filesystem check + git log. Finding closed; audit reliability flagged.
+
 **Finding N1 — CRITICAL: ADR-27 naming convention exception undocumented**
 - **Pattern:** ADRs 01–26, 28–30 follow: `docs/decisions/ADR-NN-kebab-case.md` (distilled) + `docs/decisions/transcripts/DECISION_NN_snake_case.md` (raw)
 - **Exception:** ADR-27 has **two files**:
