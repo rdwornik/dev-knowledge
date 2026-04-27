@@ -12,10 +12,10 @@ Living knowledge base for Rob's dev practice methodology. NOT a code project —
 | ---------------- | ----------- | -------------------------------------------------------------------------------------------- |
 | ESSENTIALS.md    | Living      | Daily cheat sheet. Keep under 1 page. Update when workflows change.                          |
 | SESSION_SETUP.md | Living      | Browser chat workflow. 5 chronological steps. Update when chat process changes.              |
-| PLAYBOOK.md      | Living      | Full process reference. 16 sections + System Architecture + appendices. Update when new processes are established. |
+| PLAYBOOK.md      | Living      | Full process reference. Numbered sections (currently ~44 H2 headers, numbered 1–16 + unnumbered + appendices). Update when new processes are established. |
 | LESSONS.md       | Append-only | NEVER edit old entries. NEVER delete. Only append new entries at the bottom.                 |
 | ENVIRONMENT.md   | Living      | Current setup state. Update when config/tools/decisions change.                              |
-| TOKEN-LOG.md     | Append-only | Weekly /stats snapshots. Never edit previous entries.                                        |
+| TOKEN-LOG.md     | Newest-first prepend | Threshold-triggered (7-day) via /session-summary. Never edit previous entries.   |
 | CHANGELOG.md     | Append-only | Notable changes. New entry per session that modifies files.                                  |
 | README.md        | Living      | Triage rules and file index. Update when files are added/removed.                            |
 
@@ -92,7 +92,7 @@ File-level tag (single comment under H1 title) substitutes for per-section tags 
 <!-- scope: meta -->
 
 When updating any file here, verify:
-- Does ESSENTIALS still match PLAYBOOK? (ESSENTIALS is the summary)
+- Does ESSENTIALS still match PLAYBOOK where they overlap? Some ESSENTIALS sections (e.g., "How Claude thinks") are intentionally ESSENTIALS-only — see Section history in PLAYBOOK CHANGELOG entries
 - Does ENVIRONMENT reflect current ~/.claude/ state?
 - Are lesson counts in README accurate?
 - If a process changed in PLAYBOOK, did SESSION_SETUP also get updated?
@@ -103,5 +103,6 @@ When updating any file here, verify:
 - #23: vault = pre-sales, .dev-knowledge = dev methodology, ~/.claude/ = runtime config
 - #24: browser handoff = one format, "wygeneruj handoff", <100 lines, code block
 - #27: scope tag vocabulary = dev | llm | hybrid | runtime | meta; all sections tagged; hybrid ≤25% ceiling (ADR-27)
+- #28: AGENTS.md = canonical cross-tool governance (Codex, Claude Code, Cursor, Aider) per Council #28 (Stream B Gap #6 foundation)
 - Trigger: 20 files here → evaluate Obsidian DevVault migration
 - Trigger: 50 entries in LESSONS.md → split into topic files
