@@ -162,7 +162,7 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
    Scope: `dev | llm | hybrid | runtime | meta` (ADR-29)
 6. Session scorecard logs automatically (Stop hook)
 
-**Browser chat checkpoint:** przy ~2h lub gdy chat zwalnia → see **HANDOFF_PROCESS.md**
+**Browser chat checkpoint:** przy ~2h (buffer before 3h decision-fatigue threshold per PLAYBOOK Section 4) lub gdy chat zwalnia → see **HANDOFF_PROCESS.md**
 
 ---
 

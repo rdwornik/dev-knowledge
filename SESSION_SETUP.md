@@ -119,7 +119,7 @@ Pomóż mi:
 ### When to handoff
 <!-- scope: llm -->
 
-- At ~2 hours of conversation
+- At ~2 hours of conversation (buffer before 3h decision-fatigue threshold per PLAYBOOK Section 4)
 - When the chat starts getting slow
 - When you're switching to a different topic
 - Don't wait until context is dead — checkpoint while Claude still remembers
