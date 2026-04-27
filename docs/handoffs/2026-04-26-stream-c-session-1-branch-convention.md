@@ -217,6 +217,30 @@ Combined with Stream B per-repo pending items (from previous handoff):
     handoff cluster). New ESSENTIALS structure (post-Commit 1) is
     design-neutral, accommodates any future filter mechanism.
 
+**From Stream C session 1 bonus scope (added 2026-04-27, post-original wrap):**
+
+21. Deep cleansing diagnostic audit created — `docs/audits/2026-04-27-deep-cleansing-diagnostic.md`. 18 findings across 7 files. Hallucination N1 fabricated specific file metadata; finding marked INVALID after filesystem + git log verification. Audit reliability flagged. Lesson appended to LESSONS.md.
+
+22. Path B numbers cleanup — eliminated maintenance-burden numbers per "Path B principle." 5-tier execution: Tier A removals, Tier B replacements, Tier D rationale, Tier E decisions. See `docs/audits/2026-04-27-numbers-audit.md` and merged commits.
+
+23. Tier 3 Prompt 2 audit findings — T1 + C2 + anomaly fixes in CLAUDE.md, E2 + E3 in ESSENTIALS, R2 in README. Session summary listed 4 items as PENDING that were already done in same session (R1/R3/N1/E1) — false-pending pattern flagged for promotion to LESSONS.
+
+24. X1 cross-reference fix — PLAYBOOK has its own `### Roles` at line 1716 in Section 8, partial overlap with ESSENTIALS canonical. Blockquote cross-ref added to PLAYBOOK; audit X1 marked PARTIALLY-INVALID/RESOLVED.
+
+25. JOURNAL.md created with full historical backfill (10 entries, repo creation through today). PLAYBOOK Documentation file types v1.1 amendment — JOURNAL ordering flipped oldest-top → newest-first prepend per Rob's preference; aligns with TOKEN-LOG/CHANGELOG. LESSONS retains oldest-top per ADR-29.
+
+26. Audit hallucination incidents (3) — N1 file fabrication, false PENDING in session summary, JOURNAL backfill prompt halted at archaeology after surfacing pre-existing PLAYBOOK spec. All surfaced + remediated in-session. Pattern: model produces plausible-looking state claims read as confirmed evidence.
+
+27. Pre-debate audit + AI Council debates Topic 1 + Topic 2 + Research mode (twice). Topic 1 Authority Model: `.dev-knowledge` adopts Prescriptive + central audit, stay Scale M + ARCHITECTURE.md (deferred), challenge mechanism V1, keep PLAYBOOK + ADRs. Topic 2 Handoff + Synergy: strict role split enforced by artifact, session charter, step-verification handshake, standardized handoff content. Research convergence: AGENTS.md industry standard (60K+ projects), 3-file pattern, manifest.json layer, Virtual Monorepo. Both Council outputs archived as DECISION_28 + DECISION_29; both research outputs archived as `2026-04-27-handoff-patterns-{council,external}-research.md` in `docs/research/`.
+
+28. Final consolidation — CHANGELOG Path B entry, README Current state refresh, LESSONS mini-promotion (4 entries: N1 audit hallucination, false PENDING, governance check before artifact creation, Codex review code-only).
+
+29. New handoff format implementation — folder per session with `upload-instructions.md` + `first-message.md` + `contents/` (HANDOFF, manifest.json, tree.txt, point-in-time copies of ESSENTIALS/PLAYBOOK/JOURNAL/CLAUDE). First instance: `docs/handoffs/2026-04-27-stream-c-session-1-final/`. Plus workspace coordination layer at `Dev/.settings/{repos.toml, HUB.md}` (external to repo) per Topic 1 + Research Meta-Repo synthesis.
+
+30. Repo cleanup 2026-04-27 — restructure root files matching sibling-repos pattern. ESSENTIALS, PLAYBOOK, HANDOFF_PROCESS, SESSION_SETUP, ENVIRONMENT moved to `protocols/`. TOKEN-LOG to `logs/`. requirements-dev.txt to `config/`. CLAUDE.md, README.md, CHANGELOG.md, JOURNAL.md, LESSONS.md, .pre-commit-config.yaml stay at root (canonical pattern). Path references updated across living governance docs, `scripts/validate_scope_tags.py` (basename → full-path migration to keep ratio computation correct), `templates/`, `handoff-prompts/`. CHANGELOG, LESSONS, JOURNAL, `docs/handoffs/*` past, `docs/audits/*` preserved with original paths (historical accuracy).
+
+31. Governance updates reflecting all session 1 decisions — PLAYBOOK Documentation file types v1.2 (new handoff format spec subsection + file taxonomy row updated for both formats), CLAUDE.md Files-and-rules table updated to new paths, README Folder layout + Navigation refreshed, new `docs/handoffs/README.md` documenting two-format coexistence and decision rationale references.
+
 ---
 
 ## Files to upload to next browser chat (Stream C session 2 — file naming)
