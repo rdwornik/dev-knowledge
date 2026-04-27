@@ -64,20 +64,18 @@ Browser chat (analysis)  →  .dev-knowledge (reference)  →  projects (executi
 - "Implement X per spec" → Claude Code (execution)
 - "What did we decide about Y?" → either, but check `.dev-knowledge` first
 
-### Section history
-<!-- scope: meta -->
-
-- v1.0 (2026-04-24) — initial. Browser=architect, Claude Code=executor, three-layer flow per ADR-28. Will refine after live use.
-
 ---
 
 ## Starting a Session
 <!-- scope: runtime -->
 
+**Claude Code session:**
 1. Open Claude Code in project dir
 2. Type `/boot` — verifies rules, loads memory, checks trends
 3. Shift+Tab → **Accept Edits** mode (daily driver)
 4. Pick **max 2 objectives** for this session
+
+**New browser chat:** Upload ESSENTIALS.md + handoff-prompts/context files. See SESSION_SETUP.md for full checklist.
 
 ---
 
@@ -147,13 +145,6 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 
 ---
 
-## Starting a New Browser Chat
-<!-- scope: llm -->
-
-Upload ESSENTIALS.md + handoff-prompts/context files. See SESSION_SETUP.md for full checklist.
-
----
-
 ## Feedback Loop
 <!-- scope: hybrid -->
 
@@ -178,7 +169,18 @@ Upload ESSENTIALS.md + handoff-prompts/context files. See SESSION_SETUP.md for f
 
 When a lesson becomes a rule → write rationale in LESSONS.md, write executable rule in `~/.claude/` with verify: line.
 
-**Project Scale Tiers:** Every project declares L / M / S in its CLAUDE.md. Playbook sections tagged [L only] or [L+M] apply only to those tiers. See Playbook for definitions.
+---
+
+## Project Scale Tiers
+<!-- scope: meta -->
+
+Every project declares its scale in CLAUDE.md. Playbook sections tagged [L only] or [L+M] apply only to matching tiers.
+
+- **S** — single script/tool, <50 tests, simple flow
+- **M** — standalone package, 50-500 tests, multiple modules, one namespace
+- **L** — multi-package monorepo, 500+ tests, ARCHITECTURE.md, per-module READMEs, AGENTS.md
+
+Full matrix (testing rules, doc requirements, session continuity per tier) in PLAYBOOK Section "Project Scale Tiers".
 
 ---
 
@@ -196,12 +198,4 @@ When a lesson becomes a rule → write rationale in LESSONS.md, write executable
 ## Data Sanitization for Lessons
 <!-- scope: meta -->
 
-Before writing dev lessons in .dev-knowledge:
-
-- Strip client names (replace with [client] or generic placeholder)
-- Strip proprietary schemas, table names, API endpoints specific to clients
-- Strip internal tool names that reveal product roadmap
-- Generic pattern OK: "worked with [client] on retry pattern for their orders pipeline"
-- Specific pattern NOT OK: "worked with Honda on order_processing.retry() for 2026 Q2 launch"
-
-**Why:** .dev-knowledge is methodology reference, not client project notes. Client-specific context belongs in Obsidian vault with proper tagging.
+Before writing dev lessons in `.dev-knowledge`: strip client names, proprietary schemas, internal tool names, client-specific API endpoints. Replace with `[client]` or generic placeholders. Methodology generalizes; project specifics don't — those belong in Obsidian vault. Detailed examples in PLAYBOOK.
