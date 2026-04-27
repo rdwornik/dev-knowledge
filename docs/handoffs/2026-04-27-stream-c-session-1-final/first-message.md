@@ -29,13 +29,18 @@ Read in this order:
 **Next session goal:** Choose ONE as session 2 focus:
 - (a) Draft ADR-31 (authority model) + ADR-32 (handoff format) to formalize
   session 1 decisions before any further work
+- (a2) Rewrite `protocols/HANDOFF_PROCESS.md` to reflect new folder-format
+  handoff convention (legacy `handoff-prompts/` deleted 2026-04-27)
+- (a3) Create `CONTRIBUTING.md` (canonical-pattern file: branch naming,
+  commit style, pre-commit setup, validator info, ADR process pointer)
 - (b) Fix 3 documented compliance violations (ai-council CLAUDE.md trim,
   ai-council AGENTS.md create, corp-monorepo AGENTS.md template replacement)
 - (c) Build audit tool session — ARCHITECTURE.md + audit script + challenge
   mechanism + repos.toml integration
 - (d) Stream C session 2 file naming convention per original Stream C plan
 
-Recommend (a) first — formalize decisions while context fresh — then (b)
-mini-task, then (c) dedicated session, then (d) per plan.
+Recommend (a) first — formalize decisions while context fresh — then (a2)
+HANDOFF_PROCESS rewrite + (a3) CONTRIBUTING.md as quick consolidation,
+then (b) mini-task, then (c) dedicated session, then (d) per plan.
 
 After choosing, propose detailed plan for selected option.

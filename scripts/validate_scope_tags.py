@@ -50,7 +50,6 @@ SKIP_PATTERNS = [
     "docs/handoffs/",
     "docs/tech-radar/",
     "docs/research/",
-    "handoff-prompts/",
     "templates/",
     ".claude/",
 ]

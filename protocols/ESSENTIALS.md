@@ -94,7 +94,7 @@ Browser chat (analysis)  →  .dev-knowledge (reference)  →  projects (executi
 3. Shift+Tab → **Accept Edits** mode (daily driver)
 4. Pick **max 2 objectives** for this session
 
-**New browser chat:** Upload ESSENTIALS.md + handoff-prompts/context files. See SESSION_SETUP.md for full checklist.
+**New browser chat:** Upload `protocols/ESSENTIALS.md` + most recent handoff folder from `docs/handoffs/` (drag-drop the `contents/` subfolder, paste `first-message.md`). See `SESSION_SETUP.md` for full checklist.
 
 ---
 

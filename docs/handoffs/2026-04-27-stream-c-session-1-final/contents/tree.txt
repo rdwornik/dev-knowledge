@@ -55,11 +55,6 @@
 │   │   ├── 2026-04-27-handoff-patterns-council-research.md
 │   │   └── 2026-04-27-handoff-patterns-external-research.md
 │   └── tech-radar/
-├── handoff-prompts/
-│   ├── README.md
-│   ├── typ-a-step1-browser-prompt.md
-│   ├── typ-a-step2-claudecode-prompt.md
-│   └── typ-b-step1-browser-prompt.md
 ├── scripts/
 │   └── validate_scope_tags.py
 ├── templates/

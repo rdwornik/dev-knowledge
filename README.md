@@ -43,7 +43,6 @@ reads it only when pointed (e.g. "check .dev-knowledge/protocols/PLAYBOOK.md Sec
 | `docs/research/` | Research-mode debates, external research reports | When evaluating new tools / patterns |
 | `docs/audits/` | Point-in-time analyses (dated) | Reference; superseded files marked in-file |
 | `docs/handoffs/` | Per-session handoff summaries (folders for new format, .md files for legacy) | When resuming work after break |
-| `handoff-prompts/` | Live copy-paste templates for generating handoffs | When running a handoff (not archiving) |
 | `scripts/` | Validators + automation | Reference; run via pre-commit |
 | `templates/` | Reusable boilerplate (e.g. AGENTS.md scaffold) | When bootstrapping similar patterns elsewhere |
 | `.claude/` | Claude Code config (skills, commands, rules) | Automatic — Claude Code reads on boot |

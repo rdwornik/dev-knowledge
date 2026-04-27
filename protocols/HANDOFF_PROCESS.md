@@ -1,6 +1,8 @@
 # Handoff Process
 <!-- version: 1.1 — 2026-04-26 (3-artifact amendment) -->
 
+> **Notice 2026-04-27 — full rewrite pending next session.** The legacy `handoff-prompts/` folder (typ-a-step1, typ-a-step2, typ-b-step1) was deleted 2026-04-27 after Stream C session 1 adopted the new folder-format handoff convention (per Topic 2 + Research synthesis — see `docs/decisions/transcripts/DECISION_29_handoff_synergy.md` and `protocols/PLAYBOOK.md` § "Handoff format spec (since 2026-04-27)"). References to `handoff-prompts/*` paths in this document are now stale; full rewrite reflecting the new folder-per-session format is deferred to next session.
+
 **Amendment 2026-04-26 (handoff = 3 artifacts):** Original v1.0 documented handoff as single downloadable .md artifact. Real process produces 3 distinct artifacts with different audiences and lifecycles. Section restructured to make this explicit. Per Gap #19 amendment-vs-reopen protocol: prescription drift (artifact count), intent (cross-session context transfer) preserved.
 
 A handoff transfers context from one Claude chat to the next.

@@ -59,6 +59,15 @@ Plus workspace-level files in `Dev/.settings/` (repos.toml + HUB.md).
 
 1. **Draft ADR-31 (authority model)** — formalize Topic 1 decision
 2. **Draft ADR-32 (handoff format)** — formalize Topic 2 + Research
+2a. **Rewrite `protocols/HANDOFF_PROCESS.md`** — reflect new folder-format
+   handoff convention. Legacy `handoff-prompts/` deleted 2026-04-27;
+   HANDOFF_PROCESS.md still references old single-file process (light
+   annotation added; full rewrite pending).
+2b. **Create `CONTRIBUTING.md`** — canonical-pattern file missing in
+   `.dev-knowledge` root. Sibling repos (corp-monorepo) have it. Should
+   cover: branch naming, commit style, pre-commit setup, validator info
+   (scope tags + hybrid ratio), ADR creation process, handoff process
+   pointer to `protocols/HANDOFF_PROCESS.md` (post-rewrite).
 3. **Fix 3 violations mini-task:**
    - ai-council CLAUDE.md trim (233 → ≤200 lines)
    - ai-council AGENTS.md create
