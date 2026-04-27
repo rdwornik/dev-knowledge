@@ -129,7 +129,7 @@ Every formal prompt starts with:
 
 Then: Title → Read CLAUDE.md + gotchas → Git workflow → UNDERSTAND → Steps with COMMIT markers → What NOT to do.
 
-**Skills reference:** if task has a relevant skill (e.g., `gotchas` for empirical traps), prompt names it — Claude Code auto-reads `.claude/skills/<name>/SKILL.md` per PLAYBOOK §7a. User-level skills live in `~/.claude/skills/`, project-level in `<repo>/.claude/skills/`.
+**Skills reference:** if task has a relevant skill (e.g., `gotchas` for empirical traps), prompt names it — Claude Code auto-reads `.claude/skills/<name>/SKILL.md` per PLAYBOOK Section 7. User-level skills live in `~/.claude/skills/`, project-level in `<repo>/.claude/skills/`.
 
 **Multi-prompt sessions:** If Claude.ai generates 3+ prompts for one feature, check for overlap before running — duplicate context wastes tokens and creates conflicting diffs.
 
@@ -174,7 +174,7 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 
 **Manual cadence:**
 - **Friday** — `/evolve` → review corrections, promote/prune rules, check trends
-- **Monthly** — Codex full-repo audit → triage flags (expect ~30% false positives) → fix CRITICAL/HIGH → re-audit → see PLAYBOOK Section 16
+- **Monthly** — Codex full-repo audit → triage flags (expect ~30% false positives) → fix CRITICAL/HIGH → re-audit → see PLAYBOOK Section 16 [L+M]
 
 **New tool/article/repo decision rule:** mature (>100 stars, >v1.0 — heuristics for community validation + production stability)? Solves a real problem? Architecture-level → Council debate. Otherwise decide in 30 seconds.
 
