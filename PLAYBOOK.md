@@ -130,7 +130,7 @@ Stale AGENTS.md = LLMs operating on outdated context. Treat updates as part of t
 
 Council #28 community finding: CLAUDE.md grows by accretion in most repos, ending as 1000+ line dump that nobody reads. Solution: thin pointer pattern. CLAUDE.md says "read AGENTS.md, then continue" + Claude-Code-specific quirks. Comprehensive content lives in dedicated files.
 
-corp-monorepo CLAUDE.md (4KB, stale numbers like "24 Council Decisions" when there are 29) is exactly the failure mode this template prevents.
+corp-monorepo CLAUDE.md (4KB, stale numbers like "24 Council Decisions" when there are 29) is exactly the failure mode this template prevents. <!-- intentional stale example illustrating anti-pattern; do not "fix" -->
 
 ### Authority hierarchy (recap from AGENTS.md section)
 <!-- scope: meta -->
@@ -353,6 +353,8 @@ Test infrastructure scales with project size. Over-investing in test infra at Sc
 | **M** (50-500 tests) | required | ≥60% on `src/`, no untested public API | pytest unit + selective integration | `pytest -x --tb=short` |
 | **L** (500+ tests) | required | ≥80% on `src/`, comprehensive public API coverage, integration suite for critical paths | pytest unit + integration + e2e where applicable | `pytest -x --tb=short` per step + `pytest --co --collect-only` for sanity |
 
+> Coverage targets (60%/80%) are guidelines from observed practice, not enforced thresholds. See Section history note for basis.
+
 #### Reading the table
 <!-- scope: dev -->
 
@@ -390,7 +392,7 @@ This cadence catches regressions early and keeps each commit's diff sane to revi
 #### Section history
 <!-- scope: dev -->
 
-- v1.0 (2026-04-25) — initial. Baseline numbers from observed practice (corp-monorepo 2515 tests at L; ai-council ~200 at M). Coverage targets are guidelines, not enforced thresholds.
+- v1.0 (2026-04-25) — initial. Coverage targets are guidelines, not enforced thresholds.
 
 ### VS Code workspace per Scale tier
 <!-- scope: dev -->
@@ -723,7 +725,7 @@ Discovery → Triage → Evaluation → Decision → Implementation → Review
 - **Platform fit:** runs on Windows/PowerShell (or has portable equivalent)
 - **Cost-bounded:** trial cost <$50 OR API trial available
 
-If 4+ criteria met → proceed to Evaluation. If 3 or fewer → mark "deferred" with reason in tech-radar.
+If 4+ criteria met → proceed to Evaluation (majority-of-6 threshold; ≤3 = not worth evaluation cost). If 3 or fewer → mark "deferred" with reason in tech-radar.
 
 **Anti-pattern:** evaluating every novelty. The job of triage is saying no.
 
@@ -868,7 +870,7 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 - One-off task — slash command may fit better
 
 **Real example in Rob's ecosystem:**
-- `corp-monorepo/.claude/skills/gotchas/SKILL.md` — empirical patterns this repo has stumbled on (~30 entries, Trigger/Symptom/Fix/verify pattern)
+- `corp-monorepo/.claude/skills/gotchas/SKILL.md` — empirical patterns this repo has stumbled on (Trigger/Symptom/Fix/verify pattern)
 
 **Anti-patterns:**
 - **Skill files >500 lines** — defeats progressive disclosure; split to references/

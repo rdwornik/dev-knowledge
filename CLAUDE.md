@@ -12,7 +12,7 @@ Living knowledge base for Rob's dev practice methodology. NOT a code project —
 | ---------------- | ----------- | -------------------------------------------------------------------------------------------- |
 | ESSENTIALS.md    | Living      | Daily cheat sheet. Keep under 1 page. Update when workflows change.                          |
 | SESSION_SETUP.md | Living      | Browser chat workflow. 5 chronological steps. Update when chat process changes.              |
-| PLAYBOOK.md      | Living      | Full process reference. Numbered sections (currently ~44 H2 headers, numbered 1–16 + unnumbered + appendices). Update when new processes are established. |
+| PLAYBOOK.md      | Living      | Full process reference. Numbered sections (1–16) + unnumbered governance sections + appendices. Update when new processes are established. |
 | LESSONS.md       | Append-only | NEVER edit old entries. NEVER delete. Only append new entries at the bottom.                 |
 | ENVIRONMENT.md   | Living      | Current setup state. Update when config/tools/decisions change.                              |
 | TOKEN-LOG.md     | Newest-first prepend | Threshold-triggered (7-day) via /session-summary. Never edit previous entries.   |
@@ -32,7 +32,7 @@ Living knowledge base for Rob's dev practice methodology. NOT a code project —
 ## What NOT to do
 <!-- scope: meta -->
 
-- Do not create new markdown files without checking README.md growth triggers (20 files → evaluate DevVault migration)
+- Do not create new markdown files without checking README.md growth triggers (when navigation overhead emerges, evaluate DevVault migration)
 - Do not duplicate content between files — ESSENTIALS summarizes PLAYBOOK, not copies it
 - Do not put project-specific details here (those go in each project's CLAUDE.md)
 - Do not put executable rules here (those go in ~/.claude/ with verify: lines)
@@ -104,5 +104,5 @@ When updating any file here, verify:
 - #24: browser handoff = one format, "wygeneruj handoff", <100 lines, code block
 - #27: scope tag vocabulary = dev | llm | hybrid | runtime | meta; all sections tagged; hybrid ≤25% ceiling (ADR-27)
 - #28: AGENTS.md = canonical cross-tool governance (Codex, Claude Code, Cursor, Aider) per Council #28 (Stream B Gap #6 foundation)
-- Trigger: 20 files here → evaluate Obsidian DevVault migration
-- Trigger: 50 entries in LESSONS.md → split into topic files
+- Trigger: when navigation overhead emerges, evaluate Obsidian DevVault migration
+- Trigger: when LESSONS.md becomes hard to navigate by topic, split into topic files
