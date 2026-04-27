@@ -167,7 +167,7 @@ TOKEN-LOG.md        ← Append-only token usage snapshots
 CHANGELOG.md        ← Notable changes history
 ```
 
-Separation rationale (Council Decision #23): vault = pre-sales work knowledge, .dev-knowledge = dev methodology, ~/.claude/ = runtime config. Trigger: 20 files → evaluate DevVault migration.
+Separation rationale (Council Decision #23): vault = pre-sales work knowledge, .dev-knowledge = dev methodology, ~/.claude/ = runtime config. Trigger: when navigation overhead emerges, evaluate DevVault migration.
 
 ---
 
