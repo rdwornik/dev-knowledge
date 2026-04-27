@@ -180,6 +180,16 @@ Combined with Stream B per-repo pending items (from previous handoff):
 14. Vocabulary verification check in prompt template — add "verify scope tags against ADR-27 / ESSENTIALS vocabulary" to Read first standardowego prompt template (PLAYBOOK Section "Writing prompts for Claude Code"). Session 7 work or earlier opportunistic
 15. ADR template formalization — `templates/ADR-NN-template.md` documenting `Stream` / `Supersedes` / `Superseded by` as optional extended schema; retroactive migration of ADR-27/28/29 if applicable. Session 7 work
 16. ADR-30 Steps 11-14 (push main, set remote HEAD, delete origin/master, GitHub UI) untested locally — `.dev-knowledge` has no remote. First full-flow validation lands in sprint 1 (corp-monorepo, ai-council). Standard git ops, low risk, but flag any edge cases
+17. Council #27 filter-by-tag rule for chat startup — UNRESOLVED.
+    Source: docs/audits/2026-04-21-council-27-brief.md:305 (proposal).
+    Status: explicitly flagged as unresolved gap in
+    docs/decisions/transcripts/DECISION_27_llm_practice_ecosystem.md:1188
+    ("actual workflow was never spelled out"). Decision scope:
+    (a) chat type taxonomy, (b) tag-to-context mapping, (c) filter
+    mechanism (file-level upload vs section-level read), (d) doc placement.
+    Stream C session candidate: session 9 or 11 (Council CLI / cross-repo
+    handoff cluster). New ESSENTIALS structure (post-Commit 1) is
+    design-neutral, accommodates any future filter mechanism.
 
 ---
 
