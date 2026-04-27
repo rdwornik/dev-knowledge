@@ -15,8 +15,8 @@ for how I work with Claude (Code + browser) and other LLM tools.
 <!-- scope: llm -->
 
 Upload to the new chat:
-1. `ESSENTIALS.md` (daily cheat sheet)
-2. `HANDOFF_PROCESS.md` (if continuing from another chat)
+1. `protocols/ESSENTIALS.md` (daily cheat sheet)
+2. `protocols/HANDOFF_PROCESS.md` (if continuing from another chat)
 3. Most recent handoff in `docs/handoffs/` (if any)
 4. Project-specific context (CLAUDE.md from target repo if programming)
 
@@ -27,19 +27,22 @@ First message: state objective + 1-2 goals.
 
 In terminal, inside project repo: `/boot` (loads rules, memory, trends).
 `.dev-knowledge` is NOT the working repo — it's reference. Claude Code
-reads it only when pointed (e.g. "check .dev-knowledge/PLAYBOOK.md Section X").
+reads it only when pointed (e.g. "check .dev-knowledge/protocols/PLAYBOOK.md Section X").
 
 ## Folder layout
 <!-- scope: meta -->
 
 | Folder | Purpose | Read when |
 |--------|---------|-----------|
-| `(root)` | Core governance files | Daily / session start |
+| `(root)` | Canonical files: README, CLAUDE, CHANGELOG, JOURNAL, LESSONS | Daily / session start |
+| `protocols/` | Operational protocols: ESSENTIALS, PLAYBOOK, HANDOFF_PROCESS, SESSION_SETUP, ENVIRONMENT | Process reference |
+| `logs/` | Append-only logs: TOKEN-LOG | Token tracking (threshold-triggered) |
+| `config/` | Repo config: requirements-dev.txt | Tooling reference |
 | `docs/decisions/` | ADRs (decisions binding across sessions) | When making similar architectural decision |
 | `docs/decisions/transcripts/` | AI Council debate raw outputs | When reviewing how a decision was reached |
 | `docs/research/` | Research-mode debates, external research reports | When evaluating new tools / patterns |
 | `docs/audits/` | Point-in-time analyses (dated) | Reference; superseded files marked in-file |
-| `docs/handoffs/` | Per-session handoff summaries | When resuming work after break |
+| `docs/handoffs/` | Per-session handoff summaries (folders for new format, .md files for legacy) | When resuming work after break |
 | `handoff-prompts/` | Live copy-paste templates for generating handoffs | When running a handoff (not archiving) |
 | `scripts/` | Validators + automation | Reference; run via pre-commit |
 | `templates/` | Reusable boilerplate (e.g. AGENTS.md scaffold) | When bootstrapping similar patterns elsewhere |
@@ -48,12 +51,12 @@ reads it only when pointed (e.g. "check .dev-knowledge/PLAYBOOK.md Section X").
 ## Navigation (where to look)
 <!-- scope: meta -->
 
-- **How do I prompt Claude Code?** → `PLAYBOOK.md` (prompt structure + examples)
-- **What am I supposed to do when starting?** → `ESSENTIALS.md`
+- **How do I prompt Claude Code?** → `protocols/PLAYBOOK.md` (prompt structure + examples)
+- **What am I supposed to do when starting?** → `protocols/ESSENTIALS.md`
 - **What prescriptive architectural decisions apply?** → `docs/decisions/` (ADR-NN_topic.md, binding across all sessions)
 - **What did I learn recently?** → `LESSONS.md` (append-only, scope-tagged)
-- **Where are stream-level strategic/process decisions and session status?** → `docs/handoffs/` (most recent for active stream; dated files are persistent stream archive — covers session plans, cluster ordering, execution sequencing decisions that aren't ADR-worthy individually but bind stream coordination)
-- **How do I run Council debate?** → `PLAYBOOK.md` Section 5 + "Council Debate Archival Protocol" subsection
+- **Where are stream-level strategic/process decisions and session status?** → `docs/handoffs/` (most recent for active stream; dated files/folders are persistent stream archive — covers session plans, cluster ordering, execution sequencing decisions that aren't ADR-worthy individually but bind stream coordination)
+- **How do I run Council debate?** → `protocols/PLAYBOOK.md` Section 5 + "Council Debate Archival Protocol" subsection
 
 ## Current state (2026-04-27)
 <!-- scope: meta -->
@@ -86,3 +89,4 @@ reads it only when pointed (e.g. "check .dev-knowledge/PLAYBOOK.md Section X").
 - `corp-monorepo` (Scale L): own governance stack (CLAUDE.md, AGENTS.md, JOURNAL.md, docs/HANDOFF.md living doc). Some patterns shared.
 - `ai-council` (Scale M): own Python project, outputs flow to target repos per PLAYBOOK S5.N archival protocol.
 - This repo is the meta-layer: how I decide, what I learned, how sessions resume.
+- **Workspace coordination** (outside any single repo): `Dev/.settings/repos.toml` (repo discovery manifest for cross-repo audit) + `Dev/.settings/HUB.md` (multi-repo coordination index). Created 2026-04-27 per Topic 1 authority model + Research Meta-Repo pattern synthesis.

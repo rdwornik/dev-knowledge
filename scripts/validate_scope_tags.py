@@ -34,21 +34,22 @@ HYBRID_CEILING = 0.25
 IN_SCOPE_FILES = {
     "CLAUDE.md",
     "README.md",
-    "PLAYBOOK.md",
-    "ESSENTIALS.md",
-    "SESSION_SETUP.md",
-    "HANDOFF_PROCESS.md",
     "LESSONS.md",
-    "ENVIRONMENT.md",
+    "protocols/PLAYBOOK.md",
+    "protocols/ESSENTIALS.md",
+    "protocols/SESSION_SETUP.md",
+    "protocols/HANDOFF_PROCESS.md",
+    "protocols/ENVIRONMENT.md",
 }
 
 SKIP_PATTERNS = [
     "CHANGELOG.md",
-    "TOKEN-LOG.md",
+    "logs/TOKEN-LOG.md",
     "docs/decisions/",
     "docs/audits/",
     "docs/handoffs/",
     "docs/tech-radar/",
+    "docs/research/",
     "handoff-prompts/",
     "templates/",
     ".claude/",
@@ -71,14 +72,14 @@ class Violation:
 
 
 def is_in_scope(path: str) -> bool:
-    basename = os.path.basename(path)
-    if basename not in IN_SCOPE_FILES:
-        return False
     norm = path.replace("\\", "/")
+    # Strip leading ./ if present
+    if norm.startswith("./"):
+        norm = norm[2:]
     for pattern in SKIP_PATTERNS:
         if pattern in norm:
             return False
-    return True
+    return norm in IN_SCOPE_FILES
 
 
 def _find_tag_in_window(lines: list[str], start: int) -> tuple[str | None, int | None]:
@@ -184,10 +185,10 @@ def _count_tags_in_content(content: str) -> dict[str, int]:
     return counts
 
 
-def _head_content(fname: str) -> str | None:
-    """Return file content at HEAD for a bare filename, or None if not present."""
+def _head_content(path: str) -> str | None:
+    """Return file content at HEAD for a repo-relative path, or None if not present."""
     result = subprocess.run(
-        ["git", "show", f"HEAD:{fname}"],
+        ["git", "show", f"HEAD:{path}"],
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -208,28 +209,26 @@ def _enforce_ratio(staged_paths: list[str]) -> tuple[int, str, str]:
     Returns (exit_code, info_line, error_msg).
     exit_code 0 = pass, 1 = block. error_msg is empty when passing.
     """
-    staged_basenames = {os.path.basename(p) for p in staged_paths}
+    staged_norm = {p.replace("\\", "/").lstrip("./") for p in staged_paths}
     head_counts: dict[str, int] = {v: 0 for v in VOCABULARY}
     wt_counts: dict[str, int] = {v: 0 for v in VOCABULARY}
     any_head = False
 
-    for fname in IN_SCOPE_FILES:
-        head_text = _head_content(fname)
+    for fpath in IN_SCOPE_FILES:
+        head_text = _head_content(fpath)
 
         if head_text is not None:
             any_head = True
             for k, v in _count_tags_in_content(head_text).items():
                 head_counts[k] += v
 
-        if fname in staged_basenames:
-            path = next((p for p in staged_paths if os.path.basename(p) == fname), fname)
-            if os.path.isfile(path) and is_in_scope(path):
-                _, fc = parse_file(path)
+        if fpath in staged_norm:
+            if os.path.isfile(fpath) and is_in_scope(fpath):
+                _, fc = parse_file(fpath)
                 for k, v in fc.items():
                     wt_counts[k] += v
             elif head_text is not None:
-                # Staged file with matching basename is out-of-scope (e.g. skipped dir);
-                # treat the governed file as unchanged.
+                # Staged file is out-of-scope or removed; treat governed file as unchanged.
                 for k, v in _count_tags_in_content(head_text).items():
                     wt_counts[k] += v
         elif head_text is not None:

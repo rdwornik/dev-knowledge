@@ -1,0 +1,82 @@
+.dev-knowledge/
+├── README.md
+├── CHANGELOG.md
+├── CLAUDE.md
+├── JOURNAL.md
+├── LESSONS.md
+├── .gitignore
+├── .pre-commit-config.yaml
+├── dev-knowledge.code-workspace
+├── protocols/
+│   ├── ESSENTIALS.md
+│   ├── PLAYBOOK.md
+│   ├── HANDOFF_PROCESS.md
+│   ├── SESSION_SETUP.md
+│   └── ENVIRONMENT.md
+├── logs/
+│   └── TOKEN-LOG.md
+├── config/
+│   └── requirements-dev.txt
+├── docs/
+│   ├── decisions/
+│   │   ├── ADR-27_scope-tagging.md
+│   │   ├── ADR-28_three-layer-architecture.md
+│   │   ├── ADR-29_lessons-grandfathering.md
+│   │   ├── ADR-30_default_branch_main.md
+│   │   └── transcripts/
+│   │       ├── DECISION_27_llm_practice_ecosystem.md
+│   │       ├── DECISION_28_authority_model.md
+│   │       └── DECISION_29_handoff_synergy.md
+│   ├── handoffs/
+│   │   ├── 2026-04-15-codex-tach-opus47-session.md
+│   │   ├── 2026-04-15-tech-radar-session.md
+│   │   ├── 2026-04-21-dev-knowledge-architecture-redefinition.md
+│   │   ├── 2026-04-21-tech-radar-session.md
+│   │   ├── 2026-04-26-stream-b-complete-stream-c-scope.md
+│   │   ├── 2026-04-26-stream-c-session-1-branch-convention.md   (legacy single-file)
+│   │   └── 2026-04-27-stream-c-session-1-final/                  (new folder format — THIS handoff)
+│   │       ├── upload-instructions.md
+│   │       ├── first-message.md
+│   │       └── contents/
+│   │           ├── HANDOFF.md
+│   │           ├── manifest.json
+│   │           ├── tree.txt                                       (this file)
+│   │           ├── ESSENTIALS.md                                  (point-in-time copy)
+│   │           ├── PLAYBOOK.md                                    (point-in-time copy)
+│   │           ├── JOURNAL.md                                     (point-in-time copy)
+│   │           └── CLAUDE.md                                      (point-in-time copy)
+│   ├── audits/
+│   │   ├── (older audits …)
+│   │   ├── 2026-04-27-deep-cleansing-diagnostic.md
+│   │   ├── 2026-04-27-numbers-audit.md
+│   │   └── 2026-04-27-pre-debate-audit-cross-repo-and-handoff.md
+│   ├── research/
+│   │   ├── (older research …)
+│   │   ├── 2026-04-27-handoff-patterns-council-research.md
+│   │   └── 2026-04-27-handoff-patterns-external-research.md
+│   └── tech-radar/
+├── handoff-prompts/
+│   ├── README.md
+│   ├── typ-a-step1-browser-prompt.md
+│   ├── typ-a-step2-claudecode-prompt.md
+│   └── typ-b-step1-browser-prompt.md
+├── scripts/
+│   └── validate_scope_tags.py
+├── templates/
+│   ├── AGENTS-md-template.md
+│   ├── CLAUDE-md-template.md
+│   ├── codex-review-config-template.md
+│   ├── HANDOFF_TEMPLATE.md
+│   ├── prompt-template.md
+│   ├── workspace-L.code-workspace
+│   ├── workspace-M.code-workspace
+│   └── workspace-S.code-workspace
+└── .claude/
+    ├── commands/
+    ├── rules/
+    └── settings.local.json
+
+# Workspace-level (outside this repo):
+# Dev/.settings/
+# ├── repos.toml
+# └── HUB.md

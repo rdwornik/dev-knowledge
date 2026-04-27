@@ -2,7 +2,7 @@
 
 Ready-to-use prompts for the handoff process. No compression — cat and paste.
 
-**Authoritative protocol:** `HANDOFF_PROCESS.md` — trigger rules, Scale-tiered format, Roles. This folder contains the copy-paste templates only.
+**Authoritative protocol:** `protocols/HANDOFF_PROCESS.md` — trigger rules, Scale-tiered format, Roles. This folder contains the copy-paste templates only.
 
 ## Files
 <!-- scope: llm -->
@@ -16,7 +16,7 @@ Type B has no step 2 — handoff lives only in the new chat's context window.
 ## How to use
 <!-- scope: llm -->
 
-When user asks "give me the handoff process," the model reading `HANDOFF_PROCESS.md`
+When user asks "give me the handoff process," the model reading `protocols/HANDOFF_PROCESS.md`
 should return the content of the relevant files verbatim (cat), not summarize.
 
 Templates are in Polish — this is intentional. `wygeneruj handoff` is the Vibe Code 4 trigger phrase.

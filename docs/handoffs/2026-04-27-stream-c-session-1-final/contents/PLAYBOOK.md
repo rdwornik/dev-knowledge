@@ -58,7 +58,7 @@ Section 12 "Where Knowledge Lives" describes knowledge **domains** (what lives w
 **Purpose:** Each repo (corp-monorepo, ai-council, .dev-knowledge, future projects) has an `AGENTS.md` at root. This is the canonical governance file — what any LLM-based agent (Claude Code, Codex, Cursor, Aider) reads to understand "how this repo works" before making changes.
 
 **Authority hierarchy:**
-1. `.dev-knowledge/ESSENTIALS.md` + `PLAYBOOK.md` (this file) — universal rules across all Rob's work
+1. `.dev-knowledge/protocols/ESSENTIALS.md` + `protocols/PLAYBOOK.md` (this file) — universal rules across all Rob's work
 2. `{repo}/AGENTS.md` — per-repo specifics (architecture, conventions, tools active here)
 3. `{repo}/CLAUDE.md` — thin pointer (≤200 lines) referencing both above + Claude Code-specific quirks
 4. `{repo}/.claude/skills/`, `commands/`, `hooks/` — runtime config
@@ -106,7 +106,7 @@ Stale AGENTS.md = LLMs operating on outdated context. Treat updates as part of t
 
 **Purpose:** Each repo (corp-monorepo, ai-council, .dev-knowledge, future projects) has a `CLAUDE.md` at root. Auto-read by Claude Code on session start. **Thin pointer (≤200 lines)** to:
 - `AGENTS.md` (cross-tool canonical governance — per Council #28)
-- `.dev-knowledge/ESSENTIALS.md` + `PLAYBOOK.md` (universal Rob rules)
+- `.dev-knowledge/protocols/ESSENTIALS.md` + `protocols/PLAYBOOK.md` (universal Rob rules)
 - Recent ADRs, handoffs, journal entries
 
 ### What CLAUDE.md is
@@ -135,7 +135,7 @@ corp-monorepo CLAUDE.md (4KB, stale numbers like "24 Council Decisions" when the
 ### Authority hierarchy (recap from AGENTS.md section)
 <!-- scope: meta -->
 
-1. `.dev-knowledge/ESSENTIALS.md` + `PLAYBOOK.md` — universal
+1. `.dev-knowledge/protocols/ESSENTIALS.md` + `protocols/PLAYBOOK.md` — universal
 2. `{repo}/AGENTS.md` — cross-tool, per-repo
 3. `{repo}/CLAUDE.md` — Claude-Code-specific quirks, thin pointer
 4. `{repo}/.claude/skills/, commands/, hooks/` — runtime config
@@ -867,7 +867,7 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 
 **When NOT to use:**
 - Knowledge that fits in CLAUDE.md (≤200 lines budget) — keep there for auto-read
-- Universal Rob rules — those go in `.dev-knowledge/PLAYBOOK.md`
+- Universal Rob rules — those go in `.dev-knowledge/protocols/PLAYBOOK.md`
 - One-off task — slash command may fit better
 
 **Real example in Rob's ecosystem:**
@@ -876,7 +876,7 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 **Anti-patterns:**
 - **Skill files >500 lines** — defeats progressive disclosure; split to references/
 - **Skills with no trigger description** — Claude Code can't know when to read it
-- **Universal content as project skill** — should live in `.dev-knowledge/PLAYBOOK.md` instead
+- **Universal content as project skill** — should live in `.dev-knowledge/protocols/PLAYBOOK.md` instead
 
 ### 7b. Slash commands (custom invokable commands)
 <!-- scope: runtime -->

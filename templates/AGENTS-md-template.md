@@ -7,8 +7,8 @@
 ## 1. Read first
 
 Before doing anything in this repo, read:
-- `<absolute path>/.dev-knowledge/ESSENTIALS.md` — Rob's daily working style + protocols
-- `<absolute path>/.dev-knowledge/PLAYBOOK.md` — universal rules: prompt format, file types, Council lifecycle, etc.
+- `<absolute path>/.dev-knowledge/protocols/ESSENTIALS.md` — Rob's daily working style + protocols
+- `<absolute path>/.dev-knowledge/protocols/PLAYBOOK.md` — universal rules: prompt format, file types, Council lifecycle, etc.
 
 This AGENTS.md covers **only** what's specific to this repo. Universal rules live in `.dev-knowledge/`.
 
@@ -17,7 +17,7 @@ If `.dev-knowledge/` is unavailable, proceed with this AGENTS.md alone but flag 
 ## 2. Repo identity
 
 - **Name:** `<repo-name>`
-- **Scale tier:** `<S | M | L>` (per `.dev-knowledge/PLAYBOOK.md` Project Scale Tiers section)
+- **Scale tier:** `<S | M | L>` (per `.dev-knowledge/protocols/PLAYBOOK.md` Project Scale Tiers section)
 - **Purpose:** `<one sentence: what problem does this repo solve>`
 - **Status:** `<active | maintenance | archived>`
 - **Owner:** `<Rob | other>`
@@ -73,7 +73,7 @@ If `.dev-knowledge/` is unavailable, proceed with this AGENTS.md alone but flag 
 - `<e.g. ruff format, scope tag validator (.dev-knowledge only)>`
 
 **Other:**
-- `<e.g. ccusage for token tracking, see .dev-knowledge/ENVIRONMENT.md>`
+- `<e.g. ccusage for token tracking, see .dev-knowledge/protocols/ENVIRONMENT.md>`
 
 ## 6. Things this repo gets wrong (gotchas)
 

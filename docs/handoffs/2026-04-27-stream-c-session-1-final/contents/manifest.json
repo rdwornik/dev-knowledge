@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "session_id": "2026-04-27-stream-c-session-1-final",
+  "session_type": "strategy_close_handoff",
+  "repo": ".dev-knowledge",
+  "previous_session": "2026-04-26-stream-c-session-1-branch-convention",
+  "context_layers": {
+    "session_specific": {
+      "files": ["HANDOFF.md"],
+      "purpose": "current session state, decisions, pending work"
+    },
+    "structural_orientation": {
+      "files": ["tree.txt"],
+      "purpose": "repo structure post-cleanup — protocols/, logs/, config/ folders"
+    },
+    "universal_governance": {
+      "files": ["ESSENTIALS.md", "PLAYBOOK.md", "CLAUDE.md"],
+      "purpose": "binding rules at session-close point in time",
+      "live_state_path": "C:/Users/1028120/Documents/Dev/.dev-knowledge/protocols/ (for ESSENTIALS, PLAYBOOK) and root (for CLAUDE.md)",
+      "note": "live versions may differ — copies preserve session-time state"
+    },
+    "timeline": {
+      "files": ["JOURNAL.md"],
+      "purpose": "session-by-session activity history"
+    }
+  },
+  "reading_order": [
+    {"file": "tree.txt", "purpose": "structural orientation"},
+    {"file": "manifest.json", "purpose": "context overview (this file)"},
+    {"file": "HANDOFF.md", "purpose": "current session state + pending"},
+    {"file": "ESSENTIALS.md", "purpose": "universal Claude rules"},
+    {"file": "PLAYBOOK.md", "purpose": "full process reference"},
+    {"file": "JOURNAL.md", "purpose": "recent activity, focus last 3 entries"},
+    {"file": "CLAUDE.md", "purpose": "repo-specific governance"}
+  ],
+  "token_budget_estimate": 28000,
+  "next_session": {
+    "type": "strategy",
+    "tool": "browser",
+    "primary_actions": [
+      "Draft ADR-31 (authority model)",
+      "Draft ADR-32 (handoff format)",
+      "Fix 3 documented compliance violations",
+      "OR build audit tool dedicated session"
+    ],
+    "recommendation": "Start with ADR drafting (a) to formalize decisions while context fresh"
+  },
+  "references": {
+    "transcripts": [
+      "docs/decisions/transcripts/DECISION_28_authority_model.md",
+      "docs/decisions/transcripts/DECISION_29_handoff_synergy.md"
+    ],
+    "research": [
+      "docs/research/2026-04-27-handoff-patterns-council-research.md",
+      "docs/research/2026-04-27-handoff-patterns-external-research.md"
+    ],
+    "audits": [
+      "docs/audits/2026-04-27-deep-cleansing-diagnostic.md",
+      "docs/audits/2026-04-27-numbers-audit.md",
+      "docs/audits/2026-04-27-pre-debate-audit-cross-repo-and-handoff.md"
+    ],
+    "predecessor_handoff": "docs/handoffs/2026-04-26-stream-c-session-1-branch-convention.md",
+    "workspace_config": ["Dev/.settings/repos.toml", "Dev/.settings/HUB.md"]
+  }
+}

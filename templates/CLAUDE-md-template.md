@@ -5,7 +5,7 @@
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Thin pointer (≤200 lines) — not a comprehensive spec.
 >
 > **For full governance:** read `AGENTS.md` (cross-tool canonical).
-> **For universal rules:** read `<absolute path>/.dev-knowledge/ESSENTIALS.md` and `PLAYBOOK.md`.
+> **For universal rules:** read `<absolute path>/.dev-knowledge/protocols/ESSENTIALS.md` and `protocols/PLAYBOOK.md`.
 
 ## 1. First read (session start)
 <!-- scope: meta -->
@@ -13,8 +13,8 @@
 In order, read:
 1. This file (you're here)
 2. `./AGENTS.md` — repo governance (architecture, conventions, tools, ADRs)
-3. `<path>/.dev-knowledge/ESSENTIALS.md` — Rob's universal working style
-4. `<path>/.dev-knowledge/PLAYBOOK.md` — universal protocols (only sections relevant to current task)
+3. `<path>/.dev-knowledge/protocols/ESSENTIALS.md` — Rob's universal working style
+4. `<path>/.dev-knowledge/protocols/PLAYBOOK.md` — universal protocols (only sections relevant to current task)
 5. Most recent `docs/handoffs/*.md` if continuing prior session
 6. Last 5 entries of `JOURNAL.md` (if exists per Scale tier)
 
@@ -24,7 +24,7 @@ In order, read:
 <!-- scope: meta -->
 
 - **Name:** `<repo-name>`
-- **Scale:** `<S | M | L>` (per `.dev-knowledge/PLAYBOOK.md` Project Scale Tiers)
+- **Scale:** `<S | M | L>` (per `.dev-knowledge/protocols/PLAYBOOK.md` Project Scale Tiers)
 - **Status:** `<active | maintenance | archived>`
 
 ## 3. Critical rules (non-negotiable for Claude Code)
