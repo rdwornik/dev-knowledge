@@ -169,7 +169,18 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 
 When a lesson becomes a rule → write rationale in LESSONS.md, write executable rule in `~/.claude/` with verify: line.
 
-**Project Scale Tiers:** Every project declares L / M / S in its CLAUDE.md. Playbook sections tagged [L only] or [L+M] apply only to those tiers. See Playbook for definitions.
+---
+
+## Project Scale Tiers
+<!-- scope: meta -->
+
+Every project declares its scale in CLAUDE.md. Playbook sections tagged [L only] or [L+M] apply only to matching tiers.
+
+- **S** — single script/tool, <50 tests, simple flow
+- **M** — standalone package, 50-500 tests, multiple modules, one namespace
+- **L** — multi-package monorepo, 500+ tests, ARCHITECTURE.md, per-module READMEs, AGENTS.md
+
+Full matrix (testing rules, doc requirements, session continuity per tier) in PLAYBOOK Section "Project Scale Tiers".
 
 ---
 
