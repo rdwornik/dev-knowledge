@@ -497,7 +497,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `ENVIRONMENT.md` | Tooling state, what's installed | Sectioned, scope-tagged | When tool adopted/deprecated | Rob, Claude Code | Living (sections updated) | Per-repo |
 | `docs/decisions/ADR-NN_*.md` | Architectural decisions | Michael Nygard format | When decision binds | Rob, future contributors | Numbered, immutable (amend in-place per ADR-29) | Per-repo |
 | `docs/decisions/transcripts/DECISION_NN_*.md` | Raw Council debate outputs | Multi-model debate transcript | When Council debate concludes (per PLAYBOOK 5.N archival) | Reference for ADR rationale | Numbered, immutable | Per-repo |
-| `docs/handoffs/YYYY-MM-DD-*.md` | Chat-to-chat session summary | Tiered (Scale-dependent) | When session boundary requires continuity | Next browser chat | Dated, immutable | Per-repo |
+| `docs/handoffs/YYYY-MM-DD-*.md` (legacy) or `docs/handoffs/YYYY-MM-DD-*/` (folder, since 2026-04-27) | Chat-to-chat session summary | Single-file legacy OR folder-format (upload-instructions + first-message + contents/) | When session boundary requires continuity | Next browser chat | Dated, immutable | Per-repo |
 | `docs/audits/YYYY-MM-DD-*.md` | Point-in-time analyses | Free-form audit | When deep analysis needed | Reference for follow-up work | Dated, immutable (mark SUPERSEDED if redone) | Per-repo |
 | `docs/research/YYYY-MM-DD-*.md` | Research outputs (Council research mode, standalone reports) | Free-form research | When research generates value | Reference for design decisions | Dated, immutable | Universal (`.dev-knowledge` only — research is methodology) |
 
@@ -552,6 +552,39 @@ Which files exist per Scale tier (per `Project Scale Tiers` section above):
 - research = forward-looking exploration (universal in `.dev-knowledge`, dated)
 - Council research-mode debates → research/. Council pick-mode debates → transcripts/.
 
+### Handoff format spec (since 2026-04-27)
+<!-- scope: meta -->
+
+Two formats coexist in `docs/handoffs/`:
+
+**Legacy (before 2026-04-27)** — single `.md` file, dated `YYYY-MM-DD-slug.md`. Content: free-form session summary. Preserved as-is — do not migrate.
+
+**New (since 2026-04-27, per Topic 2 + Research synthesis)** — folder per session:
+
+```
+docs/handoffs/{date}-{slug}/
+├── upload-instructions.md   (top — drag-drop guidance)
+├── first-message.md         (top — paste verbatim into new browser chat)
+└── contents/                (single drag-drop target)
+    ├── HANDOFF.md           (session state — decisions, pending, references)
+    ├── manifest.json        (context orchestration: layers, reading order, refs)
+    ├── tree.txt             (repo structure snapshot for browser orientation)
+    ├── ESSENTIALS.md        (point-in-time copy)
+    ├── PLAYBOOK.md          (point-in-time copy)
+    ├── JOURNAL.md           (point-in-time copy)
+    └── CLAUDE.md            (point-in-time copy)
+```
+
+**When to use new format:** session boundaries with substantive state to preserve (decisions, pending work, cross-stream context). Default to new format for Stream-level handoffs.
+
+**When legacy still acceptable:** quick single-session summary with no need for point-in-time copies (rare since cleanup).
+
+**Validator interaction:** `contents/*.md` files auto-skip via existing `docs/handoffs/` SKIP_PATTERN in `scripts/validate_scope_tags.py` — no duplicate-tag concerns.
+
+**First instance:** `docs/handoffs/2026-04-27-stream-c-session-1-final/` — Stream C session 1 close.
+
+**Rationale:** point-in-time copies prevent drift between session intent and live state at resume time. Manifest + tree.txt give browser deterministic upload index + structural orientation. No repo-root `HANDOFF.md` (per Topic 2 decision: source of truth lives in session folder, not at root).
+
 ### Order conventions
 <!-- scope: meta -->
 
@@ -567,6 +600,7 @@ Per Token-LOG flip 2026-04-24:
 
 - v1.0 (2026-04-24) — initial. 12-file taxonomy + Scale matrix + 4 common confusions + order conventions. Will refine after live use.
 - v1.1 (2026-04-27) — JOURNAL ordering amended oldest-top → newest-first prepend per Rob's preference; aligns with TOKEN-LOG/CHANGELOG. LESSONS retains oldest-top (ADR-29 grandfathering). Light-touch amendment, no ADR.
+- v1.2 (2026-04-27) — Handoff format spec added: folder-format introduced (since 2026-04-27) per Topic 2 + Research synthesis. Legacy single-file format preserved. File taxonomy row updated to reflect both formats. First folder-format instance: `docs/handoffs/2026-04-27-stream-c-session-1-final/`.
 
 ---
 
