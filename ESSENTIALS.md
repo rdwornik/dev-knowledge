@@ -69,10 +69,13 @@ Browser chat (analysis)  →  .dev-knowledge (reference)  →  projects (executi
 ## Starting a Session
 <!-- scope: runtime -->
 
+**Claude Code session:**
 1. Open Claude Code in project dir
 2. Type `/boot` — verifies rules, loads memory, checks trends
 3. Shift+Tab → **Accept Edits** mode (daily driver)
 4. Pick **max 2 objectives** for this session
+
+**New browser chat:** Upload ESSENTIALS.md + handoff-prompts/context files. See SESSION_SETUP.md for full checklist.
 
 ---
 
@@ -139,13 +142,6 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 6. Session scorecard logs automatically (Stop hook)
 
 **Browser chat checkpoint:** przy ~2h lub gdy chat zwalnia → see **HANDOFF_PROCESS.md**
-
----
-
-## Starting a New Browser Chat
-<!-- scope: llm -->
-
-Upload ESSENTIALS.md + handoff-prompts/context files. See SESSION_SETUP.md for full checklist.
 
 ---
 
