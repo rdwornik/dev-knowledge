@@ -198,12 +198,4 @@ Full matrix (testing rules, doc requirements, session continuity per tier) in PL
 ## Data Sanitization for Lessons
 <!-- scope: meta -->
 
-Before writing dev lessons in .dev-knowledge:
-
-- Strip client names (replace with [client] or generic placeholder)
-- Strip proprietary schemas, table names, API endpoints specific to clients
-- Strip internal tool names that reveal product roadmap
-- Generic pattern OK: "worked with [client] on retry pattern for their orders pipeline"
-- Specific pattern NOT OK: "worked with Honda on order_processing.retry() for 2026 Q2 launch"
-
-**Why:** .dev-knowledge is methodology reference, not client project notes. Client-specific context belongs in Obsidian vault with proper tagging.
+Before writing dev lessons in `.dev-knowledge`: strip client names, proprietary schemas, internal tool names, client-specific API endpoints. Replace with `[client]` or generic placeholders. Methodology generalizes; project specifics don't — those belong in Obsidian vault. Detailed examples in PLAYBOOK.
