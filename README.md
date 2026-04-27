@@ -59,10 +59,10 @@ reads it only when pointed (e.g. "check .dev-knowledge/PLAYBOOK.md Section X").
 <!-- scope: meta -->
 
 - Stream A complete: scope tagging live, validator enforces, hybrid ceiling delta-based
-- 31 ADRs active (ADR-01 through ADR-30, plus CLAUDE.md governing this repo)
-- 69 lessons in LESSONS.md, scope-tagged inline per ADR-29
-- Council #1-#29 archived (transcripts in corp-monorepo and/or docs/decisions/transcripts/, research in docs/research/)
-- 19 gaps identified for future streams (see latest audit file)
+- ADRs in `docs/decisions/` + corp-monorepo
+- See LESSONS.md (scope-tagged inline per ADR-29)
+- Council debates archived (transcripts in corp-monorepo and/or docs/decisions/transcripts/, research in docs/research/)
+- Gaps identified for future streams: see latest audit file
 
 ## Not here (deliberately)
 <!-- scope: meta -->

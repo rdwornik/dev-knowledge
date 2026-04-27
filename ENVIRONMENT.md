@@ -48,7 +48,7 @@
     report-generator.md       ← Haiku subagent
     ecosystem-snapshot.md     ← Haiku subagent
   skills/
-    gotchas/gotchas.md       ← 3 universal entries (cp1252, az shell, pytest-asyncio)
+    gotchas/gotchas.md       ← Universal entries (cp1252, az shell, pytest-asyncio)
   commands/
     handoff.md               ← Token-efficient output for browser chat
     boot.md                  ← Session start: load memory, verify rules, check trends
@@ -59,7 +59,7 @@
     SessionStart                           ← Evolution boot reminder
     Stop                                   ← Evolution scorecard reminder
   rules/
-    core-invariants.md       ← 4 compression-proof rules (paths: **/* = every file touch)
+    core-invariants.md       ← Compression-proof rules (paths: **/* = every file touch)
   memory/
     README.md                ← Protocol doc (formats, promotion ladder)
     learned-rules.md         ← Empty body, header only (graduated rules moved to project scope)
@@ -86,7 +86,7 @@ Two VS Code workspaces:
 
 Project-specific workspace details (folder count, roots) live in each workspace file.
 
-### Extensions (10 installed)
+### Extensions
 <!-- scope: dev -->
 
 | Extension                | Replaces in Claude Code (0 tokens)                          |
@@ -160,7 +160,7 @@ CLAUDE.md           ← Project contract for Claude Code
 README.md           ← Triage rules ("co gdzie idzie")
 ESSENTIALS.md       ← Daily cheat sheet (1 page)
 SESSION_SETUP.md    ← How to start new browser chat / project
-PLAYBOOK.md         ← Full process reference (14 sections + appendices)
+PLAYBOOK.md         ← Full process reference
 LESSONS.md          ← Append-only lessons log
 ENVIRONMENT.md      ← This file
 TOKEN-LOG.md        ← Append-only token usage snapshots
@@ -178,9 +178,9 @@ Purpose: Pre-sales work knowledge ONLY. No dev practice, no Claude Code config.
 
 ```
 00_Home/          ← Dataview dashboard
-01_Knowledge/     ← Flat (488+ notes)
-02_Navigate/      ← 9 MOC folders (auto-generated)
-99_System/        ← taxonomy.yaml, 11 tag dimensions
+01_Knowledge/     ← Flat notes
+02_Navigate/      ← MOC folders (auto-generated)
+99_System/        ← taxonomy.yaml
 ```
 
 Tags: product/, client/, domain/, topic/, type/, source/, comp/, compliance/, training/, function/, audience/
