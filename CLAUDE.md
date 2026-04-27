@@ -8,17 +8,19 @@ Living knowledge base for Rob's dev practice methodology. NOT a code project —
 ## Files and their rules
 <!-- scope: meta -->
 
-| File             | Type        | Rule                                                                                         |
-| ---------------- | ----------- | -------------------------------------------------------------------------------------------- |
-| ESSENTIALS.md    | Living      | Daily cheat sheet. Keep under 1 page. Update when workflows change.                          |
-| SESSION_SETUP.md | Living      | Browser chat workflow. 5 chronological steps. Update when chat process changes.              |
-| PLAYBOOK.md      | Living      | Full process reference. Numbered sections (1–16) + unnumbered governance sections + appendices. Update when new processes are established. |
-| LESSONS.md       | Append-only | NEVER edit old entries. NEVER delete. Only append new entries at the bottom.                 |
-| ENVIRONMENT.md   | Living      | Current setup state. Update when config/tools/decisions change.                              |
-| TOKEN-LOG.md     | Append-only (newest-first) | Threshold-triggered (7-day) via /session-summary. Never edit previous entries.   |
-| CHANGELOG.md     | Append-only | Notable changes. New entry per session that modifies files.                                  |
-| JOURNAL.md       | Append-only (newest-first) | Per-session tactical Did/Failed/Next log. Prepend at session wrap or workday close. Per PLAYBOOK Stream B Gap #4 spec. |
-| README.md        | Living      | Triage rules and file index. Update when files are added/removed.                            |
+| File                          | Type        | Rule                                                                                         |
+| ----------------------------- | ----------- | -------------------------------------------------------------------------------------------- |
+| `protocols/ESSENTIALS.md`     | Living      | Daily cheat sheet. Keep under 1 page. Update when workflows change.                          |
+| `protocols/SESSION_SETUP.md`  | Living      | Browser chat workflow. 5 chronological steps. Update when chat process changes.              |
+| `protocols/PLAYBOOK.md`       | Living      | Full process reference. Numbered sections (1–16) + unnumbered governance sections + appendices. Update when new processes are established. |
+| `protocols/HANDOFF_PROCESS.md` | Living     | Handoff trigger rules + Scale-tiered format + Roles. Authoritative protocol for handoff generation. |
+| `protocols/ENVIRONMENT.md`    | Living      | Current setup state. Update when config/tools/decisions change.                              |
+| `LESSONS.md`                  | Append-only | NEVER edit old entries. NEVER delete. Only append new entries at the bottom.                 |
+| `logs/TOKEN-LOG.md`           | Append-only (newest-first) | Threshold-triggered (7-day) via /session-summary. Never edit previous entries.   |
+| `CHANGELOG.md`                | Append-only | Notable changes. New entry per session that modifies files.                                  |
+| `JOURNAL.md`                  | Append-only (newest-first) | Per-session tactical Did/Failed/Next log. Prepend at session wrap or workday close. Per PLAYBOOK Stream B Gap #4 spec. |
+| `README.md`                   | Living      | Triage rules and file index. Update when files are added/removed.                            |
+| `config/requirements-dev.txt` | Living      | Python dev dependencies (pre-commit, etc).                                                   |
 
 ## What to do here
 <!-- scope: meta -->

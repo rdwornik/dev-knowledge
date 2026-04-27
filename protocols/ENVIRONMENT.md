@@ -156,15 +156,21 @@ Project-specific paths (database locations, output dirs, exclusion zones) live i
 Location: `Dev/.dev-knowledge/` — visible in VS Code workspace as `📓 .dev-knowledge`
 
 ```
-CLAUDE.md           ← Project contract for Claude Code
-README.md           ← Triage rules ("co gdzie idzie")
-ESSENTIALS.md       ← Daily cheat sheet (1 page)
-SESSION_SETUP.md    ← How to start new browser chat / project
-PLAYBOOK.md         ← Full process reference
-LESSONS.md          ← Append-only lessons log
-ENVIRONMENT.md      ← This file
-TOKEN-LOG.md        ← Append-only token usage snapshots
-CHANGELOG.md        ← Notable changes history
+CLAUDE.md                       ← Project contract for Claude Code
+README.md                       ← Triage rules ("co gdzie idzie")
+JOURNAL.md                      ← Per-session tactical log (newest-first)
+LESSONS.md                      ← Append-only lessons log
+CHANGELOG.md                    ← Notable changes history
+protocols/
+  ESSENTIALS.md                 ← Daily cheat sheet (1 page)
+  SESSION_SETUP.md              ← How to start new browser chat / project
+  PLAYBOOK.md                   ← Full process reference
+  HANDOFF_PROCESS.md            ← Handoff trigger rules + format
+  ENVIRONMENT.md                ← This file
+logs/
+  TOKEN-LOG.md                  ← Append-only token usage snapshots
+config/
+  requirements-dev.txt          ← Python dev dependencies
 ```
 
 Separation rationale (Council Decision #23): vault = pre-sales work knowledge, .dev-knowledge = dev methodology, ~/.claude/ = runtime config. Trigger: when navigation overhead emerges, evaluate DevVault migration.
