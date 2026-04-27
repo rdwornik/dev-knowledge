@@ -180,6 +180,24 @@ Combined with Stream B per-repo pending items (from previous handoff):
 14. Vocabulary verification check in prompt template — add "verify scope tags against ADR-27 / ESSENTIALS vocabulary" to Read first standardowego prompt template (PLAYBOOK Section "Writing prompts for Claude Code"). Session 7 work or earlier opportunistic
 15. ADR template formalization — `templates/ADR-NN-template.md` documenting `Stream` / `Supersedes` / `Superseded by` as optional extended schema; retroactive migration of ADR-27/28/29 if applicable. Session 7 work
 16. ADR-30 Steps 11-14 (push main, set remote HEAD, delete origin/master, GitHub UI) untested locally — `.dev-knowledge` has no remote. First full-flow validation lands in sprint 1 (corp-monorepo, ai-council). Standard git ops, low risk, but flag any edge cases
+18. ESSENTIALS.md refactor — 4 commits merged 2026-04-26 (post ADR-30 wrap):
+    - C1: structural cleanup (Section history removal, 1-line orphan section
+      merge, Project Scale Tiers extraction to own H2, Data Sanitization
+      condense from 12→1 paragraph). Net -6 lines
+    - C2: skills reference sub-bullet added to "Writing a Prompt" section
+      (cross-ref to PLAYBOOK §7a, canonical paths ~/.claude/skills/ and
+      <repo>/.claude/skills/). Net +2 lines
+    - C3: Feedback Loop restructured with Auto vs Manual cadence labels;
+      stale "Playbook S16" → canonical "PLAYBOOK Section 16". Net +1 line
+    - C4: NEW section "How Claude thinks" inserted before Roles. Encodes
+      4 Does + 4 Does NOT thinking-quality directives. Disambiguates
+      user preference "take time, do it right not fast" — directive
+      applies to Claude's thinking depth, not Rob's session pacing.
+      Net +19 lines
+    - Cumulative: +16 lines, 12 H2 sections (was 12, restructured)
+    - All commits validator-passed, ad-hoc additions to original session 1
+      scope (added retroactively after ADR-30 wrap as "bonus scope" per
+      Rob's deeper review request)
 17. Council #27 filter-by-tag rule for chat startup — UNRESOLVED.
     Source: docs/audits/2026-04-21-council-27-brief.md:305 (proposal).
     Status: explicitly flagged as unresolved gap in
