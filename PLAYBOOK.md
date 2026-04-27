@@ -1719,6 +1719,8 @@ After archival, cross-link FROM:
 - **Claude Code (terminal):** reads files, runs commands, edits code, verifies state, runs tests. Trusts filesystem, not memory.
 - **Claude.ai (browser):** architecture consulting, strategic decisions, critical thinking. **ALWAYS maintains critical thinking** — questions the approach, identifies risks, says "no" when something doesn't make sense. Never rubber-stamps.
 
+> **See ESSENTIALS § Roles for canonical definition (Does/Does NOT lists, Three-layer flow per ADR-28).**
+
 ### Handoff A: Claude Code → Browser
 <!-- scope: hybrid -->
 
