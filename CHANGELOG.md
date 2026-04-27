@@ -4,6 +4,23 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-26 — Stream C session 1 bonus scope: ESSENTIALS refactor + UI preferences
+
+- ESSENTIALS.md 4-commit refactor: structural cleanup (C1, -6 lines),
+  skills reference added to Writing a Prompt (C2, +2), Feedback Loop
+  restructured with Auto/Manual labels and stale "Playbook S16" →
+  "PLAYBOOK Section 16" (C3, +1 net), new section "How Claude thinks"
+  inserted before Roles encoding 4 Does + 4 Does NOT thinking-quality
+  directives (C4, +19). Net +16 lines, 12 H2 sections (restructured).
+- UI user preferences rewrite: added Continuous context self-evaluation
+  directive (trigger-based proactive monitoring), Defer requires explicit
+  justification, refined Engineering mandate (delete vs condense
+  distinction, multi-commit one-file clause), refined Claude Code prompts
+  (CHANGELOG conditional on change type), removed Project Scale Tiers
+  (now lives in ESSENTIALS post-C1). UI changes apply to NEW chats only.
+
+---
+
 ## 2026-04-26 — Stream C session 1: ADR-30 default branch = `main`
 
 - Added ADR-30 prescribing `main` as default branch for all Rob's repos (universal rule)
