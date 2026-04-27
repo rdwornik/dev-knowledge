@@ -55,10 +55,11 @@ reads it only when pointed (e.g. "check .dev-knowledge/PLAYBOOK.md Section X").
 - **Where are stream-level strategic/process decisions and session status?** → `docs/handoffs/` (most recent for active stream; dated files are persistent stream archive — covers session plans, cluster ordering, execution sequencing decisions that aren't ADR-worthy individually but bind stream coordination)
 - **How do I run Council debate?** → `PLAYBOOK.md` Section 5 + "Council Debate Archival Protocol" subsection
 
-## Current state (2026-04-26)
+## Current state (2026-04-27)
 <!-- scope: meta -->
 
 - Stream A complete: scope tagging live, validator enforces, hybrid ceiling delta-based
+- Stream C session 1 complete: ADR-30 (default branch = main), PLAYBOOK Repo conventions skeleton; session 2 (file naming, ADR-31) pending
 - ADRs in `docs/decisions/` + corp-monorepo
 - See LESSONS.md (scope-tagged inline per ADR-29)
 - Council debates archived (transcripts in corp-monorepo and/or docs/decisions/transcripts/, research in docs/research/)
