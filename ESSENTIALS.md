@@ -64,11 +64,6 @@ Browser chat (analysis)  →  .dev-knowledge (reference)  →  projects (executi
 - "Implement X per spec" → Claude Code (execution)
 - "What did we decide about Y?" → either, but check `.dev-knowledge` first
 
-### Section history
-<!-- scope: meta -->
-
-- v1.0 (2026-04-24) — initial. Browser=architect, Claude Code=executor, three-layer flow per ADR-28. Will refine after live use.
-
 ---
 
 ## Starting a Session
