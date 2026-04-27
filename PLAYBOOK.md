@@ -353,6 +353,8 @@ Test infrastructure scales with project size. Over-investing in test infra at Sc
 | **M** (50-500 tests) | required | ≥60% on `src/`, no untested public API | pytest unit + selective integration | `pytest -x --tb=short` |
 | **L** (500+ tests) | required | ≥80% on `src/`, comprehensive public API coverage, integration suite for critical paths | pytest unit + integration + e2e where applicable | `pytest -x --tb=short` per step + `pytest --co --collect-only` for sanity |
 
+> Coverage targets (60%/80%) are guidelines from observed practice, not enforced thresholds. See Section history note for basis.
+
 #### Reading the table
 <!-- scope: dev -->
 
@@ -723,7 +725,7 @@ Discovery → Triage → Evaluation → Decision → Implementation → Review
 - **Platform fit:** runs on Windows/PowerShell (or has portable equivalent)
 - **Cost-bounded:** trial cost <$50 OR API trial available
 
-If 4+ criteria met → proceed to Evaluation. If 3 or fewer → mark "deferred" with reason in tech-radar.
+If 4+ criteria met → proceed to Evaluation (majority-of-6 threshold; ≤3 = not worth evaluation cost). If 3 or fewer → mark "deferred" with reason in tech-radar.
 
 **Anti-pattern:** evaluating every novelty. The job of triage is saying no.
 

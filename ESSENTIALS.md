@@ -155,7 +155,7 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 
 1. Full test suite
 2. `git status` — must be clean
-3. If 3+ files changed or 2+ packages touched → `codex-review -Topic <topic>` (slash: `/review`) before merge
+3. If 3+ files changed or 2+ packages touched → `codex-review -Topic <topic>` (slash: `/review`) before merge (threshold for cross-module risk; single-file changes don't need review)
 4. CHANGELOG.md — entry if files changed
 5. **Extract lessons** — "what 2-3 things did I learn?" → append to LESSONS.md  
    Format: `### YYYY-MM-DD | [source] | [lesson] | [category] | [scope: X] | [action taken]`  
@@ -176,7 +176,7 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 - **Friday** — `/evolve` → review corrections, promote/prune rules, check trends
 - **Monthly** — Codex full-repo audit → triage flags (expect ~30% false positives) → fix CRITICAL/HIGH → re-audit → see PLAYBOOK Section 16
 
-**New tool/article/repo decision rule:** mature (>100 stars, >v1.0)? Solves a real problem? Architecture-level → Council debate. Otherwise decide in 30 seconds.
+**New tool/article/repo decision rule:** mature (>100 stars, >v1.0 — heuristics for community validation + production stability)? Solves a real problem? Architecture-level → Council debate. Otherwise decide in 30 seconds.
 
 ---
 

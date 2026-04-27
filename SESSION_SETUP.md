@@ -97,7 +97,7 @@ Pomóż mi:
 ### In both types:
 <!-- scope: hybrid -->
 - Max 2 objectives per session. Everything else is backlog.
-- When evaluating new tools: is it mature (>100 stars, >v1.0)? Does it solve a real problem? If architecture-level → Council debate.
+- When evaluating new tools: is it mature (>100 stars, >v1.0 — heuristics for community validation + production stability)? Does it solve a real problem? If architecture-level → Council debate.
 
 ### Decision routing (programming chats):
 <!-- scope: hybrid -->
