@@ -1,6 +1,7 @@
 # Daily Essentials
 
 > Daily cheat sheet. Keep under 1 page.
+> Mission anchor: `VISION.md` (universal brain) + `ARCHITECTURE.md` (structural model). Read those once on first session of a project; this file is the day-to-day driver.
 
 ---
 
@@ -177,6 +178,8 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 - **Monthly** — Codex full-repo audit → triage flags (expect ~30% false positives) → fix CRITICAL/HIGH → re-audit → see PLAYBOOK Section 16 [L+M]
 
 **New tool/article/repo decision rule:** mature (>100 stars, >v1.0 — heuristics for community validation + production stability)? Solves a real problem? Architecture-level → Council debate. Otherwise decide in 30 seconds.
+
+**Council output convention:** Council CLI dual-writes — `ai-council/output/` (operational, transcript + `_metrics.json`) and `.dev-knowledge/docs/decisions/transcripts/` (curated, transcript only). Manual archival per PLAYBOOK §5 still applies for older debates and edge cases.
 
 ---
 

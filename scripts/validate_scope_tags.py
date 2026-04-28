@@ -35,6 +35,8 @@ IN_SCOPE_FILES = {
     "CLAUDE.md",
     "README.md",
     "LESSONS.md",
+    "VISION.md",
+    "ARCHITECTURE.md",
     "protocols/PLAYBOOK.md",
     "protocols/ESSENTIALS.md",
     "protocols/SESSION_SETUP.md",

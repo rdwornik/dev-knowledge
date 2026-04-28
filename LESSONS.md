@@ -1,13 +1,13 @@
 # Lessons Learned — Append-Only Log
 <!-- scope: hybrid -->
 
-> **Format:** Date | Source | Lesson | Category | Action taken
+> **Format:** `### YYYY-MM-DD | source | lesson | category | [scope: X] | action taken`
 > New entries go at the bottom. Never edit old entries. Never delete.
-> Last updated: 2026-03-30
+> Last updated: 2026-04-28
 
 ---
 
-> Split trigger at 50 entries (currently 61) deferred 2026-04-24. Rationale: ADR-29 [scope: X] inline field provides equivalent filtering without losing chronology. Reopen if filtering by scope proves insufficient.
+> Split trigger (when navigation by topic becomes painful) deferred 2026-04-24. Rationale: ADR-29 [scope: X] inline field provides equivalent filtering without losing chronology. Reopen if filtering by scope proves insufficient.
 
 ## Entries
 
@@ -133,31 +133,13 @@
 
 ### 2026-04-24 | stream-a-finale | Sanity-check step after any bulk change catches systematic errors — Prompt 3.5 caught 5 of 20 top-level PLAYBOOK tag mismatches | process | [scope: dev] | added sanity-check pattern to prompt template for bulk tagging operations
 
----
-Date: 2026-04-21
-Source: .dev-knowledge audit + Council #27 session
-Lesson: Session wyprodukowała 4 process-level lessons about (a) handoff content granularity — WHAT vs HOW-level detail, (b) browser-chat-as-tutor anti-pattern (proactive session transitions violate PLAYBOOK S8), (c) scope creep flagging — real-time detection zamiast post-hoc, (d) decision fatigue predictability at >3h / >3 decisions. See handoff 2026-04-21-dev-knowledge-architecture-redefinition.md for detail and generative rule candidates.
-Category: process | meta
-Action: Lessons 1, 2, 4 mają generative rule candidates — promote to PLAYBOOK/HANDOFF_PROCESS.md przy drugim powtórzeniu pattern (per feedback loop rule). Lesson 3 = specific-case observation.
----
+### 2026-04-21 | .dev-knowledge audit + Council #27 session | Session wyprodukowała 4 process-level lessons about (a) handoff content granularity — WHAT vs HOW-level detail, (b) browser-chat-as-tutor anti-pattern (proactive session transitions violate PLAYBOOK S8), (c) scope creep flagging — real-time detection zamiast post-hoc, (d) decision fatigue predictability at >3h / >3 decisions. See handoff 2026-04-21-dev-knowledge-architecture-redefinition.md for detail and generative rule candidates. | process / meta | [scope: unknown] | Lessons 1, 2, 4 mają generative rule candidates — promote to PLAYBOOK/HANDOFF_PROCESS.md przy drugim powtórzeniu pattern (per feedback loop rule). Lesson 3 = specific-case observation.
 
----
-Date: 2026-04-24
-Source: repo hygiene session (handoff/ → handoff-prompts/ rename)
-Lesson: Renames that create basename collisions with in-scope files expose validator path-handling assumptions. When validator uses basename lookups (rather than full-path), a file with the same name in a skipped directory can spoof in-scope file's HEAD content, corrupting ratio calculations. Fix: validators should match on full path + ensure is_in_scope() guard before substituting staged content.
-[scope: dev]
+### 2026-04-24 | repo hygiene session (handoff/ → handoff-prompts/ rename) | Renames that create basename collisions with in-scope files expose validator path-handling assumptions. When validator uses basename lookups (rather than full-path), a file with the same name in a skipped directory can spoof in-scope file's HEAD content, corrupting ratio calculations. Fix: validators should match on full path + ensure is_in_scope() guard before substituting staged content. | [unknown] | [scope: dev] | [unknown]
 
----
-Date: 2026-04-24
-Source: repo hygiene session (README.md rewrite)
-Lesson: File-level scope tag (placed under H1) causes validator to count all sections as 1 for ratio purposes, shrinking denominator and triggering false regressions when the file's headers are counted separately. Prefer per-section tags (each H2 tagged individually) over file-level tag for repos with ratio-based enforcement. File-level tag remains appropriate for append-only logs (LESSONS.md) where section count is not meaningful.
-[scope: dev]
+### 2026-04-24 | repo hygiene session (README.md rewrite) | File-level scope tag (placed under H1) causes validator to count all sections as 1 for ratio purposes, shrinking denominator and triggering false regressions when the file's headers are counted separately. Prefer per-section tags (each H2 tagged individually) over file-level tag for repos with ratio-based enforcement. File-level tag remains appropriate for append-only logs (LESSONS.md) where section count is not meaningful. | [unknown] | [scope: dev] | [unknown]
 
----
-Date: 2026-04-25
-Source: Gap #1 implementation — validator vs pre-commit hook divergence
-Lesson: validate_scope_tags.py when invoked without arguments (manual sanity check) processed zero files and printed "all files pass" — a vacuous pass. Pre-commit hook correctly passes staged filenames via pass_filenames: true, so it caught missing H3 scope tags that the manual run missed. Both tools apply the same rule (H2 and H3 headings require scope tags, per H2_RE = re.compile(r"^#{2,3}\s+")); the divergence was invocation semantics, not logic. Fix: main() now falls back to scanning all in-scope files when called with no args. Governance tools that share enforcement rules must produce identical results on identical content regardless of invocation mode — "passes here, fails there" is a silent false-negative, not a tolerated difference.
-[scope: dev]
+### 2026-04-25 | Gap #1 implementation — validator vs pre-commit hook divergence | validate_scope_tags.py when invoked without arguments (manual sanity check) processed zero files and printed "all files pass" — a vacuous pass. Pre-commit hook correctly passes staged filenames via pass_filenames: true, so it caught missing H3 scope tags that the manual run missed. Both tools apply the same rule (H2 and H3 headings require scope tags, per H2_RE = re.compile(r"^#{2,3}\s+")); the divergence was invocation semantics, not logic. Fix: main() now falls back to scanning all in-scope files when called with no args. Governance tools that share enforcement rules must produce identical results on identical content regardless of invocation mode — "passes here, fails there" is a silent false-negative, not a tolerated difference. | [unknown] | [scope: dev] | main() now falls back to scanning all in-scope files when called with no args.
 
 ### 2026-04-25 | Gap #7d v1.0 drift (subagents documented as "deferred/none active" while two existed at ~/.claude/agents/) | Documentation prompts prescribing absence claims must include filesystem verification step — without it, prescription propagates assumptions that may already be false | process | [scope: meta] | counter-pattern: every absence claim in a prompt's UNDERSTAND or Step 1 must have a corresponding ls/find/grep command verifying the absence
 
@@ -182,3 +164,44 @@ Lesson: validate_scope_tags.py when invoked without arguments (manual sanity che
 ### 2026-04-27 | JOURNAL.md creation halt — third governance failure in single session (N1 hallucination, false PENDING, JOURNAL spec miss) | Before proposing artifact creation, search governance docs for existing spec with same artifact name — all three failures share root cause of operating on assumed/cached knowledge without verification. Three failures in one session is a pattern, not coincidence. | process | [scope: meta] | counter-pattern: any artifact-creation or governance-amendment prompt must explicitly grep PLAYBOOK + CLAUDE.md + audit docs for existing spec with same name before proposing creation; treat artifact name as search term, not assumption
 
 ### 2026-04-27 | Stream C session 1 final consolidation | Codex review applies to code repos only — doc-only repos (.dev-knowledge — governance markdown, no application code) skip /review even for foundational changes (multi-file governance amendments, new file creation). Triggering /review based on "scope size" or "governance importance" alone is wrong when no executable code is involved. | process | [scope: meta] | decision rule: /review required only when commit modifies executable code, scripts affecting runtime, or config altering behavior; pure markdown/governance/doc edits skip Codex
+
+### 2026-04-28 | session | Never use dates as deadlines in recommendations | meta | scope: meta | rule
+Claude must NOT introduce dates as deadlines for tasks unless Rob
+explicitly states a deadline. Past pattern: AI introduces "expires
+May 5" framing → creates false urgency → distorts prioritization.
+Time-sensitive items get flagged WITHOUT date framing — describe
+the constraint, not the calendar.
+
+### 2026-04-28 | session | Don't create new files when existing structures cover the gap | meta | scope: meta | rule
+Before creating a new markdown file, check: does JOURNAL, HANDOFF,
+ADR, or existing protocol cover this? If yes — use existing
+structure. Creating new files is breach of CLAUDE.md "Do not create
+new markdown files without checking README.md growth triggers."
+Default: extend existing, don't proliferate.
+
+### 2026-04-28 | session | Distinguish "session close" from "stream done" | meta | scope: meta | rule
+Closing a session ≠ closing a stream. After merging session
+deliverables, Claude must verify against original stream plan
+before declaring stream complete. Pattern-match to "git log clean"
+is not sufficient evidence of stream completion.
+
+### 2026-04-28 | session | Pattern-matching on conversation length is not measurement | llm | scope: llm | rule
+Trigger for context-quality flag is >40 messages WITH measurable
+degradation, not message count alone. Pre-emptive "wrap chat"
+suggestions at message 12 = anxiety pattern, not discipline.
+Measure actual quality (factual errors, lost context, drift),
+not proxy metrics.
+
+### 2026-04-28 | session | Claude Code prompts always English, no exceptions | meta | scope: meta | rule
+Personal preferences explicit: "code, commits, professional docs
+in English." Claude Code prompts ARE professional docs. Polish in
+prompts = breach. Conversational chat with Rob can be Polish;
+artifacts and prompts must be English.
+
+### 2026-04-28 | session | Distinguish triggers from limits | meta | scope: meta | rule
+Triggers (subjective signals like "hard to navigate") are not the
+same as limits (hard caps like "100 entries"). LESSONS.md has a
+trigger ("navigation pain"), not a limit. Pattern-matching trigger
+as limit = breach intent. Verify language in governance docs:
+trigger language ("when X becomes painful") not cap language
+("when X exceeds N").

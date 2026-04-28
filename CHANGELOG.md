@@ -4,6 +4,16 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-28 — Heavy audit, VISION.md + ARCHITECTURE.md, Council convention reflection
+
+**Added:**
+- `CONTRIBUTING.md` — branch/commit/validator/ADR/handoff conventions for sole-contributor workflow (df637c3, predecessor commit folded in).
+
+**Changed:**
+- Heavy audit: `VISION.md` + `ARCHITECTURE.md` added; lessons appended (6); Council output convention reflected in CLAUDE.md / ESSENTIALS.md / PLAYBOOK.md §5; PLAYBOOK §12 cap language → trigger language; framing updates in README/CLAUDE/ESSENTIALS to reflect "universal brain" mission (knowledge guardian, methodology author, auditor); LESSONS.md format normalization for 4 post-ADR-29 multi-line entries (content preserved, structure standardized); PLAYBOOK §13 stale notice on Handoff + Snapshots/reports rows; `scripts/validate_scope_tags.py` IN_SCOPE_FILES expanded with VISION.md + ARCHITECTURE.md; hybrid ratio steady at 18%.
+
+---
+
 ## 2026-04-28 — HANDOFF_PROCESS.md v2.0 rewrite (closes Stream C session 1 pending 2a)
 
 - **`protocols/HANDOFF_PROCESS.md`** rewritten end-to-end (v1.x → v2.0) as the operational counterpart of ADR-32. Replaces single-file Type A/B framing and 3-artefact decomposition with: folder-format convention, 9-section `HANDOFF.md` structure (table form), point-in-time governance copies, `manifest.json` schema v1.0, generation/resume workflows, walk-out acceptance test, legacy migration note. Adds the operational mechanics ADR-32 §6 deferred: extract-to-task protocol with hard "Defer requires explicit justification" rule. Documents ADR-32 §6 diagram errata (HANDOFF.md location: live example wins; ADR not amended — flagged for a future Council session).
