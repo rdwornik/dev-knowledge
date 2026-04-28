@@ -4,6 +4,15 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-28 — Stream C session 1: ADR-31 authority model + ADR-32 handoff format
+
+- **ADR-31** (`docs/decisions/ADR-31_authority_model.md`): formalizes `.dev-knowledge` as binding source of cross-repo prescriptions. Authority model = Prescriptive with conformance audit (1B). Enforcement: centralized out-of-band `tools/audit.py`, read-only, `repos.toml` manifest, green-baseline prerequisite (3 known violations fixed before launch). Scale M + ARCHITECTURE.md only. Content stays in PLAYBOOK + ADRs (`cross-repo/` subfolder deferred past ~10 prescriptions).
+- **ADR-32** (`docs/decisions/ADR-32_handoff_format.md`): formalizes browser/agent role split, session charter, step-verification handshake, 9-section handoff standard, folder-format convention (`contents/` + `manifest.json` + `tree.txt`), AGENTS.md as canonical cross-tool governance (Council #28). Consequences note: `protocols/HANDOFF_PROCESS.md` rewrite is a follow-up task (separate session, not yet scheduled).
+
+Source: Council debates Topics 1 and 2 (`docs/decisions/transcripts/DECISION_28_authority_model.md`, `DECISION_29_handoff_synergy.md`).
+
+---
+
 ## 2026-04-27 — Stream C session 1 bonus scope: Path B numbers cleanup
 
 Living governance docs eliminated maintenance-burden numbers per Path B principle (cached state, arbitrary thresholds drift over time when nobody updates them):
