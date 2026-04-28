@@ -4,6 +4,16 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-28 — HANDOFF_PROCESS.md v2.0 rewrite (closes Stream C session 1 pending 2a)
+
+- **`protocols/HANDOFF_PROCESS.md`** rewritten end-to-end (v1.x → v2.0) as the operational counterpart of ADR-32. Replaces single-file Type A/B framing and 3-artefact decomposition with: folder-format convention, 9-section `HANDOFF.md` structure (table form), point-in-time governance copies, `manifest.json` schema v1.0, generation/resume workflows, walk-out acceptance test, legacy migration note. Adds the operational mechanics ADR-32 §6 deferred: extract-to-task protocol with hard "Defer requires explicit justification" rule. Documents ADR-32 §6 diagram errata (HANDOFF.md location: live example wins; ADR not amended — flagged for a future Council session).
+- **Trigger expansion:** message-cap (~40), time-cap (~2h), and stop-sign signals (scope creep, topic shift, multiple unresolved follow-ups) all fire checkpoint handoffs. JOURNAL workday-close prepend documented as a *separate* artefact, not a folder handoff.
+- **`templates/HANDOFF_TEMPLATE.md`** rewritten as a 9-section fillable skeleton matching the new structure.
+- **Cross-references:** `CONTRIBUTING.md` "rewrite pending" notice removed; `PLAYBOOK.md §8` gets a stale notice pointing to HANDOFF_PROCESS.md v2.0 (substantive §8 rewrite deferred to its own session).
+- Closes Stream C session 1 final HANDOFF pending item **2a**.
+
+---
+
 ## 2026-04-28 — Stream C session 1: ADR-31 authority model + ADR-32 handoff format
 
 - **ADR-31** (`docs/decisions/ADR-31_authority_model.md`): formalizes `.dev-knowledge` as binding source of cross-repo prescriptions. Authority model = Prescriptive with conformance audit (1B). Enforcement: centralized out-of-band `tools/audit.py`, read-only, `repos.toml` manifest, green-baseline prerequisite (3 known violations fixed before launch). Scale M + ARCHITECTURE.md only. Content stays in PLAYBOOK + ADRs (`cross-repo/` subfolder deferred past ~10 prescriptions).
