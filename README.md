@@ -1,8 +1,13 @@
 # .dev-knowledge
 
-Personal operating system for LLM-augmented dev and presales work.
-Not a journal. Not an orchestrator. A reference library + governance
-for how I work with Claude (Code + browser) and other LLM tools.
+Universal LLM-driven development guide and methodology framework for
+Rob's ecosystem. Knowledge guardian, methodology author, auditor —
+absorbs lessons from individual projects, universalizes them into
+patterns, disseminates patterns back as enforceable conventions, and
+verifies child-repo conformance. Not a journal, not an orchestrator,
+not application code: a reference library + cross-repo governance
+layer. Full mission and scope in `VISION.md`; structural model in
+`ARCHITECTURE.md`.
 
 ## For whom
 <!-- scope: meta -->
@@ -34,7 +39,7 @@ reads it only when pointed (e.g. "check .dev-knowledge/protocols/PLAYBOOK.md Sec
 
 | Folder | Purpose | Read when |
 |--------|---------|-----------|
-| `(root)` | Canonical files: README, CLAUDE, CHANGELOG, JOURNAL, LESSONS, CONTRIBUTING | Daily / session start |
+| `(root)` | Canonical files: VISION, ARCHITECTURE, README, CLAUDE, CHANGELOG, JOURNAL, LESSONS, CONTRIBUTING | Daily / session start |
 | `protocols/` | Operational protocols: ESSENTIALS, PLAYBOOK, HANDOFF_PROCESS, SESSION_SETUP, ENVIRONMENT | Process reference |
 | `logs/` | Append-only logs: TOKEN-LOG | Token tracking (threshold-triggered) |
 | `config/` | Repo config: requirements-dev.txt | Tooling reference |
@@ -57,11 +62,12 @@ reads it only when pointed (e.g. "check .dev-knowledge/protocols/PLAYBOOK.md Sec
 - **Where are stream-level strategic/process decisions and session status?** → `docs/handoffs/` (most recent for active stream; dated files/folders are persistent stream archive — covers session plans, cluster ordering, execution sequencing decisions that aren't ADR-worthy individually but bind stream coordination)
 - **How do I run Council debate?** → `protocols/PLAYBOOK.md` Section 5 + "Council Debate Archival Protocol" subsection
 
-## Current state (2026-04-27)
+## Current state (2026-04-28)
 <!-- scope: meta -->
 
 - Stream A complete: scope tagging live, validator enforces, hybrid ceiling delta-based
-- Stream C session 1 complete: ADR-30 (default branch = main), PLAYBOOK Repo conventions skeleton; session 2 (file naming, ADR-31) pending
+- Stream C session 1 complete: ADR-30 (default branch = main), ADR-31 (authority model), ADR-32 (handoff format), PLAYBOOK Repo conventions skeleton; HANDOFF_PROCESS.md v2.0 lands the operational counterpart of ADR-32
+- VISION.md + ARCHITECTURE.md established 2026-04-28: universal-brain mission and structural model
 - ADRs in `docs/decisions/` + corp-monorepo
 - See LESSONS.md (scope-tagged inline per ADR-29)
 - Council debates archived (transcripts in corp-monorepo and/or docs/decisions/transcripts/, research in docs/research/)
@@ -86,6 +92,6 @@ reads it only when pointed (e.g. "check .dev-knowledge/protocols/PLAYBOOK.md Sec
 <!-- scope: meta -->
 
 - `corp-monorepo` (Scale L): own governance stack (CLAUDE.md, AGENTS.md, JOURNAL.md, docs/HANDOFF.md living doc). Some patterns shared.
-- `ai-council` (Scale M): own Python project, outputs flow to target repos per PLAYBOOK S5.N archival protocol.
-- This repo is the meta-layer: how I decide, what I learned, how sessions resume.
+- `ai-council` (Scale M): own Python project, outputs flow to target repos per PLAYBOOK S5.N archival protocol. Functions as a tool used by `.dev-knowledge` to generate architectural decisions; debate transcripts return to `.dev-knowledge/docs/decisions/transcripts/` per Council output convention.
+- This repo is the meta-layer and universal brain: how I decide, what I learned, how sessions resume — see `VISION.md` for full mission framing.
 - **Workspace coordination** (outside any single repo): `Dev/.settings/repos.toml` (repo discovery manifest for cross-repo audit) + `Dev/.settings/HUB.md` (multi-repo coordination index). Created 2026-04-27 per Topic 1 authority model + Research Meta-Repo pattern synthesis.
