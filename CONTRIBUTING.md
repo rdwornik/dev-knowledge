@@ -86,9 +86,7 @@ See ADR-27 through ADR-32 for style reference.
 
 <!-- scope: meta -->
 
-Protocol: `protocols/HANDOFF_PROCESS.md`
-
-> **Notice:** Full rewrite of HANDOFF_PROCESS.md pending (Stream C session 1, item 2a). Folder-format handoffs (one subfolder per session under `docs/handoffs/`) are now standard per ADR-32. References to legacy single-file `.md` handoffs or `handoff-prompts/` paths in that file are stale until the rewrite completes.
+Protocol: `protocols/HANDOFF_PROCESS.md` (v2.0, 2026-04-28 — folder format per ADR-32).
 
 Trigger phrase (browser chat): `wygeneruj handoff`
 Claude Code: `/session-summary`
