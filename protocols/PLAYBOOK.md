@@ -1455,6 +1455,8 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 
 Every Council debate output MUST be archived immediately after the debate completes. Skip this and the debate is effectively lost. Retroactive archive 2026-04-24 recovered 5 debates that sat in `ai-council/output/` for weeks.
 
+> **Council CLI dual-write (default since 2026-04-28).** When the Council CLI generates a debate, it writes the transcript to TWO locations simultaneously: `ai-council/output/YYYYMMDD_HHMMSS_topic.md` (operational, also includes `_metrics.json`) and `.dev-knowledge/docs/decisions/transcripts/YYYYMMDD_HHMMSS_topic.md` (curated source of truth, transcript only). When this dual-write fires, **Step 2 below is skipped** — the file already exists at the target. Steps 1 (target classification) and 3 (commit) still apply, plus optional rename to `DECISION_NN_slug.md` for narrative numbering. The manual archival path documented below remains valid for older transcripts, debates run outside the CLI, research-mode outputs, and any edge case where dual-write does not fire.
+
 **Pipeline (3 steps, ~5 min):**
 
 1. **Identify target location** within .dev-knowledge:
@@ -1464,7 +1466,7 @@ Every Council debate output MUST be archived immediately after the debate comple
      - Suffix with `-REPO` indicates decision applies elsewhere
      - Future work: mirror to that repo's transcripts/ folder
 
-2. **Copy** `ai-council/output/YYYYMMDD_HHMMSS_source.md` to target:
+2. **Copy** `ai-council/output/YYYYMMDD_HHMMSS_source.md` to target (skip if dual-write already placed the file there):
    - Decisions: `DECISION_NN_snake_case.md` (NN optional if no sequential numbering)
    - Research: `YYYY-MM-DD-kebab-case-slug.md`
    - Byte-exact copy, preserve original in ai-council/output/
@@ -1956,14 +1958,18 @@ If a client engagement generates a dev lesson, strip all client names, proprieta
 ### Migration triggers
 <!-- scope: meta -->
 
-- **20 files** in `.dev-knowledge/` → evaluate creating a dedicated Obsidian DevVault
-- **50 entries** in LESSONS.md → split into topic files
+- **`.dev-knowledge/` navigation overhead emerges** (cross-file search starts feeling slow; new files don't slot into an obvious folder) → evaluate creating a dedicated Obsidian DevVault
+- **LESSONS.md becomes hard to navigate by topic** → split into topic files
 - Rob opens Obsidian to search for dev methodology → immediate signal DevVault is needed
+
+> Triggers, not caps. See LESSONS.md 2026-04-28 entry "Distinguish triggers from limits."
 
 ---
 
 ## 13. Markdown Governance
 <!-- scope: dev -->
+
+> **STALE — Handoff and Snapshots/reports rows.** Handoff row predates folder format; see `protocols/HANDOFF_PROCESS.md` v2.0 (folder convention per ADR-32). Snapshots/reports row's "delete after 90 days" lifecycle does not match practice (audits kept indefinitely). Substantive rewrite deferred to its own session.
 
 **Every markdown file in the project falls into exactly one category.** If you're about to create a .md file and it doesn't fit any category below — it probably shouldn't exist.
 
