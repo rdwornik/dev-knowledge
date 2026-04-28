@@ -269,9 +269,9 @@ If any check fails, the handoff is rewritten (not patched mid-resume — see ADR
 - `docs/decisions/transcripts/DECISION_29_handoff_synergy.md` — Council debate behind ADR-32
 - `docs/research/2026-04-27-handoff-patterns-council-research.md`
 - `docs/research/2026-04-27-handoff-patterns-external-research.md`
-- `docs/decisions/ADR-28_three_layer_architecture.md` — Layer 1/2/3 split (handoff bridges Layer 1 sessions)
+- `docs/decisions/ADR-28_three-layer-architecture.md` — Layer 1/2/3 split (handoff bridges Layer 1 sessions)
 - `docs/decisions/ADR-31_authority_model.md` — central audit grounding
-- `docs/decisions/ADR-27_scope_tags.md` — tagging vocabulary
+- `docs/decisions/ADR-27_scope-tagging.md` — tagging vocabulary
 - `protocols/ESSENTIALS.md` § Roles — canonical browser/Claude-Code role definitions
 - `protocols/PLAYBOOK.md` § 8 (Handoff B) — predecessor description, now stale (one-line stale notice added; substantive rewrite deferred)
 - `protocols/PLAYBOOK.md` § "Handoff format spec (since 2026-04-27)" — folder layout reference

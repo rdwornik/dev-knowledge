@@ -18,6 +18,21 @@
 
 ---
 
+### 2026-04-28 | HANDOFF_PROCESS.md v2.0 rewrite
+
+**Did:**
+- Full rewrite of `protocols/HANDOFF_PROCESS.md` (v1.x → v2.0) per ADR-32. 9-section table form, folder anatomy, point-in-time copies, charter + step-verification controls, extract-to-task mechanics with defer-requires-justification rule. ~290 lines, hybrid ratio 18%. 4 commits on `feat/handoff-process-rewrite`: protocol rewrite (`b9a7486`), template update (`f21a4d9`), cross-references (`dbca501`), CHANGELOG (`b04605c`).
+- `templates/HANDOFF_TEMPLATE.md` rewritten to 9-section skeleton matching new structure.
+- `CONTRIBUTING.md` "rewrite pending" notice removed; `PLAYBOOK.md §8` got a one-line stale notice pointing to v2.0 (substantive §8 rewrite deferred to its own session).
+
+**Failed:** —
+
+**Next pending (cross-stream):**
+- **ADR-32 §6 diagram amendment.** ADR-32 §6 ASCII diagram puts `HANDOFF.md` at folder root; live first instance + PLAYBOOK + new HANDOFF_PROCESS.md v2.0 put it inside `contents/`. Live layout wins (drag-drop target). HANDOFF_PROCESS.md §4 documents this as known errata. Future Council session decides: reissue ADR-32 or accept diagram as known slip. Do NOT amend ADR-32 silently.
+- Substantive PLAYBOOK §8 rewrite (currently stub with stale notice).
+
+---
+
 ### 2026-04-28 | ADR-31 + ADR-32 formalized
 
 **Did:**
