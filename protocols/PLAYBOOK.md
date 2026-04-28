@@ -1746,6 +1746,8 @@ After archival, cross-link FROM:
 ## 8. Handing Off Between Sessions
 <!-- scope: hybrid -->
 
+> **Stale (2026-04-28).** Handoff B sub-section below describes the legacy single-code-block format. Authoritative protocol is now `protocols/HANDOFF_PROCESS.md` v2.0 (folder format per ADR-32). Substantive rewrite of this section deferred to its own session — until then, follow HANDOFF_PROCESS.md for handoff generation.
+
 **Claude Code executes. Claude.ai architects and challenges.** Three handoff scenarios exist.
 
 ### Roles
