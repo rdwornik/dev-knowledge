@@ -3,13 +3,21 @@
 ## What this project is
 <!-- scope: meta -->
 
-Living knowledge base for Rob's dev practice methodology. NOT a code project — a collection of markdown files that document how Rob works with AI-assisted development. Managed via Claude Code and VS Code.
+Universal LLM-driven development guide and methodology framework — the
+ecosystem's knowledge guardian, methodology author, and auditor. Works
+in any folder on any machine; governs all projects under `Dev/`
+(corp-monorepo, ai-council, corp-ops, corp-sca-time-automation, future
+repos). NOT a code project — a collection of markdown governance files
++ read-only validators. Managed via Claude Code and VS Code. Full
+mission in `VISION.md`; structural model in `ARCHITECTURE.md`.
 
 ## Files and their rules
 <!-- scope: meta -->
 
 | File                          | Type        | Rule                                                                                         |
 | ----------------------------- | ----------- | -------------------------------------------------------------------------------------------- |
+| `VISION.md`                   | Living      | Universal-brain mission statement. Vision/Scope changes via AI Council debate; clarifications + References conversational. |
+| `ARCHITECTURE.md`             | Living      | Structural model per ADR-28 + ADR-31. Update when layout, conventions, governance, or binding ADRs shift. |
 | `protocols/ESSENTIALS.md`     | Living      | Daily cheat sheet. Keep under 1 page. Update when workflows change.                          |
 | `protocols/SESSION_SETUP.md`  | Living      | Browser chat workflow. 5 chronological steps. Update when chat process changes.              |
 | `protocols/PLAYBOOK.md`       | Living      | Full process reference. Numbered sections (1–16) + unnumbered governance sections + appendices. Update when new processes are established. |
@@ -28,6 +36,7 @@ Living knowledge base for Rob's dev practice methodology. NOT a code project —
 - Update files when processes, config, or decisions change
 - Append lessons after sessions
 - Keep files consistent — if a process is described in PLAYBOOK, ESSENTIALS should have the summary version, not a conflicting one
+- Verify against VISION.md Lifecycle: stream backlog reflects in-scope items; JOURNAL traces work to VISION goals; CHANGELOG describes movement toward VISION; ADRs implement VISION decisions. Drift in any direction → trigger VISION review.
 - Cross-reference ~/.claude/ files (gotchas, learned-rules, core-invariants) — they are the executable counterpart to what's documented here
 - This is a git repo. Commit after every change. Use /save or commit manually.
 - .claude/rules/git-discipline.md enforces this automatically.
@@ -108,5 +117,16 @@ When updating any file here, verify:
 - #24: browser handoff = one format, "wygeneruj handoff", <100 lines, code block
 - #27: scope tag vocabulary = dev | llm | hybrid | runtime | meta; all sections tagged; hybrid ≤25% ceiling (ADR-27)
 - #28: AGENTS.md = canonical cross-tool governance (Codex, Claude Code, Cursor, Aider) per Council #28 (Stream B Gap #6 foundation)
+- Topic 1 (ADR-31): authority model = Prescriptive with conformance audit (1B); .dev-knowledge stays Scale M with one L-tier artifact (ARCHITECTURE.md)
+- Topic 2 (ADR-32): handoff format = folder-based with 9-section HANDOFF.md, point-in-time governance copies, manifest.json (HANDOFF_PROCESS.md v2.0 is the operational counterpart)
 - Trigger: when navigation overhead emerges, evaluate Obsidian DevVault migration
 - Trigger: when LESSONS.md becomes hard to navigate by topic, split into topic files
+
+### Council output convention
+<!-- scope: meta -->
+
+Council CLI dual-writes its outputs:
+- `ai-council/output/` — operational archive (transcript `.md` + `_metrics.json`)
+- `.dev-knowledge/docs/decisions/transcripts/` — curated source of truth (transcript `.md` only, no metrics)
+
+Naming: legacy `DECISION_NN_topic.md` (manual narrative numbering) coexists with new `YYYYMMDD_HHMMSS_topic.md` (CLI auto-generated). Consolidation pending — see `docs/decisions/transcripts/`.
