@@ -1,13 +1,13 @@
 # Lessons Learned — Append-Only Log
 <!-- scope: hybrid -->
 
-> **Format:** Date | Source | Lesson | Category | Action taken
+> **Format:** `### YYYY-MM-DD | source | lesson | category | [scope: X] | action taken`
 > New entries go at the bottom. Never edit old entries. Never delete.
-> Last updated: 2026-03-30
+> Last updated: 2026-04-28
 
 ---
 
-> Split trigger at 50 entries (currently 61) deferred 2026-04-24. Rationale: ADR-29 [scope: X] inline field provides equivalent filtering without losing chronology. Reopen if filtering by scope proves insufficient.
+> Split trigger (when navigation by topic becomes painful) deferred 2026-04-24. Rationale: ADR-29 [scope: X] inline field provides equivalent filtering without losing chronology. Reopen if filtering by scope proves insufficient.
 
 ## Entries
 
@@ -133,31 +133,13 @@
 
 ### 2026-04-24 | stream-a-finale | Sanity-check step after any bulk change catches systematic errors — Prompt 3.5 caught 5 of 20 top-level PLAYBOOK tag mismatches | process | [scope: dev] | added sanity-check pattern to prompt template for bulk tagging operations
 
----
-Date: 2026-04-21
-Source: .dev-knowledge audit + Council #27 session
-Lesson: Session wyprodukowała 4 process-level lessons about (a) handoff content granularity — WHAT vs HOW-level detail, (b) browser-chat-as-tutor anti-pattern (proactive session transitions violate PLAYBOOK S8), (c) scope creep flagging — real-time detection zamiast post-hoc, (d) decision fatigue predictability at >3h / >3 decisions. See handoff 2026-04-21-dev-knowledge-architecture-redefinition.md for detail and generative rule candidates.
-Category: process | meta
-Action: Lessons 1, 2, 4 mają generative rule candidates — promote to PLAYBOOK/HANDOFF_PROCESS.md przy drugim powtórzeniu pattern (per feedback loop rule). Lesson 3 = specific-case observation.
----
+### 2026-04-21 | .dev-knowledge audit + Council #27 session | Session wyprodukowała 4 process-level lessons about (a) handoff content granularity — WHAT vs HOW-level detail, (b) browser-chat-as-tutor anti-pattern (proactive session transitions violate PLAYBOOK S8), (c) scope creep flagging — real-time detection zamiast post-hoc, (d) decision fatigue predictability at >3h / >3 decisions. See handoff 2026-04-21-dev-knowledge-architecture-redefinition.md for detail and generative rule candidates. | process / meta | [scope: unknown] | Lessons 1, 2, 4 mają generative rule candidates — promote to PLAYBOOK/HANDOFF_PROCESS.md przy drugim powtórzeniu pattern (per feedback loop rule). Lesson 3 = specific-case observation.
 
----
-Date: 2026-04-24
-Source: repo hygiene session (handoff/ → handoff-prompts/ rename)
-Lesson: Renames that create basename collisions with in-scope files expose validator path-handling assumptions. When validator uses basename lookups (rather than full-path), a file with the same name in a skipped directory can spoof in-scope file's HEAD content, corrupting ratio calculations. Fix: validators should match on full path + ensure is_in_scope() guard before substituting staged content.
-[scope: dev]
+### 2026-04-24 | repo hygiene session (handoff/ → handoff-prompts/ rename) | Renames that create basename collisions with in-scope files expose validator path-handling assumptions. When validator uses basename lookups (rather than full-path), a file with the same name in a skipped directory can spoof in-scope file's HEAD content, corrupting ratio calculations. Fix: validators should match on full path + ensure is_in_scope() guard before substituting staged content. | [unknown] | [scope: dev] | [unknown]
 
----
-Date: 2026-04-24
-Source: repo hygiene session (README.md rewrite)
-Lesson: File-level scope tag (placed under H1) causes validator to count all sections as 1 for ratio purposes, shrinking denominator and triggering false regressions when the file's headers are counted separately. Prefer per-section tags (each H2 tagged individually) over file-level tag for repos with ratio-based enforcement. File-level tag remains appropriate for append-only logs (LESSONS.md) where section count is not meaningful.
-[scope: dev]
+### 2026-04-24 | repo hygiene session (README.md rewrite) | File-level scope tag (placed under H1) causes validator to count all sections as 1 for ratio purposes, shrinking denominator and triggering false regressions when the file's headers are counted separately. Prefer per-section tags (each H2 tagged individually) over file-level tag for repos with ratio-based enforcement. File-level tag remains appropriate for append-only logs (LESSONS.md) where section count is not meaningful. | [unknown] | [scope: dev] | [unknown]
 
----
-Date: 2026-04-25
-Source: Gap #1 implementation — validator vs pre-commit hook divergence
-Lesson: validate_scope_tags.py when invoked without arguments (manual sanity check) processed zero files and printed "all files pass" — a vacuous pass. Pre-commit hook correctly passes staged filenames via pass_filenames: true, so it caught missing H3 scope tags that the manual run missed. Both tools apply the same rule (H2 and H3 headings require scope tags, per H2_RE = re.compile(r"^#{2,3}\s+")); the divergence was invocation semantics, not logic. Fix: main() now falls back to scanning all in-scope files when called with no args. Governance tools that share enforcement rules must produce identical results on identical content regardless of invocation mode — "passes here, fails there" is a silent false-negative, not a tolerated difference.
-[scope: dev]
+### 2026-04-25 | Gap #1 implementation — validator vs pre-commit hook divergence | validate_scope_tags.py when invoked without arguments (manual sanity check) processed zero files and printed "all files pass" — a vacuous pass. Pre-commit hook correctly passes staged filenames via pass_filenames: true, so it caught missing H3 scope tags that the manual run missed. Both tools apply the same rule (H2 and H3 headings require scope tags, per H2_RE = re.compile(r"^#{2,3}\s+")); the divergence was invocation semantics, not logic. Fix: main() now falls back to scanning all in-scope files when called with no args. Governance tools that share enforcement rules must produce identical results on identical content regardless of invocation mode — "passes here, fails there" is a silent false-negative, not a tolerated difference. | [unknown] | [scope: dev] | main() now falls back to scanning all in-scope files when called with no args.
 
 ### 2026-04-25 | Gap #7d v1.0 drift (subagents documented as "deferred/none active" while two existed at ~/.claude/agents/) | Documentation prompts prescribing absence claims must include filesystem verification step — without it, prescription propagates assumptions that may already be false | process | [scope: meta] | counter-pattern: every absence claim in a prompt's UNDERSTAND or Step 1 must have a corresponding ls/find/grep command verifying the absence
 
