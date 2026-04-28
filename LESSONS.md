@@ -182,3 +182,44 @@ Lesson: validate_scope_tags.py when invoked without arguments (manual sanity che
 ### 2026-04-27 | JOURNAL.md creation halt — third governance failure in single session (N1 hallucination, false PENDING, JOURNAL spec miss) | Before proposing artifact creation, search governance docs for existing spec with same artifact name — all three failures share root cause of operating on assumed/cached knowledge without verification. Three failures in one session is a pattern, not coincidence. | process | [scope: meta] | counter-pattern: any artifact-creation or governance-amendment prompt must explicitly grep PLAYBOOK + CLAUDE.md + audit docs for existing spec with same name before proposing creation; treat artifact name as search term, not assumption
 
 ### 2026-04-27 | Stream C session 1 final consolidation | Codex review applies to code repos only — doc-only repos (.dev-knowledge — governance markdown, no application code) skip /review even for foundational changes (multi-file governance amendments, new file creation). Triggering /review based on "scope size" or "governance importance" alone is wrong when no executable code is involved. | process | [scope: meta] | decision rule: /review required only when commit modifies executable code, scripts affecting runtime, or config altering behavior; pure markdown/governance/doc edits skip Codex
+
+### 2026-04-28 | session | Never use dates as deadlines in recommendations | meta | scope: meta | rule
+Claude must NOT introduce dates as deadlines for tasks unless Rob
+explicitly states a deadline. Past pattern: AI introduces "expires
+May 5" framing → creates false urgency → distorts prioritization.
+Time-sensitive items get flagged WITHOUT date framing — describe
+the constraint, not the calendar.
+
+### 2026-04-28 | session | Don't create new files when existing structures cover the gap | meta | scope: meta | rule
+Before creating a new markdown file, check: does JOURNAL, HANDOFF,
+ADR, or existing protocol cover this? If yes — use existing
+structure. Creating new files is breach of CLAUDE.md "Do not create
+new markdown files without checking README.md growth triggers."
+Default: extend existing, don't proliferate.
+
+### 2026-04-28 | session | Distinguish "session close" from "stream done" | meta | scope: meta | rule
+Closing a session ≠ closing a stream. After merging session
+deliverables, Claude must verify against original stream plan
+before declaring stream complete. Pattern-match to "git log clean"
+is not sufficient evidence of stream completion.
+
+### 2026-04-28 | session | Pattern-matching on conversation length is not measurement | llm | scope: llm | rule
+Trigger for context-quality flag is >40 messages WITH measurable
+degradation, not message count alone. Pre-emptive "wrap chat"
+suggestions at message 12 = anxiety pattern, not discipline.
+Measure actual quality (factual errors, lost context, drift),
+not proxy metrics.
+
+### 2026-04-28 | session | Claude Code prompts always English, no exceptions | meta | scope: meta | rule
+Personal preferences explicit: "code, commits, professional docs
+in English." Claude Code prompts ARE professional docs. Polish in
+prompts = breach. Conversational chat with Rob can be Polish;
+artifacts and prompts must be English.
+
+### 2026-04-28 | session | Distinguish triggers from limits | meta | scope: meta | rule
+Triggers (subjective signals like "hard to navigate") are not the
+same as limits (hard caps like "100 entries"). LESSONS.md has a
+trigger ("navigation pain"), not a limit. Pattern-matching trigger
+as limit = breach intent. Verify language in governance docs:
+trigger language ("when X becomes painful") not cap language
+("when X exceeds N").
