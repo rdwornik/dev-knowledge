@@ -116,8 +116,9 @@ Handoffs for work spanning multiple repos live in `.dev-knowledge/docs/handoffs/
 - Folder format is more heavyweight than single markdown; tradeoff is determinism vs. convenience
 - Some mid-session failures (scope creep, recursive planning) require Rob's in-session discipline in addition to structural constraints
 
-**Follow-up task (not in scope for this ADR):**
+**Follow-up tasks (not in scope for this ADR):**
 - `protocols/HANDOFF_PROCESS.md` requires a full rewrite to reflect this decision. Deferred to a dedicated session. Until that rewrite, `HANDOFF_PROCESS.md` and this ADR are in partial conflict — this ADR is authoritative on decisions made; `HANDOFF_PROCESS.md` reflects prior practice.
+- Extract-to-task protocol mechanics (operational, not structural) deferred to `protocols/HANDOFF_PROCESS.md` rewrite — see Stream C session 1 HANDOFF.md pending item 2a.
 
 **Revisit triggers:**
 - One 2-week trial of strict role split + session charter + 40-message cap + folder format. Measure: resume time, browser corrections caught by Claude Code, scope-creep incidents, skipped-step incidents, subjective cognitive load.

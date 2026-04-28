@@ -30,7 +30,7 @@ Adopt **1B: Prescriptive with conformance audit**.
 Enforcement is **out-of-band, centralized, read-only**:
 
 - A manual audit tool lives in `.dev-knowledge/tools/audit.py` (or shell equivalent)
-- Reads sibling repos via explicit manifest (`repos.toml` or equivalent) — no path-guessing
+- Reads sibling repos via explicit manifest (e.g., `repos.toml`; exact filename and format determined at implementation time) — no path-guessing
 - Missing repo path emits a loud error, not a vacuous pass
 - Emits a single Markdown report (`AUDIT.md`) with ✓/❌ per repo per rule
 - Supports `<!-- audit:exempt reason=... -->` comments in target files to suppress known-false-positives; exemptions tracked in `JOURNAL.md`
