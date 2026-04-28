@@ -18,6 +18,17 @@
 
 ---
 
+### 2026-04-28 | ADR-31 + ADR-32 formalized
+
+**Did:**
+- Drafted ADR-31 (authority model) + ADR-32 (handoff format) from DECISION_28 + DECISION_29 transcripts. 4 commits on feature branch, merged clean. 2 amendments after Rob review (manifest name softened, extract-to-task follow-up pointer added).
+
+**Failed:** —
+
+**Next:** (a2) `protocols/HANDOFF_PROCESS.md` rewrite referencing ADR-32 — own session.
+
+---
+
 ### 2026-04-27 | Stream C session 1 bonus scope — audit infrastructure + Path B + Tier 3 Prompt 2 + X1 + JOURNAL backfill
 
 **Did:**
