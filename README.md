@@ -34,7 +34,7 @@ reads it only when pointed (e.g. "check .dev-knowledge/protocols/PLAYBOOK.md Sec
 
 | Folder | Purpose | Read when |
 |--------|---------|-----------|
-| `(root)` | Canonical files: README, CLAUDE, CHANGELOG, JOURNAL, LESSONS | Daily / session start |
+| `(root)` | Canonical files: README, CLAUDE, CHANGELOG, JOURNAL, LESSONS, CONTRIBUTING | Daily / session start |
 | `protocols/` | Operational protocols: ESSENTIALS, PLAYBOOK, HANDOFF_PROCESS, SESSION_SETUP, ENVIRONMENT | Process reference |
 | `logs/` | Append-only logs: TOKEN-LOG | Token tracking (threshold-triggered) |
 | `config/` | Repo config: requirements-dev.txt | Tooling reference |
