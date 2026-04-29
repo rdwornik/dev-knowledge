@@ -4,6 +4,13 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-29 — ADR-34 file naming convention (cross-repo)
+
+**Added:**
+- ADR-34 file naming convention (cross-repo) — universalization per ADR-33 pattern
+
+---
+
 ## 2026-04-28 — ADR-33 VISION.md universalization across ecosystem repos
 
 **Added:**
