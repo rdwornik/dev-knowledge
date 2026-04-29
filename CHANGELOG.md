@@ -4,6 +4,13 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-28 — ADR-33 VISION.md universalization across ecosystem repos
+
+**Added:**
+- `docs/decisions/ADR-33_vision_universalization.md` — formalizes VISION.md as mandatory for any Dev/ repo with ≥1 dependent. Two content tiers (Standard 6-section / Lite 4-section), frontmatter `tier:` field required, trigger-based enforcement (AGENTS.md read-order as baseline; auditor tool in Phase 3). Immediate cohort: ai-council + corp-monorepo. Trigger-based: corp-ops + corp-sca-time-automation by 2026-06-30. Source: Council debate `council_out_20260428_162415_*`.
+
+---
+
 ## 2026-04-28 — Heavy audit, VISION.md + ARCHITECTURE.md, Council convention reflection
 
 **Added:**
