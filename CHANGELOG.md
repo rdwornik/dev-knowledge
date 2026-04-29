@@ -7,6 +7,7 @@ Notable changes to the dev practice knowledge base.
 ## 2026-04-29 — ADR-34 file naming convention (cross-repo)
 
 **Added:**
+- ADR-35 lessons base activation (storage + retrieval + querying; promotion deferred to ADR-36)
 - ADR-34 file naming convention (cross-repo) — universalization per ADR-33 pattern
 
 ---
