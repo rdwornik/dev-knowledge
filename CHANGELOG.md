@@ -4,9 +4,10 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
-## 2026-04-30 — ADR-38 universal repo architecture baseline + ADR-37 session boundary protocol
+## 2026-04-30 — ADR-38 universal repo architecture baseline + ADR-37 session boundary protocol + ADR-36 audit tool architecture
 
 **Added:**
+- ADR-36 Audit Tool Architecture (.dev-knowledge as ecosystem auditor, 4-phase implementation)
 - ADR-38 Universal Repo Architecture Baseline (foundation for ADR-39/40/41)
 - ADR-37 Session Boundary Protocol (two-phase handoff: current state + future state overlay)
 
