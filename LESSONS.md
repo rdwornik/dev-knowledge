@@ -3,7 +3,7 @@
 
 > **Format:** `### YYYY-MM-DD | source | lesson | category | [scope: X] | action taken`
 > New entries go at the bottom. Never edit old entries. Never delete.
-> Last updated: 2026-04-28
+> Last updated: 2026-04-30
 
 ---
 
@@ -205,3 +205,15 @@ trigger ("navigation pain"), not a limit. Pattern-matching trigger
 as limit = breach intent. Verify language in governance docs:
 trigger language ("when X becomes painful") not cap language
 ("when X exceeds N").
+
+### 2026-04-30 | session-stream-c-debt | Strażnik metodologii musi sam stosować metodologię — JOURNAL/LESSONS skipped through 5 ADR cycles, surfaced only via user pushback | meta | scope: hybrid | action: formal Claude Code prompt template includes JOURNAL update + lessons promotion as mandatory final steps
+
+### 2026-04-30 | adr-37-debate | Confidence level (high/medium/low) without enforcement mechanism = decoration. Markdown cannot force compliance — enforcement belongs in template (first-message.md), not in data field | architecture | scope: dev | action: rejected confidence levels in ADR-37; pattern applies to all future field proposals — verify mechanism before adding metadata
+
+### 2026-04-30 | adr-38-debate | Scrum vocabulary for solo LLM workflow = cargo cult (9 of 12 elements <40% fidelity per Council debate). Structural insight (centralized queue, two-phase boundary) is separable from vocabulary import. Plain English captures value without ceremony tax | meta | scope: hybrid | action: when import suggested, evaluate structural value vs vocabulary tax separately
+
+### 2026-04-30 | session-pacing | "Defer requires justification" applies to Claude's own recommendations, not just to user requests. Pattern still drift-prone — required user pushback to enforce | meta | scope: hybrid | action: self-check "why not now?" before any "later" / "next session" recommendation; concrete reason required or do it now
+
+### 2026-04-30 | adr-37-design | Augment > supersede for widely-adopted artifacts. ADR-37 added top-level overlay over ADR-32 9-section structure instead of replacing — preserved existing handoffs, minimum migration friction, ADR-29 grandfathering pattern applied | architecture | scope: hybrid | action: prefer overlay/augmentation pattern when amending established structures with active usage
+
+### 2026-04-30 | adr-37-canonical | Top-level summary = authoritative operational state; detailed sections beneath = reference evidence. "Detailed Context" naming (not "Archival") — workshop floor, not museum. Solves dual-maintenance drift via explicit canonicality rule | architecture | scope: hybrid | action: when overlaying summary over detail, define canonicality explicitly in ADR
