@@ -4,9 +4,10 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
-## 2026-04-30 — ADR-39 file lifecycle governance + ADR-38 universal repo architecture baseline + ADR-37 session boundary protocol + ADR-36 audit tool architecture
+## 2026-04-30 — ADR-40 scale tier evaluation + ADR-39 file lifecycle governance + ADR-38 universal repo architecture baseline + ADR-37 session boundary protocol + ADR-36 audit tool architecture
 
 **Added:**
+- ADR-40 Scale Tier Evaluation Algorithm (logarithmic Maintainability Index pattern, 3 signals, transition procedures)
 - ADR-39 File Lifecycle Governance (universal 6-element pattern + registry of existing files)
 - ADR-36 Audit Tool Architecture (.dev-knowledge as ecosystem auditor, 4-phase implementation)
 - ADR-38 Universal Repo Architecture Baseline (foundation for ADR-39/40/41)
