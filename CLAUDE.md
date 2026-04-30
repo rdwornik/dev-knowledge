@@ -27,6 +27,7 @@ mission in `VISION.md`; structural model in `ARCHITECTURE.md`.
 | `logs/TOKEN-LOG.md`           | Append-only (newest-first) | Threshold-triggered (7-day) via /session-summary. Never edit previous entries.   |
 | `CHANGELOG.md`                | Append-only | Notable changes. New entry per session that modifies files.                                  |
 | `JOURNAL.md`                  | Append-only (newest-first) | Per-session tactical Did/Failed/Next log. Prepend at session wrap or workday close. Per PLAYBOOK Stream B Gap #4 spec. |
+| `BACKLOG.md`                  | Living      | Cross-session pending items (per ADR-41). M+ tier mandate. Update per-handoff (lightweight) + quarterly (deep groom). |
 | `README.md`                   | Living      | Triage rules and file index. Update when files are added/removed.                            |
 | `config/requirements-dev.txt` | Living      | Python dev dependencies (pre-commit, etc).                                                   |
 
@@ -119,6 +120,15 @@ When updating any file here, verify:
 - #28: AGENTS.md = canonical cross-tool governance (Codex, Claude Code, Cursor, Aider) per Council #28 (Stream B Gap #6 foundation)
 - Topic 1 (ADR-31): authority model = Prescriptive with conformance audit (1B); .dev-knowledge stays Scale M with one L-tier artifact (ARCHITECTURE.md)
 - Topic 2 (ADR-32): handoff format = folder-based with 9-section HANDOFF.md, point-in-time governance copies, manifest.json (HANDOFF_PROCESS.md v2.0 is the operational counterpart)
+- ADR-33: VISION.md universalization — mandatory at ≥1 dependent; Standard/Lite tiers; migration cohort ai-council + corp-monorepo immediate
+- ADR-34: file naming convention — per-file-type table; UPPERCASE living docs, ADR-NN_topic ADRs, YYYY-MM-DD-slug audits/handoffs
+- ADR-35: lessons base activation — push retrieval via SessionStart hook, pull via `lessons query`, DEV_KNOWLEDGE_PATH cross-repo discovery
+- ADR-36: audit tool architecture — .dev-knowledge as ecosystem auditor; 4-phase implementation plan
+- ADR-37: session boundary protocol — two-phase handoff overlay (Current State + Future State) over ADR-32 9-section structure
+- ADR-38: universal repo architecture baseline — mandatory files per tier (S/M/L); foundation for ADR-39/40/41
+- ADR-39: file lifecycle governance — 6-element pattern (purpose/trigger/owner/grooming/boundaries/enforcement); registry of all files
+- ADR-40: scale tier evaluation algorithm — logarithmic Maintainability Index pattern; 3 signals; transition procedures
+- ADR-41: cross-session backlog architecture — BACKLOG.md mandate at M+ tier; no Scrum vocabulary; split-brain prevention
 - Trigger: when navigation overhead emerges, evaluate Obsidian DevVault migration
 - Trigger: when LESSONS.md becomes hard to navigate by topic, split into topic files
 

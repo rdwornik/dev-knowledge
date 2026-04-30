@@ -9,6 +9,22 @@ Related: ADR-29 (lessons format), ADR-32 (HANDOFF_PROCESS v2.0),
          ADR-38 (universal repo architecture),
          LESSONS.md entry 2026-04-30 "session-stream-c-debt"
 
+## Amendments
+
+### 2026-04-30 — ARCHITECTURE.md registry entry correction
+
+Original ARCHITECTURE.md registry entry incorrectly described the
+file as "Three-layer technical model (foundation/core/orchestration/
+interface per ADR-26 Tach taxonomy)." This conflated two distinct
+documents: `.dev-knowledge`'s ARCHITECTURE.md (conceptual ecosystem
+3-layer model: browser chat / .dev-knowledge / projects) and
+`corp-monorepo`'s ARCHITECTURE.md (module-level Tach 4-layer taxonomy
+per its own ADR-26). Registry entry corrected to accurately reflect
+`.dev-knowledge` ARCHITECTURE.md content.
+
+Surfaced by 2026-04-30 self-audit
+(`docs/audits/2026-04-30-dev-knowledge-self-audit.md`).
+
 ## Context
 
 2026-04-30 Stream C session ratified 5 ADRs (33, 34, 35, 37, 38) but
@@ -129,7 +145,7 @@ template for future file additions.
 
 | Element | Value |
 |---|---|
-| Purpose | Three-layer technical model (foundation/core/orchestration/interface per ADR-26 Tach taxonomy). NOT process documentation, NOT decision log. |
+| Purpose | Conceptual ecosystem architecture (3-layer model: browser chat / .dev-knowledge brain / projects). NOT module-level Tach taxonomy (that lives in corp-monorepo's own ARCHITECTURE.md per its ADR-26). NOT process documentation, NOT decision log. |
 | Update trigger | Mutable. Event-triggered: on architectural ADR ratification, major refactor. |
 | Owner | Rob + Claude Code |
 | Grooming | Quarterly |

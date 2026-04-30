@@ -25,6 +25,7 @@ Upload to the new chat:
 3. Most recent handoff in `docs/handoffs/` (if any)
 4. Project-specific context (CLAUDE.md from target repo if programming)
 
+Before chartering session goals: review `BACKLOG.md` for pending items.
 First message: state objective + 1-2 goals.
 
 ## Starting a Claude Code session
@@ -39,7 +40,7 @@ reads it only when pointed (e.g. "check .dev-knowledge/protocols/PLAYBOOK.md Sec
 
 | Folder | Purpose | Read when |
 |--------|---------|-----------|
-| `(root)` | Canonical files: VISION, ARCHITECTURE, README, CLAUDE, CHANGELOG, JOURNAL, LESSONS, CONTRIBUTING | Daily / session start |
+| `(root)` | Canonical files: VISION, ARCHITECTURE, README, CLAUDE, BACKLOG, CHANGELOG, JOURNAL, LESSONS, CONTRIBUTING | Daily / session start |
 | `protocols/` | Operational protocols: ESSENTIALS, PLAYBOOK, HANDOFF_PROCESS, SESSION_SETUP, ENVIRONMENT | Process reference |
 | `logs/` | Append-only logs: TOKEN-LOG | Token tracking (threshold-triggered) |
 | `config/` | Repo config: requirements-dev.txt | Tooling reference |
