@@ -1,0 +1,65 @@
+{
+  "handoff_id": "2026-04-30-ai-council-audit-sync",
+  "type": "audit_handoff",
+  "format_version": "ADR-37 two-phase overlay on ADR-32 v2.0",
+  "enforcement": "STRONG",
+  "generated_at": "2026-04-30",
+  "auditor": ".dev-knowledge browser session (manual, audit tool P1 pending)",
+  "target_repo": {
+    "name": "ai-council",
+    "path": "C:/Users/1028120/Documents/Dev/ai-council",
+    "verified_head_sha": "c821157fcfa957bc6612c74667d70c8c9a88ef5c",
+    "verified_branch": "main",
+    "verification_timestamp": "2026-04-30T00:00:00"
+  },
+  "audit_artifacts": {
+    "discovery_pre_migration": "docs/audits/2026-04-30-ai-council-discovery.md",
+    "discovery_post_migration": "docs/audits/2026-04-30-ai-council-rediscovery.md",
+    "findings_report": "docs/audits/2026-04-30-ai-council-audit-report.md"
+  },
+  "tier_classification": {
+    "current_per_adr_40": "L",
+    "score": 0.0,
+    "score_raw_unclamped": -9.0,
+    "calibration_status": "UNDER_REVIEW",
+    "calibration_note": "All ecosystem repos clamp to L; recalibration deferred to audit tool P1 multi-repo data"
+  },
+  "actionable_findings": [
+    {
+      "id": "F-01",
+      "severity": "P1",
+      "tier_dependent": false,
+      "summary": "VISION.md absent — create per ADR-33"
+    },
+    {
+      "id": "F-02",
+      "severity": "P1",
+      "tier_dependent": false,
+      "summary": "Lessons discovery not configured — update CLAUDE.md per ADR-35"
+    }
+  ],
+  "deferred_findings": [
+    {
+      "id": "F-03",
+      "severity": "P2",
+      "reason": "tier_dependent",
+      "summary": "BACKLOG.md absent — defer until calibration"
+    },
+    {
+      "id": "F-04",
+      "severity": "P2",
+      "reason": "tier_dependent",
+      "summary": "ARCHITECTURE.md absent — defer until calibration"
+    }
+  ],
+  "informational_findings": ["F-05", "F-06", "F-07", "F-08"],
+  "relevant_decisions": [
+    "ADR-33_vision_universalization.md",
+    "ADR-35_lessons_base_activation.md",
+    "ADR-37_session_boundary_protocol.md",
+    "ADR-38_universal_repo_architecture.md",
+    "ADR-39_file_lifecycle_governance.md",
+    "ADR-40_scale_tier_evaluation.md",
+    "ADR-41_cross_session_backlog_architecture.md"
+  ]
+}
