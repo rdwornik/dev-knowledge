@@ -69,6 +69,21 @@ Forward-only, no migration of historical handoffs.
 - Phase 2 universalization rollout (ai-council + corp-monorepo immediate
   cohort)
 
+**Afternoon addendum (post-ratification work):**
+- Phase 1 validation initiated: ai-council audit Faza A1 discovery completed
+  (output `docs/audits/2026-04-30-ai-council-discovery.md`); revealed
+  ADR-38 architecture violation (flat src/, no src/ai_council/).
+  ai-council migration brief generated for browser-2 architect session.
+- ADR-40 amendment proposed (coefficient recalibration) then withdrawn —
+  observed L-classification of ai-council was symptom of non-compliance,
+  not algorithm error. Coefficients (b=12, c=8, d=15) retained pending
+  validation against compliant repo measurements.
+- `.dev-knowledge` self-audit performed (`docs/audits/2026-04-30-dev-knowledge-self-audit.md`):
+  14 registered files audited; surfaced 8 small alignment gaps + ADR-39
+  registry self-error (Tach taxonomy conflation).
+- This commit applies Tier 1+2+3 batch fixes from self-audit (stale text,
+  missing ADR refs, ADR-39 registry correction).
+
 ---
 
 ### 2026-04-28 | Heavy audit + VISION.md + ARCHITECTURE.md + Council convention reflection

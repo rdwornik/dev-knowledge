@@ -4,6 +4,15 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-30 — Phase 1 alignment fixes (self-audit Tier 1+2+3 batch)
+
+**Changed:**
+- Phase 1 alignment fixes (Tier 1+2+3): stale text in VISION/PLAYBOOK/CONTRIBUTING; missing ADR references in README/CLAUDE/VISION/ENVIRONMENT; ADR-39 ARCHITECTURE.md registry entry correction (Tach taxonomy conflation)
+- JOURNAL.md 2026-04-30 entry: addendum for afternoon post-ratification work (ai-council audit, self-audit, alignment fixes)
+- LESSONS.md: appended "prescriptive writing without verification" pattern (recurring methodology debt, 3 instances in single session)
+
+---
+
 ## 2026-04-30 — ADR-41 cross-session backlog architecture + initial BACKLOG.md seed
 
 **Added:**

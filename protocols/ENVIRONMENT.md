@@ -1,7 +1,7 @@
 # Dev Environment — Current State
 
 > **Living document.** Update when any config changes.
-> Last updated: 2026-04-27
+> Last updated: 2026-04-30
 
 ---
 
@@ -145,6 +145,7 @@ All projects live under `Dev/`. Each project has its own CLAUDE.md with architec
 | MyWork               | `C:\Users\1028120\Documents\MyWork`        |
 | API keys             | `C:\Users\1028120\Documents\.secrets\.env` |
 | SCRIPTS_ROOT env var | → Dev\                                     |
+| DEV_KNOWLEDGE_PATH   | `C:\Users\1028120\Documents\Dev\.dev-knowledge` — cross-repo lessons discovery (per ADR-35). Set in PowerShell `$PROFILE` or `~/.claude/settings.json` env block. |
 
 Project-specific paths (database locations, output dirs, exclusion zones) live in each project's CLAUDE.md.
 

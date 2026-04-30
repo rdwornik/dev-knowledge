@@ -80,13 +80,15 @@ Decisions that bind future sessions live in `docs/decisions/ADR-NN_topic.md`.
 - Minor prescription drift → amend in-place (add dated `## Amendment YYYY-MM-DD` section)
 - Intent change or reversal → new ADR or AI Council reopen
 
-See ADR-27 through ADR-32 for style reference.
+See ADR-27 through ADR-41 for style reference.
 
 ## Handoff process
 
 <!-- scope: meta -->
 
-Protocol: `protocols/HANDOFF_PROCESS.md` (v2.0, 2026-04-28 — folder format per ADR-32).
+Protocol: `protocols/HANDOFF_PROCESS.md` (v2.0, 2026-04-28 — folder format per ADR-32; ADR-37 two-phase overlay pending — P1 in BACKLOG.md).
 
 Trigger phrase (browser chat): `wygeneruj handoff`
 Claude Code: `/session-summary`
+
+`BACKLOG.md` (root): cross-session pending items per ADR-41. M+ tier mandate. Review before chartering new session.

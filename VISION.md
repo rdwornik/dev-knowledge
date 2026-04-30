@@ -1,6 +1,6 @@
 ---
 version: 1.0
-last_reviewed: 2026-04-28
+last_reviewed: 2026-04-30
 owner: Rob
 status: active
 ---
@@ -16,7 +16,8 @@ self-contained, machine-agnostic. It is the ecosystem's knowledge guardian
 and methodology author: it absorbs lessons from individual projects,
 universalizes them into patterns, and disseminates those patterns back as
 enforceable conventions. It also functions as auditor — evaluating each
-project's scale (S/M/L) and verifying correct methodology implementation.
+project's scale (S/M/L) and verifying correct methodology implementation
+(per ADR-40 scale tier evaluation).
 Think of it as the LLM-development Scrum Master for the ecosystem: it
 doesn't write code, it ensures the framework is applied consistently and
 evolves with experience.
@@ -53,7 +54,7 @@ methodology and conventions. There is **no hierarchy** in the authority
 sense — only **functional roles**: `.dev-knowledge` produces methodology;
 child repos consume and feed back lessons.
 
-**Pattern for child repos** (pending formal ADR for universalization):
+**Pattern for child repos** (per ADR-33 universalization):
 every project under `Dev/` should have its own `VISION.md` following this
 template (vision + scope + values + relationships + lifecycle + references).
 Child repo VISION files are project-specific; `.dev-knowledge` VISION is
@@ -83,8 +84,8 @@ artifacts to detect drift:
 - Drift signal: any of above contradict VISION → trigger review
 
 **Audit support:** verification mechanism implemented via `.dev-knowledge`
-auditor (Stream C audit tool — pending). Until tool exists, manual
-verification at session-close per HANDOFF_PROCESS.md.
+auditor (Stream C audit tool — pending, per ADR-36). Until tool exists,
+manual verification at session-close per HANDOFF_PROCESS.md.
 
 **Vision realized:** when current Vision becomes current state, archive
 as `docs/archive/VISION_v{N}_realized_YYYY-MM-DD.md` and propose next
@@ -101,4 +102,6 @@ edit for clarifications and References section.
 - `README.md` — current capability + file index
 - `JOURNAL.md` — session-by-session activity history
 - `CHANGELOG.md` — notable changes timeline
+- `BACKLOG.md` — cross-session pending items (per ADR-41)
+- `CONTRIBUTING.md` — branch/commit/validator conventions
 - `docs/decisions/` — architectural decisions (ADRs + transcripts)
