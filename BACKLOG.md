@@ -3,7 +3,7 @@
 Cross-session pending items across active streams. See ADR-41 for
 schema and grooming cadence.
 
-Last full grooming: 2026-04-30 (Phase 1 closure — added Phase 1 validation P1)
+Last full grooming: 2026-04-30 (Phase 1 closure + self-audit followups)
 Next quarterly grooming: 2026-07-01
 
 ---
@@ -19,10 +19,17 @@ Next quarterly grooming: 2026-07-01
 ## Stream C: .dev-knowledge governance
 
 ### [P1] [open] HANDOFF_PROCESS + HANDOFF_TEMPLATE + first-message.md updates
-- **What:** Update process docs to reflect ADR-37 (two-phase) + ADR-41 (BACKLOG) integration; deprecate ADR-32 §4 in favor of BACKLOG reference
+- **What:** Update process docs to reflect ADR-37 (two-phase) + ADR-41 (BACKLOG) integration; deprecate ADR-32 §4 in favor of BACKLOG reference. Includes SESSION_SETUP.md updates: BACKLOG review step at session start (per ADR-41 enforcement), audit tool trigger guidance (per ADR-36), JOURNAL update step at handoff generation (per ADR-39 enforcement requirement).
 - **Why:** ADR-37 and ADR-41 ratified but templates still v2.0; need v3.0 reflecting overlay + backlog enforcement
 - **Vision ref:** VISION.md "Methodology Author" function
 - **Added:** 2026-04-30 by rob (Phase 1 closure session)
+- **Status:** open
+
+### [P1] [open] PLAYBOOK content additions for ADRs 36/37/40/41
+- **What:** Add PLAYBOOK.md sections for ADR-36 (audit tool usage workflow), ADR-37 (two-phase handoff format guidance), ADR-40 (tier transition procedures S→M and M→L), ADR-41 (BACKLOG grooming workflow per-handoff and quarterly cadence). Update PLAYBOOK header version/date to reflect content amendments.
+- **Why:** PLAYBOOK lifecycle (per ADR-39) update trigger is "ADR ratification adding/changing process." 4 ADRs ratified 2026-04-30 add/change process; PLAYBOOK currently mentions only ADR-33/34. Methodology debt.
+- **Vision ref:** VISION.md "Methodology Author" function
+- **Added:** 2026-04-30 by rob (Phase 1 self-audit)
 - **Status:** open
 
 ### [P1] [open] Audit tool P1 implementation
@@ -38,10 +45,10 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-04-30 by rob
 - **Status:** open
 
-### [P2] [open] PLAYBOOK update — tier transition procedures
-- **What:** Add tier transition procedures section to PLAYBOOK.md per ADR-40 decisions (S→M, M→L procedures, audit checks, timelines)
-- **Why:** Procedures codified in ADR-40 but operational doc (PLAYBOOK) not yet updated
-- **Added:** 2026-04-30 by rob
+### [P2] [open] ESSENTIALS.md cheat-sheet additions for ADRs 35-41
+- **What:** Review which of ADRs 35-41 warrant high-leverage cheat-sheet rules in ESSENTIALS.md. Candidates: lessons retrieval shortcut (ADR-35), audit tool trigger conditions (ADR-36), two-phase handoff quick reference (ADR-37), tier evaluation signals (ADR-40), BACKLOG grooming cadence rules (ADR-41). Apply ESSENTIALS.md "Keep under 1 page" constraint — judgment call which warrant inclusion.
+- **Why:** ESSENTIALS lifecycle update trigger is "lessons promotion, methodology change." Significant methodology change occurred 2026-04-30. Audit observed 226 lines (already over "1 page") so additions require pruning OR explicit relaxation of constraint.
+- **Added:** 2026-04-30 by rob (Phase 1 self-audit)
 - **Status:** open
 
 ### [P3] [open] Council CLI dual-write trigger logic
@@ -54,6 +61,12 @@ Next quarterly grooming: 2026-07-01
 - **What:** Amend ADR-39 registry to add BACKLOG.md entry per ADR-41
 - **Why:** Lifecycle compliance per ADR-39; deferred to grouped amendment to minimize ADR churn
 - **Added:** 2026-04-30 by rob
+- **Status:** open
+
+### [P3] [open] ADR-39 registry decision — 5 unregistered template files
+- **What:** Decide whether `templates/AGENTS-md-template.md`, `templates/CLAUDE-md-template.md`, `templates/codex-review-config-template.md`, `templates/prompt-template.md`, plus any other template-category files require ADR-39 registry entries. Options: (a) add registry entries with template-specific lifecycle; (b) formally exclude templates as a class via ADR-39 amendment ("template files exempt from registry"); (c) hybrid — register only stable templates, exclude transient. Decision required because ADR-39 says "every file in .dev-knowledge MUST have 6 lifecycle elements."
+- **Why:** Audit surfaced unregistered files. Either we extend registry or formally narrow scope. Drift risk if neither.
+- **Added:** 2026-04-30 by rob (Phase 1 self-audit)
 - **Status:** open
 
 ## Stream D: corp-sca-time-automation
