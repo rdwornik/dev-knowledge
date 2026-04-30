@@ -4,6 +4,13 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-30 — ADR-37 session boundary protocol (two-phase handoff)
+
+**Added:**
+- ADR-37 Session Boundary Protocol (two-phase handoff: current state + future state overlay)
+
+---
+
 ## 2026-04-29 — ADR-34 file naming convention (cross-repo)
 
 **Added:**
