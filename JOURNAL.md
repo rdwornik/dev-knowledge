@@ -18,6 +18,59 @@
 
 ---
 
+### 2026-04-30 — Stream C session 6
+
+**Did:**
+
+#### ADR-33 ratified — VISION.md universalization
+Trigger-based mandate (≥1 dependent), two-tier content (Standard/Lite),
+child repo VISION.md required, hybrid enforcement (passive AGENTS.md
+note + auditor primary). Migration cohort: ai-council + corp-monorepo
+immediate; corp-ops + corp-sca-time-automation trigger-based by
+2026-06-30.
+
+#### ADR-34 ratified — File naming convention (cross-repo)
+No universal master rule, table per file type. Living docs UPPERCASE,
+Protocols UPPERCASE_WITH_UNDERSCORES, ADRs ADR-NN_topic_underscores,
+Council transcripts council_out_YYYYMMDD_HHMMSS_*, audits/handoffs
+YYYY-MM-DD-topic-dashes, templates kebab-case, configs kebab-case.yaml.
+Hybrid enforcement (passive + future auditor).
+
+#### ADR-35 ratified — Lessons base activation
+Storage + retrieval + querying. LESSONS.md remains canonical narrative
++ derived lessons-index.json. Push retrieval (SessionStart hook,
+scope+recency filter, 60 days). Pull querying (`lessons query`).
+Bidirectional pipeline: corrections.jsonl → LESSONS.md → lessons-index
++ ~/.claude/rules/. Cross-repo discovery via DEV_KNOWLEDGE_PATH env
+var + walk-up fallback. Promotion automation deferred.
+
+#### ADR-37 ratified — Session Boundary Protocol (two-phase handoff)
+Augments ADR-32. Top-level `## Current State` + `## Future State` over
+existing 9-section structure (renamed to `## Detailed Context`).
+Type-dependent mandate: audit handoffs STRONG, session handoffs MEDIUM
+with explicit "undetermined" justification (cognitive exhaustion /
+scope mismatch / dependency unresolved). Two-layer drift mitigation:
+Browser 2 validation + Browser 1 instrumentation (timestamp + commit
+SHA). Confidence level dropped (no enforcement mechanism = decoration).
+Forward-only, no migration of historical handoffs.
+
+**Failed:**
+- Methodology debt surfaced: JOURNAL.md not updated, LESSONS.md not
+  appended, BACKLOG.md proposed without verifying existing files already
+  cover function. Strażnik łamiący metodologię. Cleanup before resuming
+  Phase 1 closure (ADR-36 audit tool, ADR-38 backlog re-evaluation).
+
+**Next pending:**
+- ADR-38 (Cross-Session Backlog Architecture) — paused for re-evaluation
+  after JOURNAL + LESSONS cleanup
+- ADR-36 (Audit Tool Architecture) — Council debates done, draft pending
+- HANDOFF_PROCESS / HANDOFF_TEMPLATE / first-message.md updates reflecting
+  ADR-37 overlay (separate session)
+- Phase 2 universalization rollout (ai-council + corp-monorepo immediate
+  cohort)
+
+---
+
 ### 2026-04-28 | Heavy audit + VISION.md + ARCHITECTURE.md + Council convention reflection
 
 **Did:**
