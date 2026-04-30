@@ -4,9 +4,10 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
-## 2026-04-30 — ADR-37 session boundary protocol (two-phase handoff)
+## 2026-04-30 — ADR-38 universal repo architecture baseline + ADR-37 session boundary protocol
 
 **Added:**
+- ADR-38 Universal Repo Architecture Baseline (foundation for ADR-39/40/41)
 - ADR-37 Session Boundary Protocol (two-phase handoff: current state + future state overlay)
 
 ---
