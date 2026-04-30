@@ -3,7 +3,7 @@
 Cross-session pending items across active streams. See ADR-41 for
 schema and grooming cadence.
 
-Last full grooming: 2026-04-30 (Phase 1 closure + self-audit followups)
+Last full grooming: 2026-04-30 (Phase 1 closure + self-audit + ai-council audit closure)
 Next quarterly grooming: 2026-07-01
 
 ---
@@ -93,6 +93,13 @@ Next quarterly grooming: 2026-07-01
 - **What:** Update VISION.md frontmatter `tier:` field across all repos per ADR-40 calibration baseline (corp-ops=S, ai-council=M, corp-monorepo=L, etc.)
 - **Why:** Operationalizes ADR-40 algorithm; declared tier vs computed tier comparison enables audit findings
 - **Added:** 2026-04-30 by rob
+- **Status:** open
+
+### [P2] [open] Council research — relative repo complexity evaluation in solo dev / LLM workflows
+- **What:** Council research debate. Question: how do professionals evaluate repo complexity at relative scale (small/medium/large) in solo dev and LLM-driven workflows? Current ADR-40 algorithm (logarithmic Maintainability Index pattern) may embed enterprise-scale assumptions inappropriate for 1-person ecosystem. Surface industry practice — surveys, blog posts, indie hacker conventions, monorepo tools' tier definitions for personal vs team scale. Plus philosophical framing: at what point does a small project become medium, medium become large, when complexity grows logarithmically? Output informs ADR-40 amendment alongside audit tool P1 multi-repo data collection.
+- **Why:** All ecosystem repos currently classify L per ADR-40 (calibration concern surfaced 2026-04-30 ai-council audit, finding F-08). Research before amendment ensures evidence-based decision rather than gut-feel coefficient adjustment. Dependency: pair with audit tool P1 multi-repo data; both inform ADR-40 amendment.
+- **Vision ref:** VISION.md "Methodology Author" + "Auditor" functions
+- **Added:** 2026-04-30 by rob (ai-council audit Faza A2 closure)
 - **Status:** open
 
 ### [P3] [open] Cross-repo audit (Phase 3)
