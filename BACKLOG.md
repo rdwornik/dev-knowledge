@@ -3,7 +3,7 @@
 Cross-session pending items across active streams. See ADR-41 for
 schema and grooming cadence.
 
-Last full grooming: 2026-04-30 (initial seed)
+Last full grooming: 2026-04-30 (Phase 1 closure — added Phase 1 validation P1)
 Next quarterly grooming: 2026-07-01
 
 ---
@@ -61,6 +61,13 @@ Next quarterly grooming: 2026-07-01
 (no items currently — trigger-based migration per ADR-33)
 
 ## Cross-stream / Ecosystem
+
+### [P1] [open] Phase 1 validation — audit + handoff dry-run on ai-council
+- **What:** Manual audit ai-council (per ADR-36 architecture, computing tier per ADR-40 manually since audit tool not yet implemented). Generate handoff folder per ADR-37 two-phase format. Transfer handoff to new claude.ai chat for ai-council. Evaluate: did handoff preserve methodology, model/mode/effort context, ADR awareness, BACKLOG context, two-phase Current/Future state framing? Findings inform audit tool P1 implementation and HANDOFF_PROCESS template updates.
+- **Why:** End-to-end validation of Phase 1 governance (8 ADRs ratified) before further implementation work. Without this, audit tool P1 implementation is blind to real-world gaps; HANDOFF_PROCESS template updates are theoretical. Real test of whether ratified architecture translates to working process. Gates other P1 items (audit tool implementation, template updates) — those should be informed by validation findings.
+- **Vision ref:** VISION.md "Auditor" + "Disseminator" functions
+- **Added:** 2026-04-30 by rob (Phase 1 closure session)
+- **Status:** open
 
 ### [P2] [open] Phase 2 universalization rollout
 - **What:** Apply ADR-33/34/35/37/38/39/40/41 to ai-council and corp-monorepo (immediate cohort per ADR-33)
