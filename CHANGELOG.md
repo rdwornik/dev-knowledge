@@ -4,6 +4,14 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-04-30 — ADR-41 cross-session backlog architecture + initial BACKLOG.md seed
+
+**Added:**
+- ADR-41 Cross-Session Backlog Architecture (BACKLOG.md mandate at M+ tier, no Scrum vocabulary, split-brain prevention)
+- BACKLOG.md initial seed with Stream C items
+
+---
+
 ## 2026-04-30 — ADR-40 scale tier evaluation + ADR-39 file lifecycle governance + ADR-38 universal repo architecture baseline + ADR-37 session boundary protocol + ADR-36 audit tool architecture
 
 **Added:**
