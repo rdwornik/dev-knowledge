@@ -185,19 +185,29 @@ When Rob says one of these phrases, follow ADR-42 three-stage flow per
 - "Complete handoff for {repo}" / "Stage 3 for {slug}" → Stage 3
 - "Save this response as stage 2 for {slug}" → write stage2-response.md
 
-**Three-stage flow per ADR-42 (amended — ALL types, no shortcuts):**
+**Three-actor flow per ADR-42 (twice amended — ALL types, no shortcuts):**
+
+| Actor | Role |
+|---|---|
+| Claude Code (.dev-knowledge) | Orchestrator + generator (Stages 1 + 3) |
+| OLD browser chat for {repo} | Stage 2 source: existing chat being wrapped up; provides tacit knowledge |
+| NEW browser chat for {repo} | Stage 3 receiver: fresh chat opened after folder generated; acts on directives |
+
+**Three-stage flow:**
 
 1. **Stage 1** (Claude Code): capture target repo HEAD SHA + branch + status;
    read BACKLOG for relevant items; for audit-sync also read audit reports as
    context; generate `docs/handoffs/_in_progress/{slug}/stage1-question.md`
    using `templates/HANDOFF_QUESTION_TEMPLATE.md`; append JOURNAL entry; commit.
-2. **Stage 2** (Rob manually): paste Stage 1 output into new browser-2 chat;
-   receive architect response; save as `_in_progress/{slug}/stage2-response.md`.
+2. **Stage 2** (Rob manually): paste Stage 1 output into the EXISTING (OLD)
+   browser chat for {repo} — the one being wrapped up; receive architect response
+   from that chat; save as `_in_progress/{slug}/stage2-response.md`. Stage 2
+   must NOT go to a new chat — new chat has no context to contribute.
 3. **Stage 3** (Claude Code): verify both stage1 + stage2 files present; re-verify
    HEAD SHA (drift → FLAG); read `templates/HANDOFF_FOLDER_TEMPLATE.md`; generate
    all 11 files at `docs/handoffs/{slug}/`; archive stage1+2 inputs at
    `docs/handoffs/_archive/{slug}/`; compute SHA-256; append JOURNAL + CHANGELOG;
-   commit.
+   commit. After Stage 3: OLD chat can be closed; Rob opens NEW chat with folder bundle.
 
 **State detection** (automatic based on file presence in `_in_progress/{slug}/`):
 
