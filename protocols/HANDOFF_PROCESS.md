@@ -1,17 +1,17 @@
-# HANDOFF_PROCESS v3.1
+# HANDOFF_PROCESS v3.2
 
-<!-- version: 3.1 — 2026-05-09 (afternoon + later afternoon per twice-amended ADR-42) -->
+<!-- version: 3.2 — 2026-05-09 (night per thrice-amended ADR-42) -->
 <!-- scope: meta -->
 
-Version: 3.1
-Effective: 2026-05-09 (afternoon)
-Supersedes: v3.0 (2026-05-09 morning), v2.0 (ADR-32 §4 deprecated; ADR-32 §1-§3 extended)
-Authority: ADR-42 (amended 2026-05-09 afternoon)
+Version: 3.2
+Effective: 2026-05-09 (night)
+Supersedes: v3.1 (2026-05-09 afternoon), v3.0 (2026-05-09 morning), v2.0 (ADR-32 §4 deprecated; ADR-32 §1-§3 extended)
+Authority: ADR-42 (amended 2026-05-09 night)
 
-> **Authoritative source:** `docs/decisions/ADR-42_handoff_format_v3.md`. This protocol
-> is the operational counterpart of ADR-42: structural decisions live in the ADR;
-> operational mechanics (triggers, state tracking, generation workflow, roles,
-> validation checkpoints) live here. If they conflict, ADR-42 wins.
+> **Authoritative source:** `docs/decisions/ADR-42_handoff_format_v3.md` (amended
+> through v3.2). This protocol is the operational counterpart of ADR-42: structural
+> decisions live in the ADR; operational mechanics (triggers, state tracking, generation
+> workflow, roles, validation checkpoints) live here. If they conflict, ADR-42 wins.
 
 ---
 
@@ -234,6 +234,44 @@ commit includes the populated stage2-response.md as a modified file.
 
 ---
 
+## Stage 2.5 — Q&A iteration loop (optional)
+<!-- scope: meta -->
+
+Between Stage 2 (architect response) and Stage 3 (folder generation),
+NEW chat may have clarification questions before acting on the bundle.
+Optional iteration phase — bypassed if NEW chat has no questions.
+
+**Procedure (Rob's manual step):**
+
+1. NEW chat (Browser-3) presents synthesis after reading bundle
+2. If NEW chat asks clarification questions:
+   - Format: numbered list, max 3 questions per round
+   - Rob takes to OLD chat (Stage 2 source)
+   - OLD chat answers
+   - Rob returns answers to NEW chat
+3. NEW chat updates synthesis, may have follow-up questions (round 2)
+4. Maximum 3 rounds total
+5. Each round captured in
+   `docs/handoffs/_in_progress/{slug}/stage2-amendments.md`
+
+**When to ask vs proceed:**
+- Genuine ambiguity in directives → ask
+- Missing factual context → ask
+- Synthesis paraphrase reveals misunderstanding → ask
+- Pure execution detail → proceed, flag in evidence
+
+**Maximum rounds (3) rationale:**
+- Rounds 1-2 typically sufficient
+- Round 3+ signals fundamental bundle inadequacy → restart Stage 2
+- Prevents infinite loop
+
+**Stage 3 readiness:**
+After Q&A loop closed (or skipped), NEW chat asks Rob "single prompt or
+split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
+(Rob runs prompts in Claude Code in target repo).
+
+---
+
 ## Stage 3 — Reconciliation + folder generation
 <!-- scope: hybrid -->
 
@@ -419,6 +457,19 @@ directs it to). Claude Code does NOT redesign architecture or invent session con
 
 ---
 
+## What changed v3.1 → v3.2
+<!-- scope: meta -->
+
+| Dimension | v3.1 | v3.2 |
+|---|---|---|
+| Q&A iteration | Not specified | Stage 2.5 optional phase, max 3 rounds |
+| Operator synthesis confirmation | Implicit ("confirm before proceeding") | Exact phrases: "synthesis confirmed" / "synthesis correction: [text]" |
+| 00_README content | How to use (5 steps) | Explicit 10-step operator workflow |
+| 00_first-message content | Synthesis prompt + wait | Synthesis prompt + operator response handling + Q&A loop + prompt generation protocol + continuous improvement reminder |
+| Continuous improvement | Not stated | VISION + ESSENTIALS mandate; default posture across ecosystem |
+
+---
+
 ## What changed v3.0 → v3.1
 <!-- scope: meta -->
 
@@ -453,6 +504,11 @@ directs it to). Claude Code does NOT redesign architecture or invent session con
 ## Section history
 <!-- scope: meta -->
 
+- v3.2 (2026-05-09 night) — Stage 2.5 Q&A iteration loop added (optional, max 3
+  rounds, NEW chat asks clarification questions back to OLD chat before Stage 3).
+  Operator workflow made explicit (10-step list in 00_README). Synthesis confirmation
+  phrases mandated ("synthesis confirmed" / "synthesis correction: [text]"). Continuous
+  improvement principle embedded in template specs. Authority: ADR-42 third amendment.
 - v3.1 (2026-05-09 afternoon) — Stage 2 mandatory for ALL handoff types (audit-sync
   shortcut removed per amended ADR-42). Operational state tracking via
   `_in_progress/{slug}/` directory. Trigger phrase table. Per-stage validation
