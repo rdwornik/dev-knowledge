@@ -18,6 +18,54 @@
 
 ---
 
+### 2026-05-09 — Handoff Format v3.0 implemented + ai-council handoff regenerated
+
+**Did:**
+
+#### Council research → ADR-42 ratified
+Council research debate (council_out_20260509_144836_research) surveyed
+industry patterns (LangGraph, AutoGen, Cline Memory Bank), mature-domain
+protocols (SBAR, I-PASS, SITREP), knowledge management theory (SECI,
+Diátaxis). Three providers converged on flat folder, manifest + checksums,
+5-7 question pipeline, mandatory receiver verification. Rob's refinements:
+full VISION/PLAYBOOK/ESSENTIALS as invariants, ADR essences only (not full
+copies), separate first-message.md for UX, tree.txt preserved.
+
+ADR-42 ratified implementing three-stage flow: Claude Code generates
+question prompt → Browser-2 architect provides project intelligence →
+Claude Code reconciles + generates flat 11-file folder.
+
+#### v3.0 artifacts created
+- `docs/decisions/ADR-42_handoff_format_v3.md` (commit 1)
+- `protocols/HANDOFF_PROCESS.md` rewritten v3.0 (commit 2)
+- `templates/HANDOFF_QUESTION_TEMPLATE.md` (commit 3)
+- `templates/HANDOFF_FOLDER_TEMPLATE.md` (commit 4)
+- `protocols/SESSION_SETUP.md` updated (commit 5)
+
+#### ai-council handoff regenerated
+Broken v2.0 handoff (2026-04-30-ai-council-audit-sync, 3-level nesting,
+missing VISION/PLAYBOOK) replaced with v3.0 flat 11-file structure (commit
+6). Drift flagged: config/settings.yaml modified in ai-council working tree.
+
+#### BACKLOG P1 closed
+`[P1] HANDOFF_PROCESS + HANDOFF_TEMPLATE + first-message.md updates`
+closed (commit 8).
+
+**Failed / methodology debt:**
+- v2.0 handoff (created 2026-04-30) was structurally wrong on 6 dimensions
+  (nested 3 levels, missing VISION/PLAYBOOK/ESSENTIALS, 7 full ADR copies,
+  no question pipeline, no return trip). Surfaced by Rob; corrected via
+  Council research + v3.0 implementation. Recurring "prescriptive writing
+  without verification" pattern (see LESSONS 2026-04-30 entry).
+
+**Next:**
+- Browser-2 test of regenerated ai-council handoff (validate v3.0 empirically)
+- ADR-39 amendment to register new template files (P3 BACKLOG)
+- Collect Browser-2 friction observations for v3.1 refinement
+- PLAYBOOK content additions for ADRs 36-41 (P1 BACKLOG, still open)
+
+---
+
 ### 2026-04-30 — Stream C session 6
 
 **Did:**

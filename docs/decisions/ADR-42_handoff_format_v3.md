@@ -1,0 +1,232 @@
+# ADR-42 — Handoff Format v3.0
+
+<!-- scope: meta -->
+
+Status: Accepted
+Date: 2026-05-09
+Related: ADR-32 (handoff process v2.0, partially superseded),
+         ADR-36 (audit tool architecture, read-only contract preserved),
+         ADR-37 (session boundary protocol, two-phase preserved),
+         ADR-39 (file lifecycle governance, new files registered),
+         ADR-41 (cross-session backlog architecture, BACKLOG integration),
+         transcripts council_out_20260509_144836_research_*
+
+## Context
+
+ADR-32 (HANDOFF_PROCESS v2.0) defined initial handoff format. ADR-37
+overlaid two-phase Current State / Future State. First real-world
+application — ai-council audit handoff (2026-04-30) — exposed
+fundamental issues:
+
+- Three nesting levels created friction for upload/consumption
+- 13 files exceeded research-recommended 4-8 file count
+- VISION, PLAYBOOK, ESSENTIALS NOT included → Browser-2 lacks
+  ecosystem and methodology context (silent hallucination risk)
+- 7 full ADR copies caused attention dilution
+- first-message.md separate from contents bundle confused upload UX
+- No standardized question pipeline — each handoff hand-crafted
+- No two-stage workflow — single Browser-1 (.dev-knowledge) generated
+  artifact without architect-level project intelligence
+
+Council research (2026-05-09 debate) surfaced industry patterns
+across AI agent handoffs (LangGraph, AutoGen, Cline Memory Bank),
+mature-domain protocols (SBAR, I-PASS, SITREP), knowledge
+management theory (SECI, Diátaxis), documentation systems, drift
+mitigation patterns, and ergonomic conventions.
+
+Three providers (Perplexity, Grok, Gemini) converged on:
+- Flat folder structure (1 level, 4-8 files)
+- Manifest with checksums + HEAD pin
+- 5-7 question canonical pipeline (SBAR/I-PASS/SITREP hybrid)
+- Aggressive externalization of tacit knowledge (SECI bottleneck)
+- Receiver verification (read-back) is mandatory
+- Markdown over JSON for token efficiency
+
+Rob's strategic directive: "więcej teraz, optymalizować później" —
+maximize completeness for first iterations, optimize based on
+empirical friction. Plus three-stage flow refinement: Claude Code
+in `.dev-knowledge` evaluates → generates question prompt → Rob
+takes to browser-2 → response back → Claude Code reconciles +
+generates folder.
+
+## Decision
+
+### Three-stage flow
+
+| Stage | Actor | Input | Output |
+|---|---|---|---|
+| 1 | Claude Code (.dev-knowledge) | "Make handoff for {repo}" | 01_question_for_browser.md |
+| 2 | Browser-2 (project chat) | Question prompt | Structured response markdown |
+| 3 | Claude Code (.dev-knowledge) | Response markdown | Complete handoff folder |
+
+For audit handoffs: Stage 2 implicit (audit findings substitute for
+architect intelligence). Claude Code proceeds 1→3 using audit
+report.
+
+### Storage location
+
+All handoffs in `.dev-knowledge/docs/handoffs/{date}-{slug}/` where
+slug encodes repo + type (e.g., `2026-04-30-ai-council-audit-sync`,
+`2026-05-15-corp-monorepo-feature-X-sync`).
+
+Preserves ADR-36 read-only contract — handoffs never written to
+target repos.
+
+### Folder structure (flat, ~11 files)
+
+```
+docs/handoffs/{date}-{slug}/
+├── 00_README.md                 (Rob's upload instructions)
+├── 00_first-message.md          (browser-2 first message, copy-paste)
+├── 01_MANIFEST.md               (entry point, file index, HEAD pin)
+├── 01_manifest.json             (machine-readable, SHA-256 checksums)
+├── 02_VISION.md                 (FULL .dev-knowledge VISION copy)
+├── 03_PLAYBOOK.md               (FULL .dev-knowledge PLAYBOOK copy)
+├── 04_ESSENTIALS.md             (FULL .dev-knowledge ESSENTIALS copy)
+├── 05_GOVERNANCE_ESSENCES.md    (ADR essences relevant to actions)
+├── 06_STATE_OF_PLAY.md          (current state, audit findings)
+├── 07_ACTION_PLAN.md            (goals, directives, boundaries)
+├── 08_TREE.txt                  (target repo file inventory)
+└── 09_EXECUTION_EVIDENCE.md     (return trip template)
+```
+
+11 files, single level, drag-drop ready.
+
+### Content principles
+
+**Invariants** (FULL copies, never curated):
+- VISION.md — ecosystem context
+- PLAYBOOK.md — HOW we work (preserves methodology, conversation
+  consistency)
+- ESSENTIALS.md — high-leverage rules
+
+Rationale: research consensus (SECI externalization) plus Rob's
+explicit requirement that conversational style + engineering
+principles persist across sessions.
+
+**Operational essences** (NOT full copies):
+- ADR essences in 05_GOVERNANCE_ESSENCES.md cover only ADRs whose
+  rules drive specific actions in the current handoff
+- Format: 2-3 sentence operational rule + reference to full ADR
+- Example: "ADR-33: VISION.md frontmatter must include version, tier,
+  owner, last_reviewed, scale. Required sections: Mission, Scope,
+  Methodology, Lifecycle, Relationships."
+
+**Project artifacts** (NOT included):
+- Target repo's own ADRs — Browser-2 reads in repo if relevant
+- Target repo's own VISION/PLAYBOOK/CHANGELOG — Browser-2 reads in repo
+
+### Question pipeline (Stage 1 → Stage 2)
+
+Standardized 5-question SBAR/I-PASS hybrid in HANDOFF_QUESTION_TEMPLATE:
+
+1. **OBJECTIVE** — what is the immediate goal of this transition
+2. **REALITY** — current state, dependencies, constraints
+3. **RATIONALE** — what was considered + discarded, why
+4. **DIRECTIVES** — exact sequential actions
+5. **BOUNDARIES** — what must NOT be done, fallback contingencies
+
+Plus receiver synthesis prompt embedded — Browser-2 must summarize
+understanding before acting.
+
+### Drift mitigation
+
+- 01_MANIFEST.md captures target repo HEAD SHA + branch + timestamp
+- 01_manifest.json contains SHA-256 of every file in handoff folder
+- Browser-2 first action: verify HEAD SHA matches via
+  `git rev-parse HEAD` in target repo
+- Mismatch → STOP, report drift, do not proceed
+- Stage 3 re-fetches HEAD SHA at folder generation time (handles
+  Stage 2 → Stage 3 drift)
+
+### Return trip (09_EXECUTION_EVIDENCE.md)
+
+Browser-2 / Claude Code in target repo fill out post-execution:
+- Raw stdout from commands run
+- Test results (pytest output)
+- git diffs of changes made
+- Final HEAD SHA after work
+- Failures or partial completions explicit
+
+Eliminates "Self-Correction Theatre" (Gemini insight) — next
+session uses hard evidence to verify state.
+
+### ADR-32 §4 deprecation
+
+ADR-32 §4 "Pending — next session candidates" is DEPRECATED in
+favor of:
+- BACKLOG.md as canonical pending items source (per ADR-41)
+- Handoff Future State (07_ACTION_PLAN.md) references BACKLOG
+  items, not duplicates
+
+ADR-32 §1-§3 (folder format basics) preserved but extended by ADR-42.
+
+### ADR-37 integration
+
+Two-phase Current/Future framing preserved:
+- 06_STATE_OF_PLAY.md = Current State (per ADR-37)
+- 07_ACTION_PLAN.md = Future State (per ADR-37)
+- ADR-37 enforcement levels (STRONG for audit, MEDIUM for session)
+  apply to handoff types
+
+### ADR-41 integration
+
+BACKLOG.md is canonical source of truth for pending items.
+Handoffs reference BACKLOG entries, never duplicate the queue.
+
+### Universalization
+
+- **Mandate**: `.dev-knowledge` follows v3.0 for all handoffs going
+  forward
+- **Migration**: existing v2.0 handoffs (e.g., 2026-04-30-ai-council-
+  audit-sync) regenerated using v3.0 in same session as ratification
+- **Recommendation**: child repos with own handoff needs (corp-monorepo
+  L tier) follow v3.0 pattern
+
+### Lifecycle entries (per ADR-39)
+
+New files registered in ADR-39 registry (separate amendment in
+follow-up session — for now, capture as P3 BACKLOG item):
+- HANDOFF_PROCESS.md (already registered, version bumped)
+- templates/HANDOFF_QUESTION_TEMPLATE.md (NEW)
+- templates/HANDOFF_FOLDER_TEMPLATE.md (NEW)
+
+## Consequences
+
+### Positive
+- Browser-2 receives complete methodology + ecosystem context
+  (conversation continuity preserved)
+- Single upload (zip) for handoff folder — no friction
+- Standardized 5-question pipeline replaces hand-crafted summaries
+- Drift mitigation via SHA-256 + HEAD pin
+- Three-stage flow leverages distinct strengths: Browser-1 (template
+  + ecosystem context), Browser-2 (project intelligence), Claude
+  Code (reconciliation + execution)
+- Return trip closes loop with hard evidence
+
+### Negative
+- ~11 files per handoff feels heavy (vs ad-hoc); maintenance burden
+  on Browser-1
+- Stage 2 manual step (paste back-and-forth) introduces drift window
+  Stage 2 → Stage 3
+- Full VISION/PLAYBOOK copies = larger handoff bundle (token cost,
+  per Rob's directive accepted)
+- Three-stage flow assumes Browser-2 architect available; audit
+  handoffs degenerate gracefully (Stage 2 skipped)
+
+### Follow-ups
+- ADR-39 amendment to register HANDOFF_QUESTION_TEMPLATE and
+  HANDOFF_FOLDER_TEMPLATE (P3 BACKLOG)
+- Browser-2 test of regenerated ai-council handoff (validates v3.0
+  end-to-end)
+- Empirical refinement based on Browser-2 friction observations
+- Per Rob's "more now, optimize later" directive — reduce file count
+  if real friction surfaces
+
+## References
+
+- transcripts council_out_20260509_144836_research_question-how-should-an-llm-driven-solo-developer-a.md
+- ADR-32 (handoff process v2.0)
+- ADR-37 (session boundary protocol)
+- ADR-39 (file lifecycle governance)
+- ADR-41 (cross-session backlog architecture)
