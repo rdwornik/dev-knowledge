@@ -4,6 +4,32 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-09 (later afternoon) — Handoff v3.1 semantic correction
+
+### Changed
+- ADR-42 second amendment: Stage 2 source clarified as OLD browser chat (existing,
+  being wrapped up), Stage 3 target clarified as NEW browser chat (fresh). Three-actor
+  flow table added to amendment block.
+- `protocols/HANDOFF_PROCESS.md`: 3-actor ASCII diagram added near top; Stage 2
+  section rewritten to specify OLD chat source; Stage 1 + Stage 3 report steps
+  updated with correct chat direction.
+- `templates/HANDOFF_QUESTION_TEMPLATE.md`: Rob's instructions corrected (paste into
+  OLD chat, not new); architect intro rewritten to address existing dying chat;
+  closing instructions added (OLD chat closes after Stage 3, NEW chat opens).
+- `templates/HANDOFF_FOLDER_TEMPLATE.md`: 00_README and 00_first-message content
+  guidance acknowledges fresh chat receiver context.
+- `protocols/SESSION_SETUP.md`: 3-actor table added; Stage 2 direction explicit (OLD
+  chat); Stage 3 direction explicit (NEW chat).
+- `docs/handoffs/_in_progress/2026-05-09-ai-council-audit-sync/stage1-question.md`:
+  regenerated with corrected OLD chat instructions throughout.
+
+### Added
+- LESSONS.md: `handoff-semantic-misunderstanding` entry — protocol semantics matter
+  as much as protocol mechanism; specify actor state (fresh/dying/persistent) before
+  writing process steps.
+
+---
+
 ## 2026-05-09 (afternoon) — Handoff v3.1: end-to-end implementation
 
 ### Changed
