@@ -2,8 +2,64 @@
 
 <!-- scope: meta -->
 
-Status: Accepted
+Status: Accepted (amended twice: 2026-05-09 afternoon, 2026-05-09 later afternoon)
 Date: 2026-05-09
+
+## Amendments
+
+### 2026-05-09 (afternoon) — Audit-sync shortcut removed
+
+Original ADR-42 ratification included a clause allowing Stage 2 to be
+"implicit" for audit-sync handoffs, with Claude Code substituting
+audit findings for the browser-2 architect response. This clause was
+removed.
+
+Reason: untested assumption. Audit findings provide structured audit
+results but cannot capture browser-2's tacit project knowledge —
+recent priorities, what's genuinely concerning vs cosmetic, mental
+model, competing work. Stage 2 contribution is non-substitutable.
+
+ALL handoffs (audit-sync, session-sync, feature-X-sync, etc.) now
+follow full three-stage flow.
+
+Implementation impact: the ai-council audit-sync handoff generated
+under the shortcut (2026-05-09 morning) was deleted and will be
+regenerated via proper 3-stage flow. Lessons captured in LESSONS.md.
+HANDOFF_PROCESS rewritten to v3.1 as operational counterpart.
+
+### 2026-05-09 (later afternoon) — Stage 2 source semantics clarified
+
+Earlier ADR-42 ratification and first amendment described Stage 2 as
+"browser-2 architect provides project intelligence" without specifying
+which browser session. This was ambiguous and read by Claude Code as
+"open a new chat." That reading inverts handoff purpose.
+
+Correction: Stage 2 source is the EXISTING browser chat for the target
+repo — the chat being wrapped up due to context exhaustion. The point
+of handoff is to preserve that chat's accumulated tacit knowledge
+before its context dies. A fresh chat has no context to add.
+
+**Three-actor flow (canonical):**
+
+| Actor | Role | Timing |
+|---|---|---|
+| **Claude Code in .dev-knowledge** | Orchestrator + generator | All 3 stages |
+| **OLD browser chat** for {repo} | Stage 2 source: existing chat being wrapped up. Has accumulated context. Receives Stage 1 question; produces Stage 2 response from lived knowledge. | During Stage 2 |
+| **NEW browser chat** for {repo} | Stage 3 receiver: opened AFTER Stage 3 generates final folder. Receives 11-file bundle as upload + 00_first-message.md as first message. Acts on directives; fills 09_EXECUTION_EVIDENCE.md. | After Stage 3 |
+
+If Stage 2 goes to a NEW chat: fresh chat has no context, response
+collapses to restating known audit findings, Stage 2 adds no signal.
+This is the rejected "implicit shortcut" pattern in different form.
+
+If Stage 2 goes to OLD chat: architect's lived knowledge (priorities,
+mental model, in-flight decisions, recent concerns) is captured before
+context dies. Knowledge is non-substitutable.
+
+Implementation impact: HANDOFF_PROCESS.md Stage 2 section rewritten;
+templates corrected; ai-council Stage 1 question prompt regenerated
+with corrected instructions (paste into OLD ai-council chat, not new).
+
+---
 Related: ADR-32 (handoff process v2.0, partially superseded),
          ADR-36 (audit tool architecture, read-only contract preserved),
          ADR-37 (session boundary protocol, two-phase preserved),
@@ -59,9 +115,16 @@ generates folder.
 | 2 | Browser-2 (project chat) | Question prompt | Structured response markdown |
 | 3 | Claude Code (.dev-knowledge) | Response markdown | Complete handoff folder |
 
-For audit handoffs: Stage 2 implicit (audit findings substitute for
-architect intelligence). Claude Code proceeds 1→3 using audit
-report.
+ALL handoff types follow full three-stage flow including Stage 2
+(architect response). Audit findings inform Stage 1 question
+generation but DO NOT substitute for Stage 2 — browser-2 architect
+contributes tacit project knowledge (priorities, mental model, recent
+concerns, competing work) that audit findings cannot capture.
+
+Earlier draft of ADR-42 (2026-05-09 morning) included an
+"audit-sync shortcut" allowing Claude Code to skip Stage 2 and
+proceed directly from Stage 1 to Stage 3. This shortcut was
+unjustified and removed. Lessons captured in LESSONS.md.
 
 ### Storage location
 
@@ -211,8 +274,8 @@ follow-up session — for now, capture as P3 BACKLOG item):
   Stage 2 → Stage 3
 - Full VISION/PLAYBOOK copies = larger handoff bundle (token cost,
   per Rob's directive accepted)
-- Three-stage flow assumes Browser-2 architect available; audit
-  handoffs degenerate gracefully (Stage 2 skipped)
+- Three-stage flow requires Browser-2 architect availability for all
+  handoff types; no graceful Stage 2 bypass
 
 ### Follow-ups
 - ADR-39 amendment to register HANDOFF_QUESTION_TEMPLATE and

@@ -178,22 +178,44 @@ If nothing was learned — skip this step. Not every chat produces lessons.
 ## Handoff workflow trigger
 <!-- scope: hybrid -->
 
-When Rob says "handoff for {repo}", "make handoff", or similar, follow ADR-42
-three-stage flow (see `protocols/HANDOFF_PROCESS.md` v3.0 for full mechanics):
+When Rob says one of these phrases, follow ADR-42 three-stage flow per
+`protocols/HANDOFF_PROCESS.md` v3.1:
 
-1. Read `templates/HANDOFF_QUESTION_TEMPLATE.md`
-2. Read target repo state (HEAD SHA, branch, git status)
-3. Generate Stage 1 output: customized questionnaire as `01_question_for_browser.md`
-4. **For audit-sync:** skip Stage 2, proceed to Stage 3 using audit findings as
-   substitute (audit report path from `docs/audits/`)
-5. **For session-sync / feature-X-sync:** pause — Rob carries Stage 1 output to
-   browser-2, returns with architect response. Then proceed to Stage 3.
-6. Stage 3: read `templates/HANDOFF_FOLDER_TEMPLATE.md`, generate all 11 files
-   at `.dev-knowledge/docs/handoffs/{date}-{slug}/`, compute SHA-256 checksums,
-   commit.
+- "Make handoff for {repo}" / "Make handoff for {repo}, type {type}" → Stage 1
+- "Complete handoff for {repo}" / "Stage 3 for {slug}" → Stage 3
+- "Save this response as stage 2 for {slug}" → write stage2-response.md
 
-**Drift check (Stage 3):** re-verify target repo HEAD SHA before generation. If
-drifted since Stage 1, FLAG to Rob — do not generate silently.
+**Three-actor flow per ADR-42 (twice amended — ALL types, no shortcuts):**
+
+| Actor | Role |
+|---|---|
+| Claude Code (.dev-knowledge) | Orchestrator + generator (Stages 1 + 3) |
+| OLD browser chat for {repo} | Stage 2 source: existing chat being wrapped up; provides tacit knowledge |
+| NEW browser chat for {repo} | Stage 3 receiver: fresh chat opened after folder generated; acts on directives |
+
+**Three-stage flow:**
+
+1. **Stage 1** (Claude Code): capture target repo HEAD SHA + branch + status;
+   read BACKLOG for relevant items; for audit-sync also read audit reports as
+   context; generate `docs/handoffs/_in_progress/{slug}/stage1-question.md`
+   using `templates/HANDOFF_QUESTION_TEMPLATE.md`; append JOURNAL entry; commit.
+2. **Stage 2** (Rob manually): paste Stage 1 output into the EXISTING (OLD)
+   browser chat for {repo} — the one being wrapped up; receive architect response
+   from that chat; save as `_in_progress/{slug}/stage2-response.md`. Stage 2
+   must NOT go to a new chat — new chat has no context to contribute.
+3. **Stage 3** (Claude Code): verify both stage1 + stage2 files present; re-verify
+   HEAD SHA (drift → FLAG); read `templates/HANDOFF_FOLDER_TEMPLATE.md`; generate
+   all 11 files at `docs/handoffs/{slug}/`; archive stage1+2 inputs at
+   `docs/handoffs/_archive/{slug}/`; compute SHA-256; append JOURNAL + CHANGELOG;
+   commit. After Stage 3: OLD chat can be closed; Rob opens NEW chat with folder bundle.
+
+**State detection** (automatic based on file presence in `_in_progress/{slug}/`):
+
+| Files present | Detected stage |
+|---|---|
+| None | Stage 0 → run Stage 1 |
+| stage1-question.md only | Awaiting Stage 2 → show Rob instructions |
+| stage1-question.md + stage2-response.md | Ready → run Stage 3 |
 
 ---
 

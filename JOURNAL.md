@@ -58,10 +58,11 @@ closed (commit 8).
   Council research + v3.0 implementation. Recurring "prescriptive writing
   without verification" pattern (see LESSONS 2026-04-30 entry).
 
-**Next:**
-- Browser-2 test of regenerated ai-council handoff (validate v3.0 empirically)
+**Next (updated afternoon — v3.1 supersedes v3.0 morning work):**
+- Handoff Stage 1 generated for 2026-05-09-ai-council-audit-sync
+  (HEAD c821157fcfa957bc6612c74667d70c8c9a88ef5c captured; awaiting browser-2 response)
+- After Stage 2: run "complete handoff for ai-council" to trigger Stage 3
 - ADR-39 amendment to register new template files (P3 BACKLOG)
-- Collect Browser-2 friction observations for v3.1 refinement
 - PLAYBOOK content additions for ADRs 36-41 (P1 BACKLOG, still open)
 
 ---
