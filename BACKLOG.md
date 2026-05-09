@@ -3,7 +3,7 @@
 Cross-session pending items across active streams. See ADR-41 for
 schema and grooming cadence.
 
-Last full grooming: 2026-04-30 (Phase 1 closure + self-audit + ai-council audit closure)
+Last full grooming: 2026-05-09 (P1 HANDOFF_PROCESS closed)
 Next quarterly grooming: 2026-07-01
 
 ---
@@ -18,12 +18,12 @@ Next quarterly grooming: 2026-07-01
 
 ## Stream C: .dev-knowledge governance
 
-### [P1] [open] HANDOFF_PROCESS + HANDOFF_TEMPLATE + first-message.md updates
+### [P1] [done] HANDOFF_PROCESS + HANDOFF_TEMPLATE + first-message.md updates
 - **What:** Update process docs to reflect ADR-37 (two-phase) + ADR-41 (BACKLOG) integration; deprecate ADR-32 §4 in favor of BACKLOG reference. Includes SESSION_SETUP.md updates: BACKLOG review step at session start (per ADR-41 enforcement), audit tool trigger guidance (per ADR-36), JOURNAL update step at handoff generation (per ADR-39 enforcement requirement).
 - **Why:** ADR-37 and ADR-41 ratified but templates still v2.0; need v3.0 reflecting overlay + backlog enforcement
 - **Vision ref:** VISION.md "Methodology Author" function
 - **Added:** 2026-04-30 by rob (Phase 1 closure session)
-- **Status:** open
+- **Status:** done (2026-05-09 — closed by ADR-42 ratification + v3.0 implementation; HANDOFF_PROCESS rewritten, HANDOFF_QUESTION_TEMPLATE + HANDOFF_FOLDER_TEMPLATE created, SESSION_SETUP.md updated, ai-council handoff regenerated)
 
 ### [P1] [open] PLAYBOOK content additions for ADRs 36/37/40/41
 - **What:** Add PLAYBOOK.md sections for ADR-36 (audit tool usage workflow), ADR-37 (two-phase handoff format guidance), ADR-40 (tier transition procedures S→M and M→L), ADR-41 (BACKLOG grooming workflow per-handoff and quarterly cadence). Update PLAYBOOK header version/date to reflect content amendments.
