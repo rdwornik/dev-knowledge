@@ -7,6 +7,11 @@ gathering. See ADR-42 (amended) and HANDOFF_PROCESS.md v3.1 for full flow.
 ALL handoff types (audit-sync, session-sync, feature-X-sync) use this
 template — there is no audit-sync shortcut. Stage 2 is mandatory.
 
+**Three-actor flow (per ADR-42, twice amended):**
+- Stage 2 source = OLD browser chat for {repo} (existing chat being wrapped up)
+- Stage 3 receiver = NEW browser chat for {repo} (fresh, opened after folder generated)
+- Claude Code = orchestrator throughout
+
 **Filename conventions for Rob:**
 - Stage 1 output: `docs/handoffs/_in_progress/{slug}/stage1-question.md`
 - Stage 2 response (Rob saves): `docs/handoffs/_in_progress/{slug}/stage2-response.md`
@@ -31,16 +36,26 @@ DIRECTIVES / BOUNDARIES). This allows Stage 3 to parse and populate
 
 ---
 
-## Context for Browser-2 architect
+## Context for architect (existing chat)
 
-You are the architect for **{repo}**. `.dev-knowledge` is preparing a handoff
-bundle for the next session working on {repo}. Your job: provide project-level
-intelligence that complements `.dev-knowledge`'s ecosystem-level context.
+You are the EXISTING browser chat for **{repo}**, currently being wrapped up
+because your context is getting full. Claude Code in `.dev-knowledge` is
+capturing your accumulated knowledge as a structured handoff before this chat
+closes.
 
-The next session may be: {audit | new feature | bug fix | refactor | session
-continuation}.
+Your tacit knowledge — current priorities, mental model, in-flight decisions,
+recent concerns, what's genuinely important vs cosmetic — is non-substitutable.
+`.dev-knowledge`'s audit findings (if any) provide an external view; your
+response provides the internal view that only you have.
 
-Current known state (from `.dev-knowledge` perspective):
+The handoff bundle generated from your response will be uploaded to a NEW
+(fresh) browser chat that continues work on {repo}. That new chat has zero
+history — your structured response here is what it will have.
+
+The next session will focus on: {audit | new feature | bug fix | refactor |
+session continuation}.
+
+Current known state (from `.dev-knowledge` external view):
 {brief_summary_of_what_dev_knowledge_knows}
 
 ---
@@ -103,15 +118,18 @@ Only proceed if Rob confirms the synthesis is accurate.
 
 ---
 
-**Browser-2 architect: please answer pipeline questions 1-5 above with
-project-level detail. Structure your response with section headings that
-match the 5 question names (OBJECTIVE / REALITY / RATIONALE / DIRECTIVES /
+**Existing chat architect: please answer pipeline questions 1-5 above with
+project-level detail. Structure your response with section headings matching
+the 5 question names (OBJECTIVE / REALITY / RATIONALE / DIRECTIVES /
 BOUNDARIES) so Claude Code can parse them at Stage 3.**
 
-**Rob: save browser-2's full response as:**
+**Rob: save the existing chat's full response as:**
 `docs/handoffs/_in_progress/{slug}/stage2-response.md`
 
 Then in Claude Code at `.dev-knowledge`, say:
 `"complete handoff for {repo}"` → Stage 3 generates the final handoff folder.
+
+After Stage 3: the OLD chat can be closed. Open a NEW claude.ai chat for {repo}
+and use the Stage 3 folder bundle (see 00_README.md for upload instructions).
 
 Stage 3 will verify receiver synthesis accuracy before declaring the handoff complete.
