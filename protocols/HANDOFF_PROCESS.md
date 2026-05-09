@@ -1,6 +1,6 @@
 # HANDOFF_PROCESS v3.1
 
-<!-- version: 3.1 — 2026-05-09 (afternoon rewrite per amended ADR-42) -->
+<!-- version: 3.1 — 2026-05-09 (afternoon + later afternoon per twice-amended ADR-42) -->
 <!-- scope: meta -->
 
 Version: 3.1
@@ -25,6 +25,54 @@ Implements ADR-42 three-stage flow with full Stage 2 mandate — ALL handoff typ
 A handoff transfers session state across browser chats or Claude Code sessions. All
 handoff artifacts live in `.dev-knowledge/docs/handoffs/{date}-{slug}/` — ADR-36
 read-only contract preserved (no writes to target repos).
+
+---
+
+## Three actors
+<!-- scope: meta -->
+
+```
+┌─────────────────────────────┐         ┌─────────────────────────────┐
+│  OLD browser chat for repo  │         │  NEW browser chat for repo  │
+│  (existing, dying context)  │         │  (fresh, opened after S3)   │
+│                             │         │                             │
+│  Stage 2 SOURCE             │         │  Stage 3 RECEIVER           │
+│  Architect's tacit          │         │  Acts on directives         │
+│  knowledge dump             │         │  Fills 09_EXECUTION_        │
+│  before context dies        │         │    EVIDENCE.md              │
+└──────────┬──────────────────┘         └──────────▲──────────────────┘
+           │                                        │
+           │ stage2-response.md                     │ handoff folder
+           │ (Rob copies/saves)                     │ (Rob zips + uploads)
+           ▼                                        │
+┌──────────────────────────────────────────────────┴──────┐
+│             Claude Code in .dev-knowledge                │
+│             (orchestrator + generator)                   │
+│                                                          │
+│  Stage 1: generate stage1-question.md → Rob takes to    │
+│           OLD chat to extract architect knowledge        │
+│  Stage 3: generate 11-file folder → Rob uploads to      │
+│           NEW chat to continue work                      │
+└──────────────────────────────────────────────────────────┘
+```
+
+The OLD chat is being wrapped up because its context is exhausted.
+Stage 2 captures its accumulated tacit knowledge before it dies.
+The NEW chat opens fresh with the full 11-file bundle — zero history,
+complete methodology context via VISION/PLAYBOOK/ESSENTIALS invariants.
+
+If Stage 2 goes to NEW chat: fresh chat has no context; response
+collapses to restating known audit findings. Stage 2 adds no signal —
+equivalent to the rejected audit-sync shortcut in different form.
+
+If Stage 2 goes to OLD chat: architect's lived knowledge (priorities,
+mental model, in-flight decisions, recent concerns) is captured before
+context dies. Non-substitutable.
+
+> If your repo has no OLD chat (no prior browser session), use the
+> most recent ai-council architect chat that has project context.
+> If truly no prior context exists, this may be a bootstrap, not a
+> handoff — 3-stage flow still runs but Stage 2 will be thinner.
 
 ---
 
@@ -100,7 +148,8 @@ FLAG and ask Rob: delete and restart, or proceed to Stage 3?
 12. Report to Rob:
     - Stage 1 complete
     - File created: `docs/handoffs/_in_progress/{slug}/stage1-question.md`
-    - Next: paste content into browser-2 chat for {repo}; receive response;
+    - Next: paste content into the EXISTING (OLD) browser chat for {repo}
+      — the one being wrapped up; receive response from that chat;
       save as `docs/handoffs/_in_progress/{slug}/stage2-response.md`
     - Then: say "complete handoff for {repo}" to trigger Stage 3
 
@@ -108,18 +157,23 @@ FLAG and ask Rob: delete and restart, or proceed to Stage 3?
 
 ---
 
-## Stage 2 — Architect response (Rob's manual step)
+## Stage 2 — Architect response (Rob's manual step in OLD chat)
 <!-- scope: llm -->
+
+**Source:** OLD browser chat for {repo} — the existing chat being
+wrapped up due to context exhaustion. **NOT a new chat.**
 
 **Input:** Content of `_in_progress/{slug}/stage1-question.md`
 
 **Procedure (Rob does this manually):**
 
-1. Open a NEW claude.ai chat for {repo} (browser-2)
-2. Paste the "Context for browser-2 architect" section through end of `stage1-question.md`
-   as first message
-3. Browser-2 architect answers all 5 pipeline questions (OBJECTIVE / REALITY /
-   RATIONALE / DIRECTIVES / BOUNDARIES) with project-level intelligence
+1. Open the EXISTING (OLD) browser chat for {repo} — the chat being
+   wrapped up. It holds the accumulated context being preserved.
+2. Paste the "Context for browser-2 architect" section through end of
+   `stage1-question.md` as a message in that chat.
+3. OLD chat architect answers all 5 pipeline questions (OBJECTIVE /
+   REALITY / RATIONALE / DIRECTIVES / BOUNDARIES) from lived knowledge:
+   priorities, mental model, in-flight decisions, recent concerns.
 4. Save response as `docs/handoffs/_in_progress/{slug}/stage2-response.md`:
    - Option A: Rob writes file directly (copy-paste response)
    - Option B: In Claude Code — "save this response as stage 2 for {slug}";
@@ -127,7 +181,12 @@ FLAG and ask Rob: delete and restart, or proceed to Stage 3?
 
 **Output:** `docs/handoffs/_in_progress/{slug}/stage2-response.md`
 
-No commit at this step — file is created/uncommitted until Stage 3 picks it up.
+**Critical:** Stage 2 MUST go to OLD chat. A new chat has no context;
+its response would collapse to restating audit findings — equivalent to
+the rejected shortcut. The architecture depends on tacit knowledge
+extraction from the existing session before context dies.
+
+No commit at this step — file is uncommitted until Stage 3 picks it up.
 
 ---
 
@@ -179,8 +238,12 @@ No commit at this step — file is created/uncommitted until Stage 3 picks it up
 16. Report to Rob:
     - Stage 3 complete
     - Folder: `docs/handoffs/{slug}/`
-    - Next: zip folder contents + upload to new browser-2 chat; paste `00_first-message.md`
-    - Browser-2 executes directives, fills `09_EXECUTION_EVIDENCE.md`
+    - The OLD chat (Stage 2 source) can now be closed — its knowledge
+      is preserved in the handoff bundle.
+    - Next: open a NEW claude.ai chat for {repo} (fresh start). Zip +
+      upload the folder contents to that new chat. Paste
+      `00_first-message.md` as the first message.
+    - New chat executes directives, fills `09_EXECUTION_EVIDENCE.md`
     - Return that file to `.dev-knowledge` for next session reference
 
 **Output:** `docs/handoffs/{slug}/` (11 files flat) + `docs/handoffs/_archive/{slug}/`
@@ -352,6 +415,10 @@ directs it to). Claude Code does NOT redesign architecture or invent session con
   checkpoints. JOURNAL hook per Stage 1 + Stage 3. CHANGELOG hook per Stage 3.
   BACKLOG update at Stage 3. Archive pattern: Stage 1+2 inputs at
   `docs/handoffs/_archive/{slug}/`. Drift flag reports both SHAs.
+- v3.1 update (2026-05-09 later afternoon) — Stage 2 source semantics corrected
+  per ADR-42 second amendment: Stage 2 source = OLD (existing, dying) chat;
+  Stage 3 receiver = NEW (fresh) chat. 3-actor diagram added. Stage 2 section
+  rewritten; Stage 1 + Stage 3 report steps updated with correct chat direction.
 - v3.0 (2026-05-09 morning) — full rewrite per ADR-42. Three-stage flow, flat 11-file
   structure, VISION/PLAYBOOK/ESSENTIALS as mandatory invariants, standardized 5-question
   pipeline, `09_EXECUTION_EVIDENCE.md` return trip. ADR-32 §4 deprecated in favor of
