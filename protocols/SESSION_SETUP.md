@@ -178,22 +178,34 @@ If nothing was learned — skip this step. Not every chat produces lessons.
 ## Handoff workflow trigger
 <!-- scope: hybrid -->
 
-When Rob says "handoff for {repo}", "make handoff", or similar, follow ADR-42
-three-stage flow (see `protocols/HANDOFF_PROCESS.md` v3.0 for full mechanics):
+When Rob says one of these phrases, follow ADR-42 three-stage flow per
+`protocols/HANDOFF_PROCESS.md` v3.1:
 
-1. Read `templates/HANDOFF_QUESTION_TEMPLATE.md`
-2. Read target repo state (HEAD SHA, branch, git status)
-3. Generate Stage 1 output: customized questionnaire as `01_question_for_browser.md`
-4. **For audit-sync:** skip Stage 2, proceed to Stage 3 using audit findings as
-   substitute (audit report path from `docs/audits/`)
-5. **For session-sync / feature-X-sync:** pause — Rob carries Stage 1 output to
-   browser-2, returns with architect response. Then proceed to Stage 3.
-6. Stage 3: read `templates/HANDOFF_FOLDER_TEMPLATE.md`, generate all 11 files
-   at `.dev-knowledge/docs/handoffs/{date}-{slug}/`, compute SHA-256 checksums,
+- "Make handoff for {repo}" / "Make handoff for {repo}, type {type}" → Stage 1
+- "Complete handoff for {repo}" / "Stage 3 for {slug}" → Stage 3
+- "Save this response as stage 2 for {slug}" → write stage2-response.md
+
+**Three-stage flow per ADR-42 (amended — ALL types, no shortcuts):**
+
+1. **Stage 1** (Claude Code): capture target repo HEAD SHA + branch + status;
+   read BACKLOG for relevant items; for audit-sync also read audit reports as
+   context; generate `docs/handoffs/_in_progress/{slug}/stage1-question.md`
+   using `templates/HANDOFF_QUESTION_TEMPLATE.md`; append JOURNAL entry; commit.
+2. **Stage 2** (Rob manually): paste Stage 1 output into new browser-2 chat;
+   receive architect response; save as `_in_progress/{slug}/stage2-response.md`.
+3. **Stage 3** (Claude Code): verify both stage1 + stage2 files present; re-verify
+   HEAD SHA (drift → FLAG); read `templates/HANDOFF_FOLDER_TEMPLATE.md`; generate
+   all 11 files at `docs/handoffs/{slug}/`; archive stage1+2 inputs at
+   `docs/handoffs/_archive/{slug}/`; compute SHA-256; append JOURNAL + CHANGELOG;
    commit.
 
-**Drift check (Stage 3):** re-verify target repo HEAD SHA before generation. If
-drifted since Stage 1, FLAG to Rob — do not generate silently.
+**State detection** (automatic based on file presence in `_in_progress/{slug}/`):
+
+| Files present | Detected stage |
+|---|---|
+| None | Stage 0 → run Stage 1 |
+| stage1-question.md only | Awaiting Stage 2 → show Rob instructions |
+| stage1-question.md + stage2-response.md | Ready → run Stage 3 |
 
 ---
 
