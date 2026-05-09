@@ -2,6 +2,15 @@
 
 Append /stats snapshot weekly. Never edit previous entries.
 
+## 2026-05-09 (delta: 2026-04-24 to 2026-05-09, via ccusage 18.0.11)
+Delta: 8 active days, sessions N/A (not in ccusage --json), $113.44
+Tokens in+out: 1.7M (in: 75K, out: 1.6M) — cache not counted here for comparability
+Sonnet 4.6: 82.2% (in: 48K, out: 1.3M)
+Opus 4.7: 16.0% (in: 15K, out: 255K)
+Haiku 4.5: 1.8% (in: 13K, out: 17K)
+Peak day: 2026-04-27 ($26.59)
+Rate limits hit: N/A (not available via ccusage --json)
+
 ## 2026-04-24 (delta: 2026-03-29 to 2026-04-24, via ccusage 18.0.11)
 Delta: 11 active days, 31 sessions, $190.53
 Tokens in+out: 1.8M (in: 284K, out: 1.5M) — cache not counted here for comparability
