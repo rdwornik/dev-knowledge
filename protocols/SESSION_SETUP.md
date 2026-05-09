@@ -172,3 +172,40 @@ Append to `Dev/.dev-knowledge/LESSONS.md`:
 Or ask Claude: "What were the key lessons from this chat? Format as LESSONS.md entries."
 
 If nothing was learned — skip this step. Not every chat produces lessons.
+
+---
+
+## Handoff workflow trigger
+<!-- scope: hybrid -->
+
+When Rob says "handoff for {repo}", "make handoff", or similar, follow ADR-42
+three-stage flow (see `protocols/HANDOFF_PROCESS.md` v3.0 for full mechanics):
+
+1. Read `templates/HANDOFF_QUESTION_TEMPLATE.md`
+2. Read target repo state (HEAD SHA, branch, git status)
+3. Generate Stage 1 output: customized questionnaire as `01_question_for_browser.md`
+4. **For audit-sync:** skip Stage 2, proceed to Stage 3 using audit findings as
+   substitute (audit report path from `docs/audits/`)
+5. **For session-sync / feature-X-sync:** pause — Rob carries Stage 1 output to
+   browser-2, returns with architect response. Then proceed to Stage 3.
+6. Stage 3: read `templates/HANDOFF_FOLDER_TEMPLATE.md`, generate all 11 files
+   at `.dev-knowledge/docs/handoffs/{date}-{slug}/`, compute SHA-256 checksums,
+   commit.
+
+**Drift check (Stage 3):** re-verify target repo HEAD SHA before generation. If
+drifted since Stage 1, FLAG to Rob — do not generate silently.
+
+---
+
+## BACKLOG review at session start
+<!-- scope: meta -->
+
+When starting any new Claude Code session in `.dev-knowledge` (per ADR-41):
+
+1. Read `.dev-knowledge/BACKLOG.md`
+2. Note relevant items for current work
+3. After session, append new items or update status via per-handoff grooming
+
+When starting a browser-2 session that consumes a handoff:
+- `07_ACTION_PLAN.md` references BACKLOG entry IDs for deferred items
+- Do NOT duplicate BACKLOG content into the session — cite the entry, don't copy it
