@@ -268,3 +268,18 @@ Mitigation: VISION.md updated (tier M architect judgment, scale M, full ADR-33 f
 Pattern: 15th instance today of "rules don't apply where authored without explicit verification." Generalization: any rule defined in repo X for repos Y must explicitly state whether X self-applies. Default: yes. Self-application requires documented compliance (not just the rule text existing).
 
 Plus: review-then-iterate cadence ("iterujemy do skutku") works. 4 review cycles today, each surfacing real issues single-pass generation missed. Cost: time. Benefit: artifact authority. For governance artifacts, the cost is worth it.
+
+
+### 2026-05-09 (night) | qa-loop-continuous-improvement-operator-clarity | First end-to-end NEW chat handoff test surfaced 3 deficiencies: no Q&A iteration loop, frozen-state Lifecycle wording, ambiguous operator next-step | category: methodology | scope: meta | action: handoff protocols need explicit iteration mechanism, continuous-improvement posture as default, and step-by-step operator workflow
+
+End-to-end test of v3.1 handoff for ai-council surfaced gaps invisible during template design:
+
+1. **No Q&A loop:** NEW chat receiving bundle had questions but no protocol to ask OLD chat. v3.1 assumed one-shot Stage 2; reality requires iteration. v3.2 adds Stage 2.5 Q&A loop, max 3 rounds, captured in stage2-amendments.md.
+
+2. **Frozen-state VISION:** Architect wrote "Feature-complete v1. No planned major features." for ai-council Lifecycle. This contradicts continuous improvement principle (Rob's directive: development as baseline obsession). VISION-level mandate added to .dev-knowledge VISION + ESSENTIALS. ai-council Lifecycle wording corrected in 07_ACTION_PLAN.md.
+
+3. **Operator ambiguity:** After uploading bundle and pasting first-message, Rob didn't know exact next step. "Confirm synthesis" was implicit. v3.2 mandates exact phrases: "synthesis confirmed" or "synthesis correction: [text]". Plus 10-step operator workflow in 00_README.
+
+Pattern: 16th instance of "design without empirical contact." Generalization: protocols need to be tested end-to-end with actual operators (not just designed). Each test surfaces gaps invisible to designer. Iteration cadence ("iterujemy do skutku" — Rob's directive) is the right mode for protocol design.
+
+Plus: continuous improvement principle elevated from individual project decision to ecosystem-wide value. Captured in VISION + ESSENTIALS rather than per-repo. Default posture across all child repos.
