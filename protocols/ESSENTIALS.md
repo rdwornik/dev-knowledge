@@ -24,6 +24,36 @@ Applies primarily to Browser chat analytical work; also relevant whenever Claude
 
 ---
 
+## Continuous Improvement
+<!-- scope: meta -->
+
+**Default project posture: always be improving.**
+
+- Project goal at meta level is continuous development and refinement
+- Specific session goals are immediate scope; long-term posture is always advancing
+- Static maintenance is exception, requires explicit declaration in VISION Lifecycle
+  (e.g., archived project, frozen for compliance)
+- "Feature-complete" never means "done" — means "no near-term feature additions
+  planned, but improvement continues"
+- Improvements emerge from real usage and lessons, not feature speculation
+- VISION reviewed at session boundaries; if Vision section appears realized,
+  propose next horizon (per ADR-33 lifecycle pattern)
+
+**Applied to per-repo VISION.md:**
+
+Lifecycle section MUST reflect continuous improvement posture unless explicit
+static-maintenance declaration with justification.
+
+Wrong (frozen state implied):
+> "Feature-complete v1. Active maintenance. No planned major features."
+
+Correct (continuous improvement implied):
+> "Active development with continuous improvement focus. Roadmap reviewed at
+> session boundaries — improvements emerge from real usage and lessons.
+> Static-maintenance posture is exception requiring explicit declaration."
+
+---
+
 ## Roles
 <!-- scope: meta -->
 <!-- version: 1.0 — 2026-04-24 -->
