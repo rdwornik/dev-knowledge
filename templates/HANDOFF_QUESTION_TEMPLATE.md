@@ -2,10 +2,21 @@
 
 This template is filled by Claude Code in .dev-knowledge during Stage 1.
 The customized output goes to Browser-2 architect for project intelligence
-gathering. See ADR-42 and HANDOFF_PROCESS.md v3.0 for full flow description.
+gathering. See ADR-42 (amended) and HANDOFF_PROCESS.md v3.1 for full flow.
 
-For audit-sync handoffs: Stage 2 is skipped — this template is NOT used.
-Claude Code proceeds directly to Stage 3 using audit findings as substitute.
+ALL handoff types (audit-sync, session-sync, feature-X-sync) use this
+template — there is no audit-sync shortcut. Stage 2 is mandatory.
+
+**Filename conventions for Rob:**
+- Stage 1 output: `docs/handoffs/_in_progress/{slug}/stage1-question.md`
+- Stage 2 response (Rob saves): `docs/handoffs/_in_progress/{slug}/stage2-response.md`
+- Slug format: `{YYYY-MM-DD}-{repo}-{type}` (e.g., `2026-05-09-ai-council-audit-sync`)
+
+**Expected Stage 2 response format:**
+Each of the 5 pipeline question headers below must appear in browser-2's
+response with a matching heading (OBJECTIVE / REALITY / RATIONALE /
+DIRECTIVES / BOUNDARIES). This allows Stage 3 to parse and populate
+06_STATE_OF_PLAY.md and 07_ACTION_PLAN.md deterministically.
 
 ---
 
@@ -93,5 +104,14 @@ Only proceed if Rob confirms the synthesis is accurate.
 ---
 
 **Browser-2 architect: please answer pipeline questions 1-5 above with
-project-level detail. Your response goes back to Claude Code (.dev-knowledge)
-which generates the final handoff folder (Stage 3).**
+project-level detail. Structure your response with section headings that
+match the 5 question names (OBJECTIVE / REALITY / RATIONALE / DIRECTIVES /
+BOUNDARIES) so Claude Code can parse them at Stage 3.**
+
+**Rob: save browser-2's full response as:**
+`docs/handoffs/_in_progress/{slug}/stage2-response.md`
+
+Then in Claude Code at `.dev-knowledge`, say:
+`"complete handoff for {repo}"` → Stage 3 generates the final handoff folder.
+
+Stage 3 will verify receiver synthesis accuracy before declaring the handoff complete.
