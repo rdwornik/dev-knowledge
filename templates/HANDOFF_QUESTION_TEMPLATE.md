@@ -13,15 +13,13 @@ sections that must remain visually separated for different audiences:
 The `PASTE_BOUNDARY` delimiter line makes this separation explicit. Rob selects
 from PASTE_BOUNDARY down to end of file when copying into old chat.
 
-**Note on receiver synthesis prompt:** The synthesis prompt (new chat must
-paraphrase understanding before acting) belongs in `00_first-message.md` —
-a Stage 3 output. It is NOT included in stage1-question.md. The OLD chat
-answers questions; it does not synthesize before responding.
-
 **Three-actor flow (per ADR-42, twice amended):**
 - Stage 2 source = OLD browser chat for {repo} (existing chat being wrapped up)
 - Stage 3 receiver = NEW browser chat for {repo} (fresh, opened after folder generated)
 - Claude Code = orchestrator throughout
+
+**Note on receiver synthesis prompt:** The synthesis prompt belongs in
+`00_first-message.md` (Stage 3 output). It is NOT included in stage1-question.md.
 
 ---
 
@@ -45,10 +43,10 @@ SECTION A — INSTRUCTIONS FOR ROB (do NOT paste this into old chat)
 2. Copy from the PASTE_BOUNDARY line below to the end of this file.
 3. Paste as a message in the existing chat.
 4. The old chat answers the 5 pipeline questions from its lived knowledge.
-5. Open the pre-created file: `docs/handoffs/_in_progress/{slug}/stage2-response.md`
-   (Stage 1 created it alongside this file — already exists, has placeholder content).
-   Replace everything below the `═══ REPLACE EVERYTHING BELOW THIS LINE ═══` marker
-   with the architect's response. Save.
+5. Open the pre-created file: docs/handoffs/_in_progress/{slug}/stage2-response.md
+   (already exists, has placeholder content). Replace everything below the
+   "═══ REPLACE EVERYTHING BELOW THIS LINE ═══" marker with the architect's
+   response. Save.
 6. In Claude Code at .dev-knowledge, say: "complete handoff for {repo}"
    → Stage 3 generates the final handoff folder.
 7. After Stage 3: close the old chat. Open a NEW claude.ai chat for {repo}
@@ -61,23 +59,111 @@ PASTE_BOUNDARY — copy from here to end of file into the old chat
 
 # Stage 2 — Answer These Questions: {repo} ({type})
 
-You are the EXISTING browser chat for **{repo}**, currently being wrapped up
+## Your role
+
+You are the existing browser chat for **{repo}**, currently being wrapped up
 because your context is getting full. Claude Code in `.dev-knowledge` is
 preserving your accumulated knowledge as a structured handoff before this
 chat closes.
 
-Your tacit knowledge — current priorities, mental model, in-flight decisions,
-recent concerns — is non-substitutable. `.dev-knowledge`'s audit findings
-(below, if applicable) provide an external view; your response provides the
-internal view that only you have.
+Your role for this Stage 2 response: **project-level architect for {repo}**.
+You provide:
+- Goal judgment (what next session should achieve, why)
+- Project state YOU witnessed in this conversation (not general knowledge
+  inferred from training)
+- Reasoning and criteria for decisions (how to think about tier choice,
+  priority calls, deferrals)
+- Do-not lists that come from project context (gotchas, scope boundaries
+  you know matter)
 
-The handoff bundle generated from your response will be uploaded to a NEW
-(fresh) browser chat that continues work on {repo}. That new chat has zero
-history — your structured response here is what it will have.
+You are NOT:
+- An oracle for ecosystem-wide conventions (.dev-knowledge structure, ADR
+  schemas, cross-repo patterns)
+- A source of repo state facts (HEAD SHA, file contents, configs, test
+  counts) — Stage 3 verifies those against the repo directly
+- Required to provide specifics where you don't have direct knowledge
 
-The next session will focus on: {session_goal}.
+## What's in the handoff bundle (so don't repeat these)
 
-## Current state (verified at Stage 1)
+The new (fresh) chat receiving the Stage 3 handoff bundle will automatically
+have:
+- Full `.dev-knowledge` VISION.md (ecosystem context)
+- Full `.dev-knowledge` PLAYBOOK.md (methodology, conversation style,
+  prompt format, commit conventions)
+- Full `.dev-knowledge` ESSENTIALS.md (high-leverage rules)
+- ADR essences (operational rules) for ADRs cited in directives
+- Audit report (raw findings)
+- Repo state snapshot (HEAD, branch, file tree, working tree state)
+
+You do NOT need to:
+- Explain what ADR-NN mandates (handoff has the essence)
+- Restate audit findings verbatim (handoff has audit-report.md)
+- Specify HEAD SHA or working tree state (handoff has manifest)
+- Describe ecosystem governance patterns (handoff has VISION + PLAYBOOK)
+
+Focus on what only YOU witnessed or judged in this conversation.
+
+## Epistemic honesty (CRITICAL)
+
+For each claim in your response, classify it using these markers:
+
+- **Witnessed**: you saw this happen in conversation — state it confidently
+- **(architect inference)**: you are reasoning from context, not direct
+  observation — mark it inline
+- **Unknown**: you don't have direct knowledge — say so explicitly
+
+Examples:
+- "The config/settings.yaml was modified during our session when we
+  changed provider timeouts" → witnessed, state confidently
+- "The tier is probably M based on perceived complexity" →
+  inference, write "(architect inference)" after the claim
+- "I don't know the exact test count — verify against repo" → unknown
+
+LLMs default to "be helpful" by filling gaps with plausible specifics.
+Resist this. Stage 3 verifies factual claims against the repo. Your
+value is judgment and reasoning, not confident fabrication of facts
+you didn't witness.
+
+If you don't know something specific (a commit message, a file name, a
+version number, a config value): say "Unknown — Stage 3 should verify."
+
+## Format requirements (CRITICAL — read before responding)
+
+Your response will be copy-pasted verbatim into stage2-response.md for
+Stage 3 parsing. Non-compliant format breaks parsing.
+
+**Required:**
+- Pure markdown — no preamble, no closing remarks
+- Start your response with: `### 1. OBJECTIVE`
+- End your response with the final line of BOUNDARIES content
+- Each section heading: `### {number}. {NAME}` (level-3 markdown,
+  exact name from list below)
+- All 5 sections required, in order: OBJECTIVE / REALITY /
+  RATIONALE / DIRECTIVES / BOUNDARIES
+
+**Allowed within sections:** paragraphs, bullet lists, numbered lists,
+**bold**, *italic*, `inline code`, code blocks, tables, blockquotes.
+
+**NOT allowed:**
+- Wrapping entire response in code fence (no ` ```markdown ` at start;
+  no closing ` ``` ` at end)
+- Preamble before first heading ("Here's my response:", "Sure:")
+- Closing remarks after BOUNDARIES section
+- Extra top-level sections beyond the 5 required
+
+**Example correct opening:**
+
+### 1. OBJECTIVE
+The next session should...
+
+**Example WRONG opening (do not do this):**
+
+Here's my structured response:
+
+```markdown
+### 1. OBJECTIVE
+
+## Current state (verified at Stage 1 by Claude Code)
 
 - HEAD: {head_sha}
 - Branch: {branch}
@@ -94,8 +180,7 @@ The next session will focus on: {session_goal}.
 
 ## Pipeline questions (answer these in order)
 
-Structure your response with these EXACT section headings so Claude Code can
-parse them at Stage 3:
+Structure your response with these EXACT section headings:
 
 ### 1. OBJECTIVE
 
@@ -103,7 +188,8 @@ What is the immediate goal of the next {repo} session?
 
 {customized_objective_prompt}
 
-What outcome should be achieved by end of session — what does "done" look like?
+*Epistemic note: state your goal judgment confidently. If audit's suggested
+actions feel wrong to you, say so with reasoning.*
 
 ### 2. REALITY
 
@@ -115,11 +201,20 @@ What is the current state of {repo} from your perspective?
 - Any constraints (deadlines, conventions) the next session must respect?
 - {any_specific_state_question_from_stage1_observation}?
 
+*Epistemic note: differentiate witnessed events (you saw this in conversation)
+from inferences (reasoning from context) from unknowns (no direct knowledge).
+Mark inferences with "(architect inference)" and unknowns with "Unknown —
+verify against repo."*
+
 ### 3. RATIONALE
 
 What approaches were considered and discarded for {repo} recently?
 
 {customized_rationale_prompt_with_repo_specific_decisions}
+
+*Epistemic note: reasoning is your strong suit — explain your judgment. For
+any specific facts in your reasoning (file counts, timing, component names),
+mark "(architect inference)" if not directly witnessed.*
 
 ### 4. DIRECTIVES
 
@@ -131,6 +226,10 @@ Provide a numbered list. Each action: **action verb + target + verification step
 
 Add, remove, or reorder as you see fit.
 
+*Epistemic note: action sequence and verification steps are most valuable.
+Specific file paths or commit messages — mark "(architect inference)" if not
+witnessed; Stage 3 may revise based on repo state.*
+
 ### 5. BOUNDARIES
 
 What must the next session NOT do? What are fallback contingencies?
@@ -139,30 +238,16 @@ What must the next session NOT do? What are fallback contingencies?
 
 Add any architect-specific concerns or "do not's."
 
-## Format requirements (CRITICAL — read before responding)
-
-Your response will be copy-pasted verbatim into a markdown file
-(`stage2-response.md`) for Stage 3 parsing. Non-compliant format
-breaks parsing or pollutes 06_STATE_OF_PLAY and 07_ACTION_PLAN output.
-
-- Respond in **pure markdown** — no preamble, no closing remarks
-- Do **NOT** wrap your response in a code fence
-  (do NOT use ` ```markdown ... ``` ` around your whole response)
-- Start your response directly with: `### 1. OBJECTIVE`
-- End your response with the final line of BOUNDARIES section
-- Each section heading must be exactly: `### {number}. {NAME}`
-  (level-3 markdown heading, exact name from list above)
-- All 5 sections required, in order: OBJECTIVE / REALITY / RATIONALE
-  / DIRECTIVES / BOUNDARIES
-- Within sections: free-form markdown (paragraphs, bullets, numbered
-  lists, code blocks all OK)
-- Do not add extra top-level sections beyond the 5 required
+*Epistemic note: do-not lists grounded in your project knowledge are very
+valuable. Don't fabricate "do not touch X" if you don't know whether X exists
+— focus on knowns from your conversation.*
 
 ════════════════════════════════════════════════════════════════════
 End of paste block.
 Old chat: please answer questions 1-5 above following the Format
-requirements above. Your response goes back to Claude Code
-(.dev-knowledge) which generates the final handoff folder.
+requirements above. Structure response with the exact headings
+(OBJECTIVE / REALITY / RATIONALE / DIRECTIVES / BOUNDARIES) so
+Claude Code can parse them at Stage 3.
 ════════════════════════════════════════════════════════════════════
 ```
 
@@ -171,6 +256,10 @@ requirements above. Your response goes back to Claude Code
 ## Generation rules for Claude Code
 
 - Replace all `{placeholders}` with actual values from repo state + audit context
+- **Section B order is fixed:** role → bundle → epistemic → format → current state
+  → audit context → BACKLOG → pipeline questions → end divider.
+  Role/bundle/epistemic/format MUST appear before audit context and questions —
+  old chat must read these BEFORE drafting response.
 - **Preserve 5 question headings exactly:** `### 1. OBJECTIVE`, `### 2. REALITY`,
   `### 3. RATIONALE`, `### 4. DIRECTIVES`, `### 5. BOUNDARIES`. Stage 3 parses these.
 - Section A and Section B separated by visible `PASTE_BOUNDARY` line with thick `═`
@@ -182,4 +271,4 @@ requirements above. Your response goes back to Claude Code
   customize question prompts with audit-suggested defaults labeled "revise as needed"
 - For session-sync: populate from recent git log + BACKLOG context
 - **Pre-create `stage2-response.md` template** alongside stage1-question.md in the
-  same Stage 1 commit (per HANDOFF_PROCESS Stage 1 procedure step 9)
+  same Stage 1 commit (per HANDOFF_PROCESS Stage 1 procedure)
