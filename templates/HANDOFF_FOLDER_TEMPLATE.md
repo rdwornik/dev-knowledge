@@ -227,29 +227,87 @@ Initial content (empty template):
 
 ---
 
+## Stage 3 parsing logic (tolerant heading detection)
+
+When parsing `stage2-response.md` to extract the 5 sections, use tolerant
+heading detection. Match ANY of these patterns for section headings:
+
+- `### N. NAME` (markdown level-3)
+- `### **N. NAME**` (level-3 + bold)
+- `**N. NAME**` (bold only)
+- `## N. NAME` or `# N. NAME` (other markdown levels)
+- `N. NAME` (plain numbered, no markdown)
+
+Where N is 1-5 and NAME is OBJECTIVE, REALITY, RATIONALE, DIRECTIVES, or
+BOUNDARIES (case-sensitive). Section content = everything from heading to
+next heading (or end of file). Normalize all headings to `### N. NAME` in
+output files.
+
+If parsing fails (sections missing, out of order, content empty): FLAG to
+Rob and ask for manual correction. Do not silently skip sections.
+
+## Stage 3 verification layer
+
+After parsing `stage2-response.md`, classify each factual claim:
+
+**Verify (checkable from repo without execution):**
+- Witnessed claims about file existence → `ls` or `git ls-files`
+- Witnessed claims about config keys → read config files
+- Witnessed claims about CLI entry points → read pyproject.toml
+- Witnessed claims about commit existence → `git log --grep`
+
+**Preserve without verification:**
+- Conversation history claims ("we decided X in this chat")
+- Architect inferences (already flagged with "(architect inference)")
+- External service behavior ("OpenAI o4-mini intermittently fails")
+
+**Architect unknowns:** attempt verification; if successful, replace unknown
+with verified fact and note "Stage 3 verified"; if not, preserve as unknown.
+
+**Verification report** in 06_STATE_OF_PLAY:
+```
+## Stage 3 verification summary
+Architect provided {N} witnessed claims:
+- {V} verified against repo state
+- {U} unverifiable from repo (decision rationale, conversation history)
+- {F} architect-flagged inferences (preserved with flag)
+- {K} architect-flagged unknowns: {resolution of each}
+```
+
+**Flag mismatches:** if a witnessed claim can be checked but doesn't match
+repo state, flag as "VERIFICATION FAILED — {claim} vs {actual}". Do not
+silently accept incorrect witnessed claims.
+
 ## Generation steps (for Claude Code Stage 3)
 
 1. Create folder `.dev-knowledge/docs/handoffs/{date}-{slug}/`
-2. Generate `00_README.md` with upload instructions
-3. Capture target repo HEAD SHA, branch, working tree state via git
-4. Generate `00_first-message.md` with receiver synthesis prompt + HEAD SHA
-5. Generate `01_MANIFEST.md` with metadata and file index
-6. Copy VISION/PLAYBOOK/ESSENTIALS files in full:
+2. Verify `_in_progress/{slug}/stage2-response.md` exists and contains
+   substantive content (not placeholder "[old chat answer]") — if not, STOP
+3. Parse `stage2-response.md` using tolerant heading detection (above)
+4. Apply verification layer to architect's witnessed claims
+5. Capture target repo HEAD SHA, branch, working tree state via git;
+   compare to Stage 1 SHA from stage1-question.md — drift → FLAG to Rob
+6. Generate `00_README.md` with upload instructions
+7. Generate `00_first-message.md` with receiver synthesis prompt + HEAD SHA
+8. Generate `01_MANIFEST.md` with metadata and file index
+9. Copy VISION/PLAYBOOK/ESSENTIALS files in full:
    - `VISION.md` → `02_VISION.md`
    - `protocols/PLAYBOOK.md` → `03_PLAYBOOK.md`
    - `protocols/ESSENTIALS.md` → `04_ESSENTIALS.md`
-7. Generate `05_GOVERNANCE_ESSENCES.md` (curated to directives in 07)
-8. Generate `06_STATE_OF_PLAY.md` from Stage 2 response or audit findings
-9. Generate `07_ACTION_PLAN.md` from Stage 2 directives or audit recommendations
-10. Generate `08_TREE.txt` from `git ls-files` in target repo
-11. Generate `09_EXECUTION_EVIDENCE.md` (empty template)
-12. Compute SHA-256 of all 11 files, populate `01_manifest.json`
-13. Move `_in_progress/{slug}/` to `docs/handoffs/_archive/{slug}/` (sibling,
-    not subdir of final handoff folder):
+10. Generate `05_GOVERNANCE_ESSENCES.md` (curated to ADRs cited in 07)
+11. Generate `06_STATE_OF_PLAY.md` from Stage 2 REALITY + RATIONALE +
+    audit findings + verification summary
+12. Generate `07_ACTION_PLAN.md` from Stage 2 OBJECTIVE + DIRECTIVES +
+    BOUNDARIES
+13. Generate `08_TREE.txt` from `git ls-files` in target repo
+14. Generate `09_EXECUTION_EVIDENCE.md` (empty template)
+15. Compute SHA-256 of all 11 files, populate `01_manifest.json` (last)
+16. Move `_in_progress/{slug}/` to `docs/handoffs/_archive/{slug}/`:
     - `_archive/{slug}/stage1-question.md`
     - `_archive/{slug}/stage2-response.md`
-14. Run `python scripts/validate_scope_tags.py` and `pre-commit run --all-files`
-15. Single commit on dedicated branch
+17. Update JOURNAL + CHANGELOG + BACKLOG
+18. Run `python scripts/validate_scope_tags.py` and `pre-commit run --all-files`
+19. Single commit on dedicated branch
 
 ---
 
