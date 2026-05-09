@@ -132,15 +132,22 @@ FLAG and ask Rob: delete and restart, or proceed to Stage 3?
    but do NOT substitute for Stage 2
 6. Read `templates/HANDOFF_QUESTION_TEMPLATE.md`
 7. Create directory `docs/handoffs/_in_progress/{slug}/`
-8. Generate `docs/handoffs/_in_progress/{slug}/stage1-question.md`:
-   - Header: target repo, HEAD SHA, branch, working tree state, timestamp, type, slug
-   - Rob's instructions: how to use this file (open browser-2, paste, get response,
-     save as stage2-response.md, return to Claude Code for Stage 3)
-   - Customized 5-question template (OBJECTIVE / REALITY / RATIONALE / DIRECTIVES /
+8. Generate `docs/handoffs/_in_progress/{slug}/stage1-question.md` per
+   `templates/HANDOFF_QUESTION_TEMPLATE.md` two-section structure:
+   - Metadata header: target repo, HEAD SHA, branch, working tree state,
+     timestamp, type, slug
+   - Section A (Rob's operational instructions only — NOT pasted into old chat):
+     which chat to open, which block to copy, where to save response, what
+     command to issue next
+   - PASTE_BOUNDARY delimiter (thick `═` line — visually unmistakable)
+   - Section B (paste-this block for old chat): architect context, customized
+     5-question template (OBJECTIVE / REALITY / RATIONALE / DIRECTIVES /
      BOUNDARIES) with repo-specific context pre-filled
-   - For audit-sync: include audit findings summary as RATIONALE context, prompt
-     browser-2 to extend or correct
-   - Receiver synthesis prompt at end
+   - For audit-sync: populate Section B with categorized audit findings
+     summary; customize question prompts with audit-suggested defaults
+   - NOTE: receiver synthesis prompt is NOT included in stage1-question.md.
+     It belongs in Stage 3 output (00_first-message.md) per
+     HANDOFF_FOLDER_TEMPLATE.
 9. Append JOURNAL entry under today's date:
    `- Handoff Stage 1 generated for {slug}: HEAD {SHA} captured; awaiting browser-2 response`
 10. Run validators (`python scripts/validate_scope_tags.py`, `pre-commit run --all-files`)
