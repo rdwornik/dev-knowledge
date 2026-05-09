@@ -4,6 +4,29 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-09 — Handoff Format v3.0 implementation
+
+### Added
+- ADR-42 Handoff Format v3.0 — three-stage flow (Stage 1 question generation,
+  Stage 2 architect response, Stage 3 reconciliation + folder generation),
+  flat 11-file structure with full VISION/PLAYBOOK/ESSENTIALS as invariants,
+  standardized 5-question SBAR/I-PASS pipeline, SHA-256 drift mitigation,
+  09_EXECUTION_EVIDENCE.md return trip
+- `templates/HANDOFF_QUESTION_TEMPLATE.md` — Stage 1 output skeleton
+- `templates/HANDOFF_FOLDER_TEMPLATE.md` — Stage 3 folder structure spec
+
+### Changed
+- `protocols/HANDOFF_PROCESS.md` rewritten to v3.0 (supersedes v2.0; ADR-32 §4 deprecated)
+- `protocols/SESSION_SETUP.md` — added handoff workflow trigger + BACKLOG review sections
+- `docs/handoffs/2026-04-30-ai-council-audit-sync/` regenerated using v3.0
+  (replaces broken v2.0 nested structure; 13 files → 12 flat files)
+
+### Deprecated
+- ADR-32 §4 "Pending — next session candidates" — superseded by BACKLOG.md
+  (per ADR-41) referenced from handoff Future State (07_ACTION_PLAN.md)
+
+---
+
 ## 2026-04-30 — Phase 1 alignment fixes (self-audit Tier 1+2+3 batch)
 
 **Changed:**
