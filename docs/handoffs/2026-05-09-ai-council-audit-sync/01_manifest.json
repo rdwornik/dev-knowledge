@@ -1,0 +1,68 @@
+{
+  "handoff_id": "2026-05-09-ai-council-audit-sync",
+  "type": "audit-sync",
+  "format_version": "v3.1",
+  "generated_at": "2026-05-09T00:00:00Z",
+  "target_repo": {
+    "name": "ai-council",
+    "path": "C:/Users/1028120/Documents/Dev/ai-council",
+    "head_sha": "c821157fcfa957bc6612c74667d70c8c9a88ef5c",
+    "branch": "main",
+    "working_tree": "M config/settings.yaml"
+  },
+  "stage_2_provided": true,
+  "verification_summary": {
+    "witnessed_verified": 7,
+    "unverifiable": 4,
+    "inferences_flagged": 3,
+    "unknowns_resolved": 2,
+    "verification_failed": 1,
+    "note": "config/settings.yaml actual change is grok model string, not timeout as architect believed"
+  },
+  "files": [
+    {
+      "path": "00_README.md",
+      "sha256": "56de712cdeebae9b539797267fc56168de616a4e3e2c3e6c3dc7385ec3341d44"
+    },
+    {
+      "path": "00_first-message.md",
+      "sha256": "d73dd8264bb16270b1facb64eb7d69d785300f244a5fe68eeac9bc65d5e7827a"
+    },
+    {
+      "path": "01_MANIFEST.md",
+      "sha256": "4feadab645ac2471c3336105b0e629133bd161fc97ac8c248419344a53859629"
+    },
+    {
+      "path": "02_VISION.md",
+      "sha256": "aedf9f405c3c68f44984d3d0c132ee9a9b10c1ddd69a88d1d2176b95133f20e3"
+    },
+    {
+      "path": "03_PLAYBOOK.md",
+      "sha256": "1eef68690a9f982e9e0771e156407866d1beac6d5df954af3033589fe1886c5c"
+    },
+    {
+      "path": "04_ESSENTIALS.md",
+      "sha256": "032c8958b0eda30864c135d0d6ef3e8b49a873de99ba173b19386a321557c8ff"
+    },
+    {
+      "path": "05_GOVERNANCE_ESSENCES.md",
+      "sha256": "c8a8f59a4c4fe9e98aa563d2c297950193ee66c3226152ddf38ca59593295853"
+    },
+    {
+      "path": "06_STATE_OF_PLAY.md",
+      "sha256": "87de0d9c80e507a9864dc3df1a5c0c3864670c67b95e02e47a563d7f43a1ad5a"
+    },
+    {
+      "path": "07_ACTION_PLAN.md",
+      "sha256": "64609145f0a22a82e10f1a91c7ac4952ee62ed383a9a332b6c7fe7e22a7b6153"
+    },
+    {
+      "path": "08_TREE.txt",
+      "sha256": "b04909a94ef6bef6581f29a0c8db1179a48cb206c3ba60ba07f9232a8af34396"
+    },
+    {
+      "path": "09_EXECUTION_EVIDENCE.md",
+      "sha256": "03130ca9c82d5b753cc28b338ad3f397f83086509176e5eb1e6f7c60cecd2e6b"
+    }
+  ]
+}

@@ -4,6 +4,33 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-09 (evening, part 2) — ai-council audit handoff Stage 3 complete
+
+### Added
+- `docs/handoffs/2026-05-09-ai-council-audit-sync/` — final 11-file flat
+  handoff bundle for ai-council audit-sync. Generated via proper 3-stage
+  v3.1 flow with semantic corrections (OLD/NEW chat distinction), audience
+  split (Section A/PASTE_BOUNDARY/Section B), pre-created stage2-response,
+  tolerant parser, and verification layer. Replaces deleted single-stage
+  2026-04-30 version.
+- `docs/handoffs/_archive/2026-05-09-ai-council-audit-sync/` — stage1-question.md
+  + stage2-response.md archived for traceability.
+
+### Changed
+- `docs/handoffs/_in_progress/2026-05-09-ai-council-audit-sync/` → moved to
+  `_archive/` (Stage 1 + Stage 2 inputs preserved).
+- BACKLOG Cross-stream P1 "Phase 1 validation — audit + handoff dry-run on
+  ai-council": marked done.
+- JOURNAL 2026-05-09 Next section updated with Stage 3 completion notes.
+
+### Verification finding
+- config/settings.yaml actual uncommitted change: grok model string
+  `"grok-4.20"` → `"grok-4.3"` + whitespace normalization. Architect
+  believed change was Grok research timeout 120s → 300s — this is incorrect.
+  Flagged in 06_STATE_OF_PLAY.md verification section.
+
+---
+
 ## 2026-05-09 (evening) — Stage 1 question template context completeness
 
 ### Changed
