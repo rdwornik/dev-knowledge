@@ -45,8 +45,10 @@ SECTION A — INSTRUCTIONS FOR ROB (do NOT paste this into old chat)
 2. Copy from the PASTE_BOUNDARY line below to the end of this file.
 3. Paste as a message in the existing chat.
 4. The old chat answers the 5 pipeline questions from its lived knowledge.
-5. Save the chat's response as:
-   docs/handoffs/_in_progress/{slug}/stage2-response.md
+5. Open the pre-created file: `docs/handoffs/_in_progress/{slug}/stage2-response.md`
+   (Stage 1 created it alongside this file — already exists, has placeholder content).
+   Replace everything below the `═══ REPLACE EVERYTHING BELOW THIS LINE ═══` marker
+   with the architect's response. Save.
 6. In Claude Code at .dev-knowledge, say: "complete handoff for {repo}"
    → Stage 3 generates the final handoff folder.
 7. After Stage 3: close the old chat. Open a NEW claude.ai chat for {repo}
@@ -137,10 +139,30 @@ What must the next session NOT do? What are fallback contingencies?
 
 Add any architect-specific concerns or "do not's."
 
+## Format requirements (CRITICAL — read before responding)
+
+Your response will be copy-pasted verbatim into a markdown file
+(`stage2-response.md`) for Stage 3 parsing. Non-compliant format
+breaks parsing or pollutes 06_STATE_OF_PLAY and 07_ACTION_PLAN output.
+
+- Respond in **pure markdown** — no preamble, no closing remarks
+- Do **NOT** wrap your response in a code fence
+  (do NOT use ` ```markdown ... ``` ` around your whole response)
+- Start your response directly with: `### 1. OBJECTIVE`
+- End your response with the final line of BOUNDARIES section
+- Each section heading must be exactly: `### {number}. {NAME}`
+  (level-3 markdown heading, exact name from list above)
+- All 5 sections required, in order: OBJECTIVE / REALITY / RATIONALE
+  / DIRECTIVES / BOUNDARIES
+- Within sections: free-form markdown (paragraphs, bullets, numbered
+  lists, code blocks all OK)
+- Do not add extra top-level sections beyond the 5 required
+
 ════════════════════════════════════════════════════════════════════
 End of paste block.
-Old chat: please answer questions 1-5 above. Your response goes back
-to Claude Code (.dev-knowledge) which generates the final handoff folder.
+Old chat: please answer questions 1-5 above following the Format
+requirements above. Your response goes back to Claude Code
+(.dev-knowledge) which generates the final handoff folder.
 ════════════════════════════════════════════════════════════════════
 ```
 
@@ -159,3 +181,5 @@ to Claude Code (.dev-knowledge) which generates the final handoff folder.
 - For audit-sync: populate `{audit_findings_summary}` with categorized findings;
   customize question prompts with audit-suggested defaults labeled "revise as needed"
 - For session-sync: populate from recent git log + BACKLOG context
+- **Pre-create `stage2-response.md` template** alongside stage1-question.md in the
+  same Stage 1 commit (per HANDOFF_PROCESS Stage 1 procedure step 9)
