@@ -4,6 +4,28 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-09 (late afternoon) — Handoff template audience split
+
+### Changed
+- `templates/HANDOFF_QUESTION_TEMPLATE.md` refactored with explicit two-section
+  structure: Section A (Rob operational steps) / PASTE_BOUNDARY (thick `═` line) /
+  Section B (architect-facing question block). Receiver synthesis prompt removed
+  (wrong audience — old chat answers, it does not synthesize before responding).
+- `templates/HANDOFF_FOLDER_TEMPLATE.md` 00_first-message.md content guidance
+  expanded to include receiver synthesis prompt (correct audience: NEW chat
+  receiving handoff bundle validates understanding before acting).
+- `docs/handoffs/_in_progress/2026-05-09-ai-council-audit-sync/stage1-question.md`
+  regenerated with corrected audience split and PASTE_BOUNDARY delimiter.
+- `protocols/HANDOFF_PROCESS.md` Stage 1 generation spec updated: removed
+  "Receiver synthesis prompt at end" bullet; added note that synthesis belongs
+  in Stage 3 output (00_first-message.md).
+
+### Added
+- LESSONS.md: `handoff-audience-confusion` entry — visual delimiters required
+  for multi-audience artifacts; list readers and responsibilities before structuring.
+
+---
+
 ## 2026-05-09 (later afternoon) — Handoff v3.1 semantic correction
 
 ### Changed
