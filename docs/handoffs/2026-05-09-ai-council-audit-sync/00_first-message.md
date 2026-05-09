@@ -11,7 +11,8 @@ and `07_ACTION_PLAN.md` in this bundle.
 
 Before acting on any directives, read in this order:
 
-1. `00_README.md` — what this bundle is (you're reading the first message, not this file)
+1. `00_README.md` — what this bundle is and operator workflow (you're reading the
+   first message, not this file)
 2. `01_MANIFEST.md` — metadata, HEAD verification, file index
 3. `02_VISION.md` — ecosystem context (why .dev-knowledge exists, scope, methodology)
 4. `03_PLAYBOOK.md` — HOW we work (methodology, prompt format, commit conventions)
@@ -53,7 +54,7 @@ After reading the full bundle, provide this synthesis before acting:
 > My understanding of current state: **{paraphrase 06_STATE_OF_PLAY
 > — migration status, audit findings, what architect witnessed}**.
 >
-> I chose this approach because: **{paraphrase 07_ACTION_PLAN RATIONALE
+> Reasoning: **{paraphrase 07_ACTION_PLAN RATIONALE
 > — tier M reasoning, lessons discovery criterion}**.
 >
 > I will execute in order: **{numbered DIRECTIVES list from 07_ACTION_PLAN}**.
@@ -65,5 +66,63 @@ After reading the full bundle, provide this synthesis before acting:
 >
 > I will start with **{first directive from 07_ACTION_PLAN}**."
 
-**Wait for Rob's confirmation that the synthesis is accurate before proceeding.**
-If Rob corrects any element of the synthesis, update understanding and re-confirm.
+**After presenting synthesis, wait for Rob's response.**
+
+## Operator response handling
+
+Rob will respond with one of:
+
+1. **`synthesis confirmed`** — synthesis is accurate. Ask if you have any
+   clarification questions (Q&A loop below) OR ask Rob: "Ready to generate
+   the Claude Code prompt. Single prompt or split?"
+
+2. **`synthesis correction: [text]`** — synthesis has errors. Update your
+   understanding based on the correction, re-present the synthesis. Repeat
+   until Rob confirms.
+
+3. **Other text** — treat as correction or question. Re-present synthesis
+   incorporating Rob's input.
+
+## Q&A iteration loop (if needed)
+
+If you have clarification questions BEFORE generating the Claude Code prompt:
+
+After synthesis confirmed, present your questions as:
+
+> "I have {N} clarification questions before generating the prompt:
+> 1. {question 1}
+> 2. {question 2}
+> 3. {question 3}
+> (max 3 per round)
+> Please route these to the OLD ai-council chat and return answers."
+
+Rob will take your questions to the OLD ai-council chat, get answers, and
+return them. You may have follow-up questions (round 2). Maximum 3 rounds.
+After round 3, proceed with best available understanding OR ask Rob to
+restart Stage 2.
+
+When you have no more questions, ask: "Ready to generate the Claude Code
+prompt. Single prompt or split?"
+
+## Prompt generation
+
+After Q&A loop closed and Rob confirms format (single/split):
+
+Generate a formal Claude Code prompt per `03_PLAYBOOK.md` conventions:
+- Model/Mode/Effort table at top
+- Title, Repo, Purpose
+- Read first list
+- Git workflow
+- UNDERSTAND section
+- Numbered steps with COMMIT markers
+- What NOT to do section
+
+Output the prompt as a downloadable .md file. Rob will download it and
+run it in Claude Code in the ai-council repo.
+
+## Continuous improvement reminder
+
+This project's meta-goal (per `.dev-knowledge` VISION + ESSENTIALS) is
+continuous improvement. The immediate session scope is in `07_ACTION_PLAN.md`
+(F-01 + F-02). Long-term posture: always advancing ai-council. After
+execution, encourage Rob to capture lessons for the next session.

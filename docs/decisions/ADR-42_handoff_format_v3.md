@@ -2,10 +2,83 @@
 
 <!-- scope: meta -->
 
-Status: Accepted (amended twice: 2026-05-09 afternoon, 2026-05-09 later afternoon)
+Status: Accepted (amended three times: 2026-05-09 afternoon, 2026-05-09 later afternoon, 2026-05-09 night)
 Date: 2026-05-09
 
 ## Amendments
+
+### 2026-05-09 (night) — v3.2: Q&A iteration loop + operator clarity
+
+First end-to-end test of v3.1 (NEW chat receiving ai-council bundle)
+surfaced two gaps:
+
+**Gap 1: No Q&A iteration between Stage 2 and Stage 3.**
+NEW chat receiving handoff bundle had no mechanism to ask
+clarification questions back to OLD chat (Stage 2 source). Current
+flow assumed Stage 2 one-shot answer was sufficient. Reality:
+synthesis blind spots, ambiguous directives, or missing context
+require iteration.
+
+**Gap 2: Operator next-step ambiguity.**
+After uploading bundle and pasting 00_first-message.md, operator
+(Rob) didn't know whether to wait, what to type to confirm
+synthesis, what comes next. "Confirm synthesis" was implicit; not
+clear what exact phrase needed.
+
+#### v3.2 changes
+
+**Stage 2.5 (new): Q&A iteration loop**
+
+Optional phase between Stage 2 and Stage 3:
+- NEW chat presents synthesis after reading bundle
+- If NEW chat has clarification questions: formats as numbered list
+  (max 3 questions per round)
+- Operator routes questions to OLD chat, gets answers, returns to
+  NEW chat
+- Up to 3 rounds. After round 3, NEW chat proceeds with best
+  available understanding OR operator escalates to Rob for restart
+  of Stage 2.
+- Each round appended to
+  `_in_progress/{slug}/stage2-amendments.md`
+
+Stage 3 detection unchanged: requires stage2-response.md present
+with valid 5 sections. Stage 2.5 amendments don't block Stage 3 —
+they enrich Stage 2 input.
+
+**Operator workflow explicit (10 steps)**
+
+00_README.md template now includes step-by-step operator workflow:
+1. Open NEW chat (fresh, zero context)
+2. Drag-drop folder content (12 files) or zip
+3. Paste 00_first-message.md as first message
+4. Read NEW chat's synthesis output — verify accuracy
+5. Confirm or correct synthesis — type exact phrase:
+   "synthesis confirmed" or "synthesis correction: [specifics]"
+6. Q&A loop (if NEW chat asks questions): route to OLD chat,
+   return answers, repeat up to 3 rounds
+7. NEW chat asks: "single Claude Code prompt or split?" — operator
+   answers
+8. NEW chat generates prompt(s) as downloadable .md
+9. Operator runs prompts in Claude Code in target repo
+10. Operator returns 09_EXECUTION_EVIDENCE.md to `.dev-knowledge`
+
+**00_first-message.md template** now explicitly tells NEW chat:
+- After synthesis, wait for operator's "synthesis confirmed" or
+  correction
+- If clarification questions exist, format as numbered list, ask
+  before generating prompts
+- After confirmation: ask operator "single prompt or split?"
+- Generate downloadable .md prompts only after operator confirms
+  format
+
+**Implementation impact:**
+- HANDOFF_FOLDER_TEMPLATE updated with new 00_README + 00_first-message
+  specs
+- ai-council bundle (2026-05-09-ai-council-audit-sync) regenerated
+  with v3.2 templates
+- HANDOFF_PROCESS Stage 2.5 procedure documented
+
+---
 
 ### 2026-05-09 (afternoon) — Audit-sync shortcut removed
 

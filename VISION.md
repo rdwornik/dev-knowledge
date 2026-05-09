@@ -24,6 +24,12 @@ Think of it as the LLM-development Scrum Master for the ecosystem: it
 doesn't write code, it ensures the framework is applied consistently and
 evolves with experience.
 
+**Continuous improvement principle.** `.dev-knowledge` exists to
+evolve. The framework absorbs lessons, refines patterns, retires what
+fails. Continuous improvement is the baseline operating posture, not
+an option. Sessions advance the framework; static maintenance is
+exception requiring explicit justification.
+
 ## Scope
 
 **In scope:**
@@ -45,7 +51,9 @@ evolves with experience.
 
 Core operating values (how Claude reasons, communicates, and verifies)
 live in `protocols/ESSENTIALS.md` "How Claude thinks" section. VISION
-defers to ESSENTIALS for principles — no duplication.
+defers to ESSENTIALS for principles — no duplication. Key principle:
+**continuous improvement** as default project posture (see ESSENTIALS
+"Continuous Improvement" section).
 
 ## Relationships
 

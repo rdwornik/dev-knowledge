@@ -1,8 +1,8 @@
 {
   "handoff_id": "2026-05-09-ai-council-audit-sync",
   "type": "audit-sync",
-  "format_version": "v3.1",
-  "generated_at": "2026-05-09T23:00:00Z",
+  "format_version": "v3.2",
+  "generated_at": "2026-05-09T23:59:00Z",
   "target_repo": {
     "name": "ai-council",
     "path": "C:/Users/1028120/Documents/Dev/ai-council",
@@ -22,11 +22,11 @@
   "files": [
     {
       "path": "00_README.md",
-      "sha256": "787091002286ac75a9c40c8dc8a8b04aa4464033eb3646c7a674c84415c408f3"
+      "sha256": "db79b184b570bae2938c874cf6074319fdd9533eb967d385e475fcb2c34adaaf"
     },
     {
       "path": "00_first-message.md",
-      "sha256": "3630761cd22f41a5b74c47c3a34f5fe548e159578659960b90db3aeff24b4384"
+      "sha256": "e962cd59044f809d77461fd59d2b26fc53049b1059e05ae9db0af9129558ebea"
     },
     {
       "path": "01_MANIFEST.md",
@@ -34,7 +34,7 @@
     },
     {
       "path": "02_VISION.md",
-      "sha256": "d5d6c8c59397f028d6c25954382cadde3426127006e74182854b26d085f76925"
+      "sha256": "a4699a75208979bfe35e0b5a64d6c4e13ba41d56656e9e111ccbaa0a2b9b6921"
     },
     {
       "path": "03_PLAYBOOK.md",
@@ -54,7 +54,7 @@
     },
     {
       "path": "07_ACTION_PLAN.md",
-      "sha256": "dfd73cf0d2a778ee395594bba9ccf874750fb3d427630470eba2dafda8fca7f3"
+      "sha256": "36adedf3a12109b813ca0273e83d0cd3d4dbb490f58e8300a09d3a1ca467e1a6"
     },
     {
       "path": "08_TREE.txt",

@@ -47,9 +47,13 @@ Estimated: ≤45 minutes Claude Code time. Session is docs-only.
      (ai-council/output/ + .dev-knowledge/docs/decisions/transcripts/).
    - **Relationships**: No inbound code dependencies. Called by other repos via
      `council` CLI. Produces binding ADRs that govern all ecosystem repos.
-   - **Lifecycle**: Feature-complete v1. Active maintenance. Incremental
-     provider/model updates as landscape changes. Review triggers: provider
-     API changes, new model availability, governance requirement changes.
+   - **Lifecycle**: Active development with continuous improvement focus.
+     Roadmap reviewed at session boundaries — improvements emerge from real
+     usage and lessons. Recent additions: Grok as 5th research provider,
+     downloads auto-scan, --models flag. Review triggers: provider API
+     changes, new model availability, governance requirement changes,
+     real-usage friction surfacing improvement opportunities.
+     Static-maintenance posture is exception requiring explicit declaration.
    Commit: `docs: create VISION.md per ADR-33 (tier M)`
    Verify: file exists, frontmatter complete, sections present, `pytest -x` passes.
 
