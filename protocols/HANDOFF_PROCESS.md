@@ -105,10 +105,19 @@ unprompted.
 | Files present in `_in_progress/{slug}/` | Detected stage | Action |
 |---|---|---|
 | (directory absent or empty) | Stage 0 | Run Stage 1 |
-| `stage1-question.md` only | Stage 1 done, awaiting Stage 2 | Show Rob "paste browser-2 response into `stage2-response.md`" |
-| `stage1-question.md` + `stage2-response.md` | Stage 2 done, ready for Stage 3 | Run Stage 3 |
+| `stage1-question.md` + placeholder `stage2-response.md` | Stage 1 done, awaiting Stage 2 | Show Rob "paste old chat response into stage2-response.md, replacing the placeholder block" |
+| `stage1-question.md` + populated `stage2-response.md` | Stage 2 done, ready for Stage 3 | Run Stage 3 |
 
-If state is ambiguous (e.g., both files exist but Rob says "make handoff" again),
+**Stage 2 content detection:** Stage 1 pre-creates `stage2-response.md` as a
+placeholder template. Stage 3 trigger must verify it has been populated:
+- File exists AND content below the `═══ REPLACE EVERYTHING BELOW THIS LINE ═══`
+  marker contains all 5 expected headings (`### 1. OBJECTIVE` through
+  `### 5. BOUNDARIES`) with substantive content (not placeholder `[old chat answer]` text)
+- If file exists but contains placeholder only: report "Stage 2 not yet provided —
+  old chat response awaited. Open `stage2-response.md`, replace the placeholder
+  block with architect response." Do NOT proceed to Stage 3.
+
+If state is ambiguous (e.g., both files populated but Rob says "make handoff" again),
 FLAG and ask Rob: delete and restart, or proceed to Stage 3?
 
 ---
@@ -148,19 +157,30 @@ FLAG and ask Rob: delete and restart, or proceed to Stage 3?
    - NOTE: receiver synthesis prompt is NOT included in stage1-question.md.
      It belongs in Stage 3 output (00_first-message.md) per
      HANDOFF_FOLDER_TEMPLATE.
-9. Append JOURNAL entry under today's date:
-   `- Handoff Stage 1 generated for {slug}: HEAD {SHA} captured; awaiting browser-2 response`
-10. Run validators (`python scripts/validate_scope_tags.py`, `pre-commit run --all-files`)
-11. Single commit on feature branch
-12. Report to Rob:
+9. Pre-create `docs/handoffs/_in_progress/{slug}/stage2-response.md` as a
+   placeholder template with:
+   - Header block: repo, type, slug, timestamp
+   - HTML comment for Rob with step-by-step instructions
+   - `═══ REPLACE EVERYTHING BELOW THIS LINE ═══` marker
+   - Placeholder 5-section skeleton (headings + `[old chat answer]` text)
+
+   This file is committed alongside stage1-question.md. Rob opens it when
+   returning from old chat, replaces the placeholder block, saves.
+10. Append JOURNAL entry under today's date:
+    `- Handoff Stage 1 generated for {slug}: HEAD {SHA} captured; awaiting Stage 2`
+11. Run validators (`python scripts/validate_scope_tags.py`, `pre-commit run --all-files`)
+12. Single commit on feature branch (includes both stage1-question.md and stage2-response.md)
+13. Report to Rob:
     - Stage 1 complete
-    - File created: `docs/handoffs/_in_progress/{slug}/stage1-question.md`
-    - Next: paste content into the EXISTING (OLD) browser chat for {repo}
-      — the one being wrapped up; receive response from that chat;
-      save as `docs/handoffs/_in_progress/{slug}/stage2-response.md`
+    - Files created: `_in_progress/{slug}/stage1-question.md` (questions) and
+      `_in_progress/{slug}/stage2-response.md` (awaiting architect response)
+    - Next: open the EXISTING (OLD) browser chat for {repo}; copy the PASTE_BOUNDARY
+      block from stage1-question.md into that chat; receive response; open
+      stage2-response.md, replace placeholder block with response; save
     - Then: say "complete handoff for {repo}" to trigger Stage 3
 
-**Output:** `_in_progress/{slug}/stage1-question.md`, JOURNAL entry, commit
+**Output:** `_in_progress/{slug}/stage1-question.md` + `_in_progress/{slug}/stage2-response.md`
+(placeholder), JOURNAL entry, single commit
 
 ---
 
@@ -181,19 +201,23 @@ wrapped up due to context exhaustion. **NOT a new chat.**
 3. OLD chat architect answers all 5 pipeline questions (OBJECTIVE /
    REALITY / RATIONALE / DIRECTIVES / BOUNDARIES) from lived knowledge:
    priorities, mental model, in-flight decisions, recent concerns.
-4. Save response as `docs/handoffs/_in_progress/{slug}/stage2-response.md`:
-   - Option A: Rob writes file directly (copy-paste response)
+4. Open the pre-created `_in_progress/{slug}/stage2-response.md` (Stage 1
+   created this file as a placeholder template). Replace everything below the
+   `═══ REPLACE EVERYTHING BELOW THIS LINE ═══` marker with the architect's
+   response. Save.
+   - Option A: Rob edits the file directly (open in editor, replace placeholder)
    - Option B: In Claude Code — "save this response as stage 2 for {slug}";
-     Claude Code writes the file from chat content
+     Claude Code overwrites the placeholder block with response content
 
-**Output:** `docs/handoffs/_in_progress/{slug}/stage2-response.md`
+**Output:** `_in_progress/{slug}/stage2-response.md` populated with architect response
 
 **Critical:** Stage 2 MUST go to OLD chat. A new chat has no context;
 its response would collapse to restating audit findings — equivalent to
 the rejected shortcut. The architecture depends on tacit knowledge
 extraction from the existing session before context dies.
 
-No commit at this step — file is uncommitted until Stage 3 picks it up.
+No separate commit at this step — Rob edits the file locally. Stage 3
+commit includes the populated stage2-response.md as a modified file.
 
 ---
 
