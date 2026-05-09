@@ -25,7 +25,7 @@ Stage 1 + Stage 2 inputs archived at:
 ## How to use this bundle (for the NEW chat)
 
 1. Open a NEW claude.ai chat (fresh, no prior ai-council history)
-2. Upload all 11 files in this folder (or zip and upload the folder)
+2. Upload all 12 files in this folder (or zip and upload the folder)
 3. Paste the content of `00_first-message.md` as your first message
 4. The new chat reads the bundle, provides receiver synthesis, and acts
    on directives in `07_ACTION_PLAN.md`
