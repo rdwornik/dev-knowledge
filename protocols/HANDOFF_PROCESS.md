@@ -149,14 +149,27 @@ FLAG and ask Rob: delete and restart, or proceed to Stage 3?
      which chat to open, which block to copy, where to save response, what
      command to issue next
    - PASTE_BOUNDARY delimiter (thick `═` line — visually unmistakable)
-   - Section B (paste-this block for old chat): architect context, customized
-     5-question template (OBJECTIVE / REALITY / RATIONALE / DIRECTIVES /
-     BOUNDARIES) with repo-specific context pre-filled
-   - For audit-sync: populate Section B with categorized audit findings
-     summary; customize question prompts with audit-suggested defaults
+   - Section B (paste-this block for old chat) — MUST follow this order:
+     1. Title
+     2. Your role (project architect, not ecosystem oracle; witnessed vs
+        inferred vs unknown — old chat must read this BEFORE questions)
+     3. What's in handoff bundle (VISION/PLAYBOOK/ESSENTIALS/ADR essences/
+        audit report/repo snapshot — so old chat doesn't repeat these)
+     4. Epistemic honesty instruction (witnessed/inferred/unknown markers)
+     5. Format requirements (markdown, exact headings, no fence wrap)
+     6. Current state (Stage 1 captured metadata)
+     7. Audit context (if audit-sync; informational only — extend/correct)
+     8. BACKLOG items relevant to repo
+     9. Pipeline questions (5 SBAR/I-PASS questions with inline epistemic
+        notes per question)
+     10. End-of-paste divider
+   - Sections 2-5 (role, bundle, epistemic, format) MUST be at TOP of
+     Section B — old chat reads these before drafting response. Placing
+     them at end (as in v3.1 first iteration) caused old chat to produce
+     plain-text headings, fabricated specifics, and duplicated ecosystem
+     info it doesn't actually know.
    - NOTE: receiver synthesis prompt is NOT included in stage1-question.md.
-     It belongs in Stage 3 output (00_first-message.md) per
-     HANDOFF_FOLDER_TEMPLATE.
+     It belongs in Stage 3 output (00_first-message.md) per HANDOFF_FOLDER_TEMPLATE.
 9. Pre-create `docs/handoffs/_in_progress/{slug}/stage2-response.md` as a
    placeholder template with:
    - Header block: repo, type, slug, timestamp
