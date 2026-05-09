@@ -34,25 +34,112 @@ PASTE_BOUNDARY — copy from here to end of file into the old chat
 
 # Stage 2 — Answer These Questions: ai-council (audit-sync)
 
-You are the EXISTING browser chat for **ai-council**, currently being wrapped
+## Your role
+
+You are the existing browser chat for **ai-council**, currently being wrapped
 up because your context is getting full. Claude Code in `.dev-knowledge` is
 preserving your accumulated knowledge as a structured handoff before this chat
 closes.
 
-Your tacit knowledge — current priorities, mental model, in-flight decisions,
-recent concerns — is non-substitutable. `.dev-knowledge`'s audit findings
-(below) provide an external view; your response provides the internal view that
-only you have.
+Your role for this Stage 2 response: **project-level architect for ai-council**.
+You provide:
+- Goal judgment (what next session should achieve, why)
+- Project state YOU witnessed in this conversation (not general knowledge
+  inferred from training)
+- Reasoning and criteria for decisions (how to think about tier choice,
+  priority calls, deferrals)
+- Do-not lists that come from project context (gotchas, scope boundaries
+  you know matter)
 
-The handoff bundle generated from your response will be uploaded to a NEW
-(fresh) browser chat that continues work on ai-council. That new chat has zero
-history — your structured response here is what it will have.
+You are NOT:
+- An oracle for ecosystem-wide conventions (.dev-knowledge structure, ADR
+  schemas, cross-repo patterns)
+- A source of repo state facts (HEAD SHA, file contents, configs, test
+  counts) — Stage 3 verifies those against the repo directly
+- Required to provide specifics where you don't have direct knowledge
 
-The next session will focus on: closing P1 governance gaps from the 2026-04-30
-audit — primarily creating VISION.md (F-01) and configuring lessons discovery
-in CLAUDE.md (F-02).
+## What's in the handoff bundle (so don't repeat these)
 
-## Current state (verified at Stage 1)
+The new (fresh) chat receiving the Stage 3 handoff bundle will automatically
+have:
+- Full `.dev-knowledge` VISION.md (ecosystem context)
+- Full `.dev-knowledge` PLAYBOOK.md (methodology, conversation style,
+  prompt format, commit conventions)
+- Full `.dev-knowledge` ESSENTIALS.md (high-leverage rules)
+- ADR essences (operational rules) for ADRs cited in directives
+- Audit report (raw findings, the same findings listed below)
+- Repo state snapshot (HEAD, branch, file tree, working tree state)
+
+You do NOT need to:
+- Explain what ADR-33 mandates for VISION.md (handoff has the essence)
+- Restate audit findings verbatim (handoff has audit-report.md)
+- Specify HEAD SHA or working tree state (handoff has manifest)
+- Describe .dev-knowledge governance patterns (handoff has VISION + PLAYBOOK)
+
+Focus on what only YOU witnessed or judged in this conversation.
+
+## Epistemic honesty (CRITICAL)
+
+For each claim in your response, classify it:
+
+- **Witnessed**: you saw this happen in this conversation — state it confidently
+- **(architect inference)**: you are reasoning from context, not direct
+  observation — mark it inline
+- **Unknown**: you don't have direct knowledge — say so explicitly
+
+Examples:
+- "The config/settings.yaml was modified in our session when we changed
+  provider timeouts" → witnessed, state confidently
+- "The tier is probably M based on perceived complexity" →
+  write "(architect inference)" after the claim
+- "I don't know the exact test count — verify against repo" → unknown
+
+LLMs default to "be helpful" by filling gaps with plausible specifics.
+Resist this. Stage 3 verifies factual claims against the repo. Your value
+is judgment and reasoning, not confident fabrication of facts you didn't
+witness.
+
+If you don't know something specific (a commit message, a file name, a
+version number, a config value): say "Unknown — Stage 3 should verify."
+
+## Format requirements (CRITICAL — read before responding)
+
+Your response will be copy-pasted verbatim into stage2-response.md for
+Stage 3 parsing. Non-compliant format breaks parsing.
+
+**Required:**
+- Pure markdown — no preamble, no closing remarks
+- Start your response with: `### 1. OBJECTIVE`
+- End your response with the final line of BOUNDARIES content
+- Each section heading: `### {number}. {NAME}` (level-3 markdown, exact name)
+- All 5 sections required, in order: OBJECTIVE / REALITY / RATIONALE /
+  DIRECTIVES / BOUNDARIES
+
+**Allowed within sections:** paragraphs, bullet lists, numbered lists,
+**bold**, *italic*, `inline code`, code blocks, tables, blockquotes.
+
+**NOT allowed:**
+- Wrapping entire response in code fence (no ` ```markdown ` at start;
+  no closing ` ``` ` at end)
+- Preamble before first heading ("Here's my response:", "Sure:")
+- Closing remarks after BOUNDARIES section
+- Extra top-level sections beyond the 5 required
+
+**Example correct opening:**
+```
+### 1. OBJECTIVE
+The next session should...
+```
+
+**Example WRONG opening (do not do this):**
+```
+Here's my structured response:
+
+```markdown
+### 1. OBJECTIVE
+```
+
+## Current state (verified at Stage 1 by Claude Code)
 
 - HEAD: `c821157fcfa957bc6612c74667d70c8c9a88ef5c` (merge commit, ADR-38
   migration: refactored to `src/ai_council/` package namespace, updated
@@ -64,32 +151,25 @@ in CLAUDE.md (F-02).
 - Package structure: 12 direct files at `src/ai_council/` + 2 subpackages
   (providers/, research/)
 
-## Audit context (2026-04-30 Faza A2 — .dev-knowledge's external view; extend or correct)
+## Audit context (informational — extend or correct in your response)
 
-8 findings identified:
+8 findings from 2026-04-30 Faza A2 (.dev-knowledge's external view):
 
 **P1 — Governance-blocking, tier-independent (action required):**
-- F-01: VISION.md absent — create per ADR-33 schema (frontmatter:
-  version/tier/owner/last_reviewed/scale; sections: Mission/Scope/Methodology/
-  Lifecycle/Relationships)
-- F-02: Lessons discovery not configured — update CLAUDE.md to reference
-  DEV_KNOWLEDGE_PATH env var per ADR-35; consider whether `tasks/lessons.md`
-  (ai-council-local) should migrate to .dev-knowledge LESSONS.md
+- F-01: VISION.md absent
+- F-02: Lessons discovery not configured (DEV_KNOWLEDGE_PATH in CLAUDE.md)
 
 **P2 — Deferred pending tier calibration:**
-- F-03: BACKLOG.md absent — defer until ADR-40 recalibration confirms tier
-- F-04: ARCHITECTURE.md absent — defer until tier confirmed
+- F-03: BACKLOG.md absent
+- F-04: ARCHITECTURE.md absent
 
 **P3 — Minor/grandfathered:**
-- F-05: ADR naming kebab-case (7 existing ADRs grandfathered per ADR-29;
-  future ADRs follow ADR-34 underscore convention)
-- F-06: Test count discrepancy grep vs CLAUDE.md — class-based tests; no
-  ai-council action needed
-- F-07: Module count 2 (strict ADR-38 definition) vs estimate 8 — no action
+- F-05: ADR naming kebab-case (7 existing ADRs grandfathered)
+- F-06: Test count discrepancy grep vs CLAUDE.md — class-based tests; no action
+- F-07: Module count 2 vs estimate 8 — calibration imprecision; no action
 
-**Calibration concern (F-08, cross-ecosystem, no ai-council action):**
-- All repos clamp to L under current ADR-40 coefficients — algorithm
-  miscalibration; deferred to audit tool P1 multi-repo data
+**Calibration concern (no ai-council action):**
+- F-08: All repos clamp to L under current ADR-40 coefficients; deferred
 
 ## .dev-knowledge BACKLOG items relevant to ai-council
 
@@ -99,8 +179,7 @@ in CLAUDE.md (F-02).
 
 ## Pipeline questions (answer these in order)
 
-Structure your response with these EXACT section headings so Claude Code can
-parse them at Stage 3:
+Structure your response with these EXACT section headings:
 
 ### 1. OBJECTIVE
 
@@ -108,102 +187,86 @@ What is the immediate goal of the next ai-council session?
 
 Audit findings suggest F-01 (VISION.md creation) + F-02 (CLAUDE.md
 DEV_KNOWLEDGE_PATH configuration) as the P1 actions. Confirm or revise.
-What outcome should be achieved by end of next session — what does "done"
-look like?
+What outcome should be achieved by end of next session?
+
+*Epistemic note: state your goal judgment confidently. If the audit's
+suggested actions feel wrong to you, say so with reasoning.*
 
 ### 2. REALITY
 
 What is the current state of ai-council from your perspective?
 
 - Was anything completed in ai-council since the 2026-04-30 audit?
-- Any work in progress not reflected in the audit (files open, branches
-  active, WIP commits)?
-- External dependencies (services, providers, libraries) currently in play
-  or about to change?
-- Any constraints (deadlines, Rob's schedule, external service changes) the
-  next session must respect?
-- Is the `config/settings.yaml` modification (observed in working tree)
-  intentional or accidental? Should it be committed, stashed, or reverted
-  before session work?
+- Any work in progress not visible externally?
+- External dependencies (services, providers, libraries) currently in play?
+- Any constraints the next session must respect?
+- The `config/settings.yaml` modification — intentional or accidental?
+  Should it be committed, stashed, or reverted?
+
+*Epistemic note: differentiate witnessed events (you saw this in conversation)
+from inferences (reasoning from context — mark "(architect inference)") from
+unknowns (no direct knowledge — say "Unknown — verify against repo"). Avoid
+inventing specifics you didn't see.*
 
 ### 3. RATIONALE
 
 What approaches were considered and discarded for ai-council recently?
 
-For the **VISION.md tier** decision:
-- Audit defaulted to L per current ADR-40 (all repos clamp L under current
-  coefficients); calibration concern flagged (F-08)
-- What's your judgment: does ai-council feel L (heavy infrastructure, ~102k
-  tokens, 310 tests) or M (personal project, limited production surface, 1
-  developer)? Reasons?
+For **VISION.md tier** (M vs L):
+- Audit defaulted to L per ADR-40 current coefficients (all repos clamp L);
+  calibration concern flagged (F-08)
+- What's your judgment: does ai-council feel L or M to you? What's your
+  reasoning? (You don't need to reproduce ADR-40 — just give your judgment
+  and the project-level factors that informed it)
 
 For **lessons discovery (F-02)**: does ai-council have meaningful lessons in
-`tasks/lessons.md` that should migrate to .dev-knowledge LESSONS.md, or should
-they remain ai-council-local? What criteria should guide that decision?
+`tasks/lessons.md` worth migrating to .dev-knowledge? What criteria matter?
 
-For **config/settings.yaml**: what was changed and why? Is it safe to include
-in the session's commit scope?
+For **config/settings.yaml**: what changed and why? Safe to commit?
+
+*Epistemic note: reasoning is your strong suit — explain your judgment. For
+any specific facts in your reasoning, mark "(architect inference)" if not
+directly witnessed.*
 
 ### 4. DIRECTIVES
 
-What are the exact sequential actions the next ai-council session should execute?
+What are the exact sequential actions the next ai-council session should
+execute?
 
 Provide a numbered list. Each action: **action verb + target + verification step**.
 
-Default proposal (revise as needed):
+Default proposal for revision (based on audit findings — revise as needed):
 
-1. Resolve `config/settings.yaml` — commit, stash, or revert as appropriate.
-   Verify: `git status --porcelain` shows clean.
-2. Create `ai-council/VISION.md` per ADR-33 schema. Verify: file exists;
-   frontmatter includes version/tier/owner/last_reviewed/scale; all required
-   sections (Mission/Scope/Methodology/Lifecycle/Relationships) present;
-   `pytest -x` passes.
-3. Update `ai-council/CLAUDE.md` to document `DEV_KNOWLEDGE_PATH` env var
-   reference per ADR-35 essence. Verify: CLAUDE.md contains DEV_KNOWLEDGE_PATH;
-   `pytest -x` passes.
-4. Run `pytest -x` to confirm 310/310 baseline holds. Verify: exit code 0.
-5. Update `ai-council/CHANGELOG.md` with session work. Verify: entry dated
-   2026-05-09 present.
-6. Update `ai-council/JOURNAL.md` with session tactical log. Verify: new entry
-   at top with Did/Failed/Next.
-7. Fill `09_EXECUTION_EVIDENCE.md` with command outputs from steps above.
+1. Resolve `config/settings.yaml` — commit, stash, or revert.
+   Verify: `git status --porcelain` clean.
+2. Create `ai-council/VISION.md` per ADR-33 (handoff bundle has ADR-33 essence).
+   Verify: file exists; frontmatter complete; required sections present; `pytest -x` passes.
+3. Update `ai-council/CLAUDE.md` with DEV_KNOWLEDGE_PATH env var reference.
+   Verify: reference present; `pytest -x` passes.
+4. Run `pytest -x` — confirm 310/310 baseline holds. Verify: exit code 0.
+5. Update `ai-council/CHANGELOG.md` + `ai-council/JOURNAL.md`.
+6. Fill `09_EXECUTION_EVIDENCE.md` with command outputs.
 
-Add, remove, or reorder as you see fit. Include F-05 (ADR naming note for
-future ADRs) if trivially quick.
+*Epistemic note: action sequence and verification steps are most valuable.
+Specific file paths or commit messages — mark "(architect inference)" if not
+witnessed; Stage 3 may revise based on repo state.*
 
 ### 5. BOUNDARIES
 
 What must the next session NOT do? What are fallback contingencies?
 
-Default boundaries (extend as needed):
+Default boundaries (revise as needed):
 - DO NOT create `BACKLOG.md` (F-03 deferred — tier not confirmed)
 - DO NOT create `ARCHITECTURE.md` (F-04 deferred — tier not confirmed)
-- DO NOT rename existing 7 ADRs (F-05 grandfathered per ADR-29)
+- DO NOT rename existing 7 ADRs (F-05 grandfathered)
 - DO NOT push without Rob's explicit confirmation
-- DO NOT address pre-existing ruff (17 errors) or mypy (4 errors) — out of scope
-- DO NOT make structural changes to `src/ai_council/` — migration complete
-- If `pytest -x` fails at any step: STOP, report failure, do not continue
+- DO NOT address pre-existing ruff (17) or mypy (4) errors — out of scope
+- DO NOT restructure `src/ai_council/` — migration complete
+- If `pytest -x` fails at any step: STOP, report, do not continue
 
-Add any concerns or "do not's" specific to your knowledge of current state.
-
-## Format requirements (CRITICAL — read before responding)
-
-Your response will be copy-pasted verbatim into a markdown file
-(`stage2-response.md`) for Stage 3 parsing. Non-compliant format
-breaks parsing or pollutes 06_STATE_OF_PLAY and 07_ACTION_PLAN output.
-
-- Respond in **pure markdown** — no preamble, no closing remarks
-- Do **NOT** wrap your response in a code fence
-  (do NOT use ` ```markdown ... ``` ` around your whole response)
-- Start your response directly with: `### 1. OBJECTIVE`
-- End your response with the final line of BOUNDARIES section
-- Each section heading must be exactly: `### {number}. {NAME}`
-  (level-3 markdown heading, exact name from list above)
-- All 5 sections required, in order: OBJECTIVE / REALITY / RATIONALE
-  / DIRECTIVES / BOUNDARIES
-- Within sections: free-form markdown (paragraphs, bullets, numbered
-  lists, code blocks all OK)
-- Do not add extra top-level sections beyond the 5 required
+*Epistemic note: do-not lists grounded in your project knowledge are
+valuable. Don't fabricate "do not touch X" if you don't know whether X
+exists — focus on what you know.*
 
 ════════════════════════════════════════════════════════════════════
 End of paste block.
