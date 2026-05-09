@@ -4,6 +4,30 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-09 (late afternoon, part 2) — Stage 2 pre-create + markdown format
+
+### Changed
+- `protocols/HANDOFF_PROCESS.md` Stage 1 procedure: new step 9 pre-creates
+  `stage2-response.md` placeholder template alongside `stage1-question.md` in
+  the single Stage 1 commit. Stage 3 detection refined: checks for substantive
+  content below `═══ REPLACE BELOW ═══` marker, not just file existence.
+  Stage 2 section updated to reference pre-created file.
+- `templates/HANDOFF_QUESTION_TEMPLATE.md` Section A step 5 updated to reference
+  pre-created stage2-response.md. Section B end: added "Format requirements
+  (CRITICAL)" block mandating pure markdown response from architect (no preamble,
+  no code fence, exact heading format).
+- `docs/handoffs/_in_progress/2026-05-09-ai-council-audit-sync/stage1-question.md`
+  regenerated with updated Section A step 5 + format requirements in Section B.
+
+### Added
+- `docs/handoffs/_in_progress/2026-05-09-ai-council-audit-sync/stage2-response.md`
+  — pre-created placeholder template with 5 headings, replacement marker, and
+  Rob's instructions as HTML comment.
+- LESSONS.md: `handoff-friction-precreate` — upstream stages pre-create
+  downstream input files; operator fills content, never creates files.
+
+---
+
 ## 2026-05-09 (late afternoon) — Handoff template audience split
 
 ### Changed
