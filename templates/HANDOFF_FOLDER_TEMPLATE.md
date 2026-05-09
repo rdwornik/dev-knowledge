@@ -1,7 +1,19 @@
 # Handoff Folder Template (Stage 3 output structure)
 
 Used by Claude Code in .dev-knowledge during Stage 3 to generate the
-handoff folder. See ADR-42 and HANDOFF_PROCESS.md v3.0 for full flow.
+handoff folder. See ADR-42 (amended) and HANDOFF_PROCESS.md v3.1 for full flow.
+
+## Stage 3 inputs
+
+Stage 3 reads from `docs/handoffs/_in_progress/{slug}/`:
+- `stage1-question.md` — required; contains Stage 1 HEAD SHA for drift check
+- `stage2-response.md` — required; contains browser-2 architect answers
+
+If either file is missing, Stage 3 STOPS and flags to Rob.
+
+After Stage 3 completes, both files are moved to:
+`docs/handoffs/_archive/{slug}/` (sibling to final handoff folder, preserving
+Stage 1+2 inputs for traceability without violating flat folder structure).
 
 ## Folder location
 
@@ -208,8 +220,12 @@ Initial content (empty template):
 10. Generate `08_TREE.txt` from `git ls-files` in target repo
 11. Generate `09_EXECUTION_EVIDENCE.md` (empty template)
 12. Compute SHA-256 of all 11 files, populate `01_manifest.json`
-13. Run `python scripts/validate_scope_tags.py` and `pre-commit run --all-files`
-14. Single commit on dedicated branch
+13. Move `_in_progress/{slug}/` to `docs/handoffs/_archive/{slug}/` (sibling,
+    not subdir of final handoff folder):
+    - `_archive/{slug}/stage1-question.md`
+    - `_archive/{slug}/stage2-response.md`
+14. Run `python scripts/validate_scope_tags.py` and `pre-commit run --all-files`
+15. Single commit on dedicated branch
 
 ---
 
