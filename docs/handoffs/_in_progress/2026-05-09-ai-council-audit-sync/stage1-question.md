@@ -1,4 +1,4 @@
-# Handoff Stage 1: Question Prompt for browser-2 architect
+# Handoff Stage 1: Question Prompt for existing ai-council chat
 
 **Target repo:** ai-council
 **Target path:** C:/Users/1028120/Documents/Dev/ai-council
@@ -13,24 +13,36 @@
 
 ## How to use this file (Rob's instructions)
 
-1. Open a NEW claude.ai chat for ai-council (browser-2)
-2. Copy everything from the "Context for browser-2 architect" section through
-   the end of this file as your first message in that chat
-3. Browser-2 will provide answers to the 5 pipeline questions
+1. Open the EXISTING (OLD) browser chat for ai-council — the chat being
+   wrapped up because its context is getting full. **NOT a new chat.**
+2. Copy everything from the "Context for architect" section through the end
+   of this file as a message in that existing chat.
+3. The existing chat will provide answers to the 5 pipeline questions from its
+   accumulated context and lived knowledge.
 4. Save the response as:
    `docs/handoffs/_in_progress/2026-05-09-ai-council-audit-sync/stage2-response.md`
-   in the .dev-knowledge repo (copy-paste response, save file)
+   in the .dev-knowledge repo (copy-paste response, save file).
 5. Return to Claude Code in .dev-knowledge and say:
-   "complete handoff for ai-council" → Stage 3 generates the final handoff folder
+   "complete handoff for ai-council" → Stage 3 generates the final handoff folder.
+6. THEN open a NEW claude.ai chat for ai-council and use the Stage 3 folder bundle
+   (00_README.md inside the folder has upload instructions).
 
 ---
 
-## Context for browser-2 architect
+## Context for architect (existing ai-council chat)
 
-You are the architect for **ai-council**. `.dev-knowledge` has performed an audit
-(2026-04-30) and is now preparing a handoff bundle for the next ai-council session.
-Your job: provide project-level intelligence that complements `.dev-knowledge`'s
-audit findings and ecosystem-level context.
+You are the EXISTING browser chat for **ai-council**, currently being wrapped up
+because your context is getting full. Claude Code in `.dev-knowledge` is capturing
+your accumulated knowledge as a structured handoff before this chat closes.
+
+Your tacit knowledge — current priorities, mental model, in-flight decisions,
+recent concerns, what's genuinely important vs cosmetic — is non-substitutable.
+`.dev-knowledge`'s audit findings (below) provide an external view; your response
+provides the internal view that only you have.
+
+The handoff bundle generated from your response will be uploaded to a NEW (fresh)
+browser chat that continues work on ai-council. That new chat has zero history —
+your structured response here is what it will have.
 
 The next ai-council session will work on: closing P1 governance gaps identified
 by the audit — specifically creating VISION.md (F-01) and configuring lessons
@@ -47,7 +59,7 @@ discovery in CLAUDE.md (F-02).
 - Test count: 310 (per CLAUDE.md; grep undercount 219 due to class-based tests)
 - Python files: 12 at `src/ai_council/` level + 2 subpackages (providers/, research/)
 
-### Audit context (2026-04-30 Faza A2 — informational, extend or correct)
+### Audit context (2026-04-30 Faza A2 — .dev-knowledge's external view; extend or correct)
 
 8 findings identified:
 
@@ -85,6 +97,10 @@ discovery in CLAUDE.md (F-02).
 
 ## Pipeline questions (answer these in order)
 
+Structure your response with these exact section headings so Claude Code can
+parse them at Stage 3:
+**OBJECTIVE / REALITY / RATIONALE / DIRECTIVES / BOUNDARIES**
+
 ### 1. OBJECTIVE
 
 What is the immediate goal of the next ai-council session?
@@ -96,7 +112,7 @@ look like?
 
 ### 2. REALITY
 
-What is the current state of ai-council from the architect's perspective?
+What is the current state of ai-council from your perspective?
 
 - Was anything completed in ai-council since the 2026-04-30 audit?
 - Any work in progress not reflected in the audit (files open, branches
@@ -105,8 +121,9 @@ What is the current state of ai-council from the architect's perspective?
   or about to change?
 - Any constraints (deadlines, Rob's schedule, external service changes) the
   next session must respect?
-- Is `config/settings.yaml` modification (observed in working tree) intentional
-  or accidental? Should it be committed, stashed, or reverted before session work?
+- Is the `config/settings.yaml` modification (observed in working tree)
+  intentional or accidental? Should it be committed, stashed, or reverted
+  before session work?
 
 ### 3. RATIONALE
 
@@ -117,9 +134,9 @@ For the **VISION.md tier** decision specifically:
   coefficients)
 - Calibration concern flagged (F-08) — ai-council may reasonably be M after
   recalibration
-- What's your judgment: does ai-council feel L (heavy infrastructure, ~102k tokens,
-  310 tests) or M (personal project, limited production surface, 1 developer)?
-  Reasons for your assessment?
+- What's your judgment: does ai-council feel L (heavy infrastructure, ~102k
+  tokens, 310 tests) or M (personal project, limited production surface, 1
+  developer)? Reasons for your assessment?
 
 For **lessons discovery (F-02)**: does ai-council have meaningful lessons in
 `tasks/lessons.md` that should migrate to .dev-knowledge LESSONS.md, or should
@@ -171,14 +188,14 @@ Default boundaries (extend as needed):
   no further refactoring this session)
 - If `pytest -x` fails at any step: STOP, report failure, do not continue
 
-Add any architect-specific "do not's" or scope limitations.
+Add any concerns or "do not's" specific to your knowledge of the current state.
 
 ---
 
 ## Receiver synthesis prompt
 
 After reading the Stage 2 response and the rest of the handoff bundle, the
-receiving Claude Code (browser-2 in next ai-council session) must provide this
+receiving NEW chat (browser-2 in next ai-council session) must provide this
 synthesis before acting:
 
 > "I will execute {goal from OBJECTIVE}. My understanding of current state:
@@ -193,13 +210,16 @@ Only proceed if Rob confirms the synthesis is accurate.
 
 ---
 
-**Browser-2 architect: please answer pipeline questions 1-5 above with
-project-level detail. Structure your response with section headings matching
-the 5 question names (OBJECTIVE / REALITY / RATIONALE / DIRECTIVES / BOUNDARIES)
-so Claude Code can parse them at Stage 3.**
+**Existing ai-council chat: please answer pipeline questions 1-5 above from
+your accumulated context and lived knowledge. Structure your response with
+section headings matching the 5 question names (OBJECTIVE / REALITY /
+RATIONALE / DIRECTIVES / BOUNDARIES) so Claude Code can parse them at Stage 3.**
 
-**Rob: save browser-2's full response as:**
+**Rob: save the existing chat's full response as:**
 `docs/handoffs/_in_progress/2026-05-09-ai-council-audit-sync/stage2-response.md`
 
 Then in Claude Code at `.dev-knowledge`, say:
 `"complete handoff for ai-council"` → Stage 3 generates the final handoff folder.
+
+After Stage 3: close this existing chat. Open a NEW claude.ai chat for ai-council
+and use the Stage 3 folder bundle.
