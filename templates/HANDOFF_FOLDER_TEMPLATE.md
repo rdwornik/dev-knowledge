@@ -83,35 +83,108 @@ Content (in order):
 ### 00_first-message.md
 
 Purpose: First message for the NEW (fresh) chat receiving this handoff bundle.
+Tells NEW chat its role, reading order, synthesis requirements, Q&A protocol,
+and prompt generation protocol.
 
 Content (in order):
-1. Acknowledgment that receiver is in a fresh chat with zero history; all
-   context is in this bundle (VISION/PLAYBOOK/ESSENTIALS + stage-2 knowledge
-   in 06_STATE_OF_PLAY and 07_ACTION_PLAN)
-2. Note that the OLD chat (Stage 2 source) is now closed; its knowledge is
-   preserved here
-3. Reading order: 00_README → 01_MANIFEST → 02 → 03 → 04 → 05 → 06 → 07 → 08
-4. State validation instructions:
-   - "Run `git rev-parse HEAD` in target repo. Must match `{head_sha}` from
-     01_MANIFEST. If mismatch, STOP and report drift."
-   - "Run `git status --porcelain`. Verify working tree state matches
-     01_MANIFEST."
-5. **Receiver synthesis prompt (MANDATORY before any action):**
-   Receiver must paraphrase its understanding before executing directives.
-   Format:
 
-   > "I will execute {goal from 07_ACTION_PLAN OBJECTIVE}. My understanding
-   > of current state: {paraphrase 06_STATE_OF_PLAY}. I chose this approach
-   > because: {paraphrase 07_ACTION_PLAN RATIONALE}. I will execute in order:
-   > {numbered actions from DIRECTIVES}. I will NOT do: {boundaries list}.
-   > Verification: HEAD SHA matches {head_sha}, working tree {state}.
-   > I will start with {first action}."
+#### Identification
+- "You are receiving a handoff bundle for {repo}."
+- "You are a fresh chat with zero prior history of this project."
+- "All context you need is in these uploaded files."
+- Note OLD chat is closed; its knowledge in 06_STATE_OF_PLAY + 07_ACTION_PLAN
 
-   Receiver must wait for Rob's confirmation before proceeding.
+#### Reading order
+- Numbered list of files to read in order
+- Skip note for 01_manifest.json (machine-readable)
 
-Note: receiver synthesis prompt belongs here (Stage 3 output, new chat),
-NOT in stage1-question.md (Stage 1 output, old chat). Old chat answers
-questions; it does not synthesize before responding.
+#### State validation
+- Commands operator should run (browser chat can't run shell)
+- Expected HEAD SHA, working tree state
+- Mismatch instruction: STOP, report
+
+#### Receiver synthesis (MANDATORY before action)
+After reading the full bundle, NEW chat MUST provide synthesis. Format:
+
+> "I will execute **{goal from 07 OBJECTIVE}**.
+>
+> My understanding of current state: **{paraphrase 06}**.
+>
+> Reasoning: **{paraphrase 07 RATIONALE}**.
+>
+> I will execute in order: **{DIRECTIVES list}**.
+>
+> I will NOT do: **{BOUNDARIES list}**.
+>
+> Verification: HEAD matches {head}, working tree {state}.
+>
+> I will start with **{first DIRECTIVE}**."
+
+After presenting synthesis, NEW chat MUST wait for operator response.
+
+#### Operator response handling
+
+Operator will respond with one of:
+
+1. **`synthesis confirmed`** — synthesis is accurate. NEW chat proceeds:
+   ask if any clarification questions remain (Q&A loop) OR ask "single
+   Claude Code prompt or split?"
+
+2. **`synthesis correction: [text]`** — synthesis has errors. NEW chat
+   updates understanding based on correction, re-presents synthesis.
+   Repeat until operator confirms.
+
+3. **Other text** — treat as correction or question. Re-present synthesis
+   incorporating operator's input.
+
+#### Q&A iteration loop (if needed)
+
+If NEW chat has clarification questions BEFORE generating prompts:
+
+1. After synthesis confirmed, NEW chat presents:
+   "I have {N} clarification questions before generating prompts:
+   1. {question 1}
+   2. {question 2}
+   3. {question 3}
+   (max 3 per round)
+   Please route these to OLD chat and return answers."
+
+2. Operator takes questions to OLD chat, gets answers, returns
+3. NEW chat updates synthesis with answers, may have follow-up
+   questions (round 2)
+4. Maximum 3 rounds. After round 3, NEW chat must proceed with best
+   available understanding OR ask operator to restart Stage 2
+
+When NEW chat has no more questions, it asks operator: "Ready to
+generate Claude Code prompt(s)? Single prompt or split?"
+
+#### Prompt generation
+
+After Q&A loop closed and operator confirms format (single/split):
+
+- NEW chat generates formal Claude Code prompt(s) per 03_PLAYBOOK
+  conventions:
+  - Model/Mode/Effort table at top
+  - Title, Repo, Purpose
+  - Read first list
+  - Git workflow
+  - UNDERSTAND
+  - Steps with COMMIT markers
+  - What NOT to do
+- Output as downloadable .md
+- Operator downloads, runs in Claude Code in target repo
+
+#### Continuous improvement reminder
+- Project's meta-goal is continuous improvement (per .dev-knowledge
+  VISION + ESSENTIALS)
+- Immediate session scope is in 07_ACTION_PLAN
+- Long-term posture: always advancing the project
+- After execution, NEW chat encourages operator to capture lessons
+  for next session
+
+Note: receiver synthesis prompt belongs in 00_first-message.md (Stage 3
+output, new chat), NOT in stage1-question.md (Stage 1 output, old chat).
+Old chat answers questions; it does not synthesize before responding.
 
 ### 01_MANIFEST.md
 
