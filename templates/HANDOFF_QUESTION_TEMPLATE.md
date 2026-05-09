@@ -130,38 +130,61 @@ version number, a config value): say "Unknown — Stage 3 should verify."
 ## Format requirements (CRITICAL — read before responding)
 
 Your response will be copy-pasted verbatim into stage2-response.md for
-Stage 3 parsing. Non-compliant format breaks parsing.
+Stage 3 parsing.
+
+**Copy-paste note:** chat UIs sometimes strip `#` markdown markers when
+you copy rendered text. Stage 3 parser is TOLERANT and accepts multiple
+heading formats. Use ANY of these for section headings:
+
+- Markdown level-3: `### 1. OBJECTIVE`
+- Bold: `**1. OBJECTIVE**`
+- Plain numbered: `1. OBJECTIVE`
+
+If unsure which survives your client's copy-paste, use both:
+`### **1. OBJECTIVE**` — at least one form will survive.
 
 **Required:**
-- Pure markdown — no preamble, no closing remarks
-- Start your response with: `### 1. OBJECTIVE`
-- End your response with the final line of BOUNDARIES content
-- Each section heading: `### {number}. {NAME}` (level-3 markdown,
-  exact name from list below)
+- No preamble before first heading ("Here's my response:", "Sure:")
+- No closing remarks after final BOUNDARIES content
 - All 5 sections required, in order: OBJECTIVE / REALITY /
   RATIONALE / DIRECTIVES / BOUNDARIES
+- Each section heading uses exact section name (case-sensitive)
+- No extra top-level sections beyond the 5 required
 
 **Allowed within sections:** paragraphs, bullet lists, numbered lists,
 **bold**, *italic*, `inline code`, code blocks, tables, blockquotes.
 
 **NOT allowed:**
-- Wrapping entire response in code fence (no ` ```markdown ` at start;
-  no closing ` ``` ` at end)
-- Preamble before first heading ("Here's my response:", "Sure:")
-- Closing remarks after BOUNDARIES section
-- Extra top-level sections beyond the 5 required
+- Wrapping ENTIRE response in code fence (no opening ` ```markdown `
+  or ` ``` ` at the very start; no closing ` ``` ` at the very end)
 
 **Example correct opening:**
 
+```
 ### 1. OBJECTIVE
 The next session should...
+```
+
+Also acceptable (both survive copy-paste):
+```
+### **1. OBJECTIVE**
+The next session should...
+```
+
+Also acceptable (plain text, fully copy-paste proof):
+```
+1. OBJECTIVE
+The next session should...
+```
 
 **Example WRONG opening (do not do this):**
 
+```
 Here's my structured response:
 
 ```markdown
 ### 1. OBJECTIVE
+```
 
 ## Current state (verified at Stage 1 by Claude Code)
 
