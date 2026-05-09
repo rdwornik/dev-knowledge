@@ -1,7 +1,9 @@
 ---
 version: 1.0
-last_reviewed: 2026-04-30
-owner: Rob
+tier: M
+owner: rob
+last_reviewed: 2026-05-09
+scale: M
 status: active
 ---
 
@@ -90,6 +92,17 @@ manual verification at session-close per HANDOFF_PROCESS.md.
 **Vision realized:** when current Vision becomes current state, archive
 as `docs/archive/VISION_v{N}_realized_YYYY-MM-DD.md` and propose next
 horizon. VISION file stays alive — only its content evolves.
+
+**Tier classification:** M (architect judgment, 2026-05-09).
+
+Algorithm-classified tier per ADR-40 currently L — all repos clamp to L
+under current coefficients due to documented miscalibration (F-08,
+cross-ecosystem calibration concern). Architect judgment balances: single
+developer, no SLA, no team (argues against L); multi-repo governance
+authority, ADR producer for ecosystem (argues against S); moderate
+complexity (~42 ADRs, governance + audit + handoff infrastructure). M is
+most defensible under calibration uncertainty. Revisit post audit tool P1
+multi-repo data collection (BACKLOG Stream C P1).
 
 **Ownership:** Rob (sole authority).
 **Edit process:** AI Council debate for Vision/Scope changes; conversational

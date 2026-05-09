@@ -4,6 +4,25 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-09 (late evening, part 3) — Handoff bundle review fixes
+
+### Changed
+- `VISION.md` frontmatter: added `tier: M` + `scale: M` per ADR-33 mandate;
+  updated `last_reviewed: 2026-05-09`; lowercased `owner`. Lifecycle section
+  documents architect-judgment basis (M chosen under F-08 calibration
+  uncertainty; algorithm output L pending recalibration).
+- `docs/handoffs/2026-05-09-ai-council-audit-sync/02_VISION.md`: synced to
+  updated canonical VISION (now ADR-33 compliant frontmatter).
+- `docs/handoffs/2026-05-09-ai-council-audit-sync/00_README.md`: file count
+  corrected 11 → 12.
+- `docs/handoffs/2026-05-09-ai-council-audit-sync/00_first-message.md`:
+  reading order adds explicit note about `01_manifest.json` (machine-readable,
+  skip during reading).
+- `docs/handoffs/2026-05-09-ai-council-audit-sync/01_manifest.json`: SHA-256
+  checksums recomputed for 8 modified files.
+
+---
+
 ## 2026-05-09 (evening, part 2) — ai-council audit handoff Stage 3 complete
 
 ### Added

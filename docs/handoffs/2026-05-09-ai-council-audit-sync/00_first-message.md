@@ -22,6 +22,11 @@ Before acting on any directives, read in this order:
 9. `08_TREE.txt` — ai-council file inventory (repo structure orientation)
 10. `09_EXECUTION_EVIDENCE.md` — you will fill this after completing directives
 
+**Note on `01_manifest.json`:** machine-readable metadata with SHA-256 checksums
+for all files. Skip during sequential reading — reference only if you need
+programmatic file integrity verification or exact checksums. `01_MANIFEST.md`
+(Markdown counterpart) contains the same metadata in human-readable form.
+
 ## State validation (do this first)
 
 Before doing anything else:
