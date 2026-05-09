@@ -4,6 +4,50 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-09 (night) — ADR-42 v3.2: Q&A loop + continuous improvement + operator clarity
+
+### Added
+- ADR-42 v3.2 amendment: Stage 2.5 Q&A iteration loop (max 3 rounds between
+  NEW chat and OLD chat for clarification questions before Stage 3 prompt
+  generation)
+- `protocols/HANDOFF_PROCESS.md` v3.2: Stage 2.5 procedure documented; "What
+  changed v3.1 → v3.2" table; Section history entry
+- `templates/HANDOFF_FOLDER_TEMPLATE.md` 00_README spec: explicit 10-step
+  operator workflow (open NEW chat → upload → paste first-message → synthesis
+  confirmation → Q&A loop → prompt generation → Claude Code execution → return
+  evidence)
+- `templates/HANDOFF_FOLDER_TEMPLATE.md` 00_first-message spec: explicit
+  synthesis confirmation phrases ("synthesis confirmed" / "synthesis
+  correction: [text]"), Q&A loop instructions, single-vs-split prompt
+  question, prompt generation protocol, continuous improvement reminder
+- `protocols/ESSENTIALS.md` Continuous Improvement section: default project
+  posture, applied-to-VISION guidance, frozen-state vs continuous-improvement
+  Lifecycle wording examples
+
+### Changed
+- `VISION.md`: continuous improvement principle added to Vision section;
+  Values section references ESSENTIALS Continuous Improvement section
+- `docs/handoffs/2026-05-09-ai-council-audit-sync/02_VISION.md`: synced with
+  continuous improvement update
+- `docs/handoffs/2026-05-09-ai-council-audit-sync/00_README.md`: regenerated
+  with v3.2 10-step operator workflow
+- `docs/handoffs/2026-05-09-ai-council-audit-sync/00_first-message.md`:
+  regenerated with v3.2 Q&A loop + operator response handling + prompt
+  generation protocol + continuous improvement reminder
+- `docs/handoffs/2026-05-09-ai-council-audit-sync/07_ACTION_PLAN.md`
+  Directive 2 VISION Lifecycle: "Feature-complete v1. No planned major
+  features" → "Active development with continuous improvement focus..."
+- `docs/handoffs/2026-05-09-ai-council-audit-sync/01_manifest.json`:
+  SHA-256 checksums recomputed for 4 modified files; format_version bumped
+  to v3.2
+
+### Lesson captured
+- LESSONS.md: qa-loop-continuous-improvement-operator-clarity — 16th
+  instance of design-without-empirical-contact pattern; continuous
+  improvement elevated to ecosystem-wide value
+
+---
+
 ## 2026-05-09 (late evening, part 3) — Handoff bundle review fixes
 
 ### Changed
