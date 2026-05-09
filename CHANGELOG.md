@@ -4,6 +4,36 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-09 (afternoon) — Handoff v3.1: end-to-end implementation
+
+### Changed
+- ADR-42 amended: audit-sync Stage 2 shortcut removed; ALL handoffs follow
+  full 3-stage flow regardless of type. Amendment block added to ADR header.
+- `protocols/HANDOFF_PROCESS.md` rewritten to v3.1: operational state tracking
+  via `_in_progress/{slug}/` directory, explicit trigger phrase table, per-stage
+  validation checkpoints, JOURNAL hook (Stages 1+3), CHANGELOG hook (Stage 3),
+  BACKLOG integration, drift detection reports both SHAs on mismatch.
+- `protocols/SESSION_SETUP.md` handoff workflow trigger section updated to v3.1
+  flow with state detection table.
+- `templates/HANDOFF_QUESTION_TEMPLATE.md` adds filename conventions, Stage 2
+  response format requirements, and operational instructions for Rob.
+- `templates/HANDOFF_FOLDER_TEMPLATE.md` documents Stage 3 input source
+  (`_in_progress/{slug}/`) and archive sibling pattern.
+
+### Added
+- `.claude/commands/handoff.md` — `/handoff` slash command implementing v3.1
+  three-stage flow with critical constraints listed.
+- `docs/handoffs/_in_progress/2026-05-09-ai-council-audit-sync/stage1-question.md`
+  — first proper Stage 1 artifact for ai-council audit-sync, awaiting browser-2
+  response (Stage 2).
+
+### Removed
+- `docs/handoffs/2026-04-30-ai-council-audit-sync/` — deleted because generated
+  under now-removed audit-sync shortcut (Stage 2 skipped). To be regenerated via
+  proper 3-stage flow after browser-2 response received.
+
+---
+
 ## 2026-05-09 — Handoff Format v3.0 implementation
 
 ### Added
