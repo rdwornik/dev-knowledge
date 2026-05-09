@@ -2,7 +2,7 @@
 
 <!-- scope: meta -->
 
-Status: Accepted (amended 2026-05-09 afternoon)
+Status: Accepted (amended twice: 2026-05-09 afternoon, 2026-05-09 later afternoon)
 Date: 2026-05-09
 
 ## Amendments
@@ -26,6 +26,38 @@ Implementation impact: the ai-council audit-sync handoff generated
 under the shortcut (2026-05-09 morning) was deleted and will be
 regenerated via proper 3-stage flow. Lessons captured in LESSONS.md.
 HANDOFF_PROCESS rewritten to v3.1 as operational counterpart.
+
+### 2026-05-09 (later afternoon) — Stage 2 source semantics clarified
+
+Earlier ADR-42 ratification and first amendment described Stage 2 as
+"browser-2 architect provides project intelligence" without specifying
+which browser session. This was ambiguous and read by Claude Code as
+"open a new chat." That reading inverts handoff purpose.
+
+Correction: Stage 2 source is the EXISTING browser chat for the target
+repo — the chat being wrapped up due to context exhaustion. The point
+of handoff is to preserve that chat's accumulated tacit knowledge
+before its context dies. A fresh chat has no context to add.
+
+**Three-actor flow (canonical):**
+
+| Actor | Role | Timing |
+|---|---|---|
+| **Claude Code in .dev-knowledge** | Orchestrator + generator | All 3 stages |
+| **OLD browser chat** for {repo} | Stage 2 source: existing chat being wrapped up. Has accumulated context. Receives Stage 1 question; produces Stage 2 response from lived knowledge. | During Stage 2 |
+| **NEW browser chat** for {repo} | Stage 3 receiver: opened AFTER Stage 3 generates final folder. Receives 11-file bundle as upload + 00_first-message.md as first message. Acts on directives; fills 09_EXECUTION_EVIDENCE.md. | After Stage 3 |
+
+If Stage 2 goes to a NEW chat: fresh chat has no context, response
+collapses to restating known audit findings, Stage 2 adds no signal.
+This is the rejected "implicit shortcut" pattern in different form.
+
+If Stage 2 goes to OLD chat: architect's lived knowledge (priorities,
+mental model, in-flight decisions, recent concerns) is captured before
+context dies. Knowledge is non-substitutable.
+
+Implementation impact: HANDOFF_PROCESS.md Stage 2 section rewritten;
+templates corrected; ai-council Stage 1 question prompt regenerated
+with corrected instructions (paste into OLD ai-council chat, not new).
 
 ---
 Related: ADR-32 (handoff process v2.0, partially superseded),
