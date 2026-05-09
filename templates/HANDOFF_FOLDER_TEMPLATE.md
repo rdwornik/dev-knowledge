@@ -42,18 +42,36 @@ Content:
 
 ### 00_first-message.md
 
-Purpose: First message for the NEW (fresh) chat receiving this handoff.
+Purpose: First message for the NEW (fresh) chat receiving this handoff bundle.
 
-Content:
-- Acknowledgment: receiver is in a fresh chat with zero history; all
-  context is in this bundle (VISION/PLAYBOOK/ESSENTIALS + stage-2
-  knowledge in 06/07 files)
-- Verification instruction: run `git rev-parse HEAD` in target repo,
-  confirm SHA matches `{head_sha}` — if mismatch, STOP and report
-- Reading order: 01_MANIFEST.md → 02 → 03 → 04 → 05 → 06 → 07 → 08
-- Receiver synthesis prompt: before acting, summarize understanding
-  in the format from HANDOFF_QUESTION_TEMPLATE receiver synthesis section
-- Explicit instruction: do not proceed until Rob confirms synthesis
+Content (in order):
+1. Acknowledgment that receiver is in a fresh chat with zero history; all
+   context is in this bundle (VISION/PLAYBOOK/ESSENTIALS + stage-2 knowledge
+   in 06_STATE_OF_PLAY and 07_ACTION_PLAN)
+2. Note that the OLD chat (Stage 2 source) is now closed; its knowledge is
+   preserved here
+3. Reading order: 00_README → 01_MANIFEST → 02 → 03 → 04 → 05 → 06 → 07 → 08
+4. State validation instructions:
+   - "Run `git rev-parse HEAD` in target repo. Must match `{head_sha}` from
+     01_MANIFEST. If mismatch, STOP and report drift."
+   - "Run `git status --porcelain`. Verify working tree state matches
+     01_MANIFEST."
+5. **Receiver synthesis prompt (MANDATORY before any action):**
+   Receiver must paraphrase its understanding before executing directives.
+   Format:
+
+   > "I will execute {goal from 07_ACTION_PLAN OBJECTIVE}. My understanding
+   > of current state: {paraphrase 06_STATE_OF_PLAY}. I chose this approach
+   > because: {paraphrase 07_ACTION_PLAN RATIONALE}. I will execute in order:
+   > {numbered actions from DIRECTIVES}. I will NOT do: {boundaries list}.
+   > Verification: HEAD SHA matches {head_sha}, working tree {state}.
+   > I will start with {first action}."
+
+   Receiver must wait for Rob's confirmation before proceeding.
+
+Note: receiver synthesis prompt belongs here (Stage 3 output, new chat),
+NOT in stage1-question.md (Stage 1 output, old chat). Old chat answers
+questions; it does not synthesize before responding.
 
 ### 01_MANIFEST.md
 
