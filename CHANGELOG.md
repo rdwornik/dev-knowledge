@@ -4,6 +4,27 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-09 (evening) — Stage 1 question template context completeness
+
+### Changed
+- `templates/HANDOFF_QUESTION_TEMPLATE.md` Section B restructured: role
+  definition + handoff bundle awareness + epistemic honesty requirement +
+  format requirements now appear at TOP of Section B (before current state,
+  audit context, and questions). Inline epistemic notes added per question.
+  Generation rules updated to enforce Section B order.
+- `protocols/HANDOFF_PROCESS.md` Stage 1 procedure: Section B structure
+  documented (10-item order); rationale for top-placement explained
+  (version with format at end produced plain-text headings, fabricated
+  specifics, duplicated ecosystem info).
+- `docs/handoffs/_in_progress/2026-05-09-ai-council-audit-sync/stage1-question.md`
+  regenerated with corrected Section B structure.
+
+### Added
+- LESSONS.md: `stage2-context-completeness` — LLM-to-LLM prompts need
+  role/bundle/epistemic/format at top before any content to be responded to.
+
+---
+
 ## 2026-05-09 (late afternoon, part 2) — Stage 2 pre-create + markdown format
 
 ### Changed
