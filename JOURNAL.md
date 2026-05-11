@@ -18,6 +18,22 @@
 
 ---
 
+### 2026-05-11 — Item 0 Prompt A: handoff lifecycle cleanup
+
+**Did:**
+- Confirmed Stage 3 folder + archive already committed (e428a5e); only _in_progress/ orphans remain uncommitted
+- Appending JOURNAL baseline entry to mark session start for 0a/0b/0c sequence
+
+**Result:**
+- Clean baseline: all Stage 3 artifacts committed; working tree has only untracked _in_progress/ orphans
+- Ready for 0b (HANDOFF_PROCESS.md fix) and 0c (orphan cleanup)
+
+**Next:**
+- 0b: rewrite Stage 3 step 10 with explicit Move-Item semantics + empty-dir cleanup + post-state validator
+- 0c: verify and delete _in_progress/ orphans (ai-council-audit-sync empty dir + dev-knowledge-session-sync post-archive)
+
+---
+
 ### 2026-05-09 (night) — Stage 3 complete: .dev-knowledge session-sync handoff generated
 
 **Did:**
