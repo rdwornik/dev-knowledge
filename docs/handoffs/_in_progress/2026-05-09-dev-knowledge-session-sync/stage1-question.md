@@ -2,8 +2,8 @@
 
 Target repo: .dev-knowledge (self-handoff)
 Target path: C:/Users/1028120/Documents/Dev/.dev-knowledge
-Repo HEAD at Stage 1: f578ac437943c191b4f5cd72a446fba354e39528
-Repo branch: chore/session-2026-05-09-wrap-up (Stage 1 generation context)
+Repo HEAD at Stage 1: f87a5cc1acf470f3f7eb69808ed1b6ac1dedd549
+Repo branch: chore/session-2026-05-09-backlog-refinement (Stage 1 generation context)
 Repo working tree: clean (no uncommitted changes)
 Generated: 2026-05-09 (night, session wrap-up)
 Handoff type: session-sync (variant of audit-sync — no formal audit; session lessons as input)
@@ -151,18 +151,49 @@ Today's historic session delivered:
 
 ## .dev-knowledge BACKLOG items (for context)
 
-Open items:
+**Stream C — .dev-knowledge governance (existing P1/P2):**
 - [P1] PLAYBOOK content additions for ADRs 36/37/40/41
 - [P1] Audit tool P1 implementation (Stream C; ADR-40 recalibration dependency)
 - [P2] Lessons activation P1 implementation (ADR-35)
 - [P2] ESSENTIALS.md cheat-sheet additions for ADRs 35-41
-- [P3] Council CLI dual-write trigger logic
-- [P3] ADR-39 amendment — BACKLOG.md lifecycle entry
-- [P3] ADR-39 registry decision — 5 unregistered template files
-- Pending BACKLOG entry: HANDOFF_FOLDER_TEMPLATE 07_ACTION_PLAN DoD
-  wording typo (4-vs-5 sections, surfaced by NEW chat-2 review)
-- Pending: ai-council branch docs/audit-sync-2026-05-09 awaits
-  separate review/merge decision
+
+**Cross-stream — existing items:**
+- [P2] Phase 2 universalization rollout (ai-council + corp-monorepo immediate cohort)
+- [P2] VISION.md tier declarations across ecosystem
+- [P2] Council research — relative repo complexity evaluation (informs ADR-40 amendment)
+- [P3] Cross-repo audit (Phase 3, requires audit tool P1 first)
+
+**Cross-stream — Rob's strategic priorities for next session (added tonight):**
+- [P1] Council decisions management consolidation — decisions dispersed across
+  `docs/decisions/`, transcripts, individual ADRs; need consolidated index +
+  contradiction detection + amendment vs. new-ADR ownership model
+- [P1] Sacred-files maintenance enforcement — 9 canonical files (ARCHITECTURE,
+  BACKLOG, CHANGELOG, CLAUDE, CONTRIBUTING, JOURNAL, LESSONS, README, VISION)
+  drift because chats forget to update them; need enforcement mechanism
+  (pre-commit? session-end skill? CI check?)
+- [P2] Hooks audit + consolidation — two `review` hooks observed; full hook
+  inventory not documented; evaluate whether they're intentionally separate
+  or candidates for merge
+- [P2] Skills universalization across repos — inventory all skills,
+  classify repo-specific vs. cross-ecosystem, propose canonical shared location
+- [P2] Ecosystem standards audit against major repo — folder/file naming
+  (ADR-34), workspace structure (ADR-38), sacred-files presence, scope tag
+  compliance; establish repeatable audit pattern
+- [P3] Kimi K2 model integration evaluation — cost/capability vs. Claude;
+  Council debate on adoption level (research-only / production / experimental)
+- [P3] Scale tier evaluation re-evaluation — formalize or deprioritize
+  L/S/M tiers; Council debate; depends on complexity research + audit tool data
+- [P3] Large repo migration preparation — significant ecosystem repo needs
+  structural migration; planning session + Council-level design required first
+  (no specific repo named until planning scopes it)
+- [P3] VS Code productivity maximization — extensions audit, workflow templates,
+  tool integration; deferred until higher-priority items closed
+
+**Other pending:**
+- HANDOFF_FOLDER_TEMPLATE 07_ACTION_PLAN DoD wording typo (4-vs-5 sections,
+  surfaced by NEW chat-2 review) — low-effort fix, can be batched
+- ai-council branch `docs/audit-sync-2026-05-09` awaits separate
+  review/merge decision
 
 ## Pipeline questions (answer these in order)
 
@@ -243,6 +274,37 @@ What must the next session NOT do? Scope guardrails?
 *Epistemic note: do-not lists grounded in session knowledge are
 valuable. Don't fabricate "do not touch X" for things you don't
 know — focus on knowns from this conversation.*
+
+## Special instruction for next session chat (post-Stage 3)
+
+When the next `.dev-knowledge` chat receives the Stage 3 handoff bundle
+generated from your response, that chat should approach Rob's strategic
+plan as a **refinement partner**, not just an executor.
+
+For each major BACKLOG item the next session might tackle, the next
+chat should:
+
+1. **Press back on vague items.** If an item's scope is fuzzy or
+   under-specified, say so explicitly and propose a sharper definition.
+2. **Propose a concrete first step.** What is the smallest reversible
+   action that makes progress without overcommitting?
+3. **Surface implicit dependencies.** Flag when item B cannot begin
+   without item A being complete or decided. (Example: skills
+   universalization may depend on hooks audit being complete first,
+   since skills are declared in hooks configuration.)
+4. **Identify when an item warrants Council debate vs. conversational
+   decision.** Items that change VISION scope, introduce new architecture,
+   or affect multiple repos require Council debate. Clarifications and
+   emphasis shifts do not.
+5. **Flag hidden compound items.** If a BACKLOG item is actually 3
+   items disguised as one, name them separately.
+6. **Suggest scope boundaries.** For each item: what is explicitly IN,
+   and what is explicitly OUT for the next session?
+
+Reference: 2026-05-09 session lesson — Browser-3 (receiver chat)
+surfacing the DoD typo in 07_ACTION_PLAN was an example of
+receiver-side review adding value beyond just executing directives.
+Encourage that posture throughout the next session.
 
 ════════════════════════════════════════════════════════════════════
 End of paste block. Old chat: please answer questions 1-5 above
