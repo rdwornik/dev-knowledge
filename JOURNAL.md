@@ -18,6 +18,26 @@
 
 ---
 
+### 2026-05-11 — Item 0 Prompt B: docs alignment + BACKLOG updates
+
+**Did:**
+- Rewrote `docs/handoffs/README.md` for v3.2 current format + pre-v3.2 legacy classification
+- Rewrote `docs/decisions/README.md` with full ADR index 27-42, transcript naming convention, ADR↔transcript traceability table (spot-checked uncertain mappings)
+- Added "Council output convention (current state)" section to PLAYBOOK Section 5
+- Corrected `protocols/ESSENTIALS.md` Council output convention from aspirational dual-write to actual single-target + manual archival
+
+**BACKLOG:**
+- Added Cross-stream P1 "AI Council cross-project transcript routing"
+- Added Stream B P2 "ai-council needs AGENTS.md (PLAYBOOK governance gap)"
+- Superseded Stream C P3 "Council CLI dual-write trigger logic" (broader P1 addresses root cause)
+- Updated Cross-stream P1 "Council decisions management consolidation" — inventory sub-item closed
+
+**Result:** Canonical docs now match reality; AI Council routing feature properly tracked; ai-council AGENTS.md gap surfaced
+
+**Next:** /review (5 files touched, above 3-file threshold per ESSENTIALS) → Rob gates merge to main
+
+---
+
 ### 2026-05-11 — Item 0 Prompt A: handoff lifecycle cleanup
 
 **Did:**

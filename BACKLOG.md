@@ -14,7 +14,12 @@ Next quarterly grooming: 2026-07-01
 
 ## Stream B: ai-council
 
-(no items currently — populate as Phase 2 universalization begins)
+### [P2] [open] ai-council needs AGENTS.md (PLAYBOOK governance gap)
+- **What:** PLAYBOOK section "AGENTS.md — canonical per-repo governance contract" requires each repo to have AGENTS.md at root. `ai-council` has `CLAUDE.md` but no `AGENTS.md` (verified 2026-05-11). Drift signal: cross-tool LLM agents (Codex, Cursor, Aider) operating on outdated/incomplete repo context.
+- **Why:** AGENTS.md is the cross-tool canonical governance file per Council #28 (community standard). CLAUDE.md alone is Claude-Code-specific. Missing AGENTS.md = drift from ecosystem standard set by PLAYBOOK.
+- **Vision ref:** VISION.md "Methodology Author" function + Strategic emphasis "Cross-repo methodology consistency"
+- **Added:** 2026-05-11 by rob (Item 0 strażnik audit)
+- **Status:** open — work belongs in ai-council repo, not .dev-knowledge
 
 ## Stream C: .dev-knowledge governance
 
@@ -51,11 +56,11 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-04-30 by rob (Phase 1 self-audit)
 - **Status:** open
 
-### [P3] [open] Council CLI dual-write trigger logic
+### [P3] [superseded] Council CLI dual-write trigger logic
 - **What:** Define when Council debates dual-write to .dev-knowledge vs ai-council/output only; flag-based or auto-detect (research+pick=curated, test=no-curated)
 - **Why:** Test debates currently pollute curated transcripts; surfaced 2026-04-30 session
 - **Added:** 2026-04-30 by rob
-- **Status:** open
+- **Status:** superseded 2026-05-11 by Cross-stream P1 "AI Council cross-project transcript routing" (broader scope addressing root cause; mechanism choice deferred to Council debate)
 
 ### [P3] [open] ADR-39 amendment — BACKLOG.md lifecycle entry
 - **What:** Amend ADR-39 registry to add BACKLOG.md entry per ADR-41
@@ -118,7 +123,7 @@ Next quarterly grooming: 2026-07-01
 - **Why:** Dispersion observed during 2026-05-09 session work. As ADR count grows (42+), navigating, cross-referencing, and detecting drift becomes harder. Governance debt compounds silently.
 - **Vision ref:** VISION.md "Knowledge Guardian" + "Methodology Author" functions
 - **Added:** 2026-05-09 by rob (session wrap-up observation)
-- **Status:** open
+- **Status:** open — Item 0 (2026-05-11) closed first-step inventory: `docs/decisions/README.md` rewritten with full ADR index 27-42 + transcript convention + ADR↔transcript traceability. Remaining sub-items: (1) contradiction detection mechanism (Council debate territory), (2) ownership model for decision evolution — amendment vs new ADR vs conversational clarification (Council debate territory). "Consolidated index" sub-item closed.
 
 ### [P1] [open] Sacred-files maintenance enforcement
 - **What:** Nine canonical files in every ecosystem repo (ARCHITECTURE, BACKLOG, CHANGELOG, CLAUDE, CONTRIBUTING, JOURNAL, LESSONS, README, VISION) drift out of date because browser chats forget to update them at session boundaries. Need enforcement mechanism — candidates: pre-commit hook checking `last_reviewed` staleness, session-end checklist skill, CI check for file age, or automated diff-based staleness detection. Scope: design enforcement pattern, implement at least one mechanism, validate against known drift scenarios.
@@ -126,6 +131,13 @@ Next quarterly grooming: 2026-07-01
 - **Vision ref:** VISION.md "Knowledge Guardian" function; ESSENTIALS "Continuous Improvement" section
 - **Added:** 2026-05-09 by rob (session wrap-up observation)
 - **Status:** open
+
+### [P1] [open] AI Council cross-project transcript routing
+- **What:** AI Council CLI currently emits transcripts to `ai-council/output/` only; cross-project routing to `<project>/docs/decisions/transcripts/` is via manual archival. Client requirements spec drafted (R1-R8: deterministic routing via YAML frontmatter `target-project:` key, config-driven path resolution, supports all 4 modes, loud failure on unknown target). Mechanism choice (push frontmatter vs pull command vs config-based) is Council debate territory. Implementation lives in `ai-council` repo, not `.dev-knowledge`.
+- **Why:** Aspirational "dual-write" claim in ESSENTIALS was drift signal — feature didn't exist in CLI (verified during Item 0 audit 2026-05-11). 12 manual archives in `.dev-knowledge/docs/decisions/transcripts/` are pre-feature state. Deterministic routing reduces drift across ecosystem; supports VISION Strategic emphasis "Cross-repo methodology consistency."
+- **Vision ref:** VISION.md "Disseminator" function + Strategic emphasis "Cross-repo methodology consistency"
+- **Added:** 2026-05-11 by rob (Item 0 strażnik audit)
+- **Status:** open — client spec drafted, mechanism choice pending Council debate; implementation in ai-council repo
 
 ### [P2] [open] Hooks audit + consolidation
 - **What:** Two `review` hooks observed in ecosystem (one for Codex, one for internal review). Full hook inventory not documented. Need: (a) list all hooks across `.claude/` (global) and `.claude/` (project-level), (b) document each hook's purpose and trigger condition, (c) evaluate whether review hooks are intentionally separate or candidates for consolidation, (d) identify gaps (hooks that should exist but don't). Output: documented hook inventory + consolidation recommendation.

@@ -4,6 +4,18 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-11 — Docs alignment + BACKLOG updates (Item 0 strażnik audit)
+
+### Changed
+- Aligned canonical docs with reality after Item 0 strażnik audit (2026-05-11):
+  - `protocols/ESSENTIALS.md` — corrected Council output convention text (was aspirational dual-write description; CLI is single-target with manual archival)
+  - `protocols/PLAYBOOK.md` — added "Council output convention (current state)" section
+  - `docs/handoffs/README.md` — rewrote for v3.2 current format + pre-v3.2 legacy classification
+  - `docs/decisions/README.md` — rewrote with full ADR index 27-42 + transcript naming convention + ADR↔transcript traceability table
+  - `BACKLOG.md` — added Cross-stream P1 "AI Council cross-project transcript routing"; added Stream B P2 "ai-council needs AGENTS.md"; superseded Stream C P3 "Council CLI dual-write trigger logic"; updated Cross-stream P1 "Council decisions management consolidation" progress
+
+---
+
 ## 2026-05-11 — Handoff lifecycle fix + stale cleanup
 
 ### Fixed
