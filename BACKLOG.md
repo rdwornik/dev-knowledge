@@ -113,4 +113,69 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-04-30 by rob
 - **Status:** open
 
+### [P1] [open] Council decisions management consolidation
+- **What:** Council debates produce architectural decisions (ADRs), but decision artifacts are dispersed across `docs/decisions/`, `docs/decisions/transcripts/`, and ADR references in individual files. Need: (a) consolidated index of all decisions with traceability from decision to implementation, (b) explicit mechanism to detect contradictions between decisions over time, (c) clear ownership model for decision evolution (amendment vs. new ADR vs. conversational clarification). Scope: audit current dispersion, design consolidation pattern, implement index.
+- **Why:** Dispersion observed during 2026-05-09 session work. As ADR count grows (42+), navigating, cross-referencing, and detecting drift becomes harder. Governance debt compounds silently.
+- **Vision ref:** VISION.md "Knowledge Guardian" + "Methodology Author" functions
+- **Added:** 2026-05-09 by rob (session wrap-up observation)
+- **Status:** open
+
+### [P1] [open] Sacred-files maintenance enforcement
+- **What:** Nine canonical files in every ecosystem repo (ARCHITECTURE, BACKLOG, CHANGELOG, CLAUDE, CONTRIBUTING, JOURNAL, LESSONS, README, VISION) drift out of date because browser chats forget to update them at session boundaries. Need enforcement mechanism — candidates: pre-commit hook checking `last_reviewed` staleness, session-end checklist skill, CI check for file age, or automated diff-based staleness detection. Scope: design enforcement pattern, implement at least one mechanism, validate against known drift scenarios.
+- **Why:** Methodology debt pattern surfaced repeatedly across 2026-05-09 session (LESSONS captures multiple instances of "prescriptive writing without empirical contact"). Sacred files are the ground truth — stale ground truth silently misleads future sessions and chats.
+- **Vision ref:** VISION.md "Knowledge Guardian" function; ESSENTIALS "Continuous Improvement" section
+- **Added:** 2026-05-09 by rob (session wrap-up observation)
+- **Status:** open
+
+### [P2] [open] Hooks audit + consolidation
+- **What:** Two `review` hooks observed in ecosystem (one for Codex, one for internal review). Full hook inventory not documented. Need: (a) list all hooks across `.claude/` (global) and `.claude/` (project-level), (b) document each hook's purpose and trigger condition, (c) evaluate whether review hooks are intentionally separate or candidates for consolidation, (d) identify gaps (hooks that should exist but don't). Output: documented hook inventory + consolidation recommendation.
+- **Why:** Undocumented hooks create confusion about what fires when. Two review hooks with overlapping purposes may produce redundant or conflicting signals.
+- **Vision ref:** VISION.md "Methodology Author" function
+- **Added:** 2026-05-09 by rob (session wrap-up observation)
+- **Status:** open
+
+### [P2] [open] Skills universalization across repos
+- **What:** Each repo has `.claude/skills/` (or equivalent) with skill definitions. Need cross-repo review: (a) inventory all skills across ecosystem repos, (b) classify each as repo-specific vs. cross-ecosystem candidate, (c) identify universalization targets — skills that should live in `.dev-knowledge` and be referenced/shared, (d) propose canonical location for universal skills. Output: skills inventory + universalization proposal.
+- **Why:** Skills defined redundantly across repos create drift — same skill evolves differently in each context. Universalization reduces maintenance burden and ensures cross-repo consistency (per VISION Strategic emphasis: "Cross-repo methodology consistency").
+- **Vision ref:** VISION.md Strategic emphasis "Cross-repo methodology consistency"
+- **Added:** 2026-05-09 by rob (session wrap-up observation)
+- **Status:** open
+
+### [P2] [open] Ecosystem standards audit against major repo
+- **What:** Audit one significant ecosystem repo against current standards: folder naming (ADR-34), file naming (ADR-34), workspace structure (ADR-38), sacred-files presence (per set above), scope tag compliance (ADR-27). Surface drift items, classify by severity, plan remediation. Establish this as a repeatable pattern for auditing future repos.
+- **Why:** Phase 2 universalization rollout (Cross-stream P2, above) needs a concrete audit run to validate the pattern works. Without an actual audit against a real repo, the process is theoretical.
+- **Vision ref:** VISION.md "Auditor" function; pairs with "Phase 2 universalization rollout" (Cross-stream P2)
+- **Added:** 2026-05-09 by rob (session wrap-up observation)
+- **Note:** Do not name specific repo in BACKLOG until audit scoping session decides target. See "Phase 2 universalization rollout" for cohort selection.
+- **Status:** open
+
+### [P3] [open] Kimi K2 model integration evaluation
+- **What:** Evaluate Kimi K2 as addition to ecosystem LLM stack. Scope: (a) capability evaluation for Council debate quality, code generation, and reasoning depth, (b) cost comparison vs. Claude on equivalent task types, (c) integration patterns with existing infrastructure. Decision artifact: Council debate output recommending adoption level — research-only / production peer / experimental supplement.
+- **Why:** Significantly lower cost than Claude on equivalent tasks (per Rob). Speed of LLM technology adoption is a competitive advantage (VISION Strategic emphasis: "Velocity in LLM technology adoption"). Evaluation before adoption; Council debate before production use.
+- **Vision ref:** VISION.md Strategic emphasis "Velocity in LLM technology adoption"
+- **Added:** 2026-05-09 by rob (session wrap-up observation)
+- **Status:** open
+
+### [P3] [open] Scale tier evaluation re-evaluation
+- **What:** Current scale tier system (S/M/L per ADR-40) has documented calibration concern (F-08: all repos classify L under current coefficients). Decision point: (a) formalize via tighter metrics with empirical calibration data, or (b) deprioritize — remove scale tiers as a primary governance signal. Decision artifact: Council debate. Dependency: pairs with "Council research — relative repo complexity" (Cross-stream P2, above) and audit tool P1 multi-repo data collection (Stream C P1).
+- **Why:** Subjective tier assignment reduces auditability and creates inconsistent governance. Either make it rigorous or explicitly drop it — the middle ground of "declared but uncalibrated" is methodology debt.
+- **Vision ref:** VISION.md "Auditor" function; ADR-40 Lifecycle section
+- **Added:** 2026-05-09 by rob (session wrap-up observation)
+- **Status:** open
+
+### [P3] [open] Large repo migration preparation
+- **What:** One significant ecosystem repo requires structural migration aligned with current standards (folder structure naming conventions, sacred-files compliance, scope tagging, ADR adoption). Significant scope — requires dedicated planning session with Council-debate-level design before execution. Scope: design migration plan, estimate effort, sequence against other BACKLOG items.
+- **Why:** Migration will be disruptive if unplanned. Early planning (before audit tool P1 is complete) enables correct sequencing. Capture intent now to avoid ad-hoc migration later.
+- **Vision ref:** VISION.md "Disseminator" function; pairs with "Phase 2 universalization rollout" (Cross-stream P2)
+- **Added:** 2026-05-09 by rob (session wrap-up observation)
+- **Note:** Specific repo not named until planning session scopes it. Do not begin migration without Council-debate-level planning.
+- **Status:** open
+
+### [P3] [open] VS Code productivity maximization
+- **What:** Longer-term initiative to maximize Claude Code + git workflow productivity via VS Code tooling. Scope: extensions audit (what's installed vs. what's optimal), workflow templates, integration with ecosystem tools (validators, pre-commit hooks, git workflows). Output: extensions + settings recommendation + any automation improvements.
+- **Why:** Low-friction tooling reduces cognitive overhead during sessions. Deferred until higher-priority methodology items closed.
+- **Vision ref:** VISION.md "Methodology Author" function (tooling as methodology support)
+- **Added:** 2026-05-09 by rob (session wrap-up observation)
+- **Status:** open
+
 ---
