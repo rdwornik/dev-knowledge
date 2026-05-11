@@ -18,6 +18,40 @@
 
 ---
 
+### 2026-05-09 (night) — Session wrap-up
+
+**Did:**
+- Committed ai-council audit-sync execution evidence (return trip closed,
+  branch `chore/session-2026-05-09-wrap-up`, commit 818a1c6)
+- Added Strategic emphasis section to VISION.md (4 directions: velocity,
+  consistency, evolution, lessons-as-default; conversational clarification,
+  no specific repo/file references, scope: meta tagged, commit f578ac4)
+- Generated Stage 1 question for .dev-knowledge session-sync handoff
+  (session-sync variant; 5 pipeline questions adapted from template;
+  eat-dogfood test of v3.1+v3.2 infrastructure for self-handoff)
+- Pre-created stage2-response.md template in _in_progress slug directory
+
+**Result:**
+- Return trip for ai-council audit-sync closed — ADR-42 end-to-end test
+  fully documented
+- VISION strategic emphasis made explicit (continuous improvement
+  principle operationalized as 4 concrete current directions)
+- Session handoff infrastructure deployed: Stage 1 ready, Stage 2
+  template awaiting architect response from OLD chat
+
+**Next:**
+- Rob copies stage1-question.md PASTE_BOUNDARY content to current
+  browser chat (this chat IS the OLD chat for the session-sync)
+- Architect responds with 5 sections (OBJECTIVE/REALITY/RATIONALE/
+  DIRECTIVES/BOUNDARIES) — no code fence wrapper
+- Rob saves response to stage2-response.md (replace below marker line)
+- Next Claude Code session (after /clear): "complete handoff for
+  dev-knowledge" → Stage 3 generates bundle
+- ai-council branch docs/audit-sync-2026-05-09 awaits separate
+  review/merge decision (not blocked)
+
+---
+
 ### 2026-05-09 — Handoff Format v3.0 implemented + ai-council handoff regenerated
 
 **Did:**

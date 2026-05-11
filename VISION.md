@@ -30,6 +30,38 @@ fails. Continuous improvement is the baseline operating posture, not
 an option. Sessions advance the framework; static maintenance is
 exception requiring explicit justification.
 
+## Strategic emphasis (current)
+
+<!-- scope: meta -->
+
+These are current strategic directions — emphasis areas within existing
+scope, not new scope. Reviewed at session boundaries; may shift as the
+ecosystem evolves.
+
+- **Velocity in LLM technology adoption.** New models and capabilities
+  emerge continuously across origins. Speed of evaluation, integration,
+  and methodology adaptation is competitive advantage. Adoption pace
+  tracked as an ecosystem health signal.
+
+- **Cross-repo methodology consistency.** Every project under the
+  ecosystem adheres to universal patterns (naming, scope tagging,
+  governance artifacts, handoff protocols). Drift detected proactively
+  via scanning; corrected via universal updates, not per-repo patches.
+
+- **Methodology evolution as obsession.** Handoff protocols, prompt
+  formats, audit mechanisms, skills definitions — all continuously
+  improved based on real-usage friction. Static methodology is a
+  failure mode; methodology that evolves with experience is the goal.
+
+- **Lessons capture as default.** Every session yields generalizable
+  insight when surfaced correctly. The lessons log is treated as a
+  first-class artifact, not an afterthought. Patterns extracted from
+  individual sessions become enforced conventions in subsequent sessions.
+
+This section uses no fixed timeline — strategic emphasis evolves with
+ecosystem maturity. Review triggers: major capability shift, new repo
+joining ecosystem, sustained friction in current emphasis areas.
+
 ## Scope
 
 **In scope:**
