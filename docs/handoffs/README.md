@@ -2,42 +2,62 @@
 
 <!-- scope: meta -->
 
-> Session boundary artifacts. Most recent handoff = newest folder
-> or file by date prefix.
+Session boundary artifacts. Canonical format defined by ADR-42 (v3.2, ratified 2026-05-09).
 
-## Two formats coexist
+## Current format (v3.2, per ADR-42, ratified 2026-05-09)
 
-**New format (since 2026-04-27)** — folder per session:
+Each session produces a flat folder with no subdirectories:
 
 ```
-{date}-{session-slug}/
-├── upload-instructions.md
-├── first-message.md
-└── contents/
-    ├── HANDOFF.md
-    ├── manifest.json
-    ├── tree.txt
-    └── point-in-time copies of relevant governance docs
+docs/handoffs/{YYYY-MM-DD}-{slug}/
+├── 00_README.md
+├── 00_first-message.md
+├── 01_MANIFEST.md
+├── 01_manifest.json
+├── 02_VISION.md
+├── 03_PLAYBOOK.md
+├── 04_ESSENTIALS.md
+├── 05_GOVERNANCE_ESSENCES.md
+├── 06_STATE_OF_PLAY.md
+├── 07_ACTION_PLAN.md
+├── 08_TREE.txt
+└── 09_EXECUTION_EVIDENCE.md
 ```
 
-**Legacy format (before 2026-04-27)** — single `.md` file. Preserved
-as-is.
+**First v3.2 instance:** `docs/handoffs/2026-05-09-ai-council-audit-sync/`
+
+## Stage 1+2 archive
+
+`_archive/{slug}/` holds `stage1-question.md` + `stage2-response.md` inputs after Stage 3 generation.
+
+## In-progress
+
+`_in_progress/{slug}/` exists during a handoff session; cleaned at Stage 3 close per HANDOFF_PROCESS.md step 10.
 
 ## How to find current session
 
-```bash
-ls docs/handoffs/ | sort | tail -5
+```powershell
+Get-ChildItem docs/handoffs/ | Sort-Object Name | Select-Object -Last 5
 ```
 
-## Format decision rationale
+## Pre-v3.2 legacy (historical, do not edit)
 
-See:
-- `docs/decisions/transcripts/DECISION_29_handoff_synergy.md` (Topic 2 — handoff synergy debate)
-- `docs/research/2026-04-27-handoff-patterns-council-research.md` (Council research-mode debate)
-- `docs/research/2026-04-27-handoff-patterns-external-research.md` (single-shot research report)
-- `protocols/PLAYBOOK.md` § "Handoff format spec (since 2026-04-27)"
+### Flat `.md` files (legacy single-file format, pre-2026-04-27)
 
-## First folder-format instance
+- `2026-04-15-codex-tach-opus47-session.md`
+- `2026-04-15-tech-radar-session.md`
+- `2026-04-21-dev-knowledge-architecture-redefinition.md`
+- `2026-04-21-tech-radar-session.md`
+- `2026-04-26-stream-b-complete-stream-c-scope.md`
+- `2026-04-26-stream-c-session-1-branch-convention.md`
 
-`docs/handoffs/2026-04-27-stream-c-session-1-final/` — Stream C
-session 1 close.
+### Folder v2 format (pre-2026-05-09, pre-ADR-42)
+
+- `2026-04-27-stream-c-session-1-final/` — uses `contents/` subfolder + `upload-instructions.md`
+
+## References
+
+- `docs/decisions/ADR-42_handoff_format_v3.md` — canonical format spec
+- `protocols/HANDOFF_PROCESS.md` — operational procedure
+- `templates/HANDOFF_FOLDER_TEMPLATE.md`
+- `templates/HANDOFF_QUESTION_TEMPLATE.md`
