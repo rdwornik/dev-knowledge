@@ -306,9 +306,27 @@ split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
    - `08_TREE.txt` — `git ls-files` output in target repo at Stage 3 time
    - `09_EXECUTION_EVIDENCE.md` — empty return-trip template
 9. Compute SHA-256 of every file in folder, populate `01_manifest.json`
-10. Move `_in_progress/{slug}/` to `docs/handoffs/_archive/{slug}/`:
-    - `_archive/{slug}/stage1-question.md`
-    - `_archive/{slug}/stage2-response.md`
+10. Move (NOT copy) `_in_progress/{slug}/` contents to `docs/handoffs/_archive/{slug}/`:
+
+    PowerShell semantics (canonical):
+    ```powershell
+    # Ensure archive target exists
+    New-Item -ItemType Directory -Path "docs/handoffs/_archive/{slug}" -Force | Out-Null
+
+    # Move files (NOT copy)
+    Move-Item "docs/handoffs/_in_progress/{slug}/*" "docs/handoffs/_archive/{slug}/" -Force
+
+    # Remove now-empty source directory
+    Remove-Item "docs/handoffs/_in_progress/{slug}" -Force
+
+    # Verify _in_progress/{slug}/ no longer exists
+    if (Test-Path "docs/handoffs/_in_progress/{slug}") {
+        throw "FAIL: _in_progress/{slug}/ still exists after move"
+    }
+    ```
+
+    If verification throws → STOP, report to Rob, do not commit Stage 3.
+    Use `Move-Item`, never `Copy-Item`. Empty source directory must be removed.
     This preserves Stage 1+2 inputs for traceability without violating flat structure
     of the final handoff folder.
 11. Append JOURNAL entry under today's date:
@@ -437,6 +455,7 @@ happened — eliminates "Self-Correction Theatre."
 | Stage 3 | `pre-commit run --all-files` | passes |
 | Stage 3 | folder structure | 11 files flat in `docs/handoffs/{slug}/`, no subdirectories |
 | Stage 3 | `01_manifest.json` | SHA-256 entries for all 11 files present |
+| Stage 3 | `_in_progress/{slug}/` post-move non-existence | `Test-Path docs/handoffs/_in_progress/{slug}` returns `False` |
 
 ---
 

@@ -4,6 +4,16 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-11 — Handoff lifecycle fix + stale cleanup
+
+### Fixed
+- Stage 3 handoff lifecycle in `HANDOFF_PROCESS.md`: explicit `Move-Item`
+  semantics, empty-dir cleanup, post-state validator added to Stage 3 step 10
+  and validation checkpoints table. Prior implementation used copy semantics,
+  leaving stale `_in_progress/{slug}/` directories after Stage 3 completion.
+
+---
+
 ## 2026-05-09 (night) — Stage 3: .dev-knowledge session-sync handoff generated
 
 ### Added
