@@ -18,6 +18,13 @@
 
 ---
 
+## 2026-05-11 — Item 0 Prompt C: Codex M1 fix
+- Did: reconciled PLAYBOOK dual-write contradiction at "Council Debate Archival Protocol" section (~line 1458); accepted M2 (bundle ESSENTIALS snapshot) + L3 (bundle manifest state) as pre-existing bundle state per point-in-time artifact convention
+- Result: PLAYBOOK Council output guidance internally consistent; operators no longer instructed to skip manual archival they actually need to perform; Item 0 closed
+- Next: merge `chore/session-sync-stage3-generation` to main after Rob confirms
+
+---
+
 ### 2026-05-11 — Item 0 Prompt B: docs alignment + BACKLOG updates
 
 **Did:**

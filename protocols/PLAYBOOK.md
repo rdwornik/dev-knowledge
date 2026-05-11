@@ -1455,7 +1455,7 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 
 Every Council debate output MUST be archived immediately after the debate completes. Skip this and the debate is effectively lost. Retroactive archive 2026-04-24 recovered 5 debates that sat in `ai-council/output/` for weeks.
 
-> **Council CLI dual-write (default since 2026-04-28).** When the Council CLI generates a debate, it writes the transcript to TWO locations simultaneously: `ai-council/output/YYYYMMDD_HHMMSS_topic.md` (operational, also includes `_metrics.json`) and `.dev-knowledge/docs/decisions/transcripts/YYYYMMDD_HHMMSS_topic.md` (curated source of truth, transcript only). When this dual-write fires, **Step 2 below is skipped** — the file already exists at the target. Steps 1 (target classification) and 3 (commit) still apply, plus optional rename to `DECISION_NN_slug.md` for narrative numbering. The manual archival path documented below remains valid for older transcripts, debates run outside the CLI, research-mode outputs, and any edge case where dual-write does not fire.
+> **Current state (as of 2026-05-11):** The Council CLI emits transcripts to `ai-council/output/` only — single canonical location. There is no automatic dual-write to project-side transcript folders. **All three steps below are required** for every debate. Cross-project routing as a CLI feature is pending; see "Council output convention (current state)" section below for details.
 
 **Pipeline (3 steps, ~5 min):**
 
@@ -1466,7 +1466,7 @@ Every Council debate output MUST be archived immediately after the debate comple
      - Suffix with `-REPO` indicates decision applies elsewhere
      - Future work: mirror to that repo's transcripts/ folder
 
-2. **Copy** `ai-council/output/YYYYMMDD_HHMMSS_source.md` to target (skip if dual-write already placed the file there):
+2. **Copy** `ai-council/output/YYYYMMDD_HHMMSS_source.md` to target:
    - Decisions: `DECISION_NN_snake_case.md` (NN optional if no sequential numbering)
    - Research: `YYYY-MM-DD-kebab-case-slug.md`
    - Byte-exact copy, preserve original in ai-council/output/

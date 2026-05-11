@@ -4,6 +4,18 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-11 — Item 0 Prompt C: Codex M1 fix
+
+### Fixed
+- `protocols/PLAYBOOK.md` "Council Debate Archival Protocol" section
+  (~line 1458): reconciled with reality. Removed stale dual-write claim
+  that contradicted "Council output convention (current state)" added in
+  commit `f05e267`. Operators no longer instructed to skip manual archival
+  they actually need to perform. Addresses Codex `/review` finding M1
+  from `43715b3`.
+
+---
+
 ## 2026-05-11 — Docs alignment + BACKLOG updates (Item 0 strażnik audit)
 
 ### Changed
