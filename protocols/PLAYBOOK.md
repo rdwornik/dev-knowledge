@@ -1482,6 +1482,23 @@ Every Council debate output MUST be archived immediately after the debate comple
 
 **Future enforcement:** possible pre-commit hook checking ai-council/output/ for files >7 days old not present in any repo's archive locations.
 
+### Council output convention (current state)
+<!-- scope: meta -->
+
+AI Council CLI emits transcripts to `ai-council/output/` only — single canonical location.
+
+Project-side transcripts (e.g., `.dev-knowledge/docs/decisions/transcripts/`,
+`<project>/docs/decisions/transcripts/`) are populated by **manual archival** from
+`ai-council/output/`. This is the current process for all 12 transcripts in `.dev-knowledge`.
+
+Cross-project routing as a CLI feature is **pending** — see BACKLOG Cross-stream P1 "AI Council
+cross-project transcript routing". Client requirements drafted; mechanism choice (push frontmatter
+vs pull command vs config-based) is Council debate territory.
+
+Until the feature lands: maintain manual archival discipline. Curated copy = transcript file only
+(no `_metrics.json`), preserving canonical `council_out_YYYYMMDD_HHMMSS_*.md` filename. Source of
+truth always `ai-council/output/`.
+
 ### When to run Council vs single-model + critic
 <!-- scope: meta -->
 <!-- version: 1.0 — 2026-04-25 -->
