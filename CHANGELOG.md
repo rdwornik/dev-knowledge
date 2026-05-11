@@ -4,6 +4,34 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-09 (night, session wrap-up) — Evidence commit + VISION emphasis + Stage 1 handoff
+
+### Committed
+- `docs/handoffs/2026-05-09-ai-council-audit-sync/09_EXECUTION_EVIDENCE.md`
+  closing return trip for ai-council audit-sync handoff. End-to-end ADR-42
+  v3.1+v3.2 test fully documented: drift detection, directive execution,
+  pytest baseline held (310/310), Codex review complete (no blockers).
+
+### Added
+- `VISION.md` Strategic emphasis section: 4 current directions — velocity
+  in LLM adoption, cross-repo methodology consistency, methodology evolution
+  as obsession, lessons capture as default. Conversational clarification per
+  Rob's VISION rule (Scope changes require Council; emphasis clarifications
+  are conversational). No specific repo/file references.
+- `docs/handoffs/_in_progress/2026-05-09-dev-knowledge-session-sync/`
+  with `stage1-question.md` (session-sync Stage 1; 5 pipeline questions
+  adapted for self-handoff) and pre-created `stage2-response.md` template.
+
+### Session summary
+Historic 2026-05-09 session delivered: Phase 1 governance closure (9 ADRs
+ratified), ADR-42 handoff infrastructure v3.0→v3.1→v3.2 evolution,
+end-to-end ai-council audit-sync test, ~16 methodology debt lessons captured,
+VISION continuous improvement + strategic emphasis updated, 36+ branches
+cleaned. Wrap-up: 4 additional commits closing return trip and launching
+.dev-knowledge self-handoff Stage 1.
+
+---
+
 ## 2026-05-09 (night) — ADR-42 v3.2: Q&A loop + continuous improvement + operator clarity
 
 ### Added
