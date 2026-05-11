@@ -18,6 +18,38 @@
 
 ---
 
+### 2026-05-09 (night, refinement) — BACKLOG strategic priorities + stage1 regenerated
+
+**Did:**
+- Added 9 Cross-stream BACKLOG items capturing Rob's strategic plan for
+  next sessions: Council decisions management consolidation [P1], Sacred-files
+  maintenance enforcement [P1], Hooks audit + consolidation [P2], Skills
+  universalization [P2], Ecosystem standards audit [P2], Kimi K2 evaluation
+  [P3], Scale tier re-evaluation [P3], Large repo migration prep [P3],
+  VS Code productivity [P3]
+- Regenerated stage1-question.md Section B: fresh BACKLOG snippet
+  (all existing + 9 new items), updated HEAD sha to f87a5cc
+- Added "press back on vague items" instruction to stage1-question Section B
+  — next chat (post-Stage 3) is refinement partner, not just executor
+
+**Result:**
+- BACKLOG.md now captures Rob's full intended scope for next sessions
+- stage1-question.md ready: architect can answer Stage 2 with full
+  strategic context; Stage 3 bundle will carry complete BACKLOG
+
+**Next:**
+- Rob copies stage1-question.md PASTE_BOUNDARY content to current
+  browser chat (the OLD chat for this session-sync)
+- Architect provides Stage 2 response (5 sections: OBJECTIVE/REALITY/
+  RATIONALE/DIRECTIVES/BOUNDARIES; no outer code fence)
+- Rob saves response to stage2-response.md (replace below marker line)
+- Next Claude Code session (after /clear): "complete handoff for
+  dev-knowledge" → Stage 3 generates bundle
+- ai-council branch docs/audit-sync-2026-05-09 awaits separate
+  review/merge (not urgent)
+
+---
+
 ### 2026-05-09 (night) — Session wrap-up
 
 **Did:**
