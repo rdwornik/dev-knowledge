@@ -209,7 +209,7 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 
 **New tool/article/repo decision rule:** mature (>100 stars, >v1.0 — heuristics for community validation + production stability)? Solves a real problem? Architecture-level → Council debate. Otherwise decide in 30 seconds.
 
-**Council output convention:** Council CLI dual-writes — `ai-council/output/` (operational, transcript + `_metrics.json`) and `.dev-knowledge/docs/decisions/transcripts/` (curated, transcript only). Manual archival per PLAYBOOK §5 still applies for older debates and edge cases.
+**Council output convention (current):** AI Council CLI emits to `ai-council/output/` only. Project-side transcripts (`.dev-knowledge/docs/decisions/transcripts/`, etc.) are populated by **manual archival** — this is the current process, not an edge case. Cross-project routing feature is pending (see BACKLOG Cross-stream P1 "AI Council cross-project transcript routing"). Until the feature lands: maintain manual archival discipline; canonical filename preserved (`council_out_YYYYMMDD_HHMMSS_*.md`); source of truth remains `ai-council/output/`. Full operational detail in PLAYBOOK.
 
 ---
 
