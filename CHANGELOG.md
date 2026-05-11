@@ -4,6 +4,39 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-09 (night, refinement) — BACKLOG strategic priorities + stage1 v2
+
+### Added
+- `BACKLOG.md` Cross-stream items — 9 new entries capturing Rob's strategic
+  plan for next sessions (all [P1]/[P2]/[P3], no specific repo names where
+  Rob requested omission):
+  - [P1] Council decisions management consolidation
+  - [P1] Sacred-files maintenance enforcement
+  - [P2] Hooks audit + consolidation
+  - [P2] Skills universalization across repos
+  - [P2] Ecosystem standards audit against major repo
+  - [P3] Kimi K2 model integration evaluation
+  - [P3] Scale tier evaluation re-evaluation (references existing P2 research item)
+  - [P3] Large repo migration preparation
+  - [P3] VS Code productivity maximization
+
+### Changed
+- `docs/handoffs/_in_progress/2026-05-09-dev-knowledge-session-sync/stage1-question.md`
+  Section B: HEAD sha updated to f87a5cc; BACKLOG items section expanded with
+  all 9 new strategic priorities; "press back on vague items" instruction
+  added before closing divider — next chat is refinement partner, not just
+  executor (6 concrete behaviors: sharpen vague items, first steps, surface
+  deps, debate vs. conversational gating, flag compound items, scope bounds).
+
+### Notes
+- This refinement follows the earlier 2026-05-09 (night) wrap-up session
+  (5 commits on `chore/session-2026-05-09-wrap-up`, merged). That session
+  established the handoff structure. This refinement makes BACKLOG reflect
+  Rob's true strategic priorities so Stage 2 architect response carries
+  full context into Stage 3 bundle.
+
+---
+
 ## 2026-05-09 (night, session wrap-up) — Evidence commit + VISION emphasis + Stage 1 handoff
 
 ### Committed
