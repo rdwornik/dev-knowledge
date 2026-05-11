@@ -18,6 +18,34 @@
 
 ---
 
+### 2026-05-09 (night) — Stage 3 complete: .dev-knowledge session-sync handoff generated
+
+**Did:**
+- Generated Stage 3 handoff folder: `docs/handoffs/2026-05-09-dev-knowledge-session-sync/`
+  (12 files flat per ADR-42 v3.2)
+- Applied verification layer to Stage 2 architect claims:
+  5 witnessed claims verified against repo; 1 conversation-history claim preserved;
+  4 architect unknowns resolved (including DoD fix target clarification)
+- Archived stage1-question + stage2-response to `_archive/2026-05-09-dev-knowledge-session-sync/`
+- Stage 3 note: DoD bug ("5 required sections") is in the *generated*
+  ai-council 07_ACTION_PLAN.md:9, not in HANDOFF_FOLDER_TEMPLATE itself
+- Drift between Stage 1 SHA and Stage 3 HEAD confirmed safe (4 intra-session
+  methodology commits; Rob explicitly confirmed proceed)
+
+**Result:**
+- Self-handoff bundle ready for upload to fresh .dev-knowledge browser chat
+- Return trip template (09_EXECUTION_EVIDENCE.md) pre-created in bundle
+- OLD .dev-knowledge browser chat can now be closed
+
+**Next:**
+- Open NEW claude.ai chat, upload 12-file bundle, paste `00_first-message.md`
+- NEW chat presents synthesis; confirm; optional Q&A loop
+- NEW chat generates Claude Code prompt(s) for refinement-partner session
+- Execute in Claude Code (.dev-knowledge context)
+- Return `09_EXECUTION_EVIDENCE.md` to `docs/handoffs/2026-05-09-dev-knowledge-session-sync/`
+
+---
+
 ### 2026-05-09 (night, refinement) — BACKLOG strategic priorities + stage1 regenerated
 
 **Did:**

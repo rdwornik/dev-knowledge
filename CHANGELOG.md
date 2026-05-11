@@ -4,6 +4,33 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-09 (night) — Stage 3: .dev-knowledge session-sync handoff generated
+
+### Added
+- `docs/handoffs/2026-05-09-dev-knowledge-session-sync/` — 12-file flat handoff
+  bundle per ADR-42 v3.2 (Stage 3 output):
+  - `00_README.md` — 10-step operator workflow
+  - `00_first-message.md` — NEW chat first message with press-back partner instruction
+  - `01_MANIFEST.md` — entry point, state validation, file index
+  - `01_manifest.json` — SHA-256 checksums for all 11 content files
+  - `02_VISION.md` — full VISION.md copy (includes Strategic emphasis section)
+  - `03_PLAYBOOK.md` — full PLAYBOOK.md copy
+  - `04_ESSENTIALS.md` — full ESSENTIALS.md copy
+  - `05_GOVERNANCE_ESSENCES.md` — ADR-33/36/37/40/41/42 essences
+  - `06_STATE_OF_PLAY.md` — Stage 2 REALITY+RATIONALE + Stage 3 verification layer
+  - `07_ACTION_PLAN.md` — Stage 2 OBJECTIVE+DIRECTIVES+BOUNDARIES + DoD fix clarification
+  - `08_TREE.txt` — .dev-knowledge file inventory at Stage 3
+  - `09_EXECUTION_EVIDENCE.md` — return-trip template
+- `docs/handoffs/_archive/2026-05-09-dev-knowledge-session-sync/` — Stage 1+2 inputs
+
+### Verification layer findings
+- Drift confirmed safe: Stage 1 SHA f87a5cc → Stage 3 HEAD 5f09fe1 (4 intra-session commits)
+- DoD bug target clarified: "5 required sections" in ai-council 07_ACTION_PLAN.md:9,
+  NOT in HANDOFF_FOLDER_TEMPLATE (template has no pre-populated DoD text)
+- 5/6 witnessed claims verified; 4 architect unknowns resolved
+
+---
+
 ## 2026-05-09 (night, refinement) — BACKLOG strategic priorities + stage1 v2
 
 ### Added
