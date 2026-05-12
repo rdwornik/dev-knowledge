@@ -18,6 +18,11 @@
 
 ---
 
+### 2026-05-12 — Residual logging (LESSON + BACKLOG)
+- Did: appended methodology LESSON on name-conflict audit framing; added P2 BACKLOG entry for pre-existing test_ratio_pass_when_stable_above_ceiling failure
+- Failed: —
+- Next: residual handoff items (skills review, token log analysis) remain as separate-session candidates
+
 ### 2026-05-12 — Hooks review proper (/review → /codex-review)
 - Did: renamed user-defined slash command `/review` → `/codex-review` (resolves shadow collision with Claude Code built-in PR review skill); updated PLAYBOOK § 15 and ESSENTIALS step 3 Codex-wrapper references; produced resolution audit note with pre-rename shadowing observation (both registered simultaneously, disambiguation scenario); merged `chore/2026-05-12-resolve-review-conflict` to main
 - Failed: —
