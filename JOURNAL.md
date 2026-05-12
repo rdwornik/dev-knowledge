@@ -18,6 +18,11 @@
 
 ---
 
+### 2026-05-12 — Hooks review proper (/review → /codex-review)
+- Did: renamed user-defined slash command `/review` → `/codex-review` (resolves shadow collision with Claude Code built-in PR review skill); updated PLAYBOOK § 15 and ESSENTIALS step 3 Codex-wrapper references; produced resolution audit note with pre-rename shadowing observation (both registered simultaneously, disambiguation scenario); merged `chore/2026-05-12-resolve-review-conflict` to main
+- Failed: —
+- Next: residual handoff items (BACKLOG grooming, token log, skills review) — separate scope
+
 ## 2026-05-12 — Handoff Stage 1 generated for ai-council (session-sync-2)
 - Handoff Stage 1 generated for 2026-05-12-ai-council-session-sync-2: HEAD f094d08 captured; awaiting Stage 2
 
