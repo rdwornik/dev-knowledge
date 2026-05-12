@@ -937,7 +937,7 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 - `/session-summary` — generate handoff for current session, include TOKEN-LOG snapshot if stale (renamed from `/handoff` 2026-04-24 to avoid trigger-word collision)
 - `/boot` — load context: skills, recent commits, JOURNAL entries
 - `/evolve` — promote learned patterns to skills/rules
-- `/review` — invoke Codex review on staged changes
+- `/codex-review` — invoke Codex review on staged changes
 
 **Anti-patterns:**
 - **Commands without clear naming** — `/x` or `/do` are unmemorable
@@ -2068,7 +2068,7 @@ Two options for code review (A/B test both, then standardize):
 Cloud-based multi-agent review. Run without arguments (current branch) or with PR number. No second terminal needed.
 
 **Option B — Codex CLI (automated, single command):**
-`codex-review -Topic <topic>` (slash command: `/review`) wraps `codex exec --output-last-message`. Produces dated, frontmatter-wrapped audit at `docs/audits/YYYY-MM-DD-codex-{topic}.md`. Read-only sandbox. Opt-in `-AutoCommit`. Requires ChatGPT Plus subscription. See `~/.claude/bin/codex-review.README.md`.
+`codex-review -Topic <topic>` (slash command: `/codex-review`) wraps `codex exec --output-last-message`. Produces dated, frontmatter-wrapped audit at `docs/audits/YYYY-MM-DD-codex-{topic}.md`. Read-only sandbox. Opt-in `-AutoCommit`. Requires ChatGPT Plus subscription. See `~/.claude/bin/codex-review.README.md`.
 
 Both satisfy S15 review requirement. Choose based on quality of findings after 2-week A/B test.
 
