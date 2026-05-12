@@ -96,13 +96,13 @@ Next quarterly grooming: 2026-07-01
 - **Why:** Validates universalization pattern; unblocks trigger-based cohort migration; first per-repo audit + handoff cycle
 - **Vision ref:** VISION.md "Disseminator" function
 - **Added:** 2026-04-30 by rob
-- **Status:** open
+- **Status:** open — ai-council substantially complete as of 2026-05-12 session: ADR-34 hyphen compliance achieved (CLI emitter + docs), ADR-38 Scale M gaps closed (BACKLOG.md, LESSONS.md at root, tasks/ retired), VISION.md tier M declared, scrum-master review cycle N=1 completed. Remaining ai-council: AGENTS.md (P3), ARCHITECTURE.md (optional at M). corp-monorepo: not yet started.
 
 ### [P2] [open] VISION.md tier declarations across ecosystem
 - **What:** Update VISION.md frontmatter `tier:` field across all repos per ADR-40 calibration baseline (corp-ops=S, ai-council=M, corp-monorepo=L, etc.)
 - **Why:** Operationalizes ADR-40 algorithm; declared tier vs computed tier comparison enables audit findings
 - **Added:** 2026-04-30 by rob
-- **Status:** open
+- **Status:** open — ai-council tier M declared in VISION.md frontmatter (2026-05-12 session). Other repos: pending.
 
 ### [P2] [open] Council research — relative repo complexity evaluation in solo dev / LLM workflows
 - **What:** Council research debate. Question: how do professionals evaluate repo complexity at relative scale (small/medium/large) in solo dev and LLM-driven workflows? Current ADR-40 algorithm (logarithmic Maintainability Index pattern) may embed enterprise-scale assumptions inappropriate for 1-person ecosystem. Surface industry practice — surveys, blog posts, indie hacker conventions, monorepo tools' tier definitions for personal vs team scale. Plus philosophical framing: at what point does a small project become medium, medium become large, when complexity grows logarithmically? Output informs ADR-40 amendment alongside audit tool P1 multi-repo data collection.
