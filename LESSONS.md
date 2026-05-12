@@ -3,7 +3,7 @@
 
 > **Format:** `### YYYY-MM-DD | source | lesson | category | [scope: X] | action taken`
 > New entries go at the bottom. Never edit old entries. Never delete.
-> Last updated: 2026-04-30
+> Last updated: 2026-05-12
 
 ---
 
@@ -289,3 +289,5 @@ Plus: continuous improvement principle elevated from individual project decision
 ### 2026-05-12 | merge/cleanup completion pattern | Completion reports must never leave outstanding actions as "awaiting [merge|push|cleanup]" — every outstanding action gets an explicit executable step in the same or next prompt. The operator is never the terminal for mechanical steps (git push, git merge, file cleanup). Each step must have explicit PowerShell/bash, not a status description. Sub-instance of the broader "operator-is-not-the-terminal" pattern. Validated by Prompt J leaving branch in "awaiting merge" state requiring follow-up to close. | session-discipline | scope: meta | Prompt J produced a separate merge prompt rather than including git checkout + git merge in the original sequence
 
 ### 2026-05-12 | punted-migration anti-pattern | When session meta-work (audits, decisions, amendments, cross-repo handshakes) consumes scope before file-level cleanup lands, the file-level mess persists indefinitely across sessions. Pattern: scope cleanup into "next prompt K," then derail with Council debates / methodology proposals / additional handshake cycles before K runs. Result: many meta-work commits, zero downstream cleanup, original complaint preserved verbatim. Counter-pattern: execute file-level cleanup in the same session before any scope creep. Prompt K (commit a95318d) demonstrates breaking the punt cycle — all file changes shipped, no further deferral. | session-discipline | scope: meta | session 2026-05-11 produced 13+ meta-work commits before any file-level cleanup; only Prompt K closed the gap
+
+### 2026-05-12 | scrum-master review authority pattern | .dev-knowledge ecosystem strażnik has scrum-master review authority over child repos. Pattern: strażnik audits target repo (read-only, no writes in target repo), produces structured review report identifying governance / documentation / dead code / filename compliance issues, operator routes report to target-repo architect, architect implements. Distinct from cross-repo handshake (bilateral decisions) — scrum-master review is unilateral audit + recommendation. First empirical instance: 2026-05-12 ai-council review (Prompt L). Report at docs/audits/2026-05-11-ai-council-scrum-master-review.md. Codification awaits N=2 empirical instance per session pattern. | strażnik-role | scope: meta | pattern operationalizes .dev-knowledge ecosystem-governance role from ADR-26; codification pending

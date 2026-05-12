@@ -132,12 +132,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-09 by rob (session wrap-up observation)
 - **Status:** open
 
-### [P1] [open] AI Council cross-project transcript routing
+### [P1] [done] AI Council cross-project transcript routing
 - **What:** AI Council CLI currently emits transcripts to `ai-council/output/` only; cross-project routing to `<project>/docs/decisions/transcripts/` is via manual archival. Client requirements spec drafted (R1-R8: deterministic routing via YAML frontmatter `target-project:` key, config-driven path resolution, supports all 4 modes, loud failure on unknown target). Mechanism choice (push frontmatter vs pull command vs config-based) is Council debate territory. Implementation lives in `ai-council` repo, not `.dev-knowledge`.
 - **Why:** Aspirational "dual-write" claim in ESSENTIALS was drift signal — feature didn't exist in CLI (verified during Item 0 audit 2026-05-11). 12 manual archives in `.dev-knowledge/docs/decisions/transcripts/` are pre-feature state. Deterministic routing reduces drift across ecosystem; supports VISION Strategic emphasis "Cross-repo methodology consistency."
 - **Vision ref:** VISION.md "Disseminator" function + Strategic emphasis "Cross-repo methodology consistency"
 - **Added:** 2026-05-11 by rob (Item 0 strażnik audit)
-- **Status:** open — client spec drafted, mechanism choice pending Council debate; implementation in ai-council repo
+- **Status:** done (2026-05-11 — implemented in ai-council: `routing.py` TargetResolver, `--target-project` CLI flag, frontmatter `target-project:` key, `dev_root` + `target_projects` config schema per ADR-43 amendment cycle 1; 359+ tests; CHANGELOG 2026-05-11)
 
 ### [P2] [open] Hooks audit + consolidation
 - **What:** Two `review` hooks observed in ecosystem (one for Codex, one for internal review). Full hook inventory not documented. Need: (a) list all hooks across `.claude/` (global) and `.claude/` (project-level), (b) document each hook's purpose and trigger condition, (c) evaluate whether review hooks are intentionally separate or candidates for consolidation, (d) identify gaps (hooks that should exist but don't). Output: documented hook inventory + consolidation recommendation.
@@ -189,6 +189,20 @@ Next quarterly grooming: 2026-07-01
 - **Vision ref:** VISION.md "Methodology Author" function (tooling as methodology support)
 - **Added:** 2026-05-09 by rob (session wrap-up observation)
 - **Status:** open
+
+### [P2] [open] Codify scrum-master review authority pattern
+- **What:** First empirical instance of scrum-master review pattern completed 2026-05-12 (Prompt L, ai-council review). Pattern: `.dev-knowledge` strażnik produces structured review report (read-only, no writes) identifying governance / documentation / dead code / filename compliance issues in child repo → operator routes report → child-repo architect implements. Candidate codification: new ADR-44 or amendment to ADR-26 (ecosystem strażnik role definition). Awaits N=2 empirical grounding before ADR-level codification per session pattern.
+- **Why:** Pattern emerged organically as first cross-repo scrum-master review; needs codification to be repeatable and delegatable. Without ADR, subsequent reviews have no formal authority reference.
+- **Vision ref:** VISION.md "Auditor" function + "Methodology Author" function
+- **Added:** 2026-05-12 by rob (Prompt L)
+- **Status:** open — N=1 (ai-council 2026-05-12); codification awaits N=2
+
+### [P3] [open] Apply scrum-master review pattern to other child repos
+- **What:** Extend scrum-master review cycle (post-codification) to remaining ecosystem repos. Priority order: (1) corp-monorepo (Scale L; deeper audit warranted — most complex, most governance drift risk); (2) corp-knowledge-extractor / corp-by-os / corp-rfp-agent (verify existence on disk first); (3) corp-ops + corp-sca (Scale S; lighter touch).
+- **Why:** Phase 3 of ecosystem universalization. Each repo reviewed = one point of drift caught before it compounds. Pattern validated on ai-council; broader rollout follows codification.
+- **Vision ref:** VISION.md "Auditor" function
+- **Added:** 2026-05-12 by rob (Prompt L)
+- **Status:** open — blocked on codification (Cross-stream P2 above) + N=2 empirical grounding
 
 ---
 

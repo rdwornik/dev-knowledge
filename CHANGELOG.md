@@ -4,6 +4,20 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-12 — Prompt L: Scrum-master review of ai-council + legacy transcripts relocation
+
+### Added
+- `docs/audits/2026-05-11-ai-council-scrum-master-review.md` — first scrum-master review under new authority pattern; 10 findings (1 critical, 6 important, 3 minor)
+- `docs/decisions/transcripts/archive/legacy/` subfolder for pre-CLI `DECISION_NN_*` historical transcripts (3 files relocated)
+- `LESSONS.md`: scrum-master review authority pattern (first empirical instance)
+- `BACKLOG.md`: Cross-stream P2 (codify scrum-master review pattern) + P3 (extend to other repos)
+
+### Changed
+- 3 legacy `DECISION_NN_*` transcripts relocated from `docs/decisions/transcripts/` to `docs/decisions/transcripts/archive/legacy/` (pre-CLI historical class separation); path references updated in ADR-31, ADR-32, decisions/README.md, CHANGELOG.md
+- `BACKLOG.md`: AI Council cross-project transcript routing marked done (2026-05-11 implementation)
+
+---
+
 ## 2026-05-12 — Prompt K: Atomic file-level cleanup (hyphen convention migration)
 
 ### Changed
