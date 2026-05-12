@@ -265,6 +265,15 @@ Add any architect-specific concerns or "do not's."
 valuable. Don't fabricate "do not touch X" if you don't know whether X exists
 — focus on knowns from your conversation.*
 
+---
+
+## Before submitting your response, also verify
+
+- **Any cross-repo content?** Per Universal Self-Containment Rule (see HANDOFF_PROCESS), default expectation is zero cross-repo content in handoff. Only unclosed threads that genuinely could not close belong in REALITY, framed as "unclosed thread, awareness only." DIRECTIVES never target other repos.
+- **Internal coherence?** No DIRECTIVE violates own BOUNDARIES; OBJECTIVE-stated highest priority aligned with DIRECTIVE #1; no directive depends on data not packaged in bundle.
+
+If either check fails, revise before submitting. (Source of truth: HANDOFF_PROCESS Universal Self-Containment Rule.)
+
 ════════════════════════════════════════════════════════════════════
 End of paste block.
 Old chat: please answer questions 1-5 above following the Format
