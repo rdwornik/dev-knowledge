@@ -72,10 +72,10 @@ python scripts/validate_scope_tags.py
 
 <!-- scope: meta -->
 
-Decisions that bind future sessions live in `docs/decisions/ADR-NN_topic.md`.
+Decisions that bind future sessions live in `docs/decisions/ADR-NN-topic.md`.
 
 - Numbering: next integer after highest existing ADR
-- Filename: `ADR-NN_short-kebab-topic.md`
+- Filename: `ADR-NN-short-kebab-topic.md`
 - Status values: `Accepted | Superseded | Withdrawn`
 - Minor prescription drift → amend in-place (add dated `## Amendment YYYY-MM-DD` section)
 - Intent change or reversal → new ADR or AI Council reopen

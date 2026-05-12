@@ -123,7 +123,7 @@ Stale AGENTS.md = LLMs operating on outdated context. Treat updates as part of t
 - Comprehensive governance — that's AGENTS.md
 - Universal rules — those live in `.dev-knowledge/`
 - Architecture documentation — that's `docs/ARCHITECTURE.md`
-- Decision rationale — that's `docs/decisions/ADR-NN_*.md`
+- Decision rationale — that's `docs/decisions/ADR-NN-*.md`
 
 ### Why ≤200 lines
 <!-- scope: meta -->
@@ -206,9 +206,7 @@ Phase 2 (destructive — explicit confirm before each):
 ### File naming conventions
 <!-- scope: meta -->
 
-**[TBD — Stream C session 2, ADR-31]**
-
-Current state: mixed conventions across repo (kebab-case for dated files, snake_case for Python, `ADR-NN_topic.md` pattern for ADRs, `DECISION_NN_snake_case.md` for transcripts, kebab-case for templates). Standardization deferred until session 2 analysis decides per-type rules vs uniform rule, and whether existing files migrate or grandfather.
+Per ADR-34 (ratified 2026-04-29, amended 2026-05-11). Canonical source: `docs/decisions/ADR-34-file-naming-convention.md`. Key rules: hyphen separator universal across filenames and foldernames; `ADR-NN-topic.md` for decisions; `council-out-YYYYMMDD-HHMMSS-topic.md` for Council CLI output; `DECISION_NN_*` legacy transcripts grandfathered; kebab-case + ISO date for audits/handoffs; UPPERCASE for living docs.
 
 ### Folder structure per Scale tier
 <!-- scope: meta -->
@@ -495,7 +493,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `LESSONS.md` | Process lessons learned | Append-only with `[scope: X]` inline (per ADR-29) | When new lesson emerges (auto-promote at 2× repeat) | Rob, future Claude | Append-only | Universal (`.dev-knowledge` only) |
 | `TOKEN-LOG.md` | Claude usage snapshots | Threshold-triggered (7-day) via /session-summary | Auto when stale | Rob | Newest-first (prepend) | Universal (`.dev-knowledge` only) |
 | `ENVIRONMENT.md` | Tooling state, what's installed | Sectioned, scope-tagged | When tool adopted/deprecated | Rob, Claude Code | Living (sections updated) | Per-repo |
-| `docs/decisions/ADR-NN_*.md` | Architectural decisions | Michael Nygard format | When decision binds | Rob, future contributors | Numbered, immutable (amend in-place per ADR-29) | Per-repo |
+| `docs/decisions/ADR-NN-*.md` | Architectural decisions | Michael Nygard format | When decision binds | Rob, future contributors | Numbered, immutable (amend in-place per ADR-29) | Per-repo |
 | `docs/decisions/transcripts/DECISION_NN_*.md` | Raw Council debate outputs | Multi-model debate transcript | When Council debate concludes (per PLAYBOOK 5.N archival) | Reference for ADR rationale | Numbered, immutable | Per-repo |
 | `docs/handoffs/YYYY-MM-DD-*.md` (legacy) or `docs/handoffs/YYYY-MM-DD-*/` (folder, since 2026-04-27) | Chat-to-chat session summary | Single-file legacy OR folder-format (upload-instructions + first-message + contents/) | When session boundary requires continuity | Next browser chat | Dated, immutable | Per-repo |
 | `docs/audits/YYYY-MM-DD-*.md` | Point-in-time analyses | Free-form audit | When deep analysis needed | Reference for follow-up work | Dated, immutable (mark SUPERSEDED if redone) | Per-repo |
@@ -1460,14 +1458,14 @@ Every Council debate output MUST be archived immediately after the debate comple
 **Pipeline (3 steps, ~5 min):**
 
 1. **Identify target location** within .dev-knowledge:
-   - Debate about .dev-knowledge itself (pick/judge mode) → `docs/decisions/transcripts/DECISION_NN_slug.md`
+   - Debate about .dev-knowledge itself (pick/judge mode) → `docs/decisions/transcripts/council-out-YYYYMMDD-HHMMSS-topic.md`
    - Research-mode debate → `docs/research/YYYY-MM-DD-slug.md`
    - Debate about another repo (e.g., corp-monorepo architecture) → `docs/research/YYYY-MM-DD-council-NN-slug-REPO.md`
      - Suffix with `-REPO` indicates decision applies elsewhere
      - Future work: mirror to that repo's transcripts/ folder
 
-2. **Copy** `ai-council/output/YYYYMMDD_HHMMSS_source.md` to target:
-   - Decisions: `DECISION_NN_snake_case.md` (NN optional if no sequential numbering)
+2. **Copy** `ai-council/output/council-out-YYYYMMDD-HHMMSS-topic.md` to target:
+   - Decisions: keep filename as-is (`council-out-YYYYMMDD-HHMMSS-topic.md`)
    - Research: `YYYY-MM-DD-kebab-case-slug.md`
    - Byte-exact copy, preserve original in ai-council/output/
 

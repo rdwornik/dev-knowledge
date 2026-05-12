@@ -58,7 +58,7 @@ reads it only when pointed (e.g. "check .dev-knowledge/protocols/PLAYBOOK.md Sec
 
 - **How do I prompt Claude Code?** → `protocols/PLAYBOOK.md` (prompt structure + examples)
 - **What am I supposed to do when starting?** → `protocols/ESSENTIALS.md`
-- **What prescriptive architectural decisions apply?** → `docs/decisions/` (ADR-NN_topic.md, binding across all sessions)
+- **What prescriptive architectural decisions apply?** → `docs/decisions/` (ADR-NN-topic.md, binding across all sessions)
 - **What did I learn recently?** → `LESSONS.md` (append-only, scope-tagged)
 - **Where are stream-level strategic/process decisions and session status?** → `docs/handoffs/` (most recent for active stream; dated files/folders are persistent stream archive — covers session plans, cluster ordering, execution sequencing decisions that aren't ADR-worthy individually but bind stream coordination)
 - **How do I run Council debate?** → `protocols/PLAYBOOK.md` Section 5 + "Council Debate Archival Protocol" subsection
@@ -84,7 +84,7 @@ reads it only when pointed (e.g. "check .dev-knowledge/protocols/PLAYBOOK.md Sec
 ## Conventions
 <!-- scope: meta -->
 
-- **Filenames:** kebab-case for dated (`YYYY-MM-DD-slug.md`), `ADR-NN_topic.md` for ADRs, `DECISION_NN_snake_case.md` for transcripts
+- **Filenames:** kebab-case for dated (`YYYY-MM-DD-slug.md`), `ADR-NN-topic.md` for ADRs (per ADR-34), `DECISION_NN_snake_case.md` for legacy transcripts (grandfathered)
 - **Scope tags:** every section in tagged files has `<!-- scope: X -->` (dev|llm|hybrid|runtime|meta). Enforced by pre-commit hook.
 - **Amendment vs reopen:** minor prescription drift → amend ADR in-place. Intent change → new ADR or Council reopen.
 - **Append-only:** LESSONS.md, CHANGELOG.md, TOKEN-LOG.md — never reorder or delete entries.
