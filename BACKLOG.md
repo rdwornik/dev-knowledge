@@ -308,6 +308,13 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-11 by rob (Prompt J ratification)
 - **Status:** open — captured in LESSONS.md (2026-05-11 entry). Codification awaits second empirical instance. Monitor for second instance during Phase 2 repo visits.
 
+### [P2] [open] Fix pre-existing test failure: test_ratio_pass_when_stable_above_ceiling
+- **What:** Fails on main as of 2026-05-12 prior to hooks review work. Not introduced by Directive 5 of 2026-05-12 handoff (witnessed during Prompt 4 verification). Blocks clean `pytest -x` runs; pre-commit may flag in subsequent sessions if test is in pre-commit scope. Root cause unknown — needs investigation.
+- **Why:** Clean test state is a baseline hygiene requirement. Pre-existing failures mask future regressions.
+- **Vision ref:** VISION.md — methodology consistency (clean test state)
+- **Added:** 2026-05-12
+- **Status:** open
+
 ### [P3] [open] A5 Phase 2: retire UPPERCASE TYPE tag in legacy archive filenames
 - **What:** During Phase 2 repo visits (corp-monorepo, ai-council), when touching `docs/archive/` files with `YYYY-MM-DD_TYPE_topic.md` pattern — rename to plain `YYYY-MM-DD-topic.md` (hyphen separator, no UPPERCASE tag). Opportunistic, not a dedicated migration.
 - **Added:** 2026-05-11 by rob (Prompt J ratification, A5 designation)
