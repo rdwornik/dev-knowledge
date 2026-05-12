@@ -28,6 +28,61 @@ read-only contract preserved (no writes to target repos).
 
 ---
 
+## Universal Self-Containment Rule for Handoff Bundles
+<!-- scope: meta -->
+
+This rule applies to every handoff from every repo in the ecosystem. The handoff workflow has three stages; the rule manifests at each stage.
+
+### The principle
+
+Each repo handoff bundle is self-contained for that repo's session. The bundle covers what that repo's session achieved, what that repo's state is, and what that repo's next session should work on.
+
+**Default expectation: zero cross-repo content in handoff.** Cross-repo work that occurred during the session flows via routing artifacts (cross-repo decision propagation, scrum-master review reports), not via the handoff bundle itself. Cross-repo discussion is conversation, not handoff substrate.
+
+**Implementing principle: close cross-repo threads BEFORE generating handoff.** Pre-handoff hygiene includes closing all open cross-repo cycles. If a cycle cannot close cleanly, route its closure artifact before handoff generation. Unclosed cross-repo threads complicate handoff lifecycle and risk pattern propagation into new sessions.
+
+**Exception path (rare):** if a cross-repo thread genuinely cannot close in time (e.g., awaiting Turn 2 from another repo architect with no operator path to force closure), REALITY may mention it ONCE with explicit "unclosed thread, awareness only, may need follow-up" framing. Never DIRECTIVES — cross-repo work targets never become own-session directives.
+
+Per ADR-41 each repo owns its own BACKLOG.md. One repo never reconciles, audits, or directs work on another repo's tracking artifacts via its own handoff bundle.
+
+### Stage 1 packaging (Claude Code role)
+
+When packaging the handoff bundle:
+- Verify repo state, list governance files, capture commit log, working tree state. All own-repo facts.
+- Bundle does not include other repos files. If Stage 2 architect references another repo file, that is a Stage 2 violation Stage 1 should surface, not silently package around.
+- Stage 1 final check: bundle contains only own-repo content; cross-repo file references in Stage 2 response are flagged for revision before final bundle.
+
+### Stage 2 generation (OLD browser chat / architect role)
+
+Per-section scope rules:
+- **OBJECTIVE:** own-repo session goal only. Never reference other repos as the goal target.
+- **REALITY:** default expectation is zero cross-repo content. Cross-repo state appears ONLY as exception: an unclosed cross-repo thread that genuinely could not close before handoff (rare). Must include explicit framing: "unclosed thread, awareness only, may need follow-up — other-repo hygiene is their session work per ADR-41." Closed cross-repo cycles are NOT mentioned in REALITY (they're closed; not relevant to next session work).
+- **RATIONALE:** may reference cross-repo decisions where they explain own-repo reasoning. Pure cross-repo retrospective belongs elsewhere (in cross-repo conversation artifacts, not handoff).
+- **DIRECTIVES:** own-repo actions ONLY. No directive may target another repo's files, state, or BACKLOG. Cross-repo work happens via routing artifacts, not via own-session directives.
+- **BOUNDARIES:** must include explicit anti-pattern: "Do NOT generate reconciliation reports about other repos' state. Do NOT treat staleness observation about another repo's tracking as a directive."
+
+Pre-send coherence checklist (mandatory before Stage 2 bundle send):
+
+1. **Pre-handoff cross-repo hygiene check.** Are all cross-repo threads from this session closed? If any are open: close them via routing artifact OR explicitly mark as exception in REALITY with "unclosed thread, awareness only" framing. Default expectation: no unclosed threads remain at handoff time.
+2. **DIRECTIVES vs BOUNDARIES contradiction check.** Does any DIRECTIVE violate any BOUNDARY in the same document?
+3. **OBJECTIVE vs DIRECTIVES priority alignment.** Is the OBJECTIVE-stated highest-priority work also listed as DIRECTIVE #1? Priority signal must align between sections.
+4. **Required-but-unpackaged data check.** Does any directive depend on data not included in the bundle? If yes: package it, mark "operator delivers on request", or remove the directive.
+
+Failing any check = STOP and revise before send.
+
+### Stage 3 reception (NEW browser chat role)
+
+When reading the handoff bundle:
+- If any DIRECTIVE references another repo's files or state as action target = architectural smell. Do NOT execute. Flag back to operator: "Directive N appears cross-repo; per Universal Self-Containment Rule directives are own-repo only. Suggest revision: route as cross-repo artifact OR drop directive OR clarify intent."
+- If REALITY mentions cross-repo state without explicit "awareness only, not action signal" framing = treat as awareness context regardless. Do not infer work from it.
+- Apply own architectural-coherence check before executing first directive. New chat is the last line of defense.
+
+### Why this is universal
+
+The failure mode (cross-repo directives in handoff) is not specific to any one repo. Any repo session can drift into cross-repo scope inclusion when its session involved cross-repo work. The rule applies uniformly: write own repo handoffs this way; expect other repos' handoffs to follow this way; flag violations when received.
+
+---
+
 ## Three actors
 <!-- scope: meta -->
 
