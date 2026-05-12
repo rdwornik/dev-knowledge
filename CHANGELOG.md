@@ -4,6 +4,23 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-12 — Prompt K: Atomic file-level cleanup (hyphen convention migration)
+
+### Changed
+- File-level cleanup atomic migration per Council 2026-05-11 hyphen mandate: 16 ADR renames + 14 transcript renames + folder rename (`_archive/` → `archive/`) + 6 flat legacy .md + v2 folder relocation + 23 living doc link rewrites in single revertable commit (a95318d)
+- `BACKLOG.md`: Cross-stream P1 ".dev-knowledge atomic migration to hyphen convention" marked done
+
+### Added
+- `docs/handoffs/archive/legacy/` subfolder for pre-ADR-42 handoff format archival (6 flat .md + v2 folder `2026-04-27-stream-c-session-1-final/`)
+- `LESSONS.md`: merge/cleanup completion pattern (sub-instance of operator-is-not-the-terminal)
+- `LESSONS.md`: punted-migration anti-pattern (empirical instance: session 2026-05-11)
+- `scripts/migrate_links.py`: reusable link migration utility for Phase 2 cross-repo migrations
+
+### Skipped
+- K1.4 (cycle 2 cross-repo propagation artifact archival): files absent from Downloads at time of execution
+
+---
+
 ## 2026-05-12 — Prompt J: ADR-34 + ADR-38 amendments + BACKLOG reclassification
 
 ### Changed

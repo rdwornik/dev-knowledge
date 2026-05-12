@@ -42,18 +42,20 @@ Get-ChildItem docs/handoffs/ | Sort-Object Name | Select-Object -Last 5
 
 ## Pre-v3.2 legacy (historical, do not edit)
 
+Relocated to `docs/handoffs/archive/legacy/` per Prompt K atomic migration (2026-05-12).
+
 ### Flat `.md` files (legacy single-file format, pre-2026-04-27)
 
-- `2026-04-15-codex-tach-opus47-session.md`
-- `2026-04-15-tech-radar-session.md`
-- `2026-04-21-dev-knowledge-architecture-redefinition.md`
-- `2026-04-21-tech-radar-session.md`
-- `2026-04-26-stream-b-complete-stream-c-scope.md`
-- `2026-04-26-stream-c-session-1-branch-convention.md`
+- `archive/legacy/2026-04-15-codex-tach-opus47-session.md`
+- `archive/legacy/2026-04-15-tech-radar-session.md`
+- `archive/legacy/2026-04-21-dev-knowledge-architecture-redefinition.md`
+- `archive/legacy/2026-04-21-tech-radar-session.md`
+- `archive/legacy/2026-04-26-stream-b-complete-stream-c-scope.md`
+- `archive/legacy/2026-04-26-stream-c-session-1-branch-convention.md`
 
 ### Folder v2 format (pre-2026-05-09, pre-ADR-42)
 
-- `2026-04-27-stream-c-session-1-final/` — uses `contents/` subfolder + `upload-instructions.md`
+- `archive/legacy/2026-04-27-stream-c-session-1-final/` — uses `contents/` subfolder + `upload-instructions.md`
 
 ## References
 

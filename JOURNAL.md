@@ -18,6 +18,20 @@
 
 ---
 
+## 2026-05-12 — Prompt K: Atomic file-level cleanup
+
+**Did:**
+- K1 (a95318d): 16 ADR renames (underscore → hyphen); 14 transcript renames (council_out_ → council-out-); `docs/handoffs/_archive/` → `archive/` folder rename; 6 legacy flat .md + v2 folder relocated to `docs/handoffs/archive/legacy/`; 23 living docs updated (link refs, path refs, naming convention desc); scope tag validator: pass
+- K2 (this commit): BACKLOG P1 `.dev-knowledge atomic migration` marked done; LESSONS: 2 new entries (merge/cleanup completion pattern, punted-migration anti-pattern); JOURNAL + CHANGELOG updated
+- K1.4 skipped: cycle 2 propagation artifact absent from Downloads (not present at time of execution)
+- Branch: `chore/atomic-cleanup-hyphen-migration` (2 commits, ready for K3 merge)
+
+**Result:** .dev-knowledge file-level mess fully resolved. All upstream decisions (ADR-34 amendment + A2 + Council ratification) now have matching file-level state. Clean working tree on branch.
+
+**Next:** K3 merge to main. Then: cross-repo handshake (BACKLOG P1 — operator routes to ai-council); Phase 2 migrations per BACKLOG P2 entries.
+
+---
+
 ## 2026-05-12 — Prompt J: ADR-34 + ADR-38 amendments + BACKLOG reclassification + content-scoped archival principle
 
 **Did:**
