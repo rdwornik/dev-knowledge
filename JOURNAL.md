@@ -18,6 +18,9 @@
 
 ---
 
+## 2026-05-12 — Handoff Stage 1 generated for ai-council (session-sync-2)
+- Handoff Stage 1 generated for 2026-05-12-ai-council-session-sync-2: HEAD f094d08 captured; awaiting Stage 2
+
 ## 2026-05-12 — Universal handoff self-containment rule added to HANDOFF_PROCESS
 - Did: added Universal Self-Containment Rule section to HANDOFF_PROCESS.md covering Stage 1 packaging / Stage 2 generation / Stage 3 reception with per-section scope rules + pre-send coherence checklist + ADR-41 per-repo scope reference; appended LESSON capturing empirical failure observed in session as universal pattern (not repo-specific)
 - Result: handoff process rule now universal across all repos handoff lifecycles; structurally prevents repeating cross-repo-in-DIRECTIVES failure in any future handoff (corp-monorepo, ai-council, future child repos)
