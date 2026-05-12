@@ -266,12 +266,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-11 by rob (Prompt J ratification)
 - **Status:** done — commit a95318d (branch chore/atomic-cleanup-hyphen-migration, Prompt K, 2026-05-12).
 
-### [P1] [open] Cross-repo handshake: ADR-34 amendment propagation to ai-council
+### [P1] [done] Cross-repo handshake: ADR-34 amendment propagation to ai-council
 - **What:** Cross-repo notification artifact generated 2026-05-11 (browser chat session alongside Prompt J). Operator routes to ai-council repo. ai-council architect proposes own implementation of hyphen convention (CLI output format change: `council_out_*` → `council-out-*`). Per ADR-43 cross-repo cycle pattern.
 - **Why:** ADR-34 is now universal mandate; ai-council CLI generates filenames that violate it. Cross-repo handshake ensures adoption without unilateral changes to ai-council.
 - **Vision ref:** VISION.md "Disseminator" function + Strategic emphasis "Cross-repo methodology consistency"
 - **Added:** 2026-05-11 by rob (Prompt J ratification)
-- **Status:** open — notification artifact ready; awaiting operator routing to ai-council.
+- **Status:** done (2026-05-12 — Cycle 2 closed 2026-05-11. Turn 1 routed; Turn 2 received from ai-council architect with implementation plan; Turn 3 closure routed per "handshake = 1 round trip" principle.)
 
 ### [P2] [open] CI enforcement of hyphen-only separator rule
 - **What:** Pre-commit hook + GitHub Action enforcing hyphen-only separator in new filenames and foldernames. Scope TBD: which paths (`.md` only vs all?), generated artifact handling (exclude CLI auto-generated?), exceptions list. Per Council synthesizer blind spot 4: enforcement mechanism deferred from this PR.
