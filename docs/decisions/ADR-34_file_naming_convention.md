@@ -27,21 +27,39 @@ Council debate (council_out_20260429_190922_*) covered Q1-Q8.
 
 ### Scope (Q1)
 
-Mandate: .dev-knowledge repo (all markdown + configs).
-Recommendation: child repos under Dev/.
+Mandate: universal across .dev-knowledge AND all child repos under Dev/.
 Code stays per language convention (Python snake, JS kebab, etc.).
+
+> **[Amended 2026-05-11]** Scope changed from mandate (.dev-knowledge) /
+> recommendation (child repos) to universal mandate. Recommendation-tier
+> scope demonstrated as failure mode per 2026-05-11 cross-repo audit —
+> inconsistency across repos (ADRs hyphen in corp-monorepo, underscore in
+> .dev-knowledge) surfaced immediately. See Amendments section below.
 
 ### File type conventions (Q2 + Q3)
 
 No universal master rule. Convention per file type — table is source
 of truth.
 
+**Separator rule (universal):** Use **hyphen** (`-`) as separator in ALL
+filenames AND foldernames. Applies to both .dev-knowledge and all child
+repos under Dev/. This rule is independent of date-token format (date
+shape `YYYYMMDD` vs `YYYY-MM-DD` is a separate question per Q4 below).
+
+**Canonical examples:**
+- `ADR-27-scope-tagging.md`
+- `2026-05-11-cross-repo-pattern-audit.md`
+- `council-out-YYYYMMDD-HHMMSS-topic.md`
+
+> **[Amended 2026-05-11]** ADR and transcript entries changed from
+> underscore to hyphen per Council decision. See Amendments section below.
+
 | File type | Convention | Example |
 |---|---|---|
 | Living docs (root) | UPPERCASE.md | README.md, VISION.md, CLAUDE.md |
 | Protocols | UPPERCASE_WITH_UNDERSCORES.md | HANDOFF_PROCESS.md |
-| ADRs | ADR-NN_topic_with_underscores.md | ADR-33_vision_universalization.md |
-| Council transcripts (auto) | council_out_YYYYMMDD_HHMMSS_topic_with_underscores.md | council_out_20260429_190922_pick_*.md |
+| ADRs | ADR-NN-topic.md | ADR-27-scope-tagging.md |
+| Council transcripts (auto) | council-out-YYYYMMDD-HHMMSS-topic.md | council-out-20260429-190922-pick-adr34.md |
 | Legacy decision transcripts | DECISION_NN_topic.md (grandfathered) | DECISION_27_*.md |
 | Audits / handoffs | YYYY-MM-DD-topic-with-dashes.md | 2026-04-27-deep-cleansing-diagnostic.md |
 | Templates | kebab-case-template.md | CLAUDE-md-template.md |
@@ -58,7 +76,7 @@ of truth.
 ### Versioning (Q5)
 
 - NO filename versioning (no `_v2`, `_final`, `_old`)
-- Old versions → `docs/archive/YYYY-MM-DD_topic.md`
+- Old versions → `docs/archive/YYYY-MM-DD-topic.md`
 - Git history is canonical version-of-record
 
 ### Migration (Q6: hybrid, scoped)
@@ -81,11 +99,14 @@ of truth.
 
 ### Universalization (per ADR-33 pattern)
 
-- **Mandate**: .dev-knowledge repo
-- **Recommendation**: child repos under Dev/ (corp-monorepo, ai-council,
-  corp-ops, corp-sca-time-automation, future repos)
+> **[Amended 2026-05-11]** Scope changed to universal mandate. See Amendments section.
+
+- **Mandate**: .dev-knowledge AND all child repos under Dev/ (corp-monorepo,
+  ai-council, corp-ops, corp-sca-time-automation, future repos)
 - **Migration cohort**:
-  - Immediate (Stream C Phase 2): ai-council, corp-monorepo
+  - Immediate (Prompt K): .dev-knowledge (~31 file renames, link rewrites,
+    `_archive/` → `archive/` folder rename)
+  - Phase 2: corp-monorepo, ai-council (per cross-repo handshake, ADR-43)
   - Trigger-based: corp-ops, corp-sca-time-automation, future repos
     — next session touching repo for >1 commit, OR by 2026-06-30
 - **Cross-repo audit (Phase 3)**: auditor tool validates naming
@@ -126,3 +147,27 @@ of truth.
 - ADR-27 (scope tags)
 - ADR-29 (lessons grandfathering pattern)
 - ADR-33 (VISION universalization framework)
+
+## Amendments
+
+### 2026-05-11 — Cycle 1: Universal hyphen mandate
+
+- **Source:** AI Council debate, transcript at
+  `docs/decisions/transcripts/council_out_20260511_205022_pick_2026-05-11-council-question-ecosystem-separator.md`
+- **Council vote:** Q1-A, Q2-A, Q3-A, Q4-A (all 4 panel models converged:
+  claude-opus-4-7, deepseek-v4-pro, gemini-3.1-pro-preview, grok-4.3)
+- **Decision:** Separator changes from underscore (with split
+  mandate/recommendation scope) to **hyphen universal mandate**. Separator
+  rule applies to BOTH filenames AND foldernames across .dev-knowledge and
+  all child repos. CLI output format (`council-out-*`) treated as in-scope.
+- **Original text superseded:**
+  - Scope: was "Mandate: .dev-knowledge / Recommendation: child repos"
+  - ADR row: was `ADR-NN_topic_with_underscores.md`
+  - Transcript row: was `council_out_YYYYMMDD_HHMMSS_topic_with_underscores.md`
+- **Migration scope:** .dev-knowledge atomic migration deferred to Prompt K
+  (separate atomic PR: ~31 file renames + link rewrites + `_archive/` →
+  `archive/` folder rename). Child repos handled via cross-repo handshake
+  per ADR-43.
+- **AI Council implementation:** ai-council CLI output format change via
+  cross-repo cycle 2 (cross-repo notification artifact generated 2026-05-11,
+  operator routing to ai-council pending).

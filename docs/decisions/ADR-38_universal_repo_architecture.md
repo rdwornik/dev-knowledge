@@ -100,6 +100,12 @@ Optional but recommended:
 | docs/decisions/ (ADRs) | NO | OPTIONAL | YES |
 | BACKLOG.md (per ADR-41) | NO | YES | YES |
 
+> **[Amended 2026-05-11 — A3]** ARCHITECTURE.md MUST be placed at repo
+> root, NOT nested in `docs/` or any subdirectory. Rationale:
+> cross-tool discoverability — LLM coding agents (Claude Code, Codex,
+> Cursor) scan root-level files first; root placement matches industry
+> convention (GitHub, most open-source projects). See Amendments section.
+
 ### Module definition (used by ADR-40 metrics)
 
 A "module" = top-level subdirectory inside `src/{package_name}/` containing
@@ -219,3 +225,22 @@ For existing non-compliant repos:
 - ADR-34 (file naming convention)
 - corp-monorepo repository (canonical reference implementation)
 - Python packaging conventions (PEP 518, PEP 621 for pyproject.toml)
+
+## Amendments
+
+### 2026-05-11 — A3: ARCHITECTURE.md root placement
+
+- **Source:** `docs/audits/2026-05-11-cross-repo-pattern-audit.md`, A-item A3
+- **Decision:** ARCHITECTURE.md MUST be placed at repo root, not nested
+  in `docs/` or any subdirectory. Root placement is mandatory wherever
+  ARCHITECTURE.md is required (Tier L) or present (Tier M+).
+- **Rationale:** Root placement matches cross-tool LLM agent discovery
+  behavior and industry convention. `docs/ARCHITECTURE.md` placement
+  observed in corp-monorepo was non-compliant with intent.
+- **Prior state:** Placement was unspecified — table row said "YES" for
+  Tier L but did not name the required path. Unspecified placement →
+  inconsistency (corp-monorepo placed at `docs/ARCHITECTURE.md`).
+- **Affected repos:** corp-monorepo (`docs/ARCHITECTURE.md` → root
+  migration deferred to Phase 2, separate prompt).
+- **Decision tier:** Conversational (no Council debate needed — single
+  placement question, low cost, root is unambiguous industry convention).
