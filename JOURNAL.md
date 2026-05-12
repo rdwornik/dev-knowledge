@@ -18,6 +18,20 @@
 
 ---
 
+## 2026-05-12 — Prompt L: Scrum-master review of ai-council + legacy transcripts relocation
+
+**Did:**
+- Produced structured scrum-master review report for ai-council at `docs/audits/2026-05-11-ai-council-scrum-master-review.md` (Scale M; first empirical instance of scrum-master review authority pattern): 10 findings (1 critical, 6 important, 3 minor); covers governance files, ADR-34 compliance, documentation staleness, tasks/ folder hygiene, dead code scan, folder structure
+- Relocated 3 legacy `DECISION_NN_*` transcripts from `docs/decisions/transcripts/` to `docs/decisions/transcripts/archive/legacy/` (pre-CLI historical class separation per content-scoped archival principle); updated path references in ADR-31, ADR-32, decisions/README.md, CHANGELOG.md
+- Updated BACKLOG: marked AI Council transcript routing [done]; added Cross-stream P2 (codify scrum-master review pattern) + P3 (extend to other repos)
+- Appended LESSON: scrum-master review authority pattern (first empirical instance)
+
+**Result:** ai-council review report ready for operator routing to architect. Legacy transcript cleanup complete. Branch merged to main.
+
+**Next:** Operator routes ai-council review to architect for implementation. Scrum-master pattern awaits N=2 before ADR-level codification (see BACKLOG Cross-stream P2).
+
+---
+
 ## 2026-05-12 — Prompt K: Atomic file-level cleanup
 
 **Did:**
