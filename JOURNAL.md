@@ -18,6 +18,11 @@
 
 ---
 
+### 2026-05-12 — Handoff process audit
+- Did: read process spec + templates + slash commands + sample artifacts (current + archive + legacy); wrote audit report describing the process end-to-end in plain prose at `docs/audits/2026-05-12-handoff-process-audit.md`
+- Failed: —
+- Next: browser chat reads audit, proposes improvements (conversational rethink or Council debate, depending on findings depth)
+
 ## 2026-05-12 — Inline reminder questions added to Stage 1 questionnaire
 - Did: added brief reminder block at end of Stage 1 questionnaire flow surfacing cross-repo + internal-coherence check categories with explicit pointer to HANDOFF_PROCESS Universal Self-Containment Rule as source of truth
 - Result: defense-in-depth for handoff lifecycle achieved without sync drift risk — master rule single source; questionnaire surfaces awareness at moment of writing
