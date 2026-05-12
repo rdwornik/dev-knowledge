@@ -191,3 +191,98 @@ Next quarterly grooming: 2026-07-01
 - **Status:** open
 
 ---
+
+## Cross-repo Naming + Architecture Migration (Prompt H audit + Prompt J ratification)
+
+> Items below were surfaced by 2026-05-11 cross-repo pattern audit (Prompt H)
+> and ratified/reclassified by Council + operator decisions (Prompt J).
+> Framing corrected: was "fix-violator" tasks; now correctly sequenced as
+> "ADR amended → then migrate" per Prompt I Implication finding.
+
+### [P1] [done] ADR naming convention reconciliation (underscore vs hyphen)
+- **What:** Cross-repo audit (2026-05-11) found two incompatible ADR naming conventions: `.dev-knowledge` uses `ADR-NN_topic.md` (underscore); `corp-monorepo` and `ai-council` use `ADR-NN-topic.md` (hyphen). ADR-34 was ambiguous. Resolution: amend ADR-34 (this cycle's Prompt J, J1); migration to follow in Prompt K (.dev-knowledge) and Phase 2 (child repos).
+- **Added:** 2026-05-11 by rob (cross-repo pattern audit)
+- **Status:** done — ADR-34 amended (commit ec45b2c, this branch). Migration tracked separately: .dev-knowledge in Cross-stream P1 "atomic migration" below; child repos in P2 migration entries below.
+
+### [P2] [done] ARCHITECTURE.md root placement enforcement
+- **What:** ADR-38 mandated ARCHITECTURE.md but didn't specify path. `corp-monorepo` placed it at `docs/ARCHITECTURE.md` (not root). Decision needed: root or `docs/`?
+- **Added:** 2026-05-11 by rob (cross-repo pattern audit, A3)
+- **Status:** done — ADR-38 amended (commit f264966, this branch): root placement now explicit. corp-monorepo migration tracked in P2 "corp-monorepo migration" entry below.
+
+### [P2] [open] Handoff folder format adoption (corp-monorepo, ai-council)
+- **What:** ADR-42 folder format is current standard. `corp-monorepo` and `ai-council` still have flat `docs/HANDOFF.md` (pre-ADR-42 pattern). Migration options: convert existing flat file to folder format at next handoff event, or explicitly deprecate. Tied to A4 decision (separate ADR or conversational) about whether flat file is still acceptable as legacy.
+- **Added:** 2026-05-11 by rob (cross-repo pattern audit, A4)
+- **Status:** open — A4 separate decision needed before prescribing migration; tied to `docs/HANDOFF.md flat file deprecation` P3 below.
+
+### [P2] [done] `_archive/` convention — standardize (drop underscore prefix per Council)
+- **What:** `_archive/` (underscore-prefix) existed in `.dev-knowledge/docs/handoffs/` and `ai-council/handoffs/`. `corp-monorepo` used bare `archive/` (no underscore). No ADR governed which. Decision: adopt bare `archive/` universally (consistent with hyphen mandate, no underscore anywhere).
+- **Added:** 2026-05-11 by rob (cross-repo pattern audit, A2)
+- **Status:** done — operator decision ratified by Council hyphen-universal vote (Q1-A). `.dev-knowledge/docs/handoffs/_archive/` → `archive/` folder rename deferred to Prompt K (atomic migration). Child repo `_archive/` cleanup in Phase 2 visits.
+
+### [P3] [open] UPPERCASE TYPE tag in legacy archive filenames (A5 — retire opportunistically)
+- **What:** `corp-monorepo` and `corp-sca` use `YYYY-MM-DD_TYPE_topic.md` pattern in `docs/archive/` files (e.g. `CODE_REVIEW_REPORT`). Not in ADR-34 spec. Pre-ADR-34 legacy pattern.
+- **Added:** 2026-05-11 by rob (cross-repo pattern audit, A5)
+- **Status:** open — designated as legacy pattern; retire opportunistically during Phase 2 repo visits. No dedicated migration prompt needed; handle when touching those files anyway.
+
+### [P3] [open] docs/HANDOFF.md flat file deprecation (corp-monorepo, ai-council)
+- **What:** Both `corp-monorepo` and `ai-council` have `docs/HANDOFF.md` at `docs/` level (pre-ADR-42 flat pattern). Not breaking. Retire at next handoff event or explicitly designate as legacy.
+- **Added:** 2026-05-11 by rob (cross-repo pattern audit)
+- **Status:** open — tied to A4 decision (Handoff folder format adoption, above).
+
+### [P3] [open] Undiscovered repos confirmation
+- **What:** Repos `corp-knowledge-extractor`, `corp-by-os`, `corp-rfp-agent` not found under `Dev/` during 2026-05-11 audit. Confirm status: renamed, archived, not yet cloned, or dropped.
+- **Added:** 2026-05-11 by rob (cross-repo pattern audit)
+- **Status:** open
+
+---
+
+## Hyphen Convention Migration Sequence (Prompt J ratification)
+
+### [P1] [open] .dev-knowledge atomic migration to hyphen convention (Prompt K scope)
+- **What:** Atomic PR for .dev-knowledge: (1) ~31 ADR + transcript filename renames to hyphen; (2) Markdown link reference rewrites across all `.md` files; (3) `docs/handoffs/_archive/` → `docs/handoffs/archive/` folder rename (per A2 underscore drop ratified by Council); (4) retroactive archival of cross-repo decision propagation artifact (2026-05-11) to `docs/handoffs/archive/` alongside the folder rename; (5) link validation post-rename. Single atomic commit; revertable.
+- **Why:** ADR-34 amendment (this cycle) specifies hyphen universal mandate; .dev-knowledge must lead the migration before child repos can follow. Atomic commit ensures link integrity — partial migration creates broken references.
+- **Vision ref:** VISION.md "Knowledge Guardian" function
+- **Added:** 2026-05-11 by rob (Prompt J ratification)
+- **Status:** open — execute as Prompt K, separate PR from this branch.
+
+### [P1] [open] Cross-repo handshake: ADR-34 amendment propagation to ai-council
+- **What:** Cross-repo notification artifact generated 2026-05-11 (browser chat session alongside Prompt J). Operator routes to ai-council repo. ai-council architect proposes own implementation of hyphen convention (CLI output format change: `council_out_*` → `council-out-*`). Per ADR-43 cross-repo cycle pattern.
+- **Why:** ADR-34 is now universal mandate; ai-council CLI generates filenames that violate it. Cross-repo handshake ensures adoption without unilateral changes to ai-council.
+- **Vision ref:** VISION.md "Disseminator" function + Strategic emphasis "Cross-repo methodology consistency"
+- **Added:** 2026-05-11 by rob (Prompt J ratification)
+- **Status:** open — notification artifact ready; awaiting operator routing to ai-council.
+
+### [P2] [open] CI enforcement of hyphen-only separator rule
+- **What:** Pre-commit hook + GitHub Action enforcing hyphen-only separator in new filenames and foldernames. Scope TBD: which paths (`.md` only vs all?), generated artifact handling (exclude CLI auto-generated?), exceptions list. Per Council synthesizer blind spot 4: enforcement mechanism deferred from this PR.
+- **Why:** Convention without enforcement drifts. Manual discipline insufficient per 2026-05-11 audit finding (recommendation-tier scope failed immediately).
+- **Vision ref:** VISION.md "Auditor" function
+- **Added:** 2026-05-11 by rob (Prompt J ratification)
+- **Status:** open — scope decision needed before implementation; small Council question or conversational decision.
+
+### [P2] [open] corp-monorepo hyphen migration + ADR-38 compliance (Phase 2 expanded scope)
+- **What:** (1) Universal hyphen filename migration for corp-monorepo ADR files; (2) ADR-38 Scale L gaps closure: ARCHITECTURE.md move to root (from `docs/`), add VISION.md, LESSONS.md, BACKLOG.md; (3) `docs/archive/` content reclassification per content-scoped archival principle (CODE_REVIEW_REPORT files currently at top level of `docs/archive/` — should move to `docs/audits/archive/` or appropriate scoped location).
+- **Why:** ADR-34 amendment (universal mandate) + ADR-38 amendment (root placement) both now apply to corp-monorepo. Phase 2 scope expanded from original "verify compliance" to "migrate non-compliant items."
+- **Vision ref:** VISION.md "Disseminator" function; pairs with "Phase 2 universalization rollout" (Cross-stream P2)
+- **Added:** 2026-05-11 by rob (Prompt J ratification, expanded from Prompt H P2)
+- **Status:** open — execute in Phase 2, separate prompt; after Prompt K closes.
+
+### [P2] [open] ai-council hyphen migration + ADR-38 compliance (Phase 2 expanded scope)
+- **What:** (1) Universal hyphen filename migration for ai-council (likely low impact — audit suggests mostly hyphen-compliant already; verify before migrating); (2) ADR-38 Scale M gaps closure: ARCHITECTURE.md to root, add LESSONS.md, BACKLOG.md (AGENTS.md already tracked in Stream B P2).
+- **Why:** ADR-34 amendment (universal mandate) + ADR-38 amendment (root placement) now apply. Confirm compliance before claiming clean.
+- **Vision ref:** VISION.md "Disseminator" function; pairs with "Phase 2 universalization rollout" (Cross-stream P2)
+- **Added:** 2026-05-11 by rob (Prompt J ratification, expanded from Prompt H P2)
+- **Status:** open — execute in Phase 2, separate prompt; after cross-repo handshake (P1 above) completes.
+
+### [P2] [open] Content-scoped archival principle codification
+- **What:** New principle emerged 2026-05-11: archive subfolder location follows artifact type (handoffs/archive/ only for handoff content; decisions/archive/ for decisions if archival needed; each content type has own scoped archive subfolder). Generic `docs/archive/` as top-level mixed-content grab-bag (current corp-monorepo pattern) is anti-pattern. Codification options: amendment to ADR-38 (universal repo architecture) OR new ADR-44 (archival principle). Defer codification to second empirical instance (per N=1 anti-pattern lesson).
+- **Why:** Principle emerged from operator framing during archival destination decision for cross-repo propagation artifact. First empirical instance captured. Premature ADR at N=1 is itself an anti-pattern (see LESSONS.md).
+- **Vision ref:** VISION.md "Knowledge Guardian" function
+- **Added:** 2026-05-11 by rob (Prompt J ratification)
+- **Status:** open — captured in LESSONS.md (2026-05-11 entry). Codification awaits second empirical instance. Monitor for second instance during Phase 2 repo visits.
+
+### [P3] [open] A5 Phase 2: retire UPPERCASE TYPE tag in legacy archive filenames
+- **What:** During Phase 2 repo visits (corp-monorepo, ai-council), when touching `docs/archive/` files with `YYYY-MM-DD_TYPE_topic.md` pattern — rename to plain `YYYY-MM-DD-topic.md` (hyphen separator, no UPPERCASE tag). Opportunistic, not a dedicated migration.
+- **Added:** 2026-05-11 by rob (Prompt J ratification, A5 designation)
+- **Status:** open — opportunistic during Phase 2 visits; no dedicated prompt.
+
+---

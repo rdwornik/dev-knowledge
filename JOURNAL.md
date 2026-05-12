@@ -18,6 +18,20 @@
 
 ---
 
+## 2026-05-12 — Prompt J: ADR-34 + ADR-38 amendments + BACKLOG reclassification + content-scoped archival principle
+
+**Did:**
+- J1: Amended ADR-34 — separator convention changed to universal hyphen mandate for filenames AND foldernames across .dev-knowledge and all child repos; ADR and transcript table rows updated from underscore to hyphen; example set added; scope changed from mandate/recommendation split to universal; Amendments trail added (commit ec45b2c)
+- J2: Amended ADR-38 — ARCHITECTURE.md root placement now explicit (was unspecified); conversational A3 decision; Amendments trail added (commit f264966)
+- J3: BACKLOG updated — Prompt H entries added in reclassified state (2 marked done: ADR naming + ARCHITECTURE.md placement; 2 kept open: handoff format + undiscovered repos; archive convention marked done per Council vote; A5 designated legacy/opportunistic); 7 new migration sequence entries added (P1 Prompt K atomic migration, P1 cross-repo handshake, P2 CI enforcement, P2 corp-monorepo migration expanded, P2 ai-council migration expanded, P2 content-scoped archival codification, P3 A5 Phase 2 retirement); LESSONS entry appended (content-scoped archival principle); JOURNAL + CHANGELOG updated
+- Branch: chore/adr-34-amendment-hyphen-convention (3 commits ahead of main)
+
+**Result:** ADR-34 + ADR-38 ratified per Council decision and operator A3 decision; migration work scoped into Prompt K (.dev-knowledge atomic, includes _archive/ → archive/ rename + propagation artifact archival); content-scoped archival principle captured as BACKLOG P2 awaiting second empirical instance
+
+**Next:** Operator routes cross-repo notification artifact to ai-council; Prompt K executes .dev-knowledge atomic migration
+
+---
+
 ## 2026-05-11 — Item 0 Prompt C: Codex M1 fix
 - Did: reconciled PLAYBOOK dual-write contradiction at "Council Debate Archival Protocol" section (~line 1458); accepted M2 (bundle ESSENTIALS snapshot) + L3 (bundle manifest state) as pre-existing bundle state per point-in-time artifact convention
 - Result: PLAYBOOK Council output guidance internally consistent; operators no longer instructed to skip manual archival they actually need to perform; Item 0 closed

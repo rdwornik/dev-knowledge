@@ -4,6 +4,18 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-12 — Prompt J: ADR-34 + ADR-38 amendments + BACKLOG reclassification
+
+### Changed
+- `docs/decisions/ADR-34_file_naming_convention.md`: separator convention amended to universal hyphen mandate per AI Council 2026-05-11 (all 4 panel models Q1-A, Q2-A, Q3-A, Q4-A). Scope changed from mandate (.dev-knowledge) / recommendation (child repos) to universal mandate across all Dev/ repos. ADR and transcript table rows updated from underscore to hyphen. Versioning archive path updated. Universalization section updated. Amendments trail entry added.
+- `docs/decisions/ADR-38_universal_repo_architecture.md`: ARCHITECTURE.md placement specified as root (was unspecified). Conversational A3 decision from 2026-05-11 cross-repo audit. Amendments trail entry added.
+- `BACKLOG.md`: two new sections added — "Cross-repo Naming + Architecture Migration (Prompt H audit + Prompt J ratification)" with 7 reclassified Prompt H items; "Hyphen Convention Migration Sequence (Prompt J ratification)" with 7 new migration sequence entries covering Prompt K atomic migration, cross-repo handshake, CI enforcement, corp-monorepo + ai-council Phase 2 migration (expanded scope), content-scoped archival principle codification, and A5 Phase 2 retirement.
+
+### Added
+- `LESSONS.md`: content-scoped archival principle (2026-05-11 entry) — archive subfolder location follows artifact type; generic docs/archive/ mixed-content grab-bag is anti-pattern; codification deferred to second empirical instance.
+
+---
+
 ## 2026-05-11 — Item 0 Prompt C: Codex M1 fix
 
 ### Fixed
