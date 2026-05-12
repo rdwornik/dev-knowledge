@@ -18,6 +18,11 @@
 
 ---
 
+## 2026-05-12 — Universal handoff self-containment rule added to HANDOFF_PROCESS
+- Did: added Universal Self-Containment Rule section to HANDOFF_PROCESS.md covering Stage 1 packaging / Stage 2 generation / Stage 3 reception with per-section scope rules + pre-send coherence checklist + ADR-41 per-repo scope reference; appended LESSON capturing empirical failure observed in session as universal pattern (not repo-specific)
+- Result: handoff process rule now universal across all repos handoff lifecycles; structurally prevents repeating cross-repo-in-DIRECTIVES failure in any future handoff (corp-monorepo, ai-council, future child repos)
+- Next: BACKLOG cross-repo contamination cleanup (separate concern; operator-confirmed scope only)
+
 ## 2026-05-12 — Hooks reconnaissance + ai-council check
 - Did: produced docs/audits/2026-05-12-hooks-discovery.md; identified review name-conflict location(s) — user-defined `~/.claude/commands/review.md` (Codex wrapper) vs. Claude Code built-in `/review` skill (PR review); recommended Shape (a) for Prompt 4; confirmed ai-council implemented all 10 scrum-master findings + I7/I8 addendum + council-out-* emitter rename
 - Failed: —

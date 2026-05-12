@@ -6,6 +6,14 @@ Notable changes to the dev practice knowledge base.
 
 ## 2026-05-12
 
+### Added
+- `HANDOFF_PROCESS.md`: Universal Self-Containment Rule section (Stage 1 / Stage 2 / Stage 3 explicit guidance + pre-send coherence checklist + ADR-41 cross-repo scope)
+- `LESSONS.md` entry: handoff self-containment universal pattern + empirical failure capture
+
+---
+
+## 2026-05-12
+
 - feat(playbook): add § 17 Scrum-Master Review Propagation — codifies three-stage flow (audit → route → implement), addendum mechanism, distinction from cross-repo amendment handshake, single-round-trip framing
 - feat(templates): add `scrum-master-cover-letter.md` — operator-paste-ready routing template, ADR-34 hyphen naming
 
