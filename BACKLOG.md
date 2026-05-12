@@ -245,6 +245,13 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-11 by rob (cross-repo pattern audit, A5)
 - **Status:** open — designated as legacy pattern; retire opportunistically during Phase 2 repo visits. No dedicated migration prompt needed; handle when touching those files anyway.
 
+### [P3] [open] ADR-42 amendment — clarify single vs multi-artifact handoff format
+- **What:** ADR-42 v3.2 specifies folder-format handoffs. Empirically established 2026-05-11 that single-artifact handoffs work better as flat `.md` in `docs/handoffs/`. Folder format reserved for multi-artifact bundles with `contents/` subfolder. ADR-42 text does not state this distinction explicitly.
+- **Why:** Methodology debt — practitioners must infer the rule from convention rather than reading it in the ADR. Without explicit statement, future sessions may default to folder format for single-artifact handoffs, causing unnecessary complexity.
+- **Vision ref:** VISION.md — methodology evolution
+- **Added:** 2026-05-12
+- **Status:** open
+
 ### [P3] [open] docs/HANDOFF.md flat file deprecation (corp-monorepo, ai-council)
 - **What:** Both `corp-monorepo` and `ai-council` have `docs/HANDOFF.md` at `docs/` level (pre-ADR-42 flat pattern). Not breaking. Retire at next handoff event or explicitly designate as legacy.
 - **Added:** 2026-05-11 by rob (cross-repo pattern audit)
