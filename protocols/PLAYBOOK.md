@@ -2118,6 +2118,87 @@ This is not optional for the applicable tier. Stale structural documentation is 
 
 ---
 
+## 17. Scrum-Master Review Propagation
+<!-- scope: meta -->
+
+**When:** `.dev-knowledge` (or any ecosystem-meta repo) audits a target repo against universal conventions (ADR-34 naming, ADR-38 architecture, ADR-41 backlog, etc.) and finds non-conformities to route. Distinct from § 15 Cross-Tool Review (within-repo Codex audit) and § 16 Code Quality Audit Process (within-repo audit cycle).
+
+**Skip when:** target repo audits itself internally (no cross-repo routing needed).
+
+### Three-stage flow
+<!-- scope: meta -->
+
+**Stage 1 — Audit (strażnik produces report)**
+
+- Strażnik (`.dev-knowledge` or other ecosystem-meta repo) runs read-only audit against target repo's working tree against universal conventions.
+- Produces dated artifact: `docs/audits/YYYY-MM-DD-<target-repo>-scrum-master-review.md`
+- Findings grouped by severity (CRITICAL / HIGH / MEDIUM / LOW per § 16 convention).
+- Audit is internal to strażnik repo; not yet routed.
+
+**Stage 2 — Route (operator routes with cover letter)**
+
+- Operator copies `templates/scrum-master-cover-letter.md`, fills placeholders, pastes cover letter + audit report contents to target repo architect (separate chat or browser session).
+- Cover letter sets expectation: single round trip, architect implements in own repo, no delivery turn back.
+
+**Stage 3 — Implement (target architect produces changes in own repo)**
+
+- Target repo architect reviews findings and implements changes in target repo.
+- Implementation evidence: commits + CHANGELOG entry in target repo. No browser-to-browser turn back to strażnik expected.
+- Strażnik may verify (read-only) target repo CHANGELOG / commits at next session start — informational, not gated.
+
+### Addendum mechanism
+<!-- scope: meta -->
+
+If strażnik catches additional gaps after Stage 2 routing (audit gaps surfaced post hoc), produce a supplementary artifact rather than regenerating the full report:
+
+- Naming: `docs/audits/YYYY-MM-DD-<target-repo>-scrum-master-review-addendum.md`
+- Content: supplemental findings only; references the original audit by name.
+- Routing: operator routes addendum alongside (or shortly after) the main cover letter.
+- Addendum supplements; it does not supersede.
+
+**Empirical reference:** ai-council scrum-master review 2026-05-11 produced 10 findings + addendum covering I7 (tasks/lessons.md location accepted-as-by-design) and I8 (underscore-prefix archive folder not flagged for rename). Addendum mechanism prevented full report regeneration.
+
+### Distinction from cross-repo amendment handshake
+<!-- scope: meta -->
+
+| Aspect | Cross-repo amendment handshake (ADR-43 pattern) | Scrum-master review propagation (this section) |
+|--------|--------------------------------------------------|------------------------------------------------|
+| Nature | **Bilateral** — shared concern across two repos | **Unilateral** — strażnik recommends, target implements |
+| Initiator | Either repo (concern emerges) | Strażnik repo (audit surfaces non-conformity) |
+| Round trips | 1 (per "handshake = 1 round trip" principle) | 1 (per same principle) |
+| Pushback handling | Continues in same handshake | Opens new conversation as separate handshake |
+| Empirical example | ADR-34 propagation to ai-council 2026-05-11 | ai-council scrum-master review 2026-05-11 |
+
+### Single-round-trip framing
+<!-- scope: meta -->
+
+Both patterns share the operator principle "handshake = 1 round trip". Cover letter explicitly states no Turn 2/3/4 expected. If target architect pushes back on a finding (disagreement, scope mismatch, by-design justification):
+
+- Pushback does NOT continue the original routing thread.
+- Pushback opens a **new conversation** framed as a separate handshake.
+- Multi-turn ceremony for S-scale findings = over-engineering (per BOUNDARY in 2026-05-12 handoff: "do NOT generate multi-turn handshake ceremony for S-scale cross-repo changes").
+
+### Cover-letter template
+<!-- scope: meta -->
+
+Use `templates/scrum-master-cover-letter.md`. Operator fills placeholders for target repo, review type, severity counts, top-3 findings, expected-response framing. Template cites first empirical instance (ai-council 2026-05-11) as reference.
+
+### Rules
+<!-- scope: meta -->
+
+- Audit before route; never route before audit completes.
+- Strażnik produces; operator routes; target architect implements. Never reverse roles.
+- Strażnik does NOT directly edit target repo files. Cross-repo changes route via target architect.
+- Pushback opens new handshake. Pushback does not extend the original routing.
+- Addendum is for post-routing gap discovery; not for finding revisions (revisions = re-audit).
+
+### Section history
+<!-- scope: meta -->
+
+- v1.0 (2026-05-12) — initial. Codifies propagation process at N=1 (ai-council scrum-master review 2026-05-11). ADR-44 authority codification deferred pending N=2 (corp-monorepo scrum-master review).
+
+---
+
 ## Appendix A: Claude Code Shortcuts
 <!-- scope: runtime -->
 
