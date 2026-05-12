@@ -18,6 +18,11 @@
 
 ---
 
+## 2026-05-12 — PLAYBOOK § 17 + cover-letter template
+- Did: added § 17 Scrum-Master Review Propagation + templates/scrum-master-cover-letter.md; closed BACKLOG P2 propagation-structuring entry
+- Failed: —
+- Next: hooks reconnaissance (Prompt 3) → hooks review proper (Prompt 4, scope locked by recon findings)
+
 ## 2026-05-12 — Cleanup pass
 - Did: resolved orphaned 2026-05-12-session-handoff deletion (D2 — already committed as 471ecd3); marked ADR-34 ai-council propagation BACKLOG entry as done (D3); added ADR-42 single-vs-multi-artifact amendment-candidate BACKLOG entry P3 (D7)
 - Failed: —

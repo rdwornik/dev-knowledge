@@ -4,6 +4,11 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-12
+
+- feat(playbook): add § 17 Scrum-Master Review Propagation — codifies three-stage flow (audit → route → implement), addendum mechanism, distinction from cross-repo amendment handshake, single-round-trip framing
+- feat(templates): add `scrum-master-cover-letter.md` — operator-paste-ready routing template, ADR-34 hyphen naming
+
 ## 2026-05-12 — Handoff Stage 3: ai-council session-sync
 
 ### Added
