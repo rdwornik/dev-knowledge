@@ -18,6 +18,11 @@
 
 ---
 
+## 2026-05-12 — Cleanup pass
+- Did: resolved orphaned 2026-05-12-session-handoff deletion (D2 — already committed as 471ecd3); marked ADR-34 ai-council propagation BACKLOG entry as done (D3); added ADR-42 single-vs-multi-artifact amendment-candidate BACKLOG entry P3 (D7)
+- Failed: —
+- Next: PLAYBOOK § 17 + scrum-master cover-letter template (Prompt 2)
+
 ## 2026-05-12 — Handoff Stage 3 complete for ai-council (session-sync)
 
 **Did:** Stage 3 generated 12-file handoff folder at `docs/handoffs/2026-05-12-ai-council-session-sync/`. Stage 1+2 inputs archived at `docs/handoffs/archive/2026-05-12-ai-council-session-sync/`. HEAD `f094d08` pinned (no drift). Stage 2 architect knowledge preserved: Step 5 smoke test as next action, cost-optimization principle captured, 12 witnessed claims verified against repo state, stale BACKLOG items flagged. BACKLOG items updated.
