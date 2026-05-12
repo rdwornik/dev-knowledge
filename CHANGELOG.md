@@ -4,6 +4,13 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-12 — Prompt N: Session handoff
+
+### Added
+- `docs/handoffs/2026-05-12-session-handoff/` — session handoff for next-session context primer
+
+---
+
 ## 2026-05-12 — Prompt M: Governance freshness audit + targeted updates
 
 ### Changed
