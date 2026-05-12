@@ -18,6 +18,16 @@
 
 ---
 
+## 2026-05-12 — Prompt M: Governance freshness audit + targeted updates
+
+**Did:** Read-audited 8 governance files (ARCHITECTURE.md, CLAUDE.md, CONTRIBUTING.md, README.md, VISION.md, PLAYBOOK.md, ESSENTIALS.md, HANDOFF_PROCESS.md) plus subdirectory READMEs for stale convention references post 2026-05-11 amendments (ADR-34 universal hyphen mandate + ADR-38 ARCHITECTURE.md root placement + A2 archive folder rename). Applied 10 targeted fixes across 4 files (ARCHITECTURE.md × 2, CONTRIBUTING.md × 2, README.md × 2, PLAYBOOK.md × 4). Added 1 new BACKLOG entry (Cross-stream P2: scrum-master review propagation process codification).
+
+**Result:** Governance docs aligned with ratified amendments; all `ADR-NN_` underscore prescription references updated to `ADR-NN-` hyphen; PLAYBOOK §File naming conventions TBD block replaced with ADR-34 pointer; archival step filenames updated to council-out-* format. VISION.md, ESSENTIALS.md, HANDOFF_PROCESS.md, CLAUDE.md — no stale references found.
+
+**Next:** Handoff to fresh session for substantial new scope (skills review + hooks review + token logging + methodology proposal review + Phase 2 cross-repo migrations).
+
+---
+
 ## 2026-05-12 — Prompt L: Scrum-master review of ai-council + legacy transcripts relocation
 
 **Did:**

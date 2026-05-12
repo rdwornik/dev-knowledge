@@ -4,6 +4,19 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-12 — Prompt M: Governance freshness audit + targeted updates
+
+### Changed
+- `ARCHITECTURE.md`: layout example `ADR-NN_*.md` → `ADR-NN-*.md`; key conventions filename block updated (ADR-NN-topic.md, council-out-* CLI format, "consolidation pending" removed)
+- `CONTRIBUTING.md`: ADR process section filename prescription updated from underscore to hyphen (`ADR-NN_` → `ADR-NN-` in 2 places)
+- `README.md`: Conventions section + Navigation section ADR filename examples updated to hyphen
+- `protocols/PLAYBOOK.md`: ADR-NN-*.md in CLAUDE.md scope section; §File naming conventions TBD block replaced with ADR-34 pointer; file taxonomy table ADR row updated; Council Debate Archival Protocol archival target filenames updated to council-out-* format
+
+### Added
+- `BACKLOG.md`: Cross-stream P2 entry — Structure and universalize scrum-master review propagation process (cover-letter template, single-round-trip framing, report archival convention, review report template structure)
+
+---
+
 ## 2026-05-12 — Prompt L: Scrum-master review of ai-council + legacy transcripts relocation
 
 ### Added

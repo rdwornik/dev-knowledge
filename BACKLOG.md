@@ -204,6 +204,13 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-12 by rob (Prompt L)
 - **Status:** open — blocked on codification (Cross-stream P2 above) + N=2 empirical grounding
 
+### [P2] [open] Structure and universalize scrum-master review propagation process
+- **What:** Codify the full scrum-master review workflow as a templated, repeatable process. Scope: (a) cover-letter template for operator routing (context + review type + process description + action requested + audit-trail note); (b) distinction from cross-repo amendment handshake (unilateral vs bilateral); (c) single-round-trip framing (no Turn 2/3/4 expected; architect pushback opens new conversation, not inline reply); (d) report archival convention (`docs/audits/` per content-scoped principle); (e) review report structure template (executive summary + findings by area + severity classification + recommended actions + out-of-scope). Destination: new section in PLAYBOOK and/or ADR-44.
+- **Why:** First empirical instance (Prompt L ai-council review 2026-05-12) operated ad-hoc — operator had to ask routing framing because cover-letter structure was implicit, not templated. N=1 anti-pattern applies; codify now since operator has explicit framing intent, OR await N=2. Operator's call. Second application (corp-monorepo) is imminent — operationalizing before that run avoids second ad-hoc session.
+- **Vision ref:** VISION.md "Methodology Author" + "Auditor" functions
+- **Added:** 2026-05-12 by rob (Prompt M)
+- **Status:** open — N=1 empirical instance complete. Codify before corp-monorepo review (next in queue).
+
 ---
 
 ## Cross-repo Naming + Architecture Migration (Prompt H audit + Prompt J ratification)
