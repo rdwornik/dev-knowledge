@@ -15,7 +15,7 @@
 - **1C (Hub-and-spoke binding tags):** per-rule advisory/binding classification
 - **1D (Push-down enforcement):** validator scripts deployed as pre-commit hooks into each downstream repo
 
-Panel: claude-opus-4-7, deepseek-v4-pro, gemini-3.1-pro-preview, grok-4.20. Synthesizer: openai (non-participant). Debate transcript: `docs/decisions/transcripts/DECISION_28_authority_model.md`.
+Panel: claude-opus-4-7, deepseek-v4-pro, gemini-3.1-pro-preview, grok-4.20. Synthesizer: openai (non-participant). Debate transcript: `docs/decisions/transcripts/archive/legacy/DECISION_28_authority_model.md`.
 
 ## Decision
 
@@ -78,7 +78,7 @@ Cross-repo prescriptions remain in **PLAYBOOK + ADRs**. A dedicated `cross-repo/
 
 ## References
 
-- Debate transcript: `docs/decisions/transcripts/DECISION_28_authority_model.md`
+- Debate transcript: `docs/decisions/transcripts/archive/legacy/DECISION_28_authority_model.md`
 - ADR-27: scope tagging (pre-commit hook — example of a `.dev-knowledge`-resident enforcement artifact)
 - ADR-28: three-layer architecture (`.dev-knowledge` as Layer 1, prescriptions flowing to Layer 2/3)
 - ADR-35: Scale tier assessment (scheduled, Stream C session 6) — deferred

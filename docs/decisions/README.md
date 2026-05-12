@@ -39,8 +39,8 @@ currently in `transcripts/`.
 
 ### Legacy (pre-canonical)
 
-`DECISION_NN_{slug}.md` — 3 files (`DECISION_27`, `DECISION_28`, `DECISION_29`) remain as
-historical artifacts from the manual archival era. **Not renamed retroactively.**
+`DECISION_NN_{slug}.md` — 3 files (`DECISION_27`, `DECISION_28`, `DECISION_29`) are pre-CLI
+historical artifacts from the manual archival era. **Relocated to `transcripts/archive/legacy/` (2026-05-12). Not renamed retroactively.**
 
 > **Important:** legacy `DECISION_NN` numbering does NOT align with ADR-NN numbering.
 > `DECISION_28_authority_model` informed ADR-31 (not ADR-28); `DECISION_29_handoff_synergy`
@@ -52,12 +52,12 @@ historical artifacts from the manual archival era. **Not renamed retroactively.*
 
 | ADR | Originating transcript(s) |
 |-----|---------------------------|
-| ADR-27 | `DECISION_27_llm_practice_ecosystem.md` — verified: Council #27 brief about single-repo vs split; decided Option A (scope tagging) |
+| ADR-27 | `transcripts/archive/legacy/DECISION_27_llm_practice_ecosystem.md` — verified: Council #27 brief about single-repo vs split; decided Option A (scope tagging) |
 | ADR-28 | *(no transcript — conversational decision documenting existing practice)* |
 | ADR-29 | *(no transcript — derivative of ADR-27, same session)* |
 | ADR-30 | *(no Council transcript — decided via Codex audit `docs/audits/2026-04-26-codex-adr-30-default-branch-main.md`)* |
-| ADR-31 | `DECISION_28_authority_model.md` — verified: per ADR-31 "Debate transcript" reference |
-| ADR-32 | `DECISION_29_handoff_synergy.md` — verified: per ADR-32 "Debate transcript" reference |
+| ADR-31 | `transcripts/archive/legacy/DECISION_28_authority_model.md` — verified: per ADR-31 "Debate transcript" reference |
+| ADR-32 | `transcripts/archive/legacy/DECISION_29_handoff_synergy.md` — verified: per ADR-32 "Debate transcript" reference |
 | ADR-33 | `council-out-20260428-125133-format-and-structure-of-visionmd-for-dev.md` (research) + `council-out-20260428-162415-pick-council-prompt-adr33-vision-universalization.md` (decision) |
 | ADR-34 | `council-out-20260429-190922-pick-council-adr34-file-naming-convention.md` |
 | ADR-35 | `council-out-20260429-210057-pick-council-adr35-lessons-base-activation.md` |

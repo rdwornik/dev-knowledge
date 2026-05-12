@@ -10,7 +10,7 @@
 
 Prior to this decision, the browser/agent workflow had no formal role split, no session charter, and a single-markdown handoff format. An 11-failure evidence base from three sessions (scope creep, hallucinated file state, lost session state, skipped execution steps, recursive re-planning, documentation drift mid-session) triggered an AI Council debate (Topic 2).
 
-Panel: claude-opus-4-7, deepseek-v4-pro, gemini-3.1-pro-preview, grok-4.20. Synthesizer: openai (non-participant). Debate transcript: `docs/decisions/transcripts/DECISION_29_handoff_synergy.md`. Supplementary research: `docs/research/2026-04-27-handoff-patterns-council-research.md`, `docs/research/2026-04-27-handoff-patterns-external-research.md`.
+Panel: claude-opus-4-7, deepseek-v4-pro, gemini-3.1-pro-preview, grok-4.20. Synthesizer: openai (non-participant). Debate transcript: `docs/decisions/transcripts/archive/legacy/DECISION_29_handoff_synergy.md`. Supplementary research: `docs/research/2026-04-27-handoff-patterns-council-research.md`, `docs/research/2026-04-27-handoff-patterns-external-research.md`.
 
 ## Decision
 
@@ -127,7 +127,7 @@ Handoffs for work spanning multiple repos live in `.dev-knowledge/docs/handoffs/
 
 ## References
 
-- Debate transcript: `docs/decisions/transcripts/DECISION_29_handoff_synergy.md`
+- Debate transcript: `docs/decisions/transcripts/archive/legacy/DECISION_29_handoff_synergy.md`
 - Research: `docs/research/2026-04-27-handoff-patterns-council-research.md`
 - Research: `docs/research/2026-04-27-handoff-patterns-external-research.md`
 - Implemented example: `docs/handoffs/2026-04-27-stream-c-session-1-final/`
