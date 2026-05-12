@@ -18,6 +18,11 @@
 
 ---
 
+## 2026-05-12 — Hooks reconnaissance + ai-council check
+- Did: produced docs/audits/2026-05-12-hooks-discovery.md; identified review name-conflict location(s) — user-defined `~/.claude/commands/review.md` (Codex wrapper) vs. Claude Code built-in `/review` skill (PR review); recommended Shape (a) for Prompt 4; confirmed ai-council implemented all 10 scrum-master findings + I7/I8 addendum + council-out-* emitter rename
+- Failed: —
+- Next: hooks review proper (Prompt 4) — scope locked by recon findings (Shape a, low effort)
+
 ## 2026-05-12 — PLAYBOOK § 17 + cover-letter template
 - Did: added § 17 Scrum-Master Review Propagation + templates/scrum-master-cover-letter.md; closed BACKLOG P2 propagation-structuring entry
 - Failed: —
