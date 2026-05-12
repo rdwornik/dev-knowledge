@@ -7,6 +7,13 @@ Notable changes to the dev practice knowledge base.
 ## 2026-05-12
 
 ### Added
+- Stage 1 questionnaire template (`templates/HANDOFF_QUESTION_TEMPLATE.md`): inline reminder questions block (pointer to HANDOFF_PROCESS master rule; no content duplication)
+
+---
+
+## 2026-05-12
+
+### Added
 - `HANDOFF_PROCESS.md`: Universal Self-Containment Rule section (Stage 1 / Stage 2 / Stage 3 explicit guidance + pre-send coherence checklist + ADR-41 cross-repo scope)
 - `LESSONS.md` entry: handoff self-containment universal pattern + empirical failure capture
 

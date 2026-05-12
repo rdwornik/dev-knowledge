@@ -18,6 +18,11 @@
 
 ---
 
+## 2026-05-12 — Inline reminder questions added to Stage 1 questionnaire
+- Did: added brief reminder block at end of Stage 1 questionnaire flow surfacing cross-repo + internal-coherence check categories with explicit pointer to HANDOFF_PROCESS Universal Self-Containment Rule as source of truth
+- Result: defense-in-depth for handoff lifecycle achieved without sync drift risk — master rule single source; questionnaire surfaces awareness at moment of writing
+- Next: continued testing of fresh handoff generation; observe whether reminder reduces residual failure modes
+
 ### 2026-05-12 — Residual logging (LESSON + BACKLOG)
 - Did: appended methodology LESSON on name-conflict audit framing; added P2 BACKLOG entry for pre-existing test_ratio_pass_when_stable_above_ceiling failure
 - Failed: —
