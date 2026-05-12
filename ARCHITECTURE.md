@@ -52,7 +52,7 @@ invariant "Layer 2 never executes."
 ├── logs/                  ← TOKEN-LOG (threshold-triggered snapshots)
 ├── config/                ← requirements-dev.txt
 ├── docs/
-│   ├── decisions/         ← ADR-NN_*.md + transcripts/
+│   ├── decisions/         ← ADR-NN-*.md + transcripts/
 │   ├── handoffs/          ← per-session folder handoffs (per ADR-32)
 │   ├── audits/            ← point-in-time analyses
 │   ├── research/          ← research-mode debates + external reports
@@ -83,11 +83,11 @@ and the Scale tier presence matrix.
   in place when reality shifts.
 - **Immutable dated artifacts.** ADRs, transcripts, handoffs, audits,
   research — supersession via new file or in-file marker, never edit.
-- **Filename conventions.** `ADR-NN_topic.md` for decisions;
-  `DECISION_NN_snake_case.md` for legacy transcripts (Council CLI
-  output uses `YYYYMMDD_HHMMSS_topic.md` — naming consolidation
-  pending, see `docs/decisions/transcripts/`); kebab-case + ISO date
-  for dated artifacts; ALLCAPS for top-level governance markdown.
+- **Filename conventions.** `ADR-NN-topic.md` for decisions (per ADR-34);
+  `DECISION_NN_snake_case.md` for legacy transcripts (grandfathered);
+  Council CLI output uses `council-out-YYYYMMDD-HHMMSS-topic.md`;
+  kebab-case + ISO date for dated artifacts; ALLCAPS for top-level
+  governance markdown.
 
 ## Authority and governance
 
