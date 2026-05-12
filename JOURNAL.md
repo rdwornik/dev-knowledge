@@ -18,6 +18,12 @@
 
 ---
 
+## 2026-05-12 — Handoff Stage 1 generated for ai-council (session-sync)
+
+- Handoff Stage 1 generated for `2026-05-12-ai-council-session-sync`: HEAD `f094d0821a279f3aa36de554943c1b44576d0924` captured; awaiting Stage 2
+
+---
+
 ## 2026-05-12 — Handoff Stage 3 complete for dev-knowledge (session-sync)
 
 **Did:** Stage 3 generated 11-file handoff folder at `docs/handoffs/2026-05-12-dev-knowledge-session-sync/`. Stage 1+2 inputs archived. HEAD `0125f1b` pinned. Stage 2 architect knowledge (10 boundaries, 8 directives) captured. CHANGELOG updated.
