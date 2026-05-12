@@ -4,6 +4,14 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-12 — Handoff Stage 3: dev-knowledge session-sync
+
+### Added
+- `docs/handoffs/2026-05-12-dev-knowledge-session-sync/` — 11-file ADR-42 v3.2 handoff folder; Stage 2 architect knowledge preserved; HEAD `0125f1b` pinned
+- `docs/handoffs/archive/2026-05-12-dev-knowledge-session-sync/` — Stage 1 + Stage 2 inputs archived
+
+---
+
 ## 2026-05-12 — Prompt N: Session handoff
 
 ### Added

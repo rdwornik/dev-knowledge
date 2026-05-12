@@ -1,0 +1,28 @@
+{
+  "handoff_id": "2026-05-12-dev-knowledge-session-sync",
+  "type": "session-sync",
+  "format_version": "v3.2",
+  "generated_at": "2026-05-12",
+  "target_repo": {
+    "name": "dev-knowledge",
+    "path": "C:/Users/1028120/Documents/Dev/.dev-knowledge",
+    "head_sha": "0125f1b0065bea3de34d1a93e5034fac9201881f",
+    "branch": "main",
+    "working_tree": "modified (one unstaged deletion: docs/handoffs/2026-05-12-session-handoff/2026-05-12-session-handoff.md)"
+  },
+  "stage_1_head_sha": "ec44148a9f5659a5d01696d22a703ec1205428de",
+  "stage_2_provided": true,
+  "files": [
+    {"path": "00_README.md", "sha256": "86a22bc5880faafbef0f3f3cac42d3dd8d9824a478ba592df9c49d36aab47e42"},
+    {"path": "00_first-message.md", "sha256": "dd7120d887e87e8c43595e2b662fc11eb99bb0e31345dc900159ab5ba19e0bb8"},
+    {"path": "01_MANIFEST.md", "sha256": "dd5ab2523f555cd0cd2cd07e0f797639baabeaacf7515f1ecab6b1d694080582"},
+    {"path": "02_VISION.md", "sha256": "da1ad338f2c46ca4d255d509f8b27a7a4fbf25b8c3c7b8efa4d4fb1a415534f2"},
+    {"path": "03_PLAYBOOK.md", "sha256": "ad6c5aee50006dd590429eccec488fd2ec65784bb8de7f1de409f89b33fd9e1c"},
+    {"path": "04_ESSENTIALS.md", "sha256": "d226975f2d46de87d240f43f514b31b41bd52d19c2e3a9fdb45f41253046c54f"},
+    {"path": "05_GOVERNANCE_ESSENCES.md", "sha256": "706fc702774d169960c8cfc2b15b478d2bc325c6375622424211029b80f34dd2"},
+    {"path": "06_STATE_OF_PLAY.md", "sha256": "219a9363ba757d7e5526e66b894db98307a14077ecc0082fdc43d87717dce9c2"},
+    {"path": "07_ACTION_PLAN.md", "sha256": "e56af0ad3a989d3a1563d8b53468aa89056331eb207eef935a0574a2c66749c7"},
+    {"path": "08_TREE.txt", "sha256": "3eb4d3808bc04ae79909b2ed0343ee410d379071092ae0cb44659aa3d5b31d1f"},
+    {"path": "09_EXECUTION_EVIDENCE.md", "sha256": "7c817a2d58528e7027e0a214b4c63319eb349d192ea452c8442f6121a04025a2"}
+  ]
+}
