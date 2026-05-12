@@ -9,8 +9,8 @@ Related: ADR-29 (grandfathering pattern), ADR-32 (HANDOFF_PROCESS v2.0),
          ADR-38 (universal repo architecture, mandatory files per tier),
          ADR-39 (file lifecycle governance, 6-element pattern),
          ADR-40 (scale tier evaluation, M+ mandate trigger),
-         transcripts council_out_20260430_134721_*,
-         council_out_20260430_150751_research_*
+         transcripts council-out-20260430-134721-*,
+         council-out-20260430-150751-research_*
 
 ## Context
 
@@ -19,7 +19,7 @@ Pending items historically scattered across handoff "Pending" sections
 questions in chat history. No central backlog → strategic drift,
 O(n) discovery latency, lost cross-stream visibility.
 
-Council research debate (council_out_20260430_150751_*) validated
+Council research debate (council-out-20260430-150751-*) validated
 centralized backlog file approach:
 - "Lost in the middle" attention degradation hurts LLMs reading
   hybrid files (README/JOURNAL with embedded backlog)
@@ -29,7 +29,7 @@ centralized backlog file approach:
 - LLM Wiki pattern (Karpathy) validates plain Markdown as native
   database for AI agents
 
-Council Scrum framework debate (council_out_20260430_134721_*) rejected
+Council Scrum framework debate (council-out-20260430-134721-*) rejected
 Scrum vocabulary as cargo cult for solo LLM workflow (9 of 12 elements
 <40% fidelity) but extracted structural insight: centralized queue.
 "Backlog" used as plain English noun, not Scrum term.
@@ -273,8 +273,8 @@ This entry to be added to ADR-39 registry on next ADR-39 amendment
 
 ## References
 
-- transcript council_out_20260430_134721_pick_council_adr38_scrum_framework.md
-- transcript council_out_20260430_150751_research_question-for-a-solo-developer-with-multiple-active.md
+- transcript council-out-20260430-134721-pick-council-adr38-scrum-framework.md
+- transcript council-out-20260430-150751-research-question-for-a-solo-developer-with-multiple-active.md
 - ADR-29 (lessons format and grandfathering)
 - ADR-32 (HANDOFF_PROCESS v2.0)
 - ADR-33 (VISION.md universalization)

@@ -8,8 +8,8 @@ Related: ADR-31 (audit baseline), ADR-32 (HANDOFF_PROCESS v2.0),
          ADR-33 (universalization), ADR-34 (file naming),
          ADR-35 (lessons activation), ADR-37 (session boundary protocol),
          ADR-38 (universal repo architecture),
-         transcripts council_out_20260430_123043_pick_*,
-         council_out_20260430_125039_research_*
+         transcripts council-out-20260430-123043-pick_*,
+         council-out-20260430-125039-research_*
 
 ## Context
 
@@ -26,14 +26,14 @@ ADR-36 formalizes audit tool architecture. Without this tool:
 - No actionable reports for child repo browser chats
 - No ecosystem state tracking over time
 
-Council research debate (council_out_20260430_125039_*) validated
+Council research debate (council-out-20260430-125039-*) validated
 architectural choices via prior art:
 - Append-only audit logs pattern (mirrors Git mechanics)
 - LLM Wiki pattern (Karpathy) — structured Markdown over SQLite/vectors
 - Transient catalogs (sirup pattern) — derived index regenerated on demand
 - Session Handoff Protocol — handoff folder is emerging industry standard
 
-Council decision debate (council_out_20260430_123043_*) covered Q1-Q12.
+Council decision debate (council-out-20260430-123043-*) covered Q1-Q12.
 
 ## Decision
 
@@ -241,7 +241,7 @@ significantly.
 
 ### Research-validated architectural choices
 
-From Council research debate (council_out_20260430_125039_*):
+From Council research debate (council-out-20260430-125039-*):
 
 - **Append-only history per repo** validates Q11 decision
 - **LLM Wiki pattern (Karpathy)** validates structured Markdown over
@@ -304,8 +304,8 @@ manifest.json. Browser chat verifies repo HEAD before executing fixes
 
 ## References
 
-- transcripts council_out_20260430_123043_pick_* (decision debate)
-- transcripts council_out_20260430_125039_research_* (prior art)
+- transcripts council-out-20260430-123043-pick_* (decision debate)
+- transcripts council-out-20260430-125039-research_* (prior art)
 - ADR-31 (audit baseline)
 - ADR-32 (HANDOFF_PROCESS v2.0)
 - ADR-33 (VISION.md universalization)

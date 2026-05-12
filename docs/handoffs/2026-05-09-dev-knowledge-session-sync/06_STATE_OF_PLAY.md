@@ -144,7 +144,7 @@ Architect provided **6 witnessed claims**:
 - **1 unverifiable from repo** (conversation history): text-fence solution emerging through multiple failures — cannot verify from repo state; preserved as witnessed
 
 **4 architect-flagged unknowns resolved at Stage 3:**
-- `_in_progress/` contents: VERIFIED — contains one stale empty directory (`2026-05-09-ai-council-audit-sync/`, files are in `_archive/`); only active slug is `dev-knowledge-session-sync`
+- `_in_progress/` contents: VERIFIED — contains one stale empty directory (`2026-05-09-ai-council-audit-sync/`, files are in `archive/`); only active slug is `dev-knowledge-session-sync`
 - Sacred files staleness: VERIFIED — `VISION.md` frontmatter `last_reviewed: 2026-05-09` (current)
 - Branch state at Stage 3: VERIFIED — `chore/session-sync-stage3-generation`, working tree has stage2-response.md modified (expected; will be committed)
 - Cross-repo state: Preserved as unknown — not verifiable from `.dev-knowledge` context

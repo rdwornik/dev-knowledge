@@ -9,7 +9,7 @@ The OLD .dev-knowledge browser chat that produced the Stage 2 response
 can now be closed — its accumulated knowledge is preserved in this bundle.
 
 Stage 1+2 inputs archived at:
-`.dev-knowledge/docs/handoffs/_archive/2026-05-09-dev-knowledge-session-sync/`
+`.dev-knowledge/docs/handoffs/archive/2026-05-09-dev-knowledge-session-sync/`
 
 ---
 
@@ -77,7 +77,7 @@ Stage 1+2 inputs archived at:
 ## Notes
 
 - This bundle is the Stage 3 handoff per ADR-42 v3.2
-- Stage 1+2 inputs: `.dev-knowledge/docs/handoffs/_archive/2026-05-09-dev-knowledge-session-sync/`
-- Q&A loop amendments (if any): `_archive/2026-05-09-dev-knowledge-session-sync/stage2-amendments.md`
+- Stage 1+2 inputs: `.dev-knowledge/docs/handoffs/archive/2026-05-09-dev-knowledge-session-sync/`
+- Q&A loop amendments (if any): `archive/2026-05-09-dev-knowledge-session-sync/stage2-amendments.md`
 - Drift between Stage 1 SHA and Stage 3 HEAD is documented in `01_MANIFEST.md`
   (intentional — 4 commits of intra-session methodology updates)

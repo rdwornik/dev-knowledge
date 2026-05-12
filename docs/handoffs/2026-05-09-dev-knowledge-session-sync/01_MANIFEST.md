@@ -86,6 +86,6 @@ Wait for operator confirmation before proceeding.
 
 ## Stage 1+2 inputs archived at
 
-`docs/handoffs/_archive/2026-05-09-dev-knowledge-session-sync/`
+`docs/handoffs/archive/2026-05-09-dev-knowledge-session-sync/`
 - `stage1-question.md` — original question prompt sent to OLD chat
 - `stage2-response.md` — architect's Stage 2 response (source for 06+07)

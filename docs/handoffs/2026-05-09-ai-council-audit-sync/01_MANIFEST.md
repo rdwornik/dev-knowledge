@@ -62,4 +62,4 @@ methodology context. `05_GOVERNANCE_ESSENCES.md` provides ADR rules for directiv
 - Stage 2: 2026-05-09 afternoon/evening — existing ai-council chat provided
   architect response with witnessed/inferred/unknown epistemic markers
 - Stage 3: 2026-05-09 evening — Claude Code verified claims, generated bundle
-- Archive: _in_progress/ moved to _archive/ after Stage 3 completion
+- Archive: _in_progress/ moved to archive/ after Stage 3 completion

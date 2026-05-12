@@ -35,5 +35,5 @@ Critical constraints — violation is a process failure:
 - Full VISION + PLAYBOOK + ESSENTIALS as invariants (02/03/04 files).
 - Only ADR essences in 05 — never full ADR copies, never target repo ADRs.
 - 11 files flat in final folder — no subdirectories.
-- Stage 1+2 inputs archived at docs/handoffs/_archive/{slug}/, NOT inside final folder.
+- Stage 1+2 inputs archived at docs/handoffs/archive/{slug}/, NOT inside final folder.
 - State ambiguity (both files exist but Rob says "make handoff"): FLAG and ask.

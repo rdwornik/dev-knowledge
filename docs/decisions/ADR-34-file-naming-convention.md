@@ -6,7 +6,7 @@ Status: Accepted
 Date: 2026-04-29
 Related: ADR-27 (scope tags), ADR-29 (lessons grandfathering),
          ADR-33 (VISION universalization),
-         transcript council_out_20260429_190922_*
+         transcript council-out-20260429-190922-*
 
 ## Context
 
@@ -21,7 +21,7 @@ Per ADR-33 universalization pattern, this convention is mandate for
 .dev-knowledge and recommendation for child repos with dependents,
 verifiable via Phase 3 cross-repo audit tool.
 
-Council debate (council_out_20260429_190922_*) covered Q1-Q8.
+Council debate (council-out-20260429-190922-*) covered Q1-Q8.
 
 ## Decision
 
@@ -143,7 +143,7 @@ shape `YYYYMMDD` vs `YYYY-MM-DD` is a separate question per Q4 below).
 
 ## References
 
-- transcript council_out_20260429_190922_pick_council_adr34_file_naming_convention.md
+- transcript council-out-20260429-190922-pick-council-adr34-file-naming-convention.md
 - ADR-27 (scope tags)
 - ADR-29 (lessons grandfathering pattern)
 - ADR-33 (VISION universalization framework)
@@ -153,7 +153,7 @@ shape `YYYYMMDD` vs `YYYY-MM-DD` is a separate question per Q4 below).
 ### 2026-05-11 — Cycle 1: Universal hyphen mandate
 
 - **Source:** AI Council debate, transcript at
-  `docs/decisions/transcripts/council_out_20260511_205022_pick_2026-05-11-council-question-ecosystem-separator.md`
+  `docs/decisions/transcripts/council-out-20260511-205022-pick-2026-05-11-council-question-ecosystem-separator.md`
 - **Council vote:** Q1-A, Q2-A, Q3-A, Q4-A (all 4 panel models converged:
   claude-opus-4-7, deepseek-v4-pro, gemini-3.1-pro-preview, grok-4.3)
 - **Decision:** Separator changes from underscore (with split

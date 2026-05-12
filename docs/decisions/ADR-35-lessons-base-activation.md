@@ -6,7 +6,7 @@ Status: Accepted
 Date: 2026-04-29
 Related: ADR-29 (lessons format), ADR-33 (universalization pattern),
          ADR-34 (file naming convention),
-         transcript council_out_20260429_210057_*
+         transcript council-out-20260429-210057-*
 
 ## Context
 
@@ -21,7 +21,7 @@ model between LESSONS.md and ~/.claude/ runtime infrastructure.
 Promotion automation is deferred to ADR-36 (separate session) per
 Council Q8 split.
 
-Council debate (council_out_20260429_210057_*) covered Q1-Q9.
+Council debate (council-out-20260429-210057-*) covered Q1-Q9.
 
 ## Decision
 
@@ -155,7 +155,7 @@ correction frequency.
 
 ## References
 
-- transcript council_out_20260429_210057_pick_council_adr35_lessons_base_activation.md
+- transcript council-out-20260429-210057-pick-council-adr35-lessons-base-activation.md
 - ADR-29 (lessons format and grandfathering)
 - ADR-33 (VISION.md universalization pattern)
 - ADR-34 (file naming convention)

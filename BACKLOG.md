@@ -217,7 +217,7 @@ Next quarterly grooming: 2026-07-01
 ### [P2] [done] `_archive/` convention — standardize (drop underscore prefix per Council)
 - **What:** `_archive/` (underscore-prefix) existed in `.dev-knowledge/docs/handoffs/` and `ai-council/handoffs/`. `corp-monorepo` used bare `archive/` (no underscore). No ADR governed which. Decision: adopt bare `archive/` universally (consistent with hyphen mandate, no underscore anywhere).
 - **Added:** 2026-05-11 by rob (cross-repo pattern audit, A2)
-- **Status:** done — operator decision ratified by Council hyphen-universal vote (Q1-A). `.dev-knowledge/docs/handoffs/_archive/` → `archive/` folder rename deferred to Prompt K (atomic migration). Child repo `_archive/` cleanup in Phase 2 visits.
+- **Status:** done — operator decision ratified by Council hyphen-universal vote (Q1-A). `.dev-knowledge/docs/handoffs/archive/` → `archive/` folder rename deferred to Prompt K (atomic migration). Child repo `_archive/` cleanup in Phase 2 visits.
 
 ### [P3] [open] UPPERCASE TYPE tag in legacy archive filenames (A5 — retire opportunistically)
 - **What:** `corp-monorepo` and `corp-sca` use `YYYY-MM-DD_TYPE_topic.md` pattern in `docs/archive/` files (e.g. `CODE_REVIEW_REPORT`). Not in ADR-34 spec. Pre-ADR-34 legacy pattern.
@@ -238,12 +238,12 @@ Next quarterly grooming: 2026-07-01
 
 ## Hyphen Convention Migration Sequence (Prompt J ratification)
 
-### [P1] [open] .dev-knowledge atomic migration to hyphen convention (Prompt K scope)
-- **What:** Atomic PR for .dev-knowledge: (1) ~31 ADR + transcript filename renames to hyphen; (2) Markdown link reference rewrites across all `.md` files; (3) `docs/handoffs/_archive/` → `docs/handoffs/archive/` folder rename (per A2 underscore drop ratified by Council); (4) retroactive archival of cross-repo decision propagation artifact (2026-05-11) to `docs/handoffs/archive/` alongside the folder rename; (5) link validation post-rename. Single atomic commit; revertable.
+### [P1] [done] .dev-knowledge atomic migration to hyphen convention (Prompt K scope)
+- **What:** Atomic PR for .dev-knowledge: (1) 16 ADR + 14 transcript filename renames to hyphen; (2) Markdown link reference rewrites across 23 living docs; (3) `docs/handoffs/_archive/` → `docs/handoffs/archive/` folder rename (per A2 underscore drop ratified by Council); (4) retroactive archival of cross-repo decision propagation artifact (K1.4 skipped — files absent from Downloads); (5) 6 flat legacy .md + v2 folder relocated to `docs/handoffs/archive/legacy/`. Single atomic commit K1 (a95318d); pre-commit: pass.
 - **Why:** ADR-34 amendment (this cycle) specifies hyphen universal mandate; .dev-knowledge must lead the migration before child repos can follow. Atomic commit ensures link integrity — partial migration creates broken references.
 - **Vision ref:** VISION.md "Knowledge Guardian" function
 - **Added:** 2026-05-11 by rob (Prompt J ratification)
-- **Status:** open — execute as Prompt K, separate PR from this branch.
+- **Status:** done — commit a95318d (branch chore/atomic-cleanup-hyphen-migration, Prompt K, 2026-05-12).
 
 ### [P1] [open] Cross-repo handshake: ADR-34 amendment propagation to ai-council
 - **What:** Cross-repo notification artifact generated 2026-05-11 (browser chat session alongside Prompt J). Operator routes to ai-council repo. ai-council architect proposes own implementation of hyphen convention (CLI output format change: `council_out_*` → `council-out-*`). Per ADR-43 cross-repo cycle pattern.

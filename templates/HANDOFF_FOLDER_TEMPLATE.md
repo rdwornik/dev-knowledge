@@ -12,7 +12,7 @@ Stage 3 reads from `docs/handoffs/_in_progress/{slug}/`:
 If either file is missing, Stage 3 STOPS and flags to Rob.
 
 After Stage 3 completes, both files are moved to:
-`docs/handoffs/_archive/{slug}/` (sibling to final handoff folder, preserving
+`docs/handoffs/archive/{slug}/` (sibling to final handoff folder, preserving
 Stage 1+2 inputs for traceability without violating flat folder structure).
 
 ## Folder location
@@ -76,9 +76,9 @@ Content (in order):
 #### Notes
 - This bundle is the Stage 3 handoff per ADR-42 v3.2
 - Stage 1 + Stage 2 inputs archived at
-  `.dev-knowledge/docs/handoffs/_archive/{slug}/`
+  `.dev-knowledge/docs/handoffs/archive/{slug}/`
 - If Q&A loop produces amendments, they are also in archive at
-  `_archive/{slug}/stage2-amendments.md`
+  `archive/{slug}/stage2-amendments.md`
 
 ### 00_first-message.md
 
@@ -415,9 +415,9 @@ silently accept incorrect witnessed claims.
 13. Generate `08_TREE.txt` from `git ls-files` in target repo
 14. Generate `09_EXECUTION_EVIDENCE.md` (empty template)
 15. Compute SHA-256 of all 11 files, populate `01_manifest.json` (last)
-16. Move `_in_progress/{slug}/` to `docs/handoffs/_archive/{slug}/`:
-    - `_archive/{slug}/stage1-question.md`
-    - `_archive/{slug}/stage2-response.md`
+16. Move `_in_progress/{slug}/` to `docs/handoffs/archive/{slug}/`:
+    - `archive/{slug}/stage1-question.md`
+    - `archive/{slug}/stage2-response.md`
 17. Update JOURNAL + CHANGELOG + BACKLOG
 18. Run `python scripts/validate_scope_tags.py` and `pre-commit run --all-files`
 19. Single commit on dedicated branch
