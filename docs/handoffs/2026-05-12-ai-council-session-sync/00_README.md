@@ -5,7 +5,7 @@
 ## What this folder is
 
 Stage 3 handoff bundle for **ai-council**, generated 2026-05-12.
-Type: session-sync. Format: ADR-42 v3.2 (11-file flat structure).
+Type: session-sync. Format: ADR-42 v3.2 (12-file flat structure).
 
 The OLD browser chat for ai-council (Stage 2 source) can now be **closed** — its
 accumulated knowledge is preserved in `06_STATE_OF_PLAY.md` and `07_ACTION_PLAN.md`.
@@ -18,7 +18,7 @@ Stage 1 + Stage 2 inputs archived at:
 ## Operator workflow (10 steps)
 
 1. Open a **NEW** claude.ai chat (fresh, zero context — NOT the old ai-council chat)
-2. Drag-drop all 11 files from this folder into the upload area, OR zip and upload
+2. Drag-drop all 12 files from this folder into the upload area, OR zip and upload
 3. Paste the content of `00_first-message.md` as the first message
 4. NEW chat reads the bundle and presents a **receiver synthesis** (its understanding
    of state, goals, and plan)
@@ -42,7 +42,7 @@ Stage 1 + Stage 2 inputs archived at:
 
 ---
 
-## File index (11 files)
+## File index (12 files)
 
 | File | Purpose |
 |---|---|

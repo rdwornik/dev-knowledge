@@ -24,7 +24,7 @@
 | Branch | `main` |
 | Working tree | clean |
 
-## File index (11 files)
+## File index (12 files)
 
 | File | Purpose |
 |---|---|

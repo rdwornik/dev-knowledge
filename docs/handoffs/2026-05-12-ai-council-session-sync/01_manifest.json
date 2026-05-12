@@ -12,9 +12,9 @@
   },
   "stage_2_provided": true,
   "files": [
-    {"path": "00_README.md", "sha256": "60bd825a16768b5eb12445a2fbdfa47dcda490551423ec56b7804c6c79356da0"},
+    {"path": "00_README.md", "sha256": "4da6e9cc2b4e6caa363a4e094dbfba917ff90ed551280d86ca342ef39fd3aed0"},
     {"path": "00_first-message.md", "sha256": "66c79ffc848cf9c01805357c070cfc4a892f3174680cee07510cc1509a8e7d2e"},
-    {"path": "01_MANIFEST.md", "sha256": "7fa1a3f56d5d1fcae7ae031bec72b15255a5320fe0c8b41ce92217cadbde8fc6"},
+    {"path": "01_MANIFEST.md", "sha256": "392f464a9bb3c54ebedbfda2f09adb6313127b3608bfc9928535bb324c9512aa"},
     {"path": "02_VISION.md", "sha256": "da1ad338f2c46ca4d255d509f8b27a7a4fbf25b8c3c7b8efa4d4fb1a415534f2"},
     {"path": "03_PLAYBOOK.md", "sha256": "ad6c5aee50006dd590429eccec488fd2ec65784bb8de7f1de409f89b33fd9e1c"},
     {"path": "04_ESSENTIALS.md", "sha256": "d226975f2d46de87d240f43f514b31b41bd52d19c2e3a9fdb45f41253046c54f"},

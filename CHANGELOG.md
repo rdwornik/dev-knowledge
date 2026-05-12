@@ -7,7 +7,7 @@ Notable changes to the dev practice knowledge base.
 ## 2026-05-12 — Handoff Stage 3: ai-council session-sync
 
 ### Added
-- `docs/handoffs/2026-05-12-ai-council-session-sync/` — 11-file ADR-42 v3.2 handoff folder; Stage 2 architect knowledge (OBJECTIVE/REALITY/RATIONALE/DIRECTIVES/BOUNDARIES) preserved; HEAD `f094d08` pinned
+- `docs/handoffs/2026-05-12-ai-council-session-sync/` — 12-file ADR-42 v3.2 handoff folder; Stage 2 architect knowledge (OBJECTIVE/REALITY/RATIONALE/DIRECTIVES/BOUNDARIES) preserved; HEAD `f094d08` pinned
 - `docs/handoffs/archive/2026-05-12-ai-council-session-sync/` — Stage 1 + Stage 2 inputs archived
 
 ### Changed
