@@ -206,7 +206,7 @@ When Rob says one of these phrases, follow ADR-42 three-stage flow per
 3. **Stage 3** (Claude Code): verify both stage1 + stage2 files present; re-verify
    HEAD SHA (drift → FLAG); read `templates/HANDOFF_FOLDER_TEMPLATE.md`; generate
    all 11 files at `docs/handoffs/{slug}/`; archive stage1+2 inputs at
-   `docs/handoffs/_archive/{slug}/`; compute SHA-256; append JOURNAL + CHANGELOG;
+   `docs/handoffs/archive/{slug}/`; compute SHA-256; append JOURNAL + CHANGELOG;
    commit. After Stage 3: OLD chat can be closed; Rob opens NEW chat with folder bundle.
 
 **State detection** (automatic based on file presence in `_in_progress/{slug}/`):

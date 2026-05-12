@@ -1496,7 +1496,7 @@ cross-project transcript routing". Client requirements drafted; mechanism choice
 vs pull command vs config-based) is Council debate territory.
 
 Until the feature lands: maintain manual archival discipline. Curated copy = transcript file only
-(no `_metrics.json`), preserving canonical `council_out_YYYYMMDD_HHMMSS_*.md` filename. Source of
+(no `_metrics.json`), preserving canonical `council-out-YYYYMMDD-HHMMSS-*.md` filename. Source of
 truth always `ai-council/output/`.
 
 ### When to run Council vs single-model + critic

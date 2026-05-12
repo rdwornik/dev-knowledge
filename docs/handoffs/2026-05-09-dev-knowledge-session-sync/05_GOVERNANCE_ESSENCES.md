@@ -15,7 +15,7 @@ in all VISION.md files; `last_reviewed` field must be updated at review.
 DoD for Lite-tier VISION: frontmatter parseable + **4 required sections**
 (not 5 — Standard tier has 6).
 
-Full ADR: `.dev-knowledge/docs/decisions/ADR-33_vision_universalization.md`
+Full ADR: `.dev-knowledge/docs/decisions/ADR-33-vision-universalization.md`
 
 ---
 
@@ -29,7 +29,7 @@ format: findings by priority (P1/P2/P3), each finding with recommendation.
 Audit tool P1 implementation is BACKLOG Stream C P1 — not yet built; manual
 audit is current workaround.
 
-Full ADR: `.dev-knowledge/docs/decisions/ADR-36_audit_tool_architecture.md`
+Full ADR: `.dev-knowledge/docs/decisions/ADR-36-audit-tool-architecture.md`
 
 ---
 
@@ -42,7 +42,7 @@ the Detailed Context (9-section body), Current/Future State wins.
 Session handoffs: MEDIUM mandate — two-phase framing expected with "undetermined"
 justification if omitted. Audit handoffs: STRONG mandate.
 
-Full ADR: `.dev-knowledge/docs/decisions/ADR-37_session_boundary_protocol.md`
+Full ADR: `.dev-knowledge/docs/decisions/ADR-37-session-boundary-protocol.md`
 
 ---
 
@@ -56,7 +56,7 @@ override algorithm pending recalibration. Tier drives governance obligations:
 BACKLOG.md mandatory at M+, ARCHITECTURE.md + AGENTS.md at L.
 Audit tool P1 multi-repo data collection will inform ADR-40 amendment.
 
-Full ADR: `.dev-knowledge/docs/decisions/ADR-40_scale_tier_evaluation.md`
+Full ADR: `.dev-knowledge/docs/decisions/ADR-40-scale-tier-evaluation.md`
 
 ---
 
@@ -71,7 +71,7 @@ sections unilaterally — section changes require grooming session.
 Items in BACKLOG are not duplicated into handoff bundles; handoff references
 BACKLOG by item name.
 
-Full ADR: `.dev-knowledge/docs/decisions/ADR-41_cross_session_backlog_architecture.md`
+Full ADR: `.dev-knowledge/docs/decisions/ADR-41-cross-session-backlog-architecture.md`
 
 ---
 
@@ -86,4 +86,4 @@ Return trip: `09_EXECUTION_EVIDENCE.md` filled by NEW chat after executing
 directives; returned to `.dev-knowledge` for next session verification.
 Drift detection: Stage 3 re-verifies HEAD SHA; mismatch → FLAG to Rob before proceeding.
 
-Full ADR: `.dev-knowledge/docs/decisions/ADR-42_handoff_format_v3.md`
+Full ADR: `.dev-knowledge/docs/decisions/ADR-42-handoff-format-v3.md`

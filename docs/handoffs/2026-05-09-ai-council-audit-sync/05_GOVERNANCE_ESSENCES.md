@@ -12,7 +12,7 @@ Any repo with ≥1 dependent MUST have VISION.md. Frontmatter required:
 for Lite tier (M): Mission, Scope, Relationships, Lifecycle. For ai-council,
 tier M applies — use concise but complete sections; frontmatter mandatory.
 
-Full ADR: `.dev-knowledge/docs/decisions/ADR-33_vision_universalization.md`
+Full ADR: `.dev-knowledge/docs/decisions/ADR-33-vision-universalization.md`
 
 ---
 
@@ -24,4 +24,4 @@ Repo-local lessons stay in repo (e.g., `tasks/lessons.md`). Cross-cutting
 lessons go to `.dev-knowledge/LESSONS.md`. Full retrieval implementation is
 BACKLOG P2 — for now, configuration documentation only (add reference to CLAUDE.md).
 
-Full ADR: `.dev-knowledge/docs/decisions/ADR-35_lessons_base_activation.md`
+Full ADR: `.dev-knowledge/docs/decisions/ADR-35-lessons-base-activation.md`

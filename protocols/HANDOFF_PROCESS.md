@@ -8,7 +8,7 @@ Effective: 2026-05-09 (night)
 Supersedes: v3.1 (2026-05-09 afternoon), v3.0 (2026-05-09 morning), v2.0 (ADR-32 §4 deprecated; ADR-32 §1-§3 extended)
 Authority: ADR-42 (amended 2026-05-09 night)
 
-> **Authoritative source:** `docs/decisions/ADR-42_handoff_format_v3.md` (amended
+> **Authoritative source:** `docs/decisions/ADR-42-handoff-format-v3.md` (amended
 > through v3.2). This protocol is the operational counterpart of ADR-42: structural
 > decisions live in the ADR; operational mechanics (triggers, state tracking, generation
 > workflow, roles, validation checkpoints) live here. If they conflict, ADR-42 wins.
@@ -306,15 +306,15 @@ split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
    - `08_TREE.txt` — `git ls-files` output in target repo at Stage 3 time
    - `09_EXECUTION_EVIDENCE.md` — empty return-trip template
 9. Compute SHA-256 of every file in folder, populate `01_manifest.json`
-10. Move (NOT copy) `_in_progress/{slug}/` contents to `docs/handoffs/_archive/{slug}/`:
+10. Move (NOT copy) `_in_progress/{slug}/` contents to `docs/handoffs/archive/{slug}/`:
 
     PowerShell semantics (canonical):
     ```powershell
     # Ensure archive target exists
-    New-Item -ItemType Directory -Path "docs/handoffs/_archive/{slug}" -Force | Out-Null
+    New-Item -ItemType Directory -Path "docs/handoffs/archive/{slug}" -Force | Out-Null
 
     # Move files (NOT copy)
-    Move-Item "docs/handoffs/_in_progress/{slug}/*" "docs/handoffs/_archive/{slug}/" -Force
+    Move-Item "docs/handoffs/_in_progress/{slug}/*" "docs/handoffs/archive/{slug}/" -Force
 
     # Remove now-empty source directory
     Remove-Item "docs/handoffs/_in_progress/{slug}" -Force
@@ -346,7 +346,7 @@ split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
     - New chat executes directives, fills `09_EXECUTION_EVIDENCE.md`
     - Return that file to `.dev-knowledge` for next session reference
 
-**Output:** `docs/handoffs/{slug}/` (11 files flat) + `docs/handoffs/_archive/{slug}/`
+**Output:** `docs/handoffs/{slug}/` (11 files flat) + `docs/handoffs/archive/{slug}/`
 (stage1 + stage2 inputs), JOURNAL + CHANGELOG entries, commit
 
 ---
@@ -372,7 +372,7 @@ docs/handoffs/{date}-{slug}/
 
 Stage 1+2 inputs archived separately at:
 ```
-docs/handoffs/_archive/{slug}/
+docs/handoffs/archive/{slug}/
 ├── stage1-question.md
 └── stage2-response.md
 ```
@@ -497,7 +497,7 @@ directs it to). Claude Code does NOT redesign architecture or invent session con
 | Stage 2 mandate | Skipped for audit-sync | Mandatory for ALL handoff types |
 | State tracking | None | `_in_progress/{slug}/` directory with stage detection |
 | Trigger phrases | Loose ("Make handoff...") | Table with exact phrases and effects |
-| Archive | Not specified | Stage 1+2 inputs archived at `docs/handoffs/_archive/{slug}/` |
+| Archive | Not specified | Stage 1+2 inputs archived at `docs/handoffs/archive/{slug}/` |
 | Validation checkpoints | Implicit | Explicit per-stage table |
 | JOURNAL hook | Not specified | Stage 1 + Stage 3 append entries |
 | CHANGELOG hook | Not specified | Stage 3 appends entry |
@@ -509,11 +509,11 @@ directs it to). Claude Code does NOT redesign architecture or invent session con
 ## References
 <!-- scope: meta -->
 
-- `docs/decisions/ADR-42_handoff_format_v3.md` — authoritative source (amended 2026-05-09 afternoon)
-- `docs/decisions/ADR-32_handoff_format.md` — v2.0 (§4 deprecated by ADR-42; §1-§3 extended)
-- `docs/decisions/ADR-37_session_boundary_protocol.md` — two-phase Current/Future overlay
-- `docs/decisions/ADR-41_cross_session_backlog_architecture.md` — BACKLOG as pending items source
-- `docs/decisions/ADR-36_audit_tool_architecture.md` — read-only contract
+- `docs/decisions/ADR-42-handoff-format-v3.md` — authoritative source (amended 2026-05-09 afternoon)
+- `docs/decisions/ADR-32-handoff-format.md` — v2.0 (§4 deprecated by ADR-42; §1-§3 extended)
+- `docs/decisions/ADR-37-session-boundary-protocol.md` — two-phase Current/Future overlay
+- `docs/decisions/ADR-41-cross-session-backlog-architecture.md` — BACKLOG as pending items source
+- `docs/decisions/ADR-36-audit-tool-architecture.md` — read-only contract
 - `templates/HANDOFF_QUESTION_TEMPLATE.md` — Stage 1 output skeleton
 - `templates/HANDOFF_FOLDER_TEMPLATE.md` — Stage 3 folder structure spec
 - Council #24 — "wygeneruj handoff" trigger phrase
@@ -533,7 +533,7 @@ directs it to). Claude Code does NOT redesign architecture or invent session con
   `_in_progress/{slug}/` directory. Trigger phrase table. Per-stage validation
   checkpoints. JOURNAL hook per Stage 1 + Stage 3. CHANGELOG hook per Stage 3.
   BACKLOG update at Stage 3. Archive pattern: Stage 1+2 inputs at
-  `docs/handoffs/_archive/{slug}/`. Drift flag reports both SHAs.
+  `docs/handoffs/archive/{slug}/`. Drift flag reports both SHAs.
 - v3.1 update (2026-05-09 later afternoon) — Stage 2 source semantics corrected
   per ADR-42 second amendment: Stage 2 source = OLD (existing, dying) chat;
   Stage 3 receiver = NEW (fresh) chat. 3-actor diagram added. Stage 2 section

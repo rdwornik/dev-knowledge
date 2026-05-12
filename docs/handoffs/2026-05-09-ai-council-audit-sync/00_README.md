@@ -20,7 +20,7 @@ The OLD ai-council chat (Stage 2 source) can now be closed. Its accumulated
 knowledge is preserved in `06_STATE_OF_PLAY.md` and `07_ACTION_PLAN.md`.
 
 Stage 1 + Stage 2 inputs archived at:
-`.dev-knowledge/docs/handoffs/_archive/2026-05-09-ai-council-audit-sync/`
+`.dev-knowledge/docs/handoffs/archive/2026-05-09-ai-council-audit-sync/`
 
 ## Operator workflow
 
@@ -73,6 +73,6 @@ Follow these 10 steps exactly:
 
 - This bundle is the Stage 3 handoff per ADR-42 v3.2
 - Stage 1 + Stage 2 inputs archived at
-  `.dev-knowledge/docs/handoffs/_archive/2026-05-09-ai-council-audit-sync/`
+  `.dev-knowledge/docs/handoffs/archive/2026-05-09-ai-council-audit-sync/`
 - If Q&A loop produces amendments, they are captured in
-  `_archive/2026-05-09-ai-council-audit-sync/stage2-amendments.md`
+  `archive/2026-05-09-ai-council-audit-sync/stage2-amendments.md`

@@ -138,7 +138,7 @@ Related: ADR-32 (handoff process v2.0, partially superseded),
          ADR-37 (session boundary protocol, two-phase preserved),
          ADR-39 (file lifecycle governance, new files registered),
          ADR-41 (cross-session backlog architecture, BACKLOG integration),
-         transcripts council_out_20260509_144836_research_*
+         transcripts council-out-20260509-144836-research_*
 
 ## Context
 
@@ -361,7 +361,7 @@ follow-up session — for now, capture as P3 BACKLOG item):
 
 ## References
 
-- transcripts council_out_20260509_144836_research_question-how-should-an-llm-driven-solo-developer-a.md
+- transcripts council-out-20260509-144836-research-question-how-should-an-llm-driven-solo-developer-a.md
 - ADR-32 (handoff process v2.0)
 - ADR-37 (session boundary protocol)
 - ADR-39 (file lifecycle governance)

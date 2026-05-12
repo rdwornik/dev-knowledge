@@ -8,7 +8,7 @@ Augments: ADR-32 (HANDOFF_PROCESS v2.0)
 Related: ADR-29 (grandfathering pattern), ADR-33 (universalization),
          ADR-36 (audit tool — STRONG mandate consumer),
          ADR-38 (Cross-Session Backlog Architecture, pending),
-         transcript council_out_20260430_132308_*
+         transcript council-out-20260430-132308-*
 
 ## Context
 
@@ -27,7 +27,7 @@ This is cross-cutting: affects session handoffs, audit handoffs
 (ADR-36 consumer), and future cross-repo handoffs (Phase 2
 universalization).
 
-Council debate (council_out_20260430_132308_*) covered Q1-Q7.
+Council debate (council-out-20260430-132308-*) covered Q1-Q7.
 
 ## Decision
 
@@ -159,7 +159,7 @@ Implementation deferred to ADR-32 update session — `HANDOFF_PROCESS.md`
 
 ## References
 
-- transcript council_out_20260430_132308_pick_council_adr37_two_phase_handoff.md
+- transcript council-out-20260430-132308-pick-council-adr37-two-phase-handoff.md
 - ADR-29 (lessons format and grandfathering)
 - ADR-32 (HANDOFF_PROCESS v2.0)
 - ADR-33 (VISION.md universalization)

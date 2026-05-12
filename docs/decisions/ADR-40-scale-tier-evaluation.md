@@ -8,7 +8,7 @@ Related: ADR-33 (VISION universalization, tier Lite/Standard),
          ADR-36 (audit tool — consumer of this algorithm),
          ADR-38 (universal repo architecture — defines module/test/TCR),
          ADR-39 (file lifecycle governance),
-         transcript council_out_20260430_154818_research_*
+         transcript council-out-20260430-154818-research_*
 
 ## Context
 
@@ -25,7 +25,7 @@ fails for solo dev because:
 - Retrofit cost grows exponentially (research finding)
 - Multi-stream context switching makes vibe assessment unreliable
 
-Council research debate (council_out_20260430_154818_*) validated:
+Council research debate (council-out-20260430-154818-*) validated:
 - Composite metric required (no single signal sufficient)
 - Logarithmic structure matches exponential complexity growth
 - Maintainability Index pattern (industry standard since 1992)
@@ -277,7 +277,7 @@ ADR-40.
 
 ## References
 
-- transcript council_out_20260430_154818_research_question-how-should-an-llm-driven-multi-repo-ecosy.md
+- transcript council-out-20260430-154818-research-question-how-should-an-llm-driven-multi-repo-ecosy.md
 - ADR-33 (VISION.md universalization, tier Lite/Standard)
 - ADR-36 (audit tool architecture)
 - ADR-38 (universal repo architecture, module/test/TCR definitions)

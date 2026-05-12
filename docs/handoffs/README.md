@@ -28,7 +28,7 @@ docs/handoffs/{YYYY-MM-DD}-{slug}/
 
 ## Stage 1+2 archive
 
-`_archive/{slug}/` holds `stage1-question.md` + `stage2-response.md` inputs after Stage 3 generation.
+`archive/{slug}/` holds `stage1-question.md` + `stage2-response.md` inputs after Stage 3 generation.
 
 ## In-progress
 
@@ -57,7 +57,7 @@ Get-ChildItem docs/handoffs/ | Sort-Object Name | Select-Object -Last 5
 
 ## References
 
-- `docs/decisions/ADR-42_handoff_format_v3.md` — canonical format spec
+- `docs/decisions/ADR-42-handoff-format-v3.md` — canonical format spec
 - `protocols/HANDOFF_PROCESS.md` — operational procedure
 - `templates/HANDOFF_FOLDER_TEMPLATE.md`
 - `templates/HANDOFF_QUESTION_TEMPLATE.md`

@@ -34,7 +34,7 @@ subfolder holds AI Council debate outputs that informed them.
 
 ### Canonical (since 2026-04-30 revert commit `4a00560`)
 
-`council_out_YYYYMMDD_HHMMSS_{slug}.md` — timestamped, CLI-emitted from AI Council. 12 files
+`council-out-YYYYMMDD-HHMMSS-{slug}.md` — timestamped, CLI-emitted from AI Council. 12 files
 currently in `transcripts/`.
 
 ### Legacy (pre-canonical)
@@ -58,16 +58,16 @@ historical artifacts from the manual archival era. **Not renamed retroactively.*
 | ADR-30 | *(no Council transcript — decided via Codex audit `docs/audits/2026-04-26-codex-adr-30-default-branch-main.md`)* |
 | ADR-31 | `DECISION_28_authority_model.md` — verified: per ADR-31 "Debate transcript" reference |
 | ADR-32 | `DECISION_29_handoff_synergy.md` — verified: per ADR-32 "Debate transcript" reference |
-| ADR-33 | `council_out_20260428_125133_format-and-structure-of-visionmd-for-dev.md` (research) + `council_out_20260428_162415_pick_council_prompt_adr33_vision_universalization.md` (decision) |
-| ADR-34 | `council_out_20260429_190922_pick_council_adr34_file_naming_convention.md` |
-| ADR-35 | `council_out_20260429_210057_pick_council_adr35_lessons_base_activation.md` |
-| ADR-36 | `council_out_20260430_123043_pick_council_adr36_audit_tool_architecture.md` + `council_out_20260430_125039_research_question-what-prior-art-exists-for-cross-repo-audi.md` (research) |
-| ADR-37 | `council_out_20260430_132308_pick_council_adr37_two_phase_handoff.md` |
-| ADR-38 | `council_out_20260430_134721_pick_council_adr38_scrum_framework.md` — verified: "adr38" in filename; content is scrum-as-framework debate that produced universal repo architecture ADR; "scrum_framework" slug reflects original question framing |
+| ADR-33 | `council-out-20260428-125133-format-and-structure-of-visionmd-for-dev.md` (research) + `council-out-20260428-162415-pick-council-prompt-adr33-vision-universalization.md` (decision) |
+| ADR-34 | `council-out-20260429-190922-pick-council-adr34-file-naming-convention.md` |
+| ADR-35 | `council-out-20260429-210057-pick-council-adr35-lessons-base-activation.md` |
+| ADR-36 | `council-out-20260430-123043-pick-council-adr36-audit-tool-architecture.md` + `council-out-20260430-125039-research-question-what-prior-art-exists-for-cross-repo-audi.md` (research) |
+| ADR-37 | `council-out-20260430-132308-pick-council-adr37-two-phase-handoff.md` |
+| ADR-38 | `council-out-20260430-134721-pick-council-adr38-scrum-framework.md` — verified: "adr38" in filename; content is scrum-as-framework debate that produced universal repo architecture ADR; "scrum_framework" slug reflects original question framing |
 | ADR-39 | *(no obvious transcript — may be conversational)* |
-| ADR-40 | `council_out_20260430_154818_research_question-how-should-an-llm-driven-multi-repo-ecosy.md` — per ADR-40 Related field |
-| ADR-41 | `council_out_20260430_134721_pick_council_adr38_scrum_framework.md` (also cited in ADR-41 Related field as structural context) + `council_out_20260430_150751_research_question-for-a-solo-developer-with-multiple-active.md` (research) |
-| ADR-42 | `council_out_20260509_143831_research_brief-for-ai-council-architect-browser-session-con.md` + `council_out_20260509_144836_research_question-how-should-an-llm-driven-solo-developer-a.md` |
+| ADR-40 | `council-out-20260430-154818-research-question-how-should-an-llm-driven-multi-repo-ecosy.md` — per ADR-40 Related field |
+| ADR-41 | `council-out-20260430-134721-pick-council-adr38-scrum-framework.md` (also cited in ADR-41 Related field as structural context) + `council-out-20260430-150751-research-question-for-a-solo-developer-with-multiple-active.md` (research) |
+| ADR-42 | `council-out-20260509-143831-research-brief-for-ai-council-architect-browser-session-con.md` + `council-out-20260509-144836-research-question-how-should-an-llm-driven-solo-developer-a.md` |
 
 ## Pending Council decisions
 
@@ -82,7 +82,7 @@ No `pending-council-questions.md` exists yet — pending questions are currently
 <!-- scope: meta -->
 
 AI Council CLI currently emits to `ai-council/output/` only. Transcripts here are **manual
-archival copies** — this is the current process for all 12 `council_out_*` files. Cross-project
+archival copies** — this is the current process for all 14 `council-out-*` files. Cross-project
 routing as a CLI feature is pending (see BACKLOG Cross-stream P1 "AI Council cross-project
 transcript routing"). Until the feature lands: canonical filename is preserved; source of truth
 remains `ai-council/output/`. Full operational detail in PLAYBOOK Section 5 "Council Debate

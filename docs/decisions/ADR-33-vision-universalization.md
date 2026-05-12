@@ -7,13 +7,13 @@
 **Stream:** C, session 2
 **Supersedes:** aspirational "should" in .dev-knowledge VISION.md Relationships
 **Superseded by:** none
-**Related:** ADR-30, ADR-31, ADR-32, transcript council_out_20260428_162415_pick_council_prompt_adr33_vision_universalization.md
+**Related:** ADR-30, ADR-31, ADR-32, transcript council-out-20260428-162415-pick-council-prompt-adr33-vision-universalization.md
 
 ## Context
 
 `.dev-knowledge` has `VISION.md` as its mission anchor (per DECISION_30 transcript). The VISION.md Relationships section states child repos under `Dev/` "should" have their own VISION.md per template — this is aspirational. This ADR formalizes "should" into enforceable convention with per-Scale tiering and a migration plan.
 
-Council debate (`council_out_20260428_162415_*`) surfaced 7 questions; this ADR records the decisions made.
+Council debate (`council-out-20260428-162415-*`) surfaced 7 questions; this ADR records the decisions made.
 
 ## Decision
 
@@ -88,8 +88,8 @@ Loose coupling intentional — child repos remain portable; `.dev-knowledge` dep
 ## References
 
 - `VISION.md` (.dev-knowledge canonical Standard tier example)
-- DECISION_30 transcript (`docs/decisions/transcripts/council_out_20260428_125133_format-and-structure-of-visionmd-for-dev.md`)
-- DECISION_31 transcript (`docs/decisions/transcripts/council_out_20260428_162415_pick_council_prompt_adr33_vision_universalization.md`)
+- DECISION_30 transcript (`docs/decisions/transcripts/council-out-20260428-125133-format-and-structure-of-visionmd-for-dev.md`)
+- DECISION_31 transcript (`docs/decisions/transcripts/council-out-20260428-162415-pick-council-prompt-adr33-vision-universalization.md`)
 - ADR-30 (default branch convention)
 - ADR-31 (authority model — prescriptive with conformance audit)
 - ADR-32 (handoff format)
