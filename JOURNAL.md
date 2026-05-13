@@ -18,6 +18,11 @@
 
 ---
 
+### 2026-05-13 — ESSENTIALS architect channel-discipline rule documented
+- Did: moved channel-discipline rule from LESSONS #10 into ESSENTIALS so it loads as invariant at browser-chat session start per ADR-45 architect-compliance path; PLAYBOOK cross-reference skipped (no matching section exists)
+- Failed: —
+- Next: implementation prompts for ADR-45 (shared validator first, then hooks, templates, sync-script, dry-run, pilot)
+
 ### 2026-05-13 — ADR-45 handoff architecture v4 accepted; session lessons archived
 - Did: drafted ADR-45 codifying invariant/session separation + 2-file handoff + defense-in-depth enforcement (grounded in Council research debate `council-out-20260513_102702-...` + pick debate `council-out-20260513_111424-...` + audit `docs/audits/2026-05-12-handoff-process-audit.md`); appended 10 methodology lessons to LESSONS.md; flipped ADR-45 status to Accepted; merged to main with --no-ff
 - Failed: architect (browser chat) wrote inline git ops in review approval message; surfaced as 10th lesson (channel-discipline) and folded into this session
