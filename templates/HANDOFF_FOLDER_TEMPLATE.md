@@ -103,6 +103,38 @@ Content (in order):
 - Expected HEAD SHA, working tree state
 - Mismatch instruction: STOP, report
 
+#### Required first action — articulation gate
+
+00_first-message.md MUST instruct the new chat that, before ANY work
+(including receiver synthesis), it writes in its own words. Do not paste
+from VISION/PLAYBOOK/ESSENTIALS — write fresh. Required content:
+
+1. **Your role per VISION** (1-2 sentences) — what is `.dev-knowledge`'s
+   function in the ecosystem (Scrum Master / methodology guardian /
+   auditor)? What is your role as architect for THIS repo specifically?
+
+2. **Current phase per BACKLOG** (1 sentence) — which phase of the
+   universalization rollout is active? What blocks what?
+
+3. **Immediate next action per ACTION_PLAN directive #1** (1 sentence) —
+   what is the single highest-priority action for this session?
+
+4. **Top 3 Hard Constraints per BOUNDARIES** (3 short bullets) — what
+   must NOT happen this session?
+
+After writing the four-item articulation, wait for operator to type
+exact phrase `role confirmed` before any other work. If you cannot
+articulate any of the four items from the bundle, flag the gap:
+
+  `Cannot articulate [N] — [VISION/BACKLOG/ACTION_PLAN/BOUNDARIES]
+   insufficient. Reload or query.`
+
+Do not proceed.
+
+This is friction-gated entry. Operator validates internalization before
+work begins. The articulation precedes receiver synthesis — synthesis is
+the second gate after articulation passes.
+
 #### Receiver synthesis (MANDATORY before action)
 After reading the full bundle, NEW chat MUST provide synthesis. Format:
 
@@ -285,6 +317,27 @@ Content:
 - Deferred items: cite BACKLOG entry IDs and names, do NOT duplicate
   the queue content
 
+### 06_STATE_OF_PLAY.md — section conventions
+
+Section names use plain English, not SBAR codes. Canonical headings:
+- `## What was completed this session` (was: REALITY)
+- `## Current state` (HEAD, branch, working tree, tests, cycle status)
+- `## Decisions locked this session` (was: RATIONALE recap, prose form)
+- `## Deferred items` (BACKLOG references, not duplications)
+- `## Rationale (architect judgment)` (was: RATIONALE — keep but narrative form)
+- `## Stage 3 verification summary` (keep — already plain)
+
+Code gloss rule: first reference to any status code (P-NN priority, F-NN finding,
+ADR-NN) within a section MUST include in-line gloss. Example:
+  `P1 [governance-blocking] — F-01 [first finding from 2026-05-12 audit] —
+   VISION.md absent per ADR-33 [vision-universalization].`
+Subsequent references in same section may use bare code.
+
+Sentence-form rule: verb-led sentences for state descriptions.
+NOT: `amendment cycle closed`, `compliance verification`, `Stage 3 note — DoD fix target clarification`
+DO:  `We stopped amending ADR-42 after the third clarification.`
+     `Stage 3 flagged that the fix target is the generated file, not the template.`
+
 ### 07_ACTION_PLAN.md
 
 Purpose: Future State per ADR-37.
@@ -296,6 +349,23 @@ Content:
 - Boundaries (do-not's, out-of-scope, fallbacks, from Stage 2 BOUNDARIES
   answer, or audit tier-dependency deferrals)
 - Success criteria (how to verify the session succeeded)
+
+### 07_ACTION_PLAN.md — section conventions
+
+Section names use plain English, not SBAR codes:
+- `## Next session goal` (was: OBJECTIVE) — 1-3 paragraphs of plain prose
+- `## Action plan` (was: DIRECTIVES) — numbered list, each item:
+  action verb + target + verification step
+- `## Hard Constraints` (max 5 items, bold) — critical for next step,
+  must-not-violate. Definition: violating this blocks the next session's
+  primary work.
+- `## Narrow scope rules` (rest of DO-NOTs, sub-bulleted or collapsed) —
+  scope refinement that helps but isn't blocking.
+- `## Fallback contingencies` (keep — already plain)
+- `## Success criteria` (keep — already plain)
+
+Same code gloss rule as 06 applies (first reference per section includes gloss).
+Same verb-led sentence rule applies.
 
 ### 08_TREE.txt
 

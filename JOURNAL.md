@@ -18,6 +18,20 @@
 
 ---
 
+### 2026-05-13 — Handoff v3.3 minimum-viable refinement
+- Did: handoff v3.3 minimum-viable refinement landed: audit-validated language
+  fixes in 06/07 (plain-English section names, code glosses, Hard Constraints /
+  Narrow Scope split, verb-led sentences) + mandatory articulation gate in
+  00_first-message. Empirical trigger — 2026-05-13 browser session (5+ hours)
+  showed architect had VISION in bundle but did not internalize; operator
+  uploaded VISION twice during session. Refinement is template/process-level;
+  ADR-42 v3 flow + file count + responsibilities preserved. ADR-45 v1
+  superseded (v2 rewrite deferred). Sequential loading + question battery
+  deferred pending empirical test of minimum.
+- Failed: —
+- Next: generate handoff from 2026-05-13 browser session using new v3.3 format;
+  empirically test articulation gate; measure against baseline
+
 ### 2026-05-13 — Four additional 2026-05-12/13 lessons promoted to ESSENTIALS invariants
 - Did: promoted LESSONS #1 (epistemic markers), #2 (completion verification), #6 (validation routing), #8 (artifact-direction) to ESSENTIALS as invariant architect rules; each as own commit for revertability; rule bodies preserved verbatim
 - Failed: —

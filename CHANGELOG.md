@@ -6,6 +6,35 @@ Notable changes to the dev practice knowledge base.
 
 ## 2026-05-13
 
+### Changed
+
+- Handoff process refined to v3.3 (HANDOFF_PROCESS.md + HANDOFF_FOLDER_TEMPLATE.md):
+  - 06_STATE_OF_PLAY and 07_ACTION_PLAN section names changed from SBAR
+    codes (OBJECTIVE/REALITY/RATIONALE/DIRECTIVES/BOUNDARIES) to plain
+    English (`What was completed this session` / `Current state` /
+    `Action plan` / `Hard Constraints` etc.) per 2026-05-12 audit
+    "decoder-required language" findings.
+  - First reference to any status code (P-NN/F-NN/ADR-NN) in any
+    section now requires in-line gloss; subsequent references in same
+    section may use bare code.
+  - DO-NOT lists split into `Hard Constraints` (max 5, critical for
+    next step, bold) and `Narrow scope rules` (collapsed / sub-bulleted).
+  - Verb-led sentences required in 06/07 state descriptions; process-
+    language noun phrases ("amendment cycle closed", "compliance
+    verification") not permitted.
+- 00_first-message.md spec now requires mandatory articulation gate as
+  the new chat's first action: 4-item articulation (role per VISION /
+  phase per BACKLOG / immediate next action per ACTION_PLAN directive
+  #1 / top 3 Hard Constraints per BOUNDARIES) in own words; operator
+  confirms via `role confirmed` before any other work. Empirical basis:
+  2026-05-13 browser session showed delivery ≠ internalization.
+- ADR-45 status demoted from `Accepted` to `Superseded` (v1 over-
+  concluded toward bundle replacement; conflicts with ADR-42 v3.2 +
+  audit's "preserve" findings). v2 rewrite deferred pending empirical
+  test of minimum-viable refinement.
+
+---
+
 - feat(decisions): add ADR-45 Handoff Architecture v4 (supersedes ADR-42 v3.2) — invariant/session separation, 2-file handoff (MANIFEST + NEXT), defense-in-depth harness enforcement; pending implementation prompts
 - docs(lessons): archive 10 methodology lessons from 2026-05-13 handoff-architecture design session (9 from main append + 1 channel-discipline addendum)
 

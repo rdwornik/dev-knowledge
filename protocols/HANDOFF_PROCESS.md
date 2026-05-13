@@ -1,11 +1,11 @@
-# HANDOFF_PROCESS v3.2
+# HANDOFF_PROCESS v3.3
 
-<!-- version: 3.2 — 2026-05-09 (night per thrice-amended ADR-42) -->
+<!-- version: 3.3 — 2026-05-13 (night per audit-validated language refinements) -->
 <!-- scope: meta -->
 
-Version: 3.2
-Effective: 2026-05-09 (night)
-Supersedes: v3.1 (2026-05-09 afternoon), v3.0 (2026-05-09 morning), v2.0 (ADR-32 §4 deprecated; ADR-32 §1-§3 extended)
+Version: 3.3
+Effective: 2026-05-13 (night)
+Supersedes: v3.2 (2026-05-09 night), v3.1 (2026-05-09 afternoon), v3.0 (2026-05-09 morning), v2.0 (ADR-32 §4 deprecated; ADR-32 §1-§3 extended)
 Authority: ADR-42 (amended 2026-05-09 night)
 
 > **Authoritative source:** `docs/decisions/ADR-42-handoff-format-v3.md` (amended
@@ -531,6 +531,19 @@ directs it to). Claude Code does NOT redesign architecture or invent session con
 
 ---
 
+## What changed v3.2 → v3.3
+<!-- scope: meta -->
+
+| Dimension | v3.2 | v3.3 |
+|---|---|---|
+| 06/07 section names | SBAR codes (OBJECTIVE/REALITY/RATIONALE/DIRECTIVES/BOUNDARIES) | Plain English (`What was completed` / `Current state` / `Action plan` / `Hard Constraints` etc.) |
+| Code references (P-NN/F-NN/ADR-NN) | Bare codes inline | First reference per section includes in-line gloss |
+| DO-NOT lists | Single undifferentiated list (12+ items in sample) | `Hard Constraints` (max 5, bold) + `Narrow scope rules` (collapsed) |
+| New chat first action | Implicit synthesis | Mandatory 4-item articulation gate before any work; operator confirms via `role confirmed` |
+| Sentence form in 06/07 | Process-language noun phrases allowed | Verb-led sentences required |
+
+---
+
 ## What changed v3.1 → v3.2
 <!-- scope: meta -->
 
@@ -578,6 +591,19 @@ directs it to). Claude Code does NOT redesign architecture or invent session con
 ## Section history
 <!-- scope: meta -->
 
+- v3.3 (2026-05-13 night) — Audit-validated language refinements to 06/07
+  downstream files (plain-English section names; first-reference code
+  glosses; Hard Constraints vs Narrow Scope DO-NOT split; verb-led
+  sentences). Added mandatory articulation gate as new chat's first
+  required action in 00_first-message.md — operator confirms via
+  `role confirmed` before any work. Empirical basis: 2026-05-13 browser
+  session (5+ hours) demonstrated delivery ≠ internalization (architect
+  had VISION in bundle, did not internalize; operator uploaded VISION
+  twice during session). Refinement is template/process-level — does not
+  amend ADR-42 v3 (3-stage flow, file count, file responsibilities all
+  preserved). Pilot: test on next real handoff. If empirical drift
+  persists, escalate via separate prompt (sequential loading + question
+  battery deferred to that escalation).
 - v3.2 (2026-05-09 night) — Stage 2.5 Q&A iteration loop added (optional, max 3
   rounds, NEW chat asks clarification questions back to OLD chat before Stage 3).
   Operator workflow made explicit (10-step list in 00_README). Synthesis confirmation
