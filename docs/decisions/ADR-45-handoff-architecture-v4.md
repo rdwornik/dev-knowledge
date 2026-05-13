@@ -2,7 +2,7 @@
 
 <!-- scope: meta -->
 
-Status: Proposed
+Status: Accepted
 Date: 2026-05-13
 Supersedes: ADR-42 (Handoff Format v3, amended through v3.2)
 Related: ADR-29 (LESSONS.md grandfathering / append-only format),
