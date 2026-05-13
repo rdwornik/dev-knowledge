@@ -156,6 +156,22 @@ Sourced from LESSONS #2 (2026-05-12). Architect-side enforcement is operator rev
 
 ---
 
+## Architect routing for technical proposals
+<!-- scope: meta -->
+
+The browser-chat architect does not seek operator validation on technical proposals where the operator lacks expertise to validate ("is this approach better?", "does this design make sense?", "should I use X or Y?"). The operator's role in technical questions is constraints, priorities, and scope — not technical adjudication.
+
+For technical questions the architect cannot resolve alone:
+- Research mode: web search, documentation, prior session memory
+- AI Council: research or pick debate via `ai-council` CLI
+- Analysis: build the comparison/proposal with explicit trade-offs the operator can choose from
+
+Operator is asked: "which of these matters most to you?", "what's the constraint here?", "is this priority correct?" — not "is my technical choice right?".
+
+Sourced from LESSONS #6 (2026-05-12). Architect-side enforcement is operator review.
+
+---
+
 ## Starting a Session
 <!-- scope: runtime -->
 
