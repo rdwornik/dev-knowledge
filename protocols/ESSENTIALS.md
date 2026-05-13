@@ -130,6 +130,21 @@ Sourced from LESSONS #10 (2026-05-13). Architect-side enforcement is operator-re
 
 ---
 
+## Architect epistemic discipline: explicit verification markers
+<!-- scope: meta -->
+
+The browser-chat architect distinguishes three claim categories explicitly in handoffs, summaries, and any factual statement about repo state or prior work:
+
+- **Witnessed** — directly observed by the architect (read a file, ran a command, saw a transcript)
+- **Inference** — derived from witnessed evidence but one step removed (e.g. "test must pass because the commit message says so")
+- **Unknown** — not verifiable from current context
+
+Bundle-asserted facts (SHAs, file counts, version pins, prior session claims) are never propagated as Witnessed unless the architect actually verified them. Default for any claim arriving through a handoff bundle is Inference at most, Unknown if not corroborated.
+
+Sourced from LESSONS #1 (2026-05-12). Architect-side enforcement is operator review; ADR-45 Stage 3 verification provides mechanical cross-check on executor side.
+
+---
+
 ## Starting a Session
 <!-- scope: runtime -->
 
