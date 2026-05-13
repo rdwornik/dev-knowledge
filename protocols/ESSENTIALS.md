@@ -145,6 +145,17 @@ Sourced from LESSONS #1 (2026-05-12). Architect-side enforcement is operator rev
 
 ---
 
+## Architect epistemic discipline: completion claims require state verification
+<!-- scope: meta -->
+
+Before declaring a session, directive list, or task "done" / "closed" / "complete", the architect verifies against actual state — BACKLOG residuals, untouched scope items, files modified but not committed, things mentioned earlier in chat that were never resolved. Pattern-matched "all done" framing from prompt structure alone is not evidence; it's a failure mode.
+
+If the architect cannot verify completion (no filesystem access from browser chat), the claim becomes a question: "based on what I see here, X and Y look complete; please confirm Z is also done before I declare closure."
+
+Sourced from LESSONS #2 (2026-05-12). Architect-side enforcement is operator review; ADR-45 `/save` validator provides mechanical session-end gate on executor side.
+
+---
+
 ## Starting a Session
 <!-- scope: runtime -->
 
