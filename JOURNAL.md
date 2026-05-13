@@ -18,6 +18,11 @@
 
 ---
 
+### 2026-05-13 — Four additional 2026-05-12/13 lessons promoted to ESSENTIALS invariants
+- Did: promoted LESSONS #1 (epistemic markers), #2 (completion verification), #6 (validation routing), #8 (artifact-direction) to ESSENTIALS as invariant architect rules; each as own commit for revertability; rule bodies preserved verbatim
+- Failed: —
+- Next: implementation prompts for ADR-45 — shared validator script first
+
 ### 2026-05-13 — ESSENTIALS architect channel-discipline rule documented
 - Did: moved channel-discipline rule from LESSONS #10 into ESSENTIALS so it loads as invariant at browser-chat session start per ADR-45 architect-compliance path; PLAYBOOK cross-reference skipped (no matching section exists)
 - Failed: —
