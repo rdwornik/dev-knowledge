@@ -2,7 +2,7 @@
 
 <!-- scope: meta -->
 
-Status: Accepted
+Status: Superseded by 2026-05-13 night minimum-viable refinement (HANDOFF_PROCESS v3.3 + HANDOFF_FOLDER_TEMPLATE update)
 Date: 2026-05-13
 Supersedes: ADR-42 (Handoff Format v3, amended through v3.2)
 Related: ADR-29 (LESSONS.md grandfathering / append-only format),
@@ -17,6 +17,18 @@ Related: ADR-29 (LESSONS.md grandfathering / append-only format),
          audit docs/audits/2026-05-12-handoff-process-audit.md
 
 ## Context
+
+**Note 2026-05-13 night:** v1 of this ADR over-concluded toward bundle
+replacement (12 → 2 files + drop full invariants). Side-by-side reading
+against ADR-42 v3.2 + 2026-05-12 audit revealed conflicts with audit's
+"what works, preserve" findings — full invariants prevent norm drift per
+SECI rationale, 11-file bundle empirically catches real architect
+fabrications (2026-05-09 ai-council Grok timeout-vs-model-string case).
+Minimum-viable refinement implemented instead (HANDOFF_PROCESS v3.3 —
+template language fixes per audit, mandatory articulation gate in
+00_first-message). Sequential loading, question battery, and ADR-45 v2
+full rewrite remain deferred — implement only if minimum doesn't address
+empirical drift in next handoff cycle.
 
 ADR-42 v3.2 is the current handoff authority. It prescribes a three-stage
 relay (Claude Code generates a question prompt; the OLD browser chat
