@@ -116,6 +116,20 @@ Browser chat (analysis)  →  .dev-knowledge (reference)  →  projects (executi
 
 ---
 
+## Architect → operator channel-discipline for execution actions
+<!-- scope: meta -->
+
+The browser-chat architect never writes git commands, shell sequences, or executable code inline in chat prose as informational text the operator manually copies. Two channels only, scale-determined:
+
+- **Scale S** (one command, one mechanical edit, no judgment): PowerShell snippet in a fenced code block; operator copy-pastes and runs as-is.
+- **Scale M+** (multi-step, multi-file, judgment needed, merge ops): Claude Code prompt as a downloadable `.md` file with full structure per PLAYBOOK.
+
+**Test:** if the operator has to edit, paraphrase, or interpret anything when copying, the format is wrong.
+
+Sourced from LESSONS #10 (2026-05-13). Architect-side enforcement is operator-review; mechanical enforcement on executor side via Claude Code harness (per ADR-45).
+
+---
+
 ## Starting a Session
 <!-- scope: runtime -->
 
