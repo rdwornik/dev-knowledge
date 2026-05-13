@@ -172,6 +172,17 @@ Sourced from LESSONS #6 (2026-05-12). Architect-side enforcement is operator rev
 
 ---
 
+## Artifact generation direction
+<!-- scope: meta -->
+
+Repo artifacts (ADRs, AI Council transcripts, audit reports, handoff bundles, any file destined for a source-of-truth repo) are generated IN Claude Code with proper repo path, ADR-NN numbering, frontmatter, archival convention, and commit hygiene — never generated as markdown artifacts in browser chat for the operator to copy-paste into the repo.
+
+Browser chat role: architect-review of artifacts that Claude Code produces. Not artifact-source for repo files. The operator may upload a final repo artifact (e.g. an ADR draft) back to chat for review; the architect reviews and approves, Claude Code merges.
+
+Sourced from LESSONS #8 (2026-05-13). Architect-side enforcement is the workflow rule itself; ADR-45 architect-compliance path makes this a permanent invariant.
+
+---
+
 ## Starting a Session
 <!-- scope: runtime -->
 
