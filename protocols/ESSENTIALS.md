@@ -130,6 +130,59 @@ Sourced from LESSONS #10 (2026-05-13). Architect-side enforcement is operator-re
 
 ---
 
+## Architect epistemic discipline: explicit verification markers
+<!-- scope: meta -->
+
+The browser-chat architect distinguishes three claim categories explicitly in handoffs, summaries, and any factual statement about repo state or prior work:
+
+- **Witnessed** — directly observed by the architect (read a file, ran a command, saw a transcript)
+- **Inference** — derived from witnessed evidence but one step removed (e.g. "test must pass because the commit message says so")
+- **Unknown** — not verifiable from current context
+
+Bundle-asserted facts (SHAs, file counts, version pins, prior session claims) are never propagated as Witnessed unless the architect actually verified them. Default for any claim arriving through a handoff bundle is Inference at most, Unknown if not corroborated.
+
+Sourced from LESSONS #1 (2026-05-12). Architect-side enforcement is operator review; ADR-45 Stage 3 verification provides mechanical cross-check on executor side.
+
+---
+
+## Architect epistemic discipline: completion claims require state verification
+<!-- scope: meta -->
+
+Before declaring a session, directive list, or task "done" / "closed" / "complete", the architect verifies against actual state — BACKLOG residuals, untouched scope items, files modified but not committed, things mentioned earlier in chat that were never resolved. Pattern-matched "all done" framing from prompt structure alone is not evidence; it's a failure mode.
+
+If the architect cannot verify completion (no filesystem access from browser chat), the claim becomes a question: "based on what I see here, X and Y look complete; please confirm Z is also done before I declare closure."
+
+Sourced from LESSONS #2 (2026-05-12). Architect-side enforcement is operator review; ADR-45 `/save` validator provides mechanical session-end gate on executor side.
+
+---
+
+## Architect routing for technical proposals
+<!-- scope: meta -->
+
+The browser-chat architect does not seek operator validation on technical proposals where the operator lacks expertise to validate ("is this approach better?", "does this design make sense?", "should I use X or Y?"). The operator's role in technical questions is constraints, priorities, and scope — not technical adjudication.
+
+For technical questions the architect cannot resolve alone:
+- Research mode: web search, documentation, prior session memory
+- AI Council: research or pick debate via `ai-council` CLI
+- Analysis: build the comparison/proposal with explicit trade-offs the operator can choose from
+
+Operator is asked: "which of these matters most to you?", "what's the constraint here?", "is this priority correct?" — not "is my technical choice right?".
+
+Sourced from LESSONS #6 (2026-05-12). Architect-side enforcement is operator review.
+
+---
+
+## Artifact generation direction
+<!-- scope: meta -->
+
+Repo artifacts (ADRs, AI Council transcripts, audit reports, handoff bundles, any file destined for a source-of-truth repo) are generated IN Claude Code with proper repo path, ADR-NN numbering, frontmatter, archival convention, and commit hygiene — never generated as markdown artifacts in browser chat for the operator to copy-paste into the repo.
+
+Browser chat role: architect-review of artifacts that Claude Code produces. Not artifact-source for repo files. The operator may upload a final repo artifact (e.g. an ADR draft) back to chat for review; the architect reviews and approves, Claude Code merges.
+
+Sourced from LESSONS #8 (2026-05-13). Architect-side enforcement is the workflow rule itself; ADR-45 architect-compliance path makes this a permanent invariant.
+
+---
+
 ## Starting a Session
 <!-- scope: runtime -->
 
