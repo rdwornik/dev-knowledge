@@ -18,6 +18,11 @@
 
 ---
 
+### 2026-05-13 — ADR-45 handoff architecture v4 accepted; session lessons archived
+- Did: drafted ADR-45 codifying invariant/session separation + 2-file handoff + defense-in-depth enforcement (grounded in Council research debate `council-out-20260513_102702-...` + pick debate `council-out-20260513_111424-...` + audit `docs/audits/2026-05-12-handoff-process-audit.md`); appended 10 methodology lessons to LESSONS.md; flipped ADR-45 status to Accepted; merged to main with --no-ff
+- Failed: architect (browser chat) wrote inline git ops in review approval message; surfaced as 10th lesson (channel-discipline) and folded into this session
+- Next: implementation prompts in this order — (1) shared validator script `.dev-knowledge/scripts/validator.py`, (2) MANIFEST + NEXT templates with schemas, (3) session-boundary semantics, (4) three enforcement hooks (git pre-commit + Claude Code PreToolUse + `/save`) calling shared validator, (5) sync-script for @path fallback, (6) bootstrap dry-run on throwaway repo, (7) pilot on `.dev-knowledge` for 2 weeks, (8) gate check, (9) fleet rollout one-at-a-time. Also: ESSENTIALS.md update to document architect channel-discipline rule from lesson #10
+
 ### 2026-05-12 — Handoff process audit
 - Did: read process spec + templates + slash commands + sample artifacts (current + archive + legacy); wrote audit report describing the process end-to-end in plain prose at `docs/audits/2026-05-12-handoff-process-audit.md`
 - Failed: —

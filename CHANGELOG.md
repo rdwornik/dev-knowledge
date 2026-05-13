@@ -4,6 +4,13 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-13
+
+- feat(decisions): add ADR-45 Handoff Architecture v4 (supersedes ADR-42 v3.2) — invariant/session separation, 2-file handoff (MANIFEST + NEXT), defense-in-depth harness enforcement; pending implementation prompts
+- docs(lessons): archive 10 methodology lessons from 2026-05-13 handoff-architecture design session (9 from main append + 1 channel-discipline addendum)
+
+---
+
 ## 2026-05-12
 
 ### Added
