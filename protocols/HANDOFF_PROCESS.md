@@ -1,11 +1,11 @@
-# HANDOFF_PROCESS v3.3
+# HANDOFF_PROCESS v3.3.1
 
-<!-- version: 3.3 — 2026-05-13 (night per audit-validated language refinements) -->
+<!-- version: 3.3.1 — 2026-05-14 (audience-awareness amendment to Stage 1 template) -->
 <!-- scope: meta -->
 
-Version: 3.3
-Effective: 2026-05-13 (night)
-Supersedes: v3.2 (2026-05-09 night), v3.1 (2026-05-09 afternoon), v3.0 (2026-05-09 morning), v2.0 (ADR-32 §4 deprecated; ADR-32 §1-§3 extended)
+Version: 3.3.1
+Effective: 2026-05-14
+Supersedes: v3.3 (2026-05-13 night), v3.2 (2026-05-09 night), v3.1 (2026-05-09 afternoon), v3.0 (2026-05-09 morning), v2.0 (ADR-32 §4 deprecated; ADR-32 §1-§3 extended)
 Authority: ADR-42 (amended 2026-05-09 night)
 
 > **Authoritative source:** `docs/decisions/ADR-42-handoff-format-v3.md` (amended
@@ -531,6 +531,19 @@ directs it to). Claude Code does NOT redesign architecture or invent session con
 
 ---
 
+## What changed v3.3 → v3.3.1
+<!-- scope: meta -->
+
+| Dimension | v3.3 | v3.3.1 |
+|---|---|---|
+| HANDOFF_QUESTION_TEMPLATE.md (Stage 1 template) | Not in v3.3 scope (explicitly excluded) | Adds Audience Awareness section: 7 rules + 1 self-check |
+| Audience the OLD chat writes for | Implicit (no enforcement) | Explicit: new chat audience that never sees Stage 1 |
+| Scope-declaration discipline | Not enforced | Required first line of each major section |
+| Cross-reference handling | No rule | Inline summaries required at first reference |
+| External research citation handling | No rule | Strip — new chat cannot verify |
+
+---
+
 ## What changed v3.2 → v3.3
 <!-- scope: meta -->
 
@@ -591,6 +604,17 @@ directs it to). Claude Code does NOT redesign architecture or invent session con
 ## Section history
 <!-- scope: meta -->
 
+- v3.3.1 (2026-05-14) — Amendment to v3.3 adding audience-awareness
+  rules to HANDOFF_QUESTION_TEMPLATE.md (Stage 1 template). Seven rules
+  + one self-check verify the OLD chat writes Stage 2 for the new chat
+  audience that never sees Stage 1. Corrects v3.3's scope error (which
+  excluded Stage 1 template from refinement and produced empirically
+  observed 7-gap pattern in resulting Stage 2 response). No flow
+  change, no new mechanism, no escalation of articulation gate.
+  Empirical basis: 2026-05-14 self-review of Stage 2 response under
+  v3.3 conventions identified the 7 patterns; AI Council research
+  (3-model panel, transcript in docs/decisions/transcripts/) provided
+  concept-level reinforcement (caveats noted in transcript commit).
 - v3.3 (2026-05-13 night) — Audit-validated language refinements to 06/07
   downstream files (plain-English section names; first-reference code
   glosses; Hard Constraints vs Narrow Scope DO-NOT split; verb-led

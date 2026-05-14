@@ -18,6 +18,26 @@
 
 ---
 
+### 2026-05-14 — Handoff Stage 3 complete (session-sync, v3.3.1)
+- Handoff Stage 3 complete for `2026-05-14-dev-knowledge-session-sync`: 11-file bundle at `docs/handoffs/2026-05-14-dev-knowledge-session-sync/`; Stage 1+2 inputs archived at `docs/handoffs/archive/2026-05-14-dev-knowledge-session-sync/`
+- Stage 3 verification: 7 witnessed claims verified, 0 contradictions; ESSENTIALS.md line count resolved (323 lines — architect had flagged Unknown)
+- SHA drift (8663a7c → ef7f66e) confirmed as expected (Stage 1 commit itself); operator approved proceed
+- Next: open NEW claude.ai chat; upload 11-file bundle; paste 00_first-message.md; assess v3.3.1 articulation gate empirically
+
+### 2026-05-14 — Handoff Stage 1 generated (v3.3.1) + v3.3.1 amendment
+- Handoff Stage 1 regenerated under v3.3.1 for `2026-05-14-dev-knowledge-session-sync`: HEAD `8663a7c` captured; awaiting Stage 2
+- Handoff v3.3.1 amendment landed: audience-awareness rules in
+  HANDOFF_QUESTION_TEMPLATE.md. Empirical trigger — 2026-05-14
+  self-review of Stage 2 response under v3.3 surfaced 7 patterns
+  that confuse new chat (which never sees Stage 1). v3.3 had
+  explicitly excluded Stage 1 template from refinement scope; that
+  was a scope error. v3.3.1 fixes the upstream template so future
+  Stage 2 responses naturally exhibit audience awareness without
+  manual downstream patching. AI Council research transcript
+  (docs/decisions/transcripts/, separate commit) provides
+  concept-level reinforcement with documented caveats about
+  hallucinated citations and question-framing bias.
+
 ### 2026-05-13 — Handoff v3.3 minimum-viable refinement
 - Did: handoff v3.3 minimum-viable refinement landed: audit-validated language
   fixes in 06/07 (plain-English section names, code glosses, Hard Constraints /

@@ -4,6 +4,32 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-14
+
+### Added
+
+- Handoff Stage 3 complete: `docs/handoffs/2026-05-14-dev-knowledge-session-sync/` (11-file bundle, session-sync, v3.3.1). First handoff cycle generated under v3.3.1 audience-awareness rules. Stage 1+2 inputs archived at `docs/handoffs/archive/2026-05-14-dev-knowledge-session-sync/`.
+
+### Changed
+
+- Handoff process amended to v3.3.1 (HANDOFF_QUESTION_TEMPLATE.md +
+  HANDOFF_PROCESS.md):
+  - Stage 1 template gains an `Audience Awareness` section (7 rules
+    + 1 self-check) so the OLD chat writes Stage 2 for the new chat
+    audience that never sees Stage 1.
+  - Rules address 7 empirically observed gap patterns in v3.3 Stage 2
+    responses: self-referential meta-framing, Stage 1 references,
+    forward references, invisible session-history references, in-flight
+    work references, cross-reference burdens, external research
+    citations.
+  - Verification list in Stage 1 template gains an `Audience awareness
+    check` requiring the OLD chat to mentally simulate fresh-LLM
+    reading before submitting.
+  - Corrects v3.3 scope error (Stage 1 template was excluded; producing
+    the 7-gap pattern in resulting Stage 2 responses).
+
+---
+
 ## 2026-05-13
 
 ### Changed

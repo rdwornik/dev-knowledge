@@ -1,72 +1,50 @@
-# Handoff Stage 1 Question Template
+# Handoff Stage 1: .dev-knowledge (session-sync)
 
 <!-- scope: meta -->
 
-This template generates `stage1-question.md` files. It has TWO distinct
-sections that must remain visually separated for different audiences:
-
-- **Section A (Rob's operational instructions)** — what Rob does with the
-  file. Rob reads this. Rob does NOT paste this into the old chat.
-- **Section B (paste-this block)** — the actual message Rob copies into the
-  old browser chat for the architect to answer.
-
-The `PASTE_BOUNDARY` delimiter line makes this separation explicit. Rob selects
-from PASTE_BOUNDARY down to end of file when copying into old chat.
-
-**Three-actor flow (per ADR-42, twice amended):**
-- Stage 2 source = OLD browser chat for {repo} (existing chat being wrapped up)
-- Stage 3 receiver = NEW browser chat for {repo} (fresh, opened after folder generated)
-- Claude Code = orchestrator throughout
-
-**Note on receiver synthesis prompt:** The synthesis prompt belongs in
-`00_first-message.md` (Stage 3 output). It is NOT included in stage1-question.md.
-
----
-
-## Stage 1 output structure (Claude Code generates this)
-
-When Claude Code generates `stage1-question.md` from this template, the output
-file must follow this structure:
-
-```
-# Handoff Stage 1: {repo} ({type})
-
-[METADATA HEADER — repo path, HEAD SHA, branch, working tree, slug, timestamp,
- type. Rob references this; old chat doesn't need it but receiving it is harmless.]
+| Field | Value |
+|---|---|
+| Repo | `.dev-knowledge` |
+| HEAD SHA | `8663a7c9e49c8e5d822746aded34a18f409a4a69` |
+| Branch | `docs/2026-05-14-dev-knowledge-session-sync-stage1` |
+| Working tree | clean |
+| Slug | `2026-05-14-dev-knowledge-session-sync` |
+| Timestamp | 2026-05-14 |
+| Type | session-sync |
 
 ════════════════════════════════════════════════════════════════════
 SECTION A — INSTRUCTIONS FOR ROB (do NOT paste this into old chat)
 ════════════════════════════════════════════════════════════════════
 
-1. Open the EXISTING (OLD) browser chat for {repo} — the chat being
+1. Open the EXISTING (OLD) browser chat for `.dev-knowledge` — the chat being
    wrapped up. NOT a new chat.
 2. Copy from the PASTE_BOUNDARY line below to the end of this file.
 3. Paste as a message in the existing chat.
 4. The old chat answers the 5 pipeline questions from its lived knowledge.
-5. Open the pre-created file: docs/handoffs/_in_progress/{slug}/stage2-response.md
+5. Open the pre-created file:
+   `docs/handoffs/_in_progress/2026-05-14-dev-knowledge-session-sync/stage2-response.md`
    (already exists, has placeholder content). Replace everything below the
    "═══ REPLACE EVERYTHING BELOW THIS LINE ═══" marker with the architect's
    response. Save.
-6. In Claude Code at .dev-knowledge, say: "complete handoff for {repo}"
+6. In Claude Code at .dev-knowledge, say:
+   "complete handoff for .dev-knowledge"
    → Stage 3 generates the final handoff folder.
-7. After Stage 3: close the old chat. Open a NEW claude.ai chat for {repo}
-   and use the Stage 3 folder bundle (00_README.md inside has upload
-   instructions for the new chat).
+7. After Stage 3: close the old chat. Open a NEW claude.ai chat for `.dev-knowledge`
+   and use the Stage 3 folder bundle (`00_README.md` inside has upload instructions).
 
 ════════════════════════════════════════════════════════════════════
 PASTE_BOUNDARY — copy from here to end of file into the old chat
 ════════════════════════════════════════════════════════════════════
 
-# Stage 2 — Answer These Questions: {repo} ({type})
+# Stage 2 — Answer These Questions: .dev-knowledge (session-sync)
 
 ## Your role
 
-You are the existing browser chat for **{repo}**, currently being wrapped up
-because your context is getting full. Claude Code in `.dev-knowledge` is
-preserving your accumulated knowledge as a structured handoff before this
-chat closes.
+You are the existing browser chat for **`.dev-knowledge`**, currently being wrapped up
+because your context is getting full. Claude Code in `.dev-knowledge` is preserving
+your accumulated knowledge as a structured handoff before this chat closes.
 
-Your role for this Stage 2 response: **project-level architect for {repo}**.
+Your role for this Stage 2 response: **project-level architect for `.dev-knowledge`**.
 You provide:
 - Goal judgment (what next session should achieve, why)
 - Project state YOU witnessed in this conversation (not general knowledge
@@ -92,12 +70,10 @@ have:
   prompt format, commit conventions)
 - Full `.dev-knowledge` ESSENTIALS.md (high-leverage rules)
 - ADR essences (operational rules) for ADRs cited in directives
-- Audit report (raw findings)
 - Repo state snapshot (HEAD, branch, file tree, working tree state)
 
 You do NOT need to:
 - Explain what ADR-NN mandates (handoff has the essence)
-- Restate audit findings verbatim (handoff has audit-report.md)
 - Specify HEAD SHA or working tree state (handoff has manifest)
 - Describe ecosystem governance patterns (handoff has VISION + PLAYBOOK)
 
@@ -153,7 +129,7 @@ or your own session memory.
    - NOT: "Round 1 → 2 → 3 file loads", "today's v3.3 prompt",
      "the empirical test of v3.3 begins with this handoff cycle"
    - DO: "during a recent extended session", "in the work culminating
-     in commit X"
+     in commit 8663a7c"
 
 4. **List items inline at first mention.** Do NOT forward-reference.
    - NOT: "drive session-lessons capture (5 primary + 3 secondary lessons,
@@ -246,18 +222,35 @@ Here's my structured response:
 
 ## Current state (verified at Stage 1 by Claude Code)
 
-- HEAD: {head_sha}
-- Branch: {branch}
-- Working tree: {working_tree_state}
-- Recent context: {recent_commits_or_work_summary}
+- HEAD: `8663a7c9e49c8e5d822746aded34a18f409a4a69`
+- Branch: `docs/2026-05-14-dev-knowledge-session-sync-stage1`
+- Working tree: clean
+- Recent context:
+  - `4cf2d9d` — Merge docs/2026-05-13-handoff-v3-3-minimum-refinement (v3.3 audit language fixes + articulation gate)
+  - `16733dc` — docs(journal): record ESSENTIALS promotions of four lessons
+  - `0ae143e` — Merge docs/2026-05-13-essentials-lessons-promotion (four LESSONS promoted to ESSENTIALS invariants #1, #2, #6, #8)
+  - `7846b48` — docs(handoff): Stage 1 for 2026-05-14-dev-knowledge-session-sync (initial v3.3 Stage 1, since superseded)
+  - `2f944a8` — docs(decisions): add Council research transcript on cross-session handoff optimization
+  - `556c8e1` — docs(handoff): amend to v3.3.1 — audience-awareness rules in Stage 1 template
+  - `8663a7c` — docs(handoff): clear stale v3.3 Stage 1 before v3.3.1 regeneration
 
-## Audit context (informational — extend or correct in your response)
+## .dev-knowledge BACKLOG items relevant to .dev-knowledge
 
-{audit_findings_summary_if_audit_sync}
+Open P1 items in Stream C (.dev-knowledge governance):
 
-## .dev-knowledge BACKLOG items relevant to {repo}
+- **[P1] PLAYBOOK content additions for ADRs 36/37/40/41** — PLAYBOOK.md sections missing for ADR-36 (audit tool workflow), ADR-37 (two-phase handoff guidance), ADR-40 (tier transition procedures), ADR-41 (BACKLOG grooming workflow). Methodology debt since 2026-04-30.
+- **[P1] Audit tool P1 implementation** — Build .dev-knowledge audit tool per ADR-36 (audit run + ecosystem state + markdown report). Needed for Phase 2 universalization.
 
-{relevant_backlog_items}
+Open P2 items:
+
+- **[P2] Lessons activation P1 implementation** — lessons-index.json + retrieval hook + CLI per ADR-35.
+- **[P2] ESSENTIALS.md cheat-sheet additions for ADRs 35-41** — Under 1-page constraint requires pruning decisions.
+- **[P2] ai-council needs AGENTS.md** — Work belongs in ai-council repo; awareness item only.
+
+Open P3 items:
+
+- **[P3] ADR-39 amendment** — add BACKLOG.md lifecycle entry
+- **[P3] ADR-39 registry decision** — 5 unregistered template files
 
 ## Pipeline questions (answer these in order)
 
@@ -265,63 +258,84 @@ Structure your response with these EXACT section headings:
 
 ### 1. OBJECTIVE
 
-What is the immediate goal of the next {repo} session?
+What is the immediate goal of the next `.dev-knowledge` session?
 
-{customized_objective_prompt}
+Consider: The current handoff cycle must complete first (Stage 2 → Stage 3).
+After that, the highest open P1 items are PLAYBOOK additions for ADRs 36/37/40/41
+and Audit tool P1 implementation. Which deserves priority and why?
+If the handoff process improvement work spawned any additional follow-up items
+during this session, include them.
 
-*Epistemic note: state your goal judgment confidently. If audit's suggested
-actions feel wrong to you, say so with reasoning.*
+*Epistemic note: state your goal judgment confidently. If the BACKLOG priority order
+feels wrong to you given what you witnessed this session, say so with reasoning.*
 
 ### 2. REALITY
 
-What is the current state of {repo} from your perspective?
+What is the current state of `.dev-knowledge` from your perspective?
 
-- Was anything completed since {last_known_milestone}?
-- Any work in progress not reflected externally?
-- External dependencies (services, libraries, partner repos) currently in play?
-- Any constraints (deadlines, conventions) the next session must respect?
-- {any_specific_state_question_from_stage1_observation}?
+- What was completed in the session being closed?
+- Any work in progress not yet committed or formalized?
+- Any tensions or open questions about the v3.3.1 amendment — was the 7-rule
+  audience-awareness approach the right scope, or does something feel off?
+- Any constraints the next session must respect?
 
-*Epistemic note: differentiate witnessed events (you saw this in conversation)
-from inferences (reasoning from context) from unknowns (no direct knowledge).
-Mark inferences with "(architect inference)" and unknowns with "Unknown —
-verify against repo."*
+*Epistemic note: differentiate witnessed events from inferences from unknowns.
+Mark inferences with "(architect inference)" and unknowns with "Unknown — verify
+against repo."*
 
 ### 3. RATIONALE
 
-What approaches were considered and discarded for {repo} recently?
+What approaches were considered and discarded for `.dev-knowledge` recently?
 
-{customized_rationale_prompt_with_repo_specific_decisions}
+Cover:
+- The decision to scope v3.3.1 as a template amendment only (not escalating
+  to v3.4 with Q&A or simulation). What made that scope correct? What would
+  need to be true for v3.4 to be warranted?
+- The Council research transcript commit: what signal was real, what was noise?
+  How should the next session weight that research when evaluating v3.3.1 results?
+- Any BACKLOG priority decisions made this session.
 
-*Epistemic note: reasoning is your strong suit — explain your judgment. For
-any specific facts in your reasoning (file counts, timing, component names),
-mark "(architect inference)" if not directly witnessed.*
+*Epistemic note: reasoning is your strong suit. For any specific facts in your
+reasoning, mark "(architect inference)" if not directly witnessed.*
 
 ### 4. DIRECTIVES
 
-What are the exact sequential actions the next {repo} session should execute?
+What are the exact sequential actions the next `.dev-knowledge` session should execute?
 
 Provide a numbered list. Each action: **action verb + target + verification step**.
 
-{default_proposal_from_audit_or_session_goals}
+Default proposal (revise as needed):
+1. Complete current handoff cycle: architect provides Stage 2 response → operator
+   saves to stage2-response.md → "complete handoff for .dev-knowledge" → Stage 3 runs.
+   Verify: 11-file folder generated in docs/handoffs/2026-05-14-dev-knowledge-session-sync/.
+2. Validate v3.3.1 empirically: assess whether Stage 2 response under v3.3.1 avoided
+   the 7 audience-awareness gaps. Record observation in LESSONS.md if findings are clear.
+   Verify: LESSONS.md append committed.
+3. Begin PLAYBOOK content additions for ADRs 36/37/40/41 (highest open P1 in Stream C).
+   Verify: PLAYBOOK.md commit; BACKLOG item updated to [done].
 
 Add, remove, or reorder as you see fit.
 
-*Epistemic note: action sequence and verification steps are most valuable.
-Specific file paths or commit messages — mark "(architect inference)" if not
-witnessed; Stage 3 may revise based on repo state.*
+*Epistemic note: action sequence and verification steps most valuable. File paths
+and commit messages — mark "(architect inference)" if not witnessed.*
 
 ### 5. BOUNDARIES
 
 What must the next session NOT do? What are fallback contingencies?
 
-{default_boundaries_from_audit_deferrals_and_general_scope}
+Default boundaries (add architect-specific concerns):
+- Do NOT escalate to v3.4 until v3.3.1 empirical results are in — the audience-awareness
+  rules need at least one full handoff cycle to assess before raising the gate further.
+- Do NOT modify HANDOFF_FOLDER_TEMPLATE.md (Stage 3 template) in this handoff cycle —
+  v3.3.1 scope was Stage 1 template only.
+- Do NOT generate cross-repo directives targeting ai-council or corp-monorepo from a
+  .dev-knowledge session — cross-repo work routes via routing artifacts per Universal
+  Self-Containment Rule.
+- Do NOT begin Audit tool P1 implementation in the same session as PLAYBOOK additions
+  unless PLAYBOOK work completes cleanly first — context load risk.
 
-Add any architect-specific concerns or "do not's."
-
-*Epistemic note: do-not lists grounded in your project knowledge are very
-valuable. Don't fabricate "do not touch X" if you don't know whether X exists
-— focus on knowns from your conversation.*
+Fallback if Stage 3 fails or drift detected: inspect both SHAs, confirm with operator
+before proceeding. Do not silently discard drift.
 
 ---
 
@@ -345,26 +359,3 @@ requirements above. Structure response with the exact headings
 (OBJECTIVE / REALITY / RATIONALE / DIRECTIVES / BOUNDARIES) so
 Claude Code can parse them at Stage 3.
 ════════════════════════════════════════════════════════════════════
-```
-
----
-
-## Generation rules for Claude Code
-
-- Replace all `{placeholders}` with actual values from repo state + audit context
-- **Section B order is fixed:** role → bundle → epistemic → format → current state
-  → audit context → BACKLOG → pipeline questions → end divider.
-  Role/bundle/epistemic/format MUST appear before audit context and questions —
-  old chat must read these BEFORE drafting response.
-- **Preserve 5 question headings exactly:** `### 1. OBJECTIVE`, `### 2. REALITY`,
-  `### 3. RATIONALE`, `### 4. DIRECTIVES`, `### 5. BOUNDARIES`. Stage 3 parses these.
-- Section A and Section B separated by visible `PASTE_BOUNDARY` line with thick `═`
-  characters — visually unmistakable even when scrolling
-- **DO NOT include receiver synthesis prompt** in stage1-question.md. It belongs
-  in Stage 3 output (`00_first-message.md`, per HANDOFF_FOLDER_TEMPLATE)
-- Metadata header (HEAD, branch, working tree) goes ABOVE Section A
-- For audit-sync: populate `{audit_findings_summary}` with categorized findings;
-  customize question prompts with audit-suggested defaults labeled "revise as needed"
-- For session-sync: populate from recent git log + BACKLOG context
-- **Pre-create `stage2-response.md` template** alongside stage1-question.md in the
-  same Stage 1 commit (per HANDOFF_PROCESS Stage 1 procedure)
