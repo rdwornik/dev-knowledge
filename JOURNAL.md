@@ -18,6 +18,11 @@
 
 ---
 
+### 2026-05-14 — Interleaved capture: 9th LESSON + BACKLOG v3.3.2 entry
+- Interleaved capture: 9th LESSON (`universal-without-cross-case-verification`) + BACKLOG entry for v3.3.2 template fix
+- Both bugs witnessed during parallel ai-council Stage 3 generation; template fix deferred per Hard Constraint #3 (Option B over Option A)
+- Operator mitigation: no new cross-repo handoffs until v3.3.2 ships
+
 ### 2026-05-14 — Append 8 architect-discipline LESSONS entries
 - Appended 8 architect-discipline LESSONS entries (5 primary + 3 secondary) from extended-session observations
 - Source: docs/handoffs/2026-05-14-dev-knowledge-session-sync/06_STATE_OF_PLAY.md "Work in progress not yet captured"

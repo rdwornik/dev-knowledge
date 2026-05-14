@@ -186,3 +186,32 @@ Pre-existing pytest failure noted and documented; not introduced by this directi
 Next directive per `07_ACTION_PLAN.md`: PLAYBOOK additions for ADRs 36/37/40/41 (separate
 prompt, separate commit, separate concern). Operator instruction: `/clear` before starting
 that prompt.
+
+---
+
+## Interleaved scope addition — 2026-05-14 (not in original action plan)
+
+**Decision origin:** Mid-session, operator surfaced two template bugs witnessed during a parallel
+ai-council Stage 3 generation. Original action plan had Hard Constraint #3: "Do NOT modify
+`HANDOFF_FOLDER_TEMPLATE.md` in this handoff cycle." Architect proposed Option A (fix now) and
+Option B (capture + defer). Operator chose **Option B** after architect pushback on four errors
+in original briefing-note proposal: Hard Constraint #3 missed, stale directive #2 state assumed,
+fabricated "ADR-29 atomic convention", circular citation.
+
+**Scope added (append-only, no template edits):**
+1. LESSON #9: `universal-without-cross-case-verification` — appended to `LESSONS.md`
+2. BACKLOG Stream C P1: `v3.3.2 — HANDOFF_FOLDER_TEMPLATE parameterization for cross-repo handoffs` — added to `BACKLOG.md`
+3. CHANGELOG.md: two-line addition under `## 2026-05-14 / ### Added`
+4. JOURNAL.md: new 3-line session entry prepended
+
+**Branch:** `docs/2026-05-14-backlog-v332-bugs-plus-9th-lesson`
+
+**Commit SHA:** [placeholder — fill post-commit]
+
+**Files staged:** `LESSONS.md`, `BACKLOG.md`, `CHANGELOG.md`, `JOURNAL.md`, `docs/handoffs/2026-05-14-dev-knowledge-session-sync/09_EXECUTION_EVIDENCE.md`
+
+**Constraints honored:**
+- Hard Constraint #3: `templates/HANDOFF_FOLDER_TEMPLATE.md` NOT touched
+- `protocols/HANDOFF_PROCESS.md` NOT touched (version bump is v3.3.2 scope)
+- `LESSONS.md` append-only — zero existing entries modified
+- `BACKLOG.md` additive only — zero existing entries modified
