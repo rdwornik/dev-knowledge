@@ -18,6 +18,9 @@
 
 ---
 
+### 2026-05-14 — Handoff Stage 1 generated for ai-council (session-sync)
+- Handoff Stage 1 generated for `2026-05-14-ai-council-session-sync`: HEAD `0f069554b894802504aa4e5ce140b1d481ae9ec8` captured; awaiting Stage 2
+
 ### 2026-05-14 — Handoff Stage 3 complete (session-sync, v3.3.1)
 - Handoff Stage 3 complete for `2026-05-14-dev-knowledge-session-sync`: 11-file bundle at `docs/handoffs/2026-05-14-dev-knowledge-session-sync/`; Stage 1+2 inputs archived at `docs/handoffs/archive/2026-05-14-dev-knowledge-session-sync/`
 - Stage 3 verification: 7 witnessed claims verified, 0 contradictions; ESSENTIALS.md line count resolved (323 lines — architect had flagged Unknown)
