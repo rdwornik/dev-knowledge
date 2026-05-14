@@ -6,6 +6,10 @@ Notable changes to the dev practice knowledge base.
 
 ## 2026-05-14
 
+### Added
+
+- Handoff Stage 3 complete: `docs/handoffs/2026-05-14-dev-knowledge-session-sync/` (11-file bundle, session-sync, v3.3.1). First handoff cycle generated under v3.3.1 audience-awareness rules. Stage 1+2 inputs archived at `docs/handoffs/archive/2026-05-14-dev-knowledge-session-sync/`.
+
 ### Changed
 
 - Handoff process amended to v3.3.1 (HANDOFF_QUESTION_TEMPLATE.md +
