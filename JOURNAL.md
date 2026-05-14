@@ -18,6 +18,11 @@
 
 ---
 
+### 2026-05-14 — Same-day LESSONS canonical rewrite + top relocation
+- Same-day LESSONS correction: 9 entries rewritten to canonical 6-field schema, moved from tail to top of dated-entries section
+- Surfaced by operator's empirical observation that opening LESSONS.md showed pre-existing 2026-04-21 entry at top — visibility convention need
+- ADR-29 ordering amendment deferred to BACKLOG Stream C P2; going-forward formalization is its own scope
+
 ### 2026-05-14 — Closed Stream C P1: PLAYBOOK additions for ADRs 36/37/40/41
 - Closed Stream C P1 methodology debt: new §10 BACKLOG Grooming (ADR-41), new §18 Ecosystem Audit Tool (ADR-36), §8 amended for ADR-37 two-phase protocol, Project Scale Tiers extended with ADR-40 tier transitions; §10–17 renumbered to §11–17+§19
 - Verification: scope tags pass, hybrid ≤25%, BACKLOG Stream C P1 marked [done], 9 cross-ref hits updated in 4 living files
