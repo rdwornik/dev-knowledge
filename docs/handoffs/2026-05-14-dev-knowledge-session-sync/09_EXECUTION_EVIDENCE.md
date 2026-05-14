@@ -326,7 +326,7 @@ witnessed raw diff. Caught and corrected same-day.
 
 **Branch:** `docs/2026-05-14-lessons-canonical-rewrite-and-top-reorder`
 
-**Commit SHA:** `c2ae7bc`
+**Commit SHA:** `99a104e` (feature) / `2840f74` (merge)
 
 **Files staged:** `LESSONS.md`, `BACKLOG.md`, `CHANGELOG.md`, `JOURNAL.md`,
 `docs/handoffs/2026-05-14-dev-knowledge-session-sync/09_EXECUTION_EVIDENCE.md`
