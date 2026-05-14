@@ -18,6 +18,11 @@
 
 ---
 
+### 2026-05-14 — Append 8 architect-discipline LESSONS entries
+- Appended 8 architect-discipline LESSONS entries (5 primary + 3 secondary) from extended-session observations
+- Source: docs/handoffs/2026-05-14-dev-knowledge-session-sync/06_STATE_OF_PLAY.md "Work in progress not yet captured"
+- Action: captured for review; promotion to ESSENTIALS invariants deferred to operator decision
+
 ### 2026-05-14 — Handoff Stage 3 complete for ai-council (session-sync)
 - Handoff Stage 3 complete for `2026-05-14-ai-council-session-sync`: 11-file bundle at `docs/handoffs/2026-05-14-ai-council-session-sync/`; Stage 1+2 inputs archived at `docs/handoffs/archive/2026-05-14-ai-council-session-sync/`
 - Stage 3 verification: 8 witnessed claims verified, 0 contradictions; 4 architect inferences preserved; 0 unknowns
