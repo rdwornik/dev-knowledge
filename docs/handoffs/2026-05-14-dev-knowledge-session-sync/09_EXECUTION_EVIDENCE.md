@@ -206,7 +206,7 @@ fabricated "ADR-29 atomic convention", circular citation.
 
 **Branch:** `docs/2026-05-14-backlog-v332-bugs-plus-9th-lesson`
 
-**Commit SHA:** [placeholder — fill post-commit]
+**Commit SHA:** `5b51cdc`
 
 **Files staged:** `LESSONS.md`, `BACKLOG.md`, `CHANGELOG.md`, `JOURNAL.md`, `docs/handoffs/2026-05-14-dev-knowledge-session-sync/09_EXECUTION_EVIDENCE.md`
 
