@@ -127,6 +127,64 @@ you didn't witness.
 If you don't know something specific (a commit message, a file name, a
 version number, a config value): say "Unknown — Stage 3 should verify."
 
+## Audience awareness (CRITICAL — read before responding)
+
+Your response will be processed by Stage 3 into the new chat's bundle. The
+new chat sees ONLY the Stage 3 bundle — it does NOT see this Stage 1
+question, does NOT see prior browser conversations, does NOT see JOURNAL
+entries unless explicitly included in the bundle, does NOT see external
+research papers or links.
+
+Write Stage 2 for the new chat's audience, not for the operator's audience
+or your own session memory.
+
+**Rules (all 7 apply to every section of your response):**
+
+1. **Open each major section with a scope declaration.** First line of
+   each of OBJECTIVE / REALITY / RATIONALE / DIRECTIVES / BOUNDARIES is:
+   "This section assumes zero prior session knowledge."
+
+2. **No references to Stage 1 itself.** Do NOT write phrases like
+   "Stage 1 Q1 framing", "Stage 1 metadata says", "the question above".
+   Stage 1 is not in the bundle.
+
+3. **No invisible session-history references.** Do NOT reference
+   session-internal terms the new chat will not understand. Generalize:
+   - NOT: "Round 1 → 2 → 3 file loads", "today's v3.3 prompt",
+     "the empirical test of v3.3 begins with this handoff cycle"
+   - DO: "during a recent extended session", "in the work culminating
+     in commit X"
+
+4. **List items inline at first mention.** Do NOT forward-reference.
+   - NOT: "drive session-lessons capture (5 primary + 3 secondary lessons,
+     see REALITY for list)" then list them later
+   - DO: list the items where first mentioned, or omit the count if the
+     list is too long for inline
+
+5. **Self-contained claims.** If a claim requires reading another repo
+   file (ADR, audit) to understand, inline a 1-sentence summary of that
+   file's relevant content at first reference.
+   - NOT: "v1 conflicted with audit findings"
+   - DO: "v1 (which proposed dropping full invariants from the bundle)
+     conflicted with the 2026-05-12 audit finding that the full
+     11-file bundle empirically catches architect fabrications via
+     drift detection (real case: 2026-05-09 ai-council handoff)"
+
+6. **No external research citations not in the bundle.** Paper titles,
+   blog posts, arxiv IDs, vendor blogs — none of these are in the bundle.
+   The new chat cannot verify or read them. Strip from the response.
+   Concepts can be stated as reasoning; citations cannot.
+
+7. **No self-referential meta-framing.** Do NOT describe the new chat
+   as "the test subject" or describe the handoff being "an empirical
+   test" unless that framing serves a receiver-side action. Write about
+   the work to be done, not about the meta-process of handing it off.
+
+Apply these rules during drafting, not as a final-pass edit. The 7 gaps
+are pattern-matched in the LLM's natural output style under session
+saturation — fighting them after drafting is harder than avoiding them
+during drafting.
+
 ## Format requirements (CRITICAL — read before responding)
 
 Your response will be copy-pasted verbatim into stage2-response.md for
@@ -271,8 +329,14 @@ valuable. Don't fabricate "do not touch X" if you don't know whether X exists
 
 - **Any cross-repo content?** Per Universal Self-Containment Rule (see HANDOFF_PROCESS), default expectation is zero cross-repo content in handoff. Only unclosed threads that genuinely could not close belong in REALITY, framed as "unclosed thread, awareness only." DIRECTIVES never target other repos.
 - **Internal coherence?** No DIRECTIVE violates own BOUNDARIES; OBJECTIVE-stated highest priority aligned with DIRECTIVE #1; no directive depends on data not packaged in bundle.
+- **Audience awareness check:** Mentally simulate a fresh LLM session
+  reading ONLY the Stage 3 bundle (no Stage 1, no JOURNAL, no prior
+  chats, no external research). For each paragraph of your response,
+  ask: would this be comprehensible without reaching for external context?
+  If any paragraph fails, rewrite to be self-contained per the 7
+  audience-awareness rules above.
 
-If either check fails, revise before submitting. (Source of truth: HANDOFF_PROCESS Universal Self-Containment Rule.)
+If any check fails, revise before submitting. (Source of truth: HANDOFF_PROCESS Universal Self-Containment Rule.)
 
 ════════════════════════════════════════════════════════════════════
 End of paste block.

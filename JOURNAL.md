@@ -18,8 +18,19 @@
 
 ---
 
-### 2026-05-14 — Handoff Stage 1 generated
+### 2026-05-14 — Handoff Stage 1 generated + v3.3.1 amendment
 - Handoff Stage 1 generated for `2026-05-14-dev-knowledge-session-sync`: HEAD `4cf2d9d` captured; awaiting Stage 2
+- Handoff v3.3.1 amendment landed: audience-awareness rules in
+  HANDOFF_QUESTION_TEMPLATE.md. Empirical trigger — 2026-05-14
+  self-review of Stage 2 response under v3.3 surfaced 7 patterns
+  that confuse new chat (which never sees Stage 1). v3.3 had
+  explicitly excluded Stage 1 template from refinement scope; that
+  was a scope error. v3.3.1 fixes the upstream template so future
+  Stage 2 responses naturally exhibit audience awareness without
+  manual downstream patching. AI Council research transcript
+  (docs/decisions/transcripts/, separate commit) provides
+  concept-level reinforcement with documented caveats about
+  hallucinated citations and question-framing bias.
 
 ### 2026-05-13 — Handoff v3.3 minimum-viable refinement
 - Did: handoff v3.3 minimum-viable refinement landed: audit-validated language
