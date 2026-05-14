@@ -215,3 +215,86 @@ fabricated "ADR-29 atomic convention", circular citation.
 - `protocols/HANDOFF_PROCESS.md` NOT touched (version bump is v3.3.2 scope)
 - `LESSONS.md` append-only — zero existing entries modified
 - `BACKLOG.md` additive only — zero existing entries modified
+
+---
+
+## Directive #3 — PLAYBOOK additions for ADRs 36/37/40/41
+
+**Branch:** `docs/2026-05-14-playbook-additions-adrs-36-37-40-41`
+
+**Starting HEAD:** `7c4faaaf` (clean, on main — confirmed at Step 1)
+
+### Commands run
+
+```
+# Step 1 — Verify env
+git rev-parse HEAD  → 7c4faaaf3bace1c27966ce46e2c55eaf74fcd08e
+git status --porcelain  → (clean)
+git branch --show-current  → main
+
+# Step 2 — Create feature branch
+git checkout -b docs/2026-05-14-playbook-additions-adrs-36-37-40-41
+
+# Step 3 — Survey PLAYBOOK structure, read all 4 ADRs, cross-ref impact analysis
+# PLAYBOOK: 17 numbered sections (1-17), no sub-numbering precedent
+# Numbering plan: Option A (renumber) — new §10 BACKLOG Grooming (after §9),
+#   new §18 Ecosystem Audit Tool (after old §16 = new §17), old §17 → §19
+# Cross-ref impact: 9 hits across 4 living files
+# Step 3 checkpoint presented to operator; operator approved via pre-merge report request
+
+# Step 4 — Draft all 4 changes (Edit tool, PLAYBOOK.md)
+# Decision A: Section 8 in-place rewrite (scope hybrid→meta, drop stale marker,
+#   add ADR-37 two-phase structure subsection, condense Roles + Handoff paths,
+#   preserve Token log cadence verbatim)
+# Decision B: Project Scale Tiers new subsection "Tier transition procedures (ADR-40)"
+#   with composite score formula, S→M/M→L tables, demotion procedure
+# Decision C: New Section 10 "BACKLOG Grooming Workflow [M+]" inserted after §9
+# Decision D: New Section 18 "Ecosystem Audit Tool Workflow [L+M]" inserted after §17
+
+# Step 5 — Update cross-references
+# PLAYBOOK internal: §10→§11 (line 98), §12→§13 (lines 46+51)
+# ESSENTIALS.md: §16→§17 (1 hit)
+# ADR-28: §12→§13 (2 hits)
+# 2026-04-27-deep-cleansing-diagnostic.md: §16→§17 (2 hits)
+# PLAYBOOK frontmatter: Last updated 2026-04-30 → 2026-05-14
+
+# Step 6 — validate_scope_tags.py  [see Test results below]
+# Step 7 — pre-commit + pytest  [see Test results below]
+
+# Step 8 — Governance files
+# BACKLOG.md: Stream C P1 item marked [done] with completion note
+# CHANGELOG.md: Added entry under 2026-05-14
+# JOURNAL.md: New session entry prepended
+# 09_EXECUTION_EVIDENCE.md: this section appended
+
+# Step 9 — Commit
+git add protocols/PLAYBOOK.md BACKLOG.md CHANGELOG.md JOURNAL.md \
+  protocols/ESSENTIALS.md docs/decisions/ADR-28-three-layer-architecture.md \
+  docs/audits/2026-04-27-deep-cleansing-diagnostic.md \
+  docs/handoffs/2026-05-14-dev-knowledge-session-sync/09_EXECUTION_EVIDENCE.md
+git commit -m "docs(playbook): close Stream C P1 — add sections for ADRs 36/37/40/41 ..."
+→ [SHA to be filled post-commit]
+```
+
+### Test results
+
+```
+python scripts/validate_scope_tags.py
+→ Summary: all files pass. Hybrid ratio: 14% (HEAD: 17%, delta: -3%).
+  (Section 8 five hybrid tags → meta; hybrid ceiling 25% respected)
+
+pytest -x --tb=short
+→ FAILED tests/test_validate_scope_tags.py::test_ratio_pass_when_stable_above_ceiling
+  (pre-existing failure — identical output on clean HEAD before changes)
+
+pre-commit run --all-files
+→ Validate scope tags (ADR-27).............................................Passed
+```
+
+### Final HEAD SHA
+
+```
+[to be filled after merge — post-operator approval]
+feature branch commit: [to be filled post-commit]
+merge commit: [to be filled post-merge]
+```

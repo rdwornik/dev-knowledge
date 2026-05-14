@@ -18,6 +18,10 @@
 
 ---
 
+### 2026-05-14 — Closed Stream C P1: PLAYBOOK additions for ADRs 36/37/40/41
+- Closed Stream C P1 methodology debt: new §10 BACKLOG Grooming (ADR-41), new §18 Ecosystem Audit Tool (ADR-36), §8 amended for ADR-37 two-phase protocol, Project Scale Tiers extended with ADR-40 tier transitions; §10–17 renumbered to §11–17+§19
+- Verification: scope tags pass, hybrid ≤25%, BACKLOG Stream C P1 marked [done], 9 cross-ref hits updated in 4 living files
+
 ### 2026-05-14 — Interleaved capture: 9th LESSON + BACKLOG v3.3.2 entry
 - Interleaved capture: 9th LESSON (`universal-without-cross-case-verification`) + BACKLOG entry for v3.3.2 template fix
 - Both bugs witnessed during parallel ai-council Stage 3 generation; template fix deferred per Hard Constraint #3 (Option B over Option A)

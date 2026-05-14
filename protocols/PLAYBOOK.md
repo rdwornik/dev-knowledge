@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-04-30
+> Last updated: 2026-05-14
 
 ---
 
@@ -43,12 +43,12 @@
 - **Layer 2 never executes.** No scripts, no orchestrator, no active daemon residing in `.dev-knowledge/`. Read-only execution semantics.
 - **Write-back via Layer 1 only.** Claude Code (Layer 3) does not directly edit `.dev-knowledge/` files. Reflections flow back through browser chat → handoff → commit.
 - **Bidirectional, not read-only.** Layer 2 is updateable via handoffs/ADRs/lessons from Layer 1. The *execution* direction is one-way (Layer 2 → Layer 3).
-- **Separate from Obsidian vault.** Vault = pre-sales domain knowledge (see Section 12). `.dev-knowledge` = dev methodology. Different domains, different audiences, different write paths.
+- **Separate from Obsidian vault.** Vault = pre-sales domain knowledge (see Section 13). `.dev-knowledge` = dev methodology. Different domains, different audiences, different write paths.
 
 ### Cross-reference
 <!-- scope: meta -->
 
-Section 12 "Where Knowledge Lives" describes knowledge **domains** (what lives where). This section describes workflow **layers** (how information flows). Complementary views of the same ecosystem.
+Section 13 "Where Knowledge Lives" describes knowledge **domains** (what lives where). This section describes workflow **layers** (how information flows). Complementary views of the same ecosystem.
 
 ---
 
@@ -95,7 +95,7 @@ AGENTS.md updates when:
 - New tool adopted (Section 5)
 - New gotcha promoted to skill (Section 6)
 - Architecture change (Section 3)
-- Anti-pattern discovered (Section 10)
+- Anti-pattern discovered (Section 11)
 
 Stale AGENTS.md = LLMs operating on outdated context. Treat updates as part of the change that triggered them, not separate maintenance.
 
@@ -469,6 +469,51 @@ Template is starting point, not contract. Repos may:
 <!-- scope: dev -->
 
 - v1.0 (2026-04-25) — initial. Three Scale-tiered templates grounded in `corp-monorepo.code-workspace` actual contents. Will refine based on extension marketplace evolution.
+
+### Tier transition procedures (ADR-40)
+<!-- scope: meta -->
+
+When the audit tool (Section 18) detects a tier boundary crossing, the following procedures apply. Audit tool reports findings — it does NOT auto-fix or block commits. Solo dev autonomy preserved.
+
+**Composite Tier Score:** Three signals combined via adapted Maintainability Index pattern (higher score = simpler):
+- TCR (Token Context Ratio): total estimated tokens across source-controlled files (chars/4 estimate)
+- Tests count: total `test_*` functions in `tests/` per pytest discovery
+- Modules count: top-level subdirectories under `src/{package}/` with `__init__.py`
+
+Tier thresholds (10-point hysteresis band prevents flapping): score ≥65 → S, 35–64 → M, <35 → L.
+
+#### S → M transition
+<!-- scope: meta -->
+
+Triggered when audit score drops below 65. Required within 2 sessions post-detection:
+
+| Action | Details |
+|--------|---------|
+| VISION.md | Upgrade frontmatter `tier: M` (Lite per ADR-33). Create VISION.md if missing. |
+| BACKLOG.md | Initialize per Section 10 schema. Seed with current pending items. |
+| README.md | Add "Current State" section if absent. |
+| CHANGELOG.md | Mandatory from this point per ADR-38. |
+| Process | Per-handoff backlog grooming (~2 min); per-session JOURNAL entry. |
+
+#### M → L transition
+<!-- scope: meta -->
+
+Triggered when audit score drops below 35. Required within 5 sessions post-detection:
+
+| Action | Details |
+|--------|---------|
+| VISION.md | Upgrade frontmatter `tier: L` (Standard per ADR-33). |
+| ARCHITECTURE.md | Create per ADR-38 mandate. |
+| docs/decisions/ | Create directory; ADRs mandatory for all architectural changes. |
+| Handoffs | Full compliance with ADR-32 v2.0 + ADR-37 two-phase overlay. |
+| Process | Quarterly grooming (~30 min); ADR for architectural decisions; lessons promotion per session. |
+
+#### Demotion (M → S, L → M)
+<!-- scope: meta -->
+
+Rare in practice — repos seldom shrink. Demotion is **not automatic**: requires explicit operator acknowledgment in VISION.md frontmatter update. Audit tool flags demotion candidate; Rob decides whether to formally demote (removing tier-specific obligations) or retain tier. Prevents temporary metric fluctuations from permanently removing governance obligations.
+
+Cross-refs: ADR-40, ADR-36 (audit tool — Section 18)
 
 ---
 
@@ -1761,78 +1806,43 @@ After archival, cross-link FROM:
 ---
 
 ## 8. Handing Off Between Sessions
-<!-- scope: hybrid -->
+<!-- scope: meta -->
 
-> **Stale (2026-04-28).** Handoff B sub-section below describes the legacy single-code-block format. Authoritative protocol is now `protocols/HANDOFF_PROCESS.md` v2.0 (folder format per ADR-32). Substantive rewrite of this section deferred to its own session — until then, follow HANDOFF_PROCESS.md for handoff generation.
+Operational authority: `protocols/HANDOFF_PROCESS.md` (ADR-32 v2.0 + ADR-37 two-phase overlay). This section summarizes handoff governance. For handoff generation, follow HANDOFF_PROCESS.md.
 
-**Claude Code executes. Claude.ai architects and challenges.** Three handoff scenarios exist.
+Cross-refs: ADR-37, ADR-32, ADR-42 (handoff format v3)
+
+### Two-phase structure (ADR-37)
+<!-- scope: meta -->
+
+Every handoff has two authoritative top-level sections that appear above the ADR-32 9-section Detailed Context:
+
+**Current State** (maps to `06_STATE_OF_PLAY.md`): verified factual status, decisions made this session, open questions, last verified commit SHA + timestamp.
+
+**Future State** (maps to `07_ACTION_PLAN.md`): next session goal (1–3 session horizon, not multi-quarter), recommended actions in priority order, dependencies, BACKLOG.md references (Section 10).
+
+**Canonicality rule:** Top-level Current/Future State = authoritative operational state. ADR-32 Detailed Context = reference layer. If they contradict, top-level wins.
+
+Mandate by handoff type:
+- **Session handoffs:** Future State required. `Future state: undetermined` valid only with written justification (cognitive exhaustion / scope mismatch / unresolved dependency). Unjustified absence = invalid.
+- **Audit handoffs** (generated by audit tool per Section 18): STRONG mandate — validator rejects folder if Future State missing.
 
 ### Roles
-<!-- scope: hybrid -->
+<!-- scope: meta -->
 
 - **Claude Code (terminal):** reads files, runs commands, edits code, verifies state, runs tests. Trusts filesystem, not memory.
-- **Claude.ai (browser):** architecture consulting, strategic decisions, critical thinking. **ALWAYS maintains critical thinking** — questions the approach, identifies risks, says "no" when something doesn't make sense. Never rubber-stamps.
+- **Claude.ai (browser):** architecture consulting, strategic decisions, critical thinking. Questions the approach, identifies risks. Never rubber-stamps.
 
 > **See ESSENTIALS § Roles for canonical definition (Does/Does NOT lists, Three-layer flow per ADR-28).**
 
-### Handoff A: Claude Code → Browser
-<!-- scope: hybrid -->
+### Handoff paths
+<!-- scope: meta -->
 
-1. In Claude Code: `/session-summary` → generates token-efficient state summary
-2. Paste into Claude.ai browser chat
-3. Discuss architecture, strategy, decisions
-4. Decisions go back to Claude Code as prompts (Section 2 format)
+**Path A — Claude Code → Browser:** `/session-summary` in Claude Code → paste into Claude.ai. Discuss architecture/strategy; decisions return as prompts (Section 2 format).
 
-### Handoff B: Browser → New Browser (Council Decision #24)
-<!-- scope: hybrid -->
+**Path B — Browser → New Browser:** Say `wygeneruj handoff`. Claude generates the folder-format handoff per HANDOFF_PROCESS.md — Rob makes zero formatting decisions. Trigger at ~2 hours while context is still fresh. Generate → Copy → Paste. No archiving step.
 
-**Chats die. Handoffs preserve momentum.** Don't wait until the chat is slow — checkpoint at ~2 hours while context is still fresh.
-
-**Trigger:** Say `wygeneruj handoff`. Claude generates everything — Rob makes zero formatting decisions.
-
-**What Claude generates:** A single markdown code block, <100 lines, strictly English. Sections auto-adapted to chat content:
-
-```
-HANDOFF — [topic]
-Date: YYYY-MM-DD
-
-OBJECTIVE: [one sentence — what this chat was trying to accomplish]
-[If context is degraded: "CONTEXT LOST — objective reconstructed from partial context"]
-
-STATUS: [where we are right now]
-
-DECISIONS:
-- [decision]. *(Changed from X because Y.)* ← only if reversed
-- [decision]
-
-OPEN TASKS:
-- [what remains to be done]
-- [what was deferred]
-
-FILES / ARTIFACTS:
-- [filepath] — [what it is]
-- [filepath] — [what it is]
-
-KEY CONTEXT: [max 5 bullets of non-obvious context the new chat needs]
-```
-
-**Transfer:** Click "Copy" button on the code block → open new chat → paste. Two steps.
-
-**Rules:**
-- No archiving step. Generate → Copy → Paste. That's it.
-- Claude auto-sizes: simple chat (~30 lines), complex chat (~80-100 lines)
-- If Claude can't see early objectives due to context limits, it writes `[CONTEXT LOST]` instead of hallucinating
-- Output is always in English, even if conversation was in Polish
-- Never inline full prompts or session logs — list file paths only
-
-### Handoff C: Browser → Claude Code
-<!-- scope: hybrid -->
-
-- Claude.ai writes prompts using Section 2 format (Model/Mode/Effort table)
-- Prompts should be QUESTIONS, not COMMANDS
-- Good: "What's in the docs folder? Report structure."
-- Bad: "Move benchmark.md to eval/"
-- Let Claude Code discover actual state, then propose actions
+**Path C — Browser → Claude Code:** Claude.ai writes prompts in Section 2 format (Model/Mode/Effort table). Prefer questions over commands. Let Claude Code discover actual state, then propose actions.
 
 ### Token log cadence
 <!-- scope: meta -->
@@ -1888,7 +1898,71 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
 
 ---
 
-## 10. Evaluating a New Tool/Framework/Model
+## 10. BACKLOG Grooming Workflow [M+]
+<!-- scope: meta -->
+
+`BACKLOG.md` is the single canonical source for ALL pending items across sessions. Handoffs reference BACKLOG items by pointer (stream + title), never duplicate the queue. Per-handoff and quarterly grooming prevent the write-only graveyard anti-pattern.
+
+**Tier mandate:** M and L repos: BACKLOG.md MANDATORY. S repos: pending items live in handoff §4 per ADR-32 until S→M transition triggers the BACKLOG mandate (within 2 sessions of audit detection — see "Project Scale Tiers" tier transition procedures).
+
+### Schema
+<!-- scope: meta -->
+
+```
+## Stream {name}
+
+### [P{1-3}] [Status] Item title
+- **What:** brief description
+- **Why:** rationale / triggering context
+- **Vision ref:** (optional) link to VISION.md section if strategic
+- **Added:** YYYY-MM-DD by {browser-1 | audit-tool | rob}
+- **Status:** open | in-progress | blocked | done
+```
+
+P1 = critical/blocking other work. P2 = important/next 1–3 sessions. P3 = wishlist/when capacity allows.
+
+Anti-pattern: do NOT mutate this template structure during edits. Rigid schema + audit checks prevent formatting drift. LLMs left to themselves drift; the template is the guardrail.
+
+### Per-handoff grooming (~2 min, mandatory for M+)
+<!-- scope: meta -->
+
+Browser 1 (departing) runs at handoff generation:
+
+1. Read current BACKLOG.md state
+2. Mark stale items (no progress in 3+ sessions) for review
+3. Prune obvious dead items (completed, no longer relevant)
+4. Add new items surfaced this session
+5. Update Status on completed items to `done`
+6. Future State in handoff references BACKLOG items by stream + title (pointers, not copy-paste)
+
+Light P1 items MAY be copy-pasted inline into Future State (acceptable at P1 only — Council Risk #2 mitigation).
+
+### Quarterly deep grooming (~30 min, scheduled)
+<!-- scope: meta -->
+
+Rob reviews full BACKLOG once per quarter (first review: 2026-07-01):
+
+1. Archive all `done` items to `BACKLOG-archive/YYYY-Q{N}.md`
+2. Re-prioritize P1/P2/P3 based on current ecosystem state
+3. Remove items that no longer align with VISION
+4. Groom each stream: still active? Items still actionable?
+
+**Write-only graveyard prevention:** speculative or distant ideas route to VISION.md, not BACKLOG.md. Strict curation — actionable items only.
+
+### Split-brain prevention
+<!-- scope: meta -->
+
+BACKLOG.md is the single source of truth. Handoffs must NOT duplicate the pending queue:
+- Handoff Future State (per ADR-37, Section 8) = which BACKLOG items THIS session targets — not a parallel queue
+- ADR-32 v2.0 §4 "Pending — next session candidates": deprecated in favor of "Pending items: see BACKLOG.md" pointer
+
+Browser 2 (incoming) at session start: read handoff Current + Future State → read BACKLOG.md for full context → validate Future State items against BACKLOG.md (drift check per ADR-37) → act on prioritized items.
+
+Cross-refs: ADR-41, ADR-37 (Section 8), ADR-40 (tier transitions in "Project Scale Tiers" section)
+
+---
+
+## 11. Evaluating a New Tool/Framework/Model
 <!-- scope: hybrid -->
 
 **Check maturity before investing time.** Fresh repos with <100 stars and v0.1 = too early.
@@ -1912,7 +1986,7 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
 
 ---
 
-## 11. Multi-Project Rules
+## 12. Multi-Project Rules
 <!-- scope: dev -->
 
 **Package boundaries are sacred.** Projects/packages should never import directly from each other — they communicate via CLI subprocess, shared schema packages, or well-defined interfaces.
@@ -1937,7 +2011,7 @@ Dev/{project}/packages/X/CLAUDE.md  ← Package rules
 
 ---
 
-## 12. Where Knowledge Lives
+## 13. Where Knowledge Lives
 <!-- scope: meta -->
 
 **Three domains, three homes, zero overlap.** Council Decision #23 (2026-03-29, unanimous 4-0).
@@ -1981,7 +2055,7 @@ If a client engagement generates a dev lesson, strip all client names, proprieta
 
 ---
 
-## 13. Markdown Governance
+## 14. Markdown Governance
 <!-- scope: dev -->
 
 > **STALE — Handoff and Snapshots/reports rows.** Handoff row predates folder format; see `protocols/HANDOFF_PROCESS.md` v2.0 (folder convention per ADR-32). Snapshots/reports row's "delete after 90 days" lifecycle does not match practice (audits kept indefinitely). Substantive rewrite deferred to its own session.
@@ -2018,7 +2092,7 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 
 ---
 
-## 14. Anti-Patterns — What NOT to Do
+## 15. Anti-Patterns — What NOT to Do
 <!-- scope: hybrid -->
 
 **"I'll organize later"** — If you create a file without knowing where it belongs, you'll never organize it. Know the category BEFORE creating.
@@ -2053,7 +2127,7 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 
 ---
 
-## 15. Cross-Tool Review **[L+M]**
+## 16. Cross-Tool Review **[L+M]**
 <!-- scope: dev -->
 
 **When:** Feature branch touches 3+ files OR 2+ packages OR safety-critical paths (vault writes, OneDrive ops, cleanup/delete)
@@ -2076,7 +2150,7 @@ Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
 
 ---
 
-## 16. Code Quality Audit Process
+## 17. Code Quality Audit Process
 <!-- scope: dev -->
 
 **When:** Monthly full audit **[L only]** · On-demand before major refactors **[L+M]** · S projects skip.
@@ -2118,7 +2192,58 @@ This is not optional for the applicable tier. Stale structural documentation is 
 
 ---
 
-## 17. Scrum-Master Review Propagation
+## 18. Ecosystem Audit Tool Workflow [L+M]
+<!-- scope: meta -->
+
+`.dev-knowledge` is the ecosystem auditor for all repos under `Dev/`. The audit tool reads child repos and writes only to `.dev-knowledge` paths — never touches child repo files.
+
+**This PLAYBOOK section is the prerequisite for P1 implementation.** Do not begin the audit tool build (BACKLOG.md Stream C P1) until this section exists.
+
+### Read/write boundary (hard constraint)
+<!-- scope: meta -->
+
+| Operation | Allowed paths |
+|-----------|---------------|
+| **Read** | Any child repo under `Dev/` (read-only — no writes to child repos ever) |
+| **Write** | `.dev-knowledge/ecosystem/{repo}/state.yaml` (registry) |
+| **Write** | `.dev-knowledge/ecosystem/{repo}/history/` (append-only audit log) |
+| **Write** | `.dev-knowledge/ecosystem-index.yaml` (derived rollup, regenerated on demand) |
+| **Write** | `.dev-knowledge/docs/audits/` (ecosystem reports) |
+| **Write** | `.dev-knowledge/docs/handoffs/` (audit handoff folders, P2 only) |
+
+### CLI commands
+<!-- scope: meta -->
+
+```
+audit run                  # full ecosystem; writes report + handoffs (P2)
+audit repo <name>          # single repo
+audit registry update      # regenerate ecosystem-index.yaml
+audit health               # quick TTY status, no file writes
+```
+
+Every `audit run` produces a single ecosystem report at `docs/audits/YYYY-MM-DD-ecosystem-audit.md`. Per-non-compliant-repo handoff folders added in P2. No CLI-only mode — every run produces files for traceability.
+
+### 4-phase implementation roadmap
+<!-- scope: meta -->
+
+**P1 MVP (current open BACKLOG item):** CLI scaffold (`audit run`, `audit health`) + ecosystem state schema (state.yaml + history/) + audit checks (VISION.md presence per ADR-33, ADR-31 baseline, ADR-38 architecture compliance) + single markdown report. Tests: schema roundtrip, check execution, report generation.
+
+**P2:** Handoff folder generator — HANDOFF.md per non-compliant repo using ADR-37 two-phase format (Section 8); manifest.json + tree.txt + relevant-decisions/ (full ADR file copies, not paragraph extraction).
+
+**P3:** Scheduled / triggered runs — optional cron / Task Scheduler integration. Deferred until P1 usage validates need.
+
+**P4:** LLM-augmented narrative reports — deterministic Python checks remain; LLM generates narrative gap interpretation in handoff. Audit tool becomes "Scrum Master" agent with LLM-driven analysis.
+
+### Audit findings and tier mismatches
+<!-- scope: meta -->
+
+Audit tool reports tier mismatches (computed score vs declared `scale:` in VISION.md) but does NOT auto-fix. Solo dev autonomy preserved — findings are warnings, not pre-commit blocks. Findings log to `.dev-knowledge/ecosystem/{repo}/history/YYYY-MM-DD.md`. Tier transition procedures live in the "Project Scale Tiers" structural section.
+
+Cross-refs: ADR-36, ADR-31 (authority model), ADR-37 (two-phase handoff — Section 8), ADR-40 (tier transitions)
+
+---
+
+## 19. Scrum-Master Review Propagation
 <!-- scope: meta -->
 
 **When:** `.dev-knowledge` (or any ecosystem-meta repo) audits a target repo against universal conventions (ADR-34 naming, ADR-38 architecture, ADR-41 backlog, etc.) and finds non-conformities to route. Distinct from § 15 Cross-Tool Review (within-repo Codex audit) and § 16 Code Quality Audit Process (within-repo audit cycle).

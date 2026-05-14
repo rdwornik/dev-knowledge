@@ -8,6 +8,9 @@ Notable changes to the dev practice knowledge base.
 
 ### Added
 
+- `protocols/PLAYBOOK.md`: added Section 10 (BACKLOG Grooming Workflow) covering ADR-41 schema, per-handoff ~2 min grooming, quarterly deep grooming, split-brain prevention; added Section 18 (Ecosystem Audit Tool Workflow) covering ADR-36 read/write boundary, CLI commands, 4-phase roadmap; amended Section 8 (Handing Off Between Sessions) in-place for ADR-37 two-phase Current/Future State protocol (dropped stale marker, retagged meta); extended "Project Scale Tiers" structural section with ADR-40 tier transition procedures (S→M, M→L, demotion rules). Sections 10–17 renumbered to 11–17 (+19 for old §17) to maintain sequential ordering. Closes Stream C P1 methodology debt outstanding since 2026-04-30.
+- Cross-reference updates: ESSENTIALS.md §16→17, ADR-28 §12→13 (×2), 2026-04-27 deep-cleansing-diagnostic.md §16→17 (×2), PLAYBOOK.md internal §10→11 + §12→13 (×3).
+
 - `LESSONS.md`: appended 9th architect-discipline observation (`universal-without-cross-case-verification`) — interleaved capture from parallel ai-council handoff observation; evidence: v3.3.1 universality claim validated only against .dev-knowledge self-handoff, two cross-repo template bugs surfaced on first ai-council Stage 3 run
 - `BACKLOG.md`: added Stream C P1 item for v3.3.2 (HANDOFF_FOLDER_TEMPLATE parameterization for cross-repo handoffs); captured here, fix deferred to v3.3.2 dedicated session per Hard Constraint #3 of active action plan
 - `LESSONS.md`: appended 8 architect-discipline observations (5 primary + 3 secondary) from 2026-05-14 extended session — `captured for review` (ref `docs/handoffs/2026-05-14-dev-knowledge-session-sync/06_STATE_OF_PLAY.md`)

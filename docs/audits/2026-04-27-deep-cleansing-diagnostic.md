@@ -96,11 +96,11 @@ All .md files classified by naming convention:
 
 **Finding E2 — HIGH: Section reference does not exist**
 - **File:** `ESSENTIALS.md:177`
-- **Claim:** "see PLAYBOOK Section 16"
-- **Target:** "PLAYBOOK.md:2017 ## 16. Code Quality Audit Process"
+- **Claim:** "see PLAYBOOK Section 17"
+- **Target:** "PLAYBOOK.md ## 17. Code Quality Audit Process" (renumbered from 16 — 2026-05-14)
 - **Reason cited in ESSENTIALS:** "Codex full-repo audit → triage flags → fix CRITICAL/HIGH → re-audit"
-- **Issue:** Section 16 exists and is titled "Code Quality Audit Process" — reference is **correct**, but ESSENTIALS links it under monthly review cadence while Section 16's scope is broader (applies per project Scale tier)
-- **Severity:** HIGH — potential mismatch between context (monthly Codex review) and what Section 16 actually covers (Tier [L+M] code audit, not monthly cadence rule)
+- **Issue:** Section 17 exists and is titled "Code Quality Audit Process" — reference is **correct**, but ESSENTIALS links it under monthly review cadence while Section 17's scope is broader (applies per project Scale tier)
+- **Severity:** HIGH — potential mismatch between context (monthly Codex review) and what Section 17 actually covers (Tier [L+M] code audit, not monthly cadence rule)
 
 **Finding E3 — MEDIUM: "§7a" notation inconsistent**
 - **File:** `ESSENTIALS.md:132`
@@ -242,7 +242,7 @@ All file paths checked in governance documents:
 
 2. **HIGH findings (fixes clear):**
    - C1 (Section numbering clarity): Clarify "numbered 1–16" vs "unnumbered pre-1 sections"
-   - E2 (Section 16 context mismatch): Verify that Section 16's "monthly cadence" matches ESSENTIALS usage
+   - E2 (Section 17 context mismatch): Verify that Section 17's "monthly cadence" matches ESSENTIALS usage
    - R3 (Lessons count 69 vs trigger 50): Either document why 69 is intentional, or split per trigger
    - T1 (TOKEN-LOG type label): Relabel to "Newest-first" or add qualifier
 

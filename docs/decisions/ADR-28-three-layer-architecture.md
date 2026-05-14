@@ -22,11 +22,11 @@ Three-layer is **descriptive** — it names an operating pattern already in plac
 
 ## Consequences
 
-- **Clarifies** "where does this file belong?" (which layer) in addition to Section 12's "which domain"
+- **Clarifies** "where does this file belong?" (which layer) in addition to Section 13's "which domain"
 - **Creates dependency on Layer 1** — handoff loss = write-back loss. Mitigated by HANDOFF_PROCESS.md.
 - **Revisit triggers:** tooling genuinely needing to live in `.dev-knowledge`, execution flowing 3 → 2, or a second contributor (same trigger set as Council #27 reopen conditions).
 
 ## References
 
 - Handoff: `docs/handoffs/2026-04-21-dev-knowledge-architecture-redefinition.md`
-- ADR-27 (Council #27, scope tagging) · PLAYBOOK "System Architecture" · PLAYBOOK Section 12
+- ADR-27 (Council #27, scope tagging) · PLAYBOOK "System Architecture" · PLAYBOOK Section 13
