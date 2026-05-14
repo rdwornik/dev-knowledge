@@ -294,7 +294,6 @@ pre-commit run --all-files
 ### Final HEAD SHA
 
 ```
-[to be filled after merge — post-operator approval]
-feature branch commit: [to be filled post-commit]
-merge commit: [to be filled post-merge]
+feature branch commit: 68d9b3b
+merge commit: [to be filled post-merge — pending operator approval]
 ```
