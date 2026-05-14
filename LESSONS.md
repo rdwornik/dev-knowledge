@@ -2,14 +2,32 @@
 <!-- scope: hybrid -->
 
 > **Format:** `### YYYY-MM-DD | source | lesson | category | [scope: X] | action taken`
-> New entries go at the bottom. Never edit old entries. Never delete.
-> Last updated: 2026-05-12
+> New entries go at the top of the Entries section. Never edit old entries. Never delete.
+> Last updated: 2026-05-14
 
 ---
 
 > Split trigger (when navigation by topic becomes painful) deferred 2026-04-24. Rationale: ADR-29 [scope: X] inline field provides equivalent filtering without losing chronology. Reopen if filtering by scope proves insufficient.
 
 ## Entries
+
+### 2026-05-14 | documentation-conflation | Ratifying a decision in the repo (ADR merge, archive) does not equal operational change in tooling; verify behavior, not artifacts. Evidence: ADR-45 v1 marked Accepted on main while zero of its 9 migration steps had executed. | architect-discipline | [scope: meta] | captured for review.
+
+### 2026-05-14 | propose-then-verify | Architecture proposals must be grounded in Witnessed file reads of actual repo state, not inference about file/folder/convention state. Evidence: operator file uploads revealed proposals were misaligned with actual repo content. | architect-discipline | [scope: meta] | captured for review.
+
+### 2026-05-14 | over-conclusion-on-open-questions | Audit-marked "open questions" are unknowns to investigate, not established failures to build fixes around. Evidence: ADR-45 v1's "60% bloat" headline rested on the audit's open question about bundle weight in practice, treated as if measured. | architect-discipline | [scope: meta] | captured for review.
+
+### 2026-05-14 | internalization-vs-delivery | A file's presence in the handoff bundle does not guarantee the architect internalizes it; verify via articulation, not delivery. Evidence: VISION.md was in the bundle yet had to be uploaded twice during the session because the architect was operating without role guidance internalized. | architect-discipline | [scope: meta] | captured for review.
+
+### 2026-05-14 | role-grounding-via-vision | An architect that has not internalized VISION drifts to work from later phases when the current phase is not done; VISION is upstream of every other directive in any session. Meta-cause underlying documentation-conflation, propose-then-verify, over-conclusion-on-open-questions, and internalization-vs-delivery. | architect-discipline | [scope: meta] | captured for review.
+
+### 2026-05-14 | iterative-file-load-pacing | Operator loading files one-cluster-per-message empirically grounds the architect faster than a bundle dump; pacing is signal, not friction. | architect-discipline | [scope: meta] | captured for review.
+
+### 2026-05-14 | tree-archive-value-distinct-from-regenerability | Operator paste-to-architect during debug is a real use case that the "it is regenerable" critique misses; archive value and regeneration value are distinct. Context: 08_TREE.txt archival decision. | architect-discipline | [scope: meta] | captured for review.
+
+### 2026-05-14 | over-agreement-as-defensive-sycophancy | Concession without verification is sycophancy disguised as agreeableness; hold position until challenged on substance. | architect-discipline | [scope: meta] | captured for review.
+
+### 2026-05-14 | universal-without-cross-case-verification | Describing a mechanism as "universal" or "cross-repo" while testing only the self-applied case grounds the universality claim in Inference, not Witnessed evidence; cross-case empirical verification on at least two distinct target cases is required before applying the "universal" label. Evidence: v3.3.1 amendment to HANDOFF_QUESTION_TEMPLATE.md was framed as universal scope but empirically validated only against .dev-knowledge self-handoff; first cross-repo Stage 3 generation (ai-council, 2026-05-14) surfaced two template bugs — Bug 1: articulation gate item #1 hardcodes ".dev-knowledge" with no {TARGET_REPO} substitution; Bug 2: 02_VISION.md generation is unconditional cp .dev-knowledge/VISION.md, shipping cross-repo bundles without target repo's own mission statement per ADR-33. | architect-discipline | [scope: meta] | captured for review.
 
 ### 2026-04-21 | browser-chat | Browser-as-tutor defaulting violates three-layer architecture | process | caught + corrected mid-session
 
@@ -315,21 +333,3 @@ Plus: continuous improvement principle elevated from individual project decision
 ### 2026-05-13 | AI Council question source-domain framing | Council research/pick debates must explicitly exclude source-domain mismatches in constraints. Prior ADR-42 Council converged on medical SBAR/I-PASS because question framing didn't exclude it; result was source-domain-wrong recommendation that drove 5-section template producing 60% bloat. Specify exclusions inline in Council question constraint section. | methodology | [scope: hybrid] | Council question template now requires "exclude X literature" in constraints when source-domain mismatch is plausible.
 
 ### 2026-05-13 | architect inline git-ops violation | Browser-chat architect wrote `git checkout main && git merge --no-ff ...` as inline text in chat instead of either a PowerShell copy-paste snippet (scale S) or a Claude Code prompt (scale M+). Operator flagged it: all git operations and multi-step shell sequences go through one of two channels based on task scale, never as informational text the operator manually types from chat. | channel-discipline | [scope: meta] | ESSENTIALS.md update pending (separate prompt) to document the rule explicitly under "How the architect communicates execution"; until then operator-review catches violations.
-
-### 2026-05-14 | documentation-conflation | Ratifying a decision in the repo (ADR merge, archive) does not equal operational change in tooling; verify behavior, not artifacts | architect-discipline | [scope: meta] | captured for review — source: architect-self-observation; evidence: ADR-45 v1 marked Accepted on main while zero of its 9 migration steps had executed; handoff tool behavior was unchanged
-
-### 2026-05-14 | propose-then-verify | Architecture proposals must be grounded in Witnessed file reads of actual repo state, not inference about file/folder/convention state | architect-discipline | [scope: meta] | captured for review — source: architect-self-observation; evidence: operator file uploads revealed proposals were misaligned with actual repo content
-
-### 2026-05-14 | over-conclusion-on-open-questions | Audit-marked "open questions" are unknowns to investigate, not established failures to build fixes around | architect-discipline | [scope: meta] | captured for review — source: architect-self-observation; evidence: ADR-45 v1's "60% bloat" headline rested on the audit's open question about bundle weight in practice, treated as if measured
-
-### 2026-05-14 | internalization-vs-delivery | A file's presence in the handoff bundle does not guarantee the architect internalizes it; verify via articulation, not delivery | architect-discipline | [scope: meta] | captured for review — source: architect-self-observation; evidence: VISION.md was in the bundle yet had to be uploaded twice during the session because the architect was operating without role guidance internalized
-
-### 2026-05-14 | role-grounding-via-vision | An architect that has not internalized VISION drifts to work from later phases when the current phase is not done; VISION is upstream of every other directive in any session | architect-discipline | [scope: meta] | captured for review — source: architect-self-observation; meta-cause underlying observations documentation-conflation, propose-then-verify, over-conclusion-on-open-questions, and internalization-vs-delivery
-
-### 2026-05-14 | iterative-file-load-pacing | Operator loading files one-cluster-per-message empirically grounds the architect faster than a bundle dump; pacing is signal, not friction | architect-discipline | [scope: meta] | captured for review — source: architect-self-observation
-
-### 2026-05-14 | tree-archive-value-distinct-from-regenerability | Operator paste-to-architect during debug is a real use case that the "it is regenerable" critique misses; archive value and regeneration value are distinct | architect-discipline | [scope: meta] | captured for review — source: architect-self-observation; context: 08_TREE.txt archival decision
-
-### 2026-05-14 | over-agreement-as-defensive-sycophancy | Concession without verification is sycophancy disguised as agreeableness; hold position until challenged on substance | architect-discipline | [scope: meta] | captured for review — source: architect-self-observation
-
-### 2026-05-14 | universal-without-cross-case-verification | Describing a mechanism as "universal" or "cross-repo" while testing only the self-applied case grounds the universality claim in Inference, not Witnessed evidence; cross-case empirical verification on at least two distinct target cases is required before applying the "universal" label | architect-discipline | [scope: meta] | captured for review — source: architect-self-observation; evidence: v3.3.1 amendment to HANDOFF_QUESTION_TEMPLATE.md was framed as universal scope but empirically validated only against .dev-knowledge self-handoff; first cross-repo Stage 3 generation (ai-council, 2026-05-14) surfaced two template bugs — Bug 1: articulation gate item #1 hardcodes ".dev-knowledge" with no {TARGET_REPO} substitution; Bug 2: 02_VISION.md generation is unconditional cp .dev-knowledge/VISION.md, shipping cross-repo bundles without target repo's own mission statement per ADR-33

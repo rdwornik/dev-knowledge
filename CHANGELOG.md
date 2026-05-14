@@ -19,6 +19,14 @@ Notable changes to the dev practice knowledge base.
 
 ### Changed
 
+- `LESSONS.md`: rewrote 9 same-day entries to canonical 6-field schema
+  (dropped non-schema `— source: X; evidence: Y` trailer) and relocated
+  from tail to top of dated-entries section per operator visibility
+  convention. Same-day correction; ADR-29 same-day override per operator
+  decision 2026-05-14
+- `BACKLOG.md`: added Stream C P2 item for deferred ADR-29 ordering
+  convention amendment (formalize "prepend at top" going-forward)
+
 - Handoff process amended to v3.3.1 (HANDOFF_QUESTION_TEMPLATE.md +
   HANDOFF_PROCESS.md):
   - Stage 1 template gains an `Audience Awareness` section (7 rules

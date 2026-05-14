@@ -68,6 +68,14 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-04-30 by rob (Phase 1 self-audit)
 - **Status:** open
 
+### [P2] [open] ADR-29 amendment — formalize "prepend at top" ordering convention for LESSONS.md
+- **What:** Amend ADR-29 (or create new ADR superseding ADR-29's position-rule clause) to formalize the going-forward convention: new LESSONS entries prepend at top of dated-entries section, not append at tail. Update any related references in PLAYBOOK / ESSENTIALS / CLAUDE.md that mention LESSONS append direction.
+- **Why:** Operator visibility — newest entries should be immediately visible on file open so operator can confirm captures landed. Same-day correction (2026-05-14 session) moved 9 entries to top as one-time fix; going-forward convention needs formalization so future contributors don't tail-append out of habit, creating mixed ordering.
+- **Captured here, not fixed here.** Per scope discipline — same-day file correction is one concern, ADR amendment is methodology change deserving its own thought (full Stage 1→3 cycle if needed).
+- **Vision ref:** ADR-29 (lessons grandfathering schema, current authority on LESSONS convention).
+- **Added:** 2026-05-14 by rob (interleaved scope, same-day correction session).
+- **Status:** open
+
 ### [P3] [superseded] Council CLI dual-write trigger logic
 - **What:** Define when Council debates dual-write to .dev-knowledge vs ai-council/output only; flag-based or auto-detect (research+pick=curated, test=no-curated)
 - **Why:** Test debates currently pollute curated transcripts; surfaced 2026-04-30 session

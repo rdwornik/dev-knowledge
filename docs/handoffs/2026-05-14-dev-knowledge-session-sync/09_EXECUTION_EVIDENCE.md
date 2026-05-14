@@ -297,3 +297,43 @@ pre-commit run --all-files
 feature branch commit: 68d9b3b
 merge commit: 72f486e
 ```
+
+---
+
+## Interleaved correction — 2026-05-14 (same-day LESSONS canonical rewrite)
+
+**Decision origin:** Operator observed that opening LESSONS.md showed 2026-04-21 as the first
+entry — the 9 entries committed today (8f92d30 + 5b51cdc) were at the tail, invisible on file
+open. Additionally, those entries deviated from canonical 6-field schema by appending a
+`— source: X; evidence: Y` trailer after field #6. Both issues identified and corrected same-day.
+
+**ADR-29 same-day override authorized** by operator: this is correction of same-day work,
+not retroactive falsification of historical entries.
+
+**This is LESSON #1 (`documentation-conflation`) firing in real time:** the prior directive's
+verification accepted Claude Code's claim about format correctness on inference rather than
+witnessed raw diff. Caught and corrected same-day.
+
+**Scope of correction (append-only, no structural changes to pre-existing entries):**
+1. `LESSONS.md`: rewrote 9 same-day entries to canonical 6-field schema (dropped
+   `— source: X; evidence: Y` trailer, folded evidence into lesson field, dropped
+   source-type attribution). Relocated from tail (lines 319-335) to top of dated-entries
+   section (before existing 2026-04-21 entry) per operator visibility convention.
+2. `BACKLOG.md`: added Stream C P2 item for deferred ADR-29 ordering-convention amendment
+   (formalize "prepend at top" going-forward).
+3. `CHANGELOG.md`: added entry under `## 2026-05-14 / ### Changed`
+4. `JOURNAL.md`: new 3-line session entry prepended
+
+**Branch:** `docs/2026-05-14-lessons-canonical-rewrite-and-top-reorder`
+
+**Commit SHA:** `c2ae7bc`
+
+**Files staged:** `LESSONS.md`, `BACKLOG.md`, `CHANGELOG.md`, `JOURNAL.md`,
+`docs/handoffs/2026-05-14-dev-knowledge-session-sync/09_EXECUTION_EVIDENCE.md`
+
+**Constraints honored:**
+- Pre-existing LESSONS entries (2026-04-21 and earlier) untouched
+- Order of the 9 entries preserved (semantic: entry #5 `role-grounding-via-vision` is
+  meta-cause of entries 1-4)
+- No ADR modified
+- `templates/HANDOFF_FOLDER_TEMPLATE.md` NOT touched (Hard Constraint #3 still applies)
