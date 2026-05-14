@@ -295,5 +295,5 @@ pre-commit run --all-files
 
 ```
 feature branch commit: 68d9b3b
-merge commit: [to be filled post-merge — pending operator approval]
+merge commit: 72f486e
 ```
