@@ -18,8 +18,8 @@
 
 ---
 
-### 2026-05-14 — Handoff Stage 1 generated + v3.3.1 amendment
-- Handoff Stage 1 generated for `2026-05-14-dev-knowledge-session-sync`: HEAD `4cf2d9d` captured; awaiting Stage 2
+### 2026-05-14 — Handoff Stage 1 generated (v3.3.1) + v3.3.1 amendment
+- Handoff Stage 1 regenerated under v3.3.1 for `2026-05-14-dev-knowledge-session-sync`: HEAD `8663a7c` captured; awaiting Stage 2
 - Handoff v3.3.1 amendment landed: audience-awareness rules in
   HANDOFF_QUESTION_TEMPLATE.md. Empirical trigger — 2026-05-14
   self-review of Stage 2 response under v3.3 surfaced 7 patterns
