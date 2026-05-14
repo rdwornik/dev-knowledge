@@ -1,0 +1,27 @@
+{
+  "handoff_id": "2026-05-14-ai-council-session-sync",
+  "type": "session-sync",
+  "format_version": "v3.3.1",
+  "generated_at": "2026-05-14T00:00:00Z",
+  "target_repo": {
+    "name": "ai-council",
+    "path": "C:\\Users\\1028120\\Documents\\Dev\\ai-council",
+    "head_sha": "0f069554b894802504aa4e5ce140b1d481ae9ec8",
+    "branch": "main",
+    "working_tree": "clean"
+  },
+  "stage_2_provided": true,
+  "files": [
+    {"path": "00_README.md", "sha256": "789f401794d81b3d68acf4c5ce178211349afcd9f7ec781e32e9646471520a61"},
+    {"path": "00_first-message.md", "sha256": "4da67898900b8c7a887e21b1ac89b8fbaa4df920861e00dc4057f86c25107fe4"},
+    {"path": "01_MANIFEST.md", "sha256": "3199cb36d74f7037ecbd9fedfcd339cab459af13528933e94994be264d97cb75"},
+    {"path": "02_VISION.md", "sha256": "da1ad338f2c46ca4d255d509f8b27a7a4fbf25b8c3c7b8efa4d4fb1a415534f2"},
+    {"path": "03_PLAYBOOK.md", "sha256": "9eef1db11e4f09a18b3033f61deb62aea71d659d604e69918f7d02f554c1ccda"},
+    {"path": "04_ESSENTIALS.md", "sha256": "5a9d4c64ea07f45987367279f67b2eb23116302ad1423fab420624de8cc9e37f"},
+    {"path": "05_GOVERNANCE_ESSENCES.md", "sha256": "579f4214ea622a6d432a678106f9f609aa803ad8594091acbb48eb9c8c54d13d"},
+    {"path": "06_STATE_OF_PLAY.md", "sha256": "54e909b291834f778b33b20849832cc69ec20a57d3e65d848e7a605e4194992f"},
+    {"path": "07_ACTION_PLAN.md", "sha256": "8f34a3c28a1d44f96677630d00db8d83a41fdbf0138e501353e3a3f7b53fdb57"},
+    {"path": "08_TREE.txt", "sha256": "8829545e81e41bbbbc4352920ff9d79d5e8e088ba0ac696f3c1349b02e22ca9e"},
+    {"path": "09_EXECUTION_EVIDENCE.md", "sha256": "62004b72d7916f69fe88abbbba84d4b7a3faed8440806920aa333a5b3390ba27"}
+  ]
+}

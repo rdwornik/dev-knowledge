@@ -8,6 +8,7 @@ Notable changes to the dev practice knowledge base.
 
 ### Added
 
+- Handoff Stage 3 complete: `docs/handoffs/2026-05-14-ai-council-session-sync/` (11-file bundle, session-sync, v3.3.1). Stage 1+2 inputs archived at `docs/handoffs/archive/2026-05-14-ai-council-session-sync/`. Directives: synthesizer scoring → ADR-01 amendment; AGENTS.md; ADR-38 Scale M compliance; hyphen spot-check; origin push.
 - Handoff Stage 3 complete: `docs/handoffs/2026-05-14-dev-knowledge-session-sync/` (11-file bundle, session-sync, v3.3.1). First handoff cycle generated under v3.3.1 audience-awareness rules. Stage 1+2 inputs archived at `docs/handoffs/archive/2026-05-14-dev-knowledge-session-sync/`.
 
 ### Changed
