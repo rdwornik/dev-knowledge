@@ -42,12 +42,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-14 by rob (interleaved scope, current session)
 - **Status:** open
 
-### [P1] [open] PLAYBOOK content additions for ADRs 36/37/40/41
+### [P1] [done] PLAYBOOK content additions for ADRs 36/37/40/41
 - **What:** Add PLAYBOOK.md sections for ADR-36 (audit tool usage workflow), ADR-37 (two-phase handoff format guidance), ADR-40 (tier transition procedures S→M and M→L), ADR-41 (BACKLOG grooming workflow per-handoff and quarterly cadence). Update PLAYBOOK header version/date to reflect content amendments.
 - **Why:** PLAYBOOK lifecycle (per ADR-39) update trigger is "ADR ratification adding/changing process." 4 ADRs ratified 2026-04-30 add/change process; PLAYBOOK currently mentions only ADR-33/34. Methodology debt.
 - **Vision ref:** VISION.md "Methodology Author" function
 - **Added:** 2026-04-30 by rob (Phase 1 self-audit)
-- **Status:** open
+- **Status:** done (2026-05-14 — new §10 BACKLOG Grooming, new §18 Ecosystem Audit Tool, §8 amended ADR-37 two-phase, Project Scale Tiers extended ADR-40 tier transitions; sections 10–17 renumbered 11–17+19)
 
 ### [P1] [open] Audit tool P1 implementation
 - **What:** Build .dev-knowledge audit tool per ADR-36 — P1 MVP (audit run + ecosystem state + markdown report). Implement compute_tier_score, classify_tier per ADR-40.
