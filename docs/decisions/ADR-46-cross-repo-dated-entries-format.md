@@ -138,9 +138,15 @@ new dependencies beyond stdlib) implementing a **sniff-test** strategy:
      etc.).
    - **JOURNAL.md:** no payload sniff (free-prose).
 
-Validator MUST NOT use markdown AST parsing libraries; regex over
-line-by-line read with simple fenced-code-block skipping is the
-intended implementation.
+**Stdlib-regex implementation required** for the validator: regex
+over line-by-line read with simple fenced-code-block skipping is the
+intended implementation. Adding a markdown-AST parsing library (e.g.
+`markdown-it-py`, `mistletoe`) requires a **new ADR amendment with
+empirical justification** — e.g., the regex pattern has grown to
+unmaintainable complexity, or a concrete class of validation cases
+cannot be expressed without an AST. Future-proof framing: the
+prohibition is on adopting an AST library by default, not on ever
+adopting one.
 
 ## Rationale
 
@@ -266,5 +272,8 @@ call:
    This ADR adopts 10,000 tokens as the literal trigger. May need
    tuning after first file approaches the threshold.
 3. **Validator language** — synthesizer said "dependency-free Python
-   check"; this ADR is explicit that no markdown-AST library is
-   permitted. Forces design discipline.
+   check"; this ADR sharpens it to **stdlib-regex required**, with
+   any future markdown-AST library adoption gated behind an ADR
+   amendment carrying empirical justification (e.g., regex
+   complexity becomes unmaintainable). Preserves current design
+   discipline without painting the ecosystem into a corner.
