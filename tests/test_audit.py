@@ -527,3 +527,33 @@ def test_check_backlog_warn_cross_stream_over_33pct(tmp_path: Path) -> None:
     findings = aud.check_backlog_organization(tmp_path)
     # 1 Stream A + 2 Cross-stream = 3 total open; Cross-stream = 66% > 33%
     assert any(f.status == "warn" for f in findings), [f.evidence for f in findings]
+
+
+# ---------------------------------------------------------------------------
+# Integration: all 5 checks on synthetic full-fixture repo
+# ---------------------------------------------------------------------------
+
+FULL_FIXTURE = FIXTURES / "repo-with-all-five-checks"
+
+
+def test_audit_run_passes_all_five_checks_on_synthetic_repo() -> None:
+    """All 5 checks must pass (or warn) on the synthetic full-fixture repo."""
+    run_date = date(2026, 5, 15)
+    state = aud.audit_repo("synthetic", FULL_FIXTURE, run_date)
+    check_names = {f.check_name for f in state.findings}
+    statuses = {f.check_name: f.status for f in state.findings}
+
+    # All 5 check families must be present
+    assert "vision_md" in check_names
+    assert "adr38_baseline" in check_names
+    assert "claude_md" in check_names
+    assert any("dated_entries" in n for n in check_names), f"dated_entries checks missing: {check_names}"
+    assert "backlog_organization" in check_names
+
+    # No fatal failures
+    failures = [f for f in state.findings if f.status == "fail"]
+    assert not failures, f"Unexpected failures: {[(f.check_name, f.evidence) for f in failures]}"
+
+    # Core three must explicitly pass
+    assert statuses.get("vision_md") == "pass"
+    assert statuses.get("claude_md") == "pass"
