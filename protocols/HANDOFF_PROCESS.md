@@ -1,11 +1,11 @@
-# HANDOFF_PROCESS v3.3.1
+# HANDOFF_PROCESS v3.3.2
 
-<!-- version: 3.3.1 — 2026-05-14 (audience-awareness amendment to Stage 1 template) -->
+<!-- version: 3.3.2 — 2026-05-15 (cross-repo parameterization of HANDOFF_FOLDER_TEMPLATE.md) -->
 <!-- scope: meta -->
 
-Version: 3.3.1
-Effective: 2026-05-14
-Supersedes: v3.3 (2026-05-13 night), v3.2 (2026-05-09 night), v3.1 (2026-05-09 afternoon), v3.0 (2026-05-09 morning), v2.0 (ADR-32 §4 deprecated; ADR-32 §1-§3 extended)
+Version: 3.3.2
+Effective: 2026-05-15
+Supersedes: v3.3.1 (2026-05-14), v3.3 (2026-05-13 night), v3.2 (2026-05-09 night), v3.1 (2026-05-09 afternoon), v3.0 (2026-05-09 morning), v2.0 (ADR-32 §4 deprecated; ADR-32 §1-§3 extended)
 Authority: ADR-42 (amended 2026-05-09 night)
 
 > **Authoritative source:** `docs/decisions/ADR-42-handoff-format-v3.md` (amended
@@ -531,6 +531,29 @@ directs it to). Claude Code does NOT redesign architecture or invent session con
 
 ---
 
+## What changed v3.3.1 → v3.3.2
+<!-- scope: meta -->
+
+| Dimension | v3.3.1 | v3.3.2 |
+|---|---|---|
+| `02_VISION.md` source | Unconditionally `.dev-knowledge/VISION.md` (Bug A) | Target repo's own `VISION.md` via `{TARGET_REPO_PATH}` placeholder |
+| Articulation gate item #1 subject | Hardcoded `.dev-knowledge` (Bug B) | `{repo}` placeholder — resolves to target repo name |
+| Articulation gate item #4 label | "per BOUNDARIES" (terminology drift from v3.3 rename, Bug C) | "from `07_ACTION_PLAN.md` Hard Constraints section" |
+| New conditional file | Not present | `02b_ECOSYSTEM_VISION.md` — `.dev-knowledge` VISION copied only when target ≠ `.dev-knowledge` |
+| Bundle file count | Always 11 | 11 (self-applied: target = `.dev-knowledge`) or 12 (cross-repo) |
+| Template amendment verification | Not formalized | Mandatory cross-case trace required before any future amendment |
+
+**Amendment authority:** Hard Constraint #3 of `2026-05-14-dev-knowledge-session-sync` action plan
+formally amended by operator authorization 2026-05-14, based on witnessed cross-repo evidence
+(bugs surfaced at commit `c09ee71` — first ai-council cross-repo Stage 3 run).
+
+**Failure pattern:** `universal-without-cross-case-verification` (LESSON #9, captured 2026-05-14).
+v3.3.1 universality claim validated only against `.dev-knowledge → .dev-knowledge` self-handoff.
+First cross-repo use surfaced two template bugs. Mitigation: mandatory manual trace verification
+(Trace 1: cross-repo target; Trace 2: self-applied) is now required before any future template amendment.
+
+---
+
 ## What changed v3.3 → v3.3.1
 <!-- scope: meta -->
 
@@ -604,6 +627,14 @@ directs it to). Claude Code does NOT redesign architecture or invent session con
 ## Section history
 <!-- scope: meta -->
 
+- v3.3.2 (2026-05-15) — Cross-repo parameterization of HANDOFF_FOLDER_TEMPLATE.md.
+  Fixes Bug A (02_VISION.md now sources target repo's VISION.md, not unconditionally
+  .dev-knowledge); Bug B (articulation gate item #1 uses {repo} placeholder, not hardcoded
+  .dev-knowledge); Bug C (gate item #4 references "Hard Constraints" section name, not stale
+  "BOUNDARIES"). Adds conditional 02b_ECOSYSTEM_VISION.md file (ecosystem context for cross-repo
+  handoffs only). Amendment authority: operator authorization 2026-05-14 after witnessed cross-repo
+  evidence at commit c09ee71. Failure pattern: universal-without-cross-case-verification (LESSON
+  #9). Verification procedure: mandatory cross-case trace before future template amendments.
 - v3.3.1 (2026-05-14) — Amendment to v3.3 adding audience-awareness
   rules to HANDOFF_QUESTION_TEMPLATE.md (Stage 1 template). Seven rules
   + one self-check verify the OLD chat writes Stage 2 for the new chat
