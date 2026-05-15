@@ -336,3 +336,82 @@ def test_health_ok_with_registered_repo(monkeypatch: pytest.MonkeyPatch, tmp_pat
     result = runner.invoke(aud.cmd_health)
     assert result.exit_code == 0
     assert "OK" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Fixtures path helper
+# ---------------------------------------------------------------------------
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+# ---------------------------------------------------------------------------
+# Check #4: dated_entries_format (ADR-46)
+# ---------------------------------------------------------------------------
+
+def test_check_dated_entries_passes_on_good_lessons() -> None:
+    findings = aud.check_dated_entries_format(FIXTURES / "dated-entries-good")
+    lessons_f = next(f for f in findings if "LESSONS" in f.evidence or f.check_name == "dated_entries_lessons")
+    assert lessons_f.status == "pass", lessons_f.evidence
+
+
+def test_check_dated_entries_passes_on_good_journal() -> None:
+    findings = aud.check_dated_entries_format(FIXTURES / "dated-entries-good")
+    journal_f = next(f for f in findings if "JOURNAL" in f.evidence or f.check_name == "dated_entries_journal")
+    assert journal_f.status == "pass", journal_f.evidence
+
+
+def test_check_dated_entries_passes_on_good_changelog() -> None:
+    findings = aud.check_dated_entries_format(FIXTURES / "dated-entries-good")
+    changelog_f = next(f for f in findings if "CHANGELOG" in f.evidence or f.check_name == "dated_entries_changelog")
+    assert changelog_f.status == "pass", changelog_f.evidence
+
+
+def test_check_dated_entries_fails_wrong_date_format(tmp_path: Path) -> None:
+    (tmp_path / "CHANGELOG.md").write_text(
+        (FIXTURES / "dated-entries-bad" / "wrong-date-format.md").read_text(encoding="utf-8")
+    )
+    findings = aud.check_dated_entries_format(tmp_path)
+    assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
+
+
+def test_check_dated_entries_fails_wrong_header_level(tmp_path: Path) -> None:
+    (tmp_path / "CHANGELOG.md").write_text(
+        (FIXTURES / "dated-entries-bad" / "wrong-header-level.md").read_text(encoding="utf-8")
+    )
+    findings = aud.check_dated_entries_format(tmp_path)
+    assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
+
+
+def test_check_dated_entries_fails_wrong_ordering(tmp_path: Path) -> None:
+    (tmp_path / "CHANGELOG.md").write_text(
+        (FIXTURES / "dated-entries-bad" / "wrong-ordering.md").read_text(encoding="utf-8")
+    )
+    findings = aud.check_dated_entries_format(tmp_path)
+    assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
+
+
+def test_check_dated_entries_warns_lessons_no_scope_tag(tmp_path: Path) -> None:
+    (tmp_path / "LESSONS.md").write_text(
+        (FIXTURES / "dated-entries-bad" / "lessons-no-scope-tag.md").read_text(encoding="utf-8")
+    )
+    findings = aud.check_dated_entries_format(tmp_path)
+    assert any(f.status == "warn" for f in findings), [f.evidence for f in findings]
+
+
+def test_check_dated_entries_warns_changelog_no_groupings(tmp_path: Path) -> None:
+    (tmp_path / "CHANGELOG.md").write_text(
+        (FIXTURES / "dated-entries-bad" / "changelog-no-groupings.md").read_text(encoding="utf-8")
+    )
+    findings = aud.check_dated_entries_format(tmp_path)
+    assert any(f.status == "warn" for f in findings), [f.evidence for f in findings]
+
+
+def test_check_dated_entries_skips_fenced_code_blocks(tmp_path: Path) -> None:
+    """File with dates only inside fenced blocks must NOT pass on that basis."""
+    (tmp_path / "CHANGELOG.md").write_text(
+        (FIXTURES / "dated-entries-bad" / "fenced-code-trap.md").read_text(encoding="utf-8")
+    )
+    findings = aud.check_dated_entries_format(tmp_path)
+    # The file has no real H2 date headings outside the fenced block; must not be pass
+    assert not any(f.status == "pass" for f in findings), [f.evidence for f in findings]
