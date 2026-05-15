@@ -18,6 +18,18 @@
 
 ---
 
+### 2026-05-15 — Governance ADRs B+C ratified (ADR-46 + ADR-47)
+- Council pipeline (research + pick) executed for both entries; ADR-46 (cross-repo
+  dated-entries format) winner B-1 Lightweight Hybrid + sniff-test; ADR-47
+  (cross-repo BACKLOG organization) winner C-2 Stream-grouped + Two-file state with
+  operational hardening (session-start validator, deterministic script not LLM prompt)
+- BACKLOG Stream C P1 Entry 1 + Entry 2 → [done]; Stream C P2 ADR-29 prepend item →
+  [superseded] by ADR-46; new Stream C P3 ADR-41 amendment sub-item added
+- Files unchanged in this session — Session D (cleanup pass across all repos) and
+  Session E (audit tool extension + extraction script) are downstream
+
+---
+
 ### 2026-05-15 — Audit Tool P1 MVP shipped
 - `scripts/audit.py` CLI (4 commands per ADR-36), ecosystem state schema (`ecosystem/{repo}/state.yaml`
   + `history/`), 3 checks (vision_md, adr38_baseline, claude_md), markdown report to `docs/audits/`
