@@ -18,6 +18,16 @@
 
 ---
 
+### 2026-05-15 — ai-council cleanup handoff bundle dispatched (D2)
+- Generated 12-file cross-repo handoff bundle at `docs/handoffs/2026-05-15-ai-council-cleanup/`;
+  ADR-42 v3.3.2 format + `02b_ECOSYSTEM_VISION.md` for cross-repo case
+- Bundle carries locked migration decisions: `[blocked]`→`[open]`+annotation (ADR-47 vocab);
+  session-numbered envelope→ISO (ADR-46); ready for ai-council Claude Code session to consume
+- BACKLOG Stream B P1 items annotated in-flight; verification via `.dev-knowledge` re-audit
+  post-execution; Session D complete after clean audit pass
+
+---
+
 ### 2026-05-15 — Audit Tool P2: ADR-46 + ADR-47 checks + extraction script shipped (Session E)
 - `check_dated_entries_format` (ADR-46) + `check_backlog_organization` (ADR-47) + `backlog_extract.py`
   implemented; 56 tests passing; audit tool now 5 checks (was 3)
