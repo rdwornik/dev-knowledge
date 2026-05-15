@@ -6,4 +6,4 @@
 
 ### Added
 
-- Entry with slash-format date — must fail ISO check
+- Entry with slash-format date - must fail ISO check

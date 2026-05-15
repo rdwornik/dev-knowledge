@@ -6,8 +6,8 @@
 
 ### 2026-05-15 | internal | Lesson without scope tag | dev | | noted
 
-No [scope: X] field in this entry — must warn on sniff test.
+Body text for this lesson. The scope field is intentionally absent.
 
 ### 2026-05-10 | internal | Another lesson missing scope | meta | | noted
 
-Also missing scope field.
+Body text. No scope marker present in either entry.

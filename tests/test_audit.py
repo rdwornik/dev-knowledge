@@ -135,33 +135,33 @@ def test_append_history(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None
 # ---------------------------------------------------------------------------
 
 def test_vision_pass(good_repo: Path) -> None:
-    f = aud.check_vision_md(good_repo)
+    f = aud.check_vision_md(good_repo)[0]
     assert f.status == "pass"
 
 
 def test_vision_absent(tmp_path: Path) -> None:
-    f = aud.check_vision_md(tmp_path)
+    f = aud.check_vision_md(tmp_path)[0]
     assert f.status == "fail"
     assert "absent" in f.evidence
 
 
 def test_vision_no_frontmatter(tmp_path: Path) -> None:
     (tmp_path / "VISION.md").write_text(VISION_NO_FRONTMATTER)
-    f = aud.check_vision_md(tmp_path)
+    f = aud.check_vision_md(tmp_path)[0]
     assert f.status == "fail"
     assert "frontmatter" in f.evidence.lower()
 
 
 def test_vision_missing_keys(tmp_path: Path) -> None:
     (tmp_path / "VISION.md").write_text(VISION_MISSING_KEYS)
-    f = aud.check_vision_md(tmp_path)
+    f = aud.check_vision_md(tmp_path)[0]
     assert f.status == "warn"
     assert "missing keys" in f.evidence.lower()
 
 
 def test_vision_bad_yaml(tmp_path: Path) -> None:
     (tmp_path / "VISION.md").write_text(VISION_BAD_YAML)
-    f = aud.check_vision_md(tmp_path)
+    f = aud.check_vision_md(tmp_path)[0]
     assert f.status == "fail"
     assert "parse error" in f.evidence.lower()
 
@@ -170,13 +170,13 @@ def test_vision_bad_yaml(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 def test_adr38_pass(good_repo: Path) -> None:
-    f = aud.check_adr38_baseline(good_repo)
+    f = aud.check_adr38_baseline(good_repo)[0]
     assert f.status in ("pass", "warn")  # warn allowed if ARCHITECTURE.md absent
 
 
 def test_adr38_missing_readme(good_repo: Path) -> None:
     (good_repo / "README.md").unlink()
-    f = aud.check_adr38_baseline(good_repo)
+    f = aud.check_adr38_baseline(good_repo)[0]
     assert f.status == "fail"
     assert "README.md" in f.evidence
 
@@ -184,21 +184,21 @@ def test_adr38_missing_readme(good_repo: Path) -> None:
 def test_adr38_missing_src(good_repo: Path) -> None:
     import shutil
     shutil.rmtree(good_repo / "src")
-    f = aud.check_adr38_baseline(good_repo)
+    f = aud.check_adr38_baseline(good_repo)[0]
     assert f.status == "fail"
     assert "src" in f.evidence
 
 
 def test_adr38_missing_pyproject(good_repo: Path) -> None:
     (good_repo / "pyproject.toml").unlink()
-    f = aud.check_adr38_baseline(good_repo)
+    f = aud.check_adr38_baseline(good_repo)[0]
     assert f.status == "fail"
     assert "pyproject.toml" in f.evidence
 
 
 def test_adr38_bad_repo(bad_repo: Path) -> None:
     """Repo with only README.md fails multiple checks."""
-    f = aud.check_adr38_baseline(bad_repo)
+    f = aud.check_adr38_baseline(bad_repo)[0]
     assert f.status == "fail"
 
 
@@ -207,7 +207,7 @@ def test_adr38_no_lessons_or_journal_checked(good_repo: Path) -> None:
     # Neither file exists in good_repo; check must still pass
     assert not (good_repo / "LESSONS.md").exists()
     assert not (good_repo / "JOURNAL.md").exists()
-    f = aud.check_adr38_baseline(good_repo)
+    f = aud.check_adr38_baseline(good_repo)[0]
     assert f.status in ("pass", "warn"), (
         f"ADR-38 check must not require LESSONS.md/JOURNAL.md; got: {f.evidence}"
     )
@@ -217,19 +217,19 @@ def test_adr38_no_lessons_or_journal_checked(good_repo: Path) -> None:
 # ---------------------------------------------------------------------------
 
 def test_claude_md_pass(good_repo: Path) -> None:
-    f = aud.check_claude_md(good_repo)
+    f = aud.check_claude_md(good_repo)[0]
     assert f.status == "pass"
 
 
 def test_claude_md_absent(tmp_path: Path) -> None:
-    f = aud.check_claude_md(tmp_path)
+    f = aud.check_claude_md(tmp_path)[0]
     assert f.status == "fail"
     assert "absent" in f.evidence
 
 
 def test_claude_md_empty(tmp_path: Path) -> None:
     (tmp_path / "CLAUDE.md").write_text("   \n")
-    f = aud.check_claude_md(tmp_path)
+    f = aud.check_claude_md(tmp_path)[0]
     assert f.status == "fail"
     assert "empty" in f.evidence
 
@@ -369,7 +369,8 @@ def test_check_dated_entries_passes_on_good_changelog() -> None:
 
 def test_check_dated_entries_fails_wrong_date_format(tmp_path: Path) -> None:
     (tmp_path / "CHANGELOG.md").write_text(
-        (FIXTURES / "dated-entries-bad" / "wrong-date-format.md").read_text(encoding="utf-8")
+        (FIXTURES / "dated-entries-bad" / "wrong-date-format.md").read_text(encoding="utf-8"),
+        encoding="utf-8",
     )
     findings = aud.check_dated_entries_format(tmp_path)
     assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
@@ -377,7 +378,8 @@ def test_check_dated_entries_fails_wrong_date_format(tmp_path: Path) -> None:
 
 def test_check_dated_entries_fails_wrong_header_level(tmp_path: Path) -> None:
     (tmp_path / "CHANGELOG.md").write_text(
-        (FIXTURES / "dated-entries-bad" / "wrong-header-level.md").read_text(encoding="utf-8")
+        (FIXTURES / "dated-entries-bad" / "wrong-header-level.md").read_text(encoding="utf-8"),
+        encoding="utf-8",
     )
     findings = aud.check_dated_entries_format(tmp_path)
     assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
@@ -385,7 +387,8 @@ def test_check_dated_entries_fails_wrong_header_level(tmp_path: Path) -> None:
 
 def test_check_dated_entries_fails_wrong_ordering(tmp_path: Path) -> None:
     (tmp_path / "CHANGELOG.md").write_text(
-        (FIXTURES / "dated-entries-bad" / "wrong-ordering.md").read_text(encoding="utf-8")
+        (FIXTURES / "dated-entries-bad" / "wrong-ordering.md").read_text(encoding="utf-8"),
+        encoding="utf-8",
     )
     findings = aud.check_dated_entries_format(tmp_path)
     assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
@@ -393,7 +396,8 @@ def test_check_dated_entries_fails_wrong_ordering(tmp_path: Path) -> None:
 
 def test_check_dated_entries_warns_lessons_no_scope_tag(tmp_path: Path) -> None:
     (tmp_path / "LESSONS.md").write_text(
-        (FIXTURES / "dated-entries-bad" / "lessons-no-scope-tag.md").read_text(encoding="utf-8")
+        (FIXTURES / "dated-entries-bad" / "lessons-no-scope-tag.md").read_text(encoding="utf-8"),
+        encoding="utf-8",
     )
     findings = aud.check_dated_entries_format(tmp_path)
     assert any(f.status == "warn" for f in findings), [f.evidence for f in findings]
@@ -401,7 +405,8 @@ def test_check_dated_entries_warns_lessons_no_scope_tag(tmp_path: Path) -> None:
 
 def test_check_dated_entries_warns_changelog_no_groupings(tmp_path: Path) -> None:
     (tmp_path / "CHANGELOG.md").write_text(
-        (FIXTURES / "dated-entries-bad" / "changelog-no-groupings.md").read_text(encoding="utf-8")
+        (FIXTURES / "dated-entries-bad" / "changelog-no-groupings.md").read_text(encoding="utf-8"),
+        encoding="utf-8",
     )
     findings = aud.check_dated_entries_format(tmp_path)
     assert any(f.status == "warn" for f in findings), [f.evidence for f in findings]
@@ -410,7 +415,8 @@ def test_check_dated_entries_warns_changelog_no_groupings(tmp_path: Path) -> Non
 def test_check_dated_entries_skips_fenced_code_blocks(tmp_path: Path) -> None:
     """File with dates only inside fenced blocks must NOT pass on that basis."""
     (tmp_path / "CHANGELOG.md").write_text(
-        (FIXTURES / "dated-entries-bad" / "fenced-code-trap.md").read_text(encoding="utf-8")
+        (FIXTURES / "dated-entries-bad" / "fenced-code-trap.md").read_text(encoding="utf-8"),
+        encoding="utf-8",
     )
     findings = aud.check_dated_entries_format(tmp_path)
     # The file has no real H2 date headings outside the fenced block; must not be pass

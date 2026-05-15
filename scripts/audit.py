@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import sys
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -134,32 +135,32 @@ def discover_repos() -> list[str]:
 # Audit checks
 # ---------------------------------------------------------------------------
 
-def check_vision_md(repo_path: Path) -> Finding:
+def check_vision_md(repo_path: Path) -> list[Finding]:
     """Check #1: VISION.md presence + parseable YAML frontmatter per ADR-33."""
     vision = repo_path / "VISION.md"
     if not vision.exists():
-        return Finding("vision_md", "fail", "VISION.md absent at repo root")
+        return [Finding("vision_md", "fail", "VISION.md absent at repo root")]
     text = vision.read_text(encoding="utf-8")
     if not text.startswith("---"):
-        return Finding("vision_md", "fail", "VISION.md has no YAML frontmatter (must start with '---')")
+        return [Finding("vision_md", "fail", "VISION.md has no YAML frontmatter (must start with '---')")]
     # Extract frontmatter between first two ---
     parts = text.split("---", 2)
     if len(parts) < 3:
-        return Finding("vision_md", "fail", "VISION.md frontmatter not closed (missing closing '---')")
+        return [Finding("vision_md", "fail", "VISION.md frontmatter not closed (missing closing '---')")]
     try:
         fm = yaml.safe_load(parts[1])
     except yaml.YAMLError as e:
-        return Finding("vision_md", "fail", f"VISION.md frontmatter YAML parse error: {e}")
+        return [Finding("vision_md", "fail", f"VISION.md frontmatter YAML parse error: {e}")]
     if not isinstance(fm, dict):
-        return Finding("vision_md", "fail", "VISION.md frontmatter is not a YAML mapping")
+        return [Finding("vision_md", "fail", "VISION.md frontmatter is not a YAML mapping")]
     required_keys = {"version", "tier", "owner", "scale"}
     missing = required_keys - fm.keys()
     if missing:
-        return Finding("vision_md", "warn", f"VISION.md frontmatter missing keys: {sorted(missing)}")
-    return Finding("vision_md", "pass", f"VISION.md present; frontmatter keys: {sorted(fm.keys())}")
+        return [Finding("vision_md", "warn", f"VISION.md frontmatter missing keys: {sorted(missing)}")]
+    return [Finding("vision_md", "pass", f"VISION.md present; frontmatter keys: {sorted(fm.keys())}")]
 
 
-def check_adr38_baseline(repo_path: Path) -> Finding:
+def check_adr38_baseline(repo_path: Path) -> list[Finding]:
     """Check #2: ADR-38 universal repo architecture baseline (tier M mandatory files + dirs)."""
     required_files = ["README.md", "VISION.md", "CHANGELOG.md", "BACKLOG.md"]
     required_dirs = ["src", "tests"]
@@ -183,21 +184,166 @@ def check_adr38_baseline(repo_path: Path) -> Finding:
     else:
         status = "pass"
         evidence = "All ADR-38 tier M mandatory files and directories present"
-    return Finding("adr38_baseline", status, evidence)
+    return [Finding("adr38_baseline", status, evidence)]
 
 
-def check_claude_md(repo_path: Path) -> Finding:
+def check_claude_md(repo_path: Path) -> list[Finding]:
     """Check #3: ADR-31 CLAUDE.md presence and non-empty per authority model baseline."""
     claude = repo_path / "CLAUDE.md"
     if not claude.exists():
-        return Finding("claude_md", "fail", "CLAUDE.md absent at repo root")
+        return [Finding("claude_md", "fail", "CLAUDE.md absent at repo root")]
     content = claude.read_text(encoding="utf-8").strip()
     if not content:
-        return Finding("claude_md", "fail", "CLAUDE.md exists but is empty")
-    return Finding("claude_md", "pass", f"CLAUDE.md present ({len(content)} chars)")
+        return [Finding("claude_md", "fail", "CLAUDE.md exists but is empty")]
+    return [Finding("claude_md", "pass", f"CLAUDE.md present ({len(content)} chars)")]
 
 
-ALL_CHECKS = [check_vision_md, check_adr38_baseline, check_claude_md]
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_H2_DATE_RE = re.compile(r"^## (\d{4}-\d{2}-\d{2})( |$)")
+# JOURNAL also accepts H3 per-session form: ### YYYY-MM-DD — topic
+_H3_DATE_RE = re.compile(r"^### (\d{4}-\d{2}-\d{2})[ \t—-]")
+# LESSONS uses H3 single-line entries: ### YYYY-MM-DD | ...
+_LESSONS_H3_RE = re.compile(r"^### (\d{4}-\d{2}-\d{2})\s*\|")
+_FENCE_RE = re.compile(r"^```")
+_SEMANTIC_GROUPINGS_RE = re.compile(
+    r"^### (Added|Changed|Fixed|Deprecated|Removed|Security|Verified|Notes)\b"
+)
+
+
+def _strip_fenced_blocks(lines: list[str]) -> list[str]:
+    """Return lines with fenced-code-block contents replaced by empty strings."""
+    result = []
+    in_fence = False
+    for line in lines:
+        if _FENCE_RE.match(line):
+            in_fence = not in_fence
+            result.append("")  # keep line count but blank the fence marker
+        elif in_fence:
+            result.append("")
+        else:
+            result.append(line)
+    return result
+
+
+def _check_single_dated_file(
+    path: Path,
+    file_type: str,
+) -> Finding:
+    """Check one dated-entries file per ADR-46 envelope rules."""
+    text = path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    clean = _strip_fenced_blocks(lines)
+
+    # Collect H2 date headings and H3 date headings (for LESSONS + JOURNAL)
+    h2_dates: list[str] = []
+    h3_dates: list[str] = []
+    has_groupings = False
+
+    for line in clean:
+        if not line:
+            continue
+        m2 = _H2_DATE_RE.match(line)
+        if m2:
+            h2_dates.append(m2.group(1))
+            continue
+        if file_type == "LESSONS":
+            ml = _LESSONS_H3_RE.match(line)
+            if ml:
+                h3_dates.append(ml.group(1))
+        elif file_type == "JOURNAL":
+            m3 = _H3_DATE_RE.match(line)
+            if m3:
+                h3_dates.append(m3.group(1))
+        if _SEMANTIC_GROUPINGS_RE.match(line):
+            has_groupings = True
+
+    # For LESSONS: date ordering lives in H3; H2 grouping is optional
+    # For JOURNAL: both H2 and H3 are valid; use whichever is present
+    # For CHANGELOG: H2 required
+    if file_type == "LESSONS":
+        date_sequence = h3_dates  # ordering checked on H3 dates
+        # Non-date H2 headings are OK for grouping; non-ISO H2 headings are fail
+        for line in clean:
+            if line.startswith("## ") and not _H2_DATE_RE.match(line):
+                # H2 heading that is not a date and not the file title (H1) — fail
+                # But file title is H1, so any ## that isn't a date is suspicious
+                # ADR-46: "verify each ## heading matches ^## \d{4}-\d{2}-\d{2}"
+                # LESSONS is exempt from H2 grouping requirement, but if H2 IS present
+                # it must be a date. A non-date H2 in LESSONS is a fail.
+                return Finding(
+                    f"dated_entries_{file_type.lower()}",
+                    "fail",
+                    f"LESSONS.md: non-ISO-date H2 heading found: {line[:60]!r}",
+                )
+    elif file_type == "JOURNAL":
+        date_sequence = h2_dates + h3_dates
+        date_sequence.sort(reverse=True)  # merged set; we'll check ordering below
+        # Also collect combined set for ordering
+        all_journal_dates = []
+        for line in clean:
+            m2 = _H2_DATE_RE.match(line)
+            if m2:
+                all_journal_dates.append(m2.group(1))
+            else:
+                m3 = _H3_DATE_RE.match(line)
+                if m3:
+                    all_journal_dates.append(m3.group(1))
+        date_sequence = all_journal_dates  # preserve document order for ordering check
+    else:
+        # CHANGELOG: H2 dates required
+        date_sequence = h2_dates
+
+    if not date_sequence:
+        return Finding(
+            f"dated_entries_{file_type.lower()}",
+            "fail",
+            f"{path.name}: no ISO-date headings found outside fenced code blocks",
+        )
+
+    # Check reverse-chronological ordering (later dates must appear earlier in file)
+    for i in range(len(date_sequence) - 1):
+        if date_sequence[i] < date_sequence[i + 1]:
+            return Finding(
+                f"dated_entries_{file_type.lower()}",
+                "fail",
+                f"{path.name}: ordering violation — {date_sequence[i]!r} before {date_sequence[i+1]!r} (not reverse-chrono)",
+            )
+
+    # Per-file payload sniff tests
+    if file_type == "LESSONS":
+        if "[scope:" not in text:
+            return Finding(
+                "dated_entries_lessons",
+                "warn",
+                "LESSONS.md: no [scope: X] tag found in entries (ADR-46 sniff test)",
+            )
+    elif file_type == "CHANGELOG":
+        if not has_groupings:
+            return Finding(
+                "dated_entries_changelog",
+                "warn",
+                "CHANGELOG.md: no semantic grouping headings (### Added/Fixed/etc.) found (ADR-46 sniff test)",
+            )
+
+    return Finding(
+        f"dated_entries_{file_type.lower()}",
+        "pass",
+        f"{path.name}: envelope OK ({len(date_sequence)} dated entries, reverse-chrono)",
+    )
+
+
+def check_dated_entries_format(repo_path: Path) -> list[Finding]:
+    """Check #4: ADR-46 dated-entries envelope + per-file payload sniff-tests."""
+    file_types = [("LESSONS.md", "LESSONS"), ("JOURNAL.md", "JOURNAL"), ("CHANGELOG.md", "CHANGELOG")]
+    findings: list[Finding] = []
+    for filename, file_type in file_types:
+        p = repo_path / filename
+        if p.exists():
+            findings.append(_check_single_dated_file(p, file_type))
+    return findings
+
+
+ALL_CHECKS = [check_vision_md, check_adr38_baseline, check_claude_md, check_dated_entries_format]
 
 
 def audit_repo(repo_name: str, repo_path: Path, run_date: date) -> RepoState:
@@ -211,7 +357,9 @@ def audit_repo(repo_name: str, repo_path: Path, run_date: date) -> RepoState:
         )
         return state
 
-    findings = [check(repo_path) for check in ALL_CHECKS]
+    findings: list[Finding] = []
+    for check in ALL_CHECKS:
+        findings.extend(check(repo_path))
     state = RepoState(
         name=repo_name,
         path=str(repo_path),
