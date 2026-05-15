@@ -421,3 +421,109 @@ def test_check_dated_entries_skips_fenced_code_blocks(tmp_path: Path) -> None:
     findings = aud.check_dated_entries_format(tmp_path)
     # The file has no real H2 date headings outside the fenced block; must not be pass
     assert not any(f.status == "pass" for f in findings), [f.evidence for f in findings]
+
+
+# ---------------------------------------------------------------------------
+# Check #5: backlog_organization (ADR-47)
+# ---------------------------------------------------------------------------
+
+def test_check_backlog_passes_on_good(tmp_path: Path) -> None:
+    (tmp_path / "BACKLOG.md").write_text(
+        (FIXTURES / "backlog-good" / "BACKLOG.md").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    (tmp_path / "BACKLOG_ARCHIVE.md").write_text(
+        (FIXTURES / "backlog-good" / "BACKLOG_ARCHIVE.md").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    findings = aud.check_backlog_organization(tmp_path)
+    assert all(f.status in ("pass", "warn") for f in findings), [f.evidence for f in findings]
+    assert any(f.status == "pass" for f in findings)
+
+
+def test_check_backlog_fatal_done_in_active(tmp_path: Path) -> None:
+    (tmp_path / "BACKLOG.md").write_text(
+        (FIXTURES / "backlog-bad" / "done-in-active.md").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    (tmp_path / "BACKLOG_ARCHIVE.md").write_text("# Archive\n", encoding="utf-8")
+    findings = aud.check_backlog_organization(tmp_path)
+    assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
+
+
+def test_check_backlog_fatal_no_archive(tmp_path: Path) -> None:
+    (tmp_path / "BACKLOG.md").write_text(
+        (FIXTURES / "backlog-good" / "BACKLOG.md").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    # No BACKLOG_ARCHIVE.md created
+    findings = aud.check_backlog_organization(tmp_path)
+    assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
+
+
+def test_check_backlog_fatal_wrong_entry_heading(tmp_path: Path) -> None:
+    (tmp_path / "BACKLOG.md").write_text(
+        (FIXTURES / "backlog-bad" / "wrong-entry-heading.md").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    (tmp_path / "BACKLOG_ARCHIVE.md").write_text("# Archive\n", encoding="utf-8")
+    findings = aud.check_backlog_organization(tmp_path)
+    assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
+
+
+def test_check_backlog_fatal_missing_required_fields(tmp_path: Path) -> None:
+    (tmp_path / "BACKLOG.md").write_text(
+        (FIXTURES / "backlog-bad" / "missing-required-fields.md").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    (tmp_path / "BACKLOG_ARCHIVE.md").write_text("# Archive\n", encoding="utf-8")
+    findings = aud.check_backlog_organization(tmp_path)
+    assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
+
+
+def test_check_backlog_warn_over_300_lines(tmp_path: Path) -> None:
+    (tmp_path / "BACKLOG.md").write_text(
+        (FIXTURES / "backlog-warn" / "over-300-lines.md").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    (tmp_path / "BACKLOG_ARCHIVE.md").write_text("# Archive\n", encoding="utf-8")
+    findings = aud.check_backlog_organization(tmp_path)
+    assert any(f.status == "warn" for f in findings), [f.evidence for f in findings]
+
+
+def test_check_backlog_warn_stream_over_15_open(tmp_path: Path) -> None:
+    (tmp_path / "BACKLOG.md").write_text(
+        (FIXTURES / "backlog-warn" / "stream-over-15-open.md").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    (tmp_path / "BACKLOG_ARCHIVE.md").write_text("# Archive\n", encoding="utf-8")
+    findings = aud.check_backlog_organization(tmp_path)
+    assert any(f.status == "warn" for f in findings), [f.evidence for f in findings]
+
+
+def test_check_backlog_warn_cross_stream_over_33pct(tmp_path: Path) -> None:
+    # Build a BACKLOG where Cross-stream has >33% of open items
+    content = """\
+# BACKLOG
+
+<!-- scope: meta -->
+
+## Stream A: work
+
+### [P1] [open] Stream A item 1
+- **What:** Item.
+- **Why:** Reason.
+- **Added:** 2026-05-15 by rob (test)
+- **Status:** open
+
+## Cross-stream / Ecosystem
+
+### [P1] [open] Cross item 1
+- **What:** Cross item.
+- **Why:** Reason.
+- **Added:** 2026-05-15 by rob (test)
+- **Status:** open
+
+### [P1] [open] Cross item 2
+- **What:** Cross item 2.
+- **Why:** Reason.
+- **Added:** 2026-05-15 by rob (test)
+- **Status:** open
+"""
+    (tmp_path / "BACKLOG.md").write_text(content, encoding="utf-8")
+    (tmp_path / "BACKLOG_ARCHIVE.md").write_text("# Archive\n", encoding="utf-8")
+    findings = aud.check_backlog_organization(tmp_path)
+    # 1 Stream A + 2 Cross-stream = 3 total open; Cross-stream = 66% > 33%
+    assert any(f.status == "warn" for f in findings), [f.evidence for f in findings]
