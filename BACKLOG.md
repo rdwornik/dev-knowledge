@@ -56,6 +56,20 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-04-30 by rob
 - **Status:** done (2026-05-15 — `scripts/audit.py` CLI (4 commands per ADR-36), ecosystem state schema (state.yaml + history/), 3 checks (vision_md, adr38_baseline, claude_md), markdown report, 27 tests. Self-audit: .dev-knowledge FAIL (missing src/ + pyproject.toml — governance repo, see new BACKLOG item). Cross-repo audit: ai-council PASS with WARN (ARCHITECTURE.md optional but absent). Pre-flight gate: ADR-38 canonical list verified — inferred list in draft plan was wrong (LESSONS.md/JOURNAL.md not universal; src/tests/pyproject.toml missing from inferred list).)
 
+### [P1] [open] Cross-repo dated-entries format standard (Entry 1)
+- **What:** Define a single cross-repo standard for dated-entries files (LESSONS.md, JOURNAL.md, CHANGELOG.md) covering date format, header levels, ordering convention (prepend vs append), entry schema (free-prose / structured / hybrid), per-repo flexibility vs universal mandate. Captures and supersedes the narrower P2 "ADR-29 amendment — prepend at top" item (rolled into this broader decision). Output: ADR (next available number) synthesized from Council research + pick.
+- **Why:** Empirical drift signals: LESSONS.md schema correction `14f0467`, prepend-vs-append practical convention shift `99a104e`, ordering varying within same file, JOURNAL `##` vs `###` heading drift, CHANGELOG semver-style only in .dev-knowledge. Audit Tool P1 surfaced first cross-repo dated-entries gap on 2026-05-15: VISION.md frontmatter `status` key present in .dev-knowledge, missing in ai-council. Format drift extends beyond the three dated-entries files but those are the immediate scope.
+- **Vision ref:** VISION.md "Knowledge Guardian" + "Methodology Author" functions; pairs with Cross-stream P1 "Sacred-files maintenance enforcement"
+- **Added:** 2026-05-15 by rob (governance ADR session B+C)
+- **Status:** open — ADR work in progress; file cleanup pass (session D) and audit tool extension (session E) follow downstream
+
+### [P1] [open] Cross-repo BACKLOG organization standard (Entry 2)
+- **What:** Define a single cross-repo standard for BACKLOG.md covering done-item handling (inline status flip / sectioned move / separate archive file), ordering / sorting strategy (priority / date / stream / hybrid), pruning rhythm (continuous / weekly / monthly / on-demand), priority semantics (P0/P1/P2 definitions or simpler), stream / category vocabulary (fixed cross-repo vs per-repo flexibility), per-repo flexibility vs universal mandate. Output: ADR (next available number) synthesized from Council research + pick.
+- **Why:** BACKLOG is the primary cross-session handoff anchor. Without consistent organisation, file grows without pruning, done mixes with open reducing scannability, no consistent ordering — each repo drifted ad-hoc. ADR-41 mandates BACKLOG.md at M+ tier but does not specify organisation; this fills that gap.
+- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-41 follow-on
+- **Added:** 2026-05-15 by rob (governance ADR session B+C)
+- **Status:** open — ADR work in progress; file cleanup pass (session D) and audit tool extension (session E) follow downstream
+
 ### [P2] [open] .dev-knowledge ADR-38 self-compliance gap — src/ + pyproject.toml
 - **What:** Audit tool P1 self-audit surfaced finding: `.dev-knowledge` missing `src/` and `pyproject.toml` (ADR-38 check `adr38_baseline` FAIL). `.dev-knowledge` is a governance/knowledge repo (NOT a code project per CLAUDE.md), yet ADR-38 mandates src/ and pyproject.toml for all tier M+ repos. Resolution options: (a) create minimal pyproject.toml + scripts/ → src/ migration, (b) amend ADR-38 to add "governance-only" tier exemption, (c) document explicit exception in state.yaml.
 - **Why:** Self-audit produces FAIL on the repo that runs it — creates awkward "auditor fails its own checks" state. Resolving clarifies whether ADR-38 universal mandate applies to non-code repos.
