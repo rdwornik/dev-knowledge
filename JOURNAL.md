@@ -18,6 +18,16 @@
 
 ---
 
+### 2026-05-15 — Audit Tool P2: ADR-46 + ADR-47 checks + extraction script shipped (Session E)
+- `check_dated_entries_format` (ADR-46) + `check_backlog_organization` (ADR-47) + `backlog_extract.py`
+  implemented; 56 tests passing; audit tool now 5 checks (was 3)
+- Dogfood: 51 checks across `.dev-knowledge` + `ai-council` — 6 pass / 42 fail / 3 warn;
+  ai-council git status clean (ADR-36 read-only contract intact)
+- Session D scope inventoried: 4 new BACKLOG items (Stream C P1 x2 + Stream B P1 x2)
+  anchoring ADR-46/47 cleanup across both repos; extraction script ready for `[done]` extraction
+
+---
+
 ### 2026-05-15 — Governance ADRs B+C ratified (ADR-46 + ADR-47)
 - Council pipeline (research + pick) executed for both entries; ADR-46 (cross-repo
   dated-entries format) winner B-1 Lightweight Hybrid + sniff-test; ADR-47
