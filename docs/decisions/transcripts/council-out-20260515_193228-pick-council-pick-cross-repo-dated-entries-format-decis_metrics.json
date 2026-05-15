@@ -1,0 +1,98 @@
+{
+  "debate_id": "council-out-20260515_193228-pick-council-pick-cross-repo-dated-entries-format-decis",
+  "total_input_tokens": 58688,
+  "total_output_tokens": 23023,
+  "total_tokens": 81711,
+  "total_estimated_cost_usd": 0.400104,
+  "total_duration_sec": 314.05,
+  "calls": [
+    {
+      "provider": "claude",
+      "round_number": 1,
+      "input_tokens": 2876,
+      "output_tokens": 2705,
+      "estimated_cost_usd": 0.082005,
+      "latency_sec": 45.703,
+      "was_retry": false
+    },
+    {
+      "provider": "deepseek",
+      "round_number": 1,
+      "input_tokens": 1727,
+      "output_tokens": 5134,
+      "estimated_cost_usd": 0.003085,
+      "latency_sec": 156.047,
+      "was_retry": false
+    },
+    {
+      "provider": "openai",
+      "round_number": 1,
+      "input_tokens": 1672,
+      "output_tokens": 1674,
+      "estimated_cost_usd": 0.02929,
+      "latency_sec": 30.328,
+      "was_retry": false
+    },
+    {
+      "provider": "grok",
+      "round_number": 1,
+      "input_tokens": 1738,
+      "output_tokens": 688,
+      "estimated_cost_usd": 0.007604,
+      "latency_sec": 18.531,
+      "was_retry": false
+    },
+    {
+      "provider": "claude",
+      "round_number": 2,
+      "input_tokens": 12353,
+      "output_tokens": 3545,
+      "estimated_cost_usd": 0.15039,
+      "latency_sec": 65.453,
+      "was_retry": false
+    },
+    {
+      "provider": "deepseek",
+      "round_number": 2,
+      "input_tokens": 7459,
+      "output_tokens": 4424,
+      "estimated_cost_usd": 0.00445,
+      "latency_sec": 117.156,
+      "was_retry": false
+    },
+    {
+      "provider": "openai",
+      "round_number": 2,
+      "input_tokens": 7267,
+      "output_tokens": 2207,
+      "estimated_cost_usd": 0.051272,
+      "latency_sec": 42.156,
+      "was_retry": false
+    },
+    {
+      "provider": "grok",
+      "round_number": 2,
+      "input_tokens": 7114,
+      "output_tokens": 1156,
+      "estimated_cost_usd": 0.021164,
+      "latency_sec": 37.703,
+      "was_retry": false
+    },
+    {
+      "provider": "gemini",
+      "round_number": 0,
+      "input_tokens": 16482,
+      "output_tokens": 1490,
+      "estimated_cost_usd": 0.050844,
+      "latency_sec": 40.844,
+      "was_retry": false
+    }
+  ],
+  "synthesis": {
+    "synthesizer_model": "gemini-3.1-pro-preview",
+    "transcript_size_tokens": 16482,
+    "output_tokens": 1490,
+    "synth_latency_seconds": 40.844,
+    "error_class": "none"
+  }
+}
