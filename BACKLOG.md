@@ -26,14 +26,16 @@ Next quarterly grooming: 2026-07-01
 - **Why:** ADR-46 mandates ISO envelope headers and reverse-chrono ordering; both violations produce FAIL on `dated_entries_lessons` and `dated_entries_journal` checks.
 - **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-46; pairs with Phase 2 universalization rollout (Cross-stream P2)
 - **Added:** 2026-05-15 by rob (Session E dogfood findings — Step 3 inventory)
-- **Status:** open — write access requires ai-council Claude Code session; route with cover letter per PLAYBOOK §17
+- **Status:** open
+- **Blocked:** ai-council Claude Code session execution pending — handoff bundle dispatched 2026-05-15 at `docs/handoffs/2026-05-15-ai-council-cleanup/`
 
 ### [P1] [open] Session D — `ai-council` BACKLOG.md ADR-47 compliance
-- **What:** (1) Create `BACKLOG_ARCHIVE.md` in ai-council (no `[done]` items in current BACKLOG but file required by ADR-47); (2) Fix 1 entry with `[blocked]` status (not a valid ADR-47 status — must be `[open]` or `[superseded]`); (3) Add missing `Status:` field to 10 entries.
+- **What:** (1) Create `BACKLOG_ARCHIVE.md` in ai-council (no `[done]` items in current BACKLOG but file required by ADR-47); (2) Fix 1 entry with `[blocked]` status (not a valid ADR-47 status — must be `[open]` or `[superseded]`); (3) Add missing `Status:` field to 11 entries.
 - **Why:** ADR-47 mandates two-file state + specific valid status values + required entry fields; missing these produces FAIL on `backlog_organization` check.
 - **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-47; pairs with Phase 2 universalization rollout (Cross-stream P2)
 - **Added:** 2026-05-15 by rob (Session E dogfood findings — Step 3 inventory)
-- **Status:** open — write access requires ai-council Claude Code session; route with cover letter per PLAYBOOK §17
+- **Status:** open
+- **Blocked:** ai-council Claude Code session execution pending — handoff bundle dispatched 2026-05-15 at `docs/handoffs/2026-05-15-ai-council-cleanup/`
 
 ## Stream C: .dev-knowledge governance
 
