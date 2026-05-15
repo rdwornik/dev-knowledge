@@ -1,160 +1,38 @@
 ---
-version: 1.0
+version: "1.0"
 tier: M
 owner: rob
-last_reviewed: 2026-05-09
+last_reviewed: "2026-05-12"
 scale: M
-status: active
 ---
 
-# VISION — .dev-knowledge
-<!-- scope: meta -->
+# VISION — ai-council
 
-## Vision
+## Mission
 
-`.dev-knowledge` is a universal LLM-driven development guide and
-methodology framework. It works in any folder on any machine — portable,
-self-contained, machine-agnostic. It is the ecosystem's knowledge guardian
-and methodology author: it absorbs lessons from individual projects,
-universalizes them into patterns, and disseminates those patterns back as
-enforceable conventions. It also functions as auditor — evaluating each
-project's scale (S/M/L) and verifying correct methodology implementation
-(per ADR-40 scale tier evaluation).
-Think of it as the LLM-development Scrum Master for the ecosystem: it
-doesn't write code, it ensures the framework is applied consistently and
-evolves with experience.
-
-**Continuous improvement principle.** `.dev-knowledge` exists to
-evolve. The framework absorbs lessons, refines patterns, retires what
-fails. Continuous improvement is the baseline operating posture, not
-an option. Sessions advance the framework; static maintenance is
-exception requiring explicit justification.
-
-## Strategic emphasis (current)
-
-<!-- scope: meta -->
-
-These are current strategic directions — emphasis areas within existing
-scope, not new scope. Reviewed at session boundaries; may shift as the
-ecosystem evolves.
-
-- **Velocity in LLM technology adoption.** New models and capabilities
-  emerge continuously across origins. Speed of evaluation, integration,
-  and methodology adaptation is competitive advantage. Adoption pace
-  tracked as an ecosystem health signal.
-
-- **Cross-repo methodology consistency.** Every project under the
-  ecosystem adheres to universal patterns (naming, scope tagging,
-  governance artifacts, handoff protocols). Drift detected proactively
-  via scanning; corrected via universal updates, not per-repo patches.
-
-- **Methodology evolution as obsession.** Handoff protocols, prompt
-  formats, audit mechanisms, skills definitions — all continuously
-  improved based on real-usage friction. Static methodology is a
-  failure mode; methodology that evolves with experience is the goal.
-
-- **Lessons capture as default.** Every session yields generalizable
-  insight when surfaced correctly. The lessons log is treated as a
-  first-class artifact, not an afterthought. Patterns extracted from
-  individual sessions become enforced conventions in subsequent sessions.
-
-This section uses no fixed timeline — strategic emphasis evolves with
-ecosystem maturity. Review triggers: major capability shift, new repo
-joining ecosystem, sustained friction in current emphasis areas.
+Multi-model AI debate and research tool for architectural decision-making across the dev ecosystem. Produces binding ADRs that govern all repos under `Dev/`. Standalone CLI tool consumed by other repos via the `council` entry point.
 
 ## Scope
 
-**In scope:**
-- Universal methodology and conventions for LLM-driven development
-- Cross-repo governance patterns (AGENTS.md, CLAUDE.md, ADRs, handoffs)
-- Knowledge consolidation: lessons learned, decisions, processes
-- Scale assessment (S/M/L) and tier-appropriate guidance per project
-- Audit and verification mechanisms ensuring child repos comply with
-  applicable methodology
-
-**Out of scope (non-goals):**
-- Code-level implementation in child repos
-- Project-specific business logic, schemas, or domain knowledge
-- Operational data or runtime telemetry
-- Replacement for repo-specific CLAUDE.md, AGENTS.md, or README files
-- Hierarchy or authority over child repos beyond methodology compliance
-
-## Values
-
-Core operating values (how Claude reasons, communicates, and verifies)
-live in `protocols/ESSENTIALS.md` "How Claude thinks" section. VISION
-defers to ESSENTIALS for principles — no duplication. Key principle:
-**continuous improvement** as default project posture (see ESSENTIALS
-"Continuous Improvement" section).
+- **5 debate providers**: Claude Opus, Gemini, GPT, Grok, DeepSeek
+- **5 research providers**: Perplexity, Gemini Deep Research, OpenAI o4-mini deep research, Grok x_search, OpenAI o3 deep research
+- **4 modes**: pick / ideas / judge / research
+- **CLI entry point**: `council`
+- **Synthesizer**: Gemini (deliberate selection, ADR-01)
+- **Output paths (dual)**: operational metrics + transcripts in `ai-council/output/`; curated transcripts in `.dev-knowledge/docs/decisions/transcripts/`
+- Standalone tool — invoked by other repos, not embedded as a library
 
 ## Relationships
 
-`.dev-knowledge` is the meta-layer of the ecosystem. Child repositories
-under `Dev/` (corp-monorepo, ai-council, corp-ops, corp-sca-time-automation,
-future repos) are independent projects that consume `.dev-knowledge`
-methodology and conventions. There is **no hierarchy** in the authority
-sense — only **functional roles**: `.dev-knowledge` produces methodology;
-child repos consume and feed back lessons.
-
-**Pattern for child repos** (per ADR-33 universalization):
-every project under `Dev/` should have its own `VISION.md` following this
-template (vision + scope + values + relationships + lifecycle + references).
-Child repo VISION files are project-specific; `.dev-knowledge` VISION is
-universal.
-
-**Special case — `ai-council`:** functions as a tool used by `.dev-knowledge`
-to generate architectural decisions. Council debate transcripts return to
-`.dev-knowledge/docs/decisions/transcripts/` per Council output convention.
-Operational metrics stay in `ai-council/output/`.
+- No inbound code dependencies
+- Called by other repos (browser chats, Claude Code in any project under `Dev/`) via the `council` CLI
+- Produces binding ADRs governing ecosystem repos
+- Reads `.dev-knowledge` PLAYBOOK conventions for output formatting and dual-path routing
 
 ## Lifecycle
 
-VISION is a **living, verifiable document** — not a one-shot statement.
-
-**Review triggers** (not deadlines):
-- Major architectural shift in `.dev-knowledge` ecosystem
-- New repo joining ecosystem
-- Significant scope reinterpretation in fresh AI chat (drift signal)
-- When Vision section appears realized → propose next horizon
-
-**Verification mechanism:** VISION is verified against other ecosystem
-artifacts to detect drift:
-- Stream backlog reflects what VISION declares as in-scope
-- JOURNAL entries trace work back to VISION goals
-- CHANGELOG describes movement toward VISION
-- ADRs implement VISION decisions
-- Drift signal: any of above contradict VISION → trigger review
-
-**Audit support:** verification mechanism implemented via `.dev-knowledge`
-auditor (Stream C audit tool — pending, per ADR-36). Until tool exists,
-manual verification at session-close per HANDOFF_PROCESS.md.
-
-**Vision realized:** when current Vision becomes current state, archive
-as `docs/archive/VISION_v{N}_realized_YYYY-MM-DD.md` and propose next
-horizon. VISION file stays alive — only its content evolves.
-
-**Tier classification:** M (architect judgment, 2026-05-09).
-
-Algorithm-classified tier per ADR-40 currently L — all repos clamp to L
-under current coefficients due to documented miscalibration (F-08,
-cross-ecosystem calibration concern). Architect judgment balances: single
-developer, no SLA, no team (argues against L); multi-repo governance
-authority, ADR producer for ecosystem (argues against S); moderate
-complexity (~42 ADRs, governance + audit + handoff infrastructure). M is
-most defensible under calibration uncertainty. Revisit post audit tool P1
-multi-repo data collection (BACKLOG Stream C P1).
-
-**Ownership:** Rob (sole authority).
-**Edit process:** AI Council debate for Vision/Scope changes; conversational
-edit for clarifications and References section.
-
-## References
-
-- `protocols/ESSENTIALS.md` — operating values, daily cheat sheet
-- `protocols/PLAYBOOK.md` — full process reference
-- `README.md` — current capability + file index
-- `JOURNAL.md` — session-by-session activity history
-- `CHANGELOG.md` — notable changes timeline
-- `BACKLOG.md` — cross-session pending items (per ADR-41)
-- `CONTRIBUTING.md` — branch/commit/validator conventions
-- `docs/decisions/` — architectural decisions (ADRs + transcripts)
+- Active development with continuous improvement focus
+- Roadmap reviewed at session boundaries; improvements emerge from real usage and lessons captured in `LESSONS.md`
+- Recent additions: Grok as 5th research provider, downloads auto-scan, `--models` flag
+- Review triggers: provider API changes, new model availability, governance requirement changes, real-usage friction surfacing improvement opportunities
+- Static-maintenance posture is exception requiring explicit declaration

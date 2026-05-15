@@ -18,13 +18,14 @@ closed; its knowledge is preserved in `06_STATE_OF_PLAY.md` (current state) and
 Read in this order:
 
 1. `01_MANIFEST.md` — entry point, metadata, HEAD pin
-2. `02_VISION.md` — ecosystem context (why .dev-knowledge exists)
-3. `03_PLAYBOOK.md` — how we work (methodology, prompt format, commit conventions)
-4. `04_ESSENTIALS.md` — high-leverage rules cheat sheet
-5. `05_GOVERNANCE_ESSENCES.md` — ADR rules driving specific actions
-6. `06_STATE_OF_PLAY.md` — what was done; current state; architect judgment
-7. `07_ACTION_PLAN.md` — next session goal, directives, boundaries
-8. `08_TREE.txt` — repo file inventory for structural orientation
+2. `02_VISION.md` — ai-council mission (target repo's VISION)
+3. `02b_ECOSYSTEM_VISION.md` — ecosystem methodology context (why `.dev-knowledge` exists; skip if not in bundle)
+4. `03_PLAYBOOK.md` — how we work (methodology, prompt format, commit conventions)
+5. `04_ESSENTIALS.md` — high-leverage rules cheat sheet
+6. `05_GOVERNANCE_ESSENCES.md` — ADR rules driving specific actions
+7. `06_STATE_OF_PLAY.md` — what was done; current state; architect judgment
+8. `07_ACTION_PLAN.md` — next session goal, directives, boundaries
+9. `08_TREE.txt` — repo file inventory for structural orientation
 
 Skip `01_manifest.json` (machine-readable, not for reading) and `09_EXECUTION_EVIDENCE.md` (you fill that after work).
 
@@ -50,8 +51,9 @@ If HEAD does not match: **STOP** and report drift to operator. Do not proceed un
 **Before any other work** (including receiver synthesis), write in your own
 words — do NOT copy-paste from the uploaded files. Write fresh:
 
-1. **Your role per VISION** (1-2 sentences) — what is `.dev-knowledge`'s
+1. **Your role per VISION** (1-2 sentences) — what is `ai-council`'s
    function in the ecosystem? What is your role as architect for **ai-council** specifically?
+   (For ecosystem methodology context, read `02b_ECOSYSTEM_VISION.md`.)
 
 2. **Current phase per BACKLOG** (1 sentence) — which phase of the
    universalization rollout is active for ai-council? What blocks what?
@@ -59,15 +61,15 @@ words — do NOT copy-paste from the uploaded files. Write fresh:
 3. **Immediate next action per ACTION_PLAN directive #1** (1 sentence) —
    what is the single highest-priority action for this session?
 
-4. **Top 3 Hard Constraints per BOUNDARIES** (3 short bullets) — what
-   must NOT happen this session?
+4. **Top 3 Hard Constraints** (from `07_ACTION_PLAN.md` Hard Constraints section)
+   (3 short bullets) — what must NOT happen this session?
 
 After writing the four-item articulation, **wait for operator to type exact
 phrase `role confirmed`** before any other work.
 
 If you cannot articulate any of the four items from the bundle, flag the gap:
 
-> `Cannot articulate [N] — [VISION/BACKLOG/ACTION_PLAN/BOUNDARIES] insufficient. Reload or query.`
+> `Cannot articulate [N] — [VISION/BACKLOG/ACTION_PLAN/HARD_CONSTRAINTS] insufficient. Reload or query.`
 
 Do not proceed until operator responds.
 
