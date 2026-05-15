@@ -49,11 +49,18 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-04-30 by rob (Phase 1 self-audit)
 - **Status:** done (2026-05-14 — new §10 BACKLOG Grooming, new §18 Ecosystem Audit Tool, §8 amended ADR-37 two-phase, Project Scale Tiers extended ADR-40 tier transitions; sections 10–17 renumbered 11–17+19)
 
-### [P1] [open] Audit tool P1 implementation
+### [P1] [done] Audit tool P1 implementation
 - **What:** Build .dev-knowledge audit tool per ADR-36 — P1 MVP (audit run + ecosystem state + markdown report). Implement compute_tier_score, classify_tier per ADR-40.
 - **Why:** Required for Phase 2 universalization per repo; algorithmic tier classification (ADR-40) needs implementation to operationalize
 - **Vision ref:** VISION.md "Auditor" function
 - **Added:** 2026-04-30 by rob
+- **Status:** done (2026-05-15 — `scripts/audit.py` CLI (4 commands per ADR-36), ecosystem state schema (state.yaml + history/), 3 checks (vision_md, adr38_baseline, claude_md), markdown report, 27 tests. Self-audit: .dev-knowledge FAIL (missing src/ + pyproject.toml — governance repo, see new BACKLOG item). Cross-repo audit: ai-council PASS with WARN (ARCHITECTURE.md optional but absent). Pre-flight gate: ADR-38 canonical list verified — inferred list in draft plan was wrong (LESSONS.md/JOURNAL.md not universal; src/tests/pyproject.toml missing from inferred list).)
+
+### [P2] [open] .dev-knowledge ADR-38 self-compliance gap — src/ + pyproject.toml
+- **What:** Audit tool P1 self-audit surfaced finding: `.dev-knowledge` missing `src/` and `pyproject.toml` (ADR-38 check `adr38_baseline` FAIL). `.dev-knowledge` is a governance/knowledge repo (NOT a code project per CLAUDE.md), yet ADR-38 mandates src/ and pyproject.toml for all tier M+ repos. Resolution options: (a) create minimal pyproject.toml + scripts/ → src/ migration, (b) amend ADR-38 to add "governance-only" tier exemption, (c) document explicit exception in state.yaml.
+- **Why:** Self-audit produces FAIL on the repo that runs it — creates awkward "auditor fails its own checks" state. Resolving clarifies whether ADR-38 universal mandate applies to non-code repos.
+- **Vision ref:** VISION.md "Auditor" + ADR-38 universal architecture
+- **Added:** 2026-05-15 by rob (surfaced by audit tool P1 self-audit)
 - **Status:** open
 
 ### [P2] [open] Lessons activation P1 implementation

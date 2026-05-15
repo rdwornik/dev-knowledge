@@ -18,6 +18,20 @@
 
 ---
 
+### 2026-05-15 — Audit Tool P1 MVP shipped
+- `scripts/audit.py` CLI (4 commands per ADR-36), ecosystem state schema (`ecosystem/{repo}/state.yaml`
+  + `history/`), 3 checks (vision_md, adr38_baseline, claude_md), markdown report to `docs/audits/`
+- 27 tests passing; ruff clean; pre-existing test failure unchanged
+- Self-audit: `.dev-knowledge` FAIL — `adr38_baseline` missing `src/` + `pyproject.toml` (governance
+  repo, not code repo — new BACKLOG Stream C P2 item). Cross-repo: `ai-council` PASS/WARN
+  (ARCHITECTURE.md optional, absent)
+- Pre-flight gate value confirmed: inferred mandatory-files list in handoff draft was wrong
+  (LESSONS.md/JOURNAL.md not universal per ADR-38; src/tests/pyproject.toml missing from inferred
+  list). ADR-38 canonical spec used for implementation.
+- BACKLOG Stream C P1 "Audit tool P1 implementation" marked [done]
+
+---
+
 ### 2026-05-15 — Handoff validation v3.3.3
 - Replaced strict-equality HEAD check with ancestor check (`git merge-base --is-ancestor`) across
   template surfaces and HANDOFF_PROCESS; bumped v3.3.2 → v3.3.3
