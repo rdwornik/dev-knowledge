@@ -1,0 +1,30 @@
+{
+  "handoff_id": "2026-05-15-dev-knowledge-session-sync",
+  "type": "session-sync",
+  "format_version": "v3.3.2",
+  "generated_at": "2026-05-15T00:00:00Z",
+  "target_repo": {
+    "name": ".dev-knowledge",
+    "path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge",
+    "head_sha": "b640bcf9a4d97ea803c1425d59e34f38a14cb8e8",
+    "branch": "main",
+    "working_tree": "clean"
+  },
+  "stage_2_provided": true,
+  "stage_1_sha": "a00985b747ab343de69d417415306878582b4468",
+  "sha_drift": "expected — stage1 merge commit advanced HEAD",
+  "self_applied": true,
+  "files": [
+    {"path": "00_README.md", "sha256": "920e59c6fb02737a1f86770c5ab916e245c8e9e34a1f86e5d06ba356d16003d5"},
+    {"path": "00_first-message.md", "sha256": "b97db23c05c42848590eaa6b7931e9cdd29c92ed67924cf0f241ba81c014036e"},
+    {"path": "01_MANIFEST.md", "sha256": "435909ccdc39f8e0e0ff913fd33c998fec88ed745c297eebd07fb484cb5e08f7"},
+    {"path": "02_VISION.md", "sha256": "da1ad338f2c46ca4d255d509f8b27a7a4fbf25b8c3c7b8efa4d4fb1a415534f2"},
+    {"path": "03_PLAYBOOK.md", "sha256": "059f42cf2596696db27ae5db7c2b9b5c43c5c5983bc5fe4d3d27a96982758d00"},
+    {"path": "04_ESSENTIALS.md", "sha256": "0a9cf5452ba06b63bbf1936eda028c3f680b2ff1f2d9c3df75049a313098e958"},
+    {"path": "05_GOVERNANCE_ESSENCES.md", "sha256": "dbe30061a82764606773f43b353a25a4cc4e47ec7f67d18c39b8034ff45320fa"},
+    {"path": "06_STATE_OF_PLAY.md", "sha256": "b347d83f8467fedc051dacd4d8230986a454ad9ca28b1ced26e6034a2804fa61"},
+    {"path": "07_ACTION_PLAN.md", "sha256": "ca037204cb3ef211cd775dfb12878342fb5b93556b5436eaf8149695b20439f5"},
+    {"path": "08_TREE.txt", "sha256": "3b4e64547dae75f19635470eca19c08926373e55409fcf0d9757cbdff88e0eb6"},
+    {"path": "09_EXECUTION_EVIDENCE.md", "sha256": "9ef56fe84d922f3461da2942f87696cafac84254e4dd8355e9230cace7a9b1f1"}
+  ]
+}
