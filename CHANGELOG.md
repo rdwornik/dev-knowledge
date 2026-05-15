@@ -6,6 +6,44 @@ Notable changes to the dev practice knowledge base.
 
 ## 2026-05-15
 
+### Added (Governance ADRs B+C)
+
+- `docs/decisions/ADR-46-cross-repo-dated-entries-format.md` — cross-repo standard for
+  LESSONS.md / JOURNAL.md / CHANGELOG.md. Universal envelope (ISO `## YYYY-MM-DD`,
+  reverse-chronological prepend) + file-specific payloads (LESSONS 6-field preserved
+  per ADR-29; JOURNAL free-prose; CHANGELOG Keep-a-Changelog semantic groupings).
+  ADR-27 HTML comments remain authoritative for scope; YAML frontmatter optional
+  and additive only. Archive trigger 10k tokens, rotation tooling deferred.
+  Stdlib-regex validator required; markdown-AST library adoption gated behind
+  future ADR amendment with empirical justification.
+- `docs/decisions/ADR-47-cross-repo-backlog-organization.md` — cross-repo BACKLOG.md
+  schema. Two-file state architecture: `BACKLOG.md` (active: `[open]` + `[superseded]`)
+  + new `BACKLOG_ARCHIVE.md` (`[done]` + `[abandoned]`, append-only, mirrors stream
+  headings). Stream-grouped structure with P1/P2/P3 priorities preserved. Required
+  entry fields: What, Why, Added, Status (Vision ref recommended). Session-start
+  validator fail-fast on `[done]` in `BACKLOG.md`. Deterministic <50 LOC extraction
+  script for Session D — explicitly no LLM prompt. Kill criteria for ADR review:
+  BACKLOG.md > 300 lines, any single stream > 15 open items, or Cross-stream > 33%.
+  Scope tags / SCOPE_SCHEMA explicitly not adopted (streams carry routing signal).
+- 4 council transcripts in `docs/decisions/transcripts/` (research B + pick B +
+  research C + pick C, dated 2026-05-15).
+
+### Changed (Governance ADRs B+C)
+
+- BACKLOG.md: Stream C P1 entries for Entry 1 + Entry 2 flipped to `[done]`. Stream C
+  P2 "ADR-29 amendment — prepend at top" marked `[superseded]` by ADR-46 (universal
+  prepend mandate covers it). New Stream C P3 entry for ADR-41 amendment (cross-
+  reference ADR-47 from ADR-41 § Storage + Related metadata).
+
+### Notes (Governance ADRs B+C)
+
+- Files unchanged in this session. Cleanup pass against actual LESSONS / JOURNAL /
+  CHANGELOG / BACKLOG content across all repos is Session D scope. Audit tool
+  extension (new `check_dated_entries_format` + `check_backlog_organization` checks)
+  is Session E scope.
+
+---
+
 ### Added (Audit Tool P1)
 
 - `scripts/audit.py` — Click CLI with 4 commands per ADR-36: `audit run`, `audit repo <name>`,
