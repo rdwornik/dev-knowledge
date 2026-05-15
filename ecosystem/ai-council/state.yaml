@@ -1,0 +1,14 @@
+findings:
+- check_name: vision_md
+  evidence: 'VISION.md present; frontmatter keys: [''last_reviewed'', ''owner'', ''scale'',
+    ''tier'', ''version'']'
+  status: pass
+- check_name: adr38_baseline
+  evidence: 'Missing optional (ARCHITECTURE.md — required at tier L): [''ARCHITECTURE.md'']'
+  status: warn
+- check_name: claude_md
+  evidence: CLAUDE.md present (16736 chars)
+  status: pass
+last_audit: '2026-05-15'
+name: ai-council
+path: C:\Users\1028120\Documents\Dev\ai-council

@@ -6,6 +6,30 @@ Notable changes to the dev practice knowledge base.
 
 ## 2026-05-15
 
+### Added (Audit Tool P1)
+
+- `scripts/audit.py` — Click CLI with 4 commands per ADR-36: `audit run`, `audit repo <name>`,
+  `audit registry update`, `audit health`. Bootstrap via `--repo-path <path>` flag.
+- `ecosystem/` — state schema: per-repo `state.yaml` + append-only `history/YYYY-MM-DD.md`
+  per ADR-36 architecture.
+- 3 deterministic audit checks: `vision_md` (ADR-33 frontmatter), `adr38_baseline` (ADR-38
+  canonical mandatory files + dirs), `claude_md` (ADR-31 CLAUDE.md presence).
+- Markdown report to `docs/audits/YYYY-MM-DD-ecosystem-audit.md`; overwrites on same-day re-run.
+- `tests/test_audit.py` — 27 tests: schema roundtrip, each check on good/bad fixtures, report
+  generation, health command.
+- `config/requirements-dev.txt` — added `click>=8.0` and `pyyaml>=6.0`.
+
+### Notes (Audit Tool P1)
+
+- Self-audit finding: `.dev-knowledge` FAIL on `adr38_baseline` (missing `src/` + `pyproject.toml`).
+  Governance repo doesn't follow full code-repo ADR-38 structure — new BACKLOG item Stream C P2.
+- Cross-repo audit: `ai-council` PASS with WARN (`ARCHITECTURE.md` optional at tier M).
+- Pre-flight gate caught: architect-inferred mandatory-files list in handoff was wrong — `LESSONS.md`
+  and `JOURNAL.md` are `.dev-knowledge`-specific (not universal); `src/`, `tests/`, `pyproject.toml`
+  were missing from the inferred list. Implementation uses ADR-38 canonical spec.
+
+---
+
 ### Fixed (v3.3.3)
 
 - Handoff state validation: strict-equality check replaced with ancestor check
