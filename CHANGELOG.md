@@ -6,6 +6,42 @@ Notable changes to the dev practice knowledge base.
 
 ## 2026-05-15
 
+### Added (Audit Tool P2 — ADR-46 + ADR-47 checks)
+
+- `scripts/checks/check_dated_entries_format.py` — ADR-46 check: validates `## YYYY-MM-DD`
+  envelope + reverse-chrono ordering in LESSONS.md, JOURNAL.md, and CHANGELOG.md per-repo.
+- `scripts/checks/check_backlog_organization.py` — ADR-47 check: validates two-file state
+  (BACKLOG.md + BACKLOG_ARCHIVE.md), entry status tokens (`[open]`/`[superseded]` only),
+  required fields (What / Why / Added / Status), and kill-criterion thresholds.
+- `scripts/backlog_extract.py` — deterministic extraction script: moves `[done]`/`[abandoned]`
+  entries from BACKLOG.md to BACKLOG_ARCHIVE.md. <50 LOC, no LLM prompt, per ADR-47 spec.
+- `tests/test_check_dated_entries_format.py` + `tests/test_check_backlog_organization.py` +
+  `tests/test_backlog_extract.py` — fixture-based tests for all new checks + script.
+- `tests/test_audit_integration.py` — integration test covering all 5 checks end-to-end.
+- Audit Tool total: **3 checks → 5 checks** (vision_md, adr38_baseline, claude_md,
+  dated_entries_format, backlog_organization).
+
+### Changed (Audit Tool P2 — ADR-46 + ADR-47 checks)
+
+- Dogfood audit run against `.dev-knowledge` + `ai-council` with all 5 checks.
+  51 total checks: 6 pass, 42 fail, 3 warn. High finding count expected — Session D scope.
+- `ecosystem/.dev-knowledge/state.yaml` + `ecosystem/ai-council/state.yaml` updated.
+- `ecosystem/.dev-knowledge/history/2026-05-15.md` + `ecosystem/ai-council/history/2026-05-15.md`
+  updated with P2 check results.
+- `docs/audits/2026-05-15-ecosystem-audit.md` updated to include all 5 checks.
+- BACKLOG.md: Stream C P2 audit-extension item added as `[done]`; 4 new Session D scope
+  items seeded (Stream C P1 x2 for `.dev-knowledge` cleanup, Stream B P1 x2 for `ai-council`
+  cleanup).
+
+### Notes (Audit Tool P2)
+
+- ai-council `git status` confirmed clean after cross-repo audit — ADR-36 read-only
+  contract intact.
+- Session D scope (cleanup pass against real content per ADR-46 + ADR-47 findings) is
+  the next downstream session. See BACKLOG Stream C P1 + Stream B P1 items for anchors.
+
+---
+
 ### Added (Governance ADRs B+C)
 
 - `docs/decisions/ADR-46-cross-repo-dated-entries-format.md` — cross-repo standard for

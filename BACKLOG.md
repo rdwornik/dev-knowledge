@@ -21,6 +21,20 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-11 by rob (Item 0 strażnik audit)
 - **Status:** open — work belongs in ai-council repo, not .dev-knowledge
 
+### [P1] [open] Session D — `ai-council` dated-entries cleanup (ADR-46 compliance)
+- **What:** Fix audit findings surfaced by `check_dated_entries_format`: (1) `LESSONS.md` non-ISO H2 heading `## Session: Phase 1 Foundation (2026-02-21)` — retitle to ISO `## YYYY-MM-DD` envelope per ADR-46; (2) `JOURNAL.md` reverse-chrono ordering violation (`2026-03-15` before `2026-05-12`) — reorder entries.
+- **Why:** ADR-46 mandates ISO envelope headers and reverse-chrono ordering; both violations produce FAIL on `dated_entries_lessons` and `dated_entries_journal` checks.
+- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-46; pairs with Phase 2 universalization rollout (Cross-stream P2)
+- **Added:** 2026-05-15 by rob (Session E dogfood findings — Step 3 inventory)
+- **Status:** open — write access requires ai-council Claude Code session; route with cover letter per PLAYBOOK §17
+
+### [P1] [open] Session D — `ai-council` BACKLOG.md ADR-47 compliance
+- **What:** (1) Create `BACKLOG_ARCHIVE.md` in ai-council (no `[done]` items in current BACKLOG but file required by ADR-47); (2) Fix 1 entry with `[blocked]` status (not a valid ADR-47 status — must be `[open]` or `[superseded]`); (3) Add missing `Status:` field to 10 entries.
+- **Why:** ADR-47 mandates two-file state + specific valid status values + required entry fields; missing these produces FAIL on `backlog_organization` check.
+- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-47; pairs with Phase 2 universalization rollout (Cross-stream P2)
+- **Added:** 2026-05-15 by rob (Session E dogfood findings — Step 3 inventory)
+- **Status:** open — write access requires ai-council Claude Code session; route with cover letter per PLAYBOOK §17
+
 ## Stream C: .dev-knowledge governance
 
 ### [P1] [done] HANDOFF_PROCESS + HANDOFF_TEMPLATE + first-message.md updates
@@ -69,6 +83,27 @@ Next quarterly grooming: 2026-07-01
 - **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-41 follow-on
 - **Added:** 2026-05-15 by rob (governance ADR session B+C)
 - **Status:** done (2026-05-15 — ratified as ADR-47. Council research + pick winner C-2 (Stream-grouped + Two-file state). BACKLOG.md holds [open]/[superseded]; new BACKLOG_ARCHIVE.md holds [done]/[abandoned]. Streams + P1/P2/P3 + required-fields schema preserved. Session-start validator fail-fast on [done] in BACKLOG.md. Deterministic <50 LOC extraction script — no LLM prompt. Kill criteria: 300 lines / 15 per stream / 33% Cross-stream. Scope tags / SCOPE_SCHEMA explicitly NOT adopted. Session D + Session E downstream.)
+
+### [P2] [done] Audit tool extension — ADR-46 + ADR-47 checks + extraction script (Session E)
+- **What:** Implement two new audit checks (`check_dated_entries_format` per ADR-46, `check_backlog_organization` per ADR-47) and `scripts/backlog_extract.py` extraction script. Dogfood both checks against `.dev-knowledge` + `ai-council` real repos to produce Session D cleanup scope inventory.
+- **Why:** ADR-46 + ADR-47 were ratified in the governance session; audit tool needed corresponding checks to enforce the new standards algorithmically. Dogfood run validates implementation against real-world content and surfaces concrete findings for Session D.
+- **Vision ref:** VISION.md "Auditor" function; ADR-36 (audit tool architecture)
+- **Added:** 2026-05-15 by rob (Session E scope, downstream of governance ADRs B+C)
+- **Status:** done (2026-05-15 — 2 checks + extraction script shipped; 56 tests passing; dogfood: 51 checks across 2 repos — 6 pass, 42 fail, 3 warn. Session D scope routed to BACKLOG. See CHANGELOG 2026-05-15 [Audit Tool P2].)
+
+### [P1] [open] Session D — `.dev-knowledge` dated-entries cleanup (ADR-46 compliance)
+- **What:** Fix audit findings surfaced by `check_dated_entries_format`: (1) `LESSONS.md` non-ISO H2 heading `## Entries` — retitle/restructure to ADR-46 envelope; (2) `CHANGELOG.md` reverse-chrono ordering violation (`2026-04-24` appears before `2026-04-25`).
+- **Why:** ADR-46 mandates ISO `## YYYY-MM-DD` headings and reverse-chrono ordering; both violations block a PASS on `dated_entries_lessons` and `dated_entries_changelog` checks.
+- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-46
+- **Added:** 2026-05-15 by rob (Session E dogfood findings — Step 3 inventory)
+- **Status:** open — blocked on Session E dogfood completion (this session), which is now done
+
+### [P1] [open] Session D — `.dev-knowledge` BACKLOG.md → BACKLOG_ARCHIVE.md extraction (ADR-47 compliance)
+- **What:** (1) Run `scripts/backlog_extract.py` to move all `[done]` + `[abandoned]` items to new `BACKLOG_ARCHIVE.md`; (2) Fix 6 entries missing `Why:` field (migration-era entries in Hyphen Convention Migration Sequence section); (3) Address 2 kill-criterion WARNs: 371-line file (>300 kill) + Cross-stream 45% of open items (>33% kill).
+- **Why:** ADR-47 mandates two-file state architecture; `[done]` items pollute the active backlog, reducing scannability and triggering the session-start validator fail-fast.
+- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-47
+- **Added:** 2026-05-15 by rob (Session E dogfood findings — Step 3 inventory)
+- **Status:** open — blocked on Session E dogfood completion (this session), which is now done
 
 ### [P2] [open] .dev-knowledge ADR-38 self-compliance gap — src/ + pyproject.toml
 - **What:** Audit tool P1 self-audit surfaced finding: `.dev-knowledge` missing `src/` and `pyproject.toml` (ADR-38 check `adr38_baseline` FAIL). `.dev-knowledge` is a governance/knowledge repo (NOT a code project per CLAUDE.md), yet ADR-38 mandates src/ and pyproject.toml for all tier M+ repos. Resolution options: (a) create minimal pyproject.toml + scripts/ → src/ migration, (b) amend ADR-38 to add "governance-only" tier exemption, (c) document explicit exception in state.yaml.
