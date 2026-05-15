@@ -5,7 +5,7 @@
 **Date:** 2026-05-14
 **Type:** session-sync
 **Target repo:** ai-council
-**Format version:** v3.3.1 (ADR-42 three-stage flow)
+**Format version:** v3.3.2 (ADR-42 three-stage flow)
 
 The OLD browser chat for ai-council has been wrapped up. Its accumulated
 knowledge is preserved in `06_STATE_OF_PLAY.md` (current state) and
@@ -19,7 +19,7 @@ Stage 1+2 inputs archived at:
 ## Operator workflow (10 steps)
 
 1. Open a **NEW** claude.ai chat (fresh, zero context — NOT the OLD chat)
-2. Drag-drop all 11 files from this folder, OR zip and upload zip
+2. Drag-drop all 12 files from this folder, OR zip and upload zip
 3. Paste content of `00_first-message.md` as first message
 4. NEW chat reads bundle, writes the four-item articulation gate
 5. Operator confirms articulation: type exact phrase `role confirmed`
@@ -44,7 +44,7 @@ Stage 1+2 inputs archived at:
 
 ---
 
-## File index (11 files)
+## File index (12 files)
 
 | File | Purpose |
 |---|---|
@@ -52,7 +52,8 @@ Stage 1+2 inputs archived at:
 | `00_first-message.md` | Copy-paste first message for NEW chat |
 | `01_MANIFEST.md` | Entry point, file index, HEAD SHA pin |
 | `01_manifest.json` | Machine-readable metadata + SHA-256 checksums |
-| `02_VISION.md` | Full .dev-knowledge VISION.md (ecosystem context) |
+| `02_VISION.md` | Full ai-council VISION.md — target repo's mission |
+| `02b_ECOSYSTEM_VISION.md` | Full .dev-knowledge VISION.md — ecosystem methodology context |
 | `03_PLAYBOOK.md` | Full .dev-knowledge PLAYBOOK.md (methodology) |
 | `04_ESSENTIALS.md` | Full .dev-knowledge ESSENTIALS.md (high-leverage rules) |
 | `05_GOVERNANCE_ESSENCES.md` | ADR operational essences for directives |
@@ -65,7 +66,7 @@ Stage 1+2 inputs archived at:
 
 ## Notes
 
-- This bundle implements ADR-42 v3.3.1 (three-stage flow)
+- This bundle implements ADR-42 v3.3.2 (three-stage flow)
 - Stage 1 + Stage 2 inputs archived at
   `.dev-knowledge/docs/handoffs/archive/2026-05-14-ai-council-session-sync/`
 - If Q&A loop produces amendments, they are also in archive at
