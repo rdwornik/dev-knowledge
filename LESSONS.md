@@ -11,6 +11,8 @@
 
 ## Entries
 
+### 2026-05-15 | F session | Council-debate-vs-process-bug distinction — three options framed as "matter of taste requiring Council debate" were actually a process bug with one semantically correct answer; the other two were either cyclical (recursion) or band-aid (narrate the bug). Before scheduling a Council debate, check whether the framing presupposes options that are not actually defensible on inspection. Evidence: handoff validation strict-equality bug — option (a) recursive two-pass, option (b) ancestor check (correct), option (c) document the drift (band-aid). | architect-discipline | [scope: meta] | captured in this LESSON; ADR not required.
+
 ### 2026-05-14 | documentation-conflation | Ratifying a decision in the repo (ADR merge, archive) does not equal operational change in tooling; verify behavior, not artifacts. Evidence: ADR-45 v1 marked Accepted on main while zero of its 9 migration steps had executed. | architect-discipline | [scope: meta] | captured for review.
 
 ### 2026-05-14 | propose-then-verify | Architecture proposals must be grounded in Witnessed file reads of actual repo state, not inference about file/folder/convention state. Evidence: operator file uploads revealed proposals were misaligned with actual repo content. | architect-discipline | [scope: meta] | captured for review.

@@ -107,8 +107,8 @@ Content (in order):
 
 #### State validation
 - Commands operator should run (browser chat can't run shell)
-- Expected HEAD SHA, working tree state
-- Mismatch instruction: STOP, report
+- Expected HEAD SHA (ancestor-validated: current HEAD must be a descendant of the pinned SHA), working tree state
+- Mismatch instruction: STOP, report both SHAs
 
 #### Required first action — articulation gate
 
@@ -156,7 +156,7 @@ After reading the full bundle, NEW chat MUST provide synthesis. Format:
 >
 > I will NOT do: **{BOUNDARIES list}**.
 >
-> Verification: HEAD matches {head}, working tree {state}.
+> Verification: HEAD is {head} OR a descendant of it (working tree {state}).
 >
 > I will start with **{first DIRECTIVE}**."
 

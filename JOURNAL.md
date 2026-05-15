@@ -18,6 +18,15 @@
 
 ---
 
+### 2026-05-15 — Handoff validation v3.3.3
+- Replaced strict-equality HEAD check with ancestor check (`git merge-base --is-ancestor`) across
+  template surfaces and HANDOFF_PROCESS; bumped v3.3.2 → v3.3.3
+- Empirically verified on 2026-05-15 case: `b640bcf9` confirmed ancestor of `777af78` (exit 0)
+- Unblocks: Audit Tool P1 (A) inherits clean handoff workflow; eliminates manual operator override
+  on every future handoff
+
+---
+
 ### 2026-05-15 — Session close: v3.3.2 template fix + ai-council bundle regenerated
 - Template fix implemented: `templates/HANDOFF_FOLDER_TEMPLATE.md` parameterized for cross-repo
   use (`{repo}` in gate #1; target VISION as 02_VISION source; conditional 02b_ECOSYSTEM_VISION);

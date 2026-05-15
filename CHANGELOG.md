@@ -6,7 +6,28 @@ Notable changes to the dev practice knowledge base.
 
 ## 2026-05-15
 
-### Fixed
+### Fixed (v3.3.3)
+
+- Handoff state validation: strict-equality check replaced with ancestor check
+  (`git merge-base --is-ancestor`). The "expected HEAD" field in `01_MANIFEST.md` pins Stage 1
+  input HEAD; current HEAD at validation time is by-design a descendant after Stage 3 commits.
+  Strict equality produced false-negative validation on the 2026-05-15 case (bundle pinned
+  `b640bcf9`, current HEAD `777af78`). Operator override is no longer required for benign
+  Stage 3 drift.
+
+### Changed (v3.3.3)
+
+- `protocols/HANDOFF_PROCESS.md` v3.3.2 → v3.3.3: validation logic amendment documented.
+- Template surfaces updated: `HANDOFF_FOLDER_TEMPLATE.md` state validation wording and receiver
+  synthesis line; `01_MANIFEST.md` description in folder structure and file responsibilities table.
+
+### Verified (v3.3.3)
+
+- Empirical smoke test: `git merge-base --is-ancestor b640bcf9 HEAD` → exit 0 on 2026-05-15 case.
+
+---
+
+### Fixed (v3.3.2)
 
 - `templates/HANDOFF_FOLDER_TEMPLATE.md` cross-repo parameterization (v3.3.2):
   articulation gate item #1 now uses `{repo}` placeholder (was hardcoded `.dev-knowledge`);
