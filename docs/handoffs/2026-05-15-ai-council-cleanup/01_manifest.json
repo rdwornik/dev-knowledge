@@ -1,0 +1,34 @@
+{
+  "handoff_id": "2026-05-15-ai-council-cleanup",
+  "type": "cross-repo-cleanup",
+  "format_version": "v3.3.2",
+  "generated_at": "2026-05-15T00:00:00Z",
+  "generated_from": {
+    "repo": ".dev-knowledge",
+    "path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge",
+    "head_sha": "4344c65aad5735d108a062d49636854d8597e074",
+    "branch": "main"
+  },
+  "target_repo": {
+    "name": "ai-council",
+    "path": "C:\\Users\\1028120\\Documents\\Dev\\ai-council",
+    "head_sha": "0f069554b894802504aa4e5ce140b1d481ae9ec8",
+    "branch": "main",
+    "working_tree": "clean"
+  },
+  "self_applied": false,
+  "files": [
+    {"path": "00_README.md", "sha256": "0de31cdf23bf30662f9f366343808785f182daaa1aae36cb4395373242e86135"},
+    {"path": "00_first-message.md", "sha256": "f81bbfcc6de7297e1495a935acbb98081c9178f12777482705a726f5cbcf3694"},
+    {"path": "01_MANIFEST.md", "sha256": "44e09d6c173e65ff04f319809bd35517cc8bd0170177414e61119be5e2ace3c5"},
+    {"path": "02_VISION.md", "sha256": "c826b1c37275d33d8ef0d8c967e438f76b57ae8278aa6f738522159e7232a800"},
+    {"path": "02b_ECOSYSTEM_VISION.md", "sha256": "3e0613b8e0143276d5c1894afbc5c666fa105d05393e0f92677e5a4b7f53edce"},
+    {"path": "03_PLAYBOOK.md", "sha256": "46399207925e96ab616eaaa7a5e43b6332950bda07d5a6a8ace6e136af8e78c0"},
+    {"path": "04_ESSENTIALS.md", "sha256": "86eaad05d0c39317141dfa56b1129df7e0ec9caa33816100993a1add277a7cec"},
+    {"path": "05_GOVERNANCE_ESSENCES.md", "sha256": "8c9bf33b4f4297cb436f098d35ef2873e3887db1a561ec54d39c548b04dc9608"},
+    {"path": "06_STATE_OF_PLAY.md", "sha256": "30eef154aa494fbff23f41e00a4fa87803947cef1a42651e71df71ac6c56b335"},
+    {"path": "07_ACTION_PLAN.md", "sha256": "1bbb34455ce45f7a26129b6f6ee5166bff1b6374e8715a92f4409c175e40084b"},
+    {"path": "08_TREE.txt", "sha256": "a95e451e2b129e4164e245781c56111fc77f32ae7b1eed78b7cf863e0c2b4735"},
+    {"path": "09_EXECUTION_EVIDENCE.md", "sha256": "16060f39e82be2b73996af588aa4bea28b37c31c0d1171e9dce4cdbf07c9b843"}
+  ]
+}

@@ -6,6 +6,32 @@ Notable changes to the dev practice knowledge base.
 
 ## 2026-05-15
 
+### Added (ai-council cleanup handoff bundle — D2)
+
+- `docs/handoffs/2026-05-15-ai-council-cleanup/` — 12-file cross-repo handoff bundle
+  dispatching ai-council ADR-46 + ADR-47 compliance cleanup to a dedicated ai-council
+  Claude Code session. Bundle type: `cross-repo-cleanup`. Format: ADR-42 v3.3.2 with
+  `02b_ECOSYSTEM_VISION.md` added for cross-repo case.
+- `05_GOVERNANCE_ESSENCES.md` in bundle — ADR-46 + ADR-47 full text + ADR-36 + ADR-31
+  operational excerpts as the binding authority for the cleanup session.
+- `07_ACTION_PLAN.md` in bundle — 7 directives covering LESSONS.md ISO migration,
+  JOURNAL.md reverse-chrono reorder, BACKLOG.md `[blocked]`→`[open]` migration,
+  BACKLOG_ARCHIVE.md creation, `Status:` field addition to 11 entries, CHANGELOG +
+  JOURNAL close-out, and return-trip evidence fill.
+
+### Notes (ai-council cleanup handoff)
+
+- Migration decisions locked (universalization principle): (A) `[blocked]` → `[open]` +
+  `**Blocked:** <reason>` body annotation; (B) `## Session: Phase 1 Foundation (2026-02-21)`
+  → `## 2026-02-21` + session label to entry body.
+- BACKLOG Stream B P1 ai-council items annotated as in-flight (`open` + `Blocked` field).
+- Verification flow: ai-council session fills `09_EXECUTION_EVIDENCE.md` → operator runs
+  `python scripts/audit.py run` from `.dev-knowledge` → Stream B P1 items flip to `[done]`.
+- §17 note: PLAYBOOK §17 = "Code Quality Audit Process"; cross-repo handoff format governed
+  by ADR-42 v3.3.2. No PLAYBOOK §17 spec for cross-repo handoffs.
+
+---
+
 ### Added (Audit Tool P2 — ADR-46 + ADR-47 checks)
 
 - `scripts/checks/check_dated_entries_format.py` — ADR-46 check: validates `## YYYY-MM-DD`
