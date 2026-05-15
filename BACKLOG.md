@@ -56,6 +56,20 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-04-30 by rob
 - **Status:** done (2026-05-15 — `scripts/audit.py` CLI (4 commands per ADR-36), ecosystem state schema (state.yaml + history/), 3 checks (vision_md, adr38_baseline, claude_md), markdown report, 27 tests. Self-audit: .dev-knowledge FAIL (missing src/ + pyproject.toml — governance repo, see new BACKLOG item). Cross-repo audit: ai-council PASS with WARN (ARCHITECTURE.md optional but absent). Pre-flight gate: ADR-38 canonical list verified — inferred list in draft plan was wrong (LESSONS.md/JOURNAL.md not universal; src/tests/pyproject.toml missing from inferred list).)
 
+### [P1] [done] Cross-repo dated-entries format standard (Entry 1)
+- **What:** Define a single cross-repo standard for dated-entries files (LESSONS.md, JOURNAL.md, CHANGELOG.md) covering date format, header levels, ordering convention (prepend vs append), entry schema (free-prose / structured / hybrid), per-repo flexibility vs universal mandate. Captures and supersedes the narrower P2 "ADR-29 amendment — prepend at top" item (rolled into this broader decision). Output: ADR (next available number) synthesized from Council research + pick.
+- **Why:** Empirical drift signals: LESSONS.md schema correction `14f0467`, prepend-vs-append practical convention shift `99a104e`, ordering varying within same file, JOURNAL `##` vs `###` heading drift, CHANGELOG semver-style only in .dev-knowledge. Audit Tool P1 surfaced first cross-repo dated-entries gap on 2026-05-15: VISION.md frontmatter `status` key present in .dev-knowledge, missing in ai-council. Format drift extends beyond the three dated-entries files but those are the immediate scope.
+- **Vision ref:** VISION.md "Knowledge Guardian" + "Methodology Author" functions; pairs with Cross-stream P1 "Sacred-files maintenance enforcement"
+- **Added:** 2026-05-15 by rob (governance ADR session B+C)
+- **Status:** done (2026-05-15 — ratified as ADR-46. Council research + pick winner B-1 (Lightweight Hybrid + sniff-test). Universal envelope (ISO `## YYYY-MM-DD`, reverse-chrono prepend) + file-specific payloads (LESSONS 6-field preserved, JOURNAL free-prose, CHANGELOG Keep-a-Changelog). ADR-27 HTML comments authoritative for scope; YAML optional additive only. Archive threshold 10k tokens, tooling deferred. Stdlib-regex validator required, AST library adoption gated behind future ADR amendment with empirical justification. Session D cleanup + Session E audit check are downstream.)
+
+### [P1] [done] Cross-repo BACKLOG organization standard (Entry 2)
+- **What:** Define a single cross-repo standard for BACKLOG.md covering done-item handling (inline status flip / sectioned move / separate archive file), ordering / sorting strategy (priority / date / stream / hybrid), pruning rhythm (continuous / weekly / monthly / on-demand), priority semantics (P0/P1/P2 definitions or simpler), stream / category vocabulary (fixed cross-repo vs per-repo flexibility), per-repo flexibility vs universal mandate. Output: ADR (next available number) synthesized from Council research + pick.
+- **Why:** BACKLOG is the primary cross-session handoff anchor. Without consistent organisation, file grows without pruning, done mixes with open reducing scannability, no consistent ordering — each repo drifted ad-hoc. ADR-41 mandates BACKLOG.md at M+ tier but does not specify organisation; this fills that gap.
+- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-41 follow-on
+- **Added:** 2026-05-15 by rob (governance ADR session B+C)
+- **Status:** done (2026-05-15 — ratified as ADR-47. Council research + pick winner C-2 (Stream-grouped + Two-file state). BACKLOG.md holds [open]/[superseded]; new BACKLOG_ARCHIVE.md holds [done]/[abandoned]. Streams + P1/P2/P3 + required-fields schema preserved. Session-start validator fail-fast on [done] in BACKLOG.md. Deterministic <50 LOC extraction script — no LLM prompt. Kill criteria: 300 lines / 15 per stream / 33% Cross-stream. Scope tags / SCOPE_SCHEMA explicitly NOT adopted. Session D + Session E downstream.)
+
 ### [P2] [open] .dev-knowledge ADR-38 self-compliance gap — src/ + pyproject.toml
 - **What:** Audit tool P1 self-audit surfaced finding: `.dev-knowledge` missing `src/` and `pyproject.toml` (ADR-38 check `adr38_baseline` FAIL). `.dev-knowledge` is a governance/knowledge repo (NOT a code project per CLAUDE.md), yet ADR-38 mandates src/ and pyproject.toml for all tier M+ repos. Resolution options: (a) create minimal pyproject.toml + scripts/ → src/ migration, (b) amend ADR-38 to add "governance-only" tier exemption, (c) document explicit exception in state.yaml.
 - **Why:** Self-audit produces FAIL on the repo that runs it — creates awkward "auditor fails its own checks" state. Resolving clarifies whether ADR-38 universal mandate applies to non-code repos.
@@ -75,13 +89,13 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-04-30 by rob (Phase 1 self-audit)
 - **Status:** open
 
-### [P2] [open] ADR-29 amendment — formalize "prepend at top" ordering convention for LESSONS.md
+### [P2] [superseded] ADR-29 amendment — formalize "prepend at top" ordering convention for LESSONS.md
 - **What:** Amend ADR-29 (or create new ADR superseding ADR-29's position-rule clause) to formalize the going-forward convention: new LESSONS entries prepend at top of dated-entries section, not append at tail. Update any related references in PLAYBOOK / ESSENTIALS / CLAUDE.md that mention LESSONS append direction.
 - **Why:** Operator visibility — newest entries should be immediately visible on file open so operator can confirm captures landed. Same-day correction (2026-05-14 session) moved 9 entries to top as one-time fix; going-forward convention needs formalization so future contributors don't tail-append out of habit, creating mixed ordering.
 - **Captured here, not fixed here.** Per scope discipline — same-day file correction is one concern, ADR amendment is methodology change deserving its own thought (full Stage 1→3 cycle if needed).
 - **Vision ref:** ADR-29 (lessons grandfathering schema, current authority on LESSONS convention).
 - **Added:** 2026-05-14 by rob (interleaved scope, same-day correction session).
-- **Status:** open
+- **Status:** superseded 2026-05-15 by ADR-46 (cross-repo dated-entries format standard). Prepend-latest is now universal mandate across LESSONS / JOURNAL / CHANGELOG; downstream cross-file references (PLAYBOOK / ESSENTIALS / CLAUDE.md) folded into Session D cleanup pass scope.
 
 ### [P3] [superseded] Council CLI dual-write trigger logic
 - **What:** Define when Council debates dual-write to .dev-knowledge vs ai-council/output only; flag-based or auto-detect (research+pick=curated, test=no-curated)
@@ -94,6 +108,13 @@ Next quarterly grooming: 2026-07-01
 - **Why:** Lifecycle compliance per ADR-39; deferred to grouped amendment to minimize ADR churn
 - **Added:** 2026-04-30 by rob
 - **Status:** open
+
+### [P3] [open] ADR-41 amendment — reference ADR-47 (BACKLOG schema)
+- **What:** Amend ADR-41 (BACKLOG architecture — file mandate) to cross-reference ADR-47 (BACKLOG schema decision). ADR-41 stands as the "file mandate" authority; ADR-47 is the "file schema" authority. Small textual amendment in ADR-41 § Storage + Related metadata block.
+- **Why:** ADR-47's Follow-ups identifies this as needed for traceability. Without the cross-reference, future readers may treat ADR-41 as the only BACKLOG authority and miss the operational schema in ADR-47.
+- **Vision ref:** ADR-41 + ADR-47.
+- **Added:** 2026-05-15 by rob (B+C ADR session — surfaced by ADR-47 Follow-ups)
+- **Status:** open — bundle with grouped ADR-39 amendments to minimize ADR churn (Stream C P3 above)
 
 ### [P3] [open] ADR-39 registry decision — 5 unregistered template files
 - **What:** Decide whether `templates/AGENTS-md-template.md`, `templates/CLAUDE-md-template.md`, `templates/codex-review-config-template.md`, `templates/prompt-template.md`, plus any other template-category files require ADR-39 registry entries. Options: (a) add registry entries with template-specific lifecycle; (b) formally exclude templates as a class via ADR-39 amendment ("template files exempt from registry"); (c) hybrid — register only stable templates, exclude transient. Decision required because ADR-39 says "every file in .dev-knowledge MUST have 6 lifecycle elements."
