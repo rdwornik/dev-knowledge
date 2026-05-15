@@ -18,6 +18,16 @@
 
 ---
 
+### 2026-05-15 — Session close: v3.3.2 template fix + ai-council bundle regenerated
+- Template fix implemented: `templates/HANDOFF_FOLDER_TEMPLATE.md` parameterized for cross-repo
+  use (`{repo}` in gate #1; target VISION as 02_VISION source; conditional 02b_ECOSYSTEM_VISION);
+  Bug C fixed (BOUNDARIES → Hard Constraints). HANDOFF_PROCESS bumped v3.3.1 → v3.3.2.
+- ai-council bundle regenerated in-place (13 total files including new 02b_ECOSYSTEM_VISION.md);
+  broken state preserved in git history at `c09ee71`.
+- Mandatory cross-case trace verification executed before template commit — both traces passed.
+- BACKLOG v3.3.2 entry marked [done]. Preceding session work already landed: directive #3
+  PLAYBOOK additions merged `72f486e`; LESSON #9 captured `5b51cdc`; LESSONS canonical rewrite `99a104e`.
+
 ### 2026-05-14 — Same-day LESSONS canonical rewrite + top relocation
 - Same-day LESSONS correction: 9 entries rewritten to canonical 6-field schema, moved from tail to top of dated-entries section
 - Surfaced by operator's empirical observation that opening LESSONS.md showed pre-existing 2026-04-21 entry at top — visibility convention need

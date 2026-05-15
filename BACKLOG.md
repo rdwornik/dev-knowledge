@@ -30,7 +30,7 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-04-30 by rob (Phase 1 closure session)
 - **Status:** done (2026-05-09 — closed by ADR-42 ratification + v3.0 implementation; HANDOFF_PROCESS rewritten, HANDOFF_QUESTION_TEMPLATE + HANDOFF_FOLDER_TEMPLATE created, SESSION_SETUP.md updated, ai-council handoff regenerated)
 
-### [P1] [open] v3.3.2 — HANDOFF_FOLDER_TEMPLATE parameterization for cross-repo handoffs
+### [P1] [done] v3.3.2 — HANDOFF_FOLDER_TEMPLATE parameterization for cross-repo handoffs
 - **What:** Patch `templates/HANDOFF_FOLDER_TEMPLATE.md` to parameterize `{TARGET_REPO}` substitution in articulation gate item #1; refactor `02_VISION.md` generation to use target repo's `VISION.md` (with conditional `02b_ECOSYSTEM_VISION.md` carrying `.dev-knowledge` VISION when target ≠ `.dev-knowledge`); fix "BOUNDARIES" → "Hard Constraints" terminology drift in articulation gate item #4; update `00_README` + `01_MANIFEST` + `00_first-message` template surfaces accordingly; bump `protocols/HANDOFF_PROCESS.md` v3.3.1 → v3.3.2. **Mandatory manual cross-case trace verification step** (Stage 3 simulated against both `.dev-knowledge` and a non-`.dev-knowledge` target before merge) to prevent recurrence of the `universal-without-cross-case-verification` pattern.
 - **Why:** Bug 1 (hardcoded .dev-knowledge in articulation gate item #1) + Bug 2 (unconditional .dev-knowledge VISION copy in 02_VISION.md) witnessed 2026-05-14 ai-council Stage 3. **Captured here, not fixed here** — fix is v3.3.2's scope per operator decision 2026-05-14 (Option B over Option A after architect pushback on four briefing-note errors: missed Hard Constraint #3, stale directive #2 state, fabricated "ADR-29 atomic convention", circular citation). v3.3.2 = next dedicated `.dev-knowledge` session's primary objective, not "P1 in BACKLOG for someday."
 - **Stage 1 inputs available for next session:**
@@ -40,7 +40,7 @@ Next quarterly grooming: 2026-07-01
 - **Operator mitigation in interim:** do not generate cross-repo handoffs (ai-council, corp-monorepo, corp-ops, corp-sca-time-automation) until v3.3.2 ships. The 2026-05-14 ai-council bundle stays as historical empirical artifact (never delete without explicit ask).
 - **Vision ref:** ADR-33 (vision universalization), ADR-42 (handoff format v3 authority)
 - **Added:** 2026-05-14 by rob (interleaved scope, current session)
-- **Status:** open
+- **Status:** done (2026-05-15 — template fix merged, ai-council bundle regenerated; see CHANGELOG 2026-05-15 [Fixed])
 
 ### [P1] [done] PLAYBOOK content additions for ADRs 36/37/40/41
 - **What:** Add PLAYBOOK.md sections for ADR-36 (audit tool usage workflow), ADR-37 (two-phase handoff format guidance), ADR-40 (tier transition procedures S→M and M→L), ADR-41 (BACKLOG grooming workflow per-handoff and quarterly cadence). Update PLAYBOOK header version/date to reflect content amendments.

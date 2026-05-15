@@ -4,6 +4,29 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-15
+
+### Fixed
+
+- `templates/HANDOFF_FOLDER_TEMPLATE.md` cross-repo parameterization (v3.3.2):
+  articulation gate item #1 now uses `{repo}` placeholder (was hardcoded `.dev-knowledge`);
+  `02_VISION.md` now sources target repo's VISION via `{TARGET_REPO_PATH}` (was unconditional
+  `.dev-knowledge` VISION); new conditional `02b_ECOSYSTEM_VISION.md` for ecosystem context
+  when target ≠ `.dev-knowledge`. Articulation gate item #4 terminology fixed: "per BOUNDARIES"
+  → "Hard Constraints section" (matches 07_ACTION_PLAN.md section header since v3.3).
+- `docs/handoffs/2026-05-14-ai-council-session-sync/` regenerated from v3.3.2 template:
+  `02_VISION.md` now ai-council's mission; new `02b_ECOSYSTEM_VISION.md` carries .dev-knowledge
+  ecosystem context; articulation gate and reading order corrected; format v3.3.2; 12 checksummed
+  files. Broken state preserved in git history at `c09ee71`.
+
+### Changed
+
+- `protocols/HANDOFF_PROCESS.md` v3.3.1 → v3.3.2: amendment scope documented (Bugs A/B/C),
+  new `02b_ECOSYSTEM_VISION.md` conditional file, Hard Constraint #3 formal amendment by
+  operator authorization 2026-05-14, mandatory cross-case trace requirement for future amendments.
+
+---
+
 ## 2026-05-14
 
 ### Added
