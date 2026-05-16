@@ -141,3 +141,21 @@
 
 - **Archived:** 2026-05-16
 
+### [P1] [done] Session D — `.dev-knowledge` dated-entries cleanup (ADR-46 compliance)
+- **What:** Fix audit findings surfaced by `check_dated_entries_format`: (1) `LESSONS.md` non-ISO H2 heading `## Entries` — retitle/restructure to ADR-46 envelope; (2) `CHANGELOG.md` reverse-chrono ordering violation (`2026-04-24` appears before `2026-04-25`).
+- **Why:** ADR-46 mandates ISO `## YYYY-MM-DD` headings and reverse-chrono ordering; both violations block a PASS on `dated_entries_lessons` and `dated_entries_changelog` checks.
+- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-46
+- **Added:** 2026-05-15 by rob (Session E dogfood findings — Step 3 inventory)
+- **Status:** done (2026-05-16 — removed ## Entries H2; reordered pre-convention tail entries in both LESSONS.md and CHANGELOG.md; all dated_entries checks PASS)
+
+- **Archived:** 2026-05-16
+
+### [P1] [done] Session D — `.dev-knowledge` BACKLOG.md → BACKLOG_ARCHIVE.md extraction (ADR-47 compliance)
+- **What:** (1) Run `scripts/backlog_extract.py` to move all archived items to new `BACKLOG_ARCHIVE.md`; (2) Fix 8 entries missing `Why:` field (migration-era entries in Cross-repo Naming and Hyphen Convention sections); (3) Address 2 kill-criterion WARNs.
+- **Why:** ADR-47 mandates two-file state architecture; completed items pollute the active backlog, reducing scannability and triggering the session-start validator fail-fast.
+- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-47
+- **Added:** 2026-05-15 by rob (Session E dogfood findings — Step 3 inventory)
+- **Status:** done (2026-05-16 — 15 entries extracted to BACKLOG_ARCHIVE.md; 8 Why: fields added; >300-line WARN resolves after this extraction; Cross-stream WARN accepted + new Stream taxonomy grooming P2 item added)
+
+- **Archived:** 2026-05-16
+

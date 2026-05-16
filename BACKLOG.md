@@ -39,20 +39,6 @@ Next quarterly grooming: 2026-07-01
 
 ## Stream C: .dev-knowledge governance
 
-### [P1] [open] Session D — `.dev-knowledge` dated-entries cleanup (ADR-46 compliance)
-- **What:** Fix audit findings surfaced by `check_dated_entries_format`: (1) `LESSONS.md` non-ISO H2 heading `## Entries` — retitle/restructure to ADR-46 envelope; (2) `CHANGELOG.md` reverse-chrono ordering violation (`2026-04-24` appears before `2026-04-25`).
-- **Why:** ADR-46 mandates ISO `## YYYY-MM-DD` headings and reverse-chrono ordering; both violations block a PASS on `dated_entries_lessons` and `dated_entries_changelog` checks.
-- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-46
-- **Added:** 2026-05-15 by rob (Session E dogfood findings — Step 3 inventory)
-- **Status:** open — blocked on Session E dogfood completion (this session), which is now done
-
-### [P1] [open] Session D — `.dev-knowledge` BACKLOG.md → BACKLOG_ARCHIVE.md extraction (ADR-47 compliance)
-- **What:** (1) Run `scripts/backlog_extract.py` to move all archived items to new `BACKLOG_ARCHIVE.md`; (2) Fix 8 entries missing `Why:` field (migration-era entries in Cross-repo Naming and Hyphen Convention sections); (3) Address 2 kill-criterion WARNs: 371-line file (>300 kill) + Cross-stream 45% of open items (>33% kill).
-- **Why:** ADR-47 mandates two-file state architecture; completed items pollute the active backlog, reducing scannability and triggering the session-start validator fail-fast.
-- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-47
-- **Added:** 2026-05-15 by rob (Session E dogfood findings — Step 3 inventory)
-- **Status:** open — blocked on Session E dogfood completion (this session), which is now done
-
 ### [P2] [open] .dev-knowledge ADR-38 self-compliance gap — src/ + pyproject.toml
 - **What:** Audit tool P1 self-audit surfaced finding: `.dev-knowledge` missing `src/` and `pyproject.toml` (ADR-38 check `adr38_baseline` FAIL). `.dev-knowledge` is a governance/knowledge repo (NOT a code project per CLAUDE.md), yet ADR-38 mandates src/ and pyproject.toml for all tier M+ repos. Resolution options: (a) create minimal pyproject.toml + scripts/ → src/ migration, (b) amend ADR-38 to add "governance-only" tier exemption, (c) document explicit exception in state.yaml.
 - **Why:** Self-audit produces FAIL on the repo that runs it — creates awkward "auditor fails its own checks" state. Resolving clarifies whether ADR-38 universal mandate applies to non-code repos.
@@ -79,6 +65,13 @@ Next quarterly grooming: 2026-07-01
 - **Vision ref:** ADR-29 (lessons grandfathering schema, current authority on LESSONS convention).
 - **Added:** 2026-05-14 by rob (interleaved scope, same-day correction session).
 - **Status:** superseded 2026-05-15 by ADR-46 (cross-repo dated-entries format standard). Prepend-latest is now universal mandate across LESSONS / JOURNAL / CHANGELOG; downstream cross-file references (PLAYBOOK / ESSENTIALS / CLAUDE.md) folded into Session D cleanup pass scope.
+
+### [P2] [open] Stream taxonomy grooming — Cross-stream section exceeds kill criterion
+- **What:** BACKLOG.md `Cross-stream / Ecosystem` section currently holds 40% of all open items (kill criterion per ADR-47: 33%). Review the 15 open Cross-stream items and evaluate: (a) which items genuinely belong to an existing stream (A/B/C/D) and should be reclassified; (b) whether a new stream (e.g., Stream E: ecosystem operations or Stream E: tooling) should be created to absorb a coherent sub-group; (c) which items are truly cross-stream and should remain. Output: reclassified BACKLOG with Cross-stream ≤33%, or an operator decision to extend ADR-47's kill threshold with empirical justification.
+- **Why:** ADR-47 codified 33% as the kill criterion because Cross-stream > 33% signals that the stream taxonomy is no longer routing items correctly. The current 40% reading persisted after extraction of all done items, confirming it is structural (not noise). Without deliberate grooming, the ratio will increase as new cross-stream items accumulate and the taxonomy's routing signal degrades for LLM agents at session start.
+- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-47 kill criteria; pairs with quarterly grooming cadence
+- **Added:** 2026-05-16 by rob (Session D — accepted WARN from kill-criterion re-evaluation post-extraction)
+- **Status:** open — deferred to quarterly grooming (2026-07-01); task-mismatch justifies defer over immediate forced reclassification
 
 ### [P3] [superseded] Council CLI dual-write trigger logic
 - **What:** Define when Council debates dual-write to .dev-knowledge vs ai-council/output only; flag-based or auto-detect (research+pick=curated, test=no-curated)
