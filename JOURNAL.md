@@ -18,6 +18,17 @@
 
 ---
 
+### 2026-05-16 — Session D: .dev-knowledge ADR-46+47 cleanup complete
+- Resolved all 5 FAIL groups from 2026-05-15 dogfood audit: dated_entries_lessons +
+  dated_entries_changelog now PASS; BACKLOG_ARCHIVE.md created; 15 entries extracted;
+  8 Why: fields added; no [done] tokens in active BACKLOG. Two hidden tail-ordering
+  issues surfaced (LESSONS.md and CHANGELOG.md) — fixed in scope.
+- Deferred WARNs accepted: Cross-stream 41% (structural; Stream taxonomy grooming P2
+  item added for quarterly grooming 2026-07-01); adr38_baseline FAIL is pre-existing
+  out-of-scope. Branch: feat/cleanup-adr-46-47-dev-knowledge — awaiting merge approval.
+
+---
+
 ### 2026-05-15 — ai-council cleanup handoff bundle dispatched (D2)
 - Generated 12-file cross-repo handoff bundle at `docs/handoffs/2026-05-15-ai-council-cleanup/`;
   ADR-42 v3.3.2 format + `02b_ECOSYSTEM_VISION.md` for cross-repo case
