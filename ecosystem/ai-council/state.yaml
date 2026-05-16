@@ -9,18 +9,6 @@ findings:
 - check_name: claude_md
   evidence: CLAUDE.md present (16736 chars)
   status: pass
-- check_name: dated_entries_lessons
-  evidence: 'LESSONS.md: no [scope: X] tag found in entries (ADR-46 sniff test)'
-  status: warn
-- check_name: dated_entries_journal
-  evidence: 'JOURNAL.md: envelope OK (19 dated entries, reverse-chrono)'
-  status: pass
-- check_name: dated_entries_changelog
-  evidence: 'CHANGELOG.md: envelope OK (4 dated entries, reverse-chrono)'
-  status: pass
-- check_name: backlog_organization
-  evidence: BACKLOG.md organization OK (11 open items, 8 streams)
-  status: pass
 last_audit: '2026-05-16'
 name: ai-council
 path: C:\Users\1028120\Documents\Dev\ai-council
