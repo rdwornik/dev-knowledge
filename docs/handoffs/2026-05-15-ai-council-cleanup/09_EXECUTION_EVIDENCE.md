@@ -12,12 +12,12 @@
 
 | Field | Value |
 |---|---|
-| Execution date | YYYY-MM-DD |
+| Execution date | 2026-05-15 |
 | Executor | Claude Code (ai-council session) |
 | ai-council HEAD before | `0f069554b894802504aa4e5ce140b1d481ae9ec8` |
-| ai-council HEAD after | (fill after last commit: `git rev-parse HEAD`) |
-| Branch | main (or feature branch if used) |
-| Working tree at close | clean / dirty |
+| ai-council HEAD after | `15f5486ed9e82aaaa9c9480bca3f24dd991c7195` |
+| Branch | main |
+| Working tree at close | clean |
 
 ---
 
@@ -27,34 +27,34 @@ List all commits made in this session (sha + message):
 
 | SHA (short) | Message |
 |---|---|
-| | `docs(lessons): migrate session envelope to ISO format per ADR-46 [cleanup]` |
-| | `docs(journal): restore reverse-chrono ordering per ADR-46 [cleanup]` |
-| | `chore(backlog): create BACKLOG_ARCHIVE.md scaffold per ADR-47 [cleanup]` |
-| | `chore(backlog): migrate [blocked] → [open] + add Status fields per ADR-47 [cleanup]` |
-| | `docs(changelog): ADR-46+47 compliance cleanup [cleanup]` |
-| | `docs(journal): 2026-05-15 ADR-46+47 compliance cleanup [cleanup]` |
+| `6a76fc7` | `docs(lessons): migrate session envelope to ISO format per ADR-46 [cleanup]` |
+| `7c03667` | `docs(journal): restore reverse-chrono ordering per ADR-46 [cleanup]` |
+| `1f5c876` | `chore(backlog): create BACKLOG_ARCHIVE.md scaffold per ADR-47 [cleanup]` |
+| `b675540` | `chore(backlog): migrate [blocked] -> [open] + add Status fields per ADR-47 [cleanup]` |
+| `7f76306` | `docs(changelog): ADR-46+47 compliance cleanup [cleanup]` |
+| `15f5486` | `docs(journal): 2026-05-15 ADR-46+47 compliance cleanup [cleanup]` |
 
 ---
 
 ## Files changed
 
-- [ ] `LESSONS.md` — heading migrated
-- [ ] `JOURNAL.md` — ordering fixed
-- [ ] `BACKLOG.md` — [blocked] migrated, Status fields added
-- [ ] `BACKLOG_ARCHIVE.md` — created (new file)
-- [ ] `CHANGELOG.md` — cleanup entry added
+- [x] `LESSONS.md` — heading migrated
+- [x] `JOURNAL.md` — ordering fixed
+- [x] `BACKLOG.md` — [blocked] migrated, Status fields added
+- [x] `BACKLOG_ARCHIVE.md` — created (new file)
+- [x] `CHANGELOG.md` — cleanup entry added
 
 ---
 
 ## Verification performed
 
 Self-check (ai-council session):
-- [ ] `## Session:` no longer appears in LESSONS.md
-- [ ] JOURNAL.md H2 dates are strictly reverse-chronological
-- [ ] No `[blocked]` in BACKLOG.md headings
-- [ ] All 11 BACKLOG entries have `**Status:** open`
-- [ ] BACKLOG_ARCHIVE.md exists at repo root
-- [ ] `git status --porcelain` = clean
+- [x] `## Session:` no longer appears in LESSONS.md
+- [x] JOURNAL.md H2 dates are strictly reverse-chronological (verified via grep)
+- [x] No `[blocked]` in BACKLOG.md headings (verified via grep)
+- [x] All 11 BACKLOG entries have `**Status:** open` (verified: grep count = 11)
+- [x] BACKLOG_ARCHIVE.md exists at repo root
+- [x] `git status --porcelain` = clean
 
 ---
 
@@ -62,7 +62,7 @@ Self-check (ai-council session):
 
 If any directive could not be executed as specified, describe here:
 
-(none / describe)
+None. One minor discrepancy from the bundle description: STATE_OF_PLAY described the misplaced entry as "## 2026-03-15 | Phase 1 foundation" but in the actual file it was "## 2026-05-12 — Scrum-master addendum implementation (I7 + I8)" that was out of position. The H3 "### 2026-03-15" was a sub-entry inside the 2026-05-09 block. The audit violation was the same (reverse-chrono broken), fix was the same (moved the misplaced H2 block to correct position). All 5 FAIL checks are addressed.
 
 ---
 

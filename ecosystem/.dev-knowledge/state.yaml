@@ -13,7 +13,7 @@ findings:
   evidence: 'LESSONS.md: non-ISO-date H2 heading found: ''## Entries'''
   status: fail
 - check_name: dated_entries_journal
-  evidence: 'JOURNAL.md: envelope OK (54 dated entries, reverse-chrono)'
+  evidence: 'JOURNAL.md: envelope OK (56 dated entries, reverse-chrono)'
   status: pass
 - check_name: dated_entries_changelog
   evidence: 'CHANGELOG.md: ordering violation — ''2026-04-24'' before ''2026-04-25''
@@ -23,7 +23,7 @@ findings:
   evidence: BACKLOG_ARCHIVE.md missing (required alongside BACKLOG.md per ADR-47)
   status: fail
 - check_name: backlog_organization
-  evidence: '[done] token found in BACKLOG.md at line(s): [26, 33, 45, 52, 59] (extract
+  evidence: '[done] token found in BACKLOG.md at line(s): [33, 42, 49, 61, 68] (extract
     to BACKLOG_ARCHIVE.md)'
   status: fail
 - check_name: backlog_organization
@@ -49,6 +49,10 @@ findings:
 - check_name: backlog_organization
   evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
     [P1] [done] Cross-repo BACKLOG organization standard (Entry 2)'''
+  status: fail
+- check_name: backlog_organization
+  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
+    [P2] [done] Audit tool extension — ADR-46 + ADR-47 checks + extraction scrip'''
   status: fail
 - check_name: backlog_organization
   evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
@@ -115,10 +119,10 @@ findings:
     retire UPPERCASE TYPE tag in leg'''
   status: fail
 - check_name: backlog_organization
-  evidence: BACKLOG.md exceeds 300-line kill criterion (371 lines) — review ADR-47
+  evidence: BACKLOG.md exceeds 300-line kill criterion (408 lines) — review ADR-47
   status: warn
 - check_name: backlog_organization
-  evidence: 'Cross-stream section is 45% of open items (kill criterion: 33%) — review
+  evidence: 'Cross-stream section is 40% of open items (kill criterion: 33%) — review
     ADR-47'
   status: warn
 last_audit: '2026-05-15'

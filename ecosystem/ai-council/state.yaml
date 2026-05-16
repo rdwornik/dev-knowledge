@@ -10,67 +10,18 @@ findings:
   evidence: CLAUDE.md present (16736 chars)
   status: pass
 - check_name: dated_entries_lessons
-  evidence: 'LESSONS.md: non-ISO-date H2 heading found: ''## Session: Phase 1 Foundation
-    (2026-02-21)'''
-  status: fail
-- check_name: dated_entries_journal
-  evidence: 'JOURNAL.md: ordering violation — ''2026-03-15'' before ''2026-05-12''
+  evidence: 'LESSONS.md: ordering violation — ''2026-04-27'' before ''2026-05-11''
     (not reverse-chrono)'
   status: fail
+- check_name: dated_entries_journal
+  evidence: 'JOURNAL.md: envelope OK (19 dated entries, reverse-chrono)'
+  status: pass
 - check_name: dated_entries_changelog
-  evidence: 'CHANGELOG.md: envelope OK (3 dated entries, reverse-chrono)'
+  evidence: 'CHANGELOG.md: envelope OK (4 dated entries, reverse-chrono)'
   status: pass
 - check_name: backlog_organization
-  evidence: BACKLOG_ARCHIVE.md missing (required alongside BACKLOG.md per ADR-47)
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Status'']: ''### [P1] [open] Step 5
-    smoke test execution (Gemini synth sc'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P1] [blocked] Step 6 Phase 3 conditional implementation (ADR-01 amendment +'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Status'']: ''### [P1] [blocked] Step
-    6 Phase 3 conditional implementation'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Status'']: ''### [P1] [open] Codify
-    cost-optimization principle in ADR-01'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Status'']: ''### [P2] [open] openai_deep_research
-    integration test gap'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Status'']: ''### [P2] [open] CI enforcement
-    of hyphen-only separator rule'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Status'']: ''### [P3] [open] ADR-34
-    timestamp-underscore case in council-'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Status'']: ''### [P3] [open] DeepSeek
-    replacement decision'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Status'']: ''### [P3] [open] Synthesis
-    quality rubric refinement — faithf'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Status'']: ''### [P3] [open] AGENTS.md
-    addition per ADR-28'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Status'']: ''### [P3] [open] ADR-02
-    amendment (panelist/synthesizer overl'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Status'']: ''### [P3] [open] Cross-stream
-    P2 — handshake = 1 round trip c'''
-  status: fail
+  evidence: BACKLOG.md organization OK (11 open items, 8 streams)
+  status: pass
 last_audit: '2026-05-15'
 name: ai-council
 path: C:\Users\1028120\Documents\Dev\ai-council
