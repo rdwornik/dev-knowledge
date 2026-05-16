@@ -2,19 +2,29 @@
 
 <!-- scope: meta -->
 
-> Per-session tactical log of `.dev-knowledge` Claude Code work. Did/Failed/Next
-> entry shape per PLAYBOOK Stream B Gap #4 spec, newest-first prepend ordering
-> per PLAYBOOK Documentation file types v1.1 amendment (2026-04-27).
+> Per-session tactical log of `.dev-knowledge` Claude Code work. Entry shape
+> as of 2026-05-16 (Council Simplification): `Did / Result / Changes /
+> Abandoned / Next`. Newest-first prepend ordering.
 >
-> Distinct from CHANGELOG (per-commit notable changes), LESSONS (per-learning
-> generalized rules, oldest-top per ADR-29), and handoffs (per-session boundary
-> artifacts for browser-chat resumption): JOURNAL is the within-Claude-Code-
-> sessions tactical log enabling context recovery across sessions in same repo.
+> Distinct from LESSONS (per-learning generalized rules, oldest-top per
+> ADR-29) and handoffs (per-session boundary artifacts for browser-chat
+> resumption). JOURNAL is the within-Claude-Code-sessions tactical log
+> enabling context recovery across sessions in same repo. The `Changes:`
+> line records what files / areas moved — replacing the deleted CHANGELOG.md.
 >
 > Update protocol: prepend new session entry at top of entry list (under this
 > intro blockquote, before existing entries). One entry per Claude Code session
 > OR per workday for heavy days. Each entry cites commit hashes, handoff doc,
 > or ADR for deeper detail. JOURNAL summarizes, doesn't duplicate.
+
+---
+
+### 2026-05-16 — Council Simplification slice: .dev-knowledge governance trim
+- Did: applied AI Council simplification verdict to `.dev-knowledge` on `feat/docs-governance-simplification` over 6 commits (Steps 2–7). Trimmed `scripts/audit.py` to structural-only checks (vision_md / adr38_baseline / claude_md); deleted CHANGELOG.md + BACKLOG_ARCHIVE.md; demoted ADR-46 + ADR-47 to non-enforced conventions; added deterministic `scripts/normalize_headers.py` + pre-commit auto-format hook; removed the scope-tag enforcement system (`validate_scope_tags.py`, tests, pre-commit hook, CLAUDE.md vocabulary section); documented git-as-changelog + Conventional Commits standard + new `Did/Result/Changes/Abandoned/Next` JOURNAL shape.
+- Result: tests 51 passed / 0 failed (was 53 passed / 3 failing). `ruff` clean. Audit output no longer references CHANGELOG / BACKLOG_ARCHIVE / dated-entries / backlog-organization checks. Branch left at `1401618` + this JOURNAL commit; NOT merged, NOT pushed.
+- Changes: `scripts/audit.py`, `scripts/normalize_headers.py` (new), `tests/test_audit.py`, `tests/test_normalize_headers.py` (new), `tests/test_validate_scope_tags.py` (deleted), `tests/fixtures/{backlog-*,dated-entries-*}/` (deleted), `scripts/validate_scope_tags.py` (deleted), `CHANGELOG.md` + `BACKLOG_ARCHIVE.md` (deleted), `docs/decisions/ADR-46-*.md` + `ADR-47-*.md` (condensed), `.pre-commit-config.yaml`, `CLAUDE.md`, `CONTRIBUTING.md`, `protocols/ESSENTIALS.md`, `.claude/commands/save.md`, `JOURNAL.md` (this entry + intro rewrite).
+- Abandoned: keeping per-entry required-fields check in `check_backlog_organization` — flagged as marginal in the Step 2 commit body; classified as entry-body format-detail and removed. If you want it back as a structural check, the call is in the Step 2 commit body. Pre-existing `adr38_baseline` FAIL (`.dev-knowledge` lacks `src/` + `pyproject.toml`) NOT addressed — out of scope for this branch; surfaced for separate triage.
+- Next: morning review of branch `feat/docs-governance-simplification` (7 commits incl. this JOURNAL entry). On approval: rebase / merge to main; otherwise raise the flagged-ambiguity (required-fields-per-entry) and any rollback of demoted ADRs.
 
 ---
 
