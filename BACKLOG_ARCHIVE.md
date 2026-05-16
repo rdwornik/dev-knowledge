@@ -159,3 +159,21 @@
 
 - **Archived:** 2026-05-16
 
+### [P1] [done] Session D — `ai-council` dated-entries cleanup (ADR-46 compliance)
+- **What:** Fix audit findings surfaced by `check_dated_entries_format`: (1) `LESSONS.md` non-ISO H2 heading `## Session: Phase 1 Foundation (2026-02-21)` — retitle to ISO `## YYYY-MM-DD` envelope per ADR-46; (2) `JOURNAL.md` reverse-chrono ordering violation (`2026-03-15` before `2026-05-12`) — reorder entries.
+- **Why:** ADR-46 mandates ISO envelope headers and reverse-chrono ordering; both violations produce FAIL on `dated_entries_lessons` and `dated_entries_journal` checks.
+- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-46; pairs with Phase 2 universalization rollout (Cross-stream P2)
+- **Added:** 2026-05-15 by rob (Session E dogfood findings — Step 3 inventory)
+- **Status:** done (2026-05-16 — 2026-05-16 re-audit shows ai-council `dated_entries_lessons` WARN, `dated_entries_journal` PASS, overall PASS; ordering violations resolved; residual scope-tag WARN tracked as new P3 item)
+
+- **Archived:** 2026-05-16
+
+### [P1] [done] Session D — `ai-council` BACKLOG.md ADR-47 compliance
+- **What:** (1) Create `BACKLOG_ARCHIVE.md` in ai-council (no archived items in current BACKLOG but file required by ADR-47); (2) Fix 1 entry with `[blocked]` status (not a valid ADR-47 status — must be `[open]` or `[superseded]`); (3) Add missing `Status:` field to 11 entries.
+- **Why:** ADR-47 mandates two-file state + specific valid status values + required entry fields; missing these produces FAIL on `backlog_organization` check.
+- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-47; pairs with Phase 2 universalization rollout (Cross-stream P2)
+- **Added:** 2026-05-15 by rob (Session E dogfood findings — Step 3 inventory)
+- **Status:** done (2026-05-16 — 2026-05-16 re-audit shows ai-council `backlog_organization` PASS; two-file state and required fields confirmed compliant)
+
+- **Archived:** 2026-05-16
+

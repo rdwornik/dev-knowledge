@@ -21,21 +21,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-11 by rob (Item 0 strażnik audit)
 - **Status:** open — work belongs in ai-council repo, not .dev-knowledge
 
-### [P1] [open] Session D — `ai-council` dated-entries cleanup (ADR-46 compliance)
-- **What:** Fix audit findings surfaced by `check_dated_entries_format`: (1) `LESSONS.md` non-ISO H2 heading `## Session: Phase 1 Foundation (2026-02-21)` — retitle to ISO `## YYYY-MM-DD` envelope per ADR-46; (2) `JOURNAL.md` reverse-chrono ordering violation (`2026-03-15` before `2026-05-12`) — reorder entries.
-- **Why:** ADR-46 mandates ISO envelope headers and reverse-chrono ordering; both violations produce FAIL on `dated_entries_lessons` and `dated_entries_journal` checks.
-- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-46; pairs with Phase 2 universalization rollout (Cross-stream P2)
-- **Added:** 2026-05-15 by rob (Session E dogfood findings — Step 3 inventory)
-- **Status:** open
-- **Blocked:** ai-council Claude Code session execution pending — handoff bundle dispatched 2026-05-15 at `docs/handoffs/2026-05-15-ai-council-cleanup/`
-
-### [P1] [open] Session D — `ai-council` BACKLOG.md ADR-47 compliance
-- **What:** (1) Create `BACKLOG_ARCHIVE.md` in ai-council (no archived items in current BACKLOG but file required by ADR-47); (2) Fix 1 entry with `[blocked]` status (not a valid ADR-47 status — must be `[open]` or `[superseded]`); (3) Add missing `Status:` field to 11 entries.
-- **Why:** ADR-47 mandates two-file state + specific valid status values + required entry fields; missing these produces FAIL on `backlog_organization` check.
-- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-47; pairs with Phase 2 universalization rollout (Cross-stream P2)
-- **Added:** 2026-05-15 by rob (Session E dogfood findings — Step 3 inventory)
-- **Status:** open
-- **Blocked:** ai-council Claude Code session execution pending — handoff bundle dispatched 2026-05-15 at `docs/handoffs/2026-05-15-ai-council-cleanup/`
+### [P3] [open] ai-council LESSONS.md scope-tag backfill (ADR-46 advisory)
+- **What:** ai-council `LESSONS.md` entries do not contain `[scope: X]` tags per the ADR-46 LESSONS payload sniff test. Add `[scope: X]` to each entry's canonical 6-field schema position. Work belongs in ai-council repo.
+- **Why:** ADR-46 §LESSONS.md specifies `[scope: X]` substring as required in 6-field entries; absence produces a WARN on `dated_entries_lessons` check. Advisory — WARN not FAIL — but constitutes methodology drift from the ADR-46 standard.
+- **Vision ref:** VISION.md "Knowledge Guardian"; ADR-46 LESSONS payload spec
+- **Added:** 2026-05-16 by rob (2026-05-16 re-audit advisory WARN — ai-council `dated_entries_lessons`)
+- **Status:** open — work belongs in ai-council repo
 
 ## Stream C: .dev-knowledge governance
 
@@ -65,6 +56,13 @@ Next quarterly grooming: 2026-07-01
 - **Vision ref:** ADR-29 (lessons grandfathering schema, current authority on LESSONS convention).
 - **Added:** 2026-05-14 by rob (interleaved scope, same-day correction session).
 - **Status:** superseded 2026-05-15 by ADR-46 (cross-repo dated-entries format standard). Prepend-latest is now universal mandate across LESSONS / JOURNAL / CHANGELOG; downstream cross-file references (PLAYBOOK / ESSENTIALS / CLAUDE.md) folded into Session D cleanup pass scope.
+
+### [P2] [open] Audit tool: check_backlog_organization code-span-aware done-token regex
+- **What:** `check_backlog_organization` uses a bare regex to detect done-status tokens in `BACKLOG.md`. This regex matches the done-token pattern inside backtick inline-code spans in body text, producing false-positive FAIL findings on entries that reference the ADR-47 vocabulary. Fix: strip or skip backtick-quoted spans before applying the done-token check, so only unquoted status tokens trigger the fatal finding.
+- **Why:** Session D encountered 3 false-positive hits (body text references to the done-status concept in backtick spans), requiring rewordings that lost precision. A code-span-aware regex is the correct fix; body-text rewordings are a workaround that degrades entry fidelity. Surfaced as a pattern likely to recur in future BACKLOG entries that explain the ADR-47 two-file state.
+- **Vision ref:** VISION.md "Auditor" function; ADR-47 enforcement; ADR-36 audit tool architecture
+- **Added:** 2026-05-16 by rob (Session D false-positive hit pattern)
+- **Status:** open
 
 ### [P2] [open] Stream taxonomy grooming — Cross-stream section exceeds kill criterion
 - **What:** BACKLOG.md `Cross-stream / Ecosystem` section currently holds 40% of all open items (kill criterion per ADR-47: 33%). Review the 15 open Cross-stream items and evaluate: (a) which items genuinely belong to an existing stream (A/B/C/D) and should be reclassified; (b) whether a new stream (e.g., Stream E: ecosystem operations or Stream E: tooling) should be created to absorb a coherent sub-group; (c) which items are truly cross-stream and should remain. Output: reclassified BACKLOG with Cross-stream ≤33%, or an operator decision to extend ADR-47's kill threshold with empirical justification.
