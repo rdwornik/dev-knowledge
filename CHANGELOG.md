@@ -4,6 +4,47 @@ Notable changes to the dev practice knowledge base.
 
 ---
 
+## 2026-05-16
+
+### Fixed (Session D — ADR-46 + ADR-47 cleanup, .dev-knowledge)
+
+- `LESSONS.md`: removed non-ISO `## Entries` H2 heading (ADR-46 FAIL). Revealed
+  pre-convention tail ordering issue (2026-03-25 to 2026-04-24 entries were in
+  ascending order); reordered all 127 H3 entries to reverse-chronological.
+  `dated_entries_lessons` check: FAIL → PASS (119 dated entries, reverse-chrono).
+- `CHANGELOG.md`: moved misplaced `## 2026-04-24 (continued) — Gap #7a-d` block
+  from between 2026-04-25 entries to correct position. Also reordered ascending
+  old-convention tail (2026-03-29 through 2026-04-24) to reverse-chronological.
+  `dated_entries_changelog` check: FAIL → PASS (71 dated entries, reverse-chrono).
+- `BACKLOG.md`: ran `scripts/backlog_extract.py`; 15 `[done]` entries moved to new
+  `BACKLOG_ARCHIVE.md`. Added `Why:` field to all 8 migration-era entries missing
+  it (3 pre-extraction in archive, 5 remaining in active file). Scrubbed 3
+  backtick-quoted `[done]` references in body text that were false-positive audit
+  hits. File reduced from 408 → 296 lines (under 300 kill criterion). All
+  `backlog_organization` FAIL findings: FAIL → resolved.
+
+### Added (Session D — BACKLOG)
+
+- `BACKLOG_ARCHIVE.md` — new append-only archive file per ADR-47. Contains 17
+  extracted `[done]` entries (15 initial extraction + 2 Session D closure entries).
+- `BACKLOG.md`: `[P2] [open] Stream taxonomy grooming` item added to Stream C.
+  Tracks the accepted Cross-stream 41% WARN (>33% kill criterion); deferred to
+  quarterly grooming 2026-07-01. Cross-stream WARN is structural — persists after
+  full extraction, confirming it is not noise.
+
+### Notes (Session D)
+
+- Cleanup approach confirmed: audit check output IS the cleanup scope; validator
+  PASS is the acceptance criterion. Hidden ordering issues (LESSONS.md tail,
+  CHANGELOG.md tail) were masked by early-return on primary FAIL; fixing primary
+  FAILs exposed them.
+- Reference: `docs/audits/2026-05-15-ecosystem-audit.md` — source findings.
+  Re-audit at `docs/audits/2026-05-16-ecosystem-audit.md` — Session D result.
+- Remaining FAIL: `adr38_baseline` (missing `src/` + `pyproject.toml`) is pre-existing
+  tracked item (BACKLOG Stream C P2), not Session D scope.
+
+---
+
 ## 2026-05-15
 
 ### Added (ai-council cleanup handoff bundle — D2)
