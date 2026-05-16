@@ -60,46 +60,22 @@ mission in `VISION.md`; structural model in `ARCHITECTURE.md`.
 - `ObsidianVault/` — pre-sales work knowledge (separate, do not mix)
 - `Dev/` — code projects (each has own CLAUDE.md)
 
-## Scope tags
+## Scope tags (informal, no longer enforced)
 <!-- scope: meta -->
 
-**Vocabulary:** `dev | llm | hybrid | runtime | meta` (per ADR-27).
+ADR-27 defined a scope-tag vocabulary (`dev | llm | hybrid | runtime | meta`)
+with pre-commit enforcement and a hybrid-ratio ceiling. Per Council
+Simplification 2026-05-16 the enforcement system has been removed:
+`scripts/validate_scope_tags.py` deleted, pre-commit hook removed,
+hybrid-ratio governance withdrawn.
 
-Every section in living files has a scope tag as an HTML comment directly under its header:
+Existing `<!-- scope: X -->` HTML comments and LESSONS-entry `[scope: X]`
+tags are LEFT IN PLACE as informal lightweight metadata. Authors can use
+them when useful; nothing automated enforces them or audits drift. New
+sections do NOT need to add scope tags.
 
-```
-## Section Title
-<!-- scope: hybrid -->
-
-Section body...
-```
-
-File-level tag (single comment under H1 title) substitutes for per-section tags when all sections share the same scope (see LESSONS.md — ADR-29).
-
-### Tag definitions
-<!-- scope: meta -->
-
-- `dev` — dev methodology: code, git, testing, programming workflow
-- `llm` — LLM work generally: prompting, model choice, tokens, chat workflow
-- `hybrid` — inseparably both dev and llm; cannot be split without rewriting
-- `runtime` — Claude Code runtime config: skills, shortcuts, hooks, slash commands
-- `meta` — about the repo/knowledge system itself: index, triage, governance, decisions
-
-### Consumer read sets
-<!-- scope: meta -->
-
-| Consumer type            | Tags to include                     |
-| ------------------------ | ----------------------------------- |
-| Functional browser chat  | `llm`, `hybrid`, `meta`             |
-| Programming browser chat | `dev`, `llm`, `hybrid`, `meta`      |
-| Claude Code session      | all tags                            |
-
-### Governance
-<!-- scope: meta -->
-
-- Hybrid ≤25% ceiling (ADR-27). Delta-rule enforcement active (blocks regressions only; Stream A closed 2026-04-24).
-- All new sections MUST include a scope tag — pre-commit hook enforces.
-- Evidence-triggered reopening conditions are in ADR-27.
+ADR-27 is retained as historical record. See also ADR-46/47 demotion notes
+for the broader simplification context.
 
 ## Consistency check
 <!-- scope: meta -->
