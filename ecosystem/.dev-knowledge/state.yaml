@@ -10,119 +10,16 @@ findings:
   evidence: CLAUDE.md present (9343 chars)
   status: pass
 - check_name: dated_entries_lessons
-  evidence: 'LESSONS.md: non-ISO-date H2 heading found: ''## Entries'''
-  status: fail
+  evidence: 'LESSONS.md: envelope OK (120 dated entries, reverse-chrono)'
+  status: pass
 - check_name: dated_entries_journal
-  evidence: 'JOURNAL.md: envelope OK (56 dated entries, reverse-chrono)'
+  evidence: 'JOURNAL.md: envelope OK (57 dated entries, reverse-chrono)'
   status: pass
 - check_name: dated_entries_changelog
-  evidence: 'CHANGELOG.md: ordering violation — ''2026-04-24'' before ''2026-04-25''
-    (not reverse-chrono)'
-  status: fail
+  evidence: 'CHANGELOG.md: envelope OK (72 dated entries, reverse-chrono)'
+  status: pass
 - check_name: backlog_organization
-  evidence: BACKLOG_ARCHIVE.md missing (required alongside BACKLOG.md per ADR-47)
-  status: fail
-- check_name: backlog_organization
-  evidence: '[done] token found in BACKLOG.md at line(s): [33, 42, 49, 61, 68] (extract
-    to BACKLOG_ARCHIVE.md)'
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P1] [done] HANDOFF_PROCESS + HANDOFF_TEMPLATE + first-message.md updates'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P1] [done] v3.3.2 — HANDOFF_FOLDER_TEMPLATE parameterization for cross-repo'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P1] [done] PLAYBOOK content additions for ADRs 36/37/40/41'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P1] [done] Audit tool P1 implementation'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P1] [done] Cross-repo dated-entries format standard (Entry 1)'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P1] [done] Cross-repo BACKLOG organization standard (Entry 2)'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P2] [done] Audit tool extension — ADR-46 + ADR-47 checks + extraction scrip'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P1] [done] Phase 1 validation — audit + handoff dry-run on ai-council'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P1] [done] AI Council cross-project transcript routing'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P2] [done] Structure and universalize scrum-master review propagation proce'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P1] [done] ADR naming convention reconciliation (underscore vs hyphen)'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Why'']: ''### [P1] [done] ADR naming
-    convention reconciliation (unders'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P2] [done] ARCHITECTURE.md root placement enforcement'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Why'']: ''### [P2] [done] ARCHITECTURE.md
-    root placement enforcement'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Why'']: ''### [P2] [open] Handoff folder
-    format adoption (corp-monorep'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P2] [done] `_archive/` convention — standardize (drop underscore prefix per'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Why'']: ''### [P2] [done] `_archive/`
-    convention — standardize (drop u'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Why'']: ''### [P3] [open] UPPERCASE
-    TYPE tag in legacy archive filenam'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Why'']: ''### [P3] [open] docs/HANDOFF.md
-    flat file deprecation (corp-'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Why'']: ''### [P3] [open] Undiscovered
-    repos confirmation'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P1] [done] .dev-knowledge atomic migration to hyphen convention (Prompt K s'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry heading does not match [P{N}] [open|superseded] pattern: ''###
-    [P1] [done] Cross-repo handshake: ADR-34 amendment propagation to ai-council'''
-  status: fail
-- check_name: backlog_organization
-  evidence: 'Entry missing required fields [''Why'']: ''### [P3] [open] A5 Phase 2:
-    retire UPPERCASE TYPE tag in leg'''
-  status: fail
-- check_name: backlog_organization
-  evidence: BACKLOG.md exceeds 300-line kill criterion (408 lines) — review ADR-47
-  status: warn
-- check_name: backlog_organization
-  evidence: 'Cross-stream section is 40% of open items (kill criterion: 33%) — review
+  evidence: 'Cross-stream section is 41% of open items (kill criterion: 33%) — review
     ADR-47'
   status: warn
 last_audit: '2026-05-16'
