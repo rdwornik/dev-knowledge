@@ -24,7 +24,6 @@ Next quarterly grooming: 2026-07-01
 ### [P3] [open] ai-council LESSONS.md scope-tag backfill (ADR-46 advisory)
 - **What:** ai-council `LESSONS.md` entries do not contain `[scope: X]` tags per the ADR-46 LESSONS payload sniff test. Add `[scope: X]` to each entry's canonical 6-field schema position. Work belongs in ai-council repo.
 - **Why:** ADR-46 §LESSONS.md specifies `[scope: X]` substring as required in 6-field entries; absence produces a WARN on `dated_entries_lessons` check. Advisory — WARN not FAIL — but constitutes methodology drift from the ADR-46 standard.
-- **Vision ref:** VISION.md "Knowledge Guardian"; ADR-46 LESSONS payload spec
 - **Added:** 2026-05-16 by rob (2026-05-16 re-audit advisory WARN — ai-council `dated_entries_lessons`)
 - **Status:** open — work belongs in ai-council repo
 
@@ -95,6 +94,12 @@ Next quarterly grooming: 2026-07-01
 - **Why:** Audit surfaced unregistered files. Either we extend registry or formally narrow scope. Drift risk if neither.
 - **Added:** 2026-04-30 by rob (Phase 1 self-audit)
 - **Status:** open
+
+### [P3] [open] LESSONS.md parenthetical-qualifier entries escape dated-entry audit regex
+- **What:** 8 entries use `### YYYY-MM-DD (qualifier) |` format (all 2026-05-09 with time qualifiers). The audit's `_LESSONS_H3_RE` regex requires date immediately before `|`; the parenthetical causes these entries to be invisible to the ordering check. They are correctly positioned (reorder script treated them as opaque), but the validator cannot enforce their ordering going forward. Decision: (a) broaden regex to permit optional parenthetical, or (b) reformat the 8 entries to move qualifier into body text (requires operator sign-off under ADR-29 "never edit old entries" — qualifier is metadata, not lesson content).
+- **Why:** Latent coverage gap: future misordering around these 8 entries would not be caught. Surfaced by Session D content-preservation count (127 H3 total, 120 regex-matched; delta of 8 = parenthetical entries).
+- **Added:** 2026-05-16 by rob (Session D content-preservation verification)
+- **Status:** open — operator decision required (regex broadening vs entry reformat) before fix
 
 ## Stream D: corp-sca-time-automation
 
