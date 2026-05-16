@@ -1,5 +1,4 @@
 # Pre-commit hooks for .dev-knowledge
-# Governed by ADR-27 (scope tagging architecture)
 
 repos:
   - repo: local
@@ -7,6 +6,13 @@ repos:
       - id: scope-tag-validator
         name: Validate scope tags (ADR-27)
         entry: python scripts/validate_scope_tags.py
+        language: system
+        types: [markdown]
+        pass_filenames: true
+
+      - id: normalize-dated-headers
+        name: Normalize dated-log entry headers (auto-format)
+        entry: python scripts/normalize_headers.py
         language: system
         types: [markdown]
         pass_filenames: true
