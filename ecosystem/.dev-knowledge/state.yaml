@@ -125,6 +125,6 @@ findings:
   evidence: 'Cross-stream section is 40% of open items (kill criterion: 33%) — review
     ADR-47'
   status: warn
-last_audit: '2026-05-15'
+last_audit: '2026-05-16'
 name: .dev-knowledge
 path: C:\Users\1028120\Documents\Dev\.dev-knowledge
