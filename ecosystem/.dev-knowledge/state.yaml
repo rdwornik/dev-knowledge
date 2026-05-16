@@ -7,7 +7,7 @@ findings:
   evidence: 'Missing required: [''src'', ''pyproject.toml'']'
   status: fail
 - check_name: claude_md
-  evidence: CLAUDE.md present (9343 chars)
+  evidence: CLAUDE.md present (8863 chars)
   status: pass
 last_audit: '2026-05-16'
 name: .dev-knowledge

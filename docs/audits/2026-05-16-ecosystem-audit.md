@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-05-16  
-**Generated:** 2026-05-16T22:19:05  
+**Generated:** 2026-05-16T22:28:38  
 **Repos audited:** 2  
 **Checks:** 6 total — 4 pass, 1 fail, 1 warn, 0 unavailable
 
@@ -18,7 +18,7 @@
 |---|---|---|
 | `vision_md` | PASS | VISION.md present; frontmatter keys: ['last_reviewed', 'owner', 'scale', 'status', 'tier', 'version'] |
 | `adr38_baseline` | FAIL | Missing required: ['src', 'pyproject.toml'] |
-| `claude_md` | PASS | CLAUDE.md present (9343 chars) |
+| `claude_md` | PASS | CLAUDE.md present (8863 chars) |
 
 History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/)
 

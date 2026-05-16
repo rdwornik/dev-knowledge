@@ -235,6 +235,28 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 
 ---
 
+## Commit message standard
+<!-- scope: dev -->
+
+Git history IS the changelog (no CHANGELOG.md since 2026-05-16). Commit
+messages have to carry the load CHANGELOG used to. Standard:
+
+- **Conventional Commits.** `type(scope): summary` — types are `feat`, `fix`,
+  `docs`, `refactor`, `test`, `chore`. Scope is optional but use the
+  file/folder slug when it clarifies.
+- **Summary line.** Imperative mood, specific, describes WHAT changed. Under
+  ~72 chars. **Never** "wip", "fix", "updates", "stuff", "various changes".
+- **Body required for any non-trivial change.** WHAT changed and WHY —
+  enough detail that `git log` answers "what happened here" without a
+  separate changelog. One-line typo fixes can skip the body.
+- **One logical change per commit.** If you'd write "and" in the summary,
+  split the commit.
+
+`/save` follows this standard. See CONTRIBUTING.md for live examples and
+the pre-commit hook list.
+
+---
+
 ## Managing Tokens
 <!-- scope: llm -->
 
@@ -254,10 +276,16 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 1. Full test suite
 2. `git status` — must be clean
 3. If 3+ files changed or 2+ packages touched → `codex-review -Topic <topic>` (slash: `/codex-review`) before merge (threshold for cross-module risk; single-file changes don't need review)
-4. CHANGELOG.md — entry if files changed
+4. **JOURNAL.md** — prepend an entry using the new structure:
+   `### YYYY-MM-DD — <session topic>` (header form), then bullets:
+   `- Did:` what was actually done  
+   `- Result:` outcome / state on disk  
+   `- Changes:` short list of what files / which areas moved (this is the change record — there is no CHANGELOG anymore)  
+   `- Abandoned:` items deliberately dropped (each non-trivial drop should also get a short note in `docs/decisions/`; do not record reasoning inline in JOURNAL)  
+   `- Next:` follow-ups
 5. **Extract lessons** — "what 2-3 things did I learn?" → append to LESSONS.md  
    Format: `### YYYY-MM-DD | [source] | [lesson] | [category] | [scope: X] | [action taken]`  
-   Scope: `dev | llm | hybrid | runtime | meta` (ADR-29)
+   The `[scope: X]` tag is informal lightweight metadata since 2026-05-16; no validator enforces it.
 6. Session scorecard logs automatically (Stop hook)
 
 **Browser chat checkpoint:** przy ~2h (buffer before 3h decision-fatigue threshold per PLAYBOOK Section 4) lub gdy chat zwalnia → see **HANDOFF_PROCESS.md**

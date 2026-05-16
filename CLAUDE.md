@@ -25,9 +25,8 @@ mission in `VISION.md`; structural model in `ARCHITECTURE.md`.
 | `protocols/ENVIRONMENT.md`    | Living      | Current setup state. Update when config/tools/decisions change.                              |
 | `LESSONS.md`                  | Append-only | NEVER edit old entries. NEVER delete. Only append new entries at the bottom.                 |
 | `logs/TOKEN-LOG.md`           | Append-only (newest-first) | Threshold-triggered (7-day) via /session-summary. Never edit previous entries.   |
-| `CHANGELOG.md`                | Append-only | Notable changes. New entry per session that modifies files.                                  |
-| `JOURNAL.md`                  | Append-only (newest-first) | Per-session tactical Did/Failed/Next log. Prepend at session wrap or workday close. Per PLAYBOOK Stream B Gap #4 spec. |
-| `BACKLOG.md`                  | Living      | Cross-session pending items (per ADR-41). M+ tier mandate. Update per-handoff (lightweight) + quarterly (deep groom). |
+| `JOURNAL.md`                  | Append-only (newest-first) | Per-session tactical log. Entry shape: `Did / Result / Changes / Abandoned / Next` (per Council Simplification 2026-05-16). Prepend at session wrap or workday close. The `Changes:` line carries what CHANGELOG.md used to record — git history is the rest. |
+| `BACKLOG.md`                  | Living      | Cross-session pending items (per ADR-41). M+ tier mandate. Done items leave the file; their trace is git history. Abandoned items get a short note in `docs/decisions/`, not a tombstone here. |
 | `README.md`                   | Living      | Triage rules and file index. Update when files are added/removed.                            |
 | `config/requirements-dev.txt` | Living      | Python dev dependencies (pre-commit, etc).                                                   |
 
@@ -37,7 +36,7 @@ mission in `VISION.md`; structural model in `ARCHITECTURE.md`.
 - Update files when processes, config, or decisions change
 - Append lessons after sessions
 - Keep files consistent — if a process is described in PLAYBOOK, ESSENTIALS should have the summary version, not a conflicting one
-- Verify against VISION.md Lifecycle: stream backlog reflects in-scope items; JOURNAL traces work to VISION goals; CHANGELOG describes movement toward VISION; ADRs implement VISION decisions. Drift in any direction → trigger VISION review.
+- Verify against VISION.md Lifecycle: BACKLOG reflects in-scope items; JOURNAL traces work to VISION goals; git history records movement toward VISION; ADRs implement VISION decisions. Drift in any direction → trigger VISION review.
 - Cross-reference ~/.claude/ files (gotchas, learned-rules, core-invariants) — they are the executable counterpart to what's documented here
 - This is a git repo. Commit after every change. Use /save or commit manually.
 - .claude/rules/git-discipline.md enforces this automatically.
@@ -51,6 +50,7 @@ mission in `VISION.md`; structural model in `ARCHITECTURE.md`.
 - Do not put executable rules here (those go in ~/.claude/ with verify: lines)
 - Do not edit LESSONS.md entries — only append
 - Do not edit TOKEN-LOG.md entries — only append
+- Do not recreate `CHANGELOG.md` or `BACKLOG_ARCHIVE.md` (deleted 2026-05-16 per Council Simplification). Git history + JOURNAL `Changes:` line replace CHANGELOG. Done items simply leave BACKLOG; trace lives in git.
 
 ## Related locations
 <!-- scope: meta -->
