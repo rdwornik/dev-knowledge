@@ -4,6 +4,7 @@
 - **Date:** YYYY-MM-DD
 - **Amends:** <ADR-NN if this amends an earlier decision; omit if not applicable>
 - **Supersedes:** <ADR-NN if this replaces an earlier decision; omit if not applicable>
+- **Related:** <ADR-NN or other refs for context; omit if none>
 - **Decommission:** <files, folders, or sections made obsolete by this decision and therefore to be removed; write "none" if nothing>
 - **Source:** <AI Council debate, session debate, Rob's decision — with date and ref>
 
