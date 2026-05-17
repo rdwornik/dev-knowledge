@@ -9,4 +9,4 @@ scale: M
 
 <!-- scope: meta -->
 
-A synthetic repo for testing all five audit checks.
+A synthetic repo for testing the 3 structural audit checks (vision_md, adr38_baseline, claude_md).

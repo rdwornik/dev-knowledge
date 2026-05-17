@@ -349,7 +349,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 # Integration: structural checks on synthetic full-fixture repo
 # ---------------------------------------------------------------------------
 
-FULL_FIXTURE = FIXTURES / "repo-with-all-five-checks"
+FULL_FIXTURE = FIXTURES / "repo-with-structural-checks"
 
 
 def test_audit_run_passes_structural_checks_on_synthetic_repo() -> None:
