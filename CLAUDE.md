@@ -25,9 +25,8 @@ mission in `VISION.md`; structural model in `ARCHITECTURE.md`.
 | `protocols/ENVIRONMENT.md`    | Living      | Current setup state. Update when config/tools/decisions change.                              |
 | `LESSONS.md`                  | Append-only | NEVER edit old entries. NEVER delete. Only append new entries at the bottom.                 |
 | `logs/TOKEN-LOG.md`           | Append-only (newest-first) | Threshold-triggered (7-day) via /session-summary. Never edit previous entries.   |
-| `CHANGELOG.md`                | Append-only | Notable changes. New entry per session that modifies files.                                  |
-| `JOURNAL.md`                  | Append-only (newest-first) | Per-session tactical Did/Failed/Next log. Prepend at session wrap or workday close. Per PLAYBOOK Stream B Gap #4 spec. |
-| `BACKLOG.md`                  | Living      | Cross-session pending items (per ADR-41). M+ tier mandate. Update per-handoff (lightweight) + quarterly (deep groom). |
+| `JOURNAL.md`                  | Append-only (newest-first) | Per-session tactical log. Entry shape: `Did / Result / Changes / Abandoned / Next` (per Council Simplification 2026-05-16). Prepend at session wrap or workday close. The `Changes:` line carries what CHANGELOG.md used to record — git history is the rest. |
+| `BACKLOG.md`                  | Living      | Cross-session pending items (per ADR-41). M+ tier mandate. Done items leave the file; their trace is git history. Abandoned items get a short note in `docs/decisions/`, not a tombstone here. |
 | `README.md`                   | Living      | Triage rules and file index. Update when files are added/removed.                            |
 | `config/requirements-dev.txt` | Living      | Python dev dependencies (pre-commit, etc).                                                   |
 
@@ -37,7 +36,7 @@ mission in `VISION.md`; structural model in `ARCHITECTURE.md`.
 - Update files when processes, config, or decisions change
 - Append lessons after sessions
 - Keep files consistent — if a process is described in PLAYBOOK, ESSENTIALS should have the summary version, not a conflicting one
-- Verify against VISION.md Lifecycle: stream backlog reflects in-scope items; JOURNAL traces work to VISION goals; CHANGELOG describes movement toward VISION; ADRs implement VISION decisions. Drift in any direction → trigger VISION review.
+- Verify against VISION.md Lifecycle: BACKLOG reflects in-scope items; JOURNAL traces work to VISION goals; git history records movement toward VISION; ADRs implement VISION decisions. Drift in any direction → trigger VISION review.
 - Cross-reference ~/.claude/ files (gotchas, learned-rules, core-invariants) — they are the executable counterpart to what's documented here
 - This is a git repo. Commit after every change. Use /save or commit manually.
 - .claude/rules/git-discipline.md enforces this automatically.
@@ -51,6 +50,7 @@ mission in `VISION.md`; structural model in `ARCHITECTURE.md`.
 - Do not put executable rules here (those go in ~/.claude/ with verify: lines)
 - Do not edit LESSONS.md entries — only append
 - Do not edit TOKEN-LOG.md entries — only append
+- Do not recreate `CHANGELOG.md` or `BACKLOG_ARCHIVE.md` (deleted 2026-05-16 per Council Simplification). Git history + JOURNAL `Changes:` line replace CHANGELOG. Done items simply leave BACKLOG; trace lives in git.
 
 ## Related locations
 <!-- scope: meta -->
@@ -60,46 +60,22 @@ mission in `VISION.md`; structural model in `ARCHITECTURE.md`.
 - `ObsidianVault/` — pre-sales work knowledge (separate, do not mix)
 - `Dev/` — code projects (each has own CLAUDE.md)
 
-## Scope tags
+## Scope tags (informal, no longer enforced)
 <!-- scope: meta -->
 
-**Vocabulary:** `dev | llm | hybrid | runtime | meta` (per ADR-27).
+ADR-27 defined a scope-tag vocabulary (`dev | llm | hybrid | runtime | meta`)
+with pre-commit enforcement and a hybrid-ratio ceiling. Per Council
+Simplification 2026-05-16 the enforcement system has been removed:
+`scripts/validate_scope_tags.py` deleted, pre-commit hook removed,
+hybrid-ratio governance withdrawn.
 
-Every section in living files has a scope tag as an HTML comment directly under its header:
+Existing `<!-- scope: X -->` HTML comments and LESSONS-entry `[scope: X]`
+tags are LEFT IN PLACE as informal lightweight metadata. Authors can use
+them when useful; nothing automated enforces them or audits drift. New
+sections do NOT need to add scope tags.
 
-```
-## Section Title
-<!-- scope: hybrid -->
-
-Section body...
-```
-
-File-level tag (single comment under H1 title) substitutes for per-section tags when all sections share the same scope (see LESSONS.md — ADR-29).
-
-### Tag definitions
-<!-- scope: meta -->
-
-- `dev` — dev methodology: code, git, testing, programming workflow
-- `llm` — LLM work generally: prompting, model choice, tokens, chat workflow
-- `hybrid` — inseparably both dev and llm; cannot be split without rewriting
-- `runtime` — Claude Code runtime config: skills, shortcuts, hooks, slash commands
-- `meta` — about the repo/knowledge system itself: index, triage, governance, decisions
-
-### Consumer read sets
-<!-- scope: meta -->
-
-| Consumer type            | Tags to include                     |
-| ------------------------ | ----------------------------------- |
-| Functional browser chat  | `llm`, `hybrid`, `meta`             |
-| Programming browser chat | `dev`, `llm`, `hybrid`, `meta`      |
-| Claude Code session      | all tags                            |
-
-### Governance
-<!-- scope: meta -->
-
-- Hybrid ≤25% ceiling (ADR-27). Delta-rule enforcement active (blocks regressions only; Stream A closed 2026-04-24).
-- All new sections MUST include a scope tag — pre-commit hook enforces.
-- Evidence-triggered reopening conditions are in ADR-27.
+ADR-27 is retained as historical record. See also ADR-46/47 demotion notes
+for the broader simplification context.
 
 ## Consistency check
 <!-- scope: meta -->

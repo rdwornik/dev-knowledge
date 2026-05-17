@@ -54,18 +54,16 @@ pre-commit run --all-files
 
 <!-- scope: meta -->
 
-One hook runs on commit:
+One auto-format hook runs on commit:
 
-| Hook | What it checks | ADR |
-|------|---------------|-----|
-| `scope-tag-validator` | Every H2/H3 in living `.md` files has a `<!-- scope: X -->` tag with a valid value (`dev \| llm \| hybrid \| runtime \| meta`) | ADR-27 |
+| Hook | What it does |
+|------|--------------|
+| `normalize-dated-headers` | Rewrites dated-log entry headers to canonical `### YYYY-MM-DD` form. Idempotent. Auto-format style: rewrites; never fails. |
 
-**Hybrid ceiling:** repo-wide hybrid section ratio must not regress past 25% (delta-based; genesis flat 25%). Hook prints `Hybrid ratio: X% (HEAD: Y%, Δ: ±Z%)` on every run.
-
-Run the validator standalone (no pre-commit wrapper):
+Run standalone (e.g. to clean up before commit):
 
 ```
-python scripts/validate_scope_tags.py
+python scripts/normalize_headers.py LESSONS.md JOURNAL.md
 ```
 
 ## ADR process

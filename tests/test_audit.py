@@ -346,214 +346,26 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 
 # ---------------------------------------------------------------------------
-# Check #4: dated_entries_format (ADR-46)
-# ---------------------------------------------------------------------------
-
-def test_check_dated_entries_passes_on_good_lessons() -> None:
-    findings = aud.check_dated_entries_format(FIXTURES / "dated-entries-good")
-    lessons_f = next(f for f in findings if "LESSONS" in f.evidence or f.check_name == "dated_entries_lessons")
-    assert lessons_f.status == "pass", lessons_f.evidence
-
-
-def test_check_dated_entries_passes_on_good_journal() -> None:
-    findings = aud.check_dated_entries_format(FIXTURES / "dated-entries-good")
-    journal_f = next(f for f in findings if "JOURNAL" in f.evidence or f.check_name == "dated_entries_journal")
-    assert journal_f.status == "pass", journal_f.evidence
-
-
-def test_check_dated_entries_passes_on_good_changelog() -> None:
-    findings = aud.check_dated_entries_format(FIXTURES / "dated-entries-good")
-    changelog_f = next(f for f in findings if "CHANGELOG" in f.evidence or f.check_name == "dated_entries_changelog")
-    assert changelog_f.status == "pass", changelog_f.evidence
-
-
-def test_check_dated_entries_fails_wrong_date_format(tmp_path: Path) -> None:
-    (tmp_path / "CHANGELOG.md").write_text(
-        (FIXTURES / "dated-entries-bad" / "wrong-date-format.md").read_text(encoding="utf-8"),
-        encoding="utf-8",
-    )
-    findings = aud.check_dated_entries_format(tmp_path)
-    assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
-
-
-def test_check_dated_entries_fails_wrong_header_level(tmp_path: Path) -> None:
-    (tmp_path / "CHANGELOG.md").write_text(
-        (FIXTURES / "dated-entries-bad" / "wrong-header-level.md").read_text(encoding="utf-8"),
-        encoding="utf-8",
-    )
-    findings = aud.check_dated_entries_format(tmp_path)
-    assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
-
-
-def test_check_dated_entries_fails_wrong_ordering(tmp_path: Path) -> None:
-    (tmp_path / "CHANGELOG.md").write_text(
-        (FIXTURES / "dated-entries-bad" / "wrong-ordering.md").read_text(encoding="utf-8"),
-        encoding="utf-8",
-    )
-    findings = aud.check_dated_entries_format(tmp_path)
-    assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
-
-
-def test_check_dated_entries_warns_lessons_no_scope_tag(tmp_path: Path) -> None:
-    (tmp_path / "LESSONS.md").write_text(
-        (FIXTURES / "dated-entries-bad" / "lessons-no-scope-tag.md").read_text(encoding="utf-8"),
-        encoding="utf-8",
-    )
-    findings = aud.check_dated_entries_format(tmp_path)
-    assert any(f.status == "warn" for f in findings), [f.evidence for f in findings]
-
-
-def test_check_dated_entries_warns_changelog_no_groupings(tmp_path: Path) -> None:
-    (tmp_path / "CHANGELOG.md").write_text(
-        (FIXTURES / "dated-entries-bad" / "changelog-no-groupings.md").read_text(encoding="utf-8"),
-        encoding="utf-8",
-    )
-    findings = aud.check_dated_entries_format(tmp_path)
-    assert any(f.status == "warn" for f in findings), [f.evidence for f in findings]
-
-
-def test_check_dated_entries_skips_fenced_code_blocks(tmp_path: Path) -> None:
-    """File with dates only inside fenced blocks must NOT pass on that basis."""
-    (tmp_path / "CHANGELOG.md").write_text(
-        (FIXTURES / "dated-entries-bad" / "fenced-code-trap.md").read_text(encoding="utf-8"),
-        encoding="utf-8",
-    )
-    findings = aud.check_dated_entries_format(tmp_path)
-    # The file has no real H2 date headings outside the fenced block; must not be pass
-    assert not any(f.status == "pass" for f in findings), [f.evidence for f in findings]
-
-
-# ---------------------------------------------------------------------------
-# Check #5: backlog_organization (ADR-47)
-# ---------------------------------------------------------------------------
-
-def test_check_backlog_passes_on_good(tmp_path: Path) -> None:
-    (tmp_path / "BACKLOG.md").write_text(
-        (FIXTURES / "backlog-good" / "BACKLOG.md").read_text(encoding="utf-8"), encoding="utf-8"
-    )
-    (tmp_path / "BACKLOG_ARCHIVE.md").write_text(
-        (FIXTURES / "backlog-good" / "BACKLOG_ARCHIVE.md").read_text(encoding="utf-8"), encoding="utf-8"
-    )
-    findings = aud.check_backlog_organization(tmp_path)
-    assert all(f.status in ("pass", "warn") for f in findings), [f.evidence for f in findings]
-    assert any(f.status == "pass" for f in findings)
-
-
-def test_check_backlog_fatal_done_in_active(tmp_path: Path) -> None:
-    (tmp_path / "BACKLOG.md").write_text(
-        (FIXTURES / "backlog-bad" / "done-in-active.md").read_text(encoding="utf-8"), encoding="utf-8"
-    )
-    (tmp_path / "BACKLOG_ARCHIVE.md").write_text("# Archive\n", encoding="utf-8")
-    findings = aud.check_backlog_organization(tmp_path)
-    assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
-
-
-def test_check_backlog_fatal_no_archive(tmp_path: Path) -> None:
-    (tmp_path / "BACKLOG.md").write_text(
-        (FIXTURES / "backlog-good" / "BACKLOG.md").read_text(encoding="utf-8"), encoding="utf-8"
-    )
-    # No BACKLOG_ARCHIVE.md created
-    findings = aud.check_backlog_organization(tmp_path)
-    assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
-
-
-def test_check_backlog_fatal_wrong_entry_heading(tmp_path: Path) -> None:
-    (tmp_path / "BACKLOG.md").write_text(
-        (FIXTURES / "backlog-bad" / "wrong-entry-heading.md").read_text(encoding="utf-8"), encoding="utf-8"
-    )
-    (tmp_path / "BACKLOG_ARCHIVE.md").write_text("# Archive\n", encoding="utf-8")
-    findings = aud.check_backlog_organization(tmp_path)
-    assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
-
-
-def test_check_backlog_fatal_missing_required_fields(tmp_path: Path) -> None:
-    (tmp_path / "BACKLOG.md").write_text(
-        (FIXTURES / "backlog-bad" / "missing-required-fields.md").read_text(encoding="utf-8"), encoding="utf-8"
-    )
-    (tmp_path / "BACKLOG_ARCHIVE.md").write_text("# Archive\n", encoding="utf-8")
-    findings = aud.check_backlog_organization(tmp_path)
-    assert any(f.status == "fail" for f in findings), [f.evidence for f in findings]
-
-
-def test_check_backlog_warn_over_300_lines(tmp_path: Path) -> None:
-    (tmp_path / "BACKLOG.md").write_text(
-        (FIXTURES / "backlog-warn" / "over-300-lines.md").read_text(encoding="utf-8"), encoding="utf-8"
-    )
-    (tmp_path / "BACKLOG_ARCHIVE.md").write_text("# Archive\n", encoding="utf-8")
-    findings = aud.check_backlog_organization(tmp_path)
-    assert any(f.status == "warn" for f in findings), [f.evidence for f in findings]
-
-
-def test_check_backlog_warn_stream_over_15_open(tmp_path: Path) -> None:
-    (tmp_path / "BACKLOG.md").write_text(
-        (FIXTURES / "backlog-warn" / "stream-over-15-open.md").read_text(encoding="utf-8"), encoding="utf-8"
-    )
-    (tmp_path / "BACKLOG_ARCHIVE.md").write_text("# Archive\n", encoding="utf-8")
-    findings = aud.check_backlog_organization(tmp_path)
-    assert any(f.status == "warn" for f in findings), [f.evidence for f in findings]
-
-
-def test_check_backlog_warn_cross_stream_over_33pct(tmp_path: Path) -> None:
-    # Build a BACKLOG where Cross-stream has >33% of open items
-    content = """\
-# BACKLOG
-
-<!-- scope: meta -->
-
-## Stream A: work
-
-### [P1] [open] Stream A item 1
-- **What:** Item.
-- **Why:** Reason.
-- **Added:** 2026-05-15 by rob (test)
-- **Status:** open
-
-## Cross-stream / Ecosystem
-
-### [P1] [open] Cross item 1
-- **What:** Cross item.
-- **Why:** Reason.
-- **Added:** 2026-05-15 by rob (test)
-- **Status:** open
-
-### [P1] [open] Cross item 2
-- **What:** Cross item 2.
-- **Why:** Reason.
-- **Added:** 2026-05-15 by rob (test)
-- **Status:** open
-"""
-    (tmp_path / "BACKLOG.md").write_text(content, encoding="utf-8")
-    (tmp_path / "BACKLOG_ARCHIVE.md").write_text("# Archive\n", encoding="utf-8")
-    findings = aud.check_backlog_organization(tmp_path)
-    # 1 Stream A + 2 Cross-stream = 3 total open; Cross-stream = 66% > 33%
-    assert any(f.status == "warn" for f in findings), [f.evidence for f in findings]
-
-
-# ---------------------------------------------------------------------------
-# Integration: all 5 checks on synthetic full-fixture repo
+# Integration: structural checks on synthetic full-fixture repo
 # ---------------------------------------------------------------------------
 
 FULL_FIXTURE = FIXTURES / "repo-with-all-five-checks"
 
 
-def test_audit_run_passes_all_five_checks_on_synthetic_repo() -> None:
-    """All 5 checks must pass (or warn) on the synthetic full-fixture repo."""
+def test_audit_run_passes_structural_checks_on_synthetic_repo() -> None:
+    """The 3 structural checks (vision/adr38/claude) must pass on synthetic repo."""
     run_date = date(2026, 5, 15)
     state = aud.audit_repo("synthetic", FULL_FIXTURE, run_date)
     check_names = {f.check_name for f in state.findings}
     statuses = {f.check_name: f.status for f in state.findings}
 
-    # All 5 check families must be present
     assert "vision_md" in check_names
     assert "adr38_baseline" in check_names
     assert "claude_md" in check_names
-    assert any("dated_entries" in n for n in check_names), f"dated_entries checks missing: {check_names}"
-    assert "backlog_organization" in check_names
 
-    # No fatal failures
     failures = [f for f in state.findings if f.status == "fail"]
     assert not failures, f"Unexpected failures: {[(f.check_name, f.evidence) for f in failures]}"
 
-    # Core three must explicitly pass
     assert statuses.get("vision_md") == "pass"
     assert statuses.get("claude_md") == "pass"
+    assert statuses.get("adr38_baseline") in ("pass", "warn")

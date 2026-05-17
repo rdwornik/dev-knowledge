@@ -2,19 +2,29 @@
 
 <!-- scope: meta -->
 
-> Per-session tactical log of `.dev-knowledge` Claude Code work. Did/Failed/Next
-> entry shape per PLAYBOOK Stream B Gap #4 spec, newest-first prepend ordering
-> per PLAYBOOK Documentation file types v1.1 amendment (2026-04-27).
+> Per-session tactical log of `.dev-knowledge` Claude Code work. Entry shape
+> as of 2026-05-16 (Council Simplification): `Did / Result / Changes /
+> Abandoned / Next`. Newest-first prepend ordering.
 >
-> Distinct from CHANGELOG (per-commit notable changes), LESSONS (per-learning
-> generalized rules, oldest-top per ADR-29), and handoffs (per-session boundary
-> artifacts for browser-chat resumption): JOURNAL is the within-Claude-Code-
-> sessions tactical log enabling context recovery across sessions in same repo.
+> Distinct from LESSONS (per-learning generalized rules, oldest-top per
+> ADR-29) and handoffs (per-session boundary artifacts for browser-chat
+> resumption). JOURNAL is the within-Claude-Code-sessions tactical log
+> enabling context recovery across sessions in same repo. The `Changes:`
+> line records what files / areas moved — replacing the deleted CHANGELOG.md.
 >
 > Update protocol: prepend new session entry at top of entry list (under this
 > intro blockquote, before existing entries). One entry per Claude Code session
 > OR per workday for heavy days. Each entry cites commit hashes, handoff doc,
 > or ADR for deeper detail. JOURNAL summarizes, doesn't duplicate.
+
+---
+
+### 2026-05-16 — Council Simplification slice: .dev-knowledge governance trim
+- Did: applied AI Council simplification verdict to `.dev-knowledge` on `feat/docs-governance-simplification` over 6 commits (Steps 2–7). Trimmed `scripts/audit.py` to structural-only checks (vision_md / adr38_baseline / claude_md); deleted CHANGELOG.md + BACKLOG_ARCHIVE.md; demoted ADR-46 + ADR-47 to non-enforced conventions; added deterministic `scripts/normalize_headers.py` + pre-commit auto-format hook; removed the scope-tag enforcement system (`validate_scope_tags.py`, tests, pre-commit hook, CLAUDE.md vocabulary section); documented git-as-changelog + Conventional Commits standard + new `Did/Result/Changes/Abandoned/Next` JOURNAL shape.
+- Result: tests 51 passed / 0 failed (was 53 passed / 3 failing). `ruff` clean. Audit output no longer references CHANGELOG / BACKLOG_ARCHIVE / dated-entries / backlog-organization checks. Branch left at `1401618` + this JOURNAL commit; NOT merged, NOT pushed.
+- Changes: `scripts/audit.py`, `scripts/normalize_headers.py` (new), `tests/test_audit.py`, `tests/test_normalize_headers.py` (new), `tests/test_validate_scope_tags.py` (deleted), `tests/fixtures/{backlog-*,dated-entries-*}/` (deleted), `scripts/validate_scope_tags.py` (deleted), `CHANGELOG.md` + `BACKLOG_ARCHIVE.md` (deleted), `docs/decisions/ADR-46-*.md` + `ADR-47-*.md` (condensed), `.pre-commit-config.yaml`, `CLAUDE.md`, `CONTRIBUTING.md`, `protocols/ESSENTIALS.md`, `.claude/commands/save.md`, `JOURNAL.md` (this entry + intro rewrite).
+- Abandoned: keeping per-entry required-fields check in `check_backlog_organization` — flagged as marginal in the Step 2 commit body; classified as entry-body format-detail and removed. If you want it back as a structural check, the call is in the Step 2 commit body. Pre-existing `adr38_baseline` FAIL (`.dev-knowledge` lacks `src/` + `pyproject.toml`) NOT addressed — out of scope for this branch; surfaced for separate triage.
+- Next: morning review of branch `feat/docs-governance-simplification` (7 commits incl. this JOURNAL entry). On approval: rebase / merge to main; otherwise raise the flagged-ambiguity (required-fields-per-entry) and any rollback of demoted ADRs.
 
 ---
 
@@ -176,7 +186,7 @@
 - Failed: —
 - Next: browser chat reads audit, proposes improvements (conversational rethink or Council debate, depending on findings depth)
 
-## 2026-05-12 — Inline reminder questions added to Stage 1 questionnaire
+### 2026-05-12 — Inline reminder questions added to Stage 1 questionnaire
 - Did: added brief reminder block at end of Stage 1 questionnaire flow surfacing cross-repo + internal-coherence check categories with explicit pointer to HANDOFF_PROCESS Universal Self-Containment Rule as source of truth
 - Result: defense-in-depth for handoff lifecycle achieved without sync drift risk — master rule single source; questionnaire surfaces awareness at moment of writing
 - Next: continued testing of fresh handoff generation; observe whether reminder reduces residual failure modes
@@ -191,51 +201,51 @@
 - Failed: —
 - Next: residual handoff items (BACKLOG grooming, token log, skills review) — separate scope
 
-## 2026-05-12 — Universal handoff self-containment rule added to HANDOFF_PROCESS
+### 2026-05-12 — Universal handoff self-containment rule added to HANDOFF_PROCESS
 - Did: added Universal Self-Containment Rule section to HANDOFF_PROCESS.md covering Stage 1 packaging / Stage 2 generation / Stage 3 reception with per-section scope rules + pre-send coherence checklist + ADR-41 per-repo scope reference; appended LESSON capturing empirical failure observed in session as universal pattern (not repo-specific)
 - Result: handoff process rule now universal across all repos handoff lifecycles; structurally prevents repeating cross-repo-in-DIRECTIVES failure in any future handoff (corp-monorepo, ai-council, future child repos)
 - Next: BACKLOG cross-repo contamination cleanup (separate concern; operator-confirmed scope only)
 
-## 2026-05-12 — Hooks reconnaissance + ai-council check
+### 2026-05-12 — Hooks reconnaissance + ai-council check
 - Did: produced docs/audits/2026-05-12-hooks-discovery.md; identified review name-conflict location(s) — user-defined `~/.claude/commands/review.md` (Codex wrapper) vs. Claude Code built-in `/review` skill (PR review); recommended Shape (a) for Prompt 4; confirmed ai-council implemented all 10 scrum-master findings + I7/I8 addendum + council-out-* emitter rename
 - Failed: —
 - Next: hooks review proper (Prompt 4) — scope locked by recon findings (Shape a, low effort)
 
-## 2026-05-12 — PLAYBOOK § 17 + cover-letter template
+### 2026-05-12 — PLAYBOOK § 17 + cover-letter template
 - Did: added § 17 Scrum-Master Review Propagation + templates/scrum-master-cover-letter.md; closed BACKLOG P2 propagation-structuring entry
 - Failed: —
 - Next: hooks reconnaissance (Prompt 3) → hooks review proper (Prompt 4, scope locked by recon findings)
 
-## 2026-05-12 — Cleanup pass
+### 2026-05-12 — Cleanup pass
 - Did: resolved orphaned 2026-05-12-session-handoff deletion (D2 — already committed as 471ecd3); marked ADR-34 ai-council propagation BACKLOG entry as done (D3); added ADR-42 single-vs-multi-artifact amendment-candidate BACKLOG entry P3 (D7)
 - Failed: —
 - Next: PLAYBOOK § 17 + scrum-master cover-letter template (Prompt 2)
 
-## 2026-05-12 — Handoff Stage 3 complete for ai-council (session-sync)
+### 2026-05-12 — Handoff Stage 3 complete for ai-council (session-sync)
 
 **Did:** Stage 3 generated 12-file handoff folder at `docs/handoffs/2026-05-12-ai-council-session-sync/`. Stage 1+2 inputs archived at `docs/handoffs/archive/2026-05-12-ai-council-session-sync/`. HEAD `f094d08` pinned (no drift). Stage 2 architect knowledge preserved: Step 5 smoke test as next action, cost-optimization principle captured, 12 witnessed claims verified against repo state, stale BACKLOG items flagged. BACKLOG items updated.
 
 ---
 
-## 2026-05-12 — Handoff Stage 1 generated for ai-council (session-sync)
+### 2026-05-12 — Handoff Stage 1 generated for ai-council (session-sync)
 
 - Handoff Stage 1 generated for `2026-05-12-ai-council-session-sync`: HEAD `f094d0821a279f3aa36de554943c1b44576d0924` captured; awaiting Stage 2
 
 ---
 
-## 2026-05-12 — Handoff Stage 3 complete for dev-knowledge (session-sync)
+### 2026-05-12 — Handoff Stage 3 complete for dev-knowledge (session-sync)
 
 **Did:** Stage 3 generated 11-file handoff folder at `docs/handoffs/2026-05-12-dev-knowledge-session-sync/`. Stage 1+2 inputs archived. HEAD `0125f1b` pinned. Stage 2 architect knowledge (10 boundaries, 8 directives) captured. CHANGELOG updated.
 
 ---
 
-## 2026-05-12 — Handoff Stage 1 generated for dev-knowledge (session-sync)
+### 2026-05-12 — Handoff Stage 1 generated for dev-knowledge (session-sync)
 
 **Did:** Handoff Stage 1 generated for slug `2026-05-12-dev-knowledge-session-sync`; HEAD `ec44148` captured; awaiting Stage 2 (old chat response).
 
 ---
 
-## 2026-05-12 — Prompt N: Session handoff generated
+### 2026-05-12 — Prompt N: Session handoff generated
 
 **Did:** Composed session handoff at `docs/handoffs/2026-05-12-session-handoff/` covering session scope (14 commits, 7 prompt cycles), state at end, operator pending actions, deferred substantive work, and critical process principles. Verified browser-provided inventory against repo state; flagged one adjusted item (`2026-05-11-cross-repo-pattern-audit.md` not found in `docs/audits/` — browser claim adjusted).
 
@@ -245,7 +255,7 @@
 
 ---
 
-## 2026-05-12 — Prompt M: Governance freshness audit + targeted updates
+### 2026-05-12 — Prompt M: Governance freshness audit + targeted updates
 
 **Did:** Read-audited 8 governance files (ARCHITECTURE.md, CLAUDE.md, CONTRIBUTING.md, README.md, VISION.md, PLAYBOOK.md, ESSENTIALS.md, HANDOFF_PROCESS.md) plus subdirectory READMEs for stale convention references post 2026-05-11 amendments (ADR-34 universal hyphen mandate + ADR-38 ARCHITECTURE.md root placement + A2 archive folder rename). Applied 10 targeted fixes across 4 files (ARCHITECTURE.md × 2, CONTRIBUTING.md × 2, README.md × 2, PLAYBOOK.md × 4). Added 1 new BACKLOG entry (Cross-stream P2: scrum-master review propagation process codification).
 
@@ -255,7 +265,7 @@
 
 ---
 
-## 2026-05-12 — Prompt L: Scrum-master review of ai-council + legacy transcripts relocation
+### 2026-05-12 — Prompt L: Scrum-master review of ai-council + legacy transcripts relocation
 
 **Did:**
 - Produced structured scrum-master review report for ai-council at `docs/audits/2026-05-11-ai-council-scrum-master-review.md` (Scale M; first empirical instance of scrum-master review authority pattern): 10 findings (1 critical, 6 important, 3 minor); covers governance files, ADR-34 compliance, documentation staleness, tasks/ folder hygiene, dead code scan, folder structure
@@ -269,7 +279,7 @@
 
 ---
 
-## 2026-05-12 — Prompt K: Atomic file-level cleanup
+### 2026-05-12 — Prompt K: Atomic file-level cleanup
 
 **Did:**
 - K1 (a95318d): 16 ADR renames (underscore → hyphen); 14 transcript renames (council_out_ → council-out-); `docs/handoffs/_archive/` → `archive/` folder rename; 6 legacy flat .md + v2 folder relocated to `docs/handoffs/archive/legacy/`; 23 living docs updated (link refs, path refs, naming convention desc); scope tag validator: pass
@@ -283,7 +293,7 @@
 
 ---
 
-## 2026-05-12 — Prompt J: ADR-34 + ADR-38 amendments + BACKLOG reclassification + content-scoped archival principle
+### 2026-05-12 — Prompt J: ADR-34 + ADR-38 amendments + BACKLOG reclassification + content-scoped archival principle
 
 **Did:**
 - J1: Amended ADR-34 — separator convention changed to universal hyphen mandate for filenames AND foldernames across .dev-knowledge and all child repos; ADR and transcript table rows updated from underscore to hyphen; example set added; scope changed from mandate/recommendation split to universal; Amendments trail added (commit ec45b2c)
@@ -297,7 +307,7 @@
 
 ---
 
-## 2026-05-11 — Item 0 Prompt C: Codex M1 fix
+### 2026-05-11 — Item 0 Prompt C: Codex M1 fix
 - Did: reconciled PLAYBOOK dual-write contradiction at "Council Debate Archival Protocol" section (~line 1458); accepted M2 (bundle ESSENTIALS snapshot) + L3 (bundle manifest state) as pre-existing bundle state per point-in-time artifact convention
 - Result: PLAYBOOK Council output guidance internally consistent; operators no longer instructed to skip manual archival they actually need to perform; Item 0 closed
 - Next: merge `chore/session-sync-stage3-generation` to main after Rob confirms
