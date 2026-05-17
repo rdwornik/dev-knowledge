@@ -19,6 +19,9 @@
 
 ---
 
+### 2026-05-17 — Handoff Stage 1 generated for ai-council
+- Handoff Stage 1 generated for `2026-05-17-ai-council-session-sync`: HEAD `1bcc6abae464d1455a8cec7fd0eb7cd512e43fd8` captured; awaiting Stage 2
+
 ### 2026-05-17 — Decommissioning discipline: close the orphan gap
 - Did: created `feat/decommissioning-discipline` branch; added decommissioning-gap lesson to LESSONS.md; added "Supersession & decommissioning" subsection to PLAYBOOK.md (under Documentation file types); added condensed supersession rule to ESSENTIALS.md; created `templates/ADR-template.md` with `Decommission:` header field. 4 commits total.
 - Result: audit health passes. All 4 doc files updated consistently. Branch left unmerged, unpushed per prompt spec.
