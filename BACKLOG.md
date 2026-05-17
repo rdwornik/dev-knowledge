@@ -127,6 +127,14 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-04-30 by rob (ai-council audit Faza A2 closure)
 - **Status:** open
 
+### [P2] [open] Handoff advisory framing leaks into receiver behavior
+- **What:** Session-start handoff containing architect's "REST recommended" advisory (2026-05-09-dev-knowledge-session-sync bundle) propagated to receiver chat as 3 unprompted session-end suggestions during 2026-05-11 session, despite explicit operator preference rule against unprompted scheduling. Handoff content framing shapes receiver behavior more strongly than receiver-side preference rules counteract.
+- **Why:** ADR-37 session boundary protocol assumes handoff content is informational; in practice, advisory framing (rest, defer, urgency, complexity recommendations) becomes behavioral pressure on receiver. Pattern likely repeats with other advisory framings. Worth classifying root cause (handoff design vs receiver discipline vs both) before next high-stakes handoff.
+- **Vision ref:** VISION.md "Methodology Author" function — handoff design is methodology
+- **Added:** 2026-05-11 by rob (empirical finding from session)
+- **Status:** open — classify root cause, propose mitigation
+- **Related:** ADR-37, ADR-42, LESSONS 2026-05-11 entries
+
 ### [P3] [open] Cross-repo audit (Phase 3)
 - **What:** Audit tool runs across all repos with VISION.md, generates ecosystem compliance report; verifies adoption of ratified ADRs
 - **Why:** Validates universalization actually adopted (not just ratified); drift detection over time

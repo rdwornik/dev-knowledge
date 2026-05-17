@@ -349,6 +349,13 @@
 
 ---
 
+### 2026-05-11 — Item 0 epilogue: session-close artifacts
+- Did: appended 4 LESSONS entries (codex M1 prompt-craft, M2/L3 bundle staleness, press-back posture validation, advisory framing leakage); added BACKLOG Cross-stream P2 entry for handoff framing receiver-behavior leakage
+- Result: 2026-05-11 session lessons captured; empirical finding tracked for future classification
+- Next: ported to main 2026-05-17 from chore/session-close-lessons-backlog
+
+---
+
 ### 2026-05-11 — Item 0 Prompt C: Codex M1 fix
 - Did: reconciled PLAYBOOK dual-write contradiction at "Council Debate Archival Protocol" section (~line 1458); accepted M2 (bundle ESSENTIALS snapshot) + L3 (bundle manifest state) as pre-existing bundle state per point-in-time artifact convention
 - Result: PLAYBOOK Council output guidance internally consistent; operators no longer instructed to skip manual archival they actually need to perform; Item 0 closed
