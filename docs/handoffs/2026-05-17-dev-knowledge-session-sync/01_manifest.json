@@ -1,0 +1,61 @@
+{
+  "handoff_id": "2026-05-17-dev-knowledge-session-sync",
+  "type": "session-sync",
+  "format_version": "v3.3.3",
+  "generated_at": "2026-05-17T00:00:00Z",
+  "target_repo": {
+    "name": ".dev-knowledge",
+    "path": "C:/Users/1028120/Documents/Dev/.dev-knowledge",
+    "head_sha": "9a911952aa9c912218c839f54317170e647a5f44",
+    "branch": "main",
+    "working_tree": "clean"
+  },
+  "stage_1_head_sha": "c784845c659a98c59f2c161301577d72e17a4801",
+  "stage_2_provided": true,
+  "files": [
+    {
+      "path": "00_README.md",
+      "sha256": "073a155897e013789acc47803f140b1d996617d4146152db3779c581d663f463"
+    },
+    {
+      "path": "00_first-message.md",
+      "sha256": "4fd50303aeb97f339a1151edc63ea8b8d9aabd8e0638fb6d747d544568f5b610"
+    },
+    {
+      "path": "01_MANIFEST.md",
+      "sha256": "97a9c24442d6076856e66bb9a5565f307cd86723e5c19b5e7bea18ab189bd531"
+    },
+    {
+      "path": "02_VISION.md",
+      "sha256": "da1ad338f2c46ca4d255d509f8b27a7a4fbf25b8c3c7b8efa4d4fb1a415534f2"
+    },
+    {
+      "path": "03_PLAYBOOK.md",
+      "sha256": "6d372b9dc71fed66b251bcb7275b50d2b44e3cee8781758b76dcbe637f305ebd"
+    },
+    {
+      "path": "04_ESSENTIALS.md",
+      "sha256": "24bb6995d51350bc4c7dcaf42c50c5f475c5aac3097808bb5ba93962bb16994d"
+    },
+    {
+      "path": "05_GOVERNANCE_ESSENCES.md",
+      "sha256": "8f693de648a11b9ce1bd5c8c7d129d9fc8f5129012020adc831bcb8116af840a"
+    },
+    {
+      "path": "06_STATE_OF_PLAY.md",
+      "sha256": "4faa8c154ceeb8e0fafc274c4537ef9a9930ba88ca0278f763de6672035be0d6"
+    },
+    {
+      "path": "07_ACTION_PLAN.md",
+      "sha256": "e68ade746ce2d4453a104dff94af6bdcae54e449acce87d24f4744ff27c0213e"
+    },
+    {
+      "path": "08_TREE.txt",
+      "sha256": "a7f70c86e576608497d47e2d30c1efabcb5cb48ac39d60c6094a8da1d7dc9e92"
+    },
+    {
+      "path": "09_EXECUTION_EVIDENCE.md",
+      "sha256": "6316497631415147d747c6464b3ea8498d2237b66b9567ee542d1b3bafa6d1b5"
+    }
+  ]
+}

@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-05-17 — Handoff Stage 3 complete for .dev-knowledge (session-sync)
+- Did: generated full 11-file self-applied handoff bundle for `2026-05-17-dev-knowledge-session-sync`; archived `_in_progress/` inputs to `docs/handoffs/archive/`; verified HEAD `9a911952aa9c912218c839f54317170e647a5f44` is descendant of Stage 1 pin `c784845c659a98c59f2c161301577d72e17a4801` (ancestor check PASS, no drift).
+- Result: handoff bundle ready for Rob to upload to new `.dev-knowledge` browser chat. Stage 3 verified architect's witnessed claims about branch-cleanup outcome (`git branch` shows `main` only at HEAD) and partial verification of "3 governance ADRs filed" claim (ADR-46 + ADR-47 confirmed present; possible third "governance-trim" ADR unconfirmed — passed through to Directive 1).
+- Changes: `docs/handoffs/2026-05-17-dev-knowledge-session-sync/` (11 files: 00_README.md, 00_first-message.md, 01_MANIFEST.md, 01_manifest.json, 02_VISION.md, 03_PLAYBOOK.md, 04_ESSENTIALS.md, 05_GOVERNANCE_ESSENCES.md, 06_STATE_OF_PLAY.md, 07_ACTION_PLAN.md, 08_TREE.txt, 09_EXECUTION_EVIDENCE.md); `docs/handoffs/archive/2026-05-17-dev-knowledge-session-sync/` (stage1-question.md + stage2-response.md moved from _in_progress).
+- Abandoned: nothing.
+- Next: Rob opens NEW `.dev-knowledge` browser chat, uploads bundle, pastes 00_first-message.md as first message, completes articulation gate + synthesis confirmation, runs generated prompts in Claude Code.
+
 ### 2026-05-17 — Handoff Stage 1 generated for .dev-knowledge
 - Handoff Stage 1 generated for `2026-05-17-dev-knowledge-session-sync`: HEAD `c784845c659a98c59f2c161301577d72e17a4801` captured; awaiting Stage 2.
 - Changes: `docs/handoffs/_in_progress/2026-05-17-dev-knowledge-session-sync/stage1-question.md` (new); `docs/handoffs/_in_progress/2026-05-17-dev-knowledge-session-sync/stage2-response.md` (placeholder).
