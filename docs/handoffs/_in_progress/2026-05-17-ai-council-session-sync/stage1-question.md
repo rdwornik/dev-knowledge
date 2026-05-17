@@ -69,7 +69,7 @@ You are NOT:
 The new (fresh) chat receiving the Stage 3 handoff bundle will automatically
 have:
 - Full ai-council `VISION.md` (repo-level context)
-- Full `.dev-knowledge` `VISION.md` (ecosystem context, 02b file)
+- Full `.dev-knowledge` `VISION.md` (ecosystem context, included as 02b file)
 - Full `.dev-knowledge` `PLAYBOOK.md` (methodology, conversation style,
   prompt format, commit conventions)
 - Full `.dev-knowledge` `ESSENTIALS.md` (high-leverage rules)
@@ -83,9 +83,16 @@ You do NOT need to:
 
 Focus on what only YOU witnessed or judged in this conversation.
 
-## Epistemic honesty (CRITICAL)
+## How to write the response (read before drafting)
 
-For each claim in your response, classify it using these markers:
+Four concerns govern your response. Apply them during drafting, not as a
+final-pass edit — the failure modes below are pattern-matched in an LLM's
+natural output under session saturation, so fighting them after drafting
+is harder than avoiding them up front.
+
+### 1. Epistemic honesty
+
+For each claim, classify it using these markers:
 
 - **Witnessed**: you saw this happen in conversation — state it confidently
 - **(architect inference)**: you are reasoning from context, not direct
@@ -107,50 +114,50 @@ you didn't witness.
 If you don't know something specific (a commit message, a file name, a
 version number, a config value): say "Unknown — Stage 3 should verify."
 
-## Audience awareness (CRITICAL — read before responding)
+### 2. Self-containment for a bundle-only audience
 
-Your response will be processed by Stage 3 into the new chat's bundle. The
-new chat sees ONLY the Stage 3 bundle — it does NOT see this Stage 1
-question, does NOT see prior browser conversations, does NOT see JOURNAL
-entries unless explicitly included in the bundle, does NOT see external
-research papers or links.
+**Principle:** the new chat sees ONLY the Stage 3 bundle. It does not see
+this Stage 1 question, prior browser conversations, JOURNAL entries, or
+external research. Every claim in your response must be comprehensible
+from the bundle alone.
 
-Write Stage 2 for the new chat's audience, not for the operator's audience
-or your own session memory.
+Apply these rules in every section of your response:
 
-**Rules (all 7 apply to every section of your response):**
+- **Per-section scope declaration.** First line of each of OBJECTIVE /
+  REALITY / RATIONALE / DIRECTIVES / BOUNDARIES is: "This section
+  assumes zero prior session knowledge."
 
-1. **Open each major section with a scope declaration.** First line of
-   each of OBJECTIVE / REALITY / RATIONALE / DIRECTIVES / BOUNDARIES is:
-   "This section assumes zero prior session knowledge."
+- **No references the new chat cannot resolve.** No mentions of Stage 1
+  ("Stage 1 Q1 framing"), no session-internal terms ("today's
+  docs-simplification session"). Generalize to "during a recent session"
+  or "in the work culminating in commit 1bcc6ab".
 
-2. **No references to Stage 1 itself.** Do NOT write phrases like
-   "Stage 1 Q1 framing", "Stage 1 metadata says", "the question above".
-   Stage 1 is not in the bundle.
+- **List items inline at first mention.** No forward-references.
 
-3. **No invisible session-history references.** Do NOT reference
-   session-internal terms the new chat will not understand. Generalize:
-   - NOT: "today's docs-simplification-rollout session", "the ADR-48/49 branch"
-   - DO: "during a recent session", "in the work culminating in commit 1bcc6ab"
+- **Inline a 1-sentence summary only for files NOT already in the bundle.**
+  Files already in the bundle (VISION, PLAYBOOK, ESSENTIALS, ADR essences)
+  need no inline summary.
 
-4. **List items inline at first mention.** Do NOT forward-reference.
-   - NOT: "the open items (see REALITY for list)" then list them later
-   - DO: list the items where first mentioned, or omit the count if the
-     list is too long for inline
+- **No external citations not in the bundle.** Concepts can be stated as
+  reasoning; paper/blog citations cannot.
 
-5. **Self-contained claims.** If a claim requires reading another repo
-   file (ADR, audit) to understand, inline a 1-sentence summary of that
-   file's relevant content at first reference.
+- **Write about the work, not the meta-process of handing it off.**
 
-6. **No external research citations not in the bundle.** Strip from the response.
-   Concepts can be stated as reasoning; citations cannot.
+**Audience-simulation check (do this before submitting):** mentally
+simulate a fresh LLM session reading ONLY the Stage 3 bundle. For each
+paragraph: would this be comprehensible without external context? If not,
+rewrite it. Cross-repo content fails this check — default expectation is
+zero cross-repo content; only unclosed threads that genuinely could not
+close belong in REALITY, framed as "unclosed thread, awareness only";
+DIRECTIVES never target other repos.
 
-7. **No self-referential meta-framing.** Write about the work to be done,
-   not about the meta-process of handing it off.
+### 3. Coherence check
 
-Apply these rules during drafting, not as a final-pass edit.
+Before submitting, verify: no DIRECTIVE violates own BOUNDARIES; the
+OBJECTIVE's top priority aligns with DIRECTIVE #1; no directive depends
+on data not packaged in the bundle. Revise before submitting if any fails.
 
-## Format requirements (CRITICAL — read before responding)
+### 4. Format requirements
 
 Your response will be copy-pasted verbatim into stage2-response.md for
 Stage 3 parsing.
@@ -230,14 +237,11 @@ The next session should...
   ADR-38 Scale M gaps: ARCHITECTURE.md to root, add LESSONS.md, BACKLOG.md
   (AGENTS.md tracked separately above).
 
-- **[P2] Handoff folder format adoption** — ai-council may still have a legacy
+- **[P2] Handoff folder format adoption** — ai-council may have a legacy
   `docs/HANDOFF.md` (pre-ADR-42 flat pattern). Migrate or explicitly deprecate.
-  Tied to A4 decision (separate ADR or conversational) about whether flat file
-  is still acceptable as legacy.
 
-- **[P3] docs/HANDOFF.md flat file deprecation** — both corp-monorepo and
-  ai-council have pre-ADR-42 flat HANDOFF.md files. Retire at next handoff event
-  or explicitly designate as legacy.
+- **[P3] docs/HANDOFF.md flat file deprecation** — ai-council has pre-ADR-42
+  flat HANDOFF.md. Retire at next handoff event or explicitly designate as legacy.
 
 ## Pipeline questions (answer these in order)
 
@@ -249,11 +253,14 @@ What is the immediate goal of the next ai-council session?
 
 The most recent session (commits around `f2dc586`) adopted simplified
 documentation conventions (ADR-48/49): removed CHANGELOG, removed BACKLOG_ARCHIVE,
-added deterministic header normalizer + pre-commit hook, adopted new doc conventions.
+adopted new doc conventions, and added a deterministic header normalizer pre-commit
+hook. The session closed with `1bcc6ab` removing orphaned `docs/handoffs/` from
+the repo (handoffs now centralized in .dev-knowledge per ADR-42).
 
-Given that cleanup, what should the next session accomplish? Candidates from BACKLOG:
-AGENTS.md creation (P2), ADR-38 compliance gap closure, or continuing Council debate
-work. Propose and justify the top priority.
+Given that cleanup work is done, what should the next session accomplish?
+Candidates from BACKLOG: AGENTS.md creation (P2), ADR-38 compliance gap closure,
+LESSONS.md scope-tag backfill (P3), or continuing Council debate work. Propose
+and justify the top priority.
 
 *Epistemic note: state your goal judgment confidently. If the BACKLOG priority
 ranking feels wrong for what's actually needed in ai-council right now, say so
@@ -263,30 +270,44 @@ with reasoning.*
 
 What is the current state of ai-council from your perspective?
 
-- What was completed in the most recent session (docs-simplification-rollout)?
-- Anything incomplete or partially applied that the next session should be aware of?
-- Any in-flight Council debates or architectural decisions not yet captured?
-- Any technical debt or known issues introduced during the simplification work?
-- Does the deterministic header normalizer pre-commit hook work cleanly on the
-  current repo state?
-- Is LESSONS.md currently in correct reverse-chrono order per ADR-46?
+- Was anything completed in the most recent session (docs-simplification-rollout
+  culminating in `f2dc586`) that you can speak to from direct observation?
+- Any work started but not fully landed — open PRs, half-applied conventions,
+  or items deferred mid-session?
+- Any in-flight Council debates or architectural decisions pending capture in
+  an ADR?
+- Any known issues or technical debt introduced during the simplification work?
+- Does `docs/HANDOFF.md` (the pre-ADR-42 flat file, distinct from the removed
+  `docs/handoffs/` directory) still exist, or was it removed in a session you
+  witnessed?
 
-*Epistemic note: differentiate witnessed events from inferences from unknowns.
-Mark inferences with "(architect inference)" and unknowns with "Unknown — verify
-against repo."*
+*Epistemic note: differentiate witnessed events (you saw this in conversation)
+from inferences (reasoning from context) from unknowns (no direct knowledge).
+Mark inferences with "(architect inference)" and unknowns with "Unknown —
+verify against repo."*
 
 ### 3. RATIONALE
 
-What approaches were considered and discarded for ai-council recently?
+If you witnessed reasoning that shaped recent ai-council work and the next
+session needs to understand it, describe it. If not, write "Unknown — no
+specific rationale witnessed in this session" and skip the sub-questions
+below.
 
-- Were any ADR-48/49 simplification decisions contested or deferred?
-- Why was ARCHITECTURE.md not included in the simplification scope (if it wasn't)?
-- Were any LESSONS.md scope-tag decisions made — adopt them or skip them?
-- Why AGENTS.md was deferred rather than created in the docs-simplification session
-  (if it was deferred)?
+- If you witnessed the reasoning behind which items were included vs. deferred
+  in the docs-simplification-rollout scope, state it; otherwise mark Unknown —
+  Stage 3 verifies against the commit / ADR.
+- If you witnessed any decision about AGENTS.md (create now vs. defer vs.
+  scope-limit), state what you observed; otherwise mark Unknown.
+- If you witnessed whether LESSONS.md scope-tag backfill was discussed and
+  deliberately deferred, state what you observed; otherwise mark Unknown.
+- If you witnessed any decision about `docs/HANDOFF.md` deprecation during
+  this session, state what you observed; otherwise mark Unknown.
 
-*Epistemic note: reasoning is your strong suit — explain your judgment. For
-specific facts, mark "(architect inference)" if not directly witnessed.*
+*Epistemic note: reasoning is your strong suit — explain your judgment
+when you witnessed it. The answer "Unknown — Stage 3 verifies against the
+commit / ADR" is acceptable and preferred over a constructed rationale.
+For any specific facts in your reasoning, mark "(architect inference)" if
+not directly witnessed.*
 
 ### 4. DIRECTIVES
 
@@ -295,55 +316,49 @@ What are the exact sequential actions the next ai-council session should execute
 Provide a numbered list. Each action: **action verb + target + verification step**.
 
 Suggested starting proposals (revise as you see fit):
-1. Create `AGENTS.md` at ai-council repo root per ecosystem governance standard (Council #28). Verify: file exists at root, covers Codex/Cursor/Aider/Claude Code.
-2. Verify header normalizer pre-commit hook runs clean on current repo state. Verify: `pre-commit run --all-files` exits 0.
-3. Close ADR-38 Scale M gaps: move or confirm ARCHITECTURE.md at root; verify LESSONS.md + BACKLOG.md at root. Verify: file locations match ADR-38 mandate for Scale M.
-4. Backfill `[scope: X]` tags in LESSONS.md entries (ADR-46 advisory). Verify: `dated_entries_lessons` check passes.
-5. Deprecate or migrate legacy `docs/HANDOFF.md` if still present. Verify: file removed or explicitly marked legacy.
+1. Create `AGENTS.md` at ai-council repo root per ecosystem governance standard
+   (Council #28 — cross-tool governance for Codex, Cursor, Aider, Claude Code).
+   Verify: file exists at root, covers all four tools.
+2. Verify header normalizer pre-commit hook runs clean on current repo state.
+   Verify: `pre-commit run --all-files` exits 0 with no normalizer errors.
+3. Close ADR-38 Scale M gaps: confirm or move ARCHITECTURE.md to root; verify
+   LESSONS.md and BACKLOG.md exist at root.
+   Verify: file locations match ADR-38 mandate for Scale M.
+4. If `docs/HANDOFF.md` (flat pre-ADR-42 file) still exists: deprecate or
+   remove it. Verify: file absent or explicitly marked legacy.
+5. Backfill `[scope: X]` tags in LESSONS.md entries (advisory per ADR-46).
+   Verify: entries follow 6-field format with scope tag; no old entry content
+   altered beyond tag insertion.
 
-Adjust priority, sequence, or content to reflect what you actually know from this session.
+Adjust priority, sequence, or content to reflect what you actually know.
 
 *Epistemic note: action sequence and verification steps are most valuable.
 Specific file paths — mark "(architect inference)" if not witnessed; Stage 3
-will revise based on repo state.*
+may revise based on repo state.*
 
 ### 5. BOUNDARIES
 
 What must the next session NOT do? What are fallback contingencies?
 
 Suggested boundaries (revise as you see fit):
-- Do NOT generate reconciliation reports about other repos' state. Do NOT treat
-  staleness observations about another repo's tracking artifacts as a directive.
+- Do NOT generate reconciliation reports or directives about other repos' state
+  — this session is scoped to ai-council only.
 - Do NOT amend ADR-48 or ADR-49 without a dedicated Council debate — the
   simplification scope was deliberate; amendments require the same deliberation.
-- Do NOT backfill scope tags if the LESSONS.md content is at risk of edit-entry
-  corruption (ADR-29 "never edit old entries" — verify the tag is metadata-only
-  before touching).
-- If AGENTS.md creation requires cross-repo decisions (what tools are in scope,
-  what authority AGENTS.md carries), pause and surface to operator rather than
-  inventing a spec.
+- Do NOT backfill scope tags in LESSONS.md if doing so would alter entry content
+  (ADR-29 "never edit old entries" — scope tags are metadata-only; confirm
+  insertion approach preserves existing entry text before touching).
+- Do NOT invent an AGENTS.md spec if cross-repo decisions are needed (what tools
+  are in scope, what authority AGENTS.md carries). Surface to operator instead.
+- If pre-commit hook fails on current repo state: diagnose root cause before
+  proceeding; do not skip hooks or amend the normalizer script without operator
+  awareness.
 
-Add any architect-specific concerns or "do not's" you know from this conversation.
+Add any architect-specific concerns or "do not's" you know from this session.
 
 *Epistemic note: do-not lists grounded in your project knowledge are very
-valuable. Don't fabricate "do not touch X" if you don't know whether X exists.*
-
----
-
-## Before submitting your response, also verify
-
-- **Any cross-repo content?** Per Universal Self-Containment Rule, default
-  expectation is zero cross-repo content in handoff. Only unclosed threads
-  that genuinely could not close belong in REALITY, framed as "unclosed thread,
-  awareness only." DIRECTIVES never target other repos.
-- **Internal coherence?** No DIRECTIVE violates own BOUNDARIES; OBJECTIVE-stated
-  highest priority aligned with DIRECTIVE #1; no directive depends on data not
-  packaged in bundle.
-- **Audience awareness check:** Mentally simulate a fresh LLM session reading
-  ONLY the Stage 3 bundle. For each paragraph: would this be comprehensible
-  without external context? If not, rewrite to be self-contained per the 7 rules.
-
-If any check fails, revise before submitting.
+valuable. Don't fabricate "do not touch X" if you don't know whether X exists —
+focus on knowns from your conversation.*
 
 ════════════════════════════════════════════════════════════════════
 End of paste block.

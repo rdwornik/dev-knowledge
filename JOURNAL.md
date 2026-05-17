@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-05-17 — Fixture cleanup + Stage 1 regeneration for ai-council
+- Did: renamed stale test fixture `repo-with-all-five-checks` → `repo-with-structural-checks`; updated its internal VISION.md (stale "all five checks" description → accurate 3-check description); deleted two stale fixture files (`BACKLOG_ARCHIVE.md`, `CHANGELOG.md`) left over from `deedc10` audit-check removal; updated `tests/test_audit.py` fixture path reference. Regenerated `stage1-question.md` for `2026-05-17-ai-council-session-sync` with current template structure (coherence-check concern added, RATIONALE sub-questions reframed as non-presuppositional per template spec).
+- Result: 28 tests pass. `stage1-question.md` now faithful to current template structure. `stage2-response.md` placeholder preserved unchanged.
+- Changes: `tests/fixtures/repo-with-structural-checks/` (renamed from `repo-with-all-five-checks/`; VISION.md updated; BACKLOG_ARCHIVE.md + CHANGELOG.md deleted), `tests/test_audit.py` (fixture path), `docs/handoffs/_in_progress/2026-05-17-ai-council-session-sync/stage1-question.md` (regenerated).
+- Abandoned: nothing.
+- Next: Rob pastes `stage1-question.md` PASTE_BOUNDARY block into OLD ai-council browser chat; fills `stage2-response.md`; then "complete handoff for ai-council".
+
 ### 2026-05-17 — Handoff Stage 1 generated for ai-council
 - Handoff Stage 1 generated for `2026-05-17-ai-council-session-sync`: HEAD `1bcc6abae464d1455a8cec7fd0eb7cd512e43fd8` captured; awaiting Stage 2
 
