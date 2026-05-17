@@ -103,9 +103,16 @@ You do NOT need to:
 
 Focus on what only YOU witnessed or judged in this conversation.
 
-## Epistemic honesty (CRITICAL)
+## How to write the response (read before drafting)
 
-For each claim in your response, classify it using these markers:
+Four concerns govern your response. Apply them during drafting, not as a
+final-pass edit — the failure modes below are pattern-matched in an LLM's
+natural output under session saturation, so fighting them after drafting
+is harder than avoiding them up front.
+
+### 1. Epistemic honesty
+
+For each claim, classify it using these markers:
 
 - **Witnessed**: you saw this happen in conversation — state it confidently
 - **(architect inference)**: you are reasoning from context, not direct
@@ -127,65 +134,71 @@ you didn't witness.
 If you don't know something specific (a commit message, a file name, a
 version number, a config value): say "Unknown — Stage 3 should verify."
 
-## Audience awareness (CRITICAL — read before responding)
+### 2. Self-containment for a bundle-only audience
 
-Your response will be processed by Stage 3 into the new chat's bundle. The
-new chat sees ONLY the Stage 3 bundle — it does NOT see this Stage 1
-question, does NOT see prior browser conversations, does NOT see JOURNAL
-entries unless explicitly included in the bundle, does NOT see external
-research papers or links.
+**Principle:** the new chat sees ONLY the Stage 3 bundle. It does not see
+this Stage 1 question, prior browser conversations, JOURNAL entries, or
+external research. Every claim in your response must be comprehensible
+from the bundle alone.
 
-Write Stage 2 for the new chat's audience, not for the operator's audience
-or your own session memory.
+The bundle contains: full `.dev-knowledge` VISION.md, PLAYBOOK.md, and
+ESSENTIALS.md; ADR essences for ADRs cited in directives; the audit
+report; the repo state snapshot.
 
-**Rules (all 7 apply to every section of your response):**
+Apply these rules in every section of your response:
 
-1. **Open each major section with a scope declaration.** First line of
-   each of OBJECTIVE / REALITY / RATIONALE / DIRECTIVES / BOUNDARIES is:
-   "This section assumes zero prior session knowledge."
+- **Per-section scope declaration.** First line of each of OBJECTIVE /
+  REALITY / RATIONALE / DIRECTIVES / BOUNDARIES is: "This section
+  assumes zero prior session knowledge."
 
-2. **No references to Stage 1 itself.** Do NOT write phrases like
-   "Stage 1 Q1 framing", "Stage 1 metadata says", "the question above".
-   Stage 1 is not in the bundle.
+- **No references the new chat cannot resolve.** No mentions of Stage 1
+  ("Stage 1 Q1 framing", "the question above"), no session-internal
+  terms ("Round 1 → 2 → 3 file loads", "today's v3.3 prompt"). Generalize
+  to "during a recent extended session" or "in the work culminating in
+  commit X".
 
-3. **No invisible session-history references.** Do NOT reference
-   session-internal terms the new chat will not understand. Generalize:
-   - NOT: "Round 1 → 2 → 3 file loads", "today's v3.3 prompt",
-     "the empirical test of v3.3 begins with this handoff cycle"
-   - DO: "during a recent extended session", "in the work culminating
-     in commit X"
+- **List items inline at first mention.** No forward-references. List the
+  items where first mentioned, or omit the count if the list is too long
+  for inline. Provide representative state, not an exhaustive log — if a
+  list runs long, select the decision-relevant items.
 
-4. **List items inline at first mention.** Do NOT forward-reference.
-   - NOT: "drive session-lessons capture (5 primary + 3 secondary lessons,
-     see REALITY for list)" then list them later
-   - DO: list the items where first mentioned, or omit the count if the
-     list is too long for inline
+- **Inline a 1-sentence summary only for files NOT already in the bundle.**
+  Files already in the bundle (the repo's and ecosystem's VISION,
+  PLAYBOOK, ESSENTIALS, and the essences of cited ADRs) need no inline
+  summary — the new chat will read them.
+  - NOT: "v1 conflicted with audit findings"
+  - DO: "v1 (which proposed dropping full invariants from the bundle)
+    conflicted with the 2026-05-12 audit finding that the full
+    11-file bundle empirically catches architect fabrications via
+    drift detection (real case: 2026-05-09 ai-council handoff)"
 
-5. **Self-contained claims.** If a claim requires reading another repo
-   file (ADR, audit) to understand, inline a 1-sentence summary of that
-   file's relevant content at first reference.
-   - NOT: "v1 conflicted with audit findings"
-   - DO: "v1 (which proposed dropping full invariants from the bundle)
-     conflicted with the 2026-05-12 audit finding that the full
-     11-file bundle empirically catches architect fabrications via
-     drift detection (real case: 2026-05-09 ai-council handoff)"
+- **No external citations not in the bundle.** Paper titles, blog posts,
+  arxiv IDs, vendor blogs — none are in the bundle and the new chat
+  cannot verify them. Concepts can be stated as reasoning; citations
+  cannot.
 
-6. **No external research citations not in the bundle.** Paper titles,
-   blog posts, arxiv IDs, vendor blogs — none of these are in the bundle.
-   The new chat cannot verify or read them. Strip from the response.
-   Concepts can be stated as reasoning; citations cannot.
+- **Write about the work, not the meta-process of handing it off.** Do
+  not describe the new chat as "the test subject" or frame the handoff
+  as "an empirical test" unless that framing drives a receiver-side
+  action.
 
-7. **No self-referential meta-framing.** Do NOT describe the new chat
-   as "the test subject" or describe the handoff being "an empirical
-   test" unless that framing serves a receiver-side action. Write about
-   the work to be done, not about the meta-process of handing it off.
+**Audience-simulation check (do this before submitting):** mentally
+simulate a fresh LLM session reading ONLY the Stage 3 bundle. For each
+paragraph of your response, ask: would this be comprehensible without
+reaching for external context? If any paragraph fails, rewrite it.
+Cross-repo content fails this check — per the Universal Self-Containment
+Rule in HANDOFF_PROCESS, default expectation is zero cross-repo content;
+only unclosed threads that genuinely could not close belong in REALITY,
+framed as "unclosed thread, awareness only"; DIRECTIVES never target
+other repos.
 
-Apply these rules during drafting, not as a final-pass edit. The 7 gaps
-are pattern-matched in the LLM's natural output style under session
-saturation — fighting them after drafting is harder than avoiding them
-during drafting.
+### 3. Coherence check
 
-## Format requirements (CRITICAL — read before responding)
+Before submitting, verify: no DIRECTIVE violates own BOUNDARIES; the
+OBJECTIVE's top priority aligns with DIRECTIVE #1; no directive depends
+on data not packaged in the bundle. Revise before submitting if any fails.
+
+### 4. Format requirements
 
 Your response will be copy-pasted verbatim into stage2-response.md for
 Stage 3 parsing.
@@ -323,21 +336,6 @@ Add any architect-specific concerns or "do not's."
 valuable. Don't fabricate "do not touch X" if you don't know whether X exists
 — focus on knowns from your conversation.*
 
----
-
-## Before submitting your response, also verify
-
-- **Any cross-repo content?** Per Universal Self-Containment Rule (see HANDOFF_PROCESS), default expectation is zero cross-repo content in handoff. Only unclosed threads that genuinely could not close belong in REALITY, framed as "unclosed thread, awareness only." DIRECTIVES never target other repos.
-- **Internal coherence?** No DIRECTIVE violates own BOUNDARIES; OBJECTIVE-stated highest priority aligned with DIRECTIVE #1; no directive depends on data not packaged in bundle.
-- **Audience awareness check:** Mentally simulate a fresh LLM session
-  reading ONLY the Stage 3 bundle (no Stage 1, no JOURNAL, no prior
-  chats, no external research). For each paragraph of your response,
-  ask: would this be comprehensible without reaching for external context?
-  If any paragraph fails, rewrite to be self-contained per the 7
-  audience-awareness rules above.
-
-If any check fails, revise before submitting. (Source of truth: HANDOFF_PROCESS Universal Self-Containment Rule.)
-
 ════════════════════════════════════════════════════════════════════
 End of paste block.
 Old chat: please answer questions 1-5 above following the Format
@@ -352,10 +350,11 @@ Claude Code can parse them at Stage 3.
 ## Generation rules for Claude Code
 
 - Replace all `{placeholders}` with actual values from repo state + audit context
-- **Section B order is fixed:** role → bundle → epistemic → format → current state
-  → audit context → BACKLOG → pipeline questions → end divider.
-  Role/bundle/epistemic/format MUST appear before audit context and questions —
-  old chat must read these BEFORE drafting response.
+- **Section B order is fixed:** role → bundle → "How to write the response"
+  (epistemic / self-containment / coherence / format) → current state →
+  audit context → BACKLOG → pipeline questions → end divider. The
+  response-writing guidance MUST appear before audit context and
+  questions — old chat must read these BEFORE drafting response.
 - **Preserve 5 question headings exactly:** `### 1. OBJECTIVE`, `### 2. REALITY`,
   `### 3. RATIONALE`, `### 4. DIRECTIVES`, `### 5. BOUNDARIES`. Stage 3 parses these.
 - Section A and Section B separated by visible `PASTE_BOUNDARY` line with thick `═`
