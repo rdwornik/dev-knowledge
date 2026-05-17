@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-05-17 — Handoff Stage 1 generated for .dev-knowledge
+- Handoff Stage 1 generated for `2026-05-17-dev-knowledge-session-sync`: HEAD `c784845c659a98c59f2c161301577d72e17a4801` captured; awaiting Stage 2.
+- Changes: `docs/handoffs/_in_progress/2026-05-17-dev-knowledge-session-sync/stage1-question.md` (new); `docs/handoffs/_in_progress/2026-05-17-dev-knowledge-session-sync/stage2-response.md` (placeholder).
+- Next: Rob pastes `stage1-question.md` PASTE_BOUNDARY block into OLD `.dev-knowledge` browser chat; fills `stage2-response.md`; then "complete handoff for .dev-knowledge".
+
+---
+
 ### 2026-05-17 — Document audit test fixtures
 - Did: assessed `tests/fixtures/` documentation state; found no README or other discoverable explanation of the fixtures directory. Created `tests/fixtures/README.md` covering what the directory is, the naming convention, an inventory of the one current fixture (`repo-with-structural-checks`) with the test that consumes it, and the maintenance rule tying fixture lifecycle to audit check changes. Committed to branch `docs/document-test-fixtures` branched from `feat/handoff-ai-council-2026-05-17` (which holds fixture rename `c0b7512`).
 - Result: `tests/fixtures/README.md` added (`d0c8169`). Branch left unmerged, unpushed.
