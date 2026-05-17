@@ -302,13 +302,19 @@ verify against repo."*
 
 ### 3. RATIONALE
 
-What approaches were considered and discarded for {repo} recently?
+If you witnessed reasoning that shaped recent {repo} work and the next
+session needs to understand it, describe it. If not, write "Unknown — no
+specific rationale witnessed in this session" and skip the sub-questions
+below.
 
 {customized_rationale_prompt_with_repo_specific_decisions}
 
-*Epistemic note: reasoning is your strong suit — explain your judgment. For
-any specific facts in your reasoning (file counts, timing, component names),
-mark "(architect inference)" if not directly witnessed.*
+*Epistemic note: reasoning is your strong suit — explain your judgment
+when you witnessed it. For any sub-question below, the answer "Unknown —
+Stage 3 verifies against the commit / ADR" is acceptable and preferred
+over a constructed rationale. For any specific facts in your reasoning
+(file counts, timing, component names), mark "(architect inference)" if
+not directly witnessed.*
 
 ### 4. DIRECTIVES
 
@@ -357,6 +363,14 @@ Claude Code can parse them at Stage 3.
   questions — old chat must read these BEFORE drafting response.
 - **Preserve 5 question headings exactly:** `### 1. OBJECTIVE`, `### 2. REALITY`,
   `### 3. RATIONALE`, `### 4. DIRECTIVES`, `### 5. BOUNDARIES`. Stage 3 parses these.
+- **RATIONALE sub-questions must not presuppose answers.** A phrasing like
+  "Why was X done?" or "Why was Y deferred?" assumes the architect did X
+  or chose to defer Y, and pulls them toward constructing a rationale —
+  the exact failure the epistemic-honesty section forbids. Generate
+  sub-questions in the form: *"If you witnessed the reasoning for X,
+  state it; otherwise mark Unknown — Stage 3 verifies against the
+  commit / ADR."* This applies whether the candidate X comes from audit
+  findings, recent commits, or BACKLOG items.
 - Section A and Section B separated by visible `PASTE_BOUNDARY` line with thick `═`
   characters — visually unmistakable even when scrolling
 - **DO NOT include receiver synthesis prompt** in stage1-question.md. It belongs
