@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-05-17 — Decommissioning discipline: close the orphan gap
+- Did: created `feat/decommissioning-discipline` branch; added decommissioning-gap lesson to LESSONS.md; added "Supersession & decommissioning" subsection to PLAYBOOK.md (under Documentation file types); added condensed supersession rule to ESSENTIALS.md; created `templates/ADR-template.md` with `Decommission:` header field. 4 commits total.
+- Result: audit health passes. All 4 doc files updated consistently. Branch left unmerged, unpushed per prompt spec.
+- Changes: `LESSONS.md` (new entry prepended), `protocols/PLAYBOOK.md` (new ### subsection), `protocols/ESSENTIALS.md` (new ## section), `templates/ADR-template.md` (new file).
+- Abandoned: nothing.
+- Next: review branch on main and merge when ready; backfill `Decommission:` field on any existing ADRs that supersede or relocate artifacts (starting with ADR-42 handoff centralization).
+
 ### 2026-05-16 — Council Simplification slice: .dev-knowledge governance trim
 - Did: applied AI Council simplification verdict to `.dev-knowledge` on `feat/docs-governance-simplification` over 6 commits (Steps 2–7). Trimmed `scripts/audit.py` to structural-only checks (vision_md / adr38_baseline / claude_md); deleted CHANGELOG.md + BACKLOG_ARCHIVE.md; demoted ADR-46 + ADR-47 to non-enforced conventions; added deterministic `scripts/normalize_headers.py` + pre-commit auto-format hook; removed the scope-tag enforcement system (`validate_scope_tags.py`, tests, pre-commit hook, CLAUDE.md vocabulary section); documented git-as-changelog + Conventional Commits standard + new `Did/Result/Changes/Abandoned/Next` JOURNAL shape.
 - Result: tests 51 passed / 0 failed (was 53 passed / 3 failing). `ruff` clean. Audit output no longer references CHANGELOG / BACKLOG_ARCHIVE / dated-entries / backlog-organization checks. Branch left at `1401618` + this JOURNAL commit; NOT merged, NOT pushed.
