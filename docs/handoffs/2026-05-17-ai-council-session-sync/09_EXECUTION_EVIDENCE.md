@@ -12,7 +12,9 @@ This file is populated by the receiving chat as it executes the directives in `0
 
 ### Directive 1 — Add research-mode section to `docs/council-question-guide.md`
 
-**Status:** Not started
+**Status:** Complete ✓
+
+**Result (FACT):** New "Research-mode questions" section inserted in `docs/council-question-guide.md` immediately after the mode-selection table, covering the full 3-part spec (recognition test / formulation rules / breadth-over-depth trap). +53 lines. Commit `53de121` — `docs(council): add research-mode formulation guide` (branch `docs/research-mode-guide-and-agents-md`, merged into `main` at `11e0399`).
 
 **Verification:** Section present in guide, covers 3-part spec (recognition test / formulation rules / breadth-over-depth trap), commit recorded.
 
@@ -20,7 +22,14 @@ This file is populated by the receiving chat as it executes the directives in `0
 
 ### Directive 2 — Create `AGENTS.md` at repo root
 
-**Status:** Not started
+**Status:** Complete ✓
+
+**Result (FACT):** `AGENTS.md` created at `ai-council/AGENTS.md` (158 lines), built from the **live `.dev-knowledge/templates/AGENTS-md-template.md`** (template version `2026-04-24`). Repo identity filled (Scale M, active, owner Rob); architecture, conventions, ADR list, and pre-commit hooks verified against `pyproject.toml`, `.pre-commit-config.yaml`, and `docs/decisions/README.md`. Commit `7065834` — `docs: add AGENTS.md cross-tool agent governance file` (branch `docs/research-mode-guide-and-agents-md`, merged into `main` at `11e0399`).
+
+**Template ↔ repo discrepancies resolved:**
+- **Gotchas path** — template assumed `.claude/skills/gotchas/SKILL.md`, but this repo uses `.claude/rules/` with three files (`code-standards.md`, `python-env.md`, `testing.md`) and has **no** `.claude/skills/gotchas/` directory. §6 was pointed at the actual `.claude/rules/` layout; CLAUDE.md "Gotchas" section is cited as the authoritative trap list.
+- **Stale tool examples** — the template's illustrative `validate_scope_tags.py` pre-commit hook and `tach.toml` enforcement do not exist in this repo. §5 records that the only active pre-commit hook is `normalize-headers`, that no Tach is used, and that scope-tag enforcement was withdrawn under the ADR-46 demotion (Council Simplification 2026-05-16) — `validate_scope_tags.py` has been deleted and must not be re-introduced. The §10 "Do NOT" list captures this explicitly.
+- **`docs/handoffs/`** — embedded-template §9 step 4 referenced `docs/handoffs/*.md`, which does not exist in this repo (handoffs centralized in `.dev-knowledge` per ADR-42). §9 step 4 was rewritten to point at `.dev-knowledge/docs/handoffs/`.
 
 **Verification:** File exists at repo root, covers cross-tool LLM agent governance per ecosystem standard (Council #28).
 
@@ -58,7 +67,9 @@ This file is populated by the receiving chat as it executes the directives in `0
 
 ### Directive 6 — Backfill scope tags in LESSONS.md (advisory)
 
-**Status:** Not started
+**Status:** superseded — skipped
+
+**Result (FACT):** Scope-tag enforcement was withdrawn under the ADR-46 demotion (Council Simplification 2026-05-16); `validate_scope_tags.py` and its pre-commit hook have been deleted, consistent with ADR-48. Backfilling tags for a check that no longer exists serves no purpose. `LESSONS.md` was not touched.
 
 **Verification:** Entries carry scope tag; no existing entry content altered beyond tag insertion.
 
