@@ -28,7 +28,9 @@ This file is populated by the receiving chat as it executes the directives in `0
 
 ### Directive 3 — Verify header-normalizer pre-commit hook
 
-**Status:** Not started
+**Status:** Complete ✓
+
+**Result (FACT):** `pre-commit run --all-files` exited 0. Output: `Normalize dated-log entry headers...Passed`. No files modified. Baseline is clean.
 
 **Verification:** `pre-commit run --all-files` exits 0 with no normalizer errors.
 
@@ -36,7 +38,9 @@ This file is populated by the receiving chat as it executes the directives in `0
 
 ### Directive 4 — Confirm ADR-38 Scale M governance-file compliance
 
-**Status:** Not started
+**Status:** Complete ✓
+
+**Result (FACT):** All six required root governance files present: `README.md`, `VISION.md`, `BACKLOG.md`, `LESSONS.md`, `JOURNAL.md`, `CLAUDE.md`. `CHANGELOG.md` is absent (correct per ADR-49). `ARCHITECTURE.md` is absent (optional for Scale M — not created).
 
 **Verification:** Required root governance files present; any gap flagged.
 
@@ -44,8 +48,9 @@ This file is populated by the receiving chat as it executes the directives in `0
 
 ### Directive 5 — Determine `docs/HANDOFF.md` status
 
-**Status:** Not started  
-**Stage 3 finding:** `docs/HANDOFF.md` does NOT exist in the repo (verified via `git ls-files` at HEAD `1bcc6ab`). This directive is pre-resolved — treat as verification-and-report.
+**Status:** Complete ✓ — confirmed absent, no action needed.
+
+**Result (FACT):** `git ls-files | grep -i handoff` returned no output at HEAD `1bcc6ab`. `docs/HANDOFF.md` does not exist in the repo. Stage 3 pre-resolution confirmed.
 
 **Verification:** File confirmed absent; no action required unless repo state has changed.
 
@@ -61,7 +66,21 @@ This file is populated by the receiving chat as it executes the directives in `0
 
 ## Pre-commit Hook Results
 
-*(Populate after running `pre-commit run --all-files`)*
+```
+[INFO] Initializing environment for local.
+[INFO] Installing environment for local.
+[INFO] Once installed this environment will be reused.
+[INFO] This may take a few minutes...
+Normalize dated-log entry headers........................................Passed
+```
+
+Exit code: 0. No files modified.
+
+## Additional Findings (not in original directives)
+
+- **pytest:** 362 passed, 6 deselected, 24 warnings (pre-existing `datetime.utcnow()` deprecation warnings in gemini_research.py and grok_research.py). No failures.
+- **ruff:** 17 pre-existing E501 (line too long) errors — all in `tests/test_runner.py`. No Python was changed in this prompt; these are pre-existing and out of scope.
+- **Directive 6 (scope-tag backfill):** Per prompt instructions, this directive is closed as obsolete — superseded by ADR-46 demotion (Council Simplification 2026-05-16). Status to be updated in Prompt B.
 
 ---
 
