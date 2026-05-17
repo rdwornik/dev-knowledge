@@ -27,6 +27,8 @@ subfolder holds AI Council debate outputs that informed them.
 | ADR-40 | 2026-04-30 | Scale tier evaluation algorithm — logarithmic Maintainability Index pattern; 3 signals (module count, test count, TCR) |
 | ADR-41 | 2026-04-30 | Cross-session backlog architecture — BACKLOG.md mandate at M+ tier; no Scrum vocabulary |
 | ADR-42 | 2026-05-09 | Handoff format v3 — three-stage generation flow; v3.2 = flat per-session folder, Q&A iteration loop |
+| ADR-43 | 2026-05-11 | Cross-project transcript routing — per-invocation, opt-in, config-driven; `target-project:` frontmatter + `--target-project` flag; `TargetResolver` in ai-council CLI |
+| ADR-44 | — | Reserved — scrum-master review propagation authority codification; held pending N=2 empirical instance (corp-monorepo scrum-master review). See PLAYBOOK § 17. |
 
 ## Transcript naming convention
 
