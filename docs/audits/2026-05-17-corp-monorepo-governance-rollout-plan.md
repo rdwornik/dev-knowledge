@@ -590,10 +590,12 @@ defer Phases 3-8) without leaving the repo in an inconsistent state.
    "CHANGELOG.md MANDATORY tier M+" cell. Amend ADR-38 in
    `.dev-knowledge` BEFORE this rollout, AFTER, or batched with a
    future ADR cleanup? Default: after, batched.
-3. **Codex review.** Run Codex CLI review on each phase PR, only on
-   the final phase, or skip entirely? Default: each
-   phase PR (small enough to review), with severity calibration per
-   existing AGENTS.md.
+3. **Codex review.** Run Codex CLI review per phase (on each phase's
+   commit/diff), only on the final phase, or skip entirely? Default:
+   per phase — review each phase's diff before the next phase begins,
+   which works whether phases are separate PRs or commits on one
+   long-lived branch (see Q6) — with severity calibration per existing
+   AGENTS.md.
 4. **VISION.md prerequisite.** Has corp-monorepo's `VISION.md` been
    created and tier-upgraded to Standard since the 2026-04-21 audit?
    If no, this rollout is GATED on a prior VISION-creation session.
