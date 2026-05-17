@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-05-17 — Consolidate the Stage 2 handoff instruction set
+- Did: created `docs/consolidate-handoff-template` branch; restructured the Stage 2 instruction set in `templates/HANDOFF_QUESTION_TEMPLATE.md` from 3 "CRITICAL" sections + 7 during-drafting rules + 3 pre-send checks into four numbered parts under one "How to write the response" heading — (1) Epistemic honesty kept as-is, (2) Self-containment with opening principle plus deduplicated rules (old rules 2+3 merged; old rule 5 corrected per Finding 2 to apply only to files not already in the bundle; concision cue per Finding 3 folded in; old pre-send checks 1+3 absorbed into the closing audience-simulation paragraph), (3) Coherence check kept standalone, (4) Format requirements kept as-is; three CRITICAL banners collapsed to one framing paragraph. Then reframed RATIONALE per Finding 1 — section framing question now allows "Unknown" as an acceptable answer; epistemic note made the non-answer explicitly preferred over a constructed rationale; new generation rule requires the `{customized_rationale_prompt}` placeholder to be materialized with non-presupposing "If you witnessed the reasoning for X, state it; otherwise mark Unknown" phrasing. Built a 16-row mapping table BEFORE rewriting to guarantee no rule's substance was dropped; re-checked it against the rewritten file after. 2 commits.
+- Result: same substance, stated once. Stage 2 instructions now have 4 named parts instead of 13+ scattered items. Mapping table confirms every original rule's substance survives. No change to the 3-stage process or to ADR-42. Branch left unmerged, unpushed per prompt spec.
+- Changes: `templates/HANDOFF_QUESTION_TEMPLATE.md` (Stage 2 instruction block restructured; RATIONALE section + generation rules updated).
+- Abandoned: none.
+- Next: empirical test on the next real Stage 2 — does the consolidated version actually hold in one's head and reduce drift? If yes, keep; if not, iterate on what slipped through.
+
+---
+
 ### 2026-05-17 — Decommissioning discipline: close the orphan gap
 - Did: created `feat/decommissioning-discipline` branch; added decommissioning-gap lesson to LESSONS.md; added "Supersession & decommissioning" subsection to PLAYBOOK.md (under Documentation file types); added condensed supersession rule to ESSENTIALS.md; created `templates/ADR-template.md` with `Decommission:` header field. 4 commits total.
 - Result: audit health passes. All 4 doc files updated consistently. Branch left unmerged, unpushed per prompt spec.
