@@ -515,15 +515,25 @@ Branch: `docs/govern-trim-corp-monorepo` (or operator's preferred name).
   date forward.
 - Commit: `docs(journal): adopt Did/Result/Changes/Abandoned/Next shape`.
 
-### Phase 8 — Verification + ecosystem audit
+### Phase 8 — Verification (corp-monorepo only, no cross-repo write)
 
-- Run `.dev-knowledge/scripts/audit.py` against corp-monorepo.
+- Run `.dev-knowledge/scripts/audit.py` against corp-monorepo as a
+  read-only verification step.
 - Expected outcome: `vision_md` PASS (assuming §5 prerequisite met),
   `adr38_baseline` PASS, `claude_md` PASS. No format-detail checks
   exist in the trimmed audit, so no new FAILs from the trim itself.
-- File the audit run under `.dev-knowledge/docs/audits/` per existing
-  ecosystem-audit naming convention.
-- Final commit: `docs(audits): post-trim corp-monorepo ecosystem audit`.
+- Record the audit result INSIDE corp-monorepo — in the closing
+  JOURNAL entry's `Result:` line, and/or the trim discovery/closing
+  doc under corp-monorepo's own `docs/`.
+- The executing session MUST NOT write the result into
+  `.dev-knowledge/docs/audits/`. A Layer-3 (Claude Code) session does
+  not directly edit Layer-2 (`.dev-knowledge`) files — write-back is
+  via Layer-1 handoff only (PLAYBOOK three-layer rule) — and a
+  cross-repo path cannot land on the corp-monorepo rollout branch.
+- Propagating the audit result back to `.dev-knowledge`, if wanted, is
+  a separate Layer-1 handoff at session close, not part of this phase.
+- Final commit: `docs: record post-trim verification result` (lands in
+  corp-monorepo).
 
 ### Phase boundaries are commit boundaries
 
