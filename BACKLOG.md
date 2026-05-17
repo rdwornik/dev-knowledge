@@ -220,11 +220,11 @@ Next quarterly grooming: 2026-07-01
 > Framing corrected: was "fix-violator" tasks; now correctly sequenced as
 > "ADR amended → then migrate" per Prompt I Implication finding.
 
-### [P2] [open] Handoff folder format adoption (corp-monorepo, ai-council)
-- **What:** ADR-42 folder format is current standard. `corp-monorepo` and `ai-council` still have flat `docs/HANDOFF.md` (pre-ADR-42 pattern). Migration options: convert existing flat file to folder format at next handoff event, or explicitly deprecate. Tied to A4 decision (separate ADR or conversational) about whether flat file is still acceptable as legacy.
-- **Why:** ADR-42 folder format is the current standard; flat `docs/HANDOFF.md` files represent pre-ADR-42 state. Without migration or explicit deprecation, the two repos appear non-compliant and future sessions have ambiguous precedent about which format is active.
+### [P2] [open] Handoff folder format adoption (corp-monorepo)
+- **What:** ADR-42 folder format is current standard. `corp-monorepo` still has flat `docs/HANDOFF.md` (pre-ADR-42 pattern). Migration options: convert existing flat file to folder format at next handoff event, or explicitly deprecate. Tied to A4 decision (separate ADR or conversational) about whether flat file is still acceptable as legacy.
+- **Why:** ADR-42 folder format is the current standard; flat `docs/HANDOFF.md` files represent pre-ADR-42 state. Without migration or explicit deprecation, the repo appears non-compliant and future sessions have ambiguous precedent about which format is active.
 - **Added:** 2026-05-11 by rob (cross-repo pattern audit, A4)
-- **Status:** open — A4 separate decision needed before prescribing migration; tied to `docs/HANDOFF.md flat file deprecation` P3 below.
+- **Status:** open — ai-council resolved: `docs/HANDOFF.md` confirmed absent at HEAD `1bcc6ab` (Stage 3 verification 2026-05-17). corp-monorepo: open; A4 separate decision needed before prescribing migration.
 
 ### [P3] [open] UPPERCASE TYPE tag in legacy archive filenames (A5 — retire opportunistically)
 - **What:** `corp-monorepo` and `corp-sca` use `YYYY-MM-DD_TYPE_topic.md` pattern in `docs/archive/` files (e.g. `CODE_REVIEW_REPORT`). Not in ADR-34 spec. Pre-ADR-34 legacy pattern.

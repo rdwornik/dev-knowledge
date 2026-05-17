@@ -1,0 +1,97 @@
+{
+  "slug": "2026-05-17-ai-council-session-sync",
+  "type": "session-sync",
+  "repo": "ai-council",
+  "repo_path": "C:\\Users\\1028120\\Documents\\Dev\\ai-council",
+  "generated": "2026-05-17",
+  "handoff_process_version": "v3.3.3",
+  "head": {
+    "stage1_sha": "1bcc6abae464d1455a8cec7fd0eb7cd512e43fd8",
+    "stage3_sha": "1bcc6abae464d1455a8cec7fd0eb7cd512e43fd8",
+    "branch": "main",
+    "ancestor_check": "PASS"
+  },
+  "files": [
+    {
+      "name": "00_first-message.md",
+      "sha256": "d5219afd41b5940d221cfcbd71a0a96f42aacd2f2c562a4c2d151b84547c18a3",
+      "bytes": 3666,
+      "upload": false,
+      "note": "paste as first message in new chat"
+    },
+    {
+      "name": "00_README.md",
+      "sha256": "4cc93d5131ec4b4ecc12f7f4bf48066d1319cbf3b3163b49db74922f1e0d1812",
+      "bytes": 3164,
+      "upload": false,
+      "note": "operator instructions only"
+    },
+    {
+      "name": "01_MANIFEST.md",
+      "sha256": "06d88734fe61ce7e5dd92f15592bc3460e3bc9084bcaeae79ff032fe6341d342",
+      "bytes": 2814,
+      "upload": true
+    },
+    {
+      "name": "01_manifest.json",
+      "sha256": null,
+      "bytes": null,
+      "upload": true,
+      "note": "self-referential; checksum not computed"
+    },
+    {
+      "name": "02_VISION.md",
+      "sha256": "ffd408685864d353327b347658efcc12ff1d38c77935373050980f4af45d6b3e",
+      "bytes": 1752,
+      "upload": true
+    },
+    {
+      "name": "02b_ECOSYSTEM_VISION.md",
+      "sha256": "da1ad338f2c46ca4d255d509f8b27a7a4fbf25b8c3c7b8efa4d4fb1a415534f2",
+      "bytes": 7258,
+      "upload": true
+    },
+    {
+      "name": "03_PLAYBOOK.md",
+      "sha256": "6d372b9dc71fed66b251bcb7275b50d2b44e3cee8781758b76dcbe637f305ebd",
+      "bytes": 127232,
+      "upload": true
+    },
+    {
+      "name": "04_ESSENTIALS.md",
+      "sha256": "24bb6995d51350bc4c7dcaf42c50c5f475c5aac3097808bb5ba93962bb16994d",
+      "bytes": 18323,
+      "upload": true
+    },
+    {
+      "name": "05_GOVERNANCE_ESSENCES.md",
+      "sha256": "868770bddca0ac0fab159c863593a462c795443040bd2fb0e042fe2502afc384",
+      "bytes": 4119,
+      "upload": true
+    },
+    {
+      "name": "06_STATE_OF_PLAY.md",
+      "sha256": "3044fd8fca25912b6a3d08bb4f05a729651c8da4a77f44a7fecd2ffa13092090",
+      "bytes": 5226,
+      "upload": true
+    },
+    {
+      "name": "07_ACTION_PLAN.md",
+      "sha256": "9576203e0a022156c4d2f714c34a178ecefd1c0f93eaf3c23a36686e636e9dea",
+      "bytes": 8511,
+      "upload": true
+    },
+    {
+      "name": "08_TREE.txt",
+      "sha256": "85b51b5fc0d516f571a0958ba5476b9fff451d8168f660a59afffadc9408710b",
+      "bytes": 3292,
+      "upload": true
+    },
+    {
+      "name": "09_EXECUTION_EVIDENCE.md",
+      "sha256": "0a22d9b2dd865aafad57fb83c6cd9793628133fbc6c2264d6d14db9c4fd26f1c",
+      "bytes": 1819,
+      "upload": true
+    }
+  ]
+}

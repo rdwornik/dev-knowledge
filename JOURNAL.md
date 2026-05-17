@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-05-17 — Handoff Stage 3 complete for ai-council (session-sync)
+- Did: generated full 13-file handoff bundle for `2026-05-17-ai-council-session-sync`; archived `_in_progress/` inputs to `docs/handoffs/archive/`; verified ai-council HEAD `1bcc6abae464d1455a8cec7fd0eb7cd512e43fd8` (ancestor check PASS, no drift).
+- Result: handoff bundle ready for Rob to upload to new ai-council browser chat. Pre-resolved: `docs/HANDOFF.md` confirmed absent (Stage 3 verification). AGENTS.md absence flagged as governance gap (Council #28) and captured in Directive 2.
+- Changes: `docs/handoffs/2026-05-17-ai-council-session-sync/` (13 files: 00_README.md, 00_first-message.md, 01_MANIFEST.md, 01_manifest.json, 02_VISION.md, 02b_ECOSYSTEM_VISION.md, 03_PLAYBOOK.md, 04_ESSENTIALS.md, 05_GOVERNANCE_ESSENCES.md, 06_STATE_OF_PLAY.md, 07_ACTION_PLAN.md, 08_TREE.txt, 09_EXECUTION_EVIDENCE.md); `docs/handoffs/archive/2026-05-17-ai-council-session-sync/` (stage1-question.md + stage2-response.md moved from _in_progress).
+- Abandoned: nothing.
+- Next: Rob opens NEW ai-council browser chat, uploads 12 files (all except 00_README.md), pastes 00_first-message.md as first message, confirms synthesis, runs generated prompts in Claude Code.
+
 ### 2026-05-17 — Fixture cleanup + Stage 1 regeneration for ai-council
 - Did: renamed stale test fixture `repo-with-all-five-checks` → `repo-with-structural-checks`; updated its internal VISION.md (stale "all five checks" description → accurate 3-check description); deleted two stale fixture files (`BACKLOG_ARCHIVE.md`, `CHANGELOG.md`) left over from `deedc10` audit-check removal; updated `tests/test_audit.py` fixture path reference. Regenerated `stage1-question.md` for `2026-05-17-ai-council-session-sync` with current template structure (coherence-check concern added, RATIONALE sub-questions reframed as non-presuppositional per template spec).
 - Result: 28 tests pass. `stage1-question.md` now faithful to current template structure. `stage2-response.md` placeholder preserved unchanged.
