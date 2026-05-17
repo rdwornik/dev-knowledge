@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-05-17 — Document audit test fixtures
+- Did: assessed `tests/fixtures/` documentation state; found no README or other discoverable explanation of the fixtures directory. Created `tests/fixtures/README.md` covering what the directory is, the naming convention, an inventory of the one current fixture (`repo-with-structural-checks`) with the test that consumes it, and the maintenance rule tying fixture lifecycle to audit check changes. Committed to branch `docs/document-test-fixtures` branched from `feat/handoff-ai-council-2026-05-17` (which holds fixture rename `c0b7512`).
+- Result: `tests/fixtures/README.md` added (`d0c8169`). Branch left unmerged, unpushed.
+- Changes: `tests/fixtures/README.md` (new).
+- Abandoned: nothing.
+- Next: review and merge `docs/document-test-fixtures` into `feat/handoff-ai-council-2026-05-17` or main when ready.
+
 ### 2026-05-17 — Handoff Stage 1 generated for ai-council
 - Handoff Stage 1 generated for `2026-05-17-ai-council-session-sync`: HEAD `1bcc6abae464d1455a8cec7fd0eb7cd512e43fd8` captured; awaiting Stage 2
 
