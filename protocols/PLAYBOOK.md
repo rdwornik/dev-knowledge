@@ -595,6 +595,23 @@ Which files exist per Scale tier (per `Project Scale Tiers` section above):
 - research = forward-looking exploration (universal in `.dev-knowledge`, dated)
 - Council research-mode debates → research/. Council pick-mode debates → transcripts/.
 
+### Supersession & decommissioning
+<!-- scope: meta -->
+
+Decisions are additive by default — they describe the new state, not the
+teardown of the old. This is how orphans accumulate: a structure is relocated
+or replaced, the new location is recorded, the old one is left behind and
+forgotten. A presence-checking audit will never catch it.
+
+Rule: any decision — ADR or decision-note — that relocates, replaces, or
+centralizes an artifact MUST name what becomes obsolete in a `Decommission:`
+field. A non-empty `Decommission:` field becomes a BACKLOG item and stays open
+until the obsolete artifact is removed.
+
+The decommission action is part of the decision, not an optional follow-up. A
+decision that supersedes something is not complete until its `Decommission:`
+items are removed or tracked in BACKLOG.
+
 ### Handoff format spec (since 2026-04-27)
 <!-- scope: meta -->
 

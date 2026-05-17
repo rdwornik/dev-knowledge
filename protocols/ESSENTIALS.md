@@ -183,6 +183,17 @@ Sourced from LESSONS #8 (2026-05-13). Architect-side enforcement is the workflow
 
 ---
 
+## Supersession closes the loop
+<!-- scope: meta -->
+
+- **Supersession closes the loop.** Any decision that relocates, replaces, or
+  centralizes an artifact must name the obsolete artifact in a `Decommission:`
+  field; a non-empty field becomes a BACKLOG item until removed. Creation
+  without decommissioning is how orphans accumulate. See PLAYBOOK,
+  "Supersession & decommissioning".
+
+---
+
 ## Starting a Session
 <!-- scope: runtime -->
 

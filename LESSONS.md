@@ -3,11 +3,26 @@
 
 > **Format:** `### YYYY-MM-DD | source | lesson | category | [scope: X] | action taken`
 > New entries go at the top of the Entries section. Never edit old entries. Never delete.
-> Last updated: 2026-05-14
+> Last updated: 2026-05-17
 
 ---
 
 > Split trigger (when navigation by topic becomes painful) deferred 2026-04-24. Rationale: ADR-29 [scope: X] inline field provides equivalent filtering without losing chronology. Reopen if filtering by scope proves insufficient.
+
+### 2026-05-17 | session | Decommissioning gap — orphans survive audits | architect-discipline | [scope: meta] | pattern captured; decommission field added to ADR template; PLAYBOOK supersession rule added
+
+A docs/handoffs/ folder orphaned in ai-council survived repeated repo audits.
+The cause is not an audit miss: the audit is a presence-checker — it verifies
+that required files exist, and structurally cannot detect a file that exists
+but should not. The deeper cause is that decisions are additive. When the
+handoff system centralized into .dev-knowledge (ADR-42), the decision recorded
+the new state; nothing recorded teardown of the old per-repo folders. Creation
+is recorded; decommissioning of the predecessor is not.
+
+Rule: any decision that relocates, replaces, or centralizes an artifact must
+name what becomes obsolete and track its removal — see the Decommission field
+in the ADR/decision-note template and the supersession rule in PLAYBOOK. Catch
+the orphan at the moment of the decision, not via a later scan.
 
 ### 2026-05-16 | session-D | primary-gate masking — fixing a primary gate failure (early-return violation) surfaces secondary violations that were masked by the early return and have never been checked. Evidence: removing `## Entries` from LESSONS.md caused the audit to run its H3 ordering check for the first time, revealing pre-convention ascending tail entries (2026-03-25 to 2026-04-24) never previously audited. Same pattern in CHANGELOG.md: fixing the 2026-04-24/2026-04-25 block surfaced 4 more ascending-tail violations. Corollary: when a check has an early-return, fixing the primary violation is necessary but not sufficient — re-run the check fully after each fix and expect secondary findings in pre-convention content. | architect-discipline | [scope: meta] | pattern captured; applied across LESSONS + CHANGELOG in Session D
 
