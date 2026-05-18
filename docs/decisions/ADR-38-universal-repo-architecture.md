@@ -244,3 +244,24 @@ For existing non-compliant repos:
   migration deferred to Phase 2, separate prompt).
 - **Decision tier:** Conversational (no Council debate needed — single
   placement question, low cost, root is unambiguous industry convention).
+
+### 2026-05-18 — A4: Close corp-monorepo ARCHITECTURE.md migration deferral
+
+- **Source:** corp-monorepo universalization effort (Workstreams B/C/D rollout,
+  2026-05-18).
+- **Decision:** The corp-monorepo `ARCHITECTURE.md` root-placement migration
+  that A3 deferred to "a separate later effort" is now activated and executed.
+  `docs/ARCHITECTURE.md` → repo root migration is in scope for the
+  corp-monorepo universalization prompt sequence. The A3 deferral is
+  **closed**.
+- **Rationale:** A3 decided the rule (root placement mandatory); it only
+  deferred the mechanical move for corp-monorepo. The universalization rollout
+  now performs that move, making the deferral obsolete.
+- **Prior state:** A3 recorded: "Affected repos: corp-monorepo
+  (`docs/ARCHITECTURE.md` → root migration deferred to Phase 2, separate
+  prompt)." That deferral clause is superseded by this amendment.
+- **Effect:** corp-monorepo is no longer exempt from A3's root-placement
+  mandate. All repos (corp-monorepo, ai-council, future) must place
+  ARCHITECTURE.md at root per A3.
+- **Decision tier:** Conversational (closes an expired timing deferral of an
+  already-decided rule — decides nothing new).

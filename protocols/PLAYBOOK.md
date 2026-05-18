@@ -530,7 +530,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 |------|---------|--------|---------|----------|-------|-------|
 | `README.md` | User-first navigation, what is this repo | Prose + folder layout | When repo state shifts notably | Rob, future contributors | Living (rewrite) | Per-repo |
 | `CLAUDE.md` | Session contract for Claude Code, thin pointer (≤200 lines) | Sectioned, scope-tagged | When skills/commands/hooks/ADRs change | Claude Code (auto-read) | Living (sections updated) | Per-repo |
-| `AGENTS.md` | Cross-tool canonical governance | 10-section template | Same triggers as CLAUDE.md | Claude Code, Codex, Cursor, Aider | Living (sections updated) | Per-repo |
+| `AGENTS.md` | Codex agent-instruction config; per-repo specifics (architecture, conventions, active tools, binding ADRs) — cross-tool canonical governance is CLAUDE.md + PLAYBOOK/ESSENTIALS, not this file | 10-section template | When ADRs, tools, architecture, or gotchas change | Claude Code, Codex, Cursor, Aider | Living (sections updated) | Per-repo |
 | `ESSENTIALS.md` | Rob's daily cheat sheet, universal | Sectioned, scope-tagged | When Rob's working style evolves | Rob + every browser/Claude Code session | Living (sections updated) | Universal (`.dev-knowledge` only) |
 | `PLAYBOOK.md` | Universal protocols, this file | Sectioned, scope-tagged, versioned | Per Stream B implementation gaps | Rob + Claude (browser + Code) | Living + section history | Universal (`.dev-knowledge` only) |
 | `JOURNAL.md` | Tactical per-session log | Append-only, dated entries: Did/Failed/Next | Every Claude Code session | Future Claude Code (last 5 entries on startup) | Newest-first prepend | Per-repo (Scale L mandatory; Scale M optional; Scale S no) |
