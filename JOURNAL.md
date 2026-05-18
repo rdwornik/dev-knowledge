@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-05-18 — ADR-38 A4 + PLAYBOOK AGENTS.md taxonomy fix
+- Did: Appended A4 amendment to ADR-38 closing the corp-monorepo `ARCHITECTURE.md` root-placement migration deferral (A3, 2026-05-11) — deferral is now expired as the universalization rollout executes the move. Corrected PLAYBOOK file-type taxonomy entry for `AGENTS.md`: was "Cross-tool canonical governance" (inaccurate); now "Codex agent-instruction config; per-repo specifics — cross-tool canonical governance is CLAUDE.md + PLAYBOOK/ESSENTIALS". 51 tests passed.
+- Result: two commits on `docs/close-architecture-deferral`: `5dc7f29` (ADR-38 A4), `d1dac86` (PLAYBOOK taxonomy fix).
+- Changes: `docs/decisions/ADR-38-universal-repo-architecture.md` (A4 appended); `protocols/PLAYBOOK.md` (taxonomy row corrected).
+- Abandoned: nothing.
+- Next: merge `docs/close-architecture-deferral` to main; proceed with corp-monorepo rollout (Workstreams B/C/D + ARCHITECTURE→root move).
+
+---
+
 ### 2026-05-18 — .dev-knowledge session-sync: monorepo rollout prep + scoping
 - Did: **Directive 1** — verified ecosystem audit state from Stage 3 handoff; specifically resolved the "possible third governance ADR" (governance-trim) that was unconfirmed in Stage 3. Read-only; no commit. **Directive 2** — wrote `docs/audits/2026-05-17-corp-monorepo-governance-rollout-plan.md`: a phase-by-phase plan rolling the `.dev-knowledge` documentation-governance simplification (ADR-48/49/50) into `corp-monorepo`; two follow-up fix commits reconciled Phase 8 cross-layer write and Q3 review default vs. single-branch model. **Directive 3** — wrote `docs/research/2026-05-17-kimi-k2-scoping.md`: scoping note for incorporating Kimi K2 (Moonshot AI MoE model) into the ai-council panel — covers integration surface, test checklist, and open questions; no implementation. **Directive 4** — wrote `docs/audits/2026-05-17-skills-hooks-usage-review.md`: ecosystem review of all skills and hooks; found `verify` skill is a stub, project-level gotchas pattern exists only in corp-monorepo, no project-level hooks anywhere; surfaced 5 recommendations for a future session.
 - Result: rollout plan on disk (`docs/corp-monorepo-rollout-plan` branch, 3 commits: `0faf5a2`, `5ee4193`, `fe4140a`); scoping notes on `docs/session-scoping-notes` branch (2 commits: `99c784f`, `d00c7ff`). Neither branch merged to main yet.
