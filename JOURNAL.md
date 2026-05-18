@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-05-18 — ADR-51 architecture-doc convention + automated distillation rule
+- Did: Committed architecture-documentation convention ADR from 2026-05-18 Council debate. Transcript already untracked in `docs/decisions/transcripts/` — committed first. Verified ADR number as 51 (highest filed was ADR-50). Aligned draft to `templates/ADR-template.md` (number substitution + Source field; no content changes). Added ADR-51 row + traceability entry to `docs/decisions/README.md`. Recorded ADR distillation as a mandatory automated post-debate step in PLAYBOOK § 5 "Post-debate protocol"; added one-liner pointer in ESSENTIALS.md "Artifact generation direction". 51 tests passed.
+- Result: 3 commits on `docs/architecture-doc-adr`: `23652c1` (transcript), `a552454` (ADR-51 + index), `949e9f5` (process rule). Branch merged to `main` with `--no-ff`.
+- Changes: `docs/decisions/transcripts/council-out-20260518_215241-pick-2026-05-18_council-debate-architecture-doc.md` (new); `docs/decisions/ADR-51-architecture-doc-convention.md` (new); `docs/decisions/README.md` (ADR-51 index + traceability rows); `protocols/PLAYBOOK.md` (post-debate protocol step 2 expanded); `protocols/ESSENTIALS.md` (Council ADR distillation pointer).
+- Abandoned: nothing.
+- Next: create `templates/ARCHITECTURE-template.md`; review `corp-monorepo` existing `ARCHITECTURE.md` + C4 pipeline as input to template and codemap generator design.
+
+---
+
 ### 2026-05-18 — ADR-38 A4 + PLAYBOOK AGENTS.md taxonomy fix
 - Did: Appended A4 amendment to ADR-38 closing the corp-monorepo `ARCHITECTURE.md` root-placement migration deferral (A3, 2026-05-11) — deferral is now expired as the universalization rollout executes the move. Corrected PLAYBOOK file-type taxonomy entry for `AGENTS.md`: was "Cross-tool canonical governance" (inaccurate); now "Codex agent-instruction config; per-repo specifics — cross-tool canonical governance is CLAUDE.md + PLAYBOOK/ESSENTIALS". 51 tests passed.
 - Result: two commits on `docs/close-architecture-deferral`: `5dc7f29` (ADR-38 A4), `d1dac86` (PLAYBOOK taxonomy fix).
