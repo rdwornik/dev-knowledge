@@ -181,6 +181,8 @@ Browser chat role: architect-review of artifacts that Claude Code produces. Not 
 
 Sourced from LESSONS #8 (2026-05-13). Architect-side enforcement is the workflow rule itself; ADR-45 architect-compliance path makes this a permanent invariant.
 
+**Council ADR distillation** is a mandatory automated step of the post-debate protocol: number verified, template-aligned, committed by Claude Code — never a browser-chat hand-off with a placeholder. See PLAYBOOK § 5 "Post-debate protocol".
+
 ---
 
 ## Supersession closes the loop

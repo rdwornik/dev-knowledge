@@ -1505,9 +1505,9 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 <!-- scope: llm -->
 
 1. Decision is BINDING once synthesized
-2. Create ADR summary → `docs/decisions/ADR-{NN}_{topic}.md`
-3. Archive transcript → `docs/decisions/transcripts/`
-4. `git add + commit` both immediately
+2. **Distill the verdict into a committed ADR** — this is a mandatory, automated step, never a manual hand-off. Run a Claude Code prompt that: (a) verifies the next ADR number against the `docs/decisions/ADR-*.md` sequence, (b) aligns the draft to `templates/ADR-template.md`, (c) writes `docs/decisions/ADR-{NN}-{topic}.md` (hyphens per ADR-34), and (d) commits it. The browser layer drafts ADR content; it never hands over a file with a placeholder number (`NN`) or manual TODOs. A debate is not done until its ADR is committed.
+3. Archive transcript → `docs/decisions/transcripts/` (commit separately or together with ADR)
+4. Add the ADR row and traceability entry to `docs/decisions/README.md` in the same commit
 5. Never reopen a decided topic unless new evidence appears
 
 ### Council Debate Archival Protocol
