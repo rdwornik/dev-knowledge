@@ -14,12 +14,12 @@ Next quarterly grooming: 2026-07-01
 
 ## Stream B: ai-council
 
-### [P2] [open] ai-council needs AGENTS.md (PLAYBOOK governance gap)
+### [P2] [closed] ai-council needs AGENTS.md (PLAYBOOK governance gap)
 - **What:** PLAYBOOK section "AGENTS.md — canonical per-repo governance contract" requires each repo to have AGENTS.md at root. `ai-council` has `CLAUDE.md` but no `AGENTS.md` (verified 2026-05-11). Drift signal: cross-tool LLM agents (Codex, Cursor, Aider) operating on outdated/incomplete repo context.
 - **Why:** AGENTS.md is the cross-tool canonical governance file per Council #28 (community standard). CLAUDE.md alone is Claude-Code-specific. Missing AGENTS.md = drift from ecosystem standard set by PLAYBOOK.
 - **Vision ref:** VISION.md "Methodology Author" function + Strategic emphasis "Cross-repo methodology consistency"
 - **Added:** 2026-05-11 by rob (Item 0 strażnik audit)
-- **Status:** open — work belongs in ai-council repo, not .dev-knowledge
+- **Closed:** 2026-05-18 — AGENTS.md exists in ai-council repo (last updated 2026-05-17); item superseded. Currency review carried as Directive #1 of 2026-05-18-ai-council-session-sync handoff.
 
 ### [P3] [open] ai-council LESSONS.md scope-tag backfill (ADR-46 advisory)
 - **What:** ai-council `LESSONS.md` entries do not contain `[scope: X]` tags per the ADR-46 LESSONS payload sniff test. Add `[scope: X]` to each entry's canonical 6-field schema position. Work belongs in ai-council repo.

@@ -1,0 +1,104 @@
+{
+  "slug": "2026-05-18-ai-council-session-sync",
+  "repo": "ai-council",
+  "type": "session-sync",
+  "generated": "2026-05-18",
+  "protocol": "HANDOFF_PROCESS.md v3.3.3 (ADR-42)",
+  "bundle_type": "cross-repo",
+  "file_count": 12,
+  "head": {
+    "sha": "ce885827aada41f582e784fa210f73ff125a18de",
+    "branch": "main",
+    "stage1_sha": "ce885827aada41f582e784fa210f73ff125a18de",
+    "drift": false,
+    "ancestor_check": "PASS"
+  },
+  "verification_failures": [
+    {
+      "directive": 1,
+      "claim": "AGENTS.md does not currently exist",
+      "finding": "AGENTS.md exists, last updated 2026-05-17",
+      "resolution": "Directive 1 revised from create to currency review"
+    },
+    {
+      "directive": 3,
+      "claim": "ADR-46 dated-entry audit check resolves from WARN to clean",
+      "finding": "check_dated_entries_format removed from scripts/audit.py per Council Simplification 2026-05-16",
+      "resolution": "Directive 3 verification step revised to visual inspection only"
+    }
+  ],
+  "files": {
+    "00_README.md": {
+      "sha256": "5F2A54F97BE7DF3EB8596FA7780488E096A6C3C1156DB5232DB5E479390D7E75",
+      "bytes": 3099,
+      "source": "generated",
+      "purpose": "Upload instructions and bundle index"
+    },
+    "00_first-message.md": {
+      "sha256": "A44787BEC6F67A2BC5EBDDFED20F879203460130D7BFD506482D4D6848639AB6",
+      "bytes": 4160,
+      "source": "generated",
+      "purpose": "Articulation gate and session startup protocol"
+    },
+    "01_MANIFEST.md": {
+      "sha256": "A2C25B55C5B923C01157E5534B38A1EA9153F617AB9D46BC503AE7ED06FE8549",
+      "bytes": 2473,
+      "source": "generated",
+      "purpose": "Human-readable manifest"
+    },
+    "02_VISION.md": {
+      "sha256": "FFD408685864D353327B347658EFCC12FF1D38C77935373050980F4AF45D6B3E",
+      "bytes": 1752,
+      "source": "ai-council/VISION.md",
+      "purpose": "ai-council project mission and scope"
+    },
+    "02b_ECOSYSTEM_VISION.md": {
+      "sha256": "DA1AD338F2C46CA4D255D509F8B27A7A4FBF25B8C3C7B8EFA4D4FB1A415534F2",
+      "bytes": 7258,
+      "source": ".dev-knowledge/VISION.md",
+      "purpose": "Ecosystem context for all repos under Dev/"
+    },
+    "03_PLAYBOOK.md": {
+      "sha256": "774EBAF90FDC6CB3BB220525B472EE318597279BBCCB04C44F777490D52792BD",
+      "bytes": 127416,
+      "source": ".dev-knowledge/protocols/PLAYBOOK.md",
+      "purpose": "Full methodology reference"
+    },
+    "04_ESSENTIALS.md": {
+      "sha256": "24BB6995D51350BC4C7DCAF42C50C5F475C5AAC3097808BB5BA93962BB16994D",
+      "bytes": 18323,
+      "source": ".dev-knowledge/protocols/ESSENTIALS.md",
+      "purpose": "Daily cheat sheet for session procedures"
+    },
+    "05_GOVERNANCE_ESSENCES.md": {
+      "sha256": "40D86F2974A67D05F5920F7ABC49D130DEA22B85260045C8ACC59C1EF06D7021",
+      "bytes": 2623,
+      "source": "generated",
+      "purpose": "ADR-38 and ADR-46 operational essences"
+    },
+    "06_STATE_OF_PLAY.md": {
+      "sha256": "F4A601F061A2879AF165CDE34882A4BD7D62482F48EDC9A3D8F25E9D806B34EA",
+      "bytes": 6093,
+      "source": "generated",
+      "purpose": "State snapshot with 2 Stage 3 verification failures"
+    },
+    "07_ACTION_PLAN.md": {
+      "sha256": "F951608AB84FCD0514632251C9CA045D040870B7D1DA736C833C3534C41D6FA2",
+      "bytes": 6818,
+      "source": "generated",
+      "purpose": "Revised directives, hard constraints, success criteria"
+    },
+    "08_TREE.txt": {
+      "sha256": "3C4B5E92753DE8A6B2258813B36C6C8EDBFF296747CB988F3CC776913A7C698F",
+      "bytes": 3772,
+      "source": "git ls-files at HEAD",
+      "purpose": "Full ai-council file tree (110 files)"
+    },
+    "09_EXECUTION_EVIDENCE.md": {
+      "sha256": "D694383F64778076E8A7CBD9105976E71B73A97583AB45DA9EDD9E4877B8F69A",
+      "bytes": 1257,
+      "source": "generated",
+      "purpose": "Test counts, validator notes, HEAD drift verification"
+    }
+  }
+}
