@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-05-18 — .dev-knowledge session-sync: monorepo rollout prep + scoping
+- Did: **Directive 1** — verified ecosystem audit state from Stage 3 handoff; specifically resolved the "possible third governance ADR" (governance-trim) that was unconfirmed in Stage 3. Read-only; no commit. **Directive 2** — wrote `docs/audits/2026-05-17-corp-monorepo-governance-rollout-plan.md`: a phase-by-phase plan rolling the `.dev-knowledge` documentation-governance simplification (ADR-48/49/50) into `corp-monorepo`; two follow-up fix commits reconciled Phase 8 cross-layer write and Q3 review default vs. single-branch model. **Directive 3** — wrote `docs/research/2026-05-17-kimi-k2-scoping.md`: scoping note for incorporating Kimi K2 (Moonshot AI MoE model) into the ai-council panel — covers integration surface, test checklist, and open questions; no implementation. **Directive 4** — wrote `docs/audits/2026-05-17-skills-hooks-usage-review.md`: ecosystem review of all skills and hooks; found `verify` skill is a stub, project-level gotchas pattern exists only in corp-monorepo, no project-level hooks anywhere; surfaced 5 recommendations for a future session.
+- Result: rollout plan on disk (`docs/corp-monorepo-rollout-plan` branch, 3 commits: `0faf5a2`, `5ee4193`, `fe4140a`); scoping notes on `docs/session-scoping-notes` branch (2 commits: `99c784f`, `d00c7ff`). Neither branch merged to main yet.
+- Changes: `docs/audits/2026-05-17-corp-monorepo-governance-rollout-plan.md` (new); `docs/research/2026-05-17-kimi-k2-scoping.md` (new); `docs/audits/2026-05-17-skills-hooks-usage-review.md` (new).
+- Abandoned: nothing.
+- Next: merge both branches to main; run corp-monorepo rollout execution in a dedicated session using the rollout plan as spec; evaluate Kimi K2 API access before scheduling integration session; fill `verify` skill body (low effort, Directive 4 recommendation M).
+
+---
+
 ### 2026-05-17 — Handoff Stage 3 complete for .dev-knowledge (session-sync)
 - Did: generated full 11-file self-applied handoff bundle for `2026-05-17-dev-knowledge-session-sync`; archived `_in_progress/` inputs to `docs/handoffs/archive/`; verified HEAD `9a911952aa9c912218c839f54317170e647a5f44` is descendant of Stage 1 pin `c784845c659a98c59f2c161301577d72e17a4801` (ancestor check PASS, no drift).
 - Result: handoff bundle ready for Rob to upload to new `.dev-knowledge` browser chat. Stage 3 verified architect's witnessed claims about branch-cleanup outcome (`git branch` shows `main` only at HEAD) and partial verification of "3 governance ADRs filed" claim (ADR-46 + ADR-47 confirmed present; possible third "governance-trim" ADR unconfirmed — passed through to Directive 1).
