@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-05-18 — Handoff Stage 1 generated (session-sync)
+- Did: Generated Stage 1 handoff for `.dev-knowledge` session-sync. Captured HEAD `aeaf158`, clean working tree. Created `_in_progress/2026-05-18-dev-knowledge-session-sync/` with stage1-question.md and stage2-response.md placeholder.
+- Result: Stage 1 complete; awaiting Stage 2 architect response from old chat.
+- Changes: `docs/handoffs/_in_progress/2026-05-18-dev-knowledge-session-sync/stage1-question.md` (new); `docs/handoffs/_in_progress/2026-05-18-dev-knowledge-session-sync/stage2-response.md` (placeholder, new).
+- Abandoned: nothing.
+- Next: Rob takes stage1-question.md paste block to old browser chat; pastes response into stage2-response.md; says "complete handoff for dev-knowledge".
+
+---
+
 ### 2026-05-18 — ADR-51 architecture-doc convention + automated distillation rule
 - Did: Committed architecture-documentation convention ADR from 2026-05-18 Council debate. Transcript already untracked in `docs/decisions/transcripts/` — committed first. Verified ADR number as 51 (highest filed was ADR-50). Aligned draft to `templates/ADR-template.md` (number substitution + Source field; no content changes). Added ADR-51 row + traceability entry to `docs/decisions/README.md`. Recorded ADR distillation as a mandatory automated post-debate step in PLAYBOOK § 5 "Post-debate protocol"; added one-liner pointer in ESSENTIALS.md "Artifact generation direction". 51 tests passed.
 - Result: 3 commits on `docs/architecture-doc-adr`: `23652c1` (transcript), `a552454` (ADR-51 + index), `949e9f5` (process rule). Branch merged to `main` with `--no-ff`.
