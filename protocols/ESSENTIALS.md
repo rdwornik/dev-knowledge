@@ -84,7 +84,7 @@ Two distinct LLM contexts collaborate on every workstream. Mixing them = chaos.
 **Purpose:** execution, file changes, commits, validations, testing.
 
 **Does:**
-- Reads CLAUDE.md, AGENTS.md on session start (auto) — AGENTS.md is an agent-instruction contract; the handoff process does not narrate or manage it (ADR-52)
+- Reads CLAUDE.md on session start (auto). Codex reads CLAUDE.md via project_doc_fallback_filenames. CLAUDE.md is the single canonical agent-instruction contract; the handoff process does not narrate or manage it (ADR-53)
 - Executes downloadable prompts from browser chat
 - Modifies files, runs tests, commits, branches
 - Reports session summary back to Rob
@@ -341,7 +341,7 @@ Every project declares its scale in CLAUDE.md. Playbook sections tagged [L only]
 
 - **S** — single script/tool, <50 tests, simple flow
 - **M** — standalone package, 50-500 tests, multiple modules, one namespace
-- **L** — multi-package monorepo, 500+ tests, ARCHITECTURE.md, per-module READMEs, AGENTS.md
+- **L** — multi-package monorepo, 500+ tests, ARCHITECTURE.md, per-module READMEs
 
 Full matrix (testing rules, doc requirements, session continuity per tier) in PLAYBOOK Section "Project Scale Tiers".
 
