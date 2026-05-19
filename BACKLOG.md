@@ -120,7 +120,7 @@ Next quarterly grooming: 2026-07-01
 - **Why:** Validates universalization pattern; unblocks trigger-based cohort migration; first per-repo audit + handoff cycle
 - **Vision ref:** VISION.md "Disseminator" function
 - **Added:** 2026-04-30 by rob
-- **Status:** open — ai-council substantially complete as of 2026-05-12 session: ADR-34 hyphen compliance achieved (CLI emitter + docs), ADR-38 Scale M gaps closed (BACKLOG.md, LESSONS.md at root, tasks/ retired), VISION.md tier M declared, scrum-master review cycle N=1 completed. Remaining ai-council: AGENTS.md (P3), ARCHITECTURE.md (optional at M). corp-monorepo: not yet started.
+- **Status:** open — ai-council substantially complete as of 2026-05-12 session: ADR-34 hyphen compliance achieved (CLI emitter + docs), ADR-38 Scale M gaps closed (BACKLOG.md, LESSONS.md at root, tasks/ retired), VISION.md tier M declared, scrum-master review cycle N=1 completed. Remaining ai-council: AGENTS.md removal (per ADR-53 Decision 2 — next chunk), ARCHITECTURE.md (optional at M). corp-monorepo: not yet started.
 
 ### [P2] [open] VISION.md tier declarations across ecosystem
 - **What:** Update VISION.md frontmatter `tier:` field across all repos per ADR-40 calibration baseline (corp-ops=S, ai-council=M, corp-monorepo=L, etc.)
@@ -286,7 +286,7 @@ Next quarterly grooming: 2026-07-01
 - **Status:** open — execute in Phase 2, separate prompt; after Prompt K closes.
 
 ### [P2] [open] ai-council hyphen migration + ADR-38 compliance (Phase 2 expanded scope)
-- **What:** (1) Universal hyphen filename migration for ai-council (likely low impact — audit suggests mostly hyphen-compliant already; verify before migrating); (2) ADR-38 Scale M gaps closure: ARCHITECTURE.md to root, add LESSONS.md, BACKLOG.md (AGENTS.md already tracked in Stream B P2).
+- **What:** (1) Universal hyphen filename migration for ai-council (likely low impact — audit suggests mostly hyphen-compliant already; verify before migrating); (2) ADR-38 Scale M gaps closure: ARCHITECTURE.md to root, add LESSONS.md, BACKLOG.md (AGENTS.md removal tracked per ADR-53 Decision 2 — next chunk).
 - **Why:** ADR-34 amendment (universal mandate) + ADR-38 amendment (root placement) now apply. Confirm compliance before claiming clean.
 - **Vision ref:** VISION.md "Disseminator" function; pairs with "Phase 2 universalization rollout" (Cross-stream P2)
 - **Added:** 2026-05-11 by rob (Prompt J ratification, expanded from Prompt H P2)
