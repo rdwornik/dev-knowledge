@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-19 — Chunk 4: retire AGENTS.md, CLAUDE.md v2.1 live
+
+- Did: Migrated all AGENTS.md content into CLAUDE.md (v2.1 template, 12 sections) and retired AGENTS.md for `.dev-knowledge`. Branch `docs/chunk4-dev-knowledge-claude-md-migration`. 3 commits.
+- Result: CLAUDE.md is now the single canonical agent-instruction file per ADR-53. AGENTS.md deleted. All content placed per approved disposition map — no silent drops. Three approved condensations: ADR list trimmed to last 5 (ADR-49–53) with pointer to ARCHITECTURE.md; scope tags reduced to one bullet; per-file update triggers dropped from CLAUDE.md (live in each file's own header). Live-doc references updated in BACKLOG.md (Phase 2 status + ai-council item).
+- Changes: `CLAUDE.md` (rewritten to v2.1, ~130 lines); `AGENTS.md` (deleted); `BACKLOG.md` (status updates for Phase 2 and ai-council items).
+- Abandoned: Nothing.
+- Next: Merge branch to main. ai-council AGENTS.md retirement is a separate future chunk (ADR-53 Decision 2).
+
+---
+
 ### 2026-05-19 — Complete CLAUDE.md standard — template v2.1
 
 - Did: Completed the CLAUDE.md template and standard so the next chunk's AGENTS.md→CLAUDE.md migration has a content-preserving target. Branch `docs/complete-claude-md-standard`. 2 commits.
