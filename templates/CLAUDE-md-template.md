@@ -1,6 +1,6 @@
 # CLAUDE.md
 <!-- scope: meta -->
-<!-- version: 2.0 — 2026-05-19 -->
+<!-- version: 2.1 — 2026-05-19 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -25,7 +25,26 @@ In order, read:
 - **Scale:** `<S | M | L>` (per `.dev-knowledge/protocols/PLAYBOOK.md` Project Scale Tiers)
 - **Status:** `<active | maintenance | archived>`
 
-## 3. Critical rules (non-negotiable for Claude Code)
+## 3. Architecture
+<!-- scope: meta -->
+
+See `ARCHITECTURE.md` for the structural model; read it before structural changes (required at Scale M+, per ADR-51).
+
+## 4. Conventions
+<!-- scope: meta -->
+
+- **Naming:** `<e.g. snake_case Python, kebab-case markdown, UPPERCASE living docs>`
+- **Commits:** `<e.g. Conventional Commits — feat/fix/docs/chore/refactor>`
+- **Branches:** `<e.g. feat/topic, fix/topic, docs/topic off main>`
+- **Testing:** `<e.g. pytest -x --tb=short; asyncio_mode = auto in pyproject.toml>`
+- **Linting:** `<e.g. ruff check src/ tests/ --fix>`
+
+**Out of scope for this repo:**
+- `<e.g. Client/pre-sales data → Obsidian vault>`
+- `<e.g. Cross-repo lessons → .dev-knowledge/LESSONS.md>`
+- `<add as relevant>`
+
+## 5. Critical rules (non-negotiable for Claude Code)
 <!-- scope: meta -->
 
 These rules apply to THIS tool (Claude Code) operating in THIS repo. Universal rules in PLAYBOOK/ESSENTIALS. Repo-specific governance lives here.
@@ -37,7 +56,7 @@ These rules apply to THIS tool (Claude Code) operating in THIS repo. Universal r
 
 Total ≤10 bullets. If you have more, they belong in dedicated docs (ADRs, PLAYBOOK sections), not here.
 
-## 4. Session start protocol
+## 6. Session start protocol
 <!-- scope: runtime -->
 
 1. `/boot` (if available — loads skills, memory, recent commits)
@@ -46,7 +65,7 @@ Total ≤10 bullets. If you have more, they belong in dedicated docs (ADRs, PLAY
 4. Read most recent handoff if continuing
 5. Wait for Rob's prompt — never improvise
 
-## 5. Slash commands available
+## 7. Slash commands available
 <!-- scope: runtime -->
 
 User-level (`~/.claude/commands/`):
@@ -58,7 +77,7 @@ Repo-level (`./.claude/commands/`):
 - `<command + one-line purpose>`
 - `<add as created>`
 
-## 6. Skills active
+## 8. Skills active
 <!-- scope: runtime -->
 
 User-level (`~/.claude/skills/`):
@@ -68,7 +87,7 @@ Repo-level (`./.claude/skills/`):
 - `gotchas` (if exists) — empirical patterns this repo has stumbled on. Read before changes.
 - `<add as created>`
 
-## 7. Hooks active
+## 9. Hooks active
 <!-- scope: runtime -->
 
 Pre-commit (from `.pre-commit-config.yaml`):
@@ -78,14 +97,14 @@ Pre-commit (from `.pre-commit-config.yaml`):
 Other (`.claude/settings.json`):
 - `<hook + purpose>`
 
-## 8. Anti-patterns specific to Claude Code in this repo
+## 10. Anti-patterns specific to Claude Code in this repo
 <!-- scope: meta -->
 
 Things this tool has gotten wrong here:
 - `<pattern, e.g. "Don't run validators with no args — vacuous pass; always pass --all or specific paths">`
 - `<add as discovered, link to LESSONS.md entry if applicable>`
 
-## 9. Recent ADRs binding here (last 5-10)
+## 11. Recent ADRs binding here (last 5-10)
 <!-- scope: meta -->
 
 Brief one-liners. Full list in `docs/decisions/README.md`.
@@ -94,11 +113,12 @@ Brief one-liners. Full list in `docs/decisions/README.md`.
 - ADR-NN: `<topic — one sentence>`
 - `<auto-rotate as new ADRs land>`
 
-## 10. Section history
+## 12. Section history
 <!-- scope: meta -->
 
 - v1.0 (2026-04-24) — initial template per Gap #5. Hybrid pattern, thin pointer, ≤200 lines target.
 - v2.0 (2026-05-19) — ADR-53: retire thin-pointer/AGENTS.md framing; CLAUDE.md is now the substantive single canonical per-repo agent-instruction file.
+- v2.1 (2026-05-19) — add §3 Architecture (pointer to ARCHITECTURE.md) and §4 Conventions (naming/commits/testing/linting/out-of-scope); renumber old §3–§10 to §5–§12 to accommodate.
 
 ---
 

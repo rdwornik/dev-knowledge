@@ -819,7 +819,7 @@ Three outcomes:
 Standard pipeline:
 1. **ADR if architectural impact** (per Section 5 gating) — module boundaries, dependencies, data model
 2. **Brief Stream B-style gap entry** if it requires multiple changes across files
-3. **Updates to:** CLAUDE.md (Section 5: tools active), ENVIRONMENT.md (if env-level), JOURNAL entries
+3. **Updates to:** CLAUDE.md (Slash commands §7, Skills §8, or Hooks §9 as applicable), ENVIRONMENT.md (if env-level), JOURNAL entries
 4. **Hooks/tests/CI** if enforcement needed (LLMs advise; mechanism enforces, per Council #28)
 
 Cross-link from tech-radar entry to the ADR + implementation commits.
@@ -1102,8 +1102,8 @@ Per mechanism (cross-reference subsection 7a-7d for full structure):
 <!-- scope: meta -->
 
 After install, link from:
-- **CLAUDE.md** (Section 5 "Tools active in this repo") — for project-level adoptions; keeps Codex aware of active governance
-- **CLAUDE.md** — for project-level Claude Code-specific behavior (per Gap #5 template Sections 5/6/7)
+- **CLAUDE.md** (Slash commands §7, Skills §8, or Hooks §9 as applicable) — for project-level adoptions; keeps Codex aware of active governance
+- **CLAUDE.md** — for project-level Claude Code-specific behavior (per Gap #5 template Slash commands, Skills, and Hooks sections)
 - **JOURNAL.md entry** for the session that adopted it
 - **CHANGELOG.md entry** for repo-visible adoptions
 - **tech-radar 2026-Q?.md** Adopted (active inventory) section if user-level (per Gap #17 Continuous Improvement Section 6)
@@ -1124,10 +1124,10 @@ User-level adoptions don't need per-repo CLAUDE.md updates (they apply everywher
 
 - v1.0 (2026-04-25) — initial. 5-stage pipeline (Triage → Decision → Validation → Install → Document) with cross-reference to Gap #17 (broader tool adoption). Anti-patterns from observed practice. Will refine after live use.
 
-### Cross-reference to CLAUDE.md Section 5
+### Cross-reference to CLAUDE.md tools sections
 <!-- scope: meta -->
 
-When a repo has any of the above active (skills, slash commands, hooks, subagents), they get listed in `CLAUDE.md` Section 5 "Tools active in this repo". Specifically:
+When a repo has any of the above active (skills, slash commands, hooks, subagents), they get listed in the relevant CLAUDE.md sections: Slash commands (§7), Skills (§8), or Hooks (§9). Specifically:
 
 - **Code review:** Codex configuration → see `templates/codex-review-config-template.md`
 - **Architecture enforcement:** Tach configuration if used

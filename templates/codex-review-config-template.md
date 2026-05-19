@@ -1,8 +1,8 @@
 # Codex Code Review Configuration — Embeddable Template
 
-> Codex-specific review configuration content. Embed relevant sections in CLAUDE.md Section 5 ("Tools active in this repo") per Scale tier. Scale L gets full version. Scale M gets simplified. Scale S does not embed Codex review (no Codex usage at that scale).
+> Codex-specific review configuration content. Embed relevant sections in CLAUDE.md Skills (§8) and Hooks (§9) sections per Scale tier. Scale L gets full version. Scale M gets simplified. Scale S does not embed Codex review (no Codex usage at that scale).
 >
-> **Cross-reference:** `templates/CLAUDE-md-template.md` is the parent governance template. This file provides Codex-specific content for Section 5 of that template.
+> **Cross-reference:** `templates/CLAUDE-md-template.md` is the parent governance template. This file provides Codex-specific content for the Skills (§8) and Hooks (§9) sections of that template.
 >
 > **Last updated:** 2026-04-24
 
