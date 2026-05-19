@@ -52,78 +52,30 @@ Section 13 "Where Knowledge Lives" describes knowledge **domains** (what lives w
 
 ---
 
-## AGENTS.md — canonical per-repo governance contract
+## CLAUDE.md as agent-instruction contract
 <!-- scope: meta -->
 
-**Purpose:** Each repo (corp-monorepo, ai-council, .dev-knowledge, future projects) has an `AGENTS.md` at root. This is the canonical governance file — what any LLM-based agent (Claude Code, Codex, Cursor, Aider) reads to understand "how this repo works" before making changes.
+**Purpose:** Each repo (corp-monorepo, ai-council, .dev-knowledge, future projects) has a `CLAUDE.md` at root. Auto-read by Claude Code on session start. Auto-read by Codex via `project_doc_fallback_filenames = ["CLAUDE.md"]` in `~/.codex/config.toml`. **Substantive single canonical per-repo agent-instruction file (≤200 lines).** Per ADR-53.
 
-**Authority hierarchy:**
+### Authority hierarchy
+<!-- scope: meta -->
+
 1. `.dev-knowledge/protocols/ESSENTIALS.md` + `protocols/PLAYBOOK.md` (this file) — universal rules across all Rob's work
-2. `{repo}/AGENTS.md` — per-repo specifics (architecture, conventions, tools active here)
-3. `{repo}/CLAUDE.md` — thin pointer (≤200 lines) referencing both above + Claude Code-specific quirks
-4. `{repo}/.claude/skills/`, `commands/`, `hooks/` — runtime config
-
-**Why hybrid (not duplicate):**
-- AGENTS.md does NOT repeat universal PLAYBOOK content — it points to it (Section 1: "Read first")
-- AGENTS.md covers only repo-specific: architecture, dependencies, conventions, tools, ADRs binding here, gotchas, do-NOTs
-- Avoids drift: when PLAYBOOK rule changes, no per-repo file needs updating
-
-**Cross-tool standard (Council #28 community finding):**
-AGENTS.md is read by Claude Code, Codex, Cursor, Aider, Jules, Factory, and other LLM agents per the agents.md initiative (Sept 2025). Single canonical file vs tool-specific config files.
-
-**Template:**
-See `templates/AGENTS-md-template.md` for the canonical 10-section skeleton. Copy to a new repo's root and fill in placeholders.
-
-**Sections (template):**
-1. Read first (pointer to .dev-knowledge)
-2. Repo identity (name, scale, purpose, status)
-3. Architecture (layer structure, dependencies, enforcement)
-4. Conventions (filenames, branches, commits, testing, linting)
-5. Tools active (review tools, hooks, etc.)
-6. Things this repo gets wrong (pointer to gotchas skill)
-7. Council decisions binding here (ADR list)
-8. Out of scope (what does NOT belong here)
-9. Session start checklist (concrete checks)
-10. Do NOT (rejected patterns + anti-patterns)
-
-**LLMs advise; hooks/tests enforce:**
-AGENTS.md tells the LLM what to do/avoid. Tach, pre-commit hooks, pytest, Codex /review enforce mechanically. Don't put rules in AGENTS.md that aren't backed by enforcement somewhere — they'll drift.
-
-**Update cadence:**
-AGENTS.md updates when:
-- New ADR is binding (Section 7)
-- New tool adopted (Section 5)
-- New gotcha promoted to skill (Section 6)
-- Architecture change (Section 3)
-- Anti-pattern discovered (Section 11)
-
-Stale AGENTS.md = LLMs operating on outdated context. Treat updates as part of the change that triggered them, not separate maintenance.
-
-**Handoff scope:**
-AGENTS.md is an agent-instruction contract, not a repo-descriptive document. The Claude-oriented handoff process must not narrate, summarize, or manage AGENTS.md as Claude-side repo-descriptive handoff content. See ADR-52.
-
----
-
-## CLAUDE.md as session contract
-<!-- scope: meta -->
-
-**Purpose:** Each repo (corp-monorepo, ai-council, .dev-knowledge, future projects) has a `CLAUDE.md` at root. Auto-read by Claude Code on session start. **Thin pointer (≤200 lines)** to:
-- `AGENTS.md` (cross-tool canonical governance — per Council #28)
-- `.dev-knowledge/protocols/ESSENTIALS.md` + `protocols/PLAYBOOK.md` (universal Rob rules)
-- Recent ADRs, handoffs, journal entries
+2. `{repo}/CLAUDE.md` — per-repo agent-instruction contract (architecture, conventions, tools, ADRs, anti-patterns)
+3. `{repo}/.claude/skills/`, `commands/`, `hooks/` — runtime config
 
 ### What CLAUDE.md is
 <!-- scope: meta -->
 
-- **Session contract for THIS tool** (Claude Code) operating in THIS repo
+- **Single canonical agent-instruction contract** for both Claude Code and Codex operating in this repo
+- Repo identity, architecture, conventions, tools active here
 - Lists slash commands, skills, hooks ACTIVE in this repo
-- Critical rules specific to Claude Code's behavior here
-- Anti-patterns Claude Code has gotten wrong in this repo
+- Critical rules and anti-patterns specific to this repo
+- Recent ADRs binding here
 
 ### What CLAUDE.md is NOT
 <!-- scope: meta -->
 
-- Comprehensive governance — that's AGENTS.md
 - Universal rules — those live in `.dev-knowledge/`
 - Architecture documentation — that's `docs/ARCHITECTURE.md`
 - Decision rationale — that's `docs/decisions/ADR-NN-*.md`
@@ -131,17 +83,14 @@ AGENTS.md is an agent-instruction contract, not a repo-descriptive document. The
 ### Why ≤200 lines
 <!-- scope: meta -->
 
-Council #28 community finding: CLAUDE.md grows by accretion in most repos, ending as 1000+ line dump that nobody reads. Solution: thin pointer pattern. CLAUDE.md says "read AGENTS.md, then continue" + Claude-Code-specific quirks. Comprehensive content lives in dedicated files.
+CLAUDE.md grows by accretion in most repos, ending as a 1000+ line dump that nobody reads. Cap at 200 lines — overflow goes to dedicated docs (ADRs, PLAYBOOK sections), not back into this file.
 
 corp-monorepo CLAUDE.md (4KB, stale numbers like "24 Council Decisions" when there are 29) is exactly the failure mode this template prevents. <!-- intentional stale example illustrating anti-pattern; do not "fix" -->
 
-### Authority hierarchy (recap from AGENTS.md section)
+### LLMs advise; hooks/tests enforce
 <!-- scope: meta -->
 
-1. `.dev-knowledge/protocols/ESSENTIALS.md` + `protocols/PLAYBOOK.md` — universal
-2. `{repo}/AGENTS.md` — cross-tool, per-repo
-3. `{repo}/CLAUDE.md` — Claude-Code-specific quirks, thin pointer
-4. `{repo}/.claude/skills/, commands/, hooks/` — runtime config
+CLAUDE.md tells the LLM what to do/avoid. Tach, pre-commit hooks, pytest, Codex /review enforce mechanically. Don't put rules in CLAUDE.md that aren't backed by enforcement somewhere — they'll drift.
 
 ### Template
 <!-- scope: meta -->
@@ -152,12 +101,14 @@ See `templates/CLAUDE-md-template.md` for the canonical 10-section skeleton (≤
 <!-- scope: meta -->
 
 CLAUDE.md updates when:
+- New ADR is binding (Section 9)
+- New tool adopted (Section 5)
+- New gotcha promoted to skill (Section 6)
+- Architecture change (Section 3)
 - New slash command, skill, or hook added (Sections 5, 6, 7)
-- ADR list rotation needed (Section 9 — keep last 5-10)
-- New anti-pattern discovered for Claude Code specifically (Section 8)
-- AGENTS.md or PLAYBOOK.md restructure (update Section 1 paths)
+- PLAYBOOK.md restructure (update Section 1 paths)
 
-**Stale CLAUDE.md = Claude Code operating on outdated context every session.** Treat updates as part of the change that triggered them.
+**Stale CLAUDE.md = agents operating on outdated context every session.** Treat updates as part of the change that triggered them.
 
 ### Per-Scale notes
 <!-- scope: meta -->
@@ -166,7 +117,12 @@ CLAUDE.md updates when:
 - **Scale M:** CLAUDE.md may be 100-150 lines (some skills, hooks)
 - **Scale L:** CLAUDE.md should approach but not exceed 200 lines (rich tooling, more ADRs to reference)
 
-If CLAUDE.md grows past 200 lines, split content: most goes to AGENTS.md, only Claude-Code-specific stays.
+If CLAUDE.md grows past 200 lines, split content to dedicated docs; only per-repo governance stays here.
+
+### Handoff scope
+<!-- scope: meta -->
+
+CLAUDE.md is an agent-instruction contract, not a repo-descriptive document. The Claude-oriented handoff process must not narrate, summarize, or manage CLAUDE.md as Claude-side repo-descriptive handoff content. See ADR-53.
 
 ---
 
@@ -532,8 +488,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | File | Purpose | Format | Cadence | Audience | Order | Scope |
 |------|---------|--------|---------|----------|-------|-------|
 | `README.md` | User-first navigation, what is this repo | Prose + folder layout | When repo state shifts notably | Rob, future contributors | Living (rewrite) | Per-repo |
-| `CLAUDE.md` | Session contract for Claude Code, thin pointer (≤200 lines) | Sectioned, scope-tagged | When skills/commands/hooks/ADRs change | Claude Code (auto-read) | Living (sections updated) | Per-repo |
-| `AGENTS.md` | Codex agent-instruction config; per-repo specifics (architecture, conventions, active tools, binding ADRs) — cross-tool canonical governance is CLAUDE.md + PLAYBOOK/ESSENTIALS, not this file | 10-section template | When ADRs, tools, architecture, or gotchas change | Claude Code, Codex, Cursor, Aider | Living (sections updated) | Per-repo |
+| `CLAUDE.md` | Single canonical agent-instruction contract for Claude Code + Codex; per-repo specifics (architecture, conventions, active tools, binding ADRs, anti-patterns) ≤200 lines | 10-section template | When ADRs, tools, architecture, or gotchas change | Claude Code (auto-read), Codex (via project_doc_fallback_filenames) | Living (sections updated) | Per-repo |
 | `ESSENTIALS.md` | Rob's daily cheat sheet, universal | Sectioned, scope-tagged | When Rob's working style evolves | Rob + every browser/Claude Code session | Living (sections updated) | Universal (`.dev-knowledge` only) |
 | `PLAYBOOK.md` | Universal protocols, this file | Sectioned, scope-tagged, versioned | Per Stream B implementation gaps | Rob + Claude (browser + Code) | Living + section history | Universal (`.dev-knowledge` only) |
 | `JOURNAL.md` | Tactical per-session log | Append-only, dated entries: Did/Failed/Next | Every Claude Code session | Future Claude Code (last 5 entries on startup) | Newest-first prepend | Per-repo (Scale L mandatory; Scale M optional; Scale S no) |
@@ -556,7 +511,6 @@ Which files exist per Scale tier (per `Project Scale Tiers` section above):
 |------|---------|---------|---------|
 | `README.md` | required | required | required |
 | `CLAUDE.md` | required | required | required |
-| `AGENTS.md` | optional | required | required |
 | `ESSENTIALS.md` | n/a (universal `.dev-knowledge`) | n/a | n/a |
 | `PLAYBOOK.md` | n/a (universal `.dev-knowledge`) | n/a | n/a |
 | `JOURNAL.md` | not used | optional | required |
@@ -1149,7 +1103,7 @@ Per mechanism (cross-reference subsection 7a-7d for full structure):
 <!-- scope: meta -->
 
 After install, link from:
-- **AGENTS.md Section 5 ("Tools active in this repo")** — for project-level adoptions; cross-tool agents (Codex, Cursor, Aider) become aware
+- **CLAUDE.md** (Section 5 "Tools active in this repo") — for project-level adoptions; keeps Codex aware of active governance
 - **CLAUDE.md** — for project-level Claude Code-specific behavior (per Gap #5 template Sections 5/6/7)
 - **JOURNAL.md entry** for the session that adopted it
 - **CHANGELOG.md entry** for repo-visible adoptions
@@ -1171,10 +1125,10 @@ User-level adoptions don't need per-repo AGENTS.md updates (they apply everywher
 
 - v1.0 (2026-04-25) — initial. 5-stage pipeline (Triage → Decision → Validation → Install → Document) with cross-reference to Gap #17 (broader tool adoption). Anti-patterns from observed practice. Will refine after live use.
 
-### Cross-reference to AGENTS.md template Section 5
+### Cross-reference to CLAUDE.md Section 5
 <!-- scope: meta -->
 
-When a repo has any of the above active (skills, slash commands, hooks, subagents), they get listed in `AGENTS.md` Section 5 "Tools active in this repo" per Gap #6 template. Specifically:
+When a repo has any of the above active (skills, slash commands, hooks, subagents), they get listed in `CLAUDE.md` Section 5 "Tools active in this repo". Specifically:
 
 - **Code review:** Codex configuration → see `templates/codex-review-config-template.md`
 - **Architecture enforcement:** Tach configuration if used
@@ -1182,7 +1136,7 @@ When a repo has any of the above active (skills, slash commands, hooks, subagent
 - **Skills:** list active skills with paths
 - **Subagents:** list if any are active (per Rob's ecosystem currently: ecosystem-snapshot, report-generator at user-level)
 
-This keeps cross-tool agents (Codex, Cursor, Aider) aware of the same governance Claude Code operates under.
+This keeps Codex aware of the same governance Claude Code operates under.
 
 ### Section history
 <!-- scope: meta -->
