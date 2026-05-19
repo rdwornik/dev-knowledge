@@ -99,6 +99,9 @@ AGENTS.md updates when:
 
 Stale AGENTS.md = LLMs operating on outdated context. Treat updates as part of the change that triggered them, not separate maintenance.
 
+**Handoff scope:**
+AGENTS.md is an agent-instruction contract, not a repo-descriptive document. The Claude-oriented handoff process must not narrate, summarize, or manage AGENTS.md as Claude-side repo-descriptive handoff content. See ADR-52.
+
 ---
 
 ## CLAUDE.md as session contract

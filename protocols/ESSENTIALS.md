@@ -84,7 +84,7 @@ Two distinct LLM contexts collaborate on every workstream. Mixing them = chaos.
 **Purpose:** execution, file changes, commits, validations, testing.
 
 **Does:**
-- Reads CLAUDE.md, AGENTS.md on session start (auto)
+- Reads CLAUDE.md, AGENTS.md on session start (auto) — AGENTS.md is an agent-instruction contract; the handoff process does not narrate or manage it (ADR-52)
 - Executes downloadable prompts from browser chat
 - Modifies files, runs tests, commits, branches
 - Reports session summary back to Rob
