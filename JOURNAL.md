@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-19 — Post-ai-council cross-repo sweep: stale AGENTS.md refs resolved
+
+- Did: Grepped `.dev-knowledge` for ai-council AGENTS.md references after ai-council ADR-53 chunk 4 (AGENTS.md deleted, CLAUDE.md v2.1 live at 139 lines). Branch `docs/post-ai-council-cross-repo-sweep`. 2 commits to live docs.
+- Result: All stale ai-council AGENTS.md references in live docs resolved. Immutable docs (ADRs, research transcripts, audits) left untouched per policy.
+- Changes: `ARCHITECTURE.md` — removed resolved violation (1) for ai-council CLAUDE.md exceeding 200-line target (now 139 lines); "Two known violations" → "One known violation" (corp-monorepo AGENTS.md remains). `BACKLOG.md` — removed "AGENTS.md removal (future chunk)" from Phase 2 rollout item and ai-council ADR-38 compliance item; both now reflect completion.
+- Abandoned: nothing.
+- Next: corp-monorepo ADR-53 chunk — AGENTS.md removal and CLAUDE.md migration (the remaining known violation in ARCHITECTURE.md).
+
+---
+
 ### 2026-05-19 — Chunk 4: retire AGENTS.md, CLAUDE.md v2.1 live
 
 - Did: Migrated all AGENTS.md content into CLAUDE.md (v2.1 template, 12 sections) and retired AGENTS.md for `.dev-knowledge`. Branch `docs/chunk4-dev-knowledge-claude-md-migration`. 3 commits.
