@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-19 — Handoff Stage 1 generated for 2026-05-19-dev-knowledge-session-sync
+
+- Did: Generated Stage 1 handoff artifacts for self-handoff of `.dev-knowledge`. Captured HEAD `c4d7c858` at clean working tree on `main`. Created `_in_progress/2026-05-19-dev-knowledge-session-sync/` with `stage1-question.md` (PASTE_BOUNDARY block for OLD chat) and `stage2-response.md` placeholder.
+- Result: Awaiting Stage 2 architect response from OLD `.dev-knowledge` browser chat.
+- Changes: `docs/handoffs/_in_progress/2026-05-19-dev-knowledge-session-sync/stage1-question.md` — new; `docs/handoffs/_in_progress/2026-05-19-dev-knowledge-session-sync/stage2-response.md` — new (placeholder); `JOURNAL.md` — this entry prepended.
+- Abandoned: nothing.
+- Next: Rob carries paste block to OLD chat; populates `stage2-response.md`; says "complete handoff for dev-knowledge" → Stage 3.
+
+---
+
 ### 2026-05-19 — Codex reviewer config globalized (ADR-54)
 
 - Did: Branch `docs/codex-reviewer-global-standard`. Authored `codex/AGENTS.md` as the canonical global Codex reviewer config (generic reviewer role, pre-review ARCHITECTURE.md read instruction, checklist, output format — corp-monorepo-specific items dropped). Deployed to `~/.codex/AGENTS.md` (filesystem action, not committed). Added ADR-54 recording the global-standard decision and scope clarification vs ADR-53 (tool config ≠ instruction contract). Added PLAYBOOK §16 note on config ownership. Corrected ARCHITECTURE.md §Authority line to reflect the new model.
