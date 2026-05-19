@@ -134,7 +134,7 @@ Per ADR-31. `.dev-knowledge` is the **binding source of cross-repo prescriptions
 - **Scale tier:** M, with one L-tier artifact: this `ARCHITECTURE.md`.
 - **Enforcement:** out-of-band, centralized, read-only audit tool (`scripts/audit.py` — pending full implementation per ADR-31). Reads sibling repos via explicit manifest; emits audit report. Manual invocation; no commit gating in downstream repos.
 - **Content layout:** prescriptions live in PLAYBOOK + ADRs; dedicated `cross-repo/` subfolder deferred until prescription count exceeds ~10 or navigation becomes painful.
-- **Baseline rule (ADR-31):** audit tool must run green on first invocation. No known violations remain open. (corp-monorepo/AGENTS.md is a Codex review-tool configuration read natively by Codex — not an ADR-53 agent-instruction contract; ADR-53 retired the instruction-contract pattern, and tool-native config is outside its scope; correctly kept.)
+- **Baseline rule (ADR-31):** audit tool must run green on first invocation. No known violations remain open. (Codex reviewer config is a global standard at `~/.codex/AGENTS.md`, canonical source at `codex/AGENTS.md` in this repo — ADR-54. Per-repo `AGENTS.md` carries only repo-specific review rules; it does not repeat the global config. Codex tool config is outside ADR-53's scope.)
 
 ---
 
