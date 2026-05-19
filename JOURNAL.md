@@ -64,6 +64,12 @@
 
 ---
 
+### 2026-05-18 — Handoff Stage 1 generated for ai-council
+- Handoff Stage 1 generated for `2026-05-18-ai-council-session-sync`: HEAD `ce885827aada41f582e784fa210f73ff125a18de` captured; awaiting Stage 2.
+- Changes: `docs/handoffs/_in_progress/2026-05-18-ai-council-session-sync/stage1-question.md` (new); `docs/handoffs/_in_progress/2026-05-18-ai-council-session-sync/stage2-response.md` (placeholder).
+
+---
+
 ### 2026-05-18 — ADR-38 A4 + PLAYBOOK AGENTS.md taxonomy fix
 - Did: Appended A4 amendment to ADR-38 closing the corp-monorepo `ARCHITECTURE.md` root-placement migration deferral (A3, 2026-05-11) — deferral is now expired as the universalization rollout executes the move. Corrected PLAYBOOK file-type taxonomy entry for `AGENTS.md`: was "Cross-tool canonical governance" (inaccurate); now "Codex agent-instruction config; per-repo specifics — cross-tool canonical governance is CLAUDE.md + PLAYBOOK/ESSENTIALS". 51 tests passed.
 - Result: two commits on `docs/close-architecture-deferral`: `5dc7f29` (ADR-38 A4), `d1dac86` (PLAYBOOK taxonomy fix).
