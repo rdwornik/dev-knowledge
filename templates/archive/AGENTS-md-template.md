@@ -1,3 +1,5 @@
+<!-- RETIRED 2026-05-19 — superseded by ADR-53. Use templates/CLAUDE-md-template.md instead. -->
+
 # AGENTS.md
 
 > **Canonical governance contract for this repo.** Cross-tool standard — read by Claude Code, Codex, Cursor, Aider, and any other LLM-based agent operating here. LLMs advise; hooks/tests enforce.
