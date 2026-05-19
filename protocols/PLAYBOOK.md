@@ -68,10 +68,31 @@ Section 13 "Where Knowledge Lives" describes knowledge **domains** (what lives w
 <!-- scope: meta -->
 
 - **Single canonical agent-instruction contract** for both Claude Code and Codex operating in this repo
-- Repo identity, architecture, conventions, tools active here
+- Repo identity, architecture pointer, conventions, tools active here
 - Lists slash commands, skills, hooks ACTIVE in this repo
 - Critical rules and anti-patterns specific to this repo
 - Recent ADRs binding here
+
+#### Content-distribution map
+
+Where each class of per-repo content lives (v2.1 template, 12 sections):
+
+| Content class | Home |
+|---|---|
+| Session read order / identity | §1 First read + §2 Repo identity |
+| Architecture overview | `ARCHITECTURE.md` — §3 carries a one-line pointer (required Scale M+) |
+| Conventions (naming, commits, testing, linting) | §4 Conventions |
+| Toolchain commands (test/lint invocations) | §4 Conventions |
+| Out-of-scope for this repo | §4 Conventions ("Out of scope" sub-section) |
+| Critical governance rules | §5 Critical rules |
+| Session start checklist | §6 Session start protocol |
+| Slash commands | §7 Slash commands available |
+| Skills (including gotchas) | §8 Skills active |
+| Toolchain enforcement (hooks, pre-commit) | §9 Hooks active |
+| Anti-patterns / Do NOT | §10 Anti-patterns |
+| Council decisions / ADRs | §11 Recent ADRs |
+
+**Not in CLAUDE.md:** universal rules (`.dev-knowledge/`), architecture docs (`ARCHITECTURE.md`), decision rationale (`docs/decisions/ADR-NN-*.md`).
 
 ### What CLAUDE.md is NOT
 <!-- scope: meta -->
@@ -95,18 +116,20 @@ CLAUDE.md tells the LLM what to do/avoid. Tach, pre-commit hooks, pytest, Codex 
 ### Template
 <!-- scope: meta -->
 
-See `templates/CLAUDE-md-template.md` for the canonical 10-section skeleton (≤200 lines).
+See `templates/CLAUDE-md-template.md` for the canonical 12-section skeleton (≤200 lines).
 
 ### Update cadence
 <!-- scope: meta -->
 
 CLAUDE.md updates when:
-- New ADR is binding (Section 9)
-- New tool adopted (Section 5)
-- New gotcha promoted to skill (Section 6)
-- Architecture change (Section 3)
-- New slash command, skill, or hook added (Sections 5, 6, 7)
-- PLAYBOOK.md restructure (update Section 1 paths)
+- New ADR is binding (Recent ADRs section §11)
+- New slash command adopted (Slash commands section §7)
+- New skill adopted or gotcha promoted (Skills section §8)
+- New hook added (Hooks section §9)
+- New slash command, skill, or hook added (§7, §8, or §9 as applicable)
+- PLAYBOOK.md restructure (update First read section §1 paths)
+
+**Architecture changes go in `ARCHITECTURE.md`** — CLAUDE.md §3 is a static pointer that needs no edit when architecture changes.
 
 **Stale CLAUDE.md = agents operating on outdated context every session.** Treat updates as part of the change that triggered them.
 
@@ -819,7 +842,7 @@ Three outcomes:
 Standard pipeline:
 1. **ADR if architectural impact** (per Section 5 gating) — module boundaries, dependencies, data model
 2. **Brief Stream B-style gap entry** if it requires multiple changes across files
-3. **Updates to:** CLAUDE.md (Section 5: tools active), ENVIRONMENT.md (if env-level), JOURNAL entries
+3. **Updates to:** CLAUDE.md (Slash commands §7, Skills §8, or Hooks §9 as applicable), ENVIRONMENT.md (if env-level), JOURNAL entries
 4. **Hooks/tests/CI** if enforcement needed (LLMs advise; mechanism enforces, per Council #28)
 
 Cross-link from tech-radar entry to the ADR + implementation commits.
@@ -1102,8 +1125,8 @@ Per mechanism (cross-reference subsection 7a-7d for full structure):
 <!-- scope: meta -->
 
 After install, link from:
-- **CLAUDE.md** (Section 5 "Tools active in this repo") — for project-level adoptions; keeps Codex aware of active governance
-- **CLAUDE.md** — for project-level Claude Code-specific behavior (per Gap #5 template Sections 5/6/7)
+- **CLAUDE.md** (Slash commands §7, Skills §8, or Hooks §9 as applicable) — for project-level adoptions; keeps Codex aware of active governance
+- **CLAUDE.md** — for project-level Claude Code-specific behavior (per Gap #5 template Slash commands, Skills, and Hooks sections)
 - **JOURNAL.md entry** for the session that adopted it
 - **CHANGELOG.md entry** for repo-visible adoptions
 - **tech-radar 2026-Q?.md** Adopted (active inventory) section if user-level (per Gap #17 Continuous Improvement Section 6)
@@ -1124,10 +1147,10 @@ User-level adoptions don't need per-repo CLAUDE.md updates (they apply everywher
 
 - v1.0 (2026-04-25) — initial. 5-stage pipeline (Triage → Decision → Validation → Install → Document) with cross-reference to Gap #17 (broader tool adoption). Anti-patterns from observed practice. Will refine after live use.
 
-### Cross-reference to CLAUDE.md Section 5
+### Cross-reference to CLAUDE.md tools sections
 <!-- scope: meta -->
 
-When a repo has any of the above active (skills, slash commands, hooks, subagents), they get listed in `CLAUDE.md` Section 5 "Tools active in this repo". Specifically:
+When a repo has any of the above active (skills, slash commands, hooks, subagents), they get listed in the relevant CLAUDE.md sections: Slash commands (§7), Skills (§8), or Hooks (§9). Specifically:
 
 - **Code review:** Codex configuration → see `templates/codex-review-config-template.md`
 - **Architecture enforcement:** Tach configuration if used

@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-19 — Complete CLAUDE.md standard — template v2.1
+
+- Did: Completed the CLAUDE.md template and standard so the next chunk's AGENTS.md→CLAUDE.md migration has a content-preserving target. Branch `docs/complete-claude-md-standard`. 2 commits.
+- Result: CLAUDE-md-template.md is v2.1 (12 sections, 126 lines). §3 Architecture (pure pointer to ARCHITECTURE.md) and §4 Conventions (naming/commits/testing/linting/out-of-scope) added. All stale "CLAUDE.md Section 5 (Tools active)" cross-references in PLAYBOOK.md and codex-review-config-template.md reconciled to named-section references — that label was an AGENTS.md artifact never present in the CLAUDE.md template. Content-distribution map added to PLAYBOOK §CLAUDE.md as part of the documented standard. ADR-53 Decision point 4 already correct — no change needed.
+- Changes: `templates/CLAUDE-md-template.md` (v2.1); `protocols/PLAYBOOK.md` (distribution map, section-number fixes, cross-reference heading); `templates/codex-review-config-template.md` (section reference fix).
+- Abandoned: Nothing.
+- Next: Chunk 4 — remove `.dev-knowledge/AGENTS.md` and `ai-council/AGENTS.md`; merge substantive content into each repo's CLAUDE.md per ADR-53 Decision 2.
+
+---
+
 ### 2026-05-19 — Chunk 3: bring standard docs into line with ADR-53
 
 - Did: Updated all live governance docs to retire AGENTS.md convention and establish CLAUDE.md as the single canonical per-repo agent-instruction file per ADR-53. Branch `docs/chunk3-standard-to-adr53`. 8 commits across 8 steps.
