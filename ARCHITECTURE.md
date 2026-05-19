@@ -30,7 +30,6 @@ The codemap is the canonical artifact answering *"what exists and how does it re
   ARCHITECTURE.md        this file — structural model (Layer 2, governance)
   README.md              entry point + file index (Layer 2, governance)
   CLAUDE.md              project contract for Claude Code (Layer 2, governance)
-  AGENTS.md              cross-tool agent contract per ADR-52 (Layer 2, governance)
   CONTRIBUTING.md        branch/commit/validator conventions (Layer 2, governance)
   JOURNAL.md             per-session tactical log, append-only newest-first (Layer 2, record)
   LESSONS.md             append-only learning log (Layer 2, record)
@@ -45,7 +44,7 @@ The codemap is the canonical artifact answering *"what exists and how does it re
     audits/              point-in-time analyses (Layer 2, record)
     research/            research-mode debates + external reports (Layer 2, record)
     tech-radar/          quarterly adoption snapshots (Layer 2, record)
-  templates/             reusable boilerplate — CLAUDE-md, AGENTS-md, workspace
+  templates/             reusable boilerplate — CLAUDE-md, workspace
                            tiers, HANDOFF, prompt (Layer 2, governance)
   scripts/               read-only validators: audit.py, backlog_extract.py,
                            normalize_headers.py (Layer 2, validator)
@@ -77,7 +76,7 @@ Projects (Layer 3, execution)
 
 **Enforcement tool:** advisory — the Layer 2 invariant is enforced by convention and the git-discipline rule.
 **Config file:** `.claude/rules/git-discipline.md`
-**Where enforced:** pre-commit (convention adherence); advisory in CLAUDE.md and AGENTS.md
+**Where enforced:** pre-commit (convention adherence); advisory in CLAUDE.md
 
 ### Module-to-layer assignment
 
@@ -122,7 +121,7 @@ When Mermaid diagrams are added, source files go under `docs/diagrams/` as `.mer
 
 - **Scope tags (ADR-27, informal).** `<!-- scope: X -->` tags (`dev | llm | hybrid | runtime | meta`) exist in living files as informal lightweight metadata. Enforcement withdrawn 2026-05-16 per ADR-48; existing tags remain in place. New sections do not need tags.
 - **Append-only files.** LESSONS.md, TOKEN-LOG.md — never edit old entries. JOURNAL.md uses newest-first prepend.
-- **Living files.** README, CLAUDE.md, AGENTS.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT, VISION, ARCHITECTURE — updated in place when reality shifts.
+- **Living files.** README, CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT, VISION, ARCHITECTURE — updated in place when reality shifts.
 - **Immutable dated artifacts.** ADRs, transcripts, handoffs, audits, research — supersession via new file or in-file marker, never edit.
 - **Filename conventions.** `ADR-NN-topic.md` for decisions (per ADR-34); `DECISION_NN_snake_case.md` for legacy transcripts (grandfathered); Council CLI output uses `council-out-YYYYMMDD-HHMMSS-topic.md`; kebab-case + ISO date for dated artifacts; ALLCAPS for top-level governance markdown.
 
@@ -135,7 +134,7 @@ Per ADR-31. `.dev-knowledge` is the **binding source of cross-repo prescriptions
 - **Scale tier:** M, with one L-tier artifact: this `ARCHITECTURE.md`.
 - **Enforcement:** out-of-band, centralized, read-only audit tool (`scripts/audit.py` — pending full implementation per ADR-31). Reads sibling repos via explicit manifest; emits audit report. Manual invocation; no commit gating in downstream repos.
 - **Content layout:** prescriptions live in PLAYBOOK + ADRs; dedicated `cross-repo/` subfolder deferred until prescription count exceeds ~10 or navigation becomes painful.
-- **Baseline rule (ADR-31):** audit tool must run green on first invocation. Two known violations remain open: (1) ai-council CLAUDE.md exceeds 200-line trim target (currently 336 lines); (2) corp-monorepo AGENTS.md exists but is Codex-only review config, not ADR-52 10-section cross-tool contract.
+- **Baseline rule (ADR-31):** audit tool must run green on first invocation. Two known violations remain open: (1) ai-council CLAUDE.md exceeds 200-line trim target (currently 336 lines); (2) corp-monorepo AGENTS.md exists and has not been removed (pending next-chunk work per ADR-53 Decision 2).
 
 ---
 
@@ -176,7 +175,8 @@ Per ADR-28 invariant: `.dev-knowledge` may host **read-only** validators (Layer 
 - **ADR-49** — consolidate past-recording documentation files: governs record consolidation patterns
 - **ADR-50** — machine-document encoding standard: governs how machine-written content is encoded and marked
 - **ADR-51** — ARCHITECTURE.md convention: mandates this repo's ARCHITECTURE.md form and CORE sections
-- **ADR-52** — AGENTS.md convention: mandates this AGENTS.md structure as cross-tool agent contract
+- **ADR-52** — AGENTS.md convention (superseded by ADR-53)
+- **ADR-53** — CLAUDE.md as single canonical agent-instruction file: supersedes ADR-52
 
 Reference `docs/decisions/README.md` for full index. Council debate transcripts in `docs/decisions/transcripts/`.
 
