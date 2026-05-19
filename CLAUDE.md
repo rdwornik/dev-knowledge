@@ -1,118 +1,145 @@
 # CLAUDE.md — Dev Knowledge
+<!-- scope: meta -->
+<!-- version: 2.1 — 2026-05-19 -->
 
-## What this project is
+> **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
+>
+> **For universal rules:** read `protocols/ESSENTIALS.md` and `protocols/PLAYBOOK.md`.
+
+## 1. First read (session start)
 <!-- scope: meta -->
 
-Universal LLM-driven development guide and methodology framework — the
-ecosystem's knowledge guardian, methodology author, and auditor. Works
-in any folder on any machine; governs all projects under `Dev/`
-(corp-monorepo, ai-council, corp-ops, corp-sca-time-automation, future
-repos). NOT a code project — a collection of markdown governance files
-+ read-only validators. Managed via Claude Code and VS Code. Full
-mission in `VISION.md`; structural model in `ARCHITECTURE.md`.
+In order, read:
+1. This file (you're here)
+2. `protocols/ESSENTIALS.md` — Rob's universal working style
+3. `protocols/PLAYBOOK.md` — universal protocols (only sections relevant to current task)
+4. Most recent `docs/handoffs/*/HANDOFF.md` if continuing prior session
+5. Last 5 entries of `JOURNAL.md`
 
-## Files and their rules
+If ESSENTIALS or PLAYBOOK are unavailable, proceed with this file alone but flag it.
+
+## 2. Repo identity
 <!-- scope: meta -->
 
-| File                          | Type        | Rule                                                                                         |
-| ----------------------------- | ----------- | -------------------------------------------------------------------------------------------- |
-| `VISION.md`                   | Living      | Universal-brain mission statement. Vision/Scope changes via AI Council debate; clarifications + References conversational. |
-| `ARCHITECTURE.md`             | Living      | Structural model per ADR-28 + ADR-31. Update when layout, conventions, governance, or binding ADRs shift. |
-| `protocols/ESSENTIALS.md`     | Living      | Daily cheat sheet. Keep under 1 page. Update when workflows change.                          |
-| `protocols/SESSION_SETUP.md`  | Living      | Browser chat workflow. 5 chronological steps. Update when chat process changes.              |
-| `protocols/PLAYBOOK.md`       | Living      | Full process reference. Numbered sections (1–16) + unnumbered governance sections + appendices. Update when new processes are established. |
-| `protocols/HANDOFF_PROCESS.md` | Living     | Handoff trigger rules + Scale-tiered format + Roles. Authoritative protocol for handoff generation. |
-| `protocols/ENVIRONMENT.md`    | Living      | Current setup state. Update when config/tools/decisions change.                              |
-| `LESSONS.md`                  | Append-only | NEVER edit old entries. NEVER delete. Only append new entries at the bottom.                 |
-| `logs/TOKEN-LOG.md`           | Append-only (newest-first) | Threshold-triggered (7-day) via /session-summary. Never edit previous entries.   |
-| `JOURNAL.md`                  | Append-only (newest-first) | Per-session tactical log. Entry shape: `Did / Result / Changes / Abandoned / Next` (per Council Simplification 2026-05-16). Prepend at session wrap or workday close. The `Changes:` line carries what CHANGELOG.md used to record — git history is the rest. |
-| `BACKLOG.md`                  | Living      | Cross-session pending items (per ADR-41). M+ tier mandate. Done items leave the file; their trace is git history. Abandoned items get a short note in `docs/decisions/`, not a tombstone here. |
-| `README.md`                   | Living      | Triage rules and file index. Update when files are added/removed.                            |
-| `config/requirements-dev.txt` | Living      | Python dev dependencies (pre-commit, etc).                                                   |
+- **Name:** `.dev-knowledge`
+- **Scale:** M (per `protocols/PLAYBOOK.md` Project Scale Tiers)
+- **Status:** active
+- **Purpose:** Universal LLM-driven development guide and methodology framework; governs all projects under `Dev/`; Layer 2 of the ADR-28 three-layer ecosystem model
+- **Owner:** Rob
+- **Critical paths:** `protocols/`, `docs/decisions/`, `templates/`, `VISION.md`, `ARCHITECTURE.md`
+- **Related locations:** `~/.claude/` (Claude Code runtime config); `.claude/` (project-level config); `ObsidianVault/` (pre-sales, do not mix); `Dev/` (child repos, each has own `CLAUDE.md`)
 
-## What to do here
+## 3. Architecture
 <!-- scope: meta -->
 
-- Update files when processes, config, or decisions change
-- Append lessons after sessions
-- Keep files consistent — if a process is described in PLAYBOOK, ESSENTIALS should have the summary version, not a conflicting one
-- Verify against VISION.md Lifecycle: BACKLOG reflects in-scope items; JOURNAL traces work to VISION goals; git history records movement toward VISION; ADRs implement VISION decisions. Drift in any direction → trigger VISION review.
-- Cross-reference ~/.claude/ files (gotchas, learned-rules, core-invariants) — they are the executable counterpart to what's documented here
-- This is a git repo. Commit after every change. Use /save or commit manually.
-- .claude/rules/git-discipline.md enforces this automatically.
+See `ARCHITECTURE.md` for the structural model; read it before structural changes (required at Scale M+, per ADR-51). NOT a code project — markdown governance files + read-only validators only.
 
-## What NOT to do
+## 4. Conventions
 <!-- scope: meta -->
 
-- Do not create new markdown files without checking README.md growth triggers (when navigation overhead emerges, evaluate DevVault migration)
-- Do not duplicate content between files — ESSENTIALS summarizes PLAYBOOK, not copies it
-- Do not put project-specific details here (those go in each project's CLAUDE.md)
-- Do not put executable rules here (those go in ~/.claude/ with verify: lines)
-- Do not edit LESSONS.md entries — only append
-- Do not edit TOKEN-LOG.md entries — only append
-- Do not recreate `CHANGELOG.md` or `BACKLOG_ARCHIVE.md` (deleted 2026-05-16 per Council Simplification). Git history + JOURNAL `Changes:` line replace CHANGELOG. Done items simply leave BACKLOG; trace lives in git.
+- **Naming:** UPPERCASE for top-level living docs (`VISION.md`, `CLAUDE.md`, etc.); `ADR-NN-topic.md` for decisions; `YYYY-MM-DD-slug.md` for dated artifacts; `council-out-YYYYMMDD_HHMMSS-topic.md` for Council CLI output; kebab-case otherwise
+- **Commits:** Conventional Commits — `feat/fix/docs/chore/refactor`
+- **Branches:** `feat/<topic>`, `fix/<issue>`, `docs/<scope>`, `chore/<scope>` off `main`
+- **Testing:** `pytest -x --tb=short` (known pre-existing failure: `test_audit_run_passes_structural_checks_on_synthetic_repo` — tracked in BACKLOG)
+- **Linting:** `ruff check --fix` (pre-commit)
+- **Scope tags:** `<!-- scope: X -->` (`dev|llm|hybrid|runtime|meta`) — informal only; not enforced (ADR-27; enforcement withdrawn per ADR-48)
+- **File lifecycle:** Append-only: `LESSONS.md`, `TOKEN-LOG.md` (never edit), `JOURNAL.md` (newest-first prepend). Immutable: ADRs, transcripts, handoffs, audits (supersede with new file). Living: `VISION.md`, `ARCHITECTURE.md`, `README.md`, `CLAUDE.md`, `protocols/*.md`, `BACKLOG.md` (update in place).
 
-## Related locations
+**Out of scope for this repo:**
+- Code-level implementation → child repos (corp-monorepo, ai-council, etc.)
+- Client/product/domain knowledge → Obsidian vault
+- Project-specific CLAUDE.md content → each repo owns its own
+- Claude Code runtime config → `~/.claude/`
+- Council debate transcripts originate in `ai-council/`; they archive here in `docs/decisions/transcripts/`
+
+## 5. Critical rules
 <!-- scope: meta -->
 
-- `~/.claude/` — Claude Code runtime config (skills, gotchas, memory, rules, commands, hooks)
-- `.claude/` — project-level Claude Code config (git-discipline rule, /save command)
-- `ObsidianVault/` — pre-sales work knowledge (separate, do not mix)
-- `Dev/` — code projects (each has own CLAUDE.md)
+1. **`LESSONS.md` and `TOKEN-LOG.md` are append-only** — never edit old entries; only append (ADR-29, ADR-39)
+2. **`JOURNAL.md` is append-only newest-first** — prepend at session wrap or workday close
+3. **ADRs, transcripts, handoffs, audits are immutable** — supersede with a new file or in-file marker; never edit in place
+4. **Layer 2 never executes** — no orchestration scripts; `scripts/` contains read-only validators only (ADR-28, ADR-36)
+5. **No new markdown files without checking README.md growth triggers** — when navigation overhead emerges, evaluate DevVault migration
+6. **Keep files consistent** — ESSENTIALS summarizes PLAYBOOK, not copies it; divergence causes drift
+7. **No executable rules in this repo** — those go in `~/.claude/` with `verify:` lines
+8. **Do not recreate `CHANGELOG.md` or `BACKLOG_ARCHIVE.md`** — deleted 2026-05-16; git history + JOURNAL `Changes:` line replace CHANGELOG
 
-## Scope tags (informal, no longer enforced)
+## 6. Session start protocol
+<!-- scope: runtime -->
+
+1. `/boot` (loads skills, memory, recent commits)
+2. `git status` — clean working tree?
+3. `git log --oneline -5` — recent context
+4. Read most recent handoff if continuing prior session
+5. Check `BACKLOG.md` for in-progress items
+6. `pytest --collect-only` — test discovery sanity check
+7. Wait for Rob's prompt — never improvise
+
+If any check fails → stop and ask Rob before proceeding.
+
+Verify after updates: ESSENTIALS ↔ PLAYBOOK alignment; ENVIRONMENT ↔ `~/.claude/` state; README state references live; SESSION_SETUP ↔ PLAYBOOK process changes; JOURNAL reflects last session.
+
+## 7. Slash commands available
+<!-- scope: runtime -->
+
+User-level (`~/.claude/commands/`):
+- `/session-summary` — generate token-efficient session summary + handoff
+- `/boot` — load context (skills, memory, recent commits)
+- `/save` — stage + commit with Conventional Commits message
+
+Repo-level (`./.claude/commands/`):
+- `/save` — commit workflow with full body per git-discipline rule
+- `/handoff` — generate/complete handoff per ADR-42 v3.1 three-stage flow
+
+## 8. Skills active
+<!-- scope: runtime -->
+
+User-level (`~/.claude/skills/`):
+- `gotchas` — universal dev gotchas (encoding, shell safety, test pitfalls)
+- `boot`, `session-summary`, `handoff`, `save` — session lifecycle skills
+
+Repo-level (`./.claude/skills/gotchas/`):
+- Read `.claude/skills/gotchas/SKILL.md` before making changes — repo-specific empirical patterns that have caused problems here
+
+## 9. Hooks active
+<!-- scope: runtime -->
+
+Pre-commit (`.pre-commit-config.yaml`):
+- `ruff check --fix` — Python linting
+- `normalize_headers.py` — dated-log header normalization
+
+Rules (`.claude/rules/`):
+- `git-discipline.md` — mandatory commit after every file edit; clean working tree at session end
+
+## 10. Anti-patterns specific to Claude Code in this repo
 <!-- scope: meta -->
 
-ADR-27 defined a scope-tag vocabulary (`dev | llm | hybrid | runtime | meta`)
-with pre-commit enforcement and a hybrid-ratio ceiling. Per Council
-Simplification 2026-05-16 the enforcement system has been removed:
-`scripts/validate_scope_tags.py` deleted, pre-commit hook removed,
-hybrid-ratio governance withdrawn.
+- **Editing old LESSONS.md or TOKEN-LOG.md entries** — append-only; editing corrupts the institutional record
+- **Adding orchestration scripts** — Layer 2 invariant: validators only, no scripts that drive state in child repos
+- **Narrating or managing AGENTS.md** — AGENTS.md is retired (ADR-53); CLAUDE.md is the single instruction file
+- **Duplicating content between files** — ESSENTIALS summarizes PLAYBOOK, not copies; drift is the failure mode
+- **Putting executable rules in this repo** — those belong in `~/.claude/` with `verify:` lines
+- **Running validators with no args** — vacuous pass; always pass `--all` or specific paths
 
-Existing `<!-- scope: X -->` HTML comments and LESSONS-entry `[scope: X]`
-tags are LEFT IN PLACE as informal lightweight metadata. Authors can use
-them when useful; nothing automated enforces them or audits drift. New
-sections do NOT need to add scope tags.
-
-ADR-27 is retained as historical record. See also ADR-46/47 demotion notes
-for the broader simplification context.
-
-## Consistency check
+## 11. Recent ADRs binding here (last 5)
 <!-- scope: meta -->
 
-When updating any file here, verify:
-- Does ESSENTIALS still match PLAYBOOK where they overlap? Some ESSENTIALS sections (e.g., "How Claude thinks") are intentionally ESSENTIALS-only — see Section history in PLAYBOOK CHANGELOG entries
-- Does ENVIRONMENT reflect current ~/.claude/ state?
-- Are state references in README current and pointing to live sources?
-- If a process changed in PLAYBOOK, did SESSION_SETUP also get updated?
-- Does JOURNAL reflect last completed Claude Code session?
+Brief one-liners. Full list in `docs/decisions/README.md`; full governance list in `ARCHITECTURE.md`.
 
-## Council decisions governing this project
+- ADR-49: Consolidate past-recording documentation — record consolidation patterns
+- ADR-50: Machine-document encoding standard — how machine-written content is encoded and marked
+- ADR-51: ARCHITECTURE.md convention — mandates this repo's ARCHITECTURE.md form and CORE sections
+- ADR-52: AGENTS.md convention — superseded by ADR-53
+- ADR-53: CLAUDE.md as single canonical agent-instruction file — retires AGENTS.md; this file is now substantive
+
+## 12. Section history
 <!-- scope: meta -->
 
-- #23: vault = pre-sales, .dev-knowledge = dev methodology, ~/.claude/ = runtime config
-- #24: browser handoff = one format, "wygeneruj handoff", <100 lines, code block
-- #27: scope tag vocabulary = dev | llm | hybrid | runtime | meta; all sections tagged; hybrid ≤25% ceiling (ADR-27)
-- #28: AGENTS.md = canonical cross-tool governance (Codex, Claude Code, Cursor, Aider) per Council #28 (Stream B Gap #6 foundation)
-- Topic 1 (ADR-31): authority model = Prescriptive with conformance audit (1B); .dev-knowledge stays Scale M with one L-tier artifact (ARCHITECTURE.md)
-- Topic 2 (ADR-32): handoff format = folder-based with 9-section HANDOFF.md, point-in-time governance copies, manifest.json (HANDOFF_PROCESS.md v2.0 is the operational counterpart)
-- ADR-33: VISION.md universalization — mandatory at ≥1 dependent; Standard/Lite tiers; migration cohort ai-council + corp-monorepo immediate
-- ADR-34: file naming convention — per-file-type table; UPPERCASE living docs, ADR-NN_topic ADRs, YYYY-MM-DD-slug audits/handoffs
-- ADR-35: lessons base activation — push retrieval via SessionStart hook, pull via `lessons query`, DEV_KNOWLEDGE_PATH cross-repo discovery
-- ADR-36: audit tool architecture — .dev-knowledge as ecosystem auditor; 4-phase implementation plan
-- ADR-37: session boundary protocol — two-phase handoff overlay (Current State + Future State) over ADR-32 9-section structure
-- ADR-38: universal repo architecture baseline — mandatory files per tier (S/M/L); foundation for ADR-39/40/41
-- ADR-39: file lifecycle governance — 6-element pattern (purpose/trigger/owner/grooming/boundaries/enforcement); registry of all files
-- ADR-40: scale tier evaluation algorithm — logarithmic Maintainability Index pattern; 3 signals; transition procedures
-- ADR-41: cross-session backlog architecture — BACKLOG.md mandate at M+ tier; no Scrum vocabulary; split-brain prevention
-- Trigger: when navigation overhead emerges, evaluate Obsidian DevVault migration
-- Trigger: when LESSONS.md becomes hard to navigate by topic, split into topic files
+- v1.0 (2026-04-24) — initial thin-pointer CLAUDE.md per Gap #5
+- v2.0 (2026-05-19) — ADR-53: retire thin-pointer/AGENTS.md framing; CLAUDE.md becomes substantive single canonical per-repo agent-instruction file
+- v2.1 (2026-05-19) — add §3 Architecture, §4 Conventions; renumber; migrate content from AGENTS.md per ADR-53 Decision 2
 
-### Council output convention
-<!-- scope: meta -->
+---
 
-Council CLI dual-writes its outputs:
-- `ai-council/output/` — operational archive (transcript `.md` + `_metrics.json`)
-- `.dev-knowledge/docs/decisions/transcripts/` — curated source of truth (transcript `.md` only, no metrics)
-
-Naming: legacy `DECISION_NN_topic.md` (manual narrative numbering) coexists with new `YYYYMMDD_HHMMSS_topic.md` (CLI auto-generated). Consolidation pending — see `docs/decisions/transcripts/`.
+**Last updated:** 2026-05-19
+**Maintained by:** Rob
