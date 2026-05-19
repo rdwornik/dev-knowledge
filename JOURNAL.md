@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-19 — ADR-51 + ADR-52 conformance: AGENTS.md + ARCHITECTURE.md
+
+- Did: Created `AGENTS.md` at repo root (10-section ADR-52 contract); rewrote `ARCHITECTURE.md` to ADR-51 template (three CORE sections, corrected stale references). Branch `feat/dev-knowledge-adr51-52-conformance`. Full approved plan with dispositions R1–R6 + R8 applied.
+- Result: `.dev-knowledge` now self-conformant with its own ADR-51 + ADR-52 conventions. Two commits: `f8160ac` (AGENTS.md), `58ad1d8` (ARCHITECTURE.md). Pytest 50/51 (known failure unchanged). Ruff clean.
+- Changes: `AGENTS.md` (new, 146 lines); `ARCHITECTURE.md` (rewrite: +144 −89 lines, `scale: M` frontmatter, `## Purpose [CORE]`, `## Codemap [CORE]` with CODEMAP markers, `## Layer Boundaries & Invariants [CORE]` with 5 numbered invariants, `## Diagrams [M/L]` stub, governing ADRs extended to ADR-52, deleted-file refs removed R1–R3, scope-tag enforcement clause removed R4, hybrid-ratio bullet removed R5, `version:` frontmatter replaced R6, violation count corrected to two R8).
+- Abandoned: R7 (full deletion of violations bullet) — not approved; two violations remain open.
+- Next: (1) `ai-council` ARCHITECTURE.md (ADR-51, effort M); (2) `ai-council` AGENTS.md §7 bookkeeping — add ADR-51 + ADR-52 (effort S); (3) resolve open violations — ai-council CLAUDE.md 200-line trim, corp-monorepo AGENTS.md ADR-52 10-section form.
+
+---
+
 ### 2026-05-19 — rollout-readiness audit (ADR-51 / ADR-52 gap analysis)
 - Did: Independent verification of `.dev-knowledge` `main` against all reported session changes; gap analysis of `.dev-knowledge` and `ai-council` (read-only) against ADR-51 + ADR-52. All 14 session commits verified by SHA. All reported files verified as non-trivial. Path-guard block in `codex-review.ps1` confirmed present. One discrepancy found and classified: Stage 3 handoff named wrong failing test (`test_ratio_pass_when_stable_above_ceiling`); actual failure is `test_audit_run_passes_structural_checks_on_synthetic_repo` — self-diagnosed in JOURNAL, not a repo state error.
 - Result: `.dev-knowledge` main VERIFIED as reported. Report at `docs/audits/2026-05-19-rollout-readiness.md`. Branch `audit/rollout-readiness-2026-05-19` merged to main. 50/51 pytest pass (known failure unchanged).
