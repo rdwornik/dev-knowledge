@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-05-19 — rollout-readiness audit (ADR-51 / ADR-52 gap analysis)
+- Did: Independent verification of `.dev-knowledge` `main` against all reported session changes; gap analysis of `.dev-knowledge` and `ai-council` (read-only) against ADR-51 + ADR-52. All 14 session commits verified by SHA. All reported files verified as non-trivial. Path-guard block in `codex-review.ps1` confirmed present. One discrepancy found and classified: Stage 3 handoff named wrong failing test (`test_ratio_pass_when_stable_above_ceiling`); actual failure is `test_audit_run_passes_structural_checks_on_synthetic_repo` — self-diagnosed in JOURNAL, not a repo state error.
+- Result: `.dev-knowledge` main VERIFIED as reported. Report at `docs/audits/2026-05-19-rollout-readiness.md`. Branch `audit/rollout-readiness-2026-05-19` merged to main. 50/51 pytest pass (known failure unchanged).
+- Changes: `docs/audits/2026-05-19-rollout-readiness.md` (new, 250 lines).
+- Abandoned: nothing.
+- Next: execute rollout in recommended order — (1) `.dev-knowledge` AGENTS.md (ADR-52, effort M), (2) `.dev-knowledge` ARCHITECTURE.md rewrite to ADR-51 template (effort M), (3) `ai-council` ARCHITECTURE.md (ADR-51, effort M), (4) `ai-council` AGENTS.md §7 bookkeeping — add ADR-51 + ADR-52 (effort S).
+
+---
+
 ### 2026-05-19 — codex-review sidequest: misdiagnosis correction + code-only path-guard + empty-diff guard
 - Did: Diagnose-first Plan Mode investigation of the operator's report that codex-review was "broken for some time" (stale `gpt-5.2-codex` pin + token-burning hook retries). Phase 1 Explore agents found the entire premise wrong: **no hook exists** (`/codex-review` is a manually invoked slash command, `~/.claude/settings.json` registers no codex hook), **no model pin in the wrapper** (`~/.claude/bin/codex-review.ps1` passes no `--model` flag — CLI default `gpt-5.4` is used; `~/.codex/config.toml` auto-migrates legacy `gpt-5.2-codex` → `gpt-5.4`), **no retry loop** (single `codex exec` call, fails fast). Gating Step 1 live verification (Codex on `c9f796d~1..c9f796d` via unmodified wrapper) PASSED — codex returned a real review on `gpt-5.4`, ~48k tokens. Then layered the real fixes: code-only path-guard (extension allowlist `.py .ps1 .sh .ts .tsx .js .jsx .go .rs .rb .java .cs .cpp .c .h .sql .toml .yaml .yml .json .ini`), empty-diff guard, FullAudit-no-src/ guard — all in `codex-review.ps1`. Updated `~/.claude/commands/codex-review.md` Rules block. Documented the code-only rule in PLAYBOOK §16 + §17 and ESSENTIALS "Ending a Session". Verified end-to-end with five cases (5a pure code, 5b pure markdown, 5c empty diff, 5d mixed, 5e -FullAudit with synthetic markdown in `src/`); all PASS. Test artifacts deleted (zero-finding audits per archival protocol; temp git repo removed).
 - Result: codex-review working end-to-end — YES. Branch `fix/codex-review-hook`, one tracked commit `7ef77f0` (docs PLAYBOOK + ESSENTIALS). Three untracked `~/.claude/` runtime edits enumerated in Changes below. 50 of 51 pytest pass — baseline failure `test_audit_run_passes_structural_checks_on_synthetic_repo` (`adr38_baseline`) unchanged, out of scope.
