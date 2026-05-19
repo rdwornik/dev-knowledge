@@ -1,6 +1,6 @@
 # ADR-52: AGENTS.md Convention — Cross-Tool Agent-Instruction Contract
 
-- **Status:** Accepted
+- **Status:** ~~Accepted~~ Superseded by ADR-53 (2026-05-19)
 - **Date:** 2026-05-19
 - **Amends:** —
 - **Related:** ADR-28 (three-layer architecture), ADR-31 (authority model), ADR-38 (universal repo architecture baseline)
