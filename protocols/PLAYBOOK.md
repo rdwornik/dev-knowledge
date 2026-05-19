@@ -2146,6 +2146,8 @@ Both satisfy S15 review requirement. Choose based on quality of findings after 2
 
 Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
 
+**Codex reviewer config:** The global reviewer config (role, checklist, output format) lives at `~/.codex/AGENTS.md`; canonical source tracked in `.dev-knowledge/codex/AGENTS.md` (ADR-54). Per-repo `AGENTS.md` adds only repo-specific rules — it does not repeat the global config.
+
 ---
 
 ## 17. Code Quality Audit Process
