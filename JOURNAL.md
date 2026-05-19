@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-19 — ADR-53: retire ADR-52, establish CLAUDE.md as single instruction file
+
+- Did: Authored ADR-53 superseding ADR-52. Marked ADR-52 superseded (status line only — body untouched). Updated `docs/decisions/README.md` ADR index and traceability table (ADR-52 and ADR-53 both added; ADR-52 was missing from the index). Branch `docs/adr-53-retire-agents-md`.
+- Result: Decision record corrects the false premise in ADR-52 Decision 1 (Claude Code does not auto-read `AGENTS.md`; both active tools read `CLAUDE.md`). Empirical evidence cited: `docs/audits/2026-05-19-cohort1-verification.md`. Three commits: `1d161f0` (ADR-53), `7d70807` (ADR-52 superseded), `bc59e9d` (index).
+- Changes: `docs/decisions/ADR-53-claude-md-single-instruction-file.md` (new, 49 lines); `docs/decisions/ADR-52-agents-md-convention.md` (status line only: Accepted → superseded); `docs/decisions/README.md` (4 lines added: two index rows, two traceability rows).
+- Abandoned: Nothing — scope held cleanly. No PLAYBOOK/ESSENTIALS edits, no AGENTS.md deletions, no template changes (subsequent chunks).
+- Next: (1) Subsequent chunk — remove AGENTS.md from `.dev-knowledge` and `ai-council`, merge content into each repo's CLAUDE.md; (2) update PLAYBOOK/ESSENTIALS, retire AGENTS-md-template.md; (3) resolve open violations from prior session (ai-council CLAUDE.md 200-line trim, corp-monorepo AGENTS.md 10-section form).
+
+---
+
 ### 2026-05-19 — ADR-51 + ADR-52 conformance: AGENTS.md + ARCHITECTURE.md
 
 - Did: Created `AGENTS.md` at repo root (10-section ADR-52 contract); rewrote `ARCHITECTURE.md` to ADR-51 template (three CORE sections, corrected stale references). Branch `feat/dev-knowledge-adr51-52-conformance`. Full approved plan with dispositions R1–R6 + R8 applied.
