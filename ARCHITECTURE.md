@@ -134,7 +134,7 @@ Per ADR-31. `.dev-knowledge` is the **binding source of cross-repo prescriptions
 - **Scale tier:** M, with one L-tier artifact: this `ARCHITECTURE.md`.
 - **Enforcement:** out-of-band, centralized, read-only audit tool (`scripts/audit.py` — pending full implementation per ADR-31). Reads sibling repos via explicit manifest; emits audit report. Manual invocation; no commit gating in downstream repos.
 - **Content layout:** prescriptions live in PLAYBOOK + ADRs; dedicated `cross-repo/` subfolder deferred until prescription count exceeds ~10 or navigation becomes painful.
-- **Baseline rule (ADR-31):** audit tool must run green on first invocation. Two known violations remain open: (1) ai-council CLAUDE.md exceeds 200-line trim target (currently 336 lines); (2) corp-monorepo AGENTS.md exists and has not been removed (pending next-chunk work per ADR-53 Decision 2).
+- **Baseline rule (ADR-31):** audit tool must run green on first invocation. One known violation remains open: corp-monorepo AGENTS.md exists and has not been removed (pending next-chunk work per ADR-53 Decision 2).
 
 ---
 
