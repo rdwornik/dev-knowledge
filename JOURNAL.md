@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-19 — Codex reviewer config globalized (ADR-54)
+
+- Did: Branch `docs/codex-reviewer-global-standard`. Authored `codex/AGENTS.md` as the canonical global Codex reviewer config (generic reviewer role, pre-review ARCHITECTURE.md read instruction, checklist, output format — corp-monorepo-specific items dropped). Deployed to `~/.codex/AGENTS.md` (filesystem action, not committed). Added ADR-54 recording the global-standard decision and scope clarification vs ADR-53 (tool config ≠ instruction contract). Added PLAYBOOK §16 note on config ownership. Corrected ARCHITECTURE.md §Authority line to reflect the new model.
+- Result: `~/.codex/AGENTS.md` live with generic reviewer config. All repos benefit without per-repo duplication. `corp-monorepo/AGENTS.md` retirement queued as a follow-up chunk in that repo.
+- Changes: `codex/AGENTS.md` — new; `docs/decisions/ADR-54-codex-reviewer-global-standard.md` — new; `protocols/PLAYBOOK.md` §16 — 2-line addition; `ARCHITECTURE.md` line 137 — rewritten; `JOURNAL.md` — this entry prepended.
+- Abandoned: nothing.
+- Next: Retire `corp-monorepo/AGENTS.md` (follow-up chunk in corp-monorepo).
+
+---
+
 ### 2026-05-19 — Correct corp-monorepo AGENTS.md violation framing in ARCHITECTURE.md
 
 - Did: Branch `docs/correct-corp-monorepo-agents-violation`. Corrected ARCHITECTURE.md §Authority line 137 — corp-monorepo/AGENTS.md is a Codex tool config, not an ADR-53 instruction contract; ADR-53 has no scope over tool-native config. Violation was a mis-classification, not a real non-conformance.
