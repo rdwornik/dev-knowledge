@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-19 — Chunk 3: bring standard docs into line with ADR-53
+
+- Did: Updated all live governance docs to retire AGENTS.md convention and establish CLAUDE.md as the single canonical per-repo agent-instruction file per ADR-53. Branch `docs/chunk3-standard-to-adr53`. 8 commits across 8 steps.
+- Result: No live governance doc references AGENTS.md prescriptively. PLAYBOOK §CLAUDE.md is the new canonical section (replaces retired §AGENTS.md); dual-read mechanism documented; authority hierarchy updated to 3 levels. CLAUDE-md-template.md is v2.0. AGENTS-md-template.md archived. ADR-53 Decision 4 corrected (thin-pointer framing retired).
+- Changes: `docs/decisions/ADR-53` (Decision 4 wording); `templates/CLAUDE-md-template.md` (v2.0, thin-pointer refs removed); `protocols/PLAYBOOK.md` (§AGENTS.md section removed, §CLAUDE.md rewritten, 8 additional stale refs fixed across file); `protocols/ESSENTIALS.md` (ADR-53 citation, Scale L definition); `templates/AGENTS-md-template.md` → `templates/archive/` (retired); `ARCHITECTURE.md` (codemap, living-files list, violation statement, ADR index); `BACKLOG.md` (open-item wording); `README.md`, `VISION.md`, `templates/codex-review-config-template.md`, `templates/prompt-template.md` (sweep cleanup).
+- Abandoned: Nothing dropped — all 8 steps completed. AGENTS.md root file and CLAUDE.md instruction file untouched (next chunk per scope constraint).
+- Next: Chunk 4 — remove `.dev-knowledge/AGENTS.md` and `ai-council/AGENTS.md`; merge substantive content into each repo's CLAUDE.md per ADR-53 Decision 2.
+
+---
+
 ### 2026-05-19 — ADR-53: retire ADR-52, establish CLAUDE.md as single instruction file
 
 - Did: Authored ADR-53 superseding ADR-52. Marked ADR-52 superseded (status line only — body untouched). Updated `docs/decisions/README.md` ADR index and traceability table (ADR-52 and ADR-53 both added; ADR-52 was missing from the index). Branch `docs/adr-53-retire-agents-md`.
