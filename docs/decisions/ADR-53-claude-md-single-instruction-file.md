@@ -26,7 +26,7 @@ The false premise has already produced observable drift: ADR-52 Decision 1 asser
 
 3. **The `AGENTS-md-template.md` template is to be retired.** `PLAYBOOK.md` and `ESSENTIALS.md` references to the AGENTS.md convention are to be updated to reflect CLAUDE.md as the single instruction file (subsequent implementation chunk).
 
-4. **The per-repo agent-instruction file in the authority chain (ESSENTIALS+PLAYBOOK → per-repo file → `.claude/`) is `CLAUDE.md`, replacing `AGENTS.md`.** The hierarchy levels themselves are unchanged.
+4. **CLAUDE.md — formerly defined as a thin pointer to AGENTS.md — is now the substantive single canonical per-repo agent-instruction file.** The three authority levels (universal protocols → per-repo instruction file → `.claude/` runtime config) are unchanged; the per-repo level is now CLAUDE.md carrying the full contract.
 
 ## Rationale
 
