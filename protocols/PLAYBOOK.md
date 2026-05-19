@@ -2164,6 +2164,8 @@ Cloud-based multi-agent review. Run without arguments (current branch) or with P
 **Option B — Codex CLI (automated, single command):**
 `codex-review -Topic <topic>` (slash command: `/codex-review`) wraps `codex exec --output-last-message`. Produces dated, frontmatter-wrapped audit at `docs/audits/YYYY-MM-DD-codex-{topic}.md`. Read-only sandbox. Opt-in `-AutoCommit`. Requires ChatGPT Plus subscription. See `~/.claude/bin/codex-review.README.md`.
 
+**Code-only rule (per-change codex-review):** codex-review is for code review, not markdown/prose. The wrapper enforces a path-guard against an extension allowlist (`.py .ps1 .sh .ts .tsx .js .jsx .go .rs .rb .java .cs .cpp .c .h .sql .toml .yaml .yml .json .ini`). Mixed diffs are filtered to the code subset before invoking codex. Markdown-only or empty diffs exit cleanly without invoking codex. Mechanically enforced in `~/.claude/bin/codex-review.ps1`.
+
 Both satisfy S15 review requirement. Choose based on quality of findings after 2-week A/B test.
 
 Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
@@ -2176,6 +2178,8 @@ Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
 **When:** Monthly full audit **[L only]** · On-demand before major refactors **[L+M]** · S projects skip.
 **Tool:** Codex CLI or Codex Desktop (independent reviewer — no authorship bias)
 **Cycle:** Read-only audit → triage by severity → fix by tier → re-audit
+
+**Scope distinct from per-change codex-review:** the monthly full-repo audit is deliberately whole-repo (within `src/`) and is **unchanged** by the per-change diff-scoping rules in §16. The code-only path-guard applies here too (no review of markdown files inside `src/`), but the audit's whole-`src/` scope is preserved.
 
 ### Severity tiers
 <!-- scope: dev -->
