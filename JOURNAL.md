@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-19 — Correct corp-monorepo AGENTS.md violation framing in ARCHITECTURE.md
+
+- Did: Branch `docs/correct-corp-monorepo-agents-violation`. Corrected ARCHITECTURE.md §Authority line 137 — corp-monorepo/AGENTS.md is a Codex tool config, not an ADR-53 instruction contract; ADR-53 has no scope over tool-native config. Violation was a mis-classification, not a real non-conformance.
+- Result: Known violations counter → 0 open. ARCHITECTURE.md accurately reflects ecosystem state.
+- Changes: `ARCHITECTURE.md` line 137 — rewritten; `JOURNAL.md` — this entry prepended.
+- Abandoned: nothing.
+- Next: —
+
+---
+
 ### 2026-05-19 — Post-ai-council cross-repo sweep: stale AGENTS.md refs resolved
 
 - Did: Grepped `.dev-knowledge` for ai-council AGENTS.md references after ai-council ADR-53 chunk 4 (AGENTS.md deleted, CLAUDE.md v2.1 live at 139 lines). Branch `docs/post-ai-council-cross-repo-sweep`. 2 commits to live docs.
