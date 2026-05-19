@@ -50,7 +50,7 @@ reads it only when pointed (e.g. "check .dev-knowledge/protocols/PLAYBOOK.md Sec
 | `docs/audits/` | Point-in-time analyses (dated) | Reference; superseded files marked in-file |
 | `docs/handoffs/` | Per-session handoff summaries (folders for new format, .md files for legacy) | When resuming work after break |
 | `scripts/` | Validators + automation | Reference; run via pre-commit |
-| `templates/` | Reusable boilerplate (e.g. AGENTS.md scaffold) | When bootstrapping similar patterns elsewhere |
+| `templates/` | Reusable boilerplate (e.g. CLAUDE.md scaffold) | When bootstrapping similar patterns elsewhere |
 | `.claude/` | Claude Code config (skills, commands, rules) | Automatic — Claude Code reads on boot |
 
 ## Navigation (where to look)
@@ -92,7 +92,7 @@ reads it only when pointed (e.g. "check .dev-knowledge/protocols/PLAYBOOK.md Sec
 ## How it relates to other repos
 <!-- scope: meta -->
 
-- `corp-monorepo` (Scale L): own governance stack (CLAUDE.md, AGENTS.md, JOURNAL.md, docs/HANDOFF.md living doc). Some patterns shared.
+- `corp-monorepo` (Scale L): own governance stack (CLAUDE.md, JOURNAL.md, docs/HANDOFF.md living doc). Some patterns shared.
 - `ai-council` (Scale M): own Python project, outputs flow to target repos per PLAYBOOK S5.N archival protocol. Functions as a tool used by `.dev-knowledge` to generate architectural decisions; debate transcripts return to `.dev-knowledge/docs/decisions/transcripts/` per Council output convention.
 - This repo is the meta-layer and universal brain: how I decide, what I learned, how sessions resume — see `VISION.md` for full mission framing.
 - **Workspace coordination** (outside any single repo): `Dev/.settings/repos.toml` (repo discovery manifest for cross-repo audit) + `Dev/.settings/HUB.md` (multi-repo coordination index). Created 2026-04-27 per Topic 1 authority model + Research Meta-Repo pattern synthesis.

@@ -66,7 +66,7 @@ joining ecosystem, sustained friction in current emphasis areas.
 
 **In scope:**
 - Universal methodology and conventions for LLM-driven development
-- Cross-repo governance patterns (AGENTS.md, CLAUDE.md, ADRs, handoffs)
+- Cross-repo governance patterns (CLAUDE.md, ADRs, handoffs)
 - Knowledge consolidation: lessons learned, decisions, processes
 - Scale assessment (S/M/L) and tier-appropriate guidance per project
 - Audit and verification mechanisms ensuring child repos comply with
@@ -76,7 +76,7 @@ joining ecosystem, sustained friction in current emphasis areas.
 - Code-level implementation in child repos
 - Project-specific business logic, schemas, or domain knowledge
 - Operational data or runtime telemetry
-- Replacement for repo-specific CLAUDE.md, AGENTS.md, or README files
+- Replacement for repo-specific CLAUDE.md or README files
 - Hierarchy or authority over child repos beyond methodology compliance
 
 ## Values

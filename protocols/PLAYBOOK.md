@@ -172,7 +172,7 @@ Per ADR-34 (ratified 2026-04-29, amended 2026-05-11). Canonical source: `docs/de
 
 **[TBD — Stream C session 8, ADR-32 (Cluster 2 work)]**
 
-Folder structure (which `docs/` subfolders exist per Scale S/M/L) depends on Scale tier definitions. Cluster 2 may amend Scale assessment process and AGENTS.md scope, which can change folder structure prescription. Deferred until those amendments land.
+Folder structure (which `docs/` subfolders exist per Scale S/M/L) depends on Scale tier definitions. Cluster 2 may amend Scale assessment process, which can change folder structure prescription. Deferred until those amendments land.
 
 ### Secrets storage path
 <!-- scope: meta -->
@@ -218,7 +218,7 @@ Vibe Code 4 (2026-04-22) established the standard structure during Stream A. Thi
 1. **Model/Mode/Effort table** — `| Model | Sonnet | / | Mode | plan-then-auto | / | Effort | medium |`
 2. **Title** (imperative, what gets accomplished)
 3. **Repo + Purpose** (absolute path + one-sentence outcome)
-4. **Read first** (CLAUDE.md, AGENTS.md, gotchas, relevant docs)
+4. **Read first** (CLAUDE.md, gotchas, relevant docs)
 5. **Git workflow** (branch + commit cadence + merge command)
 6. **UNDERSTAND** (problem, what could break, most likely failure mode)
 7. **Steps with COMMIT markers** (numbered, each ends with conventional commit message)
@@ -292,7 +292,7 @@ Every project declares its scale in its CLAUDE.md:
 ```
 
 Three tiers:
-- **L (Large):** Multi-package repo, 500+ tests, cross-package dependencies. Has ARCHITECTURE.md, per-module READMEs, AGENTS.md for external reviewers.
+- **L (Large):** Multi-package repo, 500+ tests, cross-package dependencies. Has ARCHITECTURE.md, per-module READMEs.
 - **M (Medium):** Standalone package, 50-500 tests, multiple modules, one namespace. May have ARCHITECTURE.md.
 - **S (Small):** Single script or tool, <50 tests, simple flow. Minimal docs beyond CLAUDE.md and CHANGELOG.md.
 
@@ -609,7 +609,7 @@ Per Token-LOG flip 2026-04-24:
 
 - **Newest-first (prepend):** TOKEN-LOG, CHANGELOG, JOURNAL. Rationale: logs optimize for current-state scanning. (JOURNAL flipped 2026-04-27 — original Stream B Gap #4 spec had oldest-top; amended for consistency with TOKEN-LOG/CHANGELOG.)
 - **Append-only (oldest top):** LESSONS. Rationale: chronological narrative for grandfathered learning patterns; order preserves "what we learned when" per ADR-29.
-- **Living (in-place updates):** README, CLAUDE.md, AGENTS.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT. Rationale: not logs; current state matters more than history.
+- **Living (in-place updates):** README, CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT. Rationale: not logs; current state matters more than history.
 - **Immutable (dated):** ADRs, transcripts, handoffs, audits, research. Rationale: point-in-time records; supersession via new file or in-file marker.
 
 ### Section history
@@ -711,11 +711,10 @@ When opening a new session that continues prior work:
 
 **Claude Code resumption:**
 1. Read CLAUDE.md (auto on session start)
-2. Read AGENTS.md (auto)
-3. `git status` and `git log --oneline -5`
-4. Read most recent handoff if exists
-5. Read JOURNAL.md last 5 entries (if file exists per Scale)
-6. Wait for prompt — never improvise
+2. `git status` and `git log --oneline -5`
+3. Read most recent handoff if exists
+4. Read JOURNAL.md last 5 entries (if file exists per Scale)
+5. Wait for prompt — never improvise
 
 **Anti-pattern:** opening new session with bare prompt "continue what we were doing" — without uploading context, both sides reconstruct from memory (browser) or scratch (Claude Code). Quality drops fast.
 
@@ -820,7 +819,7 @@ Three outcomes:
 Standard pipeline:
 1. **ADR if architectural impact** (per Section 5 gating) — module boundaries, dependencies, data model
 2. **Brief Stream B-style gap entry** if it requires multiple changes across files
-3. **Updates to:** AGENTS.md (Section 5: tools active), CLAUDE.md (if Claude Code-specific), ENVIRONMENT.md (if env-level), JOURNAL/CHANGELOG entries
+3. **Updates to:** CLAUDE.md (Section 5: tools active), ENVIRONMENT.md (if env-level), JOURNAL entries
 4. **Hooks/tests/CI** if enforcement needed (LLMs advise; mechanism enforces, per Council #28)
 
 Cross-link from tech-radar entry to the ADR + implementation commits.
@@ -1071,7 +1070,7 @@ Defer if:
 **Project-level** (`<repo>/.claude/<mechanism>/`) when:
 - Pattern is repo-specific (corp-monorepo Tach layers, ai-council debate framework)
 - Sensitive content shouldn't leak to other repos
-- Repo's AGENTS.md/CLAUDE.md needs to reference it explicitly
+- Repo's CLAUDE.md needs to reference it explicitly
 
 When unclear: start project-level (lower blast radius), promote to user-level if pattern proves universal across 2+ repos.
 
@@ -1109,7 +1108,7 @@ After install, link from:
 - **CHANGELOG.md entry** for repo-visible adoptions
 - **tech-radar 2026-Q?.md** Adopted (active inventory) section if user-level (per Gap #17 Continuous Improvement Section 6)
 
-User-level adoptions don't need per-repo AGENTS.md updates (they apply everywhere automatically) but do warrant tech-radar entry for periodic value review.
+User-level adoptions don't need per-repo CLAUDE.md updates (they apply everywhere automatically) but do warrant tech-radar entry for periodic value review.
 
 #### Anti-patterns
 <!-- scope: meta -->
@@ -1554,7 +1553,7 @@ Cost: ~$0.05 + 2min vs Council's $0.50 + 5min. Significantly cheaper for the >70
 | TOKEN-LOG cadence (per-session vs threshold) | Browser + Rob | Two clear options, low reversal cost, browser-architect sufficient |
 | TOKEN-LOG order convention (newest-first) | Browser + Rob | Two options, consistent with CHANGELOG, no architectural ripple |
 | Validator/hook H3 divergence fix | Browser + Rob | Implementation bug, single correct fix, no debate needed |
-| AGENTS.md template structure (10 sections) | Browser + Rob | Well-known community pattern (Council #28 research), no need to re-debate |
+| CLAUDE.md template structure (10 sections) | Browser + Rob | Well-known community pattern (Council #28 research), no need to re-debate |
 
 #### Anti-patterns
 <!-- scope: meta -->
@@ -2144,8 +2143,8 @@ Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
 
 ### Process
 <!-- scope: dev -->
-1. Run audit (read-only): `codex "Audit this repo against AGENTS.md rules. Output findings by severity. Do not fix anything."`
-2. Triage output manually — expect ~30% false positives. Demote miscalibrated patterns in AGENTS.md.
+1. Run audit (read-only): `codex "Audit this repo against CLAUDE.md rules. Output findings by severity. Do not fix anything."`
+2. Triage output manually — expect ~30% false positives. Demote miscalibrated patterns in CLAUDE.md.
 3. Fix CRITICAL and HIGH first. One commit per logical group.
 4. Re-run audit. Confirm flags resolved.
 5. Update ARCHITECTURE.md if module boundaries or dependency direction changed. **[L+M]**

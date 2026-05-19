@@ -1,8 +1,8 @@
 # Codex Code Review Configuration — Embeddable Template
 
-> Codex-specific review configuration content. Embed relevant sections in AGENTS.md Section 5 ("Tools active in this repo") per Scale tier. Scale L gets full version. Scale M gets simplified. Scale S does not embed Codex review (no Codex usage at that scale).
+> Codex-specific review configuration content. Embed relevant sections in CLAUDE.md Section 5 ("Tools active in this repo") per Scale tier. Scale L gets full version. Scale M gets simplified. Scale S does not embed Codex review (no Codex usage at that scale).
 >
-> **Cross-reference:** `templates/AGENTS-md-template.md` is the parent governance template. This file provides Codex-specific content for Section 5 of that template.
+> **Cross-reference:** `templates/CLAUDE-md-template.md` is the parent governance template. This file provides Codex-specific content for Section 5 of that template.
 >
 > **Last updated:** 2026-04-24
 
@@ -11,7 +11,7 @@
 ## Scale L — Full Template (multi-package repos, 500+ tests)
 
 ```markdown
-# AGENTS.md — Codex Code Review Configuration
+# CLAUDE.md — Codex Code Review Configuration
 
 > This file is read automatically by Codex CLI (OpenAI).
 > Codex is a **read-only code reviewer** in this repo. It does not build, fix, or modify.
@@ -122,7 +122,7 @@ Group by severity. Omit empty severity sections.
 ## Scale M — Simplified Template (standalone packages, 50-500 tests)
 
 ```markdown
-# AGENTS.md — Codex Code Review Configuration
+# CLAUDE.md — Codex Code Review Configuration
 
 > Codex is a **read-only code reviewer**. It does not modify files.
 
@@ -161,7 +161,7 @@ Read-only reviewer. May run: git diff, git log, cat, type. Must not modify any f
 
 ---
 
-## Scale S — No AGENTS.md needed
+## Scale S — No dedicated Codex config needed
 
 Projects under 50 tests with simple structure do not benefit from Codex review.
 If needed ad-hoc, run Codex with inline instructions instead of a file.
