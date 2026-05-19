@@ -30,6 +30,8 @@ subfolder holds AI Council debate outputs that informed them.
 | ADR-43 | 2026-05-11 | Cross-project transcript routing — per-invocation, opt-in, config-driven; `target-project:` frontmatter + `--target-project` flag; `TargetResolver` in ai-council CLI |
 | ADR-44 | — | Reserved — scrum-master review propagation authority codification; held pending N=2 empirical instance (corp-monorepo scrum-master review). See PLAYBOOK § 17. |
 | ADR-51 | 2026-05-18 | Architecture documentation convention — `ARCHITECTURE.md` mandatory at M/L scale; hybrid staleness control (auto-generated codemap + CI check + hand-written invariants); graphical at M/L, text-only at S |
+| ADR-52 | 2026-05-19 | ~~AGENTS.md convention — cross-tool agent-instruction contract~~ Superseded by ADR-53 |
+| ADR-53 | 2026-05-19 | CLAUDE.md as single canonical per-repo agent-instruction file — supersedes ADR-52 |
 
 ## Transcript naming convention
 
@@ -72,6 +74,8 @@ historical artifacts from the manual archival era. **Relocated to `transcripts/a
 | ADR-41 | `council-out-20260430-134721-pick-council-adr38-scrum-framework.md` (also cited in ADR-41 Related field as structural context) + `council-out-20260430-150751-research-question-for-a-solo-developer-with-multiple-active.md` (research) |
 | ADR-42 | `council-out-20260509-143831-research-brief-for-ai-council-architect-browser-session-con.md` + `council-out-20260509-144836-research-question-how-should-an-llm-driven-solo-developer-a.md` |
 | ADR-51 | `council-out-20260518_215241-pick-2026-05-18_council-debate-architecture-doc.md` |
+| ADR-52 | *(no Council transcript — Rob's decision, 2026-05-19; ratifies extant PLAYBOOK convention)* |
+| ADR-53 | *(no Council transcript — Rob's decision, 2026-05-19; based on empirical verification `docs/audits/2026-05-19-cohort1-verification.md`)* |
 
 ## Pending Council decisions
 
