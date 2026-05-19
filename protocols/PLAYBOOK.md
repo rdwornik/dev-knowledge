@@ -68,10 +68,31 @@ Section 13 "Where Knowledge Lives" describes knowledge **domains** (what lives w
 <!-- scope: meta -->
 
 - **Single canonical agent-instruction contract** for both Claude Code and Codex operating in this repo
-- Repo identity, architecture, conventions, tools active here
+- Repo identity, architecture pointer, conventions, tools active here
 - Lists slash commands, skills, hooks ACTIVE in this repo
 - Critical rules and anti-patterns specific to this repo
 - Recent ADRs binding here
+
+#### Content-distribution map
+
+Where each class of per-repo content lives (v2.1 template, 12 sections):
+
+| Content class | Home |
+|---|---|
+| Session read order / identity | §1 First read + §2 Repo identity |
+| Architecture overview | `ARCHITECTURE.md` — §3 carries a one-line pointer (required Scale M+) |
+| Conventions (naming, commits, testing, linting) | §4 Conventions |
+| Toolchain commands (test/lint invocations) | §4 Conventions |
+| Out-of-scope for this repo | §4 Conventions ("Out of scope" sub-section) |
+| Critical governance rules | §5 Critical rules |
+| Session start checklist | §6 Session start protocol |
+| Slash commands | §7 Slash commands available |
+| Skills (including gotchas) | §8 Skills active |
+| Toolchain enforcement (hooks, pre-commit) | §9 Hooks active |
+| Anti-patterns / Do NOT | §10 Anti-patterns |
+| Council decisions / ADRs | §11 Recent ADRs |
+
+**Not in CLAUDE.md:** universal rules (`.dev-knowledge/`), architecture docs (`ARCHITECTURE.md`), decision rationale (`docs/decisions/ADR-NN-*.md`).
 
 ### What CLAUDE.md is NOT
 <!-- scope: meta -->
@@ -95,18 +116,20 @@ CLAUDE.md tells the LLM what to do/avoid. Tach, pre-commit hooks, pytest, Codex 
 ### Template
 <!-- scope: meta -->
 
-See `templates/CLAUDE-md-template.md` for the canonical 10-section skeleton (≤200 lines).
+See `templates/CLAUDE-md-template.md` for the canonical 12-section skeleton (≤200 lines).
 
 ### Update cadence
 <!-- scope: meta -->
 
 CLAUDE.md updates when:
-- New ADR is binding (Section 9)
-- New tool adopted (Section 5)
-- New gotcha promoted to skill (Section 6)
-- Architecture change (Section 3)
-- New slash command, skill, or hook added (Sections 5, 6, 7)
-- PLAYBOOK.md restructure (update Section 1 paths)
+- New ADR is binding (Recent ADRs section §11)
+- New slash command adopted (Slash commands section §7)
+- New skill adopted or gotcha promoted (Skills section §8)
+- New hook added (Hooks section §9)
+- New slash command, skill, or hook added (§7, §8, or §9 as applicable)
+- PLAYBOOK.md restructure (update First read section §1 paths)
+
+**Architecture changes go in `ARCHITECTURE.md`** — CLAUDE.md §3 is a static pointer that needs no edit when architecture changes.
 
 **Stale CLAUDE.md = agents operating on outdated context every session.** Treat updates as part of the change that triggered them.
 
