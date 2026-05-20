@@ -1,7 +1,7 @@
 """K1.7 link migration script — one-shot, safe to re-run."""
 import os
 
-SKIP_NAMES = {'CHANGELOG.md', 'JOURNAL.md', 'LESSONS.md', 'TOKEN-LOG.md'}
+SKIP_NAMES = {'JOURNAL.md', 'LESSONS.md', 'TOKEN-LOG.md'}
 
 ADR_RENAMES = [
     ('ADR-27_scope-tagging', 'ADR-27-scope-tagging'),

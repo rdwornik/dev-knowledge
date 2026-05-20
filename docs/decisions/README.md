@@ -29,9 +29,16 @@ subfolder holds AI Council debate outputs that informed them.
 | ADR-42 | 2026-05-09 | Handoff format v3 — three-stage generation flow; v3.2 = flat per-session folder, Q&A iteration loop |
 | ADR-43 | 2026-05-11 | Cross-project transcript routing — per-invocation, opt-in, config-driven; `target-project:` frontmatter + `--target-project` flag; `TargetResolver` in ai-council CLI |
 | ADR-44 | — | Reserved — scrum-master review propagation authority codification; held pending N=2 empirical instance (corp-monorepo scrum-master review). See PLAYBOOK § 17. |
+| ADR-45 | 2026-05-13 | ~~Handoff Architecture v4 — invariant/session separation + defense-in-depth enforcement~~ Superseded by 2026-05-13 night minimum-viable refinement (HANDOFF_PROCESS v3.3) |
+| ADR-46 | 2026-05-15 | Cross-repo dated-entries format — retained as convention, NOT audit-enforced (demoted 2026-05-16) |
+| ADR-47 | 2026-05-15 | Cross-repo BACKLOG.md organization — retained as convention, NOT audit-enforced (demoted 2026-05-16) |
+| ADR-48 | 2026-05-17 | Trim documentation governance to structural enforcement — amends ADR-46/47 (demoted), ADR-27 (scope-tagging retired) |
+| ADR-49 | 2026-05-17 | Consolidate past-recording documentation files — amends ADR-46/47 (fewer files governed) |
+| ADR-50 | 2026-05-17 | Machine-document encoding standard — governance-admission rule for machine-written content |
 | ADR-51 | 2026-05-18 | Architecture documentation convention — `ARCHITECTURE.md` mandatory at M/L scale; hybrid staleness control (auto-generated codemap + CI check + hand-written invariants); graphical at M/L, text-only at S |
 | ADR-52 | 2026-05-19 | ~~AGENTS.md convention — cross-tool agent-instruction contract~~ Superseded by ADR-53 |
 | ADR-53 | 2026-05-19 | CLAUDE.md as single canonical per-repo agent-instruction file — supersedes ADR-52 |
+| ADR-54 | 2026-05-19 | Codex reviewer config as global standard — canonical source at `codex/AGENTS.md`, deployed to `~/.codex/AGENTS.md`; per-repo `AGENTS.md` for repo-specific review rules only |
 
 ## Transcript naming convention
 

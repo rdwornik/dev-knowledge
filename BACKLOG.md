@@ -42,10 +42,10 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-04-30 by rob
 - **Status:** open
 
-### [P2] [open] ESSENTIALS.md cheat-sheet additions for ADRs 35-41
-- **What:** Review which of ADRs 35-41 warrant high-leverage cheat-sheet rules in ESSENTIALS.md. Candidates: lessons retrieval shortcut (ADR-35), audit tool trigger conditions (ADR-36), two-phase handoff quick reference (ADR-37), tier evaluation signals (ADR-40), BACKLOG grooming cadence rules (ADR-41). Apply ESSENTIALS.md "Keep under 1 page" constraint — judgment call which warrant inclusion.
-- **Why:** ESSENTIALS lifecycle update trigger is "lessons promotion, methodology change." Significant methodology change occurred 2026-04-30. Audit observed 226 lines (already over "1 page") so additions require pruning OR explicit relaxation of constraint.
-- **Added:** 2026-04-30 by rob (Phase 1 self-audit)
+### [P2] [open] ESSENTIALS.md cheat-sheet additions for ADRs 35-54
+- **What:** Review which of ADRs 35-54 warrant high-leverage cheat-sheet rules in ESSENTIALS.md. Candidates: lessons retrieval shortcut (ADR-35), audit tool trigger conditions (ADR-36), two-phase handoff quick reference (ADR-37), tier evaluation signals (ADR-40), BACKLOG grooming cadence rules (ADR-41), ARCHITECTURE.md convention (ADR-51), CLAUDE.md single-instruction model (ADR-53), Codex reviewer global standard (ADR-54). Apply ESSENTIALS.md "Keep under 1 page" constraint — judgment call which warrant inclusion.
+- **Why:** ESSENTIALS lifecycle update trigger is "lessons promotion, methodology change." Significant methodology changes accumulated 2026-04-30 through 2026-05-19. Audit observed 226 lines (already over "1 page") so additions require pruning OR explicit relaxation of constraint. Verification 2026-05-20: grep confirms only ADR-53 directly referenced in topical content; ADRs 35-52 and 54 absent.
+- **Added:** 2026-04-30 by rob (Phase 1 self-audit); scope expanded 2026-05-20 (posture audit verification, `docs/audits/2026-05-20-posture-audit-verification.md` finding C2).
 - **Status:** open
 
 ### [P2] [superseded] ADR-29 amendment — formalize "prepend at top" ordering convention for LESSONS.md
@@ -100,6 +100,34 @@ Next quarterly grooming: 2026-07-01
 - **Why:** Latent coverage gap: future misordering around these 8 entries would not be caught. Surfaced by Session D content-preservation count (127 H3 total, 120 regex-matched; delta of 8 = parenthetical entries).
 - **Added:** 2026-05-16 by rob (Session D content-preservation verification)
 - **Status:** open — operator decision required (regex broadening vs entry reformat) before fix
+
+### [P2] [open] scripts/backlog_extract.py references deleted BACKLOG_ARCHIVE.md
+- **What:** `scripts/backlog_extract.py` writes done/abandoned BACKLOG entries to `BACKLOG_ARCHIVE.md` (docstring line 2; code lines 22, 64). `BACKLOG_ARCHIVE.md` was deleted on 2026-05-16 per CLAUDE.md §5 ("Do not recreate `CHANGELOG.md` or `BACKLOG_ARCHIVE.md` — deleted 2026-05-16"). Running the script today would either no-op (no archive to write to) or recreate a file governance forbids. Decide: (a) retire the script entirely (the archive was a deliberate removal), (b) repurpose it (e.g., archive to JOURNAL `Changes:` line or just delete the done entries in place), (c) leave dormant if there's a future scenario that resurrects the archive concept.
+- **Why:** Live script drift against current governance. Either the script is broken (silently) or it would actively re-introduce a deleted file. Confirm + act.
+- **Refs:** `scripts/backlog_extract.py`; CLAUDE.md §5; `docs/audits/2026-05-20-posture-audit-verification.md` finding X1.
+- **Added:** 2026-05-20 by rob (posture audit verification — bonus drift surfaced beyond witness-based audit).
+- **Status:** open
+
+### [P3] [open] scripts/migrate_links.py SKIP_NAMES references deleted CHANGELOG.md
+- **What:** `scripts/migrate_links.py` line 4: `SKIP_NAMES = {'CHANGELOG.md', 'JOURNAL.md', 'LESSONS.md', 'TOKEN-LOG.md'}`. `CHANGELOG.md` was deleted 2026-05-16 per CLAUDE.md §5. The skip-set protects a phantom file. Remove `CHANGELOG.md` from SKIP_NAMES.
+- **Why:** Cosmetic drift; no functional harm but a hard-coded reference to a deleted canonical file. Low-cost touch.
+- **Refs:** `scripts/migrate_links.py:4`; CLAUDE.md §5; `docs/audits/2026-05-20-posture-audit-verification.md` finding X2.
+- **Added:** 2026-05-20 by rob (posture audit verification — bonus drift).
+- **Status:** open
+
+### [P2] [open] docs/decisions/README.md ADR Index missing ADRs 45-50 and 54
+- **What:** `docs/decisions/README.md` carries the canonical ADR index table. Verification 2026-05-20 confirmed the table lists ADR-27 through ADR-44 (44 marked "Reserved"), then jumps to ADR-51 through ADR-53. **Missing from index:** ADR-45 (handoff architecture v4), ADR-46 (cross-repo dated-entries format), ADR-47 (cross-repo BACKLOG.md organization), ADR-48 (trim documentation governance), ADR-49 (consolidate past-recording files), ADR-50 (machine-document encoding), ADR-54 (Codex reviewer global standard). Additionally `ARCHITECTURE.md` "Governing ADRs" section lists ADRs 27-53 but is missing ADR-54.
+- **Why:** Index is the primary discoverability surface for ADRs. 7 missing entries materially degrades navigability for new contributors and for re-orientation after time away. Low-cost to fix (one table extension + one ARCHITECTURE.md list extension). Related to broader I1 (ADR relationship map / supersession graph).
+- **Refs:** `docs/decisions/README.md`; `ARCHITECTURE.md` § Governing ADRs; `docs/audits/2026-05-20-posture-audit-verification.md` finding X3.
+- **Added:** 2026-05-20 by rob (posture audit verification — bonus drift).
+- **Status:** open
+
+### [P3] [open] ADR relationship index / supersession graph
+- **What:** With 27+ ADRs accumulated (gaps at 44 reserved; supersessions like ADR-52 → ADR-53 in flight), the relationship structure — supersedes / supersededBy / related / amends — is not navigable for a fresh reader. Build either (a) a machine-generated graph from ADR frontmatter (`supersedes:`, `related:`, `amends:` fields already exist in newer ADRs), or (b) an index doc with explicit edges. Could be DOT, Mermaid, or markdown table. Same shape as codemap generator work — read frontmatter, render, CI-check freshness.
+- **Why:** New contributors reading ADRs in sequence miss relationship structure. As corpus grows past 30 ADRs, the cost of unfamiliarity compounds. Pairs with F1 (contradiction detection — both need ADR/decision graph as substrate).
+- **Refs:** `docs/decisions/`; `docs/audits/2026-05-19-dev-knowledge-posture-audit.md` finding I1.
+- **Added:** 2026-05-20 by rob (posture audit verification).
+- **Status:** open
 
 ### [P2] [open] Codemap generator output specification (ADR-51 open item)
 - **What:** ADR-51 §5 mandates an auto-generated, CI-freshness-checked codemap for every M/L `ARCHITECTURE.md`, but the generator's output specification is undecided: directory tree vs package dependency graph vs CLI/module inventory vs hybrid. Under-generation fails re-orientation; over-generation produces noise. Two artifacts pending: (a) the generator tool itself (resides in `.dev-knowledge`, consumed by child repos per ADR-36 shared-tooling pattern), (b) the CI freshness-check hook that consumes its output and fails on diff. Until both exist, `templates/ARCHITECTURE-template.md` instructs authors to hand-maintain the codemap in the interim package-tree-with-layer-annotation format documented inline; the template's `<!-- CODEMAP:START/END -->` machine region is reserved for the future generator's insertion point.
@@ -158,10 +186,10 @@ Next quarterly grooming: 2026-07-01
 - **Status:** open — Item 0 (2026-05-11) closed first-step inventory: `docs/decisions/README.md` rewritten with full ADR index 27-42 + transcript convention + ADR↔transcript traceability. Remaining sub-items: (1) contradiction detection mechanism (Council debate territory), (2) ownership model for decision evolution — amendment vs new ADR vs conversational clarification (Council debate territory). "Consolidated index" sub-item closed.
 
 ### [P1] [open] Sacred-files maintenance enforcement
-- **What:** Nine canonical files in every ecosystem repo (ARCHITECTURE, BACKLOG, CHANGELOG, CLAUDE, CONTRIBUTING, JOURNAL, LESSONS, README, VISION) drift out of date because browser chats forget to update them at session boundaries. Need enforcement mechanism — candidates: pre-commit hook checking `last_reviewed` staleness, session-end checklist skill, CI check for file age, or automated diff-based staleness detection. Scope: design enforcement pattern, implement at least one mechanism, validate against known drift scenarios.
-- **Why:** Methodology debt pattern surfaced repeatedly across 2026-05-09 session (LESSONS captures multiple instances of "prescriptive writing without empirical contact"). Sacred files are the ground truth — stale ground truth silently misleads future sessions and chats.
+- **What:** Canonical files in every ecosystem repo drift out of date because browser chats forget to update them at session boundaries. Original list (2026-05-09) was 9 files: ARCHITECTURE, BACKLOG, CHANGELOG, CLAUDE, CONTRIBUTING, JOURNAL, LESSONS, README, VISION. **2026-05-20 verification:** CHANGELOG was deleted from `.dev-knowledge` on 2026-05-16 per CLAUDE.md §5 and must not be recreated; updated list for `.dev-knowledge` is 8 files (drop CHANGELOG). Child repos may retain CHANGELOG. Need enforcement mechanism — candidates: pre-commit hook checking `last_reviewed` staleness, session-end checklist skill, CI check for file age, or automated diff-based staleness detection. Scope: enumerate per-repo lists (the 8/9 split is repo-dependent), design enforcement pattern, implement at least one mechanism, validate against known drift scenarios.
+- **Why:** Methodology debt pattern surfaced repeatedly across 2026-05-09 session (LESSONS captures multiple instances of "prescriptive writing without empirical contact"). Sacred files are the ground truth — stale ground truth silently misleads future sessions and chats. Self-referential drift confirmed 2026-05-20: the sacred-files list itself was stale (listed deleted CHANGELOG).
 - **Vision ref:** VISION.md "Knowledge Guardian" function; ESSENTIALS "Continuous Improvement" section
-- **Added:** 2026-05-09 by rob (session wrap-up observation)
+- **Added:** 2026-05-09 by rob (session wrap-up observation); cross-referenced 2026-05-20 (posture audit verification, finding C1).
 - **Status:** open
 
 ### [P2] [open] Hooks audit + consolidation
@@ -221,6 +249,18 @@ Next quarterly grooming: 2026-07-01
 - **Vision ref:** VISION.md "Auditor" function + "Methodology Author" function
 - **Added:** 2026-05-12 by rob (Prompt L)
 - **Status:** open — N=1 (ai-council 2026-05-12); codification awaits N=2
+
+### [P3] [open] PLAYBOOK codifications from 2026-05-19 posture audit
+- **What:** The posture audit (H3, H4, T1, T2) and verification surfaced four candidate PLAYBOOK additions, each with N≥2 grounding:
+  1. **Governance docs phrased as stable end-state.** Transient status ("to be retired in a follow-up chunk", "not yet started") lives in JOURNAL or a rollout-tracker, not in ADRs / PLAYBOOK / ESSENTIALS. Evidence: three instances this session arc (audit H3).
+  2. **Verify destination before drop.** When relocating or dropping content, Plan Mode confirms destination genuinely covers it. Evidence: chunk B + chunk B-prime this session arc (audit H4).
+  3. **No-delete exception for canonical-source duplicates.** "Never delete content without asking" (Core Invariant #3) does not apply when the deletion targets a duplicate of canonical content preserved elsewhere; the deletion *eliminates* a drift pair. Evidence: vault-writer pointer deletion + corp-monorepo AGENTS.md deletion (audit T1).
+  4. **ADR-with-N=1 valid for singular choices.** N≥2 grounding prevents PATTERN extraction without evidence; a singular architectural CHOICE with no prior precedent can be an ADR-with-N=1 because the choice itself is the record. Evidence: ADR-54 (Codex config placement) (audit T2).
+- **Why:** Each codification prevents an already-observed failure mode from recurring. Bundling into one focused PLAYBOOK update minimizes ADR churn.
+- **Refs:** `docs/audits/2026-05-19-dev-knowledge-posture-audit.md` (findings H3, H4, T1, T2); `docs/audits/2026-05-20-posture-audit-verification.md`.
+- **Vision ref:** VISION.md "Methodology Author" function.
+- **Added:** 2026-05-20 by rob (posture audit triage).
+- **Status:** open
 
 ### [P3] [open] Apply scrum-master review pattern to other child repos
 - **What:** Extend scrum-master review cycle (post-codification) to remaining ecosystem repos. Priority order: (1) corp-monorepo (Scale L; deeper audit warranted — most complex, most governance drift risk); (2) corp-knowledge-extractor / corp-by-os / corp-rfp-agent (verify existence on disk first); (3) corp-ops + corp-sca (Scale S; lighter touch).

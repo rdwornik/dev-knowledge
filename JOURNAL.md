@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-20 — Posture audit verification + triage + quick-win fixes
+
+- Did: (1) Verified the 2026-05-19 posture audit against ground truth — wrote `docs/audits/2026-05-20-posture-audit-verification.md` scoring each finding CONFIRMED / PARTIAL / REFUTED / BONUS. (2) Surfaced 4 bonus drift items the witness-based audit could not see: `scripts/backlog_extract.py` references deleted `BACKLOG_ARCHIVE.md`; `scripts/migrate_links.py` SKIP_NAMES includes deleted `CHANGELOG.md`; `docs/decisions/README.md` ADR Index missing ADRs 45-50 + 54; `ARCHITECTURE.md` Governing ADRs missing ADR-54. (3) Triaged into BACKLOG: updated C1 (sacred-files — drop CHANGELOG from `.dev-knowledge` list) and C2 (ESSENTIALS — expand scope from ADRs 35-41 to 35-54); added 4 new Stream C entries (backlog_extract drift, migrate_links drift, ADR index gaps, ADR relationship index); added 1 new Cross-stream entry (PLAYBOOK codifications from audit H3/H4/T1/T2). (4) Executed two safe quick wins: removed `CHANGELOG.md` from `migrate_links.py` SKIP_NAMES; extended ADR index in `docs/decisions/README.md` with ADRs 45-50 + 54; added ADR-54 to `ARCHITECTURE.md` Governing ADRs.
+- Result: Audit + verification both immutable. LESSONS count corrected from audit's ~39 to actual 135 (3.5x undercount). Tier 1 items (B1 codemap generator, D1 ADR-38 self-compliance, C1 sacred-files coherence) flagged as needing design decisions — out of scope for autonomous run; remain in BACKLOG.
+- Changes: `docs/audits/2026-05-20-posture-audit-verification.md` — new immutable artifact (verification companion to 2026-05-19 audit); `BACKLOG.md` — C1 + C2 updated, 5 entries added (4 in Stream C, 1 in Cross-stream); `scripts/migrate_links.py:4` — CHANGELOG.md removed from SKIP_NAMES; `docs/decisions/README.md` — ADR index table extended with 7 entries; `ARCHITECTURE.md` — Governing ADRs list extended with ADR-54; `JOURNAL.md` — this entry prepended.
+- Abandoned: nothing.
+- Next: Operator review of BACKLOG additions. Tier 1 work (codemap generator + CI freshness check per ADR-51 — already named next-session OBJECTIVE in Stage 2 handoff) and Tier 1 decisions (ADR-38 self-compliance approach: src/ migration vs ADR amendment) are the largest open threads.
+
+---
+
 ### 2026-05-20 — Filed external posture audit (read-only, browser-chat architect)
 
 - Did: Filed `docs/audits/2026-05-19-dev-knowledge-posture-audit.md` — a read-only structural / principle-level audit produced by the browser-chat architect (Claude Opus 4.7) following the ADR-53 / ADR-54 effort closure. Witness-based, no file-state verification; explicit "Unknown — verify against repo" markers. Surfaces 17 principles, findings across 10 areas (A–J), 6 principle tensions, 17-item prioritization (Tier 1 names codemap generator + CI freshness, ADR-38 self-compliance, sacred-files coherence).

@@ -177,6 +177,7 @@ Per ADR-28 invariant: `.dev-knowledge` may host **read-only** validators (Layer 
 - **ADR-51** — ARCHITECTURE.md convention: mandates this repo's ARCHITECTURE.md form and CORE sections
 - **ADR-52** — AGENTS.md convention (superseded by ADR-53)
 - **ADR-53** — CLAUDE.md as single canonical agent-instruction file: supersedes ADR-52
+- **ADR-54** — Codex reviewer config as global standard: canonical source at `codex/AGENTS.md`, deployed to `~/.codex/AGENTS.md`; per-repo `AGENTS.md` only for repo-specific review rules
 
 Reference `docs/decisions/README.md` for full index. Council debate transcripts in `docs/decisions/transcripts/`.
 
