@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-20 — Handoff process audit (mechanism, conformance, gaps)
+
+- Did: Read-only audit of how the handoff process actually works at HEAD. Read ADR-42, ADR-45 (head), `protocols/HANDOFF_PROCESS.md` (v3.3.3), both templates (head), `.claude/commands/handoff.md`, `scripts/backlog_extract.py`, `scripts/migrate_links.py`. Verified the just-completed 2026-05-19 cycle: 12-entry bundle (`docs/handoffs/2026-05-19-dev-knowledge-session-sync/`) + Stage 1+2 archive present. Wrote `docs/audits/2026-05-20-handoff-process.md` — mechanism-first, stage-by-stage, severity-tagged gaps.
+- Result: Audit immutable. Six MEDIUM gaps surfaced (version-string skew across slash command / template / protocol; ADR-45 status semantics ambiguous; Stage 3 still references deleted CHANGELOG; `scripts/backlog_extract.py` targets deleted `BACKLOG_ARCHIVE.md`; Stage 2 thinness has no validator; ADR-39 registry gap on templates). Three LOW gaps (Stage 2.5 placement framing; drift detection same-session assumption; time-bound REALITY clauses). Two INFO notes (Self-Containment Rule discipline-only; JOURNAL per-stage append). All recommended fixes are < 10 lines each.
+- Changes: `docs/audits/2026-05-20-handoff-process.md` (new); JOURNAL prepend.
+- Abandoned: None — read-only audit; no tooling, ADRs, templates, or samples modified.
+- Next: Decide whether to act on the six MEDIUM gaps. The version-label fixes (M-1) and CHANGELOG-step removal (M-3) are pure cleanup; M-2 (ADR-45 status) is a small governance question worth raising before action.
+
+---
+
 ### 2026-05-20 — Posture audit verification + triage + quick-win fixes
 
 - Did: (1) Verified the 2026-05-19 posture audit against ground truth — wrote `docs/audits/2026-05-20-posture-audit-verification.md` scoring each finding CONFIRMED / PARTIAL / REFUTED / BONUS. (2) Surfaced 4 bonus drift items the witness-based audit could not see: `scripts/backlog_extract.py` references deleted `BACKLOG_ARCHIVE.md`; `scripts/migrate_links.py` SKIP_NAMES includes deleted `CHANGELOG.md`; `docs/decisions/README.md` ADR Index missing ADRs 45-50 + 54; `ARCHITECTURE.md` Governing ADRs missing ADR-54. (3) Triaged into BACKLOG: updated C1 (sacred-files — drop CHANGELOG from `.dev-knowledge` list) and C2 (ESSENTIALS — expand scope from ADRs 35-41 to 35-54); added 4 new Stream C entries (backlog_extract drift, migrate_links drift, ADR index gaps, ADR relationship index); added 1 new Cross-stream entry (PLAYBOOK codifications from audit H3/H4/T1/T2). (4) Executed two safe quick wins: removed `CHANGELOG.md` from `migrate_links.py` SKIP_NAMES; extended ADR index in `docs/decisions/README.md` with ADRs 45-50 + 54; added ADR-54 to `ARCHITECTURE.md` Governing ADRs.
