@@ -52,6 +52,8 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 - Claude Code runtime config → `~/.claude/`
 - Council debate transcripts originate in `ai-council/`; they archive here in `docs/decisions/transcripts/`
 
+- **Output formatting:** Session summaries and step reports use plain markdown tables (`| col | col |`) or bullet lists. No Unicode box-drawing characters (`┌─┐ │ ├─┤ └─┘`). No column-padding spaces. Markdown is human-readable and token-cheap; box-drawing is terminal-only and costs ~3x the tokens for equivalent info.
+
 ## 5. Critical rules
 <!-- scope: meta -->
 
