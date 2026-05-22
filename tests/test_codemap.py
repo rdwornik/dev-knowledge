@@ -18,6 +18,7 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 from codemap.ast_walker import analyze_repo  # noqa: E402
 from codemap.mermaid_emit import emit_mermaid  # noqa: E402
 from codemap.generator import generate_codemap  # noqa: E402
+from codemap.check import check_codemap  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -145,3 +146,36 @@ def test_generator_no_tach():
     # no tach.toml in simple-repo → no layer classes, no tach warning
     assert not any("tach" in w.lower() for w in warnings)
     assert "flowchart TD" in mermaid
+
+
+# ---------------------------------------------------------------------------
+# Step 4 — check
+# ---------------------------------------------------------------------------
+
+ARCH_CLEAN = FIXTURES / "codemap-arch-clean"
+ARCH_DRIFT = FIXTURES / "codemap-arch-drift"
+ARCH_NOMARKERS = FIXTURES / "codemap-arch-nomarkers"
+
+
+def test_check_clean():
+    code, out = check_codemap(ARCH_CLEAN)
+    assert code == 0
+    assert out == ""
+
+
+def test_check_drift():
+    code, out = check_codemap(ARCH_DRIFT)
+    assert code == 1
+    assert "---" in out or "+++" in out  # unified diff present
+
+
+def test_check_no_architecture_md(tmp_path):
+    code, out = check_codemap(tmp_path)
+    assert code == 2
+    assert "ARCHITECTURE.md" in out
+
+
+def test_check_no_markers():
+    code, out = check_codemap(ARCH_NOMARKERS)
+    assert code == 3
+    assert "CODEMAP" in out
