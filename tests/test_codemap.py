@@ -16,6 +16,7 @@ SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 from codemap.ast_walker import analyze_repo  # noqa: E402
+from codemap.mermaid_emit import emit_mermaid  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -51,4 +52,52 @@ def test_ast_walker_skips_relative(tmp_path):
 def test_ast_walker_deterministic():
     r1 = analyze_repo(SIMPLE_REPO)
     r2 = analyze_repo(SIMPLE_REPO)
+    assert r1 == r2
+
+
+# ---------------------------------------------------------------------------
+# Step 2 — mermaid_emit
+# ---------------------------------------------------------------------------
+
+
+def test_mermaid_emit_simple():
+    out = emit_mermaid(["pkg_a", "pkg_b"], [("pkg_a", "pkg_b")])
+    assert out.startswith("flowchart TD\n")
+    assert "pkg_a[pkg_a]" in out
+    assert "pkg_b[pkg_b]" in out
+    assert "pkg_a --> pkg_b" in out
+    assert "classDef foundation" in out
+
+
+def test_mermaid_emit_orphan_class():
+    out = emit_mermaid(["pkg_a", "pkg_b", "pkg_c"], [("pkg_a", "pkg_b")])
+    assert "pkg_c[pkg_c]:::orphan" in out
+
+
+def test_mermaid_emit_cycle_class():
+    packages = ["pkg_a", "pkg_b"]
+    edges = [("pkg_a", "pkg_b"), ("pkg_b", "pkg_a")]
+    out = emit_mermaid(packages, edges)
+    assert "linkStyle" in out
+    assert "stroke:#e03131" in out
+
+
+def test_mermaid_emit_layers():
+    layers = {"pkg_a": "core", "pkg_b": "foundation"}
+    out = emit_mermaid(["pkg_a", "pkg_b"], [("pkg_a", "pkg_b")], layers=layers)
+    assert "pkg_a[pkg_a]:::core" in out
+    assert "pkg_b[pkg_b]:::foundation" in out
+
+
+def test_mermaid_emit_click_directives():
+    out = emit_mermaid(["pkg_a", "pkg_b"], [], click_directives=True)
+    assert 'click pkg_a href "src/pkg_a/"' in out
+    assert 'click pkg_b href "src/pkg_b/"' in out
+
+
+def test_mermaid_emit_deterministic():
+    packages = ["pkg_b", "pkg_a"]
+    edges = [("pkg_b", "pkg_a"), ("pkg_a", "pkg_b")]
+    r1 = emit_mermaid(packages, edges)
+    r2 = emit_mermaid(packages, edges)
     assert r1 == r2

@@ -1,0 +1,98 @@
+"""Mermaid flowchart source generation from package/edge data."""
+from __future__ import annotations
+
+
+_ALL_CLASS_DEFS = """\
+    classDef foundation fill:#e8e8e8,stroke:#888
+    classDef core fill:#bde0fe,stroke:#1971c2
+    classDef orchestration fill:#a5d8ff,stroke:#1971c2
+    classDef interface fill:#74c0fc,stroke:#1864ab
+    classDef orphan fill:#fff5f5,stroke:#fa5252,stroke-dasharray:4 4
+    classDef cycle stroke:#e03131,stroke-width:2px"""
+
+
+def _find_cycles(packages: list[str], edges: list[tuple[str, str]]) -> set[tuple[str, str]]:
+    """Return edges that participate in a cycle (DFS)."""
+    adj: dict[str, list[str]] = {p: [] for p in packages}
+    for src, dst in edges:
+        adj[src].append(dst)
+
+    cycle_edges: set[tuple[str, str]] = set()
+    # colours: 0=white, 1=gray (in stack), 2=black (done)
+    color: dict[str, int] = {p: 0 for p in packages}
+    stack: list[str] = []
+
+    def dfs(node: str) -> None:
+        color[node] = 1
+        stack.append(node)
+        for nb in adj[node]:
+            if color[nb] == 1:
+                # back-edge — mark all edges from the cycle portion of the stack
+                idx = stack.index(nb)
+                cycle_nodes = stack[idx:]
+                for i in range(len(cycle_nodes)):
+                    cycle_edges.add((cycle_nodes[i], cycle_nodes[(i + 1) % len(cycle_nodes)]))
+            elif color[nb] == 0:
+                dfs(nb)
+        stack.pop()
+        color[node] = 2
+
+    for p in sorted(packages):
+        if color[p] == 0:
+            dfs(p)
+
+    return cycle_edges
+
+
+def emit_mermaid(
+    packages: list[str],
+    edges: list[tuple[str, str]],
+    layers: dict[str, str] | None = None,
+    source_root: str = "src",
+    click_directives: bool = True,
+) -> str:
+    """Return a Mermaid flowchart string from packages + edges.
+
+    Packages are sorted alphabetically; edges sorted by (from, to).
+    All classDef declarations are always emitted.
+    Orphan packages (no in/out edges) get :::orphan.
+    Cycle edges get :::cycle on involved edges via linkStyle.
+    """
+    packages = sorted(packages)
+    edges = sorted(edges)
+    layers = layers or {}
+
+    connected = set()
+    for src, dst in edges:
+        connected.add(src)
+        connected.add(dst)
+    orphans = {p for p in packages if p not in connected}
+
+    cycle_edges = _find_cycles(packages, edges)
+
+    lines: list[str] = ["flowchart TD"]
+
+    for pkg in packages:
+        cls = layers.get(pkg, "")
+        if pkg in orphans:
+            cls = "orphan"
+        suffix = f":::{cls}" if cls else ""
+        lines.append(f"    {pkg}[{pkg}]{suffix}")
+
+    for src, dst in edges:
+        lines.append(f"    {src} --> {dst}")
+
+    lines.append(_ALL_CLASS_DEFS)
+
+    # Mark cycle edges with linkStyle
+    if cycle_edges:
+        # Build index of each edge position in the sorted edge list
+        for i, edge in enumerate(edges):
+            if edge in cycle_edges:
+                lines.append(f"    linkStyle {i} stroke:#e03131,stroke-width:2px")
+
+    if click_directives:
+        for pkg in packages:
+            lines.append(f'    click {pkg} href "{source_root}/{pkg}/" "Open {pkg}"')
+
+    return "\n".join(lines) + "\n"
