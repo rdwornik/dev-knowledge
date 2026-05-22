@@ -344,6 +344,12 @@ Section names use plain English, not SBAR codes. Canonical headings:
 - `## Rationale (architect judgment)` (was: RATIONALE — keep but narrative form)
 - `## Stage 3 verification summary` (keep — already plain)
 
+Absolute-date conversion rule: when copying REALITY content from `stage2-response.md`
+into `06_STATE_OF_PLAY.md`, convert all relative time references to absolute dates.
+Replace "yesterday", "this morning", "last week", "N days ago", etc. with the
+actual calendar date (YYYY-MM-DD). Anchor: use Stage 1 HEAD date as reference.
+This prevents time-anchored claims from becoming uninterpretable in future sessions.
+
 Code gloss rule: first reference to any status code (P-NN priority, F-NN finding,
 ADR-NN) within a section MUST include in-line gloss. Example:
   `P1 [governance-blocking] — F-01 [first finding from 2026-05-12 audit] —
