@@ -1,6 +1,9 @@
 """Tests for scripts/codemap/ — ast_walker, mermaid_emit, generator, check, cli."""
 from __future__ import annotations
 
+import os
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -179,3 +182,55 @@ def test_check_no_markers():
     code, out = check_codemap(ARCH_NOMARKERS)
     assert code == 3
     assert "CODEMAP" in out
+
+
+# ---------------------------------------------------------------------------
+# Step 5 — CLI integration tests
+# ---------------------------------------------------------------------------
+
+CLI_MODULE = ["python", "-m", "codemap.cli"]
+_ENV = {**os.environ, "PYTHONPATH": str(SCRIPTS_DIR)}
+
+
+def _run_cli(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, "-m", "codemap.cli", *args],
+        capture_output=True,
+        text=True,
+        env=_ENV,
+    )
+
+
+def test_cli_generate_stdout():
+    r = _run_cli("generate", str(SIMPLE_REPO))
+    assert r.returncode == 0
+    assert "flowchart TD" in r.stdout
+    assert "pkg_a" in r.stdout
+
+
+def test_cli_generate_write(tmp_path):
+    # Copy arch-clean fixture to a tmp location so --write can mutate it
+    shutil.copytree(str(ARCH_CLEAN), str(tmp_path / "repo"))
+    r = _run_cli("generate", str(tmp_path / "repo"), "--write")
+    assert r.returncode == 0
+    content = (tmp_path / "repo" / "ARCHITECTURE.md").read_text()
+    assert "flowchart TD" in content
+    assert "<!-- CODEMAP:START -->" in content
+    assert "<!-- CODEMAP:END -->" in content
+
+
+def test_cli_check_clean():
+    r = _run_cli("check", str(ARCH_CLEAN))
+    assert r.returncode == 0
+
+
+def test_cli_check_drift():
+    r = _run_cli("check", str(ARCH_DRIFT))
+    assert r.returncode == 1
+
+
+def test_cli_help():
+    r = _run_cli("--help")
+    assert r.returncode == 0
+    assert "generate" in r.stdout
+    assert "check" in r.stdout
