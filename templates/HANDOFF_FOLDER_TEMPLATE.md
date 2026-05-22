@@ -1,7 +1,7 @@
 # Handoff Folder Template (Stage 3 output structure)
 
 Used by Claude Code in .dev-knowledge during Stage 3 to generate the
-handoff folder. See ADR-42 (amended) and HANDOFF_PROCESS.md v3.3.2 for full flow.
+handoff folder. See ADR-42 (amended) and HANDOFF_PROCESS.md v3.3.3 for full flow.
 
 ## Stage 3 inputs
 
