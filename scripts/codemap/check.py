@@ -24,7 +24,10 @@ def check_codemap(repo_path: Path, source_root: str = "src") -> tuple[int, str]:
     if not arch_file.exists():
         return 2, f"error: ARCHITECTURE.md not found at {arch_file}"
 
-    content = arch_file.read_text(encoding="utf-8")
+    try:
+        content = arch_file.read_text(encoding="utf-8")
+    except OSError as exc:
+        return 2, f"error: cannot read {arch_file}: {exc}"
 
     start_idx = content.find(_START_MARKER)
     end_idx = content.find(_END_MARKER)

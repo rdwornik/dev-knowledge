@@ -27,7 +27,12 @@ def _cmd_generate(args: argparse.Namespace) -> int:
         print(f"error: ARCHITECTURE.md not found at {arch_file}", file=sys.stderr)
         return 2
 
-    content = arch_file.read_text(encoding="utf-8")
+    try:
+        content = arch_file.read_text(encoding="utf-8")
+    except OSError as exc:
+        print(f"error: cannot read {arch_file}: {exc}", file=sys.stderr)
+        return 2
+
     start_idx = content.find(_START_MARKER)
     end_idx = content.find(_END_MARKER)
 
@@ -44,7 +49,11 @@ def _cmd_generate(args: argparse.Namespace) -> int:
         + mermaid
         + content[end_idx:]
     )
-    arch_file.write_text(new_content, encoding="utf-8")
+    try:
+        arch_file.write_text(new_content, encoding="utf-8")
+    except OSError as exc:
+        print(f"error: cannot write {arch_file}: {exc}", file=sys.stderr)
+        return 2
     return 0
 
 
