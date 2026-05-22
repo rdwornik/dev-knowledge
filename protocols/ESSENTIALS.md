@@ -288,7 +288,7 @@ the pre-commit hook list.
 
 1. Full test suite
 2. `git status` — must be clean
-3. If 3+ files changed or 2+ packages touched → `codex-review -Topic <topic>` (slash: `/codex-review`) before merge (threshold for cross-module risk; single-file changes don't need review). Codex-review is for **code review, not markdown/prose** — diffs of only `.md` / governance files are skipped cleanly by the wrapper's path-guard, so a doc-only session needs no codex run.
+3. If 3+ files changed or 2+ packages touched → `/codex-review <topic>` before merge (threshold for cross-module risk; single-file changes don't need review). Codex-review is for **code review, not markdown/prose** — diffs of only `.md` / governance files are skipped cleanly by the wrapper's path-guard, so a doc-only session needs no codex run.
 4. **JOURNAL.md** — prepend an entry using the new structure:
    `### YYYY-MM-DD — <session topic>` (header form), then bullets:
    `- Did:` what was actually done  
