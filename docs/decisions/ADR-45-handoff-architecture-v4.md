@@ -2,7 +2,7 @@
 
 <!-- scope: meta -->
 
-Status: Superseded by 2026-05-13 night minimum-viable refinement (HANDOFF_PROCESS v3.3 + HANDOFF_FOLDER_TEMPLATE update)
+Status: Explored, not adopted; ADR-42 v3.2 remains canonical authority for handoff architecture
 Date: 2026-05-13
 Supersedes: ADR-42 (Handoff Format v3, amended through v3.2)
 Related: ADR-29 (LESSONS.md grandfathering / append-only format),

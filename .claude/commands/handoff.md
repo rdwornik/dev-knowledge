@@ -1,5 +1,5 @@
 ---
-description: Generate or complete handoff per ADR-42 v3.1 three-stage flow
+description: Generate or complete handoff per ADR-42 v3.3.3 three-stage flow
 ---
 
 Invoked by Rob saying one of:
@@ -9,7 +9,7 @@ Invoked by Rob saying one of:
 
 When invoked:
 
-1. Read `protocols/HANDOFF_PROCESS.md` (v3.1) for the full operational procedure.
+1. Read `protocols/HANDOFF_PROCESS.md` (v3.3.3) for the full operational procedure.
 
 2. Determine which action based on trigger phrase + state of
    `docs/handoffs/_in_progress/{slug}/`:

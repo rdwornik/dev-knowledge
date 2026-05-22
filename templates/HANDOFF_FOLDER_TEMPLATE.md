@@ -1,7 +1,7 @@
 # Handoff Folder Template (Stage 3 output structure)
 
 Used by Claude Code in .dev-knowledge during Stage 3 to generate the
-handoff folder. See ADR-42 (amended) and HANDOFF_PROCESS.md v3.3.2 for full flow.
+handoff folder. See ADR-42 (amended) and HANDOFF_PROCESS.md v3.3.3 for full flow.
 
 ## Stage 3 inputs
 
@@ -343,6 +343,12 @@ Section names use plain English, not SBAR codes. Canonical headings:
 - `## Deferred items` (BACKLOG references, not duplications)
 - `## Rationale (architect judgment)` (was: RATIONALE — keep but narrative form)
 - `## Stage 3 verification summary` (keep — already plain)
+
+Absolute-date conversion rule: when copying REALITY content from `stage2-response.md`
+into `06_STATE_OF_PLAY.md`, convert all relative time references to absolute dates.
+Replace "yesterday", "this morning", "last week", "N days ago", etc. with the
+actual calendar date (YYYY-MM-DD). Anchor: use Stage 1 HEAD date as reference.
+This prevents time-anchored claims from becoming uninterpretable in future sessions.
 
 Code gloss rule: first reference to any status code (P-NN priority, F-NN finding,
 ADR-NN) within a section MUST include in-line gloss. Example:

@@ -391,11 +391,10 @@ split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
     of the final handoff folder.
 11. Append JOURNAL entry under today's date:
     `- Handoff Stage 3 complete for {slug}: folder at docs/handoffs/{slug}/`
-12. Append CHANGELOG entry under today's date (Changed or Added section)
-13. Review BACKLOG.md: if any P1 items were closed by this handoff, update Status
-14. Run validators (`python scripts/validate_scope_tags.py`, `pre-commit run --all-files`)
-15. Single commit on feature branch
-16. Report to Rob:
+12. Review BACKLOG.md: if any P1 items were closed by this handoff, update Status
+13. Run validators (`python scripts/validate_scope_tags.py`, `pre-commit run --all-files`)
+14. Single commit on feature branch
+15. Report to Rob:
     - Stage 3 complete
     - Folder: `docs/handoffs/{slug}/`
     - The OLD chat (Stage 2 source) can now be closed — its knowledge
