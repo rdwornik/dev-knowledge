@@ -1,0 +1,7 @@
+[[modules]]
+path = "pkg_a"
+layer = "core"
+
+[[modules]]
+path = "pkg_b"
+layer = "foundation"

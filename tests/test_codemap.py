@@ -17,6 +17,7 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 
 from codemap.ast_walker import analyze_repo  # noqa: E402
 from codemap.mermaid_emit import emit_mermaid  # noqa: E402
+from codemap.generator import generate_codemap  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -101,3 +102,46 @@ def test_mermaid_emit_deterministic():
     r1 = emit_mermaid(packages, edges)
     r2 = emit_mermaid(packages, edges)
     assert r1 == r2
+
+
+# ---------------------------------------------------------------------------
+# Step 3 — generator
+# ---------------------------------------------------------------------------
+
+WITH_TACH = FIXTURES / "codemap-with-tach"
+WITH_ORPHAN = FIXTURES / "codemap-with-orphan"
+WITH_CYCLE = FIXTURES / "codemap-with-cycle"
+
+
+def test_generator_full_flow():
+    mermaid, warnings = generate_codemap(SIMPLE_REPO)
+    assert mermaid.startswith("flowchart TD\n")
+    assert "pkg_a" in mermaid
+    assert "pkg_b" in mermaid
+    assert "pkg_a --> pkg_b" in mermaid
+    assert warnings == []
+
+
+def test_generator_with_tach():
+    mermaid, warnings = generate_codemap(WITH_TACH)
+    assert "pkg_a[pkg_a]:::core" in mermaid
+    assert "pkg_b[pkg_b]:::foundation" in mermaid
+
+
+def test_generator_orphan_warning():
+    mermaid, warnings = generate_codemap(WITH_ORPHAN)
+    assert any("orphan" in w for w in warnings)
+    assert "pkg_orphan[pkg_orphan]:::orphan" in mermaid
+
+
+def test_generator_cycle_warning():
+    mermaid, warnings = generate_codemap(WITH_CYCLE)
+    assert any("circular" in w for w in warnings)
+    assert "linkStyle" in mermaid
+
+
+def test_generator_no_tach():
+    mermaid, warnings = generate_codemap(SIMPLE_REPO)
+    # no tach.toml in simple-repo → no layer classes, no tach warning
+    assert not any("tach" in w.lower() for w in warnings)
+    assert "flowchart TD" in mermaid
