@@ -19,6 +19,21 @@
 
 ---
 
+### 2026-05-22 — Drift burndown: mechanical audit fixes
+
+- Did: Resolved findings M-1, M-2, M-3, L-3 from 2026-05-20 handoff-process audit; X1/M-4 from posture audit. Conditional Step 7 + pre-checks in Steps 5/6 caught prior commit dc46565 had already resolved X2/X3/C1; Step 4 mandatory grep caught test orphan and prompted retire-both decision.
+- Result: chore/drift-burndown-2026-05-22 merged to main via --no-ff (4de8980). 5 substantive commits + 1 Codex audit artifact. 27 tests green; Codex no findings.
+- Changes:
+  - `.claude/commands/handoff.md`, `templates/HANDOFF_FOLDER_TEMPLATE.md` — version labels → v3.3.3 (2072ff7)
+  - `protocols/HANDOFF_PROCESS.md` — Stage 3 step 12 (CHANGELOG append) removed (9434966)
+  - `templates/HANDOFF_FOLDER_TEMPLATE.md` — absolute-date conversion directive added (2dd5dcc)
+  - `docs/decisions/ADR-45-handoff-architecture-v4.md` — Status → "Explored, not adopted; ADR-42 v3.2 remains canonical authority" (abb76a7)
+  - `scripts/backlog_extract.py` + `tests/test_backlog_extract.py` — retired together (ADR-49 dormant target; orphan tests caught by Step 4 grep) (a5ed940)
+- Abandoned: ESSENTIALS additions for ADRs 35–54 (content authorship, separate session); Stage 2 thinness check (new feature); ADR-39 registry for handoff templates (judgment call).
+- Next: Operator to decide Tor B (codemap spec) vs Tor C (corp-monorepo coding) post-session.
+
+---
+
 ### 2026-05-20 — Handoff process audit (mechanism, conformance, gaps)
 
 - Did: Read-only audit of how the handoff process actually works at HEAD. Read ADR-42, ADR-45 (head), `protocols/HANDOFF_PROCESS.md` (v3.3.3), both templates (head), `.claude/commands/handoff.md`, `scripts/backlog_extract.py`, `scripts/migrate_links.py`. Verified the just-completed 2026-05-19 cycle: 12-entry bundle (`docs/handoffs/2026-05-19-dev-knowledge-session-sync/`) + Stage 1+2 archive present. Wrote `docs/audits/2026-05-20-handoff-process.md` — mechanism-first, stage-by-stage, severity-tagged gaps.
