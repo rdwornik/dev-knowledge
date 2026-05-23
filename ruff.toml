@@ -1,0 +1,5 @@
+[lint]
+extend-select = []
+
+[lint.per-file-ignores]
+"tests/fixtures/**" = ["F401", "F811", "E402"]
