@@ -17,7 +17,7 @@ owner: <Rob | other>
 
 **Required content:** every `ARCHITECTURE.md` completes the **CORE** sections (`Purpose`, `Codemap`, `Layer Boundaries & Invariants`). The remaining sections are completed as the repo's complexity warrants. The codemap is graphical (generated Mermaid) by default; a repo too small for a meaningful package graph MAY use a text-only module overview as a transitional form (operator judgment — see the codemap note below), no longer tier-determined.
 
-**Section depth tags:** every `##` header carries a visible bracketed tag — `[CORE]`, `[M/L]`, `[L-opt]`, `[L]`. These are **informational depth indicators** (how much detail a section typically warrants — CORE always; the rest scaling with complexity), **not** tier gates. Authors keep the tags as cognitive structure and complete or delete sections by judgment of what the repo needs.
+**Section tags:** only `[CORE]` is used — it marks the three sections every `ARCHITECTURE.md` must complete (Purpose, Codemap, Layer Boundaries & Invariants). All other sections carry no tag; complete or delete them by judgment of what the repo needs.
 
 **Pointer convention (doc-wide).** Cross-references to other artifacts use a single line: `→ <description>: `<relative/path>`` (arrow + colon, backticked path). Used in §3 and §11 below as well as §4 Diagrams.
 
@@ -104,7 +104,7 @@ Numbered, assertion-style statements — each one is testable in principle (a vi
 
 ---
 
-## Diagrams [M/L]
+## Diagrams
 
 Additional C4-style diagrams that surround the codemap. The §2 codemap is the canonical *modules-and-relations* artifact (graphical by default per ADR-51 Decision 6, as amended 2026-05-23); the diagrams here are the supporting cast — system context, pipeline / data flow, and any other orientation aids the repo needs. They **complement** the codemap, not replace it.
 
@@ -127,7 +127,7 @@ Additional C4-style diagrams that surround the codemap. The §2 codemap is the c
 
 ---
 
-## Module Map [L-opt]
+## Module Map
 
 > **Optional** — typically completed by more complex repos; omit when a flat module overview suffices.
 
@@ -151,7 +151,7 @@ Per-package tables listing every file (or every public module) with a one-line r
 
 ---
 
-## Data Flow [L-opt]
+## Data Flow
 
 > **Optional** — completed when the repo has a non-trivial end-to-end pipeline worth orienting around.
 
@@ -171,7 +171,7 @@ N. <terminal state — where the data ends up>
 
 ---
 
-## Database Schemas [L-opt]
+## Database Schemas
 
 > **Optional** — repo-specific. Complete when the repo owns one or more persistent stores worth documenting at the schema level.
 
@@ -188,7 +188,7 @@ N. <terminal state — where the data ends up>
 
 ---
 
-## Configuration Architecture [L-opt]
+## Configuration Architecture
 
 > **Optional** — repo-specific. Complete when configuration is spread across multiple sources and a single map is useful.
 
@@ -204,7 +204,7 @@ N. <terminal state — where the data ends up>
 
 ---
 
-## CLI Reference [L-opt]
+## CLI Reference
 
 > **Optional** — orientation aid for command-heavy repos. Complete when the repo exposes a substantial CLI surface and a top-level index aids re-entry.
 
@@ -223,7 +223,7 @@ N. <terminal state — where the data ends up>
 
 ---
 
-## Design Patterns [L]
+## Design Patterns
 
 > **Deepest detail — complex repos only.** Omit unless the repo's pattern choices are non-obvious enough to be worth auditing.
 
@@ -236,7 +236,7 @@ Catalog of architectural patterns the repo employs, with an honest quality asses
 
 ---
 
-## Architecture Assessment [L]
+## Architecture Assessment
 
 > **Deepest detail — complex repos only.** Honest self-assessment of the codebase. Not marketing copy.
 
