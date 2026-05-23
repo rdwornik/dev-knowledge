@@ -2298,9 +2298,12 @@ Registration means creating `ecosystem/<name>/state.yaml`. Two paths:
 
 ```
 python scripts/audit.py run --repo-path ../corp-monorepo
+python scripts/audit.py registry update
 ```
 
-This creates `ecosystem/corp-monorepo/state.yaml` with the path, runs all checks, writes history + report. After this the repo is permanently registered for subsequent `run` invocations.
+Step 1 (`run --repo-path`) creates `ecosystem/corp-monorepo/state.yaml`, runs all checks, writes history + report, and permanently registers the repo for subsequent `run` invocations. It does **not** update `ecosystem-index.yaml`.
+
+Step 2 (`registry update`) regenerates `ecosystem-index.yaml` from all current `state.yaml` files. Required after any new registration to keep the rollup index current (see `ecosystem-index.yaml — rollup index` subsection below).
 
 **Option B — manual state.yaml creation**, then `registry update`:
 
