@@ -41,16 +41,23 @@ flowchart TD
 
 `.dev-knowledge` is **Layer 2** of the ADR-28 ecosystem-level three-layer model (layers listed highest to lowest):
 
-```
-Browser chat (Layer 1, analysis)
-        │ handoff → git commit
-        ▼
-.dev-knowledge (Layer 2, passive storage)
-        │ read / pull as context
-        ▼
-Projects (Layer 3, execution)
-        │ reflection → new browser chat
-        └────────────────────────────────► (cycle closes at Layer 1)
+```mermaid
+flowchart TD
+    L1["Browser chat<br/>Layer 1 — analysis"]
+    L2[".dev-knowledge<br/>Layer 2 — passive storage"]
+    L3["Projects<br/>Layer 3 — execution"]
+
+    L1 -->|handoff → git commit| L2
+    L2 -->|read / pull as context| L3
+    L3 -->|reflection → new browser chat| L1
+
+    classDef analysis fill:#bde0fe,stroke:#1971c2,color:#000
+    classDef storage fill:#e8e8e8,stroke:#888,color:#222
+    classDef execution fill:#a5d8ff,stroke:#1971c2,color:#000
+
+    class L1 analysis
+    class L2 storage
+    class L3 execution
 ```
 
 **Enforcement tool:** advisory — the Layer 2 invariant is enforced by convention and the git-discipline rule.
