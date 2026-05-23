@@ -155,6 +155,7 @@ Next quarterly grooming: 2026-07-01
 - **Why:** Operationalizes ADR-40 algorithm; declared tier vs computed tier comparison enables audit findings
 - **Added:** 2026-04-30 by rob
 - **Status:** open — ai-council tier M declared in VISION.md frontmatter (2026-05-12 session). Other repos: pending.
+- **Status update 2026-05-23:** Tier declarations CONFIRMED for the 3 registered repos — `.dev-knowledge` (M), `ai-council` (M), `corp-monorepo` (L) — verified via 2026-05-23 ecosystem audit (all three VISION.md frontmatters include `'tier'` key; report `docs/audits/2026-05-23-ecosystem-audit.md`). Other ecosystem repos (corp-ops, corp-sca-time-automation, corp-knowledge-extractor, corp-by-os, corp-rfp-agent) NOT verified — pending discovery + verification (cross-ref P3 entry "Undiscovered repos confirmation"). Entry status: OPEN (partial completion).
 
 ### [P2] [open] Council research — relative repo complexity evaluation in solo dev / LLM workflows
 - **What:** Council research debate. Question: how do professionals evaluate repo complexity at relative scale (small/medium/large) in solo dev and LLM-driven workflows? Current ADR-40 algorithm (logarithmic Maintainability Index pattern) may embed enterprise-scale assumptions inappropriate for 1-person ecosystem. Surface industry practice — surveys, blog posts, indie hacker conventions, monorepo tools' tier definitions for personal vs team scale. Plus philosophical framing: at what point does a small project become medium, medium become large, when complexity grows logarithmically? Output informs ADR-40 amendment alongside audit tool P1 multi-repo data collection.
@@ -324,6 +325,7 @@ Next quarterly grooming: 2026-07-01
 - **Vision ref:** VISION.md "Disseminator" function; pairs with "Phase 2 universalization rollout" (Cross-stream P2)
 - **Added:** 2026-05-11 by rob (Prompt J ratification, expanded from Prompt H P2)
 - **Status:** open — execute in Phase 2, separate prompt; after Prompt K closes.
+- **Status update 2026-05-23:** Subitem (2) ADR-38 Scale L gaps closure — CONFIRMED COMPLETE per 2026-05-23 ecosystem audit (`check_adr38_baseline` PASS on corp-monorepo; report `docs/audits/2026-05-23-ecosystem-audit.md`). Subitems (1) hyphen migration + (3) archive reclassification — NOT verified by audit; remain open. Entry status: OPEN (partial completion).
 
 ### [P2] [open] ai-council hyphen migration + ADR-38 compliance (Phase 2 expanded scope)
 - **What:** (1) Universal hyphen filename migration for ai-council (likely low impact — audit suggests mostly hyphen-compliant already; verify before migrating); (2) ADR-38 Scale M gaps closure: ARCHITECTURE.md to root, add LESSONS.md, BACKLOG.md. ai-council AGENTS.md removed 2026-05-19 per ADR-53 chunk 4.
