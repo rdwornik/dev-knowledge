@@ -129,13 +129,13 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-20 by rob (posture audit verification).
 - **Status:** open
 
-### [P2] [open] Codemap generator output specification (ADR-51 open item)
+### [P2] [closed] Codemap generator output specification (ADR-51 open item)
 - **What:** ADR-51 §5 mandates an auto-generated, CI-freshness-checked codemap for every M/L `ARCHITECTURE.md`, but the generator's output specification is undecided: directory tree vs package dependency graph vs CLI/module inventory vs hybrid. Under-generation fails re-orientation; over-generation produces noise. Two artifacts pending: (a) the generator tool itself (resides in `.dev-knowledge`, consumed by child repos per ADR-36 shared-tooling pattern), (b) the CI freshness-check hook that consumes its output and fails on diff. Until both exist, `templates/ARCHITECTURE-template.md` instructs authors to hand-maintain the codemap in the interim package-tree-with-layer-annotation format documented inline; the template's `<!-- CODEMAP:START/END -->` machine region is reserved for the future generator's insertion point.
 - **Why:** ADR-51 mandatory minimum (Decision 4) requires a codemap; the convention is **load-bearing** on the generator existing — no M/L repo can satisfy the convention as written until the generator and CI check ship. Resolving the output spec is the first blocker; the tool and CI follow.
 - **Vision ref:** VISION.md "Methodology Author" + "Auditor" functions; ADR-51 open questions; ADR-36 shared tooling
 - **Refs:** `docs/decisions/ADR-51-architecture-doc-convention.md` (open questions section); `templates/ARCHITECTURE-template.md` §2 (interim format + CODEMAP machine region); `docs/audits/2026-05-19-corp-monorepo-architecture-inspection.md` (corp-monorepo's all-hand-written precedent)
 - **Added:** 2026-05-19 by rob (Directive 1b — template authoring; output spec deliberately deferred per Directive instructions)
-- **Status:** open
+- **Closed:** 2026-05-23 — Generator built in Prompt 1 (branch feat/codemap-generator-tool, 6 commits, merged b2296ff). Convention landed in Prompt 2 (branch feat/codemap-amendment-and-dogfood): ADR-51 amendment 2026-05-22 (commit 9cb5aef), template update (09ba1ad), PLAYBOOK § Codemap workflow (392d0c9), pre-commit hook (ed28304), dogfood on .dev-knowledge ARCHITECTURE.md (b439cbd). End-to-end pipeline validated. Cross-repo rollout (corp-monorepo, ai-council) is future-session work.
 
 ## Stream D: corp-sca-time-automation
 

@@ -50,3 +50,40 @@ An AI Council debate was run to settle a standard convention. This ADR records i
 - **Manual upkeep only** (with or without link-checking). Rejected: directly falsified by the five-week-stale handoff precedent.
 - **Per-tier templates** (separate S/M/L documents). Rejected: triples the maintenance surface in `.dev-knowledge` for marginal benefit; incompatible with the single-canonical-template rule.
 - **One-time codemap generation without ongoing CI.** Rejected: recreates the staleness problem in slower motion.
+
+---
+
+## Amendment 2026-05-22 — Codemap generator output specification
+
+**Scope.** This amendment closes BACKLOG Stream C P2 ("Codemap generator output specification"). It specifies the codemap section's canonical output form, the generator tool interface, the freshness-check mechanism, edge case handling, Layer 2 invariant treatment, per-repo adoption model, and cross-reference to the operator-facing workflow documentation. The original Decision 6 example (external SVG reference) is superseded by the embedded Mermaid form defined here.
+
+**Canonical target form.** The codemap section of every M/L `ARCHITECTURE.md` is an auto-generated fenced Mermaid block between `<!-- CODEMAP:START -->` and `<!-- CODEMAP:END -->` markers. The block is written in place by `scripts/codemap/cli.py` using the `--write` flag. VS Code 1.121 (released 2026-05-20) and GitHub render Mermaid natively with panning and zooming; no SVG generation step is required. The prior canonical-target example (`<img src="docs/diagrams/codemap.svg" alt="codemap" />`) in `templates/ARCHITECTURE-template.md` is replaced by an embedded Mermaid example (updated in the same commit arc as this amendment).
+
+**Required content.** The generated block contains: top-level Python packages as nodes (one node per package directory under the repo's configured source root); intra-source-root import edges as directed arrows; layer assignments read from `tach.toml` (if present) as `classDef` color mappings; and click directives per node pointing to each package's source directory for navigation.
+
+**Edge cases — surfaced, not silenced.** The generator does not suppress anomalies; it classifies them visually and emits warnings to stderr:
+
+- *Orphan modules* (zero in/out edges): assigned `:::orphan` class (dashed border); generator emits stderr warning to prompt operator investigation.
+- *Circular dependencies*: nodes involved assigned `:::cycle` class (red border); edges in the cycle styled red; generator emits stderr warning. A circular dependency is an architectural smell — the right response is to investigate import structure, not to silence the signal.
+- *Missing source root* (the configured `--source-root` directory does not exist): generator returns an empty package list with a stderr warning; the inline block is updated to `(no Python packages detected at <source_root>)`.
+- *Missing `tach.toml`*: degraded mode — codemap generated without layer color assignments; generator continues without warning. Adding `tach.toml` post-hoc restores layer colors on the next generation.
+- *Missing `ARCHITECTURE.md` or CODEMAP markers*: generator fails with an operator-actionable error message. Resolution: create `ARCHITECTURE.md` from `templates/ARCHITECTURE-template.md` and ensure both markers are present before re-running.
+
+**Generator tool.** The tool lives at `scripts/codemap/` in `.dev-knowledge` — a stdlib-only Python package (no pip install required in consumer repos). CLI interface:
+
+```
+python -m scripts.codemap.cli generate <repo_path> [--source-root <path>] [--write]
+python -m scripts.codemap.cli check <repo_path> [--source-root <path>]
+```
+
+`generate` without `--write` prints the generated Mermaid block to stdout for inspection. `generate --write` rewrites `ARCHITECTURE.md` in place between the CODEMAP markers. `check` regenerates in memory, diffs against the committed ARCHITECTURE.md content, and exits non-zero with a unified diff on any drift. Default `--source-root` is `src/`; repos with non-standard layout (e.g., `.dev-knowledge` itself uses `scripts/`) supply `--source-root <path>` explicitly.
+
+**Layer 2 invariant treatment — addresses Codex CRITICAL from Prompt 1 review.** The codemap generator's `--write` path mutates `ARCHITECTURE.md`. ADR-28 and ADR-36 establish the Layer 2 read-only-validators invariant: audit and check tools in `.dev-knowledge` must not mutate state in other repos. This ADR-51 amendment explicitly clarifies the boundary: **the codemap generator is a distinct category from Layer 2 validators**. A validator reads state and reports findings; a generator writes the canonical form of a derived artifact from a declared source of truth (here: Python import graph → Mermaid codemap). The `check` subcommand IS a validator and remains Layer 2-compliant (read-only, non-mutating). The `generate --write` subcommand is the generator role; it mutates only `.dev-knowledge`'s own `ARCHITECTURE.md` when run on `.dev-knowledge` itself, or a child repo's `ARCHITECTURE.md` when a child repo operator invokes it locally. This distinction does NOT require amending ADR-28 or ADR-36 — both remain unchanged and fully in force. Future generator-category tools (e.g., a `.gitignore` synthesizer, a formatter) inherit this same boundary clarification without additional ADR amendments.
+
+**CI freshness gate.** Each repo that adopts the generator opts in via a local hook entry in `.pre-commit-config.yaml` invoking `codemap check`. The hook fires when Python source files, `pyproject.toml`, `tach.toml`, or `ARCHITECTURE.md` itself change (configurable `files:` regex). A hook failure blocks the commit until the operator runs `generate --write` and stages the updated `ARCHITECTURE.md`. The specific hook entry form is documented in `protocols/PLAYBOOK.md` § Codemap workflow.
+
+**Per-repo adoption — opt-in, not mandatory.** ADR-51 Decision 4 mandates that every M/L `ARCHITECTURE.md` contain a codemap section. This amendment specifies the canonical generated form of that section. However, ADR-51 does NOT mandate generator-based maintenance — a repo may satisfy Decision 4 with a hand-maintained transitional codemap until it opts in to the generator. Adopting the generator and freshness gate is a per-repo commitment made by that repo's operator. `.dev-knowledge` opts in via this amendment (dogfooded in the same commit arc). Other repos (corp-monorepo, ai-council) opt in independently in future sessions per Hard Constraint #1 (do not touch child repos in this session).
+
+**Operator workflow reference.** The step-by-step generation cadence, manual invocation commands, edge case handling guidance, per-repo opt-in checklist, and troubleshooting notes live in `protocols/PLAYBOOK.md` § Codemap workflow (added in the same commit arc as this amendment).
+
+**Backlog status.** Stream C P2 ("Codemap generator output specification") is CLOSED by this amendment.

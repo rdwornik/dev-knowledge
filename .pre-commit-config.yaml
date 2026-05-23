@@ -9,3 +9,9 @@ repos:
         language: system
         types: [markdown]
         pass_filenames: true
+      - id: codemap-freshness
+        name: Codemap freshness check
+        entry: python -m scripts.codemap.cli check . --source-root scripts
+        language: system
+        files: '(\.py$|^pyproject\.toml$|^tach\.toml$|^ARCHITECTURE\.md$)'
+        pass_filenames: false
