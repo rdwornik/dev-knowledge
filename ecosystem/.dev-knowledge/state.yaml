@@ -1,13 +1,13 @@
 findings:
 - check_name: vision_md
-  evidence: 'VISION.md present; frontmatter keys: [''last_reviewed'', ''owner'', ''scale'',
-    ''status'', ''tier'', ''version'']'
+  evidence: 'VISION.md present; frontmatter keys: [''last_reviewed'', ''owner'', ''status'',
+    ''version'']'
   status: pass
 - check_name: adr38_baseline
-  evidence: 'Missing required: [''src'', ''pyproject.toml'']'
-  status: fail
+  evidence: All ADR-38 universal governance baseline files present
+  status: pass
 - check_name: claude_md
-  evidence: CLAUDE.md present (7955 chars)
+  evidence: CLAUDE.md present (8142 chars)
   status: pass
 last_audit: '2026-05-23'
 name: .dev-knowledge

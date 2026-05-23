@@ -1,6 +1,6 @@
 # Codex Code Review Configuration — Embeddable Template
 
-> Codex-specific review configuration content. Embed relevant sections in CLAUDE.md Skills (§8) and Hooks (§9) sections per Scale tier. Scale L gets full version. Scale M gets simplified. Scale S does not embed Codex review (no Codex usage at that scale).
+> Codex-specific review configuration content. Embed the section matching the repo's review needs in CLAUDE.md Skills (§8) and Hooks (§9). The L / M / S labels below are **informational complexity bands** (the repo-tier system was deprecated 2026-05-23), not tier mandates: a larger / more-tested repo uses the fuller config; a small single-purpose repo may skip Codex review entirely. Choose by judgment of the repo's actual review surface.
 >
 > **Cross-reference:** `templates/CLAUDE-md-template.md` is the parent governance template. This file provides Codex-specific content for the Skills (§8) and Hooks (§9) sections of that template.
 >

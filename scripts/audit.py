@@ -152,7 +152,7 @@ def check_vision_md(repo_path: Path) -> list[Finding]:
         return [Finding("vision_md", "fail", f"VISION.md frontmatter YAML parse error: {e}")]
     if not isinstance(fm, dict):
         return [Finding("vision_md", "fail", "VISION.md frontmatter is not a YAML mapping")]
-    required_keys = {"version", "tier", "owner", "scale"}
+    required_keys = {"version", "last_reviewed", "owner", "status"}
     missing = required_keys - fm.keys()
     if missing:
         return [Finding("vision_md", "warn", f"VISION.md frontmatter missing keys: {sorted(missing)}")]
@@ -160,29 +160,26 @@ def check_vision_md(repo_path: Path) -> list[Finding]:
 
 
 def check_adr38_baseline(repo_path: Path) -> list[Finding]:
-    """Check #2: ADR-38 universal repo architecture baseline (tier M mandatory files + dirs)."""
-    required_files = ["README.md", "VISION.md", "BACKLOG.md"]
-    required_dirs = ["src", "tests"]
-    required_config = ["pyproject.toml"]
-    optional_warn = ["ARCHITECTURE.md"]
+    """Check #2: ADR-38 (amendment A5, 2026-05-23) universal governance baseline.
+
+    Checks the governance documents every repo must carry — not code structure.
+    The repo-tier system is deprecated, so there is no per-tier branching. Code
+    layout (src/, tests/, pyproject.toml) is scoped to code projects per the
+    amendment and is NOT part of this universal governance check (governance-only
+    repos such as .dev-knowledge have no src/ or pyproject.toml). README.md is
+    optional (deprecated from the baseline); CHANGELOG.md was removed by ADR-49.
+    CLAUDE.md is covered by check_claude_md.
+    """
+    required_files = ["VISION.md", "ARCHITECTURE.md", "BACKLOG.md"]
 
     missing_files = [f for f in required_files if not (repo_path / f).exists()]
-    missing_dirs = [d for d in required_dirs if not (repo_path / d).is_dir()]
-    missing_config = [c for c in required_config if not (repo_path / c).exists()]
-    missing_optional = [f for f in optional_warn if not (repo_path / f).exists()]
 
-    all_missing = missing_files + missing_dirs + missing_config
-    if all_missing:
+    if missing_files:
         status = "fail"
-        evidence = f"Missing required: {all_missing}"
-        if missing_optional:
-            evidence += f"; missing optional: {missing_optional}"
-    elif missing_optional:
-        status = "warn"
-        evidence = f"Missing optional (ARCHITECTURE.md — required at tier L): {missing_optional}"
+        evidence = f"Missing required: {missing_files}"
     else:
         status = "pass"
-        evidence = "All ADR-38 tier M mandatory files and directories present"
+        evidence = "All ADR-38 universal governance baseline files present"
     return [Finding("adr38_baseline", status, evidence)]
 
 

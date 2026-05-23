@@ -14,7 +14,7 @@ In order, read:
 2. `<path>/.dev-knowledge/protocols/ESSENTIALS.md` — Rob's universal working style
 3. `<path>/.dev-knowledge/protocols/PLAYBOOK.md` — universal protocols (only sections relevant to current task)
 4. Most recent `docs/handoffs/*.md` if continuing prior session
-5. Last 5 entries of `JOURNAL.md` (if exists per Scale tier)
+5. Last 5 entries of `JOURNAL.md` (if the repo keeps one)
 
 **Skip if not applicable** — but always read 1-2.
 
@@ -22,13 +22,12 @@ In order, read:
 <!-- scope: meta -->
 
 - **Name:** `<repo-name>`
-- **Scale:** `<S | M | L>` (per `.dev-knowledge/protocols/PLAYBOOK.md` Project Scale Tiers)
 - **Status:** `<active | maintenance | archived>`
 
 ## 3. Architecture
 <!-- scope: meta -->
 
-See `ARCHITECTURE.md` for the structural model; read it before structural changes (required at Scale M+, per ADR-51).
+See `ARCHITECTURE.md` for the structural model; read it before structural changes (required for every repo, per ADR-51 as amended 2026-05-23).
 
 ## 4. Conventions
 <!-- scope: meta -->

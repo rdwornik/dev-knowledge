@@ -1,6 +1,5 @@
 ---
-scale: M
-last_reviewed: 2026-05-19
+last_reviewed: 2026-05-23
 status: active
 owner: Rob
 ---
@@ -9,7 +8,7 @@ owner: Rob
 <!-- scope: meta -->
 
 > Living document. Updated after structural changes.
-> Last updated: `2026-05-19` (ADR-51 + ADR-52 conformance rewrite)
+> Last updated: `2026-05-23` (tier-deprecation reconciliation: removed `scale:` frontmatter + tier prose)
 
 ## Purpose [CORE]
 
@@ -110,7 +109,7 @@ When Mermaid diagrams are added, source files go under `docs/diagrams/` as `.mer
 
 - **Scope tags (ADR-27, informal).** `<!-- scope: X -->` tags (`dev | llm | hybrid | runtime | meta`) exist in living files as informal lightweight metadata. Enforcement withdrawn 2026-05-16 per ADR-48; existing tags remain in place. New sections do not need tags.
 - **Append-only files.** LESSONS.md, TOKEN-LOG.md — never edit old entries. JOURNAL.md uses newest-first prepend.
-- **Living files.** README, CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT, VISION, ARCHITECTURE — updated in place when reality shifts.
+- **Living files.** CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT, VISION, ARCHITECTURE — updated in place when reality shifts. (Root `README.md` deleted 2026-05-23 — deprecated from the baseline per ADR-38 amendment A5; redundant with VISION + CLAUDE.md + ARCHITECTURE for this internal-only repo.)
 - **Immutable dated artifacts.** ADRs, transcripts, handoffs, audits, research — supersession via new file or in-file marker, never edit.
 - **Filename conventions.** `ADR-NN-topic.md` for decisions (per ADR-34); `DECISION_NN_snake_case.md` for legacy transcripts (grandfathered); Council CLI output uses `council-out-YYYYMMDD-HHMMSS-topic.md`; kebab-case + ISO date for dated artifacts; ALLCAPS for top-level governance markdown.
 
@@ -120,7 +119,7 @@ When Mermaid diagrams are added, source files go under `docs/diagrams/` as `.mer
 
 Per ADR-31. `.dev-knowledge` is the **binding source of cross-repo prescriptions** (Authority model 1B — Prescriptive with conformance audit).
 
-- **Scale tier:** M, with one L-tier artifact: this `ARCHITECTURE.md`.
+- **Scale tier:** retired 2026-05-23 (repo-tier system deprecated ecosystem-wide; this repo declares no tier). `ARCHITECTURE.md` is now mandatory for every repo (ADR-51 as amended 2026-05-23), not a tier-specific artifact.
 - **Enforcement:** out-of-band, centralized, read-only audit tool (`scripts/audit.py` — pending full implementation per ADR-31). Reads sibling repos via explicit manifest; emits audit report. Manual invocation; no commit gating in downstream repos.
 - **Content layout:** prescriptions live in PLAYBOOK + ADRs; dedicated `cross-repo/` subfolder deferred until prescription count exceeds ~10 or navigation becomes painful.
 - **Baseline rule (ADR-31):** audit tool must run green on first invocation. No known violations remain open. (Codex reviewer config is a global standard at `~/.codex/AGENTS.md`, canonical source at `codex/AGENTS.md` in this repo — ADR-54. Per-repo `AGENTS.md` carries only repo-specific review rules; it does not repeat the global config. Codex tool config is outside ADR-53's scope.)
@@ -145,9 +144,9 @@ Per ADR-28 invariant: `.dev-knowledge` may host **read-only** validators (Layer 
 - **ADR-28** — three-layer architecture (descriptive)
 - **ADR-29** — LESSONS.md grandfathering under scope tagging; scope-tag mechanics now informal per ADR-48; append-only invariant remains binding via CLAUDE.md and ADR-39
 - **ADR-30** — default branch = `main` for all repos
-- **ADR-31** — authority model: Prescriptive with conformance audit (1B); Scale M + ARCHITECTURE.md
+- **ADR-31** — authority model: Prescriptive with conformance audit (1B); ARCHITECTURE.md present
 - **ADR-32** — handoff format: folder-based, 9-section HANDOFF.md, manifest.json, point-in-time governance copies
-- **ADR-33** — VISION.md universalization: mandatory at ≥1 dependent; Standard/Lite tiers
+- **ADR-33** — VISION.md universalization: mandatory at ≥1 dependent; frontmatter per amended schema (Standard/Lite tiers + tier/scale fields removed 2026-05-23)
 - **ADR-34** — file naming convention: UPPERCASE living docs, `ADR-NN-topic` for decisions, `YYYY-MM-DD-slug` for dated artifacts
 - **ADR-35** — lessons base activation: push retrieval via SessionStart hook, pull via `lessons query`
 - **ADR-36** — audit tool architecture: `.dev-knowledge` as ecosystem auditor; read-only, manually invoked

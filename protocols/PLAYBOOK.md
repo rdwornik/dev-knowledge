@@ -80,7 +80,7 @@ Where each class of per-repo content lives (v2.1 template, 12 sections):
 | Content class | Home |
 |---|---|
 | Session read order / identity | §1 First read + §2 Repo identity |
-| Architecture overview | `ARCHITECTURE.md` — §3 carries a one-line pointer (required Scale M+) |
+| Architecture overview | `ARCHITECTURE.md` — §3 carries a one-line pointer (required, every repo, per ADR-51 as amended 2026-05-23) |
 | Conventions (naming, commits, testing, linting) | §4 Conventions |
 | Toolchain commands (test/lint invocations) | §4 Conventions |
 | Out-of-scope for this repo | §4 Conventions ("Out of scope" sub-section) |
@@ -133,12 +133,10 @@ CLAUDE.md updates when:
 
 **Stale CLAUDE.md = agents operating on outdated context every session.** Treat updates as part of the change that triggered them.
 
-### Per-Scale notes
+### Length notes
 <!-- scope: meta -->
 
-- **Scale S:** CLAUDE.md may be 50-100 lines (less infrastructure)
-- **Scale M:** CLAUDE.md may be 100-150 lines (some skills, hooks)
-- **Scale L:** CLAUDE.md should approach but not exceed 200 lines (rich tooling, more ADRs to reference)
+CLAUDE.md length scales with repo complexity (advisory, not gated): a small repo may need only 50-100 lines (less infrastructure); a larger repo with rich tooling and more binding ADRs approaches but does not exceed the 200-line cap.
 
 If CLAUDE.md grows past 200 lines, split content to dedicated docs; only per-repo governance stays here.
 
@@ -190,12 +188,37 @@ Phase 2 (destructive — explicit confirm before each):
 
 Per ADR-34 (ratified 2026-04-29, amended 2026-05-11). Canonical source: `docs/decisions/ADR-34-file-naming-convention.md`. Key rules: hyphen separator universal across filenames and foldernames; `ADR-NN-topic.md` for decisions; `council-out-YYYYMMDD-HHMMSS-topic.md` for Council CLI output; `DECISION_NN_*` legacy transcripts grandfathered; kebab-case + ISO date for audits/handoffs; UPPERCASE for living docs.
 
-### Folder structure per Scale tier
+### Folder structure
 <!-- scope: meta -->
 
-**[TBD — Stream C session 8, ADR-32 (Cluster 2 work)]**
+Which `docs/` subfolders a repo carries (`decisions/`, `handoffs/`, `audits/`, `research/`) is a judgment call by repo complexity, not a gated tier prescription (repo-tier system deprecated 2026-05-23). Add a subfolder when its content class first appears; do not pre-create empty scaffolding. The universal governance baseline (ADR-38 amendment A5) covers the mandatory root files; everything under `docs/` is optional and added on first need.
 
-Folder structure (which `docs/` subfolders exist per Scale S/M/L) depends on Scale tier definitions. Cluster 2 may amend Scale assessment process, which can change folder structure prescription. Deferred until those amendments land.
+### Root hygiene convention
+<!-- scope: dev -->
+<!-- version: 1.0 — 2026-05-23 -->
+
+**Goal:** keep the repo root visually clean (low cognitive overhead) without breaking tooling defaults.
+
+**Consolidate tool configs into `pyproject.toml`** where supported, instead of standalone files at root:
+
+- `[tool.ruff]` (instead of `ruff.toml`)
+- `[tool.pytest.ini_options]` (instead of `pytest.ini`)
+- `[tool.mypy]` (instead of `mypy.ini`)
+- `[tool.tach]` if Tach supports pyproject embedding (verify per Tach version); else keep `tach.toml` at root
+
+> Caveat: only consolidate when a `pyproject.toml` already exists or the repo is a code project. A governance-only repo with no `pyproject.toml` should NOT create one solely to absorb a single `ruff.toml` — that adds a root file rather than removing one, defeating the goal. In that case keep the standalone config.
+
+**Dot-prefix workspace files:** rename `<repo>.code-workspace` to `.<repo>.code-workspace` — hides it from default `ls` while preserving VS Code "Open Workspace" functionality.
+
+**Files that MUST remain at root** (tooling defaults; moving creates friction):
+
+- `pyproject.toml`, `.gitignore`, `.gitattributes`, `.pre-commit-config.yaml`, `.editorconfig`, `.git/`
+
+**Files that CAN move to subfolders:**
+
+- SVGs and rendered diagrams → `docs/diagrams/` or `_assets/`
+- Standalone scripts → `scripts/`
+- Test fixtures → `tests/fixtures/`
 
 ### Secrets storage path
 <!-- scope: meta -->
@@ -305,33 +328,30 @@ This section's history is in PLAYBOOK CHANGELOG entries (search for "prompt temp
 
 ---
 
-## Project Scale Tiers
+## Project complexity bands
 <!-- scope: dev -->
 
-Every project declares its scale in its CLAUDE.md:
+> **Repo-tier system DEPRECATED 2026-05-23.** The formal S/M/L tier system — a declared `tier:`/`scale:` per repo that gated governance baselines — is deprecated ecosystem-wide (operator decision 2026-05-23; see ADR-33 amendment, ADR-38 amendment A5, ADR-40 deprecation). Repos no longer **declare** a tier, and no governance obligation is gated on one. The universal governance baseline (ADR-38 A5) applies to every repo regardless of size.
 
-```
-## Project Scale: L
-```
+The S/M/L labels below survive only as **informal complexity descriptors** — shorthand for "how big is this repo" used to calibrate judgment (how much test infrastructure, how rich a workspace), not as a declared, audited tier:
 
-Three tiers:
-- **L (Large):** Multi-package repo, 500+ tests, cross-package dependencies. Has ARCHITECTURE.md, per-module READMEs.
-- **M (Medium):** Standalone package, 50-500 tests, multiple modules, one namespace. May have ARCHITECTURE.md.
-- **S (Small):** Single script or tool, <50 tests, simple flow. Minimal docs beyond CLAUDE.md and CHANGELOG.md.
+- **large** — multi-package repo, hundreds+ of tests, cross-package dependencies.
+- **medium** — standalone package, dozens-to-hundreds of tests, multiple modules.
+- **small** — single script or tool, few tests, simple flow.
 
-Sections in this Playbook marked with a tier tag (e.g. **[L only]** or **[L+M]**) apply only to those tiers. Unmarked sections apply to all projects.
+These are bands on a continuum, applied by judgment. Guidance below that references them is advisory calibration, not a tier mandate. (Distinct from the *task-complexity* S/M/L sizing used to size Claude Code prompts in `templates/prompt-template.md` — that taxonomy is unaffected by this deprecation.)
 
-### Testing rules per tier
+### Testing rules (scaled by repo complexity)
 <!-- scope: dev -->
-<!-- version: 1.0 — 2026-04-25 -->
+<!-- version: 1.1 — 2026-05-23 -->
 
-Test infrastructure scales with project size. Over-investing in test infra at Scale S wastes effort; under-investing at Scale L creates fragility.
+Test infrastructure scales with project size. Over-investing in test infra on a tiny single-script repo wastes effort; under-investing on a large repo creates fragility. The bands below are advisory calibration (per the complexity descriptors above), not tier mandates.
 
-| Scale | Minimum | Coverage target | Test types | Run command |
+| Repo size | Minimum | Coverage target | Test types | Run command |
 |-------|---------|-----------------|------------|-------------|
-| **S** (<50 tests) | optional | n/a — coverage measurement overhead exceeds value | smoke tests at most | `pytest` (single run) |
-| **M** (50-500 tests) | required | ≥60% on `src/`, no untested public API | pytest unit + selective integration | `pytest -x --tb=short` |
-| **L** (500+ tests) | required | ≥80% on `src/`, comprehensive public API coverage, integration suite for critical paths | pytest unit + integration + e2e where applicable | `pytest -x --tb=short` per step + `pytest --co --collect-only` for sanity |
+| **small** (<50 tests) | optional | n/a — coverage measurement overhead exceeds value | smoke tests at most | `pytest` (single run) |
+| **medium** (50-500 tests) | required | ≥60% on source, no untested public API | pytest unit + selective integration | `pytest -x --tb=short` |
+| **large** (500+ tests) | required | ≥80% on source, comprehensive public API coverage, integration suite for critical paths | pytest unit + integration + e2e where applicable | `pytest -x --tb=short` per step + `pytest --collect-only` for sanity |
 
 > Coverage targets (60%/80%) are guidelines from observed practice, not enforced thresholds. See Section history note for basis.
 
@@ -342,7 +362,7 @@ Test infrastructure scales with project size. Over-investing in test infra at Sc
 - **optional** — tests welcomed but not blocking; useful when complexity warrants
 - **n/a** — measurement overhead exceeds practical value at this scale
 
-#### Per-step test cadence (Scale M and L)
+#### Per-step test cadence (any repo with a test suite)
 <!-- scope: dev -->
 
 Per `templates/prompt-template.md` and PLAYBOOK "Writing prompts for Claude Code" section:
@@ -357,42 +377,42 @@ This cadence catches regressions early and keeps each commit's diff sane to revi
 #### Test types and when
 <!-- scope: dev -->
 
-- **Unit tests:** all Scale M+. Mock external dependencies. Fast feedback (<10s per file).
-- **Integration tests:** Scale L for critical paths (e.g. data pipeline, auth flow). Real dependencies, isolated DB, slower (1-30s per test).
-- **E2E tests:** Scale L for top user journeys. Real environment, optional in standard CI (run nightly or pre-release).
-- **Smoke tests:** Scale S for "did basic flow break?" Single-file pytest, optional CI.
+- **Unit tests:** any repo with non-trivial logic. Mock external dependencies. Fast feedback (<10s per file).
+- **Integration tests:** for critical paths on larger repos (e.g. data pipeline, auth flow). Real dependencies, isolated DB, slower (1-30s per test).
+- **E2E tests:** for top user journeys on larger repos. Real environment, optional in standard CI (run nightly or pre-release).
+- **Smoke tests:** minimum bar for a small repo — "did basic flow break?" Single-file pytest, optional CI.
 
 #### Anti-patterns
 <!-- scope: dev -->
 
-- **Coverage chasing at Scale S** — measuring coverage on <50-test repo wastes 30+ min per session for diminishing return
-- **Skipping tests at Scale L** — "this commit is small" + L-scale repo = recipe for hidden regression
-- **Integration-only at Scale L** — slow feedback discourages running tests; unit tests are the foundation
+- **Coverage chasing on a tiny repo** — measuring coverage on a <50-test repo wastes 30+ min per session for diminishing return
+- **Skipping tests on a large repo** — "this commit is small" + large repo = recipe for hidden regression
+- **Integration-only on a large repo** — slow feedback discourages running tests; unit tests are the foundation
 
 #### Section history
 <!-- scope: dev -->
 
 - v1.0 (2026-04-25) — initial. Coverage targets are guidelines, not enforced thresholds.
 
-### VS Code workspace per Scale tier
+### VS Code workspace
 <!-- scope: dev -->
-<!-- version: 1.0 — 2026-04-25 -->
+<!-- version: 1.1 — 2026-05-23 -->
 
-Each repo has a `.code-workspace` file at root that VS Code uses for project-specific settings and recommended extensions. Templates per Scale tier ensure baseline consistency without preventing repo-specific customization.
+Each repo has a `.code-workspace` file at root that VS Code uses for project-specific settings and recommended extensions. Three templates of increasing richness ensure baseline consistency without preventing repo-specific customization — pick the one matching the repo's complexity (the S/M/L suffixes are richness levels, not declared tiers).
 
 **Templates location:** `.dev-knowledge/templates/workspace-{S,M,L}.code-workspace`
 
 **Bootstrap workflow:**
-1. Copy template matching repo Scale: `cp .dev-knowledge/templates/workspace-S.code-workspace <repo>/<repo-name>.code-workspace`
+1. Copy the template matching repo complexity: `cp .dev-knowledge/templates/workspace-S.code-workspace <repo>/<repo-name>.code-workspace`
 2. Rename to match repo name (e.g. `corp-monorepo.code-workspace`)
 3. Edit `folders` array if multi-folder workspace needed (rare)
 4. Add repo-specific settings/extensions on top of template baseline
 5. Commit `.code-workspace` to repo root (yes, commit it — workspace config is part of dev environment)
 
-#### Scale S (minimal)
+#### Minimal (small repos)
 <!-- scope: dev -->
 
-For Scale S repos (<50 tests, single script/tool, simple flow):
+For small repos (<50 tests, single script/tool, simple flow):
 
 **Settings:**
 - Python interpreter via `.venv/`
@@ -404,27 +424,27 @@ For Scale S repos (<50 tests, single script/tool, simple flow):
 - ms-python.python — Python language support
 - charliermarsh.ruff — linter + formatter
 
-That's it. No testing infra, no git tooling, no diagram support — Scale S doesn't need them.
+That's it. No testing infra, no git tooling, no diagram support — a small repo doesn't need them.
 
-#### Scale M (testing + git tooling)
+#### + testing & git tooling (medium repos)
 <!-- scope: dev -->
 
-For Scale M repos (50-500 tests, standalone package, multiple modules):
+For medium repos (50-500 tests, standalone package, multiple modules):
 
-**Adds to Scale S:**
+**Adds to the minimal set:**
 - pytest test discovery (`python.testing.pytestEnabled`)
 - GitLens (eamodio.gitlens) — git history, blame
 - Error Lens (usernamehw.errorlens) — inline diagnostics
 - TODO Tree (gruntfuggly.todo-tree) — surfaces TODO/FIXME comments
 
-**Why these:** at Scale M, test infrastructure is required (per Testing rules subsection above), and git/error tooling becomes worth setup cost.
+**Why these:** on a medium repo, test infrastructure is worthwhile (per Testing rules subsection above), and git/error tooling becomes worth setup cost.
 
-#### Scale L (full stack)
+#### Full stack (large repos)
 <!-- scope: dev -->
 
-For Scale L repos (500+ tests, multi-package monorepo, ARCHITECTURE.md):
+For large repos (500+ tests, multi-package monorepo):
 
-**Adds to Scale M:**
+**Adds to the medium set:**
 - mypy type checking (`python.analysis.typeCheckingMode: "basic"`)
 - mypy type checker extension (ms-python.mypy-type-checker)
 - TOML support (tamasfe.even-better-toml) — for tach.toml, pyproject.toml, etc.
@@ -432,9 +452,9 @@ For Scale L repos (500+ tests, multi-package monorepo, ARCHITECTURE.md):
 - Mermaid diagram preview (bierner.markdown-mermaid)
 - TODO Tree extended tag list
 
-**Real example:** `corp-monorepo.code-workspace` (Scale L, currently active) reflects this template with corp-monorepo-specific additions.
+**Real example:** `corp-monorepo.code-workspace` (a large repo, currently active) reflects this template with corp-monorepo-specific additions.
 
-**Why these:** at Scale L, architecture diagrams (Mermaid) and type discipline (mypy) become high-leverage. TOML editing matters for Tach, pyproject.toml monorepo-wide configs.
+**Why these:** on a large repo, architecture diagrams (Mermaid) and type discipline (mypy) become high-leverage. TOML editing matters for Tach, pyproject.toml monorepo-wide configs.
 
 #### Customization
 <!-- scope: dev -->
@@ -450,52 +470,21 @@ Template is starting point, not contract. Repos may:
 #### Section history
 <!-- scope: dev -->
 
-- v1.0 (2026-04-25) — initial. Three Scale-tiered templates grounded in `corp-monorepo.code-workspace` actual contents. Will refine based on extension marketplace evolution.
+- v1.0 (2026-04-25) — initial. Three richness-tiered templates grounded in `corp-monorepo.code-workspace` actual contents. Will refine based on extension marketplace evolution.
+- v1.1 (2026-05-23) — de-tiered: S/M/L reframed as richness levels (repo-tier system deprecated).
 
-### Tier transition procedures (ADR-40)
+### Tier transition procedures (ADR-40) — DEPRECATED 2026-05-23
 <!-- scope: meta -->
 
-When the audit tool (Section 18) detects a tier boundary crossing, the following procedures apply. Audit tool reports findings — it does NOT auto-fix or block commits. Solo dev autonomy preserved.
-
-**Composite Tier Score:** Three signals combined via adapted Maintainability Index pattern (higher score = simpler):
-- TCR (Token Context Ratio): total estimated tokens across source-controlled files (chars/4 estimate)
-- Tests count: total `test_*` functions in `tests/` per pytest discovery
-- Modules count: top-level subdirectories under `src/{package}/` with `__init__.py`
-
-Tier thresholds (10-point hysteresis band prevents flapping): score ≥65 → S, 35–64 → M, <35 → L.
-
-#### S → M transition
-<!-- scope: meta -->
-
-Triggered when audit score drops below 65. Required within 2 sessions post-detection:
-
-| Action | Details |
-|--------|---------|
-| VISION.md | Upgrade frontmatter `tier: M` (Lite per ADR-33). Create VISION.md if missing. |
-| BACKLOG.md | Initialize per Section 10 schema. Seed with current pending items. |
-| README.md | Add "Current State" section if absent. |
-| CHANGELOG.md | Mandatory from this point per ADR-38. |
-| Process | Per-handoff backlog grooming (~2 min); per-session JOURNAL entry. |
-
-#### M → L transition
-<!-- scope: meta -->
-
-Triggered when audit score drops below 35. Required within 5 sessions post-detection:
-
-| Action | Details |
-|--------|---------|
-| VISION.md | Upgrade frontmatter `tier: L` (Standard per ADR-33). |
-| ARCHITECTURE.md | Create per ADR-38 mandate. |
-| docs/decisions/ | Create directory; ADRs mandatory for all architectural changes. |
-| Handoffs | Full compliance with ADR-32 v2.0 + ADR-37 two-phase overlay. |
-| Process | Quarterly grooming (~30 min); ADR for architectural decisions; lessons promotion per session. |
-
-#### Demotion (M → S, L → M)
-<!-- scope: meta -->
-
-Rare in practice — repos seldom shrink. Demotion is **not automatic**: requires explicit operator acknowledgment in VISION.md frontmatter update. Audit tool flags demotion candidate; Rob decides whether to formally demote (removing tier-specific obligations) or retain tier. Prevents temporary metric fluctuations from permanently removing governance obligations.
-
-Cross-refs: ADR-40, ADR-36 (audit tool — Section 18)
+> **Obsolete.** This subsection described tier-upgrade procedures (S→M→L) keyed
+> to ADR-40's Composite Tier Score. ADR-40 is deprecated (2026-05-23) and the
+> tier system is removed ecosystem-wide. There is no tier to transition between
+> and no score is computed. The universal governance baseline (ADR-38 amendment
+> A5) applies to every repo from the start — there are no tier-gated obligations
+> to acquire on growth. Retained as a marker so the removed procedures are not
+> silently re-introduced.
+>
+> Cross-refs: ADR-40 (deprecated), ADR-33 amendment, ADR-38 amendment A5, ADR-36 (audit tool — Section 18).
 
 ---
 
@@ -503,7 +492,7 @@ Cross-refs: ADR-40, ADR-36 (audit tool — Section 18)
 <!-- scope: meta -->
 <!-- version: 1.0 — 2026-04-24 -->
 
-Two related questions: **what does each documentation file do** (Gap #4) and **which files exist per Scale tier** (Gap #18). Combined here because they answer "when I need to write something down, where does it go?"
+Two related questions: **what does each documentation file do** (Gap #4) and **which files a repo carries** (Gap #18; file presence is now universal, not tier-gated — see below). Combined here because they answer "when I need to write something down, where does it go?"
 
 ### File type taxonomy
 <!-- scope: meta -->
@@ -514,7 +503,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `CLAUDE.md` | Single canonical agent-instruction contract for Claude Code + Codex; per-repo specifics (architecture, conventions, active tools, binding ADRs, anti-patterns) ≤200 lines | 10-section template | When ADRs, tools, architecture, or gotchas change | Claude Code (auto-read), Codex (via project_doc_fallback_filenames) | Living (sections updated) | Per-repo |
 | `ESSENTIALS.md` | Rob's daily cheat sheet, universal | Sectioned, scope-tagged | When Rob's working style evolves | Rob + every browser/Claude Code session | Living (sections updated) | Universal (`.dev-knowledge` only) |
 | `PLAYBOOK.md` | Universal protocols, this file | Sectioned, scope-tagged, versioned | Per Stream B implementation gaps | Rob + Claude (browser + Code) | Living + section history | Universal (`.dev-knowledge` only) |
-| `JOURNAL.md` | Tactical per-session log | Append-only, dated entries: Did/Failed/Next | Every Claude Code session | Future Claude Code (last 5 entries on startup) | Newest-first prepend | Per-repo (Scale L mandatory; Scale M optional; Scale S no) |
+| `JOURNAL.md` | Tactical per-session log | Append-only, dated entries: Did/Failed/Next | Every Claude Code session | Future Claude Code (last 5 entries on startup) | Newest-first prepend | Per-repo (optional; kept when a repo benefits from a per-session log) |
 | `CHANGELOG.md` | Notable changes, release-note style | Newest-first dated entries | Per noteworthy commit | Rob, future contributors | Newest-first (prepend) | Per-repo |
 | `LESSONS.md` | Process lessons learned | Append-only with `[scope: X]` inline (per ADR-29) | When new lesson emerges (auto-promote at 2× repeat) | Rob, future Claude | Append-only | Universal (`.dev-knowledge` only) |
 | `TOKEN-LOG.md` | Claude usage snapshots | Threshold-triggered (7-day) via /session-summary | Auto when stale | Rob | Newest-first (prepend) | Universal (`.dev-knowledge` only) |
@@ -525,32 +514,25 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `docs/audits/YYYY-MM-DD-*.md` | Point-in-time analyses | Free-form audit | When deep analysis needed | Reference for follow-up work | Dated, immutable (mark SUPERSEDED if redone) | Per-repo |
 | `docs/research/YYYY-MM-DD-*.md` | Research outputs (Council research mode, standalone reports) | Free-form research | When research generates value | Reference for design decisions | Dated, immutable | Universal (`.dev-knowledge` only — research is methodology) |
 
-### Scale tier presence matrix
+### File presence (universal baseline)
 <!-- scope: meta -->
 
-Which files exist per Scale tier (per `Project Scale Tiers` section above):
+File presence is no longer gated per tier (repo-tier system deprecated 2026-05-23). The universal governance baseline (ADR-38 amendment A5) applies to every repo regardless of size:
 
-| File | Scale S | Scale M | Scale L |
-|------|---------|---------|---------|
-| `README.md` | required | required | required |
-| `CLAUDE.md` | required | required | required |
-| `ESSENTIALS.md` | n/a (universal `.dev-knowledge`) | n/a | n/a |
-| `PLAYBOOK.md` | n/a (universal `.dev-knowledge`) | n/a | n/a |
-| `JOURNAL.md` | not used | optional | required |
-| `CHANGELOG.md` | optional | required | required |
-| `LESSONS.md` | n/a (universal `.dev-knowledge`) | n/a | n/a |
-| `TOKEN-LOG.md` | n/a (universal `.dev-knowledge`) | n/a | n/a |
-| `ENVIRONMENT.md` | optional | recommended | required |
-| `docs/decisions/` | optional | recommended | required |
-| `docs/handoffs/` | optional | recommended | recommended |
-| `docs/audits/` | optional | optional | recommended |
+| File | Status |
+|------|--------|
+| `VISION.md` | mandatory (ADR-33, amended frontmatter) |
+| `CLAUDE.md` | mandatory (ADR-31 / ADR-53) |
+| `ARCHITECTURE.md` | mandatory (ADR-51 amended 2026-05-23; root placement per ADR-38 A3) |
+| `BACKLOG.md` | mandatory (ADR-41) |
+| `README.md` | optional — external-audience repos only (deprecated from baseline) |
+| `CHANGELOG.md` | removed — superseded by ADR-49 |
+| `JOURNAL.md` | optional — kept when a per-session log helps |
+| `ENVIRONMENT.md` | optional — kept when tooling state is worth tracking |
+| `docs/decisions/`, `docs/handoffs/`, `docs/audits/`, `docs/research/` | optional — added on first need (see Folder structure above) |
+| `ESSENTIALS.md`, `PLAYBOOK.md`, `LESSONS.md`, `TOKEN-LOG.md` | n/a per-repo — live in `.dev-knowledge` only |
 
-**Reading the matrix:**
-- **required** — file presence is non-negotiable for the Scale tier
-- **recommended** — strong default; absence requires explicit rationale
-- **optional** — use when value clear, skip otherwise
-- **not used** — actively avoid (overkill at this Scale)
-- **n/a (universal)** — file lives in `.dev-knowledge`, not per-repo
+Optional files are added by judgment of repo complexity; no tier makes them mandatory.
 
 ### Common confusions resolved
 <!-- scope: meta -->
@@ -558,7 +540,7 @@ Which files exist per Scale tier (per `Project Scale Tiers` section above):
 **JOURNAL vs handoff:**
 - JOURNAL = within-repo, per-session tactical log. Continuity across Claude Code sessions in same repo.
 - handoff = across-context, browser-chat-to-browser-chat session summary. Continuity when switching chats.
-- Both can coexist. Scale L typically uses both. Scale S/M usually one or the other (often handoffs).
+- Both can coexist. Larger repos typically use both; smaller repos usually one or the other (often handoffs).
 
 **LESSONS vs ADR:**
 - LESSONS = process lessons (how Rob works, anti-patterns, what tooling drift looked like). Append-only.
@@ -639,6 +621,7 @@ Per Token-LOG flip 2026-04-24:
 <!-- scope: meta -->
 
 - v1.0 (2026-04-24) — initial. 12-file taxonomy + Scale matrix + 4 common confusions + order conventions. Will refine after live use.
+- v1.1 (2026-05-23) — Scale matrix replaced by universal file-presence baseline (repo-tier system deprecated; ADR-38 amendment A5).
 - v1.1 (2026-04-27) — JOURNAL ordering amended oldest-top → newest-first prepend per Rob's preference; aligns with TOKEN-LOG/CHANGELOG. LESSONS retains oldest-top (ADR-29 grandfathering). Light-touch amendment, no ADR.
 - v1.2 (2026-04-27) — Handoff format spec added: folder-format introduced (since 2026-04-27) per Topic 2 + Research synthesis. Legacy single-file format preserved. File taxonomy row updated to reflect both formats. First folder-format instance: `docs/handoffs/2026-04-27-stream-c-session-1-final/`.
 
@@ -736,7 +719,7 @@ When opening a new session that continues prior work:
 1. Read CLAUDE.md (auto on session start)
 2. `git status` and `git log --oneline -5`
 3. Read most recent handoff if exists
-4. Read JOURNAL.md last 5 entries (if file exists per Scale)
+4. Read JOURNAL.md last 5 entries (if the repo keeps one)
 5. Wait for prompt — never improvise
 
 **Anti-pattern:** opening new session with bare prompt "continue what we were doing" — without uploading context, both sides reconstruct from memory (browser) or scratch (Claude Code). Quality drops fast.
@@ -1258,10 +1241,12 @@ Then for each feature:
 ### How to choose Model
 <!-- scope: llm -->
 
-- **Sonnet** — single-file changes, mechanical refactors, test writing, boilerplate generation, file renames, config updates, code review
-- **Opus** — multi-package changes, complex debugging, architecture decisions, anything requiring reasoning across 3+ files, novel logic design
+- **Sonnet** for: mechanical work ("apply this fix"), single-file edits, well-specified implementation, pattern-matched code, boilerplate, file renames, config updates, code-and-test loops where the spec is detailed.
+- **Opus** for: audit / review / synthesis tasks; architecture decisions and clause-level reasoning; judgment-heavy work (severity calibration, ambiguity resolution); long-context comparison across multiple inputs; subtle pattern recognition (security review, gotcha identification); multi-package changes; complex debugging; novel logic design.
 
 Rule of thumb: if the task is "do X the way we always do it" → Sonnet. If the task is "figure out the right approach, then do it" → Opus.
+
+**Actively choose per task; do NOT default to Sonnet.** There is no budget ceiling per the LLM-spend rule. When uncertain, lean Opus — Sonnet's failure modes (missed nuance, factual misses) cost more than Opus's overhead.
 
 ### How to choose Mode
 <!-- scope: runtime -->
@@ -1894,12 +1879,12 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
 
 ---
 
-## 10. BACKLOG Grooming Workflow [M+]
+## 10. BACKLOG Grooming Workflow
 <!-- scope: meta -->
 
 `BACKLOG.md` is the single canonical source for ALL pending items across sessions. Handoffs reference BACKLOG items by pointer (stream + title), never duplicate the queue. Per-handoff and quarterly grooming prevent the write-only graveyard anti-pattern.
 
-**Tier mandate:** M and L repos: BACKLOG.md MANDATORY. S repos: pending items live in handoff §4 per ADR-32 until S→M transition triggers the BACKLOG mandate (within 2 sessions of audit detection — see "Project Scale Tiers" tier transition procedures).
+**Mandate:** `BACKLOG.md` is part of the universal governance baseline (ADR-38 amendment A5, 2026-05-23; ADR-41) — mandatory for every repo regardless of size. (Previously gated to M+ repos; the repo-tier system is deprecated.)
 
 ### Schema
 <!-- scope: meta -->
@@ -1954,7 +1939,7 @@ BACKLOG.md is the single source of truth. Handoffs must NOT duplicate the pendin
 
 Browser 2 (incoming) at session start: read handoff Current + Future State → read BACKLOG.md for full context → validate Future State items against BACKLOG.md (drift check per ADR-37) → act on prioritized items.
 
-Cross-refs: ADR-41, ADR-37 (Section 8), ADR-40 (tier transitions in "Project Scale Tiers" section)
+Cross-refs: ADR-41, ADR-37 (Section 8), ADR-38 amendment A5 (universal baseline — BACKLOG mandatory every repo)
 
 ---
 
@@ -2123,11 +2108,13 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 
 ---
 
-## 16. Cross-Tool Review **[L+M]**
+## 16. Cross-Tool Review
 <!-- scope: dev -->
 
 **When:** Feature branch touches 3+ files OR 2+ packages OR safety-critical paths (vault writes, OneDrive ops, cleanup/delete)
 **Skip when:** Single-file fix, test-only changes, documentation updates
+
+(Gated by change size and risk, above — not by any repo tier; the repo-tier system was deprecated 2026-05-23.)
 
 ### Review Tools
 <!-- scope: dev -->
@@ -2153,9 +2140,9 @@ Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
 ## 17. Code Quality Audit Process
 <!-- scope: dev -->
 
-**When:** Monthly full audit **[L only]** · On-demand before major refactors **[L+M]** · S projects skip.
+**When:** Periodic full audit (cadence by repo complexity — larger/more-active repos more often) · On-demand before major refactors · a tiny single-script repo may skip entirely. Judgment call, not tier-gated.
 **Tool:** Codex CLI or Codex Desktop (independent reviewer — no authorship bias)
-**Cycle:** Read-only audit → triage by severity → fix by tier → re-audit
+**Cycle:** Read-only audit → triage by severity → fix by severity → re-audit
 
 **Scope distinct from per-change codex-review:** the monthly full-repo audit is deliberately whole-repo (within `src/`) and is **unchanged** by the per-change diff-scoping rules in §16. The code-only path-guard applies here too (no review of markdown files inside `src/`), but the audit's whole-`src/` scope is preserved.
 
@@ -2172,29 +2159,28 @@ Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
 2. Triage output manually — expect ~30% false positives. Demote miscalibrated patterns in CLAUDE.md.
 3. Fix CRITICAL and HIGH first. One commit per logical group.
 4. Re-run audit. Confirm flags resolved.
-5. Update ARCHITECTURE.md if module boundaries or dependency direction changed. **[L+M]**
+5. Update ARCHITECTURE.md if module boundaries or dependency direction changed.
 
 ### Rules
 <!-- scope: dev -->
 - Audit-first, fix-second. Never fix while auditing.
 - Claude Code fixes. Codex audits. Never reverse the roles.
 - Structural changes with N>5 call sites: shim first, migrate incrementally, remove shim last.
-- Any session touching module boundaries must produce or update ARCHITECTURE.md. **[L+M]**
+- Any session touching module boundaries must produce or update ARCHITECTURE.md (mandatory every repo per ADR-51 as amended 2026-05-23).
 
 ### Post-Structural-Change Documentation
 <!-- scope: dev -->
 
 After any change that moves, renames, or reorganizes files or modules, update documentation that describes the changed structure:
 
-- **L:** Update ARCHITECTURE.md + affected module READMEs in src/*/
-- **M:** Update ARCHITECTURE.md if it exists
-- **S:** No structural docs to update beyond CHANGELOG.md
+- Always update `ARCHITECTURE.md` (mandatory every repo per ADR-51 as amended 2026-05-23).
+- On a larger repo, also update affected module READMEs under `src/*/`.
 
-This is not optional for the applicable tier. Stale structural documentation is worse than no documentation — it actively misleads.
+This is not optional. Stale structural documentation is worse than no documentation — it actively misleads.
 
 ---
 
-## 18. Ecosystem Audit Tool Workflow [L+M]
+## 18. Ecosystem Audit Tool Workflow
 <!-- scope: meta -->
 
 `scripts/audit.py` is the ecosystem conformance checker per [ADR-36](docs/decisions/ADR-36-audit-tool-architecture.md). It reads child repos under `Dev/` and writes only to `.dev-knowledge` paths — never touches child repo files. Audit is advisory: findings surface non-compliance; remediation is manual.
@@ -2208,8 +2194,8 @@ Three checks active as of commit `deedc10` (P2 checks `backlog_organization` and
 
 | Check | ADR | What it verifies | FAIL | WARN | PASS |
 |---|---|---|---|---|---|
-| `vision_md` | ADR-33 | VISION.md exists at repo root with valid YAML frontmatter containing `version`, `tier`, `owner`, `scale` | absent or frontmatter unparseable | frontmatter valid but missing required keys | all required keys present |
-| `adr38_baseline` | ADR-38 | README.md, VISION.md, BACKLOG.md, `src/` dir, `tests/` dir, `pyproject.toml` present | any required item missing | ARCHITECTURE.md absent (optional at tier M, required at tier L) | all present |
+| `vision_md` | ADR-33 (amended 2026-05-23) | VISION.md exists at repo root with valid YAML frontmatter containing `version`, `last_reviewed`, `owner`, `status` (tier/scale removed) | absent or frontmatter unparseable | frontmatter valid but missing required keys | all required keys present |
+| `adr38_baseline` | ADR-38 (A5, 2026-05-23) | universal governance baseline at repo root: `VISION.md`, `ARCHITECTURE.md`, `BACKLOG.md` present (README optional; src/tests/pyproject not checked — governance baseline, not code-structure) | any required item missing | — | all present |
 | `claude_md` | ADR-53 | CLAUDE.md exists at repo root and is non-empty | absent or empty | — | present with content |
 
 ### CLI commands
@@ -2320,8 +2306,8 @@ repos:
     evidence: 'VISION.md present; frontmatter keys: [...]'
     status: pass
   - check_name: adr38_baseline
-    evidence: Missing required: ['src', 'pyproject.toml']
-    status: fail
+    evidence: All ADR-38 universal governance baseline files present
+    status: pass
   - check_name: claude_md
     evidence: CLAUDE.md present (4821 chars)
     status: pass
@@ -2333,7 +2319,7 @@ repos:
     evidence: 'VISION.md present; frontmatter keys: [...]'
     status: pass
   - check_name: adr38_baseline
-    evidence: All ADR-38 tier M mandatory files and directories present
+    evidence: All ADR-38 universal governance baseline files present
     status: pass
   - check_name: claude_md
     evidence: CLAUDE.md present (3102 chars)

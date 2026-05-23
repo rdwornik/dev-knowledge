@@ -2,8 +2,27 @@
 
 <!-- scope: meta -->
 
-Status: Accepted
-Date: 2026-04-30
+> **Status: DEPRECATED 2026-05-23.** The tier system this ADR computes is
+> deprecated ecosystem-wide. No replacement. Retained for historical
+> decision-trace only — defines no active machinery. See the Deprecation note
+> below and [[ADR-38]] amendment A5 + [[ADR-33]] amendment, same date.
+
+Status: Deprecated (was: Accepted)
+Date: 2026-04-30 (deprecated 2026-05-23)
+
+## Deprecation note 2026-05-23
+
+Operator decision 2026-05-23 — full tier-system deprecation. ADR-40's
+`compute_tier_score` / `classify_tier` algorithm produced calibration values
+that were never operationally consumed: the audit tool did not gate on
+computed tier, and the calibration baseline clamped all repos to a single tier
+under the documented miscalibration (VISION F-08). Tier-conditional governance
+baselines did not differentiate behavior in practice (tier-as-theater
+analysis). The `tier:`/`scale:` frontmatter fields this ADR fed are removed
+(ADR-33 amendment 2026-05-23); the universal baseline replaces all
+tier-conditional file mandates (ADR-38 amendment A5 2026-05-23). This ADR is
+retained as historical record; the algorithm below is no longer authoritative
+and no tool implements it.
 Related: ADR-33 (VISION universalization, tier Lite/Standard),
          ADR-36 (audit tool — consumer of this algorithm),
          ADR-38 (universal repo architecture — defines module/test/TCR),

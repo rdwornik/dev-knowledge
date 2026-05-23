@@ -22,7 +22,7 @@ If ESSENTIALS or PLAYBOOK are unavailable, proceed with this file alone but flag
 <!-- scope: meta -->
 
 - **Name:** `.dev-knowledge`
-- **Scale:** M (per `protocols/PLAYBOOK.md` Project Scale Tiers)
+- **Complexity:** medium (informal; repo-tier system deprecated 2026-05-23 — no declared tier)
 - **Status:** active
 - **Purpose:** Universal LLM-driven development guide and methodology framework; governs all projects under `Dev/`; Layer 2 of the ADR-28 three-layer ecosystem model
 - **Owner:** Rob
@@ -32,7 +32,7 @@ If ESSENTIALS or PLAYBOOK are unavailable, proceed with this file alone but flag
 ## 3. Architecture
 <!-- scope: meta -->
 
-See `ARCHITECTURE.md` for the structural model; read it before structural changes (required at Scale M+, per ADR-51). NOT a code project — markdown governance files + read-only validators only.
+See `ARCHITECTURE.md` for the structural model; read it before structural changes (required for every repo, per ADR-51 as amended 2026-05-23). NOT a code project — markdown governance files + read-only validators only.
 
 ## 4. Conventions
 <!-- scope: meta -->
@@ -43,7 +43,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 - **Testing:** `pytest -x --tb=short` (known pre-existing failure: `test_audit_run_passes_structural_checks_on_synthetic_repo` — tracked in BACKLOG)
 - **Linting:** `ruff check --fix` (pre-commit)
 - **Scope tags:** `<!-- scope: X -->` (`dev|llm|hybrid|runtime|meta`) — informal only; not enforced (ADR-27; enforcement withdrawn per ADR-48)
-- **File lifecycle:** Append-only: `LESSONS.md`, `TOKEN-LOG.md` (never edit), `JOURNAL.md` (newest-first prepend). Immutable: ADRs, transcripts, handoffs, audits (supersede with new file). Living: `VISION.md`, `ARCHITECTURE.md`, `README.md`, `CLAUDE.md`, `protocols/*.md`, `BACKLOG.md` (update in place).
+- **File lifecycle:** Append-only: `LESSONS.md`, `TOKEN-LOG.md` (never edit), `JOURNAL.md` (newest-first prepend). Immutable: ADRs, transcripts, handoffs, audits (supersede with new file). Living: `VISION.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/*.md`, `BACKLOG.md` (update in place).
 
 **Out of scope for this repo:**
 - Code-level implementation → child repos (corp-monorepo, ai-council, etc.)
@@ -61,7 +61,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 2. **`JOURNAL.md` is append-only newest-first** — prepend at session wrap or workday close
 3. **ADRs, transcripts, handoffs, audits are immutable** — supersede with a new file or in-file marker; never edit in place
 4. **Layer 2 never executes** — no orchestration scripts; `scripts/` contains read-only validators only (ADR-28, ADR-36)
-5. **No new markdown files without checking README.md growth triggers** — when navigation overhead emerges, evaluate DevVault migration
+5. **No new markdown files without checking navigation/growth triggers** — when navigation overhead emerges, evaluate DevVault migration. Root `README.md` deleted 2026-05-23 (deprecated per ADR-38 amendment A5; redundant with VISION + CLAUDE.md + ARCHITECTURE for this internal-only repo) — do not recreate it.
 6. **Keep files consistent** — ESSENTIALS summarizes PLAYBOOK, not copies it; divergence causes drift
 7. **No executable rules in this repo** — those go in `~/.claude/` with `verify:` lines
 8. **Do not recreate `CHANGELOG.md` or `BACKLOG_ARCHIVE.md`** — deleted 2026-05-16; git history + JOURNAL `Changes:` line replace CHANGELOG
@@ -79,7 +79,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 
 If any check fails → stop and ask Rob before proceeding.
 
-Verify after updates: ESSENTIALS ↔ PLAYBOOK alignment; ENVIRONMENT ↔ `~/.claude/` state; README state references live; SESSION_SETUP ↔ PLAYBOOK process changes; JOURNAL reflects last session.
+Verify after updates: ESSENTIALS ↔ PLAYBOOK alignment; ENVIRONMENT ↔ `~/.claude/` state; SESSION_SETUP ↔ PLAYBOOK process changes; JOURNAL reflects last session.
 
 ## 7. Slash commands available
 <!-- scope: runtime -->

@@ -87,3 +87,40 @@ python -m scripts.codemap.cli check <repo_path> [--source-root <path>]
 **Operator workflow reference.** The step-by-step generation cadence, manual invocation commands, edge case handling guidance, per-repo opt-in checklist, and troubleshooting notes live in `protocols/PLAYBOOK.md` § Codemap workflow (added in the same commit arc as this amendment).
 
 **Backlog status.** Stream C P2 ("Codemap generator output specification") is CLOSED by this amendment.
+
+---
+
+## Amendment 2026-05-23 — ARCHITECTURE.md mandatory universally (tier-conditional removed)
+
+**Scope.** Reconciles Decision 1 (coverage) and Decision 6 (graphical depth)
+with the ecosystem-wide tier deprecation (operator decision 2026-05-23). This
+amendment is **distinct from** the 2026-05-22 codemap amendment above, which is
+unaffected and remains fully in force (canonical Mermaid form, CODEMAP markers,
+generator/`check` interface, Layer 2 boundary clarification, opt-in adoption).
+
+**Delta — Decision 1 generalized to universal.** The tier-conditional coverage
+mandate ("mandatory for M- and L-scale; S-scale exempt") is generalized: a
+dedicated `ARCHITECTURE.md` at repo root is now **mandatory for every covered
+repo regardless of scale**. The S-scale exemption and the README-section
+fallback are withdrawn. Cross-references [[ADR-38]] amendment A5 (same date),
+which adds `ARCHITECTURE.md` to the universal governance baseline and scopes
+the audit's `check_adr38_baseline` to it. Root-placement (ADR-38 A3) is
+unchanged.
+
+**Delta — Decision 6 depth note.** With tiers removed, the "graphical for M/L,
+text-only for S" split no longer gates on a declared tier. Graphical
+(generated Mermaid) codemap remains the canonical form per the 2026-05-22
+amendment; a repo too small for a meaningful package graph MAY use a text-only
+module overview as a transitional form (judgment call by the repo operator),
+but this is no longer tier-determined.
+
+**Consequence for the original "Alternatives considered."** The "Universal
+coverage" alternative — previously rejected on the grounds that a near-empty
+`ARCHITECTURE.md` in a tiny repo rots fastest — is now adopted. The operator
+accepts that trade-off: a single universal structural artifact is preferred
+over per-tier branching, and the codemap freshness check (2026-05-22
+amendment) mitigates rot for repos that opt into the generator.
+
+- **Decision tier:** Conversational (reconciliation of an already-decided
+  operator directive; supersedes only the tier-conditional clause of
+  Decision 1).
