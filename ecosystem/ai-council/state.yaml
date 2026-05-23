@@ -4,11 +4,11 @@ findings:
     ''tier'', ''version'']'
   status: pass
 - check_name: adr38_baseline
-  evidence: 'Missing optional (ARCHITECTURE.md — required at tier L): [''ARCHITECTURE.md'']'
-  status: warn
-- check_name: claude_md
-  evidence: CLAUDE.md present (16736 chars)
+  evidence: All ADR-38 tier M mandatory files and directories present
   status: pass
-last_audit: '2026-05-16'
+- check_name: claude_md
+  evidence: CLAUDE.md present (7192 chars)
+  status: pass
+last_audit: '2026-05-23'
 name: ai-council
 path: C:\Users\1028120\Documents\Dev\ai-council
