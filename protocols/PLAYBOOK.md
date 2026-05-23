@@ -2292,7 +2292,7 @@ docs/audits/
 ### ecosystem-index.yaml — rollup index
 <!-- scope: meta -->
 
-`ecosystem/ecosystem-index.yaml` is the audit infrastructure's aggregate index. It consolidates the last-known state of every registered repo into a single file, giving operators (and future tooling) a quick read on ecosystem health without opening per-repo `state.yaml` files.
+`ecosystem-index.yaml` is the audit infrastructure's aggregate index. It consolidates the last-known state of every registered repo into a single file, giving operators (and future tooling) a quick read on ecosystem health without opening per-repo `state.yaml` files.
 
 **Path:** `ecosystem-index.yaml` — at the `.dev-knowledge` root, sibling to the `ecosystem/` folder (not nested inside it).
 
