@@ -193,6 +193,33 @@ Per ADR-34 (ratified 2026-04-29, amended 2026-05-11). Canonical source: `docs/de
 
 Which `docs/` subfolders a repo carries (`decisions/`, `handoffs/`, `audits/`, `research/`) is a judgment call by repo complexity, not a gated tier prescription (repo-tier system deprecated 2026-05-23). Add a subfolder when its content class first appears; do not pre-create empty scaffolding. The universal governance baseline (ADR-38 amendment A5) covers the mandatory root files; everything under `docs/` is optional and added on first need.
 
+### Root hygiene convention
+<!-- scope: dev -->
+<!-- version: 1.0 — 2026-05-23 -->
+
+**Goal:** keep the repo root visually clean (low cognitive overhead) without breaking tooling defaults.
+
+**Consolidate tool configs into `pyproject.toml`** where supported, instead of standalone files at root:
+
+- `[tool.ruff]` (instead of `ruff.toml`)
+- `[tool.pytest.ini_options]` (instead of `pytest.ini`)
+- `[tool.mypy]` (instead of `mypy.ini`)
+- `[tool.tach]` if Tach supports pyproject embedding (verify per Tach version); else keep `tach.toml` at root
+
+> Caveat: only consolidate when a `pyproject.toml` already exists or the repo is a code project. A governance-only repo with no `pyproject.toml` should NOT create one solely to absorb a single `ruff.toml` — that adds a root file rather than removing one, defeating the goal. In that case keep the standalone config.
+
+**Dot-prefix workspace files:** rename `<repo>.code-workspace` to `.<repo>.code-workspace` — hides it from default `ls` while preserving VS Code "Open Workspace" functionality.
+
+**Files that MUST remain at root** (tooling defaults; moving creates friction):
+
+- `pyproject.toml`, `.gitignore`, `.gitattributes`, `.pre-commit-config.yaml`, `.editorconfig`, `.git/`
+
+**Files that CAN move to subfolders:**
+
+- SVGs and rendered diagrams → `docs/diagrams/` or `_assets/`
+- Standalone scripts → `scripts/`
+- Test fixtures → `tests/fixtures/`
+
 ### Secrets storage path
 <!-- scope: meta -->
 
