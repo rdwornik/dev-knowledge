@@ -149,7 +149,6 @@ edit for clarifications and References section.
 
 - `protocols/ESSENTIALS.md` — operating values, daily cheat sheet
 - `protocols/PLAYBOOK.md` — full process reference
-- `README.md` — current capability + file index
 - `JOURNAL.md` — session-by-session activity history
 - `CHANGELOG.md` — notable changes timeline
 - `BACKLOG.md` — cross-session pending items (per ADR-41)

@@ -109,7 +109,7 @@ When Mermaid diagrams are added, source files go under `docs/diagrams/` as `.mer
 
 - **Scope tags (ADR-27, informal).** `<!-- scope: X -->` tags (`dev | llm | hybrid | runtime | meta`) exist in living files as informal lightweight metadata. Enforcement withdrawn 2026-05-16 per ADR-48; existing tags remain in place. New sections do not need tags.
 - **Append-only files.** LESSONS.md, TOKEN-LOG.md — never edit old entries. JOURNAL.md uses newest-first prepend.
-- **Living files.** README, CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT, VISION, ARCHITECTURE — updated in place when reality shifts.
+- **Living files.** CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT, VISION, ARCHITECTURE — updated in place when reality shifts. (Root `README.md` deleted 2026-05-23 — deprecated from the baseline per ADR-38 amendment A5; redundant with VISION + CLAUDE.md + ARCHITECTURE for this internal-only repo.)
 - **Immutable dated artifacts.** ADRs, transcripts, handoffs, audits, research — supersession via new file or in-file marker, never edit.
 - **Filename conventions.** `ADR-NN-topic.md` for decisions (per ADR-34); `DECISION_NN_snake_case.md` for legacy transcripts (grandfathered); Council CLI output uses `council-out-YYYYMMDD-HHMMSS-topic.md`; kebab-case + ISO date for dated artifacts; ALLCAPS for top-level governance markdown.
 
