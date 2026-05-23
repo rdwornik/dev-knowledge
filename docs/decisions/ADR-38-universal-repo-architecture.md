@@ -265,3 +265,76 @@ For existing non-compliant repos:
   ARCHITECTURE.md at root per A3.
 - **Decision tier:** Conversational (closes an expired timing deferral of an
   already-decided rule — decides nothing new).
+
+### 2026-05-23 — A5: Universal baseline (tier deprecation), CHANGELOG strike, ARCHITECTURE universal, README deprecated
+
+- **Source:** Operator decision 2026-05-23 (browser-chat), reconciling Opus
+  deep-audit findings (`docs/audits/2026-05-23-ai-council-deep-audit.md` §7
+  #1 and #2) with the ecosystem-wide tier-system deprecation.
+- **Status of original Decision blocks:** preserved above for decision-trace.
+  This amendment supersedes the tier-conditional clauses within them as
+  described below. Where the original text and this amendment conflict, this
+  amendment governs.
+
+**Delta 1 — Universal baseline (tier deprecation).** The tier system
+(`tier:`/`scale:` per ADR-33/ADR-40) is deprecated ecosystem-wide. The
+per-tier branching in the original mandatory-documentation table and the
+"OPTIONAL for tier S; REQUIRED for tier M+" directory annotations collapse
+to a single universal baseline applicable to every covered repo regardless
+of size. Rationale: tier-conditional baselines did not differentiate
+governance behavior in practice — all active repos converged to similar
+governance regardless of declared tier (tier-as-theater analysis, operator
+decision 2026-05-23). See [[ADR-33]] amendment (VISION frontmatter) and
+ADR-40 deprecation, same date.
+
+**Delta 2 — CHANGELOG.md removed.** The "CHANGELOG.md — MANDATORY tier M+"
+directory annotation and the CHANGELOG row in the mandatory-documentation
+table are null. Superseded by ADR-49 (consolidate past-recording files,
+2026-05-17), which retired `CHANGELOG.md` ecosystem-wide. ADR-38's original
+CHANGELOG mandate has no force.
+
+**Delta 3 — ARCHITECTURE.md universal mandate.** `ARCHITECTURE.md` at repo
+root is mandatory for every covered repo. This extends ADR-51 Decision 1
+(was: mandatory at M+L only) to all scales, per operator decision
+2026-05-23. The "OPTIONAL / NO" entries for ARCHITECTURE.md in the original
+table are superseded. Root-placement amendment A3 (2026-05-11) remains in
+force. See [[ADR-51]] amendment same date.
+
+**Delta 4 — README.md deprecated from mandatory baseline.** `README.md` is
+removed from the mandatory baseline — operator decision 2026-05-23, option A
+(deprecated universally; optional for repos with an external audience).
+Rationale: for internal-only repos, README content is redundant with
+`VISION.md` (purpose), `CLAUDE.md` (how to work with the repo), and
+`ARCHITECTURE.md` (what exists). Repos that serve an external audience MAY
+keep a README.
+
+**Post-2026-05-23 mandatory baseline (supersedes the original table).** Every
+covered repo MUST have, at root:
+
+| File | Status | Governing |
+|---|---|---|
+| `VISION.md` | MANDATORY | ADR-33 (frontmatter per amended schema) |
+| `CLAUDE.md` | MANDATORY | ADR-31 / ADR-53 |
+| `ARCHITECTURE.md` | MANDATORY (universal) | ADR-51 (amended 2026-05-23) + A3 root placement |
+| `BACKLOG.md` | MANDATORY | ADR-41 |
+| `README.md` | OPTIONAL | external-audience repos only |
+| `CHANGELOG.md` | REMOVED | superseded by ADR-49 |
+
+`JOURNAL.md` and `LESSONS.md` remain repo-specific (not part of the universal
+baseline; mandated where a repo's own conventions require them).
+
+**Code-structure requirements (`src/`, `tests/`, `pyproject.toml`).** The
+original "Required directory structure" section codified a code-project layout
+(`src/{package}/`, `tests/`, `pyproject.toml`). That layout remains the
+convention for **code projects**. It is NOT part of the universal *governance*
+baseline that the audit tool checks across all repos — governance repos
+(e.g. `.dev-knowledge` itself, which has no `src/` and no `pyproject.toml`)
+are not code projects and are not required to carry that layout. The audit's
+`check_adr38_baseline` therefore checks the governance-file baseline above,
+not code structure (operator decision 2026-05-23, resolving the
+governance-repo exemption question previously open in BACKLOG). The
+module/test/TCR definitions further down this ADR were inputs to ADR-40
+(now deprecated) and are retained for historical reference only.
+
+- **Decision tier:** Conversational (reconciliation of already-decided
+  operator directives; no new architectural question).
