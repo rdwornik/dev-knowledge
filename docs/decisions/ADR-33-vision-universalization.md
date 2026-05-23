@@ -94,3 +94,42 @@ Loose coupling intentional — child repos remain portable; `.dev-knowledge` dep
 - ADR-31 (authority model — prescriptive with conformance audit)
 - ADR-32 (handoff format)
 - ESSENTIALS Project Scale Tiers section
+
+## Amendments
+
+### 2026-05-23 — Remove `tier:` and `scale:` from VISION frontmatter (tier system deprecated)
+
+- **Source:** Operator decision 2026-05-23 (browser-chat), ecosystem-wide tier
+  deprecation. Cross-references [[ADR-38]] amendment A5 (universal baseline) and
+  ADR-40 deprecation, same date.
+- **Status of original Decision blocks:** preserved above for decision-trace;
+  this amendment supersedes the tier clauses within them.
+
+**Delta.** The tier system is deprecated entirely. The two-tier content model
+(`standard` / `lite`) and the `tier:` frontmatter requirement (Decision §
+"Two-tier content (Q2)" / "Mandatory sections (Q3)") are withdrawn. The
+parallel `scale:` field (introduced by ADR-36/ADR-40 audit practice, never
+part of ADR-33's original schema) is likewise removed. No replacement field —
+a single universal `VISION.md` form applies regardless of repo size.
+
+**Amended frontmatter requirement.** Every `VISION.md` MUST carry frontmatter
+with these keys (tier/scale removed):
+
+```yaml
+version: <string>
+last_reviewed: <YYYY-MM-DD>
+owner: <name>
+status: <active | maintenance | archived>
+```
+
+**Content.** With tiering removed, `VISION.md` uses the full section set
+(Vision, Scope, Values, Relationships, Lifecycle, References); a small repo may
+keep any section to a few lines or link to parent `.dev-knowledge` ESSENTIALS
+rather than duplicating. No section is gated on a declared tier.
+
+**Audit impact.** `scripts/audit.py` `check_vision_md` validates the amended
+required-key set (no `tier`/`scale`). See [[ADR-38]] amendment A5 for the
+companion `check_adr38_baseline` change.
+
+- **Decision tier:** Conversational (reconciliation of an already-decided
+  operator directive).
