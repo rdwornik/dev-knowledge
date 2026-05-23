@@ -1,9 +1,7 @@
 ---
 version: 1.0
-tier: M
 owner: rob
-last_reviewed: 2026-05-09
-scale: M
+last_reviewed: 2026-05-23
 status: active
 ---
 
@@ -17,9 +15,9 @@ methodology framework. It works in any folder on any machine — portable,
 self-contained, machine-agnostic. It is the ecosystem's knowledge guardian
 and methodology author: it absorbs lessons from individual projects,
 universalizes them into patterns, and disseminates those patterns back as
-enforceable conventions. It also functions as auditor — evaluating each
-project's scale (S/M/L) and verifying correct methodology implementation
-(per ADR-40 scale tier evaluation).
+enforceable conventions. It also functions as auditor — verifying correct
+methodology implementation against the universal governance baseline
+(ADR-38 amendment A5; the repo-tier system was deprecated 2026-05-23).
 Think of it as the LLM-development Scrum Master for the ecosystem: it
 doesn't write code, it ensures the framework is applied consistently and
 evolves with experience.
@@ -68,7 +66,9 @@ joining ecosystem, sustained friction in current emphasis areas.
 - Universal methodology and conventions for LLM-driven development
 - Cross-repo governance patterns (CLAUDE.md, ADRs, handoffs)
 - Knowledge consolidation: lessons learned, decisions, processes
-- Scale assessment (S/M/L) and tier-appropriate guidance per project
+- Universal methodology-appropriate guidance per project (repo-tier
+  assessment retired 2026-05-23 — guidance is universal, calibrated by
+  judgment of repo complexity)
 - Audit and verification mechanisms ensuring child repos comply with
   applicable methodology
 
@@ -133,16 +133,13 @@ manual verification at session-close per HANDOFF_PROCESS.md.
 as `docs/archive/VISION_v{N}_realized_YYYY-MM-DD.md` and propose next
 horizon. VISION file stays alive — only its content evolves.
 
-**Tier classification:** M (architect judgment, 2026-05-09).
-
-Algorithm-classified tier per ADR-40 currently L — all repos clamp to L
-under current coefficients due to documented miscalibration (F-08,
-cross-ecosystem calibration concern). Architect judgment balances: single
-developer, no SLA, no team (argues against L); multi-repo governance
-authority, ADR producer for ecosystem (argues against S); moderate
-complexity (~42 ADRs, governance + audit + handoff infrastructure). M is
-most defensible under calibration uncertainty. Revisit post audit tool P1
-multi-repo data collection (BACKLOG Stream C P1).
+**Tier classification:** retired 2026-05-23. The repo-tier system (ADR-33
+`tier:`/`scale:` frontmatter, ADR-40 algorithmic computation) is deprecated
+ecosystem-wide; `.dev-knowledge` declares no tier. The universal governance
+baseline (ADR-38 amendment A5) applies regardless of repo size. Historical
+note: this repo was formerly classified M by architect judgment, while
+ADR-40's algorithm clamped all repos to L under documented miscalibration
+(F-08) — that divergence is part of what motivated the deprecation.
 
 **Ownership:** Rob (sole authority).
 **Edit process:** AI Council debate for Vision/Scope changes; conversational

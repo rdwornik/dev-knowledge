@@ -22,7 +22,7 @@ If ESSENTIALS or PLAYBOOK are unavailable, proceed with this file alone but flag
 <!-- scope: meta -->
 
 - **Name:** `.dev-knowledge`
-- **Scale:** M (per `protocols/PLAYBOOK.md` Project Scale Tiers)
+- **Complexity:** medium (informal; repo-tier system deprecated 2026-05-23 — no declared tier)
 - **Status:** active
 - **Purpose:** Universal LLM-driven development guide and methodology framework; governs all projects under `Dev/`; Layer 2 of the ADR-28 three-layer ecosystem model
 - **Owner:** Rob
@@ -32,7 +32,7 @@ If ESSENTIALS or PLAYBOOK are unavailable, proceed with this file alone but flag
 ## 3. Architecture
 <!-- scope: meta -->
 
-See `ARCHITECTURE.md` for the structural model; read it before structural changes (required at Scale M+, per ADR-51). NOT a code project — markdown governance files + read-only validators only.
+See `ARCHITECTURE.md` for the structural model; read it before structural changes (required for every repo, per ADR-51 as amended 2026-05-23). NOT a code project — markdown governance files + read-only validators only.
 
 ## 4. Conventions
 <!-- scope: meta -->
