@@ -2442,3 +2442,74 @@ Ranked by impact/effort (Council-approved):
 <!-- scope: runtime -->
 
 Keep CLAUDE.md under 200 lines per file. Instruction adherence drops above that. Use `.claude/rules/` for domain-specific rules and `.claude/skills/gotchas/` for institutional memory — these load separately and don't bloat the main prompt.
+
+---
+
+## Codemap workflow
+<!-- scope: meta -->
+
+The codemap section of every M/L `ARCHITECTURE.md` is an auto-generated embedded Mermaid block showing the repo's top-level Python packages, their import relationships, and their layer assignments (if `tach.toml` is present). VS Code 1.121 and GitHub render Mermaid natively — the diagram is clickable and navigable without a separate SVG pipeline. Governing authority: ADR-51 Decision 6 + amendment 2026-05-22.
+
+### When the generator runs
+<!-- scope: meta -->
+
+A pre-commit hook (`codemap-freshness`) fires whenever Python source files, `pyproject.toml`, `tach.toml`, or `ARCHITECTURE.md` itself change. If the committed codemap block differs from a fresh generation, the hook exits non-zero and blocks the commit. The operator runs `generate --write` and re-stages `ARCHITECTURE.md` before retrying. The generator can also be invoked manually at any time for inspection.
+
+### Manual invocation
+<!-- scope: meta -->
+
+```bash
+# Dry-run — print generated Mermaid block to stdout (does not modify ARCHITECTURE.md)
+python -m scripts.codemap.cli generate . --source-root <path>
+
+# Write — replace CODEMAP-bounded region in ARCHITECTURE.md in place
+python -m scripts.codemap.cli generate . --source-root <path> --write
+
+# Check freshness — exit non-zero + unified diff if committed block is stale
+python -m scripts.codemap.cli check . --source-root <path>
+```
+
+Default `--source-root` is `src/`. Repos with non-standard layout supply an explicit override:
+- `.dev-knowledge` uses `scripts/` → `--source-root scripts`
+- corp-monorepo uses `src/` → default applies
+
+### Edge case handling
+<!-- scope: meta -->
+
+**Orphan modules** (zero in/out edges): the generator assigns the `:::orphan` class (dashed border) and emits a stderr warning. Investigate whether the package is legitimately unused (deletion candidate) or has runtime-only invocation (re-classification candidate). Orphans do not block commit.
+
+**Circular dependencies**: nodes in the cycle get `:::cycle` class (red border); edges in the cycle are styled red. A circular dependency is an architectural smell — investigate import structure; common resolution is to extract a shared interface to a foundation layer.
+
+**Missing `tach.toml`**: generator degrades gracefully — codemap is generated without layer color assignments. No warning emitted. Adding `tach.toml` post-hoc and re-generating restores layer colors.
+
+**Missing `ARCHITECTURE.md` or CODEMAP markers**: generator fails with an operator-actionable error. Resolution: create `ARCHITECTURE.md` from `templates/ARCHITECTURE-template.md`, ensure both `<!-- CODEMAP:START -->` and `<!-- CODEMAP:END -->` markers are present, then re-run.
+
+### Per-repo opt-in checklist
+<!-- scope: meta -->
+
+For an M/L repo to adopt generator-based codemap maintenance:
+
+1. **Template instantiation.** Ensure `ARCHITECTURE.md` exists at repo root and contains `<!-- CODEMAP:START -->` and `<!-- CODEMAP:END -->` marker comments in the `## Codemap` section.
+2. **Hook entry.** Add a local hook entry to `.pre-commit-config.yaml`:
+   ```yaml
+     - repo: local
+       hooks:
+         - id: codemap-freshness
+           name: Codemap freshness check
+           entry: python -m scripts.codemap.cli check . --source-root <path>
+           language: system
+           files: '(\.py$|^pyproject\.toml$|^tach\.toml$|^ARCHITECTURE\.md$)'
+           pass_filenames: false
+   ```
+   Replace `<path>` with the repo's source root (`src` by default; override as needed).
+3. **First generation.** Run `python -m scripts.codemap.cli generate . --source-root <path> --write` and inspect the diff.
+4. **Commit.** Stage `ARCHITECTURE.md` and commit — the hook should now pass on all future relevant changes.
+
+Authority reference: ADR-51 amendment 2026-05-22 § Per-repo adoption — opt-in, not mandatory.
+
+### Troubleshooting
+<!-- scope: meta -->
+
+**Freshness check blocks an unrelated commit:** the hook fires on Python source changes even when the developer didn't intend to change the codemap. Run `generate --write` first, then retry the commit.
+
+**Non-deterministic output across runs:** sort order, locale, or file encoding drift. Check that file discovery uses a sorted glob and that the generator's output is locale-independent. The codemap generator uses sorted package discovery to ensure determinism.
