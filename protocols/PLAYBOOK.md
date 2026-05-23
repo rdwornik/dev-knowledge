@@ -2197,51 +2197,177 @@ This is not optional for the applicable tier. Stale structural documentation is 
 ## 18. Ecosystem Audit Tool Workflow [L+M]
 <!-- scope: meta -->
 
-`.dev-knowledge` is the ecosystem auditor for all repos under `Dev/`. The audit tool reads child repos and writes only to `.dev-knowledge` paths — never touches child repo files.
+`scripts/audit.py` is the ecosystem conformance checker per [ADR-36](docs/decisions/ADR-36-audit-tool-architecture.md). It reads child repos under `Dev/` and writes only to `.dev-knowledge` paths — never touches child repo files. Audit is advisory: findings surface non-compliance; remediation is manual.
 
-**This PLAYBOOK section is the prerequisite for P1 implementation.** Do not begin the audit tool build (BACKLOG.md Stream C P1) until this section exists.
+Cross-refs: [ADR-31](docs/decisions/ADR-31-authority-model.md) (authority model), [ADR-36](docs/decisions/ADR-36-audit-tool-architecture.md) (tool architecture), [ADR-33](docs/decisions/ADR-33-vision-md-standard.md) (VISION.md), [ADR-38](docs/decisions/ADR-38-repo-architecture-baseline.md) (ADR-38 baseline), [ADR-53](docs/decisions/ADR-53-claude-md-canonical.md) (CLAUDE.md canonical)
 
-### Read/write boundary (hard constraint)
+### Active checks
 <!-- scope: meta -->
 
-| Operation | Allowed paths |
-|-----------|---------------|
-| **Read** | Any child repo under `Dev/` (read-only — no writes to child repos ever) |
-| **Write** | `.dev-knowledge/ecosystem/{repo}/state.yaml` (registry) |
-| **Write** | `.dev-knowledge/ecosystem/{repo}/history/` (append-only audit log) |
-| **Write** | `.dev-knowledge/ecosystem-index.yaml` (derived rollup, regenerated on demand) |
-| **Write** | `.dev-knowledge/docs/audits/` (ecosystem reports) |
-| **Write** | `.dev-knowledge/docs/handoffs/` (audit handoff folders, P2 only) |
+Three checks active as of commit `deedc10` (P2 checks `backlog_organization` and `dated_entries_*` were removed in that trim; this documents current state):
+
+| Check | ADR | What it verifies | FAIL | WARN | PASS |
+|---|---|---|---|---|---|
+| `vision_md` | ADR-33 | VISION.md exists at repo root with valid YAML frontmatter containing `version`, `tier`, `owner`, `scale` | absent or frontmatter unparseable | frontmatter valid but missing required keys | all required keys present |
+| `adr38_baseline` | ADR-38 | README.md, VISION.md, BACKLOG.md, `src/` dir, `tests/` dir, `pyproject.toml` present | any required item missing | ARCHITECTURE.md absent (optional at tier M, required at tier L) | all present |
+| `claude_md` | ADR-53 | CLAUDE.md exists at repo root and is non-empty | absent or empty | — | present with content |
 
 ### CLI commands
 <!-- scope: meta -->
 
+Invoke via:
+
 ```
-audit run                  # full ecosystem; writes report + handoffs (P2)
-audit repo <name>          # single repo
-audit registry update      # regenerate ecosystem-index.yaml
-audit health               # quick TTY status, no file writes
+python scripts/audit.py <command>
 ```
 
-Every `audit run` produces a single ecosystem report at `docs/audits/YYYY-MM-DD-ecosystem-audit.md`. Per-non-compliant-repo handoff folders added in P2. No CLI-only mode — every run produces files for traceability.
+**`health`** — pre-flight check, no file writes. Verifies `click` and `pyyaml` importable, `ecosystem/` directory exists, at least one repo registered. Exits 0 on OK, 1 on DEGRADED.
 
-### 4-phase implementation roadmap
+```
+python scripts/audit.py health
+```
+
+Example output:
+```
+  [OK] click importable
+  [OK] pyyaml importable
+  [OK] ecosystem/ exists
+  [OK] repos registered  (['ai-council', '.dev-knowledge'])
+health: OK
+```
+
+**`run`** — full ecosystem audit. Runs all checks on every registered repo, saves `state.yaml`, appends to `history/YYYY-MM-DD.md`, writes report to `docs/audits/`. Exits 1 if any check fails.
+
+```
+python scripts/audit.py run
+```
+
+Bootstrap a not-yet-registered repo in the same pass (creates `state.yaml` first, then runs):
+
+```
+python scripts/audit.py run --repo-path ../corp-monorepo
+```
+
+**`repo <name>`** — audit a single repo by name. Same state/history/report writes as `run`, but scoped to one repo. Report saved as `docs/audits/YYYY-MM-DD-{name}-audit.md`.
+
+```
+python scripts/audit.py repo ai-council
+```
+
+Override path (bootstrap or ad-hoc):
+
+```
+python scripts/audit.py repo corp-monorepo --repo-path ../corp-monorepo
+```
+
+**`registry update`** — regenerate `ecosystem-index.yaml` from current `state.yaml` files. Run after manually adding or removing `ecosystem/<name>/state.yaml`. No audit checks run; no reports written.
+
+```
+python scripts/audit.py registry update
+```
+
+### ecosystem/ folder layout
 <!-- scope: meta -->
 
-**P1 MVP (current open BACKLOG item):** CLI scaffold (`audit run`, `audit health`) + ecosystem state schema (state.yaml + history/) + audit checks (VISION.md presence per ADR-33, ADR-31 baseline, ADR-38 architecture compliance) + single markdown report. Tests: schema roundtrip, check execution, report generation.
+```
+ecosystem/
+├── .dev-knowledge/
+│   ├── state.yaml          ← current audit state for this repo
+│   └── history/
+│       └── YYYY-MM-DD.md   ← append-only per-day log (multiple runs append headers)
+└── ai-council/
+    ├── state.yaml
+    └── history/
+        └── YYYY-MM-DD.md
+ecosystem-index.yaml        ← derived rollup at repo root (regenerated by `registry update`)
+docs/audits/
+└── YYYY-MM-DD-ecosystem-audit.md   ← full-run report
+└── YYYY-MM-DD-{name}-audit.md      ← single-repo report
+```
 
-**P2:** Handoff folder generator — HANDOFF.md per non-compliant repo using ADR-37 two-phase format (Section 8); manifest.json + tree.txt + relevant-decisions/ (full ADR file copies, not paragraph extraction).
+`state.yaml` holds the repo's last audit result (name, path, last_audit date, findings list). `history/YYYY-MM-DD.md` is append-only: each run appends a `## YYYY-MM-DD — <timestamp>` header + findings table. Multiple runs on the same day produce multiple headers in the same file.
 
-**P3:** Scheduled / triggered runs — optional cron / Task Scheduler integration. Deferred until P1 usage validates need.
+`ecosystem-index.yaml` is a rollup snapshot; it is derived and regenerated on demand — do not edit manually.
 
-**P4:** LLM-augmented narrative reports — deterministic Python checks remain; LLM generates narrative gap interpretation in handoff. Audit tool becomes "Scrum Master" agent with LLM-driven analysis.
-
-### Audit findings and tier mismatches
+### Registering a new repo
 <!-- scope: meta -->
 
-Audit tool reports tier mismatches (computed score vs declared `scale:` in VISION.md) but does NOT auto-fix. Solo dev autonomy preserved — findings are warnings, not pre-commit blocks. Findings log to `.dev-knowledge/ecosystem/{repo}/history/YYYY-MM-DD.md`. Tier transition procedures live in the "Project Scale Tiers" structural section.
+Registration means creating `ecosystem/<name>/state.yaml`. Two paths:
 
-Cross-refs: ADR-36, ADR-31 (authority model), ADR-37 (two-phase handoff — Section 8), ADR-40 (tier transitions)
+**Option A — bootstrap via `run --repo-path`** (preferred for first audit):
+
+```
+python scripts/audit.py run --repo-path ../corp-monorepo
+```
+
+This creates `ecosystem/corp-monorepo/state.yaml` with the path, runs all checks, writes history + report. After this the repo is permanently registered for subsequent `run` invocations.
+
+**Option B — manual state.yaml creation**, then `registry update`:
+
+1. Create `ecosystem/<name>/` directory.
+2. Create `ecosystem/<name>/state.yaml` with at minimum:
+   ```yaml
+   name: corp-monorepo
+   path: /absolute/path/to/corp-monorepo
+   last_audit: null
+   findings: []
+   ```
+3. Run `python scripts/audit.py registry update` to regenerate `ecosystem-index.yaml`.
+4. Run `python scripts/audit.py repo corp-monorepo` to perform first audit.
+
+**Verify registration:**
+
+```
+python scripts/audit.py health
+```
+
+The repos line should list the new name. If not, check that `ecosystem/<name>/state.yaml` exists.
+
+**Path note:** `state.yaml` stores the absolute path used at registration time. If the repo moves, update the `path:` field in `state.yaml` manually or re-register with `--repo-path`.
+
+### Interpreting audit reports
+<!-- scope: meta -->
+
+Each report in `docs/audits/` is a markdown file. Per-repo section structure:
+
+```
+## {repo-name} — PASS|FAIL|UNAVAILABLE
+
+| Check | Status | Evidence |
+|---|---|---|
+| `vision_md` | PASS | VISION.md present; frontmatter keys: [...] |
+| `adr38_baseline` | FAIL | Missing required: ['src', 'pyproject.toml'] |
+| `claude_md` | PASS | CLAUDE.md present (N chars) |
+```
+
+**Status values:**
+- `PASS` — check fully satisfied
+- `WARN` — partial compliance (e.g. missing optional keys, missing optional files)
+- `FAIL` — check condition not met; requires remediation
+- `UNAVAILABLE` — repo path not found on filesystem (stale registration or path moved)
+
+Repo-level summary: `FAIL` if any check is FAIL; `UNAVAILABLE` if path not found; `PASS` otherwise. `run` exits 1 if any failure across all repos.
+
+Audit is read-only and advisory. Findings are remediated manually in the child repo by its operator — audit.py never modifies child repo files.
+
+History in `ecosystem/<name>/history/YYYY-MM-DD.md` preserves per-run findings indefinitely (append-only). Reports in `docs/audits/` are point-in-time files; do not edit manually (header: `*Report generated by scripts/audit.py. Do not edit manually.*`).
+
+### Troubleshooting
+<!-- scope: meta -->
+
+**`health: DEGRADED` — `[!!] repos registered  (none)`**
+No `ecosystem/<name>/state.yaml` files found. Register at least one repo (see above).
+
+**`health: DEGRADED` — `[!!] ecosystem/ exists`**
+The `ecosystem/` directory is missing. Create it: `mkdir ecosystem`.
+
+**`health: DEGRADED` — click or pyyaml not importable**
+Dependencies missing. Install: `pip install click pyyaml` (or per `pyproject.toml` if present).
+
+**`UNAVAILABLE` finding in report**
+The path stored in `ecosystem/<name>/state.yaml` doesn't exist. Update `path:` in `state.yaml` to the current absolute location, then re-run.
+
+**Known self-compliance gap:** `.dev-knowledge` itself FAILs `adr38_baseline` on every self-audit because it has no `src/` directory or `pyproject.toml` (it is a documentation repo, not a Python package). This is expected and tracked in BACKLOG Stream C P2. Operators running `run` will see `.dev-knowledge — FAIL` and exit code 1 as a result; this is not a tool bug.
 
 ---
 
