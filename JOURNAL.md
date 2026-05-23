@@ -19,6 +19,35 @@
 
 ---
 
+### 2026-05-23 — Tor B.1: Codemap generator convention landed end-to-end
+
+- Did: Landed the full ADR-51 codemap generator convention — amendment + template update + PLAYBOOK section + pre-commit hook + first dogfood on `.dev-knowledge`'s own ARCHITECTURE.md. Branch: `feat/codemap-amendment-and-dogfood`, 6 sequential commits off main.
+- Result: End-to-end pipeline validated: AST analysis → Mermaid generation → in-place ARCHITECTURE.md rewrite → freshness check round-trip. Pre-commit codemap-freshness hook passes. 41 non-audit tests green (24 codemap + 17 normalize); 1 pre-existing audit failure (known, tracked in BACKLOG). BACKLOG Stream C P2 closed.
+- Arc summary: Spec design 2026-05-22 (browser chat architect role) → Prompt 1 build (5 modules in scripts/codemap/, 24 tests, Codex review with HIGH x2 fixes + CRITICAL deferred to amendment; merged main b2296ff) → Prompt 2 land (this work: ADR amendment, template update, PLAYBOOK section, pre-commit hook, dogfood).
+- Design decisions made:
+  - Embedded Mermaid block in ARCHITECTURE.md (vs prior external SVG reference) — driven by VS Code 1.121 native Mermaid preview (released 2026-05-20); no SVG generation step needed.
+  - `scripts/codemap/` location (vs new `tools/` genre) — minimal new ground, extends existing scripts genre.
+  - stdlib-only argparse (vs Click) — eliminates pip install ceremony per consumer repo.
+  - Layer 2 invariant: reframe-in-ADR-51 (vs split tool / amend ADR-28-36 / AI Council) — codemap-generator as distinct category from validators (check = validator, generate --write = generator). Smallest blast radius; no upstream ADR edits needed.
+  - `.dev-knowledge` source root override: `--source-root scripts` (no `src/` in this repo).
+- Dogfood result: Single-node diagram (only `scripts/codemap/` is a Python package; `:::orphan` class, honest representation of current state). Rich diagrams will appear with corp-monorepo rollout (6 packages + Tach layer assignments).
+- Lessons learned candidates (N≥2 confirmation pending):
+  - **TUI rendering vs LLM output**: 4 iterations of CLAUDE.md output-format rule strengthening before web_search revealed Claude Code TUI renders unfenced markdown tables as Unicode box-drawing (~3× token cost when pasted to browser chat). Fix: wrap session reports in fenced code block. Validated empirically across Prompt 1 + Prompt 2 session reports. Pattern: if behavioral fix doesn't take effect after 1–2 iterations, search for underlying mechanism before escalating fix.
+  - **Self-check 2× discipline**: applied during Tor B.1 design — first strawman (`tools/` new genre, pip install distribution, SVG output) replaced with simpler/lighter alternatives after second look. Pattern: catching first-pass over-engineering before locking in.
+  - **Codex CRITICAL handling**: Layer 2 invariant violation flagged in Prompt 1 deferred to ADR amendment in Prompt 2 — legitimate scope split, not avoidance. Pattern: CRITICAL findings can defer when (a) tool not yet activated, (b) right venue exists for resolution, (c) deferral has explicit destination.
+- Changes:
+  - `docs/decisions/ADR-51-architecture-doc-convention.md` — amendment appended (9cb5aef)
+  - `templates/ARCHITECTURE-template.md` — canonical codemap form → embedded Mermaid (09ba1ad)
+  - `protocols/PLAYBOOK.md` — § Codemap workflow added (392d0c9)
+  - `.pre-commit-config.yaml` — codemap-freshness hook added (ed28304)
+  - `ARCHITECTURE.md` — CODEMAP region replaced with auto-generated single-node Mermaid (b439cbd)
+  - `BACKLOG.md` — Stream C P2 closed (this commit)
+- Abandoned: none — all 6 steps completed.
+- Next: Cross-repo rollout (corp-monorepo, ai-council) is future-session work per Hard Constraint #1 in original handoff. Each repo opts in independently; corp-monorepo will produce the first rich diagram (6 packages + Tach layer assignments). Template drift in those repos (external SVG ref in their current ARCHITECTURE.md) will surface at opt-in time — flag at that session.
+- Flag: `templates/ARCHITECTURE-template.md` canonical-target update may cause drift signals in corp-monorepo / ai-council if they follow the old SVG-reference template form. Out of scope to fix now; flag at their opt-in sessions.
+
+---
+
 ### 2026-05-22 — Drift burndown: mechanical audit fixes
 
 - Did: Resolved findings M-1, M-2, M-3, L-3 from 2026-05-20 handoff-process audit; X1/M-4 from posture audit. Conditional Step 7 + pre-checks in Steps 5/6 caught prior commit dc46565 had already resolved X2/X3/C1; Step 4 mandatory grep caught test orphan and prompted retire-both decision.
