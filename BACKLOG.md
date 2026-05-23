@@ -4,6 +4,7 @@ Cross-session pending items across active streams. See ADR-41 for
 schema and grooming cadence.
 
 Last full grooming: 2026-05-09 (P1 HANDOFF_PROCESS closed)
+Tier-deprecation reconciliation grooming: 2026-05-23 (4 items resolved/superseded, scrum-master item to N=3, 5 cross-repo rollout items opened)
 Next quarterly grooming: 2026-07-01
 
 ---
@@ -29,12 +30,12 @@ Next quarterly grooming: 2026-07-01
 
 ## Stream C: .dev-knowledge governance
 
-### [P2] [open] .dev-knowledge ADR-38 self-compliance gap — src/ + pyproject.toml
+### [P2] [resolved] .dev-knowledge ADR-38 self-compliance gap — src/ + pyproject.toml
 - **What:** Audit tool P1 self-audit surfaced finding: `.dev-knowledge` missing `src/` and `pyproject.toml` (ADR-38 check `adr38_baseline` FAIL). `.dev-knowledge` is a governance/knowledge repo (NOT a code project per CLAUDE.md), yet ADR-38 mandates src/ and pyproject.toml for all tier M+ repos. Resolution options: (a) create minimal pyproject.toml + scripts/ → src/ migration, (b) amend ADR-38 to add "governance-only" tier exemption, (c) document explicit exception in state.yaml.
 - **Why:** Self-audit produces FAIL on the repo that runs it — creates awkward "auditor fails its own checks" state. Resolving clarifies whether ADR-38 universal mandate applies to non-code repos.
 - **Vision ref:** VISION.md "Auditor" + ADR-38 universal architecture
 - **Added:** 2026-05-15 by rob (surfaced by audit tool P1 self-audit)
-- **Status:** open
+- **Status:** resolved 2026-05-23 — variant of option (b). ADR-38 amendment A5 scopes the `check_adr38_baseline` to the universal *governance-file* baseline (VISION + ARCHITECTURE + BACKLOG; README optional), NOT code structure (src/tests/pyproject scoped to code projects only). `.dev-knowledge` now PASSES its own self-audit (verified 2026-05-23, governance-reconciliation branch). No src/ migration or minimal pyproject created.
 
 ### [P2] [open] Lessons activation P1 implementation
 - **What:** Build lessons-index.json + retrieval (SessionStart hook) + querying (CLI) per ADR-35
@@ -150,19 +151,20 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-04-30 by rob
 - **Status:** open — ai-council substantially complete as of 2026-05-12 session: ADR-34 hyphen compliance achieved (CLI emitter + docs), ADR-38 Scale M gaps closed (BACKLOG.md, LESSONS.md at root, tasks/ retired), VISION.md tier M declared, scrum-master review cycle N=1 completed. .dev-knowledge AGENTS.md retired 2026-05-19 (Chunk 4 — content migrated to CLAUDE.md v2.1 per ADR-53). Remaining ai-council: ARCHITECTURE.md (optional at M). ai-council AGENTS.md retired 2026-05-19 per ADR-53 chunk 4. corp-monorepo: not yet started.
 
-### [P2] [open] VISION.md tier declarations across ecosystem
+### [P2] [superseded] VISION.md tier declarations across ecosystem
 - **What:** Update VISION.md frontmatter `tier:` field across all repos per ADR-40 calibration baseline (corp-ops=S, ai-council=M, corp-monorepo=L, etc.)
 - **Why:** Operationalizes ADR-40 algorithm; declared tier vs computed tier comparison enables audit findings
 - **Added:** 2026-04-30 by rob
 - **Status:** open — ai-council tier M declared in VISION.md frontmatter (2026-05-12 session). Other repos: pending.
 - **Status update 2026-05-23:** Tier declarations CONFIRMED for the 3 registered repos — `.dev-knowledge` (M), `ai-council` (M), `corp-monorepo` (L) — verified via 2026-05-23 ecosystem audit (all three VISION.md frontmatters include `'tier'` key; report `docs/audits/2026-05-23-ecosystem-audit.md`). Other ecosystem repos (corp-ops, corp-sca-time-automation, corp-knowledge-extractor, corp-by-os, corp-rfp-agent) NOT verified — pending discovery + verification (cross-ref P3 entry "Undiscovered repos confirmation"). Entry status: OPEN (partial completion).
+- **Superseded 2026-05-23** (standard-reconciliation): the tier system is deprecated ecosystem-wide (ADR-33 + ADR-40 amendments). The work flips from "declare `tier:`" to "REMOVE `tier:`/`scale:`" — re-scoped into the new Tier Deprecation Cross-Repo Rollout items below. No tier to declare.
 
-### [P2] [open] Council research — relative repo complexity evaluation in solo dev / LLM workflows
+### [P2] [superseded] Council research — relative repo complexity evaluation in solo dev / LLM workflows
 - **What:** Council research debate. Question: how do professionals evaluate repo complexity at relative scale (small/medium/large) in solo dev and LLM-driven workflows? Current ADR-40 algorithm (logarithmic Maintainability Index pattern) may embed enterprise-scale assumptions inappropriate for 1-person ecosystem. Surface industry practice — surveys, blog posts, indie hacker conventions, monorepo tools' tier definitions for personal vs team scale. Plus philosophical framing: at what point does a small project become medium, medium become large, when complexity grows logarithmically? Output informs ADR-40 amendment alongside audit tool P1 multi-repo data collection.
 - **Why:** All ecosystem repos currently classify L per ADR-40 (calibration concern surfaced 2026-04-30 ai-council audit, finding F-08). Research before amendment ensures evidence-based decision rather than gut-feel coefficient adjustment. Dependency: pair with audit tool P1 multi-repo data; both inform ADR-40 amendment.
 - **Vision ref:** VISION.md "Methodology Author" + "Auditor" functions
 - **Added:** 2026-04-30 by rob (ai-council audit Faza A2 closure)
-- **Status:** open
+- **Status:** superseded 2026-05-23 — the research was to inform an ADR-40 amendment (recalibrate tier coefficients). ADR-40 is now deprecated and the tier system dropped entirely (option b of "Scale tier evaluation re-evaluation"), so there is no algorithm to recalibrate. The complexity-band intuition survives only as informal, judgment-applied calibration in PLAYBOOK (no formula, no declared tier).
 
 ### [P2] [open] Handoff advisory framing leaks into receiver behavior
 - **What:** Session-start handoff containing architect's "REST recommended" advisory (2026-05-09-dev-knowledge-session-sync bundle) propagated to receiver chat as 3 unprompted session-end suggestions during 2026-05-11 session, despite explicit operator preference rule against unprompted scheduling. Handoff content framing shapes receiver behavior more strongly than receiver-side preference rules counteract.
@@ -222,12 +224,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-09 by rob (session wrap-up observation)
 - **Status:** open
 
-### [P3] [open] Scale tier evaluation re-evaluation
+### [P3] [resolved] Scale tier evaluation re-evaluation
 - **What:** Current scale tier system (S/M/L per ADR-40) has documented calibration concern (F-08: all repos classify L under current coefficients). Decision point: (a) formalize via tighter metrics with empirical calibration data, or (b) deprioritize — remove scale tiers as a primary governance signal. Decision artifact: Council debate. Dependency: pairs with "Council research — relative repo complexity" (Cross-stream P2, above) and audit tool P1 multi-repo data collection (Stream C P1).
 - **Why:** Subjective tier assignment reduces auditability and creates inconsistent governance. Either make it rigorous or explicitly drop it — the middle ground of "declared but uncalibrated" is methodology debt.
 - **Vision ref:** VISION.md "Auditor" function; ADR-40 Lifecycle section
 - **Added:** 2026-05-09 by rob (session wrap-up observation)
-- **Status:** open
+- **Status:** resolved 2026-05-23 — **option (b) chosen** (operator decision). The repo-tier system is dropped, not formalized. ADR-40 deprecated; ADR-33/38/51 amended to universal baseline; PLAYBOOK tier-gating struck; audit tier checks removed. The "declared but uncalibrated" methodology debt is retired by removing the declaration.
 
 ### [P3] [open] Large repo migration preparation
 - **What:** One significant ecosystem repo requires structural migration aligned with current standards (folder structure naming conventions, sacred-files compliance, scope tagging, ADR adoption). Significant scope — requires dedicated planning session with Council-debate-level design before execution. Scope: design migration plan, estimate effort, sequence against other BACKLOG items.
@@ -249,7 +251,7 @@ Next quarterly grooming: 2026-07-01
 - **Why:** Pattern emerged organically as first cross-repo scrum-master review; needs codification to be repeatable and delegatable. Without ADR, subsequent reviews have no formal authority reference.
 - **Vision ref:** VISION.md "Auditor" function + "Methodology Author" function
 - **Added:** 2026-05-12 by rob (Prompt L)
-- **Status:** open — N=1 (ai-council 2026-05-12); codification awaits N=2
+- **Status:** open — **N=3 grounding reached (codification now unblocked).** ai-council 2026-05-12 (N=1), corp-monorepo deep audit 2026-05-23 (N=2), ai-council deep-audit re-pass 2026-05-23 (N=3). Three structured read-only scrum-master reviews across two repos = sufficient empirical pattern for ADR-level codification (new ADR or ADR-26 amendment). Promote to P1 for a dedicated codification prompt.
 
 ### [P3] [open] PLAYBOOK codifications from 2026-05-19 posture audit
 - **What:** The posture audit (H3, H4, T1, T2) and verification surfaced four candidate PLAYBOOK additions, each with N≥2 grounding:
@@ -353,5 +355,48 @@ Next quarterly grooming: 2026-07-01
 - **Why:** Pre-ADR-34 legacy pattern creates naming inconsistency during Phase 2 repo visits; opportunistic retirement is lowest-cost path and avoids a dedicated migration prompt for a cosmetic change.
 - **Added:** 2026-05-11 by rob (Prompt J ratification, A5 designation)
 - **Status:** open — opportunistic during Phase 2 visits; no dedicated prompt.
+
+---
+
+## Tier Deprecation + Root Hygiene Cross-Repo Rollout (2026-05-23 reconciliation)
+
+> Surfaced by the 2026-05-23 standard-reconciliation session, which deprecated
+> the repo-tier system and added root-hygiene + README-disposition conventions
+> within `.dev-knowledge` only. Child repos (corp-monorepo, ai-council) were
+> READ-ONLY in that session. Items below carry the per-repo application work
+> into dedicated sessions via handoff bundles. Authority: ADR-33 / ADR-38 (A5) /
+> ADR-40 / ADR-51 amendments 2026-05-23; PLAYBOOK Root hygiene convention.
+
+### [P1] [open] Apply tier-deprecation to corp-monorepo
+- **What:** Remove `tier:` and `scale:` from `corp-monorepo` VISION.md (and ARCHITECTURE.md) frontmatter; strike any tier-conditional governance prose. Confirmed present 2026-05-23 (audit read-only check: VISION frontmatter still carries `tier`/`scale`). Add `status`/`last_reviewed` if missing per amended ADR-33 schema.
+- **Why:** Ecosystem-wide tier deprecation (ADR-33/38/40/51 amendments 2026-05-23). Child-repo frontmatter must conform to the amended universal schema; audit `vision_md` now validates `version`/`last_reviewed`/`owner`/`status` (tier/scale ignored).
+- **Vision ref:** VISION.md "Disseminator" function
+- **Added:** 2026-05-23 by rob (standard-reconciliation handoff)
+- **Status:** open — dedicated corp-monorepo session.
+
+### [P1] [open] Apply tier-deprecation to ai-council
+- **What:** Remove `tier:`/`scale:` from `ai-council` VISION.md (+ ARCHITECTURE.md) frontmatter. **Also fix the `vision_md` WARN surfaced 2026-05-23**: ai-council VISION frontmatter is missing the `status` key required by the amended ADR-33 schema — add `status` (and verify `last_reviewed`).
+- **Why:** Same as corp-monorepo. The amended audit `vision_md` check flags ai-council WARN (missing `status`) as of 2026-05-23 read-only verification.
+- **Vision ref:** VISION.md "Disseminator" function
+- **Added:** 2026-05-23 by rob (standard-reconciliation handoff)
+- **Status:** open — dedicated ai-council session.
+
+### [P2] [open] Root hygiene application — corp-monorepo
+- **What:** Per PLAYBOOK Root hygiene convention: consolidate standalone tool configs (`ruff.toml`/`pytest.ini`/`mypy.ini`) into `pyproject.toml` `[tool.*]` sections where a `pyproject.toml` exists; dot-prefix `<repo>.code-workspace` → `.<repo>.code-workspace`; verify `tach.toml` movability. corp-monorepo is a code project (has pyproject.toml) so consolidation applies (unlike `.dev-knowledge`).
+- **Why:** Root cleanliness (low cognitive overhead). Convention codified in PLAYBOOK 2026-05-23.
+- **Added:** 2026-05-23 by rob (standard-reconciliation handoff)
+- **Status:** open — dedicated corp-monorepo session.
+
+### [P2] [open] Root hygiene application — ai-council
+- **What:** Same as corp-monorepo: consolidate tool configs into `pyproject.toml` where present; dot-prefix the `.code-workspace` file (ai-council had none at last audit — verify); confirm root is clean.
+- **Why:** Root cleanliness; PLAYBOOK Root hygiene convention 2026-05-23.
+- **Added:** 2026-05-23 by rob (standard-reconciliation handoff)
+- **Status:** open — dedicated ai-council session.
+
+### [P2] [open] README disposition decision per child repo
+- **What:** `.dev-knowledge` deleted its root README (deprecated per ADR-38 A5; internal-only). Decide per child repo: corp-monorepo — delete README, or keep (does it have an external audience)? ai-council — delete, or keep for potential open-sourcing? README is now OPTIONAL universally (external-audience repos only).
+- **Why:** ADR-38 A5 deprecated README from the mandatory baseline. Child repos need an explicit keep/delete decision rather than silent drift.
+- **Added:** 2026-05-23 by rob (standard-reconciliation handoff)
+- **Status:** open — operator decision in each dedicated session.
 
 ---
