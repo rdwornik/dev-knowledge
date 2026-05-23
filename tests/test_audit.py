@@ -19,9 +19,9 @@ import audit as aud
 GOOD_VISION = """\
 ---
 version: "1.0"
-tier: standard
+last_reviewed: 2026-05-23
 owner: robdwornik@gmail.com
-scale: M
+status: active
 ---
 
 # Vision
@@ -52,13 +52,19 @@ key: [unclosed
 
 @pytest.fixture()
 def good_repo(tmp_path: Path) -> Path:
-    """Minimal ADR-38-compliant repo fixture."""
+    """Repo satisfying the ADR-38 A5 universal governance baseline.
+
+    Baseline files: VISION.md, ARCHITECTURE.md, BACKLOG.md, CLAUDE.md. src/,
+    tests/, pyproject.toml, README.md, CHANGELOG.md are kept here only to prove
+    they are NOT required by check_adr38_baseline post-amendment.
+    """
     (tmp_path / "src" / "my_pkg").mkdir(parents=True)
     (tmp_path / "src" / "my_pkg" / "__init__.py").write_text("")
     (tmp_path / "tests").mkdir()
     (tmp_path / "pyproject.toml").write_text("[project]\nname = 'my_pkg'\nversion = '0.1'\n")
     (tmp_path / "README.md").write_text("# Readme\n")
     (tmp_path / "VISION.md").write_text(GOOD_VISION)
+    (tmp_path / "ARCHITECTURE.md").write_text("# Architecture\n")
     (tmp_path / "CHANGELOG.md").write_text("# Changelog\n")
     (tmp_path / "BACKLOG.md").write_text("# Backlog\n")
     (tmp_path / "CLAUDE.md").write_text("# Claude\n\nInstructions.\n")
@@ -171,44 +177,58 @@ def test_vision_bad_yaml(tmp_path: Path) -> None:
 
 def test_adr38_pass(good_repo: Path) -> None:
     f = aud.check_adr38_baseline(good_repo)[0]
-    assert f.status in ("pass", "warn")  # warn allowed if ARCHITECTURE.md absent
+    assert f.status == "pass"
 
 
-def test_adr38_missing_readme(good_repo: Path) -> None:
+def test_adr38_readme_optional(good_repo: Path) -> None:
+    """README.md is optional post-amendment (A5) — its absence does not fail the check."""
     (good_repo / "README.md").unlink()
     f = aud.check_adr38_baseline(good_repo)[0]
+    assert f.status == "pass"
+
+
+def test_adr38_missing_architecture(good_repo: Path) -> None:
+    """ARCHITECTURE.md is universally mandatory post-amendment (A5)."""
+    (good_repo / "ARCHITECTURE.md").unlink()
+    f = aud.check_adr38_baseline(good_repo)[0]
     assert f.status == "fail"
-    assert "README.md" in f.evidence
+    assert "ARCHITECTURE.md" in f.evidence
 
 
-def test_adr38_missing_src(good_repo: Path) -> None:
+def test_adr38_missing_backlog(good_repo: Path) -> None:
+    (good_repo / "BACKLOG.md").unlink()
+    f = aud.check_adr38_baseline(good_repo)[0]
+    assert f.status == "fail"
+    assert "BACKLOG.md" in f.evidence
+
+
+def test_adr38_code_structure_not_required(good_repo: Path) -> None:
+    """src/, tests/, pyproject.toml are NOT part of the governance baseline (A5).
+
+    A governance-only repo with no code layout still passes if it carries the
+    mandatory governance docs.
+    """
     import shutil
     shutil.rmtree(good_repo / "src")
-    f = aud.check_adr38_baseline(good_repo)[0]
-    assert f.status == "fail"
-    assert "src" in f.evidence
-
-
-def test_adr38_missing_pyproject(good_repo: Path) -> None:
+    shutil.rmtree(good_repo / "tests")
     (good_repo / "pyproject.toml").unlink()
     f = aud.check_adr38_baseline(good_repo)[0]
-    assert f.status == "fail"
-    assert "pyproject.toml" in f.evidence
+    assert f.status == "pass"
 
 
 def test_adr38_bad_repo(bad_repo: Path) -> None:
-    """Repo with only README.md fails multiple checks."""
+    """Repo with only README.md fails — missing VISION/ARCHITECTURE/BACKLOG."""
     f = aud.check_adr38_baseline(bad_repo)[0]
     assert f.status == "fail"
 
 
 def test_adr38_no_lessons_or_journal_checked(good_repo: Path) -> None:
-    """LESSONS.md and JOURNAL.md are .dev-knowledge-specific — NOT checked by ADR-38 baseline."""
+    """LESSONS.md and JOURNAL.md are repo-specific — NOT checked by ADR-38 baseline."""
     # Neither file exists in good_repo; check must still pass
     assert not (good_repo / "LESSONS.md").exists()
     assert not (good_repo / "JOURNAL.md").exists()
     f = aud.check_adr38_baseline(good_repo)[0]
-    assert f.status in ("pass", "warn"), (
+    assert f.status == "pass", (
         f"ADR-38 check must not require LESSONS.md/JOURNAL.md; got: {f.evidence}"
     )
 
@@ -307,8 +327,8 @@ def test_audit_repo_good(good_repo: Path) -> None:
     statuses = {f.check_name: f.status for f in state.findings}
     assert statuses.get("vision_md") == "pass"
     assert statuses.get("claude_md") == "pass"
-    # adr38 may be pass or warn (ARCHITECTURE.md optional)
-    assert statuses.get("adr38_baseline") in ("pass", "warn")
+    # adr38 governance baseline: good_repo carries VISION/ARCHITECTURE/BACKLOG
+    assert statuses.get("adr38_baseline") == "pass"
 
 # ---------------------------------------------------------------------------
 # health command (CLI)

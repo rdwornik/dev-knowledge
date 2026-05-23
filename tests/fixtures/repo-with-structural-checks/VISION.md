@@ -1,8 +1,8 @@
 ---
 version: "1.0"
-tier: standard
+last_reviewed: 2026-05-23
 owner: robdwornik@gmail.com
-scale: M
+status: active
 ---
 
 # Vision
