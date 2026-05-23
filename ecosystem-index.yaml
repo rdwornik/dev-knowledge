@@ -1,0 +1,44 @@
+generated: '2026-05-23T17:17:25'
+repos:
+- findings:
+  - check_name: vision_md
+    evidence: 'VISION.md present; frontmatter keys: [''last_reviewed'', ''owner'',
+      ''scale'', ''status'', ''tier'', ''version'']'
+    status: pass
+  - check_name: adr38_baseline
+    evidence: 'Missing required: [''src'', ''pyproject.toml'']'
+    status: fail
+  - check_name: claude_md
+    evidence: CLAUDE.md present (7955 chars)
+    status: pass
+  last_audit: '2026-05-23'
+  name: .dev-knowledge
+  path: C:\Users\1028120\Documents\Dev\.dev-knowledge
+- findings:
+  - check_name: vision_md
+    evidence: 'VISION.md present; frontmatter keys: [''last_reviewed'', ''owner'',
+      ''scale'', ''tier'', ''version'']'
+    status: pass
+  - check_name: adr38_baseline
+    evidence: All ADR-38 tier M mandatory files and directories present
+    status: pass
+  - check_name: claude_md
+    evidence: CLAUDE.md present (7192 chars)
+    status: pass
+  last_audit: '2026-05-23'
+  name: ai-council
+  path: C:\Users\1028120\Documents\Dev\ai-council
+- findings:
+  - check_name: vision_md
+    evidence: 'VISION.md present; frontmatter keys: [''last_reviewed'', ''owner'',
+      ''scale'', ''status'', ''tier'', ''version'']'
+    status: pass
+  - check_name: adr38_baseline
+    evidence: All ADR-38 tier M mandatory files and directories present
+    status: pass
+  - check_name: claude_md
+    evidence: CLAUDE.md present (8076 chars)
+    status: pass
+  last_audit: '2026-05-23'
+  name: corp-monorepo
+  path: C:\Users\1028120\Documents\Dev\corp-monorepo

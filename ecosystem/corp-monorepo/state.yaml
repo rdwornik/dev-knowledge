@@ -4,11 +4,11 @@ findings:
     ''status'', ''tier'', ''version'']'
   status: pass
 - check_name: adr38_baseline
-  evidence: 'Missing required: [''src'', ''pyproject.toml'']'
-  status: fail
+  evidence: All ADR-38 tier M mandatory files and directories present
+  status: pass
 - check_name: claude_md
-  evidence: CLAUDE.md present (7955 chars)
+  evidence: CLAUDE.md present (8076 chars)
   status: pass
 last_audit: '2026-05-23'
-name: .dev-knowledge
-path: C:\Users\1028120\Documents\Dev\.dev-knowledge
+name: corp-monorepo
+path: C:\Users\1028120\Documents\Dev\corp-monorepo
