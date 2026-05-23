@@ -1214,10 +1214,12 @@ Then for each feature:
 ### How to choose Model
 <!-- scope: llm -->
 
-- **Sonnet** — single-file changes, mechanical refactors, test writing, boilerplate generation, file renames, config updates, code review
-- **Opus** — multi-package changes, complex debugging, architecture decisions, anything requiring reasoning across 3+ files, novel logic design
+- **Sonnet** for: mechanical work ("apply this fix"), single-file edits, well-specified implementation, pattern-matched code, boilerplate, file renames, config updates, code-and-test loops where the spec is detailed.
+- **Opus** for: audit / review / synthesis tasks; architecture decisions and clause-level reasoning; judgment-heavy work (severity calibration, ambiguity resolution); long-context comparison across multiple inputs; subtle pattern recognition (security review, gotcha identification); multi-package changes; complex debugging; novel logic design.
 
 Rule of thumb: if the task is "do X the way we always do it" → Sonnet. If the task is "figure out the right approach, then do it" → Opus.
+
+**Actively choose per task; do NOT default to Sonnet.** There is no budget ceiling per the LLM-spend rule. When uncertain, lean Opus — Sonnet's failure modes (missed nuance, factual misses) cost more than Opus's overhead.
 
 ### How to choose Mode
 <!-- scope: runtime -->
