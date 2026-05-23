@@ -2289,6 +2289,78 @@ docs/audits/
 
 `ecosystem-index.yaml` is a rollup snapshot; it is derived and regenerated on demand — do not edit manually.
 
+### ecosystem-index.yaml — rollup index
+<!-- scope: meta -->
+
+`ecosystem/ecosystem-index.yaml` is the audit infrastructure's aggregate index. It consolidates the last-known state of every registered repo into a single file, giving operators (and future tooling) a quick read on ecosystem health without opening per-repo `state.yaml` files.
+
+**Path:** `ecosystem-index.yaml` — at the `.dev-knowledge` root, sibling to the `ecosystem/` folder (not nested inside it).
+
+**Schema:**
+
+| Field | Type | Description |
+|---|---|---|
+| `generated` | ISO 8601 timestamp string | When `registry update` last ran (e.g. `2026-05-23T14:32:07`) |
+| `repos` | list of repo entries | One entry per registered repo |
+| `repos[].name` | string | Repo name (matches `ecosystem/<name>/` folder) |
+| `repos[].path` | string | Absolute filesystem path stored at registration time |
+| `repos[].last_audit` | ISO date string or `null` | Date of last `run`/`repo` invocation; `null` if never audited |
+| `repos[].findings` | list of finding entries | Findings from last audit pass |
+| `repos[].findings[].check_name` | string | Check identifier (e.g. `vision_md`, `adr38_baseline`, `claude_md`) |
+| `repos[].findings[].status` | string | `pass` \| `fail` \| `warn` \| `unavailable` |
+| `repos[].findings[].evidence` | string | Human-readable explanation of the check result |
+
+**Example (3-repo ecosystem):**
+
+```yaml
+generated: '2026-05-23T14:32:07'
+repos:
+- findings:
+  - check_name: vision_md
+    evidence: 'VISION.md present; frontmatter keys: [...]'
+    status: pass
+  - check_name: adr38_baseline
+    evidence: Missing required: ['src', 'pyproject.toml']
+    status: fail
+  - check_name: claude_md
+    evidence: CLAUDE.md present (4821 chars)
+    status: pass
+  last_audit: '2026-05-23'
+  name: .dev-knowledge
+  path: C:\Users\1028120\Documents\Dev\.dev-knowledge
+- findings:
+  - check_name: vision_md
+    evidence: 'VISION.md present; frontmatter keys: [...]'
+    status: pass
+  - check_name: adr38_baseline
+    evidence: All ADR-38 tier M mandatory files and directories present
+    status: pass
+  - check_name: claude_md
+    evidence: CLAUDE.md present (3102 chars)
+    status: pass
+  last_audit: '2026-05-23'
+  name: ai-council
+  path: C:\Users\1028120\Documents\Dev\ai-council
+- findings:
+  - ...
+  last_audit: '2026-05-23'
+  name: corp-monorepo
+  path: C:\Users\1028120\Documents\Dev\corp-monorepo
+```
+
+**Generation:** `python scripts/audit.py registry update` reads every `ecosystem/<name>/state.yaml` that exists, merges them into the index structure, and writes `ecosystem-index.yaml`. Implementation: `audit.py` `cmd_registry` + `regenerate_index()`.
+
+**Maintenance policy:** Do not edit `ecosystem-index.yaml` manually. `registry update` overwrites the entire file on each invocation — manual edits will be silently lost on the next run. The per-repo `state.yaml` files are the source of truth; the index is always derivable from them.
+
+**When it is written:**
+- After `registry update` (explicit invocation — the only write path)
+- It is NOT written automatically by `run --repo-path` or `run` or `repo` commands
+- It is NOT written by `health`
+
+**Relationship to state.yaml:** `ecosystem-index.yaml` is a derived rollup; `ecosystem/<name>/state.yaml` is the source of truth per repo. If the index is lost or corrupted, `registry update` regenerates it completely from the state.yaml files. The reverse is not true — state.yaml cannot be reconstructed from the index alone.
+
+**Additional `registry update` behavior:** does not run any audit checks, does not write history files, does not generate reports. It is a pure read-from-state-yaml → write-index operation.
+
 ### Registering a new repo
 <!-- scope: meta -->
 
