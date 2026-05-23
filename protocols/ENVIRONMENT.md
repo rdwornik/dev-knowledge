@@ -82,7 +82,7 @@ Project-specific skills, gotchas, and rules live in each repo's `.claude/` direc
 
 Two VS Code workspaces:
 - **Coding:** project-level `.code-workspace` file in the main project repo — all code projects + packages
-- **Knowledge:** `Dev/.dev-knowledge/dev-knowledge.code-workspace` — dev practice files only
+- **Knowledge:** `Dev/.dev-knowledge/.dev-knowledge.code-workspace` — dev practice files only (dot-prefixed 2026-05-23 per root hygiene convention)
 
 Project-specific workspace details (folder count, roots) live in each workspace file.
 
