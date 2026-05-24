@@ -100,8 +100,8 @@ User-level (`~/.claude/skills/`):
 - `gotchas` — universal dev gotchas (encoding, shell safety, test pitfalls)
 - `boot`, `session-summary`, `handoff`, `save` — session lifecycle skills
 
-Repo-level (`./.claude/skills/gotchas/`):
-- Read `.claude/skills/gotchas/SKILL.md` before making changes — repo-specific empirical patterns that have caused problems here
+Repo-level (`./.claude/`):
+- No repo-level skills directory exists yet (`.claude/` holds `commands/` and `rules/` only). Repo-specific empirical patterns live in `LESSONS.md` (append-only) — read it before structural changes; universal gotchas are the user-level `gotchas` skill above. If a repo-specific gotchas skill is later added it goes under `.claude/skills/gotchas/`.
 
 ## 9. Hooks active
 <!-- scope: runtime -->
@@ -140,8 +140,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v1.0 (2026-04-24) — initial thin-pointer CLAUDE.md per Gap #5
 - v2.0 (2026-05-19) — ADR-53: retire thin-pointer/AGENTS.md framing; CLAUDE.md becomes substantive single canonical per-repo agent-instruction file
 - v2.1 (2026-05-19) — add §3 Architecture, §4 Conventions; renumber; migrate content from AGENTS.md per ADR-53 Decision 2
+- v2.2 (2026-05-24) — self-audit fix (E1): §8 repo-level skills bullet corrected — no `.claude/skills/` dir exists; repo gotchas live in LESSONS.md
 
 ---
 
-**Last updated:** 2026-05-19
+**Last updated:** 2026-05-24
 **Maintained by:** Rob
