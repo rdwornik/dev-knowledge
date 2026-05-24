@@ -63,8 +63,11 @@
 		"terminal.integrated.cwd": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge",
 
 		// ── Explorer ────────────────────────────────────────
-		// DO NOT CHANGE — keeps newest dated files at top in alias folders (primary goal per operator decision 2026-05-24)
-		"explorer.sortOrder": "modified",
+		// DO NOT CHANGE without architectural review
+		// default + reverse: newest dates first in aliases AND dotfiles grouped in main root
+		// (per operator decision 2026-05-24 — primary + secondary goals both satisfied)
+		"explorer.sortOrder": "default",
+		"explorer.sortOrderReverse": true,
 		"explorer.compactFolders": false,
 
 		// ── Todo Tree ───────────────────────────────────────
