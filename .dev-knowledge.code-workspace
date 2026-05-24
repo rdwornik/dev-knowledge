@@ -1,6 +1,14 @@
 {
 	"folders": [
 		{
+			"name": "📓 .dev-knowledge",
+			"path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge"
+		},
+		{
+			"name": "⚙️ ~/.claude (config)",
+			"path": "C:\\Users\\1028120\\.claude"
+		},
+		{
 			"name": "📅 Audits",
 			"path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge\\docs\\audits"
 		},
@@ -11,14 +19,6 @@
 		{
 			"name": "📋 ADRs",
 			"path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge\\docs\\decisions"
-		},
-		{
-			"name": "📓 .dev-knowledge",
-			"path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge"
-		},
-		{
-			"name": "⚙️ ~/.claude (config)",
-			"path": "C:\\Users\\1028120\\.claude"
 		}
 	],
 	"settings": {
