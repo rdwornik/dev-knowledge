@@ -63,8 +63,8 @@
 		"terminal.integrated.cwd": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge",
 
 		// ── Explorer ────────────────────────────────────────
-		// DO NOT CHANGE — keeps dotfiles grouped at top per operator decision 2026-05-24
-		"explorer.sortOrder": "default",
+		// DO NOT CHANGE — keeps newest dated files at top in alias folders (primary goal per operator decision 2026-05-24)
+		"explorer.sortOrder": "modified",
 		"explorer.compactFolders": false,
 
 		// ── Todo Tree ───────────────────────────────────────
