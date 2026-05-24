@@ -7,7 +7,7 @@ Read-only contract: never touches child repo files.
 Commands:
     audit run                          # full ecosystem; writes report
     audit repo <name>                  # single repo
-    audit registry update              # regenerate ecosystem-index.yaml
+    audit registry update              # regenerate ecosystem/index.yaml
     audit health                       # quick TTY status, no file writes
 
 Usage:
@@ -39,7 +39,7 @@ logger = logging.getLogger("audit")
 
 ECOSYSTEM_DIR = Path(_REPO_ROOT) / "ecosystem"
 AUDITS_DIR = Path(_REPO_ROOT) / "docs" / "audits"
-ECOSYSTEM_INDEX = Path(_REPO_ROOT) / "ecosystem-index.yaml"
+ECOSYSTEM_INDEX = Path(_REPO_ROOT) / "ecosystem" / "index.yaml"
 
 # ---------------------------------------------------------------------------
 # State schema
@@ -384,11 +384,11 @@ def cmd_repo(name: str, repo_path: Optional[str]) -> None:
 @cli.command("registry")
 @click.argument("action", type=click.Choice(["update"]))
 def cmd_registry(action: str) -> None:
-    """Manage ecosystem registry. Action: update (regenerate ecosystem-index.yaml)."""
+    """Manage ecosystem registry. Action: update (regenerate ecosystem/index.yaml)."""
     names = discover_repos()
     states = [load_state(n) for n in names if load_state(n) is not None]
     regenerate_index(states)
-    click.echo(f"ecosystem-index.yaml regenerated ({len(states)} repos).")
+    click.echo(f"ecosystem/index.yaml regenerated ({len(states)} repos).")
 
 
 @cli.command("health")

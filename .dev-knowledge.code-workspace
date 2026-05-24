@@ -7,6 +7,18 @@
 		{
 			"name": "⚙️ ~/.claude (config)",
 			"path": "C:\\Users\\1028120\\.claude"
+		},
+		{
+			"name": "📅 Audits",
+			"path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge\\docs\\audits"
+		},
+		{
+			"name": "📅 Handoffs",
+			"path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge\\docs\\handoffs"
+		},
+		{
+			"name": "📋 ADRs",
+			"path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge\\docs\\decisions"
 		}
 	],
 	"settings": {
@@ -51,7 +63,7 @@
 		"terminal.integrated.cwd": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge",
 
 		// ── Explorer ────────────────────────────────────────
-		"explorer.sortOrder": "type",
+		"explorer.sortOrder": "modified",
 		"explorer.compactFolders": false,
 
 		// ── Todo Tree ───────────────────────────────────────
@@ -109,6 +121,42 @@
 				"command": "$f = \"$env:USERPROFILE\\.claude\\memory\\learned-rules.md\"; if (Test-Path $f) { $c = (Get-Content $f | Measure-Object -Line).Lines; if ($c -gt 40) { Write-Host \"⚠ learned-rules.md is $c lines (approaching 50 limit!)\" -ForegroundColor Yellow } else { Write-Host \"✅ learned-rules.md: $c lines\" -ForegroundColor Green } } else { Write-Host 'No learned-rules.md yet' }",
 				"group": "none",
 				"presentation": { "reveal": "always", "panel": "shared" }
+			},
+			{
+				"label": "open-latest-audit",
+				"type": "shell",
+				"command": "pwsh",
+				"args": [
+					"-NoProfile",
+					"-Command",
+					"Get-ChildItem '${workspaceFolder:📓 .dev-knowledge}/docs/audits' -Filter '*.md' | Sort-Object Name -Descending | Select-Object -First 1 | ForEach-Object { code -r $_.FullName }"
+				],
+				"presentation": { "reveal": "silent", "panel": "dedicated", "close": true },
+				"problemMatcher": []
+			},
+			{
+				"label": "open-latest-handoff",
+				"type": "shell",
+				"command": "pwsh",
+				"args": [
+					"-NoProfile",
+					"-Command",
+					"Get-ChildItem '${workspaceFolder:📓 .dev-knowledge}/docs/handoffs' -Recurse -Filter 'HANDOFF.md' | Sort-Object Directory -Descending | Select-Object -First 1 | ForEach-Object { code -r $_.FullName }"
+				],
+				"presentation": { "reveal": "silent", "panel": "dedicated", "close": true },
+				"problemMatcher": []
+			},
+			{
+				"label": "open-latest-adr",
+				"type": "shell",
+				"command": "pwsh",
+				"args": [
+					"-NoProfile",
+					"-Command",
+					"Get-ChildItem '${workspaceFolder:📓 .dev-knowledge}/docs/decisions' -Filter 'ADR-*.md' | Sort-Object Name -Descending | Select-Object -First 1 | ForEach-Object { code -r $_.FullName }"
+				],
+				"presentation": { "reveal": "silent", "panel": "dedicated", "close": true },
+				"problemMatcher": []
 			}
 		]
 	}
