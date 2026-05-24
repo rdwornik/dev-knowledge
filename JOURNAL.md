@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-05-24 — Workspace combo setup: multi-root + open-latest tasks + sort decision
+
+- Did: Set up a native VS Code multi-root workspace combo for fast access to dated artifacts — no extensions required.
+- Result: `.dev-knowledge.code-workspace` now has 5 roots (`.dev-knowledge`, `~/.claude (config)`, `📅 Audits`, `📅 Handoffs`, `📋 ADRs`), three open-latest tasks, and `explorer.sortOrder` trialled as `"modified"` then reverted to `"default"` (modified didn't group dotfiles as expected).
+- Changes: `.dev-knowledge.code-workspace` (multi-root folders + tasks added; sort reverted). `docs/notes/2026-05-24-workspace-combo-setup.md` folded into this entry and removed.
+
+**Setup details:**
+
+1. **Multi-root workspace** — 5 folders: `📓 .dev-knowledge` (repo root), `⚙️ ~/.claude (config)`, `📅 Audits` → `docs/audits/`, `📅 Handoffs` → `docs/handoffs/`, `📋 ADRs` → `docs/decisions/`. Each dated-folder alias appears as a separate Explorer root so its contents are immediately visible without drilling through `docs/`.
+
+2. **Workspace tasks** — three tasks for single-keystroke access to the latest file in each dated folder:
+   - `open-latest-audit` — opens newest `*.md` in `docs/audits/` by name-desc
+   - `open-latest-handoff` — opens newest `HANDOFF.md` in `docs/handoffs/` by directory-desc
+   - `open-latest-adr` — opens newest `ADR-*.md` in `docs/decisions/` by name-desc
+
+3. **Sort decision** — `explorer.sortOrder: "modified"` trialled; reverted to `"default"` because modified sort didn't group dotfiles as expected.
+
+**Recommended user-scope keybindings** (add to personal `keybindings.json`):
+
+```json
+{ "key": "ctrl+alt+a", "command": "workbench.action.tasks.runTask", "args": "open-latest-audit" },
+{ "key": "ctrl+alt+h", "command": "workbench.action.tasks.runTask", "args": "open-latest-handoff" },
+{ "key": "ctrl+alt+d", "command": "workbench.action.tasks.runTask", "args": "open-latest-adr" }
+```
+
+**Post-merge operator actions:**
+1. Reopen workspace — File → Open Workspace from File → `.dev-knowledge.code-workspace`
+2. Add keybindings above (user-scope, cannot be committed to repo)
+3. Trial 2–3 days — evaluate: does 5-root Explorer feel cluttered or useful? Are task keybindings used?
+
+**Revert path (if combo doesn't work):**
+- Partial revert (keep root hygiene, revert workspace): `git revert d87bd31` (Step 4 commit)
+- Full revert of workspace+tasks: `git revert d87bd31 <step5-sha>`
+- Root hygiene file moves (Steps 1+2) are low-risk and worth keeping regardless
+
+**Why this approach** (comparison table):
+
+| Option | Approach | Cost |
+|--------|----------|------|
+| A (this) | Multi-root aliases + modified sort + tasks | Native, no ext, ~5 Explorer roots |
+| B | Filename prefix hack (00-, 01- prefixes) | Pollutes filenames, affects git log |
+| C | `explorer.sortOrderReverse: true` (v1.93+) | Reverses ALL folders, not just dated ones |
+| D | Custom extension | Build cost ~4–8h; overkill for 3 folders |
+
+Option A chosen for empirical trial per operator decision 2026-05-23.
+
+---
+
 ### 2026-05-23 — Tor B.1: Codemap generator convention landed end-to-end
 
 - Did: Landed the full ADR-51 codemap generator convention — amendment + template update + PLAYBOOK section + pre-commit hook + first dogfood on `.dev-knowledge`'s own ARCHITECTURE.md. Branch: `feat/codemap-amendment-and-dogfood`, 6 sequential commits off main.
