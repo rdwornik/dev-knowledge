@@ -220,6 +220,23 @@ Which `docs/` subfolders a repo carries (`decisions/`, `handoffs/`, `audits/`, `
 - Standalone scripts → `scripts/`
 - Test fixtures → `tests/fixtures/`
 
+### Additional root hygiene rules (added 2026-05-24, root hygiene pass 2)
+<!-- scope: dev -->
+<!-- version: 1.1 — 2026-05-24 -->
+
+**`.env.example` policy: do not create.** Standard practice in many projects is generating `.env.example` as a template for required environment variables. In this repo's workflow, this is unnecessary clutter — environment variable docs live in CLAUDE.md / ENVIRONMENT.md / VISION.md as appropriate. Do not auto-generate `.env.example` files.
+
+**Dot-prefix where tool supports.** If a config file MUST live at root (tool defaults to root discovery), prefer dot-prefixed variant if the tool accepts both:
+- Ruff: `.ruff.toml` (instead of `ruff.toml`) — supported per Ruff docs ✓ applied 2026-05-24
+- pre-commit: `.pre-commit-config.yaml` — standard name, already dot-prefixed
+- ESLint: `.eslintrc.json` (instead of `eslintrc.json`) — already dot-prefixed convention
+- pytest: must be `pytest.ini` or `pyproject.toml [tool.pytest.ini_options]` — no dot-prefix variant
+- Tach: `tach.toml` — verify movability per tool version before assuming dot-prefix works
+
+**`.env` placement.** If `.env` is required by tooling: stays at repo root (dot-prefixed convention preserved). If only used by scripts that accept configurable env-file path: prefer `.config/.env` or similar subfolder placement.
+
+**No `files.exclude` to hide root config files.** Operator preference: VISIBILITY of what tools are configured matters. Do not use VS Code `files.exclude` settings to hide config files from Explorer — defeats the purpose of seeing what's configured. Apply dot-prefix instead where supported.
+
 ### Secrets storage path
 <!-- scope: meta -->
 
