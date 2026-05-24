@@ -161,6 +161,54 @@
 				],
 				"presentation": { "reveal": "silent", "panel": "dedicated", "close": true },
 				"problemMatcher": []
+			},
+			{
+				"label": "open-vision",
+				"type": "shell",
+				"command": "code",
+				"args": ["-r", "${workspaceFolder:📓 .dev-knowledge}/VISION.md"],
+				"presentation": { "reveal": "silent", "panel": "dedicated", "close": true },
+				"problemMatcher": []
+			},
+			{
+				"label": "open-journal",
+				"type": "shell",
+				"command": "code",
+				"args": ["-r", "${workspaceFolder:📓 .dev-knowledge}/JOURNAL.md"],
+				"presentation": { "reveal": "silent", "panel": "dedicated", "close": true },
+				"problemMatcher": []
+			},
+			{
+				"label": "open-backlog",
+				"type": "shell",
+				"command": "code",
+				"args": ["-r", "${workspaceFolder:📓 .dev-knowledge}/BACKLOG.md"],
+				"presentation": { "reveal": "silent", "panel": "dedicated", "close": true },
+				"problemMatcher": []
+			},
+			{
+				"label": "open-architecture",
+				"type": "shell",
+				"command": "code",
+				"args": ["-r", "${workspaceFolder:📓 .dev-knowledge}/ARCHITECTURE.md"],
+				"presentation": { "reveal": "silent", "panel": "dedicated", "close": true },
+				"problemMatcher": []
+			},
+			{
+				"label": "open-lessons",
+				"type": "shell",
+				"command": "code",
+				"args": ["-r", "${workspaceFolder:📓 .dev-knowledge}/LESSONS.md"],
+				"presentation": { "reveal": "silent", "panel": "dedicated", "close": true },
+				"problemMatcher": []
+			},
+			{
+				"label": "open-claude-md",
+				"type": "shell",
+				"command": "code",
+				"args": ["-r", "${workspaceFolder:📓 .dev-knowledge}/CLAUDE.md"],
+				"presentation": { "reveal": "silent", "panel": "dedicated", "close": true },
+				"problemMatcher": []
 			}
 		]
 	}
