@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-05-23
+last_reviewed: 2026-05-24
 status: active
 owner: Rob
 ---
@@ -8,7 +8,7 @@ owner: Rob
 <!-- scope: meta -->
 
 > Living document. Updated after structural changes.
-> Last updated: `2026-05-23` (tier-deprecation reconciliation: removed `scale:` frontmatter + tier prose)
+> Last updated: `2026-05-24` (self-audit residue cleanup; 2026-05-23 tier-deprecation reconciliation: removed `scale:` frontmatter + tier prose)
 
 ## Purpose [CORE]
 
@@ -97,7 +97,7 @@ Utility-exemption modules: none.
 
 ---
 
-## Diagrams [M/L]
+## Diagrams
 
 `.dev-knowledge` has no Mermaid diagrams currently. The three-layer architecture diagram in `## Layer Boundaries & Invariants` is inline ASCII and serves as the primary orientation aid.
 
@@ -151,10 +151,10 @@ Per ADR-28 invariant: `.dev-knowledge` may host **read-only** validators (Layer 
 - **ADR-35** — lessons base activation: push retrieval via SessionStart hook, pull via `lessons query`
 - **ADR-36** — audit tool architecture: `.dev-knowledge` as ecosystem auditor; read-only, manually invoked
 - **ADR-37** — session boundary protocol: two-phase handoff overlay (Current State + Future State)
-- **ADR-38** — universal repo baseline: mandatory files per scale tier (S/M/L)
+- **ADR-38** — universal repo baseline: mandatory files for every repo (tier gating removed 2026-05-23, amendment A5)
 - **ADR-39** — file lifecycle governance: 6-element pattern (purpose/trigger/owner/grooming/boundaries/enforcement)
-- **ADR-40** — scale tier evaluation: logarithmic Maintainability Index pattern; 3 signals; transition procedures
-- **ADR-41** — cross-session backlog architecture: BACKLOG.md mandate at M+ tier
+- **ADR-40** — scale tier evaluation (DEPRECATED 2026-05-23): logarithmic Maintainability Index pattern; retired with the repo-tier system
+- **ADR-41** — cross-session backlog architecture: BACKLOG.md mandate (universal post tier-deprecation; ADR-38 A5)
 - **ADR-42** — handoff format v3: amends ADR-32; folder-based handoffs with invariant/session separation
 - **ADR-43** — cross-project transcript routing: Council CLI dual-writes to `ai-council/output/` (operational) and `.dev-knowledge/docs/decisions/transcripts/` (curated)
 - **ADR-46** — cross-repo dated-entries format: convention retained (demoted from audit-enforced 2026-05-16)

@@ -89,4 +89,4 @@ Protocol: `protocols/HANDOFF_PROCESS.md` (v2.0, 2026-04-28 — folder format per
 Trigger phrase (browser chat): `wygeneruj handoff`
 Claude Code: `/session-summary`
 
-`BACKLOG.md` (root): cross-session pending items per ADR-41. M+ tier mandate. Review before chartering new session.
+`BACKLOG.md` (root): cross-session pending items per ADR-41. Universal mandate (ADR-38 amendment A5 — every repo, no tier gating). Review before chartering new session.

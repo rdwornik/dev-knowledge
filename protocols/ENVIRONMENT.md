@@ -1,7 +1,7 @@
 # Dev Environment — Current State
 
 > **Living document.** Update when any config changes.
-> Last updated: 2026-04-30
+> Last updated: 2026-05-24
 
 ---
 
@@ -157,11 +157,13 @@ Project-specific paths (database locations, output dirs, exclusion zones) live i
 Location: `Dev/.dev-knowledge/` — visible in VS Code workspace as `📓 .dev-knowledge`
 
 ```
-CLAUDE.md                       ← Project contract for Claude Code
-README.md                       ← Triage rules ("co gdzie idzie")
-JOURNAL.md                      ← Per-session tactical log (newest-first)
+CLAUDE.md                       ← Single canonical agent-instruction contract (ADR-53)
+VISION.md                       ← Mission, scope, relationships
+ARCHITECTURE.md                 ← Structural model (ADR-51)
+JOURNAL.md                      ← Per-session tactical log (newest-first; carries notable-change record)
 LESSONS.md                      ← Append-only lessons log
-CHANGELOG.md                    ← Notable changes history
+BACKLOG.md                      ← Cross-session pending items (ADR-41)
+CONTRIBUTING.md                 ← Branch/commit/validator conventions
 protocols/
   ESSENTIALS.md                 ← Daily cheat sheet (1 page)
   SESSION_SETUP.md              ← How to start new browser chat / project
@@ -173,6 +175,9 @@ logs/
 config/
   requirements-dev.txt          ← Python dev dependencies
 ```
+
+(README.md deleted 2026-05-23 per ADR-38 amendment A5; CHANGELOG.md retired
+2026-05-16 per ADR-49 — git history + JOURNAL replace it.)
 
 Separation rationale (Council Decision #23): vault = pre-sales work knowledge, .dev-knowledge = dev methodology, ~/.claude/ = runtime config. Trigger: when navigation overhead emerges, evaluate DevVault migration.
 
@@ -263,4 +268,4 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
 | Python      | 3.11+                         | 2026-03-28   |
 | VS Code     | Current + 10 extensions       | 2026-03-29   |
 
-Project versions tracked in each project's CLAUDE.md / CHANGELOG.md.
+Project versions tracked in each project's CLAUDE.md / git history.
