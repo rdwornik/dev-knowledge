@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-05-24 — Session: self-audit + alignment (capping the 2026-05-23/24 reconciliation arc)
+
+- Did: Ran a comprehensive self-audit of `.dev-knowledge`'s own canonical files against its amended (post-tier-deprecation) standards, then remediated every finding. Entry also records the broader 2026-05-23 → 2026-05-24 session arc.
+- Result: 14 findings fixed across 7 files (2 HIGH, 9 MEDIUM, 3 LOW). Immutable audit report at `docs/audits/2026-05-24-dev-knowledge-self-audit.md`; 2 open questions logged. `pytest` 72 passed, `ruff` clean, `audit.py health` OK throughout.
+- Changes: `docs/audits/2026-05-24-dev-knowledge-self-audit.md` (new); `ARCHITECTURE.md`, `protocols/ESSENTIALS.md`, `CONTRIBUTING.md`, `VISION.md`, `protocols/PLAYBOOK.md`, `protocols/ENVIRONMENT.md`, `CLAUDE.md` (residue cleanup, one commit each); `LESSONS.md` (session patterns); this entry.
+- Branch: `chore/self-audit-and-alignment-2026-05-24` (unmerged, unpushed).
+
+**Self-audit findings remediated:**
+- A1 [HIGH] `ESSENTIALS.md` "Project Scale Tiers" — a live deprecated-tier prescription (referenced struck `[L only]`/`[L+M]` tags + a renamed PLAYBOOK section). Sat beyond a naive grep's hit cap → why Prompt 10 missed it.
+- A2 [HIGH] `ARCHITECTURE.md` `## Diagrams [M/L]` tier-letter tag (operator-flagged seed).
+- A3-A5 [MED] `ARCHITECTURE.md` governing-ADR descriptions: ADR-38 self-contradiction, ADR-40 deprecation note, ADR-41 "M+ tier" gating.
+- A6 [MED] `CONTRIBUTING.md` BACKLOG "M+ tier mandate" → universal.
+- B1-B5 deprecated-feature residue: CHANGELOG refs in VISION (×2), PLAYBOOK (taxonomy row + branch-rename step), ENVIRONMENT (version-tracking).
+- E1 [MED] `CLAUDE.md` §8 dangling repo gotchas-skill reference (no `.claude/skills/` exists).
+- E2 [MED] `ENVIRONMENT.md` stale structure diagram (listed deleted README/CHANGELOG; missing ARCHITECTURE/VISION/BACKLOG/CONTRIBUTING).
+- E3 [LOW] `VISION.md` "audit tool pending / until tool exists" — tool exists and runs.
+- Preserved (historical, not prescriptive): BACKLOG tier residue in closed/superseded items + descriptive rollout context; correctly-framed deprecation notes in VISION/ARCHITECTURE; PLAYBOOK's reconciled S/M/L informal bands.
+- Open questions: OQ-1 (ESSENTIALS task-scale "Scale S/M+" terminology collision — left intact, not a violation); OQ-2 (reframe vs create the repo gotchas skill — reframed, no artifact created).
+
+**Session arc 2026-05-23 → 2026-05-24 (for the record):**
+
+Cross-repo deep audits (scrum-master review pattern):
+- corp-monorepo deep audit (Opus) — `docs/audits/2026-05-23-corp-monorepo-deep-audit.md`.
+- ai-council re-pass (Opus) — `docs/audits/2026-05-23-ai-council-deep-audit.md`.
+- Pattern now N=3 (ai-council 2026-05-12 + corp-monorepo 2026-05-23 + ai-council re-pass 2026-05-23).
+
+Standard reconciliation — tier system deprecation (merge `427f9a6`):
+- ADR-38 amended (universal baseline A5; CHANGELOG struck; ARCHITECTURE universal; README deprecated); ADR-33 amended (tier/scale out of VISION frontmatter); ADR-40 DEPRECATED; ADR-51 amended (ARCHITECTURE mandatory universally).
+- Audit tool: `check_adr38_baseline` → governance-docs-only.
+- PLAYBOOK: tier-gating struck, model-selection criteria added, root-hygiene convention added.
+- Self-application included .dev-knowledge frontmatter/workspace/README — but missed residue (ESSENTIALS section, ARCHITECTURE `[M/L]`, ADR descriptions); this self-audit session closed that gap.
+
+Root hygiene pass 2 + workspace combo (merge `4ae9bff` + follow-ups):
+- `ecosystem-index.yaml` → `ecosystem/index.yaml`; `ruff.toml` → `.ruff.toml`.
+- PLAYBOOK root-hygiene section expanded (`.env.example` no-create, dot-prefix-where-supported, no `files.exclude` for config visibility).
+- Multi-root workspace + dated-folder aliases + three open-latest tasks.
+- Sort iteration spanned 6 commits (`d87bd31`, `6b0ccac`, `ee68675`, `dfda077`, `ebea02d`, `dd350e1`) — see LESSONS reactive-patching entry.
+
+Workspace combo FINAL state (read from `.dev-knowledge.code-workspace` at audit time — supersedes the earlier same-day entry's "reverted to default" note):
+- Multi-root order: `📓 .dev-knowledge`, `⚙️ ~/.claude (config)`, `📅 Audits`, `📅 Handoffs`, `📋 ADRs` (aliases at bottom).
+- `explorer.sortOrder: "default"` + `explorer.sortOrderReverse: true` + `compactFolders: false` — "newest dates first in aliases AND dotfiles grouped in main root" (operator decision; primary + secondary goals both satisfied).
+- Open-latest tasks installed; keybindings remain a post-merge user-scope action.
+
+- Next: operator review + merge approval for `chore/self-audit-and-alignment-2026-05-24`. `.dev-knowledge` then serves as the clean reference for the corp-monorepo + ai-council tier-deprecation rollout sessions (BACKLOG "Tier Deprecation + Root Hygiene Cross-Repo Rollout").
+
+---
+
 ### 2026-05-24 — Workspace combo setup: multi-root + open-latest tasks + sort decision
 
 - Did: Set up a native VS Code multi-root workspace combo for fast access to dated artifacts — no extensions required.
