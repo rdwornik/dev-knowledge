@@ -24,9 +24,11 @@ gaps. This audit finds and dispositions all such residue.
 | Severity | Count | Findings |
 |----------|-------|----------|
 | HIGH | 2 | A1 (ESSENTIALS live "Project Scale Tiers" section), A2 (ARCHITECTURE `## Diagrams [M/L]`) |
-| MEDIUM | 9 | A3, A4, A5, A6, B1, B2, B3, E1, E2 |
+| MEDIUM | 10 | A3, A4, A5, A6, A7, B1, B2, B3, E1, E2 |
 | LOW | 3 | B4, B5, E3 |
-| **Total to fix** | **14** | across 7 files |
+| **Total to fix** | **15** | across 7 files |
+
+(A7 was caught by the post-remediation confirmation re-grep, not initial discovery — see Category A.)
 
 Cross-file consistency findings (C1, C2, C3) are resolved by the A/B/E fixes above
 (not separately counted). Preserved-as-historical and preserved-as-correct items are
@@ -92,6 +94,18 @@ are not.
   per ADR-41. M+ tier mandate."
 - **Why a finding:** Stale tier gating; BACKLOG is universal.
 - **Recommendation:** "universal mandate (per ADR-41, ADR-38 A5)".
+
+### A7 — ESSENTIALS.md residual `[L+M]` tier tag [MEDIUM] — WILL FIX
+- **Evidence:** `protocols/ESSENTIALS.md:316`. Monthly Codex-audit cadence bullet:
+  "… → see PLAYBOOK Section 17 `[L+M]`".
+- **Why a finding:** A `[L+M]` tier tag gating the audit cadence — the same class as A2,
+  on a PLAYBOOK section whose tier tags were struck in Prompt 10. Missed by initial
+  discovery because the line carries no "tier"/"scale" word, so the Category-A grep didn't
+  match it; caught by the post-remediation confirmation re-grep on `[L+M]`/`[L only]`.
+- **Recommendation:** Strip the tag; reframe cadence as judgment-by-complexity per
+  PLAYBOOK's audit-cadence stance ("not tier-gated; a tiny single-script repo may skip").
+- **Process note:** demonstrates the value of a tag-specific re-grep after remediation —
+  exact-string discovery on "tier"/"scale" alone under-covers bare `[L+M]`/`[L only]` tags.
 
 ### Category A — preserved (not findings)
 - **VISION.md:20, 69-71, 136-142; ARCHITECTURE.md:11, 122, 149** — tier mentions framed
@@ -276,6 +290,7 @@ correct.
 | A4 | ARCHITECTURE.md | MED | WILL FIX |
 | A5 | ARCHITECTURE.md | MED | WILL FIX |
 | A6 | CONTRIBUTING.md | MED | WILL FIX |
+| A7 | protocols/ESSENTIALS.md | MED | WILL FIX (caught in confirmation re-grep) |
 | B1 | VISION.md | MED | WILL FIX |
 | B2 | VISION.md | MED | WILL FIX |
 | B3 | protocols/PLAYBOOK.md | MED | WILL FIX |
