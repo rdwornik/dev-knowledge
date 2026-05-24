@@ -7,6 +7,18 @@
 		{
 			"name": "⚙️ ~/.claude (config)",
 			"path": "C:\\Users\\1028120\\.claude"
+		},
+		{
+			"name": "📅 Audits",
+			"path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge\\docs\\audits"
+		},
+		{
+			"name": "📅 Handoffs",
+			"path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge\\docs\\handoffs"
+		},
+		{
+			"name": "📋 ADRs",
+			"path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge\\docs\\decisions"
 		}
 	],
 	"settings": {
@@ -51,7 +63,7 @@
 		"terminal.integrated.cwd": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge",
 
 		// ── Explorer ────────────────────────────────────────
-		"explorer.sortOrder": "type",
+		"explorer.sortOrder": "modified",
 		"explorer.compactFolders": false,
 
 		// ── Todo Tree ───────────────────────────────────────
