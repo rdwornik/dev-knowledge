@@ -169,7 +169,7 @@ Procedure (Phase 1 = file changes on feature branch; Phase 2 = destructive remot
 
 Phase 1:
 1. Grep entire repo for hardcoded `master` in CI workflows, hooks, scripts, docs. Update any found alongside the rename
-2. Update repo's CHANGELOG.md and any docs naming the default branch by name
+2. Update any docs naming the default branch by name (e.g. JOURNAL entries; CHANGELOG retired ecosystem-wide per ADR-49)
 
 Phase 2 (destructive — explicit confirm before each):
 3. Local rename: `git branch -m master main`
@@ -521,7 +521,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `ESSENTIALS.md` | Rob's daily cheat sheet, universal | Sectioned, scope-tagged | When Rob's working style evolves | Rob + every browser/Claude Code session | Living (sections updated) | Universal (`.dev-knowledge` only) |
 | `PLAYBOOK.md` | Universal protocols, this file | Sectioned, scope-tagged, versioned | Per Stream B implementation gaps | Rob + Claude (browser + Code) | Living + section history | Universal (`.dev-knowledge` only) |
 | `JOURNAL.md` | Tactical per-session log | Append-only, dated entries: Did/Failed/Next | Every Claude Code session | Future Claude Code (last 5 entries on startup) | Newest-first prepend | Per-repo (optional; kept when a repo benefits from a per-session log) |
-| `CHANGELOG.md` | Notable changes, release-note style | Newest-first dated entries | Per noteworthy commit | Rob, future contributors | Newest-first (prepend) | Per-repo |
+| `CHANGELOG.md` | RETIRED ecosystem-wide (ADR-49) — git history + JOURNAL `Changes:` line replace it; row kept for legacy context | Newest-first dated entries | n/a | — | n/a | Removed |
 | `LESSONS.md` | Process lessons learned | Append-only with `[scope: X]` inline (per ADR-29) | When new lesson emerges (auto-promote at 2× repeat) | Rob, future Claude | Append-only | Universal (`.dev-knowledge` only) |
 | `TOKEN-LOG.md` | Claude usage snapshots | Threshold-triggered (7-day) via /session-summary | Auto when stale | Rob | Newest-first (prepend) | Universal (`.dev-knowledge` only) |
 | `ENVIRONMENT.md` | Tooling state, what's installed | Sectioned, scope-tagged | When tool adopted/deprecated | Rob, Claude Code | Living (sections updated) | Per-repo |
