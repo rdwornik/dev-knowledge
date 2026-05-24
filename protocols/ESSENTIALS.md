@@ -334,16 +334,18 @@ When a lesson becomes a rule → write rationale in LESSONS.md, write executable
 
 ---
 
-## Project Scale Tiers
+## Repo complexity (informal)
 <!-- scope: meta -->
 
-Every project declares its scale in CLAUDE.md. Playbook sections tagged [L only] or [L+M] apply only to matching tiers.
+The formal repo-tier system (declared `tier:`/`scale:` gating governance) was retired 2026-05-23. The universal governance baseline (ADR-38 amendment A5) now applies to every repo regardless of size — VISION.md, CLAUDE.md, ARCHITECTURE.md, BACKLOG.md are mandatory everywhere; no `[L only]` tags, no declared tier.
 
-- **S** — single script/tool, <50 tests, simple flow
-- **M** — standalone package, 50-500 tests, multiple modules, one namespace
-- **L** — multi-package monorepo, 500+ tests, ARCHITECTURE.md, per-module READMEs
+S/M/L survive only as informal complexity descriptors for calibrating judgment (how much test infrastructure, how rich a workspace), never as a declared, audited tier:
 
-Full matrix (testing rules, doc requirements, session continuity per tier) in PLAYBOOK Section "Project Scale Tiers".
+- **small** — single script/tool, few tests, simple flow
+- **medium** — standalone package, multiple modules, one namespace
+- **large** — multi-package repo, cross-package dependencies, many tests
+
+Full guidance: PLAYBOOK "Project complexity bands". (Distinct from the *task-complexity* S/M/L used to size Claude Code prompts — that taxonomy is unaffected.)
 
 ---
 
