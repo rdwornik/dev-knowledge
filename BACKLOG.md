@@ -246,6 +246,21 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-09 by rob (session wrap-up observation)
 - **Status:** open
 
+### [P3] [open] Custom "Pinned Files" VS Code extension for visual canonical-doc access
+- **What:** TreeView in Explorer panel showing pinned canonical governance files (VISION, JOURNAL, BACKLOG, ARCHITECTURE, LESSONS, CLAUDE.md). Workspace setting `pinnedFiles.paths` = configurable list of absolute paths. Click → open in editor. Optional: last-modified badge per file. ~100-150 LOC TypeScript; VS Code Extension API (TreeDataProvider). Local install only (no Marketplace publish required).
+- **Why:** Workspace tasks + keybindings (added 2026-05-24, Ctrl+Alt+V/J/B/R/L/C) give keyboard access to canonical files but lack *visual at-a-glance presence* in Explorer. Multi-root workspace cannot pin individual files natively — only folder roots. Custom extension fills this gap with persistent visual presence at the top of the Explorer.
+- **Effort:** 1-2 days Claude Code work (Sonnet for boilerplate, Opus for TreeView API nuances).
+- **Acceptance criteria:**
+  - Extension installable + loads in `.dev-knowledge.code-workspace`
+  - Configurable path list via workspace settings
+  - TreeView visible in Explorer sidebar without navigating away from main file tree
+  - Single-click opens file in editor
+  - Operator confirms ergonomic improvement vs keybindings-only pattern
+- **Trigger:** 1-week trial of keybindings (added 2026-05-24) shows persistent access friction OR operator decides visual presence worth the dev investment proactively.
+- **References:** workspace combo iteration arc (JOURNAL 2026-05-24); VS Code productivity maximization item above.
+- **Added:** 2026-05-24 by rob
+- **Status:** open
+
 ### [P2] [open] Codify scrum-master review authority pattern
 - **What:** First empirical instance of scrum-master review pattern completed 2026-05-12 (Prompt L, ai-council review). Pattern: `.dev-knowledge` strażnik produces structured review report (read-only, no writes) identifying governance / documentation / dead code / filename compliance issues in child repo → operator routes report → child-repo architect implements. Candidate codification: new ADR-44 or amendment to ADR-26 (ecosystem strażnik role definition). Awaits N=2 empirical grounding before ADR-level codification per session pattern.
 - **Why:** Pattern emerged organically as first cross-repo scrum-master review; needs codification to be repeatable and delegatable. Without ADR, subsequent reviews have no formal authority reference.

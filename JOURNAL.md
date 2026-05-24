@@ -88,13 +88,26 @@ Workspace combo FINAL state (read from `.dev-knowledge.code-workspace` at audit 
 ```json
 { "key": "ctrl+alt+a", "command": "workbench.action.tasks.runTask", "args": "open-latest-audit" },
 { "key": "ctrl+alt+h", "command": "workbench.action.tasks.runTask", "args": "open-latest-handoff" },
-{ "key": "ctrl+alt+d", "command": "workbench.action.tasks.runTask", "args": "open-latest-adr" }
+{ "key": "ctrl+alt+d", "command": "workbench.action.tasks.runTask", "args": "open-latest-adr" },
+
+  // Canonical governance files (added 2026-05-24):
+  { "key": "ctrl+alt+v", "command": "workbench.action.tasks.runTask", "args": "open-vision" },
+  { "key": "ctrl+alt+j", "command": "workbench.action.tasks.runTask", "args": "open-journal" },
+  { "key": "ctrl+alt+b", "command": "workbench.action.tasks.runTask", "args": "open-backlog" },
+  { "key": "ctrl+alt+r", "command": "workbench.action.tasks.runTask", "args": "open-architecture" },
+  { "key": "ctrl+alt+l", "command": "workbench.action.tasks.runTask", "args": "open-lessons" },
+  { "key": "ctrl+alt+c", "command": "workbench.action.tasks.runTask", "args": "open-claude-md" }
+]
 ```
+
+**Mnemonics:** A/H/D for dated artifacts (Audit, Handoff, aDR). V/J/B/L/C for canonical name initial (Vision, Journal, Backlog, Lessons, Claude). R for aRchitecture (A is taken).
+
+**Trial criteria:** 1 week. If muscle memory establishes for the 9 shortcuts → keep as primary access pattern. If access friction persists → escalate to BACKLOG P3 (Pinned Files extension build).
 
 **Post-merge operator actions:**
 1. Reopen workspace — File → Open Workspace from File → `.dev-knowledge.code-workspace`
-2. Add keybindings above (user-scope, cannot be committed to repo)
-3. Trial 2–3 days — evaluate: does 5-root Explorer feel cluttered or useful? Are task keybindings used?
+2. Add all 9 keybindings above (user-scope, cannot be committed to repo)
+3. Trial 2–3 days for original combo + 1 week for full 9-key set
 
 **Revert path (if combo doesn't work):**
 - Partial revert (keep root hygiene, revert workspace): `git revert d87bd31` (Step 4 commit)
