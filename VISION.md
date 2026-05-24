@@ -1,7 +1,7 @@
 ---
 version: 1.0
 owner: rob
-last_reviewed: 2026-05-23
+last_reviewed: 2026-05-24
 status: active
 ---
 
@@ -121,13 +121,13 @@ VISION is a **living, verifiable document** — not a one-shot statement.
 artifacts to detect drift:
 - Stream backlog reflects what VISION declares as in-scope
 - JOURNAL entries trace work back to VISION goals
-- CHANGELOG describes movement toward VISION
 - ADRs implement VISION decisions
 - Drift signal: any of above contradict VISION → trigger review
 
 **Audit support:** verification mechanism implemented via `.dev-knowledge`
-auditor (Stream C audit tool — pending, per ADR-36). Until tool exists,
-manual verification at session-close per HANDOFF_PROCESS.md.
+auditor (`scripts/audit.py` per ADR-36 — `health`/`repo`/`run`/`registry`
+commands, read-only, manual invocation). Manual session-close verification
+per HANDOFF_PROCESS.md complements the tool.
 
 **Vision realized:** when current Vision becomes current state, archive
 as `docs/archive/VISION_v{N}_realized_YYYY-MM-DD.md` and propose next
@@ -149,8 +149,7 @@ edit for clarifications and References section.
 
 - `protocols/ESSENTIALS.md` — operating values, daily cheat sheet
 - `protocols/PLAYBOOK.md` — full process reference
-- `JOURNAL.md` — session-by-session activity history
-- `CHANGELOG.md` — notable changes timeline
+- `JOURNAL.md` — session-by-session activity history (and notable-change record; replaces the retired CHANGELOG.md per ADR-49)
 - `BACKLOG.md` — cross-session pending items (per ADR-41)
 - `CONTRIBUTING.md` — branch/commit/validator conventions
 - `docs/decisions/` — architectural decisions (ADRs + transcripts)
