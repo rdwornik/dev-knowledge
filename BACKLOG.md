@@ -5,6 +5,7 @@ schema and grooming cadence.
 
 Last full grooming: 2026-05-09 (P1 HANDOFF_PROCESS closed)
 Tier-deprecation reconciliation grooming: 2026-05-23 (4 items resolved/superseded, scrum-master item to N=3, 5 cross-repo rollout items opened)
+Post-session-arc audit: 2026-05-24 (5 closed, 1 superseded, 1 rephrased, 2 added, scrum-master codification → P1; report `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md`)
 Next quarterly grooming: 2026-07-01
 
 ---
