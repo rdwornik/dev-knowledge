@@ -195,11 +195,11 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-09 by rob (session wrap-up observation); cross-referenced 2026-05-20 (posture audit verification, finding C1).
 - **Status:** open
 
-### [P2] [open] Hooks audit + consolidation
-- **What:** Two `review` hooks observed in ecosystem (one for Codex, one for internal review). Full hook inventory not documented. Need: (a) list all hooks across `.claude/` (global) and `.claude/` (project-level), (b) document each hook's purpose and trigger condition, (c) evaluate whether review hooks are intentionally separate or candidates for consolidation, (d) identify gaps (hooks that should exist but don't). Output: documented hook inventory + consolidation recommendation.
-- **Why:** Undocumented hooks create confusion about what fires when. Two review hooks with overlapping purposes may produce redundant or conflicting signals.
+### [P2] [open] Hooks audit + consolidation + workflow-automation patterns
+- **What:** Two complementary tracks. **(I) Inventory + consolidation** (original scope): list all hooks across `~/.claude/` (global) and per-repo `.claude/`; document each hook's purpose + trigger; evaluate whether the two `review` hooks (Codex vs internal) are intentionally separate or consolidation candidates; identify gaps. **(II) Lifecycle-hook workflow-automation patterns + expansion** (scope added 2026-05-24, operator focus area): document *how* lifecycle hooks (SessionStart, SessionStop, pre-commit, git events) are used to automate the workflow, and where usage should expand. Current `.dev-knowledge` surface (verified 2026-05-24): pre-commit hooks `normalize-dated-headers` + `codemap-freshness`; a SessionStart EVOLUTION hook (learned-rules/corrections sweep); **no SessionStop hook**. Candidate expansions: session-end clean-tree / canonical-file-staleness check (pairs with Sacred-files enforcement P1), lessons-retrieval on SessionStart (pairs with Lessons activation P1).
+- **Why:** Undocumented hooks create confusion about what fires when; overlapping review hooks may produce redundant signals. Beyond inventory, lifecycle hooks are the mechanical-enforcement layer the ecosystem relies on (per the 2026-05-13 implicit-memory LESSON: "convention without enforcement drifts") — their workflow-automation use and expansion opportunities deserve explicit documentation, not implicit habit.
 - **Vision ref:** VISION.md "Methodology Author" function
-- **Added:** 2026-05-09 by rob (session wrap-up observation)
+- **Added:** 2026-05-09 by rob (session wrap-up observation); scope expanded 2026-05-24 (operator focus area — hooks workflow/goals usage; `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md` §4.1).
 - **Status:** open
 
 ### [P2] [open] Skills universalization across repos
