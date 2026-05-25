@@ -43,7 +43,7 @@ SECTION A — INSTRUCTIONS FOR ROB (do NOT paste this into old chat)
 2. Copy from the PASTE_BOUNDARY line below to the end of this file.
 3. Paste as a message in the existing chat.
 4. The old chat answers the 5 pipeline questions from its lived knowledge.
-5. Open the pre-created file: docs/handoffs/_in_progress/{slug}/stage2-response.md
+5. Open the pre-created file: docs/handoffs/in-progress/{slug}/stage2-response.md
    (already exists, has placeholder content). Replace everything below the
    "═══ REPLACE EVERYTHING BELOW THIS LINE ═══" marker with the architect's
    response. Save.

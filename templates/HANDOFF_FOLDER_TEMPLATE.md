@@ -5,7 +5,7 @@ handoff folder. See ADR-42 (amended) and HANDOFF_PROCESS.md v3.3.3 for full flow
 
 ## Stage 3 inputs
 
-Stage 3 reads from `docs/handoffs/_in_progress/{slug}/`:
+Stage 3 reads from `docs/handoffs/in-progress/{slug}/`:
 - `stage1-question.md` — required; contains Stage 1 HEAD SHA for drift check
 - `stage2-response.md` — required; contains browser-2 architect answers
 
@@ -487,7 +487,7 @@ silently accept incorrect witnessed claims.
 ## Generation steps (for Claude Code Stage 3)
 
 1. Create folder `.dev-knowledge/docs/handoffs/{date}-{slug}/`
-2. Verify `_in_progress/{slug}/stage2-response.md` exists and contains
+2. Verify `in-progress/{slug}/stage2-response.md` exists and contains
    substantive content (not placeholder "[old chat answer]") — if not, STOP
 3. Parse `stage2-response.md` using tolerant heading detection (above)
 4. Apply verification layer to architect's witnessed claims
@@ -509,7 +509,7 @@ silently accept incorrect witnessed claims.
 13. Generate `08_TREE.txt` from `git ls-files` in target repo
 14. Generate `09_EXECUTION_EVIDENCE.md` (empty template)
 15. Compute SHA-256 of all files (11 for self-applied; 12 for cross-repo including 02b), populate `01_manifest.json` (last)
-16. Move `_in_progress/{slug}/` to `docs/handoffs/archive/{slug}/`:
+16. Move `in-progress/{slug}/` to `docs/handoffs/archive/{slug}/`:
     - `archive/{slug}/stage1-question.md`
     - `archive/{slug}/stage2-response.md`
 17. Update JOURNAL + BACKLOG

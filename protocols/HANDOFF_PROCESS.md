@@ -153,11 +153,11 @@ unprompted.
 ## State tracking
 <!-- scope: meta -->
 
-`docs/handoffs/_in_progress/{slug}/` directory tracks in-progress handoffs.
+`docs/handoffs/in-progress/{slug}/` directory tracks in-progress handoffs.
 
 `{slug}` = `{YYYY-MM-DD}-{repo}-{type}` where date is from Stage 1 trigger.
 
-| Files present in `_in_progress/{slug}/` | Detected stage | Action |
+| Files present in `in-progress/{slug}/` | Detected stage | Action |
 |---|---|---|
 | (directory absent or empty) | Stage 0 | Run Stage 1 |
 | `stage1-question.md` + placeholder `stage2-response.md` | Stage 1 done, awaiting Stage 2 | Show Rob "paste old chat response into stage2-response.md, replacing the placeholder block" |
@@ -195,8 +195,8 @@ FLAG and ask Rob: delete and restart, or proceed to Stage 3?
    reports; load findings as Stage 1 context — they inform question generation
    but do NOT substitute for Stage 2
 6. Read `templates/HANDOFF_QUESTION_TEMPLATE.md`
-7. Create directory `docs/handoffs/_in_progress/{slug}/`
-8. Generate `docs/handoffs/_in_progress/{slug}/stage1-question.md` per
+7. Create directory `docs/handoffs/in-progress/{slug}/`
+8. Generate `docs/handoffs/in-progress/{slug}/stage1-question.md` per
    `templates/HANDOFF_QUESTION_TEMPLATE.md` two-section structure:
    - Metadata header: target repo, HEAD SHA, branch, working tree state,
      timestamp, type, slug
@@ -225,7 +225,7 @@ FLAG and ask Rob: delete and restart, or proceed to Stage 3?
      info it doesn't actually know.
    - NOTE: receiver synthesis prompt is NOT included in stage1-question.md.
      It belongs in Stage 3 output (00_first-message.md) per HANDOFF_FOLDER_TEMPLATE.
-9. Pre-create `docs/handoffs/_in_progress/{slug}/stage2-response.md` as a
+9. Pre-create `docs/handoffs/in-progress/{slug}/stage2-response.md` as a
    placeholder template with:
    - Header block: repo, type, slug, timestamp
    - HTML comment for Rob with step-by-step instructions
@@ -240,14 +240,14 @@ FLAG and ask Rob: delete and restart, or proceed to Stage 3?
 12. Single commit on feature branch (includes both stage1-question.md and stage2-response.md)
 13. Report to Rob:
     - Stage 1 complete
-    - Files created: `_in_progress/{slug}/stage1-question.md` (questions) and
-      `_in_progress/{slug}/stage2-response.md` (awaiting architect response)
+    - Files created: `in-progress/{slug}/stage1-question.md` (questions) and
+      `in-progress/{slug}/stage2-response.md` (awaiting architect response)
     - Next: open the EXISTING (OLD) browser chat for {repo}; copy the PASTE_BOUNDARY
       block from stage1-question.md into that chat; receive response; open
       stage2-response.md, replace placeholder block with response; save
     - Then: say "complete handoff for {repo}" to trigger Stage 3
 
-**Output:** `_in_progress/{slug}/stage1-question.md` + `_in_progress/{slug}/stage2-response.md`
+**Output:** `in-progress/{slug}/stage1-question.md` + `in-progress/{slug}/stage2-response.md`
 (placeholder), JOURNAL entry, single commit
 
 ---
@@ -258,7 +258,7 @@ FLAG and ask Rob: delete and restart, or proceed to Stage 3?
 **Source:** OLD browser chat for {repo} — the existing chat being
 wrapped up due to context exhaustion. **NOT a new chat.**
 
-**Input:** Content of `_in_progress/{slug}/stage1-question.md`
+**Input:** Content of `in-progress/{slug}/stage1-question.md`
 
 **Procedure (Rob does this manually):**
 
@@ -269,7 +269,7 @@ wrapped up due to context exhaustion. **NOT a new chat.**
 3. OLD chat architect answers all 5 pipeline questions (OBJECTIVE /
    REALITY / RATIONALE / DIRECTIVES / BOUNDARIES) from lived knowledge:
    priorities, mental model, in-flight decisions, recent concerns.
-4. Open the pre-created `_in_progress/{slug}/stage2-response.md` (Stage 1
+4. Open the pre-created `in-progress/{slug}/stage2-response.md` (Stage 1
    created this file as a placeholder template). Replace everything below the
    `═══ REPLACE EVERYTHING BELOW THIS LINE ═══` marker with the architect's
    response. Save.
@@ -277,7 +277,7 @@ wrapped up due to context exhaustion. **NOT a new chat.**
    - Option B: In Claude Code — "save this response as stage 2 for {slug}";
      Claude Code overwrites the placeholder block with response content
 
-**Output:** `_in_progress/{slug}/stage2-response.md` populated with architect response
+**Output:** `in-progress/{slug}/stage2-response.md` populated with architect response
 
 **Critical:** Stage 2 MUST go to OLD chat. A new chat has no context;
 its response would collapse to restating audit findings — equivalent to
@@ -307,7 +307,7 @@ Optional iteration phase — bypassed if NEW chat has no questions.
 3. NEW chat updates synthesis, may have follow-up questions (round 2)
 4. Maximum 3 rounds total
 5. Each round captured in
-   `docs/handoffs/_in_progress/{slug}/stage2-amendments.md`
+   `docs/handoffs/in-progress/{slug}/stage2-amendments.md`
 
 **When to ask vs proceed:**
 - Genuine ambiguity in directives → ask
@@ -334,8 +334,8 @@ split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
 
 **Procedure:**
 
-1. Verify `_in_progress/{slug}/stage1-question.md` exists — if missing, FLAG and STOP
-2. Verify `_in_progress/{slug}/stage2-response.md` exists — if missing, FLAG and STOP
+1. Verify `in-progress/{slug}/stage1-question.md` exists — if missing, FLAG and STOP
+2. Verify `in-progress/{slug}/stage2-response.md` exists — if missing, FLAG and STOP
    with message: "Stage 2 not complete. Paste browser-2 response as stage2-response.md first."
    - **Thinness pre-flight (M-5).** After confirming the file is populated (per
      "Stage 2 content detection" above), verify each of the 5 sections
@@ -358,7 +358,7 @@ split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
      or abort and re-generate Stage 1 (do NOT silently proceed)
 4. Read `templates/HANDOFF_FOLDER_TEMPLATE.md`
 5. Read `.dev-knowledge` VISION.md, protocols/PLAYBOOK.md, protocols/ESSENTIALS.md
-6. Read `_in_progress/{slug}/stage2-response.md`
+6. Read `in-progress/{slug}/stage2-response.md`
 7. Identify ADRs cited in DIRECTIVES (07_ACTION_PLAN content)
 8. Generate folder `docs/handoffs/{slug}/` with 11 files (all flat, no subdirectories):
    - `00_README.md` — Rob's upload instructions
@@ -375,7 +375,7 @@ split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
    - `08_TREE.txt` — `git ls-files` output in target repo at Stage 3 time
    - `09_EXECUTION_EVIDENCE.md` — empty return-trip template
 9. Compute SHA-256 of every file in folder, populate `01_manifest.json`
-10. Move (NOT copy) `_in_progress/{slug}/` contents to `docs/handoffs/archive/{slug}/`:
+10. Move (NOT copy) `in-progress/{slug}/` contents to `docs/handoffs/archive/{slug}/`:
 
     PowerShell semantics (canonical):
     ```powershell
@@ -383,14 +383,14 @@ split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
     New-Item -ItemType Directory -Path "docs/handoffs/archive/{slug}" -Force | Out-Null
 
     # Move files (NOT copy)
-    Move-Item "docs/handoffs/_in_progress/{slug}/*" "docs/handoffs/archive/{slug}/" -Force
+    Move-Item "docs/handoffs/in-progress/{slug}/*" "docs/handoffs/archive/{slug}/" -Force
 
     # Remove now-empty source directory
-    Remove-Item "docs/handoffs/_in_progress/{slug}" -Force
+    Remove-Item "docs/handoffs/in-progress/{slug}" -Force
 
-    # Verify _in_progress/{slug}/ no longer exists
-    if (Test-Path "docs/handoffs/_in_progress/{slug}") {
-        throw "FAIL: _in_progress/{slug}/ still exists after move"
+    # Verify in-progress/{slug}/ no longer exists
+    if (Test-Path "docs/handoffs/in-progress/{slug}") {
+        throw "FAIL: in-progress/{slug}/ still exists after move"
     }
     ```
 
@@ -531,13 +531,13 @@ happened — eliminates "Self-Correction Theatre."
 |---|---|---|
 | Stage 1 | `python scripts/validate_scope_tags.py` | passes, hybrid ≤25% |
 | Stage 1 | `pre-commit run --all-files` | passes |
-| Stage 1 | `git status` | single new file (`_in_progress/{slug}/stage1-question.md`) + JOURNAL modified |
+| Stage 1 | `git status` | single new file (`in-progress/{slug}/stage1-question.md`) + JOURNAL modified |
 | Stage 3 | Stage 2 section thinness (M-5) | each of 5 sections ≥ 3 non-blank lines; else FLAG to Rob, ask before proceeding |
 | Stage 3 | `python scripts/validate_scope_tags.py` | passes |
 | Stage 3 | `pre-commit run --all-files` | passes |
 | Stage 3 | folder structure | 11 files flat in `docs/handoffs/{slug}/`, no subdirectories |
 | Stage 3 | `01_manifest.json` | SHA-256 entries for all 11 files present |
-| Stage 3 | `_in_progress/{slug}/` post-move non-existence | `Test-Path docs/handoffs/_in_progress/{slug}` returns `False` |
+| Stage 3 | `in-progress/{slug}/` post-move non-existence | `Test-Path docs/handoffs/in-progress/{slug}` returns `False` |
 
 ---
 
