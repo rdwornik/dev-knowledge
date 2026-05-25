@@ -5,6 +5,7 @@ schema and grooming cadence.
 
 Last full grooming: 2026-05-09 (P1 HANDOFF_PROCESS closed)
 Tier-deprecation reconciliation grooming: 2026-05-23 (4 items resolved/superseded, scrum-master item to N=3, 5 cross-repo rollout items opened)
+Post-session-arc audit: 2026-05-24 (5 closed, 1 superseded, 1 rephrased, 2 added, scrum-master codification → P1; report `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md`)
 Next quarterly grooming: 2026-07-01
 
 ---
@@ -57,12 +58,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-14 by rob (interleaved scope, same-day correction session).
 - **Status:** superseded 2026-05-15 by ADR-46 (cross-repo dated-entries format standard). Prepend-latest is now universal mandate across LESSONS / JOURNAL / CHANGELOG; downstream cross-file references (PLAYBOOK / ESSENTIALS / CLAUDE.md) folded into Session D cleanup pass scope.
 
-### [P2] [open] Audit tool: check_backlog_organization code-span-aware done-token regex
+### [P2] [closed] Audit tool: check_backlog_organization code-span-aware done-token regex
 - **What:** `check_backlog_organization` uses a bare regex to detect done-status tokens in `BACKLOG.md`. This regex matches the done-token pattern inside backtick inline-code spans in body text, producing false-positive FAIL findings on entries that reference the ADR-47 vocabulary. Fix: strip or skip backtick-quoted spans before applying the done-token check, so only unquoted status tokens trigger the fatal finding.
 - **Why:** Session D encountered 3 false-positive hits (body text references to the done-status concept in backtick spans), requiring rewordings that lost precision. A code-span-aware regex is the correct fix; body-text rewordings are a workaround that degrades entry fidelity. Surfaced as a pattern likely to recur in future BACKLOG entries that explain the ADR-47 two-file state.
 - **Vision ref:** VISION.md "Auditor" function; ADR-47 enforcement; ADR-36 audit tool architecture
 - **Added:** 2026-05-16 by rob (Session D false-positive hit pattern)
-- **Status:** open
+- **Status:** closed (moot) 2026-05-24 — `check_backlog_organization` no longer exists (`grep -rn check_backlog_organization scripts/` → nothing). The check was removed when ADR-48 withdrew ADR-46/47 audit enforcement (ADR-47 "retained as convention, NOT audit-enforced"). The false-positive the entry sought to fix cannot occur without the check. No regex fix needed.
 
 ### [P2] [open] Stream taxonomy grooming — Cross-stream section exceeds kill criterion
 - **What:** BACKLOG.md `Cross-stream / Ecosystem` section currently holds 40% of all open items (kill criterion per ADR-47: 33%). Review the 15 open Cross-stream items and evaluate: (a) which items genuinely belong to an existing stream (A/B/C/D) and should be reclassified; (b) whether a new stream (e.g., Stream E: ecosystem operations or Stream E: tooling) should be created to absorb a coherent sub-group; (c) which items are truly cross-stream and should remain. Output: reclassified BACKLOG with Cross-stream ≤33%, or an operator decision to extend ADR-47's kill threshold with empirical justification.
@@ -75,7 +76,14 @@ Next quarterly grooming: 2026-07-01
 - **What:** Define when Council debates dual-write to .dev-knowledge vs ai-council/output only; flag-based or auto-detect (research+pick=curated, test=no-curated)
 - **Why:** Test debates currently pollute curated transcripts; surfaced 2026-04-30 session
 - **Added:** 2026-04-30 by rob
-- **Status:** superseded 2026-05-11 by Cross-stream P1 "AI Council cross-project transcript routing" (broader scope addressing root cause; mechanism choice deferred to Council debate)
+- **Status:** superseded 2026-05-11 by Stream C P2 "AI Council cross-project transcript routing" (below; broader scope addressing root cause; mechanism choice deferred to Council debate)
+
+### [P2] [open] AI Council cross-project transcript routing
+- **What:** The Council CLI emits transcripts to `ai-council/output/` only (single canonical location); project-side transcripts (`.dev-knowledge/docs/decisions/transcripts/`, `<project>/docs/decisions/transcripts/`, research folders) are populated by **manual archival**. Define + implement automatic cross-project routing so a debate about repo X lands in repo X's transcript/research folder without manual copy. Mechanism choice (Council debate territory): (a) push — frontmatter `route-to:` on the debate question; (b) pull — a `council-cli archive` command; (c) config-based mapping. Supersedes the narrower "Council CLI dual-write trigger logic" (above).
+- **Why:** Manual archival drifts (anti-pattern: 2+ un-archived debates accumulating in `ai-council/output/`; retroactive archive 2026-04-24 recovered 5 stale debates). Routing is the root-cause fix. **Universalization-relevant:** corp-monorepo + ai-council mirror the same Council pipeline (documented PLAYBOOK §5) and inherit the same manual-archival gap.
+- **Refs:** `protocols/PLAYBOOK.md` §5 "Council output convention (current state)" (`:1526`+) and "Council Debate Archival Protocol" (`:1494`+); both name this BACKLOG item.
+- **Added:** 2026-05-11 by rob (referenced as the superseder of "Council CLI dual-write trigger logic"); **restored 2026-05-24** — the entry was referenced by PLAYBOOK §5 and the dual-write supersession note but had gone missing from BACKLOG (audit finding, `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md` §4.3).
+- **Status:** open — mechanism choice is a small Council debate or conversational decision before implementation.
 
 ### [P3] [open] ADR-39 amendment — BACKLOG.md lifecycle entry
 - **What:** Amend ADR-39 registry to add BACKLOG.md entry per ADR-41
@@ -90,11 +98,11 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-15 by rob (B+C ADR session — surfaced by ADR-47 Follow-ups)
 - **Status:** open — bundle with grouped ADR-39 amendments to minimize ADR churn (Stream C P3 above)
 
-### [P3] [open] ADR-39 registry decision — 5 unregistered template files
-- **What:** Decide whether `templates/AGENTS-md-template.md`, `templates/CLAUDE-md-template.md`, `templates/codex-review-config-template.md`, `templates/prompt-template.md`, plus any other template-category files require ADR-39 registry entries. Options: (a) add registry entries with template-specific lifecycle; (b) formally exclude templates as a class via ADR-39 amendment ("template files exempt from registry"); (c) hybrid — register only stable templates, exclude transient. Decision required because ADR-39 says "every file in .dev-knowledge MUST have 6 lifecycle elements."
+### [P3] [open] ADR-39 registry decision — unregistered template files
+- **What:** Decide whether template-category files require ADR-39 registry entries. Options: (a) add registry entries with template-specific lifecycle; (b) formally exclude templates as a class via ADR-39 amendment ("template files exempt from registry"); (c) hybrid — register only stable templates, exclude transient. Decision required because ADR-39 says "every file in .dev-knowledge MUST have 6 lifecycle elements."
 - **Why:** Audit surfaced unregistered files. Either we extend registry or formally narrow scope. Drift risk if neither.
 - **Added:** 2026-04-30 by rob (Phase 1 self-audit)
-- **Status:** open
+- **Status:** open — entry rephrased 2026-05-24: the original "5 unregistered" list named `templates/AGENTS-md-template.md`, now deleted (AGENTS.md retired per ADR-53). Re-scope against the *current* `templates/` set (verified 2026-05-24): `ADR-template.md`, `ARCHITECTURE-template.md`, `CLAUDE-md-template.md`, `codex-review-config-template.md`, `prompt-template.md`, `scrum-master-cover-letter.md`, `HANDOFF_TEMPLATE.md`, `HANDOFF_FOLDER_TEMPLATE.md`, `HANDOFF_QUESTION_TEMPLATE.md`, `workspace-{S,M,L}.code-workspace`, plus `templates/archive/`. The core decision (register vs class-exempt vs hybrid) is unchanged.
 
 ### [P3] [open] LESSONS.md parenthetical-qualifier entries escape dated-entry audit regex
 - **What:** 8 entries use `### YYYY-MM-DD (qualifier) |` format (all 2026-05-09 with time qualifiers). The audit's `_LESSONS_H3_RE` regex requires date immediately before `|`; the parenthetical causes these entries to be invisible to the ordering check. They are correctly positioned (reorder script treated them as opaque), but the validator cannot enforce their ordering going forward. Decision: (a) broaden regex to permit optional parenthetical, or (b) reformat the 8 entries to move qualifier into body text (requires operator sign-off under ADR-29 "never edit old entries" — qualifier is metadata, not lesson content).
@@ -102,26 +110,26 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-16 by rob (Session D content-preservation verification)
 - **Status:** open — operator decision required (regex broadening vs entry reformat) before fix
 
-### [P2] [open] scripts/backlog_extract.py references deleted BACKLOG_ARCHIVE.md
+### [P2] [closed] scripts/backlog_extract.py references deleted BACKLOG_ARCHIVE.md
 - **What:** `scripts/backlog_extract.py` writes done/abandoned BACKLOG entries to `BACKLOG_ARCHIVE.md` (docstring line 2; code lines 22, 64). `BACKLOG_ARCHIVE.md` was deleted on 2026-05-16 per CLAUDE.md §5 ("Do not recreate `CHANGELOG.md` or `BACKLOG_ARCHIVE.md` — deleted 2026-05-16"). Running the script today would either no-op (no archive to write to) or recreate a file governance forbids. Decide: (a) retire the script entirely (the archive was a deliberate removal), (b) repurpose it (e.g., archive to JOURNAL `Changes:` line or just delete the done entries in place), (c) leave dormant if there's a future scenario that resurrects the archive concept.
 - **Why:** Live script drift against current governance. Either the script is broken (silently) or it would actively re-introduce a deleted file. Confirm + act.
 - **Refs:** `scripts/backlog_extract.py`; CLAUDE.md §5; `docs/audits/2026-05-20-posture-audit-verification.md` finding X1.
 - **Added:** 2026-05-20 by rob (posture audit verification — bonus drift surfaced beyond witness-based audit).
-- **Status:** open
+- **Status:** closed 2026-05-24 — script + tests retired in commit `a5ed940` (2026-05-22 drift-burndown, audit X1/M-4). Verified `scripts/backlog_extract.py` absent. Drift eliminated (no script to recreate the forbidden archive). Closure verified `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md`.
 
-### [P3] [open] scripts/migrate_links.py SKIP_NAMES references deleted CHANGELOG.md
+### [P3] [closed] scripts/migrate_links.py SKIP_NAMES references deleted CHANGELOG.md
 - **What:** `scripts/migrate_links.py` line 4: `SKIP_NAMES = {'CHANGELOG.md', 'JOURNAL.md', 'LESSONS.md', 'TOKEN-LOG.md'}`. `CHANGELOG.md` was deleted 2026-05-16 per CLAUDE.md §5. The skip-set protects a phantom file. Remove `CHANGELOG.md` from SKIP_NAMES.
 - **Why:** Cosmetic drift; no functional harm but a hard-coded reference to a deleted canonical file. Low-cost touch.
 - **Refs:** `scripts/migrate_links.py:4`; CLAUDE.md §5; `docs/audits/2026-05-20-posture-audit-verification.md` finding X2.
 - **Added:** 2026-05-20 by rob (posture audit verification — bonus drift).
-- **Status:** open
+- **Status:** closed 2026-05-24 — verified `scripts/migrate_links.py:4` SKIP_NAMES = `{'JOURNAL.md', 'LESSONS.md', 'TOKEN-LOG.md'}` (no CHANGELOG). Fixed in commit `dc46565` (2026-05-20 quick-wins); BACKLOG bookkeeping lag closed now.
 
-### [P2] [open] docs/decisions/README.md ADR Index missing ADRs 45-50 and 54
+### [P2] [closed] docs/decisions/README.md ADR Index missing ADRs 45-50 and 54
 - **What:** `docs/decisions/README.md` carries the canonical ADR index table. Verification 2026-05-20 confirmed the table lists ADR-27 through ADR-44 (44 marked "Reserved"), then jumps to ADR-51 through ADR-53. **Missing from index:** ADR-45 (handoff architecture v4), ADR-46 (cross-repo dated-entries format), ADR-47 (cross-repo BACKLOG.md organization), ADR-48 (trim documentation governance), ADR-49 (consolidate past-recording files), ADR-50 (machine-document encoding), ADR-54 (Codex reviewer global standard). Additionally `ARCHITECTURE.md` "Governing ADRs" section lists ADRs 27-53 but is missing ADR-54.
 - **Why:** Index is the primary discoverability surface for ADRs. 7 missing entries materially degrades navigability for new contributors and for re-orientation after time away. Low-cost to fix (one table extension + one ARCHITECTURE.md list extension). Related to broader I1 (ADR relationship map / supersession graph).
 - **Refs:** `docs/decisions/README.md`; `ARCHITECTURE.md` § Governing ADRs; `docs/audits/2026-05-20-posture-audit-verification.md` finding X3.
 - **Added:** 2026-05-20 by rob (posture audit verification — bonus drift).
-- **Status:** open
+- **Status:** closed 2026-05-24 — verified `docs/decisions/README.md` index now lists ADR-45 through ADR-50 + ADR-54, and `ARCHITECTURE.md:168` lists ADR-54 in Governing ADRs. Both sub-claims resolved (commit `dc46565` area, 2026-05-20); bookkeeping lag closed now.
 
 ### [P3] [open] ADR relationship index / supersession graph
 - **What:** With 27+ ADRs accumulated (gaps at 44 reserved; supersessions like ADR-52 → ADR-53 in flight), the relationship structure — supersedes / supersededBy / related / amends — is not navigable for a fresh reader. Build either (a) a machine-generated graph from ADR frontmatter (`supersedes:`, `related:`, `amends:` fields already exist in newer ADRs), or (b) an index doc with explicit edges. Could be DOT, Mermaid, or markdown table. Same shape as codemap generator work — read frontmatter, render, CI-check freshness.
@@ -129,6 +137,13 @@ Next quarterly grooming: 2026-07-01
 - **Refs:** `docs/decisions/`; `docs/audits/2026-05-19-dev-knowledge-posture-audit.md` finding I1.
 - **Added:** 2026-05-20 by rob (posture audit verification).
 - **Status:** open
+
+### [P3] [open] CLAUDE.md §4 cites a stale known-failing test
+- **What:** `CLAUDE.md` §4 Conventions/Testing states "known pre-existing failure: `test_audit_run_passes_structural_checks_on_synthetic_repo` — tracked in BACKLOG." Verified 2026-05-24: that test **passes** (`pytest -k test_audit_run_passes_structural_checks_on_synthetic_repo` → 1 passed) and the full suite is green (72 passed). The note is stale. Fix: remove the known-failure clause from CLAUDE.md §4 (one-line edit).
+- **Why:** CLAUDE.md is the session contract read on every session start; a false "known failure" note misleads future sessions into treating a green suite as expected-to-have-one-failure, masking real regressions. Out of this audit's scope (workflow-file edit = execution); captured for a follow-up.
+- **Refs:** `CLAUDE.md` §4; `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md` OQ-2.
+- **Added:** 2026-05-24 by rob (BACKLOG audit — incidental drift).
+- **Status:** open — one-line CLAUDE.md edit in a follow-up.
 
 ### [P2] [closed] Codemap generator output specification (ADR-51 open item)
 - **What:** ADR-51 §5 mandates an auto-generated, CI-freshness-checked codemap for every M/L `ARCHITECTURE.md`, but the generator's output specification is undecided: directory tree vs package dependency graph vs CLI/module inventory vs hybrid. Under-generation fails re-orientation; over-generation produces noise. Two artifacts pending: (a) the generator tool itself (resides in `.dev-knowledge`, consumed by child repos per ADR-36 shared-tooling pattern), (b) the CI freshness-check hook that consumes its output and fails on diff. Until both exist, `templates/ARCHITECTURE-template.md` instructs authors to hand-maintain the codemap in the interim package-tree-with-layer-annotation format documented inline; the template's `<!-- CODEMAP:START/END -->` machine region is reserved for the future generator's insertion point.
@@ -195,11 +210,11 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-09 by rob (session wrap-up observation); cross-referenced 2026-05-20 (posture audit verification, finding C1).
 - **Status:** open
 
-### [P2] [open] Hooks audit + consolidation
-- **What:** Two `review` hooks observed in ecosystem (one for Codex, one for internal review). Full hook inventory not documented. Need: (a) list all hooks across `.claude/` (global) and `.claude/` (project-level), (b) document each hook's purpose and trigger condition, (c) evaluate whether review hooks are intentionally separate or candidates for consolidation, (d) identify gaps (hooks that should exist but don't). Output: documented hook inventory + consolidation recommendation.
-- **Why:** Undocumented hooks create confusion about what fires when. Two review hooks with overlapping purposes may produce redundant or conflicting signals.
+### [P2] [open] Hooks audit + consolidation + workflow-automation patterns
+- **What:** Two complementary tracks. **(I) Inventory + consolidation** (original scope): list all hooks across `~/.claude/` (global) and per-repo `.claude/`; document each hook's purpose + trigger; evaluate whether the two `review` hooks (Codex vs internal) are intentionally separate or consolidation candidates; identify gaps. **(II) Lifecycle-hook workflow-automation patterns + expansion** (scope added 2026-05-24, operator focus area): document *how* lifecycle hooks (SessionStart, SessionStop, pre-commit, git events) are used to automate the workflow, and where usage should expand. Current `.dev-knowledge` surface (verified 2026-05-24): pre-commit hooks `normalize-dated-headers` + `codemap-freshness`; a SessionStart EVOLUTION hook (learned-rules/corrections sweep); **no SessionStop hook**. Candidate expansions: session-end clean-tree / canonical-file-staleness check (pairs with Sacred-files enforcement P1), lessons-retrieval on SessionStart (pairs with Lessons activation P1).
+- **Why:** Undocumented hooks create confusion about what fires when; overlapping review hooks may produce redundant signals. Beyond inventory, lifecycle hooks are the mechanical-enforcement layer the ecosystem relies on (per the 2026-05-13 implicit-memory LESSON: "convention without enforcement drifts") — their workflow-automation use and expansion opportunities deserve explicit documentation, not implicit habit.
 - **Vision ref:** VISION.md "Methodology Author" function
-- **Added:** 2026-05-09 by rob (session wrap-up observation)
+- **Added:** 2026-05-09 by rob (session wrap-up observation); scope expanded 2026-05-24 (operator focus area — hooks workflow/goals usage; `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md` §4.1).
 - **Status:** open
 
 ### [P2] [open] Skills universalization across repos
@@ -209,13 +224,13 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-09 by rob (session wrap-up observation)
 - **Status:** open
 
-### [P2] [open] Ecosystem standards audit against major repo
+### [P2] [superseded] Ecosystem standards audit against major repo
 - **What:** Audit one significant ecosystem repo against current standards: folder naming (ADR-34), file naming (ADR-34), workspace structure (ADR-38), sacred-files presence (per set above), scope tag compliance (ADR-27). Surface drift items, classify by severity, plan remediation. Establish this as a repeatable pattern for auditing future repos.
 - **Why:** Phase 2 universalization rollout (Cross-stream P2, above) needs a concrete audit run to validate the pattern works. Without an actual audit against a real repo, the process is theoretical.
 - **Vision ref:** VISION.md "Auditor" function; pairs with "Phase 2 universalization rollout" (Cross-stream P2)
 - **Added:** 2026-05-09 by rob (session wrap-up observation)
 - **Note:** Do not name specific repo in BACKLOG until audit scoping session decides target. See "Phase 2 universalization rollout" for cohort selection.
-- **Status:** open
+- **Status:** superseded 2026-05-24 by the scrum-master review authority pattern. Both halves of this entry are delivered: the 2026-05-23 corp-monorepo deep audit + ecosystem audit are the concrete standards-audit instance, and the scrum-master review pattern (N=3) is the repeatable mechanism the entry asked to "establish." Judgment call (audit OQ-3): if a *checklist-style* standards audit distinct from the scrum-master review is wanted, revert to open.
 
 ### [P3] [open] Kimi K2 model integration evaluation
 - **What:** Evaluate Kimi K2 as addition to ecosystem LLM stack. Scope: (a) capability evaluation for Council debate quality, code generation, and reasoning depth, (b) cost comparison vs. Claude on equivalent task types, (c) integration patterns with existing infrastructure. Decision artifact: Council debate output recommending adoption level — research-only / production peer / experimental supplement.
@@ -261,12 +276,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-24 by rob
 - **Status:** open
 
-### [P2] [open] Codify scrum-master review authority pattern
+### [P1] [open] Codify scrum-master review authority pattern
 - **What:** First empirical instance of scrum-master review pattern completed 2026-05-12 (Prompt L, ai-council review). Pattern: `.dev-knowledge` strażnik produces structured review report (read-only, no writes) identifying governance / documentation / dead code / filename compliance issues in child repo → operator routes report → child-repo architect implements. Candidate codification: new ADR-44 or amendment to ADR-26 (ecosystem strażnik role definition). Awaits N=2 empirical grounding before ADR-level codification per session pattern.
 - **Why:** Pattern emerged organically as first cross-repo scrum-master review; needs codification to be repeatable and delegatable. Without ADR, subsequent reviews have no formal authority reference.
 - **Vision ref:** VISION.md "Auditor" function + "Methodology Author" function
 - **Added:** 2026-05-12 by rob (Prompt L)
-- **Status:** open — **N=3 grounding reached (codification now unblocked).** ai-council 2026-05-12 (N=1), corp-monorepo deep audit 2026-05-23 (N=2), ai-council deep-audit re-pass 2026-05-23 (N=3). Three structured read-only scrum-master reviews across two repos = sufficient empirical pattern for ADR-level codification (new ADR or ADR-26 amendment). Promote to P1 for a dedicated codification prompt.
+- **Status:** open — **promoted P2 → P1 on 2026-05-24** (BACKLOG audit; entry body already recommended it). **N=3 grounding reached (codification unblocked):** ai-council 2026-05-12 (N=1), corp-monorepo deep audit 2026-05-23 (N=2), ai-council deep-audit re-pass 2026-05-23 (N=3). Three structured read-only scrum-master reviews across two repos = sufficient empirical pattern for ADR-level codification (new ADR or ADR-26 amendment). **Universalization-blocking:** child repos receiving a review need a formal authority reference; this is the top P1 of the next execution wave (see `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md` §7).
 
 ### [P3] [open] PLAYBOOK codifications from 2026-05-19 posture audit
 - **What:** The posture audit (H3, H4, T1, T2) and verification surfaced four candidate PLAYBOOK additions, each with N≥2 grounding:
@@ -285,7 +300,7 @@ Next quarterly grooming: 2026-07-01
 - **Why:** Phase 3 of ecosystem universalization. Each repo reviewed = one point of drift caught before it compounds. Pattern validated on ai-council; broader rollout follows codification.
 - **Vision ref:** VISION.md "Auditor" function
 - **Added:** 2026-05-12 by rob (Prompt L)
-- **Status:** open — blocked on codification (Cross-stream P2 above) + N=2 empirical grounding
+- **Status:** open — **both blockers lifted 2026-05-24:** N=2 empirical grounding reached (now N=3; corp-monorepo already reviewed 2026-05-23), and codification is unblocked (now P1 above). Remains P3 because it *sequences after* the codification prompt. Next concrete targets per the entry's priority order: verify existence of corp-knowledge-extractor / corp-by-os / corp-rfp-agent (cross-ref "Undiscovered repos confirmation"), then corp-ops + corp-sca lighter-touch.
 
 ## Cross-repo Naming + Architecture Migration (Prompt H audit + Prompt J ratification)
 
@@ -358,12 +373,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-11 by rob (Prompt J ratification)
 - **Status:** open — captured in LESSONS.md (2026-05-11 entry). Codification awaits second empirical instance. Monitor for second instance during Phase 2 repo visits.
 
-### [P2] [open] Fix pre-existing test failure: test_ratio_pass_when_stable_above_ceiling
+### [P2] [closed] Fix pre-existing test failure: test_ratio_pass_when_stable_above_ceiling
 - **What:** Fails on main as of 2026-05-12 prior to hooks review work. Not introduced by Directive 5 of 2026-05-12 handoff (witnessed during Prompt 4 verification). Blocks clean `pytest -x` runs; pre-commit may flag in subsequent sessions if test is in pre-commit scope. Root cause unknown — needs investigation.
 - **Why:** Clean test state is a baseline hygiene requirement. Pre-existing failures mask future regressions.
 - **Vision ref:** VISION.md — methodology consistency (clean test state)
 - **Added:** 2026-05-12
-- **Status:** open
+- **Status:** closed 2026-05-24 — `pytest -q` → 72 passed; `pytest -k test_ratio_pass_when_stable_above_ceiling` → 72 deselected (test no longer present). Stated intent (clean `pytest -x`) satisfied. Caveat (OQ-1 in audit): unverified whether the ratio logic was fixed vs the test removed during the backlog_extract retirement; closed on green-suite intent.
 
 ### [P3] [open] A5 Phase 2: retire UPPERCASE TYPE tag in legacy archive filenames
 - **What:** During Phase 2 repo visits (corp-monorepo, ai-council), when touching `docs/archive/` files with `YYYY-MM-DD_TYPE_topic.md` pattern — rename to plain `YYYY-MM-DD-topic.md` (hyphen separator, no UPPERCASE tag). Opportunistic, not a dedicated migration.
