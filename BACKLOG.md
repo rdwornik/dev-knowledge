@@ -57,12 +57,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-14 by rob (interleaved scope, same-day correction session).
 - **Status:** superseded 2026-05-15 by ADR-46 (cross-repo dated-entries format standard). Prepend-latest is now universal mandate across LESSONS / JOURNAL / CHANGELOG; downstream cross-file references (PLAYBOOK / ESSENTIALS / CLAUDE.md) folded into Session D cleanup pass scope.
 
-### [P2] [open] Audit tool: check_backlog_organization code-span-aware done-token regex
+### [P2] [closed] Audit tool: check_backlog_organization code-span-aware done-token regex
 - **What:** `check_backlog_organization` uses a bare regex to detect done-status tokens in `BACKLOG.md`. This regex matches the done-token pattern inside backtick inline-code spans in body text, producing false-positive FAIL findings on entries that reference the ADR-47 vocabulary. Fix: strip or skip backtick-quoted spans before applying the done-token check, so only unquoted status tokens trigger the fatal finding.
 - **Why:** Session D encountered 3 false-positive hits (body text references to the done-status concept in backtick spans), requiring rewordings that lost precision. A code-span-aware regex is the correct fix; body-text rewordings are a workaround that degrades entry fidelity. Surfaced as a pattern likely to recur in future BACKLOG entries that explain the ADR-47 two-file state.
 - **Vision ref:** VISION.md "Auditor" function; ADR-47 enforcement; ADR-36 audit tool architecture
 - **Added:** 2026-05-16 by rob (Session D false-positive hit pattern)
-- **Status:** open
+- **Status:** closed (moot) 2026-05-24 — `check_backlog_organization` no longer exists (`grep -rn check_backlog_organization scripts/` → nothing). The check was removed when ADR-48 withdrew ADR-46/47 audit enforcement (ADR-47 "retained as convention, NOT audit-enforced"). The false-positive the entry sought to fix cannot occur without the check. No regex fix needed.
 
 ### [P2] [open] Stream taxonomy grooming — Cross-stream section exceeds kill criterion
 - **What:** BACKLOG.md `Cross-stream / Ecosystem` section currently holds 40% of all open items (kill criterion per ADR-47: 33%). Review the 15 open Cross-stream items and evaluate: (a) which items genuinely belong to an existing stream (A/B/C/D) and should be reclassified; (b) whether a new stream (e.g., Stream E: ecosystem operations or Stream E: tooling) should be created to absorb a coherent sub-group; (c) which items are truly cross-stream and should remain. Output: reclassified BACKLOG with Cross-stream ≤33%, or an operator decision to extend ADR-47's kill threshold with empirical justification.
@@ -90,11 +90,11 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-15 by rob (B+C ADR session — surfaced by ADR-47 Follow-ups)
 - **Status:** open — bundle with grouped ADR-39 amendments to minimize ADR churn (Stream C P3 above)
 
-### [P3] [open] ADR-39 registry decision — 5 unregistered template files
-- **What:** Decide whether `templates/AGENTS-md-template.md`, `templates/CLAUDE-md-template.md`, `templates/codex-review-config-template.md`, `templates/prompt-template.md`, plus any other template-category files require ADR-39 registry entries. Options: (a) add registry entries with template-specific lifecycle; (b) formally exclude templates as a class via ADR-39 amendment ("template files exempt from registry"); (c) hybrid — register only stable templates, exclude transient. Decision required because ADR-39 says "every file in .dev-knowledge MUST have 6 lifecycle elements."
+### [P3] [open] ADR-39 registry decision — unregistered template files
+- **What:** Decide whether template-category files require ADR-39 registry entries. Options: (a) add registry entries with template-specific lifecycle; (b) formally exclude templates as a class via ADR-39 amendment ("template files exempt from registry"); (c) hybrid — register only stable templates, exclude transient. Decision required because ADR-39 says "every file in .dev-knowledge MUST have 6 lifecycle elements."
 - **Why:** Audit surfaced unregistered files. Either we extend registry or formally narrow scope. Drift risk if neither.
 - **Added:** 2026-04-30 by rob (Phase 1 self-audit)
-- **Status:** open
+- **Status:** open — entry rephrased 2026-05-24: the original "5 unregistered" list named `templates/AGENTS-md-template.md`, now deleted (AGENTS.md retired per ADR-53). Re-scope against the *current* `templates/` set (verified 2026-05-24): `ADR-template.md`, `ARCHITECTURE-template.md`, `CLAUDE-md-template.md`, `codex-review-config-template.md`, `prompt-template.md`, `scrum-master-cover-letter.md`, `HANDOFF_TEMPLATE.md`, `HANDOFF_FOLDER_TEMPLATE.md`, `HANDOFF_QUESTION_TEMPLATE.md`, `workspace-{S,M,L}.code-workspace`, plus `templates/archive/`. The core decision (register vs class-exempt vs hybrid) is unchanged.
 
 ### [P3] [open] LESSONS.md parenthetical-qualifier entries escape dated-entry audit regex
 - **What:** 8 entries use `### YYYY-MM-DD (qualifier) |` format (all 2026-05-09 with time qualifiers). The audit's `_LESSONS_H3_RE` regex requires date immediately before `|`; the parenthetical causes these entries to be invisible to the ordering check. They are correctly positioned (reorder script treated them as opaque), but the validator cannot enforce their ordering going forward. Decision: (a) broaden regex to permit optional parenthetical, or (b) reformat the 8 entries to move qualifier into body text (requires operator sign-off under ADR-29 "never edit old entries" — qualifier is metadata, not lesson content).
@@ -209,13 +209,13 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-09 by rob (session wrap-up observation)
 - **Status:** open
 
-### [P2] [open] Ecosystem standards audit against major repo
+### [P2] [superseded] Ecosystem standards audit against major repo
 - **What:** Audit one significant ecosystem repo against current standards: folder naming (ADR-34), file naming (ADR-34), workspace structure (ADR-38), sacred-files presence (per set above), scope tag compliance (ADR-27). Surface drift items, classify by severity, plan remediation. Establish this as a repeatable pattern for auditing future repos.
 - **Why:** Phase 2 universalization rollout (Cross-stream P2, above) needs a concrete audit run to validate the pattern works. Without an actual audit against a real repo, the process is theoretical.
 - **Vision ref:** VISION.md "Auditor" function; pairs with "Phase 2 universalization rollout" (Cross-stream P2)
 - **Added:** 2026-05-09 by rob (session wrap-up observation)
 - **Note:** Do not name specific repo in BACKLOG until audit scoping session decides target. See "Phase 2 universalization rollout" for cohort selection.
-- **Status:** open
+- **Status:** superseded 2026-05-24 by the scrum-master review authority pattern. Both halves of this entry are delivered: the 2026-05-23 corp-monorepo deep audit + ecosystem audit are the concrete standards-audit instance, and the scrum-master review pattern (N=3) is the repeatable mechanism the entry asked to "establish." Judgment call (audit OQ-3): if a *checklist-style* standards audit distinct from the scrum-master review is wanted, revert to open.
 
 ### [P3] [open] Kimi K2 model integration evaluation
 - **What:** Evaluate Kimi K2 as addition to ecosystem LLM stack. Scope: (a) capability evaluation for Council debate quality, code generation, and reasoning depth, (b) cost comparison vs. Claude on equivalent task types, (c) integration patterns with existing infrastructure. Decision artifact: Council debate output recommending adoption level — research-only / production peer / experimental supplement.
