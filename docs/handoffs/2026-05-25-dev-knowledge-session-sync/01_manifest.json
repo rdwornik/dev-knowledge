@@ -1,0 +1,62 @@
+{
+  "handoff_id": "2026-05-25-dev-knowledge-session-sync",
+  "type": "session-sync",
+  "format_version": "v3.0",
+  "generated_at": "2026-05-25T13:15:33Z",
+  "target_repo": {
+    "name": ".dev-knowledge",
+    "path": "C:/Users/1028120/Documents/Dev/.dev-knowledge",
+    "head_sha": "2b29329490acfa3484e1a9807845f31d3922ae9a",
+    "stage1_head_sha": "328ded75b3a64b4191fca1fe418374671a120a14",
+    "branch": "docs/handoff-stage1-2026-05-25-dev-knowledge",
+    "working_tree": "clean"
+  },
+  "stage_2_provided": true,
+  "self_handoff": true,
+  "files": [
+    {
+      "path": "00_README.md",
+      "sha256": "8c24c883df21b3a24f0374fc6a19e7f3494066da132ae617505ff6a73aa30701"
+    },
+    {
+      "path": "00_first-message.md",
+      "sha256": "be1ddebc202bb117169d0f3631a83edf642d60500d77f3bf8a3cefd600b91734"
+    },
+    {
+      "path": "01_MANIFEST.md",
+      "sha256": "5654d1532f3bf907701a7d3d8b9e4493817bff0f92e71008c4e5f39af84d573c"
+    },
+    {
+      "path": "02_VISION.md",
+      "sha256": "a131bed796220a7fc5eaf86c2117addc09600dc28e81b2b1f032272f3ac0c5a7"
+    },
+    {
+      "path": "03_PLAYBOOK.md",
+      "sha256": "5db356f2e0422cf4e0a39ba3de9bf1f03d786e3bd9295099904ee9820118c27b"
+    },
+    {
+      "path": "04_ESSENTIALS.md",
+      "sha256": "9e2778aab57c36eeaa6f17246bdd5b41dbd4cb5855d175bca445ba42f7d903bb"
+    },
+    {
+      "path": "05_GOVERNANCE_ESSENCES.md",
+      "sha256": "e58926e6e65842bf45c92f004dafbcaba4e6d1da30cb5b02d4d129b248e240c0"
+    },
+    {
+      "path": "06_STATE_OF_PLAY.md",
+      "sha256": "c3c5dbfc750dc77332d3322d763958ee9e82e35b6174c78625c3813f90a043fd"
+    },
+    {
+      "path": "07_ACTION_PLAN.md",
+      "sha256": "c919a1a5bc62ba7dee4f8b62344379c86dac0e0fbd00d25c0535ef89f89d63ac"
+    },
+    {
+      "path": "08_TREE.txt",
+      "sha256": "3064497cd63379ccf3f85b88b98c128440d664a781dd0dec4c6a611e54373066"
+    },
+    {
+      "path": "09_EXECUTION_EVIDENCE.md",
+      "sha256": "8f16689ba41a7deac705f43ce247cdf01cc2ba2d972d5dd776385d50f7a00792"
+    }
+  ]
+}

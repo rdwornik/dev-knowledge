@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-25 — Handoff Stage 3 complete (dev-knowledge session-sync)
+
+- Did: Completed Stage 3 for `2026-05-25-dev-knowledge-session-sync`. Thinness pre-flight (M-5) passed — all 5 Stage 2 sections substantive. Drift check passed (Stage 1 `328ded7` is ancestor of Stage 3 HEAD `2b29329`). Generated the 11-file flat bundle at `docs/handoffs/2026-05-25-dev-knowledge-session-sync/` (+ `01_manifest.json` with SHA-256 of all 11), ran the verification layer over witnessed claims, and moved Stage 1+2 inputs to `docs/handoffs/archive/{slug}/`.
+- Result: Bundle ready for upload to a fresh chat. Self-handoff → 11 tracked files (`02b` correctly omitted). Verified against repo: ADR-45 supersession withdrawal, SESSION_SETUP.md:209 CHANGELOG drift, CLAUDE.md §4 stale-test note (suite green, 72 passed), three named unmerged branches all exist. Flagged two soft discrepancies in `06_STATE_OF_PLAY.md`: architect's "12-file" count is the cross-repo case (this self-handoff is 11), and "six medium findings" vs five M-residual commits in the log.
+- Changes: `docs/handoffs/2026-05-25-dev-knowledge-session-sync/` (12 files new); `docs/handoffs/archive/2026-05-25-dev-knowledge-session-sync/` (stage1+2 moved); this entry.
+- Note: Generated on branch `docs/handoff-stage1-2026-05-25-dev-knowledge` (a parallel corp-monorepo Stage 1 was stacked on this branch in `e16d56f`; switched back here so the dev-knowledge Stage 3 commit stays off the corp-monorepo branch). No BACKLOG items closed by this handoff (session-sync).
+- Next: Rob opens a NEW claude.ai chat, uploads the bundle, pastes `00_first-message.md`. Old chat can close.
+
+---
+
 ### 2026-05-25 — Handoff Stage 1 generated (dev-knowledge session-sync)
 
 - Did: Generated handoff Stage 1 for `2026-05-25-dev-knowledge-session-sync` (self-handoff, session-sync). Captured HEAD `328ded75b3a64b4191fca1fe418374671a120a14` on `main`, clean working tree. Wrote `stage1-question.md` (5-question pipeline customized with the post-arc state + relevant open BACKLOG items) and the `stage2-response.md` placeholder under `docs/handoffs/in-progress/{slug}/`.
