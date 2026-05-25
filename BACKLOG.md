@@ -275,12 +275,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-24 by rob
 - **Status:** open
 
-### [P2] [open] Codify scrum-master review authority pattern
+### [P1] [open] Codify scrum-master review authority pattern
 - **What:** First empirical instance of scrum-master review pattern completed 2026-05-12 (Prompt L, ai-council review). Pattern: `.dev-knowledge` strażnik produces structured review report (read-only, no writes) identifying governance / documentation / dead code / filename compliance issues in child repo → operator routes report → child-repo architect implements. Candidate codification: new ADR-44 or amendment to ADR-26 (ecosystem strażnik role definition). Awaits N=2 empirical grounding before ADR-level codification per session pattern.
 - **Why:** Pattern emerged organically as first cross-repo scrum-master review; needs codification to be repeatable and delegatable. Without ADR, subsequent reviews have no formal authority reference.
 - **Vision ref:** VISION.md "Auditor" function + "Methodology Author" function
 - **Added:** 2026-05-12 by rob (Prompt L)
-- **Status:** open — **N=3 grounding reached (codification now unblocked).** ai-council 2026-05-12 (N=1), corp-monorepo deep audit 2026-05-23 (N=2), ai-council deep-audit re-pass 2026-05-23 (N=3). Three structured read-only scrum-master reviews across two repos = sufficient empirical pattern for ADR-level codification (new ADR or ADR-26 amendment). Promote to P1 for a dedicated codification prompt.
+- **Status:** open — **promoted P2 → P1 on 2026-05-24** (BACKLOG audit; entry body already recommended it). **N=3 grounding reached (codification unblocked):** ai-council 2026-05-12 (N=1), corp-monorepo deep audit 2026-05-23 (N=2), ai-council deep-audit re-pass 2026-05-23 (N=3). Three structured read-only scrum-master reviews across two repos = sufficient empirical pattern for ADR-level codification (new ADR or ADR-26 amendment). **Universalization-blocking:** child repos receiving a review need a formal authority reference; this is the top P1 of the next execution wave (see `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md` §7).
 
 ### [P3] [open] PLAYBOOK codifications from 2026-05-19 posture audit
 - **What:** The posture audit (H3, H4, T1, T2) and verification surfaced four candidate PLAYBOOK additions, each with N≥2 grounding:
@@ -299,7 +299,7 @@ Next quarterly grooming: 2026-07-01
 - **Why:** Phase 3 of ecosystem universalization. Each repo reviewed = one point of drift caught before it compounds. Pattern validated on ai-council; broader rollout follows codification.
 - **Vision ref:** VISION.md "Auditor" function
 - **Added:** 2026-05-12 by rob (Prompt L)
-- **Status:** open — blocked on codification (Cross-stream P2 above) + N=2 empirical grounding
+- **Status:** open — **both blockers lifted 2026-05-24:** N=2 empirical grounding reached (now N=3; corp-monorepo already reviewed 2026-05-23), and codification is unblocked (now P1 above). Remains P3 because it *sequences after* the codification prompt. Next concrete targets per the entry's priority order: verify existence of corp-knowledge-extractor / corp-by-os / corp-rfp-agent (cross-ref "Undiscovered repos confirmation"), then corp-ops + corp-sca lighter-touch.
 
 ## Cross-repo Naming + Architecture Migration (Prompt H audit + Prompt J ratification)
 
