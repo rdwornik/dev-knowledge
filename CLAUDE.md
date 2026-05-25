@@ -91,7 +91,7 @@ User-level (`~/.claude/commands/`):
 
 Repo-level (`./.claude/commands/`):
 - `/save` — commit workflow with full body per git-discipline rule
-- `/handoff` — generate/complete handoff per ADR-42 v3.1 three-stage flow
+- `/handoff` — generate/complete handoff per ADR-42 v3.3.3 three-stage flow
 
 ## 8. Skills active
 <!-- scope: runtime -->
