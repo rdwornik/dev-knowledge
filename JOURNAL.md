@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-05-25 — Handoff Stage 1 generated (corp-monorepo session-sync)
+
+- Did: Generated handoff Stage 1 for `2026-05-25-corp-monorepo-session-sync`. Captured corp-monorepo HEAD `32a47f85b07d697be20066c1ec69df3cf92cb1f6` on `main`, clean working tree. Wrote `stage1-question.md` (5-question pipeline customized with P1 tier-deprecation + scrum-master ADR tasks, audit GAP findings, and relevant P2 BACKLOG items) and the `stage2-response.md` placeholder.
+- Result: Stage 1 committed; awaiting Stage 2 (old-chat architect response).
+- Changes: `docs/handoffs/in-progress/2026-05-25-corp-monorepo-session-sync/stage1-question.md` (new), `.../stage2-response.md` (new placeholder), this entry.
+- Next: Rob takes the PASTE_BOUNDARY block to the old corp-monorepo chat; replaces the placeholder in `stage2-response.md` with the response; says "complete handoff for corp-monorepo" → Stage 3.
+
+---
+
 ### 2026-05-25 — Handoff Stage 1 generated (dev-knowledge session-sync)
 
 - Did: Generated handoff Stage 1 for `2026-05-25-dev-knowledge-session-sync` (self-handoff, session-sync). Captured HEAD `328ded75b3a64b4191fca1fe418374671a120a14` on `main`, clean working tree. Wrote `stage1-question.md` (5-question pipeline customized with the post-arc state + relevant open BACKLOG items) and the `stage2-response.md` placeholder under `docs/handoffs/in-progress/{slug}/`.
