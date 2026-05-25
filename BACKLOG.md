@@ -75,7 +75,14 @@ Next quarterly grooming: 2026-07-01
 - **What:** Define when Council debates dual-write to .dev-knowledge vs ai-council/output only; flag-based or auto-detect (research+pick=curated, test=no-curated)
 - **Why:** Test debates currently pollute curated transcripts; surfaced 2026-04-30 session
 - **Added:** 2026-04-30 by rob
-- **Status:** superseded 2026-05-11 by Cross-stream P1 "AI Council cross-project transcript routing" (broader scope addressing root cause; mechanism choice deferred to Council debate)
+- **Status:** superseded 2026-05-11 by Stream C P2 "AI Council cross-project transcript routing" (below; broader scope addressing root cause; mechanism choice deferred to Council debate)
+
+### [P2] [open] AI Council cross-project transcript routing
+- **What:** The Council CLI emits transcripts to `ai-council/output/` only (single canonical location); project-side transcripts (`.dev-knowledge/docs/decisions/transcripts/`, `<project>/docs/decisions/transcripts/`, research folders) are populated by **manual archival**. Define + implement automatic cross-project routing so a debate about repo X lands in repo X's transcript/research folder without manual copy. Mechanism choice (Council debate territory): (a) push — frontmatter `route-to:` on the debate question; (b) pull — a `council-cli archive` command; (c) config-based mapping. Supersedes the narrower "Council CLI dual-write trigger logic" (above).
+- **Why:** Manual archival drifts (anti-pattern: 2+ un-archived debates accumulating in `ai-council/output/`; retroactive archive 2026-04-24 recovered 5 stale debates). Routing is the root-cause fix. **Universalization-relevant:** corp-monorepo + ai-council mirror the same Council pipeline (documented PLAYBOOK §5) and inherit the same manual-archival gap.
+- **Refs:** `protocols/PLAYBOOK.md` §5 "Council output convention (current state)" (`:1526`+) and "Council Debate Archival Protocol" (`:1494`+); both name this BACKLOG item.
+- **Added:** 2026-05-11 by rob (referenced as the superseder of "Council CLI dual-write trigger logic"); **restored 2026-05-24** — the entry was referenced by PLAYBOOK §5 and the dual-write supersession note but had gone missing from BACKLOG (audit finding, `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md` §4.3).
+- **Status:** open — mechanism choice is a small Council debate or conversational decision before implementation.
 
 ### [P3] [open] ADR-39 amendment — BACKLOG.md lifecycle entry
 - **What:** Amend ADR-39 registry to add BACKLOG.md entry per ADR-41
@@ -129,6 +136,13 @@ Next quarterly grooming: 2026-07-01
 - **Refs:** `docs/decisions/`; `docs/audits/2026-05-19-dev-knowledge-posture-audit.md` finding I1.
 - **Added:** 2026-05-20 by rob (posture audit verification).
 - **Status:** open
+
+### [P3] [open] CLAUDE.md §4 cites a stale known-failing test
+- **What:** `CLAUDE.md` §4 Conventions/Testing states "known pre-existing failure: `test_audit_run_passes_structural_checks_on_synthetic_repo` — tracked in BACKLOG." Verified 2026-05-24: that test **passes** (`pytest -k test_audit_run_passes_structural_checks_on_synthetic_repo` → 1 passed) and the full suite is green (72 passed). The note is stale. Fix: remove the known-failure clause from CLAUDE.md §4 (one-line edit).
+- **Why:** CLAUDE.md is the session contract read on every session start; a false "known failure" note misleads future sessions into treating a green suite as expected-to-have-one-failure, masking real regressions. Out of this audit's scope (workflow-file edit = execution); captured for a follow-up.
+- **Refs:** `CLAUDE.md` §4; `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md` OQ-2.
+- **Added:** 2026-05-24 by rob (BACKLOG audit — incidental drift).
+- **Status:** open — one-line CLAUDE.md edit in a follow-up.
 
 ### [P2] [closed] Codemap generator output specification (ADR-51 open item)
 - **What:** ADR-51 §5 mandates an auto-generated, CI-freshness-checked codemap for every M/L `ARCHITECTURE.md`, but the generator's output specification is undecided: directory tree vs package dependency graph vs CLI/module inventory vs hybrid. Under-generation fails re-orientation; over-generation produces noise. Two artifacts pending: (a) the generator tool itself (resides in `.dev-knowledge`, consumed by child repos per ADR-36 shared-tooling pattern), (b) the CI freshness-check hook that consumes its output and fails on diff. Until both exist, `templates/ARCHITECTURE-template.md` instructs authors to hand-maintain the codemap in the interim package-tree-with-layer-annotation format documented inline; the template's `<!-- CODEMAP:START/END -->` machine region is reserved for the future generator's insertion point.
