@@ -337,6 +337,15 @@ split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
 1. Verify `_in_progress/{slug}/stage1-question.md` exists — if missing, FLAG and STOP
 2. Verify `_in_progress/{slug}/stage2-response.md` exists — if missing, FLAG and STOP
    with message: "Stage 2 not complete. Paste browser-2 response as stage2-response.md first."
+   - **Thinness pre-flight (M-5).** After confirming the file is populated (per
+     "Stage 2 content detection" above), verify each of the 5 sections
+     (`OBJECTIVE` / `REALITY` / `RATIONALE` / `DIRECTIVES` / `BOUNDARIES`)
+     contains at least 3 non-blank lines of substantive content below its
+     heading. If any section is thinner, FLAG to Rob with the offending
+     section name(s) and ask whether to proceed or return to Stage 2 for a
+     fuller response. Do NOT silently proceed — a degenerate Stage 2 (five
+     one-line answers) passes the heading-presence check but yields a thin,
+     possibly hallucinated `07_ACTION_PLAN.md`.
 3. Re-capture target repo state:
    - Current HEAD SHA
    - Verify current HEAD is a descendant of Stage 1 SHA (from `stage1-question.md` header):
@@ -523,6 +532,7 @@ happened — eliminates "Self-Correction Theatre."
 | Stage 1 | `python scripts/validate_scope_tags.py` | passes, hybrid ≤25% |
 | Stage 1 | `pre-commit run --all-files` | passes |
 | Stage 1 | `git status` | single new file (`_in_progress/{slug}/stage1-question.md`) + JOURNAL modified |
+| Stage 3 | Stage 2 section thinness (M-5) | each of 5 sections ≥ 3 non-blank lines; else FLAG to Rob, ask before proceeding |
 | Stage 3 | `python scripts/validate_scope_tags.py` | passes |
 | Stage 3 | `pre-commit run --all-files` | passes |
 | Stage 3 | folder structure | 11 files flat in `docs/handoffs/{slug}/`, no subdirectories |
