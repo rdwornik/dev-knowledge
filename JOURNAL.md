@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-05-25 — Handoff audit residuals (re-scoped from a stale refactor prompt)
+
+- Did: Received a 2026-05-24 handoff prompt to refactor the handoff process — headline was an 11→4 bundle consolidation plus resolution of six 2026-05-20 audit findings. Before executing, verified the prompt against repo state and found its core premise broken: (1) the 11→4 mapping table named files that exist nowhere in the repo (`02_TASK`, `03_BOUNDARIES`, `04_AUDIT_CONTEXT`, `05_BACKLOG_REFS`, `08_DIRECTIVES`, `10_ROLE`, `11_FORMAT_RULES` — grep returned zero; real bundle is `00_README/00_first-message/01_MANIFEST/01_manifest.json/02_VISION/03_PLAYBOOK/04_ESSENTIALS/05_GOVERNANCE_ESSENCES/06_STATE_OF_PLAY/07_ACTION_PLAN/08_TREE/09_EXECUTION_EVIDENCE`); (2) consolidating 11→4 silently drops the full VISION/PLAYBOOK/ESSENTIALS invariant copies + SHA-256 manifest — materially ADR-45's bundle-collapse direction, which the 2026-05-20 audit §6 records as explored and rolled back. Flagged to operator; operator chose "audit fixes only, re-scope consolidation separately."
+- Result: Repo-state check showed the 2026-05-22 drift-burndown already resolved M-1 (named surfaces), M-3 (Stage 3 step 12), L-3, and M-2's Status line, and deliberately deferred M-5 + M-6. Resolved the genuine residuals across 5 commits on `docs/handoff-audit-residuals-2026-05-25`. `pytest` 72 passed, `ruff` clean after every commit. Consolidation, ADR-42 amendment, and `_in_progress`→`in-progress` rename NOT done (re-scoped / awaiting operator).
+- Changes:
+  - `CLAUDE.md` — §7 `/handoff` label v3.1 → v3.3.3 (M-1 residual surface the burndown missed)
+  - `protocols/HANDOFF_PROCESS.md` — struck residual CHANGELOG from Stage 3 Output line (M-3); added Stage 2 thinness pre-flight (step 2 + checkpoints row, M-5)
+  - `templates/HANDOFF_FOLDER_TEMPLATE.md` — struck residual CHANGELOG from generation step 17 (M-3)
+  - `docs/decisions/ADR-45-handoff-architecture-v4.md` — withdrew `Supersedes: ADR-42` header claim (strikethrough + Amendment 2026-05-25), reconciling with the already-fixed Status line (M-2)
+  - `docs/decisions/ADR-39-file-lifecycle-governance.md` — registered `HANDOFF_QUESTION_TEMPLATE.md` + `HANDOFF_FOLDER_TEMPLATE.md`, marked stale `HANDOFF_TEMPLATE.md` entry superseded (M-6)
+  - `BACKLOG.md` — narrowed P3 template-registry entry to the remaining non-handoff template class decision
+- Abandoned: 11→4 bundle consolidation + the ADR-42 consolidation amendment — premise broken (fictional file map; contradicts audit "preserve what works" + ADR-45 rollback). `_in_progress`→`in-progress` rename — independent and safe but not an audit finding; left for operator to greenlight. Prompt's "add ADR-39 frontmatter" mechanism for M-6 — wrong mechanism; ADR-39 registers via its Registry, used that instead.
+- Next: operator merge approval for `docs/handoff-audit-residuals-2026-05-25`. If consolidation is still wanted, it needs a reality-based 11→N design and an explicit decision to re-open ADR-45 (drop or keep the invariant full-copies) — not hygiene. Optional: `in-progress` rename; non-handoff template class decision (BACKLOG P3).
+
+---
+
 ### 2026-05-24 — Session: self-audit + alignment (capping the 2026-05-23/24 reconciliation arc)
 
 - Did: Ran a comprehensive self-audit of `.dev-knowledge`'s own canonical files against its amended (post-tier-deprecation) standards, then remediated every finding. Entry also records the broader 2026-05-23 → 2026-05-24 session arc.
