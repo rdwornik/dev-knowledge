@@ -406,7 +406,7 @@ split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
     - Return that file to `.dev-knowledge` for next session reference
 
 **Output:** `docs/handoffs/{slug}/` (11 files flat) + `docs/handoffs/archive/{slug}/`
-(stage1 + stage2 inputs), JOURNAL + CHANGELOG entries, commit
+(stage1 + stage2 inputs), JOURNAL entry, commit
 
 ---
 

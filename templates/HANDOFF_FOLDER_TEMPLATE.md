@@ -512,7 +512,7 @@ silently accept incorrect witnessed claims.
 16. Move `_in_progress/{slug}/` to `docs/handoffs/archive/{slug}/`:
     - `archive/{slug}/stage1-question.md`
     - `archive/{slug}/stage2-response.md`
-17. Update JOURNAL + CHANGELOG + BACKLOG
+17. Update JOURNAL + BACKLOG
 18. Run `python scripts/validate_scope_tags.py` and `pre-commit run --all-files`
 19. Single commit on dedicated branch
 
