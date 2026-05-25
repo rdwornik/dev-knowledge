@@ -32,7 +32,7 @@ docs/handoffs/{YYYY-MM-DD}-{slug}/
 
 ## In-progress
 
-`_in_progress/{slug}/` exists during a handoff session; cleaned at Stage 3 close per HANDOFF_PROCESS.md step 10.
+`in-progress/{slug}/` exists during a handoff session; cleaned at Stage 3 close per HANDOFF_PROCESS.md step 10.
 
 ## How to find current session
 

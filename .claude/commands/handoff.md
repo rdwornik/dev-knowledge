@@ -12,9 +12,9 @@ When invoked:
 1. Read `protocols/HANDOFF_PROCESS.md` (v3.3.3) for the full operational procedure.
 
 2. Determine which action based on trigger phrase + state of
-   `docs/handoffs/_in_progress/{slug}/`:
+   `docs/handoffs/in-progress/{slug}/`:
 
-   | Trigger | _in_progress state | Action |
+   | Trigger | in-progress state | Action |
    |---|---|---|
    | "make handoff" | No dir for slug | Stage 1 |
    | "save this response as stage 2" | stage1-question.md exists | Write stage2-response.md |

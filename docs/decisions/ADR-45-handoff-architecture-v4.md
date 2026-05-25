@@ -4,7 +4,7 @@
 
 Status: Explored, not adopted; ADR-42 v3.2 remains canonical authority for handoff architecture
 Date: 2026-05-13
-Supersedes: ADR-42 (Handoff Format v3, amended through v3.2)
+Supersedes: ~~ADR-42 (Handoff Format v3, amended through v3.2)~~ — claim WITHDRAWN 2026-05-25 (see Amendment at end); ADR-45 was explored, not adopted; ADR-42 v3.2 remains canonical authority
 Related: ADR-29 (LESSONS.md grandfathering / append-only format),
          ADR-34 (file naming convention),
          ADR-37 (session boundary protocol — preserved as overlay),
@@ -373,7 +373,8 @@ debated on their own merits.
   tier marker that MANIFEST.md carries)
 - ADR-41 — cross-session backlog architecture (BACKLOG.md remains the
   canonical pending queue; NEXT.md does not duplicate it)
-- ADR-42 — handoff format v3 (superseded by this ADR once accepted)
+- ADR-42 — handoff format v3 (ADR-45 was never accepted; supersession claim
+  withdrawn 2026-05-25 — ADR-42 v3.2 remains canonical, see Amendment at end)
 - `docs/audits/2026-05-12-handoff-process-audit.md` — empirical audit
   of ADR-42 v3.2 in practice
 - `docs/decisions/transcripts/council-out-20260513_102702-research-question-how-do-llm-agent-ecosystems-with-isolated.md`
@@ -382,3 +383,27 @@ debated on their own merits.
 - `docs/decisions/transcripts/council-out-20260513_111424-pick-council-handoff-architecture-pick.md`
   — Council pick debate selecting the five architectural commitments
   (Q1 through Q5) above
+
+## Amendment 2026-05-25 — Supersession claim formally withdrawn (resolves audit M-2)
+
+**Trigger.** 2026-05-20 handoff-process audit, finding M-2
+(`docs/audits/2026-05-20-handoff-process.md` §7). A reader scanning ADR headers
+sees `Supersedes: ADR-42` and infers ADR-45 is canonical, while the Status line
+(clarified earlier in commit `abb76a7`) says the opposite. That header inversion
+is the documented read-order trap.
+
+**Decision.** The `Supersedes: ADR-42` claim in the header — and the matching
+"superseded by this ADR once accepted" note in References — is formally
+**withdrawn**. ADR-45 supersedes nothing. It stands as a frozen design
+exploration ("v4": invariant/session separation + defense-in-depth enforcement)
+that was explored on 2026-05-13 and **not adopted**. The same-night
+minimum-viable refinement (HANDOFF_PROCESS v3.3, since advanced to v3.3.3) was
+implemented instead, preserving the 11-file bundle and full invariants per the
+2026-05-12 audit's "what works, preserve" findings (see the Context note
+2026-05-13 night).
+
+**Authority.** `docs/decisions/ADR-42-handoff-format-v3.md` (v3, amended through
+v3.2) plus `protocols/HANDOFF_PROCESS.md` (v3.3.3) remain the canonical handoff
+architecture. This amendment changes no decision content; it reconciles the
+header metadata with the already-clarified Status line so the ADR index no
+longer mis-signals supersession.
