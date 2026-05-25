@@ -25,6 +25,26 @@ per its own ADR-26). Registry entry corrected to accurately reflect
 Surfaced by 2026-04-30 self-audit
 (`docs/audits/2026-04-30-dev-knowledge-self-audit.md`).
 
+### 2026-05-25 — Handoff template registration (resolves audit M-6)
+
+The 2026-05-20 handoff-process audit (finding M-6,
+`docs/audits/2026-05-20-handoff-process.md` §7) flagged that the two live
+handoff templates were unregistered. The Registry's single
+`templates/HANDOFF_TEMPLATE.md` entry predates ADR-42 v3, which split the
+template into a Stage 1 question skeleton (`HANDOFF_QUESTION_TEMPLATE.md`) and a
+Stage 3 folder spec (`HANDOFF_FOLDER_TEMPLATE.md`).
+
+Decision: option (a) — **register** both real templates rather than exempt them.
+Template-category files that determine handoff bundle structure are load-bearing
+and belong under lifecycle governance. The stale `HANDOFF_TEMPLATE.md` registry
+entry is marked superseded; two new entries are added to the Registry below.
+
+Scope note: this amendment resolves the audit finding (the two handoff
+templates). The broader BACKLOG P3 "ADR-39 registry decision — unregistered
+template files" covers the full `templates/` class (e.g. `ADR-template.md`,
+`prompt-template.md`, `workspace-*.code-workspace`); that class-level
+register-vs-exempt-vs-hybrid decision remains open and is not settled here.
+
 ## Context
 
 2026-04-30 Stream C session ratified 5 ADRs (33, 34, 35, 37, 38) but
@@ -218,7 +238,7 @@ template for future file additions.
 | Boundaries | Canonical for handoff process. Subordinate to ADR-32/ADR-37 (ADRs ratify, this doc operationalizes). |
 | Enforcement | Audit tool verifies process compliance via handoff folder structure |
 
-#### templates/HANDOFF_TEMPLATE.md
+#### templates/HANDOFF_TEMPLATE.md  *(superseded 2026-05-25 — split per ADR-42 v3 into the two entries below; see Amendment)*
 
 | Element | Value |
 |---|---|
@@ -228,6 +248,28 @@ template for future file additions.
 | Grooming | Event-triggered |
 | Boundaries | Reference role — instantiation guide for HANDOFF_PROCESS. |
 | Enforcement | Templates that don't match HANDOFF_PROCESS = audit finding |
+
+#### templates/HANDOFF_QUESTION_TEMPLATE.md
+
+| Element | Value |
+|---|---|
+| Purpose | Stage 1 question-prompt skeleton (per ADR-42 v3 / HANDOFF_PROCESS v3.3.3): the two-section file (operator instructions + paste-into-OLD-chat block carrying the 5 SBAR/I-PASS questions) that Claude Code emits at Stage 1. NOT process documentation (HANDOFF_PROCESS), NOT the Stage 3 folder spec, NOT individual handoff content. |
+| Update trigger | Mutable. Event-triggered: on ADR-42 amendment or HANDOFF_PROCESS Stage 1 refinement. |
+| Owner | Rob + Claude Code |
+| Grooming | Event-triggered (no scheduled cadence) |
+| Boundaries | Reference role — instantiation guide for HANDOFF_PROCESS Stage 1. Subordinate to ADR-42 (ADR ratifies; template operationalizes). |
+| Enforcement | Templates that don't match HANDOFF_PROCESS = audit finding. |
+
+#### templates/HANDOFF_FOLDER_TEMPLATE.md
+
+| Element | Value |
+|---|---|
+| Purpose | Stage 3 folder-structure spec (per ADR-42 v3 / HANDOFF_PROCESS v3.3.3): the 11-file flat bundle layout, per-file content guidance, and parsing/verification logic Claude Code follows at Stage 3. NOT process documentation (HANDOFF_PROCESS), NOT the Stage 1 question skeleton, NOT individual handoff content. |
+| Update trigger | Mutable. Event-triggered: on ADR-42 amendment or HANDOFF_PROCESS Stage 3 refinement. |
+| Owner | Rob + Claude Code |
+| Grooming | Event-triggered (no scheduled cadence) |
+| Boundaries | Reference role — instantiation guide for HANDOFF_PROCESS Stage 3. Subordinate to ADR-42 (ADR ratifies; template operationalizes). |
+| Enforcement | Templates that don't match HANDOFF_PROCESS = audit finding. |
 
 #### protocols/ENVIRONMENT.md
 
