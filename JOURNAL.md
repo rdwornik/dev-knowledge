@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-05-25 — Handoff Stage 1 generated (dev-knowledge session-sync)
+
+- Did: Generated handoff Stage 1 for `2026-05-25-dev-knowledge-session-sync` (self-handoff, session-sync). Captured HEAD `328ded75b3a64b4191fca1fe418374671a120a14` on `main`, clean working tree. Wrote `stage1-question.md` (5-question pipeline customized with the post-arc state + relevant open BACKLOG items) and the `stage2-response.md` placeholder under `docs/handoffs/in-progress/{slug}/`.
+- Result: Stage 1 committed; awaiting Stage 2 (old-chat architect response). Validators run pre-commit.
+- Changes: `docs/handoffs/in-progress/2026-05-25-dev-knowledge-session-sync/stage1-question.md` (new), `.../stage2-response.md` (new placeholder), this entry.
+- Next: Rob takes the PASTE_BOUNDARY block to the old `.dev-knowledge` chat; replaces the placeholder in `stage2-response.md` with the response; says "complete handoff for dev-knowledge" → Stage 3.
+
+---
+
 ### 2026-05-25 — Handoff audit residuals (re-scoped from a stale refactor prompt)
 
 - Did: Received a 2026-05-24 handoff prompt to refactor the handoff process — headline was an 11→4 bundle consolidation plus resolution of six 2026-05-20 audit findings. Before executing, verified the prompt against repo state and found its core premise broken: (1) the 11→4 mapping table named files that exist nowhere in the repo (`02_TASK`, `03_BOUNDARIES`, `04_AUDIT_CONTEXT`, `05_BACKLOG_REFS`, `08_DIRECTIVES`, `10_ROLE`, `11_FORMAT_RULES` — grep returned zero; real bundle is `00_README/00_first-message/01_MANIFEST/01_manifest.json/02_VISION/03_PLAYBOOK/04_ESSENTIALS/05_GOVERNANCE_ESSENCES/06_STATE_OF_PLAY/07_ACTION_PLAN/08_TREE/09_EXECUTION_EVIDENCE`); (2) consolidating 11→4 silently drops the full VISION/PLAYBOOK/ESSENTIALS invariant copies + SHA-256 manifest — materially ADR-45's bundle-collapse direction, which the 2026-05-20 audit §6 records as explored and rolled back. Flagged to operator; operator chose "audit fixes only, re-scope consolidation separately."
