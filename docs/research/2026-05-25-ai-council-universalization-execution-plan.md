@@ -176,6 +176,26 @@ Actions 2–5 are mutually independent and may run in any order or in parallel.
 
 ---
 
+## Amendment 2026-05-26 — Operator decisions captured
+
+The five "operator decisions required" above were answered on 2026-05-26. They narrow
+execution scope; they do not add work beyond what the actions already describe.
+
+| # | Decision | Answer | Plan impact |
+|---|---|---|---|
+| 1 | README disposition | **Delete** | Action 1 = delete `README.md`; AR-CF5/CF6/CF7 close as moot (already recorded in Action 1). |
+| 2 | Codemap maintenance | **Hand-authored Mermaid** | Action 6 narrows to the hand-authored path: refresh the `:21` "Open item" note and hand-author an inline `mermaid` codemap between the existing CODEMAP markers, mirroring the `.dev-knowledge` exemplar. **No generator opt-in, no `codemap check` pre-commit hook, no `tach.toml`.** The optional inline-Mermaid layer model (AR-CF2) may be done in the same pass. |
+| 3 | `.env.example` removal | **Remove** | Action 7 = `git rm ai-council/.env.example` (after confirming env-var names are documented in `CLAUDE.md`/`VISION.md`); plus the workspace dot-prefix. AR-D6 closes. |
+| 4 | LESSONS scope-tag backfill | **Defer** | Action 9 stays **optional** — not required for universalization closure; remains the standing `.dev-knowledge` BACKLOG Stream B P3 (needs ADR-29 sign-off as it edits append-only entries). |
+| 5 | Workspace tier-residue (`.dev-knowledge` template framework) | **Separate BACKLOG entry** | Out of scope for the ai-council rollout (it is `.dev-knowledge` standards work, not ai-council application). Queued as a `.dev-knowledge` BACKLOG P2 (codified 2026-05-26). |
+
+**Net required scope for the ai-council session:** Actions 1–8 (executing decisions 1–3,
+with Action 6 on the hand-authored-Mermaid path); Action 9 deferred. Scrum-master
+codification (Action-adjacent risk note) proceeds in parallel in `.dev-knowledge`, not as
+a hard gate.
+
+---
+
 **Contract preserved:** this plan executes nothing; it is consumed by a separate
 ai-council session. The `.dev-knowledge` session that authored it made zero changes to
 ai-council and wrote only to `.dev-knowledge/docs/research/`.

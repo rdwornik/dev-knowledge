@@ -96,12 +96,13 @@ No `pending-council-questions.md` exists yet — pending questions are currently
 
 <!-- scope: meta -->
 
-AI Council CLI currently emits to `ai-council/output/` only. Transcripts here are **manual
-archival copies** — this is the current process for all 14 `council-out-*` files. Cross-project
-routing as a CLI feature is pending (see BACKLOG Cross-stream P1 "AI Council cross-project
-transcript routing"). Until the feature lands: canonical filename is preserved; source of truth
-remains `ai-council/output/`. Full operational detail in PLAYBOOK Section 5 "Council Debate
-Archival Protocol".
+AI Council CLI writes the canonical transcript to `ai-council/output/` and routes a copy to a
+project's `docs/decisions/transcripts/` **automatically** when a debate sets a `target-project:`
+(frontmatter) or `--target-project` (CLI), per ADR-43 (`routing.py` `TargetResolver`). Routed
+debates need no manual archival; debates that do not name a target-project still emit only to
+`ai-council/output/` and are archived manually. Canonical filename is preserved; source of truth
+remains `ai-council/output/`. Full operational detail in PLAYBOOK "Council Debate Archival
+Protocol".
 
 ## Related
 

@@ -19,6 +19,34 @@
 
 ---
 
+### 2026-05-26 — Multi-branch consolidation + governance truth-up + BACKLOG codification
+
+- Did: Recovered the scattered-commit state left by three parallel Claude Code sessions (2026-05-25 → 26) that shared one working tree (single `.git/`, HEAD switched mid-session → commits landed on wrong branches). Pre-flight snapshot (`docs/research/2026-05-26-consolidation-preflight.md`) verified 11 commit SHAs + a clean tree, then: (B) re-homed commits via cherry-pick onto three clean branches — pipeline+taxonomy (4), ai-council universalization v2 (3), force-completion (3); (C) merged all three to `main` `--no-ff` in order (`577c314` force-completion → `7e02fbd` pipeline → `bf16c41` universalization); (D) truthed-up ADR-43 routing language; (E) amended the universalization plan with operator decisions 2–5; (F) codified 9 BACKLOG entries; (G) this entry. All work after the merges sits on `chore/consolidation-and-backlog-codification-2026-05-26`, awaiting operator merge approval.
+- Result: `main` now holds all deliverables from the three sessions (5 Q1–Q5 transcripts, forensics + mechanism-discovery research docs, the 4-doc pipeline/taxonomy chain, the ai-council audit-refresh + execution-plan). 72 tests green and ruff clean after every commit. Pipeline-audit findings **E1** (3 stale "routing pending/manual" locations across PLAYBOOK + decisions/README) and **E2** (BACKLOG P2 open for shipped routing) closed; **E3** (mechanism doc absent from `main`) closed by preserving `f909768`.
+- Adaptation (flagged): the prompt's 9-commit inventory omitted `f909768`/`2006395` (a duplicate `council-mechanism-discovery.md` from the race). The literal plan's chore `reset --hard` would have orphaned it; included it in the chore rebuild so the doc reaches `main` — exactly what audit E3 asks. ADR-43 routing premise verified real (`ai-council/routing.py` `TargetResolver`, opt-in via `target-project:`); truth-up text reflects the opt-in nature, not a blanket auto-mirror.
+- Operator decisions captured this session:
+
+  | Question | Decision | Source |
+  |---|---|---|
+  | README (ai-council) disposition | Delete | Universalization Q1 |
+  | Question-files location | New `docs/council-questions/` (Option B) | Pipeline Q1 / proposal |
+  | `docs/tech-radar/` status | Keep — BACKLOG decision | Pipeline Q2 |
+  | Stage-2 inbox copy | Keep manual | Pipeline Q3 |
+  | Reclassify history | New artifacts only | Pipeline Q4 |
+  | Folder taxonomy ADR-worthy | Yes | Pipeline Q5 |
+  | ADR-43 governance truth-up | Done this session | Pipeline Q6 |
+  | Codemap (ai-council) | Hand-authored Mermaid | Universalization Q2 |
+  | `.env.example` (ai-council) | Remove | Universalization Q3 |
+  | LESSONS scope-tags (ai-council) | Defer | Universalization Q4 |
+  | Scrum-master codification | Parallel (entry pre-exists) | Universalization Q5 |
+  | Workspace tier-residue (`.dev-knowledge`) | Separate BACKLOG entry | Universalization Q5 |
+
+- Changes: `protocols/PLAYBOOK.md` (ADR-43 truth-up ×2 blocks); `docs/decisions/README.md` (ADR-43 truth-up); `BACKLOG.md` (E2 routing entry closed, README-disposition ai-council=delete recorded, +9 new entries); `docs/research/2026-05-25-ai-council-universalization-execution-plan.md` (decisions 2–5 amendment); `docs/research/2026-05-26-consolidation-preflight.md` (new); this entry. `main` advanced via 3 `--no-ff` merges. Branch `docs/ai-council-universalization-audit-and-plan-2026-05-25` (mislabeled v1) deleted; content preserved on the pipeline branch + v2.
+- Pattern: shared-working-tree race condition across concurrent Claude Code sessions. Forward fix = git worktree per session (BACKLOG Council-Pipeline-Follow-ups #5).
+- Next: operator merges `chore/consolidation-and-backlog-codification-2026-05-26` to `main`; then the codified P1 wave (draft 5 ADRs, apply `docs/council-questions/`, run the ai-council universalization session, folder-taxonomy ADR). The `chore/council-debate-execution-2026-05-25-handoff-methodology` branch (duplicate mechanism doc `2006395`) was left untouched — operator may delete it post-merge.
+
+---
+
 ### 2026-05-25 — Handoff Stage 3 complete (dev-knowledge session-sync)
 
 - Did: Completed Stage 3 for `2026-05-25-dev-knowledge-session-sync`. Thinness pre-flight (M-5) passed — all 5 Stage 2 sections substantive. Drift check passed (Stage 1 `328ded7` is ancestor of Stage 3 HEAD `2b29329`). Generated the 11-file flat bundle at `docs/handoffs/2026-05-25-dev-knowledge-session-sync/` (+ `01_manifest.json` with SHA-256 of all 11), ran the verification layer over witnessed claims, and moved Stage 1+2 inputs to `docs/handoffs/archive/{slug}/`.

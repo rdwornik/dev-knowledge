@@ -78,12 +78,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-04-30 by rob
 - **Status:** superseded 2026-05-11 by Stream C P2 "AI Council cross-project transcript routing" (below; broader scope addressing root cause; mechanism choice deferred to Council debate)
 
-### [P2] [open] AI Council cross-project transcript routing
+### [P2] [closed] AI Council cross-project transcript routing
 - **What:** The Council CLI emits transcripts to `ai-council/output/` only (single canonical location); project-side transcripts (`.dev-knowledge/docs/decisions/transcripts/`, `<project>/docs/decisions/transcripts/`, research folders) are populated by **manual archival**. Define + implement automatic cross-project routing so a debate about repo X lands in repo X's transcript/research folder without manual copy. Mechanism choice (Council debate territory): (a) push — frontmatter `route-to:` on the debate question; (b) pull — a `council-cli archive` command; (c) config-based mapping. Supersedes the narrower "Council CLI dual-write trigger logic" (above).
 - **Why:** Manual archival drifts (anti-pattern: 2+ un-archived debates accumulating in `ai-council/output/`; retroactive archive 2026-04-24 recovered 5 stale debates). Routing is the root-cause fix. **Universalization-relevant:** corp-monorepo + ai-council mirror the same Council pipeline (documented PLAYBOOK §5) and inherit the same manual-archival gap.
 - **Refs:** `protocols/PLAYBOOK.md` §5 "Council output convention (current state)" (`:1526`+) and "Council Debate Archival Protocol" (`:1494`+); both name this BACKLOG item.
 - **Added:** 2026-05-11 by rob (referenced as the superseder of "Council CLI dual-write trigger logic"); **restored 2026-05-24** — the entry was referenced by PLAYBOOK §5 and the dual-write supersession note but had gone missing from BACKLOG (audit finding, `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md` §4.3).
-- **Status:** open — mechanism choice is a small Council debate or conversational decision before implementation.
+- **Status:** closed 2026-05-26 — mechanism (a) **push via frontmatter** shipped as ADR-43 (amendment cycle 1): `ai-council/src/ai_council/routing.py` `TargetResolver` routes a debate's transcript to `<dev_root>/<target>/docs/decisions/transcripts/` when the debate sets `target-project:` (frontmatter) or `--target-project` (CLI); `settings.yaml target_projects` lists `.dev-knowledge`; the 5 handoff-methodology Q-files used it live (transcripts landed automatically). Closes pipeline-audit finding E2; the stale "pending/manual" governance language was truthed-up the same session (PLAYBOOK + decisions/README, finding E1). **Residual (not blocking closure, captured as scope note):** routing is opt-in per-invocation (untargeted debates still archive manually), covers `transcripts/` only (not research-folder routing), and mirror writes are best-effort (pipeline-audit D2). A follow-up to make routing fully automatic or extend it to research folders would be a fresh entry, not this one.
 
 ### [P3] [open] ADR-39 amendment — BACKLOG.md lifecycle entry
 - **What:** Amend ADR-39 registry to add BACKLOG.md entry per ADR-41
@@ -427,6 +427,80 @@ Next quarterly grooming: 2026-07-01
 - **What:** `.dev-knowledge` deleted its root README (deprecated per ADR-38 A5; internal-only). Decide per child repo: corp-monorepo — delete README, or keep (does it have an external audience)? ai-council — delete, or keep for potential open-sourcing? README is now OPTIONAL universally (external-audience repos only).
 - **Why:** ADR-38 A5 deprecated README from the mandatory baseline. Child repos need an explicit keep/delete decision rather than silent drift.
 - **Added:** 2026-05-23 by rob (standard-reconciliation handoff)
-- **Status:** open — operator decision in each dedicated session.
+- **Status:** open (corp-monorepo) — **ai-council resolved 2026-05-26: DELETE** (operator decision; recorded in `docs/research/2026-05-25-ai-council-universalization-execution-plan.md` Action 1). corp-monorepo README keep/delete remains open for its dedicated session.
+
+---
+
+## Council Pipeline + Consolidation Follow-ups (2026-05-26 session)
+
+> Surfaced by the 2026-05-26 consolidation session (multi-branch recovery + governance
+> truth-up) and the 2026-05-25 Council-pipeline audit/proposal + ai-council universalization
+> chain now merged to `main`. Refs: `docs/research/2026-05-25-council-pipeline-{audit,proposal,index}.md`,
+> `docs/research/2026-05-26-consolidation-preflight.md`. The existing P1 "Codify scrum-master
+> review authority pattern" (Cross-stream, above) is NOT duplicated here — it already covers
+> that work and runs parallel to entry #3.
+
+### [P1] [open] Draft ADRs from the 5 handoff-methodology Council transcripts
+- **What:** Five `pick`-mode debates (Q1–Q5, handoff methodology) completed and their transcripts landed in `docs/decisions/transcripts/council-out-20260526_*-handoff-council-Q[1-5]-*.md`. Distill each verdict into a committed ADR per the PLAYBOOK "After a Decision" protocol (verify next ADR number, align to `templates/ADR-template.md`, write `ADR-NN-topic.md`, add the `docs/decisions/README.md` index + traceability row).
+- **Why:** A debate "is not done until its ADR is committed" (PLAYBOOK). Five binding verdicts currently exist only as transcripts; without ADRs the decisions are not discoverable or enforceable.
+- **Refs:** the 5 transcripts; PLAYBOOK "Council Debate Archival Protocol" + "After a Decision".
+- **Added:** 2026-05-26 by rob (consolidation session).
+- **Status:** open — one ADR per verdict (or a consolidated ADR-set if the five form one decision); operator to confirm grouping.
+
+### [P1] [open] Apply pipeline+taxonomy proposal — new `docs/council-questions/` folder (Option B)
+- **What:** Implement the operator-selected Option B from `docs/research/2026-05-25-council-pipeline-proposal.md`: create `docs/council-questions/` as the home for Council *question/staging inputs*, separating them from `docs/research/` (research *outputs*) and `docs/decisions/transcripts/` (debate outputs). Migrate the 7 question-set inputs currently mis-filed in `research/` (the `handoff-council-Q1..Q5`, `-failures-evidence`, `-methodology-council-index` set).
+- **Why:** Pipeline-audit finding A1 (High) — `research/` conflates inputs and outputs so neither reader nor agent can tell a file's role. Option B is the chosen fix.
+- **Refs:** pipeline proposal + audit (A1/A2/C1); operator decision "new `docs/council-questions/` folder".
+- **Added:** 2026-05-26 by rob (consolidation session).
+- **Status:** open — folder creation + file moves + update of any references (PLAYBOOK, READMEs); pairs with entry #4 (the ADR codifying the taxonomy).
+
+### [P1] [open] Execute the ai-council universalization execution plan
+- **What:** A dedicated ai-council Claude Code session executes `docs/research/2026-05-25-ai-council-universalization-execution-plan.md` (Actions 1–8; Action 9 deferred) against ai-council — README delete, tier-residue removal from VISION/ARCHITECTURE/CLAUDE, `[L-opt]`→untagged, naming-guidance + ADR-08 rename, hand-authored Mermaid codemap, `.env.example` removal + workspace dot-prefix, BACKLOG header. Writes happen in ai-council (its own contract), not from `.dev-knowledge`.
+- **Why:** Closes the 14 findings in the 2026-05-25 audit refresh; AI Council is the universalization test case before corp-monorepo.
+- **Refs:** the execution plan + audit refresh (both on `main`). Cross-refs existing "ai-council hyphen migration + ADR-38 compliance" and "Apply tier-deprecation to ai-council" entries (this plan supersedes their loose scope with a sequenced action list).
+- **Added:** 2026-05-26 by rob (consolidation session).
+- **Status:** open — separate ai-council session; operator decisions 1–5 already captured in the plan amendment.
+
+### [P1] [open] Folder taxonomy ADR (research/ vs transcripts/ vs council-questions/)
+- **What:** Author an ADR codifying the `.dev-knowledge` `docs/` taxonomy decision: input/output/working/archived distinction, where each Council artifact class lives, and the naming that encodes role. Ratifies the structure entry #2 implements.
+- **Why:** Pipeline-audit finding A1/G (High) is a taxonomy root cause; operator confirmed "taxonomy ADR-worthy: YES." Without an ADR the folder convention is undocumented and will re-drift.
+- **Refs:** pipeline proposal; audit A1/A3/C1/G.
+- **Added:** 2026-05-26 by rob (consolidation session).
+- **Status:** open — Council debate or conversational ADR; sequence with entry #2 (implement) — ADR can precede or follow the folder move, operator's call.
+
+### [P2] [open] Codify git worktree pattern for parallel Claude Code sessions
+- **What:** Document (PLAYBOOK + ESSENTIALS) the rule that parallel Claude Code sessions on the *same* repo MUST use `git worktree` (separate working trees + HEADs), never share one checkout. Include the bootstrap command and a note on why shared `.git/` HEAD is unsafe.
+- **Why:** This session's root cause — three concurrent sessions on one working tree scattered commits across branches because HEAD switched mid-session (see `docs/research/2026-05-26-consolidation-preflight.md` reflog). A worktree per session eliminates the race entirely.
+- **Refs:** consolidation preflight snapshot; this session's recovery work.
+- **Added:** 2026-05-26 by rob (consolidation session).
+- **Status:** open — PLAYBOOK codification (process rule, no code).
+
+### [P2] [open] Remove tier-residue from `.dev-knowledge` workspace templates
+- **What:** Collapse `templates/workspace-{S,M,L}.code-workspace` (three richness-tiered files) + PLAYBOOK § "VS Code workspace" into the operator's model: **one maximal `.code-workspace` template** from which elements are selected by repo complexity (not three scale-keyed variants). The S/M/L framing was de-tiered in PLAYBOOK v1.1 (2026-05-23) but three separate files still exist — the residue the operator flagged during ai-council universalization.
+- **Why:** Operator decision (universalization Q5): the workspace template should be "one complex template, scale-adaptive by element selection, NOT scale-different templates." This is `.dev-knowledge` standards work, deliberately kept OUT of the ai-council rollout.
+- **Refs:** `protocols/PLAYBOOK.md` § VS Code workspace (`:414`); `templates/workspace-{S,M,L}.code-workspace`; audit refresh "operator concerns" section.
+- **Added:** 2026-05-26 by rob (consolidation session; universalization Q5 spillover).
+- **Status:** open — standards change (may warrant a small ADR or PLAYBOOK amendment); affects the template framework, not any child repo.
+
+### [P2] [open] Prevent auto-debate of stray Council-keyed files
+- **What:** Investigate + prevent the failure mode where stray files carrying Council frontmatter keys (e.g., `mode:`/`target-project:`) in a watched location (`council_inbox/`, or a `~/Downloads` drop) get auto-picked-up and debated unintentionally. Define a guard (explicit allow-list, required marker, or inbox-only scoping).
+- **Why:** The 2026-05-26 race involved inbox/working files; an unintended auto-debate wastes ~$0.50/~5min and pollutes outputs. Pipeline-audit B3 noted a run caught mid-flight; clear triggering rules reduce accidental runs.
+- **Refs:** pipeline audit B1/B3/D1; `ai-council/council_inbox/` mechanism.
+- **Added:** 2026-05-26 by rob (consolidation session).
+- **Status:** open — investigation + guard design; work likely lands in ai-council (read-only here).
+
+### [P3] [open] Decide future of `docs/tech-radar/`
+- **What:** `docs/tech-radar/` exists (`2026-Q2.md`, `README.md`). Decide whether it is a kept, living artifact class (with a review cadence + lifecycle entry per ADR-39) or should be retired/relocated. Operator flagged "keep, BACKLOG decision."
+- **Why:** Undecided artifact classes drift; a one-off `tech-radar/` with no cadence rots like the five-week-stale handoff precedent (ADR-51 context).
+- **Refs:** `docs/tech-radar/`.
+- **Added:** 2026-05-26 by rob (consolidation session; pipeline-discovery Q2).
+- **Status:** open — operator decision (keep + cadence, or retire).
+
+### [P3] [open] Remove the "📋 ADRs" folder alias from `.dev-knowledge.code-workspace`
+- **What:** `.dev-knowledge.code-workspace` defines a multi-root folder alias `"name": "📋 ADRs"` (`:20`) and an `open-latest-adr` task (`:154`). Evaluate whether the ADRs alias adds value vs clutter; remove it if the canonical-file keybindings/tasks already cover ADR access.
+- **Why:** Workspace hygiene — the multi-root alias predates the canonical-file open tasks/keybindings (added 2026-05-24); a redundant root adds Explorer noise. Pairs with entry #6 (workspace template rework).
+- **Refs:** `.dev-knowledge.code-workspace:20,154`.
+- **Added:** 2026-05-26 by rob (consolidation session).
+- **Status:** open — low-priority workspace polish; bundle with entry #6 if the template rework touches this file.
 
 ---
