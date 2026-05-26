@@ -1496,7 +1496,7 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 
 Every Council debate output MUST be archived immediately after the debate completes. Skip this and the debate is effectively lost. Retroactive archive 2026-04-24 recovered 5 debates that sat in `ai-council/output/` for weeks.
 
-> **Current state (as of 2026-05-11):** The Council CLI emits transcripts to `ai-council/output/` only — single canonical location. There is no automatic dual-write to project-side transcript folders. **All three steps below are required** for every debate. Cross-project routing as a CLI feature is pending; see "Council output convention (current state)" section below for details.
+> **Current state (updated 2026-05-26 — ADR-43 routing implemented):** Cross-project transcript routing now ships in `ai-council` (`routing.py` `TargetResolver`, ADR-43 amendment cycle 1). When a debate names a `target-project:` (frontmatter) or `--target-project` (CLI), the CLI writes the transcript to `<dev_root>/<target>/docs/decisions/transcripts/` automatically on completion — for `.dev-knowledge`-targeted debates that is `docs/decisions/transcripts/`, with **no manual archival step**. The canonical copy still lands in `ai-council/output/`; mirror writes are best-effort (a failure logs a warning, the canonical write still succeeds). Routing is **opt-in per invocation**: the manual pipeline below remains the fallback for debates that do **not** set a target-project.
 
 **Pipeline (3 steps, ~5 min):**
 
@@ -1526,19 +1526,18 @@ Every Council debate output MUST be archived immediately after the debate comple
 ### Council output convention (current state)
 <!-- scope: meta -->
 
-AI Council CLI emits transcripts to `ai-council/output/` only — single canonical location.
+AI Council CLI writes the canonical transcript to `ai-council/output/` and, when a debate sets a
+`target-project:` (frontmatter) or `--target-project` (CLI), **also routes a copy automatically**
+to `<target>/docs/decisions/transcripts/` per ADR-43 (`routing.py` `TargetResolver`; `settings.yaml`
+`target_projects` lists `.dev-knowledge`). Routed debates need **no manual archival** — the routed
+copy is the transcript file only (no `_metrics.json`), preserving the canonical
+`council-out-YYYYMMDD-HHMMSS-*.md` filename. Source of truth remains `ai-council/output/`.
 
-Project-side transcripts (e.g., `.dev-knowledge/docs/decisions/transcripts/`,
-`<project>/docs/decisions/transcripts/`) are populated by **manual archival** from
-`ai-council/output/`. This is the current process for all 12 transcripts in `.dev-knowledge`.
-
-Cross-project routing as a CLI feature is **pending** — see BACKLOG Cross-stream P1 "AI Council
-cross-project transcript routing". Client requirements drafted; mechanism choice (push frontmatter
-vs pull command vs config-based) is Council debate territory.
-
-Until the feature lands: maintain manual archival discipline. Curated copy = transcript file only
-(no `_metrics.json`), preserving canonical `council-out-YYYYMMDD-HHMMSS-*.md` filename. Source of
-truth always `ai-council/output/`.
+Routing is **opt-in per invocation** — a debate that does not name a target-project still emits only
+to `ai-council/output/` and is archived via the manual pipeline above ("Council Debate Archival
+Protocol"). Mirror writes are best-effort (failure logs a warning; the canonical write always
+succeeds), and routing depends on `settings.yaml` naming the target with a resolvable `dev_root`
+(see ADR-43; routing-fragility noted in the 2026-05-25 pipeline audit, finding D2).
 
 ### When to run Council vs single-model + critic
 <!-- scope: meta -->
