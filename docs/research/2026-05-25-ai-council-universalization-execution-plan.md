@@ -45,13 +45,15 @@ Actions 2–5 are mutually independent and may run in any order or in parallel.
 
 ## Actions (sequenced)
 
-### Action 1 — README disposition decision + execution
-- **What:** Decide keep-or-delete for `README.md`, then execute. If **delete**: remove `README.md`; AR-CF5/CF6/CF7 close as moot. If **keep** (external/open-source audience): fix the three README defects in the same edit — (a) `:234` test count → current collected count (`pytest --collect-only -q`) or drop the absolute number; (b) `:152` options-table synthesizer default `claude` → `gemini` (verify against `runner.py:pick_synthesizer()`); (c) `:294-298` reconcile or remove "Related repos"; and fix the `:288` "See `CLAUDE.md` for full architecture details" pointer → `ARCHITECTURE.md`.
-- **Where:** `ai-council/README.md` (delete, or edit `:152,:234,:288,:294-298`).
-- **Why:** AR-D5 [MEDIUM] (ADR-38 A5 — README optional/deprecated). Gates AR-CF5/CF6/CF7. Operator concern "bez readme."
-- **Verification:** if deleted — `git ls-files | grep -x README.md` returns nothing; `grep -rn README ai-council/CLAUDE.md` shows no dangling "read README" instruction (CLAUDE.md §1 already omits README — confirm). If kept — the three values match repo reality (synthesizer = gemini everywhere; test count matches collection; related-repos reconciled).
-- **Dependencies:** none (but blocks the closure of AR-CF5/CF6/CF7).
-- **Commit suggestion:** `docs: delete deprecated README (ADR-38 A5)` **or** `docs: fix README synthesizer default, test count, related repos`.
+### Action 1 — Delete README (operator decision 2026-05-25)
+- **Operator decision (2026-05-25):** **DELETE.** ai-council is treated as internal-only (operator concern "bez readme"), mirroring what `.dev-knowledge` did to its own root README under ADR-38 A5. The keep+fix path below is retained only for trace; do **not** execute it.
+- **What:** Remove `ai-council/README.md`. This closes AR-CF5/CF6/CF7 as **moot** (the stale test count, synthesizer contradiction, and obsolete Related-repos all die with the file).
+- **Where:** `ai-council/README.md` (`git rm`).
+- **Why:** AR-D5 [MEDIUM] (ADR-38 A5 — README deprecated from the baseline, optional for external-audience repos only). Operator chose internal-only.
+- **Verification:** `git -C ai-council ls-files | grep -x README.md` returns nothing; confirm no dangling "read README" instruction remains (`CLAUDE.md` §1 already omits README; the `:288` "See CLAUDE.md…" pointer lived inside the README, so it dies with the file — no external pointer to fix).
+- **Dependencies:** none (closes AR-CF5/CF6/CF7).
+- **Commit suggestion:** `docs: delete deprecated README (ADR-38 A5; internal-only)`.
+- **Retained-for-trace (NOT to execute) — keep+fix path:** had ai-council been external/open-source, the fix would have been: `:234` test count → current collected count; `:152` options-table synthesizer default `claude` → `gemini`; `:294-298` reconcile/remove "Related repos"; `:288` pointer → `ARCHITECTURE.md`.
 
 ### Action 2 — VISION frontmatter: de-tier + add `status`
 - **What:** In `VISION.md` frontmatter remove `tier: M` and `scale: M`; add `status: active`; keep `version`, `owner`, `last_reviewed` (bump `last_reviewed` to the edit date). Final key set = `version`, `owner`, `last_reviewed`, `status` (matches `.dev-knowledge/VISION.md:1-6`).
@@ -149,7 +151,7 @@ Actions 2–5 are mutually independent and may run in any order or in parallel.
 
 ## Operator decisions required before execution
 
-1. **README disposition (gates Action 1).** Delete (internal-only, per "bez readme") **or** keep (open-source/external audience) and fix in place? ai-council's README reads as product-facing, so this is a genuine choice, not a default.
+1. **README disposition (gates Action 1).** ~~Delete or keep?~~ **RESOLVED 2026-05-25 — operator chose DELETE** (internal-only, per "bez readme"). Action 1 deletes `README.md`; AR-CF5/CF6/CF7 are moot. No further input needed.
 2. **VISION `status` value (Action 2).** `active` is the expected value; confirm it is not `maintenance`/`archived`.
 3. **Codemap maintenance mode (Action 6).** Generator opt-in (adds a pre-commit freshness hook + a per-repo commitment; consider adding `tach.toml` for layer colors) **vs** hand-authored inline Mermaid (no tooling commitment). Both satisfy ADR-51.
 4. **`.env.example` (Action 7).** Remove per pass-2, or keep with a noted exception if a contributor relies on it.
