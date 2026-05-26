@@ -19,15 +19,15 @@ target-project: .dev-knowledge
 
 ### Questions
 
-1. **Should bundle content be fixed or conditional?**
+1. **Should the content set be fixed or selected per session?**
    - A: Fixed full-invariant set on every handoff (current).
-   - B: Conditional on handoff type or the next session's directives (e.g., prompt-generation-heavy vs mechanical work get different sets).
-   - C: Layered — a small always-loaded core plus on-demand references the chat requests when a task needs them.
+   - B: Selected by the next session's work type (e.g., prompt-generation-heavy vs mechanical-hygiene work get different content sets).
+   - C: A different selection principle (panel names it).
 
 2. **What content types belong in the bundle?**
    - A: Keep VISION/PLAYBOOK/ESSENTIALS as the methodology anchors; do not add skills/gotchas/JOURNAL.
    - B: Add skills/gotchas/JOURNAL alongside the existing invariants.
-   - C: Make skills/gotchas/JOURNAL the primary methodology source and demote PLAYBOOK/ESSENTIALS to reference.
+   - C: Make skills/gotchas/JOURNAL the primary methodology source and treat PLAYBOOK/ESSENTIALS as secondary background.
    - D: A different composition (panel names it).
 
 3. **What principle decides inclusion?**
@@ -40,7 +40,7 @@ target-project: .dev-knowledge
 - The receiver cannot dereference filesystem pointers — anything it needs must be inlined or operator-uploaded (`ADR-45:80-86`).
 - The Self-Containment Rule is load-bearing and was explicitly not rolled back (evidence `:138`).
 - Full invariants have empirically caught architect fabrications via drift detection (real case: 2026-05-09 ai-council handoff) (`ADR-45:21-31`).
-- Delivery form — full copies vs pointer vs condensed, and file count — is decided in Q5, not here. This debate is about which content types are relevant.
+- Delivery form — full copies vs pointer vs condensed/layered, and file count — is decided in Q5, not here. This debate is about which content types are relevant and how that set is chosen.
 
 ### Adjacent concerns — handled in separate debates (not this one)
 
