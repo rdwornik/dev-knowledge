@@ -142,38 +142,49 @@ Content (in order):
 - Expected HEAD SHA (ancestor-validated: current HEAD must be a descendant of the pinned SHA), working tree state
 - Mismatch instruction: STOP, report both SHAs
 
-#### Required first action — articulation gate
+#### Required first action — applied-task gate (per ADR-55, Council Q1)
 
-00_first-message.md MUST instruct the new chat that, before ANY work
-(including receiver synthesis), it writes in its own words. Do not paste
-from VISION/PLAYBOOK/ESSENTIALS — write fresh. Required content:
+The paraphrase gate is replaced by an applied-task proof gate: the NEW chat must
+APPLY bundle content to decide an action, not paraphrase it. (The 2026-05-25
+evidence showed chats passing a paraphrase gate then failing to operationalize the
+same content one turn later.) 00_first-message.md MUST instruct the new chat:
 
-1. **Your role per VISION** (1-2 sentences) — what is `{repo}`'s
-   function in the ecosystem? What is your role as architect for `{repo}` specifically?
-   (For ecosystem methodology context — the governance framework this repo operates within —
-   read `02b_ECOSYSTEM_VISION.md` if present in the bundle.)
+**Step 1 — Grounding (citation-anchored).** Write in your own words, with a
+file + section citation for each:
 
-2. **Current phase per BACKLOG** (1 sentence) — which phase of the
-   universalization rollout is active? What blocks what?
+1. **Your role per VISION** — `{repo}`'s function in the ecosystem and your role as
+   its architect this session. Citation: `02_VISION.md#{section}` (and
+   `02b_ECOSYSTEM_VISION.md` for ecosystem context if present).
+2. **Top-3 hard constraints** — what must NOT happen this session. Citation:
+   `07_ACTION_PLAN.md` Hard Constraints section.
 
-3. **Immediate next action per ACTION_PLAN directive #1** (1 sentence) —
-   what is the single highest-priority action for this session?
+Anchor on file + heading/section — not line numbers (avoids citation brittleness).
 
-4. **Top 3 Hard Constraints** (from `07_ACTION_PLAN.md` Hard Constraints section)
-   (3 short bullets) — what must NOT happen this session?
+**Step 2 — Applied-task proof.** Read `10_GATE_PROBE.md` — the **mini-scenario and
+required-response-structure ONLY**. Do NOT read the operator-only block (the answer
+key). Answer:
 
-After writing the four-item articulation, wait for operator to type
-exact phrase `role confirmed` before any other work. If you cannot
-articulate any of the four items from the bundle, flag the gap:
+1. **Directed action** — what should be done.
+2. **Controlling bundle location** — the file + section that determines the action.
+3. **Preconditions / sequencing** — any pre-work or order constraints.
 
-  `Cannot articulate [N] — [VISION/BACKLOG/ACTION_PLAN/HARD_CONSTRAINTS]
-   insufficient. Reload or query.`
+**Confirmation.** The operator checks your answer against the operator-only expected
+answer and types `role confirmed + probe passed` (this replaces bare
+`role confirmed`). Do not proceed until you receive it.
 
-Do not proceed.
+**Failure protocol.**
+- First fail → operator points to the contradicted bundle location; re-read and
+  retry the probe once.
+- Second fail → the session terminates; the bundle is treated as inadequate and
+  regenerated upstream.
 
-This is friction-gated entry. Operator validates internalization before
-work begins. The articulation precedes receiver synthesis — synthesis is
-the second gate after articulation passes.
+If you cannot ground item 1 or 2 from the bundle, flag the gap
+(`Cannot ground [role/constraints] — [file] insufficient. Reload or query.`) and
+do not proceed.
+
+This is friction-gated entry: the operator validates *application*, not paraphrase,
+before work begins. The applied-task gate precedes receiver synthesis — synthesis is
+the second gate after this one passes.
 
 #### Receiver synthesis (MANDATORY before action)
 After reading the full bundle, NEW chat MUST provide synthesis. Format:
@@ -230,21 +241,84 @@ If NEW chat has clarification questions BEFORE generating prompts:
 When NEW chat has no more questions, it asks operator: "Ready to
 generate Claude Code prompt(s)? Single prompt or split?"
 
-#### Prompt generation
+#### Prompt Generation Card (per ADR-56, Council Q3)
 
-After Q&A loop closed and operator confirms format (single/split):
+Inline operational extract — the browser chat cannot read the filesystem, so the
+procedure lives here at the point of use. PLAYBOOK retains rationale + edge cases;
+this card is the procedure. (Replaces the prior "generate per 03_PLAYBOOK
+conventions" pointer, which did not reliably reproduce the procedure.) After the
+Q&A loop closes and the operator confirms format (single/split), the NEW chat
+generates Claude Code prompt(s) using this card:
 
-- NEW chat generates formal Claude Code prompt(s) per 03_PLAYBOOK
-  conventions:
-  - Model/Mode/Effort table at top
-  - Title, Repo, Purpose
-  - Read first list
-  - Git workflow
-  - UNDERSTAND
-  - Steps with COMMIT markers
-  - What NOT to do
-- Output as downloadable .md
-- Operator downloads, runs in Claude Code in target repo
+**Decision algorithm:** classify task → choose model + mode + effort → fill the
+mandatory skeleton → validate (matches archetype, skeleton complete, no
+hallucinated paths).
+
+**Task archetype → model + mode + effort** (mirrors PLAYBOOK; keep in sync):
+
+| Task archetype | Model | Mode | Effort |
+|---|---|---|---|
+| Mechanical single-file edit / config / rename | Sonnet | auto-accept | low |
+| Write tests for a module (clear spec) | Sonnet | auto-accept | medium |
+| Multi-file refactor within known patterns | Sonnet/Opus | plan-then-auto | medium |
+| New pipeline step / feature (cross-file) | Opus | plan-then-auto | high |
+| Cross-package / schema migration | Opus | plan | high |
+| Audit / review / synthesis (judgment-heavy) | Opus | plan-then-auto | high |
+| Hardest debugging / end-to-end verification | Opus | plan | xhigh |
+| Architecture decision | (not a prompt — convene AI Council) | — | — |
+| Code review (security/quality) | (Codex per ADR-54, after Opus implementation) | — | — |
+| **Uncertain / mixed** | **Opus** | **plan** | **high + operator review** |
+
+**Mandatory prompt skeleton** — every generated Claude Code prompt MUST contain:
+
+1. Model/Mode/Effort table (top).
+2. Title (single sentence).
+3. Repo + Purpose.
+4. Read first — CLAUDE.md, relevant gotchas, relevant skills (per `next_session_scope`).
+5. **Git workflow** — feature branch + multiple revertable commits + test between
+   steps + **no auto-push** (operator approves merge).
+6. UNDERSTAND — scope + failure modes + what NOT to do.
+7. Steps — with COMMIT markers between them.
+8. **Hooks needed** — yes/no + which (see Hook selection below).
+9. **JOURNAL update target** — per ADR-49 (append: date / did / result / adaptation
+   / pattern / next).
+10. **Workflow updates needed** — if the task changes PLAYBOOK/templates/process,
+    list them.
+11. Final — tests + verification + session report.
+12. What NOT to do — explicit guards + scope-leak prevention.
+
+(Skeleton items 5, 8, 9, 10 are operator extensions, equal in weight to the
+Council-derived card; do not drop them.)
+
+**Hook selection guidance:**
+
+| Task triggers | Consider hook |
+|---|---|
+| Code changes | pre-commit (lint + test) |
+| State-changing tool calls | PreToolUse (gate before destructive ops) |
+| Bundle integrity work | `/save` (manifest hash verification per ADR-42 Q5 amendment) |
+| Long sessions | SessionStart + Stop |
+| Default (no trigger) | none — do not add hooks speculatively |
+
+**Fallback:** task type unclear, multiple archetypes apply, or domain unfamiliar →
+**Opus + high effort + mark for operator review.**
+
+**Worked exemplars:**
+- *Mechanical (Sonnet / auto-accept / low):* "Add type hints to `utils/parsing.py`;
+  run mypy strict; one commit." → mechanical single-file; no hooks; minimal JOURNAL.
+- *Multi-file refactor (Opus / plan-then-auto / medium):* "Extract `ConfigLoader`
+  from `cli.py` into `config/loader.py`; update 4 call sites; add tests." →
+  pre-commit hook for test validation; JOURNAL update; workflow unchanged.
+- *Audit (Opus / plan-then-auto / high):* "Audit corp-monorepo against current
+  .dev-knowledge baseline; produce findings + execution plan." → no hooks; JOURNAL
+  update; workflow may need update if findings drive an ADR amendment.
+
+Output each prompt as a downloadable `.md`; the operator runs it in Claude Code in
+the target repo.
+
+**Card maintenance:** any change to prompt conventions updates BOTH this card and
+the PLAYBOOK rationale (ADR-56). Size budget: keep the card ≤200 lines; if it
+overflows, restructure into card + appendix rather than relocating authority.
 
 #### Continuous improvement reminder
 - Project's meta-goal is continuous improvement (per .dev-knowledge
