@@ -255,6 +255,13 @@ Every repo root looks the same: **dot-prefix configs** where the tool supports i
 
 ---
 
+## docs/ taxonomy (ADR-60)
+<!-- scope: meta -->
+
+Each `docs/` subfolder = one semantic role: `audits/`=outputs · `council-questions/`=Council inputs · `decisions/`=ADRs+transcripts · `handoffs/`=session bundles · `research/`=working scratchpad · `archive/`=superseded/dormant. Files mature `research/` → `audits/`/`decisions/` via `git mv`. On a move, never rewrite append-only/immutable records that cite the old path (ADRs, transcripts, JOURNAL) — they are point-in-time history; fix only living docs + the moved file's own refs. Full standard: PLAYBOOK "docs/ folder taxonomy".
+
+---
+
 ## Commit message standard
 <!-- scope: dev -->
 
