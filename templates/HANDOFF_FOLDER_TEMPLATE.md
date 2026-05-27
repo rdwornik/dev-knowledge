@@ -760,7 +760,7 @@ silently accept incorrect witnessed claims.
     - `archive/{slug}/stage1-question.md`
     - `archive/{slug}/stage2-response.md`
 20. Update JOURNAL + BACKLOG
-21. Run `python scripts/validate_scope_tags.py` and `pre-commit run --all-files`
+21. Run `pre-commit run --all-files`
 22. Single commit on dedicated branch
 
 ---

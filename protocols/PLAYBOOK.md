@@ -618,7 +618,7 @@ docs/handoffs/{date}-{slug}/
 
 **When legacy still acceptable:** quick single-session summary with no need for point-in-time copies (rare since cleanup).
 
-**Validator interaction:** `contents/*.md` files auto-skip via existing `docs/handoffs/` SKIP_PATTERN in `scripts/validate_scope_tags.py` — no duplicate-tag concerns.
+**Validator interaction:** `contents/*.md` files under `docs/handoffs/` are excluded from pre-commit scope checks — no duplicate-tag concerns.
 
 **First instance:** `docs/handoffs/2026-04-27-stream-c-session-1-final/` — Stream C session 1 close.
 
@@ -1013,7 +1013,7 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 - Ambiguous rules — hooks fail loudly; vague rule = constant friction
 
 **Real examples in Rob's ecosystem:**
-- `.dev-knowledge/.pre-commit-config.yaml` — runs `scripts/validate_scope_tags.py` (Stream A enforcement)
+- `.dev-knowledge/.pre-commit-config.yaml` — runs `normalize_headers.py` + codemap-freshness check (scope-tag enforcement withdrawn per ADR-48)
 - corp-monorepo pre-commit (likely): ruff format, pytest collection check (verify per repo)
 
 **Anti-patterns:**
