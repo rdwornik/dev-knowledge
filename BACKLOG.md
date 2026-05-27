@@ -443,8 +443,8 @@ Next quarterly grooming: 2026-07-01
 
 > Surfaced by the 2026-05-26 consolidation session (multi-branch recovery + governance
 > truth-up) and the 2026-05-25 Council-pipeline audit/proposal + ai-council universalization
-> chain now merged to `main`. Refs: `docs/research/2026-05-25-council-pipeline-{audit,proposal,index}.md`,
-> `docs/research/2026-05-26-consolidation-preflight.md`. The existing P1 "Codify scrum-master
+> chain now merged to `main`. Refs: `docs/audits/2026-05-25-council-pipeline-{audit,proposal,index}.md`,
+> `docs/archive/2026/2026-05-26-consolidation-preflight.md`. The existing P1 "Codify scrum-master
 > review authority pattern" (Cross-stream, above) is NOT duplicated here — it already covers
 > that work and runs parallel to entry #3.
 
@@ -455,12 +455,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-26 by rob (consolidation session).
 - **Status:** open — one ADR per verdict (or a consolidated ADR-set if the five form one decision); operator to confirm grouping.
 
-### [P1] [open] Apply pipeline+taxonomy proposal — new `docs/council-questions/` folder (Option B)
-- **What:** Implement the operator-selected Option B from `docs/research/2026-05-25-council-pipeline-proposal.md`: create `docs/council-questions/` as the home for Council *question/staging inputs*, separating them from `docs/research/` (research *outputs*) and `docs/decisions/transcripts/` (debate outputs). Migrate the 7 question-set inputs currently mis-filed in `research/` (the `handoff-council-Q1..Q5`, `-failures-evidence`, `-methodology-council-index` set).
+### [P1] [closed] Apply pipeline+taxonomy proposal — new `docs/council-questions/` folder (Option B)
+- **What:** Implement the operator-selected Option B from `docs/audits/2026-05-25-council-pipeline-proposal.md`: create `docs/council-questions/` as the home for Council *question/staging inputs*, separating them from `docs/research/` (research *outputs*) and `docs/decisions/transcripts/` (debate outputs). Migrate the 7 question-set inputs currently mis-filed in `research/` (the `handoff-council-Q1..Q5`, `-failures-evidence`, `-methodology-council-index` set).
 - **Why:** Pipeline-audit finding A1 (High) — `research/` conflates inputs and outputs so neither reader nor agent can tell a file's role. Option B is the chosen fix.
 - **Refs:** pipeline proposal + audit (A1/A2/C1); operator decision "new `docs/council-questions/` folder".
 - **Added:** 2026-05-26 by rob (consolidation session).
-- **Status:** open — folder creation + file moves + update of any references (PLAYBOOK, READMEs); pairs with entry #4 (the ADR codifying the taxonomy).
+- **Status:** closed 2026-05-27 — `docs/council-questions/` created (+ semantic README); the 7 inputs (Q1–Q5 + evidence + set index) migrated from `research/` via `git mv`; living-doc cross-refs updated (HANDOFF_PROCESS + the migrated files' own internal refs; immutable ADR-55..58/transcripts left as point-in-time history per ADR-60 Rule 5). Implemented alongside ADR-60 (entry #4). Branch `docs/folder-taxonomy-implementation-2026-05-27`, awaiting operator merge.
 
 ### [P1] [open] Execute the ai-council universalization execution plan
 - **What:** A dedicated ai-council Claude Code session executes `docs/audits/2026-05-25-ai-council-universalization-execution-plan.md` (Actions 1–8; Action 9 deferred) against ai-council — README delete, tier-residue removal from VISION/ARCHITECTURE/CLAUDE, `[L-opt]`→untagged, naming-guidance + ADR-08 rename, hand-authored Mermaid codemap, `.env.example` removal + workspace dot-prefix, BACKLOG header. Writes happen in ai-council (its own contract), not from `.dev-knowledge`.
@@ -469,16 +469,16 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-26 by rob (consolidation session).
 - **Status:** open — separate ai-council session; operator decisions 1–5 already captured in the plan amendment.
 
-### [P1] [open] Folder taxonomy ADR (research/ vs transcripts/ vs council-questions/)
+### [P1] [closed] Folder taxonomy ADR (research/ vs transcripts/ vs council-questions/)
 - **What:** Author an ADR codifying the `.dev-knowledge` `docs/` taxonomy decision: input/output/working/archived distinction, where each Council artifact class lives, and the naming that encodes role. Ratifies the structure entry #2 implements.
 - **Why:** Pipeline-audit finding A1/G (High) is a taxonomy root cause; operator confirmed "taxonomy ADR-worthy: YES." Without an ADR the folder convention is undocumented and will re-drift.
 - **Refs:** pipeline proposal; audit A1/A3/C1/G.
 - **Added:** 2026-05-26 by rob (consolidation session).
-- **Status:** open — Council debate or conversational ADR; sequence with entry #2 (implement) — ADR can precede or follow the folder move, operator's call.
+- **Status:** closed 2026-05-27 — authored as **ADR-60** (`docs/decisions/ADR-60-docs-folder-taxonomy.md`), conversational (operator decision, no Council debate). Codifies the input/output/working/archived role per `docs/` subfolder + lifecycle + the move-time immutable-record-preservation rule; added to `decisions/README.md` index. Implemented jointly with entry #2. Branch `docs/folder-taxonomy-implementation-2026-05-27`, awaiting operator merge.
 
 ### [P2] [open] Codify git worktree pattern for parallel Claude Code sessions
 - **What:** Document (PLAYBOOK + ESSENTIALS) the rule that parallel Claude Code sessions on the *same* repo MUST use `git worktree` (separate working trees + HEADs), never share one checkout. Include the bootstrap command and a note on why shared `.git/` HEAD is unsafe.
-- **Why:** This session's root cause — three concurrent sessions on one working tree scattered commits across branches because HEAD switched mid-session (see `docs/research/2026-05-26-consolidation-preflight.md` reflog). A worktree per session eliminates the race entirely.
+- **Why:** This session's root cause — three concurrent sessions on one working tree scattered commits across branches because HEAD switched mid-session (see `docs/archive/2026/2026-05-26-consolidation-preflight.md` reflog). A worktree per session eliminates the race entirely.
 - **Refs:** consolidation preflight snapshot; this session's recovery work.
 - **Added:** 2026-05-26 by rob (consolidation session).
 - **Status:** open — PLAYBOOK codification (process rule, no code).
@@ -497,12 +497,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-26 by rob (consolidation session).
 - **Status:** open — investigation + guard design; work likely lands in ai-council (read-only here).
 
-### [P3] [open] Decide future of `docs/tech-radar/`
+### [P3] [closed] Decide future of `docs/tech-radar/`
 - **What:** `docs/tech-radar/` exists (`2026-Q2.md`, `README.md`). Decide whether it is a kept, living artifact class (with a review cadence + lifecycle entry per ADR-39) or should be retired/relocated. Operator flagged "keep, BACKLOG decision."
 - **Why:** Undecided artifact classes drift; a one-off `tech-radar/` with no cadence rots like the five-week-stale handoff precedent (ADR-51 context).
-- **Refs:** `docs/tech-radar/`.
+- **Refs:** `docs/archive/tech-radar/` (archived 2026-05-27).
 - **Added:** 2026-05-26 by rob (consolidation session; pipeline-discovery Q2).
-- **Status:** open — operator decision (keep + cadence, or retire).
+- **Status:** closed 2026-05-27 — **retire/relocate** chosen: dormant (single 2026-Q2 entry, no cadence) → `git mv` to `docs/archive/tech-radar/` per ADR-60. Reversible — resurface if quarterly tech-radar work resumes. Branch `docs/folder-taxonomy-implementation-2026-05-27`, awaiting operator merge.
 
 ### [P3] [open] Remove the "📋 ADRs" folder alias from `.dev-knowledge.code-workspace`
 - **What:** `.dev-knowledge.code-workspace` defines a multi-root folder alias `"name": "📋 ADRs"` (`:20`) and an `open-latest-adr` task (`:154`). Evaluate whether the ADRs alias adds value vs clutter; remove it if the canonical-file keybindings/tasks already cover ADR access.
