@@ -431,6 +431,60 @@ Initial content (empty template):
 (brief state summary if more work remains)
 ```
 
+### 10_GATE_PROBE.md
+
+Purpose: verify the NEW chat internalized the bundle by APPLYING bundle content
+to decide an action — not by paraphrasing it. Required bundle artifact per ADR-55
+(Council Q1). Authored by the sender (OLD chat) during Stage 2; reviewed by the
+sender; checked by the operator at Stage 3.
+
+Numbering note: this file is `10_`, not `08_`. Council Q1 action item named
+`08_GATE_PROBE.md`, but `08_TREE.txt`/`09_EXECUTION_EVIDENCE.md` already hold
+08/09 (operator decision 2026-05-26 — no renumber).
+
+Structure:
+
+```
+# Gate Probe — {handoff_date}
+
+> Purpose: verify the NEW chat internalized the bundle by APPLYING it to decide
+> an action, not by paraphrasing. Read the mini-scenario only; do NOT read the
+> operator-only block below it.
+
+## Mini-scenario
+
+{1-2 paragraphs: a concrete situation where the NEW chat must use specific bundle
+content to decide what to do. Drawn from the highest-risk live decision in this
+handoff.}
+
+## Required response structure
+
+The NEW chat's answer must include:
+1. Directed action — what should be done
+2. Controlling bundle location — file + section that determines the action
+3. Preconditions / sequencing dependencies — any pre-work or order constraints
+
+<!-- OPERATOR-ONLY BELOW — DO NOT SHOW TO THE NEW CHAT BEFORE ITS PROBE RESPONSE -->
+
+## Expected answer (operator-only)
+
+{sender-authored expected answer derived from bundle content}
+
+## Acceptable variations
+
+{what counts as semantically correct vs failure}
+
+## Failure rubric
+
+- Pass: correct action + correct bundle-location citation + acknowledges preconditions
+- Soft fail: correct action but missing location citation or preconditions → first retry permitted
+- Hard fail: wrong action, contradicts bundle, or fabricates non-bundle content → terminate session + regenerate bundle upstream
+```
+
+Generation note: the operator-only block (everything below the OPERATOR-ONLY
+comment) is the answer key. The NEW chat is instructed in `00_first-message.md` to
+read only the mini-scenario + required-response-structure, never the answer key.
+
 ---
 
 ## Stage 3 parsing logic (tolerant heading detection)
