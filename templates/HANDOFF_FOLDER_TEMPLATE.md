@@ -485,6 +485,60 @@ Generation note: the operator-only block (everything below the OPERATOR-ONLY
 comment) is the answer key. The NEW chat is instructed in `00_first-message.md` to
 read only the mini-scenario + required-response-structure, never the answer key.
 
+### 11_CLAIMS.md
+
+Purpose: sender-side structured grounding of load-bearing claims, to stop
+hallucination propagation across the handoff. Required bundle artifact per ADR-58
+(Council Q4). Produced by the sender (OLD chat) as the FINAL Stage 2 output;
+citations validated by Claude Code (executor) at Stage 3; ratified by the operator
+before role confirmation. If the bundle changes materially after this file is
+written, regenerate it.
+
+Numbering note: this file is `11_`. Council Q4 named it `CLAIMS.md`; numbered
+`11_` here (sequential after `10_GATE_PROBE.md`, operator decision 2026-05-26).
+
+Structure:
+
+```
+# Claims — {handoff_date}
+
+> Purpose: structured grounding of load-bearing claims. Each claim cites a source
+> OR is marked an explicit assumption. Trigger rule: a confident claim about an
+> unread/unverified source requires verification + citation.
+
+## Load-bearing claims
+
+| # | Claim | Source citation | Verifier |
+|---|-------|-----------------|----------|
+| 1 | {claim} | `file:section` / `ADR-NN` / `session: YYYY-MM-DD` | self / CC / operator |
+
+## Explicit assumptions
+
+| # | Assumption | Risk if wrong | Mitigation |
+|---|-----------|---------------|------------|
+| 1 | {assumption} | {consequence} | {guard} |
+
+## Expected articulation (sender contract)
+
+{short mapping of what the receiver should understand — supports operator review
+without relying on the OLD chat being live}
+
+## Verification status
+
+- [ ] Sender self-verified all citations (locatable in cited source)
+- [ ] CC validated citation existence + line-range locatability (Stage 3 executor check)
+- [ ] Operator ratified before role confirmation
+
+## Load-bearing claim definition
+
+Decision-affecting (citation required): file paths, commit SHAs, ADR refs,
+action plans/sequencing, architecture descriptions, current-state assertions.
+Non-examples (no citation): reasoning steps, recommendations, opinions marked as such.
+```
+
+Degraded mode: if executor validation is unavailable, the handoff is marked
+`UNVERIFIED`; the operator must explicitly acknowledge; no silent bypass.
+
 ---
 
 ## Stage 3 parsing logic (tolerant heading detection)
