@@ -43,6 +43,7 @@ subfolder holds AI Council debate outputs that informed them.
 | ADR-56 | 2026-05-26 | Inline Prompt Generation Card — replaces PLAYBOOK-pointer with a self-contained card in `00_first-message.md`; authority stays in browser chat; ≤200-line budget + dual-maintenance rule (closes Council Q3) |
 | ADR-57 | 2026-05-26 | Two-layer bundle contract — unconditional governance floor (VISION/PLAYBOOK/ESSENTIALS) + scoped operational layer (skills/gotchas/JOURNAL) via `next_session_scope` + mapping table; extends ADR-42 (closes Council Q2) |
 | ADR-58 | 2026-05-26 | Structured claims + symmetric verification — sender produces `11_CLAIMS.md` (cited load-bearing claims) + expected-articulation; executor validates locatability; operator ratifies; removes bare `role confirmed` (closes Council Q4) |
+| ADR-59 | 2026-05-27 | Universal visual repository pattern — dot-prefix discipline (verified exception list incl. `tach.toml`), ALL-CAPS canonical `.md` visibility, workspace sort settings (`sortOrderLexicographicOptions: upper`); enforced via 3 new `audit.py` checks; rolled out to `.dev-knowledge` + 4 child-repo retrofit plans |
 
 ## Transcript naming convention
 
