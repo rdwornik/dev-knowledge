@@ -435,7 +435,7 @@ Next quarterly grooming: 2026-07-01
 - **What:** `.dev-knowledge` deleted its root README (deprecated per ADR-38 A5; internal-only). Decide per child repo: corp-monorepo — delete README, or keep (does it have an external audience)? ai-council — delete, or keep for potential open-sourcing? README is now OPTIONAL universally (external-audience repos only).
 - **Why:** ADR-38 A5 deprecated README from the mandatory baseline. Child repos need an explicit keep/delete decision rather than silent drift.
 - **Added:** 2026-05-23 by rob (standard-reconciliation handoff)
-- **Status:** open (corp-monorepo) — **ai-council resolved 2026-05-26: DELETE** (operator decision; recorded in `docs/research/2026-05-25-ai-council-universalization-execution-plan.md` Action 1). corp-monorepo README keep/delete remains open for its dedicated session.
+- **Status:** open (corp-monorepo) — **ai-council resolved 2026-05-26: DELETE** (operator decision; recorded in `docs/audits/2026-05-25-ai-council-universalization-execution-plan.md` Action 1). corp-monorepo README keep/delete remains open for its dedicated session.
 
 ---
 
@@ -463,7 +463,7 @@ Next quarterly grooming: 2026-07-01
 - **Status:** open — folder creation + file moves + update of any references (PLAYBOOK, READMEs); pairs with entry #4 (the ADR codifying the taxonomy).
 
 ### [P1] [open] Execute the ai-council universalization execution plan
-- **What:** A dedicated ai-council Claude Code session executes `docs/research/2026-05-25-ai-council-universalization-execution-plan.md` (Actions 1–8; Action 9 deferred) against ai-council — README delete, tier-residue removal from VISION/ARCHITECTURE/CLAUDE, `[L-opt]`→untagged, naming-guidance + ADR-08 rename, hand-authored Mermaid codemap, `.env.example` removal + workspace dot-prefix, BACKLOG header. Writes happen in ai-council (its own contract), not from `.dev-knowledge`.
+- **What:** A dedicated ai-council Claude Code session executes `docs/audits/2026-05-25-ai-council-universalization-execution-plan.md` (Actions 1–8; Action 9 deferred) against ai-council — README delete, tier-residue removal from VISION/ARCHITECTURE/CLAUDE, `[L-opt]`→untagged, naming-guidance + ADR-08 rename, hand-authored Mermaid codemap, `.env.example` removal + workspace dot-prefix, BACKLOG header. Writes happen in ai-council (its own contract), not from `.dev-knowledge`.
 - **Why:** Closes the 14 findings in the 2026-05-25 audit refresh; AI Council is the universalization test case before corp-monorepo.
 - **Refs:** the execution plan + audit refresh (both on `main`). Cross-refs existing "ai-council hyphen migration + ADR-38 compliance" and "Apply tier-deprecation to ai-council" entries (this plan supersedes their loose scope with a sequenced action list).
 - **Added:** 2026-05-26 by rob (consolidation session).
