@@ -1,15 +1,16 @@
-# HANDOFF_PROCESS v3.3.3
+# HANDOFF_PROCESS v3.4
 
-<!-- version: 3.3.3 — 2026-05-15 (validation logic: strict equality → ancestor check) -->
+<!-- version: 3.4 — 2026-05-26 (Council Q1-Q5: applied-task gate, two-layer bundle, Prompt Generation Card, structured claims, ADR-42 Q5 amendment) -->
 <!-- scope: meta -->
 
-Version: 3.3.3
-Effective: 2026-05-15
-Supersedes: v3.3.2 (2026-05-15), v3.3.1 (2026-05-14), v3.3 (2026-05-13 night), v3.2 (2026-05-09 night), v3.1 (2026-05-09 afternoon), v3.0 (2026-05-09 morning), v2.0 (ADR-32 §4 deprecated; ADR-32 §1-§3 extended)
-Authority: ADR-42 (amended 2026-05-09 night)
+Version: 3.4
+Effective: 2026-05-26
+Supersedes: v3.3.3 (2026-05-15), v3.3.2 (2026-05-15), v3.3.1 (2026-05-14), v3.3 (2026-05-13 night), v3.2 (2026-05-09 night), v3.1 (2026-05-09 afternoon), v3.0 (2026-05-09 morning), v2.0 (ADR-32 §4 deprecated; ADR-32 §1-§3 extended)
+Authority: ADR-42 (amended through 2026-05-26 Q5); ADR-55/56/57/58 (2026-05-26)
 
 > **Authoritative source:** `docs/decisions/ADR-42-handoff-format-v3.md` (amended
-> through v3.2). This protocol is the operational counterpart of ADR-42: structural
+> through the 2026-05-26 Q5 amendment) plus ADR-55/56/57/58 (2026-05-26). This
+> protocol is the operational counterpart of ADR-42: structural
 > decisions live in the ADR; operational mechanics (triggers, state tracking, generation
 > workflow, roles, validation checkpoints) live here. If they conflict, ADR-42 wins.
 
@@ -67,6 +68,7 @@ Pre-send coherence checklist (mandatory before Stage 2 bundle send):
 2. **DIRECTIVES vs BOUNDARIES contradiction check.** Does any DIRECTIVE violate any BOUNDARY in the same document?
 3. **OBJECTIVE vs DIRECTIVES priority alignment.** Is the OBJECTIVE-stated highest-priority work also listed as DIRECTIVE #1? Priority signal must align between sections.
 4. **Required-but-unpackaged data check.** Does any directive depend on data not included in the bundle? If yes: package it, mark "operator delivers on request", or remove the directive.
+5. **Claims + scope check (per ADR-57/ADR-58).** Is `11_CLAIMS.md` produced with every load-bearing claim cited or marked an assumption? Is `next_session_scope` declared from the controlled vocabulary? If either is missing: STOP and complete it before send.
 
 Failing any check = STOP and revise before send.
 
@@ -276,8 +278,23 @@ wrapped up due to context exhaustion. **NOT a new chat.**
    - Option A: Rob edits the file directly (open in editor, replace placeholder)
    - Option B: In Claude Code — "save this response as stage 2 for {slug}";
      Claude Code overwrites the placeholder block with response content
+5. **Declare `next_session_scope`** from the controlled vocabulary
+   (`code-implementation` / `architecture-decision` / `audit-work` /
+   `documentation` / `mixed-uncertain`). This selects the operational layer per
+   the scope → artifact mapping (below). Per ADR-57.
+6. **Produce `11_CLAIMS.md`** as the FINAL Stage 2 output (save to
+   `in-progress/{slug}/stage2-claims.md`): every load-bearing claim cited
+   (`file:section` / `ADR-NN` / `session: YYYY-MM-DD`) OR marked an explicit
+   assumption, plus the expected-articulation contract. If the bundle changes
+   materially after this file is written, regenerate it. Per ADR-58.
+7. **Review the gate probe.** Claude Code drafts `10_GATE_PROBE.md` at Stage 3 from
+   the highest-risk live decision. The operator routes the draft to this OLD chat
+   for accuracy review while it is still open (or reviews it directly if the OLD
+   chat has closed). Per ADR-55.
 
-**Output:** `in-progress/{slug}/stage2-response.md` populated with architect response
+**Output:** `in-progress/{slug}/stage2-response.md` (architect response) +
+`in-progress/{slug}/stage2-claims.md` (`11_CLAIMS.md` source) + declared
+`next_session_scope`
 
 **Critical:** Stage 2 MUST go to OLD chat. A new chat has no context;
 its response would collapse to restating audit findings — equivalent to
@@ -360,21 +377,31 @@ split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
 5. Read `.dev-knowledge` VISION.md, protocols/PLAYBOOK.md, protocols/ESSENTIALS.md
 6. Read `in-progress/{slug}/stage2-response.md`
 7. Identify ADRs cited in DIRECTIVES (07_ACTION_PLAN content)
-8. Generate folder `docs/handoffs/{slug}/` with 11 files (all flat, no subdirectories):
+8. Generate folder `docs/handoffs/{slug}/` — 13 fixed files (14 cross-repo, incl.
+   `02b`), all flat, no subdirectories, plus operational-layer artifacts per
+   `next_session_scope`:
    - `00_README.md` — Rob's upload instructions
-   - `00_first-message.md` — browser-2 first message + receiver synthesis prompt
-   - `01_MANIFEST.md` — entry, file index, drift verification, HEAD SHA
-   - `01_manifest.json` — machine-readable metadata + SHA-256 of all files (generated last)
-   - `02_VISION.md` — full copy of `.dev-knowledge/VISION.md`
-   - `03_PLAYBOOK.md` — full copy of `.dev-knowledge/protocols/PLAYBOOK.md`
-   - `04_ESSENTIALS.md` — full copy of `.dev-knowledge/protocols/ESSENTIALS.md`
+   - `00_first-message.md` — first message + applied-task gate (ADR-55) + Prompt Generation Card (ADR-56)
+   - `01_MANIFEST.md` — entry, file index, drift verification, HEAD SHA, `next_session_scope`, invariant hashes
+   - `01_manifest.json` — machine-readable metadata + SHA-256 + invariant canonical hashes + `next_session_scope` (generated last)
+   - `02_VISION.md` — full copy of `.dev-knowledge/VISION.md` (invariant floor)
+   - `03_PLAYBOOK.md` — full copy of `.dev-knowledge/protocols/PLAYBOOK.md` (invariant floor)
+   - `04_ESSENTIALS.md` — full copy of `.dev-knowledge/protocols/ESSENTIALS.md` (invariant floor)
    - `05_GOVERNANCE_ESSENCES.md` — 2-4 sentence essences for ADRs cited in directives
    - `06_STATE_OF_PLAY.md` — REALITY + RATIONALE answers from Stage 2; audit findings
      if audit-sync; deferred items as BACKLOG references (do not duplicate queue)
    - `07_ACTION_PLAN.md` — OBJECTIVE + DIRECTIVES + BOUNDARIES from Stage 2
    - `08_TREE.txt` — `git ls-files` output in target repo at Stage 3 time
    - `09_EXECUTION_EVIDENCE.md` — empty return-trip template
-9. Compute SHA-256 of every file in folder, populate `01_manifest.json`
+   - `10_GATE_PROBE.md` — CC-drafted applied-task probe + operator-only answer key (ADR-55)
+   - `11_CLAIMS.md` — sender-produced load-bearing claims (from `stage2-claims.md`) (ADR-58)
+   - `12_OPERATIONAL_*` — scoped skills/gotchas/JOURNAL slices per `next_session_scope` (ADR-57)
+8a. Validate `11_CLAIMS.md` citations (file existence + line-range locatability +
+    decision-reference format). Flag "VERIFICATION FAILED — {claim} vs {actual}". If
+    executor validation is unavailable, mark the bundle `UNVERIFIED` and require
+    explicit operator acknowledgment — no silent bypass (ADR-58).
+9. Compute SHA-256 of every file + canonical hash/version IDs for the invariant floor
+   (VISION/PLAYBOOK/ESSENTIALS), populate `01_manifest.json` (last)
 10. Move (NOT copy) `in-progress/{slug}/` contents to `docs/handoffs/archive/{slug}/`:
 
     PowerShell semantics (canonical):
@@ -414,8 +441,76 @@ split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
     - New chat executes directives, fills `09_EXECUTION_EVIDENCE.md`
     - Return that file to `.dev-knowledge` for next session reference
 
-**Output:** `docs/handoffs/{slug}/` (11 files flat) + `docs/handoffs/archive/{slug}/`
-(stage1 + stage2 inputs), JOURNAL entry, commit
+**Output:** `docs/handoffs/{slug}/` (13 fixed files flat, 14 cross-repo, plus
+operational-layer artifacts) + `docs/handoffs/archive/{slug}/` (stage1 + stage2 +
+claims inputs), JOURNAL entry, commit
+
+---
+
+## Applied-task gate + structured ratification (Stages 2-3)
+<!-- scope: meta -->
+
+Per ADR-55 (Q1) and ADR-58 (Q4). The bare `role confirmed` ACK is replaced by an
+applied-task gate plus structured operator ratification.
+
+### Receiver gate (NEW chat, first action)
+
+Before any work, the NEW chat: (1) states role + top-3 hard constraints with
+file/section citations; (2) reads `10_GATE_PROBE.md` mini-scenario ONLY (never the
+operator-only answer key) and answers directed action + controlling bundle location
++ preconditions. Full spec in `00_first-message.md` ("Required first action").
+
+### Operator structured ratification (replaces bare `role confirmed`)
+
+The operator confirms with `role confirmed + probe passed` only after checking:
+
+- [ ] `11_CLAIMS.md` present, and Claude Code's citation validation is green
+      (or the bundle is explicitly acknowledged `UNVERIFIED`)
+- [ ] the gate-probe answer matches the operator-only expected answer (within
+      acceptable variations)
+- [ ] the receiver's articulation matches `11_CLAIMS.md` expected-articulation
+      (no unresolved flags)
+
+Bare `role confirmed` is no longer sufficient.
+
+### Gate failure protocol
+
+- **First fail:** operator points to the contradicted bundle location; the NEW chat
+  re-reads and retries the probe once.
+- **Second fail:** terminate the session; treat the bundle as inadequate and
+  regenerate/refine upstream (a repeated gate failure is a bundle problem, not only
+  a receiver problem).
+- **Citation failure (CC validation):** the sender re-verifies before the session
+  resumes; if executor validation is unavailable, the bundle is `UNVERIFIED` and the
+  operator must explicitly acknowledge.
+
+## Scope → artifact mapping (operational layer)
+<!-- scope: meta -->
+
+Per ADR-57 (Q2). The governance floor (VISION/PLAYBOOK/ESSENTIALS) is unconditional;
+the operational layer is selected from the declared `next_session_scope`:
+
+| Scope | Operational layer includes |
+|---|---|
+| `code-implementation` | relevant skills (per task domain) + gotchas filtered by scope + recent JOURNAL slice |
+| `architecture-decision` | relevant ADRs (cite specific) + Council transcripts (if applicable) + recent JOURNAL slice |
+| `audit-work` | audit tool docs + baseline audit (if exists) + JOURNAL audit history |
+| `documentation` | style references + recent JOURNAL slice + templates in scope |
+| `mixed-uncertain` | full bundle (worst-case) + flag for operator |
+
+No free-form additions without amending this table (and the matching one in
+`HANDOFF_FOLDER_TEMPLATE.md`). The vocabulary is intentionally small; expand only
+by amendment.
+
+## Verification trigger rule
+<!-- scope: meta -->
+
+Per ADR-58 (Q4). **A confident claim about an unread or unverified source requires
+verification + citation.** Applies to: file paths, commit SHAs, ADR references,
+action plans/sequencing, architecture descriptions, current-state assertions. Does
+NOT apply to: reasoning steps, recommendations, or opinions clearly marked as such.
+The rule binds the sender (in `11_CLAIMS.md`) and any actor making load-bearing
+claims about repo state.
 
 ---
 
@@ -535,8 +630,11 @@ happened — eliminates "Self-Correction Theatre."
 | Stage 3 | Stage 2 section thinness (M-5) | each of 5 sections ≥ 3 non-blank lines; else FLAG to Rob, ask before proceeding |
 | Stage 3 | `python scripts/validate_scope_tags.py` | passes |
 | Stage 3 | `pre-commit run --all-files` | passes |
-| Stage 3 | folder structure | 11 files flat in `docs/handoffs/{slug}/`, no subdirectories |
-| Stage 3 | `01_manifest.json` | SHA-256 entries for all 11 files present |
+| Stage 3 | folder structure | 13 fixed files (14 cross-repo) flat in `docs/handoffs/{slug}/` + operational-layer artifacts, no subdirectories |
+| Stage 3 | `01_manifest.json` | SHA-256 entries for all files + canonical invariant hashes + `next_session_scope` present |
+| Stage 3 | `11_CLAIMS.md` citation validation | all citations locatable; mismatches flagged; else bundle marked `UNVERIFIED` (ADR-58) |
+| Stage 3 | `10_GATE_PROBE.md` present | mini-scenario + operator-only answer key present (ADR-55) |
+| Stage 3 | structured ratification | operator confirms `role confirmed + probe passed` (claims green + probe match + articulation match); bare `role confirmed` insufficient (ADR-58) |
 | Stage 3 | `in-progress/{slug}/` post-move non-existence | `Test-Path docs/handoffs/in-progress/{slug}` returns `False` |
 
 ---
@@ -557,6 +655,28 @@ Browser-2 does NOT generate folders or run git in target repo (unless Rob explic
 directs it to). Claude Code does NOT redesign architecture or invent session content.
 
 ---
+
+## What changed v3.3.3 → v3.4
+<!-- scope: meta -->
+
+Implements the 5 AI Council debate decisions (Q1-Q5) for handoff process
+stabilization (2026-05-26). Empirical basis: `docs/research/2026-05-25-handoff-failures-evidence.md`
+(N=7 sender misses + 2 NEW-chat post-gate failures).
+
+| Dimension | v3.3.3 | v3.4 |
+|---|---|---|
+| Receiver gate | 4-item paraphrase articulation + bare `role confirmed` | Applied-task gate: role+constraints citations + applied probe (`10_GATE_PROBE.md`) + `role confirmed + probe passed`; one bounded retry (ADR-55) |
+| Bundle contract | Invariant floor only (VISION/PLAYBOOK/ESSENTIALS) | Two-layer: unconditional floor + scoped operational layer (skills/gotchas/JOURNAL) via `next_session_scope` + mapping table (ADR-57) |
+| Prompt generation | "generate per 03_PLAYBOOK conventions" pointer | Inline Prompt Generation Card in `00_first-message.md` (ADR-56) |
+| Sender verification | Prose-only; no claims gate | Structured `11_CLAIMS.md` (cited load-bearing claims + expected articulation), CC-validated, operator-ratified (ADR-58) |
+| Stage 3 ratification | Bare `role confirmed` | Structured: claims green + probe match + articulation match; `UNVERIFIED` degraded mode |
+| Bundle file count | 11 (self) / 12 (cross-repo) | 13 (self) / 14 (cross-repo) fixed + operational layer |
+| Manifest | SHA-256 checksums | + canonical invariant hashes + `next_session_scope` (ADR-42 Q5 amendment) |
+| Verification trigger | None | Fixed rule: confident claim about unread/unverified source requires verification + citation (ADR-58) |
+
+Mechanical gate code (wiring the validator into pre-commit/PreToolUse/`/save`)
+is DEFERRED to a BACKLOG entry per the ADR-42 Q5 amendment — this version
+formalizes the contract only.
 
 ## What changed v3.3.2 → v3.3.3
 <!-- scope: meta -->
@@ -676,6 +796,15 @@ First cross-repo use surfaced two template bugs. Mitigation: mandatory manual tr
 ## Section history
 <!-- scope: meta -->
 
+- v3.4 (2026-05-26) — Implements AI Council Q1-Q5 handoff stabilization decisions:
+  applied-task gate replacing the 4-item paraphrase gate (ADR-55, adds
+  `10_GATE_PROBE.md`); two-layer bundle contract with scoped operational layer +
+  `next_session_scope` (ADR-57); inline Prompt Generation Card in `00_first-message.md`
+  (ADR-56); structured `11_CLAIMS.md` sender artifact + symmetric verification +
+  structured operator ratification replacing bare `role confirmed` (ADR-58); manifest
+  invariant hashes + `next_session_scope` and executor-gate contract (ADR-42 Q5
+  amendment). Bundle 11/12 → 13/14 fixed files + operational layer. Mechanical gate
+  code deferred to BACKLOG. Empirical basis: 2026-05-25 handoff-failures evidence.
 - v3.3.3 (2026-05-15) — Validation logic: strict equality → ancestor check. Replaces strict SHA
   equality with `git merge-base --is-ancestor` across Stage 3 procedure, Drift mitigation section,
   Browser-2 validation, template state validation wording, and 01_MANIFEST.md description.
