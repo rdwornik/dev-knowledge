@@ -27,6 +27,36 @@ Full example: `docs/handoffs/2026-05-09-ai-council-audit-sync/`
 
 ## Files (all flat, single level — no subdirectories)
 
+### Bundle layers (two-layer contract, per ADR-57 / Council Q2)
+
+The bundle has two layers:
+
+- **Governance floor (unconditional — every handoff):** `02_VISION.md`,
+  `03_PLAYBOOK.md`, `04_ESSENTIALS.md`. Full copies, never curated. Prevents norm
+  hallucination; preserves drift detection. (Plus the structural files: README,
+  first-message, manifests, governance essences, state, action plan, tree,
+  execution evidence, gate probe, claims.)
+- **Operational layer (scoped — selected per `next_session_scope`):** relevant
+  `skills`, `gotchas`, and `JOURNAL` slices, included only when the next session's
+  declared scope invokes them. Selected by the mapping table below, not ad-hoc
+  sender judgment. Named `12_OPERATIONAL_{artifact}.md` (e.g.
+  `12_OPERATIONAL_gotchas.md`, `12_OPERATIONAL_journal-slice.md`).
+
+`next_session_scope` is a required bundle field (carried in `01_MANIFEST.md` and
+`01_manifest.json`) from this controlled vocabulary:
+
+| Scope | Operational layer includes |
+|---|---|
+| `code-implementation` | relevant skills (per task domain) + gotchas filtered by scope + recent JOURNAL slice |
+| `architecture-decision` | relevant ADRs (cite specific) + Council transcripts (if applicable) + recent JOURNAL slice |
+| `audit-work` | audit tool docs + baseline audit (if exists) + JOURNAL audit history |
+| `documentation` | style references + recent JOURNAL slice + templates in scope |
+| `mixed-uncertain` | full bundle (worst-case) + flag for operator |
+
+`mixed-uncertain` is the fail-safe: when scope is unclear, ship the worst-case
+superset and flag for operator review. The vocabulary is intentionally small;
+expand only by amending this table and the matching one in `HANDOFF_PROCESS.md`.
+
 ### 00_README.md
 
 Purpose: operator instructions for using the handoff bundle.
@@ -76,7 +106,9 @@ Content (in order):
 Note on 02_VISION.md: describe as "{repo} VISION.md — target repo's mission and scope".
 Note on 02b_ECOSYSTEM_VISION.md (conditional): describe as ".dev-knowledge VISION.md —
 ecosystem methodology context (present only for cross-repo handoffs)". If target = .dev-knowledge,
-omit 02b row entirely. {N} = 11 (self-applied) or 12 (cross-repo).
+omit 02b row entirely. {N} = 13 (self-applied) or 14 (cross-repo) fixed files
+(adds `10_GATE_PROBE.md` + `11_CLAIMS.md` per ADR-55/ADR-58), plus operational-layer
+artifacts (variable count per `next_session_scope`, per ADR-57).
 
 #### Notes
 - This bundle is the Stage 3 handoff per ADR-42 v3.2
@@ -616,13 +648,24 @@ silently accept incorrect witnessed claims.
     BOUNDARIES
 13. Generate `08_TREE.txt` from `git ls-files` in target repo
 14. Generate `09_EXECUTION_EVIDENCE.md` (empty template)
-15. Compute SHA-256 of all files (11 for self-applied; 12 for cross-repo including 02b), populate `01_manifest.json` (last)
-16. Move `in-progress/{slug}/` to `docs/handoffs/archive/{slug}/`:
+15. Include sender-authored `10_GATE_PROBE.md` and `11_CLAIMS.md` (Stage 2 outputs).
+    Verify both are present; if missing, FLAG and STOP (per ADR-55 / ADR-58).
+16. Validate `11_CLAIMS.md` citations (file existence + line-range locatability +
+    decision-reference format). Flag mismatches as "VERIFICATION FAILED — {claim} vs
+    {actual}". If executor validation is unavailable, mark the bundle `UNVERIFIED`
+    and require explicit operator acknowledgment — no silent bypass (ADR-58).
+17. Assemble operational-layer artifacts per `next_session_scope` (mapping table in
+    "Bundle layers" above) as `12_OPERATIONAL_*` files. Governance floor is always
+    full + unconditional; operational layer is scoped (ADR-57).
+18. Compute SHA-256 of every file + canonical hash/version IDs for the invariant
+    floor (VISION/PLAYBOOK/ESSENTIALS); populate `01_manifest.json` last, including
+    `next_session_scope` (see `### 01_manifest.json` schema, per ADR-42 Q5 amendment)
+19. Move `in-progress/{slug}/` to `docs/handoffs/archive/{slug}/`:
     - `archive/{slug}/stage1-question.md`
     - `archive/{slug}/stage2-response.md`
-17. Update JOURNAL + BACKLOG
-18. Run `python scripts/validate_scope_tags.py` and `pre-commit run --all-files`
-19. Single commit on dedicated branch
+20. Update JOURNAL + BACKLOG
+21. Run `python scripts/validate_scope_tags.py` and `pre-commit run --all-files`
+22. Single commit on dedicated branch
 
 ---
 
@@ -633,5 +676,10 @@ silently accept incorrect witnessed claims.
 - `03_PLAYBOOK.md`, `04_ESSENTIALS.md`: FULL copies, no editing
 - `05_GOVERNANCE_ESSENCES.md`: essences ONLY — 2-4 sentences each, never full ADR text
 - Target repo's own ADRs: NEVER included — Browser-2 reads them in the repo
-- No subdirectories: all 11 (self-applied) or 12 (cross-repo) files at folder root, flat layout
+- No subdirectories: all fixed files — 13 (self-applied) or 14 (cross-repo) — plus
+  any operational-layer artifacts at folder root, flat layout
+- `10_GATE_PROBE.md` + `11_CLAIMS.md`: sender-authored at Stage 2 (not CC-generated);
+  CC includes them in the bundle and validates `11_CLAIMS.md` citations at Stage 3
+- Operational-layer artifacts: included only when `next_session_scope` invokes them
+  (per the mapping table above); governance floor is always full + unconditional
 - `01_manifest.json` generated last (after all other files) for accurate checksums
