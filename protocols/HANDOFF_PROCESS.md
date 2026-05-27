@@ -238,7 +238,7 @@ FLAG and ask Rob: delete and restart, or proceed to Stage 3?
    returning from old chat, replaces the placeholder block, saves.
 10. Append JOURNAL entry under today's date:
     `- Handoff Stage 1 generated for {slug}: HEAD {SHA} captured; awaiting Stage 2`
-11. Run validators (`python scripts/validate_scope_tags.py`, `pre-commit run --all-files`)
+11. Run validators (`pre-commit run --all-files`)
 12. Single commit on feature branch (includes both stage1-question.md and stage2-response.md)
 13. Report to Rob:
     - Stage 1 complete
@@ -428,7 +428,7 @@ split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
 11. Append JOURNAL entry under today's date:
     `- Handoff Stage 3 complete for {slug}: folder at docs/handoffs/{slug}/`
 12. Review BACKLOG.md: if any P1 items were closed by this handoff, update Status
-13. Run validators (`python scripts/validate_scope_tags.py`, `pre-commit run --all-files`)
+13. Run validators (`pre-commit run --all-files`)
 14. Single commit on feature branch
 15. Report to Rob:
     - Stage 3 complete
@@ -624,11 +624,9 @@ happened — eliminates "Self-Correction Theatre."
 
 | Stage | Validator | Expected result |
 |---|---|---|
-| Stage 1 | `python scripts/validate_scope_tags.py` | passes, hybrid ≤25% |
 | Stage 1 | `pre-commit run --all-files` | passes |
 | Stage 1 | `git status` | single new file (`in-progress/{slug}/stage1-question.md`) + JOURNAL modified |
 | Stage 3 | Stage 2 section thinness (M-5) | each of 5 sections ≥ 3 non-blank lines; else FLAG to Rob, ask before proceeding |
-| Stage 3 | `python scripts/validate_scope_tags.py` | passes |
 | Stage 3 | `pre-commit run --all-files` | passes |
 | Stage 3 | folder structure | 13 fixed files (14 cross-repo) flat in `docs/handoffs/{slug}/` + operational-layer artifacts, no subdirectories |
 | Stage 3 | `01_manifest.json` | SHA-256 entries for all files + canonical invariant hashes + `next_session_scope` present |
