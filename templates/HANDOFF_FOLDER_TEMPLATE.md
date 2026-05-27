@@ -541,8 +541,11 @@ Initial content (empty template):
 
 Purpose: verify the NEW chat internalized the bundle by APPLYING bundle content
 to decide an action — not by paraphrasing it. Required bundle artifact per ADR-55
-(Council Q1). Authored by the sender (OLD chat) during Stage 2; reviewed by the
-sender; checked by the operator at Stage 3.
+(Council Q1). **Drafted by Claude Code (executor)** from the highest-risk live
+decision in the handoff; **reviewed by the sender (OLD chat)** during Stage 2; the
+answer key is checked by the operator at Stage 3. (CC-drafts + sender-reviews
+mitigates operator-authoring burden and sender hallucination — operator decision
+2026-05-26.)
 
 Numbering note: this file is `10_`, not `08_`. Council Q1 action item named
 `08_GATE_PROBE.md`, but `08_TREE.txt`/`09_EXECUTION_EVIDENCE.md` already hold
@@ -722,8 +725,9 @@ silently accept incorrect witnessed claims.
     BOUNDARIES
 13. Generate `08_TREE.txt` from `git ls-files` in target repo
 14. Generate `09_EXECUTION_EVIDENCE.md` (empty template)
-15. Include sender-authored `10_GATE_PROBE.md` and `11_CLAIMS.md` (Stage 2 outputs).
-    Verify both are present; if missing, FLAG and STOP (per ADR-55 / ADR-58).
+15. Draft `10_GATE_PROBE.md` (CC, from the highest-risk live decision; sender
+    reviews during Stage 2) and include the sender-produced `11_CLAIMS.md`. Verify
+    both are present; if `11_CLAIMS.md` is missing, FLAG and STOP (ADR-55 / ADR-58).
 16. Validate `11_CLAIMS.md` citations (file existence + line-range locatability +
     decision-reference format). Flag mismatches as "VERIFICATION FAILED — {claim} vs
     {actual}". If executor validation is unavailable, mark the bundle `UNVERIFIED`
