@@ -26,7 +26,7 @@ status: discovery-snapshot (input to audit)
 **Read-only contract:** `ai-council` was traversed and read only. All writes from this work land in
 `.dev-knowledge/docs/research/`.
 
-**Prior work reused:** `docs/research/2026-05-25-council-mechanism-discovery.md` (108 lines) already
+**Prior work reused:** `docs/audits/2026-05-25-council-mechanism-discovery.md` (108 lines) already
 resolved the invocation mechanism Q1–Q7 from `ai-council` source. That file currently lives **only on
 the unmerged branch `chore/council-debate-execution-2026-05-25-handoff-methodology`** — it is NOT in
 `main` and NOT on this audit branch. Its findings are cited below and re-verified against `ai-council`
@@ -255,7 +255,7 @@ severity-rated in the audit.
    interrupted **cannot be determined** read-only and is out of scope (handoff topic deferred). Recorded as state.
 2. **`audit.py` read-only-ness** asserted from `CLAUDE.md §5`/ADR-36, not re-verified by reading the source
    this session. High confidence, not re-grepped.
-3. **Prior mechanism doc is branch-local:** `docs/research/2026-05-25-council-mechanism-discovery.md` exists
+3. **Prior mechanism doc is branch-local:** `docs/audits/2026-05-25-council-mechanism-discovery.md` exists
    only on `chore/council-debate-execution-2026-05-25-handoff-methodology`, not `main`/this branch — so a
    reader on `main` would not find the resolved Q1–Q7. (Fragmentation observation, carried into the audit.)
 4. **`output/research-questions/` purpose** is undocumented in ai-council Folder Governance (1 file) — emergent.

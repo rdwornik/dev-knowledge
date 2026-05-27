@@ -79,7 +79,7 @@ Source: `council-out-20260526_145439-...-Q5-delivery-custody-abstraction.md`, Re
 - `docs/decisions/ADR-45-handoff-architecture-v4.md` — "Explored, not adopted"; supersession claim withdrawn 2026-05-25. Q5 explicitly does NOT reopen it.
 - `protocols/PLAYBOOK.md` — model/mode/effort selection at L1245-1344 (Model Sonnet/Opus; Mode auto-accept/plan-then-auto/plan; Effort low/medium/high/xhigh; archetype examples table L1320-1331). Card extracts from here; maintenance rule (Q3 AI7) slots in after this block.
 - `templates/ADR-template.md` — bullet header: Status / Date / Amends / Supersedes / Related / Decommission / Source. No tier/scale. New ADRs follow this.
-- `docs/research/2026-05-25-handoff-failures-evidence.md` — N=7 sender misses + 2 NEW-chat post-gate failures; "what's NOT broken" list (3-stage flow, self-containment, SHA-256, HEAD ancestor, epistemic markers). Grounds Q1/Q3/Q4 context.
+- `docs/council-questions/2026-05-25-handoff-failures-evidence.md` — N=7 sender misses + 2 NEW-chat post-gate failures; "what's NOT broken" list (3-stage flow, self-containment, SHA-256, HEAD ancestor, epistemic markers). Grounds Q1/Q3/Q4 context.
 
 ## Next ADR numbers
 

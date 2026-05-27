@@ -2,7 +2,7 @@
 
 > **Type:** Research artifact — index for an AI Council debate question set.
 > **Status:** Prepared for operator review. NOT a methodology change. No ADR, protocol, template, or child-repo file was modified by this work.
-> **Provenance:** grounded in `docs/research/2026-05-25-handoff-failures-evidence.md`.
+> **Provenance:** grounded in `docs/council-questions/2026-05-25-handoff-failures-evidence.md`.
 
 ## Why this set exists
 

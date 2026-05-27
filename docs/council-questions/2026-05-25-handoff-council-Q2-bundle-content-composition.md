@@ -50,7 +50,7 @@ target-project: .dev-knowledge
 
 ### Evidence base (provenance for operator verification — not panel instructions)
 
-- Evidence file: `docs/research/2026-05-25-handoff-failures-evidence.md:124,126,138,146`
+- Evidence file: `docs/council-questions/2026-05-25-handoff-failures-evidence.md:124,126,138,146`
 - Invariant rule: `protocols/HANDOFF_PROCESS.md:470-472`; `templates/HANDOFF_FOLDER_TEMPLATE.md:294-304`
 - Measured sizes: `docs/handoffs/2026-05-25-dev-knowledge-session-sync/` (`wc -l`)
 - Unconditional-selection observation: `docs/audits/2026-05-20-handoff-process.md:139`

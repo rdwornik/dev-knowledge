@@ -44,6 +44,7 @@ subfolder holds AI Council debate outputs that informed them.
 | ADR-57 | 2026-05-26 | Two-layer bundle contract — unconditional governance floor (VISION/PLAYBOOK/ESSENTIALS) + scoped operational layer (skills/gotchas/JOURNAL) via `next_session_scope` + mapping table; extends ADR-42 (closes Council Q2) |
 | ADR-58 | 2026-05-26 | Structured claims + symmetric verification — sender produces `11_CLAIMS.md` (cited load-bearing claims) + expected-articulation; executor validates locatability; operator ratifies; removes bare `role confirmed` (closes Council Q4) |
 | ADR-59 | 2026-05-27 | Universal visual repository pattern — dot-prefix discipline (verified exception list incl. `tach.toml`), ALL-CAPS canonical `.md` visibility, workspace sort settings (`sortOrderLexicographicOptions: upper`); enforced via 3 new `audit.py` checks; rolled out to `.dev-knowledge` + 4 child-repo retrofit plans |
+| ADR-60 | 2026-05-27 | docs/ folder taxonomy — semantic role per subfolder (`audits/`=outputs, `council-questions/`=inputs, `decisions/`=ADRs+transcripts, `handoffs/`=session bundles, `research/`=working scratchpad, `archive/`=superseded/dormant); implements Option B of the 2026-05-25 pipeline proposal (closes finding A1); `tech-radar/` archived; append-only/immutable records left as point-in-time history on move |
 
 ## Transcript naming convention
 
@@ -117,5 +118,6 @@ Protocol".
 
 <!-- scope: meta -->
 
-- `docs/research/` — research-mode Council debate outputs and external research reports
-- `docs/audits/` — point-in-time audit outputs (per-repo state analysis)
+- `docs/council-questions/` — Council debate INPUTS (question sets, evidence, set indexes); staging for the pipeline (per ADR-60)
+- `docs/research/` — WORKING scratchpad: exploratory pre-decision drafts that mature into audits/decisions/council-questions (per ADR-60)
+- `docs/audits/` — point-in-time audit OUTPUTS (per-repo state analysis, validation reports, forensics)

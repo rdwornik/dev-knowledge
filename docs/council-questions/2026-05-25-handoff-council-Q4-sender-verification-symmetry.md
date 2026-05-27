@@ -48,7 +48,7 @@ target-project: .dev-knowledge
 
 ### Evidence base (provenance for operator verification — not panel instructions)
 
-- Evidence file: `docs/research/2026-05-25-handoff-failures-evidence.md:20-36,54,148`
+- Evidence file: `docs/council-questions/2026-05-25-handoff-failures-evidence.md:20-36,54,148`
 - Stage 3 factual-verification layer (sender claims): `templates/HANDOFF_FOLDER_TEMPLATE.md:455-485`
 - Stage 3 thinness pre-flight only: `protocols/HANDOFF_PROCESS.md:340-348`
 - Existing prose discipline rule: `docs/handoffs/2026-05-25-dev-knowledge-session-sync/07_ACTION_PLAN.md:130-133`
