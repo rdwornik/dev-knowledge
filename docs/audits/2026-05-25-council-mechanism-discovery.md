@@ -15,7 +15,7 @@
 | `ai-council/pyproject.toml` | Console-script entry points (`council`, `ai-council` → `ai_council.cli:main`) |
 | `ai-council/.gitignore` | `council_inbox/*.md` + `council_inbox/archive/` + `output/` all ignored |
 | `.dev-knowledge/docs/decisions/transcripts/` | Existing `council-out-*` transcripts confirm routing has landed here before |
-| `.dev-knowledge/docs/research/2026-05-25-handoff-council-Q1..Q5*.md` | 5 question files; frontmatter verified |
+| `.dev-knowledge/docs/council-questions/2026-05-25-handoff-council-Q1..Q5*.md` | 5 question files; frontmatter verified |
 
 ## Q1: Invocation command
 
