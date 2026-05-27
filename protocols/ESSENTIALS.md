@@ -248,6 +248,13 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 
 ---
 
+## Repo visual pattern (ADR-59)
+<!-- scope: dev -->
+
+Every repo root looks the same: **dot-prefix configs** where the tool supports it (`.ruff.toml`, `.pre-commit-config.yaml`, `.{repo}.code-workspace`); **ALL-CAPS canonical `.md`** at root; workspace file dot-prefixed with `explorer.sortOrder: default` + `explorer.sortOrderLexicographicOptions: upper` (`upper` clusters ALL-CAPS first). Un-dotted exceptions: `pyproject.toml`, `package.json`, `Cargo.toml`, `setup.py`, `requirements*.txt`, `Dockerfile`, `Makefile`, `LICENSE`, `tach.toml`. New tool? Verify dot-prefix support (don't assume), then list the exception in ADR-59 + `audit.py`. Full standard: PLAYBOOK "Universal visual pattern".
+
+---
+
 ## Commit message standard
 <!-- scope: dev -->
 
