@@ -1,6 +1,7 @@
 """Tests for scripts/audit.py — schema roundtrip, check execution, report generation."""
 from __future__ import annotations
 
+import json
 import sys
 import os
 from datetime import date
@@ -252,6 +253,124 @@ def test_claude_md_empty(tmp_path: Path) -> None:
     f = aud.check_claude_md(tmp_path)[0]
     assert f.status == "fail"
     assert "empty" in f.evidence
+
+# ---------------------------------------------------------------------------
+# Check #4: dot_prefix_discipline (ADR-59 D1)
+# ---------------------------------------------------------------------------
+
+def test_dot_prefix_pass_dotted_and_exceptions(tmp_path: Path) -> None:
+    (tmp_path / ".ruff.toml").write_text("")
+    (tmp_path / ".pre-commit-config.yaml").write_text("")
+    (tmp_path / "pyproject.toml").write_text("")   # exception
+    (tmp_path / "tach.toml").write_text("")         # exception (verified 2026-05-27)
+    f = aud.check_dot_prefix_discipline(tmp_path)[0]
+    assert f.status == "pass"
+
+
+def test_dot_prefix_fail_undotted(tmp_path: Path) -> None:
+    (tmp_path / "ruff.toml").write_text("")  # should be .ruff.toml
+    f = aud.check_dot_prefix_discipline(tmp_path)[0]
+    assert f.status == "fail"
+    assert "ruff.toml" in f.evidence
+
+
+def test_dot_prefix_ignores_subfolders(tmp_path: Path) -> None:
+    sub = tmp_path / "config"
+    sub.mkdir()
+    (sub / "settings.toml").write_text("")  # subfolder config — not a root concern
+    f = aud.check_dot_prefix_discipline(tmp_path)[0]
+    assert f.status == "pass"
+
+# ---------------------------------------------------------------------------
+# Check #5: canonical_md_visibility (ADR-59 D2)
+# ---------------------------------------------------------------------------
+
+def _make_canonical(tmp_path: Path) -> None:
+    for name in ("VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "BACKLOG.md"):
+        (tmp_path / name).write_text("x")
+
+
+def test_canonical_md_pass(tmp_path: Path) -> None:
+    _make_canonical(tmp_path)
+    f = aud.check_canonical_md_visibility(tmp_path)[0]
+    assert f.status == "pass"
+
+
+def test_canonical_md_optional_absent_still_pass(tmp_path: Path) -> None:
+    """LESSONS/JOURNAL/CONTRIBUTING are NOT required — absence must not fail."""
+    _make_canonical(tmp_path)
+    assert not (tmp_path / "LESSONS.md").exists()
+    f = aud.check_canonical_md_visibility(tmp_path)[0]
+    assert f.status == "pass"
+
+
+def test_canonical_md_missing_mandatory(tmp_path: Path) -> None:
+    _make_canonical(tmp_path)
+    (tmp_path / "VISION.md").unlink()
+    f = aud.check_canonical_md_visibility(tmp_path)[0]
+    assert f.status == "fail"
+    assert "VISION.md" in f.evidence
+
+
+def test_canonical_md_miscased(tmp_path: Path) -> None:
+    _make_canonical(tmp_path)
+    (tmp_path / "Lessons.md").write_text("x")  # should be LESSONS.md
+    f = aud.check_canonical_md_visibility(tmp_path)[0]
+    assert f.status == "fail"
+    assert "Lessons.md" in f.evidence
+
+# ---------------------------------------------------------------------------
+# Check #6: workspace_settings (ADR-59 D3)
+# ---------------------------------------------------------------------------
+
+GOOD_WS = """\
+{
+  // a comment VS Code tolerates
+  "folders": [{ "path": "." }],
+  "settings": {
+    "explorer.sortOrder": "default",
+    "explorer.sortOrderLexicographicOptions": "upper",
+  },
+}"""
+
+
+def test_workspace_settings_pass(tmp_path: Path) -> None:
+    (tmp_path / ".my-repo.code-workspace").write_text(GOOD_WS)
+    f = aud.check_workspace_settings(tmp_path)[0]
+    assert f.status == "pass"
+
+
+def test_workspace_settings_absent(tmp_path: Path) -> None:
+    f = aud.check_workspace_settings(tmp_path)[0]
+    assert f.status == "fail"
+    assert "No .code-workspace" in f.evidence
+
+
+def test_workspace_settings_wrong_value_warns(tmp_path: Path) -> None:
+    bad = GOOD_WS.replace('"upper"', '"default"')
+    (tmp_path / ".my-repo.code-workspace").write_text(bad)
+    f = aud.check_workspace_settings(tmp_path)[0]
+    assert f.status == "warn"
+    assert "sortOrderLexicographicOptions" in f.evidence
+
+
+def test_workspace_settings_not_dotted_warns(tmp_path: Path) -> None:
+    (tmp_path / "my-repo.code-workspace").write_text(GOOD_WS)  # missing leading dot
+    f = aud.check_workspace_settings(tmp_path)[0]
+    assert f.status == "warn"
+    assert "dot-prefix" in f.evidence
+
+
+def test_workspace_settings_malformed_fails(tmp_path: Path) -> None:
+    (tmp_path / ".x.code-workspace").write_text("{ not json ]")
+    f = aud.check_workspace_settings(tmp_path)[0]
+    assert f.status == "fail"
+
+
+def test_strip_jsonc_preserves_string_slashes() -> None:
+    """// inside a string value must survive; comments outside must be stripped."""
+    src = '{ "url": "http://x//y", "a": 1 /* c */ }'
+    assert json.loads(aud._strip_jsonc(src)) == {"url": "http://x//y", "a": 1}
 
 # ---------------------------------------------------------------------------
 # Report generation

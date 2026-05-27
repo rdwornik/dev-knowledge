@@ -19,8 +19,10 @@ Usage:
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+import re
 import sys
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -40,6 +42,90 @@ logger = logging.getLogger("audit")
 ECOSYSTEM_DIR = Path(_REPO_ROOT) / "ecosystem"
 AUDITS_DIR = Path(_REPO_ROOT) / "docs" / "audits"
 ECOSYSTEM_INDEX = Path(_REPO_ROOT) / "ecosystem" / "index.yaml"
+
+# ---------------------------------------------------------------------------
+# Universal visual pattern (ADR-59) — constants
+# ---------------------------------------------------------------------------
+
+# Config-file suffixes subject to dot-prefix discipline (root-level only).
+_CONFIG_SUFFIXES = {".toml", ".yaml", ".yml", ".json", ".ini", ".cfg", ".conf"}
+
+# Industry-standard names that MUST NOT be dot-prefixed (ADR-59 exception list).
+# This is a mirror of the ADR-59 exception list — update BOTH together when a
+# new tool is adopted (see PLAYBOOK "Universal visual pattern" maintenance rule).
+_DOT_PREFIX_EXCEPTIONS = {
+    "pyproject.toml",       # Python PEP 518
+    "package.json",         # npm
+    "package-lock.json",    # npm lockfile
+    "Cargo.toml",           # Rust
+    "setup.py",             # Python legacy
+    "setup.cfg",            # Python legacy
+    "requirements.txt",     # pip convention
+    "requirements-dev.txt",
+    "Dockerfile",
+    "Makefile",
+    "LICENSE",
+    "tach.toml",            # verified 2026-05-27: tach 0.34.0 does not read .tach.toml
+    "README.md",            # deprecated from baseline; if present, no dot
+}
+
+# Canonical files universally mandatory at repo root (ADR-38 A5 / ADR-51).
+_CANONICAL_MANDATORY = ["VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "BACKLOG.md"]
+
+# All canonical names whose casing is checked when present (mandatory + optional
+# + .dev-knowledge-only). Presence is required only for _CANONICAL_MANDATORY.
+_CANONICAL_ALL = _CANONICAL_MANDATORY + [
+    "JOURNAL.md", "ENVIRONMENT.md", "CONTRIBUTING.md",
+    "ESSENTIALS.md", "PLAYBOOK.md", "LESSONS.md", "TOKEN-LOG.md", "README.md",
+]
+
+# Required VS Code workspace settings (ADR-59 Decision 3). "upper" (not "default")
+# is what clusters ALL-CAPS canonical .md files ahead of lowercase configs.
+_WORKSPACE_REQUIRED_SETTINGS = {
+    "explorer.sortOrder": "default",
+    "explorer.sortOrderLexicographicOptions": "upper",
+}
+
+
+def _strip_jsonc(text: str) -> str:
+    """Strip // and /* */ comments and trailing commas from JSON-with-comments.
+
+    VS Code .code-workspace files are JSONC; json.loads cannot parse them. Comment
+    stripping respects string literals so a `//` inside a string value survives.
+    """
+    out: list[str] = []
+    i, n = 0, len(text)
+    in_str = False
+    while i < n:
+        c = text[i]
+        if in_str:
+            out.append(c)
+            if c == "\\" and i + 1 < n:
+                out.append(text[i + 1])
+                i += 2
+                continue
+            if c == '"':
+                in_str = False
+            i += 1
+            continue
+        if c == '"':
+            in_str = True
+            out.append(c)
+            i += 1
+            continue
+        if c == "/" and i + 1 < n and text[i + 1] == "/":
+            while i < n and text[i] != "\n":
+                i += 1
+            continue
+        if c == "/" and i + 1 < n and text[i + 1] == "*":
+            i += 2
+            while i + 1 < n and not (text[i] == "*" and text[i + 1] == "/"):
+                i += 1
+            i += 2
+            continue
+        out.append(c)
+        i += 1
+    return re.sub(r",(\s*[}\]])", r"\1", "".join(out))
 
 # ---------------------------------------------------------------------------
 # State schema
@@ -194,7 +280,104 @@ def check_claude_md(repo_path: Path) -> list[Finding]:
     return [Finding("claude_md", "pass", f"CLAUDE.md present ({len(content)} chars)")]
 
 
-ALL_CHECKS = [check_vision_md, check_adr38_baseline, check_claude_md]
+def check_dot_prefix_discipline(repo_path: Path) -> list[Finding]:
+    """Check #4 (ADR-59 D1): root config files dot-prefixed unless on exception list.
+
+    Root-level only — subfolder configs are ignored. A config-suffix file that is
+    neither dot-prefixed nor on the ADR-59 exception list is a violation.
+    """
+    violations = []
+    for p in sorted(repo_path.iterdir()):
+        if not p.is_file():
+            continue
+        if p.suffix not in _CONFIG_SUFFIXES:
+            continue
+        if p.name.startswith("."):
+            continue
+        if p.name in _DOT_PREFIX_EXCEPTIONS:
+            continue
+        violations.append(p.name)
+    if violations:
+        return [Finding("dot_prefix_discipline", "fail",
+                        f"Root config files not dot-prefixed (not on ADR-59 exception list): {violations}")]
+    return [Finding("dot_prefix_discipline", "pass",
+                    "All root config files dot-prefixed or on ADR-59 exception list")]
+
+
+def check_canonical_md_visibility(repo_path: Path) -> list[Finding]:
+    """Check #5 (ADR-59 D2): mandatory canonical files present + correct ALL-CAPS casing.
+
+    Requires only the four universal files (ADR-38 A5 / ADR-51). Optional and
+    .dev-knowledge-only canonical files are NOT required, but if present (under any
+    casing) they must use the canonical ALL-CAPS spelling — a mis-cased canonical
+    file breaks the visual clustering the pattern exists to produce.
+    """
+    missing = [f for f in _CANONICAL_MANDATORY if not (repo_path / f).exists()]
+
+    canonical_lower = {name.lower(): name for name in _CANONICAL_ALL}
+    miscased = []
+    for p in repo_path.iterdir():
+        if not p.is_file():
+            continue
+        canonical = canonical_lower.get(p.name.lower())
+        if canonical and p.name != canonical:
+            miscased.append(f"{p.name} (expected {canonical})")
+
+    if missing:
+        return [Finding("canonical_md_visibility", "fail",
+                        f"Missing mandatory canonical files: {missing}")]
+    if miscased:
+        return [Finding("canonical_md_visibility", "fail",
+                        f"Mis-cased canonical files: {sorted(miscased)}")]
+    return [Finding("canonical_md_visibility", "pass",
+                    f"Mandatory canonical files present + correctly cased: {_CANONICAL_MANDATORY}")]
+
+
+def check_workspace_settings(repo_path: Path) -> list[Finding]:
+    """Check #6 (ADR-59 D3): dot-prefixed .code-workspace carrying required sort settings.
+
+    FAIL if absent or unparseable; WARN if present but not dot-prefixed or a
+    required setting is missing/wrong; PASS if dot-prefixed with correct settings.
+    """
+    workspaces = sorted(p for p in repo_path.iterdir()
+                        if p.is_file() and p.name.endswith(".code-workspace"))
+    if not workspaces:
+        return [Finding("workspace_settings", "fail",
+                        "No .code-workspace file at repo root")]
+
+    ws = workspaces[0]
+    try:
+        data = json.loads(_strip_jsonc(ws.read_text(encoding="utf-8")))
+    except (json.JSONDecodeError, ValueError) as e:
+        return [Finding("workspace_settings", "fail",
+                        f"{ws.name} is not parseable JSON(C): {e}")]
+
+    issues = []
+    if not ws.name.startswith("."):
+        issues.append(f"workspace file '{ws.name}' is not dot-prefixed")
+
+    settings = data.get("settings", {})
+    if not isinstance(settings, dict):
+        settings = {}
+    for key, expected in _WORKSPACE_REQUIRED_SETTINGS.items():
+        actual = settings.get(key, "<absent>")
+        if actual != expected:
+            issues.append(f"{key}={actual!r} (expected {expected!r})")
+
+    if issues:
+        return [Finding("workspace_settings", "warn", f"{ws.name}: " + "; ".join(issues))]
+    return [Finding("workspace_settings", "pass",
+                    f"{ws.name} present, dot-prefixed, required sort settings correct")]
+
+
+ALL_CHECKS = [
+    check_vision_md,
+    check_adr38_baseline,
+    check_claude_md,
+    check_dot_prefix_discipline,
+    check_canonical_md_visibility,
+    check_workspace_settings,
+]
 
 
 def audit_repo(repo_name: str, repo_path: Path, run_date: date) -> RepoState:
@@ -393,7 +576,12 @@ def cmd_registry(action: str) -> None:
 
 @cli.command("health")
 def cmd_health() -> None:
-    """Quick TTY status check; no file writes."""
+    """Quick TTY status: operational deps + .dev-knowledge self-conformance.
+
+    Self-conformance runs the full per-repo check suite (ALL_CHECKS, incl. the
+    ADR-59 visual-pattern checks) against .dev-knowledge itself. A self-audit
+    `fail` degrades health; a `warn` does not.
+    """
     checks: list[tuple[str, bool, str]] = []
 
     # (a) click importable
@@ -418,13 +606,27 @@ def cmd_health() -> None:
     repos = discover_repos()
     checks.append(("repos registered", len(repos) > 0, f"{repos}" if repos else "none"))
 
-    all_pass = all(ok for _, ok, _ in checks)
+    operational_ok = all(ok for _, ok, _ in checks)
+
+    # Self-conformance: full check suite against .dev-knowledge.
+    self_findings: list[Finding] = []
+    for check in ALL_CHECKS:
+        self_findings.extend(check(Path(_REPO_ROOT)))
+    self_fail = any(f.status == "fail" for f in self_findings)
+
+    click.echo("operational:")
     for label, ok, detail in checks:
         marker = "[OK]" if ok else "[!!]"
         suffix = f"  ({detail})" if detail else ""
         click.echo(f"  {marker} {label}{suffix}")
 
-    if all_pass:
+    passed = sum(1 for f in self_findings if f.status == "pass")
+    click.echo(f"self-audit (.dev-knowledge) - {passed}/{len(self_findings)} pass:")
+    _marker = {"pass": "[OK]", "warn": "[~~]", "fail": "[!!]", "unavailable": "[??]"}
+    for f in self_findings:
+        click.echo(f"  {_marker.get(f.status, '[??]')} {f.check_name}: {f.evidence}")
+
+    if operational_ok and not self_fail:
         click.echo("health: OK")
     else:
         click.echo("health: DEGRADED", err=True)
