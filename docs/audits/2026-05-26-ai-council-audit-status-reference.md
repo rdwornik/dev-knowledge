@@ -2,14 +2,14 @@
 type: audit-status-reference
 scope: ai-council universalization status as of 2026-05-26
 date: 2026-05-26
-basis: docs/research/2026-05-25-ai-council-universalization-audit-refresh.md + execution-plan (both authoritative, unchanged)
+basis: docs/audits/2026-05-25-ai-council-universalization-audit-refresh.md + execution-plan (both authoritative, unchanged)
 contract: read-only on ai-council; writes confined to .dev-knowledge/docs/audits/
 ---
 
 # ai-council Universalization Status — 2026-05-26
 
 This is a **status reference**, not a re-audit. ai-council was refreshed on
-2026-05-25 (`docs/research/2026-05-25-ai-council-universalization-audit-refresh.md`
+2026-05-25 (`docs/audits/2026-05-25-ai-council-universalization-audit-refresh.md`
 + `-execution-plan.md`). This document exists so the 2026-05-26 cross-repo
 synthesis can reference ai-council without duplicating audit content, and to
 record the HEAD-movement check that determines whether the 2026-05-25 artifacts
