@@ -237,6 +237,23 @@ Which `docs/` subfolders a repo carries (`decisions/`, `handoffs/`, `audits/`, `
 
 **No `files.exclude` to hide root config files.** Operator preference: VISIBILITY of what tools are configured matters. Do not use VS Code `files.exclude` settings to hide config files from Explorer — defeats the purpose of seeing what's configured. Apply dot-prefix instead where supported.
 
+### Universal visual pattern (per ADR-59)
+<!-- scope: dev -->
+<!-- version: 1.0 — 2026-05-27 -->
+
+Every repo root follows the ADR-59 universal visual pattern (read the ADR for the full standard). Three pillars, all audit-enforced via `scripts/audit.py`:
+
+- **Dot-prefix discipline** — dot-prefix every root config the tool supports a dotted variant for (`.ruff.toml`, `.pre-commit-config.yaml`, `.{repo}.code-workspace`, standard dotfiles). Exceptions that MUST stay un-dotted (tool requires the exact name / ecosystem convention): `pyproject.toml`, `package.json`, `Cargo.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Dockerfile`, `Makefile`, `LICENSE`, `tach.toml`, `README.md`.
+- **ALL-CAPS canonical `.md` at root** — `VISION`/`CLAUDE`/`ARCHITECTURE`/`BACKLOG` mandatory everywhere; `JOURNAL`/`ENVIRONMENT`/`CONTRIBUTING` optional; `LESSONS`/`PLAYBOOK`/`ESSENTIALS`/`TOKEN-LOG` are `.dev-knowledge`-only (never required in a child repo).
+- **Workspace sort settings** — `.{repo}.code-workspace` with `"explorer.sortOrder": "default"` + `"explorer.sortOrderLexicographicOptions": "upper"`. `upper` (not `default`) is what clusters ALL-CAPS files ahead of lowercase configs — verified 2026-05-27.
+
+**Maintenance rule (adopting a new tool config):**
+1. Check the tool's docs — or test empirically (as was done for `tach`: `.tach.toml` is NOT discovered by tach 0.34.0) — for dot-prefix support.
+2. Supported → use the dotted name. Not supported → add the exact name to the ADR-59 exception list **and** the `scripts/audit.py` exception constant, and note it in the commit.
+3. The exception list is the single source of truth, mirrored in the audit tool. `audit.py health` surfaces drift.
+
+**Date-sorted folders** (`docs/audits/`, `docs/handoffs/`, transcripts): ISO `YYYY-MM-DD-` prefix only. VS Code has no native per-folder reverse sort (`explorer.sortOrderReverse` is not a real setting); dated content stays ascending. Navigate via scroll-to-bottom, `Ctrl+P`, or the workspace `open-latest-*` tasks.
+
 ### Secrets storage path
 <!-- scope: meta -->
 

@@ -1,0 +1,10 @@
+{
+	// Synthetic fixture workspace — conforms to ADR-59 universal visual pattern.
+	"folders": [
+		{ "path": "." }
+	],
+	"settings": {
+		"explorer.sortOrder": "default",
+		"explorer.sortOrderLexicographicOptions": "upper"
+	}
+}
