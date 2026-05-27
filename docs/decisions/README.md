@@ -26,7 +26,7 @@ subfolder holds AI Council debate outputs that informed them.
 | ADR-39 | 2026-04-30 | File lifecycle governance — 6-element pattern per file (purpose/trigger/owner/grooming/boundaries/enforcement) |
 | ADR-40 | 2026-04-30 | Scale tier evaluation algorithm — logarithmic Maintainability Index pattern; 3 signals (module count, test count, TCR) |
 | ADR-41 | 2026-04-30 | Cross-session backlog architecture — BACKLOG.md mandate at M+ tier; no Scrum vocabulary |
-| ADR-42 | 2026-05-09 | Handoff format v3 — three-stage generation flow; v3.2 = flat per-session folder, Q&A iteration loop |
+| ADR-42 | 2026-05-09 | Handoff format v3 — three-stage generation flow; v3.2 = flat per-session folder, Q&A iteration loop; amended 2026-05-26 (Q5: full invariants retained + executor-gate contract + manifest integrity) |
 | ADR-43 | 2026-05-11 | Cross-project transcript routing — per-invocation, opt-in, config-driven; `target-project:` frontmatter + `--target-project` flag; `TargetResolver` in ai-council CLI |
 | ADR-44 | — | Reserved — scrum-master review propagation authority codification; held pending N=2 empirical instance (corp-monorepo scrum-master review). See PLAYBOOK § 17. |
 | ADR-45 | 2026-05-13 | ~~Handoff Architecture v4 — invariant/session separation + defense-in-depth enforcement~~ Superseded by 2026-05-13 night minimum-viable refinement (HANDOFF_PROCESS v3.3) |
@@ -39,6 +39,10 @@ subfolder holds AI Council debate outputs that informed them.
 | ADR-52 | 2026-05-19 | ~~AGENTS.md convention — cross-tool agent-instruction contract~~ Superseded by ADR-53 |
 | ADR-53 | 2026-05-19 | CLAUDE.md as single canonical per-repo agent-instruction file — supersedes ADR-52 |
 | ADR-54 | 2026-05-19 | Codex reviewer config as global standard — canonical source at `codex/AGENTS.md`, deployed to `~/.codex/AGENTS.md`; per-repo `AGENTS.md` for repo-specific review rules only |
+| ADR-55 | 2026-05-26 | Applied-task internalization gate — replaces 4-item paraphrase gate with role+constraints citations + one applied probe (`10_GATE_PROBE.md`) + one bounded retry (closes Council Q1) |
+| ADR-56 | 2026-05-26 | Inline Prompt Generation Card — replaces PLAYBOOK-pointer with a self-contained card in `00_first-message.md`; authority stays in browser chat; ≤200-line budget + dual-maintenance rule (closes Council Q3) |
+| ADR-57 | 2026-05-26 | Two-layer bundle contract — unconditional governance floor (VISION/PLAYBOOK/ESSENTIALS) + scoped operational layer (skills/gotchas/JOURNAL) via `next_session_scope` + mapping table; extends ADR-42 (closes Council Q2) |
+| ADR-58 | 2026-05-26 | Structured claims + symmetric verification — sender produces `11_CLAIMS.md` (cited load-bearing claims) + expected-articulation; executor validates locatability; operator ratifies; removes bare `role confirmed` (closes Council Q4) |
 
 ## Transcript naming convention
 
@@ -81,6 +85,10 @@ historical artifacts from the manual archival era. **Relocated to `transcripts/a
 | ADR-41 | `council-out-20260430-134721-pick-council-adr38-scrum-framework.md` (also cited in ADR-41 Related field as structural context) + `council-out-20260430-150751-research-question-for-a-solo-developer-with-multiple-active.md` (research) |
 | ADR-42 | `council-out-20260509-143831-research-brief-for-ai-council-architect-browser-session-con.md` + `council-out-20260509-144836-research-question-how-should-an-llm-driven-solo-developer-a.md` |
 | ADR-51 | `council-out-20260518_215241-pick-2026-05-18_council-debate-architecture-doc.md` |
+| ADR-55 | `council-out-20260526_142806-pick-2026-05-25-handoff-council-Q1-internalization-assurance.md` |
+| ADR-56 | `council-out-20260526_144228-pick-2026-05-25-handoff-council-Q3-procedural-competence-transfer.md` |
+| ADR-57 | `council-out-20260526_143605-pick-2026-05-25-handoff-council-Q2-bundle-content-composition.md` |
+| ADR-58 | `council-out-20260526_144851-pick-2026-05-25-handoff-council-Q4-sender-verification-symmetry.md` |
 | ADR-52 | *(no Council transcript — Rob's decision, 2026-05-19; ratifies extant PLAYBOOK convention)* |
 | ADR-53 | *(no Council transcript — Rob's decision, 2026-05-19; based on empirical verification `docs/audits/2026-05-19-cohort1-verification.md`)* |
 

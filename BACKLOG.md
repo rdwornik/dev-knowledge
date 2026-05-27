@@ -189,6 +189,14 @@ Next quarterly grooming: 2026-07-01
 - **Status:** open — classify root cause, propose mitigation
 - **Related:** ADR-37, ADR-42, LESSONS 2026-05-11 entries
 
+### [P2] [open] Mechanical gate code for handoff enforcement (ADR-42 Q5 amendment)
+- **What:** Implement the executor-side validator + wiring deferred by the 2026-05-26 ADR-42 Q5 amendment. Scope: one shared validator that checks (presence of invariant files, integrity/canonical-hash/version match per `01_manifest.json invariant_integrity`, naming/shape/link consistency) — NO workflow sequencing/orchestration logic (ADR-28 Layer-2 invariant). Wire it into three points: pre-commit hook, Claude Code PreToolUse hook, and `/save`. Ensure ≥1 backstop is non-bypassable (CI or server-verified). Code requires Codex review per ADR-54 when implemented.
+- **Why:** Council Q5 (`docs/decisions/transcripts/council-out-20260526_145439-...-Q5-delivery-custody-abstraction.md`) approved executor-side mechanical enforcement; the 2026-05-26 session formalized the contract only (ADR + manifest schema), explicitly deferring the executable code. Full delivery of invariants did not guarantee internalization; mechanical gates are the clearest available improvement that respects Layer-2 limits.
+- **Vision ref:** VISION.md "Knowledge Guardian" function; pairs with "Sacred-files maintenance enforcement" P1 and "Hooks audit" P2 (below)
+- **Added:** 2026-05-26 by rob (Council Q5 decision — deferred implementation)
+- **Status:** open — contract defined (ADR-42 Q5 amendment + `01_manifest.json` schema); executable code + hook wiring pending. Define reopen thresholds for ADR-45 payload-shrink (bundle size limit) as part of this work.
+- **Related:** ADR-42 (Q5 amendment), ADR-28 (Layer-2 invariant), ADR-54 (Codex review), ADR-57/58 (bundle contract + claims)
+
 ### [P3] [open] Cross-repo audit (Phase 3)
 - **What:** Audit tool runs across all repos with VISION.md, generates ecosystem compliance report; verifies adoption of ratified ADRs
 - **Why:** Validates universalization actually adopted (not just ratified); drift detection over time

@@ -1348,6 +1348,25 @@ WHAT NOT TO DO:
 - CHANGELOG.md entry required in FINAL section if files changed
 - Bypass permissions (no approval) → almost never, only for trivial read-only operations
 
+### Prompt Generation Card maintenance rule (per ADR-56, Council Q3)
+<!-- scope: hybrid -->
+
+The handoff bundle ships an inline **Prompt Generation Card** in
+`00_first-message.md` (the operational extract a fresh browser chat uses to
+generate Claude Code prompts, since it cannot read the filesystem). This PLAYBOOK
+section remains the rationale and edge-case authority; the card is the
+point-of-use procedure. The two are an intentional duplication.
+
+**Any change to prompt conventions (model/mode/effort criteria, the summary
+table, the mandatory skeleton, hook guidance) MUST update BOTH:**
+
+1. this PLAYBOOK rationale, and
+2. the inline card in `templates/HANDOFF_FOLDER_TEMPLATE.md` `### 00_first-message.md`.
+
+Drift between the two is a process bug — the card is the point-of-use authority,
+PLAYBOOK is the maintenance source. The card has a ≤200-line size budget; if it
+overflows, restructure into card + appendix rather than relocating authority.
+
 ---
 
 ## 3. Absorbing New Information

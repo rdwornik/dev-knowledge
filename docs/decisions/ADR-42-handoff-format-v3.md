@@ -2,10 +2,45 @@
 
 <!-- scope: meta -->
 
-Status: Accepted (amended three times: 2026-05-09 afternoon, 2026-05-09 later afternoon, 2026-05-09 night)
+Status: Accepted (amended four times: 2026-05-09 afternoon, 2026-05-09 later afternoon, 2026-05-09 night, 2026-05-26)
 Date: 2026-05-09
 
 ## Amendments
+
+### 2026-05-26 — Q5: Full invariants retained + executor-side mechanical enforcement contract
+
+Source: AI Council debate Q5, 2026-05-26 — `docs/decisions/transcripts/council-out-20260526_145439-pick-2026-05-25-handoff-council-Q5-delivery-custody-abstraction.md` (Recommended Decision L799-847; Action Items L891-928). Companion decisions this session: ADR-55 (Q1 applied-task gate), ADR-56 (Q3 Prompt Generation Card), ADR-57 (Q2 two-layer bundle contract), ADR-58 (Q4 structured claims).
+
+#### Decision
+
+- **Full invariants remain in every bundle.** VISION/PLAYBOOK/ESSENTIALS stay as full copies. ADR-45's payload-shrink/reference model is **NOT reopened** (ADR-45 remains explored-not-adopted; supersession claim already withdrawn 2026-05-25). The cited failure was not payload size, so shrinking the bundle would solve the wrong problem; full invariants empirically caught a real fabrication (2026-05-09 ai-council case).
+- **Executor-side mechanical enforcement is approved** as a separate enhancement (contract below). Browser side keeps prose/checkpoint (the Q1 applied-task gate per ADR-55).
+
+#### Validator contract
+
+The executor-side validator is limited to **mechanical checks only**:
+- invariant file presence,
+- integrity (canonical hash / version match),
+- naming / shape / link consistency.
+
+It MUST NOT contain workflow sequencing or orchestration logic (preserves the ADR-28 Layer-2 invariant — validators only, no scripts that drive state). Validator docs/review must cite ADR-28; sequencing checks are rejected unless separately approved.
+
+#### Manifest integrity tracking
+
+`01_manifest.json` (and the `### 01_manifest.json` template section) must carry a canonical hash + version ID for the governance-floor files (VISION/PLAYBOOK/ESSENTIALS). The validator fails on mismatch when the canonical source is accessible — guarding against bundle/canonical drift while full copies are still delivered.
+
+#### Browser-side active checkpoint
+
+Not just acknowledgment — the receiver produces a structured constraint extraction (operationalized as the applied-task gate, ADR-55) before proceeding. Treated as a monitored hypothesis, not a solved control.
+
+#### Mechanical gate implementation — DEFERRED
+
+Wiring the validator into pre-commit, PreToolUse, and `/save` hooks is **deferred to a BACKLOG entry**. This amendment formalizes the *contract* (validator scope + manifest integrity fields) only; the executable code follows separately and will require Codex review per ADR-54 when implemented.
+
+#### Revisit criteria for payload-shrink reopen
+
+Reopen ADR-45 only if: bundle size exceeds a defined context/cost threshold (to be specified in BACKLOG); a fabrication slips through despite full invariants; an integrity mismatch is observed in practice; or repeated internalization failures persist after the executor gates + browser checkpoint are live.
+
 
 ### 2026-05-09 (night) — v3.2: Q&A iteration loop + operator clarity
 
