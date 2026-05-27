@@ -254,6 +254,28 @@ Every repo root follows the ADR-59 universal visual pattern (read the ADR for th
 
 **Date-sorted folders** (`docs/audits/`, `docs/handoffs/`, transcripts): ISO `YYYY-MM-DD-` prefix only. VS Code has no native per-folder reverse sort (`explorer.sortOrderReverse` is not a real setting); dated content stays ascending. Navigate via scroll-to-bottom, `Ctrl+P`, or the workspace `open-latest-*` tasks.
 
+### docs/ folder taxonomy (per ADR-60)
+<!-- scope: meta -->
+<!-- version: 1.0 — 2026-05-27 -->
+
+Where ADR-59 makes every repo *look* the same, ADR-60 makes `.dev-knowledge`'s `docs/` *mean* the same: each subfolder serves **one** semantic role, so a file's location tells you what it is.
+
+| Folder | Role | Contents |
+|--------|------|----------|
+| `audits/` | OUTPUTS | Audit reports, validation reports, refresh docs, forensics |
+| `council-questions/` | INPUTS | Council debate question sets, evidence, set indexes |
+| `decisions/` | OUTPUTS | ADRs + `transcripts/` (routed per ADR-43) |
+| `handoffs/` | OUTPUTS | Per-session handoff bundles |
+| `research/` | WORKING | Exploratory pre-decision scratchpad |
+| `archive/` | ARCHIVED | Superseded, dormant, transient (incl. archived `tech-radar/`) |
+
+**File lifecycle (always `git mv` — preserve history):**
+- Exploratory work starts in `research/`; matures to `audits/` (finished audit) or `decisions/` (ADR).
+- Council debate inputs land in `council-questions/`; transcripts route to `decisions/transcripts/`.
+- Dormant/superseded → `archive/`.
+
+**On moving a file, do NOT rewrite append-only or immutable records that reference it** — ADRs, transcripts, handoffs, and existing `JOURNAL.md`/`LESSONS.md` entries are point-in-time history (critical rules #2/#3). Update only living docs (BACKLOG, PLAYBOOK, HANDOFF_PROCESS, READMEs) and the moved file's own internal cross-refs. Date-prefixed naming (`YYYY-MM-DD-{slug}.md`) for time-sequenced artifacts.
+
 ### Secrets storage path
 <!-- scope: meta -->
 
