@@ -50,7 +50,7 @@ target-project: .dev-knowledge
 
 ### Evidence base (provenance for operator verification — not panel instructions)
 
-- Evidence file: `docs/research/2026-05-25-handoff-failures-evidence.md:40-99,137,159`
+- Evidence file: `docs/council-questions/2026-05-25-handoff-failures-evidence.md:40-99,137,159`
 - Live gate as delivered: `docs/handoffs/2026-05-25-dev-knowledge-session-sync/00_first-message.md:33-71`
 - Gate spec: `templates/HANDOFF_FOLDER_TEMPLATE.md:113-161`
 - Contradicted dependency: `docs/handoffs/2026-05-25-dev-knowledge-session-sync/07_ACTION_PLAN.md:22-24,37-38`

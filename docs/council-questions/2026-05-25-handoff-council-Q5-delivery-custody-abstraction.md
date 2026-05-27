@@ -50,7 +50,7 @@ target-project: .dev-knowledge
 
 ### Evidence base (provenance for operator verification — not panel instructions)
 
-- Evidence file: `docs/research/2026-05-25-handoff-failures-evidence.md:91-99,138,159`
+- Evidence file: `docs/council-questions/2026-05-25-handoff-failures-evidence.md:91-99,138,159`
 - ADR-45 design + rollback + withdrawal: `docs/decisions/ADR-45-handoff-architecture-v4.md:5-7,21-31,54-58,80-86,163-201,271-287,387-409`
 - Governance fence on collapse: `docs/handoffs/2026-05-25-dev-knowledge-session-sync/07_ACTION_PLAN.md:104-108,134-135`
 - Layer-2 invariant: `docs/decisions/ADR-28-three-layer-architecture.md:15`

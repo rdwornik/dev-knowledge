@@ -49,7 +49,7 @@ target-project: .dev-knowledge
 
 ### Evidence base (provenance for operator verification — not panel instructions)
 
-- Evidence file: `docs/research/2026-05-25-handoff-failures-evidence.md:124,128,149`
+- Evidence file: `docs/council-questions/2026-05-25-handoff-failures-evidence.md:124,128,149`
 - Prompt-gen pointer + model reminder: `docs/handoffs/2026-05-25-dev-knowledge-session-sync/00_first-message.md:86-96`
 - Where prompt generation happens: `templates/HANDOFF_FOLDER_TEMPLATE.md:201-214`
 
