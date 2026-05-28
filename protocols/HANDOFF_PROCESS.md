@@ -24,7 +24,7 @@ Implements ADR-42 three-stage flow with full Stage 2 mandate — ALL handoff typ
 (audit-sync, session-sync, feature-X-sync) execute all three stages. No shortcuts.
 
 A handoff transfers session state across browser chats or Claude Code sessions. All
-handoff artifacts live in `.dev-knowledge/docs/handoffs/{date}-{slug}/` — ADR-36
+handoff artifacts live in `.dev-knowledge/docs/handoffs/{slug}/` — ADR-36
 read-only contract preserved (no writes to target repos).
 
 ---
@@ -520,7 +520,7 @@ claims about repo state.
 <!-- scope: meta -->
 
 ```
-docs/handoffs/{date}-{slug}/
+docs/handoffs/{slug}/
 ├── 00_README.md                 (Rob's upload instructions)
 ├── 00_first-message.md          (browser-2 first message, copy-paste)
 ├── 01_MANIFEST.md               (entry point, file index, HEAD pin (ancestor-validated))
