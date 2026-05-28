@@ -342,6 +342,66 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-11 by rob (cross-repo pattern audit)
 - **Status:** open — tied to A4 decision (Handoff folder format adoption, above).
 
+<!-- handoff-v3.4-audit-2026-05-29: 7 entries below, derived from the
+     2026-05-29 abort post-mortem `docs/audits/2026-05-29-handoff-v3.4-process-audit.md`.
+     Recommended fix order is encoded in priorities + the "Order" line of each entry. -->
+
+### [P1] [open] Handoff v3.4: Stage 1 question template never updated (architect not asked for claims/scope) — handoff-v3.4-audit-2026-05-29
+- **What:** `templates/HANDOFF_QUESTION_TEMPLATE.md` (the Stage 1 template) was NOT updated by the v3.4 "Phase C" amendment, while `templates/HANDOFF_FOLDER_TEMPLATE.md:777-778` declares the **sender authors `11_CLAIMS.md` + reviews `10_GATE_PROBE.md` + declares `next_session_scope` at Stage 2** and `protocols/HANDOFF_PROCESS.md:281-293` mandates the same. The Stage 1 question therefore never asks the architect for any of them; in the generated artifact the only mention sits in the operator-facing Section A (`stage1-question.md:31-34`, `:82`), not the architect-facing paste block. Fix: add architect-facing claims schema, `next_session_scope` vocabulary, and gate-probe review note to the Stage 1 template; also fix the stale "ADR-42, twice amended" → "amended four times" (`:16`, finding E3).
+- **Why:** **Blocks a correct retry.** Empirically, the 2026-05-29 architect produced the 5 pipeline sections only — no scope declaration, no `stage2-claims.md` — because the question never asked. A retry reproduces the exact failure until this lands. Post-mortem findings **B1 (critical) + B2 (critical) + E3**.
+- **Refs:** `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` §3 (B1/B2/E3), §5 step 1.
+- **Order:** 1st (with skill rewrite below).
+- **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
+- **Status:** open — critical; retry of the aborted handoff is gated on this.
+
+### [P1] [open] Handoff v3.4: `.claude/commands/handoff.md` skill pinned to v3.3.3 — handoff-v3.4-audit-2026-05-29
+- **What:** The handoff skill/command is stale end-to-end: description + body say v3.3.3 (`.claude/commands/handoff.md:2`, `:12`), file count says "11 files flat" (`:37`; spec v3.4 says 13/14 at `HANDOFF_PROCESS.md:631`/`:671`), and it has **zero** mention of `10_GATE_PROBE.md`, `11_CLAIMS.md`, `next_session_scope`, the operational layer, the Prompt Generation Card, or structured ratification. Its state-detection table (`:14-39`) also keys only on file *existence* — no populated-vs-placeholder content check, no M-5 thinness pre-flight, no ancestor HEAD check, no `UNVERIFIED` degraded mode. Fix: rewrite the skill to v3.4.
+- **Why:** The skill is the operative entry point a session actually runs; a stale skill silently drives the wrong flow regardless of the spec. Post-mortem findings **A1 (high) + A2 (medium)**.
+- **Refs:** `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` §3 (A1/A2), §5 step 2.
+- **Order:** 1st (with Stage 1 template above).
+- **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
+- **Status:** open — high; pairs with the Stage 1 template fix.
+
+### [P2] [open] Handoff v3.4: HANDOFF_PROCESS.md self-consistency (file inventory + count + synthesis-prompt + slug notation) — handoff-v3.4-audit-2026-05-29
+- **What:** The spec contradicts itself post-v3.4: the "Folder structure" diagram (`HANDOFF_PROCESS.md:520-534`) and the "File responsibilities" table (`:550-563`) stop at `09_EXECUTION_EVIDENCE.md`, omitting `10`/`11`/`12` that Stage 3 step 8 (`:380-398`) lists (F1, high); the file-count is stated four ways (11/12/13/14) and the "13 fixed (self)" claim is off-by-one against its own 14-item enumeration (F2, medium); the file-responsibilities table puts the receiver synthesis prompt in `01_MANIFEST.md` (`:554`) while `:228` puts it in `00_first-message.md` (F3, medium); the folder-naming notation `{date}-{slug}` double-counts the date since the slug already starts with the date (`:27`,`:521`,`:543`; F4, low). Fix: one consistency pass updating both reference sections to 13/14 files, reconciling the count, picking one synthesis-prompt home, and replacing `{date}-{slug}` with `{slug}`.
+- **Why:** A reader consulting the reference sections builds an obsolete 11/12-file bundle. Post-mortem findings **F1 (high) + F2 + F3 + F4**.
+- **Refs:** `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` §3 (F1–F4), §5 steps 3,6,7.
+- **Order:** 3rd.
+- **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
+- **Status:** open.
+
+### [P2] [open] Handoff v3.4: ADR-42 Q5 file-count supersession addendum — handoff-v3.4-audit-2026-05-29
+- **What:** `HANDOFF_PROCESS.md:11-15` declares "if they conflict, ADR-42 wins," yet ADR-42's immutable body still says "11 files" (`ADR-42:264`, folder diagram `:248-262`) and the Q5 amendment (`:10-42`) never restated the count. So the doc that wins on conflict formally contradicts v3.4 on file count. Fix: add a Q5-amendment addendum to ADR-42 clarifying the 13/14 file-count supersession — **supersede via marker, not in-place edit** (ADRs immutable, CLAUDE.md §5 rule 3).
+- **Why:** Authority-level instance of the count drift; leaves the "ADR-42 wins" rule pointing at a stale number. Post-mortem finding **D2 (medium)**.
+- **Refs:** `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` §3 (D2), §5 step 3.
+- **Order:** 3rd (with HANDOFF_PROCESS consistency pass).
+- **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
+- **Status:** open.
+
+### [P2] [open] Handoff v3.4: HANDOFF_FOLDER_TEMPLATE.md internal version drift — handoff-v3.4-audit-2026-05-29
+- **What:** The Stage 3 folder template contradicts itself on version within one file: header says v3.3.3 (`templates/HANDOFF_FOLDER_TEMPLATE.md:4`), a body line says "ADR-42 v3.2" (`:114`), and the manifest schema says `"format_version": "v3.4"` (`:359`). Fix: normalize all version strings to v3.4 / ADR-42-Q5.
+- **Why:** The template is the v3.4-authoritative Stage 3 spec for content; mixed version strings undermine trust in it. Post-mortem finding **D1 (high)**.
+- **Refs:** `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` §3 (D1), §5 step 4.
+- **Order:** 4th.
+- **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
+- **Status:** open.
+
+### [P2] [open] Handoff v3.4: broken evidence-file citations across ADR-55/56/57/58 + HANDOFF_PROCESS — handoff-v3.4-audit-2026-05-29
+- **What:** The empirical-basis evidence file is cited by two wrong paths: `docs/research/2026-05-25-handoff-failures-evidence.md` (ADR-55:16, ADR-56:15, ADR-57:14, ADR-58:15) and `docs/council-questions/2026-05-25-handoff-failures-evidence.md` (`HANDOFF_PROCESS.md:661`). The file actually lives at `docs/archive/2026-05-25-handoff-failures-evidence.md` (moved in the 2026-05-28 ADR-60 triage). All 9 references are broken. Fix: repoint the 4 ADR refs + 1 spec ref to `docs/archive/…`; decide policy for the 5 immutable transcript refs (annotate or leave). ADR edits to the body of immutable ADRs should be a reference-correction note, not an in-place content edit.
+- **Why:** Broken provenance on the decisions that define v3.4. Ironic: ADR-58 (the *citation-verification* decision) carries a broken citation. Post-mortem finding **E1 (high)**.
+- **Refs:** `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` §3 (E1), §5 step 5.
+- **Order:** 5th.
+- **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
+- **Status:** open.
+
+### [P3] [open] Handoff v3.4: stale version refs in ADR-45 — handoff-v3.4-audit-2026-05-29
+- **What:** ADR-45 (explored, not adopted) names "ADR-42 v3.2 remains canonical" (`docs/decisions/ADR-45-handoff-architecture-v4.md:5`) and its 2026-05-25 amendment names "ADR-42 (v3, amended through v3.2) plus HANDOFF_PROCESS.md (v3.3.3)" as canonical (`:400`,`:406`). Now v3.4 / ADR-42-amended-through-Q5. Fix: append an ADR-45 amendment note pointing at the current authority version (marker, not in-place edit).
+- **Why:** Lowest priority — ADR-45 is not-adopted and immutable — but it mis-signals the current authority version to a header-scanning reader. Post-mortem finding **E2 (medium, low urgency)**.
+- **Refs:** `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` §3 (E2), §5 step 7.
+- **Order:** 7th (lowest).
+- **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
+- **Status:** open.
+
 ### [P3] [open] Undiscovered repos confirmation
 - **What:** Repos `corp-knowledge-extractor`, `corp-by-os`, `corp-rfp-agent` not found under `Dev/` during 2026-05-11 audit. Confirm status: renamed, archived, not yet cloned, or dropped.
 - **Why:** Unknown repo status creates a gap in ecosystem audit coverage; universalization rollout cannot be fully scoped if repos may exist that are not tracked. Confirmation before Phase 3 prevents missed repos.
