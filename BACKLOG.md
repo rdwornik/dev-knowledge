@@ -591,6 +591,13 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-28 by rob (process-diagrams session — captured at write-time).
 - **Status:** open — small PLAYBOOK rule; no code.
 
+### [P3] [open] `audit.py` check — Mermaid dark-theme directive present
+- **What:** Add a `check_mermaid_theme_directive` to `scripts/audit.py` that verifies every Mermaid block in `ARCHITECTURE.md` (and the template) begins with `%%{init: {'theme':'dark'}}%%`. Skip immutable-artifact paths (`docs/audits/`, `docs/decisions/` ADR-historic-quote bodies) — needs a small allow/deny-list. Add unit tests with both pass and fail fixtures.
+- **Why:** ADR-51 amendment 2026-05-28 codified the dark-theme directive as standard; mechanical enforcement closes the drift gap so future hand-edited diagrams cannot silently regress. Scoped exclusion list is the hard part — without it the check would false-positive on legitimate historical quotations in audits/ADRs.
+- **Refs:** `docs/audits/2026-05-28-mermaid-dark-theme-verification.md` § "audit.py check — deferred"; ADR-51 amendment 2026-05-28; `scripts/audit.py` existing check pattern.
+- **Added:** 2026-05-28 by rob (mermaid dark-theme session — deferred).
+- **Status:** open — pending fixture suite + exclusion scoping; low priority while operator-verification is reliable.
+
 ### [P2] [open] corp-sca-time-automation dev-tooling install + `run.py` → `scripts/`
 - **What:** Two-step follow-up to the 2026-05-27 corp-sca retrofit: (1) install pytest + ruff in the corp-sca venv (currently commented out in `requirements.txt` as optional dev), (2) move `run.py` (18187B, executable, at root) → `scripts/run.py` and update its 6 references (`.claude/rules/python-env.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `docs/handoffs/2026-04-15-handoff.md`, `scripts/manager_report.py`, `tests/test_vbs_export.py`). Verify with pytest after the move.
 - **Why:** The retrofit's entry-script move was **deferred** because pytest was unavailable in the venv and the operator prompt explicitly forbade moving entry-scripts without test verification. Step (1) unblocks step (2); the move itself completes the retrofit's per-repo conformance.
