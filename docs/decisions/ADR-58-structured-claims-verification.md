@@ -93,3 +93,17 @@ and substantively ratified by the operator.
 `11_CLAIMS.md` template (claims table + assumptions table + verification-status
 checklist + trigger-rule reminder + load-bearing definition) is added as a
 bundle-file section in this session's Phase C template amendment.
+
+---
+
+## Amendment 2026-05-29 — evidence file relocation
+
+> Append-only reference correction per ADR-39 (immutable body preserved). Grounds:
+> `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` finding E1.
+
+The Context section above cites the empirical-basis evidence file at
+`docs/research/2026-05-25-handoff-failures-evidence.md`. That file was relocated to
+**`docs/archive/2026-05-25-handoff-failures-evidence.md`** by the 2026-05-28
+ADR-60 archive triage. The original path in the body is retained for historical
+accuracy; the current canonical path is the `docs/archive/` one. (Noted: ADR-58 is
+the citation-verification decision — this corrects its own broken citation.)
