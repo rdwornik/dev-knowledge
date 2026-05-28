@@ -74,7 +74,7 @@ def emit_mermaid(
 
     cycle_edges = _find_cycles(packages, edges)
 
-    lines: list[str] = ["flowchart TD"]
+    lines: list[str] = ["%%{init: {'theme':'dark'}}%%", "flowchart TD"]
 
     for pkg in packages:
         cls = layers.get(pkg, "")

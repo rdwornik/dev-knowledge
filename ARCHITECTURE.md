@@ -22,6 +22,7 @@ The codemap is the canonical artifact answering *"what exists and how does it re
 
 <!-- CODEMAP:START -->
 ```mermaid
+%%{init: {'theme':'dark'}}%%
 flowchart TD
     codemap[codemap]:::orphan
     classDef foundation fill:#e8e8e8,stroke:#888
