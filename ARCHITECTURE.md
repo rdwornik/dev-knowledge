@@ -264,6 +264,8 @@ flowchart TD
 
 **Source:** `ai-council/docs/council-question-guide.md` (modes, panel, inbox detection); `ai-council/src/ai_council/{cli,inbox,orchestrator,routing,synthesis}.py` (real flow + 5 provider modules under `providers/`); `docs/decisions/ADR-43_cross_project_transcript_routing.md` (routing mechanism); ADR-03 (blind vote).
 
+**Operational runbook (prose companion):** `protocols/AI_COUNCIL_PROCESS.md` — six-stage lifecycle (frame → author → route → debate → verdict → ADR → close), gate checks, troubleshooting.
+
 ### Handoff process v3.4
 
 Three stages plus the receiver's applied-task gate. Grounded in `HANDOFF_PROCESS.md` v3.4 + ADRs 55/56/57/58 + ADR-42 Q5 amendment.
