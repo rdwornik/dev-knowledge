@@ -215,3 +215,67 @@ All three are wired into `audit.py health` and the per-repo audit findings.
 - **A third-party Explorer-sort extension** for true reverse/custom order.
   Deferred: adds a per-machine dependency for marginal benefit; revisit only if
   ascending dated-folder order becomes a real blocker.
+
+---
+
+## Amendment — 2026-05-27: `explorer.sortOrderReverse` is real (correction)
+
+The original ADR claimed (Context line 140, "Alternatives considered" line 210,
+PLAYBOOK Visual Pattern subsection) that `explorer.sortOrderReverse` is **not a
+real VS Code setting** — a rejected feature request — and removed it from the
+workspace on that basis. Empirical re-verification this session shows that claim
+was wrong.
+
+**Evidence (verified 2026-05-27):**
+
+- [microsoft/vscode#149951](https://github.com/microsoft/vscode/issues/149951)
+  was the feature request and is **closed**, labelled `insiders-released` and
+  `verified`.
+- [microsoft/vscode#149952](https://github.com/microsoft/vscode/pull/149952) is
+  the implementation PR and was **merged on 2024-07-30**.
+- The setting exists in current VS Code and reverses the order produced by
+  whatever `explorer.sortOrder` resolves to (an ASC/DESC toggle, per the PR
+  author's framing — not a third sort mode).
+
+**Operator-observed regression.** Removing `explorer.sortOrderReverse: true` in
+commit `ea79a20` caused the operator's dated folders (`docs/audits/`,
+`docs/handoffs/`, `docs/decisions/transcripts/`) to flip from newest-first to
+oldest-first — a clear UX degradation the operator surfaced explicitly.
+
+**Corrected decision.** Keep both settings together:
+
+```jsonc
+"explorer.sortOrder": "default",
+"explorer.sortOrderLexicographicOptions": "upper",
+"explorer.sortOrderReverse": true
+```
+
+`lexicographic: upper` continues to cluster ALL-CAPS canonical `.md` files
+(visual pattern intent). `sortOrderReverse: true` flips the natural ordering so
+dated folders show newest-first. The two compose: the visual pattern survives;
+the operator's preferred dated ordering is restored.
+
+**Status of the original "Alternatives considered" bullet** ("Keep
+`explorer.sortOrderReverse: true` … Rejected: it is not a real VS Code setting"):
+**superseded.** The rejection rationale was based on a false premise.
+
+**Status of the Consequences "ascending dated-folder order" trade-off:**
+**no longer a trade-off** — newest-first is now native, via this amendment. The
+"open-latest-*" workspace tasks remain useful as a fast keyboard path but are no
+longer the *only* answer.
+
+**Why the correction was missed in the original session.** The original
+session's verification step inspected a stale or partial reference and treated
+the GitHub issue title ("would like to reverse the file order") as a rejected
+ask. It did not inspect the linked PR (`#149952`) or check current VS Code
+behavior. Lesson logged at the protocol layer: when removing a workspace setting
+on the basis that it does not exist, the verification must reach the
+implementation PR or the running editor — not just the issue page.
+
+**No changes** to Decisions 1–4, the audit checks, the dot-prefix exception
+list, or the retrofit plans. The amendment is workspace-scoped.
+
+**Files touched by this amendment:** `.dev-knowledge.code-workspace` (restore the
+setting + corrected comment), this ADR (append-only). No PLAYBOOK rewrite —
+PLAYBOOK already references this ADR by number and its body will be touched
+only if a future divergence surfaces during use.

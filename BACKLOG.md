@@ -448,12 +448,12 @@ Next quarterly grooming: 2026-07-01
 > review authority pattern" (Cross-stream, above) is NOT duplicated here — it already covers
 > that work and runs parallel to entry #3.
 
-### [P1] [open] Draft ADRs from the 5 handoff-methodology Council transcripts
+### [P1] [closed] Draft ADRs from the 5 handoff-methodology Council transcripts
 - **What:** Five `pick`-mode debates (Q1–Q5, handoff methodology) completed and their transcripts landed in `docs/decisions/transcripts/council-out-20260526_*-handoff-council-Q[1-5]-*.md`. Distill each verdict into a committed ADR per the PLAYBOOK "After a Decision" protocol (verify next ADR number, align to `templates/ADR-template.md`, write `ADR-NN-topic.md`, add the `docs/decisions/README.md` index + traceability row).
 - **Why:** A debate "is not done until its ADR is committed" (PLAYBOOK). Five binding verdicts currently exist only as transcripts; without ADRs the decisions are not discoverable or enforceable.
 - **Refs:** the 5 transcripts; PLAYBOOK "Council Debate Archival Protocol" + "After a Decision".
 - **Added:** 2026-05-26 by rob (consolidation session).
-- **Status:** open — one ADR per verdict (or a consolidated ADR-set if the five form one decision); operator to confirm grouping.
+- **Status:** closed 2026-05-26 — handoff-process-stabilization session implemented all 5 verdicts as **ADR-55** (applied-task gate), **ADR-56** (Prompt Generation Card), **ADR-57** (two-layer bundle contract), **ADR-58** (structured claims), and an **ADR-42 Q5 amendment**, with `HANDOFF_FOLDER_TEMPLATE.md` + `HANDOFF_PROCESS.md` (v3.4) + PLAYBOOK updates and a validation report mapping every Council action item to a commit SHA. Branch merged to `main`. Deferred mechanical gate code tracked as the existing "Mechanical gate code for handoff enforcement" P2 entry.
 
 ### [P1] [closed] Apply pipeline+taxonomy proposal — new `docs/council-questions/` folder (Option B)
 - **What:** Implement the operator-selected Option B from `docs/audits/2026-05-25-council-pipeline-proposal.md`: create `docs/council-questions/` as the home for Council *question/staging inputs*, separating them from `docs/research/` (research *outputs*) and `docs/decisions/transcripts/` (debate outputs). Migrate the 7 question-set inputs currently mis-filed in `research/` (the `handoff-council-Q1..Q5`, `-failures-evidence`, `-methodology-council-index` set).
@@ -476,11 +476,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-26 by rob (consolidation session).
 - **Status:** closed 2026-05-27 — authored as **ADR-60** (`docs/decisions/ADR-60-docs-folder-taxonomy.md`), conversational (operator decision, no Council debate). Codifies the input/output/working/archived role per `docs/` subfolder + lifecycle + the move-time immutable-record-preservation rule; added to `decisions/README.md` index. Implemented jointly with entry #2. Branch `docs/folder-taxonomy-implementation-2026-05-27`, awaiting operator merge.
 
-### [P2] [open] Codify git worktree pattern for parallel Claude Code sessions
+### [P1] [open] Codify git worktree pattern for parallel Claude Code sessions
 - **What:** Document (PLAYBOOK + ESSENTIALS) the rule that parallel Claude Code sessions on the *same* repo MUST use `git worktree` (separate working trees + HEADs), never share one checkout. Include the bootstrap command and a note on why shared `.git/` HEAD is unsafe.
 - **Why:** This session's root cause — three concurrent sessions on one working tree scattered commits across branches because HEAD switched mid-session (see `docs/archive/2026/2026-05-26-consolidation-preflight.md` reflog). A worktree per session eliminates the race entirely.
-- **Refs:** consolidation preflight snapshot; this session's recovery work.
+- **Refs:** consolidation preflight snapshot; 2026-05-26 consolidation recovery; 2026-05-27 visual-pattern session also had to repoint a misplaced branch (`docs/audits/2026-05-27-concurrency-anomaly-cleanup-2026-05-26.md`).
 - **Added:** 2026-05-26 by rob (consolidation session).
+- **Escalated:** 2026-05-27 P2 → P1 (fresh evidence — second incident on 2026-05-27; the race condition keeps producing real consolidation work).
 - **Status:** open — PLAYBOOK codification (process rule, no code).
 
 ### [P2] [open] Remove tier-residue from `.dev-knowledge` workspace templates
@@ -504,11 +505,44 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-26 by rob (consolidation session; pipeline-discovery Q2).
 - **Status:** closed 2026-05-27 — **retire/relocate** chosen: dormant (single 2026-Q2 entry, no cadence) → `git mv` to `docs/archive/tech-radar/` per ADR-60. Reversible — resurface if quarterly tech-radar work resumes. Branch `docs/folder-taxonomy-implementation-2026-05-27`, awaiting operator merge.
 
-### [P3] [open] Remove the "📋 ADRs" folder alias from `.dev-knowledge.code-workspace`
+### [P3] [closed] Remove the "📋 ADRs" folder alias from `.dev-knowledge.code-workspace`
 - **What:** `.dev-knowledge.code-workspace` defines a multi-root folder alias `"name": "📋 ADRs"` (`:20`) and an `open-latest-adr` task (`:154`). Evaluate whether the ADRs alias adds value vs clutter; remove it if the canonical-file keybindings/tasks already cover ADR access.
 - **Why:** Workspace hygiene — the multi-root alias predates the canonical-file open tasks/keybindings (added 2026-05-24); a redundant root adds Explorer noise. Pairs with entry #6 (workspace template rework).
 - **Refs:** `.dev-knowledge.code-workspace:20,154`.
 - **Added:** 2026-05-26 by rob (consolidation session).
-- **Status:** open — low-priority workspace polish; bundle with entry #6 if the template rework touches this file.
+- **Status:** closed 2026-05-27 — superseded by the workspace-aliases-cleanup commit (`f5322837`) which removed all three dated-folder aliases (`📅 Audits`, `📅 Handoffs`, `📋 ADRs`) as part of the visual-pattern session. The `open-latest-adr` task was kept (still useful as a keyboard fast path). Workspace now has only the two functional roots (`.dev-knowledge` + `~/.claude`).
+
+### [P2] [open] ADR-59 universal visual pattern — child-repo retrofits (4×)
+- **What:** Apply ADR-59 (universal visual repository pattern: dot-prefix discipline, canonical `.md` visibility + clustering, workspace sort settings) to each of the four child repos. Plans were authored 2026-05-27 in `docs/audits/2026-05-27-{ai-council,corp-ops,corp-sca-time-automation,corp-monorepo}-visual-pattern-retrofit-plan.md`. Each retrofit is one Claude Code session in the *target* repo, separate workdirs (worktree pattern — see entry #5).
+- **Why:** ADR-59 codifies the pattern but only self-applies to `.dev-knowledge`. Until the child repos conform, the audit-tool checks will FAIL on them and the operator's promised "open any repo, same visual layout" goal is not delivered.
+- **Refs:** ADR-59 + the 4 plans + ADR-59's 2026-05-27 amendment (sortOrderReverse restored — retrofits must use the corrected setting, not the originally-codified one).
+- **Added:** 2026-05-27 by rob (this session — captured from the visual-pattern session's deferred phase).
+- **Status:** open — `corp-monorepo` retrofit needs the open ruff-strictness decision first (entry below).
+- **Sub-items:**
+  - **ai-council retrofit** — plan ready; bundle with the open "Execute the ai-council universalization execution plan" (entry #3) so the audit refresh + visual-pattern rollout land in one ai-council session.
+  - **corp-ops retrofit** — plan ready, independent (no prerequisites).
+  - **corp-sca-time-automation retrofit** — plan ready, independent.
+  - **corp-monorepo retrofit** — blocked on `corp-monorepo` ruff-strictness decision (the universalization mega-session deferred this; resolving it unblocks Action 6 (VISION routing, Council-gated) + Action 7c).
+
+### [P2] [open] AI Council Flow operationalization — lifecycle runbook
+- **What:** Author the AI Council Flow operational runbook (where it lives is open — likely `protocols/AI_COUNCIL_FLOW.md` or expanded PLAYBOOK section): the end-to-end lifecycle of a Council question from drafting (in `docs/council-questions/`) → debate (ai-council CLI, mode/target-project frontmatter) → transcript landing (per ADR-43) → ADR drafting (per PLAYBOOK "After a Decision") → BACKLOG follow-up. This is the remaining Option B piece from the 2026-05-25 pipeline proposal that ADR-60 (taxonomy) didn't itself cover.
+- **Why:** ADR-60 fixed *where* artifacts live; the *lifecycle* glue (who does what when, gate checks, archival cadence) still lives only in scattered PLAYBOOK references. Without a runbook the operator re-derives the flow each time.
+- **Refs:** `docs/audits/2026-05-25-council-pipeline-proposal.md` (Option B); ADR-60; ADR-43; PLAYBOOK § "Council Debate Archival Protocol" + "After a Decision".
+- **Added:** 2026-05-27 by rob (this session — captured from the prompt's "remaining Option B piece").
+- **Status:** open — likely a runbook + small PLAYBOOK pointer; no code.
+
+### [P3] [open] Audit tool — folder-semantics validation check (ADR-60 candidate)
+- **What:** Extend `scripts/audit.py` with a read-only `check_folder_semantics` that asserts every `docs/` subfolder carries exactly one of the four ADR-60 roles (inputs / outputs / working / archived) — verified by README presence + a frontmatter or naming convention the check can match. Surfaces drift when a new ad-hoc folder is added without a declared role.
+- **Why:** ADR-60 codifies the taxonomy but is currently enforced by review discipline only. The 2026-05-27 taxonomy implementation session noted "folder-semantics validation left as a BACKLOG candidate per ADR-60." Bringing it under `audit.py health` makes drift visible the way the visual pattern's 3 new checks now do.
+- **Refs:** ADR-60; `scripts/audit.py` (existing 6 checks per ADR-59); 2026-05-27 taxonomy JOURNAL entry.
+- **Added:** 2026-05-27 by rob (this session — captured from the taxonomy session's deferred work).
+- **Status:** open — code change; size similar to the ADR-59 audit extensions (~3 checks + tests).
+
+### [P3] [open] Sort-regression verification protocol — workspace settings
+- **What:** Add a one-line PLAYBOOK rule (or ESSENTIALS cheat) that any change to `.dev-knowledge.code-workspace` sort settings must be verified by (a) reading the linked PR/release, not just the GitHub issue page, AND (b) launching VS Code on the workspace and visually checking dated-folder ordering before commit.
+- **Why:** This session's correction (ADR-59 amendment) cost a full diagnostic + commit cycle because the originating session's verification stopped at the issue page (which titled the request as "would like to reverse the file order" — sounds like an ask) and never inspected the merged PR (#149952) or running editor. A two-step rule (PR + visual) would have caught the regression at write-time.
+- **Refs:** ADR-59 2026-05-27 amendment; the operator-observed regression that triggered this session.
+- **Added:** 2026-05-27 by rob (this session).
+- **Status:** open — small PLAYBOOK rule, no code.
 
 ---

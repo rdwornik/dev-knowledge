@@ -51,14 +51,16 @@
 		"terminal.integrated.cwd": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge",
 
 		// ── Explorer ────────────────────────────────────────
-		// Per ADR-59 universal visual pattern (supersedes the 2026-05-24 decision).
-		// "upper" groups ALL-CAPS canonical .md ahead of lowercase configs; dotfiles
-		// cluster at the top of the files list. NOTE: explorer.sortOrderReverse is NOT
-		// a real VS Code setting (verified 2026-05-27, microsoft/vscode#149951) — the
-		// prior "newest dates first" was a no-op and has been removed. Dated folders
-		// sort ascending; navigate newest via Ctrl+P or the open-latest-* tasks below.
+		// Per ADR-59 universal visual pattern (with 2026-05-27 sort-regression amendment).
+		// "upper" groups ALL-CAPS canonical .md ahead of lowercase configs (visual pattern).
+		// "sortOrderReverse: true" gives newest-first inside dated folders (audits/,
+		// handoffs/, decisions/transcripts/) — operator's restored preference. The prior
+		// session's claim that sortOrderReverse "is not a real VS Code setting" was
+		// empirically wrong: PR microsoft/vscode#149952 merged 2024-07-30 (insiders-
+		// released, verified). Re-verified 2026-05-27 against vscode source + release.
 		"explorer.sortOrder": "default",
 		"explorer.sortOrderLexicographicOptions": "upper",
+		"explorer.sortOrderReverse": true,
 		"explorer.compactFolders": false,
 
 		// ── Todo Tree ───────────────────────────────────────

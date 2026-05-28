@@ -252,7 +252,7 @@ Every repo root follows the ADR-59 universal visual pattern (read the ADR for th
 2. Supported → use the dotted name. Not supported → add the exact name to the ADR-59 exception list **and** the `scripts/audit.py` exception constant, and note it in the commit.
 3. The exception list is the single source of truth, mirrored in the audit tool. `audit.py health` surfaces drift.
 
-**Date-sorted folders** (`docs/audits/`, `docs/handoffs/`, transcripts): ISO `YYYY-MM-DD-` prefix only. VS Code has no native per-folder reverse sort (`explorer.sortOrderReverse` is not a real setting); dated content stays ascending. Navigate via scroll-to-bottom, `Ctrl+P`, or the workspace `open-latest-*` tasks.
+**Date-sorted folders** (`docs/audits/`, `docs/handoffs/`, transcripts): ISO `YYYY-MM-DD-` prefix only. `explorer.sortOrderReverse: true` (real setting — microsoft/vscode PR #149952, merged 2024-07-30; re-verified 2026-05-27, supersedes the earlier "not a real setting" claim — see ADR-59's 2026-05-27 amendment) flips ordering so dated folders show newest-first. The workspace `open-latest-*` tasks remain useful as a keyboard fast path.
 
 ### docs/ folder taxonomy (per ADR-60)
 <!-- scope: meta -->
