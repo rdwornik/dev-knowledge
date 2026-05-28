@@ -22,14 +22,14 @@ The codemap is the canonical artifact answering *"what exists and how does it re
 
 <!-- CODEMAP:START -->
 ```mermaid
-%%{init: {'theme':'dark'}}%%
+%%{init: {'theme':'base', 'themeVariables': {'darkMode':true,'background':'#1a1a1a','primaryColor':'#2d2d3d','primaryTextColor':'#f0f0f0','primaryBorderColor':'#8a86ff','lineColor':'#a0a0ff','textColor':'#f0f0f0','mainBkg':'#2d2d3d','secondaryColor':'#3d2d3d','tertiaryColor':'#22323a','clusterBkg':'#222232','clusterBorder':'#555577','edgeLabelBackground':'#1a1a1a','titleColor':'#f0f0f0','nodeBorder':'#8a86ff'}}}%%
 flowchart TD
     codemap[codemap]:::orphan
-    classDef foundation fill:#e8e8e8,stroke:#888
-    classDef core fill:#bde0fe,stroke:#1971c2
-    classDef orchestration fill:#a5d8ff,stroke:#1971c2
-    classDef interface fill:#74c0fc,stroke:#1864ab
-    classDef orphan fill:#fff5f5,stroke:#fa5252,stroke-dasharray:4 4
+    classDef foundation fill:#e8e8e8,stroke:#888,color:#222
+    classDef core fill:#bde0fe,stroke:#1971c2,color:#000
+    classDef orchestration fill:#a5d8ff,stroke:#1971c2,color:#000
+    classDef interface fill:#74c0fc,stroke:#1864ab,color:#000
+    classDef orphan fill:#fff5f5,stroke:#fa5252,stroke-dasharray:4 4,color:#222
     classDef cycle stroke:#e03131,stroke-width:2px
     click codemap href "scripts/codemap/" "Open codemap"
 ```
@@ -45,7 +45,7 @@ flowchart TD
 `.dev-knowledge` is **Layer 2** of the ADR-28 ecosystem-level three-layer model (layers listed highest to lowest):
 
 ```mermaid
-%%{init: {'theme':'dark'}}%%
+%%{init: {'theme':'base', 'themeVariables': {'darkMode':true,'background':'#1a1a1a','primaryColor':'#2d2d3d','primaryTextColor':'#f0f0f0','primaryBorderColor':'#8a86ff','lineColor':'#a0a0ff','textColor':'#f0f0f0','mainBkg':'#2d2d3d','secondaryColor':'#3d2d3d','tertiaryColor':'#22323a','clusterBkg':'#222232','clusterBorder':'#555577','edgeLabelBackground':'#1a1a1a','titleColor':'#f0f0f0','nodeBorder':'#8a86ff'}}}%%
 flowchart TD
     L1["Browser chat<br/>Layer 1 — analysis"]
     L2[".dev-knowledge<br/>Layer 2 — passive storage"]
@@ -110,7 +110,7 @@ When freestanding Mermaid diagrams are added in child code repos, source files g
 Adds runtime config (`~/.claude`) and the Obsidian vault (pre-sales, separate domain) to the strict ADR-28 three-layer view above. Same model, broader picture.
 
 ```mermaid
-%%{init: {'theme':'dark'}}%%
+%%{init: {'theme':'base', 'themeVariables': {'darkMode':true,'background':'#1a1a1a','primaryColor':'#2d2d3d','primaryTextColor':'#f0f0f0','primaryBorderColor':'#8a86ff','lineColor':'#a0a0ff','textColor':'#f0f0f0','mainBkg':'#2d2d3d','secondaryColor':'#3d2d3d','tertiaryColor':'#22323a','clusterBkg':'#222232','clusterBorder':'#555577','edgeLabelBackground':'#1a1a1a','titleColor':'#f0f0f0','nodeBorder':'#8a86ff'}}}%%
 flowchart TB
     subgraph methodology [".dev-knowledge — Layer 2 (methodology)"]
         playbook[PLAYBOOK + ESSENTIALS]
@@ -162,7 +162,7 @@ flowchart TB
 How a need becomes a commit: complexity routing, execution, capture, and the handoff loop when context degrades.
 
 ```mermaid
-%%{init: {'theme':'dark'}}%%
+%%{init: {'theme':'base', 'themeVariables': {'darkMode':true,'background':'#1a1a1a','primaryColor':'#2d2d3d','primaryTextColor':'#f0f0f0','primaryBorderColor':'#8a86ff','lineColor':'#a0a0ff','textColor':'#f0f0f0','mainBkg':'#2d2d3d','secondaryColor':'#3d2d3d','tertiaryColor':'#22323a','clusterBkg':'#222232','clusterBorder':'#555577','edgeLabelBackground':'#1a1a1a','titleColor':'#f0f0f0','nodeBorder':'#8a86ff'}}}%%
 flowchart TD
     need([Operator surfaces a need])
     need --> route{Complexity}
@@ -194,11 +194,11 @@ flowchart TD
     degrade -- "yes" --> handoff[/Handoff v3.4/]
     handoff --> need
 
-    classDef start fill:#bde0fe,stroke:#1971c2
-    classDef decide fill:#fff3bf,stroke:#c79e00
-    classDef exec_ fill:#a5d8ff,stroke:#1971c2
-    classDef cap fill:#d8f5a2,stroke:#5c940d
-    classDef sub fill:#e8e8e8,stroke:#888
+    classDef start fill:#bde0fe,stroke:#1971c2,color:#000
+    classDef decide fill:#fff3bf,stroke:#c79e00,color:#222
+    classDef exec_ fill:#a5d8ff,stroke:#1971c2,color:#000
+    classDef cap fill:#d8f5a2,stroke:#5c940d,color:#222
+    classDef sub fill:#e8e8e8,stroke:#888,color:#222
 
     class need start
     class route,degrade decide
@@ -214,7 +214,7 @@ flowchart TD
 End-to-end from question authoring to ADR. Grounded in the actual `ai-council` CLI + router, not in earlier mental sketches: question briefs are **ephemeral** (live in gitignored `council_inbox/` or `~/Downloads/`); the permanent record is the routed transcript + the ADR it informs. The earlier "committed `docs/council-questions/` folder" sketch was retired by the 2026-05-27 ADR-60 amendment — this diagram follows reality.
 
 ```mermaid
-%%{init: {'theme':'dark'}}%%
+%%{init: {'theme':'base', 'themeVariables': {'darkMode':true,'background':'#1a1a1a','primaryColor':'#2d2d3d','primaryTextColor':'#f0f0f0','primaryBorderColor':'#8a86ff','lineColor':'#a0a0ff','textColor':'#f0f0f0','mainBkg':'#2d2d3d','secondaryColor':'#3d2d3d','tertiaryColor':'#22323a','clusterBkg':'#222232','clusterBorder':'#555577','edgeLabelBackground':'#1a1a1a','titleColor':'#f0f0f0','nodeBorder':'#8a86ff'}}}%%
 flowchart TD
     author[Operator authors brief<br/>YAML frontmatter + body]
 
@@ -249,11 +249,11 @@ flowchart TD
 
     transcripts --> adr_author[Operator distils to ADR<br/>in target/docs/decisions/]
 
-    classDef start fill:#bde0fe,stroke:#1971c2
-    classDef decide fill:#fff3bf,stroke:#c79e00
-    classDef cli_ fill:#a5d8ff,stroke:#1971c2
-    classDef out fill:#d8f5a2,stroke:#5c940d
-    classDef warn fill:#ffe3e3,stroke:#fa5252
+    classDef start fill:#bde0fe,stroke:#1971c2,color:#000
+    classDef decide fill:#fff3bf,stroke:#c79e00,color:#222
+    classDef cli_ fill:#a5d8ff,stroke:#1971c2,color:#000
+    classDef out fill:#d8f5a2,stroke:#5c940d,color:#222
+    classDef warn fill:#ffe3e3,stroke:#fa5252,color:#222
 
     class author start
     class route_in,mode,route_out decide
@@ -271,7 +271,7 @@ flowchart TD
 Three stages plus the receiver's applied-task gate. Grounded in `HANDOFF_PROCESS.md` v3.4 + ADRs 55/56/57/58 + ADR-42 Q5 amendment.
 
 ```mermaid
-%%{init: {'theme':'dark'}}%%
+%%{init: {'theme':'base', 'themeVariables': {'darkMode':true,'background':'#1a1a1a','primaryColor':'#2d2d3d','primaryTextColor':'#f0f0f0','primaryBorderColor':'#8a86ff','lineColor':'#a0a0ff','textColor':'#f0f0f0','mainBkg':'#2d2d3d','secondaryColor':'#3d2d3d','tertiaryColor':'#22323a','clusterBkg':'#222232','clusterBorder':'#555577','edgeLabelBackground':'#1a1a1a','titleColor':'#f0f0f0','nodeBorder':'#8a86ff'}}}%%
 flowchart TD
     trigger(["Operator: 'Make handoff for {repo}'"])
     trigger --> stage1
@@ -327,11 +327,11 @@ flowchart TD
     retry --> ratify
     ratify -- "second fail" --> abort[Bundle inadequate<br/>regenerate Stage 2 upstream]
 
-    classDef start fill:#bde0fe,stroke:#1971c2
-    classDef stg fill:#e8e8e8,stroke:#888
-    classDef decide fill:#fff3bf,stroke:#c79e00
-    classDef work_ fill:#d8f5a2,stroke:#5c940d
-    classDef warn fill:#ffe3e3,stroke:#fa5252
+    classDef start fill:#bde0fe,stroke:#1971c2,color:#000
+    classDef stg fill:#e8e8e8,stroke:#888,color:#222
+    classDef decide fill:#fff3bf,stroke:#c79e00,color:#222
+    classDef work_ fill:#d8f5a2,stroke:#5c940d,color:#222
+    classDef warn fill:#ffe3e3,stroke:#fa5252,color:#222
 
     class trigger start
     class stage1,stage2,stage3,recv stg
