@@ -191,7 +191,7 @@ Per ADR-34 (ratified 2026-04-29, amended 2026-05-11). Canonical source: `docs/de
 ### Folder structure
 <!-- scope: meta -->
 
-Which `docs/` subfolders a repo carries (`decisions/`, `handoffs/`, `audits/`, `research/`) is a judgment call by repo complexity, not a gated tier prescription (repo-tier system deprecated 2026-05-23). Add a subfolder when its content class first appears; do not pre-create empty scaffolding. The universal governance baseline (ADR-38 amendment A5) covers the mandatory root files; everything under `docs/` is optional and added on first need.
+Which `docs/` subfolders a repo carries follows the 2026-05-27 ADR-60 amendment two-variant taxonomy (`.dev-knowledge` carries `decisions/`+`audits/`+`handoffs/`+`archive/`; child code repos carry `decisions/`+`audits/`+`archive/`+`diagrams/`). Add a subfolder when its content class first appears; do not pre-create empty scaffolding. The universal governance baseline (ADR-38 amendment A5) covers the mandatory root files; everything under `docs/` is added on first need within the variant the repo belongs to.
 
 ### Root hygiene convention
 <!-- scope: dev -->
@@ -254,27 +254,37 @@ Every repo root follows the ADR-59 universal visual pattern (read the ADR for th
 
 **Date-sorted folders** (`docs/audits/`, `docs/handoffs/`, transcripts): ISO `YYYY-MM-DD-` prefix only. `explorer.sortOrderReverse: true` (real setting — microsoft/vscode PR #149952, merged 2024-07-30; re-verified 2026-05-27, supersedes the earlier "not a real setting" claim — see ADR-59's 2026-05-27 amendment) flips ordering so dated folders show newest-first. The workspace `open-latest-*` tasks remain useful as a keyboard fast path.
 
-### docs/ folder taxonomy (per ADR-60)
+### docs/ folder taxonomy (per ADR-60 + 2026-05-27 amendment)
 <!-- scope: meta -->
-<!-- version: 1.0 — 2026-05-27 -->
+<!-- version: 2.0 — 2026-05-27 (amendment: simplification + repo-type variants) -->
 
-Where ADR-59 makes every repo *look* the same, ADR-60 makes `.dev-knowledge`'s `docs/` *mean* the same: each subfolder serves **one** semantic role, so a file's location tells you what it is.
+Where ADR-59 makes every repo *look* the same, ADR-60 makes its `docs/` *mean* the same: each subfolder serves **one** semantic role, so a file's location tells you what it is. The 2026-05-27 amendment retired `research/` and `council-questions/` (didn't earn permanence) and split the taxonomy into two repo-type variants.
+
+**`.dev-knowledge` (methodology repo):**
 
 | Folder | Role | Contents |
 |--------|------|----------|
-| `audits/` | OUTPUTS | Audit reports, validation reports, refresh docs, forensics |
-| `council-questions/` | INPUTS | Council debate question sets, evidence, set indexes |
 | `decisions/` | OUTPUTS | ADRs + `transcripts/` (routed per ADR-43) |
-| `handoffs/` | OUTPUTS | Per-session handoff bundles |
-| `research/` | WORKING | Exploratory pre-decision scratchpad |
-| `archive/` | ARCHIVED | Superseded, dormant, transient (incl. archived `tech-radar/`) |
+| `audits/` | OUTPUTS | Audit reports, validation reports, forensics |
+| `handoffs/` | OUTPUTS | ALL handoff bundles (centralized canonical home) |
+| `archive/` | ARCHIVED | Pending-classification zone (per-repo `README.md` documents lifecycle) |
 
-**File lifecycle (always `git mv` — preserve history):**
-- Exploratory work starts in `research/`; matures to `audits/` (finished audit) or `decisions/` (ADR).
-- Council debate inputs land in `council-questions/`; transcripts route to `decisions/transcripts/`.
-- Dormant/superseded → `archive/`.
+**Child code repos** (ai-council, corp-ops, corp-sca-time-automation, corp-monorepo, future repos):
 
-**On moving a file, do NOT rewrite append-only or immutable records that reference it** — ADRs, transcripts, handoffs, and existing `JOURNAL.md`/`LESSONS.md` entries are point-in-time history (critical rules #2/#3). Update only living docs (BACKLOG, PLAYBOOK, HANDOFF_PROCESS, READMEs) and the moved file's own internal cross-refs. Date-prefixed naming (`YYYY-MM-DD-{slug}.md`) for time-sequenced artifacts.
+| Folder | Role | Contents |
+|--------|------|----------|
+| `decisions/` | OUTPUTS | ADRs + `transcripts/` (routed per ADR-43) |
+| `audits/` | OUTPUTS | Audit reports, validation reports, forensics |
+| `archive/` | ARCHIVED | Pending-classification zone |
+| `diagrams/` | DIAGRAMS | Architecture diagrams (where present; not mandatory) |
+
+Child code repos do **not** carry `handoffs/`, `research/`, or `council-questions/`. Handoffs centralize in `.dev-knowledge`.
+
+**`archive/` semantics:** deliberate holding zone for "don't yet know where this belongs." Reviewed periodically; each item either deleted (git history retains) or promoted to `decisions/`/`audits/`/`handoffs/`/`diagrams/` or authored into an ADR. Not a dumping ground — a triage queue. Every repo's `archive/` carries a `README.md`.
+
+**File-placement rules:** entry-scripts (`run.py`, `cli.py`) live in `scripts/`, not at root. Root-exception configs (not dot-prefixed, not moved): `pyproject.toml`, `tach.toml`, `requirements.txt`. Date-prefixed naming (`YYYY-MM-DD-{slug}.md`) for time-sequenced artifacts.
+
+**On moving a file, do NOT rewrite append-only or immutable records that reference it** — ADRs, transcripts, handoffs, and existing `JOURNAL.md`/`LESSONS.md` entries are point-in-time history (critical rules #2/#3). Update only living docs (BACKLOG, PLAYBOOK, HANDOFF_PROCESS, READMEs) and the moved file's own internal cross-refs.
 
 ### Secrets storage path
 <!-- scope: meta -->
@@ -568,7 +578,6 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `docs/decisions/transcripts/DECISION_NN_*.md` | Raw Council debate outputs | Multi-model debate transcript | When Council debate concludes (per PLAYBOOK 5.N archival) | Reference for ADR rationale | Numbered, immutable | Per-repo |
 | `docs/handoffs/YYYY-MM-DD-*.md` (legacy) or `docs/handoffs/YYYY-MM-DD-*/` (folder, since 2026-04-27) | Chat-to-chat session summary | Single-file legacy OR folder-format (upload-instructions + first-message + contents/) | When session boundary requires continuity | Next browser chat | Dated, immutable | Per-repo |
 | `docs/audits/YYYY-MM-DD-*.md` | Point-in-time analyses | Free-form audit | When deep analysis needed | Reference for follow-up work | Dated, immutable (mark SUPERSEDED if redone) | Per-repo |
-| `docs/research/YYYY-MM-DD-*.md` | Research outputs (Council research mode, standalone reports) | Free-form research | When research generates value | Reference for design decisions | Dated, immutable | Universal (`.dev-knowledge` only — research is methodology) |
 
 ### File presence (universal baseline)
 <!-- scope: meta -->
@@ -585,7 +594,9 @@ File presence is no longer gated per tier (repo-tier system deprecated 2026-05-2
 | `CHANGELOG.md` | removed — superseded by ADR-49 |
 | `JOURNAL.md` | optional — kept when a per-session log helps |
 | `ENVIRONMENT.md` | optional — kept when tooling state is worth tracking |
-| `docs/decisions/`, `docs/handoffs/`, `docs/audits/`, `docs/research/` | optional — added on first need (see Folder structure above) |
+| `docs/decisions/`, `docs/audits/`, `docs/archive/` | universal under the 2026-05-27 ADR-60 amendment (see taxonomy above) |
+| `docs/handoffs/` | `.dev-knowledge` only (canonical home for handoff bundles) |
+| `docs/diagrams/` | child code repos, where architecture diagrams exist |
 | `ESSENTIALS.md`, `PLAYBOOK.md`, `LESSONS.md`, `TOKEN-LOG.md` | n/a per-repo — live in `.dev-knowledge` only |
 
 Optional files are added by judgment of repo complexity; no tier makes them mandatory.
@@ -610,8 +621,7 @@ Optional files are added by judgment of repo complexity; no tier makes them mand
 
 **audits vs research:**
 - audits = backward-looking analysis of current state (per-repo, dated)
-- research = forward-looking exploration (universal in `.dev-knowledge`, dated)
-- Council research-mode debates → research/. Council pick-mode debates → transcripts/.
+- Council debates (research-mode and pick-mode) → `docs/decisions/transcripts/` (routed per ADR-43). The retired `research/` folder is no longer used (2026-05-27 ADR-60 amendment).
 
 ### Supersession & decommissioning
 <!-- scope: meta -->
