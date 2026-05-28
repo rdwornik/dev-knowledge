@@ -1533,6 +1533,8 @@ If you find yourself writing a lesson that sounds like "always do X" or "never d
 
 **Council debates are valuable but can become procrastination.** Hard rule: max 2 debates before implementation starts. Full format guide lives in the council project's docs/ folder.
 
+> **End-to-end operational lifecycle:** see `protocols/AI_COUNCIL_PROCESS.md` (six stages: frame → author → route → debate → verdict → ADR → close), the prose companion to the ARCHITECTURE.md C3 "AI Council debate pipeline" Mermaid diagram. This section gives the *when* and the format summary; the runbook gives the full *how* with gate checks, troubleshooting, and code-grounded references.
+
 ### When to use Council vs. decide yourself
 <!-- scope: llm -->
 
