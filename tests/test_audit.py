@@ -508,3 +508,48 @@ def test_audit_run_passes_structural_checks_on_synthetic_repo() -> None:
     assert statuses.get("vision_md") == "pass"
     assert statuses.get("claude_md") == "pass"
     assert statuses.get("adr38_baseline") in ("pass", "warn")
+
+# ---------------------------------------------------------------------------
+# Check #7: mermaid_theme_directive (ADR-51 v2)
+# ---------------------------------------------------------------------------
+
+MERMAID_PASS_FIXTURE = FIXTURES / "mermaid-theme-pass"
+MERMAID_FAIL_FIXTURE = FIXTURES / "mermaid-theme-fail"
+
+
+def test_mermaid_theme_directive_pass() -> None:
+    """ARCHITECTURE.md with correct base+themeVariables + classDef color: must pass."""
+    findings = aud.check_mermaid_theme_directive(MERMAID_PASS_FIXTURE)
+    assert len(findings) == 1
+    f = findings[0]
+    assert f.status == "pass", f"Expected pass, got {f.status}: {f.evidence}"
+
+
+def test_mermaid_theme_directive_fail_bare_dark() -> None:
+    """ARCHITECTURE.md with bare 'dark' theme must fail rule 1."""
+    findings = aud.check_mermaid_theme_directive(MERMAID_FAIL_FIXTURE)
+    assert len(findings) == 1
+    f = findings[0]
+    assert f.status == "fail", f"Expected fail, got {f.status}: {f.evidence}"
+    assert "base+themeVariables" in f.evidence
+
+
+def test_mermaid_theme_directive_fail_classdef_missing_color() -> None:
+    """classDef with fill:# but no color:# must be reported in the failure evidence."""
+    findings = aud.check_mermaid_theme_directive(MERMAID_FAIL_FIXTURE)
+    f = findings[0]
+    assert f.status == "fail"
+    assert "color:#" in f.evidence or "classDef" in f.evidence
+
+
+def test_mermaid_theme_directive_no_architecture_md(tmp_path: Path) -> None:
+    """Repo with no ARCHITECTURE.md passes vacuously (nothing to scan)."""
+    findings = aud.check_mermaid_theme_directive(tmp_path)
+    assert findings[0].status == "pass"
+
+
+def test_mermaid_theme_directive_no_mermaid_blocks(tmp_path: Path) -> None:
+    """ARCHITECTURE.md with no mermaid fences passes vacuously."""
+    (tmp_path / "ARCHITECTURE.md").write_text("# Architecture\n\nNo diagrams here.\n")
+    findings = aud.check_mermaid_theme_directive(tmp_path)
+    assert findings[0].status == "pass"

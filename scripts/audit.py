@@ -370,6 +370,80 @@ def check_workspace_settings(repo_path: Path) -> list[Finding]:
                     f"{ws.name} present, dot-prefixed, required sort settings correct")]
 
 
+def check_mermaid_theme_directive(repo_path: Path) -> list[Finding]:
+    """Check #7 (ADR-51 v2): Mermaid blocks use base+themeVariables; classDef fill has color.
+
+    Scanned: ARCHITECTURE.md + templates/ARCHITECTURE-template.md.
+    Excluded (immutable dated artifacts per ADR-39): docs/audits/, docs/decisions/ADR-*,
+    JOURNAL.md, docs/archive/.
+    """
+    _SCANNED_PATHS = [
+        repo_path / "ARCHITECTURE.md",
+        repo_path / "templates" / "ARCHITECTURE-template.md",
+    ]
+
+    violations: list[str] = []
+
+    for file_path in _SCANNED_PATHS:
+        if not file_path.exists():
+            continue
+        text = file_path.read_text(encoding="utf-8")
+        lines = text.splitlines()
+        rel = file_path.relative_to(repo_path)
+
+        in_fence = False
+        fence_start_line = 0
+        block_lines: list[tuple[int, str]] = []  # (1-based line number, content)
+
+        for i, line in enumerate(lines, start=1):
+            stripped = line.strip()
+            if not in_fence:
+                if stripped.startswith("```mermaid"):
+                    in_fence = True
+                    fence_start_line = i
+                    block_lines = []
+            else:
+                if stripped.startswith("```"):
+                    # End of fence — evaluate this block
+                    non_empty = [(ln, ln_text) for ln, ln_text in block_lines if ln_text.strip()]
+                    if non_empty:
+                        first_ln, first_content = non_empty[0]
+                        fc = first_content.strip()
+                        if not (re.search(r"'theme'\s*:\s*'base'", fc)
+                                and re.search(r"'themeVariables'\s*:", fc)):
+                            violations.append(
+                                f"{rel}:{first_ln}: mermaid block missing base+themeVariables "
+                                f"directive (first non-empty line: {fc[:80]!r})"
+                            )
+                    else:
+                        violations.append(
+                            f"{rel}:{fence_start_line}: empty mermaid block (no content)"
+                        )
+
+                    # Check every classDef line in the block
+                    for ln, content in block_lines:
+                        cs = content.strip()
+                        if re.search(r"\bclassDef\b", cs) and re.search(r"\bfill:#", cs):
+                            if not re.search(r"\bcolor:#", cs):
+                                violations.append(
+                                    f"{rel}:{ln}: classDef has fill:# but no color:# — "
+                                    f"{cs[:100]!r}"
+                                )
+
+                    in_fence = False
+                    block_lines = []
+                else:
+                    block_lines.append((i, line))
+
+    if violations:
+        evidence = f"{len(violations)} violation(s): " + "; ".join(violations[:3])
+        if len(violations) > 3:
+            evidence += f" … (+{len(violations) - 3} more)"
+        return [Finding("mermaid_theme_directive", "fail", evidence)]
+    return [Finding("mermaid_theme_directive", "pass",
+                    "All mermaid blocks use base+themeVariables; all classDef fill: have color:")]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -377,6 +451,7 @@ ALL_CHECKS = [
     check_dot_prefix_discipline,
     check_canonical_md_visibility,
     check_workspace_settings,
+    check_mermaid_theme_directive,
 ]
 
 
