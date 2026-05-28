@@ -209,6 +209,16 @@ Sourced from LESSONS #8 (2026-05-13). Architect-side enforcement is the workflow
 
 ---
 
+## Parallel sessions (ADR-61)
+<!-- scope: dev -->
+
+- **Different repos:** safe, no setup needed (separate `.git/` = separate HEAD).
+- **Same repo:** `git worktree add <repo>-parallel main` → open 2nd CC session there, distinct branch each. Merge in primary tree, then `git worktree remove && git worktree prune`.
+- **Pre-flight:** `git worktree list` before starting parallel work.
+- Cross-repo sequential orchestration (one session, multiple `cd`s) is separate concern — safe, no worktree needed.
+
+---
+
 ## Key Shortcuts
 <!-- scope: runtime -->
 
