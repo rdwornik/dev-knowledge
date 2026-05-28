@@ -1,7 +1,7 @@
 # Handoff Folder Template (Stage 3 output structure)
 
 Used by Claude Code in .dev-knowledge during Stage 3 to generate the
-handoff folder. See ADR-42 (amended) and HANDOFF_PROCESS.md v3.3.3 for full flow.
+handoff folder. See ADR-42 (amended through Q5) and HANDOFF_PROCESS.md v3.4 for full flow.
 
 ## Stage 3 inputs
 
@@ -111,7 +111,7 @@ omit 02b row entirely. {N} = 13 (self-applied) or 14 (cross-repo) fixed files
 artifacts (variable count per `next_session_scope`, per ADR-57).
 
 #### Notes
-- This bundle is the Stage 3 handoff per ADR-42 v3.2
+- This bundle is the Stage 3 handoff per ADR-42 (amended through Q5) / HANDOFF_PROCESS.md v3.4
 - Stage 1 + Stage 2 inputs archived at
   `.dev-knowledge/docs/handoffs/archive/{slug}/`
 - If Q&A loop produces amendments, they are also in archive at
