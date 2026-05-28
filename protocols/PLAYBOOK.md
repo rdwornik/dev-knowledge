@@ -790,10 +790,47 @@ When opening a new session that continues prior work:
 
 **Anti-pattern:** opening new session with bare prompt "continue what we were doing" — without uploading context, both sides reconstruct from memory (browser) or scratch (Claude Code). Quality drops fast.
 
+### Parallel sessions (per ADR-61)
+<!-- scope: meta -->
+
+**Different repos in parallel: already safe.** Separate `.git/` directories isolate each
+session completely — no worktree setup needed. Cross-repo sequential orchestration (one
+session `cd`-ing into multiple repos) is also safe for the same reason.
+
+**Same repo in parallel: REQUIRES `git worktree`.**
+
+Two or more Claude Code sessions on the same repo must use separate working trees. One
+working tree has one HEAD; concurrent sessions collide on branch refs and scatter commits
+(empirical failure mode, ≥3 incidents 2026-05-26/27 — see
+`docs/audits/2026-05-27-concurrency-anomaly-cleanup-2026-05-26.md`).
+
+**Setup (operator, before opening a 2nd same-repo session):**
+
+```
+git -C <repo> worktree add <repo>-parallel main
+```
+
+Open the 2nd CC session from inside the worktree directory. Each session must work on a
+distinct branch (git forbids the same branch in two worktrees simultaneously).
+
+**Cleanup (after merging the parallel branch):**
+
+```
+git -C <repo> worktree remove <repo>-parallel
+git -C <repo> worktree prune
+```
+
+**Naming:** `<repo>-parallel` for ad-hoc; `<repo>-wt-<purpose>` for multiple concurrent.
+
+**Pre-flight:** always run `git worktree list` before starting parallel work.
+
+Full rationale: ADR-61.
+
 ### Section history
 <!-- scope: meta -->
 
 - v1.0 (2026-04-25) — initial. 5 subsections: scope declaration, stop-signs, decision fatigue threshold, recursive planning anti-pattern, session resumption protocol. Codifies patterns observed in 2026-04-24 sessions. Will refine after live use.
+- v1.1 (2026-05-28) — add §Parallel sessions (ADR-61).
 
 ---
 

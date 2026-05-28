@@ -45,6 +45,7 @@ subfolder holds AI Council debate outputs that informed them.
 | ADR-58 | 2026-05-26 | Structured claims + symmetric verification — sender produces `11_CLAIMS.md` (cited load-bearing claims) + expected-articulation; executor validates locatability; operator ratifies; removes bare `role confirmed` (closes Council Q4) |
 | ADR-59 | 2026-05-27 | Universal visual repository pattern — dot-prefix discipline (verified exception list incl. `tach.toml`), ALL-CAPS canonical `.md` visibility, workspace sort settings (`sortOrderLexicographicOptions: upper`); enforced via 3 new `audit.py` checks; rolled out to `.dev-knowledge` + 4 child-repo retrofit plans |
 | ADR-60 | 2026-05-27 | docs/ folder taxonomy — semantic role per subfolder (`audits/`=outputs, `council-questions/`=inputs, `decisions/`=ADRs+transcripts, `handoffs/`=session bundles, `research/`=working scratchpad, `archive/`=superseded/dormant); implements Option B of the 2026-05-25 pipeline proposal (closes finding A1); `tech-radar/` archived; append-only/immutable records left as point-in-time history on move |
+| ADR-61 | 2026-05-28 | Git worktree pattern for parallel Claude Code sessions — same-repo parallel sessions require `git worktree` (distinct working dir + HEAD per session); cross-repo parallel is safe without worktree; closes BACKLOG #5 (escalated P1 after ≥3 race incidents 2026-05-26/27) |
 
 ## Transcript naming convention
 

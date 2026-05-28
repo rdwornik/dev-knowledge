@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-28 — Git worktree pattern codification (ADR-61)
+
+- Did: Codified the git worktree pattern for parallel Claude Code sessions as **ADR-61** (`docs/decisions/ADR-61-git-worktree-parallel-sessions.md`). Added `### Parallel sessions` subsection to PLAYBOOK `## Session boundaries` (v1.1). Added `## Parallel sessions` cheat-sheet section to ESSENTIALS. Added ADR-61 to `docs/decisions/README.md` index. Closed **BACKLOG #5** [P1].
+- Result: Pattern fully documented. Distinction codified: different-repo parallel = safe (separate `.git/`); same-repo parallel = `git worktree add` required. Setup/cleanup commands, naming convention (`<repo>-parallel` / `<repo>-wt-<purpose>`), and pre-flight check (`git worktree list`) documented in three locations. 85/85 tests pass; all pre-commit hooks pass. Branch `docs/git-worktree-pattern-2026-05-28` awaiting operator merge.
+- Changes: `docs/decisions/ADR-61-git-worktree-parallel-sessions.md` (new); `protocols/PLAYBOOK.md` (§Session boundaries parallel-sessions subsection); `protocols/ESSENTIALS.md` (new section); `docs/decisions/README.md` (ADR-61 index row); `BACKLOG.md` (#5 closed).
+- Abandoned: nothing — scope delivered exactly.
+- Next: operator merges branch with `git merge --no-ff docs/git-worktree-pattern-2026-05-28`.
+
+---
+
 ### 2026-05-28 — Mermaid dark-theme standard — cross-repo fix + codify
 
 - Did: Made every Mermaid diagram readable on Rob's black VS Code background by prepending `%%{init: {'theme':'dark'}}%%` as the first line inside every Mermaid fence across the ecosystem. **Phase A (.dev-knowledge, branch `fix/mermaid-dark-theme-2026-05-28`):** updated `scripts/codemap/mermaid_emit.py` to emit the directive automatically; updated the matching `tests/fixtures/codemap-arch-clean/ARCHITECTURE.md` fixture so `test_check_clean` still passes; regenerated `ARCHITECTURE.md` codemap block via `py -m scripts.codemap.cli generate . --source-root scripts --write`; added directive to the 5 hand-authored Mermaid blocks in `ARCHITECTURE.md` (layer model + 4 process diagrams); added directive to the canonical codemap example in `templates/ARCHITECTURE-template.md`; appended **ADR-51 Amendment 2026-05-28** codifying the standard, naming immutable dated artifacts (audits/transcripts/ADRs per ADR-39) as out-of-scope for retrofit, and documenting the custom-base `themeVariables` variant as a per-block escape hatch. **Phase B (child repos):** discovered that ai-council / corp-ops / corp-monorepo CODEMAP blocks are hand-authored (trailer comment "not generator-managed") — running the generator there would replace rich curated graphs with an orphan-only single-node graph because the AST walker doesn't find the expected imports for those source layouts. Reverted the regen attempts; added the directive in-place to both Mermaid blocks in each child repo's `ARCHITECTURE.md`. corp-sca has no Mermaid blocks — no change. **Phase C:** wrote `docs/audits/2026-05-28-mermaid-dark-theme-verification.md` (per-repo counts, generator change, audit-check deferral rationale, branches awaiting merge, operator visual-confirmation reminder); added BACKLOG P3 entry for the deferred `audit.py check_mermaid_theme_directive` check (held back pending an exclusion list for immutable-artifact paths).
