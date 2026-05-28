@@ -528,11 +528,12 @@ Next quarterly grooming: 2026-07-01
   - **corp-monorepo retrofit** — blocked on `corp-monorepo` ruff-strictness decision (the universalization mega-session deferred this; resolving it unblocks Action 6 (VISION routing, Council-gated) + Action 7c).
 
 ### [P2] [open] AI Council Flow operationalization — lifecycle runbook
-- **What:** Author the AI Council Flow operational runbook (where it lives is open — likely `protocols/AI_COUNCIL_FLOW.md` or expanded PLAYBOOK section): the end-to-end lifecycle of a Council question from drafting (in `docs/council-questions/`) → debate (ai-council CLI, mode/target-project frontmatter) → transcript landing (per ADR-43) → ADR drafting (per PLAYBOOK "After a Decision") → BACKLOG follow-up. This is the remaining Option B piece from the 2026-05-25 pipeline proposal that ADR-60 (taxonomy) didn't itself cover.
+- **What:** Author the AI Council Flow operational runbook (where it lives is open — likely `protocols/AI_COUNCIL_FLOW.md` or expanded PLAYBOOK section): the end-to-end lifecycle of a Council question from drafting (now ephemeral: `council_inbox/` or `~/Downloads/`, per ADR-60 amendment) → debate (ai-council CLI, mode/target-project frontmatter) → transcript landing (per ADR-43) → ADR drafting (per PLAYBOOK "After a Decision") → BACKLOG follow-up. This is the remaining Option B piece from the 2026-05-25 pipeline proposal that ADR-60 (taxonomy) didn't itself cover.
 - **Why:** ADR-60 fixed *where* artifacts live; the *lifecycle* glue (who does what when, gate checks, archival cadence) still lives only in scattered PLAYBOOK references. Without a runbook the operator re-derives the flow each time.
 - **Refs:** `docs/audits/2026-05-25-council-pipeline-proposal.md` (Option B); ADR-60; ADR-43; PLAYBOOK § "Council Debate Archival Protocol" + "After a Decision".
-- **Added:** 2026-05-27 by rob (this session — captured from the prompt's "remaining Option B piece").
+- **Added:** 2026-05-27 by rob (captured from the prompt's "remaining Option B piece").
 - **Status:** open — likely a runbook + small PLAYBOOK pointer; no code.
+- **2026-05-28 partial:** the **visual flow** is now codified in `ARCHITECTURE.md` § Processes → "AI Council debate pipeline" (Mermaid, grounded in `council-question-guide.md` + `src/ai_council/{cli,inbox,orchestrator,routing,synthesis}.py` + ADR-43). The remaining work is the *prose* runbook — gate checks, archival cadence, ADR-drafting protocol, BACKLOG-follow-up rule, ephemeral-input handling — that the diagram alone doesn't carry.
 
 ### [P3] [open] Audit tool — folder-semantics validation check (ADR-60 candidate)
 - **What:** Extend `scripts/audit.py` with a read-only `check_folder_semantics` that asserts every `docs/` subfolder carries exactly one of the four ADR-60 roles (inputs / outputs / working / archived) — verified by README presence + a frontmatter or naming convention the check can match. Surfaces drift when a new ad-hoc folder is added without a declared role.
@@ -575,6 +576,20 @@ Next quarterly grooming: 2026-07-01
 - **Refs:** `docs/audits/2026-05-27-cross-repo-retrofit-verification.md` § "Honest divergence report".
 - **Added:** 2026-05-27 by rob (cross-repo retrofit).
 - **Status:** open — per-repo judgment calls.
+
+### [P3] [open] Consider PROCESS.md split for ARCHITECTURE.md
+- **What:** After the 2026-05-28 process-diagrams session, `ARCHITECTURE.md` is 405 lines (was 175) and houses both the *structural* view (codemap + layer model + invariants) and the *flow* view (4 Mermaid process diagrams: layer-extended, dev workflow, Council pipeline, handoff v3.4). If a future addition pushes it past the operator's comfort threshold, split the `## Processes` subsection into `docs/PROCESS.md` (or `protocols/PROCESS.md`) and reference from ARCHITECTURE.md. Not blocking now — the section is a natural home until size genuinely justifies a split.
+- **Why:** `ARCHITECTURE.md` is read by every CLAUDE.md §3 pointer (per ADR-51); keeping it scannable matters. The current 405 lines is within the prior `corp-monorepo` ARCHITECTURE precedent (hand-maintained codemap) but worth re-evaluating once the next process is added.
+- **Refs:** `ARCHITECTURE.md` § Processes; ADR-51.
+- **Added:** 2026-05-28 by rob (process-diagrams session — captured at write-time).
+- **Status:** open — re-evaluate when the next process diagram or process prose lands.
+
+### [P3] [open] Mermaid render verification protocol — workspace + diagrams
+- **What:** Add a one-line PLAYBOOK rule (or ESSENTIALS cheat) that any commit adding or modifying a Mermaid diagram in a tracked file (`ARCHITECTURE.md`, `PROCESS.md` if it lands, `docs/diagrams/`) must be visually verified once via VS Code Mermaid preview (extension `bierner.markdown-mermaid`, already in the L-template workspace) before merge. Pairs with the sort-regression verification rule from 2026-05-28.
+- **Why:** Mermaid syntax can be *valid* yet render in a way that misleads the reader (wrong arrow direction, label clash, subgraph collapse). A two-minute visual check before merge catches what `grep -c '^```mermaid'` cannot. The 2026-05-28 process-diagrams session committed 4 diagrams without a render check; the rule should bind future Mermaid edits.
+- **Refs:** `ARCHITECTURE.md` § Processes (4 diagrams added 2026-05-28); the sort-regression verification rule entry above (same pattern: PR / visual editor check before commit).
+- **Added:** 2026-05-28 by rob (process-diagrams session — captured at write-time).
+- **Status:** open — small PLAYBOOK rule; no code.
 
 ### [P2] [open] corp-sca-time-automation dev-tooling install + `run.py` → `scripts/`
 - **What:** Two-step follow-up to the 2026-05-27 corp-sca retrofit: (1) install pytest + ruff in the corp-sca venv (currently commented out in `requirements.txt` as optional dev), (2) move `run.py` (18187B, executable, at root) → `scripts/run.py` and update its 6 references (`.claude/rules/python-env.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `docs/handoffs/2026-04-15-handoff.md`, `scripts/manager_report.py`, `tests/test_vbs_export.py`). Verify with pytest after the move.

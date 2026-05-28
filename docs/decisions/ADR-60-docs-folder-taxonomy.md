@@ -146,3 +146,42 @@ This amendment's rollout: the 2026-05-27 taxonomy-simplification session. Reclas
 **Risks / trade-offs:**
 - Reclassification touched cross-references in `protocols/PLAYBOOK.md` and `protocols/ESSENTIALS.md`; mitigated by per-phase commits.
 - Some Council-research files in the retired `research/` folder were reclassified into `archive/` rather than deleted; archive/ now carries historical content that may need periodic review.
+
+---
+
+## Addendum 2026-05-28 — Child-repo baseline always-present
+
+### Context
+
+The 2026-05-27 amendment said child code repos should add `decisions/` and `audits/` "when their content class first appears", and seed only `archive/` as the always-present pending-classification zone. Operator empirical review on 2026-05-28 (opening corp-ops, corp-sca-time-automation, ai-council, corp-monorepo side by side in VS Code) decided that cross-repo navigational uniformity outweighs the "added on first need" minimalism: when the operator opens any child repo, the `docs/` tree should look the same. A future ADR or audit should land in an already-present folder rather than triggering folder creation on each first use.
+
+### Decision (supersedes "added on first need" for child code repos)
+
+Every child code repo carries the **full baseline at all times**:
+
+- `decisions/` — README-seeded with the OUTPUTS contract (ADR-43 transcripts + ADRs)
+- `audits/` — README-seeded with the OUTPUTS contract (audit reports, validation reports, forensics)
+- `archive/` — README-seeded with the ARCHIVED contract (pending-classification zone)
+- `diagrams/` — remains optional; present when architecture diagrams exist
+
+`.dev-knowledge` is unaffected — it already carries `decisions/` + `audits/` + `handoffs/` + `archive/` and is the canonical home for `handoffs/`.
+
+### Migration
+
+This addendum's rollout: the 2026-05-28 child-repo baseline uniformity session. Two repos seeded:
+
+- corp-ops — added `docs/decisions/README.md` + `docs/audits/README.md` on branch `chore/baseline-template-2026-05-28`.
+- corp-sca-time-automation — same.
+
+ai-council and corp-monorepo already carried the full baseline from prior taxonomy work — verified no-op.
+
+### Consequences (addendum)
+
+**Positive:**
+- Every child code repo shows the same `docs/` shape; the operator no longer pays the "is this folder here?" cost when switching repos.
+- A future ADR or audit lands in the expected location without needing folder creation in the same commit.
+- README-seeding makes the empty-but-present state self-explanatory; each folder declares its contract on open.
+
+**Risks / trade-offs:**
+- Folders contain only a README until first real content; trades a tiny amount of empty scaffolding for navigational consistency. The operator explicitly accepted this trade.
+- "Add only on first need" remains the rule for folders **outside** the baseline (`diagrams/`, future taxonomy folders); the addendum narrows the override to the always-present baseline only.
