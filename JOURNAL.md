@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-28 — archive/ first triage (ADR-60 periodic review)
+
+- Did: First periodic review of `docs/archive/` (14 files accumulated from 2026-05-27 taxonomy simplification). Read all 14; classified per ADR-60 rubric. Promoted 7 AI Council debate transcripts (full `# AI Council Debate:` format) to `docs/decisions/transcripts/` — same structure as existing council-out-* files there. Kept 7 pending: 4 external research reports (Perplexity/Gemini outputs), 1 scoping note (Kimi K2, BACKLOG #243), 2 handoff-methodology artifacts (failures evidence + question index) that remain active references in ADR-55–58 and HANDOFF_PROCESS.md. No delete-candidates: all kept files have active references or pending BACKLOG items. No ADR candidates flagged; no files deleted.
+- Result: `docs/archive/` reduced from 14 to 7 classification items. Pre-commit clean; branch `chore/archive-first-triage-2026-05-28` awaiting operator merge.
+- Changes: 7 files `docs/archive/ → docs/decisions/transcripts/`; `docs/archive/README.md` updated (first-review marker, promoted list, revised current-contents).
+- Abandoned: nothing.
+- Next: operator merges branch. Second review of remaining 7 (due after one more review pass per ADR-60); at that point: external research reports likely DELETE-CANDIDATES if content absorbed; kimi-k2-scoping resolved when BACKLOG #243 executes.
+
+---
+
 ### 2026-05-28 — AI Council operational runbook (protocols/AI_COUNCIL_PROCESS.md v1.0)
 
 - Did: Authored `protocols/AI_COUNCIL_PROCESS.md` v1.0 — the prose end-to-end operational runbook for the AI Council pipeline, companion to the ARCHITECTURE.md C3 "AI Council debate pipeline" Mermaid diagram landed earlier today. Six stages (frame → author → route → debate → verdict → ADR → close), each with owner, gate check, code grounding (cli.py, inbox.py, routing.py, runner.py, orchestrator.py, synthesis.py + council-question-guide.md). Includes frontmatter reference table, exit-code convention (ADR-08), routing rules (ADR-43), troubleshooting matrix, cross-references. Cross-linked from PLAYBOOK § 5 lead-in, ESSENTIALS § "Artifact generation direction" (Council ADR distillation paragraph), and the ARCHITECTURE.md C3 diagram source block. Closed **BACKLOG #4** (P2 "AI Council Flow operationalization — lifecycle runbook") — both halves of the 2026-05-25 pipeline proposal Option B (visual + prose) now landed.
