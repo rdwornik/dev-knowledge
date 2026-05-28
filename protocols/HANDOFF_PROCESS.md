@@ -684,7 +684,7 @@ directs it to). Claude Code does NOT redesign architecture or invent session con
 <!-- scope: meta -->
 
 Implements the 5 AI Council debate decisions (Q1-Q5) for handoff process
-stabilization (2026-05-26). Empirical basis: `docs/council-questions/2026-05-25-handoff-failures-evidence.md`
+stabilization (2026-05-26). Empirical basis: `docs/archive/2026-05-25-handoff-failures-evidence.md`
 (N=7 sender misses + 2 NEW-chat post-gate failures).
 
 | Dimension | v3.3.3 | v3.4 |
