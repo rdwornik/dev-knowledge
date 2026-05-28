@@ -527,13 +527,13 @@ Next quarterly grooming: 2026-07-01
   - **corp-sca-time-automation retrofit** — plan ready, independent.
   - **corp-monorepo retrofit** — blocked on `corp-monorepo` ruff-strictness decision (the universalization mega-session deferred this; resolving it unblocks Action 6 (VISION routing, Council-gated) + Action 7c).
 
-### [P2] [open] AI Council Flow operationalization — lifecycle runbook
+### [P2] [closed] AI Council Flow operationalization — lifecycle runbook
 - **What:** Author the AI Council Flow operational runbook (where it lives is open — likely `protocols/AI_COUNCIL_FLOW.md` or expanded PLAYBOOK section): the end-to-end lifecycle of a Council question from drafting (now ephemeral: `council_inbox/` or `~/Downloads/`, per ADR-60 amendment) → debate (ai-council CLI, mode/target-project frontmatter) → transcript landing (per ADR-43) → ADR drafting (per PLAYBOOK "After a Decision") → BACKLOG follow-up. This is the remaining Option B piece from the 2026-05-25 pipeline proposal that ADR-60 (taxonomy) didn't itself cover.
 - **Why:** ADR-60 fixed *where* artifacts live; the *lifecycle* glue (who does what when, gate checks, archival cadence) still lives only in scattered PLAYBOOK references. Without a runbook the operator re-derives the flow each time.
 - **Refs:** `docs/audits/2026-05-25-council-pipeline-proposal.md` (Option B); ADR-60; ADR-43; PLAYBOOK § "Council Debate Archival Protocol" + "After a Decision".
 - **Added:** 2026-05-27 by rob (captured from the prompt's "remaining Option B piece").
-- **Status:** open — likely a runbook + small PLAYBOOK pointer; no code.
-- **2026-05-28 partial:** the **visual flow** is now codified in `ARCHITECTURE.md` § Processes → "AI Council debate pipeline" (Mermaid, grounded in `council-question-guide.md` + `src/ai_council/{cli,inbox,orchestrator,routing,synthesis}.py` + ADR-43). The remaining work is the *prose* runbook — gate checks, archival cadence, ADR-drafting protocol, BACKLOG-follow-up rule, ephemeral-input handling — that the diagram alone doesn't carry.
+- **Status:** closed 2026-05-28 — runbook authored as `protocols/AI_COUNCIL_PROCESS.md` v1.0 (six stages: frame → author → route → debate → verdict → ADR → close; gate checks; troubleshooting; cross-refs). Cross-linked from PLAYBOOK § 5, ESSENTIALS § "Artifact generation direction", and the ARCHITECTURE.md C3 diagram source block. Both halves of Option B (visual + prose) now landed.
+- **2026-05-28 partial (historical):** the **visual flow** was codified in `ARCHITECTURE.md` § Processes → "AI Council debate pipeline" (Mermaid, grounded in `council-question-guide.md` + `src/ai_council/{cli,inbox,orchestrator,routing,synthesis}.py` + ADR-43). The remaining prose work (this entry) closed same day.
 
 ### [P3] [open] Audit tool — folder-semantics validation check (ADR-60 candidate)
 - **What:** Extend `scripts/audit.py` with a read-only `check_folder_semantics` that asserts every `docs/` subfolder carries exactly one of the four ADR-60 roles (inputs / outputs / working / archived) — verified by README presence + a frontmatter or naming convention the check can match. Surfaces drift when a new ad-hoc folder is added without a declared role.
