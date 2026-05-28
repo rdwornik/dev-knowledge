@@ -124,3 +124,42 @@ amendment) mitigates rot for repos that opt into the generator.
 - **Decision tier:** Conversational (reconciliation of an already-decided
   operator directive; supersedes only the tier-conditional clause of
   Decision 1).
+
+## Amendment 2026-05-28 — Mermaid dark-theme directive standard
+
+**Scope.** Every Mermaid block in every covered repo — generator-produced
+(via `scripts/codemap/cli generate --write`) and hand-authored
+(layer/process diagrams in `ARCHITECTURE.md`, examples in templates) —
+MUST begin with `%%{init: {'theme':'dark'}}%%` as the first line inside
+the triple-backtick fence, immediately before the `flowchart`/`graph`
+declaration.
+
+**Rationale.** Rob's VS Code uses a black background. Mermaid's default
+(light) theme renders body text in dark gray, which is unreadable on
+black. The built-in `'dark'` theme uses light text on mid-gray fills and
+is readable across all current diagrams in the ecosystem.
+
+**Implementation.** The codemap generator (`scripts/codemap/mermaid_emit.py`)
+emits the directive automatically; regenerating any repo's codemap
+preserves the standard. Hand-authored blocks in `ARCHITECTURE.md` carry
+the directive in-file. The canonical example in
+`templates/ARCHITECTURE-template.md` includes the directive so new repos
+inherit it.
+
+**Out of scope.** Immutable dated artifacts (audits, transcripts,
+handoffs, ADRs) with embedded Mermaid blocks are NOT retrofitted —
+per ADR-39 they are point-in-time records and stay as written. New
+immutable artifacts authored after this date SHOULD include the
+directive going forward.
+
+**Variant.** If `'theme':'dark'` ever proves insufficient (fills too
+close to black on a specific diagram), the custom-base form
+(`'theme':'base'` + `themeVariables`) is the documented fallback —
+deviating from the standard requires a per-block justification comment.
+
+**Verification.** `grep -c "theme':'dark'"` in each `ARCHITECTURE.md`
+should equal `grep -c '\`\`\`mermaid'`. Operator does the final visual
+render check in VS Code on black background.
+
+**Decision tier:** Conversational (style standard; no semantic change
+to diagram content or generator interface).
