@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-29 — Handoff Stage 1 generated (session-sync)
+
+- Did: Generated handoff Stage 1 for slug `2026-05-29-dev-knowledge-session-sync` (self-handoff, HANDOFF_PROCESS v3.4). Captured HEAD `5582cf544fab2b4236e7d292d5506ce85ad63c55`, branch `main`, clean tree. Wrote `stage1-question.md` (5-question pipeline + epistemic/self-containment/coherence/format guidance, current-state summary of the 2026-05-28 universalization arc, relevant own-repo BACKLOG items) and pre-created `stage2-response.md` placeholder.
+- Result: Awaiting Stage 2 — architect response from OLD browser chat. Work on branch `docs/handoff-2026-05-29-session-sync`.
+- Changes: `docs/handoffs/in-progress/2026-05-29-dev-knowledge-session-sync/stage1-question.md` (new); `docs/handoffs/in-progress/2026-05-29-dev-knowledge-session-sync/stage2-response.md` (new placeholder); this JOURNAL entry.
+- Abandoned: nothing.
+- Next: Rob pastes the PASTE_BOUNDARY block into the OLD `.dev-knowledge` chat, replaces the placeholder in `stage2-response.md` with the architect response (+ `stage2-claims.md` + `next_session_scope`), then says "complete handoff for dev-knowledge" → Stage 3.
+
+---
+
 ### 2026-05-28 — Universalization durability + template-completeness audit (pre-handoff)
 
 - Did: Read-only audit verifying that today's universalization (ADR-59 visual pattern + ADR-60 taxonomy + 2026-05-28 addendum + ADR-51 v2 mermaid theme + ADR-61 worktree + AI_COUNCIL_PROCESS runbook + handoff v3.4 + process diagrams C1-C4 + audit check #7 + baseline-folder uniformity) is encoded in template / PLAYBOOK / ESSENTIALS / ADRs / `audit.py` — DURABLE — versus only applied to current state. Produced `docs/audits/2026-05-28-universalization-durability-audit.md` (per-convention durability table + three durability questions + corp-monorepo P1 findings capture analysis + clear/judgment gap list). Three clear gaps closed in additive cross-ref commits (C1: PLAYBOOK §Codemap workflow gets mermaid-theme-directive paragraph; C2: ESSENTIALS gets `## Mermaid theme (ADR-51 v2)` cheat section; C3: `CLAUDE.md` §11 ADR-list rotated 49–53 → 57–61 per the file's own "last 5" header; bumped to v2.3). Four judgment gaps appended to BACKLOG: J1 CLAUDE-md-template refresh [P2], J4 audit.py mermaid scope widening [P3], J5 child-repo audit reach [P3], J6 new-repo scaffolding starter pack [P3]. J2 (workspace templates) + J3 (folder-semantics audit check) were already captured in existing BACKLOG entries — not duplicated. Corp-monorepo branch-deletion gate: HOLD — P1-1/P1-3 (OneDrive) covered by multi-layer enforcement (global hook + global CLAUDE.md rule + `_guard_onedrive()` + corp ADR-27); P2 (vault single-writer) covered by corp ADR-27 Decision 2 + CI test; **P1-2 (path traversal in `cleanup/executor.py:68/85`) NOT captured in main** — analysis exists only on `verify/codex-p1-findings`. Operator must extract to corp-monorepo BACKLOG before `git branch -D`.
