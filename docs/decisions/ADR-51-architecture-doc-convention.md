@@ -163,3 +163,63 @@ render check in VS Code on black background.
 
 **Decision tier:** Conversational (style standard; no semantic change
 to diagram content or generator interface).
+
+## Amendment 2026-05-28 (v2) — Mermaid high-contrast custom-theme standard (supersedes bare 'dark')
+
+**Scope.** Supersedes the bare `%%{init: {'theme':'dark'}}%%` directive
+mandated by the prior 2026-05-28 amendment. That standard turned out to
+work only for diagrams whose `classDef` rules already pinned an explicit
+`color:` (e.g., the .dev-knowledge layer model). For diagrams whose
+`classDef` rules set a light-pastel `fill:` but omitted `color:`, the
+bare dark theme inherited a near-white default text color, producing
+light text on light pastel fills — unreadable on black. The three
+process diagrams in `.dev-knowledge/ARCHITECTURE.md` (workflow, council,
+handoff) exhibited the failure mode; the codemap and layer-model blocks
+did not.
+
+**New standard.** Every Mermaid block — generator-produced and
+hand-authored — MUST begin with the following directive (one line,
+inside the triple-backtick fence):
+
+```
+%%{init: {'theme':'base', 'themeVariables': {'darkMode':true,'background':'#1a1a1a','primaryColor':'#2d2d3d','primaryTextColor':'#f0f0f0','primaryBorderColor':'#8a86ff','lineColor':'#a0a0ff','textColor':'#f0f0f0','mainBkg':'#2d2d3d','secondaryColor':'#3d2d3d','tertiaryColor':'#22323a','clusterBkg':'#222232','clusterBorder':'#555577','edgeLabelBackground':'#1a1a1a','titleColor':'#f0f0f0','nodeBorder':'#8a86ff'}}}%%
+```
+
+**Companion rule — explicit-color override (CRITICAL).** Every
+`classDef` and inline `style` statement that sets a light-pastel `fill:`
+MUST also set an explicit dark `color:` (`color:#000` for medium/strong
+pastels; `color:#222` for very-light fills / gray / soft pastels).
+Omitting `color:` causes the directive's `primaryTextColor` / `textColor`
+default (light) to inherit, which on a light pastel `fill:` is
+invisible. This is the root cause of the v1 dark-theme regression.
+
+Mapping used across the ecosystem (apply uniformly when adding new
+classDefs with these palette anchors):
+
+| Fill | Text color |
+|---|---|
+| `#bde0fe`, `#a5d8ff`, `#74c0fc` (light/medium blue) | `color:#000` |
+| `#e8e8e8` (light gray) | `color:#222` |
+| `#fff3bf` (light yellow) | `color:#222` |
+| `#d8f5a2` (light green) | `color:#222` |
+| `#ffe3e3`, `#fff5f5` (very-light red/near-white) | `color:#222` |
+| `#ffd8a8` (peach) | `color:#222` |
+
+**Implementation.** The codemap generator (`scripts/codemap/mermaid_emit.py`)
+now emits the new directive and the color-pinned `_ALL_CLASS_DEFS`
+block; regenerating any repo's codemap preserves the standard. Hand-
+authored blocks in `ARCHITECTURE.md` and the canonical example in
+`templates/ARCHITECTURE-template.md` were updated in the same commit
+arc as this amendment.
+
+**Out of scope.** Immutable dated artifacts (audits, transcripts,
+handoffs, ADRs) are NOT retrofitted, per ADR-39.
+
+**Verification.** `grep -c "theme':'base'"` in each `ARCHITECTURE.md`
+should equal `grep -c '\`\`\`mermaid'`; every `classDef` with `fill:#...`
+should also contain `,color:#...`. Operator does the final visual render
+check in VS Code on a black background — all diagrams (not just the
+layer model) must show readable node text and edge labels.
+
+**Decision tier:** Conversational (style standard; no semantic change
+to diagram content or generator interface).

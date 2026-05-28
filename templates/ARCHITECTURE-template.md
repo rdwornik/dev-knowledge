@@ -44,7 +44,7 @@ The narrative invariants in §3 are **not** generated — only the codemap is. A
 
 <!-- CODEMAP:START -->
 ```mermaid
-%%{init: {'theme':'dark'}}%%
+%%{init: {'theme':'base', 'themeVariables': {'darkMode':true,'background':'#1a1a1a','primaryColor':'#2d2d3d','primaryTextColor':'#f0f0f0','primaryBorderColor':'#8a86ff','lineColor':'#a0a0ff','textColor':'#f0f0f0','mainBkg':'#2d2d3d','secondaryColor':'#3d2d3d','tertiaryColor':'#22323a','clusterBkg':'#222232','clusterBorder':'#555577','edgeLabelBackground':'#1a1a1a','titleColor':'#f0f0f0','nodeBorder':'#8a86ff'}}}%%
 flowchart TD
     api[api]:::interface
     domain[domain]:::core
@@ -53,9 +53,9 @@ flowchart TD
     api --> domain
     domain --> schema
 
-    classDef foundation fill:#e8e8e8,stroke:#888
-    classDef core fill:#bde0fe,stroke:#1971c2
-    classDef interface fill:#74c0fc,stroke:#1864ab
+    classDef foundation fill:#e8e8e8,stroke:#888,color:#222
+    classDef core fill:#bde0fe,stroke:#1971c2,color:#000
+    classDef interface fill:#74c0fc,stroke:#1864ab,color:#000
 
     click api href "src/api/" "Open api"
     click domain href "src/domain/" "Open domain"
