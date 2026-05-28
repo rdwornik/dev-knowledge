@@ -591,13 +591,13 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-28 by rob (process-diagrams session — captured at write-time).
 - **Closed:** 2026-05-28 — operator-confirmed during mermaid-readability-v2 session (this triggered the v1→v2 fix arc; the render-verification expectation is now baked into the ADR-51 v2 amendment's "Verification" clause and the verification doc's HARD-METRIC operator step). See `docs/audits/2026-05-28-mermaid-readability-v2-verification.md`.
 
-### [P3] [open] `audit.py` check — Mermaid high-contrast theme + explicit `color:` present
+### [P3] [closed] `audit.py` check — Mermaid high-contrast theme + explicit `color:` present
 - **What:** Add `check_mermaid_theme_directive` to `scripts/audit.py` that verifies every Mermaid block in `ARCHITECTURE.md` (and the template) begins with the `'theme':'base'` + `themeVariables` directive **and** that every `classDef` with a `fill:#...` declaration also pins `,color:#...`. Skip immutable-artifact paths (`docs/audits/`, `docs/decisions/` ADR-historic-quote bodies) — needs a small allow/deny-list. Add unit tests with both pass and fail fixtures.
 - **Why:** ADR-51 amendment 2026-05-28 (v2) codified the high-contrast directive + the explicit-`color:` companion rule. Mechanical enforcement closes the drift gap so future hand-edited diagrams cannot silently regress to the v1 light-on-light failure mode. Scoped exclusion list is the hard part — without it the check would false-positive on legitimate historical quotations in audits/ADRs.
 - **Refs:** `docs/audits/2026-05-28-mermaid-readability-v2-verification.md`; ADR-51 amendment 2026-05-28 (v2); `scripts/audit.py` existing check pattern.
 - **Added:** 2026-05-28 by rob (mermaid dark-theme session — deferred).
 - **Updated:** 2026-05-28 (v2 session) — directive target changed from bare `'dark'` to the custom `themeVariables` form; companion `color:` rule added to the check spec.
-- **Status:** open — pending fixture suite + exclusion scoping; low priority while operator-verification is reliable.
+- **Closed:** 2026-05-28 — `check_mermaid_theme_directive` implemented as check #7 in `scripts/audit.py`. Scans `ARCHITECTURE.md` + `templates/ARCHITECTURE-template.md`; excludes `docs/audits/`, `docs/decisions/ADR-*`, `JOURNAL.md`, `docs/archive/`. 5 unit tests (pass/fail-bare-dark/fail-missing-color/no-arch/no-blocks); audit health 7/7. Branch: `feat/audit-mermaid-theme-check-2026-05-28`.
 
 ### [P2] [open] corp-sca-time-automation dev-tooling install + `run.py` → `scripts/`
 - **What:** Two-step follow-up to the 2026-05-27 corp-sca retrofit: (1) install pytest + ruff in the corp-sca venv (currently commented out in `requirements.txt` as optional dev), (2) move `run.py` (18187B, executable, at root) → `scripts/run.py` and update its 6 references (`.claude/rules/python-env.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `docs/handoffs/2026-04-15-handoff.md`, `scripts/manager_report.py`, `tests/test_vbs_export.py`). Verify with pytest after the move.

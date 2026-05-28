@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-28 — audit.py check #7: Mermaid theme directive enforcement (BACKLOG P3 closed)
+
+- Did: Added `check_mermaid_theme_directive` as check #7 to `scripts/audit.py`. Enforces ADR-51 v2 standard: (1) every Mermaid block in scanned files must begin with `'theme':'base'` + `themeVariables` directive; (2) every `classDef` with `fill:#` must also carry `color:#`. Scans `ARCHITECTURE.md` + `templates/ARCHITECTURE-template.md`; excludes `docs/audits/`, `docs/decisions/ADR-*`, `JOURNAL.md`, `docs/archive/` (immutable dated artifacts per ADR-39). Added 2 fixtures (mermaid-theme-pass, mermaid-theme-fail) and 5 unit tests. ADR-51 appended with enforcement note. BACKLOG P3 closed.
+- Result: `audit health` now reports 7/7 pass against `.dev-knowledge`. 90/90 tests pass. ruff clean. Branch `feat/audit-mermaid-theme-check-2026-05-28` awaiting operator merge.
+- Changes: `scripts/audit.py` (check #7 + ALL_CHECKS registration); `tests/test_audit.py` (5 new tests); `tests/fixtures/mermaid-theme-pass/ARCHITECTURE.md` (new); `tests/fixtures/mermaid-theme-fail/ARCHITECTURE.md` (new); `docs/decisions/ADR-51-architecture-doc-convention.md` (enforcement note appended); `BACKLOG.md` (P3 closed).
+- Abandoned: nothing.
+- Next: operator merges branch with `git checkout main && git merge --no-ff feat/audit-mermaid-theme-check-2026-05-28`.
+
+---
+
 ### 2026-05-28 — Mermaid readability v2 (root-cause diagnosis + custom-theme rollout)
 
 - Did: Diagnosed why the 2026-05-28 v1 dark-theme fix only worked for the layer-model block. Root cause: bare `%%{init:{'theme':'dark'}}%%` flips default text color toward light; classDefs that set light-pastel `fill:` but omitted `color:` inherited that light default → light-on-light = unreadable. Layer model worked because its classDefs already pinned `color:#000`/`#222`. Replaced the directive ecosystem-wide with a custom `'theme':'base'` + `themeVariables` block and added explicit `color:#000`/`#222` to every classDef with a light-pastel fill across .dev-knowledge ARCHITECTURE.md (3 process diagrams), ai-council, corp-ops, corp-monorepo, the codemap generator's `_ALL_CLASS_DEFS`, the test fixture, and the ARCHITECTURE template. ADR-51 amended (v2 amendment 2026-05-28) supersedes the v1 bare-`'dark'` standard. Verification doc + BACKLOG updates landed; render-verification P3 closed (operator-confirmed); audit.py-check P3 retargeted to the v2 directive + companion `color:` rule.
