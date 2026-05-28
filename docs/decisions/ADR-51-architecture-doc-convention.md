@@ -223,3 +223,12 @@ layer model) must show readable node text and edge labels.
 
 **Decision tier:** Conversational (style standard; no semantic change
 to diagram content or generator interface).
+
+## Enforcement note 2026-05-28 — v2 standard now audit-enforced
+
+`check_mermaid_theme_directive` added to `scripts/audit.py` as check #7. Scans
+`ARCHITECTURE.md` and `templates/ARCHITECTURE-template.md` in every audited repo;
+excludes immutable dated artifacts (`docs/audits/`, `docs/decisions/ADR-*`,
+`JOURNAL.md`, `docs/archive/`). Violations cause `audit health` to degrade.
+BACKLOG P3 "audit.py check — Mermaid high-contrast theme + explicit `color:` present"
+closed 2026-05-28.
