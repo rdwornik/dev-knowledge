@@ -584,18 +584,19 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-28 by rob (process-diagrams session — captured at write-time).
 - **Status:** open — re-evaluate when the next process diagram or process prose lands.
 
-### [P3] [open] Mermaid render verification protocol — workspace + diagrams
+### [P3] [closed 2026-05-28] Mermaid render verification protocol — workspace + diagrams
 - **What:** Add a one-line PLAYBOOK rule (or ESSENTIALS cheat) that any commit adding or modifying a Mermaid diagram in a tracked file (`ARCHITECTURE.md`, `PROCESS.md` if it lands, `docs/diagrams/`) must be visually verified once via VS Code Mermaid preview (extension `bierner.markdown-mermaid`, already in the L-template workspace) before merge. Pairs with the sort-regression verification rule from 2026-05-28.
 - **Why:** Mermaid syntax can be *valid* yet render in a way that misleads the reader (wrong arrow direction, label clash, subgraph collapse). A two-minute visual check before merge catches what `grep -c '^```mermaid'` cannot. The 2026-05-28 process-diagrams session committed 4 diagrams without a render check; the rule should bind future Mermaid edits.
 - **Refs:** `ARCHITECTURE.md` § Processes (4 diagrams added 2026-05-28); the sort-regression verification rule entry above (same pattern: PR / visual editor check before commit).
 - **Added:** 2026-05-28 by rob (process-diagrams session — captured at write-time).
-- **Status:** open — small PLAYBOOK rule; no code.
+- **Closed:** 2026-05-28 — operator-confirmed during mermaid-readability-v2 session (this triggered the v1→v2 fix arc; the render-verification expectation is now baked into the ADR-51 v2 amendment's "Verification" clause and the verification doc's HARD-METRIC operator step). See `docs/audits/2026-05-28-mermaid-readability-v2-verification.md`.
 
-### [P3] [open] `audit.py` check — Mermaid dark-theme directive present
-- **What:** Add a `check_mermaid_theme_directive` to `scripts/audit.py` that verifies every Mermaid block in `ARCHITECTURE.md` (and the template) begins with `%%{init: {'theme':'dark'}}%%`. Skip immutable-artifact paths (`docs/audits/`, `docs/decisions/` ADR-historic-quote bodies) — needs a small allow/deny-list. Add unit tests with both pass and fail fixtures.
-- **Why:** ADR-51 amendment 2026-05-28 codified the dark-theme directive as standard; mechanical enforcement closes the drift gap so future hand-edited diagrams cannot silently regress. Scoped exclusion list is the hard part — without it the check would false-positive on legitimate historical quotations in audits/ADRs.
-- **Refs:** `docs/audits/2026-05-28-mermaid-dark-theme-verification.md` § "audit.py check — deferred"; ADR-51 amendment 2026-05-28; `scripts/audit.py` existing check pattern.
+### [P3] [open] `audit.py` check — Mermaid high-contrast theme + explicit `color:` present
+- **What:** Add `check_mermaid_theme_directive` to `scripts/audit.py` that verifies every Mermaid block in `ARCHITECTURE.md` (and the template) begins with the `'theme':'base'` + `themeVariables` directive **and** that every `classDef` with a `fill:#...` declaration also pins `,color:#...`. Skip immutable-artifact paths (`docs/audits/`, `docs/decisions/` ADR-historic-quote bodies) — needs a small allow/deny-list. Add unit tests with both pass and fail fixtures.
+- **Why:** ADR-51 amendment 2026-05-28 (v2) codified the high-contrast directive + the explicit-`color:` companion rule. Mechanical enforcement closes the drift gap so future hand-edited diagrams cannot silently regress to the v1 light-on-light failure mode. Scoped exclusion list is the hard part — without it the check would false-positive on legitimate historical quotations in audits/ADRs.
+- **Refs:** `docs/audits/2026-05-28-mermaid-readability-v2-verification.md`; ADR-51 amendment 2026-05-28 (v2); `scripts/audit.py` existing check pattern.
 - **Added:** 2026-05-28 by rob (mermaid dark-theme session — deferred).
+- **Updated:** 2026-05-28 (v2 session) — directive target changed from bare `'dark'` to the custom `themeVariables` form; companion `color:` rule added to the check spec.
 - **Status:** open — pending fixture suite + exclusion scoping; low priority while operator-verification is reliable.
 
 ### [P2] [open] corp-sca-time-automation dev-tooling install + `run.py` → `scripts/`
