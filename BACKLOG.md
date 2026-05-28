@@ -223,7 +223,7 @@ Next quarterly grooming: 2026-07-01
 - **Why:** Undocumented hooks create confusion about what fires when; overlapping review hooks may produce redundant signals. Beyond inventory, lifecycle hooks are the mechanical-enforcement layer the ecosystem relies on (per the 2026-05-13 implicit-memory LESSON: "convention without enforcement drifts") — their workflow-automation use and expansion opportunities deserve explicit documentation, not implicit habit.
 - **Vision ref:** VISION.md "Methodology Author" function
 - **Added:** 2026-05-09 by rob (session wrap-up observation); scope expanded 2026-05-24 (operator focus area — hooks workflow/goals usage; `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md` §4.1).
-- **Status:** open
+- **Status:** audit done 2026-05-29 (inventory + automation-pattern analysis in `docs/audits/scratch/2026-05-29-ecosystem-hooks.md` + consolidated report) — findings HK-1..HK-4 routed to the ecosystem-audit BACKLOG entries above (doc-truth sweep, evolution-logs, ruff enforcement, cross-repo floor). **Implementation remains open** (the actual hook additions/consolidation are the separate fix-sessions). Track #I+#II completion against those entries.
 
 ### [P2] [open] Skills universalization across repos
 - **What:** Each repo has `.claude/skills/` (or equivalent) with skill definitions. Need cross-repo review: (a) inventory all skills across ecosystem repos, (b) classify each as repo-specific vs. cross-ecosystem candidate, (c) identify universalization targets — skills that should live in `.dev-knowledge` and be referenced/shared, (d) propose canonical location for universal skills. Output: skills inventory + universalization proposal.
@@ -401,6 +401,58 @@ Next quarterly grooming: 2026-07-01
 - **Order:** 7th (lowest).
 - **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
 - **Status:** closed 2026-05-29 — commit `4e3cc3e` (E2). Append-only "Amendment 2026-05-29 — current-authority pointer" added to ADR-45 (v3.4 / ADR-42-Q5); body unchanged.
+
+<!-- ecosystem-coherence-audit-2026-05-29: entries below, derived from the overnight
+     ecosystem coherence audit `docs/audits/2026-05-29-ecosystem-coherence-audit.md`.
+     22 findings (0 critical, 0 high, 12 medium, 10 low) grouped into actionable
+     fix-sessions; each entry cites its finding IDs. Grouping mirrors §5 fix sequence. -->
+
+### [P2] [open] Ecosystem: doc-truth sweep — CLAUDE.md + ARCHITECTURE describe own tooling/versions/files inaccurately — ecosystem-audit-2026-05-29
+- **What:** Eight doc-accuracy drifts, all one-line/small edits: CLAUDE.md §7 command inventory (claims user `/save`, omits `/codex-review`+`/evolve`) (SK-1); §8 calls commands "skills" + omits the `verify` skill (SK-2); §7 `/handoff` says "v3.3.3" not v3.4 (CD-1); footer "Last updated 2026-05-24" vs §12 v2.3 2026-05-28 (CD-2); ARCHITECTURE governing-ADRs omits ADR-59/61 (WF-1); ARCHITECTURE validators list repeats the false ruff-pre-commit claim + lists non-existent `scripts/backlog_extract.py` + omits codemap-freshness hook (WF-2); LESSONS "oldest-top per ADR-29" descriptor vs newest-top file (ML-1 — verify vs ADR-29 first); TOKEN-LOG.md named canonical in CLAUDE §4/§5 but absent (ML-4).
+- **Why:** 12 of 22 audit findings are doc-truth drift; the repo whose VISION is "drift detected proactively" is the locus of drift. None breaking, all trust-eroding.
+- **Evidence:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` §3/§4 (SK-1, SK-2, CD-1, CD-2, WF-1, WF-2, ML-1, ML-4).
+- **Fix scope:** one Sonnet session, medium; verify ML-1 against ADR-29 text.
+- **Added:** 2026-05-29 by rob (ecosystem coherence audit)
+- **Status:** open.
+
+### [P2] [open] Ecosystem: feedback-loop enforcement — lessons produce guards that aren't enforced — ecosystem-audit-2026-05-29
+- **What:** LESSON #9's cross-case-trace guard is advisory prose in HANDOFF_PROCESS, not a gate → the v3.4 rollout skipped it and reproduced #9's exact failure (the 2026-05-29 abort) (ML-2). The abort itself is captured in JOURNAL+audit but not promoted to LESSONS (ML-3). Pairs with the existing P1 "Codify scrum-master review authority pattern" — independent review is currently the only working backstop for un-enforced guards.
+- **Why:** Structural root cause of the v3.4 abort; predicts recurrence on the next multi-surface amendment unless the guard becomes a gate. Highest-value non-doc finding.
+- **Evidence:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` §3/§7 (ML-2, ML-3).
+- **Fix scope:** Opus session, medium; convert guard → amendment checklist/gate (Layer-2: checklist not orchestration) + append the abort LESSON.
+- **Added:** 2026-05-29 by rob (ecosystem coherence audit)
+- **Status:** open.
+
+### [P2] [open] Ecosystem: evolution memory logs missing + no session-close automation — ecosystem-audit-2026-05-29
+- **What:** boot.md + the global Self-Evolution Protocol + the SessionStart/Stop hooks all read `sessions.jsonl`/`violations.jsonl`/`corrections.jsonl`/`observations.jsonl`, none of which exist (only `learned-rules.md` + `evolution-log.md`) — the evolution machinery is wired but vacuous (SK-3 ≡ HK-2). The Stop hook does no functional session-close automation (HK-3, SK-5). — owner: ~/.claude (runtime) + self.
+- **Why:** Session-trend + correction-promotion tracking silently does nothing; a known-useful automation surface (clean-tree/audit check at Stop) is unused.
+- **Evidence:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` §3 (SK-3, HK-2, HK-3, SK-5).
+- **Fix scope:** create the .jsonl logs OR repoint hooks+protocol to `evolution-log.md`; add one read-only session-close automation.
+- **Added:** 2026-05-29 by rob (ecosystem coherence audit)
+- **Status:** open.
+
+### [P2] [open] Ecosystem: ruff lint enforcement for .dev-knowledge — ecosystem-audit-2026-05-29
+- **What:** CLAUDE.md §9/§4 + ARCHITECTURE document ruff as a pre-commit hook, but it is NOT in `.pre-commit-config.yaml` (only normalize-dated-headers + codemap-freshness). corp-monorepo enforces ruff via pre-commit; `.dev-knowledge` does not (HK-1). — owner: self.
+- **Why:** A load-bearing convention (lint) is documented-as-enforced but is actually manual; a ruff violation could be committed while the doc implies it was blocked.
+- **Evidence:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` §3 (HK-1).
+- **Fix scope:** decide add-the-ruff-hook vs correct-the-doc; foldable into the doc-truth sweep above.
+- **Added:** 2026-05-29 by rob (ecosystem coherence audit)
+- **Status:** open.
+
+### [P2] [open] Ecosystem: corp-monorepo P1-2 path-traversal branch unmerged — ecosystem-audit-2026-05-29
+- **What:** The P1-2 path-traversal extraction landed (commit `a1007b1`) but sits on unmerged branch `chore/extract-p1-2-to-backlog-2026-05-28`; corp-monorepo HEAD is not on main (CM-1). — **owner: corp-monorepo** (read-only from here per ADR-41).
+- **Why:** A security finding's tracking is stranded on a feature branch; operator should merge + resolve the pre-delete gate.
+- **Evidence:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` §3 (CM-1).
+- **Fix scope:** merge branch → main in corp-monorepo (own-repo session/operator).
+- **Added:** 2026-05-29 by rob (ecosystem coherence audit)
+- **Status:** open.
+
+### [P3] [open] Ecosystem: low-severity cleanups (diagram labels, VISION signal, verify-script layout, flat-handoff, cross-repo hook floor) — ecosystem-audit-2026-05-29
+- **What:** Bundled low-priority items: ARCHITECTURE handoff-diagram attributes scope/claims to "Operator" not architect + unused "SBAR/I-PASS" label (WF-3, self); VISION emphasis #1 "adoption pace tracked" has no instrument + `last_reviewed` predates recent ADRs (GO-1/GO-2, self); `verify/cross-repo-boundaries.ps1` hard-codes a corp-monorepo package layout that may be stale (SK-4, ~/.claude+corp-monorepo); corp-monorepo CLAUDE.md still references flat `docs/handoffs/*.md` (CM-2, corp-monorepo — re-confirms existing P3); corp-ops/corp-sca-time-automation have no pre-commit + ai-council only normalize-headers + hook-id naming drift (HK-4, those repos).
+- **Why:** Cleanup/cosmetic/low-confidence; none blocks work.
+- **Evidence:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` §3 (WF-3, GO-1, GO-2, SK-4, CM-2, HK-4).
+- **Fix scope:** opportunistic; split per owner where cross-repo.
+- **Added:** 2026-05-29 by rob (ecosystem coherence audit)
 - **Status:** open.
 
 ### [P3] [open] Undiscovered repos confirmation
