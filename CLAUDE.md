@@ -128,11 +128,11 @@ Rules (`.claude/rules/`):
 
 Brief one-liners. Full list in `docs/decisions/README.md`; full governance list in `ARCHITECTURE.md`.
 
-- ADR-49: Consolidate past-recording documentation — record consolidation patterns
-- ADR-50: Machine-document encoding standard — how machine-written content is encoded and marked
-- ADR-51: ARCHITECTURE.md convention — mandates this repo's ARCHITECTURE.md form and CORE sections
-- ADR-52: AGENTS.md convention — superseded by ADR-53
-- ADR-53: CLAUDE.md as single canonical agent-instruction file — retires AGENTS.md; this file is now substantive
+- ADR-57: Two-layer bundle contract — handoff bundle = browser-readable layer + Claude-runnable layer
+- ADR-58: Structured claims verification — handoff applied-task gate + structured ratification protocol
+- ADR-59: Universal visual repository pattern — dot-prefix configs + ALL-CAPS canonical roots + workspace sort settings (audit-enforced via checks #4–#6)
+- ADR-60: docs/ folder taxonomy — two-variant semantic role per subfolder + 2026-05-28 baseline-folder-uniformity addendum
+- ADR-61: Git worktree for parallel CC sessions — same-repo parallel requires `git worktree add`; different-repo parallel is safe without
 
 ## 12. Section history
 <!-- scope: meta -->
@@ -141,6 +141,7 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.0 (2026-05-19) — ADR-53: retire thin-pointer/AGENTS.md framing; CLAUDE.md becomes substantive single canonical per-repo agent-instruction file
 - v2.1 (2026-05-19) — add §3 Architecture, §4 Conventions; renumber; migrate content from AGENTS.md per ADR-53 Decision 2
 - v2.2 (2026-05-24) — self-audit fix (E1): §8 repo-level skills bullet corrected — no `.claude/skills/` dir exists; repo gotchas live in LESSONS.md
+- v2.3 (2026-05-28) — §11 ADR list rotated to most-recent 5 (57–61) per the file's own "last 5" header; durability-audit clear-gap C3
 
 ---
 

@@ -599,6 +599,38 @@ Next quarterly grooming: 2026-07-01
 - **Updated:** 2026-05-28 (v2 session) — directive target changed from bare `'dark'` to the custom `themeVariables` form; companion `color:` rule added to the check spec.
 - **Closed:** 2026-05-28 — `check_mermaid_theme_directive` implemented as check #7 in `scripts/audit.py`. Scans `ARCHITECTURE.md` + `templates/ARCHITECTURE-template.md`; excludes `docs/audits/`, `docs/decisions/ADR-*`, `JOURNAL.md`, `docs/archive/`. 5 unit tests (pass/fail-bare-dark/fail-missing-color/no-arch/no-blocks); audit health 7/7. Branch: `feat/audit-mermaid-theme-check-2026-05-28`.
 
+### [P2] [open] `templates/CLAUDE-md-template.md` refresh — encode ADRs 54-61 + recent conventions
+
+- **What:** Refresh `templates/CLAUDE-md-template.md` (currently v2.1, 2026-05-19; predates ADRs 54-61) so a new repo scaffolded from it inherits the universalization work added since. Specifically: §3 Architecture should reference the mermaid theme directive (ADR-51 v2); §4 Conventions should reference the visual pattern (ADR-59) + docs/ taxonomy variant choice (ADR-60); §5 Critical rules should include the worktree pre-flight (ADR-61); §7 should list `/handoff` + reference HANDOFF_PROCESS.md; §11 should rotate to last 5 ADRs (57-61). Bump to v2.4 or v3.0.
+- **Why:** Durability-audit J1 (2026-05-28). The template is the single new-repo scaffolding artifact for agent-instruction content; if it's stale, every new repo inherits stale conventions and the operator re-derives the additions manually. Identified as "the largest single durability gap of today's audit" in `docs/audits/2026-05-28-universalization-durability-audit.md`.
+- **Refs:** `templates/CLAUDE-md-template.md`; `CLAUDE.md` (this repo, as live example); ADRs 54-61; durability audit.
+- **Added:** 2026-05-28 by rob (universalization durability audit).
+- **Status:** open — content decision; size similar to the original v2.1 conversion (one focused session).
+
+### [P3] [open] Widen `audit.py` mermaid theme check scope (or accept current scope)
+
+- **What:** Decide whether check #7 `mermaid_theme_directive` should expand beyond `ARCHITECTURE.md` + `templates/ARCHITECTURE-template.md` to cover other repo files that may carry Mermaid blocks (e.g. future `protocols/*.md` diagrams, READMEs, hand-authored docs/diagrams/). Either (a) extend the scanned-path list (with continued exclusion of immutable-artifact paths per ADR-39), or (b) accept the current scope as sufficient (ARCHITECTURE.md is the only canonical mermaid home; everything else is one-off).
+- **Why:** Durability-audit J4 (2026-05-28). The check is durable for ARCHITECTURE.md but does not protect future hand-authored Mermaid blocks placed elsewhere. PLAYBOOK + ESSENTIALS now point a fresh CC at the directive (durability-audit clear gaps C1+C2), so the governance coverage is in place — the question is whether mechanical enforcement should follow.
+- **Refs:** `scripts/audit.py` check #7; ADR-51 v2 amendment; `docs/audits/2026-05-28-universalization-durability-audit.md`.
+- **Added:** 2026-05-28 by rob (universalization durability audit).
+- **Status:** open — small audit.py extension OR no-op governance decision.
+
+### [P3] [open] Child-repo audit reach — port `audit.py` checks or accept governance-only enforcement
+
+- **What:** Decide how the `.dev-knowledge` `audit.py` checks (visual pattern: dot-prefix / canonical-md / workspace; mermaid theme; ADR-38 baseline; vision frontmatter) reach the child repos (ai-council, corp-monorepo, corp-ops, corp-sca-time-automation). Three options: (a) **per-repo port** — each child repo gets its own `audit.py` running the same checks against itself; (b) **cross-repo runner** — extend `.dev-knowledge` `audit.py` with a `audit ecosystem --all` subcommand walking all registered repos (still Layer-2 read-only); (c) **accept governance-only** — child repos rely on review discipline + this-repo audits for verification, no mechanical check at child-repo level.
+- **Why:** Durability-audit J5 (2026-05-28). Today the four child repos do not run an analogous audit; conformance to ADR-59 + ADR-51 v2 is verified only when a `.dev-knowledge` session points the auditor at them (which the 2026-05-27 cross-repo retrofit did but only one-shot). Drift is undetected until the next manual sweep.
+- **Refs:** `scripts/audit.py`; ADR-36 (audit tool architecture, read-only contract); the 2026-05-27 cross-repo retrofit verification; Layer-2 invariant per ADR-28.
+- **Added:** 2026-05-28 by rob (universalization durability audit).
+- **Status:** open — operator decision before implementation; affects audit tool architecture.
+
+### [P3] [open] New-repo scaffolding template / starter pack
+
+- **What:** Decide whether to author a canonical new-repo scaffolding artifact (or set of artifacts) so a brand-new child code repo can be created with the full universalization baseline in one step: dot-prefix configs, ALL-CAPS canonical roots, dot-prefixed `.{repo}.code-workspace` with the corrected sort settings, `docs/{decisions,audits,archive}/README.md` seeds, `BACKLOG.md` + `JOURNAL.md` + `LESSONS.md` shells, ADR-template + ARCHITECTURE-template + CLAUDE-md-template instantiated. Must remain Layer-2 invariant — read-only validators + template snapshots, no orchestration script that *drives* a new repo into existence; the operator runs the copy.
+- **Why:** Durability-audit J6 (2026-05-28). Templates today are individual file templates (`ARCHITECTURE-template.md`, `CLAUDE-md-template.md`, `ADR-template.md`, three workspace files); there is no canonical "this is what a new child code repo looks like at t=0" reference. Each new repo re-derives the layout from a mix of (a) reading existing child repos, (b) consulting ADR-59 + ADR-60, (c) operator memory. Risks: missed baseline folders, missed sort settings, missed seeded READMEs. Pairs with J1 (template refresh) and the existing P2 entry "Remove tier-residue from `.dev-knowledge` workspace templates" (consolidate workspaces) — all three are about making new-repo scaffolding correct-by-default.
+- **Refs:** `templates/`; ADRs 59, 60, 61; the 2026-05-28 baseline-folder branches `chore/baseline-template-2026-05-28` (corp-ops + corp-sca) as the empirical pattern; durability audit J6.
+- **Added:** 2026-05-28 by rob (universalization durability audit).
+- **Status:** open — operator decision (whether to author at all + what form). Likely an ADR + a `templates/new-repo-skeleton/` directory; no scripts.
+
 ### [P2] [open] corp-sca-time-automation dev-tooling install + `run.py` → `scripts/`
 - **What:** Two-step follow-up to the 2026-05-27 corp-sca retrofit: (1) install pytest + ruff in the corp-sca venv (currently commented out in `requirements.txt` as optional dev), (2) move `run.py` (18187B, executable, at root) → `scripts/run.py` and update its 6 references (`.claude/rules/python-env.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `docs/handoffs/2026-04-15-handoff.md`, `scripts/manager_report.py`, `tests/test_vbs_export.py`). Verify with pytest after the move.
 - **Why:** The retrofit's entry-script move was **deferred** because pytest was unavailable in the venv and the operator prompt explicitly forbade moving entry-scripts without test verification. Step (1) unblocks step (2); the move itself completes the retrofit's per-repo conformance.

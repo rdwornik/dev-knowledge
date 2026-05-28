@@ -2760,6 +2760,8 @@ Keep CLAUDE.md under 200 lines per file. Instruction adherence drops above that.
 
 The codemap section of every M/L `ARCHITECTURE.md` is an auto-generated embedded Mermaid block showing the repo's top-level Python packages, their import relationships, and their layer assignments (if `tach.toml` is present). VS Code 1.121 and GitHub render Mermaid natively — the diagram is clickable and navigable without a separate SVG pipeline. Governing authority: ADR-51 Decision 6 + amendment 2026-05-22.
 
+**Mermaid theme directive (required on every block in `ARCHITECTURE.md`).** Every Mermaid fence in `ARCHITECTURE.md` (the codemap block AND every hand-authored diagram) opens with the custom-base theme directive `%%{init: {'theme':'base', 'themeVariables': {…}}}%%` so diagrams render readably on dark backgrounds; every `classDef` with a light `fill:` must also carry an explicit `color:` to prevent inherited-light-text on light-fill. Standard: ADR-51 amendment 2026-05-28 (v2). Enforcement: `scripts/audit.py` check #7 `mermaid_theme_directive` (scope: `ARCHITECTURE.md` + `templates/ARCHITECTURE-template.md`). The generator emits the directive automatically for the codemap block; hand-authored diagrams must include it manually — copy from the canonical example in `templates/ARCHITECTURE-template.md`.
+
 ### When the generator runs
 <!-- scope: meta -->
 
