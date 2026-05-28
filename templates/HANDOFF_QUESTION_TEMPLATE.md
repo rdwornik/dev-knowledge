@@ -13,7 +13,16 @@ sections that must remain visually separated for different audiences:
 The `PASTE_BOUNDARY` delimiter line makes this separation explicit. Rob selects
 from PASTE_BOUNDARY down to end of file when copying into old chat.
 
-**Three-actor flow (per ADR-42, twice amended):**
+**Audience-routing invariant (critical — see audit 2026-05-29 B2):** EVERY
+artifact the architect must produce or review (the 5 pipeline sections,
+`next_session_scope`, `11_CLAIMS.md` content, the gate-probe accuracy review)
+MUST be requested *inside* Section B (the paste block). Section A is
+operator-only; the architect never sees it. A required architect artifact that
+is mentioned only in Section A cannot be complied with — that is exactly the
+failure that aborted the first v3.4 run. Section A may *remind Rob* that these
+outputs are expected, but the actual request to the architect lives in Section B.
+
+**Three-actor flow (per ADR-42, amended four times):**
 - Stage 2 source = OLD browser chat for {repo} (existing chat being wrapped up)
 - Stage 3 receiver = NEW browser chat for {repo} (fresh, opened after folder generated)
 - Claude Code = orchestrator throughout
@@ -46,7 +55,12 @@ SECTION A — INSTRUCTIONS FOR ROB (do NOT paste this into old chat)
 5. Open the pre-created file: docs/handoffs/in-progress/{slug}/stage2-response.md
    (already exists, has placeholder content). Replace everything below the
    "═══ REPLACE EVERYTHING BELOW THIS LINE ═══" marker with the architect's
-   response. Save.
+   response (the 5 pipeline sections). Save.
+   - The paste block also asks the architect for two more outputs (requested in
+     Section B, not here): a `next_session_scope` line and the `11_CLAIMS.md`
+     claims tables. Save the claims content into the pre-created
+     docs/handoffs/in-progress/{slug}/stage2-claims.md. (Reminder only — the
+     architect receives the actual instructions in the paste block.)
 6. In Claude Code at .dev-knowledge, say: "complete handoff for {repo}"
    → Stage 3 generates the final handoff folder.
 7. After Stage 3: close the old chat. Open a NEW claude.ai chat for {repo}
@@ -75,6 +89,9 @@ You provide:
   priority calls, deferrals)
 - Do-not lists that come from project context (gotchas, scope boundaries
   you know matter)
+- A `next_session_scope` declaration, a structured `11_CLAIMS.md` grounding of
+  your load-bearing claims, and an accuracy review of the gate probe (the three
+  v3.4 outputs specified after the 5 pipeline questions below)
 
 You are NOT:
 - An oracle for ecosystem-wide conventions (.dev-knowledge structure, ADR
@@ -342,12 +359,83 @@ Add any architect-specific concerns or "do not's."
 valuable. Don't fabricate "do not touch X" if you don't know whether X exists
 — focus on knowns from your conversation.*
 
+## Additional required Stage 2 outputs (v3.4 — do these too)
+
+Beyond the 5 pipeline sections above, the v3.4 handoff process needs three more
+things from you. These are NOT optional — Stage 3 cannot complete the bundle
+without the first two, and the third keeps you available for one quick check.
+
+### A. Declare `next_session_scope` (per ADR-57)
+
+State which ONE scope best describes the next session's work, from this
+controlled vocabulary (this selects which operational artifacts — skills,
+gotchas, JOURNAL slices — get bundled):
+
+- `code-implementation` — writing/changing code in the target repo
+- `architecture-decision` — ADR-level design, governance, or process decisions
+- `audit-work` — auditing, reviewing, or verifying existing artifacts
+- `documentation` — authoring or revising docs/specs/templates
+- `mixed-uncertain` — spans several / not yet clear (fail-safe → treated as
+  worst-case, bundles the full operational layer)
+
+Write it as a single line, e.g.: `next_session_scope: architecture-decision`.
+If genuinely unsure, choose `mixed-uncertain` — do not guess narrowly.
+
+### B. Produce `11_CLAIMS.md` content (per ADR-58) — your FINAL output
+
+After the 5 sections, list your **load-bearing claims** — the decision-affecting
+factual assertions in your response (file paths, commit SHAs, ADR refs, action
+sequencing, architecture descriptions, current-state assertions). Reasoning,
+recommendations, and clearly-marked opinions are NOT load-bearing and need no
+citation. **Trigger rule:** a confident claim about an unread/unverified source
+requires a citation OR an explicit assumption marker.
+
+Use this structure (Claude Code saves it to `stage2-claims.md`, which becomes
+`11_CLAIMS.md` in the bundle; Claude Code then validates every citation against
+the repo at Stage 3):
+
+```
+## Load-bearing claims
+
+| # | Claim | Source citation | Verifier |
+|---|-------|-----------------|----------|
+| 1 | {claim} | `file:section` / `ADR-NN` / `session: YYYY-MM-DD` | self / CC / operator |
+
+## Explicit assumptions
+
+| # | Assumption | Risk if wrong | Mitigation |
+|---|-----------|---------------|------------|
+| 1 | {assumption} | {consequence} | {guard} |
+
+## Expected articulation (sender contract)
+
+{2-4 sentences: what the receiving NEW chat should correctly understand from
+this handoff — lets the operator ratify even after this chat has closed}
+```
+
+Produce this LAST, after the 5 sections are settled. If you revise a section in
+a way that changes a load-bearing claim, update this table to match.
+
+### C. Be ready to review the gate probe (per ADR-55)
+
+At Stage 3, Claude Code will draft a `10_GATE_PROBE.md` — a mini-scenario whose
+correct answer is determined by this handoff's content, used to test that the
+NEW chat can *apply* the bundle (not just paraphrase it), drawn from the
+**highest-risk live decision** in your handoff. While this OLD chat is still
+open, the operator may route that draft back to you for an **accuracy review**:
+confirm the scenario reflects a real high-risk decision and the operator-only
+expected answer is correct per what you witnessed — or correct it. You do not
+author the probe; you check it. (If this chat has closed by then, the operator
+reviews it directly.)
+
 ════════════════════════════════════════════════════════════════════
 End of paste block.
 Old chat: please answer questions 1-5 above following the Format
 requirements above. Structure response with the exact headings
 (OBJECTIVE / REALITY / RATIONALE / DIRECTIVES / BOUNDARIES) so
-Claude Code can parse them at Stage 3.
+Claude Code can parse them at Stage 3. Then add the three v3.4 outputs:
+`next_session_scope`, the `11_CLAIMS.md` claims tables, and your
+readiness to review the gate probe.
 ════════════════════════════════════════════════════════════════════
 ```
 
@@ -358,11 +446,21 @@ Claude Code can parse them at Stage 3.
 - Replace all `{placeholders}` with actual values from repo state + audit context
 - **Section B order is fixed:** role → bundle → "How to write the response"
   (epistemic / self-containment / coherence / format) → current state →
-  audit context → BACKLOG → pipeline questions → end divider. The
-  response-writing guidance MUST appear before audit context and
+  audit context → BACKLOG → pipeline questions → **additional required Stage 2
+  outputs** (scope / claims / gate-probe review, per ADR-57/58/55) → end
+  divider. The response-writing guidance MUST appear before audit context and
   questions — old chat must read these BEFORE drafting response.
 - **Preserve 5 question headings exactly:** `### 1. OBJECTIVE`, `### 2. REALITY`,
   `### 3. RATIONALE`, `### 4. DIRECTIVES`, `### 5. BOUNDARIES`. Stage 3 parses these.
+- **Audience-routing invariant (v3.4 — audit 2026-05-29 B1/B2):** the three v3.4
+  outputs — `next_session_scope` (ADR-57), the `11_CLAIMS.md` claims content
+  (ADR-58), and the gate-probe accuracy-review note (ADR-55) — MUST be generated
+  INSIDE the paste block (Section B), in the "Additional required Stage 2
+  outputs" section. They may be *echoed* as a reminder in Section A for Rob, but
+  the actual request to the architect must live in Section B. A required
+  architect artifact placed only in Section A reproduces the abort that halted
+  the first v3.4 run. Include the controlled scope vocabulary and the claims
+  table schema inline so the architect never has to guess.
 - **RATIONALE sub-questions must not presuppose answers.** A phrasing like
   "Why was X done?" or "Why was Y deferred?" assumes the architect did X
   or chose to defer Y, and pulls them toward constructing a rationale —
@@ -381,3 +479,6 @@ Claude Code can parse them at Stage 3.
 - For session-sync: populate from recent git log + BACKLOG context
 - **Pre-create `stage2-response.md` template** alongside stage1-question.md in the
   same Stage 1 commit (per HANDOFF_PROCESS Stage 1 procedure)
+- **Pre-create `stage2-claims.md` placeholder** in the same folder and Stage 1
+  commit, so the architect's `11_CLAIMS.md` save target exists (per ADR-58; the
+  architect produces this as the FINAL Stage 2 output)
