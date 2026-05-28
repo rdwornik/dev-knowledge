@@ -11,22 +11,28 @@ Not a dumping ground — a triage queue. If something sits here across two revie
 
 ## Current contents (newest first)
 
-Reclassified from `research/` and `council-questions/` during the 2026-05-27 taxonomy-simplification session (the two retired folders' content matures or archives — these did neither).
+Entered as 14 files from `research/` and `council-questions/` (2026-05-27 taxonomy-simplification).
+**First review: 2026-05-28** — 7 council-out transcripts promoted; 7 external-research / scoping / evidence files kept pending second review.
 
-- `2026-05-25-handoff-failures-evidence.md` — empirical evidence cited by the 5 handoff-methodology Council questions
-- `2026-05-25-handoff-methodology-council-index.md` — set index for the same Council question set
+- `2026-05-25-handoff-failures-evidence.md` — empirical evidence cited by the 5 handoff-methodology Council questions; referenced in ADR-55/56/57/58 and HANDOFF_PROCESS.md — keep until superseded
+- `2026-05-25-handoff-methodology-council-index.md` — index of the Council question set that produced ADR-55–58; keep as provenance record pending second review
 - `2026-05-17-kimi-k2-scoping.md` — Kimi K2 model scoping (BACKLOG #243; awaiting promotion to ADR or audit)
-- `2026-04-27-handoff-patterns-external-research.md` — external research on handoff patterns
-- `2026-04-27-handoff-patterns-council-research.md` — Council research debate on handoff patterns
-- `2026-04-24-multi-agent-debate-patterns.md` — multi-agent debate frameworks research
-- `2026-04-24-council-29-spec-kit-kiro.md` — Council debate #29: Spec Kit / Kiro evaluation
-- `2026-04-24-claude-md-best-practices.md` — CLAUDE.md structuring research
-- `2026-04-23-llm-dev-patterns-2026.md` — general LLM dev patterns research
+- `2026-04-27-handoff-patterns-external-research.md` — external Perplexity research on handoff patterns; referenced in ADR-32
+- `2026-04-24-multi-agent-debate-patterns.md` — external research on multi-agent LLM debate frameworks
+- `2026-04-24-claude-md-best-practices.md` — external research on CLAUDE.md structuring best practices
+- `2026-04-23-llm-dev-patterns-2026.md` — external Perplexity research on LLM dev patterns 2026
+
+## Promoted (2026-05-28 first review) → docs/decisions/transcripts/
+
+All 7 are AI Council debate outputs (identical structure to existing council-out-* files in transcripts/). Original filenames retained.
+
+- `2026-04-27-handoff-patterns-council-research.md` — Council research debate: handoff patterns for solo developers
+- `2026-04-24-council-29-spec-kit-kiro.md` — Council debate #29: Spec Kit / Kiro spec-driven workflows
 - `2026-04-23-council-28-community-patterns.md` — Council debate #28: community LLM dev patterns
-- `2026-04-15-council-26-tach-adoption-corp-monorepo.md` — Council debate #26: Tach adoption for corp-monorepo
-- `2026-03-30-council-25-diagrams-corp-monorepo.md` — Council debate #25: diagram format for corp-monorepo
-- `2026-03-29-council-research-new-models.md` — Council research on new LLM models/APIs
-- `2026-03-29-council-browser-handoff.md` — browser-chat handoff patterns research
+- `2026-04-15-council-26-tach-adoption-corp-monorepo.md` — Council debate #26: Tach import enforcement adoption
+- `2026-03-30-council-25-diagrams-corp-monorepo.md` — Council debate #25: architecture diagram format/location
+- `2026-03-29-council-research-new-models.md` — Council research: new LLM models/APIs Mar 2026
+- `2026-03-29-council-browser-handoff.md` — Council debate: browser→CLI handoff strategy
 
 ## Naming convention
 
