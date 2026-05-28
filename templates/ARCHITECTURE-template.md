@@ -44,6 +44,7 @@ The narrative invariants in §3 are **not** generated — only the codemap is. A
 
 <!-- CODEMAP:START -->
 ```mermaid
+%%{init: {'theme':'dark'}}%%
 flowchart TD
     api[api]:::interface
     domain[domain]:::core

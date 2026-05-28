@@ -22,6 +22,7 @@ The codemap is the canonical artifact answering *"what exists and how does it re
 
 <!-- CODEMAP:START -->
 ```mermaid
+%%{init: {'theme':'dark'}}%%
 flowchart TD
     codemap[codemap]:::orphan
     classDef foundation fill:#e8e8e8,stroke:#888
@@ -44,6 +45,7 @@ flowchart TD
 `.dev-knowledge` is **Layer 2** of the ADR-28 ecosystem-level three-layer model (layers listed highest to lowest):
 
 ```mermaid
+%%{init: {'theme':'dark'}}%%
 flowchart TD
     L1["Browser chat<br/>Layer 1 — analysis"]
     L2[".dev-knowledge<br/>Layer 2 — passive storage"]
@@ -108,6 +110,7 @@ When freestanding Mermaid diagrams are added in child code repos, source files g
 Adds runtime config (`~/.claude`) and the Obsidian vault (pre-sales, separate domain) to the strict ADR-28 three-layer view above. Same model, broader picture.
 
 ```mermaid
+%%{init: {'theme':'dark'}}%%
 flowchart TB
     subgraph methodology [".dev-knowledge — Layer 2 (methodology)"]
         playbook[PLAYBOOK + ESSENTIALS]
@@ -159,6 +162,7 @@ flowchart TB
 How a need becomes a commit: complexity routing, execution, capture, and the handoff loop when context degrades.
 
 ```mermaid
+%%{init: {'theme':'dark'}}%%
 flowchart TD
     need([Operator surfaces a need])
     need --> route{Complexity}
@@ -210,6 +214,7 @@ flowchart TD
 End-to-end from question authoring to ADR. Grounded in the actual `ai-council` CLI + router, not in earlier mental sketches: question briefs are **ephemeral** (live in gitignored `council_inbox/` or `~/Downloads/`); the permanent record is the routed transcript + the ADR it informs. The earlier "committed `docs/council-questions/` folder" sketch was retired by the 2026-05-27 ADR-60 amendment — this diagram follows reality.
 
 ```mermaid
+%%{init: {'theme':'dark'}}%%
 flowchart TD
     author[Operator authors brief<br/>YAML frontmatter + body]
 
@@ -264,6 +269,7 @@ flowchart TD
 Three stages plus the receiver's applied-task gate. Grounded in `HANDOFF_PROCESS.md` v3.4 + ADRs 55/56/57/58 + ADR-42 Q5 amendment.
 
 ```mermaid
+%%{init: {'theme':'dark'}}%%
 flowchart TD
     trigger(["Operator: 'Make handoff for {repo}'"])
     trigger --> stage1

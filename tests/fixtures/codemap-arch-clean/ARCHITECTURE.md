@@ -2,6 +2,7 @@
 
 <!-- CODEMAP:START -->
 ```mermaid
+%%{init: {'theme':'dark'}}%%
 flowchart TD
     pkg_a[pkg_a]
     pkg_b[pkg_b]
