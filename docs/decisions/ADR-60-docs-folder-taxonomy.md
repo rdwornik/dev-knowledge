@@ -89,3 +89,60 @@ Full file-by-file record in the 2026-05-27 `JOURNAL.md` entry.
 - `docs/audits/2026-05-25-council-pipeline-proposal.md` — Option B (recommended)
 - ADR-59 — universal visual repository pattern (the visual-consistency sibling to this semantic-consistency decision)
 - ADR-43 — cross-project transcript routing (unchanged)
+
+---
+
+## Amendment 2026-05-27 — Simplification + repo-type variants
+
+### Context
+The original ADR-60 (above) defined 6 folder roles and was applied uniformly to all repos via the 2026-05-26 universalization. Operator empirical review (opening each repo in VS Code) on 2026-05-27 found two problems:
+
+1. **Over-built.** `council-questions/` and `research/` don't earn permanent folders.
+   - `council-questions/`: questions flow operator → Downloads → `council_inbox/` (gitignored) → debate. The permanent record is the transcript (routed per ADR-43) + the ADR it informs. Standalone Q-files are redundant duplication of content that already lives in the transcript + git history.
+   - `research/`: a "working scratchpad" folder becomes a junk-drawer. Mature work belongs in `audits/` or `decisions/`; genuinely immature exploratory work should not be committed to a tracked folder. The original ADR-60's "retain research/ with README" stance is reversed.
+2. **Over-propagated.** Child code repos received `.dev-knowledge`-specific folders (`handoffs/`, `research/`, `council-questions/`) during the 2026-05-26 universalization. Verification on 2026-05-27 confirmed `handoffs/` is centralized in `.dev-knowledge` (the canonical home for cross-repo handoff bundles), and Council inputs/research are methodology concerns specific to `.dev-knowledge`. Child code repos do not need these folders.
+
+### Decision (supersedes original folder list above)
+
+**`.dev-knowledge` (methodology repo) — taxonomy:**
+| Folder | Role |
+|---|---|
+| `decisions/` | OUTPUTS — ADRs + `transcripts/` (routed per ADR-43) |
+| `audits/` | OUTPUTS — audit reports, validation reports, forensics |
+| `handoffs/` | OUTPUTS — ALL handoff bundles (centralized canonical home; child repos do NOT carry `handoffs/`) |
+| `archive/` | ARCHIVED — pending-classification zone (see archive/ semantics below) |
+
+**Child code repos (ai-council, corp-ops, corp-sca-time-automation, corp-monorepo, future repos) — taxonomy:**
+| Folder | Role |
+|---|---|
+| `decisions/` | OUTPUTS — ADRs + `transcripts/` (routed per ADR-43) |
+| `audits/` | OUTPUTS — audit reports, validation reports, forensics |
+| `archive/` | ARCHIVED — pending-classification zone |
+| `diagrams/` | DIAGRAMS — architecture diagrams (where present; not mandatory) |
+
+Child code repos do **not** carry `handoffs/`, `research/`, or `council-questions/`. Handoffs centralize in `.dev-knowledge`.
+
+### `archive/` semantics (clarified)
+
+Deliberate holding zone for "don't yet know where this belongs." Reviewed periodically; each item either deleted (git history retains) or promoted to `decisions/`, `audits/`, `handoffs/`, `diagrams/`, or authored into an ADR. Every repo's `archive/` carries a `README.md` documenting this. Not a dumping ground — a triage queue. If something sits here across two reviews with no decision, default to deletion.
+
+### File-placement rules (new)
+
+- **Entry-scripts** (`run.py`, `cli.py`, etc.) live in `scripts/`, not at repo root. Update callsite paths (`__file__.parent` resolutions) and user-facing instruction strings when moving.
+- **Root-exception configs** (NOT dot-prefixed, NOT moved to subfolders): `pyproject.toml` (PEP 518), `tach.toml` (read from root; tach 0.34.0 ignores `.tach.toml`), `requirements.txt` (pip convention — recommendation: keep at root when present, do not move).
+- **Dot-prefix everything else** the tool supports (per ADR-59).
+
+### Migration
+
+This amendment's rollout: the 2026-05-27 taxonomy-simplification session. Reclassified/removed files recorded in the session JOURNAL + verification report (`docs/audits/2026-05-27-taxonomy-simplification-verification.md`). The original ADR-60 (above) remains as point-in-time history per Rule 5 — it was accurate when written, and this amendment supersedes its folder list rather than rewriting it.
+
+### Consequences (amendment)
+
+**Positive:**
+- Child code repos no longer carry `.dev-knowledge`-specific folders they don't use.
+- Two folders that did not earn their permanence (`council-questions/`, `research/`) are retired.
+- `archive/` gains documented semantics + per-repo README — the pending-classification zone is intentional rather than incidental.
+
+**Risks / trade-offs:**
+- Reclassification touched cross-references in `protocols/PLAYBOOK.md` and `protocols/ESSENTIALS.md`; mitigated by per-phase commits.
+- Some Council-research files in the retired `research/` folder were reclassified into `archive/` rather than deleted; archive/ now carries historical content that may need periodic review.
