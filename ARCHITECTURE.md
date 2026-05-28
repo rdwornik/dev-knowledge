@@ -97,11 +97,242 @@ Utility-exemption modules: none.
 
 ---
 
-## Diagrams
+## Processes
 
-`.dev-knowledge` has no Mermaid diagrams currently. The three-layer architecture diagram in `## Layer Boundaries & Invariants` is inline ASCII and serves as the primary orientation aid.
+Living diagrams of the ecosystem's core processes. Each diagram is grounded in the implementation file(s) cited under **Source**; if reality diverges from a diagram, fix the diagram. The static three-layer diagram already lives in `## Layer Boundaries & Invariants` above — these four are the *flow* views complementing it.
 
-When Mermaid diagrams are added, source files go under `docs/diagrams/` as `.mermaid` + `.svg` pairs per the template convention.
+When freestanding Mermaid diagrams are added in child code repos, source files go under that repo's `docs/diagrams/` as `.mermaid` + `.svg` pairs per the template convention.
+
+### Ecosystem layer model (extended)
+
+Adds runtime config (`~/.claude`) and the Obsidian vault (pre-sales, separate domain) to the strict ADR-28 three-layer view above. Same model, broader picture.
+
+```mermaid
+flowchart TB
+    subgraph methodology [".dev-knowledge — Layer 2 (methodology)"]
+        playbook[PLAYBOOK + ESSENTIALS]
+        adrs[docs/decisions/ ADRs]
+        templates[templates/]
+        validators[scripts/ read-only validators]
+    end
+
+    subgraph runtime ["~/.claude — runtime config (cross-repo)"]
+        skills[skills/]
+        commands[commands/]
+        memory[memory/ learned-rules.md]
+        hooks_global[hooks via settings.json]
+    end
+
+    subgraph code_repos ["Child code repos — Layer 3 (execution)"]
+        corp_monorepo[corp-monorepo]
+        ai_council_repo[ai-council]
+        corp_ops[corp-ops]
+        corp_sca[corp-sca-time-automation]
+    end
+
+    subgraph vault ["Obsidian vault (pre-sales, separate domain)"]
+        vault_writer[corp-by-os — sole writer]
+        vault_content[pre-sales knowledge base]
+    end
+
+    methodology -- "prescribes (read-only)" --> code_repos
+    runtime -- "loads in every session" --> code_repos
+    runtime -- "loads in every session" --> methodology
+    code_repos -- "handoff → git commit" --> methodology
+    vault_writer --> vault_content
+
+    classDef l2 fill:#e8e8e8,stroke:#888,color:#222
+    classDef rt fill:#fff3bf,stroke:#c79e00,color:#222
+    classDef l3 fill:#a5d8ff,stroke:#1971c2,color:#000
+    classDef vlt fill:#d8f5a2,stroke:#5c940d,color:#222
+
+    class methodology l2
+    class runtime rt
+    class code_repos l3
+    class vault vlt
+```
+
+**Source:** `VISION.md`; this file §Layer Boundaries; `protocols/PLAYBOOK.md` §System Architecture + §"Where Knowledge Lives"; ADR-28.
+
+### Development workflow (complexity-routed)
+
+How a need becomes a commit: complexity routing, execution, capture, and the handoff loop when context degrades.
+
+```mermaid
+flowchart TD
+    need([Operator surfaces a need])
+    need --> route{Complexity}
+
+    route -- "1 file / mechanical" --> conv[Conversational change<br/>edit + same-session commit]
+    route -- "2-3 files / single concern" --> conv_ctx[Conversational + context<br/>operator-curated CLAUDE.md / docs reads]
+    route -- "3+ files OR 2+ packages" --> formal[Formal CC prompt<br/>Model / Mode / Effort + Steps + COMMITs]
+    route -- "architecture / contested" --> council[/AI Council debate/]
+
+    conv --> exec[Branch + commits per step]
+    conv_ctx --> exec
+    formal --> exec
+    council --> adr[ADR + transcript routed to target repo] --> exec
+
+    exec --> review[Operator review<br/>git merge --no-ff main]
+    review --> capture[Capture state]
+
+    capture --> journal[JOURNAL entry per session]
+    capture --> backlog[BACKLOG close / open / escalate]
+    capture --> lessons[LESSONS append if new pattern]
+    capture --> adr2[New ADR if decision binds]
+
+    journal --> degrade{Context degraded?}
+    backlog --> degrade
+    lessons --> degrade
+    adr2 --> degrade
+
+    degrade -- "no" --> need
+    degrade -- "yes" --> handoff[/Handoff v3.4/]
+    handoff --> need
+
+    classDef start fill:#bde0fe,stroke:#1971c2
+    classDef decide fill:#fff3bf,stroke:#c79e00
+    classDef exec_ fill:#a5d8ff,stroke:#1971c2
+    classDef cap fill:#d8f5a2,stroke:#5c940d
+    classDef sub fill:#e8e8e8,stroke:#888
+
+    class need start
+    class route,degrade decide
+    class conv,conv_ctx,formal,exec,review exec_
+    class journal,backlog,lessons,adr2 cap
+    class council,handoff,adr sub
+```
+
+**Source:** `protocols/PLAYBOOK.md` §"Project complexity bands", §"Writing prompts for Claude Code", §"Session boundaries"; `protocols/HANDOFF_PROCESS.md` v3.4; ADR-28 Layer-3 execution semantics.
+
+### AI Council debate pipeline
+
+End-to-end from question authoring to ADR. Grounded in the actual `ai-council` CLI + router, not in earlier mental sketches: question briefs are **ephemeral** (live in gitignored `council_inbox/` or `~/Downloads/`); the permanent record is the routed transcript + the ADR it informs. The earlier "committed `docs/council-questions/` folder" sketch was retired by the 2026-05-27 ADR-60 amendment — this diagram follows reality.
+
+```mermaid
+flowchart TD
+    author[Operator authors brief<br/>YAML frontmatter + body]
+
+    author --> route_in{Where to drop?}
+    route_in -- "council_inbox/ - gitignored, any .md" --> inbox[(council_inbox/)]
+    route_in -- "~/Downloads/ with council token<br/>or Council frontmatter keys" --> downloads[(~/Downloads/)]
+
+    inbox --> cli[python -m ai_council.cli --inbox]
+    downloads --> cli
+
+    cli --> mode{mode<br/>auto-detect or YAML}
+    mode --> debate[Multi-provider debate<br/>1-2 rounds]
+
+    subgraph providers [Default panel — 5 providers]
+        anthropic[claude]
+        gemini_p[gemini]
+        openai_p[openai]
+        deepseek_p[deepseek]
+        grok_p[grok]
+    end
+    debate --- providers
+
+    debate --> vote[Blind vote — ADR-03]
+    vote --> synth[Synthesizer<br/>default: gemini<br/>never on the panel]
+
+    synth --> out_local[Local: ai-council/output/]
+    synth --> route_out{target-project<br/>set?}
+
+    route_out -- "no" --> stop1((manual archival))
+    route_out -- "yes" --> router[routing.py TargetResolver — ADR-43]
+    router --> transcripts["target/docs/decisions/transcripts/<br/>council-out-YYYYMMDD-HHMMSS-topic.md"]
+
+    transcripts --> adr_author[Operator distils to ADR<br/>in target/docs/decisions/]
+
+    classDef start fill:#bde0fe,stroke:#1971c2
+    classDef decide fill:#fff3bf,stroke:#c79e00
+    classDef cli_ fill:#a5d8ff,stroke:#1971c2
+    classDef out fill:#d8f5a2,stroke:#5c940d
+    classDef warn fill:#ffe3e3,stroke:#fa5252
+
+    class author start
+    class route_in,mode,route_out decide
+    class cli,debate,vote,synth,router cli_
+    class out_local,transcripts,adr_author out
+    class stop1 warn
+```
+
+**Source:** `ai-council/docs/council-question-guide.md` (modes, panel, inbox detection); `ai-council/src/ai_council/{cli,inbox,orchestrator,routing,synthesis}.py` (real flow + 5 provider modules under `providers/`); `docs/decisions/ADR-43_cross_project_transcript_routing.md` (routing mechanism); ADR-03 (blind vote).
+
+### Handoff process v3.4
+
+Three stages plus the receiver's applied-task gate. Grounded in `HANDOFF_PROCESS.md` v3.4 + ADRs 55/56/57/58 + ADR-42 Q5 amendment.
+
+```mermaid
+flowchart TD
+    trigger(["Operator: 'Make handoff for {repo}'"])
+    trigger --> stage1
+
+    subgraph stage1 [Stage 1 — Claude Code in .dev-knowledge]
+        direction TB
+        s1a[Capture target repo state<br/>HEAD SHA, branch, working tree]
+        s1b[Generate stage1-question.md<br/>5 SBAR/I-PASS questions]
+        s1c[Pre-create stage2-response.md placeholder]
+        s1d[Single commit on feature branch]
+        s1a --> s1b --> s1c --> s1d
+    end
+
+    stage1 --> stage2
+
+    subgraph stage2 [Stage 2 — OLD browser chat - dying architect context]
+        direction TB
+        s2a[Operator pastes question block into OLD chat]
+        s2b[OLD chat answers 5 sections<br/>OBJECTIVE / REALITY / RATIONALE / DIRECTIVES / BOUNDARIES]
+        s2c[Operator declares next_session_scope<br/>from controlled vocabulary]
+        s2d[Operator produces 11_CLAIMS.md<br/>cited or marked assumption]
+        s2a --> s2b --> s2c --> s2d
+    end
+
+    stage2 --> stage3
+
+    subgraph stage3 [Stage 3 — Claude Code in .dev-knowledge]
+        direction TB
+        s3a[Ancestor check: Stage 1 SHA ⊑ HEAD]
+        s3b[Thinness pre-flight on 5 sections]
+        s3c[Generate 13-file bundle<br/>governance floor + operational layer per scope]
+        s3d[Draft 10_GATE_PROBE.md applied probe]
+        s3e[Validate 11_CLAIMS.md citations]
+        s3f[Compute SHA-256 + invariant hashes → 01_manifest.json]
+        s3g[Move in-progress → archive/]
+        s3a --> s3b --> s3c --> s3d --> s3e --> s3f --> s3g
+    end
+
+    stage3 --> recv
+
+    subgraph recv [Receiver — NEW browser chat]
+        direction TB
+        s4a[Read bundle in order, governance floor first]
+        s4b[State role + top-3 hard constraints with citations]
+        s4c[Read 10_GATE_PROBE.md mini-scenario only<br/>not the operator answer key]
+        s4d[Answer directed action + bundle location + preconditions]
+        s4a --> s4b --> s4c --> s4d
+    end
+
+    recv --> ratify{Operator structured ratification}
+    ratify -- "claims green + probe match + articulation match" --> work[NEW chat executes directives<br/>fills 09_EXECUTION_EVIDENCE.md]
+    ratify -- "first fail" --> retry[Operator cites contradicted bundle location<br/>NEW chat retries probe once]
+    retry --> ratify
+    ratify -- "second fail" --> abort[Bundle inadequate<br/>regenerate Stage 2 upstream]
+
+    classDef start fill:#bde0fe,stroke:#1971c2
+    classDef stg fill:#e8e8e8,stroke:#888
+    classDef decide fill:#fff3bf,stroke:#c79e00
+    classDef work_ fill:#d8f5a2,stroke:#5c940d
+    classDef warn fill:#ffe3e3,stroke:#fa5252
+
+    class trigger start
+    class stage1,stage2,stage3,recv stg
+    class ratify decide
+    class work work_
+    class abort warn
+```
+
+**Source:** `protocols/HANDOFF_PROCESS.md` v3.4 (three-stage flow, applied-task gate, structured ratification, ancestor check, 13-file bundle); ADR-55 (applied-task gate), ADR-56 (Prompt Generation Card), ADR-57 (two-layer bundle), ADR-58 (structured claims), ADR-42 Q5 amendment (manifest invariant hashes + `next_session_scope`).
 
 ---
 
