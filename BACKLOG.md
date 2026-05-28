@@ -545,4 +545,39 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-27 by rob (this session).
 - **Status:** open — small PLAYBOOK rule, no code.
 
+### [P3] [open] Workspace scale-to-size ADR-59 refinement
+- **What:** Refine ADR-59 (or PLAYBOOK § "VS Code workspace") to codify the "scale-to-size" decision applied during the 2026-05-27 cross-repo retrofit: small repos get a minimal single-root workspace (`{ "folders": [{"path":"."}] }` + the 4 sort keys + repo-specific Python/extensions); larger repos may keep richer multi-root configs. The decision was operator-baked into the mega-prompt but isn't yet a documented standard.
+- **Why:** Without codification, the next new-repo decision re-derives the size threshold from scratch. The retrofit applied two single-root workspaces (corp-ops, corp-sca-time-automation) and left two multi-root (`.dev-knowledge`, corp-monorepo) — the operator's rule was "trzeba dopasować do wielkości projektu."
+- **Refs:** `docs/audits/2026-05-27-cross-repo-retrofit-verification.md`; ADR-59; the mega-prompt operator decision table.
+- **Added:** 2026-05-27 by rob (cross-repo retrofit — surfaced operator decision needing codification).
+- **Status:** open — small ADR-59 amendment or PLAYBOOK note; no code.
+
+### [P3] [open] Entry-scripts → `scripts/` convention codification
+- **What:** Codify in PLAYBOOK (root hygiene section) the convention that run-entry Python scripts (`run.py`, `main.py`, etc.) live in `scripts/`, not the repo root. Applied opportunistically during the 2026-05-27 retrofit but **not yet codified** — and corp-sca's `run.py` move was **deferred** because the venv lacked the test tooling needed to verify reference updates safely.
+- **Why:** Root cleanliness; ALL-CAPS canonical .md + dot-prefix configs visually cluster cleanly when entry scripts move out. Operator rule from the mega-prompt: "run python powinno być scripts." Without the codification, future sessions either re-derive or skip.
+- **Refs:** PLAYBOOK § "Root hygiene"; the deferred corp-sca `run.py` move (see below).
+- **Added:** 2026-05-27 by rob (cross-repo retrofit — surfaced operator decision).
+- **Status:** open — PLAYBOOK addition, no code.
+
+### [P3] [open] `requirements.txt` ADR-59 exception note
+- **What:** Add `requirements.txt` (and `requirements-dev.txt`) to the ADR-59 dot-prefix exception list explicitly. ADR-59 already lists them, but the retrofit surfaced that this is non-obvious for repos that use `requirements.txt` instead of `pyproject.toml` (e.g., corp-sca-time-automation). Either: (a) make it more prominent in the ADR, (b) add a one-line rationale clarifying that pip/PEP convention pins the name, or (c) leave as-is.
+- **Why:** Reduce future ambiguity. Operator rule from the mega-prompt: "jeżeli musi być to musi być."
+- **Refs:** ADR-59 § "Exceptions" (already includes `requirements.txt`); corp-sca state.
+- **Added:** 2026-05-27 by rob (cross-repo retrofit).
+- **Status:** open — small ADR-59 wording polish; possibly close as no-op if existing wording deemed sufficient.
+
+### [P3] [open] Per-repo deeper cleanup follow-up (post-retrofit)
+- **What:** Each child repo has cosmetic / non-blocking cleanup left over from the retrofit: ai-council has 18 pre-existing ruff errors; corp-monorepo has 89 (lenient `select`); corp-sca has an untracked `__pycache__/` at root; ai-council has `.env` 100B content (leave). Decide whether to address per-repo in dedicated sessions or accept as baseline.
+- **Why:** Retrofit prompt explicitly scoped these as "ambiguous → report, don't delete" or "out of scope" (lint). Worth a deliberate decision rather than indefinite drift.
+- **Refs:** `docs/audits/2026-05-27-cross-repo-retrofit-verification.md` § "Honest divergence report".
+- **Added:** 2026-05-27 by rob (cross-repo retrofit).
+- **Status:** open — per-repo judgment calls.
+
+### [P2] [open] corp-sca-time-automation dev-tooling install + `run.py` → `scripts/`
+- **What:** Two-step follow-up to the 2026-05-27 corp-sca retrofit: (1) install pytest + ruff in the corp-sca venv (currently commented out in `requirements.txt` as optional dev), (2) move `run.py` (18187B, executable, at root) → `scripts/run.py` and update its 6 references (`.claude/rules/python-env.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `docs/handoffs/2026-04-15-handoff.md`, `scripts/manager_report.py`, `tests/test_vbs_export.py`). Verify with pytest after the move.
+- **Why:** The retrofit's entry-script move was **deferred** because pytest was unavailable in the venv and the operator prompt explicitly forbade moving entry-scripts without test verification. Step (1) unblocks step (2); the move itself completes the retrofit's per-repo conformance.
+- **Refs:** `docs/audits/2026-05-27-cross-repo-retrofit-verification.md` § Phase C divergence #1; corp-sca `requirements.txt:14-16` (commented-out dev deps).
+- **Added:** 2026-05-27 by rob (cross-repo retrofit — deferred work).
+- **Status:** open — single corp-sca session; bundle with the existing "Apply tier-deprecation to corp-sca" entry if helpful.
+
 ---
