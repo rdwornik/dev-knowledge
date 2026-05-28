@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-28 — AI Council operational runbook (protocols/AI_COUNCIL_PROCESS.md v1.0)
+
+- Did: Authored `protocols/AI_COUNCIL_PROCESS.md` v1.0 — the prose end-to-end operational runbook for the AI Council pipeline, companion to the ARCHITECTURE.md C3 "AI Council debate pipeline" Mermaid diagram landed earlier today. Six stages (frame → author → route → debate → verdict → ADR → close), each with owner, gate check, code grounding (cli.py, inbox.py, routing.py, runner.py, orchestrator.py, synthesis.py + council-question-guide.md). Includes frontmatter reference table, exit-code convention (ADR-08), routing rules (ADR-43), troubleshooting matrix, cross-references. Cross-linked from PLAYBOOK § 5 lead-in, ESSENTIALS § "Artifact generation direction" (Council ADR distillation paragraph), and the ARCHITECTURE.md C3 diagram source block. Closed **BACKLOG #4** (P2 "AI Council Flow operationalization — lifecycle runbook") — both halves of the 2026-05-25 pipeline proposal Option B (visual + prose) now landed.
+- Result: Council pipeline has a single operational home; operator no longer re-derives the flow each time. 85/85 tests pass; ruff clean; pre-commit hooks pass; codemap check passes. Branch `docs/ai-council-runbook-2026-05-28` (3 commits: runbook + cross-links + BACKLOG close) awaiting operator merge.
+- Changes: `protocols/AI_COUNCIL_PROCESS.md` (new, 343 lines), `protocols/PLAYBOOK.md` (§5 lead-in pointer), `protocols/ESSENTIALS.md` (Council ADR distillation pointer), `ARCHITECTURE.md` (C3 diagram source block pointer), `BACKLOG.md` (P2 entry closed).
+- Abandoned: nothing.
+- Next: operator merges `docs/ai-council-runbook-2026-05-28` to `main`. JOURNAL entry will land with the merge.
+
+---
+
 ### 2026-05-28 — Git worktree pattern codification (ADR-61)
 
 - Did: Codified the git worktree pattern for parallel Claude Code sessions as **ADR-61** (`docs/decisions/ADR-61-git-worktree-parallel-sessions.md`). Added `### Parallel sessions` subsection to PLAYBOOK `## Session boundaries` (v1.1). Added `## Parallel sessions` cheat-sheet section to ESSENTIALS. Added ADR-61 to `docs/decisions/README.md` index. Closed **BACKLOG #5** [P1].
