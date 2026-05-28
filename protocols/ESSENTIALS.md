@@ -265,6 +265,13 @@ Every repo root looks the same: **dot-prefix configs** where the tool supports i
 
 ---
 
+## Mermaid theme (ADR-51 v2)
+<!-- scope: meta -->
+
+Every Mermaid block in `ARCHITECTURE.md` opens with `%%{init: {'theme':'base', 'themeVariables': {…}}}%%` (custom-base dark theme — readable on Rob's black VS Code background). Every `classDef` with a light `fill:` must also set explicit `color:` (else inherited-light-text on light-fill = unreadable). Copy directive verbatim from `templates/ARCHITECTURE-template.md`. Enforced by `audit.py` check #7 — runs on `ARCHITECTURE.md` + the template only. Standard: ADR-51 amendment 2026-05-28 (v2).
+
+---
+
 ## docs/ taxonomy (ADR-60)
 <!-- scope: meta -->
 
