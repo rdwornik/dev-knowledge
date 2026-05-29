@@ -17,15 +17,15 @@ summary, not a substitute. Where they disagree, the spec wins — fix the diverg
 - `slug` = `YYYY-MM-DD-<repo>-<type>` (today's date; `type` defaults to `session`,
   or `onboarding` for a new-repo handoff). `<repo>` strips any path — e.g.
   `.dev-knowledge` → `dev-knowledge`.
-- Scratch interview: `docs/handoffs/_scratch/_handoff-interview.md`.
-- Bundle: `docs/handoffs/<slug>/` (README + `01`–`07`).
+- Interview (in-progress): `docs/handoffs/in-progress/<slug>/_handoff-interview.md`.
+- Bundle: `docs/handoffs/<slug>/` (README + `01`–`07`); Phase 2 removes `in-progress/<slug>/`.
 - One commit per phase on a feature branch. Validators must pass each commit.
 
 ## State machine (detect by CONTENT, not file existence)
 
 | State | Detected by | Action |
 |---|---|---|
-| Fresh | no `_scratch/_handoff-interview.md` | Phase 1 |
+| Fresh | no `in-progress/<slug>/_handoff-interview.md` | Phase 1 |
 | Awaiting answers | interview exists, nothing below the PASTE marker | instruct operator (idempotent — do NOT regenerate) |
 | Ready | interview exists **with** non-empty content below the marker | Phase 2 |
 | Complete | `docs/handoffs/<slug>/` already exists | instruct operator on use |
@@ -40,18 +40,20 @@ overwrite.
 1. Pre-flight: confirm `<repo>` path exists and is a git repo; capture its state
    read-only — HEAD SHA (`git rev-parse HEAD`), branch (`git branch --show-current`),
    working tree (`git status --porcelain`).
-2. If `_scratch/_handoff-interview.md` already exists → you are NOT fresh; report the
-   detected state and stop (don't clobber).
-3. Create `docs/handoffs/_scratch/` if absent. Write `_handoff-interview.md` with:
-   - A short header: repo, slug, date, captured HEAD/branch/working-tree, and one
-     line telling the operator to paste the question block into the **sender** chat.
-   - **~10 questions in two clusters** (5 project + 5 methodology). Project cluster:
-     immediate objective + scope; current state / what's in flight; reasoning behind
-     recent calls; boundaries (do-nots); anything only the sender chat witnessed.
-     Methodology cluster: prompt-the next session should use; any convention the next
-     session must respect; Council-worthy decisions pending; model-tier for the next
-     work; gotchas to carry. Ask for narrative answers with epistemic honesty
-     (witnessed / inferred / unknown).
+2. If `in-progress/<slug>/_handoff-interview.md` already exists → you are NOT fresh;
+   report the detected state and stop (don't clobber).
+3. Create `docs/handoffs/in-progress/<slug>/` if absent. Write `_handoff-interview.md`
+   with the **sage→apprentice** content below — verbatim, matching HANDOFF_PROCESS
+   §3.1 (the apprentice reads the books independently; the sage transmits only this
+   project's lived implementation this session, NOT methodology curriculum):
+   - A header table: repo, slug, date, type, captured HEAD/branch/working-tree, and
+     a `Process` row. Substitute the captured values.
+   - The **Role frame** preamble (elder sage handing wisdom to a tired apprentice;
+     books = theory, sage = lived implementation) and the witnessed/inferred/unknown
+     tagging + skip-if-N/A instruction.
+   - A **single cluster of 5 questions**: `1. Past — what shipped`, `2. Present —
+     where things stand`, `3. Future — natural next step`, `4. Wisdom — key
+     decisions`, `5. Warnings — landmines`. Question wording matches §3.1 verbatim.
    - The marker line `=== PASTE ANSWERS BELOW THIS LINE ===` with empty space below.
 4. Append a JOURNAL marker entry (newest-first): handoff Phase 1 interview generated
    for `<slug>`; HEAD captured; awaiting operator answers.
@@ -62,8 +64,8 @@ overwrite.
 
 ## Phase 2 — Consolidate
 
-1. Read `_scratch/_handoff-interview.md`. If no non-empty answers below the marker →
-   report "awaiting answers" and stop (idempotent).
+1. Read `in-progress/<slug>/_handoff-interview.md`. If no non-empty answers below the
+   marker → report "awaiting answers" and stop (idempotent).
 2. Re-capture current repo state. **Cross-check** the browser answers against actual
    repo state (git log/branch/status, BACKLOG, file existence). Surface any drift to
    the operator — both the claim and the repo fact — and let the bundle reflect
@@ -87,7 +89,7 @@ overwrite.
    section, and note it in `README.md` degradation notes — never fabricate.
    Unresolvable marker (section renamed/removed) → stop on that file, report the
    marker + its target source, ask the operator. Never ship a literal marker.
-7. Delete `_scratch/_handoff-interview.md` (content is folded into `04_RECENT`).
+7. Remove the `in-progress/<slug>/` folder (interview content is folded into `04_RECENT`).
 8. Append a JOURNAL marker entry: handoff Phase 2 complete for `<slug>`; bundle at
    `docs/handoffs/<slug>/`.
 9. Run validators. Commit on the feature branch.
