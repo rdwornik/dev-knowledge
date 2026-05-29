@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-29 — Overnight: ecosystem coherence audit (continuation of the v3.4 fix campaign)
+
+- Did: After completing the v3.4 fix campaign (entry below), ran the operator's queued overnight continuation — a read-only ecosystem coherence audit across 7 dimensions (skills, hooks, workflows, goals, corp-monorepo cross-repo, cross-doc harmony, memory/feedback) on branch `docs/ecosystem-coherence-audit-2026-05-29` (off the fix-campaign tip). 7 scratch reports (`docs/audits/scratch/2026-05-29-ecosystem-*.md`), one consolidated report (`docs/audits/2026-05-29-ecosystem-coherence-audit.md`), BACKLOG entries, and the headline deliverable `docs/audits/2026-05-29-overnight-morning-briefing.md`. Strictly read-only outside `.dev-knowledge` (ADR-41) — corp-monorepo inspected via status/log/CLAUDE-head/test-collect, never modified.
+- Result: **22 findings (0 critical, 0 high, 12 medium, 10 low); ecosystem health green** (90 tests, audit.py 7/7, ruff clean, corp-monorepo 2554 tests collectable, clean trees). Two dominant patterns: (1) **documentation-truth drift** — CLAUDE.md + ARCHITECTURE describe their own commands/skills/handoff-version/governing-ADRs inaccurately, and name a non-existent `scripts/backlog_extract.py` + a non-existent `TOKEN-LOG.md` as canonical (12 of 22 findings, none breaking); (2) **un-enforced guards** — ML-2: LESSON #9's cross-case-trace guard was advisory prose, not a gate, which is the root cause of the v3.4 abort the fix campaign just remediated. The abort is not yet promoted to a LESSON (ML-3). corp-monorepo's P1-2 security-finding extraction sits on an unmerged branch (CM-1). Findings grouped into a recommended fix sequence (doc-truth sweep / feedback-loop enforcement / evolution-logs+hooks / corp-monorepo merge / low cleanups).
+- Changes: `docs/audits/scratch/2026-05-29-ecosystem-{skills,hooks,workflows,goals,corp-monorepo-coherence,cross-doc-harmony,memory-feedback}.md` (new), `docs/audits/2026-05-29-ecosystem-coherence-audit.md` (new), `docs/audits/2026-05-29-overnight-morning-briefing.md` (new), `BACKLOG.md` (6 ecosystem-audit entries + existing Hooks-audit P2 marked audit-done + a stray duplicate-status line from the fix-campaign closure removed). Commits `07f0be6` → this entry (~11 on the audit branch).
+- Abandoned: nothing. Diagnose-only — every finding routed to BACKLOG; fixes are separate focused sessions per the continuation's "no big-bang" rule.
+- Next: operator merges both branches (`fix/handoff-v3.4-complete-campaign-2026-05-29` first, then `docs/ecosystem-coherence-audit-2026-05-29`). Morning briefing §4 has the exact merge commands + the 7-item next-session sequence. Top follow-up: the doc-truth sweep (Sonnet, fast) + feedback-loop enforcement (Opus — guard→gate, the structural win).
+
+---
+
 ### 2026-05-29 — Handoff v3.4 fix campaign (Path C, all 13 findings) — retry-ready
 
 - Did: Executed the complete remediation of all 13 findings from the 2026-05-29 v3.4 process-audit post-mortem, sequentially in the audit's recommended fix order, on branch `fix/handoff-v3.4-complete-campaign-2026-05-29` (off `main` tip `2327e27`). 8 phases, one commit per phase group, `pytest`/`ruff`/`audit.py health` after each. ADR-39 immutability respected throughout — ADR-42/45/55/56/57/58 corrected by **appended amendments only**, never in-place body edits; spec/skill/templates direct-edited.
