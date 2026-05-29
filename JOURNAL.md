@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-29 — Handoff v4.2 re-test Phase 1: interview generated
+
+- Did: Ran the handoff skill (Phase 1) for `.dev-knowledge` self-handoff, slug `2026-05-29-dev-knowledge-session-v4.2-rerun`, on branch `fix/handoff-v4.2-refinements-and-rerun-2026-05-29` (HEAD `fc461f0`, clean tree). State detected = Fresh. Generated the v4.2 sage→apprentice single-cluster interview (Past/Present/Future/Wisdom/Warnings) with the **four-tag** role-frame preamble (witnessed/recall/inferred/unknown — v4.2 Amendment A) at `docs/handoffs/in-progress/2026-05-29-dev-knowledge-session-v4.2-rerun/_handoff-interview.md`.
+- Result: Interview written; awaiting operator answers below the PASTE marker. This is the **v4.2 first real test** (re-run) — exercising the v4.2 refinements end-to-end starting at Phase 1.
+- Changes: `docs/handoffs/in-progress/2026-05-29-dev-knowledge-session-v4.2-rerun/_handoff-interview.md` (new), this JOURNAL marker.
+- Abandoned: nothing. Phase 2 NOT advanced — requires operator-architect paste cycle.
+- Next: operator copies the question block into the sender browser chat, gets four-tag-tagged answers, pastes below the marker, saves, then says `complete handoff for .dev-knowledge` → Phase 2 → v4.2 bundle at `docs/handoffs/2026-05-29-dev-knowledge-session-v4.2-rerun/`.
+
+---
+
 ### 2026-05-29 — Handoff v4.2 refinements + re-test invoked
 
 - Did: v4.1's first end-to-end run (handoff bundle for THIS session, merged to `main` this evening, merge `93b7b1c`) surfaced **7 refinement-level issues — no architectural defects; v4 design sound.** Implemented v4.2 on branch `fix/handoff-v4.2-refinements-and-rerun-2026-05-29`: spec amendment (append-only per ADR-39, `a333265`), 4 template updates (`ac0d2b4`), skill alignment (`08aa5d9`), PLAYBOOK + ESSENTIALS methodology-rule elevation (`41fc541`), BACKLOG + JOURNAL bookkeeping. Then (Phase 6) invoked Phase 1 of a v4.2 re-test handoff to validate end-to-end with the refinements.
