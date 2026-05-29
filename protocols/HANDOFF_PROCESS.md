@@ -88,6 +88,12 @@ No Stage vocabulary, no placeholder dance, no separate claims/scope/probe artifa
 ### 3.1 The Phase 1 interview (sage→apprentice frame)
 <!-- scope: meta -->
 
+> **Note (updated 2026-05-29, v4.3 item C):** The three-tag claim discipline shown
+> in the interview template below has been **superseded by Amendment A** (end of
+> document) — four-tag canonical (witnessed/recall/inferred/unknown). Amendment
+> precedence applies; the body below is preserved for historical decision-tracking,
+> but the live discipline is four-tag.
+
 The interview is **not a methodology quiz**. The books (`PLAYBOOK`, `ESSENTIALS`,
 `CLAUDE.md`, the ADRs) already hold the theory, which the apprentice (next chat)
 reads independently. What only the sender chat (the **sage**) can transmit is the
