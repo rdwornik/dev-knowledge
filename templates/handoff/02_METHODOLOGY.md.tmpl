@@ -1,0 +1,51 @@
+<!-- HANDOFF v4 bundle template — 02_METHODOLOGY. Generated at Phase 2. Budget ≤200 lines.
+     Pulled FROM source (PLAYBOOK + ESSENTIALS) at handoff time — do NOT hand-maintain.
+     Each {{PULL}} marker => condense the named section to operative rules, not a full copy. -->
+
+# 02 · How we work
+
+Methodology floor for `{{CONTEXT: repo}}`. The authoritative sources are
+`protocols/PLAYBOOK.md` and `protocols/ESSENTIALS.md` in `.dev-knowledge`; this is a
+working extract generated from them at handoff time. When in doubt, the live files
+win.
+
+## Model selection
+
+{{PULL: ESSENTIALS#How Claude thinks}}
+<!-- Extract the model/tier rule: Tier 1 (Sonnet) for ≤5 files / existing pattern /
+     automated checks; Tier 2 (Opus) for new abstractions / cross-module / unfamiliar
+     APIs / security. Trivial (<60s manual) → no AI. -->
+
+## Prompt format
+
+{{PULL: PLAYBOOK#Writing prompts for Claude Code}}
+<!-- Extract the standard 8-section prompt structure + delivery format + pre-send
+     checklist essentials. This subsumes the v3.4 "Prompt Generation Card". -->
+
+## Hooks & enforcement
+
+{{PULL: PLAYBOOK#LLMs advise; hooks/tests enforce}}
+<!-- Extract: LLMs advise, hooks/tests enforce. pre-commit runs ruff + header
+     normalization. Executable rules live in ~/.claude with verify: lines, not in
+     prose. -->
+
+## AI Council process
+
+{{PULL: ESSENTIALS#Architect routing for technical proposals}}
+<!-- Extract: when to convene Council (architecture/ADR-level decisions), how
+     transcripts return to docs/decisions/transcripts/. Architecture decisions are
+     NOT made unilaterally. -->
+
+## Conventions that bite
+
+{{PULL: PLAYBOOK#Repo conventions}}
+<!-- Extract the operative conventions: Conventional Commits; branch naming
+     (feat/fix/docs/chore off main); file naming (UPPERCASE living docs, ADR-NN,
+     YYYY-MM-DD slugs); append-only files (LESSONS, JOURNAL newest-first); immutable
+     ADRs/handoffs/audits; no box-drawing chars in reports. -->
+
+## Session lifecycle
+
+{{PULL: ESSENTIALS#Starting a Session}}
+<!-- Extract: /boot, git status clean, read recent handoff/JOURNAL, scope at start,
+     stop-signs, clean tree at session end. -->

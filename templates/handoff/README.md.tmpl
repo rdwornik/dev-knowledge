@@ -1,0 +1,53 @@
+<!-- HANDOFF v4 bundle template — README (operator-facing). Generated at Phase 2.
+     Markers: {{CONTEXT: x}} substitute captured value; {{PULL}}/{{SYNTHESIZE}} n/a here.
+     This file is NOT pasted into the new chat — it is the operator's runbook. -->
+
+# Handoff — {{CONTEXT: slug}}
+
+**Repo:** {{CONTEXT: repo}}  ·  **Type:** {{CONTEXT: type}}  ·  **Generated:** {{CONTEXT: date}}
+**Repo state at generation:** branch `{{CONTEXT: branch}}`, HEAD `{{CONTEXT: head_sha}}`
+
+This bundle onboards a **new chat** to continue work on `{{CONTEXT: repo}}`. It is a
+teaching sequence, not a file dump: the new chat learns its role, our methodology,
+the project, what just happened, and what to do now — then proves it understood
+before touching anything.
+
+Files `01`–`07` are the teaching sequence (paste them to the new chat). This
+`README.md` is for you only — do not paste it.
+
+## Paste sequence + escalation ladder
+
+```
+Step A: Paste 01_ROLE + 02_METHODOLOGY + 03_PROJECT + 04_RECENT + 05_NOW
+        as ONE message into the new chat. Wait for acknowledgment.
+Step B: Paste 06_QUESTIONS. Read the chat's answers.
+
+IF comprehension FAILS:
+  Tier 1 — Re-paste the specific file(s) the chat got wrong + "read again carefully".
+  IF still fails:
+  Tier 2 — Ask Claude Code to verify the specific facts against repo state;
+           paste CC's findings to the new chat.
+  IF still fails:
+  Tier 3 — ABORT onboarding. Reactivate the sender chat, or do a manual context dump.
+
+IF comprehension PASSES:
+  Step C: Paste 07_ASK_BACK. Answer the chat's questions from memory or the sender chat.
+  Step D: The chat begins work.
+```
+
+## Bundle contents
+
+| File | Purpose | Budget |
+|---|---|---|
+| `01_ROLE.md` | Who the new chat is; who Rob is | ≤100 |
+| `02_METHODOLOGY.md` | How we work (PLAYBOOK pointers + key extracts) | ≤200 |
+| `03_PROJECT.md` | Vision + sacred files | ≤150 |
+| `04_RECENT.md` | Narrative of recent work | ≤250 |
+| `05_NOW.md` | Top P1s + in-progress branches | ≤100 |
+| `06_QUESTIONS.md` | Comprehension check (5–7 Q) | ≤80 |
+| `07_ASK_BACK.md` | New chat's question slot (max 3) | ≤50 |
+
+## Generation notes (CC fills at Phase 2)
+
+{{CONTEXT: degradation_notes}}
+<!-- e.g. "03 built without VISION.md — target repo lacks one." Empty if clean. -->

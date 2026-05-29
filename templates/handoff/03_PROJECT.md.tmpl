@@ -1,0 +1,39 @@
+<!-- HANDOFF v4 bundle template — 03_PROJECT. Generated at Phase 2. Budget ≤150 lines.
+     Pulled FROM source (VISION + CLAUDE.md) at handoff time. For cross-repo handoffs,
+     pull from the TARGET repo's own VISION/CLAUDE when present; else degrade (§9). -->
+
+# 03 · The project — {{CONTEXT: repo}}
+
+## Vision
+
+{{PULL: VISION#Vision}}
+<!-- Condense the vision statement + current strategic emphasis to a few sentences.
+     Source: target repo's VISION.md (self-handoff: .dev-knowledge/VISION.md). -->
+
+## Scope
+
+{{PULL: VISION#Scope}}
+<!-- In-scope / out-of-scope, condensed. Keep the out-of-scope list — it is the most
+     common source of new-chat drift. -->
+
+## Purpose & critical paths
+
+{{PULL: CLAUDE#Repo identity}}
+<!-- From the repo's CLAUDE.md §Repo identity: purpose, status, critical paths,
+     related locations. -->
+
+## Sacred files (do not break these)
+
+{{SYNTHESIZE: sacred-files}}
+<!-- CC lists the repo's sacred/living files from CLAUDE.md critical-rules +
+     conventions + ADRs: e.g. append-only LESSONS/JOURNAL/TOKEN-LOG; immutable
+     ADRs/transcripts/handoffs/audits; living VISION/ARCHITECTURE/CLAUDE/PLAYBOOK.
+     One line each on the lifecycle rule that makes it sacred. -->
+
+## Cross-repo ownership (ADR-41)
+
+This bundle covers **{{CONTEXT: repo}} only**. Never direct work on another repo
+from here, never edit another repo's BACKLOG or files. Cross-repo work routes
+through dedicated artifacts, not this handoff. `.dev-knowledge` is the methodology
+meta-layer; child repos consume it and feed lessons back — no authority hierarchy,
+only functional roles.

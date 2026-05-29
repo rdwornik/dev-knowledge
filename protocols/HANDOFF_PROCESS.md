@@ -1,890 +1,279 @@
-# HANDOFF_PROCESS v3.4
+# HANDOFF_PROCESS v4
 
-<!-- version: 3.4 — 2026-05-26 (Council Q1-Q5: applied-task gate, two-layer bundle, Prompt Generation Card, structured claims, ADR-42 Q5 amendment) -->
+<!-- version: 4.0 — 2026-05-29 (radical simplification: onboarding-as-teaching, two-phase, 8-file bundle, files generated from source) -->
 <!-- scope: meta -->
 
-Version: 3.4
-Effective: 2026-05-26
-Supersedes: v3.3.3 (2026-05-15), v3.3.2 (2026-05-15), v3.3.1 (2026-05-14), v3.3 (2026-05-13 night), v3.2 (2026-05-09 night), v3.1 (2026-05-09 afternoon), v3.0 (2026-05-09 morning), v2.0 (ADR-32 §4 deprecated; ADR-32 §1-§3 extended)
-Authority: ADR-42 (amended through 2026-05-26 Q5); ADR-55/56/57/58 (2026-05-26)
+Version: 4.0
+Effective: 2026-05-29
+Supersedes: v3.4 (preserved at `protocols/archive/HANDOFF_PROCESS_v3.4.md`) and the
+full v3.x chain it carried forward.
+Status: live
+Authority: this protocol is the single live source of truth for handoff mechanics.
+ADRs 42/45/55/56/57/58 describe the v3.x design and remain immutable historical
+record; where they conflict with v4, **v4 wins** (the architectural decision
+formalizing v4 is deferred to a future AI Council convene — see BACKLOG).
 
-> **Authoritative source:** `docs/decisions/ADR-42-handoff-format-v3.md` (amended
-> through the 2026-05-26 Q5 amendment) plus ADR-55/56/57/58 (2026-05-26). This
-> protocol is the operational counterpart of ADR-42: structural
-> decisions live in the ADR; operational mechanics (triggers, state tracking, generation
-> workflow, roles, validation checkpoints) live here. If they conflict, ADR-42 wins.
+> **Why a rewrite.** v3.4 was technically retry-ready but architecturally
+> over-engineered: 13–14 bundle files, a multi-stage placeholder dance, a JSON
+> manifest sidecar, Stage 1↔3 desync risk, and hand-maintained surfaces prone to
+> drift (2026-05-29 process audit + ecosystem audit findings). v4 reframes a
+> handoff as **onboarding a new chat — a teaching protocol, not a file transfer**
+> — and collapses the mechanics to two phases and eight bundle files generated
+> from source at handoff time.
 
 ---
 
-## Purpose
+## 1. Purpose
 <!-- scope: meta -->
 
-Operational protocol for generating handoffs in the `.dev-knowledge` ecosystem.
-Implements ADR-42 three-stage flow with full Stage 2 mandate — ALL handoff types
-(audit-sync, session-sync, feature-X-sync) execute all three stages. No shortcuts.
+A handoff onboards a **new chat** to continue work that a prior (sender) chat or
+session began. The deliverable is not a data dump — it is a teaching sequence: the
+new chat learns who it is, how we work, what the project is, what just happened,
+and what to do now; then it proves comprehension before it touches anything.
 
-A handoff transfers session state across browser chats or Claude Code sessions. All
-handoff artifacts live in `.dev-knowledge/docs/handoffs/{slug}/` — ADR-36
-read-only contract preserved (no writes to target repos).
+All handoff artifacts live in `.dev-knowledge/docs/handoffs/<slug>/`. The
+ADR-36 read-only contract holds: a handoff never writes to a target repo. Per
+ADR-41, a bundle covers only its own repo's state and never directs work on
+another repo.
 
 ---
 
-## Universal Self-Containment Rule for Handoff Bundles
+## 2. When to invoke
 <!-- scope: meta -->
 
-This rule applies to every handoff from every repo in the ecosystem. The handoff workflow has three stages; the rule manifests at each stage.
+Two triggers, both operator-initiated (Claude Code never proposes a handoff
+unprompted):
 
-### The principle
+- **Session end** — a working chat's context is filling up; preserve its state
+  for a fresh chat to continue.
+- **New-repo onboarding** — bring a fresh chat up to speed on a repo it has never
+  seen.
 
-Each repo handoff bundle is self-contained for that repo's session. The bundle covers what that repo's session achieved, what that repo's state is, and what that repo's next session should work on.
-
-**Default expectation: zero cross-repo content in handoff.** Cross-repo work that occurred during the session flows via routing artifacts (cross-repo decision propagation, scrum-master review reports), not via the handoff bundle itself. Cross-repo discussion is conversation, not handoff substrate.
-
-**Implementing principle: close cross-repo threads BEFORE generating handoff.** Pre-handoff hygiene includes closing all open cross-repo cycles. If a cycle cannot close cleanly, route its closure artifact before handoff generation. Unclosed cross-repo threads complicate handoff lifecycle and risk pattern propagation into new sessions.
-
-**Exception path (rare):** if a cross-repo thread genuinely cannot close in time (e.g., awaiting Turn 2 from another repo architect with no operator path to force closure), REALITY may mention it ONCE with explicit "unclosed thread, awareness only, may need follow-up" framing. Never DIRECTIVES — cross-repo work targets never become own-session directives.
-
-Per ADR-41 each repo owns its own BACKLOG.md. One repo never reconciles, audits, or directs work on another repo's tracking artifacts via its own handoff bundle.
-
-### Stage 1 packaging (Claude Code role)
-
-When packaging the handoff bundle:
-- Verify repo state, list governance files, capture commit log, working tree state. All own-repo facts.
-- Bundle does not include other repos files. If Stage 2 architect references another repo file, that is a Stage 2 violation Stage 1 should surface, not silently package around.
-- Stage 1 final check: bundle contains only own-repo content; cross-repo file references in Stage 2 response are flagged for revision before final bundle.
-
-### Stage 2 generation (OLD browser chat / architect role)
-
-Per-section scope rules:
-- **OBJECTIVE:** own-repo session goal only. Never reference other repos as the goal target.
-- **REALITY:** default expectation is zero cross-repo content. Cross-repo state appears ONLY as exception: an unclosed cross-repo thread that genuinely could not close before handoff (rare). Must include explicit framing: "unclosed thread, awareness only, may need follow-up — other-repo hygiene is their session work per ADR-41." Closed cross-repo cycles are NOT mentioned in REALITY (they're closed; not relevant to next session work).
-- **RATIONALE:** may reference cross-repo decisions where they explain own-repo reasoning. Pure cross-repo retrospective belongs elsewhere (in cross-repo conversation artifacts, not handoff).
-- **DIRECTIVES:** own-repo actions ONLY. No directive may target another repo's files, state, or BACKLOG. Cross-repo work happens via routing artifacts, not via own-session directives.
-- **BOUNDARIES:** must include explicit anti-pattern: "Do NOT generate reconciliation reports about other repos' state. Do NOT treat staleness observation about another repo's tracking as a directive."
-
-Pre-send coherence checklist (mandatory before Stage 2 bundle send):
-
-1. **Pre-handoff cross-repo hygiene check.** Are all cross-repo threads from this session closed? If any are open: close them via routing artifact OR explicitly mark as exception in REALITY with "unclosed thread, awareness only" framing. Default expectation: no unclosed threads remain at handoff time.
-2. **DIRECTIVES vs BOUNDARIES contradiction check.** Does any DIRECTIVE violate any BOUNDARY in the same document?
-3. **OBJECTIVE vs DIRECTIVES priority alignment.** Is the OBJECTIVE-stated highest-priority work also listed as DIRECTIVE #1? Priority signal must align between sections.
-4. **Required-but-unpackaged data check.** Does any directive depend on data not included in the bundle? If yes: package it, mark "operator delivers on request", or remove the directive.
-5. **Claims + scope check (per ADR-57/ADR-58).** Is `11_CLAIMS.md` produced with every load-bearing claim cited or marked an assumption? Is `next_session_scope` declared from the controlled vocabulary? If either is missing: STOP and complete it before send.
-
-Failing any check = STOP and revise before send.
-
-### Stage 3 reception (NEW browser chat role)
-
-When reading the handoff bundle:
-- If any DIRECTIVE references another repo's files or state as action target = architectural smell. Do NOT execute. Flag back to operator: "Directive N appears cross-repo; per Universal Self-Containment Rule directives are own-repo only. Suggest revision: route as cross-repo artifact OR drop directive OR clarify intent."
-- If REALITY mentions cross-repo state without explicit "awareness only, not action signal" framing = treat as awareness context regardless. Do not infer work from it.
-- Apply own architectural-coherence check before executing first directive. New chat is the last line of defense.
-
-### Why this is universal
-
-The failure mode (cross-repo directives in handoff) is not specific to any one repo. Any repo session can drift into cross-repo scope inclusion when its session involved cross-repo work. The rule applies uniformly: write own repo handoffs this way; expect other repos' handoffs to follow this way; flag violations when received.
-
----
-
-## Three actors
-<!-- scope: meta -->
-
-```
-┌─────────────────────────────┐         ┌─────────────────────────────┐
-│  OLD browser chat for repo  │         │  NEW browser chat for repo  │
-│  (existing, dying context)  │         │  (fresh, opened after S3)   │
-│                             │         │                             │
-│  Stage 2 SOURCE             │         │  Stage 3 RECEIVER           │
-│  Architect's tacit          │         │  Acts on directives         │
-│  knowledge dump             │         │  Fills 09_EXECUTION_        │
-│  before context dies        │         │    EVIDENCE.md              │
-└──────────┬──────────────────┘         └──────────▲──────────────────┘
-           │                                        │
-           │ stage2-response.md                     │ handoff folder
-           │ (Rob copies/saves)                     │ (Rob zips + uploads)
-           ▼                                        │
-┌──────────────────────────────────────────────────┴──────┐
-│             Claude Code in .dev-knowledge                │
-│             (orchestrator + generator)                   │
-│                                                          │
-│  Stage 1: generate stage1-question.md → Rob takes to    │
-│           OLD chat to extract architect knowledge        │
-│  Stage 3: generate 11-file folder → Rob uploads to      │
-│           NEW chat to continue work                      │
-└──────────────────────────────────────────────────────────┘
-```
-
-The OLD chat is being wrapped up because its context is exhausted.
-Stage 2 captures its accumulated tacit knowledge before it dies.
-The NEW chat opens fresh with the full 11-file bundle — zero history,
-complete methodology context via VISION/PLAYBOOK/ESSENTIALS invariants.
-
-If Stage 2 goes to NEW chat: fresh chat has no context; response
-collapses to restating known audit findings. Stage 2 adds no signal —
-equivalent to the rejected audit-sync shortcut in different form.
-
-If Stage 2 goes to OLD chat: architect's lived knowledge (priorities,
-mental model, in-flight decisions, recent concerns) is captured before
-context dies. Non-substitutable.
-
-> If your repo has no OLD chat (no prior browser session), use the
-> most recent ai-council architect chat that has project context.
-> If truly no prior context exists, this may be a bootstrap, not a
-> handoff — 3-stage flow still runs but Stage 2 will be thinner.
-
----
-
-## Trigger phrases
-<!-- scope: meta -->
-
-Rob in Claude Code (.dev-knowledge) says one of:
+Trigger phrases:
 
 | Phrase | Effect |
 |---|---|
-| "Make handoff for {repo}" | Stage 1 (default type: session-sync) |
-| "Make handoff for {repo}, type {type}" | Stage 1 with explicit type |
-| "Complete handoff for {repo}" | Stage 3 (requires stage2-response.md present) |
-| "Stage 3 for {slug}" | Stage 3 by exact slug |
-| "Save this response as stage 2 for {slug}" | Write stage2-response.md from current chat |
+| `please create handoff for <repo>` | Phase 1 — generate the interview |
+| `complete handoff for <repo>` | Phase 2 — consolidate the bundle |
 
-Explicit types: `audit-sync`, `session-sync`, `feature-X-sync` (where X is descriptive).
-Handoffs are explicitly triggered by Rob. Claude Code does not propose handoff generation
-unprompted.
+`<repo>` defaults to `.dev-knowledge` (self-handoff). Naming a different repo is a
+cross-repo handoff (§8).
 
 ---
 
-## State tracking
+## 3. Two-phase flow
 <!-- scope: meta -->
 
-`docs/handoffs/in-progress/{slug}/` directory tracks in-progress handoffs.
+```
+Phase 1 (CC)          Operator (browser)            Phase 2 (CC)
+────────────          ──────────────────            ────────────
+write interview  →    copy questions to        →    read answers,
+scratch file          sender chat, paste            cross-check vs repo,
+(~10 questions)       narrative answers back        generate 8-file bundle,
+                      below the marker, save        delete interview, commit
+```
 
-`{slug}` = `{YYYY-MM-DD}-{repo}-{type}` where date is from Stage 1 trigger.
+- **Phase 1 — Interview (Claude Code).** On `please create handoff for <repo>`, CC
+  writes a scratch file `docs/handoffs/_scratch/_handoff-interview.md` containing
+  ~10 questions in two clusters (5 project + 5 methodology) and a
+  `=== PASTE ANSWERS BELOW THIS LINE ===` marker. CC appends a JOURNAL marker and
+  commits the scratch file on the feature branch.
+- **Operator (between phases).** The operator copies the questions into the
+  **sender** browser chat (the chat being wrapped up, which holds the lived
+  context), gets narrative answers, pastes them below the marker in the scratch
+  file, and saves.
+- **Phase 2 — Consolidate (Claude Code).** On `complete handoff for <repo>`, CC
+  reads the interview, **cross-checks the browser answers against actual repo
+  state** (drift detection — surfaced to the operator if found), generates the
+  bundle at `docs/handoffs/<slug>/` (README + 01–07) from source files, deletes
+  the scratch interview, appends a JOURNAL marker, and commits.
 
-| Files present in `in-progress/{slug}/` | Detected stage | Action |
-|---|---|---|
-| (directory absent or empty) | Stage 0 | Run Stage 1 |
-| `stage1-question.md` + placeholder `stage2-response.md` | Stage 1 done, awaiting Stage 2 | Show Rob "paste old chat response into stage2-response.md, replacing the placeholder block" |
-| `stage1-question.md` + populated `stage2-response.md` | Stage 2 done, ready for Stage 3 | Run Stage 3 |
-
-**Stage 2 content detection:** Stage 1 pre-creates `stage2-response.md` as a
-placeholder template. Stage 3 trigger must verify it has been populated:
-- File exists AND content below the `═══ REPLACE EVERYTHING BELOW THIS LINE ═══`
-  marker contains all 5 expected headings (`### 1. OBJECTIVE` through
-  `### 5. BOUNDARIES`) with substantive content (not placeholder `[old chat answer]` text)
-- If file exists but contains placeholder only: report "Stage 2 not yet provided —
-  old chat response awaited. Open `stage2-response.md`, replace the placeholder
-  block with architect response." Do NOT proceed to Stage 3.
-
-If state is ambiguous (e.g., both files populated but Rob says "make handoff" again),
-FLAG and ask Rob: delete and restart, or proceed to Stage 3?
-
----
-
-## Stage 1 — Question generation
-<!-- scope: hybrid -->
-
-**Trigger:** "Make handoff for {repo}" or "Make handoff for {repo}, type {type}"
-
-**Procedure:**
-
-1. Determine slug: `{YYYY-MM-DD}-{repo}-{type}` (use today's date)
-2. Verify target repo path exists and is a git repository
-3. Capture target repo state:
-   - HEAD SHA (`git rev-parse HEAD`)
-   - Branch (`git branch --show-current`)
-   - Working tree status (`git status --porcelain`)
-4. Read `.dev-knowledge/BACKLOG.md`, identify items relevant to {repo}
-5. If `audit-sync` type: read `.dev-knowledge/docs/audits/` for relevant audit
-   reports; load findings as Stage 1 context — they inform question generation
-   but do NOT substitute for Stage 2
-6. Read `templates/HANDOFF_QUESTION_TEMPLATE.md`
-7. Create directory `docs/handoffs/in-progress/{slug}/`
-8. Generate `docs/handoffs/in-progress/{slug}/stage1-question.md` per
-   `templates/HANDOFF_QUESTION_TEMPLATE.md` two-section structure:
-   - Metadata header: target repo, HEAD SHA, branch, working tree state,
-     timestamp, type, slug
-   - Section A (Rob's operational instructions only — NOT pasted into old chat):
-     which chat to open, which block to copy, where to save response, what
-     command to issue next
-   - PASTE_BOUNDARY delimiter (thick `═` line — visually unmistakable)
-   - Section B (paste-this block for old chat) — MUST follow this order:
-     1. Title
-     2. Your role (project architect, not ecosystem oracle; witnessed vs
-        inferred vs unknown — old chat must read this BEFORE questions)
-     3. What's in handoff bundle (VISION/PLAYBOOK/ESSENTIALS/ADR essences/
-        audit report/repo snapshot — so old chat doesn't repeat these)
-     4. Epistemic honesty instruction (witnessed/inferred/unknown markers)
-     5. Format requirements (markdown, exact headings, no fence wrap)
-     6. Current state (Stage 1 captured metadata)
-     7. Audit context (if audit-sync; informational only — extend/correct)
-     8. BACKLOG items relevant to repo
-     9. Pipeline questions (5 SBAR/I-PASS questions with inline epistemic
-        notes per question)
-     10. End-of-paste divider
-   - Sections 2-5 (role, bundle, epistemic, format) MUST be at TOP of
-     Section B — old chat reads these before drafting response. Placing
-     them at end (as in v3.1 first iteration) caused old chat to produce
-     plain-text headings, fabricated specifics, and duplicated ecosystem
-     info it doesn't actually know.
-   - NOTE: receiver synthesis prompt is NOT included in stage1-question.md.
-     It belongs in Stage 3 output (00_first-message.md) per HANDOFF_FOLDER_TEMPLATE.
-9. Pre-create `docs/handoffs/in-progress/{slug}/stage2-response.md` as a
-   placeholder template with:
-   - Header block: repo, type, slug, timestamp
-   - HTML comment for Rob with step-by-step instructions
-   - `═══ REPLACE EVERYTHING BELOW THIS LINE ═══` marker
-   - Placeholder 5-section skeleton (headings + `[old chat answer]` text)
-
-   This file is committed alongside stage1-question.md. Rob opens it when
-   returning from old chat, replaces the placeholder block, saves.
-10. Append JOURNAL entry under today's date:
-    `- Handoff Stage 1 generated for {slug}: HEAD {SHA} captured; awaiting Stage 2`
-11. Run validators (`pre-commit run --all-files`)
-12. Single commit on feature branch (includes both stage1-question.md and stage2-response.md)
-13. Report to Rob:
-    - Stage 1 complete
-    - Files created: `in-progress/{slug}/stage1-question.md` (questions) and
-      `in-progress/{slug}/stage2-response.md` (awaiting architect response)
-    - Next: open the EXISTING (OLD) browser chat for {repo}; copy the PASTE_BOUNDARY
-      block from stage1-question.md into that chat; receive response; open
-      stage2-response.md, replace placeholder block with response; save
-    - Then: say "complete handoff for {repo}" to trigger Stage 3
-
-**Output:** `in-progress/{slug}/stage1-question.md` + `in-progress/{slug}/stage2-response.md`
-(placeholder), JOURNAL entry, single commit
+There is no Stage vocabulary, no placeholder-file dance, no separate claims/scope/
+probe artifacts. Claims and scope become inline narrative in the generated bundle.
 
 ---
 
-## Stage 2 — Architect response (Rob's manual step in OLD chat)
-<!-- scope: llm -->
-
-**Source:** OLD browser chat for {repo} — the existing chat being
-wrapped up due to context exhaustion. **NOT a new chat.**
-
-**Input:** Content of `in-progress/{slug}/stage1-question.md`
-
-**Procedure (Rob does this manually):**
-
-1. Open the EXISTING (OLD) browser chat for {repo} — the chat being
-   wrapped up. It holds the accumulated context being preserved.
-2. Paste the "Context for browser-2 architect" section through end of
-   `stage1-question.md` as a message in that chat.
-3. OLD chat architect answers all 5 pipeline questions (OBJECTIVE /
-   REALITY / RATIONALE / DIRECTIVES / BOUNDARIES) from lived knowledge:
-   priorities, mental model, in-flight decisions, recent concerns.
-4. Open the pre-created `in-progress/{slug}/stage2-response.md` (Stage 1
-   created this file as a placeholder template). Replace everything below the
-   `═══ REPLACE EVERYTHING BELOW THIS LINE ═══` marker with the architect's
-   response. Save.
-   - Option A: Rob edits the file directly (open in editor, replace placeholder)
-   - Option B: In Claude Code — "save this response as stage 2 for {slug}";
-     Claude Code overwrites the placeholder block with response content
-5. **Declare `next_session_scope`** from the controlled vocabulary
-   (`code-implementation` / `architecture-decision` / `audit-work` /
-   `documentation` / `mixed-uncertain`). This selects the operational layer per
-   the scope → artifact mapping (below). Per ADR-57.
-6. **Produce `11_CLAIMS.md`** as the FINAL Stage 2 output (save to
-   `in-progress/{slug}/stage2-claims.md`): every load-bearing claim cited
-   (`file:section` / `ADR-NN` / `session: YYYY-MM-DD`) OR marked an explicit
-   assumption, plus the expected-articulation contract. If the bundle changes
-   materially after this file is written, regenerate it. Per ADR-58.
-7. **Review the gate probe.** Claude Code drafts `10_GATE_PROBE.md` at Stage 3 from
-   the highest-risk live decision. The operator routes the draft to this OLD chat
-   for accuracy review while it is still open (or reviews it directly if the OLD
-   chat has closed). Per ADR-55.
-
-**Output:** `in-progress/{slug}/stage2-response.md` (architect response) +
-`in-progress/{slug}/stage2-claims.md` (`11_CLAIMS.md` source) + declared
-`next_session_scope`
-
-**Critical:** Stage 2 MUST go to OLD chat. A new chat has no context;
-its response would collapse to restating audit findings — equivalent to
-the rejected shortcut. The architecture depends on tacit knowledge
-extraction from the existing session before context dies.
-
-No separate commit at this step — Rob edits the file locally. Stage 3
-commit includes the populated stage2-response.md as a modified file.
-
----
-
-## Stage 2.5 — Q&A iteration loop (optional)
+## 4. Bundle structure
 <!-- scope: meta -->
 
-Between Stage 2 (architect response) and Stage 3 (folder generation),
-NEW chat may have clarification questions before acting on the bundle.
-Optional iteration phase — bypassed if NEW chat has no questions.
+`slug = YYYY-MM-DD-<repo>-<type>` (e.g. `2026-05-29-dev-knowledge-session`). Eight
+files, flat, no subdirectories:
 
-**Procedure (Rob's manual step):**
+```
+docs/handoffs/<slug>/
+├── README.md          Operator-facing: paste sequence + escalation ladder
+├── 01_ROLE.md         ≤100 lines — who the new chat is, who Rob is
+├── 02_METHODOLOGY.md  ≤200 lines — pointers to PLAYBOOK + key extracts
+├── 03_PROJECT.md      ≤150 lines — vision + sacred files (from VISION.md)
+├── 04_RECENT.md       ≤250 lines — narrative synthesized from JOURNAL + interview
+├── 05_NOW.md          ≤100 lines — top P1s + in-progress branches (BACKLOG + git)
+├── 06_QUESTIONS.md    ≤80 lines  — comprehension check, 5–7 questions
+└── 07_ASK_BACK.md     ≤50 lines  — new chat's question slot, max 3 invited
+```
 
-1. NEW chat (Browser-3) presents synthesis after reading bundle
-2. If NEW chat asks clarification questions:
-   - Format: numbered list, max 3 questions per round
-   - Rob takes to OLD chat (Stage 2 source)
-   - OLD chat answers
-   - Rob returns answers to NEW chat
-3. NEW chat updates synthesis, may have follow-up questions (round 2)
-4. Maximum 3 rounds total
-5. Each round captured in
-   `docs/handoffs/in-progress/{slug}/stage2-amendments.md`
-
-**When to ask vs proceed:**
-- Genuine ambiguity in directives → ask
-- Missing factual context → ask
-- Synthesis paraphrase reveals misunderstanding → ask
-- Pure execution detail → proceed, flag in evidence
-
-**Maximum rounds (3) rationale:**
-- Rounds 1-2 typically sufficient
-- Round 3+ signals fundamental bundle inadequacy → restart Stage 2
-- Prevents infinite loop
-
-**Stage 3 readiness:**
-After Q&A loop closed (or skipped), NEW chat asks Rob "single prompt or
-split?" Then generates Claude Code prompt(s) and proceeds to Stage 3
-(Rob runs prompts in Claude Code in target repo).
+**Total ≤930 lines** — roughly half the v3.4 footprint. README is operator-facing
+and not pasted into the new chat; 01–07 are the teaching sequence.
 
 ---
 
-## Stage 3 — Reconciliation + folder generation
-<!-- scope: hybrid -->
-
-**Trigger:** "Complete handoff for {repo}" or "Stage 3 for {slug}"
-
-**Procedure:**
-
-1. Verify `in-progress/{slug}/stage1-question.md` exists — if missing, FLAG and STOP
-2. Verify `in-progress/{slug}/stage2-response.md` exists — if missing, FLAG and STOP
-   with message: "Stage 2 not complete. Paste browser-2 response as stage2-response.md first."
-   - **Thinness pre-flight (M-5).** After confirming the file is populated (per
-     "Stage 2 content detection" above), verify each of the 5 sections
-     (`OBJECTIVE` / `REALITY` / `RATIONALE` / `DIRECTIVES` / `BOUNDARIES`)
-     contains at least 3 non-blank lines of substantive content below its
-     heading. If any section is thinner, FLAG to Rob with the offending
-     section name(s) and ask whether to proceed or return to Stage 2 for a
-     fuller response. Do NOT silently proceed — a degenerate Stage 2 (five
-     one-line answers) passes the heading-presence check but yields a thin,
-     possibly hallucinated `07_ACTION_PLAN.md`.
-3. Re-capture target repo state:
-   - Current HEAD SHA
-   - Verify current HEAD is a descendant of Stage 1 SHA (from `stage1-question.md` header):
-     `git merge-base --is-ancestor {STAGE1_SHA} HEAD`
-     <!-- Note: git merge-base --is-ancestor X Y returns 0 when X is an ancestor of Y.
-          Per git's definition, a commit is its own ancestor — so this single check
-          covers both strict-equality and descendant cases. Do not add a separate
-          equality check; it is redundant. -->
-   - Exit 0 → proceed. Exit 1 → FLAG to Rob with both SHAs, ask whether to proceed
-     or abort and re-generate Stage 1 (do NOT silently proceed)
-4. Read `templates/HANDOFF_FOLDER_TEMPLATE.md`
-5. Read `.dev-knowledge` VISION.md, protocols/PLAYBOOK.md, protocols/ESSENTIALS.md
-6. Read `in-progress/{slug}/stage2-response.md`
-7. Identify ADRs cited in DIRECTIVES (07_ACTION_PLAN content)
-8. Generate folder `docs/handoffs/{slug}/` — 13 fixed content files (14 cross-repo,
-   incl. `02b`), all flat, no subdirectories — plus the generated `01_manifest.json`
-   sidecar (enumerated below, counted with `01_MANIFEST.md`, not a 14th content file)
-   and operational-layer artifacts per `next_session_scope`:
-   - `00_README.md` — Rob's upload instructions
-   - `00_first-message.md` — first message + applied-task gate (ADR-55) + Prompt Generation Card (ADR-56)
-   - `01_MANIFEST.md` — entry, file index, drift verification, HEAD SHA, `next_session_scope`, invariant hashes
-   - `01_manifest.json` — machine-readable metadata + SHA-256 + invariant canonical hashes + `next_session_scope` (generated last)
-   - `02_VISION.md` — full copy of `.dev-knowledge/VISION.md` (invariant floor)
-   - `03_PLAYBOOK.md` — full copy of `.dev-knowledge/protocols/PLAYBOOK.md` (invariant floor)
-   - `04_ESSENTIALS.md` — full copy of `.dev-knowledge/protocols/ESSENTIALS.md` (invariant floor)
-   - `05_GOVERNANCE_ESSENCES.md` — 2-4 sentence essences for ADRs cited in directives
-   - `06_STATE_OF_PLAY.md` — REALITY + RATIONALE answers from Stage 2; audit findings
-     if audit-sync; deferred items as BACKLOG references (do not duplicate queue)
-   - `07_ACTION_PLAN.md` — OBJECTIVE + DIRECTIVES + BOUNDARIES from Stage 2
-   - `08_TREE.txt` — `git ls-files` output in target repo at Stage 3 time
-   - `09_EXECUTION_EVIDENCE.md` — empty return-trip template
-   - `10_GATE_PROBE.md` — CC-drafted applied-task probe + operator-only answer key (ADR-55)
-   - `11_CLAIMS.md` — sender-produced load-bearing claims (from `stage2-claims.md`) (ADR-58)
-   - `12_OPERATIONAL_*` — scoped skills/gotchas/JOURNAL slices per `next_session_scope` (ADR-57)
-8a. Validate `11_CLAIMS.md` citations (file existence + line-range locatability +
-    decision-reference format). Flag "VERIFICATION FAILED — {claim} vs {actual}". If
-    executor validation is unavailable, mark the bundle `UNVERIFIED` and require
-    explicit operator acknowledgment — no silent bypass (ADR-58).
-9. Compute SHA-256 of every file + canonical hash/version IDs for the invariant floor
-   (VISION/PLAYBOOK/ESSENTIALS), populate `01_manifest.json` (last)
-10. Move (NOT copy) `in-progress/{slug}/` contents to `docs/handoffs/archive/{slug}/`:
-
-    PowerShell semantics (canonical):
-    ```powershell
-    # Ensure archive target exists
-    New-Item -ItemType Directory -Path "docs/handoffs/archive/{slug}" -Force | Out-Null
-
-    # Move files (NOT copy)
-    Move-Item "docs/handoffs/in-progress/{slug}/*" "docs/handoffs/archive/{slug}/" -Force
-
-    # Remove now-empty source directory
-    Remove-Item "docs/handoffs/in-progress/{slug}" -Force
-
-    # Verify in-progress/{slug}/ no longer exists
-    if (Test-Path "docs/handoffs/in-progress/{slug}") {
-        throw "FAIL: in-progress/{slug}/ still exists after move"
-    }
-    ```
-
-    If verification throws → STOP, report to Rob, do not commit Stage 3.
-    Use `Move-Item`, never `Copy-Item`. Empty source directory must be removed.
-    This preserves Stage 1+2 inputs for traceability without violating flat structure
-    of the final handoff folder.
-11. Append JOURNAL entry under today's date:
-    `- Handoff Stage 3 complete for {slug}: folder at docs/handoffs/{slug}/`
-12. Review BACKLOG.md: if any P1 items were closed by this handoff, update Status
-13. Run validators (`pre-commit run --all-files`)
-14. Single commit on feature branch
-15. Report to Rob:
-    - Stage 3 complete
-    - Folder: `docs/handoffs/{slug}/`
-    - The OLD chat (Stage 2 source) can now be closed — its knowledge
-      is preserved in the handoff bundle.
-    - Next: open a NEW claude.ai chat for {repo} (fresh start). Zip +
-      upload the folder contents to that new chat. Paste
-      `00_first-message.md` as the first message.
-    - New chat executes directives, fills `09_EXECUTION_EVIDENCE.md`
-    - Return that file to `.dev-knowledge` for next session reference
-
-**Output:** `docs/handoffs/{slug}/` (13 fixed content files flat, 14 cross-repo,
-plus the `01_manifest.json` sidecar and any scoped operational-layer artifacts) +
-`docs/handoffs/archive/{slug}/` (stage1 + stage2 + claims inputs), JOURNAL entry,
-commit
-
----
-
-## Applied-task gate + structured ratification (Stages 2-3)
+## 5. File generation principle (critical)
 <!-- scope: meta -->
 
-Per ADR-55 (Q1) and ADR-58 (Q4). The bare `role confirmed` ACK is replaced by an
-applied-task gate plus structured operator ratification.
+Bundle files are **generated FROM source at handoff time**, not hand-maintained.
+This directly addresses the ecosystem-audit doc-truth-drift finding: a hand-kept
+parallel copy of methodology/project facts drifts from the real files. Generating
+from source each time means the bundle is as current as the repo.
 
-### Receiver gate (NEW chat, first action)
-
-Before any work, the NEW chat: (1) states role + top-3 hard constraints with
-file/section citations; (2) reads `10_GATE_PROBE.md` mini-scenario ONLY (never the
-operator-only answer key) and answers directed action + controlling bundle location
-+ preconditions. Full spec in `00_first-message.md` ("Required first action").
-
-### Operator structured ratification (replaces bare `role confirmed`)
-
-The operator confirms with `role confirmed + probe passed` only after checking:
-
-- [ ] `11_CLAIMS.md` present, and Claude Code's citation validation is green
-      (or the bundle is explicitly acknowledged `UNVERIFIED`)
-- [ ] the gate-probe answer matches the operator-only expected answer (within
-      acceptable variations)
-- [ ] the receiver's articulation matches `11_CLAIMS.md` expected-articulation
-      (no unresolved flags)
-
-Bare `role confirmed` is no longer sufficient.
-
-### Gate failure protocol
-
-- **First fail:** operator points to the contradicted bundle location; the NEW chat
-  re-reads and retries the probe once.
-- **Second fail:** terminate the session; treat the bundle as inadequate and
-  regenerate/refine upstream (a repeated gate failure is a bundle problem, not only
-  a receiver problem).
-- **Citation failure (CC validation):** the sender re-verifies before the session
-  resumes; if executor validation is unavailable, the bundle is `UNVERIFIED` and the
-  operator must explicitly acknowledge.
-
-## Scope → artifact mapping (operational layer)
-<!-- scope: meta -->
-
-Per ADR-57 (Q2). The governance floor (VISION/PLAYBOOK/ESSENTIALS) is unconditional;
-the operational layer is selected from the declared `next_session_scope`:
-
-| Scope | Operational layer includes |
+| File | Generated from |
 |---|---|
-| `code-implementation` | relevant skills (per task domain) + gotchas filtered by scope + recent JOURNAL slice |
-| `architecture-decision` | relevant ADRs (cite specific) + Council transcripts (if applicable) + recent JOURNAL slice |
-| `audit-work` | audit tool docs + baseline audit (if exists) + JOURNAL audit history |
-| `documentation` | style references + recent JOURNAL slice + templates in scope |
-| `mixed-uncertain` | full bundle (worst-case) + flag for operator |
+| `01_ROLE.md` | Template + operator-specific role context (slowly evolving) |
+| `02_METHODOLOGY.md` | Key sections (by name) of `protocols/PLAYBOOK.md` + `protocols/ESSENTIALS.md`; model-selection + prompt-format + hooks + AI-Council + conventions extracts |
+| `03_PROJECT.md` | `VISION.md` (vision + scope) + `CLAUDE.md` (purpose/critical paths) + sacred-files list from ADRs/conventions; ADR-41 cross-repo ownership note |
+| `04_RECENT.md` | CC narrative synthesis of `JOURNAL.md` last N entries (default N=20 OR last 7 days, whichever is smaller) + browser interview answers folded inline. **Narrative prose, not a journal copy.** |
+| `05_NOW.md` | `BACKLOG.md` top P1s + `git branch -v` (in-progress branches) + recent commit tip |
+| `06_QUESTIONS.md` | Template (4–5 static comprehension questions) + 1–2 dynamic slots tailored to recent work (from interview/JOURNAL) |
+| `07_ASK_BACK.md` | Static template inviting up to 3 questions before work starts |
 
-No free-form additions without amending this table (and the matching one in
-`HANDOFF_FOLDER_TEMPLATE.md`). The vocabulary is intentionally small; expand only
-by amendment.
+The templates in `templates/handoff/` carry generation markers:
 
-## Verification trigger rule
-<!-- scope: meta -->
+- `{{PULL: <source>#<section>}}` — copy/condense a named section from a source file
+- `{{SYNTHESIZE: <source>}}` — CC writes narrative prose from the source
+- `{{CONTEXT: <variable>}}` — substitute a captured value (slug, repo, branch, …)
 
-Per ADR-58 (Q4). **A confident claim about an unread or unverified source requires
-verification + citation.** Applies to: file paths, commit SHAs, ADR references,
-action plans/sequencing, architecture descriptions, current-state assertions. Does
-NOT apply to: reasoning steps, recommendations, or opinions clearly marked as such.
-The rule binds the sender (in `11_CLAIMS.md`) and any actor making load-bearing
-claims about repo state.
+CC resolves every marker at Phase 2. An unresolved marker in a generated file is a
+generation failure — fix it or note the degradation (§9), never ship the literal
+marker.
 
 ---
 
-## Folder structure (per ADR-42)
+## 6. Operator workflow
 <!-- scope: meta -->
 
+1. In Claude Code (`.dev-knowledge`): `please create handoff for <repo>`.
+2. Open `docs/handoffs/_scratch/_handoff-interview.md`; copy the question block
+   into the **sender** browser chat (the one being wrapped up).
+3. Paste the chat's narrative answers below the
+   `=== PASTE ANSWERS BELOW THIS LINE ===` marker; save.
+4. In Claude Code: `complete handoff for <repo>`. CC generates the bundle and
+   surfaces any drift it found between the browser answers and repo state.
+5. Use the bundle per its `README.md` escalation ladder:
+
 ```
-docs/handoffs/{slug}/
-├── 00_README.md                 (Rob's upload instructions)
-├── 00_first-message.md          (browser-2 first message, copy-paste)
-├── 01_MANIFEST.md               (entry point, file index, HEAD pin (ancestor-validated))
-├── 01_manifest.json             (machine-readable, SHA-256 checksums)
-├── 02_VISION.md                 (FULL .dev-knowledge VISION copy)
-├── 03_PLAYBOOK.md               (FULL .dev-knowledge PLAYBOOK copy)
-├── 04_ESSENTIALS.md             (FULL .dev-knowledge ESSENTIALS copy)
-├── 05_GOVERNANCE_ESSENCES.md    (ADR essences relevant to actions)
-├── 06_STATE_OF_PLAY.md          (current state, audit findings)
-├── 07_ACTION_PLAN.md            (goals, directives, boundaries)
-├── 08_TREE.txt                  (target repo file inventory)
-├── 09_EXECUTION_EVIDENCE.md     (return trip template)
-├── 10_GATE_PROBE.md             (CC-drafted applied-task probe + operator-only answer key, ADR-55)
-└── 11_CLAIMS.md                 (sender-produced load-bearing claims, ADR-58)
+Step A: Paste 01–05 as ONE message into the new chat. Wait for acknowledgment.
+Step B: Paste 06 (questions). Read the chat's answers.
+
+IF comprehension FAILS:
+  Tier 1 — re-paste the specific files the chat got wrong + "read again carefully".
+  IF still fails:
+  Tier 2 — ask CC to verify the specific facts against repo state; paste CC's
+           findings to the new chat.
+  IF still fails:
+  Tier 3 — ABORT onboarding. Reactivate the sender chat, or do a manual context dump.
+
+IF comprehension PASSES:
+  Step C: Paste 07 (ask_back). Answer the chat's questions from memory or sender chat.
+  Step D: The chat begins work.
 ```
 
-Conditional / scoped additions (not part of the 13-file fixed count):
-```
-├── 02b_ECOSYSTEM_VISION.md      (FULL .dev-knowledge VISION; cross-repo handoffs ONLY, omit when target = .dev-knowledge)
-└── 12_OPERATIONAL_*.md          (scoped skills/gotchas/JOURNAL slices per next_session_scope, ADR-57; included only when scope invokes them)
-```
-
-The fixed count is **13 content files (self-applied) / 14 (cross-repo, +02b)**. The
-`01_manifest.json` is the generated checksum sidecar (paired with `01_MANIFEST.md`,
-written last) and the `12_OPERATIONAL_*` artifacts are scope-conditional — neither
-is counted in the fixed total.
-
-Stage 1+2 inputs archived separately at:
-```
-docs/handoffs/archive/{slug}/
-├── stage1-question.md
-├── stage2-response.md
-└── stage2-claims.md            (11_CLAIMS.md source, ADR-58)
-```
-
-Slug format: `{YYYY-MM-DD}-{repo}-{type}`. Final folder immutable post-close.
+The escalation ladder replaces v3.4's structured ratification (UNVERIFIED/VERIFIED
+modes). It is operator-driven, tiered, and has an explicit abort.
 
 ---
 
-## File responsibilities
+## 7. State machine
 <!-- scope: meta -->
 
-| File | Purpose | Content origin |
+Three live states, detected by **content** (marker presence + non-empty answers),
+not by file existence alone (closes the v3.4 state-ambiguity finding):
+
+| State | Detected by | Action |
 |---|---|---|
-| `00_README.md` | Rob's instructions: how to use this handoff | Generated by Claude Code |
-| `00_first-message.md` | Copy-paste for browser-2 first message; **canonical holder of the receiver synthesis prompt** + applied-task gate (ADR-55) + Prompt Generation Card (ADR-56) | Generated by Claude Code |
-| `01_MANIFEST.md` | Entry point, file index, HEAD pin (ancestor-validated), receiver synthesis prompt (echoed from `00_first-message.md`) | Generated by Claude Code |
-| `01_manifest.json` | Machine-readable metadata + SHA-256 checksums | Generated by Claude Code (last) |
-| `02_VISION.md` | Ecosystem context | Full copy of `.dev-knowledge/VISION.md` |
-| `03_PLAYBOOK.md` | HOW we work — methodology preserved across sessions | Full copy of `.dev-knowledge/protocols/PLAYBOOK.md` |
-| `04_ESSENTIALS.md` | High-leverage cheat-sheet rules | Full copy of `.dev-knowledge/protocols/ESSENTIALS.md` |
-| `05_GOVERNANCE_ESSENCES.md` | ADR rules driving specific actions in this handoff | Curated by Claude Code from relevant ADRs |
-| `06_STATE_OF_PLAY.md` | Current State per ADR-37 | Stage 2 REALITY/RATIONALE answers + audit findings if audit-sync |
-| `07_ACTION_PLAN.md` | Future State per ADR-37 | Stage 2 OBJECTIVE/DIRECTIVES/BOUNDARIES answers |
-| `08_TREE.txt` | Target repo file inventory at Stage 3 | `git ls-files` in target repo |
-| `09_EXECUTION_EVIDENCE.md` | Return trip: browser-2 fills post-work | Empty template, filled by next session |
-| `10_GATE_PROBE.md` | Applied-task internalization gate (ADR-55): mini-scenario + operator-only answer key | CC-drafted from highest-risk live decision; sender reviews at Stage 2 |
-| `11_CLAIMS.md` | Structured load-bearing claims + assumptions + expected articulation (ADR-58) | Sender-produced (`stage2-claims.md`); CC validates citations at Stage 3 |
+| Fresh | no `_handoff-interview.md` in `_scratch/` | run Phase 1 |
+| Awaiting answers | interview present, nothing below the PASTE marker | instruct operator (idempotent — do not regenerate) |
+| Ready to consolidate | interview present **with** non-empty answers below the marker | run Phase 2 |
+| Complete | bundle folder exists at `docs/handoffs/<slug>/` | instruct operator on use |
 
-**Conditional / scoped files (not in the 13-file fixed count):**
-
-| File | Purpose | Content origin | Inclusion condition |
-|---|---|---|---|
-| `02b_ECOSYSTEM_VISION.md` | Ecosystem context for cross-repo handoffs | Full copy of `.dev-knowledge/VISION.md` | Only when target repo ≠ `.dev-knowledge` |
-| `12_OPERATIONAL_*.md` | Scoped skills/gotchas/JOURNAL slices (ADR-57) | Selected from `next_session_scope` via the scope→artifact mapping | Only when the declared scope invokes them |
-| `01_manifest.json` | Machine-readable metadata + SHA-256 + invariant canonical hashes | Generated by Claude Code (last) | Always (generated sidecar, counted with `01_MANIFEST.md`) |
-
-**Invariant rule:** `02_VISION.md`, `03_PLAYBOOK.md`, `04_ESSENTIALS.md` are FULL
-copies — never curated. They are the methodology anchors that prevent browser-2 from
-hallucinating norms.
-
-**ADR essence rule:** `05_GOVERNANCE_ESSENCES.md` includes ONLY ADRs cited in
-`07_ACTION_PLAN.md` directives. Format per essence: title + 2-3 operational
-sentences + reference path to full ADR.
+If state is genuinely ambiguous (e.g. a bundle already exists and the operator
+says "create handoff" again), FLAG and ask — never silently overwrite.
 
 ---
 
-## Drift mitigation
-<!-- scope: dev -->
-
-Stage 1 captures target repo HEAD SHA in `stage1-question.md` header. Stage 3
-re-verifies before generation using an ancestor check:
-
-```
-git merge-base --is-ancestor {STAGE1_SHA} HEAD
-```
-
-<!-- Note: git merge-base --is-ancestor X Y returns 0 when X is an ancestor of Y.
-     Per git's definition, a commit is its own ancestor — so this single check covers
-     both strict-equality and descendant cases. Do not add a separate equality check;
-     it is redundant. -->
-
-- **Exit 0 (SHA is ancestor of HEAD):** proceed — Stage 3 commits may have advanced HEAD by design
-- **Exit 1 (not an ancestor):** Claude Code STOPS, flags to Rob with both SHAs, asks whether to
-  proceed (Rob may abort and re-generate Stage 1 from current HEAD)
-
-`01_manifest.json` SHA-256 checksums prevent post-generation file tampering.
-
-Browser-2 first action upon opening handoff: verify the pinned HEAD SHA is an ancestor
-of current HEAD in target repo:
-```
-git merge-base --is-ancestor {PINNED_SHA} HEAD
-```
-Exit 1 → STOP, report drift (both SHAs), do not proceed.
-
----
-
-## Return trip
-<!-- scope: hybrid -->
-
-`09_EXECUTION_EVIDENCE.md` is filled by browser-2 or Claude Code in target repo after
-completing handoff work. Provides:
-- Commands run (raw stdout)
-- Test results (pytest output)
-- Git diffs of changes made
-- Final HEAD SHA after work
-- Failures or partial completions (explicit, not omitted)
-- Handoff for next session if applicable
-
-Next `.dev-knowledge` session reads `09_EXECUTION_EVIDENCE.md` to verify what actually
-happened — eliminates "Self-Correction Theatre."
-
----
-
-## Validation checkpoints
+## 8. Cross-repo handoff
 <!-- scope: meta -->
 
-| Stage | Validator | Expected result |
-|---|---|---|
-| Stage 1 | `pre-commit run --all-files` | passes |
-| Stage 1 | `git status` | single new file (`in-progress/{slug}/stage1-question.md`) + JOURNAL modified |
-| Stage 3 | Stage 2 section thinness (M-5) | each of 5 sections ≥ 3 non-blank lines; else FLAG to Rob, ask before proceeding |
-| Stage 3 | `pre-commit run --all-files` | passes |
-| Stage 3 | folder structure | 13 fixed files (14 cross-repo) flat in `docs/handoffs/{slug}/` + operational-layer artifacts, no subdirectories |
-| Stage 3 | `01_manifest.json` | SHA-256 entries for all files + canonical invariant hashes + `next_session_scope` present |
-| Stage 3 | `11_CLAIMS.md` citation validation | all citations locatable; mismatches flagged; else bundle marked `UNVERIFIED` (ADR-58) |
-| Stage 3 | `10_GATE_PROBE.md` present | mini-scenario + operator-only answer key present (ADR-55) |
-| Stage 3 | structured ratification | operator confirms `role confirmed + probe passed` (claims green + probe match + articulation match); bare `role confirmed` insufficient (ADR-58) |
-| Stage 3 | `in-progress/{slug}/` post-move non-existence | `Test-Path docs/handoffs/in-progress/{slug}` returns `False` |
+Same skill, same flow; only the repo context differs. When `<repo>` is not
+`.dev-knowledge`:
+
+- The slug carries the target repo name (`YYYY-MM-DD-<repo>-<type>`).
+- Phase 2 reads the **target repo's** state (git, BACKLOG if present) read-only —
+  never writes to it (ADR-36).
+- `03_PROJECT.md` is built from the target repo's own `VISION.md`/`CLAUDE.md` when
+  present; `.dev-knowledge` methodology floor (02) stays universal.
+- The bundle still lives in `.dev-knowledge/docs/handoffs/<slug>/`.
+- A bundle never directs work on a third repo (ADR-41). Cross-repo threads close
+  via routing artifacts, not the handoff.
 
 ---
 
-## Roles
+## 9. Failure handling (graceful degradation)
 <!-- scope: meta -->
 
-- **Rob.** Triggers handoff (never browser-2 unprompted), reviews Stage 1 question
-  prompt, carries browser-2 response back (Stage 2), accepts handoff folder.
-- **Claude Code (.dev-knowledge).** Executes Stage 1 and Stage 3: reads target repo
-  state, generates question prompt, generates folder, computes checksums, runs
-  validators, commits.
-- **Browser-2 (target project chat).** Executes Stage 2: answers 5 pipeline questions
-  with project-level intelligence. Also consumes the handoff: opens it, verifies HEAD
-  SHA, provides receiver synthesis, executes directives, fills `09_EXECUTION_EVIDENCE.md`.
+A source file may be missing (e.g. a target repo has no `VISION.md`) or a named
+section may have moved so a `{{PULL}}` marker cannot resolve.
 
-Browser-2 does NOT generate folders or run git in target repo (unless Rob explicitly
-directs it to). Claude Code does NOT redesign architecture or invent session content.
+- **Missing source file:** generate the file from available fallbacks, omit the
+  unavailable section, and **note the degradation explicitly in `README.md`** ("03
+  built without VISION.md — target repo lacks one"). Never fabricate the content.
+- **Unresolvable marker (section renamed/removed):** stop on that file, report the
+  marker and the source it targeted to the operator, and ask — do not ship the
+  literal marker and do not guess the section.
+- **Interview present but answers empty:** stay in "awaiting answers"; instruct the
+  operator. Do not generate a bundle from an empty interview.
+- **Browser answer contradicts repo state:** surface the drift to the operator at
+  Phase 2 (both the claim and the repo fact); let the operator decide. The
+  generated `04_RECENT.md` reflects verified repo state, with the architect's
+  framing where it adds judgment.
+
+Silent truncation or fabrication is the failure mode to avoid: degrade loudly.
 
 ---
 
-## What changed v3.3.3 → v3.4
+## 10. Supersession chain
 <!-- scope: meta -->
 
-Implements the 5 AI Council debate decisions (Q1-Q5) for handoff process
-stabilization (2026-05-26). Empirical basis: `docs/archive/2026-05-25-handoff-failures-evidence.md`
-(N=7 sender misses + 2 NEW-chat post-gate failures).
+v4 supersedes v3.4 (and the full v3.x chain). v3.4 is preserved verbatim at
+`protocols/archive/HANDOFF_PROCESS_v3.4.md`.
 
-| Dimension | v3.3.3 | v3.4 |
-|---|---|---|
-| Receiver gate | 4-item paraphrase articulation + bare `role confirmed` | Applied-task gate: role+constraints citations + applied probe (`10_GATE_PROBE.md`) + `role confirmed + probe passed`; one bounded retry (ADR-55) |
-| Bundle contract | Invariant floor only (VISION/PLAYBOOK/ESSENTIALS) | Two-layer: unconditional floor + scoped operational layer (skills/gotchas/JOURNAL) via `next_session_scope` + mapping table (ADR-57) |
-| Prompt generation | "generate per 03_PLAYBOOK conventions" pointer | Inline Prompt Generation Card in `00_first-message.md` (ADR-56) |
-| Sender verification | Prose-only; no claims gate | Structured `11_CLAIMS.md` (cited load-bearing claims + expected articulation), CC-validated, operator-ratified (ADR-58) |
-| Stage 3 ratification | Bare `role confirmed` | Structured: claims green + probe match + articulation match; `UNVERIFIED` degraded mode |
-| Bundle file count | 11 (self) / 12 (cross-repo) | 13 (self) / 14 (cross-repo) fixed + operational layer |
-| Manifest | SHA-256 checksums | + canonical invariant hashes + `next_session_scope` (ADR-42 Q5 amendment) |
-| Verification trigger | None | Fixed rule: confident claim about unread/unverified source requires verification + citation (ADR-58) |
+The v3.4 Q1–Q5 concepts map into v4 as follows:
 
-Mechanical gate code (wiring the validator into pre-commit/PreToolUse/`/save`)
-is DEFERRED to a BACKLOG entry per the ADR-42 Q5 amendment — this version
-formalizes the contract only.
+| v3.4 concept (ADR) | v4 form |
+|---|---|
+| Structured claims `11_CLAIMS.md` (ADR-58) | inline verifiable narrative in `04_RECENT.md`, cross-checked by CC at Phase 2 |
+| `next_session_scope` (ADR-57) | embedded in `05_NOW.md` narrative |
+| Gate probe `10_GATE_PROBE.md` (ADR-55) | receiver-side comprehension check in `06_QUESTIONS.md` |
+| Prompt Generation Card (ADR-56) | folded into `02_METHODOLOGY.md` (pulled from PLAYBOOK) |
+| JSON manifest sidecar (ADR-42 Q5) | removed — bundle structure declared in `README.md`, markdown only |
+| Structured ratification (ADR-58) | operator escalation ladder (Tier 1/2/3, §6) |
+| Three-stage / placeholder dance | two phases + one scratch interview file |
 
-## What changed v3.3.2 → v3.3.3
-<!-- scope: meta -->
-
-| Dimension | v3.3.2 | v3.3.3 |
-|---|---|---|
-| Stage 3 HEAD validation | Strict equality: current HEAD must equal Stage 1 SHA | Ancestor check: current HEAD must be a descendant of Stage 1 SHA (`git merge-base --is-ancestor`) |
-| Browser-2 validation | Strict equality: `git rev-parse HEAD` must match pinned SHA | Ancestor check: pinned SHA must be ancestor of current HEAD |
-| Template state validation wording | `HEAD matches {head}` | `HEAD is {head} OR a descendant of it` |
-| `01_MANIFEST.md` description | `HEAD pin` | `HEAD pin (ancestor-validated)` |
-
-**What changed:** State validation logic replaced strict SHA equality with ancestor check across all surfaces. The "expected HEAD" field in `01_MANIFEST.md` pins Stage 1 input HEAD; current HEAD at validation time is by-design a descendant after Stage 3 commits. Strict equality produced false-negative validation requiring manual operator override.
-
-**Empirical case:** 2026-05-15 dev-knowledge handoff. Bundle pinned `b640bcf9a4d97ea803c1425d59e34f38a14cb8e8`, current HEAD `777af78c001b88a5586d1e7c89cb4079e5702408` (merge commit). Ancestry verified manually; operator overrode strict check to proceed. This fix eliminates that override.
-
-**Smoke test verified:** `git merge-base --is-ancestor b640bcf9 HEAD` → exit 0 on 2026-05-15 case.
-
-**Why ancestor check is semantically correct:** "Expected HEAD" pins Stage 1 input (the state work was based on). Stage 3 advances HEAD by committing the bundle itself. Strict equality fails on a benign, by-design case. The alternative approaches (capture HEAD post-commit → recursive; document the drift → band-aid) are not semantically equivalent.
-
-**Note on `git merge-base --is-ancestor X Y`:** Returns exit 0 when X is an ancestor of Y. Per git's definition, a commit is its own ancestor — so this single command covers both strict-equality and descendant cases. Do not add a redundant equality check.
-
----
-
-## What changed v3.3.1 → v3.3.2
-<!-- scope: meta -->
-
-| Dimension | v3.3.1 | v3.3.2 |
-|---|---|---|
-| `02_VISION.md` source | Unconditionally `.dev-knowledge/VISION.md` (Bug A) | Target repo's own `VISION.md` via `{TARGET_REPO_PATH}` placeholder |
-| Articulation gate item #1 subject | Hardcoded `.dev-knowledge` (Bug B) | `{repo}` placeholder — resolves to target repo name |
-| Articulation gate item #4 label | "per BOUNDARIES" (terminology drift from v3.3 rename, Bug C) | "from `07_ACTION_PLAN.md` Hard Constraints section" |
-| New conditional file | Not present | `02b_ECOSYSTEM_VISION.md` — `.dev-knowledge` VISION copied only when target ≠ `.dev-knowledge` |
-| Bundle file count | Always 11 | 11 (self-applied: target = `.dev-knowledge`) or 12 (cross-repo) |
-| Template amendment verification | Not formalized | Mandatory cross-case trace required before any future amendment |
-
-**Amendment authority:** Hard Constraint #3 of `2026-05-14-dev-knowledge-session-sync` action plan
-formally amended by operator authorization 2026-05-14, based on witnessed cross-repo evidence
-(bugs surfaced at commit `c09ee71` — first ai-council cross-repo Stage 3 run).
-
-**Failure pattern:** `universal-without-cross-case-verification` (LESSON #9, captured 2026-05-14).
-v3.3.1 universality claim validated only against `.dev-knowledge → .dev-knowledge` self-handoff.
-First cross-repo use surfaced two template bugs. Mitigation: mandatory manual trace verification
-(Trace 1: cross-repo target; Trace 2: self-applied) is now required before any future template amendment.
-
----
-
-## What changed v3.3 → v3.3.1
-<!-- scope: meta -->
-
-| Dimension | v3.3 | v3.3.1 |
-|---|---|---|
-| HANDOFF_QUESTION_TEMPLATE.md (Stage 1 template) | Not in v3.3 scope (explicitly excluded) | Adds Audience Awareness section: 7 rules + 1 self-check |
-| Audience the OLD chat writes for | Implicit (no enforcement) | Explicit: new chat audience that never sees Stage 1 |
-| Scope-declaration discipline | Not enforced | Required first line of each major section |
-| Cross-reference handling | No rule | Inline summaries required at first reference |
-| External research citation handling | No rule | Strip — new chat cannot verify |
-
----
-
-## What changed v3.2 → v3.3
-<!-- scope: meta -->
-
-| Dimension | v3.2 | v3.3 |
-|---|---|---|
-| 06/07 section names | SBAR codes (OBJECTIVE/REALITY/RATIONALE/DIRECTIVES/BOUNDARIES) | Plain English (`What was completed` / `Current state` / `Action plan` / `Hard Constraints` etc.) |
-| Code references (P-NN/F-NN/ADR-NN) | Bare codes inline | First reference per section includes in-line gloss |
-| DO-NOT lists | Single undifferentiated list (12+ items in sample) | `Hard Constraints` (max 5, bold) + `Narrow scope rules` (collapsed) |
-| New chat first action | Implicit synthesis | Mandatory 4-item articulation gate before any work; operator confirms via `role confirmed` |
-| Sentence form in 06/07 | Process-language noun phrases allowed | Verb-led sentences required |
-
----
-
-## What changed v3.1 → v3.2
-<!-- scope: meta -->
-
-| Dimension | v3.1 | v3.2 |
-|---|---|---|
-| Q&A iteration | Not specified | Stage 2.5 optional phase, max 3 rounds |
-| Operator synthesis confirmation | Implicit ("confirm before proceeding") | Exact phrases: "synthesis confirmed" / "synthesis correction: [text]" |
-| 00_README content | How to use (5 steps) | Explicit 10-step operator workflow |
-| 00_first-message content | Synthesis prompt + wait | Synthesis prompt + operator response handling + Q&A loop + prompt generation protocol + continuous improvement reminder |
-| Continuous improvement | Not stated | VISION + ESSENTIALS mandate; default posture across ecosystem |
-
----
-
-## What changed v3.0 → v3.1
-<!-- scope: meta -->
-
-| Dimension | v3.0 (morning) | v3.1 (afternoon) |
-|---|---|---|
-| Stage 2 mandate | Skipped for audit-sync | Mandatory for ALL handoff types |
-| State tracking | None | `_in_progress/{slug}/` directory with stage detection |
-| Trigger phrases | Loose ("Make handoff...") | Table with exact phrases and effects |
-| Archive | Not specified | Stage 1+2 inputs archived at `docs/handoffs/archive/{slug}/` |
-| Validation checkpoints | Implicit | Explicit per-stage table |
-| JOURNAL hook | Not specified | Stage 1 + Stage 3 append entries |
-| CHANGELOG hook | Not specified | Stage 3 appends entry |
-| BACKLOG integration | Read at Stage 1 | Read at Stage 1; update at Stage 3 if items closed |
-| Drift detection | Stage 3 re-verifies | Stage 3 re-verifies AND flags both SHAs on mismatch |
-
----
-
-## References
-<!-- scope: meta -->
-
-- `docs/decisions/ADR-42-handoff-format-v3.md` — authoritative source (amended 2026-05-09 afternoon)
-- `docs/decisions/ADR-32-handoff-format.md` — v2.0 (§4 deprecated by ADR-42; §1-§3 extended)
-- `docs/decisions/ADR-37-session-boundary-protocol.md` — two-phase Current/Future overlay
-- `docs/decisions/ADR-41-cross-session-backlog-architecture.md` — BACKLOG as pending items source
-- `docs/decisions/ADR-36-audit-tool-architecture.md` — read-only contract
-- `templates/HANDOFF_QUESTION_TEMPLATE.md` — Stage 1 output skeleton
-- `templates/HANDOFF_FOLDER_TEMPLATE.md` — Stage 3 folder structure spec
-- Council #24 — "wygeneruj handoff" trigger phrase
+ADRs 42/45/55/56/57/58 remain immutable; each carries an appended 2026-05-29
+amendment noting this supersession. The formal ADR for v4 is **deferred to AI
+Council** per standing operator preference (architecture decisions go through
+Council, not unilateral edits) — tracked in BACKLOG.
 
 ---
 
 ## Section history
 <!-- scope: meta -->
 
-- v3.4 (2026-05-26) — Implements AI Council Q1-Q5 handoff stabilization decisions:
-  applied-task gate replacing the 4-item paraphrase gate (ADR-55, adds
-  `10_GATE_PROBE.md`); two-layer bundle contract with scoped operational layer +
-  `next_session_scope` (ADR-57); inline Prompt Generation Card in `00_first-message.md`
-  (ADR-56); structured `11_CLAIMS.md` sender artifact + symmetric verification +
-  structured operator ratification replacing bare `role confirmed` (ADR-58); manifest
-  invariant hashes + `next_session_scope` and executor-gate contract (ADR-42 Q5
-  amendment). Bundle 11/12 → 13/14 fixed files + operational layer. Mechanical gate
-  code deferred to BACKLOG. Empirical basis: 2026-05-25 handoff-failures evidence.
-- v3.3.3 (2026-05-15) — Validation logic: strict equality → ancestor check. Replaces strict SHA
-  equality with `git merge-base --is-ancestor` across Stage 3 procedure, Drift mitigation section,
-  Browser-2 validation, template state validation wording, and 01_MANIFEST.md description.
-  Empirical case: 2026-05-15 handoff (bundle `b640bcf9`, current `777af78`). Smoke test confirmed.
-  Eliminates manual operator override for benign Stage 3 HEAD advancement.
-- v3.3.2 (2026-05-15) — Cross-repo parameterization of HANDOFF_FOLDER_TEMPLATE.md.
-  Fixes Bug A (02_VISION.md now sources target repo's VISION.md, not unconditionally
-  .dev-knowledge); Bug B (articulation gate item #1 uses {repo} placeholder, not hardcoded
-  .dev-knowledge); Bug C (gate item #4 references "Hard Constraints" section name, not stale
-  "BOUNDARIES"). Adds conditional 02b_ECOSYSTEM_VISION.md file (ecosystem context for cross-repo
-  handoffs only). Amendment authority: operator authorization 2026-05-14 after witnessed cross-repo
-  evidence at commit c09ee71. Failure pattern: universal-without-cross-case-verification (LESSON
-  #9). Verification procedure: mandatory cross-case trace before future template amendments.
-- v3.3.1 (2026-05-14) — Amendment to v3.3 adding audience-awareness
-  rules to HANDOFF_QUESTION_TEMPLATE.md (Stage 1 template). Seven rules
-  + one self-check verify the OLD chat writes Stage 2 for the new chat
-  audience that never sees Stage 1. Corrects v3.3's scope error (which
-  excluded Stage 1 template from refinement and produced empirically
-  observed 7-gap pattern in resulting Stage 2 response). No flow
-  change, no new mechanism, no escalation of articulation gate.
-  Empirical basis: 2026-05-14 self-review of Stage 2 response under
-  v3.3 conventions identified the 7 patterns; AI Council research
-  (3-model panel, transcript in docs/decisions/transcripts/) provided
-  concept-level reinforcement (caveats noted in transcript commit).
-- v3.3 (2026-05-13 night) — Audit-validated language refinements to 06/07
-  downstream files (plain-English section names; first-reference code
-  glosses; Hard Constraints vs Narrow Scope DO-NOT split; verb-led
-  sentences). Added mandatory articulation gate as new chat's first
-  required action in 00_first-message.md — operator confirms via
-  `role confirmed` before any work. Empirical basis: 2026-05-13 browser
-  session (5+ hours) demonstrated delivery ≠ internalization (architect
-  had VISION in bundle, did not internalize; operator uploaded VISION
-  twice during session). Refinement is template/process-level — does not
-  amend ADR-42 v3 (3-stage flow, file count, file responsibilities all
-  preserved). Pilot: test on next real handoff. If empirical drift
-  persists, escalate via separate prompt (sequential loading + question
-  battery deferred to that escalation).
-- v3.2 (2026-05-09 night) — Stage 2.5 Q&A iteration loop added (optional, max 3
-  rounds, NEW chat asks clarification questions back to OLD chat before Stage 3).
-  Operator workflow made explicit (10-step list in 00_README). Synthesis confirmation
-  phrases mandated ("synthesis confirmed" / "synthesis correction: [text]"). Continuous
-  improvement principle embedded in template specs. Authority: ADR-42 third amendment.
-- v3.1 (2026-05-09 afternoon) — Stage 2 mandatory for ALL handoff types (audit-sync
-  shortcut removed per amended ADR-42). Operational state tracking via
-  `_in_progress/{slug}/` directory. Trigger phrase table. Per-stage validation
-  checkpoints. JOURNAL hook per Stage 1 + Stage 3. CHANGELOG hook per Stage 3.
-  BACKLOG update at Stage 3. Archive pattern: Stage 1+2 inputs at
-  `docs/handoffs/archive/{slug}/`. Drift flag reports both SHAs.
-- v3.1 update (2026-05-09 later afternoon) — Stage 2 source semantics corrected
-  per ADR-42 second amendment: Stage 2 source = OLD (existing, dying) chat;
-  Stage 3 receiver = NEW (fresh) chat. 3-actor diagram added. Stage 2 section
-  rewritten; Stage 1 + Stage 3 report steps updated with correct chat direction.
-- v3.0 (2026-05-09 morning) — full rewrite per ADR-42. Three-stage flow, flat 11-file
-  structure, VISION/PLAYBOOK/ESSENTIALS as mandatory invariants, standardized 5-question
-  pipeline, `09_EXECUTION_EVIDENCE.md` return trip. ADR-32 §4 deprecated in favor of
-  BACKLOG.md.
-- v2.0 (2026-04-28) — full rewrite per ADR-32. 9-section HANDOFF.md, folder convention,
-  point-in-time copies, charter + step-verification controls, extract-to-task mechanics.
-- v1.x — superseded. Single-file Type A/B framing.
+- v4.0 (2026-05-29) — full rewrite. Reframes handoff as onboarding-as-teaching.
+  Two phases (interview / consolidate) replace the three-stage flow; eight bundle
+  files (README + 01–07) generated from source replace 13–14 hand-maintained
+  files; operator escalation ladder replaces structured ratification; content-based
+  three-state machine replaces six-state file-existence detection. Removes JSON
+  manifest, gate-probe artifact, separate claims file, placeholder dance, and Stage
+  vocabulary. Grounded in the 2026-05-29 process audit (13 findings) + ecosystem
+  audit (22 findings, doc-truth drift dominant) + operator/architect design
+  discussion. v3.4 archived. ADR for v4 deferred to Council.
+- v3.x (2026-05-09 → 2026-05-26) — three-stage flow; see
+  `protocols/archive/HANDOFF_PROCESS_v3.4.md` for the full v3.x section history.
