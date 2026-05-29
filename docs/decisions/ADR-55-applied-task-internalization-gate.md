@@ -110,3 +110,18 @@ The Context section above cites the empirical-basis evidence file at
 **`docs/archive/2026-05-25-handoff-failures-evidence.md`** by the 2026-05-28
 ADR-60 archive triage. The original path in the body is retained for historical
 accuracy; the current canonical path is the `docs/archive/` one.
+---
+
+## Amendment 2026-05-29 — Superseded by v4
+
+HANDOFF_PROCESS.md was rewritten as v4 on 2026-05-29 as a radical
+simplification. v3.x content preserved at protocols/archive/HANDOFF_PROCESS_v3.4.md
+for historical reference. The Q1-Q5 architectural concepts captured in this ADR
+(claims / scope / probe / manifest / ratification) are simplified in v4:
+- Claims -> inline narrative in 04_RECENT, cross-verified by CC in Phase 2
+- Scope -> embedded in 05_NOW narrative
+- Gate probe -> replaced by operator-side comprehension check at 06_QUESTIONS
+- Manifest -> no JSON sidecar; bundle structure declared in README.md
+- Ratification -> replaced by operator escalation ladder (Tier 1/2/3)
+
+Decision body preserved as historical record.

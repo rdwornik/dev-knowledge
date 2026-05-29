@@ -429,3 +429,18 @@ Authoritative live statement of the count is `protocols/HANDOFF_PROCESS.md` v3.4
 `templates/HANDOFF_FOLDER_TEMPLATE.md`. Where the immutable body's "11 files"
 conflicts with the v3.4 protocol, **this addendum and the v3.4 protocol win**
 (consistent with the spec's "ADR-42 wins on conflict" rule as now amended).
+---
+
+## Amendment 2026-05-29 — Superseded by v4
+
+HANDOFF_PROCESS.md was rewritten as v4 on 2026-05-29 as a radical
+simplification. v3.x content preserved at protocols/archive/HANDOFF_PROCESS_v3.4.md
+for historical reference. The Q1-Q5 architectural concepts captured in this ADR
+(claims / scope / probe / manifest / ratification) are simplified in v4:
+- Claims -> inline narrative in 04_RECENT, cross-verified by CC in Phase 2
+- Scope -> embedded in 05_NOW narrative
+- Gate probe -> replaced by operator-side comprehension check at 06_QUESTIONS
+- Manifest -> no JSON sidecar; bundle structure declared in README.md
+- Ratification -> replaced by operator escalation ladder (Tier 1/2/3)
+
+Decision body preserved as historical record.
