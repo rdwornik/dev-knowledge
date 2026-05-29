@@ -206,18 +206,26 @@ Next quarterly grooming: 2026-07-01
 - **Related:** `protocols/HANDOFF_PROCESS.md` v4; ADR-42/45/55/56/57/58 (v4 supersession amendments)
 
 ### [P3] [open] audit.py check #8 — handoff structure validator for v4 — handoff-v4-2026-05-29
-- **What:** Add a read-only audit check (#8) validating a v4 handoff bundle: folder `docs/handoffs/<slug>/` contains exactly README + `01`–`07` (8 files, flat, markdown only); per-file line budgets respected (01≤100, 02≤200, 03≤150, 04≤250, 05≤100, 06≤80, 07≤50); no unresolved `{{PULL}}`/`{{SYNTHESIZE}}`/`{{CONTEXT}}` markers shipped in a generated bundle; no leftover `_scratch/_handoff-interview.md` once a bundle exists. Layer-2 invariant: validation only, no orchestration (ADR-28/36).
-- **Why:** v4 removes the v3.4 manifest/claims contract (and the superseded mechanical-gate item above) but adds its own structural invariants. Without a check, drift (oversized files, shipped markers, stale scratch) goes unnoticed. Enforcement-layer work — a separate focused session, intentionally NOT done in the v4 implementation session.
+- **What:** Add a read-only audit check (#8) validating a v4 handoff bundle: folder `docs/handoffs/<slug>/` contains exactly README + `01`–`07` (8 files, flat, markdown only); per-file line budgets respected (01≤100, 02≤200, 03≤150, 04≤250, 05≤100, 06≤80, 07≤50); no unresolved `{{PULL}}`/`{{SYNTHESIZE}}`/`{{CONTEXT}}` markers shipped in a generated bundle; no leftover `in-progress/<slug>/_handoff-interview.md` once a bundle exists. Layer-2 invariant: validation only, no orchestration (ADR-28/36).
+- **Why:** v4 removes the v3.4 manifest/claims contract (and the superseded mechanical-gate item above) but adds its own structural invariants. Without a check, drift (oversized files, shipped markers, stale in-progress interview) goes unnoticed. Enforcement-layer work — a separate focused session, intentionally NOT done in the v4 implementation session.
 - **Added:** 2026-05-29 by rob (handoff v4 implementation session)
 - **Status:** open — design only; replaces the superseded v3.4 mechanical-gate item's intent under the v4 structure.
 - **Related:** `protocols/HANDOFF_PROCESS.md` v4; `scripts/audit.py`; superseded "Mechanical gate code for handoff enforcement" (above)
 
-### [P3] [open] v4 first real test — invoke handoff for THIS chat (post-merge) — handoff-v4-2026-05-29
-- **What:** Run the first live v4 handoff: after the v4 branch merges to `main`, invoke `please create handoff for .dev-knowledge` to hand THIS implementation chat to the next Opus 4.8 session, then `complete handoff`. Exercise the full two-phase flow + the operator escalation ladder on the resulting bundle.
-- **Why:** v4 is verified structurally (templates, spec, skill) but never executed end-to-end. The first real run is the empirical validation — and the natural use case is handing off this very session.
-- **Added:** 2026-05-29 by rob (handoff v4 implementation session)
-- **Status:** open — blocked on operator merge of `feature/handoff-v4-redesign-2026-05-29`.
-- **Related:** `protocols/HANDOFF_PROCESS.md` v4; `.claude/commands/handoff.md`
+### [P3] [open] v4 first real test (post-fix) — invoke handoff for THIS chat — handoff-v4-2026-05-29
+- **What:** Run the first live v4 handoff **after the sage-frame fix merges**: invoke `please create handoff for .dev-knowledge` to hand a chat to the next Opus 4.8 session, then `complete handoff`. Exercise the full two-phase flow end-to-end — the `in-progress/<slug>/` interview, the sage→apprentice 5-question single cluster, Phase 2 consolidation, and the operator escalation ladder on the resulting bundle.
+- **Why:** v4 is verified structurally (templates, spec, skill) but never executed end-to-end; the first Phase 1 invocation surfaced two design defects (folder convention + interview frame) before any real run. With those fixed, the first real run is the empirical validation — and the natural use case is handing off a live session.
+- **Added:** 2026-05-29 by rob (handoff v4 implementation session); re-homed 2026-05-29 (sage-frame fix session).
+- **Status:** open — blocked on operator merge of `fix/handoff-v4-sage-interview-and-folder-2026-05-29` (which sits atop the merged v4 implementation).
+- **Related:** `protocols/HANDOFF_PROCESS.md` v4 §3.1; `.claude/commands/handoff.md`
+
+### [P3] [open] Incorporate metaphor-based communication into PLAYBOOK + ESSENTIALS — handoff-v4-2026-05-29
+- **What:** Codify a small methodology section on communicating design intent via concrete metaphors. Operator insight from the 2026-05-29 sage-frame fix session: framing the handoff interview as **sage→apprentice** (and the *mędrzec–uczeń* framing in Polish working sessions) lowered cognitive load and clarified design intent better than numeric ADR-only references. Capture the metaphor patterns and when to reach for them.
+- **Why:** Methodology communicated as bare ADR numbers / abstract mechanics is high-friction to absorb; a well-chosen metaphor carries the *why* of a design in one image. The sage→apprentice frame directly fixed a design defect (a methodology-quiz interview) by making the role obvious. Worth generalizing as a methodology tool, not a one-off.
+- **Vision ref:** VISION.md "Methodology Author" — how methodology is taught is itself methodology.
+- **Added:** 2026-05-29 by rob (sage-frame fix session).
+- **Status:** open — separate focused session, Sonnet/medium scope. Do NOT bundle with code/process changes.
+- **Related:** `protocols/PLAYBOOK.md`; `protocols/ESSENTIALS.md`; `protocols/HANDOFF_PROCESS.md` v4 §3.1 (first applied instance)
 
 ### [P3] [open] Cross-repo audit (Phase 3)
 - **What:** Audit tool runs across all repos with VISION.md, generates ecosystem compliance report; verifies adoption of ratified ADRs
