@@ -1,0 +1,37 @@
+<!-- HANDOFF v4 bundle template — 04_RECENT. Generated at Phase 2. Budget ≤250 lines.
+     The heart of the teaching sequence: a NARRATIVE of recent work, NOT a journal copy.
+     CC synthesizes JOURNAL + folds in the sender chat's interview answers inline. -->
+
+# 04 · What just happened
+
+A narrative of recent work on `{{CONTEXT: repo}}`, written so a chat with zero prior
+context can pick up the thread. Prose, not a log dump.
+
+## The arc
+
+{{SYNTHESIZE: JOURNAL last 20 entries OR last 7 days, whichever smaller}}
+<!-- CC writes 2–5 paragraphs: what the recent sessions were trying to do, what
+     landed, what got abandoned and why, and how today's state came to be. Cite
+     commit SHAs / dates inline where they anchor a claim. NARRATIVE, not bullets
+     copied from JOURNAL. -->
+
+## What the sender chat said (interview)
+
+{{SYNTHESIZE: interview answers — project cluster}}
+<!-- Fold the sender chat's narrative answers (project questions) in here. Mark
+     witnessed vs inferred where the architect did. CC cross-checks load-bearing
+     factual claims against repo state at Phase 2 and notes any drift below. -->
+
+## Load-bearing facts (cross-checked vs repo)
+
+{{SYNTHESIZE: claims cross-check}}
+<!-- CC's verification of the decision-affecting factual claims in this file:
+     each claim → matches repo / drift found (with the actual repo fact). This is the
+     v4 home of v3.4's 11_CLAIMS.md — inline, verified, no separate artifact. -->
+
+## Decisions & reasoning to carry forward
+
+{{SYNTHESIZE: interview answers — rationale}}
+<!-- Why recent calls were made — the tacit reasoning the sender chat holds that the
+     new chat would otherwise lose. Recommendations/opinions are fine here; mark them
+     as such. -->

@@ -1,0 +1,34 @@
+<!-- HANDOFF v4 bundle template — 05_NOW. Generated at Phase 2. Budget ≤100 lines.
+     Pulled from BACKLOG top P1s + git branch -v + recent commit tip. This is the
+     v4 home of v3.4's next_session_scope (embedded as narrative) + action plan. -->
+
+# 05 · What to do now
+
+## Immediate objective
+
+{{SYNTHESIZE: interview answers — objective + scope}}
+<!-- One short paragraph: the single most important thing the next session should
+     achieve, and the scope of work (code / architecture / audit / docs / mixed).
+     This embeds v3.4's next_session_scope as plain narrative. -->
+
+## Top priorities (from BACKLOG)
+
+{{PULL: BACKLOG top P1s}}
+<!-- The open P1 items for this repo, condensed: what + why, newest-relevant first.
+     Do NOT duplicate the whole queue — reference BACKLOG.md for the full list. -->
+
+## In-progress branches & repo state
+
+{{PULL: git branch -v}}
+<!-- Current branches with their tip; flag any unmerged feature branch the next
+     session must be aware of. Include the recent commit tip on the working branch. -->
+
+- **Branch:** `{{CONTEXT: branch}}`  ·  **HEAD:** `{{CONTEXT: head_sha}}`
+- **Working tree at generation:** {{CONTEXT: working_tree_state}}
+
+## Boundaries
+
+{{SYNTHESIZE: interview answers — boundaries}}
+<!-- What the next session must NOT do; fallback contingencies. Grounded in the
+     architect's project knowledge — do not fabricate "do not touch X" for an X whose
+     existence is unverified. -->
