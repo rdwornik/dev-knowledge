@@ -92,3 +92,16 @@ Model+Effort table, precisely to honor the anti-drift maintenance rule.
 Measurement plan (≥10 handoffs: malformed structure, wrong model/effort, operator
 "forgot procedure" reports, predefined reconsideration thresholds) deferred to a
 BACKLOG measurement entry per Council AI6.
+
+---
+
+## Amendment 2026-05-29 — evidence file relocation
+
+> Append-only reference correction per ADR-39 (immutable body preserved). Grounds:
+> `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` finding E1.
+
+The Context section above cites the empirical-basis evidence file at
+`docs/research/2026-05-25-handoff-failures-evidence.md`. That file was relocated to
+**`docs/archive/2026-05-25-handoff-failures-evidence.md`** by the 2026-05-28
+ADR-60 archive triage. The original path in the body is retained for historical
+accuracy; the current canonical path is the `docs/archive/` one.

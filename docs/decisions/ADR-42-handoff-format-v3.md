@@ -401,3 +401,31 @@ follow-up session — for now, capture as P3 BACKLOG item):
 - ADR-37 (session boundary protocol)
 - ADR-39 (file lifecycle governance)
 - ADR-41 (cross-session backlog architecture)
+
+---
+
+## Addendum 2026-05-29 — file-count supersession per Q5 / v3.4
+
+> Append-only correction per ADR-39 (ADR bodies are immutable; supersede via
+> marker, never in-place edit). Grounded in
+> `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` finding D2.
+
+The body above states **"11 files"** (line ~264, the v3.0 folder diagram). That
+count is **superseded** by the v3.4 bundle composition that the Q5 amendment
+(2026-05-26, above) helped finalize together with ADR-55/56/57/58:
+
+- **Canonical v3.4 fixed count: 13 content files (self-applied) / 14 (cross-repo,
+  adds `02b_ECOSYSTEM_VISION.md`).** The v3.0 set (00–09, with two `00_` and the
+  `01_manifest.json` sidecar) was extended by `10_GATE_PROBE.md` (ADR-55) and
+  `11_CLAIMS.md` (ADR-58).
+- The `01_manifest.json` is the generated checksum/integrity sidecar (Q5 added
+  canonical invariant hashes to it); it is counted with `01_MANIFEST.md`, not as a
+  separate content file.
+- `12_OPERATIONAL_*` artifacts (ADR-57 operational layer) are scope-conditional and
+  not part of the fixed count.
+
+Authoritative live statement of the count is `protocols/HANDOFF_PROCESS.md` v3.4
+(folder-structure + file-responsibilities sections) and
+`templates/HANDOFF_FOLDER_TEMPLATE.md`. Where the immutable body's "11 files"
+conflicts with the v3.4 protocol, **this addendum and the v3.4 protocol win**
+(consistent with the spec's "ADR-42 wins on conflict" rule as now amended).

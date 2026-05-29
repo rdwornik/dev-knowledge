@@ -82,3 +82,16 @@ Scope vocabulary is intentionally small and conservative at launch; expand only 
 amending the mapping table here + in `HANDOFF_PROCESS.md`. Q2 AI7 factual
 dependency (does prompt-gen tooling need PLAYBOOK/ESSENTIALS physically in-bundle?)
 resolved: browser chat cannot read the filesystem → in-bundle required.
+
+---
+
+## Amendment 2026-05-29 — evidence file relocation
+
+> Append-only reference correction per ADR-39 (immutable body preserved). Grounds:
+> `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` finding E1.
+
+The Context section above cites the empirical-basis evidence file at
+`docs/research/2026-05-25-handoff-failures-evidence.md`. That file was relocated to
+**`docs/archive/2026-05-25-handoff-failures-evidence.md`** by the 2026-05-28
+ADR-60 archive triage. The original path in the body is retained for historical
+accuracy; the current canonical path is the `docs/archive/` one.

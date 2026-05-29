@@ -407,3 +407,17 @@ v3.2) plus `protocols/HANDOFF_PROCESS.md` (v3.3.3) remain the canonical handoff
 architecture. This amendment changes no decision content; it reconciles the
 header metadata with the already-clarified Status line so the ADR index no
 longer mis-signals supersession.
+
+---
+
+## Amendment 2026-05-29 — current-authority pointer
+
+> Append-only note per ADR-39 (immutable body preserved). Grounds:
+> `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` finding E2.
+
+This file's Status line and the 2026-05-25 amendment above name **ADR-42 v3.2 /
+HANDOFF_PROCESS.md v3.3.3** as canonical. Those version strings are now
+**historical**: the current canonical handoff authority is **ADR-42 (amended
+through Q5, 2026-05-26)** + **`protocols/HANDOFF_PROCESS.md` v3.4** (implementing
+ADR-55/56/57/58). ADR-45 remains explored-not-adopted and supersedes nothing; this
+note only updates the version pointer it carries, not its decision content.
