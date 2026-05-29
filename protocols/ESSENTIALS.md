@@ -198,6 +198,16 @@ Sourced from LESSONS #8 (2026-05-13). Architect-side enforcement is the workflow
 
 ---
 
+## Process versioning: beta → stable
+<!-- scope: meta -->
+
+A process (HANDOFF_PROCESS, AI_COUNCIL_PROCESS) ships `beta` after design + first
+implementation; promotes to `stable` after one fresh-eyes review (zero-context LLM +
+meta-reviewer prompt) returns **<2 critical findings**. No Council convene required
+for promotion. (PLAYBOOK)
+
+---
+
 ## Starting a Session
 <!-- scope: runtime -->
 

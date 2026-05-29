@@ -159,6 +159,19 @@ caught the drift, but the upstream discipline avoids the drift in the first plac
 
 Applies broadly: not just to handoff process.
 
+### Process versioning: beta vs stable promotion
+<!-- scope: meta -->
+
+Processes (like HANDOFF_PROCESS, AI_COUNCIL_PROCESS) ship at status `beta` after
+design + first end-to-end implementation. Promotion to `stable` requires one
+independent fresh-eyes review (LLM chat with zero project context, given the
+artifact + a meta-reviewer prompt) returning **fewer than 2 critical findings**.
+<2 critical = converged → promote. ≥2 critical = next refinement cycle.
+
+This codifies the convergence test for process design. No Council convene required
+for promotion (operator's call). Council remains the right venue for ratifying the
+architectural decision behind a process, separately from quality promotion.
+
 ---
 
 ## Repo conventions
