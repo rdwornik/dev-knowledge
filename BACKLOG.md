@@ -189,13 +189,35 @@ Next quarterly grooming: 2026-07-01
 - **Status:** open — classify root cause, propose mitigation
 - **Related:** ADR-37, ADR-42, LESSONS 2026-05-11 entries
 
-### [P2] [open] Mechanical gate code for handoff enforcement (ADR-42 Q5 amendment)
+### [P2] [superseded] Mechanical gate code for handoff enforcement (ADR-42 Q5 amendment)
 - **What:** Implement the executor-side validator + wiring deferred by the 2026-05-26 ADR-42 Q5 amendment. Scope: one shared validator that checks (presence of invariant files, integrity/canonical-hash/version match per `01_manifest.json invariant_integrity`, naming/shape/link consistency) — NO workflow sequencing/orchestration logic (ADR-28 Layer-2 invariant). Wire it into three points: pre-commit hook, Claude Code PreToolUse hook, and `/save`. Ensure ≥1 backstop is non-bypassable (CI or server-verified). Code requires Codex review per ADR-54 when implemented.
 - **Why:** Council Q5 (`docs/decisions/transcripts/council-out-20260526_145439-...-Q5-delivery-custody-abstraction.md`) approved executor-side mechanical enforcement; the 2026-05-26 session formalized the contract only (ADR + manifest schema), explicitly deferring the executable code. Full delivery of invariants did not guarantee internalization; mechanical gates are the clearest available improvement that respects Layer-2 limits.
 - **Vision ref:** VISION.md "Knowledge Guardian" function; pairs with "Sacred-files maintenance enforcement" P1 and "Hooks audit" P2 (below)
 - **Added:** 2026-05-26 by rob (Council Q5 decision — deferred implementation)
-- **Status:** open — contract defined (ADR-42 Q5 amendment + `01_manifest.json` schema); executable code + hook wiring pending. Define reopen thresholds for ADR-45 payload-shrink (bundle size limit) as part of this work.
-- **Related:** ADR-42 (Q5 amendment), ADR-28 (Layer-2 invariant), ADR-54 (Codex review), ADR-57/58 (bundle contract + claims)
+- **Status:** superseded 2026-05-29 by HANDOFF_PROCESS v4. This item enforced the v3.4 bundle contract (invariant-file presence + `01_manifest.json` canonical-hash/version match) — but v4 removes the JSON manifest, the separate claims/gate artifacts, and the 13/14-file structure entirely. There is no v3.4 manifest left to validate. The v4 analog (a structure validator for the 8-file README+01–07 bundle) is captured as the new P3 "audit.py check #8 — handoff structure validator for v4" below. v4 itself was not formalized via ADR here (deferred to AI Council per operator preference).
+- **Related:** ADR-42 (Q5 amendment), ADR-28 (Layer-2 invariant), ADR-54 (Codex review), ADR-57/58 (bundle contract + claims); `protocols/HANDOFF_PROCESS.md` v4 (supersession)
+
+### [P2] [open] AI Council debate → ADR formalizing HANDOFF_PROCESS v4 — handoff-v4-2026-05-29
+- **What:** Convene AI Council to debate and ratify the v4 handoff redesign, then distill the verdict into a committed ADR per the PLAYBOOK "After a Decision" protocol. v4 was implemented 2026-05-29 (`protocols/HANDOFF_PROCESS.md`, `templates/handoff/`, `.claude/commands/handoff.md`) from an operator+browser-architect design discussion; the ADR was **intentionally deferred** because architecture decisions go through Council, not unilateral edits.
+- **Why:** v4 currently "wins on conflict" against ADRs 42/55/56/57/58 by spec assertion alone (those ADRs carry append-only supersession notes but no ADR ratifies v4). Closing this gives v4 the same decision provenance the v3.x chain had.
+- **Vision ref:** VISION.md "Methodology Author" — handoff design is methodology; ADRs are how methodology decisions are recorded.
+- **Added:** 2026-05-29 by rob (handoff v4 implementation session)
+- **Status:** open — v4 is live and in use; ADR ratification pending Council convene.
+- **Related:** `protocols/HANDOFF_PROCESS.md` v4; ADR-42/45/55/56/57/58 (v4 supersession amendments)
+
+### [P3] [open] audit.py check #8 — handoff structure validator for v4 — handoff-v4-2026-05-29
+- **What:** Add a read-only audit check (#8) validating a v4 handoff bundle: folder `docs/handoffs/<slug>/` contains exactly README + `01`–`07` (8 files, flat, markdown only); per-file line budgets respected (01≤100, 02≤200, 03≤150, 04≤250, 05≤100, 06≤80, 07≤50); no unresolved `{{PULL}}`/`{{SYNTHESIZE}}`/`{{CONTEXT}}` markers shipped in a generated bundle; no leftover `_scratch/_handoff-interview.md` once a bundle exists. Layer-2 invariant: validation only, no orchestration (ADR-28/36).
+- **Why:** v4 removes the v3.4 manifest/claims contract (and the superseded mechanical-gate item above) but adds its own structural invariants. Without a check, drift (oversized files, shipped markers, stale scratch) goes unnoticed. Enforcement-layer work — a separate focused session, intentionally NOT done in the v4 implementation session.
+- **Added:** 2026-05-29 by rob (handoff v4 implementation session)
+- **Status:** open — design only; replaces the superseded v3.4 mechanical-gate item's intent under the v4 structure.
+- **Related:** `protocols/HANDOFF_PROCESS.md` v4; `scripts/audit.py`; superseded "Mechanical gate code for handoff enforcement" (above)
+
+### [P3] [open] v4 first real test — invoke handoff for THIS chat (post-merge) — handoff-v4-2026-05-29
+- **What:** Run the first live v4 handoff: after the v4 branch merges to `main`, invoke `please create handoff for .dev-knowledge` to hand THIS implementation chat to the next Opus 4.8 session, then `complete handoff`. Exercise the full two-phase flow + the operator escalation ladder on the resulting bundle.
+- **Why:** v4 is verified structurally (templates, spec, skill) but never executed end-to-end. The first real run is the empirical validation — and the natural use case is handing off this very session.
+- **Added:** 2026-05-29 by rob (handoff v4 implementation session)
+- **Status:** open — blocked on operator merge of `feature/handoff-v4-redesign-2026-05-29`.
+- **Related:** `protocols/HANDOFF_PROCESS.md` v4; `.claude/commands/handoff.md`
 
 ### [P3] [open] Cross-repo audit (Phase 3)
 - **What:** Audit tool runs across all repos with VISION.md, generates ecosystem compliance report; verifies adoption of ratified ADRs
