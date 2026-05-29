@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-29 — Handoff v4 Phase 2: bundle consolidated (first post-fix real run complete)
+
+- Did: Ran handoff Phase 2 (consolidate) for slug `2026-05-29-dev-knowledge-session` on branch `docs/handoff-2026-05-29`. Read the operator-pasted sage→apprentice answers, re-captured repo state, cross-checked load-bearing claims against repo/git, resolved all template markers from source (VISION/CLAUDE/PLAYBOOK/ESSENTIALS/BACKLOG/JOURNAL), generated the 8-file bundle (README + `01`–`07`) at `docs/handoffs/2026-05-29-dev-knowledge-session/`, and removed the consumed `in-progress/` interview folder (content folded into `04_RECENT.md`).
+- Result: **Bundle complete; all 7 teaching files within line budgets (41/81/69/104/71/36/22 vs 100/200/150/250/100/80/50); no unresolved markers; no degradation (all sources present).** Two drifts surfaced in cross-check and recorded in `04_RECENT` + README: (1) the "aborted handoff folder" the sender said to preserve was in fact **deliberately deleted** (commit `987edac`) — surviving record is `docs/audits/2026-05-29-handoff-v3.4-process-audit.md`; (2) corp-monorepo P1-2 branch `chore/extract-p1-2-to-backlog-2026-05-28` is **still unmerged** (HEAD `a1007b1`) despite operator's belief it was merged — confirms BACKLOG CM-1, routed to corp-monorepo per ADR-41. This completes the **post-fix first real v4 test** (P3 BACKLOG) end-to-end (Phase 1 interview → operator answers → Phase 2 consolidation).
+- Changes: `docs/handoffs/2026-05-29-dev-knowledge-session/` (8 new files), removed `docs/handoffs/in-progress/2026-05-29-dev-knowledge-session/_handoff-interview.md`, this JOURNAL marker. Commit on `docs/handoff-2026-05-29`.
+- Abandoned: nothing. NOTE: the operator's raw pasted interview answers were never committed (working-tree only by design); they are consumed/synthesized into `04_RECENT.md` and no longer on disk per the v4 consumption step.
+- Next: operator uses the bundle per its `README.md` escalation ladder (paste 01–05 → 06 comprehension → 07 ask-back). Merge `docs/handoff-2026-05-29` → `main` once the bundle is approved. Candidate first-move for the apprentice: AI Council → ADR ratifying v4 (P2), preceded by the overdue LESSONS.md update.
+
+---
+
 ### 2026-05-29 — Handoff v4 Phase 1: interview generated (first post-fix real run)
 
 - Did: Ran the handoff skill (Phase 1) for `.dev-knowledge` self-handoff, slug `2026-05-29-dev-knowledge-session`, on branch `docs/handoff-2026-05-29` (off `main` tip `367c81e`). State detected = Fresh (no `in-progress/<slug>/_handoff-interview.md`). Generated the sage→apprentice single-cluster interview (Past/Present/Future/Wisdom/Warnings) per HANDOFF_PROCESS v4.1 §3.1 at `docs/handoffs/in-progress/2026-05-29-dev-knowledge-session/_handoff-interview.md`. HEAD/branch/working-tree captured (clean tree).
