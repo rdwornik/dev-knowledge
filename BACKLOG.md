@@ -198,7 +198,7 @@ Next quarterly grooming: 2026-07-01
 - **Related:** ADR-42 (Q5 amendment), ADR-28 (Layer-2 invariant), ADR-54 (Codex review), ADR-57/58 (bundle contract + claims); `protocols/HANDOFF_PROCESS.md` v4 (supersession)
 
 ### [P2] [open] AI Council debate → ADR formalizing HANDOFF_PROCESS v4 — handoff-v4-2026-05-29
-- **What:** Convene AI Council to debate and ratify the v4 handoff redesign, then distill the verdict into a committed ADR per the PLAYBOOK "After a Decision" protocol. v4 was implemented 2026-05-29 (`protocols/HANDOFF_PROCESS.md`, `templates/handoff/`, `.claude/commands/handoff.md`) from an operator+browser-architect design discussion; the ADR was **intentionally deferred** because architecture decisions go through Council, not unilateral edits.
+- **What:** Convene AI Council to debate and ratify the v4 handoff redesign **(including the v4.2 refinements as a single architectural decision)**, then distill the verdict into a committed ADR per the PLAYBOOK "After a Decision" protocol. v4 was implemented 2026-05-29 (`protocols/HANDOFF_PROCESS.md`, `templates/handoff/`, `.claude/commands/handoff.md`) from an operator+browser-architect design discussion; v4.2 (2026-05-29 Amendment) polished templates/spec/skill from the first-run findings. The ADR was **intentionally deferred** because architecture decisions go through Council, not unilateral edits — v4 + v4.2 ratify together.
 - **Why:** v4 currently "wins on conflict" against ADRs 42/55/56/57/58 by spec assertion alone (those ADRs carry append-only supersession notes but no ADR ratifies v4). Closing this gives v4 the same decision provenance the v3.x chain had.
 - **Vision ref:** VISION.md "Methodology Author" — handoff design is methodology; ADRs are how methodology decisions are recorded.
 - **Added:** 2026-05-29 by rob (handoff v4 implementation session)
@@ -212,12 +212,26 @@ Next quarterly grooming: 2026-07-01
 - **Status:** open — design only; replaces the superseded v3.4 mechanical-gate item's intent under the v4 structure.
 - **Related:** `protocols/HANDOFF_PROCESS.md` v4; `scripts/audit.py`; superseded "Mechanical gate code for handoff enforcement" (above)
 
-### [P3] [open] v4 first real test (post-fix) — invoke handoff for THIS chat — handoff-v4-2026-05-29
+### [P3] [closed] v4 first real test (post-fix) — invoke handoff for THIS chat — handoff-v4-2026-05-29
 - **What:** Run the first live v4 handoff **after the sage-frame fix merges**: invoke `please create handoff for .dev-knowledge` to hand a chat to the next Opus 4.8 session, then `complete handoff`. Exercise the full two-phase flow end-to-end — the `in-progress/<slug>/` interview, the sage→apprentice 5-question single cluster, Phase 2 consolidation, and the operator escalation ladder on the resulting bundle.
 - **Why:** v4 is verified structurally (templates, spec, skill) but never executed end-to-end; the first Phase 1 invocation surfaced two design defects (folder convention + interview frame) before any real run. With those fixed, the first real run is the empirical validation — and the natural use case is handing off a live session.
 - **Added:** 2026-05-29 by rob (handoff v4 implementation session); re-homed 2026-05-29 (sage-frame fix session).
-- **Status:** open — blocked on operator merge of `fix/handoff-v4-sage-interview-and-folder-2026-05-29` (which sits atop the merged v4 implementation).
-- **Related:** `protocols/HANDOFF_PROCESS.md` v4 §3.1; `.claude/commands/handoff.md`
+- **Status:** closed 2026-05-29 — executed end-to-end. The v4.1 first-run bundle was generated (Phase 1 interview → operator answers → Phase 2 consolidation) and merged to `main` (`docs/handoffs/2026-05-29-dev-knowledge-session/`, merge `93b7b1c`). The run surfaced 7 refinement-level issues — no architectural defects, v4 design sound — implemented as v4.2 (branch `fix/handoff-v4.2-refinements-and-rerun-2026-05-29`). Empirical validation continues via the "v4.2 first real test" item below.
+- **Related:** `protocols/HANDOFF_PROCESS.md` v4.2 §3.1 + Amendment 2026-05-29; `.claude/commands/handoff.md`; `docs/handoffs/2026-05-29-dev-knowledge-session/`
+
+### [P3] [open] v4.2 first real test (re-run) — handoff-v4-2026-05-29
+- **What:** Re-run the full two-phase handoff end-to-end with the v4.2 refinements live, at slug `2026-05-29-dev-knowledge-session-v4.2-rerun`. Phase 1 interview is generated in this very session (the v4.2 refinements session); operator does the copy-paste-architect back-and-forth, then triggers Phase 2 to generate the bundle at `docs/handoffs/2026-05-29-dev-knowledge-session-v4.2-rerun/`. Validates: four-tag sage preamble, always-emit verification table, README drift-up, version+status stamp, bundle-maintenance section, forced-ranking warning, Codex clarity sentence.
+- **Why:** v4.2 polished the templates/spec/skill from the v4.1 first-run findings; the refinements need an end-to-end run to confirm they generate correctly and improve apprentice onboarding. Currently **in flight** — Phase 1 invoked this session.
+- **Added:** 2026-05-29 by rob (v4.2 refinements session).
+- **Status:** open — in flight. Phase 1 interview generated this session; awaiting operator architect answers + Phase 2.
+- **Related:** `protocols/HANDOFF_PROCESS.md` v4.2 Amendment 2026-05-29; `.claude/commands/handoff.md`; v4.1 first-run bundle (historical evidence, preserved).
+
+### [P3] [open] Promote HANDOFF_PROCESS status beta → stable after three end-to-end runs — handoff-v4-2026-05-29
+- **What:** v4.2 ships with `status: beta` (item D convention: `beta` for the first three end-to-end runs of a version, `stable` thereafter). After the v4.2 re-run (run 2) and one more clean end-to-end run (run 3), update the status stamp in the skill (`.claude/commands/handoff.md` Phase 2 `status` default) and any spec reference from `beta` to `stable`.
+- **Why:** The beta/stable stamp gives the apprentice process-maturity context; it must be advanced once empirical confidence is earned, or it silently misreports a mature process as beta.
+- **Added:** 2026-05-29 by rob (v4.2 refinements session).
+- **Status:** open — gated on two more clean end-to-end runs (v4.1 first-run = run 1; v4.2 re-run = run 2; one more = run 3).
+- **Related:** `protocols/HANDOFF_PROCESS.md` v4.2 Amendment item D; `.claude/commands/handoff.md`
 
 ### [P3] [open] Incorporate metaphor-based communication into PLAYBOOK + ESSENTIALS — handoff-v4-2026-05-29
 - **What:** Codify a small methodology section on communicating design intent via concrete metaphors. Operator insight from the 2026-05-29 sage-frame fix session: framing the handoff interview as **sage→apprentice** (and the *mędrzec–uczeń* framing in Polish working sessions) lowered cognitive load and clarified design intent better than numeric ADR-only references. Capture the metaphor patterns and when to reach for them.

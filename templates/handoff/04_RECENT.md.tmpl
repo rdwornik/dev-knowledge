@@ -22,12 +22,24 @@ context can pick up the thread. Prose, not a log dump.
      witnessed vs inferred where the architect did. CC cross-checks load-bearing
      factual claims against repo state at Phase 2 and notes any drift below. -->
 
-## Load-bearing facts (cross-checked vs repo)
+## Load-bearing facts (cross-checked vs repo at Phase 2)
 
 {{SYNTHESIZE: claims cross-check}}
-<!-- CC's verification of the decision-affecting factual claims in this file:
-     each claim → matches repo / drift found (with the actual repo fact). This is the
-     v4 home of v3.4's 11_CLAIMS.md — inline, verified, no separate artifact. -->
+<!-- REQUIRED SECTION (v4.2 item B): emit this table whether or not drift was found.
+     CC's verification of the decision-affecting factual claims in this file. This is
+     the v4 home of v3.4's 11_CLAIMS.md — inline, verified, no separate artifact.
+
+     Column order is fixed: Claim from sender | Repo fact | Verdict | Verification command.
+
+     - NO drift (all sender claims match): emit the single summary row —
+       | (all sender claims) | matches repo state | ✅ no drift detected | (verified at Phase 2) |
+     - Drift found: one row per load-bearing claim, with the EXACT command Phase 2
+       used to detect it in the Verification command column, e.g.
+       `git log --diff-filter=D --name-only -- "docs/handoffs/aborted/*"`. -->
+
+| Claim from sender | Repo fact | Verdict | Verification command |
+|---|---|---|---|
+| (all sender claims) | matches repo state | ✅ no drift detected | (verified at Phase 2) |
 
 ## Decisions & reasoning to carry forward
 

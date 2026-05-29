@@ -19,6 +19,36 @@
 
 ---
 
+### 2026-05-29 — Handoff v4.2 re-test Phase 2: bundle consolidated (v4.2 first real run complete)
+
+- Did: Ran handoff Phase 2 (consolidate) for slug `2026-05-29-dev-knowledge-session-v4.2-rerun` on branch `fix/handoff-v4.2-refinements-and-rerun-2026-05-29`. Read the operator-pasted four-tag sage→apprentice answers, re-captured repo state, cross-checked the sender's load-bearing claims against repo/git (incl. read-only corp-monorepo per ADR-41), resolved all template markers from source (VISION/CLAUDE/PLAYBOOK/ESSENTIALS/BACKLOG/JOURNAL + interview), generated the 8-file v4.2 bundle (README + `01`–`07`) at `docs/handoffs/2026-05-29-dev-knowledge-session-v4.2-rerun/`, and removed the consumed `in-progress/` interview folder.
+- Result: **Bundle complete; all 7 teaching files within budget (45/84/56/93/56/30/21 vs 100/200/150/250/100/80/50); 0 unresolved markers; no degradation (all sources present).** Cross-check found **1 drift of 9 load-bearing claims**: the sender's `.ecosystem/` registry path — actual registry is `ecosystem/<repo>/state.yaml` (no dot prefix). The sender had correctly pre-tagged it `unknown`, so the v4.2 four-tag discipline prevented it from propagating as fact — the upstream-discipline goal of v4.2 working on its first real run. All 8 other claims verified ✅ (branch-unmerged, LESSONS staleness, `987edac` aborted-folder deletion, v4.1 bundle preserved, corp-monorepo CM-1 unmerged at `a1007b1`, spec 395-line budget, §3.1↔Amendment A supersedence, AI_COUNCIL_PROCESS 343 lines). This completes the **v4.2 first real test** (P3 BACKLOG) end-to-end. README carries the v4.2 status stamp + drift-up section; `04_RECENT` carries the always-emit verification table with verification commands — both v4.2 refinements confirmed live in generated output.
+- Changes: `docs/handoffs/2026-05-29-dev-knowledge-session-v4.2-rerun/` (8 new files), removed `docs/handoffs/in-progress/2026-05-29-dev-knowledge-session-v4.2-rerun/`, this JOURNAL marker.
+- Abandoned: nothing. NOTE: the operator's raw pasted interview answers were working-tree only by design (never committed); consumed/synthesized into `04_RECENT.md` per the v4 consumption step.
+- Next: operator uses the bundle per its `README.md` escalation ladder (paste 01–05 → 06 comprehension → 07 ask-back), then merges `fix/handoff-v4.2-refinements-and-rerun-2026-05-29` → `main`. v4.2 re-test = run 2 of 3 toward `status: beta → stable` (BACKLOG P3). First-move for the next apprentice: LESSONS.md update (hygiene gate), then Council → v4+v4.2 ratification ADR.
+
+---
+
+### 2026-05-29 — Handoff v4.2 re-test Phase 1: interview generated
+
+- Did: Ran the handoff skill (Phase 1) for `.dev-knowledge` self-handoff, slug `2026-05-29-dev-knowledge-session-v4.2-rerun`, on branch `fix/handoff-v4.2-refinements-and-rerun-2026-05-29` (HEAD `fc461f0`, clean tree). State detected = Fresh. Generated the v4.2 sage→apprentice single-cluster interview (Past/Present/Future/Wisdom/Warnings) with the **four-tag** role-frame preamble (witnessed/recall/inferred/unknown — v4.2 Amendment A) at `docs/handoffs/in-progress/2026-05-29-dev-knowledge-session-v4.2-rerun/_handoff-interview.md`.
+- Result: Interview written; awaiting operator answers below the PASTE marker. This is the **v4.2 first real test** (re-run) — exercising the v4.2 refinements end-to-end starting at Phase 1.
+- Changes: `docs/handoffs/in-progress/2026-05-29-dev-knowledge-session-v4.2-rerun/_handoff-interview.md` (new), this JOURNAL marker.
+- Abandoned: nothing. Phase 2 NOT advanced — requires operator-architect paste cycle.
+- Next: operator copies the question block into the sender browser chat, gets four-tag-tagged answers, pastes below the marker, saves, then says `complete handoff for .dev-knowledge` → Phase 2 → v4.2 bundle at `docs/handoffs/2026-05-29-dev-knowledge-session-v4.2-rerun/`.
+
+---
+
+### 2026-05-29 — Handoff v4.2 refinements + re-test invoked
+
+- Did: v4.1's first end-to-end run (handoff bundle for THIS session, merged to `main` this evening, merge `93b7b1c`) surfaced **7 refinement-level issues — no architectural defects; v4 design sound.** Implemented v4.2 on branch `fix/handoff-v4.2-refinements-and-rerun-2026-05-29`: spec amendment (append-only per ADR-39, `a333265`), 4 template updates (`ac0d2b4`), skill alignment (`08aa5d9`), PLAYBOOK + ESSENTIALS methodology-rule elevation (`41fc541`), BACKLOG + JOURNAL bookkeeping. Then (Phase 6) invoked Phase 1 of a v4.2 re-test handoff to validate end-to-end with the refinements.
+- Result: **v4.2 live; 90 tests / audit 7/7 / ruff clean after every commit.** Key change: sage tagging now uses four tags (witnessed / recall / inferred / unknown) — v4.1's single "witnessed" was ambiguous and bit on the aborted-folder claim (effectively `recall`, tagged `witnessed`). Verification table now a required section of every `04_RECENT` (drift or no drift), columns `Claim | Repo fact | Verdict | Verification command`. README drift cross-check moved up (after escalation ladder, before bundle contents). Version + status stamp added (`Generated by HANDOFF_PROCESS v4.2 (status: beta)`). Bundle-maintenance-during-session path defined. 05_NOW forced-ranking warning. Codex clarity sentence. "Handoff is back-and-forth" promoted from handoff-only to general PLAYBOOK methodology (all LLM-LLM context transfer) + ESSENTIALS one-liner. Spec now 395 lines — **over the ≤350 budget by 45**; append-only amendment (ADR-39) + "don't rewrite v4.1 body" make shrinking impossible without violating governance (flagged, accepted).
+- Changes: `protocols/HANDOFF_PROCESS.md` (v4.2 amendment + version bump), `templates/handoff/{README,04_RECENT,02_METHODOLOGY,05_NOW}.md.tmpl`, `.claude/commands/handoff.md`, `protocols/PLAYBOOK.md` + `protocols/ESSENTIALS.md` (LLM-LLM transfer rule), `BACKLOG.md` (closed v4-first-test; +2 P3 items; amended Council-ADR item), this JOURNAL entry. v4 architecture unchanged — template/spec polish only.
+- Abandoned: nothing. Did NOT write an ADR (v4 + v4.2 ratify together via AI Council — operator standing pref). Did NOT advance Phase 2 of the re-test (requires operator-architect paste cycle). Did NOT touch the v4.1 first-run bundle (preserved as historical evidence). Did NOT add/remove templates or file types. No /review (docs/templates/skill; no safety-critical code).
+- Next: operator does the copy-paste-architect back-and-forth on the generated `_handoff-interview.md` (four-tag answers), pastes below the marker, then `complete handoff for .dev-knowledge` → Phase 2 → v4.2 bundle at `docs/handoffs/2026-05-29-dev-knowledge-session-v4.2-rerun/`. Merge `fix/handoff-v4.2-refinements-and-rerun-2026-05-29` when satisfied.
+
+---
+
 ### 2026-05-29 — Handoff v4 Phase 2: bundle consolidated (first post-fix real run complete)
 
 - Did: Ran handoff Phase 2 (consolidate) for slug `2026-05-29-dev-knowledge-session` on branch `docs/handoff-2026-05-29`. Read the operator-pasted sage→apprentice answers, re-captured repo state, cross-checked load-bearing claims against repo/git, resolved all template markers from source (VISION/CLAUDE/PLAYBOOK/ESSENTIALS/BACKLOG/JOURNAL), generated the 8-file bundle (README + `01`–`07`) at `docs/handoffs/2026-05-29-dev-knowledge-session/`, and removed the consumed `in-progress/` interview folder (content folded into `04_RECENT.md`).
