@@ -143,6 +143,8 @@ Bundle-asserted facts (SHAs, file counts, version pins, prior session claims) ar
 
 Sourced from LESSONS #1 (2026-05-12). Architect-side enforcement is operator review; ADR-45 Stage 3 verification provides mechanical cross-check on executor side.
 
+**LLM-LLM transfer:** verify inline, ask back; don't carry forward unknown. (PLAYBOOK)
+
 ---
 
 ## Architect epistemic discipline: completion claims require state verification

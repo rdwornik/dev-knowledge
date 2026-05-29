@@ -145,6 +145,20 @@ If CLAUDE.md grows past 200 lines, split content to dedicated docs; only per-rep
 
 CLAUDE.md is an agent-instruction contract, not a repo-descriptive document. The Claude-oriented handoff process must not narrate, summarize, or manage CLAUDE.md as Claude-side repo-descriptive handoff content. See ADR-53.
 
+### LLM-LLM context transfer is back-and-forth, not unilateral
+<!-- scope: meta -->
+
+When transferring context across LLM boundaries — handoff bundles, chat-to-chat
+references, browser-to-CC interactions, CC-to-Codex review handovers — the sender
+verifies load-bearing claims inline (via tool calls or a colleague-LLM) rather
+than carrying forward "unknown" or "I think this was true earlier." The receiver
+asks back before unilateral interpretation. This emerged from the v4.1 handoff
+first run (2026-05-29), where the sender carried "aborted folder preserved" as
+witnessed when it was actually recalled-from-earlier-session — Phase 2 verification
+caught the drift, but the upstream discipline avoids the drift in the first place.
+
+Applies broadly: not just to handoff process.
+
 ---
 
 ## Repo conventions
