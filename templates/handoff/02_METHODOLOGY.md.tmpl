@@ -29,6 +29,10 @@ win.
      normalization. Executable rules live in ~/.claude with verify: lines, not in
      prose. -->
 
+Codex is a separate code-review CLI (per ADR-54, configured globally at
+`~/.codex/AGENTS.md`), not Claude Code. Acts as a second pair of eyes on 3+ file or
+safety-critical changes — distinct system, used in addition to CC's own work.
+
 ## AI Council process
 
 {{PULL: ESSENTIALS#Architect routing for technical proposals}}
@@ -43,6 +47,14 @@ win.
      (feat/fix/docs/chore off main); file naming (UPPERCASE living docs, ADR-NN,
      YYYY-MM-DD slugs); append-only files (LESSONS, JOURNAL newest-first); immutable
      ADRs/handoffs/audits; no box-drawing chars in reports. -->
+
+## Bundle maintenance during session
+
+If you discover drift between this bundle and repo state during your work — flag
+to Rob, JOURNAL the discovery, and amend the bundle's `04_RECENT.md` Load-bearing
+facts table via append (don't rewrite). The bundle is living until the next
+handoff. This implements the "handoff is back-and-forth, not unilateral guess"
+rule in PLAYBOOK methodology.
 
 ## Session lifecycle
 
