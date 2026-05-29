@@ -1,9 +1,9 @@
 # HANDOFF_PROCESS v4
 
-<!-- version: 4.0 — 2026-05-29 (radical simplification: onboarding-as-teaching, two-phase, 8-file bundle, files generated from source) -->
+<!-- version: 4.1 — 2026-05-29 (v4.0 radical simplification + v4.1 fix: in-progress/ folder + sage→apprentice single-cluster interview) -->
 <!-- scope: meta -->
 
-Version: 4.0
+Version: 4.1
 Effective: 2026-05-29
 Supersedes: v3.4 (preserved at `protocols/archive/HANDOFF_PROCESS_v3.4.md`) and the
 full v3.x chain it carried forward.
@@ -13,13 +13,11 @@ ADRs 42/45/55/56/57/58 describe the v3.x design and remain immutable historical
 record; where they conflict with v4, **v4 wins** (the architectural decision
 formalizing v4 is deferred to a future AI Council convene — see BACKLOG).
 
-> **Why a rewrite.** v3.4 was technically retry-ready but architecturally
-> over-engineered: 13–14 bundle files, a multi-stage placeholder dance, a JSON
-> manifest sidecar, Stage 1↔3 desync risk, and hand-maintained surfaces prone to
-> drift (2026-05-29 process audit + ecosystem audit findings). v4 reframes a
-> handoff as **onboarding a new chat — a teaching protocol, not a file transfer**
-> — and collapses the mechanics to two phases and eight bundle files generated
-> from source at handoff time.
+> **Why a rewrite.** v3.4 was retry-ready but over-engineered (13–14 files, a
+> placeholder dance, a JSON manifest, Stage 1↔3 desync risk, drift-prone
+> hand-maintained surfaces). v4 reframes a handoff as **onboarding a new chat — a
+> teaching protocol, not a file transfer** — and collapses the mechanics to two
+> phases and eight source-generated bundle files.
 
 ---
 
@@ -64,32 +62,104 @@ cross-repo handoff (§8).
 ## 3. Two-phase flow
 <!-- scope: meta -->
 
-```
-Phase 1 (CC)          Operator (browser)            Phase 2 (CC)
-────────────          ──────────────────            ────────────
-write interview  →    copy questions to        →    read answers,
-scratch file          sender chat, paste            cross-check vs repo,
-(~10 questions)       narrative answers back        generate 8-file bundle,
-                      below the marker, save        delete interview, commit
-```
+Phase 1 (CC) writes the interview → operator copies the questions to the sender
+browser chat and pastes the answers back → Phase 2 (CC) reads them, cross-checks
+against repo state, and generates the bundle. In detail:
 
 - **Phase 1 — Interview (Claude Code).** On `please create handoff for <repo>`, CC
-  writes a scratch file `docs/handoffs/_scratch/_handoff-interview.md` containing
-  ~10 questions in two clusters (5 project + 5 methodology) and a
-  `=== PASTE ANSWERS BELOW THIS LINE ===` marker. CC appends a JOURNAL marker and
-  commits the scratch file on the feature branch.
+  writes an in-progress file `docs/handoffs/in-progress/<slug>/_handoff-interview.md`
+  containing a single **sage→apprentice** cluster of 5 questions (Past / Present /
+  Future / Wisdom / Warnings) and a `=== PASTE ANSWERS BELOW THIS LINE ===` marker
+  (full structure in §3.1). CC appends a JOURNAL marker and commits the in-progress
+  file on the feature branch.
 - **Operator (between phases).** The operator copies the questions into the
   **sender** browser chat (the chat being wrapped up, which holds the lived
-  context), gets narrative answers, pastes them below the marker in the scratch
+  context), gets narrative answers, pastes them below the marker in the in-progress
   file, and saves.
 - **Phase 2 — Consolidate (Claude Code).** On `complete handoff for <repo>`, CC
   reads the interview, **cross-checks the browser answers against actual repo
   state** (drift detection — surfaced to the operator if found), generates the
-  bundle at `docs/handoffs/<slug>/` (README + 01–07) from source files, deletes
-  the scratch interview, appends a JOURNAL marker, and commits.
+  bundle at `docs/handoffs/<slug>/` (README + 01–07) from source files, removes the
+  `in-progress/<slug>/` folder, appends a JOURNAL marker, and commits.
 
-There is no Stage vocabulary, no placeholder-file dance, no separate claims/scope/
-probe artifacts. Claims and scope become inline narrative in the generated bundle.
+No Stage vocabulary, no placeholder dance, no separate claims/scope/probe artifacts
+— claims and scope become inline narrative in the generated bundle.
+
+### 3.1 The Phase 1 interview (sage→apprentice frame)
+<!-- scope: meta -->
+
+The interview is **not a methodology quiz**. The books (`PLAYBOOK`, `ESSENTIALS`,
+`CLAUDE.md`, the ADRs) already hold the theory, which the apprentice (next chat)
+reads independently. What only the sender chat (the **sage**) can transmit is the
+*lived implementation* of that theory in this project's circumstances this session
+— so the interview asks for experience, not curriculum. One cluster of 5 questions
+— **Past / Present / Future / Wisdom / Warnings** — written verbatim by Phase 1:
+
+```
+# Handoff Interview — {slug}
+
+| Field | Value |
+|---|---|
+| Repo | {repo} (self-handoff or cross-repo) |
+| Slug | {slug} |
+| Date | {date} |
+| Type | session |
+| HEAD captured | {sha} |
+| Branch (at capture) | {branch} |
+| Working tree (at capture) | {clean/dirty} |
+| Process | HANDOFF_PROCESS v4 — Phase 1 (interview) |
+
+## Role frame
+
+Imagine an elder sage handing wisdom to a young apprentice. You — the sage —
+are tired, your context is fading, but you hold the lived experience the
+apprentice needs to continue this specific project's work. The apprentice
+will read the books independently — PLAYBOOK, ESSENTIALS, CLAUDE.md, ADRs
+— that's the theory. What only you can transmit is how the theory was
+implemented in THIS project's specific circumstances during this session.
+
+Answer narratively. Tag each claim:
+- **witnessed** (you saw it happen this session)
+- **inferred** (you're reasoning from evidence)
+- **unknown** (you don't have direct knowledge — say so)
+
+Skip any question that doesn't apply. Say so explicitly.
+
+## Question block — copy from here
+
+### 1. Past — what shipped
+
+What did this session actually accomplish? Concretely: what merged, what
+shipped, what changed in the codebase, what audits or decisions landed.
+
+### 2. Present — where things stand
+
+What's currently in-flight? Anything half-done, on an unmerged branch,
+waiting on a merge, paused mid-decision, blocked on something external?
+
+### 3. Future — natural next step
+
+Of the open paths, which is the natural next step? What were you about to
+do when this chat wound down? What's the obvious follow-up to what was
+just done?
+
+### 4. Wisdom — key decisions
+
+Of the key decisions made this session, what was the reasoning? Anything
+considered and rejected, and why? What turned out harder or easier than
+expected?
+
+### 5. Warnings — landmines
+
+What should the next session NOT do? Anti-patterns you saw recur, landmines
+specific to the current state, things that look wrong but are intentional,
+witnessed-only context that won't be obvious from JOURNAL / BACKLOG / git
+history.
+
+## Question block — copy to here
+
+=== PASTE ANSWERS BELOW THIS LINE ===
+```
 
 ---
 
@@ -111,18 +181,17 @@ docs/handoffs/<slug>/
 └── 07_ASK_BACK.md     ≤50 lines  — new chat's question slot, max 3 invited
 ```
 
-**Total ≤930 lines** — roughly half the v3.4 footprint. README is operator-facing
-and not pasted into the new chat; 01–07 are the teaching sequence.
+**Total ≤930 lines** (≈half the v3.4 footprint). README is operator-facing and not
+pasted into the new chat; 01–07 are the teaching sequence pasted in order.
 
 ---
 
 ## 5. File generation principle (critical)
 <!-- scope: meta -->
 
-Bundle files are **generated FROM source at handoff time**, not hand-maintained.
-This directly addresses the ecosystem-audit doc-truth-drift finding: a hand-kept
-parallel copy of methodology/project facts drifts from the real files. Generating
-from source each time means the bundle is as current as the repo.
+Bundle files are **generated FROM source at handoff time**, not hand-maintained: a
+hand-kept parallel copy drifts from the real files (the ecosystem-audit
+doc-truth-drift finding). Generating each time keeps the bundle as current as the repo.
 
 | File | Generated from |
 |---|---|
@@ -150,8 +219,8 @@ marker.
 <!-- scope: meta -->
 
 1. In Claude Code (`.dev-knowledge`): `please create handoff for <repo>`.
-2. Open `docs/handoffs/_scratch/_handoff-interview.md`; copy the question block
-   into the **sender** browser chat (the one being wrapped up).
+2. Open `docs/handoffs/in-progress/<slug>/_handoff-interview.md`; copy the question
+   block into the **sender** browser chat (the one being wrapped up).
 3. Paste the chat's narrative answers below the
    `=== PASTE ANSWERS BELOW THIS LINE ===` marker; save.
 4. In Claude Code: `complete handoff for <repo>`. CC generates the bundle and
@@ -175,9 +244,6 @@ IF comprehension PASSES:
   Step D: The chat begins work.
 ```
 
-The escalation ladder replaces v3.4's structured ratification (UNVERIFIED/VERIFIED
-modes). It is operator-driven, tiered, and has an explicit abort.
-
 ---
 
 ## 7. State machine
@@ -188,10 +254,10 @@ not by file existence alone (closes the v3.4 state-ambiguity finding):
 
 | State | Detected by | Action |
 |---|---|---|
-| Fresh | no `_handoff-interview.md` in `_scratch/` | run Phase 1 |
+| Fresh | no `_handoff-interview.md` in `in-progress/<slug>/` | run Phase 1 |
 | Awaiting answers | interview present, nothing below the PASTE marker | instruct operator (idempotent — do not regenerate) |
 | Ready to consolidate | interview present **with** non-empty answers below the marker | run Phase 2 |
-| Complete | bundle folder exists at `docs/handoffs/<slug>/` | instruct operator on use |
+| Complete | bundle folder exists at `docs/handoffs/<slug>/` (no `in-progress/<slug>/`) | instruct operator on use |
 
 If state is genuinely ambiguous (e.g. a bundle already exists and the operator
 says "create handoff" again), FLAG and ask — never silently overwrite.
@@ -218,8 +284,7 @@ Same skill, same flow; only the repo context differs. When `<repo>` is not
 ## 9. Failure handling (graceful degradation)
 <!-- scope: meta -->
 
-A source file may be missing (e.g. a target repo has no `VISION.md`) or a named
-section may have moved so a `{{PULL}}` marker cannot resolve.
+A source file may be missing, or a `{{PULL}}` target section may have moved:
 
 - **Missing source file:** generate the file from available fallbacks, omit the
   unavailable section, and **note the degradation explicitly in `README.md`** ("03
@@ -254,26 +319,32 @@ The v3.4 Q1–Q5 concepts map into v4 as follows:
 | Prompt Generation Card (ADR-56) | folded into `02_METHODOLOGY.md` (pulled from PLAYBOOK) |
 | JSON manifest sidecar (ADR-42 Q5) | removed — bundle structure declared in `README.md`, markdown only |
 | Structured ratification (ADR-58) | operator escalation ladder (Tier 1/2/3, §6) |
-| Three-stage / placeholder dance | two phases + one scratch interview file |
+| Three-stage / placeholder dance | two phases + one in-progress interview file |
 
 ADRs 42/45/55/56/57/58 remain immutable; each carries an appended 2026-05-29
-amendment noting this supersession. The formal ADR for v4 is **deferred to AI
-Council** per standing operator preference (architecture decisions go through
-Council, not unilateral edits) — tracked in BACKLOG.
+supersession amendment. The formal ADR for v4 is **deferred to AI Council** per
+standing operator preference (architecture goes through Council) — tracked in BACKLOG.
 
 ---
 
 ## Section history
 <!-- scope: meta -->
 
-- v4.0 (2026-05-29) — full rewrite. Reframes handoff as onboarding-as-teaching.
-  Two phases (interview / consolidate) replace the three-stage flow; eight bundle
-  files (README + 01–07) generated from source replace 13–14 hand-maintained
-  files; operator escalation ladder replaces structured ratification; content-based
-  three-state machine replaces six-state file-existence detection. Removes JSON
-  manifest, gate-probe artifact, separate claims file, placeholder dance, and Stage
-  vocabulary. Grounded in the 2026-05-29 process audit (13 findings) + ecosystem
-  audit (22 findings, doc-truth drift dominant) + operator/architect design
-  discussion. v3.4 archived. ADR for v4 deferred to Council.
+- v4.0 (2026-05-29) — full rewrite. Reframes handoff as onboarding-as-teaching:
+  two phases replace the three-stage flow, eight source-generated bundle files
+  replace 13–14 hand-maintained ones, an operator escalation ladder replaces
+  structured ratification, and a content-based three-state machine replaces
+  six-state file detection (mapping table in §10). Grounded in the 2026-05-29
+  process audit (13 findings) + ecosystem audit (22 findings) + operator/architect
+  design discussion. v3.4 archived; ADR for v4 deferred to Council.
+- v4.1 (2026-05-29) — fix after first Phase 1 invocation surfaced two
+  implementation defects: (1) the interview file moves from a unilaterally-
+  introduced `_scratch/` folder to the existing `docs/handoffs/in-progress/<slug>/`
+  convention (no new folders without operator approval); (2) the Phase 1 interview
+  collapses from two clusters (project + methodology) to a single **sage→apprentice**
+  cluster of 5 questions (Past/Present/Future/Wisdom/Warnings) — the methodology
+  cluster duplicated PLAYBOOK/ESSENTIALS, which the apprentice reads independently;
+  the sage transmits only the project's lived implementation (§3.1). Bundle
+  structure, generation principle, and templates unchanged.
 - v3.x (2026-05-09 → 2026-05-26) — three-stage flow; see
   `protocols/archive/HANDOFF_PROCESS_v3.4.md` for the full v3.x section history.
