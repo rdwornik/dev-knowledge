@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-29 — Handoff v4 Phase 1: interview generated (first post-fix real run)
+
+- Did: Ran the handoff skill (Phase 1) for `.dev-knowledge` self-handoff, slug `2026-05-29-dev-knowledge-session`, on branch `docs/handoff-2026-05-29` (off `main` tip `367c81e`). State detected = Fresh (no `in-progress/<slug>/_handoff-interview.md`). Generated the sage→apprentice single-cluster interview (Past/Present/Future/Wisdom/Warnings) per HANDOFF_PROCESS v4.1 §3.1 at `docs/handoffs/in-progress/2026-05-29-dev-knowledge-session/_handoff-interview.md`. HEAD/branch/working-tree captured (clean tree).
+- Result: Interview written; awaiting operator answers below the PASTE marker. This is the **post-fix first real v4 test** (P3 BACKLOG item) — the v4.1 sage-frame and `in-progress/` folder convention exercised end-to-end through Phase 1.
+- Changes: `docs/handoffs/in-progress/2026-05-29-dev-knowledge-session/_handoff-interview.md` (new), this JOURNAL marker. Commit on `docs/handoff-2026-05-29`.
+- Abandoned: nothing.
+- Next: operator copies the question block into the sender browser chat, pastes answers below the marker, saves, then says `complete handoff for .dev-knowledge` to trigger Phase 2 (consolidate → bundle at `docs/handoffs/2026-05-29-dev-knowledge-session/`).
+
+---
+
 ### 2026-05-29 — Handoff v4 fix: sage-frame interview + in-progress/ folder
 
 - Did: Fixed two design defects in the v4 implementation that surfaced on the first Phase 1 invocation, on branch `fix/handoff-v4-sage-interview-and-folder-2026-05-29` (off merged `main` tip `555d2f4`). (1) **Folder convention** — the original v4 prompt unilaterally introduced `docs/handoffs/_scratch/` for the interview file; reverted to the existing `docs/handoffs/in-progress/<slug>/` convention (standing operator pref: no new folders without approval). (2) **Interview frame** — Phase 1 had two clusters (project + methodology); the methodology cluster duplicated `PLAYBOOK`/`ESSENTIALS`, which the next chat reads independently. Redesigned as a single **sage→apprentice** cluster of 5 questions (Past / Present / Future / Wisdom / Warnings): theory lives in the books; the sage (sender chat) transmits only this project's lived implementation of that theory this session. Spec edits added §3.1 with the verbatim interview block; skill rewritten to generate it.
