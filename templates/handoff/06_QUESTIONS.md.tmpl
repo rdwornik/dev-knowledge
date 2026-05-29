@@ -19,15 +19,34 @@ it. Answer concisely. Rob will confirm before you proceed.
 
 ## Tailored to recent work
 
-5. {{SYNTHESIZE: dynamic question from 04_RECENT}}
-   <!-- CC writes a question whose answer requires understanding the most recent
-        arc — e.g. "Why was X archived rather than edited in place?" -->
-6. {{SYNTHESIZE: dynamic question from 05_NOW}}
-   <!-- CC writes a question that tests grasp of the immediate objective / a key
-        boundary. Optional — include only if recent work warrants it. -->
+<!-- v4.3 (closes M4+M5): these test APPLICATION, not paraphrase. Q6 (four-tag) is
+     PERMANENT — keep its shape verbatim. CC may refresh the concrete factual
+     anchors in Q5/Q6/Q7 to the current arc, but must preserve the
+     application-testing shape (a hypothetical to reason through, not a fact to
+     restate) and the two named anti-patterns in Q7. -->
+
+5. The bundle's `04_RECENT` describes "cluster as diagnosis" as the structural
+   insight that drove v3.4 → v4. **Apply this lens to a hypothetical:** an audit
+   returns 5 findings in `scripts/audit.py` — three timing-related (false negatives
+   on slow disk I/O), one config-related (wrong default value), one logic-related
+   (off-by-one in array bounds). What does cluster-as-diagnosis suggest you do, and
+   how would patching the 5 findings individually fail?
+
+6. The sender tagged the `.ecosystem/` registry claim `unknown`, and Phase 2 found
+   it was actually `ecosystem/` (no dot). Using the **four-tag definitions**
+   (provided inline in `04_RECENT`), explain how the discipline turned a potential
+   drift into a non-event — and what you'd do differently if a load-bearing claim
+   arrived tagged `recall` instead.
+
+7. The bundle calls out two anti-patterns from the prior session:
+   **new-folder-without-checking** (3 instances in 24h) and **easy-metric closure**
+   (recurring failure mode). State your concrete pre-output check before emitting any
+   prompt or response that proposes a new folder/naming/convention, AND state your
+   closure metric for declaring a task done (what makes "done" hard-metric, not
+   easy-metric).
 
 ## Pass criterion
 
-You pass when answers 1–4 are correct and 5–6 show you grasped the current work —
+You pass when answers 1–4 are correct and 5–7 show you grasped the current work —
 not when you can restate the files verbatim. If you are unsure of a fact, say so
 rather than guessing; that is the correct behavior here.
