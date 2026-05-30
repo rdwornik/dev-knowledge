@@ -83,6 +83,20 @@ The ratified architectural pattern:
    rule states Council is not required for stable promotion. This ADR is the
    retroactive record consistent with that rule — accepted, not litigated.
 
+   This trade-off is a textbook instance of the ML-2 pattern that ADR-63 codifies (a
+   documented guard drifting under load): the standing "Architecture decisions = AI
+   Council" rule drifted under marathon-arc fatigue, and the response was to **relax
+   the guard** (amend the rule via v4.3.1 PLAYBOOK so the bypass wasn't a violation)
+   rather than **gate it harder** (e.g., codify Council-or-defer as a hard rule). The
+   choice was deliberate: post-hoc Council adds limited value to architectural decisions
+   already implemented + validated by fresh-eyes review; Council debate cost (~30–45 min
+   per convene + ADR distillation) is high relative to retroactive-ratification
+   value-add. **ADR-63 takes the opposite cure for the same disease — gating via
+   codification — because that pattern's cost/value calculus inverts: operator visual
+   review is fast, and empirical catch-value is high.** No paired principle is
+   articulated for when guards should be relaxed vs. gated; that reconciling question is
+   tracked as a future LESSONS/ADR candidate (see BACKLOG).
+
 2. **Spec growth via amendments.** `protocols/HANDOFF_PROCESS.md` grew to **504
    lines** (v4 body + Amendment A at v4.2, v4.3, v4.3.1) under ADR-39 append-only
    discipline. Consolidation into a fresh budget-compliant spec is deferred to v5
@@ -134,12 +148,12 @@ The ratified architectural pattern:
    2026-05-12 audit found empirically load-bearing. v4 is the converged middle ground;
    this ADR does not revive ADR-45's floor.
 
-## Empirical validation
+## Empirical grounding
 
 - **Triangulation empirically validated.** On the v4.2 bundle, the insider review
   (architect/sage who built it) caught **1 of 4** critical findings that a zero-context
   independent Opus 4.8 fresh-eyes review then caught (~25% insider vs ~100% outsider).
-  Curse-of-knowledge confirmed empirically (LESSONS 2026-05-30). Codified as the
+  Curse-of-knowledge observed empirically (n=1 bundle; directionally consistent with the insider-blindness pattern, but single data point — replication pending) (LESSONS 2026-05-30). Codified as the
   beta→stable promotion gate (v4.3) and restated judgment-augmented (v4.3.1).
 - **Convergence trend across three preserved bundles:** v4.1 first-run (7
   refinement-level issues, no architectural defects) → v4.2 re-run (4 critical found

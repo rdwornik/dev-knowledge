@@ -26,8 +26,10 @@ report; the child-repo architect implements. Empirical grounding **N=3**: ai-cou
 pattern" was opened to capture.
 
 **Facet 2 — intra-session operator→architect review (surfaced by the marathon arc).**
-The operator (Rob) caught architect-level anti-patterns at a rate of **N+3+ in a single
-24h period** (2026-05-29/30). Captured in LESSONS (2026-05-30) + JOURNAL:
+**5 total catches in 24h (May 29-30):** 3 operator catches at prompt emission
+(`docs/strategic/`, `docs/handoffs/_scratch/`, two-cluster Phase 1 interview design) +
+2 CC catches at execution (BACKLOG header convention drift, JOURNAL format drift during
+v4.3.1 patch). Captured in LESSONS (2026-05-30) + JOURNAL:
 
 - `docs/strategic/` folder creation — operator caught at prompt emission, redirected.
 - `docs/handoffs/_scratch/` folder — operator caught, reverted to the existing
@@ -86,6 +88,13 @@ For the **ecosystem-altitude facet (`.dev-knowledge` → child repo)**, the exis
 mechanism stands: a structured read-only review report (the ADR-36 audit-tool /
 strażnik review), routed by the operator, implemented by the child-repo architect.
 
+**Facet 1 (cross-repo strażnik review) inherits ADR-36's mechanism unchanged — no new
+machinery is added here.** ADR-63 codifies the *shared authority-asymmetry abstraction*
+across both facets; the operational triggers and per-artifact-class apparatus (5 triggers
++ 3 artifact classes + 3 exclusions) apply to **Facet 2 (operator→architect review)**
+specifically. A reader should not assume Facet 1 gets equal operationalization; the facets
+share spine, not implementation.
+
 ### Asymmetry
 
 - **Guardian → executor:** standing review authority. The guardian catches
@@ -118,7 +127,7 @@ holds process authority, members hold execution authority.
    reaches a per-artifact-class artifact would go uncaught).
 
 4. **Option D (don't codify).** Rejected: the empirical grounding (Facet 1 N=3 + Facet
-   2 N+3+ in 24h) is unprecedented in repo history; the pattern would not survive a
+   2: 5 catches in 24h) is unprecedented in repo history; the pattern would not survive a
    contributor change, architect-LLM training update, or session-context drift without
    codification.
 
@@ -129,7 +138,7 @@ holds process authority, members hold execution authority.
   read-only reviews across two repos = sufficient pattern for ADR-level codification
   (BACKLOG P1, `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md`
   §7).
-- **Facet 2 — N+3+ operator catches in 24h:** `docs/strategic/`, `docs/handoffs/_scratch/`,
+- **Facet 2 — 5 total catches in 24h (May 29-30):** `docs/strategic/`, `docs/handoffs/_scratch/`,
   and the two-cluster interview design (LESSONS 2026-05-30 "New-folder/structural-pattern
   without checking existing convention"; JOURNAL 2026-05-29 "third unilateral
   folder/structure decision … in ~24h").
