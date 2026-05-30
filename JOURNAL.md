@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-30 — ADR patches round 2: Codex /review closure
+
+- Did: Applied 4 mechanical fixes to ADR-62 + ADR-63 + BACKLOG per Codex `/review` findings on first patch session.
+- Result: **ADRs ready for permanent merge. Codex's high-severity finding (architect over-thoroughness in previous Patch 1 — expanded "one sentence" reviewer spec into 6-sentence essay) addressed via redistribution: Trade-off 1 returned to brief acceptance phrasing matching repo convention (ADR-59/60/61); extended cost-value reasoning moved to Consequences where rationale belongs.**
+- Changes: ADR-62 Trade-off 1 — redistributed to brief ML-2 one-sentence pointer; extended cost-value reconciliation moved to Consequences as final bullet; ADR-63 References — stale "(Facet 2 N+3)" → "(Facet 2, 5 total catches in 24h)"; ADR-62 citation placement — merged `(LESSONS 2026-05-30)` into the n=1 caveat parenthetical; BACKLOG — added one-sentence note on why ADR-44 numbering / ADR-26 amendment path was not taken. Commit `986d350`.
+- Abandoned: N/A — all 4 fixes applied per Codex specification; no further Codex review pass (running Codex on its own recommendations is convergence-anti-pattern).
+- Next: Merge to main. ADRs lock immutable per ADR-39. Branch: `docs/adrs-v4-ratification-and-scrum-master-codification-2026-05-30`. Merge command: `git checkout main && git merge --no-ff docs/adrs-v4-ratification-and-scrum-master-codification-2026-05-30`. **Self-critique captured (for next LESSONS batch):** architect failure mode in previous Patch 1 — insider over-eagerness. Reviewer specified "one sentence"; I wrote 6 sentences treating the spec as opportunity for full relax-vs-gate exposition. When a reviewer specifies a brevity budget, respect it. Triangulation working at fifth meta-level: Codex caught over-thoroughness at the patch-execution layer.
+
+---
+
 ### 2026-05-30 — ADR patches per fresh-eyes review (MERGE WITH PATCHES)
 
 - Did: Applied 5 mechanical patches to ADR-62 + ADR-63 per fresh-eyes Opus 4.8 review verdict. Single ADR commit + BACKLOG entry + this JOURNAL entry.
