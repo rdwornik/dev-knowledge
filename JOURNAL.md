@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-30 — Handoff Phase 1 interview generated (v4.3 re-test)
+
+- Did: Merged `feat/handoff-v4.3-comprehensive-close-2026-05-29` → `main` via `--no-ff` (merge commit `5a5ab83`; 13 files, +611/−46). Then ran handoff Phase 1 (interview) for slug `2026-05-30-dev-knowledge-session` on branch `docs/handoff-2026-05-30` off `main` tip `5a5ab83`. Wrote `docs/handoffs/in-progress/2026-05-30-dev-knowledge-session/_handoff-interview.md` with the four-tag sage→apprentice preamble (HANDOFF_PROCESS v4.3 Amendment A) + the verbatim §3.1 Past/Present/Future/Wisdom/Warnings cluster.
+- Result: Interview awaiting operator answers below the PASTE marker. Post-merge `main` verified green: audit health 9/9. HEAD captured `5a5ab83`, working tree clean at capture.
+- Changes: `JOURNAL.md` (this entry), `docs/handoffs/in-progress/2026-05-30-dev-knowledge-session/_handoff-interview.md` (new).
+- Abandoned: nothing. Did NOT regenerate over an existing interview (state was Fresh). Did NOT proceed to Phase 2 (no answers yet).
+- Next: operator pastes the architect's sage→apprentice answers below the marker, saves, then says `complete handoff for dev-knowledge` → Phase 2 generates the v4.3 bundle. Then fresh-eyes review; <2 critical → promote `beta → stable`.
+
+---
+
 ### 2026-05-29 — Handoff v4.3 comprehensive close + enforcement groundwork
 
 - Did: A fresh-eyes outsider review (independent Opus 4.8, zero project context) of the v4.2-rerun bundle surfaced **4 critical + 6 medium + 4 minor findings + the "generated from source" meta-question** that insider review missed. Implemented v4.3 on branch `feat/handoff-v4.3-comprehensive-close-2026-05-29` (off `main` tip `7db738e`): spec amendment (append-only per ADR-39, `cc491aa`), 4 template updates (`7c670ea`), skill alignment (`59a8392`), PLAYBOOK + ESSENTIALS process-versioning rule (`eb9611c`), §3.1 cross-reference pointer (`6b7cf88`), audit checks #8+#9 + fixtures + tests (`e615121`), AGENT_FRAMEWORK.md v0.1 stub (`494afae`), BACKLOG + JOURNAL bookkeeping (this entry). Phase F (§3.1 pointer) was committed **before** Phase E (checks) — reversed from the prompt order — so the test `test_health_ok_with_registered_repo` (which runs `cmd_health` against the real repo) never goes red: check #9's drift-catching ability is proven by its failing fixture, not by a broken commit.
