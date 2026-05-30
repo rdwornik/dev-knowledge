@@ -1,6 +1,6 @@
 # HANDOFF_PROCESS v4
 
-<!-- version: 4.3 — 2026-05-29 (v4.0 radical simplification + v4.1 fix: in-progress/ folder + sage→apprentice single-cluster interview + v4.2 refinements: four-tag sage + drift visibility + bundle maintenance + v4.3: comprehensive fresh-eyes close + enforcement groundwork) -->
+<!-- version: 4.3.1 — 2026-05-30 (v4.0 radical simplification + v4.1 fix: in-progress/ folder + sage→apprentice single-cluster interview + v4.2 refinements: four-tag sage + drift visibility + bundle maintenance + v4.3: comprehensive fresh-eyes close + enforcement groundwork + v4.3.1: architectural caveat patch + status stable) -->
 <!-- scope: meta -->
 
 Version: 4.3
@@ -441,3 +441,64 @@ A HANDOFF_PROCESS version promotes from `beta` to `stable` after one fresh-eyes 
 ### Status
 
 v4.3 ships at status `beta`. Promotion to `stable` after v4.3 fresh-eyes review confirms <2 critical findings.
+
+## Amendment 2026-05-30 — v4.3.1 architectural caveat patch + stable promotion
+
+The v4.3 fresh-eyes outsider review (independent Opus 4.8, second pass) returned **PROMOTE WITH CAVEATS** — object-level convergence achieved, but two architectural items must be addressed before v4 is "fully converged":
+
+### A. Triangulation scope — honest claim
+
+v4 codified triangulation (insider + outsider review) as the beta→stable promotion criterion. **The fresh-eyes reviewer correctly observed: this guards process VERSIONING, not each routine handoff artifact.** Every routine handoff still rides on Phase-2 self-verification — the exact insider-only coverage (empirically ~25%) the arc disproved.
+
+**Honest scoping:**
+- **Process versioning:** triangulation IS the gate. Independent fresh-eyes review with judgment-augmented promotion criterion (see B below).
+- **Routine handoffs:** Phase-2 self-verification + operator visual check. Adversarial review per-artifact is a future enhancement (BACKLOG P1).
+
+This scoping does NOT diminish v4's claim — it states what v4 IS (between-session surface collapse with verified ephemeral generation) and IS NOT (per-artifact adversarial verification, which would require an agent framework not yet built).
+
+### B. Promotion criterion — judgment-augmented, not pure count
+
+v4.3's criterion was `<2 critical findings on one fresh-eyes review → promote stable`. The fresh-eyes reviewer correctly observed: **this is itself an easy-metric** — convergence judgment reduced to a count flippable by reviewer reclassification. Bundle warns against this exact failure mode in its decision-carry-forward.
+
+**Revised criterion (judgment-augmented):**
+
+A HANDOFF_PROCESS version promotes from `beta` to `stable` after one fresh-eyes review where:
+
+1. **Mechanical condition:** Stage 1 returns **fewer than 2 critical findings** (severity 4-5/5)
+   AND
+2. **Judgment condition:** the reviewer's Stage 3 verdict is **PROMOTE** or **PROMOTE WITH CAVEATS** (caveats logged to BACKLOG; ratification follows operator decision)
+3. **Override:** if reviewer's judgment recommends DO NOT PROMOTE despite <2 critical mechanical count, **reviewer judgment wins** (v4.4 cycle).
+
+This honors hard-metric > easy-metric: count is a proxy for convergence judgment, not a replacement. Reviewer's judgment overrides count when they differ.
+
+### C. Operational clarification — who runs the fresh-eyes review
+
+The `05_NOW.md` template's immediate objective for a v-X.Y stable-readiness bundle previously read "give this bundle to an independent LLM chat" without specifying WHO runs the chat. **Clarification:** Rob (operator) opens a separate Claude.ai chat with the meta-reviewer prompt + bundle files. The apprentice chat (the recipient of the handoff bundle) **awaits results** — does not spawn the review chat itself.
+
+### D. audit.py check #9 scope — syntactic, not semantic
+
+The v4.3 amendment said check #9 "enforces" tag canonicity. **Clarification:** check #9 is **syntactic** — verifies §3.1 has either (a) four canonical tags enumerated OR (b) "see Amendment A" pointer. It does NOT detect mis-labeled tags (a `witnessed` claim that should have been `recall` passes the lint).
+
+Semantic tag-discipline accuracy requires reader/sage discipline + Phase-2 verification table cross-checking. Check #9 closes the canonicity gap, not the accuracy gap. ML-2 (un-enforced guard pattern) is NOT closed for tag accuracy by check #9 — only for canonicity enumeration. Future BACKLOG: semantic tag-lint (check #10+?) requires LLM-in-the-loop, not regex.
+
+### E. Status: beta → stable
+
+With A-D landed:
+- 4/4 v4.2 critical findings closed (per v4.3)
+- N1 (triangulation scope) addressed honestly via A
+- MO1 (criterion-as-easy-metric) addressed via B
+- N4 (operational ambiguity) addressed via C
+- N2 (check #9 enforcement framing) addressed via D
+- Reviewer's PROMOTE WITH CAVEATS recommendation operationalized
+
+**HANDOFF_PROCESS v4.3 promotes to status `stable` as of this amendment (2026-05-30).**
+
+Remaining items deferred to BACKLOG (not promotion-blocking):
+- **P1:** Adversarial fresh-eyes pass in routine handoff generation (operator's agent-framework signal extension)
+- **P3:** Periodic fresh-eyes audit cadence (every N handoffs or quarterly)
+- **P3:** Semantic tag-lint (check #10 — LLM-in-the-loop, catches mis-labeled tags)
+- **P3:** AI Council CLI invocation example in 02_METHODOLOGY
+- **P3:** ML-2 namespace expansion (define what ML stands for in repo prose)
+- **P3:** Operating mode "test after every change" — reword for layer-agnostic clarity (current wording maps imperfectly to browser architect work)
+
+v5 / next major HANDOFF_PROCESS bump (Council scope, future) consolidates v4 body + amendments A (v4.2) + A (v4.3) + A (v4.3.1) into fresh budget-compliant spec body.
