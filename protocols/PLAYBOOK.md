@@ -165,12 +165,24 @@ Applies broadly: not just to handoff process.
 Processes (like HANDOFF_PROCESS, AI_COUNCIL_PROCESS) ship at status `beta` after
 design + first end-to-end implementation. Promotion to `stable` requires one
 independent fresh-eyes review (LLM chat with zero project context, given the
-artifact + a meta-reviewer prompt) returning **fewer than 2 critical findings**.
-<2 critical = converged → promote. ≥2 critical = next refinement cycle.
+artifact + a meta-reviewer prompt) with **both** of:
 
-This codifies the convergence test for process design. No Council convene required
-for promotion (operator's call). Council remains the right venue for ratifying the
-architectural decision behind a process, separately from quality promotion.
+1. **Mechanical condition:** Stage 1 returns **fewer than 2 critical findings**
+   (severity 4-5/5)
+2. **Judgment condition:** reviewer's Stage 3 verdict is **PROMOTE** or **PROMOTE
+   WITH CAVEATS** (caveats logged to BACKLOG)
+
+**Override:** if reviewer judgment recommends DO NOT PROMOTE despite <2 critical
+count, reviewer judgment wins (next refinement cycle). This honors **hard-metric >
+easy-metric**: count is a proxy for convergence judgment, not a replacement.
+
+Triangulation guards process versioning. Routine artifacts produced by the process
+rely on operator review + structural self-verification — adversarial per-artifact
+review is a separate concern.
+
+No Council convene required for promotion (operator's call). Council remains the
+right venue for ratifying the architectural decision behind a process, separately
+from quality promotion.
 
 ---
 
