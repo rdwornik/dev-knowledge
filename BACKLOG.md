@@ -205,12 +205,12 @@ Next quarterly grooming: 2026-07-01
 - **Status:** open — v4 is live and in use; ADR ratification pending Council convene.
 - **Related:** `protocols/HANDOFF_PROCESS.md` v4; ADR-42/45/55/56/57/58 (v4 supersession amendments)
 
-### [P3] [open] audit.py check #8 — handoff structure validator for v4 — handoff-v4-2026-05-29
+### [P3] [closed] audit.py check #8 — handoff structure validator for v4 — handoff-v4-2026-05-29
 - **What:** Add a read-only audit check (#8) validating a v4 handoff bundle: folder `docs/handoffs/<slug>/` contains exactly README + `01`–`07` (8 files, flat, markdown only); per-file line budgets respected (01≤100, 02≤200, 03≤150, 04≤250, 05≤100, 06≤80, 07≤50); no unresolved `{{PULL}}`/`{{SYNTHESIZE}}`/`{{CONTEXT}}` markers shipped in a generated bundle; no leftover `in-progress/<slug>/_handoff-interview.md` once a bundle exists. Layer-2 invariant: validation only, no orchestration (ADR-28/36).
 - **Why:** v4 removes the v3.4 manifest/claims contract (and the superseded mechanical-gate item above) but adds its own structural invariants. Without a check, drift (oversized files, shipped markers, stale in-progress interview) goes unnoticed. Enforcement-layer work — a separate focused session, intentionally NOT done in the v4 implementation session.
 - **Added:** 2026-05-29 by rob (handoff v4 implementation session)
-- **Status:** open — design only; replaces the superseded v3.4 mechanical-gate item's intent under the v4 structure.
-- **Related:** `protocols/HANDOFF_PROCESS.md` v4; `scripts/audit.py`; superseded "Mechanical gate code for handoff enforcement" (above)
+- **Status:** closed 2026-05-29 (v4.3 comprehensive-close session) — implemented `check_handoff_bundle_structure` (#8) **plus** `check_handoff_tag_canonicity` (#9, §3.1-vs-Amendment-A drift lint) in `scripts/audit.py`, with fixtures + 13 unit tests; health gate 7/7 → 9/9. Scope refinement: #8 validates only **stamped v4 bundles** (README carries the `v4.x (status:)` stamp), so the pre-stamp v4.1 first-run + v3.x sync bundles are out of scope; the four-tag-section requirement applies only to v4.3+ bundles. The "no unresolved markers" and "no leftover in-progress interview" sub-validations from the original design were NOT added this session — captured as a future enhancement if drift surfaces. **Remaining enforcement-layer work:** the agent framework (see `protocols/AGENT_FRAMEWORK.md` v0.1 stub) is a separate, larger Council-scope effort.
+- **Related:** `protocols/HANDOFF_PROCESS.md` v4.3 Amendment item F; `scripts/audit.py` checks #8/#9; `tests/test_audit.py`; `protocols/AGENT_FRAMEWORK.md`; superseded "Mechanical gate code for handoff enforcement" (above)
 
 ### [P3] [closed] v4 first real test (post-fix) — invoke handoff for THIS chat — handoff-v4-2026-05-29
 - **What:** Run the first live v4 handoff **after the sage-frame fix merges**: invoke `please create handoff for .dev-knowledge` to hand a chat to the next Opus 4.8 session, then `complete handoff`. Exercise the full two-phase flow end-to-end — the `in-progress/<slug>/` interview, the sage→apprentice 5-question single cluster, Phase 2 consolidation, and the operator escalation ladder on the resulting bundle.
@@ -219,19 +219,40 @@ Next quarterly grooming: 2026-07-01
 - **Status:** closed 2026-05-29 — executed end-to-end. The v4.1 first-run bundle was generated (Phase 1 interview → operator answers → Phase 2 consolidation) and merged to `main` (`docs/handoffs/2026-05-29-dev-knowledge-session/`, merge `93b7b1c`). The run surfaced 7 refinement-level issues — no architectural defects, v4 design sound — implemented as v4.2 (branch `fix/handoff-v4.2-refinements-and-rerun-2026-05-29`). Empirical validation continues via the "v4.2 first real test" item below.
 - **Related:** `protocols/HANDOFF_PROCESS.md` v4.2 §3.1 + Amendment 2026-05-29; `.claude/commands/handoff.md`; `docs/handoffs/2026-05-29-dev-knowledge-session/`
 
-### [P3] [open] v4.2 first real test (re-run) — handoff-v4-2026-05-29
+### [P3] [closed] v4.2 first real test (re-run) — handoff-v4-2026-05-29
 - **What:** Re-run the full two-phase handoff end-to-end with the v4.2 refinements live, at slug `2026-05-29-dev-knowledge-session-v4.2-rerun`. Phase 1 interview is generated in this very session (the v4.2 refinements session); operator does the copy-paste-architect back-and-forth, then triggers Phase 2 to generate the bundle at `docs/handoffs/2026-05-29-dev-knowledge-session-v4.2-rerun/`. Validates: four-tag sage preamble, always-emit verification table, README drift-up, version+status stamp, bundle-maintenance section, forced-ranking warning, Codex clarity sentence.
-- **Why:** v4.2 polished the templates/spec/skill from the v4.1 first-run findings; the refinements need an end-to-end run to confirm they generate correctly and improve apprentice onboarding. Currently **in flight** — Phase 1 invoked this session.
+- **Why:** v4.2 polished the templates/spec/skill from the v4.1 first-run findings; the refinements need an end-to-end run to confirm they generate correctly and improve apprentice onboarding.
 - **Added:** 2026-05-29 by rob (v4.2 refinements session).
-- **Status:** open — in flight. Phase 1 interview generated this session; awaiting operator architect answers + Phase 2.
-- **Related:** `protocols/HANDOFF_PROCESS.md` v4.2 Amendment 2026-05-29; `.claude/commands/handoff.md`; v4.1 first-run bundle (historical evidence, preserved).
+- **Status:** closed 2026-05-29 — executed end-to-end; bundle generated at `docs/handoffs/2026-05-29-dev-knowledge-session-v4.2-rerun/` (v4.2 stamp). A fresh-eyes outsider review (independent Opus 4.8, zero project context) of that bundle surfaced 4 critical + 6 medium + 4 minor findings + the "generated from source" meta-question — all resolved in the v4.3 comprehensive-close cycle. The v4.2-rerun bundle is the single stamped bundle that audit check #8 currently validates.
+- **Related:** `protocols/HANDOFF_PROCESS.md` v4.3 Amendment 2026-05-29; `.claude/commands/handoff.md`; v4.1 first-run bundle (historical evidence, preserved); the v4.3 re-test item below.
 
-### [P3] [open] Promote HANDOFF_PROCESS status beta → stable after three end-to-end runs — handoff-v4-2026-05-29
+### [P3] [superseded] Promote HANDOFF_PROCESS status beta → stable after three end-to-end runs — handoff-v4-2026-05-29
 - **What:** v4.2 ships with `status: beta` (item D convention: `beta` for the first three end-to-end runs of a version, `stable` thereafter). After the v4.2 re-run (run 2) and one more clean end-to-end run (run 3), update the status stamp in the skill (`.claude/commands/handoff.md` Phase 2 `status` default) and any spec reference from `beta` to `stable`.
 - **Why:** The beta/stable stamp gives the apprentice process-maturity context; it must be advanced once empirical confidence is earned, or it silently misreports a mature process as beta.
 - **Added:** 2026-05-29 by rob (v4.2 refinements session).
-- **Status:** open — gated on two more clean end-to-end runs (v4.1 first-run = run 1; v4.2 re-run = run 2; one more = run 3).
-- **Related:** `protocols/HANDOFF_PROCESS.md` v4.2 Amendment item D; `.claude/commands/handoff.md`
+- **Status:** superseded 2026-05-29 (v4.3 comprehensive-close session) by the **fresh-eyes convergence criterion**: promotion is gated on one independent fresh-eyes review returning <2 critical findings, NOT on a run count (HANDOFF_PROCESS v4.3 Amendment item E; PLAYBOOK "Process versioning"). Convergence is measured by defect count, not runs. See the v4.3 promotion item below.
+- **Related:** `protocols/HANDOFF_PROCESS.md` v4.3 Amendment item E; `protocols/PLAYBOOK.md` "Process versioning"; `.claude/commands/handoff.md`
+
+### [P3] [open] v4.3 first real test (re-run) — handoff-v4-2026-05-29
+- **What:** Run the full two-phase handoff end-to-end with the v4.3 comprehensive-close refinements live, at slug `2026-05-29-dev-knowledge-session-v4.3-rerun`. Operator triggers `please create handoff for dev-knowledge` (Phase 1) → architect back-and-forth → `complete handoff for dev-knowledge` (Phase 2). Then run a fresh-eyes outsider review of the generated bundle with the existing meta-reviewer prompt. Validates: four-tag definitions inline in 04_RECENT (C1/C2), §3.1 cross-reference (C3), 01_ROLE "Who's who" disambiguation (C4), Phase-2 verdict label (M1), Q5/Q7 application-testing questions (M4/M5), v4.3 stamp.
+- **Why:** v4.3 closed all fresh-eyes findings; the convergence test is whether a NEW fresh-eyes review returns <2 critical findings (= converged → promote to stable). NOT executed in the v4.3 close session — operator triggers separately to preserve the back-and-forth pattern.
+- **Added:** 2026-05-29 by rob (v4.3 comprehensive-close session).
+- **Status:** open — to be invoked separately by the operator after merging the v4.3 refinements.
+- **Related:** `protocols/HANDOFF_PROCESS.md` v4.3 Amendment; `.claude/commands/handoff.md`; v4.2-rerun bundle (the bundle the v4.3 cycle was reviewing).
+
+### [P3] [open] Promote HANDOFF_PROCESS v4 status beta → stable (fresh-eyes criterion) — handoff-v4-2026-05-29
+- **What:** After the v4.3 fresh-eyes review (item above) returns **<2 critical findings**, update the version stamp from `(status: beta)` to `(status: stable)` in `.claude/commands/handoff.md` (Phase 2 `status` default) + `templates/handoff/README.md.tmpl` ({{STATUS}} guidance) + any spec reference. If the review returns ≥2 critical findings, open a v4.4 refinement cycle instead and re-evaluate whether v4 is the right architecture.
+- **Why:** The beta/stable stamp gives the apprentice process-maturity context; promotion is the operator's call (no Council convene required — v4.3 item E). Convergence is measured by fresh-eyes defect count.
+- **Added:** 2026-05-29 by rob (v4.3 comprehensive-close session). Supersedes the "three end-to-end runs" item above.
+- **Status:** open — gated on the v4.3 fresh-eyes review.
+- **Related:** `protocols/HANDOFF_PROCESS.md` v4.3 Amendment item E; `protocols/PLAYBOOK.md` "Process versioning"; `.claude/commands/handoff.md`
+
+### [P2] [open] Extend audit-check enforcement pattern to other governance artifacts — handoff-v4-2026-05-29
+- **What:** Apply the same read-only structural-validator pattern used for handoff bundles (audit.py check #8) to other governance artifacts — AI Council transcripts (`docs/decisions/transcripts/`, naming + cover-letter + verdict structure) and ADRs (`docs/decisions/ADR-*`, frontmatter + supersession-field + template alignment). Each as a registered `audit.py` check with fixtures + tests, folded into the health gate.
+- **Why:** The handoff-bundle validator (#8) and tag-canonicity lint (#9) prove the lint-at-health-time pattern catches structural drift cheaply. ADRs and Council transcripts carry the same drift risk (missing supersession fields, off-template structure) currently caught only by reviewer judgment. Extends the enforcement layer beyond handoffs.
+- **Added:** 2026-05-29 by rob (v4.3 comprehensive-close session).
+- **Status:** open — separate focused session; pairs with the agent-framework stub (`protocols/AGENT_FRAMEWORK.md`).
+- **Related:** `scripts/audit.py` checks #8/#9; `docs/decisions/`; `protocols/AGENT_FRAMEWORK.md`
 
 ### [P3] [open] Incorporate metaphor-based communication into PLAYBOOK + ESSENTIALS — handoff-v4-2026-05-29
 - **What:** Codify a small methodology section on communicating design intent via concrete metaphors. Operator insight from the 2026-05-29 sage-frame fix session: framing the handoff interview as **sage→apprentice** (and the *mędrzec–uczeń* framing in Polish working sessions) lowered cognitive load and clarified design intent better than numeric ADR-only references. Capture the metaphor patterns and when to reach for them.

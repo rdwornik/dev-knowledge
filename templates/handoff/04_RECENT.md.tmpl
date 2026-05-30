@@ -13,7 +13,31 @@ context can pick up the thread. Prose, not a log dump.
 <!-- CC writes 2–5 paragraphs: what the recent sessions were trying to do, what
      landed, what got abandoned and why, and how today's state came to be. Cite
      commit SHAs / dates inline where they anchor a claim. NARRATIVE, not bullets
-     copied from JOURNAL. -->
+     copied from JOURNAL. Condense parallel workstreams over the same days to a
+     ONE-LINE pointer to JOURNAL (e.g. "parallel: ADR-X, diagrams, audit — see
+     JOURNAL for chronological detail if load-bearing") rather than enumerating
+     each in full — the arc, not the log (v4.3). -->
+
+## Four-tag discipline (canonical)
+
+<!-- REQUIRED STANDALONE SECTION (v4.3 item B, closes C1+C2): emit verbatim in
+     every generated bundle, between the arc and the load-bearing facts table, so
+     the apprentice can apply the discipline from the bundle alone — no PLAYBOOK
+     read required. Literal content (same every handoff); not a {{SYNTHESIZE}}. -->
+
+The sage tagged every claim using this discipline (canonical per HANDOFF_PROCESS
+v4.3 Amendment A; supersedes the earlier three-tag body in spec §3.1):
+
+- **witnessed** — sage just verified this OR saw it happen recently AND has no
+  reason to think it changed since
+- **recall** — sage remembers from earlier in the session; **state may have
+  changed** — verify via CC inline if the claim is load-bearing
+- **inferred** — reasoning from evidence (not direct knowledge)
+- **unknown** — sage doesn't know — flagged explicitly
+
+When you encounter `recall` or `unknown` on a load-bearing claim in this file,
+verify via CC before acting on it. This is the "handoff is back-and-forth" rule
+from PLAYBOOK methodology.
 
 ## What the sender chat said (interview)
 
@@ -29,7 +53,7 @@ context can pick up the thread. Prose, not a log dump.
      CC's verification of the decision-affecting factual claims in this file. This is
      the v4 home of v3.4's 11_CLAIMS.md — inline, verified, no separate artifact.
 
-     Column order is fixed: Claim from sender | Repo fact | Verdict | Verification command.
+     Column order is fixed: Claim from sender | Repo fact | Phase-2 verdict | Verification command.
 
      - NO drift (all sender claims match): emit the single summary row —
        | (all sender claims) | matches repo state | ✅ no drift detected | (verified at Phase 2) |
@@ -37,7 +61,7 @@ context can pick up the thread. Prose, not a log dump.
        used to detect it in the Verification command column, e.g.
        `git log --diff-filter=D --name-only -- "docs/handoffs/aborted/*"`. -->
 
-| Claim from sender | Repo fact | Verdict | Verification command |
+| Claim from sender | Repo fact | Phase-2 verdict | Verification command |
 |---|---|---|---|
 | (all sender claims) | matches repo state | ✅ no drift detected | (verified at Phase 2) |
 
