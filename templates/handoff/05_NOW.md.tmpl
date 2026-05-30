@@ -11,6 +11,24 @@
      achieve, and the scope of work (code / architecture / audit / docs / mixed).
      This embeds v3.4's next_session_scope as plain narrative. -->
 
+<!-- CONDITIONAL (v4.3.1 item C): emit the block below ONLY when this bundle is a
+     v-X.Y first real test / stable-readiness bundle (the immediate objective is the
+     fresh-eyes review of THIS bundle). For ordinary continuation handoffs, omit it.
+     Clarifies WHO runs the review (operator, not apprentice) + the judgment-augmented
+     promotion criterion. -->
+
+**[v-X.Y stable-readiness bundles only]** **Rob (the operator) runs the fresh-eyes
+review** — he opens a separate Claude.ai chat with the meta-reviewer prompt
+(`v*-bundle-*-review-*.md` or equivalent) and pastes/attaches the 8 bundle files.
+**You (the apprentice) await results** — you do not spawn the review chat yourself.
+Promotion criterion (HANDOFF_PROCESS v4.3.1): **mechanical** (Stage 1 <2 critical,
+severity 4-5/5) **AND judgment** (reviewer Stage 3 verdict PROMOTE or PROMOTE WITH
+CAVEATS). Both required; reviewer judgment overrides count. Met → promote
+`beta → stable` (flip the stamp in `.claude/commands/handoff.md` +
+`templates/handoff/README.md.tmpl`); not met → v-X.Y+1 cycle. **Do not begin
+downstream work assuming the version is stable before Rob has the verdict** — that is
+the easy-metric premature-closure failure mode this process exists to prevent.
+
 ## Top priorities (from BACKLOG)
 
 {{PULL: BACKLOG top P1s}}

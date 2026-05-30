@@ -55,7 +55,12 @@ HANDOFF_PROCESS v4.3 Amendment A. The §3.1 three-tag text in the spec body is
 **superseded** — amendment-precedence applies. Bundle generation (Phase 2)
 enforces four tags; spec consolidation at v5 will fold amendments into the body.
 The definitions appear in `04_RECENT.md` of every generated bundle (so you don't
-need to read the spec to apply the discipline).
+need to read the spec to apply the discipline). This is enforced **syntactically**
+at lint time by `audit.py` check #9 — the lint verifies §3.1 has either all four
+canonical tags enumerated OR an explicit pointer to Amendment A. **Check #9 does NOT
+catch mis-labeled tags** (a `witnessed` claim that should have been `recall` passes
+the lint). Semantic accuracy of tag application requires sage discipline + Phase-2
+verification cross-checking.
 
 ## Bundle maintenance during session
 
