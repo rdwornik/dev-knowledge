@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-30 — ADR patches per fresh-eyes review (MERGE WITH PATCHES)
+
+- Did: Applied 5 mechanical patches to ADR-62 + ADR-63 per fresh-eyes Opus 4.8 review verdict. Single ADR commit + BACKLOG entry + this JOURNAL entry.
+- Result: **ADRs ready for permanent merge. Sharpest cross-ADR finding (relax-vs-gate tension between ADR-62 and ADR-63 for the same ML-2 disease) acknowledged in Patch 1 + tracked as BACKLOG P3.** Line counts: ADR-62 210→224 lines; ADR-63 191→200 lines. Baseline green throughout (103 / 9/9 / ruff clean).
+- Changes: ADR-62 Trade-off 1 — added ML-2 acknowledgment + relax-vs-gate deliberate framing; ADR-62 — "confirmed empirically" → "observed empirically (n=1 bundle; single data point)"; ADR-62 — header renamed "Empirical validation" → "Empirical grounding"; ADR-63 — added one-line Facet 1 inheritance clarifier (inherits ADR-36 unchanged; Option E applies to Facet 2 specifically); ADR-63 — "N+3+" → "5 total catches in 24h (May 29-30): 3 operator + 2 CC" across all three occurrences (main + inline + Empirical grounding); BACKLOG — relax-vs-gate principle (P3, candidate future LESSONS/ADR). Commits `4907d6e` (patches), `19e76fb` (BACKLOG).
+- Abandoned: N/A — all 5 patches applied cleanly. One grammatical fit applied to the compact parenthetical form in the Alternatives section (`Facet 2: 5 catches in 24h`). No substantive deviations from reviewer specification.
+- Next: Codex `/review` (foundational ADRs = safety-critical per ADR-54), then merge to main. Branch: `docs/adrs-v4-ratification-and-scrum-master-codification-2026-05-30`. Merge: `git checkout main && git merge --no-ff docs/adrs-v4-ratification-and-scrum-master-codification-2026-05-30`. ADRs are permanent records (ADR-39 immutability — no further body edits after merge).
+
+---
+
 ### 2026-05-30 — Two foundational ADRs written: v4 ratification (ADR-62) + scrum-master codification (ADR-63)
 
 - Did: Path A chosen over an AI Council convene — wrote both ADRs directly via CC because (1) v4 ratification is post-hoc record of a decision already made + implemented + validated by an independent fresh-eyes Opus 4.8 (PROMOTE WITH CAVEATS), and (2) scrum-master codification has clear empirical grounding pointing to one option (E, hybrid B+C). Phase 0 read the dominant recent ADR convention (ADR-55–60: `# ADR-NN: Title` + bulleted Status/Date/Related/Decommission/Source metadata block + Context/Decision/Consequences, with ADR-58-style Alternatives) and matched it rather than the prompt's section list. Verified every load-bearing citation against the repo before writing.
