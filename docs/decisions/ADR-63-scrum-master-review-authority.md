@@ -181,7 +181,7 @@ holds process authority, members hold execution authority.
 ## References
 
 - `LESSONS.md` — 2026-05-30 batch: "New-folder/structural-pattern without checking
-  existing convention" (Facet 2 N+3); "prompt-level convention drift applies to
+  existing convention" (Facet 2, 5 total catches in 24h); "prompt-level convention drift applies to
   prompt-authoring"; "multi-step intermediate-state verification"; "honest no-op over
   fabricated commit"; "meta-level curse-of-knowledge recursion"
 - `protocols/PLAYBOOK.md` (this ADR may motivate a future methodology-section addition)
