@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-30 — LESSONS update: marathon-arc pattern capture (11 entries)
+
+- Did: Closed the LESSONS.md staleness gap (stale since 2026-05-25, flagged across the v4.1/v4.2/v4.3 fresh-eyes reviews + v4.3.1 amendment). First downstream work after v4 stable promotion. Prepended 11 entries capturing patterns from the May 26–30 ecosystem-consolidation + v4-handoff saga.
+- Result: **LESSONS.md 386 → 408 lines; append-only preserved (git numstat: insertions only, 0 deletions).** Entries: curse-of-knowledge in insider review · triangulation as a versioning-scoped quality gate · cluster-as-diagnosis · easy-metric closure (sharpening of the 2026-05-24 premature-closure lesson) · new-folder-without-checking N+3 (sharpening of the 2026-05-24 scope lesson) · sage-tagging three-iteration convergence · hand-maintained surface count as the fragility metric · prompt-level convention drift · multi-step intermediate-state verification · honest no-op over fabricated commit · meta-level curse-of-knowledge recursion (the arc-level capstone).
+- Changes: `LESSONS.md` (11 entries prepended at top of Entries section), this JOURNAL entry.
+- Abandoned: did NOT impose the prompt's `**Observed:**/**Pattern:**/**Recommendation:**/**verify:**` multi-section format — the repo's actual LESSONS convention is single-line pipe-delimited (`### date | source | lesson | category | [scope] | action`), newest-first prepend; converted all 11 to match (the prompt pre-authorized aligning to the real format). Dated all 11 `2026-05-30` (capture-session date, per the log's batching convention — cf. the ~8-entry 2026-05-24 batch) with the 05-29 events cited inline. Did NOT append at end (convention is prepend) and did NOT touch the `Last updated:` header (would register a deletion, breaking the append-only numstat check). Used today's date `2026-05-30`, not the prompt's `2026-05-31` (future date).
+- Next: operator merges `docs/lessons-update-marathon-arc-2026-05-30` → `main`. Triangulation deliberately NOT applied here — LESSONS is a routine artifact, operator visual check is the gate (v4.3.1 §A honest scoping). Subsequent operator-prioritized work: Council ratification ADR for v4/v4.2/v4.3/v4.3.1 (P2), scrum-master review-authority codification (P1), doc-truth sweep + remaining ecosystem-audit findings, agent-framework full impl (P1). Merged arc branches are branch-cleanup candidates (ask-first).
+
+---
+
 ### 2026-05-30 — v4 HANDOFF_PROCESS promoted to STABLE via v4.3.1 caveat patch
 
 - Did: Merged the v4.3 bundle branch `docs/handoff-2026-05-30` → `main` (`e876f8d`), then ran the v4.3.1 caveat patch on `feat/handoff-v4.3.1-caveat-patch-and-stable-promotion-2026-05-30`. The v4.3 fresh-eyes outsider review (independent Opus 4.8, second pass) returned **PROMOTE WITH CAVEATS**: object-level convergence (4/4 v4.2 critical closed, no new contradictions) but two architectural caveats — **N1** (triangulation codified for the promotion gate only, NOT routine handoffs — curse-of-knowledge inherits to routine artifacts) and **MO1** (`<2 critical → promote` is itself an easy-metric, violating the bundle's own hard-metric rule). Patch operationalizes the verdict across spec amendment (Phase A), PLAYBOOK + ESSENTIALS (B), templates (C), skill (D), BACKLOG (F), JOURNAL (G).
