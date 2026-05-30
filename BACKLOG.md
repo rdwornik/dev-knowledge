@@ -261,6 +261,13 @@ Next quarterly grooming: 2026-07-01
 - **Status:** open — pick off opportunistically; (1) is Council-scope, rest are Sonnet/medium doc edits.
 - **Related:** `scripts/audit.py` check #9; `templates/handoff/*.tmpl`; `protocols/HANDOFF_PROCESS.md` v4.3.1 Amendment deferred list.
 
+### [P3] [open] Relax-vs-gate principle for drifted guards — paired-ADR tension
+- **What:** ADR-62 + ADR-63 prescribe opposite cures for the same disease (un-enforced guard drift under load — ML-2): ADR-62 **relaxes** the Council-for-architecture guard (amend the rule so the bypass isn't a violation); ADR-63 **gates** the scrum-master review pattern (codify via ADR so it cannot drift). Implicit reasoning is cost/value asymmetric — gate when cost is low + catch-value is high; relax when cost is high + retroactive value-add is low — but this principle is never articulated in either ADR. Candidate output: a future LESSONS entry or a small ADR codifying the relax-vs-gate decision criterion for drifted guards.
+- **Why:** The tension is the sharpest cross-ADR finding from the ADR-62/63 fresh-eyes review (2026-05-30): neither ADR alone shows it; the outsider saw both at once. Without a reconciling principle, future guard-drift decisions inherit the same implicit reasoning and may not choose correctly.
+- **Added:** 2026-05-30 by rob (ADR-62/63 fresh-eyes review — sharpest cross-ADR finding).
+- **Status:** open — pick off opportunistically; LESSONS entry is Sonnet/medium scope; small ADR is Council scope.
+- **Related:** ADR-62 Trade-off 1 (relax cure); ADR-63 Decision (gate cure); `docs/audits/2026-05-29-ecosystem-coherence-audit.md` finding ML-2
+
 ### [P2] [open] Extend audit-check enforcement pattern to other governance artifacts — handoff-v4-2026-05-29
 - **What:** Apply the same read-only structural-validator pattern used for handoff bundles (audit.py check #8) to other governance artifacts — AI Council transcripts (`docs/decisions/transcripts/`, naming + cover-letter + verdict structure) and ADRs (`docs/decisions/ADR-*`, frontmatter + supersession-field + template alignment). Each as a registered `audit.py` check with fixtures + tests, folded into the health gate.
 - **Why:** The handoff-bundle validator (#8) and tag-canonicity lint (#9) prove the lint-at-health-time pattern catches structural drift cheaply. ADRs and Council transcripts carry the same drift risk (missing supersession fields, off-template structure) currently caught only by reviewer judgment. Extends the enforcement layer beyond handoffs.
