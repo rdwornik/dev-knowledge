@@ -1,0 +1,83 @@
+<!-- scope: meta -->
+
+# Methodology + Canonical-Files Audit vs `copilot-collections`
+
+> **DRAFT analysis artifact — not implementation.** Produced on branch
+> `docs/methodology-canonical-audit-2026-05-31` (off `main` @ `22cf2de`).
+> Audits the full `.dev-knowledge` methodology surface (artifacts + canonical
+> living-files) against the `copilot-collections` reference, maps transferable
+> patterns onto **our Claude Code toolchain**, and produces a prioritized,
+> toolchain-mapped action plan. The focused **BACKLOG architecture diagnosis**
+> (operator priority-one) is a companion doc:
+> `2026-05-31-backlog-architecture-diagnosis.md`.
+>
+> Nothing here is restructured, migrated, deleted, or merged. All findings are
+> for operator + Council review.
+
+**Reference:** TheSoftwareHouse/`copilot-collections` (Copilot Customization track only).
+**Tracks:** (1) artifact methodology — skills/commands/hooks/instructions; (2) canonical living-files methodology; (3) BACKLOG architecture (companion doc).
+**Date:** 2026-05-31 · **Author:** Claude Code (Opus) · **Status:** draft, awaiting operator + fresh-eyes review.
+
+---
+
+## UNDERSTAND (restatement)
+
+- **Problem.** Our methodology grew organically and is under-consolidated at both the artifact level (skills/commands/hooks/instructions) and the canonical-file level (VISION/ARCHITECTURE/CLAUDE/CONTRIBUTING/LESSONS/JOURNAL/BACKLOG). The operator (ADHD/autism; needs low-friction, deterministic, scannable systems) cannot see "what exists / how to author it / what to do next" at a glance.
+- **Scope.** `.dev-knowledge` only. Audit + diagnosis + plan. **Not** implementation.
+- **Risks designed against.** (1) Porting VS Code/Copilot artifacts (wrong toolchain). (2) Inventing folders/conventions (W6). (3) Surface "copy their layout" audit. (4) Auto-restructuring BACKLOG (forbidden — Council scope). (5) Reviving a deleted file without flagging that it amends a prior decision.
+- **Failure mode to avoid.** A generic "adopt their layout" plan, or a backlog "fix" applied instead of a Council-ready options analysis.
+
+---
+
+## §0 — Current-state inventory (all three tracks)
+
+### Track 1 — Artifact methodology (verified live, not from docs)
+
+| Surface | Actual state @ `22cf2de` | Note |
+|---|---|---|
+| **Repo-level skills** (`.claude/skills/`) | **None — directory absent** | Confirms CLAUDE.md §8. All active skills are user-level. |
+| **Repo-level commands** (`.claude/commands/`) | `save.md`, `handoff.md` | `handoff.md` carries the 5-case decision matrix (recent). |
+| **Repo-level subagents** (`.claude/agents/`) | **None** | User-level subagents only (below). |
+| **Repo-level rules** (`.claude/rules/`) | `git-discipline.md` | Commit-after-every-edit + clean-tree-at-end. |
+| **Pre-commit hooks** (`.pre-commit-config.yaml`) | `normalize-dated-headers` + `codemap-freshness` **only** | **ruff is NOT present** despite CLAUDE.md §9/§4 + ARCHITECTURE claiming it (live confirmation of ecosystem-audit HK-1). |
+| **Claude Code hooks** | SessionStart EVOLUTION sweep (user-level `~/.claude`); **no functional SessionStop automation** | Reads `sessions/violations/corrections/observations.jsonl` — none exist (ecosystem-audit SK-3/HK-2/HK-3). Machinery wired, vacuous. |
+| **Validators** (`scripts/`) | `audit.py` (9 checks), `normalize_headers.py`, `migrate_links.py`, `codemap/` package | `backlog_extract.py` **retired/absent** — but ARCHITECTURE.md §Validators still lists it (stale, WF-2). |
+| **User-level skills** (govern this repo) | `gotchas`, `verify`, `boot`, `session-summary`, `handoff`, `save`, `codex-review`, `evolve` | Per CLAUDE.md §8 + `/boot` load. |
+| **User-level subagents** (`~/.claude/agents/`) | `ecosystem-snapshot`, `report-generator` (Haiku, read-only) | Per PLAYBOOK §7d. |
+
+**Authoring methodology that governs these:** PLAYBOOK §"Claude Code internals" (7a–7d disambiguation table + per-mechanism when/when-not + anti-patterns) and §"Adoption protocol" (5-stage: Triage → Decision → Validation → Install → Document). This is **strong and already in place** — a key finding is that the reference's separation-of-concerns is *largely already covered* by PLAYBOOK §7.
+
+### Track 2 — Canonical living-files methodology
+
+| File | Present | Lifecycle (ADR-39) | Scannability / determinism notes |
+|---|---|---|---|
+| `VISION.md` | ✅ (v1.0, `last_reviewed: 2026-05-24`) | Mutable, quarterly, canonical | `last_reviewed` predates ADRs 59–63 (GO-2). |
+| `ARCHITECTURE.md` | ✅ (405 lines, 4 Mermaid diagrams) | Mutable, event-triggered | §Validators lists retired `backlog_extract.py`; governing-ADRs omit 59/61 (WF-1/WF-2). Split candidate (BACKLOG line 801). |
+| `CLAUDE.md` | ✅ (v2.3, ≤200-line target) | Mutable, quarterly | §7 omits `/codex-review`+`/evolve`; §8 calls commands "skills"; §4 cites a stale known-failing test; footer date vs §12 mismatch (SK-1/SK-2/CD-1/CD-2). |
+| `CONTRIBUTING.md` | ✅ | Mutable, quarterly | Present (prompt asked to verify). Not yet audited for ADR-59/60/61 currency. |
+| `LESSONS.md` | ✅ (root, append-only, newest-top) | Append-only, never groomed | ARCHITECTURE calls it "oldest-top per ADR-29" — file is newest-top (ML-1, descriptor drift). |
+| `JOURNAL.md` | ✅ (append-only, newest-first) | Append-only, per-session | Healthy; current to 2026-05-31. |
+| `BACKLOG.md` | ✅ (**871 lines**) | Mutable, per-handoff + quarterly | **Diagnosis subject — companion doc.** |
+| `TOKEN-LOG.md` | ✅ at **`logs/TOKEN-LOG.md`** | Append-only | CLAUDE.md §4/§5 imply root location (minor path drift, ML-4 nuance). |
+
+**Cross-cutting Track-2 observation:** the canonical set is *complete and lifecycle-governed* (ADR-39 registry), but suffers **documented-vs-actual drift** — the repo whose VISION is "drift detected proactively" is itself the locus of ~12 doc-truth drifts (ecosystem-audit 2026-05-29). The maintenance *cadence* is the gap, not the file set.
+
+### Track 3 — BACKLOG metrics (verified live; full diagnosis in companion doc)
+
+| Metric | Live value @ `22cf2de` | Problem-doc claim | Verdict |
+|---|---|---|---|
+| Total entries | **107** | "~76" | Problem doc **undercounted** (stale; pre-arc). Worse than stated. |
+| Open entries | **66** | — | 62% of entries. |
+| Closed/superseded/resolved retained **in-place** | **41** (38%) | — | Direct contradiction of retained ADR-47 ("done items leave; git history is the record"). |
+| Lines | **871** | "~840" | Confirmed. |
+| H2 sections | **9** | — | Streams A–D + Cross-stream + **4 session-arc-named sections** (hybrid taxonomy). |
+| Status vocabulary | `open/closed/superseded/resolved` | — | **Schema drift:** ADR-41 + ADR-47 + PLAYBOOK §10 all specify `open/in-progress/blocked/done`. |
+
+---
+
+## Files actually read (cost ledger)
+
+Phase 0 (own state): `CLAUDE.md`, `VISION.md`, `ARCHITECTURE.md`, `BACKLOG.md` (full), `protocols/ESSENTIALS.md`, `protocols/AI_COUNCIL_PROCESS.md`, `protocols/PLAYBOOK.md` (TOC + §7 internals + §10 backlog grooming), `docs/audits/2026-05-31-backlog-reconciliation-classification.md`, ADR-39/41/47/48, `.pre-commit-config.yaml`; grep over `LESSONS.md` + `scripts/` glob.
+Phase 1 (reference): delegated to a bounded sub-agent (Customization track only) — returned a pattern catalog; lifecycle implementation skills skipped per cost rule.
+
+*Deliberately NOT read:* reference lifecycle skills (backend/frontend/SQL/E2E/UI); any other repo (ADR-41); `OneDrive - Blue Yonder` (excluded).
