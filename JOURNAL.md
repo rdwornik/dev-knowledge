@@ -29,6 +29,26 @@
 
 ---
 
+### 2026-05-31 — Handoff Phase 2 complete (session-2 bundle, matrix Case 4)
+
+- Did: Consolidated Phase 2 for slug `2026-05-31-dev-knowledge-session-2`. Read the sender interview (rich 6-day-arc narrative), cross-checked load-bearing local claims against repo state, resolved all template markers from source (VISION/ESSENTIALS/PLAYBOOK/CLAUDE/BACKLOG/AI_COUNCIL_PROCESS), and generated the 8-file v4.3.1 bundle. Honored the two embedded operator asks: inspected `ecosystem/` folder and named its gap (static snapshot ≠ continuous audit process) in 03_PROJECT; described AI Council convene-vs-Path-A operational flow in 02_METHODOLOGY.
+- Result: **Bundle at `docs/handoffs/2026-05-31-dev-knowledge-session-2/` (README + 01–07), all within line budgets (550 total).** Minor drift surfaced + recorded (non-blocking): HEAD `f7de267`→`a21e355` (Phase-1 commit advanced it, benign); "63 ADRs" is actually 36 files numbered to ADR-63; LESSONS "50" unverified (pipe-delimited, header probe inconclusive). Cross-repo ai-council claims left unverified per ADR-41. in-progress/ folder removed.
+- Changes: 8 bundle files; this JOURNAL entry. Branch `docs/handoff-session-2-2026-05-31`.
+- Abandoned: N/A.
+- Next: operator merges `docs/handoff-session-2-2026-05-31` → main; uses the bundle per its README escalation ladder to onboard a fresh chat. Matrix-validation loop note: next handoff invocation will hit Case 4 again (this merge adds commits), not Case 5.
+
+---
+
+### 2026-05-31 — Handoff Phase 1 interview generated (matrix Case 4 live test)
+
+- Did: First live test of the new comprehensive 5-case matrix. Invoked `please create handoff for dev-knowledge`; matrix ran silently and resolved **Case 4** (clean tree + commits since last handoff + today's slug `2026-05-31-dev-knowledge-session` already exists) → auto-selected counter-suffix slug `2026-05-31-dev-knowledge-session-2`. **No scope question, no menu fired** — the fix works as designed. Generated Phase 1 interview for the auto-selected slug.
+- Result: Interview at `docs/handoffs/in-progress/2026-05-31-dev-knowledge-session-2/_handoff-interview.md` (four-tag sage→apprentice cluster). HEAD captured `f7de267`; working tree clean. Awaiting operator answers below the PASTE marker.
+- Changes: new interview file; this JOURNAL entry. Branch `docs/handoff-session-2-2026-05-31`.
+- Abandoned: N/A.
+- Next: operator pastes the question block into the sender chat, pastes answers below the marker, saves, then says `complete handoff for dev-knowledge` to run Phase 2.
+
+---
+
 ### 2026-05-31 — Handoff skill: comprehensive 5-case decision matrix
 
 - Did: Added a comprehensive **5-case scope/slug decision matrix** to `.claude/commands/handoff.md` as the single entry point for scope decisions on `please create handoff for dev-knowledge`. Cases: (1) uncommitted → capture session; (2) clean+commits+slug-free → capture window; (3) clean+no-commits+slug-free → cold-start; (4) clean+commits+slug-collision → auto counter-suffix (`-2`,`-3`,…); (5) clean+no-commits+slug-exists → clean exit, no Phase 1. Superseded the State-machine "bundle exists → FLAG and ask" line and added a `--slug` operator override.
