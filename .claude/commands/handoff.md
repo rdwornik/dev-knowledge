@@ -12,6 +12,33 @@ cross-repo handoff (read-only on the target — ADR-36/41).
 **Source of truth:** `protocols/HANDOFF_PROCESS.md` (v4). This skill is a dispatch
 summary, not a substitute. Where they disagree, the spec wins — fix the divergence.
 
+## Default scope (no operator input required)
+
+`please create handoff for <repo>` is **self-sufficient** — it never asks the
+operator to choose the scope. Decide scope automatically from git state, then
+PROCEED to Phase 1 immediately.
+
+1. `git status --short` — is there uncommitted work?
+2. Identify the last handoff bundle:
+   `ls -d docs/handoffs/[0-9]*/ 2>/dev/null | sort | tail -1` → most recent merged
+   bundle dir; read its `README.md` for the slug + HEAD SHA to set the comparison
+   window. Then `git log --oneline <that-sha>..HEAD` — commits since last handoff?
+
+Decision tree (every state maps to a defined scope):
+
+| Git state | Scope |
+|---|---|
+| Uncommitted work present | Capture the in-progress session — interview about WIP + commits since last handoff |
+| Clean, but commits since last handoff | Capture the work-since-last-handoff window — those commits define the session |
+| Clean, no commits since last handoff | Forward-looking **cold-start** handoff — no session arc; reconstruct orientation from the record (JOURNAL + BACKLOG + git); facts tagged `inferred` |
+
+Today's date sets the slug: `2026-05-31-dev-knowledge-session` form (see Conventions).
+
+**In all three cases: do NOT ask a scope question — proceed to Phase 1.** The
+operator may override post-hoc ("actually, capture X instead") and you adjust, but
+the default is proceed-without-asking. This is the single entry point for scope;
+no other section asks the operator what to cover.
+
 ## Conventions
 
 - `slug` = `YYYY-MM-DD-<repo>-<type>` (today's date; `type` defaults to `session`,
