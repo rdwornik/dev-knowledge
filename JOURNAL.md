@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-31 — Handoff skill: comprehensive 5-case decision matrix
+
+- Did: Added a comprehensive **5-case scope/slug decision matrix** to `.claude/commands/handoff.md` as the single entry point for scope decisions on `please create handoff for dev-knowledge`. Cases: (1) uncommitted → capture session; (2) clean+commits+slug-free → capture window; (3) clean+no-commits+slug-free → cold-start; (4) clean+commits+slug-collision → auto counter-suffix (`-2`,`-3`,…); (5) clean+no-commits+slug-exists → clean exit, no Phase 1. Superseded the State-machine "bundle exists → FLAG and ask" line and added a `--slug` operator override.
+- Result: **No scope/menu question fires in any state** — every invocation state resolves deterministically from `git status`+`git log`+`ls`. Eliminates the ad-hoc scope-question that surfaced earlier this session (slug-collision Case 4). Skill 135 → 201 lines. Baseline green (103 tests / audit 9/9 / ruff clean).
+- Changes: `.claude/commands/handoff.md` — new "Default scope decision — comprehensive matrix" section + State-machine ambiguity line reconciled; this JOURNAL entry. Commits `8e4b5ea` (skill) + this entry. Branch `feat/handoff-skill-comprehensive-fix-2026-05-31`.
+- Abandoned: N/A. **Context correction:** the prior partial auto-scope tree was NOT replaced in place — it had already been *reverted* (commit `0c98611`) at the operator's request before this work, so the matrix was added to the clean v4.3.1 base. The abandoned Phase-1 branch + in-progress dir were also already cleaned in that revert; no cleanup commit was needed here. Did NOT touch `HANDOFF_PROCESS.md` (skill is living code per `protocols/*` classification; no spec amendment).
+- Next: operator merges `feat/handoff-skill-comprehensive-fix-2026-05-31` → `main`, then tests in the current state (Case 5: today's slug exists, no commits since last handoff). Expected: clean-exit message, no menu, no Phase 1. A future `HANDOFF_PROCESS.md` could absorb the matrix as a first-class spec section (v5 candidate).
+
+---
+
 ### 2026-05-31 — Cold-start handoff bundle generated (forward-looking)
 
 - Did: Generated a forward-looking handoff bundle for the next `.dev-knowledge` session. No live session to capture (last real work — ADR-62/63 — already merged + journaled 2026-05-30), so per operator's "forward-looking setup" choice the bundle was reconstructed from the institutional record (JOURNAL arc + BACKLOG + git) rather than a live Phase-1 interview. Single-branch flow (`docs/handoff-cold-start-2026-05-31`) folding both phases; no `in-progress/` interview created (vestigial with no browser-architect sender).
