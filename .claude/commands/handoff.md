@@ -21,6 +21,70 @@ summary, not a substitute. Where they disagree, the spec wins — fix the diverg
 - Bundle: `docs/handoffs/<slug>/` (README + `01`–`07`); Phase 2 removes `in-progress/<slug>/`.
 - One commit per phase on a feature branch. Validators must pass each commit.
 
+## Default scope decision — comprehensive matrix (run FIRST, no operator input)
+
+On `please create handoff for dev-knowledge` **without** an explicit `--slug`
+override, run this decision silently and proceed to the correct action. **Never ask
+a scope question. Never present a menu.** This matrix is the single entry point for
+scope/slug selection; the State machine below then governs Phase 1/2 detection for
+whichever slug this picks.
+
+### Step 1 — gather state (read-only)
+
+```bash
+UNCOMMITTED=$(git status --short)
+LAST_HANDOFF_DIR=$(ls -d docs/handoffs/[0-9]*-*/ 2>/dev/null | sort | tail -1)
+LAST_HANDOFF_ADD_SHA=$(git log --diff-filter=A --pretty=format:%H -- "${LAST_HANDOFF_DIR}README.md" | tail -1)
+COMMITS_SINCE=$(git log --oneline ${LAST_HANDOFF_ADD_SHA}..HEAD 2>/dev/null)
+TODAY=$(date +%Y-%m-%d)                       # PowerShell: (Get-Date -Format yyyy-MM-dd)
+TODAY_DEFAULT_SLUG="${TODAY}-dev-knowledge-session"
+TODAY_SLUG_EXISTS=$(test -d "docs/handoffs/${TODAY_DEFAULT_SLUG}" && echo yes || echo no)
+```
+
+### Step 2 — apply the 5-case matrix
+
+| # | Uncommitted | Commits since last handoff | Today's slug exists | → Action |
+|---|---|---|---|---|
+| 1 | yes | n/a | n/a | **Capture current session.** Phase 1, today's default slug. Standard v4 flow. |
+| 2 | no | yes | no | **Capture window since last handoff.** Phase 1, today's default slug. |
+| 3 | no | no | no | **Forward-looking cold-start.** Phase 1, today's default slug, reconstructed from JOURNAL/BACKLOG (no live interview content); tag recent facts `inferred`, not `witnessed`. |
+| 4 | no | yes | yes | **Counter-differentiated slug.** Smallest `N≥2` where `docs/handoffs/${TODAY_DEFAULT_SLUG}-${N}/` does not exist → slug = `${TODAY_DEFAULT_SLUG}-${N}`. Phase 1 normal. |
+| 5 | no | no | yes | **Clean exit — no Phase 1.** Print the clean-exit message (below) and stop. Create nothing. |
+
+Cases 1–4 proceed to **Phase 1 — Interview** immediately with the chosen slug, no
+scope-clarification step. Case 5 stops before Phase 1.
+
+### Clean-exit message (Case 5 only)
+
+Create no files, branches, or commits. Print this and stop:
+
+```
+✅ No handoff needed — repository is up to date.
+
+  Last bundle:        docs/handoffs/<TODAY_DEFAULT_SLUG>/
+  Working tree:       clean
+  Commits since last: 0
+
+The last handoff captures the current repository state. There is nothing new to hand off.
+
+To force regenerate with a specific slug, invoke explicitly:
+  please create handoff for dev-knowledge --slug <your-slug-name>
+```
+
+### Operator override
+
+If the invocation includes `--slug <name>`, use that slug regardless of state — skip
+the matrix and proceed to Phase 1. This is the escape hatch for edge cases the matrix
+doesn't anticipate.
+
+### Why this is deterministic
+
+- All 5 cases resolve from `git status` + `git log` + `ls` — no inference, no judgment,
+  no operator question.
+- Case 4 counter naming is positional (`-2`, then `-3`, …) — no topic inference, no
+  timestamps, fully predictable.
+- Case 5 exit is informative, not silent — the operator learns why nothing happened.
+
 ## State machine (detect by CONTENT, not file existence)
 
 | State | Detected by | Action |
@@ -31,9 +95,11 @@ summary, not a substitute. Where they disagree, the spec wins — fix the diverg
 | Complete | `docs/handoffs/<slug>/` already exists | instruct operator on use |
 
 The PASTE marker is the line `=== PASTE ANSWERS BELOW THIS LINE ===`. "Non-empty
-answers" = substantive prose below it, not whitespace/placeholder. If state is
-ambiguous (bundle exists and Rob says "create" again) → FLAG and ask, never
-overwrite.
+answers" = substantive prose below it, not whitespace/placeholder. The
+bundle-exists-on-`create` case is **not** ambiguous — the scope matrix above resolves
+it deterministically (Case 4 counter-suffix when new work exists since the last
+handoff; Case 5 clean-exit when none). Never ask a scope question; never overwrite an
+existing bundle.
 
 ## Phase 1 — Interview
 
