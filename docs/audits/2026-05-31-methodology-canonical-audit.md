@@ -75,6 +75,40 @@
 
 ---
 
+## §1 — Reference pattern catalog (`copilot-collections`, Customization track)
+
+Extracted by a bounded sub-agent reading only the Customization track (agents `tsh-copilot-{engineer,orchestrator,artifact-creator}`; skills `tsh-creating-{skills,agents,prompts,instructions}`; naming-conventions instructions). Lifecycle implementation skills (backend/frontend/SQL/E2E/UI) noted-not-read per cost rule.
+
+| Pattern | What it is | Why it works | Token/cost angle | Track |
+|---|---|---|---|---|
+| **WHO/HOW/WHAT/RULES separation** | agent=WHO, skill=HOW, prompt=WHAT, instructions=RULES — strict responsibility boundaries | Prevents duplication; one skill reused across agents/prompts without copy-paste | Consolidation at merge time; agents share skills | Artifact |
+| **Gerund naming** (`creating-skills`) | verb-ing-object names for skills/prompts | Mirrors intent; memorable; avoids collision with agent role-nouns | Negligible; saves search overhead | Artifact |
+| **Namespace prefix** (`tsh-`) | all customization artifacts share a prefix | Filterable, collision-proof, scales to shared libraries | Negligible | Artifact |
+| **Frontmatter for progressive load** | YAML (name/description/applyTo) at artifact head | Metadata loads first for discovery; body loads on-demand | Skips body load for non-triggering artifacts | Artifact / Canonical |
+| **Progressive disclosure + body size cap** | skill body ≤500 lines; detail → `references/` | Bounded cognitive load; lazy-load refs | Saves ~100–200 tok vs monolithic | Artifact |
+| **Skill template + examples folder** | `SKILL.md` + `skill.template.md` + `examples/` + `references/` | Kills blank-page friction; copy-and-fill onboarding | ~20 tok saved per new skill | Artifact |
+| **Orchestrator → isolated workers** | decompose research→synthesis→create→review; each worker gets goal+spec+refs only, no history | No context bleed; fresh worker context; orchestrator keeps design authority | 3–5 focused prompts ≪ 1 monolith | Artifact |
+| **Specification-driven creation** | creator agent gets a full spec, does no research | Clean design≠creation handoff; validate output against spec | Eliminates research→create round-trips | Artifact |
+| **Gate-based review before promotion** | mandatory review gate (max 2–3 fix cycles) before an artifact is "done" | Catches design mismatch early | 1 gate ≪ rework cost | Artifact / Canonical |
+| **Severity-tiered reporting** | 🔴 Critical / 🟡 Important / 🟢 Nice-to-have | Scannable, prioritized, survives review | ~2 tok/item | Canonical / Backlog-org |
+| **Repository-level constitution** | one `copilot-instructions.md` = project law, auto-loaded | Single source of truth, consistent across interactions | One load/session, unlimited reuse | Canonical |
+| **Granular `applyTo` instructions** | scoped rule files targeting globs (`src/**/*.tsx`) | Contextual rules without bloat | Routes rules; saves irrelevant loads | Canonical (concept only) |
+| **XML structure tags** | `<principles>`/`<rules>`/`<specifications>` blocks | Reliable parsing across model tiers | ~3–5 tok/tag, paid back by parse reliability | Artifact |
+
+### Non-transferable (VS Code / Copilot-specific — do NOT port)
+
+- **`.agent.md` / `.prompt.md` / `.instructions.md` / `SKILL.md` file formats** — native Copilot artifact syntax; Claude Code uses `.claude/skills/<name>/SKILL.md` + `.claude/commands/*.md`. *Principles* transfer, syntax does not.
+- **Frontmatter `model:` per-artifact routing** — Copilot routes per-prompt; Claude Code selects model at session level.
+- **MCP in `.vscode/settings.json`** (Atlassian/Figma/Playwright) — VS Code extension-host mechanism.
+- **`applyTo:` glob scoping** — VS Code file-routing; Claude Code loads globally or on explicit trigger. (The *concept* — scoped instructions — is interesting but has no native Claude Code analog.)
+- **Playwright UI-verification loops; Jira `/tsh-implement` sync** — external-tool integrations with no Claude Code equivalent.
+
+### Reference has NO backlog methodology — confirmed
+
+`copilot-collections` is a template/toolchain library; task-tracking lives in **Jira (external)**. For Track 3, **only its organizational principles transfer** — severity tiers, separation-of-concerns, progressive disclosure, prioritized-action-plan format. There is **no backlog structure to copy**.
+
+---
+
 ## Files actually read (cost ledger)
 
 Phase 0 (own state): `CLAUDE.md`, `VISION.md`, `ARCHITECTURE.md`, `BACKLOG.md` (full), `protocols/ESSENTIALS.md`, `protocols/AI_COUNCIL_PROCESS.md`, `protocols/PLAYBOOK.md` (TOC + §7 internals + §10 backlog grooming), `docs/audits/2026-05-31-backlog-reconciliation-classification.md`, ADR-39/41/47/48, `.pre-commit-config.yaml`; grep over `LESSONS.md` + `scripts/` glob.
