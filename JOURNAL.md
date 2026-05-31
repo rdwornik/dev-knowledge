@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-31 — Cold-start handoff bundle generated (forward-looking)
+
+- Did: Generated a forward-looking handoff bundle for the next `.dev-knowledge` session. No live session to capture (last real work — ADR-62/63 — already merged + journaled 2026-05-30), so per operator's "forward-looking setup" choice the bundle was reconstructed from the institutional record (JOURNAL arc + BACKLOG + git) rather than a live Phase-1 interview. Single-branch flow (`docs/handoff-cold-start-2026-05-31`) folding both phases; no `in-progress/` interview created (vestigial with no browser-architect sender).
+- Result: **8-file v4.3.1/stable bundle at `docs/handoffs/2026-05-31-dev-knowledge-session/` (README + 01–07).** All within line budgets (04 at 54/250); no unresolved markers; audit 9/9 (check #8 validates the stamped bundle). Load-bearing facts re-verified at generation: HEAD `a637f5f`, working tree clean, 103 tests pass, audit 9/9 — drift table all ✅. 04_RECENT carries the four-tag canonical section (v4.3+ requirement); recent-arc facts tagged **inferred** (record-derived, not lived-session) per honest framing. 05_NOW reflects the open queue (P1 routine-handoff adversarial pass, sacred-files enforcement, Council-decisions consolidation; P2/P3 batch).
+- Changes: `docs/handoffs/2026-05-31-dev-knowledge-session/` (8 new files), this JOURNAL entry. Branch `docs/handoff-cold-start-2026-05-31`.
+- Abandoned: did NOT run a live sage→apprentice interview (no session to interview); did NOT create `in-progress/` (no operator answers to await); did NOT promote/alter the methodology or touch other repos. Baseline left green; nothing fabricated — every drift-table claim carries its verification command.
+- Next: operator merges `docs/handoff-cold-start-2026-05-31` → `main` if the bundle reads well. The bundle is the next session's inheritance; use it per its README escalation ladder. Open queue unchanged — operator picks.
+
+---
+
 ### 2026-05-30 — ADR patches round 2: Codex /review closure
 
 - Did: Applied 4 mechanical fixes to ADR-62 + ADR-63 + BACKLOG per Codex `/review` findings on first patch session.
