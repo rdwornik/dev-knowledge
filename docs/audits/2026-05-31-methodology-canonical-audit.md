@@ -109,6 +109,30 @@ Extracted by a bounded sub-agent reading only the Customization track (agents `t
 
 ---
 
+## §2 — Mapping matrix (reference pattern → Claude Code analog)
+
+Full set enumerated before assessment (no one-at-a-time reactive judgments). **P/Partial/A** = Present / Partial / Absent in `.dev-knowledge` today.
+
+| Reference pattern | Claude Code analog (ours) | P/Partial/A | Value if adopted | Cost | ADR-level? | Track |
+|---|---|---|---|---|---|---|
+| WHO/HOW/WHAT/RULES separation | PLAYBOOK §7 disambiguation: Skill=HOW · Command=invoke-WHAT · Hook=enforce-RULES · Subagent=WHO-delegate | **P** | — (already covered) | — | No | 1 |
+| Spec-driven creation | Formal CC prompt (Model/Mode/Effort + UNDERSTAND + Steps + COMMIT); ADR-56 Prompt Generation Card | **P** | — (strong) | — | No | 1 |
+| Progressive disclosure + body cap | PLAYBOOK §7a (skill ≤500 lines → `references/`); CLAUDE.md ≤200 lines | **P** | — | — | No | 1 |
+| Gate-based review before promotion | Codex review (≥3 files); fresh-eyes beta→stable (ESSENTIALS); scrum-master review (ADR-63) | **P** (richer than ref) | — | — | No | 1,2 |
+| Repository-level constitution | `CLAUDE.md` single canonical instruction file (ADR-53), auto-loaded | **P** (strong) | — | — | No | 2 |
+| Orchestrator → isolated workers | Subagents (PLAYBOOK §7d; Cognition read-heavy/write-light); used live in this audit | **Partial** | Med — a worked "orchestrator/worker" pattern note would make delegation repeatable | Low | No (PLAYBOOK note) | 1 |
+| Frontmatter for progressive load | SKILL.md `name`/`trigger`; VISION/ARCHITECTURE frontmatter | **Partial** | Low-Med — canonical-file frontmatter is inconsistent (CLAUDE/LESSONS/JOURNAL/BACKLOG have none) | Low | No | 1,2 |
+| **Severity-tiered + scannable reporting** | PLAYBOOK §17 + audit docs use 🔴🟡🟢; **BACKLOG uses P1/P2/P3 with no actionability surface** | **Partial** | **HIGH** — the one principle with real leverage; feeds Track 3 | Low-Med | Maybe (BACKLOG = Council) | 2,3 |
+| Gerund naming convention | Skills mix verbs (`save`,`boot`,`evolve`) + nouns (`gotchas`); no codified rule | **A** | Med — naming consistency aids recall | Low | No (PLAYBOOK note) | 1 |
+| Skill template + examples folder | No `SKILL.md` template / skill scaffold in `templates/` | **A** | Med (but ~0 repo-level skills today → low near-term) | Low | No | 1 |
+| Namespace prefix (`tsh-`) | None | **A** | **Low** — solves multi-team library collision we don't have (solo, single-tool) | — | No | 1 |
+| Granular `applyTo` instructions | None (CLAUDE.md is whole-repo) | **A** | Low — no Claude Code file-scoping mechanism; concept only | — | No | 2 |
+| XML structure tags | Markdown headers throughout | **A** | Low — markdown headers suffice at our scale; XML helps parse-reliability we don't need | — | No | 1 |
+
+**Honest conclusion (avoids the "copy their layout" failure mode):** the reference largely **validates what we already do** — separation-of-concerns, spec-driven creation, progressive disclosure, gate review, and the single-constitution file are all Present, several richer than the reference. Of the genuine gaps, only **severity-tiered + progressive-disclosure organization applied to the BACKLOG actionability surface** carries high leverage. The rest (naming convention, skill template, orchestrator note, frontmatter consistency) are low-cost polish that should ride existing PLAYBOOK update items, **not** drive new structure. Three reference patterns are explicitly **low-value for our context** (namespace prefix, applyTo, XML tags) and are recommended *against* adoption.
+
+---
+
 ## Files actually read (cost ledger)
 
 Phase 0 (own state): `CLAUDE.md`, `VISION.md`, `ARCHITECTURE.md`, `BACKLOG.md` (full), `protocols/ESSENTIALS.md`, `protocols/AI_COUNCIL_PROCESS.md`, `protocols/PLAYBOOK.md` (TOC + §7 internals + §10 backlog grooming), `docs/audits/2026-05-31-backlog-reconciliation-classification.md`, ADR-39/41/47/48, `.pre-commit-config.yaml`; grep over `LESSONS.md` + `scripts/` glob.
