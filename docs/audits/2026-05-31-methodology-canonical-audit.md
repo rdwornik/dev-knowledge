@@ -133,6 +133,29 @@ Full set enumerated before assessment (no one-at-a-time reactive judgments). **P
 
 ---
 
+## §3 — Severity-tiered audit (Tracks 1 & 2)
+
+🔴 Critical / 🟡 Important / 🟢 Nice-to-have. "BACKLOG tie" references an existing entry by line+title (not restated) or marks **NEW**. *Expected-but-absent canonical file check:* `CONTRIBUTING.md` is **present** — no absence finding.
+
+| ID | Sev | Finding | BACKLOG tie | Track |
+|---|---|---|---|---|
+| **C1** | 🔴 | **PLAYBOOK §10 (BACKLOG grooming) prescribes a forbidden action.** Line 2088 (quarterly grooming) says "Archive all `done` items to `BACKLOG-archive/YYYY-Q{N}.md`" — a file deleted 2026-05-16, which CLAUDE.md §5 forbids recreating, and which ADR-47's retained convention explicitly *replaced* with "done items leave BACKLOG; git history is the record." The canonical methodology doc still teaches the superseded ADR-41 archive flow. This is the **root methodology cause** behind the BACKLOG's in-place-closure bloat. | **NEW** (the doc-truth sweep C3 below does not cover PLAYBOOK §10) | 2 (→3) |
+| **C2** | 🟡 | **BACKLOG status-vocabulary drift.** File uses `open/closed/superseded/resolved`; ADR-41, ADR-47, and PLAYBOOK §10 schema all specify `open/in-progress/blocked/done`. ADR-41's "rigid template, mutation-resistant" anti-drift intent has itself drifted. | **NEW** | 2 (→3) |
+| **C3** | 🟡 | **Documented-vs-actual drift cluster in canonical files** — CLAUDE §7 omits `/codex-review`+`/evolve`; §8 calls commands "skills"; ARCHITECTURE §Validators lists retired `backlog_extract.py` + omits ADR-59/61; LESSONS "oldest-top" descriptor; **ruff-pre-commit claim false (confirmed live)**; TOKEN-LOG path. The repo whose VISION is "drift detected proactively" is the locus of drift. | line 509 *Ecosystem: doc-truth sweep* (P2) | 2 |
+| **C4** | 🟡 | **No enforced canonical-file maintenance cadence.** Sacred-file staleness recurs (VISION `last_reviewed` predates ADRs 59–63; ARCHITECTURE drift). Cadence is the gap, not the file set. | line 311 *Sacred-files maintenance enforcement* (P1) | 2 |
+| **C5** | 🟡 | **Evolution machinery wired but vacuous.** boot + Self-Evolution Protocol + hooks read `sessions/violations/corrections/observations.jsonl` — none exist (only `learned-rules.md` + `evolution-log.md`). The feedback loop the methodology leans on silently does nothing; `/boot` this session reported "no sessions.jsonl." | line 526 *Ecosystem: evolution memory logs missing* (P2) | 1 |
+| **C6** | 🟡 | **ruff documented-as-enforced, absent from pre-commit** (verified live — only `normalize-dated-headers` + `codemap-freshness`). A lint violation can land while docs imply it was blocked. | line 534 *Ecosystem: ruff lint enforcement* (P2) | 1 |
+| **C7** | 🟡 | **Hooks workflow-automation analysed but not implemented; no functional SessionStop.** Inventory + automation-pattern analysis done 2026-05-29; the actual hook additions/consolidation remain unbuilt. | line 318 *Hooks audit + consolidation* (P2) | 1 |
+| **C8** | 🟢 | **Canonical-file frontmatter inconsistency** — VISION/ARCHITECTURE carry frontmatter; CLAUDE/LESSONS/JOURNAL/BACKLOG do not. Minor progressive-load benefit at our scale. | NEW (low) | 2 |
+| **C9** | 🟢 | **ARCHITECTURE.md at 405 lines** mixes structural + flow views; split-when-it-grows already captured. | line 801 *Consider PROCESS.md split* (P3) | 2 |
+| **C10** | 🟢 | **No skill/command naming convention** (gerund or other); skills mix verb/noun forms. Low value at solo single-tool scale. | NEW (fold into PLAYBOOK §7 note) | 1 |
+| **C11** | 🟢 | **No skill-authoring template/scaffold** in `templates/`; near-zero repo-level skills today. | line 848 *New-repo scaffolding* + line 823 *CLAUDE-md-template refresh* | 1 |
+| **C12** | 🟢 | **Orchestrator/worker subagent pattern not written as a reusable how-to** (PLAYBOOK §7d is what-it-is, not how-to-orchestrate). | NEW (fold into PLAYBOOK) | 1 |
+
+**Positive findings (worth stating).** Track 1 is **healthy**: PLAYBOOK §7 (disambiguation + per-mechanism when/when-not + anti-patterns) and §"Adoption protocol" (Triage→Decision→Validation→Install→Document) already encode the reference's separation-of-concerns and gate discipline — several mechanisms (Codex review, fresh-eyes promotion, scrum-master review, immutable-ADR supersession) are **richer than the reference**. The canonical-file *set* is complete and ADR-39 lifecycle-governed. The deficits are concentrated in **(a) one stale canonical doc (PLAYBOOK §10), (b) documented-vs-actual drift, and (c) the BACKLOG actionability surface** — not in the artifact methodology.
+
+---
+
 ## Files actually read (cost ledger)
 
 Phase 0 (own state): `CLAUDE.md`, `VISION.md`, `ARCHITECTURE.md`, `BACKLOG.md` (full), `protocols/ESSENTIALS.md`, `protocols/AI_COUNCIL_PROCESS.md`, `protocols/PLAYBOOK.md` (TOC + §7 internals + §10 backlog grooming), `docs/audits/2026-05-31-backlog-reconciliation-classification.md`, ADR-39/41/47/48, `.pre-commit-config.yaml`; grep over `LESSONS.md` + `scripts/` glob.
