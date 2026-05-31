@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-31 — Handoff Phase 1 interview generated (matrix Case 4 live test)
+
+- Did: First live test of the new comprehensive 5-case matrix. Invoked `please create handoff for dev-knowledge`; matrix ran silently and resolved **Case 4** (clean tree + commits since last handoff + today's slug `2026-05-31-dev-knowledge-session` already exists) → auto-selected counter-suffix slug `2026-05-31-dev-knowledge-session-2`. **No scope question, no menu fired** — the fix works as designed. Generated Phase 1 interview for the auto-selected slug.
+- Result: Interview at `docs/handoffs/in-progress/2026-05-31-dev-knowledge-session-2/_handoff-interview.md` (four-tag sage→apprentice cluster). HEAD captured `f7de267`; working tree clean. Awaiting operator answers below the PASTE marker.
+- Changes: new interview file; this JOURNAL entry. Branch `docs/handoff-session-2-2026-05-31`.
+- Abandoned: N/A.
+- Next: operator pastes the question block into the sender chat, pastes answers below the marker, saves, then says `complete handoff for dev-knowledge` to run Phase 2.
+
+---
+
 ### 2026-05-31 — Handoff skill: comprehensive 5-case decision matrix
 
 - Did: Added a comprehensive **5-case scope/slug decision matrix** to `.claude/commands/handoff.md` as the single entry point for scope decisions on `please create handoff for dev-knowledge`. Cases: (1) uncommitted → capture session; (2) clean+commits+slug-free → capture window; (3) clean+no-commits+slug-free → cold-start; (4) clean+commits+slug-collision → auto counter-suffix (`-2`,`-3`,…); (5) clean+no-commits+slug-exists → clean exit, no Phase 1. Superseded the State-machine "bundle exists → FLAG and ask" line and added a `--slug` operator override.
