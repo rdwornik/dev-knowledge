@@ -6,6 +6,7 @@ schema and grooming cadence.
 Last full grooming: 2026-05-09 (P1 HANDOFF_PROCESS closed)
 Tier-deprecation reconciliation grooming: 2026-05-23 (4 items resolved/superseded, scrum-master item to N=3, 5 cross-repo rollout items opened)
 Post-session-arc audit: 2026-05-24 (5 closed, 1 superseded, 1 rephrased, 2 added, scrum-master codification → P1; report `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md`)
+Marathon arc reconciliation: 2026-05-31 (2 superseded, 4 partial-updated, 2 scope-updated, 3 added + 1 LESSONS; report `docs/audits/2026-05-31-backlog-reconciliation-classification.md`)
 Next quarterly grooming: 2026-07-01
 
 ---
@@ -49,6 +50,7 @@ Next quarterly grooming: 2026-07-01
 - **Why:** ESSENTIALS lifecycle update trigger is "lessons promotion, methodology change." Significant methodology changes accumulated 2026-04-30 through 2026-05-19. Audit observed 226 lines (already over "1 page") so additions require pruning OR explicit relaxation of constraint. Verification 2026-05-20: grep confirms only ADR-53 directly referenced in topical content; ADRs 35-52 and 54 absent.
 - **Added:** 2026-04-30 by rob (Phase 1 self-audit); scope expanded 2026-05-20 (posture audit verification, `docs/audits/2026-05-20-posture-audit-verification.md` finding C2).
 - **Status:** open
+- **Scope update 2026-05-31 (marathon arc reconciliation):** Extend the candidate range to **ADRs 35-63** — the arc added ADRs 55-63 (visual pattern 59, docs taxonomy 60, worktree 61, v4 ratification 62, scrum-master authority 63). ADR-61's parallel-sessions cheat already landed in ESSENTIALS (`## Parallel sessions`); ADR-59/60/62/63 are the new high-leverage candidates to evaluate against the "Keep under 1 page" constraint. Refs: ADRs 55-63.
 
 ### [P2] [superseded] ADR-29 amendment — formalize "prepend at top" ordering convention for LESSONS.md
 - **What:** Amend ADR-29 (or create new ADR superseding ADR-29's position-rule clause) to formalize the going-forward convention: new LESSONS entries prepend at top of dated-entries section, not append at tail. Update any related references in PLAYBOOK / ESSENTIALS / CLAUDE.md that mention LESSONS append direction.
@@ -259,7 +261,15 @@ Next quarterly grooming: 2026-07-01
 - **Why:** Surfaced by the v4.3 fresh-eyes review as minor/architectural-clarity items; none block stable promotion. Batched as one P3 entry to avoid queue fragmentation.
 - **Added:** 2026-05-30 by rob (v4.3.1 caveat-patch session).
 - **Status:** open — pick off opportunistically; (1) is Council-scope, rest are Sonnet/medium doc edits.
+- **Status update 2026-05-31 (marathon arc reconciliation):** Partial — the session-2 handoff bundle exercised sub-item (3)'s content (AI Council convene-vs-Path-A flow in 02_METHODOLOGY) and the spirit of (7) **at the generated-bundle-instance level only**. Verified 2026-05-31 that the `.tmpl` templates were NOT edited: `02_METHODOLOGY.md.tmpl` still carries a `{{PULL}}` marker with no CLI command example, and `03_PROJECT.md.tmpl` no longer contains the "passive storage" phrase (already neutral). All 7 sub-items therefore remain open at the durable template/spec level. Refs: `docs/handoffs/2026-05-31-dev-knowledge-session-2/`; `templates/handoff/02_METHODOLOGY.md.tmpl`, `03_PROJECT.md.tmpl`.
 - **Related:** `scripts/audit.py` check #9; `templates/handoff/*.tmpl`; `protocols/HANDOFF_PROCESS.md` v4.3.1 Amendment deferred list.
+
+### [P3] [open] Phase-1 handoff: operator-invariants section
+- **What:** Add a small "operator invariants" section to the Phase-1 handoff interview (or the apprentice-facing bundle) capturing the defaults a fresh chat should assume rather than re-ask: clean-git-tree-after-handoff, immediate-merge habit, the three-domain separation (`.dev-knowledge` methodology / child repos / Obsidian vault), and operator-paced multi-step workflows. So an inheritor state-and-acts instead of over-asking.
+- **Why:** Surfaced 2026-05-31 when a fresh browser chat over-asked on merge state + role despite strong priors. The 2026-05-30 LESSONS batch already names the pattern ("do not assume the operator executed the implicit between-exchange step"); a durable interview section operationalizes it. Pairs with the inheritor-pushback-discipline LESSON.
+- **Vision ref:** VISION.md "Methodology Author" — handoff design is methodology
+- **Added:** 2026-05-31 by rob (marathon-arc reconciliation; new-chat over-asking observation)
+- **Status:** open — small handoff-template/skill addition; Sonnet/medium scope.
 
 ### [P3] [open] Relax-vs-gate principle for drifted guards — paired-ADR tension
 - **What:** ADR-62 + ADR-63 prescribe opposite cures for the same disease (un-enforced guard drift under load — ML-2): ADR-62 **relaxes** the Council-for-architecture guard (amend the rule so the bypass isn't a violation); ADR-63 **gates** the scrum-master review pattern (codify via ADR so it cannot drift). Implicit reasoning is cost/value asymmetric — gate when cost is low + catch-value is high; relax when cost is high + retroactive value-add is low — but this principle is never articulated in either ADR. Candidate output: a future LESSONS entry or a small ADR codifying the relax-vs-gate decision criterion for drifted guards.
@@ -289,6 +299,7 @@ Next quarterly grooming: 2026-07-01
 - **Vision ref:** VISION.md "Auditor" function
 - **Added:** 2026-04-30 by rob
 - **Status:** open
+- **Status update 2026-05-31 (marathon arc reconciliation):** Partial — manual cross-repo audits delivered the *intent* (2026-05-29 ecosystem coherence audit; 2026-05-27 cross-repo retrofit verification). **Open:** the audit-**tool**-driven cross-repo compliance run (overlaps the open "Child-repo audit reach" entry, option b — `audit ecosystem --all`, still Layer-2 read-only). Refs: `docs/audits/2026-05-29-ecosystem-coherence-audit.md`; `docs/audits/2026-05-27-cross-repo-retrofit-verification.md`.
 
 ### [P1] [open] Council decisions management consolidation
 - **What:** Council debates produce architectural decisions (ADRs), but decision artifacts are dispersed across `docs/decisions/`, `docs/decisions/transcripts/`, and ADR references in individual files. Need: (a) consolidated index of all decisions with traceability from decision to implementation, (b) explicit mechanism to detect contradictions between decisions over time, (c) clear ownership model for decision evolution (amendment vs. new ADR vs. conversational clarification). Scope: audit current dispersion, design consolidation pattern, implement index.
@@ -395,6 +406,7 @@ Next quarterly grooming: 2026-07-01
 - **Vision ref:** VISION.md "Auditor" function
 - **Added:** 2026-05-12 by rob (Prompt L)
 - **Status:** open — **both blockers lifted 2026-05-24:** N=2 empirical grounding reached (now N=3; corp-monorepo already reviewed 2026-05-23), and codification is unblocked (now P1 above). Remains P3 because it *sequences after* the codification prompt. Next concrete targets per the entry's priority order: verify existence of corp-knowledge-extractor / corp-by-os / corp-rfp-agent (cross-ref "Undiscovered repos confirmation"), then corp-ops + corp-sca lighter-touch.
+- **Status update 2026-05-31 (marathon arc reconciliation):** Partial — the codification dependency this entry sequences after is now **closed: ADR-63** (scrum-master review authority, written Path-A 2026-05-30). The stale "codification is unblocked (now P1 above)" reference points at the "Codify scrum-master review authority pattern" P1 item, which ADR-63 itself closed. Child-repo rollout remains open and now fully unblocked. Refs: ADR-63 (`docs/decisions/ADR-63-scrum-master-review-authority.md`).
 
 ## Cross-repo Naming + Architecture Migration (Prompt H audit + Prompt J ratification)
 
@@ -415,12 +427,13 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-11 by rob (cross-repo pattern audit, A5)
 - **Status:** open — designated as legacy pattern; retire opportunistically during Phase 2 repo visits. No dedicated migration prompt needed; handle when touching those files anyway.
 
-### [P3] [open] ADR-42 amendment — clarify single vs multi-artifact handoff format
+### [P3] [superseded] ADR-42 amendment — clarify single vs multi-artifact handoff format
 - **What:** ADR-42 v3.2 specifies folder-format handoffs. Empirically established 2026-05-11 that single-artifact handoffs work better as flat `.md` in `docs/handoffs/`. Folder format reserved for multi-artifact bundles with `contents/` subfolder. ADR-42 text does not state this distinction explicitly.
 - **Why:** Methodology debt — practitioners must infer the rule from convention rather than reading it in the ADR. Without explicit statement, future sessions may default to folder format for single-artifact handoffs, causing unnecessary complexity.
 - **Vision ref:** VISION.md — methodology evolution
 - **Added:** 2026-05-12
 - **Status:** open
+- **Status update 2026-05-31 (marathon arc reconciliation):** Superseded — v4/ADR-62 standardizes ALL handoffs on the 8-file folder bundle (README + 01–07); the 2026-05-11 "single-artifact handoffs work better as flat `.md`" finding no longer holds, so the ADR-42 single-vs-multi clarification is moot. Refs: ADR-62 (`docs/decisions/ADR-62-v4-handoff-process-ratification.md`); `protocols/HANDOFF_PROCESS.md` v4.3.1. (operator-confirmed supersede, 2026-05-31)
 
 ### [P3] [open] docs/HANDOFF.md flat file deprecation (corp-monorepo, ai-council)
 - **What:** Both `corp-monorepo` and `ai-council` have `docs/HANDOFF.md` at `docs/` level (pre-ADR-42 flat pattern). Not breaking. Retire at next handoff event or explicitly designate as legacy.
@@ -508,6 +521,7 @@ Next quarterly grooming: 2026-07-01
 - **Fix scope:** Opus session, medium; convert guard → amendment checklist/gate (Layer-2: checklist not orchestration) + append the abort LESSON.
 - **Added:** 2026-05-29 by rob (ecosystem coherence audit)
 - **Status:** open.
+- **Status update 2026-05-31 (marathon arc reconciliation):** Partial — **ML-3 done**: the v3.4-abort meta-lessons were promoted to LESSONS in the 2026-05-30 batch (11 entries — e.g. "triangulation is the quality gate for process versioning", the empirically-measured curse-of-knowledge). **ML-2 partly done**: ADR-63 codifies the scrum-master review as the authority backstop for un-enforced guards. **Open:** the literal guard→amendment-checklist/gate conversion (the mechanical gate itself, distinct from the review backstop). Refs: `LESSONS.md` 2026-05-30 entries; ADR-63.
 
 ### [P2] [open] Ecosystem: evolution memory logs missing + no session-close automation — ecosystem-audit-2026-05-29
 - **What:** boot.md + the global Self-Evolution Protocol + the SessionStart/Stop hooks all read `sessions.jsonl`/`violations.jsonl`/`corrections.jsonl`/`observations.jsonl`, none of which exist (only `learned-rules.md` + `evolution-log.md`) — the evolution machinery is wired but vacuous (SK-3 ≡ HK-2). The Stop hook does no functional session-close automation (HK-3, SK-5). — owner: ~/.claude (runtime) + self.
@@ -541,6 +555,13 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-29 by rob (ecosystem coherence audit)
 - **Status:** open.
 
+### [P2] [open] Ecosystem-folder operating-model design — snapshot vs continuous-audit process
+- **What:** Define the operating model for the `ecosystem/` folder. It exists today as a point-in-time snapshot (state-capture artifact), but whether it should be (a) a periodically-regenerated static snapshot, (b) the substrate for a continuous cross-repo audit process, or (c) retired in favor of on-demand audit-tool runs is undecided. Design: ownership, regeneration cadence/trigger, relationship to `scripts/audit.py` cross-repo reach, and whether it stays Layer-2 read-only.
+- **Why:** Operator flagged 2026-05-31 (session-2 handoff Phase 2) that the `ecosystem/` folder exists but its operating model is unknown — a static snapshot is not a process. Without a defined model it rots like other cadence-less artifacts (tech-radar precedent).
+- **Vision ref:** VISION.md "Auditor" + "Knowledge Guardian" functions
+- **Added:** 2026-05-31 by rob (marathon-arc reconciliation; surfaced in session-2 handoff Phase 2)
+- **Status:** open — Council-scope design; pairs with "Cross-repo audit (Phase 3)" + "Child-repo audit reach".
+
 ### [P3] [open] Undiscovered repos confirmation
 - **What:** Repos `corp-knowledge-extractor`, `corp-by-os`, `corp-rfp-agent` not found under `Dev/` during 2026-05-11 audit. Confirm status: renamed, archived, not yet cloned, or dropped.
 - **Why:** Unknown repo status creates a gap in ecosystem audit coverage; universalization rollout cannot be fully scoped if repos may exist that are not tracked. Confirmation before Phase 3 prevents missed repos.
@@ -573,12 +594,13 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-11 by rob (Prompt J ratification, expanded from Prompt H P2)
 - **Status:** open — execute in Phase 2, separate prompt; after cross-repo handshake (P1 above) completes.
 
-### [P2] [open] Content-scoped archival principle codification
+### [P2] [superseded] Content-scoped archival principle codification
 - **What:** New principle emerged 2026-05-11: archive subfolder location follows artifact type (handoffs/archive/ only for handoff content; decisions/archive/ for decisions if archival needed; each content type has own scoped archive subfolder). Generic `docs/archive/` as top-level mixed-content grab-bag (current corp-monorepo pattern) is anti-pattern. Codification options: amendment to ADR-38 (universal repo architecture) OR new ADR-44 (archival principle). Defer codification to second empirical instance (per N=1 anti-pattern lesson).
 - **Why:** Principle emerged from operator framing during archival destination decision for cross-repo propagation artifact. First empirical instance captured. Premature ADR at N=1 is itself an anti-pattern (see LESSONS.md).
 - **Vision ref:** VISION.md "Knowledge Guardian" function
 - **Added:** 2026-05-11 by rob (Prompt J ratification)
 - **Status:** open — captured in LESSONS.md (2026-05-11 entry). Codification awaits second empirical instance. Monitor for second instance during Phase 2 repo visits.
+- **Status update 2026-05-31 (marathon arc reconciliation):** Superseded — ADR-60 (docs/ folder taxonomy, 2026-05-27 + same-day amendment) codified the opposite model: a single **flat `archive/` pending-zone**, and flattened `docs/archive/` (the `tech-radar/` subfolder was removed). Content-scoped per-type archive subfolders are not the adopted pattern. Refs: ADR-60 (`docs/decisions/ADR-60-docs-folder-taxonomy.md`) + its 2026-05-27 amendment; `docs/audits/2026-05-27-taxonomy-simplification-verification.md`. (operator-confirmed supersede, 2026-05-31)
 
 ### [P2] [closed] Fix pre-existing test failure: test_ratio_pass_when_stable_above_ceiling
 - **What:** Fails on main as of 2026-05-12 prior to hooks review work. Not introduced by Directive 5 of 2026-05-12 handoff (witnessed during Prompt 4 verification). Blocks clean `pytest -x` runs; pre-commit may flag in subsequent sessions if test is in pre-commit scope. Root cause unknown — needs investigation.
@@ -805,6 +827,7 @@ Next quarterly grooming: 2026-07-01
 - **Refs:** `templates/CLAUDE-md-template.md`; `CLAUDE.md` (this repo, as live example); ADRs 54-61; durability audit.
 - **Added:** 2026-05-28 by rob (universalization durability audit).
 - **Status:** open — content decision; size similar to the original v2.1 conversion (one focused session).
+- **Scope update 2026-05-31 (marathon arc reconciliation):** Extend the encode-range to **ADRs 54-63** — add ADR-62 (v4 handoff ratification) + ADR-63 (scrum-master review authority) to the refresh scope. The §11 "last 5 ADRs" rotation target is now **59-63** (not 57-61). Refs: ADR-62, ADR-63.
 
 ### [P3] [open] Widen `audit.py` mermaid theme check scope (or accept current scope)
 
@@ -836,5 +859,12 @@ Next quarterly grooming: 2026-07-01
 - **Refs:** `docs/audits/2026-05-27-cross-repo-retrofit-verification.md` § Phase C divergence #1; corp-sca `requirements.txt:14-16` (commented-out dev deps).
 - **Added:** 2026-05-27 by rob (cross-repo retrofit — deferred work).
 - **Status:** open — single corp-sca session; bundle with the existing "Apply tier-deprecation to corp-sca" entry if helpful.
+
+### [P2] [open] AI Council convene-vs-Path-A decision criterion
+- **What:** Codify when an architecture decision goes to a full AI Council convene versus a "Path A" direct ADR written by CC. ADR-62 and ADR-63 were both written Path-A (post-hoc record of decisions already made + independently validated), explicitly NOT convened — but the criterion that justified bypassing Council ("decision already made + implemented + fresh-eyes-validated; a stateless Council convene would hit curse-of-knowledge recursion") lives only in JOURNAL prose, not in `protocols/AI_COUNCIL_PROCESS.md`. Add the convene-vs-Path-A decision rule to the runbook (or PLAYBOOK).
+- **Why:** AI_COUNCIL_PROCESS.md v1.0 documents the convene lifecycle but assumes every architecture decision convenes. The marathon arc established Path A as a legitimate alternative for post-hoc records; without the criterion, future sessions re-derive when each path applies.
+- **Vision ref:** VISION.md "Methodology Author" function
+- **Added:** 2026-05-31 by rob (marathon-arc reconciliation; ADR-62/63 Path-A pattern)
+- **Status:** open — runbook/PLAYBOOK addition; pairs with "Relax-vs-gate principle for drifted guards".
 
 ---
