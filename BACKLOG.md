@@ -259,6 +259,7 @@ Next quarterly grooming: 2026-07-01
 - **Why:** Surfaced by the v4.3 fresh-eyes review as minor/architectural-clarity items; none block stable promotion. Batched as one P3 entry to avoid queue fragmentation.
 - **Added:** 2026-05-30 by rob (v4.3.1 caveat-patch session).
 - **Status:** open — pick off opportunistically; (1) is Council-scope, rest are Sonnet/medium doc edits.
+- **Status update 2026-05-31 (marathon arc reconciliation):** Partial — the session-2 handoff bundle exercised sub-item (3)'s content (AI Council convene-vs-Path-A flow in 02_METHODOLOGY) and the spirit of (7) **at the generated-bundle-instance level only**. Verified 2026-05-31 that the `.tmpl` templates were NOT edited: `02_METHODOLOGY.md.tmpl` still carries a `{{PULL}}` marker with no CLI command example, and `03_PROJECT.md.tmpl` no longer contains the "passive storage" phrase (already neutral). All 7 sub-items therefore remain open at the durable template/spec level. Refs: `docs/handoffs/2026-05-31-dev-knowledge-session-2/`; `templates/handoff/02_METHODOLOGY.md.tmpl`, `03_PROJECT.md.tmpl`.
 - **Related:** `scripts/audit.py` check #9; `templates/handoff/*.tmpl`; `protocols/HANDOFF_PROCESS.md` v4.3.1 Amendment deferred list.
 
 ### [P3] [open] Relax-vs-gate principle for drifted guards — paired-ADR tension
@@ -289,6 +290,7 @@ Next quarterly grooming: 2026-07-01
 - **Vision ref:** VISION.md "Auditor" function
 - **Added:** 2026-04-30 by rob
 - **Status:** open
+- **Status update 2026-05-31 (marathon arc reconciliation):** Partial — manual cross-repo audits delivered the *intent* (2026-05-29 ecosystem coherence audit; 2026-05-27 cross-repo retrofit verification). **Open:** the audit-**tool**-driven cross-repo compliance run (overlaps the open "Child-repo audit reach" entry, option b — `audit ecosystem --all`, still Layer-2 read-only). Refs: `docs/audits/2026-05-29-ecosystem-coherence-audit.md`; `docs/audits/2026-05-27-cross-repo-retrofit-verification.md`.
 
 ### [P1] [open] Council decisions management consolidation
 - **What:** Council debates produce architectural decisions (ADRs), but decision artifacts are dispersed across `docs/decisions/`, `docs/decisions/transcripts/`, and ADR references in individual files. Need: (a) consolidated index of all decisions with traceability from decision to implementation, (b) explicit mechanism to detect contradictions between decisions over time, (c) clear ownership model for decision evolution (amendment vs. new ADR vs. conversational clarification). Scope: audit current dispersion, design consolidation pattern, implement index.
@@ -395,6 +397,7 @@ Next quarterly grooming: 2026-07-01
 - **Vision ref:** VISION.md "Auditor" function
 - **Added:** 2026-05-12 by rob (Prompt L)
 - **Status:** open — **both blockers lifted 2026-05-24:** N=2 empirical grounding reached (now N=3; corp-monorepo already reviewed 2026-05-23), and codification is unblocked (now P1 above). Remains P3 because it *sequences after* the codification prompt. Next concrete targets per the entry's priority order: verify existence of corp-knowledge-extractor / corp-by-os / corp-rfp-agent (cross-ref "Undiscovered repos confirmation"), then corp-ops + corp-sca lighter-touch.
+- **Status update 2026-05-31 (marathon arc reconciliation):** Partial — the codification dependency this entry sequences after is now **closed: ADR-63** (scrum-master review authority, written Path-A 2026-05-30). The stale "codification is unblocked (now P1 above)" reference points at the "Codify scrum-master review authority pattern" P1 item, which ADR-63 itself closed. Child-repo rollout remains open and now fully unblocked. Refs: ADR-63 (`docs/decisions/ADR-63-scrum-master-review-authority.md`).
 
 ## Cross-repo Naming + Architecture Migration (Prompt H audit + Prompt J ratification)
 
@@ -509,6 +512,7 @@ Next quarterly grooming: 2026-07-01
 - **Fix scope:** Opus session, medium; convert guard → amendment checklist/gate (Layer-2: checklist not orchestration) + append the abort LESSON.
 - **Added:** 2026-05-29 by rob (ecosystem coherence audit)
 - **Status:** open.
+- **Status update 2026-05-31 (marathon arc reconciliation):** Partial — **ML-3 done**: the v3.4-abort meta-lessons were promoted to LESSONS in the 2026-05-30 batch (11 entries — e.g. "triangulation is the quality gate for process versioning", the empirically-measured curse-of-knowledge). **ML-2 partly done**: ADR-63 codifies the scrum-master review as the authority backstop for un-enforced guards. **Open:** the literal guard→amendment-checklist/gate conversion (the mechanical gate itself, distinct from the review backstop). Refs: `LESSONS.md` 2026-05-30 entries; ADR-63.
 
 ### [P2] [open] Ecosystem: evolution memory logs missing + no session-close automation — ecosystem-audit-2026-05-29
 - **What:** boot.md + the global Self-Evolution Protocol + the SessionStart/Stop hooks all read `sessions.jsonl`/`violations.jsonl`/`corrections.jsonl`/`observations.jsonl`, none of which exist (only `learned-rules.md` + `evolution-log.md`) — the evolution machinery is wired but vacuous (SK-3 ≡ HK-2). The Stop hook does no functional session-close automation (HK-3, SK-5). — owner: ~/.claude (runtime) + self.
