@@ -156,6 +156,57 @@ Full set enumerated before assessment (no one-at-a-time reactive judgments). **P
 
 ---
 
+## §4 — Prioritized cross-track action plan + backlog reconciliation
+
+Model tags: **Sonnet** = mechanical/known-pattern · **Opus** = judgment/design · **Council** = architecture decision. Size S/M/L. "Def-first" = needs a definition/decision before execution. BACKLOG tie: existing line (reference) or **NEW (propose)** — *no BACKLOG edits were made; new entries are proposed for operator approval.*
+
+### §4.1 — Sequenced plan
+
+| Seq | Action | Finding | P | Size | Model | Depends on | BACKLOG tie |
+|---|---|---|---|---|---|---|---|
+| 1 | **BACKLOG architecture decision** — convene Council on the §E options; pick disposition + taxonomy + actionable surface | A1, §A all | **P1** | L | **Council** (Def-first) | — | **NEW** (subsumes line 70; see §4.2) → diagnosis doc |
+| 2 | **Reconcile PLAYBOOK §10** — strike the forbidden `BACKLOG-archive/` line; set done-item disposition to match the Council verdict; fix status vocabulary | C1, A1, A2 | **P1** | S | Sonnet | **#1 verdict** (disposition wording) | **NEW** (pairs with #1) |
+| 3 | **Execute BACKLOG migration** — the 6-step revertable sequence in the diagnosis §F | §A 1–7 | P1 | M | Opus | #1, #2 | **NEW** (the impl of #1) |
+| 4 | **Sacred-files maintenance cadence** — durable enforcement (the recurring root of C3/C4) | C4 | P1 | M | Opus (Def-first) | — | line 311 (P1) |
+| 5 | **Doc-truth sweep** — CLAUDE §7/§8, ARCHITECTURE §Validators + governing-ADRs, LESSONS descriptor, ruff claim, TOKEN-LOG path | C3 | P2 | M | Sonnet | — | line 509 (P2) |
+| 6 | **ruff enforcement** — add the pre-commit hook OR correct the docs (decide) | C6 | P2 | S | Sonnet (Def-first) | — | line 534 (P2) |
+| 7 | **Evolution logs** — create the `.jsonl` logs OR repoint hooks/protocol to `evolution-log.md`; add one read-only session-close automation | C5 | P2 | M | Opus | — | line 526 (P2) |
+| 8 | **Hooks implementation** — the additions/consolidation the 2026-05-29 analysis deferred; SessionStop automation | C7 | P2 | M | Opus | #7 | line 318 (P2) |
+| 9 | **PLAYBOOK §7 polish** — add a skill/command **naming-convention** note + an **orchestrator/worker** how-to note | C10, C12 | P3 | S | Sonnet | — | **NEW** (fold into existing PLAYBOOK items) |
+| 10 | **Skill template/scaffold** — if/when repo-level skills are authored | C11 | P3 | S | Sonnet | — | line 848 + line 823 |
+| 11 | **ARCHITECTURE PROCESS split** — when size justifies | C9 | P3 | S | Sonnet | — | line 801 (P3) |
+| 12 | **Canonical-file frontmatter consistency** — low value; do only if a frontmatter consumer lands | C8 | P3 | S | Sonnet | — | **NEW (low)** — recommend *note only*, not a tracked entry |
+
+**Critical path:** #1 (Council) → #2 (PLAYBOOK reconcile) → #3 (migration). Everything else is independent and parallelizable. #4 (sacred-files cadence) is the highest-leverage *durable* fix — it prevents the C3/C5/C6 drift class from recurring and should be designed before piecemeal doc-truth patches calcify.
+
+### §4.2 — Content-level backlog reconciliation (proposed, NOT written)
+
+**Existing entries referenced (no change proposed beyond what the marathon-arc reconciliation already did):** lines 311, 318, 509, 526, 534, 801, 823, 848.
+
+**Existing entry to REFRAME (propose, do not auto-edit):**
+- **Line 70** *"Stream taxonomy grooming — Cross-stream section exceeds kill criterion"* (P2) — framed around the **retired** 33% kill criterion (withdrawn ADR-48). It is **subsumed by the BACKLOG-architecture Council item (#1)**. Recommend: fold line 70 into #1 with a note that the kill-criterion framing is obsolete and the real metric is stream-routing coverage (15%).
+
+**Proposed NEW entries (for operator approval — not added):**
+
+| # | Proposed entry | P | Stream | Model | Note |
+|---|---|---|---|---|---|
+| N1 | **BACKLOG architecture decision (Council)** → `docs/audits/2026-05-31-backlog-architecture-diagnosis.md` | P1 | Cross-stream | Council | Subsumes line 70. Live instance of line 863 (convene-vs-Path-A). |
+| N2 | **PLAYBOOK §10 ↔ ADR-47/48/CLAUDE §5 reconciliation** (forbidden-archive ref + done-item disposition + status vocabulary) | P1 | Stream C | Sonnet | Disposition wording depends on N1 verdict; the forbidden-file-reference removal is unambiguous now. |
+
+Both are non-trivial → **proposed, not auto-added** (per ADR-41 strict-curation + this run's no-BACKLOG-edit constraint). N1 is **Council/ADR-level**.
+
+### §4.3 — Recommended *against* (so the absence is deliberate, not an oversight)
+
+Three reference patterns are **low-value for our context** and are recommended **not** adopted: **namespace prefix** (`tsh-` solves multi-team library collision we don't have), **`applyTo` glob scoping** (no Claude Code mechanism), **XML structure tags** (markdown headers suffice at our scale). Logging this prevents a future session from "discovering" them as gaps.
+
+---
+
+## Closure statement (against the original goal)
+
+**Hard-metric:** the action plan is **prioritized** (P1–P3, critical path identified), **toolchain-mapped** (every reference pattern assessed P/Partial/Absent against a Claude Code analog in §2; Sonnet/Opus/Council model tag per action), and **backlog-reconciled** (every finding tied to an existing line or a proposed-not-written new entry); and the **BACKLOG architecture is diagnosed with a Council-ready options matrix (§E), a recommendation (Option 2, §F), and a leak-free Council brief (§G)** in the companion doc. The honest top-line: **the reference mostly validates our existing artifact methodology; the single high-leverage transfer is severity/progressive-disclosure organization applied to the BACKLOG actionable surface, whose root cause is a methodology self-contradiction (PLAYBOOK §10 vs ADR-47/48), not a grooming lapse.**
+
+---
+
 ## Files actually read (cost ledger)
 
 Phase 0 (own state): `CLAUDE.md`, `VISION.md`, `ARCHITECTURE.md`, `BACKLOG.md` (full), `protocols/ESSENTIALS.md`, `protocols/AI_COUNCIL_PROCESS.md`, `protocols/PLAYBOOK.md` (TOC + §7 internals + §10 backlog grooming), `docs/audits/2026-05-31-backlog-reconciliation-classification.md`, ADR-39/41/47/48, `.pre-commit-config.yaml`; grep over `LESSONS.md` + `scripts/` glob.
