@@ -49,6 +49,7 @@ Next quarterly grooming: 2026-07-01
 - **Why:** ESSENTIALS lifecycle update trigger is "lessons promotion, methodology change." Significant methodology changes accumulated 2026-04-30 through 2026-05-19. Audit observed 226 lines (already over "1 page") so additions require pruning OR explicit relaxation of constraint. Verification 2026-05-20: grep confirms only ADR-53 directly referenced in topical content; ADRs 35-52 and 54 absent.
 - **Added:** 2026-04-30 by rob (Phase 1 self-audit); scope expanded 2026-05-20 (posture audit verification, `docs/audits/2026-05-20-posture-audit-verification.md` finding C2).
 - **Status:** open
+- **Scope update 2026-05-31 (marathon arc reconciliation):** Extend the candidate range to **ADRs 35-63** — the arc added ADRs 55-63 (visual pattern 59, docs taxonomy 60, worktree 61, v4 ratification 62, scrum-master authority 63). ADR-61's parallel-sessions cheat already landed in ESSENTIALS (`## Parallel sessions`); ADR-59/60/62/63 are the new high-leverage candidates to evaluate against the "Keep under 1 page" constraint. Refs: ADRs 55-63.
 
 ### [P2] [superseded] ADR-29 amendment — formalize "prepend at top" ordering convention for LESSONS.md
 - **What:** Amend ADR-29 (or create new ADR superseding ADR-29's position-rule clause) to formalize the going-forward convention: new LESSONS entries prepend at top of dated-entries section, not append at tail. Update any related references in PLAYBOOK / ESSENTIALS / CLAUDE.md that mention LESSONS append direction.
@@ -811,6 +812,7 @@ Next quarterly grooming: 2026-07-01
 - **Refs:** `templates/CLAUDE-md-template.md`; `CLAUDE.md` (this repo, as live example); ADRs 54-61; durability audit.
 - **Added:** 2026-05-28 by rob (universalization durability audit).
 - **Status:** open — content decision; size similar to the original v2.1 conversion (one focused session).
+- **Scope update 2026-05-31 (marathon arc reconciliation):** Extend the encode-range to **ADRs 54-63** — add ADR-62 (v4 handoff ratification) + ADR-63 (scrum-master review authority) to the refresh scope. The §11 "last 5 ADRs" rotation target is now **59-63** (not 57-61). Refs: ADR-62, ADR-63.
 
 ### [P3] [open] Widen `audit.py` mermaid theme check scope (or accept current scope)
 
