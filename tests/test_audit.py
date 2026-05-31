@@ -601,6 +601,29 @@ def test_handoff_bundle_pass(tmp_path: Path) -> None:
     assert f.status == "pass", f.evidence
 
 
+def test_handoff_bundle_three_segment_stamp_validated(tmp_path: Path) -> None:
+    """A patch-version stamp (v4.3.1) is detected + validated, not silently skipped.
+
+    Regression for the 2026-05-31 finding: the stamp regex matched only two-segment
+    versions, so v4.3.1 bundles were skipped (counted as 0 stamped) rather than
+    validated. The four-tag section must still be required (4.3.1 >= 4.3).
+    """
+    _write_bundle(tmp_path / "docs" / "handoffs", "2026-06-01-x-session",
+                  version="4.3.1")
+    f = aud.check_handoff_bundle_structure(tmp_path)[0]
+    assert f.status == "pass", f.evidence
+    assert "1 stamped" in f.evidence
+
+
+def test_handoff_bundle_three_segment_still_enforces_v43_rules(tmp_path: Path) -> None:
+    """v4.3.1 is treated as v4.3+ — the four-tag section is required, not optional."""
+    _write_bundle(tmp_path / "docs" / "handoffs", "2026-06-01-x-session",
+                  version="4.3.1", four_tag=False)
+    f = aud.check_handoff_bundle_structure(tmp_path)[0]
+    assert f.status == "fail"
+    assert "Four-tag" in f.evidence
+
+
 def test_handoff_bundle_no_handoffs_dir(tmp_path: Path) -> None:
     """No docs/handoffs/ → vacuous pass (check is .dev-knowledge-specific)."""
     f = aud.check_handoff_bundle_structure(tmp_path)[0]
