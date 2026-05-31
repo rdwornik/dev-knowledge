@@ -263,6 +263,13 @@ Next quarterly grooming: 2026-07-01
 - **Status update 2026-05-31 (marathon arc reconciliation):** Partial — the session-2 handoff bundle exercised sub-item (3)'s content (AI Council convene-vs-Path-A flow in 02_METHODOLOGY) and the spirit of (7) **at the generated-bundle-instance level only**. Verified 2026-05-31 that the `.tmpl` templates were NOT edited: `02_METHODOLOGY.md.tmpl` still carries a `{{PULL}}` marker with no CLI command example, and `03_PROJECT.md.tmpl` no longer contains the "passive storage" phrase (already neutral). All 7 sub-items therefore remain open at the durable template/spec level. Refs: `docs/handoffs/2026-05-31-dev-knowledge-session-2/`; `templates/handoff/02_METHODOLOGY.md.tmpl`, `03_PROJECT.md.tmpl`.
 - **Related:** `scripts/audit.py` check #9; `templates/handoff/*.tmpl`; `protocols/HANDOFF_PROCESS.md` v4.3.1 Amendment deferred list.
 
+### [P3] [open] Phase-1 handoff: operator-invariants section
+- **What:** Add a small "operator invariants" section to the Phase-1 handoff interview (or the apprentice-facing bundle) capturing the defaults a fresh chat should assume rather than re-ask: clean-git-tree-after-handoff, immediate-merge habit, the three-domain separation (`.dev-knowledge` methodology / child repos / Obsidian vault), and operator-paced multi-step workflows. So an inheritor state-and-acts instead of over-asking.
+- **Why:** Surfaced 2026-05-31 when a fresh browser chat over-asked on merge state + role despite strong priors. The 2026-05-30 LESSONS batch already names the pattern ("do not assume the operator executed the implicit between-exchange step"); a durable interview section operationalizes it. Pairs with the inheritor-pushback-discipline LESSON.
+- **Vision ref:** VISION.md "Methodology Author" — handoff design is methodology
+- **Added:** 2026-05-31 by rob (marathon-arc reconciliation; new-chat over-asking observation)
+- **Status:** open — small handoff-template/skill addition; Sonnet/medium scope.
+
 ### [P3] [open] Relax-vs-gate principle for drifted guards — paired-ADR tension
 - **What:** ADR-62 + ADR-63 prescribe opposite cures for the same disease (un-enforced guard drift under load — ML-2): ADR-62 **relaxes** the Council-for-architecture guard (amend the rule so the bypass isn't a violation); ADR-63 **gates** the scrum-master review pattern (codify via ADR so it cannot drift). Implicit reasoning is cost/value asymmetric — gate when cost is low + catch-value is high; relax when cost is high + retroactive value-add is low — but this principle is never articulated in either ADR. Candidate output: a future LESSONS entry or a small ADR codifying the relax-vs-gate decision criterion for drifted guards.
 - **Why:** The tension is the sharpest cross-ADR finding from the ADR-62/63 fresh-eyes review (2026-05-30): neither ADR alone shows it; the outsider saw both at once. Without a reconciling principle, future guard-drift decisions inherit the same implicit reasoning and may not choose correctly.
@@ -546,6 +553,13 @@ Next quarterly grooming: 2026-07-01
 - **Fix scope:** opportunistic; split per owner where cross-repo.
 - **Added:** 2026-05-29 by rob (ecosystem coherence audit)
 - **Status:** open.
+
+### [P2] [open] Ecosystem-folder operating-model design — snapshot vs continuous-audit process
+- **What:** Define the operating model for the `ecosystem/` folder. It exists today as a point-in-time snapshot (state-capture artifact), but whether it should be (a) a periodically-regenerated static snapshot, (b) the substrate for a continuous cross-repo audit process, or (c) retired in favor of on-demand audit-tool runs is undecided. Design: ownership, regeneration cadence/trigger, relationship to `scripts/audit.py` cross-repo reach, and whether it stays Layer-2 read-only.
+- **Why:** Operator flagged 2026-05-31 (session-2 handoff Phase 2) that the `ecosystem/` folder exists but its operating model is unknown — a static snapshot is not a process. Without a defined model it rots like other cadence-less artifacts (tech-radar precedent).
+- **Vision ref:** VISION.md "Auditor" + "Knowledge Guardian" functions
+- **Added:** 2026-05-31 by rob (marathon-arc reconciliation; surfaced in session-2 handoff Phase 2)
+- **Status:** open — Council-scope design; pairs with "Cross-repo audit (Phase 3)" + "Child-repo audit reach".
 
 ### [P3] [open] Undiscovered repos confirmation
 - **What:** Repos `corp-knowledge-extractor`, `corp-by-os`, `corp-rfp-agent` not found under `Dev/` during 2026-05-11 audit. Confirm status: renamed, archived, not yet cloned, or dropped.
@@ -844,5 +858,12 @@ Next quarterly grooming: 2026-07-01
 - **Refs:** `docs/audits/2026-05-27-cross-repo-retrofit-verification.md` § Phase C divergence #1; corp-sca `requirements.txt:14-16` (commented-out dev deps).
 - **Added:** 2026-05-27 by rob (cross-repo retrofit — deferred work).
 - **Status:** open — single corp-sca session; bundle with the existing "Apply tier-deprecation to corp-sca" entry if helpful.
+
+### [P2] [open] AI Council convene-vs-Path-A decision criterion
+- **What:** Codify when an architecture decision goes to a full AI Council convene versus a "Path A" direct ADR written by CC. ADR-62 and ADR-63 were both written Path-A (post-hoc record of decisions already made + independently validated), explicitly NOT convened — but the criterion that justified bypassing Council ("decision already made + implemented + fresh-eyes-validated; a stateless Council convene would hit curse-of-knowledge recursion") lives only in JOURNAL prose, not in `protocols/AI_COUNCIL_PROCESS.md`. Add the convene-vs-Path-A decision rule to the runbook (or PLAYBOOK).
+- **Why:** AI_COUNCIL_PROCESS.md v1.0 documents the convene lifecycle but assumes every architecture decision convenes. The marathon arc established Path A as a legitimate alternative for post-hoc records; without the criterion, future sessions re-derive when each path applies.
+- **Vision ref:** VISION.md "Methodology Author" function
+- **Added:** 2026-05-31 by rob (marathon-arc reconciliation; ADR-62/63 Path-A pattern)
+- **Status:** open — runbook/PLAYBOOK addition; pairs with "Relax-vs-gate principle for drifted guards".
 
 ---
