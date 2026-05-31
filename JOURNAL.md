@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-31 — Fix: audit check #8 stamp regex skipped v4.3.1 bundles
+
+- Did: Fixed `scripts/audit.py` check #8 (`handoff_bundle_structure`). Its `_BUNDLE_STAMP_RE` matched only two-segment version stamps (`v(\d+)\.(\d+) `), so three-segment `v4.3.1` stamps (first used 2026-05-31) silently failed to match — both v4.3.1 bundles (morning cold-start + session-2) were SKIPPED, not validated. Added optional non-capturing patch segment `(?:\.\d+)?`. Found during the session-2 Phase 2 handoff (audit reported "2 stamped" when 4 v4-era bundles existed).
+- Result: **check #8 now detects v4.3.1 bundles** — audit went 2 → 3 stamped valid on main (the +1 is the morning bundle now seen; session-2 adds the 4th once its branch merges). major.minor still drive the v4.3+ four-tag gate (4.3.1 ≥ 4.3 enforced). 2 regression tests added (3-segment detected + still enforces v4.3 rules); suite 103 → 105. Backward compatible — 2-segment stamps still match.
+- Changes: `scripts/audit.py` (_BUNDLE_STAMP_RE + comment); `tests/test_audit.py` (2 tests); this JOURNAL entry. Branch `fix/audit-check8-version-stamp-2026-05-31`.
+- Abandoned: N/A.
+- Next: operator merges `fix/audit-check8-version-stamp-2026-05-31` → main; after both this and the session-2 handoff branch merge, audit will report 4 stamped valid.
+
+---
+
 ### 2026-05-31 — Handoff skill: comprehensive 5-case decision matrix
 
 - Did: Added a comprehensive **5-case scope/slug decision matrix** to `.claude/commands/handoff.md` as the single entry point for scope decisions on `please create handoff for dev-knowledge`. Cases: (1) uncommitted → capture session; (2) clean+commits+slug-free → capture window; (3) clean+no-commits+slug-free → cold-start; (4) clean+commits+slug-collision → auto counter-suffix (`-2`,`-3`,…); (5) clean+no-commits+slug-exists → clean exit, no Phase 1. Superseded the State-machine "bundle exists → FLAG and ask" line and added a `--slug` operator override.
