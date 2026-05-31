@@ -19,16 +19,6 @@
 
 ---
 
-### 2026-05-31 — Handoff skill auto-scope (self-sufficient command)
-
-- Did: Updated `.claude/commands/handoff.md` so `please create handoff for dev-knowledge` is self-sufficient — no scope question on clean state. Added a **Default scope** section near the top encoding a 3-branch auto-decision tree based on git state, established as the single entry point for scope.
-- Result: **Operator can invoke the simple command without providing additional context.** Skill auto-decides scope: uncommitted work → capture in-progress session; clean + commits since last handoff → capture that window; clean + no commits → forward-looking cold-start (reconstruct from JOURNAL+BACKLOG+git, facts tagged `inferred`). All three proceed to Phase 1 immediately; operator can override post-hoc. Skill 135 → 162 lines. Baseline green (103 / 9/9 / ruff clean). **Note:** the literal "scope question" was never in the committed skill — it was my own emergent behavior earlier this session; this change encodes the proceed-without-asking default so the emergent ask is suppressed going forward.
-- Changes: `.claude/commands/handoff.md` — added Default-scope auto-decision section; this JOURNAL entry. Commit `9cf7707`. Branch `feat/handoff-skill-auto-scope-2026-05-31`.
-- Abandoned: N/A — additive change; no scope-question prose existed to remove. Did NOT touch `HANDOFF_PROCESS.md` (skill behavior, not spec/architecture — skill is living per `protocols/*` classification; no amendment needed). Did NOT add any replacement question.
-- Next: operator merges `feat/handoff-skill-auto-scope-2026-05-31` → `main`, then tests by invoking `please create handoff for dev-knowledge` — should proceed to Phase 1 immediately without asking scope. If the auto-chosen scope is wrong for the situation, operator overrides ("actually capture X").
-
----
-
 ### 2026-05-31 — Cold-start handoff bundle generated (forward-looking)
 
 - Did: Generated a forward-looking handoff bundle for the next `.dev-knowledge` session. No live session to capture (last real work — ADR-62/63 — already merged + journaled 2026-05-30), so per operator's "forward-looking setup" choice the bundle was reconstructed from the institutional record (JOURNAL arc + BACKLOG + git) rather than a live Phase-1 interview. Single-branch flow (`docs/handoff-cold-start-2026-05-31`) folding both phases; no `in-progress/` interview created (vestigial with no browser-architect sender).
