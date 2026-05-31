@@ -415,12 +415,13 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-11 by rob (cross-repo pattern audit, A5)
 - **Status:** open — designated as legacy pattern; retire opportunistically during Phase 2 repo visits. No dedicated migration prompt needed; handle when touching those files anyway.
 
-### [P3] [open] ADR-42 amendment — clarify single vs multi-artifact handoff format
+### [P3] [superseded] ADR-42 amendment — clarify single vs multi-artifact handoff format
 - **What:** ADR-42 v3.2 specifies folder-format handoffs. Empirically established 2026-05-11 that single-artifact handoffs work better as flat `.md` in `docs/handoffs/`. Folder format reserved for multi-artifact bundles with `contents/` subfolder. ADR-42 text does not state this distinction explicitly.
 - **Why:** Methodology debt — practitioners must infer the rule from convention rather than reading it in the ADR. Without explicit statement, future sessions may default to folder format for single-artifact handoffs, causing unnecessary complexity.
 - **Vision ref:** VISION.md — methodology evolution
 - **Added:** 2026-05-12
 - **Status:** open
+- **Status update 2026-05-31 (marathon arc reconciliation):** Superseded — v4/ADR-62 standardizes ALL handoffs on the 8-file folder bundle (README + 01–07); the 2026-05-11 "single-artifact handoffs work better as flat `.md`" finding no longer holds, so the ADR-42 single-vs-multi clarification is moot. Refs: ADR-62 (`docs/decisions/ADR-62-v4-handoff-process-ratification.md`); `protocols/HANDOFF_PROCESS.md` v4.3.1. (operator-confirmed supersede, 2026-05-31)
 
 ### [P3] [open] docs/HANDOFF.md flat file deprecation (corp-monorepo, ai-council)
 - **What:** Both `corp-monorepo` and `ai-council` have `docs/HANDOFF.md` at `docs/` level (pre-ADR-42 flat pattern). Not breaking. Retire at next handoff event or explicitly designate as legacy.
@@ -573,12 +574,13 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-11 by rob (Prompt J ratification, expanded from Prompt H P2)
 - **Status:** open — execute in Phase 2, separate prompt; after cross-repo handshake (P1 above) completes.
 
-### [P2] [open] Content-scoped archival principle codification
+### [P2] [superseded] Content-scoped archival principle codification
 - **What:** New principle emerged 2026-05-11: archive subfolder location follows artifact type (handoffs/archive/ only for handoff content; decisions/archive/ for decisions if archival needed; each content type has own scoped archive subfolder). Generic `docs/archive/` as top-level mixed-content grab-bag (current corp-monorepo pattern) is anti-pattern. Codification options: amendment to ADR-38 (universal repo architecture) OR new ADR-44 (archival principle). Defer codification to second empirical instance (per N=1 anti-pattern lesson).
 - **Why:** Principle emerged from operator framing during archival destination decision for cross-repo propagation artifact. First empirical instance captured. Premature ADR at N=1 is itself an anti-pattern (see LESSONS.md).
 - **Vision ref:** VISION.md "Knowledge Guardian" function
 - **Added:** 2026-05-11 by rob (Prompt J ratification)
 - **Status:** open — captured in LESSONS.md (2026-05-11 entry). Codification awaits second empirical instance. Monitor for second instance during Phase 2 repo visits.
+- **Status update 2026-05-31 (marathon arc reconciliation):** Superseded — ADR-60 (docs/ folder taxonomy, 2026-05-27 + same-day amendment) codified the opposite model: a single **flat `archive/` pending-zone**, and flattened `docs/archive/` (the `tech-radar/` subfolder was removed). Content-scoped per-type archive subfolders are not the adopted pattern. Refs: ADR-60 (`docs/decisions/ADR-60-docs-folder-taxonomy.md`) + its 2026-05-27 amendment; `docs/audits/2026-05-27-taxonomy-simplification-verification.md`. (operator-confirmed supersede, 2026-05-31)
 
 ### [P2] [closed] Fix pre-existing test failure: test_ratio_pass_when_stable_above_ceiling
 - **What:** Fails on main as of 2026-05-12 prior to hooks review work. Not introduced by Directive 5 of 2026-05-12 handoff (witnessed during Prompt 4 verification). Blocks clean `pytest -x` runs; pre-commit may flag in subsequent sessions if test is in pre-commit scope. Root cause unknown — needs investigation.
