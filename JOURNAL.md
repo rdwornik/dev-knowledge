@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-05-31 — BACKLOG marathon-arc reconciliation (2026-05-26 → 05-31)
+
+- Did: Reconciled `BACKLOG.md` against the marathon arc after a full re-read of all 839 lines + arc evidence (LESSONS top-11, JOURNAL window, ADRs 59-63, session-2 bundle, audit.py). Produced a classification table (`docs/audits/2026-05-31-backlog-reconciliation-classification.md`) gated for operator review at the Step-1 STOP, then applied the approved set. Method per operator decision: **update-in-place** (flip `[open]`→`[closed]`/`[superseded]` header + dated note, preserve all prior text). Two NEEDS-DECISION items + the new-entry set were operator-approved before writing.
+- Result: **BACKLOG truthful again.** Zero missed full closures (the arc closed its own items in-place). 418 superseded by v4/ADR-62; 576 superseded by ADR-60; 257/286/392/504 partial-updated; 47/801 scope-extended to ADRs 62-63; 3 BACKLOG + 1 LESSONS entries added. Branch-tip verification: **105 tests pass, ruff clean, audit 9/9** (check #8 now sees 4 stamped v4 bundles). Caught + recorded honestly: line 257's sub-items were exercised only at the session-2 bundle-INSTANCE level — the `.tmpl` templates were NOT edited (verified), so template-level work remains open.
+- Changes: `BACKLOG.md` (6 entries updated + 3 added + header stamp); `LESSONS.md` (1 prepend); `docs/audits/2026-05-31-backlog-reconciliation-classification.md` (new). Branch `chore/backlog-reconciliation-arc-2026-05-31`, 7 commits `7820b7d`..`b1d4e34` + this JOURNAL entry.
+- Abandoned: N/A.
+- Next: operator merges `chore/backlog-reconciliation-arc-2026-05-31` → main (`git merge --no-ff`). New entries seed forward work (ecosystem-folder operating model, AI-Council convene-vs-Path-A criterion, Phase-1 operator-invariants section).
+
+---
+
 ### 2026-05-31 — Fix: audit check #8 stamp regex skipped v4.3.1 bundles
 
 - Did: Fixed `scripts/audit.py` check #8 (`handoff_bundle_structure`). Its `_BUNDLE_STAMP_RE` matched only two-segment version stamps (`v(\d+)\.(\d+) `), so three-segment `v4.3.1` stamps (first used 2026-05-31) silently failed to match — both v4.3.1 bundles (morning cold-start + session-2) were SKIPPED, not validated. Added optional non-capturing patch segment `(?:\.\d+)?`. Found during the session-2 Phase 2 handoff (audit reported "2 stamped" when 4 v4-era bundles existed).
