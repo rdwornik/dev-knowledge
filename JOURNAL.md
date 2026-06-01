@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-01 — Doc-coherence completion (G1 part 2): D1/D2 resolved, engine graphical, PLAYBOOK+protocols+VISION audited
+
+- Did: Closed G1 on `chore/doc-coherence-completion`. Resolved the two part-1 escalations (D1: scope-clarified CLAUDE §4 + converted the methodology-engine ASCII flow to a mermaid graph matching its §Processes siblings; D2: TOKEN-LOG → `logs/` doc refs + an append-only ADR-59 amendment scoping the root rule to governance docs). Reconciled the ADR-43 governing line (target-parameterized, grounded in `routing.py`) + hardened the handoff diagram. Then deep-read the surface part 1 left: PLAYBOOK (full, 2911 lines), AI_COUNCIL_PROCESS, AGENT_FRAMEWORK, ENVIRONMENT, VISION body.
+- Result: **~30 mechanical drifts fixed across 13 commits.** PLAYBOOK was systemically stale to the post-2026-05-16 core: live CHANGELOG instructions (ADR-49 retired it, ~13 sites), v3.x handoff content (§8 + format-spec + prompt-card → v4), retired `docs/research/` + nonexistent `OPEN_DECISIONS.md` refs, §18 audit-tool (3→10 checks, health=#69 gate, fixed an internal contradiction), scaffold baseline. Plus VISION body (scope-tag/ADR-43/audit.py), AGENT_FRAMEWORK (check#, backlog ref), ENVIRONMENT (worktree vs ADR-61), ESSENTIALS Polish→English, ADR-68 traceability row. AI_COUNCIL_PROCESS v2.0 was already clean. Green every commit: 139 tests, ruff, audit health 10/10.
+- Changes: `CLAUDE.md`, `ARCHITECTURE.md`, `VISION.md`, `protocols/{PLAYBOOK,ESSENTIALS,AGENT_FRAMEWORK,ENVIRONMENT}.md`, `docs/decisions/{README,ADR-59}.md`. 13 commits `6f0d2c9`…+ this.
+- Escalated / flagged (not fixed): **docs/tech-radar/** references (folder archived by ADR-60, no grounded replacement — where does tech-eval tracking live now?); ENVIRONMENT runtime state (Opus 4.7→4.8, /ultrareview) is operator-maintained; §14 Markdown-Governance is self-flagged-stale-deferred; lingering v3.x `templates/HANDOFF_*TEMPLATE.md` (deletion needs ask); ADR-68's Council transcript not archived in this repo; two §"Repo conventions" `[TBD]` markers; the audit.py `§3.1` console mojibake (code, not docs).
+- Next: operator reviews + decides the tech-radar question; **DO NOT MERGE** until GO, then `merge --no-ff` + delete branch. G1 base is coherent for the audited surface.
+
+---
+
 ### 2026-06-01 — Doc-coherence audit (G1 pre-universalization gate): #10 doc-truth set closed
 
 - Did: Ran the pre-universalization coherence audit over the canonical doc set + ADRs on `chore/doc-coherence-audit`. Step-1 `audit.py health` was green but only covers 4 files' freshness + structural checks, so grounded the hard metric (each doc vs reality AND vs the other docs) with file:line — incl. cross-repo verification that ADR-43 routing is actually implemented (`ai-council/src/ai_council/routing.py` `TargetResolver`). Fixed the mechanical drifts one revertable commit each; escalated the genuine convention/placement calls.
