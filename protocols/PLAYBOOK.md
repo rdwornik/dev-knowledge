@@ -939,7 +939,7 @@ exists could later mechanize it — noted as a candidate, not built here.
 <!-- scope: meta -->
 <!-- version: 1.0 — 2026-04-24 -->
 
-New tools, models, agents, and patterns emerge constantly in 2025-2026 LLM dev (Claude Code releases, OpenAI Codex updates, Chinese models like GLM/Qwen, MCP servers, multi-agent frameworks, Spec Kit/Kiro). Without explicit process, adoption thrashes (re-evaluating same tool quarterly), forgets context (why did we reject MCP memory?), or misses signals (relevant tool sat in tech-radar chat unread for weeks).
+New tools, models, agents, and patterns emerge constantly in 2025-2026 LLM dev (Claude Code releases, OpenAI Codex updates, Chinese models like GLM/Qwen, MCP servers, multi-agent frameworks, Spec Kit/Kiro). Without explicit process, adoption thrashes (re-evaluating same tool quarterly), forgets context (why did we reject MCP memory?), or misses signals (a relevant tool sits unread for weeks).
 
 This section defines the lifecycle: from "I saw something on Twitter" to "we adopted/rejected/deferred."
 
@@ -974,7 +974,7 @@ Discovery → Triage → Evaluation → Decision → Implementation → Review
 
 **Cadence:** weekly informal scan. No formal time box.
 
-**Capture:** when something looks interesting, drop a one-liner into the next quarterly tech-radar entry under "discovered, not yet triaged" — don't wait for full evaluation.
+**Capture:** when something looks interesting, note it informally (a JOURNAL line, or operator scratch) under "discovered, not yet triaged" — don't wait for full evaluation. There is no formal radar inbox (tech-radar retired — see "Where evaluations are recorded").
 
 ### Stage 2: Triage
 <!-- scope: meta -->
@@ -986,7 +986,7 @@ Discovery → Triage → Evaluation → Decision → Implementation → Review
 - **Platform fit:** runs on Windows/PowerShell (or has portable equivalent)
 - **Cost-bounded:** trial cost <$50 OR API trial available
 
-If 4+ criteria met → proceed to Evaluation (majority-of-6 threshold; ≤3 = not worth evaluation cost). If 3 or fewer → mark "deferred" with reason in tech-radar.
+If 4+ criteria met → proceed to Evaluation (majority-of-6 threshold; ≤3 = not worth evaluation cost). If 3 or fewer → record "deferred" with the reason (a JOURNAL note, or a BACKLOG "Tooling & evaluation" item if it carries a reopen trigger).
 
 **Anti-pattern:** evaluating every novelty. The job of triage is saying no.
 
@@ -1018,8 +1018,8 @@ Decision threshold for which mode: per PLAYBOOK Section 5 "When to run Council v
 Three outcomes:
 
 - **Adopt:** triggers Implementation (Stage 5)
-- **Reject:** record in tech-radar with reason; closed unless evidence changes
-- **Defer:** record in tech-radar with explicit reopen trigger (e.g., "if cost drops below X" or "after solo→team transition")
+- **Reject:** record the reason (an ADR if architectural, else a JOURNAL note); closed unless evidence changes
+- **Defer:** record an explicit reopen trigger (e.g., "if cost drops below X" or "after solo→team transition") as a BACKLOG "Tooling & evaluation" item — where deferred tool evals already live (e.g. Kimi K2, the `ecosystem/` model)
 
 **Document the decision:** even rejection deserves a paragraph. Future self asks "why didn't we adopt MCP memory?" — answer must exist.
 
@@ -1032,44 +1032,40 @@ Standard pipeline:
 3. **Updates to:** CLAUDE.md (Slash commands §7, Skills §8, or Hooks §9 as applicable), ENVIRONMENT.md (if env-level), JOURNAL entries
 4. **Hooks/tests/CI** if enforcement needed (LLMs advise; mechanism enforces, per Council #28)
 
-Cross-link from tech-radar entry to the ADR + implementation commits.
+Cross-link the ADR to its implementation commits; the JOURNAL entry records the adoption (the `Changes:` line replaces the retired CHANGELOG — ADR-49).
 
-### Stage 6: Review (periodic)
+### Stage 6: Review (on-trigger)
 <!-- scope: meta -->
 
-**Cadence:** quarterly tech-radar snapshot (`docs/tech-radar/YYYY-Q.md`).
+**Cadence:** the quarterly tech-radar snapshot is **retired** — `docs/tech-radar/` is archived (ADR-60; it held one dormant entry and never ran on a real cadence; reversible if a quarterly cadence ever resumes). Review is now **on-trigger**, not scheduled: re-examine an item when its reopen trigger fires, when it visibly stops earning its keep, or when a replacement appears — not on a calendar.
 
-**Per quarter, for each Adopted item:**
+**When an Adopted item is reviewed:**
 - Still earning its keep? (concrete value vs cost/maintenance)
 - Configuration drift? (deprecated flags, version skew)
 - Replacement candidate emerged?
 
-**Per quarter, for each Deferred item:**
-- Reopen trigger met?
-- Still relevant or made obsolete by adoption of alternative?
+**When a Deferred item's reopen trigger fires:**
+- Re-triage it (Stage 2).
+- Still relevant, or made obsolete by an alternative already adopted?
 
-**Per quarter, for each Rejected item:**
-- Re-check if rejected for "wrong reason at the time" (rare but happens)
+**Rejected items:**
+- Re-open only if the rejection reason no longer holds ("wrong reason at the time" — rare but happens).
 
-**Output:** updated tech-radar quarterly entry. NOT each time something changes — quarterly batch keeps cost down.
+**Where it lands:** the outcome is recorded where the decision lives — an ADR (architectural), a BACKLOG "Tooling & evaluation" update (deferred items), or a JOURNAL note. No separate radar inventory to maintain.
 
-### Tech radar folder
+### Where evaluations are recorded
 <!-- scope: meta -->
 
-Location: `docs/tech-radar/`
-
-**File pattern:** `YYYY-Q.md` for quarterly snapshots; `YYYY-MM-DD-{tool}.md` for per-tool deep-dives when warranted (e.g. Spec Kit eval).
-
-**Distinct from `docs/research/`:**
-- `docs/research/` — research-mode debate outputs (point-in-time, rich content)
-- `docs/tech-radar/` — quarterly inventory of what's adopted/rejected/deferred (snapshot)
-
-A tool might appear in BOTH (research debate evaluating it; tech-radar entry recording the decision and tracking subsequent review).
+`docs/tech-radar/` is archived (`docs/archive/tech-radar/`, per ADR-60; reversible if a quarterly cadence ever resumes), and `docs/research/` is retired (ADR-60 2026-05-27 amendment). With no separate radar inventory, an evaluation's record lives where its decision lives:
+- **ADRs** in `docs/decisions/` — the adopt/reject decision itself (research-mode debate transcripts route to `docs/decisions/transcripts/` per ADR-43).
+- **BACKLOG** "Tooling & evaluation" theme — deferred tool evals carrying their reopen triggers (e.g. Kimi K2).
+- **JOURNAL** — the per-session record of what was evaluated and decided.
 
 ### Section history
 <!-- scope: meta -->
 
 - v1.0 (2026-04-24) — initial. 6-stage pipeline, source list, evaluation modes by stake, tech-radar folder convention. Codifies organic 2026-Q1/Q2 adoption practice (Codex, Tach, Opus 4.7, ccusage, Perplexity, MCP-memory-deferred, GLM/Qwen-deferred, Spec Kit-evaluated).
+- v1.1 (2026-06-01) — Phase-R: drop the retired `docs/tech-radar/` substrate (archived per ADR-60; operator-confirmed the quarterly cadence is retired). Stage 6 reframed quarterly → on-trigger; capture/defer/reject records redirected to JOURNAL / BACKLOG "Tooling & evaluation" / ADRs; the "Tech radar folder" subsection replaced with "Where evaluations are recorded". Six-stage pipeline structure unchanged.
 
 ---
 
@@ -1358,9 +1354,9 @@ After install, link from:
 - **CLAUDE.md** — for project-level Claude Code-specific behavior (per Gap #5 template Slash commands, Skills, and Hooks sections)
 - **JOURNAL.md entry** for the session that adopted it
 - **JOURNAL.md `Changes:` line** for repo-visible adoptions (CHANGELOG.md retired — ADR-49)
-- **tech-radar 2026-Q?.md** Adopted (active inventory) section if user-level (per Gap #17 Continuous Improvement Section 6)
+- **JOURNAL.md** for user-level adoptions too (they need no per-repo CLAUDE.md); file a BACKLOG "Tooling & evaluation" item if it warrants periodic value review (tech-radar retired — see §Continuous Improvement)
 
-User-level adoptions don't need per-repo CLAUDE.md updates (they apply everywhere automatically) but do warrant tech-radar entry for periodic value review.
+User-level adoptions don't need per-repo CLAUDE.md updates (they apply everywhere automatically); record them in JOURNAL, and file a BACKLOG "Tooling & evaluation" item if they warrant periodic value review.
 
 #### Anti-patterns
 <!-- scope: meta -->
