@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-01 — Story-map dual review (Codex + fresh-eyes) + merge
+
+- Did: Ran Codex `/review` (code-only path-guard → the validator + commit-msg hook) and an independent zero-context fresh-eyes pass on the story-map branch; applied Codex's 4 High fixes + committed tests; merged to `main` (`--no-ff`).
+- Result: **Codex 0 critical / 4 high — all fixed** (H1 done-marker scoped to structured tokens; H2 hook except narrowed to OSError + loud fail-open; H3 require exactly one `## Big picture`; H4 19 committed unit tests). **Fresh-eyes: 0 critical, merge-ready** — verified ID accounting (all 66 main ids: 1-47 BACKLOG / 48-65 relocation queue / #66 closed `190fce9`), story-map integrity (7 themes/19 stories/47 tasks), both scripts, invariants, docs coherence. Baseline green: **124 tests**, audit 9/9, `validate_backlog` OK. Readability verdict remains the operator's (not self-declared).
+- Changes: `scripts/validate_backlog.py` (H1/H3), `scripts/check_backlog_commit_msg.py` (H2), `tests/test_validate_backlog.py` + `tests/test_check_backlog_commit_msg.py` (new, H4), `docs/audits/2026-06-01-codex-backlog-story-map.md` + `…-fresh-eyes-story-map.md` (review records); this JOURNAL entry. Branch (whole readability+story-map arc) merged → `main`.
+- Abandoned: did NOT fail-closed the commit-msg hook (kept fail-open-loud, explained); did NOT push to remote; did NOT delete the merged branch.
+- Next: pick off backlog tasks (each closes via `[#id]`, hook-enforced); child-repo items relocate via their own sessions (queue drains).
+
+---
+
 ### 2026-06-01 — BACKLOG story-map hierarchy (ADR-66): Big Picture → Theme → Story → Task
 
 - Did: Restructured `BACKLOG.md` into a story map (branch `docs/backlog-readability-2026-06-01`, continued). (1) **ADR-66** (Path A; supersedes ADR-64 Decision 2 / layout only). (2) Skeleton (7 themes + 19 user stories) → **operator GO at the checkpoint** with taxonomy adjustments (#6 → own story; #9 + #31 → Cross-repo universalization; #28 kept). (3) Filed all 47 items as task bullets (`[#id] [P][size] · Done when · refs`) under their stories. (4) PLAYBOOK §10 + validator rewritten for the hierarchy (dropped `repo:`). (5) `commit-msg` `[#id]` hook + CONTRIBUTING + the "what's implemented" query.
