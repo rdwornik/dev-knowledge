@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-01 — BACKLOG story-map hierarchy (ADR-66): Big Picture → Theme → Story → Task
+
+- Did: Restructured `BACKLOG.md` into a story map (branch `docs/backlog-readability-2026-06-01`, continued). (1) **ADR-66** (Path A; supersedes ADR-64 Decision 2 / layout only). (2) Skeleton (7 themes + 19 user stories) → **operator GO at the checkpoint** with taxonomy adjustments (#6 → own story; #9 + #31 → Cross-repo universalization; #28 kept). (3) Filed all 47 items as task bullets (`[#id] [P][size] · Done when · refs`) under their stories. (4) PLAYBOOK §10 + validator rewritten for the hierarchy (dropped `repo:`). (5) `commit-msg` `[#id]` hook + CONTRIBUTING + the "what's implemented" query.
+- Result: BACKLOG = **7 themes / 19 stories / 47 tasks, 152 lines**. `validate_backlog` OK (hierarchy: themes/stories/tasks, every task has id+Done-when, every story has So-that, no orphans); `commit-msg` hook **self-tested live** (task removal without `[#id]` blocked; `closes [#id]` passes); pytest 105, ruff clean, audit 9/9. **Readability verdict is the operator's — NOT self-declared.** **NOT merged** (priority-one rewrite + validator change → operator runs Codex `/review` + a fresh-eyes pass).
+- Changes: `docs/decisions/ADR-66-backlog-story-map-hierarchy.md` (new) + README index; `BACKLOG.md` (story map); `protocols/PLAYBOOK.md` §10; `scripts/validate_backlog.py` (hierarchy parser); `scripts/check_backlog_commit_msg.py` (new) + `.pre-commit-config.yaml` (commit-msg stage); `CONTRIBUTING.md`; this JOURNAL entry. Branch commits `90d407b`..`a6e26ea` + this.
+- Abandoned: did NOT merge; did NOT touch any child repo; did NOT enforce id monotonicity (uniqueness only — by design).
+- Next: operator reviews (Codex + fresh-eyes), merges if it reads right; then tasks get picked off (each closes via `[#id]`, enforced by the hook).
+
+---
+
 ### 2026-06-01 — BACKLOG readability pass (terse format, evict child-repo items, seed Now)
 
 - Did: Readability refactor of `BACKLOG.md` (branch `docs/backlog-readability-2026-06-01` off main `db352ee`), after the operator reported the migrated file was still not scannable. (1) PLAYBOOK §10 terse 3-line entry schema + validator rewritten to parse it and fold in the deferred H2/H3 hardening — which **closed [#66]** (its scope was implemented in `ad2ca92`; done item left per ADR-65); `## Now` relaxed to {open,in-progress} (resolves ADR-64 open-Q4). (2) All entries → terse. (3) Evicted the 18 child-repo items (ids 48-65) from `## Coordination` to the relocation queue. (4) Seeded `## Now` with the 3 P1 items as `(suggested)` + moved the preamble to a footer.
