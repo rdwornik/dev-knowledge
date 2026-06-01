@@ -2359,20 +2359,22 @@ This is not optional. Stale structural documentation is worse than no documentat
 ## 18. Ecosystem Audit Tool Workflow
 <!-- scope: meta -->
 
-`scripts/audit.py` is the ecosystem conformance checker per [ADR-36](docs/decisions/ADR-36-audit-tool-architecture.md). It reads child repos under `Dev/` and writes only to `.dev-knowledge` paths — never touches child repo files. Audit is advisory: findings surface non-compliance; remediation is manual.
+`scripts/audit.py` is the ecosystem conformance checker per [ADR-36](docs/decisions/ADR-36-audit-tool-architecture.md). It reads child repos under `Dev/` and writes only to `.dev-knowledge` paths — never touches child repo files. The cross-repo audit (`run`) is **advisory**: findings surface non-compliance; remediation is manual, with no downstream commit gating. The local self-audit (`health`) is **gating** — it runs as this repo's `audit-health` pre-commit hook ([#69]; FAIL blocks, WARN informs).
 
 Cross-refs: [ADR-31](docs/decisions/ADR-31-authority-model.md) (authority model), [ADR-36](docs/decisions/ADR-36-audit-tool-architecture.md) (tool architecture), [ADR-33](docs/decisions/ADR-33-vision-md-standard.md) (VISION.md), [ADR-38](docs/decisions/ADR-38-repo-architecture-baseline.md) (ADR-38 baseline), [ADR-53](docs/decisions/ADR-53-claude-md-canonical.md) (CLAUDE.md canonical)
 
 ### Active checks
 <!-- scope: meta -->
 
-Three checks active as of commit `deedc10` (P2 checks `backlog_organization` and `dated_entries_*` were removed in that trim; this documents current state):
+**Cross-repo conformance checks** — the three portable governance checks `run`/`repo` apply to every registered repo (P2 checks `backlog_organization` and `dated_entries_*` were trimmed at commit `deedc10`):
 
 | Check | ADR | What it verifies | FAIL | WARN | PASS |
 |---|---|---|---|---|---|
 | `vision_md` | ADR-33 (amended 2026-05-23) | VISION.md exists at repo root with valid YAML frontmatter containing `version`, `last_reviewed`, `owner`, `status` (tier/scale removed) | absent or frontmatter unparseable | frontmatter valid but missing required keys | all required keys present |
 | `adr38_baseline` | ADR-38 (A5, 2026-05-23) | universal governance baseline at repo root: `VISION.md`, `ARCHITECTURE.md`, `BACKLOG.md` present (README optional; src/tests/pyproject not checked — governance baseline, not code-structure) | any required item missing | — | all present |
 | `claude_md` | ADR-53 | CLAUDE.md exists at repo root and is non-empty | absent or empty | — | present with content |
+
+**Self-audit checks** — the local `audit.py health` runs a larger set of **10 checks (#1–#10)** against this repo: the three above plus `dot_prefix_discipline` + `canonical_md_visibility` + `workspace_settings` (ADR-59), `mermaid_theme_directive` (ADR-51), `handoff_bundle_structure` + `handoff_tag_canonicity` (HANDOFF v4), and `canonical_freshness` (#10, freshness cadence). These run on `.dev-knowledge` only and are the substance of the `audit-health` pre-commit gate ([#69]).
 
 ### CLI commands
 <!-- scope: meta -->
@@ -2383,7 +2385,7 @@ Invoke via:
 python scripts/audit.py <command>
 ```
 
-**`health`** — pre-flight check, no file writes. Verifies `click` and `pyyaml` importable, `ecosystem/` directory exists, at least one repo registered. Exits 0 on OK, 1 on DEGRADED.
+**`health`** — local self-conformance check, no file writes. Two parts: (1) **operational preflight** — `click`/`pyyaml` importable, `ecosystem/` exists, ≥1 repo registered; (2) **self-audit** — the 10 checks (#1–#10) against this repo. Exits 1 on any FAIL (operational DEGRADED or a self-audit FAIL); WARN-level findings (A1 30-day backstop, missing `last_reviewed`, etc.) print but exit 0. **It is the [#69] pre-commit gate** (`.pre-commit-config.yaml` `audit-health`): a FAIL blocks the commit, `--no-verify` bypasses.
 
 ```
 python scripts/audit.py health
@@ -2391,10 +2393,15 @@ python scripts/audit.py health
 
 Example output:
 ```
+operational:
   [OK] click importable
   [OK] pyyaml importable
   [OK] ecosystem/ exists
-  [OK] repos registered  (['ai-council', '.dev-knowledge'])
+  [OK] repos registered  (['.dev-knowledge', 'ai-council', 'corp-monorepo'])
+self-audit (.dev-knowledge) - 10/10 pass: vision_md, adr38_baseline, claude_md,
+  dot_prefix_discipline, canonical_md_visibility, workspace_settings,
+  mermaid_theme_directive, handoff_bundle_structure, handoff_tag_canonicity,
+  canonical_freshness
 health: OK
 ```
 
@@ -2604,7 +2611,7 @@ Dependencies missing. Install: `pip install click pyyaml` (or per `pyproject.tom
 **`UNAVAILABLE` finding in report**
 The path stored in `ecosystem/<name>/state.yaml` doesn't exist. Update `path:` in `state.yaml` to the current absolute location, then re-run.
 
-**Known self-compliance gap:** `.dev-knowledge` itself FAILs `adr38_baseline` on every self-audit because it has no `src/` directory or `pyproject.toml` (it is a documentation repo, not a Python package). This is expected and tracked in BACKLOG Stream C P2. Operators running `run` will see `.dev-knowledge — FAIL` and exit code 1 as a result; this is not a tool bug.
+**Self-compliance:** `.dev-knowledge` passes its own self-audit (10/10). *Historical note:* an earlier `adr38_baseline` required `src/` + `pyproject.toml`, which this documentation repo lacked and so FAILed on every self-audit. The ADR-38 amendment A5 (2026-05-23) re-scoped the baseline to governance files (`VISION`/`ARCHITECTURE`/`BACKLOG`, `src/tests/pyproject` not checked) — the self-FAIL is resolved, not a standing gap.
 
 ---
 
