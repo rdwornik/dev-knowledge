@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-01 — Doc-coherence audit (G1 pre-universalization gate): #10 doc-truth set closed
+
+- Did: Ran the pre-universalization coherence audit over the canonical doc set + ADRs on `chore/doc-coherence-audit`. Step-1 `audit.py health` was green but only covers 4 files' freshness + structural checks, so grounded the hard metric (each doc vs reality AND vs the other docs) with file:line — incl. cross-repo verification that ADR-43 routing is actually implemented (`ai-council/src/ai_council/routing.py` `TargetResolver`). Fixed the mechanical drifts one revertable commit each; escalated the genuine convention/placement calls.
+- Result: **13 mechanical drifts fixed across 8 commits** — CLAUDE §7 /handoff + §9 ruff/hook-list + §11 ADR-list (64-68) + §4 + version; ARCHITECTURE §Authority/§Validators audit.py status, governing-ADRs 55-68, handoff section+diagram redrawn v3.4→v4 two-phase; ESSENTIALS:364 ADR-43 routing (verified-false "pending" → implemented) + :221 v4 bundle shape; SESSION_SETUP handoff trigger v3.1→v4 (NEW, off-#10); LESSONS header stamp. **2 escalated (decision-required):** D1 ASCII-vs-graphical (CLAUDE §4 vs ADR-51); D2 TOKEN-LOG placement (`logs/` vs root / ADR-59). Green every commit: 139 tests, ruff, audit health 10/10, validate_backlog OK; pre-commit gate passed throughout.
+- Changes: `CLAUDE.md`, `ARCHITECTURE.md`, `protocols/ESSENTIALS.md`, `protocols/SESSION_SETUP.md`, `LESSONS.md` (header stamp only — no entry touched), `BACKLOG.md` ([#10] closure-noted, residual escalated). Commits `c0b4f2f`·`cdca459`·`b7bdebb`·`97991a0`·`06ce81c`·`e183bec`·`c099e78`·`4ee8d73` + this.
+- Abandoned / flagged: did NOT fix D1/D2 (operator's call); DOCS-ONLY — did NOT wire ruff or touch `audit.py` (ruff = BACKLOG #13). NEW low-signal noted, not fixed: ESSENTIALS:348 Polish text in a universal doc; README ADR↔transcript table has no ADR-68 row.
+- Next: operator reviews + decides D1/D2; **DO NOT MERGE** until GO, then `merge --no-ff` + delete branch. [#10] stays open pending the TOKEN-LOG decision.
+
+---
+
 ### 2026-06-01 — Backlog allocation pass: #70 (ADR-67), #10 night-agent drifts, ML-3 lesson
 
 - Did: Tidy step 2 on `chore/backlog-allocation` — added **[#70]** (operationalize the ADR-67 Council gated loop; P3/deferred, under a new "Operationalize the Council decision loop" story in Decision management); promoted the night agent's 3 morning-review drifts into **[#10]** (CLAUDE §11 five ADRs behind; ESSENTIALS↔ARCHITECTURE ADR-43 routing contradiction; ESSENTIALS:221 retired v3.x `contents/` subfolder); appended the **2026-05-29 v3.4-abort LESSON** (ML-3 — N+2 of #9 + straggler/multi-surface sub-lessons) in date order.
