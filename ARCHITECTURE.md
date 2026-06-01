@@ -387,7 +387,7 @@ flowchart TD
 Per ADR-31. `.dev-knowledge` is the **binding source of cross-repo prescriptions** (Authority model 1B — Prescriptive with conformance audit).
 
 - **Scale tier:** retired 2026-05-23 (repo-tier system deprecated ecosystem-wide; this repo declares no tier). `ARCHITECTURE.md` is now mandatory for every repo (ADR-51 as amended 2026-05-23), not a tier-specific artifact.
-- **Enforcement:** out-of-band, centralized, read-only audit tool (`scripts/audit.py` — pending full implementation per ADR-31). Reads sibling repos via explicit manifest; emits audit report. Manual invocation; no commit gating in downstream repos.
+- **Enforcement:** out-of-band, centralized, read-only audit tool (`scripts/audit.py` — ships 10 self-audit + cross-repo conformance checks per ADR-31/36). Reads sibling repos via explicit manifest; emits audit report. The cross-repo `run` is manual invocation with no commit gating in downstream repos; the self-audit `health` runs as a local pre-commit gate in this repo ([#69]).
 - **Content layout:** prescriptions live in PLAYBOOK + ADRs; dedicated `cross-repo/` subfolder deferred until prescription count exceeds ~10 or navigation becomes painful.
 - **Baseline rule (ADR-31):** audit tool must run green on first invocation. No known violations remain open. (Codex reviewer config is a global standard at `~/.codex/AGENTS.md`, canonical source at `codex/AGENTS.md` in this repo — ADR-54. Per-repo `AGENTS.md` carries only repo-specific review rules; it does not repeat the global config. Codex tool config is outside ADR-53's scope.)
 
@@ -403,7 +403,7 @@ Per ADR-28 invariant: `.dev-knowledge` may host **read-only** validators (Layer 
 - `scripts/check_backlog_commit_msg.py` — commit-msg hook requiring `[#id]` on task removal.
 - `scripts/codemap/` — ARCHITECTURE codemap generator + freshness check (pre-commit hook).
 - `tests/` — pytest unit tests for validators. Run: `pytest -x --tb=short`.
-- **Pre-commit hooks:** `normalize-dated-headers`, `codemap-freshness`, `validate-backlog`, `backlog-id-on-close` (commit-msg). (`ruff` is documented in CLAUDE.md §9 but not yet wired — BACKLOG [#13].)
+- **Pre-commit hooks:** `normalize-dated-headers`, `codemap-freshness`, `validate-backlog`, `audit-health` (self-conformance gate — `audit.py health`, FAIL blocks / WARN informs; [#69]), `backlog-id-on-close` (commit-msg). (`ruff` is documented in CLAUDE.md §4/§9 but not yet wired — BACKLOG [#13].)
 
 ---
 
