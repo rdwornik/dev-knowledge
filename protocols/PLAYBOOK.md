@@ -843,21 +843,20 @@ When opening a new session that continues prior work:
 
 **Anti-pattern:** opening new session with bare prompt "continue what we were doing" — without uploading context, both sides reconstruct from memory (browser) or scratch (Claude Code). Quality drops fast.
 
-### Parallel sessions (per ADR-61)
+### Parallel sessions & worktree discipline (per ADR-61)
 <!-- scope: meta -->
 
-**Different repos in parallel: already safe.** Separate `.git/` directories isolate each
-session completely — no worktree setup needed. Cross-repo sequential orchestration (one
-session `cd`-ing into multiple repos) is also safe for the same reason.
+**1 — When a worktree is needed**
 
-**Same repo in parallel: REQUIRES `git worktree`.**
+- **Different repos in parallel: already safe.** Separate `.git/` directories isolate each
+  session completely — no worktree setup needed. Cross-repo sequential orchestration (one
+  session `cd`-ing into multiple repos) is also safe for the same reason.
+- **Same repo in parallel: REQUIRES `git worktree`.** One working tree has one HEAD; two+
+  sessions on a shared checkout collide on branch refs and scatter commits (empirical
+  failure mode, ≥3 incidents 2026-05-26/27 — see
+  `docs/audits/2026-05-27-concurrency-anomaly-cleanup-2026-05-26.md`).
 
-Two or more Claude Code sessions on the same repo must use separate working trees. One
-working tree has one HEAD; concurrent sessions collide on branch refs and scatter commits
-(empirical failure mode, ≥3 incidents 2026-05-26/27 — see
-`docs/audits/2026-05-27-concurrency-anomaly-cleanup-2026-05-26.md`).
-
-**Setup (operator, before opening a 2nd same-repo session):**
+**2 — Setup** (operator, before opening a 2nd same-repo session)
 
 ```
 git -C <repo> worktree add <repo>-parallel main
@@ -866,16 +865,33 @@ git -C <repo> worktree add <repo>-parallel main
 Open the 2nd CC session from inside the worktree directory. Each session must work on a
 distinct branch (git forbids the same branch in two worktrees simultaneously).
 
-**Cleanup (after merging the parallel branch):**
+- **Naming:** `<repo>-parallel` for ad-hoc; `<repo>-wt-<purpose>` for multiple concurrent.
+- **Pre-flight:** always run `git worktree list` before starting parallel work.
+
+**3 — Discipline while running in parallel** (earned 2026-06-01 — see LESSONS)
+
+- **One worktree per goal.** Never drive a single checkout from two sessions — it clobbers
+  its own HEAD/refs and scatters commits.
+- **Serialize edits to shared canonical files** (BACKLOG, JOURNAL, PLAYBOOK, CLAUDE). Only
+  one active branch touches a given canonical file at a time — parallel branches each read
+  their *own* `main` and won't see each other's edits, producing silent divergence + conflicts.
+- **Allocate backlog ids at write-time, in order.** Never reserve an id "verbally" (held only
+  in conversation); a phantom reservation outside the file causes id collisions (the #68/#69
+  near-misses).
+
+**4 — Integration & cleanup** (once the parallel branch's work is done)
+
+- **Don't linearize across worktrees.** A branch checked out in another worktree cannot be
+  rebased from a different session (git blocks it). Use a `--no-ff` merge (repo norm) as the
+  integration path — don't fight git to linearize.
+- **Prune + delete immediately after merge** — an unmerged branch rots against the advancing
+  `main`; the longer it sits, the worse the divergence (and the merge conflict on landing).
 
 ```
 git -C <repo> worktree remove <repo>-parallel
 git -C <repo> worktree prune
+git -C <repo> branch -d <merged-branch>
 ```
-
-**Naming:** `<repo>-parallel` for ad-hoc; `<repo>-wt-<purpose>` for multiple concurrent.
-
-**Pre-flight:** always run `git worktree list` before starting parallel work.
 
 Full rationale: ADR-61.
 
@@ -884,6 +900,7 @@ Full rationale: ADR-61.
 
 - v1.0 (2026-04-25) — initial. 5 subsections: scope declaration, stop-signs, decision fatigue threshold, recursive planning anti-pattern, session resumption protocol. Codifies patterns observed in 2026-04-24 sessions. Will refine after live use.
 - v1.1 (2026-05-28) — add §Parallel sessions (ADR-61).
+- v1.2 (2026-06-01) — reorganize §Parallel sessions into When-needed / Setup / Discipline / Integration+cleanup; add the parallel-work discipline rules (one-worktree-per-goal, serialize canonical-file edits, write-time id allocation, `--no-ff` over cross-worktree rebase, prune+delete after merge) from the 2026-06-01 worktree-sprawl LESSON. No rule removed.
 
 ---
 
