@@ -219,7 +219,7 @@ flowchart TD
     adr2 --> degrade
 
     degrade -- "no" --> need
-    degrade -- "yes" --> handoff[/Handoff v3.4/]
+    degrade -- "yes" --> handoff[/Handoff v4/]
     handoff --> need
 
     classDef start fill:#bde0fe,stroke:#1971c2,color:#000
@@ -235,7 +235,7 @@ flowchart TD
     class council,handoff,adr sub
 ```
 
-**Source:** `protocols/PLAYBOOK.md` §"Project complexity bands", §"Writing prompts for Claude Code", §"Session boundaries"; `protocols/HANDOFF_PROCESS.md` v3.4; ADR-28 Layer-3 execution semantics.
+**Source:** `protocols/PLAYBOOK.md` §"Project complexity bands", §"Writing prompts for Claude Code", §"Session boundaries"; `protocols/HANDOFF_PROCESS.md` v4; ADR-28 Layer-3 execution semantics.
 
 ### AI Council debate pipeline
 
@@ -294,66 +294,60 @@ flowchart TD
 
 **Operational runbook (prose companion):** `protocols/AI_COUNCIL_PROCESS.md` — six-stage lifecycle (frame → author → route → debate → verdict → ADR → close), gate checks, troubleshooting.
 
-### Handoff process v3.4
+### Handoff process v4
 
-Three stages plus the receiver's applied-task gate. Grounded in `HANDOFF_PROCESS.md` v3.4 + ADRs 55/56/57/58 + ADR-42 Q5 amendment.
+Two phases — interview (Phase 1) then consolidate (Phase 2) — plus the apprentice's comprehension check before work. A handoff is onboarding a new chat (a teaching protocol), not a file transfer. Grounded in `HANDOFF_PROCESS.md` v4 (stamp 4.3.1, status stable) + ADR-62 ratification; ADRs 55/56/57/58 describe the superseded v3.x design (where they conflict with v4, v4 wins).
 
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'darkMode':true,'background':'#1a1a1a','primaryColor':'#2d2d3d','primaryTextColor':'#f0f0f0','primaryBorderColor':'#8a86ff','lineColor':'#a0a0ff','textColor':'#f0f0f0','mainBkg':'#2d2d3d','secondaryColor':'#3d2d3d','tertiaryColor':'#22323a','clusterBkg':'#222232','clusterBorder':'#555577','edgeLabelBackground':'#1a1a1a','titleColor':'#f0f0f0','nodeBorder':'#8a86ff'}}}%%
 flowchart TD
-    trigger(["Operator: 'Make handoff for {repo}'"])
-    trigger --> stage1
+    trigger(["Operator: 'please create handoff for {repo}'"])
+    trigger --> phase1
 
-    subgraph stage1 [Stage 1 — Claude Code in .dev-knowledge]
+    subgraph phase1 [Phase 1 — Interview · Claude Code in .dev-knowledge]
         direction TB
-        s1a[Capture target repo state<br/>HEAD SHA, branch, working tree]
-        s1b[Generate stage1-question.md<br/>5 SBAR/I-PASS questions]
-        s1c[Pre-create stage2-response.md placeholder]
-        s1d[Single commit on feature branch]
-        s1a --> s1b --> s1c --> s1d
+        p1a[Capture target repo state<br/>HEAD SHA, branch, working tree]
+        p1b[Write _handoff-interview.md in in-progress/<br/>one sage-to-apprentice cluster of 5 questions:<br/>Past / Present / Future / Wisdom / Warnings]
+        p1c[Append JOURNAL marker + commit on feature branch]
+        p1a --> p1b --> p1c
     end
 
-    stage1 --> stage2
+    phase1 --> between
 
-    subgraph stage2 [Stage 2 — OLD browser chat - dying architect context]
+    subgraph between [Operator — between phases]
         direction TB
-        s2a[Operator pastes question block into OLD chat]
-        s2b[OLD chat answers 5 sections<br/>OBJECTIVE / REALITY / RATIONALE / DIRECTIVES / BOUNDARIES]
-        s2c[Operator declares next_session_scope<br/>from controlled vocabulary]
-        s2d[Operator produces 11_CLAIMS.md<br/>cited or marked assumption]
-        s2a --> s2b --> s2c --> s2d
+        o1[Copy questions into the SENDER browser chat<br/>the dying chat that holds the lived context]
+        o2[Paste narrative answers below the marker, save]
+        o1 --> o2
     end
 
-    stage2 --> stage3
+    between --> trigger2(["Operator: 'complete handoff for {repo}'"])
+    trigger2 --> phase2
 
-    subgraph stage3 [Stage 3 — Claude Code in .dev-knowledge]
+    subgraph phase2 [Phase 2 — Consolidate · Claude Code in .dev-knowledge]
         direction TB
-        s3a[Ancestor check: Stage 1 SHA ⊑ HEAD]
-        s3b[Thinness pre-flight on 5 sections]
-        s3c[Generate 13-file bundle<br/>governance floor + operational layer per scope]
-        s3d[Draft 10_GATE_PROBE.md applied probe]
-        s3e[Validate 11_CLAIMS.md citations]
-        s3f[Compute SHA-256 + invariant hashes → 01_manifest.json]
-        s3g[Move in-progress → archive/]
-        s3a --> s3b --> s3c --> s3d --> s3e --> s3f --> s3g
+        p2a[Read interview answers]
+        p2b[Cross-check answers vs actual repo state<br/>drift surfaced to the operator]
+        p2c[Generate flat bundle docs/handoffs/slug/<br/>README + 01_ROLE through 07_ASK_BACK, from source]
+        p2d[Inline four-tag claims + load-bearing-facts table in 04_RECENT]
+        p2e[Remove the in-progress folder + JOURNAL marker + commit]
+        p2a --> p2b --> p2c --> p2d --> p2e
     end
 
-    stage3 --> recv
+    phase2 --> recv
 
-    subgraph recv [Receiver — NEW browser chat]
+    subgraph recv [Apprentice — NEW browser chat]
         direction TB
-        s4a[Read bundle in order, governance floor first]
-        s4b[State role + top-3 hard constraints with citations]
-        s4c[Read 10_GATE_PROBE.md mini-scenario only<br/>not the operator answer key]
-        s4d[Answer directed action + bundle location + preconditions]
-        s4a --> s4b --> s4c --> s4d
+        s4a[Read 01 through 07 in order, governance floor first]
+        s4b[Answer 06_QUESTIONS comprehension check]
+        s4c[Raise up to 3 questions in 07_ASK_BACK]
+        s4a --> s4b --> s4c
     end
 
-    recv --> ratify{Operator structured ratification}
-    ratify -- "claims green + probe match + articulation match" --> work[NEW chat executes directives<br/>fills 09_EXECUTION_EVIDENCE.md]
-    ratify -- "first fail" --> retry[Operator cites contradicted bundle location<br/>NEW chat retries probe once]
-    retry --> ratify
-    ratify -- "second fail" --> abort[Bundle inadequate<br/>regenerate Stage 2 upstream]
+    recv --> ratify{Operator ratification}
+    ratify -- "comprehension + facts verified" --> work[NEW chat executes the work]
+    ratify -- "gaps or drift found" --> amend[Operator flags; amend 04_RECENT by append<br/>bundle is living until the next handoff]
+    amend --> ratify
 
     classDef start fill:#bde0fe,stroke:#1971c2,color:#000
     classDef stg fill:#e8e8e8,stroke:#888,color:#222
@@ -361,14 +355,14 @@ flowchart TD
     classDef work_ fill:#d8f5a2,stroke:#5c940d,color:#222
     classDef warn fill:#ffe3e3,stroke:#fa5252,color:#222
 
-    class trigger start
-    class stage1,stage2,stage3,recv stg
+    class trigger,trigger2 start
+    class phase1,phase2,between,recv stg
     class ratify decide
     class work work_
-    class abort warn
+    class amend warn
 ```
 
-**Source:** `protocols/HANDOFF_PROCESS.md` v3.4 (three-stage flow, applied-task gate, structured ratification, ancestor check, 13-file bundle); ADR-55 (applied-task gate), ADR-56 (Prompt Generation Card), ADR-57 (two-layer bundle), ADR-58 (structured claims), ADR-42 Q5 amendment (manifest invariant hashes + `next_session_scope`).
+**Source:** `protocols/HANDOFF_PROCESS.md` v4 (stamp 4.3.1 — two-phase flow, sage→apprentice interview, eight flat bundle files [README + 01–07], generated-from-source principle, four-tag claims, load-bearing-facts verification table); ADR-62 (v4 ratification). ADRs 55/56/57/58 + ADR-42 Q5 describe the superseded v3.x design now folded into v4 (separate claims/scope/probe artifacts → inline narrative in the generated bundle).
 
 ---
 
