@@ -33,6 +33,24 @@ chore: update dev dependencies
 
 Scopes are optional but use the file/folder slug when it clarifies. See recent commits in `git log` for live examples.
 
+### Backlog-id references (forward-only index)
+
+<!-- scope: meta -->
+
+Commit messages **extend** Conventional Commits (they do not replace them) with an optional backlog/ADR reference, so a closure is locatable by id (ADR-65: git is the technical record, forward-indexed via this convention):
+
+```
+fix(audit): widen check-8 stamp regex [#42]      # touches backlog item 42
+feat(scripts): add backlog validator, closes [#57]   # closing commit for item 57
+docs(adr): ADR-65 done-item disposition           # ADR number is itself the index
+```
+
+- **Touching** a backlog item: append `[#<id>]` to the summary.
+- **Closing** a backlog item: add `closes [#<id>]` (summary or body) — pairs with the item leaving `BACKLOG.md` in the same or a following commit.
+- `<id>` is the entry's stable `id:` field (monotonic, never reused — PLAYBOOK §10 schema).
+
+This indexes commits **going forward only.** Git history is immutable — **historical commits are never rewritten** (ADR-65). Pre-convention closures are located via the SHAs already embedded in retired entries (preserved in the one-time migration JOURNAL map).
+
 ## Pre-commit setup
 
 <!-- scope: meta -->
