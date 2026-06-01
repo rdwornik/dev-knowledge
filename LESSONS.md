@@ -3,7 +3,7 @@
 
 > **Format:** `### YYYY-MM-DD | source | lesson | category | [scope: X] | action taken`
 > New entries go at the top of the Entries section. Never edit old entries. Never delete.
-> Last updated: 2026-05-24
+> Last updated: 2026-06-01
 
 ---
 
