@@ -6,9 +6,12 @@ Layer-2 invariant: reads BACKLOG.md only; never writes, never orchestrates.
 Hard-fail (exit 1) — objective schema violations only:
   - a ``status:`` word outside ``open | in-progress | blocked | done``
   - any ``done`` entry present (done items must leave the file — ADR-65)
-  - an entry missing its ``id:`` field
+  - an entry missing its ``id:`` field, or a duplicate ``id:``
   - section<->status disagreement for the status sections
     (``## Now``->in-progress, ``## Blocked``->blocked, ``## Open``->open)
+
+(Monotonic / never-reused ``id`` is an *assignment* discipline — removals leave
+gaps and ids are not in file order — so only uniqueness is enforced statically.)
 
 Warn-only (never blocks) — subjective signals:
   - ``## Now`` has more than 5 items
@@ -89,6 +92,20 @@ def validate(entries):
         want = SECTION_STATUS.get(e["section"])
         if want and status in VALID_STATUS and status != "done" and status != want:
             hard.append(f'section/status mismatch: ## {e["section"]} requires status:{want}, got {status!r} — {tag}')
+
+    # id uniqueness (hard-fail). NOT enforced: file-order / contiguous monotonicity —
+    # ids are assigned monotonically and never reused, so removals leave gaps and a new
+    # id can sit above earlier ones in a different section; a contiguous/order check would
+    # be wrong by design. Monotonic *assignment* is a discipline, not a static file invariant
+    # (would need a last-issued watermark to verify). Uniqueness is the checkable invariant.
+    seen = {}
+    for e in entries:
+        eid = e["id"]
+        if eid and eid.isdigit():
+            if eid in seen:
+                hard.append(f'duplicate id {eid}: lines {seen[eid]} and {e["line"]}')
+            else:
+                seen[eid] = e["line"]
 
     if len(now) > 5:
         warn.append(f'## Now has {len(now)} items (>5)')

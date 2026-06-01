@@ -2081,10 +2081,10 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
 ```
 
 **Rules** (hard-fail in the validator unless marked warn):
-- **status vocabulary** is exactly `open | in-progress | blocked | done` — no other word.
+- **status vocabulary** is exactly `open | in-progress | blocked | done` — no other word. (`done` is a valid *word* but a `done` *entry* must not remain in the file — see the no-`done` rule.)
 - **single-location-by-status** — the section must agree with `status:` (`## Now`↔in-progress, `## Blocked`↔blocked, `## Open`/P*↔open). An item appears once; no pointers, no duplication.
 - **no `done` items in the file** — done items leave on close (ADR-65); a `done` entry present is a hard-fail.
-- **`id:` required**, a monotonic integer, **never reused** even after an item is removed — so a forward commit reference `[#<id>]` (CONTRIBUTING) stays unambiguous forever.
+- **`id:` required** and **unique** (validator hard-fail on duplicates). Assigned **monotonically** (each new id exceeds all prior) and **never reused** — so removals leave *gaps* (the sequence is not contiguous and ids are not in file order), and a forward commit reference `[#<id>]` (CONTRIBUTING) stays unambiguous forever. Monotonic-assignment is a discipline, not a static check (uniqueness is what the validator enforces).
 - **`repo:`** is `.dev-knowledge` for own work; a child-repo path is allowed **only** inside `## Coordination` (a governance pointer, never a duplicated task).
 - **Priority:** P1 = critical/blocking · P2 = important/next 1–3 sessions · P3 = wishlist. *(warn-only: `## Now` >5 items; `## Coordination` >10.)*
 
