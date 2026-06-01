@@ -178,44 +178,45 @@ If nothing was learned — skip this step. Not every chat produces lessons.
 ## Handoff workflow trigger
 <!-- scope: hybrid -->
 
-When Rob says one of these phrases, follow ADR-42 three-stage flow per
-`protocols/HANDOFF_PROCESS.md` v3.1:
+When Rob says one of these phrases, follow the v4 two-phase flow per
+`protocols/HANDOFF_PROCESS.md` v4 (the single live source of truth for handoff
+mechanics):
 
-- "Make handoff for {repo}" / "Make handoff for {repo}, type {type}" → Stage 1
-- "Complete handoff for {repo}" / "Stage 3 for {slug}" → Stage 3
-- "Save this response as stage 2 for {slug}" → write stage2-response.md
-
-**Three-actor flow per ADR-42 (twice amended — ALL types, no shortcuts):**
-
-| Actor | Role |
+| Phrase | Effect |
 |---|---|
-| Claude Code (.dev-knowledge) | Orchestrator + generator (Stages 1 + 3) |
-| OLD browser chat for {repo} | Stage 2 source: existing chat being wrapped up; provides tacit knowledge |
-| NEW browser chat for {repo} | Stage 3 receiver: fresh chat opened after folder generated; acts on directives |
+| `please create handoff for {repo}` | Phase 1 — generate the interview |
+| `complete handoff for {repo}` | Phase 2 — consolidate the bundle |
 
-**Three-stage flow:**
+`{repo}` defaults to `.dev-knowledge` (self-handoff); naming another repo is a
+cross-repo handoff.
 
-1. **Stage 1** (Claude Code): capture target repo HEAD SHA + branch + status;
-   read BACKLOG for relevant items; for audit-sync also read audit reports as
-   context; generate `docs/handoffs/in-progress/{slug}/stage1-question.md`
-   using `templates/HANDOFF_QUESTION_TEMPLATE.md`; append JOURNAL entry; commit.
-2. **Stage 2** (Rob manually): paste Stage 1 output into the EXISTING (OLD)
-   browser chat for {repo} — the one being wrapped up; receive architect response
-   from that chat; save as `in-progress/{slug}/stage2-response.md`. Stage 2
-   must NOT go to a new chat — new chat has no context to contribute.
-3. **Stage 3** (Claude Code): verify both stage1 + stage2 files present; re-verify
-   HEAD SHA (drift → FLAG); read `templates/HANDOFF_FOLDER_TEMPLATE.md`; generate
-   all 11 files at `docs/handoffs/{slug}/`; archive stage1+2 inputs at
-   `docs/handoffs/archive/{slug}/`; compute SHA-256; append JOURNAL + CHANGELOG;
-   commit. After Stage 3: OLD chat can be closed; Rob opens NEW chat with folder bundle.
+**Two-phase flow:**
 
-**State detection** (automatic based on file presence in `in-progress/{slug}/`):
+1. **Phase 1 — Interview** (Claude Code): capture target repo HEAD SHA + branch +
+   working-tree state; write `docs/handoffs/in-progress/{slug}/_handoff-interview.md`
+   — one sage→apprentice cluster of 5 questions (Past / Present / Future / Wisdom /
+   Warnings) plus a `=== PASTE ANSWERS BELOW THIS LINE ===` marker; append a JOURNAL
+   marker; commit on the feature branch.
+2. **Operator (between phases):** copy the questions into the SENDER browser chat
+   (the chat being wrapped up — it holds the lived context), get narrative answers,
+   paste them below the marker, save. Answers must come from the sender chat, not a
+   fresh one — a new chat has no context to contribute.
+3. **Phase 2 — Consolidate** (Claude Code): read the interview; cross-check the
+   answers against actual repo state (drift → FLAG to operator); generate the flat
+   bundle at `docs/handoffs/{slug}/` (README + `01_ROLE`…`07_ASK_BACK`) from source
+   files; remove the `in-progress/{slug}/` folder; append a JOURNAL marker; commit.
+   Then Rob opens a NEW (apprentice) chat with the bundle.
 
-| Files present | Detected stage |
+No Stage vocabulary, no placeholder dance, no separate claims/scope/probe files —
+claims and scope become inline narrative in the generated bundle.
+
+**State detection** (based on `in-progress/{slug}/` presence):
+
+| State | Action |
 |---|---|
-| None | Stage 0 → run Stage 1 |
-| stage1-question.md only | Awaiting Stage 2 → show Rob instructions |
-| stage1-question.md + stage2-response.md | Ready → run Stage 3 |
+| No `in-progress/{slug}/` folder | run Phase 1 |
+| `_handoff-interview.md` present, no answers below the marker | awaiting operator paste |
+| `_handoff-interview.md` with answers pasted | run Phase 2 |
 
 ---
 
@@ -229,5 +230,5 @@ When starting any new Claude Code session in `.dev-knowledge` (per ADR-41):
 3. After session, append new items or update status via per-handoff grooming
 
 When starting a browser-2 session that consumes a handoff:
-- `07_ACTION_PLAN.md` references BACKLOG entry IDs for deferred items
+- `05_NOW.md` references BACKLOG entry IDs for in-progress / deferred items
 - Do NOT duplicate BACKLOG content into the session — cite the entry, don't copy it
