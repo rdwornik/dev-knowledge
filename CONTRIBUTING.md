@@ -1,3 +1,9 @@
+---
+last_reviewed: 2026-06-01
+status: active
+owner: Rob
+---
+
 # Contributing
 
 <!-- scope: meta -->
@@ -86,13 +92,20 @@ pre-commit run --all-files
 
 <!-- scope: meta -->
 
-One auto-format hook runs on commit:
+Pre-commit hooks (`.pre-commit-config.yaml`):
 
-| Hook | What it does |
-|------|--------------|
-| `normalize-dated-headers` | Rewrites dated-log entry headers to canonical `### YYYY-MM-DD` form. Idempotent. Auto-format style: rewrites; never fails. |
+| Hook | Stage | What it does |
+|------|-------|--------------|
+| `normalize-dated-headers` | commit | Rewrites dated-log entry headers to canonical `### YYYY-MM-DD` form. Idempotent. Auto-format style: rewrites; never fails. |
+| `codemap-freshness` | commit | Checks the ARCHITECTURE.md codemap block is current vs `scripts/`. |
+| `validate-backlog` | commit | Validates the BACKLOG.md story-map structure (ADR-66). |
+| `backlog-id-on-close` | commit-msg | Requires `[#id]` / `closes [#id]` when a commit removes a `- [#id]` task. |
 
-Run standalone (e.g. to clean up before commit):
+(`ruff` is referenced in CLAUDE.md §9 but is not currently wired into pre-commit — tracked in BACKLOG [#13].)
+
+Standalone conformance checks (read-only, manual — not pre-commit gated): `python scripts/audit.py health` runs the full self-conformance suite, including the canonical-file **freshness** check (`last_reviewed` staleness; see PLAYBOOK).
+
+Run the auto-format hook standalone (e.g. to clean up before commit):
 
 ```
 python scripts/normalize_headers.py LESSONS.md JOURNAL.md

@@ -1,7 +1,7 @@
 ---
 version: 1.0
 owner: rob
-last_reviewed: 2026-05-24
+last_reviewed: 2026-06-01
 status: active
 ---
 
@@ -119,7 +119,7 @@ VISION is a **living, verifiable document** — not a one-shot statement.
 
 **Verification mechanism:** VISION is verified against other ecosystem
 artifacts to detect drift:
-- Stream backlog reflects what VISION declares as in-scope
+- Backlog (story map per ADR-66) reflects what VISION declares as in-scope
 - JOURNAL entries trace work back to VISION goals
 - ADRs implement VISION decisions
 - Drift signal: any of above contradict VISION → trigger review

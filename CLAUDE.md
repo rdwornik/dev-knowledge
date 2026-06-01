@@ -1,3 +1,9 @@
+---
+last_reviewed: 2026-06-01
+status: active
+owner: Rob
+---
+
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
 <!-- version: 2.1 — 2026-05-19 -->
@@ -40,10 +46,11 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 - **Naming:** UPPERCASE for top-level living docs (`VISION.md`, `CLAUDE.md`, etc.); `ADR-NN-topic.md` for decisions; `YYYY-MM-DD-slug.md` for dated artifacts; `council-out-YYYYMMDD_HHMMSS-topic.md` for Council CLI output; kebab-case otherwise
 - **Commits:** Conventional Commits — `feat/fix/docs/chore/refactor`
 - **Branches:** `feat/<topic>`, `fix/<issue>`, `docs/<scope>`, `chore/<scope>` off `main`
-- **Testing:** `pytest -x --tb=short` (known pre-existing failure: `test_audit_run_passes_structural_checks_on_synthetic_repo` — tracked in BACKLOG)
+- **Testing:** `pytest -x --tb=short`
 - **Linting:** `ruff check --fix` (pre-commit)
 - **Scope tags:** `<!-- scope: X -->` (`dev|llm|hybrid|runtime|meta`) — informal only; not enforced (ADR-27; enforcement withdrawn per ADR-48)
 - **File lifecycle:** Append-only: `LESSONS.md`, `TOKEN-LOG.md` (never edit), `JOURNAL.md` (newest-first prepend). Immutable: ADRs, transcripts, handoffs, audits (supersede with new file). Living: `VISION.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/*.md`, `BACKLOG.md` (update in place).
+- **Freshness cadence:** the living docs `VISION/ARCHITECTURE/CLAUDE/CONTRIBUTING` carry a `last_reviewed` frontmatter stamp meaning *re-read end-to-end and confirmed accurate (or drift filed)* — **not** merely "touched". `audit.py` check #10 fails when a stamp predates the file's last edit (edited-but-not-re-reviewed) and warns past a 30-day backstop. Bump `last_reviewed` only after a genuine review. See PLAYBOOK "Canonical-file freshness cadence".
 
 **Out of scope for this repo:**
 - Code-level implementation → child repos (corp-monorepo, ai-council, etc.)
@@ -145,5 +152,5 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 
 ---
 
-**Last updated:** 2026-05-24
+**Last updated:** 2026-06-01
 **Maintained by:** Rob
