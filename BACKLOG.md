@@ -388,6 +388,15 @@ _(nothing in progress — next actions are the top of `## Open` → `### P1`)_
 - **Why:** Durability-audit J5 — child repos run no analogous audit; conformance is verified only on a manual `.dev-knowledge` sweep. Overlaps id 29.
 - **Added:** 2026-05-28 by rob
 
+### [P3] Validator hardening — repo: enforcement + malformed-section hard-fail
+- **id:** 66
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Deferred `scripts/validate_backlog.py` improvements from the 2026-06-01 Codex + fresh-eyes review (the migration kept the validator narrow per its prompt; id-uniqueness was added, these were not): (a) require `repo:` and enforce that child-repo values appear only under `## Coordination` (Codex H2); (b) hard-fail on entries under an unknown/mistyped H2 or before any section, instead of silently keeping the prior section (Codex H3); (c) relax `_FIELD_RE` to tolerate variable spacing for clearer errors (fresh-eyes NTH).
+- **Why:** Widens validator coverage of the schema's routing + structure rules. None are active breaches at HEAD (repo: fields correct, sections well-formed) — deferred because the implementation prompt scoped the validator narrow.
+- **Added:** 2026-06-01 by rob (Codex + fresh-eyes review of the migration branch)
+- **Refs:** `docs/audits/2026-06-01-codex-backlog-migration-adr64.md`; `scripts/validate_backlog.py`
+
 ---
 
 ## Blocked
