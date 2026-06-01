@@ -103,12 +103,26 @@ Utility-exemption modules: none.
 
 `.dev-knowledge` is not a static pile of governance documents — it is a **feedback engine** that turns lived experience into enforced, propagated standards, then runs those standards to generate the next round of experience. Each stage is the input to the next, and the loop closes: running the conventions in real sessions surfaces new friction, which becomes the next lesson. A library is read and forgotten; an engine reprocesses its own output.
 
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'darkMode':true,'background':'#1a1a1a','primaryColor':'#2d2d3d','primaryTextColor':'#f0f0f0','primaryBorderColor':'#8a86ff','lineColor':'#a0a0ff','textColor':'#f0f0f0','mainBkg':'#2d2d3d','secondaryColor':'#3d2d3d','tertiaryColor':'#22323a','clusterBkg':'#222232','clusterBorder':'#555577','edgeLabelBackground':'#1a1a1a','titleColor':'#f0f0f0','nodeBorder':'#8a86ff'}}}%%
+flowchart LR
+    lessons[Lessons<br/>LESSONS.md]
+    adr[Decision / ADR<br/>docs/decisions/ + Council]
+    conv[Conventions<br/>PLAYBOOK / ESSENTIALS / CLAUDE.md]
+    enf[Enforcement<br/>audit.py + hooks]
+    diss[Dissemination<br/>conformance audit to child repos]
+
+    lessons --> adr --> conv --> enf --> diss
+    diss -- "run conventions in live sessions -> new friction" --> lessons
+
+    classDef stg fill:#e8e8e8,stroke:#888,color:#222
+    classDef work_ fill:#d8f5a2,stroke:#5c940d,color:#222
+
+    class lessons,adr,conv stg
+    class enf,diss work_
 ```
-   Lessons --> Decision/ADR --> Conventions --> Enforcement --> Dissemination
-      ^                                                              |
-      +--------------------------------------------------------------+
-            running the conventions in live sessions -> new Lessons
-```
+
+The two frontier stages (Enforcement, Dissemination — green) are where active work concentrates; the recording stages (grey) feed them.
 
 | Stage | What happens | Embodied in |
 |-------|--------------|-------------|
