@@ -614,8 +614,8 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `TOKEN-LOG.md` | Claude usage snapshots | Threshold-triggered (7-day) via /session-summary | Auto when stale | Rob | Newest-first (prepend) | Universal (`.dev-knowledge` only) |
 | `ENVIRONMENT.md` | Tooling state, what's installed | Sectioned, scope-tagged | When tool adopted/deprecated | Rob, Claude Code | Living (sections updated) | Per-repo |
 | `docs/decisions/ADR-NN-*.md` | Architectural decisions | Michael Nygard format | When decision binds | Rob, future contributors | Numbered, immutable (amend in-place per ADR-29) | Per-repo |
-| `docs/decisions/transcripts/DECISION_NN_*.md` | Raw Council debate outputs | Multi-model debate transcript | When Council debate concludes (per PLAYBOOK 5.N archival) | Reference for ADR rationale | Numbered, immutable | Per-repo |
-| `docs/handoffs/YYYY-MM-DD-*.md` (legacy) or `docs/handoffs/YYYY-MM-DD-*/` (folder, since 2026-04-27) | Chat-to-chat session summary | Single-file legacy OR folder-format (upload-instructions + first-message + contents/) | When session boundary requires continuity | Next browser chat | Dated, immutable | Per-repo |
+| `docs/decisions/transcripts/council-out-*.md` | Raw Council debate outputs (canonical; legacy `DECISION_NN_*` grandfathered in `transcripts/archive/legacy/`) | Multi-model debate transcript | When Council debate concludes (routed per ADR-43; manual fallback per §5) | Reference for ADR rationale | Numbered, immutable | Per-repo |
+| `docs/handoffs/YYYY-MM-DD-*/` (v4 bundle) | Chat-to-chat session summary | Flat bundle `README.md` + `01_ROLE`…`07_ASK_BACK`, generated from source (HANDOFF_PROCESS v4); legacy single-file + v3.x `contents/` bundles preserved as history | When session boundary requires continuity | Next browser chat | Dated, immutable | `.dev-knowledge` only |
 | `docs/audits/YYYY-MM-DD-*.md` | Point-in-time analyses | Free-form audit | When deep analysis needed | Reference for follow-up work | Dated, immutable (mark SUPERSEDED if redone) | Per-repo |
 
 ### File presence (universal baseline)
@@ -693,38 +693,17 @@ The decommission action is part of the decision, not an optional follow-up. A
 decision that supersedes something is not complete until its `Decommission:`
 items are removed or tracked in BACKLOG.
 
-### Handoff format spec (since 2026-04-27)
+### Handoff format spec
+
 <!-- scope: meta -->
 
-Two formats coexist in `docs/handoffs/`:
+**Authoritative spec: `protocols/HANDOFF_PROCESS.md` v4** — the single live source of truth for handoff mechanics. This is a pointer, not a duplicate; do not re-document the bundle structure here (the duplication is what drifted).
 
-**Legacy (before 2026-04-27)** — single `.md` file, dated `YYYY-MM-DD-slug.md`. Content: free-form session summary. Preserved as-is — do not migrate.
+Three formats exist in `docs/handoffs/`, two of them historical:
 
-**New (since 2026-04-27, per Topic 2 + Research synthesis)** — folder per session:
-
-```
-docs/handoffs/{date}-{slug}/
-├── upload-instructions.md   (top — drag-drop guidance)
-├── first-message.md         (top — paste verbatim into new browser chat)
-└── contents/                (single drag-drop target)
-    ├── HANDOFF.md           (session state — decisions, pending, references)
-    ├── manifest.json        (context orchestration: layers, reading order, refs)
-    ├── tree.txt             (repo structure snapshot for browser orientation)
-    ├── ESSENTIALS.md        (point-in-time copy)
-    ├── PLAYBOOK.md          (point-in-time copy)
-    ├── JOURNAL.md           (point-in-time copy)
-    └── CLAUDE.md            (point-in-time copy)
-```
-
-**When to use new format:** session boundaries with substantive state to preserve (decisions, pending work, cross-stream context). Default to new format for Stream-level handoffs.
-
-**When legacy still acceptable:** quick single-session summary with no need for point-in-time copies (rare since cleanup).
-
-**Validator interaction:** `contents/*.md` files under `docs/handoffs/` are excluded from pre-commit scope checks — no duplicate-tag concerns.
-
-**First instance:** `docs/handoffs/2026-04-27-stream-c-session-1-final/` — Stream C session 1 close.
-
-**Rationale:** point-in-time copies prevent drift between session intent and live state at resume time. Manifest + tree.txt give browser deterministic upload index + structural orientation. No repo-root `HANDOFF.md` (per Topic 2 decision: source of truth lives in session folder, not at root).
+- **Legacy single-file (before 2026-04-27)** — one dated `YYYY-MM-DD-slug.md` free-form summary. Preserved as-is; do not migrate.
+- **v3.x folder bundle (2026-04-27 → v4 rollout)** — `upload-instructions.md` + `first-message.md` + a `contents/` subfolder of point-in-time copies (`HANDOFF.md`, `manifest.json`, `tree.txt`, governance copies). **Superseded by v4**; existing bundles are preserved as point-in-time history, never regenerated.
+- **v4 bundle (current)** — flat `docs/handoffs/<slug>/` = `README.md` + `01_ROLE`…`07_ASK_BACK`, **generated from source at handoff time** (not hand-maintained copies — generation is what stopped the drift). Two-phase flow (Phase 1 interview → Phase 2 consolidate). Full structure + generation principle in `HANDOFF_PROCESS.md` §4–§5.
 
 ### Order conventions
 <!-- scope: meta -->
@@ -1509,8 +1488,8 @@ WHAT NOT TO DO:
 ### Prompt Generation Card maintenance rule (per ADR-56, Council Q3)
 <!-- scope: hybrid -->
 
-The handoff bundle ships an inline **Prompt Generation Card** in
-`00_first-message.md` (the operational extract a fresh browser chat uses to
+The v4 handoff bundle folds the **Prompt Generation Card** (ADR-56) into
+`02_METHODOLOGY.md` (the operational extract a fresh browser chat uses to
 generate Claude Code prompts, since it cannot read the filesystem). This PLAYBOOK
 section remains the rationale and edge-case authority; the card is the
 point-of-use procedure. The two are an intentional duplication.
@@ -1519,7 +1498,7 @@ point-of-use procedure. The two are an intentional duplication.
 table, the mandatory skeleton, hook guidance) MUST update BOTH:**
 
 1. this PLAYBOOK rationale, and
-2. the inline card in `templates/HANDOFF_FOLDER_TEMPLATE.md` `### 00_first-message.md`.
+2. the inline card in the v4 template `templates/handoff/02_METHODOLOGY.md.tmpl`.
 
 Drift between the two is a process bug — the card is the point-of-use authority,
 PLAYBOOK is the maintenance source. The card has a ≤200-line size budget; if it
@@ -1984,24 +1963,14 @@ After archival, cross-link FROM:
 ## 8. Handing Off Between Sessions
 <!-- scope: meta -->
 
-Operational authority: `protocols/HANDOFF_PROCESS.md` (ADR-32 v2.0 + ADR-37 two-phase overlay). This section summarizes handoff governance. For handoff generation, follow HANDOFF_PROCESS.md.
+Operational authority: `protocols/HANDOFF_PROCESS.md` v4 (ratified by ADR-62; two-phase interview→consolidate flow). This section summarizes handoff governance; for handoff generation, follow HANDOFF_PROCESS.md — it is the single live source of truth and this summary must not duplicate its mechanics.
 
-Cross-refs: ADR-37, ADR-32, ADR-42 (handoff format v3)
+Cross-refs: ADR-62 (v4 ratification), ADR-37 (session-boundary two-phase overlay — design history), ADR-32/42 (handoff format v2/v3 — superseded by v4).
 
-### Two-phase structure (ADR-37)
+### What the v4 bundle carries
 <!-- scope: meta -->
 
-Every handoff has two authoritative top-level sections that appear above the ADR-32 9-section Detailed Context:
-
-**Current State** (maps to `06_STATE_OF_PLAY.md`): verified factual status, decisions made this session, open questions, last verified commit SHA + timestamp.
-
-**Future State** (maps to `07_ACTION_PLAN.md`): next session goal (1–3 session horizon, not multi-quarter), recommended actions in priority order, dependencies, BACKLOG.md references (Section 10).
-
-**Canonicality rule:** Top-level Current/Future State = authoritative operational state. ADR-32 Detailed Context = reference layer. If they contradict, top-level wins.
-
-Mandate by handoff type:
-- **Session handoffs:** Future State required. `Future state: undetermined` valid only with written justification (cognitive exhaustion / scope mismatch / unresolved dependency). Unjustified absence = invalid.
-- **Audit handoffs** (generated by audit tool per Section 18): STRONG mandate — validator rejects folder if Future State missing.
+The v4 bundle teaches a new chat, in paste order: who it is (`01_ROLE`), how we work (`02_METHODOLOGY`), the project (`03_PROJECT`), **what just happened** (`04_RECENT` — narrative + a load-bearing-facts verification table), **what to do now** (`05_NOW` — top P1s + in-progress branches + `BACKLOG.md` references, Section 10), then a comprehension check (`06_QUESTIONS`) and an ask-back slot (`07_ASK_BACK`). The "current state / future state" intent of the old ADR-37 overlay now lives in `04_RECENT` + `05_NOW`. Files are generated from source at handoff time; full structure + the sage→apprentice interview in HANDOFF_PROCESS.md §3–§5.
 
 ### Roles
 <!-- scope: meta -->
@@ -2016,7 +1985,7 @@ Mandate by handoff type:
 
 **Path A — Claude Code → Browser:** `/session-summary` in Claude Code → paste into Claude.ai. Discuss architecture/strategy; decisions return as prompts (Section 2 format).
 
-**Path B — Browser → New Browser:** Say `wygeneruj handoff`. Claude generates the folder-format handoff per HANDOFF_PROCESS.md — Rob makes zero formatting decisions. Trigger at ~2 hours while context is still fresh. Generate → Copy → Paste. No archiving step.
+**Path B — Browser → New Browser:** the operator triggers `please create handoff for <repo>` (Phase 1) then `complete handoff for <repo>` (Phase 2); Claude Code generates the v4 bundle per HANDOFF_PROCESS.md — Rob makes zero formatting decisions. Trigger at ~2 hours while context is still fresh.
 
 **Path C — Browser → Claude Code:** Claude.ai writes prompts in Section 2 format (Model/Mode/Effort table). Prefer questions over commands. Let Claude Code discover actual state, then propose actions.
 
