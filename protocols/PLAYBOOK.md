@@ -1094,6 +1094,48 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 - Project-level: `<repo>/.claude/skills/`, `<repo>/.claude/commands/`, etc. — applies only in that repo
 - Both can coexist; project-level takes precedence when names collide
 
+### Usage protocol: which command / hook, when
+<!-- scope: runtime -->
+<!-- version: 1.0 — 2026-06-01 -->
+
+7a–7d say what each mechanism *is*; the Adoption protocol says how to *add* one. This is the mid-session "which do I reach for, and does it fire on its own?" map, grounded in the live `~/.claude/` + repo `.claude/` contents (2026-06-01). When it drifts from `ls ~/.claude/commands ~/.claude/skills`, **the filesystem wins** — re-ground before trusting the table.
+
+**Commands** — you type `/<name>`; nothing fires them for you:
+
+| Command | Level | When to invoke |
+|---------|-------|----------------|
+| `/boot` | user | Session start — load memory, verify learned-rules, recent commits + JOURNAL. First thing, every session. |
+| `/session-summary` | user | Session end / handing to browser chat (Path A). Also appends a TOKEN-LOG snapshot if >7 days stale. |
+| `/evolve` | user | Weekly or every ~10 sessions — evolution audit (promote / prune / graduate learned rules). Not per-session. |
+| `/codex-review` | user | Before merging a **code** change (3+ files / safety-critical). Code only — never a markdown-only diff (LESSON 2026-05-19). |
+| `/save` | repo | Stage + commit with a Conventional Commits message + full body (git-discipline rule). After a discrete change. |
+| `/handoff` | repo | Two-phase browser→browser handoff per HANDOFF_PROCESS v4 (ADR-62): "create handoff" → "complete handoff". At ~2h, context still fresh. |
+
+**Skills** — read on-demand by Claude when the topic matches; you do **not** invoke them:
+
+| Skill | Level | Fires |
+|-------|-------|-------|
+| `gotchas` | user | Auto-consulted before edits when an encoding / shell / test-pitfall pattern is in play. |
+| `verify` | user | Domain verification scripts for the ecosystem; consult/run after `pytest` passes. |
+
+**Subagents** — Task-tool, read-heavy / write-light (`ecosystem-snapshot`, `report-generator`, both Haiku, user-level): invoke for read-only fan-out (snapshots, report condensation), never as code-gen peers (7d).
+
+**Hooks** — auto vs manual:
+
+| Hook | Where | Fires |
+|------|-------|-------|
+| `block-onedrive` | `~/.claude/settings.json` PreToolUse:Bash | **Auto**, before every Bash call — blocks OneDrive-Blue-Yonder paths (P0 safety). |
+| SessionStart evolution reminder | `~/.claude/settings.json` | **Auto**, at session start (echoes rule / correction counts). |
+| Stop notify + evolution scorecard | `~/.claude/settings.json` | **Auto**, at session end (`claude-notify.ps1` + scorecard reminder). |
+| `normalize-dated-headers` | `.pre-commit-config.yaml` | **Auto** on commit — dated-log header normalization. |
+| `codemap-freshness` | `.pre-commit-config.yaml` | **Auto** on commit — ARCHITECTURE codemap vs `scripts/` staleness. |
+| `validate-backlog` | `.pre-commit-config.yaml` | **Auto** on commit — BACKLOG story-map schema (ADR-66). |
+| `audit-health` | `.pre-commit-config.yaml` | **Auto** on commit — `audit.py health`; **FAIL blocks the commit**, WARN informs ([#69]). |
+| `backlog-id-on-close` | `.pre-commit-config.yaml` (commit-msg) | **Auto** — requires `[#id]` when a commit removes a backlog task. |
+| `ruff` | — | **Manual** — documented but NOT wired as a hook (BACKLOG #13); run `ruff check --fix` yourself / via `/save`. |
+
+CLAUDE.md is the inventory authority — §7 (commands), §8 (skills), §9 (hooks); this table is the operational "when". Adding/removing any of them follows the Adoption protocol below and updates both surfaces.
+
 ### 7a. Skills (progressive-disclosure knowledge modules)
 <!-- scope: runtime -->
 
