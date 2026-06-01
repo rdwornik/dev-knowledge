@@ -360,7 +360,7 @@ flowchart TD
 
     recv --> ratify{Operator ratification}
     ratify -- "comprehension + facts verified" --> work[NEW chat executes the work]
-    ratify -- "gaps or drift found" --> amend[Operator flags; amend 04_RECENT by append<br/>bundle is living until the next handoff]
+    ratify -- "gaps or drift found" --> amend["Operator flags; amend 04_RECENT by append<br/>bundle is living until the next handoff"]
     amend --> ratify
 
     classDef start fill:#bde0fe,stroke:#1971c2,color:#000
