@@ -397,7 +397,7 @@ Per ADR-31. `.dev-knowledge` is the **binding source of cross-repo prescriptions
 
 Per ADR-28 invariant: `.dev-knowledge` may host **read-only** validators (Layer 2 does not orchestrate, but it may verify itself).
 
-- `scripts/audit.py` — cross-repo conformance + self-audit (checks #1–#10, incl. #10 `canonical_freshness` — `last_reviewed` staleness cadence); manual invocation, read-only.
+- `scripts/audit.py` — cross-repo conformance + self-audit (checks #1–#10, incl. #10 `canonical_freshness` — `last_reviewed` staleness cadence); read-only. The ecosystem audit (`run`) is manual; the self-audit (`health`) runs as a **pre-commit gate** (FAIL blocks the commit, WARN informs).
 - `scripts/normalize_headers.py` — dated-log header normalization; invoked by pre-commit hook.
 - `scripts/validate_backlog.py` — BACKLOG.md story-map structure validator (ADR-66); pre-commit hook.
 - `scripts/check_backlog_commit_msg.py` — commit-msg hook requiring `[#id]` on task removal.
