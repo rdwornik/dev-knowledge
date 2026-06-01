@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-01 — Sacred-files freshness cadence: audit check #10 (closes [#3])
+
+- Did: Built the durable, **portable** canonical-file freshness mechanism (posture-audit C4 — highest-leverage durable fix). `audit.py` **check #10 `canonical_freshness`** (registered in `ALL_CHECKS` → runs in `audit health`/`run`) over the 4 living docs (VISION/ARCHITECTURE/CLAUDE/CONTRIBUTING): **A2 (primary, FAIL)** = `last_reviewed` predates the file's last git-commit date (edited-but-not-re-reviewed); **A1 (backstop, WARN, 30d)** = calendar nudge. Append-only (JOURNAL/LESSONS) + per-session (BACKLOG) excluded; missing stamp → WARN (child-repo-safe); degrades gracefully without git. Operator-tuned from my matrix (A1 was 90d/FAIL → 30d/WARN). +11 tests.
+- Result: **dogfood worked** — first run FAILed on ARCHITECTURE (`last_reviewed 2026-05-24 < last edit 2026-05-28`); VISION tripped neither signal (operator predicted this). Genuinely re-read VISION (vs ADRs 60-66 — vision substance holds; fixed stale "Stream backlog"→story-map term, resolving **[#35] GO-2**) + ARCHITECTURE before bumping stamps; added minimal `last_reviewed` frontmatter to CLAUDE + CONTRIBUTING; reconciled ARCHITECTURE+CONTRIBUTING §Validators to the real hook set (dropped retired `backlog_extract.py`). `last_reviewed` semantics ("re-read & confirmed, or drift filed — not touched") + honest scope (edit-hygiene only, NOT content-vs-ADR drift) + **manual-only caveat** (no CI/pre-commit trigger — detectable on demand, does not gate) documented in PLAYBOOK + CLAUDE §4. Green: **135 tests, ruff, audit health 10/10, codemap 0, validate_backlog OK**.
+- Changes: `scripts/audit.py` (+check #10 + `_parse_last_reviewed`/`_git_last_commit_date`), `tests/test_audit.py` (+11), `VISION.md` `ARCHITECTURE.md` `CLAUDE.md` `CONTRIBUTING.md` (stamps + reconcile), `protocols/PLAYBOOK.md` (freshness-cadence subsection), `BACKLOG.md` (−[#3]); this entry. Commits `24e95a1` + this.
+- Abandoned: did NOT wire a trigger (pre-commit/CI/session-close) — deliberate separate decision; did NOT chase residual doc-truth drift (CLAUDE §7/§8, ARCHITECTURE governing-ADR list, ruff, TOKEN-LOG) — stays tracked under **[#10]/[#13]**; the stale CLAUDE §4 known-failing-test clause is already **[#24]** (that test now passes); **[#35]** stays open for WF-3 + GO-1 (only GO-2 resolved here). NOT merged.
+- Next: operator runs Codex `/review` + a fresh-eyes pass (new enforcement + Phase-2 foundation); merge only on operator GO. Phase 2 = drop check #10 into child repos unchanged.
+
+---
+
 ### 2026-06-01 — methodology-audit reconciled into main
 
 - Did: Reconciled the 2026-05-31 methodology audit (C1–C12) against main — C1/C2 implemented in the BACKLOG migration; C3–C7/C9/C11 already captured as tasks (#10/#3/#12/#13/#8/#41/#43); C8 (frontmatter) deliberately untracked (low value); the remaining C10/C12 gap closed via new task **[#67]**.
