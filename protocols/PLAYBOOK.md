@@ -2050,43 +2050,36 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
 
 **Done-item disposition (ADR-47/65).** Done items **leave** the file on close — git history (the closing commit, located by the entry id per CONTRIBUTING) + the existing per-session JOURNAL entry are the record. **No archive file** (`BACKLOG_ARCHIVE.md` deleted 2026-05-16; CLAUDE.md §5). No collapsed stubs. Closing a backlog item adds **no** new per-item write — the per-session JOURNAL ritual already carries it.
 
-**Layout (ADR-64).** `BACKLOG.md` is organized **status-and-priority**: `## Now` (in-progress or next-up — resolves ADR-64 open-Q4) · `## Open` (P1/P2/P3 sub-sections) · `## Blocked` · `## Coordination` (cross-repo governance pointers only, kept ≤10). **One item in exactly one section** (section = status); repo affiliation is the entry's `repo:` field, not a section. Named-stream (A/B/C/D) and session-arc H2 headers are retired — the stream schema shown below is superseded by this layout (see §Schema as updated for ADR-64). A read-only validator (`scripts/validate_backlog.py`) machine-checks the schema. **Authority chain:** ADR-41 (file mandate) → ADR-47 (organization; done-items-leave) → ADR-64 (architecture) → ADR-65 (disposition).
+**Layout (ADR-66 — supersedes ADR-64's flat layout).** `BACKLOG.md` is a **story map**: **Big Picture → Theme → User Story → Task**. The operator scans goals (Big Picture + themes + stories); the LLM reads execution detail (tasks). **No `repo:` field** (implicitly `.dev-knowledge`); cross-repo governance lives under the *Cross-repo universalization* theme, naming repos in task text; child-repo *execution* items live in the relocation queue, not here. **Authority chain:** ADR-41 (mandate) → ADR-47 (organization) → ADR-64 (done-items-leave / routing / validator) → ADR-65 (disposition) → ADR-66 (story-map layout). A read-only validator (`scripts/validate_backlog.py`) machine-checks the hierarchy.
 
-### Schema (ADR-64; machine-checked by `scripts/validate_backlog.py`)
+### Schema (ADR-66; machine-checked by `scripts/validate_backlog.py`)
 <!-- scope: meta -->
 
-**Sections (an entry lives in exactly one):**
+**Four layers:**
 
 ```
-## Now            <- in-progress OR next-up (the curated focus surface; resolves ADR-64 open-Q4)
-## Open
-### P1 / ### P2 / ### P3   <- status: open, grouped by priority
-## Blocked        <- status: blocked
-## Coordination   <- cross-repo governance pointers (repo: ecosystem/child); status-agnostic carveout
+# .dev-knowledge BACKLOG
+## Big picture              <- 2-3 sentences + the theme backbone list (no stories/tasks)
+## <Theme>                  <- backbone header; a durable area of work
+> As a <persona>, I want <goal>.       <- theme intent (persona = operator or an AI agent)
+### <User story>            <- human goal — the layer the operator scans
+So that <why>.              <- the why (required, immediately under the story)
+- [#id] [P1][M] <action> · Done when: <criterion> · refs <ADR/file>   <- task (for the machine)
 ```
 
-**Entry shape — terse, 3 lines (the header IS the scannable signal):**
-
-```
-### [P1][M] <one-line title>
-`id:1 · repo:.dev-knowledge · status:open`
-<one-line What — the action, not the history>
-```
-
-- **Line 1** `### [P{1-3}][{S|M|L}] <title>` — priority band + size + a scannable title.
-- **Line 2** meta, in a code span: `id:<int> · repo:<repo> · status:<word>`.
-- **Line 3** one-line `What`. **`Why` / `Added` / full detail live in git history** (the commit before the terse reformat), not on the surface; add a short inline `(ref: …)` only if a pointer is load-bearing.
+- **Big Picture** — what `.dev-knowledge` is working toward (from VISION) + the theme list. The map, not a priority queue.
+- **Theme** — a `## ` backbone header; a durable area of work.
+- **User Story** — a `### ` header in human language + one `So that …` line. Personas = the operator and the AI agents (Claude Code / Codex) who inherit the repo. This is the scan layer.
+- **Task** — a bullet `- [#id] [P{1-3}][{S|M|L}] <terse technical action> · Done when: <criterion> · refs <…>`. Technical density is expected here. No `repo:`/`status:` field — in-file = open; done tasks **leave** (ADR-65).
 
 **Rules** (validator hard-fail unless marked warn):
-- **status vocabulary** exactly `open | in-progress | blocked | done`; a `done` *entry* must not remain (done items leave — ADR-65).
-- **size band** `[S|M|L]` required in the header — a `### [P\d]` header without it hard-fails.
-- **`id:` required + unique** (hard-fail on duplicates); monotonic-at-assignment + never-reused (gaps expected; not a static check).
-- **`repo:` required.** Outside `## Coordination` it must be `.dev-knowledge`; a child-repo / `ecosystem` value is allowed **only** inside `## Coordination` (cross-repo carveout).
-- **section ↔ status:** `## Now` ∈ {in-progress, open} · `## Open` = open · `## Blocked` = blocked. `## Coordination` is status-agnostic (valid non-`done` status; section↔status exempt). An item appears once; no pointers, no duplication.
-- **known sections only:** any `### [P…]` entry under an H2 outside {Now, Open, Blocked, Coordination} (or before any section) hard-fails — a mistyped/retired heading cannot let an entry dodge the rules.
-- **Priority:** P1 = critical/blocking · P2 = next 1–3 sessions · P3 = wishlist. *(warn-only: `## Now` >5; `## Coordination` >10.)*
+- every **task** has a unique `[#id]`, a `[P{1-3}][{S|M|L}]` band, and a `Done when:` clause;
+- every task sits **under a Story under a Theme** (no orphans; nothing directly under `## Big picture`);
+- every **User Story** has a `So that` line;
+- **no done task** in the file — a `status:done` / `[x]` / `~~strikethrough~~` marker hard-fails (done tasks leave);
+- *(warn-only: a story with zero tasks.)*
 
-Anti-pattern: do NOT re-expand entries to multi-paragraph form — the terse surface + the validator are the guardrail against the drift that produced the 871-line file (2026-05).
+Anti-pattern: do NOT collapse the layers back to a flat list, or re-expand a task to multi-paragraph form — goals-on-top / task-detail-below is the readability fix ADR-66 ratified; the validator guards it.
 
 ### Per-handoff grooming (~2 min, mandatory for M+)
 <!-- scope: meta -->
