@@ -8,7 +8,7 @@ owner: Rob
 <!-- scope: meta -->
 
 > Living document. Updated after structural changes.
-> Last updated: `2026-06-01` (canonical-freshness cadence: added audit check #10 to §Validators, dropped retired `backlog_extract.py`; prior: 2026-05-24 self-audit residue cleanup)
+> Last updated: `2026-06-01` (added "The methodology engine" feedback-loop section; canonical-freshness cadence: audit check #10 in §Validators, dropped retired `backlog_extract.py`; prior: 2026-05-24 self-audit residue cleanup)
 
 ## Purpose [CORE]
 
@@ -96,6 +96,34 @@ Utility-exemption modules: none.
 5. **Dated artifacts are immutable.** ADRs, transcripts, handoffs, and audits are superseded by new files or in-file markers, never edited in place.
 
 → Related decisions: `docs/decisions/ADR-28-three-layer-architecture.md`, `docs/decisions/ADR-39-file-lifecycle.md`
+
+---
+
+## The methodology engine (feedback loop)
+
+`.dev-knowledge` is not a static pile of governance documents — it is a **feedback engine** that turns lived experience into enforced, propagated standards, then runs those standards to generate the next round of experience. Each stage is the input to the next, and the loop closes: running the conventions in real sessions surfaces new friction, which becomes the next lesson. A library is read and forgotten; an engine reprocesses its own output.
+
+```
+   Lessons --> Decision/ADR --> Conventions --> Enforcement --> Dissemination
+      ^                                                              |
+      +--------------------------------------------------------------+
+            running the conventions in live sessions -> new Lessons
+```
+
+| Stage | What happens | Embodied in |
+|-------|--------------|-------------|
+| **Lessons** | Empirical patterns surface from real sessions — what worked, what drifted, what broke | `LESSONS.md` (append-only) |
+| **Decision / ADR** | A lesson or a need is debated and recorded as a binding decision | `docs/decisions/ADR-NN-*.md`; AI Council debate -> routed transcripts |
+| **Conventions** | An accepted decision becomes a standard agents must follow | `protocols/PLAYBOOK.md`, `protocols/ESSENTIALS.md`, `CLAUDE.md` |
+| **Enforcement** | A convention is made real by a check or hook — not left to memory | `scripts/audit.py` checks (incl. canonical-freshness #10), `scripts/validate_backlog.py`, the `commit-msg [#id]` hook, pre-commit hooks |
+| **Dissemination** | An enforced standard propagates to every child repo (universalization) | the read-only conformance audit prescribing to `corp-monorepo` / `ai-council` / etc.; portable checks dropped into child repos |
+| **-> Lessons** | Running the conventions in live work surfaces the next friction | back to `LESSONS.md` — the loop closes |
+
+The two frontier stages are where active work concentrates. **Phase 1 hardens Enforcement** — turning advisory conventions into checks and hooks (e.g. the canonical-freshness cadence: ADR-39 "grooming" made executable as `audit.py` check #10). **Phase 2 is Dissemination** — rolling those portable checks out across the ecosystem. A convention that never reaches Enforcement is advisory and silently drifts; one that never reaches Dissemination protects only this repo. The engine's value is the *closed* loop, not any single stage.
+
+This is the architectural "why" behind the artifacts catalogued elsewhere in this file: `LESSONS` / `docs/decisions` / `protocols` / `scripts` are not parallel folders — they are consecutive stations on one loop. ESSENTIALS states the same loop tactically ("Feedback Loop", "Three Homes for Knowledge"); this section is its structural form.
+
+**Source:** `VISION.md` (knowledge guardian -> methodology author -> auditor -> disseminator); `LESSONS.md`; `docs/decisions/`; `protocols/PLAYBOOK.md` + `ESSENTIALS.md`; `scripts/audit.py` + `.pre-commit-config.yaml`; ADR-28 (Layer 2 prescriptive authority), ADR-39 (file lifecycle / grooming).
 
 ---
 
