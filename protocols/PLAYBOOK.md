@@ -2048,23 +2048,47 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
 
 **Mandate:** `BACKLOG.md` is part of the universal governance baseline (ADR-38 amendment A5, 2026-05-23; ADR-41) — mandatory for every repo regardless of size. (Previously gated to M+ repos; the repo-tier system is deprecated.)
 
-### Schema
+**Done-item disposition (ADR-47/65).** Done items **leave** the file on close — git history (the closing commit, located by the entry id per CONTRIBUTING) + the existing per-session JOURNAL entry are the record. **No archive file** (`BACKLOG_ARCHIVE.md` deleted 2026-05-16; CLAUDE.md §5). No collapsed stubs. Closing a backlog item adds **no** new per-item write — the per-session JOURNAL ritual already carries it.
+
+**Layout (ADR-64).** `BACKLOG.md` is organized **status-and-priority**: `## Now` (in-progress) · `## Open` (P1/P2/P3 sub-sections) · `## Blocked` · `## Coordination` (cross-repo governance pointers only, kept ≤10). **One item in exactly one section** (section = status); repo affiliation is the entry's `repo:` field, not a section. Named-stream (A/B/C/D) and session-arc H2 headers are retired — the stream schema shown below is superseded by this layout (see §Schema as updated for ADR-64). A read-only validator (`scripts/validate_backlog.py`) machine-checks the schema. **Authority chain:** ADR-41 (file mandate) → ADR-47 (organization; done-items-leave) → ADR-64 (architecture) → ADR-65 (disposition).
+
+### Schema (ADR-64; machine-checked by `scripts/validate_backlog.py`)
 <!-- scope: meta -->
 
-```
-## Stream {name}
+**Sections are status-and-priority; an entry lives in exactly one section (section = status):**
 
-### [P{1-3}] [Status] Item title
-- **What:** brief description
+```
+## Now            <- status: in-progress
+## Open
+### P1            <- status: open, priority P1
+### P2
+### P3
+## Blocked        <- status: blocked
+## Coordination   <- cross-repo governance pointers only (repo: a child repo); kept <=10
+```
+
+**Entry shape:**
+
+```
+### [P{1-3}] <title>
+- **id:** <integer>
+- **repo:** .dev-knowledge
+- **status:** open | in-progress | blocked | done
+- **What:** one paragraph
 - **Why:** rationale / triggering context
-- **Vision ref:** (optional) link to VISION.md section if strategic
-- **Added:** YYYY-MM-DD by {browser-1 | audit-tool | rob}
-- **Status:** open | in-progress | blocked | done
+- **Vision ref:** (optional) VISION.md section if strategic
+- **Added:** YYYY-MM-DD by {rob | audit-tool}
 ```
 
-P1 = critical/blocking other work. P2 = important/next 1–3 sessions. P3 = wishlist/when capacity allows.
+**Rules** (hard-fail in the validator unless marked warn):
+- **status vocabulary** is exactly `open | in-progress | blocked | done` — no other word. (`done` is a valid *word* but a `done` *entry* must not remain in the file — see the no-`done` rule.)
+- **single-location-by-status** — the section must agree with `status:` (`## Now`↔in-progress, `## Blocked`↔blocked, `## Open`/P*↔open). An item appears once; no pointers, no duplication.
+- **no `done` items in the file** — done items leave on close (ADR-65); a `done` entry present is a hard-fail.
+- **`id:` required** and **unique** (validator hard-fail on duplicates). Assigned **monotonically** (each new id exceeds all prior) and **never reused** — so removals leave *gaps* (the sequence is not contiguous and ids are not in file order), and a forward commit reference `[#<id>]` (CONTRIBUTING) stays unambiguous forever. Monotonic-assignment is a discipline, not a static check (uniqueness is what the validator enforces).
+- **`repo:`** is `.dev-knowledge` for own work; a child-repo path is allowed **only** inside `## Coordination` (a governance pointer, never a duplicated task).
+- **Priority:** P1 = critical/blocking · P2 = important/next 1–3 sessions · P3 = wishlist. *(warn-only: `## Now` >5 items; `## Coordination` >10.)*
 
-Anti-pattern: do NOT mutate this template structure during edits. Rigid schema + audit checks prevent formatting drift. LLMs left to themselves drift; the template is the guardrail.
+Anti-pattern: do NOT mutate this schema during edits — the validator + this block are the guardrail against the formatting drift that produced the 871-line file (2026-05).
 
 ### Per-handoff grooming (~2 min, mandatory for M+)
 <!-- scope: meta -->
@@ -2075,8 +2099,8 @@ Browser 1 (departing) runs at handoff generation:
 2. Mark stale items (no progress in 3+ sessions) for review
 3. Prune obvious dead items (completed, no longer relevant)
 4. Add new items surfaced this session
-5. Update Status on completed items to `done`
-6. Future State in handoff references BACKLOG items by stream + title (pointers, not copy-paste)
+5. **Remove** completed items — they leave the file (the closing commit + the per-session JOURNAL entry are the record, ADR-65); do not leave `done` entries in place
+6. Future State in handoff references BACKLOG items by id + title (pointers, not copy-paste)
 
 Light P1 items MAY be copy-pasted inline into Future State (acceptable at P1 only — Council Risk #2 mitigation).
 
@@ -2085,7 +2109,7 @@ Light P1 items MAY be copy-pasted inline into Future State (acceptable at P1 onl
 
 Rob reviews full BACKLOG once per quarter (first review: 2026-07-01):
 
-1. Archive all `done` items to `BACKLOG-archive/YYYY-Q{N}.md`
+1. Confirm **no `done` items remain** — done items leave on close (ADR-47/65); the validator hard-fails on any `done` entry. **No archive file** (CLAUDE.md §5). Retrospect via `git log` + JOURNAL, not a parallel archive
 2. Re-prioritize P1/P2/P3 based on current ecosystem state
 3. Remove items that no longer align with VISION
 4. Groom each stream: still active? Items still actionable?

@@ -15,3 +15,9 @@ repos:
         language: system
         files: '(^scripts/.*\.py$|^pyproject\.toml$|^tach\.toml$|^ARCHITECTURE\.md$)'
         pass_filenames: false
+      - id: validate-backlog
+        name: Validate BACKLOG.md schema (ADR-64/65)
+        entry: python scripts/validate_backlog.py
+        language: system
+        files: '^BACKLOG\.md$'
+        pass_filenames: false

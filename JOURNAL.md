@@ -19,6 +19,83 @@
 
 ---
 
+### 2026-06-01 — BACKLOG migration: dual review (Codex + fresh-eyes) + merge
+
+- Did: Ran the two pre-merge reviews on `docs/backlog-migration-adr64-2026-06-01` — Codex `/review` (code-only path-guard → `validate_backlog.py` + hook) and an independent zero-context fresh-eyes pass (full-migration integrity). Applied the one consensus finding, tracked the rest, and merged to `main` (`--no-ff`).
+- Result: **Both reviews PASS, 0 critical.** Fresh-eyes independently verified all 6 claims (42 removed + recoverable via tag; 65 restructured with unique ids; taxonomy-drop justified by ADR-64; validator read-only + Coordination-exemption safe; docs coherent; no invariant breach). **Consensus finding** (Codex H1 ≡ fresh-eyes Important-1): the validator didn't enforce `id` uniqueness → **fixed** (`44eeae8`, hard-fail on duplicates). Deliberately did NOT add file-order/contiguous monotonicity — wrong by design for stable-ids + gaps-on-removal (documented in code + PLAYBOOK). Codex H2/H3 (repo:/section enforcement) + the regex NTH **deferred** to new item **[#66]** (the implementation prompt scoped the validator narrow). The `validate-backlog` pre-commit hook fired + passed on the [#66] BACKLOG edit (dogfooded end-to-end). Baseline green: 105 tests, audit 9/9, validator OK (66 entries).
+- Changes: `scripts/validate_backlog.py` (id-uniqueness + docstring), `protocols/PLAYBOOK.md` §10 (id/done wording), `BACKLOG.md` (+id 66), `docs/audits/2026-06-01-codex-backlog-migration-adr64.md` (Codex artifact) + `…-fresh-eyes-backlog-migration.md` (fresh-eyes record); this JOURNAL entry. Branch (16 commits) merged → `main`.
+- Abandoned: did NOT enforce id monotonicity (wrong by design); did NOT auto-apply Codex H2/H3 (deferred to [#66] per narrow-scope directive); did NOT push to remote; did NOT delete the merged branch.
+- Next: pick off [#66] validator hardening; execute the child-repo relocations (Coordination drains 21→~3 as those sessions run); quarterly grooming 2026-07-01.
+
+---
+
+### 2026-06-01 — BACKLOG migration: retire 41 verified-done items (ADR-64/65 Step 5)
+
+- Did: Implemented ADR-64/65 Step 5 — removed all **42** done (`closed`/`superseded`/`resolved`) entries from `BACKLOG.md`. Each was SHA/artifact-verified in git first (Step-0 inventory `docs/audits/2026-06-01-backlog-migration-inventory.md`); **zero flagged-unverifiable**. *(Count correction: the Step-0 inventory stated 41; the true count is **42** — it under-listed the `docs/tech-radar/` entry, and the earlier "107 total" used a strict `[status]` regex that skipped the dated-bracket `[closed 2026-05-28]`. This map below is the complete, authoritative removal record: 13 + 6 + 23 = 42.)* This is the one-time bulk-migration JOURNAL map (ADR-65: normally a done item's record rides its own session entry + closing commit — no per-item write; this map exists only because these 41 are removed in bulk outside their original sessions). Removal commit tagged `backlog-migration-2026-06-01` (revert restores any entry verbatim).
+- Result: BACKLOG **108 → 66 open entries** (42 done removed); zero done items remain. The technical record stays in git (closing commits below); the business record is in the original per-session JOURNAL entries (this repo's history). Recoverable two ways: `git revert` the tagged removal commit, or the closing commit.
+- Changes: `BACKLOG.md` (41 done entries removed; 66 open preserved verbatim); this JOURNAL entry. Restructure into the status-priority layout + `id:`/`repo:` is the next commit (Step 6).
+- Abandoned: N/A — nothing flagged; no entry removed without a verified closing anchor.
+- Next: Step 6 restructure (status-and-priority layout, assign `id:`); Step 7 child-repo relocation proposal; Step 9 validator.
+
+**Retired-item map — A. embedded closing SHA, verified in git:**
+
+| Retired item | Closing SHA | Delivered |
+|---|---|---|
+| backlog_extract.py references deleted archive | `a5ed940` | script + tests retired (drift removed) |
+| migrate_links SKIP_NAMES stale CHANGELOG | `dc46565` | SKIP_NAMES corrected |
+| README ADR index missing 45-50/54 | `dc46565` | index + ARCHITECTURE list completed |
+| Codemap generator output spec | `b2296ff` | generator built + convention landed |
+| v4 first real test | `93b7b1c` | v4.1 bundle generated end-to-end |
+| v3.4 Stage-1 question template | `b4afff3` | claims/scope/gate added to template |
+| v3.4 skill pinned v3.3.3 | `e2f85f4` | handoff.md rewritten to v3.4 |
+| v3.4 HANDOFF_PROCESS self-consistency | `581c3cb` `60df5b6` `4e3cc3e` | file-count/refs/synthesis/slug reconciled |
+| v3.4 ADR-42 Q5 file-count addendum | `581c3cb` | ADR-42 append-only count supersession |
+| v3.4 FOLDER_TEMPLATE version drift | `b696474` | version strings normalized to v3.4 |
+| v3.4 broken evidence citations | `256e26b` `a86c18d` | 9 refs repointed to docs/archive |
+| v3.4 stale refs in ADR-45 | `4e3cc3e` | ADR-45 current-authority pointer added |
+| workspace "ADRs" folder alias | `f5322837` | dated-folder aliases removed |
+
+**B. closed by an ADR (verified via the ADR's introducing commit):**
+
+| Retired item | Closing ADR → commit |
+|---|---|
+| AI Council cross-project transcript routing | ADR-43 → `f6c616f` |
+| Draft 5 handoff-methodology ADRs | ADR-55..58 → `aa41258` |
+| AI Council debate → ADR for v4 handoff | ADR-62 → `986d350` |
+| Codify scrum-master review authority | ADR-63 → `986d350` |
+| Folder taxonomy ADR | ADR-60 → `be92f55` |
+| Codify git worktree pattern | ADR-61 → `42f2be1` |
+
+**C. artifact/state-verified (closing artifact present/absent in git HEAD):**
+
+| Retired item | Verification |
+|---|---|
+| ai-council needs AGENTS.md | satisfied then retired by ADR-53 (closure in ai-council repo) |
+| ADR-38 self-compliance (src/pyproject) | ADR-38 amendment A5 (2026-05-23) |
+| ADR-29 prepend-ordering amendment | superseded by ADR-46 |
+| check_backlog_organization regex | verified-by-absence (grep at HEAD → none) |
+| Council CLI dual-write trigger | superseded → ADR-43 (`f6c616f`) |
+| VISION tier declarations | tier system deprecated (ADR-33/40 amendments) |
+| Council research: repo complexity | tier system deprecated (moot) |
+| Mechanical gate code (ADR-42 Q5) | superseded by HANDOFF_PROCESS v4 → ADR-62 (`986d350`) |
+| audit.py check #8 (handoff structure) | check present in scripts/audit.py (`a7576dd`) |
+| v4.2 first real test | v4.2-rerun bundle present under docs/handoffs/ |
+| Promote beta→stable (3-run criterion) | superseded by fresh-eyes criterion (v4.3) |
+| v4.3 first real test | 2026-05-30 bundle present under docs/handoffs/ |
+| Promote v4 beta→stable (fresh-eyes) | v4.3.1 stamp in handoff.md |
+| Ecosystem standards audit | superseded by scrum-master review pattern |
+| Scale tier evaluation re-eval | resolved — tier system dropped (ADR-40 deprecated) |
+| ADR-42 single vs multi-artifact | superseded by ADR-62 (`986d350`) |
+| Content-scoped archival principle | superseded by ADR-60 flat-archive (`be92f55`) |
+| Fix pre-existing test failure (ratio) | verified-by-absence (test gone; suite green) |
+| Option B council-questions folder | created then retired by ADR-60 amendment |
+| Decide future of `docs/tech-radar/` | retired — `git mv` to archive then `git rm` (ADR-60 amendment); absent at HEAD |
+| AI Council Flow runbook | protocols/AI_COUNCIL_PROCESS.md present (`7ef4fe8`) |
+| Mermaid render verification protocol | baked into ADR-51 v2 amendment |
+| audit.py mermaid theme check (#7) | check present in scripts/audit.py (`a7576dd`) |
+
+---
+
 ### 2026-06-01 — ADR-64 ratified (BACKLOG architecture) + methodology-audit branch merged
 
 - Did: Operator convened the AI Council (pick mode, 4-model panel + openai synthesizer, 2 rounds) on the BACKLOG-architecture question from the 2026-05-31 diagnosis §G brief and authored **ADR-64**. Committed ADR-64 + its routed transcript, brought `docs/decisions/README.md` ADR index current (added rows **62/63/64** — 62/63 were missing) + ADR-64 traceability, and merged the audit branch to `main` (`--no-ff`).
