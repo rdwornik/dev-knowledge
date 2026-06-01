@@ -92,7 +92,7 @@ Utility-exemption modules: none.
 1. **Layer 2 never executes.** No script in `.dev-knowledge` orchestrates actions in other repos or drives state changes in Layer 3.
 2. **Validators are read-only.** `scripts/` contains only passive inspection tools — they read, check, and report; they never write to other repos.
 3. **`.dev-knowledge` is the prescriptive authority for all `Dev/` repos.** Prescriptions in PLAYBOOK and ADRs are binding on child repos; child repos may not override them locally.
-4. **Append-only files are never edited.** `LESSONS.md` and `TOKEN-LOG.md` accept only appends — existing entries are never modified or deleted.
+4. **Append-only files are never edited.** `LESSONS.md` and `logs/TOKEN-LOG.md` accept only appends — existing entries are never modified or deleted.
 5. **Dated artifacts are immutable.** ADRs, transcripts, handoffs, and audits are superseded by new files or in-file markers, never edited in place.
 
 → Related decisions: `docs/decisions/ADR-28-three-layer-architecture.md`, `docs/decisions/ADR-39-file-lifecycle.md`
@@ -103,12 +103,26 @@ Utility-exemption modules: none.
 
 `.dev-knowledge` is not a static pile of governance documents — it is a **feedback engine** that turns lived experience into enforced, propagated standards, then runs those standards to generate the next round of experience. Each stage is the input to the next, and the loop closes: running the conventions in real sessions surfaces new friction, which becomes the next lesson. A library is read and forgotten; an engine reprocesses its own output.
 
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'darkMode':true,'background':'#1a1a1a','primaryColor':'#2d2d3d','primaryTextColor':'#f0f0f0','primaryBorderColor':'#8a86ff','lineColor':'#a0a0ff','textColor':'#f0f0f0','mainBkg':'#2d2d3d','secondaryColor':'#3d2d3d','tertiaryColor':'#22323a','clusterBkg':'#222232','clusterBorder':'#555577','edgeLabelBackground':'#1a1a1a','titleColor':'#f0f0f0','nodeBorder':'#8a86ff'}}}%%
+flowchart LR
+    lessons[Lessons<br/>LESSONS.md]
+    adr[Decision / ADR<br/>docs/decisions/ + Council]
+    conv[Conventions<br/>PLAYBOOK / ESSENTIALS / CLAUDE.md]
+    enf[Enforcement<br/>audit.py + hooks]
+    diss[Dissemination<br/>conformance audit to child repos]
+
+    lessons --> adr --> conv --> enf --> diss
+    diss -- "run conventions in live sessions -> new friction" --> lessons
+
+    classDef stg fill:#e8e8e8,stroke:#888,color:#222
+    classDef work_ fill:#d8f5a2,stroke:#5c940d,color:#222
+
+    class lessons,adr,conv stg
+    class enf,diss work_
 ```
-   Lessons --> Decision/ADR --> Conventions --> Enforcement --> Dissemination
-      ^                                                              |
-      +--------------------------------------------------------------+
-            running the conventions in live sessions -> new Lessons
-```
+
+The two frontier stages (Enforcement, Dissemination — green) are where active work concentrates; the recording stages (grey) feed them.
 
 | Stage | What happens | Embodied in |
 |-------|--------------|-------------|
@@ -346,7 +360,7 @@ flowchart TD
 
     recv --> ratify{Operator ratification}
     ratify -- "comprehension + facts verified" --> work[NEW chat executes the work]
-    ratify -- "gaps or drift found" --> amend[Operator flags; amend 04_RECENT by append<br/>bundle is living until the next handoff]
+    ratify -- "gaps or drift found" --> amend["Operator flags; amend 04_RECENT by append<br/>bundle is living until the next handoff"]
     amend --> ratify
 
     classDef start fill:#bde0fe,stroke:#1971c2,color:#000
@@ -369,7 +383,7 @@ flowchart TD
 ## Key conventions
 
 - **Scope tags (ADR-27, informal).** `<!-- scope: X -->` tags (`dev | llm | hybrid | runtime | meta`) exist in living files as informal lightweight metadata. Enforcement withdrawn 2026-05-16 per ADR-48; existing tags remain in place. New sections do not need tags.
-- **Append-only files.** LESSONS.md, TOKEN-LOG.md — never edit old entries. JOURNAL.md uses newest-first prepend.
+- **Append-only files.** LESSONS.md, logs/TOKEN-LOG.md — never edit old entries. JOURNAL.md uses newest-first prepend.
 - **Living files.** CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT, VISION, ARCHITECTURE — updated in place when reality shifts. (Root `README.md` deleted 2026-05-23 — deprecated from the baseline per ADR-38 amendment A5; redundant with VISION + CLAUDE.md + ARCHITECTURE for this internal-only repo.)
 - **Immutable dated artifacts.** ADRs, transcripts, handoffs, audits, research — supersession via new file or in-file marker, never edit.
 - **Filename conventions.** `ADR-NN-topic.md` for decisions (per ADR-34); `DECISION_NN_snake_case.md` for legacy transcripts (grandfathered); Council CLI output uses `council-out-YYYYMMDD-HHMMSS-topic.md`; kebab-case + ISO date for dated artifacts; ALLCAPS for top-level governance markdown.
@@ -419,7 +433,7 @@ Per ADR-28 invariant: `.dev-knowledge` may host **read-only** validators (Layer 
 - **ADR-40** — scale tier evaluation (DEPRECATED 2026-05-23): logarithmic Maintainability Index pattern; retired with the repo-tier system
 - **ADR-41** — cross-session backlog architecture: BACKLOG.md mandate (universal post tier-deprecation; ADR-38 A5)
 - **ADR-42** — handoff format v3: amends ADR-32; folder-based handoffs with invariant/session separation
-- **ADR-43** — cross-project transcript routing: Council CLI dual-writes to `ai-council/output/` (operational) and `.dev-knowledge/docs/decisions/transcripts/` (curated)
+- **ADR-43** — cross-project transcript routing: Council CLI writes canonical `ai-council/output/` (always, required) and best-effort mirrors to the **target project's** `docs/decisions/transcripts/` — target named per-invocation (`target-project:` / `--target-project`), path resolved `<dev_root>/<name>/docs/decisions/transcripts/` via `TargetResolver` (not hardcoded to `.dev-knowledge`)
 - **ADR-46** — cross-repo dated-entries format: convention retained (demoted from audit-enforced 2026-05-16)
 - **ADR-47** — cross-repo BACKLOG.md organization: convention retained (demoted from audit-enforced 2026-05-16)
 - **ADR-48** — trim documentation governance: retired scope-tag and hybrid-ratio enforcement; structural enforcement only

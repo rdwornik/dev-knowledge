@@ -345,7 +345,7 @@ the pre-commit hook list.
    The `[scope: X]` tag is informal lightweight metadata since 2026-05-16; no validator enforces it.
 6. Session scorecard logs automatically (Stop hook)
 
-**Browser chat checkpoint:** przy ~2h (buffer before 3h decision-fatigue threshold per PLAYBOOK Section 4) lub gdy chat zwalnia → see **HANDOFF_PROCESS.md**
+**Browser chat checkpoint:** at ~2h (buffer before the 3h decision-fatigue threshold per PLAYBOOK Section 4) or when the chat slows down → see **HANDOFF_PROCESS.md**
 
 ---
 

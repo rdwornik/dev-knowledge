@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-05-14
+> Last updated: 2026-06-01
 
 ---
 
@@ -283,7 +283,7 @@ Which `docs/` subfolders a repo carries follows the 2026-05-27 ADR-60 amendment 
 Every repo root follows the ADR-59 universal visual pattern (read the ADR for the full standard). Three pillars, all audit-enforced via `scripts/audit.py`:
 
 - **Dot-prefix discipline** — dot-prefix every root config the tool supports a dotted variant for (`.ruff.toml`, `.pre-commit-config.yaml`, `.{repo}.code-workspace`, standard dotfiles). Exceptions that MUST stay un-dotted (tool requires the exact name / ecosystem convention): `pyproject.toml`, `package.json`, `Cargo.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Dockerfile`, `Makefile`, `LICENSE`, `tach.toml`, `README.md`.
-- **ALL-CAPS canonical `.md` at root** — `VISION`/`CLAUDE`/`ARCHITECTURE`/`BACKLOG` mandatory everywhere; `JOURNAL`/`ENVIRONMENT`/`CONTRIBUTING` optional; `LESSONS`/`PLAYBOOK`/`ESSENTIALS`/`TOKEN-LOG` are `.dev-knowledge`-only (never required in a child repo).
+- **ALL-CAPS canonical `.md`** — root governance docs `VISION`/`CLAUDE`/`ARCHITECTURE`/`BACKLOG` mandatory everywhere; `JOURNAL`/`ENVIRONMENT`/`CONTRIBUTING` optional at root; `LESSONS` (root), `PLAYBOOK`/`ESSENTIALS` (`protocols/`), and `logs/TOKEN-LOG.md` (usage log, per ADR-59 amendment 2026-06-01) are `.dev-knowledge`-only (never required in a child repo).
 - **Workspace sort settings** — `.{repo}.code-workspace` with `"explorer.sortOrder": "default"` + `"explorer.sortOrderLexicographicOptions": "upper"`. `upper` (not `default`) is what clusters ALL-CAPS files ahead of lowercase configs — verified 2026-05-27.
 
 **Maintenance rule (adopting a new tool config):**
@@ -429,7 +429,7 @@ Prompt format updates when:
 - New repo with different conventions → may require template variant
 - ADR amendment changes prompt protocol (e.g., new git workflow standard)
 
-This section's history is in PLAYBOOK CHANGELOG entries (search for "prompt template" or "Gap #2").
+This section's history is in the Section history blocks + git log (search commits for "prompt template" or "Gap #2"; CHANGELOG.md was retired ecosystem-wide per ADR-49).
 
 ---
 
@@ -614,8 +614,8 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `TOKEN-LOG.md` | Claude usage snapshots | Threshold-triggered (7-day) via /session-summary | Auto when stale | Rob | Newest-first (prepend) | Universal (`.dev-knowledge` only) |
 | `ENVIRONMENT.md` | Tooling state, what's installed | Sectioned, scope-tagged | When tool adopted/deprecated | Rob, Claude Code | Living (sections updated) | Per-repo |
 | `docs/decisions/ADR-NN-*.md` | Architectural decisions | Michael Nygard format | When decision binds | Rob, future contributors | Numbered, immutable (amend in-place per ADR-29) | Per-repo |
-| `docs/decisions/transcripts/DECISION_NN_*.md` | Raw Council debate outputs | Multi-model debate transcript | When Council debate concludes (per PLAYBOOK 5.N archival) | Reference for ADR rationale | Numbered, immutable | Per-repo |
-| `docs/handoffs/YYYY-MM-DD-*.md` (legacy) or `docs/handoffs/YYYY-MM-DD-*/` (folder, since 2026-04-27) | Chat-to-chat session summary | Single-file legacy OR folder-format (upload-instructions + first-message + contents/) | When session boundary requires continuity | Next browser chat | Dated, immutable | Per-repo |
+| `docs/decisions/transcripts/council-out-*.md` | Raw Council debate outputs (canonical; legacy `DECISION_NN_*` grandfathered in `transcripts/archive/legacy/`) | Multi-model debate transcript | When Council debate concludes (routed per ADR-43; manual fallback per §5) | Reference for ADR rationale | Numbered, immutable | Per-repo |
+| `docs/handoffs/YYYY-MM-DD-*/` (v4 bundle) | Chat-to-chat session summary | Flat bundle `README.md` + `01_ROLE`…`07_ASK_BACK`, generated from source (HANDOFF_PROCESS v4); legacy single-file + v3.x `contents/` bundles preserved as history | When session boundary requires continuity | Next browser chat | Dated, immutable | `.dev-knowledge` only |
 | `docs/audits/YYYY-MM-DD-*.md` | Point-in-time analyses | Free-form audit | When deep analysis needed | Reference for follow-up work | Dated, immutable (mark SUPERSEDED if redone) | Per-repo |
 
 ### File presence (universal baseline)
@@ -667,9 +667,9 @@ Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are exclude
 - ADR = architectural decisions (technical commitments). Amendable per ADR-29 pattern.
 - Process generalization → LESSONS. Technical commitment → ADR.
 
-**CHANGELOG vs JOURNAL:**
-- CHANGELOG = strategic, what user/contributor needs to know about repo evolution. Newest-first.
-- JOURNAL = tactical, what Claude Code did session-by-session. Append-only, newest-first prepend (amended 2026-04-27 from oldest-top per Rob's preference; matches TOKEN-LOG/CHANGELOG convention).
+**CHANGELOG vs JOURNAL:** (CHANGELOG.md retired 2026-05-16 per ADR-49 — the JOURNAL `Changes:` line + git history now carry what CHANGELOG used to; the distinction below is preserved for legacy context.)
+- CHANGELOG (retired) = strategic, what user/contributor needs to know about repo evolution. Newest-first.
+- JOURNAL = tactical, what Claude Code did session-by-session. Append-only, newest-first prepend (amended 2026-04-27 from oldest-top per Rob's preference; matches TOKEN-LOG convention).
 - Same commit might warrant entries in both — different abstraction levels.
 
 **audits vs research:**
@@ -693,38 +693,17 @@ The decommission action is part of the decision, not an optional follow-up. A
 decision that supersedes something is not complete until its `Decommission:`
 items are removed or tracked in BACKLOG.
 
-### Handoff format spec (since 2026-04-27)
+### Handoff format spec
+
 <!-- scope: meta -->
 
-Two formats coexist in `docs/handoffs/`:
+**Authoritative spec: `protocols/HANDOFF_PROCESS.md` v4** — the single live source of truth for handoff mechanics. This is a pointer, not a duplicate; do not re-document the bundle structure here (the duplication is what drifted).
 
-**Legacy (before 2026-04-27)** — single `.md` file, dated `YYYY-MM-DD-slug.md`. Content: free-form session summary. Preserved as-is — do not migrate.
+Three formats exist in `docs/handoffs/`, two of them historical:
 
-**New (since 2026-04-27, per Topic 2 + Research synthesis)** — folder per session:
-
-```
-docs/handoffs/{date}-{slug}/
-├── upload-instructions.md   (top — drag-drop guidance)
-├── first-message.md         (top — paste verbatim into new browser chat)
-└── contents/                (single drag-drop target)
-    ├── HANDOFF.md           (session state — decisions, pending, references)
-    ├── manifest.json        (context orchestration: layers, reading order, refs)
-    ├── tree.txt             (repo structure snapshot for browser orientation)
-    ├── ESSENTIALS.md        (point-in-time copy)
-    ├── PLAYBOOK.md          (point-in-time copy)
-    ├── JOURNAL.md           (point-in-time copy)
-    └── CLAUDE.md            (point-in-time copy)
-```
-
-**When to use new format:** session boundaries with substantive state to preserve (decisions, pending work, cross-stream context). Default to new format for Stream-level handoffs.
-
-**When legacy still acceptable:** quick single-session summary with no need for point-in-time copies (rare since cleanup).
-
-**Validator interaction:** `contents/*.md` files under `docs/handoffs/` are excluded from pre-commit scope checks — no duplicate-tag concerns.
-
-**First instance:** `docs/handoffs/2026-04-27-stream-c-session-1-final/` — Stream C session 1 close.
-
-**Rationale:** point-in-time copies prevent drift between session intent and live state at resume time. Manifest + tree.txt give browser deterministic upload index + structural orientation. No repo-root `HANDOFF.md` (per Topic 2 decision: source of truth lives in session folder, not at root).
+- **Legacy single-file (before 2026-04-27)** — one dated `YYYY-MM-DD-slug.md` free-form summary. Preserved as-is; do not migrate.
+- **v3.x folder bundle (2026-04-27 → v4 rollout)** — `upload-instructions.md` + `first-message.md` + a `contents/` subfolder of point-in-time copies (`HANDOFF.md`, `manifest.json`, `tree.txt`, governance copies). **Superseded by v4**; existing bundles are preserved as point-in-time history, never regenerated.
+- **v4 bundle (current)** — flat `docs/handoffs/<slug>/` = `README.md` + `01_ROLE`…`07_ASK_BACK`, **generated from source at handoff time** (not hand-maintained copies — generation is what stopped the drift). Two-phase flow (Phase 1 interview → Phase 2 consolidate). Full structure + generation principle in `HANDOFF_PROCESS.md` §4–§5.
 
 ### Order conventions
 <!-- scope: meta -->
@@ -977,7 +956,7 @@ Three evaluation modes — pick by stakes:
 **Research debate (Scale L decision):**
 - AI Council research-mode debate (4 models, 1-2 rounds, ~$0.30-$0.50)
 - 30-60 min from brief to synthesis
-- Output: archived to `docs/research/YYYY-MM-DD-{topic}.md` per PLAYBOOK 5.N
+- Output: routed to `docs/decisions/transcripts/` (ADR-43; `docs/research/` retired per ADR-60 amendment 2026-05-27)
 
 Decision threshold for which mode: per PLAYBOOK Section 5 "When to run Council vs single-model + critic."
 
@@ -1169,7 +1148,7 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 - Ambiguous rules — hooks fail loudly; vague rule = constant friction
 
 **Real examples in Rob's ecosystem:**
-- `.dev-knowledge/.pre-commit-config.yaml` — runs `normalize_headers.py` + codemap-freshness check (scope-tag enforcement withdrawn per ADR-48)
+- `.dev-knowledge/.pre-commit-config.yaml` — `normalize-dated-headers`, `codemap-freshness`, `validate-backlog`, `audit-health` (the [#69] self-conformance gate), `backlog-id-on-close` (commit-msg). (scope-tag enforcement withdrawn per ADR-48; `ruff` documented but not wired — BACKLOG #13)
 - corp-monorepo pre-commit (likely): ruff format, pytest collection check (verify per repo)
 
 **Anti-patterns:**
@@ -1284,7 +1263,7 @@ After install, link from:
 - **CLAUDE.md** (Slash commands §7, Skills §8, or Hooks §9 as applicable) — for project-level adoptions; keeps Codex aware of active governance
 - **CLAUDE.md** — for project-level Claude Code-specific behavior (per Gap #5 template Slash commands, Skills, and Hooks sections)
 - **JOURNAL.md entry** for the session that adopted it
-- **CHANGELOG.md entry** for repo-visible adoptions
+- **JOURNAL.md `Changes:` line** for repo-visible adoptions (CHANGELOG.md retired — ADR-49)
 - **tech-radar 2026-Q?.md** Adopted (active inventory) section if user-level (per Gap #17 Continuous Improvement Section 6)
 
 User-level adoptions don't need per-repo CLAUDE.md updates (they apply everywhere automatically) but do warrant tech-radar entry for periodic value review.
@@ -1333,7 +1312,9 @@ This keeps Codex aware of the same governance Claude Code operates under.
 
 ```bash
 mkdir -p my-project/src/my_package my-project/tests my-project/config my-project/scripts
-touch my-project/{CLAUDE.md,README.md,CHANGELOG.md,pyproject.toml,.gitignore}
+# Universal governance baseline (ADR-38 A5): VISION/CLAUDE/ARCHITECTURE/BACKLOG mandatory.
+# README optional (external-audience repos only); no CHANGELOG (retired — ADR-49).
+touch my-project/{CLAUDE.md,VISION.md,ARCHITECTURE.md,BACKLOG.md,pyproject.toml,.gitignore}
 touch my-project/src/my_package/{__init__.py,cli.py}
 touch my-project/tests/conftest.py
 ```
@@ -1391,7 +1372,7 @@ Then for each feature:
 5. Lint: `ruff check src/ tests/ --fix`
 6. Commit: `git commit -m "feat: description"`
 7. Merge: `git checkout main && git merge feat/feature-name`
-8. Delete branch, update CHANGELOG.md if files changed
+8. Delete branch; prepend a JOURNAL entry if files changed (CHANGELOG.md retired — ADR-49)
 
 ---
 
@@ -1501,14 +1482,14 @@ WHAT NOT TO DO:
 - "What NOT to do" section prevents Claude from over-engineering
 - Include `pytest -x --tb=short && ruff check && git status` after each step, not just at the end
 - Include `git status must show clean between each numbered step`
-- CHANGELOG.md entry required in FINAL section if files changed
+- JOURNAL `Changes:` line in the session entry if files changed (CHANGELOG.md retired — ADR-49)
 - Bypass permissions (no approval) → almost never, only for trivial read-only operations
 
 ### Prompt Generation Card maintenance rule (per ADR-56, Council Q3)
 <!-- scope: hybrid -->
 
-The handoff bundle ships an inline **Prompt Generation Card** in
-`00_first-message.md` (the operational extract a fresh browser chat uses to
+The v4 handoff bundle folds the **Prompt Generation Card** (ADR-56) into
+`02_METHODOLOGY.md` (the operational extract a fresh browser chat uses to
 generate Claude Code prompts, since it cannot read the filesystem). This PLAYBOOK
 section remains the rationale and edge-case authority; the card is the
 point-of-use procedure. The two are an intentional duplication.
@@ -1517,7 +1498,7 @@ point-of-use procedure. The two are an intentional duplication.
 table, the mandatory skeleton, hook guidance) MUST update BOTH:**
 
 1. this PLAYBOOK rationale, and
-2. the inline card in `templates/HANDOFF_FOLDER_TEMPLATE.md` `### 00_first-message.md`.
+2. the inline card in the v4 template `templates/handoff/02_METHODOLOGY.md.tmpl`.
 
 Drift between the two is a process bug — the card is the point-of-use authority,
 PLAYBOOK is the maintenance source. The card has a ≤200-line size budget; if it
@@ -1677,12 +1658,9 @@ Every Council debate output MUST be archived immediately after the debate comple
 
 **Pipeline (3 steps, ~5 min):**
 
-1. **Identify target location** within .dev-knowledge:
-   - Debate about .dev-knowledge itself (pick/judge mode) → `docs/decisions/transcripts/council-out-YYYYMMDD-HHMMSS-topic.md`
-   - Research-mode debate → `docs/research/YYYY-MM-DD-slug.md`
-   - Debate about another repo (e.g., corp-monorepo architecture) → `docs/research/YYYY-MM-DD-council-NN-slug-REPO.md`
-     - Suffix with `-REPO` indicates decision applies elsewhere
-     - Future work: mirror to that repo's transcripts/ folder
+1. **Identify target location** (`docs/research/` retired per ADR-60 amendment 2026-05-27 — all Council outputs land in `transcripts/`):
+   - Debate about .dev-knowledge itself (any mode) → `.dev-knowledge/docs/decisions/transcripts/council-out-YYYYMMDD-HHMMSS-topic.md`
+   - Debate targeting another repo → that repo's `docs/decisions/transcripts/` (routing handles this automatically when `target-project:` is set — ADR-43; this manual copy is the fallback only)
 
 2. **Copy** `ai-council/output/council-out-YYYYMMDD-HHMMSS-topic.md` to target:
    - Decisions: keep filename as-is (`council-out-YYYYMMDD-HHMMSS-topic.md`)
@@ -1799,7 +1777,7 @@ When amending in place:
 
 3. Update validator/tool/process to match amendment
 4. Add LESSONS.md entry (per ADR-29 format) describing what was discovered
-5. CHANGELOG entry: "ADR-NN amended YYYY-MM-DD — [topic]"
+5. JOURNAL `Changes:` line: "ADR-NN amended YYYY-MM-DD — [topic]" (CHANGELOG.md retired — ADR-49)
 
 #### Reopen mechanics
 <!-- scope: meta -->
@@ -1906,7 +1884,7 @@ Reviewer's narrative observations beyond per-finding (e.g. "consistent error han
 After archival, cross-link FROM:
 - **JOURNAL.md entry** for that session: "Codex review archived: docs/audits/YYYY-MM-DD-codex-{slug}.md (N findings, M resolved)"
 - **Commit message** of the resolution merge: "fix(scope): address Codex Critical/High findings — see docs/audits/YYYY-MM-DD-codex-{slug}.md"
-- **CHANGELOG.md** if findings affected user-visible behavior
+- **JOURNAL `Changes:` line** if findings affected user-visible behavior (CHANGELOG.md retired — ADR-49)
 
 #### Anti-patterns
 <!-- scope: meta -->
@@ -1945,7 +1923,7 @@ After archival, cross-link FROM:
 ### Session start protocol
 <!-- scope: hybrid -->
 
-1. Review recent CHANGELOG.md entries
+1. Review recent JOURNAL.md entries (CHANGELOG.md retired — ADR-49)
 2. Read CLAUDE.md
 3. Check gotchas
 4. `git status` (must be clean)
@@ -1957,7 +1935,7 @@ After archival, cross-link FROM:
 - `/clear` between unrelated tasks (saves 30-40% input tokens)
 - Commit after each logical change
 - Test after each change (not at the end)
-- If scope creeps: "Adding to OPEN_DECISIONS.md, not doing today"
+- If scope creeps: "Adding to BACKLOG.md, not doing today" (no `OPEN_DECISIONS.md` — BACKLOG is the single pending-items queue, ADR-41)
 - Use Plan Mode before implementation (catches bad approach at 200 tokens vs 5000)
 - Use line ranges (`@file:15-80`) instead of whole files
 
@@ -1972,7 +1950,7 @@ After archival, cross-link FROM:
 <!-- scope: hybrid -->
 
 1. Run full test suite
-2. Update CHANGELOG.md if files changed
+2. Prepend a JOURNAL.md entry (Did/Result/Changes/Next) if files changed (CHANGELOG.md retired — ADR-49)
 3. Update project handoff doc (if exists)
 4. `git status` (must be clean — if "27 modified files", STOP and commit)
 5. Write 3-line handoff note
@@ -1982,24 +1960,14 @@ After archival, cross-link FROM:
 ## 8. Handing Off Between Sessions
 <!-- scope: meta -->
 
-Operational authority: `protocols/HANDOFF_PROCESS.md` (ADR-32 v2.0 + ADR-37 two-phase overlay). This section summarizes handoff governance. For handoff generation, follow HANDOFF_PROCESS.md.
+Operational authority: `protocols/HANDOFF_PROCESS.md` v4 (ratified by ADR-62; two-phase interview→consolidate flow). This section summarizes handoff governance; for handoff generation, follow HANDOFF_PROCESS.md — it is the single live source of truth and this summary must not duplicate its mechanics.
 
-Cross-refs: ADR-37, ADR-32, ADR-42 (handoff format v3)
+Cross-refs: ADR-62 (v4 ratification), ADR-37 (session-boundary two-phase overlay — design history), ADR-32/42 (handoff format v2/v3 — superseded by v4).
 
-### Two-phase structure (ADR-37)
+### What the v4 bundle carries
 <!-- scope: meta -->
 
-Every handoff has two authoritative top-level sections that appear above the ADR-32 9-section Detailed Context:
-
-**Current State** (maps to `06_STATE_OF_PLAY.md`): verified factual status, decisions made this session, open questions, last verified commit SHA + timestamp.
-
-**Future State** (maps to `07_ACTION_PLAN.md`): next session goal (1–3 session horizon, not multi-quarter), recommended actions in priority order, dependencies, BACKLOG.md references (Section 10).
-
-**Canonicality rule:** Top-level Current/Future State = authoritative operational state. ADR-32 Detailed Context = reference layer. If they contradict, top-level wins.
-
-Mandate by handoff type:
-- **Session handoffs:** Future State required. `Future state: undetermined` valid only with written justification (cognitive exhaustion / scope mismatch / unresolved dependency). Unjustified absence = invalid.
-- **Audit handoffs** (generated by audit tool per Section 18): STRONG mandate — validator rejects folder if Future State missing.
+The v4 bundle teaches a new chat, in paste order: who it is (`01_ROLE`), how we work (`02_METHODOLOGY`), the project (`03_PROJECT`), **what just happened** (`04_RECENT` — narrative + a load-bearing-facts verification table), **what to do now** (`05_NOW` — top P1s + in-progress branches + `BACKLOG.md` references, Section 10), then a comprehension check (`06_QUESTIONS`) and an ask-back slot (`07_ASK_BACK`). The "current state / future state" intent of the old ADR-37 overlay now lives in `04_RECENT` + `05_NOW`. Files are generated from source at handoff time; full structure + the sage→apprentice interview in HANDOFF_PROCESS.md §3–§5.
 
 ### Roles
 <!-- scope: meta -->
@@ -2014,7 +1982,7 @@ Mandate by handoff type:
 
 **Path A — Claude Code → Browser:** `/session-summary` in Claude Code → paste into Claude.ai. Discuss architecture/strategy; decisions return as prompts (Section 2 format).
 
-**Path B — Browser → New Browser:** Say `wygeneruj handoff`. Claude generates the folder-format handoff per HANDOFF_PROCESS.md — Rob makes zero formatting decisions. Trigger at ~2 hours while context is still fresh. Generate → Copy → Paste. No archiving step.
+**Path B — Browser → New Browser:** the operator triggers `please create handoff for <repo>` (Phase 1) then `complete handoff for <repo>` (Phase 2); Claude Code generates the v4 bundle per HANDOFF_PROCESS.md — Rob makes zero formatting decisions. Trigger at ~2 hours while context is still fresh.
 
 **Path C — Browser → Claude Code:** Claude.ai writes prompts in Section 2 format (Model/Mode/Effort table). Prefer questions over commands. Let Claude Code discover actual state, then propose actions.
 
@@ -2066,7 +2034,7 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
 2. Review gotchas added this week — any patterns?
 3. Review token usage — `ccusage --json` → append snapshot to TOKEN-LOG.md. Is Opus verbosity still the main drain?
 4. Review LESSONS.md entries from this week — anything to change in PLAYBOOK?
-5. Review OPEN_DECISIONS.md — anything stale? Anything urgent?
+5. Review BACKLOG.md — anything stale? Anything urgent? (single pending-items queue; no `OPEN_DECISIONS.md`)
 6. Quick project health check (test suite, lint, stale branches)
 7. Update ENVIRONMENT.md if any config changed
 
@@ -2292,7 +2260,7 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 
 **"We can consolidate these output folders later"** — Output dirs grow exponentially. Set a single canonical output path at project creation.
 
-**"The AI will remember"** — It won't. Not after 4 hours. Not across sessions. Not after compaction. Write it down in CHANGELOG.md or CLAUDE.md.
+**"The AI will remember"** — It won't. Not after 4 hours. Not across sessions. Not after compaction. Write it down in JOURNAL.md or CLAUDE.md (CHANGELOG.md retired — ADR-49).
 
 **"We'll add tests later"** — Later never comes. Write the test stub before the implementation.
 
@@ -2308,7 +2276,7 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 3. **Test after each change.** Not at the end. After EACH step.
 4. **One home per file type.** Decisions → docs/decisions/. Reports → docs/archive/. No exceptions.
 5. **Commit after each logical change.** Git status must be clean between tasks.
-6. **Log changes continuously.** CHANGELOG entry when files change, LESSONS entry when something was learned.
+6. **Log changes continuously.** JOURNAL `Changes:` line when files change (CHANGELOG.md retired — ADR-49), LESSONS entry when something was learned.
 7. **Scope is sacred.** 1-2 objectives per session. Everything else is backlog.
 8. **Verify with Claude Code, plan with Claude.ai.** Don't let Claude.ai generate filesystem commands from memory.
 9. **Output dirs are disposable.** Canonical location, gitignored, size-monitored, regularly cleaned.
@@ -2329,8 +2297,8 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 
 Two options for code review (A/B test both, then standardize):
 
-**Option A — /ultrareview (Claude Code built-in):**
-Cloud-based multi-agent review. Run without arguments (current branch) or with PR number. No second terminal needed.
+**Option A — /code-review ultra (Claude Code built-in; `/ultrareview` is the deprecated alias):**
+Cloud-based multi-agent review. Run without arguments (current branch) or with a PR number. No second terminal needed.
 
 **Option B — Codex CLI (automated, single command):**
 `/codex-review <topic>` wraps `codex exec --output-last-message`. Produces dated, frontmatter-wrapped audit at `docs/audits/YYYY-MM-DD-codex-{topic}.md`. Read-only sandbox. Opt-in `-AutoCommit`. Requires ChatGPT Plus subscription. See `~/.claude/bin/codex-review.README.md`.
@@ -2391,20 +2359,22 @@ This is not optional. Stale structural documentation is worse than no documentat
 ## 18. Ecosystem Audit Tool Workflow
 <!-- scope: meta -->
 
-`scripts/audit.py` is the ecosystem conformance checker per [ADR-36](docs/decisions/ADR-36-audit-tool-architecture.md). It reads child repos under `Dev/` and writes only to `.dev-knowledge` paths — never touches child repo files. Audit is advisory: findings surface non-compliance; remediation is manual.
+`scripts/audit.py` is the ecosystem conformance checker per [ADR-36](docs/decisions/ADR-36-audit-tool-architecture.md). It reads child repos under `Dev/` and writes only to `.dev-knowledge` paths — never touches child repo files. The cross-repo audit (`run`) is **advisory**: findings surface non-compliance; remediation is manual, with no downstream commit gating. The local self-audit (`health`) is **gating** — it runs as this repo's `audit-health` pre-commit hook ([#69]; FAIL blocks, WARN informs).
 
 Cross-refs: [ADR-31](docs/decisions/ADR-31-authority-model.md) (authority model), [ADR-36](docs/decisions/ADR-36-audit-tool-architecture.md) (tool architecture), [ADR-33](docs/decisions/ADR-33-vision-md-standard.md) (VISION.md), [ADR-38](docs/decisions/ADR-38-repo-architecture-baseline.md) (ADR-38 baseline), [ADR-53](docs/decisions/ADR-53-claude-md-canonical.md) (CLAUDE.md canonical)
 
 ### Active checks
 <!-- scope: meta -->
 
-Three checks active as of commit `deedc10` (P2 checks `backlog_organization` and `dated_entries_*` were removed in that trim; this documents current state):
+**Cross-repo conformance checks** — the three portable governance checks `run`/`repo` apply to every registered repo (P2 checks `backlog_organization` and `dated_entries_*` were trimmed at commit `deedc10`):
 
 | Check | ADR | What it verifies | FAIL | WARN | PASS |
 |---|---|---|---|---|---|
 | `vision_md` | ADR-33 (amended 2026-05-23) | VISION.md exists at repo root with valid YAML frontmatter containing `version`, `last_reviewed`, `owner`, `status` (tier/scale removed) | absent or frontmatter unparseable | frontmatter valid but missing required keys | all required keys present |
 | `adr38_baseline` | ADR-38 (A5, 2026-05-23) | universal governance baseline at repo root: `VISION.md`, `ARCHITECTURE.md`, `BACKLOG.md` present (README optional; src/tests/pyproject not checked — governance baseline, not code-structure) | any required item missing | — | all present |
 | `claude_md` | ADR-53 | CLAUDE.md exists at repo root and is non-empty | absent or empty | — | present with content |
+
+**Self-audit checks** — the local `audit.py health` runs a larger set of **10 checks (#1–#10)** against this repo: the three above plus `dot_prefix_discipline` + `canonical_md_visibility` + `workspace_settings` (ADR-59), `mermaid_theme_directive` (ADR-51), `handoff_bundle_structure` + `handoff_tag_canonicity` (HANDOFF v4), and `canonical_freshness` (#10, freshness cadence). These run on `.dev-knowledge` only and are the substance of the `audit-health` pre-commit gate ([#69]).
 
 ### CLI commands
 <!-- scope: meta -->
@@ -2415,7 +2385,7 @@ Invoke via:
 python scripts/audit.py <command>
 ```
 
-**`health`** — pre-flight check, no file writes. Verifies `click` and `pyyaml` importable, `ecosystem/` directory exists, at least one repo registered. Exits 0 on OK, 1 on DEGRADED.
+**`health`** — local self-conformance check, no file writes. Two parts: (1) **operational preflight** — `click`/`pyyaml` importable, `ecosystem/` exists, ≥1 repo registered; (2) **self-audit** — the 10 checks (#1–#10) against this repo. Exits 1 on any FAIL (operational DEGRADED or a self-audit FAIL); WARN-level findings (A1 30-day backstop, missing `last_reviewed`, etc.) print but exit 0. **It is the [#69] pre-commit gate** (`.pre-commit-config.yaml` `audit-health`): a FAIL blocks the commit, `--no-verify` bypasses.
 
 ```
 python scripts/audit.py health
@@ -2423,10 +2393,15 @@ python scripts/audit.py health
 
 Example output:
 ```
+operational:
   [OK] click importable
   [OK] pyyaml importable
   [OK] ecosystem/ exists
-  [OK] repos registered  (['ai-council', '.dev-knowledge'])
+  [OK] repos registered  (['.dev-knowledge', 'ai-council', 'corp-monorepo'])
+self-audit (.dev-knowledge) - 10/10 pass: vision_md, adr38_baseline, claude_md,
+  dot_prefix_discipline, canonical_md_visibility, workspace_settings,
+  mermaid_theme_directive, handoff_bundle_structure, handoff_tag_canonicity,
+  canonical_freshness
 health: OK
 ```
 
@@ -2636,7 +2611,7 @@ Dependencies missing. Install: `pip install click pyyaml` (or per `pyproject.tom
 **`UNAVAILABLE` finding in report**
 The path stored in `ecosystem/<name>/state.yaml` doesn't exist. Update `path:` in `state.yaml` to the current absolute location, then re-run.
 
-**Known self-compliance gap:** `.dev-knowledge` itself FAILs `adr38_baseline` on every self-audit because it has no `src/` directory or `pyproject.toml` (it is a documentation repo, not a Python package). This is expected and tracked in BACKLOG Stream C P2. Operators running `run` will see `.dev-knowledge — FAIL` and exit code 1 as a result; this is not a tool bug.
+**Self-compliance:** `.dev-knowledge` passes its own self-audit (10/10). *Historical note:* an earlier `adr38_baseline` required `src/` + `pyproject.toml`, which this documentation repo lacked and so FAILed on every self-audit. The ADR-38 amendment A5 (2026-05-23) re-scoped the baseline to governance files (`VISION`/`ARCHITECTURE`/`BACKLOG`, `src/tests/pyproject` not checked) — the self-FAIL is resolved, not a standing gap.
 
 ---
 
@@ -2665,8 +2640,8 @@ The path stored in `ecosystem/<name>/state.yaml` doesn't exist. Update `path:` i
 **Stage 3 — Implement (target architect produces changes in own repo)**
 
 - Target repo architect reviews findings and implements changes in target repo.
-- Implementation evidence: commits + CHANGELOG entry in target repo. No browser-to-browser turn back to strażnik expected.
-- Strażnik may verify (read-only) target repo CHANGELOG / commits at next session start — informational, not gated.
+- Implementation evidence: commits + JOURNAL entry in target repo (CHANGELOG.md retired ecosystem-wide — ADR-49). No browser-to-browser turn back to strażnik expected.
+- Strażnik may verify (read-only) target repo JOURNAL / commits at next session start — informational, not gated.
 
 ### Addendum mechanism
 <!-- scope: meta -->

@@ -107,6 +107,7 @@ historical artifacts from the manual archival era. **Relocated to `transcripts/a
 | ADR-65 | *(no Council transcript — Path A direct ADR, 2026-06-01; refines ADR-64 Decision 1 per operator self-review)* |
 | ADR-66 | *(no Council transcript — Path A direct ADR, 2026-06-01; operator-chosen layout refinement, supersedes ADR-64 Decision 2)* |
 | ADR-67 | *(no Council transcript — Path A direct ADR, 2026-06-01; process formalization of a running loop; amends `AI_COUNCIL_PROCESS.md` v1.0)* |
+| ADR-68 | Council `pick` debate — 4-model panel (claude-opus-4-7, deepseek-v4-pro, grok-4.3, gpt-5.4) + Gemini synth, unanimous on architecture + autonomy boundary (per ADR-68 "Decision method"). Canonical transcript in `ai-council/output/`; **not archived in `docs/decisions/transcripts/`** — the debate set no `target-project`, so the manual-archival fallback was not run. |
 
 ## Pending Council decisions
 

@@ -254,7 +254,7 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
 - GMKtec local inference ($2,500 ADHD trap, 38-month ROI)
 - Codex CLI (no advantage over Haiku subagents)
 - Mandatory TDD (council rejected)
-- Git worktrees for daily work (council rejected)
+- Git worktrees as a *daily-driver* workflow (council rejected) — note: ADR-61 (2026-05-28) later adopted `git worktree` for the narrow case of **parallel same-repo Claude Code sessions**; that is not the rejected daily-default workflow
 - Confidence scoring in council debates (LLMs poorly self-calibrate)
 
 ---

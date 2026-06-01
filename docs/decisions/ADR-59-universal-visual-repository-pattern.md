@@ -279,3 +279,32 @@ list, or the retrofit plans. The amendment is workspace-scoped.
 setting + corrected comment), this ADR (append-only). No PLAYBOOK rewrite —
 PLAYBOOK already references this ADR by number and its body will be touched
 only if a future divergence surfaces during use.
+
+---
+
+## Amendment — 2026-06-01: usage logs live under `logs/`, not the canonical root
+
+**Trigger.** The G1 doc-coherence audit found `TOKEN-LOG.md` referenced bare in
+several docs (CLAUDE §4/§5/§10, ARCHITECTURE §Invariants/§Key-conventions,
+PLAYBOOK), implying a repository-root location, while the file actually lives at
+`logs/TOKEN-LOG.md` (and has since at least 2026-04-27). This created an apparent
+conflict with Decision 2 (ALL-CAPS canonical `.md` at root).
+
+**Clarification (no change to Decisions 1–6 or the audit checks).** The
+root ALL-CAPS-canonical rule (Decision 2) covers **governance documents** —
+`VISION` / `ARCHITECTURE` / `CLAUDE` / `BACKLOG` (mandatory), and the optional
+`JOURNAL` / `ENVIRONMENT` / `CONTRIBUTING` / `LESSONS`. **Usage / telemetry logs
+are not governance documents**: `TOKEN-LOG.md` is a Claude-usage snapshot log and
+lives under `logs/` (`logs/TOKEN-LOG.md`). The `canonical_md_visibility` audit
+check (#5) already scopes its mandatory set to the four governance docs, so
+`logs/` placement was always conformant — this amendment records the intent so
+the docs stop implying root.
+
+**Boundary.** A future usage/telemetry log follows the same rule: lives under
+`logs/`, named in `UPPER-CASE` for scannability, not promoted to the canonical
+root. Governance docs (decisions, conventions, vision, backlog) stay at root or
+in `protocols/` per their existing homes.
+
+**Files touched by this amendment:** the doc references corrected to
+`logs/TOKEN-LOG.md` (CLAUDE.md, ARCHITECTURE.md, PLAYBOOK.md), and this ADR
+(append-only). No audit-check or workspace change.
