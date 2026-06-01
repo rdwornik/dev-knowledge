@@ -1,14 +1,18 @@
 # .dev-knowledge BACKLOG
 
-Open/in-progress `.dev-knowledge` work only. **Done items leave the file** (git history + the per-session JOURNAL entry are the record — ADR-65); no archive (CLAUDE.md §5). Terse 3-line entries — full `Why`/`Added`/history is in git. Schema: **PLAYBOOK §10 / ADR-64/65**; machine-checked by `scripts/validate_backlog.py`.
-
-**Grooming log:** 2026-05-09 · 2026-05-23 · 2026-05-24 · 2026-05-31 (marathon-arc) · 2026-06-01 (ADR-64/65 migration). Next quarterly: 2026-07-01.
-
----
-
 ## Now
 
-_(nothing in progress — see `## Open` → `### P1` for next actions)_
+### [P1][L] Adversarial fresh-eyes pass in routine handoff generation (suggested — operator to confirm)
+`id:1 · repo:.dev-knowledge · status:open`
+Extend triangulation from the promotion gate to every routine handoff (sub-prompt / periodic audit / agent-framework). Council scope. (ref: AGENT_FRAMEWORK.md)
+
+### [P1][L] Council decisions management consolidation (suggested — operator to confirm)
+`id:2 · repo:.dev-knowledge · status:open`
+Add contradiction-detection across decisions + an ownership model (amend vs new ADR vs clarification); the consolidated-index sub-item is done.
+
+### [P1][M] Sacred-files maintenance enforcement (suggested — operator to confirm)
+`id:3 · repo:.dev-knowledge · status:open`
+Enforce canonical-file freshness (last_reviewed staleness hook / session-end checklist) so the 8 sacred files stop drifting.
 
 ---
 
@@ -16,17 +20,7 @@ _(nothing in progress — see `## Open` → `### P1` for next actions)_
 
 ### P1
 
-### [P1][L] Adversarial fresh-eyes pass in routine handoff generation
-`id:1 · repo:.dev-knowledge · status:open`
-Extend triangulation from the promotion gate to every routine handoff (sub-prompt / periodic audit / agent-framework). Council scope. (ref: AGENT_FRAMEWORK.md)
-
-### [P1][L] Council decisions management consolidation
-`id:2 · repo:.dev-knowledge · status:open`
-Add contradiction-detection across decisions + an ownership model (amend vs new ADR vs clarification); the consolidated-index sub-item is done.
-
-### [P1][M] Sacred-files maintenance enforcement
-`id:3 · repo:.dev-knowledge · status:open`
-Enforce canonical-file freshness (last_reviewed staleness hook / session-end checklist) so the 8 sacred files stop drifting.
+_(top P1 items surfaced in `## Now` above — confirm or demote there)_
 
 ### P2
 
@@ -206,9 +200,7 @@ _(none)_
 
 ## Coordination
 
-> Cross-repo items. **Governance pointers** stay here. **Pending-relocation** items are child-repo execution work awaiting their own sessions (ADR-41); they move to the relocation queue in `docs/audits/2026-06-01-child-repo-relocation-proposal.md`.
-
-### Governance pointers (stay in .dev-knowledge)
+> Cross-repo governance pointers only (work stays in `.dev-knowledge`). Child-repo *execution* items live in the relocation queue, not here.
 
 ### [P2][M] Phase 2 universalization rollout
 `id:45 · repo:ecosystem · status:open`
@@ -223,3 +215,9 @@ Extend the ADR-63 review cycle to remaining repos (corp-monorepo → verify undi
 Confirm status of corp-knowledge-extractor / corp-by-os / corp-rfp-agent (renamed / archived / uncloned / dropped).
 
 _18 child-repo execution items were moved to the relocation queue → `docs/audits/2026-06-01-child-repo-relocation-proposal.md` (they leave that queue as their target-repo sessions run)._
+
+---
+
+**About this file** — open/in-progress `.dev-knowledge` work only. **Done items leave** (git history + the per-session JOURNAL entry are the record — ADR-65); no archive (CLAUDE.md §5). Terse 3-line entries — full `Why`/`Added`/history is in git. `## Now` = in-progress or next-up; `## Open` = open by priority; `## Blocked` = blocked; `## Coordination` = cross-repo governance pointers. Schema + layout: **PLAYBOOK §10 / ADR-64 / ADR-65**; machine-checked by `scripts/validate_backlog.py`.
+
+**Grooming log:** 2026-05-09 · 2026-05-23 · 2026-05-24 · 2026-05-31 (marathon-arc) · 2026-06-01 (ADR-64/65 migration + readability pass). Next quarterly: 2026-07-01.
