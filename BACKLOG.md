@@ -37,7 +37,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#11] [P2][M] Convert LESSON-#9's advisory cross-case guard into an amendment checklist/gate (Layer-2 checklist, not orchestration) · Done when: a multi-surface amendment must pass the gate · refs coherence-audit ML-2
 - [#13] [P2][S] Add the ruff pre-commit hook, or correct the docs that claim it · Done when: ruff is enforced OR the docs no longer claim it · refs coherence-audit HK-1
 - [#15] [P2][M] Add hyphen-only-separator enforcement (pre-commit + Action) with a scoped path set + exceptions · Done when: a non-conforming new filename is blocked · refs ADR-34
-- [#69] [P2][S] Gate audit.py FAIL-level checks at pre-commit (run `health` on commit; WARN never blocks; `--no-verify` bypass) · Done when: a FAIL-level violation is blocked at commit + WARNs pass + documented · refs methodology-engine Phase-1 enforcement
 
 ### Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.

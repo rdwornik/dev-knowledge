@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-01 — Pre-commit enforcement gate: audit.py health now blocks (closes [#69])
+
+- Did: Turned the detectable-on-demand standard into an actual **gate** (Phase-1 precondition for universalization). Added the `audit-health` pre-commit hook (`python scripts/audit.py health`, `always_run`, `pass_filenames: false`) — reuses the existing pre-commit framework, joins the already-gating validate-backlog + codemap-freshness + commit-msg `[#id]` hooks. **#8's actual scope is session-lifecycle hooks, not this** — flagged at the checkpoint; operator allocated **#69** (next real free id; verbal #69/#70 reservations released, ML-3 is a lesson).
+- Result: **FAIL blocks / WARN informs comes for free** — `cmd_health` exits 1 only on a FAIL finding; WARN-level (A1 30-day backstop, missing `last_reviewed`, etc.) prints but exits 0. **Gate proven live:** a throwaway `badconfig.toml` (root `.toml` → check #4 FAIL) was blocked (`git commit` exit 1, HEAD unchanged); cleanup restored `health: OK`. ~1.4s/commit; `--no-verify` bypass. Dual review: **Codex 0 findings**; **fresh-eyes technically-sound** (FAIL/WARN contract, config, docs, bypass, scope all verified). Green: 139 tests, ruff, audit health 10/10, validate_backlog OK.
+- Changes: `.pre-commit-config.yaml` (+audit-health hook), `CONTRIBUTING.md` + `protocols/PLAYBOOK.md` (record the gate; replaced the now-false "manual-only / not gated" claims), `BACKLOG.md` (+[#69] then removed on close; [#10] +1 filed drift), `docs/audits/2026-06-01-codex-…` + `…-fresh-eyes-precommit-enforcement-gate.md`. Commits `03913d0`·`0ec9774`·`a81cd6c`·`fb7f717` + this.
+- Abandoned / filed-forward / noted: **FE-1** — the gate made ARCHITECTURE §Validators' "audit.py manual invocation" imprecise → **filed to [#10]** (prompt scoped ARCHITECTURE out), flagged to operator for an optional 1-line fix now. **FE-2 (I1)** — `cmd_health`'s operational checks (`ecosystem/` present) also block; code correct, `ecosystem/` is git-tracked so present in normal flow, `--no-verify` escapes; a conformance-only gate is a possible future refinement. Did NOT touch ARCHITECTURE/VISION. NOT merged.
+- Next: operator review + merge GO. Then Phase 2 = disseminate the gate pattern to child repos. Session-lifecycle hooks remain [#8].
+
+---
+
 ### 2026-06-01 — ARCHITECTURE methodology-engine section (closes [#68])
 
 - Did: Added `## The methodology engine (feedback loop)` to ARCHITECTURE (#68 — formalized at the next monotonic id; verified #68 free: the parallel `adr67`/`adr68` branches use ADR decision-numbering, not BACKLOG ids). Expresses the repo as a feedback *engine*, not a doc pile: Lessons->ADR->Conventions->Enforcement->Dissemination->loop, with an ASCII flow + a stage->artifact table + the Phase-1-hardens-Enforcement / Phase-2-is-Dissemination framing. Placed between Layer Boundaries and Processes (structural "why" before operational flows); complements ESSENTIALS' tactical "Feedback Loop", not a duplicate.
