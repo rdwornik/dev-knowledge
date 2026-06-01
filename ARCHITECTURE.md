@@ -433,7 +433,7 @@ Per ADR-28 invariant: `.dev-knowledge` may host **read-only** validators (Layer 
 - **ADR-40** — scale tier evaluation (DEPRECATED 2026-05-23): logarithmic Maintainability Index pattern; retired with the repo-tier system
 - **ADR-41** — cross-session backlog architecture: BACKLOG.md mandate (universal post tier-deprecation; ADR-38 A5)
 - **ADR-42** — handoff format v3: amends ADR-32; folder-based handoffs with invariant/session separation
-- **ADR-43** — cross-project transcript routing: Council CLI dual-writes to `ai-council/output/` (operational) and `.dev-knowledge/docs/decisions/transcripts/` (curated)
+- **ADR-43** — cross-project transcript routing: Council CLI writes canonical `ai-council/output/` (always, required) and best-effort mirrors to the **target project's** `docs/decisions/transcripts/` — target named per-invocation (`target-project:` / `--target-project`), path resolved `<dev_root>/<name>/docs/decisions/transcripts/` via `TargetResolver` (not hardcoded to `.dev-knowledge`)
 - **ADR-46** — cross-repo dated-entries format: convention retained (demoted from audit-enforced 2026-05-16)
 - **ADR-47** — cross-repo BACKLOG.md organization: convention retained (demoted from audit-enforced 2026-05-16)
 - **ADR-48** — trim documentation governance: retired scope-tag and hybrid-ratio enforcement; structural enforcement only
