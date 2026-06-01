@@ -956,7 +956,7 @@ Three evaluation modes — pick by stakes:
 **Research debate (Scale L decision):**
 - AI Council research-mode debate (4 models, 1-2 rounds, ~$0.30-$0.50)
 - 30-60 min from brief to synthesis
-- Output: archived to `docs/research/YYYY-MM-DD-{topic}.md` per PLAYBOOK 5.N
+- Output: routed to `docs/decisions/transcripts/` (ADR-43; `docs/research/` retired per ADR-60 amendment 2026-05-27)
 
 Decision threshold for which mode: per PLAYBOOK Section 5 "When to run Council vs single-model + critic."
 
@@ -1658,12 +1658,9 @@ Every Council debate output MUST be archived immediately after the debate comple
 
 **Pipeline (3 steps, ~5 min):**
 
-1. **Identify target location** within .dev-knowledge:
-   - Debate about .dev-knowledge itself (pick/judge mode) → `docs/decisions/transcripts/council-out-YYYYMMDD-HHMMSS-topic.md`
-   - Research-mode debate → `docs/research/YYYY-MM-DD-slug.md`
-   - Debate about another repo (e.g., corp-monorepo architecture) → `docs/research/YYYY-MM-DD-council-NN-slug-REPO.md`
-     - Suffix with `-REPO` indicates decision applies elsewhere
-     - Future work: mirror to that repo's transcripts/ folder
+1. **Identify target location** (`docs/research/` retired per ADR-60 amendment 2026-05-27 — all Council outputs land in `transcripts/`):
+   - Debate about .dev-knowledge itself (any mode) → `.dev-knowledge/docs/decisions/transcripts/council-out-YYYYMMDD-HHMMSS-topic.md`
+   - Debate targeting another repo → that repo's `docs/decisions/transcripts/` (routing handles this automatically when `target-project:` is set — ADR-43; this manual copy is the fallback only)
 
 2. **Copy** `ai-council/output/council-out-YYYYMMDD-HHMMSS-topic.md` to target:
    - Decisions: keep filename as-is (`council-out-YYYYMMDD-HHMMSS-topic.md`)
@@ -1938,7 +1935,7 @@ After archival, cross-link FROM:
 - `/clear` between unrelated tasks (saves 30-40% input tokens)
 - Commit after each logical change
 - Test after each change (not at the end)
-- If scope creeps: "Adding to OPEN_DECISIONS.md, not doing today"
+- If scope creeps: "Adding to BACKLOG.md, not doing today" (no `OPEN_DECISIONS.md` — BACKLOG is the single pending-items queue, ADR-41)
 - Use Plan Mode before implementation (catches bad approach at 200 tokens vs 5000)
 - Use line ranges (`@file:15-80`) instead of whole files
 
@@ -2037,7 +2034,7 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
 2. Review gotchas added this week — any patterns?
 3. Review token usage — `ccusage --json` → append snapshot to TOKEN-LOG.md. Is Opus verbosity still the main drain?
 4. Review LESSONS.md entries from this week — anything to change in PLAYBOOK?
-5. Review OPEN_DECISIONS.md — anything stale? Anything urgent?
+5. Review BACKLOG.md — anything stale? Anything urgent? (single pending-items queue; no `OPEN_DECISIONS.md`)
 6. Quick project health check (test suite, lint, stale branches)
 7. Update ENVIRONMENT.md if any config changed
 
