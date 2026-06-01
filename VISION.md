@@ -42,8 +42,8 @@ ecosystem evolves.
   tracked as an ecosystem health signal.
 
 - **Cross-repo methodology consistency.** Every project under the
-  ecosystem adheres to universal patterns (naming, scope tagging,
-  governance artifacts, handoff protocols). Drift detected proactively
+  ecosystem adheres to universal patterns (naming, repo layout, governance
+  artifacts, handoff protocols). Drift detected proactively
   via scanning; corrected via universal updates, not per-repo patches.
 
 - **Methodology evolution as obsession.** Handoff protocols, prompt
@@ -103,9 +103,10 @@ Child repo VISION files are project-specific; `.dev-knowledge` VISION is
 universal.
 
 **Special case — `ai-council`:** functions as a tool used by `.dev-knowledge`
-to generate architectural decisions. Council debate transcripts return to
-`.dev-knowledge/docs/decisions/transcripts/` per Council output convention.
-Operational metrics stay in `ai-council/output/`.
+to generate architectural decisions. The canonical transcript stays in
+`ai-council/output/` (source of truth); a copy routes to the **target
+project's** `docs/decisions/transcripts/` when the debate names one (per ADR-43 —
+for `.dev-knowledge`-targeted debates that is `.dev-knowledge`).
 
 ## Lifecycle
 
@@ -126,8 +127,9 @@ artifacts to detect drift:
 
 **Audit support:** verification mechanism implemented via `.dev-knowledge`
 auditor (`scripts/audit.py` per ADR-36 — `health`/`repo`/`run`/`registry`
-commands, read-only, manual invocation). Manual session-close verification
-per HANDOFF_PROCESS.md complements the tool.
+commands, read-only). The cross-repo `run`/`repo` are manually invoked; the
+self-audit `health` (10 checks) runs as this repo's pre-commit gate ([#69]).
+Manual session-close verification per HANDOFF_PROCESS.md complements the tool.
 
 **Vision realized:** when current Vision becomes current state, archive
 as `docs/archive/VISION_v{N}_realized_YYYY-MM-DD.md` and propose next
