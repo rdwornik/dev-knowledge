@@ -7,7 +7,7 @@ findings:
   evidence: All ADR-38 universal governance baseline files present
   status: pass
 - check_name: claude_md
-  evidence: CLAUDE.md present (7231 chars)
+  evidence: CLAUDE.md present (5961 chars)
   status: pass
 - check_name: dot_prefix_discipline
   evidence: All root config files dot-prefixed or on ADR-59 exception list
@@ -17,7 +17,7 @@ findings:
     ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'']'
   status: pass
 - check_name: workspace_settings
-  evidence: .ai-council.code-workspace present, dot-prefixed, required sort settings
+  evidence: .corp-ops.code-workspace present, dot-prefixed, required sort settings
     correct
   status: pass
 - check_name: mermaid_theme_directive
@@ -35,5 +35,5 @@ findings:
     no parseable last_reviewed frontmatter'
   status: fail
 last_audit: '2026-06-02'
-name: ai-council
-path: C:\Users\1028120\Documents\Dev\ai-council
+name: corp-ops
+path: C:\Users\1028120\Documents\Dev\corp-ops

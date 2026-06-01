@@ -61,6 +61,7 @@ _DOT_PREFIX_EXCEPTIONS = {
     "Cargo.toml",           # Rust
     "setup.py",             # Python legacy
     "setup.cfg",            # Python legacy
+    "pytest.ini",           # pytest will not read .pytest.ini (ADR-59 amend 2026-06-02)
     "requirements.txt",     # pip convention
     "requirements-dev.txt",
     "Dockerfile",

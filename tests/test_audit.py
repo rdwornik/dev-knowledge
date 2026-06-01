@@ -265,6 +265,15 @@ def test_dot_prefix_pass_dotted_and_exceptions(tmp_path: Path) -> None:
     (tmp_path / ".pre-commit-config.yaml").write_text("")
     (tmp_path / "pyproject.toml").write_text("")   # exception
     (tmp_path / "tach.toml").write_text("")         # exception (verified 2026-05-27)
+    (tmp_path / "pytest.ini").write_text("")        # exception (pytest won't read .pytest.ini)
+    f = aud.check_dot_prefix_discipline(tmp_path)[0]
+    assert f.status == "pass"
+
+
+def test_dot_prefix_pytest_ini_is_exempt(tmp_path: Path) -> None:
+    # pytest.ini cannot be dot-prefixed (pytest does not read .pytest.ini), so it
+    # joins the ADR-59 exception list (amendment 2026-06-02) like pyproject.toml.
+    (tmp_path / "pytest.ini").write_text("[pytest]\n")
     f = aud.check_dot_prefix_discipline(tmp_path)[0]
     assert f.status == "pass"
 

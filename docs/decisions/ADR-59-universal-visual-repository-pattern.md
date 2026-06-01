@@ -308,3 +308,35 @@ in `protocols/` per their existing homes.
 **Files touched by this amendment:** the doc references corrected to
 `logs/TOKEN-LOG.md` (CLAUDE.md, ARCHITECTURE.md, PLAYBOOK.md), and this ADR
 (append-only). No audit-check or workspace change.
+
+---
+
+## Amendment — 2026-06-02: `pytest.ini` joins the dot-prefix exception list
+
+**Trigger.** An ecosystem readiness scout found `corp-sca` FAILs the
+`dot_prefix_discipline` audit check (#4) on its root `pytest.ini`. But
+`pytest.ini` **cannot** be dot-prefixed: pytest does not discover a
+`.pytest.ini` — only `pytest.ini` (or a `[pytest]` / `[tool:pytest]` block in
+`pyproject.toml` / `tox.ini` / `setup.cfg`) is read. It is an industry-standard
+config name in exactly the same category as the already-exempt `pyproject.toml`,
+`setup.cfg`, and `tox.ini`. This was a gap in the standard, not a repo defect —
+any repo using `pytest.ini` would have failed conformance with no in-place fix
+available.
+
+**Clarification (no change to Decisions 1–6 or to the audit-check logic).**
+`pytest.ini` is added to the exception list — the set of industry-standard names
+that MUST NOT be dot-prefixed. It joins the canonical list in Decision 1's
+"Exceptions" block (the body list above remains the historical record; this
+amendment is the authoritative addition) and is mirrored in
+`scripts/audit.py` (`_DOT_PREFIX_EXCEPTIONS`), per the single-source-of-truth
+maintenance rule. A repo may keep `pytest.ini` at root, or embed its config
+under `pyproject.toml`/`tox.ini`/`setup.cfg`; both are conformant.
+
+**Boundary.** A future tool config that the tool will not read under a dotted
+name follows the same path: verify empirically that the dotted variant is
+unsupported, then add the exact name to this exception list (amendment) and to
+`audit.py`. Configs whose tool *does* read the dotted variant stay dot-prefixed.
+
+**Files touched by this amendment:** `scripts/audit.py`
+(`_DOT_PREFIX_EXCEPTIONS` + comment), `tests/test_audit.py` (exemption test),
+and this ADR (append-only). No workspace or Decision change.
