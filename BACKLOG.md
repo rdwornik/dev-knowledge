@@ -1,556 +1,594 @@
 # .dev-knowledge BACKLOG
 
-Cross-session pending items across active streams. See ADR-41 for
-schema and grooming cadence.
+Open and in-progress `.dev-knowledge` work only. **Done items leave the file** (git history + the per-session JOURNAL entry are the record — ADR-65); there is no archive file (CLAUDE.md §5). Schema + layout: **PLAYBOOK §10 / ADR-64 / ADR-65**; machine-checked by `scripts/validate_backlog.py`. One item lives in exactly one section (section = status); repo affiliation is the `repo:` field.
 
-Last full grooming: 2026-05-09 (P1 HANDOFF_PROCESS closed)
-Tier-deprecation reconciliation grooming: 2026-05-23 (4 items resolved/superseded, scrum-master item to N=3, 5 cross-repo rollout items opened)
-Post-session-arc audit: 2026-05-24 (5 closed, 1 superseded, 1 rephrased, 2 added, scrum-master codification → P1; report `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md`)
-Marathon arc reconciliation: 2026-05-31 (2 superseded, 4 partial-updated, 2 scope-updated, 3 added + 1 LESSONS; report `docs/audits/2026-05-31-backlog-reconciliation-classification.md`)
-Next quarterly grooming: 2026-07-01
+**Grooming log:** 2026-05-09 (P1 HANDOFF_PROCESS) · 2026-05-23 (tier-deprecation) · 2026-05-24 (post-arc audit) · 2026-05-31 (marathon-arc reconciliation) · **2026-06-01 (ADR-64/65 migration: 42 done items retired, restructured to status-and-priority, ids assigned)**. Next quarterly: 2026-07-01.
 
 ---
 
-## Stream A: corp-monorepo
+## Now
 
-(no items currently — populate as Phase 2 universalization begins)
+_(nothing in progress — next actions are the top of `## Open` → `### P1`)_
 
-## Stream B: ai-council
+---
 
-### [P3] [open] ai-council LESSONS.md scope-tag backfill (ADR-46 advisory)
-- **What:** ai-council `LESSONS.md` entries do not contain `[scope: X]` tags per the ADR-46 LESSONS payload sniff test. Add `[scope: X]` to each entry's canonical 6-field schema position. Work belongs in ai-council repo.
-- **Why:** ADR-46 §LESSONS.md specifies `[scope: X]` substring as required in 6-field entries; absence produces a WARN on `dated_entries_lessons` check. Advisory — WARN not FAIL — but constitutes methodology drift from the ADR-46 standard.
-- **Added:** 2026-05-16 by rob (2026-05-16 re-audit advisory WARN — ai-council `dated_entries_lessons`)
-- **Status:** open — work belongs in ai-council repo
+## Open
 
-## Stream C: .dev-knowledge governance
+### P1
 
-### [P2] [open] Lessons activation P1 implementation
-- **What:** Build lessons-index.json + retrieval (SessionStart hook) + querying (CLI) per ADR-35
-- **Why:** Activates LESSONS.md from passive archive to active feedback loop; bidirectional pipeline corrections.jsonl ↔ LESSONS.md ↔ ~/.claude/rules/
+### [P1] Adversarial fresh-eyes pass in routine handoff generation
+- **id:** 1
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Extend triangulation from the promotion gate to routine handoff artifacts. v4.3.1 (caveat N1) guards process *versioning* only; every routine handoff still rides on Phase-2 self-verification — the insider-only coverage (~25%) the v4 arc disproved. Options: (a) lightweight skeptical sub-prompt in every Phase 2; (b) periodic adversarial audit (every N handoffs); (c) full agent-framework with an adversarial layer. Council scope.
+- **Why:** The curse-of-knowledge result is empirical (insider review caught 1/4 critical; fresh-eyes 4/4). Routine bundles inherit the blind spot.
+- **Added:** 2026-05-30 by rob (v4.3.1 caveat-patch session)
+- **Refs:** `protocols/AGENT_FRAMEWORK.md`; HANDOFF_PROCESS v4.3.1 Amendment item A; `scripts/audit.py` #8/#9
+
+### [P1] Council decisions management consolidation
+- **id:** 2
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Decision artifacts are dispersed across `docs/decisions/`, `transcripts/`, and per-file ADR refs. Remaining sub-items (the consolidated-index sub-item closed 2026-05-11): (1) contradiction-detection mechanism between decisions over time; (2) ownership model for decision evolution — amendment vs new ADR vs conversational clarification. Both Council territory.
+- **Why:** As ADR count grows (65+), navigating + drift-detecting compounds; governance debt accrues silently.
+- **Added:** 2026-05-09 by rob
+
+### [P1] Sacred-files maintenance enforcement
+- **id:** 3
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Canonical files drift because sessions forget to update them at boundaries. `.dev-knowledge` list is 8 files (ARCHITECTURE/BACKLOG/CLAUDE/CONTRIBUTING/JOURNAL/LESSONS/VISION + project CLAUDE; CHANGELOG dropped 2026-05-16). Need an enforcement mechanism: `last_reviewed` staleness pre-commit, session-end checklist skill, or diff-based staleness detection. Enumerate per-repo lists, design, implement ≥1, validate.
+- **Why:** Stale ground truth silently misleads future sessions. The sacred-files list itself was found stale 2026-05-20.
+- **Added:** 2026-05-09 by rob
+
+### P2
+
+### [P2] Lessons activation P1 implementation
+- **id:** 4
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Build lessons-index.json + retrieval (SessionStart hook) + querying (CLI) per ADR-35.
+- **Why:** Activates LESSONS.md from passive archive to active feedback loop; bidirectional `corrections.jsonl` ↔ LESSONS.md ↔ `~/.claude/rules/`.
 - **Added:** 2026-04-30 by rob
-- **Status:** open
 
-### [P2] [open] ESSENTIALS.md cheat-sheet additions for ADRs 35-54
-- **What:** Review which of ADRs 35-54 warrant high-leverage cheat-sheet rules in ESSENTIALS.md. Candidates: lessons retrieval shortcut (ADR-35), audit tool trigger conditions (ADR-36), two-phase handoff quick reference (ADR-37), tier evaluation signals (ADR-40), BACKLOG grooming cadence rules (ADR-41), ARCHITECTURE.md convention (ADR-51), CLAUDE.md single-instruction model (ADR-53), Codex reviewer global standard (ADR-54). Apply ESSENTIALS.md "Keep under 1 page" constraint — judgment call which warrant inclusion.
-- **Why:** ESSENTIALS lifecycle update trigger is "lessons promotion, methodology change." Significant methodology changes accumulated 2026-04-30 through 2026-05-19. Audit observed 226 lines (already over "1 page") so additions require pruning OR explicit relaxation of constraint. Verification 2026-05-20: grep confirms only ADR-53 directly referenced in topical content; ADRs 35-52 and 54 absent.
-- **Added:** 2026-04-30 by rob (Phase 1 self-audit); scope expanded 2026-05-20 (posture audit verification, `docs/audits/2026-05-20-posture-audit-verification.md` finding C2).
-- **Status:** open
-- **Scope update 2026-05-31 (marathon arc reconciliation):** Extend the candidate range to **ADRs 35-63** — the arc added ADRs 55-63 (visual pattern 59, docs taxonomy 60, worktree 61, v4 ratification 62, scrum-master authority 63). ADR-61's parallel-sessions cheat already landed in ESSENTIALS (`## Parallel sessions`); ADR-59/60/62/63 are the new high-leverage candidates to evaluate against the "Keep under 1 page" constraint. Refs: ADRs 55-63.
+### [P2] ESSENTIALS.md cheat-sheet additions for ADRs 35-63
+- **id:** 5
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Review which of ADRs 35-63 warrant high-leverage ESSENTIALS cheats (lessons retrieval 35, audit triggers 36, two-phase handoff 37, BACKLOG cadence 41, ARCHITECTURE 51, CLAUDE single-instruction 53, Codex global 54, visual pattern 59, docs taxonomy 60, v4 ratification 62, scrum-master 63). ADR-61 parallel-sessions + the ADR-64/65 Backlog cheat already landed. Apply the "Keep under 1 page" constraint — judgment call.
+- **Why:** ESSENTIALS update trigger is methodology change; significant changes accumulated since 2026-04-30. Additions require pruning or explicit relaxation.
+- **Added:** 2026-04-30 by rob; scope expanded 2026-05-20, 2026-05-31
 
-### [P2] [open] Stream taxonomy grooming — Cross-stream section exceeds kill criterion
-- **What:** BACKLOG.md `Cross-stream / Ecosystem` section currently holds 40% of all open items (kill criterion per ADR-47: 33%). Review the 15 open Cross-stream items and evaluate: (a) which items genuinely belong to an existing stream (A/B/C/D) and should be reclassified; (b) whether a new stream (e.g., Stream E: ecosystem operations or Stream E: tooling) should be created to absorb a coherent sub-group; (c) which items are truly cross-stream and should remain. Output: reclassified BACKLOG with Cross-stream ≤33%, or an operator decision to extend ADR-47's kill threshold with empirical justification.
-- **Why:** ADR-47 codified 33% as the kill criterion because Cross-stream > 33% signals that the stream taxonomy is no longer routing items correctly. The current 40% reading persisted after extraction of all done items, confirming it is structural (not noise). Without deliberate grooming, the ratio will increase as new cross-stream items accumulate and the taxonomy's routing signal degrades for LLM agents at session start.
-- **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-47 kill criteria; pairs with quarterly grooming cadence
-- **Added:** 2026-05-16 by rob (Session D — accepted WARN from kill-criterion re-evaluation post-extraction)
-- **Status:** open — deferred to quarterly grooming (2026-07-01); task-mismatch justifies defer over immediate forced reclassification
+### [P2] Handoff advisory framing leaks into receiver behavior
+- **id:** 6
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Advisory framing in a handoff ("REST recommended") propagated to a receiver chat as unprompted session-end suggestions despite an explicit operator rule against it. Classify root cause (handoff design vs receiver discipline vs both) and propose mitigation before the next high-stakes handoff.
+- **Why:** ADR-37 assumes handoff content is informational; in practice advisory framing becomes behavioral pressure. Likely recurs with other framings.
+- **Added:** 2026-05-11 by rob
+- **Refs:** ADR-37, ADR-42, LESSONS 2026-05-11
 
-### [P3] [open] ADR-39 amendment — BACKLOG.md lifecycle entry
-- **What:** Amend ADR-39 registry to add BACKLOG.md entry per ADR-41
-- **Why:** Lifecycle compliance per ADR-39; deferred to grouped amendment to minimize ADR churn
+### [P2] Extend audit-check enforcement to other governance artifacts
+- **id:** 7
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Apply the read-only structural-validator pattern (audit.py #8) to AI Council transcripts (naming + cover-letter + verdict structure) and ADRs (frontmatter + supersession field + template alignment). Each a registered check with fixtures + tests, folded into the health gate.
+- **Why:** #8/#9 prove the lint-at-health-time pattern catches drift cheaply; ADRs + transcripts carry the same risk, currently caught only by reviewer judgment.
+- **Added:** 2026-05-29 by rob
+- **Refs:** `scripts/audit.py` #8/#9; `protocols/AGENT_FRAMEWORK.md`
+
+### [P2] Hooks audit + consolidation + workflow-automation patterns
+- **id:** 8
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Implementation phase (the 2026-05-29 inventory + automation-pattern analysis is done, `docs/audits/scratch/2026-05-29-ecosystem-hooks.md`). Add/consolidate the actual hooks: session-end clean-tree / canonical-file-staleness check (pairs with id 3), lessons-retrieval on SessionStart (pairs with id 4); resolve the Codex-vs-internal review-hook overlap. Findings HK-1..HK-4 are tracked in ids 9-12/coordination.
+- **Why:** Lifecycle hooks are the mechanical-enforcement layer ("convention without enforcement drifts"); their use + expansion deserve explicit implementation, not implicit habit.
+- **Added:** 2026-05-09 by rob; scope expanded 2026-05-24
+
+### [P2] Skills universalization across repos
+- **id:** 9
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Cross-repo skills review: (a) inventory all skills across repos, (b) classify repo-specific vs cross-ecosystem, (c) identify universalization targets that should live in `.dev-knowledge`, (d) propose a canonical location. Output: inventory + universalization proposal.
+- **Why:** Redundantly-defined skills drift; universalization reduces maintenance + ensures consistency.
+- **Added:** 2026-05-09 by rob
+
+### [P2] Ecosystem: doc-truth sweep (CLAUDE.md + ARCHITECTURE self-description)
+- **id:** 10
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Eight doc-accuracy drifts, all small edits: CLAUDE §7 omits `/codex-review`+`/evolve` (SK-1); §8 calls commands "skills" + omits `verify` (SK-2); §7 `/handoff` says v3.3.3 not v4 (CD-1); footer date vs §12 (CD-2); ARCHITECTURE governing-ADRs omits 59/61 (WF-1); ARCHITECTURE validators list repeats the false ruff-pre-commit claim + lists non-existent `backlog_extract.py` + omits codemap-freshness (WF-2); LESSONS "oldest-top" descriptor vs newest-top (ML-1 — verify vs ADR-29); TOKEN-LOG.md location vs CLAUDE §4/§5 (ML-4).
+- **Why:** The repo whose VISION is "drift detected proactively" is the locus of drift; none breaking, all trust-eroding.
+- **Added:** 2026-05-29 by rob
+- **Refs:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` §3/§4
+
+### [P2] Ecosystem: feedback-loop enforcement (un-enforced guards → gate)
+- **id:** 11
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Convert LESSON #9's cross-case-trace guard from advisory prose into an amendment checklist/gate (Layer-2: checklist, not orchestration). ML-3 (promote the v3.4-abort lesson) done in the 2026-05-30 LESSONS batch; ML-2 partly addressed by ADR-63 (review-authority backstop). **Open:** the literal guard→gate conversion.
+- **Why:** Structural root cause of the v3.4 abort; predicts recurrence on the next multi-surface amendment unless the guard becomes a gate.
+- **Added:** 2026-05-29 by rob
+- **Refs:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` (ML-2/ML-3); ADR-63
+
+### [P2] Ecosystem: evolution memory logs missing + no session-close automation
+- **id:** 12
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** boot.md + Self-Evolution Protocol + SessionStart/Stop hooks read `sessions/violations/corrections/observations.jsonl` — none exist (only `learned-rules.md` + `evolution-log.md`); the machinery is wired but vacuous. Stop hook does no functional session-close automation. Fix: create the logs OR repoint hooks+protocol to `evolution-log.md`; add one read-only session-close automation. (owner: `~/.claude` runtime + self)
+- **Why:** Session-trend + correction-promotion tracking silently does nothing; `/boot` reports "no sessions.jsonl."
+- **Added:** 2026-05-29 by rob
+- **Refs:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` (SK-3/HK-2/HK-3/SK-5)
+
+### [P2] Ecosystem: ruff lint enforcement for .dev-knowledge
+- **id:** 13
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** CLAUDE §9/§4 + ARCHITECTURE document ruff as a pre-commit hook, but it is NOT in `.pre-commit-config.yaml` (only normalize-dated-headers + codemap-freshness). Decide: add the ruff hook, or correct the docs. (Foldable into id 10.)
+- **Why:** A load-bearing convention documented-as-enforced is actually manual; a ruff violation could land while docs imply it was blocked.
+- **Added:** 2026-05-29 by rob
+- **Refs:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` (HK-1)
+
+### [P2] Ecosystem-folder operating-model design (snapshot vs continuous audit)
+- **id:** 14
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Define the operating model for the `ecosystem/` folder — (a) periodically-regenerated static snapshot, (b) substrate for a continuous cross-repo audit process, or (c) retire in favor of on-demand audit runs. Design ownership, regeneration cadence/trigger, relationship to `scripts/audit.py` cross-repo reach, Layer-2 read-only invariant.
+- **Why:** Operator flagged 2026-05-31 that the folder exists but its operating model is unknown — a static snapshot is not a process; without a model it rots (tech-radar precedent). Council-scope; pairs with ids 27, 39.
+- **Added:** 2026-05-31 by rob
+
+### [P2] CI enforcement of hyphen-only separator rule
+- **id:** 15
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Pre-commit hook + GitHub Action enforcing hyphen-only separators in new file/folder names. Scope TBD: which paths (`.md` only vs all), generated-artifact handling, exceptions list.
+- **Why:** Convention without enforcement drifts; manual discipline insufficient per the 2026-05-11 audit.
+- **Added:** 2026-05-11 by rob
+- **Status note:** scope decision needed before implementation (small Council question or conversational).
+
+### [P2] Remove tier-residue from .dev-knowledge workspace templates
+- **id:** 16
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Collapse `templates/workspace-{S,M,L}.code-workspace` (three richness-tiered files) + PLAYBOOK §"VS Code workspace" into one maximal `.code-workspace` template from which elements are selected by repo complexity (not three scale-keyed variants). S/M/L was de-tiered in PLAYBOOK v1.1 but three files persist.
+- **Why:** Operator decision (universalization Q5): "one complex template, scale-adaptive by element selection, NOT scale-different templates." Affects the template framework, not any child repo; may warrant a small ADR/PLAYBOOK amendment.
+- **Added:** 2026-05-26 by rob
+- **Refs:** `protocols/PLAYBOOK.md` §VS Code workspace; `templates/workspace-{S,M,L}.code-workspace`
+
+### [P2] templates/CLAUDE-md-template.md refresh — encode ADRs 54-63
+- **id:** 17
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Refresh `templates/CLAUDE-md-template.md` (v2.1, predates ADRs 54-63): §3 mermaid theme directive (ADR-51 v2); §4 visual pattern (59) + docs taxonomy variant (60); §5 worktree pre-flight (61); §7 `/handoff` + HANDOFF_PROCESS ref; §11 rotate to last-5 ADRs (now 61-65). Bump version.
+- **Why:** Durability-audit J1 — "the largest single durability gap": the single new-repo scaffolding artifact for agent-instruction content; stale → every new repo inherits stale conventions.
+- **Added:** 2026-05-28 by rob; scope expanded 2026-05-31
+- **Refs:** `docs/audits/2026-05-28-universalization-durability-audit.md`
+
+### [P2] AI Council convene-vs-Path-A decision criterion
+- **id:** 18
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Codify when an architecture decision goes to a full Council convene vs a Path-A direct ADR. ADR-62/63/65 were Path-A (post-hoc record of a decision already made + validated), but the justifying criterion lives only in JOURNAL prose. Add the rule to `protocols/AI_COUNCIL_PROCESS.md` (or PLAYBOOK).
+- **Why:** AI_COUNCIL_PROCESS v1.0 assumes every architecture decision convenes; the arc established Path A as legitimate for post-hoc records. Pairs with id 21 (relax-vs-gate).
+- **Added:** 2026-05-31 by rob
+
+### P3
+
+### [P3] ADR-39 amendment — add BACKLOG.md lifecycle entry
+- **id:** 19
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Amend ADR-39 registry to add a BACKLOG.md entry per ADR-41 (bundle with id 20 to minimize ADR churn).
+- **Why:** Lifecycle compliance per ADR-39.
 - **Added:** 2026-04-30 by rob
-- **Status:** open
 
-### [P3] [open] ADR-41 amendment — reference ADR-47 (BACKLOG schema)
-- **What:** Amend ADR-41 (BACKLOG architecture — file mandate) to cross-reference ADR-47 (BACKLOG schema decision). ADR-41 stands as the "file mandate" authority; ADR-47 is the "file schema" authority. Small textual amendment in ADR-41 § Storage + Related metadata block.
-- **Why:** ADR-47's Follow-ups identifies this as needed for traceability. Without the cross-reference, future readers may treat ADR-41 as the only BACKLOG authority and miss the operational schema in ADR-47.
-- **Vision ref:** ADR-41 + ADR-47.
-- **Added:** 2026-05-15 by rob (B+C ADR session — surfaced by ADR-47 Follow-ups)
-- **Status:** open — bundle with grouped ADR-39 amendments to minimize ADR churn (Stream C P3 above)
+### [P3] ADR-41 amendment — cross-reference ADR-47 (BACKLOG schema)
+- **id:** 20
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Add a dated amendment to ADR-41 (file-mandate authority) cross-referencing ADR-47 (schema) — and now ADR-64/65 (architecture/disposition). Small amendment in ADR-41 §Storage + Related.
+- **Why:** Without the cross-ref, readers treat ADR-41 as the only BACKLOG authority and miss the operational schema. (Deferred from the 2026-06-01 migration step-2 reconcile, which aligned at the PLAYBOOK layer only — editing the immutable ADR is this item's proper channel.)
+- **Added:** 2026-05-15 by rob
 
-### [P3] [open] ADR-39 registry decision — unregistered template files
-- **What:** Decide whether template-category files require ADR-39 registry entries. Options: (a) add registry entries with template-specific lifecycle; (b) formally exclude templates as a class via ADR-39 amendment ("template files exempt from registry"); (c) hybrid — register only stable templates, exclude transient. Decision required because ADR-39 says "every file in .dev-knowledge MUST have 6 lifecycle elements."
-- **Why:** Audit surfaced unregistered files. Either we extend registry or formally narrow scope. Drift risk if neither.
-- **Added:** 2026-04-30 by rob (Phase 1 self-audit)
-- **Status:** open (partial) — entry rephrased 2026-05-24: the original "5 unregistered" list named `templates/AGENTS-md-template.md`, now deleted (AGENTS.md retired per ADR-53). Re-scope against the *current* `templates/` set (verified 2026-05-24): `ADR-template.md`, `ARCHITECTURE-template.md`, `CLAUDE-md-template.md`, `codex-review-config-template.md`, `prompt-template.md`, `scrum-master-cover-letter.md`, `HANDOFF_TEMPLATE.md`, `HANDOFF_FOLDER_TEMPLATE.md`, `HANDOFF_QUESTION_TEMPLATE.md`, `workspace-{S,M,L}.code-workspace`, plus `templates/archive/`. **2026-05-25:** the two handoff templates (`HANDOFF_QUESTION_TEMPLATE.md`, `HANDOFF_FOLDER_TEMPLATE.md`) are now registered via ADR-39 amendment 2026-05-25 (decision (a) register; resolves audit M-6); the stale `HANDOFF_TEMPLATE.md` entry was marked superseded. **Remaining open:** the class-level register-vs-exempt-vs-hybrid decision for the non-handoff templates (`ADR-template.md`, `ARCHITECTURE-template.md`, `CLAUDE-md-template.md`, `codex-review-config-template.md`, `prompt-template.md`, `scrum-master-cover-letter.md`, `workspace-{S,M,L}.code-workspace`, `templates/archive/`).
-
-### [P3] [open] LESSONS.md parenthetical-qualifier entries escape dated-entry audit regex
-- **What:** 8 entries use `### YYYY-MM-DD (qualifier) |` format (all 2026-05-09 with time qualifiers). The audit's `_LESSONS_H3_RE` regex requires date immediately before `|`; the parenthetical causes these entries to be invisible to the ordering check. They are correctly positioned (reorder script treated them as opaque), but the validator cannot enforce their ordering going forward. Decision: (a) broaden regex to permit optional parenthetical, or (b) reformat the 8 entries to move qualifier into body text (requires operator sign-off under ADR-29 "never edit old entries" — qualifier is metadata, not lesson content).
-- **Why:** Latent coverage gap: future misordering around these 8 entries would not be caught. Surfaced by Session D content-preservation count (127 H3 total, 120 regex-matched; delta of 8 = parenthetical entries).
-- **Added:** 2026-05-16 by rob (Session D content-preservation verification)
-- **Status:** open — operator decision required (regex broadening vs entry reformat) before fix
-
-### [P3] [open] ADR relationship index / supersession graph
-- **What:** With 27+ ADRs accumulated (gaps at 44 reserved; supersessions like ADR-52 → ADR-53 in flight), the relationship structure — supersedes / supersededBy / related / amends — is not navigable for a fresh reader. Build either (a) a machine-generated graph from ADR frontmatter (`supersedes:`, `related:`, `amends:` fields already exist in newer ADRs), or (b) an index doc with explicit edges. Could be DOT, Mermaid, or markdown table. Same shape as codemap generator work — read frontmatter, render, CI-check freshness.
-- **Why:** New contributors reading ADRs in sequence miss relationship structure. As corpus grows past 30 ADRs, the cost of unfamiliarity compounds. Pairs with F1 (contradiction detection — both need ADR/decision graph as substrate).
-- **Refs:** `docs/decisions/`; `docs/audits/2026-05-19-dev-knowledge-posture-audit.md` finding I1.
-- **Added:** 2026-05-20 by rob (posture audit verification).
-- **Status:** open
-
-### [P3] [open] CLAUDE.md §4 cites a stale known-failing test
-- **What:** `CLAUDE.md` §4 Conventions/Testing states "known pre-existing failure: `test_audit_run_passes_structural_checks_on_synthetic_repo` — tracked in BACKLOG." Verified 2026-05-24: that test **passes** (`pytest -k test_audit_run_passes_structural_checks_on_synthetic_repo` → 1 passed) and the full suite is green (72 passed). The note is stale. Fix: remove the known-failure clause from CLAUDE.md §4 (one-line edit).
-- **Why:** CLAUDE.md is the session contract read on every session start; a false "known failure" note misleads future sessions into treating a green suite as expected-to-have-one-failure, masking real regressions. Out of this audit's scope (workflow-file edit = execution); captured for a follow-up.
-- **Refs:** `CLAUDE.md` §4; `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md` OQ-2.
-- **Added:** 2026-05-24 by rob (BACKLOG audit — incidental drift).
-- **Status:** open — one-line CLAUDE.md edit in a follow-up.
-
-## Stream D: corp-sca-time-automation
-
-(no items currently — trigger-based migration per ADR-33)
-
-## Cross-stream / Ecosystem
-
-### [P2] [open] Phase 2 universalization rollout
-- **What:** Apply ADR-33/34/35/37/38/39/40/41 to ai-council and corp-monorepo (immediate cohort per ADR-33)
-- **Why:** Validates universalization pattern; unblocks trigger-based cohort migration; first per-repo audit + handoff cycle
-- **Vision ref:** VISION.md "Disseminator" function
+### [P3] ADR-39 registry decision — unregistered template files (class-level)
+- **id:** 21
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Decide register vs exempt vs hybrid for the non-handoff `templates/` class (`ADR-template.md`, `ARCHITECTURE-template.md`, `CLAUDE-md-template.md`, `codex-review-config-template.md`, `prompt-template.md`, `scrum-master-cover-letter.md`, `workspace-{S,M,L}.code-workspace`, `templates/archive/`). The two handoff templates were registered 2026-05-25.
+- **Why:** ADR-39 says "every file MUST have 6 lifecycle elements"; either extend the registry or formally narrow scope. Drift risk if neither.
 - **Added:** 2026-04-30 by rob
-- **Status:** open — ai-council substantially complete as of 2026-05-12 session: ADR-34 hyphen compliance achieved (CLI emitter + docs), ADR-38 Scale M gaps closed (BACKLOG.md, LESSONS.md at root, tasks/ retired), VISION.md tier M declared, scrum-master review cycle N=1 completed. .dev-knowledge AGENTS.md retired 2026-05-19 (Chunk 4 — content migrated to CLAUDE.md v2.1 per ADR-53). Remaining ai-council: ARCHITECTURE.md (optional at M). ai-council AGENTS.md retired 2026-05-19 per ADR-53 chunk 4. corp-monorepo: not yet started.
 
-### [P2] [open] Handoff advisory framing leaks into receiver behavior
-- **What:** Session-start handoff containing architect's "REST recommended" advisory (2026-05-09-dev-knowledge-session-sync bundle) propagated to receiver chat as 3 unprompted session-end suggestions during 2026-05-11 session, despite explicit operator preference rule against unprompted scheduling. Handoff content framing shapes receiver behavior more strongly than receiver-side preference rules counteract.
-- **Why:** ADR-37 session boundary protocol assumes handoff content is informational; in practice, advisory framing (rest, defer, urgency, complexity recommendations) becomes behavioral pressure on receiver. Pattern likely repeats with other advisory framings. Worth classifying root cause (handoff design vs receiver discipline vs both) before next high-stakes handoff.
-- **Vision ref:** VISION.md "Methodology Author" function — handoff design is methodology
-- **Added:** 2026-05-11 by rob (empirical finding from session)
-- **Status:** open — classify root cause, propose mitigation
-- **Related:** ADR-37, ADR-42, LESSONS 2026-05-11 entries
+### [P3] LESSONS.md parenthetical-qualifier entries escape the dated-entry audit regex
+- **id:** 22
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** 8 entries use `### YYYY-MM-DD (qualifier) |`; `_LESSONS_H3_RE` requires the date immediately before `|`, so they are invisible to the ordering check. Decide: (a) broaden the regex to allow an optional parenthetical, or (b) reformat the 8 entries (needs operator sign-off under ADR-29 append-only).
+- **Why:** Latent coverage gap — future misordering around these 8 would not be caught.
+- **Added:** 2026-05-16 by rob
 
-### [P1] [open] Adversarial fresh-eyes pass in routine handoff generation — handoff-v4-2026-05-30
-- **What:** Extend triangulation from the promotion gate to routine handoff artifacts. v4.3.1 stated honestly (caveat N1) that triangulation guards process *versioning* only; every routine handoff still rides on Phase-2 self-verification — the insider-only coverage (empirically ~25%) the v4 arc disproved. Options: (a) a lightweight skeptical sub-prompt in every Phase 2 generation; (b) a periodic adversarial audit (every N handoffs); (c) full agent-framework impl with an adversarial layer. Council scope.
-- **Why:** The curse-of-knowledge result is empirical (insider review caught 1/4 critical; fresh-eyes caught 4/4). Routine bundles inherit the same blind spot. This is the direct extension of the operator's strongest structural signal (`protocols/AGENT_FRAMEWORK.md` v0.1 stub).
-- **Added:** 2026-05-30 by rob (v4.3.1 caveat-patch session; deferred non-blocking per fresh-eyes PROMOTE WITH CAVEATS).
-- **Status:** open — Council-scope; pairs with the agent-framework stub.
-- **Related:** `protocols/AGENT_FRAMEWORK.md`; `protocols/HANDOFF_PROCESS.md` v4.3.1 Amendment item A; `scripts/audit.py` checks #8/#9.
+### [P3] ADR relationship index / supersession graph
+- **id:** 23
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** With 65+ ADRs, the supersedes/supersededBy/related/amends structure is not navigable. Build either (a) a machine-generated graph from ADR frontmatter, or (b) an index doc with explicit edges (DOT/Mermaid/table). Same shape as the codemap generator.
+- **Why:** Fresh readers miss relationship structure; cost compounds as the corpus grows. Pairs with id 2 (contradiction detection).
+- **Added:** 2026-05-20 by rob
 
-### [P3] [open] Process refinements deferred from v4.3.1 caveat patch — handoff-v4-2026-05-30
-- **What:** Non-blocking refinements logged when v4 promoted to stable. (1) **Semantic tag-lint (audit.py check #10)** — LLM-in-the-loop check catching mis-labeled tags (check #9 is syntactic only — verifies enumeration, not accuracy). (2) **Periodic fresh-eyes audit cadence** — schedule (every N handoffs / quarterly) for routine-artifact triangulation, lighter than per-handoff. (3) **AI Council CLI invocation example in 02_METHODOLOGY** — currently "via the ai-council CLI" with no command. (4) **ML-2 namespace expansion** — define what "ML" denotes in 04_RECENT structural-lesson references. (5) **Operating-mode "test after every change" wording** — reword for layer-agnostic clarity in `01_ROLE.md.tmpl` (maps imperfectly to browser-architect work; better "verify your work continuously"). (6) **AI Council auto-routing claim** — `02_METHODOLOGY` says "auto-routing pending"; verify against ADR-43 impl, update if stale. (7) **"Passive storage" framing in `03_PROJECT.md.tmpl`** — understates Layer-2's active validators (audit.py checks, codemap, hooks); reword to "methodology + lightweight validators, no orchestration."
-- **Why:** Surfaced by the v4.3 fresh-eyes review as minor/architectural-clarity items; none block stable promotion. Batched as one P3 entry to avoid queue fragmentation.
-- **Added:** 2026-05-30 by rob (v4.3.1 caveat-patch session).
-- **Status:** open — pick off opportunistically; (1) is Council-scope, rest are Sonnet/medium doc edits.
-- **Status update 2026-05-31 (marathon arc reconciliation):** Partial — the session-2 handoff bundle exercised sub-item (3)'s content (AI Council convene-vs-Path-A flow in 02_METHODOLOGY) and the spirit of (7) **at the generated-bundle-instance level only**. Verified 2026-05-31 that the `.tmpl` templates were NOT edited: `02_METHODOLOGY.md.tmpl` still carries a `{{PULL}}` marker with no CLI command example, and `03_PROJECT.md.tmpl` no longer contains the "passive storage" phrase (already neutral). All 7 sub-items therefore remain open at the durable template/spec level. Refs: `docs/handoffs/2026-05-31-dev-knowledge-session-2/`; `templates/handoff/02_METHODOLOGY.md.tmpl`, `03_PROJECT.md.tmpl`.
-- **Related:** `scripts/audit.py` check #9; `templates/handoff/*.tmpl`; `protocols/HANDOFF_PROCESS.md` v4.3.1 Amendment deferred list.
-
-### [P3] [open] Phase-1 handoff: operator-invariants section
-- **What:** Add a small "operator invariants" section to the Phase-1 handoff interview (or the apprentice-facing bundle) capturing the defaults a fresh chat should assume rather than re-ask: clean-git-tree-after-handoff, immediate-merge habit, the three-domain separation (`.dev-knowledge` methodology / child repos / Obsidian vault), and operator-paced multi-step workflows. So an inheritor state-and-acts instead of over-asking.
-- **Why:** Surfaced 2026-05-31 when a fresh browser chat over-asked on merge state + role despite strong priors. The 2026-05-30 LESSONS batch already names the pattern ("do not assume the operator executed the implicit between-exchange step"); a durable interview section operationalizes it. Pairs with the inheritor-pushback-discipline LESSON.
-- **Vision ref:** VISION.md "Methodology Author" — handoff design is methodology
-- **Added:** 2026-05-31 by rob (marathon-arc reconciliation; new-chat over-asking observation)
-- **Status:** open — small handoff-template/skill addition; Sonnet/medium scope.
-
-### [P3] [open] Relax-vs-gate principle for drifted guards — paired-ADR tension
-- **What:** ADR-62 + ADR-63 prescribe opposite cures for the same disease (un-enforced guard drift under load — ML-2): ADR-62 **relaxes** the Council-for-architecture guard (amend the rule so the bypass isn't a violation); ADR-63 **gates** the scrum-master review pattern (codify via ADR so it cannot drift). Implicit reasoning is cost/value asymmetric — gate when cost is low + catch-value is high; relax when cost is high + retroactive value-add is low — but this principle is never articulated in either ADR. Candidate output: a future LESSONS entry or a small ADR codifying the relax-vs-gate decision criterion for drifted guards.
-- **Why:** The tension is the sharpest cross-ADR finding from the ADR-62/63 fresh-eyes review (2026-05-30): neither ADR alone shows it; the outsider saw both at once. Without a reconciling principle, future guard-drift decisions inherit the same implicit reasoning and may not choose correctly.
-- **Added:** 2026-05-30 by rob (ADR-62/63 fresh-eyes review — sharpest cross-ADR finding).
-- **Status:** open — pick off opportunistically; LESSONS entry is Sonnet/medium scope; small ADR is Council scope.
-- **Related:** ADR-62 Trade-off 1 (relax cure); ADR-63 Decision (gate cure); `docs/audits/2026-05-29-ecosystem-coherence-audit.md` finding ML-2
-
-### [P2] [open] Extend audit-check enforcement pattern to other governance artifacts — handoff-v4-2026-05-29
-- **What:** Apply the same read-only structural-validator pattern used for handoff bundles (audit.py check #8) to other governance artifacts — AI Council transcripts (`docs/decisions/transcripts/`, naming + cover-letter + verdict structure) and ADRs (`docs/decisions/ADR-*`, frontmatter + supersession-field + template alignment). Each as a registered `audit.py` check with fixtures + tests, folded into the health gate.
-- **Why:** The handoff-bundle validator (#8) and tag-canonicity lint (#9) prove the lint-at-health-time pattern catches structural drift cheaply. ADRs and Council transcripts carry the same drift risk (missing supersession fields, off-template structure) currently caught only by reviewer judgment. Extends the enforcement layer beyond handoffs.
-- **Added:** 2026-05-29 by rob (v4.3 comprehensive-close session).
-- **Status:** open — separate focused session; pairs with the agent-framework stub (`protocols/AGENT_FRAMEWORK.md`).
-- **Related:** `scripts/audit.py` checks #8/#9; `docs/decisions/`; `protocols/AGENT_FRAMEWORK.md`
-
-### [P3] [open] Incorporate metaphor-based communication into PLAYBOOK + ESSENTIALS — handoff-v4-2026-05-29
-- **What:** Codify a small methodology section on communicating design intent via concrete metaphors. Operator insight from the 2026-05-29 sage-frame fix session: framing the handoff interview as **sage→apprentice** (and the *mędrzec–uczeń* framing in Polish working sessions) lowered cognitive load and clarified design intent better than numeric ADR-only references. Capture the metaphor patterns and when to reach for them.
-- **Why:** Methodology communicated as bare ADR numbers / abstract mechanics is high-friction to absorb; a well-chosen metaphor carries the *why* of a design in one image. The sage→apprentice frame directly fixed a design defect (a methodology-quiz interview) by making the role obvious. Worth generalizing as a methodology tool, not a one-off.
-- **Vision ref:** VISION.md "Methodology Author" — how methodology is taught is itself methodology.
-- **Added:** 2026-05-29 by rob (sage-frame fix session).
-- **Status:** open — separate focused session, Sonnet/medium scope. Do NOT bundle with code/process changes.
-- **Related:** `protocols/PLAYBOOK.md`; `protocols/ESSENTIALS.md`; `protocols/HANDOFF_PROCESS.md` v4 §3.1 (first applied instance)
-
-### [P3] [open] Cross-repo audit (Phase 3)
-- **What:** Audit tool runs across all repos with VISION.md, generates ecosystem compliance report; verifies adoption of ratified ADRs
-- **Why:** Validates universalization actually adopted (not just ratified); drift detection over time
-- **Vision ref:** VISION.md "Auditor" function
-- **Added:** 2026-04-30 by rob
-- **Status:** open
-- **Status update 2026-05-31 (marathon arc reconciliation):** Partial — manual cross-repo audits delivered the *intent* (2026-05-29 ecosystem coherence audit; 2026-05-27 cross-repo retrofit verification). **Open:** the audit-**tool**-driven cross-repo compliance run (overlaps the open "Child-repo audit reach" entry, option b — `audit ecosystem --all`, still Layer-2 read-only). Refs: `docs/audits/2026-05-29-ecosystem-coherence-audit.md`; `docs/audits/2026-05-27-cross-repo-retrofit-verification.md`.
-
-### [P1] [open] Council decisions management consolidation
-- **What:** Council debates produce architectural decisions (ADRs), but decision artifacts are dispersed across `docs/decisions/`, `docs/decisions/transcripts/`, and ADR references in individual files. Need: (a) consolidated index of all decisions with traceability from decision to implementation, (b) explicit mechanism to detect contradictions between decisions over time, (c) clear ownership model for decision evolution (amendment vs. new ADR vs. conversational clarification). Scope: audit current dispersion, design consolidation pattern, implement index.
-- **Why:** Dispersion observed during 2026-05-09 session work. As ADR count grows (42+), navigating, cross-referencing, and detecting drift becomes harder. Governance debt compounds silently.
-- **Vision ref:** VISION.md "Knowledge Guardian" + "Methodology Author" functions
-- **Added:** 2026-05-09 by rob (session wrap-up observation)
-- **Status:** open — Item 0 (2026-05-11) closed first-step inventory: `docs/decisions/README.md` rewritten with full ADR index 27-42 + transcript convention + ADR↔transcript traceability. Remaining sub-items: (1) contradiction detection mechanism (Council debate territory), (2) ownership model for decision evolution — amendment vs new ADR vs conversational clarification (Council debate territory). "Consolidated index" sub-item closed.
-
-### [P1] [open] Sacred-files maintenance enforcement
-- **What:** Canonical files in every ecosystem repo drift out of date because browser chats forget to update them at session boundaries. Original list (2026-05-09) was 9 files: ARCHITECTURE, BACKLOG, CHANGELOG, CLAUDE, CONTRIBUTING, JOURNAL, LESSONS, README, VISION. **2026-05-20 verification:** CHANGELOG was deleted from `.dev-knowledge` on 2026-05-16 per CLAUDE.md §5 and must not be recreated; updated list for `.dev-knowledge` is 8 files (drop CHANGELOG). Child repos may retain CHANGELOG. Need enforcement mechanism — candidates: pre-commit hook checking `last_reviewed` staleness, session-end checklist skill, CI check for file age, or automated diff-based staleness detection. Scope: enumerate per-repo lists (the 8/9 split is repo-dependent), design enforcement pattern, implement at least one mechanism, validate against known drift scenarios.
-- **Why:** Methodology debt pattern surfaced repeatedly across 2026-05-09 session (LESSONS captures multiple instances of "prescriptive writing without empirical contact"). Sacred files are the ground truth — stale ground truth silently misleads future sessions and chats. Self-referential drift confirmed 2026-05-20: the sacred-files list itself was stale (listed deleted CHANGELOG).
-- **Vision ref:** VISION.md "Knowledge Guardian" function; ESSENTIALS "Continuous Improvement" section
-- **Added:** 2026-05-09 by rob (session wrap-up observation); cross-referenced 2026-05-20 (posture audit verification, finding C1).
-- **Status:** open
-
-### [P2] [open] Hooks audit + consolidation + workflow-automation patterns
-- **What:** Two complementary tracks. **(I) Inventory + consolidation** (original scope): list all hooks across `~/.claude/` (global) and per-repo `.claude/`; document each hook's purpose + trigger; evaluate whether the two `review` hooks (Codex vs internal) are intentionally separate or consolidation candidates; identify gaps. **(II) Lifecycle-hook workflow-automation patterns + expansion** (scope added 2026-05-24, operator focus area): document *how* lifecycle hooks (SessionStart, SessionStop, pre-commit, git events) are used to automate the workflow, and where usage should expand. Current `.dev-knowledge` surface (verified 2026-05-24): pre-commit hooks `normalize-dated-headers` + `codemap-freshness`; a SessionStart EVOLUTION hook (learned-rules/corrections sweep); **no SessionStop hook**. Candidate expansions: session-end clean-tree / canonical-file-staleness check (pairs with Sacred-files enforcement P1), lessons-retrieval on SessionStart (pairs with Lessons activation P1).
-- **Why:** Undocumented hooks create confusion about what fires when; overlapping review hooks may produce redundant signals. Beyond inventory, lifecycle hooks are the mechanical-enforcement layer the ecosystem relies on (per the 2026-05-13 implicit-memory LESSON: "convention without enforcement drifts") — their workflow-automation use and expansion opportunities deserve explicit documentation, not implicit habit.
-- **Vision ref:** VISION.md "Methodology Author" function
-- **Added:** 2026-05-09 by rob (session wrap-up observation); scope expanded 2026-05-24 (operator focus area — hooks workflow/goals usage; `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md` §4.1).
-- **Status:** audit done 2026-05-29 (inventory + automation-pattern analysis in `docs/audits/scratch/2026-05-29-ecosystem-hooks.md` + consolidated report) — findings HK-1..HK-4 routed to the ecosystem-audit BACKLOG entries above (doc-truth sweep, evolution-logs, ruff enforcement, cross-repo floor). **Implementation remains open** (the actual hook additions/consolidation are the separate fix-sessions). Track #I+#II completion against those entries.
-
-### [P2] [open] Skills universalization across repos
-- **What:** Each repo has `.claude/skills/` (or equivalent) with skill definitions. Need cross-repo review: (a) inventory all skills across ecosystem repos, (b) classify each as repo-specific vs. cross-ecosystem candidate, (c) identify universalization targets — skills that should live in `.dev-knowledge` and be referenced/shared, (d) propose canonical location for universal skills. Output: skills inventory + universalization proposal.
-- **Why:** Skills defined redundantly across repos create drift — same skill evolves differently in each context. Universalization reduces maintenance burden and ensures cross-repo consistency (per VISION Strategic emphasis: "Cross-repo methodology consistency").
-- **Vision ref:** VISION.md Strategic emphasis "Cross-repo methodology consistency"
-- **Added:** 2026-05-09 by rob (session wrap-up observation)
-- **Status:** open
-
-### [P3] [open] Kimi K2 model integration evaluation
-- **What:** Evaluate Kimi K2 as addition to ecosystem LLM stack. Scope: (a) capability evaluation for Council debate quality, code generation, and reasoning depth, (b) cost comparison vs. Claude on equivalent task types, (c) integration patterns with existing infrastructure. Decision artifact: Council debate output recommending adoption level — research-only / production peer / experimental supplement.
-- **Why:** Significantly lower cost than Claude on equivalent tasks (per Rob). Speed of LLM technology adoption is a competitive advantage (VISION Strategic emphasis: "Velocity in LLM technology adoption"). Evaluation before adoption; Council debate before production use.
-- **Vision ref:** VISION.md Strategic emphasis "Velocity in LLM technology adoption"
-- **Added:** 2026-05-09 by rob (session wrap-up observation)
-- **Status:** open
-
-### [P3] [open] Large repo migration preparation
-- **What:** One significant ecosystem repo requires structural migration aligned with current standards (folder structure naming conventions, sacred-files compliance, scope tagging, ADR adoption). Significant scope — requires dedicated planning session with Council-debate-level design before execution. Scope: design migration plan, estimate effort, sequence against other BACKLOG items.
-- **Why:** Migration will be disruptive if unplanned. Early planning (before audit tool P1 is complete) enables correct sequencing. Capture intent now to avoid ad-hoc migration later.
-- **Vision ref:** VISION.md "Disseminator" function; pairs with "Phase 2 universalization rollout" (Cross-stream P2)
-- **Added:** 2026-05-09 by rob (session wrap-up observation)
-- **Note:** Specific repo not named until planning session scopes it. Do not begin migration without Council-debate-level planning.
-- **Status:** open
-
-### [P3] [open] VS Code productivity maximization
-- **What:** Longer-term initiative to maximize Claude Code + git workflow productivity via VS Code tooling. Scope: extensions audit (what's installed vs. what's optimal), workflow templates, integration with ecosystem tools (validators, pre-commit hooks, git workflows). Output: extensions + settings recommendation + any automation improvements.
-- **Why:** Low-friction tooling reduces cognitive overhead during sessions. Deferred until higher-priority methodology items closed.
-- **Vision ref:** VISION.md "Methodology Author" function (tooling as methodology support)
-- **Added:** 2026-05-09 by rob (session wrap-up observation)
-- **Status:** open
-
-### [P3] [open] Custom "Pinned Files" VS Code extension for visual canonical-doc access
-- **What:** TreeView in Explorer panel showing pinned canonical governance files (VISION, JOURNAL, BACKLOG, ARCHITECTURE, LESSONS, CLAUDE.md). Workspace setting `pinnedFiles.paths` = configurable list of absolute paths. Click → open in editor. Optional: last-modified badge per file. ~100-150 LOC TypeScript; VS Code Extension API (TreeDataProvider). Local install only (no Marketplace publish required).
-- **Why:** Workspace tasks + keybindings (added 2026-05-24, Ctrl+Alt+V/J/B/R/L/C) give keyboard access to canonical files but lack *visual at-a-glance presence* in Explorer. Multi-root workspace cannot pin individual files natively — only folder roots. Custom extension fills this gap with persistent visual presence at the top of the Explorer.
-- **Effort:** 1-2 days Claude Code work (Sonnet for boilerplate, Opus for TreeView API nuances).
-- **Acceptance criteria:**
-  - Extension installable + loads in `.dev-knowledge.code-workspace`
-  - Configurable path list via workspace settings
-  - TreeView visible in Explorer sidebar without navigating away from main file tree
-  - Single-click opens file in editor
-  - Operator confirms ergonomic improvement vs keybindings-only pattern
-- **Trigger:** 1-week trial of keybindings (added 2026-05-24) shows persistent access friction OR operator decides visual presence worth the dev investment proactively.
-- **References:** workspace combo iteration arc (JOURNAL 2026-05-24); VS Code productivity maximization item above.
+### [P3] CLAUDE.md §4 cites a stale known-failing test
+- **id:** 24
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** CLAUDE §4 says "known pre-existing failure: `test_audit_run_passes_structural_checks_on_synthetic_repo`" — but it passes and the suite is green. Remove the known-failure clause (one-line edit). (Fold into id 10 doc-truth sweep.)
+- **Why:** A false "known failure" in the session contract masks real regressions.
 - **Added:** 2026-05-24 by rob
-- **Status:** open
 
-### [P3] [open] PLAYBOOK codifications from 2026-05-19 posture audit
-- **What:** The posture audit (H3, H4, T1, T2) and verification surfaced four candidate PLAYBOOK additions, each with N≥2 grounding:
-  1. **Governance docs phrased as stable end-state.** Transient status ("to be retired in a follow-up chunk", "not yet started") lives in JOURNAL or a rollout-tracker, not in ADRs / PLAYBOOK / ESSENTIALS. Evidence: three instances this session arc (audit H3).
-  2. **Verify destination before drop.** When relocating or dropping content, Plan Mode confirms destination genuinely covers it. Evidence: chunk B + chunk B-prime this session arc (audit H4).
-  3. **No-delete exception for canonical-source duplicates.** "Never delete content without asking" (Core Invariant #3) does not apply when the deletion targets a duplicate of canonical content preserved elsewhere; the deletion *eliminates* a drift pair. Evidence: vault-writer pointer deletion + corp-monorepo AGENTS.md deletion (audit T1).
-  4. **ADR-with-N=1 valid for singular choices.** N≥2 grounding prevents PATTERN extraction without evidence; a singular architectural CHOICE with no prior precedent can be an ADR-with-N=1 because the choice itself is the record. Evidence: ADR-54 (Codex config placement) (audit T2).
-- **Why:** Each codification prevents an already-observed failure mode from recurring. Bundling into one focused PLAYBOOK update minimizes ADR churn.
-- **Refs:** `docs/audits/2026-05-19-dev-knowledge-posture-audit.md` (findings H3, H4, T1, T2); `docs/audits/2026-05-20-posture-audit-verification.md`.
-- **Vision ref:** VISION.md "Methodology Author" function.
-- **Added:** 2026-05-20 by rob (posture audit triage).
-- **Status:** open
+### [P3] Process refinements deferred from the v4.3.1 caveat patch
+- **id:** 25
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Seven non-blocking refinements: (1) semantic tag-lint (audit.py #10, Council-scope); (2) periodic fresh-eyes audit cadence; (3) AI Council CLI example in `02_METHODOLOGY.md.tmpl`; (4) ML namespace expansion in 04_RECENT; (5) operating-mode wording in `01_ROLE.md.tmpl`; (6) AI Council auto-routing claim verify; (7) "passive storage" reframe in `03_PROJECT.md.tmpl`. All 7 remain open at the durable `.tmpl` level (the session-2 bundle exercised (3)/(7) at instance level only).
+- **Why:** Surfaced by the v4.3 fresh-eyes review as minor/clarity items; batched to avoid queue fragmentation.
+- **Added:** 2026-05-30 by rob
+- **Refs:** `templates/handoff/*.tmpl`; `scripts/audit.py` #9
 
-### [P3] [open] Apply scrum-master review pattern to other child repos
-- **What:** Extend scrum-master review cycle (post-codification) to remaining ecosystem repos. Priority order: (1) corp-monorepo (Scale L; deeper audit warranted — most complex, most governance drift risk); (2) corp-knowledge-extractor / corp-by-os / corp-rfp-agent (verify existence on disk first); (3) corp-ops + corp-sca (Scale S; lighter touch).
-- **Why:** Phase 3 of ecosystem universalization. Each repo reviewed = one point of drift caught before it compounds. Pattern validated on ai-council; broader rollout follows codification.
-- **Vision ref:** VISION.md "Auditor" function
-- **Added:** 2026-05-12 by rob (Prompt L)
-- **Status:** open — **both blockers lifted 2026-05-24:** N=2 empirical grounding reached (now N=3; corp-monorepo already reviewed 2026-05-23), and codification is unblocked (now P1 above). Remains P3 because it *sequences after* the codification prompt. Next concrete targets per the entry's priority order: verify existence of corp-knowledge-extractor / corp-by-os / corp-rfp-agent (cross-ref "Undiscovered repos confirmation"), then corp-ops + corp-sca lighter-touch.
-- **Status update 2026-05-31 (marathon arc reconciliation):** Partial — the codification dependency this entry sequences after is now **closed: ADR-63** (scrum-master review authority, written Path-A 2026-05-30). The stale "codification is unblocked (now P1 above)" reference points at the "Codify scrum-master review authority pattern" P1 item, which ADR-63 itself closed. Child-repo rollout remains open and now fully unblocked. Refs: ADR-63 (`docs/decisions/ADR-63-scrum-master-review-authority.md`).
+### [P3] Phase-1 handoff: operator-invariants section
+- **id:** 26
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Add a small "operator invariants" section to the Phase-1 interview / apprentice bundle capturing defaults a fresh chat should assume rather than re-ask: clean-git-tree-after-handoff, immediate-merge habit, three-domain separation, operator-paced multi-step workflows.
+- **Why:** Surfaced 2026-05-31 when a fresh chat over-asked despite strong priors; operationalizes the 2026-05-30 inheritor-pushback LESSON.
+- **Added:** 2026-05-31 by rob
 
-## Cross-repo Naming + Architecture Migration (Prompt H audit + Prompt J ratification)
+### [P3] Relax-vs-gate principle for drifted guards (paired-ADR tension)
+- **id:** 27
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** ADR-62 (relax the Council-for-architecture guard) and ADR-63 (gate the scrum-master pattern) prescribe opposite cures for the same disease (un-enforced guard drift). The implicit cost/value-asymmetric reasoning (gate when cost low + catch-value high; relax when cost high + retroactive value low) is never articulated. Candidate output: a LESSONS entry or small ADR.
+- **Why:** Sharpest cross-ADR finding from the ADR-62/63 fresh-eyes review; without a reconciling principle, future guard-drift decisions inherit the implicit reasoning.
+- **Added:** 2026-05-30 by rob
+- **Refs:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` (ML-2)
 
-> Items below were surfaced by 2026-05-11 cross-repo pattern audit (Prompt H)
-> and ratified/reclassified by Council + operator decisions (Prompt J).
-> Framing corrected: was "fix-violator" tasks; now correctly sequenced as
-> "ADR amended → then migrate" per Prompt I Implication finding.
+### [P3] Incorporate metaphor-based communication into PLAYBOOK + ESSENTIALS
+- **id:** 28
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Codify a small methodology section on communicating design intent via concrete metaphors (the sage→apprentice / *mędrzec–uczeń* framing that fixed the methodology-quiz interview defect). Capture the patterns and when to reach for them.
+- **Why:** Bare ADR-number/abstract-mechanics communication is high-friction; a metaphor carries the *why* in one image. Worth generalizing.
+- **Added:** 2026-05-29 by rob
+- **Status note:** separate focused session; do NOT bundle with code/process changes.
 
-### [P2] [open] Handoff folder format adoption (corp-monorepo)
-- **What:** ADR-42 folder format is current standard. `corp-monorepo` still has flat `docs/HANDOFF.md` (pre-ADR-42 pattern). Migration options: convert existing flat file to folder format at next handoff event, or explicitly deprecate. Tied to A4 decision (separate ADR or conversational) about whether flat file is still acceptable as legacy.
-- **Why:** ADR-42 folder format is the current standard; flat `docs/HANDOFF.md` files represent pre-ADR-42 state. Without migration or explicit deprecation, the repo appears non-compliant and future sessions have ambiguous precedent about which format is active.
-- **Added:** 2026-05-11 by rob (cross-repo pattern audit, A4)
-- **Status:** open — ai-council resolved: `docs/HANDOFF.md` confirmed absent at HEAD `1bcc6ab` (Stage 3 verification 2026-05-17). corp-monorepo: open; A4 separate decision needed before prescribing migration.
+### [P3] Cross-repo audit (Phase 3) — audit-tool-driven compliance run
+- **id:** 29
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** The audit tool runs across all repos with VISION.md and generates an ecosystem compliance report verifying adoption of ratified ADRs. Manual cross-repo audits delivered the intent (2026-05-29 coherence audit; 2026-05-27 retrofit verification); **open:** the tool-driven run (`audit ecosystem --all`, overlaps id 40 option b; Layer-2 read-only).
+- **Why:** Validates universalization is actually adopted (not just ratified); drift detection over time.
+- **Added:** 2026-04-30 by rob
 
-### [P3] [open] UPPERCASE TYPE tag in legacy archive filenames (A5 — retire opportunistically)
-- **What:** `corp-monorepo` and `corp-sca` use `YYYY-MM-DD_TYPE_topic.md` pattern in `docs/archive/` files (e.g. `CODE_REVIEW_REPORT`). Not in ADR-34 spec. Pre-ADR-34 legacy pattern.
-- **Why:** Pre-ADR-34 pattern is outside the current naming spec and creates ecosystem naming inconsistency; retiring opportunistically during Phase 2 visits is lowest-cost remediation and avoids a dedicated migration prompt for a cosmetic change.
-- **Added:** 2026-05-11 by rob (cross-repo pattern audit, A5)
-- **Status:** open — designated as legacy pattern; retire opportunistically during Phase 2 repo visits. No dedicated migration prompt needed; handle when touching those files anyway.
+### [P3] Kimi K2 model integration evaluation
+- **id:** 30
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Evaluate Kimi K2: (a) capability for Council debate / code-gen / reasoning, (b) cost vs Claude per task type, (c) integration patterns. Decision artifact: Council debate recommending adoption level.
+- **Why:** Significantly lower cost per Rob; velocity in LLM adoption is a competitive advantage. Council before production use.
+- **Added:** 2026-05-09 by rob
 
-### [P3] [open] docs/HANDOFF.md flat file deprecation (corp-monorepo, ai-council)
-- **What:** Both `corp-monorepo` and `ai-council` have `docs/HANDOFF.md` at `docs/` level (pre-ADR-42 flat pattern). Not breaking. Retire at next handoff event or explicitly designate as legacy.
-- **Why:** Pre-ADR-42 flat pattern persists alongside folder-format handoffs; parallel patterns mislead future sessions about which format is the active standard. Explicit deprecation or migration is required to maintain clarity.
-- **Added:** 2026-05-11 by rob (cross-repo pattern audit)
-- **Status:** open — tied to A4 decision (Handoff folder format adoption, above).
+### [P3] Large repo migration preparation
+- **id:** 31
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Plan the structural migration of one significant ecosystem repo (folder/naming, sacred-files, scope tags, ADR adoption). Council-debate-level design before execution. Specific repo not named until a planning session scopes it.
+- **Why:** Migration is disruptive if unplanned; early planning enables correct sequencing.
+- **Added:** 2026-05-09 by rob
 
-<!-- handoff-v3.4-audit-2026-05-29: 7 entries below, derived from the
-     2026-05-29 abort post-mortem `docs/audits/2026-05-29-handoff-v3.4-process-audit.md`.
-     Recommended fix order is encoded in priorities + the "Order" line of each entry. -->
+### [P3] VS Code productivity maximization
+- **id:** 32
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Maximize Claude Code + git productivity via VS Code tooling: extensions audit, workflow templates, integration with validators/hooks/git. Output: extensions + settings recommendation.
+- **Why:** Low-friction tooling reduces cognitive overhead. Deferred until higher-priority methodology items close.
+- **Added:** 2026-05-09 by rob
 
-<!-- ecosystem-coherence-audit-2026-05-29: entries below, derived from the overnight
-     ecosystem coherence audit `docs/audits/2026-05-29-ecosystem-coherence-audit.md`.
-     22 findings (0 critical, 0 high, 12 medium, 10 low) grouped into actionable
-     fix-sessions; each entry cites its finding IDs. Grouping mirrors §5 fix sequence. -->
+### [P3] Custom "Pinned Files" VS Code extension for canonical-doc access
+- **id:** 33
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** TreeView in Explorer showing pinned canonical files (VISION/JOURNAL/BACKLOG/ARCHITECTURE/LESSONS/CLAUDE), configurable via `pinnedFiles.paths`, single-click to open. ~100-150 LOC TS (TreeDataProvider), local install. Acceptance: loads in the workspace, configurable, visible without leaving the file tree, single-click opens, operator confirms ergonomic gain.
+- **Why:** Keybindings (Ctrl+Alt+V/J/B/R/L/C) give keyboard access but no visual at-a-glance presence; multi-root workspaces can't pin individual files natively.
+- **Added:** 2026-05-24 by rob
+- **Status note:** trigger = 1-week keybindings trial shows friction, or operator decides proactively.
 
-### [P2] [open] Ecosystem: doc-truth sweep — CLAUDE.md + ARCHITECTURE describe own tooling/versions/files inaccurately — ecosystem-audit-2026-05-29
-- **What:** Eight doc-accuracy drifts, all one-line/small edits: CLAUDE.md §7 command inventory (claims user `/save`, omits `/codex-review`+`/evolve`) (SK-1); §8 calls commands "skills" + omits the `verify` skill (SK-2); §7 `/handoff` says "v3.3.3" not v3.4 (CD-1); footer "Last updated 2026-05-24" vs §12 v2.3 2026-05-28 (CD-2); ARCHITECTURE governing-ADRs omits ADR-59/61 (WF-1); ARCHITECTURE validators list repeats the false ruff-pre-commit claim + lists non-existent `scripts/backlog_extract.py` + omits codemap-freshness hook (WF-2); LESSONS "oldest-top per ADR-29" descriptor vs newest-top file (ML-1 — verify vs ADR-29 first); TOKEN-LOG.md named canonical in CLAUDE §4/§5 but absent (ML-4).
-- **Why:** 12 of 22 audit findings are doc-truth drift; the repo whose VISION is "drift detected proactively" is the locus of drift. None breaking, all trust-eroding.
-- **Evidence:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` §3/§4 (SK-1, SK-2, CD-1, CD-2, WF-1, WF-2, ML-1, ML-4).
-- **Fix scope:** one Sonnet session, medium; verify ML-1 against ADR-29 text.
-- **Added:** 2026-05-29 by rob (ecosystem coherence audit)
-- **Status:** open.
+### [P3] PLAYBOOK codifications from the 2026-05-19 posture audit
+- **id:** 34
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Four candidate PLAYBOOK additions (N≥2 each): (1) governance docs phrased as stable end-state, transient status lives in JOURNAL; (2) verify destination before drop; (3) no-delete exception for canonical-source duplicates; (4) ADR-with-N=1 valid for singular choices. Bundle into one PLAYBOOK update.
+- **Why:** Each codification prevents an already-observed failure mode from recurring.
+- **Added:** 2026-05-20 by rob
+- **Refs:** `docs/audits/2026-05-19-dev-knowledge-posture-audit.md` (H3/H4/T1/T2)
 
-### [P2] [open] Ecosystem: feedback-loop enforcement — lessons produce guards that aren't enforced — ecosystem-audit-2026-05-29
-- **What:** LESSON #9's cross-case-trace guard is advisory prose in HANDOFF_PROCESS, not a gate → the v3.4 rollout skipped it and reproduced #9's exact failure (the 2026-05-29 abort) (ML-2). The abort itself is captured in JOURNAL+audit but not promoted to LESSONS (ML-3). Pairs with the existing P1 "Codify scrum-master review authority pattern" — independent review is currently the only working backstop for un-enforced guards.
-- **Why:** Structural root cause of the v3.4 abort; predicts recurrence on the next multi-surface amendment unless the guard becomes a gate. Highest-value non-doc finding.
-- **Evidence:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` §3/§7 (ML-2, ML-3).
-- **Fix scope:** Opus session, medium; convert guard → amendment checklist/gate (Layer-2: checklist not orchestration) + append the abort LESSON.
-- **Added:** 2026-05-29 by rob (ecosystem coherence audit)
-- **Status:** open.
-- **Status update 2026-05-31 (marathon arc reconciliation):** Partial — **ML-3 done**: the v3.4-abort meta-lessons were promoted to LESSONS in the 2026-05-30 batch (11 entries — e.g. "triangulation is the quality gate for process versioning", the empirically-measured curse-of-knowledge). **ML-2 partly done**: ADR-63 codifies the scrum-master review as the authority backstop for un-enforced guards. **Open:** the literal guard→amendment-checklist/gate conversion (the mechanical gate itself, distinct from the review backstop). Refs: `LESSONS.md` 2026-05-30 entries; ADR-63.
+### [P3] Ecosystem: low-severity cleanups (self-owned subset)
+- **id:** 35
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Self-owned low-pri items from the 2026-05-29 coherence audit: ARCHITECTURE handoff-diagram attributes scope/claims to "Operator" not architect + unused "SBAR/I-PASS" label (WF-3); VISION emphasis #1 "adoption pace tracked" has no instrument + stale `last_reviewed` (GO-1/GO-2). (Cross-repo sub-items SK-4/CM-2/HK-4 split to their owners — see Coordination.)
+- **Why:** Cleanup/cosmetic; none blocks work.
+- **Added:** 2026-05-29 by rob
+- **Refs:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md`
 
-### [P2] [open] Ecosystem: evolution memory logs missing + no session-close automation — ecosystem-audit-2026-05-29
-- **What:** boot.md + the global Self-Evolution Protocol + the SessionStart/Stop hooks all read `sessions.jsonl`/`violations.jsonl`/`corrections.jsonl`/`observations.jsonl`, none of which exist (only `learned-rules.md` + `evolution-log.md`) — the evolution machinery is wired but vacuous (SK-3 ≡ HK-2). The Stop hook does no functional session-close automation (HK-3, SK-5). — owner: ~/.claude (runtime) + self.
-- **Why:** Session-trend + correction-promotion tracking silently does nothing; a known-useful automation surface (clean-tree/audit check at Stop) is unused.
-- **Evidence:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` §3 (SK-3, HK-2, HK-3, SK-5).
-- **Fix scope:** create the .jsonl logs OR repoint hooks+protocol to `evolution-log.md`; add one read-only session-close automation.
-- **Added:** 2026-05-29 by rob (ecosystem coherence audit)
-- **Status:** open.
+### [P3] Audit tool — folder-semantics validation check (ADR-60)
+- **id:** 36
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Add a read-only `check_folder_semantics` asserting every `docs/` subfolder carries exactly one ADR-60 role (verified by README presence + a matchable convention). Surfaces drift when an ad-hoc folder is added without a declared role.
+- **Why:** ADR-60 is enforced by review discipline only; bringing it under `audit.py health` makes drift visible.
+- **Added:** 2026-05-27 by rob
 
-### [P2] [open] Ecosystem: ruff lint enforcement for .dev-knowledge — ecosystem-audit-2026-05-29
-- **What:** CLAUDE.md §9/§4 + ARCHITECTURE document ruff as a pre-commit hook, but it is NOT in `.pre-commit-config.yaml` (only normalize-dated-headers + codemap-freshness). corp-monorepo enforces ruff via pre-commit; `.dev-knowledge` does not (HK-1). — owner: self.
-- **Why:** A load-bearing convention (lint) is documented-as-enforced but is actually manual; a ruff violation could be committed while the doc implies it was blocked.
-- **Evidence:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` §3 (HK-1).
-- **Fix scope:** decide add-the-ruff-hook vs correct-the-doc; foldable into the doc-truth sweep above.
-- **Added:** 2026-05-29 by rob (ecosystem coherence audit)
-- **Status:** open.
+### [P3] Sort-regression verification protocol — workspace settings
+- **id:** 37
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Add a one-line PLAYBOOK/ESSENTIALS rule: any change to `.dev-knowledge.code-workspace` sort settings must be verified by (a) reading the linked PR/release (not just the issue page) AND (b) launching VS Code and visually checking dated-folder order before commit.
+- **Why:** The ADR-59 sort-regression cost a full diagnostic+commit cycle because verification stopped at the issue page; a two-step rule catches it at write-time.
+- **Added:** 2026-05-27 by rob
 
-### [P2] [open] Ecosystem: corp-monorepo P1-2 path-traversal branch unmerged — ecosystem-audit-2026-05-29
-- **What:** The P1-2 path-traversal extraction landed (commit `a1007b1`) but sits on unmerged branch `chore/extract-p1-2-to-backlog-2026-05-28`; corp-monorepo HEAD is not on main (CM-1). — **owner: corp-monorepo** (read-only from here per ADR-41).
-- **Why:** A security finding's tracking is stranded on a feature branch; operator should merge + resolve the pre-delete gate.
-- **Evidence:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` §3 (CM-1).
-- **Fix scope:** merge branch → main in corp-monorepo (own-repo session/operator).
-- **Added:** 2026-05-29 by rob (ecosystem coherence audit)
-- **Status:** open.
+### [P3] Workspace scale-to-size ADR-59 refinement
+- **id:** 38
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Codify the "scale-to-size" workspace decision: small repos get a minimal single-root workspace (+ 4 sort keys + repo Python/extensions); larger repos may keep richer multi-root configs. Small ADR-59 amendment or PLAYBOOK note.
+- **Why:** Without codification, the next new-repo decision re-derives the threshold. Pairs with id 16.
+- **Added:** 2026-05-27 by rob
 
-### [P3] [open] Ecosystem: low-severity cleanups (diagram labels, VISION signal, verify-script layout, flat-handoff, cross-repo hook floor) — ecosystem-audit-2026-05-29
-- **What:** Bundled low-priority items: ARCHITECTURE handoff-diagram attributes scope/claims to "Operator" not architect + unused "SBAR/I-PASS" label (WF-3, self); VISION emphasis #1 "adoption pace tracked" has no instrument + `last_reviewed` predates recent ADRs (GO-1/GO-2, self); `verify/cross-repo-boundaries.ps1` hard-codes a corp-monorepo package layout that may be stale (SK-4, ~/.claude+corp-monorepo); corp-monorepo CLAUDE.md still references flat `docs/handoffs/*.md` (CM-2, corp-monorepo — re-confirms existing P3); corp-ops/corp-sca-time-automation have no pre-commit + ai-council only normalize-headers + hook-id naming drift (HK-4, those repos).
-- **Why:** Cleanup/cosmetic/low-confidence; none blocks work.
-- **Evidence:** `docs/audits/2026-05-29-ecosystem-coherence-audit.md` §3 (WF-3, GO-1, GO-2, SK-4, CM-2, HK-4).
-- **Fix scope:** opportunistic; split per owner where cross-repo.
-- **Added:** 2026-05-29 by rob (ecosystem coherence audit)
-- **Status:** open.
+### [P3] Entry-scripts → scripts/ convention codification
+- **id:** 39
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Codify in PLAYBOOK (root hygiene) that run-entry scripts (`run.py`, `main.py`) live in `scripts/`, not repo root. Applied opportunistically in the 2026-05-27 retrofit but not codified.
+- **Why:** Root cleanliness; ALL-CAPS canonical .md + dot-prefix configs cluster cleanly when entry scripts move out.
+- **Added:** 2026-05-27 by rob
 
-### [P2] [open] Ecosystem-folder operating-model design — snapshot vs continuous-audit process
-- **What:** Define the operating model for the `ecosystem/` folder. It exists today as a point-in-time snapshot (state-capture artifact), but whether it should be (a) a periodically-regenerated static snapshot, (b) the substrate for a continuous cross-repo audit process, or (c) retired in favor of on-demand audit-tool runs is undecided. Design: ownership, regeneration cadence/trigger, relationship to `scripts/audit.py` cross-repo reach, and whether it stays Layer-2 read-only.
-- **Why:** Operator flagged 2026-05-31 (session-2 handoff Phase 2) that the `ecosystem/` folder exists but its operating model is unknown — a static snapshot is not a process. Without a defined model it rots like other cadence-less artifacts (tech-radar precedent).
-- **Vision ref:** VISION.md "Auditor" + "Knowledge Guardian" functions
-- **Added:** 2026-05-31 by rob (marathon-arc reconciliation; surfaced in session-2 handoff Phase 2)
-- **Status:** open — Council-scope design; pairs with "Cross-repo audit (Phase 3)" + "Child-repo audit reach".
+### [P3] requirements.txt ADR-59 exception note
+- **id:** 40
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Make the `requirements*.txt` dot-prefix exception more prominent in ADR-59 (already listed) with a one-line pip/PEP rationale — or close as no-op if existing wording suffices.
+- **Why:** Reduce future ambiguity for repos using `requirements.txt` instead of `pyproject.toml`.
+- **Added:** 2026-05-27 by rob
 
-### [P3] [open] Undiscovered repos confirmation
-- **What:** Repos `corp-knowledge-extractor`, `corp-by-os`, `corp-rfp-agent` not found under `Dev/` during 2026-05-11 audit. Confirm status: renamed, archived, not yet cloned, or dropped.
-- **Why:** Unknown repo status creates a gap in ecosystem audit coverage; universalization rollout cannot be fully scoped if repos may exist that are not tracked. Confirmation before Phase 3 prevents missed repos.
-- **Added:** 2026-05-11 by rob (cross-repo pattern audit)
-- **Status:** open
+### [P3] Consider PROCESS.md split for ARCHITECTURE.md
+- **id:** 41
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** If a future addition pushes `ARCHITECTURE.md` (405 lines, structural + 4 flow diagrams) past the operator's comfort threshold, split `## Processes` into `docs/PROCESS.md` (or `protocols/PROCESS.md`) and reference from ARCHITECTURE. Not blocking now.
+- **Why:** ARCHITECTURE is read by every CLAUDE §3 pointer (ADR-51); keeping it scannable matters.
+- **Added:** 2026-05-28 by rob
 
----
+### [P3] Widen audit.py mermaid theme check scope (or accept current)
+- **id:** 42
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Decide whether check #7 should expand beyond `ARCHITECTURE.md` + the template to other files carrying Mermaid (future `protocols/*.md`, docs/diagrams/) — (a) extend the path list (keep ADR-39 immutable exclusions) or (b) accept current scope.
+- **Why:** Durability-audit J4 — the check is durable for ARCHITECTURE but not for future hand-authored Mermaid elsewhere; governance coverage is already in PLAYBOOK/ESSENTIALS.
+- **Added:** 2026-05-28 by rob
 
-## Hyphen Convention Migration Sequence (Prompt J ratification)
+### [P3] New-repo scaffolding template / starter pack
+- **id:** 43
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Decide whether to author a canonical new-repo scaffold (one-step universalization baseline: dot-prefix configs, ALL-CAPS roots, dot-prefixed workspace + sort settings, `docs/{decisions,audits,archive}/README.md` seeds, BACKLOG/JOURNAL/LESSONS shells, instantiated templates). Layer-2 invariant — template snapshots, no orchestration script; operator runs the copy. Likely an ADR + `templates/new-repo-skeleton/`.
+- **Why:** Durability-audit J6 — no canonical "what a new child repo looks like at t=0" reference; each new repo re-derives. Pairs with ids 16, 17.
+- **Added:** 2026-05-28 by rob
 
-### [P2] [open] CI enforcement of hyphen-only separator rule
-- **What:** Pre-commit hook + GitHub Action enforcing hyphen-only separator in new filenames and foldernames. Scope TBD: which paths (`.md` only vs all?), generated artifact handling (exclude CLI auto-generated?), exceptions list. Per Council synthesizer blind spot 4: enforcement mechanism deferred from this PR.
-- **Why:** Convention without enforcement drifts. Manual discipline insufficient per 2026-05-11 audit finding (recommendation-tier scope failed immediately).
-- **Vision ref:** VISION.md "Auditor" function
-- **Added:** 2026-05-11 by rob (Prompt J ratification)
-- **Status:** open — scope decision needed before implementation; small Council question or conversational decision.
-
-### [P2] [open] corp-monorepo hyphen migration + ADR-38 compliance (Phase 2 expanded scope)
-- **What:** (1) Universal hyphen filename migration for corp-monorepo ADR files; (2) ADR-38 Scale L gaps closure: ARCHITECTURE.md move to root (from `docs/`), add VISION.md, LESSONS.md, BACKLOG.md; (3) `docs/archive/` content reclassification per content-scoped archival principle (CODE_REVIEW_REPORT files currently at top level of `docs/archive/` — should move to `docs/audits/archive/` or appropriate scoped location).
-- **Why:** ADR-34 amendment (universal mandate) + ADR-38 amendment (root placement) both now apply to corp-monorepo. Phase 2 scope expanded from original "verify compliance" to "migrate non-compliant items."
-- **Vision ref:** VISION.md "Disseminator" function; pairs with "Phase 2 universalization rollout" (Cross-stream P2)
-- **Added:** 2026-05-11 by rob (Prompt J ratification, expanded from Prompt H P2)
-- **Status:** open — execute in Phase 2, separate prompt; after Prompt K closes.
-- **Status update 2026-05-23:** Subitem (2) ADR-38 Scale L gaps closure — CONFIRMED COMPLETE per 2026-05-23 ecosystem audit (`check_adr38_baseline` PASS on corp-monorepo; report `docs/audits/2026-05-23-ecosystem-audit.md`). Subitems (1) hyphen migration + (3) archive reclassification — NOT verified by audit; remain open. Entry status: OPEN (partial completion).
-
-### [P2] [open] ai-council hyphen migration + ADR-38 compliance (Phase 2 expanded scope)
-- **What:** (1) Universal hyphen filename migration for ai-council (likely low impact — audit suggests mostly hyphen-compliant already; verify before migrating); (2) ADR-38 Scale M gaps closure: ARCHITECTURE.md to root, add LESSONS.md, BACKLOG.md. ai-council AGENTS.md removed 2026-05-19 per ADR-53 chunk 4.
-- **Why:** ADR-34 amendment (universal mandate) + ADR-38 amendment (root placement) now apply. Confirm compliance before claiming clean.
-- **Vision ref:** VISION.md "Disseminator" function; pairs with "Phase 2 universalization rollout" (Cross-stream P2)
-- **Added:** 2026-05-11 by rob (Prompt J ratification, expanded from Prompt H P2)
-- **Status:** open — execute in Phase 2, separate prompt; after cross-repo handshake (P1 above) completes.
-
-### [P3] [open] A5 Phase 2: retire UPPERCASE TYPE tag in legacy archive filenames
-- **What:** During Phase 2 repo visits (corp-monorepo, ai-council), when touching `docs/archive/` files with `YYYY-MM-DD_TYPE_topic.md` pattern — rename to plain `YYYY-MM-DD-topic.md` (hyphen separator, no UPPERCASE tag). Opportunistic, not a dedicated migration.
-- **Why:** Pre-ADR-34 legacy pattern creates naming inconsistency during Phase 2 repo visits; opportunistic retirement is lowest-cost path and avoids a dedicated migration prompt for a cosmetic change.
-- **Added:** 2026-05-11 by rob (Prompt J ratification, A5 designation)
-- **Status:** open — opportunistic during Phase 2 visits; no dedicated prompt.
-
----
-
-## Tier Deprecation + Root Hygiene Cross-Repo Rollout (2026-05-23 reconciliation)
-
-> Surfaced by the 2026-05-23 standard-reconciliation session, which deprecated
-> the repo-tier system and added root-hygiene + README-disposition conventions
-> within `.dev-knowledge` only. Child repos (corp-monorepo, ai-council) were
-> READ-ONLY in that session. Items below carry the per-repo application work
-> into dedicated sessions via handoff bundles. Authority: ADR-33 / ADR-38 (A5) /
-> ADR-40 / ADR-51 amendments 2026-05-23; PLAYBOOK Root hygiene convention.
-
-### [P1] [open] Apply tier-deprecation to corp-monorepo
-- **What:** Remove `tier:` and `scale:` from `corp-monorepo` VISION.md (and ARCHITECTURE.md) frontmatter; strike any tier-conditional governance prose. Confirmed present 2026-05-23 (audit read-only check: VISION frontmatter still carries `tier`/`scale`). Add `status`/`last_reviewed` if missing per amended ADR-33 schema.
-- **Why:** Ecosystem-wide tier deprecation (ADR-33/38/40/51 amendments 2026-05-23). Child-repo frontmatter must conform to the amended universal schema; audit `vision_md` now validates `version`/`last_reviewed`/`owner`/`status` (tier/scale ignored).
-- **Vision ref:** VISION.md "Disseminator" function
-- **Added:** 2026-05-23 by rob (standard-reconciliation handoff)
-- **Status:** open — dedicated corp-monorepo session.
-
-### [P1] [open] Apply tier-deprecation to ai-council
-- **What:** Remove `tier:`/`scale:` from `ai-council` VISION.md (+ ARCHITECTURE.md) frontmatter. **Also fix the `vision_md` WARN surfaced 2026-05-23**: ai-council VISION frontmatter is missing the `status` key required by the amended ADR-33 schema — add `status` (and verify `last_reviewed`).
-- **Why:** Same as corp-monorepo. The amended audit `vision_md` check flags ai-council WARN (missing `status`) as of 2026-05-23 read-only verification.
-- **Vision ref:** VISION.md "Disseminator" function
-- **Added:** 2026-05-23 by rob (standard-reconciliation handoff)
-- **Status:** open — dedicated ai-council session.
-
-### [P2] [open] Root hygiene application — corp-monorepo
-- **What:** Per PLAYBOOK Root hygiene convention: consolidate standalone tool configs (`ruff.toml`/`pytest.ini`/`mypy.ini`) into `pyproject.toml` `[tool.*]` sections where a `pyproject.toml` exists; dot-prefix `<repo>.code-workspace` → `.<repo>.code-workspace`; verify `tach.toml` movability. corp-monorepo is a code project (has pyproject.toml) so consolidation applies (unlike `.dev-knowledge`).
-- **Why:** Root cleanliness (low cognitive overhead). Convention codified in PLAYBOOK 2026-05-23.
-- **Added:** 2026-05-23 by rob (standard-reconciliation handoff)
-- **Status:** open — dedicated corp-monorepo session.
-
-### [P2] [open] Root hygiene application — ai-council
-- **What:** Same as corp-monorepo: consolidate tool configs into `pyproject.toml` where present; dot-prefix the `.code-workspace` file (ai-council had none at last audit — verify); confirm root is clean.
-- **Why:** Root cleanliness; PLAYBOOK Root hygiene convention 2026-05-23.
-- **Added:** 2026-05-23 by rob (standard-reconciliation handoff)
-- **Status:** open — dedicated ai-council session.
-
-### [P2] [open] README disposition decision per child repo
-- **What:** `.dev-knowledge` deleted its root README (deprecated per ADR-38 A5; internal-only). Decide per child repo: corp-monorepo — delete README, or keep (does it have an external audience)? ai-council — delete, or keep for potential open-sourcing? README is now OPTIONAL universally (external-audience repos only).
-- **Why:** ADR-38 A5 deprecated README from the mandatory baseline. Child repos need an explicit keep/delete decision rather than silent drift.
-- **Added:** 2026-05-23 by rob (standard-reconciliation handoff)
-- **Status:** open (corp-monorepo) — **ai-council resolved 2026-05-26: DELETE** (operator decision; recorded in `docs/audits/2026-05-25-ai-council-universalization-execution-plan.md` Action 1). corp-monorepo README keep/delete remains open for its dedicated session.
+### [P3] Child-repo audit reach — port audit.py checks or accept governance-only
+- **id:** 44
+- **repo:** .dev-knowledge
+- **status:** open
+- **What:** Decide how `audit.py` checks reach child repos: (a) per-repo port, (b) cross-repo runner (`audit ecosystem --all`, Layer-2 read-only), or (c) accept governance-only. Affects audit-tool architecture.
+- **Why:** Durability-audit J5 — child repos run no analogous audit; conformance is verified only on a manual `.dev-knowledge` sweep. Overlaps id 29.
+- **Added:** 2026-05-28 by rob
 
 ---
 
-## Council Pipeline + Consolidation Follow-ups (2026-05-26 session)
+## Blocked
 
-> Surfaced by the 2026-05-26 consolidation session (multi-branch recovery + governance
-> truth-up) and the 2026-05-25 Council-pipeline audit/proposal + ai-council universalization
-> chain now merged to `main`. Refs: `docs/audits/2026-05-25-council-pipeline-{audit,proposal,index}.md`,
-> `docs/archive/2026/2026-05-26-consolidation-preflight.md`. The existing P1 "Codify scrum-master
-> review authority pattern" (Cross-stream, above) is NOT duplicated here — it already covers
-> that work and runs parallel to entry #3.
-
-### [P1] [open] Execute the ai-council universalization execution plan
-- **What:** A dedicated ai-council Claude Code session executes `docs/audits/2026-05-25-ai-council-universalization-execution-plan.md` (Actions 1–8; Action 9 deferred) against ai-council — README delete, tier-residue removal from VISION/ARCHITECTURE/CLAUDE, `[L-opt]`→untagged, naming-guidance + ADR-08 rename, hand-authored Mermaid codemap, `.env.example` removal + workspace dot-prefix, BACKLOG header. Writes happen in ai-council (its own contract), not from `.dev-knowledge`.
-- **Why:** Closes the 14 findings in the 2026-05-25 audit refresh; AI Council is the universalization test case before corp-monorepo.
-- **Refs:** the execution plan + audit refresh (both on `main`). Cross-refs existing "ai-council hyphen migration + ADR-38 compliance" and "Apply tier-deprecation to ai-council" entries (this plan supersedes their loose scope with a sequenced action list).
-- **Added:** 2026-05-26 by rob (consolidation session).
-- **Status:** open — separate ai-council session; operator decisions 1–5 already captured in the plan amendment.
-
-### [P2] [open] Remove tier-residue from `.dev-knowledge` workspace templates
-- **What:** Collapse `templates/workspace-{S,M,L}.code-workspace` (three richness-tiered files) + PLAYBOOK § "VS Code workspace" into the operator's model: **one maximal `.code-workspace` template** from which elements are selected by repo complexity (not three scale-keyed variants). The S/M/L framing was de-tiered in PLAYBOOK v1.1 (2026-05-23) but three separate files still exist — the residue the operator flagged during ai-council universalization.
-- **Why:** Operator decision (universalization Q5): the workspace template should be "one complex template, scale-adaptive by element selection, NOT scale-different templates." This is `.dev-knowledge` standards work, deliberately kept OUT of the ai-council rollout.
-- **Refs:** `protocols/PLAYBOOK.md` § VS Code workspace (`:414`); `templates/workspace-{S,M,L}.code-workspace`; audit refresh "operator concerns" section.
-- **Added:** 2026-05-26 by rob (consolidation session; universalization Q5 spillover).
-- **Status:** open — standards change (may warrant a small ADR or PLAYBOOK amendment); affects the template framework, not any child repo.
-
-### [P2] [open] Prevent auto-debate of stray Council-keyed files
-- **What:** Investigate + prevent the failure mode where stray files carrying Council frontmatter keys (e.g., `mode:`/`target-project:`) in a watched location (`council_inbox/`, or a `~/Downloads` drop) get auto-picked-up and debated unintentionally. Define a guard (explicit allow-list, required marker, or inbox-only scoping).
-- **Why:** The 2026-05-26 race involved inbox/working files; an unintended auto-debate wastes ~$0.50/~5min and pollutes outputs. Pipeline-audit B3 noted a run caught mid-flight; clear triggering rules reduce accidental runs.
-- **Refs:** pipeline audit B1/B3/D1; `ai-council/council_inbox/` mechanism.
-- **Added:** 2026-05-26 by rob (consolidation session).
-- **Status:** open — investigation + guard design; work likely lands in ai-council (read-only here).
-
-### [P2] [open] ADR-59 universal visual pattern — child-repo retrofits (4×)
-- **What:** Apply ADR-59 (universal visual repository pattern: dot-prefix discipline, canonical `.md` visibility + clustering, workspace sort settings) to each of the four child repos. Plans were authored 2026-05-27 in `docs/audits/2026-05-27-{ai-council,corp-ops,corp-sca-time-automation,corp-monorepo}-visual-pattern-retrofit-plan.md`. Each retrofit is one Claude Code session in the *target* repo, separate workdirs (worktree pattern — see entry #5).
-- **Why:** ADR-59 codifies the pattern but only self-applies to `.dev-knowledge`. Until the child repos conform, the audit-tool checks will FAIL on them and the operator's promised "open any repo, same visual layout" goal is not delivered.
-- **Refs:** ADR-59 + the 4 plans + ADR-59's 2026-05-27 amendment (sortOrderReverse restored — retrofits must use the corrected setting, not the originally-codified one).
-- **Added:** 2026-05-27 by rob (this session — captured from the visual-pattern session's deferred phase).
-- **Status:** open — `corp-monorepo` retrofit needs the open ruff-strictness decision first (entry below).
-- **Sub-items:**
-  - **ai-council retrofit** — plan ready; bundle with the open "Execute the ai-council universalization execution plan" (entry #3) so the audit refresh + visual-pattern rollout land in one ai-council session.
-  - **corp-ops retrofit** — plan ready, independent (no prerequisites).
-  - **corp-sca-time-automation retrofit** — plan ready, independent.
-  - **corp-monorepo retrofit** — blocked on `corp-monorepo` ruff-strictness decision (the universalization mega-session deferred this; resolving it unblocks Action 6 (VISION routing, Council-gated) + Action 7c).
-
-### [P3] [open] Audit tool — folder-semantics validation check (ADR-60 candidate)
-- **What:** Extend `scripts/audit.py` with a read-only `check_folder_semantics` that asserts every `docs/` subfolder carries exactly one of the four ADR-60 roles (inputs / outputs / working / archived) — verified by README presence + a frontmatter or naming convention the check can match. Surfaces drift when a new ad-hoc folder is added without a declared role.
-- **Why:** ADR-60 codifies the taxonomy but is currently enforced by review discipline only. The 2026-05-27 taxonomy implementation session noted "folder-semantics validation left as a BACKLOG candidate per ADR-60." Bringing it under `audit.py health` makes drift visible the way the visual pattern's 3 new checks now do.
-- **Refs:** ADR-60; `scripts/audit.py` (existing 6 checks per ADR-59); 2026-05-27 taxonomy JOURNAL entry.
-- **Added:** 2026-05-27 by rob (this session — captured from the taxonomy session's deferred work).
-- **Status:** open — code change; size similar to the ADR-59 audit extensions (~3 checks + tests).
-
-### [P3] [open] Sort-regression verification protocol — workspace settings
-- **What:** Add a one-line PLAYBOOK rule (or ESSENTIALS cheat) that any change to `.dev-knowledge.code-workspace` sort settings must be verified by (a) reading the linked PR/release, not just the GitHub issue page, AND (b) launching VS Code on the workspace and visually checking dated-folder ordering before commit.
-- **Why:** This session's correction (ADR-59 amendment) cost a full diagnostic + commit cycle because the originating session's verification stopped at the issue page (which titled the request as "would like to reverse the file order" — sounds like an ask) and never inspected the merged PR (#149952) or running editor. A two-step rule (PR + visual) would have caught the regression at write-time.
-- **Refs:** ADR-59 2026-05-27 amendment; the operator-observed regression that triggered this session.
-- **Added:** 2026-05-27 by rob (this session).
-- **Status:** open — small PLAYBOOK rule, no code.
-
-### [P3] [open] Workspace scale-to-size ADR-59 refinement
-- **What:** Refine ADR-59 (or PLAYBOOK § "VS Code workspace") to codify the "scale-to-size" decision applied during the 2026-05-27 cross-repo retrofit: small repos get a minimal single-root workspace (`{ "folders": [{"path":"."}] }` + the 4 sort keys + repo-specific Python/extensions); larger repos may keep richer multi-root configs. The decision was operator-baked into the mega-prompt but isn't yet a documented standard.
-- **Why:** Without codification, the next new-repo decision re-derives the size threshold from scratch. The retrofit applied two single-root workspaces (corp-ops, corp-sca-time-automation) and left two multi-root (`.dev-knowledge`, corp-monorepo) — the operator's rule was "trzeba dopasować do wielkości projektu."
-- **Refs:** `docs/audits/2026-05-27-cross-repo-retrofit-verification.md`; ADR-59; the mega-prompt operator decision table.
-- **Added:** 2026-05-27 by rob (cross-repo retrofit — surfaced operator decision needing codification).
-- **Status:** open — small ADR-59 amendment or PLAYBOOK note; no code.
-
-### [P3] [open] Entry-scripts → `scripts/` convention codification
-- **What:** Codify in PLAYBOOK (root hygiene section) the convention that run-entry Python scripts (`run.py`, `main.py`, etc.) live in `scripts/`, not the repo root. Applied opportunistically during the 2026-05-27 retrofit but **not yet codified** — and corp-sca's `run.py` move was **deferred** because the venv lacked the test tooling needed to verify reference updates safely.
-- **Why:** Root cleanliness; ALL-CAPS canonical .md + dot-prefix configs visually cluster cleanly when entry scripts move out. Operator rule from the mega-prompt: "run python powinno być scripts." Without the codification, future sessions either re-derive or skip.
-- **Refs:** PLAYBOOK § "Root hygiene"; the deferred corp-sca `run.py` move (see below).
-- **Added:** 2026-05-27 by rob (cross-repo retrofit — surfaced operator decision).
-- **Status:** open — PLAYBOOK addition, no code.
-
-### [P3] [open] `requirements.txt` ADR-59 exception note
-- **What:** Add `requirements.txt` (and `requirements-dev.txt`) to the ADR-59 dot-prefix exception list explicitly. ADR-59 already lists them, but the retrofit surfaced that this is non-obvious for repos that use `requirements.txt` instead of `pyproject.toml` (e.g., corp-sca-time-automation). Either: (a) make it more prominent in the ADR, (b) add a one-line rationale clarifying that pip/PEP convention pins the name, or (c) leave as-is.
-- **Why:** Reduce future ambiguity. Operator rule from the mega-prompt: "jeżeli musi być to musi być."
-- **Refs:** ADR-59 § "Exceptions" (already includes `requirements.txt`); corp-sca state.
-- **Added:** 2026-05-27 by rob (cross-repo retrofit).
-- **Status:** open — small ADR-59 wording polish; possibly close as no-op if existing wording deemed sufficient.
-
-### [P3] [open] Per-repo deeper cleanup follow-up (post-retrofit)
-- **What:** Each child repo has cosmetic / non-blocking cleanup left over from the retrofit: ai-council has 18 pre-existing ruff errors; corp-monorepo has 89 (lenient `select`); corp-sca has an untracked `__pycache__/` at root; ai-council has `.env` 100B content (leave). Decide whether to address per-repo in dedicated sessions or accept as baseline.
-- **Why:** Retrofit prompt explicitly scoped these as "ambiguous → report, don't delete" or "out of scope" (lint). Worth a deliberate decision rather than indefinite drift.
-- **Refs:** `docs/audits/2026-05-27-cross-repo-retrofit-verification.md` § "Honest divergence report".
-- **Added:** 2026-05-27 by rob (cross-repo retrofit).
-- **Status:** open — per-repo judgment calls.
-
-### [P3] [open] Consider PROCESS.md split for ARCHITECTURE.md
-- **What:** After the 2026-05-28 process-diagrams session, `ARCHITECTURE.md` is 405 lines (was 175) and houses both the *structural* view (codemap + layer model + invariants) and the *flow* view (4 Mermaid process diagrams: layer-extended, dev workflow, Council pipeline, handoff v3.4). If a future addition pushes it past the operator's comfort threshold, split the `## Processes` subsection into `docs/PROCESS.md` (or `protocols/PROCESS.md`) and reference from ARCHITECTURE.md. Not blocking now — the section is a natural home until size genuinely justifies a split.
-- **Why:** `ARCHITECTURE.md` is read by every CLAUDE.md §3 pointer (per ADR-51); keeping it scannable matters. The current 405 lines is within the prior `corp-monorepo` ARCHITECTURE precedent (hand-maintained codemap) but worth re-evaluating once the next process is added.
-- **Refs:** `ARCHITECTURE.md` § Processes; ADR-51.
-- **Added:** 2026-05-28 by rob (process-diagrams session — captured at write-time).
-- **Status:** open — re-evaluate when the next process diagram or process prose lands.
-
-### [P2] [open] `templates/CLAUDE-md-template.md` refresh — encode ADRs 54-61 + recent conventions
-
-- **What:** Refresh `templates/CLAUDE-md-template.md` (currently v2.1, 2026-05-19; predates ADRs 54-61) so a new repo scaffolded from it inherits the universalization work added since. Specifically: §3 Architecture should reference the mermaid theme directive (ADR-51 v2); §4 Conventions should reference the visual pattern (ADR-59) + docs/ taxonomy variant choice (ADR-60); §5 Critical rules should include the worktree pre-flight (ADR-61); §7 should list `/handoff` + reference HANDOFF_PROCESS.md; §11 should rotate to last 5 ADRs (57-61). Bump to v2.4 or v3.0.
-- **Why:** Durability-audit J1 (2026-05-28). The template is the single new-repo scaffolding artifact for agent-instruction content; if it's stale, every new repo inherits stale conventions and the operator re-derives the additions manually. Identified as "the largest single durability gap of today's audit" in `docs/audits/2026-05-28-universalization-durability-audit.md`.
-- **Refs:** `templates/CLAUDE-md-template.md`; `CLAUDE.md` (this repo, as live example); ADRs 54-61; durability audit.
-- **Added:** 2026-05-28 by rob (universalization durability audit).
-- **Status:** open — content decision; size similar to the original v2.1 conversion (one focused session).
-- **Scope update 2026-05-31 (marathon arc reconciliation):** Extend the encode-range to **ADRs 54-63** — add ADR-62 (v4 handoff ratification) + ADR-63 (scrum-master review authority) to the refresh scope. The §11 "last 5 ADRs" rotation target is now **59-63** (not 57-61). Refs: ADR-62, ADR-63.
-
-### [P3] [open] Widen `audit.py` mermaid theme check scope (or accept current scope)
-
-- **What:** Decide whether check #7 `mermaid_theme_directive` should expand beyond `ARCHITECTURE.md` + `templates/ARCHITECTURE-template.md` to cover other repo files that may carry Mermaid blocks (e.g. future `protocols/*.md` diagrams, READMEs, hand-authored docs/diagrams/). Either (a) extend the scanned-path list (with continued exclusion of immutable-artifact paths per ADR-39), or (b) accept the current scope as sufficient (ARCHITECTURE.md is the only canonical mermaid home; everything else is one-off).
-- **Why:** Durability-audit J4 (2026-05-28). The check is durable for ARCHITECTURE.md but does not protect future hand-authored Mermaid blocks placed elsewhere. PLAYBOOK + ESSENTIALS now point a fresh CC at the directive (durability-audit clear gaps C1+C2), so the governance coverage is in place — the question is whether mechanical enforcement should follow.
-- **Refs:** `scripts/audit.py` check #7; ADR-51 v2 amendment; `docs/audits/2026-05-28-universalization-durability-audit.md`.
-- **Added:** 2026-05-28 by rob (universalization durability audit).
-- **Status:** open — small audit.py extension OR no-op governance decision.
-
-### [P3] [open] Child-repo audit reach — port `audit.py` checks or accept governance-only enforcement
-
-- **What:** Decide how the `.dev-knowledge` `audit.py` checks (visual pattern: dot-prefix / canonical-md / workspace; mermaid theme; ADR-38 baseline; vision frontmatter) reach the child repos (ai-council, corp-monorepo, corp-ops, corp-sca-time-automation). Three options: (a) **per-repo port** — each child repo gets its own `audit.py` running the same checks against itself; (b) **cross-repo runner** — extend `.dev-knowledge` `audit.py` with a `audit ecosystem --all` subcommand walking all registered repos (still Layer-2 read-only); (c) **accept governance-only** — child repos rely on review discipline + this-repo audits for verification, no mechanical check at child-repo level.
-- **Why:** Durability-audit J5 (2026-05-28). Today the four child repos do not run an analogous audit; conformance to ADR-59 + ADR-51 v2 is verified only when a `.dev-knowledge` session points the auditor at them (which the 2026-05-27 cross-repo retrofit did but only one-shot). Drift is undetected until the next manual sweep.
-- **Refs:** `scripts/audit.py`; ADR-36 (audit tool architecture, read-only contract); the 2026-05-27 cross-repo retrofit verification; Layer-2 invariant per ADR-28.
-- **Added:** 2026-05-28 by rob (universalization durability audit).
-- **Status:** open — operator decision before implementation; affects audit tool architecture.
-
-### [P3] [open] New-repo scaffolding template / starter pack
-
-- **What:** Decide whether to author a canonical new-repo scaffolding artifact (or set of artifacts) so a brand-new child code repo can be created with the full universalization baseline in one step: dot-prefix configs, ALL-CAPS canonical roots, dot-prefixed `.{repo}.code-workspace` with the corrected sort settings, `docs/{decisions,audits,archive}/README.md` seeds, `BACKLOG.md` + `JOURNAL.md` + `LESSONS.md` shells, ADR-template + ARCHITECTURE-template + CLAUDE-md-template instantiated. Must remain Layer-2 invariant — read-only validators + template snapshots, no orchestration script that *drives* a new repo into existence; the operator runs the copy.
-- **Why:** Durability-audit J6 (2026-05-28). Templates today are individual file templates (`ARCHITECTURE-template.md`, `CLAUDE-md-template.md`, `ADR-template.md`, three workspace files); there is no canonical "this is what a new child code repo looks like at t=0" reference. Each new repo re-derives the layout from a mix of (a) reading existing child repos, (b) consulting ADR-59 + ADR-60, (c) operator memory. Risks: missed baseline folders, missed sort settings, missed seeded READMEs. Pairs with J1 (template refresh) and the existing P2 entry "Remove tier-residue from `.dev-knowledge` workspace templates" (consolidate workspaces) — all three are about making new-repo scaffolding correct-by-default.
-- **Refs:** `templates/`; ADRs 59, 60, 61; the 2026-05-28 baseline-folder branches `chore/baseline-template-2026-05-28` (corp-ops + corp-sca) as the empirical pattern; durability audit J6.
-- **Added:** 2026-05-28 by rob (universalization durability audit).
-- **Status:** open — operator decision (whether to author at all + what form). Likely an ADR + a `templates/new-repo-skeleton/` directory; no scripts.
-
-### [P2] [open] corp-sca-time-automation dev-tooling install + `run.py` → `scripts/`
-- **What:** Two-step follow-up to the 2026-05-27 corp-sca retrofit: (1) install pytest + ruff in the corp-sca venv (currently commented out in `requirements.txt` as optional dev), (2) move `run.py` (18187B, executable, at root) → `scripts/run.py` and update its 6 references (`.claude/rules/python-env.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `docs/handoffs/2026-04-15-handoff.md`, `scripts/manager_report.py`, `tests/test_vbs_export.py`). Verify with pytest after the move.
-- **Why:** The retrofit's entry-script move was **deferred** because pytest was unavailable in the venv and the operator prompt explicitly forbade moving entry-scripts without test verification. Step (1) unblocks step (2); the move itself completes the retrofit's per-repo conformance.
-- **Refs:** `docs/audits/2026-05-27-cross-repo-retrofit-verification.md` § Phase C divergence #1; corp-sca `requirements.txt:14-16` (commented-out dev deps).
-- **Added:** 2026-05-27 by rob (cross-repo retrofit — deferred work).
-- **Status:** open — single corp-sca session; bundle with the existing "Apply tier-deprecation to corp-sca" entry if helpful.
-
-### [P2] [open] AI Council convene-vs-Path-A decision criterion
-- **What:** Codify when an architecture decision goes to a full AI Council convene versus a "Path A" direct ADR written by CC. ADR-62 and ADR-63 were both written Path-A (post-hoc record of decisions already made + independently validated), explicitly NOT convened — but the criterion that justified bypassing Council ("decision already made + implemented + fresh-eyes-validated; a stateless Council convene would hit curse-of-knowledge recursion") lives only in JOURNAL prose, not in `protocols/AI_COUNCIL_PROCESS.md`. Add the convene-vs-Path-A decision rule to the runbook (or PLAYBOOK).
-- **Why:** AI_COUNCIL_PROCESS.md v1.0 documents the convene lifecycle but assumes every architecture decision convenes. The marathon arc established Path A as a legitimate alternative for post-hoc records; without the criterion, future sessions re-derive when each path applies.
-- **Vision ref:** VISION.md "Methodology Author" function
-- **Added:** 2026-05-31 by rob (marathon-arc reconciliation; ADR-62/63 Path-A pattern)
-- **Status:** open — runbook/PLAYBOOK addition; pairs with "Relax-vs-gate principle for drifted guards".
+_(none)_
 
 ---
+
+## Coordination
+
+> Cross-repo items. **Governance pointers** stay in `.dev-knowledge`. **Pending-relocation** items are child-repo *execution* work awaiting their own sessions (ADR-41 — relocation is the Step-7 proposal `docs/audits/2026-06-01-child-repo-relocation-proposal.md`; the move happens in the target repo, then the pointer leaves here).
+>
+> ⚠ **Oversized vs the ≤10 target (currently 21).** This is the expected signal that the child-repo relocations are pending — it drains to ~3 governance pointers as those sessions execute. Per ADR-64 §"Open implementation questions" #1, the triage rule + coordination-pointer format are still to be pinned in the migration spec.
+
+### Cross-repo governance pointers (stay in .dev-knowledge)
+
+### [P2] Phase 2 universalization rollout
+- **id:** 45
+- **repo:** ecosystem
+- **status:** open
+- **What:** Apply ADR-33/34/35/37/38/39/41 to ai-council and corp-monorepo. ai-council substantially complete (hyphen compliance, ADR-38 gaps, VISION); corp-monorepo not yet started. Tracked here as the disseminator-function coordination point; per-repo execution lands in ids 51-65.
+- **Why:** Validates the universalization pattern; unblocks trigger-based cohort migration.
+- **Added:** 2026-04-30 by rob
+
+### [P3] Apply scrum-master review pattern to other child repos
+- **id:** 46
+- **repo:** ecosystem
+- **status:** open
+- **What:** Extend the scrum-master review cycle (now unblocked — codified by ADR-63) to remaining repos: (1) corp-monorepo, (2) corp-knowledge-extractor / corp-by-os / corp-rfp-agent (verify existence first — id 47), (3) corp-ops + corp-sca (lighter). The review is triggered from `.dev-knowledge`; remediation executes in each child repo.
+- **Why:** Phase 3 of ecosystem universalization; each review catches drift before it compounds.
+- **Added:** 2026-05-12 by rob
+- **Refs:** ADR-63
+
+### [P3] Undiscovered repos confirmation
+- **id:** 47
+- **repo:** ecosystem
+- **status:** open
+- **What:** Confirm status of `corp-knowledge-extractor`, `corp-by-os`, `corp-rfp-agent` (not found under `Dev/` in the 2026-05-11 audit): renamed, archived, not-yet-cloned, or dropped.
+- **Why:** Unknown repo status is a gap in audit coverage; blocks fully scoping the universalization rollout.
+- **Added:** 2026-05-11 by rob
+
+### Pending relocation to child repos (Step-7 proposal; await target-repo sessions)
+
+### [P1] Apply tier-deprecation to corp-monorepo
+- **id:** 48
+- **repo:** corp-monorepo
+- **status:** open
+- **What:** Remove `tier:`/`scale:` from VISION.md (+ ARCHITECTURE.md) frontmatter; strike tier-conditional prose; add `status`/`last_reviewed` per the amended ADR-33 schema.
+- **Why:** Ecosystem-wide tier deprecation; child frontmatter must conform to the amended universal schema.
+- **Added:** 2026-05-23 by rob
+- **Relocate:** → corp-monorepo (dedicated session)
+
+### [P1] Apply tier-deprecation to ai-council
+- **id:** 49
+- **repo:** ai-council
+- **status:** open
+- **What:** Remove `tier:`/`scale:` from VISION.md (+ ARCHITECTURE.md); add the missing `status` key (vision_md WARN, 2026-05-23) and verify `last_reviewed`.
+- **Why:** Same as id 48; the amended audit `vision_md` check flags ai-council WARN.
+- **Added:** 2026-05-23 by rob
+- **Relocate:** → ai-council (dedicated session)
+
+### [P1] Execute the ai-council universalization execution plan
+- **id:** 50
+- **repo:** ai-council
+- **status:** open
+- **What:** A dedicated ai-council session executes `docs/audits/2026-05-25-ai-council-universalization-execution-plan.md` (Actions 1-8): README delete, tier-residue removal, `[L-opt]`→untagged, naming + ADR-08 rename, hand-authored Mermaid codemap, `.env.example` removal + workspace dot-prefix, BACKLOG header. Supersedes the loose scope of ids 49/61.
+- **Why:** Closes the 14 findings in the 2026-05-25 audit refresh; ai-council is the universalization test case before corp-monorepo.
+- **Added:** 2026-05-26 by rob
+- **Relocate:** → ai-council (dedicated session)
+
+### [P2] Handoff folder format adoption (corp-monorepo)
+- **id:** 51
+- **repo:** corp-monorepo
+- **status:** open
+- **What:** corp-monorepo still has flat `docs/HANDOFF.md` (pre-ADR-42). Convert to folder format at next handoff event, or explicitly deprecate. Tied to an A4 decision on whether the flat file is acceptable legacy. (ai-council resolved: absent at `1bcc6ab`.)
+- **Why:** Flat files mislead future sessions about the active standard.
+- **Added:** 2026-05-11 by rob
+- **Relocate:** → corp-monorepo
+
+### [P2] corp-monorepo P1-2 path-traversal branch unmerged
+- **id:** 52
+- **repo:** corp-monorepo
+- **status:** open
+- **What:** The P1-2 path-traversal extraction landed (`a1007b1`) but sits on unmerged branch `chore/extract-p1-2-to-backlog-2026-05-28`; corp-monorepo HEAD is not on main. Merge + resolve the pre-delete gate.
+- **Why:** A security finding's tracking is stranded on a feature branch.
+- **Added:** 2026-05-29 by rob
+- **Relocate:** → corp-monorepo
+
+### [P2] Root hygiene application — corp-monorepo
+- **id:** 53
+- **repo:** corp-monorepo
+- **status:** open
+- **What:** Consolidate standalone tool configs (`ruff.toml`/`pytest.ini`/`mypy.ini`) into `pyproject.toml` `[tool.*]`; dot-prefix `<repo>.code-workspace`; verify `tach.toml` movability. (corp-monorepo has pyproject.toml so consolidation applies.)
+- **Why:** Root cleanliness; PLAYBOOK Root hygiene convention.
+- **Added:** 2026-05-23 by rob
+- **Relocate:** → corp-monorepo
+
+### [P2] Root hygiene application — ai-council
+- **id:** 54
+- **repo:** ai-council
+- **status:** open
+- **What:** Consolidate tool configs into `pyproject.toml` where present; dot-prefix the `.code-workspace` file (verify ai-council has one); confirm root is clean.
+- **Why:** Root cleanliness; PLAYBOOK Root hygiene convention.
+- **Added:** 2026-05-23 by rob
+- **Relocate:** → ai-council
+
+### [P2] README disposition decision (corp-monorepo)
+- **id:** 55
+- **repo:** corp-monorepo
+- **status:** open
+- **What:** Decide keep-or-delete corp-monorepo's root README (does it have an external audience?). README is OPTIONAL universally since ADR-38 A5. (ai-council resolved 2026-05-26: DELETE.)
+- **Why:** Child repos need an explicit keep/delete decision rather than silent drift.
+- **Added:** 2026-05-23 by rob
+- **Relocate:** → corp-monorepo
+
+### [P2] corp-monorepo hyphen migration + ADR-38 compliance
+- **id:** 56
+- **repo:** corp-monorepo
+- **status:** open
+- **What:** (1) Hyphen filename migration for corp-monorepo ADR files; (3) `docs/archive/` content reclassification. (Subitem (2) ADR-38 Scale-L gaps closure CONFIRMED COMPLETE 2026-05-23.)
+- **Why:** ADR-34 universal-mandate + ADR-38 root-placement amendments apply.
+- **Added:** 2026-05-11 by rob
+- **Relocate:** → corp-monorepo
+
+### [P2] ai-council hyphen migration + ADR-38 compliance
+- **id:** 57
+- **repo:** ai-council
+- **status:** open
+- **What:** (1) Hyphen migration (likely low impact — verify first); (2) ADR-38 gaps: ARCHITECTURE.md to root, add LESSONS.md, BACKLOG.md. Largely subsumed by id 50.
+- **Why:** Confirm compliance before claiming clean.
+- **Added:** 2026-05-11 by rob
+- **Relocate:** → ai-council
+
+### [P2] Prevent auto-debate of stray Council-keyed files
+- **id:** 58
+- **repo:** ai-council
+- **status:** open
+- **What:** Prevent stray files carrying Council frontmatter keys in a watched location from being auto-picked-up and debated. Define a guard (allow-list, required marker, or inbox-only scoping).
+- **Why:** An unintended auto-debate wastes ~$0.50/~5min and pollutes outputs.
+- **Added:** 2026-05-26 by rob
+- **Relocate:** → ai-council
+
+### [P2] ADR-59 universal visual pattern — child-repo retrofits (4×)
+- **id:** 59
+- **repo:** ecosystem
+- **status:** open
+- **What:** Apply ADR-59 (dot-prefix discipline, canonical-.md visibility/clustering, workspace sort settings) to the four child repos. Plans authored 2026-05-27. Sub-items: ai-council (bundle with id 50); corp-ops (independent); corp-sca (independent); corp-monorepo (blocked on the corp-monorepo ruff-strictness decision).
+- **Why:** ADR-59 self-applies only to `.dev-knowledge`; until child repos conform, audit checks FAIL on them and the "same visual layout everywhere" goal isn't delivered.
+- **Added:** 2026-05-27 by rob
+- **Relocate:** → each child repo (per-repo sessions)
+
+### [P2] corp-sca-time-automation dev-tooling install + run.py → scripts/
+- **id:** 60
+- **repo:** corp-sca-time-automation
+- **status:** open
+- **What:** (1) Install pytest + ruff in the corp-sca venv (currently commented-out dev deps); (2) move `run.py` (root) → `scripts/run.py` and update its 6 references; verify with pytest. The move was deferred for lack of test tooling.
+- **Why:** Completes the 2026-05-27 retrofit's per-repo conformance.
+- **Added:** 2026-05-27 by rob
+- **Relocate:** → corp-sca-time-automation
+
+### [P3] ai-council LESSONS.md scope-tag backfill (ADR-46 advisory)
+- **id:** 61
+- **repo:** ai-council
+- **status:** open
+- **What:** ai-council LESSONS entries lack `[scope: X]` tags per the ADR-46 sniff test; add them to each entry's 6-field schema position.
+- **Why:** Advisory WARN on `dated_entries_lessons`; methodology drift from the ADR-46 standard.
+- **Added:** 2026-05-16 by rob
+- **Relocate:** → ai-council
+
+### [P3] UPPERCASE TYPE tag in legacy archive filenames (retire opportunistically)
+- **id:** 62
+- **repo:** corp-monorepo
+- **status:** open
+- **What:** corp-monorepo + corp-sca use `YYYY-MM-DD_TYPE_topic.md` in `docs/archive/` (pre-ADR-34). Rename to `YYYY-MM-DD-topic.md` opportunistically when touching those files; no dedicated prompt.
+- **Why:** Pre-ADR-34 pattern creates ecosystem naming inconsistency.
+- **Added:** 2026-05-11 by rob
+- **Relocate:** → corp-monorepo, corp-sca-time-automation
+
+### [P3] docs/HANDOFF.md flat-file deprecation (corp-monorepo, ai-council)
+- **id:** 63
+- **repo:** corp-monorepo
+- **status:** open
+- **What:** Both repos have flat `docs/HANDOFF.md` (pre-ADR-42). Retire at next handoff event or explicitly designate legacy. Tied to id 51's A4 decision.
+- **Why:** Parallel patterns mislead future sessions about the active standard.
+- **Added:** 2026-05-11 by rob
+- **Relocate:** → corp-monorepo, ai-council
+
+### [P3] Per-repo deeper cleanup follow-up (post-retrofit)
+- **id:** 64
+- **repo:** ecosystem
+- **status:** open
+- **What:** Decide per repo whether to address retrofit leftovers: ai-council 18 pre-existing ruff errors; corp-monorepo 89 (lenient select); corp-sca untracked `__pycache__/`; ai-council `.env` 100B (leave).
+- **Why:** Scoped "report, don't delete" in the retrofit; worth a deliberate decision rather than indefinite drift.
+- **Added:** 2026-05-27 by rob
+- **Relocate:** → each child repo
+
+### [P3] Cross-repo low-severity cleanups (child-repo-owned subset)
+- **id:** 65
+- **repo:** ecosystem
+- **status:** open
+- **What:** Child-repo-owned items from the 2026-05-29 coherence audit: `verify/cross-repo-boundaries.ps1` hard-codes a possibly-stale corp-monorepo layout (SK-4); corp-monorepo CLAUDE.md references flat `docs/handoffs/*.md` (CM-2); corp-ops/corp-sca have no pre-commit, ai-council only normalize-headers + hook-id naming drift (HK-4). (Self-owned subset is id 35.)
+- **Why:** Cleanup/cosmetic; split per owner.
+- **Added:** 2026-05-29 by rob
+- **Relocate:** → respective child repos
