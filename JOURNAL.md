@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-01 — BACKLOG migration: dual review (Codex + fresh-eyes) + merge
+
+- Did: Ran the two pre-merge reviews on `docs/backlog-migration-adr64-2026-06-01` — Codex `/review` (code-only path-guard → `validate_backlog.py` + hook) and an independent zero-context fresh-eyes pass (full-migration integrity). Applied the one consensus finding, tracked the rest, and merged to `main` (`--no-ff`).
+- Result: **Both reviews PASS, 0 critical.** Fresh-eyes independently verified all 6 claims (42 removed + recoverable via tag; 65 restructured with unique ids; taxonomy-drop justified by ADR-64; validator read-only + Coordination-exemption safe; docs coherent; no invariant breach). **Consensus finding** (Codex H1 ≡ fresh-eyes Important-1): the validator didn't enforce `id` uniqueness → **fixed** (`44eeae8`, hard-fail on duplicates). Deliberately did NOT add file-order/contiguous monotonicity — wrong by design for stable-ids + gaps-on-removal (documented in code + PLAYBOOK). Codex H2/H3 (repo:/section enforcement) + the regex NTH **deferred** to new item **[#66]** (the implementation prompt scoped the validator narrow). The `validate-backlog` pre-commit hook fired + passed on the [#66] BACKLOG edit (dogfooded end-to-end). Baseline green: 105 tests, audit 9/9, validator OK (66 entries).
+- Changes: `scripts/validate_backlog.py` (id-uniqueness + docstring), `protocols/PLAYBOOK.md` §10 (id/done wording), `BACKLOG.md` (+id 66), `docs/audits/2026-06-01-codex-backlog-migration-adr64.md` (Codex artifact) + `…-fresh-eyes-backlog-migration.md` (fresh-eyes record); this JOURNAL entry. Branch (16 commits) merged → `main`.
+- Abandoned: did NOT enforce id monotonicity (wrong by design); did NOT auto-apply Codex H2/H3 (deferred to [#66] per narrow-scope directive); did NOT push to remote; did NOT delete the merged branch.
+- Next: pick off [#66] validator hardening; execute the child-repo relocations (Coordination drains 21→~3 as those sessions run); quarterly grooming 2026-07-01.
+
+---
+
 ### 2026-06-01 — BACKLOG migration: retire 41 verified-done items (ADR-64/65 Step 5)
 
 - Did: Implemented ADR-64/65 Step 5 — removed all **42** done (`closed`/`superseded`/`resolved`) entries from `BACKLOG.md`. Each was SHA/artifact-verified in git first (Step-0 inventory `docs/audits/2026-06-01-backlog-migration-inventory.md`); **zero flagged-unverifiable**. *(Count correction: the Step-0 inventory stated 41; the true count is **42** — it under-listed the `docs/tech-radar/` entry, and the earlier "107 total" used a strict `[status]` regex that skipped the dated-bracket `[closed 2026-05-28]`. This map below is the complete, authoritative removal record: 13 + 6 + 23 = 42.)* This is the one-time bulk-migration JOURNAL map (ADR-65: normally a done item's record rides its own session entry + closing commit — no per-item write; this map exists only because these 41 are removed in bulk outside their original sessions). Removal commit tagged `backlog-migration-2026-06-01` (revert restores any entry verbatim).
