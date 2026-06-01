@@ -95,6 +95,7 @@ So that the ADR web is internally consistent.
 So that stale ground truth stops silently misleading sessions (the repo's own VISION is "drift detected proactively").
 - [#10] [P2][M] Fix the 8 doc-truth drifts (CLAUDE §7/§8; ARCHITECTURE validators + governing-ADRs; LESSONS descriptor; ruff claim; TOKEN-LOG path) · Done when: all 8 corrected · refs coherence-audit (SK/CD/WF/ML)
 - [#35] [P3][S] Fix the self-owned low-severity cleanups (ARCHITECTURE diagram attribution + SBAR label; VISION adoption-signal + stale last_reviewed) · Done when: WF-3 + GO-1/2 resolved · refs coherence-audit
+- [#68] [P3][S] Express the methodology-engine feedback loop in ARCHITECTURE (Lessons->ADR->Conventions->Enforcement->Dissemination->loop) · Done when: ARCHITECTURE carries the loop as prose + ASCII flow tied to the artifact at each stage · refs methodology-engine framing
 
 ### Keep the day-to-day docs right-sized and current
 So that the cheat-sheet and architecture stay scannable as conventions accrue.
