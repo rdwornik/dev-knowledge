@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-01 — BACKLOG readability pass (terse format, evict child-repo items, seed Now)
+
+- Did: Readability refactor of `BACKLOG.md` (branch `docs/backlog-readability-2026-06-01` off main `db352ee`), after the operator reported the migrated file was still not scannable. (1) PLAYBOOK §10 terse 3-line entry schema + validator rewritten to parse it and fold in the deferred H2/H3 hardening — which **closed [#66]** (its scope was implemented in `ad2ca92`; done item left per ADR-65); `## Now` relaxed to {open,in-progress} (resolves ADR-64 open-Q4). (2) All entries → terse. (3) Evicted the 18 child-repo items (ids 48-65) from `## Coordination` to the relocation queue. (4) Seeded `## Now` with the 3 P1 items as `(suggested)` + moved the preamble to a footer.
+- Result: BACKLOG **603 → 223 lines**; 65 → **47 in-file entries** (18 in the queue doc). Validator OK (47 entries, 0 warnings); pytest 105, ruff clean, audit 9/9. **Readability verdict deliberately NOT self-declared — awaits the operator** (the prior pass over-claimed it; readability is the operator's call). **NOT merged** — another priority-one rewrite + validator change → operator runs Codex `/review` + a fresh-eyes pass.
+- Changes: `protocols/PLAYBOOK.md` §10 (terse schema), `scripts/validate_backlog.py` (terse parser + H2/H3 + size band), `BACKLOG.md` (terse + evict + Now/footer), `docs/audits/2026-06-01-child-repo-relocation-proposal.md` (now the live queue, 18 items); this JOURNAL entry. Branch 5 commits `ad2ca92`..`534a03f` + this.
+- Abandoned: did NOT enforce id monotonicity (uniqueness only — by design); did NOT merge; did NOT touch any child repo (eviction = into the queue doc, not into child repos).
+- Next: operator reviews (Codex + fresh-eyes), merges if it reads well; child-repo items relocate via their own sessions (queue drains).
+
+---
+
 ### 2026-06-01 — BACKLOG migration: dual review (Codex + fresh-eyes) + merge
 
 - Did: Ran the two pre-merge reviews on `docs/backlog-migration-adr64-2026-06-01` — Codex `/review` (code-only path-guard → `validate_backlog.py` + hook) and an independent zero-context fresh-eyes pass (full-migration integrity). Applied the one consensus finding, tracked the rest, and merged to `main` (`--no-ff`).
