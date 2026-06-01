@@ -31,10 +31,10 @@ This stub is a placeholder. Actual agent framework requires:
 
 1. **AI Council debate** on architecture: scope, layer, where it runs (Layer 1 pre-prompt vs Layer 2 lint vs new layer in `~/.claude/` runtime config)
 2. **Pilot implementation** likely as `scripts/agent_check.py` (read-only validator) or `~/.claude/` hook
-3. **Integration** with `audit.py` health gate (new check #10+?)
+3. **Integration** with `audit.py` health gate (a new check #11+ — checks #1–#10 already ship)
 4. **Eval suite** validating the agent layer catches the named anti-patterns
 
-Tracked in `BACKLOG.md` as **P1 enforcement-layer P1** (agent-framework dimension).
+Not yet a discrete `BACKLOG.md` item — this stub is the anchor until the framework is scoped (related open items: `[#1]` triangulation-to-every-handoff, which names the agent-framework as one surface; `[#8]` lifecycle hooks). Promote to a discrete backlog task when an AI Council debate sets its scope.
 
 ## Why this is only a stub now (2026-05-29)
 
