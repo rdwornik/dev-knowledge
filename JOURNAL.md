@@ -19,6 +19,36 @@
 
 ---
 
+### 2026-06-01 — Story-map dual review (Codex + fresh-eyes) + merge
+
+- Did: Ran Codex `/review` (code-only path-guard → the validator + commit-msg hook) and an independent zero-context fresh-eyes pass on the story-map branch; applied Codex's 4 High fixes + committed tests; merged to `main` (`--no-ff`).
+- Result: **Codex 0 critical / 4 high — all fixed** (H1 done-marker scoped to structured tokens; H2 hook except narrowed to OSError + loud fail-open; H3 require exactly one `## Big picture`; H4 19 committed unit tests). **Fresh-eyes: 0 critical, merge-ready** — verified ID accounting (all 66 main ids: 1-47 BACKLOG / 48-65 relocation queue / #66 closed `190fce9`), story-map integrity (7 themes/19 stories/47 tasks), both scripts, invariants, docs coherence. Baseline green: **124 tests**, audit 9/9, `validate_backlog` OK. Readability verdict remains the operator's (not self-declared).
+- Changes: `scripts/validate_backlog.py` (H1/H3), `scripts/check_backlog_commit_msg.py` (H2), `tests/test_validate_backlog.py` + `tests/test_check_backlog_commit_msg.py` (new, H4), `docs/audits/2026-06-01-codex-backlog-story-map.md` + `…-fresh-eyes-story-map.md` (review records); this JOURNAL entry. Branch (whole readability+story-map arc) merged → `main`.
+- Abandoned: did NOT fail-closed the commit-msg hook (kept fail-open-loud, explained); did NOT push to remote; did NOT delete the merged branch.
+- Next: pick off backlog tasks (each closes via `[#id]`, hook-enforced); child-repo items relocate via their own sessions (queue drains).
+
+---
+
+### 2026-06-01 — BACKLOG story-map hierarchy (ADR-66): Big Picture → Theme → Story → Task
+
+- Did: Restructured `BACKLOG.md` into a story map (branch `docs/backlog-readability-2026-06-01`, continued). (1) **ADR-66** (Path A; supersedes ADR-64 Decision 2 / layout only). (2) Skeleton (7 themes + 19 user stories) → **operator GO at the checkpoint** with taxonomy adjustments (#6 → own story; #9 + #31 → Cross-repo universalization; #28 kept). (3) Filed all 47 items as task bullets (`[#id] [P][size] · Done when · refs`) under their stories. (4) PLAYBOOK §10 + validator rewritten for the hierarchy (dropped `repo:`). (5) `commit-msg` `[#id]` hook + CONTRIBUTING + the "what's implemented" query.
+- Result: BACKLOG = **7 themes / 19 stories / 47 tasks, 152 lines**. `validate_backlog` OK (hierarchy: themes/stories/tasks, every task has id+Done-when, every story has So-that, no orphans); `commit-msg` hook **self-tested live** (task removal without `[#id]` blocked; `closes [#id]` passes); pytest 105, ruff clean, audit 9/9. **Readability verdict is the operator's — NOT self-declared.** **NOT merged** (priority-one rewrite + validator change → operator runs Codex `/review` + a fresh-eyes pass).
+- Changes: `docs/decisions/ADR-66-backlog-story-map-hierarchy.md` (new) + README index; `BACKLOG.md` (story map); `protocols/PLAYBOOK.md` §10; `scripts/validate_backlog.py` (hierarchy parser); `scripts/check_backlog_commit_msg.py` (new) + `.pre-commit-config.yaml` (commit-msg stage); `CONTRIBUTING.md`; this JOURNAL entry. Branch commits `90d407b`..`a6e26ea` + this.
+- Abandoned: did NOT merge; did NOT touch any child repo; did NOT enforce id monotonicity (uniqueness only — by design).
+- Next: operator reviews (Codex + fresh-eyes), merges if it reads right; then tasks get picked off (each closes via `[#id]`, enforced by the hook).
+
+---
+
+### 2026-06-01 — BACKLOG readability pass (terse format, evict child-repo items, seed Now)
+
+- Did: Readability refactor of `BACKLOG.md` (branch `docs/backlog-readability-2026-06-01` off main `db352ee`), after the operator reported the migrated file was still not scannable. (1) PLAYBOOK §10 terse 3-line entry schema + validator rewritten to parse it and fold in the deferred H2/H3 hardening — which **closed [#66]** (its scope was implemented in `ad2ca92`; done item left per ADR-65); `## Now` relaxed to {open,in-progress} (resolves ADR-64 open-Q4). (2) All entries → terse. (3) Evicted the 18 child-repo items (ids 48-65) from `## Coordination` to the relocation queue. (4) Seeded `## Now` with the 3 P1 items as `(suggested)` + moved the preamble to a footer.
+- Result: BACKLOG **603 → 223 lines**; 65 → **47 in-file entries** (18 in the queue doc). Validator OK (47 entries, 0 warnings); pytest 105, ruff clean, audit 9/9. **Readability verdict deliberately NOT self-declared — awaits the operator** (the prior pass over-claimed it; readability is the operator's call). **NOT merged** — another priority-one rewrite + validator change → operator runs Codex `/review` + a fresh-eyes pass.
+- Changes: `protocols/PLAYBOOK.md` §10 (terse schema), `scripts/validate_backlog.py` (terse parser + H2/H3 + size band), `BACKLOG.md` (terse + evict + Now/footer), `docs/audits/2026-06-01-child-repo-relocation-proposal.md` (now the live queue, 18 items); this JOURNAL entry. Branch 5 commits `ad2ca92`..`534a03f` + this.
+- Abandoned: did NOT enforce id monotonicity (uniqueness only — by design); did NOT merge; did NOT touch any child repo (eviction = into the queue doc, not into child repos).
+- Next: operator reviews (Codex + fresh-eyes), merges if it reads well; child-repo items relocate via their own sessions (queue drains).
+
+---
+
 ### 2026-06-01 — BACKLOG migration: dual review (Codex + fresh-eyes) + merge
 
 - Did: Ran the two pre-merge reviews on `docs/backlog-migration-adr64-2026-06-01` — Codex `/review` (code-only path-guard → `validate_backlog.py` + hook) and an independent zero-context fresh-eyes pass (full-migration integrity). Applied the one consensus finding, tracked the rest, and merged to `main` (`--no-ff`).

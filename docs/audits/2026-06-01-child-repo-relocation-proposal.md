@@ -1,52 +1,92 @@
 <!-- scope: meta -->
 
-# Child-repo relocation PROPOSAL (ADR-64 Q3-A) — no moves
+# Child-repo relocation queue (ADR-64 Q3-A)
 
-> **Proposal only. Nothing was moved or edited in any other repo (ADR-41).** Branch
-> `docs/backlog-migration-adr64-2026-06-01`, Step 7. Implements the *triage* half of ADR-64
-> Decision 3; the *moves* are execution in the target repos (separate sessions). These items
-> currently live in `BACKLOG.md` `## Coordination` → "Pending relocation," each with a
-> `repo:`/`Relocate:` field and the id assigned in Step 6.
+> **Live queue.** These 18 child-repo *execution* items were **moved out of `.dev-knowledge/BACKLOG.md` `## Coordination` on 2026-06-01** (readability pass, step 3) and are tracked here until their target-repo sessions relocate them into each child repo's own `BACKLOG.md` (ADR-41). **No file in any other repo has been touched** — relocation executes in the target repo, then the item leaves this queue. Genuine cross-repo governance pointers (BACKLOG ids 45-47) stay in `BACKLOG.md ## Coordination`, not here. This file is a record, not parsed by `validate_backlog.py`.
 
-## Triage rule applied
+## Triage rule
+- **Relocate** — work executes in a child repo → moves to that repo's `BACKLOG.md`; then leaves this queue.
+- **Keep in `.dev-knowledge`** — genuine cross-repo governance (BACKLOG ids 45/46/47) — not in this queue.
 
-- **Relocate** — the item's primary *work executes in a child repo*. It moves to that repo's own `BACKLOG.md`; the pointer then leaves `.dev-knowledge`.
-- **Keep as Coordination pointer** — genuine cross-repo *governance/coordination* whose authority sits in `.dev-knowledge` (disseminator/auditor function). Stays here as a pointer, never a duplicated task. (ids 45 Phase-2 rollout, 46 scrum-master rollout, 47 undiscovered-repos — kept; not in this proposal.)
+## Relocation mechanics (pins ADR-64 §"Open implementation questions" #1)
+1. **Move, don't copy** — a child-repo session adds the item to `<repo>/BACKLOG.md` (its own local id); a follow-on `.dev-knowledge` session removes it from this queue. The two commits cross-reference by message.
+2. **Split-brain avoidance** — an item is active in exactly one place; it leaves this queue only once it lands in the child repo.
+3. **Backlink** — the child entry cites the originating `.dev-knowledge` context (audit/ADR) so provenance survives.
+4. **Re-triage at move-time** — if an item turns out to carry a genuine `.dev-knowledge` governance obligation, keep a one-line Coordination pointer there and move only the execution part.
 
-## Relocation mechanics (proposed; pins ADR-64 §"Open implementation questions" #1)
+## Queue (18 items; original BACKLOG ids retained for traceability)
 
-1. **Move, don't copy.** A child-repo session adds the item to `<repo>/BACKLOG.md` (with its own local id); a follow-on `.dev-knowledge` session then removes the pointer here. The two commits reference each other by message (`relocated from .dev-knowledge backlog id N` / `closes coordination id N`).
-2. **Split-brain avoidance.** While in flight, the item is in exactly one *active* place at a time — it leaves `.dev-knowledge` only once it lands in the child repo. No simultaneous dual-ownership.
-3. **Backlink.** The child entry's `Added:` cites the originating `.dev-knowledge` context (audit/ADR) so provenance survives the move.
-4. **What stays.** If, on inspection, an item turns out to carry a genuine `.dev-knowledge` governance obligation (not just execution), keep a one-line Coordination *pointer* here and move only the execution part.
+### [P1][M] Apply tier-deprecation to corp-monorepo
+`id:48 · repo:corp-monorepo · status:open`
+Remove tier:/scale: from VISION/ARCHITECTURE frontmatter; add status/last_reviewed per the amended ADR-33 schema.
 
-## Proposal table
+### [P1][M] Apply tier-deprecation to ai-council
+`id:49 · repo:ai-council · status:open`
+Remove tier:/scale:; add the missing status key (vision_md WARN); verify last_reviewed.
 
-| id | Item | Target repo | Verdict |
-|---|---|---|---|
-| 48 | Apply tier-deprecation | corp-monorepo | relocate |
-| 49 | Apply tier-deprecation | ai-council | relocate |
-| 50 | Execute ai-council universalization plan | ai-council | relocate (subsumes 49/57 scope) |
-| 51 | Handoff folder-format adoption | corp-monorepo | relocate (after A4 legacy-format decision) |
-| 52 | P1-2 path-traversal branch unmerged | corp-monorepo | relocate (operator merges branch → main) |
-| 53 | Root hygiene application | corp-monorepo | relocate |
-| 54 | Root hygiene application | ai-council | relocate |
-| 55 | README disposition decision | corp-monorepo | relocate (decision in-repo; ai-council already DELETE) |
-| 56 | Hyphen migration + ADR-38 (subitems 1,3) | corp-monorepo | relocate |
-| 57 | Hyphen migration + ADR-38 | ai-council | relocate (largely subsumed by 50) |
-| 58 | Prevent auto-debate of stray Council files | ai-council | relocate |
-| 59 | ADR-59 visual-pattern retrofits (4×) | each child repo | relocate per-repo (corp-monorepo blocked on its ruff-strictness decision) |
-| 60 | dev-tooling install + run.py → scripts/ | corp-sca-time-automation | relocate |
-| 61 | LESSONS scope-tag backfill | ai-council | relocate |
-| 62 | UPPERCASE TYPE legacy-archive rename | corp-monorepo, corp-sca | relocate (opportunistic) |
-| 63 | docs/HANDOFF.md flat-file deprecation | corp-monorepo, ai-council | relocate (tied to 51) |
-| 64 | Per-repo deeper cleanup (post-retrofit) | each child repo | relocate per-repo |
-| 65 | Cross-repo low-severity cleanups (child subset) | corp-monorepo, corp-ops, corp-sca, ai-council | relocate / split per owner |
+### [P1][L] Execute the ai-council universalization execution plan
+`id:50 · repo:ai-council · status:open`
+Run the 2026-05-25 plan (Actions 1-8): README delete, tier-residue, naming, codemap, workspace dot-prefix, BACKLOG header. Subsumes #49/#57.
 
-**18 items proposed for relocation.** Multi-target items (59, 62, 63, 64, 65) split into per-repo entries when they land. As these execute, `## Coordination` drains from 21 → ~3 (the kept governance pointers 45-47), bringing it under the ≤10 target.
+### [P2][M] Handoff folder-format adoption (corp-monorepo)
+`id:51 · repo:corp-monorepo · status:open`
+Convert flat `docs/HANDOFF.md` to folder format, or deprecate (after the A4 legacy-format decision).
 
-## Constraints honored
+### [P2][S] P1-2 path-traversal branch unmerged
+`id:52 · repo:corp-monorepo · status:open`
+Merge `chore/extract-p1-2-to-backlog-2026-05-28` → main; resolve the pre-delete gate (security-finding tracking stranded).
 
-- **No file in any other repo was read, edited, or moved** (ADR-41).
-- Nothing removed from `.dev-knowledge` `BACKLOG.md` in this step — the pointers stay until their target-repo sessions execute the move.
-- The triage verdicts are a recommendation for the operator; per-item re-triage at move-time is expected (mechanics rule #4).
+### [P2][M] Root hygiene application — corp-monorepo
+`id:53 · repo:corp-monorepo · status:open`
+Consolidate tool configs into pyproject.toml; dot-prefix the workspace; verify tach.toml movability.
+
+### [P2][M] Root hygiene application — ai-council
+`id:54 · repo:ai-council · status:open`
+Consolidate tool configs into pyproject.toml where present; dot-prefix the workspace; confirm clean root.
+
+### [P2][S] README disposition decision (corp-monorepo)
+`id:55 · repo:corp-monorepo · status:open`
+Decide keep-or-delete corp-monorepo's root README (external audience?); README optional since ADR-38 A5.
+
+### [P2][M] corp-monorepo hyphen migration + ADR-38
+`id:56 · repo:corp-monorepo · status:open`
+Hyphen-rename ADR files + reclassify docs/archive/ content (ADR-38 Scale-L gaps already closed).
+
+### [P2][M] ai-council hyphen migration + ADR-38
+`id:57 · repo:ai-council · status:open`
+Verify + hyphen-migrate; ADR-38 gaps (ARCHITECTURE to root, add LESSONS/BACKLOG). Largely subsumed by #50.
+
+### [P2][M] Prevent auto-debate of stray Council-keyed files
+`id:58 · repo:ai-council · status:open`
+Guard against stray Council-frontmatter files auto-running (allow-list / required marker / inbox-only scoping).
+
+### [P2][L] ADR-59 visual-pattern child-repo retrofits (4×)
+`id:59 · repo:ecosystem · status:open`
+Apply ADR-59 to the 4 child repos (plans authored 2026-05-27); corp-monorepo blocked on its ruff-strictness decision.
+
+### [P2][M] corp-sca dev-tooling install + run.py → scripts/
+`id:60 · repo:corp-sca-time-automation · status:open`
+Install pytest+ruff in the venv, then move run.py → scripts/run.py and update its 6 refs; verify with pytest.
+
+### [P3][S] ai-council LESSONS scope-tag backfill
+`id:61 · repo:ai-council · status:open`
+Add `[scope: X]` to each LESSONS entry's 6-field schema position (ADR-46 advisory WARN).
+
+### [P3][S] UPPERCASE TYPE legacy-archive rename
+`id:62 · repo:corp-monorepo · status:open`
+Rename `YYYY-MM-DD_TYPE_topic.md` → `YYYY-MM-DD-topic.md` in docs/archive/ opportunistically (corp-monorepo + corp-sca).
+
+### [P3][S] docs/HANDOFF.md flat-file deprecation
+`id:63 · repo:corp-monorepo · status:open`
+Retire flat `docs/HANDOFF.md` (corp-monorepo + ai-council) or designate legacy; tied to #51.
+
+### [P3][M] Per-repo deeper cleanup (post-retrofit)
+`id:64 · repo:ecosystem · status:open`
+Decide per repo whether to address retrofit leftovers (ruff errors, stray __pycache__, .env content).
+
+### [P3][M] Cross-repo low-severity cleanups (child subset)
+`id:65 · repo:ecosystem · status:open`
+Child-owned items from the 2026-05-29 audit (verify-script layout SK-4, corp-monorepo flat-handoff CM-2, hook floors HK-4).
+
+## History
+- **2026-06-01** — moved here from `BACKLOG.md ## Coordination` (readability pass step 3). Originated as the 2026-05-31 migration's relocation proposal; triage verdicts unchanged. Items leave this queue as their target-repo sessions relocate them.
