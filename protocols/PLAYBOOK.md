@@ -825,6 +825,16 @@ When opening a new session that continues prior work:
 ### Parallel sessions & worktree discipline (per ADR-61)
 <!-- scope: meta -->
 
+**Decide first:** *different* repos in parallel need **no** worktree — separate `.git/`
+directories already isolate them, so just open two Claude Code sessions (this is the common
+case, e.g. a corp-monorepo handoff and an ai-council handoff at the same time). Only
+*same-repo* parallel work requires a `git worktree` (ADR-61).
+
+**Lifecycle (same-repo only):** a worktree is **per-goal scratch, not a persistent
+checkout** — *provision → use → ephemeral teardown*. Create one for a single goal, work it on
+its own branch, and remove it the moment that branch merges. It must not linger between goals;
+a worktree that outlives its goal becomes an orphan (see step 4).
+
 **1 — When a worktree is needed**
 
 - **Different repos in parallel: already safe.** Separate `.git/` directories isolate each
@@ -858,7 +868,7 @@ distinct branch (git forbids the same branch in two worktrees simultaneously).
   in conversation); a phantom reservation outside the file causes id collisions (the #68/#69
   near-misses).
 
-**4 — Integration & cleanup** (once the parallel branch's work is done)
+**4 — Integration & ephemeral teardown** (the moment the parallel branch's work is done)
 
 - **Don't linearize across worktrees.** A branch checked out in another worktree cannot be
   rebased from a different session (git blocks it). Use a `--no-ff` merge (repo norm) as the
@@ -872,7 +882,16 @@ git -C <repo> worktree prune
 git -C <repo> branch -d <merged-branch>
 ```
 
-Full rationale: ADR-61.
+- **Verify the teardown left nothing behind.** Run `git worktree list` (only the main
+  worktree should remain) **and** confirm the sibling worktree directory is gone from disk.
+  `git worktree remove` refuses (or a process lock blocks it) when the dir is busy — then git
+  deregisters nothing and/or the directory survives as an orphan that must be deleted by hand.
+  Skipping this check is exactly how the `.dev-knowledge-cadence` and `.dev-knowledge-night-adr`
+  sibling orphans accumulated: deregistered from git, but their directories were never removed.
+
+Full rationale: ADR-61. This teardown is the worktree-specific case of the broader rule that
+any automated or scratch-creating process cleans up — and verifies it cleaned up — everything
+it created (the no-leftovers invariant).
 
 ### Section history
 <!-- scope: meta -->
@@ -880,6 +899,7 @@ Full rationale: ADR-61.
 - v1.0 (2026-04-25) — initial. 5 subsections: scope declaration, stop-signs, decision fatigue threshold, recursive planning anti-pattern, session resumption protocol. Codifies patterns observed in 2026-04-24 sessions. Will refine after live use.
 - v1.1 (2026-05-28) — add §Parallel sessions (ADR-61).
 - v1.2 (2026-06-01) — reorganize §Parallel sessions into When-needed / Setup / Discipline / Integration+cleanup; add the parallel-work discipline rules (one-worktree-per-goal, serialize canonical-file edits, write-time id allocation, `--no-ff` over cross-worktree rebase, prune+delete after merge) from the 2026-06-01 worktree-sprawl LESSON. No rule removed.
+- v1.3 (2026-06-01) — G4 process-hardening: add the decide-first (different-repo → no worktree) line + the provision→use→ephemeral-teardown lifecycle framing at the top; reframe step 4 as ephemeral teardown and add the verify-teardown-left-nothing-behind step (grounded in the `.dev-knowledge-cadence`/`-night-adr` orphans); link to the no-leftovers invariant. No rule removed.
 
 ---
 
