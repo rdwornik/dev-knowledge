@@ -218,7 +218,7 @@ required for promotion. (PLAYBOOK)
 3. Shift+Tab → **Accept Edits** mode (daily driver)
 4. Pick **max 2 objectives** for this session
 
-**New browser chat:** Upload `protocols/ESSENTIALS.md` + most recent handoff folder from `docs/handoffs/` (drag-drop the `contents/` subfolder, paste `first-message.md`). See `SESSION_SETUP.md` for full checklist.
+**New browser chat:** Upload `protocols/ESSENTIALS.md` + the most recent handoff bundle folder from `docs/handoffs/` (v4 bundles are flat — `README.md` + `01_ROLE`…`07_ASK_BACK`, no `contents/` subfolder); follow the bundle's `README.md` paste sequence (01–07 in order; README is operator-facing, not pasted). See `SESSION_SETUP.md` for full checklist.
 
 ---
 
@@ -361,7 +361,7 @@ the pre-commit hook list.
 
 **New tool/article/repo decision rule:** mature (>100 stars, >v1.0 — heuristics for community validation + production stability)? Solves a real problem? Architecture-level → Council debate. Otherwise decide in 30 seconds.
 
-**Council output convention (current):** AI Council CLI emits to `ai-council/output/` only. Project-side transcripts (`.dev-knowledge/docs/decisions/transcripts/`, etc.) are populated by **manual archival** — this is the current process, not an edge case. Cross-project routing feature is pending (see BACKLOG Cross-stream P1 "AI Council cross-project transcript routing"). Until the feature lands: maintain manual archival discipline; canonical filename preserved (`council-out-YYYYMMDD-HHMMSS-*.md`); source of truth remains `ai-council/output/`. Full operational detail in PLAYBOOK.
+**Council output convention (current):** AI Council CLI writes the canonical transcript to `ai-council/output/` (source of truth) and **automatically routes a copy** to a project's `docs/decisions/transcripts/` when the debate sets `target-project:` (frontmatter) or `--target-project` (CLI) — implemented per ADR-43 (`routing.py` `TargetResolver`). Routed debates need no manual archival; debates that name no target-project emit only to `ai-council/output/` and are archived manually. Canonical filename preserved (`council-out-YYYYMMDD-HHMMSS-*.md`). Full operational detail in PLAYBOOK "Council Debate Archival Protocol".
 
 ---
 
