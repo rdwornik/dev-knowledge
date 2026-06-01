@@ -1,4 +1,4 @@
-generated: '2026-05-23T20:25:12'
+generated: '2026-06-02T01:28:58'
 repos:
 - findings:
   - check_name: vision_md
@@ -9,36 +9,195 @@ repos:
     evidence: All ADR-38 universal governance baseline files present
     status: pass
   - check_name: claude_md
-    evidence: CLAUDE.md present (8142 chars)
+    evidence: CLAUDE.md present (12094 chars)
     status: pass
-  last_audit: '2026-05-23'
+  - check_name: dot_prefix_discipline
+    evidence: All root config files dot-prefixed or on ADR-59 exception list
+    status: pass
+  - check_name: canonical_md_visibility
+    evidence: 'Mandatory canonical files present + correctly cased: [''VISION.md'',
+      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'']'
+    status: pass
+  - check_name: workspace_settings
+    evidence: .dev-knowledge.code-workspace present, dot-prefixed, required sort settings
+      correct
+    status: pass
+  - check_name: mermaid_theme_directive
+    evidence: 'All mermaid blocks use base+themeVariables; all classDef fill: have
+      color:'
+    status: pass
+  - check_name: handoff_bundle_structure
+    evidence: 4 stamped v4 bundle(s) valid (structure + sections + budgets)
+    status: pass
+  - check_name: handoff_tag_canonicity
+    evidence: '§3.1 canonical: four canonical tags enumerated'
+    status: pass
+  - check_name: canonical_freshness
+    evidence: 4 canonical living files fresh (last_reviewed not before last edit;
+      within 30d)
+    status: pass
+  last_audit: '2026-06-02'
   name: .dev-knowledge
   path: C:\Users\1028120\Documents\Dev\.dev-knowledge
 - findings:
   - check_name: vision_md
     evidence: 'VISION.md present; frontmatter keys: [''last_reviewed'', ''owner'',
-      ''scale'', ''tier'', ''version'']'
+      ''status'', ''version'']'
     status: pass
   - check_name: adr38_baseline
-    evidence: All ADR-38 tier M mandatory files and directories present
+    evidence: All ADR-38 universal governance baseline files present
     status: pass
   - check_name: claude_md
-    evidence: CLAUDE.md present (7192 chars)
+    evidence: CLAUDE.md present (7231 chars)
     status: pass
-  last_audit: '2026-05-23'
+  - check_name: dot_prefix_discipline
+    evidence: All root config files dot-prefixed or on ADR-59 exception list
+    status: pass
+  - check_name: canonical_md_visibility
+    evidence: 'Mandatory canonical files present + correctly cased: [''VISION.md'',
+      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'']'
+    status: pass
+  - check_name: workspace_settings
+    evidence: .ai-council.code-workspace present, dot-prefixed, required sort settings
+      correct
+    status: pass
+  - check_name: mermaid_theme_directive
+    evidence: 'All mermaid blocks use base+themeVariables; all classDef fill: have
+      color:'
+    status: pass
+  - check_name: handoff_bundle_structure
+    evidence: no docs/handoffs/ — nothing to validate
+    status: pass
+  - check_name: handoff_tag_canonicity
+    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    status: pass
+  - check_name: canonical_freshness
+    evidence: '1 stale (edited since review): ARCHITECTURE.md: last_reviewed 2026-05-27
+      predates last edit 2026-05-28 - edited but not re-reviewed | also 1 warn: CLAUDE.md:
+      no parseable last_reviewed frontmatter'
+    status: fail
+  last_audit: '2026-06-02'
   name: ai-council
   path: C:\Users\1028120\Documents\Dev\ai-council
 - findings:
   - check_name: vision_md
     evidence: 'VISION.md present; frontmatter keys: [''last_reviewed'', ''owner'',
-      ''scale'', ''status'', ''tier'', ''version'']'
+      ''status'', ''version'']'
     status: pass
   - check_name: adr38_baseline
-    evidence: All ADR-38 tier M mandatory files and directories present
+    evidence: All ADR-38 universal governance baseline files present
     status: pass
   - check_name: claude_md
-    evidence: CLAUDE.md present (8076 chars)
+    evidence: CLAUDE.md present (8671 chars)
     status: pass
-  last_audit: '2026-05-23'
+  - check_name: dot_prefix_discipline
+    evidence: All root config files dot-prefixed or on ADR-59 exception list
+    status: pass
+  - check_name: canonical_md_visibility
+    evidence: 'Mandatory canonical files present + correctly cased: [''VISION.md'',
+      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'']'
+    status: pass
+  - check_name: workspace_settings
+    evidence: .corp-monorepo.code-workspace present, dot-prefixed, required sort settings
+      correct
+    status: pass
+  - check_name: mermaid_theme_directive
+    evidence: 'All mermaid blocks use base+themeVariables; all classDef fill: have
+      color:'
+    status: pass
+  - check_name: handoff_bundle_structure
+    evidence: no docs/handoffs/ — nothing to validate
+    status: pass
+  - check_name: handoff_tag_canonicity
+    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    status: pass
+  - check_name: canonical_freshness
+    evidence: '2 stale (edited since review): VISION.md: last_reviewed 2026-05-27
+      predates last edit 2026-05-28 - edited but not re-reviewed; ARCHITECTURE.md:
+      last_reviewed 2026-05-27 predates last edit 2026-05-28 - edited but not re-reviewed
+      | also 2 warn: CLAUDE.md: no parseable last_reviewed frontmatter; CONTRIBUTING.md:
+      no parseable last_reviewed frontmatter'
+    status: fail
+  last_audit: '2026-06-02'
   name: corp-monorepo
   path: C:\Users\1028120\Documents\Dev\corp-monorepo
+- findings:
+  - check_name: vision_md
+    evidence: 'VISION.md present; frontmatter keys: [''last_reviewed'', ''owner'',
+      ''status'', ''version'']'
+    status: pass
+  - check_name: adr38_baseline
+    evidence: All ADR-38 universal governance baseline files present
+    status: pass
+  - check_name: claude_md
+    evidence: CLAUDE.md present (5961 chars)
+    status: pass
+  - check_name: dot_prefix_discipline
+    evidence: All root config files dot-prefixed or on ADR-59 exception list
+    status: pass
+  - check_name: canonical_md_visibility
+    evidence: 'Mandatory canonical files present + correctly cased: [''VISION.md'',
+      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'']'
+    status: pass
+  - check_name: workspace_settings
+    evidence: .corp-ops.code-workspace present, dot-prefixed, required sort settings
+      correct
+    status: pass
+  - check_name: mermaid_theme_directive
+    evidence: 'All mermaid blocks use base+themeVariables; all classDef fill: have
+      color:'
+    status: pass
+  - check_name: handoff_bundle_structure
+    evidence: no docs/handoffs/ — nothing to validate
+    status: pass
+  - check_name: handoff_tag_canonicity
+    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    status: pass
+  - check_name: canonical_freshness
+    evidence: '1 stale (edited since review): ARCHITECTURE.md: last_reviewed 2026-05-27
+      predates last edit 2026-05-28 - edited but not re-reviewed | also 1 warn: CLAUDE.md:
+      no parseable last_reviewed frontmatter'
+    status: fail
+  last_audit: '2026-06-02'
+  name: corp-ops
+  path: C:\Users\1028120\Documents\Dev\corp-ops
+- findings:
+  - check_name: vision_md
+    evidence: 'VISION.md present; frontmatter keys: [''last_reviewed'', ''owner'',
+      ''status'', ''version'']'
+    status: pass
+  - check_name: adr38_baseline
+    evidence: All ADR-38 universal governance baseline files present
+    status: pass
+  - check_name: claude_md
+    evidence: CLAUDE.md present (6536 chars)
+    status: pass
+  - check_name: dot_prefix_discipline
+    evidence: All root config files dot-prefixed or on ADR-59 exception list
+    status: pass
+  - check_name: canonical_md_visibility
+    evidence: 'Mandatory canonical files present + correctly cased: [''VISION.md'',
+      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'']'
+    status: pass
+  - check_name: workspace_settings
+    evidence: .corp-sca-time-automation.code-workspace present, dot-prefixed, required
+      sort settings correct
+    status: pass
+  - check_name: mermaid_theme_directive
+    evidence: 'All mermaid blocks use base+themeVariables; all classDef fill: have
+      color:'
+    status: pass
+  - check_name: handoff_bundle_structure
+    evidence: no docs/handoffs/ — nothing to validate
+    status: pass
+  - check_name: handoff_tag_canonicity
+    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    status: pass
+  - check_name: canonical_freshness
+    evidence: '1 stale (edited since review): ARCHITECTURE.md: last_reviewed 2026-05-27
+      predates last edit 2026-05-28 - edited but not re-reviewed | also 1 warn: CLAUDE.md:
+      no parseable last_reviewed frontmatter'
+    status: fail
+  last_audit: '2026-06-02'
+  name: corp-sca-time-automation
+  path: C:\Users\1028120\Documents\Dev\corp-sca-time-automation
