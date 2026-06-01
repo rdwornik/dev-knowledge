@@ -80,6 +80,10 @@ So that future sessions route decisions consistently (convene-vs-Path-A; relax-v
 - [#18] [P2][M] Codify the convene-vs-Path-A criterion in AI_COUNCIL_PROCESS/PLAYBOOK · Done when: the criterion is written · refs ADR-62/63/65
 - [#27] [P3][M] Codify the cost/value-asymmetric relax-vs-gate criterion for drifted guards · Done when: a LESSON/ADR records the criterion · refs ADR-62/63, coherence-audit ML-2
 
+### Operationalize the Council decision loop
+So that Council questions are gated and their verdicts return deterministically instead of being shuttled by hand.
+- [#70] [P3][M] Operationalize the AI-Council process — implement the gated question→verdict→ADR loop per ADR-67 (templated question + self-gate + deterministic `council.return_dir` return; downstream pieces in ai-council + ~/.claude). Deferred: do NOT build before Phase-2 universalization. · Done when: the gated loop runs end-to-end (/council-question generates + self-gates → council runs → operator pastes verdict → ADR returns via council.return_dir) · refs ADR-67
+
 ### Close the small ADR cross-reference + registry amendments
 So that the ADR web is internally consistent.
 - [#19] [P3][S] Add a BACKLOG.md lifecycle entry to ADR-39 (bundle with #20) · Done when: ADR-39 registry includes BACKLOG.md · refs ADR-39/41
@@ -93,7 +97,7 @@ So that the ADR web is internally consistent.
 
 ### Keep canonical files accurate
 So that stale ground truth stops silently misleading sessions (the repo's own VISION is "drift detected proactively").
-- [#10] [P2][M] Fix the doc-truth drifts (CLAUDE §7/§8; ARCHITECTURE validators [done in #3] + governing-ADRs + §Authority "audit.py pending full implementation" stale (ships 10 checks) + handoff diagram/version v3.4->v4.3.1 (diagram describes the retired 13-file flow); LESSONS descriptor; ruff claim; TOKEN-LOG path) · Done when: all listed corrected · refs coherence-audit (SK/CD/WF/ML) + methodology-engine session 2026-06-01
+- [#10] [P2][M] Fix the doc-truth drifts (CLAUDE §7/§8 + §11 last-5 ADR list five behind [lists 57-61; ADR-62-66 binding-absent]; ARCHITECTURE validators [done in #3] + governing-ADRs + §Authority "audit.py pending full implementation" stale (ships 10 checks) + handoff diagram/version v3.4->v4.3.1 (diagram describes the retired 13-file flow); ESSENTIALS↔ARCHITECTURE ADR-43 routing contradiction [ESSENTIALS:364 "pending/manual archival" vs ARCHITECTURE:428 "implemented/dual-writes"] + ESSENTIALS "Starting a session":221 cites the retired v3.x contents/ subfolder + standalone first-message.md [v4 places files in the bundle root]; LESSONS descriptor; ruff claim; TOKEN-LOG path) · Done when: all listed corrected · refs coherence-audit (SK/CD/WF/ML) + methodology-engine session 2026-06-01 + night-agent briefing 2026-06-01
 - [#35] [P3][S] Fix the self-owned low-severity cleanups (ARCHITECTURE diagram attribution + SBAR label; VISION adoption-signal + stale last_reviewed) · Done when: WF-3 + GO-1/2 resolved · refs coherence-audit
 
 ### Keep the day-to-day docs right-sized and current
