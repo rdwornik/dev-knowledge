@@ -1,11 +1,12 @@
-# AI_COUNCIL_PROCESS v1.0
+# AI_COUNCIL_PROCESS v2.0
 
+<!-- version: 2.0 — 2026-06-01 (ADR-67: gated loop + /council-question trigger + deterministic ADR return) -->
 <!-- version: 1.0 — 2026-05-28 (initial; companion to ARCHITECTURE.md C3 AI Council pipeline diagram) -->
 <!-- scope: meta -->
 
-Version: 1.0
-Effective: 2026-05-28
-Authority: ADR-43 (cross-project transcript routing); ADR-60 (folder taxonomy, ephemeral briefs); ADR-03 (blind voting); ADR-08 (research degradation exit code); council-question-guide.md (question format)
+Version: 2.0
+Effective: 2026-06-01
+Authority: ADR-67 (process operationalization — gated loop, this amendment); ADR-43 (cross-project transcript routing); ADR-60 (folder taxonomy, ephemeral briefs); ADR-03 (blind voting); ADR-08 (research degradation exit code); council-question-guide.md (question format)
 
 > **Authoritative sources.** Question format: `ai-council/docs/council-question-guide.md`.
 > Routing semantics: `docs/decisions/ADR-43_cross_project_transcript_routing.md`.
@@ -48,6 +49,38 @@ that is procrastination, not deliberation (PLAYBOOK §5).
 
 ---
 
+## Gated loop (ADR-67)
+
+Six deterministic steps — the same pattern as `HANDOFF_PROCESS`. Each step
+has a named owner and a gate; a step must pass its gate before the next
+starts.
+
+| Step | Name | Owner | Gate |
+|------|------|-------|------|
+| 1 | **Frame** | operator | one-sentence problem statement; two questions = split |
+| 2 | **Generate** | Claude Code | fills Council-question template via `/council-question` |
+| 3 | **Gate** | Claude Code | template sections present; exactly one decision; ADR context attached; fail → fix |
+| 4 | **Run** | Claude Code / operator | `council --inbox`; transcript written to `ai-council/output/` |
+| 5 | **Verdict → ADR** | Claude Code | ADR drafted in target repo; `docs/decisions/README.md` updated |
+| 6 | **Deterministic return** | Claude Code | ADR written to `council.return_dir` (see Stage 6); no relocation guesswork |
+
+**Trigger:** `/council-question` — Claude Code generates and self-gates the
+question (Steps 2–3). Operator reviews, then drops into the inbox (Step 4).
+
+**Cross-domain split (three-domain separation):**
+
+| Piece | Domain | Status |
+|-------|--------|--------|
+| This process spec + ADR-67 | `.dev-knowledge` | Implemented |
+| Council-question template + gate check + known-path I/O | `ai-council` | Follow-on per-domain work (ADR-41) |
+| Return-dir path (`council.return_dir` config key) | `~/.claude` global config | Follow-on per-domain work |
+
+Detailed stage mechanics follow. The stage numbers (0–6) map to loop steps
+(1–6) as: Stage 0 = Step 1, Stage 1 = Step 2, Stage 1a = Step 3, Stages 2–3
+= Step 4, Stages 4–5 = Step 5, Stage 6 = Step 6.
+
+---
+
 ## Stage 0 — Frame the question
 
 **Owner:** operator (in head, in a scratch doc, or in browser chat).
@@ -70,10 +103,14 @@ The bias self-check is question 6 of the council-question-guide pre-flight:
 
 ---
 
-## Stage 1 — Author the brief
+## Stage 1 — Generate / Author the brief
 
-**Owner:** operator.
-**Tool:** any markdown editor — browser, Obsidian, VS Code, paper-to-md.
+**Owner:** operator (manual) or Claude Code via `/council-question` trigger (ADR-67).
+**Tool (manual):** any markdown editor — browser, Obsidian, VS Code, paper-to-md.
+**Tool (automated):** `/council-question` — Claude Code fills the Council-question
+template and self-gates it (see Stage 1a). Use this path by default; manual
+authoring is the fallback when the question requires off-device or browser-only
+context not available to Claude Code.
 **Output:** a `.md` file. **Ephemeral** — never committed to a repo folder.
 Per ADR-60 amendment 2026-05-27, there is no `council-questions/` folder; the
 permanent record is the routed transcript + the ADR it informs, not the brief.
@@ -131,6 +168,29 @@ mandatory.
 Frontmatter keys recognised as "this is a Council brief" by the Downloads
 scanner: `mode`, `rounds`, `models`, `synthesizer`, `full`, `target-project`
 (any one is sufficient; case-insensitive). Source: `inbox.scan_downloads_folder`.
+
+---
+
+## Stage 1a — Gate
+
+**Owner:** Claude Code (when `/council-question` is used) or operator (when manual).
+**Gate logic** *(implementation: `ai-council` — follow-on per-domain work)*:
+
+- All required template sections present (`## Question`, `### Current State`,
+  `### Questions`, `### Constraints`)
+- Exactly one decision asked (multiple decisions = split into separate briefs)
+- At least one option per sub-question, with an explicit escape option
+- ADR context section attached (relevant prior ADRs cited or summarized inline)
+- No asker-leakage patterns (`I think`, `obviously`, loaded terminology)
+
+**Pass:** brief proceeds to Stage 2 (Route to inbox).
+**Fail:** Claude Code reports the gap; operator fixes before routing. Do not
+drop a failing brief into the inbox — a context-gap question produces
+lower-quality verdicts that are more expensive to discard than to fix.
+
+Until the `ai-council` gate check is implemented, perform this review manually
+before dropping the brief into the inbox. The template fields above are the
+checklist.
 
 ---
 
@@ -288,6 +348,16 @@ the transcript itself is the deliverable — no ADR is required unless the
 operator subsequently makes a binding choice based on it (in which case the
 *choice* gets the ADR, citing the research as evidence).
 
+### Deterministic return (ADR-67)
+
+After the ADR is drafted and committed, Claude Code writes a copy to the
+operator's **return directory** (`council.return_dir` in `~/.claude` global
+config) so the ADR is available at a known path without relocation guesswork.
+
+*Implementation: `~/.claude` config key + `ai-council` I/O wiring — follow-on
+per-domain work.* Until implemented, the operator locates the ADR at its
+committed path in the target repo (no behavior change from v1.0).
+
 ---
 
 ## Stage 6 — Close out
@@ -327,6 +397,7 @@ operator subsequently makes a binding choice based on it (in which case the
 
 ## Cross-references
 
+- **This amendment:** `docs/decisions/ADR-67-ai-council-process-operationalization.md` (gated loop + /council-question trigger + deterministic return).
 - **Visual:** `ARCHITECTURE.md` § Processes → "AI Council debate pipeline" (Mermaid C3).
 - **Question format authority:** `ai-council/docs/council-question-guide.md`.
 - **Routing decision:** `docs/decisions/ADR-43_cross_project_transcript_routing.md`.
@@ -334,10 +405,12 @@ operator subsequently makes a binding choice based on it (in which case the
 - **Folder taxonomy / ephemeral briefs:** `docs/decisions/ADR-60-docs-folder-taxonomy.md`.
 - **Decision threshold + archival fallback:** `protocols/PLAYBOOK.md` § "Council debate threshold", § "Council Debate Archival Protocol", § "After a Decision".
 - **Repo-artifacts-in-Claude-Code rule:** `protocols/ESSENTIALS.md` § "Repo artifacts".
+- **Gated-loop pattern (handoff analogue):** `HANDOFF_PROCESS.md` + ADR-42/55/56/57/58/62.
 - **Live code:** `ai-council/src/ai_council/{cli,inbox,routing,runner,orchestrator,debate,synthesis}.py`.
 
 ---
 
 ## Section history
 
+- v2.0 (2026-06-01) — ADR-67: added Gated loop overview (6 steps, cross-domain split table, stage mapping); Stage 1 updated to `/council-question` trigger (template+gate downstream); Stage 1a Gate inserted; Stage 5 Deterministic return subsection added; Cross-references updated.
 - v1.0 (2026-05-28) — initial. Companion to ARCHITECTURE.md C3 "AI Council debate pipeline" diagram. Closes BACKLOG "AI Council Flow operationalization — lifecycle runbook" (open since 2026-05-27).
