@@ -21,6 +21,15 @@ repos:
         language: system
         files: '^BACKLOG\.md$'
         pass_filenames: false
+      - id: audit-health
+        name: Audit self-conformance gate (FAIL blocks the commit; WARN only informs)
+        # `audit.py health` exits 1 only on a FAIL finding (structural integrity,
+        # A2 freshness, conformance); WARN-level findings (A1 30-day backstop,
+        # missing last_reviewed, etc.) print but exit 0. ~1.4s. Bypass: --no-verify.
+        entry: python scripts/audit.py health
+        language: system
+        always_run: true
+        pass_filenames: false
       - id: backlog-id-on-close
         name: Require [#id] when a commit removes a backlog task
         entry: python scripts/check_backlog_commit_msg.py

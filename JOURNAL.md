@@ -19,6 +19,17 @@
 
 ---
 
+### 2026-06-01 — Pre-commit enforcement gate: audit.py health now blocks (closes [#69])
+
+- Did: Turned the detectable-on-demand standard into an actual **gate** (Phase-1 precondition for universalization). Added the `audit-health` pre-commit hook (`python scripts/audit.py health`, `always_run`, `pass_filenames: false`) — reuses the existing pre-commit framework, joins the already-gating validate-backlog + codemap-freshness + commit-msg `[#id]` hooks. **#8's actual scope is session-lifecycle hooks, not this** — flagged at the checkpoint; operator allocated **#69** (next real free id; verbal #69/#70 reservations released, ML-3 is a lesson).
+- Result: **FAIL blocks / WARN informs comes for free** — `cmd_health` exits 1 only on a FAIL finding; WARN-level (A1 30-day backstop, missing `last_reviewed`, etc.) prints but exits 0. **Gate proven live:** a throwaway `badconfig.toml` (root `.toml` → check #4 FAIL) was blocked (`git commit` exit 1, HEAD unchanged); cleanup restored `health: OK`. ~1.4s/commit; `--no-verify` bypass. Dual review: **Codex 0 findings**; **fresh-eyes technically-sound** (FAIL/WARN contract, config, docs, bypass, scope all verified). Green: 139 tests, ruff, audit health 10/10, validate_backlog OK.
+- Changes: `.pre-commit-config.yaml` (+audit-health hook), `CONTRIBUTING.md` + `protocols/PLAYBOOK.md` (record the gate; replaced the now-false "manual-only / not gated" claims), `BACKLOG.md` (+[#69] then removed on close; [#10] +1 filed drift), `docs/audits/2026-06-01-codex-…` + `…-fresh-eyes-precommit-enforcement-gate.md`. Commits `03913d0`·`0ec9774`·`a81cd6c`·`fb7f717` + this.
+- Abandoned / filed-forward / noted: **FE-1** — the gate made ARCHITECTURE §Validators' "audit.py manual invocation" imprecise → **fixed on operator GO** (`7ce5faa`): §Validators now states audit.py's dual mode (`run` manual, `health` pre-commit-gated); the FE-1 clause was removed from [#10]. **FE-2 (I1)** — `cmd_health`'s operational checks (`ecosystem/` present, repos-registered) also exit 1; code correct, `ecosystem/` is git-tracked so present in normal flow, `--no-verify` escapes.
+- **Phase-2 constraint (from FE-2):** the universalized gate must run a *conformance-only subset* — drop the `.dev-knowledge`-specific operational checks (`ecosystem/` presence, repos-registered) — so it is portable to child repos.
+- Next: Phase 2 = disseminate the gate pattern (conformance-only) to child repos. Session-lifecycle hooks remain [#8]. Merged to `main` (`--no-ff`) this session on operator GO.
+
+---
+
 ### 2026-06-01 — ARCHITECTURE methodology-engine section (closes [#68])
 
 - Did: Added `## The methodology engine (feedback loop)` to ARCHITECTURE (#68 — formalized at the next monotonic id; verified #68 free: the parallel `adr67`/`adr68` branches use ADR decision-numbering, not BACKLOG ids). Expresses the repo as a feedback *engine*, not a doc pile: Lessons->ADR->Conventions->Enforcement->Dissemination->loop, with an ASCII flow + a stage->artifact table + the Phase-1-hardens-Enforcement / Phase-2-is-Dissemination framing. Placed between Layer Boundaries and Processes (structural "why" before operational flows); complements ESSENTIALS' tactical "Feedback Loop", not a duplicate.
