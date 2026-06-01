@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-01 — ARCHITECTURE methodology-engine section (closes [#68])
+
+- Did: Added `## The methodology engine (feedback loop)` to ARCHITECTURE (#68 — formalized at the next monotonic id; verified #68 free: the parallel `adr67`/`adr68` branches use ADR decision-numbering, not BACKLOG ids). Expresses the repo as a feedback *engine*, not a doc pile: Lessons->ADR->Conventions->Enforcement->Dissemination->loop, with an ASCII flow + a stage->artifact table + the Phase-1-hardens-Enforcement / Phase-2-is-Dissemination framing. Placed between Layer Boundaries and Processes (structural "why" before operational flows); complements ESSENTIALS' tactical "Feedback Loop", not a duplicate.
+- Result: Independent fresh-eyes pass = **CONFIRMED-SOUND** (loop logically cyclical; all stage->artifact mappings truthful + spot-verified; placement/voice fit; ASCII-only per CLAUDE §4; no duplication; tight scope — one section + BACKLOG edits, no unrelated rewrites). Genuine end-to-end re-read of ARCHITECTURE; `last_reviewed` stays 2026-06-01. Green: 139 tests, ruff, audit health 10/10, validate_backlog OK.
+- Changes: `ARCHITECTURE.md` (+engine section + "Last updated" note); `BACKLOG.md` (+[#68] then removed on close; [#10] extended with 2 filed drifts). Commits `7c8132c` (formalize) · `410ebb5` (section) · `93bb42b` (file drift) + this close.
+- Abandoned / filed-forward: did NOT fix the drift surfaced while reviewing — filed to **[#10]**: §Authority "audit.py pending full implementation" (it ships 10 checks) + handoff diagram/version v3.4->v4.3.1 (describes the retired 13-file flow). Marked [#10]'s "ARCHITECTURE validators" sub-item done (handled in the #3 merge). No Codex (prose, single file). Did NOT create a review-artifact file (operator's no-new-files rule). NOT merged.
+- Next: operator review + merge GO. The night agent owns the rest of [#10].
+
+---
+
 ### 2026-06-01 — Freshness cadence: dual review (Codex + fresh-eyes) applied (closes [#24])
 
 - Did: Ran both pre-merge reviews on the check-#10 branch. **Codex** (code-only path-guard → audit.py + tests): 0 critical, 3 High. **Fresh-eyes** (independent zero-context subagent, full diff): 0 critical, 1 important — independently corroborating the test-coverage gap.
