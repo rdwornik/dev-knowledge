@@ -17,13 +17,6 @@ Next quarterly grooming: 2026-07-01
 
 ## Stream B: ai-council
 
-### [P2] [closed] ai-council needs AGENTS.md (PLAYBOOK governance gap)
-- **What:** PLAYBOOK section "AGENTS.md — canonical per-repo governance contract" requires each repo to have AGENTS.md at root. `ai-council` has `CLAUDE.md` but no `AGENTS.md` (verified 2026-05-11). Drift signal: cross-tool LLM agents (Codex, Cursor, Aider) operating on outdated/incomplete repo context.
-- **Why:** AGENTS.md is the cross-tool canonical governance file per Council #28 (community standard). CLAUDE.md alone is Claude-Code-specific. Missing AGENTS.md = drift from ecosystem standard set by PLAYBOOK.
-- **Vision ref:** VISION.md "Methodology Author" function + Strategic emphasis "Cross-repo methodology consistency"
-- **Added:** 2026-05-11 by rob (Item 0 strażnik audit)
-- **Closed:** 2026-05-18 — AGENTS.md exists in ai-council repo (last updated 2026-05-17); item superseded. Currency review carried as Directive #1 of 2026-05-18-ai-council-session-sync handoff.
-
 ### [P3] [open] ai-council LESSONS.md scope-tag backfill (ADR-46 advisory)
 - **What:** ai-council `LESSONS.md` entries do not contain `[scope: X]` tags per the ADR-46 LESSONS payload sniff test. Add `[scope: X]` to each entry's canonical 6-field schema position. Work belongs in ai-council repo.
 - **Why:** ADR-46 §LESSONS.md specifies `[scope: X]` substring as required in 6-field entries; absence produces a WARN on `dated_entries_lessons` check. Advisory — WARN not FAIL — but constitutes methodology drift from the ADR-46 standard.
@@ -31,13 +24,6 @@ Next quarterly grooming: 2026-07-01
 - **Status:** open — work belongs in ai-council repo
 
 ## Stream C: .dev-knowledge governance
-
-### [P2] [resolved] .dev-knowledge ADR-38 self-compliance gap — src/ + pyproject.toml
-- **What:** Audit tool P1 self-audit surfaced finding: `.dev-knowledge` missing `src/` and `pyproject.toml` (ADR-38 check `adr38_baseline` FAIL). `.dev-knowledge` is a governance/knowledge repo (NOT a code project per CLAUDE.md), yet ADR-38 mandates src/ and pyproject.toml for all tier M+ repos. Resolution options: (a) create minimal pyproject.toml + scripts/ → src/ migration, (b) amend ADR-38 to add "governance-only" tier exemption, (c) document explicit exception in state.yaml.
-- **Why:** Self-audit produces FAIL on the repo that runs it — creates awkward "auditor fails its own checks" state. Resolving clarifies whether ADR-38 universal mandate applies to non-code repos.
-- **Vision ref:** VISION.md "Auditor" + ADR-38 universal architecture
-- **Added:** 2026-05-15 by rob (surfaced by audit tool P1 self-audit)
-- **Status:** resolved 2026-05-23 — variant of option (b). ADR-38 amendment A5 scopes the `check_adr38_baseline` to the universal *governance-file* baseline (VISION + ARCHITECTURE + BACKLOG; README optional), NOT code structure (src/tests/pyproject scoped to code projects only). `.dev-knowledge` now PASSES its own self-audit (verified 2026-05-23, governance-reconciliation branch). No src/ migration or minimal pyproject created.
 
 ### [P2] [open] Lessons activation P1 implementation
 - **What:** Build lessons-index.json + retrieval (SessionStart hook) + querying (CLI) per ADR-35
@@ -52,40 +38,12 @@ Next quarterly grooming: 2026-07-01
 - **Status:** open
 - **Scope update 2026-05-31 (marathon arc reconciliation):** Extend the candidate range to **ADRs 35-63** — the arc added ADRs 55-63 (visual pattern 59, docs taxonomy 60, worktree 61, v4 ratification 62, scrum-master authority 63). ADR-61's parallel-sessions cheat already landed in ESSENTIALS (`## Parallel sessions`); ADR-59/60/62/63 are the new high-leverage candidates to evaluate against the "Keep under 1 page" constraint. Refs: ADRs 55-63.
 
-### [P2] [superseded] ADR-29 amendment — formalize "prepend at top" ordering convention for LESSONS.md
-- **What:** Amend ADR-29 (or create new ADR superseding ADR-29's position-rule clause) to formalize the going-forward convention: new LESSONS entries prepend at top of dated-entries section, not append at tail. Update any related references in PLAYBOOK / ESSENTIALS / CLAUDE.md that mention LESSONS append direction.
-- **Why:** Operator visibility — newest entries should be immediately visible on file open so operator can confirm captures landed. Same-day correction (2026-05-14 session) moved 9 entries to top as one-time fix; going-forward convention needs formalization so future contributors don't tail-append out of habit, creating mixed ordering.
-- **Captured here, not fixed here.** Per scope discipline — same-day file correction is one concern, ADR amendment is methodology change deserving its own thought (full Stage 1→3 cycle if needed).
-- **Vision ref:** ADR-29 (lessons grandfathering schema, current authority on LESSONS convention).
-- **Added:** 2026-05-14 by rob (interleaved scope, same-day correction session).
-- **Status:** superseded 2026-05-15 by ADR-46 (cross-repo dated-entries format standard). Prepend-latest is now universal mandate across LESSONS / JOURNAL / CHANGELOG; downstream cross-file references (PLAYBOOK / ESSENTIALS / CLAUDE.md) folded into Session D cleanup pass scope.
-
-### [P2] [closed] Audit tool: check_backlog_organization code-span-aware done-token regex
-- **What:** `check_backlog_organization` uses a bare regex to detect done-status tokens in `BACKLOG.md`. This regex matches the done-token pattern inside backtick inline-code spans in body text, producing false-positive FAIL findings on entries that reference the ADR-47 vocabulary. Fix: strip or skip backtick-quoted spans before applying the done-token check, so only unquoted status tokens trigger the fatal finding.
-- **Why:** Session D encountered 3 false-positive hits (body text references to the done-status concept in backtick spans), requiring rewordings that lost precision. A code-span-aware regex is the correct fix; body-text rewordings are a workaround that degrades entry fidelity. Surfaced as a pattern likely to recur in future BACKLOG entries that explain the ADR-47 two-file state.
-- **Vision ref:** VISION.md "Auditor" function; ADR-47 enforcement; ADR-36 audit tool architecture
-- **Added:** 2026-05-16 by rob (Session D false-positive hit pattern)
-- **Status:** closed (moot) 2026-05-24 — `check_backlog_organization` no longer exists (`grep -rn check_backlog_organization scripts/` → nothing). The check was removed when ADR-48 withdrew ADR-46/47 audit enforcement (ADR-47 "retained as convention, NOT audit-enforced"). The false-positive the entry sought to fix cannot occur without the check. No regex fix needed.
-
 ### [P2] [open] Stream taxonomy grooming — Cross-stream section exceeds kill criterion
 - **What:** BACKLOG.md `Cross-stream / Ecosystem` section currently holds 40% of all open items (kill criterion per ADR-47: 33%). Review the 15 open Cross-stream items and evaluate: (a) which items genuinely belong to an existing stream (A/B/C/D) and should be reclassified; (b) whether a new stream (e.g., Stream E: ecosystem operations or Stream E: tooling) should be created to absorb a coherent sub-group; (c) which items are truly cross-stream and should remain. Output: reclassified BACKLOG with Cross-stream ≤33%, or an operator decision to extend ADR-47's kill threshold with empirical justification.
 - **Why:** ADR-47 codified 33% as the kill criterion because Cross-stream > 33% signals that the stream taxonomy is no longer routing items correctly. The current 40% reading persisted after extraction of all done items, confirming it is structural (not noise). Without deliberate grooming, the ratio will increase as new cross-stream items accumulate and the taxonomy's routing signal degrades for LLM agents at session start.
 - **Vision ref:** VISION.md "Knowledge Guardian" function; ADR-47 kill criteria; pairs with quarterly grooming cadence
 - **Added:** 2026-05-16 by rob (Session D — accepted WARN from kill-criterion re-evaluation post-extraction)
 - **Status:** open — deferred to quarterly grooming (2026-07-01); task-mismatch justifies defer over immediate forced reclassification
-
-### [P3] [superseded] Council CLI dual-write trigger logic
-- **What:** Define when Council debates dual-write to .dev-knowledge vs ai-council/output only; flag-based or auto-detect (research+pick=curated, test=no-curated)
-- **Why:** Test debates currently pollute curated transcripts; surfaced 2026-04-30 session
-- **Added:** 2026-04-30 by rob
-- **Status:** superseded 2026-05-11 by Stream C P2 "AI Council cross-project transcript routing" (below; broader scope addressing root cause; mechanism choice deferred to Council debate)
-
-### [P2] [closed] AI Council cross-project transcript routing
-- **What:** The Council CLI emits transcripts to `ai-council/output/` only (single canonical location); project-side transcripts (`.dev-knowledge/docs/decisions/transcripts/`, `<project>/docs/decisions/transcripts/`, research folders) are populated by **manual archival**. Define + implement automatic cross-project routing so a debate about repo X lands in repo X's transcript/research folder without manual copy. Mechanism choice (Council debate territory): (a) push — frontmatter `route-to:` on the debate question; (b) pull — a `council-cli archive` command; (c) config-based mapping. Supersedes the narrower "Council CLI dual-write trigger logic" (above).
-- **Why:** Manual archival drifts (anti-pattern: 2+ un-archived debates accumulating in `ai-council/output/`; retroactive archive 2026-04-24 recovered 5 stale debates). Routing is the root-cause fix. **Universalization-relevant:** corp-monorepo + ai-council mirror the same Council pipeline (documented PLAYBOOK §5) and inherit the same manual-archival gap.
-- **Refs:** `protocols/PLAYBOOK.md` §5 "Council output convention (current state)" (`:1526`+) and "Council Debate Archival Protocol" (`:1494`+); both name this BACKLOG item.
-- **Added:** 2026-05-11 by rob (referenced as the superseder of "Council CLI dual-write trigger logic"); **restored 2026-05-24** — the entry was referenced by PLAYBOOK §5 and the dual-write supersession note but had gone missing from BACKLOG (audit finding, `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md` §4.3).
-- **Status:** closed 2026-05-26 — mechanism (a) **push via frontmatter** shipped as ADR-43 (amendment cycle 1): `ai-council/src/ai_council/routing.py` `TargetResolver` routes a debate's transcript to `<dev_root>/<target>/docs/decisions/transcripts/` when the debate sets `target-project:` (frontmatter) or `--target-project` (CLI); `settings.yaml target_projects` lists `.dev-knowledge`; the 5 handoff-methodology Q-files used it live (transcripts landed automatically). Closes pipeline-audit finding E2; the stale "pending/manual" governance language was truthed-up the same session (PLAYBOOK + decisions/README, finding E1). **Residual (not blocking closure, captured as scope note):** routing is opt-in per-invocation (untargeted debates still archive manually), covers `transcripts/` only (not research-folder routing), and mirror writes are best-effort (pipeline-audit D2). A follow-up to make routing fully automatic or extend it to research folders would be a fresh entry, not this one.
 
 ### [P3] [open] ADR-39 amendment — BACKLOG.md lifecycle entry
 - **What:** Amend ADR-39 registry to add BACKLOG.md entry per ADR-41
@@ -112,27 +70,6 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-16 by rob (Session D content-preservation verification)
 - **Status:** open — operator decision required (regex broadening vs entry reformat) before fix
 
-### [P2] [closed] scripts/backlog_extract.py references deleted BACKLOG_ARCHIVE.md
-- **What:** `scripts/backlog_extract.py` writes done/abandoned BACKLOG entries to `BACKLOG_ARCHIVE.md` (docstring line 2; code lines 22, 64). `BACKLOG_ARCHIVE.md` was deleted on 2026-05-16 per CLAUDE.md §5 ("Do not recreate `CHANGELOG.md` or `BACKLOG_ARCHIVE.md` — deleted 2026-05-16"). Running the script today would either no-op (no archive to write to) or recreate a file governance forbids. Decide: (a) retire the script entirely (the archive was a deliberate removal), (b) repurpose it (e.g., archive to JOURNAL `Changes:` line or just delete the done entries in place), (c) leave dormant if there's a future scenario that resurrects the archive concept.
-- **Why:** Live script drift against current governance. Either the script is broken (silently) or it would actively re-introduce a deleted file. Confirm + act.
-- **Refs:** `scripts/backlog_extract.py`; CLAUDE.md §5; `docs/audits/2026-05-20-posture-audit-verification.md` finding X1.
-- **Added:** 2026-05-20 by rob (posture audit verification — bonus drift surfaced beyond witness-based audit).
-- **Status:** closed 2026-05-24 — script + tests retired in commit `a5ed940` (2026-05-22 drift-burndown, audit X1/M-4). Verified `scripts/backlog_extract.py` absent. Drift eliminated (no script to recreate the forbidden archive). Closure verified `docs/audits/2026-05-24-backlog-audit-and-universalization-scoping.md`.
-
-### [P3] [closed] scripts/migrate_links.py SKIP_NAMES references deleted CHANGELOG.md
-- **What:** `scripts/migrate_links.py` line 4: `SKIP_NAMES = {'CHANGELOG.md', 'JOURNAL.md', 'LESSONS.md', 'TOKEN-LOG.md'}`. `CHANGELOG.md` was deleted 2026-05-16 per CLAUDE.md §5. The skip-set protects a phantom file. Remove `CHANGELOG.md` from SKIP_NAMES.
-- **Why:** Cosmetic drift; no functional harm but a hard-coded reference to a deleted canonical file. Low-cost touch.
-- **Refs:** `scripts/migrate_links.py:4`; CLAUDE.md §5; `docs/audits/2026-05-20-posture-audit-verification.md` finding X2.
-- **Added:** 2026-05-20 by rob (posture audit verification — bonus drift).
-- **Status:** closed 2026-05-24 — verified `scripts/migrate_links.py:4` SKIP_NAMES = `{'JOURNAL.md', 'LESSONS.md', 'TOKEN-LOG.md'}` (no CHANGELOG). Fixed in commit `dc46565` (2026-05-20 quick-wins); BACKLOG bookkeeping lag closed now.
-
-### [P2] [closed] docs/decisions/README.md ADR Index missing ADRs 45-50 and 54
-- **What:** `docs/decisions/README.md` carries the canonical ADR index table. Verification 2026-05-20 confirmed the table lists ADR-27 through ADR-44 (44 marked "Reserved"), then jumps to ADR-51 through ADR-53. **Missing from index:** ADR-45 (handoff architecture v4), ADR-46 (cross-repo dated-entries format), ADR-47 (cross-repo BACKLOG.md organization), ADR-48 (trim documentation governance), ADR-49 (consolidate past-recording files), ADR-50 (machine-document encoding), ADR-54 (Codex reviewer global standard). Additionally `ARCHITECTURE.md` "Governing ADRs" section lists ADRs 27-53 but is missing ADR-54.
-- **Why:** Index is the primary discoverability surface for ADRs. 7 missing entries materially degrades navigability for new contributors and for re-orientation after time away. Low-cost to fix (one table extension + one ARCHITECTURE.md list extension). Related to broader I1 (ADR relationship map / supersession graph).
-- **Refs:** `docs/decisions/README.md`; `ARCHITECTURE.md` § Governing ADRs; `docs/audits/2026-05-20-posture-audit-verification.md` finding X3.
-- **Added:** 2026-05-20 by rob (posture audit verification — bonus drift).
-- **Status:** closed 2026-05-24 — verified `docs/decisions/README.md` index now lists ADR-45 through ADR-50 + ADR-54, and `ARCHITECTURE.md:168` lists ADR-54 in Governing ADRs. Both sub-claims resolved (commit `dc46565` area, 2026-05-20); bookkeeping lag closed now.
-
 ### [P3] [open] ADR relationship index / supersession graph
 - **What:** With 27+ ADRs accumulated (gaps at 44 reserved; supersessions like ADR-52 → ADR-53 in flight), the relationship structure — supersedes / supersededBy / related / amends — is not navigable for a fresh reader. Build either (a) a machine-generated graph from ADR frontmatter (`supersedes:`, `related:`, `amends:` fields already exist in newer ADRs), or (b) an index doc with explicit edges. Could be DOT, Mermaid, or markdown table. Same shape as codemap generator work — read frontmatter, render, CI-check freshness.
 - **Why:** New contributors reading ADRs in sequence miss relationship structure. As corpus grows past 30 ADRs, the cost of unfamiliarity compounds. Pairs with F1 (contradiction detection — both need ADR/decision graph as substrate).
@@ -147,14 +84,6 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-24 by rob (BACKLOG audit — incidental drift).
 - **Status:** open — one-line CLAUDE.md edit in a follow-up.
 
-### [P2] [closed] Codemap generator output specification (ADR-51 open item)
-- **What:** ADR-51 §5 mandates an auto-generated, CI-freshness-checked codemap for every M/L `ARCHITECTURE.md`, but the generator's output specification is undecided: directory tree vs package dependency graph vs CLI/module inventory vs hybrid. Under-generation fails re-orientation; over-generation produces noise. Two artifacts pending: (a) the generator tool itself (resides in `.dev-knowledge`, consumed by child repos per ADR-36 shared-tooling pattern), (b) the CI freshness-check hook that consumes its output and fails on diff. Until both exist, `templates/ARCHITECTURE-template.md` instructs authors to hand-maintain the codemap in the interim package-tree-with-layer-annotation format documented inline; the template's `<!-- CODEMAP:START/END -->` machine region is reserved for the future generator's insertion point.
-- **Why:** ADR-51 mandatory minimum (Decision 4) requires a codemap; the convention is **load-bearing** on the generator existing — no M/L repo can satisfy the convention as written until the generator and CI check ship. Resolving the output spec is the first blocker; the tool and CI follow.
-- **Vision ref:** VISION.md "Methodology Author" + "Auditor" functions; ADR-51 open questions; ADR-36 shared tooling
-- **Refs:** `docs/decisions/ADR-51-architecture-doc-convention.md` (open questions section); `templates/ARCHITECTURE-template.md` §2 (interim format + CODEMAP machine region); `docs/audits/2026-05-19-corp-monorepo-architecture-inspection.md` (corp-monorepo's all-hand-written precedent)
-- **Added:** 2026-05-19 by rob (Directive 1b — template authoring; output spec deliberately deferred per Directive instructions)
-- **Closed:** 2026-05-23 — Generator built in Prompt 1 (branch feat/codemap-generator-tool, 6 commits, merged b2296ff). Convention landed in Prompt 2 (branch feat/codemap-amendment-and-dogfood): ADR-51 amendment 2026-05-22 (commit 9cb5aef), template update (09ba1ad), PLAYBOOK § Codemap workflow (392d0c9), pre-commit hook (ed28304), dogfood on .dev-knowledge ARCHITECTURE.md (b439cbd). End-to-end pipeline validated. Cross-repo rollout (corp-monorepo, ai-council) is future-session work.
-
 ## Stream D: corp-sca-time-automation
 
 (no items currently — trigger-based migration per ADR-33)
@@ -168,21 +97,6 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-04-30 by rob
 - **Status:** open — ai-council substantially complete as of 2026-05-12 session: ADR-34 hyphen compliance achieved (CLI emitter + docs), ADR-38 Scale M gaps closed (BACKLOG.md, LESSONS.md at root, tasks/ retired), VISION.md tier M declared, scrum-master review cycle N=1 completed. .dev-knowledge AGENTS.md retired 2026-05-19 (Chunk 4 — content migrated to CLAUDE.md v2.1 per ADR-53). Remaining ai-council: ARCHITECTURE.md (optional at M). ai-council AGENTS.md retired 2026-05-19 per ADR-53 chunk 4. corp-monorepo: not yet started.
 
-### [P2] [superseded] VISION.md tier declarations across ecosystem
-- **What:** Update VISION.md frontmatter `tier:` field across all repos per ADR-40 calibration baseline (corp-ops=S, ai-council=M, corp-monorepo=L, etc.)
-- **Why:** Operationalizes ADR-40 algorithm; declared tier vs computed tier comparison enables audit findings
-- **Added:** 2026-04-30 by rob
-- **Status:** open — ai-council tier M declared in VISION.md frontmatter (2026-05-12 session). Other repos: pending.
-- **Status update 2026-05-23:** Tier declarations CONFIRMED for the 3 registered repos — `.dev-knowledge` (M), `ai-council` (M), `corp-monorepo` (L) — verified via 2026-05-23 ecosystem audit (all three VISION.md frontmatters include `'tier'` key; report `docs/audits/2026-05-23-ecosystem-audit.md`). Other ecosystem repos (corp-ops, corp-sca-time-automation, corp-knowledge-extractor, corp-by-os, corp-rfp-agent) NOT verified — pending discovery + verification (cross-ref P3 entry "Undiscovered repos confirmation"). Entry status: OPEN (partial completion).
-- **Superseded 2026-05-23** (standard-reconciliation): the tier system is deprecated ecosystem-wide (ADR-33 + ADR-40 amendments). The work flips from "declare `tier:`" to "REMOVE `tier:`/`scale:`" — re-scoped into the new Tier Deprecation Cross-Repo Rollout items below. No tier to declare.
-
-### [P2] [superseded] Council research — relative repo complexity evaluation in solo dev / LLM workflows
-- **What:** Council research debate. Question: how do professionals evaluate repo complexity at relative scale (small/medium/large) in solo dev and LLM-driven workflows? Current ADR-40 algorithm (logarithmic Maintainability Index pattern) may embed enterprise-scale assumptions inappropriate for 1-person ecosystem. Surface industry practice — surveys, blog posts, indie hacker conventions, monorepo tools' tier definitions for personal vs team scale. Plus philosophical framing: at what point does a small project become medium, medium become large, when complexity grows logarithmically? Output informs ADR-40 amendment alongside audit tool P1 multi-repo data collection.
-- **Why:** All ecosystem repos currently classify L per ADR-40 (calibration concern surfaced 2026-04-30 ai-council audit, finding F-08). Research before amendment ensures evidence-based decision rather than gut-feel coefficient adjustment. Dependency: pair with audit tool P1 multi-repo data; both inform ADR-40 amendment.
-- **Vision ref:** VISION.md "Methodology Author" + "Auditor" functions
-- **Added:** 2026-04-30 by rob (ai-council audit Faza A2 closure)
-- **Status:** superseded 2026-05-23 — the research was to inform an ADR-40 amendment (recalibrate tier coefficients). ADR-40 is now deprecated and the tier system dropped entirely (option b of "Scale tier evaluation re-evaluation"), so there is no algorithm to recalibrate. The complexity-band intuition survives only as informal, judgment-applied calibration in PLAYBOOK (no formula, no declared tier).
-
 ### [P2] [open] Handoff advisory framing leaks into receiver behavior
 - **What:** Session-start handoff containing architect's "REST recommended" advisory (2026-05-09-dev-knowledge-session-sync bundle) propagated to receiver chat as 3 unprompted session-end suggestions during 2026-05-11 session, despite explicit operator preference rule against unprompted scheduling. Handoff content framing shapes receiver behavior more strongly than receiver-side preference rules counteract.
 - **Why:** ADR-37 session boundary protocol assumes handoff content is informational; in practice, advisory framing (rest, defer, urgency, complexity recommendations) becomes behavioral pressure on receiver. Pattern likely repeats with other advisory framings. Worth classifying root cause (handoff design vs receiver discipline vs both) before next high-stakes handoff.
@@ -190,64 +104,6 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-11 by rob (empirical finding from session)
 - **Status:** open — classify root cause, propose mitigation
 - **Related:** ADR-37, ADR-42, LESSONS 2026-05-11 entries
-
-### [P2] [superseded] Mechanical gate code for handoff enforcement (ADR-42 Q5 amendment)
-- **What:** Implement the executor-side validator + wiring deferred by the 2026-05-26 ADR-42 Q5 amendment. Scope: one shared validator that checks (presence of invariant files, integrity/canonical-hash/version match per `01_manifest.json invariant_integrity`, naming/shape/link consistency) — NO workflow sequencing/orchestration logic (ADR-28 Layer-2 invariant). Wire it into three points: pre-commit hook, Claude Code PreToolUse hook, and `/save`. Ensure ≥1 backstop is non-bypassable (CI or server-verified). Code requires Codex review per ADR-54 when implemented.
-- **Why:** Council Q5 (`docs/decisions/transcripts/council-out-20260526_145439-...-Q5-delivery-custody-abstraction.md`) approved executor-side mechanical enforcement; the 2026-05-26 session formalized the contract only (ADR + manifest schema), explicitly deferring the executable code. Full delivery of invariants did not guarantee internalization; mechanical gates are the clearest available improvement that respects Layer-2 limits.
-- **Vision ref:** VISION.md "Knowledge Guardian" function; pairs with "Sacred-files maintenance enforcement" P1 and "Hooks audit" P2 (below)
-- **Added:** 2026-05-26 by rob (Council Q5 decision — deferred implementation)
-- **Status:** superseded 2026-05-29 by HANDOFF_PROCESS v4. This item enforced the v3.4 bundle contract (invariant-file presence + `01_manifest.json` canonical-hash/version match) — but v4 removes the JSON manifest, the separate claims/gate artifacts, and the 13/14-file structure entirely. There is no v3.4 manifest left to validate. The v4 analog (a structure validator for the 8-file README+01–07 bundle) is captured as the new P3 "audit.py check #8 — handoff structure validator for v4" below. v4 itself was not formalized via ADR here (deferred to AI Council per operator preference).
-- **Related:** ADR-42 (Q5 amendment), ADR-28 (Layer-2 invariant), ADR-54 (Codex review), ADR-57/58 (bundle contract + claims); `protocols/HANDOFF_PROCESS.md` v4 (supersession)
-
-### [P2] [closed] AI Council debate → ADR formalizing HANDOFF_PROCESS v4 — handoff-v4-2026-05-29
-- **What:** Convene AI Council to debate and ratify the v4 handoff redesign **(including the v4.2 + v4.3 + v4.3.1 refinements as a single architectural decision)**, then distill the verdict into a committed ADR per the PLAYBOOK "After a Decision" protocol. v4 was implemented 2026-05-29 (`protocols/HANDOFF_PROCESS.md`, `templates/handoff/`, `.claude/commands/handoff.md`) from an operator+browser-architect design discussion; v4.2 (2026-05-29) polished templates/spec/skill from first-run findings; v4.3 (2026-05-30) closed the fresh-eyes findings; v4.3.1 (2026-05-30) operationalized the PROMOTE WITH CAVEATS verdict and promoted status to `stable`. The ADR was **intentionally deferred** because architecture decisions go through Council, not unilateral edits — all increments ratify together. **Note (2026-05-30):** v4 is now `stable` by quality-promotion (operator's call); this Council ratification is the separate architectural-provenance step, still pending.
-- **Why:** v4 currently "wins on conflict" against ADRs 42/55/56/57/58 by spec assertion alone (those ADRs carry append-only supersession notes but no ADR ratifies v4). Closing this gives v4 the same decision provenance the v3.x chain had.
-- **Vision ref:** VISION.md "Methodology Author" — handoff design is methodology; ADRs are how methodology decisions are recorded.
-- **Added:** 2026-05-29 by rob (handoff v4 implementation session)
-- **Status:** **closed 2026-05-30 by ADR-62** (`docs/decisions/ADR-62-v4-handoff-process-ratification.md`). **Path A chosen over the Council convene this item specified:** the ADR was written directly via CC because v4 is post-hoc record (decision already made + implemented + validated by an independent fresh-eyes Opus 4.8 returning PROMOTE WITH CAVEATS) — a Council convene without insider context could not add value, and a Council prep design would have assumed insider context the stateless Council models do not have (curse-of-knowledge recursion; captured in JOURNAL 2026-05-30). ADR-62 ratifies v4 + v4.2 + v4.3 + v4.3.1 collectively as the canonical handoff architecture and disambiguates the "v4" naming collision with ADR-45 (explored-not-adopted). Closes the provenance gap (v4 had been winning on conflict by spec assertion alone).
-- **Related:** `protocols/HANDOFF_PROCESS.md` v4; ADR-42/45/55/56/57/58 (v4 supersession amendments); ADR-62 (ratification)
-
-### [P3] [closed] audit.py check #8 — handoff structure validator for v4 — handoff-v4-2026-05-29
-- **What:** Add a read-only audit check (#8) validating a v4 handoff bundle: folder `docs/handoffs/<slug>/` contains exactly README + `01`–`07` (8 files, flat, markdown only); per-file line budgets respected (01≤100, 02≤200, 03≤150, 04≤250, 05≤100, 06≤80, 07≤50); no unresolved `{{PULL}}`/`{{SYNTHESIZE}}`/`{{CONTEXT}}` markers shipped in a generated bundle; no leftover `in-progress/<slug>/_handoff-interview.md` once a bundle exists. Layer-2 invariant: validation only, no orchestration (ADR-28/36).
-- **Why:** v4 removes the v3.4 manifest/claims contract (and the superseded mechanical-gate item above) but adds its own structural invariants. Without a check, drift (oversized files, shipped markers, stale in-progress interview) goes unnoticed. Enforcement-layer work — a separate focused session, intentionally NOT done in the v4 implementation session.
-- **Added:** 2026-05-29 by rob (handoff v4 implementation session)
-- **Status:** closed 2026-05-29 (v4.3 comprehensive-close session) — implemented `check_handoff_bundle_structure` (#8) **plus** `check_handoff_tag_canonicity` (#9, §3.1-vs-Amendment-A drift lint) in `scripts/audit.py`, with fixtures + 13 unit tests; health gate 7/7 → 9/9. Scope refinement: #8 validates only **stamped v4 bundles** (README carries the `v4.x (status:)` stamp), so the pre-stamp v4.1 first-run + v3.x sync bundles are out of scope; the four-tag-section requirement applies only to v4.3+ bundles. The "no unresolved markers" and "no leftover in-progress interview" sub-validations from the original design were NOT added this session — captured as a future enhancement if drift surfaces. **Remaining enforcement-layer work:** the agent framework (see `protocols/AGENT_FRAMEWORK.md` v0.1 stub) is a separate, larger Council-scope effort.
-- **Related:** `protocols/HANDOFF_PROCESS.md` v4.3 Amendment item F; `scripts/audit.py` checks #8/#9; `tests/test_audit.py`; `protocols/AGENT_FRAMEWORK.md`; superseded "Mechanical gate code for handoff enforcement" (above)
-
-### [P3] [closed] v4 first real test (post-fix) — invoke handoff for THIS chat — handoff-v4-2026-05-29
-- **What:** Run the first live v4 handoff **after the sage-frame fix merges**: invoke `please create handoff for .dev-knowledge` to hand a chat to the next Opus 4.8 session, then `complete handoff`. Exercise the full two-phase flow end-to-end — the `in-progress/<slug>/` interview, the sage→apprentice 5-question single cluster, Phase 2 consolidation, and the operator escalation ladder on the resulting bundle.
-- **Why:** v4 is verified structurally (templates, spec, skill) but never executed end-to-end; the first Phase 1 invocation surfaced two design defects (folder convention + interview frame) before any real run. With those fixed, the first real run is the empirical validation — and the natural use case is handing off a live session.
-- **Added:** 2026-05-29 by rob (handoff v4 implementation session); re-homed 2026-05-29 (sage-frame fix session).
-- **Status:** closed 2026-05-29 — executed end-to-end. The v4.1 first-run bundle was generated (Phase 1 interview → operator answers → Phase 2 consolidation) and merged to `main` (`docs/handoffs/2026-05-29-dev-knowledge-session/`, merge `93b7b1c`). The run surfaced 7 refinement-level issues — no architectural defects, v4 design sound — implemented as v4.2 (branch `fix/handoff-v4.2-refinements-and-rerun-2026-05-29`). Empirical validation continues via the "v4.2 first real test" item below.
-- **Related:** `protocols/HANDOFF_PROCESS.md` v4.2 §3.1 + Amendment 2026-05-29; `.claude/commands/handoff.md`; `docs/handoffs/2026-05-29-dev-knowledge-session/`
-
-### [P3] [closed] v4.2 first real test (re-run) — handoff-v4-2026-05-29
-- **What:** Re-run the full two-phase handoff end-to-end with the v4.2 refinements live, at slug `2026-05-29-dev-knowledge-session-v4.2-rerun`. Phase 1 interview is generated in this very session (the v4.2 refinements session); operator does the copy-paste-architect back-and-forth, then triggers Phase 2 to generate the bundle at `docs/handoffs/2026-05-29-dev-knowledge-session-v4.2-rerun/`. Validates: four-tag sage preamble, always-emit verification table, README drift-up, version+status stamp, bundle-maintenance section, forced-ranking warning, Codex clarity sentence.
-- **Why:** v4.2 polished the templates/spec/skill from the v4.1 first-run findings; the refinements need an end-to-end run to confirm they generate correctly and improve apprentice onboarding.
-- **Added:** 2026-05-29 by rob (v4.2 refinements session).
-- **Status:** closed 2026-05-29 — executed end-to-end; bundle generated at `docs/handoffs/2026-05-29-dev-knowledge-session-v4.2-rerun/` (v4.2 stamp). A fresh-eyes outsider review (independent Opus 4.8, zero project context) of that bundle surfaced 4 critical + 6 medium + 4 minor findings + the "generated from source" meta-question — all resolved in the v4.3 comprehensive-close cycle. The v4.2-rerun bundle is the single stamped bundle that audit check #8 currently validates.
-- **Related:** `protocols/HANDOFF_PROCESS.md` v4.3 Amendment 2026-05-29; `.claude/commands/handoff.md`; v4.1 first-run bundle (historical evidence, preserved); the v4.3 re-test item below.
-
-### [P3] [superseded] Promote HANDOFF_PROCESS status beta → stable after three end-to-end runs — handoff-v4-2026-05-29
-- **What:** v4.2 ships with `status: beta` (item D convention: `beta` for the first three end-to-end runs of a version, `stable` thereafter). After the v4.2 re-run (run 2) and one more clean end-to-end run (run 3), update the status stamp in the skill (`.claude/commands/handoff.md` Phase 2 `status` default) and any spec reference from `beta` to `stable`.
-- **Why:** The beta/stable stamp gives the apprentice process-maturity context; it must be advanced once empirical confidence is earned, or it silently misreports a mature process as beta.
-- **Added:** 2026-05-29 by rob (v4.2 refinements session).
-- **Status:** superseded 2026-05-29 (v4.3 comprehensive-close session) by the **fresh-eyes convergence criterion**: promotion is gated on one independent fresh-eyes review returning <2 critical findings, NOT on a run count (HANDOFF_PROCESS v4.3 Amendment item E; PLAYBOOK "Process versioning"). Convergence is measured by defect count, not runs. See the v4.3 promotion item below.
-- **Related:** `protocols/HANDOFF_PROCESS.md` v4.3 Amendment item E; `protocols/PLAYBOOK.md` "Process versioning"; `.claude/commands/handoff.md`
-
-### [P3] [closed] v4.3 first real test (re-run) — handoff-v4-2026-05-29
-- **What:** Run the full two-phase handoff end-to-end with the v4.3 comprehensive-close refinements live, at slug `2026-05-29-dev-knowledge-session-v4.3-rerun`. Operator triggers `please create handoff for dev-knowledge` (Phase 1) → architect back-and-forth → `complete handoff for dev-knowledge` (Phase 2). Then run a fresh-eyes outsider review of the generated bundle with the existing meta-reviewer prompt. Validates: four-tag definitions inline in 04_RECENT (C1/C2), §3.1 cross-reference (C3), 01_ROLE "Who's who" disambiguation (C4), Phase-2 verdict label (M1), Q5/Q7 application-testing questions (M4/M5), v4.3 stamp.
-- **Why:** v4.3 closed all fresh-eyes findings; the convergence test is whether a NEW fresh-eyes review returns <2 critical findings (= converged → promote to stable). NOT executed in the v4.3 close session — operator triggers separately to preserve the back-and-forth pattern.
-- **Added:** 2026-05-29 by rob (v4.3 comprehensive-close session).
-- **Status:** **closed 2026-05-30** — executed at slug `2026-05-30-dev-knowledge-session` (bundle preserved). Fresh-eyes review returned **PROMOTE WITH CAVEATS** (object-level convergence; 4/4 v4.2 critical closed; two architectural caveats N1/MO1). Operationalized by the v4.3.1 caveat patch.
-- **Related:** `protocols/HANDOFF_PROCESS.md` v4.3.1 Amendment; `.claude/commands/handoff.md`; `docs/handoffs/2026-05-30-dev-knowledge-session/` (the reviewed bundle).
-
-### [P3] [closed] Promote HANDOFF_PROCESS v4 status beta → stable (fresh-eyes criterion) — handoff-v4-2026-05-29
-- **What:** After the v4.3 fresh-eyes review (item above) returns **<2 critical findings**, update the version stamp from `(status: beta)` to `(status: stable)` in `.claude/commands/handoff.md` (Phase 2 `status` default) + `templates/handoff/README.md.tmpl` ({{STATUS}} guidance) + any spec reference. If the review returns ≥2 critical findings, open a v4.4 refinement cycle instead and re-evaluate whether v4 is the right architecture.
-- **Why:** The beta/stable stamp gives the apprentice process-maturity context; promotion is the operator's call (no Council convene required — v4.3 item E). Convergence is measured by fresh-eyes defect count.
-- **Added:** 2026-05-29 by rob (v4.3 comprehensive-close session). Supersedes the "three end-to-end runs" item above.
-- **Status:** **closed 2026-05-30** — promoted to `stable` via the v4.3.1 caveat patch. Promotion criterion itself sharpened to judgment-augmented (count was an easy-metric, per caveat MO1): stamp now lives in `.claude/commands/handoff.md` Phase-2 defaults (`version=4.3.1`, `status=stable`); `README.md.tmpl` carries it via `{{VERSION}}`/`{{STATUS}}` interpolation (no literal stamp to edit).
-- **Related:** `protocols/HANDOFF_PROCESS.md` v4.3.1 Amendment item E; `protocols/PLAYBOOK.md` "Process versioning"; `.claude/commands/handoff.md`
 
 ### [P1] [open] Adversarial fresh-eyes pass in routine handoff generation — handoff-v4-2026-05-30
 - **What:** Extend triangulation from the promotion gate to routine handoff artifacts. v4.3.1 stated honestly (caveat N1) that triangulation guards process *versioning* only; every routine handoff still rides on Phase-2 self-verification — the insider-only coverage (empirically ~25%) the v4 arc disproved. Options: (a) a lightweight skeptical sub-prompt in every Phase 2 generation; (b) a periodic adversarial audit (every N handoffs); (c) full agent-framework impl with an adversarial layer. Council scope.
@@ -329,27 +185,12 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-09 by rob (session wrap-up observation)
 - **Status:** open
 
-### [P2] [superseded] Ecosystem standards audit against major repo
-- **What:** Audit one significant ecosystem repo against current standards: folder naming (ADR-34), file naming (ADR-34), workspace structure (ADR-38), sacred-files presence (per set above), scope tag compliance (ADR-27). Surface drift items, classify by severity, plan remediation. Establish this as a repeatable pattern for auditing future repos.
-- **Why:** Phase 2 universalization rollout (Cross-stream P2, above) needs a concrete audit run to validate the pattern works. Without an actual audit against a real repo, the process is theoretical.
-- **Vision ref:** VISION.md "Auditor" function; pairs with "Phase 2 universalization rollout" (Cross-stream P2)
-- **Added:** 2026-05-09 by rob (session wrap-up observation)
-- **Note:** Do not name specific repo in BACKLOG until audit scoping session decides target. See "Phase 2 universalization rollout" for cohort selection.
-- **Status:** superseded 2026-05-24 by the scrum-master review authority pattern. Both halves of this entry are delivered: the 2026-05-23 corp-monorepo deep audit + ecosystem audit are the concrete standards-audit instance, and the scrum-master review pattern (N=3) is the repeatable mechanism the entry asked to "establish." Judgment call (audit OQ-3): if a *checklist-style* standards audit distinct from the scrum-master review is wanted, revert to open.
-
 ### [P3] [open] Kimi K2 model integration evaluation
 - **What:** Evaluate Kimi K2 as addition to ecosystem LLM stack. Scope: (a) capability evaluation for Council debate quality, code generation, and reasoning depth, (b) cost comparison vs. Claude on equivalent task types, (c) integration patterns with existing infrastructure. Decision artifact: Council debate output recommending adoption level — research-only / production peer / experimental supplement.
 - **Why:** Significantly lower cost than Claude on equivalent tasks (per Rob). Speed of LLM technology adoption is a competitive advantage (VISION Strategic emphasis: "Velocity in LLM technology adoption"). Evaluation before adoption; Council debate before production use.
 - **Vision ref:** VISION.md Strategic emphasis "Velocity in LLM technology adoption"
 - **Added:** 2026-05-09 by rob (session wrap-up observation)
 - **Status:** open
-
-### [P3] [resolved] Scale tier evaluation re-evaluation
-- **What:** Current scale tier system (S/M/L per ADR-40) has documented calibration concern (F-08: all repos classify L under current coefficients). Decision point: (a) formalize via tighter metrics with empirical calibration data, or (b) deprioritize — remove scale tiers as a primary governance signal. Decision artifact: Council debate. Dependency: pairs with "Council research — relative repo complexity" (Cross-stream P2, above) and audit tool P1 multi-repo data collection (Stream C P1).
-- **Why:** Subjective tier assignment reduces auditability and creates inconsistent governance. Either make it rigorous or explicitly drop it — the middle ground of "declared but uncalibrated" is methodology debt.
-- **Vision ref:** VISION.md "Auditor" function; ADR-40 Lifecycle section
-- **Added:** 2026-05-09 by rob (session wrap-up observation)
-- **Status:** resolved 2026-05-23 — **option (b) chosen** (operator decision). The repo-tier system is dropped, not formalized. ADR-40 deprecated; ADR-33/38/51 amended to universal baseline; PLAYBOOK tier-gating struck; audit tier checks removed. The "declared but uncalibrated" methodology debt is retired by removing the declaration.
 
 ### [P3] [open] Large repo migration preparation
 - **What:** One significant ecosystem repo requires structural migration aligned with current standards (folder structure naming conventions, sacred-files compliance, scope tagging, ADR adoption). Significant scope — requires dedicated planning session with Council-debate-level design before execution. Scope: design migration plan, estimate effort, sequence against other BACKLOG items.
@@ -380,13 +221,6 @@ Next quarterly grooming: 2026-07-01
 - **References:** workspace combo iteration arc (JOURNAL 2026-05-24); VS Code productivity maximization item above.
 - **Added:** 2026-05-24 by rob
 - **Status:** open
-
-### [P1] [closed] Codify scrum-master review authority pattern
-- **What:** First empirical instance of scrum-master review pattern completed 2026-05-12 (Prompt L, ai-council review). Pattern: `.dev-knowledge` strażnik produces structured review report (read-only, no writes) identifying governance / documentation / dead code / filename compliance issues in child repo → operator routes report → child-repo architect implements. Candidate codification: new ADR-44 or amendment to ADR-26 (ecosystem strażnik role definition). Awaits N=2 empirical grounding before ADR-level codification per session pattern.
-- **Why:** Pattern emerged organically as first cross-repo scrum-master review; needs codification to be repeatable and delegatable. Without ADR, subsequent reviews have no formal authority reference.
-- **Vision ref:** VISION.md "Auditor" function + "Methodology Author" function
-- **Added:** 2026-05-12 by rob (Prompt L)
-- **Status:** **closed 2026-05-30 by ADR-63** (`docs/decisions/ADR-63-scrum-master-review-authority.md`), written directly via CC (Path A — no Council convene needed; clear empirical grounding points to one option). **Scope reconciliation:** this item was opened on **Facet 1** — the cross-repo strażnik review (N=3: ai-council 2026-05-12, corp-monorepo 2026-05-23, ai-council re-pass 2026-05-23). ADR-63 codifies the **unified** asymmetric review-authority structure covering both Facet 1 AND **Facet 2** — the operator→architect intra-session review surfaced by the marathon arc (N+3+ in 24h: `docs/strategic/`, `_scratch/`, two-cluster interview; LESSONS 2026-05-30). The Facet-1 grounding is preserved, not displaced. Operationalization for Facet 2: **Option E (hybrid trigger-based + per-artifact-class)** — pre-emit gate on CC prompts, ADRs/amendments, and spec changes. (Cross-references the ML-2 "un-enforced guards" finding as the structural reason for codification.) **Note on numbering:** ADR-44 was not reserved; the codification was assigned the next sequential number (ADR-63). ADR-26 amendment path was not taken because the unified Facet 1+2 scope expanded beyond ADR-26's original remit, warranting a standalone ADR.
 
 ### [P3] [open] PLAYBOOK codifications from 2026-05-19 posture audit
 - **What:** The posture audit (H3, H4, T1, T2) and verification surfaced four candidate PLAYBOOK additions, each with N≥2 grounding:
@@ -427,14 +261,6 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-11 by rob (cross-repo pattern audit, A5)
 - **Status:** open — designated as legacy pattern; retire opportunistically during Phase 2 repo visits. No dedicated migration prompt needed; handle when touching those files anyway.
 
-### [P3] [superseded] ADR-42 amendment — clarify single vs multi-artifact handoff format
-- **What:** ADR-42 v3.2 specifies folder-format handoffs. Empirically established 2026-05-11 that single-artifact handoffs work better as flat `.md` in `docs/handoffs/`. Folder format reserved for multi-artifact bundles with `contents/` subfolder. ADR-42 text does not state this distinction explicitly.
-- **Why:** Methodology debt — practitioners must infer the rule from convention rather than reading it in the ADR. Without explicit statement, future sessions may default to folder format for single-artifact handoffs, causing unnecessary complexity.
-- **Vision ref:** VISION.md — methodology evolution
-- **Added:** 2026-05-12
-- **Status:** open
-- **Status update 2026-05-31 (marathon arc reconciliation):** Superseded — v4/ADR-62 standardizes ALL handoffs on the 8-file folder bundle (README + 01–07); the 2026-05-11 "single-artifact handoffs work better as flat `.md`" finding no longer holds, so the ADR-42 single-vs-multi clarification is moot. Refs: ADR-62 (`docs/decisions/ADR-62-v4-handoff-process-ratification.md`); `protocols/HANDOFF_PROCESS.md` v4.3.1. (operator-confirmed supersede, 2026-05-31)
-
 ### [P3] [open] docs/HANDOFF.md flat file deprecation (corp-monorepo, ai-council)
 - **What:** Both `corp-monorepo` and `ai-council` have `docs/HANDOFF.md` at `docs/` level (pre-ADR-42 flat pattern). Not breaking. Retire at next handoff event or explicitly designate as legacy.
 - **Why:** Pre-ADR-42 flat pattern persists alongside folder-format handoffs; parallel patterns mislead future sessions about which format is the active standard. Explicit deprecation or migration is required to maintain clarity.
@@ -444,62 +270,6 @@ Next quarterly grooming: 2026-07-01
 <!-- handoff-v3.4-audit-2026-05-29: 7 entries below, derived from the
      2026-05-29 abort post-mortem `docs/audits/2026-05-29-handoff-v3.4-process-audit.md`.
      Recommended fix order is encoded in priorities + the "Order" line of each entry. -->
-
-### [P1] [closed] Handoff v3.4: Stage 1 question template never updated (architect not asked for claims/scope) — handoff-v3.4-audit-2026-05-29
-- **What:** `templates/HANDOFF_QUESTION_TEMPLATE.md` (the Stage 1 template) was NOT updated by the v3.4 "Phase C" amendment, while `templates/HANDOFF_FOLDER_TEMPLATE.md:777-778` declares the **sender authors `11_CLAIMS.md` + reviews `10_GATE_PROBE.md` + declares `next_session_scope` at Stage 2** and `protocols/HANDOFF_PROCESS.md:281-293` mandates the same. The Stage 1 question therefore never asks the architect for any of them; in the generated artifact the only mention sits in the operator-facing Section A (`stage1-question.md:31-34`, `:82`), not the architect-facing paste block. Fix: add architect-facing claims schema, `next_session_scope` vocabulary, and gate-probe review note to the Stage 1 template; also fix the stale "ADR-42, twice amended" → "amended four times" (`:16`, finding E3).
-- **Why:** **Blocks a correct retry.** Empirically, the 2026-05-29 architect produced the 5 pipeline sections only — no scope declaration, no `stage2-claims.md` — because the question never asked. A retry reproduces the exact failure until this lands. Post-mortem findings **B1 (critical) + B2 (critical) + E3**.
-- **Refs:** `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` §3 (B1/B2/E3), §5 step 1.
-- **Order:** 1st (with skill rewrite below).
-- **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
-- **Status:** closed 2026-05-29 — commit `b4afff3` (B1+B2+E3). Hard-metric simulation PASS (verification report §4); retry-gate cleared.
-
-### [P1] [closed] Handoff v3.4: `.claude/commands/handoff.md` skill pinned to v3.3.3 — handoff-v3.4-audit-2026-05-29
-- **What:** The handoff skill/command is stale end-to-end: description + body say v3.3.3 (`.claude/commands/handoff.md:2`, `:12`), file count says "11 files flat" (`:37`; spec v3.4 says 13/14 at `HANDOFF_PROCESS.md:631`/`:671`), and it has **zero** mention of `10_GATE_PROBE.md`, `11_CLAIMS.md`, `next_session_scope`, the operational layer, the Prompt Generation Card, or structured ratification. Its state-detection table (`:14-39`) also keys only on file *existence* — no populated-vs-placeholder content check, no M-5 thinness pre-flight, no ancestor HEAD check, no `UNVERIFIED` degraded mode. Fix: rewrite the skill to v3.4.
-- **Why:** The skill is the operative entry point a session actually runs; a stale skill silently drives the wrong flow regardless of the spec. Post-mortem findings **A1 (high) + A2 (medium)**.
-- **Refs:** `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` §3 (A1/A2), §5 step 2.
-- **Order:** 1st (with Stage 1 template above).
-- **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
-- **Status:** closed 2026-05-29 — commit `e2f85f4` (A1+A2). Skill rewritten to v3.4 with content-aware state detection.
-
-### [P2] [closed] Handoff v3.4: HANDOFF_PROCESS.md self-consistency (file inventory + count + synthesis-prompt + slug notation) — handoff-v3.4-audit-2026-05-29
-- **What:** The spec contradicts itself post-v3.4: the "Folder structure" diagram (`HANDOFF_PROCESS.md:520-534`) and the "File responsibilities" table (`:550-563`) stop at `09_EXECUTION_EVIDENCE.md`, omitting `10`/`11`/`12` that Stage 3 step 8 (`:380-398`) lists (F1, high); the file-count is stated four ways (11/12/13/14) and the "13 fixed (self)" claim is off-by-one against its own 14-item enumeration (F2, medium); the file-responsibilities table puts the receiver synthesis prompt in `01_MANIFEST.md` (`:554`) while `:228` puts it in `00_first-message.md` (F3, medium); the folder-naming notation `{date}-{slug}` double-counts the date since the slug already starts with the date (`:27`,`:521`,`:543`; F4, low). Fix: one consistency pass updating both reference sections to 13/14 files, reconciling the count, picking one synthesis-prompt home, and replacing `{date}-{slug}` with `{slug}`.
-- **Why:** A reader consulting the reference sections builds an obsolete 11/12-file bundle. Post-mortem findings **F1 (high) + F2 + F3 + F4**.
-- **Refs:** `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` §3 (F1–F4), §5 steps 3,6,7.
-- **Order:** 3rd.
-- **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
-- **Status:** closed 2026-05-29 — commits `581c3cb` (F1+F2: reference sections + count reconciliation), `60df5b6` (F3: synthesis-prompt canonical = 00_first-message.md), `4e3cc3e` (F4: {date}-{slug}→{slug}).
-
-### [P2] [closed] Handoff v3.4: ADR-42 Q5 file-count supersession addendum — handoff-v3.4-audit-2026-05-29
-- **What:** `HANDOFF_PROCESS.md:11-15` declares "if they conflict, ADR-42 wins," yet ADR-42's immutable body still says "11 files" (`ADR-42:264`, folder diagram `:248-262`) and the Q5 amendment (`:10-42`) never restated the count. So the doc that wins on conflict formally contradicts v3.4 on file count. Fix: add a Q5-amendment addendum to ADR-42 clarifying the 13/14 file-count supersession — **supersede via marker, not in-place edit** (ADRs immutable, CLAUDE.md §5 rule 3).
-- **Why:** Authority-level instance of the count drift; leaves the "ADR-42 wins" rule pointing at a stale number. Post-mortem finding **D2 (medium)**.
-- **Refs:** `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` §3 (D2), §5 step 3.
-- **Order:** 3rd (with HANDOFF_PROCESS consistency pass).
-- **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
-- **Status:** closed 2026-05-29 — commit `581c3cb` (D2). Append-only "Addendum 2026-05-29 — file-count supersession per Q5/v3.4" added to ADR-42 (body's "11 files" superseded by 13/14; no in-place edit).
-
-### [P2] [closed] Handoff v3.4: HANDOFF_FOLDER_TEMPLATE.md internal version drift — handoff-v3.4-audit-2026-05-29
-- **What:** The Stage 3 folder template contradicts itself on version within one file: header says v3.3.3 (`templates/HANDOFF_FOLDER_TEMPLATE.md:4`), a body line says "ADR-42 v3.2" (`:114`), and the manifest schema says `"format_version": "v3.4"` (`:359`). Fix: normalize all version strings to v3.4 / ADR-42-Q5.
-- **Why:** The template is the v3.4-authoritative Stage 3 spec for content; mixed version strings undermine trust in it. Post-mortem finding **D1 (high)**.
-- **Refs:** `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` §3 (D1), §5 step 4.
-- **Order:** 4th.
-- **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
-- **Status:** closed 2026-05-29 — commit `b696474` (D1). Header + body version strings normalized to v3.4 / ADR-42-Q5.
-
-### [P2] [closed] Handoff v3.4: broken evidence-file citations across ADR-55/56/57/58 + HANDOFF_PROCESS — handoff-v3.4-audit-2026-05-29
-- **What:** The empirical-basis evidence file is cited by two wrong paths: `docs/research/2026-05-25-handoff-failures-evidence.md` (ADR-55:16, ADR-56:15, ADR-57:14, ADR-58:15) and `docs/council-questions/2026-05-25-handoff-failures-evidence.md` (`HANDOFF_PROCESS.md:661`). The file actually lives at `docs/archive/2026-05-25-handoff-failures-evidence.md` (moved in the 2026-05-28 ADR-60 triage). All 9 references are broken. Fix: repoint the 4 ADR refs + 1 spec ref to `docs/archive/…`; decide policy for the 5 immutable transcript refs (annotate or leave). ADR edits to the body of immutable ADRs should be a reference-correction note, not an in-place content edit.
-- **Why:** Broken provenance on the decisions that define v3.4. Ironic: ADR-58 (the *citation-verification* decision) carries a broken citation. Post-mortem finding **E1 (high)**.
-- **Refs:** `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` §3 (E1), §5 step 5.
-- **Order:** 5th.
-- **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
-- **Status:** closed 2026-05-29 — commits `256e26b` (spec direct-edit to docs/archive/), `a86c18d` (ADR-55/56/57/58 append-only amendments). 5 immutable transcript refs left unchanged by policy (ADR-39).
-
-### [P3] [closed] Handoff v3.4: stale version refs in ADR-45 — handoff-v3.4-audit-2026-05-29
-- **What:** ADR-45 (explored, not adopted) names "ADR-42 v3.2 remains canonical" (`docs/decisions/ADR-45-handoff-architecture-v4.md:5`) and its 2026-05-25 amendment names "ADR-42 (v3, amended through v3.2) plus HANDOFF_PROCESS.md (v3.3.3)" as canonical (`:400`,`:406`). Now v3.4 / ADR-42-amended-through-Q5. Fix: append an ADR-45 amendment note pointing at the current authority version (marker, not in-place edit).
-- **Why:** Lowest priority — ADR-45 is not-adopted and immutable — but it mis-signals the current authority version to a header-scanning reader. Post-mortem finding **E2 (medium, low urgency)**.
-- **Refs:** `docs/audits/2026-05-29-handoff-v3.4-process-audit.md` §3 (E2), §5 step 7.
-- **Order:** 7th (lowest).
-- **Added:** 2026-05-29 by rob (handoff v3.4 abort post-mortem)
-- **Status:** closed 2026-05-29 — commit `4e3cc3e` (E2). Append-only "Amendment 2026-05-29 — current-authority pointer" added to ADR-45 (v3.4 / ADR-42-Q5); body unchanged.
 
 <!-- ecosystem-coherence-audit-2026-05-29: entries below, derived from the overnight
      ecosystem coherence audit `docs/audits/2026-05-29-ecosystem-coherence-audit.md`.
@@ -594,21 +364,6 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-11 by rob (Prompt J ratification, expanded from Prompt H P2)
 - **Status:** open — execute in Phase 2, separate prompt; after cross-repo handshake (P1 above) completes.
 
-### [P2] [superseded] Content-scoped archival principle codification
-- **What:** New principle emerged 2026-05-11: archive subfolder location follows artifact type (handoffs/archive/ only for handoff content; decisions/archive/ for decisions if archival needed; each content type has own scoped archive subfolder). Generic `docs/archive/` as top-level mixed-content grab-bag (current corp-monorepo pattern) is anti-pattern. Codification options: amendment to ADR-38 (universal repo architecture) OR new ADR-44 (archival principle). Defer codification to second empirical instance (per N=1 anti-pattern lesson).
-- **Why:** Principle emerged from operator framing during archival destination decision for cross-repo propagation artifact. First empirical instance captured. Premature ADR at N=1 is itself an anti-pattern (see LESSONS.md).
-- **Vision ref:** VISION.md "Knowledge Guardian" function
-- **Added:** 2026-05-11 by rob (Prompt J ratification)
-- **Status:** open — captured in LESSONS.md (2026-05-11 entry). Codification awaits second empirical instance. Monitor for second instance during Phase 2 repo visits.
-- **Status update 2026-05-31 (marathon arc reconciliation):** Superseded — ADR-60 (docs/ folder taxonomy, 2026-05-27 + same-day amendment) codified the opposite model: a single **flat `archive/` pending-zone**, and flattened `docs/archive/` (the `tech-radar/` subfolder was removed). Content-scoped per-type archive subfolders are not the adopted pattern. Refs: ADR-60 (`docs/decisions/ADR-60-docs-folder-taxonomy.md`) + its 2026-05-27 amendment; `docs/audits/2026-05-27-taxonomy-simplification-verification.md`. (operator-confirmed supersede, 2026-05-31)
-
-### [P2] [closed] Fix pre-existing test failure: test_ratio_pass_when_stable_above_ceiling
-- **What:** Fails on main as of 2026-05-12 prior to hooks review work. Not introduced by Directive 5 of 2026-05-12 handoff (witnessed during Prompt 4 verification). Blocks clean `pytest -x` runs; pre-commit may flag in subsequent sessions if test is in pre-commit scope. Root cause unknown — needs investigation.
-- **Why:** Clean test state is a baseline hygiene requirement. Pre-existing failures mask future regressions.
-- **Vision ref:** VISION.md — methodology consistency (clean test state)
-- **Added:** 2026-05-12
-- **Status:** closed 2026-05-24 — `pytest -q` → 72 passed; `pytest -k test_ratio_pass_when_stable_above_ceiling` → 72 deselected (test no longer present). Stated intent (clean `pytest -x`) satisfied. Caveat (OQ-1 in audit): unverified whether the ratio logic was fixed vs the test removed during the backlog_extract retirement; closed on green-suite intent.
-
 ### [P3] [open] A5 Phase 2: retire UPPERCASE TYPE tag in legacy archive filenames
 - **What:** During Phase 2 repo visits (corp-monorepo, ai-council), when touching `docs/archive/` files with `YYYY-MM-DD_TYPE_topic.md` pattern — rename to plain `YYYY-MM-DD-topic.md` (hyphen separator, no UPPERCASE tag). Opportunistic, not a dedicated migration.
 - **Why:** Pre-ADR-34 legacy pattern creates naming inconsistency during Phase 2 repo visits; opportunistic retirement is lowest-cost path and avoids a dedicated migration prompt for a cosmetic change.
@@ -669,43 +424,12 @@ Next quarterly grooming: 2026-07-01
 > review authority pattern" (Cross-stream, above) is NOT duplicated here — it already covers
 > that work and runs parallel to entry #3.
 
-### [P1] [closed] Draft ADRs from the 5 handoff-methodology Council transcripts
-- **What:** Five `pick`-mode debates (Q1–Q5, handoff methodology) completed and their transcripts landed in `docs/decisions/transcripts/council-out-20260526_*-handoff-council-Q[1-5]-*.md`. Distill each verdict into a committed ADR per the PLAYBOOK "After a Decision" protocol (verify next ADR number, align to `templates/ADR-template.md`, write `ADR-NN-topic.md`, add the `docs/decisions/README.md` index + traceability row).
-- **Why:** A debate "is not done until its ADR is committed" (PLAYBOOK). Five binding verdicts currently exist only as transcripts; without ADRs the decisions are not discoverable or enforceable.
-- **Refs:** the 5 transcripts; PLAYBOOK "Council Debate Archival Protocol" + "After a Decision".
-- **Added:** 2026-05-26 by rob (consolidation session).
-- **Status:** closed 2026-05-26 — handoff-process-stabilization session implemented all 5 verdicts as **ADR-55** (applied-task gate), **ADR-56** (Prompt Generation Card), **ADR-57** (two-layer bundle contract), **ADR-58** (structured claims), and an **ADR-42 Q5 amendment**, with `HANDOFF_FOLDER_TEMPLATE.md` + `HANDOFF_PROCESS.md` (v3.4) + PLAYBOOK updates and a validation report mapping every Council action item to a commit SHA. Branch merged to `main`. Deferred mechanical gate code tracked as the existing "Mechanical gate code for handoff enforcement" P2 entry.
-
-### [P1] [closed] Apply pipeline+taxonomy proposal — new `docs/council-questions/` folder (Option B)
-- **What:** Implement the operator-selected Option B from `docs/audits/2026-05-25-council-pipeline-proposal.md`: create `docs/council-questions/` as the home for Council *question/staging inputs*, separating them from `docs/research/` (research *outputs*) and `docs/decisions/transcripts/` (debate outputs). Migrate the 7 question-set inputs currently mis-filed in `research/` (the `handoff-council-Q1..Q5`, `-failures-evidence`, `-methodology-council-index` set).
-- **Why:** Pipeline-audit finding A1 (High) — `research/` conflates inputs and outputs so neither reader nor agent can tell a file's role. Option B is the chosen fix.
-- **Refs:** pipeline proposal + audit (A1/A2/C1); operator decision "new `docs/council-questions/` folder".
-- **Added:** 2026-05-26 by rob (consolidation session).
-- **Status:** closed 2026-05-27 — `docs/council-questions/` created (+ semantic README); the 7 inputs (Q1–Q5 + evidence + set index) migrated from `research/` via `git mv`; living-doc cross-refs updated (HANDOFF_PROCESS + the migrated files' own internal refs; immutable ADR-55..58/transcripts left as point-in-time history per ADR-60 Rule 5). Implemented alongside ADR-60 (entry #4). Branch merged to `main`.
-- **Subsequent amendment 2026-05-27:** `docs/council-questions/` was **retired** by the ADR-60 amendment (same date, separate session) — Q-files content verified verbatim in transcripts → `git rm`; evidence + set index moved to `docs/archive/` as potentially-unique cross-file structuring. The original Option B fix (separating inputs from outputs) was correct on its semantics but the folder didn't earn permanence (the operator's working pattern flows through `council_inbox/` → transcript). Net outcome: the original Option B taxonomy work + the amendment together leave `.dev-knowledge` with `decisions/+audits/+handoffs/+archive/` — no `council-questions/`, no `research/`. See `docs/audits/2026-05-27-taxonomy-simplification-verification.md`.
-
 ### [P1] [open] Execute the ai-council universalization execution plan
 - **What:** A dedicated ai-council Claude Code session executes `docs/audits/2026-05-25-ai-council-universalization-execution-plan.md` (Actions 1–8; Action 9 deferred) against ai-council — README delete, tier-residue removal from VISION/ARCHITECTURE/CLAUDE, `[L-opt]`→untagged, naming-guidance + ADR-08 rename, hand-authored Mermaid codemap, `.env.example` removal + workspace dot-prefix, BACKLOG header. Writes happen in ai-council (its own contract), not from `.dev-knowledge`.
 - **Why:** Closes the 14 findings in the 2026-05-25 audit refresh; AI Council is the universalization test case before corp-monorepo.
 - **Refs:** the execution plan + audit refresh (both on `main`). Cross-refs existing "ai-council hyphen migration + ADR-38 compliance" and "Apply tier-deprecation to ai-council" entries (this plan supersedes their loose scope with a sequenced action list).
 - **Added:** 2026-05-26 by rob (consolidation session).
 - **Status:** open — separate ai-council session; operator decisions 1–5 already captured in the plan amendment.
-
-### [P1] [closed] Folder taxonomy ADR (research/ vs transcripts/ vs council-questions/)
-- **What:** Author an ADR codifying the `.dev-knowledge` `docs/` taxonomy decision: input/output/working/archived distinction, where each Council artifact class lives, and the naming that encodes role. Ratifies the structure entry #2 implements.
-- **Why:** Pipeline-audit finding A1/G (High) is a taxonomy root cause; operator confirmed "taxonomy ADR-worthy: YES." Without an ADR the folder convention is undocumented and will re-drift.
-- **Refs:** pipeline proposal; audit A1/A3/C1/G.
-- **Added:** 2026-05-26 by rob (consolidation session).
-- **Status:** closed 2026-05-27 — authored as **ADR-60** (`docs/decisions/ADR-60-docs-folder-taxonomy.md`), conversational (operator decision, no Council debate). Codifies the input/output/working/archived role per `docs/` subfolder + lifecycle + the move-time immutable-record-preservation rule; added to `decisions/README.md` index. Implemented jointly with entry #2. Branch merged to `main`.
-- **Amendment 2026-05-27 (same day, separate session):** Operator empirical review (VS Code per-repo verification) found the original 6-role taxonomy over-built (`council-questions/` and `research/` didn't earn permanence) and over-propagated by the 2026-05-26 universalization to child repos. ADR-60 amended to **two repo-type variants**: `.dev-knowledge` carries `decisions/+audits/+handoffs/+archive/`; child code repos carry `decisions/+audits/+archive/+diagrams/`. Adds `archive/` pending-zone semantics + file-placement rules (entry-scripts→`scripts/`; root-exception configs). Implemented across all 5 repos this session. Verification: `docs/audits/2026-05-27-taxonomy-simplification-verification.md`. Branch `docs/taxonomy-simplification-2026-05-27`, awaiting operator merge.
-
-### [P1] [closed] Codify git worktree pattern for parallel Claude Code sessions
-- **What:** Document (PLAYBOOK + ESSENTIALS) the rule that parallel Claude Code sessions on the *same* repo MUST use `git worktree` (separate working trees + HEADs), never share one checkout. Include the bootstrap command and a note on why shared `.git/` HEAD is unsafe.
-- **Why:** This session's root cause — three concurrent sessions on one working tree scattered commits across branches because HEAD switched mid-session (see `docs/archive/2026/2026-05-26-consolidation-preflight.md` reflog). A worktree per session eliminates the race entirely.
-- **Refs:** consolidation preflight snapshot; 2026-05-26 consolidation recovery; 2026-05-27 visual-pattern session also had to repoint a misplaced branch (`docs/audits/2026-05-27-concurrency-anomaly-cleanup-2026-05-26.md`).
-- **Added:** 2026-05-26 by rob (consolidation session).
-- **Escalated:** 2026-05-27 P2 → P1 (fresh evidence — second incident on 2026-05-27; the race condition keeps producing real consolidation work).
-- **Status:** closed 2026-05-28 — **ADR-61** authored; PLAYBOOK §Session boundaries `### Parallel sessions` added; ESSENTIALS `## Parallel sessions` cheat-sheet section added. Pattern fully codified: same-repo parallel requires `git worktree`; cross-repo parallel safe without it. Branch `docs/git-worktree-pattern-2026-05-28` awaiting operator merge.
 
 ### [P2] [open] Remove tier-residue from `.dev-knowledge` workspace templates
 - **What:** Collapse `templates/workspace-{S,M,L}.code-workspace` (three richness-tiered files) + PLAYBOOK § "VS Code workspace" into the operator's model: **one maximal `.code-workspace` template** from which elements are selected by repo complexity (not three scale-keyed variants). The S/M/L framing was de-tiered in PLAYBOOK v1.1 (2026-05-23) but three separate files still exist — the residue the operator flagged during ai-council universalization.
@@ -721,21 +445,6 @@ Next quarterly grooming: 2026-07-01
 - **Added:** 2026-05-26 by rob (consolidation session).
 - **Status:** open — investigation + guard design; work likely lands in ai-council (read-only here).
 
-### [P3] [closed] Decide future of `docs/tech-radar/`
-- **What:** `docs/tech-radar/` exists (`2026-Q2.md`, `README.md`). Decide whether it is a kept, living artifact class (with a review cadence + lifecycle entry per ADR-39) or should be retired/relocated. Operator flagged "keep, BACKLOG decision."
-- **Why:** Undecided artifact classes drift; a one-off `tech-radar/` with no cadence rots like the five-week-stale handoff precedent (ADR-51 context).
-- **Refs:** `docs/archive/tech-radar/` (archived 2026-05-27).
-- **Added:** 2026-05-26 by rob (consolidation session; pipeline-discovery Q2).
-- **Status:** closed 2026-05-27 — **retire/relocate** chosen: dormant (single 2026-Q2 entry, no cadence) → `git mv` to `docs/archive/tech-radar/` per ADR-60. Reversible — resurface if quarterly tech-radar work resumes. Branch merged to `main`.
-- **Follow-up 2026-05-27 (taxonomy-simplification session, same day):** The single archived entry + tech-radar/README were `git rm`d as flagged by the ADR-60 amendment (one-shot value extracted; git history retains). `docs/archive/` flattened — no `tech-radar/` subfolder remains. Fully reversible via git history if cadence ever resumes.
-
-### [P3] [closed] Remove the "📋 ADRs" folder alias from `.dev-knowledge.code-workspace`
-- **What:** `.dev-knowledge.code-workspace` defines a multi-root folder alias `"name": "📋 ADRs"` (`:20`) and an `open-latest-adr` task (`:154`). Evaluate whether the ADRs alias adds value vs clutter; remove it if the canonical-file keybindings/tasks already cover ADR access.
-- **Why:** Workspace hygiene — the multi-root alias predates the canonical-file open tasks/keybindings (added 2026-05-24); a redundant root adds Explorer noise. Pairs with entry #6 (workspace template rework).
-- **Refs:** `.dev-knowledge.code-workspace:20,154`.
-- **Added:** 2026-05-26 by rob (consolidation session).
-- **Status:** closed 2026-05-27 — superseded by the workspace-aliases-cleanup commit (`f5322837`) which removed all three dated-folder aliases (`📅 Audits`, `📅 Handoffs`, `📋 ADRs`) as part of the visual-pattern session. The `open-latest-adr` task was kept (still useful as a keyboard fast path). Workspace now has only the two functional roots (`.dev-knowledge` + `~/.claude`).
-
 ### [P2] [open] ADR-59 universal visual pattern — child-repo retrofits (4×)
 - **What:** Apply ADR-59 (universal visual repository pattern: dot-prefix discipline, canonical `.md` visibility + clustering, workspace sort settings) to each of the four child repos. Plans were authored 2026-05-27 in `docs/audits/2026-05-27-{ai-council,corp-ops,corp-sca-time-automation,corp-monorepo}-visual-pattern-retrofit-plan.md`. Each retrofit is one Claude Code session in the *target* repo, separate workdirs (worktree pattern — see entry #5).
 - **Why:** ADR-59 codifies the pattern but only self-applies to `.dev-knowledge`. Until the child repos conform, the audit-tool checks will FAIL on them and the operator's promised "open any repo, same visual layout" goal is not delivered.
@@ -747,14 +456,6 @@ Next quarterly grooming: 2026-07-01
   - **corp-ops retrofit** — plan ready, independent (no prerequisites).
   - **corp-sca-time-automation retrofit** — plan ready, independent.
   - **corp-monorepo retrofit** — blocked on `corp-monorepo` ruff-strictness decision (the universalization mega-session deferred this; resolving it unblocks Action 6 (VISION routing, Council-gated) + Action 7c).
-
-### [P2] [closed] AI Council Flow operationalization — lifecycle runbook
-- **What:** Author the AI Council Flow operational runbook (where it lives is open — likely `protocols/AI_COUNCIL_FLOW.md` or expanded PLAYBOOK section): the end-to-end lifecycle of a Council question from drafting (now ephemeral: `council_inbox/` or `~/Downloads/`, per ADR-60 amendment) → debate (ai-council CLI, mode/target-project frontmatter) → transcript landing (per ADR-43) → ADR drafting (per PLAYBOOK "After a Decision") → BACKLOG follow-up. This is the remaining Option B piece from the 2026-05-25 pipeline proposal that ADR-60 (taxonomy) didn't itself cover.
-- **Why:** ADR-60 fixed *where* artifacts live; the *lifecycle* glue (who does what when, gate checks, archival cadence) still lives only in scattered PLAYBOOK references. Without a runbook the operator re-derives the flow each time.
-- **Refs:** `docs/audits/2026-05-25-council-pipeline-proposal.md` (Option B); ADR-60; ADR-43; PLAYBOOK § "Council Debate Archival Protocol" + "After a Decision".
-- **Added:** 2026-05-27 by rob (captured from the prompt's "remaining Option B piece").
-- **Status:** closed 2026-05-28 — runbook authored as `protocols/AI_COUNCIL_PROCESS.md` v1.0 (six stages: frame → author → route → debate → verdict → ADR → close; gate checks; troubleshooting; cross-refs). Cross-linked from PLAYBOOK § 5, ESSENTIALS § "Artifact generation direction", and the ARCHITECTURE.md C3 diagram source block. Both halves of Option B (visual + prose) now landed.
-- **2026-05-28 partial (historical):** the **visual flow** was codified in `ARCHITECTURE.md` § Processes → "AI Council debate pipeline" (Mermaid, grounded in `council-question-guide.md` + `src/ai_council/{cli,inbox,orchestrator,routing,synthesis}.py` + ADR-43). The remaining prose work (this entry) closed same day.
 
 ### [P3] [open] Audit tool — folder-semantics validation check (ADR-60 candidate)
 - **What:** Extend `scripts/audit.py` with a read-only `check_folder_semantics` that asserts every `docs/` subfolder carries exactly one of the four ADR-60 roles (inputs / outputs / working / archived) — verified by README presence + a frontmatter or naming convention the check can match. Surfaces drift when a new ad-hoc folder is added without a declared role.
@@ -804,21 +505,6 @@ Next quarterly grooming: 2026-07-01
 - **Refs:** `ARCHITECTURE.md` § Processes; ADR-51.
 - **Added:** 2026-05-28 by rob (process-diagrams session — captured at write-time).
 - **Status:** open — re-evaluate when the next process diagram or process prose lands.
-
-### [P3] [closed 2026-05-28] Mermaid render verification protocol — workspace + diagrams
-- **What:** Add a one-line PLAYBOOK rule (or ESSENTIALS cheat) that any commit adding or modifying a Mermaid diagram in a tracked file (`ARCHITECTURE.md`, `PROCESS.md` if it lands, `docs/diagrams/`) must be visually verified once via VS Code Mermaid preview (extension `bierner.markdown-mermaid`, already in the L-template workspace) before merge. Pairs with the sort-regression verification rule from 2026-05-28.
-- **Why:** Mermaid syntax can be *valid* yet render in a way that misleads the reader (wrong arrow direction, label clash, subgraph collapse). A two-minute visual check before merge catches what `grep -c '^```mermaid'` cannot. The 2026-05-28 process-diagrams session committed 4 diagrams without a render check; the rule should bind future Mermaid edits.
-- **Refs:** `ARCHITECTURE.md` § Processes (4 diagrams added 2026-05-28); the sort-regression verification rule entry above (same pattern: PR / visual editor check before commit).
-- **Added:** 2026-05-28 by rob (process-diagrams session — captured at write-time).
-- **Closed:** 2026-05-28 — operator-confirmed during mermaid-readability-v2 session (this triggered the v1→v2 fix arc; the render-verification expectation is now baked into the ADR-51 v2 amendment's "Verification" clause and the verification doc's HARD-METRIC operator step). See `docs/audits/2026-05-28-mermaid-readability-v2-verification.md`.
-
-### [P3] [closed] `audit.py` check — Mermaid high-contrast theme + explicit `color:` present
-- **What:** Add `check_mermaid_theme_directive` to `scripts/audit.py` that verifies every Mermaid block in `ARCHITECTURE.md` (and the template) begins with the `'theme':'base'` + `themeVariables` directive **and** that every `classDef` with a `fill:#...` declaration also pins `,color:#...`. Skip immutable-artifact paths (`docs/audits/`, `docs/decisions/` ADR-historic-quote bodies) — needs a small allow/deny-list. Add unit tests with both pass and fail fixtures.
-- **Why:** ADR-51 amendment 2026-05-28 (v2) codified the high-contrast directive + the explicit-`color:` companion rule. Mechanical enforcement closes the drift gap so future hand-edited diagrams cannot silently regress to the v1 light-on-light failure mode. Scoped exclusion list is the hard part — without it the check would false-positive on legitimate historical quotations in audits/ADRs.
-- **Refs:** `docs/audits/2026-05-28-mermaid-readability-v2-verification.md`; ADR-51 amendment 2026-05-28 (v2); `scripts/audit.py` existing check pattern.
-- **Added:** 2026-05-28 by rob (mermaid dark-theme session — deferred).
-- **Updated:** 2026-05-28 (v2 session) — directive target changed from bare `'dark'` to the custom `themeVariables` form; companion `color:` rule added to the check spec.
-- **Closed:** 2026-05-28 — `check_mermaid_theme_directive` implemented as check #7 in `scripts/audit.py`. Scans `ARCHITECTURE.md` + `templates/ARCHITECTURE-template.md`; excludes `docs/audits/`, `docs/decisions/ADR-*`, `JOURNAL.md`, `docs/archive/`. 5 unit tests (pass/fail-bare-dark/fail-missing-color/no-arch/no-blocks); audit health 7/7. Branch: `feat/audit-mermaid-theme-check-2026-05-28`.
 
 ### [P2] [open] `templates/CLAUDE-md-template.md` refresh — encode ADRs 54-61 + recent conventions
 
