@@ -2023,6 +2023,21 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
 - Threshold-based: amortized ~$0.006/run, auto-triggers on staleness, zero forgetting risk
 - Short format keeps entries scannable over months; full format reserved for migrations
 
+### Output the operator copies into browser chat (render-layer note)
+<!-- scope: runtime -->
+
+The trap is the **render layer**, not what Claude writes. A plain markdown pipe-table (`| col | col |`) is the token-cheapest table to write *in a file*, but the Claude Code TUI renders it by **painting Unicode box-drawing borders** (`┌─┬─┐ │ ├─┼─┤ └─┴─┘`) client-side. Those glyphs are added at *display* time — Claude never emits them. So a rule that only bans Claude from writing box-drawing is a no-op: it forbids something Claude already doesn't do, while the operator still copies the painted borders out of the terminal (Path A) into browser chat and pays ~3× the tokens for them.
+
+**The fix targets render, not emit.** For any report the operator copies back — `/session-summary` output and ad-hoc step reports — make it:
+1. **Flat** — plain markdown or `key: value` lines / bullets; no column-padding spaces.
+2. **Code-fenced** — wrap it in a triple-backtick block. A fenced block renders raw (monospace, un-painted), so the pasted text is exactly the characters Claude wrote — no borders.
+
+A bare (un-fenced) pipe-table is the failure case: clean-looking in the TUI, box-drawing on paste. This is the same fenced-block discipline already used for Scale-S PowerShell snippets (ESSENTIALS § "Architect → operator channel-discipline for execution actions") and downloadable prompts (§2 "Delivery format") — extended to every copy-back report. Reconciles with Path A above (`/session-summary` → paste into Claude.ai).
+
+**Operator-side option (not a repo change):** Claude Code also exposes an output-style setting; a plainer style reduces TUI table-painting globally. That is runtime config under `~/.claude/` — outside this repo's scope, noted for the operator, not changed here.
+
+Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subsection is the rationale authority; the CLAUDE.md bullet is the point-of-use rule.
+
 ---
 
 ## 9. Weekly Review (Friday)
