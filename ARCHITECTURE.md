@@ -92,7 +92,7 @@ Utility-exemption modules: none.
 1. **Layer 2 never executes.** No script in `.dev-knowledge` orchestrates actions in other repos or drives state changes in Layer 3.
 2. **Validators are read-only.** `scripts/` contains only passive inspection tools — they read, check, and report; they never write to other repos.
 3. **`.dev-knowledge` is the prescriptive authority for all `Dev/` repos.** Prescriptions in PLAYBOOK and ADRs are binding on child repos; child repos may not override them locally.
-4. **Append-only files are never edited.** `LESSONS.md` and `TOKEN-LOG.md` accept only appends — existing entries are never modified or deleted.
+4. **Append-only files are never edited.** `LESSONS.md` and `logs/TOKEN-LOG.md` accept only appends — existing entries are never modified or deleted.
 5. **Dated artifacts are immutable.** ADRs, transcripts, handoffs, and audits are superseded by new files or in-file markers, never edited in place.
 
 → Related decisions: `docs/decisions/ADR-28-three-layer-architecture.md`, `docs/decisions/ADR-39-file-lifecycle.md`
@@ -383,7 +383,7 @@ flowchart TD
 ## Key conventions
 
 - **Scope tags (ADR-27, informal).** `<!-- scope: X -->` tags (`dev | llm | hybrid | runtime | meta`) exist in living files as informal lightweight metadata. Enforcement withdrawn 2026-05-16 per ADR-48; existing tags remain in place. New sections do not need tags.
-- **Append-only files.** LESSONS.md, TOKEN-LOG.md — never edit old entries. JOURNAL.md uses newest-first prepend.
+- **Append-only files.** LESSONS.md, logs/TOKEN-LOG.md — never edit old entries. JOURNAL.md uses newest-first prepend.
 - **Living files.** CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT, VISION, ARCHITECTURE — updated in place when reality shifts. (Root `README.md` deleted 2026-05-23 — deprecated from the baseline per ADR-38 amendment A5; redundant with VISION + CLAUDE.md + ARCHITECTURE for this internal-only repo.)
 - **Immutable dated artifacts.** ADRs, transcripts, handoffs, audits, research — supersession via new file or in-file marker, never edit.
 - **Filename conventions.** `ADR-NN-topic.md` for decisions (per ADR-34); `DECISION_NN_snake_case.md` for legacy transcripts (grandfathered); Council CLI output uses `council-out-YYYYMMDD-HHMMSS-topic.md`; kebab-case + ISO date for dated artifacts; ALLCAPS for top-level governance markdown.

@@ -283,7 +283,7 @@ Which `docs/` subfolders a repo carries follows the 2026-05-27 ADR-60 amendment 
 Every repo root follows the ADR-59 universal visual pattern (read the ADR for the full standard). Three pillars, all audit-enforced via `scripts/audit.py`:
 
 - **Dot-prefix discipline** — dot-prefix every root config the tool supports a dotted variant for (`.ruff.toml`, `.pre-commit-config.yaml`, `.{repo}.code-workspace`, standard dotfiles). Exceptions that MUST stay un-dotted (tool requires the exact name / ecosystem convention): `pyproject.toml`, `package.json`, `Cargo.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Dockerfile`, `Makefile`, `LICENSE`, `tach.toml`, `README.md`.
-- **ALL-CAPS canonical `.md` at root** — `VISION`/`CLAUDE`/`ARCHITECTURE`/`BACKLOG` mandatory everywhere; `JOURNAL`/`ENVIRONMENT`/`CONTRIBUTING` optional; `LESSONS`/`PLAYBOOK`/`ESSENTIALS`/`TOKEN-LOG` are `.dev-knowledge`-only (never required in a child repo).
+- **ALL-CAPS canonical `.md`** — root governance docs `VISION`/`CLAUDE`/`ARCHITECTURE`/`BACKLOG` mandatory everywhere; `JOURNAL`/`ENVIRONMENT`/`CONTRIBUTING` optional at root; `LESSONS` (root), `PLAYBOOK`/`ESSENTIALS` (`protocols/`), and `logs/TOKEN-LOG.md` (usage log, per ADR-59 amendment 2026-06-01) are `.dev-knowledge`-only (never required in a child repo).
 - **Workspace sort settings** — `.{repo}.code-workspace` with `"explorer.sortOrder": "default"` + `"explorer.sortOrderLexicographicOptions": "upper"`. `upper` (not `default`) is what clusters ALL-CAPS files ahead of lowercase configs — verified 2026-05-27.
 
 **Maintenance rule (adopting a new tool config):**

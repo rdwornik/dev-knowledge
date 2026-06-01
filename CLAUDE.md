@@ -49,7 +49,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 - **Testing:** `pytest -x --tb=short`
 - **Linting:** `ruff check --fix` (run manually / via `/save`; not yet a pre-commit hook — BACKLOG #13)
 - **Scope tags:** `<!-- scope: X -->` (`dev|llm|hybrid|runtime|meta`) — informal only; not enforced (ADR-27; enforcement withdrawn per ADR-48)
-- **File lifecycle:** Append-only: `LESSONS.md`, `TOKEN-LOG.md` (never edit), `JOURNAL.md` (newest-first prepend). Immutable: ADRs, transcripts, handoffs, audits (supersede with new file). Living: `VISION.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/*.md`, `BACKLOG.md` (update in place).
+- **File lifecycle:** Append-only: `LESSONS.md`, `logs/TOKEN-LOG.md` (never edit), `JOURNAL.md` (newest-first prepend). Immutable: ADRs, transcripts, handoffs, audits (supersede with new file). Living: `VISION.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/*.md`, `BACKLOG.md` (update in place).
 - **Freshness cadence:** the living docs `VISION/ARCHITECTURE/CLAUDE/CONTRIBUTING` carry a `last_reviewed` frontmatter stamp meaning *re-read end-to-end and confirmed accurate (or drift filed)* — **not** merely "touched". `audit.py` check #10 fails when a stamp predates the file's last edit (edited-but-not-re-reviewed) and warns past a 30-day backstop. Bump `last_reviewed` only after a genuine review. See PLAYBOOK "Canonical-file freshness cadence".
 
 **Out of scope for this repo:**
@@ -64,7 +64,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 ## 5. Critical rules
 <!-- scope: meta -->
 
-1. **`LESSONS.md` and `TOKEN-LOG.md` are append-only** — never edit old entries; only append (ADR-29, ADR-39)
+1. **`LESSONS.md` and `logs/TOKEN-LOG.md` are append-only** — never edit old entries; only append (ADR-29, ADR-39)
 2. **`JOURNAL.md` is append-only newest-first** — prepend at session wrap or workday close
 3. **ADRs, transcripts, handoffs, audits are immutable** — supersede with a new file or in-file marker; never edit in place
 4. **Layer 2 never executes** — no orchestration scripts; `scripts/` contains read-only validators only (ADR-28, ADR-36)
@@ -128,7 +128,7 @@ Rules (`.claude/rules/`):
 ## 10. Anti-patterns specific to Claude Code in this repo
 <!-- scope: meta -->
 
-- **Editing old LESSONS.md or TOKEN-LOG.md entries** — append-only; editing corrupts the institutional record
+- **Editing old LESSONS.md or logs/TOKEN-LOG.md entries** — append-only; editing corrupts the institutional record
 - **Adding orchestration scripts** — Layer 2 invariant: validators only, no scripts that drive state in child repos
 - **Narrating or managing AGENTS.md** — AGENTS.md is retired (ADR-53); CLAUDE.md is the single instruction file
 - **Duplicating content between files** — ESSENTIALS summarizes PLAYBOOK, not copies; drift is the failure mode
