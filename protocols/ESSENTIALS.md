@@ -365,6 +365,13 @@ the pre-commit hook list.
 
 ---
 
+## Backlog (ADR-64/65)
+<!-- scope: meta -->
+
+`BACKLOG.md` = **open/in-progress `.dev-knowledge` work only**. Status-and-priority layout: `## Now` (in-progress) · `## Open` (P1/P2/P3) · `## Blocked` · `## Coordination` (cross-repo governance pointers, ≤10). **One item, one section** (section = status); repo affiliation is the `repo:` field, not a section. **Done items leave** on close — the closing commit + the per-session JOURNAL entry are the record; **no archive** (CLAUDE §5), no per-item write. Schema is machine-checked (`scripts/validate_backlog.py`, read-only). Full: PLAYBOOK §10.
+
+---
+
 ## Three Homes for Knowledge
 <!-- scope: meta -->
 

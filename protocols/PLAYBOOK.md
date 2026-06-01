@@ -2048,6 +2048,10 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
 
 **Mandate:** `BACKLOG.md` is part of the universal governance baseline (ADR-38 amendment A5, 2026-05-23; ADR-41) — mandatory for every repo regardless of size. (Previously gated to M+ repos; the repo-tier system is deprecated.)
 
+**Done-item disposition (ADR-47/65).** Done items **leave** the file on close — git history (the closing commit, located by the entry id per CONTRIBUTING) + the existing per-session JOURNAL entry are the record. **No archive file** (`BACKLOG_ARCHIVE.md` deleted 2026-05-16; CLAUDE.md §5). No collapsed stubs. Closing a backlog item adds **no** new per-item write — the per-session JOURNAL ritual already carries it.
+
+**Layout (ADR-64).** `BACKLOG.md` is organized **status-and-priority**: `## Now` (in-progress) · `## Open` (P1/P2/P3 sub-sections) · `## Blocked` · `## Coordination` (cross-repo governance pointers only, kept ≤10). **One item in exactly one section** (section = status); repo affiliation is the entry's `repo:` field, not a section. Named-stream (A/B/C/D) and session-arc H2 headers are retired — the stream schema shown below is superseded by this layout (see §Schema as updated for ADR-64). A read-only validator (`scripts/validate_backlog.py`) machine-checks the schema. **Authority chain:** ADR-41 (file mandate) → ADR-47 (organization; done-items-leave) → ADR-64 (architecture) → ADR-65 (disposition).
+
 ### Schema
 <!-- scope: meta -->
 
@@ -2075,8 +2079,8 @@ Browser 1 (departing) runs at handoff generation:
 2. Mark stale items (no progress in 3+ sessions) for review
 3. Prune obvious dead items (completed, no longer relevant)
 4. Add new items surfaced this session
-5. Update Status on completed items to `done`
-6. Future State in handoff references BACKLOG items by stream + title (pointers, not copy-paste)
+5. **Remove** completed items — they leave the file (the closing commit + the per-session JOURNAL entry are the record, ADR-65); do not leave `done` entries in place
+6. Future State in handoff references BACKLOG items by id + title (pointers, not copy-paste)
 
 Light P1 items MAY be copy-pasted inline into Future State (acceptable at P1 only — Council Risk #2 mitigation).
 
@@ -2085,7 +2089,7 @@ Light P1 items MAY be copy-pasted inline into Future State (acceptable at P1 onl
 
 Rob reviews full BACKLOG once per quarter (first review: 2026-07-01):
 
-1. Archive all `done` items to `BACKLOG-archive/YYYY-Q{N}.md`
+1. Confirm **no `done` items remain** — done items leave on close (ADR-47/65); the validator hard-fails on any `done` entry. **No archive file** (CLAUDE.md §5). Retrospect via `git log` + JOURNAL, not a parallel archive
 2. Re-prioritize P1/P2/P3 based on current ecosystem state
 3. Remove items that no longer align with VISION
 4. Groom each stream: still active? Items still actionable?
