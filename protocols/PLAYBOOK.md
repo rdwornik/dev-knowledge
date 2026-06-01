@@ -1527,6 +1527,7 @@ PURPOSE: Why (1 sentence)
 
 → Read CLAUDE.md + relevant gotchas
 → Git workflow (branch, commit per step, pytest between)
+→ Hooks/commands in play: which auto-fire (pre-commit gate: audit-health/validate-backlog; block-onedrive on Bash) + which to invoke (/save to commit; /codex-review before merging code) — see §"Usage protocol: which command / hook, when"
 
 UNDERSTAND:
 - What's the problem?

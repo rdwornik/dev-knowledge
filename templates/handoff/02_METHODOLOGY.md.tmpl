@@ -20,14 +20,19 @@ win.
 
 {{PULL: PLAYBOOK#Writing prompts for Claude Code}}
 <!-- Extract the standard 8-section prompt structure + delivery format + pre-send
-     checklist essentials. This subsumes the v3.4 "Prompt Generation Card". -->
+     checklist essentials, INCLUDING the "hooks/commands in play" pre-flight line
+     (which hooks auto-fire vs which commands to invoke — see PLAYBOOK §"Usage
+     protocol: which command / hook, when"). This subsumes the v3.4 "Prompt
+     Generation Card". -->
 
 ## Hooks & enforcement
 
 {{PULL: PLAYBOOK#LLMs advise; hooks/tests enforce}}
-<!-- Extract: LLMs advise, hooks/tests enforce. pre-commit runs ruff + header
-     normalization. Executable rules live in ~/.claude with verify: lines, not in
-     prose. -->
+<!-- Extract: LLMs advise, hooks/tests enforce. pre-commit auto-fires
+     normalize-dated-headers + codemap-freshness + validate-backlog + audit-health
+     (audit.py health — FAIL blocks the commit) + backlog-id-on-close; ruff is NOT
+     wired as a hook (run manually — BACKLOG #13). Executable rules live in ~/.claude
+     with verify: lines, not in prose. -->
 
 Codex is a separate code-review CLI (per ADR-54, configured globally at
 `~/.codex/AGENTS.md`), not Claude Code. Acts as a second pair of eyes on 3+ file or
@@ -46,7 +51,8 @@ safety-critical changes — distinct system, used in addition to CC's own work.
 <!-- Extract the operative conventions: Conventional Commits; branch naming
      (feat/fix/docs/chore off main); file naming (UPPERCASE living docs, ADR-NN,
      YYYY-MM-DD slugs); append-only files (LESSONS, JOURNAL newest-first); immutable
-     ADRs/handoffs/audits; no box-drawing chars in reports. -->
+     ADRs/handoffs/audits; output the operator copies back is flat + code-fenced so
+     the TUI doesn't paint box-drawing (CLAUDE §4 render-layer). -->
 
 ## Four-tag discipline canonicity
 
