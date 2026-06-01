@@ -44,7 +44,12 @@ def main():
             ["git", "diff", "--cached", "-U0", "--", "BACKLOG.md"],
             capture_output=True, text=True, encoding="utf-8",
         ).stdout
-    except Exception:
+    except OSError as exc:
+        # Fail OPEN but LOUD: this is a hygiene gate, not a safety control — bricking every
+        # commit on a near-impossible git failure is worse than skipping one id-check. The
+        # warning ensures the skip is never silent. (git-missing => pre-commit wouldn't run anyway.)
+        print(f"commit-msg: WARNING — could not read staged diff ({exc}); backlog-id check skipped",
+              file=sys.stderr)
         return 0
     missing = check(msg, diff or "")
     if missing:

@@ -40,7 +40,9 @@ _TASK_RE = re.compile(r"^- \[#(\d+)\]\s*(.*)$")
 _SOTHAT_RE = re.compile(r"^So that\b", re.IGNORECASE)
 _PSIZE_RE = re.compile(r"\[P[1-3]\]\[(?:S|M|L)\]")
 _DONEWHEN_RE = re.compile(r"Done when:", re.IGNORECASE)
-_DONE_MARKER_RE = re.compile(r"status:\s*done|\[[xX]\]|~~")
+# done-marker: a structured status suffix, a leading done-checkbox, or a struck bullet —
+# NOT a bare [x]/~~/"status: done" anywhere in prose (which is legitimate task text).
+_DONE_MARKER_RE = re.compile(r"·\s*status:\s*done\b|^- \[[xX]\]|^- ~~")
 
 
 def parse(text):
@@ -85,6 +87,9 @@ def parse(text):
 def validate(themes, stories, tasks):
     """Return (hard_fails, warnings)."""
     hard, warn = [], []
+    big = themes.count(BIG_PICTURE)
+    if big != 1:
+        hard.append(f'expected exactly one "## {BIG_PICTURE}" section, found {big}')
     seen = {}
     for t in tasks:
         loc = f'[#{t["id"]}] line {t["line"]}'
