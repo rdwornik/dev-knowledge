@@ -435,6 +435,20 @@ Per ADR-28 invariant: `.dev-knowledge` may host **read-only** validators (Layer 
 - **ADR-52** — AGENTS.md convention (superseded by ADR-53)
 - **ADR-53** — CLAUDE.md as single canonical agent-instruction file: supersedes ADR-52
 - **ADR-54** — Codex reviewer config as global standard: canonical source at `codex/AGENTS.md`, deployed to `~/.codex/AGENTS.md`; per-repo `AGENTS.md` only for repo-specific review rules
+- **ADR-55** — applied-task internalization gate: role+constraints citations + one applied probe + one bounded retry (replaces the 4-item paraphrase gate)
+- **ADR-56** — inline Prompt Generation Card: self-contained card in the bundle entry; authority stays in browser chat
+- **ADR-57** — two-layer bundle contract: unconditional governance floor + scoped operational layer via `next_session_scope`; extends ADR-42
+- **ADR-58** — structured claims + symmetric verification: cited load-bearing claims + executor locatability check + operator ratification
+- **ADR-59** — universal visual repository pattern: dot-prefix configs + ALL-CAPS canonical roots + workspace sort settings; enforced via `audit.py` checks #4–#6
+- **ADR-60** — docs/ folder taxonomy: one semantic role per subfolder (two variants — `.dev-knowledge` vs child code repos)
+- **ADR-61** — git worktree for parallel CC sessions: same-repo parallel requires `git worktree`; cross-repo parallel safe without
+- **ADR-62** — v4 handoff process ratification: ratifies HANDOFF_PROCESS v4/v4.2/v4.3/v4.3.1 as canonical (Path A); disambiguates the v4 naming collision with ADR-45 (explored-not-adopted)
+- **ADR-63** — scrum-master review authority: asymmetric review-authority (cross-repo strażnik review + operator→architect intra-session); Option E hybrid
+- **ADR-64** — BACKLOG.md architecture: lean active file + status-and-priority taxonomy + per-repo routing + read-only schema validator
+- **ADR-65** — BACKLOG done-item disposition: git = technical record, JOURNAL = per-session business record; refines ADR-64 Decision 1
+- **ADR-66** — BACKLOG story-map hierarchy: Big Picture → Theme → User Story → Task; supersedes ADR-64 Decision 2 (flat layout)
+- **ADR-67** — AI-Council process operationalization: six-step gated loop (Frame→Generate→Gate→Run→Verdict→Return); `/council-question`; amends `AI_COUNCIL_PROCESS.md` v1.0
+- **ADR-68** — autonomous overnight review agent: local Task Scheduler → headless read-only review → morning briefing; ephemeral read-only worktrees (ADR-61); self-contained in `~/.claude/night-agent/`
 
 Reference `docs/decisions/README.md` for full index. Council debate transcripts in `docs/decisions/transcripts/`.
 
