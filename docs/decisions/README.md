@@ -51,6 +51,7 @@ subfolder holds AI Council debate outputs that informed them.
 | ADR-64 | 2026-06-01 | BACKLOG.md architecture — lean active file (done items leave, git history is the record), status-and-priority taxonomy (streams/arc sections retired → `repo:` field), per-repo routing of child-repo items, narrow read-only schema validator (AI Council pick verdict) |
 | ADR-65 | 2026-06-01 | BACKLOG done-item disposition — git is the technical record (forward-indexed via commit convention), JOURNAL per-session narrative is the business record (no per-item write); refines ADR-64 Decision 1 (Path A) |
 | ADR-66 | 2026-06-01 | BACKLOG story-map hierarchy — Big Picture → Theme → User Story → Task (Scrum + Patton story mapping); operator scans goals, LLM reads task detail; drops `repo:`; supersedes ADR-64 Decision 2 (flat layout) only (Path A) |
+| ADR-68 | 2026-06-01 | Autonomous overnight review agent — local Task Scheduler → headless `claude -p` read-only review → morning briefing (Option B); subscription auth (operator override of Council API-key rec) + model-tiering (Sonnet scan / Opus synth) + token/runtime caps; scoped deny-policy makes read-only physically true; read-only worktrees (ADR-61); sequential over ~6 repos; max-5 cited findings; runtime system self-contained in `~/.claude/night-agent/` |
 
 ## Transcript naming convention
 
