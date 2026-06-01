@@ -16,8 +16,14 @@ repos:
         files: '(^scripts/.*\.py$|^pyproject\.toml$|^tach\.toml$|^ARCHITECTURE\.md$)'
         pass_filenames: false
       - id: validate-backlog
-        name: Validate BACKLOG.md schema (ADR-64/65)
+        name: Validate BACKLOG.md story-map (ADR-66)
         entry: python scripts/validate_backlog.py
         language: system
         files: '^BACKLOG\.md$'
         pass_filenames: false
+      - id: backlog-id-on-close
+        name: Require [#id] when a commit removes a backlog task
+        entry: python scripts/check_backlog_commit_msg.py
+        language: system
+        stages: [commit-msg]
+        always_run: true

@@ -51,6 +51,20 @@ docs(adr): ADR-65 done-item disposition           # ADR number is itself the ind
 
 This indexes commits **going forward only.** Git history is immutable — **historical commits are never rewritten** (ADR-65). Pre-convention closures are located via the SHAs already embedded in retired entries (preserved in the one-time migration JOURNAL map).
 
+**Enforced by a `commit-msg` hook.** `scripts/check_backlog_commit_msg.py` (pre-commit `commit-msg` stage) **fails any commit that removes a `- [#id]` task from `BACKLOG.md` without referencing that id** (`[#id]` or `closes [#id]`) in the message. A reworded task (id present before and after) does not trigger. Install it once per machine alongside the standard hooks:
+
+```
+pre-commit install --hook-type commit-msg
+```
+
+**"What's been implemented" query.** Because done tasks **leave** `BACKLOG.md` (ADR-65) and git is the implementation record, the list of completed tasks with their implementing commits is:
+
+```
+git log --grep 'closes \[#'
+```
+
+This is the detailed implementation history the active file deliberately does not carry.
+
 ## Pre-commit setup
 
 <!-- scope: meta -->
