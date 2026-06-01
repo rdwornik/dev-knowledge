@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-05-14
+> Last updated: 2026-06-01
 
 ---
 
@@ -1148,7 +1148,7 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 - Ambiguous rules — hooks fail loudly; vague rule = constant friction
 
 **Real examples in Rob's ecosystem:**
-- `.dev-knowledge/.pre-commit-config.yaml` — runs `normalize_headers.py` + codemap-freshness check (scope-tag enforcement withdrawn per ADR-48)
+- `.dev-knowledge/.pre-commit-config.yaml` — `normalize-dated-headers`, `codemap-freshness`, `validate-backlog`, `audit-health` (the [#69] self-conformance gate), `backlog-id-on-close` (commit-msg). (scope-tag enforcement withdrawn per ADR-48; `ruff` documented but not wired — BACKLOG #13)
 - corp-monorepo pre-commit (likely): ruff format, pytest collection check (verify per repo)
 
 **Anti-patterns:**
@@ -2297,8 +2297,8 @@ Keep it tight. If something doesn't fit one of these categories, it goes somewhe
 
 Two options for code review (A/B test both, then standardize):
 
-**Option A — /ultrareview (Claude Code built-in):**
-Cloud-based multi-agent review. Run without arguments (current branch) or with PR number. No second terminal needed.
+**Option A — /code-review ultra (Claude Code built-in; `/ultrareview` is the deprecated alias):**
+Cloud-based multi-agent review. Run without arguments (current branch) or with a PR number. No second terminal needed.
 
 **Option B — Codex CLI (automated, single command):**
 `/codex-review <topic>` wraps `codex exec --output-last-message`. Produces dated, frontmatter-wrapped audit at `docs/audits/YYYY-MM-DD-codex-{topic}.md`. Read-only sandbox. Opt-in `-AutoCommit`. Requires ChatGPT Plus subscription. See `~/.claude/bin/codex-review.README.md`.
