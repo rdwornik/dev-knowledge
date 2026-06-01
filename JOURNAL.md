@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-01 — ADR-64 ratified (BACKLOG architecture) + methodology-audit branch merged
+
+- Did: Operator convened the AI Council (pick mode, 4-model panel + openai synthesizer, 2 rounds) on the BACKLOG-architecture question from the 2026-05-31 diagnosis §G brief and authored **ADR-64**. Committed ADR-64 + its routed transcript, brought `docs/decisions/README.md` ADR index current (added rows **62/63/64** — 62/63 were missing) + ADR-64 traceability, and merged the audit branch to `main` (`--no-ff`).
+- Result: **ADR-64 Accepted.** Verdict: Q1-A done-items-leave (honor ADR-47); Q2-A status-and-priority taxonomy (named-stream + session-arc sections retired → `repo:` field; `## Now / Open-P1..P3 / Blocked / Coordination`); Q3-A relocate child-repo execution items (separate child-repo sessions per ADR-41); Q4-B-narrow restore rigid schema + add a narrow read-only `scripts/validate_backlog.py`. Active file projected 107 → ~46 entries. Baseline green: 105 tests, ruff clean, audit health 9/9. **Migration itself NOT executed** — it is a follow-on session gated on a migration spec (ADR-64 §"Open implementation questions").
+- Changes: `docs/decisions/ADR-64-backlog-architecture.md` (new); `docs/decisions/transcripts/council-out-20260601_103339-pick-council-backlog-architecture-2026-05-31.md` (new, routed); `docs/decisions/README.md` (index rows 62/63/64 + ADR-64 traceability); this JOURNAL entry. Branch `docs/methodology-canonical-audit-2026-05-31` (7 audit + ADR/README + journal commits) merged → `main`.
+- Abandoned: N/A. Did NOT edit `BACKLOG.md` (migration is a separate spec'd session); did NOT execute the migration; did NOT push to remote; did NOT delete the merged branch.
+- Next: write the BACKLOG migration spec resolving ADR-64's 4 open implementation questions (child-repo triage rule; minimal schema; `## Now` mechanics; in-progress surface); then execute the revertable migration (purge done / relocate child-repo / restructure / add validator) + reconcile PLAYBOOK §10. Add BACKLOG follow-up entries (migration tracking; line-70 obsolescence) when BACKLOG editing resumes.
+
+---
+
 ### 2026-05-31 — Methodology + canonical-files audit vs copilot-collections (analysis-only)
 
 - Did: Audited the full `.dev-knowledge` methodology surface (Track 1 artifacts: skills/commands/hooks/instructions; Track 2 canonical living-files) against the `copilot-collections` Customization-track reference, and produced a Council-ready architecture diagnosis of `BACKLOG.md` (Track 3, operator priority-one). A bounded sub-agent studied the reference (Customization track only); Phase-0 grounding read CLAUDE/VISION/ARCHITECTURE/BACKLOG(full)/ESSENTIALS/AI_COUNCIL_PROCESS/PLAYBOOK(TOC+§7+§10)/ADR-39/41/47/48 and verified Track-1 facts against live files. **NO BACKLOG edits, NO structural changes, NO merge.**
