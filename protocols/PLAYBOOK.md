@@ -825,6 +825,16 @@ When opening a new session that continues prior work:
 ### Parallel sessions & worktree discipline (per ADR-61)
 <!-- scope: meta -->
 
+**Decide first:** *different* repos in parallel need **no** worktree — separate `.git/`
+directories already isolate them, so just open two Claude Code sessions (this is the common
+case, e.g. a corp-monorepo handoff and an ai-council handoff at the same time). Only
+*same-repo* parallel work requires a `git worktree` (ADR-61).
+
+**Lifecycle (same-repo only):** a worktree is **per-goal scratch, not a persistent
+checkout** — *provision → use → ephemeral teardown*. Create one for a single goal, work it on
+its own branch, and remove it the moment that branch merges. It must not linger between goals;
+a worktree that outlives its goal becomes an orphan (see step 4).
+
 **1 — When a worktree is needed**
 
 - **Different repos in parallel: already safe.** Separate `.git/` directories isolate each
@@ -858,7 +868,7 @@ distinct branch (git forbids the same branch in two worktrees simultaneously).
   in conversation); a phantom reservation outside the file causes id collisions (the #68/#69
   near-misses).
 
-**4 — Integration & cleanup** (once the parallel branch's work is done)
+**4 — Integration & ephemeral teardown** (the moment the parallel branch's work is done)
 
 - **Don't linearize across worktrees.** A branch checked out in another worktree cannot be
   rebased from a different session (git blocks it). Use a `--no-ff` merge (repo norm) as the
@@ -872,7 +882,47 @@ git -C <repo> worktree prune
 git -C <repo> branch -d <merged-branch>
 ```
 
-Full rationale: ADR-61.
+- **Verify the teardown left nothing behind.** Run `git worktree list` (only the main
+  worktree should remain) **and** confirm the sibling worktree directory is gone from disk.
+  `git worktree remove` refuses (or a process lock blocks it) when the dir is busy — then git
+  deregisters nothing and/or the directory survives as an orphan that must be deleted by hand.
+  Skipping this check is exactly how the `.dev-knowledge-cadence` and `.dev-knowledge-night-adr`
+  sibling orphans accumulated: deregistered from git, but their directories were never removed.
+
+Full rationale: ADR-61. This teardown is the worktree-specific case of the broader rule that
+any automated or scratch-creating process cleans up — and verifies it cleaned up — everything
+it created (the no-leftovers invariant, next).
+
+### No leftovers: automated processes clean up — and verify it (invariant)
+<!-- scope: meta -->
+
+**Invariant.** Any automated or scratch-creating process — a parallel-session worktree (above),
+the night-agent's per-run review worktree (ADR-68), a temp/scratch file, a generated bundle's
+intermediate artifacts — **removes everything it created, and verifies the removal**, before it
+counts as done. Cleanup is part of the process, not a follow-up, and it must fire even on abort
+or failure (ADR-68's worktrees are "created per run and removed at run end, cleanup fires even
+on abort/failure" — that is the model to copy).
+
+**The verification is a concrete round-trip:** a provision→cleanup cycle leaves the tree
+*identical* to its pre-provision state. Diff before against after — if anything the process
+created survives, teardown is incomplete. For worktree/scratch work the round-trip is three
+commands:
+- `git worktree list` → only the main worktree remains (no leftover registration).
+- no stray sibling directories on disk (`<repo>-*` worktree dirs gone — the check G4 step 4 names).
+- `git status` → clean (no untracked scratch/temp files left behind).
+
+**The failure this prevents:** the `.dev-knowledge-cadence` and `.dev-knowledge-night-adr` sibling
+worktree directories — created for a goal, deregistered from git, but never removed from disk, so
+they linger as orphans. (One was locked by another process — which is *exactly* when a `remove`
+silently no-ops and the result must be re-checked, never assumed.) An orphan is invisible to a
+presence-checking audit, which verifies that required files *exist* and structurally cannot detect
+a file that exists but should not (the 2026-05-17 decommissioning-gap LESSON). So the round-trip
+diff is an explicit process step at run end, not something a later scan will catch.
+
+**Lightweight check, not heavy tooling.** The three commands above *are* the check — a process
+step, not a script (Layer 2 never executes — critical rule #4). Run them at the end of any
+worktree/scratch-creating run. A read-only `audit.py` assertion that no stray `<repo>-*` sibling
+exists could later mechanize it — noted as a candidate, not built here.
 
 ### Section history
 <!-- scope: meta -->
@@ -880,6 +930,8 @@ Full rationale: ADR-61.
 - v1.0 (2026-04-25) — initial. 5 subsections: scope declaration, stop-signs, decision fatigue threshold, recursive planning anti-pattern, session resumption protocol. Codifies patterns observed in 2026-04-24 sessions. Will refine after live use.
 - v1.1 (2026-05-28) — add §Parallel sessions (ADR-61).
 - v1.2 (2026-06-01) — reorganize §Parallel sessions into When-needed / Setup / Discipline / Integration+cleanup; add the parallel-work discipline rules (one-worktree-per-goal, serialize canonical-file edits, write-time id allocation, `--no-ff` over cross-worktree rebase, prune+delete after merge) from the 2026-06-01 worktree-sprawl LESSON. No rule removed.
+- v1.3 (2026-06-01) — G4 process-hardening: add the decide-first (different-repo → no worktree) line + the provision→use→ephemeral-teardown lifecycle framing at the top; reframe step 4 as ephemeral teardown and add the verify-teardown-left-nothing-behind step (grounded in the `.dev-knowledge-cadence`/`-night-adr` orphans); link to the no-leftovers invariant. No rule removed.
+- v1.4 (2026-06-01) — G5 process-hardening: add the "No leftovers" invariant subsection (automated/scratch-creating processes remove + verify everything they create; provision→cleanup round-trip leaves the tree identical), generalizing the worktree teardown; cites the ADR-68 ephemeral-worktree precedent + the decommissioning-gap LESSON; documents the three-command lightweight check, no tooling built.
 
 ---
 
@@ -887,7 +939,7 @@ Full rationale: ADR-61.
 <!-- scope: meta -->
 <!-- version: 1.0 — 2026-04-24 -->
 
-New tools, models, agents, and patterns emerge constantly in 2025-2026 LLM dev (Claude Code releases, OpenAI Codex updates, Chinese models like GLM/Qwen, MCP servers, multi-agent frameworks, Spec Kit/Kiro). Without explicit process, adoption thrashes (re-evaluating same tool quarterly), forgets context (why did we reject MCP memory?), or misses signals (relevant tool sat in tech-radar chat unread for weeks).
+New tools, models, agents, and patterns emerge constantly in 2025-2026 LLM dev (Claude Code releases, OpenAI Codex updates, Chinese models like GLM/Qwen, MCP servers, multi-agent frameworks, Spec Kit/Kiro). Without explicit process, adoption thrashes (re-evaluating same tool quarterly), forgets context (why did we reject MCP memory?), or misses signals (a relevant tool sits unread for weeks).
 
 This section defines the lifecycle: from "I saw something on Twitter" to "we adopted/rejected/deferred."
 
@@ -922,7 +974,7 @@ Discovery → Triage → Evaluation → Decision → Implementation → Review
 
 **Cadence:** weekly informal scan. No formal time box.
 
-**Capture:** when something looks interesting, drop a one-liner into the next quarterly tech-radar entry under "discovered, not yet triaged" — don't wait for full evaluation.
+**Capture:** when something looks interesting, note it informally (a JOURNAL line, or operator scratch) under "discovered, not yet triaged" — don't wait for full evaluation. There is no formal radar inbox (tech-radar retired — see "Where evaluations are recorded").
 
 ### Stage 2: Triage
 <!-- scope: meta -->
@@ -934,7 +986,7 @@ Discovery → Triage → Evaluation → Decision → Implementation → Review
 - **Platform fit:** runs on Windows/PowerShell (or has portable equivalent)
 - **Cost-bounded:** trial cost <$50 OR API trial available
 
-If 4+ criteria met → proceed to Evaluation (majority-of-6 threshold; ≤3 = not worth evaluation cost). If 3 or fewer → mark "deferred" with reason in tech-radar.
+If 4+ criteria met → proceed to Evaluation (majority-of-6 threshold; ≤3 = not worth evaluation cost). If 3 or fewer → record "deferred" with the reason (a JOURNAL note, or a BACKLOG "Tooling & evaluation" item if it carries a reopen trigger).
 
 **Anti-pattern:** evaluating every novelty. The job of triage is saying no.
 
@@ -966,8 +1018,8 @@ Decision threshold for which mode: per PLAYBOOK Section 5 "When to run Council v
 Three outcomes:
 
 - **Adopt:** triggers Implementation (Stage 5)
-- **Reject:** record in tech-radar with reason; closed unless evidence changes
-- **Defer:** record in tech-radar with explicit reopen trigger (e.g., "if cost drops below X" or "after solo→team transition")
+- **Reject:** record the reason (an ADR if architectural, else a JOURNAL note); closed unless evidence changes
+- **Defer:** record an explicit reopen trigger (e.g., "if cost drops below X" or "after solo→team transition") as a BACKLOG "Tooling & evaluation" item — where deferred tool evals already live (e.g. Kimi K2, the `ecosystem/` model)
 
 **Document the decision:** even rejection deserves a paragraph. Future self asks "why didn't we adopt MCP memory?" — answer must exist.
 
@@ -980,44 +1032,40 @@ Standard pipeline:
 3. **Updates to:** CLAUDE.md (Slash commands §7, Skills §8, or Hooks §9 as applicable), ENVIRONMENT.md (if env-level), JOURNAL entries
 4. **Hooks/tests/CI** if enforcement needed (LLMs advise; mechanism enforces, per Council #28)
 
-Cross-link from tech-radar entry to the ADR + implementation commits.
+Cross-link the ADR to its implementation commits; the JOURNAL entry records the adoption (the `Changes:` line replaces the retired CHANGELOG — ADR-49).
 
-### Stage 6: Review (periodic)
+### Stage 6: Review (on-trigger)
 <!-- scope: meta -->
 
-**Cadence:** quarterly tech-radar snapshot (`docs/tech-radar/YYYY-Q.md`).
+**Cadence:** the quarterly tech-radar snapshot is **retired** — `docs/tech-radar/` is archived (ADR-60; it held one dormant entry and never ran on a real cadence; reversible if a quarterly cadence ever resumes). Review is now **on-trigger**, not scheduled: re-examine an item when its reopen trigger fires, when it visibly stops earning its keep, or when a replacement appears — not on a calendar.
 
-**Per quarter, for each Adopted item:**
+**When an Adopted item is reviewed:**
 - Still earning its keep? (concrete value vs cost/maintenance)
 - Configuration drift? (deprecated flags, version skew)
 - Replacement candidate emerged?
 
-**Per quarter, for each Deferred item:**
-- Reopen trigger met?
-- Still relevant or made obsolete by adoption of alternative?
+**When a Deferred item's reopen trigger fires:**
+- Re-triage it (Stage 2).
+- Still relevant, or made obsolete by an alternative already adopted?
 
-**Per quarter, for each Rejected item:**
-- Re-check if rejected for "wrong reason at the time" (rare but happens)
+**Rejected items:**
+- Re-open only if the rejection reason no longer holds ("wrong reason at the time" — rare but happens).
 
-**Output:** updated tech-radar quarterly entry. NOT each time something changes — quarterly batch keeps cost down.
+**Where it lands:** the outcome is recorded where the decision lives — an ADR (architectural), a BACKLOG "Tooling & evaluation" update (deferred items), or a JOURNAL note. No separate radar inventory to maintain.
 
-### Tech radar folder
+### Where evaluations are recorded
 <!-- scope: meta -->
 
-Location: `docs/tech-radar/`
-
-**File pattern:** `YYYY-Q.md` for quarterly snapshots; `YYYY-MM-DD-{tool}.md` for per-tool deep-dives when warranted (e.g. Spec Kit eval).
-
-**Distinct from `docs/research/`:**
-- `docs/research/` — research-mode debate outputs (point-in-time, rich content)
-- `docs/tech-radar/` — quarterly inventory of what's adopted/rejected/deferred (snapshot)
-
-A tool might appear in BOTH (research debate evaluating it; tech-radar entry recording the decision and tracking subsequent review).
+`docs/tech-radar/` is archived (`docs/archive/tech-radar/`, per ADR-60; reversible if a quarterly cadence ever resumes), and `docs/research/` is retired (ADR-60 2026-05-27 amendment). With no separate radar inventory, an evaluation's record lives where its decision lives:
+- **ADRs** in `docs/decisions/` — the adopt/reject decision itself (research-mode debate transcripts route to `docs/decisions/transcripts/` per ADR-43).
+- **BACKLOG** "Tooling & evaluation" theme — deferred tool evals carrying their reopen triggers (e.g. Kimi K2).
+- **JOURNAL** — the per-session record of what was evaluated and decided.
 
 ### Section history
 <!-- scope: meta -->
 
 - v1.0 (2026-04-24) — initial. 6-stage pipeline, source list, evaluation modes by stake, tech-radar folder convention. Codifies organic 2026-Q1/Q2 adoption practice (Codex, Tach, Opus 4.7, ccusage, Perplexity, MCP-memory-deferred, GLM/Qwen-deferred, Spec Kit-evaluated).
+- v1.1 (2026-06-01) — Phase-R: drop the retired `docs/tech-radar/` substrate (archived per ADR-60; operator-confirmed the quarterly cadence is retired). Stage 6 reframed quarterly → on-trigger; capture/defer/reject records redirected to JOURNAL / BACKLOG "Tooling & evaluation" / ADRs; the "Tech radar folder" subsection replaced with "Where evaluations are recorded". Six-stage pipeline structure unchanged.
 
 ---
 
@@ -1041,6 +1089,48 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 - User-level: `~/.claude/skills/`, `~/.claude/commands/`, `~/.claude/settings.json` — applies across all repos
 - Project-level: `<repo>/.claude/skills/`, `<repo>/.claude/commands/`, etc. — applies only in that repo
 - Both can coexist; project-level takes precedence when names collide
+
+### Usage protocol: which command / hook, when
+<!-- scope: runtime -->
+<!-- version: 1.0 — 2026-06-01 -->
+
+7a–7d say what each mechanism *is*; the Adoption protocol says how to *add* one. This is the mid-session "which do I reach for, and does it fire on its own?" map, grounded in the live `~/.claude/` + repo `.claude/` contents (2026-06-01). When it drifts from `ls ~/.claude/commands ~/.claude/skills`, **the filesystem wins** — re-ground before trusting the table.
+
+**Commands** — you type `/<name>`; nothing fires them for you:
+
+| Command | Level | When to invoke |
+|---------|-------|----------------|
+| `/boot` | user | Session start — load memory, verify learned-rules, recent commits + JOURNAL. First thing, every session. |
+| `/session-summary` | user | Session end / handing to browser chat (Path A). Also appends a TOKEN-LOG snapshot if >7 days stale. |
+| `/evolve` | user | Weekly or every ~10 sessions — evolution audit (promote / prune / graduate learned rules). Not per-session. |
+| `/codex-review` | user | Before merging a **code** change (3+ files / safety-critical). Code only — never a markdown-only diff (LESSON 2026-05-19). |
+| `/save` | repo | Stage + commit with a Conventional Commits message + full body (git-discipline rule). After a discrete change. |
+| `/handoff` | repo | Two-phase browser→browser handoff per HANDOFF_PROCESS v4 (ADR-62): "create handoff" → "complete handoff". At ~2h, context still fresh. |
+
+**Skills** — read on-demand by Claude when the topic matches; you do **not** invoke them:
+
+| Skill | Level | Fires |
+|-------|-------|-------|
+| `gotchas` | user | Auto-consulted before edits when an encoding / shell / test-pitfall pattern is in play. |
+| `verify` | user | Domain verification scripts for the ecosystem; consult/run after `pytest` passes. |
+
+**Subagents** — Task-tool, read-heavy / write-light (`ecosystem-snapshot`, `report-generator`, both Haiku, user-level): invoke for read-only fan-out (snapshots, report condensation), never as code-gen peers (7d).
+
+**Hooks** — auto vs manual:
+
+| Hook | Where | Fires |
+|------|-------|-------|
+| `block-onedrive` | `~/.claude/settings.json` PreToolUse:Bash | **Auto**, before every Bash call — blocks OneDrive-Blue-Yonder paths (P0 safety). |
+| SessionStart evolution reminder | `~/.claude/settings.json` | **Auto**, at session start (echoes rule / correction counts). |
+| Stop notify + evolution scorecard | `~/.claude/settings.json` | **Auto**, at session end (`claude-notify.ps1` + scorecard reminder). |
+| `normalize-dated-headers` | `.pre-commit-config.yaml` | **Auto** on commit — dated-log header normalization. |
+| `codemap-freshness` | `.pre-commit-config.yaml` | **Auto** on commit — ARCHITECTURE codemap vs `scripts/` staleness. |
+| `validate-backlog` | `.pre-commit-config.yaml` | **Auto** on commit — BACKLOG story-map schema (ADR-66). |
+| `audit-health` | `.pre-commit-config.yaml` | **Auto** on commit — `audit.py health`; **FAIL blocks the commit**, WARN informs ([#69]). |
+| `backlog-id-on-close` | `.pre-commit-config.yaml` (commit-msg) | **Auto** — requires `[#id]` when a commit removes a backlog task. |
+| `ruff` | — | **Manual** — documented but NOT wired as a hook (BACKLOG #13); run `ruff check --fix` yourself / via `/save`. |
+
+CLAUDE.md is the inventory authority — §7 (commands), §8 (skills), §9 (hooks); this table is the operational "when". Adding/removing any of them follows the Adoption protocol below and updates both surfaces.
 
 ### 7a. Skills (progressive-disclosure knowledge modules)
 <!-- scope: runtime -->
@@ -1264,9 +1354,9 @@ After install, link from:
 - **CLAUDE.md** — for project-level Claude Code-specific behavior (per Gap #5 template Slash commands, Skills, and Hooks sections)
 - **JOURNAL.md entry** for the session that adopted it
 - **JOURNAL.md `Changes:` line** for repo-visible adoptions (CHANGELOG.md retired — ADR-49)
-- **tech-radar 2026-Q?.md** Adopted (active inventory) section if user-level (per Gap #17 Continuous Improvement Section 6)
+- **JOURNAL.md** for user-level adoptions too (they need no per-repo CLAUDE.md); file a BACKLOG "Tooling & evaluation" item if it warrants periodic value review (tech-radar retired — see §Continuous Improvement)
 
-User-level adoptions don't need per-repo CLAUDE.md updates (they apply everywhere automatically) but do warrant tech-radar entry for periodic value review.
+User-level adoptions don't need per-repo CLAUDE.md updates (they apply everywhere automatically); record them in JOURNAL, and file a BACKLOG "Tooling & evaluation" item if they warrant periodic value review.
 
 #### Anti-patterns
 <!-- scope: meta -->
@@ -1433,6 +1523,7 @@ PURPOSE: Why (1 sentence)
 
 → Read CLAUDE.md + relevant gotchas
 → Git workflow (branch, commit per step, pytest between)
+→ Hooks/commands in play: which auto-fire (pre-commit gate: audit-health/validate-backlog; block-onedrive on Bash) + which to invoke (/save to commit; /codex-review before merging code) — see §"Usage protocol: which command / hook, when"
 
 UNDERSTAND:
 - What's the problem?
@@ -2022,6 +2113,21 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
 - Manual weekly ritual rejected: forgetting risk (4 weeks stale before ccusage adoption)
 - Threshold-based: amortized ~$0.006/run, auto-triggers on staleness, zero forgetting risk
 - Short format keeps entries scannable over months; full format reserved for migrations
+
+### Output the operator copies into browser chat (render-layer note)
+<!-- scope: runtime -->
+
+The trap is the **render layer**, not what Claude writes. A plain markdown pipe-table (`| col | col |`) is the token-cheapest table to write *in a file*, but the Claude Code TUI renders it by **painting Unicode box-drawing borders** (`┌─┬─┐ │ ├─┼─┤ └─┴─┘`) client-side. Those glyphs are added at *display* time — Claude never emits them. So a rule that only bans Claude from writing box-drawing is a no-op: it forbids something Claude already doesn't do, while the operator still copies the painted borders out of the terminal (Path A) into browser chat and pays ~3× the tokens for them.
+
+**The fix targets render, not emit.** For any report the operator copies back — `/session-summary` output and ad-hoc step reports — make it:
+1. **Flat** — plain markdown or `key: value` lines / bullets; no column-padding spaces.
+2. **Code-fenced** — wrap it in a triple-backtick block. A fenced block renders raw (monospace, un-painted), so the pasted text is exactly the characters Claude wrote — no borders.
+
+A bare (un-fenced) pipe-table is the failure case: clean-looking in the TUI, box-drawing on paste. This is the same fenced-block discipline already used for Scale-S PowerShell snippets (ESSENTIALS § "Architect → operator channel-discipline for execution actions") and downloadable prompts (§2 "Delivery format") — extended to every copy-back report. Reconciles with Path A above (`/session-summary` → paste into Claude.ai).
+
+**Operator-side option (not a repo change):** Claude Code also exposes an output-style setting; a plainer style reduces TUI table-painting globally. That is runtime config under `~/.claude/` — outside this repo's scope, noted for the operator, not changed here.
+
+Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subsection is the rationale authority; the CLAUDE.md bullet is the point-of-use rule.
 
 ---
 

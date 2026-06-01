@@ -6,7 +6,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.4 — 2026-06-01 -->
+<!-- version: 2.5 — 2026-06-01 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -59,7 +59,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 - Claude Code runtime config → `~/.claude/`
 - Council debate transcripts originate in `ai-council/`; they archive here in `docs/decisions/transcripts/`
 
-- **Output formatting:** Session summaries and step reports use plain markdown tables (`| col | col |`) or bullet lists. No Unicode box-drawing characters (`┌─┐ │ ├─┤ └─┘`). No column-padding spaces. Markdown is human-readable and token-cheap; box-drawing is terminal-only and costs ~3x the tokens for equivalent info. This rule governs **chat/terminal output**; persistent diagrams in `ARCHITECTURE.md` are graphical (mermaid) per ADR-51, not subject to this output-formatting ban.
+- **Output formatting (render-layer):** Claude does **not** emit box-drawing glyphs — the Claude Code TUI *paints* plain markdown pipe-tables (`| col | col |`) as Unicode borders (`┌─┬─┐ │ └─┴─┘`) **client-side at render time**. So a bare table looks clean in the terminal but copies into browser chat as costly border glyphs (~3× the tokens), and a rule that merely bans Claude from *writing* box-drawing is a no-op (Claude already doesn't). The working fix is at the render layer: any report the operator copies out must be (1) **flat** — plain markdown or `key: value` / bullet lists, no column-padding spaces — **and** (2) **wrapped in a triple-backtick code fence**, which makes the TUI render it raw/un-painted so the copied text carries no borders. Same fenced-block discipline already used for Scale-S snippets (ESSENTIALS) and downloadable prompts (§2). Persistent diagrams in `ARCHITECTURE.md` are mermaid (ADR-51/ADR-59), out of scope. Full rationale + `/session-summary` reconciliation: PLAYBOOK §8 "Output the operator copies into browser chat".
 
 ## 5. Critical rules
 <!-- scope: meta -->
@@ -72,6 +72,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 6. **Keep files consistent** — ESSENTIALS summarizes PLAYBOOK, not copies it; divergence causes drift
 7. **No executable rules in this repo** — those go in `~/.claude/` with `verify:` lines
 8. **Do not recreate `CHANGELOG.md` or `BACKLOG_ARCHIVE.md`** — deleted 2026-05-16; git history + JOURNAL `Changes:` line replace CHANGELOG
+9. **No leftovers** — any automated or scratch-creating process (parallel-session worktree, night-agent run per ADR-68, temp file) removes **and verifies removal of** everything it created before it counts as done; cleanup fires even on abort. The provision→cleanup round-trip must leave the tree identical. See PLAYBOOK §Session-boundaries "No leftovers" (the `.dev-knowledge-*` orphans are the failure it prevents)
 
 ## 6. Session start protocol
 <!-- scope: runtime -->
@@ -94,18 +95,23 @@ Verify after updates: ESSENTIALS ↔ PLAYBOOK alignment; ENVIRONMENT ↔ `~/.cla
 User-level (`~/.claude/commands/`):
 - `/session-summary` — generate token-efficient session summary + handoff
 - `/boot` — load context (skills, memory, recent commits)
-- `/save` — stage + commit with Conventional Commits message
+- `/evolve` — evolution audit: promote/prune/graduate learned rules (weekly / ~10 sessions)
+- `/codex-review` — invoke Codex review on a staged **code** diff (code only)
 
 Repo-level (`./.claude/commands/`):
 - `/save` — commit workflow with full body per git-discipline rule
 - `/handoff` — generate/complete handoff per `HANDOFF_PROCESS.md` v4 two-phase flow (ADR-62)
+
+(When to invoke each + auto-vs-manual for hooks: PLAYBOOK §"Usage protocol: which command / hook, when".)
 
 ## 8. Skills active
 <!-- scope: runtime -->
 
 User-level (`~/.claude/skills/`):
 - `gotchas` — universal dev gotchas (encoding, shell safety, test pitfalls)
-- `boot`, `session-summary`, `handoff`, `save` — session lifecycle skills
+- `verify` — domain-specific verification scripts for the ecosystem (run after `pytest`)
+
+(`boot`/`session-summary`/`handoff`/`save` are **commands**, not skills — see §7; current Claude Code also surfaces commands in its skill picker, but their files live under `commands/`, not `skills/`.)
 
 Repo-level (`./.claude/`):
 - No repo-level skills directory exists yet (`.claude/` holds `commands/` and `rules/` only). Repo-specific empirical patterns live in `LESSONS.md` (append-only) — read it before structural changes; universal gotchas are the user-level `gotchas` skill above. If a repo-specific gotchas skill is later added it goes under `.claude/skills/gotchas/`.
@@ -155,6 +161,7 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.2 (2026-05-24) — self-audit fix (E1): §8 repo-level skills bullet corrected — no `.claude/skills/` dir exists; repo gotchas live in LESSONS.md
 - v2.3 (2026-05-28) — §11 ADR list rotated to most-recent 5 (57–61) per the file's own "last 5" header; durability-audit clear-gap C3
 - v2.4 (2026-06-01) — doc-coherence audit: §11 rotated to 64–68; §7 `/handoff` corrected to v4 two-phase; §9 pre-commit list corrected to actual hooks (drop unwired `ruff`, add `audit-health`/`validate-backlog`/`codemap-freshness`); §4 ruff marked manual; version comment synced
+- v2.5 (2026-06-01) — process-hardening sweep: §4 output-formatting rewritten to the render-layer fix (G3); §5 critical rule #9 no-leftovers invariant (G5); §7 user-level command list corrected (+`/evolve`, +`/codex-review`, −`/save` which is repo-level) + usage-protocol cross-ref; §8 skills list corrected (+`verify`; clarify `boot`/`session-summary`/`handoff`/`save` are commands, not skills) (G6)
 
 ---
 
