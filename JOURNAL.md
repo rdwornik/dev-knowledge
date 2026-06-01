@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-01 — Worktree-sprawl consolidation + parallel-work discipline captured
+
+- Did: Closed out this session's parallel-work sprawl — merged ADR-68 night-agent `--no-ff` (resolved the README index conflict, ordered ADR-66→67→68), pruned 2 stale worktrees (cadence/audit-cleanup) + deleted 5 merged branches; captured the hard-won discipline as a LESSON and reorganized PLAYBOOK §Parallel-sessions (refs ADR-61).
+- Result: `main` clean (139 tests, ruff, audit health 10/10). Phase B (LESSONS + PLAYBOOK + this entry) sits on `chore/worktree-discipline`, unmerged, for fresh-eyes review. Orphaned `.dev-knowledge-cadence` dir remains on disk (locked by another process; deregistered from git) — needs a manual `Remove-Item`.
+- Next: fresh-eyes review of `chore/worktree-discipline` → merge on GO. The night-adr anchor worktree + its merged branch are removed at session end (can't delete the worktree a live session runs from).
+
+---
+
 ### 2026-06-01 — Pre-commit enforcement gate: audit.py health now blocks (closes [#69])
 
 - Did: Turned the detectable-on-demand standard into an actual **gate** (Phase-1 precondition for universalization). Added the `audit-health` pre-commit hook (`python scripts/audit.py health`, `always_run`, `pass_filenames: false`) — reuses the existing pre-commit framework, joins the already-gating validate-backlog + codemap-freshness + commit-msg `[#id]` hooks. **#8's actual scope is session-lifecycle hooks, not this** — flagged at the checkpoint; operator allocated **#69** (next real free id; verbal #69/#70 reservations released, ML-3 is a lesson).
