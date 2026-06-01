@@ -891,7 +891,38 @@ git -C <repo> branch -d <merged-branch>
 
 Full rationale: ADR-61. This teardown is the worktree-specific case of the broader rule that
 any automated or scratch-creating process cleans up — and verifies it cleaned up — everything
-it created (the no-leftovers invariant).
+it created (the no-leftovers invariant, next).
+
+### No leftovers: automated processes clean up — and verify it (invariant)
+<!-- scope: meta -->
+
+**Invariant.** Any automated or scratch-creating process — a parallel-session worktree (above),
+the night-agent's per-run review worktree (ADR-68), a temp/scratch file, a generated bundle's
+intermediate artifacts — **removes everything it created, and verifies the removal**, before it
+counts as done. Cleanup is part of the process, not a follow-up, and it must fire even on abort
+or failure (ADR-68's worktrees are "created per run and removed at run end, cleanup fires even
+on abort/failure" — that is the model to copy).
+
+**The verification is a concrete round-trip:** a provision→cleanup cycle leaves the tree
+*identical* to its pre-provision state. Diff before against after — if anything the process
+created survives, teardown is incomplete. For worktree/scratch work the round-trip is three
+commands:
+- `git worktree list` → only the main worktree remains (no leftover registration).
+- no stray sibling directories on disk (`<repo>-*` worktree dirs gone — the check G4 step 4 names).
+- `git status` → clean (no untracked scratch/temp files left behind).
+
+**The failure this prevents:** the `.dev-knowledge-cadence` and `.dev-knowledge-night-adr` sibling
+worktree directories — created for a goal, deregistered from git, but never removed from disk, so
+they linger as orphans. (One was locked by another process — which is *exactly* when a `remove`
+silently no-ops and the result must be re-checked, never assumed.) An orphan is invisible to a
+presence-checking audit, which verifies that required files *exist* and structurally cannot detect
+a file that exists but should not (the 2026-05-17 decommissioning-gap LESSON). So the round-trip
+diff is an explicit process step at run end, not something a later scan will catch.
+
+**Lightweight check, not heavy tooling.** The three commands above *are* the check — a process
+step, not a script (Layer 2 never executes — critical rule #4). Run them at the end of any
+worktree/scratch-creating run. A read-only `audit.py` assertion that no stray `<repo>-*` sibling
+exists could later mechanize it — noted as a candidate, not built here.
 
 ### Section history
 <!-- scope: meta -->
@@ -900,6 +931,7 @@ it created (the no-leftovers invariant).
 - v1.1 (2026-05-28) — add §Parallel sessions (ADR-61).
 - v1.2 (2026-06-01) — reorganize §Parallel sessions into When-needed / Setup / Discipline / Integration+cleanup; add the parallel-work discipline rules (one-worktree-per-goal, serialize canonical-file edits, write-time id allocation, `--no-ff` over cross-worktree rebase, prune+delete after merge) from the 2026-06-01 worktree-sprawl LESSON. No rule removed.
 - v1.3 (2026-06-01) — G4 process-hardening: add the decide-first (different-repo → no worktree) line + the provision→use→ephemeral-teardown lifecycle framing at the top; reframe step 4 as ephemeral teardown and add the verify-teardown-left-nothing-behind step (grounded in the `.dev-knowledge-cadence`/`-night-adr` orphans); link to the no-leftovers invariant. No rule removed.
+- v1.4 (2026-06-01) — G5 process-hardening: add the "No leftovers" invariant subsection (automated/scratch-creating processes remove + verify everything they create; provision→cleanup round-trip leaves the tree identical), generalizing the worktree teardown; cites the ADR-68 ephemeral-worktree precedent + the decommissioning-gap LESSON; documents the three-command lightweight check, no tooling built.
 
 ---
 
