@@ -46,6 +46,9 @@ subfolder holds AI Council debate outputs that informed them.
 | ADR-59 | 2026-05-27 | Universal visual repository pattern — dot-prefix discipline (verified exception list incl. `tach.toml`), ALL-CAPS canonical `.md` visibility, workspace sort settings (`sortOrderLexicographicOptions: upper`); enforced via 3 new `audit.py` checks; rolled out to `.dev-knowledge` + 4 child-repo retrofit plans |
 | ADR-60 | 2026-05-27 | docs/ folder taxonomy — semantic role per subfolder (`audits/`=outputs, `council-questions/`=inputs, `decisions/`=ADRs+transcripts, `handoffs/`=session bundles, `research/`=working scratchpad, `archive/`=superseded/dormant); implements Option B of the 2026-05-25 pipeline proposal (closes finding A1); `tech-radar/` archived; append-only/immutable records left as point-in-time history on move |
 | ADR-61 | 2026-05-28 | Git worktree pattern for parallel Claude Code sessions — same-repo parallel sessions require `git worktree` (distinct working dir + HEAD per session); cross-repo parallel is safe without worktree; closes BACKLOG #5 (escalated P1 after ≥3 race incidents 2026-05-26/27) |
+| ADR-62 | 2026-05-30 | v4 handoff process ratification — ratifies HANDOFF_PROCESS v4 + v4.2 + v4.3 + v4.3.1 collectively as canonical (Path A); disambiguates the "v4" naming collision with ADR-45 (explored-not-adopted) |
+| ADR-63 | 2026-05-30 | Scrum-master review authority — unified asymmetric review-authority covering Facet 1 (cross-repo strażnik review, N=3) + Facet 2 (operator→architect intra-session); Option E hybrid trigger-based + per-artifact-class (Path A) |
+| ADR-64 | 2026-06-01 | BACKLOG.md architecture — lean active file (done items leave, git history is the record), status-and-priority taxonomy (streams/arc sections retired → `repo:` field), per-repo routing of child-repo items, narrow read-only schema validator (AI Council pick verdict) |
 
 ## Transcript naming convention
 
@@ -94,6 +97,9 @@ historical artifacts from the manual archival era. **Relocated to `transcripts/a
 | ADR-58 | `council-out-20260526_144851-pick-2026-05-25-handoff-council-Q4-sender-verification-symmetry.md` |
 | ADR-52 | *(no Council transcript — Rob's decision, 2026-05-19; ratifies extant PLAYBOOK convention)* |
 | ADR-53 | *(no Council transcript — Rob's decision, 2026-05-19; based on empirical verification `docs/audits/2026-05-19-cohort1-verification.md`)* |
+| ADR-62 | *(no Council transcript — Path A direct ADR, 2026-05-30; post-hoc record of v4 already implemented + fresh-eyes-validated)* |
+| ADR-63 | *(no Council transcript — Path A direct ADR, 2026-05-30; empirical grounding N=3)* |
+| ADR-64 | `council-out-20260601_103339-pick-council-backlog-architecture-2026-05-31.md` — pick mode, 4-model panel + openai synthesizer, 2 rounds |
 
 ## Pending Council decisions
 
