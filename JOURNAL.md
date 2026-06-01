@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-01 — Freshness cadence: dual review (Codex + fresh-eyes) applied (closes [#24])
+
+- Did: Ran both pre-merge reviews on the check-#10 branch. **Codex** (code-only path-guard → audit.py + tests): 0 critical, 3 High. **Fresh-eyes** (independent zero-context subagent, full diff): 0 critical, 1 important — independently corroborating the test-coverage gap.
+- Result / dispositions: **Codex H2** (`%cs` committer-date false-fails after rebase) → **ACCEPTED**, switched to `%as` author date (stable across rebase/cherry-pick). **Codex H3** (tests over-mock `_git_last_commit_date`) → **ACCEPTED**, added 4 real-git integration tests (committed-stale FAIL, equal-date PASS, no-history `None`, not-a-repo `None`) exercising the shipped subprocess path. **Codex H1** (A2 misses uncommitted/working-tree edits) → **REJECTED + DOCUMENTED**: folding working-tree state would FAIL mid-edit before the stamp is bumped, and contradicts the operator's explicit commit-based A2 definition; post-commit/eventually-consistent boundary now in the docstring + PLAYBOOK. **Fresh-eyes FE-1** (CLAUDE §4 stamped fresh while line 49 carried a stale known-failing-test clause — that test now passes) → **FIXED**, clause removed, **[#24] closed**. Green: 139 tests, ruff, audit health 10/10, validate_backlog OK.
+- Changes: `scripts/audit.py` (%cs→%as + working-tree caveat), `tests/test_audit.py` (+4 real-git tests), `protocols/PLAYBOOK.md` (commit-based caveat), `CLAUDE.md` (−stale clause), `BACKLOG.md` (−[#24]), `docs/audits/2026-06-01-codex-sacred-files-cadence-check10.md` + `…-fresh-eyes-sacred-files-cadence.md` (review records); this entry.
+- Abandoned: did NOT implement Codex H1 (commit-based by design); did NOT merge (awaiting operator GO).
+- Next: operator merge GO. Then Phase 2 (drop check #10 into child repos).
+
+---
+
 ### 2026-06-01 — Sacred-files freshness cadence: audit check #10 (closes [#3])
 
 - Did: Built the durable, **portable** canonical-file freshness mechanism (posture-audit C4 — highest-leverage durable fix). `audit.py` **check #10 `canonical_freshness`** (registered in `ALL_CHECKS` → runs in `audit health`/`run`) over the 4 living docs (VISION/ARCHITECTURE/CLAUDE/CONTRIBUTING): **A2 (primary, FAIL)** = `last_reviewed` predates the file's last git-commit date (edited-but-not-re-reviewed); **A1 (backstop, WARN, 30d)** = calendar nudge. Append-only (JOURNAL/LESSONS) + per-session (BACKLOG) excluded; missing stamp → WARN (child-repo-safe); degrades gracefully without git. Operator-tuned from my matrix (A1 was 90d/FAIL → 30d/WARN). +11 tests.

@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 import sys
 import os
 from datetime import date
@@ -889,3 +891,65 @@ def test_freshness_degrades_without_git(
     monkeypatch.setattr(aud, "_git_last_commit_date", lambda rp, fn: None)
     f = aud.check_canonical_freshness(freshness_repo)[0]
     assert f.status == "warn"  # A1 backstop fires; no A2 crash
+
+# ---------------------------------------------------------------------------
+# Check #10: real-git integration (NOT mocked) — proves the shipped A2 path
+# ---------------------------------------------------------------------------
+
+_HAS_GIT = shutil.which("git") is not None
+
+
+def _git(repo: Path, *args: str) -> None:
+    """Run a git command in `repo` with a fixed identity (no global config dependency)."""
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
+        "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com",
+    }
+    subprocess.run(["git", "-C", str(repo), *args],
+                   capture_output=True, text=True, env=env, check=True)
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="git not available")
+def test_freshness_real_git_committed_stale_fails(tmp_path: Path) -> None:
+    """REAL git, no mocks: a committed file whose stamp predates its commit → A2 FAIL.
+
+    Exercises the shipped _git_last_commit_date subprocess + the A2 comparison end-to-end,
+    so a regression in the real path (not just the mocked one) is caught (Codex H3).
+    """
+    _git(tmp_path, "init", "-q")
+    (tmp_path / "VISION.md").write_text(_fm("2020-01-01"))  # stamp far before the commit
+    _git(tmp_path, "add", "VISION.md")
+    _git(tmp_path, "commit", "-qm", "add vision")
+    f = aud.check_canonical_freshness(tmp_path)[0]
+    assert f.status == "fail"
+    assert "VISION.md" in f.evidence
+    assert "edited but not re-reviewed" in f.evidence
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="git not available")
+def test_freshness_real_git_equal_date_passes(tmp_path: Path) -> None:
+    """REAL git: stamp equal to the commit's author date (today) → clean (not '<') → PASS.
+
+    Covers the equal-date boundary on the real path: reviewed == last edit must NOT FAIL.
+    """
+    _git(tmp_path, "init", "-q")
+    (tmp_path / "VISION.md").write_text(_fm(date.today().isoformat()))
+    _git(tmp_path, "add", "VISION.md")
+    _git(tmp_path, "commit", "-qm", "add vision")
+    f = aud.check_canonical_freshness(tmp_path)[0]
+    assert f.status == "pass", f.evidence
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="git not available")
+def test_git_last_commit_date_no_history_returns_none(tmp_path: Path) -> None:
+    """REAL git: an untracked (never-committed) file has no commit date → None (A2 skipped)."""
+    _git(tmp_path, "init", "-q")
+    (tmp_path / "VISION.md").write_text(_fm("2020-01-01"))  # written but not committed
+    assert aud._git_last_commit_date(tmp_path, "VISION.md") is None
+
+
+def test_git_last_commit_date_not_a_repo_returns_none(tmp_path: Path) -> None:
+    """A path that is not a git repo → None (graceful degradation, no crash)."""
+    (tmp_path / "VISION.md").write_text(_fm("2020-01-01"))
+    assert aud._git_last_commit_date(tmp_path, "VISION.md") is None

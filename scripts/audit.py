@@ -625,15 +625,19 @@ def _parse_last_reviewed(text: str) -> Optional[date]:
 
 
 def _git_last_commit_date(repo_path: Path, filename: str) -> Optional[date]:
-    """Date (committer, short ISO) of the most recent commit touching `filename`.
+    """Author date (short ISO) of the most recent commit touching `filename`.
 
-    Read-only (`git log`). Returns None when git is absent, the path is not a git repo,
-    or the file has no commit history — callers then skip the A2 signal and fall back to
-    the A1 calendar backstop, so a non-git consumer degrades gracefully rather than erroring.
+    Uses author date (`%as`), not committer date (`%cs`): author date is preserved across
+    rebase / cherry-pick / amend, so A2 keys off when the content was actually edited rather
+    than when history was last rewritten (avoids spurious staleness FAILs after a rebase).
+
+    Read-only (`git log`). Returns None when git is absent, the path is not a git repo, or
+    the file has no commit history — callers then skip the A2 signal and fall back to the A1
+    calendar backstop, so a non-git consumer degrades gracefully rather than erroring.
     """
     try:
         result = subprocess.run(
-            ["git", "-C", str(repo_path), "log", "-1", "--format=%cs", "--", filename],
+            ["git", "-C", str(repo_path), "log", "-1", "--format=%as", "--", filename],
             capture_output=True, text=True, encoding="utf-8",
         )
     except OSError:
@@ -662,6 +666,12 @@ def check_canonical_freshness(repo_path: Path) -> list[Finding]:
     on that date — NOT merely "touched". This check enforces edit-hygiene + a calendar
     backstop; it does NOT verify content against external decisions (e.g. a doc whose
     prose has drifted from a new ADR while its file was never edited trips neither signal).
+
+    A2 is deliberately COMMIT-based, not working-tree-based: an uncommitted edit that has
+    not yet bumped `last_reviewed` is not flagged until it lands in a commit (working-tree
+    state would FAIL during normal mid-edit work, before the reviewer has bumped the stamp).
+    So the signal is post-commit / eventually-consistent — it catches the stale stamp at the
+    next audit after the edit is committed, which is the intended enforcement point.
 
     Read-only; degrades gracefully without git (A2 skipped). PORTABLE via _FRESHNESS_FILES.
     """

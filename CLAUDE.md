@@ -46,7 +46,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 - **Naming:** UPPERCASE for top-level living docs (`VISION.md`, `CLAUDE.md`, etc.); `ADR-NN-topic.md` for decisions; `YYYY-MM-DD-slug.md` for dated artifacts; `council-out-YYYYMMDD_HHMMSS-topic.md` for Council CLI output; kebab-case otherwise
 - **Commits:** Conventional Commits — `feat/fix/docs/chore/refactor`
 - **Branches:** `feat/<topic>`, `fix/<issue>`, `docs/<scope>`, `chore/<scope>` off `main`
-- **Testing:** `pytest -x --tb=short` (known pre-existing failure: `test_audit_run_passes_structural_checks_on_synthetic_repo` — tracked in BACKLOG)
+- **Testing:** `pytest -x --tb=short`
 - **Linting:** `ruff check --fix` (pre-commit)
 - **Scope tags:** `<!-- scope: X -->` (`dev|llm|hybrid|runtime|meta`) — informal only; not enforced (ADR-27; enforcement withdrawn per ADR-48)
 - **File lifecycle:** Append-only: `LESSONS.md`, `TOKEN-LOG.md` (never edit), `JOURNAL.md` (newest-first prepend). Immutable: ADRs, transcripts, handoffs, audits (supersede with new file). Living: `VISION.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/*.md`, `BACKLOG.md` (update in place).
