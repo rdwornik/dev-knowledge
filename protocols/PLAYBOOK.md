@@ -2052,23 +2052,43 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
 
 **Layout (ADR-64).** `BACKLOG.md` is organized **status-and-priority**: `## Now` (in-progress) · `## Open` (P1/P2/P3 sub-sections) · `## Blocked` · `## Coordination` (cross-repo governance pointers only, kept ≤10). **One item in exactly one section** (section = status); repo affiliation is the entry's `repo:` field, not a section. Named-stream (A/B/C/D) and session-arc H2 headers are retired — the stream schema shown below is superseded by this layout (see §Schema as updated for ADR-64). A read-only validator (`scripts/validate_backlog.py`) machine-checks the schema. **Authority chain:** ADR-41 (file mandate) → ADR-47 (organization; done-items-leave) → ADR-64 (architecture) → ADR-65 (disposition).
 
-### Schema
+### Schema (ADR-64; machine-checked by `scripts/validate_backlog.py`)
 <!-- scope: meta -->
 
-```
-## Stream {name}
+**Sections are status-and-priority; an entry lives in exactly one section (section = status):**
 
-### [P{1-3}] [Status] Item title
-- **What:** brief description
+```
+## Now            <- status: in-progress
+## Open
+### P1            <- status: open, priority P1
+### P2
+### P3
+## Blocked        <- status: blocked
+## Coordination   <- cross-repo governance pointers only (repo: a child repo); kept <=10
+```
+
+**Entry shape:**
+
+```
+### [P{1-3}] <title>
+- **id:** <integer>
+- **repo:** .dev-knowledge
+- **status:** open | in-progress | blocked | done
+- **What:** one paragraph
 - **Why:** rationale / triggering context
-- **Vision ref:** (optional) link to VISION.md section if strategic
-- **Added:** YYYY-MM-DD by {browser-1 | audit-tool | rob}
-- **Status:** open | in-progress | blocked | done
+- **Vision ref:** (optional) VISION.md section if strategic
+- **Added:** YYYY-MM-DD by {rob | audit-tool}
 ```
 
-P1 = critical/blocking other work. P2 = important/next 1–3 sessions. P3 = wishlist/when capacity allows.
+**Rules** (hard-fail in the validator unless marked warn):
+- **status vocabulary** is exactly `open | in-progress | blocked | done` — no other word.
+- **single-location-by-status** — the section must agree with `status:` (`## Now`↔in-progress, `## Blocked`↔blocked, `## Open`/P*↔open). An item appears once; no pointers, no duplication.
+- **no `done` items in the file** — done items leave on close (ADR-65); a `done` entry present is a hard-fail.
+- **`id:` required**, a monotonic integer, **never reused** even after an item is removed — so a forward commit reference `[#<id>]` (CONTRIBUTING) stays unambiguous forever.
+- **`repo:`** is `.dev-knowledge` for own work; a child-repo path is allowed **only** inside `## Coordination` (a governance pointer, never a duplicated task).
+- **Priority:** P1 = critical/blocking · P2 = important/next 1–3 sessions · P3 = wishlist. *(warn-only: `## Now` >5 items; `## Coordination` >10.)*
 
-Anti-pattern: do NOT mutate this template structure during edits. Rigid schema + audit checks prevent formatting drift. LLMs left to themselves drift; the template is the guardrail.
+Anti-pattern: do NOT mutate this schema during edits — the validator + this block are the guardrail against the formatting drift that produced the 871-line file (2026-05).
 
 ### Per-handoff grooming (~2 min, mandatory for M+)
 <!-- scope: meta -->
