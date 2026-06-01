@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-01 — Backlog allocation pass: #70 (ADR-67), #10 night-agent drifts, ML-3 lesson
+
+- Did: Tidy step 2 on `chore/backlog-allocation` — added **[#70]** (operationalize the ADR-67 Council gated loop; P3/deferred, under a new "Operationalize the Council decision loop" story in Decision management); promoted the night agent's 3 morning-review drifts into **[#10]** (CLAUDE §11 five ADRs behind; ESSENTIALS↔ARCHITECTURE ADR-43 routing contradiction; ESSENTIALS:221 retired v3.x `contents/` subfolder); appended the **2026-05-29 v3.4-abort LESSON** (ML-3 — N+2 of #9 + straggler/multi-surface sub-lessons) in date order.
+- Result: validate_backlog OK, audit health green, pre-commit gate passed, tree clean. **Night agent stays built + validated, go-live pending the operator's decision** (ADR-68 merged; dry-run + microtest briefings produced) — no backlog task added (done items leave, ADR-65).
+- Next: merged `--no-ff` to main this session per operator instruction; operator eyeballs the #70 wording + #10 additions post-hoc. Night-agent go-live remains the operator's call.
+
+---
+
 ### 2026-06-01 — Worktree-sprawl consolidation + parallel-work discipline captured
 
 - Did: Closed out this session's parallel-work sprawl — merged ADR-68 night-agent `--no-ff` (resolved the README index conflict, ordered ADR-66→67→68), pruned 2 stale worktrees (cadence/audit-cleanup) + deleted 5 merged branches; captured the hard-won discipline as a LESSON and reorganized PLAYBOOK §Parallel-sessions (refs ADR-61).
