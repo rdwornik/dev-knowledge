@@ -1,7 +1,7 @@
 # Dev Environment — Current State
 
 > **Living document.** Update when any config changes.
-> Last updated: 2026-05-24
+> Last updated: 2026-06-01
 
 ---
 
@@ -11,7 +11,7 @@
 - **Version:** 2.1.87 (native installer, auto-updates)
 - **Plan:** Claude Max $100/month
 - **Model routing:** opusplan (Opus plans, Sonnet executes)
-- **Available models:** Opus 4.7 (as of 2026-04-16), Sonnet 4.6, Haiku 4.5. xhigh effort level available (Opus only). /ultrareview for cloud-based multi-agent code review.
+- **Available models:** Opus 4.8, Sonnet 4.6, Haiku 4.5. xhigh effort level available (Opus only). `/code-review ultra` for cloud-based multi-agent code review (`/ultrareview` is a deprecated alias for the same command).
 
 ### Usage tracking: ccusage (npm global)
 <!-- scope: runtime -->
