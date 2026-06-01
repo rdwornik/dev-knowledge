@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-01 — methodology-audit reconciled into main
+
+- Did: Reconciled the 2026-05-31 methodology audit (C1–C12) against main — C1/C2 implemented in the BACKLOG migration; C3–C7/C9/C11 already captured as tasks (#10/#3/#12/#13/#8/#41/#43); C8 (frontmatter) deliberately untracked (low value); the remaining C10/C12 gap closed via new task **[#67]**.
+- Result: every methodology-audit finding is now implemented, tracked, or deliberately-untracked; captured the arc LESSON ("fix the model, not the symptom; the operator is the readability oracle"). Docs-only; validator / 124 tests / ruff green.
+- Next: pick off [#67] + the other captured tasks (each closes via `[#id]`).
+
+---
+
 ### 2026-06-01 — Story-map dual review (Codex + fresh-eyes) + merge
 
 - Did: Ran Codex `/review` (code-only path-guard → the validator + commit-msg hook) and an independent zero-context fresh-eyes pass on the story-map branch; applied Codex's 4 High fixes + committed tests; merged to `main` (`--no-ff`).

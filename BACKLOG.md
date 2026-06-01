@@ -63,6 +63,7 @@ So that captured lessons reach runtime rules and stay enforceable.
 So that observed failure-modes become written guidance instead of recurring.
 - [#34] [P3][S] Add the 4 posture-audit codifications to PLAYBOOK (stable-end-state, verify-destination, no-delete-canonical-dup, ADR-with-N=1) · Done when: the 4 land in PLAYBOOK · refs posture-audit H3/H4/T1/T2
 - [#28] [P3][S] Codify the sage→apprentice metaphor pattern for teaching design intent · Done when: a short methodology section lands in PLAYBOOK/ESSENTIALS · refs HANDOFF_PROCESS v4 §3.1
+- [#67] [P3][S] PLAYBOOK §7 polish: skill/command naming-convention note + orchestrator/worker how-to · Done when: both notes land in PLAYBOOK §7 · refs methodology-audit C10/C12
 
 ---
 
