@@ -94,7 +94,7 @@ So that the ADR web is internally consistent.
 
 ### Keep canonical files accurate
 So that stale ground truth stops silently misleading sessions (the repo's own VISION is "drift detected proactively").
-- [#10] [P2][M] Fix the doc-truth drifts (CLAUDE §7/§8; ARCHITECTURE validators [done in #3] + governing-ADRs + §Authority "audit.py pending full implementation" stale (ships 10 checks) + handoff diagram/version v3.4->v4.3.1 (diagram describes the retired 13-file flow); LESSONS descriptor; ruff claim; TOKEN-LOG path) · Done when: all listed corrected · refs coherence-audit (SK/CD/WF/ML) + methodology-engine session 2026-06-01
+- [#10] [P2][M] Fix the doc-truth drifts (CLAUDE §7/§8; ARCHITECTURE validators [done in #3] + governing-ADRs + §Authority "audit.py pending full implementation" stale (ships 10 checks) + handoff diagram/version v3.4->v4.3.1 (diagram describes the retired 13-file flow) + §Validators "audit.py manual invocation" now imprecise (health is pre-commit-gated since [#69]); LESSONS descriptor; ruff claim; TOKEN-LOG path) · Done when: all listed corrected · refs coherence-audit (SK/CD/WF/ML) + methodology-engine session 2026-06-01
 - [#35] [P3][S] Fix the self-owned low-severity cleanups (ARCHITECTURE diagram attribution + SBAR label; VISION adoption-signal + stale last_reviewed) · Done when: WF-3 + GO-1/2 resolved · refs coherence-audit
 
 ### Keep the day-to-day docs right-sized and current
