@@ -99,11 +99,12 @@ Pre-commit hooks (`.pre-commit-config.yaml`):
 | `normalize-dated-headers` | commit | Rewrites dated-log entry headers to canonical `### YYYY-MM-DD` form. Idempotent. Auto-format style: rewrites; never fails. |
 | `codemap-freshness` | commit | Checks the ARCHITECTURE.md codemap block is current vs `scripts/`. |
 | `validate-backlog` | commit | Validates the BACKLOG.md story-map structure (ADR-66). |
+| `audit-health` | commit | Runs `audit.py health` (the 10 self-conformance checks incl. freshness #10). **FAIL-level findings block the commit; WARN-level only inform.** ~1.4s. Bypass: `--no-verify`. |
 | `backlog-id-on-close` | commit-msg | Requires `[#id]` / `closes [#id]` when a commit removes a `- [#id]` task. |
 
 (`ruff` is referenced in CLAUDE.md §9 but is not currently wired into pre-commit — tracked in BACKLOG [#13].)
 
-Standalone conformance checks (read-only, manual — not pre-commit gated): `python scripts/audit.py health` runs the full self-conformance suite, including the canonical-file **freshness** check (`last_reviewed` staleness; see PLAYBOOK).
+`audit.py health` (the gate above) is also runnable standalone for an on-demand sweep: `python scripts/audit.py health`. It runs the 10 self-conformance checks incl. the canonical-file **freshness** check (`last_reviewed` staleness; see PLAYBOOK); FAIL blocks a commit, WARN (e.g. the 30-day freshness backstop) only informs.
 
 Run the auto-format hook standalone (e.g. to clean up before commit):
 
