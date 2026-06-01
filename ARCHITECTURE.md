@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-05-24
+last_reviewed: 2026-06-01
 status: active
 owner: Rob
 ---
@@ -8,7 +8,7 @@ owner: Rob
 <!-- scope: meta -->
 
 > Living document. Updated after structural changes.
-> Last updated: `2026-05-24` (self-audit residue cleanup; 2026-05-23 tier-deprecation reconciliation: removed `scale:` frontmatter + tier prose)
+> Last updated: `2026-06-01` (canonical-freshness cadence: added audit check #10 to §Validators, dropped retired `backlog_extract.py`; prior: 2026-05-24 self-audit residue cleanup)
 
 ## Purpose [CORE]
 
@@ -369,11 +369,13 @@ Per ADR-31. `.dev-knowledge` is the **binding source of cross-repo prescriptions
 
 Per ADR-28 invariant: `.dev-knowledge` may host **read-only** validators (Layer 2 does not orchestrate, but it may verify itself).
 
-- `scripts/audit.py` — cross-repo conformance audit; manual invocation.
-- `scripts/backlog_extract.py` — backlog extraction utility; read-only.
+- `scripts/audit.py` — cross-repo conformance + self-audit (checks #1–#10, incl. #10 `canonical_freshness` — `last_reviewed` staleness cadence); manual invocation, read-only.
 - `scripts/normalize_headers.py` — dated-log header normalization; invoked by pre-commit hook.
+- `scripts/validate_backlog.py` — BACKLOG.md story-map structure validator (ADR-66); pre-commit hook.
+- `scripts/check_backlog_commit_msg.py` — commit-msg hook requiring `[#id]` on task removal.
+- `scripts/codemap/` — ARCHITECTURE codemap generator + freshness check (pre-commit hook).
 - `tests/` — pytest unit tests for validators. Run: `pytest -x --tb=short`.
-- **Pre-commit:** ruff (`ruff check --fix`) + normalize_headers.py hook.
+- **Pre-commit hooks:** `normalize-dated-headers`, `codemap-freshness`, `validate-backlog`, `backlog-id-on-close` (commit-msg). (`ruff` is documented in CLAUDE.md §9 but not yet wired — BACKLOG [#13].)
 
 ---
 

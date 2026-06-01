@@ -767,3 +767,125 @@ def test_tag_canonicity_no_spec(tmp_path: Path) -> None:
     """No HANDOFF_PROCESS.md → vacuous pass (check is .dev-knowledge-specific)."""
     f = aud.check_handoff_tag_canonicity(tmp_path)[0]
     assert f.status == "pass"
+
+# ---------------------------------------------------------------------------
+# _parse_last_reviewed (frontmatter helper for check #10)
+# ---------------------------------------------------------------------------
+
+def test_parse_last_reviewed_iso_date() -> None:
+    """Unquoted ISO date in frontmatter parses to a date (YAML native)."""
+    assert aud._parse_last_reviewed("---\nlast_reviewed: 2026-05-24\n---\n# x\n") == date(2026, 5, 24)
+
+
+def test_parse_last_reviewed_quoted_string() -> None:
+    """Quoted date string parses via date.fromisoformat."""
+    assert aud._parse_last_reviewed('---\nlast_reviewed: "2026-05-24"\n---\n') == date(2026, 5, 24)
+
+
+def test_parse_last_reviewed_datetime_coerced_to_date() -> None:
+    """A full timestamp is coerced to its date component (no date/datetime mismatch)."""
+    assert aud._parse_last_reviewed(
+        "---\nlast_reviewed: 2026-05-24 10:00:00\n---\n") == date(2026, 5, 24)
+
+
+def test_parse_last_reviewed_none_cases() -> None:
+    """No frontmatter, unclosed frontmatter, missing key, and non-date all → None."""
+    assert aud._parse_last_reviewed("# no frontmatter\n") is None
+    assert aud._parse_last_reviewed("---\nlast_reviewed: 2026-05-24\n") is None  # unclosed
+    assert aud._parse_last_reviewed("---\nowner: rob\n---\n") is None            # key absent
+    assert aud._parse_last_reviewed("---\nlast_reviewed: not-a-date\n---\n") is None
+
+# ---------------------------------------------------------------------------
+# Check #10: canonical_freshness (ADR-39 grooming cadence)
+# ---------------------------------------------------------------------------
+
+def _fm(last_reviewed: str) -> str:
+    """A minimal canonical-doc body carrying a last_reviewed stamp."""
+    return f"---\nlast_reviewed: {last_reviewed}\nstatus: active\nowner: rob\n---\n\n# Doc\n\nBody.\n"
+
+
+@pytest.fixture()
+def freshness_repo(tmp_path: Path) -> Path:
+    """All four freshness-tracked files present, each stamped far in the future."""
+    for name in aud._FRESHNESS_FILES:
+        (tmp_path / name).write_text(_fm("2099-01-01"))
+    return tmp_path
+
+
+def test_freshness_all_fresh(freshness_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stamp newer than last edit and within cadence → pass."""
+    monkeypatch.setattr(aud, "_git_last_commit_date", lambda rp, fn: date(2020, 1, 1))
+    f = aud.check_canonical_freshness(freshness_repo)[0]
+    assert f.status == "pass", f.evidence
+
+
+def test_freshness_a2_edited_since_review_fails(
+        freshness_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A2 (primary): last_reviewed predates the file's last git-commit date → FAIL.
+
+    This is the done-when: the check catches a deliberately-staled file (edited after
+    its review stamp). Only VISION is staled; the others stay fresh.
+    """
+    (freshness_repo / "VISION.md").write_text(_fm("2026-05-24"))
+    monkeypatch.setattr(
+        aud, "_git_last_commit_date",
+        lambda rp, fn: date(2026, 5, 28) if fn == "VISION.md" else date(2020, 1, 1))
+    f = aud.check_canonical_freshness(freshness_repo)[0]
+    assert f.status == "fail"
+    assert "VISION.md" in f.evidence
+    assert "edited but not re-reviewed" in f.evidence
+
+
+def test_freshness_a1_calendar_backstop_warns(
+        freshness_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A1 (backstop): stamp older than the cadence but not edited since → WARN, not FAIL."""
+    for name in aud._FRESHNESS_FILES:
+        (freshness_repo / name).write_text(_fm("2020-01-01"))
+    monkeypatch.setattr(aud, "_git_last_commit_date", lambda rp, fn: date(2020, 1, 1))
+    f = aud.check_canonical_freshness(freshness_repo)[0]
+    assert f.status == "warn"
+    assert "cadence" in f.evidence
+
+
+def test_freshness_missing_frontmatter_warns(
+        freshness_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A file lacking last_reviewed → WARN (child-repo-safe), not FAIL."""
+    (freshness_repo / "CLAUDE.md").write_text("# Claude\n\nNo frontmatter.\n")
+    monkeypatch.setattr(aud, "_git_last_commit_date", lambda rp, fn: date(2020, 1, 1))
+    f = aud.check_canonical_freshness(freshness_repo)[0]
+    assert f.status == "warn"
+    assert "CLAUDE.md" in f.evidence
+    assert "no parseable last_reviewed" in f.evidence
+
+
+def test_freshness_absent_file_skipped(
+        freshness_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """An absent tracked file is skipped (presence enforced by #1/#3/#5), not warned."""
+    (freshness_repo / "CONTRIBUTING.md").unlink()
+    monkeypatch.setattr(aud, "_git_last_commit_date", lambda rp, fn: date(2020, 1, 1))
+    f = aud.check_canonical_freshness(freshness_repo)[0]
+    assert f.status == "pass", f.evidence
+    assert "CONTRIBUTING" not in f.evidence
+
+
+def test_freshness_a2_dominates_a1(
+        freshness_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """When one file fails A2 and another only warns A1, overall status is FAIL."""
+    (freshness_repo / "VISION.md").write_text(_fm("2026-05-24"))        # A2 fail
+    (freshness_repo / "ARCHITECTURE.md").write_text(_fm("2020-01-01"))  # A1 warn
+    monkeypatch.setattr(
+        aud, "_git_last_commit_date",
+        lambda rp, fn: date(2026, 5, 28) if fn == "VISION.md" else date(2020, 1, 1))
+    f = aud.check_canonical_freshness(freshness_repo)[0]
+    assert f.status == "fail"
+    assert "also" in f.evidence and "warn" in f.evidence
+
+
+def test_freshness_degrades_without_git(
+        freshness_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """No git (helper returns None) → A2 skipped; A1 still applies on the working tree."""
+    for name in aud._FRESHNESS_FILES:
+        (freshness_repo / name).write_text(_fm("2020-01-01"))
+    monkeypatch.setattr(aud, "_git_last_commit_date", lambda rp, fn: None)
+    f = aud.check_canonical_freshness(freshness_repo)[0]
+    assert f.status == "warn"  # A1 backstop fires; no A2 crash

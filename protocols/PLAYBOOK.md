@@ -640,6 +640,20 @@ File presence is no longer gated per tier (repo-tier system deprecated 2026-05-2
 
 Optional files are added by judgment of repo complexity; no tier makes them mandatory.
 
+### Canonical-file freshness cadence (audit check #10)
+<!-- scope: meta -->
+
+The living docs `VISION / ARCHITECTURE / CLAUDE / CONTRIBUTING` carry a `last_reviewed` frontmatter date. **`last_reviewed` means "re-read end-to-end and confirmed accurate (or the drift filed)" on that date — NOT merely "touched".** Bump it only after a genuine review, never reflexively.
+
+`scripts/audit.py` check #10 (`canonical_freshness`, in `ALL_CHECKS` → runs in `audit health` and `audit run`) enforces two signals:
+
+- **A2 — edited-since-review (FAIL):** `last_reviewed` predates the file's last git-commit date. The load-bearing signal — you changed the file but never re-confirmed it.
+- **A1 — calendar backstop (WARN, 30 days):** a loose nudge to re-read even when nothing changed. WARN, not FAIL — a quiet doc is not a broken one.
+
+Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are excluded — their freshness is intrinsic. A file with no `last_reviewed` → WARN (lets a repo adopt the convention without a hard failure). **Portable:** the check is parameterised by a file list, so a child repo inherits it unchanged (its own project `CLAUDE.md` is `"CLAUDE.md"`). Operationalizes the ADR-39 "grooming" lifecycle element.
+
+**Scope + caveats (honest limits).** This enforces *edit-hygiene* + a calendar backstop. It does **not** detect content-vs-decision drift — a doc whose prose lagged a new ADR while its file was never edited trips neither signal (that is the doc-truth sweep, BACKLOG [#10]). And it is **manual-only today**: nothing runs `audit health` automatically (no CI, not in pre-commit), so it makes staleness *detectable on demand* — it does not yet *gate* a commit. Wiring a trigger (pre-commit / CI / session-close hook) is a deliberate separate decision, not yet taken.
+
 ### Common confusions resolved
 <!-- scope: meta -->
 

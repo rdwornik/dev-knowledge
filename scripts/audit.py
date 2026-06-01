@@ -23,6 +23,7 @@ import json
 import logging
 import os
 import re
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -78,6 +79,19 @@ _CANONICAL_ALL = _CANONICAL_MANDATORY + [
     "JOURNAL.md", "ENVIRONMENT.md", "CONTRIBUTING.md",
     "ESSENTIALS.md", "PLAYBOOK.md", "LESSONS.md", "TOKEN-LOG.md", "README.md",
 ]
+
+# Canonical living docs subject to the freshness cadence (check #10; operationalizes
+# the ADR-39 "grooming" lifecycle element). PORTABLE: a child repo inherits this list
+# unchanged — "CLAUDE.md" resolves to that repo's own project CLAUDE.md. Append-only
+# files (JOURNAL/LESSONS) and the per-session BACKLOG are deliberately EXCLUDED: their
+# freshness is intrinsic to how they are written, so an edit-since-review signal would
+# fire every session by design.
+_FRESHNESS_FILES = ["VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md"]
+
+# Calendar-age backstop (A1): WARN — not FAIL — when last_reviewed exceeds this many
+# days even if the file has not changed. A loose nudge toward periodic re-reading; the
+# load-bearing signal is A2 (edited-since-review), which is the FAIL.
+_FRESHNESS_CADENCE_DAYS = 30
 
 # Required VS Code workspace settings (ADR-59 Decision 3). "upper" (not "default")
 # is what clusters ALL-CAPS canonical .md files ahead of lowercase configs.
@@ -579,6 +593,114 @@ def check_handoff_tag_canonicity(repo_path: Path) -> list[Finding]:
                     "(four-tag canonical) — add a supersession pointer")]
 
 
+def _parse_last_reviewed(text: str) -> Optional[date]:
+    """Extract `last_reviewed` from a file's YAML frontmatter, or None if absent.
+
+    Returns None when the file has no frontmatter, the frontmatter is unclosed or not a
+    mapping, the key is missing, or its value is not a parseable ISO date. YAML parses an
+    unquoted ISO date to a date (or datetime); quoted/string forms are parsed explicitly.
+    """
+    if not text.startswith("---"):
+        return None
+    parts = text.split("---", 2)
+    if len(parts) < 3:
+        return None
+    try:
+        fm = yaml.safe_load(parts[1])
+    except yaml.YAMLError:
+        return None
+    if not isinstance(fm, dict):
+        return None
+    val = fm.get("last_reviewed")
+    if isinstance(val, datetime):
+        return val.date()
+    if isinstance(val, date):
+        return val
+    if isinstance(val, str):
+        try:
+            return date.fromisoformat(val.strip())
+        except ValueError:
+            return None
+    return None
+
+
+def _git_last_commit_date(repo_path: Path, filename: str) -> Optional[date]:
+    """Date (committer, short ISO) of the most recent commit touching `filename`.
+
+    Read-only (`git log`). Returns None when git is absent, the path is not a git repo,
+    or the file has no commit history — callers then skip the A2 signal and fall back to
+    the A1 calendar backstop, so a non-git consumer degrades gracefully rather than erroring.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_path), "log", "-1", "--format=%cs", "--", filename],
+            capture_output=True, text=True, encoding="utf-8",
+        )
+    except OSError:
+        return None
+    out = result.stdout.strip()
+    if result.returncode != 0 or not out:
+        return None
+    try:
+        return date.fromisoformat(out)
+    except ValueError:
+        return None
+
+
+def check_canonical_freshness(repo_path: Path) -> list[Finding]:
+    """Check #10: canonical living-file freshness cadence (operationalizes ADR-39 grooming).
+
+    For each canonical living doc (_FRESHNESS_FILES) that carries `last_reviewed`:
+      - A2 (primary, FAIL): `last_reviewed` predates the file's last git-commit date — the
+        file was edited but never re-reviewed, so its review stamp is stale.
+      - A1 (backstop, WARN): `last_reviewed` is older than _FRESHNESS_CADENCE_DAYS — a
+        loose calendar nudge even when nothing changed.
+    Missing `last_reviewed` → WARN (child-repo-safe: lets a repo adopt the convention
+    without a hard failure). An absent file is skipped (presence is enforced by #1/#3/#5).
+
+    `last_reviewed` means "re-read end-to-end and confirmed accurate (or the drift filed)"
+    on that date — NOT merely "touched". This check enforces edit-hygiene + a calendar
+    backstop; it does NOT verify content against external decisions (e.g. a doc whose
+    prose has drifted from a new ADR while its file was never edited trips neither signal).
+
+    Read-only; degrades gracefully without git (A2 skipped). PORTABLE via _FRESHNESS_FILES.
+    """
+    fails: list[str] = []
+    warns: list[str] = []
+    today = date.today()
+
+    for fname in _FRESHNESS_FILES:
+        fpath = repo_path / fname
+        if not fpath.exists():
+            continue  # presence enforced by checks #1/#3/#5 — don't double-report
+        reviewed = _parse_last_reviewed(fpath.read_text(encoding="utf-8"))
+        if reviewed is None:
+            warns.append(f"{fname}: no parseable last_reviewed frontmatter")
+            continue
+        git_date = _git_last_commit_date(repo_path, fname)
+        if git_date is not None and reviewed < git_date:
+            fails.append(
+                f"{fname}: last_reviewed {reviewed.isoformat()} predates last edit "
+                f"{git_date.isoformat()} - edited but not re-reviewed")
+            continue  # A2 dominates; don't also calendar-warn a file already failing
+        age = (today - reviewed).days
+        if age > _FRESHNESS_CADENCE_DAYS:
+            warns.append(
+                f"{fname}: last_reviewed {reviewed.isoformat()} is {age}d old "
+                f"(> {_FRESHNESS_CADENCE_DAYS}d cadence)")
+
+    if fails:
+        evidence = f"{len(fails)} stale (edited since review): " + "; ".join(fails)
+        if warns:
+            evidence += f" | also {len(warns)} warn: " + "; ".join(warns)
+        return [Finding("canonical_freshness", "fail", evidence)]
+    if warns:
+        return [Finding("canonical_freshness", "warn", "; ".join(warns))]
+    return [Finding("canonical_freshness", "pass",
+                    f"{len(_FRESHNESS_FILES)} canonical living files fresh "
+                    f"(last_reviewed not before last edit; within {_FRESHNESS_CADENCE_DAYS}d)")]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -589,6 +711,7 @@ ALL_CHECKS = [
     check_mermaid_theme_directive,
     check_handoff_bundle_structure,
     check_handoff_tag_canonicity,
+    check_canonical_freshness,
 ]
 
 
