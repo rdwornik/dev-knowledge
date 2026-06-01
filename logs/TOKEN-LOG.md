@@ -2,6 +2,12 @@
 
 Append /stats snapshot weekly. Never edit previous entries.
 
+## 2026-05-31 (session-scoped marker — methodology+backlog audit; NOT a ccusage weekly delta)
+Single Claude Code session (Opus, xhigh). Scope: 3-track methodology/canonical/backlog audit, analysis-only, 7 commits, no structural edits.
+Reads: CLAUDE/VISION/ARCHITECTURE/BACKLOG(871L full)/ESSENTIALS/AI_COUNCIL_PROCESS/PLAYBOOK(TOC+§7+§10)/ADR-39/41/47/48 + 2026-05-31 classification audit + targeted greps/globs.
+Sub-agent (reference study, Customization track only): 32,810 output tokens, 27 tool-uses, 125.8s (measured).
+Main-session exact in/out tokens not instrumented here — append the canonical weekly ccusage delta at the normal cadence; this per-session marker is kept out of the weekly comparability series.
+
 ## 2026-05-27 (delta: 2026-05-20 to 2026-05-27, via ccusage)
 Delta: 8 active days, sessions N/A (not in ccusage --json), $207.10
 Tokens in+out: 1.90M (in: 174K, out: 1729K) — cache not counted here for comparability
