@@ -35,7 +35,7 @@ So that the v4 templates stop carrying known minor gaps.
 ### Turn advisory guards into enforced gates
 So that a convention can't be skipped under load (the failure mode behind real aborts).
 - [#11] [P2][M] Convert LESSON-#9's advisory cross-case guard into an amendment checklist/gate (Layer-2 checklist, not orchestration) · Done when: a multi-surface amendment must pass the gate · refs coherence-audit ML-2
-- [#13] [P2][S] Wire the ruff pre-commit hook, version-pinned (the docs-corrected OR-branch is already satisfied — CLAUDE §4/§9 correctly say ruff is manual; this is the enforce-only residual) · Done when: a non-conforming change is blocked by an enforced, version-pinned ruff hook · refs coherence-audit HK-1, corp-monorepo phantom-I001 lesson (pin the ruff version)
+- [#13] [P2][S] Wire the ruff pre-commit hook, version-pinned (the docs-corrected OR-branch is already satisfied — CLAUDE §4/§9 correctly say ruff is manual; this is the enforce-only residual) · Done when: a non-conforming change is blocked by an enforced, version-pinned ruff hook · refs coherence-audit HK-1, corp-monorepo phantom-I001 lesson (pin the ruff version), ADR-70 (Tier-1 lint gate)
 - [#15] [P2][M] Add hyphen-only-separator enforcement (pre-commit + Action) with a scoped path set + exceptions · Done when: a non-conforming new filename is blocked · refs ADR-34
 
 ### Extend structural validation to more governance artifacts
@@ -43,12 +43,13 @@ So that drift in transcripts, ADRs, and folders is caught cheaply, not by review
 - [#7] [P2][M] Apply the audit.py #8 structural-validator pattern to Council transcripts + ADRs (frontmatter/supersession/template) · Done when: registered checks + tests folded into health · refs scripts/audit.py #8/#9
 - [#36] [P3][M] Add read-only check_folder_semantics asserting each docs/ subfolder carries one ADR-60 role · Done when: the check ships with fixtures + tests · refs ADR-60
 - [#42] [P3][S] Decide whether mermaid-theme check #7 expands beyond ARCHITECTURE.md (extend paths or accept) · Done when: scope decision recorded · refs durability-audit J4
-- [#72] [P3][S] Make no_sibling_orphans (#11) fire across all ecosystem repos, not just the .dev-knowledge self-audit (the audit-health gate checks self only, so an orphan beside a child repo is caught only by a full `audit run`, never at commit time) · Done when: orphan detection runs for every registered repo in a scheduled/automated audit · refs scripts/audit.py #11, PLAYBOOK G5
+- [#72] [P3][S] Make no_sibling_orphans (#11) fire across all ecosystem repos, not just the .dev-knowledge self-audit (the audit-health gate checks self only, so an orphan beside a child repo is caught only by a full `audit run`, never at commit time) · Done when: orphan detection runs for every registered repo in a scheduled/automated audit · refs scripts/audit.py #11, PLAYBOOK G5, ADR-70 (Tier-2 scheduled baseline)
 
 ### Wire up the lifecycle hooks the workflow relies on
 So that session-start/close automation actually runs instead of being wired-but-vacuous.
-- [#8] [P2][M] Implement the analysed hooks (session-end clean-tree/staleness + SessionStart lessons-retrieval) and resolve the review-hook overlap · Done when: the hooks run + are documented · refs 2026-05-29 hooks audit
-- [#12] [P2][M] Create the evolution .jsonl logs (or repoint hooks/protocol to evolution-log.md) + add one read-only session-close automation · Done when: the evolution machinery is non-vacuous · refs coherence-audit SK-3/HK-2/HK-3
+- [#8] [P2][M] Implement the analysed hooks (session-end clean-tree/staleness + SessionStart lessons-retrieval) and resolve the review-hook overlap · Done when: the hooks run + are documented · refs 2026-05-29 hooks audit, ADR-70 (Tier-1 lifecycle hooks)
+- [#12] [P2][M] Create the evolution .jsonl logs (or repoint hooks/protocol to evolution-log.md) + add one read-only session-close automation · Done when: the evolution machinery is non-vacuous · refs coherence-audit SK-3/HK-2/HK-3, ADR-70 (Tier-1 Stop-hook propose-closures)
+- [#73] [P2][L] Bundle Tier-1 (git-as-capture + Stop-hook propose-closures skill + ruff gate + lesson-promotion skill + /boot review) as one methodology plugin and install it across all registered ecosystem repos · Done when: a single plugin install propagates the Tier-1 lifecycle to every registered repo with no per-repo re-derivation · refs ADR-70 (Tier 1)
 
 ---
 
@@ -57,7 +58,7 @@ So that session-start/close automation actually runs instead of being wired-but-
 
 ### Make lessons an active feedback loop, not a passive archive
 So that captured lessons reach runtime rules and stay enforceable.
-- [#4] [P2][M] Build lessons-index.json + SessionStart retrieval + CLI query · Done when: lessons are queryable + surfaced at session start · refs ADR-35
+- [#4] [P2][M] Build lessons-index.json + SessionStart retrieval + CLI query · Done when: lessons are queryable + surfaced at session start · refs ADR-35, ADR-70 (Tier-1 lesson-promotion)
 - [#22] [P3][S] Broaden _LESSONS_H3_RE for an optional parenthetical (or reformat the 8 entries with sign-off) · Done when: the 8 parenthetical entries are ordering-checked · refs ADR-29
 
 ### Codify recurring patterns into the methodology
@@ -80,6 +81,7 @@ So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
 So that future sessions route decisions consistently (convene-vs-Path-A; relax-vs-gate).
 - [#18] [P2][M] Codify the convene-vs-Path-A criterion in AI_COUNCIL_PROCESS/PLAYBOOK · Done when: the criterion is written · refs ADR-62/63/65
 - [#27] [P3][M] Codify the cost/value-asymmetric relax-vs-gate criterion for drifted guards · Done when: a LESSON/ADR records the criterion · refs ADR-62/63, coherence-audit ML-2
+- [#74] [P3][M] Codify the Workflow-escalation rule — when to escalate execution to a scoped Dynamic Workflow (heavy / cross-repo / large-repo / checked-twice), the heavy-execution analog of the Council (heavy-decision) on the decision ladder · Done when: the criterion is written alongside the convene-vs-Path-A (#18) and relax-vs-gate (#27) rules · refs ADR-70 (escalation rule), ADR-67
 
 ### Operationalize the Council decision loop
 So that Council questions are gated and their verdicts return deterministically instead of being shuttled by hand.
@@ -139,9 +141,10 @@ So that cognitive overhead per session drops.
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 - [#14] [P2][L] Decide the ecosystem/ folder operating model (regenerated snapshot / continuous-audit substrate / retire) · Done when: the model + cadence + ownership are recorded · refs Council-scope
 - [#30] [P3][M] Evaluate Kimi K2 (capability / cost / integration); Council decision on adoption level · Done when: a Council verdict recommends an adoption level · refs VISION velocity
+- [#75] [P3][M] Adopt + exercise Tier 3 on a first scoped corp-monorepo deep-audit Dynamic Workflow (scope first, then run) · Done when: one scoped corp-monorepo audit Workflow has run end-to-end and its fit + token cost are assessed · refs ADR-70 (Tier 3)
 
 ---
 
 **About this file** — open `.dev-knowledge` work as a story map (ADR-66): Big Picture → Theme → User Story → Task. Stories are human (goal + `So that`); tasks carry `[#id] [P][size] · Done when · refs`. Done tasks **leave** (ADR-65); git is the implementation record (`git log --grep 'closes \[#'`). Child-repo execution items live in `docs/audits/2026-06-01-child-repo-relocation-proposal.md`. Schema: PLAYBOOK §10; machine-checked by `scripts/validate_backlog.py`.
 
-**Grooming log:** 2026-05-09 · 2026-05-23 · 2026-05-24 · 2026-05-31 (marathon-arc) · 2026-06-01 (ADR-64/65 migration + readability + ADR-66 story-map) · 2026-06-02 (git-verified retroactive closure: retired #29/#31/#40/#44/#45/#46; re-scoped #17/#13; updated #70/#10; ADR-69 records the #44 reach model). Next quarterly: 2026-07-01.
+**Grooming log:** 2026-05-09 · 2026-05-23 · 2026-05-24 · 2026-05-31 (marathon-arc) · 2026-06-01 (ADR-64/65 migration + readability + ADR-66 story-map) · 2026-06-02 (git-verified retroactive closure: retired #29/#31/#40/#44/#45/#46; re-scoped #17/#13; updated #70/#10; ADR-69 records the #44 reach model) · 2026-06-02 (ADR-70 incorporation: annotated #13/#8/#12/#72/#4 with `refs ADR-70` as the three-tier build units; added #73 Tier-1 plugin bundle + cross-repo install, #74 Workflow-escalation rule, #75 first scoped corp-monorepo Tier-3 Workflow). Next quarterly: 2026-07-01.
