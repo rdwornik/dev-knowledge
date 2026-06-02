@@ -62,3 +62,20 @@ pre-commit install
 - Stage a lint error and attempt a commit → the ruff gate blocks it.
 - Make a `closes [#N]` commit for an open host item → the Stop hook proposes it next stop.
 - `/review-closures` → human-gated close on the host backlog.
+
+## Keeping the plugin up to date
+
+When the plugin source changes in `.dev-knowledge` (new script version, hook tweak, command
+update), installed repos run a **stale cached copy** until the cache is refreshed. The
+plugin cache lives at `~/.claude/plugins/cache/dev-knowledge-methodology/tier1-lifecycle/`.
+
+### Workflow reference
+
+| Situation | Command(s) | Notes |
+|---|---|---|
+| **Plugin source changed** in `.dev-knowledge` (you committed to `plugins/tier1-lifecycle/`) | `claude plugin marketplace update dev-knowledge-methodology` | Run once on the machine; updates the shared cache for all installed repos. |
+| **New machine or cache wiped** (no prior `marketplace add` on this machine) | `claude plugin marketplace add "C:\Users\1028120\Documents\Dev\.dev-knowledge" --scope project` then `claude plugin install tier1-lifecycle@dev-knowledge-methodology --scope project` | The `marketplace add` step populates the cache; `install` records the enablement. Without `marketplace add` first, `install` fails with "Plugin not found in marketplace" even when settings.json is correct (the cache-population step is required). |
+| **New repo** receiving the plugin | Copy the `enabledPlugins` + `extraKnownMarketplaces` block from an existing repo's `.claude/settings.json` (force-add with `git add -f` if `.claude/` is gitignored), then `claude plugin install tier1-lifecycle@dev-knowledge-methodology --scope project` | The cache is already populated from the earlier `marketplace add` on this machine, so install resolves immediately. |
+
+> **Scope note:** `--scope project` writes to `.claude/settings.json` (committed, shared).
+> Omit `--scope` for user-scope (`~/.claude/settings.json`, personal only).
