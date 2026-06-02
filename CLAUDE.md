@@ -1,12 +1,12 @@
 ---
-last_reviewed: 2026-06-02
+last_reviewed: 2026-06-03
 status: active
 owner: Rob
 ---
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.10 — 2026-06-02 -->
+<!-- version: 2.11 — 2026-06-03 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -117,6 +117,9 @@ User-level (`~/.claude/skills/`):
 Repo-level (`./.claude/`):
 - No repo-level skills directory exists yet (`.claude/` holds `commands/` and `rules/` only). Repo-specific empirical patterns live in `LESSONS.md` (append-only) — read it before structural changes; universal gotchas are the user-level `gotchas` skill above. If a repo-specific gotchas skill is later added it goes under `.claude/skills/gotchas/`.
 
+Plugin:
+- `tier1-lifecycle@dev-knowledge-methodology` is **enabled** (`.claude/settings.json`) and drives the Tier-1 closure loop here — its `Stop` hook runs `propose_closures.py` and it ships the `/review-closures` command (§9). The hub is the marketplace source the child repos install from; full distribution model in `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle" + `plugins/tier1-lifecycle/INSTALL.md`.
+
 ## 9. Hooks active
 <!-- scope: runtime -->
 
@@ -129,9 +132,12 @@ Pre-commit (`.pre-commit-config.yaml`):
 - `backlog-id-on-close` (commit-msg) — require `[#id]` when a commit removes a backlog task
 
 Session hooks (`.claude/settings.json`, project-level — merges with, does not replace, the `~/.claude` hooks):
-- `Stop` → `scripts/propose_closures.py` — ADR-70 Tier-1 session-end closure detector. Deterministic (no LLM), read-only: writes `logs/PROPOSALS-<date>.md` (gitignored) proposing backlog items whose closing-commit landed but never left the file; **detect-and-propose only — never mutates BACKLOG**; reviewed at next `/boot`. Non-blocking (exits 0). Added by [#8].
-- `SessionStart` → `scripts/review_closures.py surface` — ADR-70 Tier-1. Read-only: prints a one-line "N closures proposed — run `/review-closures`" when the latest proposals file has candidates; silent otherwise. Non-blocking (exits 0). The review/approve/close half is the `/review-closures` command (§7). Added by [#8].
 - `SessionStart` → `scripts/fleet_health.py` — ADR-70 Tier-2. Session-start-throttled: if `logs/FLEET-HEALTH.md` is stale (>24h) or missing, runs the full `audit.py` cross-repo sweep (all 5 repos, incl. `no_sibling_orphans`) and refreshes the digest; else surfaces the cached summary. Prints `[fleet] N/5 repos green` (or issues count). Non-blocking (exits 0). Closes [#72].
+
+The **Tier-1 closure loop is no longer wired hub-locally.** Since the 5c convergence (2026-06-02) the hub runs Tier-1 exactly like the child repos — via the enabled `tier1-lifecycle` plugin, not its own `settings.json`:
+- The plugin supplies the `Stop` → `propose_closures.py` hook — writes `logs/PROPOSALS-<date>.md` (gitignored) proposing backlog items whose `closes [#id]` commit landed but never left the file; **detect-and-propose only — never mutates BACKLOG**. Non-blocking (exits 0).
+- The global `~/.claude` `SessionStart` → `surface-closures.ps1` surfaces the `[closures] N proposed` count fleet-wide (this is layer **L0**). Surfacing lives at L0 because plugin `SessionStart` hooks register too late for the one-shot init event and never fire (verified 2026-06-02); the plugin therefore ships **no** SessionStart hook.
+- The hub-local `Stop → scripts/propose_closures.py` and `SessionStart → scripts/review_closures.py surface` entries were **removed** in 5c (they double-ran the plugin + L0). The review/approve/close half stays the `/review-closures` command (§7).
 
 Rules (`.claude/rules/`):
 - `git-discipline.md` — mandatory commit after every file edit; clean working tree at session end
@@ -151,11 +157,11 @@ Rules (`.claude/rules/`):
 
 Brief one-liners. Full list in `docs/decisions/README.md`; full governance list in `ARCHITECTURE.md`.
 
-- ADR-65: BACKLOG done-item disposition — git is the technical record, JOURNAL the per-session business record; refines ADR-64 Decision 1
 - ADR-66: BACKLOG story-map hierarchy — Big Picture → Theme → User Story → Task; supersedes ADR-64 Decision 2 (flat layout)
 - ADR-67: AI-Council process operationalization — six-step gated loop (Frame→Generate→Gate→Run→Verdict→Return); `/council-question` trigger; amends `AI_COUNCIL_PROCESS.md` v1.0
 - ADR-68: Autonomous overnight review agent — local Task Scheduler → headless read-only review → morning briefing; ephemeral read-only worktrees (ADR-61)
 - ADR-69: Cross-repo audit reach model — `audit.py` reaches child repos via a Layer-2 read-only cross-repo runner (`run` over the `ecosystem/` registry); commit-time enforcement stays self-only (the #72 residual)
+- ADR-70: Three-tier self-enforcing process layer — Tier-1 always-on lifecycle (native primitives, bundled as the `tier1-lifecycle` plugin), Tier-2 scheduled fleet audit, Tier-3 episodic Workflows; git `closes [#id]` is the capture backbone (no custom ledger)
 
 ## 12. Section history
 <!-- scope: meta -->
@@ -172,8 +178,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.8 (2026-06-02) — propose-closures Stop hook landed (ADR-70 Tier-1, advances #8): §9 gains a "Session hooks" subsection documenting the project-level `.claude/settings.json` Stop → `propose_closures.py` (detect-and-propose, never mutates BACKLOG). No other section changed; `last_reviewed` unchanged (re-read this session).
 - v2.9 (2026-06-02) — closure loop made whole (ADR-70 Tier-1, advances #8): §7 adds the `/review-closures` repo command; §9 adds the `SessionStart → review_closures.py surface` hook. The review/approve/close half (human-gated, done-items-leave) complements Unit-2's Stop→propose. `last_reviewed` unchanged (re-read this session).
 - v2.10 (2026-06-02) — Tier-2 fleet health (#72 closes): §9 adds `SessionStart → fleet_health.py` (daily-throttled cross-repo audit + no_sibling_orphans on all 5 repos). `last_reviewed` unchanged (re-read this session).
+- v2.11 (2026-06-03) — Tier-1 doc convergence (5c + #73 close): §9 "Session hooks" **corrected** — the hub-local `Stop → propose_closures` and `SessionStart → review_closures surface` hooks were removed in 5c; the closure loop now runs via the enabled `tier1-lifecycle` plugin (Stop) + the global `~/.claude` `surface-closures.ps1` (L0). §8 notes the enabled plugin; §11 rotated 65→70 (added ADR-70; dropped ADR-65 — full list in `docs/decisions/README.md`). Full end-to-end re-read; `last_reviewed` re-stamped 2026-06-03.
 
 ---
 
-**Last updated:** 2026-06-02
+**Last updated:** 2026-06-03
 **Maintained by:** Rob
