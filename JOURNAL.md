@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-02 — Land the three-tier process-automation plan into the durable record (capture-only)
+
+- Did: Recorded the just-decided three-tier self-enforcing process architecture (AI Council verdict 2026-06-02 + the operator's three-tier synthesis) across its three durable surfaces, before any implementation — on `chore/land-process-automation-plan`, one revertable commit per surface, pytest/ruff/validate_backlog green after each. **No building** — capture only.
+- Result: ADR-70 written (three tiers: Tier-1 native-primitive lifecycle bundled as one methodology plugin · Tier-2 scheduled `audit.py run` → `fleet-health.md` · Tier-3 explicit/scoped Dynamic Workflows; the Workflow=heavy-execution-analog-of-the-Council escalation rule; supersedes the evidence-ledger custom-file design — git is the ledger). 3 LESSONS captured (tool-adoption symmetry; apply-your-own-enforcement-standard; closure-is-a-manual-step-big-arcs-skip). BACKLOG incorporation: annotated #13/#8/#12/#4/#72 `refs ADR-70` as the Tier-1/2 build units; added net-new #73 (Tier-1 plugin bundle + cross-repo install), #74 (Workflow-escalation rule), #75 (first scoped corp-monorepo Tier-3 Workflow). Merged `--no-ff` (`7c3af75`); branch deleted; tree clean; 156 tests green.
+- Changes: `docs/decisions/ADR-70-three-tier-process-automation.md` (new) + `docs/decisions/README.md` (index + traceability), `LESSONS.md` (+3, header re-stamped), `BACKLOG.md` (5 annotations + #73/#74/#75 + grooming-log line), `JOURNAL.md` (this entry). Commits `6b5126b` (ADR) · `93dc32b` (lessons) · `8ca04f8` (backlog) · merge `7c3af75`.
+- Abandoned / flagged: nothing dropped. Used `git commit -F -` via the PowerShell tool (Bash-tool here-strings mangle commit subjects — the 2026-06-01 channel-discipline lesson); `git merge` does not accept `-F -` (stdin), so the merge message went through a `$env:TEMP` file that was removed + verified gone (no-leftovers). Noted: operator commit `e8f3998` (ai-council handoff revert) landed on `main` from another terminal mid-session; this branch built cleanly on top.
+- Next: build the units when scheduled — #73 (Tier-1 plugin) depends on #13/#8/#12/#4; #75 (Tier-3) adopts + exercises Dynamic Workflows on a scoped corp-monorepo audit.
+
+---
+
 ### 2026-06-02 — BACKLOG groom: git-verified retroactive closure of 6 done-but-open items (ADR-65 business record)
 
 - Did: Grooming pass on `chore/backlog-groom`. The backlog wasn't shrinking because work done inside larger arcs (the ecosystem unification; the April–May overhaul) satisfied open items without ever closing them — the arc merges named their own scope, never `closes [#N]`, and nobody removed the items. Git-verified which open items are actually complete (evidence-based, never memory — the discipline that catches false notes like #45's "corp-monorepo not started"), then retired them via ADR-65 done-items-leave. Six closed, two re-scoped to their genuine residual, two updated (gate-lift + de-bloat), one new ADR (ADR-69) recording the #44 reach decision.
