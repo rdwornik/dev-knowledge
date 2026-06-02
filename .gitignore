@@ -15,6 +15,10 @@ venv/
 # Claude
 .claude/settings.local.json
 
+# Session-end closure proposals (ADR-70 Tier-1; ephemeral, reviewed at next /boot —
+# the durable record is the eventual `closes [#N]` commit + JOURNAL, ADR-65)
+logs/PROPOSALS-*.md
+
 # OS
 *.tmp
 *.bak
