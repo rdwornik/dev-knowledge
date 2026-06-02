@@ -282,3 +282,35 @@ This entry to be added to ADR-39 registry on next ADR-39 amendment
 - ADR-38 (universal repo architecture, mandatory files per tier)
 - ADR-39 (file lifecycle governance)
 - ADR-40 (scale tier evaluation, M+ mandate)
+
+## Amendments
+
+### 2026-06-02 — Supersession cross-reference + ecosystem backlog-form binding (closes BACKLOG #20)
+
+- **Source:** Operator decision 2026-06-02 (ecosystem-unification effort). Closes
+  BACKLOG #20 ("add a dated amendment to ADR-41 cross-referencing ADR-47/64/65").
+- **Decision tier:** Path A — a housekeeping cross-reference plus the record of an
+  operator-settled binding; no Council convene.
+
+**The backlog-architecture supersession chain.** ADR-41 is the original spec; five
+later decisions have replaced its model. This amendment records the chain so a reader
+of ADR-41 is not misled by its superseded original text:
+
+| Element of ADR-41 (original) | Now governed by |
+|---|---|
+| Tier mandate (S/M/L → BACKLOG.md) | Tiers deprecated (ADR-38 A5; ADR-40 deprecation). BACKLOG.md is MANDATORY for every repo (ADR-38 A5 + A6). |
+| `## Stream {name}` sections | Retired as headers (ADR-64 Decision 2); repo affiliation is theme/text, not a stream section. |
+| Rigid `### [P{1-3}] [Status] Item title` schema | Replaced by the story-map task line `- [#id] [P][size] … · Done when: … · refs` (ADR-64 schema restore + ADR-66 hierarchy). |
+| Quarterly archive to `BACKLOG-archive/YYYY-Q{N}.md` | Retired — done items LEAVE; git is the record (ADR-47; ADR-64 Decision 1; ADR-65). No archive file (CLAUDE.md §5). |
+| "plain-English noun, NOT Scrum vocabulary … not 'user story', 'sprint backlog', 'product owner'" | **Reversed for structure** by ADR-66, which adopts the Theme → User Story → Task story-map (Scrum + Patton). The anti-cargo-cult intent survives as **proportional depth** (ADR-38 A6) — hierarchy only where item volume justifies it. |
+| Per-handoff + quarterly grooming cadence | Retained in spirit; the grooming log lives in the BACKLOG.md footer (ADR-66). |
+
+**Ecosystem binding (ADR-38 A6, 2026-06-02).** The canonical backlog form — the ADR-66
+story-map with proportional depth — binds all in-scope repos (`.dev-knowledge` + the four
+child repos), because it feeds the git changelog (`git log --grep 'closes \[#'`) and must
+be uniform. The file *mandate* (ADR-41) and the file *form* (ADR-64/65/66) are now both
+universal; see ADR-38 A6 Delta 3.
+
+**What still stands from ADR-41.** The core insight — a single canonical cross-session
+`BACKLOG.md` as the source of truth for pending items, split-brain-free from handoffs — is
+unchanged and is the foundation the later ADRs refine.
