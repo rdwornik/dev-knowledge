@@ -30,6 +30,16 @@ repos:
         language: system
         always_run: true
         pass_filenames: false
+      - id: ruff
+        name: Ruff linter (version-pinned >=0.15.5; system binary; blocks on violations)
+        # Gate mode: ruff check (no --fix) so violations are always surfaced.
+        # language: system uses the installed ruff binary directly — no pre-commit
+        # virtualenv, no version mismatch, no phantom errors (corp-monorepo I001 lesson).
+        # required-version floor is enforced by pyproject.toml [tool.ruff].
+        entry: ruff check
+        language: system
+        types: [python]
+        pass_filenames: true
       - id: backlog-id-on-close
         name: Require [#id] when a commit removes a backlog task
         entry: python scripts/check_backlog_commit_msg.py
