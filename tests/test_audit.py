@@ -55,11 +55,13 @@ key: [unclosed
 
 @pytest.fixture()
 def good_repo(tmp_path: Path) -> Path:
-    """Repo satisfying the ADR-38 A5 universal governance baseline.
+    """Repo satisfying the ADR-38 A6 seven-file universal governance baseline.
 
-    Baseline files: VISION.md, ARCHITECTURE.md, BACKLOG.md, CLAUDE.md. src/,
-    tests/, pyproject.toml, README.md, CHANGELOG.md are kept here only to prove
-    they are NOT required by check_adr38_baseline post-amendment.
+    Baseline files: VISION, ARCHITECTURE, CLAUDE, BACKLOG, CONTRIBUTING, JOURNAL,
+    LESSONS. src/, tests/, pyproject.toml, README.md, CHANGELOG.md are kept here only
+    to prove they are NOT required by check_adr38_baseline post-amendment. Bodies are
+    minimal (presence-level); the [U] spine is exercised against the
+    repo-with-structural-checks fixture, not here.
     """
     (tmp_path / "src" / "my_pkg").mkdir(parents=True)
     (tmp_path / "src" / "my_pkg" / "__init__.py").write_text("")
@@ -71,6 +73,9 @@ def good_repo(tmp_path: Path) -> Path:
     (tmp_path / "CHANGELOG.md").write_text("# Changelog\n")
     (tmp_path / "BACKLOG.md").write_text("# Backlog\n")
     (tmp_path / "CLAUDE.md").write_text("# Claude\n\nInstructions.\n")
+    (tmp_path / "CONTRIBUTING.md").write_text("# Contributing\n")
+    (tmp_path / "JOURNAL.md").write_text("# Journal\n")
+    (tmp_path / "LESSONS.md").write_text("# Lessons Learned\n")
     return tmp_path
 
 
@@ -225,15 +230,20 @@ def test_adr38_bad_repo(bad_repo: Path) -> None:
     assert f.status == "fail"
 
 
-def test_adr38_no_lessons_or_journal_checked(good_repo: Path) -> None:
-    """LESSONS.md and JOURNAL.md are repo-specific — NOT checked by ADR-38 baseline."""
-    # Neither file exists in good_repo; check must still pass
-    assert not (good_repo / "LESSONS.md").exists()
-    assert not (good_repo / "JOURNAL.md").exists()
+def test_adr38_now_requires_lessons_and_journal(good_repo: Path) -> None:
+    """ADR-38 A6 (2026-06-02) promoted CONTRIBUTING/JOURNAL/LESSONS to the mandatory set.
+
+    Inverts the pre-A6 test: these files were repo-specific under A5; under A6 they
+    are part of the seven-file canonical baseline, so absence is a failure.
+    """
+    # good_repo carries all seven canonical files → pass
     f = aud.check_adr38_baseline(good_repo)[0]
-    assert f.status == "pass", (
-        f"ADR-38 check must not require LESSONS.md/JOURNAL.md; got: {f.evidence}"
-    )
+    assert f.status == "pass", f"seven-file good_repo should pass; got: {f.evidence}"
+    # Removing LESSONS.md now fails (was tolerated pre-A6)
+    (good_repo / "LESSONS.md").unlink()
+    f = aud.check_adr38_baseline(good_repo)[0]
+    assert f.status == "fail"
+    assert "LESSONS.md" in f.evidence
 
 # ---------------------------------------------------------------------------
 # Check #3: CLAUDE.md
@@ -297,7 +307,8 @@ def test_dot_prefix_ignores_subfolders(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 def _make_canonical(tmp_path: Path) -> None:
-    for name in ("VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "BACKLOG.md"):
+    # Tracks the mandatory set (seven files post ADR-38 A6).
+    for name in aud._CANONICAL_MANDATORY:
         (tmp_path / name).write_text("x")
 
 
@@ -308,9 +319,13 @@ def test_canonical_md_pass(tmp_path: Path) -> None:
 
 
 def test_canonical_md_optional_absent_still_pass(tmp_path: Path) -> None:
-    """LESSONS/JOURNAL/CONTRIBUTING are NOT required — absence must not fail."""
+    """README/ENVIRONMENT/ESSENTIALS/PLAYBOOK/TOKEN-LOG are NOT required — absence must not fail.
+
+    (CONTRIBUTING/JOURNAL/LESSONS are now mandatory under ADR-38 A6 and are written by
+    _make_canonical; the remaining canonical names stay optional.)
+    """
     _make_canonical(tmp_path)
-    assert not (tmp_path / "LESSONS.md").exists()
+    assert not (tmp_path / "README.md").exists()
     f = aud.check_canonical_md_visibility(tmp_path)[0]
     assert f.status == "pass"
 
@@ -325,10 +340,46 @@ def test_canonical_md_missing_mandatory(tmp_path: Path) -> None:
 
 def test_canonical_md_miscased(tmp_path: Path) -> None:
     _make_canonical(tmp_path)
-    (tmp_path / "Lessons.md").write_text("x")  # should be LESSONS.md
+    # README is optional (so not written by _make_canonical) but casing is still checked
+    # when present — and it avoids a case-insensitive-FS collision with a mandatory file.
+    (tmp_path / "Readme.md").write_text("x")  # should be README.md
     f = aud.check_canonical_md_visibility(tmp_path)[0]
     assert f.status == "fail"
-    assert "Lessons.md" in f.evidence
+    assert "Readme.md" in f.evidence
+
+
+# ---------------------------------------------------------------------------
+# Check #12: canonical_structure (ADR-38 A6)
+# ---------------------------------------------------------------------------
+
+def test_canonical_structure_pass(tmp_path: Path) -> None:
+    """A canonical file carrying its [U] spine headings passes."""
+    (tmp_path / "CONTRIBUTING.md").write_text(
+        "# Contributing\n\n## Branch naming\n\n## Commit style\n\n## Handoff process\n")
+    f = aud.check_canonical_structure(tmp_path)[0]
+    assert f.status == "pass"
+
+
+def test_canonical_structure_fail_missing_heading(tmp_path: Path) -> None:
+    """A present canonical file missing a required spine heading fails, naming it."""
+    (tmp_path / "CONTRIBUTING.md").write_text("# Contributing\n\n## Branch naming\n")
+    f = aud.check_canonical_structure(tmp_path)[0]
+    assert f.status == "fail"
+    assert "Commit style" in f.evidence
+
+
+def test_canonical_structure_absent_file_not_flagged(tmp_path: Path) -> None:
+    """Absent canonical files are not flagged here (presence is owned by other checks)."""
+    f = aud.check_canonical_structure(tmp_path)[0]
+    assert f.status == "pass"
+
+
+def test_canonical_structure_startswith_allows_h1_suffix(tmp_path: Path) -> None:
+    """A repo-suffixed H1 (e.g. '# Journal - ai-council') still matches the spine."""
+    (tmp_path / "JOURNAL.md").write_text("# Journal - ai-council\n\nentries\n")
+    (tmp_path / "LESSONS.md").write_text("# Lessons Learned - log\n\nentries\n")
+    f = aud.check_canonical_structure(tmp_path)[0]
+    assert f.status == "pass"
 
 # ---------------------------------------------------------------------------
 # Check #6: workspace_settings (ADR-59 D3)

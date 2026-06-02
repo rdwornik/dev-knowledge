@@ -72,13 +72,18 @@ _DOT_PREFIX_EXCEPTIONS = {
 }
 
 # Canonical files universally mandatory at repo root (ADR-38 A5 / ADR-51).
-_CANONICAL_MANDATORY = ["VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "BACKLOG.md"]
+# ADR-38 A6 (2026-06-02): the seven-file canonical set is mandatory for every repo.
+# CONTRIBUTING/JOURNAL/LESSONS were promoted from optional (A5) to mandatory here so
+# cross-repo navigation is identical (the same seven anchors in every repo).
+_CANONICAL_MANDATORY = [
+    "VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "BACKLOG.md",
+    "CONTRIBUTING.md", "JOURNAL.md", "LESSONS.md",
+]
 
 # All canonical names whose casing is checked when present (mandatory + optional
 # + .dev-knowledge-only). Presence is required only for _CANONICAL_MANDATORY.
 _CANONICAL_ALL = _CANONICAL_MANDATORY + [
-    "JOURNAL.md", "ENVIRONMENT.md", "CONTRIBUTING.md",
-    "ESSENTIALS.md", "PLAYBOOK.md", "LESSONS.md", "TOKEN-LOG.md", "README.md",
+    "ENVIRONMENT.md", "ESSENTIALS.md", "PLAYBOOK.md", "TOKEN-LOG.md", "README.md",
 ]
 
 # Canonical living docs subject to the freshness cadence (check #10; operationalizes
@@ -261,7 +266,7 @@ def check_vision_md(repo_path: Path) -> list[Finding]:
 
 
 def check_adr38_baseline(repo_path: Path) -> list[Finding]:
-    """Check #2: ADR-38 (amendment A5, 2026-05-23) universal governance baseline.
+    """Check #2: ADR-38 (amendments A5 2026-05-23, A6 2026-06-02) universal governance baseline.
 
     Checks the governance documents every repo must carry — not code structure.
     The repo-tier system is deprecated, so there is no per-tier branching. Code
@@ -269,9 +274,14 @@ def check_adr38_baseline(repo_path: Path) -> list[Finding]:
     amendment and is NOT part of this universal governance check (governance-only
     repos such as .dev-knowledge have no src/ or pyproject.toml). README.md is
     optional (deprecated from the baseline); CHANGELOG.md was removed by ADR-49.
-    CLAUDE.md is covered by check_claude_md.
+    CLAUDE.md is covered by check_claude_md, so it is not duplicated here.
+
+    A6 (2026-06-02) promoted CONTRIBUTING.md, JOURNAL.md and LESSONS.md from optional
+    to the mandatory seven-file canonical set — superseding the A5 "JOURNAL/LESSONS
+    remain repo-specific" line.
     """
-    required_files = ["VISION.md", "ARCHITECTURE.md", "BACKLOG.md"]
+    required_files = ["VISION.md", "ARCHITECTURE.md", "BACKLOG.md",
+                      "CONTRIBUTING.md", "JOURNAL.md", "LESSONS.md"]
 
     missing_files = [f for f in required_files if not (repo_path / f).exists()]
 
@@ -322,7 +332,7 @@ def check_dot_prefix_discipline(repo_path: Path) -> list[Finding]:
 def check_canonical_md_visibility(repo_path: Path) -> list[Finding]:
     """Check #5 (ADR-59 D2): mandatory canonical files present + correct ALL-CAPS casing.
 
-    Requires only the four universal files (ADR-38 A5 / ADR-51). Optional and
+    Requires the seven universal files (ADR-38 A6 / A5 / ADR-51). Optional and
     .dev-knowledge-only canonical files are NOT required, but if present (under any
     casing) they must use the canonical ALL-CAPS spelling — a mis-cased canonical
     file breaks the visual clustering the pattern exists to produce.
@@ -815,6 +825,54 @@ def check_no_sibling_orphans(repo_path: Path) -> list[Finding]:
                     f"real repo/folder, not a worktree remnant; or none exist)")]
 
 
+# ADR-38 A6 (2026-06-02): the universal [U] heading spine each canonical file must
+# carry. Presence-only (not strict order) — child-repo-safe; the [R]/[C] sections
+# (repo-specific / conditional) vary per repo and are deliberately NOT asserted.
+# A heading matches if any line .startswith() the substring, so a repo's own H1 suffix
+# (e.g. "# Journal - ai-council") still matches. The substrings are taken from
+# .dev-knowledge's own canonical files, so the self-only health gate passes by
+# construction. BACKLOG.md hierarchy beyond "## Big picture" is covered by
+# validate_backlog.py, not duplicated here.
+_CANONICAL_SPINE = {
+    "VISION.md": ["## Vision", "## Scope", "## Values", "## Lifecycle", "## References"],
+    "ARCHITECTURE.md": ["## Purpose", "## Codemap", "## Layer Boundaries & Invariants",
+                        "## Key conventions", "## Authority and governance",
+                        "## Validators and enforcement"],
+    "CLAUDE.md": ["## 1. First read", "## 5. Critical rules", "## 6. Session start protocol"],
+    "BACKLOG.md": ["## Big picture"],
+    "CONTRIBUTING.md": ["## Branch naming", "## Commit style", "## Handoff process"],
+    "JOURNAL.md": ["# Journal"],
+    "LESSONS.md": ["# Lessons Learned"],
+}
+
+
+def check_canonical_structure(repo_path: Path) -> list[Finding]:
+    """Check #12 (ADR-38 A6): each present canonical file carries its [U] heading spine.
+
+    Asserts the universal navigation backbone only — presence of required headings,
+    not their order, and not the [R]/[C] sections that legitimately vary per repo. A
+    canonical file that is ABSENT is not flagged here (presence is owned by
+    check_adr38_baseline / check_canonical_md_visibility); this check validates the
+    shape of files that exist. Read-only and child-repo-safe: a not-yet-unified repo
+    FAILs, surfacing the structural gap without blocking .dev-knowledge (health is
+    self-only).
+    """
+    missing: list[str] = []
+    for fname, required in _CANONICAL_SPINE.items():
+        fpath = repo_path / fname
+        if not fpath.exists():
+            continue
+        lines = fpath.read_text(encoding="utf-8", errors="replace").splitlines()
+        for heading in required:
+            if not any(line.startswith(heading) for line in lines):
+                missing.append(f"{fname}: {heading!r}")
+    if missing:
+        return [Finding("canonical_structure", "fail",
+                        f"Canonical file(s) missing required spine heading(s): {missing}")]
+    return [Finding("canonical_structure", "pass",
+                    "All present canonical files carry their required [U] spine headings")]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -827,6 +885,7 @@ ALL_CHECKS = [
     check_handoff_tag_canonicity,
     check_canonical_freshness,
     check_no_sibling_orphans,
+    check_canonical_structure,
 ]
 
 
