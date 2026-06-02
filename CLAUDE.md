@@ -6,7 +6,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.8 — 2026-06-02 -->
+<!-- version: 2.9 — 2026-06-02 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -101,6 +101,7 @@ User-level (`~/.claude/commands/`):
 Repo-level (`./.claude/commands/`):
 - `/save` — commit workflow with full body per git-discipline rule
 - `/handoff` — generate/complete handoff per `HANDOFF_PROCESS.md` v4 two-phase flow (ADR-62)
+- `/review-closures` — review the session-end closure proposals + execute ONLY operator-approved closures (ADR-70 Tier-1; human-gated, done-items-leave). Added by [#8]
 
 (When to invoke each + auto-vs-manual for hooks: PLAYBOOK §"Usage protocol: which command / hook, when".)
 
@@ -128,7 +129,8 @@ Pre-commit (`.pre-commit-config.yaml`):
 - `backlog-id-on-close` (commit-msg) — require `[#id]` when a commit removes a backlog task
 
 Session hooks (`.claude/settings.json`, project-level — merges with, does not replace, the `~/.claude` hooks):
-- `Stop` → `scripts/propose_closures.py` — ADR-70 Tier-1 session-end closure detector. Deterministic (no LLM), read-only: writes `logs/PROPOSALS-<date>.md` (gitignored) proposing backlog items whose closing-commit landed but never left the file; **detect-and-propose only — never mutates BACKLOG**; reviewed at next `/boot`. Non-blocking (exits 0). Added by [#8] (partial — the session-end piece).
+- `Stop` → `scripts/propose_closures.py` — ADR-70 Tier-1 session-end closure detector. Deterministic (no LLM), read-only: writes `logs/PROPOSALS-<date>.md` (gitignored) proposing backlog items whose closing-commit landed but never left the file; **detect-and-propose only — never mutates BACKLOG**; reviewed at next `/boot`. Non-blocking (exits 0). Added by [#8].
+- `SessionStart` → `scripts/review_closures.py surface` — ADR-70 Tier-1. Read-only: prints a one-line "N closures proposed — run `/review-closures`" when the latest proposals file has candidates; silent otherwise. Non-blocking (exits 0). The review/approve/close half is the `/review-closures` command (§7). Added by [#8].
 
 Rules (`.claude/rules/`):
 - `git-discipline.md` — mandatory commit after every file edit; clean working tree at session end
@@ -167,6 +169,7 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.6 (2026-06-02) — backlog-groom currency fix: §11 "last 5" rotated 64–68 → 65–69 (add ADR-69 cross-repo audit reach model; drop ADR-64). Full end-to-end re-read confirmed the rest current as of the groom (the §4/§9 `#13` refs stay valid — #13 was re-scoped, not closed); `last_reviewed` re-stamped.
 - v2.7 (2026-06-02) — ruff gate wired (#13 closes): §4 ruff description updated (now an enforced pre-commit gate); §9 pre-commit list updated (ruff hook added, [#13] removed parenthetical). Re-read end-to-end confirmed rest current; `last_reviewed` re-stamped.
 - v2.8 (2026-06-02) — propose-closures Stop hook landed (ADR-70 Tier-1, advances #8): §9 gains a "Session hooks" subsection documenting the project-level `.claude/settings.json` Stop → `propose_closures.py` (detect-and-propose, never mutates BACKLOG). No other section changed; `last_reviewed` unchanged (re-read this session).
+- v2.9 (2026-06-02) — closure loop made whole (ADR-70 Tier-1, advances #8): §7 adds the `/review-closures` repo command; §9 adds the `SessionStart → review_closures.py surface` hook. The review/approve/close half (human-gated, done-items-leave) complements Unit-2's Stop→propose. `last_reviewed` unchanged (re-read this session).
 
 ---
 
