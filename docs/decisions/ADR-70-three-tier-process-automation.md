@@ -61,3 +61,12 @@ A **Dynamic Workflow is the heavy-*execution* analog of the AI Council** (ADR-67
 - AI Council verdict 2026-06-02 (three-tier process automation) + the operator's three-tier synthesis
 - ADR-65 (git technical record / JOURNAL business record), ADR-67 (Council loop — decision analog), ADR-68 (night agent — Tier 2 host), ADR-69 (`audit.py run` cross-repo reach — Tier 2 runner)
 - BACKLOG: #13 (ruff pre-commit gate), #8 (lifecycle hooks), #12 (evolution/lesson machinery), #72 (cross-repo orphan detection in scheduled run), #4 (lessons feedback loop); #73/#74/#75 (net-new build units)
+
+## Addendum — shipped reality (2026-06-02)
+
+The shipped Tier-1 deviates from the original design above in two recorded ways:
+
+1. **Surfacing relocated to global L0.** The design assumed a plugin Stop-hook + `/boot` surfacing path. In practice, plugin `SessionStart` hooks register too late for the one-shot init event and never fire (verified 2026-06-02). Surfacing moved to a global `~/.claude` `SessionStart` hook (`surface-closures.ps1`), which fires fleet-wide; the plugin intentionally ships **no** SessionStart hook.
+2. **Forward closure rule.** This ADR diagnosed the `closes`-omission as the motivating problem but stated no forward rule. The rule: the commit that **finishes** an item carries `closes [#id]`, not `advances`. The propose/gate STRONG detector keys on `closes [#id]`, so an arc done entirely with `advances` leaves the item done-but-open and undetected (this forced the manual close of #73). The detector and the convention share this dependency. See CONTRIBUTING "Backlog-id references".
+
+Plugin shipping (5a–5c: package + pilot, cross-repo rollout, hub convergence) is recorded in `JOURNAL.md`/`BACKLOG.md`; this addendum records only the architectural deviations from the captured design.
