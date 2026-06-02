@@ -4,18 +4,17 @@ findings:
     ''version'']'
   status: pass
 - check_name: adr38_baseline
-  evidence: All ADR-38 universal governance baseline files present
-  status: pass
+  evidence: 'Missing required: [''LESSONS.md'']'
+  status: fail
 - check_name: claude_md
-  evidence: CLAUDE.md present (8671 chars)
+  evidence: CLAUDE.md present (8922 chars)
   status: pass
 - check_name: dot_prefix_discipline
   evidence: All root config files dot-prefixed or on ADR-59 exception list
   status: pass
 - check_name: canonical_md_visibility
-  evidence: 'Mandatory canonical files present + correctly cased: [''VISION.md'',
-    ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'']'
-  status: pass
+  evidence: 'Missing mandatory canonical files: [''LESSONS.md'']'
+  status: fail
 - check_name: workspace_settings
   evidence: .corp-monorepo.code-workspace present, dot-prefixed, required sort settings
     correct
@@ -30,11 +29,19 @@ findings:
   evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
   status: pass
 - check_name: canonical_freshness
-  evidence: '2 stale (edited since review): VISION.md: last_reviewed 2026-05-27 predates
-    last edit 2026-05-28 - edited but not re-reviewed; ARCHITECTURE.md: last_reviewed
-    2026-05-27 predates last edit 2026-05-28 - edited but not re-reviewed | also 2
-    warn: CLAUDE.md: no parseable last_reviewed frontmatter; CONTRIBUTING.md: no parseable
-    last_reviewed frontmatter'
+  evidence: 4 canonical living files fresh (last_reviewed not before last edit; within
+    30d)
+  status: pass
+- check_name: no_sibling_orphans
+  evidence: No orphaned 'corp-monorepo-*' siblings (each is a registered worktree
+    or a real repo/folder, not a worktree remnant; or none exist)
+  status: pass
+- check_name: canonical_structure
+  evidence: 'Canonical file(s) missing required spine heading(s): ["ARCHITECTURE.md:
+    ''## Key conventions''", "ARCHITECTURE.md: ''## Authority and governance''", "ARCHITECTURE.md:
+    ''## Validators and enforcement''", "BACKLOG.md: ''## Big picture''", "CONTRIBUTING.md:
+    ''## Branch naming''", "CONTRIBUTING.md: ''## Commit style''", "CONTRIBUTING.md:
+    ''## Handoff process''", "JOURNAL.md: ''# Journal''"]'
   status: fail
 last_audit: '2026-06-02'
 name: corp-monorepo
