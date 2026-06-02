@@ -20,7 +20,18 @@ The plugin operates on the host repo's `BACKLOG.md` and `logs/` via
 - The host repo has a `BACKLOG.md` whose tasks use the `- [#id] ... · Done when: ...`
   form (ADR-66). The proposer degrades gracefully on a smaller/simpler backlog —
   it proposes only what matches and writes "no closures detected" otherwise.
-- A `logs/` directory will be created on first run (gitignore `logs/PROPOSALS-*.md`).
+- **REQUIRED — gitignore the loop's ephemeral output.** The Stop hook writes
+  `logs/PROPOSALS-<date>.md` into the host repo on first run. Before installing, add
+  to the host `.gitignore`:
+  ```
+  logs/PROPOSALS-*.md
+  ```
+  Skipping this leaves the proposals file as an untracked working-tree artifact that
+  can be accidentally committed (the gap that surfaced on corp-sca). If the host repo
+  keeps **nothing** tracked under `logs/`, ignoring the whole `logs/` directory is
+  simplest — but do NOT blanket-ignore `logs/` in a repo that tracks files there (e.g.
+  `.dev-knowledge` tracks `logs/TOKEN-LOG.md`); use the `logs/PROPOSALS-*.md` pattern
+  there. (Add `logs/FLEET-HEALTH.md` too if the repo also runs the Tier-2 fleet audit.)
 
 ## 1. Install the CC plugin (commands + hooks)
 
