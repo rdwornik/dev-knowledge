@@ -846,6 +846,25 @@ _CANONICAL_SPINE = {
 }
 
 
+def _heading_present(lines: list[str], heading: str) -> bool:
+    """True if some line IS `heading` or continues it past a word boundary.
+
+    Boundary-aware so a repo-specific suffix matches but a near-miss does not:
+    `## Purpose [CORE]` and `# Journal - ai-council` satisfy `## Purpose` / `# Journal`,
+    while `## Visionary` and `# Journalized` do NOT satisfy `## Vision` / `# Journal`
+    (the char after the heading must be absent or a non-word boundary, not a letter or
+    digit). Closes Codex review HIGH 2026-06-02 (startswith false-pass).
+    """
+    n = len(heading)
+    for line in lines:
+        if not line.startswith(heading):
+            continue
+        rest = line[n:]
+        if rest == "" or not (rest[0].isalnum() or rest[0] == "_"):
+            return True
+    return False
+
+
 def check_canonical_structure(repo_path: Path) -> list[Finding]:
     """Check #12 (ADR-38 A6): each present canonical file carries its [U] heading spine.
 
@@ -864,7 +883,7 @@ def check_canonical_structure(repo_path: Path) -> list[Finding]:
             continue
         lines = fpath.read_text(encoding="utf-8", errors="replace").splitlines()
         for heading in required:
-            if not any(line.startswith(heading) for line in lines):
+            if not _heading_present(lines, heading):
                 missing.append(f"{fname}: {heading!r}")
     if missing:
         return [Finding("canonical_structure", "fail",

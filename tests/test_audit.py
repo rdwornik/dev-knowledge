@@ -381,6 +381,19 @@ def test_canonical_structure_startswith_allows_h1_suffix(tmp_path: Path) -> None
     f = aud.check_canonical_structure(tmp_path)[0]
     assert f.status == "pass"
 
+
+def test_canonical_structure_rejects_near_miss_heading(tmp_path: Path) -> None:
+    """Boundary-aware match: '## Visionary' must NOT satisfy required '## Vision'.
+
+    Regression for Codex review HIGH 2026-06-02 (startswith false-pass).
+    """
+    (tmp_path / "VISION.md").write_text(
+        "# Vision\n\n## Visionary\n## Scoped\n## Values\n## Lifecycle\n## References\n")
+    f = aud.check_canonical_structure(tmp_path)[0]
+    assert f.status == "fail"
+    assert "## Vision" in f.evidence  # the unmatched required heading is named
+    assert "## Scope" in f.evidence
+
 # ---------------------------------------------------------------------------
 # Check #6: workspace_settings (ADR-59 D3)
 # ---------------------------------------------------------------------------
