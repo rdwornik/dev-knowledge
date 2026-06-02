@@ -243,33 +243,11 @@ def _load_proposals_text(path_arg):
     return path, path.read_text(encoding="utf-8", errors="replace")
 
 
-def _debug_surface_log(path_found, text_found, line_produced) -> None:
-    # TEMPORARY instrumentation — remove after root-cause confirmed (issue: SessionStart not surfacing)
-    import datetime
-    try:
-        log_path = _LOGS_DIR / "debug-surface.log"
-        _LOGS_DIR.mkdir(exist_ok=True)
-        entry = (
-            f"[{datetime.datetime.now().isoformat(timespec='seconds')}] "
-            f"CLAUDE_PROJECT_DIR={os.environ.get('CLAUDE_PROJECT_DIR', 'NOT_SET')!r} "
-            f"cwd={Path.cwd()!r} "
-            f"_REPO_ROOT={_REPO_ROOT!r} "
-            f"proposals_path={path_found!r} "
-            f"text_found={text_found is not None} "
-            f"line_produced={line_produced!r}\n"
-        )
-        log_path.write_text(entry, encoding="utf-8") if not log_path.exists() else \
-            log_path.open("a", encoding="utf-8").write(entry)
-    except Exception:  # noqa: BLE001
-        pass  # never block on debug logging
-
-
 def cmd_surface(args) -> int:
     _path, text = _load_proposals_text(args.proposals)
-    line = surface_line(parse_proposals(text)) if text is not None else None
-    _debug_surface_log(_path, text, line)
     if text is None:
         return 0  # no proposals file yet — silent, non-blocking
+    line = surface_line(parse_proposals(text))
     if line:
         print(line)
     return 0
