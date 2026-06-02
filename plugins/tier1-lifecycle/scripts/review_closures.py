@@ -37,21 +37,38 @@ import sys
 from pathlib import Path
 
 
-def _host_root() -> Path:
+def _host_root(strict: bool = True) -> Path:
     """Host repo root (where BACKLOG.md / logs/ / .git live).
 
-    PLUGIN PORTABILITY: this script lives under ${CLAUDE_PLUGIN_ROOT}, NOT in the
-    host repo, so the data root must come from $CLAUDE_PROJECT_DIR (set by Claude
-    Code for every hook/command), not from __file__. Falls back to cwd for manual
-    or test invocation. `_SCRIPTS_DIR` stays __file__-relative — it locates the
-    plugin-bundled validate_backlog.py, which is a different root.
+    Comes from $CLAUDE_PROJECT_DIR (set by Claude Code for every hook/command), NOT
+    __file__ — the script lives under ${CLAUDE_PLUGIN_ROOT}, a different root.
+
+    strict=True (default — the SAFE default): if CLAUDE_PROJECT_DIR is unset, FAIL
+    LOUD (stderr + SystemExit 2) instead of silently using cwd. A wrong root on the
+    review/close path would mutate the WRONG repo's BACKLOG, so the dangerous
+    callers take the default.
+
+    strict=False: fall back to cwd when unset. Used only for (a) the module-level
+    convenience constants, so importing the module never fails, and (b) the
+    read-only surface nudge, where a wrong/empty result is harmless.
+
+    `_SCRIPTS_DIR` stays __file__-relative — it locates the plugin-bundled
+    validate_backlog.py, which is a different root.
     """
     env = os.environ.get("CLAUDE_PROJECT_DIR")
-    return Path(env).resolve() if env else Path.cwd().resolve()
+    if env:
+        return Path(env).resolve()
+    if strict:
+        print("review_closures: ERROR — CLAUDE_PROJECT_DIR is not set; refusing to "
+              "guess the host repo (a wrong root could mutate the wrong BACKLOG). "
+              "Invoke via the plugin command, or set CLAUDE_PROJECT_DIR.",
+              file=sys.stderr)
+        raise SystemExit(2)
+    return Path.cwd().resolve()
 
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent  # plugin's own dir (bundled validate_backlog)
-_REPO_ROOT = _host_root()
+_REPO_ROOT = _host_root(strict=False)  # lenient: never break import; cmd_plan re-checks strictly
 _BACKLOG = _REPO_ROOT / "BACKLOG.md"
 _LOGS_DIR = _REPO_ROOT / "logs"
 
@@ -259,6 +276,7 @@ def cmd_surface(args) -> int:
 
 
 def cmd_plan(args) -> int:
+    _host_root()  # strict guard — fail loud if CLAUDE_PROJECT_DIR unset (close path must not guess the repo)
     path, text = _load_proposals_text(args.proposals)
     if text is None:
         print(json.dumps({"error": "no proposals file found", "close": [], "skip": []}))

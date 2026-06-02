@@ -43,21 +43,35 @@ from datetime import date
 from pathlib import Path
 
 
-def _host_root() -> Path:
+def _host_root(strict: bool = True) -> Path:
     """Host repo root (where BACKLOG.md / logs/ / .git live).
 
-    PLUGIN PORTABILITY: this script lives under ${CLAUDE_PLUGIN_ROOT}, NOT in the
-    host repo, so the data root must come from $CLAUDE_PROJECT_DIR (set by Claude
-    Code for every hook/command), not from __file__. Falls back to cwd for manual
-    or test invocation. `_SCRIPTS_DIR` stays __file__-relative — it locates the
-    plugin-bundled validate_backlog.py, which is a different root.
+    Comes from $CLAUDE_PROJECT_DIR (set by Claude Code for every hook/command), NOT
+    __file__ — the script lives under ${CLAUDE_PLUGIN_ROOT}, a different root.
+
+    strict=True (default — the SAFE default): if CLAUDE_PROJECT_DIR is unset, FAIL
+    LOUD (stderr + SystemExit 2) instead of silently using cwd.
+
+    strict=False: fall back to cwd when unset — used for the module-level convenience
+    constants so import never fails. propose_closures runs as the Stop hook (which
+    must never wedge session-end), so its main() does NOT take the strict path; CC
+    always sets CLAUDE_PROJECT_DIR for hooks, and a stray manual run degrades to cwd
+    rather than blocking. `_SCRIPTS_DIR` stays __file__-relative for the bundled
+    validate_backlog.py.
     """
     env = os.environ.get("CLAUDE_PROJECT_DIR")
-    return Path(env).resolve() if env else Path.cwd().resolve()
+    if env:
+        return Path(env).resolve()
+    if strict:
+        print("propose_closures: ERROR — CLAUDE_PROJECT_DIR is not set; refusing to "
+              "guess the host repo. Invoke via the plugin hook, or set CLAUDE_PROJECT_DIR.",
+              file=sys.stderr)
+        raise SystemExit(2)
+    return Path.cwd().resolve()
 
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent  # plugin's own dir (bundled validate_backlog)
-_REPO_ROOT = _host_root()
+_REPO_ROOT = _host_root(strict=False)  # lenient: Stop hook must not wedge; CC always sets the env
 _BACKLOG = _REPO_ROOT / "BACKLOG.md"
 _LOGS_DIR = _REPO_ROOT / "logs"
 
