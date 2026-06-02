@@ -1056,6 +1056,55 @@ def test_no_sibling_orphans_degrades_without_git(
     assert "skipped" in f.evidence
 
 
+def test_no_sibling_orphans_same_prefix_repo_not_flagged(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A legitimate same-prefix sibling REPO (own .git/ dir + content) is NOT an orphan.
+
+    Regression for Codex H1 (2026-06-02): registration alone over-flagged any `<repo>-*`
+    sibling. The remnant guard must spare an independent repo that merely shares the prefix.
+    """
+    repo = tmp_path / "myrepo"
+    repo.mkdir()
+    sibling_repo = tmp_path / "myrepo-frontend"   # a real, separate project
+    sibling_repo.mkdir()
+    (sibling_repo / ".git").mkdir()               # independent repo: .git is a DIRECTORY
+    (sibling_repo / "README.md").write_text("real project")
+    monkeypatch.setattr(aud, "_git_registered_worktrees",
+                        lambda rp: {os.path.normcase(str(repo.resolve()))})
+    f = aud.check_no_sibling_orphans(repo)[0]
+    assert f.status == "pass", f.evidence
+
+
+def test_no_sibling_orphans_same_prefix_populated_folder_not_flagged(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A populated non-worktree folder sharing the prefix is NOT an orphan (Codex H1)."""
+    repo = tmp_path / "myrepo"
+    repo.mkdir()
+    notes = tmp_path / "myrepo-notes"
+    notes.mkdir()
+    (notes / "todo.txt").write_text("not a worktree")  # content, no .git → not a remnant
+    monkeypatch.setattr(aud, "_git_registered_worktrees",
+                        lambda rp: {os.path.normcase(str(repo.resolve()))})
+    f = aud.check_no_sibling_orphans(repo)[0]
+    assert f.status == "pass", f.evidence
+
+
+def test_no_sibling_orphans_deregistered_worktree_with_gitlink_fails(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A populated but deregistered worktree (carries a .git gitlink FILE) is still caught."""
+    repo = tmp_path / "myrepo"
+    repo.mkdir()
+    stale = tmp_path / "myrepo-stale"
+    stale.mkdir()
+    (stale / ".git").write_text("gitdir: ../myrepo/.git/worktrees/myrepo-stale\n")  # gitlink
+    (stale / "leftover.txt").write_text("half-removed worktree content")
+    monkeypatch.setattr(aud, "_git_registered_worktrees",
+                        lambda rp: {os.path.normcase(str(repo.resolve()))})
+    f = aud.check_no_sibling_orphans(repo)[0]
+    assert f.status == "fail"
+    assert "myrepo-stale" in f.evidence
+
+
 @pytest.mark.skipif(not _HAS_GIT, reason="git not available")
 def test_no_sibling_orphans_real_git_orphan_fails(tmp_path: Path) -> None:
     """REAL git, no mocks: an unregistered `<repo>-*` sibling → FAIL end-to-end.

@@ -741,6 +741,31 @@ def _git_registered_worktrees(repo_path: Path) -> Optional[set[str]]:
     return registered
 
 
+def _looks_like_worktree_remnant(path: Path) -> bool:
+    """True when `path` shows evidence of being a torn-down worktree leftover rather
+    than an independent repo or an unrelated populated folder.
+
+    Either signal suffices:
+      - the directory is EMPTY — the canonical orphan (`.dev-knowledge-cadence` was empty
+        after git deregistered it but the shell survived); or
+      - it carries a `.git` *gitlink file* (not a `.git/` directory) — the marker a git
+        worktree leaves behind, so a half-removed/deregistered worktree that still holds
+        content is still caught.
+
+    A legitimate same-prefix sibling is therefore NOT flagged: an independent git repo has
+    a `.git/` *directory* (not a gitlink file) plus content, and an unrelated populated
+    folder has neither signal. This narrows the detector to actual worktree evidence
+    (Codex H1, 2026-06-02) without weakening the registration gate.
+    """
+    try:
+        entries = list(path.iterdir())
+    except OSError:
+        return False
+    if not entries:
+        return True
+    return (path / ".git").is_file()
+
+
 def check_no_sibling_orphans(repo_path: Path) -> list[Finding]:
     """Check #11 (no-leftovers invariant — ADR-61/ADR-68, PLAYBOOK G5): no orphaned
     `<repo>-*` sibling directories left behind by a torn-down worktree.
@@ -751,12 +776,16 @@ def check_no_sibling_orphans(repo_path: Path) -> list[Finding]:
     deregisters the worktree but the empty directory survives on disk as an orphan — the
     `.dev-knowledge-cadence` / `.dev-knowledge-night-adr` failure (cleaned 2026-06-02).
 
-    Keyed on REGISTRATION, not mere name: a `<repo>-*` sibling that IS a registered git
-    worktree is legitimate in-use parallel work (NOT flagged); one that is NOT registered
-    is the orphan (FAIL). That discriminator is the whole point — it separates a live
-    worktree from a leftover shell. A presence-checking audit structurally cannot catch a
-    directory that exists but should not (2026-05-17 decommissioning-gap LESSON), so this
-    is an explicit negative assertion, the mechanization PLAYBOOK G5 §924 named.
+    A sibling is flagged only when BOTH hold:
+      - it is NOT a registered git worktree (registration is the primary gate — a `<repo>-*`
+        sibling that IS registered is legitimate in-use parallel work, never flagged); AND
+      - it shows worktree-remnant evidence (empty, or a `.git` gitlink file) per
+        `_looks_like_worktree_remnant` — so a legitimate same-prefix sibling repo or
+        populated folder is not mistaken for an orphan (Codex H1).
+
+    A presence-checking audit structurally cannot catch a directory that exists but should
+    not (2026-05-17 decommissioning-gap LESSON), so this is an explicit negative assertion —
+    the mechanization PLAYBOOK G5 §924 named.
 
     Read-only (`git worktree list`). Degrades gracefully without git (skipped). PORTABLE:
     a child repo inherits it unchanged — `repo_path.name` resolves to that repo's prefix.
@@ -775,14 +804,15 @@ def check_no_sibling_orphans(repo_path: Path) -> list[Finding]:
                         "parent directory unreadable - sibling-orphan check skipped")]
     orphans = [
         p.name for p in siblings
-        if os.path.normcase(str(p.resolve())) not in registered]
+        if os.path.normcase(str(p.resolve())) not in registered
+        and _looks_like_worktree_remnant(p)]
     if orphans:
         return [Finding("no_sibling_orphans", "fail",
                         f"Unregistered '{prefix}*' sibling dir(s) next to repo - worktree "
                         f"orphan(s) left behind (remove, or re-register if live): {orphans}")]
     return [Finding("no_sibling_orphans", "pass",
-                    f"No orphaned '{prefix}*' siblings "
-                    f"(every '{prefix}*' sibling is a registered worktree, or none exist)")]
+                    f"No orphaned '{prefix}*' siblings (each is a registered worktree or a "
+                    f"real repo/folder, not a worktree remnant; or none exist)")]
 
 
 ALL_CHECKS = [
