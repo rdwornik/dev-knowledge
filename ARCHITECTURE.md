@@ -508,6 +508,8 @@ Decision record: [ADR-70](docs/decisions/ADR-70-three-tier-process-automation.md
 - **ADR-66** — BACKLOG story-map hierarchy: Big Picture → Theme → User Story → Task; supersedes ADR-64 Decision 2 (flat layout)
 - **ADR-67** — AI-Council process operationalization: six-step gated loop (Frame→Generate→Gate→Run→Verdict→Return); `/council-question`; amends `AI_COUNCIL_PROCESS.md` v1.0
 - **ADR-68** — autonomous overnight review agent: local Task Scheduler → headless read-only review → morning briefing; ephemeral read-only worktrees (ADR-61); self-contained in `~/.claude/night-agent/`
+- **ADR-69** — cross-repo audit reach model: `audit.py` reaches child repos via a Layer-2 read-only cross-repo runner (`run` over the `ecosystem/` registry, reads each read-only, writes only into `.dev-knowledge`); commit-time enforcement stays self-only (the #72 residual)
+- **ADR-70** — three-tier self-enforcing process layer: Tier-1 always-on lifecycle (native primitives bundled as the `tier1-lifecycle` plugin), Tier-2 scheduled `audit.py run` → fleet-health digest, Tier-3 explicit/scoped Dynamic Workflows; git `closes [#id]` is the capture backbone (no custom ledger); + 2026-06-02 shipped-reality addendum (L0 surfacing relocation + forward `closes` rule)
 
 Reference `docs/decisions/README.md` for full index. Council debate transcripts in `docs/decisions/transcripts/`.
 
