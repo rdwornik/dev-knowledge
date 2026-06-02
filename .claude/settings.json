@@ -1,28 +1,6 @@
 {
   "hooks": {
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/scripts/propose_closures.py\"",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
     "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/scripts/review_closures.py\" surface",
-            "timeout": 10
-          }
-        ]
-      },
       {
         "matcher": "",
         "hooks": [
@@ -43,7 +21,7 @@
       }
     }
   },
-  "//": "Project-scoped Claude Code hooks for .dev-knowledge. Merges with (does not replace) the user-level ~/.claude/settings.json hooks. ADR-70 Tier-1 (closure loop) + Tier-2 (fleet health); Unit 5's plugin will generalize this across repos.",
+  "//": "Project-scoped Claude Code hooks for .dev-knowledge. Merges with (does not replace) the user-level ~/.claude/settings.json hooks. Tier-1 closure loop now runs via the enabled tier1-lifecycle plugin (Stop->propose) + the global ~/.claude surface hook; this file keeps only the Tier-2 fleet-health SessionStart hook (#73 5c convergence).",
   "enabledPlugins": {
     "tier1-lifecycle@dev-knowledge-methodology": true
   }
