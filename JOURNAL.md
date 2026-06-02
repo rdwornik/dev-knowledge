@@ -19,6 +19,17 @@
 
 ---
 
+### 2026-06-03 — Tier-1 doc convergence: record the ADR-70 reality into the canonical docs (closes nothing; advances doc-currency)
+
+- Did: 9-document convergence pass making the canonical docs match the shipped Tier-1 layer. One commit per doc on `docs/tier1-doc-convergence`, additive except authorized false-state corrections. CLAUDE §9 (the false hub-hook description) corrected + §8 plugin note + §11 ADR-70; ARCHITECTURE gains a "Tier-1 self-enforcing lifecycle" section (L0/L1/L2 + closure loop); CONTRIBUTING/PLAYBOOK/ESSENTIALS gain the closes-vs-advances rule + closure-loop usage + plugin-propagation runbook; LESSONS +2 (advances-defeats-detection; scan-before-delete); ADR-70 +shipped-reality addendum (L0 relocation + forward closes rule); VISION notes the self-enforcing dimension; BACKLOG +[#76] (the `/review-closures` dedup residual).
+- Freshness gate (operator-approved handling): editing the 4 canonical files (VISION/ARCHITECTURE/CLAUDE/CONTRIBUTING) trips audit #10, so each got a genuine end-to-end re-read + `last_reviewed`→2026-06-03 in its own commit. The re-reads surfaced extra **false-state corrected in-place** (clear-false-state rule, same class as §9): ruff "not wired" → wired ([#13] already closed) in ARCHITECTURE + CONTRIBUTING §Validators; audit "10 checks" → 12 (#11 `no_sibling_orphans`, #12 `canonical_structure`) in both.
+- Drift FILED (not edited — restructuring, out of scope): CONTRIBUTING §"Handoff process" is broadly stale — says HANDOFF_PROCESS "v2.0 / ADR-37 two-phase overlay pending" + trigger "/session-summary", but the protocol is v4 (stamp 4.3.1, ADR-62 ratified, two-phase shipped) with a dedicated `/handoff` command. Needs a coherent section rework; left for a future pass.
+- Changes: CLAUDE.md (v2.11), ARCHITECTURE.md, CONTRIBUTING.md, LESSONS.md, docs/decisions/ADR-70 (addendum), protocols/PLAYBOOK.md, VISION.md, protocols/ESSENTIALS.md, BACKLOG.md (+#76). Commits `c769a07`·`e395a02`·`a68e894`·`4df91b7`·`102ed27`·`89686e8`·`9e89c33`·`ed12ac4`·`31c5896` + this. validate_backlog OK (43 tasks); audit-health green on every commit.
+- Flag: [#13] (ruff gate) is already closed/retired — the stale doc refs to it are now corrected; **no closure action needed**. The `validate-backlog` pre-commit hook reported "Skipped" on the BACKLOG commit (pre-commit staged-file quirk) — validated manually instead (OK).
+- Next: optional rework of CONTRIBUTING §Handoff process (filed drift); [#76] grooming decision when usage shows whether the command-name collision bites.
+
+---
+
 ### 2026-06-02 — Close [#73]: Tier-1 self-enforcing lifecycle plugin rollout complete (operator-approved)
 
 - Did: Operator explicitly approved closing #73. Removed the #73 task line from BACKLOG.md (done-items-leave, ADR-65); validate_backlog OK (42 tasks). Deleted merged branch `chore/5c-converge-hub`.

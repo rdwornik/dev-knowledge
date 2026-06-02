@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-01
+last_reviewed: 2026-06-03
 status: active
 owner: Rob
 ---
@@ -8,7 +8,7 @@ owner: Rob
 <!-- scope: meta -->
 
 > Living document. Updated after structural changes.
-> Last updated: `2026-06-01` (added "The methodology engine" feedback-loop section; canonical-freshness cadence: audit check #10 in §Validators, dropped retired `backlog_extract.py`; prior: 2026-05-24 self-audit residue cleanup)
+> Last updated: `2026-06-03` (added "Tier-1 self-enforcing lifecycle" section [ADR-70]; end-to-end re-read corrected two false-state lines — ruff is wired [#13 closed], audit ships 12 checks not 10; prior: 2026-06-01 "The methodology engine" feedback-loop section + canonical-freshness cadence)
 
 ## Purpose [CORE]
 
@@ -395,7 +395,7 @@ flowchart TD
 Per ADR-31. `.dev-knowledge` is the **binding source of cross-repo prescriptions** (Authority model 1B — Prescriptive with conformance audit).
 
 - **Scale tier:** retired 2026-05-23 (repo-tier system deprecated ecosystem-wide; this repo declares no tier). `ARCHITECTURE.md` is now mandatory for every repo (ADR-51 as amended 2026-05-23), not a tier-specific artifact.
-- **Enforcement:** out-of-band, centralized, read-only audit tool (`scripts/audit.py` — ships 10 self-audit + cross-repo conformance checks per ADR-31/36). Reads sibling repos via explicit manifest; emits audit report. The cross-repo `run` is manual invocation with no commit gating in downstream repos; the self-audit `health` runs as a local pre-commit gate in this repo ([#69]).
+- **Enforcement:** out-of-band, centralized, read-only audit tool (`scripts/audit.py` — ships 12 self-audit + cross-repo conformance checks per ADR-31/36). Reads sibling repos via explicit manifest; emits audit report. The cross-repo `run` is manual invocation with no commit gating in downstream repos; the self-audit `health` runs as a local pre-commit gate in this repo ([#69]).
 - **Content layout:** prescriptions live in PLAYBOOK + ADRs; dedicated `cross-repo/` subfolder deferred until prescription count exceeds ~10 or navigation becomes painful.
 - **Baseline rule (ADR-31):** audit tool must run green on first invocation. No known violations remain open. (Codex reviewer config is a global standard at `~/.codex/AGENTS.md`, canonical source at `codex/AGENTS.md` in this repo — ADR-54. Per-repo `AGENTS.md` carries only repo-specific review rules; it does not repeat the global config. Codex tool config is outside ADR-53's scope.)
 
@@ -405,13 +405,27 @@ Per ADR-31. `.dev-knowledge` is the **binding source of cross-repo prescriptions
 
 Per ADR-28 invariant: `.dev-knowledge` may host **read-only** validators (Layer 2 does not orchestrate, but it may verify itself).
 
-- `scripts/audit.py` — cross-repo conformance + self-audit (checks #1–#10, incl. #10 `canonical_freshness` — `last_reviewed` staleness cadence); read-only. The ecosystem audit (`run`) is manual; the self-audit (`health`) runs as a **pre-commit gate** (FAIL blocks the commit, WARN informs).
+- `scripts/audit.py` — cross-repo conformance + self-audit (checks #1–#12, incl. #10 `canonical_freshness` — `last_reviewed` staleness cadence — #11 `no_sibling_orphans`, #12 `canonical_structure`); read-only. The ecosystem audit (`run`) is manual; the self-audit (`health`) runs as a **pre-commit gate** (FAIL blocks the commit, WARN informs).
 - `scripts/normalize_headers.py` — dated-log header normalization; invoked by pre-commit hook.
 - `scripts/validate_backlog.py` — BACKLOG.md story-map structure validator (ADR-66); pre-commit hook.
 - `scripts/check_backlog_commit_msg.py` — commit-msg hook requiring `[#id]` on task removal.
 - `scripts/codemap/` — ARCHITECTURE codemap generator + freshness check (pre-commit hook).
 - `tests/` — pytest unit tests for validators. Run: `pytest -x --tb=short`.
-- **Pre-commit hooks:** `normalize-dated-headers`, `codemap-freshness`, `validate-backlog`, `audit-health` (self-conformance gate — `audit.py health`, FAIL blocks / WARN informs; [#69]), `backlog-id-on-close` (commit-msg). (`ruff` is documented in CLAUDE.md §4/§9 but not yet wired — BACKLOG [#13].)
+- **Pre-commit hooks:** `normalize-dated-headers`, `codemap-freshness`, `validate-backlog`, `audit-health` (self-conformance gate — `audit.py health`, FAIL blocks / WARN informs; [#69]), `ruff` (lint gate — `ruff check`, version-pinned >=0.15.5, blocks on violations; [#13] closed), `backlog-id-on-close` (commit-msg).
+
+---
+
+## Tier-1 self-enforcing lifecycle
+
+The methodology enforces its own backlog/hygiene discipline through a three-layer lifecycle, distributed as a single plugin so every repo runs identical logic from one source.
+
+- **L0 — global runtime (`~/.claude`):** a SessionStart hook (`surface-closures.ps1`) emits a one-line `[closures] N proposed` reminder in every repo. Surfacing lives here, not in the plugin: plugin SessionStart hooks register too late for the one-shot init event and never fire (verified 2026-06-02).
+- **L1 — hub (`.dev-knowledge`):** the `tier1-lifecycle` plugin (marketplace `dev-knowledge-methodology`) is the single source of truth. Its scripts are copied from the canonical `scripts/` trio (`propose_closures.py`, `review_closures.py`, `validate_backlog.py`), which remain the source plus the test / pre-commit / command target.
+- **L2 — consumers (`ai-council`, `corp-monorepo`, `corp-ops`, `corp-sca-time-automation`):** install the plugin via the marketplace and run the same loop with no per-repo copies.
+
+The loop: a `Stop` hook runs `propose_closures.py`, which scans git for commits that closed backlog items and writes a `logs/PROPOSALS-*.md` candidate list (STRONG = a `closes [#id]` commit landed but the item is still open; WEAK = weaker signal). The L0 hook surfaces the count at next session start; `/review-closures` confirms and updates `BACKLOG.md`. Plugin-host repos must gitignore the ephemeral `logs/PROPOSALS-*.md` (blanket `logs/` where nothing else is tracked there; a specific pattern where `logs/` holds tracked files).
+
+Decision record: ADR-70 (three-tier process automation) + its 2026-06-02 shipped-reality addendum. The hub itself was converged onto the plugin (its duplicate hook wiring removed) in the 5c step — see `JOURNAL.md`.
 
 ---
 
