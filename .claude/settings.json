@@ -1,5 +1,5 @@
 {
-  "//": "Project-scoped Claude Code hooks for .dev-knowledge. Merges with (does not replace) the user-level ~/.claude/settings.json hooks. ADR-70 Tier-1; Unit 5's plugin will generalize this across repos.",
+  "//": "Project-scoped Claude Code hooks for .dev-knowledge. Merges with (does not replace) the user-level ~/.claude/settings.json hooks. ADR-70 Tier-1 (closure loop) + Tier-2 (fleet health); Unit 5's plugin will generalize this across repos.",
   "hooks": {
     "Stop": [
       {
@@ -21,6 +21,16 @@
             "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/scripts/review_closures.py\" surface",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/scripts/fleet_health.py\"",
+            "timeout": 60
           }
         ]
       }
