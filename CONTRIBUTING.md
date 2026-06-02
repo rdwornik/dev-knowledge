@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-01
+last_reviewed: 2026-06-03
 status: active
 owner: Rob
 ---
@@ -53,6 +53,7 @@ docs(adr): ADR-65 done-item disposition           # ADR number is itself the ind
 
 - **Touching** a backlog item: append `[#<id>]` to the summary.
 - **Closing** a backlog item: add `closes [#<id>]` (summary or body) — pairs with the item leaving `BACKLOG.md` in the same or a following commit.
+- **`closes` vs `advances`:** use `closes [#<id>]` on the commit that **finishes** an item — not `advances [#<id>]`. `advances` records intermediate progress only: the item stays open in `BACKLOG.md` **and** invisible to the closure detector (which keys on `closes`), so it silently accumulates as done-but-open and must be closed manually (this is what forced the manual close of #73). A multi-commit arc may use `advances` along the way, but the commit that completes the work must use `closes`.
 - `<id>` is the entry's stable `id:` field (monotonic, never reused — PLAYBOOK §10 schema).
 
 This indexes commits **going forward only.** Git history is immutable — **historical commits are never rewritten** (ADR-65). Pre-convention closures are located via the SHAs already embedded in retired entries (preserved in the one-time migration JOURNAL map).
@@ -99,12 +100,11 @@ Pre-commit hooks (`.pre-commit-config.yaml`):
 | `normalize-dated-headers` | commit | Rewrites dated-log entry headers to canonical `### YYYY-MM-DD` form. Idempotent. Auto-format style: rewrites; never fails. |
 | `codemap-freshness` | commit | Checks the ARCHITECTURE.md codemap block is current vs `scripts/`. |
 | `validate-backlog` | commit | Validates the BACKLOG.md story-map structure (ADR-66). |
-| `audit-health` | commit | Runs `audit.py health` (the 10 self-conformance checks incl. freshness #10). **FAIL-level findings block the commit; WARN-level only inform.** ~1.4s. Bypass: `--no-verify`. |
+| `audit-health` | commit | Runs `audit.py health` (the 12 self-conformance checks incl. freshness #10). **FAIL-level findings block the commit; WARN-level only inform.** ~1.4s. Bypass: `--no-verify`. |
+| `ruff` | commit | Lint gate — `ruff check` (version-pinned >=0.15.5, `language: system`). Blocks on violations. [#13] closed. |
 | `backlog-id-on-close` | commit-msg | Requires `[#id]` / `closes [#id]` when a commit removes a `- [#id]` task. |
 
-(`ruff` is referenced in CLAUDE.md §9 but is not currently wired into pre-commit — tracked in BACKLOG [#13].)
-
-`audit.py health` (the gate above) is also runnable standalone for an on-demand sweep: `python scripts/audit.py health`. It runs the 10 self-conformance checks incl. the canonical-file **freshness** check (`last_reviewed` staleness; see PLAYBOOK); FAIL blocks a commit, WARN (e.g. the 30-day freshness backstop) only informs.
+`audit.py health` (the gate above) is also runnable standalone for an on-demand sweep: `python scripts/audit.py health`. It runs the 12 self-conformance checks incl. the canonical-file **freshness** check (`last_reviewed` staleness; see PLAYBOOK); FAIL blocks a commit, WARN (e.g. the 30-day freshness backstop) only informs.
 
 Run the auto-format hook standalone (e.g. to clean up before commit):
 
