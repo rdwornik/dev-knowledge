@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-02 — Unit 6 (lesson-promotion) deferred after STEP 0 grounding
+
+- Did: STEP 0 grounding before any code. Read #4, #12, ADR-35, ADR-70. Found a material scope mismatch: the "lesson-promotion skill" in ADR-70 is actually three separate things — (#4) lessons-index.json + retrieval + CLI query, (#12) `~/.claude/memory/` evolution .jsonl capture substrate, and a third thing (failure-escalation detector from gotcha `verify:` lines + audit history) that Unit 6 proposed. None of these was ready to build: #4 has a different Done-When (retrieval/queryability, not escalation), #12's capture substrate doesn't exist yet, and only 2 of 10 gotcha `verify:` lines are auto-runnable (8 are `verify: manual`).
+- Result: No code written, no branch created, no backlog changes. Operator confirmed: the lesson-automation triad (retrieve/capture/promote) is **deliberately deferred** (ADR-35 → future ADR-36), premature at current scale. **Tier-1 is complete-enough as-is.** STEP 0 prevented a wrong build.
+- Changes: `JOURNAL.md` only (this entry). Backlog left untouched.
+- Abandoned / flagged: The ADR-70 label "lesson-promotion skill — moves captured lessons toward enforced rules (the #4 lessons-feedback-loop machinery)" is loose — it conflated retrieval (#4), evolution-log capture (#12), and escalation-detection (undefined item). Future sessions should not interpret this as a single unit; each arm is its own build with its own prerequisites.
+- Next: the triad stays deferred. Tier-1 lifecycle is: ruff gate (#13 ✓) + propose-closures Stop (#8 partial ✓) + review-closures SessionStart+command (#8 partial ✓) + fleet-health Tier-2 (#72 ✓). Unit 5 (plugin bundling, #73) is the natural next step.
+
+---
+
 ### 2026-06-02 — Unit 4: Tier-2 fleet-health daily cross-repo audit (closes [#72])
 
 - Did: Implemented ADR-70 Tier-2 session-start-throttled cross-repo audit on `chore/tier2-fleet-health`. `scripts/fleet_health.py` wraps `audit.py run` with a daily throttle: if `logs/FLEET-HEALTH.md` is missing or stale (run_date != today), runs the full 5-repo audit as a subprocess; then reads the per-repo state.yaml files to write a fresh digest; always surfaces a one-liner `[fleet] N/5 repos green as of <date>`. Reuses `audit.py` exclusively — no audit reimplementation. Added a second SessionStart hook to `.claude/settings.json` (timeout 60s, exits 0 always, failures loud on stderr). `logs/FLEET-HEALTH.md` is gitignored (daily snapshot, auto-regenerated).
