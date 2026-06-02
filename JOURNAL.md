@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-02 — Cross-repo handoff bundle for ai-council (HANDOFF_PROCESS v4.3.1, collision-safe worktree)
+
+- Did: Generated a forward-looking **state-snapshot** handoff bundle for `ai-council` at `docs/handoffs/2026-06-02-ai-council-session/` (README + 01–07), in an isolated worktree (`chore/ai-council-handoff` → `../.dev-knowledge-handoff`) so it ran collision-safe alongside a concurrent unification reading `.dev-knowledge`'s main tree. Read-only on `ai-council` (ADR-36); nothing written to its tree. No operator interview — the operator supplied the lived context directly, so Phase 2 cross-checked the load-bearing claims against repo state instead.
+- Result: Bundle valid — `handoff_bundle_structure` and `handoff_tag_canonicity` both PASS; all 7 files within line budget; v4.3.1 stamp recognized. Load-bearing facts verified against `ai-council` (HEAD `b4135e3`, clean): 7-file unify merged (Stage 1 done), ADR-67 obligation tracked as BACKLOG #9 (deferred), 17 ruff errors confirmed as known debt. Surfaced one state-currency gap — the unify merge postdates ai-council's newest JOURNAL entry, so it is not yet journaled there (noted in the bundle for the next session).
+- Changes: `docs/handoffs/2026-06-02-ai-council-session/` (8 new files), `JOURNAL.md` (this entry).
+- Abandoned / flagged: nothing dropped. ai-council `main` is 186 commits ahead of `origin/main` (local-first) — flagged in the bundle, not acted on.
+- Next: merge `chore/ai-council-handoff` → `main` `--no-ff`; delete branch; remove the worktree and verify it is actually gone (locked-dir no-op guard); confirm `no_sibling_orphans` (#11) passes from the main tree.
+
+---
+
 ### 2026-06-02 — Upstream universalization support: pytest.ini exception + corp-ops/corp-sca registration
 
 - Did: Two `.dev-knowledge`-side actions the readiness scouts surfaced, on `chore/universalization-upstream-support`, one commit each. **Step 1:** added `pytest.ini` to the ADR-59 dot-prefix exception list (it cannot be dot-prefixed — pytest won't read `.pytest.ini` — and is a standard config name like the exempt `pyproject.toml`/`setup.cfg`/`tox.ini`); mirrored in `audit.py` `_DOT_PREFIX_EXCEPTIONS`, recorded as an append-only ADR-59 amendment (2026-06-02), and covered by an exemption test. This was a standard gap (corp-sca FAILed `dot_prefix_discipline` with no in-place fix). **Step 2:** registered `corp-ops` + `corp-sca-time-automation` into the ecosystem manifest via `audit.py run --repo-path` (read-only on the child repos — both child trees verified clean), then `registry update` to regenerate `index.yaml`. Closes the silent coverage gap (the recurring sweep only covers registered repos).
