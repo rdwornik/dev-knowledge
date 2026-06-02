@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-02 — Ecosystem unification: locked the 7-file canonical standard (ADR-38 A6) + unified all 4 child repos
+
+- Did: Two-phase ecosystem-unification arc. **Phase 1 — lock `.dev-knowledge`:** operator-confirmed the Stage-0 standard at the gate (7-file canonical set; ADR-66 story-map backlog form with *proportional depth*, bound to all repos; the CLAUDE 12-section template). Authored ADR-38 §A6 (7-file mandate + identical-spine/proportional-depth structure standard + backlog-form binding) + an ADR-41 Amendments section (supersession chain 41→47→64/65→66; closes BACKLOG #20); bumped `templates/CLAUDE-md-template.md` v2.2 (added the required `last_reviewed` frontmatter it lacked); expanded `audit.py` (mandatory 4→7 + new read-only `check_canonical_structure` #12 with a boundary-aware heading matcher); ran `/codex-review` (one HIGH — the matcher false-passed near-misses — fixed + regression-tested). **Phase 2 — unify the four child repos:** one `chore/ecosystem-unify` branch per repo — built missing canonical files with *real* content (not stubs), normalized every file to the spine, migrated each BACKLOG ADR-41/47 → ADR-66 story-map preserving every open item, stripped stale refs.
+- Result: **All 5 repos PASS** `adr38_baseline + canonical_md_visibility + canonical_structure` — the post-lock gap map's 12 child-repo failures → 0. `.dev-knowledge`: 156 tests, ruff clean, self-audit 12/12. Open backlog items preserved: ai-council 11, corp-monorepo 9, corp-ops 1, corp-sca 7. Each child unify: docs-only diff, ruff clean (or pre-existing-debt-only), tests collect, merged `--no-ff` + branch deleted; all five trees clean, no leftover branches.
+- Changes: `.dev-knowledge` — `docs/decisions/{ADR-38,ADR-41,README}.md`, `templates/CLAUDE-md-template.md`, `BACKLOG.md` (#20), `scripts/audit.py`, `tests/test_audit.py` + `tests/fixtures/repo-with-structural-checks/*`, two `docs/audits/` snapshots, `ecosystem/`. Child repos — each repo's seven canonical files. Children merged: `b4135e3` (ai-council)·`f1cb75b` (corp-monorepo)·`60610a1` (corp-ops)·`cb063b7` (corp-sca).
+- Abandoned / flagged: corp-monorepo's 3 already-closed backlog items left the active file (ADR-65 done-items-leave — `validate_backlog` rejects done tasks; mapped in its JOURNAL migration bridge + git history), flagged for operator. ai-council carries 17 pre-existing ruff errors in `.py` (untouched — docs-only scope). The prompt's `check_doc_refs.py` does not exist; used `audit.py` + `validate_backlog.py`.
+- Next: optional — clear ai-council's 17 ruff errors (separate `chore`); execute migrated backlog items in their home repos.
+
+---
+
 ### 2026-06-02 — Cross-repo handoff bundle for ai-council (HANDOFF_PROCESS v4.3.1, collision-safe worktree)
 
 - Did: Generated a forward-looking **state-snapshot** handoff bundle for `ai-council` at `docs/handoffs/2026-06-02-ai-council-session/` (README + 01–07), in an isolated worktree (`chore/ai-council-handoff` → `../.dev-knowledge-handoff`) so it ran collision-safe alongside a concurrent unification reading `.dev-knowledge`'s main tree. Read-only on `ai-council` (ADR-36); nothing written to its tree. No operator interview — the operator supplied the lived context directly, so Phase 2 cross-checked the load-bearing claims against repo state instead.
