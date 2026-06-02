@@ -25,7 +25,7 @@ findings:
   evidence: 'All mermaid blocks use base+themeVariables; all classDef fill: have color:'
   status: pass
 - check_name: handoff_bundle_structure
-  evidence: 4 stamped v4 bundle(s) valid (structure + sections + budgets)
+  evidence: 5 stamped v4 bundle(s) valid (structure + sections + budgets)
   status: pass
 - check_name: handoff_tag_canonicity
   evidence: '§3.1 canonical: four canonical tags enumerated'

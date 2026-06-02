@@ -3,9 +3,9 @@
 <!-- scope: meta -->
 
 **Date:** 2026-06-02  
-**Generated:** 2026-06-02T10:44:26  
+**Generated:** 2026-06-02T11:24:58  
 **Repos audited:** 5  
-**Checks:** 60 total — 47 pass, 12 fail, 1 warn, 0 unavailable
+**Checks:** 60 total — 60 pass, 0 fail, 0 warn, 0 unavailable
 
 ---
 
@@ -23,7 +23,7 @@
 | `canonical_md_visibility` | PASS | Mandatory canonical files present + correctly cased: ['VISION.md', 'ARCHITECTURE.md', 'CLAUDE.md', 'BACKLOG.md', 'CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
 | `workspace_settings` | PASS | .dev-knowledge.code-workspace present, dot-prefixed, required sort settings correct |
 | `mermaid_theme_directive` | PASS | All mermaid blocks use base+themeVariables; all classDef fill: have color: |
-| `handoff_bundle_structure` | PASS | 4 stamped v4 bundle(s) valid (structure + sections + budgets) |
+| `handoff_bundle_structure` | PASS | 5 stamped v4 bundle(s) valid (structure + sections + budgets) |
 | `handoff_tag_canonicity` | PASS | §3.1 canonical: four canonical tags enumerated |
 | `canonical_freshness` | PASS | 4 canonical living files fresh (last_reviewed not before last edit; within 30d) |
 | `no_sibling_orphans` | PASS | No orphaned '.dev-knowledge-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
@@ -33,7 +33,7 @@ History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/
 
 ---
 
-## ai-council — FAIL
+## ai-council — PASS
 
 **Path:** `C:\Users\1028120\Documents\Dev\ai-council`  
 **Last audit:** 2026-06-02
@@ -41,23 +41,23 @@ History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/
 | Check | Status | Evidence |
 |---|---|---|
 | `vision_md` | PASS | VISION.md present; frontmatter keys: ['last_reviewed', 'owner', 'status', 'version'] |
-| `adr38_baseline` | FAIL | Missing required: ['CONTRIBUTING.md'] |
-| `claude_md` | PASS | CLAUDE.md present (8758 chars) |
+| `adr38_baseline` | PASS | All ADR-38 universal governance baseline files present |
+| `claude_md` | PASS | CLAUDE.md present (9159 chars) |
 | `dot_prefix_discipline` | PASS | All root config files dot-prefixed or on ADR-59 exception list |
-| `canonical_md_visibility` | FAIL | Missing mandatory canonical files: ['CONTRIBUTING.md'] |
+| `canonical_md_visibility` | PASS | Mandatory canonical files present + correctly cased: ['VISION.md', 'ARCHITECTURE.md', 'CLAUDE.md', 'BACKLOG.md', 'CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
 | `workspace_settings` | PASS | .ai-council.code-workspace present, dot-prefixed, required sort settings correct |
 | `mermaid_theme_directive` | PASS | All mermaid blocks use base+themeVariables; all classDef fill: have color: |
 | `handoff_bundle_structure` | PASS | no docs/handoffs/ — nothing to validate |
 | `handoff_tag_canonicity` | PASS | no protocols/HANDOFF_PROCESS.md — nothing to validate |
 | `canonical_freshness` | PASS | 4 canonical living files fresh (last_reviewed not before last edit; within 30d) |
 | `no_sibling_orphans` | PASS | No orphaned 'ai-council-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `canonical_structure` | FAIL | Canonical file(s) missing required spine heading(s): ["VISION.md: '## Vision'", "VISION.md: '## Values'", "VISION.md: '## References'", "ARCHITECTURE.md: '## Key conventions'", "ARCHITECTURE.md: '## Authority and governance'", "ARCHITECTURE.md: '## Validators and enforcement'", "BACKLOG.md: '## Big picture'", "LESSONS.md: '# Lessons Learned'"] |
+| `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 
 History: [`ecosystem\ai-council\history/`](ecosystem\ai-council\history/)
 
 ---
 
-## corp-monorepo — FAIL
+## corp-monorepo — PASS
 
 **Path:** `C:\Users\1028120\Documents\Dev\corp-monorepo`  
 **Last audit:** 2026-06-02
@@ -65,23 +65,23 @@ History: [`ecosystem\ai-council\history/`](ecosystem\ai-council\history/)
 | Check | Status | Evidence |
 |---|---|---|
 | `vision_md` | PASS | VISION.md present; frontmatter keys: ['last_reviewed', 'owner', 'status', 'version'] |
-| `adr38_baseline` | FAIL | Missing required: ['LESSONS.md'] |
+| `adr38_baseline` | PASS | All ADR-38 universal governance baseline files present |
 | `claude_md` | PASS | CLAUDE.md present (8922 chars) |
 | `dot_prefix_discipline` | PASS | All root config files dot-prefixed or on ADR-59 exception list |
-| `canonical_md_visibility` | FAIL | Missing mandatory canonical files: ['LESSONS.md'] |
+| `canonical_md_visibility` | PASS | Mandatory canonical files present + correctly cased: ['VISION.md', 'ARCHITECTURE.md', 'CLAUDE.md', 'BACKLOG.md', 'CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
 | `workspace_settings` | PASS | .corp-monorepo.code-workspace present, dot-prefixed, required sort settings correct |
 | `mermaid_theme_directive` | PASS | All mermaid blocks use base+themeVariables; all classDef fill: have color: |
 | `handoff_bundle_structure` | PASS | no docs/handoffs/ — nothing to validate |
 | `handoff_tag_canonicity` | PASS | no protocols/HANDOFF_PROCESS.md — nothing to validate |
 | `canonical_freshness` | PASS | 4 canonical living files fresh (last_reviewed not before last edit; within 30d) |
 | `no_sibling_orphans` | PASS | No orphaned 'corp-monorepo-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `canonical_structure` | FAIL | Canonical file(s) missing required spine heading(s): ["ARCHITECTURE.md: '## Key conventions'", "ARCHITECTURE.md: '## Authority and governance'", "ARCHITECTURE.md: '## Validators and enforcement'", "BACKLOG.md: '## Big picture'", "CONTRIBUTING.md: '## Branch naming'", "CONTRIBUTING.md: '## Commit style'", "CONTRIBUTING.md: '## Handoff process'", "JOURNAL.md: '# Journal'"] |
+| `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 
 History: [`ecosystem\corp-monorepo\history/`](ecosystem\corp-monorepo\history/)
 
 ---
 
-## corp-ops — FAIL
+## corp-ops — PASS
 
 **Path:** `C:\Users\1028120\Documents\Dev\corp-ops`  
 **Last audit:** 2026-06-02
@@ -89,23 +89,23 @@ History: [`ecosystem\corp-monorepo\history/`](ecosystem\corp-monorepo\history/)
 | Check | Status | Evidence |
 |---|---|---|
 | `vision_md` | PASS | VISION.md present; frontmatter keys: ['last_reviewed', 'owner', 'status', 'version'] |
-| `adr38_baseline` | FAIL | Missing required: ['CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
-| `claude_md` | PASS | CLAUDE.md present (6399 chars) |
+| `adr38_baseline` | PASS | All ADR-38 universal governance baseline files present |
+| `claude_md` | PASS | CLAUDE.md present (6818 chars) |
 | `dot_prefix_discipline` | PASS | All root config files dot-prefixed or on ADR-59 exception list |
-| `canonical_md_visibility` | FAIL | Missing mandatory canonical files: ['CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
+| `canonical_md_visibility` | PASS | Mandatory canonical files present + correctly cased: ['VISION.md', 'ARCHITECTURE.md', 'CLAUDE.md', 'BACKLOG.md', 'CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
 | `workspace_settings` | PASS | .corp-ops.code-workspace present, dot-prefixed, required sort settings correct |
 | `mermaid_theme_directive` | PASS | All mermaid blocks use base+themeVariables; all classDef fill: have color: |
 | `handoff_bundle_structure` | PASS | no docs/handoffs/ — nothing to validate |
 | `handoff_tag_canonicity` | PASS | no protocols/HANDOFF_PROCESS.md — nothing to validate |
 | `canonical_freshness` | PASS | 4 canonical living files fresh (last_reviewed not before last edit; within 30d) |
 | `no_sibling_orphans` | PASS | No orphaned 'corp-ops-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `canonical_structure` | FAIL | Canonical file(s) missing required spine heading(s): ["VISION.md: '## Values'", "ARCHITECTURE.md: '## Key conventions'", "ARCHITECTURE.md: '## Authority and governance'", "ARCHITECTURE.md: '## Validators and enforcement'", "BACKLOG.md: '## Big picture'"] |
+| `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 
 History: [`ecosystem\corp-ops\history/`](ecosystem\corp-ops\history/)
 
 ---
 
-## corp-sca-time-automation — FAIL
+## corp-sca-time-automation — PASS
 
 **Path:** `C:\Users\1028120\Documents\Dev\corp-sca-time-automation`  
 **Last audit:** 2026-06-02
@@ -113,17 +113,17 @@ History: [`ecosystem\corp-ops\history/`](ecosystem\corp-ops\history/)
 | Check | Status | Evidence |
 |---|---|---|
 | `vision_md` | PASS | VISION.md present; frontmatter keys: ['last_reviewed', 'owner', 'status', 'version'] |
-| `adr38_baseline` | FAIL | Missing required: ['CONTRIBUTING.md', 'LESSONS.md'] |
-| `claude_md` | PASS | CLAUDE.md present (6671 chars) |
+| `adr38_baseline` | PASS | All ADR-38 universal governance baseline files present |
+| `claude_md` | PASS | CLAUDE.md present (6662 chars) |
 | `dot_prefix_discipline` | PASS | All root config files dot-prefixed or on ADR-59 exception list |
-| `canonical_md_visibility` | FAIL | Missing mandatory canonical files: ['CONTRIBUTING.md', 'LESSONS.md'] |
+| `canonical_md_visibility` | PASS | Mandatory canonical files present + correctly cased: ['VISION.md', 'ARCHITECTURE.md', 'CLAUDE.md', 'BACKLOG.md', 'CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
 | `workspace_settings` | PASS | .corp-sca-time-automation.code-workspace present, dot-prefixed, required sort settings correct |
 | `mermaid_theme_directive` | PASS | All mermaid blocks use base+themeVariables; all classDef fill: have color: |
 | `handoff_bundle_structure` | PASS | no docs/handoffs/ — nothing to validate |
 | `handoff_tag_canonicity` | PASS | no protocols/HANDOFF_PROCESS.md — nothing to validate |
-| `canonical_freshness` | WARN | CLAUDE.md: no parseable last_reviewed frontmatter |
+| `canonical_freshness` | PASS | 4 canonical living files fresh (last_reviewed not before last edit; within 30d) |
 | `no_sibling_orphans` | PASS | No orphaned 'corp-sca-time-automation-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `canonical_structure` | FAIL | Canonical file(s) missing required spine heading(s): ["VISION.md: '## Values'", "ARCHITECTURE.md: '## Key conventions'", "ARCHITECTURE.md: '## Authority and governance'", "ARCHITECTURE.md: '## Validators and enforcement'", "CLAUDE.md: '## 5. Critical rules'", "CLAUDE.md: '## 6. Session start protocol'", "BACKLOG.md: '## Big picture'", "JOURNAL.md: '# Journal'"] |
+| `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 
 History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time-automation\history/)
 
@@ -132,8 +132,6 @@ History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time
 ## Summary
 
 - 5 repo(s) audited
-- 47/60 checks passed
-- **12 failure(s)** — route findings to repo owners
-- 1 warning(s)
+- 60/60 checks passed
 
 *Report generated by `scripts/audit.py`. Do not edit manually.*
