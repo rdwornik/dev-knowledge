@@ -35,7 +35,7 @@ So that the v4 templates stop carrying known minor gaps.
 ### Turn advisory guards into enforced gates
 So that a convention can't be skipped under load (the failure mode behind real aborts).
 - [#11] [P2][M] Convert LESSON-#9's advisory cross-case guard into an amendment checklist/gate (Layer-2 checklist, not orchestration) · Done when: a multi-surface amendment must pass the gate · refs coherence-audit ML-2
-- [#13] [P2][S] Add the ruff pre-commit hook, or correct the docs that claim it · Done when: ruff is enforced OR the docs no longer claim it · refs coherence-audit HK-1
+- [#13] [P2][S] Wire the ruff pre-commit hook, version-pinned (the docs-corrected OR-branch is already satisfied — CLAUDE §4/§9 correctly say ruff is manual; this is the enforce-only residual) · Done when: a non-conforming change is blocked by an enforced, version-pinned ruff hook · refs coherence-audit HK-1, corp-monorepo phantom-I001 lesson (pin the ruff version)
 - [#15] [P2][M] Add hyphen-only-separator enforcement (pre-commit + Action) with a scoped path set + exceptions · Done when: a non-conforming new filename is blocked · refs ADR-34
 
 ### Extend structural validation to more governance artifacts
@@ -83,7 +83,7 @@ So that future sessions route decisions consistently (convene-vs-Path-A; relax-v
 
 ### Operationalize the Council decision loop
 So that Council questions are gated and their verdicts return deterministically instead of being shuttled by hand.
-- [#70] [P3][M] Operationalize the AI-Council process — implement the gated question→verdict→ADR loop per ADR-67 (templated question + self-gate + deterministic `council.return_dir` return; downstream pieces in ai-council + ~/.claude). Deferred: do NOT build before Phase-2 universalization. · Done when: the gated loop runs end-to-end (/council-question generates + self-gates → council runs → operator pastes verdict → ADR returns via council.return_dir) · refs ADR-67
+- [#70] [P3][M] Operationalize the AI-Council process — implement the gated question→verdict→ADR loop per ADR-67 (templated question + self-gate + deterministic `council.return_dir` return; downstream pieces in ai-council + ~/.claude). Gate lifted 2026-06-02 — Phase-2 universalization is complete (all 5 repos unified), so this is now actionable. · Done when: the gated loop runs end-to-end (/council-question generates + self-gates → council runs → operator pastes verdict → ADR returns via council.return_dir) · refs ADR-67
 
 ### Close the small ADR cross-reference + registry amendments
 So that the ADR web is internally consistent.
@@ -97,7 +97,7 @@ So that the ADR web is internally consistent.
 
 ### Keep canonical files accurate
 So that stale ground truth stops silently misleading sessions (the repo's own VISION is "drift detected proactively").
-- [#10] [P2][M] Fix the doc-truth drifts — doc-truth set CLOSED by the 2026-06-01 doc-coherence audit (`chore/doc-coherence-audit`): CLAUDE §7 /handoff-version + §9 ruff/hook-list + §11 last-5 ADR rotation to 64-68 + version sync; ARCHITECTURE §Authority audit.py-pending + §Validators hook list (added audit-health) + governing-ADRs 55-68 + handoff section/diagram redrawn v3.4->v4; ESSENTIALS:364 ADR-43 routing contradiction (routing IS implemented — `routing.py` `TargetResolver`) + :221 v3.x bundle shape; SESSION_SETUP handoff trigger v3.1->v4 (NEW); LESSONS descriptor stamp; ruff doc-claim. Residual is DECISION-REQUIRED: TOKEN-LOG path — file is at `logs/TOKEN-LOG.md` but CLAUDE/ARCHITECTURE/PLAYBOOK reference it bare (implying root) vs ADR-59 ALL-CAPS-at-root; move-to-root vs docs-say-logs/ is the operator's call · Done when: TOKEN-LOG placement decided + docs aligned · refs coherence-audit 2026-06-01
+- [#10] [P2][M] Decide TOKEN-LOG placement + align the docs — the file is at `logs/TOKEN-LOG.md` but CLAUDE/ARCHITECTURE/PLAYBOOK reference it bare (implying root) vs the ADR-59 ALL-CAPS-at-root rule; move-to-root vs docs-say-`logs/` is the operator's call (the broader doc-truth set was already closed by the 2026-06-01 `chore/doc-coherence-audit` — git history + JOURNAL hold that record) · Done when: TOKEN-LOG placement decided + docs aligned · refs coherence-audit 2026-06-01
 - [#35] [P3][S] Fix the self-owned low-severity cleanups (ARCHITECTURE diagram attribution + SBAR label; VISION adoption-signal + stale last_reviewed) · Done when: WF-3 + GO-1/2 resolved · refs coherence-audit
 - [#71] [P3][S] Reconcile ENVIRONMENT.md's `~/.claude/` directory tree with live contents (commands = boot/codex-review/evolve/session-summary, not handoff; skills = gotchas + verify; agents/hooks already match) · Done when: the ENVIRONMENT `~/.claude/` tree matches `ls ~/.claude/{commands,skills}` · refs G6 process-hardening sweep
 
@@ -113,21 +113,13 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 
 ### Converge every child repo on the universal baseline
 So that "open any repo, same layout/governance" actually holds.
-- [#45] [P2][M] Apply ADR-33/34/35/37/38/39/41 to ai-council + corp-monorepo (ai-council substantially done; corp-monorepo not started) · Done when: both repos pass the baseline audit · refs VISION Disseminator
-- [#46] [P3][M] Extend the ADR-63 scrum-master review cycle to remaining repos (corp-monorepo → verify undiscovered → corp-ops/sca) · Done when: each repo has had a review cycle · refs ADR-63
 - [#47] [P3][S] Confirm status of corp-knowledge-extractor / corp-by-os / corp-rfp-agent · Done when: each is classified (renamed/archived/uncloned/dropped) · refs 2026-05-11 audit
 - [#9] [P2][M] Inventory skills across repos, classify repo-specific vs universal, propose a canonical home · Done when: a skills inventory + universalization proposal exists · refs VISION cross-repo consistency
-- [#31] [P3][L] Council-level plan for migrating one significant repo to standards (repo unnamed until scoped) · Done when: a sequenced migration plan exists · refs VISION Disseminator
-
-### Give the auditor cross-repo reach
-So that drift across repos is caught without a manual sweep.
-- [#29] [P3][M] Implement the tool-driven cross-repo compliance run (`audit ecosystem --all`, Layer-2 read-only) · Done when: one command produces an adoption/compliance report · refs ADR-36 (overlaps #44)
-- [#44] [P3][M] Decide how audit.py checks reach child repos (per-repo port / cross-repo runner / governance-only) · Done when: the reach decision is recorded · refs durability-audit J5 (overlaps #29)
 
 ### Make new-repo scaffolding correct-by-default
 So that a new repo inherits the full baseline in one step, not by re-derivation.
 - [#16] [P2][M] Collapse workspace-{S,M,L}.code-workspace into one maximal scale-adaptive template · Done when: one workspace template + element-selection guidance exist · refs operator Q5
-- [#17] [P2][M] Refresh templates/CLAUDE-md-template.md to encode ADRs 54-63 (§11 last-5 = 61-65) · Done when: the template is current · refs durability-audit J1
+- [#17] [P2][M] Encode ADR-54–63 high-leverage guidance into templates/CLAUDE-md-template.md (structural lock + frontmatter already done at v2.2; the stale "§11 last-5 = 61-65" sub-spec is dropped — the template uses generic `ADR-NN` placeholders by design) · Done when: the template's guidance reflects ADR-54–63 · refs durability-audit J1, template v2.2
 - [#43] [P3][L] Decide + (if yes) author a one-step new-repo scaffold (ADR + templates/new-repo-skeleton/, no scripts) · Done when: decision recorded + scaffold authored if approved · refs durability-audit J6
 
 ---
@@ -142,7 +134,6 @@ So that cognitive overhead per session drops.
 - [#37] [P3][S] Add a workspace-sort-change verification rule (read the merged PR + a visual editor check) · Done when: the rule lands in PLAYBOOK/ESSENTIALS · refs ADR-59 amendment
 - [#38] [P3][S] Codify small=single-root / large=multi-root workspace decision · Done when: an ADR-59 amendment or PLAYBOOK note lands · refs ADR-59
 - [#39] [P3][S] Codify entry-scripts → scripts/ in PLAYBOOK root-hygiene · Done when: the convention is written · refs 2026-05-27 retrofit
-- [#40] [P3][S] Make the requirements*.txt dot-prefix exception prominent in ADR-59 (or close no-op) · Done when: clarified or closed · refs ADR-59 Exceptions
 
 ### Decide the undecided artifact/tool models
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
@@ -153,4 +144,4 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 
 **About this file** — open `.dev-knowledge` work as a story map (ADR-66): Big Picture → Theme → User Story → Task. Stories are human (goal + `So that`); tasks carry `[#id] [P][size] · Done when · refs`. Done tasks **leave** (ADR-65); git is the implementation record (`git log --grep 'closes \[#'`). Child-repo execution items live in `docs/audits/2026-06-01-child-repo-relocation-proposal.md`. Schema: PLAYBOOK §10; machine-checked by `scripts/validate_backlog.py`.
 
-**Grooming log:** 2026-05-09 · 2026-05-23 · 2026-05-24 · 2026-05-31 (marathon-arc) · 2026-06-01 (ADR-64/65 migration + readability + ADR-66 story-map). Next quarterly: 2026-07-01.
+**Grooming log:** 2026-05-09 · 2026-05-23 · 2026-05-24 · 2026-05-31 (marathon-arc) · 2026-06-01 (ADR-64/65 migration + readability + ADR-66 story-map) · 2026-06-02 (git-verified retroactive closure: retired #29/#31/#40/#44/#45/#46; re-scoped #17/#13; updated #70/#10; ADR-69 records the #44 reach model). Next quarterly: 2026-07-01.
