@@ -338,3 +338,66 @@ module/test/TCR definitions further down this ADR were inputs to ADR-40
 
 - **Decision tier:** Conversational (reconciliation of already-decided
   operator directives; no new architectural question).
+
+### 2026-06-02 — A6: Seven-file canonical set + canonical structure standard (ecosystem unification)
+
+- **Source:** Operator decision 2026-06-02 — the ecosystem-unification effort
+  ("lock the standard, then unify every repo"). `.dev-knowledge` is locked as the
+  definitive reference; the four child repos (ai-council, corp-monorepo, corp-ops,
+  corp-sca-time-automation) are unified to it in follow-on per-repo sessions.
+- **Decision tier:** Operator-directed (Path A — a uniformity standard the operator
+  decided directly; no Council convene). The one contestable axis (the backlog-form
+  binding) was settled by operator ruling with proportional depth — see Delta 3.
+
+**Delta 1 — Seven canonical files (supersedes the A5 baseline of four).** Every
+covered repo MUST carry, at repo root, all seven canonical files:
+
+| File | Status | Governing |
+|---|---|---|
+| `VISION.md` | MANDATORY | ADR-33 |
+| `ARCHITECTURE.md` | MANDATORY | ADR-51 (amended 2026-05-23) + A3 root placement |
+| `CLAUDE.md` | MANDATORY | ADR-53 |
+| `BACKLOG.md` | MANDATORY | ADR-41 (amended 2026-06-02) |
+| `CONTRIBUTING.md` | MANDATORY (new) | this amendment |
+| `JOURNAL.md` | MANDATORY (new) | this amendment |
+| `LESSONS.md` | MANDATORY (new) | ADR-29 (entry format) |
+
+This **supersedes** the A5 line "JOURNAL.md and LESSONS.md remain repo-specific (not
+part of the universal baseline)" and promotes `CONTRIBUTING.md` from absent to
+mandatory. Rationale: cross-repo navigation must feel identical — an inheritor (the
+operator or an AI agent) opening any repo finds the same seven anchors. `README.md`
+stays OPTIONAL (A5 Delta 4, external-audience repos only); `CHANGELOG.md` stays
+REMOVED (ADR-49).
+
+**Delta 2 — Canonical structure standard (identical spine, proportional content).**
+The seven files share one structure across every repo: identical heading text /
+levels / section order, taken from `.dev-knowledge`'s own files as the reference
+exemplar (and the `templates/` skeletons). Sections are of three kinds:
+
+- **[U] universal spine** — present and identical in every repo (the navigation
+  backbone; what the read-only structural check asserts).
+- **[R] repo-specific content** — same heading, real per-repo content (e.g.
+  ARCHITECTURE Codemap, CLAUDE §2/§4 conventions, CONTRIBUTING branch-naming).
+- **[C] conditional** — present only where the repo has the artifact (e.g. CLAUDE
+  §11 "Recent ADRs" only where `docs/decisions/` exists; ARCHITECTURE "Governing ADRs").
+
+A code repo (corp-monorepo) fills [R]/[C] with its own content; it is not forced to
+carry empty governance ceremony. Uniform **shape**, proportional **depth**.
+
+**Delta 3 — Canonical backlog form (one changelog-feeding shape, all repos).** The
+single canonical `BACKLOG.md` form for every covered repo is the ADR-66 story-map
+(Big Picture → Theme → User Story → Task; done-tasks-leave per ADR-65; `[#id]`
+forward-indexing that feeds the git changelog via the `commit-msg` hook; read-only
+`validate_backlog.py`), with **proportional depth** — a low-volume repo carries a
+single Theme/Story until item volume justifies more, so a small or code-centric
+backlog never accretes the "write-only graveyard" ceremony ADR-41/47 guarded against.
+The supersession chain that lands here is recorded in the ADR-41 amendment
+(2026-06-02), which closes BACKLOG #20.
+
+**Delta 4 — Enforcement.** `audit.py` is extended this session: `check_adr38_baseline`
+and `check_canonical_md_visibility` require all seven files (presence + ALL-CAPS
+casing); a new read-only `check_canonical_structure` asserts the [U] spine headings
+per file (presence, not strict order — child-repo-safe). `BACKLOG.md` hierarchy stays
+covered by `validate_backlog.py`. The audit-health gate is self-only, so a
+not-yet-unified child repo surfaces as a FAIL in `audit run` (the intended surfacing)
+without blocking `.dev-knowledge` commits.

@@ -1,6 +1,12 @@
-# CLAUDE.md
+---
+last_reviewed: <YYYY-MM-DD>
+status: active
+owner: <Rob | other>
+---
+
+# CLAUDE.md — <Repo>
 <!-- scope: meta -->
-<!-- version: 2.1 — 2026-05-19 -->
+<!-- version: 2.2 — 2026-06-02 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -103,10 +109,10 @@ Things this tool has gotten wrong here:
 - `<pattern, e.g. "Don't run validators with no args — vacuous pass; always pass --all or specific paths">`
 - `<add as discovered, link to LESSONS.md entry if applicable>`
 
-## 11. Recent ADRs binding here (last 5-10)
+## 11. Recent ADRs binding here (last 5)
 <!-- scope: meta -->
 
-Brief one-liners. Full list in `docs/decisions/README.md`.
+Brief one-liners. Full list in `docs/decisions/README.md`. (Conditional — present only where the repo has `docs/decisions/`.)
 
 - ADR-NN: `<topic — one sentence>`
 - ADR-NN: `<topic — one sentence>`
@@ -118,6 +124,7 @@ Brief one-liners. Full list in `docs/decisions/README.md`.
 - v1.0 (2026-04-24) — initial template per Gap #5. Hybrid pattern, thin pointer, ≤200 lines target.
 - v2.0 (2026-05-19) — ADR-53: retire thin-pointer/AGENTS.md framing; CLAUDE.md is now the substantive single canonical per-repo agent-instruction file.
 - v2.1 (2026-05-19) — add §3 Architecture (pointer to ARCHITECTURE.md) and §4 Conventions (naming/commits/testing/linting/out-of-scope); renumber old §3–§10 to §5–§12 to accommodate.
+- v2.2 (2026-06-02) — ADR-38 A6 (canonical structure lock): add the mandatory `last_reviewed`/`status`/`owner` YAML frontmatter the standard requires (was missing); H1 → `# CLAUDE.md — <Repo>`; §11 → "(last 5)" + conditional-on-`docs/decisions/` note. The 12-section spine is the locked CLAUDE.md canonical template. (ADR-54–63 content refresh remains BACKLOG #17.)
 
 ---
 

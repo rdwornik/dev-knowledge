@@ -87,8 +87,7 @@ So that Council questions are gated and their verdicts return deterministically 
 
 ### Close the small ADR cross-reference + registry amendments
 So that the ADR web is internally consistent.
-- [#19] [P3][S] Add a BACKLOG.md lifecycle entry to ADR-39 (bundle with #20) · Done when: ADR-39 registry includes BACKLOG.md · refs ADR-39/41
-- [#20] [P3][S] Add a dated amendment to ADR-41 cross-referencing ADR-47/64/65 · Done when: the amendment lands · refs ADR-41/47/64/65
+- [#19] [P3][S] Add a BACKLOG.md lifecycle entry to ADR-39 (formerly bundled with #20) · Done when: ADR-39 registry includes BACKLOG.md · refs ADR-39/41
 - [#21] [P3][M] Decide register/exempt/hybrid for the non-handoff templates/ class · Done when: the class decision is recorded in ADR-39 · refs ADR-39
 
 ---
