@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-02 — Unit 5c: converge the hub onto its own plugin — drop duplicate Tier-1 wiring (advances [#73])
+
+- Did: Removed the hub's own Tier-1 wiring so it runs Tier-1 like the children — **subtractive only**. Dropped two redundant hooks from `.claude/settings.json`: `Stop → scripts/propose_closures.py` and `SessionStart → scripts/review_closures.py surface`. Kept the `SessionStart → scripts/fleet_health.py` (Tier-2) hook untouched. Ran the reference scan to decide deletions.
+- Why: The hub double-ran Tier-1 — its own settings.json hooks fired alongside the enabled `tier1-lifecycle` plugin's Stop hook (propose_closures 2×/Stop) and the global `~/.claude` `surface-closures.ps1` (doubled surfacing). The plugin (Stop→propose, enabled in hub settings) + global L0 (surface) now cover the loop; verified `surface-closures.ps1` exists at L0 before removing the hub-local surface.
+- Scripts removed vs kept: **0 removed.** The ref-scan refuted the "stale orphan" premise — all three hub-local scripts are still referenced after the hook removal, so all kept: `propose_closures.py` (imported by tests/test_propose_closures.py + test_review_closures.py), `review_closures.py` (tests + `.claude/commands/review-closures.md`), `validate_backlog.py` (tests + `.pre-commit-config.yaml` validate-backlog gate + the command). `fleet_health.py` has no dep on the trio (shells out to audit.py only).
+- Result: Step-4 hard metric met — ran the **plugin's** propose_closures.py with `CLAUDE_PROJECT_DIR`=hub; it regenerated the hub's `logs/PROPOSALS-2026-06-02.md` (host-root resolution; nothing stray under plugins/), exit 0. 205 tests green; the three kept scripts' tests pass (confirming the keep). git clean (logs/ gitignored).
+- Changes: `.claude/settings.json` (−2 hooks, `//` comment corrected to reflect plugin-driven Tier-1), `JOURNAL.md` (this). Commit `382a502` (hook removal). No deletion commit (empty deletion set). #73 5c convergence done; 5a+5b+5c complete.
+- Abandoned / flagged: The hub-local `.claude/commands/review-closures.md` now duplicates the plugin's `/review-closures` command (both define the same name) — out of scope for this subtractive pass (scope was the 2 hooks + orphaned scripts); flagged for a future grooming decision. The hub-local scripts/ trio remains the canonical *source* the plugin copies from + the test/pre-commit target, so it correctly stays.
+- Next: #73 can close (5a/5b/5c all landed) pending operator review-closures.
+
+---
+
 ### 2026-06-02 — Unit 5b: roll out Tier-1 plugin to corp-monorepo, corp-ops, corp-sca (advances [#73])
 
 - Did: Installed `tier1-lifecycle@dev-knowledge-methodology` (the 5a-proven plugin) on the 3 remaining child repos. Per-repo sequence: lint debt check → prep install → verify loop (b/c/d) + gate (a) where applicable. Verifications used a throwaway `#999` item, reverted after each repo. Repos where `.claude/` is fully gitignored (corp-ops, corp-sca) used `git add -f` to make the enablement tracked/reproducible.
