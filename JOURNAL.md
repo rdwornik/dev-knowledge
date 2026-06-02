@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-02 — Unit 5b: roll out Tier-1 plugin to corp-monorepo, corp-ops, corp-sca (advances [#73])
+
+- Did: Installed `tier1-lifecycle@dev-knowledge-methodology` (the 5a-proven plugin) on the 3 remaining child repos. Per-repo sequence: lint debt check → prep install → verify loop (b/c/d) + gate (a) where applicable. Verifications used a throwaway `#999` item, reverted after each repo. Repos where `.claude/` is fully gitignored (corp-ops, corp-sca) used `git add -f` to make the enablement tracked/reproducible.
+- Result: **corp-monorepo** — ruff already clean + gate already installed (v0.15.8); loop installed (`.claude/settings.json` committed normally); loop verified (b/c/d). **corp-ops** — lint clean, no pre-commit; loop + gate asset installed (force-add); loop verified (b/c/d). **corp-sca** — lint clean, no pre-commit; loop + gate asset installed (force-add); loop verified (a/b/c/d). All 3 merged `--no-ff`; all probes reverted leaving repos pristine.
+- Changes: corp-monorepo `14af351`, corp-ops `262d8bf`, corp-sca `a63e69a`. `.dev-knowledge`: BACKLOG #73 annotated (5a+5b done; 5c convergence remains), JOURNAL.
+- Abandoned / flagged: corp-monorepo already had ruff at v0.15.8 (gate asset not duplicated). Interactive `claude plugin install` + `/reload-plugins` is still the operator's manual step. One error corrected mid-session: deleted the feature branch before merging twice; fixed by re-creating from the commit SHA; no test commits reached any repo's main.
+- Next: 5c — converge `.dev-knowledge` itself onto the plugin (retire the bespoke Unit-1..4 `scripts/`+`settings.json`+`pre-commit` wiring). #73 remains open until that convergence.
+
+---
+
 ### 2026-06-02 — Unit 5a: package Tier-1 as a portable CC plugin + pilot on ai-council (advances [#73])
 
 - Did: **GROUND FIRST** — confirmed the Claude Code plugin convention against the official docs (via the claude-code-guide agent, not memory): manifest `.claude-plugin/plugin.json`; components at plugin root (`commands/`, `hooks/hooks.json`, `scripts/`); bundled-script refs via `${CLAUDE_PLUGIN_ROOT}`; host repo root via `${CLAUDE_PROJECT_DIR}`; local install via a `.claude-plugin/marketplace.json` + `claude plugin install --scope project`. Then packaged `plugins/tier1-lifecycle/` (plugin.json + hooks.json[Stop→propose, SessionStart→surface] + `/review-closures` command + de-hardcoded copies of propose_closures/review_closures/validate_backlog) and a root `.claude-plugin/marketplace.json` (the hub becomes the methodology marketplace). De-hardcoding: `_host_root()` resolves the data root (BACKLOG/logs/git) from `$CLAUDE_PROJECT_DIR`, while `_SCRIPTS_DIR` stays `__file__`-relative for the bundled validate_backlog — so the script follows the plugin but the data follows the host.
