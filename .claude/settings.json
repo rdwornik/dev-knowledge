@@ -1,5 +1,4 @@
 {
-  "//": "Project-scoped Claude Code hooks for .dev-knowledge. Merges with (does not replace) the user-level ~/.claude/settings.json hooks. ADR-70 Tier-1 (closure loop) + Tier-2 (fleet health); Unit 5's plugin will generalize this across repos.",
   "hooks": {
     "Stop": [
       {
@@ -35,5 +34,17 @@
         ]
       }
     ]
+  },
+  "extraKnownMarketplaces": {
+    "dev-knowledge-methodology": {
+      "source": {
+        "source": "directory",
+        "path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge"
+      }
+    }
+  },
+  "//": "Project-scoped Claude Code hooks for .dev-knowledge. Merges with (does not replace) the user-level ~/.claude/settings.json hooks. ADR-70 Tier-1 (closure loop) + Tier-2 (fleet health); Unit 5's plugin will generalize this across repos.",
+  "enabledPlugins": {
+    "tier1-lifecycle@dev-knowledge-methodology": true
   }
 }
