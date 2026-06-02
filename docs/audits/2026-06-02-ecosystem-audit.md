@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-06-02  
-**Generated:** 2026-06-02T11:24:58  
+**Generated:** 2026-06-02T15:30:47  
 **Repos audited:** 5  
 **Checks:** 60 total — 60 pass, 0 fail, 0 warn, 0 unavailable
 
@@ -18,12 +18,12 @@
 |---|---|---|
 | `vision_md` | PASS | VISION.md present; frontmatter keys: ['last_reviewed', 'owner', 'status', 'version'] |
 | `adr38_baseline` | PASS | All ADR-38 universal governance baseline files present |
-| `claude_md` | PASS | CLAUDE.md present (12094 chars) |
+| `claude_md` | PASS | CLAUDE.md present (14456 chars) |
 | `dot_prefix_discipline` | PASS | All root config files dot-prefixed or on ADR-59 exception list |
 | `canonical_md_visibility` | PASS | Mandatory canonical files present + correctly cased: ['VISION.md', 'ARCHITECTURE.md', 'CLAUDE.md', 'BACKLOG.md', 'CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
 | `workspace_settings` | PASS | .dev-knowledge.code-workspace present, dot-prefixed, required sort settings correct |
 | `mermaid_theme_directive` | PASS | All mermaid blocks use base+themeVariables; all classDef fill: have color: |
-| `handoff_bundle_structure` | PASS | 5 stamped v4 bundle(s) valid (structure + sections + budgets) |
+| `handoff_bundle_structure` | PASS | 4 stamped v4 bundle(s) valid (structure + sections + budgets) |
 | `handoff_tag_canonicity` | PASS | §3.1 canonical: four canonical tags enumerated |
 | `canonical_freshness` | PASS | 4 canonical living files fresh (last_reviewed not before last edit; within 30d) |
 | `no_sibling_orphans` | PASS | No orphaned '.dev-knowledge-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |

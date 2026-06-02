@@ -6,7 +6,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.9 — 2026-06-02 -->
+<!-- version: 2.10 — 2026-06-02 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -131,6 +131,7 @@ Pre-commit (`.pre-commit-config.yaml`):
 Session hooks (`.claude/settings.json`, project-level — merges with, does not replace, the `~/.claude` hooks):
 - `Stop` → `scripts/propose_closures.py` — ADR-70 Tier-1 session-end closure detector. Deterministic (no LLM), read-only: writes `logs/PROPOSALS-<date>.md` (gitignored) proposing backlog items whose closing-commit landed but never left the file; **detect-and-propose only — never mutates BACKLOG**; reviewed at next `/boot`. Non-blocking (exits 0). Added by [#8].
 - `SessionStart` → `scripts/review_closures.py surface` — ADR-70 Tier-1. Read-only: prints a one-line "N closures proposed — run `/review-closures`" when the latest proposals file has candidates; silent otherwise. Non-blocking (exits 0). The review/approve/close half is the `/review-closures` command (§7). Added by [#8].
+- `SessionStart` → `scripts/fleet_health.py` — ADR-70 Tier-2. Session-start-throttled: if `logs/FLEET-HEALTH.md` is stale (>24h) or missing, runs the full `audit.py` cross-repo sweep (all 5 repos, incl. `no_sibling_orphans`) and refreshes the digest; else surfaces the cached summary. Prints `[fleet] N/5 repos green` (or issues count). Non-blocking (exits 0). Closes [#72].
 
 Rules (`.claude/rules/`):
 - `git-discipline.md` — mandatory commit after every file edit; clean working tree at session end
@@ -170,6 +171,7 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.7 (2026-06-02) — ruff gate wired (#13 closes): §4 ruff description updated (now an enforced pre-commit gate); §9 pre-commit list updated (ruff hook added, [#13] removed parenthetical). Re-read end-to-end confirmed rest current; `last_reviewed` re-stamped.
 - v2.8 (2026-06-02) — propose-closures Stop hook landed (ADR-70 Tier-1, advances #8): §9 gains a "Session hooks" subsection documenting the project-level `.claude/settings.json` Stop → `propose_closures.py` (detect-and-propose, never mutates BACKLOG). No other section changed; `last_reviewed` unchanged (re-read this session).
 - v2.9 (2026-06-02) — closure loop made whole (ADR-70 Tier-1, advances #8): §7 adds the `/review-closures` repo command; §9 adds the `SessionStart → review_closures.py surface` hook. The review/approve/close half (human-gated, done-items-leave) complements Unit-2's Stop→propose. `last_reviewed` unchanged (re-read this session).
+- v2.10 (2026-06-02) — Tier-2 fleet health (#72 closes): §9 adds `SessionStart → fleet_health.py` (daily-throttled cross-repo audit + no_sibling_orphans on all 5 repos). `last_reviewed` unchanged (re-read this session).
 
 ---
 
