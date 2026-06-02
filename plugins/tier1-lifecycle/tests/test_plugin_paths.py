@@ -37,11 +37,23 @@ def test_host_root_follows_claude_project_dir(monkeypatch, tmp_path):
     assert pc._host_root() == tmp_path.resolve()
 
 
-def test_host_root_falls_back_to_cwd_when_unset(monkeypatch, tmp_path):
+def test_host_root_lenient_falls_back_to_cwd_when_unset(monkeypatch, tmp_path):
+    # strict=False is the lenient mode (module-level constants + surface nudge)
     monkeypatch.delenv("CLAUDE_PROJECT_DIR", raising=False)
     monkeypatch.chdir(tmp_path)
     rc = _load("review_closures")
-    assert rc._host_root() == tmp_path.resolve()
+    assert rc._host_root(strict=False) == tmp_path.resolve()
+
+
+def test_host_root_strict_fails_loud_when_unset(monkeypatch, capsys):
+    # strict=True (default) must FAIL LOUD, never silently guess a root — the
+    # review/close path depends on this so it can't mutate the wrong BACKLOG.
+    monkeypatch.delenv("CLAUDE_PROJECT_DIR", raising=False)
+    rc = _load("review_closures")
+    with pytest.raises(SystemExit) as exc:
+        rc._host_root()  # strict default
+    assert exc.value.code == 2
+    assert "CLAUDE_PROJECT_DIR is not set" in capsys.readouterr().err
 
 
 def test_bundled_validate_backlog_is_loadable():

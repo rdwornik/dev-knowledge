@@ -1,11 +1,19 @@
 # Installing the `tier1-lifecycle` plugin
 
-ADR-70 Tier-1 lifecycle for a host repo: session-end **propose-closures** (Stop
-hook), proposal **surfacing** (SessionStart hook), the **`/review-closures`**
-human-gated close command, and a portable **ruff lint gate**.
+ADR-70 Tier-1 lifecycle for a host repo: session-end **propose-closures** (plugin
+Stop hook), proposal **surfacing** (global SessionStart hook — see note below), the
+**`/review-closures`** human-gated close command, and a portable **ruff lint gate**.
 
 The plugin operates on the host repo's `BACKLOG.md` and `logs/` via
 `$CLAUDE_PROJECT_DIR`; the scripts themselves live under `${CLAUDE_PLUGIN_ROOT}`.
+
+> **Surfacing is NOT a plugin hook.** Plugin `hooks.json` SessionStart hooks register
+> too late for the one-shot SessionStart init event and never fire (verified
+> 2026-06-02; the Stop hook is per-turn so it survives). Proposal surfacing is therefore
+> handled by a **global** `~/.claude` SessionStart hook (`hooks/surface-closures.ps1`),
+> which is self-contained (reads `$CLAUDE_PROJECT_DIR/logs/PROPOSALS-*.md`; no plugin-cache
+> dependency) and covers every repo. Install it once per machine into `~/.claude/settings.json`
+> alongside any existing SessionStart hooks.
 
 ## Prerequisites
 

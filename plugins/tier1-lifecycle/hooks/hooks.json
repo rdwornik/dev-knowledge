@@ -1,5 +1,5 @@
 {
-  "//": "ADR-70 Tier-1 plugin hooks. Scripts live under ${CLAUDE_PLUGIN_ROOT}; they read/write the HOST repo (BACKLOG.md, logs/) via $CLAUDE_PROJECT_DIR. Both non-blocking (exit 0).",
+  "//": "ADR-70 Tier-1 plugin hooks. Stop -> propose_closures (per-turn, fires reliably). Scripts live under ${CLAUDE_PLUGIN_ROOT}; they read/write the HOST repo (BACKLOG.md, logs/) via $CLAUDE_PROJECT_DIR. Non-blocking (exit 0). NOTE: there is deliberately NO SessionStart hook here — plugin hooks register too late for the one-shot SessionStart init event and never fire (verified 2026-06-02). Proposal SURFACING is handled by the global ~/.claude SessionStart hook (surface-closures.ps1) instead; see INSTALL.md.",
   "hooks": {
     "Stop": [
       {
@@ -9,18 +9,6 @@
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/propose_closures.py\"",
             "timeout": 15
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/review_closures.py\" surface",
-            "timeout": 10
           }
         ]
       }
