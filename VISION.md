@@ -1,7 +1,7 @@
 ---
 version: 1.0
 owner: rob
-last_reviewed: 2026-06-01
+last_reviewed: 2026-06-03
 status: active
 ---
 
@@ -26,7 +26,11 @@ evolves with experience.
 evolve. The framework absorbs lessons, refines patterns, retires what
 fails. Continuous improvement is the baseline operating posture, not
 an option. Sessions advance the framework; static maintenance is
-exception requiring explicit justification.
+exception requiring explicit justification. The methodology now
+self-enforces: it applies its own conventions to its own process — the
+Tier-1 lifecycle (ADR-70) holds session-boundary closure, lint, and review
+to the same enforced-not-remembered bar it imposes on the artifacts it
+governs, not only on those artifacts.
 
 ## Strategic emphasis (current)
 
