@@ -1,0 +1,17 @@
+{
+  "//": "Project-scoped Claude Code hooks for .dev-knowledge. Merges with (does not replace) the user-level ~/.claude/settings.json hooks. ADR-70 Tier-1; Unit 5's plugin will generalize this across repos.",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/scripts/propose_closures.py\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
