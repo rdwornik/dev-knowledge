@@ -921,8 +921,12 @@ diff is an explicit process step at run end, not something a later scan will cat
 
 **Lightweight check, not heavy tooling.** The three commands above *are* the check — a process
 step, not a script (Layer 2 never executes — critical rule #4). Run them at the end of any
-worktree/scratch-creating run. A read-only `audit.py` assertion that no stray `<repo>-*` sibling
-exists could later mechanize it — noted as a candidate, not built here.
+worktree/scratch-creating run. The read-only `audit.py` assertion that no stray `<repo>-*` sibling
+exists is now **built** — `check_no_sibling_orphans` (#11), keyed on `git worktree list`
+registration so a *live* registered worktree passes and only an unregistered orphan fails; it runs
+in the `audit-health` pre-commit gate, so an orphan blocks the next commit until removed. The
+process step above remains the first line of defence (catch it at teardown); the check is the
+backstop that catches what the manual teardown missed. (Recurrence cleaned 2026-06-02 — see LESSONS.)
 
 ### Section history
 <!-- scope: meta -->
@@ -2480,7 +2484,7 @@ Cross-refs: [ADR-31](docs/decisions/ADR-31-authority-model.md) (authority model)
 | `adr38_baseline` | ADR-38 (A5, 2026-05-23) | universal governance baseline at repo root: `VISION.md`, `ARCHITECTURE.md`, `BACKLOG.md` present (README optional; src/tests/pyproject not checked — governance baseline, not code-structure) | any required item missing | — | all present |
 | `claude_md` | ADR-53 | CLAUDE.md exists at repo root and is non-empty | absent or empty | — | present with content |
 
-**Self-audit checks** — the local `audit.py health` runs a larger set of **10 checks (#1–#10)** against this repo: the three above plus `dot_prefix_discipline` + `canonical_md_visibility` + `workspace_settings` (ADR-59), `mermaid_theme_directive` (ADR-51), `handoff_bundle_structure` + `handoff_tag_canonicity` (HANDOFF v4), and `canonical_freshness` (#10, freshness cadence). These run on `.dev-knowledge` only and are the substance of the `audit-health` pre-commit gate ([#69]).
+**Self-audit checks** — the local `audit.py health` runs a larger set of **11 checks (#1–#11)** against this repo: the three above plus `dot_prefix_discipline` + `canonical_md_visibility` + `workspace_settings` (ADR-59), `mermaid_theme_directive` (ADR-51), `handoff_bundle_structure` + `handoff_tag_canonicity` (HANDOFF v4), `canonical_freshness` (#10, freshness cadence), and `no_sibling_orphans` (#11, no-leftovers invariant — flags an unregistered `<repo>-*` worktree-orphan sibling; see G5). These run on `.dev-knowledge` only and are the substance of the `audit-health` pre-commit gate ([#69]).
 
 ### CLI commands
 <!-- scope: meta -->

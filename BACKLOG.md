@@ -43,6 +43,7 @@ So that drift in transcripts, ADRs, and folders is caught cheaply, not by review
 - [#7] [P2][M] Apply the audit.py #8 structural-validator pattern to Council transcripts + ADRs (frontmatter/supersession/template) · Done when: registered checks + tests folded into health · refs scripts/audit.py #8/#9
 - [#36] [P3][M] Add read-only check_folder_semantics asserting each docs/ subfolder carries one ADR-60 role · Done when: the check ships with fixtures + tests · refs ADR-60
 - [#42] [P3][S] Decide whether mermaid-theme check #7 expands beyond ARCHITECTURE.md (extend paths or accept) · Done when: scope decision recorded · refs durability-audit J4
+- [#72] [P3][S] Make no_sibling_orphans (#11) fire across all ecosystem repos, not just the .dev-knowledge self-audit (the audit-health gate checks self only, so an orphan beside a child repo is caught only by a full `audit run`, never at commit time) · Done when: orphan detection runs for every registered repo in a scheduled/automated audit · refs scripts/audit.py #11, PLAYBOOK G5
 
 ### Wire up the lifecycle hooks the workflow relies on
 So that session-start/close automation actually runs instead of being wired-but-vacuous.
