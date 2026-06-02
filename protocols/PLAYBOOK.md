@@ -939,6 +939,23 @@ backstop that catches what the manual teardown missed. (Recurrence cleaned 2026-
 
 ---
 
+## Tier-1 closure loop — usage
+<!-- scope: meta -->
+
+Per session: commit work normally, using `closes [#id]` on the commit that **finishes** a backlog item (not `advances` — see CONTRIBUTING; `advances` leaves the item open and invisible to the detector). At session end the `tier1-lifecycle` plugin's `Stop` hook proposes likely closures (`logs/PROPOSALS-*.md`); at the next session start the global `[closures] N proposed` reminder (L0 `surface-closures.ps1`) surfaces the count; run `/review-closures` to confirm and update `BACKLOG.md`. Architecture of the three layers: `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle".
+
+### Propagating a plugin change across the fleet
+
+When the `tier1-lifecycle` plugin source changes in `.dev-knowledge`:
+1. bump `version` in `plugins/tier1-lifecycle/.claude-plugin/plugin.json`;
+2. `claude plugin marketplace update dev-knowledge-methodology`;
+3. per installed repo, `claude plugin update tier1-lifecycle@dev-knowledge-methodology --scope project`;
+4. restart the session.
+
+The cache is **version-keyed** — `marketplace update` alone won't refresh at an unchanged version, and `plugin install` no-ops on an already-installed repo (use `update`, not `install`). `--scope project` is mandatory for project-scoped installs. Full reference: `plugins/tier1-lifecycle/INSTALL.md`.
+
+---
+
 ## Continuous Improvement
 <!-- scope: meta -->
 <!-- version: 1.0 — 2026-04-24 -->
