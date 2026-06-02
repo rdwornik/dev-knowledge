@@ -1,12 +1,12 @@
 ---
-last_reviewed: 2026-06-01
+last_reviewed: 2026-06-02
 status: active
 owner: Rob
 ---
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.5 — 2026-06-01 -->
+<!-- version: 2.6 — 2026-06-02 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -146,11 +146,11 @@ Rules (`.claude/rules/`):
 
 Brief one-liners. Full list in `docs/decisions/README.md`; full governance list in `ARCHITECTURE.md`.
 
-- ADR-64: BACKLOG.md architecture — lean active file (done items leave), status-and-priority taxonomy, per-repo routing, read-only schema validator
 - ADR-65: BACKLOG done-item disposition — git is the technical record, JOURNAL the per-session business record; refines ADR-64 Decision 1
 - ADR-66: BACKLOG story-map hierarchy — Big Picture → Theme → User Story → Task; supersedes ADR-64 Decision 2 (flat layout)
 - ADR-67: AI-Council process operationalization — six-step gated loop (Frame→Generate→Gate→Run→Verdict→Return); `/council-question` trigger; amends `AI_COUNCIL_PROCESS.md` v1.0
 - ADR-68: Autonomous overnight review agent — local Task Scheduler → headless read-only review → morning briefing; ephemeral read-only worktrees (ADR-61)
+- ADR-69: Cross-repo audit reach model — `audit.py` reaches child repos via a Layer-2 read-only cross-repo runner (`run` over the `ecosystem/` registry); commit-time enforcement stays self-only (the #72 residual)
 
 ## 12. Section history
 <!-- scope: meta -->
@@ -162,8 +162,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.3 (2026-05-28) — §11 ADR list rotated to most-recent 5 (57–61) per the file's own "last 5" header; durability-audit clear-gap C3
 - v2.4 (2026-06-01) — doc-coherence audit: §11 rotated to 64–68; §7 `/handoff` corrected to v4 two-phase; §9 pre-commit list corrected to actual hooks (drop unwired `ruff`, add `audit-health`/`validate-backlog`/`codemap-freshness`); §4 ruff marked manual; version comment synced
 - v2.5 (2026-06-01) — process-hardening sweep: §4 output-formatting rewritten to the render-layer fix (G3); §5 critical rule #9 no-leftovers invariant (G5); §7 user-level command list corrected (+`/evolve`, +`/codex-review`, −`/save` which is repo-level) + usage-protocol cross-ref; §8 skills list corrected (+`verify`; clarify `boot`/`session-summary`/`handoff`/`save` are commands, not skills) (G6)
+- v2.6 (2026-06-02) — backlog-groom currency fix: §11 "last 5" rotated 64–68 → 65–69 (add ADR-69 cross-repo audit reach model; drop ADR-64). Full end-to-end re-read confirmed the rest current as of the groom (the §4/§9 `#13` refs stay valid — #13 was re-scoped, not closed); `last_reviewed` re-stamped.
 
 ---
 
-**Last updated:** 2026-06-01
+**Last updated:** 2026-06-02
 **Maintained by:** Rob
