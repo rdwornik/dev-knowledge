@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-03 — Tier-1 closeout: lifecycle diagrams + ADR-index reconcile + handoff-rework backlog item
+
+- Did: Closed the last Tier-1 documentation gaps. ARCHITECTURE "Tier-1 self-enforcing lifecycle" section gains two convention-matched mermaid diagrams (L0/L1/L2 distribution + the closure loop) and ADR-70 / ADR-index links; ARCHITECTURE "Governing ADRs" curated list reconciled (ended at ADR-68 → added ADR-69 + ADR-70, descriptions read from `docs/decisions/README.md`). BACKLOG +[#77] (rework the stale CONTRIBUTING §Handoff process — the drift filed earlier 2026-06-03). Deleted the merged `docs/tier1-doc-convergence` branch.
+- Reconcile result: `docs/decisions/README.md` index was ALREADY complete through ADR-70 (no change); CLAUDE §11 already carried ADR-69/70; only ARCHITECTURE's curated list lagged. ADR-44 (Reserved/held pending N=2) + ADR-45 (Superseded by HANDOFF v3.3) deliberately kept OUT as non-governing. The repo HAS an established mermaid convention (theme-init + `classDef` color, audit check #7) — the diagrams match it; verified green before commit. ARCHITECTURE was already stamped 2026-06-03 so the same-day re-edits did not re-trip freshness.
+- Flag (no new drift; recurring tooling quirk): the `validate-backlog` and `codemap-freshness` pre-commit hooks recurrently report "no files to check / Skipped" on a staged commit of exactly the file they filter on (audit-health always-runs + passes). No correctness impact — manual `validate_backlog` OK (44 tasks); codemap block untouched. No formal gotcha filed (no repo-level gotchas location — `.dev-knowledge` patterns live in LESSONS); reported for future investigation. Arc fully documented + indexed.
+
+---
+
 ### 2026-06-03 — Tier-1 doc convergence: record the ADR-70 reality into the canonical docs (closes nothing; advances doc-currency)
 
 - Did: 9-document convergence pass making the canonical docs match the shipped Tier-1 layer. One commit per doc on `docs/tier1-doc-convergence`, additive except authorized false-state corrections. CLAUDE §9 (the false hub-hook description) corrected + §8 plugin note + §11 ADR-70; ARCHITECTURE gains a "Tier-1 self-enforcing lifecycle" section (L0/L1/L2 + closure loop); CONTRIBUTING/PLAYBOOK/ESSENTIALS gain the closes-vs-advances rule + closure-loop usage + plugin-propagation runbook; LESSONS +2 (advances-defeats-detection; scan-before-delete); ADR-70 +shipped-reality addendum (L0 relocation + forward closes rule); VISION notes the self-enforcing dimension; BACKLOG +[#76] (the `/review-closures` dedup residual).

@@ -423,9 +423,46 @@ The methodology enforces its own backlog/hygiene discipline through a three-laye
 - **L1 — hub (`.dev-knowledge`):** the `tier1-lifecycle` plugin (marketplace `dev-knowledge-methodology`) is the single source of truth. Its scripts are copied from the canonical `scripts/` trio (`propose_closures.py`, `review_closures.py`, `validate_backlog.py`), which remain the source plus the test / pre-commit / command target.
 - **L2 — consumers (`ai-council`, `corp-monorepo`, `corp-ops`, `corp-sca-time-automation`):** install the plugin via the marketplace and run the same loop with no per-repo copies.
 
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'darkMode':true,'background':'#1a1a1a','primaryColor':'#2d2d3d','primaryTextColor':'#f0f0f0','primaryBorderColor':'#8a86ff','lineColor':'#a0a0ff','textColor':'#f0f0f0','mainBkg':'#2d2d3d','secondaryColor':'#3d2d3d','tertiaryColor':'#22323a','clusterBkg':'#222232','clusterBorder':'#555577','edgeLabelBackground':'#1a1a1a','titleColor':'#f0f0f0','nodeBorder':'#8a86ff'}}}%%
+flowchart TB
+    L0["L0 · global ~/.claude<br/>surface-closures.ps1"]
+    HUB["L1 · hub .dev-knowledge<br/>tier1-lifecycle plugin<br/>single source of truth"]
+    KIDS["L2 · consumers<br/>ai-council · corp-monorepo<br/>corp-ops · corp-sca-time-automation"]
+
+    HUB -->|marketplace install| KIDS
+    L0 -.->|surfaces fleet-wide| HUB
+    L0 -.-> KIDS
+
+    classDef l0 fill:#fff3bf,stroke:#c79e00,color:#222
+    classDef hub fill:#bde0fe,stroke:#1971c2,color:#000
+    classDef kids fill:#a5d8ff,stroke:#1971c2,color:#000
+
+    class L0 l0
+    class HUB hub
+    class KIDS kids
+```
+
 The loop: a `Stop` hook runs `propose_closures.py`, which scans git for commits that closed backlog items and writes a `logs/PROPOSALS-*.md` candidate list (STRONG = a `closes [#id]` commit landed but the item is still open; WEAK = weaker signal). The L0 hook surfaces the count at next session start; `/review-closures` confirms and updates `BACKLOG.md`. Plugin-host repos must gitignore the ephemeral `logs/PROPOSALS-*.md` (blanket `logs/` where nothing else is tracked there; a specific pattern where `logs/` holds tracked files).
 
-Decision record: ADR-70 (three-tier process automation) + its 2026-06-02 shipped-reality addendum. The hub itself was converged onto the plugin (its duplicate hook wiring removed) in the 5c step — see `JOURNAL.md`.
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'darkMode':true,'background':'#1a1a1a','primaryColor':'#2d2d3d','primaryTextColor':'#f0f0f0','primaryBorderColor':'#8a86ff','lineColor':'#a0a0ff','textColor':'#f0f0f0','mainBkg':'#2d2d3d','secondaryColor':'#3d2d3d','tertiaryColor':'#22323a','clusterBkg':'#222232','clusterBorder':'#555577','edgeLabelBackground':'#1a1a1a','titleColor':'#f0f0f0','nodeBorder':'#8a86ff'}}}%%
+flowchart LR
+    C["commit closes [#id]"] --> S["Stop hook<br/>propose_closures.py"]
+    S --> P["logs/PROPOSALS-*.md<br/>STRONG / WEAK"]
+    P --> SS["next SessionStart<br/>L0 surfaces [closures]"]
+    SS --> R["/review-closures"]
+    R --> B["BACKLOG.md updated"]
+    B -.->|repeats each session| C
+
+    classDef commit fill:#d8f5a2,stroke:#5c940d,color:#222
+    classDef step fill:#bde0fe,stroke:#1971c2,color:#000
+
+    class C,B commit
+    class S,P,SS,R step
+```
+
+Decision record: [ADR-70](docs/decisions/ADR-70-three-tier-process-automation.md) (three-tier process automation) + its 2026-06-02 shipped-reality addendum; full decision history in the [ADR index](docs/decisions/README.md). The hub itself was converged onto the plugin (its duplicate hook wiring removed) in the 5c step — see `JOURNAL.md`.
 
 ---
 
@@ -471,6 +508,8 @@ Decision record: ADR-70 (three-tier process automation) + its 2026-06-02 shipped
 - **ADR-66** — BACKLOG story-map hierarchy: Big Picture → Theme → User Story → Task; supersedes ADR-64 Decision 2 (flat layout)
 - **ADR-67** — AI-Council process operationalization: six-step gated loop (Frame→Generate→Gate→Run→Verdict→Return); `/council-question`; amends `AI_COUNCIL_PROCESS.md` v1.0
 - **ADR-68** — autonomous overnight review agent: local Task Scheduler → headless read-only review → morning briefing; ephemeral read-only worktrees (ADR-61); self-contained in `~/.claude/night-agent/`
+- **ADR-69** — cross-repo audit reach model: `audit.py` reaches child repos via a Layer-2 read-only cross-repo runner (`run` over the `ecosystem/` registry, reads each read-only, writes only into `.dev-knowledge`); commit-time enforcement stays self-only (the #72 residual)
+- **ADR-70** — three-tier self-enforcing process layer: Tier-1 always-on lifecycle (native primitives bundled as the `tier1-lifecycle` plugin), Tier-2 scheduled `audit.py run` → fleet-health digest, Tier-3 explicit/scoped Dynamic Workflows; git `closes [#id]` is the capture backbone (no custom ledger); + 2026-06-02 shipped-reality addendum (L0 surfacing relocation + forward `closes` rule)
 
 Reference `docs/decisions/README.md` for full index. Council debate transcripts in `docs/decisions/transcripts/`.
 
