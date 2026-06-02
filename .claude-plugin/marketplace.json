@@ -1,0 +1,13 @@
+{
+  "name": "dev-knowledge-methodology",
+  "owner": {
+    "name": "Rob"
+  },
+  "plugins": [
+    {
+      "name": "tier1-lifecycle",
+      "source": "./plugins/tier1-lifecycle",
+      "description": "ADR-70 Tier-1 lifecycle: propose-closures (Stop) + surfacing (SessionStart) + /review-closures. The .dev-knowledge hub is the methodology marketplace; plugins distribute the universal lifecycle to child repos (#73)."
+    }
+  ]
+}

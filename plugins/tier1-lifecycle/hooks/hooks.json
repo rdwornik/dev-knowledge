@@ -1,0 +1,29 @@
+{
+  "//": "ADR-70 Tier-1 plugin hooks. Scripts live under ${CLAUDE_PLUGIN_ROOT}; they read/write the HOST repo (BACKLOG.md, logs/) via $CLAUDE_PROJECT_DIR. Both non-blocking (exit 0).",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/propose_closures.py\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/review_closures.py\" surface",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
