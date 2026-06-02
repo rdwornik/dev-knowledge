@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-06-02 — Close [#73]: Tier-1 self-enforcing lifecycle plugin rollout complete (operator-approved)
+
+- Did: Operator explicitly approved closing #73. Removed the #73 task line from BACKLOG.md (done-items-leave, ADR-65); validate_backlog OK (42 tasks). Deleted merged branch `chore/5c-converge-hub`.
+- Evidence: 5a `9f31f32` (plugin packaged + ai-council pilot) · 5b corp-monorepo `14af351`, corp-ops `262d8bf`, corp-sca `a63e69a` (rolled out to all 4 child repos) · 5c `382a502`+`b1e3345`+merge `f903a68` (hub converged onto its own plugin). The whole arc used `advances [#73]`; this is the closing `closes [#73]` commit.
+- Process note (honest): the propose/gate auto-path did NOT propose #73 — STRONG detection keys on a prior `closes [#73]` commit, and none existed (arc used "advances"). `review_closures.py plan --ids 73` correctly refused ("not a proposed candidate"). This was therefore a DIRECT operator close, not a gate-verified propose-close; the underlying work genuinely landed (verified), and this closing commit is the canonical evidence + satisfies the `backlog-id-on-close` hook.
+- Next: #73 done. Open follow-ups untouched (#74 Workflow-escalation rule, #75 corp-monorepo Tier-3 Workflow). Possible future groom: hub-local `.claude/commands/review-closures.md` duplicates the plugin's `/review-closures` (flagged in 5c entry).
+
+---
+
 ### 2026-06-02 — Unit 5c: converge the hub onto its own plugin — drop duplicate Tier-1 wiring (advances [#73])
 
 - Did: Removed the hub's own Tier-1 wiring so it runs Tier-1 like the children — **subtractive only**. Dropped two redundant hooks from `.claude/settings.json`: `Stop → scripts/propose_closures.py` and `SessionStart → scripts/review_closures.py surface`. Kept the `SessionStart → scripts/fleet_health.py` (Tier-2) hook untouched. Ran the reference scan to decide deletions.
