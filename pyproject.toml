@@ -1,0 +1,6 @@
+[tool.ruff]
+# Floor at the grounded version (0.15.5, 2026-06-02).
+# local pre-commit hook uses the system binary (language: system) so version
+# mismatch is not possible at runtime — this constraint catches accidental
+# downgrade if the environment is rebuilt.
+required-version = ">=0.15.5"

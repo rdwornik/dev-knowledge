@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-02 — Unit 1: wire the version-pinned ruff pre-commit gate (closes [#13])
+
+- Did: Wired ruff as an enforced pre-commit gate on `chore/ruff-precommit-gate`. Added `pyproject.toml` with `[tool.ruff] required-version = ">=0.15.5"` (ruff itself enforces the floor; guards the phantom-I001 trap). Added a local hook to `.pre-commit-config.yaml` using `language: system` (system binary — no pre-commit virtualenv, no version mismatch possible). Gate mode: `ruff check` (no `--fix`) so violations are surfaced to the developer, not auto-silenced. Proved it blocks (step 3): staged `import os`, attempted commit, hook rejected with F401 and `exit 1`. Cleaned up the test file (no leftovers, verified). Updated CLAUDE.md v2.7 (§4 ruff now enforced gate; §9 ruff hook added to the list, stale BACKLOG #13 parenthetical removed; re-read end-to-end before stamping). Retired #13 from BACKLOG (done-items-leave, ADR-65).
+- Result: `ruff check` blocks commits on violations. Three independently-revertable commits. 156 tests green + ruff clean + validate_backlog OK (44 tasks) + audit-health 10/10 throughout. **Closes [#13].**
+- Changes: `.pre-commit-config.yaml` (ruff hook added), `pyproject.toml` (new; `[tool.ruff]` floor), `CLAUDE.md` v2.7 (§4/§9/§12), `BACKLOG.md` (#13 removed, grooming-log line), `JOURNAL.md` (this entry). Commits `1de2049` (gate) · `63adc83` (claude) · this close.
+- Abandoned / flagged: first test file used `# noqa: F401` which suppressed the violation (hook passed instead of blocking) — caught, test file rewritten without the suppressor, proof re-run correctly. The `reset --soft` left tree clean; no phantom worktrees or leftover files.
+- Next: #73 (bundle Tier-1 as plugin + cross-repo install) depends on #8/#12/#4 completing first; #13 was the standalone Tier-1 gate — now closed.
+
+---
+
 ### 2026-06-02 — Land the three-tier process-automation plan into the durable record (capture-only)
 
 - Did: Recorded the just-decided three-tier self-enforcing process architecture (AI Council verdict 2026-06-02 + the operator's three-tier synthesis) across its three durable surfaces, before any implementation — on `chore/land-process-automation-plan`, one revertable commit per surface, pytest/ruff/validate_backlog green after each. **No building** — capture only.
