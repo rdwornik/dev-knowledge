@@ -962,3 +962,129 @@ def test_git_last_commit_date_not_a_repo_returns_none(tmp_path: Path) -> None:
     """A path that is not a git repo → None (graceful degradation, no crash)."""
     (tmp_path / "VISION.md").write_text(_fm("2020-01-01"))
     assert aud._git_last_commit_date(tmp_path, "VISION.md") is None
+
+# ---------------------------------------------------------------------------
+# Check #11: no_sibling_orphans (no-leftovers invariant — PLAYBOOK G5)
+# ---------------------------------------------------------------------------
+
+def test_no_sibling_orphans_none_present(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """No `<repo>-*` siblings at all → pass (git reports only the repo itself)."""
+    repo = tmp_path / "myrepo"
+    repo.mkdir()
+    monkeypatch.setattr(aud, "_git_registered_worktrees",
+                        lambda rp: {os.path.normcase(str(repo.resolve()))})
+    f = aud.check_no_sibling_orphans(repo)[0]
+    assert f.status == "pass"
+
+
+def test_no_sibling_orphans_unregistered_dir_fails(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """An on-disk `<repo>-*` sibling that is NOT a registered worktree → FAIL (the orphan).
+
+    This is the done-when: the detector catches a deregistered-but-undeleted shell — the
+    `.dev-knowledge-cadence` / `.dev-knowledge-night-adr` failure mode.
+    """
+    repo = tmp_path / "myrepo"
+    repo.mkdir()
+    (tmp_path / "myrepo-cadence").mkdir()  # orphan: exists on disk, not registered
+    monkeypatch.setattr(aud, "_git_registered_worktrees",
+                        lambda rp: {os.path.normcase(str(repo.resolve()))})
+    f = aud.check_no_sibling_orphans(repo)[0]
+    assert f.status == "fail"
+    assert "myrepo-cadence" in f.evidence
+
+
+def test_no_sibling_orphans_registered_worktree_passes(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A `<repo>-*` sibling that IS a registered worktree is live work → NOT flagged.
+
+    The load-bearing discriminator: registration, not name, is what separates a live
+    parallel worktree from an orphan shell.
+    """
+    repo = tmp_path / "myrepo"
+    repo.mkdir()
+    live = tmp_path / "myrepo-parallel"
+    live.mkdir()
+    monkeypatch.setattr(
+        aud, "_git_registered_worktrees",
+        lambda rp: {os.path.normcase(str(repo.resolve())),
+                    os.path.normcase(str(live.resolve()))})
+    f = aud.check_no_sibling_orphans(repo)[0]
+    assert f.status == "pass"
+
+
+def test_no_sibling_orphans_mixed_only_flags_unregistered(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """With one live (registered) and one orphan sibling, only the orphan is flagged."""
+    repo = tmp_path / "myrepo"
+    repo.mkdir()
+    live = tmp_path / "myrepo-live"
+    live.mkdir()
+    (tmp_path / "myrepo-orphan").mkdir()
+    monkeypatch.setattr(
+        aud, "_git_registered_worktrees",
+        lambda rp: {os.path.normcase(str(repo.resolve())),
+                    os.path.normcase(str(live.resolve()))})
+    f = aud.check_no_sibling_orphans(repo)[0]
+    assert f.status == "fail"
+    assert "myrepo-orphan" in f.evidence
+    assert "myrepo-live" not in f.evidence
+
+
+def test_no_sibling_orphans_ignores_non_prefixed_siblings(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Sibling repos that don't share the `<repo>-` prefix are never considered."""
+    repo = tmp_path / "myrepo"
+    repo.mkdir()
+    (tmp_path / "other-repo").mkdir()       # different repo, not a `myrepo-*` sibling
+    (tmp_path / "myrepofoo").mkdir()         # no separating '-', not a `myrepo-*` sibling
+    monkeypatch.setattr(aud, "_git_registered_worktrees",
+                        lambda rp: {os.path.normcase(str(repo.resolve()))})
+    f = aud.check_no_sibling_orphans(repo)[0]
+    assert f.status == "pass"
+
+
+def test_no_sibling_orphans_degrades_without_git(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """No git (helper returns None) → check is skipped as a pass, never crashes."""
+    repo = tmp_path / "myrepo"
+    repo.mkdir()
+    (tmp_path / "myrepo-cadence").mkdir()  # would be an orphan if git were available
+    monkeypatch.setattr(aud, "_git_registered_worktrees", lambda rp: None)
+    f = aud.check_no_sibling_orphans(repo)[0]
+    assert f.status == "pass"
+    assert "skipped" in f.evidence
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="git not available")
+def test_no_sibling_orphans_real_git_orphan_fails(tmp_path: Path) -> None:
+    """REAL git, no mocks: an unregistered `<repo>-*` sibling → FAIL end-to-end.
+
+    Exercises the shipped `git worktree list --porcelain` subprocess + the registration
+    comparison, so a regression in the real path (not just the mocked one) is caught.
+    """
+    repo = tmp_path / "myrepo"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    (repo / "f.txt").write_text("x")
+    _git(repo, "add", "f.txt")
+    _git(repo, "commit", "-qm", "init")
+    (tmp_path / "myrepo-orphan").mkdir()  # plain dir, never a registered worktree
+    f = aud.check_no_sibling_orphans(repo)[0]
+    assert f.status == "fail"
+    assert "myrepo-orphan" in f.evidence
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="git not available")
+def test_no_sibling_orphans_real_git_live_worktree_passes(tmp_path: Path) -> None:
+    """REAL git: an actual registered worktree sibling is live work → PASS (not flagged)."""
+    repo = tmp_path / "myrepo"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    (repo / "f.txt").write_text("x")
+    _git(repo, "add", "f.txt")
+    _git(repo, "commit", "-qm", "init")
+    wt = tmp_path / "myrepo-parallel"
+    _git(repo, "worktree", "add", "-q", "--detach", str(wt))
+    f = aud.check_no_sibling_orphans(repo)[0]
+    assert f.status == "pass", f.evidence

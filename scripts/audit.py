@@ -712,6 +712,79 @@ def check_canonical_freshness(repo_path: Path) -> list[Finding]:
                     f"(last_reviewed not before last edit; within {_FRESHNESS_CADENCE_DAYS}d)")]
 
 
+def _git_registered_worktrees(repo_path: Path) -> Optional[set[str]]:
+    """Normcased absolute paths of every git worktree registered for `repo_path`.
+
+    Read-only (`git worktree list --porcelain`). Returns None when git is absent or the
+    path is not a git repo, so a non-git consumer degrades gracefully (the orphan check is
+    then skipped) — same pattern as `_git_last_commit_date`. Paths are normalized through
+    `Path.resolve()` + `os.path.normcase` so the on-disk comparison is robust to git's
+    forward-slash output and Windows' case-insensitive filesystem.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_path), "worktree", "list", "--porcelain"],
+            capture_output=True, text=True, encoding="utf-8",
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    registered: set[str] = set()
+    for line in result.stdout.splitlines():
+        if line.startswith("worktree "):
+            raw = line[len("worktree "):].strip()
+            try:
+                registered.add(os.path.normcase(str(Path(raw).resolve())))
+            except OSError:
+                registered.add(os.path.normcase(raw))
+    return registered
+
+
+def check_no_sibling_orphans(repo_path: Path) -> list[Finding]:
+    """Check #11 (no-leftovers invariant — ADR-61/ADR-68, PLAYBOOK G5): no orphaned
+    `<repo>-*` sibling directories left behind by a torn-down worktree.
+
+    A parallel-session or night-agent worktree is created as a `<repo>-<topic>` sibling
+    next to the repo and removed at goal/run end. When `git worktree remove` silently
+    no-ops (the directory is process-locked) and the teardown is not re-checked, git
+    deregisters the worktree but the empty directory survives on disk as an orphan — the
+    `.dev-knowledge-cadence` / `.dev-knowledge-night-adr` failure (cleaned 2026-06-02).
+
+    Keyed on REGISTRATION, not mere name: a `<repo>-*` sibling that IS a registered git
+    worktree is legitimate in-use parallel work (NOT flagged); one that is NOT registered
+    is the orphan (FAIL). That discriminator is the whole point — it separates a live
+    worktree from a leftover shell. A presence-checking audit structurally cannot catch a
+    directory that exists but should not (2026-05-17 decommissioning-gap LESSON), so this
+    is an explicit negative assertion, the mechanization PLAYBOOK G5 §924 named.
+
+    Read-only (`git worktree list`). Degrades gracefully without git (skipped). PORTABLE:
+    a child repo inherits it unchanged — `repo_path.name` resolves to that repo's prefix.
+    """
+    registered = _git_registered_worktrees(repo_path)
+    if registered is None:
+        return [Finding("no_sibling_orphans", "pass",
+                        "git unavailable or not a repo - sibling-orphan check skipped")]
+    prefix = repo_path.name + "-"
+    try:
+        siblings = sorted(
+            p for p in repo_path.parent.iterdir()
+            if p.is_dir() and p.name.startswith(prefix))
+    except OSError:
+        return [Finding("no_sibling_orphans", "pass",
+                        "parent directory unreadable - sibling-orphan check skipped")]
+    orphans = [
+        p.name for p in siblings
+        if os.path.normcase(str(p.resolve())) not in registered]
+    if orphans:
+        return [Finding("no_sibling_orphans", "fail",
+                        f"Unregistered '{prefix}*' sibling dir(s) next to repo - worktree "
+                        f"orphan(s) left behind (remove, or re-register if live): {orphans}")]
+    return [Finding("no_sibling_orphans", "pass",
+                    f"No orphaned '{prefix}*' siblings "
+                    f"(every '{prefix}*' sibling is a registered worktree, or none exist)")]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -723,6 +796,7 @@ ALL_CHECKS = [
     check_handoff_bundle_structure,
     check_handoff_tag_canonicity,
     check_canonical_freshness,
+    check_no_sibling_orphans,
 ]
 
 
