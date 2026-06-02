@@ -174,3 +174,57 @@ def test_git_commit_exists_real_repo(tmp_path):
                          capture_output=True, text=True, encoding="utf-8").stdout.strip()
     assert rc.git_commit_exists(repo, sha[:9]) is True
     assert rc.git_commit_exists(repo, "0000000deadbeef") is False
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
+def test_integration_full_done_items_leave_loop(tmp_path):
+    """End-to-end: approve #5 -> closed (item gone + `closes [#5]` commit);
+    #6/#7 unapproved -> untouched. The full Tier-1 close mechanism in a sandbox."""
+    repo = tmp_path / "r"
+    repo.mkdir()
+
+    def run(*a, msg=None):
+        return subprocess.run(["git", "-C", str(repo), *a], check=True,
+                              capture_output=True, text=True, encoding="utf-8")
+
+    run("init", "-q")
+    run("config", "user.email", "t@t.t")
+    run("config", "user.name", "t")
+    backlog = repo / "BACKLOG.md"
+    backlog.write_text(_BACKLOG, encoding="utf-8")
+    run("add", "-A")
+    run("commit", "-q", "-m", "chore: seed backlog")
+    # a real closing commit for #5
+    (repo / "work.txt").write_text("done\n", encoding="utf-8")
+    run("add", "-A")
+    run("commit", "-q", "-m", "feat: do the alpha work, closes [#5]")
+    ev = subprocess.run(["git", "-C", str(repo), "rev-parse", "--short=9", "HEAD"],
+                        capture_output=True, text=True, encoding="utf-8").stdout.strip()
+
+    proposals = rc.parse_proposals(pc.render(
+        {"5": [(ev, "feat: do the alpha work, closes [#5]")]},
+        {"7": [("scripts/audit.py", "deadbeef0", "refactor")]},
+        date(2026, 6, 2), ev, None, 2,
+        {"5": "alpha", "7": "gamma"},
+    ))
+
+    backlog_text = backlog.read_text(encoding="utf-8")
+    open_lines = rc.open_task_lines(backlog_text)
+    # operator approves ONLY #5
+    out = rc.plan_closures(backlog_text, ["5"], proposals, open_lines,
+                           lambda s: rc.git_commit_exists(repo, s))
+    assert [c["id"] for c in out["close"]] == ["5"]
+
+    # apply done-items-leave for the approved id, then commit with `closes [#5]`
+    new_text, ok = rc.remove_task(backlog_text, out["close"][0]["id"])
+    assert ok is True
+    backlog.write_text(new_text, encoding="utf-8")
+    run("add", "BACKLOG.md")
+    run("commit", "-q", "-m", f"chore: retire #5 (ev {ev}), closes [#5]")
+
+    final = backlog.read_text(encoding="utf-8")
+    assert "- [#5]" not in final                      # approved item left the file
+    assert "- [#6]" in final and "- [#7]" in final     # unapproved untouched
+    head_msg = subprocess.run(["git", "-C", str(repo), "log", "-1", "--format=%B"],
+                              capture_output=True, text=True, encoding="utf-8").stdout
+    assert "closes [#5]" in head_msg                   # forward-index for the closure
