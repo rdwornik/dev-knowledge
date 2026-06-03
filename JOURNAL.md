@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-03 — #79 resolved: codemap end-state correct, no build needed
+
+**Did:** Recorded the #79 resolution from the grounding audit: no marker-aware gate, no generator fix, no wiring — the codemap is already in its correct per-repo end-state (hub generator-managed; three children hand-authored with `not generator-managed` marker; corp-sca text-only override). Closed #79 in BACKLOG with rationale; appended codemap end-state note to ADR-71.
+**Result:** #79 closed. ADR-71 now records the resolved end-state and the deferred-indefinitely status of both the gate and the fix, with the layout-agnostic reference-validator as the future cheap path if drift detection ever becomes a real need.
+**Changes:** BACKLOG.md #79 outcome + `closes [#79]`; ADR-71 codemap end-state note appended; JOURNAL prepend.
+
+---
+
 ### 2026-06-03 — Codemap grounding per repo (#79, first half)
 
 **Did:** Read-only grounding of every sibling's codemap state to resolve the ADR-71 split (marker-aware-gate vs generator-fix). Ran the hub generator with no `--write` against ai-council, corp-ops, corp-monorepo at both `src` and inner `src/<pkg>` source roots; read each committed CODEMAP block + marker; assessed corp-sca scale.
