@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-06-03 — ESSENTIALS light fix: true contract + 3 drift fixes
+
+**Did:** Corrected false "1-page" contract on L3 (honest LLM-frame description); pointed lesson→rule at canonical PLAYBOOK §4; added canonical pointer for the three-layer flow to PLAYBOOK "System Architecture"; disambiguated "Continuous Improvement" heading vs PLAYBOOK §6. Single file, 4 commits on `docs/essentials-light-fix`.
+**Changes:** `protocols/ESSENTIALS.md` (+4 lines net). 228 tests green; audit.py health 12/12.
+
+---
+
 ### 2026-06-03 — Applied dynamic TOC to PLAYBOOK.md
 
 **Did:** Inserted `<!-- TOC:START/END -->` markers and ran `scripts.toc.cli generate --write` on `protocols/PLAYBOOK.md`; added `toc-freshness-playbook` pre-commit hook mirroring the existing ARCHITECTURE.md hook. Pure application of the existing toc tool (no generator changes).

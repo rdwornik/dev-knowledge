@@ -1,6 +1,6 @@
 # Daily Essentials
 
-> Daily cheat sheet. Keep under 1 page.
+> The session-start operating frame for the LLM: the load-bearing essentials for working in this ecosystem. Condensed by design — full detail lives in PLAYBOOK, which this points to.
 > Mission anchor: `VISION.md` (universal brain) + `ARCHITECTURE.md` (structural model). Read those once on first session of a project; this file is the day-to-day driver.
 
 ---
@@ -26,6 +26,8 @@ Applies primarily to Browser chat analytical work; also relevant whenever Claude
 
 ## Continuous Improvement
 <!-- scope: meta -->
+
+_This section: project-evolution posture (always be improving). For the tool/model adoption lifecycle (Discovery → Review), see PLAYBOOK §6 "Continuous Improvement."_
 
 **Default project posture: always be improving.**
 
@@ -113,6 +115,8 @@ Browser chat (analysis)  →  .dev-knowledge (reference)  →  projects (executi
 - "Should we...?" → browser (decision)
 - "Implement X per spec" → Claude Code (execution)
 - "What did we decide about Y?" → either, but check `.dev-knowledge` first
+
+_Canonical: PLAYBOOK "System Architecture" (ADR-28)._
 
 ---
 
@@ -390,7 +394,7 @@ the pre-commit hook list.
 | How I work (processes, lessons) | `Dev/.dev-knowledge/` |
 | Rules Claude Code executes | `~/.claude/` |
 
-When a lesson becomes a rule → write rationale in LESSONS.md, write executable rule in `~/.claude/` with verify: line.
+When a lesson becomes a rule — see canonical trigger + 3-step process: PLAYBOOK §4 "When a lesson becomes a rule."
 
 ---
 
