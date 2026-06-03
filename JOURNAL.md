@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-03 — Hub becomes the doc-tooling pre-commit hook *source* repo (ADR-71)
+
+**Did:** Step 1 of doc-tooling universalization (hub-only, non-disruptive): recorded **ADR-71** (distribute codemap+TOC via the pre-commit hook source repo pattern), parametrized the codemap CLI on a target arch path (`--arch-file`, default-preserving — mirrors TOC's file-arg), and exposed both tools as four hooks in a root `.pre-commit-hooks.yaml` (`codemap`/`toc` × freshness/generate) via `language: script` thin wrappers in `scripts/` (no pip package; ADR-59 root-hygiene; `#!/usr/bin/env python3`).
+**Result:** `pre-commit try-repo` (pre-commit 4.5.1) confirms a consumer **resolves + runs the hooks from the hub by local path on this Windows machine** — toc-freshness Passed on the hub; codemap-freshness + codemap-generate Passed on a scratch `src/` consumer; toc-generate correctly surfaced exit-3 "no TOC markers" on a marker-less fixture (faithful exit-code passthrough, not a resolution failure). 230 tests green (+2 `--arch-file`), ruff clean, `audit.py health` OK, hub's own production `.pre-commit-config.yaml` gate untouched. Scratch consumer in $TEMP removed + verified (no leftovers). Codex `/review` run on the code diff (see same-day `docs/audits/` artifact) before merge.
+**Changes:** +`docs/decisions/ADR-71-*.md`, +`scripts/codemap_hook.py`, +`scripts/toc_hook.py`, +`.pre-commit-hooks.yaml`; `scripts/codemap/{cli,check}.py` + `tests/test_codemap.py`; README ADR index + BACKLOG #78 (deferred consolidated docs-refresh); JOURNAL (this). 3 step commits on `feat/doctools-hook-repo`. Next: corp-monorepo pilot (consume via `repo:/rev:`, frozen→live codemap, TOC its 551-line ARCHITECTURE).
+
+---
+
 ### 2026-06-03 — Cross-repo doc-tooling inventory (universalization grounding)
 
 **Did:** Read-only inventory across all 5 repos (ADR-69 honored — wrote only into `.dev-knowledge`) grounding a future codemap+TOC universalization plugin; captured the `tier1-lifecycle` plugin/marketplace as the build template.
