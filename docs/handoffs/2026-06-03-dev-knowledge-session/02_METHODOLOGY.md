@@ -35,8 +35,8 @@ rules live in `~/.claude/` with `verify:` lines, **not** in this repo's prose.
 pre-commit auto-fires (FAIL blocks the commit):
 `normalize-dated-headers` · `codemap-freshness` · `toc-freshness` (ARCHITECTURE +
 PLAYBOOK) · `validate-backlog` · `audit-health` (`audit.py health`) · **`ruff`**
-(version-pinned ≥0.15.5, now a wired gate — *this changed this session: #13 closed*)
-· `backlog-id-on-close` (commit-msg).
+(version-pinned ≥0.15.5, gate mode `ruff check` — wired via BACKLOG #13, closed
+2026-06-02) · `backlog-id-on-close` (commit-msg).
 
 Session hooks (`.claude/settings.json`): `SessionStart → fleet_health.py` (Tier-2
 daily cross-repo audit digest). The Tier-1 closure loop runs via the enabled
