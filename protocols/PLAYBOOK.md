@@ -2,6 +2,8 @@
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
 > Last updated: 2026-06-03
+>
+> *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 
 ---
 
@@ -339,11 +341,6 @@ Standardize location of `.secrets/` (currently `C:\Users\1028120\Documents\.secr
 
 File and folder casing rules. Currently mixed: `LESSONS.md` ALLCAPS, `docs/` lowercase, `ESSENTIALS.md` ALLCAPS, kebab-case for dated files. Decision on what casing applies where, and whether existing files migrate.
 
-### Section history
-<!-- scope: meta -->
-
-- v1.0 (2026-04-26) — initial. Default branch subsection filled per ADR-30. Subsections 2–5 reserved as forward-references to ADR-31 through ADR-34, populated in Stream C sessions 2, 3, and Cluster 2.
-
 ---
 
 ## Writing prompts for Claude Code
@@ -429,7 +426,7 @@ Prompt format updates when:
 - New repo with different conventions → may require template variant
 - ADR amendment changes prompt protocol (e.g., new git workflow standard)
 
-This section's history is in the Section history blocks + git log (search commits for "prompt template" or "Gap #2"; CHANGELOG.md was retired ecosystem-wide per ADR-49).
+This section's history is in git log (search commits for "prompt template" or "Gap #2").
 
 ---
 
@@ -458,7 +455,7 @@ Test infrastructure scales with project size. Over-investing in test infra on a 
 | **medium** (50-500 tests) | required | ≥60% on source, no untested public API | pytest unit + selective integration | `pytest -x --tb=short` |
 | **large** (500+ tests) | required | ≥80% on source, comprehensive public API coverage, integration suite for critical paths | pytest unit + integration + e2e where applicable | `pytest -x --tb=short` per step + `pytest --collect-only` for sanity |
 
-> Coverage targets (60%/80%) are guidelines from observed practice, not enforced thresholds. See Section history note for basis.
+> Coverage targets (60%/80%) are guidelines from observed practice, not enforced thresholds.
 
 #### Reading the table
 <!-- scope: dev -->
@@ -493,11 +490,6 @@ This cadence catches regressions early and keeps each commit's diff sane to revi
 - **Coverage chasing on a tiny repo** — measuring coverage on a <50-test repo wastes 30+ min per session for diminishing return
 - **Skipping tests on a large repo** — "this commit is small" + large repo = recipe for hidden regression
 - **Integration-only on a large repo** — slow feedback discourages running tests; unit tests are the foundation
-
-#### Section history
-<!-- scope: dev -->
-
-- v1.0 (2026-04-25) — initial. Coverage targets are guidelines, not enforced thresholds.
 
 ### VS Code workspace
 <!-- scope: dev -->
@@ -571,12 +563,6 @@ Template is starting point, not contract. Repos may:
 - Add custom tasks, debug configurations, multi-folder workspaces
 
 **Don't:** remove template baseline without rationale — that's diverging from baseline, not customizing on top of it.
-
-#### Section history
-<!-- scope: dev -->
-
-- v1.0 (2026-04-25) — initial. Three richness-tiered templates grounded in `corp-monorepo.code-workspace` actual contents. Will refine based on extension marketplace evolution.
-- v1.1 (2026-05-23) — de-tiered: S/M/L reframed as richness levels (repo-tier system deprecated).
 
 ### Tier transition procedures (ADR-40) — DEPRECATED 2026-05-23
 <!-- scope: meta -->
@@ -714,14 +700,6 @@ Per Token-LOG flip 2026-04-24:
 - **Append-only (oldest top):** LESSONS. Rationale: chronological narrative for grandfathered learning patterns; order preserves "what we learned when" per ADR-29.
 - **Living (in-place updates):** README, CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT. Rationale: not logs; current state matters more than history.
 - **Immutable (dated):** ADRs, transcripts, handoffs, audits, research. Rationale: point-in-time records; supersession via new file or in-file marker.
-
-### Section history
-<!-- scope: meta -->
-
-- v1.0 (2026-04-24) — initial. 12-file taxonomy + Scale matrix + 4 common confusions + order conventions. Will refine after live use.
-- v1.1 (2026-05-23) — Scale matrix replaced by universal file-presence baseline (repo-tier system deprecated; ADR-38 amendment A5).
-- v1.1 (2026-04-27) — JOURNAL ordering amended oldest-top → newest-first prepend per Rob's preference; aligns with TOKEN-LOG/CHANGELOG. LESSONS retains oldest-top (ADR-29 grandfathering). Light-touch amendment, no ADR.
-- v1.2 (2026-04-27) — Handoff format spec added: folder-format introduced (since 2026-04-27) per Topic 2 + Research synthesis. Legacy single-file format preserved. File taxonomy row updated to reflect both formats. First folder-format instance: `docs/handoffs/2026-04-27-stream-c-session-1-final/`.
 
 ---
 
@@ -928,15 +906,6 @@ in the `audit-health` pre-commit gate, so an orphan blocks the next commit until
 process step above remains the first line of defence (catch it at teardown); the check is the
 backstop that catches what the manual teardown missed. (Recurrence cleaned 2026-06-02 — see LESSONS.)
 
-### Section history
-<!-- scope: meta -->
-
-- v1.0 (2026-04-25) — initial. 5 subsections: scope declaration, stop-signs, decision fatigue threshold, recursive planning anti-pattern, session resumption protocol. Codifies patterns observed in 2026-04-24 sessions. Will refine after live use.
-- v1.1 (2026-05-28) — add §Parallel sessions (ADR-61).
-- v1.2 (2026-06-01) — reorganize §Parallel sessions into When-needed / Setup / Discipline / Integration+cleanup; add the parallel-work discipline rules (one-worktree-per-goal, serialize canonical-file edits, write-time id allocation, `--no-ff` over cross-worktree rebase, prune+delete after merge) from the 2026-06-01 worktree-sprawl LESSON. No rule removed.
-- v1.3 (2026-06-01) — G4 process-hardening: add the decide-first (different-repo → no worktree) line + the provision→use→ephemeral-teardown lifecycle framing at the top; reframe step 4 as ephemeral teardown and add the verify-teardown-left-nothing-behind step (grounded in the `.dev-knowledge-cadence`/`-night-adr` orphans); link to the no-leftovers invariant. No rule removed.
-- v1.4 (2026-06-01) — G5 process-hardening: add the "No leftovers" invariant subsection (automated/scratch-creating processes remove + verify everything they create; provision→cleanup round-trip leaves the tree identical), generalizing the worktree teardown; cites the ADR-68 ephemeral-worktree precedent + the decommissioning-gap LESSON; documents the three-command lightweight check, no tooling built.
-
 ---
 
 ## Tier-1 closure loop — usage
@@ -1081,12 +1050,6 @@ Cross-link the ADR to its implementation commits; the JOURNAL entry records the 
 - **ADRs** in `docs/decisions/` — the adopt/reject decision itself (research-mode debate transcripts route to `docs/decisions/transcripts/` per ADR-43).
 - **BACKLOG** "Tooling & evaluation" theme — deferred tool evals carrying their reopen triggers (e.g. Kimi K2).
 - **JOURNAL** — the per-session record of what was evaluated and decided.
-
-### Section history
-<!-- scope: meta -->
-
-- v1.0 (2026-04-24) — initial. 6-stage pipeline, source list, evaluation modes by stake, tech-radar folder convention. Codifies organic 2026-Q1/Q2 adoption practice (Codex, Tach, Opus 4.7, ccusage, Perplexity, MCP-memory-deferred, GLM/Qwen-deferred, Spec Kit-evaluated).
-- v1.1 (2026-06-01) — Phase-R: drop the retired `docs/tech-radar/` substrate (archived per ADR-60; operator-confirmed the quarterly cadence is retired). Stage 6 reframed quarterly → on-trigger; capture/defer/reject records redirected to JOURNAL / BACKLOG "Tooling & evaluation" / ADRs; the "Tech radar folder" subsection replaced with "Where evaluations are recorded". Six-stage pipeline structure unchanged.
 
 ---
 
@@ -1388,11 +1351,6 @@ User-level adoptions don't need per-repo CLAUDE.md updates (they apply everywher
 - **Skip validation** — broken hook/command/skill propagates and fails silently for weeks
 - **Forget documentation step** — Codex/Cursor never learn about the new tool; cross-tool awareness breaks
 
-#### Section history
-<!-- scope: meta -->
-
-- v1.0 (2026-04-25) — initial. 5-stage pipeline (Triage → Decision → Validation → Install → Document) with cross-reference to Gap #17 (broader tool adoption). Anti-patterns from observed practice. Will refine after live use.
-
 ### Cross-reference to CLAUDE.md tools sections
 <!-- scope: meta -->
 
@@ -1405,11 +1363,6 @@ When a repo has any of the above active (skills, slash commands, hooks, subagent
 - **Subagents:** list if any are active (per Rob's ecosystem currently: ecosystem-snapshot, report-generator at user-level)
 
 This keeps Codex aware of the same governance Claude Code operates under.
-
-### Section history
-<!-- scope: meta -->
-
-- v1.0 (2026-04-24) — initial. 4 subsections: skills, slash commands, hooks, subagents (deferred). Disambiguation table at top. Real examples from corp-monorepo (gotchas skill), user-level (/session-summary, /boot, /evolve, /review), .dev-knowledge (scope tag pre-commit hook). Subagents documented from Anthropic docs + Council #28 research, no Rob ecosystem instance.
 
 ---
 
@@ -2008,11 +1961,6 @@ After archival, cross-link FROM:
 - **Archive without resolution tracking** — review without clear "what was fixed / what's deferred" loses accountability
 - **Codex output rot** — letting findings linger across sessions without resolution status creates ambiguity over what's still open
 
-#### Section history
-<!-- scope: meta -->
-
-- v1.0 (2026-04-25) — initial. Manual archival protocol mirroring Council Archival pattern. Future enhancement: pre-commit hook checking for un-archived Codex sessions older than N days.
-
 ---
 
 ## 6. Code Review with Claude Code
@@ -2556,11 +2504,6 @@ Use `templates/scrum-master-cover-letter.md`. Operator fills placeholders for ta
 - Strażnik does NOT directly edit target repo files. Cross-repo changes route via target architect.
 - Pushback opens new handshake. Pushback does not extend the original routing.
 - Addendum is for post-routing gap discovery; not for finding revisions (revisions = re-audit).
-
-### Section history
-<!-- scope: meta -->
-
-- v1.0 (2026-05-12) — initial. Codifies propagation process at N=1 (ai-council scrum-master review 2026-05-11). ADR-44 authority codification deferred pending N=2 (corp-monorepo scrum-master review).
 
 ---
 
