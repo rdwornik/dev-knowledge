@@ -6,12 +6,25 @@ generated from them at handoff time. When in doubt, the live files win.
 
 ## Model selection
 
-- **Sonnet:** ≤5 files, ≤1 layer, existing pattern, automated checks pass.
-- **Opus:** new abstractions, cross-module work, unfamiliar APIs, security.
-- **No AI:** anything a human would do in <60 seconds — don't spend a model on it.
-- Heavy-decision work escalates to **AI Council**; heavy-execution / cross-repo /
-  large-repo work escalates to a scoped **Dynamic Workflow** (the execution analog;
-  the escalation rule is BACKLOG #74, to be written once #80 lands).
+Choose by **task type**, not file count — and **never default to Sonnet; actively
+choose per task** (there is no budget ceiling; when uncertain, lean Opus — its
+overhead costs less than Sonnet's missed nuance).
+
+- **Sonnet** — mechanical / well-specified / pattern-matched work: "apply this fix",
+  single-file edits, boilerplate, file renames, config updates, detailed-spec
+  code-and-test loops.
+- **Opus** — audit / review / synthesis; architecture + clause-level reasoning;
+  judgment-heavy work (severity calibration, ambiguity resolution); long-context
+  comparison across inputs; subtle pattern recognition (security review, gotcha
+  identification); multi-package changes; complex debugging; novel logic design.
+- **No AI** — anything a human would do in <60 seconds; don't spend a model on it.
+
+Rule of thumb: *"do X the way we always do it"* → Sonnet; *"figure out the right
+approach, then do it"* → Opus.
+
+Heavy-decision work escalates to **AI Council**; heavy-execution / cross-repo /
+large-repo work escalates to a scoped **Dynamic Workflow** (the execution analog; the
+escalation rule is BACKLOG #74, to be written once #80 lands).
 
 ## Prompt format
 
