@@ -103,6 +103,7 @@ unbuilt) and #78.
 | #79 resolved; #80/#81/#82 added; #78/#70 pending | BACKLOG matches exactly | ✅ confirmed | `grep -nE '#(70\|78\|79\|80\|81\|82)' BACKLOG.md` |
 | AGENTS.md copy-deploy (symlink blocked) | `codex/AGENTS.md` present as a real file | ✅ consistent | `ls codex/AGENTS.md` |
 | ruff is a wired pre-commit gate (#13) | `.pre-commit-config.yaml` id `ruff`, `entry: ruff check`, gate mode; #13 closed **2026-06-02** — the *prior* session, inside this multi-session handoff window | ✅ gate real; ⚠️ the "this session" attribution was wrong and was corrected in `02_METHODOLOGY` | `grep -ni ruff .pre-commit-config.yaml` · `git log --oneline --grep="#13"` |
+| **Post-merge state (correction, appended 2026-06-03 Phase-0)** — sender's pre-merge `d439969`/2888-line/etc. rows above were the *pre-merge* snapshot; this row records the *post-merge* `main` | handoff branch **merged**; `main` at **`96beb6c`**; **230** tests; **12/12** audit checks (`health` OK, 0 FAIL); tree **clean** | ✅ confirmed | `git log main --oneline -1` · `python -m pytest --collect-only -q` · `python scripts/audit.py health` · `git status --porcelain` |
 
 **One drift, non-blocking:** the PLAYBOOK line count. The 2710 was measured after the
 §18 deletion but *before* the auto-TOC was applied to PLAYBOOK, which added the table
