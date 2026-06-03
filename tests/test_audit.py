@@ -553,6 +553,39 @@ def test_health_ok_with_registered_repo(monkeypatch: pytest.MonkeyPatch, tmp_pat
 
 
 # ---------------------------------------------------------------------------
+# checks command (CLI) — drift-proof listing sourced from ALL_CHECKS
+# ---------------------------------------------------------------------------
+
+def test_checks_lists_every_registered_check() -> None:
+    """`checks` exits 0, reports the live ALL_CHECKS count, and names every check.
+
+    The listing is sourced from ALL_CHECKS (the same list health/run execute), so the
+    count and names cannot drift from what actually runs — this is the guarantee the
+    command exists to provide.
+    """
+    from click.testing import CliRunner
+    runner = CliRunner()
+    result = runner.invoke(aud.cmd_checks)
+    assert result.exit_code == 0
+    assert f"{len(aud.ALL_CHECKS)} registered checks" in result.output
+    for check in aud.ALL_CHECKS:
+        name = check.__name__.removeprefix("check_")
+        assert name in result.output
+
+
+def test_checks_count_matches_what_runs() -> None:
+    """The number `checks` prints equals the number of findings a run produces.
+
+    Guards the drift the command was built to kill (the §18 "10 vs 11 vs 12"): the
+    listed count is len(ALL_CHECKS), and each check contributes >=1 finding on a repo.
+    """
+    from click.testing import CliRunner
+    result = CliRunner().invoke(aud.cmd_checks)
+    listed = int(result.output.split(" registered checks", 1)[0].split("\n")[-1])
+    assert listed == len(aud.ALL_CHECKS)
+
+
+# ---------------------------------------------------------------------------
 # Fixtures path helper
 # ---------------------------------------------------------------------------
 

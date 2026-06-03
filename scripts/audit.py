@@ -2,13 +2,23 @@
 audit.py — Ecosystem audit tool per ADR-36.
 
 Reads child repos under Dev/ and writes only to .dev-knowledge paths.
-Read-only contract: never touches child repo files.
+Read-only contract: never touches child repo files (hard constraint, ADR-36).
+
+This module is self-documenting: `python scripts/audit.py --help` and
+`python scripts/audit.py <cmd> --help` are the authoritative CLI reference, and
+`python scripts/audit.py checks` lists the registered checks straight from the
+ALL_CHECKS registry (so the list cannot drift from what actually runs). The
+conceptual / authority model — what this tool is, why the cross-repo `run` is
+advisory while the self-audit `health` gates commits, and the self-only
+enforcement model — lives in ARCHITECTURE.md (§"Validators and enforcement",
+§"Authority and governance") and ADR-36. Do not re-narrate that here.
 
 Commands:
     audit run                          # full ecosystem; writes report
     audit repo <name>                  # single repo
     audit registry update              # regenerate ecosystem/index.yaml
     audit health                       # quick TTY status, no file writes
+    audit checks                       # list registered checks (from ALL_CHECKS)
 
 Usage:
     python scripts/audit.py run
@@ -159,6 +169,15 @@ class Finding:
 
 @dataclass
 class RepoState:
+    """A repo's last audit result — the schema of ecosystem/<name>/state.yaml.
+
+    Fields (round-tripped by to_dict/from_dict): `name` (matches the
+    ecosystem/<name>/ folder), `path` (absolute path stored at registration),
+    `last_audit` (ISO date of the last run, or None if never audited), and
+    `findings` — a list of Finding(check_name, status, evidence) where status is
+    one of pass | fail | warn | unavailable. state.yaml is the per-repo source of
+    truth; ecosystem/index.yaml is a derived rollup of these (see regenerate_index).
+    """
     name: str
     path: str
     last_audit: Optional[str]
@@ -241,7 +260,7 @@ def discover_repos() -> list[str]:
 # ---------------------------------------------------------------------------
 
 def check_vision_md(repo_path: Path) -> list[Finding]:
-    """Check #1: VISION.md presence + parseable YAML frontmatter per ADR-33."""
+    """VISION.md presence + parseable YAML frontmatter per ADR-33."""
     vision = repo_path / "VISION.md"
     if not vision.exists():
         return [Finding("vision_md", "fail", "VISION.md absent at repo root")]
@@ -266,7 +285,7 @@ def check_vision_md(repo_path: Path) -> list[Finding]:
 
 
 def check_adr38_baseline(repo_path: Path) -> list[Finding]:
-    """Check #2: ADR-38 (amendments A5 2026-05-23, A6 2026-06-02) universal governance baseline.
+    """ADR-38 (amendments A5 2026-05-23, A6 2026-06-02) universal governance baseline.
 
     Checks the governance documents every repo must carry — not code structure.
     The repo-tier system is deprecated, so there is no per-tier branching. Code
@@ -295,7 +314,7 @@ def check_adr38_baseline(repo_path: Path) -> list[Finding]:
 
 
 def check_claude_md(repo_path: Path) -> list[Finding]:
-    """Check #3: ADR-31 CLAUDE.md presence and non-empty per authority model baseline."""
+    """ADR-31 CLAUDE.md presence and non-empty per authority model baseline."""
     claude = repo_path / "CLAUDE.md"
     if not claude.exists():
         return [Finding("claude_md", "fail", "CLAUDE.md absent at repo root")]
@@ -306,7 +325,7 @@ def check_claude_md(repo_path: Path) -> list[Finding]:
 
 
 def check_dot_prefix_discipline(repo_path: Path) -> list[Finding]:
-    """Check #4 (ADR-59 D1): root config files dot-prefixed unless on exception list.
+    """Root config files dot-prefixed unless on exception list (ADR-59 D1).
 
     Root-level only — subfolder configs are ignored. A config-suffix file that is
     neither dot-prefixed nor on the ADR-59 exception list is a violation.
@@ -330,7 +349,7 @@ def check_dot_prefix_discipline(repo_path: Path) -> list[Finding]:
 
 
 def check_canonical_md_visibility(repo_path: Path) -> list[Finding]:
-    """Check #5 (ADR-59 D2): mandatory canonical files present + correct ALL-CAPS casing.
+    """Mandatory canonical files present + correct ALL-CAPS casing (ADR-59 D2).
 
     Requires the seven universal files (ADR-38 A6 / A5 / ADR-51). Optional and
     .dev-knowledge-only canonical files are NOT required, but if present (under any
@@ -359,7 +378,7 @@ def check_canonical_md_visibility(repo_path: Path) -> list[Finding]:
 
 
 def check_workspace_settings(repo_path: Path) -> list[Finding]:
-    """Check #6 (ADR-59 D3): dot-prefixed .code-workspace carrying required sort settings.
+    """Dot-prefixed .code-workspace carrying required sort settings (ADR-59 D3).
 
     FAIL if absent or unparseable; WARN if present but not dot-prefixed or a
     required setting is missing/wrong; PASS if dot-prefixed with correct settings.
@@ -396,7 +415,7 @@ def check_workspace_settings(repo_path: Path) -> list[Finding]:
 
 
 def check_mermaid_theme_directive(repo_path: Path) -> list[Finding]:
-    """Check #7 (ADR-51 v2): Mermaid blocks use base+themeVariables; classDef fill has color.
+    """Mermaid blocks use base+themeVariables; classDef fill has color (ADR-51 v2).
 
     Scanned: ARCHITECTURE.md + templates/ARCHITECTURE-template.md.
     Excluded (immutable dated artifacts per ADR-39): docs/audits/, docs/decisions/ADR-*,
@@ -499,7 +518,7 @@ _BUNDLE_EXCLUDE_DIRS = {"aborted", "in-progress", "archive"}
 
 
 def check_handoff_bundle_structure(repo_path: Path) -> list[Finding]:
-    """Check #8 (HANDOFF_PROCESS v4.3 item F): v4 handoff bundle structure validator.
+    """v4 handoff bundle structure validator (HANDOFF_PROCESS v4.3 item F).
 
     Scans docs/handoffs/<slug>/ and validates only STAMPED v4 bundles — those whose
     README.md carries the `Generated by HANDOFF_PROCESS v4.x (status: beta|stable)`
@@ -568,7 +587,7 @@ def check_handoff_bundle_structure(repo_path: Path) -> list[Finding]:
 
 
 def check_handoff_tag_canonicity(repo_path: Path) -> list[Finding]:
-    """Check #9 (HANDOFF_PROCESS v4.3 item F): §3.1 tag-canonicity lint.
+    """§3.1 tag-canonicity lint (HANDOFF_PROCESS v4.3 item F).
 
     Scans protocols/HANDOFF_PROCESS.md §3.1 ONLY (not the end-of-file amendments).
     §3.1 must EITHER enumerate all four canonical tags (witnessed/recall/inferred/
@@ -663,7 +682,7 @@ def _git_last_commit_date(repo_path: Path, filename: str) -> Optional[date]:
 
 
 def check_canonical_freshness(repo_path: Path) -> list[Finding]:
-    """Check #10: canonical living-file freshness cadence (operationalizes ADR-39 grooming).
+    """Canonical living-file freshness cadence (operationalizes ADR-39 grooming).
 
     For each canonical living doc (_FRESHNESS_FILES) that carries `last_reviewed`:
       - A2 (primary, FAIL): `last_reviewed` predates the file's last git-commit date — the
@@ -777,8 +796,8 @@ def _looks_like_worktree_remnant(path: Path) -> bool:
 
 
 def check_no_sibling_orphans(repo_path: Path) -> list[Finding]:
-    """Check #11 (no-leftovers invariant — ADR-61/ADR-68, PLAYBOOK G5): no orphaned
-    `<repo>-*` sibling directories left behind by a torn-down worktree.
+    """No orphaned `<repo>-*` sibling directories left behind by a torn-down worktree
+    (no-leftovers invariant — ADR-61/ADR-68, PLAYBOOK G5).
 
     A parallel-session or night-agent worktree is created as a `<repo>-<topic>` sibling
     next to the repo and removed at goal/run end. When `git worktree remove` silently
@@ -866,7 +885,7 @@ def _heading_present(lines: list[str], heading: str) -> bool:
 
 
 def check_canonical_structure(repo_path: Path) -> list[Finding]:
-    """Check #12 (ADR-38 A6): each present canonical file carries its [U] heading spine.
+    """Each present canonical file carries its [U] heading spine (ADR-38 A6).
 
     Asserts the universal navigation backbone only — presence of required headings,
     not their order, and not the [R]/[C] sections that legitimately vary per repo. A
@@ -1005,6 +1024,14 @@ def write_report(content: str, run_date: date, single_repo: Optional[str] = None
 # ---------------------------------------------------------------------------
 
 def regenerate_index(states: list[RepoState]) -> None:
+    """Write the derived ecosystem/index.yaml rollup from the given repo states.
+
+    Shape: `{generated: <ISO timestamp>, repos: [<RepoState.to_dict()>, ...]}` — an
+    aggregate snapshot of every registered repo's last audit, for a one-file read of
+    ecosystem health. Derived and regenerated wholesale by `registry update`; do not
+    edit by hand (manual edits are lost on the next run). The per-repo state.yaml
+    files are the source of truth — the index is always rebuildable from them.
+    """
     index = {
         "generated": datetime.now().isoformat(timespec="seconds"),
         "repos": [s.to_dict() for s in states],
@@ -1026,7 +1053,21 @@ def cli() -> None:
 @click.option("--repo-path", "repo_path", default=None,
               help="Bootstrap: path to a repo not yet registered. Creates state.yaml on first use.")
 def cmd_run(repo_path: Optional[str]) -> None:
-    """Run full ecosystem audit; write report to docs/audits/."""
+    """Run the full ecosystem audit; write a report to docs/audits/.
+
+    Runs ALL_CHECKS against every registered repo, saves each repo's state.yaml,
+    appends to ecosystem/<name>/history/YYYY-MM-DD.md, and writes a dated report.
+    Exits 1 if any check fails. Cross-repo findings are advisory — remediation is
+    manual in the child repo (no downstream commit gating; ARCHITECTURE.md / ADR-36).
+
+    --repo-path bootstraps a not-yet-registered repo: it creates that repo's
+    state.yaml and permanently registers it, then runs. It does NOT refresh the
+    derived ecosystem/index.yaml — follow with `registry update` for that.
+
+    Examples:
+        python scripts/audit.py run
+        python scripts/audit.py run --repo-path ../corp-monorepo
+    """
     run_date = date.today()
 
     if repo_path:
@@ -1066,7 +1107,16 @@ def cmd_run(repo_path: Optional[str]) -> None:
 @click.option("--repo-path", "repo_path", default=None,
               help="Override filesystem path (bootstrap or ad-hoc).")
 def cmd_repo(name: str, repo_path: Optional[str]) -> None:
-    """Audit a single repo by name."""
+    """Audit a single repo by name.
+
+    Same state.yaml / history / report writes as `run`, scoped to one repo; the
+    report lands at docs/audits/YYYY-MM-DD-<name>-audit.md. Exits 1 on any failure.
+    Pass --repo-path to override the stored path (bootstrap or ad-hoc location).
+
+    Examples:
+        python scripts/audit.py repo ai-council
+        python scripts/audit.py repo corp-monorepo --repo-path ../corp-monorepo
+    """
     run_date = date.today()
     existing = load_state(name)
 
@@ -1095,7 +1145,17 @@ def cmd_repo(name: str, repo_path: Optional[str]) -> None:
 @cli.command("registry")
 @click.argument("action", type=click.Choice(["update"]))
 def cmd_registry(action: str) -> None:
-    """Manage ecosystem registry. Action: update (regenerate ecosystem/index.yaml)."""
+    """Manage the ecosystem registry. Action: `update`.
+
+    `update` regenerates the derived ecosystem/index.yaml from the current
+    ecosystem/<name>/state.yaml files — a pure read-state -> write-index operation:
+    it runs no checks, writes no history, and generates no report. Run it after
+    registering a repo (e.g. after `run --repo-path`) to keep the rollup current.
+    index.yaml is derived; do not edit it by hand (it is overwritten each run).
+
+    Example:
+        python scripts/audit.py registry update
+    """
     names = discover_repos()
     states = [load_state(n) for n in names if load_state(n) is not None]
     regenerate_index(states)
@@ -1104,11 +1164,18 @@ def cmd_registry(action: str) -> None:
 
 @cli.command("health")
 def cmd_health() -> None:
-    """Quick TTY status: operational deps + .dev-knowledge self-conformance.
+    """Quick TTY status: operational deps + .dev-knowledge self-conformance. No file writes.
 
-    Self-conformance runs the full per-repo check suite (ALL_CHECKS, incl. the
-    ADR-59 visual-pattern checks) against .dev-knowledge itself. A self-audit
-    `fail` degrades health; a `warn` does not.
+    Two parts: (1) operational preflight — click/pyyaml importable, ecosystem/ exists,
+    >=1 repo registered; (2) self-audit — the full ALL_CHECKS suite against
+    .dev-knowledge itself. A self-audit `fail` (or a failed preflight) prints
+    "health: DEGRADED" and exits 1; a `warn` prints but exits 0.
+
+    This is the `audit-health` pre-commit gate ([#69]): a FAIL blocks the commit,
+    a WARN only informs. Enforcement is self-only — `health` never reaches child repos.
+
+    Example:
+        python scripts/audit.py health
     """
     checks: list[tuple[str, bool, str]] = []
 
@@ -1159,6 +1226,27 @@ def cmd_health() -> None:
     else:
         click.echo("health: DEGRADED", err=True)
         sys.exit(1)
+
+
+@cli.command("checks")
+def cmd_checks() -> None:
+    """List the registered audit checks (sourced from ALL_CHECKS — the same list
+    that `health` and `run` execute).
+
+    Authoritative, drift-proof inventory: the count and numbering come from
+    ALL_CHECKS at runtime, so this listing cannot diverge from what actually runs.
+    Each line shows the check's name (== its Finding.check_name) and the first line
+    of its docstring.
+
+    Example:
+        python scripts/audit.py checks
+    """
+    click.echo(f"{len(ALL_CHECKS)} registered checks (ALL_CHECKS — run by `health` and `run`):")
+    for i, check in enumerate(ALL_CHECKS, start=1):
+        name = check.__name__.removeprefix("check_")  # == Finding.check_name
+        first = (check.__doc__ or "").strip().splitlines()
+        summary = first[0].strip() if first else ""
+        click.echo(f"  {i:>2}. {name} — {summary}")
 
 
 if __name__ == "__main__":
