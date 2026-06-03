@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-03 — HANDOFF_PROCESS v4.3.2 amendment (verification-coverage refinements)
+
+**Did:** Appended the v4.3.2 amendment to `protocols/HANDOFF_PROCESS.md` (verbatim per operator spec); bumped both version stamps (header `4.3.1→4.3.2`, body `Version: 4.3→4.3.2`); appended empirical-evidence note to BACKLOG #1 (P1 adversarial fresh-eyes item).
+**Gaps closed:** (A) whole-bundle cross-check — session-state claims from any path must hit the `04_RECENT` table; (B) extract-fidelity — deterministic-pull sections of `02` must be verified faithful to live PLAYBOOK; (C) durable-principle promotion — standing Phase-2 step to flag Wisdom principles for PLAYBOOK promotion. (D) terminology-collision logged as evidence for #1, not closed. Ships `beta`.
+**Changes:** `protocols/HANDOFF_PROCESS.md` (amendment + version stamps); `BACKLOG.md` (#1 evidence note); JOURNAL prepend. 3 commits on `docs/handoff-process-v4-3-2`; merge `--no-ff` pending.
+
+---
+
 ### 2026-06-03 — BACKLOG grooming: agentic-arc framed for next session
 
 **Did:** Added three BACKLOG items (#80 Dynamic Workflows research P1/L, #81 methodology-conformance workflow P2/L, #82 per-repo agentic profiles P3/M) to frame the Tier-3 agentic conformance/review arc. Light updates to #74 and #75 pointing at #80 as prerequisite/grounding. Appended grooming-log entry. Schema validated: 7 themes, 21 stories, 48 tasks, 0 warnings.
