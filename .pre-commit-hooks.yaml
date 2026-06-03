@@ -1,0 +1,57 @@
+# Doc-tooling hook source (ADR-71).
+#
+# This file makes .dev-knowledge a pre-commit *hook source repo*: child repos
+# consume the codemap + TOC tooling by adding to their own .pre-commit-config.yaml
+#
+#   - repo: <path-or-url-to-.dev-knowledge>
+#     rev: <tag-or-commit>
+#     hooks:
+#       - id: codemap-freshness
+#         args: [--source-root, src]      # override per repo (hub itself uses `scripts`)
+#       - id: toc-freshness
+#         files: '^ARCHITECTURE\.md$'      # scope to the doc(s) you want TOC'd
+#
+# Generation stays LOCAL to the consumer: each hook reads the consumer's own
+# source tree and writes the consumer's own doc. The hub never writes a sibling
+# (ADR-28 Layer-2 + ADR-69). language: script + thin wrappers in scripts/ — no
+# pip package (the generators are pure-stdlib). The *-generate hooks run only at
+# the `manual` stage (`pre-commit run <id> --hook-stage manual`).
+#
+# Defaults below suit a typical child repo (`--source-root src`,
+# `ARCHITECTURE.md`); consumers override `args:` / `files:` as needed.
+
+- id: codemap-freshness
+  name: Codemap freshness (ARCHITECTURE.md vs source tree)
+  description: Fail if the ARCHITECTURE.md codemap drifts from a fresh generation.
+  entry: scripts/codemap_hook.py check .
+  language: script
+  args: [--source-root, src]
+  pass_filenames: false
+  files: '(^src/.*\.py$|^ARCHITECTURE\.md$|^pyproject\.toml$|^tach\.toml$)'
+
+- id: codemap-generate
+  name: Regenerate codemap into ARCHITECTURE.md (manual)
+  description: Rewrite the CODEMAP block from a fresh generation. Manual stage only.
+  entry: scripts/codemap_hook.py generate .
+  language: script
+  args: [--source-root, src, --write]
+  pass_filenames: false
+  stages: [manual]
+
+- id: toc-freshness
+  name: TOC freshness (markdown doc vs its own headers)
+  description: Fail if a doc's TOC block drifts from its headers. Scope via files:.
+  entry: scripts/toc_hook.py check
+  language: script
+  pass_filenames: true
+  files: '^ARCHITECTURE\.md$'
+
+- id: toc-generate
+  name: Regenerate a doc's TOC block (manual)
+  description: Rewrite the TOC block from the doc's headers. Manual stage only.
+  entry: scripts/toc_hook.py generate
+  language: script
+  args: [--write]
+  pass_filenames: true
+  stages: [manual]
+  files: '^ARCHITECTURE\.md$'
