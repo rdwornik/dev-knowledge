@@ -285,6 +285,13 @@ Every Mermaid block in `ARCHITECTURE.md` opens with `%%{init: {'theme':'base', '
 
 ---
 
+## Auto-TOC for large docs (ADR-51)
+<!-- scope: meta -->
+
+Large canonical docs carry an **auto-generated table of contents** between `<!-- TOC:START/END -->` markers — generator-driven + freshness-gated like the codemap, **never hand-maintained**. Regenerate with `python -m scripts.toc.cli generate <file> --write`; the `toc-freshness` pre-commit hook (fail-on-stale, standalone like `codemap-freshness`) blocks a stale TOC. Anchors are GitHub-compatible (`## Purpose [CORE]` → `#purpose-core`; `[TAG]` dropped from link text). Applied to `ARCHITECTURE.md`; add elsewhere only where navigation overhead is real — roughly **≥~400 lines / ~8+ sections** (PLAYBOOK is the standing candidate). Full: PLAYBOOK "Auto-TOC for large canonical docs".
+
+---
+
 ## docs/ taxonomy (ADR-60)
 <!-- scope: meta -->
 
