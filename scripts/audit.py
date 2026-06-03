@@ -169,6 +169,15 @@ class Finding:
 
 @dataclass
 class RepoState:
+    """A repo's last audit result — the schema of ecosystem/<name>/state.yaml.
+
+    Fields (round-tripped by to_dict/from_dict): `name` (matches the
+    ecosystem/<name>/ folder), `path` (absolute path stored at registration),
+    `last_audit` (ISO date of the last run, or None if never audited), and
+    `findings` — a list of Finding(check_name, status, evidence) where status is
+    one of pass | fail | warn | unavailable. state.yaml is the per-repo source of
+    truth; ecosystem/index.yaml is a derived rollup of these (see regenerate_index).
+    """
     name: str
     path: str
     last_audit: Optional[str]
@@ -1015,6 +1024,14 @@ def write_report(content: str, run_date: date, single_repo: Optional[str] = None
 # ---------------------------------------------------------------------------
 
 def regenerate_index(states: list[RepoState]) -> None:
+    """Write the derived ecosystem/index.yaml rollup from the given repo states.
+
+    Shape: `{generated: <ISO timestamp>, repos: [<RepoState.to_dict()>, ...]}` — an
+    aggregate snapshot of every registered repo's last audit, for a one-file read of
+    ecosystem health. Derived and regenerated wholesale by `registry update`; do not
+    edit by hand (manual edits are lost on the next run). The per-repo state.yaml
+    files are the source of truth — the index is always rebuildable from them.
+    """
     index = {
         "generated": datetime.now().isoformat(timespec="seconds"),
         "repos": [s.to_dict() for s in states],
