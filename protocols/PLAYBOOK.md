@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-06-01
+> Last updated: 2026-06-03
 
 ---
 
@@ -3012,3 +3012,14 @@ Authority reference: ADR-51 amendment 2026-05-22 § Per-repo adoption — opt-in
 **Freshness check blocks an unrelated commit:** the hook fires on Python source changes even when the developer didn't intend to change the codemap. Run `generate --write` first, then retry the commit.
 
 **Non-deterministic output across runs:** sort order, locale, or file encoding drift. Check that file discovery uses a sorted glob and that the generator's output is locale-independent. The codemap generator uses sorted package discovery to ensure determinism.
+
+## Auto-TOC for large canonical docs
+<!-- scope: meta -->
+
+Large canonical docs carry an **auto-maintained table of contents** between `<!-- TOC:START -->` / `<!-- TOC:END -->` markers — **never hand-maintained** (a static TOC rots and contradicts the repo's "drift detected proactively" ethos). It mirrors the codemap mechanism exactly: generator-driven + freshness-gated.
+
+- **Generator:** `python -m scripts.toc.cli generate <file> --write` (dry-run without `--write`). Parses the doc's own `##`/`###` headers into a nested anchor-link list with GitHub-compatible anchors. The full header text is slugged for the anchor (so `## Purpose [CORE]` → `#purpose-core`) while a trailing `[TAG]` is stripped from the visible link text; fenced code blocks are skipped.
+- **Freshness gate:** the `toc-freshness` pre-commit hook (`python -m scripts.toc.cli check <file>`) fails-on-stale with a unified diff, exactly like `codemap-freshness`. It is a standalone hook (not an `audit.py` check), matching where `codemap-freshness` lives. The hook fires only on the target doc's own edits (the TOC depends solely on that doc's headers — no source-root dependency).
+- **Adoption:** insert the two markers in the natural spot (after the title/intro, before the first `##` section), add a `toc-freshness` hook entry scoped to the file, run `generate --write`, and commit. Unlike the codemap (hardwired to `ARCHITECTURE.md`), the TOC CLI takes the target file as an argument, so the same mechanism applies to any doc.
+
+Applied to `ARCHITECTURE.md`. **Not** auto-applied to every doc — add only where navigation overhead is real (see threshold note in ESSENTIALS). Authority: ADR-51 § Auto-TOC (same freshness regime as the codemap).

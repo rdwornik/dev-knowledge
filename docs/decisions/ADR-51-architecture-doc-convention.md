@@ -232,3 +232,34 @@ excludes immutable dated artifacts (`docs/audits/`, `docs/decisions/ADR-*`,
 `JOURNAL.md`, `docs/archive/`). Violations cause `audit health` to degrade.
 BACKLOG P3 "audit.py check — Mermaid high-contrast theme + explicit `color:` present"
 closed 2026-05-28.
+
+---
+
+## Amendment 2026-06-03 — Auto-generated TOC for large canonical docs
+
+**Scope.** A small convention extension (recorded here, not a Council decision): a
+large `ARCHITECTURE.md` (and, by extension, any large canonical doc) **may carry an
+auto-generated table of contents** under the same freshness regime as the codemap.
+
+**Mechanism.** The TOC is a nested anchor-link list between `<!-- TOC:START -->` and
+`<!-- TOC:END -->` markers, written in place by `scripts/toc/cli.py --write` from the
+doc's own `##`/`###` headers. It mirrors the codemap pattern exactly: generator-driven,
+**never hand-maintained**, and freshness-gated by a standalone `toc-freshness`
+pre-commit hook (fail-on-stale with a unified diff, like `codemap-freshness` — not an
+`audit.py` check). Anchors are GitHub-compatible: the full header text is slugged (so
+`## Purpose [CORE]` resolves to `#purpose-core`) while a trailing `[TAG]` is dropped
+from the visible link text; fenced code blocks are skipped.
+
+**Layer 2 invariant treatment.** Same boundary as the codemap generator (Amendment
+2026-05-22): the `generate --write` path is a generator (writes a derived artifact —
+here the TOC — from a declared source of truth, the doc's own headers, mutating only
+this repo's own files); the `check` subcommand is a read-only Layer 2 validator. No
+amendment to ADR-28 / ADR-36 required.
+
+**Adoption.** Applied to `.dev-knowledge`'s `ARCHITECTURE.md` in this commit arc. Like
+the codemap, opt-in per doc — not mandatory and not auto-applied to every doc; add only
+where navigation overhead is real. Unlike the codemap (hardwired to `ARCHITECTURE.md`),
+the TOC CLI takes the target file as an argument, so the mechanism is reusable.
+
+**Operator workflow reference.** `protocols/PLAYBOOK.md` § "Auto-TOC for large canonical
+docs"; one-line summary in `protocols/ESSENTIALS.md` § "Auto-TOC for large docs".
