@@ -390,7 +390,7 @@ the pre-commit hook list.
 | How I work (processes, lessons) | `Dev/.dev-knowledge/` |
 | Rules Claude Code executes | `~/.claude/` |
 
-When a lesson becomes a rule → write rationale in LESSONS.md, write executable rule in `~/.claude/` with verify: line.
+When a lesson becomes a rule — see canonical trigger + 3-step process: PLAYBOOK §4 "When a lesson becomes a rule."
 
 ---
 
