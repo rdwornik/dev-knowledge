@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-03 — Handoff bundle fix-pass (fresh-eyes review of 2026-06-03-dev-knowledge-session)
+
+**Did:** Fixed 5 review findings on the bundle: (A1) the `02` ruff-gate claim; (A2) de-overloaded "Tier" off the model axis; (A3/A4) reconciled the `02` model-selection + prompt-format extracts to live PLAYBOOK; (A5) promoted the source→gate→agent drift-proofing thesis into PLAYBOOK (content-add) and carried it in `02`/`04`.
+**Result / #13 verdict:** ruff IS a wired pre-commit gate, but #13 closed **2026-06-02** (prior session, inside the handoff window) — NOT this session; the false "this session" attribution was removed and a verifying cross-check row added to `04`. Thesis now sourced in PLAYBOOK, not stranded in the ephemeral `04`. 230 tests green · ruff clean · audit 12/12 · PLAYBOOK TOC regenerated.
+**Changes:** bundle `02_METHODOLOGY.md` + `04_RECENT.md`; `protocols/PLAYBOOK.md` (new "Drift-proofing precedence" subsection + TOC); JOURNAL prepend. 5 commits on `docs/handoff-2026-06-03`; Codex review + `--no-ff` merge pending.
+
+---
+
 ### 2026-06-03 — Handoff Phase 2 complete (2026-06-03-dev-knowledge-session)
 
 **Did:** Consolidated the 8-file bundle at `docs/handoffs/2026-06-03-dev-knowledge-session/` from the operator's interview answers + live source. Cross-checked all load-bearing sender claims against repo state. Removed the `in-progress/` interview folder (answers folded into `04_RECENT`).
