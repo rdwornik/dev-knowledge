@@ -1,0 +1,141 @@
+# 02 · How we work
+
+Methodology floor for `.dev-knowledge`. The authoritative sources are
+`protocols/PLAYBOOK.md` and `protocols/ESSENTIALS.md`; this is a working extract
+generated from them at handoff time. When in doubt, the live files win.
+
+## Model selection
+
+Choose by **task type**, not file count — and **never default to Sonnet; actively
+choose per task** (there is no budget ceiling; when uncertain, lean Opus — its
+overhead costs less than Sonnet's missed nuance).
+
+- **Sonnet** — mechanical / well-specified / pattern-matched work: "apply this fix",
+  single-file edits, boilerplate, file renames, config updates, detailed-spec
+  code-and-test loops.
+- **Opus** — audit / review / synthesis; architecture + clause-level reasoning;
+  judgment-heavy work (severity calibration, ambiguity resolution); long-context
+  comparison across inputs; subtle pattern recognition (security review, gotcha
+  identification); multi-package changes; complex debugging; novel logic design.
+- **No AI** — anything a human would do in <60 seconds; don't spend a model on it.
+
+Rule of thumb: *"do X the way we always do it"* → Sonnet; *"figure out the right
+approach, then do it"* → Opus.
+
+Heavy-decision work escalates to **AI Council**; heavy-execution / cross-repo /
+large-repo work escalates to a scoped **Dynamic Workflow** (the execution analog; the
+escalation rule is BACKLOG #74, to be written once #80 lands).
+
+## Prompt format
+
+Browser chat is the architect; Claude Code is the executor; the prompt is the
+contract (ADR-28). A formal prompt (3+ files / 2+ packages) follows the **standard
+8-section structure** — this is the operational card you generate from, since you
+can't read the filesystem:
+
+1. **Model / Mode / Effort table** — at the very top. Model: Sonnet/Opus; Mode:
+   auto-accept / plan-then-auto / plan; Effort: low / medium / high / xhigh.
+2. **Title** — imperative, what gets accomplished.
+3. **Repo + Purpose** — absolute path + one-sentence outcome.
+4. **Read first** — `CLAUDE.md` + the relevant `gotchas.md` as the first two reads,
+   then any task docs.
+5. **Git workflow** — branch, commit-per-step cadence, merge command. Non-negotiable
+   in every prompt, even non-repo ones (explain why if N/A).
+6. **UNDERSTAND** — problem, scope (which files / packages), risks, what failure
+   looks like.
+7. **Steps with COMMIT markers** — numbered; each step ends with its Conventional-
+   Commit message so CC knows exactly when to commit.
+8. **Final + "What NOT to do"** — full verification + merge, then explicit
+   anti-patterns. The "What NOT to do" closer is what stops CC over-engineering.
+
+- **Delivery is a saved artifact, not an inline code block** — inline blocks can't be
+  saved and break the async architect→executor workflow.
+- **Verify after every step**, not just at the end: `pytest -x --tb=short` + `ruff
+  check` + `git status` (tree clean between numbered steps).
+- **Hooks/commands-in-play pre-flight line:** which hooks auto-fire on commit
+  (audit-health / validate-backlog gates) vs which commands to invoke (`/save` to
+  commit; `/codex-review` before merging code) — see PLAYBOOK §"Usage protocol: which
+  command / hook, when".
+- **`/clear` between unrelated tasks/repos** — the #1 token saver (~30–40% input).
+- **Codex `/codex-review`** before merging a **code** change (3+ files or
+  safety-critical) — code only, never a markdown-only diff.
+
+## Hooks & enforcement
+
+**LLMs advise; hooks and tests enforce.** A rule that lives only in prose is a
+suggestion; a rule with a `verify:` line or a pre-commit hook is enforced. Executable
+rules live in `~/.claude/` with `verify:` lines, **not** in this repo's prose.
+
+**Standing principle — drift-proofing precedence: source → gate → agent.** Put a rule
+in the earliest tier that can hold it: make it self-documenting at the *source* first
+(derived from code, single-sourced, auto-generated); add an active *gate* only for
+what can't be self-documented; reserve an *agent* review for what neither covers. See
+PLAYBOOK §"Drift-proofing precedence: source → gate → agent".
+
+pre-commit auto-fires (FAIL blocks the commit):
+`normalize-dated-headers` · `codemap-freshness` · `toc-freshness` (ARCHITECTURE +
+PLAYBOOK) · `validate-backlog` · `audit-health` (`audit.py health`) · **`ruff`**
+(version-pinned ≥0.15.5, gate mode `ruff check` — wired via BACKLOG #13, closed
+2026-06-02) · `backlog-id-on-close` (commit-msg).
+
+Session hooks (`.claude/settings.json`): `SessionStart → fleet_health.py` (Tier-2
+daily cross-repo audit digest). The Tier-1 closure loop runs via the enabled
+`tier1-lifecycle` **plugin** (`Stop → propose_closures.py`) plus the global
+`~/.claude` `SessionStart → surface-closures.ps1` (L0 surfacing).
+
+Codex is a separate code-review CLI (ADR-54, configured at `~/.codex/AGENTS.md`),
+**not** Claude Code. A second pair of eyes on 3+ file or safety-critical changes —
+distinct system, used in addition to CC's own work.
+
+## AI Council process
+
+Convene **AI Council** for architecture/ADR-level decisions — never decide them
+unilaterally. The gated loop (ADR-67) is Frame → Generate → Gate → Run → Verdict →
+Return; `/council-question` triggers it; transcripts archive to
+`docs/decisions/transcripts/`. Council debates originate in the `ai-council` repo.
+Operationalizing this loop end-to-end is BACKLOG #70 (now actionable).
+
+## Conventions that bite
+
+- **Commits:** Conventional Commits (`feat/fix/docs/chore/refactor`). When a commit
+  finishes a backlog task, end the subject with `closes [#id]` — the finishing commit
+  closes it (the `advances` vs `closes` distinction is load-bearing for the closure
+  loop).
+- **Branches:** `feat/<topic>`, `fix/<issue>`, `docs/<scope>`, `chore/<scope>` off `main`.
+- **Naming:** UPPERCASE living docs; `ADR-NN-topic.md`; `YYYY-MM-DD-slug.md` for dated
+  artifacts; kebab-case otherwise.
+- **Append-only:** `LESSONS.md`, `logs/TOKEN-LOG.md` (never edit); `JOURNAL.md`
+  (newest-first prepend). **Immutable:** ADRs, transcripts, handoffs, audits —
+  supersede with a new file, never edit in place.
+- **Layer 2 never executes** — `scripts/` holds read-only validators only; no
+  orchestration that drives state in child repos.
+- **Output the operator copies back** must be **flat** (plain markdown / `key: value`
+  / bullets, no column-padded tables) **and wrapped in a triple-backtick code fence**,
+  so the TUI renders it raw and the copied text carries no box-drawing glyphs
+  (CLAUDE §4 render-layer fix). The TUI *paints* borders client-side; banning Claude
+  from writing them is a no-op.
+
+## Four-tag discipline canonicity
+
+Four-tag discipline (witnessed/recall/inferred/unknown) is canonical per
+HANDOFF_PROCESS v4.3 Amendment A. The §3.1 three-tag text in the spec body is
+**superseded** — amendment-precedence applies. Bundle generation (Phase 2) enforces
+four tags; the definitions appear in `04_RECENT.md` of every bundle (so you don't
+need the spec to apply the discipline). Enforced **syntactically** by `audit.py`
+check #9 — the lint verifies §3.1 enumerates all four tags OR points to Amendment A.
+**Check #9 does NOT catch mis-labeled tags** (a `witnessed` claim that should have
+been `recall` passes). Semantic accuracy needs sage discipline + Phase-2 verification.
+
+## Bundle maintenance during session
+
+If you discover drift between this bundle and repo state during your work — flag to
+Rob, JOURNAL the discovery, and amend `04_RECENT.md`'s Load-bearing facts table via
+**append** (don't rewrite). The bundle is living until the next handoff. This is the
+"handoff is back-and-forth, not unilateral guess" rule.
+
+## Session lifecycle
+
+`/boot` → confirm `git status` clean → read the most recent handoff + last 5 JOURNAL
+entries → set scope (1–2 objectives) at the start → respect stop-signs → leave a
+**clean working tree** at session end. Continuous improvement is the baseline
+posture, not an option.

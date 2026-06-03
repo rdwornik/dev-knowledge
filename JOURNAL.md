@@ -27,6 +27,30 @@
 
 ---
 
+### 2026-06-03 — Handoff bundle fix-pass (fresh-eyes review of 2026-06-03-dev-knowledge-session)
+
+**Did:** Fixed 5 review findings on the bundle: (A1) the `02` ruff-gate claim; (A2) de-overloaded "Tier" off the model axis; (A3/A4) reconciled the `02` model-selection + prompt-format extracts to live PLAYBOOK; (A5) promoted the source→gate→agent drift-proofing thesis into PLAYBOOK (content-add) and carried it in `02`/`04`.
+**Result / #13 verdict:** ruff IS a wired pre-commit gate, but #13 closed **2026-06-02** (prior session, inside the handoff window) — NOT this session; the false "this session" attribution was removed and a verifying cross-check row added to `04`. Thesis now sourced in PLAYBOOK, not stranded in the ephemeral `04`. 230 tests green · ruff clean · audit 12/12 · PLAYBOOK TOC regenerated.
+**Changes:** bundle `02_METHODOLOGY.md` + `04_RECENT.md`; `protocols/PLAYBOOK.md` (new "Drift-proofing precedence" subsection + TOC); JOURNAL prepend. 5 commits on `docs/handoff-2026-06-03`.
+
+---
+
+### 2026-06-03 — Handoff Phase 2 complete (2026-06-03-dev-knowledge-session)
+
+**Did:** Consolidated the 8-file bundle at `docs/handoffs/2026-06-03-dev-knowledge-session/` from the operator's interview answers + live source. Cross-checked all load-bearing sender claims against repo state. Removed the `in-progress/` interview folder (answers folded into `04_RECENT`).
+**Result:** Bundle ready. **One non-blocking drift:** sender recalled PLAYBOOK 2710 lines; actual 2888 (the recall predated the auto-TOC re-add, `fc0797f`) — recorded in README Drift cross-check + the `04_RECENT` Load-bearing facts table. All other claims (HEAD d439969, 12 audit checks, 230 tests, ADR-71, 4 hooks, backlog state, AGENTS.md copy-deploy) verified ✅.
+**Changes:** bundle 8 files (new); `in-progress/` removed; JOURNAL prepend. On branch `docs/handoff-2026-06-03`.
+
+---
+
+### 2026-06-03 — Handoff Phase 1 interview generated (2026-06-03-dev-knowledge-session)
+
+**Did:** Ran the v4.3.1 scope matrix (Case 2 — clean tree, many commits since the 2026-05-31 handoff, no today-slug). Generated the Phase-1 interview at `docs/handoffs/in-progress/2026-06-03-dev-knowledge-session/_handoff-interview.md`; captured HEAD `d439969`, branch `main`, clean tree.
+**Result:** Awaiting operator answers below the PASTE marker. Phase 2 (`complete handoff for dev-knowledge`) consolidates the bundle once answers land.
+**Changes:** interview file (new); JOURNAL prepend. On branch `docs/handoff-2026-06-03`.
+
+---
+
 ### 2026-06-03 — BACKLOG grooming: agentic-arc framed for next session
 
 **Did:** Added three BACKLOG items (#80 Dynamic Workflows research P1/L, #81 methodology-conformance workflow P2/L, #82 per-repo agentic profiles P3/M) to frame the Tier-3 agentic conformance/review arc. Light updates to #74 and #75 pointing at #80 as prerequisite/grounding. Appended grooming-log entry. Schema validated: 7 themes, 21 stories, 48 tasks, 0 warnings.
