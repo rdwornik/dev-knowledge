@@ -115,7 +115,9 @@ back (~178 lines). Current = **2888**. No action needed — just don't quote 271
   *active gate* only for what can't be made self-documenting; reserve *agents* as the
   safety net for what neither covers. "A lesson that isn't always-loaded doesn't fire."
   Every act was an instance: `audit.py checks` (source), the freshness/TOC hooks
-  (gate), #81 (agent).
+  (gate), #81 (agent). *Now codified as a standing PLAYBOOK principle —
+  "Drift-proofing precedence: source → gate → agent" — so it no longer lives only in
+  this ephemeral handoff (carried in `02_METHODOLOGY` too).*
 - **Why hook-source-repo, not a CC plugin (the pivotal call).** A plugin handles git's
   pre-commit lifecycle awkwardly and couples to a cache path; the source-repo pattern
   is the industry-standard way to share custom hooks. The expensive insight: **true

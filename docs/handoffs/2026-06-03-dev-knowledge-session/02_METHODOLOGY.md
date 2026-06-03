@@ -66,6 +66,12 @@ can't read the filesystem:
 suggestion; a rule with a `verify:` line or a pre-commit hook is enforced. Executable
 rules live in `~/.claude/` with `verify:` lines, **not** in this repo's prose.
 
+**Standing principle — drift-proofing precedence: source → gate → agent.** Put a rule
+in the earliest tier that can hold it: make it self-documenting at the *source* first
+(derived from code, single-sourced, auto-generated); add an active *gate* only for
+what can't be self-documented; reserve an *agent* review for what neither covers. See
+PLAYBOOK §"Drift-proofing precedence: source → gate → agent".
+
 pre-commit auto-fires (FAIL blocks the commit):
 `normalize-dated-headers` · `codemap-freshness` · `toc-freshness` (ARCHITECTURE +
 PLAYBOOK) · `validate-backlog` · `audit-health` (`audit.py health`) · **`ruff`**

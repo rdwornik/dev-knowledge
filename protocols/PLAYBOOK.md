@@ -19,6 +19,7 @@
   - [What CLAUDE.md is NOT](#what-claudemd-is-not)
   - [Why ≤200 lines](#why-200-lines)
   - [LLMs advise; hooks/tests enforce](#llms-advise-hookstests-enforce)
+  - [Drift-proofing precedence: source → gate → agent](#drift-proofing-precedence-source--gate--agent)
   - [Template](#template)
   - [Update cadence](#update-cadence)
   - [Length notes](#length-notes)
@@ -292,6 +293,17 @@ corp-monorepo CLAUDE.md (4KB, stale numbers like "24 Council Decisions" when the
 <!-- scope: meta -->
 
 CLAUDE.md tells the LLM what to do/avoid. Tach, pre-commit hooks, pytest, Codex /review enforce mechanically. Don't put rules in CLAUDE.md that aren't backed by enforcement somewhere — they'll drift.
+
+### Drift-proofing precedence: source → gate → agent
+<!-- scope: meta -->
+
+Generalizes "LLMs advise; hooks/tests enforce" into a precedence rule for *where* a rule should live so it can't rot. Prefer the earliest tier that can hold the rule — each beats the next on durability and cost:
+
+1. **Source** — make the fact self-documenting so it has nothing to drift from: derive it from code (e.g. `audit.py checks` reads `ALL_CHECKS`), single-source the canon, auto-generate the artifact (codemap, TOC). No separate copy, no drift.
+2. **Gate** — for what can't be made self-documenting, add an active enforcement gate (pre-commit hook, test, `verify:` line). A lesson that isn't always-loaded doesn't fire; a gate fires every commit.
+3. **Agent** — for what neither covers (semantic conformance, judgment, prose drift), an agentic review is the safety net (the ADR-70 Tier-3 / BACKLOG #81 conformance workflow).
+
+Reach for a gate only when the fact can't be self-documented, and an agent only when it can't be gated. (Codified 2026-06-03; precedent for promoting a session-decided principle into PLAYBOOK: the v4.2 "handoff is back-and-forth" promotion.)
 
 ### Template
 <!-- scope: meta -->
