@@ -47,6 +47,16 @@ The pilot's most valuable output — it splits the rollout in two:
   - **(b) a generator decision** — fix the generator (handle prefixed imports + dotted keys) vs. a marker-aware freshness gate (respect `not generator-managed` blocks).
 - Blanket regeneration would **destroy curated diagrams fleet-wide** — hence the gate. Tracked as BACKLOG #79.
 
+### Codemap end-state — resolved 2026-06-03 (BACKLOG #79 closed)
+
+Per-repo grounding (`docs/audits/2026-06-03-codemap-grounding.md`) confirmed the correct per-repo end-state and resolved the gate-vs-fix decision:
+
+- **.dev-knowledge (hub):** generator-managed + gated (`codemap-freshness` pre-commit hook active). The only layout compatible with the generator (`--source-root scripts/`).
+- **ai-council, corp-ops, corp-monorepo:** hand-authored, human-maintained (`not generator-managed` marker). Curation beats the generator's all-orphan output (generator produces 0 edges / 0 layers against all three; see grounding matrix). These codemaps stay hand-maintained indefinitely — no gate, no regeneration.
+- **corp-sca-time-automation:** text-only prose override per ADR-51 (S-scale, flat `src/`, no CODEMAP markers). No codemap of any kind.
+
+**Both the marker-aware gate and the generator fix are deferred indefinitely as unneeded.** The marker-aware gate would be a no-op on every child (all carry the marker) — wiring it is cargo-cult. The generator fix would only benefit a repo that *wants* live-generated codemaps on an incompatible layout — no current repo does. If auto-catching hand-authored codemap drift ever becomes a real problem, the cheap path is a lightweight **layout-agnostic reference-validator** (verify the codemap's referenced modules still exist) rather than fixing the generator's import-edge matching.
+
 ## Alternatives considered
 
 - **Pip package (`language: python`)** — rejected: turns the knowledge-base repo into a distributable package (build-system + `[project]` + console_scripts) for zero benefit, since the tools have no third-party deps; heavier diff; conflicts with the Layer-2 "not a distributable package" posture.
