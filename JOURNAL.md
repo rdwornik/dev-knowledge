@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-06-03 — Handoff Phase 1 interview generated (2026-06-03-dev-knowledge-session)
+
+**Did:** Ran the v4.3.1 scope matrix (Case 2 — clean tree, many commits since the 2026-05-31 handoff, no today-slug). Generated the Phase-1 interview at `docs/handoffs/in-progress/2026-06-03-dev-knowledge-session/_handoff-interview.md`; captured HEAD `d439969`, branch `main`, clean tree.
+**Result:** Awaiting operator answers below the PASTE marker. Phase 2 (`complete handoff for dev-knowledge`) consolidates the bundle once answers land.
+**Changes:** interview file (new); JOURNAL prepend. On branch `docs/handoff-2026-06-03`.
+**Next:** Operator pastes the 5-question block into the sender chat, pastes answers below the marker, saves, then says `complete handoff for dev-knowledge`.
+
+---
+
 ### 2026-06-03 — BACKLOG grooming: agentic-arc framed for next session
 
 **Did:** Added three BACKLOG items (#80 Dynamic Workflows research P1/L, #81 methodology-conformance workflow P2/L, #82 per-repo agentic profiles P3/M) to frame the Tier-3 agentic conformance/review arc. Light updates to #74 and #75 pointing at #80 as prerequisite/grounding. Appended grooming-log entry. Schema validated: 7 themes, 21 stories, 48 tasks, 0 warnings.
