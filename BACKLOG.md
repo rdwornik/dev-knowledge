@@ -13,7 +13,7 @@
 
 ### Give every handoff a fresh-eyes review, not just the big ones
 So that routine handoffs stop inheriting the ~25% insider blind spot.
-- [#1] [P1][L] Extend triangulation from the promotion gate to every routine handoff (sub-prompt / periodic audit / agent-framework) · Done when: every Phase-2 handoff runs a fresh-eyes pass · refs protocols/AGENT_FRAMEWORK.md (Council)
+- [#1] [P1][L] Extend triangulation from the promotion gate to every routine handoff (sub-prompt / periodic audit / agent-framework) · Done when: every Phase-2 handoff runs a fresh-eyes pass · refs protocols/AGENT_FRAMEWORK.md (Council) · Evidence: 2026-06-03 bundle review caught (A1) an unverified session-state claim bypassing the cross-check table and (A2) a "Tier" terminology collision across three axes — both defects that an adversarial fresh-eyes pass would catch (v4.3.2 §D)
 
 ### Stop advisory framing from pressuring the receiver
 So that "REST recommended"-style framing stops driving unprompted receiver behavior.
