@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-06-03 — Codemap grounding per repo (#79, first half)
+
+**Did:** Read-only grounding of every sibling's codemap state to resolve the ADR-71 split (marker-aware-gate vs generator-fix). Ran the hub generator with no `--write` against ai-council, corp-ops, corp-monorepo at both `src` and inner `src/<pkg>` source roots; read each committed CODEMAP block + marker; assessed corp-sca scale.
+**Result:** All three codemap repos carry `not generator-managed` (deliberate hand-authored) AND are generator-INCOMPATIBLE (single-package-under-`src/` nesting + prefixed imports → 0 edges; dotted/absent tach → 0 layers; generator only draws dir-packages, not the module-level curated nodes). corp-sca is S-scale flat-`src/`, already a deliberate text-only override → no codemap needed. **Headline: the safe universalization is SMALL — marker-aware gate is the universal path; NO repo requires the generator fix.** Honest caveat recorded: a marker-aware gate gates only the hub; children's hand-authored codemaps stay human-maintained/un-gated (the deferred generator fix is the only thing that would auto-catch their drift). Report: `docs/audits/2026-06-03-codemap-grounding.md`.
+**Changes:** +`docs/audits/2026-06-03-codemap-grounding.md`; JOURNAL prepend. No sibling touched.
+**Next:** Resolution step — build the marker-aware `codemap-freshness` gate in the hub, wire it fleet-wide (no-op on marked blocks). Generator fix deferred (no repo needs it).
+
+---
+
 ### 2026-06-03 — ADR-71 amended: operating model + pilot finding + status
 
 **Did:** Amended ADR-71 (append-only, doc-only) to record the corp-monorepo TOC pilot outcome — flipped Status to consumption-contract **VALIDATED** (consume `repo:/rev:` at pinned `69558c7` + `toc-generate` + `toc-freshness` stale/fresh, end-to-end), and added two sections: **Operating / propagation model** (consumer-PULL not source-push; pinned-pull chosen; central fleet-writer rejected as a Layer-2 violation) and **Codemap layout finding** (generator is layout-coupled — corp's `corp.`-prefixed imports + dotted `tach.toml` keys → 13 orphans/0 edges/0 layers vs curated 10/15/4; codemap rollout gated, TOC unaffected).
