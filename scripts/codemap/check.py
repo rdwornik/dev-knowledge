@@ -11,8 +11,13 @@ _START_MARKER = "<!-- CODEMAP:START -->"
 _END_MARKER = "<!-- CODEMAP:END -->"
 
 
-def check_codemap(repo_path: Path, source_root: str = "src") -> tuple[int, str]:
+def check_codemap(
+    repo_path: Path, source_root: str = "src", arch_file: Path | None = None
+) -> tuple[int, str]:
     """Compare ARCHITECTURE.md codemap section against fresh generation.
+
+    ``arch_file`` defaults to ``repo_path / "ARCHITECTURE.md"`` (preserves the
+    original behavior); pass it to target a doc at a non-default path.
 
     Returns (exit_code, output):
       0 — clean (no drift)
@@ -20,7 +25,7 @@ def check_codemap(repo_path: Path, source_root: str = "src") -> tuple[int, str]:
       2 — ARCHITECTURE.md missing
       3 — CODEMAP markers missing
     """
-    arch_file = repo_path / "ARCHITECTURE.md"
+    arch_file = arch_file or (repo_path / "ARCHITECTURE.md")
     if not arch_file.exists():
         return 2, f"error: ARCHITECTURE.md not found at {arch_file}"
 

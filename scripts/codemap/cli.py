@@ -22,7 +22,7 @@ def _cmd_generate(args: argparse.Namespace) -> int:
         print(mermaid, end="")
         return 0
 
-    arch_file = repo_path / "ARCHITECTURE.md"
+    arch_file = Path(args.arch_file).resolve() if args.arch_file else repo_path / "ARCHITECTURE.md"
     if not arch_file.exists():
         print(f"error: ARCHITECTURE.md not found at {arch_file}", file=sys.stderr)
         return 2
@@ -59,7 +59,8 @@ def _cmd_generate(args: argparse.Namespace) -> int:
 
 def _cmd_check(args: argparse.Namespace) -> int:
     repo_path = Path(args.repo_path).resolve()
-    code, output = check_codemap(repo_path, args.source_root)
+    arch_file = Path(args.arch_file).resolve() if args.arch_file else None
+    code, output = check_codemap(repo_path, args.source_root, arch_file)
     if output:
         print(output, end="")
     return code
@@ -75,12 +76,22 @@ def main() -> None:
     gen_p = sub.add_parser("generate", help="Generate Mermaid codemap")
     gen_p.add_argument("repo_path", help="Path to repository root")
     gen_p.add_argument("--source-root", default="src", help="Source root directory (default: src)")
-    gen_p.add_argument("--write", action="store_true", help="Write output into ARCHITECTURE.md")
+    gen_p.add_argument(
+        "--arch-file",
+        default=None,
+        help="Target doc to write (default: <repo_path>/ARCHITECTURE.md)",
+    )
+    gen_p.add_argument("--write", action="store_true", help="Write output into the target doc")
     gen_p.set_defaults(func=_cmd_generate)
 
     chk_p = sub.add_parser("check", help="Check ARCHITECTURE.md codemap freshness")
     chk_p.add_argument("repo_path", help="Path to repository root")
     chk_p.add_argument("--source-root", default="src", help="Source root directory (default: src)")
+    chk_p.add_argument(
+        "--arch-file",
+        default=None,
+        help="Target doc to check (default: <repo_path>/ARCHITECTURE.md)",
+    )
     chk_p.set_defaults(func=_cmd_check)
 
     args = parser.parse_args()

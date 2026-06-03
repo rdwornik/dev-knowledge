@@ -195,6 +195,22 @@ def test_check_no_markers():
     assert "CODEMAP" in out
 
 
+def test_check_arch_file_override(tmp_path):
+    # Target a doc at a non-default path; the default ARCHITECTURE.md is absent.
+    shutil.copytree(str(ARCH_CLEAN), str(tmp_path / "repo"))
+    alt = tmp_path / "repo" / "ARCHITECTURE-ALT.md"
+    (tmp_path / "repo" / "ARCHITECTURE.md").rename(alt)
+
+    # Default derivation now fails (no ARCHITECTURE.md at the repo root)...
+    code_default, _ = check_codemap(tmp_path / "repo")
+    assert code_default == 2
+
+    # ...but the explicit arch_file resolves and is clean.
+    code_alt, out_alt = check_codemap(tmp_path / "repo", arch_file=alt)
+    assert code_alt == 0
+    assert out_alt == ""
+
+
 # ---------------------------------------------------------------------------
 # Step 5 — CLI integration tests
 # ---------------------------------------------------------------------------
@@ -260,3 +276,21 @@ def test_cli_help():
     assert r.returncode == 0
     assert "generate" in r.stdout
     assert "check" in r.stdout
+
+
+def test_cli_arch_file_check_and_generate(tmp_path):
+    # --arch-file targets a doc at a non-default path for both check and generate.
+    shutil.copytree(str(ARCH_CLEAN), str(tmp_path / "repo"))
+    repo = tmp_path / "repo"
+    alt = repo / "ARCHITECTURE-ALT.md"
+    (repo / "ARCHITECTURE.md").rename(alt)
+
+    # check against the alt doc is clean (default would be exit 2 — missing)
+    assert _run_cli("check", str(repo), "--arch-file", str(alt)).returncode == 0
+    assert _run_cli("check", str(repo)).returncode == 2
+
+    # generate --write targets the alt doc
+    r = _run_cli("generate", str(repo), "--arch-file", str(alt), "--write")
+    assert r.returncode == 0
+    assert "<!-- CODEMAP:START -->" in alt.read_text()
+    assert not (repo / "ARCHITECTURE.md").exists()
