@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-03 — BACKLOG grooming: agentic-arc framed for next session
+
+**Did:** Added three BACKLOG items (#80 Dynamic Workflows research P1/L, #81 methodology-conformance workflow P2/L, #82 per-repo agentic profiles P3/M) to frame the Tier-3 agentic conformance/review arc. Light updates to #74 and #75 pointing at #80 as prerequisite/grounding. Appended grooming-log entry. Schema validated: 7 themes, 21 stories, 48 tasks, 0 warnings.
+**Result:** The next-session focus is explicit in the BACKLOG: #80 (research Dynamic Workflows, shipped 2026-05-28) → #81 (methodology-conformance workflow for dev-knowledge) → #82 (per-repo profiles); #70 (AI-Council loop) remains the heavy-decision companion. #77 doc-rot is subsumed into #81 as one verifier.
+**Changes:** BACKLOG.md (new stories/tasks + light updates + grooming log); JOURNAL prepend. No other files changed.
+
+---
+
 ### 2026-06-03 — #79 resolved: codemap end-state correct, no build needed
 
 **Did:** Recorded the #79 resolution from the grounding audit: no marker-aware gate, no generator fix, no wiring — the codemap is already in its correct per-repo end-state (hub generator-managed; three children hand-authored with `not generator-managed` marker; corp-sca text-only override). Closed #79 in BACKLOG with rationale; appended codemap end-state note to ADR-71.
