@@ -1,6 +1,6 @@
 # Daily Essentials
 
-> Daily cheat sheet. Keep under 1 page.
+> The session-start operating frame for the LLM: the load-bearing essentials for working in this ecosystem. Condensed by design — full detail lives in PLAYBOOK, which this points to.
 > Mission anchor: `VISION.md` (universal brain) + `ARCHITECTURE.md` (structural model). Read those once on first session of a project; this file is the day-to-day driver.
 
 ---
