@@ -199,6 +199,8 @@ Bundle files are **generated FROM source at handoff time**, not hand-maintained:
 hand-kept parallel copy drifts from the real files (the ecosystem-audit
 doc-truth-drift finding). Generating each time keeps the bundle as current as the repo.
 
+> **Claim sharpened — see Amendment v4.3 §A.** "Generated FROM source" is *deterministic* for the sacred-file lifecycle tables and conventions lists, but *LLM-synthesized* (partly aspirational) for the arc narrative, wisdom, and warnings. The honest framing — and why synthesis imperfection is expected and feeds the next iteration — is in §A "Architectural claim sharpening" below.
+
 | File | Generated from |
 |---|---|
 | `01_ROLE.md` | Template + operator-specific role context (slowly evolving) |
