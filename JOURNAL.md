@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-06-03 — PLAYBOOK prose cleanup (doc-rot brick #2)
+
+**Did:** Executed the remaining PLAYBOOK-only findings from `docs/audits/2026-06-03-protocols-rot-audit.md`: merged the two divergent lesson→rule statements into one canonical (§4, trigger + 3-step) with §13 condensed to a pointer; retired the 10 doc-embedded "Section history" blocks (one intro note replaces them, git is the record per ADR-49) and fixed the two refs the deletion orphaned (L432/L461); reconciled 3 CHANGELOG-as-live mentions to retired (the audit named 2; a 3rd identical spot was found on re-derivation); added an Organization note for section-zone clarity — no renumber (the §17→§19 gap accepted; §N cross-refs preserved).
+**Result:** PLAYBOOK 2765→2710 (net −55; −69/+14). 228 tests green and `audit.py health` OK throughout; ruff clean. 4 commits on `docs/playbook-prose-cleanup`, one per step. Doc-only, single file; ESSENTIALS + other protocol files untouched (later bricks).
+**Changes:** protocols/PLAYBOOK.md (4 commits); JOURNAL (this). Advances BACKLOG #77.
+**Next:** Apply the dynamic-TOC tool (`scripts/toc`) to the now-clean PLAYBOOK; then ESSENTIALS re-trim (point its lesson→rule + three-layer-flow at the now-canonical PLAYBOOK); then the small-file fixes (SESSION_SETUP, HANDOFF, ENVIRONMENT, AGENT_FRAMEWORK).
+
 ### 2026-06-03 — audit.py self-documenting; PLAYBOOK §18 deleted (doc-rot brick #1)
 
 **Did:** Made `scripts/audit.py` self-documenting — strengthened module + 4 command docstrings (`--help` is now the authoritative CLI ref), added a `checks` command sourced from `ALL_CHECKS`, and removed the hand-numbered "Check #N:" prefix from all 12 check docstrings (number now owned by the live listing). Then deleted PLAYBOOK §18 "Ecosystem Audit Tool Workflow" (259 lines) and repointed its one live cross-ref (L592).
