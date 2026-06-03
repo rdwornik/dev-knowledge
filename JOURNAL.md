@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-06-04 — Pilot-arc retro captures (LESSONS + gotchas + BACKLOG)
+
+**Did/Changes:** Appended 3 LESSONS (verify-by-state, proven twice; absence-in-sources ≠ absence-in-canon; research-preview runtime caps are version-pinned) + 2 CC-workflow gotchas to the global `~/.claude` gotchas skill (workflow auto-write safety envelope; per-agent routing non-functional on 2.1.162). Added BACKLOG #84 (workflow-doctrine codification — closes #74/#80 on landing, after corp-monorepo baseline), #85 (night-run LOCAL track), #86 (cloud-night decision pkg), #87 (Anthropic /bug report), + #82 iteration-2 profile note. No PLAYBOOK/protocols/ADR content edits. Branch `chore/pilot-retro-captures`, merge `--no-ff` pending.
+**Next:** corp-monorepo baseline (the n=2 prerequisite for #84 codification).
+
+---
+
 ### 2026-06-04 — Pilot-phase closeout: routing probe + F1/F2/#78 fixes
 
 **Did:** Closed the hub-pilot phase. (1) Ran a model-routing matrix probe (3 agents asked sonnet/opus/omitted); (2) genuine end-to-end re-read of ARCHITECTURE.md + CLAUDE.md §11 fixing F1 + #78 + other proven-stale claims; (3) deleted the in-place #79 stub per ADR-65; (4) added #83 (validate_backlog strikethrough-gap).
