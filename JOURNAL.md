@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-06-04 — Pilot #81 v0: hub conformance review via Dynamic Workflow
+
+**Did:** Ran the first real-conditions Dynamic Workflow — `conformance-hub` (3 Sonnet verifiers → Opus skeptic → Opus digest), a read-only semantic conformance review of this repo's living docs. Safety per Phase-0: session `Write/Edit` deny (spot-checked active), no write tasks, repo-only scope; post-run fleet tripwire 5/5 clean (zero writes).
+**Result:** 3 raw findings → 2 survived skeptic (1 killed as style). Both survivors **verified real** against live state: **F1 (high)** ARCHITECTURE.md:336/402 cite HANDOFF_PROCESS v4.3.1 but file is v4.3.2; **F2 (med)** BACKLOG #79 struck-through in place vs ADR-65 "done-items-leave". Both net-new vs audit.py's 12 checks + hooks. 0 false positives survived; ~42.3k workflow output tokens (gross 272k is cache-inflated), ~10.2 min. Kill-criterion verdict left to operator. 230 tests green · ruff clean · audit 12/12.
+**Changes:** `docs/audits/2026-06-04-pilot81-hub-conformance-digest.md` (new, committed f23b18d); workflow saved personal-only at `~/.claude/workflows/conformance-hub.js` (NOT committed — R2 Layer-2 question deferred to ADR layer per operator); JOURNAL prepend. Branch `docs/pilot81-hub-conformance`, merge `--no-ff` pending.
+**Next:** Operator triages F1/F2 (fix vs amend-ADR-65) in a separate scoped session; decide R2 (saved-workflow-in-hub) at the ADR/Council layer if the pilot proves out.
+
+---
+
 ### 2026-06-03 — Phase-0 Dynamic Workflows safety-gate verification
 
 **Did:** Empirically verified the 5 workflow safety gates on **CC 2.1.162** via headless `claude -p` from a non-git `%TEMP%\wf-phase0` sandbox (gates 1–4) + an operator TUI run (gate 5); appended the post-merge state correction row to the 2026-06-03 handoff `04_RECENT` facts table.
