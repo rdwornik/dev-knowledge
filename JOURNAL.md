@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-06-03 — Phase-0 Dynamic Workflows safety-gate verification
+
+**Did:** Empirically verified the 5 workflow safety gates on **CC 2.1.162** via headless `claude -p` from a non-git `%TEMP%\wf-phase0` sandbox (gates 1–4) + an operator TUI run (gate 5); appended the post-merge state correction row to the 2026-06-03 handoff `04_RECENT` facts table.
+**Result:** Gate 2 **PASS** — a `Write/Edit` **deny rule binds workflow subagents** (deny > acceptEdits auto-approve); Gate 4 — `CLAUDE_CODE_DISABLE_WORKFLOWS=1` removes the tool, but headless workflow launch **auto-denies unless the Workflow tool is pre-allowed**; Gate 5 — **S1** (workflow runs do **not** survive a CC exit → night-run must be one uninterrupted process per stage). Gate 3 worktree containment **unverified** (needs a git cwd). Secondary: agent self-reports unreliable — trust file/git state. Fleet 5/5 clean throughout; 230 tests green. Research note **left in Downloads per operator decision** (no landing action).
+**Changes:** `docs/audits/2026-06-03-phase0-workflow-gates-findings.md` (new); `docs/handoffs/2026-06-03-dev-knowledge-session/04_RECENT.md` (+1 row); JOURNAL prepend. 3 commits on `chore/phase0-workflow-gates`, merge `--no-ff`.
+**Next (#81):** night-run on deny-rule + kill-switch, pre-allow Workflow tool, single-process-per-stage; verify worktree auto-discard in a disposable git harness.
+
+---
+
 ### 2026-06-03 — HANDOFF_PROCESS v4.3.2 amendment (verification-coverage refinements)
 
 **Did:** Appended the v4.3.2 amendment to `protocols/HANDOFF_PROCESS.md` (verbatim per operator spec); bumped both version stamps (header `4.3.1→4.3.2`, body `Version: 4.3→4.3.2`); appended empirical-evidence note to BACKLOG #1 (P1 adversarial fresh-eyes item).
