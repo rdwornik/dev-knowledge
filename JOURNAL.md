@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-06-03 — audit.py self-documenting; PLAYBOOK §18 deleted (doc-rot brick #1)
+
+**Did:** Made `scripts/audit.py` self-documenting — strengthened module + 4 command docstrings (`--help` is now the authoritative CLI ref), added a `checks` command sourced from `ALL_CHECKS`, and removed the hand-numbered "Check #N:" prefix from all 12 check docstrings (number now owned by the live listing). Then deleted PLAYBOOK §18 "Ecosystem Audit Tool Workflow" (259 lines) and repointed its one live cross-ref (L592).
+**Result:** The "10 vs 11 vs 12" check-count drift is structurally dead — `audit.py checks` reports `len(ALL_CHECKS)` live, so it can't diverge from what runs. Conceptual layer confirmed pre-covered in ARCHITECTURE.md (§Validators/§Authority) + ADR-36, so deletion lost nothing. PLAYBOOK 3024→2766 (17→19 numbering gap left for the numbering brick). 228 tests (+2), ruff clean, `health` gate green throughout.
+**Changes:** scripts/audit.py (docstrings + `cmd_checks`); tests/test_audit.py (+2 `checks` tests); protocols/PLAYBOOK.md (−259). 4 commits on `refactor/audit-self-documenting`. Residual flagged: ARCHITECTURE hardcodes "12 checks" — candidate next brick to point it at `audit.py checks`.
+**Next:** Codex review of the audit.py diff, then merge; then the PLAYBOOK prose brick (lesson→rule canon, section-histories, numbering). Advances BACKLOG #77.
+
 ### 2026-06-03 — Read-only doc-rot audit of protocols/
 
 **Did:** Audited all 7 live `protocols/` files (5,021 lines; PLAYBOOK 3,024) read-only for structural rot — intra-file duplication, per-section changelogs (ADR-49), hub-vs-universal mixing, numbering, stale refs, and cross-file summary-fidelity drift (CLAUDE.md rule #6). Changed no protocol file.
