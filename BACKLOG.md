@@ -47,7 +47,6 @@ So that drift in transcripts, ADRs, and folders is caught cheaply, not by review
 So that session-start/close automation actually runs instead of being wired-but-vacuous.
 - [#8] [P2][M] Implement the analysed hooks (session-end clean-tree/staleness + SessionStart lessons-retrieval) and resolve the review-hook overlap — the **closure loop is whole**: Stop→propose (`propose_closures.py`), SessionStart→surface + `/review-closures` review/approve/close (`review_closures.py`), ADR-70 Tier-1; still remaining → session-end clean-tree/staleness hook, SessionStart **lessons-retrieval** (#4 territory), and the review-hook overlap · Done when: the remaining hooks run + are documented · refs 2026-05-29 hooks audit, ADR-70 (Tier-1 lifecycle hooks)
 - [#12] [P2][M] Create the evolution .jsonl logs (or repoint hooks/protocol to evolution-log.md) + add one read-only session-close automation · Done when: the evolution machinery is non-vacuous · refs coherence-audit SK-3/HK-2/HK-3, ADR-70 (Tier-1 Stop-hook propose-closures)
-- [#76] [P3][S] Groom the hub-local `/review-closures` command vs the plugin's (same command name) — decide drop-hub-local-in-favour-of-plugin vs keep, once usage shows whether the name collision causes ambiguity · Done when: a keep-or-drop decision is recorded · refs 5c convergence (JOURNAL 2026-06-02)
 
 ---
 
@@ -100,7 +99,6 @@ So that stale ground truth stops silently misleading sessions (the repo's own VI
 - [#10] [P2][M] Decide TOKEN-LOG placement + align the docs — the file is at `logs/TOKEN-LOG.md` but CLAUDE/ARCHITECTURE/PLAYBOOK reference it bare (implying root) vs the ADR-59 ALL-CAPS-at-root rule; move-to-root vs docs-say-`logs/` is the operator's call (the broader doc-truth set was already closed by the 2026-06-01 `chore/doc-coherence-audit` — git history + JOURNAL hold that record) · Done when: TOKEN-LOG placement decided + docs aligned · refs coherence-audit 2026-06-01
 - [#35] [P3][S] Fix the self-owned low-severity cleanups (ARCHITECTURE diagram attribution + SBAR label; VISION adoption-signal + stale last_reviewed) · Done when: WF-3 + GO-1/2 resolved · refs coherence-audit
 - [#71] [P3][S] Reconcile ENVIRONMENT.md's `~/.claude/` directory tree with live contents (commands = boot/codex-review/evolve/session-summary, not handoff; skills = gotchas + verify; agents/hooks already match) · Done when: the ENVIRONMENT `~/.claude/` tree matches `ls ~/.claude/{commands,skills}` · refs G6 process-hardening sweep
-- [#77] [P3][M] Rework CONTRIBUTING §Handoff process — stale: claims HANDOFF_PROCESS v2.0 + ADR-37 two-phase overlay "pending" + `/session-summary` trigger; actual is v4 (ADR-62 ratified, two-phase shipped, dedicated `/handoff` command) · Done when: §Handoff process describes v4 + `/handoff` accurately · refs drift filed JOURNAL 2026-06-03, ADR-62
 
 ### Keep the day-to-day docs right-sized and current
 So that the cheat-sheet and architecture stay scannable as conventions accrue.

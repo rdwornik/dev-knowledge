@@ -6,7 +6,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.11 — 2026-06-03 -->
+<!-- version: 2.12 — 2026-06-03 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -101,7 +101,9 @@ User-level (`~/.claude/commands/`):
 Repo-level (`./.claude/commands/`):
 - `/save` — commit workflow with full body per git-discipline rule
 - `/handoff` — generate/complete handoff per `HANDOFF_PROCESS.md` v4 two-phase flow (ADR-62)
-- `/review-closures` — review the session-end closure proposals + execute ONLY operator-approved closures (ADR-70 Tier-1; human-gated, done-items-leave). Added by [#8]
+
+Plugin-provided (`tier1-lifecycle@dev-knowledge-methodology`, §8):
+- `/review-closures` — review the session-end closure proposals + execute ONLY operator-approved closures (ADR-70 Tier-1; human-gated, done-items-leave). Fleet-wide via the plugin; the hub-local duplicate command was dropped so the hub uses the plugin's like the child repos ([#76]).
 
 (When to invoke each + auto-vs-manual for hooks: PLAYBOOK §"Usage protocol: which command / hook, when".)
 
@@ -179,6 +181,7 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.9 (2026-06-02) — closure loop made whole (ADR-70 Tier-1, advances #8): §7 adds the `/review-closures` repo command; §9 adds the `SessionStart → review_closures.py surface` hook. The review/approve/close half (human-gated, done-items-leave) complements Unit-2's Stop→propose. `last_reviewed` unchanged (re-read this session).
 - v2.10 (2026-06-02) — Tier-2 fleet health (#72 closes): §9 adds `SessionStart → fleet_health.py` (daily-throttled cross-repo audit + no_sibling_orphans on all 5 repos). `last_reviewed` unchanged (re-read this session).
 - v2.11 (2026-06-03) — Tier-1 doc convergence (5c + #73 close): §9 "Session hooks" **corrected** — the hub-local `Stop → propose_closures` and `SessionStart → review_closures surface` hooks were removed in 5c; the closure loop now runs via the enabled `tier1-lifecycle` plugin (Stop) + the global `~/.claude` `surface-closures.ps1` (L0). §8 notes the enabled plugin; §11 rotated 65→70 (added ADR-70; dropped ADR-65 — full list in `docs/decisions/README.md`). Full end-to-end re-read; `last_reviewed` re-stamped 2026-06-03.
+- v2.12 (2026-06-03) — #76 closes (hub converges onto the plugin's `/review-closures`): §7 moves `/review-closures` out of the Repo-level list into a new "Plugin-provided" subsection — the duplicate hub-local `.claude/commands/review-closures.md` was deleted so the hub uses the plugin's command like the child repos (verified: the plugin's `review_closures.py` resolves the hub root via `$CLAUDE_PROJECT_DIR`). `scripts/review_closures.py` (canonical source) untouched. `last_reviewed` unchanged (targeted same-day edit; rest re-read 2026-06-03 this morning).
 
 ---
 

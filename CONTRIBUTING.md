@@ -130,9 +130,8 @@ See ADR-27 through ADR-41 for style reference.
 
 <!-- scope: meta -->
 
-Protocol: `protocols/HANDOFF_PROCESS.md` (v2.0, 2026-04-28 — folder format per ADR-32; ADR-37 two-phase overlay pending — P1 in BACKLOG.md).
+Protocol: `protocols/HANDOFF_PROCESS.md` — **v4** (stamp v4.3.1, *stable*; ratified by **ADR-62**, 2026-05-30). v4 treats a handoff as onboarding a fresh chat: an **8-file bundle** (`README` + `01_ROLE` … `07_ASK_BACK`) under `docs/handoffs/<slug>/`, generated from source via a **two-phase flow** (Phase 1 interview → Phase 2 consolidate). The two-phase design is **shipped** — the former "v2.0 / ADR-37 overlay pending" note no longer applies. The ADR-36 read-only contract holds: a handoff never writes to a target repo.
 
-Trigger phrase (browser chat): `wygeneruj handoff`
-Claude Code: `/session-summary`
+Claude Code command: **`/handoff`** — `please create handoff for <repo>` runs Phase 1 (writes the sage→apprentice interview); the operator relays the questions to the sender browser chat and pastes the answers back; `complete handoff for <repo>` runs Phase 2 (cross-checks repo state, generates the bundle). `<repo>` defaults to `.dev-knowledge` (self-handoff). Not `/session-summary` — that is a separate session-summary command, not the handoff generator.
 
 `BACKLOG.md` (root): cross-session pending items per ADR-41. Universal mandate (ADR-38 amendment A5 — every repo, no tier gating). Review before chartering new session.
