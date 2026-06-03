@@ -4,7 +4,7 @@
 **Date:** 2026-06-03
 **Author:** Claude Code (Opus 4.8), operator Rob
 **Backlog:** prerequisite verification for #80 → #81 (the agentic arc)
-**Status:** gates 1–4 resolved (headless); **gate 5 PENDING operator TUI run**
+**Status:** gates 1–5 **resolved** (1–4 headless; gate 5 operator TUI, 2026-06-03)
 **Nature:** Phase-0 **reports only** — no fixes attempted on anything revealed.
 
 ---
@@ -43,7 +43,7 @@
 | **2 · Deny-rules bind subagent (R1 L2)** | Unknown per research note: does a Write/Edit `deny` rule bind a workflow subagent that runs in `acceptEdits`? | (2a) `deny` overrode `acceptEdits` for the *main* agent — Write blocked, PowerShell `Set-Content` fallback also denied, file unchanged. (2b) headless Workflow tool **auto-denied at the approval gate** unless explicitly allowed. (2b-retry) Workflow allowed → workflow executed → subagent's Write **DENIED** by the deny rule → probe.txt unchanged | **PASS** — deny **does** bind workflow subagents (deny precedence > auto-approve) | A `Write/Edit` `deny` scoped to sibling paths is a **real, enforceable layer-2 guard** on night-run subagents. **Caveat:** subagent-level denials are **NOT** surfaced in top-level JSON `permission_denials` (it was `[]`); monitor via **git/file state**, not the denial log |
 | **3 · Isolation (R1 L3)** | no-checkout writes hit cwd; worktree isolates | (3a) default (non-isolated) subagent, **no** deny → **overwrote** probe.txt (confirms subagents auto-write when nothing blocks). (3b) `isolation:'worktree'` in a **non-git** cwd → **errored before any write**; main cwd unchanged | **PARTIAL** — baseline auto-write confirmed; **worktree containment not exercised end-to-end** | Worktree isolation (auto-discarded checkout) is the documented strong-containment option but **remains empirically unverified** (needs a git-repo cwd; constraint forbids cwd in any repo, sandbox is non-git by design). The **verified** control for #81 is the deny rule (gate 2) |
 | **4 · Headless** | Zero-prompt launch; deny binds headlessly; `CLAUDE_CODE_DISABLE_WORKFLOWS=1` blocks | Plain `-p` launches **zero-prompt**. **BUT** workflow launch is **NOT** zero-prompt — the **Workflow tool requires approval and auto-DENIES in `-p`** unless pre-allowed. Deny rules **bind headlessly** (gates 2a/2b). `CLAUDE_CODE_DISABLE_WORKFLOWS=1` → **Workflow tool entirely absent** from the session | **PASS** with one operational caveat | An unattended night-run **must pre-allow the Workflow tool** in settings or it dies at the approval gate. The env kill-switch is a **reliable global off** |
-| **5 · Resumability (S1 vs S5)** | Resolve: product-docs **S1** (quit→restart fresh) vs eng-post **S5** (quit→resume) | **DEFERRED — operator-driven** (TUI fidelity; the agent cannot exit/restart its own session). Script supplied below | **PENDING operator run** | Decides night-run architecture: **S5** → run survives a CC restart (robust); **S1** → must be one uninterrupted process per stage |
+| **5 · Resumability (S1 vs S5)** | Resolve: product-docs **S1** (quit→restart fresh) vs eng-post **S5** (quit→resume) | **Operator TUI run (2026-06-03):** after a CC quit + `claude --resume`, the *session* restored but the workflow run shows **terminated in `/workflows`** (✘, 2 of 3 agents, 28.6k tok) with **no resume option — only view/save**. Workflow runs **do not survive a CC exit** | **S1 — fresh restart** (product docs correct; eng-post **S5 does not hold** on 2.1.162 for a TUI quit) | Night-run **must be one uninterrupted process per stage**; a CC restart **loses** the in-flight workflow. Compounds the gate-4 must-do (pre-allow the Workflow tool) |
 
 ### Secondary finding — agent self-reports are unreliable
 In run 3a the **main agent falsely reported** the write "not actually written"
@@ -53,7 +53,13 @@ read-only-conformance claim #81 makes about itself.
 
 ---
 
-## Operator script — Gate 5 (resumability), run in the interactive TUI
+## Operator script — Gate 5 (resumability) — [RESOLVED: S1]
+
+> **RESULT (operator TUI, 2026-06-03):** **S1.** Verbatim: *"After TUI quit +
+> `claude --resume`, the session restored but the interrupted workflow run
+> appears in `/workflows` as terminated (✘, 2 of 3 agents, 28.6k tok) with no
+> resume option — only view/save. Workflow runs do not survive a CC exit."*
+> The script below is retained for reproducibility.
 
 > Goal: determine whether quitting Claude Code mid-workflow **resumes** (S5) or
 > **restarts fresh** (S1) on the next session. Run from the **sandbox**
@@ -76,8 +82,9 @@ read-only-conformance claim #81 makes about itself.
 
 ## Unresolved / residual items
 
-- **Gate 5 resumability** — pending operator TUI run (script above). Load-bearing
-  for the night-run architecture; do not finalize #81's run model until resolved.
+- **Gate 5 resumability — RESOLVED: S1** (operator TUI, 2026-06-03). Workflow
+  runs do **not** survive a CC exit, so #81's run model is fixed: **one
+  uninterrupted process per stage** (no cross-restart resume). No longer open.
 - **Gate 3 worktree containment** — not exercised (non-git sandbox). Verify
   worktree auto-discard in a **disposable git harness** before relying on it for
   unattended writes.
@@ -102,8 +109,9 @@ Read-only conformance for an unattended night-run is **engineerable today** on
 even workflow subagents, and (2) the `CLAUDE_CODE_DISABLE_WORKFLOWS=1` global
 kill-switch. **Two operational must-dos:** pre-allow the Workflow tool for
 headless runs, and monitor via the **git/file tripwire** (not the JSON denial
-log). **One open blocker:** resumability (gate 5) decides whether the night-run
-can survive a restart — operator verdict pending.
+log). **Resolved blocker:** resumability is **S1** (operator, 2026-06-03) —
+workflow runs do **not** survive a CC exit, so the night-run must be **one
+uninterrupted process per stage** (no cross-restart resume).
 
 ---
 
@@ -114,7 +122,7 @@ gate 1 version/env: PASS — 2.1.162 >= 2.1.154; Workflow tool functional
 gate 2 deny-binds-subagent (R1 L2): PASS — deny overrides acceptEdits; subagent Write DENIED, file unchanged. caveat: subagent denials NOT in top-level JSON; use git/file tripwire
 gate 3 isolation (R1 L3): PARTIAL — auto-write confirmed; worktree containment NOT tested (needs git cwd)
 gate 4 headless: PASS* — plain -p zero-prompt; workflow launch NOT zero-prompt (Workflow tool auto-denies unless pre-allowed); deny binds headless; DISABLE_WORKFLOWS=1 removes the tool
-gate 5 resumability (S1 vs S5): PENDING operator TUI run
+gate 5 resumability: S1 (fresh restart) — workflow runs do NOT survive a CC exit; /workflows shows run terminated (2 of 3 agents, 28.6k tok), no resume, view/save only. night-run must be one uninterrupted process per stage
 secondary: agent self-reports unreliable — trust file/git state, not narration
 fleet tripwire: 5/5 clean throughout (terminal-setup .claude/ is pre-existing 2026-02-18, not ours)
 ```
