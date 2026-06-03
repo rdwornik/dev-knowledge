@@ -75,3 +75,29 @@ Per operator decision this session, **nothing workflow-related is committed to t
 ## Disposition
 
 Findings are **proposals only**; fixing F1/F2 is a separate scoped session after operator triage. The operator applies the pre-registered kill criterion (**≥1 real net-new finding at a tolerable false-positive rate, or the workflow approach dies and the gates stay**) — this digest presents the evidence; it does not pronounce the verdict.
+
+---
+
+## CORRECTION — 2026-06-04 (appended; original above left intact)
+
+**The model attribution in this digest was wrong.** Operator caught it: the `/workflows` live view showed the verifiers on Haiku 4.5, contradicting eval-block (e)'s "Sonnet verifiers" / inherited-Opus skeptic+digest claim. Verified against the run transcripts — the original claim does not hold.
+
+**What actually executed: all 5 workflow subagents ran `claude-haiku-4-5-20251001`.** Per-agent model routing did **not** take effect this run — neither the explicit `claude-sonnet-4-6` on the verifiers nor the intended Opus-by-inheritance on the skeptic/digest.
+
+Evidence (run `wf_c962d194-014`, transcripts under `subagents/workflows/.../agent-*.jsonl`):
+
+| Agent | Script asked for | Actually ran | transcript |
+|---|---|---|---|
+| V1 journal | `claude-sonnet-4-6` | `claude-haiku-4-5-20251001` | agent-ac309b69 |
+| V2 living-docs | `claude-sonnet-4-6` | `claude-haiku-4-5-20251001` | agent-aeea6d3b |
+| V3 backlog | `claude-sonnet-4-6` | `claude-haiku-4-5-20251001` | agent-a11b0b4e |
+| skeptic | (omitted → inherit Opus) | `claude-haiku-4-5-20251001` | agent-a7dddf93 |
+| digest | (omitted → inherit Opus) | `claude-haiku-4-5-20251001` | agent-adf9d70e |
+
+Reproduce: `grep -oE '"model":"[^"]*"' <agent>.jsonl | sort -u` on each transcript → all five return only `claude-haiku-4-5-20251001`. Script params: `~/.claude/workflows/conformance-hub.js:143-145`.
+
+**What this changes:**
+- **Eval (e) is corrected:** the pipeline shape (parallel verifiers → skeptic → digest, required `evidence_command`, post-skeptic filter) stands, but **every stage ran on Haiku 4.5**, not the Sonnet/Opus stack stated.
+- **The findings were produced by Haiku 4.5.** F1 and F2 were still verified **real by the main session (Opus) against live repo state**, so their validity is unaffected — but credit for *surfacing* them belongs to Haiku, not Sonnet/Opus. If anything this strengthens the cost story (a Haiku-only fan-out found 2 real net-new semantic findings); it weakens any quality claim that rested on tier.
+- **Cost note:** the ~42.3k workflow output tokens were **Haiku-tier**, so the run was cheaper than the digest implied.
+- **This is itself a material pilot finding (P0 for #81 design):** in this CC build/session, the workflow runtime ran all subagents on Haiku 4.5 regardless of the `model` option. **Per-agent model routing must be verified empirically, not assumed**, before any design (e.g. a night-run) relies on Sonnet/Opus stages. **Root cause undetermined from artifacts** — hypothesis only (workflow subagents defaulted to a base tier, or the `model` values weren't resolved and silently fell back); needs a dedicated probe (e.g. a one-agent workflow with an explicit `model` + transcript check). The JOURNAL entry for this run carries the same incorrect "3 Sonnet verifiers → Opus skeptic → Opus digest" description and is corrected by a new dated JOURNAL note (append-only; the original entry is not edited).

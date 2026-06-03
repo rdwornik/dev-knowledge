@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-06-04 — Correction: pilot #81 v0 ran entirely on Haiku 4.5
+
+**Did:** Operator caught a contradiction (`/workflows` showed Haiku verifiers vs the digest's "Sonnet"). Checked the run transcripts.
+**Result:** **All 5 workflow subagents ran `claude-haiku-4-5-20251001`** — the per-agent `model` routing (Sonnet on verifiers; inherited Opus on skeptic/digest) did NOT take effect. Evidence: `grep '"model"'` on each `agent-*.jsonl` of run `wf_c962d194-014`. Findings F1/F2 still verified real by the main session, so validity holds — but they were *surfaced* by Haiku, and the ~42.3k tokens were Haiku-tier. Material pilot finding: per-agent model routing must be verified, not assumed (root cause undetermined). Corrects the entry below (append-only; not edited).
+**Changes:** appended a CORRECTION section to `docs/audits/2026-06-04-pilot81-hub-conformance-digest.md`; this JOURNAL note. Branch `docs/pilot81-model-correction`, merge `--no-ff` pending.
+**Next:** dedicated model-routing probe (one-agent workflow + explicit `model` + transcript check) before any design relies on Sonnet/Opus stages.
+
+---
+
 ### 2026-06-04 — Pilot #81 v0: hub conformance review via Dynamic Workflow
 
 **Did:** Ran the first real-conditions Dynamic Workflow — `conformance-hub` (3 Sonnet verifiers → Opus skeptic → Opus digest), a read-only semantic conformance review of this repo's living docs. Safety per Phase-0: session `Write/Edit` deny (spot-checked active), no write tasks, repo-only scope; post-run fleet tripwire 5/5 clean (zero writes).
