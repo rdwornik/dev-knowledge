@@ -34,6 +34,14 @@ repos:
         language: system
         files: '^ARCHITECTURE\.md$'
         pass_filenames: false
+      - id: toc-freshness-playbook
+        name: PLAYBOOK.md TOC freshness check
+        # Mirrors toc-freshness above. Regenerate with:
+        # `python -m scripts.toc.cli generate protocols/PLAYBOOK.md --write`.
+        entry: python -m scripts.toc.cli check protocols/PLAYBOOK.md
+        language: system
+        files: '^protocols/PLAYBOOK\.md$'
+        pass_filenames: false
       - id: validate-backlog
         name: Validate BACKLOG.md story-map (ADR-66)
         entry: python scripts/validate_backlog.py
