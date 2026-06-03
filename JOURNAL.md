@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-06-04 — Pilot-phase closeout: routing probe + F1/F2/#78 fixes
+
+**Did:** Closed the hub-pilot phase. (1) Ran a model-routing matrix probe (3 agents asked sonnet/opus/omitted); (2) genuine end-to-end re-read of ARCHITECTURE.md + CLAUDE.md §11 fixing F1 + #78 + other proven-stale claims; (3) deleted the in-place #79 stub per ADR-65; (4) added #83 (validate_backlog strikethrough-gap).
+**Result:** **Probe verdict (CC 2.1.162): per-agent model routing is non-functional — all 3 agents ran `claude-haiku-4-5` regardless of the `model` option; Haiku-only is the de-facto workflow-subagent mode** (v0 anomaly was not an incident). F1 fixed (HANDOFF_PROCESS stamp 4.3.1→4.3.2/status live) + #78 closed (de-hardcoded the audit-check count → `audit.py checks`; §11 rotated 66-70→67-71 +ADR-71) + 4 other stale claims fixed in the same read (codemap node count, +scripts/toc/ validator, +2 toc-freshness hooks, +ADR-71 to Governing ADRs). F2 stub removed. 230 tests green · ruff clean · audit 12/12 · fleet 5/5 clean.
+**Changes:** ARCHITECTURE.md + CLAUDE.md (re-read, last_reviewed→2026-06-04), BACKLOG.md (−#78, −#79, +#83), JOURNAL. 4 commits on `chore/pilot-phase-closeout`; merge `--no-ff` pending. **Pilot phase CLOSED — next: corp-monorepo baseline.**
+**Next:** corp-monorepo baseline (next session). Workflow night-run design must assume Haiku-only subagents until routing is fixed upstream (#83 note; #81/#82).
+
+---
+
 ### 2026-06-04 — Correction: pilot #81 v0 ran entirely on Haiku 4.5
 
 **Did:** Operator caught a contradiction (`/workflows` showed Haiku verifiers vs the digest's "Sonnet"). Checked the run transcripts.

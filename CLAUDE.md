@@ -1,12 +1,12 @@
 ---
-last_reviewed: 2026-06-03
+last_reviewed: 2026-06-04
 status: active
 owner: Rob
 ---
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.12 — 2026-06-03 -->
+<!-- version: 2.13 — 2026-06-04 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -159,11 +159,11 @@ Rules (`.claude/rules/`):
 
 Brief one-liners. Full list in `docs/decisions/README.md`; full governance list in `ARCHITECTURE.md`.
 
-- ADR-66: BACKLOG story-map hierarchy — Big Picture → Theme → User Story → Task; supersedes ADR-64 Decision 2 (flat layout)
 - ADR-67: AI-Council process operationalization — six-step gated loop (Frame→Generate→Gate→Run→Verdict→Return); `/council-question` trigger; amends `AI_COUNCIL_PROCESS.md` v1.0
 - ADR-68: Autonomous overnight review agent — local Task Scheduler → headless read-only review → morning briefing; ephemeral read-only worktrees (ADR-61)
 - ADR-69: Cross-repo audit reach model — `audit.py` reaches child repos via a Layer-2 read-only cross-repo runner (`run` over the `ecosystem/` registry); commit-time enforcement stays self-only (the #72 residual)
 - ADR-70: Three-tier self-enforcing process layer — Tier-1 always-on lifecycle (native primitives, bundled as the `tier1-lifecycle` plugin), Tier-2 scheduled fleet audit, Tier-3 episodic Workflows; git `closes [#id]` is the capture backbone (no custom ledger)
+- ADR-71: Doc-tooling distribution via the pre-commit hook source-repo pattern — fleet-wide codemap + TOC freshness hooks consumed from the hub's portable `.pre-commit-hooks.yaml` (the hub is the source repo); TOC consumption validated via the corp-monorepo pilot, codemap deploy gated on a layout finding
 
 ## 12. Section history
 <!-- scope: meta -->
@@ -182,8 +182,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.10 (2026-06-02) — Tier-2 fleet health (#72 closes): §9 adds `SessionStart → fleet_health.py` (daily-throttled cross-repo audit + no_sibling_orphans on all 5 repos). `last_reviewed` unchanged (re-read this session).
 - v2.11 (2026-06-03) — Tier-1 doc convergence (5c + #73 close): §9 "Session hooks" **corrected** — the hub-local `Stop → propose_closures` and `SessionStart → review_closures surface` hooks were removed in 5c; the closure loop now runs via the enabled `tier1-lifecycle` plugin (Stop) + the global `~/.claude` `surface-closures.ps1` (L0). §8 notes the enabled plugin; §11 rotated 65→70 (added ADR-70; dropped ADR-65 — full list in `docs/decisions/README.md`). Full end-to-end re-read; `last_reviewed` re-stamped 2026-06-03.
 - v2.12 (2026-06-03) — #76 closes (hub converges onto the plugin's `/review-closures`): §7 moves `/review-closures` out of the Repo-level list into a new "Plugin-provided" subsection — the duplicate hub-local `.claude/commands/review-closures.md` was deleted so the hub uses the plugin's command like the child repos (verified: the plugin's `review_closures.py` resolves the hub root via `$CLAUDE_PROJECT_DIR`). `scripts/review_closures.py` (canonical source) untouched. `last_reviewed` unchanged (targeted same-day edit; rest re-read 2026-06-03 this morning).
+- v2.13 (2026-06-04) — pilot-phase closeout (#78 closes): §11 "last 5" rotated 66–70 → 67–71 (add ADR-71 doc-tooling hook source-repo pattern; drop ADR-66 — full list in `docs/decisions/README.md`). Companion genuine end-to-end re-read of `ARCHITECTURE.md` fixed pilot finding F1 (HANDOFF_PROCESS stamp `4.3.1, status stable` → `4.3.2, status live`), de-hardcoded the audit check count → `audit.py checks` [#78a], and corrected other stale claims (codemap node count, pre-commit hook list). `last_reviewed` re-stamped 2026-06-04.
 
 ---
 
-**Last updated:** 2026-06-03
+**Last updated:** 2026-06-04
 **Maintained by:** Rob
