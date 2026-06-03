@@ -1687,7 +1687,10 @@ Scope: `dev | llm | hybrid | runtime | meta` (ADR-29 — applies to new entries 
 ### When a lesson becomes a rule
 <!-- scope: meta -->
 
-If you find yourself writing a lesson that sounds like "always do X" or "never do Y" — it might be a rule, not a lesson. Write the lesson in LESSONS.md for context, then also add it to `~/.claude/` (gotchas, rules/, or learned-rules.md) with a verify: line. Cross-reference both.
+If you find yourself writing a lesson that sounds like "always do X" or "never do Y," it might be a **rule**, not a lesson. The test: a lesson in `LESSONS.md` is human context (why, what happened); a rule in `~/.claude/` is machine-executable (a `verify:` line, a gotcha check). When a lesson matures into a rule:
+1. Keep the lesson entry in `LESSONS.md` (provenance — the why).
+2. Add the rule to `~/.claude/rules/`, `gotchas.md`, or `learned-rules.md` with a `verify:` line.
+3. Cross-reference both with the file path.
 
 ---
 
@@ -2318,10 +2321,7 @@ Dev/{project}/packages/X/CLAUDE.md  ← Package rules
 ### When a lesson becomes a rule
 <!-- scope: meta -->
 
-A lesson in LESSONS.md is human context (why, what happened). A rule in `~/.claude/` is machine-executable (verify: line, gotcha check). When a lesson matures into a rule:
-1. Keep the lesson entry in LESSONS.md (provenance)
-2. Add the rule to `~/.claude/rules/`, `gotchas.md`, or `learned-rules.md` with verify: line
-3. Cross-reference both with file path
+See §4 *Extracting Lessons from Any Session → When a lesson becomes a rule* for the canonical trigger + 3-step process.
 
 ### Data sanitization
 <!-- scope: meta -->
