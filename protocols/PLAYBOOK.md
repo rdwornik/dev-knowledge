@@ -696,7 +696,7 @@ Three formats exist in `docs/handoffs/`, two of them historical:
 
 Per Token-LOG flip 2026-04-24:
 
-- **Newest-first (prepend):** TOKEN-LOG, CHANGELOG, JOURNAL. Rationale: logs optimize for current-state scanning. (JOURNAL flipped 2026-04-27 — original Stream B Gap #4 spec had oldest-top; amended for consistency with TOKEN-LOG/CHANGELOG.)
+- **Newest-first (prepend):** TOKEN-LOG, JOURNAL (CHANGELOG retired — ADR-49). Rationale: logs optimize for current-state scanning. (JOURNAL flipped 2026-04-27 — original Stream B Gap #4 spec had oldest-top; amended for consistency with TOKEN-LOG/CHANGELOG.)
 - **Append-only (oldest top):** LESSONS. Rationale: chronological narrative for grandfathered learning patterns; order preserves "what we learned when" per ADR-29.
 - **Living (in-place updates):** README, CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT. Rationale: not logs; current state matters more than history.
 - **Immutable (dated):** ADRs, transcripts, handoffs, audits, research. Rationale: point-in-time records; supersession via new file or in-file marker.
@@ -2073,7 +2073,7 @@ Notable: [1-2 line signal e.g. "Opus 4.7 adoption curve", "Haiku routing shift"]
 ```
 
 **Order convention:**
-- TOKEN-LOG.md and CHANGELOG.md: newest-first (prepend). Rationale: logs optimize for current-state scanning.
+- TOKEN-LOG.md: newest-first (prepend). Rationale: logs optimize for current-state scanning. (CHANGELOG.md retired — ADR-49.)
 - LESSONS.md: append-only (oldest-first). Rationale: chronological narrative; order preserves "what we learned when".
 
 New TOKEN-LOG entries go at the top (after file header, before previous newest entry). /session-summary reads the first matching `## YYYY-MM-DD` header for the staleness check.
@@ -2296,7 +2296,7 @@ If a client engagement generates a dev lesson, strip all client names, proprieta
 
 | Category          | Location        | Naming                                         | Lifecycle                      |
 | ----------------- | --------------- | ---------------------------------------------- | ------------------------------ |
-| Project docs      | Root            | CLAUDE.md, README.md, CHANGELOG.md             | Living, never delete           |
+| Project docs      | Root            | CLAUDE.md, README.md                           | Living, never delete           |
 | Decision records  | docs/decisions/ | ADR-{NN}_{topic}.md                            | Frozen, never edit             |
 | Handoff           | docs/           | HANDOFF.md                                     | Living, update in place        |
 | Snapshots/reports | docs/archive/   | {YYYY-MM-DD}_{TYPE}_{topic}.md                 | Frozen, delete after 90 days   |
