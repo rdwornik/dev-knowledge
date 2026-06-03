@@ -41,6 +41,6 @@ findings:
 - check_name: canonical_structure
   evidence: All present canonical files carry their required [U] spine headings
   status: pass
-last_audit: '2026-06-02'
+last_audit: '2026-06-03'
 name: corp-monorepo
 path: C:\Users\1028120\Documents\Dev\corp-monorepo
