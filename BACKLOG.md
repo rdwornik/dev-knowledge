@@ -42,6 +42,7 @@ So that drift in transcripts, ADRs, and folders is caught cheaply, not by review
 - [#7] [P2][M] Apply the audit.py #8 structural-validator pattern to Council transcripts + ADRs (frontmatter/supersession/template) · Done when: registered checks + tests folded into health · refs scripts/audit.py #8/#9
 - [#36] [P3][M] Add read-only check_folder_semantics asserting each docs/ subfolder carries one ADR-60 role · Done when: the check ships with fixtures + tests · refs ADR-60
 - [#42] [P3][S] Decide whether mermaid-theme check #7 expands beyond ARCHITECTURE.md (extend paths or accept) · Done when: scope decision recorded · refs durability-audit J4
+- [#77] [P3][L] Extend the review machinery (audit.py + ADR-68 night-agent) to catch doc-rot — intra-file duplication, file bloat/size, per-section "Section history" accumulation, and cross-file summary-fidelity drift — not just freshness/structure; first concrete deliverable is the PLAYBOOK/protocols consolidation surfaced by the 2026-06-03 audit · Done when: a doc-rot check/review surfaces at least the audit's HIGH findings AND the protocols consolidation lands · refs ADR-68, ADR-49, docs/audits/2026-06-03-protocols-rot-audit.md
 
 ### Wire up the lifecycle hooks the workflow relies on
 So that session-start/close automation actually runs instead of being wired-but-vacuous.
