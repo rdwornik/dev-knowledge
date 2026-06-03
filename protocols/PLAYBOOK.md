@@ -2885,3 +2885,4 @@ Large canonical docs carry an **auto-maintained table of contents** between `<!-
 - **Adoption:** insert the two markers in the natural spot (after the title/intro, before the first `##` section), add a `toc-freshness` hook entry scoped to the file, run `generate --write`, and commit. Unlike the codemap (hardwired to `ARCHITECTURE.md`), the TOC CLI takes the target file as an argument, so the same mechanism applies to any doc.
 
 Applied to `ARCHITECTURE.md`. **Not** auto-applied to every doc — add only where navigation overhead is real (see threshold note in ESSENTIALS). Authority: ADR-51 § Auto-TOC (same freshness regime as the codemap).
+
