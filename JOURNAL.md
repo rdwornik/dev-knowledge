@@ -19,6 +19,11 @@
 
 ---
 
+### 2026-06-03 — Applied dynamic TOC to PLAYBOOK.md
+
+**Did:** Inserted `<!-- TOC:START/END -->` markers and ran `scripts.toc.cli generate --write` on `protocols/PLAYBOOK.md`; added `toc-freshness-playbook` pre-commit hook mirroring the existing ARCHITECTURE.md hook. Pure application of the existing toc tool (no generator changes).
+**Changes:** `protocols/PLAYBOOK.md` (+176 lines TOC); `.pre-commit-config.yaml` (+8 lines hook). 2 commits on `docs/playbook-toc`; 228 tests green.
+
 ### 2026-06-03 — PLAYBOOK prose cleanup (doc-rot brick #2)
 
 **Did:** Executed the remaining PLAYBOOK-only findings from `docs/audits/2026-06-03-protocols-rot-audit.md`: merged the two divergent lesson→rule statements into one canonical (§4, trigger + 3-step) with §13 condensed to a pointer; retired the 10 doc-embedded "Section history" blocks (one intro note replaces them, git is the record per ADR-49) and fixed the two refs the deletion orphaned (L432/L461); reconciled 3 CHANGELOG-as-live mentions to retired (the audit named 2; a 3rd identical spot was found on re-derivation); added an Organization note for section-zone clarity — no renumber (the §17→§19 gap accepted; §N cross-refs preserved).
