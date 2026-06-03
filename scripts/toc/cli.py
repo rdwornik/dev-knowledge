@@ -23,7 +23,11 @@ def _cmd_generate(args: argparse.Namespace) -> int:
         print(f"error: file not found at {md_file}", file=sys.stderr)
         return 2
 
-    toc = generate_toc(md_file)
+    try:
+        toc = generate_toc(md_file)
+    except OSError as exc:
+        print(f"error: cannot read {md_file}: {exc}", file=sys.stderr)
+        return 2
 
     if not args.write:
         print(toc, end="")
