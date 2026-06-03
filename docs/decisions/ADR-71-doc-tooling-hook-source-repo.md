@@ -2,7 +2,7 @@
 
 # ADR-71 — Doc-tooling distribution via the pre-commit hook source repo pattern
 
-**Status:** Accepted — 2026-06-03 (operator-confirmed; **validated by the corp-monorepo pilot — pending**).
+**Status:** Accepted — 2026-06-03 (operator-confirmed). **Consumption contract VALIDATED** via the corp-monorepo TOC pilot (2026-06-03): consume (`repo:/rev:` from the hub at pinned `69558c7`, relative doc path resolved inside the cloned hook repo), regenerate (`toc-generate`), and gate (`toc-freshness` fails-stale / passes-fresh) all confirmed end-to-end. **Codemap deployment is NOT validated** — gated on the layout finding below (see "Codemap layout finding").
 **Records:** the distribution vehicle for fleet-wide codemap + TOC, grounded in `docs/audits/2026-06-03-doc-tooling-inventory.md`.
 **Related:** ADR-51 (codemap mandatory for M/L; ARCHITECTURE convention; TOC amendment), ADR-28 (three-layer model — Layer 2 never executes in child repos), ADR-69 (cross-repo read-only contract), ADR-59 (root-hygiene — entry-scripts live in `scripts/`), BACKLOG #9 (cross-repo universalization).
 
@@ -27,6 +27,25 @@ Before any rollout, the tooling must be made **consumable** — installable into
 - **Per-repo prerequisite:** the freshness gate is a *pre-commit* hook, so a consumer needs a `.pre-commit-config.yaml`. `corp-ops` and `corp-sca` have none — the pre-commit framework must be bootstrapped there before the gate can land (sequenced in the rollout).
 - **Versioning discipline:** consumers pin `rev` to a hub tag/commit; picking up a tooling change is a deliberate `rev` bump in each consumer (the single-source-after-deploy lever — analogous to the `tier1-lifecycle` plugin's version-keyed cache dance, but git-native here).
 - **Windows execution note:** `language: script` execs the `.py` wrapper directly; the wrappers carry a `#!/usr/bin/env python3` shebang. The fleet is single-machine, so `pre-commit try-repo` on that machine is the authoritative cross-platform check.
+
+## Operating / propagation model
+
+The corp-monorepo pilot clarified *how a hub tooling change actually reaches a consumer* — the part most at risk of being lost. Recorded plainly:
+
+- **Propagation is consumer-PULL, not source-push.** pre-commit caches hooks by resolved `rev`; **no** version model gives zero-touch propagation. Whether a consumer pins a `rev` or floats `main`, adopting a hub tooling change is always a *deliberate per-repo action* — a `rev` bump or a `pre-commit autoupdate`. There is no configuration in which editing the hub silently updates a sibling.
+- **True central-push is structurally forbidden.** A model where one hub action updates all repos would require the hub to **WRITE into siblings** — which violates the Layer-2 invariant (ADR-28/ADR-69: validators are read-only, the hub never writes a sibling; and generation *must* be local because a codemap is generated from the repo's own source tree). Rejected for that reason.
+- **Chosen model: pinned-pull.** Consumers pin `rev` to a stable hub commit/tag; per-repo wiring is a **one-time** setup; ongoing updates are an occasional one-command pull. Floating-ref (loses pinning stability) and a central fleet-writer (breaks Layer-2) were both considered and rejected.
+
+## Codemap layout finding
+
+The pilot's most valuable output — it splits the rollout in two:
+
+- **The hub codemap generator is layout-coupled.** On a single-package-under-`src/` layout it degrades silently. In corp-monorepo (`corp.`-prefixed imports), the edge-matcher keys on the first dotted component `corp`, which ≠ the bare package names, so it finds **0 edges**; the dotted `tach.toml` keys likewise don't match the bare nodes, so it assigns **0 layer colors**. The result is a strictly-worse orphan graph (verified read-only against corp: **13 orphan nodes / 0 edges / 0 layers** vs. the curated **10 / 15 / 4**).
+- corp-monorepo therefore **deliberately hand-authors its codemap** per an ADR-51 amendment (carries a `not generator-managed` marker).
+- **Conclusion: TOC universalizes cleanly (layout-agnostic); codemap does NOT.** Codemap rollout is gated on:
+  - **(a) per-repo grounding** — for each repo, is the "frozen" codemap *hand-authored-deliberate* or *stale generator output*, and is its layout *generator-compatible*?
+  - **(b) a generator decision** — fix the generator (handle prefixed imports + dotted keys) vs. a marker-aware freshness gate (respect `not generator-managed` blocks).
+- Blanket regeneration would **destroy curated diagrams fleet-wide** — hence the gate. Tracked as BACKLOG #79.
 
 ## Alternatives considered
 
