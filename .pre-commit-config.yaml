@@ -1,5 +1,14 @@
 # Pre-commit hooks for .dev-knowledge
 
+# Scope every hook to the pre-commit stage by default. Without this, hooks that
+# declare no `stages:` default to *all* stages, so they fire a SECOND time at the
+# commit-msg git-hook (pre-commit is installed for both pre-commit and commit-msg).
+# That second firing finds no staged files and prints a misleading
+# "(no files to check) Skipped" for validate-backlog / codemap-freshness — even
+# though they already ran and passed in the pre-commit stage. backlog-id-on-close
+# opts back into commit-msg via its own explicit `stages:` override below.
+default_stages: [pre-commit]
+
 repos:
   - repo: local
     hooks:
