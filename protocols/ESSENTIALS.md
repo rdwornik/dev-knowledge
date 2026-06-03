@@ -27,6 +27,8 @@ Applies primarily to Browser chat analytical work; also relevant whenever Claude
 ## Continuous Improvement
 <!-- scope: meta -->
 
+_This section: project-evolution posture (always be improving). For the tool/model adoption lifecycle (Discovery → Review), see PLAYBOOK §6 "Continuous Improvement."_
+
 **Default project posture: always be improving.**
 
 - Project goal at meta level is continuous development and refinement
