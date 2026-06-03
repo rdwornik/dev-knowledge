@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-06-03 — Read-only doc-rot audit of protocols/
+
+**Did:** Audited all 7 live `protocols/` files (5,021 lines; PLAYBOOK 3,024) read-only for structural rot — intra-file duplication, per-section changelogs (ADR-49), hub-vs-universal mixing, numbering, stale refs, and cross-file summary-fidelity drift (CLAUDE.md rule #6). Changed no protocol file.
+**Result:** Real rot confirmed — HIGH findings: lesson→rule stated 3 ways (PLAYBOOK L1687/L2318, ESSENTIALS L393), hub-only audit-tool §18 (L2486+) in universal doc, ESSENTIALS breaching its own "1 page" at 426 lines; 10 PLAYBOOK Section-history blocks; ENVIRONMENT/SESSION_SETUP MED. Root: `audit.py` freshness check verifies re-read recency, not structural integrity, and never targets `protocols/`.
+**Changes:** +docs/audits/2026-06-03-protocols-rot-audit.md; LESSONS append; BACKLOG [#77] (Enforced governance). 3 commits on `docs/protocols-rot-audit`; 226 tests green.
+**Next:** Operator reviews findings; consolidation is the next decision-gated pass ([#77]).
+
 ### 2026-06-03 — Dynamic auto-TOC for canonical docs (mirrors codemap)
 
 - Did: Built a generator-driven, freshness-gated TOC mechanism on `feat/dynamic-toc`, mirroring the codemap pattern exactly rather than inventing a new one. New `scripts/toc/` package (`generator`/`check`/`cli`, layout + CLI + 0/1/2/3 exit codes cloned from `scripts/codemap/`); parses a doc's own `##`/`###` headers into a nested anchor-link list between `<!-- TOC:START/END -->` markers. GitHub-compatible anchors — full header text slugged (so `## Purpose [CORE]` → `#purpose-core`, double-hyphen on removed `&` preserved like github-slugger), `[TAG]` stripped from link text, fenced code blocks skipped, dup anchors `-1/-2`. Standalone `toc-freshness` pre-commit hook (fail-on-stale, NOT an audit.py check — matching where `codemap-freshness` lives). Applied to `ARCHITECTURE.md`; convention codified in PLAYBOOK (new section) + ESSENTIALS (one-liner) + ADR-51 (dated amendment). Unlike the codemap (hardwired to ARCHITECTURE.md), the TOC CLI takes the target file as an arg → reusable.
