@@ -116,6 +116,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 So that "open any repo, same layout/governance" actually holds.
 - [#47] [P3][S] Confirm status of corp-knowledge-extractor / corp-by-os / corp-rfp-agent · Done when: each is classified (renamed/archived/uncloned/dropped) · refs 2026-05-11 audit
 - [#9] [P2][M] Inventory skills across repos, classify repo-specific vs universal, propose a canonical home · Done when: a skills inventory + universalization proposal exists · refs VISION cross-repo consistency
+- [#79] [P2][L] Codemap generator layout-coupling — ground each repo's codemap (hand-authored-deliberate vs stale + layout generator-compatibility) and decide fix-generator vs marker-aware-gate, before any codemap rollout. Blocks codemap universalization; TOC rollout is unaffected. · Done when: each repo's codemap is grounded + the fix-generator-vs-marker-aware-gate decision is recorded · refs ADR-71, ADR-51
 
 ### Make new-repo scaffolding correct-by-default
 So that a new repo inherits the full baseline in one step, not by re-derivation.

@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-03 — ADR-71 amended: operating model + pilot finding + status
+
+**Did:** Amended ADR-71 (append-only, doc-only) to record the corp-monorepo TOC pilot outcome — flipped Status to consumption-contract **VALIDATED** (consume `repo:/rev:` at pinned `69558c7` + `toc-generate` + `toc-freshness` stale/fresh, end-to-end), and added two sections: **Operating / propagation model** (consumer-PULL not source-push; pinned-pull chosen; central fleet-writer rejected as a Layer-2 violation) and **Codemap layout finding** (generator is layout-coupled — corp's `corp.`-prefixed imports + dotted `tach.toml` keys → 13 orphans/0 edges/0 layers vs curated 10/15/4; codemap rollout gated, TOC unaffected).
+**Result:** TOC universalizes cleanly; codemap does NOT — gated on per-repo grounding + fix-generator-vs-marker-aware-gate decision (BACKLOG #79 added, P2/L). Existing ADR content untouched. Tests green, ruff clean, `audit.py health` OK. Provenance note: the prompt's named source audit file was absent; findings recorded verbatim from the operator's prompt.
+**Changes:** `docs/decisions/ADR-71-*.md`, `BACKLOG.md` (+#79), `JOURNAL.md` (this). 1 commit on `docs/adr-71-amend`. Next: TOC rollout — ai-council, then corp-ops/corp-sca (bootstrap pre-commit first).
+
+---
+
 ### 2026-06-03 — Hub becomes the doc-tooling pre-commit hook *source* repo (ADR-71)
 
 **Did:** Step 1 of doc-tooling universalization (hub-only, non-disruptive): recorded **ADR-71** (distribute codemap+TOC via the pre-commit hook source repo pattern), parametrized the codemap CLI on a target arch path (`--arch-file`, default-preserving — mirrors TOC's file-arg), and exposed both tools as four hooks in a root `.pre-commit-hooks.yaml` (`codemap`/`toc` × freshness/generate) via `language: script` thin wrappers in `scripts/` (no pip package; ADR-59 root-hygiene; `#!/usr/bin/env python3`).
