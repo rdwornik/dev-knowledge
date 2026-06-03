@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-03 — Cross-repo doc-tooling inventory (universalization grounding)
+
+**Did:** Read-only inventory across all 5 repos (ADR-69 honored — wrote only into `.dev-knowledge`) grounding a future codemap+TOC universalization plugin; captured the `tier1-lifecycle` plugin/marketplace as the build template.
+**Result:** Central finding — the codemap/TOC **generators live only in the hub**; the 3 children with codemaps (`ai-council`/`corp-monorepo`/`corp-ops`) carry hub-generated mermaid but **no generator and no freshness gate** (frozen), `corp-sca` has no codemap at all. Copy-drift = **N/A (no copies to diff)** → plugin must **deploy-fresh**, not single-source. `corp-ops`+`corp-sca` lack `.pre-commit-config.yaml` (must bootstrap). TOC candidates: corp-monorepo ARCH (551) + ai-council council-question-guide (570). 228 tests green, audit health OK, ruff clean.
+**Changes:** +`docs/audits/2026-06-03-doc-tooling-inventory.md`; JOURNAL (this). No plugin built, nothing applied to siblings.
+
+---
+
 ### 2026-06-03 — Protocols-cleanup final brick: 4 small-file fixes + AGENTS.md single-source attempt
 
 **Did:** Executed the remaining MED/LOW audit findings across four small protocol files (one commit each on `docs/protocols-final-cleanup`): SESSION_SETUP — signposted the two handoff layers (browser `wygeneruj handoff` vs HANDOFF v4 Claude-Code) + added `[scope: X]` to the LESSONS append format; HANDOFF_PROCESS §5 — forward-pointer to the v4.3 §A claim-reframe; AGENT_FRAMEWORK — stale "checks #1–#10/#11+" → points at `py scripts/audit.py checks` (drift-proof); ENVIRONMENT — refreshed version snapshot (Claude Code 2.1.161, Python 3.12.10, VS Code 1.122.1; dated 2026-06-03) + marked the elapsed GLM-5.1 April-12 binding item.
