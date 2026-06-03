@@ -1,14 +1,14 @@
 # Dev Environment — Current State
 
 > **Living document.** Update when any config changes.
-> Last updated: 2026-06-01
+> Last updated: 2026-06-03
 
 ---
 
 ## Claude Code CLI
 <!-- scope: runtime -->
 
-- **Version:** 2.1.87 (native installer, auto-updates)
+- **Version:** 2.1.161 (native installer, auto-updates)
 - **Plan:** Claude Max $100/month
 - **Model routing:** opusplan (Opus plans, Sonnet executes)
 - **Available models:** Opus 4.8, Sonnet 4.6, Haiku 4.5. xhigh effort level available (Opus only). `/code-review ultra` for cloud-based multi-agent code review (`/ultrareview` is a deprecated alias for the same command).
@@ -246,7 +246,7 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
 <!-- scope: meta -->
 
 - Council mode system (brainstorm/evaluate/strategy) — prompt ready in inbox
-- GLM-5.1 re-evaluate April 12 only if rate limits >2x/week
+- GLM-5.1 — April 12 re-eval window elapsed (no >2x/week rate-limit trigger fired); revisit only if that condition recurs
 
 ### Rejected (do NOT revisit before Q3)
 <!-- scope: meta -->
@@ -264,8 +264,8 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
 
 | Component   | Version                       | Last checked |
 | ----------- | ----------------------------- | ------------ |
-| Claude Code | 2.1.87 (native, auto-updates) | 2026-04-17   |
-| Python      | 3.11+                         | 2026-03-28   |
-| VS Code     | Current + 10 extensions       | 2026-03-29   |
+| Claude Code | 2.1.161 (native, auto-updates) | 2026-06-03   |
+| Python      | 3.12.10                        | 2026-06-03   |
+| VS Code     | 1.122.1 + extensions           | 2026-06-03   |
 
 Project versions tracked in each project's CLAUDE.md / git history.
