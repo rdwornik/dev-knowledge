@@ -28,16 +28,37 @@ escalation rule is BACKLOG #74, to be written once #80 lands).
 
 ## Prompt format
 
-Prompts to Claude Code follow the standard 8-section structure (objective, context,
-files, steps, constraints, verification, output, stop-signs). Delivery: a single
-copy-pasteable block. Pre-send checklist essentials:
+Browser chat is the architect; Claude Code is the executor; the prompt is the
+contract (ADR-28). A formal prompt (3+ files / 2+ packages) follows the **standard
+8-section structure** — this is the operational card you generate from, since you
+can't read the filesystem:
 
-- **Scope is one or two objectives** — never bundle.
-- **Verification step is mandatory** — every step has a check; `pytest -x` + `ruff
-  check` + `git status` between numbered steps, not only at the end.
-- **Hooks/commands-in-play pre-flight line:** state which hooks will auto-fire on
-  commit vs which commands you expect CC to invoke (see PLAYBOOK "Usage protocol:
-  which command / hook, when"). This prevents surprise gate failures mid-run.
+1. **Model / Mode / Effort table** — at the very top. Model: Sonnet/Opus; Mode:
+   auto-accept / plan-then-auto / plan; Effort: low / medium / high / xhigh.
+2. **Title** — imperative, what gets accomplished.
+3. **Repo + Purpose** — absolute path + one-sentence outcome.
+4. **Read first** — `CLAUDE.md` + the relevant `gotchas.md` as the first two reads,
+   then any task docs.
+5. **Git workflow** — branch, commit-per-step cadence, merge command. Non-negotiable
+   in every prompt, even non-repo ones (explain why if N/A).
+6. **UNDERSTAND** — problem, scope (which files / packages), risks, what failure
+   looks like.
+7. **Steps with COMMIT markers** — numbered; each step ends with its Conventional-
+   Commit message so CC knows exactly when to commit.
+8. **Final + "What NOT to do"** — full verification + merge, then explicit
+   anti-patterns. The "What NOT to do" closer is what stops CC over-engineering.
+
+- **Delivery is a saved artifact, not an inline code block** — inline blocks can't be
+  saved and break the async architect→executor workflow.
+- **Verify after every step**, not just at the end: `pytest -x --tb=short` + `ruff
+  check` + `git status` (tree clean between numbered steps).
+- **Hooks/commands-in-play pre-flight line:** which hooks auto-fire on commit
+  (audit-health / validate-backlog gates) vs which commands to invoke (`/save` to
+  commit; `/codex-review` before merging code) — see PLAYBOOK §"Usage protocol: which
+  command / hook, when".
+- **`/clear` between unrelated tasks/repos** — the #1 token saver (~30–40% input).
+- **Codex `/codex-review`** before merging a **code** change (3+ files or
+  safety-critical) — code only, never a markdown-only diff.
 
 ## Hooks & enforcement
 
