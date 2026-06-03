@@ -1,9 +1,9 @@
 # HANDOFF_PROCESS v4
 
-<!-- version: 4.3.1 — 2026-05-30 (v4.0 radical simplification + v4.1 fix: in-progress/ folder + sage→apprentice single-cluster interview + v4.2 refinements: four-tag sage + drift visibility + bundle maintenance + v4.3: comprehensive fresh-eyes close + enforcement groundwork + v4.3.1: architectural caveat patch + status stable) -->
+<!-- version: 4.3.2 — 2026-06-03 (v4.0 radical simplification + v4.1 fix: in-progress/ folder + sage→apprentice single-cluster interview + v4.2 refinements: four-tag sage + drift visibility + bundle maintenance + v4.3: comprehensive fresh-eyes close + enforcement groundwork + v4.3.1: architectural caveat patch + status stable + v4.3.2: verification-coverage refinements: whole-bundle cross-check, extract-fidelity check, durable-principle promotion) -->
 <!-- scope: meta -->
 
-Version: 4.3
+Version: 4.3.2
 Effective: 2026-05-29
 Supersedes: v3.4 (preserved at `protocols/archive/HANDOFF_PROCESS_v3.4.md`) and the
 full v3.x chain it carried forward.
