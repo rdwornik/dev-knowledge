@@ -114,6 +114,8 @@ Browser chat (analysis)  →  .dev-knowledge (reference)  →  projects (executi
 - "Implement X per spec" → Claude Code (execution)
 - "What did we decide about Y?" → either, but check `.dev-knowledge` first
 
+_Canonical: PLAYBOOK "System Architecture" (ADR-28)._
+
 ---
 
 ## Architect → operator channel-discipline for execution actions
