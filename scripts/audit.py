@@ -2,7 +2,14 @@
 audit.py — Ecosystem audit tool per ADR-36.
 
 Reads child repos under Dev/ and writes only to .dev-knowledge paths.
-Read-only contract: never touches child repo files.
+Read-only contract: never touches child repo files (hard constraint, ADR-36).
+
+This module is self-documenting: `python scripts/audit.py --help` and
+`python scripts/audit.py <cmd> --help` are the authoritative CLI reference. The
+conceptual / authority model — what this tool is, why the cross-repo `run` is
+advisory while the self-audit `health` gates commits, and the self-only
+enforcement model — lives in ARCHITECTURE.md (§"Validators and enforcement",
+§"Authority and governance") and ADR-36. Do not re-narrate that here.
 
 Commands:
     audit run                          # full ecosystem; writes report
@@ -1026,7 +1033,21 @@ def cli() -> None:
 @click.option("--repo-path", "repo_path", default=None,
               help="Bootstrap: path to a repo not yet registered. Creates state.yaml on first use.")
 def cmd_run(repo_path: Optional[str]) -> None:
-    """Run full ecosystem audit; write report to docs/audits/."""
+    """Run the full ecosystem audit; write a report to docs/audits/.
+
+    Runs ALL_CHECKS against every registered repo, saves each repo's state.yaml,
+    appends to ecosystem/<name>/history/YYYY-MM-DD.md, and writes a dated report.
+    Exits 1 if any check fails. Cross-repo findings are advisory — remediation is
+    manual in the child repo (no downstream commit gating; ARCHITECTURE.md / ADR-36).
+
+    --repo-path bootstraps a not-yet-registered repo: it creates that repo's
+    state.yaml and permanently registers it, then runs. It does NOT refresh the
+    derived ecosystem/index.yaml — follow with `registry update` for that.
+
+    Examples:
+        python scripts/audit.py run
+        python scripts/audit.py run --repo-path ../corp-monorepo
+    """
     run_date = date.today()
 
     if repo_path:
@@ -1066,7 +1087,16 @@ def cmd_run(repo_path: Optional[str]) -> None:
 @click.option("--repo-path", "repo_path", default=None,
               help="Override filesystem path (bootstrap or ad-hoc).")
 def cmd_repo(name: str, repo_path: Optional[str]) -> None:
-    """Audit a single repo by name."""
+    """Audit a single repo by name.
+
+    Same state.yaml / history / report writes as `run`, scoped to one repo; the
+    report lands at docs/audits/YYYY-MM-DD-<name>-audit.md. Exits 1 on any failure.
+    Pass --repo-path to override the stored path (bootstrap or ad-hoc location).
+
+    Examples:
+        python scripts/audit.py repo ai-council
+        python scripts/audit.py repo corp-monorepo --repo-path ../corp-monorepo
+    """
     run_date = date.today()
     existing = load_state(name)
 
@@ -1095,7 +1125,17 @@ def cmd_repo(name: str, repo_path: Optional[str]) -> None:
 @cli.command("registry")
 @click.argument("action", type=click.Choice(["update"]))
 def cmd_registry(action: str) -> None:
-    """Manage ecosystem registry. Action: update (regenerate ecosystem/index.yaml)."""
+    """Manage the ecosystem registry. Action: `update`.
+
+    `update` regenerates the derived ecosystem/index.yaml from the current
+    ecosystem/<name>/state.yaml files — a pure read-state -> write-index operation:
+    it runs no checks, writes no history, and generates no report. Run it after
+    registering a repo (e.g. after `run --repo-path`) to keep the rollup current.
+    index.yaml is derived; do not edit it by hand (it is overwritten each run).
+
+    Example:
+        python scripts/audit.py registry update
+    """
     names = discover_repos()
     states = [load_state(n) for n in names if load_state(n) is not None]
     regenerate_index(states)
@@ -1104,11 +1144,18 @@ def cmd_registry(action: str) -> None:
 
 @cli.command("health")
 def cmd_health() -> None:
-    """Quick TTY status: operational deps + .dev-knowledge self-conformance.
+    """Quick TTY status: operational deps + .dev-knowledge self-conformance. No file writes.
 
-    Self-conformance runs the full per-repo check suite (ALL_CHECKS, incl. the
-    ADR-59 visual-pattern checks) against .dev-knowledge itself. A self-audit
-    `fail` degrades health; a `warn` does not.
+    Two parts: (1) operational preflight — click/pyyaml importable, ecosystem/ exists,
+    >=1 repo registered; (2) self-audit — the full ALL_CHECKS suite against
+    .dev-knowledge itself. A self-audit `fail` (or a failed preflight) prints
+    "health: DEGRADED" and exits 1; a `warn` prints but exits 0.
+
+    This is the `audit-health` pre-commit gate ([#69]): a FAIL blocks the commit,
+    a WARN only informs. Enforcement is self-only — `health` never reaches child repos.
+
+    Example:
+        python scripts/audit.py health
     """
     checks: list[tuple[str, bool, str]] = []
 
