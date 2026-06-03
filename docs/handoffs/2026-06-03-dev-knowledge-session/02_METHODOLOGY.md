@@ -6,8 +6,8 @@ generated from them at handoff time. When in doubt, the live files win.
 
 ## Model selection
 
-- **Tier 1 (Sonnet):** ≤5 files, ≤1 layer, existing pattern, automated checks pass.
-- **Tier 2 (Opus):** new abstractions, cross-module work, unfamiliar APIs, security.
+- **Sonnet:** ≤5 files, ≤1 layer, existing pattern, automated checks pass.
+- **Opus:** new abstractions, cross-module work, unfamiliar APIs, security.
 - **No AI:** anything a human would do in <60 seconds — don't spend a model on it.
 - Heavy-decision work escalates to **AI Council**; heavy-execution / cross-repo /
   large-repo work escalates to a scoped **Dynamic Workflow** (the execution analog;
