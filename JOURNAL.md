@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-03 — Protocols-cleanup final brick: 4 small-file fixes + AGENTS.md single-source attempt
+
+**Did:** Executed the remaining MED/LOW audit findings across four small protocol files (one commit each on `docs/protocols-final-cleanup`): SESSION_SETUP — signposted the two handoff layers (browser `wygeneruj handoff` vs HANDOFF v4 Claude-Code) + added `[scope: X]` to the LESSONS append format; HANDOFF_PROCESS §5 — forward-pointer to the v4.3 §A claim-reframe; AGENT_FRAMEWORK — stale "checks #1–#10/#11+" → points at `py scripts/audit.py checks` (drift-proof); ENVIRONMENT — refreshed version snapshot (Claude Code 2.1.161, Python 3.12.10, VS Code 1.122.1; dated 2026-06-03) + marked the elapsed GLM-5.1 April-12 binding item.
+**Result:** 228 tests green + ruff clean after every step; `audit.py health` green. **AGENTS.md single-source NOT landed** — canonical `codex/AGENTS.md` and deployed `~/.codex/AGENTS.md` confirmed byte-identical (no drift now), but symlink creation is blocked on this machine (`Administrator privilege required` — Developer Mode off; fold-in 2 → drift-guard branch, no elevation). Drift-guard proposed to operator (not built — operator-gated). Closes the protocols-cleanup arc except the operator's drift-guard decision. Noted (not built): ENVIRONMENT's version table is drift-prone hand-maintenance — future brick could auto-generate it. Deferred: bundling the `ARCHITECTURE.md:519` copy→symlink note with the §brick-#1 count-hardcode into one future genuine-re-read ARCHITECTURE pass.
+**Changes:** `protocols/SESSION_SETUP.md`, `protocols/HANDOFF_PROCESS.md`, `protocols/AGENT_FRAMEWORK.md`, `protocols/ENVIRONMENT.md`, JOURNAL (this). 4 step commits; advances BACKLOG #77.
+
+---
+
 ### 2026-06-03 — ESSENTIALS light fix: true contract + 3 drift fixes
 
 **Did:** Corrected false "1-page" contract on L3 (honest LLM-frame description); pointed lesson→rule at canonical PLAYBOOK §4; added canonical pointer for the three-layer flow to PLAYBOOK "System Architecture"; disambiguated "Continuous Improvement" heading vs PLAYBOOK §6. Single file, 4 commits on `docs/essentials-light-fix`.

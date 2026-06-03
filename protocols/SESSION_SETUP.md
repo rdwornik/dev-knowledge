@@ -114,6 +114,8 @@ Pomóż mi:
 ## Step 4: Handoff — When the Chat Gets Heavy
 <!-- scope: llm -->
 
+> **Which handoff is this?** This is the **browser→browser** auto-handoff (`wygeneruj handoff`) for carrying context between web-chat sessions. It is a *different layer* from the "Handoff workflow trigger" section below, which is the HANDOFF_PROCESS v4 **Claude-Code** protocol. Two mechanisms, two layers — not competing instructions for the same act.
+
 **Same process for both chat types.** Claude auto-adapts the content.
 
 ### When to handoff
@@ -166,7 +168,7 @@ Before closing, ask yourself: "What 2-3 things did I learn?"
 
 Append to `Dev/.dev-knowledge/LESSONS.md`:
 ```
-### YYYY-MM-DD | [source] | [one-line lesson] | [category] | [action taken]
+### YYYY-MM-DD | [source] | [one-line lesson] | [category] | [scope: X] | [action taken]
 ```
 
 Or ask Claude: "What were the key lessons from this chat? Format as LESSONS.md entries."
@@ -177,6 +179,8 @@ If nothing was learned — skip this step. Not every chat produces lessons.
 
 ## Handoff workflow trigger
 <!-- scope: hybrid -->
+
+> **Which handoff is this?** This is the HANDOFF_PROCESS v4 **Claude-Code** two-phase protocol — *distinct* from the browser→browser auto-handoff in Step 4 above.
 
 When Rob says one of these phrases, follow the v4 two-phase flow per
 `protocols/HANDOFF_PROCESS.md` v4 (the single live source of truth for handoff
