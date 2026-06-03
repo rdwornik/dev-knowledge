@@ -47,7 +47,6 @@ So that drift in transcripts, ADRs, and folders is caught cheaply, not by review
 So that session-start/close automation actually runs instead of being wired-but-vacuous.
 - [#8] [P2][M] Implement the analysed hooks (session-end clean-tree/staleness + SessionStart lessons-retrieval) and resolve the review-hook overlap — the **closure loop is whole**: Stop→propose (`propose_closures.py`), SessionStart→surface + `/review-closures` review/approve/close (`review_closures.py`), ADR-70 Tier-1; still remaining → session-end clean-tree/staleness hook, SessionStart **lessons-retrieval** (#4 territory), and the review-hook overlap · Done when: the remaining hooks run + are documented · refs 2026-05-29 hooks audit, ADR-70 (Tier-1 lifecycle hooks)
 - [#12] [P2][M] Create the evolution .jsonl logs (or repoint hooks/protocol to evolution-log.md) + add one read-only session-close automation · Done when: the evolution machinery is non-vacuous · refs coherence-audit SK-3/HK-2/HK-3, ADR-70 (Tier-1 Stop-hook propose-closures)
-- [#76] [P3][S] Groom the hub-local `/review-closures` command vs the plugin's (same command name) — decide drop-hub-local-in-favour-of-plugin vs keep, once usage shows whether the name collision causes ambiguity · Done when: a keep-or-drop decision is recorded · refs 5c convergence (JOURNAL 2026-06-02)
 
 ---
 
