@@ -101,9 +101,11 @@ def siblings_available(ecosystem_dir: Path, repo_root: Path) -> bool:
     absolute path recorded on the machine that registered it) or, failing that,
     the conventional ``<parent>/<name>`` slot next to the hub. In an isolated /
     cloud clone none of those resolve. Running the audit there would (a) record
-    spurious "path missing" FAILs for every sibling and (b) OVERWRITE the
-    committed logs/FLEET-HEALTH.md digest at SessionStart -- dirtying the working
-    tree before anything else runs (a false tripwire trip for a nightly Routine).
+    spurious "path missing" FAILs for every sibling and (b) rewrite the tracked
+    ecosystem/<name>/state.yaml files at SessionStart (audit.py refreshes them) --
+    modifying tracked files before anything else runs (a false tripwire trip for a
+    nightly Routine). The logs/FLEET-HEALTH.md digest is gitignored, so it is not
+    itself the tripwire risk; the tracked state.yaml writes are.
     Detecting absence lets main() skip the refresh and surface the cached digest
     instead: fail-soft, zero writes. Local runs (siblings present) are unaffected.
     """
