@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-04 — CONTRIBUTING stamp/hook-table sync (rerun findings #1+#2)
+
+**Did/Result:** Fixed both net-new conformance-rerun findings in one genuine read of CONTRIBUTING.md — handoff stamp `v4.3.1/stable` → `v4.3.2/live` (verified live header), and the validators table corrected from 6 to all 8 hooks (added `toc-freshness` + `toc-freshness-playbook`, verified against live `.pre-commit-config.yaml`). Bumped `last_reviewed`→2026-06-04 (full re-read confirmed rest accurate). Also captured the deny-cache gotcha (hot-reloads on ADD not REMOVAL) to global `~/.claude` gotchas, and deleted the merged `docs/conformance-rerun` branch.
+**Changes:** CONTRIBUTING.md, JOURNAL. Branch `docs/contributing-stamp-sync`, merge `--no-ff`.
+**Next:** corp-monorepo baseline (n=2 prerequisite for #84).
+
+---
+
 ### 2026-06-04 — Conformance rerun (recurring-review mode test)
 
 **Did/Result:** Reran the saved `conformance-hub` workflow (Run `wf_d044fa30-b08`) on branch `docs/conformance-rerun`; safety envelope held (Write/Edit denied + probe-verified; post-run fleet tripwire 5/5 clean; actual-model check = all 5 agents Haiku-4.5, routing still non-functional). Delta vs the pilot-#81 baseline: **F1 + F2 both RESOLVED** (now in checked_clean), **2 net-new med findings** — F1's fix was ARCHITECTURE-only so the same stale HANDOFF stamp persists in `CONTRIBUTING.md:133`, and the CONTRIBUTING hook table lists 6 vs the actual 8. No fixes (proposals only; #83 already covers the closure-discipline item).
