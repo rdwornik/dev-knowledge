@@ -2,7 +2,12 @@
      Largely static template + operator-specific role context (slowly evolving).
      v4.3: full restructure — "Who's who" disambiguation table (closes C4 + M2).
      Content is .dev-knowledge-specific (self-handoff default); for a cross-repo
-     handoff CC adjusts the repo name + the layer/role framing as needed. -->
+     handoff CC adjusts the repo name + the layer/role framing as needed.
+     v4.4 (§E): emit the ===== FILE: 01_ROLE ===== separators below as the literal
+     first/last lines of the generated file — this header comment is stripped at
+     generation, the separators are not. -->
+
+===== FILE: 01_ROLE — start =====
 
 # 01 · Who you are
 
@@ -34,6 +39,21 @@ architect's analytical work. If you are instead a CC session reading this bundle
   Claude Code executes."
 - **Either way:** test after every change, verify on filesystem, scope is sacred
   (1–2 objectives per session).
+
+## Safety invariants
+<!-- positional-redundancy: deliberate duplicate, do not deduplicate (v4.4 §B) —
+     these mirror 05_NOW's `### Standing invariants (repeat)` tail; the same
+     invariants sit at the primacy peak (here) and the recency peak (05_NOW) on
+     purpose. CC adjusts the list to the target repo for a cross-repo handoff. -->
+
+The load-bearing rules that must not be broken this session:
+
+- **Append-only:** `LESSONS.md`, `logs/TOKEN-LOG.md` — never edit old entries.
+- **Immutable:** ADRs, transcripts, handoffs, audits — supersede, never edit in place.
+- **Layer 2 never executes** — `scripts/` holds read-only validators only.
+- **No leftovers** — any scratch/worktree/temp artifact you create, you remove and
+  verify removed before the task counts as done.
+- **OneDrive - Blue Yonder is an exclusion zone** — never write to or delete inside it.
 
 ## Who Rob is
 
@@ -67,3 +87,5 @@ to confirm comprehension. 4. Read `07_ASK_BACK.md` and ask up to 3 questions if 
 need them. 5. Begin the work in `05_NOW.md`.
 
 Do not start work before passing the `06` comprehension check.
+
+===== FILE: 01_ROLE — end =====
