@@ -114,6 +114,40 @@ Run the auto-format hook standalone (e.g. to clean up before commit):
 python scripts/normalize_headers.py LESSONS.md JOURNAL.md
 ```
 
+## Nightly outcome management
+
+<!-- scope: meta -->
+
+The nightly conformance Routine (cloud, read-only) opens a PR on
+`claude/conformance-YYYY-MM-DD` that adds exactly one digest file,
+`docs/audits/YYYY-MM-DD-conformance-nightly-digest.md`, and never auto-merges. The
+repo's first GitHub Action (`.github/workflows/nightly-conformance-triage.yml`) handles
+the morning so the operator touches only findings:
+
+- **Clean night** (`Survived skeptic | 0` in the digest's `### Counts` table) → the PR is
+  squash-merged automatically and its branch deleted. No operator action.
+- **Findings night** (`Survived skeptic | N`, N>0) → the digest is squash-merged too (it is
+  the record) **and** a `nightly-triage` Issue `Nightly triage <date> — <N> survivor(s)` is
+  opened with the digest's Findings-by-Severity + Next-Actions sections and a link to the
+  merged digest.
+- **Anomalous PR** (anything other than exactly one ADDED digest file) → **nothing is
+  merged**; an `Anomalous nightly PR <date> — guard failed` Issue is opened listing the
+  changed files, and the PR is left open for human review.
+
+The **diff guard** is the safety gate: the Action merges only when
+`git diff --name-status base...head` is exactly one `A` line matching
+`docs/audits/*-conformance-nightly-digest.md` — a mislabeled or lying digest is therefore at
+worst a document on `main`, never code. **Where to look:** open `nightly-triage` Issues are
+surfaced at session start by `scripts/surface_triage.ps1` (a `[triage] …` line) and live in
+the repo's Issues tab.
+
+**Residual risk:** the survivor count is read from the digest **body** (the free-form PR
+title is not trusted) and the parse **fails closed** — an unreadable `### Counts` table opens
+an Issue and blocks the merge rather than guessing. **Layer-2 note:** this Action runs in
+GitHub CI and manages the hub's *own* review-output PRs only; it does not orchestrate child
+repos, and `surface_triage.ps1` is read-only — so the Layer-2 "validators only / never
+executes cross-repo" invariant still holds.
+
 ## ADR process
 
 <!-- scope: meta -->
