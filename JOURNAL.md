@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-05 — Model-routing re-probe completed: workflow-engine path + unpinned default
+
+**Did/Result:** Closed the two C3 sub-items the prior entry's Agent-tool-only probe left open. (b) **Load-bearing test run:** a 3-stage Dynamic-Workflow probe (the workflow-engine `opts.model` path — separate code path from Agent-tool pins, and the one `conformance-hub` uses) confirms pins honored: `sonnet`→`claude-sonnet-4-6`, `haiku`→`claude-haiku-4-5-20251001`. Gotcha RESOLVED mark now backed across BOTH code paths. (c) **Unpinned default measured:** an unpinned subagent inherits the **main session model** (`claude-opus-4-8`) on both Agent-tool AND workflow paths — not platform-default, not Haiku. Cost consequence: the old override's job (floor every subagent at cheap Haiku) is gone; unpinned fan-outs now run on Opus 4.8. Replacement discipline = explicit per-stage pins (t-shirt doctrine). Also pushed `main`→origin (nightly clone now sees current JOURNAL).
+
+**Changes:** `~/.claude/skills/gotchas/gotchas.md` (out-of-repo; RESOLVED line expanded to both-path + unpinned-cost fact); JOURNAL. `main` pushed to `origin` (private GitHub). No repo code/doc changed.
+
+---
+
 ### 2026-06-05 — Model-routing re-probe: pins now honored (closes C3 pending)
 
 **Did/Result:** Ran the post-restart re-probe that was the lone Pending item from the Phase C3 entry below. `$env:CLAUDE_CODE_SUBAGENT_MODEL` now empty in all three scopes (Process/User/Machine) — operator cleared the second source (launch-shell profile/.env) that the 2026-06-05 in-session re-probe had found still active. 2-agent matrix probe: `model: sonnet` pin → `claude-sonnet-4-6`, `model: haiku` pin → `claude-haiku-4-5-20251001` — each Agent-tool pin honored distinctly (pre-fix both ran Haiku). **Per-agent model routing is functional; C3 thread fully closed.** Re-rooted gotcha (`~/.claude/skills/gotchas/gotchas.md`) marked RESOLVED with the load-bearing confirmation, retained as a standing residual warning.
