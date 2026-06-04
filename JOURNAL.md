@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-04 — Conformance rerun (recurring-review mode test)
+
+**Did/Result:** Reran the saved `conformance-hub` workflow (Run `wf_d044fa30-b08`) on branch `docs/conformance-rerun`; safety envelope held (Write/Edit denied + probe-verified; post-run fleet tripwire 5/5 clean; actual-model check = all 5 agents Haiku-4.5, routing still non-functional). Delta vs the pilot-#81 baseline: **F1 + F2 both RESOLVED** (now in checked_clean), **2 net-new med findings** — F1's fix was ARCHITECTURE-only so the same stale HANDOFF stamp persists in `CONTRIBUTING.md:133`, and the CONTRIBUTING hook table lists 6 vs the actual 8. No fixes (proposals only; #83 already covers the closure-discipline item).
+**Changes:** +`docs/audits/2026-06-04-conformance-rerun-delta-digest.md`, JOURNAL. Branch `docs/conformance-rerun`, merge `--no-ff` pending.
+**Next:** operator triage of the 2 CONTRIBUTING.md drifts; corp-monorepo baseline.
+
+---
+
 ### 2026-06-04 — Pilot-arc retro captures (LESSONS + gotchas + BACKLOG)
 
 **Did/Changes:** Appended 3 LESSONS (verify-by-state, proven twice; absence-in-sources ≠ absence-in-canon; research-preview runtime caps are version-pinned) + 2 CC-workflow gotchas to the global `~/.claude` gotchas skill (workflow auto-write safety envelope; per-agent routing non-functional on 2.1.162). Added BACKLOG #84 (workflow-doctrine codification — closes #74/#80 on landing, after corp-monorepo baseline), #85 (night-run LOCAL track), #86 (cloud-night decision pkg), #87 (Anthropic /bug report), + #82 iteration-2 profile note. No PLAYBOOK/protocols/ADR content edits. Branch `chore/pilot-retro-captures`, merge `--no-ff` pending.
