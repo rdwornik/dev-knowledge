@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-05 — Handoff Phase 2 complete (2026-06-05-dev-knowledge-session)
+
+**Did/Result:** Consolidated the Phase-D codification handoff into the 8-file v4 bundle at `docs/handoffs/2026-06-05-dev-knowledge-session/` (HANDOFF_PROCESS v4.3.2; README stamped `status: beta` per §E). Folded the operator's pasted interview answers (the deployment-arc narrative + Phase-D agenda) into `04_RECENT`/`05_NOW`; removed the `in-progress/` interview (content preserved in the bundle). **Phase-2 cross-check: no material drift** — verified `main` tip = `6e8c84f`, branch 2 commits ahead, `origin` = github.com/rdwornik/dev-knowledge, conformance-hub.js + nightly-triage Action + surface_triage.ps1 all present, BACKLOG shows #87 withdrawn + #89/#90 added, 235 tests green, ruff clean, validate_backlog OK (52 tasks), PR-#1 merge `205da14` present. One **documented** non-bundle divergence carried into the table: the `/handoff` **skill** body still stamps v4.3.1/stable while the live spec is v4.3.2 (§E beta) — the bundle stamps v4.3.2/beta per the live spec (sender Warning #9). Line budgets all clear (01:74 / 02:104 / 03:66 / 04:152 / 05:60 / 06:44 / 07:20).
+
+**Changes:** new bundle `docs/handoffs/2026-06-05-dev-knowledge-session/` (README + 01–07); removed `docs/handoffs/in-progress/2026-06-05-dev-knowledge-session/`; JOURNAL. Branch `docs/handoff-2026-06-05`.
+
+**Next:** operator uses the bundle per its README escalation ladder (paste 01–05 → 06 → 07) to onboard the Phase-D browser chat; then merge `docs/handoff-2026-06-05` → `main` (brings the bundle + the ARCHITECTURE-row correction onto main). Watch item: the first production nightly run.
+
+---
+
 ### 2026-06-05 — Handoff Phase 1 interview generated (2026-06-05-dev-knowledge-session)
 
 **Did/Result:** Generated the Phase-1 sage→apprentice interview for the **Phase-D codification** handoff (HANDOFF_PROCESS v4.3.2). Scope-matrix Case 2 (clean tree, commits since the 2026-06-03 bundle, no today-slug) → today's default slug, stamped 2026-06-05 (local-date convention; harness reads 2026-06-04). HEAD captured `6e8c84f` (`main`, clean). Embedded the Phase-D receiver context — the living-doc staleness map (ARCHITECTURE/PLAYBOOK STALE; CONTRIBUTING PARTIAL; CLAUDE STALE-by-deferral; VISION/ESSENTIALS current-by-scope), the codification agenda (adoption rubric + 3 case studies, t-shirt routing doctrine, prose-vs-state checker [#89], V4 git↔backlog verifier [#90], cloud-readiness, cadences, lessons), and the pending-elsewhere markers (#86 ADRs + AI-Council are post-Phase-D; watch the first production nightly run) — into the in-progress interview for Phase 2 to fold into the bundle. Awaiting operator answers.
