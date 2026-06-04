@@ -19,6 +19,12 @@
 
 ---
 
+### 2026-06-04 — Merge nightly PR #1 + land fleet_health cloud-clone fail-soft
+
+**Did/Changes:** Squash-merged the first nightly conformance PR #1 (0 surviving findings — the 8 raw V1 candidates were all the shallow-clone pre-June-SHA false positives, now suppressed proactively by the V1 guard). Then landed the Step-6 cloud session's stranded fix: `fleet_health.siblings_available()` skips the cross-repo audit in an isolated/cloud clone, so SessionStart rewrites no tracked `ecosystem/*/state.yaml` (keeps the nightly tripwire clean); +5 tests (235 green), one overstated rationale-comment line corrected. Pruned the 3 remaining merged local branches earlier; deleted the orphan cloud branch `claude/wizardly-babbage-5X6e0` after landing. Branch `fix/fleet-health-failsoft`, merge `--no-ff`. Advances #86.
+
+---
+
 ### 2026-06-04 — Hub closeout: V1 shallow-history guard, #88 closed, branch prune
 
 **Did/Changes:** Added a shallow-history guard to the `conformance-hub` V1 stage (cloud clones may be shallow — SHAs older than the history boundary are out-of-scope, not false "commit absent" findings; pushed so tonight's nightly run benefits). Closed [#88] — graphify evaluated and REJECTED per corp-monorepo `docs/audits/2026-06-04-graphify-pilot.md`. Pruned 6 merged branches (pilot/handoff/pilot81). Branch `chore/hub-closeout`, merge `--no-ff`.
