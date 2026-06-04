@@ -1,9 +1,9 @@
 # HANDOFF_PROCESS v4
 
-<!-- version: 4.3.2 — 2026-06-03 (v4.0 radical simplification + v4.1 fix: in-progress/ folder + sage→apprentice single-cluster interview + v4.2 refinements: four-tag sage + drift visibility + bundle maintenance + v4.3: comprehensive fresh-eyes close + enforcement groundwork + v4.3.1: architectural caveat patch + status stable + v4.3.2: verification-coverage refinements: whole-bundle cross-check, extract-fidelity check, durable-principle promotion) -->
+<!-- version: 4.4 — 2026-06-05 (v4.0 radical simplification + v4.1 fix: in-progress/ folder + sage→apprentice single-cluster interview + v4.2 refinements: four-tag sage + drift visibility + bundle maintenance + v4.3: comprehensive fresh-eyes close + enforcement groundwork + v4.3.1: architectural caveat patch + status stable + v4.3.2: verification-coverage refinements: whole-bundle cross-check, extract-fidelity check, durable-principle promotion + v4.4: positional-attention refinements: top-landmines tail + dual-position invariants + quote-grounded comprehension + distractor hygiene + file separators + first-move recitation) -->
 <!-- scope: meta -->
 
-Version: 4.3.2
+Version: 4.4
 Effective: 2026-05-29
 Supersedes: v3.4 (preserved at `protocols/archive/HANDOFF_PROCESS_v3.4.md`) and the
 full v3.x chain it carried forward.
@@ -206,8 +206,8 @@ doc-truth-drift finding). Generating each time keeps the bundle as current as th
 | `01_ROLE.md` | Template + operator-specific role context (slowly evolving) |
 | `02_METHODOLOGY.md` | Key sections (by name) of `protocols/PLAYBOOK.md` + `protocols/ESSENTIALS.md`; model-selection + prompt-format + hooks + AI-Council + conventions extracts |
 | `03_PROJECT.md` | `VISION.md` (vision + scope) + `CLAUDE.md` (purpose/critical paths) + sacred-files list from ADRs/conventions; ADR-41 cross-repo ownership note |
-| `04_RECENT.md` | CC narrative synthesis of `JOURNAL.md` last N entries (default N=20 OR last 7 days, whichever is smaller) + browser interview answers folded inline. **Narrative prose, not a journal copy.** |
-| `05_NOW.md` | `BACKLOG.md` top P1s + `git branch -v` (in-progress branches) + recent commit tip |
+| `04_RECENT.md` | CC narrative synthesis of `JOURNAL.md` last N entries (default N=20 OR last 7 days, whichever is smaller) + browser interview answers folded inline. **Narrative prose, not a journal copy.** Presents **final state** (v4.4 §D): a refuted-then-corrected thread appears only when the refutation is itself a landmine, labelled `[REFUTED — historical]`; unlabelled superseded narrative is a generation defect. |
+| `05_NOW.md` | `BACKLOG.md` top P1s + `git branch -v` (in-progress branches) + recent commit tip. Ends with the mandatory `## Top landmines (do-not list)` tail (v4.4 §A): `### Session landmines` (≤5 imperatives from interview Q5) + `### Standing invariants (repeat)` (the `01_ROLE` invariants mirrored). |
 | `06_QUESTIONS.md` | Template (4–5 static comprehension questions) + 1–2 dynamic slots tailored to recent work (from interview/JOURNAL) |
 | `07_ASK_BACK.md` | Static template inviting up to 3 questions before work starts |
 
@@ -220,6 +220,10 @@ The templates in `templates/handoff/` carry generation markers:
 CC resolves every marker at Phase 2. An unresolved marker in a generated file is a
 generation failure — fix it or note the degradation (§9), never ship the literal
 marker.
+
+The load-bearing safety invariants appear at **both** `01_ROLE` (top, primacy peak) and
+`05_NOW`'s landmines tail (recency peak) — this duplication is **deliberate** (v4.4
+§A/§B, marked with a `positional-redundancy` guard comment); do not deduplicate it.
 
 ---
 
@@ -572,3 +576,91 @@ the operator-call amendment pattern (v4.2 / v4.3 / v4.3.1). Ships at status `bet
 promotes to `stable` after one fresh-eyes pass meeting the judgment-augmented criterion
 (v4.3.1 §B). A/B/C are CC-behavioral rules at Phase 2 (no new `audit.py` check — these
 gaps are semantic, deferred to the BACKLOG semantic-lint item).
+
+## Amendment 2026-06-05 — v4.4 positional-attention refinements
+
+The bundle's files `01`–`05` are pasted into a fresh chat as **one message**. LLM
+attention over a long single message is **U-shaped**: the beginning (primacy) and end
+(recency) hold attention; the middle loses ~30%+. Today the highest-stakes content —
+the sender's interview warnings — folds into `04_RECENT`, the dead middle. v4.4
+repositions and **deliberately duplicates** the load-bearing content onto the two
+attention peaks, hardens the comprehension gate with quote-grounding, and de-fangs
+distractors in the narrative. Template + spec changes only — no change to the two-phase
+flow, the 8-file structure, the paste order, the four-tag discipline, or the escalation
+ladder. **Line-budget impact: none** — checked against the freshest real bundle
+(`05_NOW` 60, `01_ROLE` 74, `06_QUESTIONS` 44 lines); every addition stays inside the
+existing budget, so no §4 budget number moves.
+
+### A. Top-landmines tail in `05_NOW`
+
+`05_NOW` gains a mandatory final section `## Top landmines (do-not list)` — at the
+recency peak, the last thing the apprentice reads before acknowledging. It carries **two
+adjacent sub-blocks** so session-specific warnings and permanent invariants do not
+compete for one cap: **(a) `### Session landmines`** — max 5 imperative one-liners
+("Do NOT …") synthesized from interview Q5, changing every handoff; **(b) `### Standing
+invariants (repeat)`** — the 3–5 load-bearing invariants mirrored from `01_ROLE`, stable
+across handoffs. Duplication of content already in `04_RECENT` / `01_ROLE` is
+intentional, not redundant noise — see §B. *Grounding: U-shaped positional attention.*
+
+### B. Dual-position safety invariants (positional redundancy by design)
+
+`01_ROLE` keeps a compact 3–5 line **Safety invariants** block near its top (primacy
+peak); `05_NOW`'s new `### Standing invariants (repeat)` sub-block (§A) repeats them at
+the recency peak. **This intentionally violates DRY.** The same load-bearing invariants
+appear at both attention peaks *on purpose* — the middle of a long paste is where a
+single-copy invariant gets lost. Both blocks carry the HTML comment
+`<!-- positional-redundancy: deliberate duplicate, do not deduplicate -->` so a future
+doc-rot / deduplication audit does not "fix" the duplication and silently re-open the
+attention gap. *Grounding: U-shaped positional attention.*
+
+### C. Quote-grounded comprehension
+
+`06_QUESTIONS`'s pass criterion gains a **source-reference requirement**: every answer
+MUST name the bundle file + section it draws from (e.g. "04_RECENT › Load-bearing
+facts"). An answer with no source reference **fails that answer**, regardless of how
+correct the prose reads — grounding an assertion in a quotable location is what
+separates comprehension from plausible confabulation. `README` Step B instructs the
+operator to **check the references**, not just the prose. *Grounding: Anthropic
+long-context quote-grounding guidance.*
+
+### D. Distractor hygiene in `04_RECENT`
+
+`04_RECENT`'s narrative presents **final state**. A refuted-then-corrected thread (a
+premise that was floated, then withdrawn) may appear **only** when the refutation is
+itself a landmine the next session must not re-walk — and then it must carry the inline
+label `[REFUTED — historical]` at the point it is mentioned. Unlabeled superseded
+narrative is a generation defect: stale intermediate claims sitting in the middle of the
+paste act as distractors that degrade comprehension of the surviving facts. *Grounding:
+context-rot distractor degradation.*
+
+### E. Explicit file boundaries
+
+Every pasted teaching file (`01`–`07`) begins with `===== FILE: NN_NAME — start =====`
+and ends with `===== FILE: NN_NAME — end =====`. When `01`–`05` arrive as one message,
+the separators make each file's boundary salient so the model does not blur the five
+documents into one undifferentiated wall. `README` is the operator runbook and is **not
+pasted into the new chat — it is exempt** from separators; its paste instructions tell
+the operator to keep the separators on the files that are pasted. *Grounding: context-rot
+distractor degradation / boundary salience.*
+
+### F. First-move recitation
+
+`06_QUESTIONS` gains a **fixed final question** (not a dynamic slot, keep its shape
+verbatim like the four-tag question): *"State your first action, why it is first, and
+what you will NOT touch."* Forcing the apprentice to recite its first move — and its
+explicit not-touch list — before work begins counters early-assumption lock-in, where a
+plausible-but-wrong opening move set in the first turn persists unchallenged through the
+session. *Grounding: multi-turn lost-in-conversation degradation.*
+
+### G. Status
+
+v4.4 is positional-attention refinement — no architecture change; consistent with the
+operator-call amendment pattern (v4.2 / v4.3 / v4.3.1 / v4.3.2). **Operator decision on
+record:** file count stays at **8** — small files at generation for synthesis quality,
+single message at paste for attention; do NOT consolidate. Ships at status `beta`;
+promotes to `stable` after **one real production handoff** exercised under v4.4 that
+meets the judgment-augmented criterion (v4.3.1 §B: Stage-1 <2 critical findings AND
+reviewer Stage-3 verdict PROMOTE / PROMOTE-WITH-CAVEATS, reviewer judgment overriding
+count). The §A/§B deliberate redundancy and the §E separators were validated by a
+throwaway dry-render at authoring time; the **real test is the next production handoff.**
+A–F are CC-behavioral / template rules at Phase 2 (no new `audit.py` check).
