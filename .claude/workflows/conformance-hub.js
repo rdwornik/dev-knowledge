@@ -119,6 +119,7 @@ const digestSchema = {
 const V1 = READONLY + '\n\nDOMAIN V1 - JOURNAL vs git reality.\n'
   + 'Read the LAST 10 entries (newest-first) of ' + REPO + '/JOURNAL.md. Each entry has Did / Result / Changes / (Abandoned) / Next lines.\n'
   + 'For each concrete claim of work done (Did/Result/Changes), corroborate it against git: use "git log --oneline -40", "git show <hash>", "git log -p -S \"<string>\" -- <file>", and direct file existence checks.\n'
+  + 'SHALLOW-HISTORY GUARD: before flagging a JOURNAL entry commit SHA as absent, verify that SHA date falls within the available git history (the clone may be SHALLOW -- cloud clones start at the first push). SHAs older than the history boundary are OUT-OF-SCOPE, not findings.\n'
   + 'FLAG: (a) entries asserting work that git history does NOT show (verdict contradicted/unsupported); (b) significant merged work in git (recent commits/merges) that the last-10 JOURNAL entries do NOT mention (verdict omitted).\n'
   + 'Populate checked_clean with the claims you verified as TRUE (so their absence from findings is informative). Set verifier_id="V1".'
 
