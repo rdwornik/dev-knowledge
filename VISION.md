@@ -1,7 +1,7 @@
 ---
 version: 1.0
 owner: rob
-last_reviewed: 2026-06-03
+last_reviewed: 2026-06-04
 status: active
 ---
 
@@ -132,7 +132,7 @@ artifacts to detect drift:
 **Audit support:** verification mechanism implemented via `.dev-knowledge`
 auditor (`scripts/audit.py` per ADR-36 — `health`/`repo`/`run`/`registry`
 commands, read-only). The cross-repo `run`/`repo` are manually invoked; the
-self-audit `health` (10 checks) runs as this repo's pre-commit gate ([#69]).
+self-audit `health` (all registered `ALL_CHECKS` — count via `scripts/audit.py checks`) runs as this repo's pre-commit gate ([#69]).
 Manual session-close verification per HANDOFF_PROCESS.md complements the tool.
 
 **Vision realized:** when current Vision becomes current state, archive
