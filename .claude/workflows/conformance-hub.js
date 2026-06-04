@@ -8,7 +8,7 @@ export const meta = {
   ],
 }
 
-const REPO = 'C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge'
+const REPO = '.'  // repo root = cwd; portable across local + Linux cloud clone
 
 const READONLY = [
   'You are STRICTLY READ-ONLY. You may Read files, run read-only git (git log, git show, git diff, "git log -p -S"), and grep.',
@@ -117,14 +117,14 @@ const digestSchema = {
 }
 
 const V1 = READONLY + '\n\nDOMAIN V1 - JOURNAL vs git reality.\n'
-  + 'Read the LAST 10 entries (newest-first) of ' + REPO + '\\JOURNAL.md. Each entry has Did / Result / Changes / (Abandoned) / Next lines.\n'
+  + 'Read the LAST 10 entries (newest-first) of ' + REPO + '/JOURNAL.md. Each entry has Did / Result / Changes / (Abandoned) / Next lines.\n'
   + 'For each concrete claim of work done (Did/Result/Changes), corroborate it against git: use "git log --oneline -40", "git show <hash>", "git log -p -S \"<string>\" -- <file>", and direct file existence checks.\n'
   + 'FLAG: (a) entries asserting work that git history does NOT show (verdict contradicted/unsupported); (b) significant merged work in git (recent commits/merges) that the last-10 JOURNAL entries do NOT mention (verdict omitted).\n'
   + 'Populate checked_clean with the claims you verified as TRUE (so their absence from findings is informative). Set verifier_id="V1".'
 
 const V2 = READONLY + '\n\nDOMAIN V2 - Living-doc claims vs repo state.\n'
-  + 'Scan these files for VERIFIABLE FACTUAL claims (counts, file paths, command names, "we do X via Y"): VISION.md, ARCHITECTURE.md, CLAUDE.md, CONTRIBUTING.md, protocols\\ESSENTIALS.md. Do NOT scan protocols\\PLAYBOOK.md (out of scope, too large).\n'
-  + 'Check each claim against actual repo state: e.g. a count like "12 checks" -> "python scripts\\audit.py checks" or grep the ALL_CHECKS registry; a file path -> test it exists; a command/hook name -> verify it exists in .pre-commit-config.yaml / scripts/ / ~/.claude/commands.\n'
+  + 'Scan these files for VERIFIABLE FACTUAL claims (counts, file paths, command names, "we do X via Y"): VISION.md, ARCHITECTURE.md, CLAUDE.md, CONTRIBUTING.md, protocols/ESSENTIALS.md. Do NOT scan protocols/PLAYBOOK.md (out of scope, too large).\n'
+  + 'Check each claim against actual repo state: e.g. a count like "12 checks" -> "python scripts/audit.py checks" or grep the ALL_CHECKS registry; a file path -> test it exists; a command/hook name -> verify it exists in .pre-commit-config.yaml / scripts/ / .claude/commands/.\n'
   + 'FLAG mismatches with the exact file:line and the disproving command (verdict contradicted). Known reference class: hardcoded counts that drift. Only flag falsifiable claims; ignore prose/opinion.\n'
   + 'Populate checked_clean with the factual claims you verified as correct. Set verifier_id="V2".'
 
@@ -154,7 +154,7 @@ log('Stage 1 raw findings: ' + raw.length + ' (V1=' + (v1 ? v1.findings.length :
 
 phase('Stage 2 - skeptic')
 const skepticPrompt = READONLY + '\n\nYou are an ADVERSARIAL SKEPTIC. Below are ' + raw.length + ' findings from 3 read-only verifiers. Default to KILLING a finding unless its evidence_command definitively proves a real conformance problem.\n'
-  + 'KILL if the finding is: opinion; style preference; technically-true-but-irrelevant; explainable by a documented decision (CONSULT ' + REPO + '\\docs\\decisions before deciding - cite the ADR id); or its evidence_command is not actually definitive.\n'
+  + 'KILL if the finding is: opinion; style preference; technically-true-but-irrelevant; explainable by a documented decision (CONSULT ' + REPO + '/docs/decisions before deciding - cite the ADR id); or its evidence_command is not actually definitive.\n'
   + 'You MAY re-run any evidence_command yourself (read-only) to confirm before keeping. For each SURVIVOR set: severity (high/med/low), keep the evidence_command, and a one-line proposed_fix (PROPOSAL ONLY - take no action). For each KILL: claim + kill_reason + kill_detail.\n\n'
   + 'FINDINGS JSON:\n```json\n' + JSON.stringify(raw, null, 2) + '\n```'
 const skeptic = await agent(skepticPrompt, { label: 'skeptic-adversarial', phase: 'Stage 2 - skeptic', schema: skepticSchema })
