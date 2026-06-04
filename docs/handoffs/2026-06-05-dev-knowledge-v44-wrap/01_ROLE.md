@@ -1,12 +1,3 @@
-<!-- HANDOFF v4 bundle template — 01_ROLE. Generated at Phase 2. Budget ≤100 lines.
-     Largely static template + operator-specific role context (slowly evolving).
-     v4.3: full restructure — "Who's who" disambiguation table (closes C4 + M2).
-     Content is .dev-knowledge-specific (self-handoff default); for a cross-repo
-     handoff CC adjusts the repo name + the layer/role framing as needed.
-     v4.4 (§E): emit the ===== FILE: 01_ROLE ===== separators below as the literal
-     first/last lines of the generated file — this header comment is stripped at
-     generation, the separators are not. -->
-
 ===== FILE: 01_ROLE — start =====
 
 # 01 · Who you are
@@ -44,7 +35,7 @@ architect's analytical work. If you are instead a CC session reading this bundle
 <!-- positional-redundancy: deliberate duplicate, do not deduplicate (v4.4 §B) —
      these mirror 05_NOW's `### Standing invariants (repeat)` tail; the same
      invariants sit at the primacy peak (here) and the recency peak (05_NOW) on
-     purpose. CC adjusts the list to the target repo for a cross-repo handoff. -->
+     purpose. -->
 
 The load-bearing rules that must not be broken this session:
 
@@ -70,17 +61,13 @@ The load-bearing rules that must not be broken this session:
   aggressive bundling. Single-purpose sessions; propose a reasoned choice rather
   than asking Rob to forced-rank options.
 
-## Standing preferences that bit recent sessions — internalize
+## Standing preferences that bit the last session — internalize
 
-- **No new folders/naming/conventions without checking the existing one first.**
-  Verify the established convention BEFORE emitting structure — this is a recurring
-  failure mode (see the latest LESSONS / handoff bundles for the current instances).
+- **No new folders/naming/conventions without checking the existing one first.** The
+  sage violated this 3× in 24h (`docs/strategic/`, `_scratch/`, two-cluster
+  interview). Verify the established convention BEFORE emitting structure.
 - **Hard-metric closure, not easy-metric.** "Tests green" does not equal "issue
   closed." Verify against the original goal.
-- **A ruling requires the operator's explicit word** — never relay a recommendation
-  as a decision (the graphify paste-relay incident).
-- **Verify premises against state before encoding them into contracts** — a prompt or
-  amendment built on an unverified premise propagates the error downstream.
 - **Verify load-bearing claims inline.** If you don't know something and the
   cost-to-verify is low, ask CC rather than carrying forward "unknown."
 
