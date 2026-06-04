@@ -1,0 +1,209 @@
+name: Nightly Conformance Triage
+
+# Auto-manages the morning handling of nightly conformance PRs.
+# A cloud Routine (user token) opens a PR on branch claude/conformance-YYYY-MM-DD
+# adding exactly one digest file and never auto-merges. This Action:
+#   - diff-guards the PR (exactly one ADDED digest file, nothing else),
+#   - squash-merges digest-only PRs,
+#   - opens `nightly-triage` Issues when survivors > 0, on guard failure,
+#     on an unparseable digest, or on a failed auto-merge.
+#
+# NOTE on the trigger: pull_request.branches filters the BASE (target) branch,
+# which is `main`. Head-branch narrowing (claude/conformance-*) therefore happens
+# at the JOB level via `if: startsWith(github.head_ref, ...)`.
+#
+# Same-repo PRs (these originate from a branch in this repo, not a fork) run with
+# a read-write GITHUB_TOKEN even on a private repo.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+# Least privilege: only what gh needs to merge, label, and open issues.
+permissions:
+  contents: write          # squash-merge + delete branch
+  pull-requests: write     # gh pr merge
+  issues: write            # gh issue create + gh label create
+
+concurrency:
+  # One triage run per PR; cancel superseded runs on new pushes.
+  group: nightly-triage-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    # Head-branch narrowing: only fire on actual nightly conformance PRs.
+    if: startsWith(github.head_ref, 'claude/conformance-')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_URL: ${{ github.event.pull_request.html_url }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_REF: ${{ github.event.pull_request.base.ref }}
+    steps:
+      - name: Checkout PR head with full history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0   # three-dot diff needs both endpoints reachable
+
+      - name: Ensure nightly-triage label exists (idempotent)
+        run: |
+          gh label create nightly-triage \
+            --color FBCA04 \
+            --description "Nightly conformance PR triage" \
+            || true
+
+      - name: Diff guard - exactly one ADDED digest file
+        id: guard
+        run: |
+          set -euo pipefail
+
+          # Make sure both endpoints are present for the diff.
+          git fetch --no-tags origin "$BASE_SHA" "$HEAD_SHA" 2>/dev/null || true
+
+          DIFF="$(git diff --no-renames --name-status "$BASE_SHA"..."$HEAD_SHA")"
+          echo "----- raw diff -----"
+          echo "$DIFF"
+          echo "--------------------"
+
+          LINE_COUNT="$(printf '%s\n' "$DIFF" | grep -c . || true)"
+          STATUS="$(printf '%s\n' "$DIFF" | awk 'NR==1{print $1}')"
+          FILE="$(printf '%s\n' "$DIFF" | awk 'NR==1{print $2}')"
+
+          PASS=false
+          if [ "$LINE_COUNT" = "1" ] \
+             && [ "$STATUS" = "A" ] \
+             && printf '%s' "$FILE" | grep -Eq '^docs/audits/[0-9]{4}-[0-9]{2}-[0-9]{2}-conformance-nightly-digest\.md$'; then
+            PASS=true
+          fi
+
+          {
+            echo "pass=$PASS"
+            echo "file=$FILE"
+            echo "diff<<__DIFF_EOF__"
+            echo "$DIFF"
+            echo "__DIFF_EOF__"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: On guard FAIL - open anomaly issue and stop
+        if: steps.guard.outputs.pass != 'true'
+        env:
+          # Route untrusted step outputs through env (never inline ${{ }} into the
+          # script source) so a hostile filename/diff cannot inject shell commands.
+          # ${VAR} parameter expansion is not re-scanned for command substitution.
+          GUARD_FILE: ${{ steps.guard.outputs.file }}
+          GUARD_DIFF: ${{ steps.guard.outputs.diff }}
+        run: |
+          set -euo pipefail
+          DATE="$(printf '%s' "$GUARD_FILE" \
+                  | grep -Eo '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -n1 || true)"
+          [ -n "$DATE" ] || DATE="$(date -u +%F)"
+
+          BODY="$(cat <<EOF
+          Automated guard for the nightly conformance PR **failed**: the PR did not
+          consist of exactly one ADDED \`docs/audits/*-conformance-nightly-digest.md\` file.
+
+          **PR:** ${PR_URL}
+          **Base:** \`${BASE_SHA}\`
+          **Head:** \`${HEAD_SHA}\`
+
+          **Changed files (git diff --name-status base...head):**
+          \`\`\`
+          ${GUARD_DIFF}
+          \`\`\`
+
+          Nothing was merged. A human must review this PR.
+          EOF
+          )"
+
+          gh issue create \
+            --title "Anomalous nightly PR ${DATE} — guard failed" \
+            --label nightly-triage \
+            --body "$BODY"
+
+          echo "::error::Diff guard failed — opened triage issue, refusing to merge."
+          exit 1
+
+      - name: On guard PASS - parse survivors, merge, conditionally triage
+        if: steps.guard.outputs.pass == 'true'
+        env:
+          # Route the step output through env (never inline ${{ }} into the script
+          # source). Guard already validated FILE against the strict digest regex,
+          # but keep the no-inline discipline uniform across the workflow.
+          GUARD_FILE: ${{ steps.guard.outputs.file }}
+        run: |
+          set -euo pipefail
+          FILE="$GUARD_FILE"
+
+          DATE="$(printf '%s' "$FILE" | grep -Eo '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -n1)"
+
+          # Parse "Survived skeptic | N" from the ### Counts table.
+          SURV="$(grep -E '^\|[[:space:]]*Survived skeptic[[:space:]]*\|' "$FILE" \
+                  | head -n1 \
+                  | awk -F'|' '{gsub(/[[:space:]]/,"",$3); print $3}')"
+
+          echo "date=$DATE survivors=$SURV"
+
+          # Parse-fails-closed: refuse to merge if we cannot read an integer.
+          if ! printf '%s' "$SURV" | grep -Eq '^[0-9]+$'; then
+            echo "::error::Could not parse 'Survived skeptic' integer from $FILE (got '$SURV')."
+            gh issue create \
+              --title "Nightly triage ${DATE} — unparseable digest" \
+              --label nightly-triage \
+              --body "Guard passed but the 'Survived skeptic' count could not be parsed from \`${FILE}\`. PR: ${PR_URL}. NOT merged."
+            exit 1
+          fi
+
+          # Squash-merge + delete branch. Loud-fail on branch protection etc.
+          if ! gh pr merge "$PR_NUMBER" --squash --delete-branch; then
+            echo "::error::gh pr merge failed (branch protection / required reviews?)."
+            gh issue create \
+              --title "Nightly triage ${DATE} — auto-merge failed" \
+              --label nightly-triage \
+              --body "Guard PASSED (survivors=${SURV}) but \`gh pr merge --squash --delete-branch\` failed — likely branch protection / required reviews on \`${BASE_REF}\`. PR left open for manual merge: ${PR_URL}"
+            exit 1
+          fi
+
+          if [ "$SURV" -gt 0 ]; then
+            DIGEST_URL="https://github.com/${GITHUB_REPOSITORY}/blob/main/${FILE}"
+
+            # Two-pass extraction: pull the "Findings by Severity" and "Next Actions"
+            # blocks SEPARATELY (each from its heading up to the next ###/##/--- marker)
+            # so the intervening Counts / Checked Clean blocks do NOT bleed in.
+            FINDINGS="$(awk '
+              /^### Findings by Severity[[:space:]]*$/ {cap=1; print; next}
+              cap && /^(### |## |---[[:space:]]*$)/ {exit}
+              cap {print}
+            ' "$FILE")"
+
+            NEXTACT="$(awk '
+              /^### Next Actions[[:space:]]*$/ {cap=1; print; next}
+              cap && /^(### |## |---[[:space:]]*$)/ {exit}
+              cap {print}
+            ' "$FILE")"
+
+            BODY="$(cat <<EOF
+          The nightly conformance digest for **${DATE}** reported **${SURV} survivor(s)**.
+          The digest has been squash-merged to \`main\` (it is the record):
+
+          ${DIGEST_URL}
+
+          ---
+
+          ${FINDINGS}
+
+          ${NEXTACT}
+          EOF
+          )"
+
+            gh issue create \
+              --title "Nightly triage ${DATE} — ${SURV} survivor(s)" \
+              --label nightly-triage \
+              --body "$BODY"
+          else
+            echo "0 survivors — merged, no triage issue needed."
+          fi
