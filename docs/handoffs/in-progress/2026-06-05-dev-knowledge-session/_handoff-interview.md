@@ -78,7 +78,7 @@ history.
 
 | File | Verdict | Phase-D codification targets |
 |---|---|---|
-| `ARCHITECTURE.md` | **STALE** | add spec-orchestration doctrine; t-shirt model routing; machinery-retirement lifecycle (C3); adoption process; GitHub-Actions standard (cloud-night + nightly Action ARE already present) |
+| `ARCHITECTURE.md` | **STALE** (operator-verified by grep against the live file) | **Fully missing** — the GitHub remote/push reality, the cloud-night pipeline + nightly Routine, the spec-orchestration doctrine, the in-repo conformance-hub workflow, the GitHub Action / nightly-triage outcome loop, t-shirt model routing, machinery retirements (C3), and the adoption process. **PLUS** the ADR-68 night-agent section is **misleading**: it describes a mechanism that was never registered (C3 finding) and is superseded in reality by the cloud Routine → needs a **supersession note**. (The earlier "cloud-night + nightly Action ARE already present" parenthetical was **false** — likely confused with CONTRIBUTING's C4 section.) |
 | `CLAUDE.md` | **STALE-by-deferral** | silent on cloud/nightly/spec-orch/routing; ≤200-line per-repo instruction defers to ARCHITECTURE — fix = add pointers once ARCHITECTURE gains the sections |
 | `VISION.md` | **CURRENT** | strategic layer; operational detail appropriately deferred (optional: name model-routing efficiency as an emphasis) |
 | `CONTRIBUTING.md` | **PARTIAL** | nightly Action + cloud-night documented; MISSING the spec-orchestration fallback rationale (why the `.js` workflow exists / when it runs) |
