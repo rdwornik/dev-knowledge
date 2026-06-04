@@ -19,6 +19,12 @@
 
 ---
 
+### 2026-06-05 — Phase C3 runtime-machinery cleanup (~/.claude/, archive-not-delete)
+
+**Did/Changes:** Executed the operator-approved Phase C verdicts (`docs/audits/2026-06-05-machinery-inventory.md`). Root-caused the "model routing broken" gotcha to our own `CLAUDE_CODE_SUBAGENT_MODEL=haiku` global env override (probe: sonnet+haiku pins both ran Haiku, Agent-tool path too) and removed it; re-rooted the gotcha. Archived (never deleted) the March-era Self-Evolution system (`/evolve`, `/boot`, memory stubs, both echo-hooks), the stale `verify` skill, and the stale global `conformance-hub.js` to `~/.claude/archive/2026-06-05-machinery-c3/`; pruned 16 stale plans to `~/.claude/archive/plans/`. Decoupled `/codex-review` from the profile fn (explicit-path; empty-diff guard verified). Installed `uv` 0.11.19. Night-agent: found NOT scheduled (no trigger to disable). Hub changes are LESSONS + JOURNAL only. **Pending:** post-restart workflow re-probe to confirm pins now honored. Branch `chore/machinery-c3`.
+
+---
+
 ### 2026-06-04 — Merge nightly PR #1 + land fleet_health cloud-clone fail-soft
 
 **Did/Changes:** Squash-merged the first nightly conformance PR #1 (0 surviving findings — the 8 raw V1 candidates were all the shallow-clone pre-June-SHA false positives, now suppressed proactively by the V1 guard). Then landed the Step-6 cloud session's stranded fix: `fleet_health.siblings_available()` skips the cross-repo audit in an isolated/cloud clone, so SessionStart rewrites no tracked `ecosystem/*/state.yaml` (keeps the nightly tripwire clean); +5 tests (235 green), one overstated rationale-comment line corrected. Pruned the 3 remaining merged local branches earlier; deleted the orphan cloud branch `claude/wizardly-babbage-5X6e0` after landing. Branch `fix/fleet-health-failsoft`, merge `--no-ff`. Advances #86.
