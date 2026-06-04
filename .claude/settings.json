@@ -8,6 +8,11 @@
             "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/scripts/fleet_health.py\"",
             "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/scripts/surface_triage.ps1\"",
+            "timeout": 10
           }
         ]
       }
