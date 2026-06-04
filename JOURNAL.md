@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-05 — Model-routing re-probe: pins now honored (closes C3 pending)
+
+**Did/Result:** Ran the post-restart re-probe that was the lone Pending item from the Phase C3 entry below. `$env:CLAUDE_CODE_SUBAGENT_MODEL` now empty in all three scopes (Process/User/Machine) — operator cleared the second source (launch-shell profile/.env) that the 2026-06-05 in-session re-probe had found still active. 2-agent matrix probe: `model: sonnet` pin → `claude-sonnet-4-6`, `model: haiku` pin → `claude-haiku-4-5-20251001` — each Agent-tool pin honored distinctly (pre-fix both ran Haiku). **Per-agent model routing is functional; C3 thread fully closed.** Re-rooted gotcha (`~/.claude/skills/gotchas/gotchas.md`) marked RESOLVED with the load-bearing confirmation, retained as a standing residual warning.
+
+**Changes:** `~/.claude/skills/gotchas/gotchas.md` (out-of-repo; RESOLVED line); JOURNAL. No repo code/doc changed. **Note:** harness clock reads 2026-06-04 while the C3 thread is stamped 2026-06-05 (prior session dated a day ahead) — kept 06-05 for thread-ordering continuity.
+
+---
+
 ### 2026-06-05 — Phase C3 runtime-machinery cleanup (~/.claude/, archive-not-delete)
 
 **Did/Changes:** Executed the operator-approved Phase C verdicts (`docs/audits/2026-06-05-machinery-inventory.md`). Root-caused the "model routing broken" gotcha to our own `CLAUDE_CODE_SUBAGENT_MODEL=haiku` global env override (probe: sonnet+haiku pins both ran Haiku, Agent-tool path too) and removed it; re-rooted the gotcha. Archived (never deleted) the March-era Self-Evolution system (`/evolve`, `/boot`, memory stubs, both echo-hooks), the stale `verify` skill, and the stale global `conformance-hub.js` to `~/.claude/archive/2026-06-05-machinery-c3/`; pruned 16 stale plans to `~/.claude/archive/plans/`. Decoupled `/codex-review` from the profile fn (explicit-path; empty-diff guard verified). Installed `uv` 0.11.19. Night-agent: found NOT scheduled (no trigger to disable). Hub changes are LESSONS + JOURNAL only. **Pending:** post-restart workflow re-probe to confirm pins now honored. Branch `chore/machinery-c3`.
