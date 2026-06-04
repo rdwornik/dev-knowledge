@@ -131,6 +131,57 @@ def test_load_all_states_empty_ecosystem(tmp_path):
     assert fh.load_all_states(tmp_path / "ecosystem") == []
 
 
+def test_load_state_yaml_captures_path(tmp_path):
+    sf = tmp_path / "state.yaml"
+    sf.write_text(
+        "name: r\npath: /some/path\nlast_audit: '2026-06-02'\n"
+        "findings:\n- check_name: x\n  status: pass\n",
+        encoding="utf-8",
+    )
+    assert fh._load_state_yaml(sf)["path"] == "/some/path"
+
+
+# --- siblings_available (cloud / isolated-clone fail-soft guard) ------------
+
+def _write_state(eco: Path, name: str, path: str):
+    (eco / name).mkdir(parents=True)
+    (eco / name / "state.yaml").write_text(
+        f"name: {name}\npath: {path}\n"
+        f"findings:\n- check_name: x\n  status: pass\n",
+        encoding="utf-8",
+    )
+
+
+def test_siblings_available_false_missing_ecosystem(tmp_path):
+    assert fh.siblings_available(tmp_path / "nope", tmp_path) is False
+
+
+def test_siblings_available_false_when_isolated(tmp_path):
+    # Stored path is a Windows abs path (absent on the test host) and no
+    # conventional <parent>/<name> slot exists -> isolated clone -> False.
+    hub = tmp_path / "hub"
+    hub.mkdir()
+    _write_state(hub / "ecosystem", "ai-council", "C:\\Users\\x\\ai-council")
+    assert fh.siblings_available(hub / "ecosystem", hub) is False
+
+
+def test_siblings_available_true_when_conventional_slot_present(tmp_path):
+    hub = tmp_path / "hub"
+    hub.mkdir()
+    (tmp_path / "ai-council").mkdir()  # <parent>/<name> slot next to hub
+    _write_state(hub / "ecosystem", "ai-council", "C:\\Users\\x\\ai-council")
+    assert fh.siblings_available(hub / "ecosystem", hub) is True
+
+
+def test_siblings_available_true_when_stored_path_exists(tmp_path):
+    hub = tmp_path / "hub"
+    hub.mkdir()
+    real_sib = tmp_path / "elsewhere" / "corp-ops"
+    real_sib.mkdir(parents=True)
+    _write_state(hub / "ecosystem", "corp-ops", str(real_sib))
+    assert fh.siblings_available(hub / "ecosystem", hub) is True
+
+
 # --- round-trip: build_digest + parse_health_date ---------------------------
 
 def test_round_trip_date_parseable():
