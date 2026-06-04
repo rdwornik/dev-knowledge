@@ -70,9 +70,11 @@ def _load_state_yaml(path: Path) -> dict:
         return {}
     name_m = re.search(r"^name:\s*(.+)", text, re.M)
     date_m = re.search(r"^last_audit:\s*'?([^'\n]+)", text, re.M)
+    path_m = re.search(r"^path:\s*(.+)", text, re.M)
     statuses = re.findall(r"^\s+status:\s*(\w+)", text, re.M)
     return {
         "name": name_m.group(1).strip() if name_m else "?",
+        "path": path_m.group(1).strip() if path_m else "",
         "last_audit": date_m.group(1).strip() if date_m else "?",
         "statuses": statuses,
     }
@@ -90,6 +92,36 @@ def load_all_states(ecosystem_dir: Path) -> list:
             if s:
                 states.append(s)
     return states
+
+
+def siblings_available(ecosystem_dir: Path, repo_root: Path) -> bool:
+    """True when at least one registered repo is reachable on disk.
+
+    The cross-repo audit reaches each sibling by its state.yaml ``path:`` (an
+    absolute path recorded on the machine that registered it) or, failing that,
+    the conventional ``<parent>/<name>`` slot next to the hub. In an isolated /
+    cloud clone none of those resolve. Running the audit there would (a) record
+    spurious "path missing" FAILs for every sibling and (b) rewrite the tracked
+    ecosystem/<name>/state.yaml files at SessionStart (audit.py refreshes them) --
+    modifying tracked files before anything else runs (a false tripwire trip for a
+    nightly Routine). The logs/FLEET-HEALTH.md digest is gitignored, so it is not
+    itself the tripwire risk; the tracked state.yaml writes are.
+    Detecting absence lets main() skip the refresh and surface the cached digest
+    instead: fail-soft, zero writes. Local runs (siblings present) are unaffected.
+    """
+    if not ecosystem_dir.exists():
+        return False
+    parent = repo_root.parent
+    for child in sorted(ecosystem_dir.iterdir()):
+        state_file = child / "state.yaml"
+        if not (child.is_dir() and state_file.exists()):
+            continue
+        stored = _load_state_yaml(state_file).get("path", "")
+        if stored and Path(stored).exists():
+            return True
+        if (parent / child.name).exists():
+            return True
+    return False
 
 
 def repo_summary(state: dict) -> tuple:
@@ -191,7 +223,15 @@ def main() -> int:
     today = date.today()
     try:
         stale = is_stale(_HEALTH_FILE)
-        if stale:
+        if stale and not siblings_available(_ECOSYSTEM_DIR, _REPO_ROOT):
+            # Isolated / cloud clone: sibling repos are absent. Skip the
+            # cross-repo audit so we neither record spurious path-missing FAILs
+            # nor overwrite (dirty) the committed digest at SessionStart.
+            # Surface the cached digest as-is -- fail-soft, no writes.
+            print("fleet_health: sibling repos not present (isolated/cloud clone) "
+                  "-- skipping cross-repo audit, surfacing cached digest.",
+                  file=sys.stderr)
+        elif stale:
             print("fleet_health: running cross-repo audit (stale or first run)...",
                   file=sys.stderr)
             refresh(_REPO_ROOT, _ECOSYSTEM_DIR, _LOGS_DIR, _HEALTH_FILE, today)
