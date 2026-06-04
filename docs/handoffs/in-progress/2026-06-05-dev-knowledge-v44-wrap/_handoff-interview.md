@@ -1,10 +1,10 @@
-# Handoff Interview — 2026-06-04-dev-knowledge-session
+# Handoff Interview — 2026-06-05-dev-knowledge-v44-wrap
 
 | Field | Value |
 |---|---|
 | Repo | .dev-knowledge (self-handoff) |
-| Slug | 2026-06-04-dev-knowledge-session |
-| Date | 2026-06-04 |
+| Slug | 2026-06-05-dev-knowledge-v44-wrap |
+| Date | 2026-06-05 |
 | Type | session |
 | HEAD captured | d031d390d9f6978da98a83e3fa0210a4a8e0acbe |
 | Branch (at capture) | main |

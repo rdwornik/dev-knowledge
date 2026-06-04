@@ -19,9 +19,9 @@
 
 ---
 
-### 2026-06-04 — Handoff Phase 1 interview generated (2026-06-04-dev-knowledge-session)
+### 2026-06-05 — Handoff Phase 1 interview generated (2026-06-05-dev-knowledge-v44-wrap)
 
-**Did/Result:** Generated the Phase 1 handoff interview for slug `2026-06-04-dev-knowledge-session` (scope-matrix Case 2 — clean tree, 7 commits since the last bundle `2026-06-05-dev-knowledge-session`, today's slug absent). HEAD captured at `d031d39` on branch `main`; interview written to `docs/handoffs/in-progress/2026-06-04-dev-knowledge-session/_handoff-interview.md` with the four-tag sage→apprentice frame (v4.2 Amendment A). Awaiting operator answers below the PASTE marker, then `complete handoff for dev-knowledge` for Phase 2. **Note:** the most recent existing bundle is future-dated (2026-06-05) relative to the system clock (2026-06-04) — flagged to operator; matrix outcome unaffected. **Changes:** `docs/handoffs/in-progress/2026-06-04-dev-knowledge-session/`, this JOURNAL entry. **Next:** operator pastes answers → Phase 2 consolidate.
+**Did/Result:** Generated the Phase 1 handoff interview for slug `2026-06-05-dev-knowledge-v44-wrap` (scope-matrix Case 2 — clean tree, 7 commits since the last bundle `2026-06-05-dev-knowledge-session`). Local date is 2026-06-05; base slug `2026-06-05-dev-knowledge-session` was taken, so operator re-slugged with the `-v44-wrap` discriminator. HEAD captured at `d031d39` on branch `main`; interview written to `docs/handoffs/in-progress/2026-06-05-dev-knowledge-v44-wrap/_handoff-interview.md` with the four-tag sage→apprentice frame (v4.2 Amendment A). Awaiting operator answers below the PASTE marker, then `complete handoff for dev-knowledge` for Phase 2. **Changes:** `docs/handoffs/in-progress/2026-06-05-dev-knowledge-v44-wrap/`, this JOURNAL entry. **Next:** operator pastes answers → Phase 2 consolidate.
 
 ### 2026-06-05 — HANDOFF_PROCESS v4.4 (positional-attention amendment A–F)
 
