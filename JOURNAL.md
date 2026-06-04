@@ -19,6 +19,12 @@
 
 ---
 
+### 2026-06-04 — Hub closeout: V1 shallow-history guard, #88 closed, branch prune
+
+**Did/Changes:** Added a shallow-history guard to the `conformance-hub` V1 stage (cloud clones may be shallow — SHAs older than the history boundary are out-of-scope, not false "commit absent" findings; pushed so tonight's nightly run benefits). Closed [#88] — graphify evaluated and REJECTED per corp-monorepo `docs/audits/2026-06-04-graphify-pilot.md`. Pruned 6 merged branches (pilot/handoff/pilot81). Branch `chore/hub-closeout`, merge `--no-ff`.
+
+---
+
 ### 2026-06-04 — Phase B: hub pushed to private GitHub + cloud-night pipeline stood up
 
 **Did/Result:** Stood up the cloud-night conformance pipeline for the hub ONLY, by explicit operator decision (B0) — reverses the standing "nothing is pushed" state for this repo (formal push / R2 ADRs pending the later ADR phase; advances #86). Created a NEW private GitHub repo `rdwornik/dev-knowledge` and pushed `main` (gh 2.93.0 installed via winget + browser auth; pre-push full-history secret scan CLEAN — only the operator's own emails in history, no keys/tokens). Committed the validated `conformance-hub` workflow in-repo (byte-identical first, then ported its hardcoded Windows paths/separators for the Linux cloud clone) plus a platform-guards safety envelope (pre-allow the Workflow tool; **no** Write/Edit deny — a blanket deny beats allow with no carve-outs and would break BOTH local daily work and the routine's own digest write; cloud containment instead = `claude/*` branch-push restriction + PR-review gate + read-only design + post-run porcelain tripwire). **Step-6 manual cloud test (hard gate) PASSED via spec-orchestration:** the native Workflow launcher is NOT enabled in the cloud context as of 2026-06-04 (version-pinned platform fact; each nightly run re-probes it), so the Routine reads the `.js` as the canonical SPEC and executes its 3 stages via read-only Explore agents. The cloud run surfaced 2 real findings — this missing Phase-B JOURNAL entry (resolved by this prepend) and `VISION.md:135` stale "10 checks" (fixed: de-hardcoded → `scripts/audit.py checks`; third locus of that drift class). Watch items: `fleet_health` SessionStart hook already fail-soft (latent stale-day sibling reach noted); `tier1-lifecycle` plugin inert in cloud (local-only marketplace path — harmless).
