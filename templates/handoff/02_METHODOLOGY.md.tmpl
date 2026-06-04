@@ -34,9 +34,9 @@ win.
 {{PULL: PLAYBOOK#LLMs advise; hooks/tests enforce}}
 <!-- Extract: LLMs advise, hooks/tests enforce. pre-commit auto-fires
      normalize-dated-headers + codemap-freshness + validate-backlog + audit-health
-     (audit.py health — FAIL blocks the commit) + backlog-id-on-close; ruff is NOT
-     wired as a hook (run manually — BACKLOG #13). Executable rules live in ~/.claude
-     with verify: lines, not in prose. -->
+     (audit.py health — FAIL blocks the commit) + ruff (lint gate, blocks on
+     violations — #13 wired it) + backlog-id-on-close. Executable rules live in
+     ~/.claude with verify: lines, not in prose. -->
 
 Codex is a separate code-review CLI (per ADR-54, configured globally at
 `~/.codex/AGENTS.md`), not Claude Code. Acts as a second pair of eyes on 3+ file or
