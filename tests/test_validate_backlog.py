@@ -97,3 +97,37 @@ def test_empty_story_warns_not_fails():
     hard, warn = _run(text)
     assert hard == []
     assert any("no tasks" in w for w in warn)
+
+
+# --- #83: in-place RESOLVED / struck-through task lines (ADR-65 done-items-leave) ---
+# Fixture shape from commit 052e311 (the #79 stub finding F2 exposed): a task struck
+# through in place + a bold **RESOLVED** marker, instead of the item LEAVING the file.
+
+def test_struck_through_task_fails():
+    hard, _ = _run(VALID.replace(
+        "- [#1] [P1][M] do a thing · Done when: it is done · refs ADR-1",
+        "- [#1] ~~[P1][M] do a thing · Done when: it is done · refs ADR-1~~ "
+        "**RESOLVED 2026-06-03 — no build needed.**",
+    ))
+    assert any("ADR-65" in h and "resolved" in h.lower() for h in hard)
+
+
+def test_inplace_resolved_marker_fails():
+    hard, _ = _run(VALID.replace(
+        " · refs ADR-1",
+        " · refs ADR-1 **RESOLVED 2026-06-05 — landed.**",
+    ))
+    assert any("ADR-65" in h and "resolved" in h.lower() for h in hard)
+
+
+def test_clean_task_with_done_when_passes_inplace_check():
+    # the unmodified VALID has no strike/RESOLVED marker -> no in-place finding
+    # ("Done when:" is title-case and must NOT trip the all-caps DONE marker)
+    hard, _ = _run(VALID)
+    assert not any("in-place" in h for h in hard)
+
+
+def test_live_backlog_passes_inplace_check():
+    text = (Path(vb.__file__).resolve().parent.parent / "BACKLOG.md").read_text(encoding="utf-8")
+    hard, _ = _run(text)
+    assert not any("in-place" in h for h in hard)

@@ -15,7 +15,9 @@ Hard-fail (exit 1) — objective structure only:
   - a task with no enclosing user story, or whose story has no enclosing theme
   - a task missing its [P][S|M|L] band, or missing "Done when:"
   - a missing or duplicate [#id]
-  - a done task present (status:done / [x] / ~~strikethrough~~) — done tasks leave (ADR-65)
+  - a done task present — done tasks leave (ADR-65): a `status:done` suffix, a leading
+    `[x]` checkbox, a struck bullet, an in-place `~~strikethrough~~`, or a bold
+    `**RESOLVED`/`**DONE` marker on a task line
   - a user story with no "So that" line, or a story/task directly under ## Big picture
 
 Warn-only: a user story with zero tasks.
@@ -43,6 +45,12 @@ _DONEWHEN_RE = re.compile(r"Done when:", re.IGNORECASE)
 # done-marker: a structured status suffix, a leading done-checkbox, or a struck bullet —
 # NOT a bare [x]/~~/"status: done" anywhere in prose (which is legitimate task text).
 _DONE_MARKER_RE = re.compile(r"·\s*status:\s*done\b|^- \[[xX]\]|^- ~~")
+# in-place resolution marker on a task line — the ADR-65 done-items-LEAVE violation
+# class (#83, pilot finding F2). A live task must never be struck through (~~...~~)
+# or carry a bold **RESOLVED/**DONE marker; done tasks LEAVE the file. _DONE_MARKER_RE
+# above only catches a fully-struck bullet ("- ~~") or "- [x]" — it missed the
+# "[#id] ~~...~~ **RESOLVED**" shape the #79 stub exhibited (commit 052e311).
+_INPLACE_RESOLVED_RE = re.compile(r"~~.+?~~|\*\*\s*(?:RESOLVED|DONE)\b")
 
 
 def parse(text):
@@ -107,6 +115,8 @@ def validate(themes, stories, tasks):
             hard.append(f'task missing "Done when:" — {loc}')
         if _DONE_MARKER_RE.search(t["raw"]):
             hard.append(f'done task present (done tasks leave the file, ADR-65) — {loc}')
+        if _INPLACE_RESOLVED_RE.search(t["raw"]):
+            hard.append(f'in-place resolved/struck-through task (done tasks leave the file, ADR-65) — {loc}')
     for s in stories:
         sloc = f'story "{s["name"][:48]}" line {s["line"]}'
         if not s["theme"] or s["theme"] == BIG_PICTURE:
