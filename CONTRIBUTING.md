@@ -124,9 +124,10 @@ The nightly conformance Routine (cloud, read-only) opens a PR on
 repo's first GitHub Action (`.github/workflows/nightly-conformance-triage.yml`) handles
 the morning so the operator touches only findings:
 
-- **Clean night** (`Survived skeptic | 0` in the digest's `### Counts` table) → the PR is
-  squash-merged automatically and its branch deleted. No operator action.
-- **Findings night** (`Survived skeptic | N`, N>0) → the digest is squash-merged too (it is
+- **Clean night** (`survived=0` in the digest's machine-readable counts marker
+  `<!-- counts: raw=N survived=N killed=N -->`) → the PR is squash-merged automatically and its
+  branch deleted. No operator action.
+- **Findings night** (`survived=N`, N>0 in the counts marker) → the digest is squash-merged too (it is
   the record) **and** a `nightly-triage` Issue `Nightly triage <date> — <N> survivor(s)` is
   opened with the digest's Findings-by-Severity + Next-Actions sections and a link to the
   merged digest.
@@ -141,9 +142,10 @@ worst a document on `main`, never code. **Where to look:** open `nightly-triage`
 surfaced at session start by `scripts/surface_triage.ps1` (a `[triage] …` line) and live in
 the repo's Issues tab.
 
-**Residual risk:** the survivor count is read from the digest **body** (the free-form PR
-title is not trusted) and the parse **fails closed** — an unreadable `### Counts` table opens
-an Issue and blocks the merge rather than guessing. **Layer-2 note:** this Action runs in
+**Residual risk:** the survivor count is read from a code-owned machine-readable marker in the
+digest body (`<!-- counts: raw=N survived=N killed=N -->`, written by `conformance-hub.js`; the
+free-form PR title and the agent's prose are not trusted) and the parse **fails closed** — a
+missing or unparseable marker opens an Issue and blocks the merge rather than guessing. **Layer-2 note:** this Action runs in
 GitHub CI and manages the hub's *own* review-output PRs only; it does not orchestrate child
 repos, and `surface_triage.ps1` is read-only — so the Layer-2 "validators only / never
 executes cross-repo" invariant still holds.
