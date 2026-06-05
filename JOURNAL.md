@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-06 — Hub bookkeeping: #75 close + corp audit evidence trail
+
+**Did:** Closed #75 (corp scoped audit Workflow ran end-to-end 2026-06-06, 29 targets / ~588k tok / ~4 min, fit confirmed). LESSONS append: per-stage model pins FUNCTIONAL post-C3 override removal (re-probe complete, cadence = next CC upgrade). Annotated #89 with corp #75 check-source disposition (~6/29 binary checks = mechanizable deterministically; reserve Workflows for judgment-laden conformance) and #84(a) with n=1-of-2 evidence trail. Folded 2026-06-06 fleet-health snapshot files (5 state.yamls + audit + 5 history). Nightly verdict: 5/5 repos green (SessionStart fleet_health.py); GH/nightly N/A — corp-monorepo has no remote, no GH Actions infrastructure yet (#85/#86 open).
+**Result:** Branch `chore/75-hub-bookkeeping` merged (3 content commits + 1 fleet chore); `validate_backlog` clean (7 themes, 21 stories, 50 tasks).
+**Changes:** `LESSONS.md`, `BACKLOG.md` (#75 retired, #89/#84 annotated), ecosystem state files + `docs/audits/2026-06-06-ecosystem-audit.md` (commits f50dda6, bd3482e, a164cda + fleet chore).
+
+---
+
 ### 2026-06-06 — Land external-research note + encode backlog dispositions
 
 **Did:** Landed `docs/archive/2026-06-05-agent-automation-external-research-note.md` verbatim (E1 CREAO cloud-agent infra, E2 CC automation stack, E3 /goal principles, E4 verdict-only). Catalog line added to `docs/archive/README.md`. Encoded three dispositions into BACKLOG: #84(a) forward-note (self-measuring-tool + degenerate-metric-guard, external note §3); #85 body amended (evaluate native Desktop scheduled-tasks tier vs OS Task Scheduler); #86 refs extended (sub-decisions 1 + 3 criteria).
