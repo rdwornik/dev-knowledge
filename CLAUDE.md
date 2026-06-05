@@ -77,7 +77,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 ## 6. Session start protocol
 <!-- scope: runtime -->
 
-1. `/boot` (loads skills, memory, recent commits)
+1. `/boot` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`; loads skills, memory, recent commits)
 2. `git status` — clean working tree?
 3. `git log --oneline -5` — recent context
 4. Read most recent handoff if continuing prior session
@@ -94,8 +94,8 @@ Verify after updates: ESSENTIALS ↔ PLAYBOOK alignment; ENVIRONMENT ↔ `~/.cla
 
 User-level (`~/.claude/commands/`):
 - `/session-summary` — generate token-efficient session summary + handoff
-- `/boot` — load context (skills, memory, recent commits)
-- `/evolve` — evolution audit: promote/prune/graduate learned rules (weekly / ~10 sessions)
+- `/boot` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) — load context (skills, memory, recent commits)
+- `/evolve` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) — evolution audit: promote/prune/graduate learned rules (weekly / ~10 sessions)
 - `/codex-review` — invoke Codex review on a staged **code** diff (code only)
 
 Repo-level (`./.claude/commands/`):

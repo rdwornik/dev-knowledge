@@ -218,7 +218,7 @@ required for promotion. (PLAYBOOK)
 
 **Claude Code session:**
 1. Open Claude Code in project dir
-2. Type `/boot` — verifies rules, loads memory, checks trends
+2. Type `/boot` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) — verifies rules, loads memory, checks trends
 3. Shift+Tab → **Accept Edits** mode (daily driver)
 4. Pick **max 2 objectives** for this session
 
@@ -248,7 +248,7 @@ required for promotion. (PLAYBOOK)
 | Stop generation | Ctrl+C |
 | Clear screen (not session) | Ctrl+L |
 
-**Slash commands:** `/boot` (start) · `/clear` (between tasks) · `/compact` (shrink context) · `/session-summary` (to browser) · `/resume` (resume context) · `/evolve` (Friday) · `/stats` (tokens)
+**Slash commands:** `/boot` (start; archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) · `/clear` (between tasks) · `/compact` (shrink context) · `/session-summary` (to browser) · `/resume` (resume context) · `/evolve` (Friday; archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) · `/stats` (tokens)
 
 ---
 

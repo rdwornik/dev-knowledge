@@ -1330,9 +1330,9 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 
 | Command | Level | When to invoke |
 |---------|-------|----------------|
-| `/boot` | user | Session start — load memory, verify learned-rules, recent commits + JOURNAL. First thing, every session. |
+| `/boot` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) | user | Session start — load memory, verify learned-rules, recent commits + JOURNAL. First thing, every session. |
 | `/session-summary` | user | Session end / handing to browser chat (Path A). Also appends a TOKEN-LOG snapshot if >7 days stale. |
-| `/evolve` | user | Weekly or every ~10 sessions — evolution audit (promote / prune / graduate learned rules). Not per-session. |
+| `/evolve` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) | user | Weekly or every ~10 sessions — evolution audit (promote / prune / graduate learned rules). Not per-session. |
 | `/codex-review` | user | Before merging a **code** change (3+ files / safety-critical). Code only — never a markdown-only diff (LESSON 2026-05-19). |
 | `/save` | repo | Stage + commit with a Conventional Commits message + full body (git-discipline rule). After a discrete change. |
 | `/handoff` | repo | Two-phase browser→browser handoff per HANDOFF_PROCESS v4 (ADR-62): "create handoff" → "complete handoff". At ~2h, context still fresh. |
@@ -1422,7 +1422,7 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 **When to use:**
 - Repeated workflow Rob runs >3× across sessions
 - Multi-step procedures that benefit from consistent prompt
-- Operations crossing multiple files/tools (e.g. session summary, /boot context loading)
+- Operations crossing multiple files/tools (e.g. session summary, /boot context loading; note: /boot archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`)
 
 **When NOT to use:**
 - One-off task — write inline prompt instead
@@ -1431,8 +1431,8 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 
 **Real examples in Rob's ecosystem (user-level, `~/.claude/commands/`):**
 - `/session-summary` — generate handoff for current session, include TOKEN-LOG snapshot if stale (renamed from `/handoff` 2026-04-24 to avoid trigger-word collision)
-- `/boot` — load context: skills, recent commits, JOURNAL entries
-- `/evolve` — promote learned patterns to skills/rules
+- `/boot` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) — load context: skills, recent commits, JOURNAL entries
+- `/evolve` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) — promote learned patterns to skills/rules
 - `/codex-review` — invoke Codex review on staged changes
 
 **Anti-patterns:**
@@ -1543,7 +1543,7 @@ Defer if:
 
 **User-level** (`~/.claude/<mechanism>/`) when:
 - Pattern applies across all repos Rob works in (.dev-knowledge, corp-monorepo, ai-council, future)
-- Universal Rob workflow (e.g. `/session-summary`, `/boot`)
+- Universal Rob workflow (e.g. `/session-summary`, `/boot` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`))
 
 **Project-level** (`<repo>/.claude/<mechanism>/`) when:
 - Pattern is repo-specific (corp-monorepo Tach layers, ai-council debate framework)
@@ -2379,7 +2379,7 @@ Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subse
 
 **Friday consolidation — 30 minutes max, not a project.**
 
-1. Run `/evolve` in Claude Code — review corrections, observations, propose rule promotions/pruning
+1. Run `/evolve` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) in Claude Code — review corrections, observations, propose rule promotions/pruning
 2. Review gotchas added this week — any patterns?
 3. Review token usage — `ccusage --json` → append snapshot to TOKEN-LOG.md. Is Opus verbosity still the main drain?
 4. Review LESSONS.md entries from this week — anything to change in PLAYBOOK?
@@ -2807,11 +2807,11 @@ Use `templates/scrum-master-cover-letter.md`. Operator fills placeholders for ta
 
 | Command            | When to use                                       |
 | ------------------ | ------------------------------------------------- |
-| `/boot`            | Session start — load memory, verify rules         |
+| `/boot` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) | Session start — load memory, verify rules         |
 | `/clear`           | Between repos/tasks — #1 token saver              |
 | `/compact`         | Mid-session when context heavy                    |
 | `/compact [focus]` | Compress with focus ("focus on API changes")      |
-| `/evolve`          | Weekly Friday — review corrections, promote rules |
+| `/evolve` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) | Weekly Friday — review corrections, promote rules |
 | `/session-summary` | Before switching to Claude.ai browser             |
 | `/stats`           | Check token usage (interactive TUI; use `ccusage --json` for scriptable export) |
 | `/plan [prompt]`   | One-shot plan mode without cycling Shift+Tab      |
