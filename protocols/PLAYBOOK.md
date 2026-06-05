@@ -74,6 +74,7 @@
   - [T-shirt model pins](#t-shirt-model-pins)
   - [Cloud-session closeout](#cloud-session-closeout)
   - [The shallow-clone false-positive class](#the-shallow-clone-false-positive-class)
+  - [Cloud-session hub-independence (self-containment)](#cloud-session-hub-independence-self-containment)
 - [Continuous Improvement](#continuous-improvement)
   - [Pipeline overview](#pipeline-overview)
   - [Stage 1: Discovery](#stage-1-discovery)
@@ -1168,6 +1169,12 @@ A cloud run leaves a `claude/<task>-YYYY-MM-DD` branch behind. Closeout conventi
 ### The shallow-clone false-positive class
 
 A cloud runner may produce a **shallow clone**, so a verifier that checks "does commit X exist in history" will falsely report any SHA older than the shallow boundary as **absent** — a false "commit absent" finding, not a real conformance defect. Two guards: (1) the Action sets `fetch-depth: 0` so three-dot `base...head` diffs have both endpoints reachable (`.github/workflows/nightly-conformance-triage.yml`); (2) the `conformance-hub` V1 stage treats SHAs older than the history boundary as **out-of-scope**, not absent (JOURNAL 2026-06-04 "V1 shallow-history guard"). Read a first production raw count with this class in mind (JOURNAL 2026-06-05).
+
+### Cloud-session hub-independence (self-containment)
+
+A cloud Routine **clones only its target repo** (single-repo Linux clone at `/home/user/<repo>/`) and must be **self-contained** — it consults only that repo's own git, living docs, and BACKLOG. **No hub reference is load-bearing on the cloud executing path** (ADR-72, #86 sub-decision 2). The hub `.dev-knowledge` is **private**, which permanently closes ADR-71's "URL-swappable later" hatch *for the cloud case*: a git-source/URL hub would need auth inside the sandbox, which the secrets-boundary stance forbids (treat the sandbox as compromised). So plugin/skill distribution does **not** resolve a private hub in cloud — the `tier1-lifecycle` plugin is **verified inert** there (local-directory marketplace absent on Linux; JOURNAL 2026-06-04, "harmless"), and the `repo: ../.dev-knowledge` pre-commit hooks never fire (pre-commit uninstalled in a fresh clone; a read-only run commits no source). These are inert-**by-design**, not bugs.
+
+The honest catch: that degradation is **silent** (the machinery that would log a no-op is exactly what doesn't run), so the "loud" guard moves to **design/review time** — authoring a cloud spec that reads any `../.dev-knowledge/...` path is a defect a reviewer must catch, and any spec that genuinely needs a hub ref must fail-closed at the consumer/Action layer ("put the code guarantee where the bytes actually flow", above). A future cloud Routine that truly needs hub methodology/tooling at runtime is a **STOP-and-escalate**: it cannot be served for a private hub without publishing a hub subset (an operator data-classification call) or new auth'd infra — do not improvise it in-session (ADR-72 Decision 5).
 
 ---
 
