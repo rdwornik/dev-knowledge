@@ -19,6 +19,10 @@
 
 ---
 
+### 2026-06-05 — audit.py check #13 handoff_version_stamp (S1 mechanized)
+
+**Did:** Added `check_handoff_version_stamp` as check #13 in `scripts/audit.py` — parses the canonical version from `protocols/HANDOFF_PROCESS.md` `Version:` line, greps `ARCHITECTURE.md` + `CONTRIBUTING.md` for `stamp vX.Y` occurrences, FAILs on any mismatch. Updated `CONTRIBUTING.md` count (12 → 13 checks). Added 7 tests; all 103 pass. Branch `chore/audit-version-stamp-check`, commit `6fbd078`, all hooks green. **Result:** S1 recurrence class (version stamps lagging HANDOFF_PROCESS.md bumps) is now automatically caught at commit time — eliminates the manual triage burden from nightly arcs #81. **Changes:** `scripts/audit.py`, `CONTRIBUTING.md`, `tests/test_audit.py`, this JOURNAL entry. **Next:** Merge to main; Prompt B (digest count contract / parser fix before tonight's nightly).
+
 ### 2026-06-05 — Nightly #8 findings cleanup (digest on main; S1 stamps fixed)
 
 **Did:** Merged PR #8 manually to `main` — Action's auto-merge died on the parser bug (run 26989375891); merge commit `af6c300`. Fixed S1 version stamps: `ARCHITECTURE.md` lines 336, 402 and `CONTRIBUTING.md` line 169 updated from v4.3.2 → v4.4 (`4bc0a5f`). Extracted three-looks fragments (porcelain/tripwire clean pre-digest; SPEC-ORCHESTRATION fallback path confirmed; two killed findings: `true-but-irrelevant` cross-repo evidence + `documented-decision` C4 commit-tag exception). **Result:** Audit record continuous on `main`; zero known survivors going into tonight's run. **Changes:** `docs/audits/2026-06-05-conformance-nightly-digest.md` (merged to main), `ARCHITECTURE.md`, `CONTRIBUTING.md`, this JOURNAL entry. **Next:** Prompt B restores the digest-count contract (parser + generator fix) before the 06-06 run.
