@@ -66,6 +66,14 @@
   - [No leftovers: automated processes clean up — and verify it (invariant)](#no-leftovers-automated-processes-clean-up--and-verify-it-invariant)
 - [Tier-1 closure loop — usage](#tier-1-closure-loop--usage)
   - [Propagating a plugin change across the fleet](#propagating-a-plugin-change-across-the-fleet)
+- [Routine/night deployment standard](#routinenight-deployment-standard)
+  - [The envelope](#the-envelope)
+  - [Safety envelope — allow-only platform guards, no committed deny](#safety-envelope--allow-only-platform-guards-no-committed-deny)
+  - [Spec-orchestration doctrine — and why code guarantees must sit on the executing path](#spec-orchestration-doctrine--and-why-code-guarantees-must-sit-on-the-executing-path)
+  - [The outcome loop](#the-outcome-loop)
+  - [T-shirt model pins](#t-shirt-model-pins)
+  - [Cloud-session closeout](#cloud-session-closeout)
+  - [The shallow-clone false-positive class](#the-shallow-clone-false-positive-class)
 - [Continuous Improvement](#continuous-improvement)
   - [Pipeline overview](#pipeline-overview)
   - [Stage 1: Discovery](#stage-1-discovery)
@@ -1112,6 +1120,53 @@ When the `tier1-lifecycle` plugin source changes in `.dev-knowledge`:
 4. restart the session.
 
 The cache is **version-keyed** — `marketplace update` alone won't refresh at an unchanged version, and `plugin install` no-ops on an already-installed repo (use `update`, not `install`). `--scope project` is mandatory for project-scoped installs. Full reference: `plugins/tier1-lifecycle/INSTALL.md`.
+
+---
+
+## Routine/night deployment standard
+<!-- scope: meta -->
+
+How a recurring unattended review runs **in the cloud** (Claude Code Routines), as distinct from the rejected local-scheduler design. ADR-68 chose a *local* Windows Task Scheduler → headless `claude -p` night-agent; that mechanism was **never registered** as a scheduled task and is superseded in reality by the cloud Routine described here (see the `ARCHITECTURE.md` ADR-68 supersession note; the unbuilt local track survives as BACKLOG #85). The standard below is distilled from the nightly-conformance arc (CONTRIBUTING "Nightly outcome management"; JOURNAL 2026-06-05 entries; LESSONS 2026-06-05; `docs/audits/2026-06-05-conformance-nightly-digest.md`).
+
+### The envelope
+
+A nightly Routine deployment is four parts:
+
+1. **Routine** — the cloud-scheduled trigger (a Claude Code Routine, ~03:00 local) that launches the run on a fresh `claude/<task>-YYYY-MM-DD` branch.
+2. **Workflow spec** — the orchestration logic committed as `.claude/workflows/<name>.js` (e.g. `conformance-hub.js`): verifier fan-out → adversarial skeptic → digest synthesis.
+3. **Action** — the outcome handler (`.github/workflows/nightly-conformance-triage.yml`): diff-guard + auto-merge / triage on the PR the run opens.
+4. **SessionStart surfacing** — `scripts/surface_triage.ps1` prints a `[triage] N …` line at the next session start, so the operator touches only findings (CONTRIBUTING "Nightly outcome management").
+
+### Safety envelope — allow-only platform guards, no committed deny
+
+The cloud run is read-only by **platform allow-list**, not by a committed `permissions.deny`. (Contrast the *local* track #85, which uses a session Write/Edit deny + a post-run fleet `git status --porcelain` tripwire — a committed deny is the local pattern.) In the cloud the load-bearing guarantee is the **diff guard**: the Action merges only when `git diff --name-status base...head` is exactly one `A` line matching `docs/audits/*-conformance-nightly-digest.md` — so a mislabeled or lying digest is at worst a document on `main`, never code (CONTRIBUTING "Nightly outcome management"; JOURNAL 2026-06-05).
+
+### Spec-orchestration doctrine — and why code guarantees must sit on the executing path
+
+The native Workflow launcher is **not enabled** in the cloud runtime (re-probed 2026-06-05, still unavailable — `docs/audits/2026-06-05-conformance-nightly-digest.md`). When it is absent the cloud agent **falls back** to reading the `.js` as a *spec* and orchestrating it by hand (spec-orchestration), rather than executing it as code. Doctrine: **native-attempt-first, with a nightly re-probe** of launcher availability.
+
+The contract consequence is load-bearing: **any guarantee written as in-script code is INERT on the fallback path** — the `.js` is read, not run, so a throw-on-mismatch validator inside `conformance-hub.js` never fires in production (LESSONS 2026-06-05, "locate contract guarantees on the path that actually executes"). The real backstop must therefore sit on the **executing path**: the **parser-side fail-closed** in the Action — a missing or unparseable counts marker opens an Issue and blocks the merge rather than guessing. Rule: **put the code guarantee where the bytes actually flow** — for a cloud Routine that means the consumer-side (Action/parser) guard that runs unconditionally, not the generator-side validator that fires only on the native path. An LLM-produced machine contract is pinned in code at **both** ends (a code-built marker the model echoes verbatim + code that validates the echo) and prose is never a parse target (LESSONS 2026-06-05, counts-contract).
+
+### The outcome loop
+
+The Action handles the morning so the operator triages only findings (CONTRIBUTING "Nightly outcome management"):
+
+- **diff-guard** → anything other than exactly one ADDED digest file = guard FAIL → nothing merged, an `Anomalous nightly PR` Issue is opened listing the changed files, the PR is left open for review;
+- **clean night** (`survived=0` in the machine-readable marker `<!-- counts: raw=N survived=N killed=N -->`) → the PR is squash-merged automatically and its branch deleted;
+- **findings night** (`survived>0`) → the digest is merged too (it is the record) **and** a `nightly-triage` Issue is opened with the digest's Findings + Next-Actions sections;
+- **SessionStart surfacing** → `surface_triage.ps1` prints `[triage] N …`; the SessionStart nightly run-health check also reports the last Action conclusion plus a **digest-presence side-effect check** — a green run that wrote no digest is itself an anomaly (JOURNAL 2026-06-05).
+
+### T-shirt model pins
+
+**Unpinned fan-out is a bug.** An unpinned subagent now inherits the **main session model** (measured Opus 4.8 on both the Agent-tool and workflow-engine paths after the `CLAUDE_CODE_SUBAGENT_MODEL=haiku` override was removed — see the gotchas "Per-agent model routing" entry), so an unpinned bulk fan-out silently runs the most expensive tier. On the spec-orchestration fallback path every stage likewise inherits the orchestrating session model (all five conformance stages ran `claude-sonnet-4-6` because that was the session model — `docs/audits/2026-06-05-conformance-nightly-digest.md`). **Native workflow scripts CAN route models per stage** (a per-stage `opts.model`, a separate and now-honored code path); pin deliberately by t-shirt size (S=Haiku / M=Sonnet / L,judgment=Opus — Appendix B; ADR-70) rather than leaning on an inherited default.
+
+### Cloud-session closeout
+
+A cloud run leaves a `claude/<task>-YYYY-MM-DD` branch behind. Closeout convention: **check for stranded `claude/*` branches** (the clean-night path deletes its own branch; a guard-failed or interrupted run does not) and prune the orphans — the cloud analogue of the local no-leftovers invariant (CLAUDE.md §5 #9; staleness-audit "cloud-readiness", `docs/audits/2026-06-05-living-doc-staleness.md`).
+
+### The shallow-clone false-positive class
+
+A cloud runner may produce a **shallow clone**, so a verifier that checks "does commit X exist in history" will falsely report any SHA older than the shallow boundary as **absent** — a false "commit absent" finding, not a real conformance defect. Two guards: (1) the Action sets `fetch-depth: 0` so three-dot `base...head` diffs have both endpoints reachable (`.github/workflows/nightly-conformance-triage.yml`); (2) the `conformance-hub` V1 stage treats SHAs older than the history boundary as **out-of-scope**, not absent (JOURNAL 2026-06-04 "V1 shallow-history guard"). Read a first production raw count with this class in mind (JOURNAL 2026-06-05).
 
 ---
 
