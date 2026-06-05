@@ -130,7 +130,7 @@ The browser-chat architect never writes git commands, shell sequences, or execut
 
 **Test:** if the operator has to edit, paraphrase, or interpret anything when copying, the format is wrong.
 
-Sourced from LESSONS #10 (2026-05-13). Architect-side enforcement is operator-review; mechanical enforcement on executor side via Claude Code harness (per ADR-45).
+Sourced from LESSONS #10 (2026-05-13). Architect-side enforcement is operator-review; mechanical enforcement on executor side via Claude Code harness.
 
 ---
 
@@ -158,7 +158,7 @@ Before declaring a session, directive list, or task "done" / "closed" / "complet
 
 If the architect cannot verify completion (no filesystem access from browser chat), the claim becomes a question: "based on what I see here, X and Y look complete; please confirm Z is also done before I declare closure."
 
-Sourced from LESSONS #2 (2026-05-12). Architect-side enforcement is operator review; ADR-45 `/save` validator provides mechanical session-end gate on executor side.
+Sourced from LESSONS #2 (2026-05-12). Architect-side enforcement is operator review; the ADR-45 shared validator was never implemented — enforcement is operator review only.
 
 ---
 
@@ -185,7 +185,7 @@ Repo artifacts (ADRs, AI Council transcripts, audit reports, handoff bundles, an
 
 Browser chat role: architect-review of artifacts that Claude Code produces. Not artifact-source for repo files. The operator may upload a final repo artifact (e.g. an ADR draft) back to chat for review; the architect reviews and approves, Claude Code merges.
 
-Sourced from LESSONS #8 (2026-05-13). Architect-side enforcement is the workflow rule itself; ADR-45 architect-compliance path makes this a permanent invariant.
+Sourced from LESSONS #8 (2026-05-13). Architect-side enforcement is the workflow rule itself; this is a permanent invariant per LESSONS.md 2026-05-13 (ADR-45 was explored but not adopted).
 
 **Council ADR distillation** is a mandatory automated step of the post-debate protocol: number verified, template-aligned, committed by Claude Code — never a browser-chat hand-off with a placeholder. See PLAYBOOK § 5 "Post-debate protocol". End-to-end Council lifecycle runbook: `protocols/AI_COUNCIL_PROCESS.md`.
 
