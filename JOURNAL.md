@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-06 — Land external-research note + encode backlog dispositions
+
+**Did:** Landed `docs/archive/2026-06-05-agent-automation-external-research-note.md` verbatim (E1 CREAO cloud-agent infra, E2 CC automation stack, E3 /goal principles, E4 verdict-only). Catalog line added to `docs/archive/README.md`. Encoded three dispositions into BACKLOG: #84(a) forward-note (self-measuring-tool + degenerate-metric-guard, external note §3); #85 body amended (evaluate native Desktop scheduled-tasks tier vs OS Task Scheduler); #86 refs extended (sub-decisions 1 + 3 criteria).
+**Result:** Note landed; all three backlog annotations committed; `validate_backlog` clean (7 themes, 21 stories, 51 tasks).
+**Changes:** `docs/archive/2026-06-05-agent-automation-external-research-note.md` (new), `docs/archive/README.md`, `BACKLOG.md` (commits 1b54c8e, af00519).
+
+---
+
 ### 2026-06-05 — Apply 10 ratified #81 pilot findings + archived-command sweep
 
 **Did:** Applied all 10 operator-ratified findings from the 2026-06-05 #81 pilot to `protocols/ESSENTIALS.md` (branch `docs/essentials-pilot-fixes`, 4 commits): [1] backlog section → ADR-66 story-map format; [2][3][7] ADR-45 false-authority removed from 3 sections; [4] `/recap` → `/resume`; [5] un-dotted exceptions gains `setup.cfg` + `README.md`; [6] Auto-TOC acknowledges PLAYBOOK already applied; [8] PLAYBOOK §4 citation → `§Session boundaries → Decision fatigue threshold`; [9] `/evolve` §Feedback Loop annotated archived; [10] Data Sanitization → PLAYBOOK §13. Archived-command sweep (STEP 4): annotated all live-presenting `/boot` and `/evolve` refs across ESSENTIALS, PLAYBOOK, CLAUDE.md (14 hits). Pruned merged pilot branch `chore/81-pilot-run`.
