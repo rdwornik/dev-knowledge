@@ -102,11 +102,11 @@ Pre-commit hooks (`.pre-commit-config.yaml`):
 | `toc-freshness` | commit | Fail-on-stale check that ARCHITECTURE.md's TOC matches its headers. Regenerate: `python -m scripts.toc.cli generate ARCHITECTURE.md --write`. |
 | `toc-freshness-playbook` | commit | Same check for `protocols/PLAYBOOK.md`'s TOC. Regenerate: `python -m scripts.toc.cli generate protocols/PLAYBOOK.md --write`. |
 | `validate-backlog` | commit | Validates the BACKLOG.md story-map structure (ADR-66). |
-| `audit-health` | commit | Runs `audit.py health` (the 12 self-conformance checks incl. freshness #10). **FAIL-level findings block the commit; WARN-level only inform.** ~1.4s. Bypass: `--no-verify`. |
+| `audit-health` | commit | Runs `audit.py health` (the 13 self-conformance checks incl. freshness #10). **FAIL-level findings block the commit; WARN-level only inform.** ~1.4s. Bypass: `--no-verify`. |
 | `ruff` | commit | Lint gate — `ruff check` (version-pinned >=0.15.5, `language: system`). Blocks on violations. [#13] closed. |
 | `backlog-id-on-close` | commit-msg | Requires `[#id]` / `closes [#id]` when a commit removes a `- [#id]` task. |
 
-`audit.py health` (the gate above) is also runnable standalone for an on-demand sweep: `python scripts/audit.py health`. It runs the 12 self-conformance checks incl. the canonical-file **freshness** check (`last_reviewed` staleness; see PLAYBOOK); FAIL blocks a commit, WARN (e.g. the 30-day freshness backstop) only informs.
+`audit.py health` (the gate above) is also runnable standalone for an on-demand sweep: `python scripts/audit.py health`. It runs the 13 self-conformance checks incl. the canonical-file **freshness** check (`last_reviewed` staleness; see PLAYBOOK); FAIL blocks a commit, WARN (e.g. the 30-day freshness backstop) only informs.
 
 Run the auto-format hook standalone (e.g. to clean up before commit):
 

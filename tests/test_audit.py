@@ -1234,3 +1234,90 @@ def test_no_sibling_orphans_real_git_live_worktree_passes(tmp_path: Path) -> Non
     _git(repo, "worktree", "add", "-q", "--detach", str(wt))
     f = aud.check_no_sibling_orphans(repo)[0]
     assert f.status == "pass", f.evidence
+
+
+# ---------------------------------------------------------------------------
+# Check #13: handoff_version_stamp (S1 recurrence class — nightly arc #81)
+# ---------------------------------------------------------------------------
+
+def _write_handoff_spec(tmp_path: Path, version: str) -> None:
+    (tmp_path / "protocols").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "protocols" / "HANDOFF_PROCESS.md").write_text(
+        f"# HANDOFF_PROCESS\n\nVersion: {version}\nStatus: live\n", encoding="utf-8"
+    )
+
+
+def test_handoff_version_stamp_pass(tmp_path: Path) -> None:
+    """Stamps in both living docs match canonical version → pass."""
+    _write_handoff_spec(tmp_path, "4.4")
+    (tmp_path / "ARCHITECTURE.md").write_text(
+        "# Architecture\n\nstamp 4.4, live\n", encoding="utf-8")
+    (tmp_path / "CONTRIBUTING.md").write_text(
+        "# Contributing\n\nstamp v4.4, *live*\n", encoding="utf-8")
+    f = aud.check_handoff_version_stamp(tmp_path)[0]
+    assert f.status == "pass"
+    assert "4.4" in f.evidence
+
+
+def test_handoff_version_stamp_fail_mismatch(tmp_path: Path) -> None:
+    """A stamp referencing a stale version → fail, naming the file and line."""
+    _write_handoff_spec(tmp_path, "4.4")
+    (tmp_path / "ARCHITECTURE.md").write_text(
+        "# Architecture\n\nstamp 4.3.2, live\n", encoding="utf-8")
+    (tmp_path / "CONTRIBUTING.md").write_text(
+        "# Contributing\n\nstamp v4.4, *live*\n", encoding="utf-8")
+    f = aud.check_handoff_version_stamp(tmp_path)[0]
+    assert f.status == "fail"
+    assert "ARCHITECTURE.md" in f.evidence
+    assert "4.3.2" in f.evidence
+
+
+def test_handoff_version_stamp_fail_multiple_mismatches(tmp_path: Path) -> None:
+    """Multiple mismatching stamps all reported in a single fail finding."""
+    _write_handoff_spec(tmp_path, "4.4")
+    (tmp_path / "ARCHITECTURE.md").write_text(
+        "# Architecture\n\nstamp 4.3.2, live\n\nAnother stamp 4.3.2 here.\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "CONTRIBUTING.md").write_text(
+        "# Contributing\n\nstamp 4.3.2, *live*\n", encoding="utf-8")
+    f = aud.check_handoff_version_stamp(tmp_path)[0]
+    assert f.status == "fail"
+    assert "mismatch" in f.evidence
+
+
+def test_handoff_version_stamp_no_spec_passes(tmp_path: Path) -> None:
+    """No protocols/HANDOFF_PROCESS.md → child-repo-safe vacuous pass."""
+    (tmp_path / "ARCHITECTURE.md").write_text("# Architecture\n\nstamp 4.4\n", encoding="utf-8")
+    f = aud.check_handoff_version_stamp(tmp_path)[0]
+    assert f.status == "pass"
+    assert "nothing to validate" in f.evidence
+
+
+def test_handoff_version_stamp_no_version_line_warns(tmp_path: Path) -> None:
+    """HANDOFF_PROCESS.md with no parseable Version: line → warn."""
+    (tmp_path / "protocols").mkdir(parents=True)
+    (tmp_path / "protocols" / "HANDOFF_PROCESS.md").write_text(
+        "# HANDOFF_PROCESS\n\nNo version header here.\n", encoding="utf-8"
+    )
+    f = aud.check_handoff_version_stamp(tmp_path)[0]
+    assert f.status == "warn"
+    assert "Version" in f.evidence or "parseable" in f.evidence.lower()
+
+
+def test_handoff_version_stamp_no_stamps_in_living_docs_warns(tmp_path: Path) -> None:
+    """Spec present with valid version but no stamp occurrences in living docs → warn."""
+    _write_handoff_spec(tmp_path, "4.4")
+    (tmp_path / "ARCHITECTURE.md").write_text(
+        "# Architecture\n\nNo stamps here.\n", encoding="utf-8")
+    f = aud.check_handoff_version_stamp(tmp_path)[0]
+    assert f.status == "warn"
+    assert "No 'stamp" in f.evidence or "drifted" in f.evidence
+
+
+def test_handoff_version_stamp_absent_living_docs_warns(tmp_path: Path) -> None:
+    """Spec has version but neither ARCHITECTURE.md nor CONTRIBUTING.md exist → warn."""
+    _write_handoff_spec(tmp_path, "4.4")
+    # Neither stamp target file is created
+    f = aud.check_handoff_version_stamp(tmp_path)[0]
+    assert f.status == "warn"
