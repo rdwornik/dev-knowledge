@@ -192,20 +192,31 @@ jobs:
           if [ "$SURV" -gt 0 ]; then
             DIGEST_URL="https://github.com/${GITHUB_REPOSITORY}/blob/main/${FILE}"
 
-            # Two-pass extraction: pull the "Findings by Severity" and "Next Actions"
-            # blocks SEPARATELY (each from its heading up to the next ###/##/--- marker)
-            # so the intervening Counts / Checked Clean blocks do NOT bleed in.
+            # Two-pass extraction: pull the "Findings" and "Next Actions" blocks
+            # SEPARATELY. The real generator (docs/audits/2026-06-05-conformance-
+            # nightly-digest.md) emits LEVEL-2 headings "## Findings (PROPOSALS
+            # ONLY)" and "## Next Actions (proposals for operator)", with
+            # ### High/Med/Low subsections INSIDE Findings. So capture from the
+            # level-2 heading to the NEXT level-2 "## " heading or "---" rule --
+            # NOT the next "### ", which would stop at "### High" and capture
+            # nothing (the bug this fixes). Stopping at the next "## " also keeps
+            # "## Killed Findings" out of the survivor issue. Fail-soft: a missing
+            # section becomes a placeholder line, never an empty/dead body.
             FINDINGS="$(awk '
-              /^### Findings by Severity[[:space:]]*$/ {cap=1; print; next}
-              cap && /^(### |## |---[[:space:]]*$)/ {exit}
+              /^## Findings/ {cap=1; print; next}
+              cap && /^## / {exit}
+              cap && /^---[[:space:]]*$/ {exit}
               cap {print}
             ' "$FILE")"
+            [ -n "$FINDINGS" ] || FINDINGS="_(Findings section not found in the digest — see ${FILE}.)_"
 
             NEXTACT="$(awk '
-              /^### Next Actions[[:space:]]*$/ {cap=1; print; next}
-              cap && /^(### |## |---[[:space:]]*$)/ {exit}
+              /^## Next Actions/ {cap=1; print; next}
+              cap && /^## / {exit}
+              cap && /^---[[:space:]]*$/ {exit}
               cap {print}
             ' "$FILE")"
+            [ -n "$NEXTACT" ] || NEXTACT="_(Next Actions section not found in the digest — see ${FILE}.)_"
 
             BODY="$(cat <<EOF
           The nightly conformance digest for **${DATE}** reported **${SURV} survivor(s)**.
