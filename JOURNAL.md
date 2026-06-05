@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-06 — Correction: hub nightly verdict in bookkeeping entry
+
+**Did:** Verified hub nightly state post-bookkeeping. Corrected the "GH/nightly N/A" claim in the earlier 2026-06-06 bookkeeping JOURNAL entry — that was accurate for corp-monorepo (no remote) but wrong for the hub: the hub has GH Actions and fired two runs on 2026-06-05 (PRs #8 MERGED 0h/1m/0l, #11 CLOSED 1h/0m/0l). No 2026-06-06 scheduled run fired (no branch/PR/run exists); the nightly contract itself is proven (Tests A+B 2026-06-05). Missed-run class is watched by the SessionStart digest-presence check. No further action required.
+**Result:** Correction recorded; no files beyond JOURNAL and LESSONS touched.
+**Changes:** JOURNAL (this entry), LESSONS (cross-repo-state-claims lesson appended).
+
+---
+
 ### 2026-06-06 — Hub bookkeeping: #75 close + corp audit evidence trail
 
 **Did:** Closed #75 (corp scoped audit Workflow ran end-to-end 2026-06-06, 29 targets / ~588k tok / ~4 min, fit confirmed). LESSONS append: per-stage model pins FUNCTIONAL post-C3 override removal (re-probe complete, cadence = next CC upgrade). Annotated #89 with corp #75 check-source disposition (~6/29 binary checks = mechanizable deterministically; reserve Workflows for judgment-laden conformance) and #84(a) with n=1-of-2 evidence trail. Folded 2026-06-06 fleet-health snapshot files (5 state.yamls + audit + 5 history). Nightly verdict: 5/5 repos green (SessionStart fleet_health.py); GH/nightly N/A — corp-monorepo has no remote, no GH Actions infrastructure yet (#85/#86 open).
