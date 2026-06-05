@@ -14,6 +14,7 @@ Not a dumping ground — a triage queue. If something sits here across two revie
 Entered as 14 files from `research/` and `council-questions/` (2026-05-27 taxonomy-simplification).
 **First review: 2026-05-28** — 7 council-out transcripts promoted; 7 external-research / scoping / evidence files kept pending second review.
 
+- `2026-06-05-agent-automation-external-research-note.md` — external research: cloud-agent infrastructure (E1/CREAO) + CC automation stack (E2 Desktop scheduler, E3 /goal principles); encodes dispositions for #85/#86/#84(a); verify-before-encode applies to all E2 platform claims — keep pending promotion / n=2-gate clearance
 - `2026-06-03-dynamic-workflows-research-note.md` — #80 deliverable: Dynamic Workflows feature research + pattern→use-case mapping (Amendments A 2026-06-03 + B 2026-06-05); landed 2026-06-05 per the external-research convention — keep pending promotion to the adoption ADR (#84(b))
 - `2026-05-25-handoff-failures-evidence.md` — empirical evidence cited by the 5 handoff-methodology Council questions; referenced in ADR-55/56/57/58 and HANDOFF_PROCESS.md — keep until superseded
 - `2026-05-25-handoff-methodology-council-index.md` — index of the Council question set that produced ADR-55–58; keep as provenance record pending second review
