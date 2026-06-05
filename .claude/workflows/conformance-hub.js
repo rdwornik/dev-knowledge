@@ -110,10 +110,16 @@ const digestSchema = {
       },
       required: ['raw_findings', 'survived_skeptic', 'killed_false_positive'],
     },
+    // Machine-readable counts contract (D). The agent must echo the EXACT
+    // code-computed marker string provided in the Stage-3 prompt, verbatim.
+    // Code (below) validates this against the authoritative counts and throws
+    // on mismatch, so the agent's free prose is NEVER the parse target.
+    // Format: <!-- counts: raw=N survived=N killed=N -->
+    counts_marker: { type: 'string', description: 'EXACT machine-readable marker, copied verbatim from the prompt; format "<!-- counts: raw=N survived=N killed=N -->". Never recompute it.' },
     checked_clean: { type: 'array', items: { type: 'string' } },
     next_actions: { type: 'array', items: { type: 'string' } },
   },
-  required: ['summary', 'findings_by_severity', 'counts', 'checked_clean', 'next_actions'],
+  required: ['summary', 'findings_by_severity', 'counts', 'counts_marker', 'checked_clean', 'next_actions'],
 }
 
 const V1 = READONLY + '\n\nDOMAIN V1 - JOURNAL vs git reality.\n'
@@ -165,21 +171,51 @@ const survivors = (skeptic.surviving_findings || []).filter(f => f.evidence_comm
 const droppedNoEvidence = (skeptic.surviving_findings || []).length - survivors.length
 log('Stage 2: survived=' + survivors.length + ' killed=' + (skeptic.kill_count || (skeptic.killed_findings || []).length) + ' dropped_no_evidence=' + droppedNoEvidence + '. spent=' + budget.spent())
 
+// --- Counts contract (D): code-owned, code-computed, machine-readable -------
+// These three integers are the AUTHORITATIVE counts, computed here in code from
+// the run's own data structures (NOT from the agent's prose). The marker is the
+// only thing the Action parser reads; the agent's free rendering is never parsed.
+const rawCount = raw.length
+const survivedCount = survivors.length
+const killedCount = (skeptic.killed_findings || []).length
+const countsMarker = '<!-- counts: raw=' + rawCount + ' survived=' + survivedCount + ' killed=' + killedCount + ' -->'
+log('counts contract (code-owned): ' + countsMarker)
+
 phase('Stage 3 - digest')
 const digestPrompt = 'Synthesize a documentation-conformance digest from the data below. Do not re-investigate; just synthesize faithfully.\n'
-  + 'Produce: findings_by_severity (one-line each, sorted high->med->low, survivors only); counts {raw_findings=' + raw.length + ', survived_skeptic=' + survivors.length + ', killed_false_positive=' + ((skeptic.killed_findings || []).length) + '}; an explicit checked_clean list (so absence of findings is informative); a one-paragraph summary of overall doc health and the skeptic kill-rate; and next_actions ONLY if survivors exist (proposals for the operator, no action).\n\n'
+  + 'Produce: findings_by_severity (one-line each, sorted high->med->low, survivors only); counts {raw_findings=' + rawCount + ', survived_skeptic=' + survivedCount + ', killed_false_positive=' + killedCount + '}; an explicit checked_clean list (so absence of findings is informative); a one-paragraph summary of overall doc health and the skeptic kill-rate; and next_actions ONLY if survivors exist (proposals for the operator, no action).\n\n'
+  + 'COUNTS CONTRACT (machine-readable, REQUIRED): set the field `counts_marker` to EXACTLY this string, copied verbatim character-for-character (do NOT recompute the numbers): ' + countsMarker + '\n'
+  + 'When this digest is rendered to a markdown file, that marker line MUST appear verbatim on its own line. It is the SOLE count contract the nightly Action parses; your prose counts are for humans and are never parsed. Do NOT emit a "### Counts" table.\n\n'
   + 'SURVIVORS:\n```json\n' + JSON.stringify(survivors, null, 2) + '\n```\n\n'
   + 'KILLED:\n```json\n' + JSON.stringify(skeptic.killed_findings || [], null, 2) + '\n```\n\n'
   + 'CHECKED-CLEAN (from verifiers):\n```json\n' + JSON.stringify(cleanAll, null, 2) + '\n```'
 const digest = await agent(digestPrompt, { label: 'digest-synthesis', phase: 'Stage 3 - digest', schema: digestSchema })
 
+// --- Validation code step (C, write-side): the contract holder ---------------
+// Fail the Routine run LOUDLY if the agent did not echo the code-computed marker
+// verbatim. This is what makes the prompt's "ask" enforceable: code, not the
+// prompt, owns the contract. A thrown error aborts the run before any digest
+// with a wrong/absent count contract can be rendered + PR'd.
+if (!digest || digest.counts_marker !== countsMarker) {
+  throw new Error(
+    'Counts-marker contract violation (fail-closed): digest.counts_marker='
+    + JSON.stringify(digest && digest.counts_marker) + ' but code-computed marker='
+    + JSON.stringify(countsMarker) + '. The Stage-3 agent must echo the marker verbatim. '
+    + 'Refusing to emit a digest whose machine-readable counts do not match the authoritative code counts.'
+  )
+}
+log('counts contract validated: agent echoed marker verbatim.')
+
 log('conformance-hub complete. spent=' + budget.spent())
 
 return {
-  raw_count: raw.length,
+  raw_count: rawCount,
   raw_findings: raw,
   verifier_checked_clean: cleanAll,
-  skeptic: { survive_count: survivors.length, kill_count: (skeptic.killed_findings || []).length, killed_findings: skeptic.killed_findings || [], dropped_no_evidence: droppedNoEvidence },
+  skeptic: { survive_count: survivedCount, kill_count: killedCount, killed_findings: skeptic.killed_findings || [], dropped_no_evidence: droppedNoEvidence },
   survivors,
+  // counts_marker is the canonical line the renderer MUST write verbatim into
+  // docs/audits/<date>-conformance-nightly-digest.md (on its own line).
+  counts_marker: countsMarker,
   digest,
 }
