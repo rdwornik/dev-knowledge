@@ -99,6 +99,7 @@
 - [2. Creating a Claude Code Prompt](#2-creating-a-claude-code-prompt)
   - [Summary table (required at top of every formal prompt)](#summary-table-required-at-top-of-every-formal-prompt)
   - [How to choose Model](#how-to-choose-model)
+  - [When to escalate to a Dynamic Workflow](#when-to-escalate-to-a-dynamic-workflow)
   - [How to choose Mode](#how-to-choose-mode)
   - [How to choose Effort](#how-to-choose-effort)
   - [Structure](#structure)
@@ -1710,6 +1711,31 @@ Then for each feature:
 Rule of thumb: if the task is "do X the way we always do it" → Sonnet. If the task is "figure out the right approach, then do it" → Opus.
 
 **Actively choose per task; do NOT default to Sonnet.** There is no budget ceiling per the LLM-spend rule. When uncertain, lean Opus — Sonnet's failure modes (missed nuance, factual misses) cost more than Opus's overhead.
+
+### When to escalate to a Dynamic Workflow
+<!-- scope: llm -->
+
+The Sonnet/Opus model ladder has a third rung — *the orchestration tier*. Escalate execution to a **scoped Dynamic Workflow** (the Claude Code `Workflow` tool: Claude writes a JS harness — `agent()` / `parallel()` / `pipeline()` — that a runtime drives in the background, coordinating many subagents while the session stays responsive) when **any** of these hold:
+
+- **(a) Scale** — the task needs more agents than one conversation can coordinate (fan-out across many files / rules / sources).
+- **(b) Reusable artifact** — the orchestration is worth keeping as a rerunnable, diffable artifact (saved to `.claude/workflows/` project-shared, or `~/.claude/workflows/` personal, as a slash command) rather than an ephemeral conversation.
+- **(c) Adversarial quality** — result quality justifies independent cross-checking (skeptic / refuter agents try to break each finding before it lands).
+
+**Stay with a subagent or skill** when the task is bounded, the split is already known, and token economy matters — a workflow spends substantially more tokens, so pilot on a small slice first (one directory / one narrow question).
+
+The ladder, one line per rung:
+
+| The ask | Route |
+| --- | --- |
+| "do X the way we always do it" | Sonnet |
+| "figure out the approach, then do it" | Opus |
+| "too big for one pass / needs independent verification" | scoped Workflow |
+
+**Boundary — heavy-execution, not heavy-decision.** The AI Council remains the heavy-**decision** organ (judgment, ADRs); the workflow is the heavy-**execution** organ — workflows do not creep into Council's role. A tournament / multi-angle workflow may *select among artifacts* (competing drafts judged pairwise), but the binding decision still routes to Council. Inside a workflow the same model split applies *per stage* (t-shirt pins — see "Routine/night deployment standard › T-shirt model pins").
+
+Source: research note `docs/archive/2026-06-03-dynamic-workflows-research-note.md` §5 — the escalation criterion falls straight out of S1's comparison table; the six-pattern taxonomy (incl. *tournament*) is official Anthropic vocabulary per S5. See also ADR-70 (Tier-3), ADR-67 (Council).
+
+> **Forward-pointer — decision-routing family.** This is the heavy-execution rung of the repo's decision-routing ladder. Its two siblings — the convene-vs-Path-A criterion (#18) and the cost/value relax-vs-gate criterion (#27) — are not yet written; when they land they belong **alongside this rule** as the same routing family. (#74's Done-when names that co-location; #18/#27 did not exist when this rung was written.)
 
 ### How to choose Mode
 <!-- scope: runtime -->
