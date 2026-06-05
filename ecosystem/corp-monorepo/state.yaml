@@ -41,6 +41,9 @@ findings:
 - check_name: canonical_structure
   evidence: All present canonical files carry their required [U] spine headings
   status: pass
-last_audit: '2026-06-05'
+- check_name: handoff_version_stamp
+  evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+  status: pass
+last_audit: '2026-06-06'
 name: corp-monorepo
 path: C:\Users\1028120\Documents\Dev\corp-monorepo
