@@ -333,7 +333,7 @@ flowchart TD
 
 ### Handoff process v4
 
-Two phases — interview (Phase 1) then consolidate (Phase 2) — plus the apprentice's comprehension check before work. A handoff is onboarding a new chat (a teaching protocol), not a file transfer. Grounded in `HANDOFF_PROCESS.md` v4 (stamp 4.3.2, status live) + ADR-62 ratification; ADRs 55/56/57/58 describe the superseded v3.x design (where they conflict with v4, v4 wins).
+Two phases — interview (Phase 1) then consolidate (Phase 2) — plus the apprentice's comprehension check before work. A handoff is onboarding a new chat (a teaching protocol), not a file transfer. Grounded in `HANDOFF_PROCESS.md` v4 (stamp 4.4, status live) + ADR-62 ratification; ADRs 55/56/57/58 describe the superseded v3.x design (where they conflict with v4, v4 wins).
 
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'darkMode':true,'background':'#1a1a1a','primaryColor':'#2d2d3d','primaryTextColor':'#f0f0f0','primaryBorderColor':'#8a86ff','lineColor':'#a0a0ff','textColor':'#f0f0f0','mainBkg':'#2d2d3d','secondaryColor':'#3d2d3d','tertiaryColor':'#22323a','clusterBkg':'#222232','clusterBorder':'#555577','edgeLabelBackground':'#1a1a1a','titleColor':'#f0f0f0','nodeBorder':'#8a86ff'}}}%%
@@ -399,7 +399,7 @@ flowchart TD
     class amend warn
 ```
 
-**Source:** `protocols/HANDOFF_PROCESS.md` v4 (stamp 4.3.2 — two-phase flow, sage→apprentice interview, eight flat bundle files [README + 01–07], generated-from-source principle, four-tag claims, load-bearing-facts verification table); ADR-62 (v4 ratification). ADRs 55/56/57/58 + ADR-42 Q5 describe the superseded v3.x design now folded into v4 (separate claims/scope/probe artifacts → inline narrative in the generated bundle).
+**Source:** `protocols/HANDOFF_PROCESS.md` v4 (stamp 4.4 — two-phase flow, sage→apprentice interview, eight flat bundle files [README + 01–07], generated-from-source principle, four-tag claims, load-bearing-facts verification table); ADR-62 (v4 ratification). ADRs 55/56/57/58 + ADR-42 Q5 describe the superseded v3.x design now folded into v4 (separate claims/scope/probe artifacts → inline narrative in the generated bundle).
 
 ---
 
