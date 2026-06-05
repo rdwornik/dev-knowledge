@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-06 — #86.2: cloud hub-reference resolution → ADR-72 self-containment (Path A)
+
+**Did:** UNDERSTAND inventoried the 4 hub-reference classes a child cloud Routine could depend on (pre-commit doc-tooling hooks, `tier1-lifecycle` plugin, methodology files, user skills) and tested cloud behavior — **falsifying the #86.2 premise**: hub `.dev-knowledge` is **private** (`gh api .visibility`), the plugin is **verified inert in cloud** (JOURNAL 2026-06-04, local-dir marketplace), cloud is a single-repo Linux clone, and the conformance verifiers are self-referential. So plugin/skill distribution cannot resolve a private hub in cloud and ADR-71's "URL-swappable later" hatch is closed for the cloud case; no reference is load-bearing there. Operator ruled **Path A** (codify self-containment; B publish-subset / C auth'd-infra rejected). Wrote ADR-72 (amends, does not edit, ADR-71), added a PLAYBOOK "Cloud-session hub-independence" subsection (TOC regenerated), indexed it.
+**Result:** ADR-72 landed; **no resolver code shipped** (a plugin-cache resolver would be cloud-inert = false coverage). audit-health 13/13; 255 tests collected; `toc-freshness-playbook` fresh. Advances #86 (sub-decision 2 recorded; sub-decision 3 R2 distribution still open). Child repos untouched (ADR-41).
+**Changes:** `docs/decisions/ADR-72-cloud-routine-hub-independence.md` (new), `docs/decisions/README.md` (index + traceability), `protocols/PLAYBOOK.md` (subsection + TOC), `BACKLOG.md` (#86 sub-decision-2 annotation), `LESSONS.md` (cloud-distribution lesson). Branch `docs/86-cloud-hub-independence`, merged `--no-ff`.
+
+---
+
 ### 2026-06-06 — Correction: hub nightly verdict in bookkeeping entry
 
 **Did:** Verified hub nightly state post-bookkeeping. Corrected the "GH/nightly N/A" claim in the earlier 2026-06-06 bookkeeping JOURNAL entry — that was accurate for corp-monorepo (no remote) but wrong for the hub: the hub has GH Actions and fired two runs on 2026-06-05 (PRs #8 MERGED 0h/1m/0l, #11 CLOSED 1h/0m/0l). No 2026-06-06 scheduled run fired (no branch/PR/run exists); the nightly contract itself is proven (Tests A+B 2026-06-05). Missed-run class is watched by the SessionStart digest-presence check. No further action required.
