@@ -19,6 +19,12 @@
 
 ---
 
+### 2026-06-05 — Apply 10 ratified #81 pilot findings + archived-command sweep
+
+**Did:** Applied all 10 operator-ratified findings from the 2026-06-05 #81 pilot to `protocols/ESSENTIALS.md` (branch `docs/essentials-pilot-fixes`, 4 commits): [1] backlog section → ADR-66 story-map format; [2][3][7] ADR-45 false-authority removed from 3 sections; [4] `/recap` → `/resume`; [5] un-dotted exceptions gains `setup.cfg` + `README.md`; [6] Auto-TOC acknowledges PLAYBOOK already applied; [8] PLAYBOOK §4 citation → `§Session boundaries → Decision fatigue threshold`; [9] `/evolve` §Feedback Loop annotated archived; [10] Data Sanitization → PLAYBOOK §13. Archived-command sweep (STEP 4): annotated all live-presenting `/boot` and `/evolve` refs across ESSENTIALS, PLAYBOOK, CLAUDE.md (14 hits). Pruned merged pilot branch `chore/81-pilot-run`.
+**Result:** ESSENTIALS reference-integrity restored — all 10 findings applied, 0 skipped (all evidence held). K1/K2 untouched.
+**Changes:** `protocols/ESSENTIALS.md`, `protocols/PLAYBOOK.md`, `CLAUDE.md` (archived-command annotations), this JOURNAL entry. **Next:** Track C (full-rulebook #81 run over PLAYBOOK + remaining `protocols/`).
+
 ### 2026-06-05 — #81 pilot: scoped methodology-conformance Dynamic Workflow (verifier-per-rule + skeptic)
 
 **Did:** Ran the first end-to-end #81 pilot — a scoped, READ-ONLY methodology-conformance Dynamic Workflow over `protocols/ESSENTIALS.md`. Design: 27 Sonnet verifiers (one per `##` rule-section; surgical reads; evidence-required structured findings) fan out via `parallel()`, then one Opus skeptic adversarially reviews only the non-conforming findings (explicit `summary-faithful` + `documented-decision` kill reasons, since ESSENTIALS deliberately condenses PLAYBOOK). All pins explicit (Haiku probe / Sonnet verifiers / Opus skeptic); `$env:CLAUDE_CODE_SUBAGENT_MODEL` confirmed empty and transcripts state-verified (501 sonnet / 58 opus msg-entries, zero haiku) so pins were honored. R2 respected: workflow authored inline (session dir), NOT saved to repo `.claude/workflows/`, NOT committed. R1 guard = session `permissions.deny:["Write","Edit"]` in gitignored `.claude/settings.local.json` + post-run fleet `git status --porcelain` tripwire.

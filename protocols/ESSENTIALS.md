@@ -130,7 +130,7 @@ The browser-chat architect never writes git commands, shell sequences, or execut
 
 **Test:** if the operator has to edit, paraphrase, or interpret anything when copying, the format is wrong.
 
-Sourced from LESSONS #10 (2026-05-13). Architect-side enforcement is operator-review; mechanical enforcement on executor side via Claude Code harness (per ADR-45).
+Sourced from LESSONS #10 (2026-05-13). Architect-side enforcement is operator-review; mechanical enforcement on executor side via Claude Code harness.
 
 ---
 
@@ -158,7 +158,7 @@ Before declaring a session, directive list, or task "done" / "closed" / "complet
 
 If the architect cannot verify completion (no filesystem access from browser chat), the claim becomes a question: "based on what I see here, X and Y look complete; please confirm Z is also done before I declare closure."
 
-Sourced from LESSONS #2 (2026-05-12). Architect-side enforcement is operator review; ADR-45 `/save` validator provides mechanical session-end gate on executor side.
+Sourced from LESSONS #2 (2026-05-12). Architect-side enforcement is operator review; the ADR-45 shared validator was never implemented — enforcement is operator review only.
 
 ---
 
@@ -185,7 +185,7 @@ Repo artifacts (ADRs, AI Council transcripts, audit reports, handoff bundles, an
 
 Browser chat role: architect-review of artifacts that Claude Code produces. Not artifact-source for repo files. The operator may upload a final repo artifact (e.g. an ADR draft) back to chat for review; the architect reviews and approves, Claude Code merges.
 
-Sourced from LESSONS #8 (2026-05-13). Architect-side enforcement is the workflow rule itself; ADR-45 architect-compliance path makes this a permanent invariant.
+Sourced from LESSONS #8 (2026-05-13). Architect-side enforcement is the workflow rule itself; this is a permanent invariant per LESSONS.md 2026-05-13 (ADR-45 was explored but not adopted).
 
 **Council ADR distillation** is a mandatory automated step of the post-debate protocol: number verified, template-aligned, committed by Claude Code — never a browser-chat hand-off with a placeholder. See PLAYBOOK § 5 "Post-debate protocol". End-to-end Council lifecycle runbook: `protocols/AI_COUNCIL_PROCESS.md`.
 
@@ -218,7 +218,7 @@ required for promotion. (PLAYBOOK)
 
 **Claude Code session:**
 1. Open Claude Code in project dir
-2. Type `/boot` — verifies rules, loads memory, checks trends
+2. Type `/boot` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) — verifies rules, loads memory, checks trends
 3. Shift+Tab → **Accept Edits** mode (daily driver)
 4. Pick **max 2 objectives** for this session
 
@@ -248,7 +248,7 @@ required for promotion. (PLAYBOOK)
 | Stop generation | Ctrl+C |
 | Clear screen (not session) | Ctrl+L |
 
-**Slash commands:** `/boot` (start) · `/clear` (between tasks) · `/compact` (shrink context) · `/session-summary` (to browser) · `/recap` (resume context) · `/evolve` (Friday) · `/stats` (tokens)
+**Slash commands:** `/boot` (start; archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) · `/clear` (between tasks) · `/compact` (shrink context) · `/session-summary` (to browser) · `/resume` (resume context) · `/evolve` (Friday; archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) · `/stats` (tokens)
 
 ---
 
@@ -278,7 +278,7 @@ After EVERY step: `pytest -x --tb=short && ruff check && git status`
 ## Repo visual pattern (ADR-59)
 <!-- scope: dev -->
 
-Every repo root looks the same: **dot-prefix configs** where the tool supports it (`.ruff.toml`, `.pre-commit-config.yaml`, `.{repo}.code-workspace`); **ALL-CAPS canonical `.md`** at root; workspace file dot-prefixed with `explorer.sortOrder: default` + `explorer.sortOrderLexicographicOptions: upper` (`upper` clusters ALL-CAPS first). Un-dotted exceptions: `pyproject.toml`, `package.json`, `Cargo.toml`, `setup.py`, `requirements*.txt`, `Dockerfile`, `Makefile`, `LICENSE`, `tach.toml`. New tool? Verify dot-prefix support (don't assume), then list the exception in ADR-59 + `audit.py`. Full standard: PLAYBOOK "Universal visual pattern".
+Every repo root looks the same: **dot-prefix configs** where the tool supports it (`.ruff.toml`, `.pre-commit-config.yaml`, `.{repo}.code-workspace`); **ALL-CAPS canonical `.md`** at root; workspace file dot-prefixed with `explorer.sortOrder: default` + `explorer.sortOrderLexicographicOptions: upper` (`upper` clusters ALL-CAPS first). Un-dotted exceptions: `pyproject.toml`, `package.json`, `Cargo.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Dockerfile`, `Makefile`, `LICENSE`, `tach.toml`, `README.md`. New tool? Verify dot-prefix support (don't assume), then list the exception in ADR-59 + `audit.py`. Full standard: PLAYBOOK "Universal visual pattern".
 
 ---
 
@@ -292,7 +292,7 @@ Every Mermaid block in `ARCHITECTURE.md` opens with `%%{init: {'theme':'base', '
 ## Auto-TOC for large docs (ADR-51)
 <!-- scope: meta -->
 
-Large canonical docs carry an **auto-generated table of contents** between `<!-- TOC:START/END -->` markers — generator-driven + freshness-gated like the codemap, **never hand-maintained**. Regenerate with `python -m scripts.toc.cli generate <file> --write`; the `toc-freshness` pre-commit hook (fail-on-stale, standalone like `codemap-freshness`) blocks a stale TOC. Anchors are GitHub-compatible (`## Purpose [CORE]` → `#purpose-core`; `[TAG]` dropped from link text). Applied to `ARCHITECTURE.md`; add elsewhere only where navigation overhead is real — roughly **≥~400 lines / ~8+ sections** (PLAYBOOK is the standing candidate). Full: PLAYBOOK "Auto-TOC for large canonical docs".
+Large canonical docs carry an **auto-generated table of contents** between `<!-- TOC:START/END -->` markers — generator-driven + freshness-gated like the codemap, **never hand-maintained**. Regenerate with `python -m scripts.toc.cli generate <file> --write`; the `toc-freshness` pre-commit hook (fail-on-stale, standalone like `codemap-freshness`) blocks a stale TOC. Anchors are GitHub-compatible (`## Purpose [CORE]` → `#purpose-core`; `[TAG]` dropped from link text). Applied to `ARCHITECTURE.md` and `protocols/PLAYBOOK.md`; add elsewhere only where navigation overhead is real — roughly **≥~400 lines / ~8+ sections**. Full: PLAYBOOK "Auto-TOC for large canonical docs".
 
 ---
 
@@ -356,7 +356,7 @@ the pre-commit hook list.
    The `[scope: X]` tag is informal lightweight metadata since 2026-05-16; no validator enforces it.
 6. Session scorecard logs automatically (Stop hook)
 
-**Browser chat checkpoint:** at ~2h (buffer before the 3h decision-fatigue threshold per PLAYBOOK Section 4) or when the chat slows down → see **HANDOFF_PROCESS.md**
+**Browser chat checkpoint:** at ~2h (buffer before the 3h decision-fatigue threshold per PLAYBOOK §Session boundaries → Decision fatigue threshold) or when the chat slows down → see **HANDOFF_PROCESS.md**
 
 ---
 
@@ -367,7 +367,7 @@ the pre-commit hook list.
 - Every correction logged to `corrections.jsonl` → same mistake 2x → auto-promoted to permanent rule with verify: check
 
 **Manual cadence:**
-- **Friday** — `/evolve` → review corrections, promote/prune rules, check trends
+- **Friday** — `/evolve` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) → review corrections, promote/prune rules, check trends
 - **Monthly** — Codex full-repo audit → triage flags (expect ~30% false positives) → fix CRITICAL/HIGH → re-audit → see PLAYBOOK Section 17. Cadence by repo complexity (judgment, not tier-gated; a tiny single-script repo may skip).
 
 **New tool/article/repo decision rule:** mature (>100 stars, >v1.0 — heuristics for community validation + production stability)? Solves a real problem? Architecture-level → Council debate. Otherwise decide in 30 seconds.
@@ -376,10 +376,10 @@ the pre-commit hook list.
 
 ---
 
-## Backlog (ADR-64/65)
+## Backlog (ADR-64/65/66)
 <!-- scope: meta -->
 
-`BACKLOG.md` = **open/in-progress `.dev-knowledge` work only**. Status-and-priority layout: `## Now` (in-progress) · `## Open` (P1/P2/P3) · `## Blocked` · `## Coordination` (cross-repo governance pointers, ≤10). **One item, one section** (section = status); repo affiliation is the `repo:` field, not a section. **Done items leave** on close — the closing commit + the per-session JOURNAL entry are the record; **no archive** (CLAUDE §5), no per-item write. Schema is machine-checked (`scripts/validate_backlog.py`, read-only). Full: PLAYBOOK §10.
+`BACKLOG.md` = **open/in-progress `.dev-knowledge` work only**. Story-map layout (ADR-66): `## Big picture` → `## <Theme>` → `### <User Story>` + "So that" → task bullet `- [#id] [P][size] · Done when · refs`. **Done items leave** on close — the closing commit + the per-session JOURNAL entry are the record; **no archive** (CLAUDE §5), no per-item write. Schema is machine-checked (`scripts/validate_backlog.py`, read-only). Full: PLAYBOOK §10.
 
 **Closure loop:** commit `closes [#id]` on the finishing commit -> end-of-session proposals (`logs/PROPOSALS-*.md`) -> `[closures]` nudge at next start -> `/review-closures`. (`advances [#id]` does **not** close — it leaves the item open and undetected.)
 
@@ -427,4 +427,4 @@ Full guidance: PLAYBOOK "Project complexity bands". (Distinct from the *task-com
 ## Data Sanitization for Lessons
 <!-- scope: meta -->
 
-Before writing dev lessons in `.dev-knowledge`: strip client names, proprietary schemas, internal tool names, client-specific API endpoints. Replace with `[client]` or generic placeholders. Methodology generalizes; project specifics don't — those belong in Obsidian vault. Detailed examples in PLAYBOOK.
+Before writing dev lessons in `.dev-knowledge`: strip client names, proprietary schemas, internal tool names, client-specific API endpoints. Replace with `[client]` or generic placeholders. Methodology generalizes; project specifics don't — those belong in Obsidian vault. See PLAYBOOK §13 'Data sanitization' for the canonical framing.
