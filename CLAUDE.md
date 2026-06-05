@@ -1,12 +1,12 @@
 ---
-last_reviewed: 2026-06-04
+last_reviewed: 2026-06-05
 status: active
 owner: Rob
 ---
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.13 — 2026-06-04 -->
+<!-- version: 2.14 — 2026-06-05 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -183,8 +183,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.11 (2026-06-03) — Tier-1 doc convergence (5c + #73 close): §9 "Session hooks" **corrected** — the hub-local `Stop → propose_closures` and `SessionStart → review_closures surface` hooks were removed in 5c; the closure loop now runs via the enabled `tier1-lifecycle` plugin (Stop) + the global `~/.claude` `surface-closures.ps1` (L0). §8 notes the enabled plugin; §11 rotated 65→70 (added ADR-70; dropped ADR-65 — full list in `docs/decisions/README.md`). Full end-to-end re-read; `last_reviewed` re-stamped 2026-06-03.
 - v2.12 (2026-06-03) — #76 closes (hub converges onto the plugin's `/review-closures`): §7 moves `/review-closures` out of the Repo-level list into a new "Plugin-provided" subsection — the duplicate hub-local `.claude/commands/review-closures.md` was deleted so the hub uses the plugin's command like the child repos (verified: the plugin's `review_closures.py` resolves the hub root via `$CLAUDE_PROJECT_DIR`). `scripts/review_closures.py` (canonical source) untouched. `last_reviewed` unchanged (targeted same-day edit; rest re-read 2026-06-03 this morning).
 - v2.13 (2026-06-04) — pilot-phase closeout (#78 closes): §11 "last 5" rotated 66–70 → 67–71 (add ADR-71 doc-tooling hook source-repo pattern; drop ADR-66 — full list in `docs/decisions/README.md`). Companion genuine end-to-end re-read of `ARCHITECTURE.md` fixed pilot finding F1 (HANDOFF_PROCESS stamp `4.3.1, status stable` → `4.3.2, status live`), de-hardcoded the audit check count → `audit.py checks` [#78a], and corrected other stale claims (codemap node count, pre-commit hook list). `last_reviewed` re-stamped 2026-06-04.
+- v2.14 (2026-06-05) — #81 pilot STEP 4 archived-command sweep: §6 "Session start protocol" and §7 "Slash commands" — `/boot` and `/evolve` references annotated as archived 2026-06-05 Phase-C3 (archive: `~/.claude/archive/2026-06-05-machinery-c3/`). End-to-end re-read; `last_reviewed` re-stamped 2026-06-05.
 
 ---
 
-**Last updated:** 2026-06-04
+**Last updated:** 2026-06-05
 **Maintained by:** Rob
