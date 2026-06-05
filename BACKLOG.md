@@ -84,7 +84,6 @@ So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
 So that future sessions route decisions consistently (convene-vs-Path-A; relax-vs-gate).
 - [#18] [P2][M] Codify the convene-vs-Path-A criterion in AI_COUNCIL_PROCESS/PLAYBOOK · Done when: the criterion is written · refs ADR-62/63/65
 - [#27] [P3][M] Codify the cost/value-asymmetric relax-vs-gate criterion for drifted guards · Done when: a LESSON/ADR records the criterion · refs ADR-62/63, coherence-audit ML-2
-- [#74] [P3][M] Codify the Workflow-escalation rule — when to escalate execution to a scoped Dynamic Workflow (heavy / cross-repo / large-repo / checked-twice), the heavy-execution analog of the Council (heavy-decision) on the decision ladder · Done when: the criterion is written alongside the convene-vs-Path-A (#18) and relax-vs-gate (#27) rules · refs ADR-70 (escalation rule), ADR-67, #80 (Dynamic Workflows feature research — ground the criterion against the shipped capability before writing)
 
 ### Operationalize the Council decision loop
 So that Council questions are gated and their verdicts return deterministically instead of being shuttled by hand.
