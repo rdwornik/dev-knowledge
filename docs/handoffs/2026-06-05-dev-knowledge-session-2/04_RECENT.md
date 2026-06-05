@@ -91,6 +91,7 @@ remove one synthesis step. Evaluate after v4.4's first real exercise.
 | "tip at capture: `d031d39`" | `d031d39` is one session back; **current `main` tip = `e90a1fe`** (the v44-wrap merge + the `2bac2d2` template chore landed since) | ⚠️ stale — sender narrated the prior window; this handoff captures `e90a1fe` | `git rev-parse main; git log --oneline d031d39..main` |
 | v4.4 ships **beta** with a built-in promotion test | Spec v4.4 latest-amendment Status line = `beta` | ✅ matches | `grep -nE "Ships at status" protocols/HANDOFF_PROCESS.md` |
 | `docs/machinery-inventory` branch **may still exist** — adjudicate `[recall]` | **No branch matching `*machinery-inventory*`** locally or on `origin` — already gone (also resolved in the v44-wrap bundle) | ⚠️ resolved — branch absent; recall was stale | `git branch -a --list "*machinery-inventory*"` |
+| Current `main` tip = `e90a1fe` | session-2 branch merged (`239c19a`) + chore `a102c43`; tip now `a102c43` | superseded post-Phase-2 — anticipated movement, not drift | `git log --oneline e90a1fe..main` |
 
 ## Decisions & reasoning to carry forward
 
