@@ -68,3 +68,58 @@ def test_yml_marker_extraction_has_failopen_guard():
     text = YML.read_text(encoding="utf-8")
     line = next((ln for ln in text.splitlines() if "grep -oE '<!-- counts:" in ln), "")
     assert "|| true" in line, "marker grep must end with `|| true` for fail-closed reachability"
+
+
+# --- Survivor-issue body extractor (FIX 1: heading-mismatch alignment) --------
+# The real generator emits LEVEL-2 headings "## Findings (PROPOSALS ONLY)" /
+# "## Next Actions (proposals for operator)" with ### High/Med/Low subsections
+# inside Findings. This mirrors the yml awk: capture from the level-2 heading to
+# the next level-2 "## " heading or "---" rule.
+
+def _extract_section(body: str, heading_prefix: str) -> str:
+    out, cap = [], False
+    for line in body.splitlines():
+        if not cap:
+            if line.startswith("## " + heading_prefix):
+                cap = True
+                out.append(line)
+            continue
+        if line.startswith("## ") or re.match(r"^---\s*$", line):
+            break
+        out.append(line)
+    return "\n".join(out)
+
+
+def test_findings_extractor_captures_real_level2_section():
+    body = FIXTURE.read_text(encoding="utf-8")
+    findings = _extract_section(body, "Findings")
+    assert "SYNTHETIC-F1" in findings, "must capture the survivor finding"
+    assert "### Med" in findings, "### subsections must be included (not stop at '### High')"
+    assert "Killed Findings" not in findings, "must stop before '## Killed Findings'"
+    assert "Next Actions" not in findings
+
+
+def test_next_actions_extractor_captures_section():
+    body = FIXTURE.read_text(encoding="utf-8")
+    nextact = _extract_section(body, "Next Actions")
+    assert "SYNTHETIC" in nextact, "must capture the next-actions content"
+    assert "Safety Tripwire" not in nextact, "must stop at the next '## ' / '---'"
+
+
+def test_extractor_is_failsoft_when_heading_absent():
+    """A digest missing the section -> empty capture -> the yml applies a
+    placeholder (never an empty/dead issue body)."""
+    body = "## Summary\n\nno findings heading here\n\n## Other\n"
+    assert _extract_section(body, "Findings") == ""
+    text = YML.read_text(encoding="utf-8")
+    assert '[ -n "$FINDINGS" ] ||' in text, "yml must placeholder a missing Findings section"
+    assert '[ -n "$NEXTACT" ] ||' in text, "yml must placeholder a missing Next Actions section"
+
+
+def test_yml_extractor_targets_real_level2_headings():
+    """Anti-drift: the yml awk must target the real level-2 headings, and the old
+    strict '### Findings by Severity' heading must be retired."""
+    text = YML.read_text(encoding="utf-8")
+    assert "/^## Findings/" in text
+    assert "/^## Next Actions/" in text
+    assert "^### Findings by Severity" not in text
