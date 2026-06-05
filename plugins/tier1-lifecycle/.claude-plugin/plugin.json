@@ -1,6 +1,6 @@
 {
   "name": "tier1-lifecycle",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "ADR-70 Tier-1 methodology lifecycle: session-end propose-closures (Stop), proposal surfacing (SessionStart), and the /review-closures human-gated close command. Operates on the host repo's BACKLOG.md + logs/ via $CLAUDE_PROJECT_DIR. The ruff lint gate installs alongside (see assets/INSTALL — pre-commit framework config is outside CC-plugin scope).",
   "author": {
     "name": "Rob (.dev-knowledge methodology hub)"
