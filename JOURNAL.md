@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-06 — Context-budget doctrine codified in PLAYBOOK; #96/#97 queued; #17 annotated
+
+**Did:** Codified the context-budget read-scoping rule (provenance: compaction post-mortem — a distillation prompt consumed ~40% context window full-reading a ~78k-token Council transcript). Added `### Context budget — read-scoping rule` to PLAYBOOK §7 "Managing a Long Claude Code Session" after `When context gets heavy` (TOC updated). Added two BACKLOG items: #96 (ai-council VERDICT marker, producer-side — synthesizer emits machine-readable VERDICT block; queued for ai-council dedicated chat per ADR-41) and #97 (artifact-reader subagent template, consumer-side — hub template + fleet rollout). Annotated #17 (CLAUDE-md-template) to include compaction-preservation instructions in its scope.
+**Result:** 255 pytest passed; all pre-commit gates passed (toc-freshness-playbook, validate-backlog, audit-health). 2 commits on branch `docs/context-budget-rule`.
+**Changes:** `protocols/PLAYBOOK.md` (new subsection + TOC entry), `BACKLOG.md` (#96 under Decision management, #97 under Lessons/codify-patterns, #17 scope extended).
+**Abandoned:** nothing.
+**Next:** #85 implementation prompt (scheduler + fleet_health hardening) → corp 2026-06-07 digest (scoped read) → log n=2 → #84 codification (refs ADR-74/76) → #91 ARCHITECTURE rewrite → ai-council dedicated chat (agenda item 2, picks up #96).
+
+---
+
 ### 2026-06-06 — Council fleet-baseline-host debate → ADR-76; #85 mechanism recorded
 
 **Did:** Convened AI Council (4-model panel: claude-opus-4-7, deepseek-v4-pro, gemini-3.1-pro-preview, grok-4.3; openai synthesizer; 2 rounds; pick-mode) on three questions: Q1 which local scheduler hosts the fleet-baseline run; Q2 whether to attach LLM via `claude -p` on the scheduled path; Q3 how to handle missed runs. Council verdict 1B+2B+3B accepted by operator paste-consent. Authored ADR-76 (Windows Task Scheduler → `python scripts/fleet_health.py` directly; LLM deferred to next interactive SessionStart; built-in catch-up for missed runs; `/loop`/CronCreate formally disqualified as doctrine corollary). Updated BACKLOG #85 to replace stale Desktop-scheduler mechanism text with Council verdict; added ADR-76 to refs; kept OPEN (n=1 gate still pending). Appended lesson: REJECTED rows in bundled packages need their own named ratification line.
