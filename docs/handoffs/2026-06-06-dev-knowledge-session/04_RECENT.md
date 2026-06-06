@@ -110,6 +110,8 @@ both genuine re-reads this session found real drift, which is the point.
 ADR-36/41 read-only boundary; they are sourced to corp's JOURNAL 2026-06-06 and should be
 confirmed in that repo if load-bearing for a decision.)
 
+**2026-06-06 correction:** #86.3 was already ruled at capture (corp JOURNAL 2026-06-06); the open item was hub-side recording, not the ruling itself — per sender feedback. ADR-73 now records the decision; #86 closed.
+
 ## Decisions & reasoning to carry forward
 
 - **Falsification is a success mode.** The best moment of the session was a task
