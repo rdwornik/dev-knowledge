@@ -18,10 +18,11 @@ Implements BACKLOG #72 (cross-repo no_sibling_orphans now runs daily, all
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
-from datetime import date
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -30,7 +31,19 @@ _LOGS_DIR = _REPO_ROOT / "logs"
 _HEALTH_FILE = _LOGS_DIR / "FLEET-HEALTH.md"
 _ECOSYSTEM_DIR = _REPO_ROOT / "ecosystem"
 
+# Per-repo timeout allowance for the audit subprocess (config; version-controlled
+# here per ADR-76 §4). The single `audit.py run` subprocess audits every repo
+# in-process, so the overall budget scales by repo count (audit_timeout_budget).
+# A run that exceeds the budget (a wedged git call in any repo) is killed and
+# recorded as an INCOMPLETE baseline -- bounded, never an unbounded hang.
+_PER_REPO_TIMEOUT_S = 120
+
+# A completed baseline older than this is surfaced as a fail-soft staleness
+# warning (the scheduled run may be silently failing). ADR-76 §3 / R2.
+_STALE_AFTER_HOURS = 48
+
 _DATE_RE = re.compile(r"^run_date:\s*(\d{4}-\d{2}-\d{2})", re.M)
+_COMPLETED_RE = re.compile(r"^completed_at:\s*(\S+)", re.M)
 
 
 # ---------------------------------------------------------------------------
@@ -55,6 +68,57 @@ def is_stale(health_file: Path) -> bool:
     text = health_file.read_text(encoding="utf-8", errors="replace")
     d = parse_health_date(text)
     return d != date.today()
+
+
+def parse_completed_at(text: str):
+    """Return the completed_at ISO string from the digest, or None if absent.
+
+    completed_at is written only after a full successful audit pass (refresh);
+    its absence means the last run was INCOMPLETE (error/timeout).
+    """
+    m = _COMPLETED_RE.search(text)
+    return m.group(1) if m else None
+
+
+def is_completed_stale(text: str, now: datetime, max_age_hours: int = _STALE_AFTER_HOURS) -> bool:
+    """True when the digest carries a completed_at older than max_age_hours.
+
+    Missing or unparseable completed_at returns False: that is the INCOMPLETE
+    signal (surfaced via the digest body / surface line), not a >Nh-stale signal,
+    and there is no timestamp to age. Fail-soft -- never raises.
+    """
+    stamp = parse_completed_at(text)
+    if not stamp:
+        return False
+    try:
+        ts = datetime.fromisoformat(stamp)
+    except ValueError:
+        return False
+    return (now - ts) > timedelta(hours=max_age_hours)
+
+
+def audit_timeout_budget(n_repos: int) -> int:
+    """Overall audit-subprocess timeout: per-repo allowance times repo count.
+
+    Floors at one repo so an empty/zero count still yields a non-zero budget.
+    """
+    return _PER_REPO_TIMEOUT_S * max(1, n_repos)
+
+
+def _atomic_write(path: Path, text: str) -> None:
+    """Write text to path atomically: temp file in the same dir, then os.replace.
+
+    os.replace is atomic on the same filesystem, so a concurrent SessionStart
+    read never observes a half-written digest -- it sees either the old file or
+    the complete new one. The temp file is removed on any failure (no leftover).
+    """
+    tmp = path.with_name(path.name + ".tmp")
+    try:
+        tmp.write_text(text, encoding="utf-8")
+        os.replace(tmp, path)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
 
 
 def _load_state_yaml(path: Path) -> dict:
@@ -135,8 +199,14 @@ def repo_summary(state: dict) -> tuple:
     )
 
 
-def build_digest(states: list, run_date: date) -> str:
-    """Build the FLEET-HEALTH.md content from a list of state dicts."""
+def build_digest(states: list, run_date: date, completed_at: str | None = None) -> str:
+    """Build the FLEET-HEALTH.md content from a list of state dicts.
+
+    completed_at: ISO timestamp written to the frontmatter only when the audit
+    completed a full successful pass. When None the baseline is INCOMPLETE
+    (audit error/timeout) and no completed_at line is emitted, so a downstream
+    staleness check (is_completed_stale) sees no fresh completion stamp.
+    """
     rows = [repo_summary(s) for s in states]
     n_pass = sum(1 for _, p, f, _w in rows if f == 0)
     n_fail = len(rows) - n_pass
@@ -146,9 +216,19 @@ def build_digest(states: list, run_date: date) -> str:
         f"repos_total: {len(rows)}",
         f"repos_green: {n_pass}",
         f"repos_issues: {n_fail}",
+    ]
+    if completed_at:
+        lines.append(f"completed_at: {completed_at}")
+    lines += [
         "---",
         "",
         f"# Fleet Health -- {run_date.isoformat()}",
+        "",
+        # Baseline-status line: distinguishes a full successful pass from an
+        # error/timeout partial run (ADR-76 hardening). Separate from the
+        # green/findings summary below so the legacy counting semantics hold.
+        (f"Baseline completed ({n_pass}/{len(rows)} green)." if completed_at
+         else "Baseline INCOMPLETE (audit error/timeout) -- data may be partial."),
         "",
         "| Repo | Green | Fails | Warns |",
         "|------|-------|-------|-------|",
@@ -186,18 +266,30 @@ def surface_line(health_file: Path) -> str:
 # Impure: run audit + write digest
 # ---------------------------------------------------------------------------
 
-def run_audit(repo_root: Path) -> bool:
-    """Invoke `audit.py run` as a subprocess. Returns True when exit code <= 1.
+def run_audit(repo_root: Path, timeout_s: int) -> bool:
+    """Invoke `audit.py run` as a subprocess, bounded by timeout_s seconds.
 
-    audit.py run exits 1 when there are FAIL findings (structural drift, etc.)
-    and exits 0 when all repos pass. Both are healthy executions of the audit;
-    only exit codes >= 2 (unexpected errors) are treated as a crash.
+    Returns True when exit code <= 1. audit.py run exits 1 when there are FAIL
+    findings (structural drift, etc.) and exits 0 when all repos pass. Both are
+    healthy executions; only exit codes >= 2 (unexpected errors) are a crash.
+
+    A wedged repo (e.g. a hung git subprocess inside a check) would otherwise
+    hang the scheduled run forever. timeout_s bounds it: on expiry the subprocess
+    is killed and this returns False, so the run is recorded as INCOMPLETE rather
+    than hanging. The timeout is fleet-level (the single subprocess audits all
+    repos in-process); it does not name which repo wedged.
     """
-    result = subprocess.run(
-        [sys.executable, str(repo_root / "scripts" / "audit.py"), "run"],
-        capture_output=True, text=True, encoding="utf-8", errors="replace",
-        cwd=str(repo_root),
-    )
+    try:
+        result = subprocess.run(
+            [sys.executable, str(repo_root / "scripts" / "audit.py"), "run"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            cwd=str(repo_root), timeout=timeout_s,
+        )
+    except subprocess.TimeoutExpired:
+        print(f"fleet_health: WARNING -- audit.py run timed out after {timeout_s}s "
+              f"(a repo check is wedged) -- recording INCOMPLETE baseline",
+              file=sys.stderr)
+        return False
     if result.returncode > 1:
         print(f"fleet_health: WARNING -- audit.py run exited {result.returncode}: "
               f"{result.stderr.strip()[:200]}", file=sys.stderr)
@@ -206,16 +298,27 @@ def run_audit(repo_root: Path) -> bool:
 
 
 def refresh(repo_root: Path, ecosystem_dir: Path,
-            logs_dir: Path, health_file: Path, today: date) -> bool:
-    """Run the audit, load states, write the digest. Returns success."""
-    ok = run_audit(repo_root)
+            logs_dir: Path, health_file: Path, today: date,
+            now: datetime | None = None) -> bool:
+    """Run the audit (bounded), load states, write the digest atomically.
+
+    The digest carries completed_at only when the audit completed a full
+    successful pass; a timeout/crash yields an INCOMPLETE digest (no stamp).
+    Returns the audit success flag.
+    """
+    n_repos = sum(
+        1 for child in ecosystem_dir.iterdir()
+        if child.is_dir() and (child / "state.yaml").exists()
+    ) if ecosystem_dir.exists() else 0
+    ok = run_audit(repo_root, audit_timeout_budget(n_repos))
     states = load_all_states(ecosystem_dir)
     if not states:
         print("fleet_health: WARNING -- no ecosystem states found after audit run",
               file=sys.stderr)
         return False
+    completed_at = (now or datetime.now()).isoformat(timespec="seconds") if ok else None
     logs_dir.mkdir(exist_ok=True)
-    health_file.write_text(build_digest(states, today), encoding="utf-8")
+    _atomic_write(health_file, build_digest(states, today, completed_at))
     return ok
 
 
@@ -235,6 +338,13 @@ def main() -> int:
             print("fleet_health: running cross-repo audit (stale or first run)...",
                   file=sys.stderr)
             refresh(_REPO_ROOT, _ECOSYSTEM_DIR, _LOGS_DIR, _HEALTH_FILE, today)
+        # Stale-completion check on BOTH paths (skip/surface and run): a digest
+        # whose last successful completion is >48h old means the scheduled run
+        # may be silently failing. Fail-soft -- one line, never blocks.
+        if _HEALTH_FILE.exists():
+            text = _HEALTH_FILE.read_text(encoding="utf-8", errors="replace")
+            if is_completed_stale(text, datetime.now()):
+                print("[fleet] digest stale (>48h) -- scheduled run may be failing")
         print(surface_line(_HEALTH_FILE))
         return 0
     except Exception as exc:
