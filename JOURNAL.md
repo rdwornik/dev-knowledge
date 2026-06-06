@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-06 — Council fleet-baseline-host debate → ADR-76; #85 mechanism recorded
+
+**Did:** Convened AI Council (4-model panel: claude-opus-4-7, deepseek-v4-pro, gemini-3.1-pro-preview, grok-4.3; openai synthesizer; 2 rounds; pick-mode) on three questions: Q1 which local scheduler hosts the fleet-baseline run; Q2 whether to attach LLM via `claude -p` on the scheduled path; Q3 how to handle missed runs. Council verdict 1B+2B+3B accepted by operator paste-consent. Authored ADR-76 (Windows Task Scheduler → `python scripts/fleet_health.py` directly; LLM deferred to next interactive SessionStart; built-in catch-up for missed runs; `/loop`/CronCreate formally disqualified as doctrine corollary). Updated BACKLOG #85 to replace stale Desktop-scheduler mechanism text with Council verdict; added ADR-76 to refs; kept OPEN (n=1 gate still pending). Appended lesson: REJECTED rows in bundled packages need their own named ratification line.
+**Result:** All pre-commit gates passed; 255 pytest tests passed. Docs-only — no implementation. Branch `docs/adr-council-fleet-baseline-host` is 3 commits ahead of main.
+**Changes:** `docs/decisions/ADR-76-local-fleet-baseline-host.md` (new), `docs/decisions/transcripts/council-out-20260606_172555-pick-council-local-scheduled-tier.md` (archived), `BACKLOG.md` (#85 mechanism updated), `LESSONS.md` (bundled-ratification lesson prepended). Commits: `f0d14d1` (ADR-76 + transcript), `cf610bc` (BACKLOG #85), `a9315e2` (LESSONS).
+**Abandoned:** nothing.
+**Next:** implementation prompt for #85 (Task Scheduler setup via `scripts/setup-fleet-scheduler.ps1`); corp 2026-06-07 digest → log n=2 → #84 codification.
+
+---
+
 ### 2026-06-06 — Doctrine-pass codification: ADR-74, ADR-75, BACKLOG #85 + #95
 
 **Did:** Codified the 2026-06-06 automation doctrine pass in documentation form. Authored ADR-74 (automation doctrine consolidation — layer→job matrix canonical, ADR-70 amended; gaps A3/A4/G1–G3 resolved) and ADR-75 (exclusion-zone register — founding member OneDrive-Blue-Yonder, governed by `block-onedrive.ps1`). Amended BACKLOG #85 to record the ratified direction (local Tier-2 cross-repo host, native Desktop scheduler, n=1 gate, riders R1/R2). Added BACKLOG #95 (template↔copy orchestration drift watcher, gap G5).
