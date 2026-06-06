@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-06 — Consolidated BACKLOG capture: SOTA research + article gap analysis
+
+**Did:** Consumed research transcript `council-out-20260606_192557-...` (SOTA CC methodology findings) and gap analysis verdict. Ran UNDERSTAND valve — funnel-batch items (PROPOSALS persistence, failing check, freshness restamp) confirmed present → Step 0 skipped. Added 10 new BACKLOG items (#102–#111) across 6 insertion points spanning 4 themes (Tooling & evaluation, Enforced governance, Cross-repo universalization, Lessons feedback loop, Decision management). Annotated 4 existing items (#17, #82, #96, #97) with research-backed riders. Also committed BACKLOG item #101 (SessionStart billing-leak sentinel, addendum from prior session).
+
+**Result:** Governance layer validated by field evidence. Runtime gaps captured. 10 new items + 4 annotations committed; branch `docs/backlog-capture-sota` ready for merge.
+
+**Changes:** `BACKLOG.md` — #101 added (commit `5566be4`); #102–#111 added (commit `accd0af`); #17/#82/#96/#97 annotated (commit `caf2ddc`).
+
+**Abandoned:** Nothing; Step 0 correctly skipped per valve.
+
+**Next:** `corp 2026-06-07 digest → n=2 → #84 → #91 → corp chat package → ai-council chat LAST`
+
+---
+
 ### 2026-06-06 — Kill CC billing leak: PATH shim strips ANTHROPIC_API_KEY from CC process
 
 **Did:** Discovered `ANTHROPIC_API_KEY` present in CC's inherited shell environment — silently billing API instead of Max subscription. Ran UNDERSTAND valve: confirmed ai-council consumes the key via `os.environ.get()` (must not be globally removed). Resolved that `$PROFILE` is in P0 zone (OneDrive - Blue Yonder) — pivoted to Option B (PATH shim, no profile contact). Surveyed PATH for a writable dir before `.local\bin` (real `claude.exe` at pos 28); chose `C:\Users\1028120\AppData\Roaming\npm` (pos 27). Created `claude.cmd` shim: strips `ANTHROPIC_API_KEY` via CMD's `set ANTHROPIC_API_KEY=` (unset idiom), delegates to hardcoded real binary path. Verified: (1) `Get-Command claude` → shim at npm; (2) ANTHROPIC_API_KEY NOT_DEFINED inside CC child; (3) parent shell key intact, GEMINI_API_KEY unaffected.
