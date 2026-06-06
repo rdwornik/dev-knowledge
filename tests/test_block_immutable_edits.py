@@ -109,6 +109,49 @@ def test_no_path_allows():
     assert decision == "allow"
 
 
+# --- Codex-review hardening (2026-06-06) ----------------------------------- #
+
+def test_dotdot_escape_not_falsely_blocked():
+    # `transcripts/../ADR-77.md` resolves OUTSIDE the zone — normpath collapses
+    # `..`, so the lexical substring must NOT falsely block this ADR edit.
+    decision, _ = guard.decide(
+        _payload("Edit", "docs/decisions/transcripts/../ADR-77-x.md"), exists=EXISTS
+    )
+    assert decision == "allow"
+
+
+def test_notebook_path_in_zone_with_benign_file_path_blocks():
+    # A benign file_path must NOT mask an in-zone notebook_path: any recognized
+    # in-zone path is controlling (fail-closed).
+    payload = {
+        "tool_name": "NotebookEdit",
+        "tool_input": {
+            "file_path": "protocols/PLAYBOOK.md",
+            "notebook_path": _TRANSCRIPT,
+        },
+    }
+    decision, _ = guard.decide(payload, exists=EXISTS)
+    assert decision == "block"
+
+
+def test_symlink_alias_into_zone_blocked(tmp_path):
+    # An out-of-zone symlink pointing AT a transcript must be caught via realpath.
+    zone_dir = tmp_path / "docs" / "decisions" / "transcripts"
+    zone_dir.mkdir(parents=True)
+    real = zone_dir / "real-transcript.md"
+    real.write_text("x", encoding="utf-8")
+    link = tmp_path / "alias.md"  # outside the zone lexically
+    try:
+        link.symlink_to(real)
+    except (OSError, NotImplementedError):
+        import pytest
+
+        pytest.skip("symlink creation not permitted on this host")
+    # realpath(link) -> .../transcripts/real-transcript.md (in zone)
+    decision, _ = guard.decide(_payload("Edit", str(link)), exists=EXISTS)
+    assert decision == "block"
+
+
 # --------------------------------------------------------------------------- #
 # Wire protocol (stdin JSON -> stdout JSON + exit code), via subprocess
 # --------------------------------------------------------------------------- #
