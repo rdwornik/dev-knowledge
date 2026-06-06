@@ -68,6 +68,7 @@
   - [Propagating a plugin change across the fleet](#propagating-a-plugin-change-across-the-fleet)
 - [Routine/night deployment standard](#routinenight-deployment-standard)
   - [The envelope](#the-envelope)
+  - [Naming](#naming)
   - [Safety envelope — allow-only platform guards, no committed deny](#safety-envelope--allow-only-platform-guards-no-committed-deny)
   - [Spec-orchestration doctrine — and why code guarantees must sit on the executing path](#spec-orchestration-doctrine--and-why-code-guarantees-must-sit-on-the-executing-path)
   - [The outcome loop](#the-outcome-loop)
@@ -1138,6 +1139,10 @@ A nightly Routine deployment is four parts:
 2. **Workflow spec** — the orchestration logic committed as `.claude/workflows/<name>.js` (e.g. `conformance-hub.js`): verifier fan-out → adversarial skeptic → digest synthesis.
 3. **Action** — the outcome handler (`.github/workflows/nightly-conformance-triage.yml`): diff-guard + auto-merge / triage on the PR the run opens.
 4. **SessionStart surfacing** — `scripts/surface_triage.ps1` prints a `[triage] N …` line at the next session start, so the operator touches only findings (CONTRIBUTING "Nightly outcome management").
+
+### Naming
+
+Routine **display names** follow `<repo>: <cadence>-<domain>` — lowercase, kebab-case after the colon, **repo first** so the Routines panel self-sorts by repo. The display name is a **label only**: no contract depends on it (the diff-guard keys off the digest path, the Action off the `claude/*` branch pattern, surfacing off the Issue label — see "The outcome loop"), so a rename is purely cosmetic and safe. Applies to all current and future Routines. Current set: `dev-knowledge: nightly-conformance`, `corp-monorepo: nightly-conformance`.
 
 ### Safety envelope — allow-only platform guards, no committed deny
 
