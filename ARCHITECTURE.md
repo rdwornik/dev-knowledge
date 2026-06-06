@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-05
+last_reviewed: 2026-06-06
 status: active
 owner: Rob
 ---
@@ -8,7 +8,7 @@ owner: Rob
 <!-- scope: meta -->
 
 > Living document. Updated after structural changes.
-> Last updated: `2026-06-04` (genuine end-to-end re-read: fixed F1 — HANDOFF_PROCESS stamp `4.3.1, status stable` → `4.3.2, status live`; de-hardcoded the audit check count → points at `audit.py checks` [#78a]; corrected codemap prose `single-node` → two-node and added the `scripts/toc/` package; completed the pre-commit hook list (+`toc-freshness` ×2); added ADR-71 to Governing ADRs; closes [#78]; prior: 2026-06-03 added "Tier-1 self-enforcing lifecycle" section [ADR-70] + re-read corrected two false-state lines — ruff is wired [#13 closed], audit ships 12 checks not 10; 2026-06-01 "The methodology engine" feedback-loop section + canonical-freshness cadence)
+> Last updated: `2026-06-06` (triage N2 — genuine end-to-end re-read confirmed accurate; added ADR-72 to Governing ADRs (cloud-Routine hub-independence, Accepted 2026-06-06 but not yet listed); re-stamped `last_reviewed` to today; prior: 2026-06-05 marked ADR-68 night-agent **[REFUTED — historical]** — superseded-in-reality by the cloud Routine, ADR-68 immutable/untouched, advances #91 (commit a1b2856); 2026-06-04 genuine end-to-end re-read: fixed F1 — HANDOFF_PROCESS stamp `4.3.1, status stable` → `4.3.2, status live`; de-hardcoded the audit check count → points at `audit.py checks` [#78a]; corrected codemap prose `single-node` → two-node and added the `scripts/toc/` package; completed the pre-commit hook list (+`toc-freshness` ×2); added ADR-71 to Governing ADRs; closes [#78]; 2026-06-03 added "Tier-1 self-enforcing lifecycle" section [ADR-70] + re-read corrected two false-state lines — ruff is wired [#13 closed], audit ships 12 checks not 10; 2026-06-01 "The methodology engine" feedback-loop section + canonical-freshness cadence)
 
 <!-- TOC:START -->
 - [Purpose](#purpose-core)
@@ -535,6 +535,7 @@ Decision record: [ADR-70](docs/decisions/ADR-70-three-tier-process-automation.md
 - **ADR-69** — cross-repo audit reach model: `audit.py` reaches child repos via a Layer-2 read-only cross-repo runner (`run` over the `ecosystem/` registry, reads each read-only, writes only into `.dev-knowledge`); commit-time enforcement stays self-only (the #72 residual)
 - **ADR-70** — three-tier self-enforcing process layer: Tier-1 always-on lifecycle (native primitives bundled as the `tier1-lifecycle` plugin), Tier-2 scheduled `audit.py run` → fleet-health digest, Tier-3 explicit/scoped Dynamic Workflows; git `closes [#id]` is the capture backbone (no custom ledger); + 2026-06-02 shipped-reality addendum (L0 surfacing relocation + forward `closes` rule)
 - **ADR-71** — doc-tooling distribution via the pre-commit hook source-repo pattern: fleet-wide codemap + TOC freshness hooks consumed from the hub's portable `.pre-commit-hooks.yaml` (TOC consumption validated via the corp-monorepo pilot; codemap deployment gated on a layout finding)
+- **ADR-72** — cloud Routines are hub-independent (self-containment): a cloud Routine consults only the repo it clones — no hub reference is load-bearing in cloud; closes ADR-71's "URL-swappable later" hatch for a private hub (amends, does not edit, ADR-71)
 
 Reference `docs/decisions/README.md` for full index. Council debate transcripts in `docs/decisions/transcripts/`.
 
