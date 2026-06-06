@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-06 — Doctrine-pass codification: ADR-74, ADR-75, BACKLOG #85 + #95
+
+**Did:** Codified the 2026-06-06 automation doctrine pass in documentation form. Authored ADR-74 (automation doctrine consolidation — layer→job matrix canonical, ADR-70 amended; gaps A3/A4/G1–G3 resolved) and ADR-75 (exclusion-zone register — founding member OneDrive-Blue-Yonder, governed by `block-onedrive.ps1`). Amended BACKLOG #85 to record the ratified direction (local Tier-2 cross-repo host, native Desktop scheduler, n=1 gate, riders R1/R2). Added BACKLOG #95 (template↔copy orchestration drift watcher, gap G5).
+**Result:** All pre-commit gates passed; 255 pytest tests passed. Docs-only — no organs built. Branch `docs/doctrine-pass-adrs` is 3 commits ahead of main.
+**Changes:** `docs/decisions/ADR-74-automation-doctrine-consolidation.md` (new), `docs/decisions/ADR-75-exclusion-zone-register.md` (new), `BACKLOG.md` (#85 amended, #95 added). Commits: `104b4ea` (ADR-74), `854df0e` (ADR-75), `ad68565` (BACKLOG).
+**Abandoned:** nothing.
+**Next:** corp 2026-06-07 digest → log n=2 → #84 codification referencing ADR-74; #85 n=1 gate run.
+
+---
+
 ### 2026-06-06 — ADR-73 wording ratified as authoritative for #86.3
 
 **Did:** Operator ruling (consent by paste): ratified ADR-73's Decision text as the authoritative form of the #86.3 ruling, resolving the two divergences surfaced in the corp-JOURNAL-vs-ADR-73 wording check. Divergence (1): "in both directions" (bidirectional propagation — hub→child template updates + child→hub back-ports) is intended as part of the ruling; corp JOURNAL 2026-06-06 stated only hub→child but the back-port precedent (`cfdcc31`, `e9c9e6a`) was present. Divergence (2): "not at runtime" constraint is carried by ADR-72 (which ADR-73 amends) — no textual patch to ADR-73 needed.
