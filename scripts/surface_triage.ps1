@@ -1,8 +1,10 @@
 # SessionStart surfacing for the nightly conformance loop (Phase C4 / ADR-68).
 #
 # Mirrors the L0 surface-closures.ps1 pattern: READ-ONLY, fail-soft, ALWAYS exit 0,
-# silent on the happy path (gh absent / unauthenticated / offline, or nothing to
-# report). Surfaces three things, each only when there is something to say:
+# silent on the happy path (gh absent / offline, or nothing to report). Surfaces
+# four things, each only when there is something to say:
+#   [gh]      — gh auth is invalid/expired (operator-recoverable ONLY; surfaces the
+#               refresh command, then skips the gh-dependent checks below)
 #   [triage]  — open `nightly-triage` Issues await review
 #   [nightly] — the last Nightly Conformance Triage Action run did NOT succeed
 #   [nightly] — the expected dated digest is missing from the default branch
@@ -15,6 +17,9 @@
 #   "[triage] N nightly finding(s) await: #a, #b ...". It emits a "[nightly]" line
 #   ONLY when the last Action run failed or the expected dated digest is missing
 #   from the default branch; on the all-green happy path it prints nothing, exit 0.
+#   With an invalid/expired gh token (`gh auth status` exits non-zero) it prints
+#   exactly "[gh] auth invalid -- run: gh auth refresh -h github.com" and skips the
+#   gh-dependent checks (exit 0) -- it does NOT fall through to a false all-clear.
 
 $ErrorActionPreference = 'SilentlyContinue'
 try {
@@ -26,6 +31,20 @@ try {
         if (Test-Path -LiteralPath $fallback) { $gh = $fallback }
     }
     if (-not $gh) { exit 0 }
+
+    # --- Leading gate: gh auth must be valid ---------------------------------
+    # gh auth failures are operator-recoverable ONLY -- the device/OAuth flow
+    # needs a human, so a session can never fix an expired/invalid token by
+    # retrying. Surface the exact recovery command and skip every gh-dependent
+    # check below (fail-soft, exit 0). `gh auth status` exits non-zero when no
+    # host is authenticated or the token is invalid/expired. Do NOT swallow it
+    # as a silent no-op -- that masks a skipped nightly behind a false all-clear.
+    # (LESSONS 2026-06-06, gh-auth failure class; durable fix = long-expiry PAT.)
+    $null = & $gh auth status 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Output "[gh] auth invalid -- run: gh auth refresh -h github.com"
+        exit 0
+    }
 
     # Resolve the repo from the project dir (gh reads the cwd's git remote).
     $dir = $env:CLAUDE_PROJECT_DIR
