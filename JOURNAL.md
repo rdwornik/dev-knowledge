@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-06 — Morning triage ratification (nightly digest 2026-06-06, issue #16)
+
+**Did:** Ratified the 2 nightly-triage survivors. N1 (#74 forward-pointer interpretation, High) ACCEPTED-AS-CLARIFICATION — one-line grooming-log annotation that the "alongside #18/#27" clause was consciously satisfied via the PLAYBOOK forward-pointer (reconciliation in the Track B close, commits 11ef2d8/4c62f63); no co-location work owed, no reopen (`8a8bf68`). N2 (ARCHITECTURE "Last updated" 2026-06-04 vs `last_reviewed` 2026-06-05, Med) APPLIED — a bare date-flip would trip audit check #10 (`canonical_freshness`) next run (editing today pushes the git author-date past `last_reviewed`), so per operator ruling did a genuine end-to-end re-read + re-stamped both to 2026-06-06; the re-read also caught and added the missing **ADR-72** Governing-ADRs entry (`cdd47c1`).
+**Result:** Both survivors resolved; issue #16 closed with a ratification comment. audit-health OK, 255 tests green, `validate_backlog` OK (50 tasks). Spotted-but-deferred (out of triage scope): CLAUDE.md §9 pre-commit list omits the two `toc-freshness` hooks that ARCHITECTURE.md §Validators correctly lists.
+**Changes:** `ARCHITECTURE.md` (frontmatter `last_reviewed` + "Last updated" line + ADR-72 bullet), `BACKLOG.md` (grooming-log N1 annotation), `JOURNAL.md` (this). Branch `chore/triage-2026-06-06`, merged `--no-ff`. Commits `cdd47c1` (N2) · `8a8bf68` (N1).
+
+---
+
 ### 2026-06-06 — #86.2: cloud hub-reference resolution → ADR-72 self-containment (Path A)
 
 **Did:** UNDERSTAND inventoried the 4 hub-reference classes a child cloud Routine could depend on (pre-commit doc-tooling hooks, `tier1-lifecycle` plugin, methodology files, user skills) and tested cloud behavior — **falsifying the #86.2 premise**: hub `.dev-knowledge` is **private** (`gh api .visibility`), the plugin is **verified inert in cloud** (JOURNAL 2026-06-04, local-dir marketplace), cloud is a single-repo Linux clone, and the conformance verifiers are self-referential. So plugin/skill distribution cannot resolve a private hub in cloud and ADR-71's "URL-swappable later" hatch is closed for the cloud case; no reference is load-bearing there. Operator ruled **Path A** (codify self-containment; B publish-subset / C auth'd-infra rejected). Wrote ADR-72 (amends, does not edit, ADR-71), added a PLAYBOOK "Cloud-session hub-independence" subsection (TOC regenerated), indexed it.
