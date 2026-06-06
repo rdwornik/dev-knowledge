@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-06 — gh-auth-check hardening of surface_triage.ps1
+
+**Did:** Hardened `scripts/surface_triage.ps1` with a leading `gh auth status` gate (same hardening as corp's surface-conformance.ps1): on non-zero exit it prints `[gh] auth invalid -- run: gh auth refresh -h github.com` and skips the gh-dependent checks fail-soft (exit 0). Closes a silent-failure gap — the header previously treated "unauthenticated" as a silent happy-path case, so an expired token surfaced nothing (false all-clear hiding a skipped nightly). Header silent-list + verify note updated to match. LESSONS append: gh-auth failure is operator-recoverable-only (never blind-retry; durable fix = long-expiry fine-grained PAT).
+**Result:** Parses; runs clean under PowerShell 5.1 (exit 0, silent happy path — #16 now closed so no [triage] line); gate-logic probe confirmed the banner fires on non-zero `$LASTEXITCODE`. 255 tests green (no Python touched). NOTE: corp's local `surface-conformance.ps1` does NOT yet show this gate (its change is likely unmerged in this clone); separately, corp's `(b)` digest check is more robust than the hub's (guards the gh-api 404-body-to-stdout trap) — a latent hub improvement, left out of scope.
+**Changes:** `scripts/surface_triage.ps1` (auth gate + header/verify), `LESSONS.md` (entry + stamp), `JOURNAL.md` (this). Branch `chore/gh-auth-check`, merged `--no-ff`. Commits `cfdcc31` (script) · `36a3ce9` (lesson).
+
+---
+
 ### 2026-06-06 — Routine display-name naming standard added to PLAYBOOK
 
 **Did:** Added a "Naming" subsection to PLAYBOOK §"Routine/night deployment standard": display names follow `<repo>: <cadence>-<domain>` (lowercase, kebab-case after the colon, repo-first so the Routines panel self-sorts). Label-only — no contract depends on it (diff-guard keys off the digest path, Action off the `claude/*` branch pattern, surfacing off the Issue label), so renames are cosmetic and safe. Applies to all current/future Routines; current set `dev-knowledge: nightly-conformance`, `corp-monorepo: nightly-conformance`.
