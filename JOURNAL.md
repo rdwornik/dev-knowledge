@@ -19,6 +19,24 @@
 
 ---
 
+### 2026-06-06 — Handoff Phase 2 complete (2026-06-06-dev-knowledge-session)
+
+**Did:** Consolidated the bundle from the pasted interview answers. Cross-checked 6 load-bearing sender claims against repo state (ADR-72 file, #84 n=1-of-2 gate, #86 sub-decision-3 open, `surface_triage.ps1` backports, clean tree, #89 check-source) — all confirmed, **no drift**. Wrote 8 files to `docs/handoffs/2026-06-06-dev-knowledge-session/` (README + 01–07, all within line budgets), removed the `in-progress/` folder.
+**Result:** Bundle ready. corp-monorepo claims flagged as cross-repo / not re-verified here (ADR-36/41 read-only). Stamp: v4.4 (status beta).
+**Changes:** `docs/handoffs/2026-06-06-dev-knowledge-session/`, removed `in-progress/…`, `JOURNAL.md`.
+**Next:** Operator pastes 01–07 into the successor chat per the bundle README.
+
+---
+
+### 2026-06-06 — Handoff Phase 1 interview generated (2026-06-06-dev-knowledge-session)
+
+**Did:** Ran the v4.4 handoff scope matrix (Case 2 — clean tree, commits since last handoff `2026-06-05-dev-knowledge-v44-wrap`, today's slug absent). Wrote `docs/handoffs/in-progress/2026-06-06-dev-knowledge-session/_handoff-interview.md` (sage→apprentice single cluster, four-tag discipline). HEAD captured `608f26b`.
+**Result:** Interview awaiting operator answers. Next: paste question block into sender chat, paste answers below the marker, then `complete handoff for dev-knowledge`.
+**Changes:** `docs/handoffs/in-progress/…`, `JOURNAL.md`.
+**Next:** Phase 2 consolidate.
+
+---
+
 ### 2026-06-06 — Backport corp's digest-existence guard into surface_triage.ps1
 
 **Did:** Backported corp's (b)-check guard: the nightly digest-existence check now gates on `$LASTEXITCODE -eq 0` + a `.md`-shape match on the returned name, not stdout-non-empty. Closes the 404-body-to-stdout misread — `gh api --jq '.name'` on a 404 exits non-zero but still prints the error body to stdout, so the old `if (-not $found)` read a MISSING digest as PRESENT and never fired the silent-skip nudge. LESSONS one-liner added (durable gh-api gotcha). Also deleted the merged `chore/gh-auth-check` branch (operator-approved).
