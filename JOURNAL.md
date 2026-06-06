@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-06-06 — Routine display-name naming standard added to PLAYBOOK
+
+**Did:** Added a "Naming" subsection to PLAYBOOK §"Routine/night deployment standard": display names follow `<repo>: <cadence>-<domain>` (lowercase, kebab-case after the colon, repo-first so the Routines panel self-sorts). Label-only — no contract depends on it (diff-guard keys off the digest path, Action off the `claude/*` branch pattern, surfacing off the Issue label), so renames are cosmetic and safe. Applies to all current/future Routines; current set `dev-knowledge: nightly-conformance`, `corp-monorepo: nightly-conformance`.
+**Changes:** `protocols/PLAYBOOK.md` (+Naming subsection; TOC regenerated +1 — PLAYBOOK TOC indexes H3s), `JOURNAL.md` (this). Branch `docs/routine-naming-standard`, merged `--no-ff`. Commit `bd5c5e9`.
+
+---
+
 ### 2026-06-06 — grok-review backlog item + §9 toc-hook drift fix + branch cleanup
 
 **Did:** Three-item batch on `chore/grok-review-item`. (1) Added BACKLOG **#94** — /grok review second-opinion reviewer experiment (P3, EXPLORATORY, go/no-go pending; xAI `grok-build-0.1` on the diff; if greenlit, experiment-first parallel to /codex on ~10 diffs, deltas-only; carries the operator caveat that the 70.8% SWE-bench figure is the Grok Build CLI system, not this model variant — verify-before-encode). (2) Fixed the **§9 CLAUDE.md drift** the prior triage re-read surfaced — added `toc-freshness` + `toc-freshness-playbook` (now 8 hooks, matching `.pre-commit-config.yaml` + ARCHITECTURE §Validators); editing a freshness-gated canonical file re-triggered audit #10, so per the established ruling did a genuine re-read + re-stamp (v2.15, `last_reviewed`→2026-06-06), which also caught §11 being one ADR behind (rotated 67–71→68–72, +ADR-72) and flagged the §11 ADR-68 line **[REFUTED]**. (3) Deleted the merged `chore/triage-2026-06-06` branch (operator-approved).
