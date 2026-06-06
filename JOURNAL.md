@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-06 — Backport corp's digest-existence guard into surface_triage.ps1
+
+**Did:** Backported corp's (b)-check guard: the nightly digest-existence check now gates on `$LASTEXITCODE -eq 0` + a `.md`-shape match on the returned name, not stdout-non-empty. Closes the 404-body-to-stdout misread — `gh api --jq '.name'` on a 404 exits non-zero but still prints the error body to stdout, so the old `if (-not $found)` read a MISSING digest as PRESENT and never fired the silent-skip nudge. LESSONS one-liner added (durable gh-api gotcha). Also deleted the merged `chore/gh-auth-check` branch (operator-approved).
+**Result:** Parses; PS 5.1 happy path silent (today's digest is on `main`); a bogus-path probe reproduced the trap (gh exit 1, `$found` = the 404 JSON body) and confirmed the NEW guard reads present=False (nudge fires) where the OLD naive check read present=True (the misread now closed). 255 tests green (no Python touched).
+**Changes:** `scripts/surface_triage.ps1` ((b) digest guard), `LESSONS.md` (404-trap one-liner), `JOURNAL.md` (this). Branch `chore/backport-digest-guard`, merged `--no-ff`. Commits `e9c9e6a` (fix) · `3ff096e` (lesson).
+
+---
+
 ### 2026-06-06 — gh-auth-check hardening of surface_triage.ps1
 
 **Did:** Hardened `scripts/surface_triage.ps1` with a leading `gh auth status` gate (same hardening as corp's surface-conformance.ps1): on non-zero exit it prints `[gh] auth invalid -- run: gh auth refresh -h github.com` and skips the gh-dependent checks fail-soft (exit 0). Closes a silent-failure gap — the header previously treated "unauthenticated" as a silent happy-path case, so an expired token surfaced nothing (false all-clear hiding a skipped nightly). Header silent-list + verify note updated to match. LESSONS append: gh-auth failure is operator-recoverable-only (never blind-retry; durable fix = long-expiry fine-grained PAT).
