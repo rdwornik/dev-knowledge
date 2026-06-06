@@ -1,5 +1,16 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/scripts/hooks/block_immutable_edits.py\""
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "matcher": "",
@@ -12,6 +23,11 @@
           {
             "type": "command",
             "command": "powershell -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/scripts/surface_triage.ps1\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/scripts/billing_leak_sentinel.ps1\"",
             "timeout": 10
           }
         ]
@@ -26,7 +42,7 @@
       }
     }
   },
-  "//": "Project-scoped Claude Code hooks for .dev-knowledge. Merges with (does not replace) the user-level ~/.claude/settings.json hooks. Tier-1 closure loop now runs via the enabled tier1-lifecycle plugin (Stop->propose) + the global ~/.claude surface hook; this file keeps only the Tier-2 fleet-health SessionStart hook (#73 5c convergence).",
+  "//": "Project-scoped Claude Code hooks for .dev-knowledge. Merges with (does not replace) the user-level ~/.claude/settings.json hooks. PreToolUse: the ADR-77 immutability guard (scripts/hooks/block_immutable_edits.py) blocks in-place edits of existing transcripts under docs/decisions/transcripts/** (fail-closed in-zone, fail-open out-of-zone; follows the global block-onedrive template) — refs #105. SessionStart: Tier-2 fleet-health + triage surfacing. Tier-1 closure loop runs via the enabled tier1-lifecycle plugin (Stop->propose) + the global ~/.claude surface hook (#73 5c convergence).",
   "permissions": {
     "allow": [
       "Workflow"
