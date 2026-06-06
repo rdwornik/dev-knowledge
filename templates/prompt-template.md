@@ -1,6 +1,6 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
-<!-- version: 1.1 — 2026-06-06 -->
+<!-- version: 1.2 — 2026-06-06 -->
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
 >
@@ -52,7 +52,7 @@ Read `CLAUDE.md`, `<other read-first files relevant to task>`, and check `~/.cla
 <commands if applicable>
 ```
 
-`<verification — how to know step succeeded>`
+Verify: invoke the `verify` skill — any FAIL blocks this step.
 
 **COMMIT:** `<conventional commit message — feat(scope): / fix(scope): / docs(scope): / chore(scope): / refactor(scope):>`
 
@@ -90,3 +90,4 @@ Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tre
 **Section history:**
 - v1.0 (2026-04-24) — initial template per Gap #2. Standard 8-section structure (Model/Mode/Effort → Title → Read first → Git → UNDERSTAND → Steps → Final → What NOT to do).
 - v1.1 (2026-06-06) — Final merge boilerplate replaced with `/ship` delegation (closes #103).
+- v1.2 (2026-06-06) — Per-step verification line replaced with `verify` skill invocation (closes #104).
