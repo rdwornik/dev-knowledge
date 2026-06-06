@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-06 — grok-review backlog item + §9 toc-hook drift fix + branch cleanup
+
+**Did:** Three-item batch on `chore/grok-review-item`. (1) Added BACKLOG **#94** — /grok review second-opinion reviewer experiment (P3, EXPLORATORY, go/no-go pending; xAI `grok-build-0.1` on the diff; if greenlit, experiment-first parallel to /codex on ~10 diffs, deltas-only; carries the operator caveat that the 70.8% SWE-bench figure is the Grok Build CLI system, not this model variant — verify-before-encode). (2) Fixed the **§9 CLAUDE.md drift** the prior triage re-read surfaced — added `toc-freshness` + `toc-freshness-playbook` (now 8 hooks, matching `.pre-commit-config.yaml` + ARCHITECTURE §Validators); editing a freshness-gated canonical file re-triggered audit #10, so per the established ruling did a genuine re-read + re-stamp (v2.15, `last_reviewed`→2026-06-06), which also caught §11 being one ADR behind (rotated 67–71→68–72, +ADR-72) and flagged the §11 ADR-68 line **[REFUTED]**. (3) Deleted the merged `chore/triage-2026-06-06` branch (operator-approved).
+**Result:** All landed; `validate_backlog` OK (51 tasks), audit-health OK (`canonical_freshness` green post-commit), 255 tests green (markdown-only change, validators untouched). Tonight's nightly will no longer flag the §9 toc-hook drift.
+**Changes:** `BACKLOG.md` (+#94), `CLAUDE.md` (§9 +2 hooks · §11 rotation + ADR-68 REFUTED flag · v2.15 + re-stamp), `JOURNAL.md` (this). Branch `chore/grok-review-item`, merged `--no-ff`. Commits `e9a5c3e` (#94) · `20bbb7a` (CLAUDE §9/re-stamp).
+
+---
+
 ### 2026-06-06 — Morning triage ratification (nightly digest 2026-06-06, issue #16)
 
 **Did:** Ratified the 2 nightly-triage survivors. N1 (#74 forward-pointer interpretation, High) ACCEPTED-AS-CLARIFICATION — one-line grooming-log annotation that the "alongside #18/#27" clause was consciously satisfied via the PLAYBOOK forward-pointer (reconciliation in the Track B close, commits 11ef2d8/4c62f63); no co-location work owed, no reopen (`8a8bf68`). N2 (ARCHITECTURE "Last updated" 2026-06-04 vs `last_reviewed` 2026-06-05, Med) APPLIED — a bare date-flip would trip audit check #10 (`canonical_freshness`) next run (editing today pushes the git author-date past `last_reviewed`), so per operator ruling did a genuine end-to-end re-read + re-stamped both to 2026-06-06; the re-read also caught and added the missing **ADR-72** Governing-ADRs entry (`cdd47c1`).
