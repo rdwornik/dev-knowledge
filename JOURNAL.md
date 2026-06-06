@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-06 — BACKLOG capture: funnel-integrity defects + scope annotations
+
+**Did:** Ran UNDERSTAND valve checks on `propose_closures.py` (confirmed unconditional overwrite) and BACKLOG items #5/#34 (confirmed existence + scope). Committed pre-existing fleet audit artifacts (corp-monorepo `canonical_freshness` fail) to clean the tree. On branch `docs/backlog-capture-funnel-defects`, added three new BACKLOG items and two annotations.
+
+**Result:** All pre-commit gates passed (validate-backlog, audit-health). Three items captured: #98 PROPOSALS persistence (P2, Enforced governance / lifecycle hooks), #99 FLEET-HEALTH check-name detail (P3, Enforced governance / structural validation), #100 corp-monorepo CLAUDE.md restamp queue (P3, Cross-repo universalization). Annotations: #5 scope extended ADRs 35-63→35-76; #34 appended pre-emit prompt checklist codification candidate (three knowledge-present/application-skipped misses observed 2026-06-06).
+
+**Changes:** `BACKLOG.md` (3 new items, 2 annotations, grooming log appended); `ecosystem/corp-monorepo/history/2026-06-06.md` + `ecosystem/corp-monorepo/state.yaml` + `docs/audits/2026-06-06-corp-monorepo-audit.md` (fleet audit artifacts). Branch: `docs/backlog-capture-funnel-defects`.
+
+**Abandoned:** Nothing.
+
+**Next:** corp 2026-06-07 digest (scoped read) → n=2 → #84 → #91 → ai-council chat (LAST per operator ruling 2026-06-06).
+
+---
+
 ### 2026-06-06 — #85 implementation: fleet-baseline scheduler registered + fleet_health hardened (ADR-76)
 
 **Did:** Implemented ADR-76 on branch `feat/85-fleet-scheduler`. (Step 0) Annotated BACKLOG #25 to embed the verbatim Model/Mode/Effort prompt-format spec. (Step 1, tests-first) Hardened `scripts/fleet_health.py`: bounded the audit subprocess with a `120s × repo-count` timeout (timeout/crash → INCOMPLETE baseline, never an unbounded hang), atomic digest write via `tempfile.mkstemp` + `os.replace`, a `completed_at` frontmatter stamp written only on a full successful pass, and a `>48h`-stale fail-soft warning on both the skip and run paths. (Step 2) Authored `scripts/setup-fleet-scheduler.ps1` (PS 5.1-compatible, idempotent `-Force`, `-DryRun`) registering `\DevKnowledge\fleet-baseline` (daily 09:00, StartWhenAvailable ON, WakeToRun OFF, IgnoreNew, 15-min limit, InteractiveToken/no stored creds) + exported `fleet-baseline.task.xml`. (Step 3) Registered the task and witnessed a manual scheduler-context fire. (Step 4) Opened `docs/audits/2026-06-06-85-validation-record.md` with the 5 Council cases + witnessed evidence. (Final) Ran Codex review; fixed both HIGH findings.
