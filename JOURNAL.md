@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-06 — #86 closed, ADR-73 authored
+
+**Did:** Authored ADR-73 (per-repo orchestration distribution, amending ADR-72); closed BACKLOG #86 entirely (all three sub-decisions recorded — 1: SELECTIVE-PUSH ruling, 2: ADR-72 self-containment, 3: ADR-73 template pattern); appended #86.3 drift correction to handoff `04_RECENT.md` facts table.
+**Result:** #86 retired per ADR-65 (grooming log records disposition: sub-decisions 1–2 → ADR-72; sub-decision 3 → ADR-73; source corp JOURNAL 2026-06-06). ADR-73 cites corp→hub back-ports `cfdcc31`, `e9c9e6a` as rollout-moment propagation precedent.
+**Changes:** `docs/decisions/ADR-73-per-repo-orchestration-distribution.md` (new), `BACKLOG.md` (closed #86), `docs/handoffs/2026-06-06-dev-knowledge-session/04_RECENT.md` (correction appended). Commits: `2b653c2` (ADR-73), `034e9f9` (#86 close), `94970c2` (correction).
+**Abandoned:** nothing.
+**Next:** Read corp 2026-06-07 digest when it exists → log n=2 → #84 codification (gated at n=2).
+
+---
+
 ### 2026-06-06 — Handoff Phase 2 complete (2026-06-06-dev-knowledge-session)
 
 **Did:** Consolidated the bundle from the pasted interview answers. Cross-checked 6 load-bearing sender claims against repo state (ADR-72 file, #84 n=1-of-2 gate, #86 sub-decision-3 open, `surface_triage.ps1` backports, clean tree, #89 check-source) — all confirmed, **no drift**. Wrote 8 files to `docs/handoffs/2026-06-06-dev-knowledge-session/` (README + 01–07, all within line budgets), removed the `in-progress/` folder.
