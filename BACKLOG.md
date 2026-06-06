@@ -25,7 +25,7 @@ So that a fresh chat states-and-acts rather than over-asking on things it should
 
 ### Close the deferred handoff-template refinements
 So that the v4 templates stop carrying known minor gaps.
-- [#25] [P3][M] Apply the 7 deferred v4.3.1 refinements (tag-lint, fresh-eyes cadence, CLI example, ML namespace, wording, auto-routing, passive-storage) at the .tmpl level · Done when: all 7 resolved in templates/handoff/*.tmpl · refs HANDOFF_PROCESS v4.3.1
+- [#25] [P3][M] Apply the 7 deferred v4.3.1 refinements (tag-lint, fresh-eyes cadence, CLI example, ML namespace, wording, auto-routing, passive-storage) at the .tmpl level · Done when: all 7 resolved in templates/handoff/*.tmpl · refs HANDOFF_PROCESS v4.3.1 · 02_METHODOLOGY embeds VERBATIM (never paraphrased): the non-negotiable Model/Mode/Effort table spec incl. the Mode enumeration (bypass permissions / plan), from PLAYBOOK §"Rob's prompt format is non-negotiable" (~line 1705)
 
 ---
 
