@@ -1,12 +1,12 @@
 ---
-last_reviewed: 2026-06-05
+last_reviewed: 2026-06-06
 status: active
 owner: Rob
 ---
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.14 — 2026-06-05 -->
+<!-- version: 2.15 — 2026-06-06 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -128,6 +128,8 @@ Plugin:
 Pre-commit (`.pre-commit-config.yaml`):
 - `normalize-dated-headers` — dated-log header normalization
 - `codemap-freshness` — ARCHITECTURE codemap vs `scripts/` staleness check
+- `toc-freshness` — ARCHITECTURE.md TOC vs its own headers staleness check (ADR-71 source-repo pattern)
+- `toc-freshness-playbook` — PLAYBOOK.md TOC staleness check (same `scripts/toc/` tool, PLAYBOOK target)
 - `validate-backlog` — BACKLOG.md story-map schema (ADR-66)
 - `audit-health` — self-conformance gate: `audit.py health` (FAIL blocks the commit, WARN informs); added by [#69]
 - `ruff` — lint gate: `ruff check` (gate mode; blocks on violations); version-pinned >=0.15.5 via `pyproject.toml`; `language: system` (no mismatch); added by [#13]
@@ -159,11 +161,11 @@ Rules (`.claude/rules/`):
 
 Brief one-liners. Full list in `docs/decisions/README.md`; full governance list in `ARCHITECTURE.md`.
 
-- ADR-67: AI-Council process operationalization — six-step gated loop (Frame→Generate→Gate→Run→Verdict→Return); `/council-question` trigger; amends `AI_COUNCIL_PROCESS.md` v1.0
-- ADR-68: Autonomous overnight review agent — local Task Scheduler → headless read-only review → morning briefing; ephemeral read-only worktrees (ADR-61)
+- ADR-68: Autonomous overnight review agent — local Task Scheduler → headless read-only review → morning briefing; ephemeral read-only worktrees (ADR-61) — **[REFUTED — historical]** the local night-agent was never registered; the recurring review ships as a cloud Routine (full note in `ARCHITECTURE.md` Governing-ADRs)
 - ADR-69: Cross-repo audit reach model — `audit.py` reaches child repos via a Layer-2 read-only cross-repo runner (`run` over the `ecosystem/` registry); commit-time enforcement stays self-only (the #72 residual)
 - ADR-70: Three-tier self-enforcing process layer — Tier-1 always-on lifecycle (native primitives, bundled as the `tier1-lifecycle` plugin), Tier-2 scheduled fleet audit, Tier-3 episodic Workflows; git `closes [#id]` is the capture backbone (no custom ledger)
 - ADR-71: Doc-tooling distribution via the pre-commit hook source-repo pattern — fleet-wide codemap + TOC freshness hooks consumed from the hub's portable `.pre-commit-hooks.yaml` (the hub is the source repo); TOC consumption validated via the corp-monorepo pilot, codemap deploy gated on a layout finding
+- ADR-72: Cloud Routines are hub-independent (self-containment) — a cloud Routine consults only the repo it clones; no hub reference is load-bearing in cloud; closes ADR-71's "URL-swappable later" hatch for a private hub (amends ADR-71)
 
 ## 12. Section history
 <!-- scope: meta -->
@@ -184,8 +186,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.12 (2026-06-03) — #76 closes (hub converges onto the plugin's `/review-closures`): §7 moves `/review-closures` out of the Repo-level list into a new "Plugin-provided" subsection — the duplicate hub-local `.claude/commands/review-closures.md` was deleted so the hub uses the plugin's command like the child repos (verified: the plugin's `review_closures.py` resolves the hub root via `$CLAUDE_PROJECT_DIR`). `scripts/review_closures.py` (canonical source) untouched. `last_reviewed` unchanged (targeted same-day edit; rest re-read 2026-06-03 this morning).
 - v2.13 (2026-06-04) — pilot-phase closeout (#78 closes): §11 "last 5" rotated 66–70 → 67–71 (add ADR-71 doc-tooling hook source-repo pattern; drop ADR-66 — full list in `docs/decisions/README.md`). Companion genuine end-to-end re-read of `ARCHITECTURE.md` fixed pilot finding F1 (HANDOFF_PROCESS stamp `4.3.1, status stable` → `4.3.2, status live`), de-hardcoded the audit check count → `audit.py checks` [#78a], and corrected other stale claims (codemap node count, pre-commit hook list). `last_reviewed` re-stamped 2026-06-04.
 - v2.14 (2026-06-05) — #81 pilot STEP 4 archived-command sweep: §6 "Session start protocol" and §7 "Slash commands" — `/boot` and `/evolve` references annotated as archived 2026-06-05 Phase-C3 (archive: `~/.claude/archive/2026-06-05-machinery-c3/`). End-to-end re-read; `last_reviewed` re-stamped 2026-06-05.
+- v2.15 (2026-06-06) — §9 pre-commit list completed: added `toc-freshness` + `toc-freshness-playbook` (now 8 hooks, matching `.pre-commit-config.yaml` + `ARCHITECTURE.md` §Validators) — the drift the 2026-06-06 triage re-read surfaced, fixed before the nightly flags it. Companion genuine end-to-end re-read: §11 "last 5" rotated 67–71 → 68–72 (add ADR-72 cloud-Routine hub-independence; drop ADR-67) and flagged the §11 ADR-68 line **[REFUTED — historical]** to match ARCHITECTURE. Rest confirmed current; `last_reviewed` re-stamped 2026-06-06.
 
 ---
 
-**Last updated:** 2026-06-05
+**Last updated:** 2026-06-06
 **Maintained by:** Rob
