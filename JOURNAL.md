@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-06 — Changelog 2.1.148–167 capture: changelog-watch item + 7 annotations + PLAYBOOK synergy line
+
+**Did:** Captured the operator-reviewed Claude Code changelog band (2.1.148–2.1.167) on branch `docs/changelog-148-167-capture`. UNDERSTAND valve: confirmed all 7 annotation targets present (#8/#82/#84/#106/#107/#9/#112) and the PLAYBOOK context-budget subsection (line 2296). Step 1: new backlog item #113 (changelog-watch routine, [P2][M]) under Theme *Tooling & evaluation* → story *Decide the undecided artifact/tool models*. Step 2: amended 7 items in place with `changelog 2.1.148-167 finding —` clauses, citing versions; closed nothing. Step 3: one synergy sentence in the PLAYBOOK read-scoping rule (single-file grep satisfies read-before-edit, v2.1.160).
+
+**Result:** Capture-only — nothing implemented, no item closed. `validate_backlog: OK (7 themes, 21 stories, 65 tasks)`. Pre-commit green on all 3 commits (PLAYBOOK TOC hook passed Step 3).
+
+**Changes:** `BACKLOG.md` (+#113, 7 annotations; commits `8b2a934`, `c4a811f`); `protocols/PLAYBOOK.md` (read-scoping synergy line; commit `53d2736`).
+
+**Abandoned:** Nothing.
+
+**Next:** changelog deep-mine (below 2.1.148, report-only) → capture #2 → digest gate → n=2 → #84.
+
+---
+
 ### 2026-06-06 — Context-budget organs: verify skill + artifact-reader subagent (closes [#104] [#97])
 
 **Did:** Shipped two context-budget organs on branch `feat/context-budget-organs`. Step 0: PLAYBOOK drift-check confirmed clean (no inline git-finish boilerplate in prompt-format section). Step 1 (#104): `verify` skill at `.claude/skills/verify/` — `verify.py` (pytest + ruff + git-status, compact PASS/FAIL, full output only on failure) + `SKILL.md` (frontmatter + invocation rule; hub-local pilot, #9 canonical-home open); `templates/prompt-template.md` v1.2 replaces per-step verification boilerplate with `verify` skill invocation. Step 2 (#97): `artifact-reader` subagent at `.claude/agents/artifact-reader.md` — read-only (Read/Grep/Glob only), model pinned to claude-sonnet-4-6, structured summary contract (goal → finding → `(line N): "quote"` + size note), refusal on any mutating tool.
