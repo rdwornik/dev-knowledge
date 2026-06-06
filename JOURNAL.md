@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-06 — ADR-73 wording ratified as authoritative for #86.3
+
+**Did:** Operator ruling (consent by paste): ratified ADR-73's Decision text as the authoritative form of the #86.3 ruling, resolving the two divergences surfaced in the corp-JOURNAL-vs-ADR-73 wording check. Divergence (1): "in both directions" (bidirectional propagation — hub→child template updates + child→hub back-ports) is intended as part of the ruling; corp JOURNAL 2026-06-06 stated only hub→child but the back-port precedent (`cfdcc31`, `e9c9e6a`) was present. Divergence (2): "not at runtime" constraint is carried by ADR-72 (which ADR-73 amends) — no textual patch to ADR-73 needed.
+**Result:** ADR-73 Decision clause (c) stands as written; corp JOURNAL 2026-06-06 remains the contemporaneous record; ADR-73 is the ratified authoritative form. No file edits — ruling recorded here only.
+**Changes:** `JOURNAL.md` (this entry). Commit: (this commit).
+**Abandoned:** nothing.
+**Next:** Read corp 2026-06-07 digest when it exists → log n=2 → #84 codification (gated at n=2).
+
 ### 2026-06-06 — #86 closed, ADR-73 authored
 
 **Did:** Authored ADR-73 (per-repo orchestration distribution, amending ADR-72); closed BACKLOG #86 entirely (all three sub-decisions recorded — 1: SELECTIVE-PUSH ruling, 2: ADR-72 self-containment, 3: ADR-73 template pattern); appended #86.3 drift correction to handoff `04_RECENT.md` facts table.
