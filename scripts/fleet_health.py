@@ -22,6 +22,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -106,15 +107,21 @@ def audit_timeout_budget(n_repos: int) -> int:
 
 
 def _atomic_write(path: Path, text: str) -> None:
-    """Write text to path atomically: temp file in the same dir, then os.replace.
+    """Write text to path atomically: unique temp file in the same dir, then os.replace.
 
-    os.replace is atomic on the same filesystem, so a concurrent SessionStart
-    read never observes a half-written digest -- it sees either the old file or
-    the complete new one. The temp file is removed on any failure (no leftover).
+    os.replace is atomic on the same filesystem, so a concurrent reader never
+    observes a half-written digest -- it sees either the old file or the complete
+    new one. The temp name is process-unique (tempfile.mkstemp), so an overlapping
+    scheduled-task write and interactive SessionStart write cannot clobber or
+    remove each other's temp file (a shared `.tmp` name would). The finally clause
+    removes only THIS call's temp; after a successful os.replace it is already
+    gone, so the unlink is a no-op for the happy path.
     """
-    tmp = path.with_name(path.name + ".tmp")
+    fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=path.name + ".", suffix=".tmp")
+    tmp = Path(tmp_name)
     try:
-        tmp.write_text(text, encoding="utf-8")
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
         os.replace(tmp, path)
     finally:
         if tmp.exists():
@@ -256,10 +263,17 @@ def surface_line(health_file: Path) -> str:
     total = int(total_m.group(1)) if total_m else "?"
     green = int(green_m.group(1)) if green_m else "?"
     as_of = date_m.group(1) if date_m else "?"
+    # A digest without completed_at means the last run was INCOMPLETE (audit
+    # error/timeout). The daily throttle (is_stale, by run_date) skips a rerun
+    # the same day, so the green/issue counts come from PARTIAL or carried-over
+    # state -- flag it here so a silently-failing scheduled run is never reported
+    # as healthy (the throttle-skip path otherwise hides it).
+    incomplete = parse_completed_at(text) is None
+    suffix = " -- last baseline INCOMPLETE (audit error/timeout)" if incomplete else ""
     if total == green:
-        return f"[fleet] {green}/{total} repos green as of {as_of}"
+        return f"[fleet] {green}/{total} repos green as of {as_of}{suffix}"
     issues = int(total) - int(green) if isinstance(total, int) and isinstance(green, int) else "?"
-    return f"[fleet] {issues} issue(s) in {total} repos as of {as_of} -- see logs/FLEET-HEALTH.md"
+    return f"[fleet] {issues} issue(s) in {total} repos as of {as_of} -- see logs/FLEET-HEALTH.md{suffix}"
 
 
 # ---------------------------------------------------------------------------

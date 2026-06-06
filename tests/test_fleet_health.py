@@ -86,21 +86,38 @@ def test_build_digest_all_green():
 def test_surface_line_all_green(tmp_path):
     f = tmp_path / "FLEET-HEALTH.md"
     f.write_text(
-        "---\nrun_date: 2026-06-02\nrepos_total: 5\nrepos_green: 5\nrepos_issues: 0\n---\n",
+        "---\nrun_date: 2026-06-02\nrepos_total: 5\nrepos_green: 5\nrepos_issues: 0\n"
+        "completed_at: 2026-06-02T09:00:00\n---\n",
         encoding="utf-8",
     )
     line = fh.surface_line(f)
     assert "5/5" in line and "green" in line and "2026-06-02" in line
+    assert "INCOMPLETE" not in line
 
 
 def test_surface_line_has_issues(tmp_path):
     f = tmp_path / "FLEET-HEALTH.md"
     f.write_text(
-        "---\nrun_date: 2026-06-02\nrepos_total: 5\nrepos_green: 3\nrepos_issues: 2\n---\n",
+        "---\nrun_date: 2026-06-02\nrepos_total: 5\nrepos_green: 3\nrepos_issues: 2\n"
+        "completed_at: 2026-06-02T09:00:00\n---\n",
         encoding="utf-8",
     )
     line = fh.surface_line(f)
     assert "2 issue" in line and "FLEET-HEALTH.md" in line
+    assert "INCOMPLETE" not in line
+
+
+def test_surface_line_flags_incomplete_baseline(tmp_path):
+    # A digest with today's run_date but NO completed_at = a failed/partial run.
+    # The throttle skips a same-day rerun, so surface_line must not report it as
+    # healthy -- it flags INCOMPLETE (Codex HIGH #2).
+    f = tmp_path / "FLEET-HEALTH.md"
+    f.write_text(
+        "---\nrun_date: 2026-06-02\nrepos_total: 5\nrepos_green: 5\nrepos_issues: 0\n---\n",
+        encoding="utf-8",
+    )
+    line = fh.surface_line(f)
+    assert "INCOMPLETE" in line
 
 
 def test_surface_line_missing_file(tmp_path):
@@ -253,6 +270,19 @@ def test_atomic_write_leaves_no_tmp_file(tmp_path):
     fh._atomic_write(target, "x")
     leftovers = sorted(p.name for p in tmp_path.iterdir() if p.name != "OUT.md")
     assert leftovers == []
+
+
+def test_atomic_write_does_not_clobber_concurrent_tmp(tmp_path):
+    # Regression for the shared-temp-name race (Codex HIGH #1): a concurrent
+    # writer's temp file (here the OLD fixed `.tmp` name) must survive our write
+    # untouched -- we use a process-unique temp and clean up only our own.
+    target = tmp_path / "FLEET-HEALTH.md"
+    foreign = tmp_path / "FLEET-HEALTH.md.tmp"
+    foreign.write_text("other-process-in-flight", encoding="utf-8")
+    fh._atomic_write(target, "mine")
+    assert target.read_text(encoding="utf-8") == "mine"
+    assert foreign.exists()
+    assert foreign.read_text(encoding="utf-8") == "other-process-in-flight"
 
 
 # build_digest completed_at + status line ------------------------------------
