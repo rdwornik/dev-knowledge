@@ -1326,7 +1326,7 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 | **Skill** | Progressive-disclosure knowledge module | `.claude/skills/<name>/SKILL.md` | Read on-demand by Claude Code when topic matches |
 | **Slash command** | Custom invokable command | `.claude/commands/<name>.md` | Rob types `/<name>` |
 | **Hook** | Lifecycle automation | `.claude/settings.json` OR `.pre-commit-config.yaml` | Auto-fires on event (PreToolUse, pre-commit, PostToolUse) |
-| **Subagent** | Separate Claude instance with narrow focus | `.claude/agents/` | Invoked via Task tool from main agent |
+| **Subagent** | Separate Claude instance with narrow focus | `.claude/agents/` | Invoked via Agent tool (formerly Task tool; Task(...) remains an alias) from main agent |
 
 **User-level vs project-level:**
 - User-level: `~/.claude/skills/`, `~/.claude/commands/`, `~/.claude/settings.json` — applies across all repos
@@ -1494,11 +1494,11 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 
 **Amendment 2026-04-25 (subagents factually active):** Original v1.0 section called subagents "DEFERRED — no active subagents in Rob's ecosystem." This was incorrect. Verification 2026-04-25 confirmed two active user-level subagents exist at `~/.claude/agents/`. Section now describes actual subagents (Anthropic docs framing preserved as conceptual context). Per Gap #19 amendment-vs-reopen protocol: prescription drift, intent (disambiguation of 4 mechanisms) preserved.
 
-**What (per Anthropic docs + Council #28 research):** Subagents are spawned Claude instances with narrow focus and fresh context window, invoked via main agent's Task tool. Designed for "read-heavy, write-light" delegation (per Cognition's June 2025 warning against subagents-as-code-generation-peers).
+**What (per Anthropic docs + Council #28 research):** Subagents are spawned Claude instances with narrow focus and fresh context window, invoked via main agent's Agent tool. Designed for "read-heavy, write-light" delegation (per Cognition's June 2025 warning against subagents-as-code-generation-peers).
 
 **Where they live:** `~/.claude/agents/<name>.md` (user-level, cross-repo) OR `<repo>/.claude/agents/<name>.md` (project-level).
 
-**File format:** Markdown files describing the subagent's role, trigger conditions, and instructions. Main agent invokes them via Task tool.
+**File format:** Markdown files describing the subagent's role, trigger conditions, and instructions. Main agent invokes them via Agent tool.
 
 **When to use:**
 - Read-heavy operations (code search across large codebase, log analysis, doc lookups)
@@ -2831,7 +2831,7 @@ Use `templates/scrum-master-cover-letter.md`. Operator fills placeholders for ta
 | `/compact [focus]` | Compress with focus ("focus on API changes")      |
 | `/evolve` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) | Weekly Friday — review corrections, promote rules |
 | `/session-summary` | Before switching to Claude.ai browser             |
-| `/stats`           | Check token usage (interactive TUI; use `ccusage --json` for scriptable export) |
+| `/usage`           | Check token usage (interactive TUI; use `ccusage --json` for scriptable export) |
 | `/plan [prompt]`   | One-shot plan mode without cycling Shift+Tab      |
 | `/model`           | Change model mid-session                          |
 | `/effort`          | Change effort level                               |

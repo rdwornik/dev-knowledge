@@ -17,12 +17,12 @@
 <!-- scope: runtime -->
 
 - **Package:** `ccusage` v18.0.11 (npm global)
-- **Purpose:** Export Claude Code usage data to JSON — replaces interactive /stats for logging
+- **Purpose:** Export Claude Code usage data to JSON — replaces interactive /usage for logging
 - **Install:** `npm install -g ccusage`
 - **Usage:** `ccusage --json > snapshot.json` | `ccusage session --json --since YYYYMMDD`
 - **Cadence:** Per-session or weekly snapshot to TOKEN-LOG.md
 - **Adopted:** 2026-04-24
-- **Rationale:** /stats is a multi-page interactive TUI — cannot be piped or scripted
+- **Rationale:** /usage is a multi-page interactive TUI — cannot be piped or scripted
 - **Cadence:** threshold-based (7 days) via /session-summary staleness check. See PLAYBOOK.md "Token log cadence" for format spec.
 
 ### settings.json (key values)
