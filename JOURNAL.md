@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-06 — Immutability guard (transcripts zone) + billing-leak sentinel
+
+**Did:** Built a fail-closed PreToolUse guard blocking in-place edits of existing decision records. UNDERSTAND valve **HALTED on fact 1**: ADRs ARE amended in place (CLAUDE.md §5 "in-file marker"; ADR-68 carries a formal in-place `## Amendment`, commit `69efa9a`; >25 ADR files multi-commit) — a sanctioned flow the original whole-`docs/decisions/*` framing (#105) would block. Transcripts proved clean (37/37 single-commit). Presented the three pre-named options; operator ruled **C now, A queued, not B**. Shipped transcripts-only v1: `scripts/hooks/block_immutable_edits.py` (all mutating tools enumerated; fail-open out-of-zone, fail-closed in-zone), wired in project PreToolUse, witnessed live (Edit of existing transcript blocked, new-file create allowed, scratch removed). ADR-77 amends ADR-75 (zone class #2 + ruled ADR direction). Also wired the #101 billing-leak sentinel (`-NoProfile` required — new gotcha). `/codex review` returned 3 CRITICAL + 1 HIGH on the guard; hardened path resolution (normpath+realpath) and multi-field evaluation, documented the shell-write residual.
+
+**Result:** Transcripts immutable-zone enforced + proven. 7 commits, 296 tests pass (1 skip = symlink host-privilege). Health/codemap/backlog gates green. #101 closed; #105 PARTIAL (stays open); #112 added (Option A adr_amend helper).
+
+**Changes:** `scripts/hooks/block_immutable_edits.py` + `tests/test_block_immutable_edits.py` (new, commits `ec50c6c`/`02b7231`); `.claude/settings.json` (PreToolUse guard + sentinel hooks, `31eedbf`/`20d67ab`); `docs/decisions/ADR-77-*` (`73ba121`); `scripts/billing_leak_sentinel.ps1` (`20d67ab`); `BACKLOG.md` (#105 annot + #112 add + #101 close, `08b7f03`/`20d67ab`); `docs/audits/2026-06-06-codex-immutability-guard.md` (`9f72715`); `~/.claude` gotchas (hook `-NoProfile` trap; not repo-tracked).
+
+**Abandoned:** Whole-`docs/decisions/*` zone (valve halt); Option B (held until #23); naive shell-write matching (over-blocks reads); handoffs/audits excluded (sanctioned append flows).
+
+**Next:** `/ship command → verify-as-skill + #97 → digest gate → #84 → #91`
+
+---
+
 ### 2026-06-06 — Consolidated BACKLOG capture: SOTA research + article gap analysis
 
 **Did:** Consumed research transcript `council-out-20260606_192557-...` (SOTA CC methodology findings) and gap analysis verdict. Ran UNDERSTAND valve — funnel-batch items (PROPOSALS persistence, failing check, freshness restamp) confirmed present → Step 0 skipped. Added 10 new BACKLOG items (#102–#111) across 6 insertion points spanning 4 themes (Tooling & evaluation, Enforced governance, Cross-repo universalization, Lessons feedback loop, Decision management). Annotated 4 existing items (#17, #82, #96, #97) with research-backed riders. Also committed BACKLOG item #101 (SessionStart billing-leak sentinel, addendum from prior session).
