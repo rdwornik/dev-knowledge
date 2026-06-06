@@ -102,8 +102,14 @@ try {
     $expected = if ($now.Hour -ge 4) { $now } else { $now.AddDays(-1) }
     $stamp = $expected.ToString('yyyy-MM-dd')
     $digestPath = "docs/audits/$stamp-conformance-nightly-digest.md"
+    # IMPORTANT: `gh api --jq '.name'` on a 404 prints the error BODY
+    # ({"message":"Not Found",...,"status":"404"}) to STDOUT, so a naive
+    # stdout-truthiness check ($found non-empty) wrongly reads a MISSING digest
+    # as "present" and never fires the silent-skip nudge. Gate on the exit code
+    # ($LASTEXITCODE -eq 0 only on HTTP 200) AND a .md-shape check on the name.
     $found = & $gh api "repos/{owner}/{repo}/contents/$digestPath" --jq '.name' 2>$null
-    if (-not $found) {
+    $present = ($LASTEXITCODE -eq 0) -and ($found -match '\.md\s*$')
+    if (-not $present) {
         Write-Output "[nightly] expected digest '$digestPath' is NOT on the default branch -- last night's nightly may have silently skipped (no retry)."
     }
 } catch {
