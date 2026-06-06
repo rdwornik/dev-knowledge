@@ -134,6 +134,7 @@
   - [Session start protocol](#session-start-protocol)
   - [During session](#during-session)
   - [When context gets heavy](#when-context-gets-heavy)
+  - [Context budget — read-scoping rule](#context-budget--read-scoping-rule)
   - [Session end protocol](#session-end-protocol)
 - [8. Handing Off Between Sessions](#8-handing-off-between-sessions)
   - [What the v4 bundle carries](#what-the-v4-bundle-carries)
@@ -2291,6 +2292,11 @@ After archival, cross-link FROM:
 - `/compact` at 40% (aggressive, Council-approved)
 - `/session-summary` before switching to Claude.ai for architecture consulting
 - If Claude says "it's done" on a complex operation — VERIFY with filesystem commands
+
+### Context budget — read-scoping rule
+<!-- scope: hybrid -->
+
+**A formal prompt's main thread never full-reads a large artifact** (transcript, audit, long doc; threshold ≈ >500 lines or >20k tokens). Consumption order: (1) a machine-readable marker, if the artifact carries one — producers compute markers, consumers read only markers (the counts-contract pattern, ADR-74 doctrine: the contract lives on the executing path); (2) `grep -n` anchors or a line-range view scoped to the needed lines; (3) a read-only subagent that reads in its own context window and returns a summary plus pinpoint quotes. Evidence/valve steps in prompts are authored as "grep -n the specific lines", never "read the file and quote". Session hygiene pointers: inspect window composition with `/context`; prefer manual `/compact <preserve-instructions>` at natural breakpoints over auto-compact; side questions via `/btw` stay out of history.
 
 ### Session end protocol
 <!-- scope: hybrid -->
