@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-06 — Context-budget organs: verify skill + artifact-reader subagent (closes [#104] [#97])
+
+**Did:** Shipped two context-budget organs on branch `feat/context-budget-organs`. Step 0: PLAYBOOK drift-check confirmed clean (no inline git-finish boilerplate in prompt-format section). Step 1 (#104): `verify` skill at `.claude/skills/verify/` — `verify.py` (pytest + ruff + git-status, compact PASS/FAIL, full output only on failure) + `SKILL.md` (frontmatter + invocation rule; hub-local pilot, #9 canonical-home open); `templates/prompt-template.md` v1.2 replaces per-step verification boilerplate with `verify` skill invocation. Step 2 (#97): `artifact-reader` subagent at `.claude/agents/artifact-reader.md` — read-only (Read/Grep/Glob only), model pinned to claude-sonnet-4-6, structured summary contract (goal → finding → `(line N): "quote"` + size note), refusal on any mutating tool.
+
+**Result:** #104 + #97 closed. verify witness: `pytest : PASS / ruff : PASS / git : PASS` (3 lines, 0 friction). artifact-reader witness on `council-out-20260606_192557-...` (96,897 bytes): returned ~1.3k summary including pinpoint line-number quotes from `## Synthesis of Practice` (line 299) — 98.7% context reduction. Pre-commit hooks green both commits.
+
+**Changes:** `.claude/skills/verify/verify.py` + `.claude/skills/verify/SKILL.md` (new; commit `36b5294`); `templates/prompt-template.md` v1.2 (commit `36b5294`); `.claude/agents/artifact-reader.md` (new; commit `f8bbf1c`); `BACKLOG.md` (#104 + #97 retired).
+
+**Abandoned:** Nothing.
+
+**Next:** digest gate → n=2 → #84 → #91 → corp package → ai-council chat
+
+---
+
 ### 2026-06-06 — /ship git-finish command + prompt-template delegation (closes #103)
 
 **Did:** Authored `/ship` slash command (`.claude/commands/ship.md`): three pre-flight refusals (on `main`, dirty tree, red validators), temp-file `--no-ff` merge (never `git merge -F -` — gotcha: exits 129 trying to open a file named `-`), push, ask-before-delete prompt, JOURNAL scaffold reminder. Updated `templates/prompt-template.md` Final section to delegate to `/ship` (v1.0→v1.1). Self-witness: /ship shipped its own branch with a pre-flight refusal demo (dirty-tree) and the actual merge.
