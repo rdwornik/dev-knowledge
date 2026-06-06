@@ -248,7 +248,7 @@ required for promotion. (PLAYBOOK)
 | Stop generation | Ctrl+C |
 | Clear screen (not session) | Ctrl+L |
 
-**Slash commands:** `/boot` (start; archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) · `/clear` (between tasks) · `/compact` (shrink context) · `/session-summary` (to browser) · `/resume` (resume context) · `/evolve` (Friday; archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) · `/stats` (tokens)
+**Slash commands:** `/boot` (start; archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) · `/clear` (between tasks) · `/compact` (shrink context) · `/session-summary` (to browser) · `/resume` (resume context) · `/evolve` (Friday; archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) · `/usage` (tokens)
 
 ---
 

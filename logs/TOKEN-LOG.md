@@ -2,6 +2,17 @@
 
 Append /stats snapshot weekly. Never edit previous entries.
 
+## 2026-06-07 (delta: 2026-05-28 to 2026-06-07, via ccusage 18.0.11)
+Delta: 11 active days, sessions N/A (not in ccusage --json), $883.77
+Tokens in+out: 9.29M (in: 1301K, out: 7993K) — cache not counted here for comparability
+Opus 4.8: 82.4% (in: 1060K, out: 6601K)
+Sonnet 4.6: 10.3% (in: 59K, out: 900K)
+Opus 4.7: 4.0% (in: 75K, out: 301K)
+Haiku 4.5: 3.2% (in: 108K, out: 191K)
+Peak day: 2026-06-02 ($178.40)
+Rate limits hit: N/A (not available via ccusage --json)
+Note: Opus 4.8 marathon band (first full window on 4.8); ccusage figure is model-priced — Max-subscription actual billing differs. Resumes the weekly comparability series after the 2026-05-31 session-scoped marker (kept out of the series); window picks up from the 2026-05-27 weekly delta.
+
 ## 2026-05-31 (session-scoped marker — methodology+backlog audit; NOT a ccusage weekly delta)
 Single Claude Code session (Opus, xhigh). Scope: 3-track methodology/canonical/backlog audit, analysis-only, 7 commits, no structural edits.
 Reads: CLAUDE/VISION/ARCHITECTURE/BACKLOG(871L full)/ESSENTIALS/AI_COUNCIL_PROCESS/PLAYBOOK(TOC+§7+§10)/ADR-39/41/47/48 + 2026-05-31 classification audit + targeted greps/globs.

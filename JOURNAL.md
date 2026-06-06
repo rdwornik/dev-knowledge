@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-07 — Audit-trio capture: stale-names fixes + 9 items + 8 annotations + consented user-layer actions [no closures]
+
+**Did:** Captured the consolidated results of the 2026-06-06/07 audit trio (platform-max / codex-max / methodology-transfer) on branch `docs/audit-trio-capture`. STOP-after-UNDERSTAND valve passed: all 8 annotation targets present (#8/#17/#82/#84/#106/#107/#112/#113), the 7 STALE-NAMES sites confirmed (`/stats`×4, `Task tool`×3), codex-review.ps1 read-only line quoted. **Step 0:** persisted the 3 trio audit reports. **Step 1:** 7 stale-platform-name edits — `/stats`→`/usage` (ENVIRONMENT×2, ESSENTIALS, PLAYBOOK) + `Task tool`→`Agent tool` (PLAYBOOK×3, alias parenthetical at the first hit). **Step 2:** 9 new backlog items #114–#122 (carriers #114/#115, schema-probe #120, gated floor organs #121 → Cross-repo universalization; hooks-hygiene #116 + prompt/agent-hooks #117 → Enforced governance; fewer-permission-prompts #118, codex currency #119, PATH-shim retire #122 → Tooling & evaluation). **Step 3:** 8 in-place annotations, each citing the audit files (close nothing). **Step 4 (consented `~/.claude`, no repo commit):** codex-review.ps1 gains `-c model_reasoning_effort=high` (witnessed: real exec, effort=high, sandbox read-only, EXIT=0, no auth/tier error); the `--no-ff` rule promoted to `core-invariants.md §5`; 3 gotchas annotations (billing 2.1.139 coupling, Codex deprecated-keys watch, repo↔global AGENTS.md CRLF/LF — verified content-identical, 3843 chars).
+
+**Result:** Capture-only — nothing implemented, no item closed. `validate_backlog: OK (7 themes, 21 stories, 74 tasks, 0 warnings)`. pytest 296 passed / 1 skipped, ruff clean. Pre-commit green on all 4 repo commits. Codex witness: gpt-5.5 @ reasoning effort high, 7,918 tok, EXIT=0.
+
+**Changes:** `docs/audits/2026-06-07-{platform,codex,methodology-transfer}-max-audit.md` (new; commit `240e84b`); `protocols/{ENVIRONMENT,ESSENTIALS,PLAYBOOK}.md` (stale-names; `35e15ab`); `BACKLOG.md` (+9 items `bc41184`, +8 annotations `e0ad968`); `JOURNAL.md` + `logs/TOKEN-LOG.md` (this commit). User-layer uncommitted (`~/.claude`): `bin/codex-review.ps1`, `rules/core-invariants.md`, `skills/gotchas/gotchas.md`. Left for the operator (untracked): `docs/audits/2026-06-07-ecosystem-audit.md` (4th audit, NOT in the trio) + the `ecosystem/` fleet_health hook artifacts.
+
+**Abandoned:** Nothing. Design forks F1–F5 left for the Council brief (not decided here, per the prompt).
+
+**Next:** Council brief (F1/F2/F5 + F3/F4) → digest n=2 → #84 codification → #91.
+
+---
+
 ### 2026-06-06 — Changelog 2.1.148–167 capture: changelog-watch item + 7 annotations + PLAYBOOK synergy line
 
 **Did:** Captured the operator-reviewed Claude Code changelog band (2.1.148–2.1.167) on branch `docs/changelog-148-167-capture`. UNDERSTAND valve: confirmed all 7 annotation targets present (#8/#82/#84/#106/#107/#9/#112) and the PLAYBOOK context-budget subsection (line 2296). Step 1: new backlog item #113 (changelog-watch routine, [P2][M]) under Theme *Tooling & evaluation* → story *Decide the undecided artifact/tool models*. Step 2: amended 7 items in place with `changelog 2.1.148-167 finding —` clauses, citing versions; closed nothing. Step 3: one synergy sentence in the PLAYBOOK read-scoping rule (single-file grep satisfies read-before-edit, v2.1.160).
