@@ -1,6 +1,6 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
-<!-- version: 1.0 — 2026-04-24 -->
+<!-- version: 1.1 — 2026-06-06 -->
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
 >
@@ -75,7 +75,7 @@ git status
 
 `<Specific success criteria for this prompt — what must be true>`
 
-Merge: `git checkout main && git merge --ff-only <branch>`
+Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tree, or validators red.
 
 ## What NOT to do
 <!-- scope: meta -->
@@ -89,3 +89,4 @@ Merge: `git checkout main && git merge --ff-only <branch>`
 
 **Section history:**
 - v1.0 (2026-04-24) — initial template per Gap #2. Standard 8-section structure (Model/Mode/Effort → Title → Read first → Git → UNDERSTAND → Steps → Final → What NOT to do).
+- v1.1 (2026-06-06) — Final merge boilerplate replaced with `/ship` delegation (closes #103).

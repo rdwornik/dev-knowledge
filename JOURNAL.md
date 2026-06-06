@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-06 — /ship git-finish command + prompt-template delegation (closes #103)
+
+**Did:** Authored `/ship` slash command (`.claude/commands/ship.md`): three pre-flight refusals (on `main`, dirty tree, red validators), temp-file `--no-ff` merge (never `git merge -F -` — gotcha: exits 129 trying to open a file named `-`), push, ask-before-delete prompt, JOURNAL scaffold reminder. Updated `templates/prompt-template.md` Final section to delegate to `/ship` (v1.0→v1.1). Self-witness: /ship shipped its own branch with a pre-flight refusal demo (dirty-tree) and the actual merge.
+
+**Result:** #103 closed — all three Done-when criteria met (command exists, prompt template delegates, inline sequence dropped). Pre-commit hooks green; 296 tests pass (1 skip). Branch `feat/ship-command` merged `--no-ff` via temp-file message with `closes [#103]`.
+
+**Changes:** `.claude/commands/ship.md` (new, commit `9384973`); `templates/prompt-template.md` Final section + version bump (commit `ccb898d`); `JOURNAL.md` (this entry); `BACKLOG.md` (#103 closed).
+
+**Abandoned:** Nothing.
+
+**Next:** verify-as-skill + #97 → digest gate → #84 → #91.
+
+---
+
 ### 2026-06-06 — Immutability guard (transcripts zone) + billing-leak sentinel
 
 **Did:** Built a fail-closed PreToolUse guard blocking in-place edits of existing decision records. UNDERSTAND valve **HALTED on fact 1**: ADRs ARE amended in place (CLAUDE.md §5 "in-file marker"; ADR-68 carries a formal in-place `## Amendment`, commit `69efa9a`; >25 ADR files multi-commit) — a sanctioned flow the original whole-`docs/decisions/*` framing (#105) would block. Transcripts proved clean (37/37 single-commit). Presented the three pre-named options; operator ruled **C now, A queued, not B**. Shipped transcripts-only v1: `scripts/hooks/block_immutable_edits.py` (all mutating tools enumerated; fail-open out-of-zone, fail-closed in-zone), wired in project PreToolUse, witnessed live (Edit of existing transcript blocked, new-file create allowed, scratch removed). ADR-77 amends ADR-75 (zone class #2 + ruled ADR direction). Also wired the #101 billing-leak sentinel (`-NoProfile` required — new gotcha). `/codex review` returned 3 CRITICAL + 1 HIGH on the guard; hardened path resolution (normpath+realpath) and multi-field evaluation, documented the shell-write residual.

@@ -154,7 +154,6 @@ So that cognitive overhead per session drops.
 - [#38] [P3][S] Codify small=single-root / large=multi-root workspace decision · Done when: an ADR-59 amendment or PLAYBOOK note lands · refs ADR-59
 - [#39] [P3][S] Codify entry-scripts → scripts/ in PLAYBOOK root-hygiene · Done when: the convention is written · refs 2026-05-27 retrofit
 - [#102] [P2][M] Machine-readable repo index for agent consumption — field reports ~50k-token exploratory reads replaced by ~250-token precompiled indexes; evaluate for hub + corp · verify-first: confirm claimed tools (`stacklit`, `scip-search`) actually exist before any design · Done when: a pilot index on one repo demonstrably replaces exploratory reads in a CC session · refs #89, #91, ADR-51, research transcript 2026-06-06
-- [#103] [P2][S] `/ship` git-finish command — encapsulate branch merge `--no-ff` → push → clean-tree verify → JOURNAL reminder as a slash command; removes per-prompt boilerplate and kills the `git merge -F -` gotcha class at source · Done when: command exists, one formal prompt uses it, prompt template drops the inline sequence
 - [#104] [P2][S] verify-as-skill — the standard check cadence (and future domain verifications) packaged as invocable skill(s) instead of per-prompt boilerplate; skill scripts run via bash with only output entering context · Done when: skill(s) exist and one formal prompt drops the inline check sequence · refs PLAYBOOK context-budget rule, Agent Skills progressive-disclosure doc
 
 ### Decide the undecided artifact/tool models
