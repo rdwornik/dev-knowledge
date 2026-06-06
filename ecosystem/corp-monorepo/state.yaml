@@ -7,7 +7,7 @@ findings:
   evidence: All ADR-38 universal governance baseline files present
   status: pass
 - check_name: claude_md
-  evidence: CLAUDE.md present (8922 chars)
+  evidence: CLAUDE.md present (8831 chars)
   status: pass
 - check_name: dot_prefix_discipline
   evidence: All root config files dot-prefixed or on ADR-59 exception list
@@ -31,9 +31,9 @@ findings:
   evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
   status: pass
 - check_name: canonical_freshness
-  evidence: 4 canonical living files fresh (last_reviewed not before last edit; within
-    30d)
-  status: pass
+  evidence: '1 stale (edited since review): CLAUDE.md: last_reviewed 2026-06-02 predates
+    last edit 2026-06-06 - edited but not re-reviewed'
+  status: fail
 - check_name: no_sibling_orphans
   evidence: No orphaned 'corp-monorepo-*' siblings (each is a registered worktree
     or a real repo/folder, not a worktree remnant; or none exist)
