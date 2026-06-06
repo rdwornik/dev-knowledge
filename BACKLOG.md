@@ -70,6 +70,7 @@ So that observed failure-modes become written guidance instead of recurring.
 - [#34] [P3][S] Add the 4 posture-audit codifications to PLAYBOOK (stable-end-state, verify-destination, no-delete-canonical-dup, ADR-with-N=1) · Done when: the 4 land in PLAYBOOK · refs posture-audit H3/H4/T1/T2
 - [#28] [P3][S] Codify the sage→apprentice metaphor pattern for teaching design intent · Done when: a short methodology section lands in PLAYBOOK/ESSENTIALS · refs HANDOFF_PROCESS v4 §3.1
 - [#67] [P3][S] PLAYBOOK §7 polish: skill/command naming-convention note + orchestrator/worker how-to · Done when: both notes land in PLAYBOOK §7 · refs methodology-audit C10/C12
+- [#97] [P3][M] Artifact-reader subagent (consumer-side) — define a reusable read-only subagent (template in hub for fleet rollout) that ingests a named large artifact in its own context window and returns structured summary + pinpoint quotes with line numbers · Done when: subagent definition exists as a hub template and one formal prompt has used it on a >20k-token artifact · refs PLAYBOOK context-budget rule, #96
 
 ---
 
@@ -89,6 +90,7 @@ So that future sessions route decisions consistently (convene-vs-Path-A; relax-v
 ### Operationalize the Council decision loop
 So that Council questions are gated and their verdicts return deterministically instead of being shuttled by hand.
 - [#70] [P3][M] Operationalize the AI-Council process — implement the gated question→verdict→ADR loop per ADR-67 (templated question + self-gate + deterministic `council.return_dir` return; downstream pieces in ai-council + ~/.claude). Gate lifted 2026-06-02 — Phase-2 universalization is complete (all 5 repos unified), so this is now actionable. · Done when: the gated loop runs end-to-end (/council-question generates + self-gates → council runs → operator pastes verdict → ADR returns via council.return_dir) · refs ADR-67
+- [#96] [P2][M] ai-council VERDICT marker (producer-side) — synthesizer emits a machine-readable VERDICT block at the top of every transcript (verdict per question, one-line rationale, panel/cost metadata); consumers (distillation prompts) read only the block · Done when: a council run produces the block and a distillation completes without reading the debate body · refs ADR-74 (marker doctrine), PLAYBOOK context-budget rule; note: implementation lands in the ai-council repo via its dedicated chat (ADR-41) — this is the ecosystem queue entry
 
 ### Close the small ADR cross-reference + registry amendments
 So that the ADR web is internally consistent.
@@ -128,7 +130,7 @@ So that "open any repo, same layout/governance" actually holds.
 ### Make new-repo scaffolding correct-by-default
 So that a new repo inherits the full baseline in one step, not by re-derivation.
 - [#16] [P2][M] Collapse workspace-{S,M,L}.code-workspace into one maximal scale-adaptive template · Done when: one workspace template + element-selection guidance exist · refs operator Q5
-- [#17] [P2][M] Encode ADR-54–63 high-leverage guidance into templates/CLAUDE-md-template.md (structural lock + frontmatter already done at v2.2; the stale "§11 last-5 = 61-65" sub-spec is dropped — the template uses generic `ADR-NN` placeholders by design) · Done when: the template's guidance reflects ADR-54–63 · refs durability-audit J1, template v2.2
+- [#17] [P2][M] Encode ADR-54–63 high-leverage guidance into templates/CLAUDE-md-template.md (structural lock + frontmatter already done at v2.2; the stale "§11 last-5 = 61-65" sub-spec is dropped — the template uses generic `ADR-NN` placeholders by design) · Done when: the template's guidance reflects ADR-54–63 · refs durability-audit J1, template v2.2; scope extended: CLAUDE-md-template gains compaction-preservation instructions (what auto-compact must preserve: modified-file list, test commands, active branch, open task ids) · refs PLAYBOOK context-budget rule
 - [#43] [P3][L] Decide + (if yes) author a one-step new-repo scaffold (ADR + templates/new-repo-skeleton/, no scripts) · Done when: decision recorded + scaffold authored if approved · refs durability-audit J6
 
 ---
