@@ -19,8 +19,13 @@ venv/
 # the durable record is the eventual `closes [#N]` commit + JOURNAL, ADR-65)
 logs/PROPOSALS-*.md
 
-# Fleet-health digest (ADR-70 Tier-2; daily cross-repo audit snapshot, auto-refreshed)
+# Fleet-health digest (ADR-80 mutable — auto-refreshed by fleet_health.py, never committed;
+# durable Tier-2 audit record is docs/audits/*.md, committed by audit.py per ADR-80 §3)
 logs/FLEET-HEALTH.md
+
+# Ecosystem mutable pointers (ADR-80 mutable/durable split — high-churn pointer, not committed;
+# durable records are ecosystem/*/history/*.md + docs/audits/*.md, committed by audit.py)
+ecosystem/*/state.yaml
 
 # OS
 *.tmp

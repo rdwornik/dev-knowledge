@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 import subprocess
 import sys
 import os
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
@@ -1321,3 +1323,99 @@ def test_handoff_version_stamp_absent_living_docs_warns(tmp_path: Path) -> None:
     # Neither stamp target file is created
     f = aud.check_handoff_version_stamp(tmp_path)[0]
     assert f.status == "warn"
+
+
+# ---------------------------------------------------------------------------
+# ADR-80 commit logic
+# ---------------------------------------------------------------------------
+
+
+def _make_subprocess_mock(*, add_rc=0, diff_rc=1, commit_rc=0):
+    """Return a fake subprocess.run that responds predictably to git subcommands."""
+    def fake_run(cmd, **kwargs):
+        subcmd = cmd[3] if len(cmd) > 3 else ""
+        if subcmd == "add":
+            return SimpleNamespace(returncode=add_rc, stderr="", stdout="")
+        if subcmd == "diff":
+            return SimpleNamespace(returncode=diff_rc, stderr="", stdout="")
+        if subcmd == "commit":
+            return SimpleNamespace(returncode=commit_rc, stderr="fatal: lock", stdout="")
+        return SimpleNamespace(returncode=0, stderr="", stdout="")
+    return fake_run
+
+
+def test_commit_routine_outputs_stages_only_durable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_commit_routine_outputs passes only history/ and docs/audits/ to git add."""
+    add_pathspecs: list[list[str]] = []
+
+    def fake_run(cmd, **kwargs):
+        subcmd = cmd[3] if len(cmd) > 3 else ""
+        if subcmd == "add":
+            add_pathspecs.append(list(cmd))
+            return SimpleNamespace(returncode=0, stderr="", stdout="")
+        if subcmd == "diff":
+            return SimpleNamespace(returncode=1)  # something staged
+        return SimpleNamespace(returncode=0, stderr="", stdout="")
+
+    monkeypatch.setattr(aud.subprocess, "run", fake_run)
+    aud._commit_routine_outputs(date(2026, 6, 7))
+
+    assert add_pathspecs, "Expected git add call"
+    pathspecs = add_pathspecs[0]
+    assert "ecosystem/*/history/" in pathspecs
+    assert "docs/audits/" in pathspecs
+    assert "-A" not in pathspecs
+
+
+def test_commit_routine_outputs_trailer_present(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_commit_routine_outputs includes 'Routine: fleet-audit' trailer in commit msg."""
+    commit_msgs: list[str] = []
+
+    def fake_run(cmd, **kwargs):
+        subcmd = cmd[3] if len(cmd) > 3 else ""
+        if subcmd == "add":
+            return SimpleNamespace(returncode=0, stderr="", stdout="")
+        if subcmd == "diff":
+            return SimpleNamespace(returncode=1)
+        if subcmd == "commit":
+            idx = list(cmd).index("-m")
+            commit_msgs.append(cmd[idx + 1])
+            return SimpleNamespace(returncode=0, stderr="", stdout="")
+        return SimpleNamespace(returncode=0, stderr="", stdout="")
+
+    monkeypatch.setattr(aud.subprocess, "run", fake_run)
+    aud._commit_routine_outputs(date(2026, 6, 7))
+
+    assert commit_msgs, "Expected git commit call"
+    assert "Routine: fleet-audit" in commit_msgs[0]
+    assert "2026-06-07" in commit_msgs[0]
+
+
+def test_commit_routine_outputs_fail_soft_on_locked_index(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """_commit_routine_outputs returns cleanly (does not raise) when git commit fails."""
+    monkeypatch.setattr(aud.subprocess, "run", _make_subprocess_mock(commit_rc=128))
+
+    with caplog.at_level(logging.WARNING, logger="audit"):
+        aud._commit_routine_outputs(date(2026, 6, 7))  # must not raise
+
+    assert any("failed" in r.message.lower() for r in caplog.records)
+
+
+def test_commit_routine_outputs_no_commit_when_nothing_staged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """_commit_routine_outputs skips commit when git diff --cached --quiet exits 0."""
+    commit_calls: list[list[str]] = []
+
+    def fake_run(cmd, **kwargs):
+        subcmd = cmd[3] if len(cmd) > 3 else ""
+        if subcmd == "commit":
+            commit_calls.append(list(cmd))
+        return SimpleNamespace(returncode=0, stderr="", stdout="")
+
+    monkeypatch.setattr(aud.subprocess, "run", fake_run)
+    aud._commit_routine_outputs(date(2026, 6, 7))
+
+    assert not commit_calls, "Must not commit when nothing is staged"
