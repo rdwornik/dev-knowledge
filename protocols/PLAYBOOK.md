@@ -66,6 +66,9 @@
   - [No leftovers: automated processes clean up — and verify it (invariant)](#no-leftovers-automated-processes-clean-up--and-verify-it-invariant)
 - [Tier-1 closure loop — usage](#tier-1-closure-loop--usage)
   - [Propagating a plugin change across the fleet](#propagating-a-plugin-change-across-the-fleet)
+- [Two-tier automation doctrine](#two-tier-automation-doctrine)
+  - [Writer policy — automation that writes the tree commits its own output (ADR-80)](#writer-policy--automation-that-writes-the-tree-commits-its-own-output-adr-80)
+  - [What each tier checks (a green one and a red other are both correct)](#what-each-tier-checks-a-green-one-and-a-red-other-are-both-correct)
 - [Routine/night deployment standard](#routinenight-deployment-standard)
   - [The envelope](#the-envelope)
   - [Naming](#naming)
@@ -1124,6 +1127,44 @@ When the `tier1-lifecycle` plugin source changes in `.dev-knowledge`:
 4. restart the session.
 
 The cache is **version-keyed** — `marketplace update` alone won't refresh at an unchanged version, and `plugin install` no-ops on an already-installed repo (use `update`, not `install`). `--scope project` is mandatory for project-scoped installs. Full reference: `plugins/tier1-lifecycle/INSTALL.md`.
+
+---
+
+## Two-tier automation doctrine
+<!-- scope: meta -->
+
+The canonical layer→job matrix is **ADR-74**; this is its operating-doctrine prose, adopted fleet-wide by **ADR-80**. The organising question is a single axis — **does the organ exercise LLM judgment?** — which splits all automation into two tiers.
+
+**Deterministic automation (no model).** Pre-commit + commit-msg hooks, `audit.py` self-conformance, and the scheduled `fleet_health.py` cross-repo baseline (Windows Task Scheduler → Python directly — **no `claude -p` on the scheduled path**, ADR-76). Posture: **fail-closed on any executing path** (a gate that *can* block a commit does) and **fail-soft on awareness paths** (a surfacing hook that can't run prints nothing and exits 0, never blocking a session). Spans ADR-74 Tiers 1–2 (lifecycle + scheduled baseline).
+
+**LLM-judgment automation.** Any organ that runs a model. Invariant: **always read-only + adversarial-skeptic-filtered + operator-ratified** — it proposes, a skeptic kills false positives, and a human funnel ratifies before anything binds. Nothing it emits is binding unattended. Two delivery forms, both ADR-74 Tier 3:
+
+- **Cloud Routine** — self-contained (clones only its own repo, reads no sibling — ADR-72/73); read-only schema-bound agents + skeptic; output via its **declared channel**: a `claude/<task>-YYYY-MM-DD` branch → PR → the GitHub Action diff-guards and **squash-merges** (compliant-by-design — witnessed 2026-06-07, PR #17 squash-merged to `main` as `221c63e`; the single non-merge commit is the *designed* cloud channel, deliberately distinct from the local branch+merge `--no-ff` discipline for human-authored arcs). See "Routine/night deployment standard › The outcome loop".
+- **Dynamic Workflow** — escalation-only heavy/episodic fan-out (the `Workflow` tool). **Operator-invoked, never scheduled**; trigger keyword **`ultracode`** (the word "workflow" stopped triggering — Claude Code 2.1.160). Escalation criteria: §2 "When to escalate to a Dynamic Workflow".
+
+> **Numbering note.** "Two-tier" is the *LLM-judgment axis* (deterministic vs judgment) — **orthogonal** to ADR-70/74's friction-cadence Tiers 1/2/3 (always-on / scheduled / episodic). Both lenses are live and this section never renumbers ADR-74: a cloud Routine is ADR-74 **Tier 3** *and* a judgment organ; the scheduled baseline is ADR-74 **Tier 2** *and* a deterministic organ.
+
+### Writer policy — automation that writes the tree commits its own output (ADR-80)
+<!-- scope: meta -->
+
+A job that writes tracked files **owns the commit of those files**; the tree is never left dirty for the operator to stash around. This **supersedes the interim stash→ship→pop pattern** (and the now-OBSOLETE `ship-around-fleet-health-dirty-tree` memory note). Option (b) + three binding riders (operator ruling 2026-06-07):
+
+1. **Mutable vs durable split.** The high-churn mutable pointer (`ecosystem/<repo>/state.yaml`) is **gitignored**; the durable record (`history/*.md`, digests, the audit rollup `docs/audits/*-ecosystem-audit.md`) is **committed by the writer**.
+2. **Pathspec-bounded.** The job stages **exactly its own declared output paths** — never `git add -A`, never anything outside its outputs. An operator's unrelated dirty files are untouchable by automation.
+3. **Fail-soft.** On any commit failure (locked index, mid-merge, diverged `main`) the job leaves its files uncommitted, logs one WARN line, and **exits 0** — it never forces, never pulls/rebases, never resolves.
+
+Local writer commits carry the `Routine: <name>` observability trailer (#123); the cloud channel keeps its PR (above). *Wiring is captured as a follow-up item — not built in the ratifying session.*
+
+### What each tier checks (a green one and a red other are both correct)
+<!-- scope: meta -->
+
+| Organ | Scope | Dimension checked | Example signal |
+| --- | --- | --- | --- |
+| `audit.py` / `fleet_health.py` (deterministic) | the repo **+ its siblings** | structural + **freshness-stamp** health (file present, dot-prefix, `last_reviewed` vs last-edit) | `corp-monorepo canonical_freshness FAIL` (CLAUDE.md edited 06-06, reviewed 06-02) |
+| cloud conformance Routine (judgment) | the repo's **own docs only** (self-referential) | **claims-vs-docs** coherence (JOURNAL↔git, living-doc claims↔repo state, BACKLOG closure coherence) | nightly digest `0 high / 0 med / 0 low` |
+| dynamic Workflow (judgment) | scoped per invocation | whatever the harness defines (deep audit, migration, checked-twice review) | per-run |
+
+The 2026-06-07 cloud digest reading `0/0/0` while the local baseline shows one `canonical_freshness` FAIL is **not** a contradiction: different **dimension** (claims-vs-docs vs freshness-stamp) **and** different **scope** (hub-self vs corp-sibling, tracked as #100). Per-tier value — findings-acted-on vs noise — is reviewed in the morning funnel (#123).
 
 ---
 
