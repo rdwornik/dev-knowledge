@@ -129,6 +129,7 @@
   - [Council Debate Archival Protocol](#council-debate-archival-protocol)
   - [Council output convention (current state)](#council-output-convention-current-state)
   - [When to run Council vs single-model + critic](#when-to-run-council-vs-single-model--critic)
+  - [ADR authorship paths (how an ADR gets written)](#adr-authorship-paths-how-an-adr-gets-written)
   - [Amendment vs Reopen Decision Protocol](#amendment-vs-reopen-decision-protocol)
   - [Codex review archival protocol](#codex-review-archival-protocol)
 - [6. Code Review with Claude Code](#6-code-review-with-claude-code)
@@ -2132,6 +2133,16 @@ Cost: ~$0.05 + 2min vs Council's $0.50 + 5min. Significantly cheaper for the >70
 
 - **Council habit-formation** — running Council because "it's how we decide" without checking the gate. Costs add up fast ($0.50 × N decisions).
 - **Single-model laziness** — choosing single-model path when criteria genuinely apply (architectural ripple), then later reopening as Council = wasted first decision.
+
+### ADR authorship paths (how an ADR gets written)
+<!-- scope: meta -->
+
+An ADR reaches the repo by one of **two authorship paths** — choose by the decision's gate (§5 "When to use Council vs. decide yourself"), not by habit:
+
+- **Chat-drafted** — the browser architect drafts the decision in conversation (operator-ruled calls, synthesis, single-correct-fix decisions below the Council gate); **Claude Code** then creates the ADR in-repo with the next number, frontmatter, and template. Default path for operator rulings (e.g. ADR-80 itself).
+- **Council-convened** — an AI Council debate produces a transcript; the **post-debate protocol** (§5) distills it into an ADR, number verified and template-aligned. Used when the decision clears the Council gate (architectural ripple, multi-ADR impact, genuine cross-model uncertainty — e.g. ADR-76 from the local-scheduler debate).
+
+Both paths **converge on the same invariant**: the ADR is generated and committed *in Claude Code* — never hand-pasted from browser chat into the repo (ESSENTIALS "Artifact generation direction"; LESSONS #8) — numbered, frontmatter-stamped, and **immutable thereafter** (changes go through "Amendment vs Reopen", below).
 
 ### Amendment vs Reopen Decision Protocol
 <!-- scope: meta -->
