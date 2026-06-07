@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Merge the current feature branch to main, push, and prompt branch cleanup (git-finish)
+description: Merge the current feature branch to main, push, and auto-delete the merged branch (git-finish)
 ---
 
 Merge the current feature branch to `main` — the standard git-finish sequence.
@@ -42,8 +42,16 @@ All four must pass before continuing.
 ## Post-merge
 
 8. `git push`
-9. Verify: `git status` (must be clean) and `git branch --merged` (must list `$branch`).
-10. **Ask the operator:** "Delete merged branch `$branch`? (yes/no)" — never auto-delete.
+9. Verify both the merge AND the push landed: `git status` (must be clean, `up to date with 'origin/main'`) and `git branch --merged` (must list `$branch`). Do NOT proceed to delete until both are confirmed.
+10. **Auto-delete the merged branch — no question.** Once step 9 confirms the merge + push,
+    run `git branch -d $branch`. **Only ever the session's own feature branch** recorded in
+    step 4 (`$branch`) — never any other branch, and **never `-D`** (force-delete).
+    - **If `-d` REFUSES** (non-zero exit / "not fully merged" — an anomaly, since step 9 just
+      confirmed the merge): do **not** retry, do **not** reach for `-D`. **Report it loudly**
+      in the final summary (e.g. `⚠ Branch ` + "`$branch` was NOT deleted — `git branch -d`
+      refused (not fully merged?). Left in place; investigate before deleting manually."),
+      leave the branch in place, and still **END the session normally** (the merge + push
+      already succeeded — the branch is a harmless leftover, not a failure to halt on).
 11. Print the JOURNAL scaffold reminder (print only — do not author or fill in content):
     ```
     JOURNAL scaffold for this session:

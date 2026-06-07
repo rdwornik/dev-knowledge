@@ -1431,6 +1431,7 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 | `/evolve` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) | user | Weekly or every ~10 sessions — evolution audit (promote / prune / graduate learned rules). Not per-session. |
 | `/codex-review` | user | Before merging a **code** change (3+ files / safety-critical). Code only — never a markdown-only diff (LESSON 2026-05-19). |
 | `/save` | repo | Stage + commit with a Conventional Commits message + full body (git-discipline rule). After a discrete change. |
+| `/ship` | plugin (`tier1-lifecycle`) | Git-finish from the PRIMARY checkout: merge the current feature branch `--no-ff` → push → **auto-delete the merged branch** (no question). Branch cleanup is automatic; an anomalous `git branch -d` refusal is **reported loudly** and the branch left in place (session still ends). Refuses from inside a worktree (pre-flight #1). |
 | `/handoff` | repo | Two-phase browser→browser handoff per HANDOFF_PROCESS v4 (ADR-62): "create handoff" → "complete handoff". At ~2h, context still fresh. |
 
 **Skills** — read on-demand by Claude when the topic matches; you do **not** invoke them:
