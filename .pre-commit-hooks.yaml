@@ -62,6 +62,6 @@
     A commit that removes a task line from BACKLOG.md must include [#id] in
     the commit message. Prevents silently closing backlog items with no traceability.
   entry: scripts/check_backlog_commit_msg.py
-  language: python
+  language: script
   stages: [commit-msg]
   always_run: true
