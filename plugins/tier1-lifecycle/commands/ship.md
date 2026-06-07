@@ -25,15 +25,11 @@ All three must pass before continuing.
 4. Record the current branch name: `$branch = git rev-parse --abbrev-ref HEAD`
 5. `git checkout main`
 6. `git pull --ff-only`
-7. Write the merge message to a temp file and merge `--no-ff`:
+7. Merge `--no-ff` with the message passed inline via `-m` (single-line summary — no temp file, so no `Remove-Item` for the harness to mis-scan):
    ```powershell
-   $tmp = [System.IO.Path]::GetTempFileName()
-   Set-Content $tmp "Merge $branch — $ARGUMENTS" -Encoding utf8
-   git merge --no-ff $branch -F $tmp
-   Remove-Item $tmp
+   git merge --no-ff $branch -m "Merge $branch — $ARGUMENTS"
    ```
-   **Never use `git merge -F -`** — that tries to open a file literally named `-` and exits 129
-   (gotcha: `merge -F -` does NOT accept stdin unlike `git commit -F -`). Always write to a temp file.
+   **Do NOT** reintroduce the `Set-Content $tmp` → `Remove-Item $tmp` dance: the harness safety scanner mis-reads a `/slash-command` token inside the message as a `Remove-Item` removal target and blocks the cleanup (witnessed 2026-06-07; eliminated here by removing the temp file entirely). **Do NOT use `git merge -F -`** either — `git merge` cannot read the message from stdin (it opens a file literally named `-`, exit 129; unlike `git commit -F -`). `-m` sidesteps both hazards. If a multi-line merge message is ever needed, repeat `-m` per paragraph rather than reintroducing a temp file.
 
 ## Post-merge
 
