@@ -20,6 +20,7 @@
   - [Why ≤200 lines](#why-200-lines)
   - [LLMs advise; hooks/tests enforce](#llms-advise-hookstests-enforce)
   - [Drift-proofing precedence: source → gate → agent](#drift-proofing-precedence-source--gate--agent)
+  - [Child methodology floor (ADR-78)](#child-methodology-floor-adr-78)
   - [Template](#template)
   - [Update cadence](#update-cadence)
   - [Length notes](#length-notes)
@@ -322,6 +323,16 @@ Generalizes "LLMs advise; hooks/tests enforce" into a precedence rule for *where
 3. **Agent** — for what neither covers (semantic conformance, judgment, prose drift), an agentic review is the safety net (the ADR-70 Tier-3 / BACKLOG #81 conformance workflow).
 
 Reach for a gate only when the fact can't be self-documented, and an agent only when it can't be gated. (Codified 2026-06-03; precedent for promoting a session-decided principle into PLAYBOOK: the v4.2 "handoff is back-and-forth" promotion.)
+
+### Child methodology floor (ADR-78)
+<!-- scope: meta -->
+
+Each registered child repo carries a generated `CLAUDE-FLOOR.md` (≤1,500 tokens, conformance-enforced) plus a `CLAUDE-FLOOR.md.sha256` sidecar; the child's `CLAUDE.md` references it via an `@CLAUDE-FLOOR.md` import (verified empirically: CC 2.1.168 resolves `@`-includes at session start, transitively, and degrades fail-soft on a missing target). The floor is the always-loaded methodology baseline (prompt-header, valve discipline, verify cadence, ship rule, context budget, safety pointers) so a child session carries the working style without depending on a bundle upload. It is **self-contained** — no hub-internal references (ADR-72 class); the `.dev-knowledge` hub appears only as a labeled, optional depth escape-hatch (ADR-78 Decision 1).
+
+- **Generator (`scripts/generate_floor.py`) is operator-invoked ONLY** at rollout moments (ADR-73). Never a hook, never scheduled, no autonomous cross-repo writes — the operator runs it and commits the floor *in the child repo*. `generate --out-dir <child>` writes the floor + sidecar and refreshes the hub canonical hash; `check` validates without writing. Output is deterministic so the hash is meaningful.
+- **Token ceiling is hard at 1,500** (ADR-78 §4). The binding measure is the conservative `ceil(chars / 3.5)` heuristic (deterministic, dependency-free); a real tokenizer is informational only. Exceeding it is a generation refusal — trim content, never the rule.
+- **Conformance (source → gate → agent):** the template is the source; `audit.py floor_integrity` (hash vs sidecar + F5 self-containment grep + same-repo pointer existence) and the child pre-commit sidecar-hash hook are the gates; `/ship` warns (advisory, never blocks) when a child's floor hash is stale vs the hub canonical hash.
+- **Re-anchor rule:** the floor instructs a session to re-read the floor before any *structural* change (architecture, governance, multi-file refactor, new abstraction) and to trust session-persisted context for ordinary work — a cheap per-structural-action re-anchor without a per-action cost.
 
 ### Template
 <!-- scope: meta -->

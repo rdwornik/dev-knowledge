@@ -315,7 +315,7 @@ carriers, each with a different scope and freshness model:
 | user-layer `~/.claude` | fleet-wide (L0) | `block-onedrive`, gotchas, ROUTING, Codex config, `surface-closures`, the `--no-ff` rule | global; ADR-54 |
 | `tier1-lifecycle` plugin | repo-class | `/ship`, `/review-closures`, `propose_closures`, `validate_backlog` (marketplace install) | ADR-70/73 |
 | pre-commit `.pre-commit-hooks.yaml` | consumer-pull | codemap ×2 + toc ×2 freshness hooks (hub is the source repo; corp consumes @`69558c7`) | ADR-71 |
-| child floor `CLAUDE-FLOOR.md` | per child repo | ≤1,500-tok generated floor + `.sha256`; operator-invoked generator | ADR-78 *[planned, #121]* |
+| child floor `CLAUDE-FLOOR.md` | per child repo | ≤1,500-tok generated floor + `.sha256`; operator-invoked generator (`scripts/generate_floor.py`, `@`-include from child CLAUDE.md) | ADR-78; hub shipped #121, pilot pending |
 | browser bundle | browser sessions | consolidated `BUNDLE.md`; Projects deferred | ADR-79 |
 
 - **Agents-distribution doctrine (extends ADR-71).** Agents are **authored and
@@ -369,7 +369,7 @@ fail-closed organ on the executing path, or it is not active:
 |---|---|---|---|
 | P0 exclusion (path-write) | any path containing `OneDrive - Blue Yonder` | `block-onedrive.ps1` (global PreToolUse) | ADR-75, P0 |
 | Immutable-paths | `docs/decisions/transcripts/**` | `block_immutable_edits.py` (hub PreToolUse) | ADR-77 |
-| `methodology_surface` (content-scope) | child-floor whitelist / F5 blacklist | hub CI grep + child `.sha256` + `/ship` gate | ADR-78 *[planned]* |
+| `methodology_surface` (content-scope) | child-floor whitelist / F5 blacklist | `audit.py floor_integrity` (hash + F5 grep + pointer-existence) + child `.sha256` hook + `/ship` gate | ADR-78; hub shipped #121 |
 
 → Output-formatting render-layer convention (flat + code-fenced for operator copy-out):
 CLAUDE.md §4; PLAYBOOK §8. Mermaid theme: ADR-51 v2. Auto-TOC: ADR-51.

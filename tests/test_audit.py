@@ -1456,3 +1456,79 @@ def test_commit_routine_outputs_no_commit_when_nothing_staged(
     aud._commit_routine_outputs(date(2026, 6, 7))
 
     assert not commit_calls, "Must not commit when nothing is staged"
+
+
+# ---------------------------------------------------------------------------
+# Check #14: floor_integrity (ADR-78 child methodology floor)
+# ---------------------------------------------------------------------------
+
+import generate_floor as gf  # noqa: E402  (scripts/ already on sys.path)
+
+
+def _seed_floor(repo: Path, floor_text: str | None = None, *, sidecar: bool = True,
+                pointers: bool = True) -> str:
+    """Write a CLAUDE-FLOOR.md (+ matching sidecar + pointer targets) into `repo`.
+
+    Returns the floor text used. With floor_text=None, uses the shipped template body.
+    """
+    floor = floor_text if floor_text is not None else gf.render_floor()
+    (repo / "CLAUDE-FLOOR.md").write_text(floor, encoding="utf-8")
+    if sidecar:
+        (repo / "CLAUDE-FLOOR.md.sha256").write_text(gf.floor_sha256(floor) + "\n", encoding="utf-8")
+    if pointers:
+        for name in ("CLAUDE.md", "VISION.md", "ARCHITECTURE.md"):
+            (repo / name).write_text("placeholder\n", encoding="utf-8")
+    return floor
+
+
+def test_floor_integrity_no_floor_passes(tmp_path: Path) -> None:
+    """A repo with no CLAUDE-FLOOR.md (incl. the hub itself) passes vacuously."""
+    f = aud.check_floor_integrity(tmp_path)[0]
+    assert f.status == "pass"
+    assert "not adopted" in f.evidence
+
+
+def test_floor_integrity_valid_floor_passes(tmp_path: Path) -> None:
+    """Shipped floor + matching sidecar + resolvable pointers → pass."""
+    _seed_floor(tmp_path)
+    f = aud.check_floor_integrity(tmp_path)[0]
+    assert f.status == "pass"
+    assert "hash matches sidecar" in f.evidence
+
+
+def test_floor_integrity_tamper_fails(tmp_path: Path) -> None:
+    """The tamper test: editing one floor line without regenerating → hash-drift FAIL."""
+    _seed_floor(tmp_path)
+    floor = tmp_path / "CLAUDE-FLOOR.md"
+    floor.write_text(floor.read_text(encoding="utf-8") + "\nTAMPERED LINE\n", encoding="utf-8")
+    f = aud.check_floor_integrity(tmp_path)[0]
+    assert f.status == "fail"
+    assert "hash drift" in f.evidence
+
+
+def test_floor_integrity_missing_sidecar_fails(tmp_path: Path) -> None:
+    _seed_floor(tmp_path, sidecar=False)
+    f = aud.check_floor_integrity(tmp_path)[0]
+    assert f.status == "fail"
+    assert "sidecar missing" in f.evidence
+
+
+def test_floor_integrity_f5_leak_fails(tmp_path: Path) -> None:
+    """A floor that leaks a hub-internal token fails even with a matching sidecar."""
+    leaky = gf.render_floor() + "\nSee [#5] in the hub backlog.\n"
+    _seed_floor(tmp_path, leaky)
+    f = aud.check_floor_integrity(tmp_path)[0]
+    assert f.status == "fail"
+    assert "F5 self-containment" in f.evidence
+
+
+def test_floor_integrity_broken_pointer_fails(tmp_path: Path) -> None:
+    """Floor names same-repo docs that don't exist → pointer-existence FAIL (T3 fold-in)."""
+    _seed_floor(tmp_path, pointers=False)
+    f = aud.check_floor_integrity(tmp_path)[0]
+    assert f.status == "fail"
+    assert "do not exist" in f.evidence
+
+
+def test_floor_integrity_registered_in_all_checks() -> None:
+    assert aud.check_floor_integrity in aud.ALL_CHECKS
