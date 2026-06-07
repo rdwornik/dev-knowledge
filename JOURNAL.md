@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-07 — Council F1/F2 distillation: 2 ADRs + transcripts + verdict-applied backlog [closes #108]
+
+**Did:** Distilled council verdicts for F2 (child methodology floor) and F1 (browser carrier) into governance artifacts on branch `docs/council-f1-f2-distillation`. Step 1: committed 2 untracked council debate transcripts (`council-out-20260607_124757-pick-council-f2-child-floor.md` + `council-out-20260607_125247-pick-council-f1-browser-carrier.md`). Step 2: authored ADR-78 (O2 Bounded Hybrid — child CLAUDE-FLOOR.md + sidecar sha256, operator-invoked generator, methodology_surface zone class added to ADR-75 register, 1500-token ceiling). Step 3: authored ADR-79 (O1 bundle-only retained; O2 rejected as unverifiable safety property; mandated ergonomics: consolidated BUNDLE.md + 05_NOW init-acknowledgment clause; O3 deferred). Step 4: BACKLOG verdicts — #121 un-gated and re-scoped to full ADR-78 action items (VERIFY FIRST: @-include resolution; P3→P2); #108 removed (done items leave, ADR-65); [#124] new [P2][S] BUNDLE.md consolidation + 05_NOW clause.
+
+**Result:** 2 ADRs committed, #108 closed, #121 active with VERIFY rider, #124 queued. `validate_backlog: OK`. Pre-commit green on all 4 commits.
+
+**Changes:** `docs/decisions/transcripts/council-out-20260607_124757-*.md` + `council-out-20260607_125247-*.md` (new; commit `c66c427`); `docs/decisions/ADR-78-child-methodology-floor.md` (new; `bab9510`); `docs/decisions/ADR-79-browser-carrier-bundle-only.md` (new; `885a210`); `BACKLOG.md` (−#108, ↑#121, +#124; `3520a37`).
+
+**Abandoned:** nothing.
+
+**Next:** #84 codification (n=2 landed — channel confirm in funnel) → #91 → floor @-include VERIFY then implementation (#121).
+
+---
+
 ### 2026-06-07 — Audit-trio capture: stale-names fixes + 9 items + 8 annotations + consented user-layer actions [no closures]
 
 **Did:** Captured the consolidated results of the 2026-06-06/07 audit trio (platform-max / codex-max / methodology-transfer) on branch `docs/audit-trio-capture`. STOP-after-UNDERSTAND valve passed: all 8 annotation targets present (#8/#17/#82/#84/#106/#107/#112/#113), the 7 STALE-NAMES sites confirmed (`/stats`×4, `Task tool`×3), codex-review.ps1 read-only line quoted. **Step 0:** persisted the 3 trio audit reports. **Step 1:** 7 stale-platform-name edits — `/stats`→`/usage` (ENVIRONMENT×2, ESSENTIALS, PLAYBOOK) + `Task tool`→`Agent tool` (PLAYBOOK×3, alias parenthetical at the first hit). **Step 2:** 9 new backlog items #114–#122 (carriers #114/#115, schema-probe #120, gated floor organs #121 → Cross-repo universalization; hooks-hygiene #116 + prompt/agent-hooks #117 → Enforced governance; fewer-permission-prompts #118, codex currency #119, PATH-shim retire #122 → Tooling & evaluation). **Step 3:** 8 in-place annotations, each citing the audit files (close nothing). **Step 4 (consented `~/.claude`, no repo commit):** codex-review.ps1 gains `-c model_reasoning_effort=high` (witnessed: real exec, effort=high, sandbox read-only, EXIT=0, no auth/tier error); the `--no-ff` rule promoted to `core-invariants.md §5`; 3 gotchas annotations (billing 2.1.139 coupling, Codex deprecated-keys watch, repo↔global AGENTS.md CRLF/LF — verified content-identical, 3843 chars).
