@@ -1145,7 +1145,18 @@ def _commit_routine_outputs(run_date: date) -> None:
             capture_output=True, text=True,
         )
         if commit.returncode != 0:
-            logger.warning("ADR-80 commit: git commit failed — %s", commit.stderr.strip())
+            # Pre-commit hooks may have auto-modified staged files (e.g. normalize-dated-headers).
+            # Re-stage the same pathspecs and retry once before giving up.
+            subprocess.run(
+                ["git", "-C", _REPO_ROOT, "add", "--"] + pathspecs,
+                capture_output=True, text=True,
+            )
+            retry = subprocess.run(
+                ["git", "-C", _REPO_ROOT, "commit", "-m", msg],
+                capture_output=True, text=True,
+            )
+            if retry.returncode != 0:
+                logger.warning("ADR-80 commit: git commit failed — %s", retry.stderr.strip())
     except Exception as exc:
         logger.warning("ADR-80 commit: unexpected error — %s", exc)
 
