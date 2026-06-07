@@ -55,3 +55,14 @@
   pass_filenames: true
   stages: [manual]
   files: '^ARCHITECTURE\.md$'
+
+- id: backlog-id-on-close
+  name: Require [#id] in commit message when a BACKLOG task is closed
+  description: >
+    A commit that removes a task line from BACKLOG.md must include [#id] in
+    the commit message. Prevents silently closing backlog items with no traceability.
+  entry: scripts/check_backlog_commit_msg.py
+  language: script
+  stages: [commit-msg]
+  always_run: true
+  pass_filenames: false

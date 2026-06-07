@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-07 — Wave A: ADR-80 writer-policy wiring + carriers (#125, #114, #115)
+
+**Did:** Implemented wave A on branch `feat/wave-a-writer-and-carriers`. Step 0 SKIPPED (BACKLOG #126 + LESSONS scoped-rejection both present). **Step 1 (#125):** wired ADR-80 writer policy — gitignored `ecosystem/*/state.yaml`; operator ruling: fleet_health.py makes no commit (FLEET-HEALTH.md stays mutable/gitignored); audit.py is sole local committer; added `_commit_routine_outputs(run_date)` to `scripts/audit.py` — pathspec-bounded (`ecosystem/*/history/`, `docs/audits/`), fail-soft, `Routine: fleet-audit` trailer; refreshed `.gitignore` FLEET-HEALTH.md comment to cite ADR-80 mutable/durable classification; 4 new unit tests; `git rm --cached` 5 tracked state.yaml files. **Step 2 (#114):** exported `backlog-id-on-close` in `.pre-commit-hooks.yaml` (`language: script`, `stages: [commit-msg]`, `always_run`, `100755`). **Step 3 (#115):** `git mv .claude/commands/ship.md → plugins/tier1-lifecycle/commands/ship.md`; plugin 0.1.3 → 0.1.4.
+
+**Result:** 300 tests green; all 3 step witnesses pass; `ship-around-fleet-health-dirty-tree` memory entry RETIRED.
+
+**Changes:** `.gitignore` (FLEET-HEALTH comment + `ecosystem/*/state.yaml`; commit `113a4ba`); `scripts/audit.py` (`_commit_routine_outputs` + `cmd_run`/`cmd_repo` wiring; `113a4ba`); `tests/test_audit.py` (4 ADR-80 tests; `113a4ba`); `.pre-commit-hooks.yaml` (+`backlog-id-on-close`; `40fda27`); `plugins/tier1-lifecycle/commands/ship.md` (moved from `.claude/commands/`; `40b0ea1`); `plugins/tier1-lifecycle/.claude-plugin/plugin.json` (0.1.3→0.1.4; `40b0ea1`).
+
+**Abandoned:** Nothing.
+
+**Next:** Wave B (#113 + #8) → #91 ARCHITECTURE.
+
 ### 2026-06-07 — #84 two-tier automation codification (PLAYBOOK + ADR-80 + routine standard) [closes #84]
 
 **Did:** Closed the #84 workflow-doctrine codification package on branch `docs/two-tier-automation-84`, under a STOP-after-UNDERSTAND valve. UNDERSTAND gates run + reported first: (1) **n=2 evidence gate PASS** — both nightly conformance digests located (n=1 2026-06-06 *red*: N1 high #74-drift + N2 med ARCHITECTURE timestamp; n=2 2026-06-07 *clean* 0/0/0); (2) **channel verdict COMPLIANT-BY-DESIGN** — witnessed PR #17 (`claude/conformance-2026-06-07`→`main`, squash-merge `221c63e`) matches the Action's claude/*→PR→diff-guard→squash channel, not a direct push; (3) **signal-quality** — cloud 0/0/0 vs local corp `canonical_freshness` FAIL is no contradiction (claims-vs-docs vs freshness-stamp dimension; hub-self vs sibling scope, #100); (4) **VF-2** — `fallbackModel` schema-accepted on CC 2.1.168 (native `--fallback-model` flag is its CLI twin; probe non-discriminating on strictness — honest limit recorded; no tracked file touched). Operator ruled **writer policy = Option (b) + 3 riders** (mutable/durable split, pathspec-bounded, fail-soft). Then 6 commits across PLAYBOOK + ADR + BACKLOG.

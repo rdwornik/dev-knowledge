@@ -1095,6 +1095,50 @@ def regenerate_index(states: list[RepoState]) -> None:
         yaml.dump(index, fh, default_flow_style=False, allow_unicode=True)
 
 # ---------------------------------------------------------------------------
+# ADR-80 writer commit (fail-soft, pathspec-bounded)
+# ---------------------------------------------------------------------------
+
+def _commit_routine_outputs(run_date: date) -> None:
+    """Stage and commit durable audit outputs per ADR-80 §3 writer policy.
+
+    Pathspec-bounded: stages only ecosystem/*/history/ and docs/audits/.
+    Fail-soft: on any git failure, logs a WARN and returns cleanly (exit 0).
+    Never stages state.yaml (gitignored) or any operator working-tree files.
+    """
+    pathspecs = ["ecosystem/*/history/", "docs/audits/"]
+    try:
+        add = subprocess.run(
+            ["git", "-C", _REPO_ROOT, "add", "--"] + pathspecs,
+            capture_output=True, text=True,
+        )
+        if add.returncode != 0:
+            logger.warning("ADR-80 commit: git add failed — %s", add.stderr.strip())
+            return
+
+        # Nothing staged → nothing to commit
+        diff = subprocess.run(
+            ["git", "-C", _REPO_ROOT, "diff", "--cached", "--quiet"],
+            capture_output=True,
+        )
+        if diff.returncode == 0:
+            return
+
+        msg = (
+            f"chore(routine/fleet-audit): record {run_date} baseline\n"
+            "\n"
+            "Routine: fleet-audit"
+        )
+        commit = subprocess.run(
+            ["git", "-C", _REPO_ROOT, "commit", "-m", msg],
+            capture_output=True, text=True,
+        )
+        if commit.returncode != 0:
+            logger.warning("ADR-80 commit: git commit failed — %s", commit.stderr.strip())
+    except Exception as exc:
+        logger.warning("ADR-80 commit: unexpected error — %s", exc)
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -1149,6 +1193,7 @@ def cmd_run(repo_path: Optional[str]) -> None:
     report = generate_report(states, run_date, Path(_REPO_ROOT))
     out = write_report(report, run_date)
     click.echo(f"Report: {out}")
+    _commit_routine_outputs(run_date)
 
     failures = sum(1 for s in states for f in s.findings if f.status == "fail")
     if failures:
@@ -1189,6 +1234,7 @@ def cmd_repo(name: str, repo_path: Optional[str]) -> None:
     report = generate_report([state], run_date, Path(_REPO_ROOT))
     out = write_report(report, run_date, single_repo=name)
     click.echo(f"Report: {out}")
+    _commit_routine_outputs(run_date)
 
     failures = sum(1 for f in state.findings if f.status == "fail")
     if failures:
