@@ -1020,70 +1020,90 @@ case, e.g. a corp-monorepo handoff and an ai-council handoff at the same time). 
 - **(a) Zero-write** — read/analysis only: no commits, no `git add`/staging, no branch ops. Any number of zero-write sessions may share one checkout safely.
 - **(b) Each committing session in its OWN worktree.** **One checkout = one committing session.** A "single commit at the end" still counts as a committing session — there is no "I'll only commit once" exception. (Witnessed 2026-06-07: a no-worktree session whose lone witness commit `49c7db7` landed on a *concurrent* session's branch, swept its staged file, mis-rooted the branch, and stranded its closeout into a multi-commit tangle. First incident class: 2026-06-01.)
 
-**Default until [#107] ships the worktree workflow: sequential exclusivity.** Absent a provisioned worktree, only one session commits to a given checkout at a time — **the operator is the scheduler.** When #107 lands CC-native managed worktrees (`claude worktree` / `EnterWorktree`), shape (b) becomes the low-friction path.
+**#107 SHIPPED (2026-06-07, verify-first + witnessed).** Shape (b) now runs on **CC-native
+managed worktrees** — the low-friction path. The earlier *"sequential exclusivity until #107"*
+interim rule is **retired**, and the old *sibling* worktree naming (`<repo>-parallel` /
+`<repo>-wt-*`) is **superseded** by the in-repo native location below — sibling worktree dirs
+are exactly what spawned the `.dev-knowledge-cadence` / `.dev-knowledge-night-adr` rule-9
+orphans, so do not create them anymore.
 
 **Lifecycle (same-repo only):** a worktree is **per-goal scratch, not a persistent
 checkout** — *provision → use → ephemeral teardown*. Create one for a single goal, work it on
-its own branch, and remove it the moment that branch merges. It must not linger between goals;
-a worktree that outlives its goal becomes an orphan (see step 4).
+its own branch, and remove it the moment that branch merges. It must not linger between goals.
 
 **1 — When a worktree is needed**
 
 - **Different repos in parallel: already safe.** Separate `.git/` directories isolate each
   session completely — no worktree setup needed. Cross-repo sequential orchestration (one
   session `cd`-ing into multiple repos) is also safe for the same reason.
-- **Same repo in parallel: REQUIRES `git worktree`.** One working tree has one HEAD; two+
-  sessions on a shared checkout collide on branch refs and scatter commits (empirical
-  failure mode, ≥3 incidents 2026-05-26/27 — see
-  `docs/audits/2026-05-27-concurrency-anomaly-cleanup-2026-05-26.md`).
+- **Same repo in parallel: REQUIRES a worktree.** One working tree has one HEAD + one index;
+  two+ committing sessions on a shared checkout collide — a commit in one sweeps the other's
+  staged file and lands on the wrong branch (witnessed 49c7db7 2026-06-07; the witness replay
+  proving separate worktrees = zero sweep is in the #107 JOURNAL entry / LESSONS).
 
-**2 — Setup** (operator, before opening a 2nd same-repo session)
+**2 — Provision (native-primary)**
 
-```
-git -C <repo> worktree add <repo>-parallel main
-```
+- **New parallel session:** `claude --worktree <name>` (alias `-w`) starts a session already
+  inside a fresh worktree. **Mid-session:** the `EnterWorktree` tool switches the *current*
+  session into one (`ExitWorktree` returns). Both create **`.claude/worktrees/<name>/` on
+  branch `worktree-<name>`** (verified). Base ref = `worktree.baseRef` setting: `fresh`
+  (default → `origin/<default-branch>`) or `head` (current local HEAD).
+- **`.worktreeinclude` is load-bearing — do NOT delete it.** A fresh worktree is a clean
+  checkout and so OMITS gitignored runtime state — including `ecosystem/*/state.yaml` (ADR-80
+  high-churn pointers). Without them the `audit-health` pre-commit gate runs the worktree's own
+  `audit.py`, sees `repos registered (none)`, reports `health: DEGRADED`, and **blocks every
+  commit** — a fresh committing worktree is dead on arrival. The repo's committed
+  `.worktreeinclude` (lists `ecosystem/*/state.yaml`) makes the **native** worktree-create copy
+  that state in, so the gate passes (witnessed: seeded worktree commit lands; unseeded blocks).
+- **Walker safety (why in-repo `.claude/worktrees/` is safe):** it's gitignored, so `git status`
+  stays clean and **ruff** (respects gitignore) won't double-lint the full second checkout;
+  **pytest** is safe via its default `.*` dot-dir skip (collection stays 329, not 658). These
+  hold *only* while worktrees live under `.claude/worktrees/` — keep them there.
+- **Pre-flight:** always `git worktree list` before starting parallel work.
 
-Open the 2nd CC session from inside the worktree directory. Each session must work on a
-distinct branch (git forbids the same branch in two worktrees simultaneously).
-
-- **Naming:** `<repo>-parallel` for ad-hoc; `<repo>-wt-<purpose>` for multiple concurrent.
-- **Pre-flight:** always run `git worktree list` before starting parallel work.
+**Manual residual (cross-repo / non-CC / interactive — Fork B, KILL-2):** native manages only
+*Claude-spawned* worktrees. For a worktree you must drive outside CC, use raw
+`git worktree add .claude/worktrees/<name> -b worktree-<name>` (same in-repo location) and seed
+the state by hand (`.worktreeinclude` does **not** apply to raw `git worktree add`); teardown is
+manual (below). Each session works a distinct branch (git forbids one branch in two worktrees).
 
 **3 — Discipline while running in parallel** (earned 2026-06-01 — see LESSONS)
 
-- **One worktree per goal.** Never drive a single checkout from two sessions — it clobbers
-  its own HEAD/refs and scatters commits.
+- **One worktree per goal.** Never drive a single checkout from two committing sessions.
 - **Serialize edits to shared canonical files** (BACKLOG, JOURNAL, PLAYBOOK, CLAUDE). Only
   one active branch touches a given canonical file at a time — parallel branches each read
   their *own* `main` and won't see each other's edits, producing silent divergence + conflicts.
 - **Allocate backlog ids at write-time, in order.** Never reserve an id "verbally" (held only
-  in conversation); a phantom reservation outside the file causes id collisions (the #68/#69
+  in conversation); a phantom reservation outside the file causes id collisions (#68/#69
   near-misses).
 
 **4 — Integration & ephemeral teardown** (the moment the parallel branch's work is done)
 
-- **Don't linearize across worktrees.** A branch checked out in another worktree cannot be
-  rebased from a different session (git blocks it). Use a `--no-ff` merge (repo norm) as the
-  integration path — don't fight git to linearize.
-- **Prune + delete immediately after merge** — an unmerged branch rots against the advancing
-  `main`; the longer it sits, the worse the divergence (and the merge conflict on landing).
+- **`/ship` runs from the PRIMARY checkout, not from inside a worktree.** A worktree cannot
+  `git checkout main` (`fatal: 'main' is already used by worktree …`), which `/ship`'s merge
+  step needs; ship.md now **refuses cleanly** from a worktree (pre-flight #1) with this guidance.
+- **Integrate from the primary:** from the primary on `main`, `git merge --no-ff worktree-<name>`
+  then `git push` (repo `--no-ff` norm). Don't try to rebase/linearize a branch that is checked
+  out in another worktree — git blocks it.
+- **Teardown — native first:** a *changeless* worktree auto-removes on `ExitWorktree`/session
+  exit (and `isolation:"worktree"` subagents auto-clean); a worktree that has commits is KEPT.
+  After merging, remove it:
 
 ```
-git -C <repo> worktree remove <repo>-parallel
+git -C <repo> worktree remove .claude/worktrees/<name>
 git -C <repo> worktree prune
-git -C <repo> branch -d <merged-branch>
+git -C <repo> branch -d worktree-<name>
 ```
 
-- **Verify the teardown left nothing behind.** Run `git worktree list` (only the main
-  worktree should remain) **and** confirm the sibling worktree directory is gone from disk.
-  `git worktree remove` refuses (or a process lock blocks it) when the dir is busy — then git
-  deregisters nothing and/or the directory survives as an orphan that must be deleted by hand.
-  Skipping this check is exactly how the `.dev-knowledge-cadence` and `.dev-knowledge-night-adr`
-  sibling orphans accumulated: deregistered from git, but their directories were never removed.
+- **Verify the teardown left nothing behind (no-leftovers round-trip).** `git worktree list`
+  shows only the primary; the `.claude/worktrees/<name>` dir is gone from disk; `git status`
+  is clean. `git worktree remove` silently no-ops when the dir is busy/locked, so re-check —
+  never assume. The provision→teardown cycle must leave the tree *identical* to its pre-provision
+  state.
 
-Full rationale: ADR-61. This teardown is the worktree-specific case of the broader rule that
-any automated or scratch-creating process cleans up — and verifies it cleaned up — everything
-it created (the no-leftovers invariant, next).
+Full rationale: ADR-61 (as superseded by the #107 native-worktree convention). This teardown is
+the worktree-specific case of the broader rule that any automated or scratch-creating process
+cleans up — and verifies it cleaned up — everything it created (the no-leftovers invariant, next).
 
 ### No leftovers: automated processes clean up — and verify it (invariant)
 <!-- scope: meta -->

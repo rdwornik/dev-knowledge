@@ -19,6 +19,52 @@
 
 ---
 
+### 2026-06-07 — #107 native parallel-session worktree workflow (verify-first; collision-replay witnessed) [closes #107]
+
+**Did:** Shipped the CC-native managed-worktree workflow for same-repo parallel
+*committing* sessions under a STOP-after-UNDERSTAND valve (verbatim Done-when map +
+operator-approved location/doctrine fork). Verified the native mechanism empirically,
+not from docs: `claude --worktree` / the `EnterWorktree` tool create
+`.claude/worktrees/<name>` on branch `worktree-<name>` (CC 2.1.168). Inventoried every
+organ's worktree behavior (corrected two subagent errors — worktrees are *full* checkouts,
+not shared-`scripts/`); replayed the 49c7db7 shared-HEAD collision SAFELY across two
+worktrees (the witness); found + fixed two real worktree blockers without weakening a gate.
+
+**Result:** Done-when met (rule lands in PLAYBOOK). **Witness PASSED** — main-checkout and
+worktree each staged a file in the same wall-clock window; commit A (`9e9bd73`) carried only
+file A, commit B (`ece081a`) only file B, **zero cross-sweep**, each on its own branch, both
+trees clean — the 49c7db7 failure condition replayed without the failure. Two blockers found
++ resolved: (1) a fresh worktree omits gitignored `ecosystem/*/state.yaml` → the worktree's
+own `audit.py` reports `repos registered (none)` → `health: DEGRADED` → the `audit-health`
+pre-commit gate **BLOCKS every commit**; fixed by a committed `.worktreeinclude` that seeds
+that state natively at create-time (witnessed: seeded worktree commit lands, unseeded blocks).
+(2) `/ship` breaks inside a worktree (`git checkout main` → `fatal: 'main' is already used by
+worktree`); fixed by an *additive* ship.md pre-flight #1 that refuses cleanly + integrate-from-
+primary guidance (`git merge --no-ff worktree-<name>` from the primary). Walker safety
+characterized empirically: pytest 329→329 (default `.*` dot-dir skip — safe), ruff DESCENDS
+into the second checkout until `.claude/worktrees/` is gitignored (the fix; verified with a
+planted violation). Scratch teardown verified an identical-tree no-leftovers round-trip.
+328 pytest / ruff clean throughout.
+
+**Changes:** `.worktreeinclude` (NEW, load-bearing), `.gitignore` (+`.claude/worktrees/`),
+`plugins/tier1-lifecycle/commands/ship.md` (worktree pre-flight) + `.claude-plugin/plugin.json`
+0.1.6→0.1.7, `protocols/PLAYBOOK.md` ("Parallel sessions & worktree discipline" rewritten
+native-primary; interim exclusivity + sibling naming retired), `BACKLOG.md` (−#107), and
+user-level `~/.claude/skills/gotchas/gotchas.md` (shared-HEAD verify line → new mechanism).
+Commits `e48b0b7` (infra), `e2ffd0d` (PLAYBOOK), this close; merged `--no-ff` via /ship.
+
+**Abandoned:** plugin-version propagation to sibling repos (out of scope — prompt forbade
+touching siblings; bump is traceability-only); a deeper audit.py worktree-awareness refactor
+(the `.worktreeinclude` seed is the minimal correct fix — deferred unless the raw-`git worktree`
+manual-residual path becomes common, then teach audit.py to resolve ecosystem state from the
+git common-dir).
+
+**Next:** #107 closed. The #121 child-floor arc can now safely run hub+child parallelism on
+native worktrees. Watch: `.worktreeinclude` only seeds *native*-created worktrees — a raw
+`git worktree add` session still needs a manual seed (documented in PLAYBOOK).
+
+---
+
 ### 2026-06-07 — #134 n=1 backlog-grooming field run (groom + design input)
 
 **Did:** Ran the first field pass of the #134 backlog-grooming organ under a

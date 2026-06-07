@@ -11,14 +11,22 @@ Merge the current feature branch to `main` — the standard git-finish sequence.
 
 ## Pre-flight (refuse on any failure — do not proceed past a refusal)
 
-1. **Not on `main`** — run `git rev-parse --abbrev-ref HEAD`. If result is `main`, stop:
+1. **Not inside a linked worktree** — `/ship` integrates from the PRIMARY checkout. A linked
+   worktree cannot `git checkout main` (main is already checked out in the primary → `fatal:
+   'main' is already used by worktree`), which the merge step below needs. Detect:
+   ```powershell
+   if ((git rev-parse --path-format=absolute --git-common-dir) -ne (git rev-parse --path-format=absolute --git-dir)) { "IN_WORKTREE" }
+   ```
+   If it prints `IN_WORKTREE`, stop:
+   `Pre-flight FAILED: /ship runs from the primary checkout, not a worktree. Integrate this worktree's branch from the primary instead: from the primary on main, `git merge --no-ff <branch>` then `git push`, then `git worktree remove <path>` + `git branch -d <branch>` (per PLAYBOOK "Parallel sessions & worktree discipline").`
+2. **Not on `main`** — run `git rev-parse --abbrev-ref HEAD`. If result is `main`, stop:
    `Pre-flight FAILED: /ship must run on a feature branch, not main.`
-2. **Clean working tree** — run `git status --porcelain`. If non-empty, stop:
+3. **Clean working tree** — run `git status --porcelain`. If non-empty, stop:
    `Pre-flight FAILED: working tree is dirty — commit or stash all changes first.`
-3. **Validators green** — run `pytest -x --tb=short && ruff check`. If either fails, stop:
+4. **Validators green** — run `pytest -x --tb=short && ruff check`. If either fails, stop:
    `Pre-flight FAILED: validators red — fix before merging.`
 
-All three must pass before continuing.
+All four must pass before continuing.
 
 ## Merge
 
