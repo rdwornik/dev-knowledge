@@ -19,6 +19,38 @@
 
 ---
 
+### 2026-06-07 — ARCHITECTURE rewrite: six-chapter system map (closes #91)
+
+**Did:** Rewrote `ARCHITECTURE.md` from the pre-ADR-80 11-section structure into a
+six-chapter navigation map — layers & authority · organ map · automation axes ·
+distribution & transfer · zones & immutability · verification mesh & decision flow —
+reflecting the shipped night/cloud reality through ADR-80. Map-not-prose: points to
+ADRs/protocols, never restates doctrine. Folded in the three mid-flight amendments:
+diagram-form algorithm (A), stale-mention sweep (B), reading map (C).
+
+**Result:** Valve-1 mapped every #91 Done-when component to a chapter; all delivered,
+so the 2026-06-05 staleness-audit ARCHITECTURE row flips to CURRENT **via this
+closure** — R1: that audit is immutable and self-documents flip-by-git-closure, so it
+was NOT edited. 8 authored Mermaid diagrams → 1 (the 3-actor layer cycle); the other
+7 demoted to tables/text per the algorithm (inventories → tables; linear cycles →
+arrow-chains; >12-node flows → tables+pointers). Stale-mention sweep: 0 un-annotated
+night-agent mentions (all inside the ADR-68 supersession note). Gates green: 13/13
+audit, toc, codemap, 328 pytest, ruff. Retained the six [U] spine headings (R2 — one
+coherent body commit, no gate bypass; per-chapter would have risked a transitional
+`canonical_structure` FAIL).
+
+**Changes:** `ARCHITECTURE.md` (full rewrite, commit 9573885) · `BACKLOG.md` (#91
+closed; captured #134 backlog-grooming review, #135 diagram-form algorithm → PLAYBOOK,
+#136 pruning-symmetry doctrine) · `JOURNAL.md`.
+
+**Abandoned:** per-chapter commits (R2 — the six spine headings are entangled across
+the reorg; a single coherent body commit avoided any transitional gate FAIL).
+
+**Next:** `#121` `@`-include VERIFY → child-floor implementation → corp dedicated chat
+package. (Refs ADR-80, ADR-68 supersession, ADR-51.)
+
+---
+
 ### 2026-06-07 — Harden /ship message handling (kill temp-file cleanup hazard)
 
 **Did:** Follow-up fix (operator Option 2 + rider) after the peer-audit capture session repeatedly hit the harness safety scanner. Replaced ship.md's temp-file merge-message idiom (`Set-Content $tmp` → `git merge -F $tmp` → cleanup) with an inline single-line `-m` merge — no temp file, no cleanup step, nothing for the scanner to mis-parse. **Corrected the rider's `git merge -F -` suggestion** (git merge cannot read the message from stdin — documented gotcha; opens a file named `-`, exit 129) → used `-m` instead. Bumped plugin 0.1.5→0.1.6. Captured the harness trap as a `~/.claude` gotcha, then **refined it after a sharper second hit**: the scanner matches the literal cmdlet token + a `/command` token *anywhere in the command text* — even a stdin `git commit -F -` whose message merely *describes* the fix (no cmdlet present) is blocked. Fix to the gotcha: paraphrase the trigger tokens out of any message that must discuss this class.
