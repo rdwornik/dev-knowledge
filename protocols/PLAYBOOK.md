@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-06-03
+> Last updated: 2026-06-07
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -1828,6 +1828,7 @@ Source: research note `docs/archive/2026-06-03-dynamic-workflows-research-note.m
 Platform-current facts that pin the tables above (Claude Code 2.1.168; refreshed for #84 from `docs/audits/2026-06-07-platform-max-audit.md`):
 
 - **Opus 4.8 is the default model and defaults to `high` effort.** Don't treat "use Opus" as exceptional for judgment work — it's the floor. Reserve the explicit Effort knob mainly for moving *off* `high`.
+- **Implementation waves run on Opus, not Sonnet.** A wave that wires multiple items across hooks / platform config (commit-msg hooks, pre-commit `language` modes, git pathspec behavior on Windows) carries real debugging risk: the failure modes are platform-specific and *silent*. Witnessed 2026-06-07 (wave-A closeout) — the `backlog-id-on-close` `pass_filenames` gate-bypass, the `language:python` flat-layout `pip install .` trap, and the Windows glob-pathspec miss each surfaced only under careful multi-step debugging. Tier these as Opus from the start; Sonnet under-resolves the multi-layer interactions. (Gotchas captured under "Pre-commit hook authoring" + "Git".)
 - **`xhigh`** is for the hardest *single-session* synthesis — clause-level architecture, end-to-end verification, this-codification class. It burns more tokens than `high`; use it deliberately, not by default.
 - **Fast mode** (`/fast`) trades **≈2× token cost for ≈2.5× output speed** on Opus 4.8/4.7/4.6 — same model, faster output (it does *not* downgrade to a smaller model). Use it for latency-sensitive interactive work; skip it for routine/unattended work where speed buys nothing.
 - **`ultracode` is the Dynamic-Workflow trigger keyword, NOT an effort tier** (renamed from "workflow", Claude Code 2.1.160). It escalates a prompt into multi-agent orchestration ("When to escalate to a Dynamic Workflow", above) — never write it in a Model/Mode/Effort table as a fourth effort level.
