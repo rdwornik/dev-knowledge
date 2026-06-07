@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-06-07 — #134 n=1 backlog-grooming field run (groom + design input)
+
+**Did:** Ran the first field pass of the #134 backlog-grooming organ under a
+STOP-after-UNDERSTAND + per-bucket ratify-gate valve. Built the deterministic
+signal set (retired-token grep, ref-resolver, dependency-closed, age) BEFORE any
+judgment; classified all 78 tasks into 5 buckets (alive / done-undetected /
+merge-into / stale-interest / obsoleted-by); HALTed for operator ratification;
+executed only ratified actions. Two BACKLOG commits (removals+merges+grooming-log
+`d1f03da`; ALIVE flag-edits `5d47581`) merged `--no-ff` (`1ee48e6`); then this
+follow-up annotated #134 with the Step-4 design input (chat-as-storage rule) and
+captured the Edit leading-newline line-removal gotcha (n=2) to `~/.claude`
+(`421b81e`).
+
+**Result:** 78→67 tasks, 21→19 stories (2 orphaned headers removed with their
+sole tasks), 0 warnings, 328 pytest / ruff clean throughout. closes [#81]
+(conformance-hub.js shipped + ran nightly, drift ratified via triage — Done-when
+met) + [#14] (ecosystem/ settled as committed continuous-audit substrate by the
+ADR-76 + ADR-80 + #125 arc; decision recorded in the grooming log); merged
+[#21]→#19 and [#38]→#16; removed STALE [#6] [#22] [#28] [#30] [#32] [#33] [#94]
+(kept #47); flag-edits #71 (target re-scope) / #77 (ADR-68 night-agent → ADR-80)
+/ #110 (ADR-03 verify note) + #1/#2 P1→P2 (#107 now the only P1). **Key finding:**
+deterministic signals gave 0 hard kills on a freshly-groomed backlog — every
+substantive removal was judgment (git-history + cross-ADR), so the #134 organ =
+deterministic flags → LLM judgment → ratify, cadence POST-ARC not calendar.
+
+**Changes:** `BACKLOG.md` (−11 tasks, 2 merges, 5 flag-edits, grooming-log line —
+`d1f03da` `5d47581`, merge `1ee48e6`; #134 design-input annotation this commit) ·
+`JOURNAL.md` (this entry) · `~/.claude/skills/gotchas/gotchas.md` (leading-newline
+line-removal gotcha, path-scoped `421b81e`).
+
+**Abandoned:** #81 per-rule-expansion scope NOT re-captured (operator ruling —
+re-enters via funnel if needed; #77 owns doc-rot). The leading-newline removal
+idiom (replaced mid-run by full-line matching after it jammed adjacent lines).
+
+**Next:** #134 organ build (deterministic pre-filter + judgment + ratify, post-arc
+cadence) when scheduled; #121 @-include VERIFY → child-floor; #132 organ-index
+generator.
+
+---
+
 ### 2026-06-07 — ARCHITECTURE rewrite: six-chapter system map (closes #91)
 
 **Did:** Rewrote `ARCHITECTURE.md` from the pre-ADR-80 11-section structure into a
