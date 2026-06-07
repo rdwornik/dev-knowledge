@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-07 — #84 two-tier automation codification (PLAYBOOK + ADR-80 + routine standard) [closes #84]
+
+**Did:** Closed the #84 workflow-doctrine codification package on branch `docs/two-tier-automation-84`, under a STOP-after-UNDERSTAND valve. UNDERSTAND gates run + reported first: (1) **n=2 evidence gate PASS** — both nightly conformance digests located (n=1 2026-06-06 *red*: N1 high #74-drift + N2 med ARCHITECTURE timestamp; n=2 2026-06-07 *clean* 0/0/0); (2) **channel verdict COMPLIANT-BY-DESIGN** — witnessed PR #17 (`claude/conformance-2026-06-07`→`main`, squash-merge `221c63e`) matches the Action's claude/*→PR→diff-guard→squash channel, not a direct push; (3) **signal-quality** — cloud 0/0/0 vs local corp `canonical_freshness` FAIL is no contradiction (claims-vs-docs vs freshness-stamp dimension; hub-self vs sibling scope, #100); (4) **VF-2** — `fallbackModel` schema-accepted on CC 2.1.168 (native `--fallback-model` flag is its CLI twin; probe non-discriminating on strictness — honest limit recorded; no tracked file touched). Operator ruled **writer policy = Option (b) + 3 riders** (mutable/durable split, pathspec-bounded, fail-soft). Then 6 commits across PLAYBOOK + ADR + BACKLOG.
+
+**Result:** #84 closed — all four Done-when components landed (PLAYBOOK two-tier section + ADR-80 + the two ADR-authorship-paths note + Routine/night operational-standard). ADR-80 accepted. All commits pre-commit green (PLAYBOOK-TOC freshness, validate-backlog, audit-health, backlog-id-on-close). Two integrity catches: the prompt's Tier-1/2/3 labels conflicted with ADR-74's matrix numbering → codified the two-tier split as the **LLM-judgment axis** (orthogonal, never renumbers ADR-74); and #84 Done-when component **(c)** was undelivered → added it rather than close past it (the same closure-drift class N1 flagged). README ADR provenance-table lag (73–79 missing) noted, left out of scope.
+
+**Changes:** `protocols/PLAYBOOK.md` (×4: two-tier doctrine `29900d7`; ADR-authorship-paths note `d178abc`; Model/Effort refresh `2ecce40`; Routine/night standard `b3355d0`); `docs/decisions/ADR-80-two-tier-automation-adoption.md` (new; `6da20be`); `BACKLOG.md` (−#84, +#125, grooming-log; `679c7c8`).
+
+**Abandoned:** README.md ADR provenance-table backfill (73–79) — pre-existing drift, out of #84 scope. The #125 writer-policy wiring (fleet_health commit + `.gitignore`) — capture-only per the prompt's no-implement-wiring rule.
+
+**Next:** #91 ARCHITECTURE rewrite → #121 @-include VERIFY → floor implementation.
+
 ### 2026-06-07 — Council F1/F2 distillation: 2 ADRs + transcripts + verdict-applied backlog [closes #108]
 
 **Did:** Distilled council verdicts for F2 (child methodology floor) and F1 (browser carrier) into governance artifacts on branch `docs/council-f1-f2-distillation`. Step 1: committed 2 untracked council debate transcripts (`council-out-20260607_124757-pick-council-f2-child-floor.md` + `council-out-20260607_125247-pick-council-f1-browser-carrier.md`). Step 2: authored ADR-78 (O2 Bounded Hybrid — child CLAUDE-FLOOR.md + sidecar sha256, operator-invoked generator, methodology_surface zone class added to ADR-75 register, 1500-token ceiling). Step 3: authored ADR-79 (O1 bundle-only retained; O2 rejected as unverifiable safety property; mandated ergonomics: consolidated BUNDLE.md + 05_NOW init-acknowledgment clause; O3 deferred). Step 4: BACKLOG verdicts — #121 un-gated and re-scoped to full ADR-78 action items (VERIFY FIRST: @-include resolution; P3→P2); #108 removed (done items leave, ADR-65); [#124] new [P2][S] BUNDLE.md consolidation + 05_NOW clause.

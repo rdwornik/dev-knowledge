@@ -66,6 +66,9 @@
   - [No leftovers: automated processes clean up — and verify it (invariant)](#no-leftovers-automated-processes-clean-up--and-verify-it-invariant)
 - [Tier-1 closure loop — usage](#tier-1-closure-loop--usage)
   - [Propagating a plugin change across the fleet](#propagating-a-plugin-change-across-the-fleet)
+- [Two-tier automation doctrine](#two-tier-automation-doctrine)
+  - [Writer policy — automation that writes the tree commits its own output (ADR-80)](#writer-policy--automation-that-writes-the-tree-commits-its-own-output-adr-80)
+  - [What each tier checks (a green one and a red other are both correct)](#what-each-tier-checks-a-green-one-and-a-red-other-are-both-correct)
 - [Routine/night deployment standard](#routinenight-deployment-standard)
   - [The envelope](#the-envelope)
   - [Naming](#naming)
@@ -76,6 +79,7 @@
   - [Cloud-session closeout](#cloud-session-closeout)
   - [The shallow-clone false-positive class](#the-shallow-clone-false-positive-class)
   - [Cloud-session hub-independence (self-containment)](#cloud-session-hub-independence-self-containment)
+  - [What every routine must meet (the operational standard)](#what-every-routine-must-meet-the-operational-standard)
 - [Continuous Improvement](#continuous-improvement)
   - [Pipeline overview](#pipeline-overview)
   - [Stage 1: Discovery](#stage-1-discovery)
@@ -104,6 +108,7 @@
   - [When to escalate to a Dynamic Workflow](#when-to-escalate-to-a-dynamic-workflow)
   - [How to choose Mode](#how-to-choose-mode)
   - [How to choose Effort](#how-to-choose-effort)
+  - [Model / effort platform doctrine (Claude Code 2.1.x)](#model--effort-platform-doctrine-claude-code-21x)
   - [Structure](#structure)
   - [Quick-reference examples](#quick-reference-examples)
   - [Decision scope for when to write a formal prompt](#decision-scope-for-when-to-write-a-formal-prompt)
@@ -126,6 +131,7 @@
   - [Council Debate Archival Protocol](#council-debate-archival-protocol)
   - [Council output convention (current state)](#council-output-convention-current-state)
   - [When to run Council vs single-model + critic](#when-to-run-council-vs-single-model--critic)
+  - [ADR authorship paths (how an ADR gets written)](#adr-authorship-paths-how-an-adr-gets-written)
   - [Amendment vs Reopen Decision Protocol](#amendment-vs-reopen-decision-protocol)
   - [Codex review archival protocol](#codex-review-archival-protocol)
 - [6. Code Review with Claude Code](#6-code-review-with-claude-code)
@@ -1127,6 +1133,44 @@ The cache is **version-keyed** — `marketplace update` alone won't refresh at a
 
 ---
 
+## Two-tier automation doctrine
+<!-- scope: meta -->
+
+The canonical layer→job matrix is **ADR-74**; this is its operating-doctrine prose, adopted fleet-wide by **ADR-80**. The organising question is a single axis — **does the organ exercise LLM judgment?** — which splits all automation into two tiers.
+
+**Deterministic automation (no model).** Pre-commit + commit-msg hooks, `audit.py` self-conformance, and the scheduled `fleet_health.py` cross-repo baseline (Windows Task Scheduler → Python directly — **no `claude -p` on the scheduled path**, ADR-76). Posture: **fail-closed on any executing path** (a gate that *can* block a commit does) and **fail-soft on awareness paths** (a surfacing hook that can't run prints nothing and exits 0, never blocking a session). Spans ADR-74 Tiers 1–2 (lifecycle + scheduled baseline).
+
+**LLM-judgment automation.** Any organ that runs a model. Invariant: **always read-only + adversarial-skeptic-filtered + operator-ratified** — it proposes, a skeptic kills false positives, and a human funnel ratifies before anything binds. Nothing it emits is binding unattended. Two delivery forms, both ADR-74 Tier 3:
+
+- **Cloud Routine** — self-contained (clones only its own repo, reads no sibling — ADR-72/73); read-only schema-bound agents + skeptic; output via its **declared channel**: a `claude/<task>-YYYY-MM-DD` branch → PR → the GitHub Action diff-guards and **squash-merges** (compliant-by-design — witnessed 2026-06-07, PR #17 squash-merged to `main` as `221c63e`; the single non-merge commit is the *designed* cloud channel, deliberately distinct from the local branch+merge `--no-ff` discipline for human-authored arcs). See "Routine/night deployment standard › The outcome loop".
+- **Dynamic Workflow** — escalation-only heavy/episodic fan-out (the `Workflow` tool). **Operator-invoked, never scheduled**; trigger keyword **`ultracode`** (the word "workflow" stopped triggering — Claude Code 2.1.160). Escalation criteria: §2 "When to escalate to a Dynamic Workflow".
+
+> **Numbering note.** "Two-tier" is the *LLM-judgment axis* (deterministic vs judgment) — **orthogonal** to ADR-70/74's friction-cadence Tiers 1/2/3 (always-on / scheduled / episodic). Both lenses are live and this section never renumbers ADR-74: a cloud Routine is ADR-74 **Tier 3** *and* a judgment organ; the scheduled baseline is ADR-74 **Tier 2** *and* a deterministic organ.
+
+### Writer policy — automation that writes the tree commits its own output (ADR-80)
+<!-- scope: meta -->
+
+A job that writes tracked files **owns the commit of those files**; the tree is never left dirty for the operator to stash around. This **supersedes the interim stash→ship→pop pattern** (and the now-OBSOLETE `ship-around-fleet-health-dirty-tree` memory note). Option (b) + three binding riders (operator ruling 2026-06-07):
+
+1. **Mutable vs durable split.** The high-churn mutable pointer (`ecosystem/<repo>/state.yaml`) is **gitignored**; the durable record (`history/*.md`, digests, the audit rollup `docs/audits/*-ecosystem-audit.md`) is **committed by the writer**.
+2. **Pathspec-bounded.** The job stages **exactly its own declared output paths** — never `git add -A`, never anything outside its outputs. An operator's unrelated dirty files are untouchable by automation.
+3. **Fail-soft.** On any commit failure (locked index, mid-merge, diverged `main`) the job leaves its files uncommitted, logs one WARN line, and **exits 0** — it never forces, never pulls/rebases, never resolves.
+
+Local writer commits carry the `Routine: <name>` observability trailer (#123); the cloud channel keeps its PR (above). *Wiring is captured as a follow-up item — not built in the ratifying session.*
+
+### What each tier checks (a green one and a red other are both correct)
+<!-- scope: meta -->
+
+| Organ | Scope | Dimension checked | Example signal |
+| --- | --- | --- | --- |
+| `audit.py` / `fleet_health.py` (deterministic) | the repo **+ its siblings** | structural + **freshness-stamp** health (file present, dot-prefix, `last_reviewed` vs last-edit) | `corp-monorepo canonical_freshness FAIL` (CLAUDE.md edited 06-06, reviewed 06-02) |
+| cloud conformance Routine (judgment) | the repo's **own docs only** (self-referential) | **claims-vs-docs** coherence (JOURNAL↔git, living-doc claims↔repo state, BACKLOG closure coherence) | nightly digest `0 high / 0 med / 0 low` |
+| dynamic Workflow (judgment) | scoped per invocation | whatever the harness defines (deep audit, migration, checked-twice review) | per-run |
+
+The 2026-06-07 cloud digest reading `0/0/0` while the local baseline shows one `canonical_freshness` FAIL is **not** a contradiction: different **dimension** (claims-vs-docs vs freshness-stamp) **and** different **scope** (hub-self vs corp-sibling, tracked as #100). Per-tier value — findings-acted-on vs noise — is reviewed in the morning funnel (#123).
+
+---
+
 ## Routine/night deployment standard
 <!-- scope: meta -->
 
@@ -1181,6 +1225,19 @@ A cloud runner may produce a **shallow clone**, so a verifier that checks "does 
 A cloud Routine **clones only its target repo** (single-repo Linux clone at `/home/user/<repo>/`) and must be **self-contained** — it consults only that repo's own git, living docs, and BACKLOG. **No hub reference is load-bearing on the cloud executing path** (ADR-72, #86 sub-decision 2). The hub `.dev-knowledge` is **private**, which permanently closes ADR-71's "URL-swappable later" hatch *for the cloud case*: a git-source/URL hub would need auth inside the sandbox, which the secrets-boundary stance forbids (treat the sandbox as compromised). So plugin/skill distribution does **not** resolve a private hub in cloud — the `tier1-lifecycle` plugin is **verified inert** there (local-directory marketplace absent on Linux; JOURNAL 2026-06-04, "harmless"), and the `repo: ../.dev-knowledge` pre-commit hooks never fire (pre-commit uninstalled in a fresh clone; a read-only run commits no source). These are inert-**by-design**, not bugs.
 
 The honest catch: that degradation is **silent** (the machinery that would log a no-op is exactly what doesn't run), so the "loud" guard moves to **design/review time** — authoring a cloud spec that reads any `../.dev-knowledge/...` path is a defect a reviewer must catch, and any spec that genuinely needs a hub ref must fail-closed at the consumer/Action layer ("put the code guarantee where the bytes actually flow", above). A future cloud Routine that truly needs hub methodology/tooling at runtime is a **STOP-and-escalate**: it cannot be served for a private hub without publishing a hub subset (an operator data-classification call) or new auth'd infra — do not improvise it in-session (ADR-72 Decision 5).
+
+### What every routine must meet (the operational standard)
+<!-- scope: meta -->
+
+A recurring unattended review — local or cloud — graduates to "standard" only when it satisfies **all** of these (ratified by ADR-80):
+
+1. **Self-containment** — consults only its own repo at runtime; no hub reference on the executing path (ADR-72/73; "Cloud-session hub-independence" above). Cross-repo reach is the *local* deterministic baseline's job, not a cloud Routine's.
+2. **Declared output channel.** *Cloud:* `claude/<task>-YYYY-MM-DD` branch → PR → Action diff-guard → **squash-merge** (compliant-by-design — witnessed 2026-06-07, PR #17 squash-merged to `main` as `221c63e`; the single non-merge commit is the *designed* cloud channel, distinct from the local branch+merge `--no-ff` discipline for human-authored arcs). *Local:* the writer commits its own pathspec-bounded output, fail-soft ("Two-tier automation doctrine › Writer policy").
+3. **`Routine: <name>` commit trailer** on every automation commit, so routine output is git-indexable and value-reviewable (#123).
+4. **Per-stage model pins** — every stage pinned by t-shirt size ("T-shirt model pins"); **no `fallbackModel`** on a pinned stage (it breaks evidence comparability — §2 "Model / effort platform doctrine"). Unpinned fan-out is a bug.
+5. **Fail-soft + catch-up posture** — a missed run is tolerated by design: catch-up on next opportunity (local: Task Scheduler "run as soon as possible after a missed start", ADR-76; cloud: the next scheduled night), surfaced at the next SessionStart. No alerting, no wake-from-sleep.
+6. **Funnel-review as the consuming contract** — findings are *proposals*; the operator's morning funnel ratifies before anything binds, and records per-routine findings-acted-on vs noise (#123). A routine with no funnel consumer is not deployed.
+7. **Evidence gate: n=2 before graduation** — a new routine pattern is codified into this standard only after **two real runs** demonstrate it end-to-end (ADR-74 Footnote B meta-rule). The nightly conformance routine cleared this gate (n=1 red 2026-06-06 → triaged → n=2 clean 2026-06-07, both PR'd into `main`); #84 is the codification that consumed it.
 
 ---
 
@@ -1765,6 +1822,19 @@ Source: research note `docs/archive/2026-06-03-dynamic-workflows-research-note.m
 - **high** — 5+ files or 2+ packages, 90+ min, requires UNDERSTAND phase, potential blast radius. Example: "implement search federation", "migrate classifier to new taxonomy"
 - **xhigh** — hardest debugging, end-to-end pipeline verification, Council-level analysis. Opus only. Example: "find why magistrala silently drops events", "verify boundary enforcement across all packages"
 
+### Model / effort platform doctrine (Claude Code 2.1.x)
+<!-- scope: hybrid -->
+
+Platform-current facts that pin the tables above (Claude Code 2.1.168; refreshed for #84 from `docs/audits/2026-06-07-platform-max-audit.md`):
+
+- **Opus 4.8 is the default model and defaults to `high` effort.** Don't treat "use Opus" as exceptional for judgment work — it's the floor. Reserve the explicit Effort knob mainly for moving *off* `high`.
+- **`xhigh`** is for the hardest *single-session* synthesis — clause-level architecture, end-to-end verification, this-codification class. It burns more tokens than `high`; use it deliberately, not by default.
+- **Fast mode** (`/fast`) trades **≈2× token cost for ≈2.5× output speed** on Opus 4.8/4.7/4.6 — same model, faster output (it does *not* downgrade to a smaller model). Use it for latency-sensitive interactive work; skip it for routine/unattended work where speed buys nothing.
+- **`ultracode` is the Dynamic-Workflow trigger keyword, NOT an effort tier** (renamed from "workflow", Claude Code 2.1.160). It escalates a prompt into multi-agent orchestration ("When to escalate to a Dynamic Workflow", above) — never write it in a Model/Mode/Effort table as a fourth effort level.
+- **`fallbackModel` policy (ADR-80; VF-2 confirmed schema-accepted on 2.1.168 — the native `--fallback-model` flag is its CLI twin):**
+  - **Interactive sessions MAY set it** (e.g. one Sonnet fallback) for resilience when the primary is overloaded/unavailable — a degraded answer beats a dead session.
+  - **Pinned routine / workflow stages MUST NOT set it.** A per-stage model pin (t-shirt routing — "Routine/night deployment standard › T-shirt model pins") is a deliberate evidence choice; a silent fallback to a different model breaks **evidence comparability** across runs (the n=2 gate compares like-for-like). A pinned stage that can't reach its model must fail loudly, not silently substitute.
+
 ### Structure
 <!-- scope: hybrid -->
 
@@ -2091,6 +2161,16 @@ Cost: ~$0.05 + 2min vs Council's $0.50 + 5min. Significantly cheaper for the >70
 
 - **Council habit-formation** — running Council because "it's how we decide" without checking the gate. Costs add up fast ($0.50 × N decisions).
 - **Single-model laziness** — choosing single-model path when criteria genuinely apply (architectural ripple), then later reopening as Council = wasted first decision.
+
+### ADR authorship paths (how an ADR gets written)
+<!-- scope: meta -->
+
+An ADR reaches the repo by one of **two authorship paths** — choose by the decision's gate (§5 "When to use Council vs. decide yourself"), not by habit:
+
+- **Chat-drafted** — the browser architect drafts the decision in conversation (operator-ruled calls, synthesis, single-correct-fix decisions below the Council gate); **Claude Code** then creates the ADR in-repo with the next number, frontmatter, and template. Default path for operator rulings (e.g. ADR-80 itself).
+- **Council-convened** — an AI Council debate produces a transcript; the **post-debate protocol** (§5) distills it into an ADR, number verified and template-aligned. Used when the decision clears the Council gate (architectural ripple, multi-ADR impact, genuine cross-model uncertainty — e.g. ADR-76 from the local-scheduler debate).
+
+Both paths **converge on the same invariant**: the ADR is generated and committed *in Claude Code* — never hand-pasted from browser chat into the repo (ESSENTIALS "Artifact generation direction"; LESSONS #8) — numbered, frontmatter-stamped, and **immutable thereafter** (changes go through "Amendment vs Reopen", below).
 
 ### Amendment vs Reopen Decision Protocol
 <!-- scope: meta -->
