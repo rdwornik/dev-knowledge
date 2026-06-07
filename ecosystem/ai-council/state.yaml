@@ -44,6 +44,6 @@ findings:
 - check_name: handoff_version_stamp
   evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
   status: pass
-last_audit: '2026-06-06'
+last_audit: '2026-06-07'
 name: ai-council
 path: C:\Users\1028120\Documents\Dev\ai-council
