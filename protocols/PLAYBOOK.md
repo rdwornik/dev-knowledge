@@ -79,6 +79,7 @@
   - [Cloud-session closeout](#cloud-session-closeout)
   - [The shallow-clone false-positive class](#the-shallow-clone-false-positive-class)
   - [Cloud-session hub-independence (self-containment)](#cloud-session-hub-independence-self-containment)
+  - [What every routine must meet (the operational standard)](#what-every-routine-must-meet-the-operational-standard)
 - [Continuous Improvement](#continuous-improvement)
   - [Pipeline overview](#pipeline-overview)
   - [Stage 1: Discovery](#stage-1-discovery)
@@ -1224,6 +1225,19 @@ A cloud runner may produce a **shallow clone**, so a verifier that checks "does 
 A cloud Routine **clones only its target repo** (single-repo Linux clone at `/home/user/<repo>/`) and must be **self-contained** — it consults only that repo's own git, living docs, and BACKLOG. **No hub reference is load-bearing on the cloud executing path** (ADR-72, #86 sub-decision 2). The hub `.dev-knowledge` is **private**, which permanently closes ADR-71's "URL-swappable later" hatch *for the cloud case*: a git-source/URL hub would need auth inside the sandbox, which the secrets-boundary stance forbids (treat the sandbox as compromised). So plugin/skill distribution does **not** resolve a private hub in cloud — the `tier1-lifecycle` plugin is **verified inert** there (local-directory marketplace absent on Linux; JOURNAL 2026-06-04, "harmless"), and the `repo: ../.dev-knowledge` pre-commit hooks never fire (pre-commit uninstalled in a fresh clone; a read-only run commits no source). These are inert-**by-design**, not bugs.
 
 The honest catch: that degradation is **silent** (the machinery that would log a no-op is exactly what doesn't run), so the "loud" guard moves to **design/review time** — authoring a cloud spec that reads any `../.dev-knowledge/...` path is a defect a reviewer must catch, and any spec that genuinely needs a hub ref must fail-closed at the consumer/Action layer ("put the code guarantee where the bytes actually flow", above). A future cloud Routine that truly needs hub methodology/tooling at runtime is a **STOP-and-escalate**: it cannot be served for a private hub without publishing a hub subset (an operator data-classification call) or new auth'd infra — do not improvise it in-session (ADR-72 Decision 5).
+
+### What every routine must meet (the operational standard)
+<!-- scope: meta -->
+
+A recurring unattended review — local or cloud — graduates to "standard" only when it satisfies **all** of these (ratified by ADR-80):
+
+1. **Self-containment** — consults only its own repo at runtime; no hub reference on the executing path (ADR-72/73; "Cloud-session hub-independence" above). Cross-repo reach is the *local* deterministic baseline's job, not a cloud Routine's.
+2. **Declared output channel.** *Cloud:* `claude/<task>-YYYY-MM-DD` branch → PR → Action diff-guard → **squash-merge** (compliant-by-design — witnessed 2026-06-07, PR #17 squash-merged to `main` as `221c63e`; the single non-merge commit is the *designed* cloud channel, distinct from the local branch+merge `--no-ff` discipline for human-authored arcs). *Local:* the writer commits its own pathspec-bounded output, fail-soft ("Two-tier automation doctrine › Writer policy").
+3. **`Routine: <name>` commit trailer** on every automation commit, so routine output is git-indexable and value-reviewable (#123).
+4. **Per-stage model pins** — every stage pinned by t-shirt size ("T-shirt model pins"); **no `fallbackModel`** on a pinned stage (it breaks evidence comparability — §2 "Model / effort platform doctrine"). Unpinned fan-out is a bug.
+5. **Fail-soft + catch-up posture** — a missed run is tolerated by design: catch-up on next opportunity (local: Task Scheduler "run as soon as possible after a missed start", ADR-76; cloud: the next scheduled night), surfaced at the next SessionStart. No alerting, no wake-from-sleep.
+6. **Funnel-review as the consuming contract** — findings are *proposals*; the operator's morning funnel ratifies before anything binds, and records per-routine findings-acted-on vs noise (#123). A routine with no funnel consumer is not deployed.
+7. **Evidence gate: n=2 before graduation** — a new routine pattern is codified into this standard only after **two real runs** demonstrate it end-to-end (ADR-74 Footnote B meta-rule). The nightly conformance routine cleared this gate (n=1 red 2026-06-06 → triaged → n=2 clean 2026-06-07, both PR'd into `main`); #84 is the codification that consumed it.
 
 ---
 
