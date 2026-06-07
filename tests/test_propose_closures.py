@@ -185,3 +185,115 @@ def test_integration_strong_and_weak_through_real_git(tmp_path):
     weak = pc.find_weak(open_tasks, commits, set(strong))
     assert set(weak) == {"7"}              # pkg/mod.py changed, no closes -> WEAK
     assert weak["7"][0][0] == "pkg/mod.py"
+
+
+# --- #98: proposals survive hook re-runs ------------------------------------
+
+def test_proposals_meta_parses_unchecked_only():
+    text = (
+        "---\nhead_commit: abc1234def\nsince_commit: 0011223344\n---\n"
+        "- [ ] **#5** — pending\n- [x] **#6** — already reviewed\n"
+    )
+    head, since, unchecked = pc._proposals_meta(text)
+    assert head == "abc1234def"
+    assert since == "0011223344"
+    assert unchecked == {"5"}              # checked #6 is excluded
+
+
+def test_resolve_window_holds_baseline_while_pending(tmp_path, monkeypatch):
+    # a prior file (since S0, head S1) with a still-OPEN unchecked #5 must pin the
+    # window at S0 — NOT advance to S1 (which would yield an empty re-run window).
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    (logs / "PROPOSALS-2026-06-01.md").write_text(
+        "---\nhead_commit: " + "1" * 40 + "\nsince_commit: " + "0" * 40 + "\n---\n"
+        "- [ ] **#5** — do x\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(pc, "git_valid_rev", lambda repo, rev: True)
+    since, rng = pc.resolve_window(tmp_path, logs, {"5"})
+    assert since == "0" * 40              # baseline HELD at since, not advanced
+    assert rng == "0" * 40 + "..HEAD"
+
+
+def test_resolve_window_advances_when_nothing_pending(tmp_path, monkeypatch):
+    # the file's unchecked #5 is no longer open (closed/removed) -> not pending ->
+    # the baseline is free to advance to the latest head.
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    (logs / "PROPOSALS-2026-06-01.md").write_text(
+        "---\nhead_commit: " + "1" * 40 + "\nsince_commit: " + "0" * 40 + "\n---\n"
+        "- [ ] **#5** — do x\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(pc, "git_valid_rev", lambda repo, rev: True)
+    since, rng = pc.resolve_window(tmp_path, logs, {"9"})  # #5 not open
+    assert since == "1" * 40
+    assert rng == "1" * 40 + "..HEAD"
+
+
+_MINI_BACKLOG = (
+    "# R BACKLOG\n\n## Big picture\n\nintro\n\n"
+    "## Theme\n> As a dev, I want x.\n\n### Story\nSo that y.\n"
+    "- [#5] [P2][M] alpha · Done when: a · refs r1\n"
+)
+
+
+def _init_repo(tmp_path, monkeypatch, backlog=_MINI_BACKLOG):
+    repo = tmp_path / "r"
+    repo.mkdir()
+    _run(repo, "init", "-q")
+    _run(repo, "config", "user.email", "t@t.t")
+    _run(repo, "config", "user.name", "t")
+    (repo / "BACKLOG.md").write_text(backlog, encoding="utf-8")
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", "seed backlog")
+    monkeypatch.setattr(pc, "_REPO_ROOT", repo)
+    monkeypatch.setattr(pc, "_LOGS_DIR", repo / "logs")
+    monkeypatch.setattr(pc, "_BACKLOG", repo / "BACKLOG.md")
+    return repo
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
+def test_rerun_does_not_self_erase_proposals(tmp_path, monkeypatch):
+    # The #98 regression: a same-day SECOND run must not overwrite the first run's
+    # proposals with "No closures detected".
+    repo = _init_repo(tmp_path, monkeypatch)
+    (repo / "work.txt").write_text("done\n", encoding="utf-8")
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", "feat: alpha done, closes [#5]")
+
+    assert pc.main() == 0                                  # run 1
+    files = list((repo / "logs").glob("PROPOSALS-*.md"))
+    assert len(files) == 1
+    assert "**#5**" in files[0].read_text(encoding="utf-8")
+
+    assert pc.main() == 0                                  # run 2 — no new commits
+    second = files[0].read_text(encoding="utf-8")
+    assert "**#5**" in second, "self-erasure: #5 lost on re-run"
+    assert "No closures detected" not in second
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
+def test_new_commits_merge_with_pending_proposals(tmp_path, monkeypatch):
+    # An unreviewed #5 must SURVIVE alongside a newly-detected #6 (merge, no loss).
+    repo = _init_repo(tmp_path, monkeypatch)
+    (repo / "work.txt").write_text("done\n", encoding="utf-8")
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", "feat: alpha done, closes [#5]")
+    assert pc.main() == 0                                  # run 1 -> proposes #5
+
+    # add #6 (open) + its closing commit AFTER the unreviewed proposal
+    (repo / "BACKLOG.md").write_text(
+        _MINI_BACKLOG + "- [#6] [P2][M] beta · Done when: b · refs r2\n",
+        encoding="utf-8",
+    )
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", "docs: add #6")
+    (repo / "work2.txt").write_text("done2\n", encoding="utf-8")
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", "feat: beta done, closes [#6]")
+
+    assert pc.main() == 0                                  # run 2
+    txt = list((repo / "logs").glob("PROPOSALS-*.md"))[0].read_text(encoding="utf-8")
+    assert "**#5**" in txt and "**#6**" in txt             # carried + merged
