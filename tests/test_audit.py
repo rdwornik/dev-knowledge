@@ -1344,8 +1344,17 @@ def _make_subprocess_mock(*, add_rc=0, diff_rc=1, commit_rc=0):
     return fake_run
 
 
-def test_commit_routine_outputs_stages_only_durable(monkeypatch: pytest.MonkeyPatch) -> None:
-    """_commit_routine_outputs passes only history/ and docs/audits/ to git add."""
+def test_commit_routine_outputs_stages_only_durable(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """_commit_routine_outputs passes concrete history/ paths (no glob) + docs/audits/ to git add."""
+    eco = tmp_path / "ecosystem"
+    (eco / "repo-a" / "history").mkdir(parents=True)
+    (eco / "repo-b" / "history").mkdir(parents=True)
+    monkeypatch.setattr(aud, "ECOSYSTEM_DIR", eco)
+    monkeypatch.setattr(aud, "AUDITS_DIR", tmp_path / "docs" / "audits")
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+
     add_pathspecs: list[list[str]] = []
 
     def fake_run(cmd, **kwargs):
@@ -1362,8 +1371,10 @@ def test_commit_routine_outputs_stages_only_durable(monkeypatch: pytest.MonkeyPa
 
     assert add_pathspecs, "Expected git add call"
     pathspecs = add_pathspecs[0]
-    assert "ecosystem/*/history/" in pathspecs
-    assert "docs/audits/" in pathspecs
+    assert "ecosystem/repo-a/history" in pathspecs
+    assert "ecosystem/repo-b/history" in pathspecs
+    assert "docs/audits" in pathspecs
+    assert not any("*" in p for p in pathspecs), "Must not use glob pathspecs (Windows compat)"
     assert "-A" not in pathspecs
 
 

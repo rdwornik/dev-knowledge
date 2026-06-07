@@ -1101,12 +1101,24 @@ def regenerate_index(states: list[RepoState]) -> None:
 def _commit_routine_outputs(run_date: date) -> None:
     """Stage and commit durable audit outputs per ADR-80 §3 writer policy.
 
-    Pathspec-bounded: stages only ecosystem/*/history/ and docs/audits/.
+    Pathspec-bounded: stages ecosystem/<name>/history/ for each registered repo
+    and docs/audits/. Enumerates concrete paths (no glob) for Windows git compat
+    — git on Windows does not expand * in pathspecs passed via subprocess list.
     Fail-soft: on any git failure, logs a WARN and returns cleanly (exit 0).
     Never stages state.yaml (gitignored) or any operator working-tree files.
     """
-    pathspecs = ["ecosystem/*/history/", "docs/audits/"]
     try:
+        repo_root = Path(_REPO_ROOT)
+        history_specs = (
+            [
+                (d / "history").relative_to(repo_root).as_posix()
+                for d in sorted(ECOSYSTEM_DIR.iterdir())
+                if d.is_dir()
+            ]
+            if ECOSYSTEM_DIR.exists()
+            else []
+        )
+        pathspecs = history_specs + [AUDITS_DIR.relative_to(repo_root).as_posix()]
         add = subprocess.run(
             ["git", "-C", _REPO_ROOT, "add", "--"] + pathspecs,
             capture_output=True, text=True,
