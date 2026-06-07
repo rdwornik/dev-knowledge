@@ -116,6 +116,14 @@ historical artifacts from the manual archival era. **Relocated to `transcripts/a
 | ADR-70 | AI Council verdict 2026-06-02 (three-tier process automation) — canonical transcript in `ai-council/output/`; debate set no `target-project`, so not archived in `docs/decisions/transcripts/` (manual-archival fallback not run, same as ADR-68). The three-tier synthesis on top of the verdict was the operator's. |
 | ADR-71 | *(no Council transcript — Path A direct ADR, 2026-06-03; records the doc-tooling distribution vehicle grounded in `docs/audits/2026-06-03-doc-tooling-inventory.md`; validation pending the corp-monorepo pilot)* |
 | ADR-72 | *(no Council transcript — Path A direct ADR, 2026-06-06; records #86 sub-decision 2 / the cloud self-containment ruling, grounded in the #86.2 UNDERSTAND inventory: hub PRIVATE + plugin verified inert in cloud per JOURNAL 2026-06-04)* |
+| ADR-73 | *(no Council transcript — Path A direct ADR, 2026-06-06; "Per-repo orchestration distribution" — records #86 sub-decision 3; amends ADR-72; operator paste-=-consent, recorded corp-monorepo JOURNAL 2026-06-06)* |
+| ADR-74 | *(no Council transcript — Path A direct ADR, 2026-06-06; "Automation doctrine consolidation; layer→job matrix canonical" — amends ADR-70; operator ratification, browser doctrine-pass synthesis; amended in-file 2026-06-07 to scope the /loop REJECTED row to persistence-host)* |
+| ADR-75 | *(no Council transcript — Path A direct ADR, 2026-06-06; "Exclusion-zone register" — doctrine-pass gap G4; operator ratification, browser session; refs global CLAUDE.md §P0)* |
+| ADR-76 | `council-out-20260606_172555-pick-council-local-scheduled-tier.md` — pick debate, 4-model panel (claude-opus-4-7, deepseek-v4-pro, gemini-3.1-pro-preview, grok-4.3) + openai synth, 2 rounds; "Local fleet-baseline host: Task Scheduler → python directly"; amends ADR-74; operator paste-consent 2026-06-06 |
+| ADR-77 | *(no Council transcript — Path A direct ADR / operator GO, 2026-06-06; "Immutable-paths zone class (transcripts)" — amends ADR-75 (adds a second zone class); implementation wave, scope ruled after the UNDERSTAND-valve)* |
+| ADR-78 | `council-out-20260607_124757-pick-council-f2-child-floor.md` — pick debate, unanimous post-R2; "Child methodology floor (O2 Bounded Hybrid)"; amends ADR-75 (adds `methodology_surface` zone class); operator ratification via distillation prompt 2026-06-07 |
+| ADR-79 | `council-out-20260607_125247-pick-council-f1-browser-carrier.md` — pick debate, 3-of-4 panelists pivoted in R2; "Browser methodology carrier: bundle-only; Projects deferred"; amends none; operator ratification via distillation prompt 2026-06-07 |
+| ADR-80 | *(no Council transcript — Path A direct ADR, 2026-06-07; "Two-tier automation adoption: writer policy + Routine/night operational standard" — amends ADR-74 (consumes its OPEN local-tier row); operator chat-drafted ruling, codification of BACKLOG #84)* |
 
 ## Pending Council decisions
 
