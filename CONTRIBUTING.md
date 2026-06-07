@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-05
+last_reviewed: 2026-06-07
 status: active
 owner: Rob
 ---
@@ -141,6 +141,19 @@ The **diff guard** is the safety gate: the Action merges only when
 worst a document on `main`, never code. **Where to look:** open `nightly-triage` Issues are
 surfaced at session start by `scripts/surface_triage.ps1` (a `[triage] …` line) and live in
 the repo's Issues tab.
+
+**Why the `.js` workflow exists, and when it runs as a spec.** The nightly run is
+defined by `.claude/workflows/conformance-hub.js` — but the native `Workflow` launcher
+is **not enabled in the cloud runtime** (re-probed; still unavailable). So each nightly
+Routine **attempts the native launcher first and falls back to reading the `.js` as a
+*specification*** — orchestrating its stages by hand via read-only Explore agents
+(spec-orchestration). Doctrine: **native-attempt-first, with a nightly re-probe**; the
+digest reports which path ran, and execution swaps back to native automatically when the
+platform re-enables it. The load-bearing consequence: any guarantee written as in-script
+code is **inert on the fallback path** (the `.js` is read, not run) — which is exactly
+why the survivor-count backstop below lives on the **executing path** (the Action's
+fail-closed parser), not inside the script. Full standard: PLAYBOOK "Routine/night
+deployment standard"; ADR-72 (cloud self-containment).
 
 **Residual risk:** the survivor count is read from a code-owned machine-readable marker in the
 digest body (`<!-- counts: raw=N survived=N killed=N -->`, written by `conformance-hub.js`; the
