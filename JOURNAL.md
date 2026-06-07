@@ -19,6 +19,33 @@
 
 ---
 
+### 2026-06-07 — #121 child methodology floor (ADR-78 O2): @-include verified, hub Steps 1–4 shipped [advances #121]
+
+**Did:** Built the ADR-78 O2 Bounded Hybrid child methodology floor under a
+STOP-after-UNDERSTAND valve (verbatim Done-when map + operator ratification of floor
+content, re-anchor wording, the T1 hub-pointer F5 boundary, T2 scope, T3 link-check
+fold-in, the chars/3.5 binding token measure, and pilot child). **VERIFY-FIRST (ADR-78's
+first mandate):** empirically probed `@`-include on CC 2.1.168 in throwaway temp trees
+(canary lived only in the imported file) — basic resolution, 2-hop nesting, and fail-soft
+on a missing target all confirmed; a missing floor degrades silently (the case for the
+conformance gates). Then shipped hub Steps 1–4.
+
+**Result:** Generator + conformance + staleness gate live and tested; pilot (Step 5) is a
+separate child session, so #121 advances (not closes) pending the witnesses. Full suite
+353 pass / 1 skip; ruff clean; `audit-health` green (floor_integrity pass-skips on the
+floor-less hub). Floor measures 887 binding tokens (ceiling 1,500).
+
+**Changes:**
+- `templates/child-methodology-floor.md.tmpl` (ratified content set) + `templates/child-methodology-floor.sha256` (the `/ship` currency anchor)
+- `scripts/generate_floor.py` (operator-invoked only; `check`/`generate`; ceiling refusal, F5 grep, zero-URL, LF-normalized autocrlf-proof hash) + `tests/test_generate_floor.py` (18)
+- `scripts/audit.py` `check_floor_integrity` (#14: hash-vs-sidecar + F5 + pointer-existence; shared policy imported from the generator) + `tests/test_audit.py` (7)
+- `plugins/tier1-lifecycle/commands/ship.md` floor-currency advisory (WARN-only) + `plugin.json` 0.1.8→0.1.9
+- `protocols/PLAYBOOK.md` "Child methodology floor (ADR-78)" subsection (+TOC regen); `ARCHITECTURE.md` Ch4/Ch5 status rows planned→hub-shipped; `BACKLOG.md` #131 owns re-homed (4)+(6), #121 status note
+
+**Abandoned:** Hub→child auto-install (rollout is operator-invoked per ADR-73); the 500-token compression alternative (ADR-78 §4 ceiling is the rule).
+
+**Next:** Run the Step-5 pilot in `corp-sca-time-automation` (separate session) using the prepared install note; record witnesses (load, tamper→FAIL→restore→PASS, re-anchor fires) as a dated validation record in `docs/audits/`; then `closes [#121]`.
+
 ### 2026-06-07 — #107 native parallel-session worktree workflow (verify-first; collision-replay witnessed) [closes #107]
 
 **Did:** Shipped the CC-native managed-worktree workflow for same-repo parallel
