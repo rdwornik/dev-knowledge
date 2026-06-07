@@ -1,12 +1,12 @@
 ---
-last_reviewed: 2026-06-06
+last_reviewed: 2026-06-07
 status: active
 owner: Rob
 ---
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.15 — 2026-06-06 -->
+<!-- version: 2.16 — 2026-06-07 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -39,6 +39,8 @@ If ESSENTIALS or PLAYBOOK are unavailable, proceed with this file alone but flag
 <!-- scope: meta -->
 
 See `ARCHITECTURE.md` for the structural model; read it before structural changes (required for every repo, per ADR-51 as amended 2026-05-23). NOT a code project — markdown governance files + read-only validators only.
+
+- **Chapter pointers** (`ARCHITECTURE.md` is a six-chapter map; jump to the topic — doctrine lives there + the cited ADRs, never resident here): cloud/nightly Routine + spec-orchestration + t-shirt model routing → **Ch3 Automation axes**, the nightly outcome loop → **Ch6 Verification mesh**; which organ fires when (hooks/skills/commands/agents/gates) → **Ch2 Organ map**; what's distributed where (carriers / child floor / browser bundle) → **Ch4 Distribution & transfer**.
 
 ## 4. Conventions
 <!-- scope: meta -->
@@ -187,8 +189,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.13 (2026-06-04) — pilot-phase closeout (#78 closes): §11 "last 5" rotated 66–70 → 67–71 (add ADR-71 doc-tooling hook source-repo pattern; drop ADR-66 — full list in `docs/decisions/README.md`). Companion genuine end-to-end re-read of `ARCHITECTURE.md` fixed pilot finding F1 (HANDOFF_PROCESS stamp `4.3.1, status stable` → `4.3.2, status live`), de-hardcoded the audit check count → `audit.py checks` [#78a], and corrected other stale claims (codemap node count, pre-commit hook list). `last_reviewed` re-stamped 2026-06-04.
 - v2.14 (2026-06-05) — #81 pilot STEP 4 archived-command sweep: §6 "Session start protocol" and §7 "Slash commands" — `/boot` and `/evolve` references annotated as archived 2026-06-05 Phase-C3 (archive: `~/.claude/archive/2026-06-05-machinery-c3/`). End-to-end re-read; `last_reviewed` re-stamped 2026-06-05.
 - v2.15 (2026-06-06) — §9 pre-commit list completed: added `toc-freshness` + `toc-freshness-playbook` (now 8 hooks, matching `.pre-commit-config.yaml` + `ARCHITECTURE.md` §Validators) — the drift the 2026-06-06 triage re-read surfaced, fixed before the nightly flags it. Companion genuine end-to-end re-read: §11 "last 5" rotated 67–71 → 68–72 (add ADR-72 cloud-Routine hub-independence; drop ADR-67) and flagged the §11 ADR-68 line **[REFUTED — historical]** to match ARCHITECTURE. Rest confirmed current; `last_reviewed` re-stamped 2026-06-06.
+- v2.16 (2026-06-07) — §3 gains chapter pointers into the rewritten `ARCHITECTURE.md` (cloud/nightly/spec-orch/t-shirt routing → Ch3+Ch6; organ map → Ch2; distribution → Ch4) — closes [#93]; pointers only, doctrine stays in ARCHITECTURE + ADRs. Genuine end-to-end re-read; `last_reviewed` re-stamped 2026-06-07. **Drift surfaced & filed (NOT yet applied — proposed in the 2026-06-07 obsolescence-pass report for ratification):** (1) §9 "Session hooks" lists only `fleet_health` of the **6** live `.claude/settings.json` hooks (missing `surface_triage` / `billing_leak_sentinel` / `changelog_sentinel` SessionStart, the `Stop` backpressure hook, and the ADR-77 `PreToolUse` immutability guard) and its "no hub-local Stop hook" framing is now stale → trim to a pointer to ARCHITECTURE Ch2; (2) §11 "last 5 ADRs" is behind (68–72 → 76–80).
 
 ---
 
-**Last updated:** 2026-06-06
+**Last updated:** 2026-06-07
 **Maintained by:** Rob
