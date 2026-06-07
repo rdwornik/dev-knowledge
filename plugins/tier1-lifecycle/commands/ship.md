@@ -28,6 +28,21 @@ Merge the current feature branch to `main` — the standard git-finish sequence.
 
 All four must pass before continuing.
 
+## Floor currency (ADVISORY — never blocks, ADR-78)
+
+A nudge only: surface it in the final summary, never refuse on it. If any sub-condition can't be met, **skip silently** (do not WARN on inability — only on a confirmed stale floor).
+
+1. Skip entirely if this repo has no `CLAUDE-FLOOR.md` at its root (the repo has not adopted the methodology floor).
+2. Locate the hub canonical hash at the sibling path `../.dev-knowledge/templates/child-methodology-floor.sha256`. If absent/unreachable, skip silently.
+3. Compare the 64-hex sha256 in the local `CLAUDE-FLOOR.md.sha256` against the 64-hex in that hub file (compare the stored hashes — both are LF-normalized at generation, so no re-hashing and no CRLF hazard):
+   ```powershell
+   $local = (Select-String -Path CLAUDE-FLOOR.md.sha256 -Pattern '[0-9a-f]{64}').Matches.Value
+   $hub   = (Select-String -Path ../.dev-knowledge/templates/child-methodology-floor.sha256 -Pattern '[0-9a-f]{64}').Matches.Value
+   if ($local -and $hub -and ($local -ne $hub)) { "FLOOR_STALE" }
+   ```
+4. If it prints `FLOOR_STALE`, add a WARN line to the final summary (do **not** block the ship):
+   `⚠ CLAUDE-FLOOR.md is stale vs the hub — regenerate (hub: ` + "`python scripts/generate_floor.py generate --out-dir <this repo>`) and commit the refreshed floor + sidecar here." Otherwise stay silent.
+
 ## Merge
 
 4. Record the current branch name: `$branch = git rev-parse --abbrev-ref HEAD`
