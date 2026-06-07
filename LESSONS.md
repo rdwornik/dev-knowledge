@@ -3,11 +3,13 @@
 
 > **Format:** `### YYYY-MM-DD | source | lesson | category | [scope: X] | action taken`
 > New entries go at the top of the Entries section. Never edit old entries. Never delete.
-> Last updated: 2026-06-06
+> Last updated: 2026-06-07
 
 ---
 
 > Split trigger (when navigation by topic becomes painful) deferred 2026-04-24. Rationale: ADR-29 [scope: X] inline field provides equivalent filtering without losing chronology. Reopen if filtering by scope proves insufficient.
+
+### 2026-06-07 | scoped-rejection leakage (operator-caught) | A rejection ratified within ONE framing was silently over-read as total. ADR-74's `/loop` REJECTED row was decided AS A PERSISTENCE HOST (a session-scoped scheduler can't survive the mandatory `/clear` cadence — ADR-76), but it was being treated as a blanket "no `/loop`," foreclosing the *separate, unexamined* question of in-session repair-loops (iterate-until-green / backpressure on deterministic checks). Forward rule: a REJECTED row carries its decision's SCOPE explicitly — the question it answered, not just the verdict — so a later reader cannot inherit a narrow "no" as a wide one. Sibling to the 2026-06-06 "bundled ratification dilutes consent" lesson (that = consent dilution in bundling; this = scope over-read after the fact). | process | [scope: meta] | appended ADR-74 in-file Amendment scoping the /loop REJECTED row + KILL-7 ref to persistence-host; opened #126 backpressure-loop eval
 
 ### 2026-06-06 | ANTHROPIC_API_KEY billing leak (CC inherits shell env) | `ANTHROPIC_API_KEY` present in the shell environment silently switches Claude Code from **Max subscription** to **API billing** — no TUI warning; sessions look normal while every token bills against the API key. On this machine the PowerShell profile loads `.secrets\.env` at init (for ai-council / keys infrastructure), exporting the key into every spawned process including CC. Fix: a `.cmd` shim at PATH position before the real binary (`AppData\Roaming\npm\claude.cmd`) uses CMD's `set ANTHROPIC_API_KEY=` idiom (truly unsets — not empty-string) to strip the key from the CC child process only; the parent shell retains it so ai-council and other tools are unaffected. Never globally unload the key — that breaks all consumers. `verify:` inside any CC session, `$env:ANTHROPIC_API_KEY` must be empty/undefined. | tooling | [scope: runtime] | created `AppData\Roaming\npm\claude.cmd` shim 2026-06-06; witnessed: ANTHROPIC_API_KEY absent in CC child, key intact in parent shell + GEMINI_API_KEY unaffected; both Step 2 checks passed
 
