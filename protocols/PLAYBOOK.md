@@ -107,6 +107,7 @@
   - [When to escalate to a Dynamic Workflow](#when-to-escalate-to-a-dynamic-workflow)
   - [How to choose Mode](#how-to-choose-mode)
   - [How to choose Effort](#how-to-choose-effort)
+  - [Model / effort platform doctrine (Claude Code 2.1.x)](#model--effort-platform-doctrine-claude-code-21x)
   - [Structure](#structure)
   - [Quick-reference examples](#quick-reference-examples)
   - [Decision scope for when to write a formal prompt](#decision-scope-for-when-to-write-a-formal-prompt)
@@ -1806,6 +1807,19 @@ Source: research note `docs/archive/2026-06-03-dynamic-workflows-research-note.m
 - **medium** — 2-5 files, 30-90 min, may involve design choices within known patterns. Example: "add a new CLI command", "refactor this module to use dataclasses"
 - **high** — 5+ files or 2+ packages, 90+ min, requires UNDERSTAND phase, potential blast radius. Example: "implement search federation", "migrate classifier to new taxonomy"
 - **xhigh** — hardest debugging, end-to-end pipeline verification, Council-level analysis. Opus only. Example: "find why magistrala silently drops events", "verify boundary enforcement across all packages"
+
+### Model / effort platform doctrine (Claude Code 2.1.x)
+<!-- scope: hybrid -->
+
+Platform-current facts that pin the tables above (Claude Code 2.1.168; refreshed for #84 from `docs/audits/2026-06-07-platform-max-audit.md`):
+
+- **Opus 4.8 is the default model and defaults to `high` effort.** Don't treat "use Opus" as exceptional for judgment work — it's the floor. Reserve the explicit Effort knob mainly for moving *off* `high`.
+- **`xhigh`** is for the hardest *single-session* synthesis — clause-level architecture, end-to-end verification, this-codification class. It burns more tokens than `high`; use it deliberately, not by default.
+- **Fast mode** (`/fast`) trades **≈2× token cost for ≈2.5× output speed** on Opus 4.8/4.7/4.6 — same model, faster output (it does *not* downgrade to a smaller model). Use it for latency-sensitive interactive work; skip it for routine/unattended work where speed buys nothing.
+- **`ultracode` is the Dynamic-Workflow trigger keyword, NOT an effort tier** (renamed from "workflow", Claude Code 2.1.160). It escalates a prompt into multi-agent orchestration ("When to escalate to a Dynamic Workflow", above) — never write it in a Model/Mode/Effort table as a fourth effort level.
+- **`fallbackModel` policy (ADR-80; VF-2 confirmed schema-accepted on 2.1.168 — the native `--fallback-model` flag is its CLI twin):**
+  - **Interactive sessions MAY set it** (e.g. one Sonnet fallback) for resilience when the primary is overloaded/unavailable — a degraded answer beats a dead session.
+  - **Pinned routine / workflow stages MUST NOT set it.** A per-stage model pin (t-shirt routing — "Routine/night deployment standard › T-shirt model pins") is a deliberate evidence choice; a silent fallback to a different model breaks **evidence comparability** across runs (the n=2 gate compares like-for-like). A pinned stage that can't reach its model must fail loudly, not silently substitute.
 
 ### Structure
 <!-- scope: hybrid -->
