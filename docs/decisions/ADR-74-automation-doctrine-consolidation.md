@@ -73,3 +73,7 @@ Deterministic gates on executing paths fail closed; awareness surfaces fail soft
 ## Alternatives considered
 
 Five per-gap ADRs — rejected. Fragmentation; one consolidation amending ADR-70 keeps the doctrine citable as a unit.
+
+## Amendment — 2026-06-07 (scope qualifier on the `/loop` REJECTED row)
+
+The Decision-§1 matrix row **"REJECTED: `/loop` tier"** — and the `docs/audits/2026-06-07-platform-max-audit.md` **KILL-7** reference that echoes it ("the ratified REJECTION stands") — are scoped to **`/loop` AS A PERSISTENCE HOST**: a session-scoped scheduler with a 7-day resume window cannot survive the mandatory `/clear`/fresh-session cadence (the ADR-76 Council corollary). The **in-session repair-loop** use of `/loop` — iterate-until-green / backpressure driven by *deterministic* checks (pytest/ruff/type), operator-invoked, with a mandatory iteration budget — is a **separate, open question NOT covered by this rejection**. Tracked as BACKLOG **#126** (evaluation; corp-monorepo pilot). Witnessed 2026-06-07: the persistence-scoped rejection had been over-read as total — operator-caught (LESSONS 2026-06-07 "scoped-rejection leakage"). This is an append-only in-file marker (CLAUDE.md §5); the matrix row and decision text above are unchanged.
