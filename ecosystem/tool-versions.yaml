@@ -1,0 +1,29 @@
+# Tool changelog-review state — ADR-80 DURABLE record (COMMITTED).
+#
+# This is NOT the gitignored mutable `ecosystem/<repo>/state.yaml` pointer. It
+# records a DURABLE operator decision: the last tool version whose changelog the
+# operator has actually reviewed (per tool). It changes only when /changelog-review
+# runs after a real review (#113) — low-churn, audit-worthy → committed (ADR-80 §3
+# mutable/durable split).
+#
+# Read LOCALLY (no network) by the SessionStart sentinel
+# (scripts/changelog_sentinel.py): if an installed version is NEWER than its
+# last_reviewed_version, the sentinel nudges the operator to run /changelog-review.
+# The changelog FETCH itself happens only inside the operator-invoked
+# /changelog-review command (push trigger — never scheduled, never automatic).
+#
+# Seed (2026-06-07): claude-code = 2.1.167 (last full review = the audit-trio), codex
+# = 0.136.0. Installed at seed time: claude 2.1.168, codex 0.136.0 — so the sentinel
+# fires for claude-code (gap) and is silent for codex (current).
+tools:
+  claude-code:
+    last_reviewed_version: "2.1.168"
+    reviewed_date: "2026-06-07"
+    source_url: "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md"
+  codex:
+    # 0.137.0 reviewed 2026-06-07 (digest: docs/audits/2026-06-07-changelog-review.md);
+    # installed is still 0.136.0 — reviewed AHEAD of installed is intended (keeps the
+    # sentinel quiet until a still-newer version installs). The 0.137.0 *update* is #119.
+    last_reviewed_version: "0.137.0"
+    reviewed_date: "2026-06-07"
+    source_url: "https://github.com/openai/codex/releases"

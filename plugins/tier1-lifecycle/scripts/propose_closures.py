@@ -287,13 +287,57 @@ def find_last_proposals_head(logs_dir: Path):
     return m.group(1) if m else None
 
 
-def resolve_window(repo: Path, logs_dir: Path):
-    """Return (since_sha_or_None, rev_range) for the commit window."""
-    last = find_last_proposals_head(logs_dir)
+# An unchecked proposal line is "- [ ] **#N** — ..."; a checked one is "- [x] ...".
+# An id is "pending" when it is unchecked in a PROPOSALS file AND still open in
+# BACKLOG (once it is closed/removed it stops pinning the baseline). #98.
+_UNCHECKED_RE = re.compile(r"-\s+\[ \]\s+\*\*#(\d+)\*\*")
+_HEAD_RE = re.compile(r"head_commit:\s*([0-9a-fA-F]{7,40})")
+_SINCE_RE = re.compile(r"since_commit:\s*([0-9a-fA-F]{7,40})")
+
+
+def _proposals_meta(text: str):
+    """(head_sha|None, since_sha|None, {unchecked_ids}) for one PROPOSALS file."""
+    h = _HEAD_RE.search(text)
+    s = _SINCE_RE.search(text)
+    return (
+        h.group(1) if h else None,
+        s.group(1) if s else None,
+        set(_UNCHECKED_RE.findall(text)),
+    )
+
+
+def resolve_window(repo: Path, logs_dir: Path, open_ids: set):
+    """Return (since_sha_or_None, rev_range) for the commit window.
+
+    #98 — the baseline must NOT advance past proposals that are still PENDING
+    (unchecked in some PROPOSALS file AND still open in BACKLOG). While any prior
+    proposal is pending, re-cover from the EARLIEST pending file's window start, so
+    a re-run RE-DETECTS it instead of erasing it (the self-erasure bug: a same-day
+    second run read the just-written file's head_commit, got an empty HEAD..HEAD
+    window, and overwrote the morning's proposals with "no closures"). Only once
+    every prior proposal is reviewed/closed does the baseline advance to the latest
+    file's head_commit.
+    """
+    files = sorted(logs_dir.glob("PROPOSALS-*.md")) if logs_dir.exists() else []
+    metas = []
+    for f in files:
+        try:
+            metas.append(_proposals_meta(f.read_text(encoding="utf-8", errors="replace")))
+        except OSError:
+            continue
+    pending = [(head, since) for (head, since, unchecked) in metas if unchecked & open_ids]
+    if pending:
+        # files are date-sorted, so pending[0] is the earliest -> widest safe window
+        _, since = pending[0]
+        if since and git_valid_rev(repo, since):
+            return since, f"{since}..HEAD"
+        # earliest pending file was a cold start (no baseline): re-cover whole
+        # history. STRONG stays precise (still-open guard); WEAK suppressed.
+        return None, "HEAD"
+    # nothing pending -> safe to advance to the most recent file's head
+    last = metas[-1][0] if metas else None
     if last and git_valid_rev(repo, last):
         return last, f"{last}..HEAD"
-    # Cold start (no prior baseline): whole history. STRONG stays precise (the
-    # still-open guard); WEAK is suppressed by the caller (no session window).
     return None, "HEAD"
 
 
@@ -326,14 +370,32 @@ def main() -> int:
         open_tasks = open_tasks_from_backlog(
             _BACKLOG.read_text(encoding="utf-8", errors="replace"), vb.parse
         )
+        open_ids = set(open_tasks)
         head = git_head(_REPO_ROOT) or "UNKNOWN"
-        since, rev_range = resolve_window(_REPO_ROOT, _LOGS_DIR)
+        since, rev_range = resolve_window(_REPO_ROOT, _LOGS_DIR, open_ids)
         commits = git_log_commits(_REPO_ROOT, rev_range)
-        strong = find_strong(set(open_tasks), commits)
+        strong = find_strong(open_ids, commits)
         # WEAK (inferred file-touch) needs a trustworthy session window. On cold
         # start there is no baseline, so suppress it rather than over-surface.
         cold_start = since is None
         weak = {} if cold_start else find_weak(open_tasks, commits, set(strong))
+
+        # #98 safety net: never let an EMPTY regeneration erase a PROPOSALS file
+        # that still holds pending (unchecked + still-open) items. The baseline
+        # rule above normally re-detects them; this guards the residual edge (e.g.
+        # a pending WEAK item suppressed on a cold-start re-cover).
+        target = _LOGS_DIR / f"PROPOSALS-{date.today().isoformat()}.md"
+        if not strong and not weak and target.exists():
+            try:
+                existing = target.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                existing = ""
+            if _proposals_meta(existing)[2] & open_ids:
+                print("propose_closures: WARNING - empty regeneration would erase "
+                      f"unreviewed proposals in {target.name}; preserving it (no "
+                      "overwrite).", file=sys.stderr)
+                return 0
+
         out = _write_artifact(
             render(strong, weak, date.today(), head, since, len(commits),
                    open_tasks, weak_suppressed=cold_start)
