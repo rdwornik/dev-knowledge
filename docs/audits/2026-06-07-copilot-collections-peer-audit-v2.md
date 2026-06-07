@@ -212,3 +212,10 @@ This audit did **not** re-propose any §4.3 recommended-against pattern. Confirm
 - Anchor: `docs/audits/2026-05-31-methodology-canonical-audit.md` (216 lines; 13 matrix rows 5P/3Partial/5A; 12 findings; 12 plan items; §4.3 binding registry).
 - TSH source: `github.com/TheSoftwareHouse/copilot-collections`, shallow clone 2026-06-07, MIT © 2026 The Software House. Inventory: `.github/` {21 agents, 32 skill-dirs, 13 prompts, 12 internal-prompts, 1 instructions} + `website/docs/` prose. Post-anchor delta: one CHANGELOG entry (2026-06-01, BA orchestrator rework). Temp clone deleted post-audit.
 - Method: 5 `artifact-reader`/evidence subagents (TSH agents, skills, prompts, usage-model; our-side current state). All TSH content + anchor long-sections read out-of-thread per context-budget discipline.
+
+---
+
+## Addendum — 2026-06-07 (appended; original record unedited per critical rule #3)
+
+- **C7 residuals closed same-day.** The C7 row flags residuals **#8** (session-end clean-tree + lessons-retrieval) and **#98** (PROPOSALS persistence). Both **closed by wave B** the same day this record landed — merge `ceb53a2`, commits `408f9b6` (#98) / `dfbb585` (#8). The ledger above is accurate **as of its own commit** (`ef8e3c3`), which predates the wave-B ship by hours; this line keeps the freshness honest without editing the immutable body.
+- **§3 VERIFY closed — CONFIRMED (line-verified, not descriptor-only).** Read `.claude/workflows/conformance-hub.js`: the orchestrator+reviewer pattern is realized exactly as claimed. **Stage 1** fans out 3 isolated read-only verifiers via `parallel([V1 journal-vs-git, V2 living-doc-claims, V3 backlog-closures])` (Sonnet); **Stage 2** an adversarial skeptic (Opus) that *defaults to killing* a finding unless its `evidence_command` is definitive; **Stage 3** a digest (Opus) synthesizing survivors by severity under a code-owned counts contract that throws on mismatch. Fan-out → skeptic → digest verified.

@@ -1016,6 +1016,12 @@ directories already isolate them, so just open two Claude Code sessions (this is
 case, e.g. a corp-monorepo handoff and an ai-council handoff at the same time). Only
 *same-repo* parallel work requires a `git worktree` (ADR-61).
 
+**The real trigger is *committing*, not *editing* (sharpened 2026-06-07 — 2nd incident).** Same-repo parallel sessions are allowed in exactly two shapes:
+- **(a) Zero-write** — read/analysis only: no commits, no `git add`/staging, no branch ops. Any number of zero-write sessions may share one checkout safely.
+- **(b) Each committing session in its OWN worktree.** **One checkout = one committing session.** A "single commit at the end" still counts as a committing session — there is no "I'll only commit once" exception. (Witnessed 2026-06-07: a no-worktree session whose lone witness commit `49c7db7` landed on a *concurrent* session's branch, swept its staged file, mis-rooted the branch, and stranded its closeout into a multi-commit tangle. First incident class: 2026-06-01.)
+
+**Default until [#107] ships the worktree workflow: sequential exclusivity.** Absent a provisioned worktree, only one session commits to a given checkout at a time — **the operator is the scheduler.** When #107 lands CC-native managed worktrees (`claude worktree` / `EnterWorktree`), shape (b) becomes the low-friction path.
+
 **Lifecycle (same-repo only):** a worktree is **per-goal scratch, not a persistent
 checkout** — *provision → use → ephemeral teardown*. Create one for a single goal, work it on
 its own branch, and remove it the moment that branch merges. It must not linger between goals;
@@ -1554,6 +1560,8 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 **What (per Anthropic docs + Council #28 research):** Subagents are spawned Claude instances with narrow focus and fresh context window, invoked via main agent's Agent tool. Designed for "read-heavy, write-light" delegation (per Cognition's June 2025 warning against subagents-as-code-generation-peers).
 
 **Where they live:** `~/.claude/agents/<name>.md` (user-level, cross-repo) OR `<repo>/.claude/agents/<name>.md` (project-level).
+
+**Distribution doctrine (extends ADR-71):** agents are **authored and versioned in the hub**; they distribute **user-level (`~/.claude/agents/`) for cross-repo** organs and **via the `tier1-lifecycle` plugin for repo-class** organs. **Children consume, never author.** Library admission is gated by the Discovery→Review funnel + *used-in-anger* evidence — the small **ACTIVE**-roster guard is unchanged (headcount is an anti-goal; leverage is the admission test).
 
 **File format:** Markdown files describing the subagent's role, trigger conditions, and instructions. Main agent invokes them via Agent tool.
 
