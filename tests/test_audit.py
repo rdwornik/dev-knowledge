@@ -1378,6 +1378,32 @@ def test_commit_routine_outputs_stages_only_durable(
     assert "-A" not in pathspecs
 
 
+def test_commit_routine_outputs_retries_after_hook_modify(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """_commit_routine_outputs re-stages and retries once when first commit fails (e.g. hook modified files)."""
+    add_count = [0]
+    commit_results = [1, 0]  # first attempt fails (hook modified), retry succeeds
+
+    def fake_run(cmd, **kwargs):
+        subcmd = cmd[3] if len(cmd) > 3 else ""
+        if subcmd == "add":
+            add_count[0] += 1
+            return SimpleNamespace(returncode=0, stderr="", stdout="")
+        if subcmd == "diff":
+            return SimpleNamespace(returncode=1)  # something staged
+        if subcmd == "commit":
+            rc = commit_results.pop(0) if commit_results else 0
+            return SimpleNamespace(returncode=rc, stderr="hook modified files", stdout="")
+        return SimpleNamespace(returncode=0, stderr="", stdout="")
+
+    monkeypatch.setattr(aud.subprocess, "run", fake_run)
+    aud._commit_routine_outputs(date(2026, 6, 7))
+
+    assert add_count[0] == 2, "Expected re-stage after first commit failure"
+    assert not any("ADR-80 commit" in r.message for r in caplog.records), "Should not WARN on successful retry"
+
+
 def test_commit_routine_outputs_trailer_present(monkeypatch: pytest.MonkeyPatch) -> None:
     """_commit_routine_outputs includes 'Routine: fleet-audit' trailer in commit msg."""
     commit_msgs: list[str] = []
