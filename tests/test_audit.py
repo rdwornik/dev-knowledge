@@ -1472,9 +1472,12 @@ def _seed_floor(repo: Path, floor_text: str | None = None, *, sidecar: bool = Tr
     Returns the floor text used. With floor_text=None, uses the shipped template body.
     """
     floor = floor_text if floor_text is not None else gf.render_floor()
-    (repo / "CLAUDE-FLOOR.md").write_text(floor, encoding="utf-8")
+    claude_dir = repo / ".claude"
+    claude_dir.mkdir(exist_ok=True)
+    (claude_dir / "CLAUDE-FLOOR.md").write_text(floor, encoding="utf-8")
     if sidecar:
-        (repo / "CLAUDE-FLOOR.md.sha256").write_text(gf.floor_sha256(floor) + "\n", encoding="utf-8")
+        (claude_dir / "CLAUDE-FLOOR.md.sha256").write_text(
+            gf.floor_sha256(floor) + "\n", encoding="utf-8")
     if pointers:
         for name in ("CLAUDE.md", "VISION.md", "ARCHITECTURE.md"):
             (repo / name).write_text("placeholder\n", encoding="utf-8")
@@ -1499,7 +1502,7 @@ def test_floor_integrity_valid_floor_passes(tmp_path: Path) -> None:
 def test_floor_integrity_tamper_fails(tmp_path: Path) -> None:
     """The tamper test: editing one floor line without regenerating → hash-drift FAIL."""
     _seed_floor(tmp_path)
-    floor = tmp_path / "CLAUDE-FLOOR.md"
+    floor = tmp_path / ".claude" / "CLAUDE-FLOOR.md"
     floor.write_text(floor.read_text(encoding="utf-8") + "\nTAMPERED LINE\n", encoding="utf-8")
     f = aud.check_floor_integrity(tmp_path)[0]
     assert f.status == "fail"

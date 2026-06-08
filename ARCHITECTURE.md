@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-07
+last_reviewed: 2026-06-08
 status: active
 owner: Rob
 ---
@@ -315,7 +315,7 @@ carriers, each with a different scope and freshness model:
 | user-layer `~/.claude` | fleet-wide (L0) | `block-onedrive`, gotchas, ROUTING, Codex config, `surface-closures`, the `--no-ff` rule | global; ADR-54 |
 | `tier1-lifecycle` plugin | repo-class | `/ship`, `/review-closures`, `propose_closures`, `validate_backlog` (marketplace install) | ADR-70/73 |
 | pre-commit `.pre-commit-hooks.yaml` | consumer-pull | codemap ×2 + toc ×2 freshness hooks (hub is the source repo; corp consumes @`69558c7`) | ADR-71 |
-| child floor `CLAUDE-FLOOR.md` | per child repo | ≤1,500-tok generated floor + `.sha256`; operator-invoked generator (`scripts/generate_floor.py`, `@`-include from child CLAUDE.md) | ADR-78; hub shipped #121, pilot pending |
+| child floor `.claude/CLAUDE-FLOOR.md` | per child repo | ≤1,500-tok generated floor + `.sha256` under the child's `.claude/` (not repo root); operator-invoked generator (`scripts/generate_floor.py`, `@.claude/CLAUDE-FLOOR.md`-include from child CLAUDE.md) | ADR-78; hub shipped #121, pilot done |
 | browser bundle | browser sessions | consolidated `BUNDLE.md`; Projects deferred | ADR-79 |
 
 - **Agents-distribution doctrine (extends ADR-71).** Agents are **authored and

@@ -1,0 +1,7 @@
+# LF-pin generated floor hash sidecars (#137).
+# The floor hash is computed over LF-normalized bytes (scripts/generate_floor.py), so
+# git autocrlf re-normalizing these to CRLF on Windows produced a content-identical
+# "phantom" dirty-tree entry on every touch (witnessed 2026-06-08 floor pilot). Pinning
+# the sidecars — and the template the hash is computed over — to LF stops the phantom.
+*.sha256 text eol=lf
+templates/child-methodology-floor.md.tmpl text eol=lf
