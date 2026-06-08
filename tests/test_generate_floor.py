@@ -162,3 +162,37 @@ def test_check_exits_0_on_shipped_template():
     result = CliRunner().invoke(gf.cli, ["check"])
     assert result.exit_code == 0
     assert "floor valid" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Install note — must be paste-ready (the surprise-free contract, 2026-06-08)
+# ---------------------------------------------------------------------------
+
+def _extract_check_floor_hash_script() -> str:
+    """Pull the embedded check_floor_hash.py block out of the install note and dedent it.
+
+    The script is indented 7 spaces under step 2; collect from the shebang until the
+    first non-indented, non-blank line (step 3's heading)."""
+    lines = gf.INSTALL_NOTE.splitlines()
+    start = next(i for i, ln in enumerate(lines) if "#!/usr/bin/env python3" in ln)
+    out: list[str] = []
+    for ln in lines[start:]:
+        if ln.strip() == "":
+            out.append("")
+        elif ln.startswith("       "):  # 7-space indent
+            out.append(ln[7:])
+        else:
+            break
+    return "\n".join(out)
+
+
+def test_install_note_has_no_leaked_escaped_quote():
+    """A raw-string docstring escape (\\") would leak verbatim and break a paste."""
+    assert '\\"' not in gf.INSTALL_NOTE
+
+
+def test_emitted_check_floor_hash_script_is_valid_python():
+    """The check_floor_hash.py the note hands a child must compile as-is (paste-ready)."""
+    script = _extract_check_floor_hash_script()
+    assert "def main()" in script and "sys.exit(main())" in script
+    compile(script, "check_floor_hash.py", "exec")  # raises SyntaxError if malformed
