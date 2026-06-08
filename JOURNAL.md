@@ -19,6 +19,43 @@
 
 ---
 
+### 2026-06-08 — floor corrective: `.claude/` placement + complete install note + #137 [closes #137]
+
+**Did:** Corrective follow-up to #121 (NOT a reopen). Moved the generated child floor
+from the repo **root** to the child's `.claude/` (the placement miss the pilot record
+didn't catch — it cluttered the operator's workspace), and baked every round-1 pilot
+lesson into the generator's emitted install note so the re-pilot is friction-free.
+Closed #137 (LF-pin the hash sidecars).
+
+**Result:** Generator now writes `<child>/.claude/CLAUDE-FLOOR.md` + `.sha256` (creates
+`.claude/` if absent) and prints a COMPLETE, surprise-free install note: the
+`@.claude/CLAUDE-FLOOR.md` include, the child-side `check_floor_hash.py` (SPLIT imports,
+`.claude/` paths), the pre-commit hook entry (`language: system`, floor filespec), the
+EXPLICIT `pre-commit install` arming step (round-1: hook was wired-but-inert without it),
+and `git checkout HEAD --` tamper-revert (round-1 gotcha). `audit.py floor_integrity` +
+`/ship` advisory follow to `.claude/`. Re-witnessed in a hub temp-dir harness: floor lands
+under `.claude/` (NOT root) → `floor_integrity` PASS → tamper → FAIL → restore → PASS.
+No root-path floor reference left behind (silent-break risk eliminated). Full suite + ruff green.
+
+**Changes:**
+- `scripts/generate_floor.py`: `--out-dir` → `.claude/`; `INSTALL_NOTE` constant (5 baked
+  components); docstrings
+- `scripts/audit.py`: `floor_integrity` lookup + sidecar → `.claude/` (pointer-existence
+  stays root-relative — floor names root docs)
+- `plugins/tier1-lifecycle/`: `/ship` advisory → `.claude/` sidecar path; plugin `0.1.9`→`0.1.10`
+- `.gitattributes` (new — #137): `*.sha256` + floor template `text eol=lf`; working tree
+  renormalized to LF (phantom diff gone)
+- `tests/test_generate_floor.py`, `tests/test_audit.py`: `.claude/` paths + install-note asserts
+- `protocols/PLAYBOOK.md`, `ARCHITECTURE.md` (Ch4): floor-location refs root→`.claude/`
+  (ARCHITECTURE genuine end-to-end re-read; `last_reviewed` 2026-06-08)
+
+**Abandoned:** nothing — single-branch arc.
+
+**Next:** child re-pilot is a SEPARATE child session (not touched here); the paste-ready
+install note travels with the generator output. #131 owns the fleet rollout + runbook.
+
+---
+
 ### 2026-06-08 — #121 child methodology floor: Step-5 pilot witnessed, closeout [closes #121]
 
 **Did:** Recorded the ADR-78 floor Step-5 pilot validation (corp-sca-time-automation,

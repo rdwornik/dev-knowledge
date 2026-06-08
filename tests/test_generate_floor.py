@@ -125,9 +125,15 @@ def test_generate_out_dir_writes_floor_and_matching_sidecar(tmp_path: Path, monk
     result = CliRunner().invoke(gf.cli, ["generate", "--out-dir", str(child)])
     assert result.exit_code == 0
 
-    floor_file = child / gf.FLOOR_FILENAME
-    sidecar = child / gf.SIDECAR_FILENAME
+    # Floor + sidecar land under the child's .claude/, NOT the repo root.
+    claude_dir = child / gf.CHILD_CLAUDE_DIRNAME
+    floor_file = claude_dir / gf.FLOOR_FILENAME
+    sidecar = claude_dir / gf.SIDECAR_FILENAME
     assert floor_file.exists() and sidecar.exists()
+    assert not (child / gf.FLOOR_FILENAME).exists()  # not at root
+    # The install note (with the @-include + pre-commit install steps) is printed.
+    assert "@.claude/CLAUDE-FLOOR.md" in result.output
+    assert "pre-commit install" in result.output
 
     expected = gf.floor_sha256(floor_file.read_text(encoding="utf-8"))
     assert expected in sidecar.read_text(encoding="utf-8")

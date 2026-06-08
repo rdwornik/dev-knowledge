@@ -980,7 +980,7 @@ _FLOOR_MD_REF_RE = re.compile(r"[A-Za-z0-9_-]+\.md")
 def check_floor_integrity(repo_path: Path) -> list[Finding]:
     """Child methodology-floor conformance (ADR-78 O2; methodology_surface zone, ADR-75).
 
-    Skipped (PASS) when the repo carries no CLAUDE-FLOOR.md — the floor rollout is gradual,
+    Skipped (PASS) when the repo carries no .claude/CLAUDE-FLOOR.md — the floor rollout is gradual,
     and the hub itself (where `health` runs this) is the floor SOURCE, not a carrier, so it
     has none. Where a floor IS present, three conformance signals (all FAIL on violation):
 
@@ -996,16 +996,16 @@ def check_floor_integrity(repo_path: Path) -> list[Finding]:
     the sidecar-match here is the hub-runnable signal the tamper test exercises (`audit repo
     <child>`). Read-only; child-repo-safe.
     """
-    floor = repo_path / "CLAUDE-FLOOR.md"
+    floor = repo_path / ".claude" / "CLAUDE-FLOOR.md"
     if not floor.exists():
         return [Finding("floor_integrity", "pass",
-                        "no CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip)")]
+                        "no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip)")]
 
     text = floor.read_text(encoding="utf-8", errors="replace")
     issues: list[str] = []
 
     # 1. Hash integrity vs sidecar.
-    sidecar = repo_path / "CLAUDE-FLOOR.md.sha256"
+    sidecar = repo_path / ".claude" / "CLAUDE-FLOOR.md.sha256"
     actual = _floor_sha256(text)
     if not sidecar.exists():
         issues.append("CLAUDE-FLOOR.md.sha256 sidecar missing (regenerate via hub generator)")
