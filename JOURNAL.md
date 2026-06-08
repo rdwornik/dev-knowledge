@@ -19,6 +19,37 @@
 
 ---
 
+### 2026-06-08 — session close: floor corrective shipped (.claude/ + #137) + routine baselines pushed
+
+**Did:** Session wrap. Consolidates the floor corrective arc detailed in the two entries
+below (`.claude/` placement + complete install note; two post-ship install-note fix-forwards)
+and records session hygiene.
+
+**Result:** Floor corrective fully shipped — 4 merge commits to `main`, all pushed:
+`5c104e9` (.claude/ placement + install note + #137), `4f0bd12` (paste-ready docstring
+quotes), `3f2cc97` (ASCII-clean note), `1447ebb` (JOURNAL fix-forwards addendum). #137
+CLOSED (`.gitattributes` LF-pins the sidecars; BACKLOG entry removed). #121 stays closed
+(corrective follow-up, not a reopen). Final state: 356 passed / 1 skipped, ruff clean,
+validate-backlog OK (65 tasks), tree clean, `main` in sync with origin.
+
+**Changes:** see the two entries below for the floor diff. Session-hygiene only here.
+
+**Routine commits (ADR-80 local-writer, not session work):** two fleet-audit baseline
+commits landed locally during the session and were pushed — `70eecae` (refreshed the
+corp-sca audit snapshot + ecosystem history; rode in on merge `1447ebb`) and `4f17c51`
+(later baseline, pushed standalone). Each tripped the Stop-hook "ahead of origin, no
+JOURNAL" backpressure; both were the routine's own output, resolved by pushing, not by a
+spurious entry.
+
+**Abandoned:** nothing.
+
+**Next:** child re-pilot is a SEPARATE corp-sca session (untouched here). Runbook gap to
+fold into #131: the re-pilot must DELETE the old ROOT `CLAUDE-FLOOR.md` + `.sha256` when
+regenerating into `.claude/`, else the hub audit vacuous-skips the orphaned root copy
+(consequence of the lookup move). Not yet written to BACKLOG.
+
+---
+
 ### 2026-06-08 — floor corrective: two post-ship fix-forwards on the install note
 
 **Did:** After shipping the `.claude/` placement arc (`5c104e9`), a verbatim re-witness of
