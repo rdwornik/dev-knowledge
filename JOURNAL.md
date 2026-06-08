@@ -19,6 +19,35 @@
 
 ---
 
+### 2026-06-08 — #121 child methodology floor: Step-5 pilot witnessed, closeout [closes #121]
+
+**Did:** Recorded the ADR-78 floor Step-5 pilot validation (corp-sca-time-automation,
+run in a separate child session) as a dated `docs/audits/` record — the close gate #121
+was waiting on. Three witnesses: (a) floor auto-loaded + re-anchor rule quoted verbatim;
+(b) tamper caught on BOTH sides — child pre-commit exit 1 AND hub `floor_integrity`
+FAIL→restore→PASS; (c) re-anchor quoted before structural work. Also cleared a recurring
+CRLF phantom diff on `templates/child-methodology-floor.sha256` (`git checkout HEAD --`,
+not the index form).
+
+**Result:** Done-when met → `closes [#121]`. Witness (b) corroborated on disk: the two
+2026-06-08 corp-sca audit snapshots show `floor_integrity` FAIL (hash drift
+`2fdaba0be076… != 4d268f329a7e…`) → PASS (`4d268f329a7e…` matches) across the session.
+Pilot surfaced two install-note gaps (both routed to #131) + one hub-hygiene item (#137).
+
+**Changes:**
+- `docs/audits/2026-06-08-floor-pilot-corp-sca-validation.md` (new — the close gate record:
+  3 witnesses, 2 findings, the `git checkout HEAD --` gotcha)
+- `BACKLOG.md`: #121 removed (done-items-leave, ADR-65); #131 annotated with the mandatory
+  per-clone `pre-commit install` rollout step (findings i/ii); added #137 (LF-pin
+  `templates/*.sha256` via `.gitattributes`); grooming-log closure entry
+- `JOURNAL.md` this entry
+
+**Abandoned:** Fixing the corp-sca `canonical_freshness` FAIL from here — cross-repo,
+belongs to that repo's own session per ADR-41 (noted out-of-scope in the audit record).
+
+**Next:** #131 repo-onboarding runbook (now carries the `pre-commit install` rollout step);
+#137 `.gitattributes` LF-pin to stop the phantom-diff recurrence.
+
 ### 2026-06-07 — #121 child methodology floor (ADR-78 O2): @-include verified, hub Steps 1–4 shipped [advances #121]
 
 **Did:** Built the ADR-78 O2 Bounded Hybrid child methodology floor under a
