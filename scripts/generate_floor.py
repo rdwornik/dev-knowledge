@@ -72,7 +72,7 @@ CHILD_CLAUDE_DIRNAME = ".claude"
 INSTALL_NOTE = r"""
 ========================= CHILD FLOOR INSTALL NOTE =========================
 The floor + sidecar are written under the child's .claude/. To arm them, do all
-FIVE steps in the child repo (each is required — config presence is not enforcement):
+FIVE steps in the child repo (each is required -- config presence is not enforcement):
 
 1. Reference the floor from the child's CLAUDE.md so CC auto-loads it at session
    start. Add this line (it resolves transitively and fails soft if the file moves):
@@ -80,7 +80,7 @@ FIVE steps in the child repo (each is required — config presence is not enforc
        @.claude/CLAUDE-FLOOR.md
 
 2. Create the child-side hash-verify hook script at .claude/check_floor_hash.py
-   (verbatim — LF-normalized hashing matches the hub generator + audit.py):
+   (verbatim -- LF-normalized hashing matches the hub generator + audit.py):
 
        #!/usr/bin/env python3
        '''Pre-commit guard: verify .claude/CLAUDE-FLOOR.md matches its .sha256 sidecar.
@@ -105,13 +105,13 @@ FIVE steps in the child repo (each is required — config presence is not enforc
            actual = hashlib.sha256(
                _norm(FLOOR.read_text(encoding="utf-8")).encode("utf-8")).hexdigest()
            if not SIDECAR.exists():
-               print("CLAUDE-FLOOR.md.sha256 sidecar missing — regenerate via the hub "
+               print("CLAUDE-FLOOR.md.sha256 sidecar missing -- regenerate via the hub "
                      "generator.", file=sys.stderr)
                return 1
            m = re.search(r"[0-9a-f]{64}", SIDECAR.read_text(encoding="utf-8"))
            expected = m.group(0) if m else ""
            if actual != expected:
-               print("floor hash drift: %s != sidecar %s — regenerate via the hub "
+               print("floor hash drift: %s != sidecar %s -- regenerate via the hub "
                      "generator, or restore with `git checkout HEAD -- "
                      ".claude/CLAUDE-FLOOR.md`." % (actual[:12], expected[:12]),
                      file=sys.stderr)
@@ -122,7 +122,7 @@ FIVE steps in the child repo (each is required — config presence is not enforc
        if __name__ == "__main__":
            sys.exit(main())
 
-3. Add this hook to the child's .pre-commit-config.yaml (system language — no env
+3. Add this hook to the child's .pre-commit-config.yaml (system language -- no env
    to provision; the filespec arms it only when the floor or its sidecar changes):
 
        - repo: local
@@ -134,7 +134,7 @@ FIVE steps in the child repo (each is required — config presence is not enforc
              files: '^\.claude/CLAUDE-FLOOR\.md(\.sha256)?$'
              pass_filenames: false
 
-4. ARM the hook — run this in the child clone (writes untracked .git/hooks/, so it
+4. ARM the hook -- run this in the child clone (writes untracked .git/hooks/, so it
    does NOT travel with the repo: EVERY fresh clone must run it itself):
 
        pre-commit install
