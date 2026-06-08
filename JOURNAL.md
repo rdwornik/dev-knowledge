@@ -19,6 +19,36 @@
 
 ---
 
+### 2026-06-08 — floor corrective: two post-ship fix-forwards on the install note
+
+**Did:** After shipping the `.claude/` placement arc (`5c104e9`), a verbatim re-witness of
+the *emitted* install note caught two latent defects, each fixed-forward on its own branch
+(branch→merge `--no-ff`, per the universal rule).
+
+**Result:**
+- `85c89dc`/`4f0bd12` — the embedded `check_floor_hash.py` docstring used escaped `\"\"\"`
+  inside the raw-string `INSTALL_NOTE`; a raw string keeps the backslash, so the note printed
+  literal `\"\"\"` → a pasted script would be broken Python. Switched the embedded docstring to
+  `'''` (no collision with the outer `r"""..."""`). Guard added: the extracted script must
+  `compile()`.
+- `ddc2c89`/`3f2cc97` — em-dashes in the note prose AND inside the hook's `print(..., file=sys.stderr)`
+  strings would `UnicodeEncodeError` on a Windows cp1252 console exactly when the guard fires.
+  ASCII-cleaned the note (`—`→`--`). Guard added: `INSTALL_NOTE.encode("ascii")`.
+
+Both are corrections to the same corrective arc, not new scope. 356 passed, ruff clean. The
+install note is now confirmed paste-ready + pure-ASCII.
+
+**Changes:** `scripts/generate_floor.py` (INSTALL_NOTE docstring + dashes); `tests/test_generate_floor.py`
+(compile-the-emitted-script + ASCII guards).
+
+**Abandoned:** nothing.
+
+**Next:** child re-pilot (separate session) — the runbook should delete the old ROOT
+`CLAUDE-FLOOR.md` + `.sha256` when regenerating into `.claude/`, else the hub audit
+vacuous-skips the orphaned root copy (consequence of the lookup move; flag for #131).
+
+---
+
 ### 2026-06-08 — floor corrective: `.claude/` placement + complete install note + #137 [closes #137]
 
 **Did:** Corrective follow-up to #121 (NOT a reopen). Moved the generated child floor
