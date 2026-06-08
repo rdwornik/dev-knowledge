@@ -191,6 +191,12 @@ def test_install_note_has_no_leaked_escaped_quote():
     assert '\\"' not in gf.INSTALL_NOTE
 
 
+def test_install_note_is_pure_ascii():
+    """ASCII-only so it survives a Windows cp1252 console (the embedded hook's
+    print() strings must not UnicodeEncodeError when it reports drift)."""
+    gf.INSTALL_NOTE.encode("ascii")  # raises UnicodeEncodeError on any non-ASCII char
+
+
 def test_emitted_check_floor_hash_script_is_valid_python():
     """The check_floor_hash.py the note hands a child must compile as-is (paste-ready)."""
     script = _extract_check_floor_hash_script()
