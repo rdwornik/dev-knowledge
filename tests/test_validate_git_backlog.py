@@ -138,6 +138,33 @@ def test_reconcile_main_line_merge_closes_still_fires(tmp_path):
 
 
 @requires_git
+def test_reconcile_ignores_backtick_quoted_closes_prose(tmp_path):
+    # PRECISION (the own-commit field finding): a main-line commit whose body QUOTES the
+    # convention — `closes [#5]` inside backticks — is prose, not a declaration, and must
+    # NOT fire. (This is the topology-independent lever: it holds on the merge spine too.)
+    repo = _init_repo(tmp_path)
+    (repo / "x.txt").write_text("x\n", encoding="utf-8")
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m",
+         "docs: explain the convention, e.g. a body using `closes [#5]` as an example")
+    assert vgb.reconcile(repo, repo / "BACKLOG.md") == {}
+
+
+@requires_git
+def test_reconcile_bare_closes_still_fires_alongside_quoted(tmp_path):
+    # the counterpart: a bare `closes [#5]` declaration fires even if the same body also
+    # quotes the convention in backticks (proves stripping removes only the code spans).
+    repo = _init_repo(tmp_path)
+    (repo / "x.txt").write_text("x\n", encoding="utf-8")
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m",
+         "feat: ship it, closes [#5]\n\n(for context, a `closes [#9]` example is prose)")
+    drift = vgb.reconcile(repo, repo / "BACKLOG.md")
+    assert "5" in drift          # bare declaration counts
+    assert "9" not in drift       # backtick-quoted example does not
+
+
+@requires_git
 def test_reconcile_bare_ref_is_not_drift(tmp_path):
     # a reworded-task commit referencing [#5] without `closes` is a touch, not a close.
     repo = _init_repo(tmp_path)
