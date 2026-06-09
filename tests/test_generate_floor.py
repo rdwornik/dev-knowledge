@@ -202,3 +202,55 @@ def test_emitted_check_floor_hash_script_is_valid_python():
     script = _extract_check_floor_hash_script()
     assert "def main()" in script and "sys.exit(main())" in script
     compile(script, "check_floor_hash.py", "exec")  # raises SyntaxError if malformed
+
+
+def _extract_precommit_yaml_block() -> str:
+    """Pull the .pre-commit-config.yaml block out of step 3 of the install note and
+    dedent it (7-space indent, like the script block).
+
+    Collect from the `repos:` line until the first non-indented, non-blank line
+    (step 4's heading)."""
+    lines = gf.INSTALL_NOTE.splitlines()
+    start = next(i for i, ln in enumerate(lines) if ln.strip() == "repos:")
+    out: list[str] = []
+    for ln in lines[start:]:
+        if ln.strip() == "":
+            out.append("")
+        elif ln.startswith("       "):  # 7-space indent
+            out.append(ln[7:])
+        else:
+            break
+    return "\n".join(out).strip("\n")
+
+
+def test_install_note_precommit_covers_create_if_absent():
+    """G3 precondition fix: step 3 must work for a child with NO .pre-commit-config.yaml.
+    The prose must cover both the create-from-scratch and append-to-existing paths."""
+    note = gf.INSTALL_NOTE.lower()
+    assert "no .pre-commit-config.yaml" in note          # create-if-absent path
+    assert "already exists" in note                       # append-to-existing path
+    assert "append" in note
+
+
+def test_install_note_precommit_block_is_full_standalone_config():
+    """The emitted yaml must be a COMPLETE config (top-level `repos:`), not a bare
+    `- repo: local` fragment — a from-scratch child pastes it verbatim into a new file."""
+    block = _extract_precommit_yaml_block()
+    assert block.startswith("repos:")
+    assert "- repo: local" in block
+    assert "id: floor-hash-verify" in block
+
+
+def test_install_note_precommit_block_parses_as_valid_precommit_config():
+    """Real structural proof the from-scratch block is valid: it parses to a config with
+    a local repo carrying the floor-hash-verify hook wired to the child-side script."""
+    yaml = pytest.importorskip("yaml")
+    cfg = yaml.safe_load(_extract_precommit_yaml_block())
+    assert isinstance(cfg, dict) and "repos" in cfg
+    repo = cfg["repos"][0]
+    assert repo["repo"] == "local"
+    hook = repo["hooks"][0]
+    assert hook["id"] == "floor-hash-verify"
+    assert hook["entry"] == "python .claude/check_floor_hash.py"
+    assert hook["language"] == "system"
+    assert hook["pass_filenames"] is False
