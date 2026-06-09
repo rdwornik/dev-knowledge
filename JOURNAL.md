@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-09 — #34 review-postures + organ definition-of-done codified (docs/codify-34-lifecycle)
+
+**Did:** Closed #34 — the 4 posture-audit review postures (stable-end-state H3, verify-destination H4, no-delete-canonical-dup T1, ADR-with-N=1 T2) sourced **verbatim** from `docs/audits/2026-05-19-dev-knowledge-posture-audit.md` and codified as a new standalone PLAYBOOK `## Review postures` section (governance-doc/ADR craft — not nested under prompt-writing). The candidate "pre-emit checklist" was reconciled, not duplicated: per T1 (the very posture being codified) + pruning-symmetry #136, its 4 net-new **judgment checks** (Codex-applicability, context-budget, JOURNAL-read, inherited-framing) merged into the existing "Pre-send checklist" as a sub-group, and the header-verbatim item tightened the existing Model/Mode/Effort bullet (presence→verbatim, #25) rather than adding a second near-duplicate checklist. Separately established the **feature-lifecycle definition-of-done** (NEW doctrine) — an organ isn't DONE without (a) a PLAYBOOK home, (b) a deploy path, (c) a refresh cadence, (d) actual deployment or a named deferral; build-and-test ≠ done — as a new PLAYBOOK `## Definition of done (organs)` section **and** ADR-81. The new inherited-framing checklist line originated this session: a floor/rollout decision was treated as settled while still the operator's pending call.
+
+**Changes:** `protocols/PLAYBOOK.md` (Review-postures section + Pre-send judgment-checks sub-group + line-617 tighten + Definition-of-done section + TOC), `docs/decisions/ADR-81-feature-lifecycle-definition-of-done.md` (new), `docs/decisions/README.md` (index + traceability rows; ADR-81 transcript = "none — direct operator decision"), `BACKLOG.md` (#34 removed, 62→61; parent story retains #67/#111 — not orphaned), `JOURNAL.md`. Noted out-of-scope: README ADR-index rows ADR-73…80 are a pre-existing gap, not backfilled here. PLAYBOOK `Last updated` already 2026-06-09 (localized edit; no end-to-end re-read claimed).
+
+---
+
 ### 2026-06-09 — #136 pruning-symmetry doctrine codified (docs/codify-136)
 
 **Did:** Codified the #136 pruning-symmetry doctrine verbatim from its canonical BACKLOG statement (no divergence vs LESSONS #53/#55 or the 78→67 obsolescence-pass — #136 was the designated codification). Two deliverables: (a) a **Pruning symmetry** bullet in PLAYBOOK §2 "Key rules" (every adding flow gets a review-gated pruning counterpart; CC proposes with evidence, operator ratifies, auto-delete forbidden), (b) a standing **Obsolescence pass** line in `templates/prompt-template.md` Final (v1.2→1.3) — the point-of-use of the §2 rule. Closed #136 (63→62); parent story retains #34/#67/#111 (not orphaned).
