@@ -19,6 +19,12 @@
 
 ---
 
+### 2026-06-09 — #115 ruled re-scope-and-remove (chore/close-115)
+
+**Did:** Ruled #115 (left surfaced after the git-resync) → re-scope-and-remove, residual folded into #131. Verified #131 (repo-onboarding runbook) covers child-distribution of `/ship`: its carriers + lifecycle-command onboarding layers carry the tier1-lifecycle plugin (hub half already done — `/ship` is plugin-provided). Removed #115 from BACKLOG; added a one-line supersession note to #131 so the lineage survives. Active 65→64; validate_backlog + audit health + ruff all green.
+
+---
+
 ### 2026-06-09 — BACKLOG git↔history re-sync (chore/backlog-resync)
 
 **Did:** Reconciled BACKLOG's active list to git's actual closed/open state (#134/#90 procedure). Full-history git-closed id set ∩ active list = exactly {#115, #125}; #137/#138 were ALREADY reconciled at HEAD `4bbae04` (the prompt's pre-#137 snapshot premise was stale). Applied diligence to each: removed [#125] (git-closed `113a4ba`; Done-when **verified met** — `ecosystem/*/state.yaml` gitignored + fleet-audit routine self-commits with the `Routine:` trailer, baselines 06-08/06-09) plus its orphaned sole-task story header "Adopt Dynamic Workflows as the Tier-3 agentic harness". **Surfaced #115 for operator ruling** (NOT removed): git-closed `40b0ea1` but on the hub half only (ship.md→plugin); Done-when "a child repo invokes /ship from the plugin" was never witnessed → easy-metric closure; left listed, no tracking item spawned.
