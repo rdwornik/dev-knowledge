@@ -48,6 +48,7 @@ def _init_repo(tmp_path, backlog=_MINI_BACKLOG):
     (repo / "BACKLOG.md").write_text(backlog, encoding="utf-8")
     _run(repo, "add", "-A")
     _run(repo, "commit", "-q", "-m", "seed backlog")
+    _run(repo, "branch", "-M", "main")     # deterministic default-branch name
     return repo
 
 
@@ -100,6 +101,38 @@ def test_reconcile_closes_in_merge_body_counted(tmp_path):
     (repo / "a.txt").write_text("a\n", encoding="utf-8")
     _run(repo, "add", "-A")
     _run(repo, "commit", "-q", "-m", "Merge feat/alpha — alpha arc\n\ncloses [#5]")
+    drift = vgb.reconcile(repo, repo / "BACKLOG.md")
+    assert "5" in drift
+
+
+@requires_git
+def test_reconcile_ignores_branch_internal_closes(tmp_path):
+    # PRECISION (the #5 field-run false positive): a `closes [#5]` that lives only on a
+    # feature branch (e.g. fixture/example text) must NOT fire — detection is --first-
+    # parent (main-line only), so a closure must reach the merge spine to count.
+    repo = _init_repo(tmp_path)
+    _run(repo, "checkout", "-q", "-b", "feat/x")
+    (repo / "fix.txt").write_text("x\n", encoding="utf-8")
+    _run(repo, "add", "-A")
+    # example/fixture text in a branch-internal commit body — not a real closure
+    _run(repo, "commit", "-q", "-m", "test: fixture mentions closes [#5] as an example")
+    _run(repo, "checkout", "-q", "main")
+    # merge --no-ff with a subject that does NOT declare the close (the real shape here)
+    _run(repo, "merge", "--no-ff", "-q", "-m", "Merge feat/x — fixture work", "feat/x")
+    assert vgb.reconcile(repo, repo / "BACKLOG.md") == {}
+
+
+@requires_git
+def test_reconcile_main_line_merge_closes_still_fires(tmp_path):
+    # the counterpart: a real `closes [#5]` carried on the merge commit (ship-time)
+    # IS on the first-parent spine -> drift fires (proves the lever didn't over-cut).
+    repo = _init_repo(tmp_path)
+    _run(repo, "checkout", "-q", "-b", "feat/y")
+    (repo / "y.txt").write_text("y\n", encoding="utf-8")
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", "feat: do y")
+    _run(repo, "checkout", "-q", "main")
+    _run(repo, "merge", "--no-ff", "-q", "-m", "Merge feat/y — y arc, closes [#5]", "feat/y")
     drift = vgb.reconcile(repo, repo / "BACKLOG.md")
     assert "5" in drift
 

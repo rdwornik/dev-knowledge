@@ -226,14 +226,22 @@ def git_valid_rev(repo: Path, rev: str) -> bool:
     return r.returncode == 0 and bool(r.stdout.strip())
 
 
-def git_log_commits(repo: Path, rev_range: str) -> list:
+def git_log_commits(repo: Path, rev_range: str, first_parent: bool = False) -> list:
     """Parse `git log <range>` into Commit objects (subject/body/files).
 
     Field-separated with control chars so subjects/bodies/files survive newlines:
     record = \\x1e, fields = \\x1f, then the --name-only file list follows.
+
+    first_parent=True restricts to the main-line history (`--first-parent`) — the
+    `--no-ff` merge spine (core-invariants rule 5). Used by validate_git_backlog to
+    keep `closes [#id]` detection to real ship-time closures, excluding branch-internal
+    fixture/example `closes` text. Default False preserves the all-ancestors behaviour.
     """
     fmt = "%x1e%H%x1f%s%x1f%b%x1f"
-    r = _git(repo, "log", rev_range, f"--format={fmt}", "--name-only")
+    args = ["log", rev_range, f"--format={fmt}", "--name-only"]
+    if first_parent:
+        args.append("--first-parent")
+    r = _git(repo, *args)
     if r.returncode != 0:
         return []
     commits = []

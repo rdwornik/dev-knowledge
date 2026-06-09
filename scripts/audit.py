@@ -57,6 +57,13 @@ except ImportError:
     from generate_floor import F5_BLACKLIST as _FLOOR_F5
     from generate_floor import floor_sha256 as _floor_sha256
 
+# #90 git↔backlog drift verifier — imported as a module so the check stays a thin
+# adapter and tests can monkeypatch `_vgb.reconcile`. Same dual-import shape.
+try:
+    from scripts import validate_git_backlog as _vgb
+except ImportError:
+    import validate_git_backlog as _vgb
+
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("audit")
 
@@ -1037,6 +1044,36 @@ def check_floor_integrity(repo_path: Path) -> list[Finding]:
                     f"(sha256 {actual[:12]}…)")]
 
 
+def check_git_backlog_drift(repo_path: Path) -> list[Finding]:
+    """#90 git↔backlog reconciliation (direction (a) STRONG, ADR-65).
+
+    Hub-only: ALL_CHECKS runs per-repo across the fleet, but the `closes [#id]`
+    convention + ADR-65 "done items leave" are .dev-knowledge-specific, so on any
+    other repo this is a no-op pass. On the hub: a `closes [#id]` commit (full
+    history) whose `[#id]` is still present in BACKLOG.md is drift — the closing
+    commit fired but the done item never left the file.
+
+    Awareness layer, not a gate: emits WARN on drift (never FAIL → `health` exits 1
+    only on FAIL, so this never blocks the audit-health commit gate). Fail-soft on
+    any error — a git/parse hiccup must never wedge `audit.py health`. Read-only.
+    Detection + formatting live in scripts/validate_git_backlog.py (reused).
+    """
+    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+        return [Finding("git_backlog_drift", "pass",
+                        "hub-only — git↔backlog drift check skipped (not the hub repo)")]
+    try:
+        drift = _vgb.reconcile(Path(repo_path), Path(repo_path) / "BACKLOG.md")
+    except Exception as exc:  # never wedge the audit-health gate
+        return [Finding("git_backlog_drift", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    if not drift:
+        return [Finding("git_backlog_drift", "pass",
+                        "no closed-but-present backlog drift (direction (a) STRONG, full history)")]
+    evidence = (f"{len(drift)} closed-but-present (ADR-65 done-items-leave): "
+                + _vgb.format_findings(drift)).replace("|", "/")
+    return [Finding("git_backlog_drift", "warn", evidence)]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -1052,6 +1089,7 @@ ALL_CHECKS = [
     check_canonical_structure,
     check_handoff_version_stamp,
     check_floor_integrity,
+    check_git_backlog_drift,
 ]
 
 
