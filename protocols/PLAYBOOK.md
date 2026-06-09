@@ -57,6 +57,7 @@
   - [Supersession & decommissioning](#supersession--decommissioning)
   - [Handoff format spec](#handoff-format-spec)
   - [Order conventions](#order-conventions)
+- [Review postures](#review-postures)
 - [Session boundaries](#session-boundaries)
   - [Scope declaration at start](#scope-declaration-at-start)
   - [Stop-signs (recognize and act)](#stop-signs-recognize-and-act)
@@ -81,6 +82,7 @@
   - [The shallow-clone false-positive class](#the-shallow-clone-false-positive-class)
   - [Cloud-session hub-independence (self-containment)](#cloud-session-hub-independence-self-containment)
   - [What every routine must meet (the operational standard)](#what-every-routine-must-meet-the-operational-standard)
+- [Definition of done (organs)](#definition-of-done-organs)
 - [Continuous Improvement](#continuous-improvement)
   - [Pipeline overview](#pipeline-overview)
   - [Stage 1: Discovery](#stage-1-discovery)
@@ -614,7 +616,7 @@ Why: pasted-as-text is fine, but file form preserves structure for re-use, audit
 Before delivering a prompt to Claude Code, verify:
 
 - [ ] **English only** — no Polish in prompt body (Rob speaks Polish; prompts are English per ESSENTIALS)
-- [ ] **Model/Mode/Effort table** present at top
+- [ ] **Model/Mode/Effort table** present at top — embedded **verbatim** from the non-negotiable spec, never paraphrased (#25)
 - [ ] **Absolute paths** for all repo/file references (not relative — Claude Code's CWD varies)
 - [ ] **Read first** lists CLAUDE.md and gotchas (always) plus task-relevant docs
 - [ ] **Git workflow** specifies branch name, commit cadence, merge command
@@ -626,6 +628,13 @@ Before delivering a prompt to Claude Code, verify:
 - [ ] **Out-of-scope items explicit** (e.g., "Do NOT touch corp-monorepo")
 - [ ] **No `!` shortcuts** for state-changing git operations (per Vibe Code 4 protocol)
 - [ ] **Versioning if applicable** — sections in repo files include `<!-- version: X.Y -->` for amendment tracking
+
+**Judgment checks (knowledge-application, not just form — #34 / 2026-06-06 application-skipped misses):**
+
+- [ ] **Codex-applicability** — does the diff touch 3+ code files or anything safety-critical? If so, plan a `/codex-review` pass
+- [ ] **Context-budget pass** — every read instruction is scoped (no "read the whole repo"); per §7 read-scoping rule
+- [ ] **JOURNAL-read needed?** — does the task need recent session continuity (last few JOURNAL entries) to avoid re-deciding settled things?
+- [ ] **Inherited-framing counter-check** — *"Have I assumed any operator decision as resolved that the operator has not actually ruled on?"* (origin: a floor/rollout assumption treated as settled while still pending)
 
 Skip checklist items only when not applicable to specific task type. If unsure, include them.
 
@@ -920,6 +929,18 @@ Per Token-LOG flip 2026-04-24:
 - **Append-only (oldest top):** LESSONS. Rationale: chronological narrative for grandfathered learning patterns; order preserves "what we learned when" per ADR-29.
 - **Living (in-place updates):** README, CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT. Rationale: not logs; current state matters more than history.
 - **Immutable (dated):** ADRs, transcripts, handoffs, audits, research. Rationale: point-in-time records; supersession via new file or in-file marker.
+
+---
+
+## Review postures
+<!-- scope: meta -->
+
+Four review postures distilled from the 2026-05-19 posture-audit (`docs/audits/2026-05-19-dev-knowledge-posture-audit.md`, findings H3/H4/T1/T2). Governance-doc and ADR craft — apply when editing, relocating, or deleting canonical content, or when deciding whether a one-off decision earns an ADR. Wording sourced **verbatim** from the audit; codified per #34.
+
+- **Stable-end-state** (audit H3) — *"Governance docs phrased as stable end-state; transient status lives in JOURNAL."* Governance docs describe end-states; transient status (what's done / pending) lives in JOURNAL or a rollout-tracker, never as time-bound clauses that read stale later.
+- **Verify-destination** (audit H4) — *"When relocating or dropping content, Plan Mode confirms destination genuinely covers it."* Before deleting a pointer or relocating a section, confirm the destination already carries each sub-part — verify, don't assume.
+- **No-delete-canonical-dup** (audit T1) — single-source-of-truth (P1) overrides never-delete (P7) **only** when the deletion targets a *"duplicate of canonical content"* preserved elsewhere. The no-delete invariant has an explicit exception for duplicates of canonical content; deleting a unique copy is still forbidden.
+- **ADR-with-N=1** (audit T2) — *"A single architectural CHOICE with no prior precedent can be an ADR-with-N=1 because the choice itself is the record, not a pattern claim."* The N≥2 bar blocks PATTERN extraction without evidence; it does not block recording a singular decision whose record IS the choice.
 
 ---
 
@@ -1276,6 +1297,20 @@ A recurring unattended review — local or cloud — graduates to "standard" onl
 5. **Fail-soft + catch-up posture** — a missed run is tolerated by design: catch-up on next opportunity (local: Task Scheduler "run as soon as possible after a missed start", ADR-76; cloud: the next scheduled night), surfaced at the next SessionStart. No alerting, no wake-from-sleep.
 6. **Funnel-review as the consuming contract** — findings are *proposals*; the operator's morning funnel ratifies before anything binds, and records per-routine findings-acted-on vs noise (#123). A routine with no funnel consumer is not deployed.
 7. **Evidence gate: n=2 before graduation** — a new routine pattern is codified into this standard only after **two real runs** demonstrate it end-to-end (ADR-74 Footnote B meta-rule). The nightly conformance routine cleared this gate (n=1 red 2026-06-06 → triaged → n=2 clean 2026-06-07, both PR'd into `main`); #84 is the codification that consumed it.
+
+---
+
+## Definition of done (organs)
+<!-- scope: meta -->
+
+Recorded as **ADR-81** (2026-06-09). An organ — a plugin, hook, command, skill, workflow, generator, or convention — is **not DONE** until it has all four:
+
+- **(a) a methodology home** — its rule/doctrine written in PLAYBOOK;
+- **(b) a deployment path** — a runbook or documented install sequence;
+- **(c) a maintenance/refresh cadence** — how it stays current, and how staleness is detected;
+- **(d) actual deployment, OR an explicit documented deferral** that names the gap and what remains.
+
+Stopping at build+test is the **half-feature rot trap**: build-and-test ≠ done. (The routine-specific analog is "What every routine must meet" above — this is its generalization to every organ class.)
 
 ---
 
