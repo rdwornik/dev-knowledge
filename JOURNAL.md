@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-09 — #135 diagram-form algorithm codified to PLAYBOOK doctrine (docs/codify-135)
+
+**Did:** Promoted the #91 five-rule diagram-form algorithm into PLAYBOOK §14 Markdown Governance as a new `### Diagram-form selection algorithm` subsection, verbatim from the canonical #135 BACKLOG statement (sole canonical source — no divergence; JOURNAL #91 close only described its *application*, ADR-51 governs theme not selection). Closed #135 (64→63). Bumped PLAYBOOK `Last updated` → 2026-06-09; toc-freshness regenerated.
+
+**Note:** Task's "audit check #10 fails a predating stamp" rationale doesn't apply — PLAYBOOK isn't in `_FRESHNESS_FILES` (VISION/ARCHITECTURE/CLAUDE/CONTRIBUTING only); stamp bumped for hygiene. Gates green: validate_backlog 63 tasks, audit 14/14, ruff, TOC.
+
+---
+
 ### 2026-06-09 — #115 ruled re-scope-and-remove (chore/close-115)
 
 **Did:** Ruled #115 (left surfaced after the git-resync) → re-scope-and-remove, residual folded into #131. Verified #131 (repo-onboarding runbook) covers child-distribution of `/ship`: its carriers + lifecycle-command onboarding layers carry the tier1-lifecycle plugin (hub half already done — `/ship` is plugin-provided). Removed #115 from BACKLOG; added a one-line supersession note to #131 so the lineage survives. Active 65→64; validate_backlog + audit health + ruff all green.

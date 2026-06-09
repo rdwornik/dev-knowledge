@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-06-07
+> Last updated: 2026-06-09
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -168,6 +168,7 @@
   - [Migration triggers](#migration-triggers)
 - [14. Markdown Governance](#14-markdown-governance)
   - [Project governance folder](#project-governance-folder)
+  - [Diagram-form selection algorithm](#diagram-form-selection-algorithm)
 - [15. Anti-Patterns — What NOT to Do](#15-anti-patterns--what-not-to-do)
 - [The 10 Commandments](#the-10-commandments)
 - [16. Cross-Tool Review](#16-cross-tool-review)
@@ -2731,6 +2732,19 @@ docs/
 ```
 
 Keep it tight. If something doesn't fit one of these categories, it goes somewhere specific — don't let `docs/` become a dumping ground.
+
+### Diagram-form selection algorithm
+<!-- scope: dev -->
+
+Before authoring any diagram in a living doc, pick the lightest form that carries the structure. The five-rule algorithm (applied in the #91 ARCHITECTURE rewrite, which demoted 7 of 8 Mermaid diagrams):
+
+1. linear ≤1-branch → text arrow-chain
+2. inventory/mapping → table
+3. ≥2-branches / cycle / ≥3-actors → Mermaid (ADR-51 theme)
+4. auto-generable fact → generated only
+5. any Mermaid >12 nodes → split or demote
+
+Mermaid is the heaviest form (token cost + AI-edit-reliability drop above ~100 lines of markup) — reserve it for genuine branching/cyclic/multi-actor structure, and demote on the first rule that a lighter form satisfies. Refs #91 (amendment A), ADR-51.
 
 ---
 
