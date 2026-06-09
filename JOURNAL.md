@@ -19,6 +19,39 @@
 
 ---
 
+### 2026-06-09 — floor install-note: from-scratch .pre-commit-config robustness (closes the demo's one correction round)
+
+**Did:** Ran the child-floor lifecycle end-to-end as a process test against a DISPOSABLE
+temp repo (generate → install-from-note → arm → commit → tamper-blocked → restore →
+teardown); all 8 gates PASS, hub untouched (zero hub commits, temp repo deleted). The one
+correction round: INSTALL_NOTE step 3 emitted a bare `- repo: local` fragment and said "add
+this hook to the child's .pre-commit-config.yaml" — presupposing the file exists. On a
+clean-slate child the operator had to supply the top-level `repos:` envelope themselves.
+Fixed it (branch → `/ship`).
+
+**Result:** `generate_floor.py` step 3 now emits a COMPLETE, from-scratch-valid config
+(top-level `repos:` included) with explicit branching — create the file if absent, else
+append only the `- repo: local` item under an existing `repos:` list. Module docstring (c)
+updated to match. 3 new tests: prose covers both paths, the emitted block starts with
+`repos:`, and it `yaml.safe_load`s into a valid pre-commit config with the floor-hash hook
+wired to the child-side script. 359 passed / 1 skipped, ruff clean, all 8 pre-commit gates
+green. Merge `eae672a` (feature `ce528ce`), pushed `ac0fc1d..eae672a`, branch auto-deleted.
+
+**Changes:** `scripts/generate_floor.py` (INSTALL_NOTE step 3 + docstring),
+`tests/test_generate_floor.py` (+3 tests).
+
+**Routine commit (ADR-80 local-writer, not session work):** `d00a47b` fleet-audit baseline
+was ahead of origin at session start; rebased on origin's `e15ef00` conformance digest and
+pushed (`ac0fc1d`). Tripped the Stop-hook "ahead of origin" backpressure — resolved by
+pushing the routine's own output, not a spurious JOURNAL entry.
+
+**Abandoned:** nothing.
+
+**Next:** the next real child re-pilot (corp-sca) should now hit zero correction rounds on
+step 3. No open follow-up from this fix.
+
+---
+
 ### 2026-06-08 — session close: floor corrective shipped (.claude/ + #137) + routine baselines pushed
 
 **Did:** Session wrap. Consolidates the floor corrective arc detailed in the two entries
