@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-06-09 — #89 prose-vs-state checker built + deployed to ADR-81's DoD (feat/prose-state-checker)
+
+**Did:** Built `scripts/validate_doc_claims.py` — a read-only Layer-2 checker asserting a living doc's count/list CLAIMS match ground truth (catches edited-but-not-reconciled prose that check #10's last_reviewed-staleness gate cannot see). Bounded, precision-first claim-set (zero-FP mandatory): (1) ARCHITECTURE "N registered checks" vs injected `len(ALL_CHECKS)`; (2a) "pre-commit gates (N)" vs ALL `.pre-commit-config.yaml` ids; (2b) CLAUDE §9 roster vs the same id set; (3) "N collected" vs `pytest --collect-only`. Carved tightly: check #13 already owns HANDOFF version stamps, #10 owns staleness, #140 owns cross-file rot (seam documented in-module). A Step-1 pre-flight proved 1/2a/2b match current docs — and surfaced the 2a zero-FP trap: "(8)" includes the commit-msg `backlog-id-on-close`, so the deriver counts ALL ids (8), not stage-scoped (7).
+**Result:** Deployed to all four ADR-81 criteria: (a) **home** = ARCHITECTURE Ch2 organ row + §Validators bullet; (b) **path** = `check_doc_claims` registered in `ALL_CHECKS` (15→16, with the self-referential "15"→"16" doc bump) + standalone CLI; (c) **cadence** = every `audit.py health` (WARN-only) for the cheap claims; the expensive claim-3 (pytest subprocess) runs OFF the per-commit gate via a `_GATE_MODE` flag wrapping the `cmd_health` loop, evaluated only on the full-audit path (operator ruling); (d) **deployed** = a seeded count mismatch fires the registered check (E2E test). First full run caught genuine drift — ARCHITECTURE "372 collected" → actual 396 — **left for operator ruling, not fixed** (Layer-2 flags, never mutates). 22/22 #89 tests green; full suite 395 passed/1 skipped.
+**Changes:** scripts/validate_doc_claims.py (new), tests/test_validate_doc_claims.py (new), scripts/audit.py (adapter + _GATE_MODE + registration), ARCHITECTURE.md (organ row + validators bullet + 15→16), BACKLOG.md (#89 closed + grooming-log), JOURNAL.md (this entry). Commits 981600a→30f37a8.
+**Next:** Codex review on the 3-file changeset (owed per the pre-emit rule); operator ruling on the surfaced 372→396 test-count drift.
+
+---
+
 ### 2026-06-09 — #77 ruling: re-scope + split + correct record (chore/77-rescope-split)
 
 **Did:** Operator-ruled #77 as a premature closure: `77e5d7d`'s `closes [#77]` was a misattribution — that merge shipped the CONTRIBUTING→v4 rewrite (referenced inline as `[#77]` in JOURNAL) + the #76 hub/plugin convergence; it touched zero `protocols/` files and added zero doc-rot checks to `audit.py`. Both Done-when parts confirmed unmet (read-only investigation 2026-06-09).
