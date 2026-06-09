@@ -12,21 +12,14 @@ owns HANDOFF version stamps; #140 owns cross-file fidelity / duplication / bloat
 from __future__ import annotations
 
 import os
-import shutil
 import sys
+import types
 from pathlib import Path
-
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import validate_doc_claims as vdc  # noqa: E402
 import audit as aud  # noqa: E402
-
-requires_pytest = pytest.mark.skipif(
-    shutil.which("pytest") is None and shutil.which("py") is None,
-    reason="pytest launcher not available",
-)
 
 # --- mini-doc fixtures (a self-consistent temp repo) ------------------------
 
@@ -187,15 +180,49 @@ def test_reconcile_skips_test_count_when_not_expensive(tmp_path):
     assert by["pytest_collected"].status == "skipped"
 
 
-@requires_pytest
-def test_reconcile_evaluates_test_count_when_expensive(tmp_path):
-    # run_expensive=True -> claim 3 is evaluated. The temp repo has no tests, so the
-    # collected count is 0; doc claims 372 -> mismatch (proves it is wired, not skipped).
-    repo = _init_doc_repo(tmp_path, collected=372)
+def test_reconcile_evaluates_test_count_when_expensive(tmp_path, monkeypatch):
+    # run_expensive=True actually EVALUATES claim 3 (not skip). Mock the pytest subprocess for
+    # a deterministic collected count (42); doc claims 42 -> match, proving the deriver RAN and
+    # compared. The `!= "skipped"` assertion is the teeth: a vacuous skip-pass (the #141 bug —
+    # claim-3 silently stops evaluating yet the test still goes green) is rejected here.
+    repo = _init_doc_repo(tmp_path, collected=42)
+    monkeypatch.setattr(vdc.subprocess, "run", lambda *a, **k: types.SimpleNamespace(
+        stdout="42 tests collected in 0.10s", stderr=""))
     by = _by_name(vdc.reconcile(repo, audit_check_count=15, run_expensive=True))
-    assert by["pytest_collected"].status in {"mismatch", "match", "skipped"}
-    # if pytest ran cleanly it must NOT be 'skipped' -> it actually evaluated
-    assert by["pytest_collected"].status != "skipped" or by["pytest_collected"].actual
+    assert by["pytest_collected"].status == "match"
+    assert by["pytest_collected"].status != "skipped"   # teeth: not a vacuous skip-pass
+    assert by["pytest_collected"].actual == "42"
+
+
+def test_reconcile_skips_when_deriver_unavailable(tmp_path, monkeypatch):
+    # The separate None->skipped path: subprocess launch fails -> deriver returns None ->
+    # 'skipped' (fail-soft; an infra hiccup must not flap a WARN). Kept distinct from the
+    # evaluated path above so neither masks the other.
+    def _boom(*a, **k):
+        raise OSError("pytest launcher gone")
+
+    monkeypatch.setattr(vdc.subprocess, "run", _boom)
+    repo = _init_doc_repo(tmp_path, collected=42)
+    by = _by_name(vdc.reconcile(repo, audit_check_count=15, run_expensive=True))
+    assert by["pytest_collected"].status == "skipped"
+
+
+def test_derive_pytest_collected_disables_cache_and_bytecode(tmp_path, monkeypatch):
+    # Layer-2 "writes NOTHING" (#141 Fix 1, red-first): the collection subprocess must disable
+    # the pytest cache (-p no:cacheprovider -> no .pytest_cache/) and bytecode writes
+    # (PYTHONDONTWRITEBYTECODE=1 -> no __pycache__/). Captures the subprocess call and asserts
+    # both — fails until Fix 1 lands.
+    seen = {}
+
+    def _capture(argv, *a, **k):
+        seen["argv"] = argv
+        seen["env"] = k.get("env")
+        return types.SimpleNamespace(stdout="5 tests collected", stderr="")
+
+    monkeypatch.setattr(vdc.subprocess, "run", _capture)
+    vdc._derive_pytest_collected(tmp_path, 0)
+    assert "-p" in seen["argv"] and "no:cacheprovider" in seen["argv"]
+    assert seen["env"] is not None and seen["env"].get("PYTHONDONTWRITEBYTECODE") == "1"
 
 
 def test_format_findings_lists_only_mismatches_no_pipe(tmp_path):

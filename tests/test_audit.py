@@ -588,6 +588,46 @@ def test_checks_count_matches_what_runs() -> None:
 
 
 # ---------------------------------------------------------------------------
+# cmd_health _GATE_MODE set/reset around the ALL_CHECKS loop (#89 / #141 Fix 3)
+# ---------------------------------------------------------------------------
+
+def test_cmd_health_gate_mode_set_during_loop_and_restored(monkeypatch: pytest.MonkeyPatch) -> None:
+    """cmd_health sets _GATE_MODE True around the self-audit loop (so claim-3 skips on the
+    gate) and restores it False after. Observe the flag DURING the loop via a sentinel check,
+    and assert restoration AFTER. Highest-risk global-mutation path (Codex HIGH)."""
+    from click.testing import CliRunner
+
+    seen = {}
+
+    def _sentinel(_repo: Path):
+        seen["during"] = aud._GATE_MODE
+        return [aud.Finding("sentinel", "pass", "observed gate mode")]
+
+    monkeypatch.setattr(aud, "_GATE_MODE", False)        # hermetic baseline
+    monkeypatch.setattr(aud, "ALL_CHECKS", [_sentinel])
+    CliRunner().invoke(aud.cmd_health)
+
+    assert seen["during"] is True                        # set True inside the loop
+    assert aud._GATE_MODE is False                       # restored after the loop
+
+
+def test_cmd_health_gate_mode_restored_on_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+    """If a check raises mid-loop, the try/finally still resets _GATE_MODE to False — a
+    missing reset after failure would silently disable claim-3 on later full-audit runs."""
+    from click.testing import CliRunner
+
+    def _boom(_repo: Path):
+        raise RuntimeError("check exploded")
+
+    monkeypatch.setattr(aud, "_GATE_MODE", False)
+    monkeypatch.setattr(aud, "ALL_CHECKS", [_boom])
+    result = CliRunner().invoke(aud.cmd_health)          # CliRunner captures the exception
+
+    assert isinstance(result.exception, RuntimeError)    # the raise propagated out
+    assert aud._GATE_MODE is False                       # ...yet finally still reset it
+
+
+# ---------------------------------------------------------------------------
 # Fixtures path helper
 # ---------------------------------------------------------------------------
 
