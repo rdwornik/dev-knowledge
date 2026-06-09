@@ -38,6 +38,7 @@ pytest --collect-only for claim 3); writes NOTHING; never orchestrates; never ga
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
@@ -125,12 +126,15 @@ def _derive_pytest_collected(repo_root: Path, _check_count: int) -> Optional[int
     Returns the parsed count, 0 when collection ran but found nothing, or None when
     the launcher/subprocess fails (→ 'skipped', fail-soft; an infra hiccup must not
     flap a WARN). Genuine drift (a real count != the claim) still surfaces as mismatch.
+
+    Read-only (Layer-2, ADR-28/36): `-p no:cacheprovider` suppresses `.pytest_cache/` and
+    `PYTHONDONTWRITEBYTECODE=1` suppresses `__pycache__/`, so collection writes NOTHING.
     """
     try:
         proc = subprocess.run(
-            [sys.executable, "-m", "pytest", "--collect-only", "-q"],
+            [sys.executable, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider"],
             cwd=str(repo_root), capture_output=True, text=True, encoding="utf-8",
-            timeout=180,
+            timeout=180, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
         )
     except (OSError, subprocess.SubprocessError):
         return None
