@@ -64,6 +64,17 @@ try:
 except ImportError:
     import validate_git_backlog as _vgb
 
+# #89 prose-vs-state checker — same module-import + thin-adapter shape as _vgb.
+try:
+    from scripts import validate_doc_claims as _vdc
+except ImportError:
+    import validate_doc_claims as _vdc
+
+# Gate-mode flag (#89): cmd_health sets this True around its self-audit loop so the
+# expensive claim-3 (pytest --collect-only) is SKIPPED on the per-commit gate and
+# evaluated only on the full-audit path (run/repo/CLI/SessionStart). Operator ruling.
+_GATE_MODE = False
+
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("audit")
 
@@ -1074,6 +1085,44 @@ def check_git_backlog_drift(repo_path: Path) -> list[Finding]:
     return [Finding("git_backlog_drift", "warn", evidence)]
 
 
+def check_doc_claims(repo_path: Path) -> list[Finding]:
+    """#89 prose-vs-state: a living doc's count/list CLAIMS vs repo ground truth.
+
+    Hub-only: the claim anchors (ARCHITECTURE "N registered checks", "pre-commit gates
+    (N)", CLAUDE §9 roster) are .dev-knowledge-specific, so on any other repo this is a
+    no-op pass. Catches edited-but-not-reconciled prose that check #10 (last_reviewed
+    staleness) and #13 (HANDOFF version stamps) cannot see; cross-file fidelity / rot
+    is #140's, not this check's.
+
+    Awareness layer, not a gate: emits WARN on a mismatch or an anchor-not-found
+    (never FAIL → never blocks the audit-health commit gate). The expensive claim-3
+    (pytest --collect-only) runs only off the gate (run_expensive=not _GATE_MODE).
+    Fail-soft on any error. Read-only. Logic lives in scripts/validate_doc_claims.py.
+    """
+    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+        return [Finding("doc_claims", "pass",
+                        "hub-only — prose-vs-state check skipped (not the hub repo)")]
+    try:
+        results = _vdc.reconcile(Path(repo_path), len(ALL_CHECKS),
+                                 run_expensive=not _GATE_MODE)
+    except Exception as exc:  # never wedge the audit-health gate
+        return [Finding("doc_claims", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    mismatches = [r for r in results if r.status == "mismatch"]
+    missing = [r for r in results if r.status == "anchor-missing"]
+    if mismatches:
+        evidence = (f"{len(mismatches)} prose claim(s) drifted from repo state: "
+                    + _vdc.format_findings(results)).replace("|", "/")
+        return [Finding("doc_claims", "warn", evidence)]
+    if missing:
+        evidence = ("anchor(s) not found (doc reworded? re-anchor or accept): "
+                    + ", ".join(f"{m.name}@{m.doc}" for m in missing)).replace("|", "/")
+        return [Finding("doc_claims", "warn", evidence)]
+    matched = sum(1 for r in results if r.status == "match")
+    return [Finding("doc_claims", "pass",
+                    f"{matched} doc self-claim(s) match repo state")]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -1090,6 +1139,7 @@ ALL_CHECKS = [
     check_handoff_version_stamp,
     check_floor_integrity,
     check_git_backlog_drift,
+    check_doc_claims,
 ]
 
 
@@ -1438,10 +1488,17 @@ def cmd_health() -> None:
 
     operational_ok = all(ok for _, ok, _ in checks)
 
-    # Self-conformance: full check suite against .dev-knowledge.
+    # Self-conformance: full check suite against .dev-knowledge. Gate mode (#89): the
+    # commit gate runs here, so flag it so check_doc_claims skips the expensive claim-3
+    # (pytest --collect-only) — that locus is evaluated only on the full-audit path.
+    global _GATE_MODE
     self_findings: list[Finding] = []
-    for check in ALL_CHECKS:
-        self_findings.extend(check(Path(_REPO_ROOT)))
+    _GATE_MODE = True
+    try:
+        for check in ALL_CHECKS:
+            self_findings.extend(check(Path(_REPO_ROOT)))
+    finally:
+        _GATE_MODE = False
     self_fail = any(f.status == "fail" for f in self_findings)
 
     click.echo("operational:")
