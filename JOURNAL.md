@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-06-09 — handoff Phase 1 interview generated (2026-06-09-dev-knowledge-session)
+
+**Did:** Generated the Phase 1 handoff interview for `2026-06-09-dev-knowledge-session`
+(HANDOFF_PROCESS v4, Case 2 — clean tree, commits accumulated since the 2026-06-06 bundle).
+HEAD captured at `e6154d3`; sage→apprentice single-cluster interview written with the v4.2
+Amendment A four-tag discipline.
+
+**Result:** `docs/handoffs/in-progress/2026-06-09-dev-knowledge-session/_handoff-interview.md`
+written; awaiting operator answers below the PASTE marker, then `complete handoff for dev-knowledge`.
+
+**Changes:** `docs/handoffs/in-progress/2026-06-09-dev-knowledge-session/` (interview), this JOURNAL marker.
+
+**Next:** Operator pastes answers → Phase 2 consolidates the 8-file bundle.
+
+---
+
 ### 2026-06-09 — floor install-note: from-scratch .pre-commit-config robustness (closes the demo's one correction round)
 
 **Did:** Ran the child-floor lifecycle end-to-end as a process test against a DISPOSABLE
