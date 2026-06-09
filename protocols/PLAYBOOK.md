@@ -1945,6 +1945,7 @@ WHAT NOT TO DO:
 - Include `git status must show clean between each numbered step`
 - JOURNAL `Changes:` line in the session entry if files changed (CHANGELOG.md retired — ADR-49)
 - Bypass permissions (no approval) → almost never, only for trivial read-only operations
+- **Pruning symmetry** — every adding flow gets a review-gated pruning counterpart: CC PROPOSES removals with evidence (superseded-by ADR/commit, dead reference, obsoleted scope), operator ratifies, git history preserves; auto-delete stays forbidden. Point-of-use: the prompt template's Final "obsolescence pass" line (`templates/prompt-template.md`) — every session proposes deletion of content its change supersedes, instead of writing around it. Refs #136, #91 capture, #134 (family pattern), no-delete invariant
 
 ### Prompt Generation Card maintenance rule (per ADR-56, Council Q3)
 <!-- scope: hybrid -->

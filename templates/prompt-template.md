@@ -1,6 +1,6 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
-<!-- version: 1.2 — 2026-06-06 -->
+<!-- version: 1.3 — 2026-06-09 -->
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
 >
@@ -75,6 +75,8 @@ git status
 
 `<Specific success criteria for this prompt — what must be true>`
 
+**Obsolescence pass:** propose deletion of content this change supersedes, instead of writing around it — surface candidates with evidence for the operator to ratify (auto-delete stays forbidden; git history preserves). Per the PLAYBOOK §2 pruning-symmetry rule.
+
 Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tree, or validators red.
 
 ## What NOT to do
@@ -91,3 +93,4 @@ Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tre
 - v1.0 (2026-04-24) — initial template per Gap #2. Standard 8-section structure (Model/Mode/Effort → Title → Read first → Git → UNDERSTAND → Steps → Final → What NOT to do).
 - v1.1 (2026-06-06) — Final merge boilerplate replaced with `/ship` delegation (closes #103).
 - v1.2 (2026-06-06) — Per-step verification line replaced with `verify` skill invocation (closes #104).
+- v1.3 (2026-06-09) — Final gains a standing **obsolescence pass** line (propose deletion of superseded content instead of writing around it; operator ratifies) — point-of-use of the PLAYBOOK §2 pruning-symmetry rule (closes #136).

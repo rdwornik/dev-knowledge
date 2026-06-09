@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-09 — #136 pruning-symmetry doctrine codified (docs/codify-136)
+
+**Did:** Codified the #136 pruning-symmetry doctrine verbatim from its canonical BACKLOG statement (no divergence vs LESSONS #53/#55 or the 78→67 obsolescence-pass — #136 was the designated codification). Two deliverables: (a) a **Pruning symmetry** bullet in PLAYBOOK §2 "Key rules" (every adding flow gets a review-gated pruning counterpart; CC proposes with evidence, operator ratifies, auto-delete forbidden), (b) a standing **Obsolescence pass** line in `templates/prompt-template.md` Final (v1.2→1.3) — the point-of-use of the §2 rule. Closed #136 (63→62); parent story retains #34/#67/#111 (not orphaned).
+
+**Changes:** `protocols/PLAYBOOK.md` (§2 Key rules bullet), `templates/prompt-template.md` (Final line + v1.3), `BACKLOG.md` (#136 removed), `JOURNAL.md`. Gates green: validate_backlog 62 tasks, audit 14/14, ruff, TOC. PLAYBOOK `Last updated` already 2026-06-09 (localized edit; no end-to-end re-read claimed).
+
+---
+
 ### 2026-06-09 — #135 diagram-form algorithm codified to PLAYBOOK doctrine (docs/codify-135)
 
 **Did:** Promoted the #91 five-rule diagram-form algorithm into PLAYBOOK §14 Markdown Governance as a new `### Diagram-form selection algorithm` subsection, verbatim from the canonical #135 BACKLOG statement (sole canonical source — no divergence; JOURNAL #91 close only described its *application*, ADR-51 governs theme not selection). Closed #135 (64→63). Bumped PLAYBOOK `Last updated` → 2026-06-09; toc-freshness regenerated.
