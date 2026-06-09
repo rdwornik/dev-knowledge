@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-09 — #77 ruling: re-scope + split + correct record (chore/77-rescope-split)
+
+**Did:** Operator-ruled #77 as a premature closure: `77e5d7d`'s `closes [#77]` was a misattribution — that merge shipped the CONTRIBUTING→v4 rewrite (referenced inline as `[#77]` in JOURNAL) + the #76 hub/plugin convergence; it touched zero `protocols/` files and added zero doc-rot checks to `audit.py`. Both Done-when parts confirmed unmet (read-only investigation 2026-06-09).
+**Result:** #77 re-scoped to the content consolidation only (operator-gated pass: extract PLAYBOOK §18, reconcile lesson→rule variants, trim ESSENTIALS, strip Section-history blocks). Doc-rot checker split into #140 with a mandatory #89 scope-seam reconciliation before build. The permanent `closes [#77]` in `77e5d7d` will continue tripping the #90 drift-checker as a **true-positive** until #77 actually closes — expected behavior, not a bug.
+**Changes:** BACKLOG.md (#77 re-scoped, #140 added), JOURNAL.md (this entry).
+
+---
+
 ### 2026-06-09 — #90 git↔backlog drift verifier built + deployed to ADR-81's DoD (feat/git-backlog-verifier)
 
 **Did:** Built `scripts/validate_git_backlog.py` — a read-only Layer-2 verifier for **direction (a) STRONG** (ADR-65): a `closes [#id]` commit on the main-line history whose `[#id]` is still present in BACKLOG.md is drift (the closing commit fired but the done item never left). Automates this session's manual git-resync toil (reference spec: `021532c`). Reuses `propose_closures.find_strong` + `validate_backlog.parse` + `git_log_commits` (given an additive `first_parent` kwarg) — no parallel parser. **Deployed to all four ADR-81 criteria, not just built+tested:** (a) **home** = ARCHITECTURE Ch2 organ-map row + §Validators bullet; (b) **path** = `check_git_backlog_drift` registered in `audit.ALL_CHECKS` (14→15) + standalone CLI; (c) **cadence** = every `audit.py health` run (the `audit-health` pre-commit gate + SessionStart `fleet_health`), WARN-only so it informs but never blocks; (d) **deployed** = a seeded closed-but-present id fires the registered check (E2E test), and the first real-repo run caught genuine drift.
