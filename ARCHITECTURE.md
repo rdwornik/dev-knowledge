@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-08
+last_reviewed: 2026-06-09
 status: active
 owner: Rob
 ---
@@ -208,6 +208,7 @@ local git gate.
 | `/ship`, `/review-closures` (commands) | operator | plugin (fleet-wide) | branch→`--no-ff`→clean-tree gate | git-discipline; ADR-70 |
 | `/changelog-review`, `/codex-review` | operator (push) | hub / L0 | — | #113 / ADR-54 |
 | `conformance-hub.js` (Workflow) | operator (`ultracode`) or cloud Routine | Tier-3 | read-only + skeptic + evidence-required | ADR-70 (#81) |
+| `git_backlog_drift` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #90; ADR-65 |
 | pre-commit gates (8) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below |
 
 The **Tier-1 closure loop** is three of these organs in a cycle:
@@ -228,15 +229,19 @@ Per the ADR-28 invariant, Layer 2 hosts **read-only** validators (it does not
 orchestrate, but it may verify itself). These are the *executable* organs the map
 above references — the `scripts/` inventory:
 
-- `scripts/audit.py` — cross-repo conformance + self-audit; **13 registered checks**
+- `scripts/audit.py` — cross-repo conformance + self-audit; **15 registered checks**
   (`python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
-  `no_sibling_orphans`, `canonical_structure`, `mermaid_theme_directive`). `run` =
-  manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs).
+  `no_sibling_orphans`, `canonical_structure`, `mermaid_theme_directive`, `git_backlog_drift`).
+  `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs).
 - `scripts/normalize_headers.py` — dated-log header normalization (pre-commit).
 - `scripts/validate_backlog.py` — BACKLOG story-map schema (ADR-66; pre-commit).
+- `scripts/validate_git_backlog.py` — git↔backlog drift, direction (a) STRONG: a
+  main-line `closes [#id]` whose item is still in BACKLOG = drift (ADR-65; #90).
+  Read-only; surfaced via the `git_backlog_drift` audit check (WARN). Direction (b)
+  deferred to #90b. Standalone CLI: `python scripts/validate_git_backlog.py`.
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
-- `tests/` — pytest unit tests for the validators (**329 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**372 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
