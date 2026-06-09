@@ -64,8 +64,9 @@ CHILD_CLAUDE_DIRNAME = ".claude"
 # Install note — the COMPLETE, surprise-free runbook the generator hands a child
 # at rollout. Baked from the 2026-06-08 corp-sca pilot lessons so the re-pilot is
 # friction-free: (a) the @-include line, (b) the child-side hash-verify hook script
-# with SPLIT imports (no ruff E401) on .claude/ paths, (c) the pre-commit hook entry
-# (system language, .claude/ filespec), (d) the EXPLICIT `pre-commit install` step
+# with SPLIT imports (no ruff E401) on .claude/ paths, (c) the pre-commit hook as a COMPLETE
+# from-scratch-valid config (top-level `repos:`, create-if-absent vs append-to-existing guidance --
+# a bare fragment broke the clean-slate re-pilot), (d) the EXPLICIT `pre-commit install` step
 # (the hook is wired-but-INERT without it), (e) tamper-revert via `git checkout HEAD --`
 # (NOT the index form, which restores from the staged tamper). Raw string so the
 # emitted regex backslashes and `\r\n` in the script body stay literal.
@@ -123,16 +124,22 @@ FIVE steps in the child repo (each is required -- config presence is not enforce
            sys.exit(main())
 
 3. Add this hook to the child's .pre-commit-config.yaml (system language -- no env
-   to provision; the filespec arms it only when the floor or its sidecar changes):
+   to provision; the filespec arms it only when the floor or its sidecar changes).
+   If the child has NO .pre-commit-config.yaml yet, create the file with EXACTLY the
+   block below (the top-level `repos:` key is included so it is valid from scratch).
+   If a .pre-commit-config.yaml already EXISTS, do NOT add a second `repos:` -- append
+   only the `- repo: local` item to the existing top-level `repos:` list, matching
+   that file's indentation:
 
-       - repo: local
-         hooks:
-           - id: floor-hash-verify
-             name: Verify CLAUDE-FLOOR.md matches its sha256 sidecar
-             entry: python .claude/check_floor_hash.py
-             language: system
-             files: '^\.claude/CLAUDE-FLOOR\.md(\.sha256)?$'
-             pass_filenames: false
+       repos:
+         - repo: local
+           hooks:
+             - id: floor-hash-verify
+               name: Verify CLAUDE-FLOOR.md matches its sha256 sidecar
+               entry: python .claude/check_floor_hash.py
+               language: system
+               files: '^\.claude/CLAUDE-FLOOR\.md(\.sha256)?$'
+               pass_filenames: false
 
 4. ARM the hook -- run this in the child clone (writes untracked .git/hooks/, so it
    does NOT travel with the repo: EVERY fresh clone must run it itself):
