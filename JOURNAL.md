@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-09 — BACKLOG git↔history re-sync (chore/backlog-resync)
+
+**Did:** Reconciled BACKLOG's active list to git's actual closed/open state (#134/#90 procedure). Full-history git-closed id set ∩ active list = exactly {#115, #125}; #137/#138 were ALREADY reconciled at HEAD `4bbae04` (the prompt's pre-#137 snapshot premise was stale). Applied diligence to each: removed [#125] (git-closed `113a4ba`; Done-when **verified met** — `ecosystem/*/state.yaml` gitignored + fleet-audit routine self-commits with the `Routine:` trailer, baselines 06-08/06-09) plus its orphaned sole-task story header "Adopt Dynamic Workflows as the Tier-3 agentic harness". **Surfaced #115 for operator ruling** (NOT removed): git-closed `40b0ea1` but on the hub half only (ship.md→plugin); Done-when "a child repo invokes /ship from the plugin" was never witnessed → easy-metric closure; left listed, no tracking item spawned.
+
+**Result:** Active count **66 → 65** (validate_backlog authoritative; 7 themes / 18 stories / 65 tasks / 0 warnings). audit health OK, ruff clean. Commit `021532c` carries `closes [#125]`.
+
+**Changes:** `BACKLOG.md` (−#125 +grooming-log line), `JOURNAL.md`. **Next:** operator ruling on #115 (re-scope-and-remove vs reopen).
+
 ### 2026-06-09 — handoff Phase 2 complete — bundle generated (2026-06-09-dev-knowledge-session)
 
 **Did:** Consolidated the operator's pasted interview answers into the 8-file v4.4
