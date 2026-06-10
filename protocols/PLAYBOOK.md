@@ -647,6 +647,36 @@ Skip checklist items only when not applicable to specific task type. If unsure, 
 - **Unclear out-of-scope** — Claude Code expands work; explicit "Do NOT touch X" prevents
 - **Relative paths** — break when CWD shifts between repos
 
+### Checkable rules: concrete over aspirational
+<!-- scope: meta -->
+
+A rule a model can *check its own output against* gets followed; a rule it can
+only *aspire to* gets broken — even when the model can recite it. Traces show
+models that correctly explain "keep functions small" still ship 80-line
+functions: the vague form gives the output nothing to be tested against, so
+nothing stops the drift. Phrase every rule — in prompts AND in CLAUDE.md — so
+compliance is a yes/no check against a number, an enumerable set, or a named
+artifact, not a feeling.
+
+**The test for your own rule:** could a second reader (or the model itself) mark
+it pass/fail *without re-using your judgment*? If grading the rule needs the same
+taste the rule was meant to encode, it's aspirational — rewrite it.
+
+**Vague → checkable rewrites:**
+
+| Aspirational (drifts) | Checkable (holds) |
+| --- | --- |
+| "clean code" | "functions ≤ 50 lines; every public symbol has a docstring; no module > 500 lines" |
+| "be concise" | "summary ≤ 5 bullets; no bullet > 2 lines" |
+| "good test coverage" | "every public function has ≥ 1 test; `pytest --cov` ≥ 60% on `src/`" |
+| "handle errors properly" | "no bare `except:`; every `except` names a concrete type and logs before re-raising" |
+| "keep docs current" | "TOC matches headers (toc-freshness hook green); `last_reviewed` ≥ the file's last-edit date" |
+
+Keep the *why* in prose where it helps the model reason, but make the **bar** a
+thing it can measure. A rule that can't go red is decoration. (Companion: the
+circular-testing guard under "Testing rules" — a *test* that can't go red has the
+same defect.)
+
 ### Update cadence
 <!-- scope: meta -->
 
