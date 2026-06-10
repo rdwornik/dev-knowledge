@@ -185,3 +185,35 @@ def test_ship_gate_failsoft_on_missing_register(monkeypatch, tmp_path):
     # (degrade-to-stricter), and crucially the command does not crash.
     assert res.exit_code == 1
     assert res.exception is None or isinstance(res.exception, SystemExit)
+
+
+# --- Codex CRITICAL: an aggregate WARN cannot be wholesale-dispositioned -----
+
+def test_ship_gate_blocks_partial_aggregate_disposition(monkeypatch, tmp_path):
+    # Two drifts surface together: the benign #77 (dispositioned, sha 77e5d7d) and a NEW
+    # undispositioned #88. Because git_backlog_drift emits one Finding PER id, the #88
+    # finding re-surfaces and blocks — the #77 disposition cannot wave it through.
+    # TEETH: revert check_git_backlog_drift to one aggregate Finding and this reds (the
+    # single finding's evidence contains 77e5d7d -> whole thing dispositioned -> GREEN).
+    monkeypatch.setattr(aud._vgb, "reconcile", lambda root, backlog: {
+        "77": [("77e5d7df9ab", "Merge ... closes [#77]")],
+        "88": [("deadbeef123", "feat: x, closes [#88]")],
+    })
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))  # tmp == hub so the guard passes
+    res = _run(monkeypatch, [aud.check_git_backlog_drift],
+               register_text=_REGISTER_77, tmp_path=tmp_path)
+    assert res.exit_code == 1
+    assert "RED" in res.output
+    assert "#88" in res.output
+
+
+# --- Codex HIGH: a malformed (non-list) register degrades, never crashes -----
+
+def test_ship_gate_failsoft_on_malformed_register(monkeypatch, tmp_path):
+    # `dispositions: 1` (a scalar, not a list) must degrade to [] (stricter -> the #77
+    # WARN blocks), NOT raise. TEETH: without the isinstance(list) guard, iterating the
+    # int raises TypeError -> res.exception is not a SystemExit and this assertion reds.
+    res = _run(monkeypatch, [_check_returning(_warn_77())],
+               register_text="dispositions: 1\n", tmp_path=tmp_path)
+    assert res.exit_code == 1
+    assert res.exception is None or isinstance(res.exception, SystemExit)

@@ -1212,9 +1212,17 @@ def check_git_backlog_drift(repo_path: Path) -> list[Finding]:
     if not drift:
         return [Finding("git_backlog_drift", "pass",
                         "no closed-but-present backlog drift (direction (a) STRONG, full history)")]
-    evidence = (f"{len(drift)} closed-but-present (ADR-65 done-items-leave): "
-                + _vgb.format_findings(drift)).replace("|", "/")
-    return [Finding("git_backlog_drift", "warn", evidence)]
+    # ONE Finding per drifted id (atomic). A single aggregate WARN would let the #147
+    # ship-gate disposition the WHOLE finding on one matched id and wave a DIFFERENT,
+    # undispositioned drift through (Codex CRITICAL 2026-06-10): dispositions match a
+    # whole Finding, so the disposition unit must equal the concern unit. Per-id findings
+    # gate each drift independently. format_findings({id: ...}) reused (no parallel logic).
+    return [
+        Finding("git_backlog_drift", "warn",
+                ("closed-but-present (ADR-65 done-items-leave): "
+                 + _vgb.format_findings({cid: drift[cid]})).replace("|", "/"))
+        for cid in sorted(drift, key=int)
+    ]
 
 
 def check_doc_claims(repo_path: Path) -> list[Finding]:
@@ -1663,7 +1671,10 @@ def _load_dispositions() -> list[dict]:
         return []
     if not isinstance(data, dict):
         return []
-    return [d for d in (data.get("dispositions") or []) if isinstance(d, dict)]
+    items = data.get("dispositions")
+    if not isinstance(items, list):  # HIGH (Codex): a non-list scalar must degrade, not raise
+        return []
+    return [d for d in items if isinstance(d, dict)]
 
 
 def _match_disposition(finding: "Finding", dispositions: list[dict]) -> Optional[dict]:
@@ -1696,6 +1707,12 @@ def cmd_ship_gate() -> None:
       - else                                                 -> GREEN, exit 0
     A register entry that matched NO live WARN is surfaced as `[stale]` (ADR-75 decoration
     rule — awareness, does NOT block); the register may not silently rot.
+
+    Disposition contract: a register entry suppresses a WHOLE Finding (its `match` is a
+    substring of the evidence). So an aggregate awareness organ MUST emit one Finding per
+    concern, or one matched token would suppress unrelated drift bundled in the same
+    finding (Codex CRITICAL 2026-06-10). `git_backlog_drift` emits one Finding per drifted
+    id for exactly this reason; any future dispositioned organ must do likewise.
 
     Seam vs the pre-commit `audit-health` gate (they reuse ALL_CHECKS but do NOT
     double-run vacuously — different moment, different posture):

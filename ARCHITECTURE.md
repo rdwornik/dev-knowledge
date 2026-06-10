@@ -256,7 +256,7 @@ above references — the `scripts/` inventory:
   accuracy only — cross-file fidelity / rot is #140. Standalone CLI: `python scripts/validate_doc_claims.py` (#89).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
-- `tests/` — pytest unit tests for the validators (**417 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**420 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
