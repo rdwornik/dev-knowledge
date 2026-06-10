@@ -19,6 +19,12 @@
 
 ---
 
+### 2026-06-10 — consolidation-audit record archived; Definition-of-Shipped (5) completed (docs/audit-record-2026-06-10)
+
+**Did:** Archived the full audit to `docs/audits/2026-06-10-consolidation-audit.md` (scope, the 5-organ E2E witness table, F1/F2/F3 dispositions + commit refs, reconcile rationale, the 6-point checklist). The prior close over-claimed "all six met": Definition-of-Shipped point (5) names *archive*, and the arc updated JOURNAL/BACKLOG/PLAYBOOK/gotchas but never the audit's own `docs/audits/` record — (5) was partially met. This record completes it (caught on operator review — the audit dogfooding its own doctrine). Also captured the `/ship` bracketed-`[#id]` gotcha into `~/.claude`.
+**Result:** Record committed; organs re-confirmed green on `main` (audit-health OK; `git_backlog_drift` = {#77} dispositioned; validate_backlog 65/0; ruff clean). Backpressure cleared at ship.
+**Changes:** `docs/audits/2026-06-10-consolidation-audit.md` (new), this JOURNAL note; `~/.claude` gotchas skill (separate commit).
+
 ### 2026-06-10 — consolidation audit: recent arc verified against the Definition of Shipped (chore/consolidation-audit-2026-06-10)
 
 **Did:** Applied the new "deployment is half the success" Definition-of-Shipped retroactively over the 06-04..06-10 arc (135 first-parent merges; 5 Group-A executable organs in scope). PHASE 1 control pass (organs read-only). PHASE 2 E2E-witnessed each organ as a USER would, not via pytest: #11 amendment-coherence (tamper handoff.md v4->v3 straggler -> `health` exit 1, gate BLOCKS); #89 `validate_doc_claims` +#141 (git-clean-after-run = read-only deriver; tamper ARCH 17->99 -> printed `mismatch doc=99 actual=17` = teeth); #90a `validate_git_backlog` (remove #11 from a temp BACKLOG copy -> drift drops to {77,111} = non-vacuous); floor lifecycle (generate->install->tamper-> BOTH guards fire [child pre-commit exit 1 + hub `floor_integrity` FAIL] -> `git checkout HEAD --` restore -> green; child torn down, no leftovers); /ship (source-verified auto-delete + inline `-m`). PHASE 3 reconcile table -> operator ratify -> PHASES 4-6 applied with two human gates.
