@@ -85,6 +85,7 @@
   - [Cloud-session hub-independence (self-containment)](#cloud-session-hub-independence-self-containment)
   - [What every routine must meet (the operational standard)](#what-every-routine-must-meet-the-operational-standard)
 - [Definition of done (organs)](#definition-of-done-organs)
+  - [Definition of shipped (closure gate)](#definition-of-shipped-closure-gate)
 - [Continuous Improvement](#continuous-improvement)
   - [Pipeline overview](#pipeline-overview)
   - [Stage 1: Discovery](#stage-1-discovery)
@@ -1440,6 +1441,20 @@ Recorded as **ADR-81** (2026-06-09). An organ — a plugin, hook, command, skill
 - **(d) actual deployment, OR an explicit documented deferral** that names the gap and what remains.
 
 Stopping at build+test is the **half-feature rot trap**: build-and-test ≠ done. (The routine-specific analog is "What every routine must meet" above — this is its generalization to every organ class.)
+
+### Definition of shipped (closure gate)
+<!-- scope: meta -->
+
+ADR-81 (a)–(d) above answers *"is this organ a complete organ?"* This answers the adjacent question *"is this work actually shipped, or only prematurely announced?"* — the **"deployment is half the success"** gate (LESSONS 2026-06-10). "Unit tests pass → announce shipped" is the EASY metric; declaring on it under momentum is the recurring premature-closure failure (the floor saga is the worked example). A feature/arc is **shipped** only when ALL six hold:
+
+1. **Git clean + merged** — branch merged `--no-ff` to `main` and pushed; `upstream..HEAD` empty (LESSONS 2026-06-09 /ship-completion).
+2. **Version surfaces coherent** — every coupled version surface agrees with its anchor (`audit.py amendment_coherence` green).
+3. **An E2E / user-flow test passes** — the whole sequence exercised as a user would, not only unit tests (**#144**).
+4. **Checked against the original expectation in a back-and-forth** — reconciled with what the operator actually asked, not a one-shot self-grade (LLM-LLM transfer is bidirectional — see "LLM-LLM context transfer is back-and-forth, not unilateral").
+5. **Records updated** — JOURNAL / LESSONS / ADR / archive reflect the change.
+6. **The verification organs RUN green** — `audit-health`, `validate_doc_claims` (#89), `validate_git_backlog` (#90a), `canonical_freshness` actually **executed against THIS arc**, not merely existing. Building an organ ≠ running it on the feature it should guard.
+
+Announcing before (2)–(6) is **premature closure**, not shipped. Point (6) is **operator-enforced discipline until #147** wires it as a pre-ship gate (a hook/command that RUNS the organs and BLOCKS `/ship` on red). De-dup: point (3) E2E = **#144**; codification-completeness of the methodology home = **#145**; #147 = the run-organs-as-gate mechanism — three distinct items.
 
 ---
 
