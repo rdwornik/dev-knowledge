@@ -54,6 +54,7 @@
   - [File type taxonomy](#file-type-taxonomy)
   - [File presence (universal baseline)](#file-presence-universal-baseline)
   - [Canonical-file freshness cadence (audit check #10)](#canonical-file-freshness-cadence-audit-check-10)
+  - [Multi-surface amendment coherence (audit check `amendment_coherence`)](#multi-surface-amendment-coherence-audit-check-amendment_coherence)
   - [Common confusions resolved](#common-confusions-resolved)
   - [Supersession & decommissioning](#supersession--decommissioning)
   - [Handoff format spec](#handoff-format-spec)
@@ -937,6 +938,15 @@ The living docs `VISION / ARCHITECTURE / CLAUDE / CONTRIBUTING` carry a `last_re
 Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are excluded — their freshness is intrinsic. A file with no `last_reviewed` → WARN (lets a repo adopt the convention without a hard failure). **Portable:** the check is parameterised by a file list, so a child repo inherits it unchanged (its own project `CLAUDE.md` is `"CLAUDE.md"`). Operationalizes the ADR-39 "grooming" lifecycle element.
 
 **Scope + caveats (honest limits).** This enforces *edit-hygiene* + a calendar backstop. It does **not** detect content-vs-decision drift — a doc whose prose lagged a new ADR while its file was never edited trips neither signal (that is the doc-truth sweep, BACKLOG [#10]). A2 is **commit-based** (keyed off the file's last *author* date, stable across rebase): an uncommitted working-tree edit is flagged at the next audit *after* it lands in a commit, not while the tree is dirty — the signal is eventually-consistent, not real-time (failing a dirty tree would fire mid-edit, before the reviewer has bumped the stamp). It is **gated at pre-commit**: the `audit-health` hook runs `audit.py health` on every commit, so an A2 FAIL blocks the commit — while A1 (the 30-day backstop) and a missing stamp are WARN and never block (`git commit --no-verify` bypasses). There is no CI/remote in this flow, so pre-commit is the gate; a session-close hook remains a possible future addition.
+
+### Multi-surface amendment coherence (audit check `amendment_coherence`)
+<!-- scope: meta -->
+
+**A version/authority amendment that spans several hand-maintained surfaces must leave no straggler.** This converts LESSON-#9's advisory "cross-case trace before a multi-surface amendment" guard into an enforced gate — the failure it prevents is the v3.4 self-handoff abort (the skill announced v3.3.3 while the spec was v3.4: a stale version string that mis-signalled authority). The cross-case trace is no longer a remembered intention; it is a gate.
+
+`scripts/audit.py` `amendment_coherence` (in `ALL_CHECKS` → runs in `audit health` and `audit run`) reads a declarative manifest — `_COUPLED_VERSION_SETS`, the cross-case **"checklist as data"**. Each `CoupledSet` names an *anchor* (the authority version) and the *surfaces* that must agree with it at a `granularity` (`major`, or `full` with `3.4 == 3.4.0` normalization). A surface left at a stale version is a **straggler → FAIL**. Add a set when a new family of surfaces must track one authority version; the membership criterion is **semantic intent-to-mirror, not mere co-occurrence** of a version string (an incidental mention that versions independently would false-FAIL — anchor the regex on the *intent-bearing construct*). Child-repo-safe: an absent anchor skips the set (the hub-only sets skip entirely on a child → PASS). FAIL-blocking via the `audit-health` pre-commit hook.
+
+**Scope + caveats (honest limits).** This guards only surfaces that **still hand-maintain a version**. The superior fix for a coupled surface is to **de-hardcode** it — make it interpolate the spec version (the handoff skill/templates read `{{VERSION}}`), so there is no static token to go stale; de-hardcoded surfaces carry nothing to compare and are **out of scope by design** (de-hardcoding, not this gate, closes their straggler class). So the gate does **not** by itself prevent a literal v3.4 recurrence — it guards the residual hand-maintained surfaces and is the extensible home for future coupled families. The narrow `handoff_version_stamp` check owns the full `stamp vX.Y` mirrors in `ARCHITECTURE`/`CONTRIBUTING`; `amendment_coherence` is the generalized manifest beside it. Per the prose↔state seam, it does not detect drift on de-hardcoded or unmanifested surfaces.
 
 ### Common confusions resolved
 <!-- scope: meta -->
