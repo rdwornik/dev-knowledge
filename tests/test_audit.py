@@ -1575,3 +1575,145 @@ def test_floor_integrity_broken_pointer_fails(tmp_path: Path) -> None:
 
 def test_floor_integrity_registered_in_all_checks() -> None:
     assert aud.check_floor_integrity in aud.ALL_CHECKS
+
+
+# ---------------------------------------------------------------------------
+# check_amendment_coherence — #11 multi-surface amendment gate (version stragglers)
+#
+# Tests are derived from the architect's acceptance criteria (the #11 plan), NOT from
+# the implementation (circular-testing guard). Criteria:
+#   - the gate FIRES (FAIL / health exit 1) when a coupled surface strands at a stale
+#     version vs the anchor's authority version;
+#   - it PASSES on an aligned set;
+#   - it normalizes granularity (major-only; and full so 3.4 == 3.4.0, the v3.4 minor class);
+#   - it is FAIL-blocking through the real gate (audit.py health), not just as a function.
+# Teeth: gutting the comparison `if surface_ver != canonical:` -> `if False:` makes the
+# check PASS on the seeded straggler, so the FIRES tests (asserting fail / exit 1) go RED.
+# ---------------------------------------------------------------------------
+
+def _seed_coupled(repo: Path, spec_ver: str, surface_ver: str) -> None:
+    """Seed the REAL manifest's declared paths (handoff-major-version set) in `repo`.
+
+    Writes the anchor (protocols/HANDOFF_PROCESS.md `Version:`) plus the two coupled
+    surfaces using the EXACT live line forms (CLAUDE.md:105, .claude/commands/handoff.md:2)
+    so any faithful manifest regex matches. `spec_ver` is the full anchor version (e.g.
+    "4.4"); `surface_ver` is what the surfaces declare (e.g. "4" aligned, "3" straggler).
+    """
+    (repo / "protocols").mkdir(parents=True, exist_ok=True)
+    (repo / ".claude" / "commands").mkdir(parents=True, exist_ok=True)
+    (repo / "protocols" / "HANDOFF_PROCESS.md").write_text(
+        f"# Handoff Process\nVersion: {spec_ver}\n", encoding="utf-8")
+    (repo / "CLAUDE.md").write_text(
+        f"## 7\n- `/handoff` — generate/complete handoff per `HANDOFF_PROCESS.md` "
+        f"v{surface_ver} two-phase flow (ADR-62)\n", encoding="utf-8")
+    (repo / ".claude" / "commands" / "handoff.md").write_text(
+        f"---\ndescription: Generate or complete a handoff per HANDOFF_PROCESS.md "
+        f"v{surface_ver} — two-phase interview\n---\n", encoding="utf-8")
+
+
+def test_amendment_coherence_straggler_fires(tmp_path: Path) -> None:
+    """A surface stranded at a stale major (v3 while the spec is 4.x) -> FAIL with a
+    straggler detail naming the offending surface."""
+    _seed_coupled(tmp_path, spec_ver="4.4", surface_ver="3")
+    f = aud.check_amendment_coherence(tmp_path)[0]
+    assert f.status == "fail"
+    assert "straggler" in f.evidence.lower()
+    assert "CLAUDE.md" in f.evidence or "handoff.md" in f.evidence
+
+
+def test_amendment_coherence_aligned_passes(tmp_path: Path) -> None:
+    """All coupled surfaces at the anchor's major (v4) -> PASS (legit aligned amendment)."""
+    _seed_coupled(tmp_path, spec_ver="4.4", surface_ver="4")
+    f = aud.check_amendment_coherence(tmp_path)[0]
+    assert f.status == "pass"
+
+
+def test_amendment_coherence_no_anchor_skips(tmp_path: Path) -> None:
+    """Child-repo-safe: no HANDOFF_PROCESS.md anchor present -> PASS (skip, no false-FAIL)."""
+    f = aud.check_amendment_coherence(tmp_path)[0]
+    assert f.status == "pass"
+
+
+def test_amendment_coherence_full_granularity_minor_straggler(tmp_path: Path) -> None:
+    """A 'full'-granularity set catches a MINOR straggler (the v3.4 abort class: 3.3.3 vs
+    3.4, both major 3), and 3.4 == 3.4.0 trailing-zero normalization does NOT false-FAIL.
+    Uses an injected set (criteria-derived data, not implementation) to exercise the
+    comparison logic independent of the real manifest."""
+    (tmp_path / "spec.md").write_text("Version: 3.4\n", encoding="utf-8")
+    (tmp_path / "inst.md").write_text("pinned at v3.3.3 here\n", encoding="utf-8")
+    cset = aud.CoupledSet(
+        name="t",
+        anchor=("spec.md", r"Version:\s+v?(\d+\.\d+(?:\.\d+)?)"),
+        surfaces=[("inst.md", r"v(\d+\.\d+(?:\.\d+)?)")],
+        granularity="full",
+    )
+    f = aud.check_amendment_coherence(tmp_path, _sets=[cset])[0]
+    assert f.status == "fail"  # 3.3.3 != 3.4
+
+    (tmp_path / "inst.md").write_text("pinned at v3.4.0 here\n", encoding="utf-8")
+    f2 = aud.check_amendment_coherence(tmp_path, _sets=[cset])[0]
+    assert f2.status == "pass"  # 3.4 == 3.4.0 (normalization)
+
+
+def test_amendment_coherence_gate_blocks_health(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """ENFORCEMENT-PATH E2E (must-fix 1): a seeded straggler routed through the REAL gate
+    (`audit.py health` / cmd_health) makes it EXIT 1 (ADR-81 (d) FAIL-blocking), and an
+    aligned tree exits 0. Isolates ALL_CHECKS to this check so the exit code is attributable
+    to the straggler (precedent: the _GATE_MODE cmd_health tests). Proves deployment, not
+    just that the function returns 'fail'."""
+    from click.testing import CliRunner
+
+    # operational deps OK so the exit code is driven by self-conformance, not ecosystem absence
+    eco = tmp_path / "ecosystem" / "r"
+    eco.mkdir(parents=True)
+    (eco / "state.yaml").write_text(
+        "name: r\npath: /tmp/r\nlast_audit: null\nfindings: []\n", encoding="utf-8")
+    monkeypatch.setattr(aud, "ECOSYSTEM_DIR", tmp_path / "ecosystem")
+    monkeypatch.setattr(aud, "ALL_CHECKS", [aud.check_amendment_coherence])
+
+    repo = tmp_path / "repo"
+    _seed_coupled(repo, spec_ver="4.4", surface_ver="3")     # straggler
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(repo))
+    blocked = CliRunner().invoke(aud.cmd_health)
+    assert blocked.exit_code == 1
+    assert "DEGRADED" in blocked.output
+
+    _seed_coupled(repo, spec_ver="4.4", surface_ver="4")     # aligned (overwrite surfaces)
+    passed = CliRunner().invoke(aud.cmd_health)
+    assert passed.exit_code == 0
+    assert "OK" in passed.output
+
+
+def test_amendment_coherence_present_surface_missing_mention_warns(tmp_path: Path) -> None:
+    """Codex HIGH-1: a present coupled surface whose normative version mention vanished
+    (reworded/removed) is surfaced as drift (WARN), never a silent PASS. Anchor present
+    (hub case); CLAUDE.md keeps its mention but handoff.md loses it.
+    Teeth: dropping the surface_hits==0 drift branch makes this go PASS -> RED."""
+    _seed_coupled(tmp_path, spec_ver="4.4", surface_ver="4")
+    # Rewrite handoff.md so it carries NO 'handoff per HANDOFF_PROCESS.md vN' line.
+    (tmp_path / ".claude" / "commands" / "handoff.md").write_text(
+        "---\ndescription: dispatch skill\n---\nNo normative version declaration here.\n",
+        encoding="utf-8")
+    f = aud.check_amendment_coherence(tmp_path)[0]
+    assert f.status == "warn"
+    assert "coupling marker missing" in f.evidence
+    assert "handoff.md" in f.evidence
+
+
+def test_amendment_coherence_ignores_non_normative_mention(tmp_path: Path) -> None:
+    """Codex HIGH-2: a non-authority mention (a historical 'HANDOFF_PROCESS.md vN
+    Amendment' note at a DIFFERENT major) must NOT false-FAIL — only the normative
+    'handoff per ... vN' declaration is compared. All normative mentions aligned -> PASS.
+    Teeth: loosening the surface regex back to a bare 'HANDOFF_PROCESS.md vN' construct
+    makes the historical v2 line a straggler -> FAIL -> RED."""
+    _seed_coupled(tmp_path, spec_ver="4.4", surface_ver="4")
+    # Append a stale, NON-normative historical mention to CLAUDE.md.
+    with (tmp_path / "CLAUDE.md").open("a", encoding="utf-8") as fh:
+        fh.write("\nHistorical: see HANDOFF_PROCESS.md v2.1 Amendment A (superseded).\n")
+    f = aud.check_amendment_coherence(tmp_path)[0]
+    assert f.status == "pass"
+
+
+def test_amendment_coherence_registered_in_all_checks() -> None:
+    assert aud.check_amendment_coherence in aud.ALL_CHECKS
