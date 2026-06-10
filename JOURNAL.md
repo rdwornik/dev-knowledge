@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-10 — handoff-methodology lesson captured + #148 filed (HANDOFF_PROCESS v5) (docs/handoff-v5-lesson)
+
+**Did:** Two operator-directed appends ahead of this chat's handoff-bundle generation, reading the canonical formats first (LESSONS header, BACKLOG ADR-66 schema, validator) rather than improvising. (1) LESSONS: a handoff that POINTS to the methodology but doesn't FORCE a read is the spine failure at the session boundary — the receiver works from the lossy compaction summary (secondary source) not the files on disk (primary); the current forced-read is fake-green because its onboarding questions are answerable from the summary; fix = verification with TEETH (answer lives ONLY in the primary source), pointer + teeth-y read never hand-copy, lean task-state (backlog-as-spec, items = tickets — Matt Pocock). (2) BACKLOG: filed #148 [P2][L] Tier-1 candidate (HANDOFF_PROCESS v5 redesign, AI-Council-routed) under the deferred-handoff-template-refinements story, sibling to #25/#124.
+
+**Result:** Both landed; `validate_backlog` OK (7 themes, 18 stories, **65** tasks, 0 warnings) — caught + corrected my own grooming-log count (drafted 66, validator ground-truth 65; pre-add baseline was 64, not the 65 the prior grooming line implied). 420 tests collect; all pre-commit gates passed (audit-health, validate-backlog, dated-header). No code, no build — appends only.
+
+**Changes:** `LESSONS.md` (+1 top entry), `BACKLOG.md` (+#148, grooming-log line), this JOURNAL note. Commit 13cba79, merge d74cdf0.
+
+**Abandoned:** Nothing.
+
+**Next:** Generate this chat's handoff bundle (operator's stated next step). Push of local `main` (now ahead of origin) pending — fold into the bundle pass or push on operator ask.
+
 ### 2026-06-10 — closure loop: #147 removed from BACKLOG (done-items-leave, operator-approved) (chore/close-147)
 
 **Did:** Ran the ADR-70 Tier-1 closure review. Gate proposed 3 STRONG + 6 WEAK; flagged #5 + #77 as precision false-positives (both keyed off `a3cb5219c`, the #90 verifier commit whose test fixtures embed `closes [#5]`/`closes [#77]` — #77 is the voided closure, legitimately open; the cruder propose-hook didn't code-strip them as `validate_git_backlog` does) and all 6 WEAK as inferred-not-done. Operator approved **#147 only**; gate `plan` re-verified (strong, evidence `0ee6c3d1f`); removed the one task line.
