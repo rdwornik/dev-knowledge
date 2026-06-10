@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-06-09
+> Last updated: 2026-06-10
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
