@@ -1185,7 +1185,7 @@ def check_floor_integrity(repo_path: Path) -> list[Finding]:
 
 
 def check_git_backlog_drift(repo_path: Path) -> list[Finding]:
-    """#90 git↔backlog reconciliation (direction (a) STRONG, ADR-65).
+    """#90 git<->backlog reconciliation (direction (a) STRONG, ADR-65).
 
     Hub-only: ALL_CHECKS runs per-repo across the fleet, but the `closes [#id]`
     convention + ADR-65 "done items leave" are .dev-knowledge-specific, so on any
@@ -1200,7 +1200,7 @@ def check_git_backlog_drift(repo_path: Path) -> list[Finding]:
     """
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
         return [Finding("git_backlog_drift", "pass",
-                        "hub-only — git↔backlog drift check skipped (not the hub repo)")]
+                        "hub-only — git<->backlog drift check skipped (not the hub repo)")]
     try:
         drift = _vgb.reconcile(Path(repo_path), Path(repo_path) / "BACKLOG.md")
     except Exception as exc:  # never wedge the audit-health gate
