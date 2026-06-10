@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-10 — fleet handoff-readiness audit (docs/fleet-handoff-audit)
+
+**Did:** Read-only primary-source audit of all 5 registered ecosystem repos (+ unregistered `terminal-setup`) — handoff-maturity tier + actual transmission mechanism per repo — for the v4.4 migration rollout. State verified on disk; registry `notes` (2026-04-27) used only for the repo list. Wrote `docs/audits/2026-06-10-fleet-handoff-readiness.md`; no child repo touched (ADR-41/ADR-36).
+
+**Result:** Tiers (5 registered): current=2 (hub, corp-sca) / partial=3 (corp-monorepo, ai-council, corp-ops) / cold=0; `terminal-setup` cold but out-of-registry. The current↔partial split among children rests **solely** on ADR-78 floor wiring (only corp-sca has it). Load-bearing surprise: the **hub-pointer mechanism exists today** (`tier1-lifecycle@0.1.10` enabled + `../.dev-knowledge/protocols` pointers on all 4 children) — the pointer-first migration premise already holds, partly in production.
+
+**Next:** Operator picks the rollout order + the v4.4 beta→stable pilot from the 3 surfaced candidates (hub / corp-monorepo / corp-sca); audit decides neither.
+
 ### 2026-06-10 — handoff Phase 2 complete: bundle for 2026-06-10-dev-knowledge-session (docs/handoff-2026-06-10)
 
 **Did:** Consolidated the answered interview into the 8-file v4.4 bundle at `docs/handoffs/2026-06-10-dev-knowledge-session/`. Resolved all template markers from live source (02/03 reused from the proven 06-09 extract + folded in the new Parallel-work §; 04/05 synthesized from JOURNAL + interview; 01/06/07 from template). Cross-checked every load-bearing sender claim against repo state.
