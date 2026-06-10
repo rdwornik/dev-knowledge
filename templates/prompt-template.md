@@ -27,7 +27,7 @@ Read `CLAUDE.md`, `<other read-first files relevant to task>`, and check `~/.cla
 
 1. `git checkout -b <branch-name>` (branch name follows repo convention from CLAUDE.md)
 2. Commit after each step (or numbered group below)
-3. Merge to main when green: `git checkout main && git merge --ff-only <branch>`
+3. Merge to main when green: `git checkout main && git merge --no-ff <branch>`
 
 ## UNDERSTAND
 <!-- scope: meta -->
