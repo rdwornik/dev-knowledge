@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-10 — closure loop: #147 removed from BACKLOG (done-items-leave, operator-approved) (chore/close-147)
+
+**Did:** Ran the ADR-70 Tier-1 closure review. Gate proposed 3 STRONG + 6 WEAK; flagged #5 + #77 as precision false-positives (both keyed off `a3cb5219c`, the #90 verifier commit whose test fixtures embed `closes [#5]`/`closes [#77]` — #77 is the voided closure, legitimately open; the cruder propose-hook didn't code-strip them as `validate_git_backlog` does) and all 6 WEAK as inferred-not-done. Operator approved **#147 only**; gate `plan` re-verified (strong, evidence `0ee6c3d1f`); removed the one task line.
+
+**Result:** #147 left BACKLOG (done-items-leave, ADR-65); validate_backlog OK 65→64; gate re-check confirms #147 no longer open. #5/#77 + the 6 WEAK untouched (not approved).
+
+**Changes:** `BACKLOG.md` (−#147), this JOURNAL note.
+
+**Next:** #139 (arc-content verifier — will auto-clear the #77 disposition); #146.
+
 ### 2026-06-10 — #147 pre-ship verification-organ gate shipped: ship-gate + disposition register (feat/147-ship-gate)
 
 **Did:** Made "Definition of shipped" point (6) enforceable. New `audit.py ship-gate` subcommand: runs the full ALL_CHECKS self-audit against the feature arc at /ship time and emits ONE verdict, reading `Finding.status` DIRECTLY (not exit codes — the awareness organs exit 0 on drift, F1). Blocks on any FAIL **or** any new/undispositioned WARN; runs the expensive claim-3 (full verification). Expected WARNs are cleared via a new read-only register `ecosystem/disposition-register.yaml` — founding entry the #77 voided closure, keyed on the benign commit sha `77e5d7d` (not the bare id) so a DIFFERENT future #77 drift re-surfaces; a register entry matching no live WARN is surfaced `[stale]` (ADR-75 decoration rule, non-blocking). Wired into `ship.md` as a hub-guarded refuse-on-failure pre-flight (skips silently on child repos — organs are hub-only). Seam vs pre-commit `audit-health` documented (commit-time FAIL-only vs arc-time FAIL+undispositioned-WARN-block). Plan gate confirmed the seam + order (#147 first, #139 follows — #147's Done-when names no #139 dependency; the live #77 WARN is its own non-vacuous fixture). Tests criteria-first (circular-testing guard). Codex (gpt-5.5): 1 CRITICAL + 1 HIGH resolved with regression-proven teeth.
