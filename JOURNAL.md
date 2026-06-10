@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-10 — handoff Phase 1 interview generated for 2026-06-10-dev-knowledge-session (docs/handoff-2026-06-10)
+
+**Did:** Ran the v4.4 scope matrix (read-only) → Case 2 (clean tree, commits since the 2026-06-09 bundle, today's slug absent) → Phase 1, slug `2026-06-10-dev-knowledge-session`. Captured HEAD c8716c2 / branch main / clean tree; confirmed Fresh (no in-progress interview). Wrote the sage→apprentice interview (`_handoff-interview.md`, four-tag discipline per Amendment A, single 5-question cluster).
+
+**Result:** Interview written, awaiting operator answers below the PASTE marker.
+
+**Changes:** `docs/handoffs/in-progress/2026-06-10-dev-knowledge-session/_handoff-interview.md` (new), this JOURNAL marker.
+
+**Next:** Operator pastes the question block into the sender chat, pastes answers below the marker, saves, then `complete handoff for dev-knowledge` (Phase 2 consolidation → bundle).
+
 ### 2026-06-10 — handoff-methodology lesson captured + #148 filed (HANDOFF_PROCESS v5) (docs/handoff-v5-lesson)
 
 **Did:** Two operator-directed appends ahead of this chat's handoff-bundle generation, reading the canonical formats first (LESSONS header, BACKLOG ADR-66 schema, validator) rather than improvising. (1) LESSONS: a handoff that POINTS to the methodology but doesn't FORCE a read is the spine failure at the session boundary — the receiver works from the lossy compaction summary (secondary source) not the files on disk (primary); the current forced-read is fake-green because its onboarding questions are answerable from the summary; fix = verification with TEETH (answer lives ONLY in the primary source), pointer + teeth-y read never hand-copy, lean task-state (backlog-as-spec, items = tickets — Matt Pocock). (2) BACKLOG: filed #148 [P2][L] Tier-1 candidate (HANDOFF_PROCESS v5 redesign, AI-Council-routed) under the deferred-handoff-template-refinements story, sibling to #25/#124.
