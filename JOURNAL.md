@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-10 — handoff v4.4 bundle generated for 2026-06-10-dev-knowledge-session-2 (docs/handoff-2026-06-10-v5-pivot)
+
+**Did:** Generated the v4.4 handoff bundle carrying the Matt-Pocock v5-redesign pivot — drove the `/handoff` two-phase logic (Phase-1 scaffold commit → operator-pre-supplied answers → Phase-2 consolidate), all 8 files from live source (02 from the live PLAYBOOK/ESSENTIALS, not the prior bundle's extract), Phase-2 cross-checked all 8 load-bearing claims (no drift). Task-state kept LEAN — a pointer to BACKLOG, no ID/SHA re-narration.
+
+**Result:** Bundle at `docs/handoffs/2026-06-10-dev-knowledge-session-2/` (8 files, under budget; README stamped v4.4 beta); in-progress interview removed. Carried surprise: the fleet audit *shrank* migration rather than scoping it up — pointer-first holds, the only child delta is the ADR-78 floor, and children's absent local `/handoff` is BY DESIGN, not a gap (migration ≈ wire the floor into 3 children = hardening, not P1).
+
+**Next:** Next browser chat runs the Matt-Pocock comparative audit → drives HANDOFF_PROCESS v5 (#148) via AI Council. Migration (v4.4 §G validation) and #148/v5 are PARALLEL tracks, not a dependency chain.
+
+**Changes:** `docs/handoffs/2026-06-10-dev-knowledge-session-2/` (8 files, new); in-progress interview removed; this JOURNAL marker; one LESSONS append (Phase-2 synthesis-defect).
+
 ### 2026-06-10 — fleet handoff-readiness audit (docs/fleet-handoff-audit)
 
 **Did:** Read-only primary-source audit of all 5 registered ecosystem repos (+ unregistered `terminal-setup`) — handoff-maturity tier + actual transmission mechanism per repo — for the v4.4 migration rollout. State verified on disk; registry `notes` (2026-04-27) used only for the repo list. Wrote `docs/audits/2026-06-10-fleet-handoff-readiness.md`; no child repo touched (ADR-41/ADR-36).
