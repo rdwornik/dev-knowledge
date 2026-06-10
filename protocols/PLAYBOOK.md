@@ -1452,7 +1452,7 @@ ADR-81 (a)–(d) above answers *"is this organ a complete organ?"* This answers 
 3. **An E2E / user-flow test passes** — the whole sequence exercised as a user would, not only unit tests (**#144**).
 4. **Checked against the original expectation in a back-and-forth** — reconciled with what the operator actually asked, not a one-shot self-grade (LLM-LLM transfer is bidirectional — see "LLM-LLM context transfer is back-and-forth, not unilateral").
 5. **Records updated** — JOURNAL / LESSONS / ADR / archive reflect the change.
-6. **The verification organs RUN green** — `audit-health`, `validate_doc_claims` (#89), `validate_git_backlog` (#90a), `canonical_freshness` actually **executed against THIS arc**, not merely existing. Building an organ ≠ running it on the feature it should guard.
+6. **The verification organs RUN green** — `audit-health`, `validate_doc_claims` (#89), `validate_git_backlog` (#90a), `canonical_freshness` actually **executed against THIS arc**, not merely existing. Building an organ ≠ running it on the feature it should guard. **"Organs run green" is class-specific:** hard-fail organs (`audit-health`, `amendment_coherence`) exit 0; awareness organs (`validate_doc_claims`, `validate_git_backlog`) surface no new or undispositioned WARN — a documented pre-existing WARN (e.g. a voided closure pending #139) does not block.
 
 Announcing before (2)–(6) is **premature closure**, not shipped. Point (6) is **operator-enforced discipline until #147** wires it as a pre-ship gate (a hook/command that RUNS the organs and BLOCKS `/ship` on red). De-dup: point (3) E2E = **#144**; codification-completeness of the methodology home = **#145**; #147 = the run-organs-as-gate mechanism — three distinct items.
 
