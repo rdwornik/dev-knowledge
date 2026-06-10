@@ -1,6 +1,6 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
-<!-- version: 1.3 — 2026-06-09 -->
+<!-- version: 1.4 — 2026-06-10 -->
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
 >
@@ -27,7 +27,7 @@ Read `CLAUDE.md`, `<other read-first files relevant to task>`, and check `~/.cla
 
 1. `git checkout -b <branch-name>` (branch name follows repo convention from CLAUDE.md)
 2. Commit after each step (or numbered group below)
-3. Merge to main when green: `git checkout main && git merge --ff-only <branch>`
+3. Merge to main when green: `git checkout main && git merge --no-ff <branch>`
 
 ## UNDERSTAND
 <!-- scope: meta -->
@@ -42,6 +42,26 @@ Read `CLAUDE.md`, `<other read-first files relevant to task>`, and check `~/.cla
 **Most likely failure mode:** `<the one that's most probable given the change shape — with mitigation>`
 
 `<For Scale L: also include "What's already done that this builds on" pointing to ADRs, prior commits, related templates>`
+
+## READINESS (explore-mode valve — ambiguous input only)
+<!-- scope: meta -->
+
+`<Include ONLY when the input is ambiguous — unclear scope, unstated acceptance
+criteria, or more than one defensible interpretation. For a well-specified task,
+delete this section and proceed to Step 1.>`
+
+When the task is under-specified, do **not** start building. Emit a named
+readiness verdict and stop:
+
+- **Verdict:** `<READY | NEEDS-INPUT | BLOCKED>` — one word.
+- **What's clear:** `<the parts you can act on with confidence>`
+- **What's ambiguous:** `<each open question that changes what gets built — concrete, not "let me know if you have questions">`
+- **Go / no-go:** on `NEEDS-INPUT` or `BLOCKED`, **create nothing** and wait for the operator. Only `READY` proceeds to Step 1.
+
+A richer cousin of STOP-after-UNDERSTAND: UNDERSTAND records what you know;
+READINESS forces an explicit go/no-go before anything is created. The valve's job
+is to make "I wasn't sure, so I guessed" impossible — an unresolved ambiguity is
+a stop, not a default.
 
 ## Step 1: `<imperative — what's done>`
 <!-- scope: meta -->
@@ -94,3 +114,4 @@ Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tre
 - v1.1 (2026-06-06) — Final merge boilerplate replaced with `/ship` delegation (closes #103).
 - v1.2 (2026-06-06) — Per-step verification line replaced with `verify` skill invocation (closes #104).
 - v1.3 (2026-06-09) — Final gains a standing **obsolescence pass** line (propose deletion of superseded content instead of writing around it; operator ratifies) — point-of-use of the PLAYBOOK §2 pruning-symmetry rule (closes #136).
+- v1.4 (2026-06-10) — UNDERSTAND gains an optional **READINESS valve** for ambiguous input (named verdict + go/no-go, create nothing until operator approves) — #111 (c). Folds as a valve, not a new organ.

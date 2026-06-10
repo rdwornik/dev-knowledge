@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-06-09
+> Last updated: 2026-06-10
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -44,6 +44,7 @@
   - [Delivery format](#delivery-format)
   - [Pre-send checklist](#pre-send-checklist)
   - [Anti-patterns](#anti-patterns)
+  - [Checkable rules: concrete over aspirational](#checkable-rules-concrete-over-aspirational)
   - [Update cadence](#update-cadence-1)
 - [Project complexity bands](#project-complexity-bands)
   - [Testing rules (scaled by repo complexity)](#testing-rules-scaled-by-repo-complexity)
@@ -647,6 +648,36 @@ Skip checklist items only when not applicable to specific task type. If unsure, 
 - **Unclear out-of-scope** — Claude Code expands work; explicit "Do NOT touch X" prevents
 - **Relative paths** — break when CWD shifts between repos
 
+### Checkable rules: concrete over aspirational
+<!-- scope: meta -->
+
+A rule a model can *check its own output against* gets followed; a rule it can
+only *aspire to* gets broken — even when the model can recite it. Traces show
+models that correctly explain "keep functions small" still ship 80-line
+functions: the vague form gives the output nothing to be tested against, so
+nothing stops the drift. Phrase every rule — in prompts AND in CLAUDE.md — so
+compliance is a yes/no check against a number, an enumerable set, or a named
+artifact, not a feeling.
+
+**The test for your own rule:** could a second reader (or the model itself) mark
+it pass/fail *without re-using your judgment*? If grading the rule needs the same
+taste the rule was meant to encode, it's aspirational — rewrite it.
+
+**Vague → checkable rewrites:**
+
+| Aspirational (drifts) | Checkable (holds) |
+| --- | --- |
+| "clean code" | "functions ≤ 50 lines; every public symbol has a docstring; no module > 500 lines" |
+| "be concise" | "summary ≤ 5 bullets; no bullet > 2 lines" |
+| "good test coverage" | "every public function has ≥ 1 test; `pytest --cov` ≥ 60% on `src/`" |
+| "handle errors properly" | "no bare `except:`; every `except` names a concrete type and logs before re-raising" |
+| "keep docs current" | "TOC matches headers (toc-freshness hook green); `last_reviewed` ≥ the file's last-edit date" |
+
+Keep the *why* in prose where it helps the model reason, but make the **bar** a
+thing it can measure. A rule that can't go red is decoration. (Companion: the
+circular-testing guard under "Testing rules" — a *test* that can't go red has the
+same defect.)
+
 ### Update cadence
 <!-- scope: meta -->
 
@@ -705,6 +736,43 @@ After every numbered step in a Claude Code prompt:
 
 This cadence catches regressions early and keeps each commit's diff sane to review.
 
+#### Tests derive from acceptance criteria, not the implementation (circular-testing guard)
+<!-- scope: hybrid -->
+
+A test written *from the implementation* only proves "the code does what the code
+does" — it re-states the behavior it was meant to challenge, so it passes by
+construction and can never go red on a real defect. The architect breaks the
+loop: **acceptance criteria are authored in the prompt (in UNDERSTAND or a step's
+success line), and Claude Code derives the test FROM those criteria — never from
+the code it just wrote.**
+
+**Teeth check (companion to checkable rules):** before trusting a green test, ask
+*"what one-line change to the implementation would make this go red?"* If the
+honest answer is "none" — the assertion pins the implementation's current shape,
+not the criterion — the test has no teeth. Add an assertion that fails when the
+criterion is violated, even if today's code happens to satisfy it.
+
+**Worked example — this session's #141 vacuous claim-3 test (the live case this
+guard would have flagged):** the `pytest_collected` claim-check test was meant to
+prove claim-3 actually *evaluated* on the expensive path, but its assertion was
+`status != "skipped" or actual`. The intent was "require a non-skip" — yet the
+`or actual` clause let a *skipped* result pass whenever `actual` was non-empty,
+and a skipped result always carries a non-empty `actual` string. So the test
+could not distinguish "claim-3 evaluated and matched" from "claim-3 silently
+skipped"; it went green either way. (A preceding
+`assert status in {"mismatch", "match", "skipped"}` accepted all three states,
+asserting nothing.) It pinned the implementation's reachable states instead of
+the criterion (claim-3 *must* evaluate). The fix grew teeth: a deterministic mock
+of the pytest subprocess so the deriver actually runs, then
+`assert status == "match"` **and** `assert status != "skipped"` (the second, now
+un-weakened, rejects the vacuous skip-pass), with the genuine infra-skip path
+moved to a *separate* test so neither masks the other
+(`tests/test_validate_doc_claims.py::test_reconcile_evaluates_test_count_when_expensive`).
+
+The rule: a test must be able to distinguish "criterion met" from "criterion
+silently not evaluated." If it can't, it is testing the implementation, not the
+acceptance criterion.
+
 #### Test types and when
 <!-- scope: dev -->
 
@@ -719,6 +787,7 @@ This cadence catches regressions early and keeps each commit's diff sane to revi
 - **Coverage chasing on a tiny repo** — measuring coverage on a <50-test repo wastes 30+ min per session for diminishing return
 - **Skipping tests on a large repo** — "this commit is small" + large repo = recipe for hidden regression
 - **Integration-only on a large repo** — slow feedback discourages running tests; unit tests are the foundation
+- **Implementation-derived tests** — writing the assertion from the code instead of the prompt's acceptance criteria proves only "the code does what the code does"; it can't go red on a real defect (see "Tests derive from acceptance criteria" above; #141's vacuous skip-pass is the live case)
 
 ### VS Code workspace
 <!-- scope: dev -->
