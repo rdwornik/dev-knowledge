@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-11 — HANDOFF_PROCESS v5 shipped beta (parallel) — model C (feat/handoff-v5-parallel)
+
+**Did:** Implemented #148 / model C as 5 incremental, independently-revertable commits: ADR-82 (Proposed, Council-pending); a parallel-ship regression fence (4 tests proving the v5 file is invisible to the coupling gates + a flip-atomicity guard); the thin browser boot `protocols/HANDOFF_BOOT.md` (3-line core + resident browser role + plan-review 3-form output contract); the v5 spec `protocols/HANDOFF_PROCESS_v5.md` (beta — CC-owned residual+drift-flags handoff, teeth-y forced read reusing the read-only validators, lean pointer task-state, verification split, bidirectional adjudication); and a self-updating v5 mode in `/handoff`.
+
+**Result:** v5 ships **beta, parallel** — v4.4 stays canonical and live (untouched), confirmed by `audit.py` (coupling gates `amendment_coherence`/`version_stamp` ignore the v5 file on the real repo). Green at every commit boundary: audit-health OK, 423 pytest pass, ruff clean. No flip — the canonical `Version:` + its 4 coupled surfaces stay v4 by design.
+
+**Next:** #149 (named successor) carries the Council-gated flip — ratify ADR-82, one fresh-eyes review (beta→stable), the empirical teeth dogfood (bluff each probe from the summary; all must fail), then the atomic flip + archive v4.4/templates + close #148/#124/#25.
+
+**Changes:** `docs/decisions/ADR-82-*` + decisions README index; `tests/test_audit.py` (+4 fence tests); `protocols/HANDOFF_BOOT.md` (new); `protocols/HANDOFF_PROCESS_v5.md` (new); `.claude/commands/handoff.md` (v5 mode); `BACKLOG.md` (+#149); this JOURNAL entry. Commits `8fd8ba1`→`b7774ca` (+ merge).
+
 ### 2026-06-10 — handoff v4.4 bundle generated for 2026-06-10-dev-knowledge-session-2 (docs/handoff-2026-06-10-v5-pivot)
 
 **Did:** Generated the v4.4 handoff bundle carrying the Matt-Pocock v5-redesign pivot — drove the `/handoff` two-phase logic (Phase-1 scaffold commit → operator-pre-supplied answers → Phase-2 consolidate), all 8 files from live source (02 from the live PLAYBOOK/ESSENTIALS, not the prior bundle's extract), Phase-2 cross-checked all 8 load-bearing claims (no drift). Task-state kept LEAN — a pointer to BACKLOG, no ID/SHA re-narration.
