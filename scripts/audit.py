@@ -1019,8 +1019,11 @@ _COUPLED_VERSION_SETS: list[CoupledSet] = [
         surfaces=[
             # The major the command declares it implements — mirrors the spec's major
             # (the full version/status is de-hardcoded to {{VERSION}}, out of scope).
-            ("CLAUDE.md", r"HANDOFF_PROCESS\.md`?[\s(]*v(\d+)\b"),
-            (".claude/commands/handoff.md", r"HANDOFF_PROCESS\.md`?[\s(]*v(\d+)\b"),
+            # Keyed on the NORMATIVE "handoff per HANDOFF_PROCESS.md vN" declaration so a
+            # non-authority mention (e.g. a historical "HANDOFF_PROCESS.md v4.2 Amendment"
+            # note) does NOT false-match (Codex HIGH-2 / the semantic-coupling criterion).
+            ("CLAUDE.md", r"handoff per `?HANDOFF_PROCESS\.md`?\s+v(\d+)\b"),
+            (".claude/commands/handoff.md", r"handoff per `?HANDOFF_PROCESS\.md`?\s+v(\d+)\b"),
         ],
         granularity="major",
     ),
@@ -1086,15 +1089,25 @@ def check_amendment_coherence(
                 continue
             rx = re.compile(sre)
             lines = fp.read_text(encoding="utf-8", errors="replace").splitlines()
+            surface_hits = 0
             for lineno, line in enumerate(lines, 1):
                 m = rx.search(line)
                 if not m:
                     continue
+                surface_hits += 1
                 checked += 1
                 if _norm_version(m.group(1), cset.granularity) != canonical:
                     stragglers.append(
                         f"{spath}:{lineno}: {m.group(1)!r} != anchor "
                         f"{am.group(1)!r} (set {cset.name})")
+            if surface_hits == 0:
+                # Present surface, no normative mention -> the coupling marker vanished
+                # (reworded/removed). Surface it as drift, never silently PASS (Codex
+                # HIGH-1). WARN not FAIL: a removed mention may be legitimate. Anchor-
+                # absent (child) repos never reach here, so this cannot false-WARN a child.
+                drift.append(
+                    f"{cset.name}: surface {spath} present but no normative version "
+                    f"mention matched (coupling marker missing/reworded?)")
 
     if stragglers:
         ev = f"{len(stragglers)} version straggler(s): " + "; ".join(stragglers)

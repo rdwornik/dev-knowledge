@@ -1685,5 +1685,35 @@ def test_amendment_coherence_gate_blocks_health(
     assert "OK" in passed.output
 
 
+def test_amendment_coherence_present_surface_missing_mention_warns(tmp_path: Path) -> None:
+    """Codex HIGH-1: a present coupled surface whose normative version mention vanished
+    (reworded/removed) is surfaced as drift (WARN), never a silent PASS. Anchor present
+    (hub case); CLAUDE.md keeps its mention but handoff.md loses it.
+    Teeth: dropping the surface_hits==0 drift branch makes this go PASS -> RED."""
+    _seed_coupled(tmp_path, spec_ver="4.4", surface_ver="4")
+    # Rewrite handoff.md so it carries NO 'handoff per HANDOFF_PROCESS.md vN' line.
+    (tmp_path / ".claude" / "commands" / "handoff.md").write_text(
+        "---\ndescription: dispatch skill\n---\nNo normative version declaration here.\n",
+        encoding="utf-8")
+    f = aud.check_amendment_coherence(tmp_path)[0]
+    assert f.status == "warn"
+    assert "coupling marker missing" in f.evidence
+    assert "handoff.md" in f.evidence
+
+
+def test_amendment_coherence_ignores_non_normative_mention(tmp_path: Path) -> None:
+    """Codex HIGH-2: a non-authority mention (a historical 'HANDOFF_PROCESS.md vN
+    Amendment' note at a DIFFERENT major) must NOT false-FAIL — only the normative
+    'handoff per ... vN' declaration is compared. All normative mentions aligned -> PASS.
+    Teeth: loosening the surface regex back to a bare 'HANDOFF_PROCESS.md vN' construct
+    makes the historical v2 line a straggler -> FAIL -> RED."""
+    _seed_coupled(tmp_path, spec_ver="4.4", surface_ver="4")
+    # Append a stale, NON-normative historical mention to CLAUDE.md.
+    with (tmp_path / "CLAUDE.md").open("a", encoding="utf-8") as fh:
+        fh.write("\nHistorical: see HANDOFF_PROCESS.md v2.1 Amendment A (superseded).\n")
+    f = aud.check_amendment_coherence(tmp_path)[0]
+    assert f.status == "pass"
+
+
 def test_amendment_coherence_registered_in_all_checks() -> None:
     assert aud.check_amendment_coherence in aud.ALL_CHECKS
