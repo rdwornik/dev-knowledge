@@ -1717,3 +1717,70 @@ def test_amendment_coherence_ignores_non_normative_mention(tmp_path: Path) -> No
 
 def test_amendment_coherence_registered_in_all_checks() -> None:
     assert aud.check_amendment_coherence in aud.ALL_CHECKS
+
+
+# ---------------------------------------------------------------------------
+# Parallel-ship regression fence (#148 HANDOFF_PROCESS v5 — ADR-82)
+#
+# v5 ships as a PARALLEL beta file `protocols/HANDOFF_PROCESS_v5.md` while the canonical
+# `protocols/HANDOFF_PROCESS.md` stays v4.4 (see ADR-82 / the plan's migration strategy).
+# Every handoff-version coupling gate anchors on the EXACT canonical path, so the v5 file
+# must be INVISIBLE to them — locked in here so a future edit that accidentally globs
+# `protocols/*.md` (making the v5 file visible) goes RED before it ships. The flip-atomicity
+# guard (canonical Version bumped to 5.0 while a coupled surface strands at v4 -> FAIL)
+# encodes the invariant the Council-gated flip must satisfy in ONE atomic commit.
+# Teeth: repointing any gate's anchor to a glob over protocols/ makes the v5 file visible
+# and flips an "invisible" assertion RED; gutting the straggler comparison makes the
+# flip-atomicity test PASS on the seeded 5.0-vs-v4 straggler -> RED.
+# ---------------------------------------------------------------------------
+
+def _write_v5_parallel(tmp_path: Path, version: str = "5.0-beta") -> None:
+    """Drop a beta v5 spec alongside the canonical spec (parallel-ship layout)."""
+    (tmp_path / "protocols").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "protocols" / "HANDOFF_PROCESS_v5.md").write_text(
+        f"# HANDOFF_PROCESS v5\n\nVersion: {version}\nStatus: beta\n", encoding="utf-8")
+
+
+def test_amendment_coherence_v5_parallel_file_invisible(tmp_path: Path) -> None:
+    """An aligned v4 coupled set PLUS a parallel HANDOFF_PROCESS_v5.md present -> still
+    PASS. The v5 file is neither the anchor nor a coupled surface, so it cannot strand the
+    set. The load-bearing parallel-ship safety property (ADR-82)."""
+    _seed_coupled(tmp_path, spec_ver="4.4", surface_ver="4")
+    _write_v5_parallel(tmp_path)
+    f = aud.check_amendment_coherence(tmp_path)[0]
+    assert f.status == "pass"
+
+
+def test_handoff_version_stamp_v5_parallel_file_invisible(tmp_path: Path) -> None:
+    """The stamp gate parses ONLY protocols/HANDOFF_PROCESS.md for the canonical version;
+    a parallel HANDOFF_PROCESS_v5.md declaring Version: 5.0-beta does not shift the
+    canonical, so matching v4.4 stamps in the living docs still PASS."""
+    _write_handoff_spec(tmp_path, "4.4")
+    _write_v5_parallel(tmp_path)
+    (tmp_path / "ARCHITECTURE.md").write_text(
+        "# Architecture\n\nstamp 4.4, live\n", encoding="utf-8")
+    (tmp_path / "CONTRIBUTING.md").write_text(
+        "# Contributing\n\nstamp v4.4, *live*\n", encoding="utf-8")
+    f = aud.check_handoff_version_stamp(tmp_path)[0]
+    assert f.status == "pass"
+    assert "4.4" in f.evidence
+
+
+def test_handoff_tag_canonicity_v5_parallel_file_invisible(tmp_path: Path) -> None:
+    """tag-canonicity scans only the canonical spec's §3.1; a parallel v5 file does not
+    affect it. Canonical four-tag spec + a v5 file present -> still PASS."""
+    _write_spec(tmp_path, _SPEC_4TAG)
+    _write_v5_parallel(tmp_path)
+    f = aud.check_handoff_tag_canonicity(tmp_path)[0]
+    assert f.status == "pass"
+
+
+def test_amendment_coherence_v5_flip_straggler_fires(tmp_path: Path) -> None:
+    """Flip-atomicity invariant: when the canonical spec bumps to 5.0 while a coupled
+    surface still declares v4, the gate FAILS -> the Council-gated flip MUST move the spec
+    Version and all coupled surfaces in one atomic commit. Encodes the exact straggler
+    class the flip must avoid."""
+    _seed_coupled(tmp_path, spec_ver="5.0", surface_ver="4")
+    f = aud.check_amendment_coherence(tmp_path)[0]
+    assert f.status == "fail"
+    assert "straggler" in f.evidence.lower()
