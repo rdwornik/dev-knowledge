@@ -1420,7 +1420,11 @@ A recurring unattended review — local or cloud — graduates to "standard" onl
 
 Recorded as **ADR-81** (2026-06-09). An organ — a plugin, hook, command, skill, workflow, generator, or convention — is **not DONE** until it has all four:
 
-- **(a) a methodology home** — its rule/doctrine written in PLAYBOOK;
+- **(a) a methodology home** — its rule/doctrine written in PLAYBOOK **sufficiently for a fresh
+  session to act on it from that section alone** (existence ≠ sufficiency). Verified at the handoff
+  articulation gate — *could a new session do this from the section alone?* — not merely "a section
+  exists." (Evidence: #107 shipped a worktree section, yet a fresh chat still could not parallelize
+  from it — the transmission gap this clause closes.)
 - **(b) a deployment path** — a runbook or documented install sequence;
 - **(c) a maintenance/refresh cadence** — how it stays current, and how staleness is detected;
 - **(d) actual deployment, OR an explicit documented deferral** that names the gap and what remains.
