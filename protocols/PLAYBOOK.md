@@ -1133,6 +1133,38 @@ orphans, so do not create them anymore.
 checkout** — *provision → use → ephemeral teardown*. Create one for a single goal, work it on
 its own branch, and remove it the moment that branch merges. It must not linger between goals.
 
+**0 — Decide: should I parallelize? (checkable — apply BEFORE provisioning)**
+
+Parallelizing costs a worktree + a serial integration pass. Reach for it only when **every
+check is YES** — otherwise do the items serially:
+
+- **Disjoint substantive files?** Do the two items touch *different* substantive files? Shared
+  canonical files (BACKLOG / JOURNAL / PLAYBOOK / CLAUDE) do **not** disqualify a pair — they are
+  *handled*, not parallelized (see below) — but two items editing the *same substantive* file must
+  go serial.
+- **Two distinct goals, not one?** "Finish the rest of X" is **one** goal — complete it serially,
+  do not split it. Only split genuinely independent items.
+- **Each stream more than a single-file edit?** Tiny disjoint edits (a file or two, minutes each)
+  are faster done serially than provisioned + integrated. This is the one check with an irreducible
+  judgment margin; the working threshold is *more than a single-file edit per stream* — below that,
+  don't parallelize.
+
+**Canonical safe pair: one code item ∥ one doc item.** Disjoint files by construction. Review
+contention is at most one-sided: the **doc** stream never needs Codex; only the **code** stream
+*might* — and only if it trips the Codex bar (3+ files or safety-critical, per ADR-54). Reach for
+this shape first.
+
+**Shared canonical files are handled, not parallelized** (refines §3's serialize rule):
+- **BACKLOG: removal travels the closure loop, not the branch.** Don't have each branch delete its
+  own task line; leave the removal to the Tier-1 closure loop (`/review-closures`) after merge, so
+  two branches never contend on the same deletion. The edits §3 serializes are BACKLOG **adds /
+  grooming** (and id allocation at write-time) — not removals.
+- **JOURNAL: the conflict is trivial.** Each branch prepends its own newest-first entry; a merge
+  conflict is just two top-of-file prepends — resolve by keeping both in timestamp order. JOURNAL
+  is therefore not a real serialization blocker.
+- **Operator is the serial gate.** Parallel branches return to the operator, who `/ship`s them **one
+  at a time from the primary** — branches never self-merge in arbitrary order.
+
 **1 — When a worktree is needed**
 
 - **Different repos in parallel: already safe.** Separate `.git/` directories isolate each
@@ -1144,6 +1176,20 @@ its own branch, and remove it the moment that branch merges. It must not linger 
   proving separate worktrees = zero sweep is in the #107 JOURNAL entry / LESSONS).
 
 **2 — Provision (native-primary)**
+
+**Recommended START — Primary = stream A, worktree = stream B** (the from-scratch recipe for
+splitting one session into two same-repo streams):
+1. **Pre-flight:** `git worktree list` shows only the primary; working tree clean.
+2. **Stream A** stays in the **primary** checkout, on its own `feat/<A>` branch — the primary is
+   also the integration + serial gate (step 4).
+3. **Stream B:** `claude --worktree <B>` → a session inside `.claude/worktrees/<B>` on branch
+   `worktree-<B>` (`.worktreeinclude` seeds `ecosystem/*/state.yaml` so the audit-health gate
+   passes — see below).
+4. **Integrate from the primary on `main`, one at a time:** `/ship` stream A; then
+   `git merge --no-ff worktree-<B>` + `git push`; then tear down B (the §4 three-command
+   round-trip) and verify no leftovers.
+
+The bullets below are the mechanism this recipe rests on.
 
 - **New parallel session:** `claude --worktree <name>` (alias `-w`) starts a session already
   inside a fresh worktree. **Mid-session:** the `EnterWorktree` tool switches the *current*
@@ -1374,7 +1420,11 @@ A recurring unattended review — local or cloud — graduates to "standard" onl
 
 Recorded as **ADR-81** (2026-06-09). An organ — a plugin, hook, command, skill, workflow, generator, or convention — is **not DONE** until it has all four:
 
-- **(a) a methodology home** — its rule/doctrine written in PLAYBOOK;
+- **(a) a methodology home** — its rule/doctrine written in PLAYBOOK **sufficiently for a fresh
+  session to act on it from that section alone** (existence ≠ sufficiency). Verified at the handoff
+  articulation gate — *could a new session do this from the section alone?* — not merely "a section
+  exists." (Evidence: #107 shipped a worktree section, yet a fresh chat still could not parallelize
+  from it — the transmission gap this clause closes.)
 - **(b) a deployment path** — a runbook or documented install sequence;
 - **(c) a maintenance/refresh cadence** — how it stays current, and how staleness is detected;
 - **(d) actual deployment, OR an explicit documented deferral** that names the gap and what remains.

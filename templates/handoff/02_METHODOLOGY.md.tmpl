@@ -80,6 +80,18 @@ facts table via append (don't rewrite). The bundle is living until the next
 handoff. This implements the "handoff is back-and-forth, not unilateral guess"
 rule in PLAYBOOK methodology.
 
+## Parallel work
+
+Same-repo parallel *committing* sessions need a worktree (different repos: none — separate
+`.git/` already isolates them). Before splitting, run the **decide-first checks** (disjoint
+substantive files? two distinct goals, not one? more than a single-file edit per stream?) —
+the canonical safe pair is one code item ∥ one doc item. To start: keep stream A in the
+**primary**, `claude --worktree <B>` for stream B, integrate **from the primary** (`/ship` A,
+then `git merge --no-ff worktree-<B>` + push + teardown). Shared canonical files are handled,
+not parallelized (BACKLOG removal via the closure loop; JOURNAL = trivial double-prepend;
+operator is the serial gate). Full rule — START recipe, `.worktreeinclude`, `/ship`-from-
+primary, no-leftovers teardown — in PLAYBOOK "Parallel sessions & worktree discipline."
+
 ## Session lifecycle
 
 {{PULL: ESSENTIALS#Starting a Session}}
