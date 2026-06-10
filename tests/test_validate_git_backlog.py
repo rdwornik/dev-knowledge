@@ -204,6 +204,22 @@ def test_check_passes_when_clean(monkeypatch):
     assert findings[0].status == "pass"
 
 
+def test_check_emits_one_finding_per_drifted_id(monkeypatch):
+    # Codex CRITICAL fix: multiple drift ids must each be their OWN Finding (atomic), so the
+    # #147 ship-gate dispositions them independently and one matched id cannot suppress
+    # another. Teeth: re-aggregating into a single Finding makes len != 2 -> this reds.
+    hub = Path(aud._REPO_ROOT)
+    monkeypatch.setattr(aud._vgb, "reconcile", lambda root, backlog: {
+        "5": [("a1b2c3d4e", "feat: x, closes [#5]")],
+        "8": [("f9e8d7c6b", "feat: y, closes [#8]")],
+    })
+    findings = aud.check_git_backlog_drift(hub)
+    assert len(findings) == 2
+    assert all(f.status == "warn" for f in findings)
+    assert {"#5", "#8"} <= {tok for f in findings for tok in f.evidence.split()}
+    assert all("|" not in f.evidence for f in findings)  # still table-safe
+
+
 def test_check_failsoft_on_error(monkeypatch):
     # a git/parse hiccup must degrade to WARN, never raise (would wedge audit.py health).
     hub = Path(aud._REPO_ROOT)

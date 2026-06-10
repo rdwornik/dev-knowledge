@@ -81,6 +81,9 @@ logger = logging.getLogger("audit")
 ECOSYSTEM_DIR = Path(_REPO_ROOT) / "ecosystem"
 AUDITS_DIR = Path(_REPO_ROOT) / "docs" / "audits"
 ECOSYSTEM_INDEX = Path(_REPO_ROOT) / "ecosystem" / "index.yaml"
+# #147 ship-gate: the known-WARN disposition register (read-only). Missing/malformed
+# -> [] (every WARN then counts undispositioned — stricter, never wedged).
+DISPOSITION_REGISTER = Path(_REPO_ROOT) / "ecosystem" / "disposition-register.yaml"
 
 # ---------------------------------------------------------------------------
 # Universal visual pattern (ADR-59) — constants
@@ -1209,9 +1212,17 @@ def check_git_backlog_drift(repo_path: Path) -> list[Finding]:
     if not drift:
         return [Finding("git_backlog_drift", "pass",
                         "no closed-but-present backlog drift (direction (a) STRONG, full history)")]
-    evidence = (f"{len(drift)} closed-but-present (ADR-65 done-items-leave): "
-                + _vgb.format_findings(drift)).replace("|", "/")
-    return [Finding("git_backlog_drift", "warn", evidence)]
+    # ONE Finding per drifted id (atomic). A single aggregate WARN would let the #147
+    # ship-gate disposition the WHOLE finding on one matched id and wave a DIFFERENT,
+    # undispositioned drift through (Codex CRITICAL 2026-06-10): dispositions match a
+    # whole Finding, so the disposition unit must equal the concern unit. Per-id findings
+    # gate each drift independently. format_findings({id: ...}) reused (no parallel logic).
+    return [
+        Finding("git_backlog_drift", "warn",
+                ("closed-but-present (ADR-65 done-items-leave): "
+                 + _vgb.format_findings({cid: drift[cid]})).replace("|", "/"))
+        for cid in sorted(drift, key=int)
+    ]
 
 
 def check_doc_claims(repo_path: Path) -> list[Finding]:
@@ -1648,6 +1659,120 @@ def cmd_health() -> None:
     else:
         click.echo("health: DEGRADED", err=True)
         sys.exit(1)
+
+
+def _load_dispositions() -> list[dict]:
+    """Read the #147 known-WARN disposition register. Fail-soft: a missing or malformed
+    register degrades to [] — every WARN then counts as undispositioned (stricter), and
+    the gate never wedges. Read-only."""
+    try:
+        data = yaml.safe_load(Path(DISPOSITION_REGISTER).read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return []
+    if not isinstance(data, dict):
+        return []
+    items = data.get("dispositions")
+    if not isinstance(items, list):  # HIGH (Codex): a non-list scalar must degrade, not raise
+        return []
+    return [d for d in items if isinstance(d, dict)]
+
+
+def _match_disposition(finding: "Finding", dispositions: list[dict]) -> Optional[dict]:
+    """Return the register entry that dispositions this WARN finding, or None.
+
+    A match requires `organ == finding.check_name` AND the entry's `match` substring to
+    appear in `finding.evidence` — keying on the specific benign signature (e.g. the
+    commit sha), NOT a bare id, so a DIFFERENT future drift on the same id re-surfaces.
+    """
+    for d in dispositions:
+        token = d.get("match")
+        if d.get("organ") == finding.check_name and token and str(token) in finding.evidence:
+            return d
+    return None
+
+
+@cli.command("ship-gate")
+def cmd_ship_gate() -> None:
+    """Pre-ship verification-organ gate (#147): make "Definition of shipped" point (6)
+    enforceable at /ship time. No file writes (read-only, Layer-2).
+
+    Runs the full ALL_CHECKS self-audit against .dev-knowledge and emits ONE ship verdict
+    by reading Finding.status DIRECTLY — never exit codes: the awareness organs
+    (git_backlog_drift #90a, doc_claims #89, canonical_freshness A1) exit 0 even on drift,
+    so a gate keyed on exit codes would be vacuous (F1). Verdict / exit:
+      - any Finding.status == "fail"                         -> RED, exit 1
+      - any "warn" NOT dispositioned by the register         -> RED, exit 1
+      - a "warn" matched by a register entry (organ == check_name AND the entry's `match`
+        substring in the evidence) is DISPOSITIONED           -> does not block
+      - else                                                 -> GREEN, exit 0
+    A register entry that matched NO live WARN is surfaced as `[stale]` (ADR-75 decoration
+    rule — awareness, does NOT block); the register may not silently rot.
+
+    Disposition contract: a register entry suppresses a WHOLE Finding (its `match` is a
+    substring of the evidence). So an aggregate awareness organ MUST emit one Finding per
+    concern, or one matched token would suppress unrelated drift bundled in the same
+    finding (Codex CRITICAL 2026-06-10). `git_backlog_drift` emits one Finding per drifted
+    id for exactly this reason; any future dispositioned organ must do likewise.
+
+    Seam vs the pre-commit `audit-health` gate (they reuse ALL_CHECKS but do NOT
+    double-run vacuously — different moment, different posture):
+      - `audit-health` gates each COMMIT: FAIL-only (WARNs pass), gate-mode SKIPS the
+        expensive claim-3 (pytest --collect-only) to stay fast.
+      - `ship-gate` gates the feature ARC at /ship: FAIL **and** new/undispositioned WARN
+        block, and it runs claim-3 (full verification — _GATE_MODE stays False).
+
+    Hub-only organs no-op on child repos; the /ship wiring is hub-guarded. Register:
+    ecosystem/disposition-register.yaml (fail-soft if absent — stricter, never wedged).
+
+    Example:
+        python scripts/audit.py ship-gate
+    """
+    global _GATE_MODE
+    findings: list[Finding] = []
+    _GATE_MODE = False  # ship-time = full verification (run the expensive claim-3)
+    try:
+        for check in ALL_CHECKS:
+            findings.extend(check(Path(_REPO_ROOT)))
+    finally:
+        _GATE_MODE = False
+
+    dispositions = _load_dispositions()
+    fails = [f for f in findings if f.status == "fail"]
+    undispositioned: list[Finding] = []
+    dispositioned: list[tuple[Finding, dict]] = []
+    matched_ids: set[str] = set()
+    for f in findings:
+        if f.status != "warn":
+            continue
+        entry = _match_disposition(f, dispositions)
+        if entry is None:
+            undispositioned.append(f)
+        else:
+            dispositioned.append((f, entry))
+            matched_ids.add(str(entry.get("id")))
+    stale = [d for d in dispositions if str(d.get("id")) not in matched_ids]
+
+    _marker = {"pass": "[OK]", "warn": "[~~]", "fail": "[!!]", "unavailable": "[??]"}
+    click.echo("ship-gate (#147) — verification organs vs THIS arc:")
+    for f in findings:
+        click.echo(f"  {_marker.get(f.status, '[??]')} {f.check_name}: {f.evidence}")
+    for f, e in dispositioned:
+        click.echo(f"  [disp] {f.check_name}: WARN dispositioned by {e.get('id')} "
+                   f"(ref {e.get('ref')}) — expected, not blocking")
+    for d in stale:
+        click.echo(f"  [stale] disposition {d.get('id')} matched no live WARN — "
+                   f"review/remove (ADR-75 decoration rule)")
+
+    if fails or undispositioned:
+        reasons = []
+        if fails:
+            reasons.append(f"{len(fails)} hard-fail organ(s)")
+        if undispositioned:
+            reasons.append(f"{len(undispositioned)} new/undispositioned WARN(s)")
+        click.echo(f"ship-gate: RED — not shipped-ready ({'; '.join(reasons)})", err=True)
+        sys.exit(1)
+    click.echo("ship-gate: GREEN — verification organs green against this arc "
+               f"({len(dispositioned)} WARN dispositioned)")
 
 
 @cli.command("checks")

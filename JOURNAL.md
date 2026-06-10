@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-10 — #147 pre-ship verification-organ gate shipped: ship-gate + disposition register (feat/147-ship-gate)
+
+**Did:** Made "Definition of shipped" point (6) enforceable. New `audit.py ship-gate` subcommand: runs the full ALL_CHECKS self-audit against the feature arc at /ship time and emits ONE verdict, reading `Finding.status` DIRECTLY (not exit codes — the awareness organs exit 0 on drift, F1). Blocks on any FAIL **or** any new/undispositioned WARN; runs the expensive claim-3 (full verification). Expected WARNs are cleared via a new read-only register `ecosystem/disposition-register.yaml` — founding entry the #77 voided closure, keyed on the benign commit sha `77e5d7d` (not the bare id) so a DIFFERENT future #77 drift re-surfaces; a register entry matching no live WARN is surfaced `[stale]` (ADR-75 decoration rule, non-blocking). Wired into `ship.md` as a hub-guarded refuse-on-failure pre-flight (skips silently on child repos — organs are hub-only). Seam vs pre-commit `audit-health` documented (commit-time FAIL-only vs arc-time FAIL+undispositioned-WARN-block). Plan gate confirmed the seam + order (#147 first, #139 follows — #147's Done-when names no #139 dependency; the live #77 WARN is its own non-vacuous fixture). Tests criteria-first (circular-testing guard). Codex (gpt-5.5): 1 CRITICAL + 1 HIGH resolved with regression-proven teeth.
+
+**Result:** Gate FIRES (exit 1) on a seeded FAIL and a new/undispositioned WARN; PASSES (exit 0) on a clean arc with the dispositioned #77 WARN — live E2E both ways (empty register → RED = teeth). **Codex CRITICAL** (aggregate-WARN suppression: one matched id dispositioning a whole bundled finding) fixed by atomizing `check_git_backlog_drift` to one Finding per drifted id — disposition unit == concern unit; whole-Finding contract documented. **HIGH** (malformed non-list register raised TypeError) fixed with an `isinstance(list)` guard → degrade-to-stricter. Teeth mutation-proven (old aggregate finding wholesale-suppressed; new per-id #88 BLOCKS). Re-derived collected 408→420 (#141 pattern); `doc_claims` all 4 claims MATCH; checks stays 17. 419 passed, 1 skipped; ruff clean; audit-health green. Read-only (Layer-2).
+
+**Changes:** `scripts/audit.py` (cmd_ship_gate + _load_dispositions/_match_disposition + per-id atomization); `ecosystem/disposition-register.yaml` (new); `tests/test_ship_gate.py` (new, 11 tests) + `tests/test_validate_git_backlog.py` (+1 atomicity); `plugins/tier1-lifecycle/commands/ship.md` (hub-guarded pre-flight); `ARCHITECTURE.md` (ship-gate organ + seam, 420 collected); `docs/audits/2026-06-10-codex-147-ship-gate.md`. Commits b265df3 · 72035e0 · 5f5a60f + this.
+
+**Abandoned:** Nothing. #139 (arc-content verifier) deliberately deferred to a follow-up prompt — it later flips the #77 register row from manual to computed (one-row change), not a teardown.
+
+**Next:** #139 (merged-arc→record verifier, automates the #77 disposition); #146 (de-hardcode residual of #11).
+
 ### 2026-06-10 — consolidation-audit record archived; Definition-of-Shipped (5) completed (docs/audit-record-2026-06-10)
 
 **Did:** Archived the full audit to `docs/audits/2026-06-10-consolidation-audit.md` (scope, the 5-organ E2E witness table, F1/F2/F3 dispositions + commit refs, reconcile rationale, the 6-point checklist). The prior close over-claimed "all six met": Definition-of-Shipped point (5) names *archive*, and the arc updated JOURNAL/BACKLOG/PLAYBOOK/gotchas but never the audit's own `docs/audits/` record — (5) was partially met. This record completes it (caught on operator review — the audit dogfooding its own doctrine). Also captured the `/ship` bracketed-`[#id]` gotcha into `~/.claude`.

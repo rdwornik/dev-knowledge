@@ -1,0 +1,39 @@
+# Known-WARN disposition register — #147 pre-ship verification-organ gate.
+#
+# `audit.py ship-gate` runs the verification organs against the feature arc and BLOCKS
+# /ship on red. The awareness organs (git_backlog_drift #90a, doc_claims #89,
+# canonical_freshness A1) exit 0 even on drift, so the gate reads Finding.status, not
+# exit codes (F1). A WARN BLOCKS unless an entry here dispositions it as expected/benign.
+#
+# Each entry suppresses ONE awareness-organ WARN:
+#   id     — stable handle (named in the gate's verdict output)
+#   organ  — the check whose WARN this dispositions (== Finding.check_name)
+#   match  — a substring that must appear in the WARN's evidence. KEY ON THE SPECIFIC
+#            BENIGN SIGNATURE (e.g. the commit sha), NOT a bare id, so a DIFFERENT future
+#            drift on the same id re-surfaces and blocks (precision-over-recall).
+#   ref    — the commit / ADR establishing why the WARN is benign
+#   reason — the human disposition
+#   auto_clearable_by — (optional) the item that will later compute this disposition,
+#            flipping the entry's source manual -> computed (a one-row data change).
+#
+# Whole-Finding contract: an entry suppresses an ENTIRE Finding (match = substring of its
+# evidence). A dispositioned organ must emit one Finding PER concern, else one matched token
+# would wave through unrelated drift bundled in the same finding (Codex CRITICAL 2026-06-10).
+# git_backlog_drift emits one Finding per drifted id for exactly this reason.
+#
+# Decoration rule (ADR-75): an entry that matches NO live WARN on a run is SURFACED as
+# stale in the gate's output (awareness — it does not block); the register is not allowed
+# to silently rot into paper suppressions. Curated data with a reason per entry — the
+# "kept-as-manifest with a reason" form #146 explicitly blesses, not a hidden hardcode.
+
+dispositions:
+  - id: warn-77-voided-closure
+    organ: git_backlog_drift
+    match: "77e5d7d"
+    ref: 77e5d7d
+    reason: >-
+      Voided closure (ADR-65). Merge 77e5d7d carried `closes [#77]` but shipped
+      different work — #77 was re-scoped, not done, so it legitimately remains open
+      (corrected 2026-06-09, commit 9639597). Direction-(a) #90a cannot tell a
+      misattributed closure from a real one; only arc-content inspection (#139) can.
+    auto_clearable_by: "#139"

@@ -233,7 +233,16 @@ above references — the `scripts/` inventory:
 - `scripts/audit.py` — cross-repo conformance + self-audit; **17 registered checks**
   (`python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
   `no_sibling_orphans`, `canonical_structure`, `amendment_coherence`, `git_backlog_drift`).
-  `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs).
+  `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs);
+  `ship-gate` = the #147 pre-ship verification-organ gate (Definition-of-shipped point 6).
+  **Seam `ship-gate` vs `health`:** both reuse `ALL_CHECKS`, but `health` gates each
+  *commit* (FAIL-only; WARNs pass; gate-mode skips the expensive claim-3), while `ship-gate`
+  gates the feature *arc* at `/ship` — it reads `Finding.status` not exit codes (the awareness
+  organs exit 0 on drift), blocks on FAIL **and** any new/undispositioned WARN, runs claim-3
+  (full verification), and dispositions expected WARNs via `ecosystem/disposition-register.yaml`
+  (e.g. the #77 voided closure). A register entry matching no live WARN is surfaced as stale
+  (ADR-75 decoration rule). Read-only; hub-only organs no-op on children (the `/ship` wiring is
+  hub-guarded).
 - `scripts/normalize_headers.py` — dated-log header normalization (pre-commit).
 - `scripts/validate_backlog.py` — BACKLOG story-map schema (ADR-66; pre-commit).
 - `scripts/validate_git_backlog.py` — git↔backlog drift, direction (a) STRONG: a
@@ -247,7 +256,7 @@ above references — the `scripts/` inventory:
   accuracy only — cross-file fidelity / rot is #140. Standalone CLI: `python scripts/validate_doc_claims.py` (#89).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
-- `tests/` — pytest unit tests for the validators (**408 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**420 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`

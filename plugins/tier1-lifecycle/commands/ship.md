@@ -25,8 +25,14 @@ Merge the current feature branch to `main` — the standard git-finish sequence.
    `Pre-flight FAILED: working tree is dirty — commit or stash all changes first.`
 4. **Validators green** — run `pytest -x --tb=short && ruff check`. If either fails, stop:
    `Pre-flight FAILED: validators red — fix before merging.`
+5. **Verification organs green for THIS arc (hub-only, #147)** — makes "Definition of
+   shipped" point (6) enforceable: the organs must have *run green against this arc*, not
+   merely exist. **Skip silently if `scripts/audit.py` is absent** (child repo — the organs
+   are hub-only; same hub-vs-child guard as "Floor currency" below). On the hub, run
+   `python scripts/audit.py ship-gate`. If it exits non-zero, stop:
+   `Pre-flight FAILED: ship-gate red — verification organs not green for this arc (see the gate output; fix a FAIL or disposition/clear a new WARN in ecosystem/disposition-register.yaml — do NOT disposition a real drift).`
 
-All four must pass before continuing.
+All applicable pre-flight steps must pass before continuing (step 5 is hub-only).
 
 ## Floor currency (ADVISORY — never blocks, ADR-78)
 
