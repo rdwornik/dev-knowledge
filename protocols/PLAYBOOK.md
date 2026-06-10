@@ -44,6 +44,7 @@
   - [Delivery format](#delivery-format)
   - [Pre-send checklist](#pre-send-checklist)
   - [Anti-patterns](#anti-patterns)
+  - [Checkable rules: concrete over aspirational](#checkable-rules-concrete-over-aspirational)
   - [Update cadence](#update-cadence-1)
 - [Project complexity bands](#project-complexity-bands)
   - [Testing rules (scaled by repo complexity)](#testing-rules-scaled-by-repo-complexity)
@@ -735,6 +736,43 @@ After every numbered step in a Claude Code prompt:
 
 This cadence catches regressions early and keeps each commit's diff sane to review.
 
+#### Tests derive from acceptance criteria, not the implementation (circular-testing guard)
+<!-- scope: hybrid -->
+
+A test written *from the implementation* only proves "the code does what the code
+does" — it re-states the behavior it was meant to challenge, so it passes by
+construction and can never go red on a real defect. The architect breaks the
+loop: **acceptance criteria are authored in the prompt (in UNDERSTAND or a step's
+success line), and Claude Code derives the test FROM those criteria — never from
+the code it just wrote.**
+
+**Teeth check (companion to checkable rules):** before trusting a green test, ask
+*"what one-line change to the implementation would make this go red?"* If the
+honest answer is "none" — the assertion pins the implementation's current shape,
+not the criterion — the test has no teeth. Add an assertion that fails when the
+criterion is violated, even if today's code happens to satisfy it.
+
+**Worked example — this session's #141 vacuous claim-3 test (the live case this
+guard would have flagged):** the `pytest_collected` claim-check test was meant to
+prove claim-3 actually *evaluated* on the expensive path, but its assertion was
+`status != "skipped" or actual`. The intent was "require a non-skip" — yet the
+`or actual` clause let a *skipped* result pass whenever `actual` was non-empty,
+and a skipped result always carries a non-empty `actual` string. So the test
+could not distinguish "claim-3 evaluated and matched" from "claim-3 silently
+skipped"; it went green either way. (A preceding
+`assert status in {"mismatch", "match", "skipped"}` accepted all three states,
+asserting nothing.) It pinned the implementation's reachable states instead of
+the criterion (claim-3 *must* evaluate). The fix grew teeth: a deterministic mock
+of the pytest subprocess so the deriver actually runs, then
+`assert status == "match"` **and** `assert status != "skipped"` (the second, now
+un-weakened, rejects the vacuous skip-pass), with the genuine infra-skip path
+moved to a *separate* test so neither masks the other
+(`tests/test_validate_doc_claims.py::test_reconcile_evaluates_test_count_when_expensive`).
+
+The rule: a test must be able to distinguish "criterion met" from "criterion
+silently not evaluated." If it can't, it is testing the implementation, not the
+acceptance criterion.
+
 #### Test types and when
 <!-- scope: dev -->
 
@@ -749,6 +787,7 @@ This cadence catches regressions early and keeps each commit's diff sane to revi
 - **Coverage chasing on a tiny repo** — measuring coverage on a <50-test repo wastes 30+ min per session for diminishing return
 - **Skipping tests on a large repo** — "this commit is small" + large repo = recipe for hidden regression
 - **Integration-only on a large repo** — slow feedback discourages running tests; unit tests are the foundation
+- **Implementation-derived tests** — writing the assertion from the code instead of the prompt's acceptance criteria proves only "the code does what the code does"; it can't go red on a real defect (see "Tests derive from acceptance criteria" above; #141's vacuous skip-pass is the live case)
 
 ### VS Code workspace
 <!-- scope: dev -->
