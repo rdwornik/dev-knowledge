@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-11 — v5 execution-mode handoff emitted (docs/handoffs/2026-06-11-dev-knowledge-session-4)
+
+**Did:** Ran `/handoff … v5` (execution, the default mode) for `.dev-knowledge` — CC-owned, the **execution-mode counterpart** to the same-day `session-3` architect handoff. Scope matrix → **Case 4** (clean tree; only commit-since = session-3's own merge; base slug + `-2`/`-3` taken) → slug `2026-06-11-dev-knowledge-session-4`. Emitted the lean execution residual (4 files: `HANDOFF_BOOT.md` pointer → reactive-filter role, `RESIDUAL.md` drift-flags + lean "why" + pointer task-state, `PROBES.md` 6 teeth probes P1–P6, `README.md`). Honest scope: **no new substantive work since session-3** — this exercises **execution mode** on the current state (v5 dogfood), not new work.
+
+**Result:** One live drift-flag — `git_backlog_drift` #77 (dispositioned voided closure, known-benign). `doc_claims` all-match (the first execution dogfood's DRIFT-1 is resolved); `audit.py health` OK; validators + `validate_backlog` green; ruff clean. Surfaced **two leftover branches** (`docs/arch-coherence-audit` + `docs/handoff-2026-06-11-architect`) + `main` **ahead of origin by 2** — not actioned. Teeth held: probe answers kept **out** of the bundle; the stamp string omitted so `audit.py` #8 skips it.
+
+**Abandoned:** Nothing.
+
+**Next:** Boot an execution session advancing a way-of-working ticket (#157/#158/#153/#159); or push `main` + prune the two leftover branches (operator's call). v5→canonical (#149) stays Council + fresh-eyes gated, out of scope.
+
+**Changes:** `docs/handoffs/2026-06-11-dev-knowledge-session-4/` (4 files, new); this JOURNAL marker. Branch `docs/handoff-2026-06-11-session-4`.
+
 ### 2026-06-11 — v5 architect-mode handoff emitted (docs/handoffs/2026-06-11-dev-knowledge-session-3)
 
 **Did:** Ran `/handoff … v5 architect` for `.dev-knowledge` — CC-owned, third real v5 exercise / second architect-mode. Scope matrix → **Case 4** (clean tree, commits since the session-2 handoff, today's base slug + `-2` taken) → slug `2026-06-11-dev-knowledge-session-3`. Emitted the architect-profiled residual (4 lean files: `HANDOFF_BOOT.md` pointer, `RESIDUAL.md`, `PROBES.md` orientation P1 + teeth P2–P6, `README.md`). **This bundle dogfoods the operator-context beat it shipped earlier this session** — the architect flow now runs orient (P1) → **ask the operator for off-repo context (§13d)** → design.
