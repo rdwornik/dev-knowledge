@@ -42,6 +42,24 @@ it here):
 - Lean **task-state** — a pointer to `BACKLOG.md` + live branches + any drift-flag; never
   re-narrated IDs.
 
+**Mode (v5 only): `architect | execution`** (governed by `protocols/HANDOFF_PROCESS_v5.md`
+§13 — read it, don't restate it here). v5 mode takes an optional mode parameter, default
+`execution`, selecting the residual **profile** + browser **posture**. Parse it alongside the
+`v5` flag: `… v5` / `… v5 execution` → execution; `… v5 architect` → architect. Mode applies
+**only** in v5 mode — v4.4 has no modes.
+- **execution** — the four v5 emissions above, unchanged (lean residual + thin boot + probe
+  manifest + pointer task-state); the browser gets the §7 reactive-filter role.
+- **architect** — re-profile the residual for a *planning* session: scope it to the planning
+  "why" + the open architecture questions; task-state points at the **whole `BACKLOG.md` /
+  relevant theme** (the task-graph, carried as residual prose — the ADR-66 schema encodes no
+  dependencies/parallelization this pass, so do **not** claim a durable graph; durable encoding
+  = #156). Add the **orientation probe** — a §5 *exact-line-quote* probe bound to `VISION.md`
+  `## Vision` + `ARCHITECTURE.md` Ch1: ship the source-locator + the substring-check command,
+  **never the line** (generator-excluded); CC reads the **live** file and substring-checks the
+  architect's quote — never a paraphrase. CC serves the **generative/decompositional** posture
+  from `HANDOFF_BOOT.md` so the role reaches the file-less browser. Return channel stays §2/§6 —
+  emit **no** new artifact.
+
 ## Conventions
 
 - `slug` = `YYYY-MM-DD-<repo>-<type>` (today's date; `type` defaults to `session`,
