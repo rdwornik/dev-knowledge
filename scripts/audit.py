@@ -70,6 +70,12 @@ try:
 except ImportError:
     import validate_doc_claims as _vdc
 
+# #153 --no-ff merge guard — same module-import + thin-adapter shape as _vgb/_vdc.
+try:
+    from scripts import validate_no_ff as _vnf
+except ImportError:
+    import validate_no_ff as _vnf
+
 # Gate-mode flag (#89): cmd_health sets this True around its self-audit loop so the
 # expensive claim-3 (pytest --collect-only) is SKIPPED on the per-commit gate and
 # evaluated only on the full-audit path (run/repo/CLI/SessionStart). Operator ruling.
@@ -1263,6 +1269,44 @@ def check_doc_claims(repo_path: Path) -> list[Finding]:
                     f"{matched} doc self-claim(s) match repo state")]
 
 
+def check_no_ff_merges(repo_path: Path) -> list[Finding]:
+    """#153 `--no-ff` merge guard (core-invariants rule 5).
+
+    Hub-only: the rule + the sanctioned-automation allowlist are tuned to
+    .dev-knowledge's main, so on any other repo this is a no-op pass (a fleet-wide
+    expansion is deferred under #153). Surfaces a non-merge commit on main's
+    first-parent spine since the enforcement baseline — a direct-to-main commit or a
+    fast-forwarded feature commit the `--no-ff` rule forbids — that does NOT carry an
+    ADR-80 automation marker (`chore(routine/…)` scope or a `Routine:` trailer).
+
+    Awareness layer, not a gate: emits one WARN per violation (never FAIL → never
+    blocks the audit-health commit gate; one Finding per violation so the #147
+    ship-gate dispositions them independently — same contract as git_backlog_drift).
+    DETECT-AND-SURFACE, not prevent: git fires no commit-hook on a fast-forward, so
+    this cannot block the merge itself; it removes the silence (true prevention = a
+    pre-push hook, deferred under #153). Fail-soft on any error. Read-only. Detection
+    lives in scripts/validate_no_ff.py.
+    """
+    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+        return [Finding("no_ff_merges", "pass",
+                        "hub-only — --no-ff guard skipped (not the hub repo)")]
+    try:
+        violations = _vnf.find_violations(Path(repo_path))
+    except Exception as exc:  # never wedge the audit-health gate
+        return [Finding("no_ff_merges", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    if not violations:
+        return [Finding("no_ff_merges", "pass",
+                        f"no non-merge commits on main since {_vnf.BASELINE_DATE} "
+                        "(--no-ff rule, core-invariants #5; sanctioned automation excluded)")]
+    return [
+        Finding("no_ff_merges", "warn",
+                ("non-merge commit on main (FF/direct — expected a --no-ff merge): "
+                 + _vnf.format_one(v)).replace("|", "/"))
+        for v in violations
+    ]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -1281,6 +1325,7 @@ ALL_CHECKS = [
     check_floor_integrity,
     check_git_backlog_drift,
     check_doc_claims,
+    check_no_ff_merges,
 ]
 
 
