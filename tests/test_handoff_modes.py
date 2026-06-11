@@ -82,6 +82,16 @@ def test_boot_carries_both_postures() -> None:
     assert "substring-check" in low                   # exact-line probe, not a paraphrase
 
 
+def test_boot_ack_is_mode_neutral() -> None:
+    """The on-load ack fires BEFORE the browser knows its mode (mode comes from CC's
+    handoff, read at step 3), so the ack must name the Layer-1 actor, not a mode — it
+    must never claim 'architect' on load (the execution-session mislabel this fixes)."""
+    boot = _read("protocols/HANDOFF_BOOT.md")
+    ack = next(line for line in boot.splitlines() if "Booted" in line)
+    assert "Layer-1 browser" in ack
+    assert "architect" not in ack.lower()
+
+
 def test_boot_architect_posture_carries_operator_context_step() -> None:
     """The architect posture carries the operator-context step: ONE off-repo-only ask, after
     orient and before decomposition (HANDOFF_PROCESS v5 §13)."""
