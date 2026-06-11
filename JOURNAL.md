@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-11 — architecture-coherence audit + session-insight capture (docs/arch-coherence-audit)
+
+**Did:** Ran a read-only, adversarial architecture + governing-doc coherence audit (6 scopes A–F) and captured this session's architectural insights — **audit + capture only**, no fixes/redesign (those are the next fresh session's work).
+
+**Result:** Wrote `docs/audits/2026-06-11-architecture-coherence-audit.md`; appended 7 LESSONS; added BACKLOG #150–#155 (72 tasks). Headline findings: PLAYBOOK §"System Architecture" is a **stale resident copy** of ARCHITECTURE.md (browser-produces-handoffs + "Layer 2 never executes" both contradicted by the canon at :106/:130-134) — canon right, copy drifted; the **v5 bundle is unreadable at the big-picture level** (orientation gap — teeth sound, no what-is-this); the **#149 flip has 10 non-gated prose surfaces** beyond the 5 gated; **DRIFT-1 made concrete** (ARCHITECTURE.md:259 `420 collected` → live `424`). Self-check reconciled the A↔F tension (same root) and corrected an exploration over-flag (ARCHITECTURE's core diagram is already model-C-consistent). Green throughout: 423 pytest pass / 1 skip, ruff clean, audit-health OK, validate_backlog OK.
+
+**Abandoned:** Nothing.
+
+**Next:** A fresh chat closes the way-of-working — pointerize the drift (#152), design the two-mode handoff with a readable orientation layer (#150), complete CC-side enforcement (#153); the #149 doc-sync checklist (#151) and DRIFT-1 (#154) are now actionable.
+
+**Changes:** `docs/audits/2026-06-11-architecture-coherence-audit.md` (new); `LESSONS.md` (+7); `BACKLOG.md` (#150–#155 + grooming-log); this JOURNAL entry. Branch `docs/arch-coherence-audit`; commits f07a318 (audit), 7882dbf (lessons), cd19c39 (backlog).
+
 ### 2026-06-11 — first real v5 handoff emitted — the #149 teeth dogfood (docs/handoff-2026-06-11-v5-dogfood)
 
 **Did:** Ran `/handoff … v5` (beta mode) for `.dev-knowledge` — CC-owned: audited live state, ran both drift-checks (`validate_doc_claims` #89, `validate_git_backlog` #90), and emitted the **residual** (not a v4 8-file bundle) to `docs/handoffs/2026-06-11-dev-knowledge-session/`: thin boot pointer (`HANDOFF_BOOT.md` → `protocols/HANDOFF_BOOT.md`), `RESIDUAL.md` (drift-flags as headline + un-committed reasoning + pointers + lean task-state), `PROBES.md` (6 teeth-y probes — question + locator + command, no answers), `README.md` index.
