@@ -1734,11 +1734,29 @@ def test_amendment_coherence_registered_in_all_checks() -> None:
 # flip-atomicity test PASS on the seeded 5.0-vs-v4 straggler -> RED.
 # ---------------------------------------------------------------------------
 
-def _write_v5_parallel(tmp_path: Path, version: str = "5.0-beta") -> None:
-    """Drop a beta v5 spec alongside the canonical spec (parallel-ship layout)."""
+def _write_v5_parallel(tmp_path: Path, version: str = "5.0-beta", body: str = "") -> None:
+    """Drop a beta v5 spec alongside the canonical spec (parallel-ship layout).
+
+    `body` appends extra spec content (e.g. the §13 modes section) so the fence can prove
+    that richer v5-only surfaces stay invisible to the canonical coupling gates too.
+    """
     (tmp_path / "protocols").mkdir(parents=True, exist_ok=True)
     (tmp_path / "protocols" / "HANDOFF_PROCESS_v5.md").write_text(
-        f"# HANDOFF_PROCESS v5\n\nVersion: {version}\nStatus: beta\n", encoding="utf-8")
+        f"# HANDOFF_PROCESS v5\n\nVersion: {version}\nStatus: beta\n{body}", encoding="utf-8")
+
+
+# The §13 architect|execution modes body (#150) lives ONLY in the beta v5 file. It carries
+# tokens a careless gate could mis-anchor on ("v4.4", "ADR-82") — the fence proves it doesn't.
+_V5_MODES_BODY = """\
+
+## 13. Modes — architect | execution (residual profile + browser posture)
+
+One process, two modes selected by a /handoff parameter; default execution. Mode applies only
+in v5 mode — v4.4 has no modes (ADR-82). Architect mode adds a §5 exact-line-quote orientation
+probe bound to VISION.md ## Vision + ARCHITECTURE.md Ch1 — forced read, never copied, never
+paraphrased, substring-checked. Task-graph ephemeral-in-residual this pass; durable = #156.
+The return channel stays §2/§6 — no new artifact.
+"""
 
 
 def test_amendment_coherence_v5_parallel_file_invisible(tmp_path: Path) -> None:
@@ -1784,3 +1802,40 @@ def test_amendment_coherence_v5_flip_straggler_fires(tmp_path: Path) -> None:
     f = aud.check_amendment_coherence(tmp_path)[0]
     assert f.status == "fail"
     assert "straggler" in f.evidence.lower()
+
+
+def test_v5_modes_body_invisible_to_all_canonical_gates(tmp_path: Path) -> None:
+    """#150: the §13 architect|execution MODES body lives in the BETA v5 file. It must stay
+    invisible to EVERY handoff-version coupling gate — the v5 file is neither the anchor nor a
+    coupled surface, so its 'v4.4'/'ADR-82' tokens cannot mis-anchor a gate. A fully-aligned
+    canonical set + a modes-carrying v5 file -> amendment coherence, version stamp, AND tag
+    canonicity ALL still PASS. Extends the parallel-ship fence to the §13 surface. Teeth:
+    globbing any gate over protocols/ makes the modes body visible and flips one of these RED.
+    """
+    # canonical spec: Version anchor + valid 4-tag §3.1 (satisfies the stamp + tag gates).
+    (tmp_path / "protocols").mkdir(parents=True, exist_ok=True)
+    (tmp_path / ".claude" / "commands").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "protocols" / "HANDOFF_PROCESS.md").write_text(
+        "# HANDOFF_PROCESS v4\n\nVersion: 4.4\nStatus: live\n\n"
+        "### 3.1 The Phase 1 interview (sage→apprentice frame)\n\n"
+        "- witnessed\n- recall\n- inferred\n- unknown\n\n---\n",
+        encoding="utf-8")
+    # coupled surfaces aligned at v4 (exact live line forms, per _seed_coupled).
+    (tmp_path / "CLAUDE.md").write_text(
+        "## 7\n- `/handoff` — generate/complete handoff per `HANDOFF_PROCESS.md` "
+        "v4 two-phase flow (ADR-62)\n", encoding="utf-8")
+    (tmp_path / ".claude" / "commands" / "handoff.md").write_text(
+        "---\ndescription: Generate or complete a handoff per HANDOFF_PROCESS.md "
+        "v4 — two-phase interview\n---\n", encoding="utf-8")
+    (tmp_path / "ARCHITECTURE.md").write_text(
+        "# Architecture\n\nstamp 4.4, live\n", encoding="utf-8")
+    (tmp_path / "CONTRIBUTING.md").write_text(
+        "# Contributing\n\nstamp v4.4, *live*\n", encoding="utf-8")
+    # the new surface: a beta v5 file carrying the §13 modes body.
+    _write_v5_parallel(tmp_path, body=_V5_MODES_BODY)
+
+    assert aud.check_amendment_coherence(tmp_path)[0].status == "pass"
+    stamp = aud.check_handoff_version_stamp(tmp_path)[0]
+    assert stamp.status == "pass"
+    assert "4.4" in stamp.evidence
+    assert aud.check_handoff_tag_canonicity(tmp_path)[0].status == "pass"
