@@ -56,6 +56,19 @@ def test_v5_return_channel_adds_no_new_artifact() -> None:
     assert "no new artifact" in spec
 
 
+def test_v5_architect_carries_operator_context_beat() -> None:
+    """Architect mode adds a lightweight operator-context beat: ONE off-repo-only ask
+    (intent / priorities / off-repo findings / changed decisions) AFTER orient, BEFORE design —
+    the channel a repo-derived residual structurally cannot carry. Architect-only; NOT the
+    residual; NOT the v4 interview."""
+    spec = _read("protocols/HANDOFF_PROCESS_v5.md").lower()
+    assert "operator-context" in spec          # the beat is named
+    assert "off-repo" in spec                  # off-repo-only scope
+    assert "architect mode only" in spec       # architect-only, not execution
+    assert "eight-file interview" in spec      # framed as explicitly NOT the heavy v4 interview
+    assert "residual" in spec                  # framed against (distinct from) the residual
+
+
 # --- HANDOFF_BOOT.md: both postures travel in the one boot file ----------------
 
 def test_boot_carries_both_postures() -> None:
@@ -67,6 +80,14 @@ def test_boot_carries_both_postures() -> None:
     assert "orient first" in low                      # orientation is the first move
     assert "orientation probe" in low
     assert "substring-check" in low                   # exact-line probe, not a paraphrase
+
+
+def test_boot_architect_posture_carries_operator_context_step() -> None:
+    """The architect posture carries the operator-context step: ONE off-repo-only ask, after
+    orient and before decomposition (HANDOFF_PROCESS v5 §13)."""
+    boot = _read("protocols/HANDOFF_BOOT.md").lower()
+    assert "ask the operator for off-repo context" in boot
+    assert "off-repo" in boot
 
 
 # --- .claude/commands/handoff.md: mode param + coupled-surface preserved -------
