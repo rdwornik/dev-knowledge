@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-11 — Phase-0 foundation stabilization (feat/foundation-stabilization)
+
+**Did:** Executed the contained, low-risk subset of the 2026-06-11 architecture audit as 4 revertable commits: fixed CLAUDE.md §1's broken `HANDOFF.md` session-start pointer → the bundle `README.md` (#151 clause); pointerized PLAYBOOK §"System Architecture" → a pointer to ARCHITECTURE.md Ch1, preserving the Obsidian-vault rule + §13 cross-ref (#152 clause); shipped the `--no-ff` FF-guard as the `no_ff_merges` audit check (`scripts/validate_no_ff.py` + 17 tests, hub-only, baseline-grandfathered + ADR-80-automation-allowlisted) (#153 priority clause); reconciled ARCHITECTURE.md's `doc_claims` counts LAST per operator sequencing (#154).
+
+**Result:** **#154 CLOSED** (test-count 420→441, check-count 17→18; `doc_claims` 4/4 MATCH). #151/#152/#153 each advanced one clause and **stay open** — §8/#150, the broader scope-C sweep, and the remaining prose-only constraints are out of this pass. FF-guard is **detect-and-surface, not hard-prevent** (git fires no commit-hook on a fast-forward; pre-push prevention flagged as deferred machinery, not built). Green throughout: 440 pytest pass / 1 skip (441 collected), ruff clean, audit-health OK, **ship-gate GREEN**.
+
+**Abandoned:** Nothing. (Pointerizing §8 + the two-mode handoff are #150, next session — deliberately untouched.)
+
+**Next:** The architecture session designs the two-mode handoff with a readable orientation layer (#150).
+
+**Changes:** `CLAUDE.md` (v2.17); `protocols/PLAYBOOK.md` (System-Arch pointerized + TOC); `scripts/validate_no_ff.py` (new) + `scripts/audit.py` (check wired into ALL_CHECKS) + `tests/test_validate_no_ff.py` (new); `ARCHITECTURE.md` (counts + Ch2 organ row + validators bullet + last_reviewed); `BACKLOG.md` (#154 removed; #151/#152/#153 annotated). Branch `feat/foundation-stabilization`; commits 4307539 (CLAUDE), c0fae5e (PLAYBOOK), 884699a (FF-guard), 5cc5a24 (reconcile/closes #154).
+
 ### 2026-06-11 — architecture-coherence audit + session-insight capture (docs/arch-coherence-audit)
 
 **Did:** Ran a read-only, adversarial architecture + governing-doc coherence audit (6 scopes A–F) and captured this session's architectural insights — **audit + capture only**, no fixes/redesign (those are the next fresh session's work).

@@ -1,12 +1,12 @@
 ---
-last_reviewed: 2026-06-07
+last_reviewed: 2026-06-11
 status: active
 owner: Rob
 ---
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.16 — 2026-06-07 -->
+<!-- version: 2.17 — 2026-06-11 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -19,7 +19,7 @@ In order, read:
 1. This file (you're here)
 2. `protocols/ESSENTIALS.md` — Rob's universal working style
 3. `protocols/PLAYBOOK.md` — universal protocols (only sections relevant to current task)
-4. Most recent `docs/handoffs/*/HANDOFF.md` if continuing prior session
+4. Most recent `docs/handoffs/*/` bundle — start with its `README.md` — if continuing prior session
 5. Last 5 entries of `JOURNAL.md`
 
 If ESSENTIALS or PLAYBOOK are unavailable, proceed with this file alone but flag it.
@@ -184,8 +184,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.14 (2026-06-05) — #81 pilot STEP 4 archived-command sweep: §6 "Session start protocol" and §7 "Slash commands" — `/boot` and `/evolve` references annotated as archived 2026-06-05 Phase-C3 (archive: `~/.claude/archive/2026-06-05-machinery-c3/`). End-to-end re-read; `last_reviewed` re-stamped 2026-06-05.
 - v2.15 (2026-06-06) — §9 pre-commit list completed: added `toc-freshness` + `toc-freshness-playbook` (now 8 hooks, matching `.pre-commit-config.yaml` + `ARCHITECTURE.md` §Validators) — the drift the 2026-06-06 triage re-read surfaced, fixed before the nightly flags it. Companion genuine end-to-end re-read: §11 "last 5" rotated 67–71 → 68–72 (add ADR-72 cloud-Routine hub-independence; drop ADR-67) and flagged the §11 ADR-68 line **[REFUTED — historical]** to match ARCHITECTURE. Rest confirmed current; `last_reviewed` re-stamped 2026-06-06.
 - v2.16 (2026-06-07) — §3 gains chapter pointers into the rewritten `ARCHITECTURE.md` (cloud/nightly/spec-orch/t-shirt routing → Ch3+Ch6; organ map → Ch2; distribution → Ch4) — closes [#93]; pointers only, doctrine stays in ARCHITECTURE + ADRs. Genuine end-to-end re-read; `last_reviewed` re-stamped 2026-06-07. **Companion obsolescence-pass fixes, operator-ratified & applied in-session:** (1) §9 "Session hooks" had drifted to a partial duplicate (listed only `fleet_health` of the 6 live `.claude/settings.json` hooks; stale "no hub-local Stop hook" framing) → trimmed to a pointer to ARCHITECTURE Ch2 (the authoritative organ map; the pre-commit gate list kept here); (2) §11 "last 5 ADRs" rotated 68–72 → 76–80.
+- v2.17 (2026-06-11) — §1 "First read" #4 broken-pointer fix (#151 clause / 2026-06-11 architecture-coherence audit): the pointer read `docs/handoffs/*/HANDOFF.md`, a filename **no** bundle shape produces (v4 = `README.md` + `01_ROLE…07`; current bundle = `README.md`/`RESIDUAL.md`/`PROBES.md`/`HANDOFF_BOOT.md`) → repointed to the bundle's `README.md`, the one file every shape carries. Genuine end-to-end re-read; rest confirmed current (the §11 "last 5" rolling-window rotation toward ADR-81/82 is a separate groom, deliberately not pulled in here); `last_reviewed` re-stamped 2026-06-11. The #149-flip doc-sync (#151) stays open — §8 + the broader scope-C surface sweep land at the v5→canonical flip.
 
 ---
 
-**Last updated:** 2026-06-07
+**Last updated:** 2026-06-11
 **Maintained by:** Rob
