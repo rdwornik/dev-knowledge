@@ -1720,122 +1720,25 @@ def test_amendment_coherence_registered_in_all_checks() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Parallel-ship regression fence (#148 HANDOFF_PROCESS v5 — ADR-82)
+# Atomic-flip invariant (post-#149: v5 is canonical, v4.4 archived)
 #
-# v5 ships as a PARALLEL beta file `protocols/HANDOFF_PROCESS_v5.md` while the canonical
-# `protocols/HANDOFF_PROCESS.md` stays v4.4 (see ADR-82 / the plan's migration strategy).
-# Every handoff-version coupling gate anchors on the EXACT canonical path, so the v5 file
-# must be INVISIBLE to them — locked in here so a future edit that accidentally globs
-# `protocols/*.md` (making the v5 file visible) goes RED before it ships. The flip-atomicity
-# guard (canonical Version bumped to 5.0 while a coupled surface strands at v4 -> FAIL)
-# encodes the invariant the Council-gated flip must satisfy in ONE atomic commit.
-# Teeth: repointing any gate's anchor to a glob over protocols/ makes the v5 file visible
-# and flips an "invisible" assertion RED; gutting the straggler comparison makes the
-# flip-atomicity test PASS on the seeded 5.0-vs-v4 straggler -> RED.
+# The #149 flip promoted v5 to canonical and RETIRED the parallel-ship invisibility
+# fence — v5 is no longer a parallel beta file, so there is nothing left to keep
+# invisible. What survives is the flip-ATOMICITY invariant, generalized: whenever the
+# canonical HANDOFF_PROCESS Version bumps but a coupled surface lags, check_amendment_
+# coherence must FAIL — so any future canonical version move MUST carry every coupled
+# surface in one atomic commit. Teeth: gutting the straggler comparison makes the test
+# PASS on a seeded bumped-spec / lagging-surface pair -> RED.
 # ---------------------------------------------------------------------------
 
-def _write_v5_parallel(tmp_path: Path, version: str = "5.0-beta", body: str = "") -> None:
-    """Drop a beta v5 spec alongside the canonical spec (parallel-ship layout).
 
-    `body` appends extra spec content (e.g. the §13 modes section) so the fence can prove
-    that richer v5-only surfaces stay invisible to the canonical coupling gates too.
-    """
-    (tmp_path / "protocols").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "protocols" / "HANDOFF_PROCESS_v5.md").write_text(
-        f"# HANDOFF_PROCESS v5\n\nVersion: {version}\nStatus: beta\n{body}", encoding="utf-8")
-
-
-# The §13 architect|execution modes body (#150) lives ONLY in the beta v5 file. It carries
-# tokens a careless gate could mis-anchor on ("v4.4", "ADR-82") — the fence proves it doesn't.
-_V5_MODES_BODY = """\
-
-## 13. Modes — architect | execution (residual profile + browser posture)
-
-One process, two modes selected by a /handoff parameter; default execution. Mode applies only
-in v5 mode — v4.4 has no modes (ADR-82). Architect mode adds a §5 exact-line-quote orientation
-probe bound to VISION.md ## Vision + ARCHITECTURE.md Ch1 — forced read, never copied, never
-paraphrased, substring-checked. Task-graph ephemeral-in-residual this pass; durable = #156.
-The return channel stays §2/§6 — no new artifact.
-"""
-
-
-def test_amendment_coherence_v5_parallel_file_invisible(tmp_path: Path) -> None:
-    """An aligned v4 coupled set PLUS a parallel HANDOFF_PROCESS_v5.md present -> still
-    PASS. The v5 file is neither the anchor nor a coupled surface, so it cannot strand the
-    set. The load-bearing parallel-ship safety property (ADR-82)."""
-    _seed_coupled(tmp_path, spec_ver="4.4", surface_ver="4")
-    _write_v5_parallel(tmp_path)
-    f = aud.check_amendment_coherence(tmp_path)[0]
-    assert f.status == "pass"
-
-
-def test_handoff_version_stamp_v5_parallel_file_invisible(tmp_path: Path) -> None:
-    """The stamp gate parses ONLY protocols/HANDOFF_PROCESS.md for the canonical version;
-    a parallel HANDOFF_PROCESS_v5.md declaring Version: 5.0-beta does not shift the
-    canonical, so matching v4.4 stamps in the living docs still PASS."""
-    _write_handoff_spec(tmp_path, "4.4")
-    _write_v5_parallel(tmp_path)
-    (tmp_path / "ARCHITECTURE.md").write_text(
-        "# Architecture\n\nstamp 4.4, live\n", encoding="utf-8")
-    (tmp_path / "CONTRIBUTING.md").write_text(
-        "# Contributing\n\nstamp v4.4, *live*\n", encoding="utf-8")
-    f = aud.check_handoff_version_stamp(tmp_path)[0]
-    assert f.status == "pass"
-    assert "4.4" in f.evidence
-
-
-def test_handoff_tag_canonicity_v5_parallel_file_invisible(tmp_path: Path) -> None:
-    """tag-canonicity scans only the canonical spec's §3.1; a parallel v5 file does not
-    affect it. Canonical four-tag spec + a v5 file present -> still PASS."""
-    _write_spec(tmp_path, _SPEC_4TAG)
-    _write_v5_parallel(tmp_path)
-    f = aud.check_handoff_tag_canonicity(tmp_path)[0]
-    assert f.status == "pass"
-
-
-def test_amendment_coherence_v5_flip_straggler_fires(tmp_path: Path) -> None:
-    """Flip-atomicity invariant: when the canonical spec bumps to 5.0 while a coupled
-    surface still declares v4, the gate FAILS -> the Council-gated flip MUST move the spec
-    Version and all coupled surfaces in one atomic commit. Encodes the exact straggler
-    class the flip must avoid."""
+def test_amendment_coherence_canonical_straggler_fires(tmp_path: Path) -> None:
+    """Atomic-move invariant (version-neutral): when the canonical spec Version bumps
+    (here to 5.0) while a coupled surface still declares the old major (v4), the gate
+    FAILS -> any canonical version move MUST advance the spec Version and every coupled
+    surface in one atomic commit. Generalized from the original v4->v5 flip straggler
+    guard; outlives that specific flip."""
     _seed_coupled(tmp_path, spec_ver="5.0", surface_ver="4")
     f = aud.check_amendment_coherence(tmp_path)[0]
     assert f.status == "fail"
     assert "straggler" in f.evidence.lower()
-
-
-def test_v5_modes_body_invisible_to_all_canonical_gates(tmp_path: Path) -> None:
-    """#150: the §13 architect|execution MODES body lives in the BETA v5 file. It must stay
-    invisible to EVERY handoff-version coupling gate — the v5 file is neither the anchor nor a
-    coupled surface, so its 'v4.4'/'ADR-82' tokens cannot mis-anchor a gate. A fully-aligned
-    canonical set + a modes-carrying v5 file -> amendment coherence, version stamp, AND tag
-    canonicity ALL still PASS. Extends the parallel-ship fence to the §13 surface. Teeth:
-    globbing any gate over protocols/ makes the modes body visible and flips one of these RED.
-    """
-    # canonical spec: Version anchor + valid 4-tag §3.1 (satisfies the stamp + tag gates).
-    (tmp_path / "protocols").mkdir(parents=True, exist_ok=True)
-    (tmp_path / ".claude" / "commands").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "protocols" / "HANDOFF_PROCESS.md").write_text(
-        "# HANDOFF_PROCESS v4\n\nVersion: 4.4\nStatus: live\n\n"
-        "### 3.1 The Phase 1 interview (sage→apprentice frame)\n\n"
-        "- witnessed\n- recall\n- inferred\n- unknown\n\n---\n",
-        encoding="utf-8")
-    # coupled surfaces aligned at v4 (exact live line forms, per _seed_coupled).
-    (tmp_path / "CLAUDE.md").write_text(
-        "## 7\n- `/handoff` — generate/complete handoff per `HANDOFF_PROCESS.md` "
-        "v4 two-phase flow (ADR-62)\n", encoding="utf-8")
-    (tmp_path / ".claude" / "commands" / "handoff.md").write_text(
-        "---\ndescription: Generate or complete a handoff per HANDOFF_PROCESS.md "
-        "v4 — two-phase interview\n---\n", encoding="utf-8")
-    (tmp_path / "ARCHITECTURE.md").write_text(
-        "# Architecture\n\nstamp 4.4, live\n", encoding="utf-8")
-    (tmp_path / "CONTRIBUTING.md").write_text(
-        "# Contributing\n\nstamp v4.4, *live*\n", encoding="utf-8")
-    # the new surface: a beta v5 file carrying the §13 modes body.
-    _write_v5_parallel(tmp_path, body=_V5_MODES_BODY)
-
-    assert aud.check_amendment_coherence(tmp_path)[0].status == "pass"
-    stamp = aud.check_handoff_version_stamp(tmp_path)[0]
-    assert stamp.status == "pass"
-    assert "4.4" in stamp.evidence
-    assert aud.check_handoff_tag_canonicity(tmp_path)[0].status == "pass"

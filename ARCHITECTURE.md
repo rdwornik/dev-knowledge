@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-11
+last_reviewed: 2026-06-12
 status: active
 owner: Rob
 ---
@@ -204,7 +204,7 @@ local git gate.
 | `verify` (skill) | invoked per numbered step | hub | advisory (pytest+ruff+git) | #104 (home #9 open) |
 | `gotchas` (skill) | auto-consulted before edits | L0 | advisory | global |
 | `artifact-reader` (agent) | reading a >20k-token artifact | hub | read-only (Read/Grep/Glob) | #97 |
-| `/save`, `/handoff` (commands) | operator | hub | — | repo; ADR-62 / HANDOFF v4 |
+| `/save`, `/handoff` (commands) | operator | hub | — | repo; ADR-82 / HANDOFF v5 |
 | `/ship`, `/review-closures` (commands) | operator | plugin (fleet-wide) | branch→`--no-ff`→clean-tree gate | git-discipline; ADR-70 |
 | `/changelog-review`, `/codex-review` | operator (push) | hub / L0 | — | #113 / ADR-54 |
 | `conformance-hub.js` (Workflow) | operator (`ultracode`) or cloud Routine | Tier-3 | read-only + skeptic + evidence-required | ADR-70 (#81) |
@@ -262,7 +262,7 @@ above references — the `scripts/` inventory:
   accuracy only — cross-file fidelity / rot is #140. Standalone CLI: `python scripts/validate_doc_claims.py` (#89).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
-- `tests/` — pytest unit tests for the validators (**441 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**449 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
@@ -452,7 +452,7 @@ distils an ADR` → `BACKLOG item + convention edit` → `enforcement organ (Ch2
 Runbook: `protocols/AI_COUNCIL_PROCESS.md` (ADR-67). The complexity router (1-file
 mechanical → conversational; 3+ files / 2+ packages → formal CC prompt;
 architecture/contested → Council) is PLAYBOOK "Project complexity bands"; degraded
-context → Handoff v4 (`HANDOFF_PROCESS.md`, ADR-62).
+context → Handoff v5 (`HANDOFF_PROCESS.md`, ADR-82).
 
 **ADR-68 supersession note (the night-agent).** ADR-68 specified a **local**
 mechanism — Windows Task Scheduler → headless `claude -p` review → morning briefing,
@@ -480,7 +480,7 @@ ledger is `docs/decisions/README.md`. Council transcripts: `docs/decisions/trans
 - **ADR-43/67** — Council transcript routing; AI-Council process operationalization (Ch6).
 - **ADR-50/51/59/60** — machine-document encoding; ARCHITECTURE convention + Mermaid theme + auto-TOC; visual repository pattern; docs/ taxonomy.
 - **ADR-53/54** — CLAUDE.md as single canonical agent file; Codex reviewer config as global standard.
-- **ADR-61/62** — git worktree for parallel sessions; Handoff v4 ratification.
+- **ADR-61/62/82** — git worktree for parallel sessions; Handoff v4 ratification (ADR-62), superseded by v5 (ADR-82, canonical 2026-06-11).
 - **ADR-64/65/66** — BACKLOG architecture / done-item disposition / story-map hierarchy.
 - **ADR-68** — autonomous overnight review agent. **[REFUTED — historical]** — the *local* night-agent was never registered; superseded in reality by the cloud Routine (see Ch6 supersession). Immutable, untouched.
 - **ADR-70/74/80** — three-tier process automation; layer→job matrix (canonical); two-tier adoption + writer policy + Routine/night operational standard (Ch2/Ch3).

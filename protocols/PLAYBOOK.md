@@ -148,7 +148,7 @@
   - [Context budget — read-scoping rule](#context-budget--read-scoping-rule)
   - [Session end protocol](#session-end-protocol)
 - [8. Handing Off Between Sessions](#8-handing-off-between-sessions)
-  - [What the v4 bundle carries](#what-the-v4-bundle-carries)
+  - [What the v5 handoff carries](#what-the-v5-handoff-carries)
   - [Roles](#roles)
   - [Handoff paths](#handoff-paths)
   - [Token log cadence](#token-log-cadence)
@@ -960,13 +960,14 @@ items are removed or tracked in BACKLOG.
 
 <!-- scope: meta -->
 
-**Authoritative spec: `protocols/HANDOFF_PROCESS.md` v4** — the single live source of truth for handoff mechanics. This is a pointer, not a duplicate; do not re-document the bundle structure here (the duplication is what drifted).
+**Authoritative spec: `protocols/HANDOFF_PROCESS.md` v5** — the single live source of truth for handoff mechanics. This is a pointer, not a duplicate; do not re-document the structure here (the duplication is what drifted).
 
-Three formats exist in `docs/handoffs/`, two of them historical:
+Formats in `docs/handoffs/`, all but the current one historical:
 
 - **Legacy single-file (before 2026-04-27)** — one dated `YYYY-MM-DD-slug.md` free-form summary. Preserved as-is; do not migrate.
-- **v3.x folder bundle (2026-04-27 → v4 rollout)** — `upload-instructions.md` + `first-message.md` + a `contents/` subfolder of point-in-time copies (`HANDOFF.md`, `manifest.json`, `tree.txt`, governance copies). **Superseded by v4**; existing bundles are preserved as point-in-time history, never regenerated.
-- **v4 bundle (current)** — flat `docs/handoffs/<slug>/` = `README.md` + `01_ROLE`…`07_ASK_BACK`, **generated from source at handoff time** (not hand-maintained copies — generation is what stopped the drift). Two-phase flow (Phase 1 interview → Phase 2 consolidate). Full structure + generation principle in `HANDOFF_PROCESS.md` §4–§5.
+- **v3.x folder bundle (2026-04-27 → v4 rollout)** — `upload-instructions.md` + `first-message.md` + a `contents/` subfolder of point-in-time copies. **Superseded**; preserved as point-in-time history, never regenerated.
+- **v4 bundle (2026-05-29 → v5 flip 2026-06-11; historical)** — flat `docs/handoffs/<slug>/` = `README.md` + `01_ROLE`…`07_ASK_BACK`, generated from source via a two-phase flow. **Superseded by v5**; existing bundles preserved as history, never regenerated.
+- **v5 handoff (current)** — CC-owned: a lean **residual** + **probe manifest** under `docs/handoffs/<slug>/`, plus a thin browser boot (`protocols/HANDOFF_BOOT.md`) that replaces the multi-file bundle. Generated from live state at handoff time; teeth-y forced primary-source read. Full structure in `HANDOFF_PROCESS.md` §2–§5.
 
 ### Order conventions
 <!-- scope: meta -->
@@ -1591,7 +1592,7 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 | `/codex-review` | user | Before merging a **code** change (3+ files / safety-critical). Code only — never a markdown-only diff (LESSON 2026-05-19). |
 | `/save` | repo | Stage + commit with a Conventional Commits message + full body (git-discipline rule). After a discrete change. |
 | `/ship` | plugin (`tier1-lifecycle`) | Git-finish from the PRIMARY checkout: merge the current feature branch `--no-ff` → push → **auto-delete the merged branch** (no question). Branch cleanup is automatic; an anomalous `git branch -d` refusal is **reported loudly** and the branch left in place (session still ends). Refuses from inside a worktree (pre-flight #1). |
-| `/handoff` | repo | Two-phase browser→browser handoff per HANDOFF_PROCESS v4 (ADR-62): "create handoff" → "complete handoff". At ~2h, context still fresh. |
+| `/handoff` | repo | CC-owned handoff per HANDOFF_PROCESS v5 (ADR-82): "create handoff" → "complete handoff" — emits the residual + probe manifest + points at the thin boot. At ~2h, context still fresh. |
 
 **Skills** — read on-demand by Claude when the topic matches; you do **not** invoke them:
 
@@ -2097,17 +2098,20 @@ WHAT NOT TO DO:
 ### Prompt Generation Card maintenance rule (per ADR-56, Council Q3)
 <!-- scope: hybrid -->
 
-The v4 handoff bundle folds the **Prompt Generation Card** (ADR-56) into
-`02_METHODOLOGY.md` (the operational extract a fresh browser chat uses to
-generate Claude Code prompts, since it cannot read the filesystem). This PLAYBOOK
-section remains the rationale and edge-case authority; the card is the
-point-of-use procedure. The two are an intentional duplication.
+The historical v4 handoff bundle folded the **Prompt Generation Card** (ADR-56) into
+`02_METHODOLOGY.md` (the operational extract a fresh browser chat used to
+generate Claude Code prompts, since it cannot read the filesystem). Under v5 the
+browser boots from `HANDOFF_BOOT.md` and pulls methodology by **pointer** via CC —
+no copied card travels in the handoff. This PLAYBOOK section remains the rationale
+and edge-case authority for prompt conventions.
 
 **Any change to prompt conventions (model/mode/effort criteria, the summary
-table, the mandatory skeleton, hook guidance) MUST update BOTH:**
+table, the mandatory skeleton, hook guidance) updates:**
 
-1. this PLAYBOOK rationale, and
-2. the inline card in the v4 template `templates/handoff/02_METHODOLOGY.md.tmpl`.
+1. this PLAYBOOK rationale (the live authority), and
+2. the point-of-use card wherever it travels — under v5, `templates/prompt-template.md`.
+   (The v4 bundle's embedded copy at `templates/archive/handoff-v4/02_METHODOLOGY.md.tmpl`
+   is frozen history, no longer co-maintained.)
 
 Drift between the two is a process bug — the card is the point-of-use authority,
 PLAYBOOK is the maintenance source. The card has a ≤200-line size budget; if it
@@ -2582,16 +2586,16 @@ After archival, cross-link FROM:
 ## 8. Handing Off Between Sessions
 <!-- scope: meta -->
 
-Operational authority: `protocols/HANDOFF_PROCESS.md` v4 (ratified by ADR-62; two-phase interview→consolidate flow). This section summarizes handoff governance; for handoff generation, follow HANDOFF_PROCESS.md — it is the single live source of truth and this summary must not duplicate its mechanics.
+Operational authority: `protocols/HANDOFF_PROCESS.md` v5 (ADR-82; CC-owned residual + thin browser boot). This section summarizes handoff governance; for handoff generation, follow HANDOFF_PROCESS.md — it is the single live source of truth and this summary must not duplicate its mechanics.
 
-Mode-awareness — the `architect | execution` payload switch (one process, two residual profiles + browser postures) — is a **v5-beta** capability defined in `protocols/HANDOFF_PROCESS_v5.md` §13; it is **not** described here (resident-copy drift is this section's named failure). It moves with the authority line at the #149/ADR-82 flip.
+Mode-awareness — the `architect | execution` payload switch (one process, two residual profiles + browser postures) — is defined in `protocols/HANDOFF_PROCESS.md` §13; it is **not** described here (resident-copy drift is this section's named failure).
 
-Cross-refs: ADR-62 (v4 ratification), ADR-37 (session-boundary two-phase overlay — design history), ADR-32/42 (handoff format v2/v3 — superseded by v4).
+Cross-refs: ADR-82 (v5 ratification), ADR-62 (v4 ratification — superseded), ADR-37 (session-boundary two-phase overlay — design history), ADR-32/42 (handoff format v2/v3 — superseded).
 
-### What the v4 bundle carries
+### What the v5 handoff carries
 <!-- scope: meta -->
 
-The v4 bundle teaches a new chat, in paste order: who it is (`01_ROLE`), how we work (`02_METHODOLOGY`), the project (`03_PROJECT`), **what just happened** (`04_RECENT` — narrative + a load-bearing-facts verification table), **what to do now** (`05_NOW` — top P1s + in-progress branches + `BACKLOG.md` references, Section 10), then a comprehension check (`06_QUESTIONS`) and an ask-back slot (`07_ASK_BACK`). The "current state / future state" intent of the old ADR-37 overlay now lives in `04_RECENT` + `05_NOW`. Files are generated from source at handoff time; full structure + the sage→apprentice interview in HANDOFF_PROCESS.md §3–§5.
+The v5 handoff is CC-owned and lean: CC emits a **residual** (the un-committed "why" + pointers + drift-flags as the headline) and a **probe manifest** (questions + source-locators + verification commands, never the answers) under `docs/handoffs/<slug>/`, and points the next browser at the thin boot `protocols/HANDOFF_BOOT.md` (which carries the browser's operating role). Comprehension has teeth: CC re-derives every load-bearing fact from live primary sources at check-time and blocks onboarding on any mismatch. Full structure + the `architect | execution` modes in HANDOFF_PROCESS.md §2–§5, §13. (The historical v4 8-file bundle — `01_ROLE`…`07_ASK_BACK` — is superseded; preserved bundles in `docs/handoffs/` are point-in-time history.)
 
 ### Roles
 <!-- scope: meta -->
@@ -2606,7 +2610,7 @@ The v4 bundle teaches a new chat, in paste order: who it is (`01_ROLE`), how we 
 
 **Path A — Claude Code → Browser:** `/session-summary` in Claude Code → paste into Claude.ai. Discuss architecture/strategy; decisions return as prompts (Section 2 format).
 
-**Path B — Browser → New Browser:** the operator triggers `please create handoff for <repo>` (Phase 1) then `complete handoff for <repo>` (Phase 2); Claude Code generates the v4 bundle per HANDOFF_PROCESS.md — Rob makes zero formatting decisions. Trigger at ~2 hours while context is still fresh.
+**Path B — Browser → New Browser:** the operator triggers `please create handoff for <repo>` then `complete handoff for <repo>`; Claude Code generates the v5 handoff (residual + probe manifest + thin boot) per HANDOFF_PROCESS.md — Rob makes zero formatting decisions. Trigger at ~2 hours while context is still fresh.
 
 **Path C — Browser → Claude Code:** Claude.ai writes prompts in Section 2 format (Model/Mode/Effort table). Prefer questions over commands. Let Claude Code discover actual state, then propose actions.
 

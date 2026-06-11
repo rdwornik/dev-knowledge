@@ -4,7 +4,7 @@
 > **What this is.** The whole boot for a fresh browser (Claude.ai) chat. Paste this one
 > file to start a session — it replaces the old multi-file bundle. Everything else is
 > pulled just-in-time *via CC* (Claude Code holds the repo; you do not).
-> Process: **HANDOFF_PROCESS v5 (beta)** — the live spec is `protocols/HANDOFF_PROCESS_v5.md`,
+> Process: **HANDOFF_PROCESS v5** (canonical) — the live spec is `protocols/HANDOFF_PROCESS.md`,
 > which CC holds; ask CC to pull any part you need.
 
 ## Core — these three lines are the boot. Read them first.
