@@ -2584,6 +2584,8 @@ After archival, cross-link FROM:
 
 Operational authority: `protocols/HANDOFF_PROCESS.md` v4 (ratified by ADR-62; two-phase interview→consolidate flow). This section summarizes handoff governance; for handoff generation, follow HANDOFF_PROCESS.md — it is the single live source of truth and this summary must not duplicate its mechanics.
 
+Mode-awareness — the `architect | execution` payload switch (one process, two residual profiles + browser postures) — is a **v5-beta** capability defined in `protocols/HANDOFF_PROCESS_v5.md` §13; it is **not** described here (resident-copy drift is this section's named failure). It moves with the authority line at the #149/ADR-82 flip.
+
 Cross-refs: ADR-62 (v4 ratification), ADR-37 (session-boundary two-phase overlay — design history), ADR-32/42 (handoff format v2/v3 — superseded by v4).
 
 ### What the v4 bundle carries
