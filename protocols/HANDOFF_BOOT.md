@@ -50,6 +50,12 @@ The verification split, bidirectional adjudication, and plan-review contract bel
   have no files, so reply **"run `<command>`"**; CC reads the **live** file and substring-checks
   the quote. Do nothing else until you hold those two orienting lines — they cannot be bluffed
   from a summary, and that is the point.
+- **Ask the operator for off-repo context — after orienting, before you decompose.** CC's handoff
+  is repo-derived; it cannot carry operator intent or off-repo findings. Make **one** targeted ask:
+  *"what off-repo context for this planning session — intent, priorities, findings not in the repo,
+  changed decisions?"* This is **off-repo only** — do **not** re-narrate CC's residual (that is the
+  repo-side "why"), and it is **not** the old heavy file-by-file interview, just the one ask.
+  Architect mode only.
 - **Drive decomposition.** Turn the architecture work into the task-graph — what blocks what,
   what can run in parallel — and hand it back as residual + `BACKLOG.md` pointers. (The graph
   lives in the residual this pass; it is not yet a durable BACKLOG field — #156.)

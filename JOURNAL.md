@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-11 — Operator-context beat added to v5 architect mode (feat/handoff-operator-context-159)
+
+**Did:** Added a lightweight operator-context beat to v5 **architect** mode (Change B) — after orient, before design, the browser makes ONE off-repo-only ask (intent / priorities / findings not in the repo / changed decisions): new §13(d) in `HANDOFF_PROCESS_v5.md`, an architect-posture step in `HANDOFF_BOOT.md`, two live-file fences in `tests/test_handoff_modes.py`. Execution mode untouched; off-repo only (not the residual); not the v4 eight-file interview.
+
+**Result:** 451 pytest pass / 1 skip, ruff clean, audit-health green across 4 per-step commits (`893319d`…`89f9b10` + this). Minted **[#159]** OPEN — beta-track, stays open pending real-architect-session use + the #149 v5→canonical carry (no fake-green). Grounding: the surface-responsibility audit's profile↔repo-overlap noted-limitation (browser-side, repo-blind).
+
+**Next:** #149 v5→canonical flip carries the beat; exercise it in a real architect session. Change A (demote P1) stays parked pending an empirical signal.
+
 ### 2026-06-11 — v5 **architect-mode** handoff emitted (docs/handoff-2026-06-11-architect)
 
 **Did:** Ran `/handoff … v5 architect` for `.dev-knowledge` — CC-owned, the second real v5

@@ -273,7 +273,8 @@ v5 exactly as specified in §§1–12 — the mode label on the current behaviou
 ### Architect mode
 
 For a session that *defines or reshapes the way of working*. Same residual machinery (§2),
-re-profiled, with one layer added:
+re-profiled, with two architect-only in-session layers added — orientation, then the
+operator-context beat:
 
 - **(a) Residual scoped to the planning session** — the planning "why": which design tensions
   were weighed, which options were considered and rejected, what is still open. Not a single
@@ -305,7 +306,19 @@ re-profiled, with one layer added:
     proceed without the live orienting line in hand — **with zero content copied**; the
     no-re-narration rule (§2/§3) and the no-bluff rule (§5) both hold. This is the layer the v5
     execution bundle lacked.
-- **(d) Open architecture questions** travel as residual — the design decisions not yet made,
+- **(d) Operator-context beat — one targeted ask for off-repo context; after orienting, before
+  design begins.** CC's handoff is **repo-derived** and structurally cannot carry operator intent
+  or off-repo findings, so once the orienting lines are in hand the architect makes **one** targeted
+  ask: *what off-repo context for this planning session — intent, priorities, findings not in the
+  repo, changed decisions?* **Architect mode only** — execution carries no such beat (the
+  strategic-vs-tactical split: human-in-the-loop steering belongs at the planning layer, not the
+  execution layer). **Off-repo only:** it does **not** duplicate or re-narrate the CC-generated
+  residual (§2 — the residual is the repo-side, un-committed "why"); it is the off-repo channel that
+  the residual structurally cannot be. It restores the v4 interview's **operator-injection** function
+  **without** the gap-filling — it is **not** the v4 eight-file interview (the residual fills the gaps
+  now), just the one ask. Local proof of the gap: this track's own `profile ↔ repo` overlap finding
+  was browser-side and nearly lost for want of this channel.
+- **(e) Open architecture questions** travel as residual — the design decisions not yet made,
   surfaced (not buried) so the next session resumes the design rather than rediscovering it.
 
 **Browser posture — generative / decompositional** (resident in `HANDOFF_BOOT.md`, §4 — the
