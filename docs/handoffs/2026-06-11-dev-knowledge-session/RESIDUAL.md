@@ -102,10 +102,11 @@ Not in git, JOURNAL, or BACKLOG (which record that v5 *shipped*, not this dogfoo
 ## 4. Why the probes have teeth (the design rule — see `PROBES.md`)
 
 A probe is teeth-bearing only when its answer **cannot be read off a compaction summary** —
-it exists only in the live primary file/state at answer-time. Three conditions (§5):
-**live-only answer**, **generator-excluded** (ship the question + locator + command, never
-the answer), **CC-checkable** (CC re-derives read-only and compares). The operational rule
-this residual follows: **no probe's exact value appears anywhere in this artifact.** The
+it exists only in the live primary file/state at answer-time. The three conditions §5 names
+are deliberately **not restated here** (read them in the spec — and note that P2 makes you
+quote them byte-identical, which a restatement here would defeat). They reduce to one
+operational rule this residual follows: **no probe's exact value appears anywhere in this
+artifact.** The
 drift headline above names *that* a claim is stale and *which* id is flagged, but not the
 collected-count integers, not the closing-merge sha, not the freshness dates — so the only
 way to answer a probe is to open the live source. That is the whole point.
