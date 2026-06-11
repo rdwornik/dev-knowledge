@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-12 — #149 flip: HANDOFF_PROCESS v5 promoted to canonical, v4.4 archived (atomic)
+
+**Did:** Executed the #149 keystone flip in one branch — promoted `HANDOFF_PROCESS_v5.md` → canonical `protocols/HANDOFF_PROCESS.md` (Version 5.0 / Status stable), archived v4.4 → `protocols/archive/HANDOFF_PROCESS_v4.4.md` with the ADR-83 tombstone, archived `templates/handoff/*` → `templates/archive/handoff-v4/`, moved the 4 gate-coupled surfaces + the full non-gated prose set v4→v5 (#151), reconciled audit #8/#9 docstrings to historical-v4, and retired the parallel-ship test fence (kept the straggler guard, generalized). Council gate on ADR-82 **waived by operator authority**.
+
+**Result:** `audit.py health` green against v5-as-canonical (version_stamp v5.0, amendment_coherence coherent, canonical_freshness fresh — CONTRIBUTING/ARCHITECTURE re-read + restamped 2026-06-12); `pytest` 448 passed / 1 skipped; `ruff` clean; `validate_backlog` OK (74 tasks). Grep-verified: no living doc names v4 canonical; the orphaned `HANDOFF_PROCESS_v5.md` literal remains only in immutable records (saved bundles, ADRs, logs, JOURNAL history).
+
+**Abandoned:** Nothing dropped — the v5 `/handoff` generator and the teeth validator were **consciously deferred** (operator-ruled), captured as #164 / #163; the command + SESSION_SETUP retain the v4 generator marked SUPERSEDED until #164.
+
+**Next:** exercise the operator-context beat in a real architect session (#159); architect actor-vs-mode vocab disambiguation (#162); §8 full pointerization (#152); build the teeth validator (#163); wire the v5 generator (#164).
+
+**Changes:** `protocols/HANDOFF_PROCESS.md` (was `_v5`), `protocols/archive/HANDOFF_PROCESS_v4.4.md` (new, tombstone), `templates/archive/handoff-v4/*`, `CLAUDE.md` `CONTRIBUTING.md` `ARCHITECTURE.md` `protocols/{PLAYBOOK,ESSENTIALS,SESSION_SETUP,HANDOFF_BOOT}.md`, `.claude/commands/handoff.md`, `scripts/audit.py` (docstrings), `tests/{test_audit,test_handoff_modes}.py`, `BACKLOG.md`. Branch `feat/handoff-v5-canonical-flip` (c3ba6d4, fb9fece + this).
+
+---
+
 ### 2026-06-11 — handoff-arc cleanup: mode-neutral boot-ack + archive convention (ADR-83)
 
 **Did:** Closed the handoff-methodology arc the session-3/4 two-mode dogfood opened. (A) Neutralized the on-load boot-ack — `HANDOFF_BOOT.md:20` `Booted as architect …` → `Booted as the Layer-1 browser …` (the ack fires before the browser knows its mode, so it must name the *actor*, not claim a mode; "architect" was both premature and a Layer-1-actor collision) + fenced it with `test_boot_ack_is_mode_neutral` (scoped to the ack line). (B) Codified the **existing** v3.4 blockquote tombstone as the protocols-archive convention — ADR-83, **define-only**: no file moves, `protocols/archive/` already exists, v4.4 archival explicitly gated to the #149 flip. (C) Pruned the two merged leftover branches; (E) minted #160–#162.
