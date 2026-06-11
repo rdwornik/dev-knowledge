@@ -254,6 +254,82 @@ sender's lived "why" as the irreducible thing only the prior session can transmi
 
 ---
 
+## 13. Modes — architect | execution (residual profile + browser posture)
+
+One process, **two modes**, not two machines. A mode is selected by a `/handoff` parameter
+(§10) and resolves to a **residual profile** (what CC emits, §2) + a **browser posture** (the
+operating role, §4/§7). The mode is chosen from what the *next* session will do:
+**advance-a-backlog-item → execution**; **define-or-reshape-the-way-of-working → architect**
+(architecture / planning scope — the audit's scope D). Default is **execution**.
+
+### Execution mode (default)
+
+v5 exactly as specified in §§1–12 — the mode label on the current behaviour, nothing added:
+
+- Residual (§2): scoped to the task — un-committed "why" + pointers + drift-flags.
+- Task-state (§6): pointer to `BACKLOG.md` + live branches + drift-flags.
+- Browser posture (§7): reactive partner + filter.
+
+### Architect mode
+
+For a session that *defines or reshapes the way of working*. Same residual machinery (§2),
+re-profiled, with one layer added:
+
+- **(a) Residual scoped to the planning session** — the planning "why": which design tensions
+  were weighed, which options were considered and rejected, what is still open. Not a single
+  task's "why."
+- **(b) Task-state = a pointer to the whole `BACKLOG.md` / the relevant theme(s)** — the
+  task-graph, not one item. **Honest scope (this pass):** the BACKLOG schema (ADR-66 /
+  `validate_backlog`) does **not** encode dependencies or parallelization, so the
+  *what-blocks-what / what-parallelizes* graph is carried **in the residual, ephemerally** — it
+  is **not** a durable BACKLOG-resident graph, and architect mode must not present it as one.
+  Durable encoding is deferred to **#156** (depends-on / parallel fields + an ADR-66 amendment +
+  a `validate_backlog` extension). Until then the architect emits the graph as residual prose
+  and points at the live BACKLOG.
+- **(c) Orientation — a §5 "exact-line quote" probe; the architect's first move, before any
+  mechanism.** This is the scope-D fix, delivered the v5 way: **forced read, never a copy,
+  never a paraphrase.**
+  - A plain-language "what is this project" answer is **summary-bluffable** and so fails §5's
+    own bar (§5: *a probe answerable from the compaction summary is removed or hardened*).
+    Re-narrating VISION into the handoff is equally barred (§2/§3). Orientation is therefore
+    neither summarized nor copied.
+  - Instead, bind an **exact-line probe** (§5 manifest "exact-line quote" row) to a **specific
+    orienting line**: the opening sentence of `VISION.md` `## Vision` (*what `.dev-knowledge`
+    is*) and the `ARCHITECTURE.md` Ch1 opening line (*where this work sits — Layer 2 of the
+    ADR-28 three-layer model*). The handoff ships the **source-locator + the substring-check
+    command, never the line itself** (generator-excluded, §5 condition 2). The orienting line
+    enters the session **only** by CC reading it from the **live** primary source at
+    check-time; the quote must match as a **substring**. The read is *forced*; comprehension
+    follows from having to surface the exact line, not from a paraphrase a summary could fake.
+  - Net: **readable-first is a verified property of the handoff** — the architect cannot
+    proceed without the live orienting line in hand — **with zero content copied**; the
+    no-re-narration rule (§2/§3) and the no-bluff rule (§5) both hold. This is the layer the v5
+    execution bundle lacked.
+- **(d) Open architecture questions** travel as residual — the design decisions not yet made,
+  surfaced (not buried) so the next session resumes the design rather than rediscovering it.
+
+**Browser posture — generative / decompositional** (resident in `HANDOFF_BOOT.md`, §4 — the
+posture must reach the file-less browser). Distinct from §7's reactive execution-filter: the
+architect **drives decomposition** (turns the architecture into the task-graph), **holds the
+whole-system view** (orientation + the `ARCHITECTURE.md` map), and **surfaces design tensions
+proactively** — it stress-tests the design, it does not merely filter CC's output. The §7
+plan-review output contract still applies.
+
+### The return channel is already here — no new artifact
+
+Execution's divergence-from-plan reaches the next architect session through the **existing**
+up-channel, not a new leg: the **residual** (§2 — the un-committed "why," including where
+execution departed from the plan), the **drift-flags** (§2 — reality vs the written record),
+and the **BACKLOG pointer + drift-flag** (§6). v5 §2 + §6 **are** the architect's inbound
+signal. Architect mode adds **no** return-leg artifact — adding one would re-create the v4
+hand-maintained-surface disease (§12).
+
+Mode is carried by `/handoff … v5 <architect|execution>` (§10 self-updating; default
+`execution`; mode applies only in v5 mode — v4.4 has no modes). Command wiring:
+`.claude/commands/handoff.md`.
+
+---
+
 ## Section history
 
 - v5.0-beta (2026-06-11) — initial parallel-ship beta. Records model C (ADR-82, Proposed):
@@ -262,3 +338,10 @@ sender's lived "why" as the irreducible thing only the prior session can transmi
   existing read-only validators; lean pointer-not-narration task-state; verification split +
   bidirectional adjudication; self-updating `/handoff`. Ships beta beside live v4.4; promotion
   to canonical is Council + fresh-eyes + empirical-teeth-dogfood gated (§11).
+- v5.0-beta (2026-06-11, §13 added) — `architect | execution` modes as residual-profile +
+  browser-posture variants selected by a `/handoff` parameter (#150). Architect mode adds the
+  scope-D orientation layer as a §5 **exact-line-quote** probe bound to `VISION.md` /
+  `ARCHITECTURE.md` Ch1 (forced read, never copied, never paraphrased), a planning-scoped
+  residual, and a generative/decompositional browser posture; execution mode is the existing
+  §§1–12 behaviour. Durable task-graph encoding deferred to #156; the return channel stays
+  §2/§6 (no new artifact). Version unchanged (still 5.0-beta; §13 is additive).
