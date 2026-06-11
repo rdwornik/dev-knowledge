@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-11 — handoff-arc cleanup: mode-neutral boot-ack + archive convention (ADR-83)
+
+**Did:** Closed the handoff-methodology arc the session-3/4 two-mode dogfood opened. (A) Neutralized the on-load boot-ack — `HANDOFF_BOOT.md:20` `Booted as architect …` → `Booted as the Layer-1 browser …` (the ack fires before the browser knows its mode, so it must name the *actor*, not claim a mode; "architect" was both premature and a Layer-1-actor collision) + fenced it with `test_boot_ack_is_mode_neutral` (scoped to the ack line). (B) Codified the **existing** v3.4 blockquote tombstone as the protocols-archive convention — ADR-83, **define-only**: no file moves, `protocols/archive/` already exists, v4.4 archival explicitly gated to the #149 flip. (C) Pruned the two merged leftover branches; (E) minted #160–#162.
+
+**Result:** `pytest` 452 passed / 1 skipped, `ruff` clean, `audit.py health` green at each step. No files moved (no dead non-v4 protocol). Branches `docs/arch-coherence-audit` (b9fa4c4) + `docs/handoff-2026-06-11-architect` (e6b163e) deleted (confirmed merged). `main` pushed to origin.
+
+**Abandoned:** Nothing.
+
+**Next:** v4.4 archival at the #149 v5→canonical flip (#160); the "architect" actor-vs-mode vocab disambiguation (#162) in an architect session; teeth probe-core capture (#161). v5→canonical (#149) stays Council + fresh-eyes gated.
+
+**Changes:** `protocols/HANDOFF_BOOT.md` (ack), `tests/test_handoff_modes.py` (+1 fence), `docs/decisions/ADR-83-protocols-archive-convention.md` (new) + `docs/decisions/README.md` (index), `BACKLOG.md` (#160–#162), this JOURNAL marker. Branch `chore/handoff-arc-cleanup`.
+
+---
+
 ### 2026-06-11 — v5 execution-mode handoff emitted (docs/handoffs/2026-06-11-dev-knowledge-session-4)
 
 **Did:** Ran `/handoff … v5` (execution, the default mode) for `.dev-knowledge` — CC-owned, the **execution-mode counterpart** to the same-day `session-3` architect handoff. Scope matrix → **Case 4** (clean tree; only commit-since = session-3's own merge; base slug + `-2`/`-3` taken) → slug `2026-06-11-dev-knowledge-session-4`. Emitted the lean execution residual (4 files: `HANDOFF_BOOT.md` pointer → reactive-filter role, `RESIDUAL.md` drift-flags + lean "why" + pointer task-state, `PROBES.md` 6 teeth probes P1–P6, `README.md`). Honest scope: **no new substantive work since session-3** — this exercises **execution mode** on the current state (v5 dogfood), not new work.

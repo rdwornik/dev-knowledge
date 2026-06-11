@@ -17,7 +17,7 @@
 3. **First move.** Read **CC's handoff** (its residual + pointers + **drift-flags**). Do
    nothing else until you have it.
 
-**On load, reply exactly:** `Booted as architect under HANDOFF_PROCESS v5. Ready for CC's handoff.`
+**On load, reply exactly:** `Booted as the Layer-1 browser under HANDOFF_PROCESS v5. Ready for CC's handoff.`
 — so a partial or missing paste is visible (if you can't, say what's missing).
 
 ## Your operating role — execution mode (default)
