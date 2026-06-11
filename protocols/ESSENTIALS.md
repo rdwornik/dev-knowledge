@@ -222,7 +222,7 @@ required for promotion. (PLAYBOOK)
 3. Shift+Tab → **Accept Edits** mode (daily driver)
 4. Pick **max 2 objectives** for this session
 
-**New browser chat:** Upload `protocols/ESSENTIALS.md` + the most recent handoff bundle folder from `docs/handoffs/` (v4 bundles are flat — `README.md` + `01_ROLE`…`07_ASK_BACK`, no `contents/` subfolder); follow the bundle's `README.md` paste sequence (01–07 in order; README is operator-facing, not pasted). See `SESSION_SETUP.md` for full checklist.
+**New browser chat:** Paste `protocols/HANDOFF_BOOT.md` — the thin boot is the whole browser onboarding (it replaces the old multi-file bundle; everything else is pulled just-in-time *via CC*). See `SESSION_SETUP.md` for the full checklist. (Historical v4 bundles under `docs/handoffs/` are flat `README.md` + `01_ROLE`…`07_ASK_BACK` — superseded, preserved as point-in-time history.)
 
 ---
 

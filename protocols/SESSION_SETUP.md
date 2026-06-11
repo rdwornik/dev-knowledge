@@ -114,7 +114,7 @@ Pomóż mi:
 ## Step 4: Handoff — When the Chat Gets Heavy
 <!-- scope: llm -->
 
-> **Which handoff is this?** This is the **browser→browser** auto-handoff (`wygeneruj handoff`) for carrying context between web-chat sessions. It is a *different layer* from the "Handoff workflow trigger" section below, which is the HANDOFF_PROCESS v4 **Claude-Code** protocol. Two mechanisms, two layers — not competing instructions for the same act.
+> **Which handoff is this?** This is the **browser→browser** auto-handoff (`wygeneruj handoff`) for carrying context between web-chat sessions. It is a *different layer* from the "Handoff workflow trigger" section below, which is the HANDOFF_PROCESS v5 **Claude-Code** protocol. Two mechanisms, two layers — not competing instructions for the same act.
 
 **Same process for both chat types.** Claude auto-adapts the content.
 
@@ -180,11 +180,11 @@ If nothing was learned — skip this step. Not every chat produces lessons.
 ## Handoff workflow trigger
 <!-- scope: hybrid -->
 
-> **Which handoff is this?** This is the HANDOFF_PROCESS v4 **Claude-Code** two-phase protocol — *distinct* from the browser→browser auto-handoff in Step 4 above.
+> **Which handoff is this?** This is the HANDOFF_PROCESS v5 **Claude-Code** protocol — *distinct* from the browser→browser auto-handoff in Step 4 above.
 
-When Rob says one of these phrases, follow the v4 two-phase flow per
-`protocols/HANDOFF_PROCESS.md` v4 (the single live source of truth for handoff
-mechanics):
+When Rob says one of these phrases, follow HANDOFF_PROCESS **v5** per
+`protocols/HANDOFF_PROCESS.md` (the single live source of truth for handoff
+mechanics); the phrase triggers are stable across versions:
 
 | Phrase | Effect |
 |---|---|
@@ -194,7 +194,7 @@ mechanics):
 `{repo}` defaults to `.dev-knowledge` (self-handoff); naming another repo is a
 cross-repo handoff.
 
-**Two-phase flow:**
+**Two-phase flow (v4 mechanics — superseded; retained until the v5 residual/probe generator lands, per `HANDOFF_PROCESS.md` §11):**
 
 1. **Phase 1 — Interview** (Claude Code): capture target repo HEAD SHA + branch +
    working-tree state; write `docs/handoffs/in-progress/{slug}/_handoff-interview.md`
