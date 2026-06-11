@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-10
+last_reviewed: 2026-06-11
 status: active
 owner: Rob
 ---
@@ -210,6 +210,7 @@ local git gate.
 | `conformance-hub.js` (Workflow) | operator (`ultracode`) or cloud Routine | Tier-3 | read-only + skeptic + evidence-required | ADR-70 (#81) |
 | `git_backlog_drift` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #90; ADR-65 |
 | `doc_claims` (audit check) | `audit.py health` — pre-commit gate (counts/lists) + full sweep (test-count) | hub | fail-soft (WARN) | #89 |
+| `no_ff_merges` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #153; core-invariants #5 |
 | pre-commit gates (8) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below |
 
 The **Tier-1 closure loop** is three of these organs in a cycle:
@@ -230,9 +231,10 @@ Per the ADR-28 invariant, Layer 2 hosts **read-only** validators (it does not
 orchestrate, but it may verify itself). These are the *executable* organs the map
 above references — the `scripts/` inventory:
 
-- `scripts/audit.py` — cross-repo conformance + self-audit; **17 registered checks**
+- `scripts/audit.py` — cross-repo conformance + self-audit; **18 registered checks**
   (`python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
-  `no_sibling_orphans`, `canonical_structure`, `amendment_coherence`, `git_backlog_drift`).
+  `no_sibling_orphans`, `canonical_structure`, `amendment_coherence`, `git_backlog_drift`,
+  `no_ff_merges`).
   `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs);
   `ship-gate` = the #147 pre-ship verification-organ gate (Definition-of-shipped point 6).
   **Seam `ship-gate` vs `health`:** both reuse `ALL_CHECKS`, but `health` gates each
@@ -249,6 +251,10 @@ above references — the `scripts/` inventory:
   main-line `closes [#id]` whose item is still in BACKLOG = drift (ADR-65; #90).
   Read-only; surfaced via the `git_backlog_drift` audit check (WARN). Direction (b)
   deferred to #90b. Standalone CLI: `python scripts/validate_git_backlog.py`.
+- `scripts/validate_no_ff.py` — `--no-ff` merge guard (core-invariants #5): a non-merge
+  commit on main's first-parent spine since the enforcement baseline (a direct/FF commit),
+  ADR-80 automation excluded. Read-only; surfaced via the `no_ff_merges` audit check (WARN);
+  hub-only (fleet-wide deferred, #153). Detect-and-surface, not prevent.
 - `scripts/validate_doc_claims.py` — prose-vs-state: a living doc's count/list CLAIMS
   vs ground truth (ARCHITECTURE check-count vs `len(ALL_CHECKS)`; pre-commit gate count
   + CLAUDE §9 roster vs `.pre-commit-config.yaml`; test-count vs `pytest --collect-only`,
@@ -256,7 +262,7 @@ above references — the `scripts/` inventory:
   accuracy only — cross-file fidelity / rot is #140. Standalone CLI: `python scripts/validate_doc_claims.py` (#89).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
-- `tests/` — pytest unit tests for the validators (**420 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**441 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
