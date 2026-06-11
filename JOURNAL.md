@@ -19,6 +19,37 @@
 
 ---
 
+### 2026-06-11 — v5 **architect-mode** handoff emitted (docs/handoff-2026-06-11-architect)
+
+**Did:** Ran `/handoff … v5 architect` for `.dev-knowledge` — CC-owned, the second real v5
+exercise and the **first architect-mode** one (v5 §13). Scope matrix → **Case 4** (clean tree,
+commits since last handoff, today's slug taken) → slug `2026-06-11-dev-knowledge-session-2`.
+Emitted the architect-profiled residual to that bundle (4 lean files): `HANDOFF_BOOT.md`
+(thin-boot pointer, names architect mode → generative posture), `RESIDUAL.md` (drift-flags
+headline + planning "why"/design tensions + **open architecture questions** + the **task-graph
+as ephemeral residual prose, NOT a durable BACKLOG field** per §13b/#156 + lean theme-pointer
+task-state), `PROBES.md` (the **orientation probe** P1a/P1b — exact-line quote bound to
+`VISION.md` `## Vision` + `ARCHITECTURE.md` Ch1, forced read / never copied / never paraphrased
+— then P2–P6 teeth), `README.md` index.
+
+**Result:** One live drift-flag — `git_backlog_drift` #77 (the dispositioned voided closure;
+known-benign, consult the register). The sibling dogfood's DRIFT-1 (ARCHITECTURE test-count) is
+**resolved** — `audit.py health` reports `doc_claims` all-match now. Surfaced a **leftover**:
+`docs/arch-coherence-audit` is merged (c3c2513) but undeleted — prune-candidate, **not**
+actioned (ask first, core-invariant #3). Teeth held: every probe's exact answer (orienting
+lines, check count, HEAD sha, drifted id, dates) kept **out** of the whole bundle; stamp string
+omitted so `audit.py` #8 skips it (parallel-ship invisibility). audit-health OK; validators +
+`validate_backlog` green; ruff clean.
+
+**Abandoned:** Nothing.
+
+**Next:** Boot a browser architect session on the way-of-working theme (#149 flip · #150/#156
+durable task-graph · #152/#157/#158 resident-copy-drift cleanups · #153 enforcement · #155 loops)
+— orient via P1 first. v5→canonical (#149) stays Council + fresh-eyes gated, out of scope.
+
+**Changes:** `docs/handoffs/2026-06-11-dev-knowledge-session-2/` (4 files, new); this JOURNAL
+marker. Branch `docs/handoff-2026-06-11-architect`.
+
 ### 2026-06-11 — Surface-responsibility & duplicated-authority audit (docs/surface-responsibility-audit)
 
 **Did:** Read-only audit mapping each governance surface → its **one job**, the **duplicated-authority list**, and a **PLAYBOOK content classification** — same resident-copy-drift lens as the same-day architecture-coherence audit, the responsibility-map surface. Verified every cross-file claim at file:line and **caught + corrected a planning sub-agent's confabulated `ESSENTIALS:69-71` "duplication"** (those were `CLAUDE.md`'s line numbers; ESSENTIALS is healthy summarize-and-point). Operator decisions honored: this audit MAPS, the architect-mode session DESIGNS the resolution; percentages framed as the auditor's proposed judgment, not metrics.
