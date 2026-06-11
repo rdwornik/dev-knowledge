@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-11 — v5 architect-mode handoff emitted (docs/handoffs/2026-06-11-dev-knowledge-session-3)
+
+**Did:** Ran `/handoff … v5 architect` for `.dev-knowledge` — CC-owned, third real v5 exercise / second architect-mode. Scope matrix → **Case 4** (clean tree, commits since the session-2 handoff, today's base slug + `-2` taken) → slug `2026-06-11-dev-knowledge-session-3`. Emitted the architect-profiled residual (4 lean files: `HANDOFF_BOOT.md` pointer, `RESIDUAL.md`, `PROBES.md` orientation P1 + teeth P2–P6, `README.md`). **This bundle dogfoods the operator-context beat it shipped earlier this session** — the architect flow now runs orient (P1) → **ask the operator for off-repo context (§13d)** → design.
+
+**Result:** One live drift-flag — `git_backlog_drift` #77 (dispositioned voided closure, known-benign). `doc_claims` all-match; `audit.py health` OK; validators + `validate_backlog` green; ruff clean. Surfaced **two leftover branches** (`docs/arch-coherence-audit` + `docs/handoff-2026-06-11-architect` — both merged, undeleted; prune-candidates, **not** actioned — ask first, core-invariant #3). Teeth held: every probe's exact answer kept **out** of the bundle; the stamp string omitted so `audit.py` #8 skips it (parallel-ship invisibility).
+
+**Abandoned:** Nothing.
+
+**Next:** Boot a browser architect session on the way-of-working theme (#149 flip · #150/#156 durable task-graph · #157/#158 resident-copy cleanups · #153 enforcement · #155 loops · **#159** operator-context-beat validation) — orient via P1, then the off-repo ask. v5→canonical (#149) stays Council + fresh-eyes gated, out of scope.
+
+**Changes:** `docs/handoffs/2026-06-11-dev-knowledge-session-3/` (4 files, new); this JOURNAL marker. Branch `docs/handoff-2026-06-11-session-3`.
+
 ### 2026-06-11 — Operator-context beat added to v5 architect mode (feat/handoff-operator-context-159)
 
 **Did:** Added a lightweight operator-context beat to v5 **architect** mode (Change B) — after orient, before design, the browser makes ONE off-repo-only ask (intent / priorities / findings not in the repo / changed decisions): new §13(d) in `HANDOFF_PROCESS_v5.md`, an architect-posture step in `HANDOFF_BOOT.md`, two live-file fences in `tests/test_handoff_modes.py`. Execution mode untouched; off-repo only (not the residual); not the v4 eight-file interview.
