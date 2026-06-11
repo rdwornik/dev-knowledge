@@ -11,7 +11,6 @@
 
 <!-- TOC:START -->
 - [System Architecture](#system-architecture)
-  - [Rules](#rules)
   - [Cross-reference](#cross-reference)
 - [CLAUDE.md as agent-instruction contract](#claudemd-as-agent-instruction-contract)
   - [Authority hierarchy](#authority-hierarchy)
@@ -181,7 +180,7 @@
 - [17. Code Quality Audit Process](#17-code-quality-audit-process)
   - [Severity tiers](#severity-tiers)
   - [Process](#process-1)
-  - [Rules](#rules-1)
+  - [Rules](#rules)
   - [Post-Structural-Change Documentation](#post-structural-change-documentation)
 - [19. Scrum-Master Review Propagation](#19-scrum-master-review-propagation)
   - [Three-stage flow](#three-stage-flow)
@@ -189,7 +188,7 @@
   - [Distinction from cross-repo amendment handshake](#distinction-from-cross-repo-amendment-handshake)
   - [Single-round-trip framing](#single-round-trip-framing)
   - [Cover-letter template](#cover-letter-template)
-  - [Rules](#rules-2)
+  - [Rules](#rules-1)
 - [Appendix A: Claude Code Shortcuts](#appendix-a-claude-code-shortcuts)
   - [Permission Modes (Shift+Tab cycles)](#permission-modes-shifttab-cycles)
   - [Keyboard](#keyboard)
@@ -214,47 +213,16 @@
 ## System Architecture
 <!-- scope: meta -->
 
-**`.dev-knowledge` is not a journal and not an orchestrator.** It is the passive storage layer in a three-layer architecture. This section describes what is — it does not decree new constraints.
+**`.dev-knowledge` is not a journal and not an orchestrator** — it is **Layer 2**, the passive storage & governance layer of the ADR-28 three-layer ecosystem. The canonical model — the browser-architect → operator → Claude-Code-executor loop, its diagram, the authority chain, and the binding Layer-2 invariants — lives in **`ARCHITECTURE.md` Ch1 "Layer Boundaries & Invariants"** and is **not restated here**: a resident copy is exactly the drift this repo exists to kill (`ARCHITECTURE.md:14`). The copy that used to sit here had gone stale — its diagram showed the browser producing and committing the handoff, the opposite of the canon (`ARCHITECTURE.md:106`: Claude Code, Layer 3, commits the handoff).
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Layer 1 — BROWSER CHAT (Claude.ai)  │  Analytical          │
-│  Analysis, synthesis, critical thinking, Council debates    │
-│  Produces: handoffs, ADRs, session summaries, Council briefs│
-└──────────────────────┬──────────────────────────────────────┘
-                       │ handoff → git commit
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Layer 2 — .dev-knowledge            │  Passive storage     │
-│  Templates, patterns, lessons, ADRs, playbook, handoffs     │
-│  Read by humans, Claude Code, future browser chats          │
-│  No scripts reside here. Library, not daemon.               │
-└──────────────────────┬──────────────────────────────────────┘
-                       │ read / pull as context
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Layer 3 — PROJECTS (Claude Code)    │  Execution           │
-│  corp-monorepo, ai-council, sca-time-automation, etc.       │
-│  Read from Layer 2, run tests, generate artifacts           │
-│  Reflections → back to Layer 1 as new browser chat          │
-└──────────────────────┬──────────────────────────────────────┘
-                       │ reflection → new browser chat
-                       ▼
-                  (cycle closes at Layer 1)
-```
+The one rule below is **PLAYBOOK-local** — a domain boundary, not layer doctrine (deliberately absent from ARCHITECTURE.md):
 
-### Rules
-<!-- scope: dev -->
-
-- **Layer 2 never executes.** No scripts, no orchestrator, no active daemon residing in `.dev-knowledge/`. Read-only execution semantics.
-- **Write-back via Layer 1 only.** Claude Code (Layer 3) does not directly edit `.dev-knowledge/` files. Reflections flow back through browser chat → handoff → commit.
-- **Bidirectional, not read-only.** Layer 2 is updateable via handoffs/ADRs/lessons from Layer 1. The *execution* direction is one-way (Layer 2 → Layer 3).
 - **Separate from Obsidian vault.** Vault = pre-sales domain knowledge (see Section 13). `.dev-knowledge` = dev methodology. Different domains, different audiences, different write paths.
 
 ### Cross-reference
 <!-- scope: meta -->
 
-Section 13 "Where Knowledge Lives" describes knowledge **domains** (what lives where). This section describes workflow **layers** (how information flows). Complementary views of the same ecosystem.
+Section 13 "Where Knowledge Lives" describes knowledge **domains** (what lives where); the workflow **layers** (how information flows) are canonical in `ARCHITECTURE.md` Ch1 "Layer Boundaries & Invariants". Complementary views of the same ecosystem.
 
 ---
 
