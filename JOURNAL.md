@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-11 — Surface-responsibility & duplicated-authority audit (docs/surface-responsibility-audit)
+
+**Did:** Read-only audit mapping each governance surface → its **one job**, the **duplicated-authority list**, and a **PLAYBOOK content classification** — same resident-copy-drift lens as the same-day architecture-coherence audit, the responsibility-map surface. Verified every cross-file claim at file:line and **caught + corrected a planning sub-agent's confabulated `ESSENTIALS:69-71` "duplication"** (those were `CLAUDE.md`'s line numbers; ESSENTIALS is healthy summarize-and-point). Operator decisions honored: this audit MAPS, the architect-mode session DESIGNS the resolution; percentages framed as the auditor's proposed judgment, not metrics.
+
+**Result:** New immutable `docs/audits/2026-06-11-surface-responsibility-audit.md`; 449 pytest pass / 1 skip, ruff clean, audit-health + validate_backlog green. Sharpest flag: `CLAUDE.md` defines the file-lifecycle rule **twice in one file** (§4:54 ↔ §5:69-71). The 4-way cross-file file-lifecycle authority question + the responsibility-matrix canonical home are **MAPPED for the architect-mode session, not ticketed** (avoids pre-empting that design role); `--no-ff`/Layer-2/PLAYBOOK-consolidation overlaps reference the existing #152/#153/#77/#140.
+
+**Changes:** +`docs/audits/2026-06-11-surface-responsibility-audit.md`; LESSONS append (verify-at-file:line + single-authority-not-single-mention); BACKLOG +#157 (intra-CLAUDE.md fix) / +#158 (PLAYBOOK pointerizations). Commits `ea5dfee`…`eea7567` + this entry.
+
+**Next:** Architect-mode session designs the single-authority resolution + sequences the PLAYBOOK pointerization (#157 clean fix; #158 high-confidence extractions; the deeper per-section extraction + the 4-way authority decision stay mapped).
+
 ### 2026-06-11 — Two-mode handoff: architect | execution (feat/handoff-two-mode-150)
 
 **Did:** Added the `architect | execution` mode switch to the **v5-beta** handoff track (evolves v5 in place — NOT a v4/v5 composition) as residual-profile + browser-posture variants selected by a `/handoff` param: new `HANDOFF_PROCESS_v5` §13; an architect *generative* posture in `HANDOFF_BOOT.md` alongside the execution role (both travel in the one boot file); the v5 mode param in `.claude/commands/handoff.md` (line-2 v4 coupled surface untouched); a PLAYBOOK §8 pointer (no re-describe); and tests (new live-file structural fence `tests/test_handoff_modes.py` + extended #148/ADR-82 parallel-ship fence). Orientation (the scope-D fix) is a §5 **exact-line-quote** probe bound to `VISION.md` + `ARCHITECTURE.md` Ch1 — forced read, never copied/paraphrased (operator precision fix: a paraphrasable answer is summary-bluffable and fails §5's own bar).
