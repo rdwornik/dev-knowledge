@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-11 — Two-mode handoff: architect | execution (feat/handoff-two-mode-150)
+
+**Did:** Added the `architect | execution` mode switch to the **v5-beta** handoff track (evolves v5 in place — NOT a v4/v5 composition) as residual-profile + browser-posture variants selected by a `/handoff` param: new `HANDOFF_PROCESS_v5` §13; an architect *generative* posture in `HANDOFF_BOOT.md` alongside the execution role (both travel in the one boot file); the v5 mode param in `.claude/commands/handoff.md` (line-2 v4 coupled surface untouched); a PLAYBOOK §8 pointer (no re-describe); and tests (new live-file structural fence `tests/test_handoff_modes.py` + extended #148/ADR-82 parallel-ship fence). Orientation (the scope-D fix) is a §5 **exact-line-quote** probe bound to `VISION.md` + `ARCHITECTURE.md` Ch1 — forced read, never copied/paraphrased (operator precision fix: a paraphrasable answer is summary-bluffable and fails §5's own bar).
+
+**Result:** 6 revertable commits (`22ad2e7`…`f272ac0`); 449 pytest pass / 1 skip, ruff clean, audit-health green. **#150 stays OPEN, annotated** — the durable BACKLOG-resident task-graph (deps/parallelization) is deferred per operator ruling; this pass scopes the architect task-graph to the **ephemeral residual** (no fake-green). Minted **[#156]** as the named successor (ADR-66 schema extension + `validate_backlog`).
+
+**Next:** #156 (durable task-graph schema) when prioritized; #150 closes at that schema decision; the v5→canonical flip stays #149 (Council-gated, out of scope).
+
 ### 2026-06-11 — Phase-0 foundation stabilization (feat/foundation-stabilization)
 
 **Did:** Executed the contained, low-risk subset of the 2026-06-11 architecture audit as 4 revertable commits: fixed CLAUDE.md §1's broken `HANDOFF.md` session-start pointer → the bundle `README.md` (#151 clause); pointerized PLAYBOOK §"System Architecture" → a pointer to ARCHITECTURE.md Ch1, preserving the Obsidian-vault rule + §13 cross-ref (#152 clause); shipped the `--no-ff` FF-guard as the `no_ff_merges` audit check (`scripts/validate_no_ff.py` + 17 tests, hub-only, baseline-grandfathered + ADR-80-automation-allowlisted) (#153 priority clause); reconciled ARCHITECTURE.md's `doc_claims` counts LAST per operator sequencing (#154).
