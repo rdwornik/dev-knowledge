@@ -181,7 +181,7 @@ See ADR-27 through ADR-41 for style reference.
 
 <!-- scope: meta -->
 
-Protocol: `protocols/HANDOFF_PROCESS.md` — **v4** (stamp v4.4, *live*; ratified by **ADR-62**, 2026-05-30). v4 treats a handoff as onboarding a fresh chat: an **8-file bundle** (`README` + `01_ROLE` … `07_ASK_BACK`) under `docs/handoffs/<slug>/`, generated from source via a **two-phase flow** (Phase 1 interview → Phase 2 consolidate). The two-phase design is **shipped** — the former "v2.0 / ADR-37 overlay pending" note no longer applies. The ADR-36 read-only contract holds: a handoff never writes to a target repo.
+Protocol: `protocols/HANDOFF_PROCESS.md` — **v5** (stamp v5.0, *stable*; ADR-82, operator-ratified 2026-06-11 per #149). v5 inverts the v4 model: instead of a browser-delivered 8-file bundle, **CC owns the handoff** — it emits a lean **residual** + a **probe manifest** under `docs/handoffs/<slug>/`, and a fresh browser chat boots from the thin `protocols/HANDOFF_BOOT.md`. Verification has teeth: the probes force CC to re-derive every load-bearing fact from the live primary source at check-time. v4.4 is archived at `protocols/archive/HANDOFF_PROCESS_v4.4.md`. The ADR-36 read-only contract holds: a handoff never writes to a target repo.
 
 Claude Code command: **`/handoff`** — `please create handoff for <repo>` runs Phase 1 (writes the sage→apprentice interview); the operator relays the questions to the sender browser chat and pastes the answers back; `complete handoff for <repo>` runs Phase 2 (cross-checks repo state, generates the bundle). `<repo>` defaults to `.dev-knowledge` (self-handoff). Not `/session-summary` — that is a separate session-summary command, not the handoff generator.
 

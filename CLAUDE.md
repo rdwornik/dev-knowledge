@@ -102,7 +102,7 @@ User-level (`~/.claude/commands/`):
 
 Repo-level (`./.claude/commands/`):
 - `/save` — commit workflow with full body per git-discipline rule
-- `/handoff` — generate/complete handoff per `HANDOFF_PROCESS.md` v4 two-phase flow (ADR-62)
+- `/handoff` — generate/complete handoff per `HANDOFF_PROCESS.md` v5 (ADR-82)
 
 Plugin-provided (`tier1-lifecycle@dev-knowledge-methodology`, §8):
 - `/review-closures` — review the session-end closure proposals + execute ONLY operator-approved closures (ADR-70 Tier-1; human-gated, done-items-leave). Fleet-wide via the plugin; the hub-local duplicate command was dropped so the hub uses the plugin's like the child repos ([#76]).

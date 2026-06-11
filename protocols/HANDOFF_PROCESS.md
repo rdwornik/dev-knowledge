@@ -1,666 +1,363 @@
-# HANDOFF_PROCESS v4
-
-<!-- version: 4.4 — 2026-06-05 (v4.0 radical simplification + v4.1 fix: in-progress/ folder + sage→apprentice single-cluster interview + v4.2 refinements: four-tag sage + drift visibility + bundle maintenance + v4.3: comprehensive fresh-eyes close + enforcement groundwork + v4.3.1: architectural caveat patch + status stable + v4.3.2: verification-coverage refinements: whole-bundle cross-check, extract-fidelity check, durable-principle promotion + v4.4: positional-attention refinements: top-landmines tail + dual-position invariants + quote-grounded comprehension + distractor hygiene + file separators + first-move recitation) -->
+# HANDOFF_PROCESS v5
 <!-- scope: meta -->
 
-Version: 4.4
-Effective: 2026-05-29
-Supersedes: v3.4 (preserved at `protocols/archive/HANDOFF_PROCESS_v3.4.md`) and the
-full v3.x chain it carried forward.
-Status: live
-Authority: this protocol is the single live source of truth for handoff mechanics.
-ADRs 42/45/55/56/57/58 describe the v3.x design and remain immutable historical
-record; where they conflict with v4, **v4 wins** (the architectural decision
-formalizing v4 is deferred to a future AI Council convene — see BACKLOG).
+Version: 5.0
+Status: stable
+Effective: 2026-06-11 (canonical)
+Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149)
+Supersedes: HANDOFF_PROCESS v4.4 (archived at `protocols/archive/HANDOFF_PROCESS_v4.4.md`),
+and the heavy-bundle delivery ADR-79 mandated.
+Authority: this protocol is the single canonical source of truth for handoff mechanics.
 
-> **Why a rewrite.** v3.4 was retry-ready but over-engineered (13–14 files, a
-> placeholder dance, a JSON manifest, Stage 1↔3 desync risk, drift-prone
-> hand-maintained surfaces). v4 reframes a handoff as **onboarding a new chat — a
-> teaching protocol, not a file transfer** — and collapses the mechanics to two
-> phases and eight source-generated bundle files.
+> **Why a rewrite.** v4 treats a handoff as onboarding a new chat with a heavy 8-file
+> teaching bundle pasted into a browser. The 2026-06-10 lesson named the load-bearing
+> failure: a handoff that *points* at the methodology but does not *force* the receiver to
+> open it lets the new session work from the lossy in-context **compaction summary** (a
+> SECONDARY source) instead of the files on disk (the PRIMARY source). v4's comprehension
+> questions are answerable from the bundle itself, so the forced-read is vacuous —
+> "fake-green, like a test that passes without the behavior." v5 inverts the model:
+> **CC owns the handoff, the browser is a thin reactive partner, and the forced read has
+> teeth.**
 
 ---
 
-## 1. Purpose
-<!-- scope: meta -->
+## 1. The model (model C)
 
-A handoff onboards a **new chat** to continue work that a prior (sender) chat or
-session began. The deliverable is not a data dump — it is a teaching sequence: the
-new chat learns who it is, how we work, what the project is, what just happened,
-and what to do now; then it proves comprehension before it touches anything.
+CC (Claude Code, Layer-3, has file access) **owns and initiates** the handoff. The browser
+(Layer-1 architect, **no** file access) is a thin reactive partner — "critical architect;
+CC is your junior." The three-layer invariants (ADR-28) are unchanged; what changes is *who
+initiates*, since CC is the only actor holding live repo state.
 
-All handoff artifacts live in `.dev-knowledge/docs/handoffs/<slug>/`. The
-ADR-36 read-only contract holds: a handoff never writes to a target repo. Per
-ADR-41, a bundle covers only its own repo's state and never directs work on
-another repo.
-
----
-
-## 2. When to invoke
-<!-- scope: meta -->
-
-Two triggers, both operator-initiated (Claude Code never proposes a handoff
-unprompted):
-
-- **Session end** — a working chat's context is filling up; preserve its state
-  for a fresh chat to continue.
-- **New-repo onboarding** — bring a fresh chat up to speed on a repo it has never
-  seen.
-
-Trigger phrases:
-
-| Phrase | Effect |
+| Actor | In v5 |
 |---|---|
-| `please create handoff for <repo>` | Phase 1 — generate the interview |
-| `complete handoff for <repo>` | Phase 2 — consolidate the bundle |
-
-`<repo>` defaults to `.dev-knowledge` (self-handoff). Naming a different repo is a
-cross-repo handoff (§8).
+| **CC** (Layer 3) | Stateful executor. Generates the handoff from inside the repo; runs the drift-checks + state read; runs the teeth-y forced read; verifies **state fidelity**. |
+| **Browser** (Layer 1) | Thin reactive architect. Boots from `HANDOFF_BOOT.md`; verifies the **artifact**; filters CC output to the operator; research; exception-handler; launch-config for genuine forks. |
+| **Operator** | Relays between CC and the browser; makes the calls the browser surfaces; runs the promotion gate. |
 
 ---
 
-## 3. Two-phase flow
-<!-- scope: meta -->
+## 2. What CC emits — the residual (not a re-transmission)
 
-Phase 1 (CC) writes the interview → operator copies the questions to the sender
-browser chat and pastes the answers back → Phase 2 (CC) reads them, cross-checks
-against repo state, and generates the bundle. In detail:
+CC's handoff is **only the residual** — what the repo does not already encode:
 
-- **Phase 1 — Interview (Claude Code).** On `please create handoff for <repo>`, CC
-  writes an in-progress file `docs/handoffs/in-progress/<slug>/_handoff-interview.md`
-  containing a single **sage→apprentice** cluster of 5 questions (Past / Present /
-  Future / Wisdom / Warnings) and a `=== PASTE ANSWERS BELOW THIS LINE ===` marker
-  (full structure in §3.1). CC appends a JOURNAL marker and commits the in-progress
-  file on the feature branch.
-- **Operator (between phases).** The operator copies the questions into the
-  **sender** browser chat (the chat being wrapped up, which holds the lived
-  context), gets narrative answers, pastes them below the marker in the in-progress
-  file, and saves.
-- **Phase 2 — Consolidate (Claude Code).** On `complete handoff for <repo>`, CC
-  reads the interview, **cross-checks the browser answers against actual repo
-  state** (drift detection — surfaced to the operator if found), generates the
-  bundle at `docs/handoffs/<slug>/` (README + 01–07) from source files, removes the
-  `in-progress/<slug>/` folder, appends a JOURNAL marker, and commits.
+1. **Un-committed session reasoning** — the lived "why" that is not in git, JOURNAL, or BACKLOG.
+2. **Pointers (paths)** — where the next session reads, not copies of what's there.
+3. **Drift-flags — the headline.** Where reality and the written record disagree, surfaced
+   first, not buried. Produced by the read-only drift-checks (`validate_doc_claims` #89,
+   `validate_git_backlog` #90) plus CC's state read.
 
-No Stage vocabulary, no placeholder dance, no separate claims/scope/probe artifacts
-— claims and scope become inline narrative in the generated bundle.
+It does **not** re-transmit methodology or state the repo already encodes. Methodology is a
+*pointer* + mechanical enforcement (§3); task-state is a *pointer* to the BACKLOG (§6).
+Re-narration is the v4 disease (it drifts from its source — the proven `/review` vs
+`/codex review` drift class); v5 removes it.
 
-### 3.1 The Phase 1 interview (sage→apprentice frame)
-<!-- scope: meta -->
+The residual is written to `docs/handoffs/<slug>/` as CC's handoff artifact (lean — the
+residual + the probe manifest + the drift-flag table, not an 8-file bundle).
 
-> **Note (updated 2026-05-29, v4.3 item C):** The three-tag claim discipline shown
-> in the interview template below has been **superseded by Amendment A** (end of
-> document) — four-tag canonical (witnessed/recall/inferred/unknown). Amendment
-> precedence applies; the body below is preserved for historical decision-tracking,
-> but the live discipline is four-tag.
+---
 
-The interview is **not a methodology quiz**. The books (`PLAYBOOK`, `ESSENTIALS`,
-`CLAUDE.md`, the ADRs) already hold the theory, which the apprentice (next chat)
-reads independently. What only the sender chat (the **sage**) can transmit is the
-*lived implementation* of that theory in this project's circumstances this session
-— so the interview asks for experience, not curriculum. One cluster of 5 questions
-— **Past / Present / Future / Wisdom / Warnings** — written verbatim by Phase 1:
+## 3. Methodology is enforced mechanically, referenced thinly
 
-```
-# Handoff Interview — {slug}
+The methodology is **not re-stated as prose per session.** It lives in the repo
+(`PLAYBOOK`, `ESSENTIALS`, `CLAUDE.md`, the ADRs) and is enforced mechanically: pre-commit
+gates, `audit.py` checks, hooks, skills. The handoff carries **pointers** to it and relies
+on the **forced read** (§5) to make the receiver actually open the primary source. Heavy
+*enforcement*, thin *prose*.
 
-| Field | Value |
+---
+
+## 4. The thin browser boot
+
+A fresh browser chat boots from **`protocols/HANDOFF_BOOT.md`** — a ~3-line core (identity /
+one meta-rule / first-move) that replaces the heavy multi-file bundle. Everything else is
+pulled just-in-time via CC.
+
+**Browser-role delivery (load-bearing).** The browser's operating role (§7) is **resident in
+the boot file**, not left only in this spec (which CC holds and the browser never sees). If
+the role lived only here, the browser — booting from 3 lines + CC's per-session handoff —
+would never learn it, and the role would silently not happen. The boot carries it directly;
+alternatively CC serves it on the browser's first move. Either way the role **must reach the
+browser** — never assume a CC-held file transmits to a file-less actor.
+
+The boot ends with an on-load acknowledgment line so a partial/missing paste is visible
+(the ADR-79 visible-paste idea).
+
+---
+
+## 5. The teeth-y forced primary-source read (#148 a)
+
+The forced read has **teeth** when its verification **cannot be answered from the compaction
+summary** — the answer exists only in the live primary file/state at answer-time. A probe is
+teeth-bearing when all three hold:
+
+1. **Live-only answer** — volatile or high-entropy (a count that drifts, a sha, an exact
+   line) that a summary rounds off or omits.
+2. **Generator-excluded** — the handoff ships the **question + source-locator + the exact
+   verification command**, and **never the answer**. (A probe that bakes its answer in is, by
+   construction, bluffable — and is rejected.)
+3. **CC-checkable** — CC re-derives the ground truth read-only from disk/git at check-time
+   and compares, exactly as the existing validators do.
+
+### Probe manifest (reuses the existing read-only validators)
+
+| Probe | Binds to (primary source) | Why a summary can't answer it | CC verifies via |
+|---|---|---|---|
+| **Live check count** | `ALL_CHECKS` in `scripts/audit.py` | the count drifts every time a check lands; a hardcoded number goes stale | `python scripts/audit.py checks` (count + last name) |
+| **Exact-line quote** | a named `PLAYBOOK`/`ESSENTIALS`/spec section | a paraphrase from a summary is not byte-identical | read the live section; the quote must be a substring |
+| **Live HEAD / tree** | live git | the summary holds the *generation-time* sha; new commits move HEAD | `git rev-parse --short HEAD` + `git status` |
+| **Drift-flag set** | live git ∩ `BACKLOG.md` | the drifted `#id` set is computed at answer-time, documented nowhere | `validate_git_backlog` / `audit.py health` |
+| **Freshness witness** | `CLAUDE.md` frontmatter + live git | a relation (`last_reviewed` vs last commit) over post-handoff commits | `audit.py` freshness inputs |
+| **Pointer round-trip** | the live `PLAYBOOK` section a pointer names | re-narration is outlawed (§2/§3); the answer exists only by opening it | read the live section; compare |
+
+### Who runs it (the file-access reality)
+
+The browser has **no file access**, so the teeth are enforced at the **CC ↔ primary-source**
+boundary. CC ships the probe manifest in the handoff (questions + locators + commands, no
+answers). The browser, lacking files, **must respond "run `<command>`"** for any live probe —
+which *surfaces* the off-bundle dependency rather than hiding it. CC runs each verification
+command against **live state at check-time**, re-derives ground truth, and emits PASS/FAIL.
+**Any FAIL blocks onboarding** (the escalation ladder, §10). The reconciliation in one line:
+"force the receiver to open the primary source" becomes "**force CC to re-derive every
+load-bearing fact from the live primary source at check-time, and block onboarding on any
+mismatch.**"
+
+### Empirical proof is a promotion gate (operator ruling)
+
+That the teeth *bite* is proven empirically, not by review: at promotion, dogfood one real v5
+handoff and attempt to answer each probe **from the compaction summary alone** — every probe
+**must fail** to be bluffed. A probe answerable from the summary is removed or hardened. The
+flip gate tests that the teeth force a primary-source read, not merely that the spec reads
+well (§11).
+
+---
+
+## 6. Lean task-state — pointer, not narration (#148 b)
+
+The **BACKLOG is the spec; items are tickets** (Pocock). The handoff **points** to it — it
+does not re-narrate IDs. Task-state in the residual is: a pointer to `BACKLOG.md`, the live
+in-progress branches (`git branch -v`), and any **drift-flag** the `validate_git_backlog`
+check raises (e.g. a `closes [#id]` still open). Re-narrating item text splits the truth and
+drifts; the pointer + the drift-flag is the whole task-state.
+
+Pointer integrity depends on the primary source being **fresh** — `canonical_freshness` /
+`doc_claims` / #145 guard that. A stale primary source makes a faithful pointer point at a
+lie; the drift-flags surface exactly that.
+
+---
+
+## 7. Browser role + plan-review output contract (#148 model C item 4)
+
+The browser's operating role (delivered via the boot, §4):
+
+- **Reactive partner + filter** — surface only errors and decisions needing human judgment;
+  keep the operator at feature / epic / user-story level; absorb routine CC output.
+- **Research** — open-web / cross-domain research CC can't reach; synthesized, not raw.
+- **Exception-handler** — adjudicate what the methodology doesn't cover, or escalate with a
+  recommendation (not a menu).
+- **Launch-config support — genuine forks only.** Help choose model / effort / autonomy only
+  for real forks; routine is CC's own `opusplan` + auto mode. The browser does **not** review
+  routine plans — only architecturally risky ones.
+
+**Plan-review output contract (non-negotiable).** When the browser reviews a CC plan it emits
+**exactly one** of — never prose the operator must translate into CC actions:
+
+1. the **exact CC option to select** (e.g. `Select option 2` / the verbatim answer to CC's
+   question);
+2. **exact paste-ready English feedback** (the verbatim text the operator pastes into CC);
+3. a plain **`approve`**.
+
+---
+
+## 8. Verification split
+
+- **Browser verifies the *artifact*** — file-free, fresh-eyes: is CC's handoff internally
+  coherent and aligned with the architectural intent? This includes the **self-consistency**
+  check (2026-06-10 lesson): scan for two load-bearing claims that **cannot both be acted
+  on** (a recency-peak self-contradiction that drift-checks and structural lints both pass,
+  because they check each claim against state, never against each other).
+- **CC verifies *state fidelity*** — claims vs live disk/git: it runs the drift-checks and the
+  teeth-y forced read (§5). Each actor checks what it is positioned to check.
+
+---
+
+## 9. Adjudication is bidirectional
+
+The browser **corrects CC's errors AND pulls missing context** — not one-shot. If the
+handoff omits something the browser needs, it asks CC to pull the primary source (CC can; the
+browser can't). If CC's read of state looks wrong, the browser pushes back and CC re-derives
+from disk. The handoff is a back-and-forth, not a one-way transfer (the PLAYBOOK "handoff is
+back-and-forth" rule, generalized).
+
+---
+
+## 10. Self-updating `/handoff` + failure handling (#148 c)
+
+`/handoff` is **self-updating**: it pulls the **current** process + methodology **pointers**
+live at handoff time and carries **no hand-copied** process or methodology. The version/status
+it stamps is read from the live spec header, never hardcoded; the methodology it references is
+a pointer, never a copy. (Command wiring: `.claude/commands/handoff.md`.)
+
+**Failure handling — degrade loudly.** A probe that can't be answered → **FAIL**, routed
+through the escalation ladder (re-read the named primary source → CC verifies the fact →
+ABORT onboarding). A moved anchor (source reworded) → WARN `anchor-missing`, re-anchor — never
+a synthesized pass. An infra hiccup (git absent) → reported as *skipped* (degraded coverage
+visible), never silently counted as pass. Silent truncation or fabrication is the failure mode
+to avoid: degrade loudly.
+
+---
+
+## 11. Promotion record (v5 → canonical, 2026-06-11)
+
+v5 was promoted from beta to **canonical in a single atomic flip** on 2026-06-11 (#149). It
+had shipped beta in parallel while v4.4 stayed canonical; the flip retired that parallel-ship
+period. Promotion was gated on:
+
+1. **ADR-82 ratification** — the AI Council gate was **waived by operator authority** (#149):
+   the operator ruled v5 ready; ADR-82 stands operator-ratified pending any later Council note.
+2. **One fresh-eyes review** meeting the beta→stable criterion (v4.3.1 §B: Stage-1 **<2
+   critical findings** AND a Stage-3 verdict of **PROMOTE / PROMOTE-WITH-CAVEATS**, reviewer
+   judgment overriding count);
+3. **The empirical teeth dogfood** (§5): one real v5 handoff where every forced-read probe
+   **failed** to be answered from the compaction summary alone.
+
+The flip moved the canonical `Version:` and its four coupled surfaces together —
+`CLAUDE.md`, `.claude/commands/handoff.md`, `ARCHITECTURE.md`, `CONTRIBUTING.md` — which
+`audit.py`'s coupling gates (`check_amendment_coherence`, `check_handoff_version_stamp`) force
+to be **atomic**. The flip: renamed this file to `protocols/HANDOFF_PROCESS.md`
+(`Version: 5.0`, `Status: stable`); archived v4.4 to `protocols/archive/HANDOFF_PROCESS_v4.4.md`;
+archived `templates/handoff/*` to `templates/archive/handoff-v4/`; scoped audit checks
+#8/#9 to historical v4 bundles; closed #148 / #124 / #25. The bespoke read-only teeth
+validator (`scripts/verify_handoff_probes.py`) was deferred to a post-flip ticket; until it
+lands, the manual probe-gate (§5) covers v5-bundle validation.
+
+---
+
+## 12. Relationship to v4
+
+| v4.4 | v5 |
 |---|---|
-| Repo | {repo} (self-handoff or cross-repo) |
-| Slug | {slug} |
-| Date | {date} |
-| Type | session |
-| HEAD captured | {sha} |
-| Branch (at capture) | {branch} |
-| Working tree (at capture) | {clean/dirty} |
-| Process | HANDOFF_PROCESS v4 — Phase 1 (interview) |
+| 8-file teaching bundle pasted into the browser | thin boot (`HANDOFF_BOOT.md`) + residual + probe manifest |
+| Comprehension questions answerable from the bundle | teeth-y probes answerable only from live state |
+| Task-state re-narrated in `05_NOW` | pointer to BACKLOG + drift-flags |
+| Methodology extracts copied into `02_METHODOLOGY` | methodology referenced by pointer; enforced mechanically |
+| Browser receives + proves; CC consolidates | CC owns/initiates; browser is a thin reactive partner |
+| Verification = Phase-2 self-check + operator visual | split: browser=artifact, CC=state fidelity |
 
-## Role frame
-
-Imagine an elder sage handing wisdom to a young apprentice. You — the sage —
-are tired, your context is fading, but you hold the lived experience the
-apprentice needs to continue this specific project's work. The apprentice
-will read the books independently — PLAYBOOK, ESSENTIALS, CLAUDE.md, ADRs
-— that's the theory. What only you can transmit is how the theory was
-implemented in THIS project's specific circumstances during this session.
-
-Answer narratively. Tag each claim:
-- **witnessed** (you saw it happen this session)
-- **inferred** (you're reasoning from evidence)
-- **unknown** (you don't have direct knowledge — say so)
-
-Skip any question that doesn't apply. Say so explicitly.
-
-## Question block — copy from here
-
-### 1. Past — what shipped
-
-What did this session actually accomplish? Concretely: what merged, what
-shipped, what changed in the codebase, what audits or decisions landed.
-
-### 2. Present — where things stand
-
-What's currently in-flight? Anything half-done, on an unmerged branch,
-waiting on a merge, paused mid-decision, blocked on something external?
-
-### 3. Future — natural next step
-
-Of the open paths, which is the natural next step? What were you about to
-do when this chat wound down? What's the obvious follow-up to what was
-just done?
-
-### 4. Wisdom — key decisions
-
-Of the key decisions made this session, what was the reasoning? Anything
-considered and rejected, and why? What turned out harder or easier than
-expected?
-
-### 5. Warnings — landmines
-
-What should the next session NOT do? Anti-patterns you saw recur, landmines
-specific to the current state, things that look wrong but are intentional,
-witnessed-only context that won't be obvious from JOURNAL / BACKLOG / git
-history.
-
-## Question block — copy to here
-
-=== PASTE ANSWERS BELOW THIS LINE ===
-```
+What v4 got right and v5 keeps: ephemeral generation (no hand-maintained surfaces), degrade-
+loudly, the escalation ladder, the beta→stable judgment-augmented promotion criterion, and the
+sender's lived "why" as the irreducible thing only the prior session can transmit (now the
+"residual," §2).
 
 ---
 
-## 4. Bundle structure
-<!-- scope: meta -->
+## 13. Modes — architect | execution (residual profile + browser posture)
 
-`slug = YYYY-MM-DD-<repo>-<type>` (e.g. `2026-05-29-dev-knowledge-session`). Eight
-files, flat, no subdirectories:
+One process, **two modes**, not two machines. A mode is selected by a `/handoff` parameter
+(§10) and resolves to a **residual profile** (what CC emits, §2) + a **browser posture** (the
+operating role, §4/§7). The mode is chosen from what the *next* session will do:
+**advance-a-backlog-item → execution**; **define-or-reshape-the-way-of-working → architect**
+(architecture / planning scope — the audit's scope D). Default is **execution**.
 
-```
-docs/handoffs/<slug>/
-├── README.md          Operator-facing: paste sequence + escalation ladder
-├── 01_ROLE.md         ≤100 lines — who the new chat is, who Rob is
-├── 02_METHODOLOGY.md  ≤200 lines — pointers to PLAYBOOK + key extracts
-├── 03_PROJECT.md      ≤150 lines — vision + sacred files (from VISION.md)
-├── 04_RECENT.md       ≤250 lines — narrative synthesized from JOURNAL + interview
-├── 05_NOW.md          ≤100 lines — top P1s + in-progress branches (BACKLOG + git)
-├── 06_QUESTIONS.md    ≤80 lines  — comprehension check, 5–7 questions
-└── 07_ASK_BACK.md     ≤50 lines  — new chat's question slot, max 3 invited
-```
+### Execution mode (default)
 
-**Total ≤930 lines** (≈half the v3.4 footprint). README is operator-facing and not
-pasted into the new chat; 01–07 are the teaching sequence pasted in order.
+v5 exactly as specified in §§1–12 — the mode label on the current behaviour, nothing added:
 
----
+- Residual (§2): scoped to the task — un-committed "why" + pointers + drift-flags.
+- Task-state (§6): pointer to `BACKLOG.md` + live branches + drift-flags.
+- Browser posture (§7): reactive partner + filter.
 
-## 5. File generation principle (critical)
-<!-- scope: meta -->
+### Architect mode
 
-Bundle files are **generated FROM source at handoff time**, not hand-maintained: a
-hand-kept parallel copy drifts from the real files (the ecosystem-audit
-doc-truth-drift finding). Generating each time keeps the bundle as current as the repo.
+For a session that *defines or reshapes the way of working*. Same residual machinery (§2),
+re-profiled, with two architect-only in-session layers added — orientation, then the
+operator-context beat:
 
-> **Claim sharpened — see Amendment v4.3 §A.** "Generated FROM source" is *deterministic* for the sacred-file lifecycle tables and conventions lists, but *LLM-synthesized* (partly aspirational) for the arc narrative, wisdom, and warnings. The honest framing — and why synthesis imperfection is expected and feeds the next iteration — is in §A "Architectural claim sharpening" below.
+- **(a) Residual scoped to the planning session** — the planning "why": which design tensions
+  were weighed, which options were considered and rejected, what is still open. Not a single
+  task's "why."
+- **(b) Task-state = a pointer to the whole `BACKLOG.md` / the relevant theme(s)** — the
+  task-graph, not one item. **Honest scope (this pass):** the BACKLOG schema (ADR-66 /
+  `validate_backlog`) does **not** encode dependencies or parallelization, so the
+  *what-blocks-what / what-parallelizes* graph is carried **in the residual, ephemerally** — it
+  is **not** a durable BACKLOG-resident graph, and architect mode must not present it as one.
+  Durable encoding is deferred to **#156** (depends-on / parallel fields + an ADR-66 amendment +
+  a `validate_backlog` extension). Until then the architect emits the graph as residual prose
+  and points at the live BACKLOG.
+- **(c) Orientation — a §5 "exact-line quote" probe; the architect's first move, before any
+  mechanism.** This is the scope-D fix, delivered the v5 way: **forced read, never a copy,
+  never a paraphrase.**
+  - A plain-language "what is this project" answer is **summary-bluffable** and so fails §5's
+    own bar (§5: *a probe answerable from the compaction summary is removed or hardened*).
+    Re-narrating VISION into the handoff is equally barred (§2/§3). Orientation is therefore
+    neither summarized nor copied.
+  - Instead, bind an **exact-line probe** (§5 manifest "exact-line quote" row) to a **specific
+    orienting line**: the opening sentence of `VISION.md` `## Vision` (*what `.dev-knowledge`
+    is*) and the `ARCHITECTURE.md` Ch1 opening line (*where this work sits — Layer 2 of the
+    ADR-28 three-layer model*). The handoff ships the **source-locator + the substring-check
+    command, never the line itself** (generator-excluded, §5 condition 2). The orienting line
+    enters the session **only** by CC reading it from the **live** primary source at
+    check-time; the quote must match as a **substring**. The read is *forced*; comprehension
+    follows from having to surface the exact line, not from a paraphrase a summary could fake.
+  - Net: **readable-first is a verified property of the handoff** — the architect cannot
+    proceed without the live orienting line in hand — **with zero content copied**; the
+    no-re-narration rule (§2/§3) and the no-bluff rule (§5) both hold. This is the layer the v5
+    execution bundle lacked.
+- **(d) Operator-context beat — one targeted ask for off-repo context; after orienting, before
+  design begins.** CC's handoff is **repo-derived** and structurally cannot carry operator intent
+  or off-repo findings, so once the orienting lines are in hand the architect makes **one** targeted
+  ask: *what off-repo context for this planning session — intent, priorities, findings not in the
+  repo, changed decisions?* **Architect mode only** — execution carries no such beat (the
+  strategic-vs-tactical split: human-in-the-loop steering belongs at the planning layer, not the
+  execution layer). **Off-repo only:** it does **not** duplicate or re-narrate the CC-generated
+  residual (§2 — the residual is the repo-side, un-committed "why"); it is the off-repo channel that
+  the residual structurally cannot be. It restores the v4 interview's **operator-injection** function
+  **without** the gap-filling — it is **not** the v4 eight-file interview (the residual fills the gaps
+  now), just the one ask. Local proof of the gap: this track's own `profile ↔ repo` overlap finding
+  was browser-side and nearly lost for want of this channel.
+- **(e) Open architecture questions** travel as residual — the design decisions not yet made,
+  surfaced (not buried) so the next session resumes the design rather than rediscovering it.
 
-| File | Generated from |
-|---|---|
-| `01_ROLE.md` | Template + operator-specific role context (slowly evolving) |
-| `02_METHODOLOGY.md` | Key sections (by name) of `protocols/PLAYBOOK.md` + `protocols/ESSENTIALS.md`; model-selection + prompt-format + hooks + AI-Council + conventions extracts |
-| `03_PROJECT.md` | `VISION.md` (vision + scope) + `CLAUDE.md` (purpose/critical paths) + sacred-files list from ADRs/conventions; ADR-41 cross-repo ownership note |
-| `04_RECENT.md` | CC narrative synthesis of `JOURNAL.md` last N entries (default N=20 OR last 7 days, whichever is smaller) + browser interview answers folded inline. **Narrative prose, not a journal copy.** Presents **final state** (v4.4 §D): a refuted-then-corrected thread appears only when the refutation is itself a landmine, labelled `[REFUTED — historical]`; unlabelled superseded narrative is a generation defect. |
-| `05_NOW.md` | `BACKLOG.md` top P1s + `git branch -v` (in-progress branches) + recent commit tip. Ends with the mandatory `## Top landmines (do-not list)` tail (v4.4 §A): `### Session landmines` (≤5 imperatives from interview Q5) + `### Standing invariants (repeat)` (the `01_ROLE` invariants mirrored). |
-| `06_QUESTIONS.md` | Template (4–5 static comprehension questions) + 1–2 dynamic slots tailored to recent work (from interview/JOURNAL) |
-| `07_ASK_BACK.md` | Static template inviting up to 3 questions before work starts |
+**Browser posture — generative / decompositional** (resident in `HANDOFF_BOOT.md`, §4 — the
+posture must reach the file-less browser). Distinct from §7's reactive execution-filter: the
+architect **drives decomposition** (turns the architecture into the task-graph), **holds the
+whole-system view** (orientation + the `ARCHITECTURE.md` map), and **surfaces design tensions
+proactively** — it stress-tests the design, it does not merely filter CC's output. The §7
+plan-review output contract still applies.
 
-The templates in `templates/handoff/` carry generation markers:
+### The return channel is already here — no new artifact
 
-- `{{PULL: <source>#<section>}}` — copy/condense a named section from a source file
-- `{{SYNTHESIZE: <source>}}` — CC writes narrative prose from the source
-- `{{CONTEXT: <variable>}}` — substitute a captured value (slug, repo, branch, …)
+Execution's divergence-from-plan reaches the next architect session through the **existing**
+up-channel, not a new leg: the **residual** (§2 — the un-committed "why," including where
+execution departed from the plan), the **drift-flags** (§2 — reality vs the written record),
+and the **BACKLOG pointer + drift-flag** (§6). v5 §2 + §6 **are** the architect's inbound
+signal. Architect mode adds **no** return-leg artifact — adding one would re-create the v4
+hand-maintained-surface disease (§12).
 
-CC resolves every marker at Phase 2. An unresolved marker in a generated file is a
-generation failure — fix it or note the degradation (§9), never ship the literal
-marker.
-
-The load-bearing safety invariants appear at **both** `01_ROLE` (top, primacy peak) and
-`05_NOW`'s landmines tail (recency peak) — this duplication is **deliberate** (v4.4
-§A/§B, marked with a `positional-redundancy` guard comment); do not deduplicate it.
-
----
-
-## 6. Operator workflow
-<!-- scope: meta -->
-
-1. In Claude Code (`.dev-knowledge`): `please create handoff for <repo>`.
-2. Open `docs/handoffs/in-progress/<slug>/_handoff-interview.md`; copy the question
-   block into the **sender** browser chat (the one being wrapped up).
-3. Paste the chat's narrative answers below the
-   `=== PASTE ANSWERS BELOW THIS LINE ===` marker; save.
-4. In Claude Code: `complete handoff for <repo>`. CC generates the bundle and
-   surfaces any drift it found between the browser answers and repo state.
-5. Use the bundle per its `README.md` escalation ladder:
-
-```
-Step A: Paste 01–05 as ONE message into the new chat. Wait for acknowledgment.
-Step B: Paste 06 (questions). Read the chat's answers.
-
-IF comprehension FAILS:
-  Tier 1 — re-paste the specific files the chat got wrong + "read again carefully".
-  IF still fails:
-  Tier 2 — ask CC to verify the specific facts against repo state; paste CC's
-           findings to the new chat.
-  IF still fails:
-  Tier 3 — ABORT onboarding. Reactivate the sender chat, or do a manual context dump.
-
-IF comprehension PASSES:
-  Step C: Paste 07 (ask_back). Answer the chat's questions from memory or sender chat.
-  Step D: The chat begins work.
-```
-
----
-
-## 7. State machine
-<!-- scope: meta -->
-
-Three live states, detected by **content** (marker presence + non-empty answers),
-not by file existence alone (closes the v3.4 state-ambiguity finding):
-
-| State | Detected by | Action |
-|---|---|---|
-| Fresh | no `_handoff-interview.md` in `in-progress/<slug>/` | run Phase 1 |
-| Awaiting answers | interview present, nothing below the PASTE marker | instruct operator (idempotent — do not regenerate) |
-| Ready to consolidate | interview present **with** non-empty answers below the marker | run Phase 2 |
-| Complete | bundle folder exists at `docs/handoffs/<slug>/` (no `in-progress/<slug>/`) | instruct operator on use |
-
-If state is genuinely ambiguous (e.g. a bundle already exists and the operator
-says "create handoff" again), FLAG and ask — never silently overwrite.
-
----
-
-## 8. Cross-repo handoff
-<!-- scope: meta -->
-
-Same skill, same flow; only the repo context differs. When `<repo>` is not
-`.dev-knowledge`:
-
-- The slug carries the target repo name (`YYYY-MM-DD-<repo>-<type>`).
-- Phase 2 reads the **target repo's** state (git, BACKLOG if present) read-only —
-  never writes to it (ADR-36).
-- `03_PROJECT.md` is built from the target repo's own `VISION.md`/`CLAUDE.md` when
-  present; `.dev-knowledge` methodology floor (02) stays universal.
-- The bundle still lives in `.dev-knowledge/docs/handoffs/<slug>/`.
-- A bundle never directs work on a third repo (ADR-41). Cross-repo threads close
-  via routing artifacts, not the handoff.
-
----
-
-## 9. Failure handling (graceful degradation)
-<!-- scope: meta -->
-
-A source file may be missing, or a `{{PULL}}` target section may have moved:
-
-- **Missing source file:** generate the file from available fallbacks, omit the
-  unavailable section, and **note the degradation explicitly in `README.md`** ("03
-  built without VISION.md — target repo lacks one"). Never fabricate the content.
-- **Unresolvable marker (section renamed/removed):** stop on that file, report the
-  marker and the source it targeted to the operator, and ask — do not ship the
-  literal marker and do not guess the section.
-- **Interview present but answers empty:** stay in "awaiting answers"; instruct the
-  operator. Do not generate a bundle from an empty interview.
-- **Browser answer contradicts repo state:** surface the drift to the operator at
-  Phase 2 (both the claim and the repo fact); let the operator decide. The
-  generated `04_RECENT.md` reflects verified repo state, with the architect's
-  framing where it adds judgment.
-
-Silent truncation or fabrication is the failure mode to avoid: degrade loudly.
-
----
-
-## 10. Supersession chain
-<!-- scope: meta -->
-
-v4 supersedes v3.4 (and the full v3.x chain). v3.4 is preserved verbatim at
-`protocols/archive/HANDOFF_PROCESS_v3.4.md`.
-
-The v3.4 Q1–Q5 concepts map into v4 as follows:
-
-| v3.4 concept (ADR) | v4 form |
-|---|---|
-| Structured claims `11_CLAIMS.md` (ADR-58) | inline verifiable narrative in `04_RECENT.md`, cross-checked by CC at Phase 2 |
-| `next_session_scope` (ADR-57) | embedded in `05_NOW.md` narrative |
-| Gate probe `10_GATE_PROBE.md` (ADR-55) | receiver-side comprehension check in `06_QUESTIONS.md` |
-| Prompt Generation Card (ADR-56) | folded into `02_METHODOLOGY.md` (pulled from PLAYBOOK) |
-| JSON manifest sidecar (ADR-42 Q5) | removed — bundle structure declared in `README.md`, markdown only |
-| Structured ratification (ADR-58) | operator escalation ladder (Tier 1/2/3, §6) |
-| Three-stage / placeholder dance | two phases + one in-progress interview file |
-
-ADRs 42/45/55/56/57/58 remain immutable; each carries an appended 2026-05-29
-supersession amendment. The formal ADR for v4 is **deferred to AI Council** per
-standing operator preference (architecture goes through Council) — tracked in BACKLOG.
+Mode is carried by `/handoff … v5 <architect|execution>` (§10 self-updating; default
+`execution`; mode applies only in v5 mode — v4.4 has no modes). Command wiring:
+`.claude/commands/handoff.md`.
 
 ---
 
 ## Section history
-<!-- scope: meta -->
 
-- v4.0 (2026-05-29) — full rewrite. Reframes handoff as onboarding-as-teaching:
-  two phases replace the three-stage flow, eight source-generated bundle files
-  replace 13–14 hand-maintained ones, an operator escalation ladder replaces
-  structured ratification, and a content-based three-state machine replaces
-  six-state file detection (mapping table in §10). Grounded in the 2026-05-29
-  process audit (13 findings) + ecosystem audit (22 findings) + operator/architect
-  design discussion. v3.4 archived; ADR for v4 deferred to Council.
-- v4.1 (2026-05-29) — fix after first Phase 1 invocation surfaced two
-  implementation defects: (1) the interview file moves from a unilaterally-
-  introduced `_scratch/` folder to the existing `docs/handoffs/in-progress/<slug>/`
-  convention (no new folders without operator approval); (2) the Phase 1 interview
-  collapses from two clusters (project + methodology) to a single **sage→apprentice**
-  cluster of 5 questions (Past/Present/Future/Wisdom/Warnings) — the methodology
-  cluster duplicated PLAYBOOK/ESSENTIALS, which the apprentice reads independently;
-  the sage transmits only the project's lived implementation (§3.1). Bundle
-  structure, generation principle, and templates unchanged.
-- v3.x (2026-05-09 → 2026-05-26) — three-stage flow; see
-  `protocols/archive/HANDOFF_PROCESS_v3.4.md` for the full v3.x section history.
-
----
-
-## Amendment 2026-05-29 — v4.2 refinements
-
-After v4.1's first end-to-end run, seven template/spec refinements (no architectural changes; design sound).
-
-### A. Sage tagging discipline (sharper definitions)
-
-The Phase 1 interview preamble now uses **four tags** instead of three:
-
-- **witnessed** = I just verified this OR saw it happen recently AND have no reason to think it changed since
-- **recall** = I remember this from earlier in the session — **state may have changed**; prefer verifying via CC inline if claim is load-bearing
-- **inferred** = reasoning from evidence (not direct knowledge)
-- **unknown** = I don't know — say so explicitly
-
-v4.1's single "witnessed" tag was ambiguous between "just verified" and "remember being true at some point." This bit in v4.1's first run (aborted-folder claim was effectively `recall` but tagged `witnessed` → drift caught by Phase 2 verification). The four-tag system separates them. The Phase 1 interview file's role-frame preamble carries the new tag definitions verbatim.
-
-### B. Verification table standard section in 04_RECENT
-
-The Load-bearing facts cross-check table is now a **required section** of every generated `04_RECENT.md`, present whether drift was detected or not. If no drift: explicit single row `| (all sender claims) | matches repo state | ✅ no drift detected | (verified at Phase 2) |`. If drift: the existing table format extended with a **Verification command** column so the apprentice can re-verify independently.
-
-### C. README drift visibility — section moved up
-
-In every generated `README.md`, the drift section ("Drift cross-check") moves to **immediately after** the paste sequence + escalation ladder, **before** the bundle contents table. Apprentice sees drift on first read, not buried near the end.
-
-### D. Bundle version + status stamp
-
-Every generated `README.md` header now includes a status line: `Generated by HANDOFF_PROCESS v<X.Y> (status: <beta|stable>)`. Status convention: `beta` for the first three end-to-end runs of any version; `stable` thereafter. Provides apprentice with process-maturity context.
-
-### E. Bundle maintenance during session (operator-facing)
-
-`02_METHODOLOGY` template gains a short section: if the apprentice discovers drift between bundle and repo state DURING their work, the flow is: flag to operator → JOURNAL the discovery → amend the bundle's `04_RECENT` Load-bearing facts table via append (don't rewrite). The bundle is living until the next handoff.
-
-### F. 05_NOW forced-ranking warning
-
-When `05_NOW.md` presents multi-candidate first-moves, the template ends with: *"Propose your choice with rationale to Rob — don't ask him to forced-rank. Operator energy is finite; your job is reasoned pre-selection."*
-
-### G. PLAYBOOK methodology rule promotion (separate edit to PLAYBOOK)
-
-The "handoff is back-and-forth" rule generalizes beyond handoff to all LLM-LLM context transfer (chat-to-chat, browser-to-CC, CC-to-Codex). Codified in PLAYBOOK methodology section, not just here.
-
-### Status of v4 → v4.2
-
-v4 architecture (two-phase, 8-file bundle, files-from-source, sage frame, escalation ladder) **unchanged**. v4.2 is template/spec polish only. No template added or removed. No new file types in bundle. No new phases.
-
----
-
-## Amendment 2026-05-29 — v4.3 stable-readiness
-
-v4.2's first end-to-end run + fresh-eyes outsider review (independent Opus 4.8, no project context) caught defects insider review missed: 4 critical, 6 medium, 4 minor + the meta-architectural question about v4's "generated from source" claim. This amendment closes all + sharpens v4's architectural claim + lays enforcement groundwork.
-
-### A. Architectural claim sharpening
-
-v4's earlier framing "8 files generated from source" was partly true (sacred-files lifecycle tables, conventions lists — extracted deterministically from CLAUDE/PLAYBOOK/ESSENTIALS) and partly aspirational (the arc narrative, wisdom, warnings — synthesized by LLM at Phase 2 time from architect's interview answers). The honest, sharpened claim:
-
-> v4 collapses **persistently-maintained hand-authored surfaces** (the v3.4 disease) by making bundles **ephemeral, generated per-handoff, verified per-generation against repo state.** Synthesis imperfection during Phase 2 is expected and accepted; imperfections drive template/skill improvements via the use→review→refine→re-validate cycle, not bundle re-maintenance.
-
-What v4 IS: between-session surface collapse + per-generation verification. What v4 IS NOT: zero-imperfection at synthesis time. Imperfections feed the next iteration.
-
-### B. Four-tag canonical definitions inline (closes C1+C2)
-
-Phase 2 bundle generation now ALWAYS inlines the four-tag definitions in `04_RECENT.md` as a standalone section after the narrative arc, before the load-bearing facts table. Apprentice applies discipline from bundle alone, no PLAYBOOK reading required.
-
-### C. §3.1 cross-reference pointer (closes C3, partial)
-
-The spec body §3.1 (three-tag section) gets a one-line cross-reference pointer to Amendment A (four-tag canonical). Update-in-place is acceptable per `protocols/*.md` "living" classification. Amendment-only practice preserved for decision content; metadata annotations are not decision content.
-
-### D. Verdict column label (closes M1)
-
-Load-bearing facts table column "Verdict" renamed "Phase-2 verdict" — disambiguates from sender-tag values.
-
-### E. Beta→stable promotion criterion (closes process gap)
-
-A HANDOFF_PROCESS version promotes from `beta` to `stable` after one fresh-eyes review with **fewer than 2 critical findings.** Fresh-eyes = independent LLM chat, zero project context, given the bundle + meta-reviewer prompt. <2 critical = converged → promote. ≥2 critical = next refinement cycle. **No Council convene required for promotion** (operator's call, captured here for record). This **supersedes** the earlier "three end-to-end runs" promotion heuristic (v4.2 item D): convergence is measured by fresh-eyes defect count, not run count.
-
-### F. Enforcement layer (closes MO2 partial)
-
-`scripts/audit.py` gains check #8 (handoff bundle structure validator) and check #9 (tag-canonicity lint). Health gate goes 7/7 → 9/9. Check #8 validates only **stamped v4 bundles** (those whose `README.md` carries the `Generated by HANDOFF_PROCESS v4.x` stamp); pre-stamp bundles (v4.1 first-run) and v3.x sync bundles predate the contract and are out of scope. The four-tag-section requirement applies only to v4.3+ bundles. Catches structural drift at lint time, prevents §3.1-vs-Amendment-A recurrence at next major version.
-
-### G. Agent-framework v0.1 stub
-
-`protocols/AGENT_FRAMEWORK.md` v0.1 stub authored to anchor operator's strongest structural signal ("musimy zbudować agent framework, który pewne rzeczy, żebym nie musiał po prostu powtarzać"). Stub captures problem + design constraints + future-work pointer. Not implementing the framework in v4.3; this is a placeholder so the signal isn't lost between sessions.
-
-### Status
-
-v4.3 ships at status `beta`. Promotion to `stable` after v4.3 fresh-eyes review confirms <2 critical findings.
-
-## Amendment 2026-05-30 — v4.3.1 architectural caveat patch + stable promotion
-
-The v4.3 fresh-eyes outsider review (independent Opus 4.8, second pass) returned **PROMOTE WITH CAVEATS** — object-level convergence achieved, but two architectural items must be addressed before v4 is "fully converged":
-
-### A. Triangulation scope — honest claim
-
-v4 codified triangulation (insider + outsider review) as the beta→stable promotion criterion. **The fresh-eyes reviewer correctly observed: this guards process VERSIONING, not each routine handoff artifact.** Every routine handoff still rides on Phase-2 self-verification — the exact insider-only coverage (empirically ~25%) the arc disproved.
-
-**Honest scoping:**
-- **Process versioning:** triangulation IS the gate. Independent fresh-eyes review with judgment-augmented promotion criterion (see B below).
-- **Routine handoffs:** Phase-2 self-verification + operator visual check. Adversarial review per-artifact is a future enhancement (BACKLOG P1).
-
-This scoping does NOT diminish v4's claim — it states what v4 IS (between-session surface collapse with verified ephemeral generation) and IS NOT (per-artifact adversarial verification, which would require an agent framework not yet built).
-
-### B. Promotion criterion — judgment-augmented, not pure count
-
-v4.3's criterion was `<2 critical findings on one fresh-eyes review → promote stable`. The fresh-eyes reviewer correctly observed: **this is itself an easy-metric** — convergence judgment reduced to a count flippable by reviewer reclassification. Bundle warns against this exact failure mode in its decision-carry-forward.
-
-**Revised criterion (judgment-augmented):**
-
-A HANDOFF_PROCESS version promotes from `beta` to `stable` after one fresh-eyes review where:
-
-1. **Mechanical condition:** Stage 1 returns **fewer than 2 critical findings** (severity 4-5/5)
-   AND
-2. **Judgment condition:** the reviewer's Stage 3 verdict is **PROMOTE** or **PROMOTE WITH CAVEATS** (caveats logged to BACKLOG; ratification follows operator decision)
-3. **Override:** if reviewer's judgment recommends DO NOT PROMOTE despite <2 critical mechanical count, **reviewer judgment wins** (v4.4 cycle).
-
-This honors hard-metric > easy-metric: count is a proxy for convergence judgment, not a replacement. Reviewer's judgment overrides count when they differ.
-
-### C. Operational clarification — who runs the fresh-eyes review
-
-The `05_NOW.md` template's immediate objective for a v-X.Y stable-readiness bundle previously read "give this bundle to an independent LLM chat" without specifying WHO runs the chat. **Clarification:** Rob (operator) opens a separate Claude.ai chat with the meta-reviewer prompt + bundle files. The apprentice chat (the recipient of the handoff bundle) **awaits results** — does not spawn the review chat itself.
-
-### D. audit.py check #9 scope — syntactic, not semantic
-
-The v4.3 amendment said check #9 "enforces" tag canonicity. **Clarification:** check #9 is **syntactic** — verifies §3.1 has either (a) four canonical tags enumerated OR (b) "see Amendment A" pointer. It does NOT detect mis-labeled tags (a `witnessed` claim that should have been `recall` passes the lint).
-
-Semantic tag-discipline accuracy requires reader/sage discipline + Phase-2 verification table cross-checking. Check #9 closes the canonicity gap, not the accuracy gap. ML-2 (un-enforced guard pattern) is NOT closed for tag accuracy by check #9 — only for canonicity enumeration. Future BACKLOG: semantic tag-lint (check #10+?) requires LLM-in-the-loop, not regex.
-
-### E. Status: beta → stable
-
-With A-D landed:
-- 4/4 v4.2 critical findings closed (per v4.3)
-- N1 (triangulation scope) addressed honestly via A
-- MO1 (criterion-as-easy-metric) addressed via B
-- N4 (operational ambiguity) addressed via C
-- N2 (check #9 enforcement framing) addressed via D
-- Reviewer's PROMOTE WITH CAVEATS recommendation operationalized
-
-**HANDOFF_PROCESS v4.3 promotes to status `stable` as of this amendment (2026-05-30).**
-
-Remaining items deferred to BACKLOG (not promotion-blocking):
-- **P1:** Adversarial fresh-eyes pass in routine handoff generation (operator's agent-framework signal extension)
-- **P3:** Periodic fresh-eyes audit cadence (every N handoffs or quarterly)
-- **P3:** Semantic tag-lint (check #10 — LLM-in-the-loop, catches mis-labeled tags)
-- **P3:** AI Council CLI invocation example in 02_METHODOLOGY
-- **P3:** ML-2 namespace expansion (define what ML stands for in repo prose)
-- **P3:** Operating mode "test after every change" — reword for layer-agnostic clarity (current wording maps imperfectly to browser architect work)
-
-v5 / next major HANDOFF_PROCESS bump (Council scope, future) consolidates v4 body + amendments A (v4.2) + A (v4.3) + A (v4.3.1) into fresh budget-compliant spec body.
-
-## Amendment 2026-06-03 — v4.3.2 verification-coverage refinements
-
-The first fresh-eyes review of a routine bundle (2026-06-03-dev-knowledge-session)
-found defects that Phase-2 self-verification structurally could not catch. Each maps
-to a coverage gap, not a one-off slip. This amendment closes three; the fourth is
-logged as evidence for the existing BACKLOG P1.
-
-### A. Cross-check covers the whole bundle, not just the interview path (closes A1-class)
-
-Amendment B (v4.2) cross-checks **sender interview claims** in `04_RECENT`. But
-`02/03/05` are generated by the source-extraction path (§5), and a load-bearing
-session-state claim entering by that path is never verified. (Empirical: a "ruff is
-now a wired gate — #13 closed this session" claim sat in `02` having bypassed the
-table entirely.)
-
-**Rule:** at Phase 2, **every load-bearing "this session" / state claim in the bundle
-— in any file, from any path (interview, pull, or synthesis) — is subject to the same
-repo cross-check and surfaced in the `04_RECENT` Load-bearing facts table.** A
-session-attributed claim with no verifying repo fact is removed or flagged, never
-shipped. Specifically scan `02/03/05` for "closed / now wired / changed this session /
-added this session" phrasing and verify each against git / BACKLOG / config.
-
-### B. Extract-fidelity check for deterministic-pull sections (closes A3/A4-class)
-
-§9 handles "claim contradicts repo state." Nothing checked whether an extract is
-**faithful to the source section it summarizes.** (Empirical: `02`'s model-selection
-extract introduced file-count thresholds absent from PLAYBOOK and dropped the "never
-default to Sonnet" rule; the prompt-format extract collapsed to a generic 8-section,
-dropping the Model/Mode/Effort table, COMMIT markers, and the "What NOT to do" closer.)
-
-**Rule:** for the deterministic-pull sections of `02` (model-selection, prompt-format,
-conventions), Phase 2 confirms the extract is faithful to the live `PLAYBOOK` /
-`ESSENTIALS` section it draws from. Paraphrase that **adds** unsourced detail or
-**drops** a load-bearing rule is a generation defect, fixed before the bundle ships —
-not deferred as acceptable synthesis imperfection (v4.3 §A applies to narrative/wisdom,
-NOT to deterministic pulls).
-
-### C. Durable-principle promotion is a standing Phase-2 step (closes A5-class)
-
-`04_RECENT` regenerates every handoff, so a durable principle synthesized into it is
-lost at the next handoff. The process did this promotion once, ad hoc (v4.2 item G →
-PLAYBOOK), but never made it standing. (Empirical: the source→gate→agents drift-proofing
-thesis lived only in `04`.)
-
-**Rule:** at Phase 2, when the interview's **Wisdom** section yields a principle that
-generalizes beyond this session, CC flags it to the operator for promotion to
-`PLAYBOOK` (and thence the `02` extract) rather than leaving it solely in `04`. This is
-the "no dead docs" rule applied to the handoff process itself.
-
-### D. Terminology-collision — evidence for BACKLOG P1 (not closed here)
-
-The same review found "Tier" used across three axes (model selection / fleet-health
-ADR-70 / deprecated repo-tier). This is precisely the class of defect the deferred
-**BACKLOG P1** (adversarial fresh-eyes pass in routine handoff generation, v4.3.1 §A)
-would catch. A regex check is the wrong tool (semantic — LLM-in-the-loop, per v4.3.1
-§D). v4.3.2 does **not** add a check; it (1) logs this as empirical support for
-prioritizing P1, and (2) adds one operator-facing line to the `README` use-instructions:
-*"Before pasting: scan the assembled bundle for any term used with more than one
-meaning."*
-
-### E. Status
-
-v4.3.2 is verification-coverage refinement — no architecture change; consistent with
-the operator-call amendment pattern (v4.2 / v4.3 / v4.3.1). Ships at status `beta`;
-promotes to `stable` after one fresh-eyes pass meeting the judgment-augmented criterion
-(v4.3.1 §B). A/B/C are CC-behavioral rules at Phase 2 (no new `audit.py` check — these
-gaps are semantic, deferred to the BACKLOG semantic-lint item).
-
-## Amendment 2026-06-05 — v4.4 positional-attention refinements
-
-The bundle's files `01`–`05` are pasted into a fresh chat as **one message**. LLM
-attention over a long single message is **U-shaped**: the beginning (primacy) and end
-(recency) hold attention; the middle loses ~30%+. Today the highest-stakes content —
-the sender's interview warnings — folds into `04_RECENT`, the dead middle. v4.4
-repositions and **deliberately duplicates** the load-bearing content onto the two
-attention peaks, hardens the comprehension gate with quote-grounding, and de-fangs
-distractors in the narrative. Template + spec changes only — no change to the two-phase
-flow, the 8-file structure, the paste order, the four-tag discipline, or the escalation
-ladder. **Line-budget impact: none** — checked against the freshest real bundle
-(`05_NOW` 60, `01_ROLE` 74, `06_QUESTIONS` 44 lines); every addition stays inside the
-existing budget, so no §4 budget number moves.
-
-### A. Top-landmines tail in `05_NOW`
-
-`05_NOW` gains a mandatory final section `## Top landmines (do-not list)` — at the
-recency peak, the last thing the apprentice reads before acknowledging. It carries **two
-adjacent sub-blocks** so session-specific warnings and permanent invariants do not
-compete for one cap: **(a) `### Session landmines`** — max 5 imperative one-liners
-("Do NOT …") synthesized from interview Q5, changing every handoff; **(b) `### Standing
-invariants (repeat)`** — the 3–5 load-bearing invariants mirrored from `01_ROLE`, stable
-across handoffs. Duplication of content already in `04_RECENT` / `01_ROLE` is
-intentional, not redundant noise — see §B. *Grounding: U-shaped positional attention.*
-
-### B. Dual-position safety invariants (positional redundancy by design)
-
-`01_ROLE` keeps a compact 3–5 line **Safety invariants** block near its top (primacy
-peak); `05_NOW`'s new `### Standing invariants (repeat)` sub-block (§A) repeats them at
-the recency peak. **This intentionally violates DRY.** The same load-bearing invariants
-appear at both attention peaks *on purpose* — the middle of a long paste is where a
-single-copy invariant gets lost. Both blocks carry the HTML comment
-`<!-- positional-redundancy: deliberate duplicate, do not deduplicate -->` so a future
-doc-rot / deduplication audit does not "fix" the duplication and silently re-open the
-attention gap. *Grounding: U-shaped positional attention.*
-
-### C. Quote-grounded comprehension
-
-`06_QUESTIONS`'s pass criterion gains a **source-reference requirement**: every answer
-MUST name the bundle file + section it draws from (e.g. "04_RECENT › Load-bearing
-facts"). An answer with no source reference **fails that answer**, regardless of how
-correct the prose reads — grounding an assertion in a quotable location is what
-separates comprehension from plausible confabulation. `README` Step B instructs the
-operator to **check the references**, not just the prose. *Grounding: Anthropic
-long-context quote-grounding guidance.*
-
-### D. Distractor hygiene in `04_RECENT`
-
-`04_RECENT`'s narrative presents **final state**. A refuted-then-corrected thread (a
-premise that was floated, then withdrawn) may appear **only** when the refutation is
-itself a landmine the next session must not re-walk — and then it must carry the inline
-label `[REFUTED — historical]` at the point it is mentioned. Unlabeled superseded
-narrative is a generation defect: stale intermediate claims sitting in the middle of the
-paste act as distractors that degrade comprehension of the surviving facts. *Grounding:
-context-rot distractor degradation.*
-
-### E. Explicit file boundaries
-
-Every pasted teaching file (`01`–`07`) begins with `===== FILE: NN_NAME — start =====`
-and ends with `===== FILE: NN_NAME — end =====`. When `01`–`05` arrive as one message,
-the separators make each file's boundary salient so the model does not blur the five
-documents into one undifferentiated wall. `README` is the operator runbook and is **not
-pasted into the new chat — it is exempt** from separators; its paste instructions tell
-the operator to keep the separators on the files that are pasted. *Grounding: context-rot
-distractor degradation / boundary salience.*
-
-### F. First-move recitation
-
-`06_QUESTIONS` gains a **fixed final question** (not a dynamic slot, keep its shape
-verbatim like the four-tag question): *"State your first action, why it is first, and
-what you will NOT touch."* Forcing the apprentice to recite its first move — and its
-explicit not-touch list — before work begins counters early-assumption lock-in, where a
-plausible-but-wrong opening move set in the first turn persists unchallenged through the
-session. *Grounding: multi-turn lost-in-conversation degradation.*
-
-### G. Status
-
-v4.4 is positional-attention refinement — no architecture change; consistent with the
-operator-call amendment pattern (v4.2 / v4.3 / v4.3.1 / v4.3.2). **Operator decision on
-record:** file count stays at **8** — small files at generation for synthesis quality,
-single message at paste for attention; do NOT consolidate. Ships at status `beta`;
-promotes to `stable` after **one real production handoff** exercised under v4.4 that
-meets the judgment-augmented criterion (v4.3.1 §B: Stage-1 <2 critical findings AND
-reviewer Stage-3 verdict PROMOTE / PROMOTE-WITH-CAVEATS, reviewer judgment overriding
-count). The §A/§B deliberate redundancy and the §E separators were validated by a
-throwaway dry-render at authoring time; the **real test is the next production handoff.**
-A–F are CC-behavioral / template rules at Phase 2 (no new `audit.py` check).
+- v5.0-beta (2026-06-11) — initial parallel-ship beta. Records model C (ADR-82, Proposed):
+  CC owns/initiates the handoff; thin browser boot (`HANDOFF_BOOT.md`) replaces the heavy
+  bundle; residual + drift-flags-as-headline; teeth-y forced primary-source read reusing the
+  existing read-only validators; lean pointer-not-narration task-state; verification split +
+  bidirectional adjudication; self-updating `/handoff`. Ships beta beside live v4.4; promotion
+  to canonical is Council + fresh-eyes + empirical-teeth-dogfood gated (§11).
+- v5.0-beta (2026-06-11, §13 added) — `architect | execution` modes as residual-profile +
+  browser-posture variants selected by a `/handoff` parameter (#150). Architect mode adds the
+  scope-D orientation layer as a §5 **exact-line-quote** probe bound to `VISION.md` /
+  `ARCHITECTURE.md` Ch1 (forced read, never copied, never paraphrased), a planning-scoped
+  residual, and a generative/decompositional browser posture; execution mode is the existing
+  §§1–12 behaviour. Durable task-graph encoding deferred to #156; the return channel stays
+  §2/§6 (no new artifact). Version unchanged (still 5.0-beta; §13 is additive).
+- v5.0 (2026-06-11) — **promoted to canonical** in the #149 atomic flip (`Version: 5.0`,
+  `Status: stable`). v4.4 archived to `protocols/archive/HANDOFF_PROCESS_v4.4.md`; the four
+  coupled surfaces + the prose surfaces (#151) moved in the same `--no-ff` merge; the
+  parallel-ship test fence retired. Council gate waived by operator authority (§11); ADR-82
+  operator-ratified. Carried forward as still-open post-flip work: #159 (operator-context
+  beat — exercise in a real architect session), #162 (architect actor-vs-mode vocab), #161
+  (teeth probe-core), and the deferred `verify_handoff_probes.py` validator.

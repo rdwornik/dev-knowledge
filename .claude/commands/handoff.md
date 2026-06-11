@@ -1,5 +1,5 @@
 ---
-description: Generate or complete a handoff per HANDOFF_PROCESS.md v4 — two-phase interview + consolidate
+description: Generate or complete a handoff per HANDOFF_PROCESS.md v5 — CC-owned residual + thin browser boot
 ---
 
 Invoked by Rob saying one of:
@@ -9,26 +9,30 @@ Invoked by Rob saying one of:
 `<repo>` defaults to `.dev-knowledge` (self-handoff). A different repo name is a
 cross-repo handoff (read-only on the target — ADR-36/41).
 
-**Source of truth:** `protocols/HANDOFF_PROCESS.md` (v4). This skill is a dispatch
+**Source of truth:** `protocols/HANDOFF_PROCESS.md` (v5, canonical). This skill is a dispatch
 summary, not a substitute. Where they disagree, the spec wins — fix the divergence.
 
-## v5 mode (beta — parallel; HANDOFF_PROCESS v5 / ADR-82)
+## v5 (canonical — default flow; HANDOFF_PROCESS v5 / ADR-82)
 
-HANDOFF_PROCESS **v5** ships beta as `protocols/HANDOFF_PROCESS_v5.md` (CC-owned handoff,
-thin browser boot, teeth-y forced read — model C). **While v5 is beta, v4.4 stays canonical
-and the two-phase v4 flow below runs by default.** v5 mode is exercised for the promotion
-dogfood and on explicit request (`… v5`), until the Council-gated flip promotes v5 to
-canonical. The line-2 `v4` declaration stays until that flip — it is an `audit.py` coupled
-surface and v4.4 is still canonical.
+HANDOFF_PROCESS **v5** is canonical at `protocols/HANDOFF_PROCESS.md` (CC-owned handoff,
+thin browser boot, teeth-y forced read — model C) since the #149 flip (2026-06-11; v4.4
+archived to `protocols/archive/HANDOFF_PROCESS_v4.4.md`). v5 is the **default** flow.
+
+> **Superseded mechanics below.** The detailed v4 8-file two-phase generator in the
+> "## Conventions" / "## Phase 1" / "## Phase 2" / "## Hard constraints" sections is the
+> **v4 (superseded)** path, retained for reference until the v5 residual/probe/boot generator
+> replaces it. Building that generator is deferred post-flip work (the same class as the
+> deferred `verify_handoff_probes.py` teeth validator). For current v5 behaviour follow the
+> v5 emissions specified next + `protocols/HANDOFF_PROCESS.md`.
 
 **Self-updating — the #148(c) rule, applies to BOTH modes.** This command carries **no
 hand-copied process or methodology.** At handoff time it pulls live:
 - the **current process** — read the canonical spec header for version/status (never
-  hardcode); for v5 mode, read `protocols/HANDOFF_PROCESS_v5.md` as the v5 source of truth;
+  hardcode); `protocols/HANDOFF_PROCESS.md` is the canonical v5 source of truth;
 - the **methodology** — as **pointers** to `PLAYBOOK` / `ESSENTIALS` / `CLAUDE.md`, never as
   copied prose (a hand-copy drifts — the `/review` vs `/codex review` class).
 
-**v5 mode behavior** (governed by `protocols/HANDOFF_PROCESS_v5.md` — read it, don't restate
+**v5 behavior** (governed by `protocols/HANDOFF_PROCESS.md` — read it, don't restate
 it here):
 - Emit the **residual** to `docs/handoffs/<slug>/` — un-committed reasoning + pointers +
   **drift-flags as the headline** (from `validate_doc_claims` #89 + `validate_git_backlog`
@@ -42,8 +46,8 @@ it here):
 - Lean **task-state** — a pointer to `BACKLOG.md` + live branches + any drift-flag; never
   re-narrated IDs.
 
-**Mode (v5 only): `architect | execution`** (governed by `protocols/HANDOFF_PROCESS_v5.md`
-§13 — read it, don't restate it here). v5 mode takes an optional mode parameter, default
+**Mode: `architect | execution`** (governed by `protocols/HANDOFF_PROCESS.md`
+§13 — read it, don't restate it here). v5 takes an optional mode parameter, default
 `execution`, selecting the residual **profile** + browser **posture**. Parse it alongside the
 `v5` flag: `… v5` / `… v5 execution` → execution; `… v5 architect` → architect. Mode applies
 **only** in v5 mode — v4.4 has no modes.
