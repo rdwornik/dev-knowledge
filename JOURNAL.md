@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-12 — remote-state truth pass + `docs/handoffs/_references/` reorg
+
+**Did:** Two operator-directed sweeps. (1) **Remote-state verification:** ran the operator's read-only interlock (commits-ahead / diff-stat / new-root-files / immutable-bundle-touched) before any cleanup — found the "6-ahead" premise **false** (remote `refs/heads/main` already at `984595a`, identical to local; both feature branches already deleted) and, critically, that the interlock itself was **vacuous** because `refs/remotes/origin/main` didn't exist locally, so `origin/main..main` couldn't resolve. Re-derived truth via `git ls-remote`, then repaired the missing tracking ref (`git fetch origin main:refs/remotes/origin/main`); root-caused that the fetch refspec is the **standard wildcard** (not missing/narrow) — the ref had simply never been populated, now self-maintaining. (2) **Handoffs reorg:** created `docs/handoffs/_references/` and `git mv`'d the session-2 rendered README reference into it (100% pure rename), separating rendered reference artifacts from immutable bundle dirs.
+
+**Result:** `pytest` **448 passed / 1 skipped**, `ruff` clean, `validate_backlog` OK (75 tasks, 0 warnings). `git status` now reports ahead/behind correctly again (tracking ref repaired). Immutability respected — the moved file is a *sibling* of the bundle dir, not inside it; JOURNAL's two historical references to the old path **left untouched** (append-only; they correctly record the original creation path); only BACKLOG #164's **live** pointer updated to the new path.
+
+**Abandoned:** Nothing.
+
+**Next:** Push `main` (2 commits ahead of `origin`, not pushed — operator-gated).
+
+**Changes:** `docs/handoffs/_references/2026-06-12-dev-knowledge-session-2-README-reference.md` (moved from `docs/handoffs/`); `BACKLOG.md` (#164 live pointer); this JOURNAL marker. Branch `docs/handoffs-references-dir` (merged `31635bb`). Repaired local `refs/remotes/origin/main` (no tracked-file change).
+
+---
+
 ### 2026-06-12 — operator-first v5 handoff README redesign (the bundle README was unreadable to the operator)
 
 **Did:** Fixed the v5 bundle README defect — it was **design-rationale-first**, leading with ~30 lines of methodology (architect profile, §13 framing, teeth) before §Use ever said plainly what the operator physically does; proof of the defect was that the operator who built it couldn't follow it. Redesigned it **operator-first** as the **durable v5 pattern** (not a one-off): created `templates/handoff/v5/README.md.tmpl` (new subdir under the approved `templates/handoff/`) with a plain numbered "what you do" walkthrough leading, rationale **demoted** (condensed, not deleted), and a **mermaid** sequence diagram. Made unambiguous the four currently-confusing things: (1) who each file is for (two for the operator, two pasted to the browser) via a top table; (2) the first paste is a **5th file from the repo** — `protocols/HANDOFF_BOOT.md`, **not** the bundle's same-named pointer — with the collision called out; (3) `PROBES.md` is **one file handed once** (P1 at step 4, P2–P7 at step 7, beat + residual between) shown in prose + diagram shading; (4) the **run loop** explained once with its *why* (no answers ship → live read). Rendered the template **filled for session-2** as a fully self-contained sibling reference (the real closure artifact). Plan-mode plan-then-execute; per-step commit; `--no-ff` merge.
