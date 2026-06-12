@@ -139,7 +139,8 @@ _CANONICAL_ALL = _CANONICAL_MANDATORY + [
 # files (JOURNAL/LESSONS) and the per-session BACKLOG are deliberately EXCLUDED: their
 # freshness is intrinsic to how they are written, so an edit-since-review signal would
 # fire every session by design.
-_FRESHNESS_FILES = ["VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md"]
+_FRESHNESS_FILES = ["VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md",
+                    "docs/handoffs/README.md"]
 
 # Calendar-age backstop (A1): WARN — not FAIL — when last_reviewed exceeds this many
 # days even if the file has not changed. A loose nudge toward periodic re-reading; the

@@ -956,8 +956,9 @@ def _fm(last_reviewed: str) -> str:
 
 @pytest.fixture()
 def freshness_repo(tmp_path: Path) -> Path:
-    """All four freshness-tracked files present, each stamped far in the future."""
+    """All freshness-tracked files present, each stamped far in the future."""
     for name in aud._FRESHNESS_FILES:
+        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / name).write_text(_fm("2099-01-01"))
     return tmp_path
 
@@ -990,6 +991,7 @@ def test_freshness_a1_calendar_backstop_warns(
         freshness_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A1 (backstop): stamp older than the cadence but not edited since → WARN, not FAIL."""
     for name in aud._FRESHNESS_FILES:
+        (freshness_repo / name).parent.mkdir(parents=True, exist_ok=True)
         (freshness_repo / name).write_text(_fm("2020-01-01"))
     monkeypatch.setattr(aud, "_git_last_commit_date", lambda rp, fn: date(2020, 1, 1))
     f = aud.check_canonical_freshness(freshness_repo)[0]
@@ -1035,6 +1037,7 @@ def test_freshness_degrades_without_git(
         freshness_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """No git (helper returns None) → A2 skipped; A1 still applies on the working tree."""
     for name in aud._FRESHNESS_FILES:
+        (freshness_repo / name).parent.mkdir(parents=True, exist_ok=True)
         (freshness_repo / name).write_text(_fm("2020-01-01"))
     monkeypatch.setattr(aud, "_git_last_commit_date", lambda rp, fn: None)
     f = aud.check_canonical_freshness(freshness_repo)[0]
