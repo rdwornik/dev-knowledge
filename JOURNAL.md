@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-12 — v5 **architect-mode** handoff emitted (docs/handoffs/2026-06-12-dev-knowledge-session) — first post-flip architect run
+
+**Did:** Ran `/handoff architecture v5` for `.dev-knowledge` — CC-owned, the **first architect-mode handoff after v5 went canonical** (the #149 flip). Scope matrix → **Case 2** (clean tree; 10 commits since the session-4 handoff; today's base slug free) → slug `2026-06-12-dev-knowledge-session`. Emitted the architect-profiled residual (4 lean files): `README.md`, `HANDOFF_BOOT.md` (thin-boot pointer → generative posture), `RESIDUAL.md` (drift-flags headline + planning "why" + open architecture questions + ephemeral task-graph + lean task-state), `PROBES.md` (orientation P1 + teeth P2–P6). Theme re-scoped post-flip to **finishing the v5 machinery deferred at #149** — #164 (v5 `/handoff` generator) + #163 (teeth validator) as the new spine, with #161/#162/#152/#156/#159 cleanups parallel beside.
+
+**Result:** One live drift-flag — `git_backlog_drift` #77 (dispositioned voided closure `warn-77-voided-closure`, known-benign). `doc_claims` all-match; `audit.py health` 17/18 OK. **State note surfaced (not actioned):** `main` is **ahead 1 / behind 1** of `origin/main` — a genuine sync divergence owed a reconcile before next push (ask operator, core-invariant #4). No leftover branches (the session-3 stragglers were pruned in the 2026-06-11 arc-cleanup). Teeth held: every probe's exact answer kept **out** of the bundle; stamp string omitted so `audit.py` #8 (now historical-v4-scoped) skips it. Self-referential note: the bundle was **hand-assembled** (no v5 generator yet) — the live argument for #164/#161.
+
+**Abandoned:** Nothing.
+
+**Next:** Boot a browser architect session on the finish-the-machinery theme — orient via P1, then the operator-context beat (§13d), then design #164/#163 build-order (Q1), #161 probe-core scope (Q2), #162 vocab (Q3), #156 durable task-graph (Q4), #152 §8 pointerization now-unblocked (Q5). Reconcile `main` with `origin` first.
+
+**Changes:** `docs/handoffs/2026-06-12-dev-knowledge-session/` (4 files, new); this JOURNAL marker. Branch `docs/handoff-2026-06-12-session`.
+
+---
+
 ### 2026-06-12 — #149 flip: HANDOFF_PROCESS v5 promoted to canonical, v4.4 archived (atomic)
 
 **Did:** Executed the #149 keystone flip in one branch — promoted `HANDOFF_PROCESS_v5.md` → canonical `protocols/HANDOFF_PROCESS.md` (Version 5.0 / Status stable), archived v4.4 → `protocols/archive/HANDOFF_PROCESS_v4.4.md` with the ADR-83 tombstone, archived `templates/handoff/*` → `templates/archive/handoff-v4/`, moved the 4 gate-coupled surfaces + the full non-gated prose set v4→v5 (#151), reconciled audit #8/#9 docstrings to historical-v4, and retired the parallel-ship test fence (kept the straggler guard, generalized). Council gate on ADR-82 **waived by operator authority**.
