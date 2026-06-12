@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-12 — architect-mode v5 handoff generated (`-session-3`)
+
+**Did:** Generated an **architect-mode v5 handoff** for `.dev-knowledge` (operator-invoked `/handoff v5 … architect`), following the canonical spec (`protocols/HANDOFF_PROCESS.md` v5.0 §13) rather than the superseded v4 8-file mechanics. Scope-matrix Case 4 → counter-differentiated slug `2026-06-12-dev-knowledge-session-3` (`-session`/`-session-2` exist). Four lean files: operator-first `README.md` (from the new `templates/handoff/v5/README.md.tmpl`), thin `HANDOFF_BOOT.md` pointer, `PROBES.md` (orientation P1 + teeth P2–P7, no answers), `RESIDUAL.md` (drift-flags headline · planning "why" · open architecture questions · ephemeral task-graph · lean task-state). New residual vs `-2`: the **vacuous-interlock finding** (a safety check that passed because its `origin/main` anchor never resolved) folded into the **#163 teeth-validator** design as a degrade-loudly test case; plus the `docs/handoffs/_references/` convention.
+
+**Result:** `pytest`/`ruff`/`audit.py health` green at generation (16/18 pass; 2 informational WARNs — #90a dispositioned, `no_ff_merges` = open Q9). Orientation anchors verified live (`VISION.md` `## Vision`, `ARCHITECTURE.md` `## Purpose [CORE]`). Bundle hand-assembled per spec (the #163/#164 machinery is still deferred — the standing argument for landing it).
+
+**Abandoned:** Nothing.
+
+**Next:** Operator boots a browser planning session from the bundle per its `README.md`. Theme: finish the v5 handoff machinery (#163/#164 + #156/#159/#161/#162/#165). Push `main` (now ahead of `origin` incl. this handoff — operator-gated).
+
+**Changes:** `docs/handoffs/2026-06-12-dev-knowledge-session-3/` (new: README.md, HANDOFF_BOOT.md, PROBES.md, RESIDUAL.md); this JOURNAL marker. Branch `docs/handoff-2026-06-12-session-3`.
+
+---
+
 ### 2026-06-12 — remote-state truth pass + `docs/handoffs/_references/` reorg
 
 **Did:** Two operator-directed sweeps. (1) **Remote-state verification:** ran the operator's read-only interlock (commits-ahead / diff-stat / new-root-files / immutable-bundle-touched) before any cleanup — found the "6-ahead" premise **false** (remote `refs/heads/main` already at `984595a`, identical to local; both feature branches already deleted) and, critically, that the interlock itself was **vacuous** because `refs/remotes/origin/main` didn't exist locally, so `origin/main..main` couldn't resolve. Re-derived truth via `git ls-remote`, then repaired the missing tracking ref (`git fetch origin main:refs/remotes/origin/main`); root-caused that the fetch refspec is the **standard wildcard** (not missing/narrow) — the ref had simply never been populated, now self-maintaining. (2) **Handoffs reorg:** created `docs/handoffs/_references/` and `git mv`'d the session-2 rendered README reference into it (100% pure rename), separating rendered reference artifacts from immutable bundle dirs.
