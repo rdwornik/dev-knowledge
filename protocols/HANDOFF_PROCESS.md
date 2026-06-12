@@ -337,6 +337,12 @@ Mode is carried by `/handoff … v5 <architect|execution>` (§10 self-updating; 
 `execution`; mode applies only in v5 mode — v4.4 has no modes). Command wiring:
 `.claude/commands/handoff.md`.
 
+**Bundle README shape (operator-first).** The bundle's operator-facing `README.md` follows the
+canonical operator-first template `templates/handoff/v5/README.md.tmpl`: the plain "what you do"
+walkthrough comes **first** (who-each-file-is-for · the same-name role-file/bundle-pointer
+collision · `PROBES.md`-handed-once · the run loop with its *why*), with the methodology rationale
+**demoted** below it. The #164 generator emits this shape.
+
 ---
 
 ## Section history
@@ -361,3 +367,8 @@ Mode is carried by `/handoff … v5 <architect|execution>` (§10 self-updating; 
   operator-ratified. Carried forward as still-open post-flip work: #159 (operator-context
   beat — exercise in a real architect session), #162 (architect actor-vs-mode vocab), #161
   (teeth probe-core), and the deferred `verify_handoff_probes.py` validator.
+- v5.0 (2026-06-12, §13 README-shape pointer) — added the **operator-first bundle README**
+  pattern: §13 now points at `templates/handoff/v5/README.md.tmpl` as the canonical README shape
+  (walkthrough-first, rationale demoted) and #164 is bound to emit it. Fixes the rationale-first
+  README defect (the operator couldn't follow the hand-assembled bundle README). Pointer only;
+  the mechanics in §§1–13 are unchanged. Version unchanged (5.0; additive).
