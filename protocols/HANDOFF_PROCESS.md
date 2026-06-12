@@ -337,11 +337,18 @@ Mode is carried by `/handoff … v5 <architect|execution>` (§10 self-updating; 
 `execution`; mode applies only in v5 mode — v4.4 has no modes). Command wiring:
 `.claude/commands/handoff.md`.
 
-**Bundle README shape (operator-first).** The bundle's operator-facing `README.md` follows the
-canonical operator-first template `templates/handoff/v5/README.md.tmpl`: the plain "what you do"
-walkthrough comes **first** (who-each-file-is-for · the same-name role-file/bundle-pointer
-collision · `PROBES.md`-handed-once · the run loop with its *why*), with the methodology rationale
-**demoted** below it. The #164 generator emits this shape.
+**Bundle shape (no per-bundle README — one canonical runbook).** A v5 bundle carries **three**
+files — `HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md` — and **no README**. The stable operator
+boilerplate (who-each-file-is-for · the same-name role-file/bundle-pointer collision ·
+`PROBES.md`-handed-once · the run loop with its *why* · the flow diagram · the rationale) lives once
+in the **canonical per-repo operator runbook at `docs/handoffs/README.md`** (operator-first:
+walkthrough first, rationale demoted) — not copied into each bundle. Each bundle's **session-specific
+header** (slug · one-line purpose · mode) lives in its own `HANDOFF_BOOT.md`, which points back at the
+runbook; the bundle `HANDOFF_BOOT.md` carries that header + the paste-pointer and does **not** repeat
+the walkthrough. The runbook is generic across repos of the same handoff version: the #164 generator
+seeds/updates each repo's `docs/handoffs/README.md` idempotently from one source
+(`templates/handoff/v5/README.md.tmpl`, a deferred stub until #164 lands) and emits the three-file
+bundle — never a per-bundle README.
 
 ---
 
@@ -372,3 +379,12 @@ collision · `PROBES.md`-handed-once · the run loop with its *why*), with the m
   (walkthrough-first, rationale demoted) and #164 is bound to emit it. Fixes the rationale-first
   README defect (the operator couldn't follow the hand-assembled bundle README). Pointer only;
   the mechanics in §§1–13 are unchanged. Version unchanged (5.0; additive).
+- v5.0 (2026-06-12, §13 bundle-shape — no per-bundle README) — superseded the operator-first
+  *bundle* README with a single **canonical per-repo operator runbook** at `docs/handoffs/README.md`.
+  v5 bundles now carry **three** files (`HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md`) and no
+  README; the stable boilerplate (walkthrough · run loop · diagram · rationale) stops being
+  regenerated/copied per bundle (kills the regenerate-every-handoff token waste + the per-copy
+  drift + the rotting root index). The session-header (slug · purpose · mode) moves into the bundle
+  `HANDOFF_BOOT.md`. `templates/handoff/v5/README.md.tmpl` reduced to a deferred #164 stub (no
+  hand-synced second copy). #164 rescoped to seed the runbook per-repo + emit the three-file bundle.
+  Mechanics §§1–12 unchanged; this is the §13 bundle-shape only. Version unchanged (5.0; additive).

@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-12 — handoff READMEs collapsed into one canonical operator runbook
+
+**Did:** Killed the per-bundle README boilerplate (regenerated every handoff → token waste + drift; the root index rotted because it was redundant). Made `docs/handoffs/README.md` the **single canonical operator runbook** (operator-first walkthrough · run loop · mermaid · demoted rationale · corrected v3.2/v4/v5 format-eras index); v5 bundles now carry **no README** — the session-header (slug · purpose · mode) moves into the bundle `HANDOFF_BOOT.md`. Amended `HANDOFF_PROCESS.md` §13 (three-file bundle shape); reduced `templates/handoff/v5/README.md.tmpl` to a deferred #164 stub (no hand-synced second copy); rescoped #164 to seed the runbook per-repo idempotently from one source; deleted the `_references/` rendered band-aid.
+
+**Result:** `pytest` **448 passed / 1 skipped**, `ruff` clean, `audit.py health` OK each step. Wired the runbook into the freshness gate (`audit.py` check #10 `_FRESHNESS_FILES`) so it can't silently rot; fixed CLAUDE.md §1 #4 (re-broken by the README drop) + bumped its `last_reviewed`.
+
+**Changes:** `docs/handoffs/README.md` (rewrite), `protocols/HANDOFF_PROCESS.md` §13, `templates/handoff/v5/README.md.tmpl`, `scripts/audit.py` + `tests/test_audit.py`, `BACKLOG.md` #164, `CLAUDE.md` §1/§12, deleted `docs/handoffs/_references/`. Branch `docs/handoff-canonical-runbook`.
+
+**Abandoned:** Nothing.
+
+**Next:** #164 builds the generator that renders the per-repo runbook + three-file bundle. Operator readability-gate: read `docs/handoffs/README.md` cold to confirm it boots a session standalone.
+
+---
+
 ### 2026-06-12 — architect-mode v5 handoff generated (`-session-3`)
 
 **Did:** Generated an **architect-mode v5 handoff** for `.dev-knowledge` (operator-invoked `/handoff v5 … architect`), following the canonical spec (`protocols/HANDOFF_PROCESS.md` v5.0 §13) rather than the superseded v4 8-file mechanics. Scope-matrix Case 4 → counter-differentiated slug `2026-06-12-dev-knowledge-session-3` (`-session`/`-session-2` exist). Four lean files: operator-first `README.md` (from the new `templates/handoff/v5/README.md.tmpl`), thin `HANDOFF_BOOT.md` pointer, `PROBES.md` (orientation P1 + teeth P2–P7, no answers), `RESIDUAL.md` (drift-flags headline · planning "why" · open architecture questions · ephemeral task-graph · lean task-state). New residual vs `-2`: the **vacuous-interlock finding** (a safety check that passed because its `origin/main` anchor never resolved) folded into the **#163 teeth-validator** design as a degrade-loudly test case; plus the `docs/handoffs/_references/` convention.
