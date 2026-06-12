@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-12 — v5 **architect-mode** handoff emitted (docs/handoffs/2026-06-12-dev-knowledge-session-2) — captures the v4-restoration arc
+
+**Did:** Ran `/handoff v5 architect for .dev-knowledge` — CC-owned, the **second** post-flip architect handoff (the same-day base bundle `2026-06-12-dev-knowledge-session` exists). Scope matrix → **Case 4** (clean tree; **4 commits since the base handoff** `ab730d1` — the v4-template-restoration arc; base slug taken) → counter-differentiated slug `2026-06-12-dev-knowledge-session-2`. Emitted the architect-profiled residual (4 lean files): `README.md`, `HANDOFF_BOOT.md` (thin-boot pointer → generative posture), `RESIDUAL.md` (drift-flags headline + planning "why" incl. the **new v4-restoration arc** + open architecture questions + ephemeral task-graph + lean task-state), `PROBES.md` (orientation P1 + teeth P2–**P7**, the new P7 forcing the `no_ff_merges` WARN sha). Theme unchanged — **finish the v5 machinery deferred at #149** — but #164 re-scoped to *repo-parameterized cross-repo* (the v4-restoration arc widened it) and a **new Q9** added (cross-repo routing contract + the automation-writer-vs-`--no-ff` collision).
+
+**Result:** `audit.py health` **OK** (16/18). **Two live drift-flags:** `git_backlog_drift` #77 (dispositioned `warn-77-voided-closure`, known-benign) and a **NEW `no_ff_merges`** WARN — `61c5b50fa` (the nightly conformance digest, a direct/FF automation-writer commit on `main`) — surfaced as an honest open question (ADR-80 writer-policy vs the `--no-ff`-universal invariant; **not** dispositioned, not self-resolved). **State improved vs the base bundle:** `main` is now **in-sync** with `origin/main` (the base handoff's ahead-1/behind-1 divergence was reconciled). **One straggler:** the base handoff's branch `docs/handoff-2026-06-12-session` is merged-but-undeleted (owed a prune, operator-gated). Teeth held: every probe's exact answer kept **out** of the bundle; stamp string omitted (audit #8 historical-v4-scoped, skips). Self-referential: hand-assembled (no v5 generator yet) — the live argument for #164/#161.
+
+**Abandoned:** Nothing.
+
+**Next:** Boot a browser architect session on the finish-the-machinery theme — orient via P1, then the operator-context beat (§13d), then design Q1 (#163/#164 build order), Q2 (#161 probe-core), Q3 (#162 vocab), Q4 (#156 durable graph), Q5 (#152 §8 pointerization), **Q9** (the new cross-repo routing + automation-writer/`--no-ff` decisions). Prune the straggler branch (ask operator first).
+
+**Changes:** `docs/handoffs/2026-06-12-dev-knowledge-session-2/` (4 files, new); this JOURNAL marker. Branch `docs/handoff-2026-06-12-session-2`.
+
+---
+
 ### 2026-06-12 — un-regress the v4 cross-repo handoff: restore prematurely-archived live v4 templates
 
 **Did:** The #149 flip `git-mv`'d `templates/handoff/*` → `templates/archive/handoff-v4/`, treating v4 as fully dead. It is only **partially** dead — corp-monorepo (and any v4 repo) still runs the v4 8-file two-phase generator the command body retains (SUPERSEDED), and the cross-repo handoff path reads `templates/handoff/` at Phase 2; archiving broke `create handoff for corp-monorepo`. Per ADR-83 ("only dead things archive") these templates are **live for v4 repos** → restored to `templates/handoff/` via rename (history preserved; the archival was R100, `c3ba6d4`). Also **pinned the v4 stamp**: `README.md.tmpl:9` is the frozen v4.4 template but its `{{VERSION}}`/`{{STATUS}}` resolve from `protocols/HANDOFF_PROCESS.md` — now v5.0/stable — so a v4 bundle would mis-stamp v5.0; hardcoded the stamp to literal `v4.4 (status: live)` (resolver untouched). Then ran the **E2E** (the closure gate): generated a full v4 cross-repo bundle for corp-monorepo to `%TEMP%` (throwaway).
