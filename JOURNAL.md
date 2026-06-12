@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-12 — architect-mode v5 handoff generated (`-architect`)
+
+**Did:** Generated an **architect-mode v5 handoff** for `.dev-knowledge` (operator-invoked `/handoff v5 architect dev knowledge`), following the canonical spec (`protocols/HANDOFF_PROCESS.md` v5.0 §13) — the new **three-file** bundle shape (`HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md`, **no per-bundle README**) the 2026-06-12 canonical-runbook collapse mandated. Slug `2026-06-12-dev-knowledge-architect` (type-distinguished from the `-session`/`-2`/`-3` bundles). Session-header (slug · purpose · mode) lives in the bundle `HANDOFF_BOOT.md`, which points back at the canonical operator runbook `docs/handoffs/README.md`.
+
+**Result:** `pytest`/`ruff`/`audit.py health` green at generation (16/18 pass; 2 informational `[~~]` WARNs — #90a known-benign/dispositioned, `no_ff_merges` = open Q9). Orientation anchors verified live (`VISION.md` `## Vision`, `ARCHITECTURE.md` `## Purpose [CORE]`). `audit.py checks` = **18** (last: `no_ff_merges`). New residual vs `-3`: the **canonical-runbook collapse landed** — folded in as the resolved design move (per-bundle README dropped, `_references/` band-aid retired, #164 rescoped to the no-per-bundle-README generator); the new open tension (per-repo runbook sync without copy-drift) surfaced as Q1; added probe **P8** (post-collapse three-file shape vs a README-era summary). `main` re-synced with `origin/main` (the `-3` ahead-4 was pushed).
+
+**Abandoned:** Nothing.
+
+**Next:** Operator boots a browser planning session from the bundle per `docs/handoffs/README.md`. Theme: finish the v5 handoff machinery (#163 teeth validator · #164 generator + #156/#159/#161/#162/#165 + the Q9 automation-writer-vs-`--no-ff` reconciliation). Bundle hand-assembled per spec (the #163/#164 machinery is still deferred — the standing argument for landing it).
+
+**Changes:** `docs/handoffs/2026-06-12-dev-knowledge-architect/` (new: HANDOFF_BOOT.md, RESIDUAL.md, PROBES.md); this JOURNAL marker. Branch `docs/handoff-2026-06-12-architect`.
+
+---
+
 ### 2026-06-12 — handoff READMEs collapsed into one canonical operator runbook
 
 **Did:** Killed the per-bundle README boilerplate (regenerated every handoff → token waste + drift; the root index rotted because it was redundant). Made `docs/handoffs/README.md` the **single canonical operator runbook** (operator-first walkthrough · run loop · mermaid · demoted rationale · corrected v3.2/v4/v5 format-eras index); v5 bundles now carry **no README** — the session-header (slug · purpose · mode) moves into the bundle `HANDOFF_BOOT.md`. Amended `HANDOFF_PROCESS.md` §13 (three-file bundle shape); reduced `templates/handoff/v5/README.md.tmpl` to a deferred #164 stub (no hand-synced second copy); rescoped #164 to seed the runbook per-repo idempotently from one source; deleted the `_references/` rendered band-aid.
