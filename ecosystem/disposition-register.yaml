@@ -37,3 +37,14 @@ dispositions:
       (corrected 2026-06-09, commit 9639597). Direction-(a) #90a cannot tell a
       misattributed closure from a real one; only arc-content inspection (#139) can.
     auto_clearable_by: "#139"
+
+  - id: warn-61c5b50-nightly-digest-writer
+    organ: no_ff_merges
+    match: "61c5b50fa"
+    ref: 61c5b50fa
+    reason: >-
+      Nightly conformance digest committing its own output direct-on-main —
+      policy-blessed by ADR-80 (automation commits its own output). Not a human
+      FF / direct-to-main hygiene bypass. Per-sha interim disposition; the
+      durable pattern-vs-writer-fix decision is Q9b for the architect session
+      (do NOT extend the FF-guard automation-allowlist here — that pre-decides Q9b).
