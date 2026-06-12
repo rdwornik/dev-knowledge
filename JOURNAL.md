@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-12 — un-regress the v4 cross-repo handoff: restore prematurely-archived live v4 templates
+
+**Did:** The #149 flip `git-mv`'d `templates/handoff/*` → `templates/archive/handoff-v4/`, treating v4 as fully dead. It is only **partially** dead — corp-monorepo (and any v4 repo) still runs the v4 8-file two-phase generator the command body retains (SUPERSEDED), and the cross-repo handoff path reads `templates/handoff/` at Phase 2; archiving broke `create handoff for corp-monorepo`. Per ADR-83 ("only dead things archive") these templates are **live for v4 repos** → restored to `templates/handoff/` via rename (history preserved; the archival was R100, `c3ba6d4`). Also **pinned the v4 stamp**: `README.md.tmpl:9` is the frozen v4.4 template but its `{{VERSION}}`/`{{STATUS}}` resolve from `protocols/HANDOFF_PROCESS.md` — now v5.0/stable — so a v4 bundle would mis-stamp v5.0; hardcoded the stamp to literal `v4.4 (status: live)` (resolver untouched). Then ran the **E2E** (the closure gate): generated a full v4 cross-repo bundle for corp-monorepo to `%TEMP%` (throwaway).
+
+**Result:** E2E PASS — the bundle is valid, **v4.4-stamped**, and targets **corp-monorepo** (reads its live state: VISION = Corporate OS / Blue Yonder, HEAD `552e262` ×6, P1s #1/#3), with methodology pointing at `.dev-knowledge` PLAYBOOK/ESSENTIALS, **zero unresolved `{{…}}` markers**, and no `.dev-knowledge` sha leaked. No third regression surfaced. `pytest` 448 passed / 1 skipped, `ruff` clean, `audit.py health` green; no gate/test asserts template presence (restore is CI-safe). `%TEMP%` throwaways left no repo trace.
+
+**Abandoned:** Nothing. Did NOT fix the v5 *routing* ambiguity (a v4 target has no deterministic route to the v4 path) — captured for #164, not in scope.
+
+**Next:** Repo-parameterized v5 cross-repo generator (#164) — only then do v4 templates (and this stamp pin) become removable; corp-monorepo migrates off v4 at that point.
+
+**Changes:** `templates/handoff/*` (restored, 8 files), `templates/handoff/README.md.tmpl` (stamp pin), `JOURNAL.md`, `BACKLOG.md` (#164 note). Branch `fix/restore-v4-handoff-templates` (1ea0b57 + this).
+
+---
+
 ### 2026-06-12 — v5 **architect-mode** handoff emitted (docs/handoffs/2026-06-12-dev-knowledge-session) — first post-flip architect run
 
 **Did:** Ran `/handoff architecture v5` for `.dev-knowledge` — CC-owned, the **first architect-mode handoff after v5 went canonical** (the #149 flip). Scope matrix → **Case 2** (clean tree; 10 commits since the session-4 handoff; today's base slug free) → slug `2026-06-12-dev-knowledge-session`. Emitted the architect-profiled residual (4 lean files): `README.md`, `HANDOFF_BOOT.md` (thin-boot pointer → generative posture), `RESIDUAL.md` (drift-flags headline + planning "why" + open architecture questions + ephemeral task-graph + lean task-state), `PROBES.md` (orientation P1 + teeth P2–P6). Theme re-scoped post-flip to **finishing the v5 machinery deferred at #149** — #164 (v5 `/handoff` generator) + #163 (teeth validator) as the new spine, with #161/#162/#152/#156/#159 cleanups parallel beside.
