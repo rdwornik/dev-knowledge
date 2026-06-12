@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-12 — operator-first v5 handoff README redesign (the bundle README was unreadable to the operator)
+
+**Did:** Fixed the v5 bundle README defect — it was **design-rationale-first**, leading with ~30 lines of methodology (architect profile, §13 framing, teeth) before §Use ever said plainly what the operator physically does; proof of the defect was that the operator who built it couldn't follow it. Redesigned it **operator-first** as the **durable v5 pattern** (not a one-off): created `templates/handoff/v5/README.md.tmpl` (new subdir under the approved `templates/handoff/`) with a plain numbered "what you do" walkthrough leading, rationale **demoted** (condensed, not deleted), and a **mermaid** sequence diagram. Made unambiguous the four currently-confusing things: (1) who each file is for (two for the operator, two pasted to the browser) via a top table; (2) the first paste is a **5th file from the repo** — `protocols/HANDOFF_BOOT.md`, **not** the bundle's same-named pointer — with the collision called out; (3) `PROBES.md` is **one file handed once** (P1 at step 4, P2–P7 at step 7, beat + residual between) shown in prose + diagram shading; (4) the **run loop** explained once with its *why* (no answers ship → live read). Rendered the template **filled for session-2** as a fully self-contained sibling reference (the real closure artifact). Plan-mode plan-then-execute; per-step commit; `--no-ff` merge.
+
+**Result:** `pytest` **448 passed / 1 skipped**, `ruff` clean, `validate_backlog` OK (75 tasks, 0 warnings) after each step. **Immutable bundle dir untouched** (verified — the reference is a *sibling* file, `docs/handoffs/2026-06-12-dev-knowledge-session-2-README-reference.md`, not inside the bundle). Operator decisions honored: **no `{{VERSION}}` stamp** in the template (audit #8 v4-scoped; `TODO(#163)` marks the intentional absence); diagram = **mermaid** here, and the reusable ASCII-vs-mermaid **selection rule** filed as **#165 — a *proposed* ADR-51-family amendment**, not a unilaterally-minted ADR. `HANDOFF_PROCESS.md` §13 gains a one-line README-shape pointer + section-history entry (additive, version unchanged); **#164** Done-when now requires this shape + a dated dependency note.
+
+**Abandoned:** Nothing.
+
+**Next:** Operator to read the rendered reference cold (the real readability gate). Push `main` (4 commits ahead of `origin`, not pushed). Delete the merged `docs/operator-first-v5-readme` branch (operator-gated). #165 awaits ratification; #164 generator must emit the operator-first shape.
+
+**Changes:** `templates/handoff/v5/README.md.tmpl` (new); `docs/handoffs/2026-06-12-dev-knowledge-session-2-README-reference.md` (new); `protocols/HANDOFF_PROCESS.md` §13 + history; `BACKLOG.md` (#164 dep, new #165); this JOURNAL marker. Branch `docs/operator-first-v5-readme` (merged `96706b2`).
+
+---
+
 ### 2026-06-12 — v5 **architect-mode** handoff emitted (docs/handoffs/2026-06-12-dev-knowledge-session-2) — captures the v4-restoration arc
 
 **Did:** Ran `/handoff v5 architect for .dev-knowledge` — CC-owned, the **second** post-flip architect handoff (the same-day base bundle `2026-06-12-dev-knowledge-session` exists). Scope matrix → **Case 4** (clean tree; **4 commits since the base handoff** `ab730d1` — the v4-template-restoration arc; base slug taken) → counter-differentiated slug `2026-06-12-dev-knowledge-session-2`. Emitted the architect-profiled residual (4 lean files): `README.md`, `HANDOFF_BOOT.md` (thin-boot pointer → generative posture), `RESIDUAL.md` (drift-flags headline + planning "why" incl. the **new v4-restoration arc** + open architecture questions + ephemeral task-graph + lean task-state), `PROBES.md` (orientation P1 + teeth P2–**P7**, the new P7 forcing the `no_ff_merges` WARN sha). Theme unchanged — **finish the v5 machinery deferred at #149** — but #164 re-scoped to *repo-parameterized cross-repo* (the v4-restoration arc widened it) and a **new Q9** added (cross-repo routing contract + the automation-writer-vs-`--no-ff` collision).
