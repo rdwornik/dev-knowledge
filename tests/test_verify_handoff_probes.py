@@ -299,6 +299,31 @@ def test_resolve_basename_ignores_excluded_dir_duplicates(tmp_path):
     assert by["PC"].status == "pass"
 
 
+def test_resolve_rejects_path_escaping_repo_root(tmp_path):
+    # a token that escapes repo_root (`../outside.md`) must NOT bind, even though the
+    # file exists on disk -- containment keeps the validator's teeth (codex HIGH).
+    (tmp_path / "outside.md").write_text("ghost\n", encoding="utf-8")  # sibling of repo/
+    row = ("PD", "names a path escaping the repo", "`../outside.md` here",
+           "an out-of-repo file must not satisfy a probe", "`grep x VISION.md`")
+    files = {"VISION.md": "v\n"}
+    bundle = _init_bundle(tmp_path, [row], repo_files=files)
+    by = _by_id(vhp.verify(bundle))
+    assert by["PD"].status == "fail"
+    assert "outside.md" in by["PD"].detail
+
+
+def test_resolve_rejects_direct_path_under_excluded_dir(tmp_path):
+    # a full direct path under an excluded tree (.claude/worktrees) must not bind --
+    # exclusions apply to the literal path, not just the fallback (codex HIGH).
+    row = ("PE", "names a worktree-duplicate path directly",
+           "`.claude/worktrees/w/SPEC.md` here", "a duplicate copy must not satisfy a probe",
+           "`grep x VISION.md`")
+    files = {"VISION.md": "v\n", ".claude/worktrees/w/SPEC.md": "dup\n"}
+    bundle = _init_bundle(tmp_path, [row], repo_files=files)
+    by = _by_id(vhp.verify(bundle))
+    assert by["PE"].status == "fail"
+
+
 # --- deployed audit check: check_handoff_probes -----------------------------
 
 def _repo_with_bundle(tmp_path, rows, **kw):

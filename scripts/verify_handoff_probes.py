@@ -30,6 +30,7 @@ FAIL to a gating Finding so /ship blocks; anchor-missing / skipped -> WARN.
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import sys
@@ -190,26 +191,55 @@ def parse_probes(md_text: str) -> list[dict]:
 
 # --- classifier (the §10 ladder, resolve-only) ------------------------------
 
+def _excluded(parts: tuple[str, ...]) -> bool:
+    """True if any path segment is an excluded dir (VCS/vendor/worktree/archived/aborted)."""
+    return any(p in _FALLBACK_EXCLUDE_DIRS or p.startswith("archive") for p in parts)
+
+
+def _within_repo_file(repo_root: Path, p: Path) -> Path | None:
+    """Return `p` IFF it resolves to a real FILE CONTAINED in repo_root and not under an
+    excluded tree; else None. Containment (resolve + relative_to) blocks a `../` escape or
+    a symlink whose target leaves the repo from binding a probe — applied to the literal
+    path too, so a probe can't bind to an out-of-repo / excluded-dir file by naming it
+    directly (only the unique-basename fallback may omit the dir prefix)."""
+    try:
+        rp = p.resolve()
+        parts = rp.relative_to(repo_root.resolve()).parts
+    except (ValueError, OSError):
+        return None  # escapes repo_root (../, symlink target outside) or unresolvable
+    if not rp.is_file() or _excluded(parts):
+        return None
+    return p
+
+
+def _basename_matches(repo_root: Path, name: str) -> list[Path]:
+    """Files named `name` under repo_root, PRUNING excluded dirs during the walk so
+    .git/.claude(worktrees)/node_modules/archive*/aborted/in-progress are never descended
+    (the costly full-tree walk skips the duplicate-bearing trees — correctness + cost)."""
+    out: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(repo_root):
+        dirnames[:] = [d for d in dirnames if not _excluded((d,))]
+        if name in filenames:
+            out.append(Path(dirpath) / name)
+    return out
+
+
 def _resolve_path(repo_root: Path, rel: str) -> Path | None:
     """Resolve a probe's file token to a real repo file, or None.
 
     Primary: the literal repo-relative path (`protocols/HANDOFF_PROCESS.md`). Fallback:
     a probe may name a uniquely-basenamed repo file WITHOUT its dir prefix (a real
-    authoring style — source-cell `HANDOFF_PROCESS.md` for the file that lives at
-    `protocols/HANDOFF_PROCESS.md`); resolve it IFF exactly one non-excluded file in the
-    tree carries that basename. Zero matches (a real miss) or >1 (genuinely ambiguous,
-    after excluding VCS/vendor/archived/aborted dirs) -> None, so teeth are preserved:
-    a missing or ambiguous token still FAILs. Precision-over-recall."""
-    direct = repo_root / rel
-    if direct.exists():
+    authoring style — source-cell `HANDOFF_PROCESS.md` for `protocols/HANDOFF_PROCESS.md`);
+    resolve it IFF exactly one match survives. BOTH paths pass the same gate — contained
+    in repo_root, is-a-file, not under an excluded tree (`_within_repo_file`) — so a probe
+    cannot bind to a file outside the repo (`../x.md`), a non-file, or a duplicate under
+    .git/.claude/node_modules/archive*/aborted/in-progress, even by naming it directly.
+    Zero matches (a real miss) or >1 (genuinely ambiguous) -> None: teeth preserved."""
+    direct = _within_repo_file(repo_root, repo_root / rel)
+    if direct is not None:
         return direct
-    name = Path(rel).name
-    hits = [
-        p for p in repo_root.rglob(name)
-        if p.is_file()
-        and not any(part in _FALLBACK_EXCLUDE_DIRS or part.startswith("archive")
-                    for part in p.relative_to(repo_root).parts)
-    ]
+    hits = [m for m in _basename_matches(repo_root, Path(rel).name)
+            if _within_repo_file(repo_root, m) is not None]
     return hits[0] if len(hits) == 1 else None
 
 
