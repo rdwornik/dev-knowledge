@@ -202,6 +202,16 @@ def test_verify_fail_on_malformed_row(tmp_path):
     assert "malformed" in by["PZ"].detail.lower()
 
 
+def test_verify_fail_on_command_cell_without_backtick_span(tmp_path):
+    # codex HIGH: a non-empty command cell with NO backtick span -> cmd == "" must NOT
+    # fall through to a silent PASS; it ships no runnable command -> malformed FAIL.
+    row = ("PNB", "no real command", "`VISION.md`", "why", "run the grep yourself")
+    bundle = _init_bundle(tmp_path, [row])
+    by = _by_id(vhp.verify(bundle))
+    assert by["PNB"].status == "fail"
+    assert "malformed" in by["PNB"].detail.lower()
+
+
 def test_verify_p5_trap_secondary_span_does_not_false_fail(tmp_path):
     # ARCHITECTURE.md exists; root `audit.py` does NOT. First-span-only extraction must
     # keep this PASS (the `audit.py` shorthand in the 2nd span is never resolved).
@@ -331,6 +341,29 @@ def test_check_validates_latest_bundle_only(tmp_path):
     (bundle2 / "PROBES.md").write_text(_probes_md([_PASS_SYMBOL]), encoding="utf-8")
     findings = aud.check_handoff_probes(repo)
     assert findings[0].status == "pass"        # older broken bundle ignored
+
+
+def test_check_fails_on_empty_probe_manifest(tmp_path):
+    # codex HIGH: a PROBES.md present but with NO parseable probe rows is a toothless
+    # manifest -> FAIL (not a silent pass). The bundle was selected *because* it has a
+    # PROBES.md, so empty results mean the manifest itself is the defect.
+    bundle = _init_bundle(tmp_path, [], probes_md="# Probe manifest\n\njust prose, no table.\n")
+    findings = aud.check_handoff_probes(bundle.parents[2])
+    assert findings[0].status == "fail"
+    assert "toothless" in findings[0].evidence.lower() or "no parseable" in findings[0].evidence.lower()
+
+
+def test_check_emits_one_finding_per_degraded_probe(tmp_path):
+    # codex HIGH: degraded probes must be ONE Finding each (per-probe ship-gate
+    # disposition), not a single collapsed WARN that one disposition could mask.
+    a1 = ("PA1", "q", "`VISION.md` `## Gone1`", "why", "`grep x VISION.md`")
+    a2 = ("PA2", "q", "`VISION.md` `## Gone2`", "why", "`grep x VISION.md`")
+    repo = _repo_with_bundle(tmp_path, [a1, a2])
+    findings = aud.check_handoff_probes(repo)
+    assert len(findings) == 2
+    assert all(f.status == "warn" for f in findings)
+    assert any("PA1" in f.evidence for f in findings)
+    assert any("PA2" in f.evidence for f in findings)
 
 
 def test_check_failsoft_on_error(tmp_path, monkeypatch):

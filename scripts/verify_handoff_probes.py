@@ -231,6 +231,11 @@ def _classify(probe: dict, repo_root: Path, bundle: str) -> ProbeResult:
             return ProbeResult(pid, "fail", f"malformed: empty {col} cell", bundle)
     # 2. missing source/target — source uses ALL spans; command the FIRST span only.
     cmd = first_span(probe["command"])
+    if not cmd:
+        # a non-empty command cell with no `backtick` span ships no runnable command —
+        # nothing binds to live state -> malformed (never falls through to a silent PASS).
+        return ProbeResult(pid, "fail",
+                           "malformed: command cell has no `backtick`-delimited command", bundle)
     for rel in file_tokens(probe["source"]) + file_tokens(cmd):
         if _resolve_path(repo_root, rel) is None:
             return ProbeResult(pid, "fail", f"missing source/target: {rel}", bundle)

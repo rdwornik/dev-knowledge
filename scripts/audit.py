@@ -1362,20 +1362,27 @@ def check_handoff_probes(repo_path: Path) -> list[Finding]:
     except Exception as exc:  # never wedge the audit-health gate
         return [Finding("handoff_probes", "warn",
                         f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
-    fails = [r for r in results if r.status == "fail"]
-    warns = [r for r in results if r.status in ("anchor-missing", "skipped")]
-    if fails:
-        evidence = (f"{len(fails)} toothless probe(s) in {latest.name} (binding broken): "
-                    + _vhp.format_findings(results)).replace("|", "/")
-        return [Finding("handoff_probes", "fail", evidence)]
-    if warns:
-        evidence = (f"{len(warns)} probe(s) degraded in {latest.name} "
-                    "(re-anchor / tool absent): "
-                    + "; ".join(f"{r.probe_id}:{r.status}" for r in warns)).replace("|", "/")
-        return [Finding("handoff_probes", "warn", evidence)]
-    passed = sum(1 for r in results if r.status == "pass")
+    if not results:
+        # PROBES.md exists (it is why this bundle was selected) but parses to zero probe
+        # rows -> a toothless manifest. Not a silent pass: a v5 bundle must ship probes.
+        return [Finding("handoff_probes", "fail",
+                        f"{latest.name}/PROBES.md present but no parseable probe rows "
+                        "(toothless manifest)")]
+    # One Finding per non-passing probe so the #147 ship-gate dispositions each
+    # independently (same contract as git_backlog_drift / no_ff_merges): an aggregate
+    # WARN would let one disposition mask an unrelated degraded probe.
+    findings: list[Finding] = []
+    for r in results:
+        if r.status == "fail":
+            findings.append(Finding("handoff_probes", "fail",
+                f"{r.probe_id} toothless in {latest.name}: {r.detail}".replace("|", "/")))
+        elif r.status in ("anchor-missing", "skipped"):
+            findings.append(Finding("handoff_probes", "warn",
+                f"{r.probe_id} {r.status} in {latest.name}: {r.detail}".replace("|", "/")))
+    if findings:
+        return findings
     return [Finding("handoff_probes", "pass",
-                    f"{passed} probe(s) bind to live state ({latest.name})")]
+                    f"{len(results)} probe(s) bind to live state ({latest.name})")]
 
 
 ALL_CHECKS = [
