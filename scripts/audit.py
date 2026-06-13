@@ -76,6 +76,12 @@ try:
 except ImportError:
     import validate_no_ff as _vnf
 
+# #163 handoff-probe teeth validator — same module-import + thin-adapter shape.
+try:
+    from scripts import verify_handoff_probes as _vhp
+except ImportError:
+    import verify_handoff_probes as _vhp
+
 # Gate-mode flag (#89): cmd_health sets this True around its self-audit loop so the
 # expensive claim-3 (pytest --collect-only) is SKIPPED on the per-commit gate and
 # evaluated only on the full-audit path (run/repo/CLI/SessionStart). Operator ruling.
@@ -1319,6 +1325,59 @@ def check_no_ff_merges(repo_path: Path) -> list[Finding]:
     ]
 
 
+def check_handoff_probes(repo_path: Path) -> list[Finding]:
+    """#163 handoff-probe teeth: every probe in the LATEST v5 PROBES.md bundle binds
+    to live state (structural, RESOLVE-ONLY — Critical Rule #4 "Layer 2 never executes",
+    zero false positives). Mechanizes the manual v5 probe-gate (HANDOFF_PROCESS §5/§10).
+
+    Bundle-presence-based: validates the lexically-max docs/handoffs/<slug>/PROBES.md
+    (excluding aborted/in-progress/archive); a repo with no such bundle is a no-op pass,
+    so this no-ops on the fleet's child repos. Only the ACTIVE (latest) handoff is
+    checked — older bundles are immutable historical artifacts whose source anchors
+    legitimately drift, so re-validating them against current state would mis-flag.
+
+    FAIL-class (gating, unlike the WARN-only doc_claims): a malformed row or a missing
+    source/command-target FAILs -> Finding "fail" -> the audit-health + ship-gate block
+    (a toothless probe cannot ship). A moved anchor / absent tool -> WARN (anchor-missing
+    / skipped: degrade loudly, never a synthesized pass). The "Why" column is checked for
+    PRESENCE only — rationale quality stays the manual gate. Fail-soft on any error.
+    Read-only. Logic lives in scripts/verify_handoff_probes.py.
+    """
+    handoffs = Path(repo_path) / "docs" / "handoffs"
+    if not handoffs.exists():
+        return [Finding("handoff_probes", "pass",
+                        "no docs/handoffs/ — no probe bundle to validate")]
+    bundles = sorted(
+        (d for d in handoffs.iterdir()
+         if d.is_dir() and d.name not in _BUNDLE_EXCLUDE_DIRS
+         and (d / "PROBES.md").exists()),
+        key=lambda d: d.name,
+    )
+    if not bundles:
+        return [Finding("handoff_probes", "pass",
+                        "no v5 PROBES.md bundle to validate")]
+    latest = bundles[-1]
+    try:
+        results = _vhp.verify(latest)
+    except Exception as exc:  # never wedge the audit-health gate
+        return [Finding("handoff_probes", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    fails = [r for r in results if r.status == "fail"]
+    warns = [r for r in results if r.status in ("anchor-missing", "skipped")]
+    if fails:
+        evidence = (f"{len(fails)} toothless probe(s) in {latest.name} (binding broken): "
+                    + _vhp.format_findings(results)).replace("|", "/")
+        return [Finding("handoff_probes", "fail", evidence)]
+    if warns:
+        evidence = (f"{len(warns)} probe(s) degraded in {latest.name} "
+                    "(re-anchor / tool absent): "
+                    + "; ".join(f"{r.probe_id}:{r.status}" for r in warns)).replace("|", "/")
+        return [Finding("handoff_probes", "warn", evidence)]
+    passed = sum(1 for r in results if r.status == "pass")
+    return [Finding("handoff_probes", "pass",
+                    f"{passed} probe(s) bind to live state ({latest.name})")]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -1338,6 +1397,7 @@ ALL_CHECKS = [
     check_git_backlog_drift,
     check_doc_claims,
     check_no_ff_merges,
+    check_handoff_probes,
 ]
 
 
