@@ -33,6 +33,20 @@
 
 ---
 
+### 2026-06-13 — durable architect-mode task-graph: BACKLOG dependency/parallel fields + enforcement (#156)
+
+**Did:** Made the architect's task-DAG durable instead of ephemeral residual prose. Added two optional inline clauses to the ADR-66 task schema — `· depends-on: #id` (hard blocked-by precedence) and `· serialize-group: <label>` (shared-mutable-resource mutual exclusion; parallel-safety is *derived*, not declared). Extended `scripts/validate_backlog.py` with clause-scoped parse helpers + two checks: strict reference-existence (every depends-on id must be a live task) and no-cycle (white/gray/black DFS catching direct/indirect/self cycles, min-rotation-deduped, ASCII path). Proposed an ADR-66 amendment (**PROPOSED — NOT ratified**, awaits operator/Council at integration). Encoded a conservative dogfood batch (one honest hard edge #112→#23 + `serialize-group: audit-py` on #7/#36/#140); soft/provenance relations (#156↔#150, #164↔#163) deliberately excluded per hard-blocked-by-only.
+
+**Result:** `pytest` **458 passed / 1 skipped**, `ruff` clean, `audit.py health` OK each step. E2E against the real 75-task BACKLOG: baseline OK + serialize-group surfaced; injected non-existent id → FAIL; injected indirect cycle #7→#36→#140→#7 → FAIL with path; self-loop → FAIL; pre-commit `validate-backlog` gate still passes. `/codex-review` (range `7fbb8f4..HEAD`) returned 0/0/0/0. E2E surfaced + fixed a cp1252 crash (`→` U+2192 not in cp1252 → UnicodeEncodeError on Windows console; switched to ASCII `->`; gotcha recorded).
+
+**Changes:** `scripts/validate_backlog.py` (+ helpers/checks), `tests/test_validate_backlog.py` (+25 dep-graph cases), `BACKLOG.md` (dogfood edges on #7/#36/#112/#140), `docs/decisions/ADR-66-...md` (PROPOSED Amendments section), `docs/audits/2026-06-13-codex-156-taskgraph.md`. Worktree branch `worktree-156-taskgraph` — **not merged** (operator integration gate).
+
+**Abandoned:** Nothing. Full edge encoding (~72 remaining) is deliberately incremental, not this pass.
+
+**Next:** Operator/Council ratifies (or revises) the ADR-66 amendment at integration. Strict reference-existence implies a prune-on-close step (closing a depended-on item requires removing inbound `depends-on` edges) — flagged in the amendment for the ruling.
+
+---
+
 ### 2026-06-12 — architect-mode v5 handoff generated (`-architect`)
 
 **Did:** Generated an **architect-mode v5 handoff** for `.dev-knowledge` (operator-invoked `/handoff v5 architect dev knowledge`), following the canonical spec (`protocols/HANDOFF_PROCESS.md` v5.0 §13) — the new **three-file** bundle shape (`HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md`, **no per-bundle README**) the 2026-06-12 canonical-runbook collapse mandated. Slug `2026-06-12-dev-knowledge-architect` (type-distinguished from the `-session`/`-2`/`-3` bundles). Session-header (slug · purpose · mode) lives in the bundle `HANDOFF_BOOT.md`, which points back at the canonical operator runbook `docs/handoffs/README.md`.
