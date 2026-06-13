@@ -3,6 +3,8 @@
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 _VB = Path(__file__).resolve().parent.parent / "scripts" / "validate_backlog.py"
 
 
@@ -131,3 +133,84 @@ def test_live_backlog_passes_inplace_check():
     text = (Path(vb.__file__).resolve().parent.parent / "BACKLOG.md").read_text(encoding="utf-8")
     hard, _ = _run(text)
     assert not any("in-place" in h for h in hard)
+
+
+# --- #156: durable task-graph — depends-on (reference-existence + no-cycle) + serialize-group ---
+# depends-on = HARD blocked-by; serialize-group = shared-file mutual-exclusion label (surfaced,
+# never a failure). Cases that assert a FAIL is *produced* are xfail(strict) until the impl commit
+# lands; the impl commit REMOVES these markers (strict => an XPASS fails, forcing their removal).
+# Cases that assert valid input passes / no false-positive stay green throughout (no marker).
+
+# Three tasks under one story; {dep1..dep3} inject trailing inline clauses per task.
+DEP3 = """# .dev-knowledge BACKLOG
+## Big picture
+A short paragraph.
+**Themes (backbone):** Theme A
+## Theme A
+> As a persona, I want a goal.
+### Story one
+So that reasons hold.
+- [#1] [P1][M] task one · Done when: x{dep1}
+- [#2] [P1][M] task two · Done when: x{dep2}
+- [#3] [P1][M] task three · Done when: x{dep3}
+"""
+
+
+def _dep3(dep1="", dep2="", dep3=""):
+    return DEP3.format(dep1=dep1, dep2=dep2, dep3=dep3)
+
+
+def test_valid_depends_on_passes():
+    # edges into existing live ids, acyclic -> no hard fails
+    hard, _ = _run(_dep3(dep1=" · depends-on: #2", dep2=" · depends-on: #3"))
+    assert hard == []
+
+
+def test_serialize_group_is_not_a_failure():
+    # two tasks sharing a serialize-group is a legitimate mutual-exclusion label, not a fail
+    hard, _ = _run(_dep3(dep1=" · serialize-group: audit-py", dep2=" · serialize-group: audit-py"))
+    assert hard == []
+
+
+def test_refs_or_prose_id_not_treated_as_dependency():
+    # a non-existent id appearing only in refs/prose (NOT in a depends-on clause) must NOT
+    # trip reference-existence — guards the clause-scoped parse against false positives
+    hard, _ = _run(_dep3(dep1=" · refs ADR-1, #999 (mentioned in prose, not a dependency)"))
+    assert not any("non-existent" in h for h in hard)
+
+
+@pytest.mark.xfail(strict=True, reason="reference-existence check lands in impl commit (#156)")
+def test_depends_on_nonexistent_id_fails():
+    hard, _ = _run(_dep3(dep1=" · depends-on: #999"))
+    assert any("non-existent" in h and "999" in h for h in hard)
+
+
+@pytest.mark.xfail(strict=True, reason="no-cycle check lands in impl commit (#156)")
+def test_direct_cycle_fails():
+    hard, _ = _run(_dep3(dep1=" · depends-on: #2", dep2=" · depends-on: #1"))
+    assert any("cycle" in h.lower() for h in hard)
+
+
+@pytest.mark.xfail(strict=True, reason="no-cycle check must catch INDIRECT cycles — impl commit (#156)")
+def test_indirect_cycle_fails():
+    # A -> B -> C -> A : a direct-only detector would miss this
+    hard, _ = _run(_dep3(dep1=" · depends-on: #2", dep2=" · depends-on: #3", dep3=" · depends-on: #1"))
+    assert any("cycle" in h.lower() for h in hard)
+
+
+@pytest.mark.xfail(strict=True, reason="self-loop detection lands in impl commit (#156)")
+def test_self_loop_fails():
+    hard, _ = _run(_dep3(dep1=" · depends-on: #1"))
+    assert any("itself" in h.lower() or "cycle" in h.lower() for h in hard)
+
+
+@pytest.mark.xfail(strict=True, reason="_parse_deps helper lands in impl commit (#156)")
+def test_parse_deps_is_clause_scoped():
+    # only the depends-on clause counts; refs/prose #ids are ignored; ids are BARE strings
+    deps = vb._parse_deps("do x · Done when: y · refs ADR-1, #2 · depends-on: #3, #4 · note #2")
+    assert deps == ["3", "4"]
+
+
+@pytest.mark.xfail(strict=True, reason="_parse_serialize_group helper lands in impl commit (#156)")
+def test_parse_serialize_group():
+    assert vb._parse_serialize_group("do x · serialize-group: audit-py · refs y") == "audit-py"
