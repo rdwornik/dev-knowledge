@@ -19,8 +19,15 @@ Hard-fail (exit 1) — objective structure only:
     `[x]` checkbox, a struck bullet, an in-place `~~strikethrough~~`, or a bold
     `**RESOLVED`/`**DONE` marker on a task line
   - a user story with no "So that" line, or a story/task directly under ## Big picture
+  - (#156 task-graph) a `· depends-on: #id` referencing an id that is not a live task
+    (strict reference-existence — closed ids have left the file), or a cycle in the
+    depends-on graph (direct A↔B, indirect A→B→C→A, or self A→A; the path is reported)
 
 Warn-only: a user story with zero tasks.
+
+The optional `· serialize-group: <label>` clause (shared-mutable-resource mutual
+exclusion) is surfaced in the OK summary, never a failure. Parallel-safety is derived,
+not declared: two tasks co-run iff no depends-on path links them and they share no group.
 
 (No repo: rule — entries are implicitly .dev-knowledge; cross-repo work names repos in
 task text under the Cross-repo theme. Monotonic/never-reused id is an assignment
@@ -51,6 +58,98 @@ _DONE_MARKER_RE = re.compile(r"·\s*status:\s*done\b|^- \[[xX]\]|^- ~~")
 # above only catches a fully-struck bullet ("- ~~") or "- [x]" — it missed the
 # "[#id] ~~...~~ **RESOLVED**" shape the #79 stub exhibited (commit 052e311).
 _INPLACE_RESOLVED_RE = re.compile(r"~~.+?~~|\*\*\s*(?:RESOLVED|DONE)\b")
+# #156 task-graph fields. Clause-scoped: a `· depends-on:` / `· serialize-group:` clause
+# is captured up to the next `·` or end-of-line, so #ids in `refs`/prose are NOT read as
+# dependencies. The leading `·` is required — a bare "depends-on" in prose is not a clause.
+_DEPENDS_CLAUSE_RE = re.compile(r"·\s*depends-on\s*:\s*([^·]*)")
+_SERIALIZE_CLAUSE_RE = re.compile(r"·\s*serialize-group\s*:\s*([^·]*)")
+_DEPID_RE = re.compile(r"#(\d+)")
+
+
+def _parse_deps(rest):
+    """Return the depends-on ids as BARE strings (e.g. ['23', '45']) — matches task['id']
+    form so membership tests are not silently always-false. Only the depends-on clause is
+    read; ids in refs/prose are ignored."""
+    m = _DEPENDS_CLAUSE_RE.search(rest)
+    return _DEPID_RE.findall(m.group(1)) if m else []
+
+
+def _parse_serialize_group(rest):
+    """Return the serialize-group label (str) or None. A shared-mutable-resource
+    mutual-exclusion label; surfaced, never a failure."""
+    m = _SERIALIZE_CLAUSE_RE.search(rest)
+    return m.group(1).strip() if m and m.group(1).strip() else None
+
+
+def _check_dep_references(tasks):
+    """Strict reference-existence: every depends-on id must be a live task id (#156)."""
+    ids = {t["id"] for t in tasks}
+    hard = []
+    for t in tasks:
+        loc = f'[#{t["id"]}] line {t["line"]}'
+        for d in _parse_deps(t["rest"]):
+            if d not in ids:
+                hard.append(f'depends-on references non-existent id #{d} — {loc}')
+    return hard
+
+
+def _check_dep_cycles(tasks):
+    """No-cycle: the depends-on graph must be acyclic — catches direct (A↔B), indirect
+    (A→B→C→A), and self (A→A) cycles via a white/gray/black DFS (#156). Dangling ids are
+    skipped here (owned by _check_dep_references) so this never KeyErrors."""
+    ids = {t["id"] for t in tasks}
+    line_of = {}
+    adj = {}
+    for t in tasks:
+        adj.setdefault(t["id"], [])
+        line_of.setdefault(t["id"], t["line"])
+        for d in _parse_deps(t["rest"]):
+            if d in ids:  # skip dangling — reference check reports those
+                adj[t["id"]].append(d)
+
+    hard = []
+    color = dict.fromkeys(adj, 0)  # 0=white, 1=gray (on stack), 2=black (done)
+    stack = []
+    seen = set()
+
+    def dfs(node):
+        color[node] = 1
+        stack.append(node)
+        for nb in adj[node]:
+            if color[nb] == 1:  # back-edge -> the stack slice [nb..node] is a cycle
+                cycle = tuple(stack[stack.index(nb):])
+                pivot = cycle.index(min(cycle, key=int))  # rotate to min id -> dedup rotations
+                canon = cycle[pivot:] + cycle[:pivot]
+                if canon not in seen:
+                    seen.add(canon)
+                    if len(canon) == 1:
+                        hard.append(f'task #{canon[0]} depends on itself — '
+                                    f'[#{canon[0]}] line {line_of[canon[0]]}')
+                    else:
+                        # ASCII arrow — '→' (U+2192) is not in cp1252 and raises
+                        # UnicodeEncodeError on a Windows console, crashing the gate
+                        # exactly on the cycle path that must print a clear message.
+                        path = " -> ".join(f"#{n}" for n in canon) + f" -> #{canon[0]}"
+                        hard.append(f'dependency cycle: {path}')
+            elif color[nb] == 0:
+                dfs(nb)
+        stack.pop()
+        color[node] = 2
+
+    for node in sorted(adj, key=int):
+        if color[node] == 0:
+            dfs(node)
+    return hard
+
+
+def serialize_groups(tasks):
+    """Map serialize-group label -> [task ids]. Informational (surfaced in main)."""
+    groups = {}
+    for t in tasks:
+        g = _parse_serialize_group(t["rest"])
+        if g:
+            groups.setdefault(g, []).append(t["id"])
+    return groups
 
 
 def parse(text):
@@ -125,6 +224,10 @@ def validate(themes, stories, tasks):
             hard.append(f'user story missing a "So that" line — {sloc}')
         if s["ntasks"] == 0:
             warn.append(f'user story with no tasks — {sloc}')
+    # #156 task-graph checks — run independently (a reference failure must not mask a real
+    # cycle among the valid edges); reference-existence first by convention.
+    hard += _check_dep_references(tasks)
+    hard += _check_dep_cycles(tasks)
     return hard, warn
 
 
@@ -144,6 +247,11 @@ def main():
     n_themes = len([t for t in themes if t != BIG_PICTURE])
     print(f"validate_backlog: OK ({n_themes} themes, {len(stories)} stories, {len(tasks)} tasks, "
           f"{len(warn)} warning(s))")
+    groups = serialize_groups(tasks)
+    if groups:
+        summary = "; ".join(f"{g} ({', '.join('#' + i for i in members)})"
+                            for g, members in sorted(groups.items()))
+        print(f"validate_backlog: serialize-groups — {summary}")
     return 0
 
 
