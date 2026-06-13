@@ -235,6 +235,60 @@ def test_format_findings_lists_only_fails_no_pipe(tmp_path):
     assert "|" not in out
 
 
+# --- unique-basename fallback resolution (#163 integration hardening) --------
+# A probe may name a source by bare basename for a file that lives in a subdir
+# (real case: P8's `HANDOFF_PROCESS.md` for `protocols/HANDOFF_PROCESS.md`). The
+# fallback resolves it IFF exactly one NON-excluded file carries that basename;
+# zero or >1 still FAIL (teeth preserved); excluded-dir duplicates never count.
+
+def test_resolve_unique_basename_without_dir_prefix_passes(tmp_path):
+    # source names a bare basename whose only live copy sits in a subdir -> resolves.
+    row = ("P8", "where does the boilerplate live",
+           "`HANDOFF_PROCESS.md` section 13", "the collapse dropped the README",
+           "`grep README protocols/HANDOFF_PROCESS.md`")
+    files = {"protocols/HANDOFF_PROCESS.md": "# H\n\nno per-bundle README\n"}
+    bundle = _init_bundle(tmp_path, [row], repo_files=files)
+    by = _by_id(vhp.verify(bundle))
+    assert by["P8"].status == "pass"
+
+
+def test_resolve_ambiguous_basename_two_live_copies_fails(tmp_path):
+    # the same basename in two non-excluded dirs -> ambiguous -> unresolved -> FAIL.
+    row = ("PA", "names an ambiguous basename", "`DUP.md` here",
+           "two live copies must not silently resolve", "`grep x a/DUP.md`")
+    files = {"a/DUP.md": "x\n", "b/DUP.md": "x\n"}
+    bundle = _init_bundle(tmp_path, [row], repo_files=files)
+    by = _by_id(vhp.verify(bundle))
+    assert by["PA"].status == "fail"
+    assert "DUP.md" in by["PA"].detail
+
+
+def test_resolve_zero_basename_match_fails(tmp_path):
+    # a bare basename that exists nowhere -> a real miss -> FAIL (no synthesized pass).
+    row = ("PB", "names a ghost basename", "`NOWHERE.md` here",
+           "nothing live binds here", "`grep x VISION.md`")
+    files = {"VISION.md": "v\n"}
+    bundle = _init_bundle(tmp_path, [row], repo_files=files)
+    by = _by_id(vhp.verify(bundle))
+    assert by["PB"].status == "fail"
+    assert "NOWHERE.md" in by["PB"].detail
+
+
+def test_resolve_basename_ignores_excluded_dir_duplicates(tmp_path):
+    # a live copy + duplicates under excluded dirs (archive*/, .claude/worktrees/…)
+    # -> still exactly ONE non-excluded match -> resolves (no false-ambiguity FAIL).
+    row = ("PC", "names a basename with archived/worktree twins", "`SPEC.md` section",
+           "an excluded-dir copy must not create ambiguity", "`grep x sub/SPEC.md`")
+    files = {
+        "sub/SPEC.md": "live\n",
+        "archive/old/SPEC.md": "stale\n",
+        ".claude/worktrees/w/sub/SPEC.md": "worktree dup\n",
+    }
+    bundle = _init_bundle(tmp_path, [row], repo_files=files)
+    by = _by_id(vhp.verify(bundle))
+    assert by["PC"].status == "pass"
+
+
 # --- deployed audit check: check_handoff_probes -----------------------------
 
 def _repo_with_bundle(tmp_path, rows, **kw):

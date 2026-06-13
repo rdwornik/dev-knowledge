@@ -45,6 +45,14 @@ _FILE_RE = re.compile(r"(?:[\w.-]+/)*[\w-]+\.(?:py|md|ya?ml|toml|json|sh|ps1)")
 # The four load-bearing columns a well-formed probe row must carry (non-empty).
 _LOAD_BEARING = ("question", "source", "why", "command")
 
+# Dirs excluded from the unique-basename fallback in _resolve_path: VCS internals,
+# nested CC worktree checkouts (`.claude/worktrees/<name>/…` are full duplicate trees),
+# vendored deps, and immutable/aborted/in-progress handoff bundles. A duplicate copy of
+# a live file under any of these would otherwise create a false-ambiguity FAIL.
+# `archive` is matched by prefix (archive/, archives/, archived-…); mirrors the bundle
+# exclude set in audit.py (_BUNDLE_EXCLUDE_DIRS).
+_FALLBACK_EXCLUDE_DIRS = {".git", ".claude", "node_modules", "aborted", "in-progress"}
+
 
 @dataclass(frozen=True)
 class ProbeResult:
@@ -182,12 +190,35 @@ def parse_probes(md_text: str) -> list[dict]:
 
 # --- classifier (the §10 ladder, resolve-only) ------------------------------
 
+def _resolve_path(repo_root: Path, rel: str) -> Path | None:
+    """Resolve a probe's file token to a real repo file, or None.
+
+    Primary: the literal repo-relative path (`protocols/HANDOFF_PROCESS.md`). Fallback:
+    a probe may name a uniquely-basenamed repo file WITHOUT its dir prefix (a real
+    authoring style — source-cell `HANDOFF_PROCESS.md` for the file that lives at
+    `protocols/HANDOFF_PROCESS.md`); resolve it IFF exactly one non-excluded file in the
+    tree carries that basename. Zero matches (a real miss) or >1 (genuinely ambiguous,
+    after excluding VCS/vendor/archived/aborted dirs) -> None, so teeth are preserved:
+    a missing or ambiguous token still FAILs. Precision-over-recall."""
+    direct = repo_root / rel
+    if direct.exists():
+        return direct
+    name = Path(rel).name
+    hits = [
+        p for p in repo_root.rglob(name)
+        if p.is_file()
+        and not any(part in _FALLBACK_EXCLUDE_DIRS or part.startswith("archive")
+                    for part in p.relative_to(repo_root).parts)
+    ]
+    return hits[0] if len(hits) == 1 else None
+
+
 def _header_present(header: str, src_files: list[str], repo_root: Path) -> bool:
-    """True if a markdown-header line `header` appears in any existing source file."""
+    """True if a markdown-header line `header` appears in any resolvable source file."""
     pat = re.compile(r"^" + re.escape(header) + r"(\s|$)", re.MULTILINE)
     for rel in src_files:
-        p = repo_root / rel
-        if p.exists() and pat.search(p.read_text(encoding="utf-8")):
+        p = _resolve_path(repo_root, rel)
+        if p is not None and pat.search(p.read_text(encoding="utf-8")):
             return True
     return False
 
@@ -201,7 +232,7 @@ def _classify(probe: dict, repo_root: Path, bundle: str) -> ProbeResult:
     # 2. missing source/target — source uses ALL spans; command the FIRST span only.
     cmd = first_span(probe["command"])
     for rel in file_tokens(probe["source"]) + file_tokens(cmd):
-        if not (repo_root / rel).exists():
+        if _resolve_path(repo_root, rel) is None:
             return ProbeResult(pid, "fail", f"missing source/target: {rel}", bundle)
     # 3. anchor — a named `#`-header must resolve in a bound (existing) source file.
     src_files = file_tokens(probe["source"])
