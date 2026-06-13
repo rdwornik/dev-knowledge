@@ -211,6 +211,7 @@ local git gate.
 | `git_backlog_drift` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #90; ADR-65 |
 | `doc_claims` (audit check) | `audit.py health` — pre-commit gate (counts/lists) + full sweep (test-count) | hub | fail-soft (WARN) | #89 |
 | `no_ff_merges` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #153; core-invariants #5 |
+| `handoff_probes` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** (FAIL on broken probe binding; WARN on anchor-missing/skipped) | #163; HANDOFF_PROCESS §5/§10 |
 | pre-commit gates (8) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below |
 
 The **Tier-1 closure loop** is three of these organs in a cycle:
@@ -260,6 +261,13 @@ above references — the `scripts/` inventory:
   + CLAUDE §9 roster vs `.pre-commit-config.yaml`; test-count vs `pytest --collect-only`,
   off-gate). Read-only; surfaced via the `doc_claims` audit check (WARN). Single-doc
   accuracy only — cross-file fidelity / rot is #140. Standalone CLI: `python scripts/validate_doc_claims.py` (#89).
+- `scripts/verify_handoff_probes.py` — handoff-probe teeth: every probe in the latest v5
+  `PROBES.md` bundle binds to live state, by STRUCTURAL resolvability (resolve-only — no
+  subprocess; Critical Rule #4). Mechanizes the manual v5 probe-gate (HANDOFF_PROCESS §5/§10):
+  malformed row / missing source-or-command target → FAIL, reworded `#`-anchor → WARN
+  anchor-missing, absent tool → skipped. Read-only; surfaced via the `handoff_probes` audit
+  check (FAIL-class — a toothless probe blocks `/ship`). Standalone CLI:
+  `python scripts/verify_handoff_probes.py <bundle>` (#163).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
 - `tests/` — pytest unit tests for the validators (**477 collected**; `pytest -x --tb=short`).
