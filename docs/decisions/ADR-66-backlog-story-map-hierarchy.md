@@ -43,3 +43,39 @@ Rules carried/changed:
 
 - `docs/decisions/ADR-64-backlog-architecture.md` (Decision 2 superseded), `ADR-65-backlog-done-item-disposition.md`
 - VISION.md (Big Picture wording); `protocols/PLAYBOOK.md` §10 (schema); `scripts/validate_backlog.py`
+
+## Amendments
+
+### 2026-06-13 — PROPOSED (pending operator/Council ratification): durable dependency + parallelization fields (#156)
+
+> **STATUS: PROPOSED — NOT RATIFIED.** This amendment is drafted as part of the #156 worktree pilot and is **pending an operator (or AI Council) ruling at integration**. It is recorded here so the proposal travels with the schema it amends; it does **not** take effect until ratified. Do not cite it as accepted doctrine.
+
+- **Source:** #156 ("Durable architect-mode task-graph"), built in worktree `worktree-156-taskgraph`. The architect's task-DAG (what-blocks-what / what-parallelizes) is **ephemeral residual prose** today — the Decision-item-4 task schema encodes no dependency or parallelism fields, so every session re-derives the graph by hand and its edges are never verified. The architect's own residual disclaims itself: *"Dependencies/parallelization above are the architect's read, not a schema fact — #156 is what would make them durable"* (`docs/handoffs/2026-06-12-dev-knowledge-session-3/RESIDUAL.md`).
+- **Decision tier (proposed):** Path A — a layout/schema refinement of an already-ratified architecture (ADR-66 itself was Path A). The operator (or Council, at the operator's discretion) rules at integration.
+
+**The schema extension.** Decision item **4 (Task)** gains **two OPTIONAL inline `·`-separated clauses**. Absence of either imposes no constraint (full backward compatibility — every existing task line stays valid).
+
+| Field | Form | Meaning |
+|---|---|---|
+| `depends-on` | `· depends-on: #id, #id` | **Hard precedence (blocked-by) ONLY.** This task cannot start until every listed task completes. NOT provenance/supersedes, NOT a soft/"ideal" preference — those stay in prose/`refs`. |
+| `serialize-group` | `· serialize-group: <label>` | A **shared-mutable-resource mutual-exclusion** label (e.g. two tasks that both edit `scripts/audit.py` → `serialize-group: audit-py`). Tasks sharing a label must not run concurrently. |
+
+Before / after (task line, Decision item 4):
+
+```
+before: - [#id] [P][size] <action> · Done when: <criterion> · <ADR/refs>
+after:  - [#id] [P][size] <action> · Done when: <criterion> · <ADR/refs> [· depends-on: #a, #b] [· serialize-group: <label>]
+```
+
+**Parallel-safety is DERIVED, not declared.** Two tasks are co-runnable iff there is no `depends-on` path between them **and** they share no `serialize-group`. There is deliberately **no `parallel-safe: true|false` field** — it would be redundant (derivable) and underspecified (it cannot express *which* tasks conflict). Absence of any annotation = parallel-safe by default, matching the architect's "independent cleanups parallelize" framing.
+
+**Enforcement (`scripts/validate_backlog.py`, read-only Layer-2, added by #156):**
+
+1. **Reference-existence (strict).** Every id in a `depends-on` clause MUST be a live task id in `BACKLOG.md`. A reference to a non-existent / typo'd / renumbered id is a **hard-fail**. The `depends-on` clause is parsed in isolation — `#id`s appearing in `refs` or prose are NOT dependencies.
+2. **No-cycle.** The `depends-on` graph must be acyclic. The validator topologically inspects it (DFS) and **hard-fails on any cycle — direct (A↔B), indirect (A→B→C→A), or self-loop (A→A)** — reporting the cycle path.
+
+**Consequence the operator must weigh (strict reference-existence).** Because done tasks **leave the file** (ADR-65), closing a depended-on item makes every dependent's `· depends-on: #closed` a dangling reference — a hard-fail until the now-satisfied edge is pruned. So **closing a blocker becomes a documented two-step**: remove the item *and* prune inbound `depends-on` edges to it (grep `depends-on: .*#<id>`). This is the intended trade — a consistent, dangling-free graph in exchange for a small prune-on-close tax — and the reason the alternative (lenient: allow absent ids) was rejected: a lenient check lets a typo'd id pass silently, defeating the check's purpose.
+
+**Scope of the #156 pilot (dogfood).** A small *representative* batch of real edges is encoded — **not** all ~75 (full encoding is incremental). The pilot encodes one honest hard edge (`#112 depends-on #23` — "Option B held until #23") plus a `serialize-group: audit-py` across the audit.py-mutating items (#7, #36, #140). Soft/provenance relations (e.g. #156↔#150, #164↔#163) are deliberately **excluded** from `depends-on` per the hard-blocked-by-only rule.
+
+- **Ratification:** awaits operator or AI Council ruling at integration of `worktree-156-taskgraph`. Until then this section is a proposal of record only.
