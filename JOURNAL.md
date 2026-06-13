@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-13 — parallel integration: #156 task-graph + #163 probe-validator landed on main
+
+**Did:** Integrated two parallel worktree branches (built off different bases) into `main` **feature-only** — cherry-picked just the feature commits onto `integ/156-163`, one `--no-ff` merge — dropping both branches' stray 13:34 fleet-baselines + the shared #26 nightly digest so main's own 18:04 baseline stays the sole 2026-06-13 artifact. Recomputed the collected-count from the real `pytest --collect-only` rather than either branch's stale claim (#156 said 459, #163 said 480 — both off the 449 base). **Merge-time finding:** #163's `handoff_probes` (FAIL-class) fired on main's active handoff bundle — P8's source named bare `HANDOFF_PROCESS.md` (lives at `protocols/`); hardened `verify_handoff_probes.py` with a unique-basename fallback (repo-contained, excluded-tree-pruned) per operator ruling, codex-reviewed (1 HIGH/1 MEDIUM → fixed: containment + walk-pruning).
+
+**Result:** ship-gate **GREEN** (exit 0) on merged `main` `dba11d0` — `handoff_probes` 10/10 bind, `doc_claims` 4/4 (collected **496**, checks **19**), only the 2 dispositioned WARNs (#77 voided-closure, 61c5b50 nightly-writer). `pytest` 495 passed / 1 skipped, `ruff` clean, tree clean. #156 + #163 closed in BACKLOG (ADR-65 done-items-leave). **ADR-66 amendment remains PROPOSED — NOT ratified** (operator/Council rules separately).
+
+**Next:** Operator/Council ratifies the ADR-66 amendment. `worktree-156-taskgraph` / `worktree-163-validator` branches remain (cherry-pick leaves them un-merged) — awaiting operator on removal. `main` is ahead of `origin` (unpushed) + the pre-existing `behind 1` origin digest (Q9) — push not done here.
+
+---
+
 ### 2026-06-13 — architect-mode v5 handoff refresh generated (`-architect`)
 
 **Did:** Generated an **architect-mode v5 handoff** for `.dev-knowledge` (operator-invoked `/handoff v5 architect dev-knowledge`), following the canonical spec (`protocols/HANDOFF_PROCESS.md` v5.0 §13) — the **three-file** bundle shape (`HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md`, **no per-bundle README**). Slug `2026-06-13-dev-knowledge-architect`. A **refresh** of yesterday's `-architect` bundle — no way-of-working design move landed since HEAD `66d0293`, so the open questions (Q1–Q11) + task-graph carry forward; what is genuinely new is **state, not design**.
