@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-13 — architect-mode v5 handoff refresh generated (`-architect`)
+
+**Did:** Generated an **architect-mode v5 handoff** for `.dev-knowledge` (operator-invoked `/handoff v5 architect dev-knowledge`), following the canonical spec (`protocols/HANDOFF_PROCESS.md` v5.0 §13) — the **three-file** bundle shape (`HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md`, **no per-bundle README**). Slug `2026-06-13-dev-knowledge-architect`. A **refresh** of yesterday's `-architect` bundle — no way-of-working design move landed since HEAD `66d0293`, so the open questions (Q1–Q11) + task-graph carry forward; what is genuinely new is **state, not design**.
+
+**Result:** `pytest`/`ruff`/`audit.py health` green at generation (16/18 pass; 2 informational `[~~]` WARNs — #90a known-benign/dispositioned, `no_ff_merges` = open Q9). Orientation anchors verified live (`VISION.md` `## Vision` L11, `ARCHITECTURE.md` `## Purpose [CORE]` L47). `audit.py checks` = 18 (last: `no_ff_merges`). **NEW headline drift-flag:** `main` has **diverged** from `origin/main` — `ahead 3 / behind 1`; the `behind 1` is `ad56397` (the nightly cloud Routine's 2026-06-13 conformance digest #26, pushed direct to origin), the `ahead 3` is the local `-architect` bundle + merge + 2026-06-13 fleet baseline (unpushed). Folded into Q9 as its push-side face. Added probe **P9** (the divergence/digest contents). New **Q11** (nightly #26 dispositions: persisting CLAUDE.md §8 stale skills-dir claim F3/S3 + shallow-history guard S1/S2). Surfaced the off-theme operator queue (18 closures · changelog 2.1.177 · 5 triage findings · fleet 2 issues) and a straggler branch `docs/handoff-canonical-runbook` for cleanup.
+
+**Abandoned:** Nothing. Did **not** reconcile the `origin/main` divergence — that is an operator/architect call (Q9), not a unilateral CC pull.
+
+**Next:** Operator boots a browser planning session from the bundle per `docs/handoffs/README.md`. First call to clear: reconcile the `main ↔ origin/main` divergence (§1) + rule on Q9. Theme unchanged: finish the v5 handoff machinery (#163 teeth validator · #164 generator + #156/#159/#161/#162/#165 + Q9 + Q11). Bundle hand-assembled per spec (the #163/#164 machinery still deferred — the standing argument for landing it; this is the 2nd `-architect` bundle hand-assembled, the #161 capture).
+
+**Changes:** `docs/handoffs/2026-06-13-dev-knowledge-architect/` (new: HANDOFF_BOOT.md, RESIDUAL.md, PROBES.md); this JOURNAL marker. Branch `docs/handoff-2026-06-13-architect`.
+
+---
+
 ### 2026-06-12 — architect-mode v5 handoff generated (`-architect`)
 
 **Did:** Generated an **architect-mode v5 handoff** for `.dev-knowledge` (operator-invoked `/handoff v5 architect dev knowledge`), following the canonical spec (`protocols/HANDOFF_PROCESS.md` v5.0 §13) — the new **three-file** bundle shape (`HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md`, **no per-bundle README**) the 2026-06-12 canonical-runbook collapse mandated. Slug `2026-06-12-dev-knowledge-architect` (type-distinguished from the `-session`/`-2`/`-3` bundles). Session-header (slug · purpose · mode) lives in the bundle `HANDOFF_BOOT.md`, which points back at the canonical operator runbook `docs/handoffs/README.md`.
