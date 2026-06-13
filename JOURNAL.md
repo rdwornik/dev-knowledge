@@ -47,6 +47,20 @@
 
 ---
 
+### 2026-06-13 — #163 handoff-probe teeth validator shipped (read-only, resolve-only)
+
+**Did:** Built `scripts/verify_handoff_probes.py` + a thin `audit.py` `check_handoff_probes` adapter (now `ALL_CHECKS` #19, `handoff_probes`) that mechanizes the manual v5 probe-gate: it parses a bundle's `PROBES.md` (header-name column mapping — live tables carry a `#` id col §5's 4-col example omits; `|`-inside-backtick safe) and classifies each probe by the **§10 ladder** — malformed row / missing source-or-command-target → **FAIL** (gating), reworded `#`-anchor → **WARN anchor-missing** (never a silent pass), absent tool → **skipped**, else **PASS**. Operator-ruled **resolve-only, no subprocess** (Critical Rule #4 "Layer 2 never executes"; zero false positives) — teeth = structural resolvability, not command execution. The **#161** reusable probe-core stays out of scope (no shared abstraction built).
+
+**Result:** `pytest` **476 passed / 1 skipped** (477 collected; +28 new), `ruff` clean, `audit.py health` OK each step. E2E (terminal-only, no artifact): real bundle `2026-06-12-…-session-3` → 8/8 PASS exit 0; crafted throwaway → 1 FAIL + 1 anchor-missing exit 1 (cleaned up + removal verified); adapter `fail` → gate predicate True. Zero-FP guards: command targets from the FIRST backtick span only (the P5 `audit.py`-shorthand false-FAIL trap); files via extension-anchored regex; `Why` column presence-only.
+
+**Changes:** new `scripts/verify_handoff_probes.py` + `tests/test_verify_handoff_probes.py`; `scripts/audit.py` (import + adapter + registry); `ARCHITECTURE.md` doc-claim bumps (18→19 checks, 449→477 collected). Worktree `worktree-163-validator`, 5 commits — **ready for integration (not merged from the worktree)**.
+
+**Abandoned:** Command execution (the prompt's literal "run the command") — replaced by resolve-only per operator ruling.
+
+**Next:** Operator integrates via `merge --no-ff worktree-163-validator` from the primary checkout; close #163 in BACKLOG at the merge. #161 (reusable probe-core) remains open.
+
+---
+
 ### 2026-06-12 — architect-mode v5 handoff generated (`-architect`)
 
 **Did:** Generated an **architect-mode v5 handoff** for `.dev-knowledge` (operator-invoked `/handoff v5 architect dev knowledge`), following the canonical spec (`protocols/HANDOFF_PROCESS.md` v5.0 §13) — the new **three-file** bundle shape (`HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md`, **no per-bundle README**) the 2026-06-12 canonical-runbook collapse mandated. Slug `2026-06-12-dev-knowledge-architect` (type-distinguished from the `-session`/`-2`/`-3` bundles). Session-header (slug · purpose · mode) lives in the bundle `HANDOFF_BOOT.md`, which points back at the canonical operator runbook `docs/handoffs/README.md`.
