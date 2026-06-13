@@ -3,8 +3,6 @@
 import importlib.util
 from pathlib import Path
 
-import pytest
-
 _VB = Path(__file__).resolve().parent.parent / "scripts" / "validate_backlog.py"
 
 
@@ -179,38 +177,38 @@ def test_refs_or_prose_id_not_treated_as_dependency():
     assert not any("non-existent" in h for h in hard)
 
 
-@pytest.mark.xfail(strict=True, reason="reference-existence check lands in impl commit (#156)")
 def test_depends_on_nonexistent_id_fails():
     hard, _ = _run(_dep3(dep1=" · depends-on: #999"))
     assert any("non-existent" in h and "999" in h for h in hard)
 
 
-@pytest.mark.xfail(strict=True, reason="no-cycle check lands in impl commit (#156)")
 def test_direct_cycle_fails():
     hard, _ = _run(_dep3(dep1=" · depends-on: #2", dep2=" · depends-on: #1"))
     assert any("cycle" in h.lower() for h in hard)
 
 
-@pytest.mark.xfail(strict=True, reason="no-cycle check must catch INDIRECT cycles — impl commit (#156)")
 def test_indirect_cycle_fails():
     # A -> B -> C -> A : a direct-only detector would miss this
     hard, _ = _run(_dep3(dep1=" · depends-on: #2", dep2=" · depends-on: #3", dep3=" · depends-on: #1"))
     assert any("cycle" in h.lower() for h in hard)
 
 
-@pytest.mark.xfail(strict=True, reason="self-loop detection lands in impl commit (#156)")
+def test_indirect_cycle_reports_full_path():
+    hard, _ = _run(_dep3(dep1=" · depends-on: #2", dep2=" · depends-on: #3", dep3=" · depends-on: #1"))
+    cyc = [h for h in hard if "cycle" in h.lower()]
+    assert cyc and all(f"#{n}" in cyc[0] for n in ("1", "2", "3"))
+
+
 def test_self_loop_fails():
     hard, _ = _run(_dep3(dep1=" · depends-on: #1"))
-    assert any("itself" in h.lower() or "cycle" in h.lower() for h in hard)
+    assert any("itself" in h.lower() for h in hard)
 
 
-@pytest.mark.xfail(strict=True, reason="_parse_deps helper lands in impl commit (#156)")
 def test_parse_deps_is_clause_scoped():
     # only the depends-on clause counts; refs/prose #ids are ignored; ids are BARE strings
     deps = vb._parse_deps("do x · Done when: y · refs ADR-1, #2 · depends-on: #3, #4 · note #2")
     assert deps == ["3", "4"]
 
 
-@pytest.mark.xfail(strict=True, reason="_parse_serialize_group helper lands in impl commit (#156)")
 def test_parse_serialize_group():
     assert vb._parse_serialize_group("do x · serialize-group: audit-py · refs y") == "audit-py"
