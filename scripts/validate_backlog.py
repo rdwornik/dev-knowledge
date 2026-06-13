@@ -126,7 +126,10 @@ def _check_dep_cycles(tasks):
                         hard.append(f'task #{canon[0]} depends on itself — '
                                     f'[#{canon[0]}] line {line_of[canon[0]]}')
                     else:
-                        path = " → ".join(f"#{n}" for n in canon) + f" → #{canon[0]}"
+                        # ASCII arrow — '→' (U+2192) is not in cp1252 and raises
+                        # UnicodeEncodeError on a Windows console, crashing the gate
+                        # exactly on the cycle path that must print a clear message.
+                        path = " -> ".join(f"#{n}" for n in canon) + f" -> #{canon[0]}"
                         hard.append(f'dependency cycle: {path}')
             elif color[nb] == 0:
                 dfs(nb)
