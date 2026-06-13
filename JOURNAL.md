@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-13 — #156/#163 teardown cleanup: stale branch deleted + worktree-lock root-caused
+
+**Did:** Closed the two leftovers from the #156/#163 integration teardown. (1) Verified `docs/handoff-canonical-runbook` was a **fully-merged** stale branch (tip `01a8a96` is an ancestor of `main`; `--merged main` listed it; content on main) and deleted it with safe `-d` — not a guess. (2) Root-caused the recurring locked-empty-dir leftover (#107 gotcha): VS Code's file watcher held handles on transient `.claude/worktrees/<slug>/` dirs. Created `.vscode/settings.json` with `files.watcherExclude` for `**/.claude/worktrees/**` to stop watching them at the source. The two prior empties (`156-taskgraph`, `163-validator`) still hit "Device or resource busy" — the existing handle releases only on a VS Code window reload.
+
+**Result:** `git branch` → `main` only. `.vscode/settings.json` merged to main via `--no-ff`. Tree clean. The fix is preventive; the two pre-existing empty dirs await one VS Code window reload (Ctrl+Shift+P → Reload Window), then they `rmdir` cleanly. Did NOT kill any IDE process, push, or touch origin.
+
+**Next:** Operator reloads the VS Code window; the two empty worktree dirs then delete. Future teardowns release clean (watcherExclude in place). `main` remains unpushed/ahead of origin (carried from prior entries — Q9 push reconciliation still operator's call).
+
+**Changes:** `.vscode/settings.json` (new); branch `chore/worktree-watcher-exclude` (merged `--no-ff`, deleted); this JOURNAL marker.
+
+---
+
 ### 2026-06-13 — parallel integration: #156 task-graph + #163 probe-validator landed on main
 
 **Did:** Integrated two parallel worktree branches (built off different bases) into `main` **feature-only** — cherry-picked just the feature commits onto `integ/156-163`, one `--no-ff` merge — dropping both branches' stray 13:34 fleet-baselines + the shared #26 nightly digest so main's own 18:04 baseline stays the sole 2026-06-13 artifact. Recomputed the collected-count from the real `pytest --collect-only` rather than either branch's stale claim (#156 said 459, #163 said 480 — both off the 449 base). **Merge-time finding:** #163's `handoff_probes` (FAIL-class) fired on main's active handoff bundle — P8's source named bare `HANDOFF_PROCESS.md` (lives at `protocols/`); hardened `verify_handoff_probes.py` with a unique-basename fallback (repo-contained, excluded-tree-pruned) per operator ruling, codex-reviewed (1 HIGH/1 MEDIUM → fixed: containment + walk-pruning).
