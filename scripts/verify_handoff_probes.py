@@ -1,25 +1,37 @@
 #!/usr/bin/env python
 """verify_handoff_probes.py — #163 read-only handoff-probe TEETH validator.
 
-STUB (steps 1–2 / #163): the parser (this step) is live; the §10 classifier
-(`verify`) lands in step 3. The §10 ladder this validator mechanizes is documented
-on `verify` once implemented.
+Structurally prove every probe in a v5 handoff bundle's PROBES.md *binds to live
+state*, so a toothless probe cannot ship. RESOLVE-ONLY — never executes the probe
+commands (operator ruling; Critical Rule #4 "Layer 2 never executes / read-only
+validators only"; zero false positives). It reinterprets the manual gate's "CC runs
+the command" as STRUCTURAL RESOLVABILITY of the command's targets.
 
-Parser contract (step 2):
-  - `split_row` splits a markdown table row on `|` but NOT on a `|` inside a backtick
-    code span (the named failure mode: `git log | grep` is ONE cell, not two).
-  - columns are mapped by HEADER NAME, never fixed position — live PROBES.md tables
-    carry a leading `#` id column that §5's 4-col spec example omits, so a positional
-    parser mis-reads every field.
-  - a table is a probe table iff its header has all four load-bearing columns
-    (question / binds-to / why / verifies-via); other tables are skipped.
+The §10 ladder it mechanizes (HANDOFF_PROCESS.md §10 — degrade loudly), per probe:
+  - any load-bearing cell empty (question / source / why / command)   -> FAIL (malformed)
+  - a named source/command-target file does not exist                 -> FAIL (missing source)
+  - a named source file exists but its `#`-anchor is reworded/moved   -> WARN anchor-missing
+  - the command's lead executable is absent from PATH                 -> skipped (degraded)
+  - well-formed, every named file + anchor resolves, exe present      -> PASS
+A FAIL is always STRUCTURAL (missing file / errored target / malformed row), never a
+judgment of the probe's rationale — the "Why" column is checked for PRESENCE ONLY, its
+content is never inspected (that stays the manual gate, HANDOFF_PROCESS §5).
 
-Read-only (Layer-2, ADR-28/36): reads PROBES.md + resolves repo paths; writes nothing.
+Parser notes: `split_row` treats `|` inside a backtick span as literal (the named
+failure mode); columns are mapped by HEADER NAME (live tables carry a leading `#` id
+column §5's 4-col example omits); command targets come from the FIRST backtick span
+only (a secondary span may hold a non-path shorthand that would false-FAIL), while
+source-locator targets use ALL spans (the file often sits in the 2nd span).
+
+Read-only (Layer-2, ADR-28/36): reads PROBES.md + resolves repo paths; writes nothing;
+never orchestrates. The audit adapter (scripts/audit.py check_handoff_probes) maps a
+FAIL to a gating Finding so /ship blocks; anchor-missing / skipped -> WARN.
 """
 
 from __future__ import annotations
 
 import re
+import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,6 +41,9 @@ _REPO_ROOT = _SCRIPTS_DIR.parent
 
 # A repo-relative file path token: optional dir segments + a name with a known ext.
 _FILE_RE = re.compile(r"(?:[\w.-]+/)*[\w-]+\.(?:py|md|ya?ml|toml|json|sh|ps1)")
+
+# The four load-bearing columns a well-formed probe row must carry (non-empty).
+_LOAD_BEARING = ("question", "source", "why", "command")
 
 
 @dataclass(frozen=True)
@@ -99,6 +114,11 @@ def lead_exe(command: str) -> str:
     return command.split()[0] if command else ""
 
 
+def _exe_available(name: str) -> bool:
+    """True if `name` resolves on PATH. Wrapped (not inlined) so tests can stub it."""
+    return shutil.which(name) is not None
+
+
 # --- probe-manifest table parser --------------------------------------------
 
 def _is_table_row(line: str) -> bool:
@@ -126,7 +146,7 @@ def _map_columns(header: list[str]) -> dict | None:
             cols["question"] = idx
         elif c.strip() == "#" and "id" not in cols:
             cols["id"] = idx
-    if {"source", "command", "why", "question"} <= cols.keys():
+    if set(_LOAD_BEARING) <= cols.keys():
         return cols
     return None
 
@@ -145,7 +165,8 @@ def parse_probes(md_text: str) -> list[dict]:
     non-probe table (one whose header lacks the four load-bearing columns)."""
     rows: list[dict] = []
     lines = md_text.splitlines()
-    i, n = 0, len(md_text.splitlines())
+    n = len(lines)
+    i = 0
     while i < n:
         if _is_table_row(lines[i]) and i + 1 < n and _is_separator(lines[i + 1]):
             cols = _map_columns(split_row(lines[i]))
@@ -159,22 +180,86 @@ def parse_probes(md_text: str) -> list[dict]:
     return rows
 
 
-# --- classifier (step 3) ----------------------------------------------------
+# --- classifier (the §10 ladder, resolve-only) ------------------------------
 
-def _exe_available(name: str) -> bool:
-    raise NotImplementedError
+def _header_present(header: str, src_files: list[str], repo_root: Path) -> bool:
+    """True if a markdown-header line `header` appears in any existing source file."""
+    pat = re.compile(r"^" + re.escape(header) + r"(\s|$)", re.MULTILINE)
+    for rel in src_files:
+        p = repo_root / rel
+        if p.exists() and pat.search(p.read_text(encoding="utf-8")):
+            return True
+    return False
+
+
+def _classify(probe: dict, repo_root: Path, bundle: str) -> ProbeResult:
+    pid = probe["id"]
+    # 1. malformed — any load-bearing cell empty (Why: presence only, never content).
+    for col in _LOAD_BEARING:
+        if not probe[col].strip():
+            return ProbeResult(pid, "fail", f"malformed: empty {col} cell", bundle)
+    # 2. missing source/target — source uses ALL spans; command the FIRST span only.
+    cmd = first_span(probe["command"])
+    for rel in file_tokens(probe["source"]) + file_tokens(cmd):
+        if not (repo_root / rel).exists():
+            return ProbeResult(pid, "fail", f"missing source/target: {rel}", bundle)
+    # 3. anchor — a named `#`-header must resolve in a bound (existing) source file.
+    src_files = file_tokens(probe["source"])
+    for hdr in header_tokens(probe["source"]):
+        if not _header_present(hdr, src_files, repo_root):
+            return ProbeResult(pid, "anchor-missing", f"anchor not found: {hdr}", bundle)
+    # 4. tool absent -> skipped (degraded coverage visible, never a synthesized pass).
+    exe = lead_exe(cmd)
+    if exe and not _exe_available(exe):
+        return ProbeResult(pid, "skipped", f"tool absent: {exe}", bundle)
+    # 5. well-formed; every named file + anchor resolves; exe present.
+    return ProbeResult(pid, "pass", "binds to live state", bundle)
 
 
 def verify(bundle_path, repo_root=None) -> list[ProbeResult]:
-    raise NotImplementedError
+    """Classify every probe in <bundle_path>/PROBES.md. Read-only; resolve-only.
+
+    `repo_root` defaults to the repo containing the bundle (<repo>/docs/handoffs/<slug>
+    -> parents[2]); pass it explicitly to resolve against a different root. Returns []
+    when the bundle has no PROBES.md (a non-v5 bundle)."""
+    bundle_path = Path(bundle_path)
+    if repo_root is None:
+        parents = bundle_path.parents
+        repo_root = parents[2] if len(parents) >= 3 else bundle_path
+    repo_root = Path(repo_root)
+    probes_file = bundle_path / "PROBES.md"
+    if not probes_file.exists():
+        return []
+    md = probes_file.read_text(encoding="utf-8")
+    return [_classify(p, repo_root, bundle_path.name) for p in parse_probes(md)]
 
 
 def format_findings(results: list[ProbeResult]) -> str:
-    raise NotImplementedError
+    """One flat line per FAILing probe (markdown-table-safe — no `|`)."""
+    parts = [f"{r.probe_id}: {r.detail}" for r in results if r.status == "fail"]
+    return "; ".join(parts).replace("|", "/")
 
 
 def main(argv=None) -> int:
-    raise NotImplementedError
+    """Standalone CLI: `python scripts/verify_handoff_probes.py <bundle-dir>`.
+    Prints per-probe status; exits 1 if any probe FAILs, else 0."""
+    argv = sys.argv[1:] if argv is None else argv
+    if not argv:
+        print("usage: python scripts/verify_handoff_probes.py <bundle-dir>", file=sys.stderr)
+        return 2
+    bundle = Path(argv[0])
+    results = verify(bundle)
+    if not results:
+        print(f"verify_handoff_probes: no probes found in {bundle}")
+        return 0
+    for r in results:
+        print(f"  {r.status:>14}  {r.probe_id or '-':<5} {r.detail}")
+    fails = sum(1 for r in results if r.status == "fail")
+    warns = sum(1 for r in results if r.status in ("anchor-missing", "skipped"))
+    passes = sum(1 for r in results if r.status == "pass")
+    print(f"verify_handoff_probes: {len(results)} probe(s) — "
+          f"{passes} pass, {fails} fail, {warns} warn ({bundle.name})")
+    return 1 if fails else 0
 
 
 if __name__ == "__main__":
