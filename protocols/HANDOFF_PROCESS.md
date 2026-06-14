@@ -276,13 +276,15 @@ operator-context beat:
   were weighed, which options were considered and rejected, what is still open. Not a single
   task's "why."
 - **(b) Task-state = a pointer to the whole `BACKLOG.md` / the relevant theme(s)** — the
-  task-graph, not one item. **Honest scope (this pass):** the BACKLOG schema (ADR-66 /
-  `validate_backlog`) does **not** encode dependencies or parallelization, so the
-  *what-blocks-what / what-parallelizes* graph is carried **in the residual, ephemerally** — it
-  is **not** a durable BACKLOG-resident graph, and architect mode must not present it as one.
-  Durable encoding is deferred to **#156** (depends-on / parallel fields + an ADR-66 amendment +
-  a `validate_backlog` extension). Until then the architect emits the graph as residual prose
-  and points at the live BACKLOG.
+  task-graph, not one item. **Durable encoding shipped via #156** (ratified ADR-66 amendment
+  2026-06-14): the BACKLOG schema now carries OPTIONAL `· depends-on: #id, #id` (hard
+  precedence) and `· serialize-group: <label>` (shared-mutable-resource mutual exclusion) task
+  clauses, with reference-existence + no-cycle enforced read-only in `validate_backlog.py`.
+  Parallel-safety is **derived** (no `depends-on` path + no shared `serialize-group`), not
+  declared. So an architect can encode genuine hard edges durably in BACKLOG; **soft/provenance
+  relations stay residual prose** (the `depends-on` clause is hard-blocked-by ONLY), and any
+  graph reading the architect has not encoded as a schema edge is still residual, not a schema
+  fact. See ADR-66 §Amendments (2026-06-13, ratified 2026-06-14).
 - **(c) Orientation — a §5 "exact-line quote" probe; the architect's first move, before any
   mechanism.** This is the scope-D fix, delivered the v5 way: **forced read, never a copy,
   never a paraphrase.**

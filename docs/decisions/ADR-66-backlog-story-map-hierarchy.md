@@ -46,9 +46,9 @@ Rules carried/changed:
 
 ## Amendments
 
-### 2026-06-13 — PROPOSED (pending operator/Council ratification): durable dependency + parallelization fields (#156)
+### 2026-06-13 — Accepted — 2026-06-14, **Path A** (operator ruling): durable dependency + parallelization fields (#156)
 
-> **STATUS: PROPOSED — NOT RATIFIED.** This amendment is drafted as part of the #156 worktree pilot and is **pending an operator (or AI Council) ruling at integration**. It is recorded here so the proposal travels with the schema it amends; it does **not** take effect until ratified. Do not cite it as accepted doctrine.
+> **STATUS: Accepted — 2026-06-14, Path A (operator ruling).** This amendment was drafted as part of the #156 worktree pilot and its "ratify at integration" condition came due. #156 shipped, is enforced in `validate_backlog.py`, and was dogfooded into BACKLOG edges. The operator ratified by authority (the same path as ADR-82), making the doctrine coherent with the live enforcement. It is recorded here so the now-accepted decision travels with the schema it amends.
 
 - **Source:** #156 ("Durable architect-mode task-graph"), built in worktree `worktree-156-taskgraph`. The architect's task-DAG (what-blocks-what / what-parallelizes) is **ephemeral residual prose** today — the Decision-item-4 task schema encodes no dependency or parallelism fields, so every session re-derives the graph by hand and its edges are never verified. The architect's own residual disclaims itself: *"Dependencies/parallelization above are the architect's read, not a schema fact — #156 is what would make them durable"* (`docs/handoffs/2026-06-12-dev-knowledge-session-3/RESIDUAL.md`).
 - **Decision tier (proposed):** Path A — a layout/schema refinement of an already-ratified architecture (ADR-66 itself was Path A). The operator (or Council, at the operator's discretion) rules at integration.
@@ -78,4 +78,4 @@ after:  - [#id] [P][size] <action> · Done when: <criterion> · <ADR/refs> [· d
 
 **Scope of the #156 pilot (dogfood).** A small *representative* batch of real edges is encoded — **not** all ~75 (full encoding is incremental). The pilot encodes one honest hard edge (`#112 depends-on #23` — "Option B held until #23") plus a `serialize-group: audit-py` across the audit.py-mutating items (#7, #36, #140). Soft/provenance relations (e.g. #156↔#150, #164↔#163) are deliberately **excluded** from `depends-on` per the hard-blocked-by-only rule.
 
-- **Ratification:** awaits operator or AI Council ruling at integration of `worktree-156-taskgraph`. Until then this section is a proposal of record only.
+- **Ratification:** ratified 2026-06-14 by operator authority (Path A), at integration of `worktree-156-taskgraph` — the "ratify at integration" condition, met. #156 was shipped, enforced, and dogfooded before this ruling; the ratification reconciles the doctrine with the already-live enforcement.
