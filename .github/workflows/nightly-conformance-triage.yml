@@ -4,9 +4,11 @@ name: Nightly Conformance Triage
 # A cloud Routine (user token) opens a PR on branch claude/conformance-YYYY-MM-DD
 # adding exactly one digest file and never auto-merges. This Action:
 #   - diff-guards the PR (exactly one ADDED digest file, nothing else),
-#   - squash-merges digest-only PRs,
+#   - DIVERTS the digest onto the `automation/conformance-digest` branch
+#     (commit-tree plumbing; ADR-84/Q9 — the digest is ISOLATED from `main`,
+#     never merged in) and CLOSES the PR (does not merge),
 #   - opens `nightly-triage` Issues when survivors > 0, on guard failure,
-#     on an unparseable digest, or on a failed auto-merge.
+#     on an unparseable digest, or on a failed branch push.
 #
 # NOTE on the trigger: pull_request.branches filters the BASE (target) branch,
 # which is `main`. Head-branch narrowing (claude/conformance-*) therefore happens
@@ -22,8 +24,8 @@ on:
 
 # Least privilege: only what gh needs to merge, label, and open issues.
 permissions:
-  contents: write          # squash-merge + delete branch
-  pull-requests: write     # gh pr merge
+  contents: write          # push automation/conformance-digest + delete PR head branch
+  pull-requests: write     # gh pr close
   issues: write            # gh issue create + gh label create
 
 concurrency:
@@ -179,18 +181,54 @@ jobs:
 
           echo "date=$DATE marker=$MARKER survivors=$SURV"
 
-          # Squash-merge + delete branch. Loud-fail on branch protection etc.
-          if ! gh pr merge "$PR_NUMBER" --squash --delete-branch; then
-            echo "::error::gh pr merge failed (branch protection / required reviews?)."
+          # ADR-84 / Q9: the digest is ISOLATED from main. Divert it onto the
+          # automation/conformance-digest branch (never merged into main) via
+          # commit-tree plumbing (accumulates prior digests; no working-tree
+          # switch), then CLOSE the PR without merging — the inverse of the
+          # former squash-merge.
+          AUTO_BRANCH=automation/conformance-digest
+          IDX="$RUNNER_TEMP/q9-digest-idx"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          BLOB="$(git hash-object -w "$FILE")"
+          LS="$(git ls-remote --heads origin "$AUTO_BRANCH" || true)"
+          rm -f "$IDX"
+          if [ -n "$LS" ]; then
+            git fetch --no-tags origin "$AUTO_BRANCH"
+            PARENT_SHA="$(git rev-parse FETCH_HEAD)"
+            GIT_INDEX_FILE="$IDX" git read-tree "$PARENT_SHA"
+          else
+            PARENT_SHA=""   # first run → orphan, output-only root
+          fi
+          GIT_INDEX_FILE="$IDX" git update-index --add --cacheinfo "100644,$BLOB,$FILE"
+          TREE="$(GIT_INDEX_FILE="$IDX" git write-tree)"
+          MSG="chore(routine/conformance-digest): $DATE digest"
+          if [ -n "$PARENT_SHA" ]; then
+            COMMIT="$(printf '%s\n' "$MSG" | git commit-tree "$TREE" -p "$PARENT_SHA")"
+          else
+            COMMIT="$(printf '%s\n' "$MSG" | git commit-tree "$TREE")"
+          fi
+
+          # Loud-fail on branch protection / non-fast-forward, mirroring the old merge path.
+          if ! git push origin "$COMMIT:refs/heads/$AUTO_BRANCH"; then
+            echo "::error::push to $AUTO_BRANCH failed (branch protection / non-fast-forward?)."
             gh issue create \
-              --title "Nightly triage ${DATE} — auto-merge failed" \
+              --title "Nightly triage ${DATE} — digest branch push failed" \
               --label nightly-triage \
-              --body "Guard PASSED (survivors=${SURV}) but \`gh pr merge --squash --delete-branch\` failed — likely branch protection / required reviews on \`${BASE_REF}\`. PR left open for manual merge: ${PR_URL}"
+              --body "Guard PASSED (survivors=${SURV}) but pushing the digest to \`${AUTO_BRANCH}\` failed — likely branch protection or a non-fast-forward. PR left open: ${PR_URL}"
             exit 1
           fi
 
+          # Digest is safely on the automation branch; close the PR (do NOT merge
+          # to main) and delete its head branch.
+          gh pr close "$PR_NUMBER" --delete-branch
+
           if [ "$SURV" -gt 0 ]; then
-            DIGEST_URL="https://github.com/${GITHUB_REPOSITORY}/blob/main/${FILE}"
+            # Link the digest at its recorded commit on the automation branch
+            # (a commit SHA is unambiguous; a slash-bearing branch ref in a blob
+            # URL is not).
+            DIGEST_URL="https://github.com/${GITHUB_REPOSITORY}/blob/${COMMIT}/${FILE}"
 
             # Two-pass extraction: pull the "Findings" and "Next Actions" blocks
             # SEPARATELY. The real generator (docs/audits/2026-06-05-conformance-
@@ -220,7 +258,7 @@ jobs:
 
             BODY="$(cat <<EOF
           The nightly conformance digest for **${DATE}** reported **${SURV} survivor(s)**.
-          The digest has been squash-merged to \`main\` (it is the record):
+          The digest has been recorded on the \`automation/conformance-digest\` branch (it is the record; never merged to \`main\`, per ADR-84):
 
           ${DIGEST_URL}
 
