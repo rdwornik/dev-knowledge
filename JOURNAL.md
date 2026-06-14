@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-14 — Q9 automation-writer isolation shipped (ADR-84)
+
+**Did:** Implemented the ratified Q9 ADR on `feat/q9-automation-isolation` in its safety-critical sequence. Landed `ADR-84` (accepted; README index row). Retargeted both unattended writers off `main`: the local baseline (`audit.py _commit_routine_outputs`) now records onto `automation/fleet-audit` via a separate-index `commit-tree` (main HEAD/index/tree untouched; just-written files restored out of the tree in a `finally`); the cloud digest Action (`nightly-conformance-triage.yml`) diverts the digest onto `automation/conformance-digest` and closes the PR instead of squash-merging to main. Repointed `surface_triage.ps1`'s probe (`?ref=automation/conformance-digest`). Verified BOTH writers land off main (live sims) BEFORE removing the `no_ff_merges` `_is_automation` exemption — gate is now one rule (`BASELINE_DATE`→2026-06-15 grandfathers legacy on-main automation ≤06-14); retired disposition `warn-61c5b50`.
+
+**Result:** ship-gate GREEN; 498 passed / 1 skipped; ruff clean; tree clean. E2E: a crafted `Routine:`-markered commit is now flagged (exemption gone); no automation commit reaches main (frozen ≤06-14) or the feature branch. Real-git integration tests replace the mock writer tests (working-tree safety + crash-injection). ARCHITECTURE.md map synced (Ch3 channels / Ch6 outcome loop / validators) + re-stamped.
+
+**Changes:** `docs/decisions/ADR-84-*` (new) + README; `scripts/audit.py` (`_commit_routine_outputs` rewrite + helpers), `validate_no_ff.py` (exemption removed, baseline bump), `surface_triage.ps1`; `.github/workflows/nightly-conformance-triage.yml`; `ecosystem/disposition-register.yaml`; `tests/test_audit.py` + `tests/test_validate_no_ff.py`; `ARCHITECTURE.md`. Commits `0ca36f1`→`374e602`.
+
+**Next:** Operator's serial gate — `merge --no-ff feat/q9-automation-isolation` to main (not done here; origin not pushed). `automation/conformance-digest` is created on origin by the first post-merge nightly; `automation/fleet-audit` is local-first. Deferred (ADR-84 §5): automation-branch retention/prune policy.
+
+---
+
 ### 2026-06-13 — #156/#163 teardown cleanup: stale branch deleted + worktree-lock root-caused
 
 **Did:** Closed the two leftovers from the #156/#163 integration teardown. (1) Verified `docs/handoff-canonical-runbook` was a **fully-merged** stale branch (tip `01a8a96` is an ancestor of `main`; `--merged main` listed it; content on main) and deleted it with safe `-d` — not a guess. (2) Root-caused the recurring locked-empty-dir leftover (#107 gotcha): VS Code's file watcher held handles on transient `.claude/worktrees/<slug>/` dirs. Created `.vscode/settings.json` with `files.watcherExclude` for `**/.claude/worktrees/**` to stop watching them at the source. The two prior empties (`156-taskgraph`, `163-validator`) still hit "Device or resource busy" — the existing handle releases only on a VS Code window reload.
