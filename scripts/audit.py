@@ -35,6 +35,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -1316,7 +1317,7 @@ def check_no_ff_merges(repo_path: Path) -> list[Finding]:
     if not violations:
         return [Finding("no_ff_merges", "pass",
                         f"no non-merge commits on main since {_vnf.BASELINE_DATE} "
-                        "(--no-ff rule, core-invariants #5; sanctioned automation excluded)")]
+                        "(--no-ff rule, core-invariants #5; one rule, no exemptions — ADR-84)")]
     return [
         Finding("no_ff_merges", "warn",
                 ("non-merge commit on main (FF/direct — expected a --no-ff merge): "
@@ -1522,70 +1523,196 @@ def regenerate_index(states: list[RepoState]) -> None:
         yaml.dump(index, fh, default_flow_style=False, allow_unicode=True)
 
 # ---------------------------------------------------------------------------
-# ADR-80 writer commit (fail-soft, pathspec-bounded)
+# ADR-84 (Q9) writer commit — isolate durable outputs to automation/fleet-audit
 # ---------------------------------------------------------------------------
 
-def _commit_routine_outputs(run_date: date) -> None:
-    """Stage and commit durable audit outputs per ADR-80 §3 writer policy.
+_AUTOMATION_BRANCH = "automation/fleet-audit"
 
-    Pathspec-bounded: stages ecosystem/<name>/history/ for each registered repo
-    and docs/audits/. Enumerates concrete paths (no glob) for Windows git compat
-    — git on Windows does not expand * in pathspecs passed via subprocess list.
-    Fail-soft: on any git failure, logs a WARN and returns cleanly (exit 0).
-    Never stages state.yaml (gitignored) or any operator working-tree files.
+
+def _parse_porcelain(raw: str) -> list:
+    """Parse `git status --porcelain` lines into [(xy, path), ...]. Pure.
+
+    `xy` is the two-char status field; `path` is repo-relative. Durable output
+    paths never rename, so the simple `XY<space>PATH` split suffices.
     """
-    try:
-        repo_root = Path(_REPO_ROOT)
-        history_specs = (
-            [
-                (d / "history").relative_to(repo_root).as_posix()
-                for d in sorted(ECOSYSTEM_DIR.iterdir())
-                if d.is_dir()
-            ]
-            if ECOSYSTEM_DIR.exists()
-            else []
-        )
-        pathspecs = history_specs + [AUDITS_DIR.relative_to(repo_root).as_posix()]
-        add = subprocess.run(
-            ["git", "-C", _REPO_ROOT, "add", "--"] + pathspecs,
+    out = []
+    for line in raw.splitlines():
+        if len(line) < 4:
+            continue
+        out.append((line[:2], line[3:].strip().strip('"')))
+    return out
+
+
+def _restore_durable_scope(pathspecs: list) -> None:
+    """Return the working tree to HEAD within the durable output paths.
+
+    Crash-safe cleanup (called from a `finally`): RE-DERIVES the dirty state in
+    the durable scope itself (so it runs correctly however the caller exited —
+    a failed pre-commit snapshot, a mid-plumbing crash, or success), then removes
+    NEW untracked outputs and restores MODIFIED tracked files from HEAD. Only
+    paths git reports dirty IN SCOPE are touched — never arbitrary files.
+    Best-effort: a git-status or per-path failure is logged, never raised.
+    """
+    st = subprocess.run(
+        ["git", "-C", _REPO_ROOT, "status", "--porcelain", "--untracked-files=all", "--", *pathspecs],
+        capture_output=True, text=True,
+    )
+    if st.returncode != 0:
+        logger.warning("ADR-84 restore: git status failed — durable scope NOT cleaned (%s)",
+                       st.stderr.strip())
+        return
+    changed = _parse_porcelain(st.stdout)
+    untracked = [p for (xy, p) in changed if xy == "??"]
+    tracked = [p for (xy, p) in changed if xy != "??"]
+    for p in untracked:
+        fp = Path(_REPO_ROOT) / p
+        try:
+            if fp.is_file():
+                fp.unlink()
+        except OSError as exc:
+            logger.warning("ADR-84 restore: could not remove %s — %s", p, exc)
+    if tracked:
+        subprocess.run(
+            ["git", "-C", _REPO_ROOT, "checkout", "HEAD", "--", *tracked],
             capture_output=True, text=True,
         )
+
+
+def _commit_routine_outputs(run_date: date) -> None:
+    """Capture this run's durable audit outputs onto the `automation/fleet-audit`
+    branch via git plumbing — never to `main` (ADR-84 / Q9 writer isolation).
+
+    `cmd_run` writes the durable outputs (docs/audits/, ecosystem/<name>/history/)
+    into the main working tree; this records their current state onto the orphan,
+    output-only `automation/fleet-audit` branch using a SEPARATE index
+    (`GIT_INDEX_FILE`) + `commit-tree` plumbing, so main's HEAD / index / working
+    tree are never touched and no pre-commit hook fires. The working tree is then
+    restored so the just-written outputs do not dirty `main` (the baseline has no
+    readers — the live copy lives on the branch). The branch is created
+    (parent-less root) on first run. `state.yaml` is gitignored, never staged,
+    and stays.
+
+    Fail-soft + crash-safe: any git error logs a WARN and returns; the
+    working-tree restore always runs in a `finally`. Enumerates concrete history/
+    paths (no glob — git on Windows does not expand `*` in a subprocess pathspec).
+    Assumes the durable scope is clean going in (the automation invariant).
+    """
+    repo = _REPO_ROOT
+    history_specs = (
+        [
+            (d / "history").relative_to(repo).as_posix()
+            for d in sorted(ECOSYSTEM_DIR.iterdir())
+            if d.is_dir()
+        ]
+        if ECOSYSTEM_DIR.exists()
+        else []
+    )
+    pathspecs = history_specs + [AUDITS_DIR.relative_to(repo).as_posix()]
+
+    tmp_index = None
+    try:
+        # Snapshot durable-scope changes for the branch commit. The early-returns
+        # below are INSIDE the try, so the finally always runs the restore — which
+        # re-derives the scope itself, cleaning main even if this status call (after
+        # cmd_run wrote outputs) fails.
+        status = subprocess.run(
+            ["git", "-C", repo, "status", "--porcelain", "--untracked-files=all", "--", *pathspecs],
+            capture_output=True, text=True,
+        )
+        if status.returncode != 0:
+            logger.warning("ADR-84 commit: git status failed — %s", status.stderr.strip())
+            return
+        changed = _parse_porcelain(status.stdout)
+        if not changed:
+            return  # nothing new this run
+        # Stage ONLY this run's changed files (not whole dirs): git 2.0+ `git add <dir>`
+        # stages deletions, so re-adding dirs against a branch-seeded index would prune
+        # prior outputs (which the restore removes from the working tree). Adding the
+        # exact changed paths makes the branch ACCUMULATE.
+        changed_paths = [p for (_xy, p) in changed]
+
+        fd, tmp_index = tempfile.mkstemp(prefix="q9-fleet-idx-")
+        os.close(fd)
+        # mkstemp leaves a 0-byte file, which git rejects as a malformed index.
+        # Remove it so git writes a fresh, valid index (read-tree on branch-exists,
+        # or git add on the orphan first run) at this reserved unique path.
+        os.remove(tmp_index)
+        env = dict(os.environ, GIT_INDEX_FILE=tmp_index)
+
+        branch_exists = subprocess.run(
+            ["git", "-C", repo, "rev-parse", "--verify", "--quiet",
+             f"{_AUTOMATION_BRANCH}^{{commit}}"],
+            capture_output=True, text=True,
+        ).returncode == 0
+
+        # Seed the temp index from the branch tip so the commit accumulates prior
+        # outputs (an EMPTY index on first run → an orphan, output-only root).
+        if branch_exists:
+            rt = subprocess.run(
+                ["git", "-C", repo, "read-tree", _AUTOMATION_BRANCH],
+                env=env, capture_output=True, text=True,
+            )
+            if rt.returncode != 0:
+                logger.warning("ADR-84 commit: read-tree failed — %s", rt.stderr.strip())
+                return
+
+        add = subprocess.run(
+            ["git", "-C", repo, "add", "--", *changed_paths],
+            env=env, capture_output=True, text=True,
+        )
         if add.returncode != 0:
-            logger.warning("ADR-80 commit: git add failed — %s", add.stderr.strip())
+            logger.warning("ADR-84 commit: git add failed — %s", add.stderr.strip())
             return
 
-        # Nothing staged → nothing to commit
-        diff = subprocess.run(
-            ["git", "-C", _REPO_ROOT, "diff", "--cached", "--quiet"],
-            capture_output=True,
+        wt = subprocess.run(
+            ["git", "-C", repo, "write-tree"],
+            env=env, capture_output=True, text=True,
         )
-        if diff.returncode == 0:
+        if wt.returncode != 0:
+            logger.warning("ADR-84 commit: write-tree failed — %s", wt.stderr.strip())
             return
+        tree = wt.stdout.strip()
+
+        parent_args = []
+        if branch_exists:
+            cur_tree = subprocess.run(
+                ["git", "-C", repo, "rev-parse", f"{_AUTOMATION_BRANCH}^{{tree}}"],
+                capture_output=True, text=True,
+            ).stdout.strip()
+            if tree == cur_tree:
+                return  # identical tree — nothing new to record
+            parent_args = ["-p", _AUTOMATION_BRANCH]
 
         msg = (
             f"chore(routine/fleet-audit): record {run_date} baseline\n"
             "\n"
             "Routine: fleet-audit"
         )
-        commit = subprocess.run(
-            ["git", "-C", _REPO_ROOT, "commit", "-m", msg],
+        ct = subprocess.run(
+            ["git", "-C", repo, "commit-tree", tree, *parent_args, "-m", msg],
             capture_output=True, text=True,
         )
-        if commit.returncode != 0:
-            # Pre-commit hooks may have auto-modified staged files (e.g. normalize-dated-headers).
-            # Re-stage the same pathspecs and retry once before giving up.
-            subprocess.run(
-                ["git", "-C", _REPO_ROOT, "add", "--"] + pathspecs,
-                capture_output=True, text=True,
-            )
-            retry = subprocess.run(
-                ["git", "-C", _REPO_ROOT, "commit", "-m", msg],
-                capture_output=True, text=True,
-            )
-            if retry.returncode != 0:
-                logger.warning("ADR-80 commit: git commit failed — %s", retry.stderr.strip())
+        if ct.returncode != 0:
+            logger.warning("ADR-84 commit: commit-tree failed — %s", ct.stderr.strip())
+            return
+        commit = ct.stdout.strip()
+
+        ur = subprocess.run(
+            ["git", "-C", repo, "update-ref", f"refs/heads/{_AUTOMATION_BRANCH}", commit],
+            capture_output=True, text=True,
+        )
+        if ur.returncode != 0:
+            logger.warning("ADR-84 commit: update-ref failed — %s", ur.stderr.strip())
+            return
     except Exception as exc:
-        logger.warning("ADR-80 commit: unexpected error — %s", exc)
+        logger.warning("ADR-84 commit: unexpected error — %s", exc)
+    finally:
+        _restore_durable_scope(pathspecs)
+        if tmp_index and os.path.exists(tmp_index):
+            try:
+                os.remove(tmp_index)
+            except OSError:
+                pass
 
 
 # ---------------------------------------------------------------------------

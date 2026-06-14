@@ -94,10 +94,11 @@ try {
     }
 
     # (b) Side-effect check: the expected digest for the most recent run date
-    #     should exist on the default branch. Missing -> last night's nightly
-    #     likely silently skipped (no-retry class). Query GitHub directly (gh
-    #     fills {owner}/{repo} from cwd) so a stale local `main` cannot
-    #     false-alarm. Get-Date is the real local clock (correct at runtime).
+    #     should exist on the automation/conformance-digest branch (ADR-84/Q9 —
+    #     the digest is isolated from main; the nightly Action diverts it there).
+    #     Missing -> last night's nightly likely silently skipped (no-retry class).
+    #     Query GitHub directly (gh fills {owner}/{repo} from cwd) so a stale local
+    #     clone cannot false-alarm. Get-Date is the real local clock (correct at runtime).
     $now = Get-Date
     $expected = if ($now.Hour -ge 4) { $now } else { $now.AddDays(-1) }
     $stamp = $expected.ToString('yyyy-MM-dd')
@@ -107,10 +108,10 @@ try {
     # stdout-truthiness check ($found non-empty) wrongly reads a MISSING digest
     # as "present" and never fires the silent-skip nudge. Gate on the exit code
     # ($LASTEXITCODE -eq 0 only on HTTP 200) AND a .md-shape check on the name.
-    $found = & $gh api "repos/{owner}/{repo}/contents/$digestPath" --jq '.name' 2>$null
+    $found = & $gh api "repos/{owner}/{repo}/contents/$digestPath?ref=automation/conformance-digest" --jq '.name' 2>$null
     $present = ($LASTEXITCODE -eq 0) -and ($found -match '\.md\s*$')
     if (-not $present) {
-        Write-Output "[nightly] expected digest '$digestPath' is NOT on the default branch -- last night's nightly may have silently skipped (no retry)."
+        Write-Output "[nightly] expected digest '$digestPath' is NOT on the automation/conformance-digest branch -- last night's nightly may have silently skipped (no retry)."
     }
 } catch {
     # never block or noise the session on a surfacing failure

@@ -2,11 +2,13 @@
 
 The rule (core-invariants #5): every change goes branch → merge `--no-ff`; never
 direct to main. A NON-merge commit on main's first-parent spine is the violation
-signature — a direct commit OR a fast-forwarded feature commit. Two precision
-levers: an enforcement baseline (pre-guard history grandfathered) and an ADR-80
-automation allowlist. These tests exercise the pure filter, the git orchestration
-(including the load-bearing FF-vs-`--no-ff` distinction), and the deployed audit
-check (hub-only, WARN-not-FAIL, one-finding-per-violation, fail-soft, e2e).
+signature — a direct commit OR a fast-forwarded feature commit. One precision
+lever: an enforcement baseline (pre-guard / pre-Q9 history grandfathered). ADR-84
+(Q9) REMOVED the former automation allowlist — the gate is now one rule (every
+non-merge commit on main >= baseline is a violation). These tests exercise the
+pure filter, the git orchestration (including the load-bearing FF-vs-`--no-ff`
+distinction), and the deployed audit check (hub-only, WARN-not-FAIL,
+one-finding-per-violation, fail-soft, e2e).
 """
 from __future__ import annotations
 
@@ -55,7 +57,7 @@ def _init_repo(tmp_path):
     return repo
 
 
-# --- pure filter: baseline + automation allowlist ---------------------------
+# --- pure filter: baseline cut, no exemptions (ADR-84 / Q9) ------------------
 
 def test_filter_real_violation_kept():
     recs = [("a1b2c3d4e", "2026-06-12", "feat: oops direct on main", "")]
@@ -68,14 +70,19 @@ def test_filter_pre_baseline_grandfathered():
     assert vnf.filter_violations(recs, baseline="2026-06-11") == []
 
 
-def test_filter_automation_subject_excluded():
-    recs = [("a1b2c3d4e", "2026-06-12", "chore(routine/fleet-audit): record baseline", "")]
-    assert vnf.filter_violations(recs, baseline="2026-06-11") == []
+def test_filter_automation_subject_now_flagged():
+    # ADR-84 (Q9) removed the exemption: a chore(routine/...) non-merge commit on
+    # main at/after the baseline is NOW a violation (the writers no longer land here).
+    recs = [("a1b2c3d4e", "2026-06-16", "chore(routine/fleet-audit): record baseline", "")]
+    assert vnf.filter_violations(recs, baseline="2026-06-15") == \
+        [("a1b2c3d4e", "2026-06-16", "chore(routine/fleet-audit): record baseline")]
 
 
-def test_filter_automation_trailer_excluded():
-    recs = [("a1b2c3d4e", "2026-06-12", "docs: nightly digest", "blah\n\nRoutine: nightly\n")]
-    assert vnf.filter_violations(recs, baseline="2026-06-11") == []
+def test_filter_automation_trailer_now_flagged():
+    # The `Routine: <name>` body trailer is likewise no longer exempt.
+    recs = [("a1b2c3d4e", "2026-06-16", "docs: nightly digest", "blah\n\nRoutine: nightly\n")]
+    assert vnf.filter_violations(recs, baseline="2026-06-15") == \
+        [("a1b2c3d4e", "2026-06-16", "docs: nightly digest")]
 
 
 def test_filter_boundary_date_inclusive():
@@ -128,11 +135,14 @@ def test_pre_baseline_grandfathered_e2e(tmp_path):
 
 
 @requires_git
-def test_automation_excluded_e2e(tmp_path):
+def test_automation_now_flagged_e2e(tmp_path):
+    # ADR-84 (Q9): a marker-carrying non-merge commit on main >= baseline is a real
+    # violation now — the gate has no automation exemption (the writers moved off main).
     repo = _init_repo(tmp_path)
     _commit(repo, "chore(routine/fleet-audit): record baseline",
-            adate="2026-06-12T10:00:00", fname="auto.txt")
-    assert vnf.find_violations(repo, baseline="2026-06-10") == []
+            adate="2026-06-16T10:00:00", fname="auto.txt")
+    viol = vnf.find_violations(repo, baseline="2026-06-15")
+    assert [v[2] for v in viol] == ["chore(routine/fleet-audit): record baseline"]
 
 
 @requires_git
@@ -202,8 +212,9 @@ def test_check_failsoft_on_error(monkeypatch):
 def test_e2e_seeded_violation_fires_through_registered_check(tmp_path, monkeypatch):
     # Seed a real direct-to-main commit dated after the LIVE baseline and assert the
     # check registered in ALL_CHECKS fires WARN — deployed, not just written.
+    # (Date must be >= the live BASELINE_DATE, bumped to the Q9 cutover by ADR-84.)
     repo = _init_repo(tmp_path)
-    _commit(repo, "feat: oops direct on main", adate="2026-06-12T10:00:00", fname="a.txt")
+    _commit(repo, "feat: oops direct on main", adate="2026-06-16T10:00:00", fname="a.txt")
     monkeypatch.setattr(aud, "_REPO_ROOT", str(repo))  # make tmp repo look like the hub
     findings = aud.check_no_ff_merges(repo)
     assert findings[0].status == "warn"

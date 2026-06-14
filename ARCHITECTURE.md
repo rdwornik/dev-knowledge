@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-13
+last_reviewed: 2026-06-14
 status: active
 owner: Rob
 ---
@@ -210,7 +210,7 @@ local git gate.
 | `conformance-hub.js` (Workflow) | operator (`ultracode`) or cloud Routine | Tier-3 | read-only + skeptic + evidence-required | ADR-70 (#81) |
 | `git_backlog_drift` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #90; ADR-65 |
 | `doc_claims` (audit check) | `audit.py health` — pre-commit gate (counts/lists) + full sweep (test-count) | hub | fail-soft (WARN) | #89 |
-| `no_ff_merges` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #153; core-invariants #5 |
+| `no_ff_merges` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #153; ADR-84; core-invariants #5 |
 | `handoff_probes` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** (FAIL on broken probe binding; WARN on anchor-missing/skipped) | #163; HANDOFF_PROCESS §5/§10 |
 | pre-commit gates (8) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below |
 
@@ -253,8 +253,9 @@ above references — the `scripts/` inventory:
   Read-only; surfaced via the `git_backlog_drift` audit check (WARN). Direction (b)
   deferred to #90b. Standalone CLI: `python scripts/validate_git_backlog.py`.
 - `scripts/validate_no_ff.py` — `--no-ff` merge guard (core-invariants #5): a non-merge
-  commit on main's first-parent spine since the enforcement baseline (a direct/FF commit),
-  ADR-80 automation excluded. Read-only; surfaced via the `no_ff_merges` audit check (WARN);
+  commit on main's first-parent spine since the enforcement baseline (a direct/FF commit).
+  ONE rule, no exemptions — the ADR-80 automation allowlist was removed once the writers
+  moved off `main` (ADR-84/Q9). Read-only; surfaced via the `no_ff_merges` audit check (WARN);
   hub-only (fleet-wide deferred, #153). Detect-and-surface, not prevent.
 - `scripts/validate_doc_claims.py` — prose-vs-state: a living doc's count/list CLAIMS
   vs ground truth (ARCHITECTURE check-count vs `len(ALL_CHECKS)`; pre-commit gate count
@@ -270,7 +271,7 @@ above references — the `scripts/` inventory:
   `python scripts/verify_handoff_probes.py <bundle>` (#163).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
-- `tests/` — pytest unit tests for the validators (**496 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**500 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
@@ -303,17 +304,21 @@ the scheduled fleet baseline is *deterministic* **and** *Tier 2*.
 
 → Operating doctrine: PLAYBOOK "Two-tier automation doctrine"; ADR-70/74/80.
 
-**Channels (where automation output reaches `main`).** Two, deliberately distinct:
+**Channels (where automation output goes).** Post-Q9 (**ADR-84**) automation output is
+**isolated from `main`** — each unattended writer commits only to its own dedicated
+`automation/*` branch, never merged in. Two, deliberately distinct:
 
-- **Cloud (judgment):** Routine commits nothing itself → `claude/<task>-YYYY-MM-DD`
-  branch → PR → `nightly-conformance-triage` Action diff-guards → `gh pr merge
-  --squash`. The single non-merge commit is the **designed** channel
-  (compliant-by-design, *not* the human `--no-ff` rule). Witnessed: PR #17 →
-  `221c63e` (ADR-80 §2).
-- **Local writer (deterministic):** a job that writes tracked files **owns the commit**
-  — pathspec-bounded (never `git add -A`), fail-soft (commit fails → leave dirty, one
-  WARN, exit 0), `Routine: <name>` trailer. `state.yaml` gitignored; durable records
-  committed (ADR-80 §3; wiring = **#125**, capture-only at ratification).
+- **Cloud (judgment):** Routine commits nothing itself → `claude/conformance-YYYY-MM-DD`
+  branch → PR → `nightly-conformance-triage` Action diff-guards → **diverts** the digest
+  onto `automation/conformance-digest` (commit-tree plumbing) and **closes** the PR
+  (does not merge to `main`). `surface_triage.ps1` reads the digest from that branch
+  (`?ref=automation/conformance-digest`). (ADR-84; superseded the prior squash-merge-to-`main`
+  channel, ADR-80 §2.)
+- **Local writer (deterministic):** `audit.py`'s `_commit_routine_outputs` records durable
+  outputs onto `automation/fleet-audit` via a separate index + `commit-tree` (main's
+  HEAD/index/working tree untouched; the just-written files are restored out of the main
+  tree). Pathspec-bounded (never `git add -A`), fail-soft, `Routine: fleet-audit` trailer;
+  `state.yaml` gitignored, retained. (ADR-84; was ADR-80 §3 direct-on-`main`, wiring #125.)
 
 **Model routing (t-shirt).** Pin every fan-out stage by size: **S = Haiku · M = Sonnet
 · L/judgment = Opus** (Appendix B; ADR-70). **Unpinned fan-out is a bug** — an unpinned
@@ -446,12 +451,12 @@ triaged result):
 
 | Digest state | Action behaviour |
 |---|---|
-| clean (`survived=0`) | squash-merge the digest PR + delete branch |
-| findings (`survived>0`) | merge the digest (it is the record) + open a `nightly-triage` Issue |
-| anomalous (diff ≠ one ADDED digest file) | guard FAIL — nothing merged, open an `Anomalous nightly PR` Issue |
+| clean (`survived=0`) | divert the digest to `automation/conformance-digest` + close the PR (delete its branch) |
+| findings (`survived>0`) | divert the digest (it is the record, on the branch) + open a `nightly-triage` Issue |
+| anomalous (diff ≠ one ADDED digest file) | guard FAIL — nothing recorded, open an `Anomalous nightly PR` Issue |
 
 → then `SessionStart: surface_triage.ps1` prints `[triage] N …` so the operator
-touches only findings (CONTRIBUTING "Nightly outcome management"; ADR-72/76/80).
+touches only findings (CONTRIBUTING "Nightly outcome management"; ADR-72/76/80/84).
 
 **Decision flow (how a contested need becomes binding doctrine).**
 `Council brief (ephemeral)` → `ai-council debate (5-provider, blind vote — ai-council ADR-03)`
@@ -496,6 +501,7 @@ ledger is `docs/decisions/README.md`. Council transcripts: `docs/decisions/trans
 - **ADR-75/77/78** — exclusion-zone register; immutable-paths zone class; child methodology floor + `methodology_surface` zone (Ch5/Ch4).
 - **ADR-76** — local fleet-baseline host (Task Scheduler → Python; no LLM on path).
 - **ADR-79** — browser methodology carrier: bundle-only; Projects deferred (Ch4).
+- **ADR-84** — automation-writer isolation (Q9): both writers commit only to dedicated `automation/*` branches (never `main`); the `no_ff_merges` automation exemption removed — one rule (Ch3/Ch6).
 
 ---
 

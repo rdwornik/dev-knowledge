@@ -20,17 +20,20 @@ SURFACES the violation at the next audit-health / ship-gate / SessionStart — t
 rule is no longer prose-only and "silent". True prevention would need a pre-push
 hook (new install machinery), deferred under #153.
 
-Two precision levers (precision over recall — one false positive kills adoption):
-  1. Enforcement baseline = BASELINE_DATE. The rule was ratified 2026-06-06 but the
-     mechanical guard ships 2026-06-11; commits authored before the baseline are
-     grandfathered — they include sanctioned ADR-80 automation writers and a tail of
-     transition-period direct appends that predate the guard. The guard enforces
-     from its ship date FORWARD (author date `%as`, rebase-stable like #10/A2).
-  2. Automation allowlist. ADR-80's writer policy has automation commit its own
-     output directly (fleet audits, routine baselines). A commit is excluded iff it
-     carries the ADR-80 / #123 marker — a `chore(routine/…)` subject scope OR a
-     `Routine: <name>` body trailer. Automation that does NOT carry the marker is
-     (correctly) surfaced — the guard is the pressure toward #123 marker adoption.
+Precision lever (precision over recall — one false positive kills adoption):
+  Enforcement baseline = BASELINE_DATE. The mechanical guard grandfathers commits
+  authored before the baseline; post-Q9 (ADR-84) the baseline IS the automation-
+  isolation cutover, so the legacy ADR-80 fleet-audit baselines + the conformance
+  digest that landed on main BEFORE isolation (all <= 2026-06-14) stay
+  grandfathered ("legacy left in place, forward-only"), while every non-merge
+  commit at/after the baseline is a violation. The guard enforces from the
+  baseline FORWARD (author date `%as`, rebase-stable like #10/A2).
+
+ADR-84 (Q9) REMOVED the former automation allowlist. The two unattended writers
+now commit only to dedicated `automation/*` branches (never main), so a
+marker-based exemption on main would be dead code AND a spoofable backdoor.
+The gate is now ONE rule — every non-merge commit on main >= the baseline is a
+violation, no exceptions.
 
 Scope: HUB-ONLY (mirrors validate_git_backlog / doc_claims). ALL_CHECKS runs
 per-repo across the fleet, but this first ship is scoped to `.dev-knowledge`; a
@@ -44,7 +47,6 @@ Fail-soft: any git error degrades to "no violations" (skip), never raises.
 
 from __future__ import annotations
 
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -52,14 +54,13 @@ from pathlib import Path
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
 
-# Mechanical enforcement ships on this date; commits authored earlier are
-# grandfathered (sanctioned ADR-80 automation + pre-guard transition appends).
-BASELINE_DATE = "2026-06-11"
-
-# ADR-80 / #123 automation markers — a commit carrying either is a sanctioned
-# direct-committer ("automation commits its own output") and is NOT a violation.
-_AUTOMATION_SUBJECT_RE = re.compile(r"^chore\(routine/")
-_AUTOMATION_TRAILER_RE = re.compile(r"^Routine:\s*\S", re.MULTILINE)
+# Mechanical enforcement baseline. Bumped to the Q9 cutover (ADR-84) so the legacy
+# automation commits that landed on main BEFORE isolation (the ADR-80 fleet-audit
+# baselines + the conformance digest, all <= 2026-06-14) stay grandfathered —
+# "legacy left in place, forward-only" (ADR-84 decision 4). Post-Q9 there is NO
+# automation exemption: every non-merge commit on main >= this baseline is a
+# violation, no exceptions.
+BASELINE_DATE = "2026-06-15"
 
 # Record / field separators (control chars) so subjects/bodies survive newlines —
 # same convention as propose_closures.git_log_commits.
@@ -71,12 +72,6 @@ def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
         ["git", "-C", str(repo), *args],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
-
-
-def _is_automation(subject: str, body: str) -> bool:
-    """True when a commit carries an ADR-80/#123 automation marker (subject scope or trailer)."""
-    return bool(_AUTOMATION_SUBJECT_RE.search(subject)
-                or _AUTOMATION_TRAILER_RE.search(body or ""))
 
 
 def parse_log(raw: str) -> list:
@@ -93,15 +88,15 @@ def parse_log(raw: str) -> list:
 
 
 def filter_violations(records: list, baseline: str = BASELINE_DATE) -> list:
-    """Keep on/after-baseline, non-automation records → [(sha, adate, subject), ...]. Pure.
+    """Keep on/after-baseline records → [(sha, adate, subject), ...]. Pure.
 
     ISO `%as` dates compare lexically, so `adate < baseline` is the grandfather cut.
+    No automation exemption (ADR-84 / Q9): every non-merge commit on main at/after
+    the baseline is a violation, full stop.
     """
     viol = []
-    for sha, adate, subject, body in records:
+    for sha, adate, subject, _body in records:
         if adate < baseline:
-            continue
-        if _is_automation(subject, body):
             continue
         viol.append((sha, adate, subject))
     return viol
@@ -139,7 +134,7 @@ def main() -> int:
     violations = find_violations(_REPO_ROOT)
     if not violations:
         print(f"validate_no_ff: OK — no non-merge commits on main since {BASELINE_DATE} "
-              "(--no-ff rule, core-invariants #5; sanctioned automation excluded)")
+              "(--no-ff rule, core-invariants #5; one rule, no exemptions — ADR-84)")
         return 0
     print(f"validate_no_ff: {len(violations)} non-merge commit(s) on main since "
           f"{BASELINE_DATE} (--no-ff rule — expected a `--no-ff` merge, not a direct/FF commit):")

@@ -1369,136 +1369,225 @@ def test_handoff_version_stamp_absent_living_docs_warns(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# ADR-80 commit logic
+# ADR-84 (Q9) writer isolation — durable outputs land on automation/fleet-audit,
+# never on main. Real-git integration tests (mocks cannot prove working-tree
+# safety, which is exactly the operator-hardening this code exists for).
 # ---------------------------------------------------------------------------
 
-
-def _make_subprocess_mock(*, add_rc=0, diff_rc=1, commit_rc=0):
-    """Return a fake subprocess.run that responds predictably to git subcommands."""
-    def fake_run(cmd, **kwargs):
-        subcmd = cmd[3] if len(cmd) > 3 else ""
-        if subcmd == "add":
-            return SimpleNamespace(returncode=add_rc, stderr="", stdout="")
-        if subcmd == "diff":
-            return SimpleNamespace(returncode=diff_rc, stderr="", stdout="")
-        if subcmd == "commit":
-            return SimpleNamespace(returncode=commit_rc, stderr="fatal: lock", stdout="")
-        return SimpleNamespace(returncode=0, stderr="", stdout="")
-    return fake_run
+_AUTO_BRANCH = "automation/fleet-audit"
 
 
-def test_commit_routine_outputs_stages_only_durable(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+def _fleet_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Build a real git repo wired so _commit_routine_outputs targets it.
+
+    Returns (repo_path, git) where git(*args) runs `git -C repo <args>` and
+    raises on failure. Seeds main with a legacy tracked durable output + a
+    .gitignore for state.yaml (so the mutable fast-path file stays untracked).
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*args, check=True):
+        return subprocess.run(
+            ["git", "-C", str(repo), *args],
+            capture_output=True, text=True, check=check,
+        )
+
+    git("init", "-b", "main")
+    git("config", "user.email", "test@example.com")
+    git("config", "user.name", "Test")
+    (repo / ".gitignore").write_text("ecosystem/*/state.yaml\n", encoding="utf-8")
+    (repo / "docs" / "audits").mkdir(parents=True)
+    (repo / "docs" / "audits" / "2026-06-01-ecosystem-audit.md").write_text("legacy\n", encoding="utf-8")
+    (repo / "ecosystem" / "repo-a" / "history").mkdir(parents=True)
+    (repo / "ecosystem" / "repo-a" / "history" / "2026-06-01.md").write_text("legacy hist\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-m", "seed")
+
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(repo))
+    monkeypatch.setattr(aud, "ECOSYSTEM_DIR", repo / "ecosystem")
+    monkeypatch.setattr(aud, "AUDITS_DIR", repo / "docs" / "audits")
+    return repo, git
+
+
+def _write_run_outputs(repo: Path, stamp: str = "2026-06-14") -> tuple[Path, Path]:
+    """Write a new dated report + history file into the working tree (as cmd_run does)."""
+    report = repo / "docs" / "audits" / f"{stamp}-ecosystem-audit.md"
+    hist = repo / "ecosystem" / "repo-a" / "history" / f"{stamp}.md"
+    report.write_text(f"report {stamp}\n", encoding="utf-8")
+    hist.write_text(f"hist {stamp}\n", encoding="utf-8")
+    return report, hist
+
+
+def test_routine_outputs_land_on_automation_branch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """_commit_routine_outputs passes concrete history/ paths (no glob) + docs/audits/ to git add."""
-    eco = tmp_path / "ecosystem"
-    (eco / "repo-a" / "history").mkdir(parents=True)
-    (eco / "repo-b" / "history").mkdir(parents=True)
-    monkeypatch.setattr(aud, "ECOSYSTEM_DIR", eco)
-    monkeypatch.setattr(aud, "AUDITS_DIR", tmp_path / "docs" / "audits")
-    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    """Durable outputs land on automation/fleet-audit; main untouched; tree clean; state.yaml kept."""
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    main_before = git("rev-parse", "main").stdout.strip()
+    report, hist = _write_run_outputs(repo)
+    # gitignored fast-path pointer that must survive the run
+    state = repo / "ecosystem" / "repo-a" / "state.yaml"
+    state.write_text("state\n", encoding="utf-8")
 
-    add_pathspecs: list[list[str]] = []
+    aud._commit_routine_outputs(date(2026, 6, 14))
 
-    def fake_run(cmd, **kwargs):
-        subcmd = cmd[3] if len(cmd) > 3 else ""
-        if subcmd == "add":
-            add_pathspecs.append(list(cmd))
-            return SimpleNamespace(returncode=0, stderr="", stdout="")
-        if subcmd == "diff":
-            return SimpleNamespace(returncode=1)  # something staged
-        return SimpleNamespace(returncode=0, stderr="", stdout="")
+    # 1. Branch exists and carries this run's outputs.
+    assert git("rev-parse", "--verify", _AUTO_BRANCH, check=False).returncode == 0
+    tree = git("ls-tree", "-r", "--name-only", _AUTO_BRANCH).stdout
+    assert "docs/audits/2026-06-14-ecosystem-audit.md" in tree
+    assert "ecosystem/repo-a/history/2026-06-14.md" in tree
+    # output-only branch: no scripts/, only the durable subtrees + legacy
+    assert ".gitignore" not in tree
 
-    monkeypatch.setattr(aud.subprocess, "run", fake_run)
-    aud._commit_routine_outputs(date(2026, 6, 7))
+    # 2. main's first-parent spine gained NO commit.
+    assert git("rev-parse", "main").stdout.strip() == main_before
 
-    assert add_pathspecs, "Expected git add call"
-    pathspecs = add_pathspecs[0]
-    assert "ecosystem/repo-a/history" in pathspecs
-    assert "ecosystem/repo-b/history" in pathspecs
-    assert "docs/audits" in pathspecs
-    assert not any("*" in p for p in pathspecs), "Must not use glob pathspecs (Windows compat)"
-    assert "-A" not in pathspecs
+    # 3. Working tree is clean and the dated outputs were removed from main's tree
+    #    (the live copy lives only on the branch).
+    assert git("status", "--porcelain").stdout.strip() == ""
+    assert not report.exists()
+    assert not hist.exists()
+    # 4. state.yaml retained.
+    assert state.exists()
 
 
-def test_commit_routine_outputs_retries_after_hook_modify(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+def test_routine_outputs_first_run_creates_orphan_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """_commit_routine_outputs re-stages and retries once when first commit fails (e.g. hook modified files)."""
-    add_count = [0]
-    commit_results = [1, 0]  # first attempt fails (hook modified), retry succeeds
+    """First run creates automation/fleet-audit as a parent-less (orphan) root commit."""
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    _write_run_outputs(repo)
+    aud._commit_routine_outputs(date(2026, 6, 14))
 
-    def fake_run(cmd, **kwargs):
-        subcmd = cmd[3] if len(cmd) > 3 else ""
-        if subcmd == "add":
-            add_count[0] += 1
-            return SimpleNamespace(returncode=0, stderr="", stdout="")
-        if subcmd == "diff":
-            return SimpleNamespace(returncode=1)  # something staged
-        if subcmd == "commit":
-            rc = commit_results.pop(0) if commit_results else 0
-            return SimpleNamespace(returncode=rc, stderr="hook modified files", stdout="")
-        return SimpleNamespace(returncode=0, stderr="", stdout="")
-
-    monkeypatch.setattr(aud.subprocess, "run", fake_run)
-    aud._commit_routine_outputs(date(2026, 6, 7))
-
-    assert add_count[0] == 2, "Expected re-stage after first commit failure"
-    assert not any("ADR-80 commit" in r.message for r in caplog.records), "Should not WARN on successful retry"
+    parents = git("rev-list", "--parents", "-n", "1", _AUTO_BRANCH).stdout.split()
+    assert len(parents) == 1, f"orphan root has no parent; got {parents}"
+    # the branch does NOT descend from main (independent of main's history)
+    assert git("merge-base", "--is-ancestor", "main", _AUTO_BRANCH, check=False).returncode != 0
 
 
-def test_commit_routine_outputs_trailer_present(monkeypatch: pytest.MonkeyPatch) -> None:
-    """_commit_routine_outputs includes 'Routine: fleet-audit' trailer in commit msg."""
-    commit_msgs: list[str] = []
-
-    def fake_run(cmd, **kwargs):
-        subcmd = cmd[3] if len(cmd) > 3 else ""
-        if subcmd == "add":
-            return SimpleNamespace(returncode=0, stderr="", stdout="")
-        if subcmd == "diff":
-            return SimpleNamespace(returncode=1)
-        if subcmd == "commit":
-            idx = list(cmd).index("-m")
-            commit_msgs.append(cmd[idx + 1])
-            return SimpleNamespace(returncode=0, stderr="", stdout="")
-        return SimpleNamespace(returncode=0, stderr="", stdout="")
-
-    monkeypatch.setattr(aud.subprocess, "run", fake_run)
-    aud._commit_routine_outputs(date(2026, 6, 7))
-
-    assert commit_msgs, "Expected git commit call"
-    assert "Routine: fleet-audit" in commit_msgs[0]
-    assert "2026-06-07" in commit_msgs[0]
-
-
-def test_commit_routine_outputs_fail_soft_on_locked_index(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+def test_routine_outputs_second_run_appends_with_parent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """_commit_routine_outputs returns cleanly (does not raise) when git commit fails."""
-    monkeypatch.setattr(aud.subprocess, "run", _make_subprocess_mock(commit_rc=128))
+    """A second run appends a commit whose parent is the first branch commit."""
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    _write_run_outputs(repo, "2026-06-14")
+    aud._commit_routine_outputs(date(2026, 6, 14))
+    first = git("rev-parse", _AUTO_BRANCH).stdout.strip()
 
+    _write_run_outputs(repo, "2026-06-15")
+    aud._commit_routine_outputs(date(2026, 6, 15))
+    parents = git("rev-list", "--parents", "-n", "1", _AUTO_BRANCH).stdout.split()
+    assert parents[1] == first, "second commit must descend from the first"
+    tree = git("ls-tree", "-r", "--name-only", _AUTO_BRANCH).stdout
+    assert "docs/audits/2026-06-14-ecosystem-audit.md" in tree  # prior output retained
+    assert "docs/audits/2026-06-15-ecosystem-audit.md" in tree  # new output added
+
+
+def test_routine_outputs_commit_subject_and_trailer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Branch commit carries the chore(routine/...) subject + Routine: fleet-audit trailer."""
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    _write_run_outputs(repo)
+    aud._commit_routine_outputs(date(2026, 6, 14))
+    msg = git("log", "-1", "--format=%B", _AUTO_BRANCH).stdout
+    assert "chore(routine/fleet-audit): record 2026-06-14 baseline" in msg
+    assert "Routine: fleet-audit" in msg
+
+
+def test_routine_outputs_noop_when_no_durable_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No new durable outputs → no branch created, no commit."""
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    aud._commit_routine_outputs(date(2026, 6, 14))
+    assert git("rev-parse", "--verify", _AUTO_BRANCH, check=False).returncode != 0
+    assert git("status", "--porcelain").stdout.strip() == ""
+
+
+def test_routine_outputs_crash_leaves_main_tree_clean(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A crash mid-commit (finally-block restore) leaves NO untracked output dirtying main."""
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    report, hist = _write_run_outputs(repo)
+
+    real_run = subprocess.run
+
+    def boom(cmd, **kwargs):
+        if len(cmd) > 3 and cmd[3] == "commit-tree":
+            raise RuntimeError("injected crash before update-ref")
+        return real_run(cmd, **kwargs)
+
+    monkeypatch.setattr(aud.subprocess, "run", boom)
+    aud._commit_routine_outputs(date(2026, 6, 14))  # must not raise
+
+    # restore ran in finally: untracked outputs removed, tree clean, no branch ref.
+    assert git("status", "--porcelain").stdout.strip() == ""
+    assert not report.exists()
+    assert not hist.exists()
+    assert git("rev-parse", "--verify", _AUTO_BRANCH, check=False).returncode != 0
+
+
+def test_routine_outputs_status_failure_still_restores(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If the commit-path status snapshot fails (after cmd_run wrote outputs), the
+    finally-block restore still re-derives the scope and cleans main (Codex HIGH-1)."""
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    report, hist = _write_run_outputs(repo)
+
+    real_run = subprocess.run
+    calls = {"status": 0}
+
+    def flaky(cmd, **kwargs):
+        # Fail ONLY the first `git status` (the commit-path snapshot); let the
+        # restore's own status (in finally) succeed so it can clean the tree.
+        if len(cmd) > 3 and cmd[3] == "status":
+            calls["status"] += 1
+            if calls["status"] == 1:
+                return SimpleNamespace(returncode=1, stderr="transient status fail", stdout="")
+        return real_run(cmd, **kwargs)
+
+    monkeypatch.setattr(aud.subprocess, "run", flaky)
+    aud._commit_routine_outputs(date(2026, 6, 14))  # must not raise
+
+    # No branch commit (the commit path bailed), BUT the finally restore cleaned main.
+    assert git("rev-parse", "--verify", _AUTO_BRANCH, check=False).returncode != 0
+    assert git("status", "--porcelain").stdout.strip() == ""
+    assert not report.exists()
+    assert not hist.exists()
+
+
+def test_routine_outputs_fail_soft_warns_no_raise(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A git failure (write-tree) logs a WARN and returns cleanly — never raises; tree restored."""
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    report, _ = _write_run_outputs(repo)
+    real_run = subprocess.run
+
+    def fail_write_tree(cmd, **kwargs):
+        if len(cmd) > 3 and cmd[3] == "write-tree":
+            return SimpleNamespace(returncode=1, stderr="boom", stdout="")
+        return real_run(cmd, **kwargs)
+
+    monkeypatch.setattr(aud.subprocess, "run", fail_write_tree)
     with caplog.at_level(logging.WARNING, logger="audit"):
-        aud._commit_routine_outputs(date(2026, 6, 7))  # must not raise
+        aud._commit_routine_outputs(date(2026, 6, 14))  # must not raise
 
-    assert any("failed" in r.message.lower() for r in caplog.records)
+    assert any("ADR-84 commit" in r.message and "failed" in r.message.lower() for r in caplog.records)
+    assert git("status", "--porcelain").stdout.strip() == ""  # finally restored the tree
+    assert not report.exists()
 
 
-def test_commit_routine_outputs_no_commit_when_nothing_staged(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """_commit_routine_outputs skips commit when git diff --cached --quiet exits 0."""
-    commit_calls: list[list[str]] = []
-
-    def fake_run(cmd, **kwargs):
-        subcmd = cmd[3] if len(cmd) > 3 else ""
-        if subcmd == "commit":
-            commit_calls.append(list(cmd))
-        return SimpleNamespace(returncode=0, stderr="", stdout="")
-
-    monkeypatch.setattr(aud.subprocess, "run", fake_run)
-    aud._commit_routine_outputs(date(2026, 6, 7))
-
-    assert not commit_calls, "Must not commit when nothing is staged"
+def test_parse_porcelain_classifies_status() -> None:
+    """_parse_porcelain splits the XY status field from the path."""
+    raw = "?? docs/audits/2026-06-14-ecosystem-audit.md\n M ecosystem/repo-a/history/2026-06-14.md\n"
+    parsed = aud._parse_porcelain(raw)
+    assert ("??", "docs/audits/2026-06-14-ecosystem-audit.md") in parsed
+    assert (" M", "ecosystem/repo-a/history/2026-06-14.md") in parsed
 
 
 # ---------------------------------------------------------------------------
