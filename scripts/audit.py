@@ -1317,7 +1317,7 @@ def check_no_ff_merges(repo_path: Path) -> list[Finding]:
     if not violations:
         return [Finding("no_ff_merges", "pass",
                         f"no non-merge commits on main since {_vnf.BASELINE_DATE} "
-                        "(--no-ff rule, core-invariants #5; sanctioned automation excluded)")]
+                        "(--no-ff rule, core-invariants #5; one rule, no exemptions — ADR-84)")]
     return [
         Finding("no_ff_merges", "warn",
                 ("non-merge commit on main (FF/direct — expected a --no-ff merge): "
