@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-14 — ADR-66 task-graph amendment ratified (#156 enforcement-ahead-of-doctrine gap closed)
+
+**Did:** #156 (durable `depends-on` / `serialize-group` task-graph) was shipped, enforced in `validate_backlog.py`, dogfooded into BACKLOG edges, and closed — but the authorizing ADR-66 amendment was still `PROPOSED — NOT RATIFIED`. Ratified it by operator authority (Path A, same path as ADR-82): flipped the amendment status header / status line / footer to `Accepted — 2026-06-14`. Reconciled the live deferred-to-#156 refs — HANDOFF_PROCESS §13(b) now states the schema shipped; BACKLOG #150 updated to note the carved-to-#156 clause is closed (the dated v5.0-beta changelog bullet at L370 left intact as accurate history). Filed #166 `doctrine_enforcement_coherence` candidate (a read-only check for status=PROPOSED while the implementing task is closed) under Enforced governance, carrying `serialize-group: audit-py`.
+
+**Result:** ship-gate GREEN — pytest 500 pass, ruff clean, `audit.py health` exit 0 (amendment_coherence + canonical_freshness + doc_claims all OK), validate_backlog OK (74 tasks). No version surface touched (sole coupled set is handoff-major). No `last_reviewed` bump (edited files not in the freshness set).
+
+**Changes:** `docs/decisions/ADR-66-*` (status ratified), `protocols/HANDOFF_PROCESS.md` §13(b), `BACKLOG.md` (#150 reconciled, #166 filed). Commits `0e9cf6f`→`086aae2`.
+
+**Next:** Operator's serial gate — `merge --no-ff chore/ratify-adr66-156-amendment` to main (not done here; origin not pushed). Residual: #150 assessed CLOSEABLE (Done-when met — #156 dependency satisfied + mode-switch/orientation already landed) — surfaced for operator closure ruling, not auto-closed.
+
+---
+
 ### 2026-06-14 — Q9 automation-writer isolation shipped (ADR-84)
 
 **Did:** Implemented the ratified Q9 ADR on `feat/q9-automation-isolation` in its safety-critical sequence. Landed `ADR-84` (accepted; README index row). Retargeted both unattended writers off `main`: the local baseline (`audit.py _commit_routine_outputs`) now records onto `automation/fleet-audit` via a separate-index `commit-tree` (main HEAD/index/tree untouched; just-written files restored out of the tree in a `finally`); the cloud digest Action (`nightly-conformance-triage.yml`) diverts the digest onto `automation/conformance-digest` and closes the PR instead of squash-merging to main. Repointed `surface_triage.ps1`'s probe (`?ref=automation/conformance-digest`). Verified BOTH writers land off main (live sims) BEFORE removing the `no_ff_merges` `_is_automation` exemption — gate is now one rule (`BASELINE_DATE`→2026-06-15 grandfathers legacy on-main automation ≤06-14); retired disposition `warn-61c5b50`.
