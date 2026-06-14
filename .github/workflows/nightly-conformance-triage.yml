@@ -221,8 +221,17 @@ jobs:
           fi
 
           # Digest is safely on the automation branch; close the PR (do NOT merge
-          # to main) and delete its head branch.
-          gh pr close "$PR_NUMBER" --delete-branch
+          # to main) and delete its head branch. Loud-fail if the close fails AFTER
+          # the push: the digest is already recorded, so surface the open PR for a
+          # manual close rather than exiting silently.
+          if ! gh pr close "$PR_NUMBER" --delete-branch; then
+            echo "::error::gh pr close failed after the digest was pushed to $AUTO_BRANCH."
+            gh issue create \
+              --title "Nightly triage ${DATE} — PR close failed (digest already recorded)" \
+              --label nightly-triage \
+              --body "The ${DATE} digest was pushed to \`${AUTO_BRANCH}\` (commit ${COMMIT}), but \`gh pr close --delete-branch\` failed — PR ${PR_URL} is still OPEN. Close it manually; do NOT merge it to \`main\`."
+            exit 1
+          fi
 
           if [ "$SURV" -gt 0 ]; then
             # Link the digest at its recorded commit on the automation branch

@@ -1543,14 +1543,25 @@ def _parse_porcelain(raw: str) -> list:
     return out
 
 
-def _restore_durable_scope(changed: list) -> None:
-    """Return the working tree to HEAD within the snapshotted durable paths.
+def _restore_durable_scope(pathspecs: list) -> None:
+    """Return the working tree to HEAD within the durable output paths.
 
-    Crash-safe cleanup (called from a finally): a NEW untracked output file is
-    removed; a MODIFIED tracked file is restored from HEAD. Only the exact paths
-    snapshotted before the branch commit are touched — never arbitrary untracked
-    files. Best-effort: a per-path failure is logged, never raised.
+    Crash-safe cleanup (called from a `finally`): RE-DERIVES the dirty state in
+    the durable scope itself (so it runs correctly however the caller exited —
+    a failed pre-commit snapshot, a mid-plumbing crash, or success), then removes
+    NEW untracked outputs and restores MODIFIED tracked files from HEAD. Only
+    paths git reports dirty IN SCOPE are touched — never arbitrary files.
+    Best-effort: a git-status or per-path failure is logged, never raised.
     """
+    st = subprocess.run(
+        ["git", "-C", _REPO_ROOT, "status", "--porcelain", "--untracked-files=all", "--", *pathspecs],
+        capture_output=True, text=True,
+    )
+    if st.returncode != 0:
+        logger.warning("ADR-84 restore: git status failed — durable scope NOT cleaned (%s)",
+                       st.stderr.strip())
+        return
+    changed = _parse_porcelain(st.stdout)
     untracked = [p for (xy, p) in changed if xy == "??"]
     tracked = [p for (xy, p) in changed if xy != "??"]
     for p in untracked:
@@ -1598,26 +1609,28 @@ def _commit_routine_outputs(run_date: date) -> None:
     )
     pathspecs = history_specs + [AUDITS_DIR.relative_to(repo).as_posix()]
 
-    # Snapshot durable-scope changes BEFORE the branch commit; plumbing never
-    # mutates the working tree, so this set is exactly what the finally restores.
-    status = subprocess.run(
-        ["git", "-C", repo, "status", "--porcelain", "--untracked-files=all", "--", *pathspecs],
-        capture_output=True, text=True,
-    )
-    if status.returncode != 0:
-        logger.warning("ADR-84 commit: git status failed — %s", status.stderr.strip())
-        return
-    changed = _parse_porcelain(status.stdout)
-    if not changed:
-        return  # nothing new this run
-    # Stage ONLY this run's changed files (not whole dirs): git 2.0+ `git add <dir>`
-    # stages deletions, so re-adding dirs against a branch-seeded index would prune
-    # prior outputs (which the restore removes from the working tree). Adding the
-    # exact changed paths makes the branch ACCUMULATE.
-    changed_paths = [p for (_xy, p) in changed]
-
     tmp_index = None
     try:
+        # Snapshot durable-scope changes for the branch commit. The early-returns
+        # below are INSIDE the try, so the finally always runs the restore — which
+        # re-derives the scope itself, cleaning main even if this status call (after
+        # cmd_run wrote outputs) fails.
+        status = subprocess.run(
+            ["git", "-C", repo, "status", "--porcelain", "--untracked-files=all", "--", *pathspecs],
+            capture_output=True, text=True,
+        )
+        if status.returncode != 0:
+            logger.warning("ADR-84 commit: git status failed — %s", status.stderr.strip())
+            return
+        changed = _parse_porcelain(status.stdout)
+        if not changed:
+            return  # nothing new this run
+        # Stage ONLY this run's changed files (not whole dirs): git 2.0+ `git add <dir>`
+        # stages deletions, so re-adding dirs against a branch-seeded index would prune
+        # prior outputs (which the restore removes from the working tree). Adding the
+        # exact changed paths makes the branch ACCUMULATE.
+        changed_paths = [p for (_xy, p) in changed]
+
         fd, tmp_index = tempfile.mkstemp(prefix="q9-fleet-idx-")
         os.close(fd)
         # mkstemp leaves a 0-byte file, which git rejects as a malformed index.
@@ -1694,7 +1707,7 @@ def _commit_routine_outputs(run_date: date) -> None:
     except Exception as exc:
         logger.warning("ADR-84 commit: unexpected error — %s", exc)
     finally:
-        _restore_durable_scope(changed)
+        _restore_durable_scope(pathspecs)
         if tmp_index and os.path.exists(tmp_index):
             try:
                 os.remove(tmp_index)

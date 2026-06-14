@@ -1530,6 +1530,36 @@ def test_routine_outputs_crash_leaves_main_tree_clean(
     assert git("rev-parse", "--verify", _AUTO_BRANCH, check=False).returncode != 0
 
 
+def test_routine_outputs_status_failure_still_restores(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If the commit-path status snapshot fails (after cmd_run wrote outputs), the
+    finally-block restore still re-derives the scope and cleans main (Codex HIGH-1)."""
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    report, hist = _write_run_outputs(repo)
+
+    real_run = subprocess.run
+    calls = {"status": 0}
+
+    def flaky(cmd, **kwargs):
+        # Fail ONLY the first `git status` (the commit-path snapshot); let the
+        # restore's own status (in finally) succeed so it can clean the tree.
+        if len(cmd) > 3 and cmd[3] == "status":
+            calls["status"] += 1
+            if calls["status"] == 1:
+                return SimpleNamespace(returncode=1, stderr="transient status fail", stdout="")
+        return real_run(cmd, **kwargs)
+
+    monkeypatch.setattr(aud.subprocess, "run", flaky)
+    aud._commit_routine_outputs(date(2026, 6, 14))  # must not raise
+
+    # No branch commit (the commit path bailed), BUT the finally restore cleaned main.
+    assert git("rev-parse", "--verify", _AUTO_BRANCH, check=False).returncode != 0
+    assert git("status", "--porcelain").stdout.strip() == ""
+    assert not report.exists()
+    assert not hist.exists()
+
+
 def test_routine_outputs_fail_soft_warns_no_raise(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
