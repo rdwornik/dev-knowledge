@@ -17,13 +17,14 @@
 # fires for claude-code (gap) and is silent for codex (current).
 tools:
   claude-code:
-    last_reviewed_version: "2.1.168"
-    reviewed_date: "2026-06-07"
+    last_reviewed_version: "2.1.177"
+    reviewed_date: "2026-06-15"
     source_url: "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md"
   codex:
-    # 0.137.0 reviewed 2026-06-07 (digest: docs/audits/2026-06-07-changelog-review.md);
+    # 0.139.0 reviewed 2026-06-15 (digest: docs/audits/2026-06-15-changelog-review.md);
     # installed is still 0.136.0 — reviewed AHEAD of installed is intended (keeps the
-    # sentinel quiet until a still-newer version installs). The 0.137.0 *update* is #119.
-    last_reviewed_version: "0.137.0"
-    reviewed_date: "2026-06-07"
+    # sentinel quiet until a still-newer version installs). 0.138.0+0.139.0 reviewed
+    # 2026-06-15; all NOISE for our /codex-review-only usage.
+    last_reviewed_version: "0.139.0"
+    reviewed_date: "2026-06-15"
     source_url: "https://github.com/openai/codex/releases"
