@@ -7,16 +7,20 @@
 #               refresh command, then skips the gh-dependent checks below)
 #   [triage]  — open `nightly-triage` Issues await review
 #   [nightly] — the last Nightly Conformance Triage Action run did NOT succeed
-#   [nightly] — the expected dated digest is missing from the default branch
-#               (the no-retry silent-skip class — side-effect check per ADR-68)
+#   [nightly] — the automation/conformance-digest branch EXISTS but the expected
+#               dated digest is missing from it (the no-retry silent-skip class —
+#               side-effect check per ADR-68). A branch that does not yet exist is
+#               "not-yet-initialized" and is SILENT, not an alarm (transition-window).
 # This is a surfacing nudge only — it never blocks or noises the session.
 #
 # verify: under Windows PowerShell 5.1 (`powershell -File scripts/surface_triage.ps1`,
 #   the hook's actual runtime) with zero open `nightly-triage` Issues it prints NO
 #   "[triage]" line (not "[triage] 1 ... await: #"); with N open it prints
 #   "[triage] N nightly finding(s) await: #a, #b ...". It emits a "[nightly]" line
-#   ONLY when the last Action run failed or the expected dated digest is missing
-#   from the default branch; on the all-green happy path it prints nothing, exit 0.
+#   ONLY when the last Action run failed, or the automation/conformance-digest
+#   branch EXISTS but the expected dated digest is missing from it; a branch that
+#   does NOT yet exist is silent (not-yet-initialized, not a skip). On the all-green
+#   happy path it prints nothing, exit 0.
 #   With an invalid/expired gh token (`gh auth status` exits non-zero) it prints
 #   exactly "[gh] auth invalid -- run: gh auth refresh -h github.com" and skips the
 #   gh-dependent checks (exit 0) -- it does NOT fall through to a false all-clear.
@@ -103,15 +107,31 @@ try {
     $expected = if ($now.Hour -ge 4) { $now } else { $now.AddDays(-1) }
     $stamp = $expected.ToString('yyyy-MM-dd')
     $digestPath = "docs/audits/$stamp-conformance-nightly-digest.md"
-    # IMPORTANT: `gh api --jq '.name'` on a 404 prints the error BODY
-    # ({"message":"Not Found",...,"status":"404"}) to STDOUT, so a naive
-    # stdout-truthiness check ($found non-empty) wrongly reads a MISSING digest
-    # as "present" and never fires the silent-skip nudge. Gate on the exit code
-    # ($LASTEXITCODE -eq 0 only on HTTP 200) AND a .md-shape check on the name.
-    $found = & $gh api "repos/{owner}/{repo}/contents/$digestPath?ref=automation/conformance-digest" --jq '.name' 2>$null
-    $present = ($LASTEXITCODE -eq 0) -and ($found -match '\.md\s*$')
-    if (-not $present) {
-        Write-Output "[nightly] expected digest '$digestPath' is NOT on the automation/conformance-digest branch -- last night's nightly may have silently skipped (no retry)."
+
+    # ATOMIZE the two concerns this probe used to conflate into one alarm:
+    #   (1) the automation branch does NOT YET EXIST -> "not-yet-initialized",
+    #       NOT a skipped nightly -> STAY SILENT. This is the transition-window
+    #       false positive: when ADR-84 (or any future repoint) points this probe
+    #       at the branch BEFORE the branch's first digest has ever been written,
+    #       a `contents` query 404s and the old code cried "silently skipped" on a
+    #       perfectly healthy pipeline. Branch-absence is the tell that there is
+    #       simply nothing to expect yet.
+    #   (2) the branch EXISTS but the dated digest is MISSING -> the real no-retry
+    #       silent-skip signal -> alarm, exactly as before.
+    # Both probes query GitHub LIVE so a stale local clone cannot decide either
+    # one. `gh api` exits 0 ONLY on HTTP 200 and prints the error BODY to STDOUT on
+    # a 404 -- so gate on the EXIT CODE, never on stdout truthiness (a 404 body is
+    # non-empty and would read as a false "present"). Branch names carry a slash;
+    # `branches/automation/conformance-digest` is accepted as-is (same as the
+    # `?ref=automation/conformance-digest` form already used below).
+    $null = & $gh api "repos/{owner}/{repo}/branches/automation/conformance-digest" 2>$null
+    $branchExists = ($LASTEXITCODE -eq 0)
+    if ($branchExists) {
+        $found = & $gh api "repos/{owner}/{repo}/contents/$digestPath?ref=automation/conformance-digest" --jq '.name' 2>$null
+        $present = ($LASTEXITCODE -eq 0) -and ($found -match '\.md\s*$')
+        if (-not $present) {
+            Write-Output "[nightly] expected digest '$digestPath' is NOT on the automation/conformance-digest branch -- last night's nightly may have silently skipped (no retry)."
+        }
     }
 } catch {
     # never block or noise the session on a surfacing failure
