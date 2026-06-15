@@ -5,3 +5,10 @@
 # the sidecars — and the template the hash is computed over — to LF stops the phantom.
 *.sha256 text eol=lf
 templates/child-methodology-floor.md.tmpl text eol=lf
+
+# LF-pin generated PASTE_THIS boot payloads (audit F3, 2026-06-15).
+# scripts/assemble_paste.py writes LF (newline="\n"); without this pin, autocrlf checks
+# the file out as CRLF, so re-running the assembler (as HANDOFF_PROCESS §13 instructs:
+# "regenerate each handoff by re-running the assembler") rewrites it LF and produces a
+# content-identical phantom dirty-tree entry. Same fix as the floor sidecars above.
+docs/handoffs/**/PASTE_THIS.md text eol=lf

@@ -125,3 +125,57 @@ def test_missing_required_source_exits_nonzero(tmp_path: Path) -> None:
     assert not (bundle / "PASTE_THIS.md").exists(), (
         "PASTE_THIS.md must not be written when a required source is missing"
     )
+
+
+# ------------------------------------------------------------------ #
+# Test 4: Self-containment — each source BODY is inlined verbatim
+# ------------------------------------------------------------------ #
+
+def test_each_source_body_is_inlined_verbatim(tmp_path: Path) -> None:
+    """A distinctive body substring from every source must appear in the output.
+
+    The original defect was the bundle *pointing at* protocols/HANDOFF_BOOT.md
+    instead of inlining it — a partial boot for the file-less browser. A label-only
+    check (test_all_sections_in_order) would not catch a pointer regression, since
+    the section header would still be present. This asserts the actual file BODIES
+    are inlined, so a pointer swapped in under the correct section label FAILS — the
+    hard self-containment metric, not just section presence.
+    """
+    bundle, script = _make_bundle(tmp_path)
+
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+
+    # the load-bearing one: the resident role file body must be INLINED, not pointed at
+    assert "Role content." in paste, (
+        "protocols/HANDOFF_BOOT.md body not inlined — pointer regression (the original flaw)"
+    )
+    # the other source bodies must each appear verbatim
+    assert "Drift flags." in paste       # RESIDUAL.md
+    assert "P1 probe here." in paste     # PROBES.md
+    assert "Strategic brief." in paste   # SUPPLEMENT.md
+    # the session-header is extracted only up to the first '## ' heading:
+    # the slug (before the heading) is inlined; body under the heading is excluded
+    assert "test" in paste                  # slug, from the Field/Value table
+    assert "Steps go here." not in paste     # body under '## What the operator does' — out
+
+
+# ------------------------------------------------------------------ #
+# Test 5: Idempotency — two regenerations are byte-identical
+# ------------------------------------------------------------------ #
+
+def test_regeneration_is_byte_identical(tmp_path: Path) -> None:
+    """Re-running the assembler on unchanged sources yields byte-identical output.
+
+    HANDOFF_PROCESS §13 instructs "regenerate each handoff by re-running the
+    assembler"; idempotency is what makes that a safe no-op (no churn, clean tree).
+    """
+    bundle, script = _make_bundle(tmp_path)
+
+    assert _run(script, bundle).returncode == 0
+    first = (bundle / "PASTE_THIS.md").read_bytes()
+    assert _run(script, bundle).returncode == 0
+    second = (bundle / "PASTE_THIS.md").read_bytes()
+
+    assert first == second, "assembler output is not idempotent (regeneration churns)"
