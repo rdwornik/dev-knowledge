@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-15 — changelog-review push (claude-code 2.1.169–2.1.177, codex 0.138.0–0.139.0)
+
+**Did:** Operator-invoked `/changelog-review` (#113 PUSH flow). Fetched claude-code CHANGELOG (raw GitHub) for `2.1.169`→`2.1.177` and codex stable releases `0.138.0`+`0.139.0` (`gh release view`; alphas skipped). Classified every entry against our stack (Windows · markdown-governance repo · CC hooks/skills/commands/subagents/plugins/workflows · codex only via `/codex-review`) per the audit-trio rubric. Wrote the digest, bumped `ecosystem/tool-versions.yaml`. Capture/flag only — no adoptions implemented.
+
+**Result:** Buckets — ADOPT 3, OBSOLETES 0, STALE-NAMES 0, VERIFY 0, NOISE ~96 claude-code + ~27 codex. **Headline ADOPT (architect call):** Fable 5 now GA (2.1.170/.173/.177, incl. auto-mode Opus 4.8→Fable fallback) but absent from the t-shirt routing doctrine (`ARCHITECTURE.md:323` = Haiku/Sonnet/Opus) — flagged for operator + browser architect. Two low-pri captures: subagents-spawn-subagents 5-deep (2.1.172), `disableBundledSkills` (2.1.169). No live STALE-NAMES (hook `if`-fix N/A — we use `matcher`, `.claude/settings.json:5,17,28`; 124 model-name hits all in immutable transcripts). #113 already closed (only `refs #113` remains in #133/#123) → no BACKLOG edit. **Operational alert (carried):** 2026-06-15 nightly conformance digest absent from `automation/conformance-digest` — last night's nightly may have silently skipped (no retry), operator check owed.
+
+**Changes:** new digest `docs/audits/2026-06-15-changelog-review.md`, `ecosystem/tool-versions.yaml` (claude-code→2.1.177, codex→0.139.0), `JOURNAL.md`. Commit `3ddaf6d`, merge `fdf2b87`. Branch `docs/changelog-review-20260615` (merged `--no-ff`, deleted).
+
+**Abandoned:** No adoptions implemented (contract: capture/flag only). No BACKLOG items created/edited. Did not investigate the skipped-nightly alert (surfaced for operator).
+
+**Next:** Operator/architect routes the Fable 5 ADOPT (whether it earns a routing tier in `ARCHITECTURE.md` Ch3/Appendix B). Operator checks the silently-skipped nightly.
+
 ### 2026-06-15 — architect-mode v5 handoff generated (`-architect`) — fresh, at the modularization-arc boundary
 
 **Did:** Generated an **architect-mode v5 handoff** for `.dev-knowledge` (operator-invoked `/handoff dev knowledge architect`), following the canonical spec (`protocols/HANDOFF_PROCESS.md` v5.0 §13) — the **three-file** bundle shape (`HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md`, **no per-bundle README**). Slug `2026-06-15-dev-knowledge-architect`. NOT a carry-forward refresh (unlike 2026-06-13): the prior architect theme ("finish the v5 machinery deferred at #149") **largely landed since** — #163 teeth validator shipped, #156 durable task-graph shipped + ADR-66 ratified, Q9 resolved by ADR-84, PLAYBOOK Move 1 pointerized, collision graph encoded. Session was `/clear`ed pre-handoff, so the residual was **reconstructed from the repo** (JOURNAL/BACKLOG/the 2026-06-13 `-architect` + today's `-session` bundles) — design framing tagged recall/inferred, state facts witnessed-live.
