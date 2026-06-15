@@ -354,6 +354,46 @@ bundle — never a per-bundle README.
 
 ---
 
+## 14. Token-log cadence (session-boundary maintenance, runs on /session-summary)
+
+Relocated from PLAYBOOK §8 (#152, 2026-06-15): this is session-boundary maintenance fired by `/session-summary`, so it belongs with handoff mechanics rather than as a resident copy in PLAYBOOK. PLAYBOOK §8 now points here.
+
+Every /session-summary run checks TOKEN-LOG.md staleness. If latest entry >7 days old, a new short-format snapshot is appended via `ccusage --json`. Otherwise skipped.
+
+**Trigger:** /session-summary staleness check; conditional execution (not every session).
+
+**Source:** `ccusage --json` (reads local Claude Code usage data — see ENVIRONMENT.md)
+
+**Threshold:** 7 days. Most recent entry's date extracted from first `## YYYY-MM-DD` header line in `logs/TOKEN-LOG.md`.
+
+**Format (short, sustainable):**
+
+```
+## YYYY-MM-DD (since YYYY-MM-DD delta)
+
+Cost: $X.XX | Sessions: N | Active days: N
+Tokens (in+out): X.XM
+Top models: Model-A X%, Model-B Y%, Model-C Z%
+Peak day: $X.XX on YYYY-MM-DD
+Notable: [1-2 line signal e.g. "Opus 4.7 adoption curve", "Haiku routing shift"]
+```
+
+**Order convention:**
+- TOKEN-LOG.md: newest-first (prepend). Rationale: logs optimize for current-state scanning. (CHANGELOG.md retired — ADR-49.)
+- LESSONS.md: append-only (oldest-first). Rationale: chronological narrative; order preserves "what we learned when".
+
+New TOKEN-LOG entries go at the top (after file header, before previous newest entry). /session-summary reads the first matching `## YYYY-MM-DD` header for the staleness check.
+
+**Cache tokens** excluded from in+out for cross-period comparability. Note cache only when notable.
+
+**Rationale:**
+- Per-session cadence rejected: ~$0.02/run overhead wasteful for weekly-sufficient data
+- Manual weekly ritual rejected: forgetting risk (4 weeks stale before ccusage adoption)
+- Threshold-based: amortized ~$0.006/run, auto-triggers on staleness, zero forgetting risk
+- Short format keeps entries scannable over months; full format reserved for migrations
+
+---
+
 ## Section history
 
 - v5.0-beta (2026-06-11) — initial parallel-ship beta. Records model C (ADR-82, Proposed):
@@ -390,3 +430,8 @@ bundle — never a per-bundle README.
   `HANDOFF_BOOT.md`. `templates/handoff/v5/README.md.tmpl` reduced to a deferred #164 stub (no
   hand-synced second copy). #164 rescoped to seed the runbook per-repo + emit the three-file bundle.
   Mechanics §§1–12 unchanged; this is the §13 bundle-shape only. Version unchanged (5.0; additive).
+- v5.0 (2026-06-15, §14 token-log cadence relocated in) — **§14 added**: the token-log cadence
+  (7-day staleness check + short-format snapshot via `ccusage --json`) **relocated here from PLAYBOOK §8**
+  (#152). It is session-boundary maintenance fired by `/session-summary`, so it belongs with handoff
+  mechanics; PLAYBOOK §8 now points at §14 (the #152 move-then-point pattern, nothing dropped). §§1–13
+  unchanged. Version unchanged (5.0; additive).

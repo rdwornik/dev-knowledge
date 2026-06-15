@@ -2595,15 +2595,12 @@ Cross-refs: ADR-82 (v5 ratification), ADR-62 (v4 ratification — superseded), A
 ### What the v5 handoff carries
 <!-- scope: meta -->
 
-The v5 handoff is CC-owned and lean: CC emits a **residual** (the un-committed "why" + pointers + drift-flags as the headline) and a **probe manifest** (questions + source-locators + verification commands, never the answers) under `docs/handoffs/<slug>/`, and points the next browser at the thin boot `protocols/HANDOFF_BOOT.md` (which carries the browser's operating role). Comprehension has teeth: CC re-derives every load-bearing fact from live primary sources at check-time and blocks onboarding on any mismatch. Full structure + the `architect | execution` modes in HANDOFF_PROCESS.md §2–§5, §13. (The historical v4 8-file bundle — `01_ROLE`…`07_ASK_BACK` — is superseded; preserved bundles in `docs/handoffs/` are point-in-time history.)
+Canonical: `protocols/HANDOFF_PROCESS.md` §2 (the **residual** CC emits) + §5 (the teeth-y **probe manifest**) + §13 (the `architect | execution` modes). Not restated here — a resident copy is the drift this section names as its own failure. (The historical v4 8-file bundle is superseded; preserved bundles in `docs/handoffs/` are point-in-time history.)
 
 ### Roles
 <!-- scope: meta -->
 
-- **Claude Code (terminal):** reads files, runs commands, edits code, verifies state, runs tests. Trusts filesystem, not memory.
-- **Claude.ai (browser):** architecture consulting, strategic decisions, critical thinking. Questions the approach, identifies risks. Never rubber-stamps.
-
-> **See ESSENTIALS § Roles for canonical definition (Does/Does NOT lists, Three-layer flow per ADR-28).**
+Canonical: **ESSENTIALS § Roles** (Does/Does NOT lists, Three-layer flow per ADR-28) + `protocols/HANDOFF_PROCESS.md` §1 (the v5 actor table) / §7 (the browser operating role). Not restated here.
 
 ### Handoff paths
 <!-- scope: meta -->
@@ -2617,39 +2614,7 @@ The v5 handoff is CC-owned and lean: CC emits a **residual** (the un-committed "
 ### Token log cadence
 <!-- scope: meta -->
 
-Every /session-summary run checks TOKEN-LOG.md staleness. If latest entry >7 days old, a new short-format snapshot is appended via `ccusage --json`. Otherwise skipped.
-
-**Trigger:** /session-summary staleness check; conditional execution (not every session).
-
-**Source:** `ccusage --json` (reads local Claude Code usage data — see ENVIRONMENT.md)
-
-**Threshold:** 7 days. Most recent entry's date extracted from first `## YYYY-MM-DD` header line in TOKEN-LOG.md.
-
-**Format (short, sustainable):**
-
-```
-## YYYY-MM-DD (since YYYY-MM-DD delta)
-
-Cost: $X.XX | Sessions: N | Active days: N
-Tokens (in+out): X.XM
-Top models: Model-A X%, Model-B Y%, Model-C Z%
-Peak day: $X.XX on YYYY-MM-DD
-Notable: [1-2 line signal e.g. "Opus 4.7 adoption curve", "Haiku routing shift"]
-```
-
-**Order convention:**
-- TOKEN-LOG.md: newest-first (prepend). Rationale: logs optimize for current-state scanning. (CHANGELOG.md retired — ADR-49.)
-- LESSONS.md: append-only (oldest-first). Rationale: chronological narrative; order preserves "what we learned when".
-
-New TOKEN-LOG entries go at the top (after file header, before previous newest entry). /session-summary reads the first matching `## YYYY-MM-DD` header for the staleness check.
-
-**Cache tokens** excluded from in+out for cross-period comparability. Note cache only when notable.
-
-**Rationale:**
-- Per-session cadence rejected: ~$0.02/run overhead wasteful for weekly-sufficient data
-- Manual weekly ritual rejected: forgetting risk (4 weeks stale before ccusage adoption)
-- Threshold-based: amortized ~$0.006/run, auto-triggers on staleness, zero forgetting risk
-- Short format keeps entries scannable over months; full format reserved for migrations
+Relocated to `protocols/HANDOFF_PROCESS.md` §14 (#152, 2026-06-15) — session-boundary maintenance fired by `/session-summary` (7-day staleness check + short-format `ccusage --json` snapshot, newest-first prepend to `logs/TOKEN-LOG.md`). Canonical there; not restated here.
 
 ### Output the operator copies into browser chat (render-layer note)
 <!-- scope: runtime -->
