@@ -1158,6 +1158,71 @@ The bullets below are the mechanism this recipe rests on.
 the state by hand (`.worktreeinclude` does **not** apply to raw `git worktree add`); teardown is
 manual (below). Each session works a distinct branch (git forbids one branch in two worktrees).
 
+**2a — Cold-start specifics** (the four details a fresh operator needs that the recipe above
+assumed — terminal anchor, slug, manual seed, pwd-confirm; verified by the 2026-06-15 smoke test)
+
+- **Where you launch it (terminal anchor).** `claude --worktree <name>` (alias `-w`) is run from
+  a **fresh PowerShell terminal at the `<repo>` root** — a cold-start session that begins life
+  *inside* the new worktree. To split an **already-running** session instead, use the
+  `EnterWorktree` tool mid-session (`ExitWorktree` returns to the primary). Either path lands you
+  in `.claude/worktrees/<name>/` on branch `worktree-<name>` (observed, not just documented —
+  the smoke test confirmed this exact in-repo location + branch name on this machine/CC version).
+- **`<name>` slug convention.** Name the worktree **`<issue#>-<kebab-slug>`** — e.g.
+  `156-taskgraph` → dir `.claude/worktrees/156-taskgraph/`, branch `worktree-156-taskgraph`. With
+  no backing issue, use a bare `<kebab-purpose>` slug (e.g. `changelog-sync`). This formalizes the
+  de-facto `156-taskgraph` example as the convention — it is not a new scheme.
+- **Manual-seed commands (raw `git worktree add` path ONLY).** `.worktreeinclude` is honored by
+  the **native** create but **NOT** by raw `git worktree add`, so a hand-driven worktree starts
+  WITHOUT the gitignored `ecosystem/*/state.yaml` it declares — and its first commit is blocked by
+  the `audit-health` gate (`repos registered (none)` → `health: DEGRADED`). Seed it by hand,
+  copying exactly what `.worktreeinclude` lists. From the `<repo>` root in PowerShell:
+
+  ```powershell
+  # 1. create the worktree (raw path — same in-repo location the native create uses)
+  git worktree add .claude/worktrees/<name> -b worktree-<name>
+  # 2. seed the runtime state .worktreeinclude declares (ecosystem/*/state.yaml), mirroring paths
+  Get-ChildItem ecosystem -Directory | ForEach-Object {
+    $src = Join-Path $_.FullName 'state.yaml'
+    if (Test-Path $src) {
+      $dst = Join-Path ".claude/worktrees/<name>/ecosystem" $_.Name
+      New-Item -ItemType Directory -Force -Path $dst | Out-Null
+      Copy-Item $src (Join-Path $dst 'state.yaml')
+    }
+  }
+  ```
+
+  (The native `claude --worktree` / `EnterWorktree` path performs this copy for you — these
+  commands are ONLY for the raw fork. As of 2026-06-15 `.worktreeinclude` lists `ecosystem/*/state.yaml`
+  and `ecosystem/` holds 4 child dirs, each with a gitignored `state.yaml`.)
+- **pwd-confirm before working (ADR-61 rule 5, re-carried into the manual path).** Before any work
+  in a hand-driven worktree, verify you are actually in it — `Get-Location` (`pwd`) must resolve to
+  `…/.claude/worktrees/<name>`, NOT the primary root. A commit fired from the wrong cwd lands on the
+  wrong branch (the shared-index sweep this whole discipline exists to prevent).
+
+**Worked example end-to-end** (copy, don't reconstruct — values observed in the 2026-06-15 smoke test):
+
+```
+# 1. fresh PowerShell terminal at the repo root, cold start:
+claude --worktree 156-taskgraph
+#    -> session opens inside .claude/worktrees/156-taskgraph/ on branch worktree-156-taskgraph
+#    -> .worktreeinclude auto-seeds ecosystem/*/state.yaml (native path) so audit-health passes
+# 2. work the task there -- fully isolated; the primary checkout's `git status` never sees it
+# 3. integrate from the PRIMARY checkout on main (never from inside the worktree):
+git merge --no-ff worktree-156-taskgraph
+git push
+# 4. teardown -- the 3-command round-trip (see section 4 below), then verify no leftovers:
+git worktree remove .claude/worktrees/156-taskgraph
+git worktree prune
+git branch -d worktree-156-taskgraph
+#    -> git worktree list shows only the primary; the dir is gone; git status clean
+```
+
+The raw `git worktree add` layer this wraps was run end-to-end on 2026-06-15 (create → isolation
+check → 3-command teardown) and left zero leftovers, confirming the observed dir/branch values
+above. Windows caveat: if VS Code (or any IDE with a recursive file watcher) has the repo open,
+the teardown's first command can deregister the worktree yet fail to delete the now-empty
+directory — re-check `.claude/worktrees/` and clear any empty husk once the IDE releases the handle.
+
 **3 — Discipline while running in parallel** (earned 2026-06-01 — see LESSONS)
 
 - **One worktree per goal.** Never drive a single checkout from two committing sessions.
