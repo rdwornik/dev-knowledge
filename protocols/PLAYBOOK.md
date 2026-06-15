@@ -3016,6 +3016,8 @@ Use `templates/scrum-master-cover-letter.md`. Operator fills placeholders for ta
 ## Appendix A: Claude Code Shortcuts
 <!-- scope: runtime -->
 
+> Kept PLAYBOOK-local with reason (#158, Decision B): a Claude Code UI quick-reference with no in-repo canonical home — CLAUDE.md is 200-line-capped (see Appendix C "CLAUDE.md size limit") and `~/.claude/` is outside this repo. Retained here for discoverability; the deeper procedures→skills extraction is Move 2's scope.
+
 ### Permission Modes (Shift+Tab cycles)
 <!-- scope: runtime -->
 
@@ -3081,16 +3083,7 @@ Use for quick checks where you don't need Claude to interpret — just inject ou
 ## Appendix B: Model Routing Table
 <!-- scope: llm -->
 
-From ~/.claude/ROUTING.md — deterministic, no judgment calls.
-
-| Task                              | Model          | Examples                                                           |
-| --------------------------------- | -------------- | ------------------------------------------------------------------ |
-| No AI needed                      | —              | .gitignore edits, git ops, file moves, config tweaks (<60s manual) |
-| Reports, snapshots                | Haiku subagent | Test summaries, doc condensation, ecosystem snapshots              |
-| Implementation, debugging, review | Sonnet         | All code review (security boundary), test creation, refactoring    |
-| Architecture, cross-repo design   | Opus           | Ecosystem reasoning, complex debugging, novel logic                |
-| Large doc extraction              | Gemini Flash   | Domain-specific extraction pipelines (PPTX/MP4/PDF)                |
-| Council synthesis                 | Gemini         | Cost: $0.04 vs Claude $0.23/debate                                 |
+The model-routing table is canonical in **`~/.claude/ROUTING.md`** — deterministic, no judgment calls; the source of truth for which model (or no-AI) per task class. Not duplicated here (#158, Decision B: killed the resident copy — a cached table silently drifts from ROUTING.md). The **time-shifting schedule** below is PLAYBOOK-local (not in ROUTING.md) and is retained.
 
 ### Time-Shifting Schedule
 <!-- scope: llm -->
@@ -3107,6 +3100,8 @@ From ~/.claude/ROUTING.md — deterministic, no judgment calls.
 
 ## Appendix C: Token Optimization Techniques
 <!-- scope: llm -->
+
+> Kept PLAYBOOK-local with reason (#158, Decision B): tactical token doctrine with no in-repo canonical home (CLAUDE.md is 200-line-capped; `~/.claude/` is outside this repo). Retained for discoverability; revisit in Move 2.
 
 Ranked by impact/effort (Council-approved):
 
