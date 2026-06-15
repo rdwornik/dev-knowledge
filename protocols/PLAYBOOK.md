@@ -33,7 +33,7 @@
   - [Root hygiene convention](#root-hygiene-convention)
   - [Additional root hygiene rules (added 2026-05-24, root hygiene pass 2)](#additional-root-hygiene-rules-added-2026-05-24-root-hygiene-pass-2)
   - [Universal visual pattern (per ADR-59)](#universal-visual-pattern-per-adr-59)
-  - [docs/ folder taxonomy (per ADR-60 + 2026-05-27 amendment)](#docs-folder-taxonomy-per-adr-60--2026-05-27-amendment)
+  - [docs/ folder taxonomy (per ADR-60)](#docs-folder-taxonomy-per-adr-60)
   - [Secrets storage path](#secrets-storage-path)
   - [Capitalization conventions](#capitalization-conventions)
 - [Writing prompts for Claude Code](#writing-prompts-for-claude-code)
@@ -385,13 +385,15 @@ from quality promotion.
 <!-- scope: meta -->
 <!-- version: 1.0 — 2026-04-26 -->
 
-Universal repo-level conventions binding across all Rob's repos. Each subsection has its own ADR (ADR-30 through ADR-34). Subsections marked `[TBD]` document planned work — placeholders are forward-references, not documentation gaps. Concrete enforcement happens via Claude Code, Codex, hooks, and reviewer judgment; this section is the source of truth.
+Universal repo-level conventions binding across all Rob's repos. Each convention's **canonical home is its ADR** (ADR-30/34/59/60); the subsections below are **pointers** to those ADRs — except where the rule is PLAYBOOK-canonical (the `main` migration *procedure*; the root-hygiene *caveats* ADR-59 references back into PLAYBOOK) or a `[TBD]` forward-reference. Concrete enforcement happens via Claude Code, Codex, hooks, `scripts/audit.py`, and reviewer judgment. (#158, 2026-06-15: pointerized the subsections whose doctrine is fully in an ADR; retained the genuinely PLAYBOOK-canonical ones with reason.)
 
 ### Default branch — `main`
 <!-- scope: dev -->
 <!-- version: 1.0 — 2026-04-26 -->
 
 **Rule:** Every Rob's repo uses `main` as the default branch. No exceptions. Per ADR-30.
+
+> Decision + rationale are canonical in **ADR-30**; the operational migration procedure below is **PLAYBOOK-local** — ADR-30 carries only a one-line summary of it (#158: retained, not pointered).
 
 **New repos:**
 - `git init -b main`, or set `init.defaultBranch = main` in `~/.gitconfig` so `git init` always lands on `main`
@@ -425,7 +427,7 @@ Per ADR-34 (ratified 2026-04-29, amended 2026-05-11). Canonical source: `docs/de
 ### Folder structure
 <!-- scope: meta -->
 
-Which `docs/` subfolders a repo carries follows the 2026-05-27 ADR-60 amendment two-variant taxonomy (`.dev-knowledge` carries `decisions/`+`audits/`+`handoffs/`+`archive/`; child code repos carry `decisions/`+`audits/`+`archive/`+`diagrams/`). Add a subfolder when its content class first appears; do not pre-create empty scaffolding. The universal governance baseline (ADR-38 amendment A5) covers the mandatory root files; everything under `docs/` is added on first need within the variant the repo belongs to.
+Canonical: **ADR-60** (the two-variant `docs/` taxonomy — `.dev-knowledge` vs child-repo) + its 2026-05-28 addendum (child-repo baseline always-present) + **ADR-38 A5** (mandatory root files). Not restated here — see the docs/ folder taxonomy pointer below for the same canon at finer grain.
 
 ### Root hygiene convention
 <!-- scope: dev -->
@@ -473,52 +475,13 @@ Which `docs/` subfolders a repo carries follows the 2026-05-27 ADR-60 amendment 
 
 ### Universal visual pattern (per ADR-59)
 <!-- scope: dev -->
-<!-- version: 1.0 — 2026-05-27 -->
 
-Every repo root follows the ADR-59 universal visual pattern (read the ADR for the full standard). Three pillars, all audit-enforced via `scripts/audit.py`:
+Canonical: **ADR-59** Decisions 1–4 + its amendments. The three audit-enforced pillars — **dot-prefix discipline** (+ the un-dotted exception list, incl. the 2026-06-02 `pytest.ini` addition), **ALL-CAPS canonical `.md` visibility** (incl. the 2026-06-01 `logs/TOKEN-LOG.md`-under-`logs/` clarification), **workspace sort** (`lexicographic: upper` + `sortOrderReverse: true`, per the 2026-05-27 amendment) — the adopt-a-new-tool maintenance rule, and the date-sorted-folder note all live in the ADR. Enforced by `scripts/audit.py` (`dot_prefix_discipline` / `canonical_md_visibility` / `workspace_settings`; `audit.py health` surfaces drift). Not restated here (#158: the pillars are fully codified in ADR-59).
 
-- **Dot-prefix discipline** — dot-prefix every root config the tool supports a dotted variant for (`.ruff.toml`, `.pre-commit-config.yaml`, `.{repo}.code-workspace`, standard dotfiles). Exceptions that MUST stay un-dotted (tool requires the exact name / ecosystem convention): `pyproject.toml`, `package.json`, `Cargo.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Dockerfile`, `Makefile`, `LICENSE`, `tach.toml`, `README.md`.
-- **ALL-CAPS canonical `.md`** — root governance docs `VISION`/`CLAUDE`/`ARCHITECTURE`/`BACKLOG` mandatory everywhere; `JOURNAL`/`ENVIRONMENT`/`CONTRIBUTING` optional at root; `LESSONS` (root), `PLAYBOOK`/`ESSENTIALS` (`protocols/`), and `logs/TOKEN-LOG.md` (usage log, per ADR-59 amendment 2026-06-01) are `.dev-knowledge`-only (never required in a child repo).
-- **Workspace sort settings** — `.{repo}.code-workspace` with `"explorer.sortOrder": "default"` + `"explorer.sortOrderLexicographicOptions": "upper"`. `upper` (not `default`) is what clusters ALL-CAPS files ahead of lowercase configs — verified 2026-05-27.
-
-**Maintenance rule (adopting a new tool config):**
-1. Check the tool's docs — or test empirically (as was done for `tach`: `.tach.toml` is NOT discovered by tach 0.34.0) — for dot-prefix support.
-2. Supported → use the dotted name. Not supported → add the exact name to the ADR-59 exception list **and** the `scripts/audit.py` exception constant, and note it in the commit.
-3. The exception list is the single source of truth, mirrored in the audit tool. `audit.py health` surfaces drift.
-
-**Date-sorted folders** (`docs/audits/`, `docs/handoffs/`, transcripts): ISO `YYYY-MM-DD-` prefix only. `explorer.sortOrderReverse: true` (real setting — microsoft/vscode PR #149952, merged 2024-07-30; re-verified 2026-05-27, supersedes the earlier "not a real setting" claim — see ADR-59's 2026-05-27 amendment) flips ordering so dated folders show newest-first. The workspace `open-latest-*` tasks remain useful as a keyboard fast path.
-
-### docs/ folder taxonomy (per ADR-60 + 2026-05-27 amendment)
+### docs/ folder taxonomy (per ADR-60)
 <!-- scope: meta -->
-<!-- version: 2.0 — 2026-05-27 (amendment: simplification + repo-type variants) -->
 
-Where ADR-59 makes every repo *look* the same, ADR-60 makes its `docs/` *mean* the same: each subfolder serves **one** semantic role, so a file's location tells you what it is. The 2026-05-27 amendment retired `research/` and `council-questions/` (didn't earn permanence) and split the taxonomy into two repo-type variants.
-
-**`.dev-knowledge` (methodology repo):**
-
-| Folder | Role | Contents |
-|--------|------|----------|
-| `decisions/` | OUTPUTS | ADRs + `transcripts/` (routed per ADR-43) |
-| `audits/` | OUTPUTS | Audit reports, validation reports, forensics |
-| `handoffs/` | OUTPUTS | ALL handoff bundles (centralized canonical home) |
-| `archive/` | ARCHIVED | Pending-classification zone (per-repo `README.md` documents lifecycle) |
-
-**Child code repos** (ai-council, corp-ops, corp-sca-time-automation, corp-monorepo, future repos):
-
-| Folder | Role | Contents |
-|--------|------|----------|
-| `decisions/` | OUTPUTS | ADRs + `transcripts/` (routed per ADR-43) |
-| `audits/` | OUTPUTS | Audit reports, validation reports, forensics |
-| `archive/` | ARCHIVED | Pending-classification zone |
-| `diagrams/` | DIAGRAMS | Architecture diagrams (where present; not mandatory) |
-
-Child code repos do **not** carry `handoffs/`, `research/`, or `council-questions/`. Handoffs centralize in `.dev-knowledge`.
-
-**`archive/` semantics:** deliberate holding zone for "don't yet know where this belongs." Reviewed periodically; each item either deleted (git history retains) or promoted to `decisions/`/`audits/`/`handoffs/`/`diagrams/` or authored into an ADR. Not a dumping ground — a triage queue. Every repo's `archive/` carries a `README.md`.
-
-**File-placement rules:** entry-scripts (`run.py`, `cli.py`) live in `scripts/`, not at root. Root-exception configs (not dot-prefixed, not moved): `pyproject.toml`, `tach.toml`, `requirements.txt`. Date-prefixed naming (`YYYY-MM-DD-{slug}.md`) for time-sequenced artifacts.
-
-**On moving a file, do NOT rewrite append-only or immutable records that reference it** — ADRs, transcripts, handoffs, and existing `JOURNAL.md`/`LESSONS.md` entries are point-in-time history (critical rules #2/#3). Update only living docs (BACKLOG, PLAYBOOK, HANDOFF_PROCESS, READMEs) and the moved file's own internal cross-refs.
+Canonical: **ADR-60** + its 2026-05-27 amendment (repo-type variants) + 2026-05-28 addendum (child-repo baseline always-present). Covers, all in the ADR — the two-variant folder tables (`.dev-knowledge` carries `decisions/`+`audits/`+`handoffs/`+`archive/`; child code repos carry `decisions/`+`audits/`+`archive/`+`diagrams/`, no `handoffs/`), the `archive/` triage-zone semantics, the file-placement rules (entry-scripts → `scripts/`; root-exception configs `pyproject.toml`/`tach.toml`/`requirements.txt`), and **Rule 5 — append-only/immutable records are not rewritten on move** (ADRs, transcripts, handoffs, `JOURNAL`/`LESSONS` are point-in-time history; update only living docs + the moved file's own cross-refs; repo critical rules #2/#3). Not restated here (#158: the taxonomy + Rule 5 are fully in ADR-60).
 
 ### Secrets storage path
 <!-- scope: meta -->
@@ -2595,15 +2558,12 @@ Cross-refs: ADR-82 (v5 ratification), ADR-62 (v4 ratification — superseded), A
 ### What the v5 handoff carries
 <!-- scope: meta -->
 
-The v5 handoff is CC-owned and lean: CC emits a **residual** (the un-committed "why" + pointers + drift-flags as the headline) and a **probe manifest** (questions + source-locators + verification commands, never the answers) under `docs/handoffs/<slug>/`, and points the next browser at the thin boot `protocols/HANDOFF_BOOT.md` (which carries the browser's operating role). Comprehension has teeth: CC re-derives every load-bearing fact from live primary sources at check-time and blocks onboarding on any mismatch. Full structure + the `architect | execution` modes in HANDOFF_PROCESS.md §2–§5, §13. (The historical v4 8-file bundle — `01_ROLE`…`07_ASK_BACK` — is superseded; preserved bundles in `docs/handoffs/` are point-in-time history.)
+Canonical: `protocols/HANDOFF_PROCESS.md` §2 (the **residual** CC emits) + §5 (the teeth-y **probe manifest**) + §13 (the `architect | execution` modes). Not restated here — a resident copy is the drift this section names as its own failure. (The historical v4 8-file bundle is superseded; preserved bundles in `docs/handoffs/` are point-in-time history.)
 
 ### Roles
 <!-- scope: meta -->
 
-- **Claude Code (terminal):** reads files, runs commands, edits code, verifies state, runs tests. Trusts filesystem, not memory.
-- **Claude.ai (browser):** architecture consulting, strategic decisions, critical thinking. Questions the approach, identifies risks. Never rubber-stamps.
-
-> **See ESSENTIALS § Roles for canonical definition (Does/Does NOT lists, Three-layer flow per ADR-28).**
+Canonical: **ESSENTIALS § Roles** (Does/Does NOT lists, Three-layer flow per ADR-28) + `protocols/HANDOFF_PROCESS.md` §1 (the v5 actor table) / §7 (the browser operating role). Not restated here.
 
 ### Handoff paths
 <!-- scope: meta -->
@@ -2617,39 +2577,7 @@ The v5 handoff is CC-owned and lean: CC emits a **residual** (the un-committed "
 ### Token log cadence
 <!-- scope: meta -->
 
-Every /session-summary run checks TOKEN-LOG.md staleness. If latest entry >7 days old, a new short-format snapshot is appended via `ccusage --json`. Otherwise skipped.
-
-**Trigger:** /session-summary staleness check; conditional execution (not every session).
-
-**Source:** `ccusage --json` (reads local Claude Code usage data — see ENVIRONMENT.md)
-
-**Threshold:** 7 days. Most recent entry's date extracted from first `## YYYY-MM-DD` header line in TOKEN-LOG.md.
-
-**Format (short, sustainable):**
-
-```
-## YYYY-MM-DD (since YYYY-MM-DD delta)
-
-Cost: $X.XX | Sessions: N | Active days: N
-Tokens (in+out): X.XM
-Top models: Model-A X%, Model-B Y%, Model-C Z%
-Peak day: $X.XX on YYYY-MM-DD
-Notable: [1-2 line signal e.g. "Opus 4.7 adoption curve", "Haiku routing shift"]
-```
-
-**Order convention:**
-- TOKEN-LOG.md: newest-first (prepend). Rationale: logs optimize for current-state scanning. (CHANGELOG.md retired — ADR-49.)
-- LESSONS.md: append-only (oldest-first). Rationale: chronological narrative; order preserves "what we learned when".
-
-New TOKEN-LOG entries go at the top (after file header, before previous newest entry). /session-summary reads the first matching `## YYYY-MM-DD` header for the staleness check.
-
-**Cache tokens** excluded from in+out for cross-period comparability. Note cache only when notable.
-
-**Rationale:**
-- Per-session cadence rejected: ~$0.02/run overhead wasteful for weekly-sufficient data
-- Manual weekly ritual rejected: forgetting risk (4 weeks stale before ccusage adoption)
-- Threshold-based: amortized ~$0.006/run, auto-triggers on staleness, zero forgetting risk
-- Short format keeps entries scannable over months; full format reserved for migrations
+Relocated to `protocols/HANDOFF_PROCESS.md` §14 (#152, 2026-06-15) — session-boundary maintenance fired by `/session-summary` (7-day staleness check + short-format `ccusage --json` snapshot, newest-first prepend to `logs/TOKEN-LOG.md`). Canonical there; not restated here.
 
 ### Output the operator copies into browser chat (render-layer note)
 <!-- scope: runtime -->
@@ -3088,6 +3016,8 @@ Use `templates/scrum-master-cover-letter.md`. Operator fills placeholders for ta
 ## Appendix A: Claude Code Shortcuts
 <!-- scope: runtime -->
 
+> Kept PLAYBOOK-local with reason (#158, Decision B): a Claude Code UI quick-reference with no in-repo canonical home — CLAUDE.md is 200-line-capped (see Appendix C "CLAUDE.md size limit") and `~/.claude/` is outside this repo. Retained here for discoverability; the deeper procedures→skills extraction is Move 2's scope.
+
 ### Permission Modes (Shift+Tab cycles)
 <!-- scope: runtime -->
 
@@ -3153,16 +3083,7 @@ Use for quick checks where you don't need Claude to interpret — just inject ou
 ## Appendix B: Model Routing Table
 <!-- scope: llm -->
 
-From ~/.claude/ROUTING.md — deterministic, no judgment calls.
-
-| Task                              | Model          | Examples                                                           |
-| --------------------------------- | -------------- | ------------------------------------------------------------------ |
-| No AI needed                      | —              | .gitignore edits, git ops, file moves, config tweaks (<60s manual) |
-| Reports, snapshots                | Haiku subagent | Test summaries, doc condensation, ecosystem snapshots              |
-| Implementation, debugging, review | Sonnet         | All code review (security boundary), test creation, refactoring    |
-| Architecture, cross-repo design   | Opus           | Ecosystem reasoning, complex debugging, novel logic                |
-| Large doc extraction              | Gemini Flash   | Domain-specific extraction pipelines (PPTX/MP4/PDF)                |
-| Council synthesis                 | Gemini         | Cost: $0.04 vs Claude $0.23/debate                                 |
+The model-routing table is canonical in **`~/.claude/ROUTING.md`** — deterministic, no judgment calls; the source of truth for which model (or no-AI) per task class. Not duplicated here (#158, Decision B: killed the resident copy — a cached table silently drifts from ROUTING.md). The **time-shifting schedule** below is PLAYBOOK-local (not in ROUTING.md) and is retained.
 
 ### Time-Shifting Schedule
 <!-- scope: llm -->
@@ -3179,6 +3100,8 @@ From ~/.claude/ROUTING.md — deterministic, no judgment calls.
 
 ## Appendix C: Token Optimization Techniques
 <!-- scope: llm -->
+
+> Kept PLAYBOOK-local with reason (#158, Decision B): tactical token doctrine with no in-repo canonical home (CLAUDE.md is 200-line-capped; `~/.claude/` is outside this repo). Retained for discoverability; revisit in Move 2.
 
 Ranked by impact/effort (Council-approved):
 
