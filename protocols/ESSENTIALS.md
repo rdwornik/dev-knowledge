@@ -229,8 +229,10 @@ required for promotion. (PLAYBOOK)
 ## Parallel sessions (ADR-61)
 <!-- scope: dev -->
 
+> ⚠️ **SUPERSEDED** — the `<repo>-parallel` *sibling-dir* recipe below is superseded by the **native in-repo worktree convention** (`claude --worktree <name>` → `.claude/worktrees/<name>/`). See **PLAYBOOK §"Parallel sessions & worktree discipline"** for the live procedure. Do **not** create `<repo>-parallel` sibling directories — they spawned the `.dev-knowledge-cadence` / `.dev-knowledge-night-adr` rule-9 orphans. Text kept below for history.
+
 - **Different repos:** safe, no setup needed (separate `.git/` = separate HEAD).
-- **Same repo:** `git worktree add <repo>-parallel main` → open 2nd CC session there, distinct branch each. Merge in primary tree, then `git worktree remove && git worktree prune`.
+- **Same repo:** ❌ SUPERSEDED — use native, see PLAYBOOK — ~~`git worktree add <repo>-parallel main` → open 2nd CC session there, distinct branch each. Merge in primary tree, then `git worktree remove && git worktree prune`.~~
 - **Pre-flight:** `git worktree list` before starting parallel work.
 - Cross-repo sequential orchestration (one session, multiple `cd`s) is separate concern — safe, no worktree needed.
 
