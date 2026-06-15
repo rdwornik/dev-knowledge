@@ -15,8 +15,11 @@ judgment (HANDOFF_PROCESS §5); #161 owns any reusable probe-core. This is struc
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
@@ -174,6 +177,7 @@ def test_verify_pass_on_live_grounded_symbol_probe(tmp_path):
     assert by["P2"].status == "pass"
 
 
+@pytest.mark.skipif(shutil.which("grep") is None, reason="grep not in PATH")
 def test_verify_pass_on_live_grounded_anchor_probe(tmp_path):
     bundle = _init_bundle(tmp_path, [_PASS_ANCHOR])
     by = _by_id(vhp.verify(bundle))
@@ -251,6 +255,7 @@ def test_format_findings_lists_only_fails_no_pipe(tmp_path):
 # fallback resolves it IFF exactly one NON-excluded file carries that basename;
 # zero or >1 still FAIL (teeth preserved); excluded-dir duplicates never count.
 
+@pytest.mark.skipif(shutil.which("grep") is None, reason="grep not in PATH")
 def test_resolve_unique_basename_without_dir_prefix_passes(tmp_path):
     # source names a bare basename whose only live copy sits in a subdir -> resolves.
     row = ("P8", "where does the boilerplate live",
@@ -284,6 +289,7 @@ def test_resolve_zero_basename_match_fails(tmp_path):
     assert "NOWHERE.md" in by["PB"].detail
 
 
+@pytest.mark.skipif(shutil.which("grep") is None, reason="grep not in PATH")
 def test_resolve_basename_ignores_excluded_dir_duplicates(tmp_path):
     # a live copy + duplicates under excluded dirs (archive*/, .claude/worktrees/…)
     # -> still exactly ONE non-excluded match -> resolves (no false-ambiguity FAIL).
@@ -351,6 +357,7 @@ def test_check_warns_on_anchor_missing(tmp_path):
     assert "anchor" in findings[0].evidence.lower()
 
 
+@pytest.mark.skipif(shutil.which("grep") is None, reason="grep not in PATH")
 def test_check_passes_when_all_probes_bind(tmp_path):
     repo = _repo_with_bundle(tmp_path, [_PASS_SYMBOL, _PASS_ANCHOR])
     assert aud.check_handoff_probes(repo)[0].status == "pass"
