@@ -486,6 +486,19 @@ def test_report_aggregate_counts() -> None:
     assert "1 fail" in report
 
 
+def test_report_counts_na() -> None:
+    """generate_report tallies and renders the n/a status (honest accounting — G6): an n/a
+    finding is NOT counted as pass, appears in the header count, and renders in the table."""
+    state = aud.RepoState("repo-na", "/na", "2026-05-15", [
+        aud.Finding("vision_md", "pass", "ok"),
+        aud.Finding("floor_integrity", "n/a", "no floor"),
+    ])
+    report = aud.generate_report([state], date(2026, 5, 15), Path("/repo"))
+    assert "1 pass" in report
+    assert "1 n/a" in report
+    assert "N/A" in report  # the n/a finding renders in the table
+
+
 def test_write_report_ecosystem(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(aud, "AUDITS_DIR", tmp_path / "audits")
     content = "# Test Report\n<!-- scope: meta -->\n"
@@ -552,6 +565,16 @@ def test_health_ok_with_registered_repo(monkeypatch: pytest.MonkeyPatch, tmp_pat
     result = runner.invoke(aud.cmd_health)
     assert result.exit_code == 0
     assert "OK" in result.output
+
+
+def test_health_stays_ok_with_na_status() -> None:
+    """n/a is non-blocking: the three hub no-op checks now report n/a (not pass), so health
+    stays OK and the n/a marker renders — the pass-count drops without changing the verdict (G6)."""
+    from click.testing import CliRunner
+    result = CliRunner().invoke(aud.cmd_health)
+    assert result.exit_code == 0, result.output
+    assert "health: OK" in result.output
+    assert "[--]" in result.output  # >=1 n/a finding rendered (hub has no handoffs/section-3.1/floor)
 
 
 # ---------------------------------------------------------------------------
@@ -775,9 +798,9 @@ def test_handoff_bundle_three_segment_still_enforces_v43_rules(tmp_path: Path) -
 
 
 def test_handoff_bundle_no_handoffs_dir(tmp_path: Path) -> None:
-    """No docs/handoffs/ → vacuous pass (check is .dev-knowledge-specific)."""
+    """No docs/handoffs/ → n/a (vacuous hub no-op, not a real pass — G6)."""
     f = aud.check_handoff_bundle_structure(tmp_path)[0]
-    assert f.status == "pass"
+    assert f.status == "n/a"
 
 
 def test_handoff_bundle_skips_unstamped(tmp_path: Path) -> None:
@@ -914,9 +937,21 @@ def test_tag_canonicity_pass_four_tags(tmp_path: Path) -> None:
 
 
 def test_tag_canonicity_no_spec(tmp_path: Path) -> None:
-    """No HANDOFF_PROCESS.md → vacuous pass (check is .dev-knowledge-specific)."""
+    """No HANDOFF_PROCESS.md → n/a (vacuous, nothing to validate — G6)."""
     f = aud.check_handoff_tag_canonicity(tmp_path)[0]
-    assert f.status == "pass"
+    assert f.status == "n/a"
+
+
+def test_tag_canonicity_no_section_is_na(tmp_path: Path) -> None:
+    """Spec present but no 3.1 section (the v5-consolidated hub state) -> n/a, not pass.
+
+    This is the return that fires on the hub itself (HANDOFF_PROCESS.md exists, but the v4
+    section-3.1 four-tag block was consolidated away in v5), so it is the locus G6 targets.
+    """
+    _write_spec(tmp_path, "# HANDOFF_PROCESS v5\n\nNo section 3.1 here.\n")
+    f = aud.check_handoff_tag_canonicity(tmp_path)[0]
+    assert f.status == "n/a"
+    assert "not found" in f.evidence
 
 # ---------------------------------------------------------------------------
 # _parse_last_reviewed (frontmatter helper for check #10)
@@ -1616,10 +1651,10 @@ def _seed_floor(repo: Path, floor_text: str | None = None, *, sidecar: bool = Tr
     return floor
 
 
-def test_floor_integrity_no_floor_passes(tmp_path: Path) -> None:
-    """A repo with no CLAUDE-FLOOR.md (incl. the hub itself) passes vacuously."""
+def test_floor_integrity_no_floor_is_na(tmp_path: Path) -> None:
+    """A repo with no CLAUDE-FLOOR.md (incl. the hub itself) -> n/a, not a vacuous pass (G6)."""
     f = aud.check_floor_integrity(tmp_path)[0]
-    assert f.status == "pass"
+    assert f.status == "n/a"
     assert "not adopted" in f.evidence
 
 
