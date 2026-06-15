@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-15 — Faza A: n/a status for vacuous hub checks (G6) + pytest_collected bump (A1); A3 deferred
+
+**Did:** Closed two of the three conformance coverage-matrix gaps (Faza A; CC prompt, Opus). **A2 (G6):** added a new non-blocking `n/a` Finding status and flipped the genuinely-vacuous hub no-op returns of `handoff_tag_canonicity` (no section 3.1 in the v5 spec) and `floor_integrity` (hub has no CLAUDE-FLOOR.md) from `pass` -> `n/a`, so the self-audit pass-count reflects real coverage; wired `n/a` into the health/ship-gate console markers (`[--]`), the fleet-report `_STATUS_LABEL`/`_STATUS_EMOJI` + a new per-status tally, and both Finding status-enum docstrings. The bundle "no docs/handoffs/" no-op also returns n/a (for child repos lacking handoffs). **A1:** bumped the `ARCHITECTURE.md` `pytest_collected` claim `500 -> 511` (the live count after A2's 3 new tests). **A3 (G5) deferred** per operator ruling — a blanket ADR-edit block would reverse ADR-77 + the `test_allow_adr_edit_v1_scope_is_transcripts_only` pin (ADRs stay editable for the sanctioned in-file Amendment flow, Critical Rule #3); G5 stays open pending #112's `adr_amend.py`. `block_immutable_edits.py` untouched.
+
+**Result:** full suite 510 pass / 1 skip (511 collected), ruff clean, all pre-commit gates green on each commit. Behaviour-verified: `audit.py health` -> OK with tag/floor as `[--] n/a` (verdict unchanged); `ship-gate` `doc_claims` now passes (`4 self-claims match`; RED reasons 2 -> 1). **Two findings vs the prompt's premise (surfaced, not papered over):** (1) `handoff_bundle_structure` is NOT a hub no-op — the hub has **12 valid stamped v4 bundles**, so it is a live `[OK]` pass; forcing it to n/a would suppress real validation. Pass-count drops by **2** on the hub (tag + floor), not the 3 the prompt expected. (2) After A1, `ship-gate` stays RED only on the pre-existing `handoff_probes` WARN (`P6 skipped: tool absent: ls`, an environmental skip) — out of scope; the gate correctly holding on an undispositioned WARN.
+
+**Changes:** `scripts/audit.py` (n/a status + wiring), `tests/test_audit.py` (3 assertions flipped + 3 new tests), `ARCHITECTURE.md` (511 count + `last_reviewed` re-stamp 2026-06-15), `JOURNAL.md`. Commits `c39634c` (A2), `d34487f` (A1), merge `2f560a2`. Branch `fix/faza-a-shipgate-na`. Session hygiene (this entry + freshness) on `docs/faza-a-session-hygiene`.
+
+**Abandoned:** A3/G5 deferred (operator ruling). Did NOT force `handoff_bundle_structure` to n/a (would suppress live 12-bundle validation). Did NOT disposition or fix the pre-existing `handoff_probes` (ls-absent) WARN — out of scope. Did NOT push (operator's serial gate). Did NOT delete the merged `fix/faza-a-shipgate-na` branch (awaiting operator OK).
+
+**Next:** Operator decides push (main ahead of origin) + whether to delete the merged feature branch. Faza B (dashboard form) is an AI-Council decision, not in this arc. G5 stays open pending #112.
+
 ### 2026-06-15 — changelog-review push (claude-code 2.1.169–2.1.177, codex 0.138.0–0.139.0)
 
 **Did:** Operator-invoked `/changelog-review` (#113 PUSH flow). Fetched claude-code CHANGELOG (raw GitHub) for `2.1.169`→`2.1.177` and codex stable releases `0.138.0`+`0.139.0` (`gh release view`; alphas skipped). Classified every entry against our stack (Windows · markdown-governance repo · CC hooks/skills/commands/subagents/plugins/workflows · codex only via `/codex-review`) per the audit-trio rubric. Wrote the digest, bumped `ecosystem/tool-versions.yaml`. Capture/flag only — no adoptions implemented.
