@@ -339,18 +339,29 @@ Mode is carried by `/handoff … v5 <architect|execution>` (§10 self-updating; 
 `execution`; mode applies only in v5 mode — v4.4 has no modes). Command wiring:
 `.claude/commands/handoff.md`.
 
-**Bundle shape (no per-bundle README — one canonical runbook).** A v5 bundle carries **three**
-files — `HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md` — and **no README**. The stable operator
-boilerplate (who-each-file-is-for · the same-name role-file/bundle-pointer collision ·
-`PROBES.md`-handed-once · the run loop with its *why* · the flow diagram · the rationale) lives once
-in the **canonical per-repo operator runbook at `docs/handoffs/README.md`** (operator-first:
-walkthrough first, rationale demoted) — not copied into each bundle. Each bundle's **session-specific
-header** (slug · one-line purpose · mode) lives in its own `HANDOFF_BOOT.md`, which points back at the
-runbook; the bundle `HANDOFF_BOOT.md` carries that header + the paste-pointer and does **not** repeat
-the walkthrough. The runbook is generic across repos of the same handoff version: the #164 generator
-seeds/updates each repo's `docs/handoffs/README.md` idempotently from one source
-(`templates/handoff/v5/README.md.tmpl`, a deferred stub until #164 lands) and emits the three-file
-bundle — never a per-bundle README.
+**Bundle shape (no per-bundle README — one canonical runbook).** A v5 bundle carries **four**
+files — `HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md` + `PASTE_THIS.md` — and **no README**.
+The stable operator boilerplate (who-each-file-is-for · the same-name role-file/bundle-pointer
+collision · `PROBES.md`-handed-once · the run loop with its *why* · the flow diagram · the
+rationale) lives once in the **canonical per-repo operator runbook at `docs/handoffs/README.md`**
+(operator-first: walkthrough first, rationale demoted) — not copied into each bundle. Each
+bundle's **session-specific header** (slug · one-line purpose · mode) lives in its own
+`HANDOFF_BOOT.md`, which points back at the runbook; the bundle `HANDOFF_BOOT.md` carries that
+header + the paste-pointer and does **not** repeat the walkthrough. The runbook is generic across
+repos of the same handoff version: the #164 generator seeds/updates each repo's
+`docs/handoffs/README.md` idempotently from one source (`templates/handoff/v5/README.md.tmpl`, a
+deferred stub until #164 lands) and emits the four-file bundle — never a per-bundle README.
+
+**`PASTE_THIS.md` convention.** Assembled by `scripts/assemble_paste.py <bundle_dir>` at handoff
+generation time; **never hand-edited**. Regenerate each handoff by re-running the assembler.
+Manifest in order: (0) bundle `HANDOFF_BOOT.md` session-header block (slug/mode/purpose/generated-at,
+extracted up to the first `## ` heading — optional; skipped if the bundle carries no HANDOFF_BOOT.md),
+(1) `protocols/HANDOFF_BOOT.md` (required — browser role file + boot line), (2) `RESIDUAL.md`
+(required), (3) `PROBES.md` (required), (4) `SUPPLEMENT.md` (optional — architect's outgoing
+strategic brief; skipped with a notice if absent). Sections delimited by `\n\n---\n\n` with
+`=== <label> ===` headers. P1 orienting answers are **not** embedded — they are obtained only via
+the CC run loop (the teeth of the probe mechanism). The operator pastes `PASTE_THIS.md` as the
+single file; the browser receives the complete role + residual + probes + supplement in one shot.
 
 ---
 
