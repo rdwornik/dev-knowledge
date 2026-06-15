@@ -446,3 +446,12 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
   (#152). It is session-boundary maintenance fired by `/session-summary`, so it belongs with handoff
   mechanics; PLAYBOOK §8 now points at §14 (the #152 move-then-point pattern, nothing dropped). §§1–13
   unchanged. Version unchanged (5.0; additive).
+- v5.0 (2026-06-15, §13 bundle-shape — four files, `PASTE_THIS.md`) — the v5 bundle now carries a
+  **fourth** file, `PASTE_THIS.md`: a single assembled boot payload (resident role file + residual +
+  probes + optional supplement, concatenated by `scripts/assemble_paste.py`, never hand-edited) so the
+  file-less browser onboards from **one** paste instead of the operator hand-feeding the role file +
+  individual bundle files in sequence. Supersedes the 2026-06-12 *three-file* shape (that dated entry
+  stays as the historical record). The canonical operator runbook (`docs/handoffs/README.md`) reconciled
+  to the single-paste flow; P1 orienting answers remain **out** of the payload (the teeth). This is the
+  #164-generator's operator-paste slice landed early; the sync-key + cross-repo-routing remainder stays
+  #164. §§1–12 unchanged; §13 bundle-shape only. Version unchanged (5.0; additive).
