@@ -34,3 +34,6 @@ ecosystem/*/state.yaml
 # OS
 *.tmp
 *.bak
+
+# Personal scratch / temp work (unrelated to repo content)
+temp/
