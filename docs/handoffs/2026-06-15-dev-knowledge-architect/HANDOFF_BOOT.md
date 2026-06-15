@@ -17,10 +17,10 @@
 ## What the operator does (paste-pointer)
 
 1. Open a fresh Claude.ai chat.
-2. Paste the **full contents of `protocols/HANDOFF_BOOT.md`** — the ~3-line core **plus** the
-   resident browser operating role (**both** the execution-mode default *and* the
-   **architect-mode generative posture** travel in that one file). Never assume a CC-held file
-   reaches the file-less browser, so that file is the thing you paste — not this one.
+2. Paste **`PASTE_THIS.md`** (in this bundle directory) — it contains the browser role file,
+   residual, probes, and supplement assembled in order. One paste; the browser receives
+   everything it needs. Never assume a CC-held file reaches the file-less browser, so `PASTE_THIS.md`
+   is the thing you paste — not individual bundle files and not `protocols/HANDOFF_BOOT.md` directly.
 3. The browser replies with its on-load acknowledgment line (it names the Layer-1 actor); a
    partial or missing paste is then visible.
 4. **This handoff is architect mode.** Tell the browser (or it reads it off `RESIDUAL.md`): use
@@ -44,6 +44,7 @@
 
 The methodology, the browser role, and the operator runbook all live in the repo and are
 referenced by **pointer**; CC (which holds the repo) serves any part the file-less browser
-needs, just-in-time. This file points; `protocols/HANDOFF_BOOT.md` is the boot source and
-`docs/handoffs/README.md` is the operator runbook. If a pointer and its source disagree, the
-source wins — fix the pointer.
+needs, just-in-time. This file points; `PASTE_THIS.md` is the assembled boot source (generated
+by `scripts/assemble_paste.py`, never hand-edited) and `docs/handoffs/README.md` is the operator
+runbook. If a pointer and its source disagree, the source wins — fix the pointer or regenerate
+`PASTE_THIS.md`.
