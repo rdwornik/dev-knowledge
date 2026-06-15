@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-15 — Move-1 merged to main + downstream verdicts resolved (#10/#37/#39 retargeted)
+
+**Did:** Read-only branch hygiene first (ancestry + non-destructive `merge-tree` probe) confirmed case-1: encode already in main, Move-1 linear on top, `move-1↔main` CLEAN — so one merge, no rebase, no #152/#158 conflict (Move-1 branched post-encode and deleted the serialize-group-annotated lines on close). Merged `feat/playbook-pointerize-152-158` → main `--no-ff` (`0b89b1d`). Then resolved the three Move-1 downstream verdicts on `chore/backlog-move1-verdicts` (BACKLOG-only, retarget-only — the tasks' actual work is NOT executed): **#10** retargeted to HANDOFF_PROCESS §14 (placement *surfaced not overridden* — root-hygiene/ADR-59 2026-06-01 amendment already puts usage logs under `logs/`, file already at `logs/TOKEN-LOG.md`, no move; residual is doc-alignment to §14), serialize-group `playbook`→`handoff`; **#37** retargeted to "amend ADR-59 with the workspace-sort rule" (visual-pattern now pointered to ADR-59), serialize-group `playbook` removed (leaves the group); **#39** annotated Move-2-blocked (root-hygiene retained PLAYBOOK-local), `playbook` kept.
+
+**Result:** post-merge gate GREEN — `audit.py health` OK (#152/#158 drift cleared; only pre-existing #77 WARN), `validate_backlog` OK (72 tasks, 0 warn), ruff clean. Group movement verified in the validator's serialize-group summary: `handoff` gains #10; `playbook` drops to {#146,#77,#67,#18,#39}; #37 in no group.
+
+**Changes:** `BACKLOG.md` (#10/#37/#39 retargeted), `JOURNAL.md`. Merge `0b89b1d`; verdicts `f396e2e`.
+
+**Abandoned:** Did NOT execute #10's doc-alignment or #37's ADR-59 amendment (retarget pass only). Did NOT push.
+
+**Next:** Operator merges `chore/backlog-move1-verdicts` → main `--no-ff`. Follow-on work items: #10 (doc-alignment to §14), #37 (ADR-59 amendment), and Move 2 (the Council-bound structural split that unblocks #39).
+
 ### 2026-06-15 — PLAYBOOK pointerization Move 1 (#152 + #158 close; 4 of 5 playbook-cluster tasks leave the group)
 
 **Did:** Relocate-and-dissolve, Move 1 of the PLAYBOOK split (Move 2 = the structural split, Council-bound, deliberately NOT done). Pointerized four governing-doc sections out of PLAYBOOK to their canonical homes, per the move-then-point rule (relocate + verify-at-target, never drop). **#152:** §"System Architecture" was already a pure pointer (2026-06-11) — verify-only; §8 "Handing Off" doctrine subsections ("what v5 carries", "Roles") → pointers to HANDOFF_PROCESS §1/§2/§5/§7 + ESSENTIALS § Roles, and the **token-log cadence MOVED to HANDOFF_PROCESS.md §14** (the only genuine content move — wrote-at-target, verified present, then removed from §8). Render-layer rationale + the A/B/C path map kept PLAYBOOK-local (CLAUDE.md:64 ref stays valid). **#158:** §"Repo conventions" — pointered the subsections whose doctrine is fully in an ADR (folder-structure + three-pillars → ADR-59 Dec1-4; docs-taxonomy incl. Rule-5 append-only-on-move → ADR-60), retained the genuinely PLAYBOOK-canonical ones with reason (the `main` migration *procedure* — ADR-30 has only a one-liner; the root-hygiene *caveats* ADR-59 references back into PLAYBOOK). Appendices: B (routing table) → pointer to `~/.claude/ROUTING.md` + retained the local time-shifting schedule; A + C kept-with-reason. A per-subsection ADR re-read **corrected the operator's Decision-C premise** (three-pillars + append-only-on-move are NOT PLAYBOOK-only — both fully in the ADRs); operator ratified the refined split (Option 1) before landing, as #158's done-when requires.
