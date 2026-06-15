@@ -37,33 +37,41 @@ is also safe; it is sequential, not parallel, and each write targets a distinct 
 Git enforces the per-branch invariant: the same branch cannot be checked out in two
 worktrees simultaneously.
 
-### Setup (operator, before opening a 2nd same-repo session)
+> ⚠️ **SUPERSEDED (mechanics only) — do NOT use the `<repo>-parallel` sibling-dir recipe below.**
+> The decision (same-repo parallelism requires a worktree) still stands, but the *mechanism* was
+> replaced by the **native in-repo worktree convention** (#107, 2026-06-07): `claude --worktree
+> <name>` → `.claude/worktrees/<name>/` on branch `worktree-<name>`. **Live procedure → PLAYBOOK
+> §"Parallel sessions & worktree discipline"** (cold-start runbook). The adjacent `<repo>-parallel`
+> sibling dirs this section describes spawned the `.dev-knowledge-cadence` / `.dev-knowledge-night-adr`
+> rule-9 orphans; do not recreate them. The blocks below are preserved as point-in-time history.
+
+### Setup (operator, before opening a 2nd same-repo session) — ❌ SUPERSEDED, use native (see PLAYBOOK)
 
 ```
-git -C <repo> worktree add <repo>-parallel main
+git -C <repo> worktree add <repo>-parallel main   # ❌ SUPERSEDED — use native: claude --worktree <name> (see PLAYBOOK)
 ```
 
 Example for `.dev-knowledge`:
 
 ```
-git -C C:\Users\1028120\Documents\Dev\.dev-knowledge worktree add ..\..dev-knowledge-parallel main
+git -C C:\Users\1028120\Documents\Dev\.dev-knowledge worktree add ..\..dev-knowledge-parallel main   # ❌ SUPERSEDED — use native (see PLAYBOOK)
 ```
 
 Open the 2nd Claude Code session from inside the worktree directory. Each session
 immediately creates its own feature branch (git prevents two worktrees on the same
 branch, so each must diverge before meaningful work begins).
 
-### Cleanup (after merging the parallel branch into main)
+### Cleanup (after merging the parallel branch into main) — ❌ SUPERSEDED, use native (see PLAYBOOK)
 
 ```
-git -C <repo> worktree remove <repo>-parallel
+git -C <repo> worktree remove <repo>-parallel   # ❌ SUPERSEDED — native teardown in PLAYBOOK §"Parallel sessions & worktree discipline"
 git -C <repo> worktree prune
 ```
 
-### Naming convention
+### Naming convention — ❌ SUPERSEDED by `<issue#>-<kebab-slug>` (see PLAYBOOK)
 
-- `<repo>-parallel` — ad-hoc single concurrent session
-- `<repo>-wt-<purpose>` — when multiple concurrent worktrees are needed simultaneously
+- ~~`<repo>-parallel` — ad-hoc single concurrent session~~ ❌ SUPERSEDED
+- ~~`<repo>-wt-<purpose>` — when multiple concurrent worktrees are needed simultaneously~~ ❌ SUPERSEDED
 
 ### Rules
 
