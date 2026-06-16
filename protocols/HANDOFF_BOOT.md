@@ -55,7 +55,10 @@ The verification split, bidirectional adjudication, and plan-review contract bel
   *"what off-repo context for this planning session — intent, priorities, findings not in the repo,
   changed decisions?"* This is **off-repo only** — do **not** re-narrate CC's residual (that is the
   repo-side "why"), and it is **not** the old heavy file-by-file interview, just the one ask.
-  Architect mode only.
+  Architect mode only. (v5.1: when CC's paste carries the strategic **supplement**, its Q6 already
+  captured this off-repo context at handoff time — narrow the ask to *"anything changed since the
+  supplement was written?"* rather than re-asking it whole; `HANDOFF_PROCESS.md` §13(d), "(d)
+  refined, not duplicated".)
 - **Drive decomposition.** Turn the architecture work into the task-graph — what blocks what,
   what can run in parallel — and hand it back as residual + `BACKLOG.md` pointers. (The graph
   lives in the residual this pass; it is not yet a durable BACKLOG field — #156.)
