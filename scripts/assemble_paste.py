@@ -126,7 +126,7 @@ def main(bundle_dir: Path) -> None:
         else:
             click.echo(
                 "[skip] SUPPLEMENT.md present but ANSWERS empty (cold handoff or "
-                "not-yet-filled) -> not folded; next session uses the §13(d) beat",
+                "not-yet-filled) -> not folded; next session uses the section 13(d) beat",
                 err=True)
     elif mode == "architect":
         click.echo(
