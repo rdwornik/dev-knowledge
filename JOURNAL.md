@@ -31,6 +31,18 @@
 
 **Next:** Follow-ups filed — **#168** (harden BACKLOG leg to a hard gate, blocked on the traceability-spine ADR) and **#169** (ungated-doc staleness detection, rides with the conformance dashboard). The gate is **live this session already** (Stop hooks spawn the script fresh each turn-end; settings wiring unchanged) — not deferred to next session as the plan first assumed. The Downloads ADR draft copy is safe to remove. 4-week scope-freeze runs to ~2026-07-14; watch `logs/OVERRIDES.md` for override-rate (>~10% → tune the rules).
 
+### 2026-06-15 — worktree operator-runbook: native cold-start runbook in PLAYBOOK + SUPERSEDED annotations (back-filled 2026-06-16)
+
+**Did:** Wrote a native worktree **cold-start runbook** into `protocols/PLAYBOOK.md` (parallel-sessions section) — the decide-first checks + a worked START example that make `git worktree add` usable from a fresh session without external recall — and marked the old `<repo>-parallel` recipe in `protocols/ESSENTIALS.md` and `ADR-61` **SUPERSEDED**, redirecting both to the native canon. Single source: the PLAYBOOK runbook; ESSENTIALS/ADR-61 now point rather than restate (pointerize, don't hand-copy). This arc landed 2026-06-15 between the Faza A and ADR-85 sessions and was missed in the per-session journal sweep; back-filled here as the first act of the 2026-06-16 consolidation pass.
+
+**Result:** Runbook verified by an **empirical smoke test** (the native worktree path actually walked end-to-end, not just prose-reviewed). Pre-commit gates green on each commit; tree clean at merge.
+
+**Changes:** `protocols/PLAYBOOK.md` (worktree cold-start runbook), `protocols/ESSENTIALS.md` + `docs/decisions/ADR-61-*.md` (superseded annotations + redirect). Commits `39b8ecb` (PLAYBOOK cold-start runbook), `2b5de80` (ESSENTIALS + ADR-61 superseded/redirect). Branch `docs/worktree-runbook`, merged `--no-ff` to `main` as `509d8ef`.
+
+**Abandoned:** No content rewrite of the superseded recipe — annotate + redirect only (the canonical statement lives once in PLAYBOOK; everywhere else points). No change to the underlying ADR-61 decision; only the recipe within it was marked superseded.
+
+**Next:** None outstanding — superseded by the native canon. (Consolidation note: this back-fill is the JOURNAL-gap leg of the 2026-06-16 doc-flow pass.)
+
 ### 2026-06-15 — Faza A: n/a status for vacuous hub checks (G6) + pytest_collected bump (A1); A3 deferred
 
 **Did:** Closed two of the three conformance coverage-matrix gaps (Faza A; CC prompt, Opus). **A2 (G6):** added a new non-blocking `n/a` Finding status and flipped the genuinely-vacuous hub no-op returns of `handoff_tag_canonicity` (no section 3.1 in the v5 spec) and `floor_integrity` (hub has no CLAUDE-FLOOR.md) from `pass` -> `n/a`, so the self-audit pass-count reflects real coverage; wired `n/a` into the health/ship-gate console markers (`[--]`), the fleet-report `_STATUS_LABEL`/`_STATUS_EMOJI` + a new per-status tally, and both Finding status-enum docstrings. The bundle "no docs/handoffs/" no-op also returns n/a (for child repos lacking handoffs). **A1:** bumped the `ARCHITECTURE.md` `pytest_collected` claim `500 -> 511` (the live count after A2's 3 new tests). **A3 (G5) deferred** per operator ruling — a blanket ADR-edit block would reverse ADR-77 + the `test_allow_adr_edit_v1_scope_is_transcripts_only` pin (ADRs stay editable for the sanctioned in-file Amendment flow, Critical Rule #3); G5 stays open pending #112's `adr_amend.py`. `block_immutable_edits.py` untouched.
