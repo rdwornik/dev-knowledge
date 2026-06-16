@@ -31,6 +31,12 @@ logs/FLEET-HEALTH.md
 # durable records are ecosystem/*/history/*.md + docs/audits/*.md, committed by audit.py)
 ecosystem/*/state.yaml
 
+# Session-end gate override (ADR-85) — ephemeral local signal + audit log, never committed.
+# The token is a HEAD-bound one-shot the Stop-hook pure-reads; OVERRIDES.md is the local
+# override-rate audit trail (matches the logs/PROPOSALS-* / FLEET-HEALTH ephemeral pattern).
+logs/.session-override-token
+logs/OVERRIDES.md
+
 # OS
 *.tmp
 *.bak

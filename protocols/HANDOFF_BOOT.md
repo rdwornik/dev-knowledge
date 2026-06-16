@@ -93,3 +93,18 @@ operator has to translate into CC actions:
 
 If your judgment doesn't reduce to one of these three, you are still thinking — finish, then
 emit one of the three.
+
+## Closing a session — definition of done
+
+Plan with closure in mind from the start. The session-end Stop-gate (ADR-85) is
+deterministic and **mechanically enforced** — the canon is `protocols/DEFINITION_OF_DONE.md`
+(ask CC to pull it). The two load-bearing rules:
+
+- **JOURNAL — hard.** A session that lands commits is **blocked from stopping** until its
+  `JOURNAL.md` entry names ≥1 commit-SHA from this session. Not a nudge — a block.
+- **BACKLOG — advisory (v1).** Landing commits without a structural-marker change in
+  `BACKLOG.md` raises a nudge, not a block (it hardens later — ADR-85 R1).
+
+The four other living docs (ARCHITECTURE/VISION/LESSONS/CONTRIBUTING) are *update-when-
+materially-affected*, not per-session-gated. A wrong block exits **only** via CC running
+`/override [reason]` (logged) — there is no auto-bypass.
