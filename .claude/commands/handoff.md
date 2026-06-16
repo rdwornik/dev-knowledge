@@ -63,18 +63,36 @@ it here):
   architect's quote — never a paraphrase. CC serves the **generative/decompositional** posture
   from `HANDOFF_BOOT.md` so the role reaches the file-less browser. Return channel stays §2/§6 —
   emit **no** new *return-leg* artifact.
-- **architect — v5.1 strategic supplement (interview extraction; §13 "Architect strategic
-  supplement").** Also emit a **paste-ready interview block** sourced from
-  `templates/handoff/v5/SUPPLEMENT.md.tmpl` — the fixed 6-question *why*-only schema (you MAY append
-  1–2 session-specific items you observed), rendered flat + fenced for browser paste (§4). It is for
-  the **outgoing** architect-browser — do **not** fold it into `RESIDUAL.md` (the assembler folds
-  RESIDUAL into the *next* session's `PASTE_THIS`). The operator relays it; the browser's answers come
-  back and **you write `docs/handoffs/<slug>/SUPPLEMENT.md` verbatim** (no re-typing — the browser is
-  file-less). The supplement is **advisory** (never teeth) and asks **only** non-re-derivable *why* —
-  never repo state / methodology / task-state. `scripts/assemble_paste.py` folds `SUPPLEMENT.md` into
-  `PASTE_THIS` (expected in architect mode; `[warn]` if absent). This is a **forward** brief, not the
-  return leg above; it is a per-session transient, regenerated each handoff. Full mechanism + schema:
-  `protocols/HANDOFF_PROCESS.md` §13 — read it, don't restate it here.
+- **architect — strategic supplement (always-generated fillable file; §13 "Architect strategic
+  supplement").** **Always write `docs/handoffs/<slug>/SUPPLEMENT.md`** (architect mode,
+  **unconditionally**) from `templates/handoff/v5/SUPPLEMENT.md.tmpl` — the fixed 6-question *why*-only
+  schema interpolated with the bundle's slug/repo/date (you MAY append 1–2 session-specific items you
+  observed as `A./B.` addenda after Q6; add nothing else). The file is **self-documenting + fillable**:
+  an operator 3-step header, a **QUESTIONS** section for the **outgoing** architect chat, and an empty
+  **ANSWERS** section below the divider. **Commit it on the handoff branch** (empty or filled) for
+  durable tracking — so the artifact exists even for a cold/`/clear`ed handoff (no missing-deliverable
+  look). The operator pastes the QUESTIONS to the outgoing chat, pastes the answers back below the
+  divider, and says **`supplement filled`**; you then commit the filled file and re-run
+  `scripts/assemble_paste.py`, which folds the **ANSWERS region only** into the next `PASTE_THIS` —
+  **only when non-empty** (an empty ANSWERS section is the defined cold-handoff disposition: not folded;
+  the incoming §13(d) beat fires full). The supplement is **advisory** (never teeth), asks **only**
+  non-re-derivable *why* — never repo state / methodology / task-state — and you **never fabricate
+  answers** (unanswered = committed empty). It is a **forward** brief, not the return leg above. Full
+  mechanism + schema: `protocols/HANDOFF_PROCESS.md` §13 — read it, don't restate it here.
+
+**Architect-mode completion output (lead-by-hand — keep it SHORT, not a dense dump).** When the
+architect bundle is ready, end with this concrete message (substitute `<slug>`):
+
+```
+Handoff bundle ready: docs/handoffs/<slug>/  (paste PASTE_THIS.md into a fresh chat to start the next session)
+
+To capture this session's strategic "why" (optional but recommended):
+  1. Open docs/handoffs/<slug>/SUPPLEMENT.md
+  2. Paste its QUESTIONS into the outgoing architect chat; paste answers back below the line
+  3. Tell me `supplement filled` -- I'll commit it and fold it into the next PASTE_THIS
+
+Operator-gated, mine to run on your OK: push main; -d the merged stragglers
+```
 
 ## Conventions
 
