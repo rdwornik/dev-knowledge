@@ -14,6 +14,7 @@ def _make_bundle(
     *,
     with_handoff_boot: bool = True,
     with_supplement: bool = True,
+    mode: str | None = None,
 ) -> tuple[Path, Path]:
     """Create a minimal fake repo tree under tmp_path.
 
@@ -31,9 +32,13 @@ def _make_bundle(
     bundle.mkdir()
 
     if with_handoff_boot:
+        # mode=None reproduces the pre-v5.1 header byte-for-byte (no Mode row); a set
+        # mode injects the `| **Mode** | **architect** ... |` row v5 §13 bundles emit.
+        mode_row = f"| **Mode** | **{mode}** (test) |\n" if mode else ""
         (bundle / "HANDOFF_BOOT.md").write_text(
-            "# Handoff boot\n\n| Field | Value |\n|---|---|\n| **Slug** | test |\n\n"
-            "## What the operator does\n\nSteps go here.\n",
+            "# Handoff boot\n\n| Field | Value |\n|---|---|\n| **Slug** | test |\n"
+            + mode_row
+            + "\n## What the operator does\n\nSteps go here.\n",
             encoding="utf-8",
         )
 
@@ -179,3 +184,58 @@ def test_regeneration_is_byte_identical(tmp_path: Path) -> None:
     second = (bundle / "PASTE_THIS.md").read_bytes()
 
     assert first == second, "assembler output is not idempotent (regeneration churns)"
+
+
+# ------------------------------------------------------------------ #
+# Test 6: Architect mode + missing SUPPLEMENT warns (v5.1)
+# ------------------------------------------------------------------ #
+
+def test_architect_mode_warns_when_supplement_absent(tmp_path: Path) -> None:
+    """Architect mode + missing SUPPLEMENT.md: exit 0, a [warn] (not a silent [skip]).
+
+    v5.1 §13: the supplement is *expected* in architect mode but advisory, so its
+    absence is a louder [warn] yet still non-fatal — PASTE_THIS.md is written without it.
+    """
+    bundle, script = _make_bundle(tmp_path, with_supplement=False, mode="architect")
+
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    assert "[warn]" in result.stderr
+    assert "architect mode" in result.stderr.lower()
+
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    labels = [
+        line.removeprefix("=== ").removesuffix(" ===")
+        for line in paste.splitlines() if line.startswith("=== ")
+    ]
+    assert "SUPPLEMENT.md" not in labels  # advisory — still assembles without it
+
+
+# ------------------------------------------------------------------ #
+# Test 7: Architect mode + present SUPPLEMENT is folded in, no warn (v5.1)
+# ------------------------------------------------------------------ #
+
+def test_architect_mode_with_supplement_present_no_warn(tmp_path: Path) -> None:
+    """Architect mode + present SUPPLEMENT.md: folded into the paste, no [warn]."""
+    bundle, script = _make_bundle(tmp_path, mode="architect")  # with_supplement default True
+
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    assert "[warn]" not in result.stderr
+
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    assert "Strategic brief." in paste  # SUPPLEMENT.md body inlined
+
+
+# ------------------------------------------------------------------ #
+# Test 8: Execution mode keeps the pre-v5.1 silent [skip] (no architect warn)
+# ------------------------------------------------------------------ #
+
+def test_execution_mode_missing_supplement_stays_skip(tmp_path: Path) -> None:
+    """Execution mode keeps the silent [skip] — the architect [warn] must not leak."""
+    bundle, script = _make_bundle(tmp_path, with_supplement=False, mode="execution")
+
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    assert "[skip]" in result.stderr
+    assert "[warn]" not in result.stderr

@@ -1,0 +1,48 @@
+<!--
+  SUPPLEMENT.md.tmpl — architect strategic supplement (HANDOFF_PROCESS v5.1 §13
+  "Architect strategic supplement — interview extraction"). CANONICAL SCHEMA.
+
+  Keep this template GENERIC / PORTABLE: no repo-specific paths, ADRs, BACKLOG ids,
+  or prose. The deferred #164 cross-repo generator interpolates {{SLUG}} / {{REPO}} /
+  {{MODE}} / {{DATE}} and emits it unchanged for any repo.
+
+  Flow (v5.1 §13):
+    1. CC emits the questions below as a paste-ready, fenced block (architect mode only).
+    2. The operator relays it to the OUTGOING architect-browser (still in context at
+       session end — the only actor holding this session's strategic deliberation).
+    3. The browser fills each section; the operator pastes the answers back.
+    4. CC writes the filled-in copy VERBATIM to <bundle>/SUPPLEMENT.md — no re-typing.
+    5. scripts/assemble_paste.py folds SUPPLEMENT.md into PASTE_THIS.md (manifest item 4).
+
+  SCOPE (load-bearing — this is what keeps the supplement from becoming the v4 disease):
+  answer ONLY the non-re-derivable strategic *why*. NEVER put repo state, methodology,
+  task-state, counts, or SHAs here — those are source-authoritative + forced-read
+  (§3/§5). This supplement is ADVISORY; it is never trusted over the repo. Skip any
+  question that does not apply (say so briefly; do not pad).
+-->
+
+# Architect strategic supplement — {{SLUG}}
+
+- Repo: {{REPO}}
+- Mode: {{MODE}}
+- Date: {{DATE}}
+
+## 1. Strategic intent
+What should the next session achieve at the way-of-working level? (A design / methodology
+goal, not a task.)
+
+## 2. Tensions weighed
+Which design trade-offs were weighed this session, where did you land, and why?
+
+## 3. Considered + rejected
+Which options were considered and rejected, and for what reason? (So the next session does
+not relitigate them.)
+
+## 4. Open questions
+Which design questions are still unresolved or deliberately deferred?
+
+## 5. Decomposition rationale
+Why this task-graph shape? What must the next session NOT redo or re-decide?
+
+## 6. Off-repo context
+Intent, priorities, changed decisions, or findings that are not in the repo.
