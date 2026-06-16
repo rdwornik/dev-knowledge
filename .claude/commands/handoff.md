@@ -62,7 +62,19 @@ it here):
   **never the line** (generator-excluded); CC reads the **live** file and substring-checks the
   architect's quote — never a paraphrase. CC serves the **generative/decompositional** posture
   from `HANDOFF_BOOT.md` so the role reaches the file-less browser. Return channel stays §2/§6 —
-  emit **no** new artifact.
+  emit **no** new *return-leg* artifact.
+- **architect — v5.1 strategic supplement (interview extraction; §13 "Architect strategic
+  supplement").** Also emit a **paste-ready interview block** sourced from
+  `templates/handoff/v5/SUPPLEMENT.md.tmpl` — the fixed 6-question *why*-only schema (you MAY append
+  1–2 session-specific items you observed), rendered flat + fenced for browser paste (§4). It is for
+  the **outgoing** architect-browser — do **not** fold it into `RESIDUAL.md` (the assembler folds
+  RESIDUAL into the *next* session's `PASTE_THIS`). The operator relays it; the browser's answers come
+  back and **you write `docs/handoffs/<slug>/SUPPLEMENT.md` verbatim** (no re-typing — the browser is
+  file-less). The supplement is **advisory** (never teeth) and asks **only** non-re-derivable *why* —
+  never repo state / methodology / task-state. `scripts/assemble_paste.py` folds `SUPPLEMENT.md` into
+  `PASTE_THIS` (expected in architect mode; `[warn]` if absent). This is a **forward** brief, not the
+  return leg above; it is a per-session transient, regenerated each handoff. Full mechanism + schema:
+  `protocols/HANDOFF_PROCESS.md` §13 — read it, don't restate it here.
 
 ## Conventions
 

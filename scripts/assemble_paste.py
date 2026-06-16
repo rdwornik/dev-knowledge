@@ -9,7 +9,8 @@ Manifest (in order):
   1. protocols/HANDOFF_BOOT.md  (required — browser role file + boot line)
   2. <bundle>/RESIDUAL.md       (required — drift-flags + planning why + task-graph)
   3. <bundle>/PROBES.md         (required — orientation + teeth probes)
-  4. <bundle>/SUPPLEMENT.md     (optional — architect's outgoing strategic brief)
+  4. <bundle>/SUPPLEMENT.md     (architect's outgoing strategic brief — the v5.1
+     interview answers; expected in architect mode [warn if absent], optional otherwise)
 
 Output: <bundle>/PASTE_THIS.md  (UTF-8, LF, never hand-edited)
 """
@@ -40,6 +41,22 @@ def _extract_session_header(text: str) -> str:
     return "".join(out).rstrip()
 
 
+_MODE_RE = re.compile(
+    r"(?im)^\|\s*\*{0,2}mode\*{0,2}\s*\|\s*\*{0,2}(architect|execution)\b")
+
+
+def _extract_mode(text: str) -> str | None:
+    """Return the handoff mode ('architect' | 'execution') from a bundle HANDOFF_BOOT.md.
+
+    Parses the `| **Mode** | **architect** ... |` row of the session-header Field/Value
+    table (the row v5 §13 bundles emit). Returns the lowercased mode, or None when no
+    parseable Mode row is present — the caller then treats the bundle as non-architect
+    (the supplement stays a silent [skip], the pre-v5.1 behaviour).
+    """
+    m = _MODE_RE.search(text)
+    return m.group(1).lower() if m else None
+
+
 @click.command()
 @click.argument("bundle_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
 def main(bundle_dir: Path) -> None:
@@ -48,10 +65,14 @@ def main(bundle_dir: Path) -> None:
 
     sections: list[tuple[str, str]] = []
 
-    # 0. Optional: bundle session-header (slug/mode/purpose/generated-at)
+    # 0. Optional: bundle session-header (slug/mode/purpose/generated-at). The Mode row
+    #    also drives the architect-mode supplement expectation in the manifest loop below.
+    mode: str | None = None
     bundle_boot = bundle_dir / "HANDOFF_BOOT.md"
     if bundle_boot.exists():
-        header = _extract_session_header(bundle_boot.read_text(encoding="utf-8"))
+        boot_text = bundle_boot.read_text(encoding="utf-8")
+        mode = _extract_mode(boot_text)
+        header = _extract_session_header(boot_text)
         if header:
             sections.append(("HANDOFF_BOOT.md (session header)", header))
 
@@ -66,7 +87,15 @@ def main(bundle_dir: Path) -> None:
     for label, path, required in manifest:
         if not path.exists():
             if not required:
-                click.echo(f"[skip] {label} not found — no supplement section", err=True)
+                # Architect mode expects the v5.1 strategic supplement; warn (non-fatal —
+                # the supplement is advisory). Any other mode keeps the silent [skip].
+                if label == "SUPPLEMENT.md" and mode == "architect":
+                    click.echo(
+                        f"[warn] {label} not found — architect mode expects the v5.1 "
+                        "strategic supplement (interview answers); assembling without it",
+                        err=True)
+                else:
+                    click.echo(f"[skip] {label} not found — no supplement section", err=True)
                 continue
             click.echo(f"[error] Required source missing: {path}", err=True)
             sys.exit(1)
