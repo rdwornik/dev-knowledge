@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-15
+last_reviewed: 2026-06-17
 ---
 <!-- scope: meta -->
 <!-- CANONICAL OPERATOR RUNBOOK for HANDOFF_PROCESS v5 bundles.
@@ -19,14 +19,16 @@ last_reviewed: 2026-06-15
 > the process and tells you which file to paste first.
 
 A v5 handoff is a small folder under `docs/handoffs/{YYYY-MM-DD}-{slug}/` with **four** files —
-`HANDOFF_BOOT.md`, `RESIDUAL.md`, `PROBES.md`, and `PASTE_THIS.md` (architect-mode bundles add an
-optional `SUPPLEMENT.md`) — plus this runbook one level up. There is no per-bundle README; this is it.
+`HANDOFF_BOOT.md`, `RESIDUAL.md`, `PROBES.md`, and `PASTE_THIS.md` (architect-mode bundles also carry a
+`SUPPLEMENT.md` — always generated, fillable; see *The strategic supplement* below) — plus this runbook
+one level up. There is no per-bundle README; this is it.
 
 ## Who each file is for
 
 **You paste exactly one file — `PASTE_THIS.md` — into the browser.** It is the assembled boot payload:
 the resident browser role file (`protocols/HANDOFF_BOOT.md`), the residual, the probes, and (architect
-mode) the supplement, concatenated in order by `scripts/assemble_paste.py`. The other bundle files are
+mode) the supplement's **answers** when it carries any, concatenated in order by
+`scripts/assemble_paste.py`. The other bundle files are
 its **sources** and your **reference** — you do not paste them separately.
 
 | File | For | Role |
@@ -36,6 +38,7 @@ its **sources** and your **reference** — you do not paste them separately.
 | the bundle's `HANDOFF_BOOT.md` | **You** | The bundle's "start here": names slug · purpose · mode, and points at this runbook + `PASTE_THIS.md`. Never pasted. |
 | `RESIDUAL.md` | source | Assembled into `PASTE_THIS.md`. Your reference — do not paste separately. |
 | `PROBES.md` | source | Assembled into `PASTE_THIS.md`. Your reference — do not paste separately. |
+| `SUPPLEMENT.md` *(architect)* | **You (fill it)** | Always generated. Paste its QUESTIONS to the outgoing architect chat; paste the answers back. Its **ANSWERS** (only) fold into the next session's `PASTE_THIS`. See *The strategic supplement* below. |
 
 > ⚠️ **Same-name collision (read this once).** The bundle contains a file **named** `HANDOFF_BOOT.md`,
 > and the repo contains the resident role file `protocols/HANDOFF_BOOT.md`. **You paste neither** — the
@@ -72,6 +75,26 @@ Steps marked **[architect only]** are skipped in **execution** mode (the lean de
 > finish probes), directing it to each inlined section in turn. `PROBES.md` is **one** section worked
 > in two parts: **P1** (orientation) first, then **P2–P7** after the beat and residual — there is no
 > second probes file. (Execution mode works the probes straight through — no separate orientation half.)
+
+## The strategic supplement (architect mode) — capture this session's "why"
+
+Architect bundles always include a `SUPPLEMENT.md`: a self-documenting, fillable file for the
+**outgoing** architect's strategic *why* (intent, tensions weighed, options rejected) — the one thing a
+repo-derived handoff structurally cannot carry. It is **advisory** and optional to fill. Three steps:
+
+1. **Open** `docs/handoffs/<slug>/SUPPLEMENT.md` and copy its **QUESTIONS** into the **outgoing**
+   architect chat (the chat that did this session's work — the only place this session's deliberation
+   still lives).
+2. **Paste the answers back** into the **ANSWERS** section at the bottom of the file (combine more than
+   one chat if needed).
+3. **Tell CC `supplement filled`** — CC commits the file on the handoff branch and folds the answers
+   into the next session's `PASTE_THIS.md`.
+
+**No outgoing chat (a cold / cleared handoff)?** Leave ANSWERS **empty** — that is the defined
+disposition, not a missing deliverable. The empty file is still committed (a record that this session
+carried no transmissible live "why"), nothing is folded, and the next session's architect picks up the
+off-repo context live via its one operator-context question. Full mechanism:
+`protocols/HANDOFF_PROCESS.md` §13 "Architect strategic supplement".
 
 ## The run loop (how steps 4 and 7 actually work)
 
