@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-15
+last_reviewed: 2026-06-16
 status: active
 owner: Rob
 ---
@@ -200,7 +200,7 @@ local git gate.
 | `changelog_sentinel.py` (SessionStart) | session start | hub | fail-soft | #113 |
 | `surface-closures.ps1` (SessionStart) | session start | L0 | fail-soft | ADR-70 (5c) |
 | `propose_closures.py` (Stop) | session end | plugin · Tier-1 | **propose-only** (never mutates BACKLOG) | ADR-70 |
-| `session_end_backpressure.py` (Stop) | session end | hub | fail-soft | #126 |
+| `session_end_backpressure.py` (Stop) | session end | hub | hard-block on detected non-compliance (JOURNAL leg), fail-open on internal error (no deadlock); BACKLOG advisory | #126; ADR-85 |
 | `verify` (skill) | invoked per numbered step | hub | advisory (pytest+ruff+git) | #104 (home #9 open) |
 | `gotchas` (skill) | auto-consulted before edits | L0 | advisory | global |
 | `artifact-reader` (agent) | reading a >20k-token artifact | hub | read-only (Read/Grep/Glob) | #97 |

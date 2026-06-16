@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-12
+last_reviewed: 2026-06-16
 status: active
 owner: Rob
 ---
@@ -186,3 +186,9 @@ Protocol: `protocols/HANDOFF_PROCESS.md` — **v5** (stamp v5.0, *stable*; ADR-8
 Claude Code command: **`/handoff`** — `create handoff for <repo>` has CC emit the **residual** + **probe manifest** under `docs/handoffs/<slug>/` and point the next browser at the thin boot (`protocols/HANDOFF_BOOT.md`); `complete handoff for <repo>` cross-checks repo state and finalizes. `<repo>` defaults to `.dev-knowledge` (self-handoff). Not `/session-summary` — that is a separate session-summary command, not the handoff generator.
 
 `BACKLOG.md` (root): cross-session pending items per ADR-41. Universal mandate (ADR-38 amendment A5 — every repo, no tier gating). Review before chartering new session.
+
+## Definition of done (session close)
+
+<!-- scope: meta -->
+
+`protocols/DEFINITION_OF_DONE.md` is the single source of truth for what "done" means at session close (ADR-85): a session that produces commits adds a `JOURNAL.md` entry naming ≥1 commit SHA from this arc (**hard-gated**), and should update `BACKLOG.md` with a structural marker (**advisory** in v1). It is enforced **mechanically and deterministically** by the session-end Stop-hook (`scripts/session_end_backpressure.py`) — no LLM in the gate — and the only escape is `/override [reason]`. The other living docs (`ARCHITECTURE`, `VISION`, `LESSONS`, this file) are "update when materially affected", not per-session-gated. Pointer only — the rules live in that file, not here (resident copies drift).
