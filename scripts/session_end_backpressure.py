@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""session_end_backpressure.py — #8 Stop-hook session-end backpressure.
+"""session_end_backpressure.py — #8 Stop-hook session-end backpressure + ADR-85 gate.
 
 A SEPARATE hub-local Stop hook (wired in `.claude/settings.json`, NOT the
 fleet-distributed `tier1-lifecycle` plugin). Hub hygiene concepts (JOURNAL,
@@ -7,37 +7,63 @@ canonical-freshness cadence) don't belong in the child-repo plugin until the
 ADR-78 floor verdict defines child-visible hygiene — Q2 ruling 2026-06-07. It runs
 alongside the plugin's Stop->propose_closures hook (both fire; results merge).
 
-At each turn Stop it runs DETERMINISTIC session-end hygiene checks (NO LLM
-judgment — ADR-74) and, if any trips, emits `hookSpecificOutput.additionalContext`
-so the turn CONTINUES and the agent can repair before truly stopping. Line format
-is the backpressure shape: `what failed -> expected -> directive`.
+At each turn Stop it runs DETERMINISTIC session-end hygiene checks (NO LLM judgment —
+ADR-74, ADR-85). Two output modes:
 
-Stop-hook contract (verified at CC 2.1.168): `additionalContext` reaches the model
-ONLY via VALID JSON on stdout — plain stdout from a Stop hook goes to the debug log
-only (Stop is not among the plain-stdout-as-context events). So this prints JSON
-and nothing else. Fail-soft: ANY error -> emit nothing, exit 0 (never wedge a stop).
+  * HARD GATE (ADR-85) — the JOURNAL commit-SHA anchor. When it trips, the hook emits
+    `{"decision": "block", "reason": ...}` so the turn is BLOCKED and cannot stop. The
+    only exit is `/override [reason]` (logged, HEAD-bound — see `_override_active`).
+  * ADVISORY backpressure — BACKLOG marker (interim, ADR-85 R1), dirty tree, canonical
+    cadence. When one trips (and no hard leg has), the hook emits
+    `hookSpecificOutput.additionalContext` so the turn CONTINUES and the agent can repair
+    before truly stopping. Line format: `what failed -> expected -> directive`.
 
-Checks (all deterministic, all this-session-repairable):
-  1. dirty tree         — uncommitted changes at a stop (git-discipline).
-  2. journal-for-shipped — commits landed beyond base with no JOURNAL entry.
-  3. canonical cadence   — a canonical living doc edited in the arc without a
-                           last_reviewed re-stamp (the freshness cadence).
-Deliberately OUT of scope: cross-repo fleet health — it is surfaced at SessionStart
-by fleet_health.py and is largely not this-session-repairable, so per-turn nagging
-on it would be noise, contrary to the backpressure principle (flag only what should
-be repaired now).
+Stop-hook contract (verified at CC 2.1.168): a JSON `{"decision":"block","reason":...}` on
+stdout blocks the stop; `hookSpecificOutput.additionalContext` reaches the model as a soft
+nudge. Both reach the model ONLY via VALID JSON on stdout — plain stdout from a Stop hook
+goes to the debug log only. So this prints JSON and nothing else.
+
+Fail-soft is preserved as the deadlock-guard: every check is wrapped so ANY error yields
+no finding, and the hard block fires ONLY on a positive detection (never on an exception).
+So a bug can never wedge a stop un-overridably — the gate is fail-closed on real
+non-compliance, fail-open on its own errors.
+
+Checks (all deterministic, all this-session-repairable, all gated to a clean tree = a
+plausible wrap, so mid-work turns are not nagged):
+  HARD:
+    1. journal SHA anchor  — commits landed beyond base but no session commit-SHA appears
+                             in the JOURNAL.md entry for the arc (supersedes the older
+                             advisory journal-PRESENCE check, which the SHA anchor subsumes).
+  ADVISORY:
+    2. backlog marker      — commits landed beyond base with no structural-marker change in
+                             BACKLOG.md (ADR-85 R1: advisory in v1; promoted to a hard block
+                             when the traceability-spine gives it an airtight anchor).
+    3. dirty tree          — uncommitted changes at a stop (git-discipline).
+    4. canonical cadence   — a canonical living doc edited in the arc without a
+                             last_reviewed re-stamp (the freshness cadence).
+Deliberately OUT of scope: cross-repo fleet health — surfaced at SessionStart by
+fleet_health.py and largely not this-session-repairable, so per-turn nagging on it would be
+noise, contrary to the backpressure principle (flag only what should be repaired now).
 """
 
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _JOURNAL = "JOURNAL.md"
+_BACKLOG = "BACKLOG.md"
 _CANON = ("VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md")
+# Gitignored, HEAD-bound override signal written by `/override` (ADR-85 §4). The hook only
+# READS it (stays a read-only validator per the scripts-are-read-only invariant).
+_TOKEN_PATH = _REPO_ROOT / "logs" / ".session-override-token"
+# Structural-marker delta the BACKLOG advisory looks for: an issue-id, a status keyword, or
+# a checkbox. Matched against ADDED diff lines only.
+_BACKLOG_MARKER_RE = re.compile(r"\[#\d+\]|status:|\[[ xX]\]")
 
 
 def _git(*args):
@@ -59,6 +85,99 @@ def _base_ref() -> str:
     return "main"
 
 
+def _head_sha() -> str | None:
+    r = _git("rev-parse", "HEAD")
+    return r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else None
+
+
+def _session_shas() -> list[str]:
+    """Full SHAs of the commits this session shipped beyond base (base..HEAD)."""
+    base = _base_ref()
+    r = _git("rev-list", f"{base}..HEAD")
+    if r.returncode != 0:
+        return []
+    return [ln.strip() for ln in r.stdout.splitlines() if ln.strip()]
+
+
+def _added_lines(path: str) -> str:
+    """ADDED ('+', not '+++') diff lines for `path` across the arc base..HEAD, joined."""
+    base = _base_ref()
+    diff = _git("log", f"{base}..HEAD", "-p", "--format=", "--", path)
+    if diff.returncode != 0:
+        return ""
+    return "\n".join(
+        ln for ln in diff.stdout.splitlines()
+        if ln.startswith("+") and not ln.startswith("+++")
+    )
+
+
+def _override_active() -> bool:
+    """True iff a valid `/override` token records the CURRENT HEAD (ADR-85 §4).
+
+    Pure read — never writes or deletes (keeps the hook a read-only validator). The token
+    is HEAD-bound: it allows the gate while HEAD is unchanged and re-arms automatically the
+    moment a new commit lands (a fresh commit moves HEAD, invalidating the token). Fail-soft:
+    a missing/garbled token -> not active.
+    """
+    try:
+        if not _TOKEN_PATH.exists():
+            return False
+        tok = json.loads(_TOKEN_PATH.read_text(encoding="utf-8"))
+        head = _head_sha()
+        return bool(head) and tok.get("head") == head
+    except Exception:
+        return False
+
+
+# --- HARD leg (ADR-85) ------------------------------------------------------
+
+def check_journal_sha_anchor():
+    """HARD: commits shipped beyond base but no session commit-SHA in the JOURNAL.md arc.
+
+    The SHA anchor is what makes this un-gameable — a generic "did work" line does not pass;
+    the entry must name a real commit from this arc. Supersedes the older advisory
+    journal-PRESENCE check (presence without a SHA no longer passes). Matches on the 7-char
+    short prefix so any-length reference in the journal (7..40 chars) is caught.
+    """
+    if not _is_clean():  # only at a plausible wrap; skip mid-work
+        return None
+    shas = _session_shas()
+    if not shas:  # nothing shipped beyond base -> nothing to anchor
+        return None
+    added = _added_lines(_JOURNAL)
+    if any(sha[:7] in added for sha in shas):
+        return None
+    shorts = ", ".join(sha[:7] for sha in shas[:3])
+    more = f" +{len(shas) - 3} more" if len(shas) > 3 else ""
+    base = _base_ref()
+    return (f"JOURNAL (hard): {len(shas)} commit(s) ahead of {base} but no session "
+            f"commit-SHA in the {_JOURNAL} entry -> add/extend a JOURNAL entry naming >=1 "
+            f"SHA from this arc [{shorts}{more}] (DEFINITION_OF_DONE 'JOURNAL').")
+
+
+# --- ADVISORY legs ----------------------------------------------------------
+
+def check_backlog_marker():
+    """ADVISORY (ADR-85 R1): commits shipped but no structural-marker change in BACKLOG.md.
+
+    A nudge, not a block, in v1: the marker check is gameable and not always-warranted (per
+    'done tasks leave the file', a session that advances but finishes no task warrants no
+    backlog edit), so hard-gating it would manufacture false-positives. Promoted to a hard
+    block when the traceability-spine ADR gives it an airtight issue-id<->commit anchor.
+    """
+    if not _is_clean():
+        return None
+    shas = _session_shas()
+    if not shas:
+        return None
+    if _BACKLOG_MARKER_RE.search(_added_lines(_BACKLOG)):
+        return None
+    return (f"BACKLOG (advisory): {len(shas)} commit(s) ahead of {_base_ref()} with no "
+            f"structural-marker change in {_BACKLOG} -> if this session advanced or closed a "
+            f"tracked task, reflect it ([#id]/status/checkbox); a pure advance that finishes "
+            f"nothing needs none (DEFINITION_OF_DONE 'BACKLOG').")
+
+
 def check_dirty_tree():
     r = _git("status", "--porcelain")
     if r.returncode != 0:
@@ -70,25 +189,6 @@ def check_dirty_tree():
     more = f" +{len(changes) - 3} more" if len(changes) > 3 else ""
     return (f"dirty tree: {len(changes)} uncommitted change(s) [{sample}{more}] "
             f"-> expected clean at wrap -> commit or stash (git-discipline).")
-
-
-def check_journal_for_shipped_session():
-    # only meaningful on a clean tree (a plausible wrap); skip while mid-work dirty
-    if not _is_clean():
-        return None
-    base = _base_ref()
-    log = _git("log", f"{base}..HEAD", "--name-only", "--format=")
-    if log.returncode != 0:
-        return None
-    touched = {ln.strip() for ln in log.stdout.splitlines() if ln.strip()}
-    if not touched:
-        return None  # nothing shipped beyond base
-    if _JOURNAL in touched:
-        return None  # journal already updated in the shipped arc
-    cnt = _git("rev-list", "--count", f"{base}..HEAD")
-    n = cnt.stdout.strip() if cnt.returncode == 0 else "some"
-    return (f"JOURNAL: {n} commit(s) ahead of {base} with no {_JOURNAL} update "
-            f"-> expected a session entry -> prepend one (ESSENTIALS 'Ending a Session').")
 
 
 def check_canonical_freshness():
@@ -117,12 +217,13 @@ def check_canonical_freshness():
             f"(CLAUDE 'Freshness cadence').")
 
 
-_CHECKS = (check_dirty_tree, check_journal_for_shipped_session, check_canonical_freshness)
+_HARD_CHECKS = (check_journal_sha_anchor,)
+_ADVISORY_CHECKS = (check_backlog_marker, check_dirty_tree, check_canonical_freshness)
 
 
-def gather():
+def gather(checks):
     lines = []
-    for chk in _CHECKS:
+    for chk in checks:
         try:
             r = chk()
         except Exception:
@@ -134,20 +235,31 @@ def gather():
 
 def main() -> int:
     try:
-        lines = gather()
-        if not lines:
-            return 0  # all clear -> silent (no JSON, nothing surfaced)
-        ctx = ("Session-end hygiene (deterministic backpressure — repair before "
-               "stopping):\n- " + "\n- ".join(lines))
-        print(json.dumps({
-            "hookSpecificOutput": {
-                "hookEventName": "Stop",
-                "additionalContext": ctx,
-            }
-        }))
-        return 0
+        if _override_active():
+            return 0  # explicit, logged, HEAD-bound override -> allow (ADR-85 §4)
+        hard = gather(_HARD_CHECKS)
+        advisory = gather(_ADVISORY_CHECKS)
+        if hard:  # HARD GATE — block the stop; fold advisory in so nothing is lost
+            reason = (
+                "Session-end gate BLOCKED (deterministic; ADR-85) — repair before stopping:"
+                "\n- " + "\n- ".join(hard + advisory)
+                + "\nIf this block is wrong, exit via `/override [reason]` (logged)."
+            )
+            print(json.dumps({"decision": "block", "reason": reason}))
+            return 0
+        if advisory:  # soft backpressure — turn continues, agent repairs
+            ctx = ("Session-end hygiene (deterministic backpressure — repair before "
+                   "stopping):\n- " + "\n- ".join(advisory))
+            print(json.dumps({
+                "hookSpecificOutput": {
+                    "hookEventName": "Stop",
+                    "additionalContext": ctx,
+                }
+            }))
+            return 0
+        return 0  # all clear -> silent
     except Exception:
-        return 0  # fail-soft: never wedge a stop
+        return 0  # fail-soft: never wedge a stop on the hook's own error
 
 
 if __name__ == "__main__":
