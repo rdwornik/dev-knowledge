@@ -28,19 +28,20 @@ Stop-hook contract — CORRECTED (CC 2.1.178; code.claude.com/docs/en/hooks):
     auto-overrides. That auto-override is the "persistence beats policy" bypass ADR-85
     forbids. (This corrects the original "advisory = exit-0, non-blocking" premise, which was
     wrong: there is no Stop-hook output that surfaces a nudge AND cleanly allows the stop.)
-  - `stop_hook_active` is NOT in the CC-2.1.178 Stop-hook stdin schema (verified against the
-    docs). So a fire-once-on-retry scheme cannot be the load-bearing guarantee here.
+  - `stop_hook_active` IS present in this CC runtime's Stop-hook stdin (witnessed live at the
+    2026-06-16 wrap: the advisory surfaced, which only happens on `stop_hook_active is False`).
+    The docs page omits it, but the runtime is authoritative. So fire-once is live here — and
+    the floor below makes the guarantee hold even where the field is absent.
 
 Therefore advisory legs CANNOT loop:
-  - STRUCTURAL FLOOR (the active guarantee): advisory-only output never keeps the turn going.
-    When no hard leg has tripped, advisory findings are NOT surfaced standalone (the hook
-    stays silent and the turn ends); they ride along only when folded into a hard block
-    (where the turn is already kept going by the JOURNAL teeth). No standalone keep-going =>
-    no advisory loop, with zero dependency on `stop_hook_active`.
-  - FIRE-ONCE (defense-in-depth, dormant in CC 2.1.178): IF a runtime ever supplies
-    `stop_hook_active`, surface the advisory once on the first attempt (field present+False)
-    and suppress on the retry (field True). Currently the field is absent, so this never
-    fires and the floor is what runs.
+  - FIRE-ONCE (active): when `stop_hook_active` is present, surface the advisory once on the
+    first attempt (field present+False) and suppress on the retry (field True) -> at most one
+    keep-going per stop arc, so it can never reach the cap.
+  - STRUCTURAL FLOOR (backstop): when the field is ABSENT (any context that omits it),
+    `data.get("stop_hook_active") is False` is False -> advisory-only output is NOT surfaced
+    standalone (the hook stays silent, the turn ends); advisory rides along only when folded
+    into a hard block (where the turn is already kept going by the JOURNAL teeth). No
+    standalone keep-going => no advisory loop, with zero dependency on `stop_hook_active`.
 The HARD leg deliberately ignores `stop_hook_active` — honoring it would make the gate
 fire-once = the very antipattern ADR-85 forbids. It relies on COMPLIANCE, not the cap.
 
@@ -339,10 +340,13 @@ def main() -> int:
         # standalone advisory on a PERSISTENT condition would keep the turn going every retry
         # -> the block-cap auto-overrides (the bypass ADR-85 forbids). Surface advisory
         # standalone ONLY on a first-attempt signal we can fire-once on (stop_hook_active
-        # present AND False). Absent that signal — the CC-2.1.178 reality, where the field is
-        # not sent — the STRUCTURAL FLOOR applies: stay silent, let the turn end. No standalone
-        # keep-going => advisory can never loop, with zero dependency on stop_hook_active.
-        if data.get("stop_hook_active") is False:  # dormant in CC 2.1.178 (field absent)
+        # present AND False); on a retry (True) or with the field absent, stay silent.
+        # FIRE-ONCE is ACTIVE: this CC runtime DOES send stop_hook_active in the Stop stdin
+        # (witnessed live at the 2026-06-16 wrap — the field is present despite the docs page
+        # omitting it). The STRUCTURAL FLOOR (the `is False` guard failing closed to silence)
+        # remains the backstop for any context that omits the field. Either way no standalone
+        # keep-going can repeat => advisory can never loop to the cap.
+        if data.get("stop_hook_active") is False:
             advisory = gather(_ADVISORY_CHECKS)
             if advisory:
                 ctx = ("Session-end hygiene (deterministic backpressure — repair before "
