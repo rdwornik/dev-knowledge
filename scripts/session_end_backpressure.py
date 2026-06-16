@@ -11,17 +11,41 @@ At each turn Stop it runs DETERMINISTIC session-end hygiene checks (NO LLM judgm
 ADR-74, ADR-85). Two output modes:
 
   * HARD GATE (ADR-85) — the JOURNAL commit-SHA anchor. When it trips, the hook emits
-    `{"decision": "block", "reason": ...}` so the turn is BLOCKED and cannot stop. The
-    only exit is `/override [reason]` (logged, HEAD-bound — see `_override_active`).
+    `{"decision": "block", "reason": ...}` so the turn is BLOCKED and cannot stop. It
+    blocks-until-compliant (the agent satisfies it by naming a session SHA in JOURNAL.md);
+    the only manual exit is `/override [reason]` (logged, HEAD-bound — see `_override_active`).
   * ADVISORY backpressure — BACKLOG marker (interim, ADR-85 R1), dirty tree, canonical
-    cadence. When one trips (and no hard leg has), the hook emits
-    `hookSpecificOutput.additionalContext` so the turn CONTINUES and the agent can repair
-    before truly stopping. Line format: `what failed -> expected -> directive`.
+    cadence. Surfaced via `hookSpecificOutput.additionalContext`. Line format:
+    `what failed -> expected -> directive`.
 
-Stop-hook contract (verified at CC 2.1.168): a JSON `{"decision":"block","reason":...}` on
-stdout blocks the stop; `hookSpecificOutput.additionalContext` reaches the model as a soft
-nudge. Both reach the model ONLY via VALID JSON on stdout — plain stdout from a Stop hook
-goes to the debug log only. So this prints JSON and nothing else.
+Stop-hook contract — CORRECTED (CC 2.1.178; code.claude.com/docs/en/hooks):
+  - `{"decision":"block","reason":...}` blocks the stop (counts toward CC's block-cap, which
+    force-ends the turn after N consecutive blocks — v2.1.143).
+  - `hookSpecificOutput.additionalContext` is NOT a clean allow: per v2.1.163 it "continues
+    the conversation so Claude can act on the feedback" — i.e. it KEEPS THE TURN GOING. So an
+    "advisory" that re-emits additionalContext on a condition that PERSISTS across stop
+    attempts keeps the turn going every retry -> N consecutive keep-goings -> the block-cap
+    auto-overrides. That auto-override is the "persistence beats policy" bypass ADR-85
+    forbids. (This corrects the original "advisory = exit-0, non-blocking" premise, which was
+    wrong: there is no Stop-hook output that surfaces a nudge AND cleanly allows the stop.)
+  - `stop_hook_active` is NOT in the CC-2.1.178 Stop-hook stdin schema (verified against the
+    docs). So a fire-once-on-retry scheme cannot be the load-bearing guarantee here.
+
+Therefore advisory legs CANNOT loop:
+  - STRUCTURAL FLOOR (the active guarantee): advisory-only output never keeps the turn going.
+    When no hard leg has tripped, advisory findings are NOT surfaced standalone (the hook
+    stays silent and the turn ends); they ride along only when folded into a hard block
+    (where the turn is already kept going by the JOURNAL teeth). No standalone keep-going =>
+    no advisory loop, with zero dependency on `stop_hook_active`.
+  - FIRE-ONCE (defense-in-depth, dormant in CC 2.1.178): IF a runtime ever supplies
+    `stop_hook_active`, surface the advisory once on the first attempt (field present+False)
+    and suppress on the retry (field True). Currently the field is absent, so this never
+    fires and the floor is what runs.
+The HARD leg deliberately ignores `stop_hook_active` — honoring it would make the gate
+fire-once = the very antipattern ADR-85 forbids. It relies on COMPLIANCE, not the cap.
+
+Both decision-paths reach the model ONLY via VALID JSON on stdout — plain stdout from a Stop
+hook goes to the debug log only. So this prints JSON and nothing else.
 
 Fail-soft is preserved as the deadlock-guard: every check is wrapped so ANY error yields
 no finding, and the hard block fires ONLY on a positive detection (never on an exception).
@@ -52,6 +76,7 @@ import json
 import re
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -129,6 +154,58 @@ def _override_active() -> bool:
         return False
 
 
+def _read_hook_input() -> dict:
+    """Parse the Stop-hook JSON payload from stdin; fail-soft to {} (field-absent -> floor).
+
+    CC 2.1.178 does NOT send `stop_hook_active`, so this is normally `{}` or a dict without
+    that key — which drives the structural floor. A runtime that DOES send it enables the
+    dormant fire-once path. Never raises (no stdin / non-JSON -> {}).
+    """
+    try:
+        raw = sys.stdin.read()
+    except Exception:
+        return {}
+    if not raw or not raw.strip():
+        return {}
+    try:
+        data = json.loads(raw)
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _today() -> date:
+    """Today's local date — seam for tests (the same-day freshness exemption pivots on it)."""
+    return date.today()
+
+
+_FM_LAST_REVIEWED_RE = re.compile(r"^last_reviewed:\s*(\d{4}-\d{2}-\d{2})\s*$", re.MULTILINE)
+
+
+def _current_last_reviewed(doc: str) -> date | None:
+    """The `last_reviewed` ISO date from `doc`'s YAML frontmatter, or None. Pure read, fail-soft.
+
+    Bounds the search to the frontmatter block (the leading `---`…`---`) so a `last_reviewed`
+    mention in body prose can't match. Returns None on missing file / no frontmatter / no key
+    / unparseable date.
+    """
+    try:
+        text = (_REPO_ROOT / doc).read_text(encoding="utf-8")
+    except Exception:
+        return None
+    if not text.startswith("---"):
+        return None
+    end = text.find("\n---", 3)
+    front = text[:end] if end != -1 else text
+    m = _FM_LAST_REVIEWED_RE.search(front)
+    if not m:
+        return None
+    try:
+        return date.fromisoformat(m.group(1))
+    except ValueError:
+        return None
+
+
 # --- HARD leg (ADR-85) ------------------------------------------------------
 
 def check_journal_sha_anchor():
@@ -196,10 +273,17 @@ def check_canonical_freshness():
     if not _is_clean():
         return None
     base = _base_ref()
+    today = _today()
     stale = []
     for doc in _CANON:
         names = _git("log", f"{base}..HEAD", "--name-only", "--format=", "--", doc)
         if names.returncode != 0 or doc not in names.stdout:
+            continue
+        # Same-day exemption (#142): if last_reviewed already == today, the doc is fresh by
+        # definition today and re-stamping is a no-op diff — so this leg could NEVER be
+        # cleared. Firing here is a false-positive that the agent can't repair; with
+        # additionalContext keeping the turn going, it would loop. Skip it.
+        if _current_last_reviewed(doc) == today:
             continue
         diff = _git("log", f"{base}..HEAD", "-p", "--format=", "--", doc)
         if diff.returncode != 0:
@@ -237,9 +321,13 @@ def main() -> int:
     try:
         if _override_active():
             return 0  # explicit, logged, HEAD-bound override -> allow (ADR-85 §4)
+        data = _read_hook_input()
         hard = gather(_HARD_CHECKS)
-        advisory = gather(_ADVISORY_CHECKS)
-        if hard:  # HARD GATE — block the stop; fold advisory in so nothing is lost
+        if hard:  # HARD GATE — block the stop; fold advisory in so nothing is lost.
+            # The hard leg IGNORES stop_hook_active (teeth): it blocks until the JOURNAL names
+            # a session SHA. Advisory findings ride inside the block reason — the turn is
+            # already kept going by the block, so surfacing them here adds no loop.
+            advisory = gather(_ADVISORY_CHECKS)
             reason = (
                 "Session-end gate BLOCKED (deterministic; ADR-85) — repair before stopping:"
                 "\n- " + "\n- ".join(hard + advisory)
@@ -247,17 +335,26 @@ def main() -> int:
             )
             print(json.dumps({"decision": "block", "reason": reason}))
             return 0
-        if advisory:  # soft backpressure — turn continues, agent repairs
-            ctx = ("Session-end hygiene (deterministic backpressure — repair before "
-                   "stopping):\n- " + "\n- ".join(advisory))
-            print(json.dumps({
-                "hookSpecificOutput": {
-                    "hookEventName": "Stop",
-                    "additionalContext": ctx,
-                }
-            }))
-            return 0
-        return 0  # all clear -> silent
+        # No hard block. additionalContext "continues the conversation" (CC v2.1.163), so a
+        # standalone advisory on a PERSISTENT condition would keep the turn going every retry
+        # -> the block-cap auto-overrides (the bypass ADR-85 forbids). Surface advisory
+        # standalone ONLY on a first-attempt signal we can fire-once on (stop_hook_active
+        # present AND False). Absent that signal — the CC-2.1.178 reality, where the field is
+        # not sent — the STRUCTURAL FLOOR applies: stay silent, let the turn end. No standalone
+        # keep-going => advisory can never loop, with zero dependency on stop_hook_active.
+        if data.get("stop_hook_active") is False:  # dormant in CC 2.1.178 (field absent)
+            advisory = gather(_ADVISORY_CHECKS)
+            if advisory:
+                ctx = ("Session-end hygiene (deterministic backpressure — repair before "
+                       "stopping):\n- " + "\n- ".join(advisory))
+                print(json.dumps({
+                    "hookSpecificOutput": {
+                        "hookEventName": "Stop",
+                        "additionalContext": ctx,
+                    }
+                }))
+                return 0
+        return 0  # floor / all-clear / retry -> silent, turn ends
     except Exception:
         return 0  # fail-soft: never wedge a stop on the hook's own error
 

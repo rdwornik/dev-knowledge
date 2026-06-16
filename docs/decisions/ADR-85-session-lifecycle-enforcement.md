@@ -30,6 +30,28 @@ The human is the manual trigger at every session end, reciting which canonical d
 - **`/wrap` operator routine as primary:** still a human trigger — fails the core goal.
 - **Auto-allow after N retries:** trains the agent to loop until the gate yields.
 
+## Amendment — 2026-06-16 (CC implementation correction; defect fix, not a new decision)
+The v1 hook exposed a **contract error** in this ADR's framing. A Stop hook's
+`hookSpecificOutput.additionalContext` is **not** a clean allow: per CC changelog v2.1.163 it
+"continues the conversation" — it **keeps the turn going** — and consecutive keep-goings count
+toward CC's block-cap (v2.1.143), which auto-overrides the turn. So the "advisory = exit-0,
+non-blocking" premise (Decision 3 / R3) was **wrong**: an advisory built on additionalContext
+**loops to the cap** when its condition persists across stop attempts (a no-task session's
+BACKLOG-no-marker — the *correct* state per the DoD — or freshness same-day, where re-stamping
+is a no-op diff) → the exact "persistence beats policy" auto-bypass §4 / "Alternatives
+rejected" forbid. Witnessed live: "a hook blocked the turn from ending 9 consecutive times —
+overriding and ending turn."
+
+Realized fix: advisory legs are made guaranteed-terminating by a **structural floor** —
+advisory-only output never keeps the turn going; advisory rides **only** folded inside a hard
+block. This is the *load-bearing* guarantee, because `stop_hook_active` is **NOT** in the
+CC-2.1.178 Stop-hook stdin schema (verified) so a fire-once-on-retry scheme cannot carry it; a
+fire-once path is wired but **dormant** (activates only if a runtime ever supplies the field).
+The **hard JOURNAL leg is unchanged** and explicitly does **NOT** honor `stop_hook_active`
+(honoring it = fire-once = the forbidden antipattern); it terminates by *compliance*, never the
+cap. Fix commit `8840b33`; tests reproduce the keep-going loop red→green. See JOURNAL &
+LESSONS 2026-06-16.
+
 ## Links
 - Council verdict: `council-out-20260616_131123-pick-council-brief-session-lifecycle-enforcement.md`
 - Coupled decisions: traceability-spine (R1), handoff-supplement (the DoD-via-handoff is process-context-in-handoff), conformance-dashboard (R2).
