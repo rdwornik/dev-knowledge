@@ -1,7 +1,7 @@
 # HANDOFF_PROCESS v5
 <!-- scope: meta -->
 
-Version: 5.0
+Version: 5.1
 Status: stable
 Effective: 2026-06-11 (canonical)
 Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149)
@@ -315,7 +315,11 @@ operator-context beat:
   the residual structurally cannot be. It restores the v4 interview's **operator-injection** function
   **without** the gap-filling — it is **not** the v4 eight-file interview (the residual fills the gaps
   now), just the one ask. Local proof of the gap: this track's own `profile ↔ repo` overlap finding
-  was browser-side and nearly lost for want of this channel.
+  was browser-side and nearly lost for want of this channel. **(v5.1 reconciliation):** the outbound
+  interview's Q6 now captures off-repo context **at handoff time** (carried in `SUPPLEMENT.md` — see
+  *Architect strategic supplement* below), so this inbound beat narrows to the lighter *"anything
+  changed since the supplement was written?"* — **kept** (operator intent can shift between sessions),
+  its role refined, not duplicated.
 - **(e) Open architecture questions** travel as residual — the design decisions not yet made,
   surfaced (not buried) so the next session resumes the design rather than rediscovering it.
 
@@ -334,6 +338,64 @@ execution departed from the plan), the **drift-flags** (§2 — reality vs the w
 and the **BACKLOG pointer + drift-flag** (§6). v5 §2 + §6 **are** the architect's inbound
 signal. Architect mode adds **no** return-leg artifact — adding one would re-create the v4
 hand-maintained-surface disease (§12).
+
+### Architect strategic supplement — interview extraction (v5.1)
+
+v5's one structural gap: the architect's strategic *why* — the intent, the tensions weighed, the
+options rejected — originates in the **browser** (Layer 1), but the residual is **CC-emitted**
+(repo-derived), so CC structurally cannot emit that *why*. v5.0 leaned on operator-relay (human
+memory) for it. v5.1 closes the gap by making it a **first-class advisory supplement produced by a
+structured interview** — the operator *relays* a production line, never decides what goes in.
+**Architect-mode-additive only; the v5 model (§§1–12) and execution mode are unchanged.**
+
+**The flow (operator relays, never authors):**
+
+1. On `/handoff … architect`, CC emits — alongside the residual + probes + drift-flags — a
+   **paste-ready interview block**: the fixed schema below, rendered flat + fenced (the §4
+   browser-paste discipline), sourced from `templates/handoff/v5/SUPPLEMENT.md.tmpl`. CC MAY append
+   1–2 session-specific items it observed (e.g. an option it saw rejected); it adds nothing else.
+   The block is **not** folded into `RESIDUAL.md` — the assembler folds RESIDUAL into the *next*
+   session's `PASTE_THIS`, and this interview is for the **outgoing** browser, not the incoming one.
+2. The operator pastes the block to the **outgoing** architect-browser — still in context at session
+   end, the only actor holding this session's strategic deliberation.
+3. The browser answers; the operator pastes the answers back; **CC writes `<bundle>/SUPPLEMENT.md`
+   verbatim** (the browser is file-less, so it cannot emit the file — CC writes what the browser
+   produced; **no re-typing**).
+4. `scripts/assemble_paste.py` folds `SUPPLEMENT.md` into `PASTE_THIS.md` (manifest item 4) —
+   **expected in architect mode; `[warn]` if absent** (advisory, so non-fatal). The next session's
+   browser receives it inside the single paste.
+
+**The schema = the interview questions (non-re-derivable *why* ONLY).** Canonical source:
+`templates/handoff/v5/SUPPLEMENT.md.tmpl` (kept generic/portable so the deferred #164 cross-repo
+generator carries it unchanged):
+
+1. **Strategic intent** — what the next session should achieve at the way-of-working level (a
+   design/methodology goal, not a task).
+2. **Tensions weighed** — which design trade-offs were weighed this session, where you landed, and why.
+3. **Considered + rejected** — options considered and rejected, with the reason (so the next session
+   does not relitigate).
+4. **Open questions** — design questions still unresolved or deliberately deferred.
+5. **Decomposition rationale** — why this task-graph shape; what the next session must NOT redo or
+   re-decide.
+6. **Off-repo context** — intent / priorities / changed decisions / findings not in the repo.
+
+**Hard scope constraint (load-bearing — this is what keeps the supplement from becoming the v4
+disease).** The interview asks **only** the *why* above. It **never** elicits repo state, methodology,
+task-state, counts, or SHAs — those stay **source-authoritative + forced-read** (§3/§5). The
+supplement is **advisory, not teeth-bearing**: where any answer touches verifiable state, the existing
+drift-checks (§5/§8) catch staleness; the supplement is never trusted over the repo. `SUPPLEMENT.md`
+is a **per-session transient** — regenerated each handoff, discarded after consumption, exactly like
+`RESIDUAL.md` / `PROBES.md` — **not** a maintained surface, so it does not re-create the v4
+hand-maintained-surface disease (§12). And it is a **forward** brief (outgoing architect → next
+session via `PASTE_THIS`), distinct from the return channel above — it adds **no** return-leg.
+
+**Why this beats v4's interview.** v4 interviewed too, but its answers were summarized into the bundle
+and **not carried 1:1** — lossy. Here the interview **answers ARE the artifact**, carried verbatim and
+advisory: v4's extraction function without v4's loss.
+
+**Relation to beat (d).** Q6 (off-repo context) is captured here at handoff time, so the inbound
+operator-context beat (d) narrows to *"anything changed since?"* The two are **one channel split
+across the session boundary**, not two asks — (d) refined, not duplicated.
 
 Mode is carried by `/handoff … v5 <architect|execution>` (§10 self-updating; default
 `execution`; mode applies only in v5 mode — v4.4 has no modes). Command wiring:
@@ -357,8 +419,9 @@ generation time; **never hand-edited**. Regenerate each handoff by re-running th
 Manifest in order: (0) bundle `HANDOFF_BOOT.md` session-header block (slug/mode/purpose/generated-at,
 extracted up to the first `## ` heading — optional; skipped if the bundle carries no HANDOFF_BOOT.md),
 (1) `protocols/HANDOFF_BOOT.md` (required — browser role file + boot line), (2) `RESIDUAL.md`
-(required), (3) `PROBES.md` (required), (4) `SUPPLEMENT.md` (optional — architect's outgoing
-strategic brief; skipped with a notice if absent). Sections delimited by `\n\n---\n\n` with
+(required), (3) `PROBES.md` (required), (4) `SUPPLEMENT.md` (the v5.1 architect interview answers —
+**expected in architect mode**, optional elsewhere; the assembler `[warn]`s in architect mode /
+`[skip]`s otherwise if absent). Sections delimited by `\n\n---\n\n` with
 `=== <label> ===` headers. P1 orienting answers are **not** embedded — they are obtained only via
 the CC run loop (the teeth of the probe mechanism). The operator pastes `PASTE_THIS.md` as the
 single file; the browser receives the complete role + residual + probes + supplement in one shot.
@@ -455,3 +518,21 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
   to the single-paste flow; P1 orienting answers remain **out** of the payload (the teeth). This is the
   #164-generator's operator-paste slice landed early; the sync-key + cross-repo-routing remainder stays
   #164. §§1–12 unchanged; §13 bundle-shape only. Version unchanged (5.0; additive).
+- v5.1 (2026-06-16, §13 architect strategic supplement — interview extraction) — **Version → 5.1**
+  (first minor bump; additive, architect-mode only). New §13 sub-section "Architect strategic
+  supplement — interview extraction": the architect's strategic *why* (intent · tensions weighed ·
+  options rejected · open questions · decomposition rationale · off-repo context) becomes a
+  **first-class advisory supplement produced by a structured 6-question interview** — CC emits a
+  paste-ready interview block (sourced from `templates/handoff/v5/SUPPLEMENT.md.tmpl`), the operator
+  relays it to the **outgoing** browser, and the browser's answers become `SUPPLEMENT.md` verbatim
+  (no re-typing), which `scripts/assemble_paste.py` folds into `PASTE_THIS` (expected in architect
+  mode; `[warn]` if absent). Closes v5's one structural gap (the *why* originates browser-side but the
+  residual is CC-emitted, so v5.0 leaned on operator-relay / human memory). Hard scope constraint: the
+  interview asks **only** non-re-derivable *why* — never repo state / methodology / task-state (those
+  stay source-authoritative + forced-read, §3/§5); the supplement is advisory, never teeth, and a
+  per-session transient (not a v4-disease maintained surface). §13(d) operator-context beat refined to
+  the lighter "anything changed since the supplement?" check (Q6 captures off-repo context at handoff
+  time); beat kept, not duplicated. Coupled atomic move: `CONTRIBUTING.md` stamp v5.0→v5.1 (the only
+  gate-forced surface; major stays 5, so `CLAUDE.md` / `.claude/commands/handoff.md` unchanged).
+  ADR-82 amended in-file (2026-06-16). §§1–12, §14 unchanged. Refs #159 (operator-context beat),
+  #164 (cross-repo generator — schema kept portable for it).
