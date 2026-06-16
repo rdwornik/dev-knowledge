@@ -9,8 +9,9 @@ Manifest (in order):
   1. protocols/HANDOFF_BOOT.md  (required — browser role file + boot line)
   2. <bundle>/RESIDUAL.md       (required — drift-flags + planning why + task-graph)
   3. <bundle>/PROBES.md         (required — orientation + teeth probes)
-  4. <bundle>/SUPPLEMENT.md     (architect's outgoing strategic brief — the v5.1
-     interview answers; expected in architect mode [warn if absent], optional otherwise)
+  4. <bundle>/SUPPLEMENT.md     (architect strategic supplement — an always-generated
+     fillable file; only its filled-in ANSWERS region folds in, and only when non-empty,
+     since the QUESTIONS are for the OUTGOING browser, not the incoming session)
 
 Output: <bundle>/PASTE_THIS.md  (UTF-8, LF, never hand-edited)
 """
@@ -57,6 +58,30 @@ def _extract_mode(text: str) -> str | None:
     return m.group(1).lower() if m else None
 
 
+_ANSWERS_MARKER_RE = re.compile(r"^.*PASTE CHAT ANSWERS BELOW THIS LINE.*$", re.MULTILINE)
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
+def _extract_answers(text: str) -> str | None:
+    """Return the filled-in ANSWERS region of a SUPPLEMENT.md, or None if unfilled.
+
+    The supplement is generated with a fixed divider line containing
+    'PASTE CHAT ANSWERS BELOW THIS LINE'; the operator pastes the outgoing chat's
+    answers below it. Everything after that divider is the ANSWERS region. The operator
+    scaffolding (HTML comments) and surrounding whitespace are stripped; if nothing
+    substantive remains the supplement is unfilled (cold handoff or not-yet-filled) and
+    None is returned, so the caller does not fold it. Only the ANSWERS region is ever
+    folded — the QUESTIONS are for the OUTGOING browser, not the incoming session.
+
+    No divider present (a legacy / hand-written supplement) -> treat the whole file as
+    answers, preserving the pre-v5.2 whole-file fold for non-conformant inputs.
+    """
+    m = _ANSWERS_MARKER_RE.search(text)
+    region = text[m.end():] if m else text
+    stripped = _HTML_COMMENT_RE.sub("", region).strip()
+    return stripped or None
+
+
 @click.command()
 @click.argument("bundle_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
 def main(bundle_dir: Path) -> None:
@@ -76,30 +101,39 @@ def main(bundle_dir: Path) -> None:
         if header:
             sections.append(("HANDOFF_BOOT.md (session header)", header))
 
-    # Manifest: (label, path, required)
-    manifest: list[tuple[str, Path, bool]] = [
-        ("protocols/HANDOFF_BOOT.md", repo_root / "protocols" / "HANDOFF_BOOT.md", True),
-        ("RESIDUAL.md", bundle_dir / "RESIDUAL.md", True),
-        ("PROBES.md", bundle_dir / "PROBES.md", True),
-        ("SUPPLEMENT.md", bundle_dir / "SUPPLEMENT.md", False),
+    # 1-3. Required sources (inlined verbatim — the file-less browser must RECEIVE them).
+    required: list[tuple[str, Path]] = [
+        ("protocols/HANDOFF_BOOT.md", repo_root / "protocols" / "HANDOFF_BOOT.md"),
+        ("RESIDUAL.md", bundle_dir / "RESIDUAL.md"),
+        ("PROBES.md", bundle_dir / "PROBES.md"),
     ]
-
-    for label, path, required in manifest:
+    for label, path in required:
         if not path.exists():
-            if not required:
-                # Architect mode expects the v5.1 strategic supplement; warn (non-fatal —
-                # the supplement is advisory). Any other mode keeps the silent [skip].
-                if label == "SUPPLEMENT.md" and mode == "architect":
-                    click.echo(
-                        f"[warn] {label} not found — architect mode expects the v5.1 "
-                        "strategic supplement (interview answers); assembling without it",
-                        err=True)
-                else:
-                    click.echo(f"[skip] {label} not found — no supplement section", err=True)
-                continue
             click.echo(f"[error] Required source missing: {path}", err=True)
             sys.exit(1)
         sections.append((label, path.read_text(encoding="utf-8").rstrip()))
+
+    # 4. SUPPLEMENT.md — the architect strategic supplement (an always-generated fillable
+    #    file). Fold ONLY its filled-in ANSWERS region, and ONLY when non-empty: the
+    #    QUESTIONS are for the OUTGOING browser, and an empty ANSWERS section (a cold or
+    #    not-yet-filled handoff) is the defined N/A disposition, not folded. CC never
+    #    fabricates answers, so an unfilled supplement folds nothing — by design.
+    supplement = bundle_dir / "SUPPLEMENT.md"
+    if supplement.exists():
+        answers = _extract_answers(supplement.read_text(encoding="utf-8"))
+        if answers:
+            sections.append(("SUPPLEMENT.md", answers))
+        else:
+            click.echo(
+                "[skip] SUPPLEMENT.md present but ANSWERS empty (cold handoff or "
+                "not-yet-filled) -> not folded; next session uses the section 13(d) beat",
+                err=True)
+    elif mode == "architect":
+        click.echo(
+            "[skip] SUPPLEMENT.md not found — expected generated in architect mode; "
+            "assembling without it", err=True)
+    else:
+        click.echo("[skip] SUPPLEMENT.md not found — no supplement section", err=True)
 
     body = _SECTION_SEP.join(f"=== {label} ===\n\n{content}" for label, content in sections)
     paste_path = bundle_dir / "PASTE_THIS.md"

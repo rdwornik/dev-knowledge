@@ -1,7 +1,7 @@
 # HANDOFF_PROCESS v5
 <!-- scope: meta -->
 
-Version: 5.1
+Version: 5.2
 Status: stable
 Effective: 2026-06-11 (canonical)
 Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149)
@@ -315,11 +315,13 @@ operator-context beat:
   the residual structurally cannot be. It restores the v4 interview's **operator-injection** function
   **without** the gap-filling — it is **not** the v4 eight-file interview (the residual fills the gaps
   now), just the one ask. Local proof of the gap: this track's own `profile ↔ repo` overlap finding
-  was browser-side and nearly lost for want of this channel. **(v5.1 reconciliation):** the outbound
+  was browser-side and nearly lost for want of this channel. **(v5.2 reconciliation):** when the outgoing supplement carries **answers**, the outbound
   interview's Q6 now captures off-repo context **at handoff time** (carried in `SUPPLEMENT.md` — see
   *Architect strategic supplement* below), so this inbound beat narrows to the lighter *"anything
   changed since the supplement was written?"* — **kept** (operator intent can shift between sessions),
-  its role refined, not duplicated.
+  its role refined, not duplicated. **When the supplement is empty** (a cold / `/clear`ed handoff —
+no answers carried), the beat fires **full** — there is nothing to narrow against (the empty
+supplement is the defined cold-handoff disposition; see *Architect strategic supplement* below).
 - **(e) Open architecture questions** travel as residual — the design decisions not yet made,
   surfaced (not buried) so the next session resumes the design rather than rediscovering it.
 
@@ -339,31 +341,45 @@ and the **BACKLOG pointer + drift-flag** (§6). v5 §2 + §6 **are** the archite
 signal. Architect mode adds **no** return-leg artifact — adding one would re-create the v4
 hand-maintained-surface disease (§12).
 
-### Architect strategic supplement — interview extraction (v5.1)
+### Architect strategic supplement (v5.2 — always-generated fillable file)
 
 v5's one structural gap: the architect's strategic *why* — the intent, the tensions weighed, the
 options rejected — originates in the **browser** (Layer 1), but the residual is **CC-emitted**
 (repo-derived), so CC structurally cannot emit that *why*. v5.0 leaned on operator-relay (human
-memory) for it. v5.1 closes the gap by making it a **first-class advisory supplement produced by a
-structured interview** — the operator *relays* a production line, never decides what goes in.
-**Architect-mode-additive only; the v5 model (§§1–12) and execution mode are unchanged.**
+memory). v5.1 made the *why* a first-class advisory artifact — but only *after* the outgoing browser
+answered an **ephemeral terminal interview block**, so a cold / `/clear`ed handoff (no outgoing
+browser in context) produced **no file at all**: a missing-deliverable look, zero git tracking, the
+operator un-led. v5.2 fixes that structurally — the supplement is an **always-generated,
+self-documenting, fillable file**, committed on the handoff branch, folded into the next session
+**only if answered**. **Architect-mode-additive only; the v5 model (§§1–12) and execution mode are
+unchanged.**
 
-**The flow (operator relays, never authors):**
+**The lifecycle (CC generates the file; the operator fills it async; CC commits it; the assembler
+folds it if answered):**
 
-1. On `/handoff … architect`, CC emits — alongside the residual + probes + drift-flags — a
-   **paste-ready interview block**: the fixed schema below, rendered flat + fenced (the §4
-   browser-paste discipline), sourced from `templates/handoff/v5/SUPPLEMENT.md.tmpl`. CC MAY append
-   1–2 session-specific items it observed (e.g. an option it saw rejected); it adds nothing else.
-   The block is **not** folded into `RESIDUAL.md` — the assembler folds RESIDUAL into the *next*
-   session's `PASTE_THIS`, and this interview is for the **outgoing** browser, not the incoming one.
-2. The operator pastes the block to the **outgoing** architect-browser — still in context at session
-   end, the only actor holding this session's strategic deliberation.
-3. The browser answers; the operator pastes the answers back; **CC writes `<bundle>/SUPPLEMENT.md`
-   verbatim** (the browser is file-less, so it cannot emit the file — CC writes what the browser
-   produced; **no re-typing**).
-4. `scripts/assemble_paste.py` folds `SUPPLEMENT.md` into `PASTE_THIS.md` (manifest item 4) —
-   **expected in architect mode; `[warn]` if absent** (advisory, so non-fatal). The next session's
-   browser receives it inside the single paste.
+1. On `/handoff … architect`, CC writes `docs/handoffs/<slug>/SUPPLEMENT.md` **unconditionally** from
+   `templates/handoff/v5/SUPPLEMENT.md.tmpl` — the fixed 6-question *why*-only schema below (CC MAY
+   append 1–2 session-specific items it observed as `A./B.` addenda; it adds nothing else). The file
+   is self-documenting: an operator 3-step header, a **QUESTIONS** section for the **outgoing**
+   architect chat, and an empty **ANSWERS** section below a divider line.
+2. CC commits the file (empty at first) **on the handoff branch** — so the artifact exists and is
+   tracked even when no one fills it. This is the durable record the v5.1 ephemeral block lacked.
+3. The operator copies the QUESTIONS into the **outgoing** architect chat (the chat that did this
+   session's work — the only actor holding this session's strategic deliberation), pastes that chat's
+   answers (combining one or more chats if needed) into the ANSWERS section, and tells CC
+   `supplement filled`.
+4. CC commits the now-filled file on the branch **verbatim** (no re-typing; **CC never fabricates
+   answers**), and `scripts/assemble_paste.py` folds the **ANSWERS region only** into the next
+   session's `PASTE_THIS.md` — **only when non-empty** (the QUESTIONS are for the outgoing browser,
+   not the incoming session).
+
+**Cold-handoff disposition (the defined N/A, not a defect).** When there is **no outgoing chat** to
+ask — a cold / `/clear`ed handoff — the operator leaves ANSWERS **empty**. The empty file is **still
+committed** (a durable record that this session carried no transmissible live *why*); the assembler
+prints an `ANSWERS empty ... not folded` note and folds nothing; the **incoming** architect's §13(d)
+operator-context beat fires **full** (no answers were carried, so there is nothing to narrow against).
+This resolves the first-dogfood finding (the 2026-06-16 bundle `RESIDUAL.md` §2): "expected in
+architect mode" no longer reads as a missing deliverable when there is structurally no one to interview.
 
 **The schema = the interview questions (non-re-derivable *why* ONLY).** Canonical source:
 `templates/handoff/v5/SUPPLEMENT.md.tmpl` (kept generic/portable so the deferred #164 cross-repo
@@ -384,16 +400,21 @@ disease).** The interview asks **only** the *why* above. It **never** elicits re
 task-state, counts, or SHAs — those stay **source-authoritative + forced-read** (§3/§5). The
 supplement is **advisory, not teeth-bearing**: where any answer touches verifiable state, the existing
 drift-checks (§5/§8) catch staleness; the supplement is never trusted over the repo. `SUPPLEMENT.md`
-is a **per-session transient** — regenerated each handoff, discarded after consumption, exactly like
+is a **per-session artifact** — generated fresh each architect handoff and committed for tracking,
+then consumed (its ANSWERS folded) by the next session, exactly like
 `RESIDUAL.md` / `PROBES.md` — **not** a maintained surface, so it does not re-create the v4
 hand-maintained-surface disease (§12). And it is a **forward** brief (outgoing architect → next
 session via `PASTE_THIS`), distinct from the return channel above — it adds **no** return-leg.
 
-**Why this beats v4's interview.** v4 interviewed too, but its answers were summarized into the bundle
+**Why this beats the v5.1 ephemeral relay (and still beats v4).** v5.1 carried answers 1:1 too, but
+its carrier existed **only after** the outgoing browser answered — a cold handoff produced no artifact
+at all (invisible to tracking; the operator not led by hand); v5.2 makes the **file itself** the
+durable workspace + tracking record, existing from generation. v4 interviewed too, but its answers
+were summarized into the bundle
 and **not carried 1:1** — lossy. Here the interview **answers ARE the artifact**, carried verbatim and
 advisory: v4's extraction function without v4's loss.
 
-**Relation to beat (d).** Q6 (off-repo context) is captured here at handoff time, so the inbound
+**Relation to beat (d).** Q6 (off-repo context) is captured here **only when the supplement carries answers**, so the inbound
 operator-context beat (d) narrows to *"anything changed since?"* The two are **one channel split
 across the session boundary**, not two asks — (d) refined, not duplicated.
 
@@ -536,3 +557,18 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
   gate-forced surface; major stays 5, so `CLAUDE.md` / `.claude/commands/handoff.md` unchanged).
   ADR-82 amended in-file (2026-06-16). §§1–12, §14 unchanged. Refs #159 (operator-context beat),
   #164 (cross-repo generator — schema kept portable for it).
+- v5.2 (2026-06-17, §13 architect strategic supplement — always-generated fillable file) — **Version
+  → 5.2** (second minor bump; additive, architect-mode only). The §13 supplement is reworked from a
+  v5.1 **ephemeral terminal interview block** (durable only *after* the outgoing browser answered — a
+  cold/`/clear`ed handoff produced no file, no tracking, no lead-by-hand) into an **always-generated,
+  self-documenting, fillable file**: CC writes `docs/handoffs/<slug>/SUPPLEMENT.md` unconditionally
+  (QUESTIONS for the outgoing chat + an empty ANSWERS section), commits it on the handoff branch for
+  durable tracking, and `scripts/assemble_paste.py` folds the **ANSWERS region only, only when
+  non-empty** into the next `PASTE_THIS` (was: whole-file fold + warn-if-absent). Defines the
+  **cold-handoff disposition** (empty ANSWERS = committed N/A, not folded; the incoming §13(d) beat
+  fires full) — resolving the first-dogfood finding (2026-06-16 `RESIDUAL.md` §2). Contract unchanged:
+  advisory, why-only, never teeth, never fabricated (unanswered = committed empty). Coupled atomic
+  move: `CONTRIBUTING.md` stamp v5.1→v5.2 (the only gate-forced surface; major stays 5, so `CLAUDE.md`
+  / `.claude/commands/handoff.md` unchanged). ADR-82 amended in-file (2026-06-17). §§1–12, §14
+  unchanged. Refs #159 (the real dogfood — mechanism defined here, not yet exercised), #164 (generator
+  must emit the always-file form).

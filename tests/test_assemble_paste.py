@@ -7,6 +7,36 @@ import sys
 from pathlib import Path
 
 SCRIPT = Path(__file__).parent.parent / "scripts" / "assemble_paste.py"
+TEMPLATE = (
+    Path(__file__).parent.parent / "templates" / "handoff" / "v5" / "SUPPLEMENT.md.tmpl"
+)
+
+# The fixed divider the generated SUPPLEMENT.md carries between the QUESTIONS (for the
+# OUTGOING browser) and the operator-pasted ANSWERS (folded into the next paste). The
+# assembler keys on this substring; tests assert answers fold and questions/divider do not.
+_ANSWERS_MARKER = (
+    "===================== PASTE CHAT ANSWERS BELOW THIS LINE ====================="
+)
+# A distinctive QUESTIONS-section substring that must NOT leak into PASTE_THIS (the
+# questions are for the outgoing browser, never the incoming session).
+_QUESTIONS_MARKER = "QUESTIONS — paste these to the outgoing architect chat"
+
+
+def _supplement_text(answers: str = "Strategic brief.") -> str:
+    """A SUPPLEMENT.md in the v5.2 fillable shape: questions + divider + answers region.
+
+    `answers` is the text below the divider (what the operator pastes). Pass "" (or a
+    comment-only / whitespace string) to model an unfilled cold-handoff supplement.
+    """
+    return (
+        "# Architect strategic supplement — test\n\n"
+        f"## {_QUESTIONS_MARKER}\n\n"
+        "1. **Strategic intent** — ...\n"
+        "6. **Off-repo context** — ...\n\n"
+        f"{_ANSWERS_MARKER}\n"
+        "<!-- operator: paste answers here; leave empty if there is no outgoing chat -->\n"
+        f"{answers}\n"
+    )
 
 
 def _make_bundle(
@@ -14,6 +44,7 @@ def _make_bundle(
     *,
     with_handoff_boot: bool = True,
     with_supplement: bool = True,
+    supplement_answers: str = "Strategic brief.",
     mode: str | None = None,
 ) -> tuple[Path, Path]:
     """Create a minimal fake repo tree under tmp_path.
@@ -47,7 +78,7 @@ def _make_bundle(
 
     if with_supplement:
         (bundle / "SUPPLEMENT.md").write_text(
-            "# Supplement\n\nStrategic brief.", encoding="utf-8"
+            _supplement_text(supplement_answers), encoding="utf-8"
         )
 
     # copy the script into tmp_path/scripts/ so repo_root = tmp_path
@@ -67,34 +98,44 @@ def _run(script: Path, bundle: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
+def _labels(paste: str) -> list[str]:
+    return [
+        line.removeprefix("=== ").removesuffix(" ===")
+        for line in paste.splitlines()
+        if line.startswith("=== ")
+    ]
+
+
 # ------------------------------------------------------------------ #
 # Test 1: All five sections present in order (session header + 4 manifest)
 # ------------------------------------------------------------------ #
 
 def test_all_sections_in_order(tmp_path: Path) -> None:
-    """PASTE_THIS.md contains 5 sections in correct order when all sources exist."""
+    """PASTE_THIS.md contains 5 sections in correct order when all sources exist.
+
+    The default bundle's supplement carries pasted answers, so its ANSWERS region folds
+    in as the `SUPPLEMENT.md` section.
+    """
     bundle, script = _make_bundle(tmp_path)
 
     result = _run(script, bundle)
     assert result.returncode == 0, result.stderr
 
     paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
-    section_lines = [line for line in paste.splitlines() if line.startswith("=== ")]
-    labels = [s.removeprefix("=== ").removesuffix(" ===") for s in section_lines]
 
-    assert labels == [
+    assert _labels(paste) == [
         "HANDOFF_BOOT.md (session header)",
         "protocols/HANDOFF_BOOT.md",
         "RESIDUAL.md",
         "PROBES.md",
         "SUPPLEMENT.md",
-    ], f"Unexpected section order: {labels}"
+    ], f"Unexpected section order: {_labels(paste)}"
 
     assert paste.count("\n\n---\n\n") == 4
 
 
 # ------------------------------------------------------------------ #
-# Test 2: Missing SUPPLEMENT skips gracefully
+# Test 2: Missing SUPPLEMENT (non-architect) skips gracefully
 # ------------------------------------------------------------------ #
 
 def test_missing_supplement_skips_gracefully(tmp_path: Path) -> None:
@@ -105,10 +146,7 @@ def test_missing_supplement_skips_gracefully(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert "[skip]" in result.stderr
 
-    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
-    section_lines = [line for line in paste.splitlines() if line.startswith("=== ")]
-    labels = [s.removeprefix("=== ").removesuffix(" ===") for s in section_lines]
-
+    labels = _labels((bundle / "PASTE_THIS.md").read_text(encoding="utf-8"))
     assert "SUPPLEMENT.md" not in labels
     assert "RESIDUAL.md" in labels
     assert "PROBES.md" in labels
@@ -159,7 +197,7 @@ def test_each_source_body_is_inlined_verbatim(tmp_path: Path) -> None:
     # the other source bodies must each appear verbatim
     assert "Drift flags." in paste       # RESIDUAL.md
     assert "P1 probe here." in paste     # PROBES.md
-    assert "Strategic brief." in paste   # SUPPLEMENT.md
+    assert "Strategic brief." in paste   # SUPPLEMENT.md — the folded ANSWERS region
     # the session-header is extracted only up to the first '## ' heading:
     # the slug (before the heading) is inlined; body under the heading is excluded
     assert "test" in paste                  # slug, from the Field/Value table
@@ -187,55 +225,139 @@ def test_regeneration_is_byte_identical(tmp_path: Path) -> None:
 
 
 # ------------------------------------------------------------------ #
-# Test 6: Architect mode + missing SUPPLEMENT warns (v5.1)
+# Test 6: Architect mode + absent SUPPLEMENT skips softly (v5.2)
 # ------------------------------------------------------------------ #
 
-def test_architect_mode_warns_when_supplement_absent(tmp_path: Path) -> None:
-    """Architect mode + missing SUPPLEMENT.md: exit 0, a [warn] (not a silent [skip]).
+def test_architect_mode_absent_supplement_skips_softly(tmp_path: Path) -> None:
+    """Architect mode + missing SUPPLEMENT.md: exit 0, a [skip], NOT a [warn].
 
-    v5.1 §13: the supplement is *expected* in architect mode but advisory, so its
-    absence is a louder [warn] yet still non-fatal — PASTE_THIS.md is written without it.
+    v5.2: the supplement is now *always generated*, so a genuinely-absent file is an
+    anomaly but still non-fatal (advisory) — a soft [skip] noting it is expected, never
+    the old [warn]. PASTE_THIS.md is still written.
     """
     bundle, script = _make_bundle(tmp_path, with_supplement=False, mode="architect")
 
     result = _run(script, bundle)
     assert result.returncode == 0, result.stderr
-    assert "[warn]" in result.stderr
-    assert "architect mode" in result.stderr.lower()
+    assert "[skip]" in result.stderr
+    assert "[warn]" not in result.stderr
+    assert "architect" in result.stderr.lower()
 
-    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
-    labels = [
-        line.removeprefix("=== ").removesuffix(" ===")
-        for line in paste.splitlines() if line.startswith("=== ")
-    ]
+    labels = _labels((bundle / "PASTE_THIS.md").read_text(encoding="utf-8"))
     assert "SUPPLEMENT.md" not in labels  # advisory — still assembles without it
 
 
 # ------------------------------------------------------------------ #
-# Test 7: Architect mode + present SUPPLEMENT is folded in, no warn (v5.1)
+# Test 7: Architect mode + answered SUPPLEMENT folds ANSWERS only (v5.2)
 # ------------------------------------------------------------------ #
 
-def test_architect_mode_with_supplement_present_no_warn(tmp_path: Path) -> None:
-    """Architect mode + present SUPPLEMENT.md: folded into the paste, no [warn]."""
-    bundle, script = _make_bundle(tmp_path, mode="architect")  # with_supplement default True
+def test_architect_mode_answered_supplement_folds_answers_only(tmp_path: Path) -> None:
+    """Architect + answered SUPPLEMENT.md: ANSWERS fold in; QUESTIONS + divider do not."""
+    bundle, script = _make_bundle(tmp_path, mode="architect")  # default answers present
 
     result = _run(script, bundle)
     assert result.returncode == 0, result.stderr
     assert "[warn]" not in result.stderr
 
     paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
-    assert "Strategic brief." in paste  # SUPPLEMENT.md body inlined
+    assert "Strategic brief." in paste            # the ANSWERS region folded in
+    assert _ANSWERS_MARKER not in paste           # the divider is stripped, never folded
+    assert _QUESTIONS_MARKER not in paste          # the questions are for the outgoing browser
 
 
 # ------------------------------------------------------------------ #
-# Test 8: Execution mode keeps the pre-v5.1 silent [skip] (no architect warn)
+# Test 8: Execution mode keeps the silent [skip] (no architect framing)
 # ------------------------------------------------------------------ #
 
 def test_execution_mode_missing_supplement_stays_skip(tmp_path: Path) -> None:
-    """Execution mode keeps the silent [skip] — the architect [warn] must not leak."""
+    """Execution mode keeps the silent [skip] — no architect-specific note, no [warn]."""
     bundle, script = _make_bundle(tmp_path, with_supplement=False, mode="execution")
 
     result = _run(script, bundle)
     assert result.returncode == 0, result.stderr
     assert "[skip]" in result.stderr
     assert "[warn]" not in result.stderr
+
+
+# ------------------------------------------------------------------ #
+# Test 9: Empty ANSWERS — not folded, no-answers note printed (v5.2 core change)
+# ------------------------------------------------------------------ #
+
+def test_empty_answers_not_folded_and_note_printed(tmp_path: Path) -> None:
+    """A generated-but-unfilled SUPPLEMENT.md (cold handoff): present, ANSWERS empty.
+
+    Its QUESTIONS must NOT fold into the paste (they are for the outgoing browser); the
+    assembler prints the defined cold-handoff note instead of folding. This is the core
+    fold-if-answered behaviour change — RED against the pre-v5.2 whole-file fold.
+    """
+    bundle, script = _make_bundle(
+        tmp_path, mode="architect", supplement_answers=""
+    )
+
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    assert "ANSWERS empty" in result.stderr  # the defined cold-handoff note
+
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    assert "SUPPLEMENT.md" not in _labels(paste)   # nothing folded
+    assert _QUESTIONS_MARKER not in paste           # questions never leak into the paste
+    assert _ANSWERS_MARKER not in paste
+
+
+# ------------------------------------------------------------------ #
+# Test 10: Non-empty ANSWERS fold in, questions/divider excluded (v5.2 core change)
+# ------------------------------------------------------------------ #
+
+def test_nonempty_answers_fold_into_paste(tmp_path: Path) -> None:
+    """Filled SUPPLEMENT.md: the pasted answers reach the next session's PASTE_THIS."""
+    bundle, script = _make_bundle(
+        tmp_path, mode="architect", supplement_answers="The why: chose X over Y because Z."
+    )
+
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    assert "ANSWERS empty" not in result.stderr
+
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    assert "SUPPLEMENT.md" in _labels(paste)
+    assert "The why: chose X over Y because Z." in paste
+    assert _ANSWERS_MARKER not in paste
+    assert _QUESTIONS_MARKER not in paste
+
+
+# ------------------------------------------------------------------ #
+# Test 11: Robustness — comment-only / whitespace ANSWERS counts as empty
+# ------------------------------------------------------------------ #
+
+def test_comment_only_answers_counts_as_empty(tmp_path: Path) -> None:
+    """ANSWERS containing only an HTML comment + whitespace is treated as unfilled."""
+    bundle, script = _make_bundle(
+        tmp_path, mode="architect", supplement_answers="<!-- nothing yet -->   \n  \t",
+    )
+
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    assert "ANSWERS empty" in result.stderr
+    assert "SUPPLEMENT.md" not in _labels((bundle / "PASTE_THIS.md").read_text(encoding="utf-8"))
+
+
+# ------------------------------------------------------------------ #
+# Test 12: The canonical template carries the 6 questions + the divider
+# ------------------------------------------------------------------ #
+
+def test_template_carries_questions_and_marker() -> None:
+    """templates/handoff/v5/SUPPLEMENT.md.tmpl is the portable source of the schema."""
+    text = TEMPLATE.read_text(encoding="utf-8")
+
+    assert "PASTE CHAT ANSWERS BELOW THIS LINE" in text       # the fold divider
+    assert "{{SLUG}}" in text                                  # kept generic/portable
+    # the 6 *why*-only questions (substrings inside the bold markers, no marker-crossing)
+    for q in (
+        "Strategic intent",
+        "Tensions weighed",
+        "Considered + rejected",
+        "Open questions",
+        "Decomposition rationale",
+        "Off-repo context",
+    ):
+        assert q in text, f"template missing question: {q}"
