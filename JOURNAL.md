@@ -29,7 +29,9 @@
 
 **Abandoned / surfaced (not papered over):** Did **not** attempt the #168 BACKLOG-advisory *precision* work (fire only on a genuinely-missed marker) — that needs the #170 issue-ID↔commit spine; #168 stays open, blocked on #170. Did **not** add a new "fix-later" item — this *is* the fix. No fabricated markers/dates to silence a leg. The merged branch is left in place (no branch deletion without asking).
 
-**Next:** Dogfood at wrap — the now-fixed gate fires on this very session: the hard JOURNAL leg is satisfied by this entry naming `8840b33`; the BACKLOG advisory by the real #142 delta; freshness same-day now exempt. It should be the first clean wrap. If anything still loops, the fix is incomplete — do not `/override` past it.
+**Next:** Dogfood at wrap — the now-fixed gate fires on this very session: the hard JOURNAL leg is satisfied by this entry naming `8840b33`; freshness same-day now exempt. It should be the first clean wrap. If anything still loops, the fix is incomplete — do not `/override` past it.
+
+**Correction (same-session, witnessed at wrap):** the wrap Stop event surfaced the BACKLOG advisory as `additionalContext` (no block) — which the code emits ONLY on `stop_hook_active is False`, **proving this CC runtime DOES send `stop_hook_active`** (the docs page + a fast-model summary said it was absent; the runtime overruled them). So **fire-once is ACTIVE**, not dormant, and the structural floor is the *backstop* (not the sole guarantee) — both ship; the no-loop property holds either way. The advisory firing is the known **#168** interim imprecision: #142 was closed by *deletion* (done-items-leave, recorded via `[#142]` in `b7fb74f`), and the marker-check only sees *added* markers — a closure-by-deletion is invisible to it. No marker fabricated (forbidden; re-adding #142 would violate done-items-leave). Framing corrected in a follow-up commit; this re-validates witnessed-behavior > doc-read.
 
 ### 2026-06-16 — v5.1 doc-flow completeness verification (delta-matrix, hard-metric closure)
 

@@ -52,6 +52,16 @@ The **hard JOURNAL leg is unchanged** and explicitly does **NOT** honor `stop_ho
 cap. Fix commit `8840b33`; tests reproduce the keep-going loop red→green. See JOURNAL &
 LESSONS 2026-06-16.
 
+**Correction (2026-06-16, same-session, witnessed at wrap):** the claim above that
+`stop_hook_active` is "NOT in the CC-2.1.178 stdin schema … fire-once is dormant" is
+**wrong** — the live Stop event at this session's wrap surfaced the advisory, which the code
+emits *only* on `stop_hook_active is False`, proving the runtime **does** send the field. The
+docs page (and a fast-model summary of it) omitted it; the runtime overruled the doc-read.
+So **fire-once is ACTIVE** (the standalone-nudge mechanism), and the **structural floor is the
+backstop** for any context that omits the field — both ship, the no-loop guarantee holds
+either way. This re-validates the witnessed-behavior-outranks-the-read rule: a doc/summary is
+a lead, not verification.
+
 ## Links
 - Council verdict: `council-out-20260616_131123-pick-council-brief-session-lifecycle-enforcement.md`
 - Coupled decisions: traceability-spine (R1), handoff-supplement (the DoD-via-handoff is process-context-in-handoff), conformance-dashboard (R2).
