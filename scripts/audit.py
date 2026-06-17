@@ -214,6 +214,19 @@ def _strip_jsonc(text: str) -> str:
 
 @dataclass
 class Finding:
+    """One audit/check result — the LOCKED coherence-spine output contract.
+
+    Stable shape: exactly three string fields — `check_name`, `status`, `evidence`.
+    `status` is one of the five-value enum: "pass" | "fail" | "warn" | "unavailable" | "n/a".
+    `evidence` is markdown-table-safe (no literal `|` — emitters replace it with `/`).
+
+    This is the surface the #171 conformance dashboard consumes (ADR-86): the coherence
+    checker emits `check_name == "reconciled_versions"` here (check_reconciled_versions),
+    a `fail` per drifting edge. The shape is LOCKED — do not add/rename fields without
+    updating that consumer. Pinned by tests/test_coherence_integration.py
+    (test_finding_format_is_locked). No dashboard is built yet (#171, v2); this only
+    fixes the format it will read.
+    """
     check_name: str
     status: str          # "pass" | "fail" | "warn" | "unavailable" | "n/a"
     evidence: str

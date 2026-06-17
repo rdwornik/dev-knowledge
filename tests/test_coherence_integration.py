@@ -147,3 +147,29 @@ def test_gate_is_not_constant_fail_when_reconciled(tmp_path: Path) -> None:
     repo = _fixture(tmp_path, _DEPENDENT_RECONCILED)
     findings = aud.check_reconciled_versions(repo)
     assert [f.status for f in findings] == ["pass"]
+
+
+# --- Step 3: lock the Finding output format for the #171 dashboard ----------
+
+_FINDING_STATUSES = {"pass", "fail", "warn", "unavailable", "n/a"}
+
+
+def test_finding_format_is_locked(tmp_path: Path) -> None:
+    """The Finding contract the #171 conformance dashboard will consume is LOCKED:
+    exactly the three string fields (check_name, status, evidence), status in the
+    five-value enum, and the coherence checker emits it under `reconciled_versions`.
+    Guards the format so #171 can build against a fixed shape (no dashboard now)."""
+    import dataclasses
+
+    field_names = tuple(f.name for f in dataclasses.fields(aud.Finding))
+    assert field_names == ("check_name", "status", "evidence")
+
+    repo = _fixture(tmp_path, _DEPENDENT_STALE)
+    findings = aud.check_reconciled_versions(repo)
+    assert findings, "expected a Finding from the drifting fixture"
+    for f in findings:
+        assert isinstance(f, aud.Finding)
+        assert f.check_name == "reconciled_versions"
+        assert f.status in _FINDING_STATUSES
+        assert isinstance(f.evidence, str)
+        assert "|" not in f.evidence  # markdown-table-safe (pipes replaced with /)
