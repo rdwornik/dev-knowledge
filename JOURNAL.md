@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-18 — close #172 (coherence-spine v1) via /review-closures (operator-approved)
+
+**Did:** Ran the ADR-70 Tier-1 review half scoped to **#172**. The plugin gate (`review_closures.py plan`) re-verified #172 as **WEAK**-tier closable (open + changed-file evidence: `4719dbc82`, `05c9eb157`, `5da375f35`, `89f714027`, `2ac045edd`, `ed63b0eda`); operator approved the single id explicitly (command arg `#172` — not bulk). Removed the #172 task line from `BACKLOG.md` via **done-items-leave** (ADR-65) — id gap left, `refs #172` cross-references in #179–#183 retained. Closure rests on the prior turn's witnessed evidence: integration arc C landed+pushed (Done-when met) and clause 4 (Finding emits to ship-gate) witnessed live (seeded drift → `reconciled_versions` `[!!]` + ship-gate exit 1).
+
+**Result:** `validate_backlog` OK (7 themes, 20 stories, **80 tasks** (−1), 0 warn); #172 gone from `audit-py`; gate `plan --ids 172` now returns `close: []`, `skip: [#172 not currently open]`. v2 roadmap (#179–#183) preserved.
+
+**Changes:** `BACKLOG.md` — #172 line removed (done-items-leave); this `JOURNAL.md`. Branch `chore/close-172`, `--no-ff` to `main`.
+
+**Abandoned / surfaced:** Closed ONLY #172 (the 2 STRONG + 18 other WEAK proposals were out of scope this run — untouched, no approval). Push stays operator-gated.
+
+**Next:** Operator: push `main` (now further ahead). The 2 STRONG closures (#5, #77) + remaining WEAK candidates await a separate `/review-closures` if desired.
+
 ### 2026-06-18 — extract #172 v2 roadmap → #179–#183 (pre-closure; ship-gate Finding witnessed)
 
 **Did:** Per the architect supplement's explicit first-action warning (commit `5dc6531`: "FIRST — extract #172 v2 items into own IDs before closing #172"), broke #172's `**v2 deferred (each gated)**` block out into five discrete tracked tasks so #172 can close on its shipped+integrated v1 scope without orphaning the roadmap. Replaced the block with a one-line pointer `v2 roadmap extracted → #179–#183`; #172's Done-when unchanged. Adjudicated first (prior turn): integration arc C is **landed + pushed** (merges `05c9eb1` wire+dedupe, `e4b5659` e2e gate, `b5c4981` Finding-format, `4719dbc` codex HIGH) — #172's "Integration pending" body is **stale prose**, the bundle did not over-claim. **Pre-closure witness** (clause 4, "a Finding emits to the ship-gate" — previously artifact-only): seeded a `handoff-process@5.1` drift into `docs/handoffs/README.md` `reconciled_with`, ran `audit.py ship-gate` → `reconciled_versions` flipped `[OK]→[!!]` **and ship-gate exited 1 (blocked)**; restored exactly via `git checkout`, tree clean, gate green again. **Witnessed, not just artifact-verified.**
