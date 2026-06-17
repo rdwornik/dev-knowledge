@@ -26,8 +26,10 @@ Hard-fail (exit 1) — objective structure only:
 Warn-only: a user story with zero tasks.
 
 The optional `· serialize-group: <label>` clause (shared-mutable-resource mutual
-exclusion) is surfaced in the OK summary, never a failure. Parallel-safety is derived,
-not declared: two tasks co-run iff no depends-on path links them and they share no group.
+exclusion) is surfaced in the OK summary, never a failure. A task may carry ≥1 such
+clause — one per shared surface it collides on (multi-surface collision, #167) — and is
+placed in EVERY named group. Parallel-safety is derived, not declared: two tasks co-run
+iff no depends-on path links them and they share no group.
 
 (No repo: rule — entries are implicitly .dev-knowledge; cross-repo work names repos in
 task text under the Cross-repo theme. Monotonic/never-reused id is an assignment
@@ -62,7 +64,14 @@ _INPLACE_RESOLVED_RE = re.compile(r"~~.+?~~|\*\*\s*(?:RESOLVED|DONE)\b")
 # is captured up to the next `·` or end-of-line, so #ids in `refs`/prose are NOT read as
 # dependencies. The leading `·` is required — a bare "depends-on" in prose is not a clause.
 _DEPENDS_CLAUSE_RE = re.compile(r"·\s*depends-on\s*:\s*([^·]*)")
-_SERIALIZE_CLAUSE_RE = re.compile(r"·\s*serialize-group\s*:\s*([^·]*)")
+# serialize-group (#167): delimiter-anchored + ASCII-token label. The label must be a
+# single token `[A-Za-z0-9][A-Za-z0-9_-]*` butting the next `·` or end-of-line (the
+# `(?=·|$)` anchor) — so a free-text mention of the keyword in a task body (or an example
+# with trailing prose / a `<placeholder>`) cannot register as a phantom clause (the
+# 2026-06-14 self-trip). finditer (not search) reads EVERY clause, so a task colliding on
+# ≥2 surfaces is fully encoded. ASCII-only labels also can't carry a non-cp1252 glyph into
+# the summary print (the crash that accompanied the self-trip).
+_SERIALIZE_CLAUSE_RE = re.compile(r"·\s*serialize-group\s*:\s*([A-Za-z0-9][A-Za-z0-9_-]*)\s*(?=·|$)")
 _DEPID_RE = re.compile(r"#(\d+)")
 
 
@@ -74,11 +83,17 @@ def _parse_deps(rest):
     return _DEPID_RE.findall(m.group(1)) if m else []
 
 
-def _parse_serialize_group(rest):
-    """Return the serialize-group label (str) or None. A shared-mutable-resource
-    mutual-exclusion label; surfaced, never a failure."""
-    m = _SERIALIZE_CLAUSE_RE.search(rest)
-    return m.group(1).strip() if m and m.group(1).strip() else None
+def _parse_serialize_groups(rest):
+    """Return the serialize-group labels (list[str], possibly empty, order-preserving,
+    deduped within a task). Each is a shared-mutable-resource mutual-exclusion label;
+    surfaced, never a failure. A task may carry ≥1 clause (one per shared surface it
+    collides on, #167); EVERY clause is read (finditer), and the clause is delimiter-
+    anchored so prose mentions of the keyword don't register (see _SERIALIZE_CLAUSE_RE)."""
+    out = []
+    for m in _SERIALIZE_CLAUSE_RE.finditer(rest):
+        if m.group(1) not in out:
+            out.append(m.group(1))
+    return out
 
 
 def _check_dep_references(tasks):
@@ -143,11 +158,11 @@ def _check_dep_cycles(tasks):
 
 
 def serialize_groups(tasks):
-    """Map serialize-group label -> [task ids]. Informational (surfaced in main)."""
+    """Map serialize-group label -> [task ids]. A task in ≥2 groups (multi-surface
+    collision, #167) is placed in EACH. Informational (surfaced in main)."""
     groups = {}
     for t in tasks:
-        g = _parse_serialize_group(t["rest"])
-        if g:
+        for g in _parse_serialize_groups(t["rest"]):
             groups.setdefault(g, []).append(t["id"])
     return groups
 
