@@ -10,6 +10,14 @@
 | **Purpose** | A **fresh** architect handoff one arc-boundary past `2026-06-17-dev-knowledge-architect` (this is bundle **#2** of 2026-06-17). Two linked things landed since that bundle: **(1)** its `SUPPLEMENT.md` was **filled** with real architect answers — the **first end-to-end #159 fill→fold dogfood** — surfacing the operator's strategic reframe, **"file-oriented dependency management"** (Markdown files = objects, the AI = runtime; the systemic fix for the coherence-by-memory failure class); and **(2)** the **coherence spine v1** shipped whole (**#172** "Done when" met → ready for `/review-closures`; **#171** dashboard now buildable against the locked `Finding` format) — *the first concrete v1 of that very reframe*: a deterministic reconciliation checker (the **20th** `ALL_CHECKS` entry) + forgotten-bump nudge + an over-extracting enumerator + the `check-against-spec` LLM-verdict skill + an e2e closure gate. The next session inherits: **elaborate the "file-oriented dependency management" paradigm + run coherence v2** (firing-rate-gated on `logs/coherence-nudge.log` — the candidate top thread), **finish #164** (the v5 generator, always-file `SUPPLEMENT.md`), the **incoming §13(d) beat** (#159's last clause), and the standing threads — **PLAYBOOK Move 2** (#39, Council-bound), **#162** vocab, **#161** probe-core, **#165** diagram rule, the two ADR-85 chains **#170→#168** / **#171→#169**, and the **ADR-85 override-rate watch** (scope-freeze to ~2026-07-14). |
 | **Generated at** | HEAD `adf0cbe`, working tree clean, `main` **in sync** with `origin/main`. This handoff's own commits put `main` **ahead** of origin until pushed; **two merged stragglers** (`docs/handoff-2026-06-17-architect`, `…-supplement-filled`) await operator `-d`. Re-derive HEAD/sync at read-time (`PROBES.md` P3). |
 
+> **⚠ UPDATE — supplement FILLED (warm).** Generated cold, but the operator then `supplement filled`
+> real architect answers (the **second #159 fill→fold dogfood**), now folded into `PASTE_THIS.md`
+> (answers-only). Read the folded `SUPPLEMENT.md` answers as the authoritative strategic *why* (name
+> the paradigm as an ADR; the enumerator is load-bearing; the §16 do-not-build list; next failure
+> classes in priority order). **First backlog action for the next architect: extract `#172`'s
+> v2-deferred items into their own IDs before `#172` is closed, or the roadmap orphans.** The §13(d)
+> beat **narrows** to "changed since the supplement?" (not full).
+
 > **Operator runbook is not copied here.** The stable who-each-file-is-for / run-loop /
 > rationale lives **once** in the canonical per-repo runbook **`docs/handoffs/README.md`** — read
 > it for the walkthrough. This file carries only the **session header** (above) + the
@@ -142,6 +150,29 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 # Residual — 2026-06-17 session (#2), **architect mode** (v5.2 canonical §13)
 <!-- scope: meta -->
 
+> **⚠ UPDATE (post-generation) — the supplement was FILLED. This banner overrides the cold-case
+> language below.** This bundle was *generated* cold (fresh CC session — true, and preserved below
+> as generation-time history), but the operator then obtained **real architect answers** and
+> `supplement filled` them into `SUPPLEMENT.md` — the **second real #159 fill→fold dogfood**. Two
+> things change for *you*, the incoming architect: **(1)** the `SUPPLEMENT.md` ANSWERS folded into
+> your `PASTE_THIS` are **real, not empty** — read them as the authoritative strategic *why* (the
+> 107-candidate brainstorm → why coherence spine v1 is a *proof-of-concept for a doctrine* not just
+> a feature; the crux-flip "the **enumerator** is load-bearing, not the trigger"; the
+> deterministic-trigger / AI-per-site-verdict / human-signature boundary; the §16 do-not-build list;
+> DEC-01/03/04/07; and the priority order of the next coherence-by-memory failure classes). **(2)**
+> the §13(d) operator-context beat **narrows to "anything changed since the supplement was
+> written?"** — it does **NOT** "fire full." Every "cold / empty ANSWERS / beat fires full" phrasing
+> below is **generation-time history**; the folded answers + this banner are the live truth.
+>
+> **⚠ Operationally load-bearing (from the answers — surfaced, not buried):** the architect's
+> **first backlog action** is to **extract the v2-deferred items out of `#172`'s body into their own
+> backlog IDs BEFORE `#172` is closed** — else the roadmap orphans on closure. The operator is
+> poised to `/review-closures` `#172`; do the extraction first. Also decided in the answers: **name
+> the paradigm as an ADR, not a VISION** (a VISION invites the maximalism just resisted); the §7
+> review-command canon resolves to a **graduated rule** (interim/small → `/code-review high`; final
+> pre-merge, 3+ files → `/codex-review` for the independent lens — confirm Codex auth-mode first).
+> Do **not** reparent `#169`/`#166` yet (deferred until ≥2 real drifts); do **not** hand-close `#172`.
+
 > The **architect residual**: the planning "why" the repo does not already encode, the **open
 > architecture questions**, and the **task-graph**. Drift-flags are the headline — this time the
 > headline is **clean on doc-claims**: the actionable carry the *prior* bundle flagged
@@ -166,7 +197,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > fill→fold dogfood** — surfacing the operator's strategic reframe ("**file-oriented dependency
 > management**"); and (2) the **coherence-spine v1** shipped whole (#172 done-when met; #171 now
 > buildable) — *the first concrete v1 of that very reframe*. Orient first (`PROBES.md` P1), **then ask
-> the operator for off-repo context** (§13d — **fires FULL this bundle**; see §2), then resume the design.
+> the operator for off-repo context** (§13d — **per the UPDATE banner the supplement was FILLED, so this beat NARROWS to "anything changed since the supplement?"**; see §2), then resume the design.
 >
 > **This bundle is itself a v5.2 cold case.** Like the prior two architect bundles it is cold (fresh
 > CC session, no outgoing browser holding *this generation's* deliberation). v5.2 makes that
@@ -425,6 +456,13 @@ unprompted:
 # Probe manifest — architect mode: orientation first, then teeth (v5 §5 + §13c)
 <!-- scope: meta -->
 
+> **⚠ UPDATE (post-generation) — supplement FILLED.** This bundle was generated cold, but the
+> operator then `supplement filled` real answers (see `RESIDUAL.md` UPDATE banner). The teeth probes
+> (P2–P9) are **unchanged** — they bind to **live state**, which the fill does not touch. The only
+> change is the **§13(d) beat in P1's gate: it now NARROWS to "anything changed since the
+> supplement?"**, it does **not** fire full (the supplement carried answers). Read any "ANSWERS empty
+> / beat fires full" phrasing below as generation-time history.
+
 > **Contract.** Each probe ships a **question + source-locator + verification command** and
 > **no answer**. The browser has no file access, so for every probe it must reply
 > **"run `<command>`"** — surfacing the off-bundle dependency instead of bluffing it. **CC**
@@ -453,11 +491,12 @@ quote must match as a **substring** (never a paraphrase). The browser has no fil
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read
 live by CC, substring-matched. **Then, before design, the operator-context beat fires (v5 §13d):**
 the browser asks the operator one targeted question for **off-repo** context (intent / priorities /
-findings not in the repo / changed decisions). **This bundle's `SUPPLEMENT.md` is EMPTY (cold case —
-fresh CC session, no outgoing browser holding *this generation's* deliberation), so the beat fires
-FULL** — there is nothing carried to narrow against (the v5.2 defined cold disposition). *Read the
-prior bundle's filled supplement (`RESIDUAL.md` §2 pointer) for the operator's most recent strategic
-*why* as background — then the full beat asks what has changed since.*
+findings not in the repo / changed decisions). **This bundle's `SUPPLEMENT.md` was FILLED
+post-generation (UPDATE banner / `RESIDUAL.md`), so the beat NARROWS to "anything changed since the
+supplement was written?"** — its answers already carried the off-repo context (Q6 + the addenda); do
+not re-ask it whole. The folded answers are the authoritative strategic *why* — read them first.
+*(Generation-time history: the bundle was generated cold with empty ANSWERS, when the beat would have
+fired full.)*
 
 ## Teeth probes (state fidelity — same contract)
 
@@ -469,15 +508,16 @@ prior bundle's filled supplement (`RESIDUAL.md` §2 pointer) for the operator's 
 | P5 | Is `ARCHITECTURE.md`'s `last_reviewed` stamp **on/after or before** its last git-commit touch — and what are the **two dates**? | `ARCHITECTURE.md` frontmatter + live git | a *relation* over post-handoff commits; a summary holds neither date precisely (ARCHITECTURE was re-stamped this window for the count + check-count bumps) | `git log -1 --format=%cs -- ARCHITECTURE.md` vs the frontmatter stamp (or `audit.py health` `canonical_freshness`) |
 | P6 | What integer does `ARCHITECTURE.md`'s `**N collected**` claim state, what does `pytest --collect-only` collect **right now**, and **do they match**? | `ARCHITECTURE.md` `**N collected**` + live pytest | the live count drifts on any test change; neither integer appears in the residual — and unlike the prior bundle (which carried a doc=511 vs live=534 **mismatch**, now **resolved**), this probe is **expected to MATCH** at generation, but the live count is still the only ground truth | `python scripts/validate_doc_claims.py` (the `pytest_collected` line) — note: `audit.py health` does **not** catch this; use the standalone |
 | P7 | Does `audit.py health` flag a **`no_ff_merges`** WARN right now — yes or no — and if so what is the **full short-sha + date** of the direct-on-main commit it names? | live git ∩ `main` history | post-**ADR-84** the writers were isolated, so this is *expected clean* — but the live answer is the only ground truth (a new direct commit could appear); the value is absent from the bundle | `python scripts/audit.py health` (the `no_ff_merges` line) — re-derive; do **not** trust the residual's prose |
-| P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is a `SUPPLEMENT.md` present (and is its ANSWERS region empty or filled), and where does the stable operator boilerplate live instead? | `docs/handoffs/<slug>/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count (the 2026-06-12 collapse dropped the per-bundle README; the four-file `PASTE_THIS` shape + the v5.2 **always-generated** `SUPPLEMENT.md` are live); the live bundle + spec are the only ground truth | `ls docs/handoffs/2026-06-17-dev-knowledge-architect-2/` (no `README.md`; `SUPPLEMENT.md` present, **ANSWERS empty** — cold; boilerplate lives once in `docs/handoffs/README.md`) ∩ `HANDOFF_PROCESS.md` §13 |
+| P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is a `SUPPLEMENT.md` present (and is its ANSWERS region empty or filled), and where does the stable operator boilerplate live instead? | `docs/handoffs/<slug>/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count (the 2026-06-12 collapse dropped the per-bundle README; the four-file `PASTE_THIS` shape + the v5.2 **always-generated** `SUPPLEMENT.md` are live); the live bundle + spec are the only ground truth | `ls docs/handoffs/2026-06-17-dev-knowledge-architect-2/` (no `README.md`; `SUPPLEMENT.md` present, **ANSWERS FILLED** post-generation — see the UPDATE banner; boilerplate lives once in `docs/handoffs/README.md`) ∩ `HANDOFF_PROCESS.md` §13 |
 | P9 | How many **serialize-groups** does `validate_backlog` summarize **right now**, and which `#id`s are in the **handoff** group (and which group did the coherence-spine story `#172` join)? | `BACKLOG.md` ∩ `scripts/validate_backlog.py` | #156 made the task-graph durable, so the group membership is a live schema fact that drifts on any BACKLOG edit (the `audit-py` group gained `#172` this window); it is absent from this bundle | `python scripts/validate_backlog.py` (the serialize-groups summary line) |
 
 ## Gate procedure (CC)
 
 1. **P1 first** — the architect cannot begin design until both orienting lines are read live and
-   substring-matched. **Then run the operator-context beat (§13d)** — one off-repo ask, **firing FULL**
-   this bundle (the supplement is empty / cold) — before design. Then run P2–P9, each against **live
-   state now** (not generation-time).
+   substring-matched. **Then run the operator-context beat (§13d)** — one off-repo ask, **NARROWED**
+   to "anything changed since the supplement?" this bundle (the supplement was FILLED — UPDATE banner;
+   read the folded answers first) — before design. Then run P2–P9, each against **live state now**
+   (not generation-time).
 2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor
    missing / command errored / receiver tried to answer from memory or this bundle).
 3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named
@@ -488,3 +528,73 @@ prior bundle's filled supplement (`RESIDUAL.md` §2 pointer) for the operator's 
    the summary remembered." P2 is expected to read **20** (a check landed this window); P8 pins the
    post-collapse four-file shape (+ the v5.2 always-generated `SUPPLEMENT.md`, no README); P9 pins the
    now-durable serialize-group graph (#156) with `#172` newly in the `audit-py` group.
+
+---
+
+=== SUPPLEMENT.md ===
+
+Orientation for the incoming architect. This session took a 107-candidate brainstorm on dependency coherence and shipped one proven thing: coherence spine v1 (#172) — a narrow, complete, end-to-end slice on a single edge (dependent README ← spec HANDOFF_PROCESS, version-coupling). It is a proof-of-concept for a doctrine, not just a feature. Read these answers as a map of what was decided and why, so you extend a proven primitive deliberately rather than rebuild or relitigate it.
+1. Strategic intent (way-of-working level).
+
+Two goals, both methodology, neither a task. First: decide whether coherence-by-mechanism instead of coherence-by-memory becomes named doctrine (see A), and establish a cadence for adding mechanisms without sliding into maximalism. Second, harder: make the backlog genuinely load-bearing. This session shipped v1 to main three times before the backlog story even existed — the advisory gate nudged but never stopped us. You are the architect who drives from the backlog and delegates; freewheeling ("wolna amerykanka") is the anti-pattern to kill. Operate that for real, not nominally.
+2. Tensions weighed + where we landed.
+
+Maximalism vs narrow slice — 107 candidates, four visions. Landed narrow (one edge, the minimal Spine), deferred the rest. Reason: solo-dev constraint — the methodology must not outgrow the work; prove the mechanism before scaling.
+The crux flip — I first believed the trigger (version-vs-hash) was the crux. The Council plus first-principles flipped it: the enumerator is load-bearing. The partial-update miss (walkthrough + diagram left stale) happens after the trigger fires — it is a completeness problem caught only by enumerating every reference site, not a detection problem. Do not re-elevate the trigger.
+Version-coupling vs content-hash (DEC-01) — landed version-coupling (fires only on deliberate change, no over-firing on prose) plus a pre-commit nudge as a cheap forgotten-bump floor. Deferred the full content-hash floor until nudge data justifies it.
+Deterministic vs AI — deterministic trigger + deterministic site-extraction + AI per-site verdict + human signature. The AI advises inside the gate; it never waives it.
+Closure — the e2e mutation test (real injected drift → real checker fails → enumerator names the missed sites) is closure. Not green tests.
+Review independence vs usage limits — leaned toward an independent lens at the pre-merge gate (codex caught 2 HIGH this session). See B.
+
+3. Considered + rejected (do not relitigate).
+
+The §16 do-not-build list stands: graph-DB for the methodology (killed empirically — grep was cheaper), a second task tool (two sources of truth), enterprise cross-tool ingestion (a solo dev is the curator), transclusion-everywhere (literate spaghetti), self-healing without human approval (ungrounded LLM drifts further), predictive-drift ML (no data advantage at solo scale), adopting any substrate platform / the Reactive Kernel (VISION-1) as a build target — study and borrow, do not migrate.
+Dumping the raw brainstorm inventory into the repo — rejected. The architect distills it into an ADR; the brainstorm doc is off-repo input, not a repo artifact.
+"The trigger is the crux" — rejected; the enumerator is load-bearing.
+Forcing one regex for the deduped version parser — rejected; pin both behaviours, unify at the consumer layer, layer A's numeric validation, never bend a test.
+Hand-closing #172 / freewheeling the backlog — rejected; the operator-gated closure loop owns it.
+
+4. Open questions (unresolved / deferred).
+
+The doctrine question (A) — name it or keep it implicit. Your first decision.
+DEC-04 — lead with removal (transclusion/generation) or detection (gate)? We built detection first as the backstop; the split is unresolved.
+DEC-03 — file-level vs element-level granularity; the stakes threshold for element-level is undecided.
+DEC-07 — folder-level dependency contracts (_index.md); lean was rollup-over-files, folder-as-unit for high-stakes only.
+Coherence v2 escape-hatch / deferred-hash / promote-nudge-to-gate — firing-rate-gated on logs/coherence-nudge.log; deliberately deferred until data (B).
+§7 review-command canon + Codex auth mode — unresolved; lean given (B).
+Which coherence-by-memory failure classes the spine covers next, and in what order (A).
+#168 (backlog advisory → hard) — justified, depends on #170; sequencing open.
+
+5. Decomposition rationale + what NOT to redo.
+
+Shape: one organizing story (#172 = the spine), v1 as three sub-arcs (A checker / B enumerator / Integration), v2 as a deferred list. Reason: the spine is a general mechanism that several existing point-checks are instances of — #169 (canonical-doc staleness) reparents under it, #166 (task→ADR) reparents, #171 (dashboard) is its shared output surface, #170 (traceability) is a sibling. A and B were split for parallel build behind a clean Edge contract; Integration wired them. v1 narrow proves the mechanism; v2 scales, each item trigger-gated.
+
+Do not redo or re-decide: the spine core (shipped and proven — build on it), DEC-01 for v1, the enumerator-is-load-bearing call, the deterministic/AI/human boundary, the §16 list. Do not reparent #169/#166 yet — deferred until ≥2 real drifts plus a #169-fit decision (a deliberate evidence-gate, not an oversight). Do not hand-close #172.
+
+Critical hygiene, your first backlog action: the v2-deferred list currently lives inside #172's body. Extract those items into their own backlog IDs before closing #172, or the roadmap orphans on closure. (And reconcile this whole map against the live backlog — I can't see it from the browser.)
+6. Off-repo context.
+
+The brainstorm inventory (the 107 candidates, the full design-pattern catalogue, the do-not-build reasoning, the open decisions) is off-repo. The architect carries it by re-upload. Your first build task: distil it into an ADR and extract the active v2 items. It is also the record of what we chose not to build.
+Codex pricing (researched here): Codex CLI is included in a paid ChatGPT plan if authed via ChatGPT sign-in (no extra money, draws plan limits); API-key mode bills per token (extra money). /code-review runs on Claude / your Max plan (no extra money). Confirm the auth mode before settling the review rule.
+The methodology's own backlog discipline failed three times this session (shipped untracked → recovered via retroactive #172). That is the live case for #168 and the reason the architect wants the backlog genuinely load-bearing. The recurring spec↔practice drift in our own docs (§7, the pytest_collected count) is the same shape — the problem we are solving keeps appearing in our own process. Validating, not embarrassing.
+Operating intent throughout: narrow-first, deliberate extension, the architect selects and decides — not dump, not maximise.
+
+A. "File-oriented dependency management" as doctrine + next failure classes.
+
+Name it — as an ADR, not a VISION. It is proven in miniature, and a proven mechanism earns a decision-record; a name gives the next mechanisms a coherent frame so v2 reads as "extending the paradigm" rather than ad-hoc feature-adding. Keep it an ADR (decision + principles + the v1 proof + the distilled roadmap), not a sprawling VISION — a VISION invites exactly the maximalism we just resisted. Bound it in the ADR: the doctrine is coherence-by-mechanism; deterministic trigger + AI judgment + human signature; graph-in-repo-not-model; narrow-first — and the do-not-build list is part of the doctrine, not separate from it.
+
+Next failure classes, priority order (beyond the single reconciled_with edge):
+
+More spec→dependent edges of the same type (other docs describing other specs) — just more declarations, proven mechanism, immediate value; includes scaling — generate the graph from frontmatter (SPINE-08), cross-repo (SPINE-09 / confirm #164 covers this).
+Resolve DEC-04 and, for the highest-duplication content, remove the drift surface (transclusion) rather than detect it — the field's strongest claim; a bigger commitment, so gate it on the DEC-04 decision.
+The forgotten / mis-classified bump (the false-negative the version edge can't see) — currently the nudge; promote to a content-hash floor if nudge data shows real misses.
+Undeclared edges — dependencies that live in prose but aren't declared; AGENT-11 infers candidates for human confirmation.
+Intra-file frontmatter↔prose drift (DET-16) and a whole-graph contradiction sweep (DET-11) — periodic, non-blocking.
+
+You set the exact order; this is the shape.
+
+B. Coherence v2 trigger lean + §7 reconcile.
+
+v2 escape-hatch / deferred-hash / promote-nudge-to-gate: no off-repo intent should pre-empt the data — instrumenting the nudge is the decision mechanism. Hold it; do not let the next session build it speculatively. If forced to lean: promote-nudge-to-gate is the natural escalation if the nudge fires accurately and rarely; the escape-hatch and deferred-hash are the answer only if it proves noisy. Decide from logs/coherence-nudge.log.
+
+§7 reconcile: this is not a cost decision — both are included if Codex is ChatGPT-authed. Lean: interim / small reviews → /code-review high (you're already in Claude); final pre-merge gate (3+ files) → /codex-review (independent GPT lens — it earned its place this session). Encode that graduated rule in §7, not a single command. Confirm Codex auth mode first; if it's API-key, codex costs extra → flip toward /code-review or switch the auth. And note the meta-point worth carrying: §7-vs-practice drift is itself a coherence instance — reconciling it is the doctrine in action.
