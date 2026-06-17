@@ -97,6 +97,13 @@ def test_read_spec_version_live_is_not_hardcoded():
     assert re.match(r"^\d+(\.\d+)+$", v), f"unexpected version shape: {v!r}"
 
 
+def test_read_spec_version_keeps_full_text_token():
+    """The enumerator surfaces the RAW version token verbatim (full-text — keeps a leading
+    v), distinct from the checker's numeric-normalized form. Pins B's consumer contract
+    (previously un-pinned on a v-prefix) so the shared-parser dedup (#172) preserves it."""
+    assert ce.read_spec_version("# S\n\nVersion: v5.4.1\nStatus: x\n") == "v5.4.1"
+
+
 # --- Step 2: the by-category checklist output contract ---------------------
 
 _FLAG = {

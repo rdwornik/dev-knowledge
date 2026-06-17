@@ -66,6 +66,26 @@ def test_spec_current_version_live(tmp_path: Path) -> None:
     assert vr.spec_current_version(tmp_path, spec) == "5.4.1"
 
 
+# --- the one shared spec-version parser (#172 dedup) -------------------------
+# Two consumer contracts diverge by CAPTURE SCOPE, so they are pinned separately and the
+# dedup preserves both: the checker numeric-normalizes (v stripped, above), the enumerator
+# surfaces the raw token full-text (test_coherence_enumerator). One regex, two behaviors.
+
+def test_parse_spec_version_tolerant_keeps_full_token() -> None:
+    # the shared extractor returns the raw token VERBATIM (full-text — keeps a leading v)
+    assert vr.parse_spec_version("# S\n\nVersion: v5.4.1\nStatus: x\n") == "v5.4.1"
+    assert vr.parse_spec_version("# S\n\nVersion: 9.9\n") == "9.9"
+    assert vr.parse_spec_version("# S\n\nno version here\n") == ""
+
+
+def test_spec_current_version_numeric_normalizes_the_shared_token(tmp_path: Path) -> None:
+    # A's CONSUMER layer strips the v and keeps dotted-numeric (for version comparison),
+    # distinct from the raw token the shared parser returns — NOT a second parser.
+    _spec(tmp_path, "Version: v5.4.1")
+    assert vr.parse_spec_version("Version: v5.4.1\n") == "v5.4.1"
+    assert vr.spec_current_version(tmp_path, vr._SPEC_REGISTRY["handoff-process"]) == "5.4.1"
+
+
 # --- reconcile classifier ---------------------------------------------------
 
 def test_reconcile_match(tmp_path: Path) -> None:

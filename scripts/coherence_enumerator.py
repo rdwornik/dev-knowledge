@@ -32,6 +32,8 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import validate_reconciliation as vr
+
 # --- categories -------------------------------------------------------------
 # Order is the checklist's display order. Every category is always rendered,
 # empties stated explicitly ("none found").
@@ -98,11 +100,13 @@ def _sanitize_anchor(s: str) -> str:
 def read_spec_version(spec_text: str) -> str:
     """Parse the spec's CURRENT version from its frontmatter, LIVE — never hardcoded.
 
-    Matches a `Version: <x>` line (the canonical form in HANDOFF_PROCESS.md). Returns
-    the raw value string (e.g. "5.2"), or "" if no version line is present.
+    Delegates to the single coherence-spine parser (`validate_reconciliation.parse_spec_version`)
+    so the checker, the enumerator, and the nudge never drift to three regexes (#172 dedup).
+    The enumerator surfaces the RAW token verbatim (full-text, e.g. "5.2" / "v5.4.1") for the
+    display checklist — the checker's numeric normalization is its own consumer-layer concern,
+    not duplicated here. Returns the raw value, or "" if no Version line is present.
     """
-    m = re.search(r"^\s*Version:\s*(.+?)\s*$", spec_text, re.MULTILINE | re.IGNORECASE)
-    return m.group(1).strip() if m else ""
+    return vr.parse_spec_version(spec_text)
 
 
 def _spec_key_terms(spec_name: str) -> tuple[re.Pattern, ...]:
@@ -265,6 +269,35 @@ def enumerate_from_flag(flag: dict) -> dict:
         "spec_version_current": read_spec_version(spec_text),
         "sites": extract_sites(dependent_text, spec_name),
     }
+
+
+def enumerate_from_edge(edge: vr.Edge, repo_root: Path | str = ".") -> dict:
+    """Enumerate sites for one REAL reconciliation Edge — Prompt A's `enumerate_edges` output.
+
+    This is the A->B seam: the enumerator consumes the checker's real `Edge` contract
+    ({dependent_path, spec_path, old_version, new_version}) instead of a hand-built stub
+    flag. The Edge carries repo-relative paths; they are resolved against `repo_root` and
+    handed to `enumerate_from_flag`. Read-only.
+    """
+    root = Path(repo_root)
+    flag = {
+        "dependent_path": str(root / edge.dependent_path),
+        "spec_path": str(root / edge.spec_path),
+        "old_version": edge.old_version,
+        "new_version": edge.new_version,
+    }
+    return enumerate_from_flag(flag)
+
+
+def enumerate_repo(repo_root: Path | str = ".") -> list[dict]:
+    """Drive the whole deterministic spine over a repo: every checker-resolved edge enumerated.
+
+    A's `enumerate_edges(repo_root)` yields one Edge per well-formed, known-spec edge (the real
+    output that replaces B's stub flag); each is enumerated into a by-category site map. Returns
+    one result dict per edge (empty list when no reconciliation edges are declared). Read-only.
+    """
+    root = Path(repo_root)
+    return [enumerate_from_edge(edge, root) for edge in vr.enumerate_edges(root)]
 
 
 _CATEGORY_LABELS = {

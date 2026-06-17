@@ -9,8 +9,12 @@ reference sites; your job is to **verdict each one**. You cannot omit a site tha
 exists — that is the whole point: a missed walkthrough step or an un-updated
 diagram must not pass silently.
 
-**Input — the flag** (Prompt A's checker produces it; until wired, build the dict
-by hand): `{dependent_path, spec_path, old_version, new_version}`.
+**Input — the flag** (Prompt A's checker produces it): `{dependent_path, spec_path,
+old_version, new_version}`. The checker's `validate_reconciliation.enumerate_edges(repo_root)`
+yields one real `Edge` per declared reconciliation edge; the enumerator consumes it directly
+via `coherence_enumerator.enumerate_from_edge(edge, repo_root)` (or `enumerate_repo(repo_root)`
+for every edge at once) — no hand-built stub. You may still build the dict by hand for a
+one-off edge the checker does not yet declare.
 
 ## 1. Enumerate (deterministic — do not skip, do not free-enumerate)
 
