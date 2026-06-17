@@ -50,7 +50,10 @@ _SHELL_LANGS = {
     "console", "zsh", "bat", "cmd", "dos",
 }
 
-_ORDERED_ITEM = re.compile(r"^(\s*)\d+\.\s+\S")
+# `\d+.` then a space OR end-of-line — an EMPTY item ("2." on its own line) is
+# still a list marker, so it does not fragment the surrounding step block. The
+# `(?:\s|$)` (not bare `\.`) keeps decimals like "3.14" from matching.
+_ORDERED_ITEM = re.compile(r"^(\s*)\d+\.(?:\s|$)")
 _FENCE = re.compile(r"^(\s*)(`{3,}|~{3,})\s*([\w-]*)\s*$")
 _VERSION_TOKEN = re.compile(r"\bv\d+(?:\.\d+)*\b")
 
@@ -115,7 +118,8 @@ def _spec_key_terms(spec_name: str) -> tuple[re.Pattern, ...]:
     pats: list[re.Pattern] = []
     prefix = spec_name.split("_")[0]
     if prefix.isupper() and len(prefix) >= 3:
-        pats.append(re.compile(rf"\b{re.escape(prefix)}_[A-Z][A-Z0-9_]*\b"))
+        # the post-underscore char may be a digit too (e.g. a FOO_2025 family member)
+        pats.append(re.compile(rf"\b{re.escape(prefix)}_[A-Z0-9][A-Z0-9_]*\b"))
     stem_variants = {
         spec_name,
         spec_name.replace("_", "-"),
@@ -207,11 +211,10 @@ def extract_sites(dependent_text: str, spec_name: str) -> dict[str, list[Site]]:
     for (s, e, info) in fenced:
         body = lines[s + 1] if e > s else lines[s]
         anchor = _sanitize_anchor(f"{info or 'fence'}: {body}")
-        site = Site("", s + 1, e + 1, anchor, "\n".join(lines[s:e + 1]))
-        if info in _SHELL_LANGS:
-            out["commands"].append(Site("commands", site.line_start, site.line_end, site.anchor, site.text))
-        else:  # diagram langs + unknown/empty info (over-extract fallback)
-            out["diagrams"].append(Site("diagrams", site.line_start, site.line_end, site.anchor, site.text))
+        # shell-ish fences are command sites; diagram langs AND unknown/empty info
+        # both fall to diagrams (over-extract — never miss a bare-fence diagram).
+        cat = "commands" if info in _SHELL_LANGS else "diagrams"
+        out[cat].append(Site(cat, s + 1, e + 1, anchor, "\n".join(lines[s:e + 1])))
 
     # walkthrough steps
     for (s, e) in _find_ordered_blocks(lines, fenced_line_idx):

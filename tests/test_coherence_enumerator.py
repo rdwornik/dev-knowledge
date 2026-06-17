@@ -54,6 +54,15 @@ def test_extract_surfaces_both_walkthrough_blocks():
     assert all(s.line_end > s.line_start for s in steps)
 
 
+def test_empty_ordered_item_does_not_fragment_a_step_block():
+    """An empty item ("2." on its own line) stays part of the block — the block is
+    not split, so no step is dropped (the 'never miss a site' contract)."""
+    text = "# Doc\n\n1. First step\n2.\n3. Third step\n\nprose after.\n"
+    steps = ce.extract_sites(text, "HANDOFF_PROCESS")["walkthrough_steps"]
+    assert len(steps) == 1, f"block fragmented into {len(steps)}"
+    assert steps[0].line_start == 3 and steps[0].line_end == 5
+
+
 def test_extract_surfaces_spec_name_mentions():
     """Mentions of the spec name / family must surface under `sections`."""
     sections = _live_sites()["sections"]
