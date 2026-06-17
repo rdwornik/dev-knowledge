@@ -144,3 +144,59 @@ def test_checklist_renders_a_verdict_slot_per_site():
     out = ce.format_checklist(_result_from("# Doc\n\nMentions HANDOFF_PROCESS once.\n"))
     assert "sections (spec-name / key-term mentions) ==  [1 found]" in out
     assert out.count("verdict: ___") >= 2  # >=1 per site + the additive line
+
+
+# --- Step 3: isolated COMPLETENESS proof (not a drift-catch) ----------------
+
+def test_mutation_completeness_surfaces_the_sites_drift_would_slip_past(tmp_path):
+    """COMPLETENESS proof, NOT a drift-catch.
+
+    Inject a new required step into a COPY of the spec and leave the runbook copy
+    un-updated — the partial-update scenario a version bump creates. The drift in
+    the spec does NOT change what extract_sites reads from the (unchanged) runbook;
+    the proof is that the enumerator SURFACES, as discrete must-verdict line items,
+    the exact sites a partial update would otherwise slip past — the walkthrough
+    AND the diagram — not merely a file-level "stale". The end-to-end drift CATCH
+    (an LLM verdicting them `stale`) is the Integration prompt's job, not B's.
+    """
+    runbook_copy = tmp_path / "README.md"
+    spec_copy = tmp_path / "HANDOFF_PROCESS.md"
+    runbook_copy.write_text(_RUNBOOK.read_text(encoding="utf-8"), encoding="utf-8")
+
+    # inject a NEW required step into the spec copy (runbook left un-updated)
+    mutated = _SPEC.read_text(encoding="utf-8") + (
+        "\n\n## Injected step (mutation)\n\n"
+        "8. **New mandatory step.** Something the runbook walkthrough does not yet mention.\n"
+    )
+    spec_copy.write_text(mutated, encoding="utf-8")
+
+    flag = {
+        "dependent_path": str(runbook_copy),
+        "spec_path": str(spec_copy),     # stem == HANDOFF_PROCESS -> spec_name resolves
+        "old_version": "5.2",
+        "new_version": "5.3",
+    }
+    result = ce.enumerate_from_flag(flag)
+    sites = result["sites"]
+
+    # the walkthrough block a partial update would skip is surfaced, as a RANGE
+    walk = [s for s in sites["walkthrough_steps"] if "Paste the boot payload" in s.text]
+    assert walk, "the 7-step walkthrough was not surfaced for verdict"
+    assert walk[0].line_end > walk[0].line_start, "surfaced as a discrete range, not a file flag"
+
+    # the diagram a partial update would skip is surfaced, as a RANGE
+    diags = sites["diagrams"]
+    assert len(diags) == 1 and "mermaid" in diags[0].anchor
+    assert diags[0].line_end > diags[0].line_start
+
+    # the rendered checklist NAMES those specific sites (not merely "stale")
+    checklist = ce.format_checklist(result)
+    assert "Paste the boot payload" in checklist
+    assert "mermaid" in checklist
+    assert "walkthrough_steps (numbered / sequential procedures) ==  [2 found]" in checklist
+
+    # completeness, not catch: the spec mutation does not change extraction of the
+    # (unchanged) runbook — extraction is identical regardless of the injected drift.
+    baseline = ce.extract_sites(runbook_copy.read_text(encoding="utf-8"), "HANDOFF_PROCESS")
+    assert [(s.line_start, s.line_end) for s in baseline["walkthrough_steps"]] == \
+           [(s.line_start, s.line_end) for s in sites["walkthrough_steps"]]
