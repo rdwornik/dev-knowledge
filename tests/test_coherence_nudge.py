@@ -44,6 +44,14 @@ def test_should_nudge_silent_when_version_unparseable() -> None:
     assert cn.should_nudge("no version old", "no version new", SPEC) is False
 
 
+def test_should_nudge_compares_numeric_not_raw_text() -> None:
+    # A cosmetic version edit (v5.2 -> 5.2) alongside a content change must STILL nudge: the
+    # NUMERIC version did not advance. Regression guard for the parser dedup — comparing raw
+    # text (not the numeric core) would let a no-op version restyle suppress the nudge.
+    assert cn.should_nudge(_v("v5.2", "old body"), _v("5.2", "new body"), SPEC) is True
+    assert cn._extract_version(_v("v5.2")) == "5.2"  # numeric comparison form, v stripped
+
+
 # --- process() against a real tmp git repo ----------------------------------
 
 def _git(repo: Path, *args: str) -> None:

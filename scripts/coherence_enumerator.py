@@ -32,7 +32,10 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import validate_reconciliation as vr
+try:  # package-first / direct-fallback, mirroring audit.py + coherence_nudge.py
+    from scripts import validate_reconciliation as vr
+except ImportError:
+    import validate_reconciliation as vr
 
 # --- categories -------------------------------------------------------------
 # Order is the checklist's display order. Every category is always rendered,

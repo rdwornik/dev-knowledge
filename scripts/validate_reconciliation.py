@@ -154,17 +154,28 @@ def _numeric_version(raw: str) -> str:
     return m.group(1) if m else ""
 
 
+def spec_version_numeric(text: str) -> str:
+    """The spec version in COMPARISON form, from spec TEXT: numeric, leading `v` stripped.
+
+    The single normalized form both version-EQUALITY consumers share — this checker (does the
+    declared version match the spec's current?) and the forgotten-bump nudge (did a content
+    edit leave the numeric version unchanged?). Comparing the numeric core, not raw text, is
+    what makes a cosmetic `v5.2`->`5.2` edit NOT masquerade as a real version change. The
+    enumerator, by contrast, DISPLAYS the raw `parse_spec_version` token. Returns "" if no
+    parseable numeric version is present."""
+    return _numeric_version(parse_spec_version(text))
+
+
 def spec_current_version(repo_root: Path, spec: SpecSource) -> Optional[str]:
     """The spec's current version, numeric-normalized, read live; None if absent/unparseable.
 
-    Reads the live token via the shared `parse_spec_version`, then numeric-normalizes it
-    (strips a leading `v`, keeps the dotted-numeric core) for version comparison — this is
-    A's consumer-layer normalization, NOT a second parser (#172 dedup)."""
+    Reads the live spec file and returns its `spec_version_numeric` comparison form — A's
+    consumer-layer normalization over the shared `parse_spec_version`, NOT a second parser
+    (#172 dedup)."""
     p = repo_root / spec.path
     if not p.exists():
         return None
-    num = _numeric_version(parse_spec_version(p.read_text(encoding="utf-8", errors="replace")))
-    return num or None
+    return spec_version_numeric(p.read_text(encoding="utf-8", errors="replace")) or None
 
 
 # --- discovery + reconcile (pure) -------------------------------------------

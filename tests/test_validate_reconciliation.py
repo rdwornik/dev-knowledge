@@ -86,6 +86,13 @@ def test_spec_current_version_numeric_normalizes_the_shared_token(tmp_path: Path
     assert vr.spec_current_version(tmp_path, vr._SPEC_REGISTRY["handoff-process"]) == "5.4.1"
 
 
+def test_spec_version_numeric_is_the_shared_comparison_form() -> None:
+    # the comparison form both equality consumers (checker + nudge) share: numeric, v stripped
+    assert vr.spec_version_numeric("Version: v5.4.1\n") == "5.4.1"
+    assert vr.spec_version_numeric("Version: 9.9\n") == "9.9"
+    assert vr.spec_version_numeric("no version here\n") == ""
+
+
 # --- reconcile classifier ---------------------------------------------------
 
 def test_reconcile_match(tmp_path: Path) -> None:

@@ -34,22 +34,25 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
 
 try:
-    from scripts.validate_reconciliation import _SPEC_REGISTRY, parse_spec_version, SpecSource
+    from scripts.validate_reconciliation import _SPEC_REGISTRY, spec_version_numeric, SpecSource
 except ImportError:
-    from validate_reconciliation import _SPEC_REGISTRY, parse_spec_version, SpecSource
+    from validate_reconciliation import _SPEC_REGISTRY, spec_version_numeric, SpecSource
 
 _LOG_PATH = _REPO_ROOT / "logs" / "coherence-nudge.log"
 
 
 def _extract_version(text: str) -> Optional[str]:
-    """The spec version parsed from arbitrary spec TEXT (HEAD or staged), or None.
+    """The spec version parsed from arbitrary spec TEXT (HEAD or staged) in NUMERIC comparison
+    form, or None.
 
-    Routed through the single coherence-spine parser (`validate_reconciliation.parse_spec_version`)
-    so the nudge, the checker, and the enumerator never drift to three regexes (#172 dedup).
-    Coalesces the parser's "" (no Version line) to None — an unparseable version is the
-    reconciliation checker's concern, and `should_nudge` requires a parsed version on both sides.
+    Routed through the single coherence-spine parser (`validate_reconciliation.spec_version_numeric`)
+    so the nudge, the checker, and the enumerator never drift to three regexes (#172 dedup). The
+    nudge compares the NUMERIC core (not raw text) so a cosmetic version edit (e.g. `v5.2`->`5.2`)
+    does NOT masquerade as a real bump and silently suppress the nudge. Coalesces the parser's ""
+    (no parseable numeric version) to None — an unparseable version is the reconciliation
+    checker's concern, and `should_nudge` requires a parsed version on both sides.
     """
-    return parse_spec_version(text) or None
+    return spec_version_numeric(text) or None
 
 
 def _short_hash(text: str) -> str:
