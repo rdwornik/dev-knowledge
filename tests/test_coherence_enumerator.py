@@ -86,3 +86,61 @@ def test_read_spec_version_live_is_not_hardcoded():
     v = ce.read_spec_version(_SPEC.read_text(encoding="utf-8"))
     assert v, "no version parsed from the live spec"
     assert re.match(r"^\d+(\.\d+)+$", v), f"unexpected version shape: {v!r}"
+
+
+# --- Step 2: the by-category checklist output contract ---------------------
+
+_FLAG = {
+    "dependent_path": "docs/handoffs/README.md",
+    "spec_path": "protocols/HANDOFF_PROCESS.md",
+    "old_version": "5.2",
+    "new_version": "5.3",
+}
+
+
+def _result_from(text: str) -> dict:
+    return {
+        "flag": _FLAG,
+        "spec_name": "HANDOFF_PROCESS",
+        "spec_version_current": "5.2",
+        "sites": ce.extract_sites(text, "HANDOFF_PROCESS"),
+    }
+
+
+def test_checklist_states_empty_categories_explicitly():
+    """A category with no hits is rendered as `[none found]`, never silently dropped."""
+    # prose mentioning the spec once: sections hit, but no diagrams / steps / commands
+    out = ce.format_checklist(_result_from("# Doc\n\nMentions HANDOFF_PROCESS once.\n"))
+    assert "diagrams (fenced blocks) ==  [none found]" in out
+    assert "walkthrough_steps (numbered / sequential procedures) ==  [none found]" in out
+    # every category header is present regardless of hits
+    for cat in ce.CATEGORIES:
+        assert ce._CATEGORY_LABELS[cat] in out
+
+
+def test_checklist_makes_fine_a_first_class_verdict():
+    """`fine` / no-change-needed is an explicit, first-class verdict on every site."""
+    out = ce.format_checklist(_result_from("# Doc\n\nMentions HANDOFF_PROCESS once.\n"))
+    assert "'fine' (no change needed) is a first-class verdict" in out
+    assert "stale | fine | not-relevant" in out
+
+
+def test_checklist_carries_transclusion_candidate_label():
+    """The verbatim-duplication label is offered in the skeleton (label only — v1
+    does not build a transclusion engine)."""
+    out = ce.format_checklist(_result_from("# Doc\n\nMentions HANDOFF_PROCESS once.\n"))
+    assert "transclusion-candidate" in out
+
+
+def test_checklist_has_additive_only_escape_section():
+    """A final section lets the LLM ADD anchor-less sites it notices — never drop one."""
+    out = ce.format_checklist(_result_from("# Doc\n\nMentions HANDOFF_PROCESS once.\n"))
+    assert "additional (LLM-noticed; ADDITIVE ONLY)" in out
+    assert "never drop" in out.lower()
+
+
+def test_checklist_renders_a_verdict_slot_per_site():
+    """Each found site gets its own location line + an empty verdict slot."""
+    out = ce.format_checklist(_result_from("# Doc\n\nMentions HANDOFF_PROCESS once.\n"))
+    assert "sections (spec-name / key-term mentions) ==  [1 found]" in out
+    assert out.count("verdict: ___") >= 2  # >=1 per site + the additive line
