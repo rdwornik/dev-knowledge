@@ -210,5 +210,43 @@ def test_parse_deps_is_clause_scoped():
     assert deps == ["3", "4"]
 
 
-def test_parse_serialize_group():
-    assert vb._parse_serialize_group("do x · serialize-group: audit-py · refs y") == "audit-py"
+def test_parse_serialize_groups():
+    # single clause -> 1-list; works mid-line (trailing ·) and at end-of-line ($ anchor)
+    assert vb._parse_serialize_groups("do x · serialize-group: audit-py · refs y") == ["audit-py"]
+    assert vb._parse_serialize_groups("do x · refs y · serialize-group: audit-py") == ["audit-py"]
+    assert vb._parse_serialize_groups("do x · refs y") == []
+
+
+# --- #167: multi-surface collisions (≥2 serialize-group clauses) + delimiter-anchored parse ---
+
+def test_parse_serialize_groups_multi():
+    # a task colliding on TWO shared surfaces carries two clauses; BOTH are read (finditer,
+    # not search) — the dropped-edge fix (#105↔#112, #5↔#77 were silently dropped pre-#167)
+    labels = vb._parse_serialize_groups(
+        "do x · serialize-group: block-immutable · serialize-group: settings-json · refs y")
+    assert labels == ["block-immutable", "settings-json"]
+
+
+def test_serialize_groups_places_task_in_every_group():
+    # serialize_groups() summary places a multi-clause task in EACH named group
+    text = _dep3(dep1=" · serialize-group: alpha · serialize-group: beta",
+                 dep2=" · serialize-group: beta")
+    hard, _ = _run(text)
+    assert hard == []
+    _, _, tasks = vb.parse(text)
+    groups = vb.serialize_groups(tasks)
+    assert groups.get("alpha") == ["1"]
+    assert sorted(groups.get("beta", [])) == ["1", "2"]
+
+
+def test_serialize_group_prose_mention_not_a_clause():
+    # #167 self-trip guard (the 2026-06-14 incident): a task body that NAMES the clause in
+    # prose — both a mid-segment mention AND a clause-shaped form with TRAILING prose after
+    # the token — must NOT register a phantom group. The delimiter anchor (?=·|$) requires
+    # the label to butt the next ·/EOL, so "foo and trailing notes" is rejected, not captured.
+    text = _dep3(dep1=" · Done when: support multiple serialize-group clauses per task, "
+                      "so a · serialize-group: foo and trailing notes mention stays inert")
+    hard, _ = _run(text)
+    assert hard == []
+    _, _, tasks = vb.parse(text)
+    assert vb.serialize_groups(tasks) == {}  # no "foo", no "foo and trailing notes"
