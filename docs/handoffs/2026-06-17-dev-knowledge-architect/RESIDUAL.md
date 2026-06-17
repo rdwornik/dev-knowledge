@@ -1,6 +1,21 @@
 # Residual — 2026-06-17 session, **architect mode** (v5.2 canonical §13)
 <!-- scope: meta -->
 
+> **⚠ UPDATE (post-generation) — the supplement was FILLED. This banner overrides the cold-case
+> language below.** This bundle was *generated* cold (fresh CC session, reconstructed — true, and
+> preserved below as generation-time history), but the operator then obtained **real architect
+> answers** and `supplement filled` them into `SUPPLEMENT.md`. This is the **first real #159
+> dogfood**: the fill→fold half is now exercised end-to-end (a browser-authored strategic *why*,
+> carried verbatim and folded into your `PASTE_THIS`). Two things change for *you*, the incoming
+> architect: **(1)** the `SUPPLEMENT.md` ANSWERS folded into your paste are **real, not empty** —
+> read them as the authoritative strategic *why* (they cover intent, tensions, rejected options,
+> open questions, decomposition, and off-repo context in depth). **(2)** the §13(d)
+> operator-context beat **narrows to "anything changed since the supplement was written?"** — it
+> does **NOT** "fire full." Every "cold / empty ANSWERS / beat fires full / #159 still owed
+> entirely" phrasing below is **generation-time history**; the folded answers + this banner are the
+> live truth. (The only #159 leg still genuinely open is the **incoming** §13(d) beat — exercised
+> when *you* boot, not yet.)
+
 > The **architect residual**: the planning "why" the repo does not already encode, the **open
 > architecture questions**, and the **task-graph**. Drift-flags are the headline — this time the
 > headline is **mostly clean**: `main` is back **in sync** and the merged stragglers were cleaned
@@ -21,8 +36,9 @@
 > bundle's **first-dogfood finding** (a cold/`/clear`ed handoff produced **no** supplement file) **landed
 > its fix as HANDOFF_PROCESS v5.2** — the architect strategic supplement is now an **always-generated,
 > committed, fillable file** with a defined cold-handoff disposition. Orient first (`PROBES.md` P1),
-> **then ask the operator for off-repo context** (§13d / #159 — the supplement ANSWERS are empty this
-> session, so the beat fires **full**), then resume the design.
+> **then ask the operator for off-repo context** (§13d / #159 — **per the UPDATE banner the supplement
+> was filled, so this beat narrows to "anything changed since the supplement?"**), then resume the
+> design.
 >
 > **This bundle is itself the v5.2 cold case — read §2 "Where v5.2 leaves the dogfood".** This is the
 > **first architect handoff generated under v5.2**, and like 2026-06-16 it is cold (fresh CC session, no
