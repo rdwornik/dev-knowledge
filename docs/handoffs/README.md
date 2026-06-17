@@ -1,5 +1,6 @@
 ---
 last_reviewed: 2026-06-17
+reconciled_with: handoff-process@5.2
 ---
 <!-- scope: meta -->
 <!-- CANONICAL OPERATOR RUNBOOK for HANDOFF_PROCESS v5 bundles.

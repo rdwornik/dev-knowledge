@@ -67,6 +67,16 @@ repos:
         language: system
         types: [python]
         pass_filenames: true
+      - id: coherence-nudge
+        name: Coherence forgotten-version-bump nudge (non-blocking)
+        # Fires on a registered spec changed-without-a-version-bump (the
+        # reconciliation checker's false-negative). NON-BLOCKING: always exits 0
+        # (a nudge, not a gate); appends every fire to logs/coherence-nudge.log.
+        # Spec set is single-sourced from validate_reconciliation._SPEC_REGISTRY.
+        entry: python scripts/coherence_nudge.py
+        language: system
+        files: '^protocols/HANDOFF_PROCESS\.md$'
+        pass_filenames: true
       - id: backlog-id-on-close
         name: Require [#id] when a commit removes a backlog task
         entry: python scripts/check_backlog_commit_msg.py

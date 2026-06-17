@@ -170,6 +170,10 @@ def test_canonical_freshness_fires_without_bump(monkeypatch):
     monkeypatch.setattr(sb, "_git", _fake_git({
         "status": _R(""), "rev-parse": _R("", 1), "log": log,
     }))
+    # Isolate from the live CLAUDE.md stamp: the #142 same-day exemption (line 287) would
+    # otherwise silence this whenever the real file's last_reviewed == today, making the
+    # test pass/fail on repo state. Force a non-today stamp so the unbumped-diff leg runs.
+    monkeypatch.setattr(sb, "_current_last_reviewed", lambda doc: None)
     line = sb.check_canonical_freshness()
     assert line and "CLAUDE.md" in line and "last_reviewed" in line
 

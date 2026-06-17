@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-16
+last_reviewed: 2026-06-17
 status: active
 owner: Rob
 ---
@@ -212,7 +212,7 @@ local git gate.
 | `doc_claims` (audit check) | `audit.py health` — pre-commit gate (counts/lists) + full sweep (test-count) | hub | fail-soft (WARN) | #89 |
 | `no_ff_merges` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #153; ADR-84; core-invariants #5 |
 | `handoff_probes` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** (FAIL on broken probe binding; WARN on anchor-missing/skipped) | #163; HANDOFF_PROCESS §5/§10 |
-| pre-commit gates (8) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below |
+| pre-commit gates (9) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below |
 
 The **Tier-1 closure loop** is three of these organs in a cycle:
 `commit closes [#id]` → `Stop: propose_closures.py` writes `logs/PROPOSALS-*.md`
@@ -232,10 +232,10 @@ Per the ADR-28 invariant, Layer 2 hosts **read-only** validators (it does not
 orchestrate, but it may verify itself). These are the *executable* organs the map
 above references — the `scripts/` inventory:
 
-- `scripts/audit.py` — cross-repo conformance + self-audit; **19 registered checks**
+- `scripts/audit.py` — cross-repo conformance + self-audit; **20 registered checks**
   (`python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
   `no_sibling_orphans`, `canonical_structure`, `amendment_coherence`, `git_backlog_drift`,
-  `no_ff_merges`).
+  `no_ff_merges`, `reconciled_versions`).
   `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs);
   `ship-gate` = the #147 pre-ship verification-organ gate (Definition-of-shipped point 6).
   **Seam `ship-gate` vs `health`:** both reuse `ALL_CHECKS`, but `health` gates each
@@ -271,11 +271,12 @@ above references — the `scripts/` inventory:
   `python scripts/verify_handoff_probes.py <bundle>` (#163).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
-- `tests/` — pytest unit tests for the validators (**511 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**564 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
-(PLAYBOOK.md), `validate-backlog`, `audit-health`, `ruff` (≥0.15.5), and
+(PLAYBOOK.md), `validate-backlog`, `audit-health`, `ruff` (≥0.15.5),
+`coherence-nudge` (non-blocking forgotten-version-bump nudge — exits 0 always), and
 `backlog-id-on-close` (commit-msg). Editing **this file** fires
 `normalize-dated-headers`, `codemap-freshness`, `toc-freshness`, and `audit-health`.
 
