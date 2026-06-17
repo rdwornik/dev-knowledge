@@ -1,6 +1,13 @@
 # Probe manifest — architect mode: orientation first, then teeth (v5 §5 + §13c)
 <!-- scope: meta -->
 
+> **⚠ UPDATE (post-generation) — supplement FILLED.** This bundle was generated cold, but the
+> operator then `supplement filled` real answers (see `RESIDUAL.md` UPDATE banner). The teeth probes
+> (P2–P9) are **unchanged** — they bind to **live state**, which the fill does not touch. The only
+> change is the **§13(d) beat in P1's gate: it now NARROWS to "anything changed since the
+> supplement?"**, it does **not** fire full (the supplement carried answers). Read any "ANSWERS empty
+> / beat fires full" phrasing below as generation-time history.
+
 > **Contract.** Each probe ships a **question + source-locator + verification command** and
 > **no answer**. The browser has no file access, so for every probe it must reply
 > **"run `<command>`"** — surfacing the off-bundle dependency instead of bluffing it. **CC**
@@ -29,11 +36,12 @@ quote must match as a **substring** (never a paraphrase). The browser has no fil
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read
 live by CC, substring-matched. **Then, before design, the operator-context beat fires (v5 §13d):**
 the browser asks the operator one targeted question for **off-repo** context (intent / priorities /
-findings not in the repo / changed decisions). **This bundle's `SUPPLEMENT.md` is EMPTY (cold case —
-fresh CC session, no outgoing browser holding *this generation's* deliberation), so the beat fires
-FULL** — there is nothing carried to narrow against (the v5.2 defined cold disposition). *Read the
-prior bundle's filled supplement (`RESIDUAL.md` §2 pointer) for the operator's most recent strategic
-*why* as background — then the full beat asks what has changed since.*
+findings not in the repo / changed decisions). **This bundle's `SUPPLEMENT.md` was FILLED
+post-generation (UPDATE banner / `RESIDUAL.md`), so the beat NARROWS to "anything changed since the
+supplement was written?"** — its answers already carried the off-repo context (Q6 + the addenda); do
+not re-ask it whole. The folded answers are the authoritative strategic *why* — read them first.
+*(Generation-time history: the bundle was generated cold with empty ANSWERS, when the beat would have
+fired full.)*
 
 ## Teeth probes (state fidelity — same contract)
 
@@ -45,15 +53,16 @@ prior bundle's filled supplement (`RESIDUAL.md` §2 pointer) for the operator's 
 | P5 | Is `ARCHITECTURE.md`'s `last_reviewed` stamp **on/after or before** its last git-commit touch — and what are the **two dates**? | `ARCHITECTURE.md` frontmatter + live git | a *relation* over post-handoff commits; a summary holds neither date precisely (ARCHITECTURE was re-stamped this window for the count + check-count bumps) | `git log -1 --format=%cs -- ARCHITECTURE.md` vs the frontmatter stamp (or `audit.py health` `canonical_freshness`) |
 | P6 | What integer does `ARCHITECTURE.md`'s `**N collected**` claim state, what does `pytest --collect-only` collect **right now**, and **do they match**? | `ARCHITECTURE.md` `**N collected**` + live pytest | the live count drifts on any test change; neither integer appears in the residual — and unlike the prior bundle (which carried a doc=511 vs live=534 **mismatch**, now **resolved**), this probe is **expected to MATCH** at generation, but the live count is still the only ground truth | `python scripts/validate_doc_claims.py` (the `pytest_collected` line) — note: `audit.py health` does **not** catch this; use the standalone |
 | P7 | Does `audit.py health` flag a **`no_ff_merges`** WARN right now — yes or no — and if so what is the **full short-sha + date** of the direct-on-main commit it names? | live git ∩ `main` history | post-**ADR-84** the writers were isolated, so this is *expected clean* — but the live answer is the only ground truth (a new direct commit could appear); the value is absent from the bundle | `python scripts/audit.py health` (the `no_ff_merges` line) — re-derive; do **not** trust the residual's prose |
-| P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is a `SUPPLEMENT.md` present (and is its ANSWERS region empty or filled), and where does the stable operator boilerplate live instead? | `docs/handoffs/<slug>/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count (the 2026-06-12 collapse dropped the per-bundle README; the four-file `PASTE_THIS` shape + the v5.2 **always-generated** `SUPPLEMENT.md` are live); the live bundle + spec are the only ground truth | `ls docs/handoffs/2026-06-17-dev-knowledge-architect-2/` (no `README.md`; `SUPPLEMENT.md` present, **ANSWERS empty** — cold; boilerplate lives once in `docs/handoffs/README.md`) ∩ `HANDOFF_PROCESS.md` §13 |
+| P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is a `SUPPLEMENT.md` present (and is its ANSWERS region empty or filled), and where does the stable operator boilerplate live instead? | `docs/handoffs/<slug>/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count (the 2026-06-12 collapse dropped the per-bundle README; the four-file `PASTE_THIS` shape + the v5.2 **always-generated** `SUPPLEMENT.md` are live); the live bundle + spec are the only ground truth | `ls docs/handoffs/2026-06-17-dev-knowledge-architect-2/` (no `README.md`; `SUPPLEMENT.md` present, **ANSWERS FILLED** post-generation — see the UPDATE banner; boilerplate lives once in `docs/handoffs/README.md`) ∩ `HANDOFF_PROCESS.md` §13 |
 | P9 | How many **serialize-groups** does `validate_backlog` summarize **right now**, and which `#id`s are in the **handoff** group (and which group did the coherence-spine story `#172` join)? | `BACKLOG.md` ∩ `scripts/validate_backlog.py` | #156 made the task-graph durable, so the group membership is a live schema fact that drifts on any BACKLOG edit (the `audit-py` group gained `#172` this window); it is absent from this bundle | `python scripts/validate_backlog.py` (the serialize-groups summary line) |
 
 ## Gate procedure (CC)
 
 1. **P1 first** — the architect cannot begin design until both orienting lines are read live and
-   substring-matched. **Then run the operator-context beat (§13d)** — one off-repo ask, **firing FULL**
-   this bundle (the supplement is empty / cold) — before design. Then run P2–P9, each against **live
-   state now** (not generation-time).
+   substring-matched. **Then run the operator-context beat (§13d)** — one off-repo ask, **NARROWED**
+   to "anything changed since the supplement?" this bundle (the supplement was FILLED — UPDATE banner;
+   read the folded answers first) — before design. Then run P2–P9, each against **live state now**
+   (not generation-time).
 2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor
    missing / command errored / receiver tried to answer from memory or this bundle).
 3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named

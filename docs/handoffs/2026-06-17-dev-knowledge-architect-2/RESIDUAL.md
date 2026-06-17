@@ -1,6 +1,29 @@
 # Residual — 2026-06-17 session (#2), **architect mode** (v5.2 canonical §13)
 <!-- scope: meta -->
 
+> **⚠ UPDATE (post-generation) — the supplement was FILLED. This banner overrides the cold-case
+> language below.** This bundle was *generated* cold (fresh CC session — true, and preserved below
+> as generation-time history), but the operator then obtained **real architect answers** and
+> `supplement filled` them into `SUPPLEMENT.md` — the **second real #159 fill→fold dogfood**. Two
+> things change for *you*, the incoming architect: **(1)** the `SUPPLEMENT.md` ANSWERS folded into
+> your `PASTE_THIS` are **real, not empty** — read them as the authoritative strategic *why* (the
+> 107-candidate brainstorm → why coherence spine v1 is a *proof-of-concept for a doctrine* not just
+> a feature; the crux-flip "the **enumerator** is load-bearing, not the trigger"; the
+> deterministic-trigger / AI-per-site-verdict / human-signature boundary; the §16 do-not-build list;
+> DEC-01/03/04/07; and the priority order of the next coherence-by-memory failure classes). **(2)**
+> the §13(d) operator-context beat **narrows to "anything changed since the supplement was
+> written?"** — it does **NOT** "fire full." Every "cold / empty ANSWERS / beat fires full" phrasing
+> below is **generation-time history**; the folded answers + this banner are the live truth.
+>
+> **⚠ Operationally load-bearing (from the answers — surfaced, not buried):** the architect's
+> **first backlog action** is to **extract the v2-deferred items out of `#172`'s body into their own
+> backlog IDs BEFORE `#172` is closed** — else the roadmap orphans on closure. The operator is
+> poised to `/review-closures` `#172`; do the extraction first. Also decided in the answers: **name
+> the paradigm as an ADR, not a VISION** (a VISION invites the maximalism just resisted); the §7
+> review-command canon resolves to a **graduated rule** (interim/small → `/code-review high`; final
+> pre-merge, 3+ files → `/codex-review` for the independent lens — confirm Codex auth-mode first).
+> Do **not** reparent `#169`/`#166` yet (deferred until ≥2 real drifts); do **not** hand-close `#172`.
+
 > The **architect residual**: the planning "why" the repo does not already encode, the **open
 > architecture questions**, and the **task-graph**. Drift-flags are the headline — this time the
 > headline is **clean on doc-claims**: the actionable carry the *prior* bundle flagged
@@ -25,7 +48,7 @@
 > fill→fold dogfood** — surfacing the operator's strategic reframe ("**file-oriented dependency
 > management**"); and (2) the **coherence-spine v1** shipped whole (#172 done-when met; #171 now
 > buildable) — *the first concrete v1 of that very reframe*. Orient first (`PROBES.md` P1), **then ask
-> the operator for off-repo context** (§13d — **fires FULL this bundle**; see §2), then resume the design.
+> the operator for off-repo context** (§13d — **per the UPDATE banner the supplement was FILLED, so this beat NARROWS to "anything changed since the supplement?"**; see §2), then resume the design.
 >
 > **This bundle is itself a v5.2 cold case.** Like the prior two architect bundles it is cold (fresh
 > CC session, no outgoing browser holding *this generation's* deliberation). v5.2 makes that
