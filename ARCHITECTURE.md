@@ -271,7 +271,7 @@ above references — the `scripts/` inventory:
   `python scripts/verify_handoff_probes.py <bundle>` (#163).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
-- `tests/` — pytest unit tests for the validators (**564 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**587 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
