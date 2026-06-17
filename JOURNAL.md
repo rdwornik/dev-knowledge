@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-18 — extract #172 v2 roadmap → #179–#183 (pre-closure; ship-gate Finding witnessed)
+
+**Did:** Per the architect supplement's explicit first-action warning (commit `5dc6531`: "FIRST — extract #172 v2 items into own IDs before closing #172"), broke #172's `**v2 deferred (each gated)**` block out into five discrete tracked tasks so #172 can close on its shipped+integrated v1 scope without orphaning the roadmap. Replaced the block with a one-line pointer `v2 roadmap extracted → #179–#183`; #172's Done-when unchanged. Adjudicated first (prior turn): integration arc C is **landed + pushed** (merges `05c9eb1` wire+dedupe, `e4b5659` e2e gate, `b5c4981` Finding-format, `4719dbc` codex HIGH) — #172's "Integration pending" body is **stale prose**, the bundle did not over-claim. **Pre-closure witness** (clause 4, "a Finding emits to the ship-gate" — previously artifact-only): seeded a `handoff-process@5.1` drift into `docs/handoffs/README.md` `reconciled_with`, ran `audit.py ship-gate` → `reconciled_versions` flipped `[OK]→[!!]` **and ship-gate exited 1 (blocked)**; restored exactly via `git checkout`, tree clean, gate green again. **Witnessed, not just artifact-verified.**
+
+**Result:** `validate_backlog` OK (7 themes, 20 stories, **81 tasks** (+5), 0 warn); new serialize-group `coherence` = {#179, #180, #181, #182}; **#183 ungrouped** (bare, like #167); #172 stays in `audit-py`. `validate_doc_claims` still matches (pytest_collected 587/587). Extract commit `ee76fce`. **#172 NOT closed** — operator runs `/review-closures` after this extract + witness.
+
+**Changes:** `BACKLOG.md` — inserted #179–#183 under story "Catch spec/dependent drift mechanically, not by memory"; #172 v2-block → pointer (`ee76fce`); this `JOURNAL.md`. Branch `feat/172-v2-roadmap-extract`, `--no-ff` to `main`.
+
+**Abandoned / surfaced:** Did **not** reparent #169/#171/#166 (that is #183, evidence-gated: ≥2 real drifts + a #169-fit decision). Did **not** close #172 or run `/review-closures` (operator-gated). Did **not** reconcile #172's stale "Integration pending" body (closure removes it anyway under done-items-leave; reconciling only matters if closure is deferred). Push + straggler stay operator-gated.
+
+**Next:** Operator: `/review-closures` to close #172 on its met v1 Done-when (integration witnessed). Then push the now-7-ahead `main`.
+
 ### 2026-06-17 — supplement FILLED for `-architect-2` (second real #159 fill→fold dogfood)
 
 **Did:** Operator relayed **real architect answers** into `docs/handoffs/2026-06-17-dev-knowledge-architect-2/SUPPLEMENT.md` and said `supplement filled`. Committed the answers **verbatim** (CC did not author or edit them — the advisory/non-fabricated contract) and re-ran `scripts/assemble_paste.py`, which folded the **ANSWERS region only** (zero QUESTIONS leakage — verified) into `PASTE_THIS.md`. This is the **second end-to-end exercise** of the v5.1/v5.2 supplement fill→fold path (the #159 *fill* half; the **incoming** §13(d) beat half runs when the next session boots). **Coherence flip (cold→warm):** the bundle was *generated* cold, so `RESIDUAL.md`/`PROBES.md`/`HANDOFF_BOOT.md` carried "ANSWERS empty / beat fires full" language the fold would contradict (the §8 self-consistency failure mode). Added override **UPDATE banners** (RESIDUAL + PROBES + the HANDOFF_BOOT session-header) and flipped the **§13(d) beat** from "fires full" to "**narrows to changed-since-supplement**"; generation-time provenance preserved as explicit history (minimal diff).
