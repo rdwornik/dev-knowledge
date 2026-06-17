@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-18 — close #167 via /review-closures (operator-approved) + #5/#77 re-verify (NOT closed)
+
+**Did:** Ran the ADR-70 Tier-1 review half. Operator approved **only #167** (typed `#167`); removed its task line from `BACKLOG.md` via done-items-leave (ADR-65) using the gotcha-sanctioned **line-filter** (a long multi-glyph unicode line — drop-by-`startswith('- [#167] ')`, not a hand-matched Edit, per the n=3 fused-neighbour LESSON). Closure evidence `bf0471a76` (this session's multi-surface + anchored-parse fix — Done-when met + witnessed; surfaced WEAK only because the commit said `refs #167`, not `closes`). **Operator-directed CONTENT re-verify of the 2 STRONG candidates #5/#77 — both NOT closed:** #5's `closes [#5]` (`a3cb5219c`) is EXAMPLE text in a test fixture (documented false positive in that commit's own message); #77's `closes [#77]` (`77e5d7d`) is a **CLOSURE-VOIDED misattribution** (shipped CONTRIBUTING→v4, not the `protocols/` consolidation #77 owns; doc-rot checker split into #140) — the #77 line already carries this disposition, and `d061b7dfb` confirms it (`warn-77-voided-closure`, "not work"). The gate's STRONG detector lists both because `find_strong` is the no-`--first-parent` path — the exact false-positive surface the #90 verifier was built to document. The other 18 WEAK left untouched (self-evidently open).
+
+**Result:** `validate_backlog` OK (7 themes, 20 stories, **79 tasks** (−1), 0 warn); #167 gone (was bare/ungrouped); id gap left, no renumber. Gate `plan --ids 167,5,77` returned all three in `close`, but only #167 executed (operator scope + content override on #5/#77 — `close` is open∩evidence-exists, NOT a content check).
+
+**Changes:** `BACKLOG.md` — #167 line removed (done-items-leave); this `JOURNAL.md`. Branch `chore/close-167`, `--no-ff` to `main`.
+
+**Abandoned / surfaced:** Closed ONLY #167. #5/#77 stay open on content grounds (misattributed / voided evidence — closing on the loose SHA would orphan their real work). The 18 other WEAK untouched (no approval).
+
+**Next (operator order):** delete the merged `feat/167-multi-serialize-group` branch, then push `main`. Follow-on (unblocked by #167): collision-graph re-annotation to recover the #105↔#112 / #5↔#77 dropped edges.
+
 ### 2026-06-18 — #167 serialize-group: multi-surface capture + delimiter-anchored parse (GO recorded)
 
 **Did:** **GO decision recorded (operator-approved):** extend the #156 serialize-group schema to **multi-`serialize-group`**, NOT depends-on. Rationale — the dropped edges are *symmetric* mutual-exclusion (both tasks edit one shared file); `depends-on` is *directed + HARD* and a bidirectional edge would trip the existing cycle check, so it is the wrong mechanism for a symmetric collision. Two changes to `scripts/validate_backlog.py`: **(1) multi-surface capture (dropped-edge fix)** — `_parse_serialize_group` (`.search`, FIRST clause only) → `_parse_serialize_groups` (`finditer` over ALL clauses, order-preserving deduped list); `serialize_groups()` now places a task in EVERY named group. **(2) delimiter-anchored parse (self-trip fix)** — the clause regex hardened from greedy `([^·]*)` to a single ASCII token `([A-Za-z0-9][A-Za-z0-9_-]*)` that must butt the next delimiter or end-of-line (`(?=·|$)`), so a prose mention / an example with trailing prose / a `<placeholder>` can no longer register a phantom group; ASCII-only labels also close the cp1252 print-crash vector that accompanied the 2026-06-14 self-trip. **Witnessed live, both bugs then both fixes** (read-only probe): current parser gave `two-clause → 'alpha'` (beta dropped) and `prose → 'foo and trailing notes'` (phantom); fixed parser gives `→ ['alpha','beta']` and `→ []`.
