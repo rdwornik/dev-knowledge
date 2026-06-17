@@ -53,11 +53,11 @@ _EXCLUDE_DIRS = {".git", ".claude", "node_modules", "aborted", "in-progress"}
 class SpecSource:
     """A spec whose live version is the authority for any edge that names it.
 
-    `version_re` carries exactly one capture group yielding the dotted current version
-    (read LIVE from the spec file — never a hardcoded token)."""
+    The version is read LIVE from the spec file via the single coherence-spine parser
+    `parse_spec_version` (never a hardcoded token); a SpecSource carries no parser of its
+    own — there is exactly ONE spec-version reader for the whole spine (#172 dedup)."""
     spec_id: str
     path: str                       # repo-relative
-    version_re: re.Pattern
 
 
 # The live spec registry. Add a row when a new spec becomes a reconciliation authority.
@@ -65,7 +65,6 @@ _SPEC_REGISTRY: dict[str, SpecSource] = {
     "handoff-process": SpecSource(
         "handoff-process",
         "protocols/HANDOFF_PROCESS.md",
-        re.compile(r"(?m)^Version:\s+v?(\d+(?:\.\d+)*)"),
     ),
 }
 
@@ -130,13 +129,53 @@ def norm_version(raw: str) -> tuple[int, ...]:
     return tuple(parts)
 
 
+_VERSION_LINE_RE = re.compile(r"^\s*Version:\s*(.+?)\s*$", re.MULTILINE | re.IGNORECASE)
+_NUMERIC_VERSION_RE = re.compile(r"v?(\d+(?:\.\d+)*)")
+
+
+def parse_spec_version(text: str) -> str:
+    """The spec's declared version token, read LIVE from its `Version:` line — TOLERANT.
+
+    The SINGLE spec-version reader for the whole coherence spine (#172 dedup): one regex,
+    three consumers. Returns the raw token verbatim (e.g. "5.2", "v5.4.1"), or "" if no
+    Version line. Consumers normalize as they need — this checker numeric-normalizes for
+    version comparison (`spec_current_version`); the enumerator surfaces the raw token for
+    its display checklist (`coherence_enumerator.read_spec_version`); the nudge compares two
+    raw tokens for equality. The capture scope is deliberately TOLERANT (full text after the
+    colon, not numeric-only) so the full-text consumer is not forced through a numeric regex.
+    """
+    m = _VERSION_LINE_RE.search(text)
+    return m.group(1).strip() if m else ""
+
+
+def _numeric_version(raw: str) -> str:
+    """Strip a leading `v` and keep the dotted-numeric core ("v5.4.1" -> "5.4.1"); "" if none."""
+    m = _NUMERIC_VERSION_RE.match(raw.strip())
+    return m.group(1) if m else ""
+
+
+def spec_version_numeric(text: str) -> str:
+    """The spec version in COMPARISON form, from spec TEXT: numeric, leading `v` stripped.
+
+    The single normalized form both version-EQUALITY consumers share — this checker (does the
+    declared version match the spec's current?) and the forgotten-bump nudge (did a content
+    edit leave the numeric version unchanged?). Comparing the numeric core, not raw text, is
+    what makes a cosmetic `v5.2`->`5.2` edit NOT masquerade as a real version change. The
+    enumerator, by contrast, DISPLAYS the raw `parse_spec_version` token. Returns "" if no
+    parseable numeric version is present."""
+    return _numeric_version(parse_spec_version(text))
+
+
 def spec_current_version(repo_root: Path, spec: SpecSource) -> Optional[str]:
-    """The spec's current version read live from its file, or None if absent/unparseable."""
+    """The spec's current version, numeric-normalized, read live; None if absent/unparseable.
+
+    Reads the live spec file and returns its `spec_version_numeric` comparison form — A's
+    consumer-layer normalization over the shared `parse_spec_version`, NOT a second parser
+    (#172 dedup)."""
     p = repo_root / spec.path
     if not p.exists():
         return None
-    m = spec.version_re.search(p.read_text(encoding="utf-8", errors="replace"))
-    return m.group(1) if m else None
+    return spec_version_numeric(p.read_text(encoding="utf-8", errors="replace")) or None
 
 
 # --- discovery + reconcile (pure) -------------------------------------------

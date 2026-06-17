@@ -34,17 +34,25 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
 
 try:
-    from scripts.validate_reconciliation import _SPEC_REGISTRY, SpecSource
+    from scripts.validate_reconciliation import _SPEC_REGISTRY, spec_version_numeric, SpecSource
 except ImportError:
-    from validate_reconciliation import _SPEC_REGISTRY, SpecSource
+    from validate_reconciliation import _SPEC_REGISTRY, spec_version_numeric, SpecSource
 
 _LOG_PATH = _REPO_ROOT / "logs" / "coherence-nudge.log"
 
 
-def _extract_version(text: str, spec: SpecSource) -> Optional[str]:
-    """The spec version parsed from arbitrary spec TEXT (HEAD or staged), or None."""
-    m = spec.version_re.search(text)
-    return m.group(1) if m else None
+def _extract_version(text: str) -> Optional[str]:
+    """The spec version parsed from arbitrary spec TEXT (HEAD or staged) in NUMERIC comparison
+    form, or None.
+
+    Routed through the single coherence-spine parser (`validate_reconciliation.spec_version_numeric`)
+    so the nudge, the checker, and the enumerator never drift to three regexes (#172 dedup). The
+    nudge compares the NUMERIC core (not raw text) so a cosmetic version edit (e.g. `v5.2`->`5.2`)
+    does NOT masquerade as a real bump and silently suppress the nudge. Coalesces the parser's ""
+    (no parseable numeric version) to None — an unparseable version is the reconciliation
+    checker's concern, and `should_nudge` requires a parsed version on both sides.
+    """
+    return spec_version_numeric(text) or None
 
 
 def _short_hash(text: str) -> str:
@@ -58,8 +66,8 @@ def should_nudge(head_text: str, staged_text: str, spec: SpecSource) -> bool:
     concern, not the nudge's) and be equal while the content differs."""
     if head_text == staged_text:
         return False
-    hv = _extract_version(head_text, spec)
-    sv = _extract_version(staged_text, spec)
+    hv = _extract_version(head_text)
+    sv = _extract_version(staged_text)
     return hv is not None and sv is not None and hv == sv
 
 
@@ -112,7 +120,7 @@ def process(repo_root: Path, rel: str, now: Optional[datetime] = None,
     staged_text = fpath.read_text(encoding="utf-8", errors="replace")
     if not should_nudge(head_text, staged_text, spec):
         return None
-    version = _extract_version(staged_text, spec) or "?"
+    version = _extract_version(staged_text) or "?"
     _append_log(rel, version, head_text, staged_text, now or datetime.now(), log_path)
     return (f"coherence-nudge: {rel} content changed but Version stayed {version}. "
             f"If this edit is substantive, bump the spec Version (and reconcile dependents' "
