@@ -83,6 +83,12 @@ try:
 except ImportError:
     import verify_handoff_probes as _vhp
 
+# Coherence-spine reconciliation checker — same module-import + thin-adapter shape.
+try:
+    from scripts import validate_reconciliation as _vr
+except ImportError:
+    import validate_reconciliation as _vr
+
 # Gate-mode flag (#89): cmd_health sets this True around its self-audit loop so the
 # expensive claim-3 (pytest --collect-only) is SKIPPED on the per-commit gate and
 # evaluated only on the full-audit path (run/repo/CLI/SessionStart). Operator ruling.
@@ -1386,6 +1392,46 @@ def check_handoff_probes(repo_path: Path) -> list[Finding]:
                     f"{len(results)} probe(s) bind to live state ({latest.name})")]
 
 
+def check_reconciled_versions(repo_path: Path) -> list[Finding]:
+    """Coherence-spine reconciliation gate: a dependent's declared `reconciled_with`
+    version must match the spec's CURRENT (live) version.
+
+    A dependent doc declares `reconciled_with: <spec-id>@<version>` in its frontmatter;
+    the checker resolves the spec via the registry (validate_reconciliation._SPEC_REGISTRY),
+    reads its version LIVE, and compares. In v1 exactly one edge is declared
+    (docs/handoffs/README.md -> handoff-process). Generic: a child repo with no
+    `reconciled_with` edge is a no-op PASS, so this no-ops on the fleet.
+
+    FAIL-class (gating) on a version mismatch — fail-closed: a dependent still claiming an
+    old spec version is the drift this exists to block. One Finding per mismatch so the
+    #147 ship-gate dispositions each independently (same contract as git_backlog_drift /
+    handoff_probes). A checker that cannot read its OWN inputs (malformed frontmatter,
+    unknown spec-id, spec absent/unparseable) -> WARN: fail-OPEN on its own error, never a
+    synthesized FAIL. Fail-soft on any unexpected error. Read-only. Logic lives in
+    scripts/validate_reconciliation.py.
+    """
+    try:
+        results = _vr.reconcile(Path(repo_path))
+    except Exception as exc:  # never wedge the audit-health gate
+        return [Finding("reconciled_versions", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    findings: list[Finding] = []
+    for r in results:
+        if r.status == "mismatch":
+            findings.append(Finding("reconciled_versions", "fail",
+                (f"{r.dependent_path} declares {r.spec_id}@{r.declared} but spec is "
+                 f"{r.current} - reconcile and bump reconciled_with").replace("|", "/")))
+        elif r.status in ("malformed", "unknown-spec"):
+            findings.append(Finding("reconciled_versions", "warn",
+                (f"{r.dependent_path}: {r.status} ({r.current})").replace("|", "/")))
+    if findings:
+        return findings
+    n = len(results)
+    return [Finding("reconciled_versions", "pass",
+                    f"{n} reconciled_with edge(s) match live spec version(s)"
+                    if n else "no reconciled_with edges declared")]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -1406,6 +1452,7 @@ ALL_CHECKS = [
     check_doc_claims,
     check_no_ff_merges,
     check_handoff_probes,
+    check_reconciled_versions,
 ]
 
 

@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-16
+last_reviewed: 2026-06-17
 status: active
 owner: Rob
 ---
@@ -232,10 +232,10 @@ Per the ADR-28 invariant, Layer 2 hosts **read-only** validators (it does not
 orchestrate, but it may verify itself). These are the *executable* organs the map
 above references — the `scripts/` inventory:
 
-- `scripts/audit.py` — cross-repo conformance + self-audit; **19 registered checks**
+- `scripts/audit.py` — cross-repo conformance + self-audit; **20 registered checks**
   (`python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
   `no_sibling_orphans`, `canonical_structure`, `amendment_coherence`, `git_backlog_drift`,
-  `no_ff_merges`).
+  `no_ff_merges`, `reconciled_versions`).
   `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs);
   `ship-gate` = the #147 pre-ship verification-organ gate (Definition-of-shipped point 6).
   **Seam `ship-gate` vs `health`:** both reuse `ALL_CHECKS`, but `health` gates each
