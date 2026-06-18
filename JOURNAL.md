@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-18 — close #120 (child-BACKLOG conformance probe) via operator-approved done-items-leave
+
+**Did:** Operator ship-time closure of **#120** (human-gated done-items-leave, ADR-65). Content-verified the evidence SHA **`477ceee`** before closing (per the STRONG-content lesson): it is genuinely #120's work — `feat(probe): child BACKLOG schema-conformance readiness gate (#120)`, reporting conformant/needs-migration per child — and #120's Done-when ("each child's BACKLOG schema-conformance is recorded") is met (the #120-probe entry below: all 4 children CONFORMANT, live run). Removed the #120 task line from `BACKLOG.md` via the gotcha-sanctioned `startswith('- [#120] ')` line-filter (the line carries `→` glyphs — avoids the fused-neighbour Edit trap).
+
+**Result:** the `review_closures.py plan --ids 120` gate did **not** auto-bless it (`close: []`, "not a proposed candidate"): its detector keys on `closes [#N]` (477ceee is refs-style `(#120)`) and on files the task names (the probe added `scripts/probe_child_backlogs.py`, not a task-named ref), so neither STRONG nor WEAK fires. This is the **human-gated path by design** (ADR-70 Tier-1) — the operator's explicit approval + content-verified evidence is the closure authority, not the heuristic detector (the #167 precedent: operator override). `validate_backlog` OK after removal.
+
+**Changes:** `BACKLOG.md` — #120 line removed (done-items-leave; #186's `refs #120` cross-ref retained, #172 precedent); this `JOURNAL.md`. Branch `chore/close-120`, `--no-ff` to `main` from the primary `.dev-knowledge` checkout (worktrees untouched — operator tears those down).
+
+**Next:** Push `main`. Follow-on: #186 (sync the #156 task-graph checks into the distributed plugin floor).
+
 ### 2026-06-18 — #120 child-BACKLOG conformance probe (floor-faithful) + #186 floor-gap
 
 **Did:** Built the #120 readiness GATE — a read-only probe (`scripts/probe_child_backlogs.py`, `477ceee`) verifying each child repo's `BACKLOG.md` conforms to the ADR-66 story-map BEFORE `validate-backlog` can be distributed to it (the prerequisite, NOT the distribution). **Load-bearing operator ruling on the criterion:** classify against the **plugin floor artifact** `plugins/tier1-lifecycle/scripts/validate_backlog.py` (the validator a child actually installs), NOT the hub's stricter `scripts/validate_backlog.py`. Verified the plugin floor carries the ADR-66 structural checks only and **lacks #156** (depends-on reference-existence + no-cycle), and that `validate-backlog` is not distributed yet at all (a CC plugin can't ship `.pre-commit-config.yaml`; only the ruff gate travels). So the probe mirrors the floor as-shipped (zero drift): it greenlights exactly the children that would pass the hook they'd install. Discovery reuses the audit.py/fleet_health cascade (index.yaml primary -> state.yaml path-refine -> `<parent>/<name>` fallback; `--repo-path` override; hub self-entry excluded by canonical-name + path-identity, worktree-safe). Floor loaded by explicit-path importlib under a distinct module name to dodge the same-name collision with the hub validator.
