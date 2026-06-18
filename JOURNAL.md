@@ -25,7 +25,7 @@
 
 **Result:** PLAYBOOK gaps filled — G1 (`/review-closures` resolves BACKLOG via `$CLAUDE_PROJECT_DIR`/cwd → run from a primary on-`main`, not a worktree; mechanism confirmed in `review_closures.py`), G3 (cd-out + `--force` + prune-recovery pointer in teardown), G4 (parallel arcs reserve a non-overlapping id-range *in-file* before the split — stale-`main` collision), a discoverability steer (hand the operator `claude --worktree`, never a sibling `git worktree add ../dev-knowledge-*`), and the verified-2026-06-18 auto-seed stamp. New gotcha: `git worktree remove` is NOT idempotent → recover with `git worktree prune`, never a 2nd `remove` (with `verify:` line). Edits stay within existing subsections → TOC hooks untouched. Full suite green (609 passed, 5 skipped), ruff clean, audit-health OK.
 
-**Changes:** `protocols/PLAYBOOK.md` (+33/−3, §"Parallel sessions & worktree discipline"); `~/.claude/skills/gotchas/gotchas.md` (new worktree-remove-idempotency gotcha + header date bump); this `JOURNAL.md`. Branch `docs/worktree-lifecycle-gaps`, `--no-ff` to `main` from the primary checkout.
+**Changes:** `protocols/PLAYBOOK.md` (+33/−3, §"Parallel sessions & worktree discipline"); `~/.claude/skills/gotchas/gotchas.md` (new worktree-remove-idempotency gotcha + header date bump, committed `8f4a3a4` in `~/.claude`); this `JOURNAL.md`. Branch `docs/worktree-lifecycle-gaps`, committed `d102d63`, `--no-ff` merge `1882e01` to `main` from the primary checkout (this SHA-citation follow-up on `docs/journal-w1-sha`).
 
 **Next:** Push `main`. No new ADR — native is already the current doctrine, so no reversal (D1).
 
