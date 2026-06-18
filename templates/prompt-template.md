@@ -1,6 +1,6 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
-<!-- version: 1.4 — 2026-06-10 -->
+<!-- version: 1.5 — 2026-06-18 -->
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
 >
@@ -21,6 +21,8 @@
 **Purpose:** `<one sentence — what gets achieved by running this prompt>`
 
 Read `CLAUDE.md`, `<other read-first files relevant to task>`, and check `~/.claude/skills/gotchas/` before starting.
+
+**Governance pointer:** `<the specific ADR / LESSONS entry / sibling-spec this task touches, or "none">` — the architect fills this thin pointer; CC self-loads code-impact context + generic gotchas but won't self-infer governance context (ADR-87).
 
 ## Git workflow
 <!-- scope: meta -->
@@ -115,3 +117,4 @@ Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tre
 - v1.2 (2026-06-06) — Per-step verification line replaced with `verify` skill invocation (closes #104).
 - v1.3 (2026-06-09) — Final gains a standing **obsolescence pass** line (propose deletion of superseded content instead of writing around it; operator ratifies) — point-of-use of the PLAYBOOK §2 pruning-symmetry rule (closes #136).
 - v1.4 (2026-06-10) — UNDERSTAND gains an optional **READINESS valve** for ambiguous input (named verdict + go/no-go, create nothing until operator approves) — #111 (c). Folds as a valve, not a new organ.
+- v1.5 (2026-06-18) — adds the **Governance pointer** field (the thin per-task ADR/LESSONS/sibling-spec pointer the architect always fills; CC won't self-infer governance context) — point-of-use of the ADR-87 equilibrium contract; dual-maintenance with PLAYBOOK §2 "Architect output vs CC consumption-spec".
