@@ -10,6 +10,17 @@
 | **Purpose** | A **fresh** architect handoff one workday past `2026-06-17-dev-knowledge-architect-2`. The 2026-06-18 window landed four linked things: **(1)** **ADR-87** — the architect/CC **equilibrium contract** (the prompt division of labor: architect emits intent + closure + anti-patterns + mode + a thin governance-pointer; CC owns code-impact context, gotchas, the skeleton, model/effort) — codified across PLAYBOOK §2, the prompt template, ESSENTIALS, HANDOFF_BOOT; empirical close = **#184** (OPEN), GAP-2 residue = **#185** (filed, not built); **(2)** the **coherence-spine consolidation** — #172's v2 roadmap **extracted** into **#179–#183** (a NEW `coherence` serialize-group; the prior bundle's load-bearing "extract before close" first-action) and **#172 closed**; **(3)** a **backlog groom** — closed #138, condensed the giants (ADR-65), filed #187–#189 (net 83 tasks); **(4)** the **worktree / parallel-arc lifecycle** codified in PLAYBOOK (native auto-seed verified). The next session inherits the candidate top thread — **name "file-oriented dependency management" as an ADR** (the prior supplement's explicit directive; the durable #179–#183 graph now lacks its capstone doctrine) — plus **coherence v2** (#181 data-gated on `logs/coherence-nudge.log`), the **§7 review-command graduated-rule reconcile** (not landed), **ADR-87 demonstration** (#184), **#164** (the v5 generator), the standing threads (#162 vocab, #161 probe-core, the **#170→#168** / **#171→#169** ADR-85 chains, **#186** plugin-floor sync), and the **ADR-85 override-rate watch** (scope-freeze to ~2026-07-14). |
 | **Generated at** | HEAD `62763d7`, working tree clean, `main` **in sync** with `origin/main`. This handoff's own commits put `main` **ahead** of origin until pushed; **no merged stragglers** (the prior bundle's two were `-d`'d). Re-derive HEAD/sync at read-time (`PROBES.md` P3). |
 
+> **⚠ UPDATE — supplement FILLED (warm).** Generated cold, but the operator then `supplement filled`
+> real architect answers, now folded into `PASTE_THIS.md` (answers-only). Read the folded
+> `SUPPLEMENT.md` answers as the authoritative strategic *why*: **the top priority is to unify +
+> encapsulate the methodology into ONE self-enforcing, deployable whole, with #131 (ai-council
+> onboarding) as the first deployment test** (enforcement > documentation; the named spine-failure is
+> "accepting inherited framing without verifying against state"). **First moves for the next architect:
+> author the capstone "file-oriented dependency management" ADR; sequence #184 first (it rides #131's
+> onboarding as the real build proving ADR-87); the §7 graduated review-command rule rides along
+> (Codex auth = ChatGPT-authed default).** The §13(d) beat **narrows** to "changed since the
+> supplement?" (not full).
+
 > **Operator runbook is not copied here.** The stable who-each-file-is-for / run-loop /
 > rationale lives **once** in the canonical per-repo runbook **`docs/handoffs/README.md`** — read
 > it for the walkthrough. This file carries only the **session header** (above) + the
@@ -149,6 +160,37 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 # Residual — 2026-06-18 session, **architect mode** (v5.2 canonical §13)
 <!-- scope: meta -->
 
+> **⚠ UPDATE (post-generation) — the supplement was FILLED. This banner overrides the cold-case
+> language below.** This bundle was *generated* cold (fresh CC session — true, preserved below as
+> generation-time history), but the operator then obtained **real architect answers** and
+> `supplement filled` them into `SUPPLEMENT.md`. Two things change for *you*, the incoming architect:
+> **(1)** the `SUPPLEMENT.md` ANSWERS folded into your `PASTE_THIS` are **real, not empty** — read
+> them as the authoritative strategic *why*. **(2)** the §13(d) operator-context beat **narrows to
+> "anything changed since the supplement was written?"** — it does **NOT** "fire full." Every
+> "cold / empty ANSWERS / beat fires full" phrasing below (and in `PROBES.md` / `HANDOFF_BOOT.md`) is
+> **generation-time history**; the folded answers + this banner are the live truth.
+>
+> **⚠ The strategic headline (from the answers — surfaced, not buried):** the operator's **top
+> priority reframes the next session above the prior thread.** It is **not** "build the next coherence
+> mechanism" — it is **unify + encapsulate the whole methodology into ONE coherent, SELF-ENFORCING
+> whole, deployable to a fresh repo, with #131 (ai-council onboarding) as the first deployment test.**
+> The methodology already *exists* and is mature; what it is *not* yet is a **self-enforcing** whole —
+> this session repeatedly showed the architect **bypassing** the methodology because correctness rode
+> on *remembering* to apply it. The named spine-failure: **"accepting inherited framing without
+> verifying against state."** So the unify-goal prioritizes **enforcement > documentation** (machinery
+> that can't be bypassed: #187 dedup, #140 grooming-gate, #188 deny/hook audit are the "machinery not
+> memory" closures it depends on). **Operationally load-bearing for *you*:**
+> - **Author the capstone "file-oriented dependency management" ADR now** (answer A) — it *serves* the
+>   unify-goal by turning #179–#183 from a feature list into doctrine. Failure-class order suggested
+>   (verify against the live #179–#183 scope before locking it).
+> - **Sequence #184 first** (answer B): ADR-87 must be *proven*, not just codified — and **#131's
+>   onboarding is the natural real-build to demonstrate it on, so #184 rides #131.** The §7 graduated
+>   review-command rule rides along; Codex auth = **ChatGPT-authed** default (Max sub) — confirm before
+>   any `/codex-review`.
+> - **Cross-repo deployment caution:** client-identifying context leaked into a gotcha this session
+>   (now generalized; #130 capture-scrub arm) — watch for it in any deployment. And the **empty
+>   `ANTHROPIC_API_KEY` → Max-OAuth** override is **load-bearing** (do not break it).
+>
 > The **architect residual**: the planning "why" the repo does not already encode, the **open
 > architecture questions**, and the **task-graph**. Drift-flags are the headline — this time the
 > headline is an **actionable re-drift**: `pytest_collected@ARCHITECTURE.md` says **587** but live
@@ -174,16 +216,17 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > filled supplement); a **backlog groom** condensed the giants + filed #187–#189; the **worktree /
 > parallel-arc lifecycle** was codified in PLAYBOOK; and the floor/schema machinery advanced (#120 +
 > #138 closed, #167 multi-serialize-group landed, #186 floor-gap filed). Orient first (`PROBES.md` P1),
-> **then ask the operator for off-repo context** (§13d — this bundle is **cold**, so the beat fires
-> **full**; see §2), then resume the design.
+> **then ask the operator for off-repo context** (§13d — **per the UPDATE banner the supplement was
+> FILLED, so this beat NARROWS to "anything changed since the supplement?"**; see §2), then resume the
+> design.
 >
-> **This bundle is a v5.2 cold case (no UPDATE banner — unlike `…-architect-2`).** Fresh CC session, no
-> outgoing browser holding *this* window's deliberation. v5.2 makes that **defined, not a gap**:
-> `SUPPLEMENT.md` is generated + committed with **empty ANSWERS** (the assembler folds nothing; the
-> incoming §13(d) beat fires full). The *prior* bundles' **filled** supplements carry the operator's
-> most recent strategic *why* (the "file-oriented dependency management" reframe, the §16 do-not-build
-> list, "name the paradigm as an ADR") — read them as the planning context (pointers in §2), then the
-> beat asks what changed since.
+> **This bundle was *generated* a v5.2 cold case — then FILLED (see the UPDATE banner at the top).**
+> Generation-time history: it was generated cold (fresh CC session, no outgoing browser holding *this*
+> window's deliberation), `SUPPLEMENT.md` committed with empty ANSWERS. v5.2 makes that defined, not a
+> gap — **and** the operator then `supplement filled` real answers, so the live truth is **warm**: the
+> folded ANSWERS carry the operator's strategic *why* (the unify-into-a-self-enforcing-whole goal — see
+> the UPDATE banner) and the incoming §13(d) beat **narrows** to "changed since the supplement?". Read
+> the folded answers first.
 
 ---
 
@@ -466,6 +509,13 @@ unprompted:
 # Probe manifest — architect mode: orientation first, then teeth (v5 §5 + §13c)
 <!-- scope: meta -->
 
+> **⚠ UPDATE (post-generation) — supplement FILLED.** This bundle was generated cold, but the
+> operator then `supplement filled` real answers (see `RESIDUAL.md` UPDATE banner). The teeth probes
+> (P2–P9) are **unchanged** — they bind to **live state**, which the fill does not touch. The only
+> change is the **§13(d) beat in P1's gate: it now NARROWS to "anything changed since the
+> supplement?"**, it does **not** fire full. Read any "cold / empty ANSWERS / beat fires full"
+> phrasing below as generation-time history; read the folded `SUPPLEMENT.md` answers first.
+
 > **Contract.** Each probe ships a **question + source-locator + verification command** and
 > **no answer**. The browser has no file access, so for every probe it must reply
 > **"run `<command>`"** — surfacing the off-bundle dependency instead of bluffing it. **CC**
@@ -514,7 +564,7 @@ full off-repo question.
 | P5 | Is `ARCHITECTURE.md`'s `last_reviewed` stamp **on/after or before** its last git-commit touch — and what are the **two dates**? | `ARCHITECTURE.md` frontmatter + live git | a *relation* over post-handoff commits; a summary holds neither date precisely | `git log -1 --format=%cs -- ARCHITECTURE.md` vs the frontmatter stamp (or `audit.py health` `canonical_freshness`) |
 | P6 | What integer does `ARCHITECTURE.md`'s `**N collected**` claim state, what does `pytest --collect-only` collect **right now**, and **do they match**? | `ARCHITECTURE.md` `**N collected**` + live pytest | the live count drifts on any test change; neither integer appears in the residual — and unlike a clean window, this probe is **expected to MISMATCH** at generation (doc=587 vs live=614, the re-drift headline §1), but the live count is still the only ground truth | `python scripts/validate_doc_claims.py` (the `pytest_collected` line) — note: `audit.py health` does **not** catch this; use the standalone |
 | P7 | Does `audit.py health` flag a **`no_ff_merges`** WARN right now — yes or no — and if so what is the **full short-sha + date** of the direct-on-main commit it names? | live git ∩ `main` history | post-**ADR-84** the writers were isolated, so this is *expected clean* — but the live answer is the only ground truth (a new direct commit could appear); the value is absent from the bundle | `python scripts/audit.py health` (the `no_ff_merges` line) — re-derive; do **not** trust the residual's prose |
-| P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is a `SUPPLEMENT.md` present (and is its ANSWERS region empty or filled), and where does the stable operator boilerplate live instead? | `docs/handoffs/<slug>/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count (the 2026-06-12 collapse dropped the per-bundle README; the four-file `PASTE_THIS` shape + the v5.2 **always-generated** `SUPPLEMENT.md` are live); the live bundle + spec are the only ground truth | `ls docs/handoffs/2026-06-18-dev-knowledge-architect/` (no `README.md`; `SUPPLEMENT.md` present, **ANSWERS EMPTY** — this bundle is cold; boilerplate lives once in `docs/handoffs/README.md`) ∩ `HANDOFF_PROCESS.md` §13 |
+| P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is a `SUPPLEMENT.md` present (and is its ANSWERS region empty or filled), and where does the stable operator boilerplate live instead? | `docs/handoffs/<slug>/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count (the 2026-06-12 collapse dropped the per-bundle README; the four-file `PASTE_THIS` shape + the v5.2 **always-generated** `SUPPLEMENT.md` are live); the live bundle + spec are the only ground truth | `ls docs/handoffs/2026-06-18-dev-knowledge-architect/` (no `README.md`; `SUPPLEMENT.md` present, **ANSWERS FILLED** post-generation — see the UPDATE banner; boilerplate lives once in `docs/handoffs/README.md`) ∩ `HANDOFF_PROCESS.md` §13 |
 | P9 | How many **serialize-groups** does `validate_backlog` summarize **right now**, which `#id`s are in the **handoff** group, and which **new** group did the extracted #172 v2 roadmap form? | `BACKLOG.md` ∩ `scripts/validate_backlog.py` | #156 made the task-graph durable, so the group membership is a live schema fact that drifts on any BACKLOG edit (a new `coherence` group formed + `#172` left `audit-py` this window); it is absent from this bundle | `python scripts/validate_backlog.py` (the serialize-groups summary line) |
 
 ## Gate procedure (CC)
@@ -534,3 +584,39 @@ full off-repo question.
    four-file shape (+ the v5.2 always-generated `SUPPLEMENT.md`, **empty ANSWERS** — cold; no README); P9
    pins the now-durable serialize-group graph (#156) with the **new `coherence` group** (#179–#182) and
    `#172` gone from `audit-py` (closed).
+
+---
+
+=== SUPPLEMENT.md ===
+
+ANSWERS — 2026-06-18 architect handoff
+
+1. Strategic intent.
+Unify and encapsulate the way-of-working methodology into ONE coherent, SELF-ENFORCING whole, deployable to a fresh repo — with #131 (ai-council onboarding) as the first deployment test. The methodology already EXISTS and is mature (the story-map backlog passes validate_backlog 0-warnings; ADR-87 equilibrium contract; handoff §13 architect/execution; worktree lifecycle ~80% codified). What it is NOT yet: a whole that composes into one articulable, enforced process. This session repeatedly showed the architect BYPASSING the methodology because the pieces are scattered and rely on REMEMBERING to apply them. Goal: enforcement > documentation — close the memory-dependence gaps so correctness is held by machinery, not by the architect's memory.
+
+2. Tensions weighed.
+(i) Architect-emits-intent vs architect-structures-the-artifact → landed on intent-only (ADR-87), because this session proved the failure of over-reaching into CC's lane (hand-built flat orphan backlog tasks that violated the schema + duplicated #106). (ii) Mode as simple plan/execute vs the full CC permission taxonomy → landed: the architect emits plan/execute; permission posture (bypass/acceptEdits/auto) is the OPERATOR's terminal call, outside the contract — the right abstraction level for each actor. (iii) Backlog: invent methodology vs follow the existing one → the methodology exists (ADR-66); the failure was adherence + a 6-week grooming-cadence lapse, fixed by the groom. (iv) grooming-log archive-file vs git-pointer → git-pointer (archive-file violates §5).
+
+3. Considered + rejected (do NOT relitigate).
+- Encoding the mode model as a large PLAYBOOK §2 + HANDOFF deliverable — rejected as over-engineering (the contract + §13 already exist; residual = a clause in #106).
+- Routing the mode clarification to AI Council — rejected (it is a small clarification, not an architecture decision).
+- Archive-file for the grooming log — rejected (§5).
+- Re-archiving the v4 handoff templates — NOT done (they are LIVE for v4 repos per ADR-83; re-archival is gated to #164 close).
+- Filing the 8 findings as flat new tasks — rejected; re-mapped (mostly folded into #106/#130/#153/#179/#140; only #187/#188/#189 are genuinely new).
+- Standalone condensation-gate — rejected (folded into #140).
+- Semantic/LLM dedup in the validator — rejected (validators are deterministic; #187 is a token-overlap heuristic with an explicit stated limit).
+
+4. Open questions / deferred.
+(a) The "file-oriented dependency management" capstone ADR is unbuilt — #179-#183 read as a loose feature list, not "extending a paradigm" (see A). (b) #184 (demonstrate ADR-87) vs the §7 review-command reconcile — sequencing + Codex auth-mode cost (see B). (c) Auto Mode go/no-go (#106) now carries the mode-disambiguation clause, but the go/no-go itself + the auto-vs-bypass operator-default recommendation are unresolved. (d) The enforcement gaps (#187 dedup, #140 grooming-gate, #188 deny/hook audit) are filed but unbuilt — these are the "machinery not memory" closures the unify-goal depends on.
+
+5. Decomposition rationale — what NOT to redo / re-decide.
+The backlog methodology is SOUND (validate_backlog conformant) — do not "fix" it; the issue was adherence + cadence, both addressed. The mode model is settled (architect: plan/execute; posture: operator terminal call) — do not relitigate the permission taxonomy as an architect concern. ADR-87 needs DEMONSTRATION (#184), not redesign. The worktree lifecycle is codified (d102d63, native .claude/worktrees/) — do not re-propose the sibling-dir path (superseded). The ~/.claude backup is done (private remote). The 8 findings are absorbed — do not re-file them.
+
+6. Off-repo context.
+Operator's top priority: unify + encapsulate the methodology into a deployable whole, with #131 as the test. Dominant off-repo finding (not in the repo): the methodology is good but NOT self-enforcing — the architect bypassed it repeatedly this session (flat-orphan filing, mode over-scoping, "closed"-without-delivery, an archive-file instruction violating §5); the pattern is the session's named spine-failure — "accepting inherited framing without verifying against state." The unify-goal must therefore prioritize ENFORCEMENT (machinery that can't be bypassed), not more docs. Two rough methodology areas this session (operator-flagged), both captured: mode (→ #106/#162) and parallel-work management (→ d102d63 + #143/#145). Client-data lesson: client-identifying context leaked into a gotcha via verbatim capture (Würth, now generalized + a #130 capture-scrub arm) — watch for this in any cross-repo deployment. Operator auth: Max subscription; the empty ANTHROPIC_API_KEY override forces Max-OAuth (not API billing) and is load-bearing.
+
+A. Capstone ADR — author now.
+Yes — it directly serves the unify+encapsulate goal (it names the paradigm that #179-#183 extend, turning a feature list into doctrine), and the prior supplement already directed ADR-not-VISION. Suggested failure-class order (by this session's evidenced frequency/cost): (1) accepting inherited framing without verifying state (the spine-failure), (2) cross-document staleness via undeclared prose-dependency edges (#179), (3) duplicate/uncoordinated filing (#106→#187), (4) history-accretion bloat (#159/#164→#140). Caveat for the incoming architect: the taxonomy/order is itself a design choice — verify against the actual #179-#183 scope before locking it.
+
+B. Sequence — #184 first.
+The unify-goal depends on ADR-87 being PROVEN, not just codified; #184 is that proof, and #131's onboarding is a natural real-build to demonstrate it on — so #184 rides #131. The §7 graduated review-command rule (interim → /code-review high; final pre-merge 3+ files → /codex-review) is a smaller encoding that can ride along. Codex auth: ChatGPT-authed (no extra cost) is the default-sensible choice given the Max subscription + the no-budget-ceiling-but-optimize-later posture; API-key (per-token) only if ChatGPT-auth is insufficient — confirm with the operator, since it affects the cost of every /codex-review.
