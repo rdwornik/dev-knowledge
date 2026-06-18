@@ -1,6 +1,37 @@
 # Residual — 2026-06-18 session, **architect mode** (v5.2 canonical §13)
 <!-- scope: meta -->
 
+> **⚠ UPDATE (post-generation) — the supplement was FILLED. This banner overrides the cold-case
+> language below.** This bundle was *generated* cold (fresh CC session — true, preserved below as
+> generation-time history), but the operator then obtained **real architect answers** and
+> `supplement filled` them into `SUPPLEMENT.md`. Two things change for *you*, the incoming architect:
+> **(1)** the `SUPPLEMENT.md` ANSWERS folded into your `PASTE_THIS` are **real, not empty** — read
+> them as the authoritative strategic *why*. **(2)** the §13(d) operator-context beat **narrows to
+> "anything changed since the supplement was written?"** — it does **NOT** "fire full." Every
+> "cold / empty ANSWERS / beat fires full" phrasing below (and in `PROBES.md` / `HANDOFF_BOOT.md`) is
+> **generation-time history**; the folded answers + this banner are the live truth.
+>
+> **⚠ The strategic headline (from the answers — surfaced, not buried):** the operator's **top
+> priority reframes the next session above the prior thread.** It is **not** "build the next coherence
+> mechanism" — it is **unify + encapsulate the whole methodology into ONE coherent, SELF-ENFORCING
+> whole, deployable to a fresh repo, with #131 (ai-council onboarding) as the first deployment test.**
+> The methodology already *exists* and is mature; what it is *not* yet is a **self-enforcing** whole —
+> this session repeatedly showed the architect **bypassing** the methodology because correctness rode
+> on *remembering* to apply it. The named spine-failure: **"accepting inherited framing without
+> verifying against state."** So the unify-goal prioritizes **enforcement > documentation** (machinery
+> that can't be bypassed: #187 dedup, #140 grooming-gate, #188 deny/hook audit are the "machinery not
+> memory" closures it depends on). **Operationally load-bearing for *you*:**
+> - **Author the capstone "file-oriented dependency management" ADR now** (answer A) — it *serves* the
+>   unify-goal by turning #179–#183 from a feature list into doctrine. Failure-class order suggested
+>   (verify against the live #179–#183 scope before locking it).
+> - **Sequence #184 first** (answer B): ADR-87 must be *proven*, not just codified — and **#131's
+>   onboarding is the natural real-build to demonstrate it on, so #184 rides #131.** The §7 graduated
+>   review-command rule rides along; Codex auth = **ChatGPT-authed** default (Max sub) — confirm before
+>   any `/codex-review`.
+> - **Cross-repo deployment caution:** client-identifying context leaked into a gotcha this session
+>   (now generalized; #130 capture-scrub arm) — watch for it in any deployment. And the **empty
+>   `ANTHROPIC_API_KEY` → Max-OAuth** override is **load-bearing** (do not break it).
+>
 > The **architect residual**: the planning "why" the repo does not already encode, the **open
 > architecture questions**, and the **task-graph**. Drift-flags are the headline — this time the
 > headline is an **actionable re-drift**: `pytest_collected@ARCHITECTURE.md` says **587** but live
@@ -26,16 +57,17 @@
 > filled supplement); a **backlog groom** condensed the giants + filed #187–#189; the **worktree /
 > parallel-arc lifecycle** was codified in PLAYBOOK; and the floor/schema machinery advanced (#120 +
 > #138 closed, #167 multi-serialize-group landed, #186 floor-gap filed). Orient first (`PROBES.md` P1),
-> **then ask the operator for off-repo context** (§13d — this bundle is **cold**, so the beat fires
-> **full**; see §2), then resume the design.
+> **then ask the operator for off-repo context** (§13d — **per the UPDATE banner the supplement was
+> FILLED, so this beat NARROWS to "anything changed since the supplement?"**; see §2), then resume the
+> design.
 >
-> **This bundle is a v5.2 cold case (no UPDATE banner — unlike `…-architect-2`).** Fresh CC session, no
-> outgoing browser holding *this* window's deliberation. v5.2 makes that **defined, not a gap**:
-> `SUPPLEMENT.md` is generated + committed with **empty ANSWERS** (the assembler folds nothing; the
-> incoming §13(d) beat fires full). The *prior* bundles' **filled** supplements carry the operator's
-> most recent strategic *why* (the "file-oriented dependency management" reframe, the §16 do-not-build
-> list, "name the paradigm as an ADR") — read them as the planning context (pointers in §2), then the
-> beat asks what changed since.
+> **This bundle was *generated* a v5.2 cold case — then FILLED (see the UPDATE banner at the top).**
+> Generation-time history: it was generated cold (fresh CC session, no outgoing browser holding *this*
+> window's deliberation), `SUPPLEMENT.md` committed with empty ANSWERS. v5.2 makes that defined, not a
+> gap — **and** the operator then `supplement filled` real answers, so the live truth is **warm**: the
+> folded ANSWERS carry the operator's strategic *why* (the unify-into-a-self-enforcing-whole goal — see
+> the UPDATE banner) and the incoming §13(d) beat **narrows** to "changed since the supplement?". Read
+> the folded answers first.
 
 ---
 

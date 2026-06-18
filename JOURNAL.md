@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-18 — supplement FILLED for the architect handoff (real #159 fill→fold dogfood; cold→warm)
+
+**Did:** Operator `supplement filled` the `2026-06-18-dev-knowledge-architect` bundle with real architect answers. Committed **verbatim** (CC never fabricates) + flipped the bundle **cold→warm** for internal coherence: UPDATE banners on RESIDUAL/PROBES/HANDOFF_BOOT (supplement FILLED → the §13(d) beat **narrows** to "changed since the supplement?", not "fires full"; cold phrasing below is generation-time history), P8 cell → ANSWERS FILLED, the §intro cold-case + scope blockquotes reconciled. Re-ran `assemble_paste.py` — folds the ANSWERS region **only** (answers-only, no QUESTIONS leakage) into `PASTE_THIS.md`.
+
+**Result:** The #159 *fill→fold* path exercised again (third real dogfood). `verify_handoff_probes`: 10/10 pass, 0 fail, 0 warn (teeth unchanged — they bind to live state, which the fill doesn't touch). **Strategic headline from the answers (surfaced, not buried):** the next session's top priority **reframes above** the prior coherence thread — **unify + encapsulate the methodology into ONE coherent, SELF-ENFORCING, deployable whole, with #131 (ai-council onboarding) as the first deployment test** (enforcement > documentation; the named spine-failure = *"accepting inherited framing without verifying against state"* — the architect bypassed the methodology repeatedly this session because correctness rode on *remembering* to apply it). First moves: **author the capstone "file-oriented dependency management" ADR** (turns #179–#183 from a feature list into doctrine); **sequence #184 first** (it rides #131's onboarding as the real build proving ADR-87); the §7 graduated review-command rule rides along (Codex auth = ChatGPT-authed default). Load-bearing cautions carried: the client-data leak class (#130 capture-scrub arm) + the empty `ANTHROPIC_API_KEY` → Max-OAuth override.
+
+**Changes:** `docs/handoffs/2026-06-18-dev-knowledge-architect/` (SUPPLEMENT filled verbatim + 3 UPDATE banners + PASTE_THIS re-fold); this `JOURNAL.md`. Branch `docs/handoff-2026-06-18-architect-supplement-filled`, commit `8e6a4ab`, `--no-ff` to `main` from the primary checkout.
+
+**Next:** Push `main` (operator-gated — serial-push). The incoming architect session boots on this **warm** bundle; the §13(d) beat narrows.
+
 ### 2026-06-18 — v5.2 architect handoff for 2026-06-18 (Case-2 window-capture; cold; pytest_collected re-drift headlined)
 
 **Did:** Generated the `2026-06-18-dev-knowledge-architect` v5.2 architect bundle (`/handoff architect dev knowledge`). Scope-matrix → **Case 2** (clean tree, commits since the `eee0717` `…-architect-2` bundle, today's slug absent) → capture the 2026-06-18 window. Four-file bundle + always-generated `SUPPLEMENT.md`: `HANDOFF_BOOT.md` (session header) · `RESIDUAL.md` (planning why + open Qs + task-graph) · `PROBES.md` (P1 orientation + P2–P9 teeth) · `SUPPLEMENT.md` (cold — empty ANSWERS, committed) · `PASTE_THIS.md` (assembler). **Reconstructed, not witnessed-live** (fresh `/clear`ed session; the window's work — ADR-87 equilibrium contract, coherence-spine consolidation #172→#179–#183, the backlog groom, W1 worktree lifecycle — was prior-session). Drift-checks run live for the headline.
