@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-18 — #138 floor INSTALL_NOTE: .gitignore negation step (floor tracks without -f)
+
+**Did:** AUTO-mode mechanical diff on `scripts/generate_floor.py`'s baked `INSTALL_NOTE` ONLY (floor-generation logic untouched, per the task boundary). Added a new **step 5** telling a child whose `.claude/` is gitignored to make the floor git-trackable, renumbered commit → **step 6**, header FIVE→SIX, comment-block clause (f). **Verified, not assumed** (the closure's explicit ask): a bare directory-form `.claude/` cannot be re-included by negation — git won't descend into an excluded dir — and **3 of 4 child repos use bare `.claude/`**, so the naive "add 3 `!` lines" leaves the floor STILL IGNORED. The note therefore instructs converting bare `.claude/` → contents-form `.claude/*`, THEN the three negations (`!.claude/CLAUDE-FLOOR.md`, `.md.sha256`, `check_floor_hash.py`). Proven across 5 gitignore-form scenarios in throwaway git repos + an end-to-end run against the REAL generator output (bare-`.claude/` child → after step 5 a plain `git add` stages all three; `settings.local.json` stays ignored).
+
+**Result:** `test_generate_floor.py` **24/24**, ruff clean. Commit `bddcaa1` on `feat/138-gitignore-negations` (not yet merged). Structural-extractor tests (`_extract_check_floor_hash_script` / `_extract_precommit_yaml_block`) anchor on the shebang/`repos:` lines before my insertion point → unaffected.
+
+**Changes:** `scripts/generate_floor.py` (INSTALL_NOTE + its descriptive comment only, +26/−4); this `JOURNAL.md`. Branch `feat/138-gitignore-negations`.
+
+**Abandoned / surfaced:** (a) Pre-existing `test_audit.py::test_health_stays_ok_with_na_status` fails on a clean tree too (verified by stashing my edit) — environmental: this `dev-knowledge-138` clone is NOT a native worktree, so `.worktreeinclude` never seeded the gitignored `ecosystem/*/state.yaml` (the audit's "repos registered" source) → health DEGRADED → the `audit-health` pre-commit gate blocked the commit. Seeded the 4 state.yaml from canonical `../.dev-knowledge` (same set `.worktreeinclude` provisions; tracked tree unchanged), health→OK, commit landed. Captured as a memory. (b) BACKLOG #138 left unmarked — pure advance, not closed (branch unmerged).
+
+**Next:** Operator: `/ship` `feat/138-gitignore-negations` to `main` when ready (not auto-merged — no ship instruction given).
+
 ### 2026-06-18 — close #167 via /review-closures (operator-approved) + #5/#77 re-verify (NOT closed)
 
 **Did:** Ran the ADR-70 Tier-1 review half. Operator approved **only #167** (typed `#167`); removed its task line from `BACKLOG.md` via done-items-leave (ADR-65) using the gotcha-sanctioned **line-filter** (a long multi-glyph unicode line — drop-by-`startswith('- [#167] ')`, not a hand-matched Edit, per the n=3 fused-neighbour LESSON). Closure evidence `bf0471a76` (this session's multi-surface + anchored-parse fix — Done-when met + witnessed; surfaced WEAK only because the commit said `refs #167`, not `closes`). **Operator-directed CONTENT re-verify of the 2 STRONG candidates #5/#77 — both NOT closed:** #5's `closes [#5]` (`a3cb5219c`) is EXAMPLE text in a test fixture (documented false positive in that commit's own message); #77's `closes [#77]` (`77e5d7d`) is a **CLOSURE-VOIDED misattribution** (shipped CONTRIBUTING→v4, not the `protocols/` consolidation #77 owns; doc-rot checker split into #140) — the #77 line already carries this disposition, and `d061b7dfb` confirms it (`warn-77-voided-closure`, "not work"). The gate's STRONG detector lists both because `find_strong` is the no-`--first-parent` path — the exact false-positive surface the #90 verifier was built to document. The other 18 WEAK left untouched (self-evidently open).

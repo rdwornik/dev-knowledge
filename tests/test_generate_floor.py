@@ -254,3 +254,33 @@ def test_install_note_precommit_block_parses_as_valid_precommit_config():
     assert hook["entry"] == "python .claude/check_floor_hash.py"
     assert hook["language"] == "system"
     assert hook["pass_filenames"] is False
+
+
+def test_install_note_carries_gitignore_negation_block():
+    """Step 5 must hand the child a .gitignore block that re-includes all three tracked
+    files when .claude/ is ignored -- otherwise the floor needs a fragile `git add -f` (#138)."""
+    note = gf.INSTALL_NOTE
+    for line in (
+        "!.claude/CLAUDE-FLOOR.md",
+        "!.claude/CLAUDE-FLOOR.md.sha256",
+        "!.claude/check_floor_hash.py",
+    ):
+        assert line in note
+
+
+def test_install_note_negation_uses_contents_form_not_bare_dir():
+    """Load-bearing correctness (verified empirically, #138): negations only re-include a file
+    when the exclusion is the CONTENTS-form `.claude/*`. A bare `.claude/` DIRECTORY
+    exclusion silently defeats the negations (git won't re-include under an excluded dir),
+    so the block git would actually honor must pair `.claude/*` with the negations."""
+    stripped = [ln.strip() for ln in gf.INSTALL_NOTE.splitlines()]
+    expected = [
+        ".claude/*",
+        "!.claude/CLAUDE-FLOOR.md",
+        "!.claude/CLAUDE-FLOOR.md.sha256",
+        "!.claude/check_floor_hash.py",
+    ]
+    # the contents-form line must sit immediately above the three negations as a contiguous block
+    assert any(
+        stripped[i:i + len(expected)] == expected for i in range(len(stripped))
+    ), "contents-form `.claude/*` + 3 negations must appear as a contiguous .gitignore block"
