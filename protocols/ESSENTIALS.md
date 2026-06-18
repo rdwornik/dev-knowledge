@@ -269,6 +269,8 @@ Every formal prompt starts with:
 
 Then: Title → Read CLAUDE.md + gotchas → Git workflow → UNDERSTAND → Steps with COMMIT markers → What NOT to do.
 
+**Architect output (standing rule):** the skeleton above is CC's *consumption-spec* — you don't hand-author all of it. Always state the **plan/auto mode** (plan when uncertain/multi-file/unfamiliar; auto when a trivial one-sentence diff) and a **thin governance-pointer** (the ADR/LESSONS/sibling-spec the task touches). CC self-loads code-impact context + generic gotchas but **won't self-infer governance context**, so the pointer is required for read-only/governance tasks — intent-only is conditional. Full contract: PLAYBOOK §2 "Architect output vs CC consumption-spec" / ADR-87.
+
 **Skills reference:** if task has a relevant skill (e.g., `gotchas` for empirical traps), prompt names it — Claude Code auto-reads `.claude/skills/<name>/SKILL.md` per PLAYBOOK Section 7. User-level skills live in `~/.claude/skills/`, project-level in `<repo>/.claude/skills/`.
 
 **Multi-prompt sessions:** If Claude.ai generates 3+ prompts for one feature, check for overlap before running — duplicate context wastes tokens and creates conflicting diffs.

@@ -108,6 +108,7 @@
   - [CLAUDE.md template (minimum viable)](#claudemd-template-minimum-viable)
   - [First commit, then dev loop](#first-commit-then-dev-loop)
 - [2. Creating a Claude Code Prompt](#2-creating-a-claude-code-prompt)
+  - [Architect output vs CC consumption-spec](#architect-output-vs-cc-consumption-spec)
   - [Summary table (required at top of every formal prompt)](#summary-table-required-at-top-of-every-formal-prompt)
   - [How to choose Model](#how-to-choose-model)
   - [When to escalate to a Dynamic Workflow](#when-to-escalate-to-a-dynamic-workflow)
@@ -1976,7 +1977,17 @@ Then for each feature:
 ## 2. Creating a Claude Code Prompt
 <!-- scope: hybrid -->
 
-**Rob's prompt format is non-negotiable.** Front-loading the full spec in the first message eliminates 2-3 discovery turns. Every prompt starts with a summary table that determines execution parameters.
+**The prompt skeleton below is CC's consumption-spec** — the contract for what a *complete* prompt contains and the shape CC works from, **not** a checklist the architect hand-authors top to bottom. Front-loading the spec still eliminates 2-3 discovery turns and the skeleton's shape stays non-negotiable; but per **ADR-87** the architect's actual output is thinner — CC self-loads the code-impact context and generic gotchas and fills the skeleton itself. What the architect emits (and the one gap CC can't self-infer) is the next subsection. Every formal prompt still resolves to a summary table that determines execution parameters.
+
+### Architect output vs CC consumption-spec
+<!-- scope: hybrid -->
+
+Per **ADR-87** (the architect↔CC equilibrium contract). STEP 1 verified CC self-loads context **reliably only for code-impact tasks**; read-only, governance-context, and execution-time gotcha self-load are unreliable. So the labor splits:
+
+- **The architect emits:** *intent* · *closure* (what done looks like) · *anti-patterns* · the **plan/auto mode** (with its basis — "How to choose Mode" below) · a **thin per-task governance-pointer** (the specific ADR / LESSONS entry / sibling-spec this task touches — CC won't self-infer it).
+- **CC owns:** *code-impact context* (the files/tests it self-loads) · *generic gotchas* · the **skeleton** (this section's structure) · *model/effort*.
+
+**Intent-only is conditional.** For a code-impact task, intent + mode (+ pointer if governance applies) is enough — CC self-loads the rest. For a **read-only, governance-touching, or gotcha-sensitive** task the thin governance-pointer is **required** — omitting it regresses the gap CC cannot close from inside the repo. The mode is the architect's judgment: state it **and** its basis (plan when uncertain / multi-file / unfamiliar; auto when a trivial one-sentence diff — the criterion is "How to choose Mode" below, not restated here). Full rationale + the self-load finding: **ADR-87**.
 
 ### Summary table (required at top of every formal prompt)
 <!-- scope: hybrid -->
@@ -2068,6 +2079,7 @@ REPO: Which repo/package
 PURPOSE: Why (1 sentence)
 
 → Read CLAUDE.md + relevant gotchas
+→ Governance pointer: the ADR / LESSONS / sibling-spec this task touches (architect fills; required for read-only/governance tasks — ADR-87)
 → Git workflow (branch, commit per step, pytest between)
 → Hooks/commands in play: which auto-fire (pre-commit gate: audit-health/validate-backlog; block-onedrive on Bash) + which to invoke (/save to commit; /codex-review before merging code) — see §"Usage protocol: which command / hook, when"
 
