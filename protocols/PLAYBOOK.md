@@ -1133,6 +1133,12 @@ splitting one session into two same-repo streams):
    `git merge --no-ff worktree-<B>` + `git push`; then tear down B (the §4 three-command
    round-trip) and verify no leftovers.
 
+**The command the architect hands the operator is `claude --worktree <B>` (new terminal) or
+`EnterWorktree` (mid-session) — NEVER a raw sibling `git worktree add ../dev-knowledge-<B>`.** The
+sibling-dir recipe is superseded (above): it skips the `.worktreeinclude` auto-seed (forcing the
+manual seed in §2a) and is the documented source of the `.dev-knowledge-*` rule-9 orphans. Native
+keeps the worktree gitignored under `.claude/worktrees/` and seeds it for you.
+
 The bullets below are the mechanism this recipe rests on.
 
 - **New parallel session:** `claude --worktree <name>` (alias `-w`) starts a session already
@@ -1147,6 +1153,12 @@ The bullets below are the mechanism this recipe rests on.
   commit** — a fresh committing worktree is dead on arrival. The repo's committed
   `.worktreeinclude` (lists `ecosystem/*/state.yaml`) makes the **native** worktree-create copy
   that state in, so the gate passes (witnessed: seeded worktree commit lands; unseeded blocks).
+  **Verified 2026-06-18 (native in-session via `EnterWorktree`):** all 5 `ecosystem/*/state.yaml`
+  — *including the dot-prefixed `.dev-knowledge` hub dir* — auto-seeded with no manual step, and
+  `python scripts/audit.py health` returned `health: OK` / `repos registered (all 5)` from *inside*
+  the worktree. The **raw** `git worktree add` path does NOT honor `.worktreeinclude`, so there the
+  §2a manual seed is still required — that is the seed-friction the sibling-dir flow hits, not the
+  native one.
 - **Walker safety (why in-repo `.claude/worktrees/` is safe):** it's gitignored, so `git status`
   stays clean and **ruff** (respects gitignore) won't double-lint the full second checkout;
   **pytest** is safe via its default `.*` dot-dir skip (collection stays 329, not 658). These
@@ -1230,15 +1242,24 @@ directory — re-check `.claude/worktrees/` and clear any empty husk once the ID
 - **Serialize edits to shared canonical files** (BACKLOG, JOURNAL, PLAYBOOK, CLAUDE). Only
   one active branch touches a given canonical file at a time — parallel branches each read
   their *own* `main` and won't see each other's edits, producing silent divergence + conflicts.
-- **Allocate backlog ids at write-time, in order.** Never reserve an id "verbally" (held only
-  in conversation); a phantom reservation outside the file causes id collisions (#68/#69
-  near-misses).
+- **Allocate backlog ids at write-time, in order — for *parallel* arcs, reserve a
+  non-overlapping range per arc by writing it into BACKLOG *before* the split.** Never reserve an id
+  "verbally" (held only in conversation); a phantom reservation outside the file causes id
+  collisions (#68/#69 near-misses). Parallel branches each read their *own* stale `main`, so even
+  write-time allocation collides unless the ranges were committed before branching — reserve in the
+  *file*, never in conversation (#186 was hand-coordinated this way this session).
 
 **4 — Integration & ephemeral teardown** (the moment the parallel branch's work is done)
 
 - **`/ship` runs from the PRIMARY checkout, not from inside a worktree.** A worktree cannot
   `git checkout main` (`fatal: 'main' is already used by worktree …`), which `/ship`'s merge
   step needs; ship.md now **refuses cleanly** from a worktree (pre-flight #1) with this guidance.
+- **`/review-closures` also runs from a primary on-`main` session, not a worktree.** The plugin's
+  `review_closures.py` resolves its `BACKLOG.md` via `$CLAUDE_PROJECT_DIR` (the session's checkout;
+  it falls back to `cwd`, which in a worktree session is *also* the worktree) — so run from a
+  worktree it would read/close against the *feature branch's* BACKLOG, not `main`. Closing is the
+  *primary's* job, after the merge — the operator-facing form of the "removal travels the closure
+  loop" rule above. Witnessed this session; mechanism confirmed in `review_closures.py`.
 - **Integrate from the primary:** from the primary on `main`, `git merge --no-ff worktree-<name>`
   then `git push` (repo `--no-ff` norm). Don't try to rebase/linearize a branch that is checked
   out in another worktree — git blocks it.
@@ -1252,6 +1273,15 @@ git -C <repo> worktree prune
 git -C <repo> branch -d worktree-<name>
 ```
 
+- **`cd` out of the worktree before removing it; use `--force` when seeds block the remove.** If
+  your shell's cwd is *inside* `.claude/worktrees/<name>`, your own shell locks the dir and `git
+  worktree remove` cannot delete it (a lock source distinct from an IDE file-watcher). Use `git
+  worktree remove --force …` when the gitignored seeds (`ecosystem/*/state.yaml`) make git treat
+  the worktree as dirty and refuse a plain remove. The native `ExitWorktree` path does both for you
+  (restores cwd first, and removed a seeded changeless worktree cleanly — verified 2026-06-18);
+  these manual steps are the raw-path case. **`remove` is NOT idempotent — if a first remove is
+  interrupted, recover with `git worktree prune` (step 2 above), never a second `remove`; see the
+  dedicated gotcha.**
 - **Verify the teardown left nothing behind (no-leftovers round-trip).** `git worktree list`
   shows only the primary; the `.claude/worktrees/<name>` dir is gone from disk; `git status`
   is clean. `git worktree remove` silently no-ops when the dir is busy/locked, so re-check —
