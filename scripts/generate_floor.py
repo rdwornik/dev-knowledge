@@ -68,12 +68,15 @@ CHILD_CLAUDE_DIRNAME = ".claude"
 # from-scratch-valid config (top-level `repos:`, create-if-absent vs append-to-existing guidance --
 # a bare fragment broke the clean-slate re-pilot), (d) the EXPLICIT `pre-commit install` step
 # (the hook is wired-but-INERT without it), (e) tamper-revert via `git checkout HEAD --`
-# (NOT the index form, which restores from the staged tamper). Raw string so the
-# emitted regex backslashes and `\r\n` in the script body stay literal.
+# (NOT the index form, which restores from the staged tamper), (f) the .gitignore
+# CONTENTS-form negation block so a child whose .claude/ is ignored tracks the floor with a
+# plain `git add` (no `git add -f`) -- a bare `.claude/` DIRECTORY exclusion blocks negations
+# entirely (git won't re-include a file under an excluded dir), so it must be `.claude/*`.
+# Raw string so the emitted regex backslashes and `\r\n` in the script body stay literal.
 INSTALL_NOTE = r"""
 ========================= CHILD FLOOR INSTALL NOTE =========================
 The floor + sidecar are written under the child's .claude/. To arm them, do all
-FIVE steps in the child repo (each is required -- config presence is not enforcement):
+SIX steps in the child repo (each is required -- config presence is not enforcement):
 
 1. Reference the floor from the child's CLAUDE.md so CC auto-loads it at session
    start. Add this line (it resolves transitively and fails soft if the file moves):
@@ -146,7 +149,26 @@ FIVE steps in the child repo (each is required -- config presence is not enforce
 
        pre-commit install
 
-5. Commit the floor, sidecar, hook script, and config change IN the child repo.
+5. Make the floor, sidecar, and hook script git-TRACKABLE. If the child's .gitignore
+   ignores .claude/, those three files are untracked -- a plain `git add` skips them and
+   you would need a fragile `git add -f` on every refresh. Git canNOT re-include a file
+   whose parent DIRECTORY is excluded, so a bare `.claude/` line does NOT work with
+   negations; it must be the CONTENTS-form `.claude/*`. Edit the child's .gitignore so the
+   .claude/ section reads EXACTLY this (CHANGE a bare `.claude/` line to `.claude/*`; if the
+   child has no .claude/ ignore at all, add the block as-is):
+
+       .claude/*
+       !.claude/CLAUDE-FLOOR.md
+       !.claude/CLAUDE-FLOOR.md.sha256
+       !.claude/check_floor_hash.py
+
+   (If a bare `.claude/` line MUST stay, instead insert `!.claude/` then `.claude/*` above
+   the three negations -- merely appending `.claude/*` AFTER a surviving bare `.claude/`
+   does NOT work, because the directory is already excluded.) Verify:
+   `git check-ignore .claude/CLAUDE-FLOOR.md` now prints nothing (no longer ignored), so the
+   three files stage with a plain `git add` -- no -f.
+
+6. Commit the floor, sidecar, hook script, and config change IN the child repo.
 
 To restore a tampered/edited floor to the committed version, use the HEAD form
 (the bare `git checkout -- <file>` restores from the INDEX and will NOT undo a
