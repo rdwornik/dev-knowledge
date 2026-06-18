@@ -25,7 +25,7 @@
 
 **Result:** Headline = **one actionable re-drift** — `pytest_collected@ARCHITECTURE.md` doc=587 vs **live=614** (this window added ~27 tests; doc not re-bumped) — surfaced **not fixed** (the fix needs a count-bump **+** a `last_reviewed` re-stamp, and the freshness cadence forbids re-stamping without a genuine end-to-end re-read; a count-only bump would trip `canonical_freshness` — so it is a next-session fix, exactly as the prior `…-architect` bundle surfaced 511-vs-534). Lone other flag = carried-benign `#77` `[~~]` voided closure. `main` in sync, **no merged stragglers**. `verify_handoff_probes`: **10/10 pass, 0 fail, 0 warn** (the new bundle is lexically-max → the `handoff_probes` audit-health gate target). Top thread carried forward: **name "file-oriented dependency management" as an ADR** (the prior supplement's directive; #179–#183 durable but capstone ADR unbuilt) + the §7 review-command graduated-rule reconcile (not landed) + ADR-87 demonstration (#184).
 
-**Changes:** NEW `docs/handoffs/2026-06-18-dev-knowledge-architect/` (5 files); this `JOURNAL.md`. Branch `docs/handoff-2026-06-18-architect`, `--no-ff` to `main` from the primary checkout.
+**Changes:** NEW `docs/handoffs/2026-06-18-dev-knowledge-architect/` (5 files); this `JOURNAL.md`. Branch `docs/handoff-2026-06-18-architect`, commit `496016a`, `--no-ff` merge `8d7b250` to `main` from the primary checkout (SHA citation added on `docs/journal-handoff-sha` per the ADR-85 JOURNAL gate).
 
 **Next:** Push `main` (operator-gated — serial-push). Optional: `supplement filled` if an outgoing 2026-06-18 architect chat exists; else the §13(d) beat fires full. Owed (not this handoff): bump `ARCHITECTURE.md` 587→614 + re-stamp on its next genuine re-read.
 
