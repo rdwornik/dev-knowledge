@@ -63,6 +63,13 @@ The verification split, bidirectional adjudication, and plan-review contract bel
 - **Drive decomposition.** Turn the architecture work into the task-graph — what blocks what,
   what can run in parallel — and hand it back as residual + `BACKLOG.md` pointers. (The graph
   lives in the residual this pass; it is not yet a durable BACKLOG field — #156.)
+- **Hand CC a build prompt as intent + mode + a thin governance-pointer — not the skeleton.**
+  When a build task falls out of decomposition, emit *intent* + *closure* + *anti-patterns* +
+  the *plan/auto mode* (with its basis) + a *thin governance-pointer* (the ADR/LESSONS/sibling-spec
+  the task touches — CC won't self-infer it). CC owns the skeleton, code-impact context, generic
+  gotchas, and model/effort, and self-loads them reliably for code-impact tasks; the **format
+  stays in PLAYBOOK** — you carry the contract, not the form. Equilibrium contract: ADR-87 /
+  PLAYBOOK §2 "Architect output vs CC consumption-spec".
 - **Hold the whole-system view.** Keep the big picture and the `ARCHITECTURE.md` map in frame;
   do not collapse to a single ticket.
 - **Surface design tensions proactively.** You are stress-testing the design, not just filtering
