@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-18 — W1: codify worktree/parallel-arc lifecycle (gap-fill, not new doc) + native auto-seed verified
+
+**Did:** W1 architect arc — codify the worktree/parallel-arc way-of-working. **Verify-first reframed it:** the lifecycle is ~80% already documented (PLAYBOOK §"Parallel sessions & worktree discipline", ADR-61, 4 gotchas), so this became a targeted gap-fill in the existing home, NOT a new runbook (operator decisions: D1 = native `claude --worktree` flow; D2 = augment PLAYBOOK in place). **Empirically verified the load-bearing native auto-seed premise** (operator's gate — the `seed-state-yaml` memory carried a wrong-claim history): spun up a native worktree via `EnterWorktree`, confirmed all 5 `ecosystem/*/state.yaml` — incl. the dot-prefixed `.dev-knowledge` hub dir — auto-seed with no manual step and `audit.py health` returns OK from *inside* the worktree; clean teardown, zero leftovers. The seed-block the #120 session hit (entry below) is the **raw `git worktree add`** path, which does NOT honor `.worktreeinclude` — native does.
+
+**Result:** PLAYBOOK gaps filled — G1 (`/review-closures` resolves BACKLOG via `$CLAUDE_PROJECT_DIR`/cwd → run from a primary on-`main`, not a worktree; mechanism confirmed in `review_closures.py`), G3 (cd-out + `--force` + prune-recovery pointer in teardown), G4 (parallel arcs reserve a non-overlapping id-range *in-file* before the split — stale-`main` collision), a discoverability steer (hand the operator `claude --worktree`, never a sibling `git worktree add ../dev-knowledge-*`), and the verified-2026-06-18 auto-seed stamp. New gotcha: `git worktree remove` is NOT idempotent → recover with `git worktree prune`, never a 2nd `remove` (with `verify:` line). Edits stay within existing subsections → TOC hooks untouched. Full suite green (609 passed, 5 skipped), ruff clean, audit-health OK.
+
+**Changes:** `protocols/PLAYBOOK.md` (+33/−3, §"Parallel sessions & worktree discipline"); `~/.claude/skills/gotchas/gotchas.md` (new worktree-remove-idempotency gotcha + header date bump); this `JOURNAL.md`. Branch `docs/worktree-lifecycle-gaps`, `--no-ff` to `main` from the primary checkout.
+
+**Next:** Push `main`. No new ADR — native is already the current doctrine, so no reversal (D1).
+
 ### 2026-06-18 — close #120 (child-BACKLOG conformance probe) via operator-approved done-items-leave
 
 **Did:** Operator ship-time closure of **#120** (human-gated done-items-leave, ADR-65). Content-verified the evidence SHA **`477ceee`** before closing (per the STRONG-content lesson): it is genuinely #120's work — `feat(probe): child BACKLOG schema-conformance readiness gate (#120)`, reporting conformant/needs-migration per child — and #120's Done-when ("each child's BACKLOG schema-conformance is recorded") is met (the #120-probe entry below: all 4 children CONFORMANT, live run). Removed the #120 task line from `BACKLOG.md` via the gotcha-sanctioned `startswith('- [#120] ')` line-filter (the line carries `→` glyphs — avoids the fused-neighbour Edit trap).
