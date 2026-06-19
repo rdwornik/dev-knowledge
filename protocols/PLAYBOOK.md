@@ -7,6 +7,8 @@
 >
 > **Organization:** **Foundations** (unnumbered — System Architecture, the CLAUDE.md contract, repo conventions, documentation file types, session boundaries, Claude Code internals) → **numbered workflow recipes §1–§19** (the §18 gap is intentional — it was deleted; git has it) → **Appendices A–C** plus tooling addenda (Codemap, Auto-TOC). The numbered spine is the workflow-recipe middle, not the whole document.
 
+<!-- structure-allow: numbering-gap 18 — deleted, git has it -->
+
 ---
 
 <!-- TOC:START -->
