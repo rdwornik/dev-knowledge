@@ -62,6 +62,42 @@ backstop** for any context that omits the field — both ship, the no-loop guara
 either way. This re-validates the witnessed-behavior-outranks-the-read rule: a doc/summary is
 a lead, not verification.
 
+## Amendment — 2026-06-19: per-session SHA-anchor (push-boundary → session-boundary fix; C1)
+
+**What this corrects.** Decision 3 states the JOURNAL anchor must name "≥1 commit SHA produced
+**this session**". The v1 implementation computed the wrong boundary: it took the arc as
+`base..HEAD` with `base = @{upstream}` (= `origin/main`) — the **push** boundary, not the
+session boundary. Under deferred-serial-push the unpushed arc spans **multiple sessions**, and
+the leg passed on `any(sha cited)` over that whole arc, so **one** citation from a *prior*
+session vaccinated the entire arc and a later session that shipped commits without journaling
+**passed silently** (witnessed live on the 2026-06-18 arc; surfaced by the #188 hook-
+completeness audit as finding C1).
+
+**The fix.** The arc is narrowed to the **session**: the commits since the last JOURNAL-citing
+("journal-wrap") commit. Walk `base..HEAD` newest-first and stop at the first commit that
+*wrote* a SHA-citation into `JOURNAL.md`; the trailing run of commits after it is the current
+session's work, which fires when non-empty. `any()` is **kept** — over the narrowed arc (one
+citation in the session suffices; requiring *every* commit cited would deadlock the
+multi-session arc). The boundary is detected by a commit that **wrote** a citation (a wrap),
+never one that **is** cited — a wrap cites its session's *work* commits, never its own
+unknowable hash, so keying on "is cited" would leave the wrap forever in the trailing run and
+over-fire every happy path. Two robustness points: per-commit detection uses `git show
+--first-parent` so a `--no-ff` merge that carries the branch's journal still anchors (git's
+combined `--cc` merge diff would otherwise hide it and hard-block every merged-then-journaled
+`/ship`, HEAD = merge commit); and `_base_ref()` now prefers a **verified** `origin/main`, with
+a `git rev-list` error anchoring on HEAD instead of an empty-range **vacuous PASS** (the
+secondary C1 false-pass: a degenerate worktree base made the range error → empty → silent
+pass).
+
+**Relationship to original text.** Decision intent is **unchanged** — the anchor was always
+meant to be per-session and un-gameable. This amendment records that the v1 *computation* of
+the session boundary was wrong (push, not session) and fixes it, plus the merge-diff and
+degenerate-base edge cases. The hard/advisory split, the override (§4), and the structural
+floor (2026-06-16 amendment) are untouched. Fix + regression tests this session
+(`test_e2e_cross_session_miss_blocks`, `test_session_shas_bad_base_anchors_head`,
+`test_e2e_merge_delivered_journal_passes`); see the 2026-06-19 JOURNAL entry and
+`docs/audits/2026-06-19-hook-completeness-audit.md` (C1 finding).
+
 ## Links
 - Council verdict: `council-out-20260616_131123-pick-council-brief-session-lifecycle-enforcement.md`
 - Coupled decisions: traceability-spine (R1), handoff-supplement (the DoD-via-handoff is process-context-in-handoff), conformance-dashboard (R2).
