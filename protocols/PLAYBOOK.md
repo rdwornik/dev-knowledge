@@ -2706,13 +2706,14 @@ Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subse
 
 **Friday consolidation — 30 minutes max, not a project.**
 
-1. Run `/evolve` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) in Claude Code — review corrections, observations, propose rule promotions/pruning
-2. Review gotchas added this week — any patterns?
-3. Review token usage — `ccusage --json` → append snapshot to TOKEN-LOG.md. Is Opus verbosity still the main drain?
-4. Review LESSONS.md entries from this week — anything to change in PLAYBOOK?
-5. Review BACKLOG.md — anything stale? Anything urgent? (single pending-items queue; no `OPEN_DECISIONS.md`)
-6. Quick project health check (test suite, lint, stale branches)
-7. Update ENVIRONMENT.md if any config changed
+1. Review gotchas added this week — any patterns?
+2. Review token usage — `ccusage --json` → append snapshot to TOKEN-LOG.md. Is Opus verbosity still the main drain?
+3. Review LESSONS.md entries from this week — anything to change in PLAYBOOK?
+4. Review BACKLOG.md — anything stale? Anything urgent? (single pending-items queue; no `OPEN_DECISIONS.md`)
+5. Quick project health check (test suite, lint, stale branches)
+6. Update ENVIRONMENT.md if any config changed
+
+(The retired `/evolve` self-evolution step was dropped 2026-06-19; corrections now auto-promote via the `corrections.jsonl` Stop hook — see ESSENTIALS "Feedback Loop".)
 
 ---
 
