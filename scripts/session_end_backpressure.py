@@ -105,9 +105,16 @@ def _is_clean() -> bool:
 
 
 def _base_ref() -> str:
-    r = _git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
-    if r.returncode == 0 and r.stdout.strip():
-        return r.stdout.strip()
+    """Integration base for the session arc. Prefer the branch's upstream; else a *verified*
+    origin/main (the real integration target); else local main. Verifying the fallback keeps
+    `git rev-list base..HEAD` from erroring on a ref that does not resolve (a worktree with no
+    upstream and no origin) — that error path was the secondary C1 false-pass, now handled in
+    `_session_shas` (ADR-85 amendment 2026-06-19)."""
+    up = _git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
+    if up.returncode == 0 and up.stdout.strip():
+        return up.stdout.strip()
+    if _git("rev-parse", "--verify", "--quiet", "origin/main").returncode == 0:
+        return "origin/main"
     return "main"
 
 
@@ -117,11 +124,18 @@ def _head_sha() -> str | None:
 
 
 def _session_shas() -> list[str]:
-    """Full SHAs of the commits this session shipped beyond base (base..HEAD)."""
+    """Full SHAs of the commits shipped beyond base (base..HEAD), newest-first.
+
+    A NON-ZERO rev-list exit means the base ref did not resolve (degenerate worktree: no
+    upstream, no origin/main, bad `main`) — do NOT treat that as 'nothing shipped' (the
+    secondary C1 vacuous-PASS). Anchor on HEAD instead so the gate still demands a citation.
+    A ZERO exit with empty output is the legitimate 'nothing ahead of a real base' no-op and
+    stays empty (ADR-85 amendment 2026-06-19)."""
     base = _base_ref()
     r = _git("rev-list", f"{base}..HEAD")
     if r.returncode != 0:
-        return []
+        head = _head_sha()
+        return [head] if head else []
     return [ln.strip() for ln in r.stdout.splitlines() if ln.strip()]
 
 
@@ -209,28 +223,61 @@ def _current_last_reviewed(doc: str) -> date | None:
 
 # --- HARD leg (ADR-85) ------------------------------------------------------
 
+def _commit_anchors_journal(sha: str, shorts: set[str]) -> bool:
+    """True iff `sha`'s own additions to JOURNAL.md cite the 7-char short SHA of some arc
+    commit — i.e. this commit WROTE a journal anchor (a session-wrap), the boundary that ends
+    the previous session.
+
+    `--first-parent` is load-bearing: a `--no-ff` merge that brings the branch's JOURNAL entry
+    in is otherwise hidden by git's combined (`--cc`) merge diff, which would mis-read every
+    merged-then-journaled `/ship` (HEAD = merge commit) as un-journaled and hard-block it.
+    `--first-parent` shows the merge's diff against its first parent (a no-op on non-merges)."""
+    diff = _git("show", "-p", "--format=", "--first-parent", sha, "--", _JOURNAL)
+    if diff.returncode != 0:
+        return False
+    added = "\n".join(
+        ln for ln in diff.stdout.splitlines()
+        if ln.startswith("+") and not ln.startswith("+++")
+    )
+    return any(s in added for s in shorts)
+
+
 def check_journal_sha_anchor():
-    """HARD: commits shipped beyond base but no session commit-SHA in the JOURNAL.md arc.
+    """HARD: this SESSION's commits are not yet anchored by a commit-SHA in JOURNAL.md.
 
     The SHA anchor is what makes this un-gameable — a generic "did work" line does not pass;
-    the entry must name a real commit from this arc. Supersedes the older advisory
-    journal-PRESENCE check (presence without a SHA no longer passes). Matches on the 7-char
-    short prefix so any-length reference in the journal (7..40 chars) is caught.
+    the entry must name a real commit. Matches on the 7-char short prefix so any-length
+    reference (7..40 chars) is caught.
+
+    The arc is the SESSION, not the push. The push arc (base..HEAD, base = @{upstream}) spans
+    MULTIPLE sessions under deferred-serial-push, where one prior session's citation would
+    vaccinate the whole arc via `any()` and let a later un-journaled session ride free (the C1
+    miss). So the arc is narrowed to the commits since the last JOURNAL-citing ("journal-wrap")
+    commit. The boundary is detected by a commit that WROTE a citation (a wrap), never one that
+    IS cited — a wrap cites its session's WORK commits, never its own unknowable hash, so
+    keying on "is cited" would leave the wrap forever in the trailing run and over-fire every
+    happy path. `any()` is kept, but over the narrowed (current-session) arc — equivalently,
+    the trailing run of commits newer than the wrap, which is non-empty exactly when this
+    session shipped work it has not yet journaled. See ADR-85 amendment 2026-06-19.
     """
     if not _is_clean():  # only at a plausible wrap; skip mid-work
         return None
     shas = _session_shas()
-    if not shas:  # nothing shipped beyond base -> nothing to anchor
+    if not shas:  # nothing shipped beyond a real base -> nothing to anchor
         return None
-    added = _added_lines(_JOURNAL)
-    if any(sha[:7] in added for sha in shas):
+    shorts = {s[:7] for s in shas}
+    session = []
+    for sha in shas:  # newest -> oldest
+        if _commit_anchors_journal(sha, shorts):
+            break  # the previous session's journal-wrap = boundary; exclude it and everything older
+        session.append(sha)
+    if not session:  # the newest work is already anchored -> this session journaled
         return None
-    shorts = ", ".join(sha[:7] for sha in shas[:3])
-    more = f" +{len(shas) - 3} more" if len(shas) > 3 else ""
-    base = _base_ref()
-    return (f"JOURNAL (hard): {len(shas)} commit(s) ahead of {base} but no session "
-            f"commit-SHA in the {_JOURNAL} entry -> add/extend a JOURNAL entry naming >=1 "
-            f"SHA from this arc [{shorts}{more}] (DEFINITION_OF_DONE 'JOURNAL').")
+    head = ", ".join(s[:7] for s in session[:3])
+    more = f" +{len(session) - 3} more" if len(session) > 3 else ""
+    return (f"JOURNAL (hard): {len(session)} commit(s) this session not yet anchored in "
+            f"{_JOURNAL} -> add/extend a JOURNAL entry naming >=1 SHA from this session "
+            f"[{head}{more}] (DEFINITION_OF_DONE 'JOURNAL').")
 
 
 # --- ADVISORY legs ----------------------------------------------------------
