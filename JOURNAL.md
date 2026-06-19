@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-20 — prose structural linter (ADR-88 supplement organ #2; plan→build)
+
+**Did:** Built the **structural linter** the coherence spine still lacked (supplement organ #2). Plan-mode design ratified, then `scripts/validate_doc_structure.py` + `audit.py` `check_doc_structure` (now check #22) on the `validate_doc_rot.py` (#140) pattern — DETECT-only, WARN-only, one Finding per locus. Four sub-detectors: section-numbering integrity, header-scheme consistency (same-parent sibling dups only — the 4 live PLAYBOOK dups are under *different* parents, grandfathered by structure not a dead-list), ToC accuracy, and a **dangling-allow self-policing** detector (operator add: a stale `structure-allow` marker is itself flagged). Reuses the fence-aware ToC `parse_headers` so linter and ToC agree — the property that keeps embedded-template H2s from reading as rot. Documented-intent ledger = co-located inline `<!-- structure-allow: numbering-gap 18 — deleted, git has it -->` at the §18 site (operator-confirmed Option 1).
+
+**Result:** Closure met (hard metric, not "tests pass"): **33 tests RED→GREEN** on a fixture corpus (real break + §18 gap + embedded-template H2 + dangling-allow) **plus live-data oracles** proving the §18 marker is load-bearing (without it the gap *would* flag) and PLAYBOOK's fenced template H2s don't read as ToC orphans. Live hub scan clean; `audit health` OK (`doc_structure` pass, `doc_claims` 4/4 — 22 checks / 9 hooks / roster / 700 tests). Full suite **700 passed/1 skip**, ruff clean, all 9 pre-commit gates green. The count-bump touched freshness-gated `ARCHITECTURE.md`, so I did a genuine end-to-end re-read + honest `last_reviewed` restamp (fixed the two staleness items it exposed: 667→700 test count, +`doc_structure` organ-map row & validators bullet) rather than a false stamp.
+
+**Changes:** `scripts/validate_doc_structure.py` (new), `tests/test_validate_doc_structure.py` (new, 33 tests), `scripts/audit.py` (register check #22), `protocols/PLAYBOOK.md` (§18 marker), `ARCHITECTURE.md` (22 checks + organ row + validators bullet + 700 count + restamp), `BACKLOG.md` (filed `#192`, serialize-group coherence, left open), this `JOURNAL.md`. Branch `feat/prose-structural-linter`, deliverable **`c722003`**.
+
+**Next:** `--no-ff` merge of `feat/prose-structural-linter` → `main` **from the primary hub** (refuses in a worktree, n=3 lesson). `#192` is a closure candidate (code shipped) — operator-gated via `/review-closures`, done-items-leave.
+
 ### 2026-06-19 — supplement FILLED for the 2026-06-19 architect handoff (real #159 fill→fold dogfood; cold→warm)
 
 **Did:** Operator `supplement filled` the `2026-06-19-dev-knowledge-architect` bundle with real outgoing-architect answers. Committed **verbatim** (CC never fabricates) + flipped the bundle **cold→warm** for internal coherence: UPDATE banners on HANDOFF_BOOT/RESIDUAL/PROBES (supplement FILLED → the §13(d) beat **narrows** to "changed since the supplement?", not "fires full"; cold phrasing reads as generation-time history), P8 cell → ANSWERS FILLED, RESIDUAL §2 rewritten to the authoritative *why* + §4 reframed by the answers (new top thread #0; Q1/Q4 carry the answer-leans). Re-ran `assemble_paste.py` — folds the ANSWERS region **only** (answers-only, **zero QUESTIONS leakage**, verified) into `PASTE_THIS.md`.
