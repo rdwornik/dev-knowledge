@@ -22,6 +22,14 @@ _P = Path(__file__).resolve().parent.parent / "scripts" / "session_end_backpress
 # a realistic 40-hex full SHA; first 7 chars are the short prefix the gate matches on
 _SHA = "abc1234e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c"
 
+# distinct fake commits for the per-session anchor arc (each [:7] is its matched short prefix)
+_S1W = "1111111aaaa"    # prior session: work
+_S1J = "2222222bbbb"    # prior session: journal-wrap (cites _S1W)
+_S2A = "3333333cccc"    # this session: work
+_S2B = "4444444dddd"    # this session: work (HEAD)
+_S2J = "5555555eeee"    # this session: journal-wrap (cites this session's work)
+_S2FIX = "6666666ffff"  # this session: a trailing commit after the wrap
+
 
 def _load():
     spec = importlib.util.spec_from_file_location("session_end_backpressure", _P)
@@ -87,12 +95,35 @@ def _journal_log(added):
     return log
 
 
+def _journal_show(added):
+    """Build a 'show' stub: any `git show … -- JOURNAL.md` returns `added` as that commit's
+    journal additions; everything else empty. (The per-commit `--first-parent` show the
+    session-anchor check now uses; mirrors _journal_log for single-commit arcs.)"""
+    def show(args):
+        if args[-1] == sb._JOURNAL:
+            return _R(added)
+        return _R("")
+    return show
+
+
+def _arc_show(citations):
+    """A 'show' stub keyed by the commit SHA: returns citations.get(sha, '') as that commit's
+    JOURNAL additions. `citations` maps a full SHA -> the '+…' line it added. The object is the
+    token right before the '--' path separator in `git show … <sha> -- JOURNAL.md`."""
+    def show(args):
+        if args[-1] != sb._JOURNAL:
+            return _R("")
+        sha = args[args.index("--") - 1]
+        return _R(citations.get(sha, ""))
+    return show
+
+
 def test_journal_sha_fires_when_commits_without_sha(monkeypatch):
     monkeypatch.setattr(sb, "_git", _fake_git({
         "status": _R(""),                       # clean tree
-        "rev-parse": _R("", 1),                  # no upstream -> base = main
+        "rev-parse": _R("", 1),                  # no upstream/origin -> base = main
         "rev-list": _R(_SHA + "\n"),             # one commit shipped this arc
-        "log": _journal_log("+a journal entry with no commit sha\n"),
+        "show": _journal_show("+a journal entry with no commit sha\n"),
     }))
     line = sb.check_journal_sha_anchor()
     assert line and "JOURNAL (hard)" in line and _SHA[:7] in line
@@ -103,7 +134,7 @@ def test_journal_sha_passes_when_sha_present(monkeypatch):
         "status": _R(""),
         "rev-parse": _R("", 1),
         "rev-list": _R(_SHA + "\n"),
-        "log": _journal_log(f"+Changes: commit {_SHA[:7]} landed this arc\n"),
+        "show": _journal_show(f"+Changes: commit {_SHA[:7]} landed this session\n"),
     }))
     assert sb.check_journal_sha_anchor() is None
 
@@ -118,6 +149,123 @@ def test_journal_sha_silent_when_nothing_shipped(monkeypatch):
         "status": _R(""), "rev-parse": _R("", 1), "rev-list": _R(""),
     }))
     assert sb.check_journal_sha_anchor() is None
+
+
+# --- per-session anchor: the C1 arc-granularity regression + guards ---------
+
+def test_anchor_regression_two_session_arc(monkeypatch):
+    # C1, THE witnessed miss: a deferred-serial-push arc spanning two sessions. S1 journaled
+    # (S1J cites S1W); S2 shipped S2A,S2B but did NOT journal; no push between. The OLD any()-
+    # over-the-push-arc saw S1W cited and PASSED (the silent miss). The per-session anchor must
+    # FIRE on S2's work and must NOT drag in the prior session's S1W/S1J.
+    monkeypatch.setattr(sb, "_git", _fake_git({
+        "status": _R(""),
+        "rev-parse": _R("", 1),
+        "rev-list": _R("\n".join([_S2B, _S2A, _S1J, _S1W]) + "\n"),   # newest-first
+        "show": _arc_show({_S1J: f"+wrapped S1: commit {_S1W[:7]}\n"}),  # only S1J cites
+    }))
+    line = sb.check_journal_sha_anchor()
+    assert line and "JOURNAL (hard)" in line and "2 commit(s)" in line
+    assert _S2A[:7] in line and _S2B[:7] in line          # this session's uncited work, named
+    assert _S1W[:7] not in line and _S1J[:7] not in line  # prior session not dragged in
+
+
+def test_anchor_happy_path_passes(monkeypatch):
+    # this session journaled: the newest commit is the wrap, citing this session's work.
+    monkeypatch.setattr(sb, "_git", _fake_git({
+        "status": _R(""),
+        "rev-parse": _R("", 1),
+        "rev-list": _R("\n".join([_S2J, _S2A, _S1J, _S1W]) + "\n"),
+        "show": _arc_show({
+            _S2J: f"+Changes: commit {_S2A[:7]} this session\n",
+            _S1J: f"+wrapped S1: commit {_S1W[:7]}\n",
+        }),
+    }))
+    assert sb.check_journal_sha_anchor() is None
+
+
+def test_anchor_trailing_work_fires(monkeypatch):
+    # journaled, then committed more without re-journaling -> the trailing commit fires
+    # (intended "latest work not journaled"); the wrapped work behind the boundary is not named.
+    monkeypatch.setattr(sb, "_git", _fake_git({
+        "status": _R(""),
+        "rev-parse": _R("", 1),
+        "rev-list": _R("\n".join([_S2FIX, _S2J, _S2A]) + "\n"),
+        "show": _arc_show({_S2J: f"+Changes: commit {_S2A[:7]}\n"}),
+    }))
+    line = sb.check_journal_sha_anchor()
+    assert line and "1 commit(s)" in line and _S2FIX[:7] in line and _S2A[:7] not in line
+
+
+def test_anchor_no_journal_fires_all(monkeypatch):
+    # no journal-wrap anywhere in the arc -> the whole session is unanchored -> FIRE all.
+    monkeypatch.setattr(sb, "_git", _fake_git({
+        "status": _R(""),
+        "rev-parse": _R("", 1),
+        "rev-list": _R("\n".join([_S2B, _S2A]) + "\n"),
+        "show": _arc_show({}),
+    }))
+    line = sb.check_journal_sha_anchor()
+    assert line and "2 commit(s)" in line and _S2A[:7] in line and _S2B[:7] in line
+
+
+def test_session_shas_bad_base_anchors_head(monkeypatch):
+    # secondary C1: a degenerate base makes `git rev-list base..HEAD` ERROR -> do NOT vacuous-
+    # PASS; anchor on HEAD so the gate still demands a citation. (RED pre-fix: returned [].)
+    head = _S2B
+
+    def run(*args):
+        if args[0] == "rev-list":
+            return _R("", 128)                       # bad/missing base -> error
+        if args[0] == "rev-parse" and "HEAD" in args:
+            return _R(head + "\n")                    # _head_sha
+        if args[0] == "rev-parse":
+            return _R("", 1)                         # no upstream; origin/main verify fails
+        if args[0] == "status":
+            return _R("")
+        return _R("")                                # show -> empty (HEAD can't self-cite)
+    monkeypatch.setattr(sb, "_git", run)
+    assert sb._session_shas() == [head]
+    line = sb.check_journal_sha_anchor()
+    assert line and head[:7] in line
+
+
+def test_session_shas_clean_empty_passes(monkeypatch):
+    # the legitimate empty: a real base with nothing ahead (rev-list ZERO exit, empty) -> [].
+    monkeypatch.setattr(sb, "_git", _fake_git({
+        "status": _R(""), "rev-parse": _R("", 1), "rev-list": _R("", 0),
+    }))
+    assert sb._session_shas() == []
+    assert sb.check_journal_sha_anchor() is None
+
+
+def test_base_ref_prefers_upstream(monkeypatch):
+    monkeypatch.setattr(sb, "_git", _fake_git({"rev-parse": _R("origin/feat-x\n", 0)}))
+    assert sb._base_ref() == "origin/feat-x"
+
+
+def test_base_ref_verified_origin_main(monkeypatch):
+    # no upstream, but origin/main verifies -> prefer it over the bare 'main' string.
+    def run(*args):
+        if args[0] == "rev-parse" and "@{upstream}" in args:
+            return _R("", 1)
+        if args[0] == "rev-parse" and "--verify" in args and "origin/main" in args:
+            return _R("abc1234\n", 0)
+        return _R("", 0)
+    monkeypatch.setattr(sb, "_git", run)
+    assert sb._base_ref() == "origin/main"
+
+
+def test_base_ref_falls_back_to_main(monkeypatch):
+    # no upstream AND origin/main does not resolve -> bare 'main' (last resort).
+    def run(*args):
+        if "@{upstream}" in args:
+            return _R("", 1)
+        if "--verify" in args:
+            return _R("", 1)
+        return _R("", 0)
+    monkeypatch.setattr(sb, "_git", run)
+    assert sb._base_ref() == "main"
 
 
 # --- backlog marker (ADVISORY, ADR-85 R1) -----------------------------------
@@ -326,15 +474,16 @@ def test_main_silent_when_all_clear(monkeypatch, capsys):
 
 def _notask_git():
     # the witnessed loop's shape: clean tree, one commit ahead, JOURNAL names the SHA (hard
-    # leg CLEARS), BACKLOG has no structural marker (advisory fires), canon name-only empty.
+    # leg CLEARS via the per-commit show), BACKLOG has no structural marker (advisory fires),
+    # canon name-only empty.
     def log(args):
-        if "-p" in args and args[-1] == sb._JOURNAL:
-            return _R(f"+Changes: commit {_SHA[:7]} landed this arc\n")
         if "-p" in args and args[-1] == sb._BACKLOG:
             return _R("+prose-only change, no structural marker\n")
         return _R("")
     return _fake_git({
-        "status": _R(""), "rev-parse": _R("", 1), "rev-list": _R(_SHA + "\n"), "log": log,
+        "status": _R(""), "rev-parse": _R("", 1), "rev-list": _R(_SHA + "\n"),
+        "show": _journal_show(f"+Changes: commit {_SHA[:7]} landed this session\n"),
+        "log": log,
     })
 
 
@@ -455,8 +604,89 @@ def test_e2e_five_paths(tmp_path):
     # retry (stop_hook_active True) -> suppressed; never reaches a second consecutive keep-going.
     assert _run_hook(repo, {"stop_hook_active": True}) == "", "retry -> fire-once suppress"
 
-    # PATH 4 — backlog satisfied: add a [#id] marker -> fully silent on every path.
-    # (The JOURNAL still names foo_sha, which remains in the now-larger main..HEAD arc.)
-    _commit(repo, "BACKLOG.md", "- [#1] [P2][S] task · Done when: x\n", "docs: backlog")
-    assert _run_hook(repo) == "", "journal SHA + backlog marker present -> silent pass"
+    # PATH 4 — backlog satisfied: add a [#id] marker, THEN journal it so the newest commit is
+    # the wrap. Under the per-session anchor (ADR-85 amendment) the wrap must cover the latest
+    # work, so the trailing backlog commit must itself be journaled — the old whole-arc any()
+    # would have silently passed it (the exact C1 laxness this fix removes).
+    bk = _commit(repo, "BACKLOG.md", "- [#1] [P2][S] task · Done when: x\n", "docs: backlog")
+    _commit(repo, "JOURNAL.md",
+            f"### backlog\nChanges: commit {bk}\n### entry\nChanges: commit {foo_sha}\n",
+            "docs: journal backlog")
+    assert _run_hook(repo) == "", "journal SHA + backlog marker present + journaled -> silent pass"
     assert _run_hook(repo, {"stop_hook_active": False}) == "", "nothing to surface -> silent"
+
+
+# --- E2E: the C1 per-session anchor (cross-session miss + merge-delivered journal) ----------
+
+def _make_repo(tmp_path, name="repo", with_origin=False):
+    """Throwaway repo with the hook installed + an initial commit on main; optionally a bare
+    origin so @{upstream}=origin/main is the pre-divergence base (the real push boundary)."""
+    repo = tmp_path / name
+    (repo / "scripts").mkdir(parents=True)
+    (repo / "logs").mkdir()
+    (repo / "scripts" / "session_end_backpressure.py").write_text(
+        _P.read_text(encoding="utf-8"), encoding="utf-8")
+    (repo / ".gitignore").write_text("logs/\n", encoding="utf-8")
+    _git_in(repo, "init", "-q", "-b", "main")
+    _git_in(repo, "config", "user.email", "t@t.t")
+    _git_in(repo, "config", "user.name", "t")
+    (repo / "README.md").write_text("# repo\n", encoding="utf-8")
+    _git_in(repo, "add", "README.md", "scripts/session_end_backpressure.py", ".gitignore")
+    _git_in(repo, "commit", "-q", "-m", "init")
+    if with_origin:
+        bare = tmp_path / (name + "-origin.git")
+        subprocess.run(["git", "init", "--bare", "-q", str(bare)],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _git_in(repo, "remote", "add", "origin", str(bare))
+        _git_in(repo, "push", "-q", "-u", "origin", "main")
+    return repo
+
+
+def test_e2e_cross_session_miss_blocks(tmp_path):
+    # THE C1 closure metric, real git: session-1 journals (cites its work); session-2 ships work
+    # but does NOT journal; no push between -> the 2nd-session arc is uncited. OLD code: any()
+    # over origin/main..HEAD saw S1's citation and PASSED (the silent miss). NEW: decision:block.
+    repo = _make_repo(tmp_path)
+    _git_in(repo, "checkout", "-q", "-b", "feat/x")           # base = main (no upstream/origin)
+    s1w = _commit(repo, "a.txt", "a\n", "feat: s1 work")
+    _commit(repo, "JOURNAL.md", f"### s1\nChanges: commit {s1w}\n", "docs: s1 journal")
+    s2w = _commit(repo, "b.txt", "b\n", "feat: s2 work")      # shipped, NOT journaled
+    payload = json.loads(_run_hook(repo))
+    assert payload["decision"] == "block", "2nd-session-before-push uncited work must hard-block"
+    assert s2w[:7] in payload["reason"] and s1w[:7] not in payload["reason"]
+
+
+def test_e2e_cross_session_journaled_passes(tmp_path):
+    # the companion (no false block): session-2 DOES journal its work -> the gate clears.
+    repo = _make_repo(tmp_path)
+    _git_in(repo, "checkout", "-q", "-b", "feat/x")
+    s1w = _commit(repo, "a.txt", "a\n", "feat: s1 work")
+    _commit(repo, "JOURNAL.md", f"### s1\nChanges: commit {s1w}\n", "docs: s1 journal")
+    s2w = _commit(repo, "b.txt", "b\n", "feat: s2 work")
+    _commit(repo, "JOURNAL.md",
+            f"### s2\nChanges: commit {s2w}\n### s1\nChanges: commit {s1w}\n", "docs: s2 journal")
+    assert _run_hook(repo) == "", "session-2 journaled its own work -> clear"
+
+
+def test_e2e_merge_delivered_journal_passes(tmp_path):
+    # the --no-ff happy path: work + journal on a branch, --no-ff merged to main; HEAD = merge.
+    # git's default combined (--cc) merge diff HIDES the branch's JOURNAL add, so without
+    # --first-parent the hook mis-reads the merge as unjournaled and BLOCKS; with it the merge
+    # anchors -> PASS. origin makes @{upstream}=origin/main the pre-merge base (non-empty arc).
+    repo = _make_repo(tmp_path, with_origin=True)
+    _git_in(repo, "checkout", "-q", "-b", "feat/y")
+    w = _commit(repo, "c.txt", "c\n", "feat: work")
+    _commit(repo, "JOURNAL.md", f"### y\nChanges: commit {w}\n", "docs: journal y")
+    _git_in(repo, "checkout", "-q", "main")
+    _git_in(repo, "merge", "--no-ff", "-q", "-m", "merge feat/y", "feat/y")
+    assert _run_hook(repo) == "", "merge-delivered journal must clear via --first-parent"
+
+
+def test_e2e_merge_trailing_work_fires(tmp_path):
+    # the mirror (direction preserved): work merged via --no-ff but NOT journaled -> still fires.
+    repo = _make_repo(tmp_path, with_origin=True)
+    _git_in(repo, "checkout", "-q", "-b", "feat/z")
+    _commit(repo, "d.txt", "d\n", "feat: unjournaled work")
+    _git_in(repo, "checkout", "-q", "main")
+    _git_in(repo, "merge", "--no-ff", "-q", "-m", "merge feat/z", "feat/z")
+    assert json.loads(_run_hook(repo))["decision"] == "block", "merged unjournaled work must block"
