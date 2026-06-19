@@ -89,6 +89,12 @@ try:
 except ImportError:
     import validate_reconciliation as _vr
 
+# #140 doc-rot / grooming checker — same module-import + thin-adapter shape.
+try:
+    from scripts import validate_doc_rot as _vdr
+except ImportError:
+    import validate_doc_rot as _vdr
+
 # Gate-mode flag (#89): cmd_health sets this True around its self-audit loop so the
 # expensive claim-3 (pytest --collect-only) is SKIPPED on the per-commit gate and
 # evaluated only on the full-audit path (run/repo/CLI/SessionStart). Operator ruling.
@@ -1307,6 +1313,43 @@ def check_doc_claims(repo_path: Path) -> list[Finding]:
                     f"{matched} doc self-claim(s) match repo state")]
 
 
+def check_doc_rot(repo_path: Path) -> list[Finding]:
+    """#140 doc-rot / grooming checker — the Layer-2 deterministic-trigger for **ADR-88 FC4**
+    (history-accretion bloat). Surfaces inline-history accretion so it can't rot silently, and
+    (riding this gate) blocks NEW accretion going forward. Load-bearing doctrine: condense
+    inline history to git (ADR-65), retire inline changelogs (ADR-49), groom on cadence
+    (ADR-41). DETECT-ONLY / condense-preserving — never edits, never removes a rule.
+
+    Hub-only: BACKLOG.md + the hub living docs are .dev-knowledge-specific, so on any other repo
+    this is a no-op pass. Four sub-detectors (BACKLOG inline-history accretion, Section-history
+    accretion, file-bloat vs a declared budget, grooming-cadence lapse) — scripts/validate_doc_rot.py.
+
+    Awareness layer, not a gate: emits one WARN PER rot locus (never FAIL -> never blocks the
+    audit-health commit gate; one Finding per locus so the #147 ship-gate dispositions each
+    independently — same contract as git_backlog_drift / no_ff_merges). Scope boundary: #140's
+    cross-file fidelity drift -> coherence-spine (#179/#180/#182, #89 owns one doc's OWN
+    self-claims); intra-file duplication -> #190 — both deferred, not built here. Fail-soft on
+    any error. Read-only. Logic lives in scripts/validate_doc_rot.py.
+    """
+    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+        return [Finding("doc_rot", "pass",
+                        "hub-only — doc-rot / grooming checker skipped (not the hub repo)")]
+    try:
+        results = _vdr.scan(Path(repo_path))
+    except Exception as exc:  # never wedge the audit-health gate
+        return [Finding("doc_rot", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    if not results:
+        return [Finding("doc_rot", "pass",
+                        "no history-accretion bloat past thresholds "
+                        "(backlog / section-history / file-budget / grooming-cadence)")]
+    return [
+        Finding("doc_rot", "warn",
+                f"history-accretion bloat: {_vdr.format_findings([r])}".replace("|", "/"))
+        for r in results
+    ]
+
+
 def check_no_ff_merges(repo_path: Path) -> list[Finding]:
     """#153 `--no-ff` merge guard (core-invariants rule 5).
 
@@ -1466,6 +1509,7 @@ ALL_CHECKS = [
     check_no_ff_merges,
     check_handoff_probes,
     check_reconciled_versions,
+    check_doc_rot,
 ]
 
 
