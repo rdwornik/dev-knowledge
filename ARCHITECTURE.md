@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-17
+last_reviewed: 2026-06-19
 status: active
 owner: Rob
 ---
@@ -212,6 +212,7 @@ local git gate.
 | `doc_claims` (audit check) | `audit.py health` — pre-commit gate (counts/lists) + full sweep (test-count) | hub | fail-soft (WARN) | #89 |
 | `no_ff_merges` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #153; ADR-84; core-invariants #5 |
 | `handoff_probes` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** (FAIL on broken probe binding; WARN on anchor-missing/skipped) | #163; HANDOFF_PROCESS §5/§10 |
+| `doc_rot` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #140; ADR-88 FC4 (ADR-65/49/41) |
 | pre-commit gates (9) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below |
 
 The **Tier-1 closure loop** is three of these organs in a cycle:
@@ -232,10 +233,10 @@ Per the ADR-28 invariant, Layer 2 hosts **read-only** validators (it does not
 orchestrate, but it may verify itself). These are the *executable* organs the map
 above references — the `scripts/` inventory:
 
-- `scripts/audit.py` — cross-repo conformance + self-audit; **20 registered checks**
+- `scripts/audit.py` — cross-repo conformance + self-audit; **21 registered checks**
   (`python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
   `no_sibling_orphans`, `canonical_structure`, `amendment_coherence`, `git_backlog_drift`,
-  `no_ff_merges`, `reconciled_versions`).
+  `no_ff_merges`, `reconciled_versions`, `doc_rot`).
   `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs);
   `ship-gate` = the #147 pre-ship verification-organ gate (Definition-of-shipped point 6).
   **Seam `ship-gate` vs `health`:** both reuse `ALL_CHECKS`, but `health` gates each
@@ -261,7 +262,16 @@ above references — the `scripts/` inventory:
   vs ground truth (ARCHITECTURE check-count vs `len(ALL_CHECKS)`; pre-commit gate count
   + CLAUDE §9 roster vs `.pre-commit-config.yaml`; test-count vs `pytest --collect-only`,
   off-gate). Read-only; surfaced via the `doc_claims` audit check (WARN). Single-doc
-  accuracy only — cross-file fidelity / rot is #140. Standalone CLI: `python scripts/validate_doc_claims.py` (#89).
+  accuracy only — history-accretion rot is the `doc_rot` check (#140); cross-file fidelity
+  is the coherence spine (#179–#182). Standalone CLI: `python scripts/validate_doc_claims.py` (#89).
+- `scripts/validate_doc_rot.py` — doc-rot / grooming checker: history-accretion bloat
+  (**ADR-88 FC4**; load-bearing doctrine ADR-65 condense-to-git / ADR-49 retired changelogs /
+  ADR-41 cadence). Four read-only sub-detectors — BACKLOG inline-history accretion, per-section
+  Section-history accretion, file-bloat vs a self-declared budget, grooming-cadence lapse —
+  WARN-only, one Finding per locus, DETECT-ONLY (never condenses; condense-preserving).
+  Surfaced via the `doc_rot` audit check; pre-existing loci grandfathered in the disposition
+  register. Defers cross-file fidelity → coherence spine and intra-file duplication → #190.
+  Standalone CLI: `python scripts/validate_doc_rot.py` (#140).
 - `scripts/verify_handoff_probes.py` — handoff-probe teeth: every probe in the latest v5
   `PROBES.md` bundle binds to live state, by STRUCTURAL resolvability (resolve-only — no
   subprocess; Critical Rule #4). Mechanizes the manual v5 probe-gate (HANDOFF_PROCESS §5/§10):
@@ -271,7 +281,7 @@ above references — the `scripts/` inventory:
   `python scripts/verify_handoff_probes.py <bundle>` (#163).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
-- `tests/` — pytest unit tests for the validators (**587 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**641 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
