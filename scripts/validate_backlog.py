@@ -23,7 +23,12 @@ Hard-fail (exit 1) — objective structure only:
     (strict reference-existence — closed ids have left the file), or a cycle in the
     depends-on graph (direct A↔B, indirect A→B→C→A, or self A→A; the path is reported)
 
-Warn-only: a user story with zero tasks.
+Warn-only:
+  - a user story with zero tasks
+  - (#187 dedup-on-entry) a newly-added task whose normalized-title token-overlap closely
+    matches an existing task — a deterministic backstop (Jaccard over the action segment,
+    no LLM, ADR-88 do-not-build). STATED LIMIT: will NOT catch low-title-overlap semantic
+    dups; the primary dedup remains the architect/CC filing flow.
 
 The optional `· serialize-group: <label>` clause (shared-mutable-resource mutual
 exclusion) is surfaced in the OK summary, never a failure. A task may carry ≥1 such
@@ -73,6 +78,22 @@ _DEPENDS_CLAUSE_RE = re.compile(r"·\s*depends-on\s*:\s*([^·]*)")
 # the summary print (the crash that accompanied the self-trip).
 _SERIALIZE_CLAUSE_RE = re.compile(r"·\s*serialize-group\s*:\s*([A-Za-z0-9][A-Za-z0-9_-]*)\s*(?=·|$)")
 _DEPID_RE = re.compile(r"#(\d+)")
+# #187 dedup-on-entry — deterministic near-duplicate backstop. Compares NORMALIZED-TITLE
+# token-sets (the action segment before the first ` · ` clause, band-stripped, lowercased,
+# stopworded) by Jaccard overlap; a pair >= _DUP_TITLE_THRESHOLD is a WARN (never a
+# hard-fail — Layer-2-safe). STATED LIMIT: a token-overlap heuristic only — it does NOT
+# catch low-title-overlap semantic dups (no LLM, ADR-88 do-not-build); the primary dedup
+# remains the architect/CC filing flow. _DUP_MIN_TOKENS skips tiny titles (a 2-3 token
+# title trivially Jaccard-matches and would be noise). Threshold tuned so the live BACKLOG
+# is clean (no false positives on genuinely distinct items) — locked by a regression test.
+_DUP_TITLE_THRESHOLD = 0.7
+_DUP_MIN_TOKENS = 4
+_TOKEN_RE = re.compile(r"[a-z0-9]+")
+_TITLE_STOPWORDS = frozenset({
+    "the", "and", "for", "with", "that", "this", "via", "per", "not", "into", "from",
+    "are", "but", "its", "than", "then", "out", "all", "any", "one", "two", "use",
+    "add", "new", "now", "can", "has", "had", "was", "will", "when", "what", "who",
+})
 
 
 def _parse_deps(rest):
@@ -96,6 +117,10 @@ def _parse_serialize_groups(rest):
     return out
 
 
+# CARRIER-DOCTRINE TWIN (ADR-78): the #156 dep machinery (_DEPENDS_CLAUSE_RE / _DEPID_RE /
+# _parse_deps + the two _check_dep_* fns below) is mirrored VERBATIM into the plugin floor
+# plugins/tier1-lifecycle/scripts/validate_backlog.py — keep in sync by hand (tracked
+# _DEPENDS_CLAUSE_RE twin-drift edge; a mechanical hub<->floor parity check is a queued ADR-88 follow-on).
 def _check_dep_references(tasks):
     """Strict reference-existence: every depends-on id must be a live task id (#156)."""
     ids = {t["id"] for t in tasks}
@@ -165,6 +190,43 @@ def serialize_groups(tasks):
         for g in _parse_serialize_groups(t["rest"]):
             groups.setdefault(g, []).append(t["id"])
     return groups
+
+
+def _title_tokens(rest):
+    """Normalized-title token-set for #187 dedup: strip the [P][S|M|L] band, take the action
+    segment (text before the first ` · ` clause — Done when:/refs/depends-on excluded),
+    lowercase, tokenize on [a-z0-9]+, drop stopwords and <3-char tokens. Returns a set."""
+    no_band = _PSIZE_RE.sub("", rest)
+    action = no_band.split("·", 1)[0]
+    return {w for w in _TOKEN_RE.findall(action.lower())
+            if len(w) >= 3 and w not in _TITLE_STOPWORDS}
+
+
+def _check_duplicate_titles(tasks):
+    """Deterministic near-duplicate WARN (#187): two tasks whose normalized-title token-sets
+    overlap >= _DUP_TITLE_THRESHOLD (Jaccard) are flagged. No LLM — a token-overlap heuristic
+    with a STATED LIMIT (does NOT catch low-title-overlap semantic dups). Never a hard-fail;
+    Layer-2-safe (reads only). O(n^2) over tasks — trivial at backlog scale."""
+    toks = [(t, _title_tokens(t["rest"])) for t in tasks]
+    warn = []
+    for i in range(len(toks)):
+        ti, si = toks[i]
+        if len(si) < _DUP_MIN_TOKENS:
+            continue
+        for j in range(i + 1, len(toks)):
+            tj, sj = toks[j]
+            if len(sj) < _DUP_MIN_TOKENS:
+                continue
+            inter = len(si & sj)
+            if not inter:
+                continue
+            jac = inter / len(si | sj)
+            if jac >= _DUP_TITLE_THRESHOLD:
+                warn.append(
+                    f'possible duplicate: [#{ti["id"]}] (line {ti["line"]}) and '
+                    f'[#{tj["id"]}] (line {tj["line"]}) share {round(jac * 100)}% title '
+                    f'tokens — token-overlap heuristic (does not catch low-overlap semantic dups)')
+    return warn
 
 
 def parse(text):
@@ -243,6 +305,8 @@ def validate(themes, stories, tasks):
     # cycle among the valid edges); reference-existence first by convention.
     hard += _check_dep_references(tasks)
     hard += _check_dep_cycles(tasks)
+    # #187 dedup-on-entry — deterministic near-duplicate WARN (token-overlap, no LLM)
+    warn += _check_duplicate_titles(tasks)
     return hard, warn
 
 

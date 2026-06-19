@@ -250,3 +250,67 @@ def test_serialize_group_prose_mention_not_a_clause():
     assert hard == []
     _, _, tasks = vb.parse(text)
     assert vb.serialize_groups(tasks) == {}  # no "foo", no "foo and trailing notes"
+
+
+# --- #187: dedup-on-entry — deterministic near-duplicate WARN (normalized-title token-overlap) ---
+# A WARN (never a hard-fail), no LLM. STATED LIMIT: token-overlap only; does NOT catch
+# low-title-overlap semantic dups. Sensitivity (a near-dup WARNs) + specificity (distinct
+# items, and the live BACKLOG, do not) are the #187 closure.
+
+DUP2 = """# .dev-knowledge BACKLOG
+## Big picture
+A short paragraph.
+**Themes (backbone):** Theme A
+## Theme A
+> As a persona, I want a goal.
+### Story one
+So that reasons hold.
+- [#1] [P1][M] {t1} · Done when: x
+- [#2] [P1][M] {t2} · Done when: y
+"""
+
+
+def _dup2(t1, t2):
+    return DUP2.format(t1=t1, t2=t2)
+
+
+def test_near_duplicate_title_warns():
+    # two tasks with near-identical action titles -> a dedup WARN naming both ids
+    text = _dup2(
+        "sync the task-graph checks into the distributed plugin floor validator",
+        "sync the task-graph checks into the distributed plugin floor validator copy")
+    _, warn = _run(text)
+    assert any("possible duplicate" in w and "#1" in w and "#2" in w for w in warn)
+
+
+def test_distinct_titles_no_dup_warn():
+    # genuinely distinct titles -> NO dedup WARN (the false-positive guard)
+    text = _dup2(
+        "sync the task-graph reference-existence checks into the distributed plugin floor",
+        "render a child methodology floor bundle for the browser carrier distribution")
+    _, warn = _run(text)
+    assert not any("possible duplicate" in w for w in warn)
+
+
+def test_dup_warn_is_never_a_hard_fail():
+    # a near-duplicate is surfaced as a WARN, never blocks (Layer-2-safe)
+    text = _dup2("audit the audit-py health check gate",
+                 "audit the audit-py health check gate again")
+    hard, warn = _run(text)
+    assert hard == []
+    assert any("possible duplicate" in w for w in warn)
+
+
+def test_title_tokens_strips_band_and_stopwords():
+    # band + post-`·` clauses excluded; stopwords + <3-char tokens dropped; lowercased set
+    toks = vb._title_tokens(
+        "[P1][M] Sync the floor validator NOW · Done when: it works · refs ADR-1")
+    assert toks == {"sync", "floor", "validator"}
+
+
+def test_live_backlog_no_spurious_dup_warn():
+    # specificity regression: the real BACKLOG has no near-duplicate pairs at the tuned
+    # threshold (max distinct-pair Jaccard is well below it) -> zero dedup WARNs
+    text = (Path(vb.__file__).resolve().parent.parent / "BACKLOG.md").read_text(encoding="utf-8")
+    _, warn = _run(text)
+    assert not any("possible duplicate" in w for w in warn)

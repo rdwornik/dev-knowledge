@@ -1,9 +1,9 @@
 """Unit tests for scripts/probe_child_backlogs.py (#120 child-BACKLOG conformance probe).
 
 The probe is floor-faithful: it classifies against the PLUGIN floor validator
-(plugins/tier1-lifecycle/scripts/validate_backlog.py, which lacks the hub's #156
-task-graph checks), so a child is greenlit iff it would pass the hook it would actually
-install. The depends-on drift-guard test below is the load-bearing proof of that.
+(plugins/tier1-lifecycle/scripts/validate_backlog.py, which as of #186 carries the hub's
+#156 task-graph checks), so a child is greenlit iff it would pass the hook it would
+actually install. The depends-on drift-guard test below is the load-bearing proof of that.
 """
 
 import importlib.util
@@ -37,9 +37,9 @@ So that reasons hold.
 - [#1] [P1][M] do a thing · Done when: it is done · refs ADR-1
 """
 
-# A floor-conformant task carrying a depends-on edge to a NON-EXISTENT id. The hub's #156
-# reference-existence check would hard-fail this; the plugin floor has no such check, so a
-# child's installed hook would accept it. The probe must agree -> conformant (zero drift).
+# A task carrying a depends-on edge to a NON-EXISTENT id. As of #186 the plugin floor carries
+# the #156 reference-existence check, so the installed hook (and the floor-faithful probe)
+# hard-fail this -> needs-migration. The probe agrees with the hook by construction (zero drift).
 DEPENDS_ON_ABSENT = """# X BACKLOG
 ## Big picture
 A short paragraph.
@@ -91,10 +91,13 @@ def test_classify_needs_migration_missing_so_that(tmp_path):
     assert "So that" in detail
 
 
-def test_depends_on_absent_id_is_conformant_floor_has_no_156(tmp_path):
-    # THE drift guard: floor lacks #156, so a dangling depends-on edge is NOT a hard-fail.
-    verdict, _, _, _ = pcb.classify_backlog(_repo(tmp_path, DEPENDS_ON_ABSENT), floor)
-    assert verdict == "conformant"
+def test_depends_on_absent_id_is_needs_migration_floor_has_156(tmp_path):
+    # #186 closure (drift guard, inverted): the floor now carries #156, so a dangling
+    # depends-on edge is a hard-fail -> the floor-faithful probe and the installed hook
+    # agree it's needs-migration (zero drift, by construction).
+    verdict, _, n_hard, _ = pcb.classify_backlog(_repo(tmp_path, DEPENDS_ON_ABSENT), floor)
+    assert verdict == "needs-migration"
+    assert n_hard >= 1
 
 
 def test_classify_absent(tmp_path):
