@@ -3046,7 +3046,7 @@ This is not optional. Stale structural documentation is worse than no documentat
 ## 19. Scrum-Master Review Propagation
 <!-- scope: meta -->
 
-**When:** `.dev-knowledge` (or any ecosystem-meta repo) audits a target repo against universal conventions (ADR-34 naming, ADR-38 architecture, ADR-41 backlog, etc.) and finds non-conformities to route. Distinct from § 15 Cross-Tool Review (within-repo Codex audit) and § 16 Code Quality Audit Process (within-repo audit cycle).
+**When:** `.dev-knowledge` (or any ecosystem-meta repo) audits a target repo against universal conventions (ADR-34 naming, ADR-38 architecture, ADR-41 backlog, etc.) and finds non-conformities to route. Distinct from § 16 Cross-Tool Review (within-repo Codex audit) and § 17 Code Quality Audit Process (within-repo audit cycle).
 
 **Skip when:** target repo audits itself internally (no cross-repo routing needed).
 
@@ -3057,7 +3057,7 @@ This is not optional. Stale structural documentation is worse than no documentat
 
 - Strażnik (`.dev-knowledge` or other ecosystem-meta repo) runs read-only audit against target repo's working tree against universal conventions.
 - Produces dated artifact: `docs/audits/YYYY-MM-DD-<target-repo>-scrum-master-review.md`
-- Findings grouped by severity (CRITICAL / HIGH / MEDIUM / LOW per § 16 convention).
+- Findings grouped by severity (CRITICAL / HIGH / MEDIUM / LOW per § 17 convention).
 - Audit is internal to strażnik repo; not yet routed.
 
 **Stage 2 — Route (operator routes with cover letter)**
