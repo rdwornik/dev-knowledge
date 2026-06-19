@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-16
+last_reviewed: 2026-06-19
 status: active
 owner: Rob
 ---
@@ -22,17 +22,32 @@ two docs that both rot worst *and* legitimately change every working session.
 
 ### JOURNAL — gated, **hard block** (un-gameable)
 Any session that produces commits **must** add a `JOURNAL.md` entry, and that entry
-**must reference ≥1 commit SHA produced this session** (the commits in `base..HEAD`,
-where `base` = `@{upstream}` else `main`). The SHA anchor is what makes this un-gameable:
-a generic "did some work" line does not pass; the entry has to name a real commit from
-this arc.
+**must reference ≥1 commit SHA produced this session**. The SHA anchor is what makes this
+un-gameable: a generic "did some work" line does not pass; the entry has to name a real
+commit from this session's work.
 
-- **When it fires:** at a plausible wrap — a **clean tree** with commits ahead of `base`
-  and no session SHA found in the `JOURNAL.md` additions for the arc.
+**"This session" = the session boundary, not the push boundary (ADR-85 amendment 2026-06-19, C1).**
+The arc gated is the trailing run of commits **since the last JOURNAL-citing ("journal-wrap")
+commit** — *not* the push arc `base..HEAD` (`base` = `@{upstream}` else `main`). The push arc
+spans **multiple sessions** under deferred-serial-push, where one *prior* session's citation
+would vaccinate the whole arc (the leg passes on `any(SHA cited)`) and let a later un-journaled
+session ride free — the C1 miss the amendment fixed. The boundary is found by walking
+`base..HEAD` newest→oldest and stopping at the first commit that **wrote** a citation into
+`JOURNAL.md` (a wrap cites its session's *work* commits, never its own unknowable hash);
+the run of commits newer than that wrap is the current session, which is non-empty exactly
+when this session shipped work it has not yet journaled. Per-commit detection uses `git show
+--first-parent`, so a `--no-ff` merge that carries the branch's JOURNAL entry still anchors.
+
+- **When it fires:** at a plausible wrap — a **clean tree** with unjournaled commits in this
+  session's trailing run (work ahead of the last journal-wrap, with no session SHA in the
+  `JOURNAL.md` additions for that run).
 - **Effect:** the Stop-hook **blocks turn-end** (`decision: block`). The only exit is
   `/override [reason]`.
 - **Supersedes** the older advisory journal-*presence* check — the SHA anchor strictly
   subsumes it (presence without a SHA no longer passes).
+
+Implementation: `scripts/session_end_backpressure.py::check_journal_sha_anchor()` (the teeth);
+the boundary-walk + `--first-parent` merge guard + verified-`origin/main` base live there.
 
 ### BACKLOG — gated, **advisory** (interim, v1)
 Any session that lands commits **should** update `BACKLOG.md` with a structural-marker
