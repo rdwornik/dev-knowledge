@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-19 — session-wrap: push currency groom + branch/worktree hygiene + transcript archive
+
+**Did:** Wrapped the currency-groom session. (1) Pushed `main` → `origin` (`de7d040..60b4a36`). (2) Branch/worktree hygiene verified against live git: deleted 9 fully-merged branches (the 7 feature/groom/consolidation + the freed `worktree-seal-dedup`/`worktree-seal-hooks`); removed 3 merged seal worktrees (seal-dedup, seal-hooks, then seal-grooming after verifying no-loss — its deliverable `10e762f` is on `main`; only a redundant journal commit `f2d39ef` was discarded). (3) Investigated `automation/fleet-audit` → **KEPT**: by-design ADR-84 writer-isolation infra (orphan branch, hard-coded `_AUTOMATION_BRANCH = "automation/fleet-audit"` in `scripts/audit.py`, daily fleet baselines, active today), not a straggler. (4) Archived 2 incidental untracked deep-research transcripts (`d0f9ead`) that landed in `docs/decisions/transcripts/` at 23:06/23:08 — dependency-detection + doc↔code-traceability surveys, archived per the transcript convention.
+
+**Result:** Tree clean. Branches: `main` + `automation/fleet-audit` (kept). Worktrees: primary only. Process slip caught + fixed: a PowerShell `@'…'@` here-string sent through the Bash tool leaked a stray `@` into a commit subject → amended via the PowerShell channel (the `commit-msg-channel-discipline` gotcha re-triggered; already logged, no new gotcha).
+
+**Changes:** NEW 2 transcripts under `docs/decisions/transcripts/`, this `JOURNAL.md`. Wrap commits: `d0f9ead` (transcripts). Pushed `60b4a36` to origin; `d0f9ead` + this journal commit remain unpushed (operator-gated).
+
+**Abandoned:** none new.
+
+**Next:** Push `d0f9ead` + this journal entry to origin (operator-gated). The 2 archived surveys feed the doc-lifecycle/dependency Council arc (the audit-seeded referential-currency detector + structural linter).
+
 ### 2026-06-19 — currency groom: purge /boot,/evolve + fix coherence in PLAYBOOK & ESSENTIALS
 
 **Did:** Reconciled `protocols/PLAYBOOK.md` + `protocols/ESSENTIALS.md` against live state per the operator's currency audit (landed `docs/audits/2026-06-19-playbook-essentials-currency-audit.md`). **Confirm-live FIRST** (no edits) verified `/boot`+`/evolve` DEAD (archived 2026-06-05 Phase-C3, no live command file), `/save`+§19 Scrum-Master LIVE, all 44 cited ADRs resolve. Then six `--no-ff`-bound commits on `groom/playbook-essentials-currency`: (1) `e34765e` land audit; (2) `4cc5891` purge every USABLE-position `/boot`/`/evolve` (command tables, §7b examples, Appendix A cheat-sheet, prose peer-mentions, ESSENTIALS session-start step + cheat-line + Friday-cadence bullet) → one consolidated retired-machinery note (SUPERSEDED shape); (3) `f9b1460` §9 Weekly Review trim dead `/evolve` step + renumber live cadence 2-7→1-6; (4) `d0932ef` fix 2 off-by-one §-cross-refs in §19 (§15→§16 Cross-Tool Review, §16→§17 Code Quality Audit); (5) `34e1ff4` tag the ADR-87 architect/CC split [A]/[CC] in both prompt skeletons; (6) `3bed3a2` LESSONS append; (7) `0e2b6c3` tighten the two inline change-notes so the lone by-name `/boot`/`/evolve` reference is the consolidated §7b note.
