@@ -10,15 +10,27 @@
 | **Purpose** | A **fresh** architect handoff one workday past `2026-06-18-dev-knowledge-architect`, capturing the 2026-06-19 window (scope-matrix **Case 2** — clean tree, commits since the `496016a` `…-architect` bundle, today's slug absent). The window landed the **enforcement seal**: **(1)** the **Phase-1 "seal" integration** — three worktree tracks merged `--no-ff` to `main` (seal-hooks: **#188** hook-completeness audit [OPEN] + the **C1** per-session JOURNAL SHA-anchor fix in `session_end_backpressure.py` + an ADR-85 amendment; seal-dedup: **#187** dedup-on-entry WARN + **#186** floor-sync of the #156 task-graph checks into the plugin floor; grooming: **#140** `doc_rot` grooming-gate, `ALL_CHECKS` 20→**21**), closing **#187 / #186 / #140**; **(2)** **ADR-88** *file-oriented dependency management* **authored** (`7e6f996`, **Proposed**) — the capstone the 2026-06-18 supplement directed, now existing-but-unratified; **(3)** the **consolidation doc-currency seal** — `DEFINITION_OF_DONE` C1-boundary rewrite (push→session), **ESSENTIALS** brought under the freshness gate (check #10), a sealed state report; **(4)** a **PLAYBOOK/ESSENTIALS currency groom** (purged the archived `/boot`,`/evolve`; fixed coherence) and a **session-wrap** (pushed `main`, deleted 9 merged branches + 3 seal worktrees, archived 2 deep-research transcripts). The next architect inherits the still-open strategic spine — **unify + encapsulate the methodology into ONE self-enforcing, deployable whole, with #131 (ai-council onboarding) as the first deployment test** (the 2026-06-18 filled supplement's directive) — now with the **capstone ADR-88 authored but unratified**, plus **#184** (demonstrate ADR-87, rides #131), the **§7 graduated review-command reconcile** (still not landed), **#181** coherence-v2 (data-gated on `logs/coherence-nudge.log`), **#164** (the v5 generator), the standing threads (**#162** vocab, **#161** probe-core, the **#170→#168** / **#171→#169** ADR-85 chains), and the **ADR-85 override-rate watch** (scope-freeze to ~2026-07-14). |
 | **Generated at** | HEAD `3a894ee`, working tree clean, `main` **in sync** with `origin/main` (0 ahead / 0 behind at generation). This handoff's own commits put `main` **ahead** of origin until pushed. Re-derive HEAD/sync at read-time (`PROBES.md` P3). |
 
-> **⚠ This bundle is COLD.** Generated in a fresh `/clear`ed CC session, reconstructed from
-> JOURNAL + live git (not witnessed-live). `SUPPLEMENT.md` is committed with **empty ANSWERS** —
-> there is no outgoing 2026-06-19 architect chat in context to interview. Consequence: the
-> assembler folds **no** supplement section into `PASTE_THIS.md`, and the incoming architect's
-> **§13(d) operator-context beat fires FULL** (there is nothing to narrow against). If an outgoing
-> chat *does* exist, the operator may `supplement filled` it later — then re-run
-> `scripts/assemble_paste.py` and the beat narrows. The most recent transmissible strategic *why*
-> is the **2026-06-18 filled supplement** (`docs/handoffs/2026-06-18-dev-knowledge-architect/SUPPLEMENT.md`)
-> — read it as carried context (pointer in `RESIDUAL.md` §2/§3).
+> **⚠ UPDATE — supplement FILLED (warm).** Generated cold (fresh `/clear`ed CC session,
+> reconstructed from JOURNAL + live git), but the operator then `supplement filled` **real
+> architect answers**, now folded into `PASTE_THIS.md` (answers-only). Read the folded
+> `SUPPLEMENT.md` answers as the **authoritative strategic *why*** of this handoff. **Headline:**
+> everything this session did was **one thing — grounding ADR-88 (file-oriented dependency
+> management) in reality.** The next session's way-of-working goal is to turn ADR-88 from
+> *Proposed-and-partially-detected* into an **enforced lifecycle organ for the whole repo** — three
+> organs: **(1)** a referential-currency detector (does every edge — command/ADR/§/file reference —
+> still resolve?), **(2)** a structural linter (graph shape: numbering / headers / ToC — the things
+> the architect *provably cannot eyeball*, proven this session), **(3)** an "earns-its-keep" check
+> (does each node — file, automation, branch, folder — still justify existing?). **This must exist
+> BEFORE further methodology deployment (#131)** — you cannot deploy onto a base that silently rots.
+> **First move: the mechanism design from a debate running in another chat** (the design authority —
+> *not* a re-audit). On the two CC-observed addenda: **A** ratify ADR-88 via a Council-equivalent
+> deliberation *first* (the running debate may serve), **before** the build; **B** ship-gate =
+> **(B) operator-accept the one-off + (C) tighten the wrap workflow so even a journal-wrap branches**
+> — **reject (A)** (dispositioning direct-wraps erodes core-invariant #5). The §13(d) beat
+> **narrows** to "changed since the supplement?" (it does **not** fire full). Read any "cold / empty
+> ANSWERS / beat fires full" phrasing below as **generation-time history**. The 2026-06-18 filled
+> supplement (`docs/handoffs/2026-06-18-dev-knowledge-architect/SUPPLEMENT.md`) remains the
+> prior-window context.
 
 > **Operator runbook is not copied here.** The stable who-each-file-is-for / run-loop /
 > rationale lives **once** in the canonical per-repo runbook **`docs/handoffs/README.md`** — read
@@ -167,8 +179,11 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > task-state points at the whole BACKLOG / relevant themes, and the open architecture questions
 > travel as residual so the next session resumes the design rather than rediscovering it.
 >
-> **COLD bundle.** Reconstructed from JOURNAL + live git in a fresh `/clear`ed session, not
-> witnessed-live. The drift-checks below were run **live** at generation for the headline.
+> **⚠ UPDATE — supplement FILLED (warm).** Generated cold (reconstructed from JOURNAL + live git in
+> a fresh `/clear`ed session, not witnessed-live; the drift-checks below were run **live** at
+> generation), but the operator then `supplement filled` real architect answers — see **§2**, now the
+> authoritative strategic *why*. The §13(d) beat **narrows**. Read any "COLD / empty ANSWERS / beat
+> fires full" phrasing below as **generation-time history**.
 
 ---
 
@@ -228,25 +243,48 @@ criterion is still "answered from the live source," never "matches a remembered 
 
 ---
 
-## §2 — Supplement status (COLD) + the carried strategic *why* (pointer)
+## §2 — Supplement status (FILLED — warm) — the authoritative strategic *why*
 
-`SUPPLEMENT.md` is committed this session with **empty ANSWERS** — the v5.2 always-generated
-fillable form, the **defined cold-handoff disposition** (a record that this fresh CC session held
-no transmissible live *why*, not a missing deliverable). The assembler folds **no** supplement
-section into `PASTE_THIS.md`; the incoming **§13(d) operator-context beat fires FULL**.
+`SUPPLEMENT.md` was generated cold (empty ANSWERS, committed) and then **FILLED** post-generation
+with **real outgoing-architect answers**. `scripts/assemble_paste.py` folds the **ANSWERS region
+only** into `PASTE_THIS.md` (answers-only — no QUESTIONS leakage); the incoming **§13(d) beat
+narrows** to "anything changed since the supplement was written?". **Read the folded `SUPPLEMENT.md`
+ANSWERS in full — they are the design authority for the next session.** The headline, surfaced (not
+buried):
 
-**If an outgoing 2026-06-19 architect chat exists**, the operator may copy `SUPPLEMENT.md`'s
-QUESTIONS to it, paste answers below the divider, and say `supplement filled` — CC then commits the
-filled file and re-runs `scripts/assemble_paste.py` (answers-only fold; the beat narrows).
+- **The through-line — everything this session did was ONE thing: grounding ADR-88 (file-oriented
+  dependency management) in reality.** Model: *markdown files are objects; their references
+  (commands / ADRs / §-sections / files) are edges; the repo is a graph; a retired target leaves a
+  **dangling edge** read as if live — that is the rot.* The repo has a dangling-edge detector for
+  **one** node type (the #156/#179 BACKLOG task-graph) and **none for prose**.
+- **Strategic intent:** turn ADR-88 from *Proposed-and-partially-detected* into an **enforced
+  lifecycle organ for the whole repo** — three organs: **(1) referential-currency detector** (does
+  every edge resolve?), **(2) structural linter** (graph shape — numbering / headers / ToC, the
+  things the architect *provably cannot eyeball* — proven 2/2 false this session), **(3)
+  "earns-its-keep" check** (does each node — file, automation, branch, folder — still justify
+  existing?). The two deterministic triggers already shipped this window are FC3 dedup (#187) + FC4
+  history-accretion (#140); the **structural + lifecycle halves remain unbuilt**.
+- **Sequence (locked):** prove-the-problem (this session's audit + manual groom = the *prototype*) →
+  **design the mechanism** (a **debate running in another chat** — the next session's primary design
+  input + design authority) → build + enforce → **then** deploy methodology (**#131**). The organ
+  must exist **before** #131 — you cannot deploy onto a base that silently rots.
+- **The two CC-observed addenda, answered:** **(A)** ratify ADR-88 via a **Council-equivalent
+  deliberation first** (the running debate may serve), *before* the build — it is foundational
+  doctrine, not the ADR-82/#149 narrow-operator-ratify class; it gates whether #179–#183 + the
+  shipped detectors are *doctrine* vs *proposal*. **(B)** ship-gate RED → **(B) operator-accept the
+  one-off + (C) tighten the wrap workflow so even a journal-wrap branches; reject (A)** —
+  dispositioning direct-wraps away erodes core-invariant #5 (the genuine fork is acknowledged, but
+  the architect's call is *tighten, don't disposition*).
+- **Do NOT redo** (per the answers): the confirm-live ledger, the committed currency audit, the
+  note-vs-usable distinction, the *structural-claims-need-a-live-organ* lesson, or the groom itself —
+  and **do not re-audit PLAYBOOK/ESSENTIALS by hand**; build the organ so hand-auditing is never
+  needed again.
 
-**Most recent transmissible strategic *why* (carried, not re-narrated)** — the **2026-06-18 filled
-supplement**: `docs/handoffs/2026-06-18-dev-knowledge-architect/SUPPLEMENT.md`. Read it whole. Its
-headline (still the live spine): **unify + encapsulate the way-of-working methodology into ONE
-coherent, SELF-ENFORCING, deployable whole, with #131 (ai-council onboarding) as the first
-deployment test** — *enforcement > documentation*. The named spine-failure: **"accepting inherited
-framing without verifying against state"** (the architect repeatedly bypassed the methodology
-because correctness rode on *remembering* to apply it, not on machinery). That is the why behind
-this whole window's *enforcement seal* (§3).
+**Prior-window context (still relevant, not superseded):** the **2026-06-18 filled supplement**
+(`docs/handoffs/2026-06-18-dev-knowledge-architect/SUPPLEMENT.md`) — *unify + encapsulate into ONE
+self-enforcing deployable whole, #131 as the first deployment test, enforcement > documentation*.
+This window's answers **sharpen** that into its first concrete dependency: the lifecycle organ for
+ADR-88 must exist before #131.
 
 ---
 
@@ -298,10 +336,24 @@ itself — composing these into ONE articulable, deployable whole and proving it
 
 ## §4 — Open architecture questions (travel as residual — resume the design, don't rediscover it)
 
-1. **ADR-88 ratification path.** ADR-88 is **Proposed**. Does it go to AI Council, or operator-ratify
-   (the ADR-82/#149 precedent)? Until ratified, `#179–#183` (the `coherence` group) still read as
-   "extending a paradigm" whose doctrine is *Proposed*, not *Accepted*. **First-order question for the
-   next architect.**
+> **Reframed by the FILLED supplement (§2).** The **top thread is now the ADR-88 lifecycle-organ
+> design** — taken from a **debate running in another chat** (the design authority; the next session's
+> first move is to incorporate its output, **not** a re-audit). Q1 and Q4 below now carry an architect
+> **lean** from the answers (still open = *decide/execute*, not *rediscover*). The 2026-06-18 "#184
+> first" sequencing is **subordinated** to "the lifecycle organ exists before #131."
+
+0. **The lifecycle-organ mechanism (NEW top thread).** Design + build the three organs (§2:
+   referential-currency detector · structural linter · earns-its-keep check). Primary input = the
+   running mechanism debate. Open *inside* it: how does the detector mechanically tell a *note* from a
+   *usable* dead-ref (the note-vs-usable distinction is load-bearing — ~18 `CHANGELOG retired` notes
+   are keep, not purge)? How does the linter cope with a two-documents-glued file (the PLAYBOOK
+   one-doc-or-two question)? Does the organ start prose-only or span all node types (files / automation
+   / branches / folders)?
+1. **ADR-88 ratification path** *(lean in §2: Council-equivalent first, before the build)*. ADR-88 is
+   **Proposed**. The answer leans **ratify via a Council-equivalent deliberation** (the running debate
+   may serve) **before** the build, since it is foundational doctrine (not the ADR-82/#149
+   narrow-operator-ratify class); it gates whether `#179–#183` + the shipped detectors are *doctrine*
+   vs *proposal*. **Decide + execute.**
 2. **The unify + encapsulate goal — sequence it.** The strategic spine (§2) is still unbuilt as a
    *whole*. With the enforcement gaps now closed (#140/#187/#186/#191) and the capstone authored,
    what is the **decomposition** of "ONE self-enforcing deployable whole → test on #131"? The
@@ -311,10 +363,12 @@ itself — composing these into ONE articulable, deployable whole and proving it
    interim → `/code-review high`; final pre-merge (3+ files) → `/codex-review`, with Codex auth =
    ChatGPT-authed default (no per-token billing). **Not encoded in PLAYBOOK §7.** A small encoding
    that "rides along" — but still open.
-4. **The §1 `ship-gate` RED disposition.** Decide A/B/C (§1) — disposition the wrap-commit pattern,
-   operator-accept the one-off, or tighten the wrap workflow. This is a *methodology* decision (how
-   strictly does core-invariant #5 bind a journal/chore wrap?), so it belongs to the architect, not a
-   mechanical fix.
+4. **The §1 `ship-gate` RED disposition** *(lean in §2: B + C, reject A)*. The answer leans
+   **(B) operator-accept the already-pushed one-off + (C) tighten the wrap workflow so even a
+   journal-wrap branches**, and **reject (A)** (dispositioning direct-wraps away erodes core-invariant
+   #5 — "the ship-gate going RED is the system correctly flagging the erosion; honor it by tightening,
+   not by dispositioning it away"). The genuine fork is acknowledged (A is defensible if a journal-only
+   wrap is judged low-risk-enough to exempt). **Operator decision + execute.**
 5. **Standing design threads (unchanged from the prior bundle, still open):** **#181** coherence-v2
    (data-gated on `logs/coherence-nudge.log` accumulating signal); **#164** the v5 cross-repo handoff
    generator (+ the deferred `verify_handoff_probes.py` teeth validator); **#162** architect
@@ -349,6 +403,14 @@ itself — composing these into ONE articulable, deployable whole and proving it
 
 # Probe manifest — architect mode: orientation first, then teeth (v5 §5 + §13c)
 <!-- scope: meta -->
+
+> **⚠ UPDATE (post-generation) — supplement FILLED.** This bundle was generated cold, but the
+> operator then `supplement filled` real answers (see the `RESIDUAL.md` / `HANDOFF_BOOT.md` UPDATE
+> banners + the folded `SUPPLEMENT.md`). The teeth probes (P2–P9) are **unchanged** — they bind to
+> **live state**, which the fill does not touch. The only changes: the **§13(d) beat in P1's gate
+> NARROWS** to "anything changed since the supplement?" (it does **not** fire full), and **P8's
+> ANSWERS state is FILLED** (not empty). Read any "cold / empty ANSWERS / beat fires full" phrasing
+> below as **generation-time history**; read the folded `SUPPLEMENT.md` answers first.
 
 > **Contract.** Each probe ships a **question + source-locator + verification command** and
 > **no answer**. The browser has no file access, so for every probe it must reply
@@ -400,15 +462,16 @@ off-repo question.
 | P5 | Is `ARCHITECTURE.md`'s `last_reviewed` stamp **on/after or before** its last git-commit touch — and what are the **two dates**? | `ARCHITECTURE.md` frontmatter + live git | a *relation* over post-handoff commits; a summary holds neither date precisely | `git log -1 --format=%cs -- ARCHITECTURE.md` vs the frontmatter stamp (or `audit.py health` `canonical_freshness`) |
 | P6 | What integer does `ARCHITECTURE.md`'s `**N collected**` claim state, what does `pytest --collect-only` collect **right now**, and **do they match**? | `ARCHITECTURE.md` `**N collected**` (line 284) + live pytest | the live count drifts on any test change; neither integer appears in the residual — **unlike the prior bundle this probe is now expected to MATCH** (the 587-vs-614 re-drift was fixed in the 06-19 consolidation; the residual claims 667/667), but the live count is still the only ground truth and the pass test is "answered from the live source," not "matches a remembered number" | `python scripts/validate_doc_claims.py` (the `pytest_collected` line) — note: `audit.py health` does **not** isolate this; use the standalone |
 | P7 | Does `audit.py ship-gate` come back **GREEN or RED** right now, and if RED, **which commits** (full short-sha + date) does the `no_ff_merges` check name as direct-on-`main`? | live git ∩ `main` history ∩ `disposition-register.yaml` | **THIS is the §1 headline** — at generation ship-gate is **RED** with **two** undispositioned `no_ff_merges` WARNs (`3a894ee`, `d0f9ead`, the 2026-06-19 wrap commits); but the live answer is the only ground truth (a disposition could be added, or new commits could appear), and the values are high-entropy / absent from the bundle | `python scripts/audit.py ship-gate` (read the `no_ff_merges` lines + the final RED/GREEN verdict) — re-derive; do **not** trust the residual's prose |
-| P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is a `SUPPLEMENT.md` present (and is its ANSWERS region empty or filled), and where does the stable operator boilerplate live instead? | `docs/handoffs/<slug>/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count (the 2026-06-12 collapse dropped the per-bundle README; the four-file `PASTE_THIS` shape + the v5.2 **always-generated** `SUPPLEMENT.md` are live); the live bundle + spec are the only ground truth | `ls docs/handoffs/2026-06-19-dev-knowledge-architect/` (no `README.md`; `SUPPLEMENT.md` present, **ANSWERS EMPTY** — cold; boilerplate lives once in `docs/handoffs/README.md`) ∩ `HANDOFF_PROCESS.md` §13 |
+| P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is a `SUPPLEMENT.md` present (and is its ANSWERS region empty or filled), and where does the stable operator boilerplate live instead? | `docs/handoffs/<slug>/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count (the 2026-06-12 collapse dropped the per-bundle README; the four-file `PASTE_THIS` shape + the v5.2 **always-generated** `SUPPLEMENT.md` are live); the live bundle + spec are the only ground truth | `ls docs/handoffs/2026-06-19-dev-knowledge-architect/` (no `README.md`; `SUPPLEMENT.md` present, **ANSWERS FILLED** post-generation — see the UPDATE banner; boilerplate lives once in `docs/handoffs/README.md`) ∩ `HANDOFF_PROCESS.md` §13 |
 | P9 | How many **serialize-groups** does `validate_backlog` summarize **right now**, which `#id`s are in the **handoff** group, and which `#id`s are in the **coherence** group? | `BACKLOG.md` ∩ `scripts/validate_backlog.py` | #156 made the task-graph durable, so group membership is a live schema fact that drifts on any BACKLOG edit; it is absent from this bundle (unlike the prior window, **no new group formed** this window — the `coherence` group already exists) | `python scripts/validate_backlog.py` (the serialize-groups summary line) |
 
 ## Gate procedure (CC)
 
 1. **P1 first** — the architect cannot begin design until both orienting lines are read live and
-   substring-matched. **Then run the operator-context beat (§13d)** — one off-repo ask, **firing FULL**
-   this bundle (it is cold — empty ANSWERS; read the *2026-06-18* filled supplement first for context)
-   — before design. Then run P2–P9, each against **live state now** (not generation-time).
+   substring-matched. **Then run the operator-context beat (§13d)** — one off-repo ask, **NARROWING**
+   this bundle (supplement **FILLED** post-generation — read the folded `SUPPLEMENT.md` answers first,
+   then ask only "anything changed since the supplement?") — before design. Then run P2–P9, each
+   against **live state now** (not generation-time).
 2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor
    missing / command errored / receiver tried to answer from memory or this bundle).
 3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named
@@ -418,6 +481,111 @@ off-repo question.
    — but the pass criterion is **"answered from the live source,"** never "matches the verdict the
    summary remembered." **P6 is now expected to MATCH** (667/667 — the prior re-drift was fixed). P2 is
    expected to read **21** (last name `doc_rot`; no new check landed since the #140 grooming-gate). P8
-   pins the post-collapse four-file shape (+ the v5.2 always-generated `SUPPLEMENT.md`, **empty
-   ANSWERS** — cold; no README). P9 pins the now-durable serialize-group graph (#156) — the `handoff`
+   pins the post-collapse four-file shape (+ the v5.2 always-generated `SUPPLEMENT.md`, **ANSWERS
+   FILLED** post-generation; no README). P9 pins the now-durable serialize-group graph (#156) — the `handoff`
    and `coherence` groups, no new group this window.
+
+---
+
+=== SUPPLEMENT.md ===
+
+# Handoff supplement — outgoing architect — 2026-06-19
+
+
+
+> Old hand to new hand. This is not a task list — it is the *way-of-working* state at the close
+> of a long session, so the next architect inherits judgment, not just facts. Written deep, not
+> exhaustive. Repo facts (SHAs, line numbers) are in the residual + the committed audit; this is
+> the **why**.
+
+---
+
+## The through-line — read this first
+
+Everything this session did was one thing: **grounding ADR-88 (file-oriented dependency management) in reality.** Not a side-cleanup — the central arc.
+
+The session's core engineering was the **Phase-1 seal: three Claude-Code worktrees run in parallel** (this was the most important work):
+- **seal-hooks** — fixed the **C1 JOURNAL-gate bug** (the Stop-gate computed its commit arc as the *push* boundary, so under deferred-serial-push a multi-session unpushed arc let one prior SHA-citation "vaccinate" the whole arc → later sessions could ship unjournaled and the gate passed silently). Narrowed to the *session* boundary. Also the #188 hook-completeness audit.
+- **seal-dedup** — #187 dedup-on-entry + #186 floor-sync.
+- **seal-grooming** — #140 `doc_rot` history-accretion detector.
+
+Those three shipped **ADR-88's deterministic triggers**: FC3 dedup (#187) and FC4 history-accretion (#140). So part of ADR-88 is already mechanically real. The afternoon then authored ADR-88 itself (Proposed) and ran straight into the proof that the *rest* of it is not real: PLAYBOOK + ESSENTIALS were rotting with references to machinery that no longer exists. We audited, groomed the currency, and cleaned the repo — but the structural and lifecycle halves remain unbuilt.
+
+**Where the next session must focus:** make file-oriented dependency management *enforced across the whole repo* before any further methodology deployment (#131). The methodology is not deployed yet. It is closer. It is not there.
+
+---
+
+## What ADR-88 actually is (because you said you don't fully feel it)
+
+Plain model: **markdown files are objects. Their references are edges. The repo is a graph.**
+
+A file references other things — commands (`/boot`), ADRs, sibling sections (`§16`), other files, systems. Each reference is an **edge** from this node to another. In OOP terms: an object holding a pointer to another object. When the target is retired (a method deleted, a command archived, a section removed), the edge becomes a **dangling pointer** — it points at nothing, but it still sits there, read as if live.
+
+The repo has a dangling-edge detector for **one** node type — the BACKLOG task-graph (#156 / #179). It has **none** for prose. So prose docs accrete dangling edges with nothing to catch them. That is the rot you feel. The four failure classes:
+
+- **FC1** — spine-failure (the coherence spine breaks).
+- **FC2** — undeclared edges (#179): a real dependency that isn't declared, so nothing tracks it.
+- **FC3** — duplication (#187): the same content in two places, drifting apart.
+- **FC4** — history-accretion (#140): dead content piles up and is never removed.
+
+"Graphs / whole-repo" = treating every node (file, automation branch, folder) as a graph node that must (a) have all its edges resolve, and (b) prove it still **earns its keep**. That second half is the broadened diagnosis below.
+
+---
+
+## 1. Strategic intent (way-of-working goal)
+
+Turn ADR-88 from *Proposed-and-partially-detected* into an **enforced lifecycle organ** for the whole repo, so the repo becomes self-policing about its own coherence. Concretely, three organs:
+1. **Referential-currency detector** — does every edge (command/ADR/section/file reference) still resolve?
+2. **Structural linter** — is the graph shape sound? (numbering, header scheme, ToC — the things the architect provably *cannot* eyeball; see Q3.)
+3. **"Earns-its-keep" check** — does each node still justify existing? (files, automation, branches, folders — see Off-repo.)
+
+The goal is not to fix today's rot (we did, manually). It is to make manual re-grooming **never necessary again** — so #131 deployment stands on a base that cannot silently rot.
+
+## 2. Tensions weighed, where I landed, why
+
+- **Groom-first vs mechanism-first** → groom-first. The manual currency groom was the *prototype*: doing it by hand is what told us exactly what is mechanical vs judgment, which makes the mechanism design concrete instead of abstract. It also unblocked the handoff (a handoff built on a lying PLAYBOOK carries the rot forward).
+- **Where the organ runs** → the same **detect / groom / gate** triad as the rest of the system: detect = nightly conformance digest (ADR-84); groom = human-ratified purge; gate-on-regression = pre-commit + handoff (universal root-7 + a `.dev-knowledge`-local extension for PLAYBOOK/ESSENTIALS). Hard-gating *full* currency would breed `/override` habits, so the gate only blocks *newly-added* dead edges.
+- **One problem or three** → three distinct organs. The architect can reliably reason about *references* but **not** *structure* (proven, Q3). So references → detector; structure → linter; lifecycle → earns-its-keep. Don't collapse them.
+
+## 3. Considered + rejected — do NOT relitigate
+
+- **Blanket-purge of every retirement annotation** — REJECTED. Two kinds: dead-refs-in-usable-positions (purge) vs anti-regression context-notes (keep). The ~18 `CHANGELOG retired` notes are load-bearing; a detector that flags all of them is wrong. The **note-vs-usable distinction is settled** and is a load-bearing requirement of the detector.
+- **Architect eyeball for structural claims** — REJECTED, *proven wrong this session*. My audit's structural section was 2/2 false: the §18 numbering gap is intentional (documented, "git has it") not rot; the embedded-template H2s sit inside fenced blocks the ToC generator skips, so they don't pollute anything and demoting them would corrupt the templates. A grep over a snapshot cannot see fences, intent-notes, or generator behaviour. **Structural checks must be a live organ. Settled.**
+- **Memory-based dead-lists** — REJECTED. Truth derives from live state ∪ the retirement ledger (JOURNAL / archive / ADR), never a hand-kept list. Mechanism-not-memory is ADR-88's own principle.
+- **Renumbering the §18 gap; demoting the H2s** — REJECTED (above). Renumbering would have *created* new dangling edges.
+
+## 4. Open questions (unresolved / deferred)
+
+- **The mechanism's exact shape** — you have a debate running in another chat that proposes the solution; that proposal is the next session's primary design input. Open inside it: how does the detector mechanically tell note from usable? How does the linter cope with a two-documents-glued file?
+- **The two-docs split** — is PLAYBOOK one document or two (a *reference* doc + a *workflow-recipes* doc)? This is where "I can't see the shape of my infrastructure" lives. Deferred to a deliberate structural decision (Council-class).
+- **Lifecycle scope** — see Off-repo: the rot is not only prose edges; automation, branches, folders, ENVIRONMENT.md currency all need the earns-its-keep check. Open: does the organ extend to all node types or start prose-only?
+- **ESSENTIALS-as-lens** — reshape ESSENTIALS into a 1:1 projection of PLAYBOOK's chapter list (itself a checkable file-dependency). Deferred, deliberate.
+- **Over-annotation condense** — the ~18 / ~10 / ~8 inline retirement notes → canonical-once. Deferred (operator judgment on aggressiveness).
+- **Residuals A and B** below.
+
+## 5. Decomposition rationale — what NOT to redo
+
+Locked sequence: **prove the problem** (this session: audit + manual groom = the prototype) → **design the mechanism** (your running debate) → **build + enforce** → **then deploy methodology (#131)**. The groom-as-prototype concretizes the design; the organ must exist before #131 because you cannot deploy onto a base that silently rots.
+
+Do **not** redo: the confirm-live ledger (`/boot`/`/evolve` dead; `/save`/§19 live; all 44 cited ADRs resolve — verified live); the committed audit's findings; the note-vs-usable distinction; the structural-claims-need-a-live-organ lesson (now in LESSONS); the currency groom itself (shipped, merged). **Do not re-audit PLAYBOOK/ESSENTIALS currency by hand** — build the organ so it never needs hand-auditing again.
+
+## 6. Off-repo context
+
+- **Operator state**: deep frustration that `protocols/` rots despite long effort — felt as the methodology not-yet-being-real. The reframe that landed and should hold: it is **one missing organ (lifecycle enforcement)**, not a failed methodology. Everything else worked this session.
+- **A debate is running in another chat** proposing the mechanism. Incorporate its output; it is the design authority for the next session.
+- **Broadened diagnosis (this-session finding, not yet in an ADR): system-lifecycle-rot, not just doc-rot.** Automation (`automation/fleet-audit`, `automation/conformance-digest`), branches, folders, ENVIRONMENT.md — all accrete with nothing asking "does this still earn its keep / is its output consumed." `fleet-audit` is confirmed live by-design ADR-84 infra (it writes daily; verified, kept) but **its output-consumption is unverified** and it writes local-only (not pushed to origin like its sibling) — a concrete instance of the open lifecycle question.
+- **Priority is explicit**: file-oriented dependency management + graphs + whole-repo coherence come **before** further methodology deployment.
+
+---
+
+## A. ADR-88 ratification path — and what it gates
+
+**Lean: ratify via Council (or a Council-equivalent deliberation), not bare operator-ratify — and ratify *before* the mechanism build.** ADR-88 is foundational doctrine — the "files are objects with edges" model the entire lifecycle organ will enforce — not a narrow/procedural decision like the ADR-82/#149 operator-ratify precedent. **But**: your running debate may itself be the deliberation. If it is a genuine multi-agent weighing of the doctrine, its verdict can serve as the ratification basis; otherwise convene. **What it gates**: whether #179–#183 and the shipped detectors are treated as load-bearing *doctrine* vs *proposal*. The mechanism can be *built on* them while Proposed; calling them canonical waits on ratification. Ratify first so the build enforces ratified doctrine, not a draft.
+
+## B. ship-gate RED — disposition
+
+**Lean: (B) for the immediate RED, (C) for the durable rule.** The two wrap commits are already pushed and un-FF — you can't un-ring them, so operator-accept the one-off (B). Going forward, tighten the wrap workflow so even the journal-wrap branches + FFs (C). Reasoning: a wrap commit is still a commit, and "direct-on-`main`" is exactly the discipline-erosion core-invariant #5 exists to prevent — so **#5 should bind a wrap as strictly as anything else.** Reject (A): dispositioning direct-wraps as acceptable is the camel's nose — it converts the invariant into a suggestion. Note the genuine fork: (A) is defensible *if* you judge a journal-only wrap as low-risk-enough to exempt and would rather accept mild gate-noise than mild branch-ceremony. I don't — but it's your call to make, and the way the ship-gate went RED is itself the system correctly flagging the erosion. Honor it by tightening, not by dispositioning it away.
+
+---
+
+*Outgoing-architect supplement, session 2026-06-19. Pairs with the residual and the committed audit `docs/audits/2026-06-19-playbook-essentials-currency-audit.md`. The next session's first move is the mechanism design from the running debate — not a re-audit.*

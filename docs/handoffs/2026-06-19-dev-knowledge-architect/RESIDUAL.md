@@ -9,8 +9,11 @@
 > task-state points at the whole BACKLOG / relevant themes, and the open architecture questions
 > travel as residual so the next session resumes the design rather than rediscovering it.
 >
-> **COLD bundle.** Reconstructed from JOURNAL + live git in a fresh `/clear`ed session, not
-> witnessed-live. The drift-checks below were run **live** at generation for the headline.
+> **⚠ UPDATE — supplement FILLED (warm).** Generated cold (reconstructed from JOURNAL + live git in
+> a fresh `/clear`ed session, not witnessed-live; the drift-checks below were run **live** at
+> generation), but the operator then `supplement filled` real architect answers — see **§2**, now the
+> authoritative strategic *why*. The §13(d) beat **narrows**. Read any "COLD / empty ANSWERS / beat
+> fires full" phrasing below as **generation-time history**.
 
 ---
 
@@ -70,25 +73,48 @@ criterion is still "answered from the live source," never "matches a remembered 
 
 ---
 
-## §2 — Supplement status (COLD) + the carried strategic *why* (pointer)
+## §2 — Supplement status (FILLED — warm) — the authoritative strategic *why*
 
-`SUPPLEMENT.md` is committed this session with **empty ANSWERS** — the v5.2 always-generated
-fillable form, the **defined cold-handoff disposition** (a record that this fresh CC session held
-no transmissible live *why*, not a missing deliverable). The assembler folds **no** supplement
-section into `PASTE_THIS.md`; the incoming **§13(d) operator-context beat fires FULL**.
+`SUPPLEMENT.md` was generated cold (empty ANSWERS, committed) and then **FILLED** post-generation
+with **real outgoing-architect answers**. `scripts/assemble_paste.py` folds the **ANSWERS region
+only** into `PASTE_THIS.md` (answers-only — no QUESTIONS leakage); the incoming **§13(d) beat
+narrows** to "anything changed since the supplement was written?". **Read the folded `SUPPLEMENT.md`
+ANSWERS in full — they are the design authority for the next session.** The headline, surfaced (not
+buried):
 
-**If an outgoing 2026-06-19 architect chat exists**, the operator may copy `SUPPLEMENT.md`'s
-QUESTIONS to it, paste answers below the divider, and say `supplement filled` — CC then commits the
-filled file and re-runs `scripts/assemble_paste.py` (answers-only fold; the beat narrows).
+- **The through-line — everything this session did was ONE thing: grounding ADR-88 (file-oriented
+  dependency management) in reality.** Model: *markdown files are objects; their references
+  (commands / ADRs / §-sections / files) are edges; the repo is a graph; a retired target leaves a
+  **dangling edge** read as if live — that is the rot.* The repo has a dangling-edge detector for
+  **one** node type (the #156/#179 BACKLOG task-graph) and **none for prose**.
+- **Strategic intent:** turn ADR-88 from *Proposed-and-partially-detected* into an **enforced
+  lifecycle organ for the whole repo** — three organs: **(1) referential-currency detector** (does
+  every edge resolve?), **(2) structural linter** (graph shape — numbering / headers / ToC, the
+  things the architect *provably cannot eyeball* — proven 2/2 false this session), **(3)
+  "earns-its-keep" check** (does each node — file, automation, branch, folder — still justify
+  existing?). The two deterministic triggers already shipped this window are FC3 dedup (#187) + FC4
+  history-accretion (#140); the **structural + lifecycle halves remain unbuilt**.
+- **Sequence (locked):** prove-the-problem (this session's audit + manual groom = the *prototype*) →
+  **design the mechanism** (a **debate running in another chat** — the next session's primary design
+  input + design authority) → build + enforce → **then** deploy methodology (**#131**). The organ
+  must exist **before** #131 — you cannot deploy onto a base that silently rots.
+- **The two CC-observed addenda, answered:** **(A)** ratify ADR-88 via a **Council-equivalent
+  deliberation first** (the running debate may serve), *before* the build — it is foundational
+  doctrine, not the ADR-82/#149 narrow-operator-ratify class; it gates whether #179–#183 + the
+  shipped detectors are *doctrine* vs *proposal*. **(B)** ship-gate RED → **(B) operator-accept the
+  one-off + (C) tighten the wrap workflow so even a journal-wrap branches; reject (A)** —
+  dispositioning direct-wraps away erodes core-invariant #5 (the genuine fork is acknowledged, but
+  the architect's call is *tighten, don't disposition*).
+- **Do NOT redo** (per the answers): the confirm-live ledger, the committed currency audit, the
+  note-vs-usable distinction, the *structural-claims-need-a-live-organ* lesson, or the groom itself —
+  and **do not re-audit PLAYBOOK/ESSENTIALS by hand**; build the organ so hand-auditing is never
+  needed again.
 
-**Most recent transmissible strategic *why* (carried, not re-narrated)** — the **2026-06-18 filled
-supplement**: `docs/handoffs/2026-06-18-dev-knowledge-architect/SUPPLEMENT.md`. Read it whole. Its
-headline (still the live spine): **unify + encapsulate the way-of-working methodology into ONE
-coherent, SELF-ENFORCING, deployable whole, with #131 (ai-council onboarding) as the first
-deployment test** — *enforcement > documentation*. The named spine-failure: **"accepting inherited
-framing without verifying against state"** (the architect repeatedly bypassed the methodology
-because correctness rode on *remembering* to apply it, not on machinery). That is the why behind
-this whole window's *enforcement seal* (§3).
+**Prior-window context (still relevant, not superseded):** the **2026-06-18 filled supplement**
+(`docs/handoffs/2026-06-18-dev-knowledge-architect/SUPPLEMENT.md`) — *unify + encapsulate into ONE
+self-enforcing deployable whole, #131 as the first deployment test, enforcement > documentation*.
+This window's answers **sharpen** that into its first concrete dependency: the lifecycle organ for
+ADR-88 must exist before #131.
 
 ---
 
@@ -140,10 +166,24 @@ itself — composing these into ONE articulable, deployable whole and proving it
 
 ## §4 — Open architecture questions (travel as residual — resume the design, don't rediscover it)
 
-1. **ADR-88 ratification path.** ADR-88 is **Proposed**. Does it go to AI Council, or operator-ratify
-   (the ADR-82/#149 precedent)? Until ratified, `#179–#183` (the `coherence` group) still read as
-   "extending a paradigm" whose doctrine is *Proposed*, not *Accepted*. **First-order question for the
-   next architect.**
+> **Reframed by the FILLED supplement (§2).** The **top thread is now the ADR-88 lifecycle-organ
+> design** — taken from a **debate running in another chat** (the design authority; the next session's
+> first move is to incorporate its output, **not** a re-audit). Q1 and Q4 below now carry an architect
+> **lean** from the answers (still open = *decide/execute*, not *rediscover*). The 2026-06-18 "#184
+> first" sequencing is **subordinated** to "the lifecycle organ exists before #131."
+
+0. **The lifecycle-organ mechanism (NEW top thread).** Design + build the three organs (§2:
+   referential-currency detector · structural linter · earns-its-keep check). Primary input = the
+   running mechanism debate. Open *inside* it: how does the detector mechanically tell a *note* from a
+   *usable* dead-ref (the note-vs-usable distinction is load-bearing — ~18 `CHANGELOG retired` notes
+   are keep, not purge)? How does the linter cope with a two-documents-glued file (the PLAYBOOK
+   one-doc-or-two question)? Does the organ start prose-only or span all node types (files / automation
+   / branches / folders)?
+1. **ADR-88 ratification path** *(lean in §2: Council-equivalent first, before the build)*. ADR-88 is
+   **Proposed**. The answer leans **ratify via a Council-equivalent deliberation** (the running debate
+   may serve) **before** the build, since it is foundational doctrine (not the ADR-82/#149
+   narrow-operator-ratify class); it gates whether `#179–#183` + the shipped detectors are *doctrine*
+   vs *proposal*. **Decide + execute.**
 2. **The unify + encapsulate goal — sequence it.** The strategic spine (§2) is still unbuilt as a
    *whole*. With the enforcement gaps now closed (#140/#187/#186/#191) and the capstone authored,
    what is the **decomposition** of "ONE self-enforcing deployable whole → test on #131"? The
@@ -153,10 +193,12 @@ itself — composing these into ONE articulable, deployable whole and proving it
    interim → `/code-review high`; final pre-merge (3+ files) → `/codex-review`, with Codex auth =
    ChatGPT-authed default (no per-token billing). **Not encoded in PLAYBOOK §7.** A small encoding
    that "rides along" — but still open.
-4. **The §1 `ship-gate` RED disposition.** Decide A/B/C (§1) — disposition the wrap-commit pattern,
-   operator-accept the one-off, or tighten the wrap workflow. This is a *methodology* decision (how
-   strictly does core-invariant #5 bind a journal/chore wrap?), so it belongs to the architect, not a
-   mechanical fix.
+4. **The §1 `ship-gate` RED disposition** *(lean in §2: B + C, reject A)*. The answer leans
+   **(B) operator-accept the already-pushed one-off + (C) tighten the wrap workflow so even a
+   journal-wrap branches**, and **reject (A)** (dispositioning direct-wraps away erodes core-invariant
+   #5 — "the ship-gate going RED is the system correctly flagging the erosion; honor it by tightening,
+   not by dispositioning it away"). The genuine fork is acknowledged (A is defensible if a journal-only
+   wrap is judged low-risk-enough to exempt). **Operator decision + execute.**
 5. **Standing design threads (unchanged from the prior bundle, still open):** **#181** coherence-v2
    (data-gated on `logs/coherence-nudge.log` accumulating signal); **#164** the v5 cross-repo handoff
    generator (+ the deferred `verify_handoff_probes.py` teeth validator); **#162** architect
