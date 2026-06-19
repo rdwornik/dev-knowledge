@@ -1,3 +1,9 @@
+---
+last_reviewed: 2026-06-19
+status: active
+owner: Rob
+---
+
 # Daily Essentials
 
 > The session-start operating frame for the LLM: the load-bearing essentials for working in this ecosystem. Condensed by design — full detail lives in PLAYBOOK, which this points to.
@@ -345,6 +351,8 @@ the pre-commit hook list.
 ## Ending a Session
 <!-- scope: hybrid -->
 
+> **JOURNAL is hard-gated at session-end (ADR-85, C1):** a session with commits must name ≥1 commit SHA from *this session* or the Stop-hook blocks turn-end; `/override [reason]` is the only escape. Canon: `protocols/DEFINITION_OF_DONE.md`.
+
 1. Full test suite
 2. `git status` — must be clean
 3. If 3+ files changed or 2+ packages touched → `/codex-review <topic>` before merge (threshold for cross-module risk; single-file changes don't need review). Codex-review is for **code review, not markdown/prose** — diffs of only `.md` / governance files are skipped cleanly by the wrapper's path-guard, so a doc-only session needs no codex run.
@@ -405,7 +413,7 @@ When a lesson becomes a rule — see canonical trigger + 3-step process: PLAYBOO
 ## Repo complexity (informal)
 <!-- scope: meta -->
 
-The formal repo-tier system (declared `tier:`/`scale:` gating governance) was retired 2026-05-23. The universal governance baseline (ADR-38 amendment A5) now applies to every repo regardless of size — VISION.md, CLAUDE.md, ARCHITECTURE.md, BACKLOG.md are mandatory everywhere; no `[L only]` tags, no declared tier.
+The formal repo-tier system (declared `tier:`/`scale:` gating governance) was retired 2026-05-23. The universal governance baseline (ADR-38 amendments A5/A6) now applies to every repo regardless of size — the seven-file canonical set (VISION, ARCHITECTURE, CLAUDE, BACKLOG, CONTRIBUTING, JOURNAL, LESSONS) is mandatory everywhere; no `[L only]` tags, no declared tier.
 
 S/M/L survive only as informal complexity descriptors for calibrating judgment (how much test infrastructure, how rich a workspace), never as a declared, audited tier:
 
