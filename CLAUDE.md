@@ -1,12 +1,12 @@
 ---
-last_reviewed: 2026-06-17
+last_reviewed: 2026-06-19
 status: active
 owner: Rob
 ---
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.18 — 2026-06-12 -->
+<!-- version: 2.19 — 2026-06-19 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -52,7 +52,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 - **Linting:** `ruff check --fix` (manual / via `/save`); `ruff check` is also enforced as a pre-commit gate (see §9) — violations block commits
 - **Scope tags:** `<!-- scope: X -->` (`dev|llm|hybrid|runtime|meta`) — informal only; not enforced (ADR-27; enforcement withdrawn per ADR-48)
 - **File lifecycle:** Append-only: `LESSONS.md`, `logs/TOKEN-LOG.md` (never edit), `JOURNAL.md` (newest-first prepend). Immutable: ADRs, transcripts, handoffs, audits (supersede with new file). Living: `VISION.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/*.md`, `BACKLOG.md` (update in place).
-- **Freshness cadence:** the living docs `VISION/ARCHITECTURE/CLAUDE/CONTRIBUTING` carry a `last_reviewed` frontmatter stamp meaning *re-read end-to-end and confirmed accurate (or drift filed)* — **not** merely "touched". `audit.py` check #10 fails when a stamp predates the file's last edit (edited-but-not-re-reviewed) and warns past a 30-day backstop. Bump `last_reviewed` only after a genuine review. See PLAYBOOK "Canonical-file freshness cadence".
+- **Freshness cadence:** the living docs `VISION/ARCHITECTURE/CLAUDE/CONTRIBUTING/ESSENTIALS` carry a `last_reviewed` frontmatter stamp meaning *re-read end-to-end and confirmed accurate (or drift filed)* — **not** merely "touched". `audit.py` check #10 fails when a stamp predates the file's last edit (edited-but-not-re-reviewed) and warns past a 30-day backstop. Bump `last_reviewed` only after a genuine review. See PLAYBOOK "Canonical-file freshness cadence".
 
 **Out of scope for this repo:**
 - Code-level implementation → child repos (corp-monorepo, ai-council, etc.)
@@ -187,8 +187,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.16 (2026-06-07) — §3 gains chapter pointers into the rewritten `ARCHITECTURE.md` (cloud/nightly/spec-orch/t-shirt routing → Ch3+Ch6; organ map → Ch2; distribution → Ch4) — closes [#93]; pointers only, doctrine stays in ARCHITECTURE + ADRs. Genuine end-to-end re-read; `last_reviewed` re-stamped 2026-06-07. **Companion obsolescence-pass fixes, operator-ratified & applied in-session:** (1) §9 "Session hooks" had drifted to a partial duplicate (listed only `fleet_health` of the 6 live `.claude/settings.json` hooks; stale "no hub-local Stop hook" framing) → trimmed to a pointer to ARCHITECTURE Ch2 (the authoritative organ map; the pre-commit gate list kept here); (2) §11 "last 5 ADRs" rotated 68–72 → 76–80.
 - v2.17 (2026-06-11) — §1 "First read" #4 broken-pointer fix (#151 clause / 2026-06-11 architecture-coherence audit): the pointer read `docs/handoffs/*/HANDOFF.md`, a filename **no** bundle shape produces (v4 = `README.md` + `01_ROLE…07`; current bundle = `README.md`/`RESIDUAL.md`/`PROBES.md`/`HANDOFF_BOOT.md`) → repointed to the bundle's `README.md`, the one file every shape carries. Genuine end-to-end re-read; rest confirmed current (the §11 "last 5" rolling-window rotation toward ADR-81/82 is a separate groom, deliberately not pulled in here); `last_reviewed` re-stamped 2026-06-11. The #149-flip doc-sync (#151) stays open — §8 + the broader scope-C surface sweep land at the v5→canonical flip.
 - v2.18 (2026-06-12) — §1 "First read" #4 repointed again (the v2.17 fix pointed at the bundle's `README.md`, which the new bundle shape no longer carries): v5 bundles drop the per-bundle README, so the pointer now reads the bundle's `HANDOFF_BOOT.md` (operator session entry) then the new **canonical operator runbook** `docs/handoffs/README.md`. Part of the canonical-runbook collapse (HANDOFF_PROCESS §13; #164): the stable operator boilerplate moved to one per-repo runbook, now itself freshness-gated (`audit.py` check #10). Genuine end-to-end re-read confirmed the rest current; `last_reviewed` re-stamped 2026-06-12.
+- v2.19 (2026-06-19) — ESSENTIALS brought under the freshness gate (doc-currency seal): §4 freshness-cadence list `VISION/ARCHITECTURE/CLAUDE/CONTRIBUTING` → `…/ESSENTIALS` (ESSENTIALS gains `last_reviewed` frontmatter + joins `audit.py` `_FRESHNESS_FILES`, so its drift is now check-#10-detectable; PLAYBOOK §"freshness cadence" mirrored). Companion genuine end-to-end re-read confirmed the rest current; deferred to a separate focused groom (drift filed here, not pulled into this ripple): §11 "last 5" rotation toward ADR-84–88 (still lists 76–80; v2.17 deferral precedent) and a §7 `/override` command entry (the ADR-85 gate's escape hatch). `last_reviewed` re-stamped 2026-06-19.
 
 ---
 
-**Last updated:** 2026-06-12
+**Last updated:** 2026-06-19
 **Maintained by:** Rob

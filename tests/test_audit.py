@@ -1127,6 +1127,12 @@ def test_freshness_real_git_equal_date_passes(tmp_path: Path) -> None:
     assert f.status == "pass", f.evidence
 
 
+def test_freshness_includes_essentials() -> None:
+    """ESSENTIALS joined the freshness gate (doc-currency seal 2026-06-19): its drift is
+    now check-#10-detectable. Hub-specific path (children skip absent files)."""
+    assert "protocols/ESSENTIALS.md" in aud._FRESHNESS_FILES
+
+
 @pytest.mark.skipif(not _HAS_GIT, reason="git not available")
 def test_git_last_commit_date_no_history_returns_none(tmp_path: Path) -> None:
     """REAL git: an untracked (never-committed) file has no commit date → None (A2 skipped)."""

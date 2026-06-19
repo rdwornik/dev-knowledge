@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-06-10
+> Last updated: 2026-06-19
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -861,7 +861,7 @@ Optional files are added by judgment of repo complexity; no tier makes them mand
 ### Canonical-file freshness cadence (audit check #10)
 <!-- scope: meta -->
 
-The living docs `VISION / ARCHITECTURE / CLAUDE / CONTRIBUTING` carry a `last_reviewed` frontmatter date. **`last_reviewed` means "re-read end-to-end and confirmed accurate (or the drift filed)" on that date — NOT merely "touched".** Bump it only after a genuine review, never reflexively.
+The living docs `VISION / ARCHITECTURE / CLAUDE / CONTRIBUTING / ESSENTIALS` carry a `last_reviewed` frontmatter date. **`last_reviewed` means "re-read end-to-end and confirmed accurate (or the drift filed)" on that date — NOT merely "touched".** Bump it only after a genuine review, never reflexively.
 
 `scripts/audit.py` check #10 (`canonical_freshness`, in `ALL_CHECKS` → runs in `audit health` and `audit run`) enforces two signals:
 
