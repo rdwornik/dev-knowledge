@@ -2715,7 +2715,7 @@ Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subse
 5. Quick project health check (test suite, lint, stale branches)
 6. Update ENVIRONMENT.md if any config changed
 
-(The retired `/evolve` self-evolution step was dropped 2026-06-19; corrections now auto-promote via the `corrections.jsonl` Stop hook — see ESSENTIALS "Feedback Loop".)
+(The retired self-evolution step was dropped 2026-06-19; corrections now auto-promote via the `corrections.jsonl` Stop hook — see ESSENTIALS "Feedback Loop".)
 
 ---
 

@@ -378,7 +378,7 @@ the pre-commit hook list.
 - Every correction logged to `corrections.jsonl` → same mistake 2x → auto-promoted to permanent rule with verify: check
 
 **Manual cadence:**
-- **Friday** — weekly review (see PLAYBOOK §9 "Weekly Review"): gotchas, token usage, LESSONS, BACKLOG, project health. (The old `/evolve` self-evolution loop was retired 2026-06-05; corrections now auto-promote via the Stop hook above.)
+- **Friday** — weekly review (see PLAYBOOK §9 "Weekly Review"): gotchas, token usage, LESSONS, BACKLOG, project health. (The old self-evolution loop was retired 2026-06-05; corrections now auto-promote via the Stop hook above.)
 - **Monthly** — Codex full-repo audit → triage flags (expect ~30% false positives) → fix CRITICAL/HIGH → re-audit → see PLAYBOOK Section 17. Cadence by repo complexity (judgment, not tier-gated; a tiny single-script repo may skip).
 
 **New tool/article/repo decision rule:** mature (>100 stars, >v1.0 — heuristics for community validation + production stability)? Solves a real problem? Architecture-level → Council debate. Otherwise decide in 30 seconds.
