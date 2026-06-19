@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-20 — CC Spike: Pyright reverse-dependency oracle benchmark (ADR-88 OQ2 gate)
+
+**Did:** Ran the ADR-87 auto-mode CC Spike benchmarking the **Pyright headless language server** (1.1.410, out-of-the-box) as a deterministic **reverse-dependency oracle** for this repo's code→code edges — the gate for the forthcoming code-edge sibling ADR (ADR-88 OQ2/OQ6). Built a throwaway LSP-over-stdio client + AST target enumerator in a temp dir (`%TEMP%\pyright-spike-20260620`, Pyright `npm`-installed there), drove `references()` + call-hierarchy over **all 286 `def`/`class` symbols** in `scripts/` (34 files, ~7.9k LOC), measured the four closure numbers across **n=3 runs**, then removed + verified-removed the temp dir (no leftovers). **Zero integration** — nothing wired to any hook/gate/pre-commit/`ALL_CHECKS`, no harness in `scripts/` (Layer-2 validators-only invariant); harness source embedded in the findings doc for reproducibility. `python-lsp-server` fallback not needed (Pyright cleared the bar).
+
+**Result:** **Verdict GO** — Pyright's workspace index suffices as the oracle; a custom code graph is **not** warranted for this repo. Four numbers: **cold-start 3.6–4.3 s** (init ~0.9 s) · **references p95 17–18 ms**, call-hierarchy p95 25–29 ms · **worst payload ~19 KB** (`Finding`, audit.py, 110 refs) · **0 crashes / 0 hangs** over a 60-edit burst on the busiest file. Decisive correctness signal: the canary `main` — defined in 34 files — resolved to **exactly 2 refs, not 68** → semantic resolution, not grep (the property a grep stand-in can't give). **Three honest limits carried to the consumer ADR:** (a) this-repo-scoped — won't extrapolate to a large child repo, re-measure before reuse; (b) one-time ~8 s first-`incomingCalls` call-graph warm-up (consistent all 3 runs; `references()` has no such cliff — prefer it); (c) static-Python-only — dynamic dispatch / `getattr` / string-keyed registries / cross-language (md→code, hook wiring) edges are invisible.
+
+**Changes:** NEW `docs/audits/2026-06-20-pyright-reverse-dep-oracle-findings.md` (the four numbers + verdict + method + embedded harness source); this `JOURNAL.md`. Findings deliverable `5ebf348`, merge `c2434f9`, `--no-ff` to `main` (branch `docs/spike-pyright-reverse-dep-oracle`, deleted post-merge).
+
+**Abandoned:** none — sanctioned-throwaway prototype, harness deliberately not graduated into the methodology (needs a separate decision per the governance pointer).
+
+**Next:** Author the code-edge sibling ADR answering ADR-88 OQ2/OQ6, consuming this GO verdict (adopt Pyright as the code→code reverse-dep oracle; budget the call-hierarchy warm-up or prefer `references()`; treat as static-Python-only). Push `main` → `origin` (operator-gated).
+
 ### 2026-06-19 — supplement FILLED for the 2026-06-19 architect handoff (real #159 fill→fold dogfood; cold→warm)
 
 **Did:** Operator `supplement filled` the `2026-06-19-dev-knowledge-architect` bundle with real outgoing-architect answers. Committed **verbatim** (CC never fabricates) + flipped the bundle **cold→warm** for internal coherence: UPDATE banners on HANDOFF_BOOT/RESIDUAL/PROBES (supplement FILLED → the §13(d) beat **narrows** to "changed since the supplement?", not "fires full"; cold phrasing reads as generation-time history), P8 cell → ANSWERS FILLED, RESIDUAL §2 rewritten to the authoritative *why* + §4 reframed by the answers (new top thread #0; Q1/Q4 carry the answer-leans). Re-ran `assemble_paste.py` — folds the ANSWERS region **only** (answers-only, **zero QUESTIONS leakage**, verified) into `PASTE_THIS.md`.
