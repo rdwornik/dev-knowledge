@@ -1,7 +1,7 @@
 ---
 version: 1.0
 owner: rob
-last_reviewed: 2026-06-04
+last_reviewed: 2026-06-19
 status: active
 ---
 
@@ -159,3 +159,4 @@ edit for clarifications and References section.
 - `BACKLOG.md` — cross-session pending items (per ADR-41)
 - `CONTRIBUTING.md` — branch/commit/validator conventions
 - `docs/decisions/` — architectural decisions (ADRs + transcripts)
+- ADR-88 — File-oriented dependency management (markdown as a design pattern): repo files are the dependency unit; coherence across the declared edge-graph is held by mechanism — a conformance harness — not by memory.
