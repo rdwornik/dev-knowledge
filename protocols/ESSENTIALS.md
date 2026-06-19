@@ -224,9 +224,8 @@ required for promotion. (PLAYBOOK)
 
 **Claude Code session:**
 1. Open Claude Code in project dir
-2. Type `/boot` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) — verifies rules, loads memory, checks trends
-3. Shift+Tab → **Accept Edits** mode (daily driver)
-4. Pick **max 2 objectives** for this session
+2. Shift+Tab → **Accept Edits** mode (daily driver)
+3. Pick **max 2 objectives** for this session
 
 **New browser chat:** Paste `protocols/HANDOFF_BOOT.md` — the thin boot is the whole browser onboarding (it replaces the old multi-file bundle; everything else is pulled just-in-time *via CC*). See `SESSION_SETUP.md` for the full checklist. (Historical v4 bundles under `docs/handoffs/` are flat `README.md` + `01_ROLE`…`07_ASK_BACK` — superseded, preserved as point-in-time history.)
 
@@ -256,7 +255,7 @@ required for promotion. (PLAYBOOK)
 | Stop generation | Ctrl+C |
 | Clear screen (not session) | Ctrl+L |
 
-**Slash commands:** `/boot` (start; archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) · `/clear` (between tasks) · `/compact` (shrink context) · `/session-summary` (to browser) · `/resume` (resume context) · `/evolve` (Friday; archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) · `/usage` (tokens)
+**Slash commands:** `/clear` (between tasks) · `/compact` (shrink context) · `/session-summary` (to browser) · `/resume` (resume context) · `/usage` (tokens)
 
 ---
 
@@ -379,7 +378,7 @@ the pre-commit hook list.
 - Every correction logged to `corrections.jsonl` → same mistake 2x → auto-promoted to permanent rule with verify: check
 
 **Manual cadence:**
-- **Friday** — `/evolve` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) → review corrections, promote/prune rules, check trends
+- **Friday** — weekly review (see PLAYBOOK §9 "Weekly Review"): gotchas, token usage, LESSONS, BACKLOG, project health. (The old `/evolve` self-evolution loop was retired 2026-06-05; corrections now auto-promote via the Stop hook above.)
 - **Monthly** — Codex full-repo audit → triage flags (expect ~30% false positives) → fix CRITICAL/HIGH → re-audit → see PLAYBOOK Section 17. Cadence by repo complexity (judgment, not tier-gated; a tiny single-script repo may skip).
 
 **New tool/article/repo decision rule:** mature (>100 stars, >v1.0 — heuristics for community validation + production stability)? Solves a real problem? Architecture-level → Council debate. Otherwise decide in 30 seconds.
