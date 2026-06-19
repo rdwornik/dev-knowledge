@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-19 — v5.2 architect handoff for 2026-06-19 (Case-2 window-capture; cold; ship-gate-RED headlined)
+
+**Did:** Generated the `2026-06-19-dev-knowledge-architect` v5.2 architect bundle (`/handoff architect dev knowledge`). Scope-matrix → **Case 2** (clean tree, commits since the `496016a` `…-architect` bundle, today's slug absent) → capture the 2026-06-19 window. Five-file bundle: `HANDOFF_BOOT.md` (session header) · `RESIDUAL.md` (drift-flags-first + planning why + open Qs + task-graph pointer) · `PROBES.md` (P1 orientation + P2–P9 teeth, 10 probes) · `SUPPLEMENT.md` (cold — empty ANSWERS, committed) · `PASTE_THIS.md` (assembler — supplement **not** folded, cold). **Reconstructed, not witnessed-live** (fresh `/clear`ed session); drift-checks run live for the headline.
+
+**Result:** Headline = **`audit.py ship-gate` is RED** — two 2026-06-19 wrap commits (`3a894ee` journal-wrap, `d0f9ead` transcript-archive) landed **direct-on-`main`** (FF/direct, core-invariant #5), already pushed, **undispositioned**. Surfaced **not fixed** (un-FF is a published-history rewrite — off the table; resolution is a disposition-register entry **or** operator acceptance **or** wrap-workflow tightening — a next-session call, RESIDUAL §1/§4 Q4). The prior bundle's `pytest_collected` re-drift is **CLEARED** — `validate_doc_claims` now 667/667 (the 06-19 consolidation fixed 587→667). Lone other flag = dispositioned `#77` `[~~]`. Carried strategic *why* (2026-06-18 filled supplement, pointer): **unify + encapsulate into ONE self-enforcing deployable whole, #131 first test** — now with the capstone **ADR-88** (file-oriented dependency management) **authored this window (Proposed)**. `handoff_probes` audit-health gate retargeted to the new bundle: **10/10 bind to live state**. Full suite **666 passed/1 skip**, ruff clean, audit-health PASS each commit.
+
+**Changes:** NEW `docs/handoffs/2026-06-19-dev-knowledge-architect/` (5 files); this `JOURNAL.md`. Bundle deliverable `5aec57b`; branch `docs/handoff-2026-06-19-architect`, `--no-ff` merge to `main` from the primary checkout (pending).
+
+**Abandoned:** Disposition/fix of the ship-gate RED (operator/architect call — surfaced, not picked). `supplement filled` (no outgoing 2026-06-19 architect chat in context — cold by design).
+
+**Next:** Push `main` → `origin` (operator-gated — serial-push). Optional: `supplement filled` if an outgoing 2026-06-19 architect chat exists; else the §13(d) beat fires full. The incoming architect resumes the open design (RESIDUAL §4): ADR-88 ratification path, the unify-goal decomposition (#184 first, rides #131), the §7 graduated review-command reconcile, the ship-gate-RED disposition.
+
 ### 2026-06-19 — session-wrap: push currency groom + branch/worktree hygiene + transcript archive
 
 **Did:** Wrapped the currency-groom session. (1) Pushed `main` → `origin` (`de7d040..60b4a36`). (2) Branch/worktree hygiene verified against live git: deleted 9 fully-merged branches (the 7 feature/groom/consolidation + the freed `worktree-seal-dedup`/`worktree-seal-hooks`); removed 3 merged seal worktrees (seal-dedup, seal-hooks, then seal-grooming after verifying no-loss — its deliverable `10e762f` is on `main`; only a redundant journal commit `f2d39ef` was discarded). (3) Investigated `automation/fleet-audit` → **KEPT**: by-design ADR-84 writer-isolation infra (orphan branch, hard-coded `_AUTOMATION_BRANCH = "automation/fleet-audit"` in `scripts/audit.py`, daily fleet baselines, active today), not a straggler. (4) Archived 2 incidental untracked deep-research transcripts (`d0f9ead`) that landed in `docs/decisions/transcripts/` at 23:06/23:08 — dependency-detection + doc↔code-traceability surveys, archived per the transcript convention.
