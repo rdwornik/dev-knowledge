@@ -11,12 +11,13 @@ Floor-faithful criterion (the load-bearing design choice, operator-ruled): a chi
 CONFORMANT iff the FLOOR ARTIFACT's validate() returns zero hard-fails. The floor
 artifact is the plugin script `plugins/tier1-lifecycle/scripts/validate_backlog.py` —
 the validator that becomes a child's hook when validate-backlog is distributed via the
-`tier1-lifecycle` plugin — NOT the hub's stricter `scripts/validate_backlog.py`. The
-plugin floor carries the ADR-66 structural checks only; it LACKS the hub's #156
-task-graph checks (depends-on reference-existence + no-cycle). The probe mirrors the
-floor AS-SHIPPED so it greenlights exactly the children that would pass the hook they'd
-actually install (zero drift). The missing #156 in the distributed floor is a SEPARATE
-floor-gap tracked in BACKLOG.md — NOT compensated for by hardening this probe.
+`tier1-lifecycle` plugin — NOT the hub's `scripts/validate_backlog.py` directly (the floor
+is a check-minimal twin of it). As of #186 the floor carries the hub's #156 task-graph
+checks (depends-on reference-existence + no-cycle) on top of the ADR-66 structural checks,
+so a child with a dangling depends-on edge or a dependency cycle now classifies as
+needs-migration. The probe mirrors the floor AS-SHIPPED so it greenlights exactly the
+children that would pass the hook they'd actually install (zero drift) — the probe and the
+installed hook stay in lockstep by construction (the former #156 floor-gap is closed).
 
 Verdicts (per child):
   conformant       BACKLOG.md present, floor validate() clean (warnings are informational)

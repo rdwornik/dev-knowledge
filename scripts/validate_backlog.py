@@ -117,6 +117,10 @@ def _parse_serialize_groups(rest):
     return out
 
 
+# CARRIER-DOCTRINE TWIN (ADR-78): the #156 dep machinery (_DEPENDS_CLAUSE_RE / _DEPID_RE /
+# _parse_deps + the two _check_dep_* fns below) is mirrored VERBATIM into the plugin floor
+# plugins/tier1-lifecycle/scripts/validate_backlog.py — keep in sync by hand (tracked
+# _DEPENDS_CLAUSE_RE twin-drift edge; a mechanical hub<->floor parity check is a queued ADR-88 follow-on).
 def _check_dep_references(tasks):
     """Strict reference-existence: every depends-on id must be a live task id (#156)."""
     ids = {t["id"] for t in tasks}
