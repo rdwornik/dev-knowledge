@@ -1645,9 +1645,7 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 
 | Command | Level | When to invoke |
 |---------|-------|----------------|
-| `/boot` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) | user | Session start — load memory, verify learned-rules, recent commits + JOURNAL. First thing, every session. |
 | `/session-summary` | user | Session end / handing to browser chat (Path A). Also appends a TOKEN-LOG snapshot if >7 days stale. |
-| `/evolve` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) | user | Weekly or every ~10 sessions — evolution audit (promote / prune / graduate learned rules). Not per-session. |
 | `/codex-review` | user | Before merging a **code** change (3+ files / safety-critical). Code only — never a markdown-only diff (LESSON 2026-05-19). |
 | `/save` | repo | Stage + commit with a Conventional Commits message + full body (git-discipline rule). After a discrete change. |
 | `/ship` | plugin (`tier1-lifecycle`) | Git-finish from the PRIMARY checkout: merge the current feature branch `--no-ff` → push → **auto-delete the merged branch** (no question). Branch cleanup is automatic; an anomalous `git branch -d` refusal is **reported loudly** and the branch left in place (session still ends). Refuses from inside a worktree (pre-flight #1). |
@@ -1738,7 +1736,7 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 **When to use:**
 - Repeated workflow Rob runs >3× across sessions
 - Multi-step procedures that benefit from consistent prompt
-- Operations crossing multiple files/tools (e.g. session summary, /boot context loading; note: /boot archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`)
+- Operations crossing multiple files/tools (e.g. `/session-summary` context loading)
 
 **When NOT to use:**
 - One-off task — write inline prompt instead
@@ -1747,9 +1745,9 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 
 **Real examples in Rob's ecosystem (user-level, `~/.claude/commands/`):**
 - `/session-summary` — generate handoff for current session, include TOKEN-LOG snapshot if stale (renamed from `/handoff` 2026-04-24 to avoid trigger-word collision)
-- `/boot` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) — load context: skills, recent commits, JOURNAL entries
-- `/evolve` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) — promote learned patterns to skills/rules
 - `/codex-review` — invoke Codex review on staged changes
+
+> **Retired machinery (history; do not re-add to command tables/cheat-sheets):** `/boot` and `/evolve` were archived 2026-06-05 (Phase-C3) — the self-evolution loop they drove (memory / learned-rules promotion + per-session boot) is retired. Archive: `~/.claude/archive/2026-06-05-machinery-c3/`.
 
 **Anti-patterns:**
 - **Commands without clear naming** — `/x` or `/do` are unmemorable
@@ -1861,7 +1859,7 @@ Defer if:
 
 **User-level** (`~/.claude/<mechanism>/`) when:
 - Pattern applies across all repos Rob works in (.dev-knowledge, corp-monorepo, ai-council, future)
-- Universal Rob workflow (e.g. `/session-summary`, `/boot` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`))
+- Universal Rob workflow (e.g. `/session-summary`)
 
 **Project-level** (`<repo>/.claude/<mechanism>/`) when:
 - Pattern is repo-specific (corp-monorepo Tach layers, ai-council debate framework)
@@ -2098,35 +2096,37 @@ Platform-current facts that pin the tables above (Claude Code 2.1.168; refreshed
 <!-- scope: hybrid -->
 
 ```
-| Parameter | Value  |
+LEGEND  [A] = architect emits  ·  [CC] = CC self-loads  (per the ADR-87 split above)
+
+| Parameter | Value  |   <- Mode is [A]; Model + Effort are [CC]
 | --------- | ------ |
 | Model     | [pick] |
 | Mode      | [pick] |
 | Effort    | [pick] |
 
-TITLE: What we're doing
-REPO: Which repo/package
-PURPOSE: Why (1 sentence)
+[A]  TITLE: What we're doing
+[A]  REPO: Which repo/package
+[A]  PURPOSE: Why (1 sentence)
 
-→ Read CLAUDE.md + relevant gotchas
-→ Governance pointer: the ADR / LESSONS / sibling-spec this task touches (architect fills; required for read-only/governance tasks — ADR-87)
-→ Git workflow (branch, commit per step, pytest between)
-→ Hooks/commands in play: which auto-fire (pre-commit gate: audit-health/validate-backlog; block-onedrive on Bash) + which to invoke (/save to commit; /codex-review before merging code) — see §"Usage protocol: which command / hook, when"
+[CC] → Read CLAUDE.md + relevant gotchas
+[A]  → Governance pointer: the ADR / LESSONS / sibling-spec this task touches (architect fills; required for read-only/governance tasks — ADR-87)
+[CC] → Git workflow (branch, commit per step, pytest between)
+[CC] → Hooks/commands in play: which auto-fire (pre-commit gate: audit-health/validate-backlog; block-onedrive on Bash) + which to invoke (/save to commit; /codex-review before merging code) — see §"Usage protocol: which command / hook, when"
 
-UNDERSTAND:
+[A]  UNDERSTAND:
 - What's the problem?
 - What's the scope? (which files, which packages)
 - What are the risks?
 - What does failure look like?
 
-STEPS:
+[A]  STEPS:
 1. [action] — COMMIT: "feat: description"
 2. [action] — COMMIT: "feat: description"
 ...
 
-FINAL: Run full test suite, merge to main
+[CC] FINAL: Run full test suite, merge to main
 
-WHAT NOT TO DO:
+[A]  WHAT NOT TO DO:
 - [explicit anti-patterns for this task]
 ```
 
@@ -2708,13 +2708,14 @@ Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subse
 
 **Friday consolidation — 30 minutes max, not a project.**
 
-1. Run `/evolve` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) in Claude Code — review corrections, observations, propose rule promotions/pruning
-2. Review gotchas added this week — any patterns?
-3. Review token usage — `ccusage --json` → append snapshot to TOKEN-LOG.md. Is Opus verbosity still the main drain?
-4. Review LESSONS.md entries from this week — anything to change in PLAYBOOK?
-5. Review BACKLOG.md — anything stale? Anything urgent? (single pending-items queue; no `OPEN_DECISIONS.md`)
-6. Quick project health check (test suite, lint, stale branches)
-7. Update ENVIRONMENT.md if any config changed
+1. Review gotchas added this week — any patterns?
+2. Review token usage — `ccusage --json` → append snapshot to TOKEN-LOG.md. Is Opus verbosity still the main drain?
+3. Review LESSONS.md entries from this week — anything to change in PLAYBOOK?
+4. Review BACKLOG.md — anything stale? Anything urgent? (single pending-items queue; no `OPEN_DECISIONS.md`)
+5. Quick project health check (test suite, lint, stale branches)
+6. Update ENVIRONMENT.md if any config changed
+
+(The retired self-evolution step was dropped 2026-06-19; corrections now auto-promote via the `corrections.jsonl` Stop hook — see ESSENTIALS "Feedback Loop".)
 
 ---
 
@@ -3047,7 +3048,7 @@ This is not optional. Stale structural documentation is worse than no documentat
 ## 19. Scrum-Master Review Propagation
 <!-- scope: meta -->
 
-**When:** `.dev-knowledge` (or any ecosystem-meta repo) audits a target repo against universal conventions (ADR-34 naming, ADR-38 architecture, ADR-41 backlog, etc.) and finds non-conformities to route. Distinct from § 15 Cross-Tool Review (within-repo Codex audit) and § 16 Code Quality Audit Process (within-repo audit cycle).
+**When:** `.dev-knowledge` (or any ecosystem-meta repo) audits a target repo against universal conventions (ADR-34 naming, ADR-38 architecture, ADR-41 backlog, etc.) and finds non-conformities to route. Distinct from § 16 Cross-Tool Review (within-repo Codex audit) and § 17 Code Quality Audit Process (within-repo audit cycle).
 
 **Skip when:** target repo audits itself internally (no cross-repo routing needed).
 
@@ -3058,7 +3059,7 @@ This is not optional. Stale structural documentation is worse than no documentat
 
 - Strażnik (`.dev-knowledge` or other ecosystem-meta repo) runs read-only audit against target repo's working tree against universal conventions.
 - Produces dated artifact: `docs/audits/YYYY-MM-DD-<target-repo>-scrum-master-review.md`
-- Findings grouped by severity (CRITICAL / HIGH / MEDIUM / LOW per § 16 convention).
+- Findings grouped by severity (CRITICAL / HIGH / MEDIUM / LOW per § 17 convention).
 - Audit is internal to strażnik repo; not yet routed.
 
 **Stage 2 — Route (operator routes with cover letter)**
@@ -3151,11 +3152,9 @@ Use `templates/scrum-master-cover-letter.md`. Operator fills placeholders for ta
 
 | Command            | When to use                                       |
 | ------------------ | ------------------------------------------------- |
-| `/boot` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) | Session start — load memory, verify rules         |
 | `/clear`           | Between repos/tasks — #1 token saver              |
 | `/compact`         | Mid-session when context heavy                    |
 | `/compact [focus]` | Compress with focus ("focus on API changes")      |
-| `/evolve` (archived 2026-06-05 Phase-C3, archive path: `~/.claude/archive/2026-06-05-machinery-c3/`) | Weekly Friday — review corrections, promote rules |
 | `/session-summary` | Before switching to Claude.ai browser             |
 | `/usage`           | Check token usage (interactive TUI; use `ccusage --json` for scriptable export) |
 | `/plan [prompt]`   | One-shot plan mode without cycling Shift+Tab      |
