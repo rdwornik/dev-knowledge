@@ -2096,35 +2096,37 @@ Platform-current facts that pin the tables above (Claude Code 2.1.168; refreshed
 <!-- scope: hybrid -->
 
 ```
-| Parameter | Value  |
+LEGEND  [A] = architect emits  ·  [CC] = CC self-loads  (per the ADR-87 split above)
+
+| Parameter | Value  |   <- Mode is [A]; Model + Effort are [CC]
 | --------- | ------ |
 | Model     | [pick] |
 | Mode      | [pick] |
 | Effort    | [pick] |
 
-TITLE: What we're doing
-REPO: Which repo/package
-PURPOSE: Why (1 sentence)
+[A]  TITLE: What we're doing
+[A]  REPO: Which repo/package
+[A]  PURPOSE: Why (1 sentence)
 
-→ Read CLAUDE.md + relevant gotchas
-→ Governance pointer: the ADR / LESSONS / sibling-spec this task touches (architect fills; required for read-only/governance tasks — ADR-87)
-→ Git workflow (branch, commit per step, pytest between)
-→ Hooks/commands in play: which auto-fire (pre-commit gate: audit-health/validate-backlog; block-onedrive on Bash) + which to invoke (/save to commit; /codex-review before merging code) — see §"Usage protocol: which command / hook, when"
+[CC] → Read CLAUDE.md + relevant gotchas
+[A]  → Governance pointer: the ADR / LESSONS / sibling-spec this task touches (architect fills; required for read-only/governance tasks — ADR-87)
+[CC] → Git workflow (branch, commit per step, pytest between)
+[CC] → Hooks/commands in play: which auto-fire (pre-commit gate: audit-health/validate-backlog; block-onedrive on Bash) + which to invoke (/save to commit; /codex-review before merging code) — see §"Usage protocol: which command / hook, when"
 
-UNDERSTAND:
+[A]  UNDERSTAND:
 - What's the problem?
 - What's the scope? (which files, which packages)
 - What are the risks?
 - What does failure look like?
 
-STEPS:
+[A]  STEPS:
 1. [action] — COMMIT: "feat: description"
 2. [action] — COMMIT: "feat: description"
 ...
 
-FINAL: Run full test suite, merge to main
+[CC] FINAL: Run full test suite, merge to main
 
-WHAT NOT TO DO:
+[A]  WHAT NOT TO DO:
 - [explicit anti-patterns for this task]
 ```
 

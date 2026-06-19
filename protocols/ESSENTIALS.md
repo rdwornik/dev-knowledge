@@ -272,7 +272,7 @@ Every formal prompt starts with:
 
 **Sonnet** = "do X the way we always do it." **Opus** = "figure out the right approach." **xhigh** = hardest debugging, architecture decisions, magistrala-level verification. Burns more tokens than high.
 
-Then: Title → Read CLAUDE.md + gotchas → Git workflow → UNDERSTAND → Steps with COMMIT markers → What NOT to do.
+Then (**[A]** architect emits · **[CC]** CC self-loads, per ADR-87): **[A]** Title → **[CC]** Read CLAUDE.md + gotchas → **[CC]** Git workflow → **[A]** UNDERSTAND → **[A]** Steps with COMMIT markers → **[A]** What NOT to do.
 
 **Architect output (standing rule):** the skeleton above is CC's *consumption-spec* — you don't hand-author all of it. Always state the **plan/auto mode** (plan when uncertain/multi-file/unfamiliar; auto when a trivial one-sentence diff) and a **thin governance-pointer** (the ADR/LESSONS/sibling-spec the task touches). CC self-loads code-impact context + generic gotchas but **won't self-infer governance context**, so the pointer is required for read-only/governance tasks — intent-only is conditional. Full contract: PLAYBOOK §2 "Architect output vs CC consumption-spec" / ADR-87.
 
