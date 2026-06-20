@@ -1,0 +1,9 @@
+{
+  "name": "dev-knowledge-oracle-tooling",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Vendored Pyright langserver for the #193 code->code reverse-dependency oracle (ADR-89). This repo is NOT a node app; package.json exists only to pin the langserver that scripts/reverse_dep_oracle.py drives. Bootstrap a fresh checkout with `npm install`; node_modules/ is gitignored.",
+  "dependencies": {
+    "pyright": "1.1.410"
+  }
+}

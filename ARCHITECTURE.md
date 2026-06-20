@@ -289,7 +289,16 @@ above references — the `scripts/` inventory:
   `python scripts/verify_handoff_probes.py <bundle>` (#163).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
-- `tests/` — pytest unit tests for the validators (**700 collected**; `pytest -x --tb=short`).
+- `scripts/reverse_dep_oracle.py` — code→code reverse-dependency **oracle** (**ADR-89**
+  computed-edge doctrine; #193). Given a Python symbol, returns its reverse-dependents via a
+  headless Pyright `references()` query, with a mandatory **provenance** block (git rev, dirty
+  set, completeness/truncation caveat) plus the three honest limits (static-Python-only,
+  repo-scoped, references-only) on **every** answer. Read-only query TOOL — **not** a
+  validator/gate, **not** in `ALL_CHECKS`, not wired to a hook (a flat module, so not a codemap
+  node); the safe-removal gate that consumes it is #195. Pyright is vendored via `npm install`
+  (pinned in `package.json`; `node_modules/` gitignored). Standalone CLI:
+  `python scripts/reverse_dep_oracle.py <symbol> [--json|--text]`.
+- `tests/` — pytest unit tests for the validators (**721 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
