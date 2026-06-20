@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-17
+last_reviewed: 2026-06-21
 status: active
 owner: Rob
 ---
@@ -104,7 +104,9 @@ Pre-commit hooks (`.pre-commit-config.yaml`):
 | `validate-backlog` | commit | Validates the BACKLOG.md story-map structure (ADR-66). |
 | `audit-health` | commit | Runs `audit.py health` (the self-conformance checks incl. canonical-file freshness). **FAIL-level findings block the commit; WARN-level only inform.** ~1.4s. Bypass: `--no-verify`. |
 | `ruff` | commit | Lint gate — `ruff check` (version-pinned >=0.15.5, `language: system`). Blocks on violations. [#13] closed. |
+| `coherence-nudge` | commit | **Non-blocking** nudge: a registered spec changed without a version bump → stdout nudge + `logs/coherence-nudge.log`; always exits 0 (pairs with the `reconciled_versions` audit check). |
 | `backlog-id-on-close` | commit-msg | Requires `[#id]` / `closes [#id]` when a commit removes a `- [#id]` task. |
+| `block-ff-push` | pre-push | Refuses a push placing a non-merge commit on `main`'s first-parent spine (a direct-to-`main` commit or a true FF merge); a `--no-ff` merge passes. Hub-only, fail-soft, bypass `git push --no-verify`. **Activate once per machine: `pre-commit install --hook-type pre-push`** (`default_install_hook_types` only wires it on a fresh install). |
 
 `audit.py health` (the gate above) is also runnable standalone for an on-demand sweep: `python scripts/audit.py health`. It runs the self-conformance checks incl. the canonical-file **freshness** check (`last_reviewed` staleness; see PLAYBOOK); FAIL blocks a commit, WARN (e.g. the 30-day freshness backstop) only informs.
 
