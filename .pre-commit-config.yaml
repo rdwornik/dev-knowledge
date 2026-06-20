@@ -1,5 +1,12 @@
 # Pre-commit hooks for .dev-knowledge
 
+# Install all three managed git-hook stages on a fresh `pre-commit install` so the
+# pre-push gate (block-ff-push, #153) is wired alongside pre-commit + commit-msg.
+# NOTE: changing this list does NOT install the pre-push hook into an existing clone
+# — run `pre-commit install --hook-type pre-push` once per machine (called out in the
+# #153 summary). Without it the git hook file is absent and the gate never fires.
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+
 # Scope every hook to the pre-commit stage by default. Without this, hooks that
 # declare no `stages:` default to *all* stages, so they fire a SECOND time at the
 # commit-msg git-hook (pre-commit is installed for both pre-commit and commit-msg).
@@ -83,3 +90,15 @@ repos:
         language: system
         stages: [commit-msg]
         always_run: true
+      - id: block-ff-push
+        name: Block direct-to-main / FF push to main (#153 prevent — core-invariant #5)
+        # Pre-push GATE (the PREVENT half of #5; validate_no_ff stays the WARN detector).
+        # Refuses a push that would put a non-merge commit on main's first-parent spine
+        # (direct-to-main or true FF merge); a --no-ff merge passes. HUB-ONLY; fail-soft
+        # to exit 0 on any git error. Bypass: `git push --no-verify`.
+        # Activate locally once: `pre-commit install --hook-type pre-push`.
+        entry: python scripts/block_ff_push.py
+        language: system
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
