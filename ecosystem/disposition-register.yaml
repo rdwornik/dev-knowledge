@@ -88,3 +88,33 @@ dispositions:
       Pre-existing CLAUDE.md §12 Section-history block (20 entries) — the ADR-49 retired-inline-
       changelog class. Surfaced, not introduced; condensation-to-git is the same class as #77's
       PLAYBOOK Section-history stripping (the nearest tracked grooming item).
+
+  # ---- pre-existing 2026-06-19 direct-to-main commits (operator-ratified 2026-06-20) ----
+  # Two non-merge commits landed directly on main 2026-06-19 — after BASELINE_DATE (2026-06-15)
+  # and BEFORE this consolidation session — a JOURNAL session-wrap and a transcripts archive.
+  # They violate core-invariants #5 (--no-ff universal) but are now IMMUTABLE history: the WARN
+  # cannot be cleared by a fix (only a history rewrite, which is forbidden). Surfaced + headlined
+  # "ship-gate-RED" since the 2026-06-19 architect handoff (a6ffcc4); the #193/#179 dependency-arc
+  # consolidation adds NO new no_ff violation (its 3 merges are all --no-ff). Operator ratified
+  # this disposition 2026-06-20. Keyed on the 9-char sha (== format_one's sha[:9]) per
+  # precision-over-recall — any FUTURE no_ff violation re-surfaces and blocks. Does not auto-clear
+  # (BASELINE_DATE is a fixed anchor, not a rolling window); revisit if the baseline is advanced.
+  - id: warn-no-ff-3a894eeb5-journal-wrap
+    organ: no_ff_merges
+    match: "3a894eeb5"
+    ref: 3a894eeb5
+    reason: >-
+      Pre-existing direct-to-main commit (2026-06-19 JOURNAL session-wrap; anchors transcript
+      archive d0f9ead). Predates this consolidation; immutable history, unfixable without a
+      rewrite. Violates core-invariants #5 but accepted as-is (operator-ratified 2026-06-20).
+      Surfaced, not introduced — headlined ship-gate-RED since the 2026-06-19 architect handoff.
+  - id: warn-no-ff-d0f9ead67-transcript-archive
+    organ: no_ff_merges
+    match: "d0f9ead67"
+    ref: d0f9ead67
+    reason: >-
+      Pre-existing direct-to-main commit (2026-06-19 transcripts archive: 2 deep-research
+      reports — dependency-detection + doc<->code traceability). Predates this consolidation;
+      immutable history, unfixable without a rewrite. Violates core-invariants #5 but accepted
+      as-is (operator-ratified 2026-06-20). Surfaced, not introduced — headlined ship-gate-RED
+      since the 2026-06-19 architect handoff (a6ffcc4).
