@@ -16,7 +16,12 @@ writes NOTHING; never gates by exit code (CLI exits 0 always — an awareness la
 validate_reconciliation / validate_no_ff).
 
 Candidate rule — a doc Y is a candidate undeclared edge to spec X iff ALL of:
-  1. Y is a repo .md (pruning vr._EXCLUDE_DIRS + archive*, the discover_dependents walk);
+  1. Y is a repo .md (pruning vr._EXCLUDE_DIRS + archive*, the discover_dependents walk), and Y
+     is in the ACTIONABLE corpus — not an immutable/append-only artifact (handoff bundles, ADRs,
+     transcripts, audits, append-only JOURNAL/LESSONS/TOKEN-LOG, ADR-80 ecosystem/*/history) and
+     not gitignored scratch (temp/, ...): such a doc cannot take a `reconciled_with` edge, so it
+     is noise, not a candidate (#199). Living files inside an immutable tree (the two READMEs)
+     are allowlisted, never pruned — no silent recall loss;
   2. Y is not X itself (self-reference exclusion);
   3. Y does NOT already declare `reconciled_with: X@...` (the GAP-ONLY rule — an already-
      declared edge, even to an older version, is left to the version checker, never re-flagged);
@@ -47,6 +52,7 @@ from __future__ import annotations
 
 import os
 import re
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -63,6 +69,59 @@ _REPO_ROOT = _SCRIPTS_DIR.parent
 
 # Tiers: lower number == stronger signal. 1/2 surface as candidates; 3 is weak (retained).
 _CANDIDATE_TIER_MAX = 2
+
+# --- noise pruning (#199): immutable/append-only zones + gitignored scratch -----------------
+# A doc that cannot carry a `reconciled_with` edge is not an actionable candidate, only noise:
+#   * immutable / append-only artifacts (CLAUDE.md S4 file-lifecycle) — handoff bundles, ADRs,
+#     transcripts (under docs/decisions/), audits, append-only JOURNAL/LESSONS/TOKEN-LOG;
+#   * ADR-80 auto-generated ecosystem/*/history/ records — a deliberate extension beyond #199's
+#     literal handoffs/ADRs/audits/logs list (same non-actionable class as docs/audits/);
+#   * gitignored scratch (temp/, logs/FLEET-HEALTH.md, ...) — not in the tracked corpus.
+# Living files that happen to live inside an immutable tree are allowlisted FIRST, so a real
+# mutable-tracked candidate is never pruned (the load-bearing no-recall-loss guarantee).
+_LIVING_ALLOWLIST = {"docs/handoffs/README.md", "docs/decisions/README.md"}
+_APPEND_ONLY_FILES = {"JOURNAL.md", "LESSONS.md", "logs/TOKEN-LOG.md"}
+_IMMUTABLE_PREFIXES = ("docs/handoffs/", "docs/decisions/", "docs/audits/")
+
+
+def _is_immutable_artifact(rel: str) -> bool:
+    """True if `rel` is an immutable/append-only artifact that cannot take a declared edge.
+
+    Allowlist-first: the two living READMEs inside docs/handoffs|decisions are KEPT even though
+    the prefix rule below would otherwise prune them. Transcripts (docs/decisions/transcripts/**)
+    need no separate rule — the `docs/decisions/` prefix already covers them."""
+    if rel in _LIVING_ALLOWLIST:
+        return False
+    if rel in _APPEND_ONLY_FILES:
+        return True
+    if rel.startswith(_IMMUTABLE_PREFIXES):
+        return True
+    if rel.startswith("ecosystem/") and "/history/" in rel:
+        return True
+    return False
+
+
+def _gitignored(repo_root: Path, rels: list[str]) -> set[str]:
+    """The subset of `rels` git ignores. Read-only (`git check-ignore -z`); batched once.
+
+    FAIL-OPEN: git absent / spawn error / not a work tree (returncode 128) -> empty set, so a
+    real candidate is never dropped (this is what keeps the non-git tmp_path tests green).
+    Uses -z (NUL-delimited stdin+stdout): on Windows a `\\n`-joined stdin leaves a trailing `\\r`
+    that breaks path matching AND suppresses later ignored paths; -z also avoids git's quoting."""
+    if not rels:
+        return set()
+    try:
+        r = subprocess.run(
+            ["git", "check-ignore", "-z", "--stdin"],
+            cwd=repo_root,
+            input=b"\0".join(s.encode("utf-8") for s in rels) + b"\0",
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+    except (OSError, ValueError):
+        return set()
+    if r.returncode not in (0, 1):          # 0 = some ignored, 1 = none ignored; else error
+        return set()
+    return {p.decode("utf-8") for p in r.stdout.split(b"\0") if p}
 
 
 @dataclass(frozen=True)
@@ -174,8 +233,14 @@ def scan(repo_root: Path, registry: dict | None = None) -> list[Candidate]:
     strongest tier; the caller (format_report) splits tier<=2 candidates from tier-3 weak
     signals. No tier-3 row is discarded here. Read-only."""
     reg = vr._SPEC_REGISTRY if registry is None else registry
+    # Prune the two non-actionable noise classes (#199) before candidate construction, so the
+    # tier split / weak-signal retention below operates only on the tracked-mutable corpus.
+    docs = [(rel, text) for rel, text in _walk_md(repo_root)
+            if not _is_immutable_artifact(rel)]
+    ignored = _gitignored(repo_root, [rel for rel, _ in docs])
+    docs = [(rel, text) for rel, text in docs if rel not in ignored]
     out: list[Candidate] = []
-    for rel, text in _walk_md(repo_root):
+    for rel, text in docs:
         declared = _declared_spec_ids(text)
         for spec_id, spec in reg.items():
             if rel == Path(spec.path).as_posix():       # self-reference exclusion
