@@ -50,11 +50,16 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 # Single-source the FF-signature: every name below is the SAME object validate_no_ff
-# (and the audit WARN adapter) use, so the detector and the gate can never drift apart.
+# uses, so the detector and the gate can never drift apart. Prefer the bare import
+# (the sibling is guaranteed on sys.path by the insert above) so every invocation mode
+# — pre-push hook, `python -m pytest`, direct run — resolves ONE module object; a
+# `from scripts import` first branch would yield a second copy (`scripts.validate_no_ff`
+# vs `validate_no_ff`) whenever the repo root is also on the path, breaking that
+# guarantee (and the reuse-integrity test).
 try:
-    from scripts import validate_no_ff as _vnf
-except ImportError:
     import validate_no_ff as _vnf
+except ImportError:
+    from scripts import validate_no_ff as _vnf
 
 _git = _vnf._git
 parse_log = _vnf.parse_log
