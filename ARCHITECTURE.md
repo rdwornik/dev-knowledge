@@ -214,7 +214,7 @@ local git gate.
 | `handoff_probes` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** (FAIL on broken probe binding; WARN on anchor-missing/skipped) | #163; HANDOFF_PROCESS §5/§10 |
 | `doc_rot` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #140; ADR-88 FC4 (ADR-65/49/41) |
 | `doc_structure` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #192; ADR-88 prose-shape |
-| pre-commit gates (9) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below |
+| pre-commit gates (10) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below |
 
 The **Tier-1 closure loop** is three of these organs in a cycle:
 `commit closes [#id]` → `Stop: propose_closures.py` writes `logs/PROPOSALS-*.md`
@@ -259,6 +259,15 @@ above references — the `scripts/` inventory:
   ONE rule, no exemptions — the ADR-80 automation allowlist was removed once the writers
   moved off `main` (ADR-84/Q9). Read-only; surfaced via the `no_ff_merges` audit check (WARN);
   hub-only (fleet-wide deferred, #153). Detect-and-surface, not prevent.
+- `scripts/block_ff_push.py` — pre-push GATE: the PREVENT counterpart to validate_no_ff's
+  detect-and-surface (core-invariants #5). Refuses a push that would put a non-merge commit
+  on main's first-parent spine (a direct-to-main commit or a true fast-forward merge); a
+  `--no-ff` merge passes. Delegates the scan to `validate_no_ff.find_violations` (ONE shared
+  FF-signature, so detector and gate cannot disagree). Wired as the `block-ff-push`
+  pre-commit-managed `pre-push` hook (activate once: `pre-commit install --hook-type
+  pre-push`); HUB-ONLY; fail-soft to exit 0 on any git error. Client-side teeth (bypassable
+  via `git push --no-verify`) — the `no_ff_merges` audit WARN stays the post-hoc backstop;
+  bypass-proof server-side teeth deferred under #153 (#153; ADR-84; core-invariants #5).
 - `scripts/validate_doc_claims.py` — prose-vs-state: a living doc's count/list CLAIMS
   vs ground truth (ARCHITECTURE check-count vs `len(ALL_CHECKS)`; pre-commit gate count
   + CLAUDE §9 roster vs `.pre-commit-config.yaml`; test-count vs `pytest --collect-only`,
@@ -309,7 +318,7 @@ above references — the `scripts/` inventory:
   node); the safe-removal gate that consumes it is #195. Pyright is vendored via `npm install`
   (pinned in `package.json`; `node_modules/` gitignored). Standalone CLI:
   `python scripts/reverse_dep_oracle.py <symbol> [--json|--text]`.
-- `tests/` — pytest unit tests for the validators (**739 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**760 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
