@@ -1,12 +1,12 @@
 ---
-last_reviewed: 2026-06-20
+last_reviewed: 2026-06-21
 status: active
 owner: Rob
 ---
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.19 — 2026-06-19 -->
+<!-- version: 2.21 — 2026-06-21 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -103,9 +103,12 @@ User-level (`~/.claude/commands/`):
 Repo-level (`./.claude/commands/`):
 - `/save` — commit workflow with full body per git-discipline rule
 - `/handoff` — generate/complete handoff per `HANDOFF_PROCESS.md` v5 (ADR-82)
+- `/changelog-review` — operator-invoked review of tool changelogs (claude-code + codex) since last review; classify per the audit rubric, write a digest, bump the state file (PUSH-triggered; never implements adoptions)
+- `/override` — bypass the ADR-85 session-end hard gate for this HEAD; explicit + logged, no auto-bypass (the gate's only escape — ADR-85 §4)
 
 Plugin-provided (`tier1-lifecycle@dev-knowledge-methodology`, §8):
 - `/review-closures` — review the session-end closure proposals + execute ONLY operator-approved closures (ADR-70 Tier-1; human-gated, done-items-leave). Fleet-wide via the plugin; the hub-local duplicate command was dropped so the hub uses the plugin's like the child repos ([#76]).
+- `/ship` — merge the current feature branch to `main` via `--no-ff`, push, and auto-delete the merged branch (git-finish); **refuses inside a worktree** — integrate from the primary checkout (seed-state-yaml lesson).
 
 (When to invoke each + auto-vs-manual for hooks: PLAYBOOK §"Usage protocol: which command / hook, when".)
 
@@ -122,7 +125,7 @@ Repo-level (`./.claude/`):
 - No repo-level skills directory exists yet (`.claude/` holds `commands/` and `rules/` only). Repo-specific empirical patterns live in `LESSONS.md` (append-only) — read it before structural changes; universal gotchas are the user-level `gotchas` skill above. If a repo-specific gotchas skill is later added it goes under `.claude/skills/gotchas/`.
 
 Plugin:
-- `tier1-lifecycle@dev-knowledge-methodology` is **enabled** (`.claude/settings.json`) and drives the Tier-1 closure loop here — its `Stop` hook runs `propose_closures.py` and it ships the `/review-closures` command (§9). The hub is the marketplace source the child repos install from; full distribution model in `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle" + `plugins/tier1-lifecycle/INSTALL.md`.
+- `tier1-lifecycle@dev-knowledge-methodology` is **enabled** (`.claude/settings.json`) and drives the Tier-1 closure loop here — its `Stop` hook runs `propose_closures.py` and it ships the `/review-closures` + `/ship` commands (§7/§9). The hub is the marketplace source the child repos install from; full distribution model in `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle" + `plugins/tier1-lifecycle/INSTALL.md`.
 
 ## 9. Hooks active
 <!-- scope: runtime -->
@@ -159,11 +162,11 @@ Rules (`.claude/rules/`):
 
 Brief one-liners. Full list in `docs/decisions/README.md`; full governance list in `ARCHITECTURE.md`.
 
-- ADR-76: Local fleet-baseline host — Windows Task Scheduler → `python scripts/fleet_health.py` directly (no `claude -p` / no LLM on the scheduled path); fail-soft + catch-up on a missed run
-- ADR-77: Immutable-paths zone class — `docs/decisions/transcripts/**` guarded by a `PreToolUse` hook (`block_immutable_edits.py`), fail-closed in-zone / fail-open out-of-zone; amends the ADR-75 register
-- ADR-78: Child methodology floor (O2 Bounded Hybrid) — a generated `CLAUDE-FLOOR.md` (≤1,500 tok) + `.sha256` per child, operator-invoked generator; adds the `methodology_surface` zone to the ADR-75 register **[planned, #121]**
-- ADR-79: Browser methodology carrier — bundle-only (one consolidated `BUNDLE.md`); Projects deferred (an LLM-governed freshness check is an unverifiable safety property)
-- ADR-80: Two-tier automation adoption — the LLM-judgment axis (deterministic ↔ judgment) orthogonal to ADR-74's friction-cadence tiers; writer policy (pathspec-bounded, fail-soft, automation commits its own output) + Routine/night operational standard + n=2 adoption gate; no `fallbackModel` on pinned stages
+- ADR-85: Session-lifecycle enforcement — deterministic session-end Stop-gate (4-model Council): hard block on the un-gameable JOURNAL commit-SHA anchor, advisory nudge on the BACKLOG leg (promoted when the traceability-spine lands, R1); demotes ARCHITECTURE/VISION/LESSONS/CONTRIBUTING to "update when materially affected"; escape only via logged HEAD-bound `/override`; single-source `protocols/DEFINITION_OF_DONE.md` (amended 2026-06-19: per-session SHA anchor — push→session boundary fix)
+- ADR-86: Conformance-dashboard location — `ecosystem/conformance.md` as an ADR-80 committed-generated zone (a read-only validator generates + commits its own output, Layer-2-safe); the surface ADR-85 R2's ungated-doc staleness signal lands in; the ARCHITECTURE Ch2 pointer lands with the build (#171), not before
+- ADR-87: Architect↔CC equilibrium contract — conditional intent-only prompting: CC self-loads reliably only for code-impact tasks, so the architect emits intent · closure · anti-patterns · plan/auto mode · a thin per-task governance-pointer (GAP-3) and CC owns code-impact context · generic gotchas · the skeleton (now its consumption-spec) · model/effort; GAP-2 backstop filed-not-built (#185), empirical close #184
+- ADR-88: **Proposed** — File-oriented dependency management (markdown as a design pattern) — repo files are the dependency unit; coherence across declared edges (`reconciled_with`/`serialize-group`/`depends-on`) held by machinery, not memory; five principles incl. narrow-first + do-not-build-is-doctrine; v1 proof = the #172 coherence spine, extends via the `coherence` group #179–#182
+- ADR-89: **Proposed** — Computed code-dependency edges (the computed-edge sibling to ADR-88) — "declare what you cannot compute; compute what you can": code→code computed via a Pyright reverse-dependency oracle (a custom code graph rejected for this repo), the benchmark's three limits (repo-scoped / static-Python-only / call-hierarchy warm-up) bound as normative + provenance required on every answer; doctrine only, no tooling wired (Track A)
 
 ## 12. Section history
 <!-- scope: meta -->
@@ -190,8 +193,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.18 (2026-06-12) — §1 "First read" #4 repointed again (the v2.17 fix pointed at the bundle's `README.md`, which the new bundle shape no longer carries): v5 bundles drop the per-bundle README, so the pointer now reads the bundle's `HANDOFF_BOOT.md` (operator session entry) then the new **canonical operator runbook** `docs/handoffs/README.md`. Part of the canonical-runbook collapse (HANDOFF_PROCESS §13; #164): the stable operator boilerplate moved to one per-repo runbook, now itself freshness-gated (`audit.py` check #10). Genuine end-to-end re-read confirmed the rest current; `last_reviewed` re-stamped 2026-06-12.
 - v2.19 (2026-06-19) — ESSENTIALS brought under the freshness gate (doc-currency seal): §4 freshness-cadence list `VISION/ARCHITECTURE/CLAUDE/CONTRIBUTING` → `…/ESSENTIALS` (ESSENTIALS gains `last_reviewed` frontmatter + joins `audit.py` `_FRESHNESS_FILES`, so its drift is now check-#10-detectable; PLAYBOOK §"freshness cadence" mirrored). Companion genuine end-to-end re-read confirmed the rest current; deferred to a separate focused groom (drift filed here, not pulled into this ripple): §11 "last 5" rotation toward ADR-84–88 (still lists 76–80; v2.17 deferral precedent) and a §7 `/override` command entry (the ADR-85 gate's escape hatch). `last_reviewed` re-stamped 2026-06-19.
 - v2.20 (2026-06-20) — pre-push prevent organ landed (#153 advance): §9 pre-commit list gains the `block-ff-push` (pre-push) hook — the PREVENT half of core-invariant #5 (`scripts/block_ff_push.py`; companion ARCHITECTURE §Validators bullet + `pre-commit gates` count 9→10 + collected 739→760), keeping `validate_no_ff` as the detect-and-surface WARN. Required doc-sync (the new hook tripped `doc_claims`: hook-count, CLAUDE §9 roster, pytest-collected — all now reconciled so ship-gate is GREEN). Targeted same-day edit; the §11 "last 5" rotation toward ADR-84–88 stays deferred (v2.17/v2.19 precedent); `last_reviewed` re-stamped 2026-06-20. Scope-boundary + methodology-reach (#153 done-when) remain open.
+- v2.21 (2026-06-21) — overnight ops/task audit, auto-apply lane (the deferral carried since v2.19/v2.20): §11 "last 5" rotated 76–80 → **85–89** after a genuine read of ADR-85–89 (two are **Proposed** — ADR-88/89 — annotated as such); §7 reconciled to the live command set — added repo-level `/changelog-review` + `/override` (the deferred ADR-85-escape entry) and plugin `/ship`, with the §8 plugin-command mention synced; fixed the stale version comment (was **2.19** while a v2.20 entry had already landed → **2.21**). Genuine end-to-end re-read confirmed the rest current; `last_reviewed` re-stamped 2026-06-21. **Surfaced to `docs/audits/2026-06-21-audit-ops-findings.md`, not pulled in:** this §12 section-history is itself an `audit.py` `doc_rot` WARN (now 23 entries ≥ the 12-entry condense threshold, ADR-49/65) — condensation is an operator-gated removal.
 
 ---
 
-**Last updated:** 2026-06-20
+**Last updated:** 2026-06-21
 **Maintained by:** Rob
