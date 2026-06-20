@@ -139,6 +139,17 @@ def test_range_new_remote_full_history():
     assert bfp.resolve_push_range(lines, {}) == "LLLL"
 
 
+def test_range_empty_local_skipped():
+    # An empty PRE_COMMIT_TO_REF (a main delete on the env path) is out of scope ->
+    # skip, NOT a half-open "RRRR.." range that git would resolve to RRRR..HEAD.
+    assert bfp._range_for("", "RRRR") is None
+
+
+def test_range_empty_remote_full_history():
+    # An empty remote ref (fresh remote, no PRE_COMMIT_FROM_REF) -> full local history.
+    assert bfp._range_for("LLLL", "") == "LLLL"
+
+
 def test_parse_stdin_lines_multi_and_malformed():
     text = (_push_line("L1", "R1", ref="refs/heads/main")
             + "garbage line with three tok\n"
@@ -160,12 +171,12 @@ def test_is_zero():
 # --- reuse-integrity: gate shares validate_no_ff's FF-signature -------------
 
 def test_shares_validate_no_ff_signature():
-    # SAME objects -> the WARN detector and the BLOCK gate cannot drift apart.
-    assert bfp.filter_violations is vnf.filter_violations
-    assert bfp.parse_log is vnf.parse_log
-    assert bfp.format_one is vnf.format_one
+    # ONE module object, and the gate delegates the whole SCAN to find_violations (not
+    # just leaf helpers) -> the WARN detector and the BLOCK gate cannot drift apart.
+    assert bfp._vnf is vnf
+    assert bfp._vnf.find_violations is vnf.find_violations
     assert bfp._git is vnf._git
-    assert bfp._FMT == vnf._FMT
+    assert bfp.format_one is vnf.format_one
     assert bfp.BASELINE_DATE == vnf.BASELINE_DATE
 
 

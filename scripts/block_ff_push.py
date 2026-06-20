@@ -49,8 +49,10 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
-# Single-source the FF-signature: every name below is the SAME object validate_no_ff
-# uses, so the detector and the gate can never drift apart. Prefer the bare import
+# Single-source the FF-signature: the gate delegates the actual violation SCAN to
+# validate_no_ff.find_violations (see violations_in_range) and reuses its leaf helpers
+# as the SAME objects — so the detector and the gate can never disagree about what a
+# violation IS, at the whole-scan level, not just the leaves. Prefer the bare import
 # (the sibling is guaranteed on sys.path by the insert above) so every invocation mode
 # — pre-push hook, `python -m pytest`, direct run — resolves ONE module object; a
 # `from scripts import` first branch would yield a second copy (`scripts.validate_no_ff`
@@ -61,12 +63,9 @@ try:
 except ImportError:
     from scripts import validate_no_ff as _vnf
 
-_git = _vnf._git
-parse_log = _vnf.parse_log
-filter_violations = _vnf.filter_violations
-format_one = _vnf.format_one
+_git = _vnf._git              # used by _repo_root
+format_one = _vnf.format_one  # used to render a refused violation
 BASELINE_DATE = _vnf.BASELINE_DATE
-_FMT = _vnf._FMT
 
 PROTECTED_REF = "refs/heads/main"
 
@@ -79,13 +78,15 @@ def _is_zero(sha: str) -> bool:
 def _range_for(local_sha: str, remote_sha: str) -> str | None:
     """git-log range for a push to the protected ref, or None to skip. Pure.
 
-    Deleting main (local all-zeros) is out of scope. A new main on a fresh remote
-    (remote all-zeros) scans the full local history; otherwise the range is the
-    commits the push would ADD: remote_sha..local_sha.
+    A missing/all-zeros local sha — deleting main, or an empty PRE_COMMIT_TO_REF on a
+    delete via the env path — is out of scope → skip (an empty left side would let git
+    silently resolve `remote_sha..` to `remote_sha..HEAD` and falsely REFUSE). A
+    missing/all-zeros remote sha (new main on a fresh remote) scans the full local
+    history; otherwise the range is the commits the push would ADD: remote_sha..local_sha.
     """
-    if _is_zero(local_sha):
+    if not local_sha or _is_zero(local_sha):
         return None
-    if _is_zero(remote_sha):
+    if not remote_sha or _is_zero(remote_sha):
         return local_sha
     return f"{remote_sha}..{local_sha}"
 
@@ -138,11 +139,12 @@ def _repo_root() -> Path:
 
 def violations_in_range(repo: Path, rng: str, baseline: str = BASELINE_DATE) -> list:
     """Non-merge commits on the first-parent spine within `rng`, since `baseline`.
-    Read-only; fail-soft — a git error returns [] (never wedge a legitimate push)."""
-    r = _git(repo, "log", "--first-parent", "--no-merges", rng, f"--format={_FMT}")
-    if r.returncode != 0:
-        return []
-    return filter_violations(parse_log(r.stdout), baseline)
+
+    Delegates to validate_no_ff.find_violations — a revision range (`remote..local`)
+    is a valid `git log` positional exactly like a branch name, so the gate and the
+    detector share ONE scan, not just the leaf helpers. Read-only; fail-soft (a git
+    error returns [], never wedging a legitimate push)."""
+    return _vnf.find_violations(repo, branch=rng, baseline=baseline)
 
 
 def main(argv=None) -> int:
