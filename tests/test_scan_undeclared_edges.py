@@ -9,8 +9,12 @@ generality, and the report's two sections + confirm hint.
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
@@ -218,3 +222,118 @@ def test_snippet_is_fence_safe(tmp_path: Path) -> None:
 
 def test_main_exits_zero() -> None:
     assert sue.main() == 0
+
+
+# --- #199: noise pruning (immutable zones + gitignored) ----------------------
+# An immutable/append-only artifact and a gitignored path cannot carry a `reconciled_with`
+# edge, so neither is an actionable candidate. Prune both; KEEP every mutable-tracked
+# candidate (no recall loss); KEEP the tier-1/2/3 surfacing split.
+
+def test_immutable_adr_excluded(tmp_path: Path) -> None:
+    _spec(tmp_path)
+    _doc(tmp_path, "docs/decisions/ADR-99-thing.md", "See protocols/HANDOFF_PROCESS.md.")
+    assert sue.scan(tmp_path) == []
+
+
+def test_immutable_transcript_excluded(tmp_path: Path) -> None:
+    # transcripts live only under docs/decisions/transcripts/** -> covered by the
+    # docs/decisions/ prefix (no separate rule); this asserts that real coverage.
+    _spec(tmp_path)
+    _doc(tmp_path, "docs/decisions/transcripts/2026-03-29-council.md",
+         "See protocols/HANDOFF_PROCESS.md.")
+    assert sue.scan(tmp_path) == []
+
+
+def test_immutable_handoff_bundle_excluded(tmp_path: Path) -> None:
+    _spec(tmp_path)
+    _doc(tmp_path, "docs/handoffs/2026-06-20-x/RESIDUAL.md", "See protocols/HANDOFF_PROCESS.md.")
+    assert sue.scan(tmp_path) == []
+
+
+def test_immutable_audit_excluded(tmp_path: Path) -> None:
+    _spec(tmp_path)
+    _doc(tmp_path, "docs/audits/2026-06-20-audit.md", "See protocols/HANDOFF_PROCESS.md.")
+    assert sue.scan(tmp_path) == []
+
+
+def test_ecosystem_history_excluded(tmp_path: Path) -> None:
+    # ADR-80 auto-generated history — a documented extension beyond #199's literal list.
+    _spec(tmp_path)
+    _doc(tmp_path, "ecosystem/corp-ops/history/2026-06-20.md",
+         "See protocols/HANDOFF_PROCESS.md.")
+    assert sue.scan(tmp_path) == []
+
+
+def test_append_only_toplevel_excluded(tmp_path: Path) -> None:
+    _spec(tmp_path)
+    for name in ("JOURNAL.md", "LESSONS.md", "logs/TOKEN-LOG.md"):
+        _doc(tmp_path, name, "See protocols/HANDOFF_PROCESS.md.")
+    assert sue.scan(tmp_path) == []
+
+
+def test_living_decisions_readme_retained_as_weak(tmp_path: Path) -> None:
+    # docs/decisions/README.md is a LIVING ADR index inside an immutable tree — allowlisted,
+    # never pruned. In the live repo it is a tier-3 weak signal; the allowlist must keep it
+    # (recall loss is the exact failure this organ prevents).
+    _spec(tmp_path)
+    _doc(tmp_path, "docs/decisions/README.md", "Read HANDOFF_BOOT.")          # tier-3 weak
+    results = sue.scan(tmp_path)
+    assert "docs/decisions/README.md" in _weak_paths(results)
+    assert "docs/decisions/README.md" not in _cand_paths(results, tier_max=2)
+    # allowlist beats the prefix prune at every tier: a tier-1 ref surfaces as a candidate.
+    _doc(tmp_path, "docs/decisions/README.md", "See protocols/HANDOFF_PROCESS.md.")
+    assert "docs/decisions/README.md" in _cand_paths(sue.scan(tmp_path), tier_max=2)
+
+
+def test_living_handoffs_readme_not_pruned(tmp_path: Path) -> None:
+    _spec(tmp_path)
+    _doc(tmp_path, "docs/handoffs/README.md", "See protocols/HANDOFF_PROCESS.md.")
+    assert "docs/handoffs/README.md" in _cand_paths(sue.scan(tmp_path), tier_max=2)
+
+
+def test_normal_guide_candidate_still_surfaced(tmp_path: Path) -> None:
+    # over-prune regression guard: a plain tracked-mutable doc must still surface.
+    _spec(tmp_path)
+    _doc(tmp_path, "GUIDE.md", "See protocols/HANDOFF_PROCESS.md.")
+    assert "GUIDE.md" in _cand_paths(sue.scan(tmp_path), tier_max=2)
+
+
+def test_is_immutable_artifact_unit() -> None:
+    pruned = [
+        "docs/decisions/ADR-28-three-layer-architecture.md",
+        "docs/decisions/transcripts/2026-03-29-council-browser-handoff.md",
+        "docs/handoffs/2026-06-20-x/RESIDUAL.md",
+        "docs/audits/2026-06-20-audit.md",
+        "JOURNAL.md", "LESSONS.md", "logs/TOKEN-LOG.md",
+        "ecosystem/corp-ops/history/2026-06-20.md",
+    ]
+    kept = [
+        "docs/handoffs/README.md", "docs/decisions/README.md",   # living, allowlisted
+        "protocols/PLAYBOOK.md", "templates/HANDOFF_TEMPLATE.md",
+        "ARCHITECTURE.md", "GUIDE.md",
+        "ecosystem/corp-ops/state-notes.md",                     # ecosystem but not /history/
+    ]
+    assert all(sue._is_immutable_artifact(p) for p in pruned)
+    assert not any(sue._is_immutable_artifact(p) for p in kept)
+
+
+def test_fail_open_when_not_a_git_repo(tmp_path: Path) -> None:
+    # tmp_path is not a git work tree -> _gitignored fail-opens (prunes nothing), which is
+    # exactly why the existing tmp_path tests stay green.
+    assert sue._gitignored(tmp_path, ["temp/x.md"]) == set()
+    _spec(tmp_path)
+    _doc(tmp_path, "GUIDE.md", "See protocols/HANDOFF_PROCESS.md.")
+    assert "GUIDE.md" in _cand_paths(sue.scan(tmp_path), tier_max=2)
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
+def test_gitignored_path_excluded(tmp_path: Path) -> None:
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    (tmp_path / ".gitignore").write_text("temp/\n", encoding="utf-8")
+    _spec(tmp_path)
+    _doc(tmp_path, "temp/SCRATCH.md", "See protocols/HANDOFF_PROCESS.md.")    # gitignored
+    _doc(tmp_path, "KEEP.md", "See protocols/HANDOFF_PROCESS.md.")            # tracked-mutable
+    cands = _cand_paths(sue.scan(tmp_path), tier_max=2)
+    assert "temp/SCRATCH.md" not in cands     # gitignored scratch pruned
+    assert "KEEP.md" in cands                  # real candidate retained (no recall loss)
