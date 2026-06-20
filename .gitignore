@@ -37,6 +37,11 @@ ecosystem/*/state.yaml
 logs/.session-override-token
 logs/OVERRIDES.md
 
+# Vendored Pyright langserver for the reverse-dep oracle (#193, ADR-89). The version is
+# pinned in package.json + package-lock.json (committed); the heavy node_modules tree is
+# rebuilt per-checkout via `npm install` (bootstrap documented in scripts/reverse_dep_oracle.py).
+node_modules/
+
 # OS
 *.tmp
 *.bak
