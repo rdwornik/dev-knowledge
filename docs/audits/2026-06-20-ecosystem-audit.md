@@ -3,9 +3,9 @@
 <!-- scope: meta -->
 
 **Date:** 2026-06-20  
-**Generated:** 2026-06-20T00:52:53  
+**Generated:** 2026-06-20T14:15:56  
 **Repos audited:** 5  
-**Checks:** 105 total — 90 pass, 2 fail, 0 warn, 0 unavailable, 13 n/a
+**Checks:** 110 total — 95 pass, 2 fail, 0 warn, 0 unavailable, 13 n/a
 
 ---
 
@@ -37,6 +37,7 @@
 | `handoff_probes` | PASS | 10 probe(s) bind to live state (2026-06-19-dev-knowledge-architect) |
 | `reconciled_versions` | PASS | 1 reconciled_with edge(s) match live spec version(s) |
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
+| `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
 
 History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/)
 
@@ -70,6 +71,7 @@ History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/
 | `handoff_probes` | PASS | no docs/handoffs/ — no probe bundle to validate |
 | `reconciled_versions` | PASS | no reconciled_with edges declared |
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
+| `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
 
 History: [`ecosystem\ai-council\history/`](ecosystem\ai-council\history/)
 
@@ -103,6 +105,7 @@ History: [`ecosystem\ai-council\history/`](ecosystem\ai-council\history/)
 | `handoff_probes` | PASS | no docs/handoffs/ — no probe bundle to validate |
 | `reconciled_versions` | PASS | no reconciled_with edges declared |
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
+| `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
 
 History: [`ecosystem\corp-monorepo\history/`](ecosystem\corp-monorepo\history/)
 
@@ -136,6 +139,7 @@ History: [`ecosystem\corp-monorepo\history/`](ecosystem\corp-monorepo\history/)
 | `handoff_probes` | PASS | no docs/handoffs/ — no probe bundle to validate |
 | `reconciled_versions` | PASS | no reconciled_with edges declared |
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
+| `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
 
 History: [`ecosystem\corp-ops\history/`](ecosystem\corp-ops\history/)
 
@@ -169,6 +173,7 @@ History: [`ecosystem\corp-ops\history/`](ecosystem\corp-ops\history/)
 | `handoff_probes` | PASS | no docs/handoffs/ — no probe bundle to validate |
 | `reconciled_versions` | PASS | no reconciled_with edges declared |
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
+| `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
 
 History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time-automation\history/)
 
@@ -177,7 +182,7 @@ History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time
 ## Summary
 
 - 5 repo(s) audited
-- 90/105 checks passed
+- 95/110 checks passed
 - **2 failure(s)** — route findings to repo owners
 - 13 n/a (check not applicable to that repo)
 
