@@ -280,6 +280,17 @@ above references — the `scripts/` inventory:
   locus, DETECT-ONLY (never renumbers / auto-fixes); documented-intentional cases (the §18 gap)
   pass via co-located `structure-allow` markers. Distinct failure class from #140 (structural
   shape, not history-accretion). Standalone CLI: `python scripts/validate_doc_structure.py` (#192).
+- `scripts/scan_undeclared_edges.py` — undeclared-edge referential-currency scan: the
+  **discovery** half of dependency coherence (**ADR-88 FC2**; #179) — the complement to the
+  declared-edge checker (`reconciled_versions` / `validate_reconciliation.py`). Infers
+  **prose-only** edges (a doc prose-references a registered spec but carries no `reconciled_with`)
+  and surfaces them as **candidates for human confirm — NO auto-declare**; writes nothing, exits 0
+  (awareness layer). Registry-scoped heuristic (Tier-1 path/basename + Tier-2 spec-id → candidates;
+  Tier-3 title-prose → retained weak signals); fenced code regions excluded from matching. **Not**
+  in `ALL_CHECKS`, not a hook (a flat module, so not a codemap node). **Honest limit:** the live
+  scan walks the whole working tree — immutable zones (pruning owed to **#199**) and gitignored
+  scratch (e.g. `temp/`) included — so the raw candidate count over-states the actionable set.
+  Standalone CLI: `python scripts/scan_undeclared_edges.py` (#179).
 - `scripts/verify_handoff_probes.py` — handoff-probe teeth: every probe in the latest v5
   `PROBES.md` bundle binds to live state, by STRUCTURAL resolvability (resolve-only — no
   subprocess; Critical Rule #4). Mechanizes the manual v5 probe-gate (HANDOFF_PROCESS §5/§10):
