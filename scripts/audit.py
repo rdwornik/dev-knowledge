@@ -95,6 +95,12 @@ try:
 except ImportError:
     import validate_doc_rot as _vdr
 
+# Prose structural linter (supplement organ #2) — same module-import + thin-adapter shape.
+try:
+    from scripts import validate_doc_structure as _vds
+except ImportError:
+    import validate_doc_structure as _vds
+
 # Gate-mode flag (#89): cmd_health sets this True around its self-audit loop so the
 # expensive claim-3 (pytest --collect-only) is SKIPPED on the per-commit gate and
 # evaluated only on the full-audit path (run/repo/CLI/SessionStart). Operator ruling.
@@ -1350,6 +1356,42 @@ def check_doc_rot(repo_path: Path) -> list[Finding]:
     ]
 
 
+def check_doc_structure(repo_path: Path) -> list[Finding]:
+    """Prose **structural** linter (supplement organ #2) — the Layer-2 deterministic-trigger
+    for **ADR-88's prose-shape coherence**: section-numbering integrity, header-scheme
+    consistency, ToC accuracy. Surfaces the structural rot the architect provably cannot
+    eyeball (proven 2/2 false this session: the PLAYBOOK §18 gap + embedded-template H2s).
+    DETECT-ONLY — never edits / renumbers / auto-fixes.
+
+    Hub-only: the living docs scanned are .dev-knowledge-specific, so on any other repo this
+    is a no-op pass. Four sub-detectors (numbering integrity, header-scheme consistency, ToC
+    accuracy, dangling-allow self-policing) — scripts/validate_doc_structure.py. Documented-
+    intentional cases pass via co-located `structure-allow` markers + the fence-aware parser.
+
+    Awareness layer, not a gate: emits one WARN PER structural locus (never FAIL -> never
+    blocks the audit-health commit gate; one Finding per locus so the #147 ship-gate
+    dispositions each independently — same contract as doc_rot / git_backlog_drift). Distinct
+    failure class from #140 (history-accretion bloat) — follows its pattern, no overlap.
+    Fail-soft on any error. Read-only. Logic lives in scripts/validate_doc_structure.py.
+    """
+    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+        return [Finding("doc_structure", "pass",
+                        "hub-only — prose structural linter skipped (not the hub repo)")]
+    try:
+        results = _vds.scan(Path(repo_path))
+    except Exception as exc:  # never wedge the audit-health gate
+        return [Finding("doc_structure", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    if not results:
+        return [Finding("doc_structure", "pass",
+                        "no structural rot (numbering / headers / ToC / dangling-allow)")]
+    return [
+        Finding("doc_structure", "warn",
+                f"structural rot: {_vds.format_findings([r])}".replace("|", "/"))
+        for r in results
+    ]
+
+
 def check_no_ff_merges(repo_path: Path) -> list[Finding]:
     """#153 `--no-ff` merge guard (core-invariants rule 5).
 
@@ -1510,6 +1552,7 @@ ALL_CHECKS = [
     check_handoff_probes,
     check_reconciled_versions,
     check_doc_rot,
+    check_doc_structure,
 ]
 
 

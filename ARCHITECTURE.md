@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-19
+last_reviewed: 2026-06-20
 status: active
 owner: Rob
 ---
@@ -213,6 +213,7 @@ local git gate.
 | `no_ff_merges` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #153; ADR-84; core-invariants #5 |
 | `handoff_probes` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** (FAIL on broken probe binding; WARN on anchor-missing/skipped) | #163; HANDOFF_PROCESS §5/§10 |
 | `doc_rot` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #140; ADR-88 FC4 (ADR-65/49/41) |
+| `doc_structure` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #192; ADR-88 prose-shape |
 | pre-commit gates (9) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below |
 
 The **Tier-1 closure loop** is three of these organs in a cycle:
@@ -233,10 +234,10 @@ Per the ADR-28 invariant, Layer 2 hosts **read-only** validators (it does not
 orchestrate, but it may verify itself). These are the *executable* organs the map
 above references — the `scripts/` inventory:
 
-- `scripts/audit.py` — cross-repo conformance + self-audit; **21 registered checks**
+- `scripts/audit.py` — cross-repo conformance + self-audit; **22 registered checks**
   (`python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
   `no_sibling_orphans`, `canonical_structure`, `amendment_coherence`, `git_backlog_drift`,
-  `no_ff_merges`, `reconciled_versions`, `doc_rot`).
+  `no_ff_merges`, `reconciled_versions`, `doc_rot`, `doc_structure`).
   `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs);
   `ship-gate` = the #147 pre-ship verification-organ gate (Definition-of-shipped point 6).
   **Seam `ship-gate` vs `health`:** both reuse `ALL_CHECKS`, but `health` gates each
@@ -272,6 +273,13 @@ above references — the `scripts/` inventory:
   Surfaced via the `doc_rot` audit check; pre-existing loci grandfathered in the disposition
   register. Defers cross-file fidelity → coherence spine and intra-file duplication → #190.
   Standalone CLI: `python scripts/validate_doc_rot.py` (#140).
+- `scripts/validate_doc_structure.py` — prose **structural** linter: section-numbering
+  integrity, header-scheme consistency, ToC accuracy, dangling-allow self-policing (**ADR-88**
+  prose-shape coherence). Reuses the fence-aware ToC parser so the linter and ToC agree (the
+  property that keeps embedded-template H2s from reading as rot). WARN-only, one Finding per
+  locus, DETECT-ONLY (never renumbers / auto-fixes); documented-intentional cases (the §18 gap)
+  pass via co-located `structure-allow` markers. Distinct failure class from #140 (structural
+  shape, not history-accretion). Standalone CLI: `python scripts/validate_doc_structure.py` (#192).
 - `scripts/verify_handoff_probes.py` — handoff-probe teeth: every probe in the latest v5
   `PROBES.md` bundle binds to live state, by STRUCTURAL resolvability (resolve-only — no
   subprocess; Critical Rule #4). Mechanizes the manual v5 probe-gate (HANDOFF_PROCESS §5/§10):
@@ -281,7 +289,7 @@ above references — the `scripts/` inventory:
   `python scripts/verify_handoff_probes.py <bundle>` (#163).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
-- `tests/` — pytest unit tests for the validators (**667 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**700 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
