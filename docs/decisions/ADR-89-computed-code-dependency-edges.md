@@ -185,6 +185,20 @@ Per ADR-88 Principle 5, the boundary is a first-class decision:
 2. **Oracle-wrapper provenance payload + truncation policy.** The exact shape of the required
    provenance metadata (rev, dirty set, completeness / truncation signalling) is a Track-A build
    decision.
+   **— RESOLVED 2026-06-20 (#193).** The Track-A oracle (`scripts/reverse_dep_oracle.py`) shipped
+   the `reverse-dep-oracle/v1` schema, and its provenance payload *is* the resolution. Every answer
+   envelope carries a mandatory `provenance` block (`_provenance()`): **`git_rev`** (HEAD),
+   **`dirty`** + **`dirty_files`** (the uncommitted set), **`reflects: "working-tree"`** (the answer
+   is computed against the working tree via `didOpen`, NOT committed state at `git_rev` — the two
+   differ whenever `dirty`), **`completeness`** (`complete` | `partial` | `not-computed` — the
+   truncation signal: `partial` when the readiness deadline is hit before two stable reference
+   counts), and the **three mandatory honest-limit caveats** stated on *every* answer —
+   **static-Python-only** and **repo-scoped** (two of the benchmark's normative limits) plus
+   **working-tree** (this ADR's own provenance constraint; the benchmark's call-hierarchy-warmup
+   limit does not apply because the oracle is `references()`-only). This discharges the ADR's
+   "Provenance metadata is required on every oracle answer" constraint above. Source: the 2026-06-20
+   Pyright reverse-dep oracle benchmark (`docs/audits/2026-06-20-pyright-reverse-dep-oracle-findings.md`)
+   + the shipped tool. **OQ1 and OQ3 remain open — this ADR stays Proposed.**
 3. **Advisory→gate promotion for code-edge checks.** Whether and when a code-edge
    reverse-dependency check becomes a hard gate is data-gated on observed drift value (the ADR-88
    #181 pattern), not pre-decided.
