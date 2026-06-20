@@ -8,6 +8,17 @@
 | **Purpose** | **Session-wrap audit** closing the **dependency-arc** wave. The wave shipped; this session **buttoned it up and planned the downstream**: closed **#197** (§4.4 ship-gate disposition — done-when met, `ship-gate` GREEN), reconciled doc-currency (inventoried `scan_undeclared_edges.py` in `ARCHITECTURE.md`; fixed the **OQ-labeling muddle** — #194's gate now names **ADR-89 OQ1**, #196 disambiguated to the *brief's* OQ1), reviewed PLAYBOOK/ESSENTIALS (they correctly omit the hub edge-model organ — the open #77 doctrine), and produced the **next-ship action plan** (`RESIDUAL.md` §3). The wave's organ is live + green: **`reverse_dep_oracle.py`** (#193, ADR-89 OQ2 resolved), **`scan_undeclared_edges.py`** (#179, ADR-88 FC2), **`validate_doc_structure.py`** (#192 = `doc_structure` check #22). **ADR-88 + ADR-89 remain Proposed** (unratified). The next architect **decides + sequences**: ready builds (**#195-2a** safe-removal gate phase-2a, now unblocked by the oracle; **#199** refscan immutable-zone prune; **#196** closure spike) vs gated work (**#194** needs the ADR-89 OQ1 decision; **#195-2b** gated on #196; **#153** is the FF-prevention that stops the `no_ff_merges` class) — plus ADR-88/89 ratification readiness. The **conformance dashboard (#171) is explicitly deferred** (out of scope this session). |
 | **Generated at** | HEAD `db61dd0`, working tree clean. This bundle's own commit + the `--no-ff` merge move HEAD; `main` runs ahead of `origin` until pushed. **Re-derive HEAD / sync at read-time** (`PROBES.md` P3). |
 
+> **⚠ UPDATE — supplement FILLED (post-generation).** This bundle was generated **COLD** (CC-driven
+> session-wrap audit, no outgoing browser architect), but the operator then `supplement filled` a
+> rich architect **design-intent brief** — committed **verbatim** in `SUPPLEMENT.md` and folded
+> (ANSWERS-only) into `PASTE_THIS.md`. Read the folded `SUPPLEMENT.md` as the **authoritative
+> strategic *why*** of this handoff (the harmony-vs-frontier frame; the disposition lean-reversal;
+> ADR-89 OQ1 as the keystone decision; the `claude -w` lessons). Two consequences: the §13(d)
+> operator-context beat **NARROWS** to "anything changed since the supplement?" (it does **not** fire
+> full), and the teeth probes (P2–P9) are **unchanged** (they bind to live state, which the fill does
+> not touch). Read any "COLD / beat fires full / ANSWERS empty" phrasing below as **generation-time
+> history**.
+
 > **This bundle is COLD.** It was produced by a **CC-driven session-wrap audit** (no outgoing
 > browser architect in the loop). `SUPPLEMENT.md` is committed with **empty ANSWERS** — the defined
 > cold-handoff disposition (HANDOFF_PROCESS §13), not a missing deliverable. The §13(d)

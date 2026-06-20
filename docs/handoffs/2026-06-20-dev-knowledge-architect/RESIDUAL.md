@@ -12,6 +12,13 @@
 > **COLD handoff** (CC-driven session-wrap audit; `SUPPLEMENT.md` committed empty — §13 cold
 > disposition). The strategic *why* is CC-derived and lives in §3–§5 below, not in a browser
 > supplement. The §13(d) operator-context beat fires **FULL**.
+>
+> **⚠ UPDATE — supplement FILLED (post-generation).** Generated COLD, but the operator then
+> `supplement filled` a rich architect design-intent brief — committed **verbatim** in
+> `SUPPLEMENT.md`, folded (ANSWERS-only) into `PASTE_THIS.md`. It is the **authoritative strategic
+> *why*** (read it alongside §3–§5 here). The §13(d) beat **NARROWS** ("anything changed since the
+> supplement?"); the drift-checks below are **unchanged** (live state, untouched by the fill). Read
+> any "COLD / beat fires full / empty ANSWERS" phrasing as **generation-time history**.
 
 ---
 

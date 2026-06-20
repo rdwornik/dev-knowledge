@@ -1,6 +1,14 @@
 # Probe manifest — architect mode: orientation first, then teeth (v5 §5 + §13c)
 <!-- scope: meta -->
 
+> **⚠ UPDATE (post-generation) — supplement FILLED.** This bundle was generated COLD, but the
+> operator then `supplement filled` real architect answers (now in `SUPPLEMENT.md`, folded into
+> `PASTE_THIS.md`). The teeth probes (P2–P9) are **unchanged** — they bind to **live state**, which
+> the fill does not touch. The only changes: the **§13(d) beat in P1's gate NARROWS** to "anything
+> changed since the supplement?" (it does **not** fire full), and **P8's ANSWERS state is FILLED**
+> (not empty). Read any "COLD / empty ANSWERS / beat fires full" phrasing below as **generation-time
+> history**; read the folded `SUPPLEMENT.md` first.
+
 > **Contract.** Each probe ships a **question + source-locator + verification command** and **no
 > answer**. The browser has no file access, so for every probe it must reply **"run `<command>`"** —
 > surfacing the off-bundle dependency instead of bluffing it. **CC** runs each command against **live
