@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-21 — CC: #194 Phase-0 doc→code edge fit-check (READ-MOSTLY) + ADR-89 OQ1 carrier correction
+
+**Did:** READ-MOSTLY fit-check (plan-mode → approved) settling the #194 Track B design crux **before** the Phase 2 schema build. Investigated the two mechanisms ADR-89 OQ1 named — explicit `{#id}` heading anchors and "the existing codemap" for code targets — against what actually exists in-repo. Worked on the dedicated `worktree-194-doc-code-edge` branch (state.yaml seeded here; merge `--no-ff` from primary later). No Phase 2 code built this pass.
+
+**Result:** **Both OQ1 carriers fail in-repo; the design is unchanged, the carriers are corrected** (operator-approved). (1) **Anchor:** no in-repo toolchain resolves `{#id}` — the only resolver, `scripts/toc/generator.py::_slugify`, slugifies heading *text* à la github-slugger (`## Foo {#bar}` → `foo-bar`), GitHub ignores `{#id}` too, and **zero** real headings use it (lone hit = the OQ1 transcript's "Proposal C" title) → doc-side identity = **explicit rule-ID tokens**. (2) **Code target:** the codemap enumerates only `__init__.py` packages (**2 of 30** modules — `scripts.codemap`, `scripts.toc`), so it can't name `audit.py`/`validate_*.py` → resolve via **path + AST** (`reverse_dep_oracle.resolve_symbol` / `Path.exists`), same deterministic `broken_edge` hard-FAIL. (3) **Footprint:** doc `<!-- rule: ID -->` + code `# rule: ID` + a rebuildable index; Phase 2 build touches a NEW validator/test/fixture + `audit.py` ALL_CHECKS (serialize-group audit-py) + ARCHITECTURE counts — **not** PLAYBOOK (fixture-proof done-when), advisory-first so no pre-commit/§9 edit. (4) **#196 composition:** the two-edge schema is one more **direct-boundary union** member (edge-health L1 under removal-closure; no transitive walk). ADR-89 OQ1 gained a dated in-file **AMENDED** marker (ruling text untouched per immutability convention). **#194 stays OPEN, build-ready.** Verified: `pytest` **769 passed / 3 skipped**, `ruff` clean, `audit.py health` **OK** (WARNs all pre-existing — #164/#77/#134/#10 doc_rot, 2026-06-19 no_ff, #77 drift; my BACKLOG edit added none).
+
+**Changes:** commit **`f619380`** (findings doc `docs/audits/2026-06-21-doc-code-edge-fit-check.md` + ADR-89 OQ1 AMENDED marker + BACKLOG #194 summary) + this `JOURNAL.md`. 3+1 files. Branch `worktree-194-doc-code-edge` (not yet merged to `main`; not pushed). Plan: `~/.claude/plans/194-phase-0-tender-jellyfish.md`.
+
+**Abandoned / left open (reported, not closed):** **#194 build** — Phase 2 schema deferred (this was Phase 0 only). **C1 (Phase 1 de-hardcode)** — `validate_doc_rot.py:57` `_FILE_SIZE_BUDGETS={"CLAUDE.md":200}` → read CLAUDE.md's self-declared "≤200 lines"; kept apart (own arc, not built). Did NOT touch `scripts/`, PLAYBOOK, or any gate.
+
+**Next:** build **#194** Phase 2 to the recommended shape (rule-ID tokens + path/AST resolution, `broken_edge`/`staleness_signal`, advisory-first, fixture-proof done-when); **C1** as an independent small arc.
+
 ### 2026-06-21 — CC: ratify ADR-88/89 (Accepted) + fold shared-file currency fixes (WT-spine)
 
 **Did:** Operator-approved **edit pass** (explicitly **NOT** a Council debate — OQ1/closure/ratify decisions were settled, not relitigated) on a feature branch off `main` in the **primary** checkout (the prompt's "worktree" meant file-ownership isolation only; primary avoids the state.yaml-seeding trap + the `/ship`-in-worktree refusal). Seven commits, one per step, `ship-gate` GREEN after each. Acts on the prior wrap's queued "Next" (ratify the OQ1 ruling into ADR-89 + ratification). WATCH pre-cleared: confirmed no README↔ADR effective-status coherence check exists (the 22 live checks), so ratifying before the README update could not transient-RED.
