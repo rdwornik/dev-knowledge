@@ -113,6 +113,12 @@ scope (non-goals)".)
   on the session→living-docs edge and the cross-repo drift surface respectively.
 - **ADR-87** — the architect↔CC equilibrium contract is the *human-process* application of the same
   discipline (declare the dependency the task touches; don't rely on recall).
+- **ADR-89 (the computed-edge sibling).** ADR-88 and ADR-89 are two halves of one paradigm: ADR-88
+  holds the *declared* edge (doc→doc, `reconciled_with`), ADR-89 holds the *computed* edge (code→code,
+  language-server reverse-dependency), both under "declare what you cannot compute; compute what you
+  can." Read them together. (This is the deferred back-reference — ADR-89 carried the forward link;
+  per the immutability convention the back-link lands at ADR-88's ratification edit, see the
+  2026-06-21 Amendment.)
 - **#170 (traceability edge)** — the issue-ID↔commit edge is a **sibling** of the `reconciled_with`
   edge. Whether #170 reuses this edge model is an open design link (see Open questions).
 - **Global ↔ local (cross-repo).** Which edges and contracts are global (owned in `.dev-knowledge`)
@@ -157,3 +163,15 @@ enforces or the gate it waits on:
    are hub-owned vs per-repo) is owed at the #131 pilot — the bridge between this ADR and deployment.
 4. **#181 data-gate.** The nudge-response design waits on real `logs/coherence-nudge.log` firing
    signal; do not pre-decide escape-hatch vs promote-to-gate before the data exists.
+
+## Amendment — 2026-06-21: Accepted (operator ratification)
+
+**Status (in-place marker; the frozen header above is unchanged per the immutability convention):
+Proposed → Accepted.** Ratified in the operator-approved 2026-06-21 edit pass — an operator edit, **not**
+a Council debate. The core is empirically proven: failure classes FC1–FC4 verified against the live
+#179/#187/#140 scope; the v1 coherence spine #172 closed (`validate_reconciliation.py` +
+`coherence_enumerator.py` + the e2e mutation closure-test); the paradigm now names the `coherence`
+roadmap (#179–#182). The forward / data-gated open questions are **deliberately carried open** at
+ratification (operator ruling): **OQ1** (FC taxonomy completeness — #131 pilot), **OQ3** (global/local
+contract — #131), **OQ4** (#181 nudge-response data-gate). This edit also lands the deferred **ADR-89
+back-reference** (Relationships above) — ADR-89 is the computed-edge sibling under the same principle.

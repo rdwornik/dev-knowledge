@@ -233,3 +233,15 @@ remains owned by #170's own traceability-spine ADR.)
 - ADR-87 — the architect↔CC equilibrium contract under which this ADR was dispatched.
 - BACKLOG — the code-edge build ("Track A") is a new item, to be filed by the architect; this ADR
   is doctrine-only.
+
+## Amendment — 2026-06-21: Accepted (operator ratification)
+
+**Status (in-place marker; the frozen header above is unchanged per the immutability convention):
+Proposed → Accepted.** Ratified in the operator-approved 2026-06-21 edit pass — an operator edit, **not**
+a Council debate. The core is empirically proven: the Track-A Pyright reverse-dependency oracle shipped
+(`scripts/reverse_dep_oracle.py`, #193) and **OQ2** (provenance payload + truncation policy) is RESOLVED
+(see above). The forward / data-gated open questions are **deliberately carried open** at ratification
+(operator ruling): **OQ1's build** — the design is RESOLVED 2026-06-21 (recorded above); the doc→code
+declared-edge organ is the remaining build-proof, tracked **#194** — and **OQ3** (advisory→gate
+promotion, data-gated). ADR-89 already carries the forward link to ADR-88; ADR-88 lands its
+back-reference in this same edit pass.
