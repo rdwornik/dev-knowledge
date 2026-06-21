@@ -182,6 +182,15 @@ Per ADR-88 Principle 5, the boundary is a first-class decision:
 1. **doc→code ID-scheme.** The declared doc→code edge needs a stable ID-scheme (how a prose doc
    names the code it describes, and the reverse). Deferred to a later build under this frame; not
    designed here.
+   **— RESOLVED (design) 2026-06-21.** Ruling (provenance: JOURNAL anchor `1984812` + the committed
+   transcript `transcripts/council-out-20260621_003655-…-adr89-oq1-doc-code-granularity.md`): adopt
+   **uniform heading-level** doc→code edges keyed on **explicit stable `{#id}` anchors** (not
+   prose-derived slugs) → **module/file** code targets (**no** clause/callable-level in v1);
+   **de-hardcode the residue** — declare only what code cannot read directly; **two validation
+   classes** — **`broken_edge`** (unresolved doc anchor / unresolved code target = deterministic
+   hard-FAIL) vs **`staleness_signal`** (referenced target changed since review = advisory);
+   **advisory-first** rollout, instrument before any blocking promotion. Build tracked **#194**; OQ1
+   closes on build-proof.
 2. **Oracle-wrapper provenance payload + truncation policy.** The exact shape of the required
    provenance metadata (rev, dirty set, completeness / truncation signalling) is a Track-A build
    decision.
@@ -202,6 +211,10 @@ Per ADR-88 Principle 5, the boundary is a first-class decision:
 3. **Advisory→gate promotion for code-edge checks.** Whether and when a code-edge
    reverse-dependency check becomes a hard gate is data-gated on observed drift value (the ADR-88
    #181 pattern), not pre-decided.
+   **— INFORMED 2026-06-20 (#196).** The multi-edge boundary work informs (does not close) this: a
+   heterogeneous **direct-boundary union** (a boundary check, **not** a transitive walk) is the shape;
+   computed legs gate **advisory-first** (scaling to the deterministic verifier's strength). OQ3
+   **stays open** — the advisory→gate flip remains data-gated on observed drift.
 
 (ADR-88 OQ2 — the **#170** issue↔commit edge-model — is **not** an open question of *this* ADR; it
 remains owned by #170's own traceability-spine ADR.)
