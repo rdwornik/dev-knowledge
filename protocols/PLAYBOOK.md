@@ -1748,9 +1748,15 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 - Knowledge lookup — use skill instead
 - Content best fits CLAUDE.md auto-read
 
-**Real examples in Rob's ecosystem (user-level, `~/.claude/commands/`):**
-- `/session-summary` — generate handoff for current session, include TOKEN-LOG snapshot if stale (renamed from `/handoff` 2026-04-24 to avoid trigger-word collision)
-- `/codex-review` — invoke Codex review on staged changes
+**Real examples in Rob's ecosystem (level noted per entry — user = `~/.claude/commands/`, repo = `./.claude/commands/`, plugin = `tier1-lifecycle`):**
+- `/session-summary` (user) — generate handoff for current session, include `logs/TOKEN-LOG.md` snapshot if stale (renamed from `/handoff` 2026-04-24 to avoid trigger-word collision)
+- `/codex-review` (user) — invoke Codex review on staged code changes
+- `/save` (repo) — stage + commit with a Conventional Commits message + full body (git-discipline)
+- `/handoff` (repo) — CC-owned handoff per HANDOFF_PROCESS v5 (ADR-82): create → complete
+- `/override` (repo) — logged, HEAD-bound bypass of the ADR-85 session-end gate (the gate's only escape)
+- `/ship` (plugin) — git-finish: merge the feature branch `--no-ff` → push → auto-delete it (refuses inside a worktree)
+- `/review-closures` (plugin) — review + execute operator-approved session-end closures (ADR-70 Tier-1)
+- `/verify` (skill) — run the standard pytest + ruff + git-status check cadence
 
 > **Retired machinery (history; do not re-add to command tables/cheat-sheets):** `/boot` and `/evolve` were archived 2026-06-05 (Phase-C3) — the self-evolution loop they drove (memory / learned-rules promotion + per-session boot) is retired. Archive: `~/.claude/archive/2026-06-05-machinery-c3/`.
 
