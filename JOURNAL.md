@@ -19,6 +19,24 @@
 
 ---
 
+### 2026-06-21 — CC: doc-currency reconciliation (WT-currency: B1/B2/B3/B5 + #10)
+
+**Did:** Cleared the 2026-06-21 audit's doc-currency backlog on `worktree-currency-doc` (a real `.claude/worktrees/` worktree — file-ownership isolation; the `/ship`-in-worktree refusal means the integrating `--no-ff` merge runs from the **primary** checkout). One commit per item, `ship-gate` GREEN after each. Owned files only — PLAYBOOK / ESSENTIALS / SESSION_SETUP + the #10 BACKLOG close; did **not** touch `scripts/`, `docs/decisions/`, ARCHITECTURE, or README (#194 / spine territory). Picks up the prior wrap's queued "Next: #10 (PLAYBOOK bare-path repoint)" — which that entry explicitly assigned to "WT-currency's" track.
+
+**Result:**
+- **B1** — two-stage code review (`/code-review high` in-flight → `/codex-review` pre-ship) now stated consistently across PLAYBOOK Usage-protocol table (new `/code-review` row), pre-send checklist, and ESSENTIALS step 3. The ESSENTIALS edit tripped the `canonical_freshness` gate → genuine end-to-end re-read + `last_reviewed` re-stamp 2026-06-21 (separate ripple commit).
+- **B2** — SESSION_SETUP stale v4 handoff mechanics (behind a now-false "retained until v5 lands" caveat — v5/#164 landed) replaced with a thin `HANDOFF_PROCESS.md` pointer; the two trigger phrases preserved verbatim.
+- **B3** — ADR-87 cross-pointer added to PLAYBOOK "Writing prompts for Claude Code" (the line-505 section); its overlap with §2 flagged for later consolidation (flag only — not pruned, out of scope).
+- **B5** — §7b examples expanded with `/save /ship /handoff /review-closures /override /verify`; list header broadened from "user-level" to per-entry level tags (new entries span repo / plugin / skill, so a user-level-only header would have misstated them).
+- **#10** — three bare `TOKEN-LOG.md` refs in PLAYBOOK → `logs/TOKEN-LOG.md` (CLAUDE/ARCHITECTURE already correct; PLAYBOOK's cadence section already points to HANDOFF_PROCESS §14 — both done-when legs met); BACKLOG #10 removed; orphaned `warn-doc-rot-backlog-10` disposition cleaned (its `[stale]` notice cleared).
+- Verified: `pytest` **769 passed / 3 skipped**, `ruff` clean, `ship-gate` **GREEN** (6 WARN dispositioned, no `[stale]`).
+
+**Changes:** arc `34b2405` (B1 review reconcile) · `09a6f12` (ESSENTIALS re-stamp) · `3a83978` (B2 SESSION_SETUP) · `0a04b94` (B3 §505 pointer) · `7bb26b7` (B5 §7b) · `7286707` (#10 TOKEN-LOG + close) · `f6d3c97` (register cleanup) + this `JOURNAL.md`; then `--no-ff` merge to `main` from the primary checkout. Files: PLAYBOOK, ESSENTIALS, SESSION_SETUP, BACKLOG, `ecosystem/disposition-register.yaml`, JOURNAL. Branch `worktree-currency-doc`. **Not pushed** (awaiting operator).
+
+**Abandoned / left open (reported, not closed):** **HANDOFF_PROCESS.md §14** carries bare `TOKEN-LOG.md` refs (lines ~456/477/480) — outside #10's done-when (which scopes naming to CLAUDE/ARCHITECTURE/PLAYBOOK) and not an owned file for this track; flagged for a follow-up, not silently expanded into. **§505↔§2 prompt-authoring overlap** flagged (B3) for a later focused consolidation — deliberately not pruned here.
+
+**Next:** operator — push `main` (this arc + the parallel #194 / spine tracks) when ready; optional follow-ups: repoint the HANDOFF_PROCESS §14 bare `TOKEN-LOG.md` refs; §505↔§2 consolidation.
+
 ### 2026-06-21 — CC: ratify ADR-88/89 (Accepted) + fold shared-file currency fixes (WT-spine)
 
 **Did:** Operator-approved **edit pass** (explicitly **NOT** a Council debate — OQ1/closure/ratify decisions were settled, not relitigated) on a feature branch off `main` in the **primary** checkout (the prompt's "worktree" meant file-ownership isolation only; primary avoids the state.yaml-seeding trap + the `/ship`-in-worktree refusal). Seven commits, one per step, `ship-gate` GREEN after each. Acts on the prior wrap's queued "Next" (ratify the OQ1 ruling into ADR-89 + ratification). WATCH pre-cleared: confirmed no README↔ADR effective-status coherence check exists (the 22 live checks), so ratifying before the README update could not transient-RED.
