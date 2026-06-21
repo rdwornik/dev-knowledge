@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-21 — CC: reconcile the architect handoff bundle to the post-cut main (OQ1-decided)
+
+**Did:** Operator flagged that `main` had advanced after the architect handoff bundle's first cut. Verified live (not from the summary): `main` `b6357f4` = 4 **JOURNAL-only** commits ahead of the bundle's base `5b584ff` — the **state-hygiene wrap** (`1984812` + merges) that **recorded the ADR-89 OQ1 ruling as DECIDED**. Merged `main` into `docs/handoff-2026-06-21-architect` (`30a142e`; resolved the JOURNAL newest-first conflict — state-hygiene wrap on top, handoff-gen below + a supersession note) so a later `/ship` is conflict-free, then reconciled the bundle: the OQ1 keystone flips from *"the decision to make"* → ***"DECIDED (ruling `1984812`), ratify into ADR-89 + build #194 pending."***
+
+**Result:** Bundle updated (`02451c5`) — `HANDOFF_BOOT` purpose, `RESIDUAL` (intro RECONCILED note · §2 row + ADR status · §3-A/§3-B · §4.1 rewrite · §5.1–5.2 · §6 pointer), `PROBES` P3 generation-HEAD, `SUPPLEMENT` addendum A all now read OQ1-decided (heading-level · `{#id}`→module/file · no clause-level v1 · de-hardcode residue · `broken_edge`/`staleness_signal` · advisory-first). Drift-checks **unchanged** (the wrap touched JOURNAL only, not gate state): `verify_handoff_probes` **10/10**, `audit.py health` **OK**, **ship-gate GREEN** (7 WARN dispositioned + the documented `[stale]` `warn-doc-rot-claude-section-history`), `doc_claims` 772/10/22. `PASTE_THIS` re-assembled (cold supplement still `[skip]`-folded).
+
+**Changes:** merge `30a142e` (JOURNAL conflict resolution), bundle reconciliation `02451c5` (5 bundle files), this `JOURNAL.md`. On branch `docs/handoff-2026-06-21-architect`; **`--no-ff` merge to `main` still owed** (operator-gated `/ship` from the primary; now conflict-free since main is merged in).
+
+**Abandoned:** none. Did NOT ratify OQ1 into ADR-89 or build #194 (both are the next architect's calls — the bundle records the ruling, it does not act on it). Did NOT remove the stale disposition (still surfaced for the next session). Did NOT push.
+
 ### 2026-06-21 — CC: session state-hygiene wrap (consolidation anchor + OQ1 ruling record + transcript tracked)
 
 **Did:** Pre-handoff state-hygiene pass (ADR-87 intent brief; **auto** mode) — make *tracked* state honestly reflect this session's decisions so the next architect reconstructs them **from the repo alone**. Three legs: (1) confirmed the **ADR-89 OQ1 Council transcript is tracked** — `council-out-20260621_003655-…-adr89-oq1-doc-code-granularity.md` was already archived (`2d39dbb`, 996 lines) + merged (`5b584ff`) earlier this session, so **NOT re-committed** (the brief's "on disk, untracked" premise was stale — verified via `git ls-files` + clean tree); (2) this JOURNAL wrap; (3) verify GREEN + TOKEN-LOG cadence check.
@@ -30,6 +40,16 @@
 **Abandoned / held (next session's W1–W4):** Applied **zero** queued proposals — no ADR-89 amendment, no OQ1/OQ3 marker, no BACKLOG prune/trim, no PLAYBOOK/CONTRIBUTING/LESSONS edit. The audit proposals stay **held in the on-`main` findings docs**: **B1–B5** (`docs/audits/2026-06-21-audit-process-findings.md`), **P1–P6** (`docs/audits/2026-06-21-audit-technical-findings.md`), the **BACKLOG prune set + LESSONS A–C** (`docs/audits/2026-06-21-audit-ops-findings.md`). No folder/path created; held findings docs untouched. Disposed nothing — minted no new finding.
 
 **Next:** Operator ratifies the OQ1 ruling into the **ADR-89 amendment** + ratification (the transcript is the *record*; ratification is the *decision* — separate) and the **#194** build (advisory-first heading→module/file checker; `broken_edge` vs `staleness_signal`). Then disposition the held audit proposals (B1–B5 / P1–P6 / prune set / LESSONS A–C).
+
+### 2026-06-21 — CC: generate v5.2 architect handoff bundle (audit-disposition + ADR-89 OQ1 decision queue)
+
+**Did:** `/handoff architect dev-knowledge` at a **cleared session start** (clean tree). Read the canonical spec (`HANDOFF_PROCESS.md` v5.2, stable) as source-of-truth; ran the scope matrix → **Case 2** (clean tree, commits since the 2026-06-20 handoff, today's architect slug absent) → single-shot v5 architect bundle, slug `2026-06-21-dev-knowledge-architect`. **COLD** (no outgoing browser architect), so `SUPPLEMENT.md` committed with **empty ANSWERS** (the §13 cold disposition) + the §13(d) beat fires FULL. Captured the window since `dd98524` from JOURNAL + git + **live** drift-checks (re-derived, not assumed). Bundle = `HANDOFF_BOOT` + `RESIDUAL` + `PROBES` + `SUPPLEMENT` + assembled `PASTE_THIS` (`assemble_paste.py` correctly `[skip]`-folded the empty supplement).
+
+**Result:** Bundle `docs/handoffs/2026-06-21-dev-knowledge-architect/` (`ad6d17e`). **Probes bind 10/10** (`verify_handoff_probes`); `audit.py health` **OK** (`handoff_probes` now binds the new latest bundle); **ship-gate GREEN** (7 WARN dispositioned). **Headline drift surfaced:** one **`[stale]` disposition** — `warn-doc-rot-claude-section-history` matched no live WARN (the §12 condensation this window cleared the WARN it covered) → remove per ADR-75 (benign; ship-gate still GREEN). Residual centers on the **decision queue** (not a build session): the **3-layer audit's held proposals** (PROCESS B1–B5/C1–C4 · TECHNICAL P1–P6, P1 ADR-82-status the one correctness item · OPS prune-set + LESSONS), and the **keystone** — **ADR-89 OQ1 council recommends HEADING-level** (reverses the prior clause-level lean; ratify → unblocks #194). Verified live: ADR-88/89 still **Proposed**; #199 + #196 **closed**; #153 **advanced**; CLAUDE.md §11/§12 **now current**. Probe-expected baselines: 22 checks (`doc_structure` last), 772 collected, 84 tasks / 11 serialize-groups (`code-edge` #194/#195, `coherence` #180/#181/#182). **NB — superseded next-day-same-session:** the state-hygiene wrap entry above then **recorded the OQ1 ruling as DECIDED**; the bundle was reconciled to that in the update entry at the top.
+
+**Changes:** NEW `docs/handoffs/2026-06-21-dev-knowledge-architect/` (5-file bundle, `ad6d17e`), this `JOURNAL.md`. Branch `docs/handoff-2026-06-21-architect` off `main` `5b584ff`; **`--no-ff` merge owed** (operator-gated `/ship` from the primary).
+
+**Abandoned:** none. Did NOT make any architectural/ratification decision (handoff = capture + surface, not decide — the ADR-89 OQ1 ratification, the audit dispositions, and the prune-set are all operator/next-architect calls). Did NOT remove the stale disposition (surfaced for the next session). Did NOT merge or push (operator-gated).
 
 ### 2026-06-21 — CC: overnight OPS+TASK layer audit (BACKLOG/CLAUDE/CONTRIBUTING/VISION/LESSONS reconcile + prune proposal)
 
