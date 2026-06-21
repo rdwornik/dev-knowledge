@@ -833,7 +833,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `JOURNAL.md` | Tactical per-session log | Append-only, dated entries: Did/Failed/Next | Every Claude Code session | Future Claude Code (last 5 entries on startup) | Newest-first prepend | Per-repo (optional; kept when a repo benefits from a per-session log) |
 | `CHANGELOG.md` | RETIRED ecosystem-wide (ADR-49) — git history + JOURNAL `Changes:` line replace it; row kept for legacy context | Newest-first dated entries | n/a | — | n/a | Removed |
 | `LESSONS.md` | Process lessons learned | Append-only with `[scope: X]` inline (per ADR-29) | When new lesson emerges (auto-promote at 2× repeat) | Rob, future Claude | Append-only | Universal (`.dev-knowledge` only) |
-| `TOKEN-LOG.md` | Claude usage snapshots | Threshold-triggered (7-day) via /session-summary | Auto when stale | Rob | Newest-first (prepend) | Universal (`.dev-knowledge` only) |
+| `logs/TOKEN-LOG.md` | Claude usage snapshots | Threshold-triggered (7-day) via /session-summary | Auto when stale | Rob | Newest-first (prepend) | Universal (`.dev-knowledge` only) |
 | `ENVIRONMENT.md` | Tooling state, what's installed | Sectioned, scope-tagged | When tool adopted/deprecated | Rob, Claude Code | Living (sections updated) | Per-repo |
 | `docs/decisions/ADR-NN-*.md` | Architectural decisions | Michael Nygard format | When decision binds | Rob, future contributors | Numbered, immutable (amend in-place per ADR-29) | Per-repo |
 | `docs/decisions/transcripts/council-out-*.md` | Raw Council debate outputs (canonical; legacy `DECISION_NN_*` grandfathered in `transcripts/archive/legacy/`) | Multi-model debate transcript | When Council debate concludes (routed per ADR-43; manual fallback per §5) | Reference for ADR rationale | Numbered, immutable | Per-repo |
@@ -858,7 +858,7 @@ File presence is no longer gated per tier (repo-tier system deprecated 2026-05-2
 | `docs/decisions/`, `docs/audits/`, `docs/archive/` | universal under the 2026-05-27 ADR-60 amendment (see taxonomy above) |
 | `docs/handoffs/` | `.dev-knowledge` only (canonical home for handoff bundles) |
 | `docs/diagrams/` | child code repos, where architecture diagrams exist |
-| `ESSENTIALS.md`, `PLAYBOOK.md`, `LESSONS.md`, `TOKEN-LOG.md` | n/a per-repo — live in `.dev-knowledge` only |
+| `ESSENTIALS.md`, `PLAYBOOK.md`, `LESSONS.md`, `logs/TOKEN-LOG.md` | n/a per-repo — live in `.dev-knowledge` only |
 
 Optional files are added by judgment of repo complexity; no tier makes them mandatory.
 
@@ -2720,7 +2720,7 @@ Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subse
 **Friday consolidation — 30 minutes max, not a project.**
 
 1. Review gotchas added this week — any patterns?
-2. Review token usage — `ccusage --json` → append snapshot to TOKEN-LOG.md. Is Opus verbosity still the main drain?
+2. Review token usage — `ccusage --json` → append snapshot to logs/TOKEN-LOG.md. Is Opus verbosity still the main drain?
 3. Review LESSONS.md entries from this week — anything to change in PLAYBOOK?
 4. Review BACKLOG.md — anything stale? Anything urgent? (single pending-items queue; no `OPEN_DECISIONS.md`)
 5. Quick project health check (test suite, lint, stale branches)
