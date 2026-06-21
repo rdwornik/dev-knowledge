@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-21 — CC: overnight OPS+TASK layer audit (BACKLOG/CLAUDE/CONTRIBUTING/VISION/LESSONS reconcile + prune proposal)
+
+**Did:** Overnight `claude -w audit-ops` audit of the ops/task doc layer against the JOURNAL (read in full via an artifact-reader pass + targeted re-reads). Two-mode per the brief — auto-apply mechanical currency, PROPOSE judgment. **Auto-applied (2 commits):** `CLAUDE.md` §11 "last 5 ADRs" rotated 76–80 → 85–89 (genuine read of ADR-85..89; 88/89 marked Proposed) + §7 reconciled to the live command dirs (+`/changelog-review` +`/override` +plugin `/ship`) + stale version-comment 2.19→2.21 + `last_reviewed`/footer restamp (`4f4dd1a`); `CONTRIBUTING.md` Validators table 8→10 hooks (+`coherence-nudge` +`block-ff-push`) + restamp (`d5bcddb`). **Reconciled** BACKLOG↔JOURNAL closures deterministically (`git log 'closes [#'` ∩ open ids) — only #5/#77 intersect, both known false-positives (verified by `git show`). Verified **#4 genuinely open** (the 2026-05-28 "closed #4" was the pre-2026-06-01-renumber *AI Council runbook*, a different item; `lessons-index.json` absent, no `closes [#4]`).
+
+**Result:** **Closure reconciliation CLEAN** — no done item wrongly listed; #199/#196/#197/#193/#179 correctly gone, #153 present+open. `audit.py health` **OK** throughout (`canonical_freshness` GREEN on both restamps). Findings doc (`bbbbfd2`) = decision-ready prune proposal (the centerpiece): 4 `doc_rot` condense candidates (#164/#134/#77/#10), a verify-and-close set (#10 substantially done; #47 absent from the ecosystem registry; #35 VISION-part moot), aging decision-items (#42/#37/#39/#67), overlap calls (#169↔#171), + 3 proposed LESSONS entries + a CLAUDE §12 condensation proposal + cross-domain flags (`protocols/ENVIRONMENT.md` badly stale → confirms #71/#119 open). The CLAUDE groom left the file at 201 lines / §12 at 23 entries — both feed the §12-condensation proposal (surfaced, not dispositioned — the disposition-discipline lesson, applied).
+
+**Changes:** `CLAUDE.md` (`4f4dd1a`), `CONTRIBUTING.md` (`d5bcddb`), NEW `docs/audits/2026-06-21-audit-ops-findings.md` (`bbbbfd2`), this `JOURNAL.md`. Branch `feat/audit-ops` off `main` `dec7726`; **`--no-ff` merge owed from the primary** (`/ship` refuses in a worktree).
+
+**Abandoned / PROPOSE-only (not applied):** the entire §3 BACKLOG prune (no item removed — the no-remove invariant is absolute), the §4 LESSONS appends, the §5 §12 condensation, the §6 cross-domain fixes (flagged, not fixed). No BACKLOG or VISION edit (no clean mechanical fix existed; VISION fresh at 2026-06-19). No folder created.
+
+**Next:** operator reviews findings → `--no-ff` merge `feat/audit-ops` → `main` **from the primary**; delete `feat/audit-ops` + the `worktree-audit-ops` placeholder branch + `git worktree prune`; ratify the prune set (esp. close #47/#10; trim #164/#134/#77) + the LESSONS appends + the gotchas-skill home for the pre-push gotcha; feed the 2026-07-01 quarterly groom.
+
 ### 2026-06-21 — CC: overnight TECHNICAL-layer audit (ARCHITECTURE + ADRs) — reconcile to JOURNAL/state + findings
 
 **Did:** Ran the overnight **technical/doctrine-layer** audit (`ARCHITECTURE.md` + `docs/decisions/*`) — worktree `audit-technical`, branch `feat/audit-technical` off `main` `dec7726`, Opus MAX, two-mode contract (auto-apply mechanical currency; PROPOSE judgment). Read the recent JOURNAL window in full + delegated the pre-2026-06-17 tail to an `artifact-reader` subagent (ARCHITECTURE/ADR/organ/count signals only). Reconciled against JOURNAL + **live state** (`validate_doc_claims`, `audit.py checks`/`health`, `git log --first-parent`), not assumptions.
