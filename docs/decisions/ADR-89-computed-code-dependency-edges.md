@@ -182,6 +182,18 @@ Per ADR-88 Principle 5, the boundary is a first-class decision:
 1. **doc→code ID-scheme.** The declared doc→code edge needs a stable ID-scheme (how a prose doc
    names the code it describes, and the reverse). Deferred to a later build under this frame; not
    designed here.
+   **— CURRENT DESIGN (supersedes the original `{#id}`/codemap mechanism) — 2026-06-21
+   (#194 Phase-A spike).** Read this first; the original ruling + its correction are retained
+   verbatim below for the record. **Identity = rule-ID on both sides**: doc `<!-- rule: ID -->`
+   ↔ code `# rule: ID`; the edge tracks ID↔ID. **Resolution = path + AST, resolution-only** —
+   the resolver LOCATES the `# rule: ID` annotation by content search over `scripts/**/*.py`
+   (`Path.exists` / `reverse_dep_oracle.resolve_symbol` for the `::symbol` leg); the path is a
+   resolution-time lookup, **NEVER the identity**. **Move-safe (PROVEN):** a file move does NOT
+   fire `broken_edge` — the annotation travels with the code and the resolver re-finds it at its
+   new path; a DELETED annotation DOES fire `broken_edge` (empirical spike proof
+   `tests/test_doc_code_edge.py`, four proofs incl. the load-bearing move-safety test, SHA
+   `e22e883`). The two `broken_edge`/`staleness_signal` classes + advisory-first rollout are
+   unchanged from the ruling below.
    **— RESOLVED (design) 2026-06-21.** Ruling (provenance: JOURNAL anchor `1984812` + the committed
    transcript `transcripts/council-out-20260621_003655-…-adr89-oq1-doc-code-granularity.md`): adopt
    **uniform heading-level** doc→code edges keyed on **explicit stable `{#id}` anchors** (not
