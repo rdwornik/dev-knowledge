@@ -191,6 +191,20 @@ Per ADR-88 Principle 5, the boundary is a first-class decision:
    hard-FAIL) vs **`staleness_signal`** (referenced target changed since review = advisory);
    **advisory-first** rollout, instrument before any blocking promotion. Build tracked **#194**; OQ1
    closes on build-proof.
+   **— AMENDED 2026-06-21 (#194 Phase-0 fit-check).** The build fit-check found two of this ruling's
+   named mechanisms do not hold in-repo; the *design* (heading-level → module/file, no clause/callable
+   v1, de-hardcode residue, `broken_edge`/`staleness_signal`, advisory-first) is unchanged, but the
+   two carriers are corrected (provenance: `docs/audits/2026-06-21-doc-code-edge-fit-check.md`;
+   operator-approved): **(a) doc-side identity is explicit rule-ID tokens, NOT `{#id}` anchors** — no
+   in-repo toolchain resolves `{#id}` (the only anchor resolver, `scripts/toc/generator.py::_slugify`,
+   slugifies heading *text* à la github-slugger and would render `## Foo {#bar}` as `foo-bar`; GitHub
+   ignores `{#id}` too), and zero real headings use it (the lone hit is the OQ1 transcript's
+   "Proposal C" title); rule-ID tokens are greppable, toolchain-independent, and rename-stable. **(b)
+   Code targets resolve via path + AST resolution (`reverse_dep_oracle.resolve_symbol` / `Path.exists`),
+   NOT "the existing codemap"** — the codemap enumerates only `__init__.py` packages (2 of 30 modules:
+   `scripts.codemap`, `scripts.toc`), so it cannot name `audit.py` / `validate_*.py` / the flat
+   modules a rule edge targets; path+AST gives the same deterministic `broken_edge` hard-FAIL the
+   ruling requires. OQ1 still closes on build-proof.
 2. **Oracle-wrapper provenance payload + truncation policy.** The exact shape of the required
    provenance metadata (rev, dirty set, completeness / truncation signalling) is a Track-A build
    decision.
