@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-21 — CC: reconcile the architect handoff bundle to the post-cut main (OQ1-decided)
+
+**Did:** Operator flagged that `main` had advanced after the architect handoff bundle's first cut. Verified live (not from the summary): `main` `b6357f4` = 4 **JOURNAL-only** commits ahead of the bundle's base `5b584ff` — the **state-hygiene wrap** (`1984812` + merges) that **recorded the ADR-89 OQ1 ruling as DECIDED**. Merged `main` into `docs/handoff-2026-06-21-architect` (`30a142e`; resolved the JOURNAL newest-first conflict — state-hygiene wrap on top, handoff-gen below + a supersession note) so a later `/ship` is conflict-free, then reconciled the bundle: the OQ1 keystone flips from *"the decision to make"* → ***"DECIDED (ruling `1984812`), ratify into ADR-89 + build #194 pending."***
+
+**Result:** Bundle updated (`02451c5`) — `HANDOFF_BOOT` purpose, `RESIDUAL` (intro RECONCILED note · §2 row + ADR status · §3-A/§3-B · §4.1 rewrite · §5.1–5.2 · §6 pointer), `PROBES` P3 generation-HEAD, `SUPPLEMENT` addendum A all now read OQ1-decided (heading-level · `{#id}`→module/file · no clause-level v1 · de-hardcode residue · `broken_edge`/`staleness_signal` · advisory-first). Drift-checks **unchanged** (the wrap touched JOURNAL only, not gate state): `verify_handoff_probes` **10/10**, `audit.py health` **OK**, **ship-gate GREEN** (7 WARN dispositioned + the documented `[stale]` `warn-doc-rot-claude-section-history`), `doc_claims` 772/10/22. `PASTE_THIS` re-assembled (cold supplement still `[skip]`-folded).
+
+**Changes:** merge `30a142e` (JOURNAL conflict resolution), bundle reconciliation `02451c5` (5 bundle files), this `JOURNAL.md`. On branch `docs/handoff-2026-06-21-architect`; **`--no-ff` merge to `main` still owed** (operator-gated `/ship` from the primary; now conflict-free since main is merged in).
+
+**Abandoned:** none. Did NOT ratify OQ1 into ADR-89 or build #194 (both are the next architect's calls — the bundle records the ruling, it does not act on it). Did NOT remove the stale disposition (still surfaced for the next session). Did NOT push.
+
 ### 2026-06-21 — CC: session state-hygiene wrap (consolidation anchor + OQ1 ruling record + transcript tracked)
 
 **Did:** Pre-handoff state-hygiene pass (ADR-87 intent brief; **auto** mode) — make *tracked* state honestly reflect this session's decisions so the next architect reconstructs them **from the repo alone**. Three legs: (1) confirmed the **ADR-89 OQ1 Council transcript is tracked** — `council-out-20260621_003655-…-adr89-oq1-doc-code-granularity.md` was already archived (`2d39dbb`, 996 lines) + merged (`5b584ff`) earlier this session, so **NOT re-committed** (the brief's "on disk, untracked" premise was stale — verified via `git ls-files` + clean tree); (2) this JOURNAL wrap; (3) verify GREEN + TOKEN-LOG cadence check.
