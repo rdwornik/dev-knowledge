@@ -86,6 +86,38 @@ def find_doc_sites(rule_id: str, doc_root: Path) -> list[Site]:
     return out
 
 
+def iter_doc_rule_ids(doc_root: Path, exclude_top: tuple[str, ...] = ()) -> set[str]:
+    """Enumerate every `<!-- rule: ID -->` rule-ID across `*.md` under `doc_root`.
+
+    Returns the set of unique IDs (location-free; pair with `resolve_edge` to locate sites).
+    Same content-scan contract as `find_doc_sites` -- the ID is read from annotation CONTENT,
+    never a stored path. `exclude_top` skips any `*.md` whose FIRST root-relative path
+    component (a directory name, or a root-level filename like `JOURNAL.md`) is listed: the
+    advisory check passes the test-fixture tree plus the immutable design-record trees
+    (`docs/`, `JOURNAL.md`) that only DISCUSS the token syntax, so their illustrative
+    `<!-- rule: ID -->` / `<!-- rule: PB-07 -->` examples never register as live edges.
+
+    Asymmetry seed (Phase 2): `find_code_sites` uses `tokenize` to skip a `# rule: ID` buried
+    in a string literal, but the doc side has NO equivalent guard against an illustrative token
+    inside a markdown code fence or inline span (the regex does not respect fencing), so the
+    live scan universe is bounded by `exclude_top` instead. A real doc-side guard (skip
+    fenced/inline-code spans, or honor only tokens on/adjacent to a governed heading) is later
+    work.
+    """
+    ids: set[str] = set()
+    for md in sorted(doc_root.rglob("*.md")):
+        rel = md.relative_to(doc_root)
+        if exclude_top and rel.parts and rel.parts[0] in exclude_top:
+            continue
+        try:
+            text = md.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for m in DOC_RE.finditer(text):
+            ids.add(m.group(1))
+    return ids
+
+
 def find_code_sites(rule_id: str, code_root: Path) -> list[Site]:
     """Locate `# rule: <rule_id>` across `*.py` under `code_root`, by content.
 

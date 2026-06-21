@@ -103,3 +103,32 @@ def test_string_literal_is_not_a_false_hit(tmp_path):
     )
     result = vdce.resolve_edge("TEST-01", doc_root, code_root)
     assert result.status == "broken_edge"  # the string mention is not a real comment token
+
+
+# --- iter_doc_rule_ids: doc-side enumeration (Phase-2 advisory-check seed, #194) --------
+
+def test_iter_collects_all_ids(tmp_path):
+    (tmp_path / "a.md").write_text("rule one <!-- rule: ALPHA-1 -->\n", encoding="utf-8")
+    (tmp_path / "b.md").write_text("rule two <!-- rule: BETA.2 -->\n", encoding="utf-8")
+    assert vdce.iter_doc_rule_ids(tmp_path) == {"ALPHA-1", "BETA.2"}
+
+
+def test_iter_empty_when_no_annotations(tmp_path):
+    (tmp_path / "plain.md").write_text("no rule tokens here\n", encoding="utf-8")
+    assert vdce.iter_doc_rule_ids(tmp_path) == set()
+
+
+def test_iter_exclude_top_skips_named_trees(tmp_path):
+    """Illustrative tokens in excluded trees (a `docs/`-style record, a root log) must NOT
+    register as live edges -- only the governed-doc token survives the exclusion."""
+    (tmp_path / "PLAYBOOK.md").write_text("governed <!-- rule: LIVE-1 -->\n", encoding="utf-8")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "adr.md").write_text(
+        "example <!-- rule: ILLUS-1 -->\n", encoding="utf-8"
+    )
+    (tmp_path / "JOURNAL.md").write_text(
+        "wrap quoted <!-- rule: ILLUS-2 -->\n", encoding="utf-8"
+    )
+    assert vdce.iter_doc_rule_ids(
+        tmp_path, exclude_top=("docs", "JOURNAL.md")
+    ) == {"LIVE-1"}
