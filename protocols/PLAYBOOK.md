@@ -568,7 +568,7 @@ Before delivering a prompt to Claude Code, verify:
 
 **Judgment checks (knowledge-application, not just form — #34 / 2026-06-06 application-skipped misses):**
 
-- [ ] **Codex-applicability** — does the diff touch 3+ code files or anything safety-critical? If so, plan a `/codex-review` pass
+- [ ] **Review applicability (two-stage)** — does the diff touch 3+ code files or anything safety-critical? If so, plan the two-stage code review: `/code-review high` for an in-flight/interim pass, then `/codex-review` as the final pre-merge pass (code only — doc-only diffs skip both)
 - [ ] **Context-budget pass** — every read instruction is scoped (no "read the whole repo"); per §7 read-scoping rule
 - [ ] **JOURNAL-read needed?** — does the task need recent session continuity (last few JOURNAL entries) to avoid re-deciding settled things?
 - [ ] **Inherited-framing counter-check** — *"Have I assumed any operator decision as resolved that the operator has not actually ruled on?"* (origin: a floor/rollout assumption treated as settled while still pending)
@@ -1648,7 +1648,8 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 | Command | Level | When to invoke |
 |---------|-------|----------------|
 | `/session-summary` | user | Session end / handing to browser chat (Path A). Also appends a TOKEN-LOG snapshot if >7 days stale. |
-| `/codex-review` | user | Before merging a **code** change (3+ files / safety-critical). Code only — never a markdown-only diff (LESSON 2026-05-19). |
+| `/code-review high` | user (built-in) | **In-flight / interim** leg of the two-stage code review — a correctness + reuse pass on the working diff mid-session, before you commit/ship. Pairs with `/codex-review` (the final leg). |
+| `/codex-review` | user | **Final / pre-ship** leg of the two-stage review: before merging a **code** change (3+ files / safety-critical). Code only — never a markdown-only diff (LESSON 2026-05-19). |
 | `/save` | repo | Stage + commit with a Conventional Commits message + full body (git-discipline rule). After a discrete change. |
 | `/ship` | plugin (`tier1-lifecycle`) | Git-finish from the PRIMARY checkout: merge the current feature branch `--no-ff` → push → **auto-delete the merged branch** (no question). Branch cleanup is automatic; an anomalous `git branch -d` refusal is **reported loudly** and the branch left in place (session still ends). Refuses from inside a worktree (pre-flight #1). |
 | `/handoff` | repo | CC-owned handoff per HANDOFF_PROCESS v5 (ADR-82): "create handoff" → "complete handoff" — emits the residual + probe manifest + points at the thin boot. At ~2h, context still fresh. |
