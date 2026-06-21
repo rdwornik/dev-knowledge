@@ -507,6 +507,8 @@ File and folder casing rules. Currently mixed: `LESSONS.md` ALLCAPS, `docs/` low
 
 **Purpose:** Standardize prompts that browser chat produces for Claude Code execution. Per ADR-28 (three-layer architecture): browser is architect, Claude Code is executor — prompts are the contract between them.
 
+> **Cross-ref (ADR-87):** the architect↔CC equilibrium contract refines this — the architect emits intent + plan/auto mode + a thin governance-pointer, and CC self-loads code-impact context + generic gotchas. See §2 "Creating a Claude Code Prompt" / ADR-87. **Overlap flag:** this section and §2 both cover prompt authoring and both predate ADR-87 — candidate for a later focused consolidation (flagged only; not done here).
+
 ### Why standard format
 <!-- scope: meta -->
 
