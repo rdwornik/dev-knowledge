@@ -73,13 +73,6 @@ dispositions:
     reason: >-
       Pre-existing inline-history accretion on the #77 task line. Surfaced, not introduced;
       tracked for condensation under #134 (backlog grooming review) per ADR-65.
-  - id: warn-doc-rot-backlog-10
-    organ: doc_rot
-    match: "BACKLOG#10 ("
-    ref: "#140"
-    reason: >-
-      Pre-existing inline-history accretion on the #10 task line. Surfaced, not introduced;
-      tracked for condensation under #134 (backlog grooming review) per ADR-65.
 
   # ---- pre-existing 2026-06-19 direct-to-main commits (operator-ratified 2026-06-20) ----
   # Two non-merge commits landed directly on main 2026-06-19 — after BASELINE_DATE (2026-06-15)

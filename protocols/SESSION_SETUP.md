@@ -194,33 +194,7 @@ mechanics); the phrase triggers are stable across versions:
 `{repo}` defaults to `.dev-knowledge` (self-handoff); naming another repo is a
 cross-repo handoff.
 
-**Two-phase flow (v4 mechanics — superseded; retained until the v5 residual/probe generator lands, per `HANDOFF_PROCESS.md` §11):**
-
-1. **Phase 1 — Interview** (Claude Code): capture target repo HEAD SHA + branch +
-   working-tree state; write `docs/handoffs/in-progress/{slug}/_handoff-interview.md`
-   — one sage→apprentice cluster of 5 questions (Past / Present / Future / Wisdom /
-   Warnings) plus a `=== PASTE ANSWERS BELOW THIS LINE ===` marker; append a JOURNAL
-   marker; commit on the feature branch.
-2. **Operator (between phases):** copy the questions into the SENDER browser chat
-   (the chat being wrapped up — it holds the lived context), get narrative answers,
-   paste them below the marker, save. Answers must come from the sender chat, not a
-   fresh one — a new chat has no context to contribute.
-3. **Phase 2 — Consolidate** (Claude Code): read the interview; cross-check the
-   answers against actual repo state (drift → FLAG to operator); generate the flat
-   bundle at `docs/handoffs/{slug}/` (README + `01_ROLE`…`07_ASK_BACK`) from source
-   files; remove the `in-progress/{slug}/` folder; append a JOURNAL marker; commit.
-   Then Rob opens a NEW (apprentice) chat with the bundle.
-
-No Stage vocabulary, no placeholder dance, no separate claims/scope/probe files —
-claims and scope become inline narrative in the generated bundle.
-
-**State detection** (based on `in-progress/{slug}/` presence):
-
-| State | Action |
-|---|---|
-| No `in-progress/{slug}/` folder | run Phase 1 |
-| `_handoff-interview.md` present, no answers below the marker | awaiting operator paste |
-| `_handoff-interview.md` with answers pasted | run Phase 2 |
+**Mechanics live in `protocols/HANDOFF_PROCESS.md` (v5 — the single source of truth).** It owns the two-phase flow (interview → consolidate), the `in-progress/{slug}/` state detection, and the generated bundle shape. Not restated here so this file can't drift from it; the trigger phrases above are the only handoff detail that lives in SESSION_SETUP.
 
 ---
 

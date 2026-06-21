@@ -507,6 +507,8 @@ File and folder casing rules. Currently mixed: `LESSONS.md` ALLCAPS, `docs/` low
 
 **Purpose:** Standardize prompts that browser chat produces for Claude Code execution. Per ADR-28 (three-layer architecture): browser is architect, Claude Code is executor — prompts are the contract between them.
 
+> **Cross-ref (ADR-87):** the architect↔CC equilibrium contract refines this — the architect emits intent + plan/auto mode + a thin governance-pointer, and CC self-loads code-impact context + generic gotchas. See §2 "Creating a Claude Code Prompt" / ADR-87. **Overlap flag:** this section and §2 both cover prompt authoring and both predate ADR-87 — candidate for a later focused consolidation (flagged only; not done here).
+
 ### Why standard format
 <!-- scope: meta -->
 
@@ -568,7 +570,7 @@ Before delivering a prompt to Claude Code, verify:
 
 **Judgment checks (knowledge-application, not just form — #34 / 2026-06-06 application-skipped misses):**
 
-- [ ] **Codex-applicability** — does the diff touch 3+ code files or anything safety-critical? If so, plan a `/codex-review` pass
+- [ ] **Review applicability (two-stage)** — does the diff touch 3+ code files or anything safety-critical? If so, plan the two-stage code review: `/code-review high` for an in-flight/interim pass, then `/codex-review` as the final pre-merge pass (code only — doc-only diffs skip both)
 - [ ] **Context-budget pass** — every read instruction is scoped (no "read the whole repo"); per §7 read-scoping rule
 - [ ] **JOURNAL-read needed?** — does the task need recent session continuity (last few JOURNAL entries) to avoid re-deciding settled things?
 - [ ] **Inherited-framing counter-check** — *"Have I assumed any operator decision as resolved that the operator has not actually ruled on?"* (origin: a floor/rollout assumption treated as settled while still pending)
@@ -831,7 +833,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `JOURNAL.md` | Tactical per-session log | Append-only, dated entries: Did/Failed/Next | Every Claude Code session | Future Claude Code (last 5 entries on startup) | Newest-first prepend | Per-repo (optional; kept when a repo benefits from a per-session log) |
 | `CHANGELOG.md` | RETIRED ecosystem-wide (ADR-49) — git history + JOURNAL `Changes:` line replace it; row kept for legacy context | Newest-first dated entries | n/a | — | n/a | Removed |
 | `LESSONS.md` | Process lessons learned | Append-only with `[scope: X]` inline (per ADR-29) | When new lesson emerges (auto-promote at 2× repeat) | Rob, future Claude | Append-only | Universal (`.dev-knowledge` only) |
-| `TOKEN-LOG.md` | Claude usage snapshots | Threshold-triggered (7-day) via /session-summary | Auto when stale | Rob | Newest-first (prepend) | Universal (`.dev-knowledge` only) |
+| `logs/TOKEN-LOG.md` | Claude usage snapshots | Threshold-triggered (7-day) via /session-summary | Auto when stale | Rob | Newest-first (prepend) | Universal (`.dev-knowledge` only) |
 | `ENVIRONMENT.md` | Tooling state, what's installed | Sectioned, scope-tagged | When tool adopted/deprecated | Rob, Claude Code | Living (sections updated) | Per-repo |
 | `docs/decisions/ADR-NN-*.md` | Architectural decisions | Michael Nygard format | When decision binds | Rob, future contributors | Numbered, immutable (amend in-place per ADR-29) | Per-repo |
 | `docs/decisions/transcripts/council-out-*.md` | Raw Council debate outputs (canonical; legacy `DECISION_NN_*` grandfathered in `transcripts/archive/legacy/`) | Multi-model debate transcript | When Council debate concludes (routed per ADR-43; manual fallback per §5) | Reference for ADR rationale | Numbered, immutable | Per-repo |
@@ -856,7 +858,7 @@ File presence is no longer gated per tier (repo-tier system deprecated 2026-05-2
 | `docs/decisions/`, `docs/audits/`, `docs/archive/` | universal under the 2026-05-27 ADR-60 amendment (see taxonomy above) |
 | `docs/handoffs/` | `.dev-knowledge` only (canonical home for handoff bundles) |
 | `docs/diagrams/` | child code repos, where architecture diagrams exist |
-| `ESSENTIALS.md`, `PLAYBOOK.md`, `LESSONS.md`, `TOKEN-LOG.md` | n/a per-repo — live in `.dev-knowledge` only |
+| `ESSENTIALS.md`, `PLAYBOOK.md`, `LESSONS.md`, `logs/TOKEN-LOG.md` | n/a per-repo — live in `.dev-knowledge` only |
 
 Optional files are added by judgment of repo complexity; no tier makes them mandatory.
 
@@ -1648,7 +1650,8 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 | Command | Level | When to invoke |
 |---------|-------|----------------|
 | `/session-summary` | user | Session end / handing to browser chat (Path A). Also appends a TOKEN-LOG snapshot if >7 days stale. |
-| `/codex-review` | user | Before merging a **code** change (3+ files / safety-critical). Code only — never a markdown-only diff (LESSON 2026-05-19). |
+| `/code-review high` | user (built-in) | **In-flight / interim** leg of the two-stage code review — a correctness + reuse pass on the working diff mid-session, before you commit/ship. Pairs with `/codex-review` (the final leg). |
+| `/codex-review` | user | **Final / pre-ship** leg of the two-stage review: before merging a **code** change (3+ files / safety-critical). Code only — never a markdown-only diff (LESSON 2026-05-19). |
 | `/save` | repo | Stage + commit with a Conventional Commits message + full body (git-discipline rule). After a discrete change. |
 | `/ship` | plugin (`tier1-lifecycle`) | Git-finish from the PRIMARY checkout: merge the current feature branch `--no-ff` → push → **auto-delete the merged branch** (no question). Branch cleanup is automatic; an anomalous `git branch -d` refusal is **reported loudly** and the branch left in place (session still ends). Refuses from inside a worktree (pre-flight #1). |
 | `/handoff` | repo | CC-owned handoff per HANDOFF_PROCESS v5 (ADR-82): "create handoff" → "complete handoff" — emits the residual + probe manifest + points at the thin boot. At ~2h, context still fresh. |
@@ -1745,9 +1748,15 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 - Knowledge lookup — use skill instead
 - Content best fits CLAUDE.md auto-read
 
-**Real examples in Rob's ecosystem (user-level, `~/.claude/commands/`):**
-- `/session-summary` — generate handoff for current session, include TOKEN-LOG snapshot if stale (renamed from `/handoff` 2026-04-24 to avoid trigger-word collision)
-- `/codex-review` — invoke Codex review on staged changes
+**Real examples in Rob's ecosystem (level noted per entry — user = `~/.claude/commands/`, repo = `./.claude/commands/`, plugin = `tier1-lifecycle`):**
+- `/session-summary` (user) — generate handoff for current session, include `logs/TOKEN-LOG.md` snapshot if stale (renamed from `/handoff` 2026-04-24 to avoid trigger-word collision)
+- `/codex-review` (user) — invoke Codex review on staged code changes
+- `/save` (repo) — stage + commit with a Conventional Commits message + full body (git-discipline)
+- `/handoff` (repo) — CC-owned handoff per HANDOFF_PROCESS v5 (ADR-82): create → complete
+- `/override` (repo) — logged, HEAD-bound bypass of the ADR-85 session-end gate (the gate's only escape)
+- `/ship` (plugin) — git-finish: merge the feature branch `--no-ff` → push → auto-delete it (refuses inside a worktree)
+- `/review-closures` (plugin) — review + execute operator-approved session-end closures (ADR-70 Tier-1)
+- `/verify` (skill) — run the standard pytest + ruff + git-status check cadence
 
 > **Retired machinery (history; do not re-add to command tables/cheat-sheets):** `/boot` and `/evolve` were archived 2026-06-05 (Phase-C3) — the self-evolution loop they drove (memory / learned-rules promotion + per-session boot) is retired. Archive: `~/.claude/archive/2026-06-05-machinery-c3/`.
 
@@ -2711,7 +2720,7 @@ Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subse
 **Friday consolidation — 30 minutes max, not a project.**
 
 1. Review gotchas added this week — any patterns?
-2. Review token usage — `ccusage --json` → append snapshot to TOKEN-LOG.md. Is Opus verbosity still the main drain?
+2. Review token usage — `ccusage --json` → append snapshot to logs/TOKEN-LOG.md. Is Opus verbosity still the main drain?
 3. Review LESSONS.md entries from this week — anything to change in PLAYBOOK?
 4. Review BACKLOG.md — anything stale? Anything urgent? (single pending-items queue; no `OPEN_DECISIONS.md`)
 5. Quick project health check (test suite, lint, stale branches)
