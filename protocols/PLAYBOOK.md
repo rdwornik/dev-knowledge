@@ -1674,7 +1674,7 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 | `validate-backlog` | `.pre-commit-config.yaml` | **Auto** on commit — BACKLOG story-map schema (ADR-66). |
 | `audit-health` | `.pre-commit-config.yaml` | **Auto** on commit — `audit.py health`; **FAIL blocks the commit**, WARN informs ([#69]). |
 | `backlog-id-on-close` | `.pre-commit-config.yaml` (commit-msg) | **Auto** — requires `[#id]` when a commit removes a backlog task. |
-| `ruff` | — | **Manual** — documented but NOT wired as a hook (BACKLOG #13); run `ruff check --fix` yourself / via `/save`. |
+| `ruff` | `.pre-commit-config.yaml` | **Auto** on commit — `ruff check`; **blocks on violations** (version-pinned ≥0.15.5; [#13] closed 2026-06-02). Run `ruff check --fix` / `/save` to auto-fix first. |
 
 CLAUDE.md is the inventory authority — §7 (commands), §8 (skills), §9 (hooks); this table is the operational "when". Adding/removing any of them follows the Adoption protocol below and updates both surfaces.
 
@@ -1784,7 +1784,7 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 - Ambiguous rules — hooks fail loudly; vague rule = constant friction
 
 **Real examples in Rob's ecosystem:**
-- `.dev-knowledge/.pre-commit-config.yaml` — `normalize-dated-headers`, `codemap-freshness`, `validate-backlog`, `audit-health` (the [#69] self-conformance gate), `backlog-id-on-close` (commit-msg). (scope-tag enforcement withdrawn per ADR-48; `ruff` documented but not wired — BACKLOG #13)
+- `.dev-knowledge/.pre-commit-config.yaml` — `normalize-dated-headers`, `codemap-freshness`, `validate-backlog`, `audit-health` (the [#69] self-conformance gate), `ruff` (lint gate — blocks on violations; [#13] closed), `backlog-id-on-close` (commit-msg). (scope-tag enforcement withdrawn per ADR-48; CLAUDE.md §9 is the full live hook roster.)
 - corp-monorepo pre-commit (likely): ruff format, pytest collection check (verify per repo)
 
 **Anti-patterns:**
