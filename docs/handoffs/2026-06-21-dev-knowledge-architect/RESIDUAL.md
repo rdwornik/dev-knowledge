@@ -17,6 +17,13 @@
 > **Four-tag discipline.** `witnessed` = CC re-derived it live this generation (the §1/§2 gate
 > outputs); `recall`/`inferred` = reconstructed from the JOURNAL/git window, may have moved —
 > the load-bearing ones are re-checkable via `PROBES.md`. `unknown` = stated as such.
+>
+> **⚠ RECONCILED 2026-06-21 (post-generation).** After this bundle's first cut, `main` advanced 4
+> JOURNAL-only commits — the **state-hygiene wrap** that **recorded the ADR-89 OQ1 ruling as
+> DECIDED** (`1984812`). Those commits are now **merged into this branch** (so a later `/ship` is
+> conflict-free), and the OQ1 sections below (**§2 / §3 / §4.1 / §5.1–§5.2**) are reconciled to
+> *decided, not yet ratified*. The drift-checks (§1) are **unchanged** — the wrap touched JOURNAL
+> only, not gate state.
 
 ---
 
@@ -88,8 +95,8 @@ are documented in three findings docs (pointers in §6); the disposition queue i
 
 ## §2 — Shipped / closed this window (verified live where it is live state)
 
-The window since the 2026-06-20 handoff (`dd98524` → `5b584ff`). **`recall` from JOURNAL/git
-unless marked witnessed.**
+The window since the 2026-06-20 handoff (`dd98524` → `5b584ff`, plus the post-cut state-hygiene
+wrap now merged in → branch HEAD `30a142e`). **`recall` from JOURNAL/git unless marked witnessed.**
 
 | Item | What landed | Status | Evidence |
 |---|---|---|---|
@@ -97,7 +104,7 @@ unless marked witnessed.**
 | **#196** | Removal-closure computation spike — design proposal + feasibility verdict | **CLOSED** (`468ab1a`); verdict **GO for D-2b, scoped** (direct cross-kind reverse-dep *boundary*, not a transitive walk; 3 mechanisms M1/M2/M3, no M4; fail-closed; computed-leg advisory-first) | `docs/audits/2026-06-20-removal-closure-spike-findings.md` |
 | **#153** | `block-ff-push` pre-push gate — the PREVENT half of core-invariant #5 (refuses a non-merge commit on `main`'s first-parent spine; HUB-only; fail-soft; `--no-verify` bypass) | **ADVANCED, NOT closed** — scope-boundary + #189 methodology-reach + server-side teeth remain | `scripts/block_ff_push.py`; +21 tests; gate roster now **10/10** (**witnessed**) |
 | **CLAUDE.md §12** | Section-history condensed (v1.0–v2.17 → git-log pointer) → file back under 200 lines | **DONE** | `29b6ac6` (left the `[stale]` disposition in §1) |
-| **ADR-89 OQ1** | 4-model Council debate (doc→code edge granularity) ran; transcript archived | **DEBATED, NOT ratified** — see §4.1 (the keystone) | `docs/decisions/transcripts/council-out-20260621_003655-...-adr89-oq1-doc-code-granularity.md` |
+| **ADR-89 OQ1** | 4-model Council debate ran (transcript archived) **and the architect ruled** | **DECIDED, NOT yet ratified** — ruling in JOURNAL `1984812`; ADR-89 file still reads OQ1-open (see §4.1) | `1984812` + `docs/decisions/transcripts/council-out-20260621_003655-...-adr89-oq1-doc-code-granularity.md` |
 | **3-layer audit** | PROCESS + TECHNICAL + OPS/TASK doc layers audited; each substantially current; proposals held | **PROPOSALS HELD** (see §1 / §3-C) | three `docs/audits/2026-06-21-audit-*-findings.md` |
 
 **Green at generation (witnessed):** `pytest` **772 collected** · `ruff` clean · `audit.py
@@ -109,7 +116,8 @@ hooks **10/10** + roster, `pytest_collected` **772/772**) · `validate_git_backl
 **ADR statuses — witnessed live:**
 - **ADR-88** (file-oriented dependency management) — **Proposed**, OQ1–OQ4 all open.
 - **ADR-89** (computed code-dependency edges) — **Proposed**. **OQ2 RESOLVED (#193)** in-file; **OQ1
-  + OQ3 remain open → stays Proposed** (the ADR file still reads "OQ1 and OQ3 remain open").
+  now DECIDED at the ruling level** (heading-level — JOURNAL `1984812`) **but NOT yet ratified into
+  the ADR** (the file still reads "OQ1 and OQ3 remain open"); **OQ3 still open → stays Proposed**.
 
 ---
 
@@ -124,8 +132,9 @@ sequencing (§3-A/B) carries forward from the 2026-06-20 plan, updated for what 
 - **#195-2b is now UNBLOCKED** — its gate (#196 closure spike) landed. The spike's framing
   refined #196's "traverse uniformly" → **"direct-boundary union"** (carried into #195-2b text;
   verify `da2723f`). Buildable as a **computed boundary-check, advisory-first**.
-- **#194 is now DECISION-READY** — the council recommended its gating granularity (§4.1). Ratify
-  ADR-89 OQ1, then #194 builds.
+- **ADR-89 OQ1 is now DECIDED** (the ruling, `1984812`) — so **#194's granularity is settled**
+  (heading-level + `{#id}` anchors → module/file; `broken_edge`/`staleness_signal`; advisory-first).
+  What remains is **ratifying** the ruling into ADR-89, then **building #194**.
 - **#153 advanced** (gate shipped + activated). Stays open for the scope-boundary + reach work.
 
 ### 3-B — Updated build/decision table
@@ -137,9 +146,9 @@ task-graph (no shared `serialize-group` + no `depends-on` path) — **witnessed 
 
 | # | What | Status | Gate / blocker | Notes |
 |---|---|---|---|---|
-| **ADR-89 OQ1** | Ratify doc→code edge granularity | **DECISION — the keystone** | Council ran; recommends **heading-level** (§4.1). Architect ratifies into the ADR | unblocks #194 |
+| **ADR-89 OQ1** | Ratify the (already-decided) granularity ruling into ADR-89 | **DECIDED → RATIFY (the keystone)** | ruling recorded `1984812` (heading-level, `{#id}`→module/file, no clause v1, advisory-first). Not a re-decide — ratify + amend the ADR | unblocks #194 |
 | **#195-2a** | Safe-removal gate **phase 2a** (deletion ⇒ reverse-dep check + log entry) | **READY — top build** | none: the oracle (#193) shipped | `code-edge` group |
-| **#194** | Track B — doc→code declared edge (rule-IDs + structural integrity) | **DECISION→READY** | ADR-89 OQ1 ratification (above); then build **heading-level** | `code-edge` group |
+| **#194** | Track B — doc→code declared edge (`{#id}`-anchored heading→module/file; `broken_edge`/`staleness_signal`; advisory-first) | **READY (granularity decided)** | ratify OQ1 into ADR-89 first (above) | `code-edge` group |
 | **#195-2b** | Safe-removal gate **phase 2b** (full closure-gate) | **READY (newly unblocked)** | was gated on #196 — now done; build the direct-boundary check advisory-first | `code-edge` group |
 | **#153** | FF-prevention scope-boundary + methodology-reach + server-side teeth | **READY — assess priority** | none (the local gate shipped) | `audit-py` group |
 | **ADR-89 ratification** | Proposed → Accepted | **GATED (decision)** | OQ1 (ratify §4.1) + OQ3 (advisory→gate, data-gated). OQ2 resolved | — |
@@ -164,18 +173,21 @@ next session's main job is to **approve/decline each, then CC applies the approv
 
 ## §4 — Open decisions the next session must make
 
-1. **ADR-89 OQ1 — doc→code edge granularity (THE KEYSTONE).** The 4-model Council
-   (claude-opus-4-7 · deepseek-v4-pro · gemini-3.1-pro · grok-4.3; openai synthesizer) **converged
-   on HEADING-level** as the uniform default, with a **narrow, three-gate escape hatch to
-   clause-level** (1:1 to a single named callable AND low-churn module AND actionably more precise),
-   linter-enforced + soft-capped at ~10–15% of edges; **plus de-hardden first** — exclude any
-   coupling the code can read directly, declare only the residue. **This REVERSES the prior
-   architect lean** (the 2026-06-20 bundle recorded "clause-level, UNCONFIRMED"). Several panelists
-   would drop the escape hatch entirely; the synthesizer kept it gated. **The architect's call:**
-   ratify heading-level (with or without the gated clause-level hatch) into ADR-89, which then sets
-   #194's build granularity and unblocks it. The transcript also flags the **weakest assumption**
-   (the escape hatch metastasizes under self-policing) — decide whether to ship the hatch or start
-   hatch-less.
+1. **ADR-89 OQ1 — doc→code edge granularity (THE KEYSTONE — now DECIDED, ratification pending).**
+   The 4-model Council (claude-opus-4-7 · deepseek-v4-pro · gemini-3.1-pro · grok-4.3; openai
+   synthesizer) recommended **heading-level**, and the **architect ruled** (recorded in JOURNAL
+   `1984812`): **uniform heading-level** doc→code edges; **explicit stable `{#id}` anchors** (not
+   prose-derived slugs) → **module/file** code targets; **no clause/callable level in v1** (the
+   ruling **dropped** the council's gated clause-level escape hatch); **de-hardcode the residue**
+   (declare only what code cannot read directly); two validation classes — **`broken_edge`**
+   (unresolved doc anchor / unresolved code target = hard-FAIL) vs **`staleness_signal`** (target
+   changed since review = advisory); **advisory-first** rollout (instrument before any blocking
+   promotion). This **reverses the prior "clause-level, UNCONFIRMED" lean** (2026-06-20 bundle).
+   **What remains is not a decision but execution:** (a) **ratify** the ruling into ADR-89 (amend
+   OQ1 + advance the status path), and (b) **build #194** to the spec above. The one sub-question
+   the ruling leaves to #194's design: whether the `{#id}`-anchor scheme needs a structural-integrity
+   check of its own. (If the architect wants to *revisit* the ruling — e.g. restore the council's
+   gated clause-level hatch — that is a re-open, not the expected path.)
 2. **ADR-89 ratification readiness** — needs OQ1 (decide above) + OQ3 (advisory→gate; **data-gated**
    — the #196 spike ruled computed legs *eligible* to gate hard once data justifies, declared legs
    stay advisory). OQ2 resolved (#193).
@@ -197,11 +209,14 @@ next session's main job is to **approve/decline each, then CC applies the approv
 
 ## §5 — Key facts from THIS window (so they aren't re-litigated)
 
-1. **ADR-89 OQ1 was debated, NOT decided.** The transcript is a *recommendation* (heading-level);
-   the ADR still reads OQ1 open / Proposed. Do not treat the council output as ratified — the
-   architect ratifies it (§4.1).
-2. **The prior "clause-level" lean is superseded by the council's heading-level recommendation.**
-   Read the 2026-06-20 RESIDUAL's "clause-level UNCONFIRMED" as **generation-time history**.
+1. **ADR-89 OQ1 is DECIDED but NOT yet ratified.** The architect ruled heading-level (full spec in
+   §4.1, recorded in JOURNAL `1984812`); the **ADR-89 file still reads OQ1-open / Proposed**. The
+   *record* exists; *ratification* (amending the ADR) is the separate, still-pending step — do not
+   re-litigate the ruling, and do not mistake the ADR's stale "open" text for the live decision.
+2. **The prior "clause-level" lean is superseded** — the ruling is **heading-level with `{#id}`
+   anchors and no clause-level in v1**. Read the 2026-06-20 RESIDUAL's "clause-level UNCONFIRMED"
+   (and this bundle's own first-cut "council recommends, architect to decide" framing) as
+   **generation-time history**.
 3. **#196 verdict is GO-for-D-2b, scoped** — a removal gate needs a **direct cross-kind reverse-dep
    boundary**, not a transitive walk; 3 mechanisms (M1 computed code→code / M2 computed path+dotted
    refs / M3 declared prose, human-confirmed); **no M4**; fail-closed on partial/unavailable/dirty;
@@ -224,9 +239,10 @@ next session's main job is to **approve/decline each, then CC applies the approv
 
 - **Audit findings (the disposition queue):** `docs/audits/2026-06-21-audit-process-findings.md`,
   `…-audit-technical-findings.md`, `…-audit-ops-findings.md`.
-- **The keystone transcript:**
+- **The keystone ruling + transcript:** the **ruling** is in JOURNAL `1984812` (the state-hygiene
+  wrap entry); the **basis** is the transcript
   `docs/decisions/transcripts/council-out-20260621_003655-pick-council-decision-adr89-oq1-doc-code-granularity.md`
-  (read the **Recommendation** + **Decision Criteria** sections; OpenAI synthesizer at the tail).
+  (read its **Recommendation** + **Decision Criteria**; OpenAI synthesizer at the tail).
 - **Plan / task-graph:** `BACKLOG.md` (story-map; `code-edge` = #194/#195, `coherence` =
   #180/#181/#182). Schema machine-checked by `scripts/validate_backlog.py`.
 - **Doctrine:** `docs/decisions/ADR-88-file-oriented-dependency-management.md` (declared edge),

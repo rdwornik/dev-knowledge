@@ -37,11 +37,12 @@ Repo: dev-knowledge · Mode: architect · Date: 2026-06-21
 6. **Off-repo context** — intent, priorities, changed decisions, or findings not in the
    repo.
 <!-- CC-observed addenda (session-specific; answer only if you have non-repo "why" on these) -->
-A. **ADR-89 OQ1 — did the council's heading-level recommendation match your own read,
-   or did it surprise you?** The repo records the prior architect lean as "clause-level,
-   UNCONFIRMED"; the council reversed it to heading-level. If you have a *why* the next
-   session should weigh before ratifying (e.g. you already disagree with heading-level, or
-   you want the clause-level escape hatch dropped), it lives only in your head — capture it.
+A. **ADR-89 OQ1 — the ruling is made (heading-level, `{#id}` anchors → module/file, no
+   clause-level in v1, advisory-first); what's the *why* the ADR amendment should carry?**
+   The ruling **dropped** the council's gated clause-level escape hatch and chose explicit
+   `{#id}` anchors over prose slugs. If the rationale behind those two calls (or anything the
+   next session should NOT relitigate when it ratifies + builds #194) lives only in your head,
+   capture it — the JOURNAL records the *what*, not the *why*.
 B. **Audit-proposal disposition philosophy** — for the 3-layer audit's held proposals,
    is there a priority/sequencing intent (e.g. "do P1 ADR-82 correctness first, defer all
    grooms") that isn't derivable from the findings docs themselves?
