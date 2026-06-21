@@ -16,10 +16,13 @@ Design under test:
 Two validation outcomes (ADR-89): `broken_edge` (a side resolves to nothing = deterministic
 hard-FAIL) vs a resolved edge. `ambiguous` flags a duplicated rule-ID.
 
-Spike scope (deliberately minimal): the file-level edge + the four move-safety proofs only.
-This is NOT wired into `audit.py` ALL_CHECKS or pre-commit -- that, plus `staleness_signal`,
-the `::symbol` target leg (via `reverse_dep_oracle.resolve_symbol`), the rebuildable index,
-and full annotation rollout, are Phase 2, gated on this spike's GREEN.
+Phase-2 sub-arc 1 wired this as the `doc_code_edge` ADVISORY check in `audit.py` ALL_CHECKS
+(WARN-only, never a gate; #194) via the `iter_doc_rule_ids` enumerator below. Still deferred:
+pre-commit promotion (data-gated, ADR-89 OQ3), `staleness_signal`, the `::symbol` target leg
+(via `reverse_dep_oracle.resolve_symbol`), the rebuildable index, and the real-annotation
+rollout -- gated on the still-undesigned rule-ID NAMING scheme (ADR-89 OQ1 #1 / the #194
+"declared rule-ID scheme" deliverable; an ADR-89 amendment / Council ruling, not a build-time
+pick). The file-level edge + the four move-safety proofs remain the proven core.
 
 Layer-2 / read-only (ADR-28/36): reads `*.md` + `*.py` under the given roots; writes
 NOTHING; never orchestrates; never gates (the spike CLI exits 0 -- awareness only).
