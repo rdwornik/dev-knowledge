@@ -80,14 +80,6 @@ dispositions:
     reason: >-
       Pre-existing inline-history accretion on the #10 task line. Surfaced, not introduced;
       tracked for condensation under #134 (backlog grooming review) per ADR-65.
-  - id: warn-doc-rot-claude-section-history
-    organ: doc_rot
-    match: "CLAUDE.md#section-history"
-    ref: "#140"
-    reason: >-
-      Pre-existing CLAUDE.md §12 Section-history block (20 entries) — the ADR-49 retired-inline-
-      changelog class. Surfaced, not introduced; condensation-to-git is the same class as #77's
-      PLAYBOOK Section-history stripping (the nearest tracked grooming item).
 
   # ---- pre-existing 2026-06-19 direct-to-main commits (operator-ratified 2026-06-20) ----
   # Two non-merge commits landed directly on main 2026-06-19 — after BASELINE_DATE (2026-06-15)
