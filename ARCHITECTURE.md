@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-20
+last_reviewed: 2026-06-21
 status: active
 owner: Rob
 ---
@@ -325,9 +325,11 @@ above references — the `scripts/` inventory:
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
 (PLAYBOOK.md), `validate-backlog`, `audit-health`, `ruff` (≥0.15.5),
-`coherence-nudge` (non-blocking forgotten-version-bump nudge — exits 0 always), and
-`backlog-id-on-close` (commit-msg). Editing **this file** fires
-`normalize-dated-headers`, `codemap-freshness`, `toc-freshness`, and `audit-health`.
+`coherence-nudge` (non-blocking forgotten-version-bump nudge — exits 0 always),
+`backlog-id-on-close` (commit-msg), and `block-ff-push` (pre-push — #153 prevent
+half; activate once via `pre-commit install --hook-type pre-push`). Editing **this
+file** fires `normalize-dated-headers`, `codemap-freshness`, `toc-freshness`, and
+`audit-health`.
 
 ---
 
