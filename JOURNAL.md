@@ -19,6 +19,23 @@
 
 ---
 
+### 2026-06-21 — CC: #194 Phase-2-prep SPIKE — doc↔code edge move-safety PROVEN (build-ready)
+
+**Did:** Empirical spike (plan-mode → approved) to PROVE the ADR-89 OQ1 *corrected* mechanism (rule-ID identity + path/AST resolution) is **move-safe** — i.e. it does NOT reintroduce the path-rot the codemap mechanism was rejected for — **before** any Phase-2 build. Feature branch `feat/194-doc-code-edge-spike` off `main` in the **primary** checkout; one commit per phase, `pytest`/`ruff`/`ship-gate` GREEN after each. NOT the build — no production edge, no `audit.py` wiring.
+
+**Result:**
+- **Phase A (the spike) — MOVE-SAFETY PROVEN.** Minimal read-only resolver `scripts/validate_doc_code_edge.py` locates `<!-- rule: ID -->` (doc) + `# rule: ID` (code, via `tokenize` COMMENT tokens) by **content, never a stored path**. Fixture `tests/fixtures/doc-code-edge/` + `tests/test_doc_code_edge.py` — the four proofs all GREEN: (a) resolves; **(b) MOVE-SAFETY (load-bearing): a moved annotated file re-resolves at its NEW path, no `broken_edge`** (assert `code_sites[0].file` == the new path); (c) deleted annotation → `broken_edge`; (d) duplicate → `ambiguous`; + a string-literal isolation check (tokenize ≠ raw grep). Decision gate ((b) GREEN) cleared → proceeded.
+- **Phase B — design locked at the read-point.** ADR-89 OQ1 gained a `— CURRENT DESIGN` pointer at the **top** of the section (additive; the original ruling + its correction untouched per the immutability convention), citing the proof SHA so the next builder can't miss the current mechanism.
+- **Phase C — teeth filed.** BACKLOG **#200** (merge-serialization gate — one-merge-at-a-time integration to `main`; needs design, AI Council candidate; file-the-need only, not built).
+- **id-collision caught by the mesh:** filed **#200, not #199** — `git_backlog_drift` flagged #199 as an already-closed id in history (`f201185`/`2118ec317`, refscan precision); the live-BACKLOG max (#198) is **not** the next-free id when a closed task has left. The detector earned its keep.
+- Verified: `pytest` **776 passed / 1 skipped** (777 collected; +5 from Phase A), `ruff` clean, `ship-gate` **GREEN** (6 WARN dispositioned, no new WARN).
+
+**Changes:** `e22e883` (Phase A: resolver + fixture + 4 proofs + ARCHITECTURE 772→777) · `82c0102` (Phase B: ADR-89 OQ1 CURRENT DESIGN pointer) · `fa27fb3` (Phase C: BACKLOG #200) + this `JOURNAL.md`; then `--no-ff` merge to `main` from the primary checkout. Files: `scripts/validate_doc_code_edge.py`, `tests/test_doc_code_edge.py`, `tests/fixtures/doc-code-edge/{doc.md,sample_module.py}`, ARCHITECTURE.md, ADR-89, BACKLOG.md, JOURNAL.md. Branch `feat/194-doc-code-edge-spike`. Plan `~/.claude/plans/cc-prompt-cosmic-stardust.md`. **Not pushed** (awaiting operator).
+
+**Abandoned / left open (reported, not closed):** **#194 stays OPEN** — this spike proved the *mechanism*; Phase 2 (the production edge: `audit.py` check #23, `staleness_signal`, the `::symbol` target leg via `reverse_dep_oracle.resolve_symbol`, the rebuildable index, full annotation rollout) is the remaining build, now gated GREEN on this proof and unblocked. The spike resolver is **file-leg only** (the symbol leg is deferred to Phase 2). No `audit.py`/pre-commit wiring this pass (advisory-first, by design).
+
+**Next:** build **#194** Phase 2 to the proven shape (rule-ID + path/AST, `broken_edge`/`staleness_signal`, advisory-first); **#200** merge-serialization gate needs a design pass (AI Council candidate).
+
 ### 2026-06-21 — CC: doc-currency reconciliation (WT-currency: B1/B2/B3/B5 + #10)
 
 **Did:** Cleared the 2026-06-21 audit's doc-currency backlog on `worktree-currency-doc` (a real `.claude/worktrees/` worktree — file-ownership isolation; the `/ship`-in-worktree refusal means the integrating `--no-ff` merge runs from the **primary** checkout). One commit per item, `ship-gate` GREEN after each. Owned files only — PLAYBOOK / ESSENTIALS / SESSION_SETUP + the #10 BACKLOG close; did **not** touch `scripts/`, `docs/decisions/`, ARCHITECTURE, or README (#194 / spine territory). Picks up the prior wrap's queued "Next: #10 (PLAYBOOK bare-path repoint)" — which that entry explicitly assigned to "WT-currency's" track.
