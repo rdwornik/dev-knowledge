@@ -232,7 +232,8 @@ in reality by the cloud Routine (Ch6 supersession note).
 
 Per the ADR-28 invariant, Layer 2 hosts **read-only** validators (it does not
 orchestrate, but it may verify itself). These are the *executable* organs the map
-above references — the `scripts/` inventory:
+above references — the **named deterministic-trigger organs**, curated to what the map
+references, **not an exhaustive inventory** of every script in `scripts/`:
 
 - `scripts/audit.py` — cross-repo conformance + self-audit; **22 registered checks**
   (`python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
@@ -289,6 +290,12 @@ above references — the `scripts/` inventory:
   locus, DETECT-ONLY (never renumbers / auto-fixes); documented-intentional cases (the §18 gap)
   pass via co-located `structure-allow` markers. Distinct failure class from #140 (structural
   shape, not history-accretion). Standalone CLI: `python scripts/validate_doc_structure.py` (#192).
+- `scripts/validate_reconciliation.py` — declared-edge **reconciliation** checker: the
+  `reconciled_versions` audit check / **ADR-88's named deterministic trigger** for the doc→doc
+  **declared** edge. A dependent declaring `reconciled_with: <spec>@<version>` must match the spec's
+  live version; a drifted edge **FAILs** (the coherence-spine gate, #172 v1). The *declared* half of
+  dependency coherence — the complement to `scan_undeclared_edges.py`'s discovery half (below).
+  Standalone CLI: `python scripts/validate_reconciliation.py`.
 - `scripts/scan_undeclared_edges.py` — undeclared-edge referential-currency scan: the
   **discovery** half of dependency coherence (**ADR-88 FC2**; #179) — the complement to the
   declared-edge checker (`reconciled_versions` / `validate_reconciliation.py`). Infers

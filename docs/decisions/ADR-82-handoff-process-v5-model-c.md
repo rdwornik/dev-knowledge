@@ -8,6 +8,12 @@
 
 <!-- Decommission: deferred to promotion — see Source; nothing active while Proposed. -->
 
+> **Status update (in-place marker — the frozen header above is unchanged per the immutability
+> convention): canonical since 2026-06-11.** HANDOFF_PROCESS v5 was **promoted to canonical (v5.2)** on
+> 2026-06-11. The AI-Council ratification gate was **waived (#149)** — *not* passed — so this is
+> **canonical by operator waiver, not Council-accepted**, and **no Council transcript exists**. Read the
+> header/body "while Proposed" and "at promotion" qualifiers as historical (pre-promotion) context.
+
 ## Context
 
 The v4 handoff (current v4.4, `protocols/HANDOFF_PROCESS.md`) treats a handoff as onboarding a new chat with a heavy 8-file teaching bundle, pasted into a fresh browser chat. The 2026-06-10 LESSONS entry diagnosed the load-bearing failure: a handoff that *points* at the methodology but does not *force* the receiver to open it lets the new session work from the lossy in-context **compaction summary** — a SECONDARY source — instead of the methodology files on disk (the PRIMARY source). The v4 comprehension questions are answerable from the bundle itself, so the forced-read is vacuous: "fake-green, like a test that passes without the behavior." The bundle also re-transmits methodology already encoded in the repo, which drifts from its source (the proven `/review` vs `/codex review` drift class).
