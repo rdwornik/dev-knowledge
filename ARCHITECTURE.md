@@ -235,10 +235,10 @@ orchestrate, but it may verify itself). These are the *executable* organs the ma
 above references — the **named deterministic-trigger organs**, curated to what the map
 references, **not an exhaustive inventory** of every script in `scripts/`:
 
-- `scripts/audit.py` — cross-repo conformance + self-audit; **22 registered checks**
+- `scripts/audit.py` — cross-repo conformance + self-audit; **23 registered checks**
   (`python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
   `no_sibling_orphans`, `canonical_structure`, `amendment_coherence`, `git_backlog_drift`,
-  `no_ff_merges`, `reconciled_versions`, `doc_rot`, `doc_structure`).
+  `no_ff_merges`, `reconciled_versions`, `doc_rot`, `doc_structure`, `doc_code_edge`).
   `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs);
   `ship-gate` = the #147 pre-ship verification-organ gate (Definition-of-shipped point 6).
   **Seam `ship-gate` vs `health`:** both reuse `ALL_CHECKS`, but `health` gates each
@@ -327,7 +327,7 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   node); the safe-removal gate that consumes it is #195. Pyright is vendored via `npm install`
   (pinned in `package.json`; `node_modules/` gitignored). Standalone CLI:
   `python scripts/reverse_dep_oracle.py <symbol> [--json|--text]`.
-- `tests/` — pytest unit tests for the validators (**777 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**786 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`

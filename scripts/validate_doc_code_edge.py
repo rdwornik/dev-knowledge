@@ -16,10 +16,13 @@ Design under test:
 Two validation outcomes (ADR-89): `broken_edge` (a side resolves to nothing = deterministic
 hard-FAIL) vs a resolved edge. `ambiguous` flags a duplicated rule-ID.
 
-Spike scope (deliberately minimal): the file-level edge + the four move-safety proofs only.
-This is NOT wired into `audit.py` ALL_CHECKS or pre-commit -- that, plus `staleness_signal`,
-the `::symbol` target leg (via `reverse_dep_oracle.resolve_symbol`), the rebuildable index,
-and full annotation rollout, are Phase 2, gated on this spike's GREEN.
+Phase-2 sub-arc 1 wired this as the `doc_code_edge` ADVISORY check in `audit.py` ALL_CHECKS
+(WARN-only, never a gate; #194) via the `iter_doc_rule_ids` enumerator below. Still deferred:
+pre-commit promotion (data-gated, ADR-89 OQ3), `staleness_signal`, the `::symbol` target leg
+(via `reverse_dep_oracle.resolve_symbol`), the rebuildable index, and the real-annotation
+rollout -- gated on the still-undesigned rule-ID NAMING scheme (ADR-89 OQ1 #1 / the #194
+"declared rule-ID scheme" deliverable; an ADR-89 amendment / Council ruling, not a build-time
+pick). The file-level edge + the four move-safety proofs remain the proven core.
 
 Layer-2 / read-only (ADR-28/36): reads `*.md` + `*.py` under the given roots; writes
 NOTHING; never orchestrates; never gates (the spike CLI exits 0 -- awareness only).
@@ -84,6 +87,38 @@ def find_doc_sites(rule_id: str, doc_root: Path) -> list[Site]:
                 if m.group(1) == rule_id:
                     out.append(Site(rel, i))
     return out
+
+
+def iter_doc_rule_ids(doc_root: Path, exclude_top: tuple[str, ...] = ()) -> set[str]:
+    """Enumerate every `<!-- rule: ID -->` rule-ID across `*.md` under `doc_root`.
+
+    Returns the set of unique IDs (location-free; pair with `resolve_edge` to locate sites).
+    Same content-scan contract as `find_doc_sites` -- the ID is read from annotation CONTENT,
+    never a stored path. `exclude_top` skips any `*.md` whose FIRST root-relative path
+    component (a directory name, or a root-level filename like `JOURNAL.md`) is listed: the
+    advisory check passes the test-fixture tree plus the immutable design-record trees
+    (`docs/`, `JOURNAL.md`) that only DISCUSS the token syntax, so their illustrative
+    `<!-- rule: ID -->` / `<!-- rule: PB-07 -->` examples never register as live edges.
+
+    Asymmetry seed (Phase 2): `find_code_sites` uses `tokenize` to skip a `# rule: ID` buried
+    in a string literal, but the doc side has NO equivalent guard against an illustrative token
+    inside a markdown code fence or inline span (the regex does not respect fencing), so the
+    live scan universe is bounded by `exclude_top` instead. A real doc-side guard (skip
+    fenced/inline-code spans, or honor only tokens on/adjacent to a governed heading) is later
+    work.
+    """
+    ids: set[str] = set()
+    for md in sorted(doc_root.rglob("*.md")):
+        rel = md.relative_to(doc_root)
+        if exclude_top and rel.parts and rel.parts[0] in exclude_top:
+            continue
+        try:
+            text = md.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for m in DOC_RE.finditer(text):
+            ids.add(m.group(1))
+    return ids
 
 
 def find_code_sites(rule_id: str, code_root: Path) -> list[Site]:

@@ -32,6 +32,9 @@ def _load():
 
 vdce = _load()
 
+sys.path.insert(0, str(_REPO_ROOT / "scripts"))
+import audit as aud  # noqa: E402  (audit imports the same module as its _vdce)
+
 
 def _copy_fixture(tmp_path):
     """Copy the fixture into a tmp tree; doc + code share one dir, so both roots = it."""
@@ -103,3 +106,109 @@ def test_string_literal_is_not_a_false_hit(tmp_path):
     )
     result = vdce.resolve_edge("TEST-01", doc_root, code_root)
     assert result.status == "broken_edge"  # the string mention is not a real comment token
+
+
+# --- iter_doc_rule_ids: doc-side enumeration (Phase-2 advisory-check seed, #194) --------
+
+def test_iter_collects_all_ids(tmp_path):
+    (tmp_path / "a.md").write_text("rule one <!-- rule: ALPHA-1 -->\n", encoding="utf-8")
+    (tmp_path / "b.md").write_text("rule two <!-- rule: BETA.2 -->\n", encoding="utf-8")
+    assert vdce.iter_doc_rule_ids(tmp_path) == {"ALPHA-1", "BETA.2"}
+
+
+def test_iter_empty_when_no_annotations(tmp_path):
+    (tmp_path / "plain.md").write_text("no rule tokens here\n", encoding="utf-8")
+    assert vdce.iter_doc_rule_ids(tmp_path) == set()
+
+
+def test_iter_exclude_top_skips_named_trees(tmp_path):
+    """Illustrative tokens in excluded trees (a `docs/`-style record, a root log) must NOT
+    register as live edges -- only the governed-doc token survives the exclusion."""
+    (tmp_path / "PLAYBOOK.md").write_text("governed <!-- rule: LIVE-1 -->\n", encoding="utf-8")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "adr.md").write_text(
+        "example <!-- rule: ILLUS-1 -->\n", encoding="utf-8"
+    )
+    (tmp_path / "JOURNAL.md").write_text(
+        "wrap quoted <!-- rule: ILLUS-2 -->\n", encoding="utf-8"
+    )
+    assert vdce.iter_doc_rule_ids(
+        tmp_path, exclude_top=("docs", "JOURNAL.md")
+    ) == {"LIVE-1"}
+
+
+# --- deployed audit check: check_doc_code_edge (#194 sub-arc-1 advisory) ----------------
+
+def _as_hub(tmp_path, monkeypatch):
+    """Point audit._REPO_ROOT at a tmp dir so the hub-only guard passes for that dir."""
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+
+
+def test_edge_check_skips_non_hub_repo(tmp_path):
+    findings = aud.check_doc_code_edge(tmp_path / "some-child")
+    assert len(findings) == 1
+    assert findings[0].check_name == "doc_code_edge"
+    assert findings[0].status == "pass"
+    assert "hub-only" in findings[0].evidence
+
+
+def test_edge_check_warns_on_broken_edge(tmp_path, monkeypatch):
+    _as_hub(tmp_path, monkeypatch)
+    (tmp_path / "PLAYBOOK.md").write_text("a rule <!-- rule: GOV-1 -->\n", encoding="utf-8")
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "thing.py").write_text(
+        "def f():\n    return 1\n", encoding="utf-8")  # no `# rule: GOV-1` annotation
+    findings = aud.check_doc_code_edge(tmp_path)
+    assert all(f.status != "fail" for f in findings)        # WARN-only contract, never FAIL
+    assert len(findings) == 1
+    assert findings[0].status == "warn"
+    assert "GOV-1" in findings[0].evidence
+    assert "broken_edge" in findings[0].evidence
+    assert "|" not in findings[0].evidence                  # markdown-table-safe evidence
+
+
+def test_edge_check_passes_on_resolved_edge(tmp_path, monkeypatch):
+    _as_hub(tmp_path, monkeypatch)
+    (tmp_path / "PLAYBOOK.md").write_text("a rule <!-- rule: GOV-2 -->\n", encoding="utf-8")
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "thing.py").write_text(
+        "def f():\n    # rule: GOV-2\n    return 1\n", encoding="utf-8")
+    findings = aud.check_doc_code_edge(tmp_path)
+    assert len(findings) == 1
+    assert findings[0].status == "pass"
+    assert "resolved" in findings[0].evidence
+
+
+def test_edge_check_advisory_inactive_when_no_annotations(tmp_path, monkeypatch):
+    _as_hub(tmp_path, monkeypatch)
+    (tmp_path / "PLAYBOOK.md").write_text("no rule tokens here\n", encoding="utf-8")
+    findings = aud.check_doc_code_edge(tmp_path)
+    assert findings[0].status == "pass"
+    assert "advisory inactive" in findings[0].evidence
+
+
+def test_edge_check_excludes_record_trees(tmp_path, monkeypatch):
+    """Operator concern-1 fix: illustrative tokens in docs/ + JOURNAL.md + tests/ must NOT
+    register as live edges -- else the check WARNs on prose in immutable design records."""
+    _as_hub(tmp_path, monkeypatch)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "adr.md").write_text(
+        "example token `<!-- rule: PB-07 -->`\n", encoding="utf-8")
+    (tmp_path / "JOURNAL.md").write_text("wrap quoting <!-- rule: ID -->\n", encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "fix.md").write_text("<!-- rule: TEST-01 -->\n", encoding="utf-8")
+    findings = aud.check_doc_code_edge(tmp_path)
+    assert findings[0].status == "pass"
+    assert "advisory inactive" in findings[0].evidence
+
+
+def test_edge_check_registered_and_inactive_on_live_repo():
+    """Registered in ALL_CHECKS (count 23) AND the LIVE hub scan is genuinely empty: every
+    live `<!-- rule: -->` token sits in an excluded record/fixture tree, so the advisory is
+    honestly inactive (never FAILs). This is the run the operator required before asserting 0."""
+    assert aud.check_doc_code_edge in aud.ALL_CHECKS
+    assert len(aud.ALL_CHECKS) == 23
+    findings = aud.check_doc_code_edge(Path(aud._REPO_ROOT))
+    assert len(findings) == 1
+    assert findings[0].status == "pass"
+    assert "advisory inactive" in findings[0].evidence
