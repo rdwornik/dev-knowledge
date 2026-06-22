@@ -19,6 +19,26 @@
 
 ---
 
+### 2026-06-22 — CC: #194 Arc-1 Phase-B — doc→code cohort-1 complete, coverage guard now permanent
+
+**Did:** Annotated the 2 single-site Tier-2 rules so the doc→code coverage test reached 5/5 resolved → it XPASSed → removed the `xfail(strict=True)` decorator → the test now stands as the **permanent coverage guard** (was a known-failing placeholder). ADR-87 equilibrium-contract brief, auto/mechanical mode; branch `feat/194-arc1-phaseb` off `main` (primary checkout); `pytest`/`ruff`/`ship-gate` GREEN. **Token-drops only** (both rules already carried authoritative declarations — no new doctrine, no new file). **#194 stays OPEN** (the deferred tail remains).
+
+**Result:**
+- **`coherence-amendment`** — doc token at PLAYBOOK §"Multi-surface amendment coherence" + code token above `audit.py::check_amendment_coherence` → `resolved`.
+- **`governance-backlog-schema`** — doc token at PLAYBOOK §"Schema (ADR-66…)" + code token above `validate_backlog.py::validate` → `resolved`.
+- **`check_doc_code_edge` now reports `5 doc->code edge(s) resolved`** (was 3). Reconciled the two count assertions: `test_edge_check_registered_and_resolves_starter_set` (`"3 doc"` → `"5 doc"` + docstring) and ARCHITECTURE.md prose ("live on 3 starter rules" → "live on 5 rules"). No machine `doc_claims` edge-count claim exists, so nothing else to reconcile.
+- **Guard made permanent:** removed the xfail decorator from `test_coverage_all_in_scope_rules_resolve`; it passes as a normal test (5/5 resolve) and now FAILs if any in-scope edge regresses or a rule is scoped without its annotation. Collection stays **793** (only the decorator removed, not the test); pytest moved from "791 passed / 1 xfailed" → **792 passed / 1 skipped**.
+- **Deferred tail tracked** (Commit 2 `f1d2e77`) — 3 new BACKLOG tasks under the ADR-89 computed-edges story (serialize-group `code-edge`): #201 two-organ rule-ID scheme (AI Council candidate; blocks no-ff / child-floor / backlog-leave), #202 author canonical declarations for the 4 Tier-3 rules, #203 auto-discover drift-guard over ALL_CHECKS. So "5/5 green" reads as **cohort-1 complete, not rollout done**.
+- Verified: `pytest` **792 passed / 1 skipped** (793 collected, count unchanged), `ruff` clean, `ship-gate` **GREEN** (6 WARN dispositioned — pre-existing, **no new WARN**; `doc_code_edge: 5 resolved`).
+
+**Changes:** `25394c9` (annotations + decorator removal + count reconcile: PLAYBOOK, audit.py, validate_backlog.py, test_doc_code_edge.py, ARCHITECTURE.md) + `f1d2e77` (BACKLOG #201–#203) + this JOURNAL wrap. Branch `feat/194-arc1-phaseb`; local `--no-ff` merge to `main` (primary checkout). **Not pushed** (awaiting operator push + branch delete). No `[#id]` bracket — pure ADD; #194 stays OPEN.
+
+**Abandoned / left open (reported, not closed):** **#194 stays OPEN.** Cohort-1 (5 single-site rules) is done; the rollout is not. Deferred + now tracked: #201 (two-organ scheme — unblocks `governance-no-ff` / `governance-child-floor` / `governance-backlog-leave`), #202 (4 Tier-3 needs-declaration rules), #203 (ALL_CHECKS drift-guard). Edge stays **advisory** (gate-promotion is OQ3, data-gated). Whether Arc-1 is a closeable sub-task of #194 is an operator call (default OPEN).
+
+**Next:** operator — push `main` + delete the merged branch when ready; architect — educate-step (the 3→5 count flip + the now-permanent guard) + decide #201's two-organ scheme (AI Council) to unblock the next cohort.
+
+---
+
 ### 2026-06-22 — CC: #194 Arc-1 Phase-A — doc→code coverage gate (TEST-FIRST) + inventory revealed
 
 **Did:** Committed the doc→code rollout's **executable success criterion BEFORE annotating anything** (TDD): an xfail-strict coverage test whose failing output IS the rollout inventory. Plan-mode → approved (operator added a **code-side single-site** check to the build-verification); branch `feat/194-arc1-coverage-test` off `main` (primary checkout); `pytest`/`ruff`/`ship-gate` GREEN. **Annotates nothing** (that is Phase B) — a failing test with nothing newly annotated is the correct Phase-A state. **#194 stays OPEN.**

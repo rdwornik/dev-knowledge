@@ -237,17 +237,17 @@ def test_edge_check_only_scans_listed_docs(tmp_path, monkeypatch):
 
 
 def test_edge_check_registered_and_resolves_starter_set():
-    """Registered in ALL_CHECKS (count 23) AND the LIVE hub scan now resolves the #194 starter set
-    over the declaration-doc registry: the 3 enforced rules (seal-journal-anchor,
-    canonical-freshness, coherence-spec-reconciled) each resolve doc<->code -- the edge is REAL +
-    advisory (never FAILs). Replaces the pre-annotation advisory-inactive assertion (sub-arc-2)."""
+    """Registered in ALL_CHECKS (count 23) AND the LIVE hub scan resolves the #194 cohort-1 set
+    over the declaration-doc registry: 5 enforced rules (the 3 starters seal-journal-anchor /
+    canonical-freshness / coherence-spec-reconciled + Phase-B coherence-amendment /
+    governance-backlog-schema) each resolve doc<->code -- the edge is REAL + advisory (never FAILs)."""
     assert aud.check_doc_code_edge in aud.ALL_CHECKS
     assert len(aud.ALL_CHECKS) == 23
     findings = aud.check_doc_code_edge(Path(aud._REPO_ROOT))
     assert all(f.status != "fail" for f in findings)        # advisory: never FAIL
     assert len(findings) == 1
     assert findings[0].status == "pass"
-    assert "3 doc" in findings[0].evidence                  # exactly the 3 starters
+    assert "5 doc" in findings[0].evidence                  # the 5 cohort-1 rules (Phase B)
     assert "resolved" in findings[0].evidence
 
 
@@ -342,30 +342,23 @@ def test_real_starter_edges_resolve_and_break(tmp_path, rule_id, doc_rel, code_r
     assert vdce.resolve_edge(rule_id, tmp_path, code_root).status == "broken_edge"
 
 
-# --- doc->code coverage gate (#194 Arc 1, TEST-FIRST) ----------------------------------
-# The executable success criterion for the doc->code rollout: every in-scope enforced rule
-# (ecosystem/doc-code-edge.yaml `coverage_scope:`) must resolve doc<->code. Committed FAILING
-# (only the 3 starters resolve today) but tolerated by xfail-strict, so the suite stays green;
-# the assertion message's not-yet-resolved list IS the rollout inventory. At 100% it XPASSes ->
-# strict FAILS -> remove the xfail and this stands as the permanent coverage guard (completion).
+# --- doc->code coverage gate (#194 Arc-1, the permanent guard) -------------------------
+# Every in-scope enforced rule (ecosystem/doc-code-edge.yaml `coverage_scope:`) must resolve
+# doc<->code. Committed xfail-strict in Phase A as the executable success criterion; at cohort-1
+# completion (Phase B) all coverage_scope rules resolve, the xfail was removed, and this now
+# stands as the PERMANENT coverage guard -- it FAILs if a future edit breaks any in-scope edge,
+# or if a rule is added to coverage_scope without its doc+code annotation.
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="#194 doc->code rollout in progress -- not every in-scope rule is annotated yet. "
-           "At 100% this XPASSes (strict failure) -> REMOVE this xfail; the test then stands "
-           "as the permanent coverage guard.",
-)
 def test_coverage_all_in_scope_rules_resolve():
-    """Every rule-ID in coverage_scope (the #194 rollout inventory) must resolve doc<->code.
+    """Every rule-ID in coverage_scope (the #194 in-scope enforced rules) must resolve doc<->code.
 
     Resolves each against the LIVE hub (declaration docs at repo root, code under scripts/) --
-    the same repo-wide resolution check_doc_code_edge performs. Today only the 3 starters
-    resolve, so `unresolved` is non-empty -> AssertionError -> XFAIL (suite green). The message
-    enumerates the not-yet-annotated rules; that list is the rollout scope.
+    the same repo-wide resolution check_doc_code_edge performs. The assertion message names any
+    rule that regresses to broken_edge/ambiguous (or is scoped without its annotation).
     """
     scope = aud._load_coverage_scope(_REPO_ROOT)
-    assert scope, "coverage_scope is empty/absent -- would vacuously XPASS and trip strict"
+    assert scope, "coverage_scope is empty/absent -- the guard would vacuously pass"
     code_root = _REPO_ROOT / "scripts"
     unresolved = [
         rid for rid in scope
