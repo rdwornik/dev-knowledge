@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-21
+last_reviewed: 2026-06-22
 status: active
 owner: Rob
 ---
@@ -331,6 +331,13 @@ messages have to carry the load CHANGELOG used to. Standard:
 
 `/save` follows this standard. See CONTRIBUTING.md for live examples and
 the pre-commit hook list.
+
+---
+
+## Rule-ID naming convention
+<!-- scope: meta -->
+
+An enforced rule with both a doc declaration and code teeth carries a stable `<domain>-<slug>` rule-ID — doc side `<!-- rule: <domain>-<slug> -->`, code side `# rule: <domain>-<slug>` — so the `doc_code_edge` advisory check resolves the pair (the ID is the identity, not the path, so the edge is move-safe). `<domain>` is a cited theme/source, never a location; only code-enforced rules get an ID; IDs are never reused. **Declare a rule at its authoritative source, never in a summary** — the scanned declaration docs are listed in `ecosystem/doc-code-edge.yaml`. Teaching examples use the `<…>` placeholder form so they never register as live edges. Full convention + rationale: PLAYBOOK "Rule-ID naming convention" / ADR-89 OQ1.
 
 ---
 

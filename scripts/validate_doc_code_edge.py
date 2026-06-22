@@ -89,29 +89,27 @@ def find_doc_sites(rule_id: str, doc_root: Path) -> list[Site]:
     return out
 
 
-def iter_doc_rule_ids(doc_root: Path, exclude_top: tuple[str, ...] = ()) -> set[str]:
-    """Enumerate every `<!-- rule: ID -->` rule-ID across `*.md` under `doc_root`.
+def iter_doc_rule_ids(doc_root: Path, include: tuple[str, ...] = ()) -> set[str]:
+    """Enumerate every `<!-- rule: ID -->` rule-ID across the declaration docs in `include`.
 
-    Returns the set of unique IDs (location-free; pair with `resolve_edge` to locate sites).
-    Same content-scan contract as `find_doc_sites` -- the ID is read from annotation CONTENT,
-    never a stored path. `exclude_top` skips any `*.md` whose FIRST root-relative path
-    component (a directory name, or a root-level filename like `JOURNAL.md`) is listed: the
-    advisory check passes the test-fixture tree plus the immutable design-record trees
-    (`docs/`, `JOURNAL.md`) that only DISCUSS the token syntax, so their illustrative
-    `<!-- rule: ID -->` / `<!-- rule: PB-07 -->` examples never register as live edges.
+    `include` is the registry-scoped include-list of repo-relative doc paths (the
+    `declaration_docs:` list in `ecosystem/doc-code-edge.yaml`); the scan reads ONLY those
+    files, each resolved against `doc_root`. Returns the set of unique IDs (location-free; pair
+    with `resolve_edge` to locate sites). Same content-scan contract as `find_doc_sites` -- the
+    ID is read from annotation CONTENT, never a stored path. A listed path that does not exist
+    is skipped (fail-soft).
 
-    Asymmetry seed (Phase 2): `find_code_sites` uses `tokenize` to skip a `# rule: ID` buried
-    in a string literal, but the doc side has NO equivalent guard against an illustrative token
-    inside a markdown code fence or inline span (the regex does not respect fencing), so the
-    live scan universe is bounded by `exclude_top` instead. A real doc-side guard (skip
-    fenced/inline-code spans, or honor only tokens on/adjacent to a governed heading) is later
-    work.
+    Registry-scoped (replaces the earlier hardcoded record-tree exclude-list): the live scan
+    universe is exactly the docs that AUTHORITATIVELY declare an enforced rule, so illustrative
+    `<!-- rule: ID -->` tokens elsewhere (immutable design records, teaching sections, the test
+    fixtures) never register as live edges. Two complementary guards keep examples out:
+    (1) this include-list bounds WHICH files are scanned; (2) teaching tokens use the
+    angle-bracket placeholder form `<!-- rule: <domain>-<slug> -->`, whose `<`/`>` fall outside
+    the ID charset, so even inside a listed doc a placeholder is never matched as a live edge.
     """
     ids: set[str] = set()
-    for md in sorted(doc_root.rglob("*.md")):
-        rel = md.relative_to(doc_root)
-        if exclude_top and rel.parts and rel.parts[0] in exclude_top:
-            continue
+    for rel in include:
+        md = doc_root / rel
         try:
             text = md.read_text(encoding="utf-8")
         except OSError:

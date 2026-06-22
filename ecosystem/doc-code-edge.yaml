@@ -1,0 +1,27 @@
+# Doc->code edge declaration-doc registry -- #194 Phase-2 (ADR-89 OQ1 naming convention).
+#
+# The `doc_code_edge` advisory check (audit.py::check_doc_code_edge) discovers every
+# `<!-- rule: ID -->` annotation in the DECLARATION DOCS listed here and resolves each to its
+# `# rule: ID` code annotation under scripts/ (rule-ID identity, path+AST resolution -- move-safe
+# per the e22e883 spike). This file is the doc-side scan scope: an include-list, NOT an
+# exclude-list. The scan reads ONLY these files, so illustrative `<!-- rule: <domain>-<slug> -->`
+# tokens anywhere else (immutable design records, teaching sections, the test fixtures) are never
+# live edges. (Belt-and-braces: teaching tokens also use the angle-bracket placeholder form, whose
+# `<`/`>` fall outside the rule-ID charset and never match.)
+#
+# AUTHORITATIVE DECLARATION SOURCES ONLY (ADR-89 OQ1). Each entry is a doc that AUTHORITATIVELY
+# declares an enforced rule -- declare a rule at its source, NEVER in a summary (e.g.
+# `seal-journal-anchor` is declared in DEFINITION_OF_DONE.md, ADR-85's single-source, NOT in the
+# ESSENTIALS one-line summary of it). EXTENSIBLE, mirroring the domain namespace: a doc joins this
+# list when it first authoritatively declares an enforced rule -- a one-row append, no ADR rewrite.
+#
+# Mirrors the ecosystem/disposition-register.yaml precedent: hand-edited, durable, yaml.safe_load,
+# one concern per file. Read-only (Layer-2 invariant). Paths are repo-relative, forward slashes.
+#
+# Fail-mode (ADVISORY this arc): the loader is fail-soft -> [] (a missing/malformed file renders the
+# check inert and passes). FORWARD-FLAG (ADR-89 OQ1; hard-gate promotion arc, OQ3): switch to
+# WARN-on-missing/malformed-config so a lost config cannot silently disable a live gate.
+
+declaration_docs:
+  - protocols/PLAYBOOK.md            # canonical-freshness, coherence-spec-reconciled
+  - protocols/DEFINITION_OF_DONE.md  # seal-journal-anchor (ADR-85 single-source)

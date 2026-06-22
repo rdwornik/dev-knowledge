@@ -774,6 +774,7 @@ def _git_last_commit_date(repo_path: Path, filename: str) -> Optional[date]:
         return None
 
 
+# rule: canonical-freshness
 def check_canonical_freshness(repo_path: Path) -> list[Finding]:
     """Canonical living-file freshness cadence (operationalizes ADR-39 grooming).
 
@@ -1536,41 +1537,64 @@ def check_reconciled_versions(repo_path: Path) -> list[Finding]:
                     if n else "no reconciled_with edges declared")]
 
 
+def _load_declaration_docs(repo_path: Path) -> tuple[str, ...]:
+    """Read the doc→code edge declaration-doc include-list (`ecosystem/doc-code-edge.yaml`,
+    `declaration_docs:`) — the registry-scoped scan scope for `check_doc_code_edge`. Resolved
+    from `repo_path` at call time (NOT a module constant) so the hub guard + tmp-hub tests see
+    the right file. Returns repo-relative doc paths (forward slashes), in declared order.
+
+    Fail-soft → () : a missing/malformed file renders the advisory check inert and passes —
+    correct while the edge is ADVISORY. NOTE (hard-gate promotion, ADR-89 OQ1 / OQ3): when this
+    edge is promoted to a gate, switch to WARN-on-missing/malformed-config so a lost config
+    cannot silently disable a live gate. Read-only.
+    """
+    cfg = Path(repo_path) / "ecosystem" / "doc-code-edge.yaml"
+    try:
+        data = yaml.safe_load(cfg.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return ()
+    if not isinstance(data, dict):
+        return ()
+    docs = data.get("declaration_docs")
+    if not isinstance(docs, list):  # a non-list scalar must degrade, not raise
+        return ()
+    return tuple(d for d in docs if isinstance(d, str))
+
+
 def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     """#194 doc→code declared-edge integrity (advisory-first, ADR-89 OQ1).
 
-    Discovers every `<!-- rule: ID -->` annotation in governed docs and resolves each to its
-    `# rule: ID` code annotation under scripts/ — rule-ID identity + path/AST content
-    resolution, move-safe per the e22e883 spike. A `broken_edge` (a side resolves to nothing)
-    or `ambiguous` (a duplicated ID) surfaces as a WARN advisory naming the rule-ID + reason.
-    NEVER FAILs this arc — advisory-first; promotion to a gate is data-gated (ADR-89 OQ3).
+    Discovers every `<!-- rule: ID -->` annotation in the DECLARATION DOCS registered in
+    `ecosystem/doc-code-edge.yaml` (`declaration_docs:`) and resolves each to its `# rule: ID`
+    code annotation under scripts/ — rule-ID identity + path/AST content resolution, move-safe
+    per the e22e883 spike. A `broken_edge` (a side resolves to nothing) or `ambiguous` (a
+    duplicated ID) surfaces as a WARN advisory naming the rule-ID + reason. NEVER FAILs this arc
+    — advisory-first; promotion to a gate is data-gated (ADR-89 OQ3).
 
-    Hub-only: the rule-ID edge is a .dev-knowledge governance concept, so on any other repo
-    this is a no-op pass. The scan EXCLUDES the test-fixture tree plus the immutable
-    design-record trees (`docs/`, `JOURNAL.md`) that only DISCUSS the token syntax — their
-    illustrative `<!-- rule: ID -->` / `<!-- rule: PB-07 -->` examples are not live edges. The
-    rule-ID NAMING scheme is still undesigned (ADR-89 OQ1 #1 / the #194 deliverable), so no
-    real annotations exist yet → today this is an honest advisory-inactive pass. Fail-soft on
-    any error. Read-only. Discovery + resolution live in scripts/validate_doc_code_edge.py.
+    Hub-only: the rule-ID edge is a .dev-knowledge governance concept, so on any other repo this
+    is a no-op pass. The scan is REGISTRY-SCOPED to the authoritative declaration docs (ADR-89
+    OQ1 naming convention) — illustrative `<!-- rule: <domain>-<slug> -->` tokens elsewhere
+    (immutable design records, teaching sections, the test fixtures) are out of scope, and
+    teaching tokens additionally use the angle-bracket placeholder form (outside the ID charset).
+    An empty/absent registry → advisory inactive (fail-soft). Read-only. Discovery + resolution
+    live in scripts/validate_doc_code_edge.py.
     """
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
         return [Finding("doc_code_edge", "pass",
-                        "hub-only — doc→code edge check skipped (not the hub repo)")]
+                        "hub-only — doc->code edge check skipped (not the hub repo)")]
     try:
-        ids = _vdce.iter_doc_rule_ids(
-            Path(repo_path), exclude_top=("tests", "docs", "JOURNAL.md"))
+        include = _load_declaration_docs(repo_path)
+        ids = _vdce.iter_doc_rule_ids(Path(repo_path), include)
     except Exception as exc:  # never wedge the audit-health gate
         return [Finding("doc_code_edge", "warn",
                         f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
     if not ids:
         return [Finding("doc_code_edge", "pass",
-                        "no doc rule-IDs annotated yet — advisory inactive "
-                        "(real-annotation rollout gated on the #194 rule-ID-scheme decision)")]
+                        "no doc rule-IDs in the declaration-doc registry — advisory inactive "
+                        "(ecosystem/doc-code-edge.yaml)")]
     # ONE Finding per unresolved id (atomic) — a #147 ship-gate disposition then matches the
     # concern unit, never waving a different undispositioned edge through (the per-id
     # git_backlog_drift rule). resolve_edge re-scans by content → move-safe (e22e883).
-    # (Resolution-side exclusion of the record trees is a Phase-2 seed — moot here while `ids`
-    # is empty, so the loop never runs against the live hub.)
     code_root = Path(repo_path) / "scripts"
     warns: list[Finding] = []
     resolved = 0
@@ -1586,7 +1610,9 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     if warns:
         return warns
     return [Finding("doc_code_edge", "pass",
-                    f"{resolved} doc→code edge(s) resolved; none broken/ambiguous")]
+                    # ASCII arrow: this evidence is printed by cmd_health's click.echo, which
+                    # crashes on a Windows cp1252 console for chars outside cp1252 (e.g. U+2192).
+                    f"{resolved} doc->code edge(s) resolved; none broken/ambiguous")]
 
 
 ALL_CHECKS = [

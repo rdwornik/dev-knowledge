@@ -113,17 +113,17 @@ def test_string_literal_is_not_a_false_hit(tmp_path):
 def test_iter_collects_all_ids(tmp_path):
     (tmp_path / "a.md").write_text("rule one <!-- rule: ALPHA-1 -->\n", encoding="utf-8")
     (tmp_path / "b.md").write_text("rule two <!-- rule: BETA.2 -->\n", encoding="utf-8")
-    assert vdce.iter_doc_rule_ids(tmp_path) == {"ALPHA-1", "BETA.2"}
+    assert vdce.iter_doc_rule_ids(tmp_path, include=("a.md", "b.md")) == {"ALPHA-1", "BETA.2"}
 
 
 def test_iter_empty_when_no_annotations(tmp_path):
     (tmp_path / "plain.md").write_text("no rule tokens here\n", encoding="utf-8")
-    assert vdce.iter_doc_rule_ids(tmp_path) == set()
+    assert vdce.iter_doc_rule_ids(tmp_path, include=("plain.md",)) == set()
 
 
-def test_iter_exclude_top_skips_named_trees(tmp_path):
-    """Illustrative tokens in excluded trees (a `docs/`-style record, a root log) must NOT
-    register as live edges -- only the governed-doc token survives the exclusion."""
+def test_iter_include_scopes_to_listed_docs(tmp_path):
+    """Registry-scoped (ADR-89 OQ1): only docs in the include-list are scanned, so a token in a
+    NON-listed doc (a `docs/`-style record, a root log) is NOT discovered as a live edge."""
     (tmp_path / "PLAYBOOK.md").write_text("governed <!-- rule: LIVE-1 -->\n", encoding="utf-8")
     (tmp_path / "docs").mkdir()
     (tmp_path / "docs" / "adr.md").write_text(
@@ -132,9 +132,15 @@ def test_iter_exclude_top_skips_named_trees(tmp_path):
     (tmp_path / "JOURNAL.md").write_text(
         "wrap quoted <!-- rule: ILLUS-2 -->\n", encoding="utf-8"
     )
-    assert vdce.iter_doc_rule_ids(
-        tmp_path, exclude_top=("docs", "JOURNAL.md")
-    ) == {"LIVE-1"}
+    assert vdce.iter_doc_rule_ids(tmp_path, include=("PLAYBOOK.md",)) == {"LIVE-1"}
+
+
+def test_iter_placeholder_not_matched(tmp_path):
+    """Angle-bracket placeholder tokens are outside the ID charset, so a teaching example never
+    registers as a live edge -- even inside a scanned declaration doc (the self-trip guard)."""
+    (tmp_path / "PLAYBOOK.md").write_text(
+        "teach the form: <!-- rule: <domain>-<slug> -->\n", encoding="utf-8")
+    assert vdce.iter_doc_rule_ids(tmp_path, include=("PLAYBOOK.md",)) == set()
 
 
 # --- deployed audit check: check_doc_code_edge (#194 sub-arc-1 advisory) ----------------
@@ -142,6 +148,29 @@ def test_iter_exclude_top_skips_named_trees(tmp_path):
 def _as_hub(tmp_path, monkeypatch):
     """Point audit._REPO_ROOT at a tmp dir so the hub-only guard passes for that dir."""
     monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+
+
+def _write_registry(tmp_path, docs=("PLAYBOOK.md",)):
+    """Seed the tmp hub's ecosystem/doc-code-edge.yaml include-list (declaration_docs)."""
+    eco = tmp_path / "ecosystem"
+    eco.mkdir(exist_ok=True)
+    body = "declaration_docs:\n" + "".join(f"  - {d}\n" for d in docs)
+    (eco / "doc-code-edge.yaml").write_text(body, encoding="utf-8")
+
+
+def test_load_declaration_docs_failsoft(tmp_path):
+    """Loader fail-soft contract: missing / malformed / non-list registry -> () (the advisory
+    check renders inert, never raises); a valid list -> the declared repo-relative paths."""
+    assert aud._load_declaration_docs(tmp_path) == ()                      # absent file
+    eco = tmp_path / "ecosystem"
+    eco.mkdir()
+    (eco / "doc-code-edge.yaml").write_text("declaration_docs: [unclosed", encoding="utf-8")
+    assert aud._load_declaration_docs(tmp_path) == ()                      # malformed YAML
+    (eco / "doc-code-edge.yaml").write_text("declaration_docs: notalist\n", encoding="utf-8")
+    assert aud._load_declaration_docs(tmp_path) == ()                      # non-list value
+    (eco / "doc-code-edge.yaml").write_text(
+        "declaration_docs:\n  - protocols/PLAYBOOK.md\n", encoding="utf-8")
+    assert aud._load_declaration_docs(tmp_path) == ("protocols/PLAYBOOK.md",)  # happy path
 
 
 def test_edge_check_skips_non_hub_repo(tmp_path):
@@ -154,6 +183,7 @@ def test_edge_check_skips_non_hub_repo(tmp_path):
 
 def test_edge_check_warns_on_broken_edge(tmp_path, monkeypatch):
     _as_hub(tmp_path, monkeypatch)
+    _write_registry(tmp_path)
     (tmp_path / "PLAYBOOK.md").write_text("a rule <!-- rule: GOV-1 -->\n", encoding="utf-8")
     (tmp_path / "scripts").mkdir()
     (tmp_path / "scripts" / "thing.py").write_text(
@@ -169,6 +199,7 @@ def test_edge_check_warns_on_broken_edge(tmp_path, monkeypatch):
 
 def test_edge_check_passes_on_resolved_edge(tmp_path, monkeypatch):
     _as_hub(tmp_path, monkeypatch)
+    _write_registry(tmp_path)
     (tmp_path / "PLAYBOOK.md").write_text("a rule <!-- rule: GOV-2 -->\n", encoding="utf-8")
     (tmp_path / "scripts").mkdir()
     (tmp_path / "scripts" / "thing.py").write_text(
@@ -181,34 +212,38 @@ def test_edge_check_passes_on_resolved_edge(tmp_path, monkeypatch):
 
 def test_edge_check_advisory_inactive_when_no_annotations(tmp_path, monkeypatch):
     _as_hub(tmp_path, monkeypatch)
+    _write_registry(tmp_path)
     (tmp_path / "PLAYBOOK.md").write_text("no rule tokens here\n", encoding="utf-8")
     findings = aud.check_doc_code_edge(tmp_path)
     assert findings[0].status == "pass"
     assert "advisory inactive" in findings[0].evidence
 
 
-def test_edge_check_excludes_record_trees(tmp_path, monkeypatch):
-    """Operator concern-1 fix: illustrative tokens in docs/ + JOURNAL.md + tests/ must NOT
-    register as live edges -- else the check WARNs on prose in immutable design records."""
+def test_edge_check_only_scans_listed_docs(tmp_path, monkeypatch):
+    """Registry-scoped (ADR-89 OQ1): a `<!-- rule: -->` token in a doc NOT listed in
+    declaration_docs is not a live edge -- so an illustrative token in a record tree / unlisted
+    doc keeps the advisory honestly inactive (replaces the old hardcoded record-tree exclude)."""
     _as_hub(tmp_path, monkeypatch)
+    _write_registry(tmp_path, ("PLAYBOOK.md",))
+    (tmp_path / "PLAYBOOK.md").write_text("no governed tokens here\n", encoding="utf-8")
     (tmp_path / "docs").mkdir()
     (tmp_path / "docs" / "adr.md").write_text(
-        "example token `<!-- rule: PB-07 -->`\n", encoding="utf-8")
-    (tmp_path / "JOURNAL.md").write_text("wrap quoting <!-- rule: ID -->\n", encoding="utf-8")
-    (tmp_path / "tests").mkdir()
-    (tmp_path / "tests" / "fix.md").write_text("<!-- rule: TEST-01 -->\n", encoding="utf-8")
+        "example token <!-- rule: ILLUS-9 -->\n", encoding="utf-8")
     findings = aud.check_doc_code_edge(tmp_path)
     assert findings[0].status == "pass"
     assert "advisory inactive" in findings[0].evidence
 
 
-def test_edge_check_registered_and_inactive_on_live_repo():
-    """Registered in ALL_CHECKS (count 23) AND the LIVE hub scan is genuinely empty: every
-    live `<!-- rule: -->` token sits in an excluded record/fixture tree, so the advisory is
-    honestly inactive (never FAILs). This is the run the operator required before asserting 0."""
+def test_edge_check_registered_and_resolves_starter_set():
+    """Registered in ALL_CHECKS (count 23) AND the LIVE hub scan now resolves the #194 starter set
+    over the declaration-doc registry: the 3 enforced rules (seal-journal-anchor,
+    canonical-freshness, coherence-spec-reconciled) each resolve doc<->code -- the edge is REAL +
+    advisory (never FAILs). Replaces the pre-annotation advisory-inactive assertion (sub-arc-2)."""
     assert aud.check_doc_code_edge in aud.ALL_CHECKS
     assert len(aud.ALL_CHECKS) == 23
     findings = aud.check_doc_code_edge(Path(aud._REPO_ROOT))
+    assert all(f.status != "fail" for f in findings)        # advisory: never FAIL
     assert len(findings) == 1
     assert findings[0].status == "pass"
-    assert "advisory inactive" in findings[0].evidence
+    assert "3 doc" in findings[0].evidence                  # exactly the 3 starters
+    assert "resolved" in findings[0].evidence

@@ -217,6 +217,49 @@ Per ADR-88 Principle 5, the boundary is a first-class decision:
    `scripts.codemap`, `scripts.toc`), so it cannot name `audit.py` / `validate_*.py` / the flat
    modules a rule edge targets; path+AST gives the same deterministic `broken_edge` hard-FAIL the
    ruling requires. OQ1 still closes on build-proof.
+   **— NAMING CONVENTION — ADOPTED 2026-06-22 (#194 Phase-2 sub-arc 2).** The rule-ID naming scheme left
+   undesigned above is now decided **and deployed** (operator/architect-settled; this block is the record,
+   not a proposal). **Form:** `<domain>-<slug>` — lowercase kebab, charset `[A-Za-z0-9_.-]+`, **semantic not
+   numeric** (a reader sees what the rule governs, not an opaque counter). **`<domain>` = theme/source, NEVER
+   a location** — a rule keeps its ID when its code moves (the move-safety the spike proved at the identity
+   layer, carried up to the human-readable layer). **Domain namespace (cited + extensible):** `seal` (ADR-85
+   session-lifecycle / the session-end JOURNAL seal), `coherence` (BACKLOG serialize-group `coherence`,
+   #179–#182 / ADR-88 coherence spine), `canonical` (the canonical living-docs domain — ADR-39/51 + the
+   `canonical_*` audit-check family), `governance` (the `docs/decisions` ADR domain), `handoff` (BACKLOG
+   serialize-group `handoff`, #26 / HANDOFF_PROCESS), `dep` (the dependency-management domain — ADR-88
+   declared / ADR-89 computed edges), `tooling` (the tool-changelog audit domain, #113). **Extend by cited
+   append** — a new domain is added by appending a token that cites an existing source (a BACKLOG
+   serialize-group / theme / ADR domain); "do not invent domains" means "cite a source," not "never add one"
+   — no ADR rewrite needed to extend. **IDs are unique and never reused after retirement** (a retired ID
+   stays burned, like a departed BACKLOG id). **Only a rule WITH live code enforcement gets an ID** (the
+   doc↔code edge presupposes a code site).
+   **Registry = authoritative declaration sources only.** The doc-side scan is scoped by
+   `ecosystem/doc-code-edge.yaml` (a hand-edited `declaration_docs:` include-list, replacing the earlier
+   hardcoded record-tree exclude-list). A rule is declared at its **authoritative source** and **never in a
+   summary**: e.g. `seal-journal-anchor` is declared at `protocols/DEFINITION_OF_DONE.md` (ADR-85's
+   single-source), NOT at the ESSENTIALS one-line summary of that rule — a competing declaration in a summary
+   is forbidden. A doc joins the registry **when it first authoritatively declares an enforced rule** (the
+   same cited-append extensibility as the domain namespace). The narrow include-list is also what keeps
+   illustrative tokens out of the live set.
+   **Illustrative vs live:** teaching/example tokens use the **angle-bracket placeholder** form
+   `<!-- rule: <domain>-<slug> -->`; `<`/`>` are outside the ID charset, so a placeholder is never matched as
+   a live edge and a how-to section cannot self-trip the scan. Live tokens sit ONLY at a rule's authoritative
+   doc site + its code site.
+   **Rationale / prior art:** semantic-over-numeric, meaningful-prefix, never-reuse, and decide-up-front are
+   the settled lint-rule / requirements-ID conventions; domain-not-location is the spike's move-safety
+   principle; the registry+placeholder split is what resolves real-vs-illustrative deterministically without a
+   fenced-code parser. **Not** routed to a Council vote — a naming convention is a reversible mechanism
+   decision under the ADR-87 equilibrium, not a doctrine question. **Explicitly reversible:** recorded here so
+   a future revision is a conscious, documented change, not silent drift.
+   **Config fail-mode (forward-flag, NOT this arc):** the registry loader is fail-soft → empty (a
+   missing/malformed `doc-code-edge.yaml` renders the check inert and passes) — correct while the edge is
+   advisory. At the later hard-gate promotion (OQ3, data-gated) switch to **WARN-on-missing/malformed-config**
+   so a lost config cannot silently disable a live gate.
+   **Status:** this resolves the last-open piece of OQ1 (the doc→code ID-scheme **naming**) and makes the
+   doc→code edge real-and-advisory on a 3-rule starter set (`seal-journal-anchor`, `canonical-freshness`,
+   `coherence-spec-reconciled`); the umbrella ADR-89 stays **Proposed** (acceptance pending operator
+   ratification per the header) — adopting this OQ1 sub-item does not ratify the ADR. Build-proof:
+   `ecosystem/doc-code-edge.yaml` + the 3 starter annotations + `check_doc_code_edge`.
 2. **Oracle-wrapper provenance payload + truncation policy.** The exact shape of the required
    provenance metadata (rev, dirty set, completeness / truncation signalling) is a Track-A build
    decision.
