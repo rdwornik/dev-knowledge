@@ -19,6 +19,25 @@
 
 ---
 
+### 2026-06-22 — CC: #194 Arc-1 Phase-A — doc→code coverage gate (TEST-FIRST) + inventory revealed
+
+**Did:** Committed the doc→code rollout's **executable success criterion BEFORE annotating anything** (TDD): an xfail-strict coverage test whose failing output IS the rollout inventory. Plan-mode → approved (operator added a **code-side single-site** check to the build-verification); branch `feat/194-arc1-coverage-test` off `main` (primary checkout); `pytest`/`ruff`/`ship-gate` GREEN. **Annotates nothing** (that is Phase B) — a failing test with nothing newly annotated is the correct Phase-A state. **#194 stays OPEN.**
+
+**Result:**
+- **`test_coverage_all_in_scope_rules_resolve`** (`tests/test_doc_code_edge.py`, `@pytest.mark.xfail(strict=True)`) — asserts every rule-ID in `ecosystem/doc-code-edge.yaml` `coverage_scope:` resolves doc↔code (repo-wide, the same resolution `check_doc_code_edge` performs). Fails now → XFAIL (suite green); at 100% it XPASSes → strict FAILS → the xfail must be removed = "rollout complete" signal. A non-empty-scope precondition prevents a vacuous XPASS. New loader `audit.py::_load_coverage_scope` (sibling to `_load_declaration_docs`, fail-soft → ()).
+- **Inventory (verbatim, the test's failing message):** `2/5 in-scope rules not yet resolved: coherence-amendment, governance-backlog-schema`. The 3 starters resolve; these 2 Tier-2 rules are `broken_edge` (declaration verified, not yet annotated).
+- **Scope mechanism = CURATED (the FALLBACK), recorded with rationale:** the enforcement universe is **heterogeneous** — enforcement spans `ALL_CHECKS` (23) + standalone validators + the `seal` Stop-hook (outside `ALL_CHECKS`) + commit-msg/pre-push gates — no single auto-enumerable list. Auto-discover over `ALL_CHECKS` would miss `seal-journal-anchor` and conflate wrapped validators. Drift cost noted in the yaml; `check_doc_code_edge`'s doc-side discovery is the backstop.
+- **The operator's code-side single-site check caught 2 two-organ traps** (each annotated in both organs goes `ambiguous` under the 1:1 resolver → freezes the gate <100% forever) → HELD OUT: `governance-child-floor` (`check_floor_integrity` + `generate_floor.validate` emit-gate — audit.py:1208 says it "mirror[s]" it), `governance-backlog-leave` (`validate_git_backlog` drift + `validate_backlog` in-file done-marker, both cite ADR-65). Joins the pre-deferred `governance-no-ff` (`validate_no_ff` + `block_ff_push`). Kept the 2 single-site Tier-2 rules (`coherence-amendment` @PLAYBOOK §895, `governance-backlog-schema` @PLAYBOOK §2766 — both declarations verified in-doc).
+- Verified: `pytest` **791 passed / 1 skipped / 1 xfailed** (793 collected, **+1**), `ruff` clean, `ship-gate` **GREEN** (6 WARN dispositioned — pre-existing baselines, **no new WARN**; `doc_code_edge: 3 resolved` unchanged). **claim-3** reconciled 792→793.
+
+**Changes:** `19f0176` (coverage test + `_load_coverage_scope` + `coverage_scope:` config + ARCHITECTURE 792→793) + this JOURNAL wrap. Files: `tests/test_doc_code_edge.py`, `scripts/audit.py`, `ecosystem/doc-code-edge.yaml`, `ARCHITECTURE.md`, `JOURNAL.md`. Branch `feat/194-arc1-coverage-test`; local `--no-ff` merge to `main` (primary checkout). Plan `~/.claude/plans/cc-prompt-lucky-key.md`. **Not pushed** (awaiting operator push + branch delete). No `[#id]` bracket anywhere — this arc removes nothing from BACKLOG.
+
+**Abandoned / left open (reported, not closed):** **#194 stays OPEN** — the coverage test is committed; the rollout is NOT done (the whole point). **Architect review → Phase B:** review the universe shape, the curated mechanism, the deferred/exempt set, and the 2-rule inventory; then scope Phase B (batched annotation shrinking the failing set; the final batch annotates the last rule AND removes the xfail → strict green = complete). **Deferred for architect decision:** the 3 two-organ rules (need a one-rule-two-organs scheme), the 4 Tier-3 needs-declaration rules (`handoff-probes-bind`, `coherence-doc-claims`, `coherence-doc-rot`, `coherence-doc-structure`), and a possible future auto-discover drift-guard over `ALL_CHECKS`.
+
+**Next:** operator — push `main` + delete the merged branch when ready; architect — review the inventory + scope Phase B (the annotation rollout).
+
+---
+
 ### 2026-06-22 — CC: #194 edge test-hardening — cp1252-safe output + real-starter resolve/break regression
 
 **Did:** Added the two regression tests sub-arc 2 (`1584194`) left unguarded — closing the gap between "a bug was fixed / a use case is live" and "a test guards it" (not a manual check, not a gotcha note). Plan-mode → approved; branch `feat/194-edge-test-hardening` off `main` (primary checkout); `pytest`/`ruff`/`ship-gate` GREEN. **Does NOT close #194** (rollout + gate-promotion remain).
