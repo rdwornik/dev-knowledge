@@ -309,6 +309,13 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   `git check-ignore`, fail-open if git absent) — neither can carry a `reconciled_with` edge — so the
   candidate list is the actionable, tracked-mutable corpus; the two living READMEs inside those
   trees are allowlisted (no recall loss). Standalone CLI: `python scripts/scan_undeclared_edges.py` (#179).
+- `scripts/validate_doc_code_edge.py` — doc→code **declared-edge** integrity: discovery + resolution
+  behind the `doc_code_edge` advisory check (**ADR-89 OQ1**). Discovers `<!-- rule: <id> -->` tokens in the
+  authoritative declaration docs registered in `ecosystem/doc-code-edge.yaml` (`declaration_docs:`) and
+  resolves each to its `# rule: <id>` code annotation under `scripts/` — rule-ID identity + path/AST content
+  resolution, **move-safe** (the e22e883 spike). `broken_edge`/`ambiguous` → **WARN** (advisory-first;
+  **never FAILs** this arc — promotion to a gate is data-gated, OQ3). Hub-only; read-only; live on 3 starter
+  rules per the ADR-89 OQ1 naming convention (#194 sub-arc-2). Check in `audit.py::check_doc_code_edge`.
 - `scripts/verify_handoff_probes.py` — handoff-probe teeth: every probe in the latest v5
   `PROBES.md` bundle binds to live state, by STRUCTURAL resolvability (resolve-only — no
   subprocess; Critical Rule #4). Mechanizes the manual v5 probe-gate (HANDOFF_PROCESS §5/§10):
