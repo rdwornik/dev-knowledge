@@ -1111,6 +1111,7 @@ def _norm_version(raw: str, granularity: str) -> tuple[int, ...]:
     return tuple(parts)
 
 
+# rule: coherence-amendment
 def check_amendment_coherence(
     repo_path: Path, _sets: Optional[list[CoupledSet]] = None) -> list[Finding]:
     """#11 multi-surface amendment gate: coupled surfaces must share one authority version.

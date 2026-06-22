@@ -268,6 +268,7 @@ def parse(text):
     return themes, stories, tasks
 
 
+# rule: governance-backlog-schema
 def validate(themes, stories, tasks):
     """Return (hard_fails, warnings)."""
     hard, warn = [], []

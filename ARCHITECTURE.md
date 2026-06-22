@@ -314,8 +314,8 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   authoritative declaration docs registered in `ecosystem/doc-code-edge.yaml` (`declaration_docs:`) and
   resolves each to its `# rule: <id>` code annotation under `scripts/` — rule-ID identity + path/AST content
   resolution, **move-safe** (the e22e883 spike). `broken_edge`/`ambiguous` → **WARN** (advisory-first;
-  **never FAILs** this arc — promotion to a gate is data-gated, OQ3). Hub-only; read-only; live on 3 starter
-  rules per the ADR-89 OQ1 naming convention (#194 sub-arc-2). Check in `audit.py::check_doc_code_edge`.
+  **never FAILs** this arc — promotion to a gate is data-gated, OQ3). Hub-only; read-only; live on 5
+  rules per the ADR-89 OQ1 naming convention (#194 Arc-1 cohort-1). Check in `audit.py::check_doc_code_edge`.
 - `scripts/verify_handoff_probes.py` — handoff-probe teeth: every probe in the latest v5
   `PROBES.md` bundle binds to live state, by STRUCTURAL resolvability (resolve-only — no
   subprocess; Critical Rule #4). Mechanizes the manual v5 probe-gate (HANDOFF_PROCESS §5/§10):

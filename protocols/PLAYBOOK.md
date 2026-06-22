@@ -894,6 +894,7 @@ Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are exclude
 
 ### Multi-surface amendment coherence (audit check `amendment_coherence`)
 <!-- scope: meta -->
+<!-- rule: coherence-amendment -->
 
 **A version/authority amendment that spans several hand-maintained surfaces must leave no straggler.** This converts LESSON-#9's advisory "cross-case trace before a multi-surface amendment" guard into an enforced gate — the failure it prevents is the v3.4 self-handoff abort (the skill announced v3.3.3 while the spec was v3.4: a stale version string that mis-signalled authority). The cross-case trace is no longer a remembered intention; it is a gate.
 
@@ -2765,6 +2766,7 @@ Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subse
 
 ### Schema (ADR-66; machine-checked by `scripts/validate_backlog.py`)
 <!-- scope: meta -->
+<!-- rule: governance-backlog-schema -->
 
 **Four layers:**
 
