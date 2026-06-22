@@ -38,6 +38,7 @@
   - [docs/ folder taxonomy (per ADR-60)](#docs-folder-taxonomy-per-adr-60)
   - [Secrets storage path](#secrets-storage-path)
   - [Capitalization conventions](#capitalization-conventions)
+  - [Rule-ID naming convention (doc to code edge)](#rule-id-naming-convention-doc-to-code-edge)
 - [Writing prompts for Claude Code](#writing-prompts-for-claude-code)
   - [Why standard format](#why-standard-format)
   - [Standard structure (8 sections)](#standard-structure-8-sections)
@@ -500,6 +501,19 @@ Standardize location of `.secrets/` (currently `C:\Users\1028120\Documents\.secr
 **[TBD — Stream C session 3, ADR-34]**
 
 File and folder casing rules. Currently mixed: `LESSONS.md` ALLCAPS, `docs/` lowercase, `ESSENTIALS.md` ALLCAPS, kebab-case for dated files. Decision on what casing applies where, and whether existing files migrate.
+
+### Rule-ID naming convention (doc to code edge)
+<!-- scope: meta -->
+
+How an enforced rule is named so the `doc_code_edge` advisory check (ADR-89 OQ1) can resolve its doc declaration to its code teeth. All example tokens below use the angle-bracket **placeholder** form on purpose (see the last bullet).
+
+- **Form:** `<domain>-<slug>` — lowercase kebab, charset `[A-Za-z0-9_.-]+`, **semantic not numeric** (the ID reads as *what the rule governs*, not an opaque counter). Doc side: `<!-- rule: <domain>-<slug> -->`; code side: `# rule: <domain>-<slug>` (a real comment token, never inside a string). The ID is the identity on both sides, so the edge is **move-safe** — the resolver re-finds the code token by content; moving the file does not fire `broken_edge`.
+- **`<domain>` = a cited theme/source, NEVER a location.** The allowed tokens each cite an existing source (a BACKLOG serialize-group / theme / ADR domain): `seal`, `coherence`, `canonical`, `governance`, `handoff`, `dep`, `tooling`. **Extend by cited append** — add a token that cites a source; "do not invent domains" means "cite a source," not "never add one" (no ADR rewrite to extend).
+- **Only a rule with live code enforcement gets an ID** (the edge presupposes a code site). **IDs are unique and never reused** after retirement — a retired ID stays burned, like a departed BACKLOG id.
+- **Declare at the authoritative source, never in a summary.** The doc-side token lives where the rule is *authoritatively declared*, never on a doc that merely *summarizes* it (e.g. `seal-journal-anchor` is declared in `DEFINITION_OF_DONE.md` — ADR-85's single-source — not in the ESSENTIALS summary of it). The scanned declaration docs are an include-list registry, `ecosystem/doc-code-edge.yaml` (`declaration_docs:`); a doc joins it when it first authoritatively declares an enforced rule (the same cited-append extensibility as the domain namespace).
+- **Illustrative vs live (the self-trip guard):** every example token in teaching prose uses the angle-bracket placeholder form `<!-- rule: <domain>-<slug> -->`. `<` / `>` are outside the ID charset, so a placeholder is never matched as a live edge — this section cannot self-trip the scan. Live tokens sit only at a rule's authoritative doc site + its code site.
+
+Full doctrine + reversibility: **ADR-89 OQ1 "NAMING CONVENTION — ADOPTED"**. Advisory-first; a hard-gate promotion is a later data-gated arc.
 
 ---
 
