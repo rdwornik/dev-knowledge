@@ -21,6 +21,7 @@ two docs that both rot worst *and* legitimately change every working session.
 ## Gated per session
 
 ### JOURNAL — gated, **hard block** (un-gameable)
+<!-- rule: seal-journal-anchor -->
 Any session that produces commits **must** add a `JOURNAL.md` entry, and that entry
 **must reference ≥1 commit SHA produced this session**. The SHA anchor is what makes this
 un-gameable: a generic "did some work" line does not pass; the entry has to name a real

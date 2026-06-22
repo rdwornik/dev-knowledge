@@ -203,6 +203,7 @@ def discover_dependents(repo_root: Path) -> list[tuple[str, str]]:
     return sorted(out)
 
 
+# rule: coherence-spec-reconciled
 def reconcile(repo_root: Path) -> list[ReconResult]:
     """Classify every declared reconciliation edge against live spec state. Read-only."""
     results: list[ReconResult] = []

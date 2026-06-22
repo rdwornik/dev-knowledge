@@ -234,13 +234,16 @@ def test_edge_check_only_scans_listed_docs(tmp_path, monkeypatch):
     assert "advisory inactive" in findings[0].evidence
 
 
-def test_edge_check_registered_and_inactive_on_live_repo():
-    """Registered in ALL_CHECKS (count 23) AND the LIVE hub scan is genuinely empty: every
-    live `<!-- rule: -->` token sits in an excluded record/fixture tree, so the advisory is
-    honestly inactive (never FAILs). This is the run the operator required before asserting 0."""
+def test_edge_check_registered_and_resolves_starter_set():
+    """Registered in ALL_CHECKS (count 23) AND the LIVE hub scan now resolves the #194 starter set
+    over the declaration-doc registry: the 3 enforced rules (seal-journal-anchor,
+    canonical-freshness, coherence-spec-reconciled) each resolve doc<->code -- the edge is REAL +
+    advisory (never FAILs). Replaces the pre-annotation advisory-inactive assertion (sub-arc-2)."""
     assert aud.check_doc_code_edge in aud.ALL_CHECKS
     assert len(aud.ALL_CHECKS) == 23
     findings = aud.check_doc_code_edge(Path(aud._REPO_ROOT))
+    assert all(f.status != "fail" for f in findings)        # advisory: never FAIL
     assert len(findings) == 1
     assert findings[0].status == "pass"
-    assert "advisory inactive" in findings[0].evidence
+    assert "3 doc" in findings[0].evidence                  # exactly the 3 starters
+    assert "resolved" in findings[0].evidence

@@ -56,6 +56,7 @@
   - [File presence (universal baseline)](#file-presence-universal-baseline)
   - [Canonical-file freshness cadence (audit check #10)](#canonical-file-freshness-cadence-audit-check-10)
   - [Multi-surface amendment coherence (audit check `amendment_coherence`)](#multi-surface-amendment-coherence-audit-check-amendment_coherence)
+  - [Declared-edge reconciliation (audit check `reconciled_versions`)](#declared-edge-reconciliation-audit-check-reconciled_versions)
   - [Common confusions resolved](#common-confusions-resolved)
   - [Supersession & decommissioning](#supersession--decommissioning)
   - [Handoff format spec](#handoff-format-spec)
@@ -864,6 +865,7 @@ Optional files are added by judgment of repo complexity; no tier makes them mand
 
 ### Canonical-file freshness cadence (audit check #10)
 <!-- scope: meta -->
+<!-- rule: canonical-freshness -->
 
 The living docs `VISION / ARCHITECTURE / CLAUDE / CONTRIBUTING / ESSENTIALS` carry a `last_reviewed` frontmatter date. **`last_reviewed` means "re-read end-to-end and confirmed accurate (or the drift filed)" on that date — NOT merely "touched".** Bump it only after a genuine review, never reflexively.
 
@@ -884,6 +886,12 @@ Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are exclude
 `scripts/audit.py` `amendment_coherence` (in `ALL_CHECKS` → runs in `audit health` and `audit run`) reads a declarative manifest — `_COUPLED_VERSION_SETS`, the cross-case **"checklist as data"**. Each `CoupledSet` names an *anchor* (the authority version) and the *surfaces* that must agree with it at a `granularity` (`major`, or `full` with `3.4 == 3.4.0` normalization). A surface left at a stale version is a **straggler → FAIL**. Add a set when a new family of surfaces must track one authority version; the membership criterion is **semantic intent-to-mirror, not mere co-occurrence** of a version string (an incidental mention that versions independently would false-FAIL — anchor the regex on the *intent-bearing construct*). Child-repo-safe: an absent anchor skips the set (the hub-only sets skip entirely on a child → PASS). FAIL-blocking via the `audit-health` pre-commit hook.
 
 **Scope + caveats (honest limits).** This guards only surfaces that **still hand-maintain a version**. The superior fix for a coupled surface is to **de-hardcode** it — make it interpolate the spec version (the handoff skill/templates read `{{VERSION}}`), so there is no static token to go stale; de-hardcoded surfaces carry nothing to compare and are **out of scope by design** (de-hardcoding, not this gate, closes their straggler class). So the gate does **not** by itself prevent a literal v3.4 recurrence — it guards the residual hand-maintained surfaces and is the extensible home for future coupled families. The narrow `handoff_version_stamp` check owns the full `stamp vX.Y` mirrors in `ARCHITECTURE`/`CONTRIBUTING`; `amendment_coherence` is the generalized manifest beside it. Per the prose↔state seam, it does not detect drift on de-hardcoded or unmanifested surfaces.
+
+### Declared-edge reconciliation (audit check `reconciled_versions`)
+<!-- scope: meta -->
+<!-- rule: coherence-spec-reconciled -->
+
+**A doc that declares a dependency on a versioned spec must not drift from it.** A dependent carrying a `reconciled_with: <spec-id>@<version>` edge MUST match that spec's live version; a drifted edge **FAILs** (`scripts/audit.py` `reconciled_versions`, in `ALL_CHECKS` → runs in `audit health` and `audit run`; teeth in `scripts/validate_reconciliation.py`). This is the **declared half** of dependency coherence — the ADR-88 coherence spine (#172) — the complement to the undeclared-edge discovery scan (`scan_undeclared_edges.py`, #179, awareness-only). The spec registry is `_SPEC_REGISTRY` in `validate_reconciliation.py` (v1: `handoff-process`); add a spec there when a new versioned dependency must be tracked. Child-repo-safe (an absent edge skips); read-only. Distinct from `amendment_coherence` above: that guards hand-maintained version *mirrors*; this guards *declared* `reconciled_with` *edges*.
 
 ### Common confusions resolved
 <!-- scope: meta -->

@@ -242,6 +242,7 @@ def _commit_anchors_journal(sha: str, shorts: set[str]) -> bool:
     return any(s in added for s in shorts)
 
 
+# rule: seal-journal-anchor
 def check_journal_sha_anchor():
     """HARD: this SESSION's commits are not yet anchored by a commit-SHA in JOURNAL.md.
 

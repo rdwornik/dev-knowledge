@@ -774,6 +774,7 @@ def _git_last_commit_date(repo_path: Path, filename: str) -> Optional[date]:
         return None
 
 
+# rule: canonical-freshness
 def check_canonical_freshness(repo_path: Path) -> list[Finding]:
     """Canonical living-file freshness cadence (operationalizes ADR-39 grooming).
 
@@ -1580,7 +1581,7 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     """
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
         return [Finding("doc_code_edge", "pass",
-                        "hub-only — doc→code edge check skipped (not the hub repo)")]
+                        "hub-only — doc->code edge check skipped (not the hub repo)")]
     try:
         include = _load_declaration_docs(repo_path)
         ids = _vdce.iter_doc_rule_ids(Path(repo_path), include)
@@ -1609,7 +1610,9 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     if warns:
         return warns
     return [Finding("doc_code_edge", "pass",
-                    f"{resolved} doc→code edge(s) resolved; none broken/ambiguous")]
+                    # ASCII arrow: this evidence is printed by cmd_health's click.echo, which
+                    # crashes on a Windows cp1252 console for chars outside cp1252 (e.g. U+2192).
+                    f"{resolved} doc->code edge(s) resolved; none broken/ambiguous")]
 
 
 ALL_CHECKS = [
