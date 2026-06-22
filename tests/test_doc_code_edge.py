@@ -353,6 +353,11 @@ def test_real_starter_edges_resolve_and_break(tmp_path, rule_id, doc_rel, code_r
 def test_coverage_all_in_scope_rules_resolve():
     """Every rule-ID in coverage_scope (the #194 in-scope enforced rules) must resolve doc<->code.
 
+    SCOPE: this guards the CURATED `coverage_scope` list -- cohort-1's 5 in-scope rules -- NOT
+    every enforced rule. The deferred tail is OUTSIDE this guard: the two-organ governance trio
+    (#201) and the Tier-3 quartet (#202), with #203 owed to mechanize the drift-guard over
+    ALL_CHECKS. So a GREEN result means "cohort-1's 5 edges resolve," NOT "rollout complete."
+
     Resolves each against the LIVE hub (declaration docs at repo root, code under scripts/) --
     the same repo-wide resolution check_doc_code_edge performs. The assertion message names any
     rule that regresses to broken_edge/ambiguous (or is scoped without its annotation).

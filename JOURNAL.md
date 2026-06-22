@@ -19,6 +19,19 @@
 
 ---
 
+### 2026-06-22 — CC: #194 doc-legibility — corrected 2 stale cohort-1 status surfaces
+
+**Did:** Documentation-only fix surfaced by the verify-pass: removed two self-contradictions in the doc→code edge so the yaml and the coverage test tell the truth about cohort-1. No behavioral change, no rule added/removed/rescoped. Branch `fix/194-doc-legibility` off `main` (primary checkout). **#194 stays OPEN.**
+
+**Result:**
+- **`ecosystem/doc-code-edge.yaml`** — `coherence-amendment` + `governance-backlog-schema` were commented `# PENDING` but both already resolve (cohort-1); flipped to `# DONE` to match the other three `coverage_scope` entries. Stale Phase-A annotations — no scope/rule change.
+- **`tests/test_doc_code_edge.py`** — added a SCOPE note to `test_coverage_all_in_scope_rules_resolve`: it guards the CURATED 5, not all enforced rules (deferred tail = #201 two-organ trio + #202 Tier-3 quartet; #203 owed to mechanize the ALL_CHECKS drift-guard). GREEN = "cohort-1's 5 edges resolve," not "rollout complete." Docstring only — assertion unchanged.
+- Verified: `pytest tests/test_doc_code_edge.py` **21 passed**, `ruff` clean, `ship-gate` **GREEN** (6 WARN dispositioned — pre-existing, no new WARN; `doc_code_edge: 5 resolved`; `doc_claims`/claim-3 unchanged).
+
+**Changes:** `a4c568c` (yaml comments + test docstring) + this JOURNAL wrap. Branch `fix/194-doc-legibility`; local `--no-ff` merge to `main` (primary). **Not pushed** (awaiting operator push + branch delete). No `[#id]` bracket — doc-only, removes no task; #194 stays OPEN.
+
+---
+
 ### 2026-06-22 — CC: #194 Arc-1 Phase-B — doc→code cohort-1 complete, coverage guard now permanent
 
 **Did:** Annotated the 2 single-site Tier-2 rules so the doc→code coverage test reached 5/5 resolved → it XPASSed → removed the `xfail(strict=True)` decorator → the test now stands as the **permanent coverage guard** (was a known-failing placeholder). ADR-87 equilibrium-contract brief, auto/mechanical mode; branch `feat/194-arc1-phaseb` off `main` (primary checkout); `pytest`/`ruff`/`ship-gate` GREEN. **Token-drops only** (both rules already carried authoritative declarations — no new doctrine, no new file). **#194 stays OPEN** (the deferred tail remains).
