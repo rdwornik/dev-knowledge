@@ -1561,6 +1561,28 @@ def _load_declaration_docs(repo_path: Path) -> tuple[str, ...]:
     return tuple(d for d in docs if isinstance(d, str))
 
 
+def _load_coverage_scope(repo_path: Path) -> tuple[str, ...]:
+    """Read the doc->code coverage-scope rule-ID list (`ecosystem/doc-code-edge.yaml`,
+    `coverage_scope:`) -- the in-scope enforced rule-IDs the #194 rollout must drive to 100%
+    resolved (tests/test_doc_code_edge.py asserts each resolves, xfail-strict until complete).
+
+    Sibling key to `declaration_docs`; same fail-soft -> () contract (a missing/malformed file
+    or non-list value yields an empty scope -- the coverage test's non-empty precondition guards
+    against a vacuous pass). Resolved from `repo_path` at call time. Read-only.
+    """
+    cfg = Path(repo_path) / "ecosystem" / "doc-code-edge.yaml"
+    try:
+        data = yaml.safe_load(cfg.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return ()
+    if not isinstance(data, dict):
+        return ()
+    scope = data.get("coverage_scope")
+    if not isinstance(scope, list):  # a non-list scalar must degrade, not raise
+        return ()
+    return tuple(s for s in scope if isinstance(s, str))
+
+
 def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     """#194 doc→code declared-edge integrity (advisory-first, ADR-89 OQ1).
 
