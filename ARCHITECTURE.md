@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-21
+last_reviewed: 2026-06-22
 status: active
 owner: Rob
 ---
@@ -327,7 +327,7 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   node); the safe-removal gate that consumes it is #195. Pyright is vendored via `npm install`
   (pinned in `package.json`; `node_modules/` gitignored). Standalone CLI:
   `python scripts/reverse_dep_oracle.py <symbol> [--json|--text]`.
-- `tests/` — pytest unit tests for the validators (**786 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**788 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
