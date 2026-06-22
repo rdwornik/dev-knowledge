@@ -340,3 +340,38 @@ def test_real_starter_edges_resolve_and_break(tmp_path, rule_id, doc_rel, code_r
     code_dst.write_text("".join(kept), encoding="utf-8")
 
     assert vdce.resolve_edge(rule_id, tmp_path, code_root).status == "broken_edge"
+
+
+# --- doc->code coverage gate (#194 Arc 1, TEST-FIRST) ----------------------------------
+# The executable success criterion for the doc->code rollout: every in-scope enforced rule
+# (ecosystem/doc-code-edge.yaml `coverage_scope:`) must resolve doc<->code. Committed FAILING
+# (only the 3 starters resolve today) but tolerated by xfail-strict, so the suite stays green;
+# the assertion message's not-yet-resolved list IS the rollout inventory. At 100% it XPASSes ->
+# strict FAILS -> remove the xfail and this stands as the permanent coverage guard (completion).
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="#194 doc->code rollout in progress -- not every in-scope rule is annotated yet. "
+           "At 100% this XPASSes (strict failure) -> REMOVE this xfail; the test then stands "
+           "as the permanent coverage guard.",
+)
+def test_coverage_all_in_scope_rules_resolve():
+    """Every rule-ID in coverage_scope (the #194 rollout inventory) must resolve doc<->code.
+
+    Resolves each against the LIVE hub (declaration docs at repo root, code under scripts/) --
+    the same repo-wide resolution check_doc_code_edge performs. Today only the 3 starters
+    resolve, so `unresolved` is non-empty -> AssertionError -> XFAIL (suite green). The message
+    enumerates the not-yet-annotated rules; that list is the rollout scope.
+    """
+    scope = aud._load_coverage_scope(_REPO_ROOT)
+    assert scope, "coverage_scope is empty/absent -- would vacuously XPASS and trip strict"
+    code_root = _REPO_ROOT / "scripts"
+    unresolved = [
+        rid for rid in scope
+        if vdce.resolve_edge(rid, _REPO_ROOT, code_root).status != "resolved"
+    ]
+    assert not unresolved, (
+        f"{len(unresolved)}/{len(scope)} in-scope rules not yet resolved: "
+        + ", ".join(sorted(unresolved))
+    )

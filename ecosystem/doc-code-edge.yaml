@@ -25,3 +25,33 @@
 declaration_docs:
   - protocols/PLAYBOOK.md            # canonical-freshness, coherence-spec-reconciled
   - protocols/DEFINITION_OF_DONE.md  # seal-journal-anchor (ADR-85 single-source)
+
+# Coverage scope -- #194 Arc 1 (TEST-FIRST). The in-scope enforced rule-IDs the doc->code
+# rollout must drive to 100% resolved. tests/test_doc_code_edge.py::
+# test_coverage_all_in_scope_rules_resolve asserts each resolves (xfail-strict until complete) --
+# its failing list IS the rollout inventory. CURATED list (FALLBACK mechanism): the enforcement
+# universe is heterogeneous (ALL_CHECKS + standalone validators + the seal Stop-hook +
+# commit-msg/pre-push gates), with no single auto-enumerable list. Drift cost: a new enforced
+# rule not appended here escapes the coverage test; reviewed when new enforcement lands.
+#
+# Token-only breadth (operator ruling 2026-06-22): every member has an authoritative declaration
+# AND exactly ONE `# rule:`-able enforcement site, so Phase B annotates (no new doctrine, no
+# ambiguity). A rule enforced in two organs is HELD OUT below until the scheme handles it.
+#
+# DEFERRED -- two-organ trap (one rule, two `# rule:`-able code sites -> resolve_edge returns
+#   `ambiguous`, never `resolved`; needs a one-rule-two-organs scheme decision first):
+#     governance-no-ff         : validate_no_ff.py (detect) + block_ff_push.py (prevent)
+#     governance-child-floor   : audit.py check_floor_integrity + generate_floor.py validate (emit gate)
+#     governance-backlog-leave : validate_git_backlog.py (git drift) + validate_backlog.py (in-file marker)
+# DEFERRED -- needs an authored declaration first (Tier-3): handoff-probes-bind,
+#   coherence-doc-claims, coherence-doc-rot, coherence-doc-structure.
+# EXEMPT -- structural/presence infra, not a declared behavioral rule (no edge): the baseline
+#   checks (vision_md, claude_md, adr38_baseline, canonical_md_visibility, canonical_structure,
+#   dot_prefix, mermaid_theme, workspace_settings, handoff_bundle/tag/version_stamp,
+#   no_sibling_orphans) + check_doc_code_edge itself (self-referential).
+coverage_scope:
+  - seal-journal-anchor        # DONE    -- DEFINITION_OF_DONE.md -> session_end_backpressure.py
+  - canonical-freshness        # DONE    -- PLAYBOOK.md -> audit.py::check_canonical_freshness
+  - coherence-spec-reconciled  # DONE    -- PLAYBOOK.md -> validate_reconciliation.py::reconcile
+  - coherence-amendment        # PENDING -- PLAYBOOK.md #895 -> audit.py::check_amendment_coherence
+  - governance-backlog-schema  # PENDING -- PLAYBOOK.md #2766 -> validate_backlog.py
