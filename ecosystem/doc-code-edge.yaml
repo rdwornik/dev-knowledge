@@ -53,5 +53,5 @@ coverage_scope:
   - seal-journal-anchor        # DONE    -- DEFINITION_OF_DONE.md -> session_end_backpressure.py
   - canonical-freshness        # DONE    -- PLAYBOOK.md -> audit.py::check_canonical_freshness
   - coherence-spec-reconciled  # DONE    -- PLAYBOOK.md -> validate_reconciliation.py::reconcile
-  - coherence-amendment        # PENDING -- PLAYBOOK.md #895 -> audit.py::check_amendment_coherence
-  - governance-backlog-schema  # PENDING -- PLAYBOOK.md #2766 -> validate_backlog.py
+  - coherence-amendment        # DONE    -- PLAYBOOK.md #895 -> audit.py::check_amendment_coherence
+  - governance-backlog-schema  # DONE    -- PLAYBOOK.md #2766 -> validate_backlog.py
