@@ -17,6 +17,8 @@ import shutil
 import sys
 from pathlib import Path
 
+import pytest
+
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _MOD = _REPO_ROOT / "scripts" / "validate_doc_code_edge.py"
 _FIXTURE = _REPO_ROOT / "tests" / "fixtures" / "doc-code-edge"
@@ -247,3 +249,94 @@ def test_edge_check_registered_and_resolves_starter_set():
     assert findings[0].status == "pass"
     assert "3 doc" in findings[0].evidence                  # exactly the 3 starters
     assert "resolved" in findings[0].evidence
+
+
+# --- cp1252-safe output regression (#194 sub-arc-2; fix 633e44a had only a gotcha note) -
+
+def test_doc_code_edge_output_is_cp1252_safe(tmp_path, monkeypatch):
+    """Every Finding `check_doc_code_edge` can emit must render on a Windows cp1252 console.
+
+    `cmd_health` prints evidence via `click.echo`, which crashes on a char outside cp1252
+    (e.g. U+2192 ``->``); the resolved-state evidence once carried such a char (fixed 633e44a,
+    swapped to ASCII ``->``). Guard the class at the source: drive EVERY Finding-producing
+    state and assert each field encodes to cp1252. (Em-dash U+2014 in the hub-only / inactive
+    evidence IS cp1252 0x97, so it must NOT trip this -- only a genuinely non-cp1252 char does,
+    which is exactly the regression being fenced.)
+    """
+    findings = []
+
+    # hub-only: repo_path != the real _REPO_ROOT (called before _as_hub) -> pass finding.
+    findings += aud.check_doc_code_edge(tmp_path / "child-repo")
+
+    # the remaining states run as the tmp hub.
+    _as_hub(tmp_path, monkeypatch)
+    _write_registry(tmp_path)
+    (tmp_path / "scripts").mkdir()
+
+    # advisory-inactive: a listed doc carries no rule annotations.
+    (tmp_path / "PLAYBOOK.md").write_text("no rule tokens here\n", encoding="utf-8")
+    findings += aud.check_doc_code_edge(tmp_path)
+
+    # resolved: doc rule + matching code annotation (the state the bugged string lived in).
+    (tmp_path / "PLAYBOOK.md").write_text("a rule <!-- rule: GOV-OK -->\n", encoding="utf-8")
+    (tmp_path / "scripts" / "ok.py").write_text(
+        "def f():\n    # rule: GOV-OK\n    return 1\n", encoding="utf-8")
+    findings += aud.check_doc_code_edge(tmp_path)
+
+    # broken_edge: doc rule, no matching code annotation.
+    (tmp_path / "PLAYBOOK.md").write_text(
+        "a rule <!-- rule: GOV-BROKEN -->\n", encoding="utf-8")
+    findings += aud.check_doc_code_edge(tmp_path)
+
+    # ambiguous: doc rule + two code annotations.
+    (tmp_path / "PLAYBOOK.md").write_text("a rule <!-- rule: GOV-DUP -->\n", encoding="utf-8")
+    (tmp_path / "scripts" / "a.py").write_text(
+        "def a():\n    # rule: GOV-DUP\n    return 1\n", encoding="utf-8")
+    (tmp_path / "scripts" / "b.py").write_text(
+        "def b():\n    # rule: GOV-DUP\n    return 2\n", encoding="utf-8")
+    findings += aud.check_doc_code_edge(tmp_path)
+
+    assert len(findings) == 5  # one Finding per state -> all five exercised (not vacuous)
+    for f in findings:
+        for field in (f.check_name, f.status, f.evidence):
+            field.encode("cp1252")  # non-cp1252 char -> UnicodeEncodeError -> test fails
+
+
+# --- real-starter resolve/break regression (#194 sub-arc-2 annotations, under mutation) -
+
+_STARTERS = [
+    ("seal-journal-anchor", "protocols/DEFINITION_OF_DONE.md",
+     "scripts/session_end_backpressure.py"),
+    ("canonical-freshness", "protocols/PLAYBOOK.md", "scripts/audit.py"),
+    ("coherence-spec-reconciled", "protocols/PLAYBOOK.md",
+     "scripts/validate_reconciliation.py"),
+]
+
+
+@pytest.mark.parametrize("rule_id, doc_rel, code_rel", _STARTERS)
+def test_real_starter_edges_resolve_and_break(tmp_path, rule_id, doc_rel, code_rel):
+    """On REAL content + real wiring: each starter resolves as it ships AND breaking it is caught.
+
+    Copies the live doc + code into a tmp tree (NEVER mutates the real repo), resolves the edge,
+    then deletes the `# rule: <id>` code annotation and re-resolves. The automated form of a
+    manual mutation -- and a regression guard if a real annotation is silently lost or changed
+    (the aggregate `3 resolved` assertion catches the count, never WHICH edge broke)."""
+    doc_dst = tmp_path / doc_rel
+    code_dst = tmp_path / code_rel
+    doc_dst.parent.mkdir(parents=True, exist_ok=True)
+    code_dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(_REPO_ROOT / doc_rel, doc_dst)
+    shutil.copy2(_REPO_ROOT / code_rel, code_dst)
+
+    code_root = tmp_path / "scripts"
+    assert vdce.resolve_edge(rule_id, tmp_path, code_root).status == "resolved"
+
+    # Delete ONLY this rule's code annotation (faithful to the resolver's own CODE_RE matcher;
+    # robust to indentation), leaving every other line intact.
+    kept = [
+        line for line in code_dst.read_text(encoding="utf-8").splitlines(keepends=True)
+        if not ((m := vdce.CODE_RE.search(line)) and m.group(1) == rule_id)
+    ]
+    code_dst.write_text("".join(kept), encoding="utf-8")
+
+    assert vdce.resolve_edge(rule_id, tmp_path, code_root).status == "broken_edge"

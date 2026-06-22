@@ -19,6 +19,23 @@
 
 ---
 
+### 2026-06-22 — CC: #194 edge test-hardening — cp1252-safe output + real-starter resolve/break regression
+
+**Did:** Added the two regression tests sub-arc 2 (`1584194`) left unguarded — closing the gap between "a bug was fixed / a use case is live" and "a test guards it" (not a manual check, not a gotcha note). Plan-mode → approved; branch `feat/194-edge-test-hardening` off `main` (primary checkout); `pytest`/`ruff`/`ship-gate` GREEN. **Does NOT close #194** (rollout + gate-promotion remain).
+
+**Result:**
+- **`test_doc_code_edge_output_is_cp1252_safe`** — drives ALL FIVE `check_doc_code_edge` Finding-producing states (hub-only, advisory-inactive, resolved, broken_edge, ambiguous) via the tmp-hub harness and asserts every Finding field `.encode("cp1252")` does not raise. Guards the `633e44a` fix at the source: a U+2192 `→` in the resolved-state evidence crashed `cmd_health`'s `click.echo` on a Windows cp1252 console once the edge went live (swapped to ASCII `->`) — the fix had only a gotcha note, no test. Designed so the em-dash U+2014 already in the hub-only/inactive evidence (cp1252 0x97) does NOT false-fail — only a genuinely non-cp1252 char trips it.
+- **`test_real_starter_edges_resolve_and_break`** (parametrized ×3) — copies the REAL doc + code for each starter (`seal-journal-anchor`, `canonical-freshness`, `coherence-spec-reconciled`) into a tmp tree, asserts `resolve_edge` → `resolved`, then deletes that rule's `# rule: <id>` code annotation (via the resolver's own `CODE_RE`, indentation-robust) and asserts → `broken_edge`. Real content + real wiring under mutation — the automated form of a manual mutation, and a guard if a real annotation is silently lost/changed (the aggregate "3 resolved" assertion catches the count, never WHICH edge broke). **tmp copies only; the real repo is never mutated.**
+- Verified: `pytest` **791 passed / 1 skipped** (792 collected, **+4**: 1 cp1252 + 3 parametrized), `ruff` clean, `ship-gate` **GREEN** (6 WARN dispositioned — pre-existing baselines, **no new WARN**; `doc_claims` matches, `doc_code_edge: 3 resolved`). **claim-3** reconciled 788→792 in the test commit; no `last_reviewed` re-bump (ARCHITECTURE already stamped 2026-06-22 this same day).
+
+**Changes:** `2e40c76` (both tests + ARCHITECTURE 788→792) + this JOURNAL wrap. Files: `tests/test_doc_code_edge.py`, `ARCHITECTURE.md`, `JOURNAL.md`. Branch `feat/194-edge-test-hardening`; local `--no-ff` merge to `main` (primary checkout). Plan `~/.claude/plans/cc-prompt-noble-acorn.md`. **Not pushed** (awaiting operator push + branch delete). No `[#id]` bracket anywhere — this arc removes nothing from BACKLOG (the `backlog-id-on-close` hook is close-only).
+
+**Abandoned / left open (reported, not closed):** **#194 stays OPEN.** This arc only hardens tests; nothing closes. Remaining Phase 2 (unchanged from sub-arc 2): full annotation rollout, `staleness_signal`, the `::symbol` target leg, the rebuildable index + L1 structural-integrity check (#194 "Done when"), and the data-gated hard-gate promotion (ADR-89 OQ3).
+
+**Next:** operator — push `main` + delete the merged branch when ready; future sub-arc — the #194 "Done when" (L1 structural-integrity check + rebuildable index), then the data-gated promotion.
+
+---
+
 ### 2026-06-22 — CC: #194 Phase-2 sub-arc 2 — rule-ID naming convention DECIDED + doc→code edge REAL
 
 **Did:** Full lifecycle for the doc→code edge's rule-ID naming convention (plan-mode → approved): decide+record → deploy → annotate → teach → archive. Branch `feat/194-naming-convention` off `main` (primary checkout); one commit per phase, `pytest`/`ruff`/`ship-gate` GREEN after each. The convention was operator/architect-SETTLED (D1–D3) + one operator ruling this session (narrow registry = the two authoritative declaration docs only) — recorded, not re-litigated.
