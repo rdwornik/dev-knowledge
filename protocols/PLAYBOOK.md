@@ -2931,6 +2931,8 @@ If a client engagement generates a dev lesson, strip all client names, proprieta
 - Frozen/snapshot files → date in filename: `2026-03-28_CLEANUP_PLAN.md`
 - Living files → date in YAML frontmatter: `last_updated: 2026-03-28`
 
+**Retired file types — canonical statement.** `CHANGELOG.md` is **retired ecosystem-wide** (ADR-49, 2026-05-16): git history + the JOURNAL `Changes:` line now carry what it used to, and it must not be recreated. This is the single canonical statement of that rule; everywhere else in this file an inline mention points here (`§14`) rather than restating it.
+
 ### Project governance folder
 <!-- scope: dev -->
 
