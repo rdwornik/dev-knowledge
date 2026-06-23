@@ -19,6 +19,23 @@
 
 ---
 
+### 2026-06-23 — CC: canonical-corpus coherence & staleness audit (7-file corpus, 12-agent fan-out)
+
+**Did:** Read-only diagnostic audit of the named canonical corpus (PLAYBOOK, ESSENTIALS, DEFINITION_OF_DONE, HANDOFF_PROCESS+BOOT, ARCHITECTURE, CLAUDE) per the plan-mode multiagent prompt. Phase-0 machine baseline (`audit.py health` GREEN) + 12 read-only Explore agents (8 PLAYBOOK section-agents + ESSENTIALS-with-DoD + CLAUDE + ARCHITECTURE + HANDOFF-pair) + orchestrator synthesis with full re-verification of every high-impact claim. Diagnostic ONLY — no audited file edited. Branch `audit/canonical-corpus-coherence` off `main` (primary). Opens cleanup; closes no task.
+
+**Result:**
+- **`docs/audits/2026-06-23-canonical-corpus-coherence-audit.md`** (406 L) — ~34 findings file-by-file (PLAYBOOK first) + a 7-item cross-file coupling worklist + verdict roll-ups (REMOVE/CONDENSE/UPDATE/PROMOTE/KEEP) + a confidence ledger + proposed cleanup sequencing. Corpus is structurally healthy (health GREEN, all 7 files fresh, 5/5 doc->code edges resolved); the rot is referential/editorial and mostly already tracked.
+- **Integrity headline:** orchestrator re-verification REFUTED 6 high-impact agent "MACHINE-VERIFIED" dead-ref findings (ADR-72/73, `/verify` skill, `surface-closures.ps1`, `docs/research/`, pytest count, Codex) — each an agent command run in the wrong scope (only `scripts/`, wrong filename convention, one repo not ecosystem). Load-bearing lesson: re-confirm-live before any cleanup acts.
+- **Genuine, mostly-tracked actionables:** PLAYBOOK tier-transition dead procedure (REMOVE), L855 v4-bundle label / tech-radar path / L2929 STALE marker (UPDATE), `Decommission:` field unenforced (PROMOTE #199), ESSENTIALS 448L vs 1-page (#77/#5), CLAUDE §4/§5 dup + §5 self-contradiction (#157/#112), CLAUDE §8 `verify` mis-categorized (NEW). The #77 "three divergent lesson->rule statements" are already reconciled to one canonical + two pointers.
+
+**Changes:** `1a57ef2` (the audit report) + this JOURNAL wrap. Branch `audit/canonical-corpus-coherence`; landed via local `--no-ff` merge to `main` (primary). **Not pushed.** No `[#id]` bracket — diagnostic, removes no task; opens cleanup, closes nothing.
+
+**Abandoned:** Nothing dropped. Note: the report commit first landed directly on `main` because the repo advanced under me mid-session (the handoff-audit merge landed on `main` + HEAD was on main); surgically moved to this branch + reset main to `7e2dce5` (operator-approved), so the report lands via a proper `--no-ff` merge with the handoff-audit work intact.
+
+**Next:** Operator-gated cleanup arc (separate, rule-by-rule) per the report's proposed sequencing — Batch 1 (safe label/path/pointer UPDATEs incl. CLAUDE §8 `verify`), then the #157/#112 + #77/#5 serialize-groups, then REMOVE-candidates, then PROMOTE-to-enforcement (#199 Decommission detector, #172 declare `reconciled_with`).
+
+---
+
 ### 2026-06-23 — CC: HANDOFF_PROCESS comprehensive audit (KEEP 12 / CUT 6 / ADD 3)
 
 **Did:** Ran the full HANDOFF_PROCESS audit (Opus max-effort, fresh session) per the ADR-87 equilibrium-contract brief — analysis + proposal ONLY, no implementation (no spec edit, no ADR, no version bump). Read the live v5.2 spec + boot + the `.claude/commands/handoff.md` command + the probe machinery (`verify_handoff_probes.py`) + the live `2026-06-21-dev-knowledge-architect` bundle; weighted this session's observed failures > live repo state > the three architect briefs. Branch `feat/handoff-audit` off `main` (primary checkout). Findings doc only.
