@@ -44,6 +44,20 @@
 
 **Next:** Remaining `scan_undeclared_edges` candidates (BACKLOG/CLAUDE/CONTRIBUTING/VISION/ESSENTIALS → handoff-process) are each their own declare decision — not pulled in here. Refs #172 (advances coherence-spine coverage; does not close the umbrella — no closes-bracket).
 
+---
+### 2026-06-23 — CC: PLAYBOOK two-part heading scheme (Council Option 2 — Part I Ch1–Ch14 / Part II §1–§19)
+
+**Did:** Executed the unanimous heading-scheme Council decision (Option 2, explicit two-part, H2-only — no H3 demotion) on worktree branch `worktree-heading-scheme`. Inserted two unnumbered H2 dividers (`Part I — Reference`, `Part II — Workflows`), renamed the 14 Foundations chapters `## <Title>` → `## ChN. <Title>` (Ch1–Ch14, aligning ARCHITECTURE's `Ch` convention), refreshed the preamble "Organization:" line + one orientation line per Part, regenerated the TOC. Part II (§1–§19) left UNTOUCHED — text / depth / anchors preserved (Gemini's high-traffic-anchor ruling); headings stay literal `## N.`, not `## §N.`.
+
+**Result:** Commit `f8af23c`. UX-gate: operator approved the rendered flat-H2 two-part TOC before commit. ship-gate GREEN (`doc_code_edge` 5 resolved), structure validator OK, pytest 796 passed/4 skipped, ruff clean, TOC-freshness GREEN, zero dangling Part-I anchors. **Council Risk-1 premise refuted against the live tooling:** the doc→code / coherence layer keys on `<!-- rule: -->` comments + version regexes + `reconciled_with` frontmatter, NOT heading text — so the renames touched no edge and the "atomic edge-pattern update" was a verified no-op (not a guessed one). **Council Risk-2 tax = zero:** no inbound Part-I anchor links existed anywhere (living or immutable) outside the auto-regenerated TOC, so no external link broke.
+
+**Changes:** `protocols/PLAYBOOK.md` (37 +/29 −), `JOURNAL.md`.
+
+**Abandoned:** Nothing. The §-prefix-on-Part-II and chapter-nesting-under-Part questions are deliberately out of scope (Council H2-only ruling) — left as a separate decision if ever raised.
+
+**Next:** Operator integrates from the PRIMARY checkout (`git merge --no-ff worktree-heading-scheme`), then tears down this worktree. Refs #77 + the unanimous heading-scheme Council decision; advances, not closes (no closes-bracket).
+
+---
 ### 2026-06-23 — CC: PLAYBOOK currency cleanup batch-2 (the audit's one removal — tier-transition tombstone)
 
 **Did:** Acted on the PLAYBOOK fidelity audit's single REMOVE-candidate (B3/PB-A) on branch `cleanup/playbook-tier-transition-removal` — manual-approve, confirm-live before deleting. Removed the deprecated `### Tier transition procedures (ADR-40) — DEPRECATED 2026-05-23` subsection (heading + Obsolete blockquote, ~12 L) and its auto-TOC entry; regenerated the auto-TOC so the entry disappeared. **Condense-while-preserving:** the don't-reintroduce regression-guard survives as a one-liner appended to the Project-complexity-bands deprecation blockquote (prose, no heading → no TOC entry).
