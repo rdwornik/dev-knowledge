@@ -407,3 +407,88 @@ def test_resolution_is_registry_scoped_not_fooled_by_prose_mention(tmp_path):
     # teeth: the UNSCOPED form IS fooled (2 doc-sites -> ambiguous) -- scoping is the fix
     unscoped = vdce.resolve_edge("GOV-9", tmp_path, code_root)
     assert unscoped.status == "ambiguous"
+
+
+# --- L1 structural-integrity scan + rebuildable index (#194 "Done when", the seal) -----
+# The binding #194 closure clause: "the scheme + structural check flag a fixture's
+# dangling/duplicate rule-IDs, tested." These prove the seal on an ISOLATED fixture copy:
+#   * ENFORCEMENT  -- scan_structural_integrity flags dangling (BOTH directions: declared-
+#     unimplemented + code->nonexistent-rule) and duplicate (BOTH sides), and is SILENT on a
+#     clean resolved edge (negative control -- no false positives).
+#   * REBUILDABLE INDEX -- build_edge_index is (a) deterministic (two rebuilds equal) and
+#     (b) derived-from-source: mutating the fixture (implement the dangling rule in code) and
+#     rebuilding flips that edge to resolved (round-trip), proving the index is rebuilt every
+#     scan, NEVER hand-maintained (ADR-88 P3; the fit-check's "no central manifest").
+# DETECT-first / advisory -- the scan returns findings, never raises, never gates.
+
+_STRUCT_FIXTURE = _REPO_ROOT / "tests" / "fixtures" / "doc-code-structural"
+
+
+def _copy_struct_fixture(tmp_path):
+    """Copy the structural fixture into a tmp tree (ISOLATED copy); doc + code share one dir,
+    so both roots = it. Negative-control + mutation work on this copy, NEVER the committed
+    fixture (the same isolation pattern as _copy_fixture for the move-safety proofs)."""
+    dst = tmp_path / "struct"
+    shutil.copytree(_STRUCT_FIXTURE, dst)
+    return dst
+
+
+def test_structural_scan_flags_dangling_and_duplicate(tmp_path):
+    """THE SEAL: scan_structural_integrity flags every structural defect on the fixture --
+    dangling (both directions) + duplicate (both sides) -- and is silent on the clean edge."""
+    root = _copy_struct_fixture(tmp_path)
+    findings = vdce.scan_structural_integrity(root, root, include=("doc.md",))
+    got = {(f.rule_id, f.kind) for f in findings}
+    assert got == {
+        ("dangling-doc-1", "dangling_doc"),    # declared, no code impl
+        ("code-orphan-1", "code_orphan"),      # `# rule:` with no declaration (code->nonexistent-rule)
+        ("dup-doc-1", "duplicate_doc"),        # two doc sites
+        ("dup-code-1", "duplicate_code"),      # two code sites
+    }, f"unexpected structural findings: {sorted(got)}"
+    # negative control: the clean resolved edge is NEVER flagged (no false positive)
+    assert all(f.rule_id != "clean-ok" for f in findings)
+
+
+def test_structural_scan_silent_when_no_defects(tmp_path):
+    """A tree with only a resolved edge -> no findings (the scan does not cry wolf)."""
+    (tmp_path / "doc.md").write_text("ok <!-- rule: only-ok -->\n", encoding="utf-8")
+    (tmp_path / "impl.py").write_text(
+        "def f():\n    # rule: only-ok\n    return 1\n", encoding="utf-8")
+    assert vdce.scan_structural_integrity(tmp_path, tmp_path, include=("doc.md",)) == []
+
+
+def test_edge_index_rebuilds_deterministically(tmp_path):
+    """The derived index is a pure function of source: two rebuilds are byte-for-byte equal,
+    and it really resolved (statuses present, not a vacuous empty dict)."""
+    root = _copy_struct_fixture(tmp_path)
+    idx1 = vdce.build_edge_index(root, root, include=("doc.md",))
+    idx2 = vdce.build_edge_index(root, root, include=("doc.md",))
+    assert idx1 == idx2
+    assert idx1["clean-ok"].status == "resolved"
+    assert idx1["dangling-doc-1"].status == "broken_edge"   # doc present, code absent
+    assert idx1["code-orphan-1"].status == "broken_edge"    # code present, doc absent
+
+
+def test_edge_index_round_trip_reflects_source_mutation(tmp_path):
+    """The index is REBUILT from source, never hand-held: implement the dangling rule in the
+    isolated copy, rebuild, and the edge flips broken_edge -> resolved (the round-trip proof)."""
+    root = _copy_struct_fixture(tmp_path)
+    before = vdce.build_edge_index(root, root, include=("doc.md",))
+    assert before["dangling-doc-1"].status == "broken_edge"
+    impl = root / "impl.py"
+    impl.write_text(
+        impl.read_text(encoding="utf-8")
+        + "\n\ndef now_implemented():\n    # rule: dangling-doc-1\n    return 0\n",
+        encoding="utf-8")
+    after = vdce.build_edge_index(root, root, include=("doc.md",))
+    assert after["dangling-doc-1"].status == "resolved"     # the rebuild reflected the mutation
+
+
+def test_iter_code_rule_ids_collects_comment_tokens_only(tmp_path):
+    """The code-side enumerator (the missing half of the index) reads real COMMENT tokens
+    only -- a `# rule:` inside a string literal is never collected."""
+    (tmp_path / "a.py").write_text(
+        "def f():\n    # rule: CODE-1\n    return 1\n", encoding="utf-8")
+    (tmp_path / "b.py").write_text(
+        'NOTE = "see # rule: STRING-ONLY here"\n', encoding="utf-8")
+    assert vdce.iter_code_rule_ids(tmp_path) == {"CODE-1"}
