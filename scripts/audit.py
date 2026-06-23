@@ -1393,7 +1393,7 @@ def check_doc_structure(repo_path: Path) -> list[Finding]:
                         f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
     if not results:
         return [Finding("doc_structure", "pass",
-                        "no structural rot (numbering / headers / ToC / dangling-allow)")]
+                        "no structural rot (numbering / headers / ToC / dangling-allow / heading-scheme)")]
     return [
         Finding("doc_structure", "warn",
                 f"structural rot: {_vds.format_findings([r])}".replace("|", "/"))
