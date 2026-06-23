@@ -1615,7 +1615,7 @@ Cross-link the ADR to its implementation commits; the JOURNAL entry records the 
 ### Stage 6: Review (on-trigger)
 <!-- scope: meta -->
 
-**Cadence:** the quarterly tech-radar snapshot is **retired** — `docs/tech-radar/` is archived (ADR-60; it held one dormant entry and never ran on a real cadence; reversible if a quarterly cadence ever resumes). Review is now **on-trigger**, not scheduled: re-examine an item when its reopen trigger fires, when it visibly stops earning its keep, or when a replacement appears — not on a calendar.
+**Cadence:** the quarterly tech-radar snapshot is **retired** — `docs/tech-radar/` is gone, its dated research notes archived directly under `docs/archive/` (no dedicated `tech-radar/` subfolder; ADR-60 — it held one dormant entry and never ran on a real cadence; reversible if a quarterly cadence ever resumes). Review is now **on-trigger**, not scheduled: re-examine an item when its reopen trigger fires, when it visibly stops earning its keep, or when a replacement appears — not on a calendar.
 
 **When an Adopted item is reviewed:**
 - Still earning its keep? (concrete value vs cost/maintenance)
@@ -1634,7 +1634,7 @@ Cross-link the ADR to its implementation commits; the JOURNAL entry records the 
 ### Where evaluations are recorded
 <!-- scope: meta -->
 
-`docs/tech-radar/` is archived (`docs/archive/tech-radar/`, per ADR-60; reversible if a quarterly cadence ever resumes), and `docs/research/` is retired (ADR-60 2026-05-27 amendment). With no separate radar inventory, an evaluation's record lives where its decision lives:
+`docs/tech-radar/` is retired (its dated research notes live directly under `docs/archive/` — there is no `docs/archive/tech-radar/` subfolder — per ADR-60; reversible if a quarterly cadence ever resumes), and `docs/research/` is retired (ADR-60 2026-05-27 amendment). With no separate radar inventory, an evaluation's record lives where its decision lives:
 - **ADRs** in `docs/decisions/` — the adopt/reject decision itself (research-mode debate transcripts route to `docs/decisions/transcripts/` per ADR-43).
 - **BACKLOG** "Tooling & evaluation" theme — deferred tool evals carrying their reopen triggers (e.g. Kimi K2).
 - **JOURNAL** — the per-session record of what was evaluated and decided.
@@ -1678,31 +1678,25 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 | `/save` | repo | Stage + commit with a Conventional Commits message + full body (git-discipline rule). After a discrete change. |
 | `/ship` | plugin (`tier1-lifecycle`) | Git-finish from the PRIMARY checkout: merge the current feature branch `--no-ff` → push → **auto-delete the merged branch** (no question). Branch cleanup is automatic; an anomalous `git branch -d` refusal is **reported loudly** and the branch left in place (session still ends). Refuses from inside a worktree (pre-flight #1). |
 | `/handoff` | repo | CC-owned handoff per HANDOFF_PROCESS v5 (ADR-82): "create handoff" → "complete handoff" — emits the residual + probe manifest + points at the thin boot. At ~2h, context still fresh. |
+| `/changelog-review` | repo | Operator-invoked review of tool changelogs (claude-code + codex) since last review — classify per the audit rubric, write a digest, bump the state file. PUSH-triggered (a SessionStart sentinel surfaces "run /changelog-review"); never implements adoptions. |
 
 **Skills** — read on-demand by Claude when the topic matches; you do **not** invoke them:
 
 | Skill | Level | Fires |
 |-------|-------|-------|
 | `gotchas` | user | Auto-consulted before edits when an encoding / shell / test-pitfall pattern is in play. |
-| `verify` | user | Domain verification scripts for the ecosystem; consult/run after `pytest` passes. |
+| `verify` | repo | Domain verification scripts for the ecosystem (`.claude/skills/verify/`); consult/run after `pytest` passes. |
 
 **Subagents** — Task-tool, read-heavy / write-light (`ecosystem-snapshot`, `report-generator`, both Haiku, user-level): invoke for read-only fan-out (snapshots, report condensation), never as code-gen peers (7d).
 
-**Hooks** — auto vs manual:
+**Hooks** — auto vs manual: **every hook fires automatically; none are operator-invoked.** The canonical, drift-tracked roster lives in **CLAUDE.md §9** — the live pre-commit gate set, the project-level SessionStart/Stop/PreToolUse session layer, the pre-push prevent organ, and the `.claude/rules/` — read it there rather than maintaining a duplicate copy here (this table re-drifted twice: a self-stamped enumeration of "6 hooks" while the live config carried 10, and rows describing the retired `/boot`+`/evolve` machinery — the failure this pointer exists to kill). The operational "when":
 
-| Hook | Where | Fires |
-|------|-------|-------|
-| `block-onedrive` | `~/.claude/settings.json` PreToolUse:Bash | **Auto**, before every Bash call — blocks OneDrive-Blue-Yonder paths (P0 safety). |
-| SessionStart evolution reminder | `~/.claude/settings.json` | **Auto**, at session start (echoes rule / correction counts). |
-| Stop notify + evolution scorecard | `~/.claude/settings.json` | **Auto**, at session end (`claude-notify.ps1` + scorecard reminder). |
-| `normalize-dated-headers` | `.pre-commit-config.yaml` | **Auto** on commit — dated-log header normalization. |
-| `codemap-freshness` | `.pre-commit-config.yaml` | **Auto** on commit — ARCHITECTURE codemap vs `scripts/` staleness. |
-| `validate-backlog` | `.pre-commit-config.yaml` | **Auto** on commit — BACKLOG story-map schema (ADR-66). |
-| `audit-health` | `.pre-commit-config.yaml` | **Auto** on commit — `audit.py health`; **FAIL blocks the commit**, WARN informs ([#69]). |
-| `backlog-id-on-close` | `.pre-commit-config.yaml` (commit-msg) | **Auto** — requires `[#id]` when a commit removes a backlog task. |
-| `ruff` | `.pre-commit-config.yaml` | **Auto** on commit — `ruff check`; **blocks on violations** (version-pinned ≥0.15.5; [#13] closed 2026-06-02). Run `ruff check --fix` / `/save` to auto-fix first. |
+- **Pre-commit gates** fire on `git commit`. Two **BLOCK** (`audit-health` on FAIL, `ruff` on violation); the rest normalize, validate, or surface (run `ruff check --fix` / `/save` to auto-fix lint before committing).
+- **commit-msg** gate (`backlog-id-on-close`) requires `[#id]` when a commit removes a backlog task.
+- **pre-push** prevent organ (`block-ff-push`) refuses a non-merge commit onto main's first-parent spine (one-time local activation: `pre-commit install --hook-type pre-push`).
+- **Session hooks** (`~/.claude/` + the project `.claude/settings.json` layer) fire at SessionStart (surfacing — fleet/triage/billing/changelog), Stop (back-pressure + notify), and PreToolUse (the OneDrive guard + transcript-immutability guard).
 
-CLAUDE.md is the inventory authority — §7 (commands), §8 (skills), §9 (hooks); this table is the operational "when". Adding/removing any of them follows the Adoption protocol below and updates both surfaces.
+CLAUDE.md is the inventory authority — §7 (commands), §8 (skills), §9 (hooks); this is the operational "when". Adding/removing any of them follows the Adoption protocol below and updates both surfaces.
 
 ### 7a. Skills (progressive-disclosure knowledge modules)
 <!-- scope: runtime -->
@@ -1867,7 +1861,7 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 
 When Claude Code observes a recurring pattern and suggests adding a skill, slash command, hook, or subagent, this protocol decides scope (user-level vs project-level), validates the addition, and ensures it's documented in the right places. Companion to subsections 7a-7d above (what they are) — this is "how to add one safely."
 
-**Distinct from PLAYBOOK Section 6 Continuous Improvement** — that covers external tool/model adoption (Codex, Tach, ccusage). This subsection covers Claude Code's own extension mechanisms.
+**Distinct from the unnumbered "Continuous Improvement" section above** — that covers external tool/model adoption (Codex, Tach, ccusage). This subsection covers Claude Code's own extension mechanisms. (Not §6, which is "Code Review".)
 
 #### Triage: is the proposal worth adopting?
 <!-- scope: meta -->
