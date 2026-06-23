@@ -334,7 +334,37 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   node); the safe-removal gate that consumes it is #195. Pyright is vendored via `npm install`
   (pinned in `package.json`; `node_modules/` gitignored). Standalone CLI:
   `python scripts/reverse_dep_oracle.py <symbol> [--json|--text]`.
-- `tests/` — pytest unit tests for the validators (**794 collected**; `pytest -x --tb=short`).
+
+**Graph-level conformance — the legibility graph as an integrated whole.** The four
+edge-validators above are each proven by their own suite; the *integrating* property — all
+four **registered + operational**, and each **firing on a representative break through its
+real integrated entry point** — is owned by `tests/test_legibility_graph_conformance.py` (it
+adds the graph-level proof and closes nothing). Two edge-types are **enforcers wired into the
+`audit.py` gate** (`ALL_CHECKS`); two are **awareness/query tools that exit 0 by design** — so
+"integrated" is **not** "all four gate" (the "in gate?" column keeps that honest). The
+code↔code fires-cell is **skipif-guarded** on the *same* `find_langserver` check the test's
+3-state ledger (proven/skipped/gap) derives from: with Pyright vendored (`node_modules/`, this
+env) it runs+passes; where Pyright is absent it **skips** and the tally drops the "fully
+proven" headline — green never lies. Per-oracle **deep modes** stay in the per-oracle suites
+(referenced in the last column), never re-run here.
+
+| Edge-type | In gate? | Registered + operational | Fires on a representative break (integrated entry) | Deep modes (referenced — not owned here) |
+|---|---|---|---|---|
+| spec→dependent (#172) | yes (`ALL_CHECKS`) | PROVEN | PROVEN — stale `reconciled_with` → `check_reconciled_versions` FAIL | `test_coherence_integration.py` + `test_validate_reconciliation.py` |
+| doc→code (#194) | yes (`ALL_CHECKS`, hub-only) | PROVEN | PROVEN — declaration-registry doc + a broken rule-ID → `check_doc_code_edge` WARN (broken_edge) | `test_doc_code_edge.py` (move-safety, dup-guard, coverage gate, registry-scoping guard); coverage tail → #201/#202/#203 |
+| undeclared (#179/#199) | no (awareness, exit 0) | PROVEN | PROVEN — prose ref to a registered spec + no edge → candidate surfaced via `scan`/`main` | `test_scan_undeclared_edges.py` (tiers, fenced-exclusion, false-flag precision) |
+| code↔code (#193) | no (query tool; #195) | PROVEN | PROVEN here (vendored Pyright, skipif-guarded) — real reverse-dep query → ≥1 dependent w/ provenance | `test_reverse_dep_oracle.py`; transitive closure → #193/#195 |
+| **graph-integration** | — | **4/4 PROVEN** | **4/4 PROVEN this env** (code↔code skipif-guarded) | referenced above |
+
+**Env-aware tally.** This env (Pyright vendored) → **8/8 cells proven** (4/4 registered +
+operational, 4/4 fires-on-break); integration **fully proven (this env)**. An unprovisioned env
+→ **7/8 proven, 1 skipped** (code↔code fires — Pyright not provisioned): fully **provable**, not
+fully proven there. No green — test name, output, or this map — reads as "fully proven" while a
+cell is skipped or gapped. **Skip/gap tracking:** code↔code fires → skip-guarded, here proven,
+portability via **#195** (integrated enforcement) + **#193**; doc→code coverage tail →
+**#201/#202/#203**.
+
+- `tests/` — pytest unit tests for the validators (**800 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
