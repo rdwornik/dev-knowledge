@@ -852,7 +852,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `ENVIRONMENT.md` | Tooling state, what's installed | Sectioned, scope-tagged | When tool adopted/deprecated | Rob, Claude Code | Living (sections updated) | Per-repo |
 | `docs/decisions/ADR-NN-*.md` | Architectural decisions | Michael Nygard format | When decision binds | Rob, future contributors | Numbered, immutable (amend in-place per ADR-29) | Per-repo |
 | `docs/decisions/transcripts/council-out-*.md` | Raw Council debate outputs (canonical; legacy `DECISION_NN_*` grandfathered in `transcripts/archive/legacy/`) | Multi-model debate transcript | When Council debate concludes (routed per ADR-43; manual fallback per §5) | Reference for ADR rationale | Numbered, immutable | Per-repo |
-| `docs/handoffs/YYYY-MM-DD-*/` (v4 bundle) | Chat-to-chat session summary | Flat bundle `README.md` + `01_ROLE`…`07_ASK_BACK`, generated from source (HANDOFF_PROCESS v4); legacy single-file + v3.x `contents/` bundles preserved as history | When session boundary requires continuity | Next browser chat | Dated, immutable | `.dev-knowledge` only |
+| `docs/handoffs/YYYY-MM-DD-*/` (v5.2 bundle) | Chat-to-chat session summary | Flat bundle entered via `HANDOFF_BOOT.md` (operator session entry) + CC-owned residual/probe-manifest, per HANDOFF_PROCESS v5.2 (ADR-82); legacy v4 `README.md` + `01_ROLE`…`07_ASK_BACK`, single-file, and v3.x `contents/` bundles preserved as history | When session boundary requires continuity | Next browser chat | Dated, immutable | `.dev-knowledge` only |
 | `docs/audits/YYYY-MM-DD-*.md` | Point-in-time analyses | Free-form audit | When deep analysis needed | Reference for follow-up work | Dated, immutable (mark SUPERSEDED if redone) | Per-repo |
 
 ### File presence (universal baseline)
@@ -1032,7 +1032,7 @@ When stop-sign appears, ACTION:
 
 This isn't a hard limit. Session may legitimately need to push past it (e.g., critical fix, time-bound deliverable). But entering wrap-up zone shifts default from "continue" to "wrap up unless reason to continue."
 
-**Why these numbers:** observed empirically from 2026-04-24 session. Quality of decisions visibly degraded after these thresholds — including by the "decider's" own self-assessment in retrospect.
+**Why these numbers:** a working threshold drawn from session experience — quality of decisions visibly degraded past these points, including by the "decider's" own self-assessment in retrospect. Treat as a calibrated rule of thumb, not a measured constant.
 
 **Counter-indicator:** if session is execution-heavy (running prompts, watching Claude Code commit) rather than decision-heavy, threshold is generous. The fatigue is decision-specific, not pure clock time.
 
@@ -1510,6 +1510,8 @@ ADR-81 (a)–(d) above answers *"is this organ a complete organ?"* This answers 
 6. **The verification organs RUN green** — `audit-health`, `validate_doc_claims` (#89), `validate_git_backlog` (#90a), `canonical_freshness` actually **executed against THIS arc**, not merely existing. Building an organ ≠ running it on the feature it should guard. **"Organs run green" is class-specific:** hard-fail organs (`audit-health`, `amendment_coherence`) exit 0; awareness organs (`validate_doc_claims`, `validate_git_backlog`) surface no new or undispositioned WARN — a documented pre-existing WARN (e.g. a voided closure pending #139) does not block.
 
 Announcing before (2)–(6) is **premature closure**, not shipped. Point (6) is **operator-enforced discipline until #147** wires it as a pre-ship gate (a hook/command that RUNS the organs and BLOCKS `/ship` on red). De-dup: point (3) E2E = **#144**; codification-completeness of the methodology home = **#145**; #147 = the run-organs-as-gate mechanism — three distinct items.
+
+**Distinct from the per-session close gate:** this "organ done" (ADR-81) and "arc shipped" gate answer *"is this feature/arc complete?"* The adjacent, narrower question *"did THIS session leave the record current?"* has its own single-source — `protocols/DEFINITION_OF_DONE.md` (ADR-85), enforced mechanically by the session-end Stop-hook (JOURNAL SHA-anchor hard block + BACKLOG nudge). Don't conflate the three scopes: organ-completeness, arc-shipped, session-close.
 
 ---
 
@@ -2210,8 +2212,8 @@ table, the mandatory skeleton, hook guidance) updates:**
 
 1. this PLAYBOOK rationale (the live authority), and
 2. the point-of-use card wherever it travels — under v5, `templates/prompt-template.md`.
-   (The v4 bundle's embedded copy at `templates/archive/handoff-v4/02_METHODOLOGY.md.tmpl`
-   is frozen history, no longer co-maintained.)
+   (The handoff bundle's methodology template lives at `templates/handoff/02_METHODOLOGY.md.tmpl`;
+   the pre-v5 frozen copies are no longer co-maintained.)
 
 Drift between the two is a process bug — the card is the point-of-use authority,
 PLAYBOOK is the maintenance source. The card has a ≤200-line size budget; if it
@@ -2345,6 +2347,8 @@ rounds: 2
 
 ### Running the debate
 <!-- scope: llm -->
+
+The current entry point is **`/council-question`** (per ADR-67 — Claude Code generates a templated Council question, symmetric with `wygeneruj handoff`; the slash command is implemented in the `ai-council` repo). The bare `council-cli` calls below predate ADR-67 and are illustrative of the underlying tool:
 
 ```bash
 # Process debates from inbox
@@ -2497,9 +2501,11 @@ When validator/tooling reality contradicts an ADR's prescription, two paths exis
 
 When amending in place:
 1. Add **Amendment YYYY-MM-DD** block at end of ADR file (do not rewrite original decision text)
-2. Block structure:
+2. Block structure — both forms are acceptable (the live 2026-06-21 examples, ADR-88/89, use the **H2 heading** form with an inline status-flip; the blockquote is the original template):
 
    > **Amendment YYYY-MM-DD ([brief topic]):** [What was wrong/unclear in original prescription]. Resolution: [what the prescription now says]. Intent preserved: [why this is amendment not reopen].
+
+   …or, equivalently, as a heading: `## Amendment — YYYY-MM-DD: [topic]` followed by the same What/Resolution/Intent-preserved content (used when the amendment also flips the ADR's status, e.g. Proposed → Accepted).
 
 3. Update validator/tool/process to match amendment
 4. Add LESSONS.md entry (per ADR-29 format) describing what was discovered
@@ -2807,7 +2813,7 @@ Light P1 items MAY be copy-pasted inline into Future State (acceptable at P1 onl
 ### Quarterly deep grooming (~30 min, scheduled)
 <!-- scope: meta -->
 
-Rob reviews full BACKLOG once per quarter (first review: 2026-07-01):
+Rob reviews full BACKLOG once per quarter (recurring quarterly cadence — schedule the next review at the start of each quarter; no fixed anchor date, to avoid silent rot into a past date):
 
 1. Confirm **no `done` items remain** — done items leave on close (ADR-47/65); the validator hard-fails on any `done` entry. **No archive file** (CLAUDE.md §5). Retrospect via `git log` + JOURNAL, not a parallel archive
 2. Re-prioritize P1/P2/P3 based on current ecosystem state
@@ -2922,7 +2928,7 @@ If a client engagement generates a dev lesson, strip all client names, proprieta
 ## 14. Markdown Governance
 <!-- scope: dev -->
 
-> **STALE — Handoff and Snapshots/reports rows.** Handoff row predates folder format; see `protocols/HANDOFF_PROCESS.md` v2.0 (folder convention per ADR-32). Snapshots/reports row's "delete after 90 days" lifecycle does not match practice (audits kept indefinitely). Substantive rewrite deferred to its own session.
+> **Reconciled 2026-06-23 (Handoff + Snapshots/reports rows).** The Handoff and Snapshots/reports rows below now match practice: handoffs are dated, immutable `docs/handoffs/YYYY-MM-DD-*/` bundles (folder convention per ADR-32 / HANDOFF_PROCESS v5.2), not a living `docs/HANDOFF.md`; dated snapshots/audits under `docs/archive/` are kept **indefinitely** (the prior "delete after 90 days" lifecycle never matched practice — audits are immutable records).
 
 **Every markdown file in the project falls into exactly one category.** If you're about to create a .md file and it doesn't fit any category below — it probably shouldn't exist.
 
@@ -2930,8 +2936,8 @@ If a client engagement generates a dev lesson, strip all client names, proprieta
 | ----------------- | --------------- | ---------------------------------------------- | ------------------------------ |
 | Project docs      | Root            | CLAUDE.md, README.md                           | Living, never delete           |
 | Decision records  | docs/decisions/ | ADR-{NN}_{topic}.md                            | Frozen, never edit             |
-| Handoff           | docs/           | HANDOFF.md                                     | Living, update in place        |
-| Snapshots/reports | docs/archive/   | {YYYY-MM-DD}_{TYPE}_{topic}.md                 | Frozen, delete after 90 days   |
+| Handoff           | docs/handoffs/  | YYYY-MM-DD-{slug}/ bundle (HANDOFF_BOOT.md + …)| Dated, immutable               |
+| Snapshots/reports | docs/archive/   | {YYYY-MM-DD}-{topic}.md                        | Frozen, kept indefinitely      |
 | Eval data         | eval/           | eval_history.jsonl                             | Append-only, keep indefinitely |
 | Ephemeral prompts | Not in repo     | PROMPT_{topic}.md                              | Delete after execution         |
 
@@ -3078,6 +3084,8 @@ This is not optional. Stale structural documentation is worse than no documentat
 
 ## 19. Scrum-Master Review Propagation
 <!-- scope: meta -->
+
+> Authorized by **ADR-63** (Accepted 2026-05-30, N=3) — superseding the Reserved ADR-44 (N=2 hold).
 
 **When:** `.dev-knowledge` (or any ecosystem-meta repo) audits a target repo against universal conventions (ADR-34 naming, ADR-38 architecture, ADR-41 backlog, etc.) and finds non-conformities to route. Distinct from § 16 Cross-Tool Review (within-repo Codex audit) and § 17 Code Quality Audit Process (within-repo audit cycle).
 
