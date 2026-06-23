@@ -165,6 +165,58 @@ def test_parse_allow_markers_extracts_kind_and_locus():
     assert vds.parse_allow_markers(text) == {("numbering-gap", "18")}
 
 
+# --- sub-detector E: two-part heading scheme (the Ch / § convention) ---------
+
+def _twopart(part1: list[str], part2: list[str]) -> str:
+    """A minimal `## Part I — Reference` / `## Part II — Workflows` spine doc."""
+    p1 = "\n\n".join(part1)
+    p2 = "\n\n".join(part2)
+    return ("# Title\n\n## Part I — Reference\n\n" + p1
+            + "\n\n## Part II — Workflows\n\n" + p2 + "\n")
+
+
+def test_heading_scheme_clean_two_part_no_fire():
+    text = _twopart(["## Ch1. A", "## Ch2. B", "## Ch3. C"], [_h2(1), _h2(2)])
+    assert vds.scan_heading_scheme("X.md", text, set()) == []
+
+
+def test_heading_scheme_part1_missing_ch_prefix_fires():
+    # (a) A Part-I heading without its ChN. prefix -> fires.
+    text = _twopart(["## Ch1. A", "## Plain heading", "## Ch2. B"], [_h2(1)])
+    findings = vds.scan_heading_scheme("X.md", text, set())
+    assert any(f.category == "heading-scheme" and "ChN." in f.detail for f in findings)
+
+
+def test_heading_scheme_part1_gap_fires():
+    text = _twopart(["## Ch1. A", "## Ch3. C"], [_h2(1)])
+    findings = vds.scan_heading_scheme("X.md", text, set())
+    assert any(f.category == "heading-scheme" and "Ch2" in f.detail for f in findings)
+
+
+def test_heading_scheme_part1_gap_suppressed_by_marker():
+    # Symmetry with §18: a chapter gap carrying a chapter-gap allow marker -> PASSES.
+    text = _twopart(["## Ch1. A", "## Ch3. C"], [_h2(1)])
+    assert vds.scan_heading_scheme("X.md", text, {("chapter-gap", "2")}) == []
+
+
+def test_heading_scheme_part1_out_of_sequence_fires():
+    # Starts at Ch2 (not Ch1) AND decreases -> out of sequence.
+    findings = vds.scan_heading_scheme("X.md", _twopart(["## Ch2. A", "## Ch1. B"], [_h2(1)]), set())
+    assert findings
+    assert all(f.category == "heading-scheme" for f in findings)
+
+
+def test_heading_scheme_part2_recipes_not_required_to_be_ch():
+    # Part II is `## N.` recipes + unnumbered appendices — never flagged as non-Ch.
+    text = _twopart(["## Ch1. A"], [_h2(1), "## Appendix A: Shortcuts"])
+    assert vds.scan_heading_scheme("X.md", text, set()) == []
+
+
+def test_heading_scheme_skips_doc_without_part_spine():
+    # A doc with no `## Part I/II` spine (CLAUDE.md, VISION.md, …) is not subject to the scheme.
+    assert vds.scan_heading_scheme("X.md", _doc(_h2(1), "## Foo"), set()) == []
+
+
 # --- scan() orchestration + format ------------------------------------------
 
 def test_scan_clean_doc_returns_empty(tmp_path):
@@ -182,6 +234,19 @@ def test_scan_aggregates_distinct_loci(tmp_path):
 
 def test_scan_skips_missing_docs(tmp_path):
     assert vds.scan(tmp_path) == []
+
+
+def test_scan_negative_control_catches_both_heading_scheme_and_sequence(tmp_path):
+    # The enablement teeth (the prompt's success test): a deliberately-broken PLAYBOOK copy
+    # must fire for BOTH (a) a Part-I heading missing its ChN. prefix and (b) a Part-II
+    # out-of-sequence gap. Proves the ENFORCEMENT, not that the live file happens to pass.
+    broken = ("# Title\n\n## Part I — Reference\n\n## Ch1. A\n\n## Broken chapter\n\n## Ch2. B\n\n"
+              "## Part II — Workflows\n\n" + _h2(1) + "\n\n" + _h2(3) + "\n")  # (a) no-Ch + (b) §2 gap
+    (tmp_path / "protocols").mkdir()
+    (tmp_path / "protocols" / "PLAYBOOK.md").write_text(broken, encoding="utf-8")
+    cats = {r.category for r in vds.scan(tmp_path)}
+    assert "heading-scheme" in cats   # (a) Part-I scheme break
+    assert "numbering-gap" in cats    # (b) Part-II sequence break
 
 
 def test_format_findings_no_pipe():
@@ -268,3 +333,9 @@ def test_live_playbook_section18_marker_is_load_bearing():
 def test_live_playbook_toc_fence_awareness():
     # The embedded-template oracle on REAL data: PLAYBOOK's fenced H2s don't read as orphans.
     assert vds.scan_toc("protocols/PLAYBOOK.md", _live("protocols/PLAYBOOK.md")) == []
+
+
+def test_live_playbook_heading_scheme_is_clean():
+    # The Ch/§ convention on REAL data: Part I chapters are ChN. sequential, Part II is `## N.`.
+    pb = _live("protocols/PLAYBOOK.md")
+    assert vds.scan_heading_scheme("protocols/PLAYBOOK.md", pb, vds.parse_allow_markers(pb)) == []
