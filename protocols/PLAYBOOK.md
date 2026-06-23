@@ -51,7 +51,6 @@
 - [Project complexity bands](#project-complexity-bands)
   - [Testing rules (scaled by repo complexity)](#testing-rules-scaled-by-repo-complexity)
   - [VS Code workspace](#vs-code-workspace)
-  - [Tier transition procedures (ADR-40) — DEPRECATED 2026-05-23](#tier-transition-procedures-adr-40--deprecated-2026-05-23)
 - [Documentation file types and session continuity](#documentation-file-types-and-session-continuity)
   - [File type taxonomy](#file-type-taxonomy)
   - [File presence (universal baseline)](#file-presence-universal-baseline)
@@ -646,7 +645,7 @@ This section's history is in git log (search commits for "prompt template" or "G
 ## Project complexity bands
 <!-- scope: dev -->
 
-> **Repo-tier system DEPRECATED 2026-05-23.** The formal S/M/L tier system — a declared `tier:`/`scale:` per repo that gated governance baselines — is deprecated ecosystem-wide (operator decision 2026-05-23; see ADR-33 amendment, ADR-38 amendment A5, ADR-40 deprecation). Repos no longer **declare** a tier, and no governance obligation is gated on one. The universal governance baseline (ADR-38 A5) applies to every repo regardless of size.
+> **Repo-tier system DEPRECATED 2026-05-23.** The formal S/M/L tier system — a declared `tier:`/`scale:` per repo that gated governance baselines — is deprecated ecosystem-wide (operator decision 2026-05-23; see ADR-33 amendment, ADR-38 amendment A5, ADR-40 deprecation). Repos no longer **declare** a tier, and no governance obligation is gated on one. The universal governance baseline (ADR-38 A5) applies to every repo regardless of size. The tier-*transition* procedures (S→M, M→L triggers/steps, formerly a subsection here under ADR-40) are likewise retired and **not re-introduced** — there is no tier to transition between and no score is computed.
 
 The S/M/L labels below survive only as **informal complexity descriptors** — shorthand for "how big is this repo" used to calibrate judgment (how much test infrastructure, how rich a workspace), not as a declared, audited tier:
 
@@ -814,19 +813,6 @@ Template is starting point, not contract. Repos may:
 - Add custom tasks, debug configurations, multi-folder workspaces
 
 **Don't:** remove template baseline without rationale — that's diverging from baseline, not customizing on top of it.
-
-### Tier transition procedures (ADR-40) — DEPRECATED 2026-05-23
-<!-- scope: meta -->
-
-> **Obsolete.** This subsection described tier-upgrade procedures (S→M→L) keyed
-> to ADR-40's Composite Tier Score. ADR-40 is deprecated (2026-05-23) and the
-> tier system is removed ecosystem-wide. There is no tier to transition between
-> and no score is computed. The universal governance baseline (ADR-38 amendment
-> A5) applies to every repo from the start — there are no tier-gated obligations
-> to acquire on growth. Retained as a marker so the removed procedures are not
-> silently re-introduced.
->
-> Cross-refs: ADR-40 (deprecated), ADR-33 amendment, ADR-38 amendment A5, ADR-36 (audit tool); see ARCHITECTURE.md §Validators and enforcement and `python scripts/audit.py --help`.
 
 ---
 
