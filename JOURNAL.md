@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-06-23 — CC: legibility-graph conformance — map + integrating-property test (graph-level proof)
+
+**Did:** Re-executed the APPROVED legibility-graph conformance arc (its run was lost when a prior session died on an API timeout; design + operator decisions survived in full). Proved the `ARCHITECTURE.md` claim that the dependency-legibility graph's FOUR edge-type oracles are "live and integrated" — previously unproven at the graph level (per-oracle suites prove each oracle; nothing proved the graph as an integrated whole). Test-first, structural; changes NO oracle and NO wiring; closes nothing (#194 stays OPEN). Verified every entry-point contract against LIVE code first (the surviving `.bak` draft matched, but was re-checked, not trusted). Branch `feat/legibility-graph-conformance` off `main` (primary checkout).
+
+**Result:**
+- **`tests/test_legibility_graph_conformance.py`** (NEW, 6 tests, +293 L) — the integrating-property proof. Hard assertion: 2 enforcers (`check_reconciled_versions`/`check_doc_code_edge`) ARE in `audit.ALL_CHECKS`; 2 awareness tools (`scan_undeclared_edges`/`reverse_dep_oracle`) callable + NOT in gate by design. Four per-oracle integration e2e (isolated copies, through the REAL entry point): spec→dependent fires via `aud.check_reconciled_versions` (stale `reconciled_with` → FAIL); doc→code fires via `aud.check_doc_code_edge` over a real `ecosystem/doc-code-edge.yaml` declaration registry (post-#194 include-scoped entry → broken_edge WARN); undeclared fires via `sue.scan`/`sue.main` (prose ref → candidate); code↔code fires via `rdo.run_oracle` (vendored Pyright reverse-dep query). A 3-state ledger (proven/skipped/gap) drives a tally whose "FULLY PROVEN" headline appears ONLY when no cell skipped/gapped — the code↔code fires-cell status is derived AT RUNTIME from the SAME `find_langserver` check the `skipif` uses (never hardcoded), so green can't lie.
+- **`ARCHITECTURE.md`** — the conformance MAP: a bold block + table inside "Validators and enforcement" after the four edge-validator bullets (NO new heading → no ToC churn). Carries the "in gate?" column (2 gate / 2 awareness), the env-aware tally, and skip/gap tracking. claim-3 reconciled `794 → 800` (the +6 tests). `last_reviewed` already 2026-06-23 (today's #194 work) — UNCHANGED; a genuine end-to-end re-read of all 574 L confirms accuracy, no drift filed.
+- **code↔code is skipif-proven, NOT xfail:** Pyright is vendored (`node_modules/pyright/`, gitignored), so the cell RAN+passed here (0 skip, 0 XPASS); `skipif` graceful-skips for portability where Pyright is absent, tracked by #195 (integrated enforcement) + #193.
+- **Verify:** new test `6 passed` (code↔code ran); full `pytest` `799 passed, 1 skipped` (the 1 skip is pre-existing elsewhere, NOT code↔code); `ruff` clean; `audit health` OK; `ship-gate` **GREEN** (`doc_code_edge: 5 resolved`; 4 doc self-claims match; 6 WARN dispositioned). Anchor SHA `d7c2aee` (map + claim-3); test SHA `1b8346d`.
+
+**Changes:** `tests/test_legibility_graph_conformance.py` (new), `ARCHITECTURE.md`, `JOURNAL.md`.
+
+**Next:** Architect reviews the filled matrix → decides which gaps become closing batches (doc→code coverage tail #201/#202/#203; code↔code transitive closure #193/#195) and which deep-mode gaps get their own items. Arc landed via local `--no-ff` merge to `main` (primary); **not pushed**. No `[#id]` bracket — adds a test + a map, removes no task, closes nothing.
+
+---
+
 ### 2026-06-23 — CC: #194 doc-site-scoping root fix — scope doc-side resolution to the declaration registry
 
 **Did:** Verified + landed the surviving (uncommitted) #194 fix from a prior API-timed-out session. `find_doc_sites`/`resolve_edge` gained an `include` param scoping DOC-side resolution to the `declaration_docs:` registry — the SAME scope `iter_doc_rule_ids` already enumerated — closing the scan/resolve ASYMMETRY that flipped a real edge to `ambiguous` when a non-declaration doc merely quoted its `<!-- rule: ... -->` token in prose (`seal-journal-anchor`, collided by an immutable `docs/audits/` file). `audit.check_doc_code_edge` now passes `include=` into `resolve_edge`. Confirmed PRINCIPLED root fix (registry-scoping), not immutable-artifact pruning. Branch `fix/194-doc-site-scoping` off `main` (primary). Fixes the defect; #194 stays OPEN (rollout not complete).
