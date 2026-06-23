@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-23 — CC: PLAYBOOK batch-3 — CHANGELOG canonical statement (F3) then scatter-collapse (PB-E)
+
+**Did:** Ran the sequenced F3→PB-E pair on branch `cleanup/playbook-changelog-collapse` (manual-approve, confirm-live first). **F3** (commit `c4a4060`): added the single canonical "`CHANGELOG.md` retired ecosystem-wide (ADR-49)" statement to §14 Markdown Governance — the home the scatter could point at. **PB-E** (commit `2397b56`): collapsed all 14 inline `(CHANGELOG.md retired — ADR-49)` justifications to `(CHANGELOG retired — §14)` pointers. Sequence enforced: home before pointers.
+
+**Result:** Confirm-live found 19 CHANGELOG mentions — 14 duplicated inline justifications (the scatter) + 5 substantive entries (file-type-taxonomy + file-presence table rows, the CHANGELOG-vs-JOURNAL distinction, the order-convention note) left untouched. Condense-while-preserving honored: every collapsed annotation became a `§14` pointer, no rule lost. Both commits ship-gate GREEN + TOC-freshness GREEN; suite 799 passed/1 skipped; ruff clean. Local `--no-ff` merge into main; not pushed.
+
+**Changes:** `protocols/PLAYBOOK.md` (2 commits: +2 F3, 14 +/14 − PB-E), `JOURNAL.md`.
+
+**Abandoned:** Nothing in scope. Did not touch deferred items (A10/B11/G1-#162), the out-of-scope corpus, or the §14 heading-scheme restructure (a separate sequenced arc). Refs #77 (advances, not closes) + hygiene-audit PB-E.
+
+**Next:** Heading-scheme restructure arc when scheduled; remaining PLAYBOOK fidelity-audit batches.
+
+---
+
 ### 2026-06-23 — CC: PLAYBOOK currency cleanup batch-2 (the audit's one removal — tier-transition tombstone)
 
 **Did:** Acted on the PLAYBOOK fidelity audit's single REMOVE-candidate (B3/PB-A) on branch `cleanup/playbook-tier-transition-removal` — manual-approve, confirm-live before deleting. Removed the deprecated `### Tier transition procedures (ADR-40) — DEPRECATED 2026-05-23` subsection (heading + Obsolete blockquote, ~12 L) and its auto-TOC entry; regenerated the auto-TOC so the entry disappeared. **Condense-while-preserving:** the don't-reintroduce regression-guard survives as a one-liner appended to the Project-complexity-bands deprecation blockquote (prose, no heading → no TOC entry).
