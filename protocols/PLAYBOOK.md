@@ -409,7 +409,7 @@ Procedure (Phase 1 = file changes on feature branch; Phase 2 = destructive remot
 
 Phase 1:
 1. Grep entire repo for hardcoded `master` in CI workflows, hooks, scripts, docs. Update any found alongside the rename
-2. Update any docs naming the default branch by name (e.g. JOURNAL entries; CHANGELOG retired ecosystem-wide per ADR-49)
+2. Update any docs naming the default branch by name (e.g. JOURNAL entries; CHANGELOG retired — §14)
 
 Phase 2 (destructive — explicit confirm before each):
 3. Local rename: `git branch -m master main`
@@ -951,7 +951,7 @@ Formats in `docs/handoffs/`, all but the current one historical:
 
 Per Token-LOG flip 2026-04-24:
 
-- **Newest-first (prepend):** TOKEN-LOG, JOURNAL (CHANGELOG retired — ADR-49). Rationale: logs optimize for current-state scanning. (JOURNAL flipped 2026-04-27 — original Stream B Gap #4 spec had oldest-top; amended for consistency with TOKEN-LOG/CHANGELOG.)
+- **Newest-first (prepend):** TOKEN-LOG, JOURNAL (CHANGELOG retired — §14). Rationale: logs optimize for current-state scanning. (JOURNAL flipped 2026-04-27 — original Stream B Gap #4 spec had oldest-top; amended for consistency with TOKEN-LOG/CHANGELOG.)
 - **Append-only (oldest top):** LESSONS. Rationale: chronological narrative for grandfathered learning patterns; order preserves "what we learned when" per ADR-29.
 - **Living (in-place updates):** README, CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT. Rationale: not logs; current state matters more than history.
 - **Immutable (dated):** ADRs, transcripts, handoffs, audits, research. Rationale: point-in-time records; supersession via new file or in-file marker.
@@ -1598,7 +1598,7 @@ Standard pipeline:
 3. **Updates to:** CLAUDE.md (Slash commands §7, Skills §8, or Hooks §9 as applicable), ENVIRONMENT.md (if env-level), JOURNAL entries
 4. **Hooks/tests/CI** if enforcement needed (LLMs advise; mechanism enforces, per Council #28)
 
-Cross-link the ADR to its implementation commits; the JOURNAL entry records the adoption (the `Changes:` line replaces the retired CHANGELOG — ADR-49).
+Cross-link the ADR to its implementation commits; the JOURNAL entry records the adoption (the `Changes:` line replaces the retired CHANGELOG — §14).
 
 ### Stage 6: Review (on-trigger)
 <!-- scope: meta -->
@@ -1915,7 +1915,7 @@ After install, link from:
 - **CLAUDE.md** (Slash commands §7, Skills §8, or Hooks §9 as applicable) — for project-level adoptions; keeps Codex aware of active governance
 - **CLAUDE.md** — for project-level Claude Code-specific behavior (per Gap #5 template Slash commands, Skills, and Hooks sections)
 - **JOURNAL.md entry** for the session that adopted it
-- **JOURNAL.md `Changes:` line** for repo-visible adoptions (CHANGELOG.md retired — ADR-49)
+- **JOURNAL.md `Changes:` line** for repo-visible adoptions (CHANGELOG retired — §14)
 - **JOURNAL.md** for user-level adoptions too (they need no per-repo CLAUDE.md); file a BACKLOG "Tooling & evaluation" item if it warrants periodic value review (tech-radar retired — see §Continuous Improvement)
 
 User-level adoptions don't need per-repo CLAUDE.md updates (they apply everywhere automatically); record them in JOURNAL, and file a BACKLOG "Tooling & evaluation" item if they warrant periodic value review.
@@ -1955,7 +1955,7 @@ This keeps Codex aware of the same governance Claude Code operates under.
 ```bash
 mkdir -p my-project/src/my_package my-project/tests my-project/config my-project/scripts
 # Universal governance baseline (ADR-38 A5): VISION/CLAUDE/ARCHITECTURE/BACKLOG mandatory.
-# README optional (external-audience repos only); no CHANGELOG (retired — ADR-49).
+# README optional (external-audience repos only); no CHANGELOG (retired — §14).
 touch my-project/{CLAUDE.md,VISION.md,ARCHITECTURE.md,BACKLOG.md,pyproject.toml,.gitignore}
 touch my-project/src/my_package/{__init__.py,cli.py}
 touch my-project/tests/conftest.py
@@ -2014,7 +2014,7 @@ Then for each feature:
 5. Lint: `ruff check src/ tests/ --fix`
 6. Commit: `git commit -m "feat: description"`
 7. Merge: `git checkout main && git merge feat/feature-name`
-8. Delete branch; prepend a JOURNAL entry if files changed (CHANGELOG.md retired — ADR-49)
+8. Delete branch; prepend a JOURNAL entry if files changed (CHANGELOG retired — §14)
 
 ---
 
@@ -2179,7 +2179,7 @@ LEGEND  [A] = architect emits  ·  [CC] = CC self-loads  (per the ADR-87 split a
 - "What NOT to do" section prevents Claude from over-engineering
 - Include `pytest -x --tb=short && ruff check && git status` after each step, not just at the end
 - Include `git status must show clean between each numbered step`
-- JOURNAL `Changes:` line in the session entry if files changed (CHANGELOG.md retired — ADR-49)
+- JOURNAL `Changes:` line in the session entry if files changed (CHANGELOG retired — §14)
 - Bypass permissions (no approval) → almost never, only for trivial read-only operations
 - **Pruning symmetry** — every adding flow gets a review-gated pruning counterpart: CC PROPOSES removals with evidence (superseded-by ADR/commit, dead reference, obsoleted scope), operator ratifies, git history preserves; auto-delete stays forbidden. Point-of-use: the prompt template's Final "obsolescence pass" line (`templates/prompt-template.md`) — every session proposes deletion of content its change supersedes, instead of writing around it. Refs #136, #91 capture, #134 (family pattern), no-delete invariant
 
@@ -2495,7 +2495,7 @@ When amending in place:
 
 3. Update validator/tool/process to match amendment
 4. Add LESSONS.md entry (per ADR-29 format) describing what was discovered
-5. JOURNAL `Changes:` line: "ADR-NN amended YYYY-MM-DD — [topic]" (CHANGELOG.md retired — ADR-49)
+5. JOURNAL `Changes:` line: "ADR-NN amended YYYY-MM-DD — [topic]" (CHANGELOG retired — §14)
 
 #### Reopen mechanics
 <!-- scope: meta -->
@@ -2602,7 +2602,7 @@ Reviewer's narrative observations beyond per-finding (e.g. "consistent error han
 After archival, cross-link FROM:
 - **JOURNAL.md entry** for that session: "Codex review archived: docs/audits/YYYY-MM-DD-codex-{slug}.md (N findings, M resolved)"
 - **Commit message** of the resolution merge: "fix(scope): address Codex Critical/High findings — see docs/audits/YYYY-MM-DD-codex-{slug}.md"
-- **JOURNAL `Changes:` line** if findings affected user-visible behavior (CHANGELOG.md retired — ADR-49)
+- **JOURNAL `Changes:` line** if findings affected user-visible behavior (CHANGELOG retired — §14)
 
 #### Anti-patterns
 <!-- scope: meta -->
@@ -2636,7 +2636,7 @@ After archival, cross-link FROM:
 ### Session start protocol
 <!-- scope: hybrid -->
 
-1. Review recent JOURNAL.md entries (CHANGELOG.md retired — ADR-49)
+1. Review recent JOURNAL.md entries (CHANGELOG retired — §14)
 2. Read CLAUDE.md
 3. Check gotchas
 4. `git status` (must be clean)
@@ -2668,7 +2668,7 @@ After archival, cross-link FROM:
 <!-- scope: hybrid -->
 
 1. Run full test suite
-2. Prepend a JOURNAL.md entry (Did/Result/Changes/Next) if files changed (CHANGELOG.md retired — ADR-49)
+2. Prepend a JOURNAL.md entry (Did/Result/Changes/Next) if files changed (CHANGELOG retired — §14)
 3. Update project handoff doc (if exists)
 4. `git status` (must be clean — if "27 modified files", STOP and commit)
 5. Write 3-line handoff note
@@ -2974,7 +2974,7 @@ Mermaid is the heaviest form (token cost + AI-edit-reliability drop above ~100 l
 
 **"We can consolidate these output folders later"** — Output dirs grow exponentially. Set a single canonical output path at project creation.
 
-**"The AI will remember"** — It won't. Not after 4 hours. Not across sessions. Not after compaction. Write it down in JOURNAL.md or CLAUDE.md (CHANGELOG.md retired — ADR-49).
+**"The AI will remember"** — It won't. Not after 4 hours. Not across sessions. Not after compaction. Write it down in JOURNAL.md or CLAUDE.md (CHANGELOG retired — §14).
 
 **"We'll add tests later"** — Later never comes. Write the test stub before the implementation.
 
@@ -2990,7 +2990,7 @@ Mermaid is the heaviest form (token cost + AI-edit-reliability drop above ~100 l
 3. **Test after each change.** Not at the end. After EACH step.
 4. **One home per file type.** Decisions → docs/decisions/. Reports → docs/archive/. No exceptions.
 5. **Commit after each logical change.** Git status must be clean between tasks.
-6. **Log changes continuously.** JOURNAL `Changes:` line when files change (CHANGELOG.md retired — ADR-49), LESSONS entry when something was learned.
+6. **Log changes continuously.** JOURNAL `Changes:` line when files change (CHANGELOG retired — §14), LESSONS entry when something was learned.
 7. **Scope is sacred.** 1-2 objectives per session. Everything else is backlog.
 8. **Verify with Claude Code, plan with Claude.ai.** Don't let Claude.ai generate filesystem commands from memory.
 9. **Output dirs are disposable.** Canonical location, gitignored, size-monitored, regularly cleaned.
@@ -3097,7 +3097,7 @@ This is not optional. Stale structural documentation is worse than no documentat
 **Stage 3 — Implement (target architect produces changes in own repo)**
 
 - Target repo architect reviews findings and implements changes in target repo.
-- Implementation evidence: commits + JOURNAL entry in target repo (CHANGELOG.md retired ecosystem-wide — ADR-49). No browser-to-browser turn back to strażnik expected.
+- Implementation evidence: commits + JOURNAL entry in target repo (CHANGELOG retired — §14). No browser-to-browser turn back to strażnik expected.
 - Strażnik may verify (read-only) target repo JOURNAL / commits at next session start — informational, not gated.
 
 ### Addendum mechanism
