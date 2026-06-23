@@ -28,7 +28,7 @@
 - `scripts/audit.py` — `check_doc_code_edge` threads `include` into `resolve_edge` (symmetry with the already-scoped `iter_doc_rule_ids`).
 - `tests/test_doc_code_edge.py` — +1 STRUCTURAL asymmetry regression guard (`test_resolution_is_registry_scoped_not_fooled_by_prose_mention`): builds a declaration doc + a code site + a colliding non-declaration `docs/audits/` prose mention; asserts scoped → `resolved` (1 doc-site) AND unscoped → `ambiguous` (proving the SCOPING, not the absence of a collider, is the fix). The existing coverage test now passes `include=decl`.
 - `ARCHITECTURE.md` — `**794 collected**` (793→794, claim-3); genuine end-to-end re-read confirmed current, `last_reviewed` 2026-06-23.
-- Verify: `pytest` 793 passed / 1 skipped; `ruff` clean; `ship-gate` GREEN (`doc_code_edge: 5 resolved`; 4 doc self-claims match; 6 WARN dispositioned). Fix SHA <FIXSHA>, merge <MERGESHA>.
+- Verify: `pytest` 793 passed / 1 skipped; `ruff` clean; `ship-gate` GREEN (`doc_code_edge: 5 resolved`; 4 doc self-claims match; 6 WARN dispositioned). Fix SHA `8c90eba`, landed via `--no-ff` merge to `main`.
 
 **Changes:** `scripts/validate_doc_code_edge.py`, `scripts/audit.py`, `tests/test_doc_code_edge.py`, `ARCHITECTURE.md`, `JOURNAL.md`.
 
