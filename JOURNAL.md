@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-23 — CC: ARCHITECTURE declares `reconciled_with: handoff-process@5.2` (AR-A / #172 harmony seal)
+
+**Did:** Acted on the ARCHITECTURE fidelity audit's highest-leverage finding (AR-A) on branch `feat/architecture-reconciled-edge` — manual-approve, confirm-live before declaring. Confirmed LIVE handoff-process spec version = **5.2** (`protocols/HANDOFF_PROCESS.md:4`, read live by the coherence-spine parser) and mirrored the existing corpus edge format (`docs/handoffs/README.md` frontmatter). Added one frontmatter key — `reconciled_with: handoff-process@5.2` — to `ARCHITECTURE.md`; no body content touched.
+
+**Result:** Converts the ARCHITECTURE→handoff-process harmony edge from **prose-only** (human-protected by the `last_reviewed` freshness gate) to a **declared** edge the coherence spine verifies every run. `scan_undeclared_edges` had confirmed it a LIVE tier-1 UNDECLARED edge (suggested the exact 5.2 line). `reconciled_versions` went **1→2 edges, both GREEN** (ARCHITECTURE + README each declared 5.2 / current 5.2). Commit `6330c9c`; `audit.py ship-gate` GREEN (6 WARN dispositioned), suite **796 passed / 4 skipped**, ruff clean. Local `--no-ff` merge into main from primary; not pushed.
+
+**Changes:** `ARCHITECTURE.md` (+1 frontmatter line), `JOURNAL.md`.
+
+**Abandoned:** Nothing — single in-scope declaration applied. Other ARCHITECTURE findings (GA-1 Governing-ADRs roster, AR-B L564 path-qualify) stay separate operator-gated arcs.
+
+**Next:** Remaining `scan_undeclared_edges` candidates (BACKLOG/CLAUDE/CONTRIBUTING/VISION/ESSENTIALS → handoff-process) are each their own declare decision — not pulled in here. Refs #172 (advances coherence-spine coverage; does not close the umbrella — no closes-bracket).
+
 ### 2026-06-23 — CC: PLAYBOOK currency cleanup batch-2 (the audit's one removal — tier-transition tombstone)
 
 **Did:** Acted on the PLAYBOOK fidelity audit's single REMOVE-candidate (B3/PB-A) on branch `cleanup/playbook-tier-transition-removal` — manual-approve, confirm-live before deleting. Removed the deprecated `### Tier transition procedures (ADR-40) — DEPRECATED 2026-05-23` subsection (heading + Obsolete blockquote, ~12 L) and its auto-TOC entry; regenerated the auto-TOC so the entry disappeared. **Condense-while-preserving:** the don't-reintroduce regression-guard survives as a one-liner appended to the Project-complexity-bands deprecation blockquote (prose, no heading → no TOC entry).
