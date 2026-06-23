@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-06-19
+> Last updated: 2026-06-23
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -852,7 +852,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `ENVIRONMENT.md` | Tooling state, what's installed | Sectioned, scope-tagged | When tool adopted/deprecated | Rob, Claude Code | Living (sections updated) | Per-repo |
 | `docs/decisions/ADR-NN-*.md` | Architectural decisions | Michael Nygard format | When decision binds | Rob, future contributors | Numbered, immutable (amend in-place per ADR-29) | Per-repo |
 | `docs/decisions/transcripts/council-out-*.md` | Raw Council debate outputs (canonical; legacy `DECISION_NN_*` grandfathered in `transcripts/archive/legacy/`) | Multi-model debate transcript | When Council debate concludes (routed per ADR-43; manual fallback per §5) | Reference for ADR rationale | Numbered, immutable | Per-repo |
-| `docs/handoffs/YYYY-MM-DD-*/` (v4 bundle) | Chat-to-chat session summary | Flat bundle `README.md` + `01_ROLE`…`07_ASK_BACK`, generated from source (HANDOFF_PROCESS v4); legacy single-file + v3.x `contents/` bundles preserved as history | When session boundary requires continuity | Next browser chat | Dated, immutable | `.dev-knowledge` only |
+| `docs/handoffs/YYYY-MM-DD-*/` (v5.2 bundle) | Chat-to-chat session summary | Flat bundle entered via `HANDOFF_BOOT.md` (operator session entry) + CC-owned residual/probe-manifest, per HANDOFF_PROCESS v5.2 (ADR-82); legacy v4 `README.md` + `01_ROLE`…`07_ASK_BACK`, single-file, and v3.x `contents/` bundles preserved as history | When session boundary requires continuity | Next browser chat | Dated, immutable | `.dev-knowledge` only |
 | `docs/audits/YYYY-MM-DD-*.md` | Point-in-time analyses | Free-form audit | When deep analysis needed | Reference for follow-up work | Dated, immutable (mark SUPERSEDED if redone) | Per-repo |
 
 ### File presence (universal baseline)
@@ -1032,7 +1032,7 @@ When stop-sign appears, ACTION:
 
 This isn't a hard limit. Session may legitimately need to push past it (e.g., critical fix, time-bound deliverable). But entering wrap-up zone shifts default from "continue" to "wrap up unless reason to continue."
 
-**Why these numbers:** observed empirically from 2026-04-24 session. Quality of decisions visibly degraded after these thresholds — including by the "decider's" own self-assessment in retrospect.
+**Why these numbers:** a working threshold drawn from session experience — quality of decisions visibly degraded past these points, including by the "decider's" own self-assessment in retrospect. Treat as a calibrated rule of thumb, not a measured constant.
 
 **Counter-indicator:** if session is execution-heavy (running prompts, watching Claude Code commit) rather than decision-heavy, threshold is generous. The fatigue is decision-specific, not pure clock time.
 
@@ -1511,6 +1511,8 @@ ADR-81 (a)–(d) above answers *"is this organ a complete organ?"* This answers 
 
 Announcing before (2)–(6) is **premature closure**, not shipped. Point (6) is **operator-enforced discipline until #147** wires it as a pre-ship gate (a hook/command that RUNS the organs and BLOCKS `/ship` on red). De-dup: point (3) E2E = **#144**; codification-completeness of the methodology home = **#145**; #147 = the run-organs-as-gate mechanism — three distinct items.
 
+**Distinct from the per-session close gate:** this "organ done" (ADR-81) and "arc shipped" gate answer *"is this feature/arc complete?"* The adjacent, narrower question *"did THIS session leave the record current?"* has its own single-source — `protocols/DEFINITION_OF_DONE.md` (ADR-85), enforced mechanically by the session-end Stop-hook (JOURNAL SHA-anchor hard block + BACKLOG nudge). Don't conflate the three scopes: organ-completeness, arc-shipped, session-close.
+
 ---
 
 ## Continuous Improvement
@@ -1615,7 +1617,7 @@ Cross-link the ADR to its implementation commits; the JOURNAL entry records the 
 ### Stage 6: Review (on-trigger)
 <!-- scope: meta -->
 
-**Cadence:** the quarterly tech-radar snapshot is **retired** — `docs/tech-radar/` is archived (ADR-60; it held one dormant entry and never ran on a real cadence; reversible if a quarterly cadence ever resumes). Review is now **on-trigger**, not scheduled: re-examine an item when its reopen trigger fires, when it visibly stops earning its keep, or when a replacement appears — not on a calendar.
+**Cadence:** the quarterly tech-radar snapshot is **retired** — `docs/tech-radar/` is gone, its dated research notes archived directly under `docs/archive/` (no dedicated `tech-radar/` subfolder; ADR-60 — it held one dormant entry and never ran on a real cadence; reversible if a quarterly cadence ever resumes). Review is now **on-trigger**, not scheduled: re-examine an item when its reopen trigger fires, when it visibly stops earning its keep, or when a replacement appears — not on a calendar.
 
 **When an Adopted item is reviewed:**
 - Still earning its keep? (concrete value vs cost/maintenance)
@@ -1634,7 +1636,7 @@ Cross-link the ADR to its implementation commits; the JOURNAL entry records the 
 ### Where evaluations are recorded
 <!-- scope: meta -->
 
-`docs/tech-radar/` is archived (`docs/archive/tech-radar/`, per ADR-60; reversible if a quarterly cadence ever resumes), and `docs/research/` is retired (ADR-60 2026-05-27 amendment). With no separate radar inventory, an evaluation's record lives where its decision lives:
+`docs/tech-radar/` is retired (its dated research notes live directly under `docs/archive/` — there is no `docs/archive/tech-radar/` subfolder — per ADR-60; reversible if a quarterly cadence ever resumes), and `docs/research/` is retired (ADR-60 2026-05-27 amendment). With no separate radar inventory, an evaluation's record lives where its decision lives:
 - **ADRs** in `docs/decisions/` — the adopt/reject decision itself (research-mode debate transcripts route to `docs/decisions/transcripts/` per ADR-43).
 - **BACKLOG** "Tooling & evaluation" theme — deferred tool evals carrying their reopen triggers (e.g. Kimi K2).
 - **JOURNAL** — the per-session record of what was evaluated and decided.
@@ -1678,31 +1680,25 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 | `/save` | repo | Stage + commit with a Conventional Commits message + full body (git-discipline rule). After a discrete change. |
 | `/ship` | plugin (`tier1-lifecycle`) | Git-finish from the PRIMARY checkout: merge the current feature branch `--no-ff` → push → **auto-delete the merged branch** (no question). Branch cleanup is automatic; an anomalous `git branch -d` refusal is **reported loudly** and the branch left in place (session still ends). Refuses from inside a worktree (pre-flight #1). |
 | `/handoff` | repo | CC-owned handoff per HANDOFF_PROCESS v5 (ADR-82): "create handoff" → "complete handoff" — emits the residual + probe manifest + points at the thin boot. At ~2h, context still fresh. |
+| `/changelog-review` | repo | Operator-invoked review of tool changelogs (claude-code + codex) since last review — classify per the audit rubric, write a digest, bump the state file. PUSH-triggered (a SessionStart sentinel surfaces "run /changelog-review"); never implements adoptions. |
 
 **Skills** — read on-demand by Claude when the topic matches; you do **not** invoke them:
 
 | Skill | Level | Fires |
 |-------|-------|-------|
 | `gotchas` | user | Auto-consulted before edits when an encoding / shell / test-pitfall pattern is in play. |
-| `verify` | user | Domain verification scripts for the ecosystem; consult/run after `pytest` passes. |
+| `verify` | repo | Domain verification scripts for the ecosystem (`.claude/skills/verify/`); consult/run after `pytest` passes. |
 
 **Subagents** — Task-tool, read-heavy / write-light (`ecosystem-snapshot`, `report-generator`, both Haiku, user-level): invoke for read-only fan-out (snapshots, report condensation), never as code-gen peers (7d).
 
-**Hooks** — auto vs manual:
+**Hooks** — auto vs manual: **every hook fires automatically; none are operator-invoked.** The canonical, drift-tracked roster lives in **CLAUDE.md §9** — the live pre-commit gate set, the project-level SessionStart/Stop/PreToolUse session layer, the pre-push prevent organ, and the `.claude/rules/` — read it there rather than maintaining a duplicate copy here (this table re-drifted twice: a self-stamped enumeration of "6 hooks" while the live config carried 10, and rows describing the retired `/boot`+`/evolve` machinery — the failure this pointer exists to kill). The operational "when":
 
-| Hook | Where | Fires |
-|------|-------|-------|
-| `block-onedrive` | `~/.claude/settings.json` PreToolUse:Bash | **Auto**, before every Bash call — blocks OneDrive-Blue-Yonder paths (P0 safety). |
-| SessionStart evolution reminder | `~/.claude/settings.json` | **Auto**, at session start (echoes rule / correction counts). |
-| Stop notify + evolution scorecard | `~/.claude/settings.json` | **Auto**, at session end (`claude-notify.ps1` + scorecard reminder). |
-| `normalize-dated-headers` | `.pre-commit-config.yaml` | **Auto** on commit — dated-log header normalization. |
-| `codemap-freshness` | `.pre-commit-config.yaml` | **Auto** on commit — ARCHITECTURE codemap vs `scripts/` staleness. |
-| `validate-backlog` | `.pre-commit-config.yaml` | **Auto** on commit — BACKLOG story-map schema (ADR-66). |
-| `audit-health` | `.pre-commit-config.yaml` | **Auto** on commit — `audit.py health`; **FAIL blocks the commit**, WARN informs ([#69]). |
-| `backlog-id-on-close` | `.pre-commit-config.yaml` (commit-msg) | **Auto** — requires `[#id]` when a commit removes a backlog task. |
-| `ruff` | `.pre-commit-config.yaml` | **Auto** on commit — `ruff check`; **blocks on violations** (version-pinned ≥0.15.5; [#13] closed 2026-06-02). Run `ruff check --fix` / `/save` to auto-fix first. |
+- **Pre-commit gates** fire on `git commit`. Two **BLOCK** (`audit-health` on FAIL, `ruff` on violation); the rest normalize, validate, or surface (run `ruff check --fix` / `/save` to auto-fix lint before committing).
+- **commit-msg** gate (`backlog-id-on-close`) requires `[#id]` when a commit removes a backlog task.
+- **pre-push** prevent organ (`block-ff-push`) refuses a non-merge commit onto main's first-parent spine (one-time local activation: `pre-commit install --hook-type pre-push`).
+- **Session hooks** (`~/.claude/` + the project `.claude/settings.json` layer) fire at SessionStart (surfacing — fleet/triage/billing/changelog), Stop (back-pressure + notify), and PreToolUse (the OneDrive guard + transcript-immutability guard).
 
-CLAUDE.md is the inventory authority — §7 (commands), §8 (skills), §9 (hooks); this table is the operational "when". Adding/removing any of them follows the Adoption protocol below and updates both surfaces.
+CLAUDE.md is the inventory authority — §7 (commands), §8 (skills), §9 (hooks); this is the operational "when". Adding/removing any of them follows the Adoption protocol below and updates both surfaces.
 
 ### 7a. Skills (progressive-disclosure knowledge modules)
 <!-- scope: runtime -->
@@ -1867,7 +1863,7 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 
 When Claude Code observes a recurring pattern and suggests adding a skill, slash command, hook, or subagent, this protocol decides scope (user-level vs project-level), validates the addition, and ensures it's documented in the right places. Companion to subsections 7a-7d above (what they are) — this is "how to add one safely."
 
-**Distinct from PLAYBOOK Section 6 Continuous Improvement** — that covers external tool/model adoption (Codex, Tach, ccusage). This subsection covers Claude Code's own extension mechanisms.
+**Distinct from the unnumbered "Continuous Improvement" section above** — that covers external tool/model adoption (Codex, Tach, ccusage). This subsection covers Claude Code's own extension mechanisms. (Not §6, which is "Code Review".)
 
 #### Triage: is the proposal worth adopting?
 <!-- scope: meta -->
@@ -2059,7 +2055,7 @@ Per **ADR-87** (the architect↔CC equilibrium contract). STEP 1 verified CC sel
 | --------- | ----------------------------------- |
 | Model     | Sonnet / Opus                       |
 | Mode      | auto-accept / plan-then-auto / plan |
-| Effort    | low / medium / high / xhigh         |
+| Effort    | low / medium / high / xhigh / max   |
 ```
 
 ### How to choose Model
@@ -2111,16 +2107,18 @@ Source: research note `docs/archive/2026-06-03-dynamic-workflows-research-note.m
 - **medium** — 2-5 files, 30-90 min, may involve design choices within known patterns. Example: "add a new CLI command", "refactor this module to use dataclasses"
 - **high** — 5+ files or 2+ packages, 90+ min, requires UNDERSTAND phase, potential blast radius. Example: "implement search federation", "migrate classifier to new taxonomy"
 - **xhigh** — hardest debugging, end-to-end pipeline verification, Council-level analysis. Opus only. Example: "find why magistrala silently drops events", "verify boundary enforcement across all packages"
+- **max** — the top effort rung above `xhigh` (live effort ladder: `low / medium / high / xhigh / max`). Reserve for the hardest single-session synthesis where even `xhigh` under-resolves; burns the most tokens, use deliberately.
 
 ### Model / effort platform doctrine (Claude Code 2.1.x)
 <!-- scope: hybrid -->
+<!-- last-verified: 2026-06-23 -->
 
-Platform-current facts that pin the tables above (Claude Code 2.1.168; refreshed for #84 from `docs/audits/2026-06-07-platform-max-audit.md`):
+Platform-current facts that pin the tables above (Claude Code 2.1.186; refreshed for #84 from `docs/audits/2026-06-07-platform-max-audit.md`). The pins below are dated by the `last-verified` stamp — re-ground them against `claude --version` and the live tool schemas before trusting:
 
 - **Opus 4.8 is the default model and defaults to `high` effort.** Don't treat "use Opus" as exceptional for judgment work — it's the floor. Reserve the explicit Effort knob mainly for moving *off* `high`.
 - **Implementation waves run on Opus, not Sonnet.** A wave that wires multiple items across hooks / platform config (commit-msg hooks, pre-commit `language` modes, git pathspec behavior on Windows) carries real debugging risk: the failure modes are platform-specific and *silent*. Witnessed 2026-06-07 (wave-A closeout) — the `backlog-id-on-close` `pass_filenames` gate-bypass, the `language:python` flat-layout `pip install .` trap, and the Windows glob-pathspec miss each surfaced only under careful multi-step debugging. Tier these as Opus from the start; Sonnet under-resolves the multi-layer interactions. (Gotchas captured under "Pre-commit hook authoring" + "Git".)
-- **`xhigh`** is for the hardest *single-session* synthesis — clause-level architecture, end-to-end verification, this-codification class. It burns more tokens than `high`; use it deliberately, not by default.
-- **Fast mode** (`/fast`) trades **≈2× token cost for ≈2.5× output speed** on Opus 4.8/4.7/4.6 — same model, faster output (it does *not* downgrade to a smaller model). Use it for latency-sensitive interactive work; skip it for routine/unattended work where speed buys nothing.
+- **`xhigh`** is for the hardest *single-session* synthesis — clause-level architecture, end-to-end verification, this-codification class. It burns more tokens than `high`; use it deliberately, not by default. **`max`** is the rung above it (top of the live `low / medium / high / xhigh / max` ladder) — reserve for cases even `xhigh` under-resolves.
+- **Fast mode** (`/fast`) trades token cost for output speed on Opus 4.8/4.7/4.6 — same model, faster output (it does *not* downgrade to a smaller model). Use it for latency-sensitive interactive work; skip it for routine/unattended work where speed buys nothing. *(The historical ≈2× cost / ≈2.5× speed multipliers are unverified — pending re-check for Opus 4.8; do not treat as a current pin.)*
 - **`ultracode` is the Dynamic-Workflow trigger keyword, NOT an effort tier** (renamed from "workflow", Claude Code 2.1.160). It escalates a prompt into multi-agent orchestration ("When to escalate to a Dynamic Workflow", above) — never write it in a Model/Mode/Effort table as a fourth effort level.
 - **`fallbackModel` policy (ADR-80; VF-2 confirmed schema-accepted on 2.1.168 — the native `--fallback-model` flag is its CLI twin):**
   - **Interactive sessions MAY set it** (e.g. one Sonnet fallback) for resilience when the primary is overloaded/unavailable — a degraded answer beats a dead session.
@@ -2214,8 +2212,8 @@ table, the mandatory skeleton, hook guidance) updates:**
 
 1. this PLAYBOOK rationale (the live authority), and
 2. the point-of-use card wherever it travels — under v5, `templates/prompt-template.md`.
-   (The v4 bundle's embedded copy at `templates/archive/handoff-v4/02_METHODOLOGY.md.tmpl`
-   is frozen history, no longer co-maintained.)
+   (The handoff bundle's methodology template lives at `templates/handoff/02_METHODOLOGY.md.tmpl`;
+   the pre-v5 frozen copies are no longer co-maintained.)
 
 Drift between the two is a process bug — the card is the point-of-use authority,
 PLAYBOOK is the maintenance source. The card has a ≤200-line size budget; if it
@@ -2349,6 +2347,8 @@ rounds: 2
 
 ### Running the debate
 <!-- scope: llm -->
+
+The current entry point is **`/council-question`** (per ADR-67 — Claude Code generates a templated Council question, symmetric with `wygeneruj handoff`; the slash command is implemented in the `ai-council` repo). The bare `council-cli` calls below predate ADR-67 and are illustrative of the underlying tool:
 
 ```bash
 # Process debates from inbox
@@ -2501,9 +2501,11 @@ When validator/tooling reality contradicts an ADR's prescription, two paths exis
 
 When amending in place:
 1. Add **Amendment YYYY-MM-DD** block at end of ADR file (do not rewrite original decision text)
-2. Block structure:
+2. Block structure — both forms are acceptable (the live 2026-06-21 examples, ADR-88/89, use the **H2 heading** form with an inline status-flip; the blockquote is the original template):
 
    > **Amendment YYYY-MM-DD ([brief topic]):** [What was wrong/unclear in original prescription]. Resolution: [what the prescription now says]. Intent preserved: [why this is amendment not reopen].
+
+   …or, equivalently, as a heading: `## Amendment — YYYY-MM-DD: [topic]` followed by the same What/Resolution/Intent-preserved content (used when the amendment also flips the ADR's status, e.g. Proposed → Accepted).
 
 3. Update validator/tool/process to match amendment
 4. Add LESSONS.md entry (per ADR-29 format) describing what was discovered
@@ -2811,7 +2813,7 @@ Light P1 items MAY be copy-pasted inline into Future State (acceptable at P1 onl
 ### Quarterly deep grooming (~30 min, scheduled)
 <!-- scope: meta -->
 
-Rob reviews full BACKLOG once per quarter (first review: 2026-07-01):
+Rob reviews full BACKLOG once per quarter (recurring quarterly cadence — schedule the next review at the start of each quarter; no fixed anchor date, to avoid silent rot into a past date):
 
 1. Confirm **no `done` items remain** — done items leave on close (ADR-47/65); the validator hard-fails on any `done` entry. **No archive file** (CLAUDE.md §5). Retrospect via `git log` + JOURNAL, not a parallel archive
 2. Re-prioritize P1/P2/P3 based on current ecosystem state
@@ -2926,7 +2928,7 @@ If a client engagement generates a dev lesson, strip all client names, proprieta
 ## 14. Markdown Governance
 <!-- scope: dev -->
 
-> **STALE — Handoff and Snapshots/reports rows.** Handoff row predates folder format; see `protocols/HANDOFF_PROCESS.md` v2.0 (folder convention per ADR-32). Snapshots/reports row's "delete after 90 days" lifecycle does not match practice (audits kept indefinitely). Substantive rewrite deferred to its own session.
+> **Reconciled 2026-06-23 (Handoff + Snapshots/reports rows).** The Handoff and Snapshots/reports rows below now match practice: handoffs are dated, immutable `docs/handoffs/YYYY-MM-DD-*/` bundles (folder convention per ADR-32 / HANDOFF_PROCESS v5.2), not a living `docs/HANDOFF.md`; dated snapshots/audits under `docs/archive/` are kept **indefinitely** (the prior "delete after 90 days" lifecycle never matched practice — audits are immutable records).
 
 **Every markdown file in the project falls into exactly one category.** If you're about to create a .md file and it doesn't fit any category below — it probably shouldn't exist.
 
@@ -2934,8 +2936,8 @@ If a client engagement generates a dev lesson, strip all client names, proprieta
 | ----------------- | --------------- | ---------------------------------------------- | ------------------------------ |
 | Project docs      | Root            | CLAUDE.md, README.md                           | Living, never delete           |
 | Decision records  | docs/decisions/ | ADR-{NN}_{topic}.md                            | Frozen, never edit             |
-| Handoff           | docs/           | HANDOFF.md                                     | Living, update in place        |
-| Snapshots/reports | docs/archive/   | {YYYY-MM-DD}_{TYPE}_{topic}.md                 | Frozen, delete after 90 days   |
+| Handoff           | docs/handoffs/  | YYYY-MM-DD-{slug}/ bundle (HANDOFF_BOOT.md + …)| Dated, immutable               |
+| Snapshots/reports | docs/archive/   | {YYYY-MM-DD}-{topic}.md                        | Frozen, kept indefinitely      |
 | Eval data         | eval/           | eval_history.jsonl                             | Append-only, keep indefinitely |
 | Ephemeral prompts | Not in repo     | PROMPT_{topic}.md                              | Delete after execution         |
 
@@ -3082,6 +3084,8 @@ This is not optional. Stale structural documentation is worse than no documentat
 
 ## 19. Scrum-Master Review Propagation
 <!-- scope: meta -->
+
+> Authorized by **ADR-63** (Accepted 2026-05-30, N=3) — superseding the Reserved ADR-44 (N=2 hold).
 
 **When:** `.dev-knowledge` (or any ecosystem-meta repo) audits a target repo against universal conventions (ADR-34 naming, ADR-38 architecture, ADR-41 backlog, etc.) and finds non-conformities to route. Distinct from § 16 Cross-Tool Review (within-repo Codex audit) and § 17 Code Quality Audit Process (within-repo audit cycle).
 

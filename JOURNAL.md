@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-23 — CC: PLAYBOOK currency cleanup batch-1 (mechanical UPDATEs + 2 structural drift-class fixes)
+
+**Did:** Acted on the 2026-06-23 PLAYBOOK fidelity audit's safe, no-decision currency findings on branch `cleanup/playbook-currency-batch1` — UPDATEs/repoints only, no removals, each item re-confirmed live before editing (audit's confirm-live-at-act mandate). Two **structural drift-class** fixes: (1) added a `last-verified: 2026-06-23` stamp to the platform-doctrine block + bumped the CC pin `2.1.168`→`2.1.186` + added the live `max` effort rung + marked the fast-mode ≈2× multipliers UNVERIFIED; (2) replaced the re-drifting "auto vs manual" hooks table (listed 6 of the live 10, described retired `/boot`+`/evolve` machinery) with a pointer to CLAUDE §9 + genuine usage guidance. Plus mechanical fixes: B7 handoff-label v4→v5.2, C1 DEFINITION_OF_DONE.md pointer, C2/F6 false-precision dates→cadence, D1 dead tech-radar path (×2), D4 `verify` re-tag user→repo, D5 broken §6 xref, D6 `/changelog-review` add, E1-3 dead template path, E2-2 amendment heading-form note, E2-4 `/council-question` trigger, F4 ADR-63 citation, F1/F2 §14 STALE rows reconciled.
+
+**Result:** 3 revertable commits (`ba8bdfb` platform/effort, `f5067e2` CC-internals, `1fc98f5` pointers/labels/paths/dates/ADR-citation), `audit.py ship-gate` GREEN each; full suite 799 passed/1 skipped, ruff clean. DEFERRED untouched per brief: A10 `[TBD]` (needs topic-vs-ADR decision), B3 tier-transition removal, F3→PB-E sequenced arc, B11 detector, G1/#162, the out-of-scope corpus (CLAUDE/README/ROUTING). Local `--no-ff` merge into main; not pushed.
+
+**Changes:** `protocols/PLAYBOOK.md` (35 +/31 −), `JOURNAL.md`.
+
+**Abandoned:** Nothing — all in-scope items either applied or held their confirm-live premise.
+
+**Next:** The deferred arcs above (A10 decision · B3 removal · F3/PB-E · B11 · #162). Refs #77 (advances, does not close — #77's full protocols-consolidation is not done; no closes-bracket).
+
 ### 2026-06-23 — CC: PLAYBOOK fidelity audit (diagnostic; no PLAYBOOK edits)
 
 **Did:** Fidelity audit of `protocols/PLAYBOOK.md` (3352 L) on branch `audit/playbook-fidelity` — 8 read-only section agents tiling lines 1–3352 (A–F span-local lenses 1–4 + harmony signals; G owns the whole-doc lens-5 verdict), then orchestrator re-verification of every high-impact/full-scope claim. Built on (not re-deriving) the same-day hygiene audit (PB-A…PB-L); added the fidelity lens (current-practice · ADR-status reconciliation · load-bearing · placement · harmony).
