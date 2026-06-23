@@ -19,6 +19,26 @@
 
 ---
 
+### 2026-06-23 — CC: HANDOFF_PROCESS comprehensive audit (KEEP 12 / CUT 6 / ADD 3)
+
+**Did:** Ran the full HANDOFF_PROCESS audit (Opus max-effort, fresh session) per the ADR-87 equilibrium-contract brief — analysis + proposal ONLY, no implementation (no spec edit, no ADR, no version bump). Read the live v5.2 spec + boot + the `.claude/commands/handoff.md` command + the probe machinery (`verify_handoff_probes.py`) + the live `2026-06-21-dev-knowledge-architect` bundle; weighted this session's observed failures > live repo state > the three architect briefs. Branch `feat/handoff-audit` off `main` (primary checkout). Findings doc only.
+
+**Result:**
+- **`docs/audits/2026-06-23-handoff-process-audit-findings.md`** — graded every handoff mechanism KEEP/CUT/ADD with a hard metric + route each; tested T1–T4 (T1 confirmed; T2 confirmed; T3 confirmed but REFRAMED as already-filed; T4 confirmed for accretion-staleness, partially REFUTED for the "weaker-model-patch" framing); ran Brief A's D5 complexity-budget gate on the audit's own ADDs (shrank all 3 to exercise/relocate, net complexity DOWN); CC-prompt-shape decision (§8); a decidable §9 rework agenda.
+- **Headline:** the thesis is right on diagnosis, wrong on prescription — the 3 "things to build" are already designed/partly shipped (ADR-87 + #184 role · #194 coverage-test-as-inventory = acceptance-contracts · #156 serialize-group = backlog-spine). Net payload is CUT (dead v4 8-file generator in `handoff.md`, gated to #164; stale "verify_handoff_probes deferred / manual gate covers" text in spec §11 AND `audit.py:608` — it landed #163 and gates `/ship`) + make-resident, not invent.
+- **Brief premises corrected (verify-don't-assert):** the 3 briefs were NOT attached and NOT in-repo — worked from the prompt's characterization (flagged in §0); ADR-60 mis-cited (it is docs-taxonomy, not "retired-calendar" — the on-trigger precedent is `/changelog-review` PUSH-trigger + #134 post-arc grooming).
+- Verified: `audit.py ship-gate` **GREEN** (6 WARN dispositioned — pre-existing, **no new WARN**); the doc tripped no `doc_rot` / `doc_claims`.
+
+**⚠ Concurrency incident (live #200 corroboration — surfaced, NOT resolved here):** a background actor repeatedly created branches (`feat/legibility-graph-conformance`, `audit/canonical-corpus-coherence`) and switched the **shared checkout's HEAD** mid-task (3× witnessed in reflog) — the shared-checkout race the PLAYBOOK warns of (49c7db7) and the audit cites as #200. My first commit `31e0cd2` landed on the wrong branch as a result; recovered **non-destructively** (`git branch -f` to move it onto `feat/handoff-audit` + restore the stray branch to its 9ebef41 creation point — no commit lost, no branch dropped, main untouched). Field evidence for the audit's A1 "serialized-merge-as-a-GATE" recommendation.
+
+**Changes:** `31e0cd2` (findings doc) + this JOURNAL wrap. Branch `feat/handoff-audit`. **NOT merged to main, NOT pushed** — the `--no-ff` merge to main is **DEFERRED under active concurrency** (operator-as-serial-gate; merging while a concurrent actor switches the shared HEAD risks the #200 tangle). No `[#id]` bracket — the audit OPENS the rework, closes no task.
+
+**Abandoned / left open:** the `--no-ff` merge to main (deferred to operator — see incident); the §9 rework agenda is for the architect/Council, not this session.
+
+**Next:** operator — quiesce the concurrent process, then decide whether to merge `feat/handoff-audit` to main (I'll do it on your OK, in one tight operation); architect — act on §9 (start with the 2 stale-text fixes C5, then A1 residence in HANDOFF_BOOT).
+
+---
+
 ### 2026-06-22 — CC: #194 doc-legibility — corrected 2 stale cohort-1 status surfaces
 
 **Did:** Documentation-only fix surfaced by the verify-pass: removed two self-contradictions in the doc→code edge so the yaml and the coverage test tell the truth about cohort-1. No behavioral change, no rule added/removed/rescoped. Branch `fix/194-doc-legibility` off `main` (primary checkout). **#194 stays OPEN.**
