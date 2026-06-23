@@ -1622,7 +1622,7 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     warns: list[Finding] = []
     resolved = 0
     for rid in sorted(ids):
-        result = _vdce.resolve_edge(rid, Path(repo_path), code_root)
+        result = _vdce.resolve_edge(rid, Path(repo_path), code_root, include=include)
         if result.status == "resolved":
             resolved += 1
         else:
