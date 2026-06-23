@@ -1,12 +1,12 @@
 ---
-last_reviewed: 2026-06-21
+last_reviewed: 2026-06-23
 status: active
 owner: Rob
 ---
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.22 — 2026-06-21 -->
+<!-- version: 2.23 — 2026-06-23 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -178,8 +178,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.20 (2026-06-20) — pre-push prevent organ landed (#153 advance): §9 pre-commit list gains the `block-ff-push` (pre-push) hook — the PREVENT half of core-invariant #5 (`scripts/block_ff_push.py`; companion ARCHITECTURE §Validators bullet + `pre-commit gates` count 9→10 + collected 739→760), keeping `validate_no_ff` as the detect-and-surface WARN. Required doc-sync (the new hook tripped `doc_claims`: hook-count, CLAUDE §9 roster, pytest-collected — all now reconciled so ship-gate is GREEN). Targeted same-day edit; the §11 "last 5" rotation toward ADR-84–88 stays deferred (v2.17/v2.19 precedent); `last_reviewed` re-stamped 2026-06-20. Scope-boundary + methodology-reach (#153 done-when) remain open.
 - v2.21 (2026-06-21) — overnight ops/task audit, auto-apply lane (the deferral carried since v2.19/v2.20): §11 "last 5" rotated 76–80 → **85–89** after a genuine read of ADR-85–89 (two are **Proposed** — ADR-88/89 — annotated as such); §7 reconciled to the live command set — added repo-level `/changelog-review` + `/override` (the deferred ADR-85-escape entry) and plugin `/ship`, with the §8 plugin-command mention synced; fixed the stale version comment (was **2.19** while a v2.20 entry had already landed → **2.21**). Genuine end-to-end re-read confirmed the rest current; `last_reviewed` re-stamped 2026-06-21. **Surfaced to `docs/audits/2026-06-21-audit-ops-findings.md`, not pulled in:** this §12 section-history is itself an `audit.py` `doc_rot` WARN (now 23 entries ≥ the 12-entry condense threshold, ADR-49/65) — condensation is an operator-gated removal.
 - v2.22 (2026-06-21) — §12 condensed: v1.0–v2.17 rolled into the `git log --follow -p -- CLAUDE.md` pointer above (ADR-49/65, info-preserving — no history lost), clearing both the `doc_rot` section-history WARN (had reached 23 ≥ 12 entries) and the file-budget WARN (the v2.21 §11 ADR-76–80→85–89 rotation had pushed the file to 201 > the self-declared 200-line budget). Operator-approved condensation, landed with the 2026-06-21 three-audit consolidation; targeted same-day edit, `last_reviewed` unchanged.
+- v2.23 (2026-06-23) — corpus-drift cleanup (2026-06-23 fidelity audits): §11 ratified ADR-88/89 from **Proposed** → Accepted (911b561; status-prefix dropped per the index convention) and §8 refreshed the repo-skills inventory ("no skills dir yet" → `.claude/skills/` holds `verify` + `check-against-spec`). Companion genuine end-to-end re-read confirmed the rest current; `last_reviewed` re-stamped 2026-06-23.
 
 ---
 
-**Last updated:** 2026-06-21
+**Last updated:** 2026-06-23
 **Maintained by:** Rob
