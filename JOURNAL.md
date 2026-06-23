@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-23 — CC: session-summary maintenance — weekly token-log delta (post-wrap anchor)
+
+**Did:** `/session-summary` end-of-session maintenance: TOKEN-LOG staleness check found the last entry (2026-06-15) was 8 days old (> 7-day threshold), so ran a `ccusage --json` weekly snapshot and appended the 2026-06-16..2026-06-23 delta (newest-first). Landed via branch → `--no-ff` merge per core-invariant #5 (no direct-to-main, even for an append-only log). This entry anchors those post-wrap commits for the ADR-85 JOURNAL gate.
+
+**Result:** `logs/TOKEN-LOG.md` — 8 active days, $685.28, in+out 9.62M (Opus 4.8 87.8% / Haiku 4.5 11.7% / Sonnet 4.6 0.5%), peak 2026-06-20 $119.24. Token-log commit `766428a`, merged via `331b26b`. Append-only respected (prepend, no edit of prior entries). Not pushed.
+
+**Changes:** `logs/TOKEN-LOG.md`, `JOURNAL.md`.
+
+**Next:** Maintenance only — no tracked task advanced/closed (no BACKLOG marker needed). Substantive session work = the legibility-graph conformance arc (next entry).
+
+---
+
 ### 2026-06-23 — CC: legibility-graph conformance — map + integrating-property test (graph-level proof)
 
 **Did:** Re-executed the APPROVED legibility-graph conformance arc (its run was lost when a prior session died on an API timeout; design + operator decisions survived in full). Proved the `ARCHITECTURE.md` claim that the dependency-legibility graph's FOUR edge-type oracles are "live and integrated" — previously unproven at the graph level (per-oracle suites prove each oracle; nothing proved the graph as an integrated whole). Test-first, structural; changes NO oracle and NO wiring; closes nothing (#194 stays OPEN). Verified every entry-point contract against LIVE code first (the surviving `.bak` draft matched, but was re-checked, not trusted). Branch `feat/legibility-graph-conformance` off `main` (primary checkout).
