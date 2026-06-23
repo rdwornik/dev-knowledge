@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-24 — CC: integrate heading-scheme + corpus-drift arcs from primary; freshness-restamp RED fix
+
+**Did:** Serially integrated the two finished parallel worktree arcs into `main` from the PRIMARY checkout (manual-approve, confirm-live inventory first). (1) `git merge --no-ff worktree-heading-scheme` (merge `fe5b790`) — the PLAYBOOK two-part heading scheme (restructure `f8af23c` + journal `123eef1`). (2) `git merge --no-ff worktree-corpus-drift` (merge `c407038`) — corpus-drift cleanup (5 commits `abec69e`→`a897e05`: ARCHITECTURE GA-1 roster + AR-B path, CLAUDE ADR-88/89 ratify + re-stamp, decisions stale refs). Both hit the expected top-of-file JOURNAL double-prepend conflict; resolved keeping **both** entries newest-first (marker-only edits, no body changes). PLAYBOOK + ARCHITECTURE auto-merged clean.
+
+**Result:** Merge 1 verified GREEN (`doc_code_edge` 5 resolved, `reconciled_versions` 2, pytest **799 passed/1 skipped**, ruff clean). Merge 2 flipped ship-gate **RED** on a single hard-fail organ — `canonical_freshness`: `ARCHITECTURE.md last_reviewed 2026-06-23` predated the file's `2026-06-24` last edit. Root cause: corpus-drift content-edited ARCHITECTURE on 06-23 (GA-1/AR-B) but bumped only CLAUDE's stamp; the 06-24 merge rolled the file's edit date past the stamp. Per the prompt STOP-on-RED rule, halted + reported; operator chose re-read+bump. Did a **genuine end-to-end re-read** of all 607 lines (roster current through ADR-88/89, AR-B path qualified, numeric claims machine-green via `doc_claims`, reconciled edge intact — no drift filed), then bumped `last_reviewed` → 2026-06-24 on branch `chore/architecture-freshness-restamp` (commit `7dca06d`, merge `e5a3cbb`). ship-gate back to **GREEN** (6 WARN dispositioned); `canonical_freshness` 6 fresh.
+
+**Changes:** `JOURNAL.md` (2 conflict resolutions + this entry), `ARCHITECTURE.md` (last_reviewed restamp). Branch arcs carried their own PLAYBOOK/ARCHITECTURE/CLAUDE/decisions content.
+
+**Abandoned:** Nothing in scope. pytest not re-run after the markdown-only corpus-drift + restamp (unchanged from merge-1's 799/1; `800 collected` machine-confirmed by `doc_claims`). Push left operator-gated (main now far ahead of origin) — not in this prompt.
+
+**Next:** Tear down both worktrees (`git worktree remove` ×2 + prune) and `git branch -d` the **three** now-merged branches (`worktree-heading-scheme`, `worktree-corpus-drift`, `chore/architecture-freshness-restamp`) — operator-gated, non-committing. `automation/fleet-audit` untouched throughout. Final-state verify per Step 4.
+
+---
+
 ### 2026-06-23 — CC: PLAYBOOK batch-3 — CHANGELOG canonical statement (F3) then scatter-collapse (PB-E)
 
 **Did:** Ran the sequenced F3→PB-E pair on branch `cleanup/playbook-changelog-collapse` (manual-approve, confirm-live first). **F3** (commit `c4a4060`): added the single canonical "`CHANGELOG.md` retired ecosystem-wide (ADR-49)" statement to §14 Markdown Governance — the home the scatter could point at. **PB-E** (commit `2397b56`): collapsed all 14 inline `(CHANGELOG.md retired — ADR-49)` justifications to `(CHANGELOG retired — §14)` pointers. Sequence enforced: home before pointers.
