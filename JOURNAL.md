@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-23 — CC: PLAYBOOK fidelity audit (diagnostic; no PLAYBOOK edits)
+
+**Did:** Fidelity audit of `protocols/PLAYBOOK.md` (3352 L) on branch `audit/playbook-fidelity` — 8 read-only section agents tiling lines 1–3352 (A–F span-local lenses 1–4 + harmony signals; G owns the whole-doc lens-5 verdict), then orchestrator re-verification of every high-impact/full-scope claim. Built on (not re-deriving) the same-day hygiene audit (PB-A…PB-L); added the fidelity lens (current-practice · ADR-status reconciliation · load-bearing · placement · harmony).
+
+**Result:** Verdict HIGH fidelity (~40 KEEP). Drift concentrated + mostly tracked under #77: platform-currency pins (CC `2.1.168`→live `2.1.186`; 6-vs-10 hook table; missing `max` effort tier; ROUTING.md Sonnet-default vs §2 Opus-default) and dead-path/procedure tombstones (tier-transition L818, tech-radar path, template path). Harmony coverage adequate (correct anti-drift delegation to ARCHITECTURE Ch1; one #162 actor-vs-mode vocab gap). **Re-verification refuted the brief's own premise — ADR-88/89 are Accepted (`911b561`, on main), not Proposed** (stale "Proposed" lives in CLAUDE §11 + the brief, not PLAYBOOK); 3 agent BACKLOG-id cross-refs corrected; no agent existence-claim refuted. Report commit `855f748`.
+
+**Changes:** + `docs/audits/2026-06-23-playbook-fidelity-audit.md` (`855f748`). No PLAYBOOK content edited.
+
+**Next:** Operator-gated, rule-by-rule cleanup arc — re-confirm live before each REMOVE/UPDATE; targeted fixes (single `last-verified` stamp, hook-table re-ground, §14 canonical CHANGELOG statement then PB-E collapse, broken-pointer fixes) land under #77. No tracked task closed (pure ADD; no BACKLOG marker).
+
 ### 2026-06-23 — CC: session-summary maintenance — weekly token-log delta (post-wrap anchor)
 
 **Did:** `/session-summary` end-of-session maintenance: TOKEN-LOG staleness check found the last entry (2026-06-15) was 8 days old (> 7-day threshold), so ran a `ccusage --json` weekly snapshot and appended the 2026-06-16..2026-06-23 delta (newest-first). Landed via branch → `--no-ff` merge per core-invariant #5 (no direct-to-main, even for an append-only log). This entry anchors those post-wrap commits for the ADR-85 JOURNAL gate.
