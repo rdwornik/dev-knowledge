@@ -10,7 +10,7 @@ snapshot can't see fenced code, documented-intentional gaps, or generator behavi
 is precisely why hand-auditing fails here, and why this is a live organ, not a snapshot grep.
 
 DETECT-ONLY — it never edits, renumbers, or auto-fixes (a human ratifies any change;
-renumbering the §18 gap would itself *create* dangling cross-references). Four deterministic
+renumbering the §18 gap would itself *create* dangling cross-references). Five deterministic
 sub-detectors, each precision-over-recall (one false positive kills adoption):
 
   1. NUMBERING integrity (`scan_numbering`): within a doc's `## N.` section spine, a gap or a
@@ -27,6 +27,10 @@ sub-detectors, each precision-over-recall (one false positive kills adoption):
   4. DANGLING-ALLOW self-policing (`scan_dangling_allow`): a `structure-allow` numbering-gap
      marker whose number is no longer a gap (the feature was resolved but the marker lingers).
      The organ polices its own exception-markers so a stale allow can't silently mask new rot.
+  5. HEADING-SCHEME integrity (`scan_heading_scheme`): the `Ch`/`§` two-part convention — in a
+     doc with a `## Part I … / ## Part II …` spine, every Part-I chapter is `## ChN.` sequential
+     from Ch1 (gaps honour a `chapter-gap` allow marker). Stops an unnumbered `## Chapter` from
+     silently re-drifting the standardization; Part-II `## N.` numbering is detector 1's job.
 
 Documented-intent ledger — unit-of-truth is **live state ∪ the markers the doc itself carries**,
 never a hand-kept dead-list. An intentional feature that would otherwise read as rot carries an
@@ -72,6 +76,10 @@ _STRUCTURE_DOCS = [
 
 # A numbered section header text, e.g. "12. BACKLOG Grooming Workflow" -> 12.
 _NUMBERED_RE = re.compile(r"^(\d+)\.\s+\S")
+# A Part-I reference-chapter header text, e.g. "Ch3. Repo conventions" -> 3.
+_CHAPTER_RE = re.compile(r"^Ch(\d+)\.\s+\S")
+# The two-part spine markers: "Part I — Reference" / "Part II — Workflows" -> roman numeral.
+_PART_RE = re.compile(r"^Part\s+(I+)\b")
 # An inline documented-intent marker: `<!-- structure-allow: <kind> <locus> — <reason> -->`.
 _ALLOW_RE = re.compile(r"<!--\s*structure-allow:\s*([\w-]+)\s+(\S+).*?-->")
 # A malformed header that would be invisible to / break the ToC.
@@ -85,7 +93,7 @@ _TOC_LINK_RE = re.compile(r"\]\(#([^)]+)\)")
 
 @dataclass(frozen=True)
 class StructureFinding:
-    category: str   # 'numbering-gap'|'numbering-dup'|'malformed-header'|'dup-header'|'toc-dangling'|'toc-orphan'|'dangling-allow'
+    category: str   # 'numbering-gap'|'numbering-dup'|'malformed-header'|'dup-header'|'toc-dangling'|'toc-orphan'|'dangling-allow'|'heading-scheme'
     locus: str      # stable token a #147 disposition can match (e.g. 'protocols/PLAYBOOK.md#numbering-18')
     detail: str     # human evidence
 
@@ -239,6 +247,63 @@ def scan_dangling_allow(rel: str, gaps: set[int], allow: set[tuple[str, str]]) -
     return out
 
 
+def scan_heading_scheme(rel: str, text: str, allow: set[tuple[str, str]]) -> list[StructureFinding]:
+    """Two-part heading-scheme integrity — the `Ch`/`§` convention (Council heading decision).
+
+    For a doc carrying the `## Part I … / ## Part II …` spine (only the PLAYBOOK does today):
+    every Part-I reference chapter must be `## ChN. <Title>`, sequential from Ch1 — a chapter
+    missing its `ChN.` prefix, starting other than at Ch1, decreasing, duplicated, or gapped
+    (gaps honour a co-located `chapter-gap` allow marker, mirroring the §18 numbering case) all
+    fire. Part-II recipe numbering (`## N.`, §18 gap) is covered by scan_numbering, so Part II
+    is NOT subject to the Ch-prefix rule here (its appendices/recipes are intentionally varied).
+    A doc with no Part spine is skipped (region stays None). Precision-over-recall: detect-only.
+    """
+    out: list[StructureFinding] = []
+    region: str | None = None
+    chapters: list[int] = []
+    for level, raw in parse_headers(text):
+        if level == 2:
+            m_part = _PART_RE.match(raw)
+            if m_part:
+                region = m_part.group(1)   # 'I' (Reference) or 'II' (Workflows)
+                continue
+            if region == "I":
+                m = _CHAPTER_RE.match(raw)
+                if m:
+                    chapters.append(int(m.group(1)))
+                else:
+                    out.append(StructureFinding(
+                        "heading-scheme", f"{rel}#chapter-noprefix",
+                        f"Part I heading '{raw}' is not in `ChN.` form "
+                        f"(a reference chapter must be `## ChN. <Title>`)"))
+    # Sequence integrity over the chapter numbers (gap/dup logic mirrors scan_numbering).
+    if chapters and chapters[0] != 1:
+        out.append(StructureFinding(
+            "heading-scheme", f"{rel}#chapter-{chapters[0]}",
+            f"Part I chapters start at Ch{chapters[0]}, not Ch1"))
+    prev: int | None = None
+    for num in chapters:
+        if prev is not None:
+            if num == prev:
+                out.append(StructureFinding(
+                    "heading-scheme", f"{rel}#chapter-{num}",
+                    f"chapter Ch{num} appears twice in the Part I spine"))
+            elif num < prev:
+                out.append(StructureFinding(
+                    "heading-scheme", f"{rel}#chapter-{num}",
+                    f"chapter Ch{num} out of sequence (follows Ch{prev})"))
+            elif num > prev + 1:
+                for missing in range(prev + 1, num):
+                    if ("chapter-gap", str(missing)) in allow:
+                        continue
+                    out.append(StructureFinding(
+                        "heading-scheme", f"{rel}#chapter-{missing}",
+                        f"chapter Ch{missing} missing between Ch{prev} and Ch{num} "
+                        f"(no structure-allow marker — intentional? add one; else renumber)"))
+        prev = num
+    return out
+
+
 # --- scan (pure orchestration) ----------------------------------------------
 
 def scan(repo_root: Path) -> list[StructureFinding]:
@@ -257,6 +322,7 @@ def scan(repo_root: Path) -> list[StructureFinding]:
         gaps = numbering_gaps(text)
         results.extend(scan_numbering(rel, text, allow))
         results.extend(scan_headers_scheme(rel, text))
+        results.extend(scan_heading_scheme(rel, text, allow))
         results.extend(scan_toc(rel, text))
         results.extend(scan_dangling_allow(rel, gaps, allow))
     return results
