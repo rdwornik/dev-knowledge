@@ -561,7 +561,7 @@ distils an ADR` → `BACKLOG item + convention edit` → `enforcement organ (Ch2
 Runbook: `protocols/AI_COUNCIL_PROCESS.md` (ADR-67). The complexity router (1-file
 mechanical → conversational; 3+ files / 2+ packages → formal CC prompt;
 architecture/contested → Council) is PLAYBOOK "Project complexity bands"; degraded
-context → Handoff v5 (`HANDOFF_PROCESS.md`, ADR-82).
+context → Handoff v5 (`protocols/HANDOFF_PROCESS.md`, ADR-82).
 
 **ADR-68 supersession note (the night-agent).** ADR-68 specified a **local**
 mechanism — Windows Task Scheduler → headless `claude -p` review → morning briefing,
@@ -598,6 +598,8 @@ ledger is `docs/decisions/README.md`. Council transcripts: `docs/decisions/trans
 - **ADR-76** — local fleet-baseline host (Task Scheduler → Python; no LLM on path).
 - **ADR-79** — browser methodology carrier: bundle-only; Projects deferred (Ch4).
 - **ADR-84** — automation-writer isolation (Q9): both writers commit only to dedicated `automation/*` branches (never `main`); the `no_ff_merges` automation exemption removed — one rule (Ch3/Ch6).
+- **ADR-85/86/87** — session-lifecycle enforcement (deterministic session-end Stop-gate; un-gameable JOURNAL commit-SHA anchor); conformance-dashboard location (`ecosystem/conformance.md`, ADR-80 committed-generated zone); Architect↔CC equilibrium contract (conditional intent-only prompting) (Ch2/Ch6).
+- **ADR-88/89** — file-oriented dependency management (repo files are the dependency unit; declared edges held by machinery, not memory) and computed code-dependency edges (declare-what-you-cannot-compute; Pyright reverse-dependency oracle) — both Accepted 2026-06-21 (`911b561`); ADR-88/89 in-place markers (Ch5/Ch6).
 
 ---
 
