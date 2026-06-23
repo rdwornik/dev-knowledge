@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-06-19
+> Last updated: 2026-06-23
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -2059,7 +2059,7 @@ Per **ADR-87** (the architect↔CC equilibrium contract). STEP 1 verified CC sel
 | --------- | ----------------------------------- |
 | Model     | Sonnet / Opus                       |
 | Mode      | auto-accept / plan-then-auto / plan |
-| Effort    | low / medium / high / xhigh         |
+| Effort    | low / medium / high / xhigh / max   |
 ```
 
 ### How to choose Model
@@ -2111,16 +2111,18 @@ Source: research note `docs/archive/2026-06-03-dynamic-workflows-research-note.m
 - **medium** — 2-5 files, 30-90 min, may involve design choices within known patterns. Example: "add a new CLI command", "refactor this module to use dataclasses"
 - **high** — 5+ files or 2+ packages, 90+ min, requires UNDERSTAND phase, potential blast radius. Example: "implement search federation", "migrate classifier to new taxonomy"
 - **xhigh** — hardest debugging, end-to-end pipeline verification, Council-level analysis. Opus only. Example: "find why magistrala silently drops events", "verify boundary enforcement across all packages"
+- **max** — the top effort rung above `xhigh` (live effort ladder: `low / medium / high / xhigh / max`). Reserve for the hardest single-session synthesis where even `xhigh` under-resolves; burns the most tokens, use deliberately.
 
 ### Model / effort platform doctrine (Claude Code 2.1.x)
 <!-- scope: hybrid -->
+<!-- last-verified: 2026-06-23 -->
 
-Platform-current facts that pin the tables above (Claude Code 2.1.168; refreshed for #84 from `docs/audits/2026-06-07-platform-max-audit.md`):
+Platform-current facts that pin the tables above (Claude Code 2.1.186; refreshed for #84 from `docs/audits/2026-06-07-platform-max-audit.md`). The pins below are dated by the `last-verified` stamp — re-ground them against `claude --version` and the live tool schemas before trusting:
 
 - **Opus 4.8 is the default model and defaults to `high` effort.** Don't treat "use Opus" as exceptional for judgment work — it's the floor. Reserve the explicit Effort knob mainly for moving *off* `high`.
 - **Implementation waves run on Opus, not Sonnet.** A wave that wires multiple items across hooks / platform config (commit-msg hooks, pre-commit `language` modes, git pathspec behavior on Windows) carries real debugging risk: the failure modes are platform-specific and *silent*. Witnessed 2026-06-07 (wave-A closeout) — the `backlog-id-on-close` `pass_filenames` gate-bypass, the `language:python` flat-layout `pip install .` trap, and the Windows glob-pathspec miss each surfaced only under careful multi-step debugging. Tier these as Opus from the start; Sonnet under-resolves the multi-layer interactions. (Gotchas captured under "Pre-commit hook authoring" + "Git".)
-- **`xhigh`** is for the hardest *single-session* synthesis — clause-level architecture, end-to-end verification, this-codification class. It burns more tokens than `high`; use it deliberately, not by default.
-- **Fast mode** (`/fast`) trades **≈2× token cost for ≈2.5× output speed** on Opus 4.8/4.7/4.6 — same model, faster output (it does *not* downgrade to a smaller model). Use it for latency-sensitive interactive work; skip it for routine/unattended work where speed buys nothing.
+- **`xhigh`** is for the hardest *single-session* synthesis — clause-level architecture, end-to-end verification, this-codification class. It burns more tokens than `high`; use it deliberately, not by default. **`max`** is the rung above it (top of the live `low / medium / high / xhigh / max` ladder) — reserve for cases even `xhigh` under-resolves.
+- **Fast mode** (`/fast`) trades token cost for output speed on Opus 4.8/4.7/4.6 — same model, faster output (it does *not* downgrade to a smaller model). Use it for latency-sensitive interactive work; skip it for routine/unattended work where speed buys nothing. *(The historical ≈2× cost / ≈2.5× speed multipliers are unverified — pending re-check for Opus 4.8; do not treat as a current pin.)*
 - **`ultracode` is the Dynamic-Workflow trigger keyword, NOT an effort tier** (renamed from "workflow", Claude Code 2.1.160). It escalates a prompt into multi-agent orchestration ("When to escalate to a Dynamic Workflow", above) — never write it in a Model/Mode/Effort table as a fourth effort level.
 - **`fallbackModel` policy (ADR-80; VF-2 confirmed schema-accepted on 2.1.168 — the native `--fallback-model` flag is its CLI twin):**
   - **Interactive sessions MAY set it** (e.g. one Sonnet fallback) for resilience when the primary is overloaded/unavailable — a degraded answer beats a dead session.
