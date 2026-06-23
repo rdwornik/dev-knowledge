@@ -5,16 +5,17 @@
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
-> **Organization:** **Foundations** (unnumbered — System Architecture, the CLAUDE.md contract, repo conventions, documentation file types, session boundaries, Claude Code internals) → **numbered workflow recipes §1–§19** (the §18 gap is intentional — it was deleted; git has it) → **Appendices A–C** plus tooling addenda (Codemap, Auto-TOC). The numbered spine is the workflow-recipe middle, not the whole document.
+> **Organization:** Two explicit parts. **Part I — Reference** (chapters Ch1–Ch14: System Architecture, the CLAUDE.md contract, repo conventions, documentation file types, session boundaries, Claude Code internals, …) → **Part II — Workflows** (numbered recipes §1–§19; the §18 gap is intentional — it was deleted; git has it) followed by **Appendices A–C** plus tooling addenda (Codemap, Auto-TOC). Every heading carries an ordinal under an explicit Part; the numbered spine is the workflow-recipe middle, not the whole document.
 
 <!-- structure-allow: numbering-gap 18 — deleted, git has it -->
 
 ---
 
 <!-- TOC:START -->
-- [System Architecture](#system-architecture)
+- [Part I — Reference](#part-i--reference)
+- [Ch1. System Architecture](#ch1-system-architecture)
   - [Cross-reference](#cross-reference)
-- [CLAUDE.md as agent-instruction contract](#claudemd-as-agent-instruction-contract)
+- [Ch2. CLAUDE.md as agent-instruction contract](#ch2-claudemd-as-agent-instruction-contract)
   - [Authority hierarchy](#authority-hierarchy)
   - [What CLAUDE.md is](#what-claudemd-is)
   - [What CLAUDE.md is NOT](#what-claudemd-is-not)
@@ -28,7 +29,7 @@
   - [Handoff scope](#handoff-scope)
   - [LLM-LLM context transfer is back-and-forth, not unilateral](#llm-llm-context-transfer-is-back-and-forth-not-unilateral)
   - [Process versioning: beta vs stable promotion](#process-versioning-beta-vs-stable-promotion)
-- [Repo conventions](#repo-conventions)
+- [Ch3. Repo conventions](#ch3-repo-conventions)
   - [Default branch — `main`](#default-branch--main)
   - [File naming conventions](#file-naming-conventions)
   - [Folder structure](#folder-structure)
@@ -39,7 +40,7 @@
   - [Secrets storage path](#secrets-storage-path)
   - [Capitalization conventions](#capitalization-conventions)
   - [Rule-ID naming convention (doc to code edge)](#rule-id-naming-convention-doc-to-code-edge)
-- [Writing prompts for Claude Code](#writing-prompts-for-claude-code)
+- [Ch4. Writing prompts for Claude Code](#ch4-writing-prompts-for-claude-code)
   - [Why standard format](#why-standard-format)
   - [Standard structure (8 sections)](#standard-structure-8-sections)
   - [Per-Scale guidance](#per-scale-guidance)
@@ -48,10 +49,10 @@
   - [Anti-patterns](#anti-patterns)
   - [Checkable rules: concrete over aspirational](#checkable-rules-concrete-over-aspirational)
   - [Update cadence](#update-cadence-1)
-- [Project complexity bands](#project-complexity-bands)
+- [Ch5. Project complexity bands](#ch5-project-complexity-bands)
   - [Testing rules (scaled by repo complexity)](#testing-rules-scaled-by-repo-complexity)
   - [VS Code workspace](#vs-code-workspace)
-- [Documentation file types and session continuity](#documentation-file-types-and-session-continuity)
+- [Ch6. Documentation file types and session continuity](#ch6-documentation-file-types-and-session-continuity)
   - [File type taxonomy](#file-type-taxonomy)
   - [File presence (universal baseline)](#file-presence-universal-baseline)
   - [Canonical-file freshness cadence (audit check #10)](#canonical-file-freshness-cadence-audit-check-10)
@@ -61,8 +62,8 @@
   - [Supersession & decommissioning](#supersession--decommissioning)
   - [Handoff format spec](#handoff-format-spec)
   - [Order conventions](#order-conventions)
-- [Review postures](#review-postures)
-- [Session boundaries](#session-boundaries)
+- [Ch7. Review postures](#ch7-review-postures)
+- [Ch8. Session boundaries](#ch8-session-boundaries)
   - [Scope declaration at start](#scope-declaration-at-start)
   - [Stop-signs (recognize and act)](#stop-signs-recognize-and-act)
   - [Decision fatigue threshold](#decision-fatigue-threshold)
@@ -70,12 +71,12 @@
   - [Session resumption protocol](#session-resumption-protocol)
   - [Parallel sessions & worktree discipline (per ADR-61)](#parallel-sessions--worktree-discipline-per-adr-61)
   - [No leftovers: automated processes clean up — and verify it (invariant)](#no-leftovers-automated-processes-clean-up--and-verify-it-invariant)
-- [Tier-1 closure loop — usage](#tier-1-closure-loop--usage)
+- [Ch9. Tier-1 closure loop — usage](#ch9-tier-1-closure-loop--usage)
   - [Propagating a plugin change across the fleet](#propagating-a-plugin-change-across-the-fleet)
-- [Two-tier automation doctrine](#two-tier-automation-doctrine)
+- [Ch10. Two-tier automation doctrine](#ch10-two-tier-automation-doctrine)
   - [Writer policy — automation that writes the tree commits its own output (ADR-80)](#writer-policy--automation-that-writes-the-tree-commits-its-own-output-adr-80)
   - [What each tier checks (a green one and a red other are both correct)](#what-each-tier-checks-a-green-one-and-a-red-other-are-both-correct)
-- [Routine/night deployment standard](#routinenight-deployment-standard)
+- [Ch11. Routine/night deployment standard](#ch11-routinenight-deployment-standard)
   - [The envelope](#the-envelope)
   - [Naming](#naming)
   - [Safety envelope — allow-only platform guards, no committed deny](#safety-envelope--allow-only-platform-guards-no-committed-deny)
@@ -86,9 +87,9 @@
   - [The shallow-clone false-positive class](#the-shallow-clone-false-positive-class)
   - [Cloud-session hub-independence (self-containment)](#cloud-session-hub-independence-self-containment)
   - [What every routine must meet (the operational standard)](#what-every-routine-must-meet-the-operational-standard)
-- [Definition of done (organs)](#definition-of-done-organs)
+- [Ch12. Definition of done (organs)](#ch12-definition-of-done-organs)
   - [Definition of shipped (closure gate)](#definition-of-shipped-closure-gate)
-- [Continuous Improvement](#continuous-improvement)
+- [Ch13. Continuous Improvement](#ch13-continuous-improvement)
   - [Pipeline overview](#pipeline-overview)
   - [Stage 1: Discovery](#stage-1-discovery)
   - [Stage 2: Triage](#stage-2-triage)
@@ -97,7 +98,7 @@
   - [Stage 5: Implementation (only for "Adopt")](#stage-5-implementation-only-for-adopt)
   - [Stage 6: Review (on-trigger)](#stage-6-review-on-trigger)
   - [Where evaluations are recorded](#where-evaluations-are-recorded)
-- [Claude Code internals](#claude-code-internals)
+- [Ch14. Claude Code internals](#ch14-claude-code-internals)
   - [Quick disambiguation](#quick-disambiguation)
   - [Usage protocol: which command / hook, when](#usage-protocol-which-command--hook-when)
   - [7a. Skills (progressive-disclosure knowledge modules)](#7a-skills-progressive-disclosure-knowledge-modules)
@@ -106,6 +107,7 @@
   - [7d. Subagents (separate Claude instances)](#7d-subagents-separate-claude-instances)
   - [Adoption protocol — when Claude Code proposes a new skill/command/hook/subagent](#adoption-protocol--when-claude-code-proposes-a-new-skillcommandhooksubagent)
   - [Cross-reference to CLAUDE.md tools sections](#cross-reference-to-claudemd-tools-sections)
+- [Part II — Workflows](#part-ii--workflows)
 - [1. Starting a New Project](#1-starting-a-new-project)
   - [Scaffold](#scaffold)
   - [CLAUDE.md template (minimum viable)](#claudemd-template-minimum-viable)
@@ -214,7 +216,10 @@
 <!-- generated by toc tool; do not edit by hand -->
 <!-- TOC:END -->
 
-## System Architecture
+## Part I — Reference
+*Foundational doctrine — the durable reference chapters (Ch1–Ch14). Read the chapter you need; this part is reference, not a start-to-finish read.*
+
+## Ch1. System Architecture
 <!-- scope: meta -->
 
 **`.dev-knowledge` is not a journal and not an orchestrator** — it is **Layer 2**, the passive storage & governance layer of the ADR-28 three-layer ecosystem. The canonical model — the browser-architect → operator → Claude-Code-executor loop, its diagram, the authority chain, and the binding Layer-2 invariants — lives in **`ARCHITECTURE.md` Ch1 "Layer Boundaries & Invariants"** and is **not restated here**: a resident copy is exactly the drift this repo exists to kill (`ARCHITECTURE.md:14`). The copy that used to sit here had gone stale — its diagram showed the browser producing and committing the handoff, the opposite of the canon (`ARCHITECTURE.md:106`: Claude Code, Layer 3, commits the handoff).
@@ -230,7 +235,7 @@ Section 13 "Where Knowledge Lives" describes knowledge **domains** (what lives w
 
 ---
 
-## CLAUDE.md as agent-instruction contract
+## Ch2. CLAUDE.md as agent-instruction contract
 <!-- scope: meta -->
 
 **Purpose:** Each repo (corp-monorepo, ai-council, .dev-knowledge, future projects) has a `CLAUDE.md` at root. Auto-read by Claude Code on session start. Auto-read by Codex via `project_doc_fallback_filenames = ["CLAUDE.md"]` in `~/.codex/config.toml`. **Substantive single canonical per-repo agent-instruction file (≤200 lines).** Per ADR-53.
@@ -385,7 +390,7 @@ from quality promotion.
 
 ---
 
-## Repo conventions
+## Ch3. Repo conventions
 <!-- scope: meta -->
 <!-- version: 1.0 — 2026-04-26 -->
 
@@ -516,7 +521,7 @@ Full doctrine + reversibility: **ADR-89 OQ1 "NAMING CONVENTION — ADOPTED"**. A
 
 ---
 
-## Writing prompts for Claude Code
+## Ch4. Writing prompts for Claude Code
 <!-- scope: meta -->
 
 **Purpose:** Standardize prompts that browser chat produces for Claude Code execution. Per ADR-28 (three-layer architecture): browser is architect, Claude Code is executor — prompts are the contract between them.
@@ -642,7 +647,7 @@ This section's history is in git log (search commits for "prompt template" or "G
 
 ---
 
-## Project complexity bands
+## Ch5. Project complexity bands
 <!-- scope: dev -->
 
 > **Repo-tier system DEPRECATED 2026-05-23.** The formal S/M/L tier system — a declared `tier:`/`scale:` per repo that gated governance baselines — is deprecated ecosystem-wide (operator decision 2026-05-23; see ADR-33 amendment, ADR-38 amendment A5, ADR-40 deprecation). Repos no longer **declare** a tier, and no governance obligation is gated on one. The universal governance baseline (ADR-38 A5) applies to every repo regardless of size. The tier-*transition* procedures (S→M, M→L triggers/steps, formerly a subsection here under ADR-40) are likewise retired and **not re-introduced** — there is no tier to transition between and no score is computed.
@@ -816,7 +821,7 @@ Template is starting point, not contract. Repos may:
 
 ---
 
-## Documentation file types and session continuity
+## Ch6. Documentation file types and session continuity
 <!-- scope: meta -->
 <!-- version: 1.0 — 2026-04-24 -->
 
@@ -958,7 +963,7 @@ Per Token-LOG flip 2026-04-24:
 
 ---
 
-## Review postures
+## Ch7. Review postures
 <!-- scope: meta -->
 
 Four review postures distilled from the 2026-05-19 posture-audit (`docs/audits/2026-05-19-dev-knowledge-posture-audit.md`, findings H3/H4/T1/T2). Governance-doc and ADR craft — apply when editing, relocating, or deleting canonical content, or when deciding whether a one-off decision earns an ADR. Wording sourced **verbatim** from the audit; codified per #34.
@@ -970,7 +975,7 @@ Four review postures distilled from the 2026-05-19 posture-audit (`docs/audits/2
 
 ---
 
-## Session boundaries
+## Ch8. Session boundaries
 <!-- scope: meta -->
 <!-- version: 1.0 — 2026-04-25 -->
 
@@ -1342,7 +1347,7 @@ backstop that catches what the manual teardown missed. (Recurrence cleaned 2026-
 
 ---
 
-## Tier-1 closure loop — usage
+## Ch9. Tier-1 closure loop — usage
 <!-- scope: meta -->
 
 Per session: commit work normally, using `closes [#id]` on the commit that **finishes** a backlog item (not `advances` — see CONTRIBUTING; `advances` leaves the item open and invisible to the detector). At session end the `tier1-lifecycle` plugin's `Stop` hook proposes likely closures (`logs/PROPOSALS-*.md`); at the next session start the global `[closures] N proposed` reminder (L0 `surface-closures.ps1`) surfaces the count; run `/review-closures` to confirm and update `BACKLOG.md`. Architecture of the three layers: `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle".
@@ -1359,7 +1364,7 @@ The cache is **version-keyed** — `marketplace update` alone won't refresh at a
 
 ---
 
-## Two-tier automation doctrine
+## Ch10. Two-tier automation doctrine
 <!-- scope: meta -->
 
 The canonical layer→job matrix is **ADR-74**; this is its operating-doctrine prose, adopted fleet-wide by **ADR-80**. The organising question is a single axis — **does the organ exercise LLM judgment?** — which splits all automation into two tiers.
@@ -1397,7 +1402,7 @@ The 2026-06-07 cloud digest reading `0/0/0` while the local baseline shows one `
 
 ---
 
-## Routine/night deployment standard
+## Ch11. Routine/night deployment standard
 <!-- scope: meta -->
 
 How a recurring unattended review runs **in the cloud** (Claude Code Routines), as distinct from the rejected local-scheduler design. ADR-68 chose a *local* Windows Task Scheduler → headless `claude -p` night-agent; that mechanism was **never registered** as a scheduled task and is superseded in reality by the cloud Routine described here (see the `ARCHITECTURE.md` ADR-68 supersession note; the unbuilt local track survives as BACKLOG #85). The standard below is distilled from the nightly-conformance arc (CONTRIBUTING "Nightly outcome management"; JOURNAL 2026-06-05 entries; LESSONS 2026-06-05; `docs/audits/2026-06-05-conformance-nightly-digest.md`).
@@ -1467,7 +1472,7 @@ A recurring unattended review — local or cloud — graduates to "standard" onl
 
 ---
 
-## Definition of done (organs)
+## Ch12. Definition of done (organs)
 <!-- scope: meta -->
 
 Recorded as **ADR-81** (2026-06-09). An organ — a plugin, hook, command, skill, workflow, generator, or convention — is **not DONE** until it has all four:
@@ -1501,7 +1506,7 @@ Announcing before (2)–(6) is **premature closure**, not shipped. Point (6) is 
 
 ---
 
-## Continuous Improvement
+## Ch13. Continuous Improvement
 <!-- scope: meta -->
 <!-- version: 1.0 — 2026-04-24 -->
 
@@ -1629,7 +1634,7 @@ Cross-link the ADR to its implementation commits; the JOURNAL entry records the 
 
 ---
 
-## Claude Code internals
+## Ch14. Claude Code internals
 <!-- scope: runtime -->
 <!-- version: 1.0 — 2026-04-24 -->
 
@@ -1943,6 +1948,9 @@ When a repo has any of the above active (skills, slash commands, hooks, subagent
 This keeps Codex aware of the same governance Claude Code operates under.
 
 ---
+
+## Part II — Workflows
+*Numbered, repeatable recipes (§1–§19) plus Appendices A–C and tooling addenda. These are step-by-step procedures, not reference doctrine.*
 
 ## 1. Starting a New Project
 <!-- scope: dev -->
