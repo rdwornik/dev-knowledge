@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-24 — CC: enablement — machine-enforce the Ch/§ two-part heading convention
+
+**Did:** Closed the lifecycle of the PLAYBOOK two-part restructure with its **enablement** stage (Council Action Item 5): recorded the heading convention as a single canonical statement and gave it teeth so it can't silently re-drift. Test-first on `feat/heading-convention-enforcement`: wrote the failing detector teeth (`e11a971`, RED), **extended** the existing structural linter with a fifth sub-detector `scan_heading_scheme` (`a21108a`, GREEN), then added the canonical §14 note (`440548d`) + reconciled the pytest-collected count (`6e92adb`).
+
+**Result:** In a doc with the `## Part I / ## Part II` spine, every Part-I chapter must be `## ChN.` sequential from Ch1 (gaps honour a `chapter-gap` allow marker, mirroring §18); a missing `ChN.` prefix or out-of-sequence chapter fires. Part-II `## N.` numbering stays detector 1's job. Negative-control test proves enforcement on an isolated broken copy (catches both a Part-I no-`Ch` heading AND a Part-II out-of-sequence gap); live PLAYBOOK clean. Detect-only / fail-soft / never gates (Layer-2 read-only contract preserved — no duplicate validator). pytest **808 passed/1 skipped** (809 collected), ruff clean, TOC-freshness GREEN, ship-gate **GREEN** (6 WARN dispositioned).
+
+**Changes:** `scripts/validate_doc_structure.py` (+`scan_heading_scheme`, docstrings four→five), `scripts/audit.py` (pass-message + docstring), `tests/test_validate_doc_structure.py` (+9 tests), `protocols/PLAYBOOK.md` (§14 canonical note), `ARCHITECTURE.md` (pytest-collected 800→809).
+
+**Abandoned:** Nothing in scope. No closes-bracket — #77 stays open (this is one arc of its scope); refs #77 + the Council heading-scheme decision. Push left operator-gated.
+
+**Next:** Operator may `/ship`/push when ready. The remaining #77 scope (if any) continues separately.
+
+---
+
 ### 2026-06-24 — CC: integrate heading-scheme + corpus-drift arcs from primary; freshness-restamp RED fix
 
 **Did:** Serially integrated the two finished parallel worktree arcs into `main` from the PRIMARY checkout (manual-approve, confirm-live inventory first). (1) `git merge --no-ff worktree-heading-scheme` (merge `fe5b790`) — the PLAYBOOK two-part heading scheme (restructure `f8af23c` + journal `123eef1`). (2) `git merge --no-ff worktree-corpus-drift` (merge `c407038`) — corpus-drift cleanup (5 commits `abec69e`→`a897e05`: ARCHITECTURE GA-1 roster + AR-B path, CLAUDE ADR-88/89 ratify + re-stamp, decisions stale refs). Both hit the expected top-of-file JOURNAL double-prepend conflict; resolved keeping **both** entries newest-first (marker-only edits, no body changes). PLAYBOOK + ARCHITECTURE auto-merged clean.
