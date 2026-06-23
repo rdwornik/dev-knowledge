@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-23 — CC: PLAYBOOK currency cleanup batch-2 (the audit's one removal — tier-transition tombstone)
+
+**Did:** Acted on the PLAYBOOK fidelity audit's single REMOVE-candidate (B3/PB-A) on branch `cleanup/playbook-tier-transition-removal` — manual-approve, confirm-live before deleting. Removed the deprecated `### Tier transition procedures (ADR-40) — DEPRECATED 2026-05-23` subsection (heading + Obsolete blockquote, ~12 L) and its auto-TOC entry; regenerated the auto-TOC so the entry disappeared. **Condense-while-preserving:** the don't-reintroduce regression-guard survives as a one-liner appended to the Project-complexity-bands deprecation blockquote (prose, no heading → no TOC entry).
+
+**Result:** Three confirm-live checks passed before removal — ADR-40 = Deprecated (file + README); the only live anchor link into the section was PLAYBOOK's own auto-TOC self-link (regenerates); the block was a pure tombstone (its stated purpose *was* the marker). All other "tier transition" hits are frozen handoff bundles / the deprecated ADRs / a leftover worktree copy / JOURNAL history — no live cross-reference broken. Commit `41d1e19`; `audit.py ship-gate` GREEN, TOC-freshness GREEN, suite 799 passed/1 skipped, ruff clean. Operator approved the exact span before deletion. Local `--no-ff` merge into main; not pushed.
+
+**Changes:** `protocols/PLAYBOOK.md` (1 +/15 −), `JOURNAL.md`.
+
+**Abandoned:** Nothing — the single in-scope removal applied; no condense beyond the tombstone (F3→PB-E scatter is a separate sequenced arc).
+
+**Next:** Remaining deferred arcs (A10 `[TBD]` decision · F3/PB-E scatter collapse · B11 detector · G1/#162 · out-of-scope corpus). Refs #77 (advances, does not close — no closes-bracket).
+
 ### 2026-06-23 — CC: PLAYBOOK currency cleanup batch-1 (mechanical UPDATEs + 2 structural drift-class fixes)
 
 **Did:** Acted on the 2026-06-23 PLAYBOOK fidelity audit's safe, no-decision currency findings on branch `cleanup/playbook-currency-batch1` — UPDATEs/repoints only, no removals, each item re-confirmed live before editing (audit's confirm-live-at-act mandate). Two **structural drift-class** fixes: (1) added a `last-verified: 2026-06-23` stamp to the platform-doctrine block + bumped the CC pin `2.1.168`→`2.1.186` + added the live `max` effort rung + marked the fast-mode ≈2× multipliers UNVERIFIED; (2) replaced the re-drifting "auto vs manual" hooks table (listed 6 of the live 10, described retired `/boot`+`/evolve` machinery) with a pointer to CLAUDE §9 + genuine usage guidance. Plus mechanical fixes: B7 handoff-label v4→v5.2, C1 DEFINITION_OF_DONE.md pointer, C2/F6 false-precision dates→cadence, D1 dead tech-radar path (×2), D4 `verify` re-tag user→repo, D5 broken §6 xref, D6 `/changelog-review` add, E1-3 dead template path, E2-2 amendment heading-form note, E2-4 `/council-question` trigger, F4 ADR-63 citation, F1/F2 §14 STALE rows reconciled.
