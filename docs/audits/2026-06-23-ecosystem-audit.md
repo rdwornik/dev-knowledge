@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-06-23  
-**Generated:** 2026-06-23T22:26:56  
+**Generated:** 2026-06-23T23:34:11  
 **Repos audited:** 5  
 **Checks:** 115 total — 100 pass, 2 fail, 0 warn, 0 unavailable, 13 n/a
 
@@ -35,7 +35,7 @@
 | `doc_claims` | PASS | hub-only — prose-vs-state check skipped (not the hub repo) |
 | `no_ff_merges` | PASS | hub-only — --no-ff guard skipped (not the hub repo) |
 | `handoff_probes` | PASS | 10 probe(s) bind to live state (2026-06-21-dev-knowledge-architect) |
-| `reconciled_versions` | PASS | 1 reconciled_with edge(s) match live spec version(s) |
+| `reconciled_versions` | PASS | 2 reconciled_with edge(s) match live spec version(s) |
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
 | `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
 | `doc_code_edge` | PASS | hub-only — doc->code edge check skipped (not the hub repo) |
