@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-23 — CC: ARCHITECTURE fidelity audit (diagnostic; no ARCHITECTURE edits)
+
+**Did:** Fidelity audit of `ARCHITECTURE.md` (604 L) on branch `worktree-architecture-fidelity` (refreshed in place ff-only `5d10cfc`→`a39e416`, zero orphan) — verifies the harmony **delegation target** PLAYBOOK relies on. 4 read-only section agents tiling L1–604 zero-gap (A L1–175 harmony core · B L176–379 organ/validator · C L380–513 automation/zones · D L514–604 mesh/Governing-ADRs), each lenses 1–4 span-local + lens-5 signal; orchestrator owns the whole-doc lens-5 verdict + re-verified every high-impact/novel MACHINE claim. Built on (not re-deriving) the hygiene audit (AR-A…AR-D) + the PLAYBOOK fidelity §3 delegation credit.
+
+**Result:** Verdict **HIGH fidelity**; **delegation-soundness SOUND** (3-layer model, authority chain, Layer-2 invariants, safety invariants all present/correct/current + ADR-sourced — PLAYBOOK's "ARCHITECTURE Ch1 is canonical home" credit is earned). **0 REMOVE-candidates.** Phase-0 baseline all green (23 checks · health OK · pytest **800**, claim-3 reconciled 793→800 · doc_claims 3/3 · doc_code_edge 5/5). Material findings: **AR-A** (frontmatter lacks `reconciled_with: handoff-process@5.2` — #172 spine gap, prime declare-candidate), **GA-1** (curated Governing-ADRs roster stops at ADR-84, omits body-cited 85–89, NEW ADD-coverage), **AR-B** (L564 bare ``HANDOFF_PROCESS.md`` — corrected hygiene's L534 line drift). Orchestrator corrections: agent C1 "live code violates rule" → ARCHITECTURE doctrine accurate + NEW-1 `conformance-hub.js` skeptic/digest-unpinned code side-note (inherit Opus, match intent); agent D1 "ADR-82 header stale" → not-an-ARCHITECTURE-finding (frozen-header immutability convention, same as 88/89). ARCHITECTURE carries **zero "Proposed" strings**; cites 88/89 as binding Ch2 doctrine. Report commit `778e9c2`.
+
+**Changes:** + `docs/audits/2026-06-23-architecture-fidelity-audit.md` (`778e9c2`). No ARCHITECTURE content edited.
+
+**Abandoned:** Nothing — diagnostic ran to completion.
+
+**Next:** Operator-gated follow-ups (each its own arc): AR-A/#172 declare the edge (highest leverage — machine-protect the harmony target's currency) · GA-1 refresh Governing-ADRs roster · AR-B path-qualify L564 · NEW-1 pin conformance-hub.js stages (separate repo). No tracked task closed (pure ADD; no closes-bracket).
+
 ### 2026-06-23 — CC: PLAYBOOK currency cleanup batch-1 (mechanical UPDATEs + 2 structural drift-class fixes)
 
 **Did:** Acted on the 2026-06-23 PLAYBOOK fidelity audit's safe, no-decision currency findings on branch `cleanup/playbook-currency-batch1` — UPDATEs/repoints only, no removals, each item re-confirmed live before editing (audit's confirm-live-at-act mandate). Two **structural drift-class** fixes: (1) added a `last-verified: 2026-06-23` stamp to the platform-doctrine block + bumped the CC pin `2.1.168`→`2.1.186` + added the live `max` effort rung + marked the fast-mode ≈2× multipliers UNVERIFIED; (2) replaced the re-drifting "auto vs manual" hooks table (listed 6 of the live 10, described retired `/boot`+`/evolve` machinery) with a pointer to CLAUDE §9 + genuine usage guidance. Plus mechanical fixes: B7 handoff-label v4→v5.2, C1 DEFINITION_OF_DONE.md pointer, C2/F6 false-precision dates→cadence, D1 dead tech-radar path (×2), D4 `verify` re-tag user→repo, D5 broken §6 xref, D6 `/changelog-review` add, E1-3 dead template path, E2-2 amendment heading-form note, E2-4 `/council-question` trigger, F4 ADR-63 citation, F1/F2 §14 STALE rows reconciled.
