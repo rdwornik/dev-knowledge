@@ -1372,9 +1372,10 @@ def check_doc_structure(repo_path: Path) -> list[Finding]:
     DETECT-ONLY — never edits / renumbers / auto-fixes.
 
     Hub-only: the living docs scanned are .dev-knowledge-specific, so on any other repo this
-    is a no-op pass. Four sub-detectors (numbering integrity, header-scheme consistency, ToC
-    accuracy, dangling-allow self-policing) — scripts/validate_doc_structure.py. Documented-
-    intentional cases pass via co-located `structure-allow` markers + the fence-aware parser.
+    is a no-op pass. Five sub-detectors (numbering integrity, header-scheme consistency, ToC
+    accuracy, dangling-allow self-policing, Ch/§ two-part heading-scheme integrity) —
+    scripts/validate_doc_structure.py. Documented-intentional cases pass via co-located
+    `structure-allow` markers + the fence-aware parser.
 
     Awareness layer, not a gate: emits one WARN PER structural locus (never FAIL -> never
     blocks the audit-health commit gate; one Finding per locus so the #147 ship-gate
@@ -1392,7 +1393,7 @@ def check_doc_structure(repo_path: Path) -> list[Finding]:
                         f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
     if not results:
         return [Finding("doc_structure", "pass",
-                        "no structural rot (numbering / headers / ToC / dangling-allow)")]
+                        "no structural rot (numbering / headers / ToC / dangling-allow / heading-scheme)")]
     return [
         Finding("doc_structure", "warn",
                 f"structural rot: {_vds.format_findings([r])}".replace("|", "/"))

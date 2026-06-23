@@ -2941,6 +2941,8 @@ If a client engagement generates a dev lesson, strip all client names, proprieta
 
 **Retired file types — canonical statement.** `CHANGELOG.md` is **retired ecosystem-wide** (ADR-49, 2026-05-16): git history + the JOURNAL `Changes:` line now carry what it used to, and it must not be recreated. This is the single canonical statement of that rule; everywhere else in this file an inline mention points here (`§14`) rather than restating it.
 
+**Heading scheme — canonical statement.** This PLAYBOOK is a two-part spine: **Part I — Reference** chapters are `## ChN. <Title>` (sequential from Ch1); **Part II — Workflows** recipes are `## N. <Title>` (sequential; the §18 gap is intentional, held by its co-located `<!-- structure-allow: numbering-gap 18 -->` marker). A new conceptual reference → Part I + the next `Ch`; a new task recipe → Part II + the next `§` (a deletion leaves a `structure-allow` marker, never a renumber). This is the single canonical statement of the scheme — and it is machine-enforced: `scan_heading_scheme` in `scripts/validate_doc_structure.py` fires when a Part-I heading loses its `ChN.` prefix or falls out of sequence, so the standardization cannot silently re-drift.
+
 ### Project governance folder
 <!-- scope: dev -->
 
