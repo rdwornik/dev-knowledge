@@ -73,15 +73,32 @@ class EdgeResult:
     code_sites: tuple[Site, ...]
 
 
-def find_doc_sites(rule_id: str, doc_root: Path) -> list[Site]:
-    """Locate `<!-- rule: <rule_id> -->` across `*.md` under `doc_root`, by content."""
+def find_doc_sites(rule_id: str, doc_root: Path,
+                   include: tuple[str, ...] | None = None) -> list[Site]:
+    """Locate `<!-- rule: <rule_id> -->` by content, scoped to the declaration registry.
+
+    `include` is the registry-scoped declaration-doc list (`declaration_docs:` in
+    `ecosystem/doc-code-edge.yaml`) -- the SAME scope `iter_doc_rule_ids` enumerates over. When
+    given, ONLY those repo-relative docs are scanned, so a real rule-ID quoted in PROSE in a
+    NON-declaration doc (an immutable audit, ARCHITECTURE, a record) is NOT counted as a doc-site.
+    This closes the scan/resolve ASYMMETRY that made a rule `ambiguous` when an audit file merely
+    discussed its `<!-- rule: ... -->` token (the #194 doc-site-scoping fix): enumeration was
+    registry-scoped while resolution scanned every `*.md`. `include=None` is the unscoped
+    spike/mechanism mode (scan every `*.md` under `doc_root`) used by the move-safety fixtures;
+    the LIVE check (`audit.check_doc_code_edge`) and the coverage gate ALWAYS pass the registry.
+    A listed path that does not exist is skipped (fail-soft, same as `iter_doc_rule_ids`).
+    """
     out: list[Site] = []
-    for md in sorted(doc_root.rglob("*.md")):
+    if include is None:
+        items = [(md, md.relative_to(doc_root).as_posix())
+                 for md in sorted(doc_root.rglob("*.md"))]
+    else:
+        items = [(doc_root / rel, rel) for rel in include]
+    for md, rel in items:
         try:
             text = md.read_text(encoding="utf-8")
         except OSError:
             continue
-        rel = md.relative_to(doc_root).as_posix()
         for i, line in enumerate(text.splitlines(), start=1):
             for m in DOC_RE.finditer(line):
                 if m.group(1) == rule_id:
@@ -147,14 +164,19 @@ def find_code_sites(rule_id: str, code_root: Path) -> list[Site]:
     return out
 
 
-def resolve_edge(rule_id: str, doc_root: Path, code_root: Path) -> EdgeResult:
+def resolve_edge(rule_id: str, doc_root: Path, code_root: Path,
+                 include: tuple[str, ...] | None = None) -> EdgeResult:
     """Resolve the doc<->code edge for `rule_id`.
 
     A side that resolves to nothing -> `broken_edge` (the deterministic hard-FAIL the ADR
     requires). A duplicated rule-ID on either side -> `ambiguous`. Exactly one each ->
     `resolved`. `broken_edge` is checked first: an unresolved target is the hard failure.
+
+    `include` scopes the DOC-side resolution to the declaration registry (see `find_doc_sites`);
+    the live check + coverage gate pass it so a prose mention in a non-declaration doc cannot make
+    a real edge `ambiguous`. `include=None` keeps the unscoped spike behaviour (scan all `*.md`).
     """
-    doc_sites = tuple(find_doc_sites(rule_id, doc_root))
+    doc_sites = tuple(find_doc_sites(rule_id, doc_root, include))
     code_sites = tuple(find_code_sites(rule_id, code_root))
     if not doc_sites or not code_sites:
         status = "broken_edge"

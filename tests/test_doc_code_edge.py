@@ -365,11 +365,45 @@ def test_coverage_all_in_scope_rules_resolve():
     scope = aud._load_coverage_scope(_REPO_ROOT)
     assert scope, "coverage_scope is empty/absent -- the guard would vacuously pass"
     code_root = _REPO_ROOT / "scripts"
+    decl = aud._load_declaration_docs(_REPO_ROOT)  # registry-scoped resolution (matches the live check)
     unresolved = [
         rid for rid in scope
-        if vdce.resolve_edge(rid, _REPO_ROOT, code_root).status != "resolved"
+        if vdce.resolve_edge(rid, _REPO_ROOT, code_root, include=decl).status != "resolved"
     ]
     assert not unresolved, (
         f"{len(unresolved)}/{len(scope)} in-scope rules not yet resolved: "
         + ", ".join(sorted(unresolved))
     )
+
+
+# --- registry-scoped resolution regression guard (#194 doc-site-scoping fix) -----------
+# Permanent guard for the scan/resolve ASYMMETRY: enumeration (iter_doc_rule_ids) was
+# registry-scoped while resolution (find_doc_sites) scanned every *.md, so a real rule-ID
+# quoted in PROSE in a non-declaration doc (an immutable audit file discussing the token)
+# was counted as a second doc-site -> the real edge went `ambiguous`. This is a STRUCTURAL
+# guard, not a symptom guard: it constructs the colliding doc itself, so it keeps teeth even
+# if the audit file that first triggered it ever changes.
+
+def test_resolution_is_registry_scoped_not_fooled_by_prose_mention(tmp_path):
+    """A real rule-ID quoted in prose in a NON-declaration doc must NOT count as a doc-site:
+    registry-scoped resolution (the `include` declaration-doc list) stays `resolved`, never
+    `ambiguous`. The UNSCOPED form is asserted to STILL be fooled, proving the scoping -- not the
+    absence of a colliding doc -- is what fixes it."""
+    (tmp_path / "PLAYBOOK.md").write_text("governed <!-- rule: GOV-9 -->\n", encoding="utf-8")
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "impl.py").write_text(
+        "def f():\n    # rule: GOV-9\n    return 1\n", encoding="utf-8")
+    # a NON-declaration doc quotes the same real token in prose (the audit-file collision class)
+    (tmp_path / "docs" / "audits").mkdir(parents=True)
+    (tmp_path / "docs" / "audits" / "report.md").write_text(
+        "the audit notes <!-- rule: GOV-9 --> resolves to impl.py\n", encoding="utf-8")
+
+    code_root = tmp_path / "scripts"
+    # registry-scoped: only PLAYBOOK.md is a declaration doc -> 1 doc-site -> resolved
+    scoped = vdce.resolve_edge("GOV-9", tmp_path, code_root, include=("PLAYBOOK.md",))
+    assert scoped.status == "resolved", \
+        f"scoped resolution must ignore the prose mention, got {scoped.status}"
+    assert len(scoped.doc_sites) == 1 and scoped.doc_sites[0].file == "PLAYBOOK.md"
+    # teeth: the UNSCOPED form IS fooled (2 doc-sites -> ambiguous) -- scoping is the fix
+    unscoped = vdce.resolve_edge("GOV-9", tmp_path, code_root)
+    assert unscoped.status == "ambiguous"

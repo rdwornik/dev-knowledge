@@ -19,6 +19,23 @@
 
 ---
 
+### 2026-06-23 — CC: #194 doc-site-scoping root fix — scope doc-side resolution to the declaration registry
+
+**Did:** Verified + landed the surviving (uncommitted) #194 fix from a prior API-timed-out session. `find_doc_sites`/`resolve_edge` gained an `include` param scoping DOC-side resolution to the `declaration_docs:` registry — the SAME scope `iter_doc_rule_ids` already enumerated — closing the scan/resolve ASYMMETRY that flipped a real edge to `ambiguous` when a non-declaration doc merely quoted its `<!-- rule: ... -->` token in prose (`seal-journal-anchor`, collided by an immutable `docs/audits/` file). `audit.check_doc_code_edge` now passes `include=` into `resolve_edge`. Confirmed PRINCIPLED root fix (registry-scoping), not immutable-artifact pruning. Branch `fix/194-doc-site-scoping` off `main` (primary). Fixes the defect; #194 stays OPEN (rollout not complete).
+
+**Result:**
+- `scripts/validate_doc_code_edge.py` — `include` param on `find_doc_sites`/`resolve_edge`; `None` = unscoped spike mode (move-safety fixtures), registry-scoped on the live path.
+- `scripts/audit.py` — `check_doc_code_edge` threads `include` into `resolve_edge` (symmetry with the already-scoped `iter_doc_rule_ids`).
+- `tests/test_doc_code_edge.py` — +1 STRUCTURAL asymmetry regression guard (`test_resolution_is_registry_scoped_not_fooled_by_prose_mention`): builds a declaration doc + a code site + a colliding non-declaration `docs/audits/` prose mention; asserts scoped → `resolved` (1 doc-site) AND unscoped → `ambiguous` (proving the SCOPING, not the absence of a collider, is the fix). The existing coverage test now passes `include=decl`.
+- `ARCHITECTURE.md` — `**794 collected**` (793→794, claim-3); genuine end-to-end re-read confirmed current, `last_reviewed` 2026-06-23.
+- Verify: `pytest` 793 passed / 1 skipped; `ruff` clean; `ship-gate` GREEN (`doc_code_edge: 5 resolved`; 4 doc self-claims match; 6 WARN dispositioned). Fix SHA `8c90eba`, landed via `--no-ff` merge to `main`.
+
+**Changes:** `scripts/validate_doc_code_edge.py`, `scripts/audit.py`, `tests/test_doc_code_edge.py`, `ARCHITECTURE.md`, `JOURNAL.md`.
+
+**Next:** #194 rollout (remaining cohorts beyond the live 5 rules) stays OPEN; conformance arc (separate) can now land on green main.
+
+---
+
 ### 2026-06-23 — CC: canonical-corpus coherence & staleness audit (7-file corpus, 12-agent fan-out)
 
 **Did:** Read-only diagnostic audit of the named canonical corpus (PLAYBOOK, ESSENTIALS, DEFINITION_OF_DONE, HANDOFF_PROCESS+BOOT, ARCHITECTURE, CLAUDE) per the plan-mode multiagent prompt. Phase-0 machine baseline (`audit.py health` GREEN) + 12 read-only Explore agents (8 PLAYBOOK section-agents + ESSENTIALS-with-DoD + CLAUDE + ARCHITECTURE + HANDOFF-pair) + orchestrator synthesis with full re-verification of every high-impact claim. Diagnostic ONLY — no audited file edited. Branch `audit/canonical-corpus-coherence` off `main` (primary). Opens cleanup; closes no task.
