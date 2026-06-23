@@ -58,6 +58,11 @@
 **Next:** Operator integrates from the PRIMARY checkout (`git merge --no-ff worktree-heading-scheme`), then tears down this worktree. Refs #77 + the unanimous heading-scheme Council decision; advances, not closes (no closes-bracket).
 
 ---
+### 2026-06-23 — CC: corpus-drift cleanup (ARCHITECTURE GA-1/AR-B + CLAUDE/decisions stale refs)
+
+**Did:** Cleared the confirm-live drift items the two 2026-06-23 fidelity audits surfaced (worktree `worktree-corpus-drift`, manual-approve, all UPDATE/ADD — no removals). ARCHITECTURE GA-1: added grouped Governing-ADRs entries for ADR-85/86/87 + ADR-88/89 (roster stopped at 84). AR-B: bare `HANDOFF_PROCESS.md` → `protocols/HANDOFF_PROCESS.md` (L564, single bare occurrence). CLAUDE §11: ADR-88/89 **Proposed** → Accepted (911b561). CLAUDE §8: "no skills dir yet" → `.claude/skills/` holds `verify` + `check-against-spec`. decisions/README: ADR-88 index row "acceptance pending" → Accepted; ADR-44 pointer "PLAYBOOK §17" → §19. **Result:** pytest + ruff GREEN; audit-health GREEN per commit. The CLAUDE §8/§11 edit tripped check #10 (canonical_freshness) — bumped `last_reviewed`/version 2.22→2.23 after a genuine end-to-end re-read (own commit 8b6d6e5). **Item 7 SKIPPED:** ROUTING.md is `~/.claude/` runtime config (out of this worktree + repo scope per CLAUDE §4) and its Sonnet-default isn't clearly drift — left for operator. **Changes:** ARCHITECTURE.md, CLAUDE.md, docs/decisions/README.md, JOURNAL.md. **Next:** operator integrates from primary via `git merge --no-ff worktree-corpus-drift`, then tears down the worktree.
+
+---
 ### 2026-06-23 — CC: PLAYBOOK currency cleanup batch-2 (the audit's one removal — tier-transition tombstone)
 
 **Did:** Acted on the PLAYBOOK fidelity audit's single REMOVE-candidate (B3/PB-A) on branch `cleanup/playbook-tier-transition-removal` — manual-approve, confirm-live before deleting. Removed the deprecated `### Tier transition procedures (ADR-40) — DEPRECATED 2026-05-23` subsection (heading + Obsolete blockquote, ~12 L) and its auto-TOC entry; regenerated the auto-TOC so the entry disappeared. **Condense-while-preserving:** the don't-reintroduce regression-guard survives as a one-liner appended to the Project-complexity-bands deprecation blockquote (prose, no heading → no TOC entry).
