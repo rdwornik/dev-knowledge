@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-24 — CC: #200 closed — merge-serialization gate (A1 teeth) accepted-prose-only
+
+**Did:** Handoff-rework **A1** step — the one part of the Architect Operating Contract expected to carry *machine teeth* (#200). Plan-then-auto, verify-gap-first. **Step 0 (live witness):** scratch-repo probes confirmed the concurrent-merge race is already serialized by git itself — (i) a 2nd simultaneous `git merge` hits `index.lock` (`Another git process seems to be running`); (ii) a 2nd `git merge` mid-merge is refused (`Merging is not possible because you have unmerged files`); (iii) a stale push to a moved `main` is rejected (`! [rejected] … (fetch first)`). **Location resolved:** a `/ship`-only gate misses the operator's manual `git merge --no-ff` path; but the decisive finding (operator) is that **a worktree→`main` merge is git-structurally prevented** (a worktree can't `git checkout main`), so any worktree-detection hook guards a git-prevented case — and a **primary self-merge is byte-identical to a legitimate operator merge**, so it is *not gate-catchable* by any hook. No non-lock gate closes a reachable gap; a lock was explicitly out of scope. → close on the done-when's 2nd branch.
+
+**Result:** **#200 closed accepted-prose-only** with the gap-analysis as the logged reason. No new hook/lock built (machinery-for-a-git-prevented-case rejected per the complexity budget). The merge-serialization "teeth" of A1 are the existing git natives + the FF-block; #184 stays the separate empirical close of the whole A1. `HANDOFF_BOOT` untouched (separate A1-prose step). Verification: ship-gate GREEN; `reconciled_versions` 2 GREEN (PLAYBOOK not a registered spec); pytest GREEN incl. the 3 new witness tests; ruff clean.
+
+**Changes:** `tests/test_merge_serialization.py` (new — witnesses git-native serialization, `e288435`); `protocols/PLAYBOOK.md` §8 "Merge serialization" block + push-serialization line (`e57be90`); `BACKLOG.md` (#200 removed, `4e40517`).
+
+**Abandoned:** Option B (a `pre-merge-commit` worktree-detection hook) — refuted live: it would guard a git-structurally-prevented case and would not catch the witnessed primary self-merge. No lock/mutex (out of scope).
+
+**Next:** Remaining handoff-rework A1-prose steps (role loop + self-check, worktree-orchestration, plan-mode grammar) as separate sequential `HANDOFF_BOOT` edits; #184 (empirical close of the whole A1).
+
+---
+
 ### 2026-06-24 — CC: handoff-rework C5 — corrected stale "verify_handoff_probes deferred" text
 
 **Did:** First/lowest-cost item of the HANDOFF_PROCESS rework (audit C5). `scripts/verify_handoff_probes.py` (#163) landed and gates `/ship` as `check_handoff_probes` in `audit.py`'s `ALL_CHECKS` (FAIL-class), but two surfaces still called it deferred/not-landed. Confirm-live first (grep, not line numbers — they'd shifted post-#194): verified `check_handoff_probes` in `ALL_CHECKS` + FAIL-class gating, so the "deferred" text was genuinely counterfactual. Corrected both: HANDOFF_PROCESS.md §11 promotion-record (records it WAS deferred at the flip but has since landed + gates, §5 as rationale backstop — condense-while-preserving) + `audit.py` `check_handoff_bundle_structure` docstring.

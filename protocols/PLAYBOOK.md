@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-06-23
+> Last updated: 2026-06-24
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -1281,6 +1281,27 @@ directory — re-check `.claude/worktrees/` and clear any empty husk once the ID
 - **Integrate from the primary:** from the primary on `main`, `git merge --no-ff worktree-<name>`
   then `git push` (repo `--no-ff` norm). Don't try to rebase/linearize a branch that is checked
   out in another worktree — git blocks it.
+- **Merge serialization — why two concurrent merges to `main` can't tangle (#200).** The
+  decided guard is *not* a lock/mutex; the verify-first finding (#200) is that the
+  concurrent-merge race is already serialized — by **git itself**, plus the existing FF-block:
+  - **`index.lock`** — two simultaneous `git merge` commands can't both proceed; the second
+    fails `Unable to create '.git/index.lock': File exists. Another git process seems to be running`.
+  - **`MERGE_HEAD` refusal** — a second `git merge` while one is in-progress is refused by git
+    (`Merging is not possible because you have unmerged files` / `You have not concluded your merge`).
+  - **Push-rejection = `main` moved = re-integrate.** A push to a `main` that another clone
+    already advanced is rejected `! [rejected] … (fetch first)`; you `git pull` and re-merge.
+    This is git serializing the integration point across clones — lean on it, don't rebuild it.
+  - **The FF-block** (`scripts/block_ff_push.py`, pre-push, hub-only) refuses any push adding a
+    non-merge commit to main's first-parent spine (core-invariant #5).
+  - **A worktree→`main` merge is git-structurally prevented** — a linked worktree cannot
+    `git checkout main` (it's already checked out in the primary), so integration *always*
+    funnels through the single primary checkout, where the natives above apply.
+  - **Honest limit (not gate-catchable):** a *primary*-checkout self-merge is byte-identical to a
+    legitimate operator merge (same command, same branch shape — no git signal separates them), so
+    **no hook can distinguish them.** That case is held by the commit-and-STOP / integrate-from-the-
+    primary discipline (operator is the serial gate, above) + the A1 empirical close (#184), and by
+    #107 worktree isolation for the shared-HEAD hazard — *not* by machinery. The git-native behavior
+    is witnessed in `tests/test_merge_serialization.py`; #200 closed accepted-prose-only on this basis.
 - **Teardown — native first:** a *changeless* worktree auto-removes on `ExitWorktree`/session
   exit (and `isolation:"worktree"` subagents auto-clean); a worktree that has commits is KEPT.
   After merging, remove it:

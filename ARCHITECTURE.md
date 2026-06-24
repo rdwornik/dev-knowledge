@@ -369,7 +369,7 @@ cell is skipped or gapped. **Skip/gap tracking:** code↔code fires → skip-gua
 portability via **#195** (integrated enforcement) + **#193**; doc→code coverage tail →
 **#201/#202/#203**.
 
-- `tests/` — pytest unit tests for the validators (**815 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**818 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
