@@ -350,14 +350,10 @@ hand-maintained-surface disease (§12).
 
 v5's one structural gap: the architect's strategic *why* — the intent, the tensions weighed, the
 options rejected — originates in the **browser** (Layer 1), but the residual is **CC-emitted**
-(repo-derived), so CC structurally cannot emit that *why*. v5.0 leaned on operator-relay (human
-memory). v5.1 made the *why* a first-class advisory artifact — but only *after* the outgoing browser
-answered an **ephemeral terminal interview block**, so a cold / `/clear`ed handoff (no outgoing
-browser in context) produced **no file at all**: a missing-deliverable look, zero git tracking, the
-operator un-led. v5.2 fixes that structurally — the supplement is an **always-generated,
-self-documenting, fillable file**, committed on the handoff branch, folded into the next session
-**only if answered**. **Architect-mode-additive only; the v5 model (§§1–12) and execution mode are
-unchanged.**
+(repo-derived), so CC structurally cannot emit that *why*. The supplement closes that gap: an
+**always-generated, self-documenting, fillable file**, committed on the handoff branch, folded into
+the next session **only if answered**. **Architect-mode-additive only; the v5 model (§§1–12) and
+execution mode are unchanged.**
 
 **The lifecycle (CC generates the file; the operator fills it async; CC commits it; the assembler
 folds it if answered):**
@@ -411,13 +407,8 @@ then consumed (its ANSWERS folded) by the next session, exactly like
 hand-maintained-surface disease (§12). And it is a **forward** brief (outgoing architect → next
 session via `PASTE_THIS`), distinct from the return channel above — it adds **no** return-leg.
 
-**Why this beats the v5.1 ephemeral relay (and still beats v4).** v5.1 carried answers 1:1 too, but
-its carrier existed **only after** the outgoing browser answered — a cold handoff produced no artifact
-at all (invisible to tracking; the operator not led by hand); v5.2 makes the **file itself** the
-durable workspace + tracking record, existing from generation. v4 interviewed too, but its answers
-were summarized into the bundle
-and **not carried 1:1** — lossy. Here the interview **answers ARE the artifact**, carried verbatim and
-advisory: v4's extraction function without v4's loss.
+**The carrier is the file itself.** The interview **answers ARE the artifact** — carried verbatim
+and advisory; the file exists from generation as the durable workspace + tracking record.
 
 **Relation to beat (d).** Q6 (off-repo context) is captured here **only when the supplement carries answers**, so the inbound
 operator-context beat (d) narrows to *"anything changed since?"* The two are **one channel split
@@ -577,3 +568,9 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
   / `.claude/commands/handoff.md` unchanged). ADR-82 amended in-file (2026-06-17). §§1–12, §14
   unchanged. Refs #159 (the real dogfood — mechanism defined here, not yet exercised), #164 (generator
   must emit the always-file form).
+- v5.2 (2026-06-24, §13 narration condense) — condensed the v5.0→v5.1→v5.2 evolution-narration in the
+  architect-supplement subsection to its current state (info-preserving: the evolution stays in this
+  Section history + git). Live mode spec / lifecycle / schema / `SUPPLEMENT.md.tmpl` pointers all
+  **unchanged**. **Version unchanged (5.2; condense-only — no rule change.)** Companion to the STEP-0
+  finding that the C1/C4/C6 v4-corpus *removal* premise is refuted (the named targets are live/gated,
+  not dead) — this arc removed nothing, only the redundant evolution prose. Refs #164.
