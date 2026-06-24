@@ -287,8 +287,11 @@ operator-context beat:
   relations stay residual prose** (the `depends-on` clause is hard-blocked-by ONLY), and any
   graph reading the architect has not encoded as a schema edge is still residual, not a schema
   fact. See ADR-66 §Amendments (2026-06-13, ratified 2026-06-14).
-- **(c) Orientation — a §5 "exact-line quote" probe; the architect's first move, before any
-  mechanism.** This is the scope-D fix, delivered the v5 way: **forced read, never a copy,
+- **(c) Orientation (the vision frame) — a §5 "exact-line quote" probe; a forced-read *tool* that
+  establishes the vision, not the navigation gate.** The opening sequence is **role → vision →
+  backlog**: role is set by §4, this layer establishes the vision, and **the backlog (b) is what
+  navigates** — once role and vision are in hand the architect starts from `BACKLOG.md`, not from the
+  orientation read. This is the scope-D fix, delivered the v5 way: **forced read, never a copy,
   never a paraphrase.**
   - A plain-language "what is this project" answer is **summary-bluffable** and so fails §5's
     own bar (§5: *a probe answerable from the compaction summary is removed or hardened*).
