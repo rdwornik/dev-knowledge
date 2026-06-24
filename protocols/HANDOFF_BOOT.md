@@ -35,6 +35,25 @@ or letting two merges race. Each beat below has a one-line check; a wrong answer
 
 Canon — the equilibrium contract (who emits what): **ADR-87** (ask CC to pull it).
 
+## Loop transition gates (when each stage is done)
+
+The loop above is *stages*; these are its **transition gates** — the conscious "this stage is
+done" criterion per hop, so the loop has teeth instead of being prose-and-hope. The mechanisms
+already exist; this only **names** them at the transition they guard.
+
+| Transition | Gate | Criterion |
+|---|---|---|
+| plan → delegate | **checkable** | a frozen acceptance-contract EXISTS in the prompt (the ex-ante A2 contract — PLAYBOOK Ch12.1 / ADR-81). |
+| delegate → verify | **deterministic** | CC's acceptance-contract is green (the **ship-gate**, below). |
+| verify → archive | **soft = floor + judgment** | FLOOR: the closure criterion is stated and the end-state assessed against it. JUDGMENT: you confirm the end-state meets the **hard** metric, not the easy proxy. |
+| archive → educate | **deterministic** | the **seal** (the ADR-85 Stop-gate, below). |
+| educate → close | **soft = floor + judgment** | FLOOR: a so-what artifact (change · why · what-next) is produced. JUDGMENT: the operator confirms it landed. |
+
+**Soft ≠ subjective:** a deliberate check against a *named* criterion. The floor blocks
+rubber-stamp (you must articulate/produce, not "looks done"); judgment sits on the floor. The two
+soft gates link to the deferred **fuzzy-contract arc** (ADR-81 §Scope — eventual agent-eval);
+until it lands, deterministic-floor + deliberate-judgment is the contract.
+
 ## Your operating role — execution mode (default)
 
 You have **no file access** — CC is your hands on the repo. Your job is judgment, not
