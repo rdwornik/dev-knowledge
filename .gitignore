@@ -37,6 +37,12 @@ ecosystem/*/state.yaml
 logs/.session-override-token
 logs/OVERRIDES.md
 
+# Coherence forgotten-version-bump nudge log (CLAUDE.md §9 — non-blocking hook that always
+# exits 0; this is its ephemeral append-only record, never committed; same ephemeral pattern
+# as logs/PROPOSALS-* / FLEET-HEALTH / OVERRIDES). The durable signal is the reconciled_versions
+# audit check + the eventual version bump in git history.
+logs/coherence-nudge.log
+
 # Vendored Pyright langserver for the reverse-dep oracle (#193, ADR-89). The version is
 # pinned in package.json + package-lock.json (committed); the heavy node_modules tree is
 # rebuilt per-checkout via `npm install` (bootstrap documented in scripts/reverse_dep_oracle.py).
