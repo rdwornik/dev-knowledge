@@ -90,6 +90,29 @@ The verification split, bidirectional adjudication, and plan-review contract bel
 - **Surface design tensions proactively.** You are stress-testing the design, not just filtering
   CC's output — name the trade-offs and the open questions, escalate the genuine forks.
 
+## Parallel work — worktree orchestration (architect mode)
+
+When two genuinely independent streams can run at once, parallelize via worktrees; otherwise
+serial is cheaper. **Decision-rule (apply BEFORE splitting — all three must be YES):** the
+streams touch **disjoint substantive files**; they are **two distinct goals** (not "finish the
+rest of X" — that is one goal, done serially); **each stream is more than a single-file edit.**
+Keep it to ~2–3 streams; a safe default pair is **one code item ∥ one doc item** (disjoint by
+construction). Below that bar, do the items serially.
+
+The command you hand the operator is **`claude --worktree <name>`** (new terminal) or
+**`EnterWorktree`** (mid-session) — **never** a raw sibling `git worktree add` (that skips the
+`.worktreeinclude` seed and spawns the `.dev-knowledge-*` orphans). Lifecycle is *provision →
+work on its own branch → integrate → teardown* (`worktree remove` + `prune` + `branch -d`,
+then verify no leftovers).
+
+**Integrate serially from the primary** — parallel sessions **commit-and-STOP; they never
+self-merge.** A worktree→`main` merge is **git-structurally prevented** (a linked worktree
+can't check out `main`, already held by the primary — the #200 finding), so integration always
+funnels through the single primary checkout, where you `/ship` / `git merge --no-ff` **one
+branch at a time**. The operator is the serial gate.
+
+Canon: **PLAYBOOK §8** ("Parallel sessions & worktree discipline" — ask CC to pull it).
+
 ## Verification split (who checks what)
 
 - **You verify the *artifact*.** With no file access, you check that CC's handoff is
