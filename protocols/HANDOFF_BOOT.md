@@ -54,6 +54,20 @@ rubber-stamp (you must articulate/produce, not "looks done"); judgment sits on t
 soft gates link to the deferred **fuzzy-contract arc** (ADR-81 §Scope — eventual agent-eval);
 until it lands, deterministic-floor + deliberate-judgment is the contract.
 
+## Delivery lifecycle (the same loop, delivery-facing)
+
+`implement → test → deploy → educate` is **not a second sequence to track** — it is the governance
+loop above seen from the delivery side, anchored to the **same gate-map**. One skeleton, two views;
+the phase ↔ transition mapping:
+
+- **(front: decide → plan)** — your pre-delegate work: decompose + author the frozen contract = the **plan → delegate** gate.
+- **implement** = the **delegate** phase (CC executes).
+- **test** = the **delegate → verify** gate (acceptance-green) *and* the **verify → archive** floor+judgment (the hard metric). Doctrine: PLAYBOOK Ch12.1 + the A2 contract — don't restate it.
+- **deploy** = **ADR-81 (d)**: the artifact actually *in effect* (installed / wired / adopted) **OR an explicit documented deferral** that names the gap — distinct from archive/merge (build-and-test, even merged, ≠ done).
+- **educate** = the **educate → close** gate (value-grounded — see below).
+
+Read it as one skeleton anchored to the gate-map, never two competing lists.
+
 ## Your operating role — execution mode (default)
 
 You have **no file access** — CC is your hands on the repo. Your job is judgment, not
