@@ -86,6 +86,16 @@ A blocked turn exits **only** via `/override [reason]` (`.claude/commands/overri
 gather reliability and override-rate data first. If overrides exceed ~10% of sessions, the
 *rules* need tuning, not the human reinstated as trigger.
 
+## Build/arc acceptance contracts — a different scope (pointer, NOT a gate here)
+For a **deterministic build task**, "done" also requires that it met an **executable acceptance
+contract the architect authored _before_ the build and froze** — immutable to the executor (CC may
+strengthen, never weaken), with **closure declared on that contract (the hard metric), not on
+"tests pass / merged."** That is **build/arc** scope: it lives in **PLAYBOOK Ch12.1 "Definition of
+shipped"** + the **ADR-81 amendment (2026-06-24)** — **not** in this file and **not** in the
+session-end Stop-gate. This doc governs only the *session-close record* (JOURNAL/BACKLOG above);
+the three scopes — session-close / arc-shipped / organ-done — are kept distinct (PLAYBOOK Ch12.1).
+Deterministic-scoped; the fuzzy band is deferred to its own arc.
+
 ---
 See also: ESSENTIALS "Ending a Session" (the human-facing wrap habit this gate backstops);
 `docs/decisions/ADR-85-session-lifecycle-enforcement.md` (the decision + rationale).
