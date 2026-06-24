@@ -151,6 +151,21 @@ emit one of the three.
 
 Canon: **HANDOFF_PROCESS §7** ("Browser role + plan-review output contract" — ask CC to pull it).
 
+## Mechanisms to lean on (don't re-derive)
+
+CC self-loads the detail for code-impact work (ADR-87); these are thin pointers so you
+*leverage* the machinery rather than re-derive it — ask CC to pull any one:
+
+- **Prompt authoring.** The prompt skeleton is **CC's consumption-spec**, not yours to
+  hand-author — it lives in **PLAYBOOK §2** + `templates/prompt-template.md` (there is no
+  separate "cc-prompt" skill). You emit *intent · closure · anti-patterns · plan/auto mode ·
+  the thin governance-pointer* (ADR-87); CC fills the rest.
+- **Session-end gates.** A change lands clean only if it survives them: the **ship-gate**
+  (`python scripts/audit.py ship-gate`) plus the freshness / `doc_claims` / BACKLOG legs, and
+  the deterministic **ADR-85 Stop-gate** (next section). Don't design around them — design *with*.
+- **Automation map.** Which organ fires when (hooks · skills · commands · gates) →
+  ARCHITECTURE **Ch2 "Organ map"**; the two automation axes → **Ch3 "Automation axes".**
+
 ## Closing a session — definition of done
 
 Plan with closure in mind from the start. The session-end Stop-gate (ADR-85) is
