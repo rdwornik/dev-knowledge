@@ -251,6 +251,21 @@ def test_edge_check_registered_and_resolves_starter_set():
     assert "resolved" in findings[0].evidence
 
 
+def test_edge_check_warns_on_code_orphan(tmp_path, monkeypatch):
+    """Step-3 live wiring (#194 L1): the advisory ALSO surfaces a code-side ORPHAN -- a
+    `# rule:` whose ID is declared in NO declaration doc (code->nonexistent-rule) -- as a WARN,
+    never FAIL. This is the direction the doc-side resolution alone structurally cannot see."""
+    _as_hub(tmp_path, monkeypatch)
+    _write_registry(tmp_path)
+    (tmp_path / "PLAYBOOK.md").write_text("no governed tokens here\n", encoding="utf-8")
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "thing.py").write_text(            # `# rule:` with NO declaration
+        "def f():\n    # rule: gov-orphan\n    return 1\n", encoding="utf-8")
+    findings = aud.check_doc_code_edge(tmp_path)
+    assert all(f.status != "fail" for f in findings)          # WARN-only contract, never FAIL
+    assert any("gov-orphan" in f.evidence and "code_orphan" in f.evidence for f in findings)
+
+
 # --- cp1252-safe output regression (#194 sub-arc-2; fix 633e44a had only a gotcha note) -
 
 def test_doc_code_edge_output_is_cp1252_safe(tmp_path, monkeypatch):
@@ -283,7 +298,10 @@ def test_doc_code_edge_output_is_cp1252_safe(tmp_path, monkeypatch):
         "def f():\n    # rule: GOV-OK\n    return 1\n", encoding="utf-8")
     findings += aud.check_doc_code_edge(tmp_path)
 
-    # broken_edge: doc rule, no matching code annotation.
+    # broken_edge: doc rule, no matching code annotation. Drop the resolved-state ok.py first --
+    # else its GOV-OK now surfaces as a code_orphan (Step-3 L1 wiring) and splits this state's
+    # finding count; each state must stay exactly one Finding for the (not-vacuous) guard.
+    (tmp_path / "scripts" / "ok.py").unlink()
     (tmp_path / "PLAYBOOK.md").write_text(
         "a rule <!-- rule: GOV-BROKEN -->\n", encoding="utf-8")
     findings += aud.check_doc_code_edge(tmp_path)
@@ -296,7 +314,15 @@ def test_doc_code_edge_output_is_cp1252_safe(tmp_path, monkeypatch):
         "def b():\n    # rule: GOV-DUP\n    return 2\n", encoding="utf-8")
     findings += aud.check_doc_code_edge(tmp_path)
 
-    assert len(findings) == 5  # one Finding per state -> all five exercised (not vacuous)
+    # code_orphan (Step-3 L1 wiring): a `# rule:` declared in no doc = code->nonexistent-rule.
+    for _p in (tmp_path / "scripts").glob("*.py"):
+        _p.unlink()
+    (tmp_path / "PLAYBOOK.md").write_text("no governed tokens here\n", encoding="utf-8")
+    (tmp_path / "scripts" / "orphan.py").write_text(
+        "def f():\n    # rule: GOV-ORPHAN\n    return 1\n", encoding="utf-8")
+    findings += aud.check_doc_code_edge(tmp_path)
+
+    assert len(findings) == 6  # one Finding per state -> all six exercised (not vacuous)
     for f in findings:
         for field in (f.check_name, f.status, f.evidence):
             field.encode("cp1252")  # non-cp1252 char -> UnicodeEncodeError -> test fails

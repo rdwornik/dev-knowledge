@@ -1592,8 +1592,11 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     `ecosystem/doc-code-edge.yaml` (`declaration_docs:`) and resolves each to its `# rule: ID`
     code annotation under scripts/ — rule-ID identity + path/AST content resolution, move-safe
     per the e22e883 spike. A `broken_edge` (a side resolves to nothing) or `ambiguous` (a
-    duplicated ID) surfaces as a WARN advisory naming the rule-ID + reason. NEVER FAILs this arc
-    — advisory-first; promotion to a gate is data-gated (ADR-89 OQ3).
+    duplicated ID) surfaces as a WARN advisory naming the rule-ID + reason; the #194 L1 scan
+    (validate_doc_code_edge.scan_structural_integrity) ALSO surfaces a `code_orphan` — a
+    `# rule:` annotation declared in no declaration doc (code->nonexistent-rule), the direction
+    doc-side resolution structurally cannot see. NEVER FAILs this arc — advisory-first; promotion
+    to a gate is data-gated (ADR-89 OQ3).
 
     Hub-only: the rule-ID edge is a .dev-knowledge governance concept, so on any other repo this
     is a no-op pass. The scan is REGISTRY-SCOPED to the authoritative declaration docs (ADR-89
@@ -1606,21 +1609,35 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
         return [Finding("doc_code_edge", "pass",
                         "hub-only — doc->code edge check skipped (not the hub repo)")]
+    code_root = Path(repo_path) / "scripts"
     try:
         include = _load_declaration_docs(repo_path)
         ids = _vdce.iter_doc_rule_ids(Path(repo_path), include)
+        # L1 structural integrity (#194): also surface code-side ORPHANS — a `# rule:` whose ID
+        # is declared in NO declaration doc (code->nonexistent-rule), the direction the doc-side
+        # resolution below structurally cannot see (it iterates doc-declared IDs only).
+        # scan_structural_integrity runs the full L1 scan on the live corpus; its doc-side
+        # dangling/duplicate findings are already reported below as broken_edge/ambiguous, so here
+        # we take ONLY its code_orphan findings (a disjoint id set — no double-report). Advisory:
+        # WARN-only, never a gate (hard-gate promotion is data-gated, ADR-89 OQ3).
+        orphans = [f for f in _vdce.scan_structural_integrity(Path(repo_path), code_root, include)
+                   if f.kind == "code_orphan"]
     except Exception as exc:  # never wedge the audit-health gate
         return [Finding("doc_code_edge", "warn",
                         f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    # ONE Finding per defect (atomic) — a #147 ship-gate disposition then matches the concern
+    # unit, never waving a different undispositioned edge through (the per-id git_backlog_drift
+    # rule). resolve_edge / scan_structural_integrity re-scan by content → move-safe (e22e883).
+    warns: list[Finding] = [
+        Finding("doc_code_edge", "warn",
+                (f"{f.rule_id}: code_orphan (code sites={len(f.code_sites)}, "
+                 f"no declaration)").replace("|", "/"))
+        for f in orphans]
     if not ids:
-        return [Finding("doc_code_edge", "pass",
-                        "no doc rule-IDs in the declaration-doc registry — advisory inactive "
-                        "(ecosystem/doc-code-edge.yaml)")]
-    # ONE Finding per unresolved id (atomic) — a #147 ship-gate disposition then matches the
-    # concern unit, never waving a different undispositioned edge through (the per-id
-    # git_backlog_drift rule). resolve_edge re-scans by content → move-safe (e22e883).
-    code_root = Path(repo_path) / "scripts"
-    warns: list[Finding] = []
+        # No doc-declared edges — but a code orphan is still a real structural defect to surface.
+        return warns or [Finding("doc_code_edge", "pass",
+                         "no doc rule-IDs in the declaration-doc registry — advisory inactive "
+                         "(ecosystem/doc-code-edge.yaml)")]
     resolved = 0
     for rid in sorted(ids):
         result = _vdce.resolve_edge(rid, Path(repo_path), code_root, include=include)
@@ -1636,7 +1653,7 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     return [Finding("doc_code_edge", "pass",
                     # ASCII arrow: this evidence is printed by cmd_health's click.echo, which
                     # crashes on a Windows cp1252 console for chars outside cp1252 (e.g. U+2192).
-                    f"{resolved} doc->code edge(s) resolved; none broken/ambiguous")]
+                    f"{resolved} doc->code edge(s) resolved; none broken/ambiguous/orphaned")]
 
 
 ALL_CHECKS = [
