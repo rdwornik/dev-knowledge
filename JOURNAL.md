@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-24 — CC: handoff-rework A1-prose — Architect Operating Contract made resident in HANDOFF_BOOT
+
+**Did:** The A1-**prose** half of the Architect Operating Contract residence (the A1-teeth/#200 half closed prose-only last entry — settled, not revisited). Relocated the role-behavior the **file-less browser-architect** must act on INTO `protocols/HANDOFF_BOOT.md` (the only artifact the browser reads at boot) — **essence + pointer to canon**, never hand-copy (drift). Four independently-mergeable steps, serial + solo, each its own commit + `--no-ff` merge from the primary; confirm-live the canonical source before each relocation. **(1)** Operating loop (decide → plan → delegate-with-declared-mode → verify-landed → archive → educate) + role-stability self-check (deciding-or-deferring / plan-held-or-patching / verifying-or-asserting / serializing-my-merges); pointer → ADR-87. **(2)** Worktree-orchestration essentials — decision-rule, native `claude --worktree` / `EnterWorktree` (never raw sibling add), provision→integrate→teardown, integrate-serially-from-primary + commit-and-STOP + the #200 git-structural prevention; pointer → PLAYBOOK §8. **(3)** Plan-review grammar **strengthened** (K7): feedback to CC is a copy-paste **artifact**, not chat prose; pointer → HANDOFF_PROCESS §7. **(4)** Thin mechanism pointers — prompt skeleton (PLAYBOOK §2 + `templates/prompt-template.md`, CC's consumption-spec; honestly notes **no `cc-prompt` skill exists**), session-end gates, ARCHITECTURE Ch2/Ch3 automation map.
+
+**Result:** Four `--no-ff` merges to `main` — `c38817c` (loop+self-check), `6f23dd5` (worktree), `a7a5a94` (plan-grammar), `171d607` (mechanism pointers). Per step: ship-gate **GREEN** (run from git-bash — PowerShell false-RED on `handoff_probes` avoided), `reconciled_versions` **2 GREEN**, pytest **817 passed / 1 skipped**, ruff clean; grep confirmed each relocated essence resides in BOOT + points to canon. BOOT carries no `last_reviewed` stamp, so no freshness leg to bump. Advances the handoff-rework agenda (A1) + ADR-87.
+
+**Changes:** `protocols/HANDOFF_BOOT.md` only (4 leaf commits `51cda73` · `e4af3a0` · `56b26a8` · `437b961`) + this JOURNAL wrap. Branches `docs/a1-prose-{role-loop,worktree,plan-grammar,mechanism-pointers}` (all merged + deleted). **Not pushed** (awaiting operator).
+
+**Abandoned:** Nothing. Hand-copy of whole sections rejected by design (essence+pointer only). No teeth built — A1's teeth are git-natives (#200, settled).
+
+**Next:** **#184 — empirical close of the WHOLE A1** (a real build + parallel-run demonstrating the contract holds). This prose-residence is *necessary, not sufficient* — prose-residence already failed once (a session self-merged despite the discipline). **No closes-bracket on A1/#184.**
+
+---
+
 ### 2026-06-24 — CC: #200 closed — merge-serialization gate (A1 teeth) accepted-prose-only
 
 **Did:** Handoff-rework **A1** step — the one part of the Architect Operating Contract expected to carry *machine teeth* (#200). Plan-then-auto, verify-gap-first. **Step 0 (live witness):** scratch-repo probes confirmed the concurrent-merge race is already serialized by git itself — (i) a 2nd simultaneous `git merge` hits `index.lock` (`Another git process seems to be running`); (ii) a 2nd `git merge` mid-merge is refused (`Merging is not possible because you have unmerged files`); (iii) a stale push to a moved `main` is rejected (`! [rejected] … (fetch first)`). **Location resolved:** a `/ship`-only gate misses the operator's manual `git merge --no-ff` path; but the decisive finding (operator) is that **a worktree→`main` merge is git-structurally prevented** (a worktree can't `git checkout main`), so any worktree-detection hook guards a git-prevented case — and a **primary self-merge is byte-identical to a legitimate operator merge**, so it is *not gate-catchable* by any hook. No non-lock gate closes a reachable gap; a lock was explicitly out of scope. → close on the done-when's 2nd branch.
