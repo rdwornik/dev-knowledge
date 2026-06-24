@@ -29,6 +29,8 @@
 
 **Abandoned:** Nothing. Advances the handoff-rework agenda; refs #163. **No closes-bracket** (closes nothing).
 
+**Follow-on:** The §11 edit (a registered spec, no version bump — correct for a text fix) fired the non-blocking coherence-nudge hook, which left `logs/coherence-nudge.log` untracked + dirtied the tree at wrap. Resolved per the established ephemeral-log convention (logs/ tracks only `TOKEN-LOG.md`; all other hook logs are gitignored): added `logs/coherence-nudge.log` to `.gitignore` (chore `629d755`, merge `8a695b9`). Log left on disk, no longer dirties the tree; `reconciled_versions` stayed GREEN throughout.
+
 **Next:** Remaining HANDOFF_PROCESS rework items.
 
 ---
