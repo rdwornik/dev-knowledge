@@ -16,13 +16,14 @@ Design under test:
 Two validation outcomes (ADR-89): `broken_edge` (a side resolves to nothing = deterministic
 hard-FAIL) vs a resolved edge. `ambiguous` flags a duplicated rule-ID.
 
-Phase-2 sub-arc 1 wired this as the `doc_code_edge` ADVISORY check in `audit.py` ALL_CHECKS
-(WARN-only, never a gate; #194) via the `iter_doc_rule_ids` enumerator below. Still deferred:
-pre-commit promotion (data-gated, ADR-89 OQ3), `staleness_signal`, the `::symbol` target leg
-(via `reverse_dep_oracle.resolve_symbol`), the rebuildable index, and the real-annotation
-rollout -- gated on the still-undesigned rule-ID NAMING scheme (ADR-89 OQ1 #1 / the #194
-"declared rule-ID scheme" deliverable; an ADR-89 amendment / Council ruling, not a build-time
-pick). The file-level edge + the four move-safety proofs remain the proven core.
+Phase-2 wired this as the `doc_code_edge` ADVISORY check in `audit.py` ALL_CHECKS (WARN-only,
+never a gate; #194) via `iter_doc_rule_ids` + `scan_structural_integrity` below. The rule-ID
+NAMING scheme is adopted (ADR-89 OQ1) and the #194 "Done when" landed: `build_edge_index` (the
+derived rebuildable index) + `scan_structural_integrity` (L1 integrity -- dangling / code-orphan
+/ duplicate). Still deferred: hard-gate promotion (data-gated, ADR-89 OQ3), `staleness_signal`,
+the `::symbol` target leg (via `reverse_dep_oracle.resolve_symbol`), and the deferred-tail
+annotation rollout (two-organ #201 / Tier-3 #202 / drift-guard #203). The file-level edge + the
+move-safety proofs remain the proven core.
 
 Layer-2 / read-only (ADR-28/36): reads `*.md` + `*.py` under the given roots; writes
 NOTHING; never orchestrates; never gates (the spike CLI exits 0 -- awareness only).
@@ -69,6 +70,18 @@ class Site:
 class EdgeResult:
     rule_id: str
     status: str  # "resolved" | "broken_edge" | "ambiguous"
+    doc_sites: tuple[Site, ...]
+    code_sites: tuple[Site, ...]
+
+
+@dataclass(frozen=True)
+class StructuralFinding:
+    """One L1 structural-integrity defect (#194). `kind` is one of:
+    `dangling_doc` (declared, no code impl) | `code_orphan` (code annotation, no declaration =
+    code->nonexistent-rule) | `duplicate_doc` (>1 doc site) | `duplicate_code` (>1 code site)."""
+
+    rule_id: str
+    kind: str
     doc_sites: tuple[Site, ...]
     code_sites: tuple[Site, ...]
 
@@ -164,6 +177,33 @@ def find_code_sites(rule_id: str, code_root: Path) -> list[Site]:
     return out
 
 
+def iter_code_rule_ids(code_root: Path) -> set[str]:
+    """Enumerate every `# rule: ID` across `*.py` under `code_root` (real COMMENT tokens only).
+
+    The code-side half of the derived edge index, symmetric to `iter_doc_rule_ids`. Same
+    tokenize-based, content-only contract as `find_code_sites` -- a `# rule: ID` inside a string
+    literal is never collected, an untokenizable file is skipped (fail-soft). Returns the set of
+    unique code-side IDs (location-free; pair with `find_code_sites` to locate each).
+    """
+    ids: set[str] = set()
+    for py in sorted(code_root.rglob("*.py")):
+        try:
+            src = py.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        try:
+            tokens = list(tokenize.generate_tokens(io.StringIO(src).readline))
+        except (tokenize.TokenError, SyntaxError, IndentationError):
+            continue
+        for tok in tokens:
+            if tok.type != tokenize.COMMENT:
+                continue
+            m = CODE_RE.search(tok.string)
+            if m:
+                ids.add(m.group(1))
+    return ids
+
+
 def resolve_edge(rule_id: str, doc_root: Path, code_root: Path,
                  include: tuple[str, ...] | None = None) -> EdgeResult:
     """Resolve the doc<->code edge for `rule_id`.
@@ -185,6 +225,50 @@ def resolve_edge(rule_id: str, doc_root: Path, code_root: Path,
     else:
         status = "resolved"
     return EdgeResult(rule_id, status, doc_sites, code_sites)
+
+
+def build_edge_index(doc_root: Path, code_root: Path,
+                     include: tuple[str, ...]) -> dict[str, EdgeResult]:
+    """The derived, rebuildable edge index: every rule-ID on EITHER side -> its `EdgeResult`.
+
+    REBUILT from source on every call -- there is no hand-maintained manifest (ADR-88 principle
+    3: the model reads the graph, never holds it; the fit-check's "no central manifest ->
+    nothing to drift"). Reuses `resolve_edge` per ID, so it adds no new scan logic. `include`
+    scopes the DOC side to the declaration registry (same contract as `resolve_edge`); the code
+    side is the full `# rule:` enumeration under `code_root`, so a code-only orphan
+    (code->nonexistent-rule) is present in the index as a `broken_edge` (doc side empty).
+    """
+    ids = iter_doc_rule_ids(doc_root, include) | iter_code_rule_ids(code_root)
+    return {rid: resolve_edge(rid, doc_root, code_root, include) for rid in sorted(ids)}
+
+
+def scan_structural_integrity(doc_root: Path, code_root: Path,
+                              include: tuple[str, ...]) -> list[StructuralFinding]:
+    """L1 structural-integrity scan over the rebuildable index (the #194 "Done when"). DETECT-first.
+
+    One `StructuralFinding` per defect in the declared doc<->code edge:
+      * `dangling_doc`   -- a declared rule-ID with NO `# rule:` code site (declared-unimplemented).
+      * `code_orphan`    -- a `# rule:` annotation whose ID is declared in NO declaration doc
+                            (code->nonexistent-rule) -- the direction `check_doc_code_edge`'s
+                            doc-side resolution structurally cannot see.
+      * `duplicate_doc`  -- the same rule-ID on >1 doc site.
+      * `duplicate_code` -- the same rule-ID on >1 code site.
+    A clean resolved edge (exactly one doc + one code site) yields NO finding. Read-only; never
+    raises, never gates (advisory-first; hard-gate promotion is data-gated, ADR-89 OQ3).
+    """
+    index = build_edge_index(doc_root, code_root, include)
+    findings: list[StructuralFinding] = []
+    for rid in sorted(index):
+        r = index[rid]
+        if r.doc_sites and not r.code_sites:
+            findings.append(StructuralFinding(rid, "dangling_doc", r.doc_sites, r.code_sites))
+        elif r.code_sites and not r.doc_sites:
+            findings.append(StructuralFinding(rid, "code_orphan", r.doc_sites, r.code_sites))
+        if len(r.doc_sites) > 1:
+            findings.append(StructuralFinding(rid, "duplicate_doc", r.doc_sites, r.code_sites))
+        if len(r.code_sites) > 1:
+            findings.append(StructuralFinding(rid, "duplicate_code", r.doc_sites, r.code_sites))
+    return findings
 
 
 def main(argv: list[str] | None = None) -> int:

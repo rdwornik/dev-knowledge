@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-24 — CC: #194 closed — doc→code L1 structural-integrity + rebuildable index (the seal)
+
+**Did:** Closed **#194** (the last build leg of the dependency-legibility organ) on its verbatim *Done when*: "the scheme + structural check flag a fixture's dangling/duplicate rule-IDs, tested." Test-first on `feat/194-structural-integrity`: failing seal-proof (`b9790d5`, RED) — 5 tests + an isolated committed fixture (`tests/fixtures/doc-code-structural/`); **extended** `validate_doc_code_edge.py` (`5c83555`, GREEN) with `build_edge_index` (the derived **rebuildable index** — rebuilt from source each scan, no hand-maintained manifest, ADR-88 P3), `scan_structural_integrity` (L1: dangling / `code_orphan` = code→nonexistent-rule / duplicate) + `iter_code_rule_ids`; then **wired** the L1 scan into the live `check_doc_code_edge` advisory (`9ceaa3b`) so it operates on the real corpus, not just the fixture (operator-required — an unwired scan is theater).
+
+**Result:** Seal holds on an isolated fixture copy — the L1 scan flags dangling (both directions) + duplicate (both sides), silent on a clean edge (negative control); the index rebuilds deterministically AND reflects a source mutation (round-trip). Live wiring is ADDITIVE (doc-side `broken_edge`/`ambiguous` + every existing test unchanged; disjoint `code_orphan` id-set → no double-report), WARN-only — **edge stays advisory; NO gate-promotion** (ADR-89 OQ3 is data-gated, deliberately open). Live hub CLEAN: `check_doc_code_edge` → "5 doc→code edge(s) resolved; none broken/ambiguous/orphaned" (no surprise orphan; grep-confirmed 5 real `# rule:` tokens, all declared). pytest **814 passed/1 skipped** (815 collected), ruff clean, TOC-freshness GREEN, ship-gate **GREEN**.
+
+**Changes:** `scripts/validate_doc_code_edge.py` (+`iter_code_rule_ids`/`build_edge_index`/`scan_structural_integrity`/`StructuralFinding`; docstring), `scripts/audit.py` (`check_doc_code_edge` code_orphan wiring + docstring), `tests/test_doc_code_edge.py` (+6 tests; cp1252 → 6 states), `tests/fixtures/doc-code-structural/` (new), `ARCHITECTURE.md` (doc→code validator bullet + legibility-graph row + pytest-collected 809→815; `last_reviewed` same-day 2026-06-24, no re-stamp), `ecosystem/doc-code-edge.yaml` (header note), `BACKLOG.md` (closed #194, done-items-leave).
+
+**Abandoned:** Nothing in scope. **closes [#194]** on the verified done-when (#201/#202/#203 confirmed as the split-out annotation-rollout tail; cohort-1's 5 rules resolve). Closing #194 completes the **4-edge legibility graph** (spec→dependent / doc→code / undeclared-discovery / code↔code) — the organ's thesis is now fully instrumented — and completes **ADR-89 OQ1's build-proof**. OQ3 stays data-gated; **ADR-89 status untouched (already Accepted)**.
+
+**Next:** Operator — `/ship` (or push + delete branch) when ready. ADR-89 is now ratifiable on OQ1 (a SEPARATE operator action — not edited here). Remaining `code-edge` group: #195 (safe-removal gate) · #201/#202/#203 (annotation-rollout tail).
+
+---
+
 ### 2026-06-24 — CC: enablement — machine-enforce the Ch/§ two-part heading convention
 
 **Did:** Closed the lifecycle of the PLAYBOOK two-part restructure with its **enablement** stage (Council Action Item 5): recorded the heading convention as a single canonical statement and gave it teeth so it can't silently re-drift. Test-first on `feat/heading-convention-enforcement`: wrote the failing detector teeth (`e11a971`, RED), **extended** the existing structural linter with a fifth sub-detector `scan_heading_scheme` (`a21108a`, GREEN), then added the canonical §14 note (`440548d`) + reconciled the pytest-collected count (`6e92adb`).
