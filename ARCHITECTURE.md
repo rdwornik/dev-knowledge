@@ -314,9 +314,13 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   behind the `doc_code_edge` advisory check (**ADR-89 OQ1**). Discovers `<!-- rule: <id> -->` tokens in the
   authoritative declaration docs registered in `ecosystem/doc-code-edge.yaml` (`declaration_docs:`) and
   resolves each to its `# rule: <id>` code annotation under `scripts/` — rule-ID identity + path/AST content
-  resolution, **move-safe** (the e22e883 spike). `broken_edge`/`ambiguous` → **WARN** (advisory-first;
-  **never FAILs** this arc — promotion to a gate is data-gated, OQ3). Hub-only; read-only; live on 5
-  rules per the ADR-89 OQ1 naming convention (#194 Arc-1 cohort-1). Check in `audit.py::check_doc_code_edge`.
+  resolution, **move-safe** (the e22e883 spike). `broken_edge`/`ambiguous`/`code_orphan` → **WARN**
+  (advisory-first; **never FAILs** this arc — promotion to a gate is data-gated, OQ3). The **#194 *Done-when***
+  landed: `build_edge_index` (the derived **rebuildable index** — rebuilt from source each scan, no
+  hand-maintained manifest, ADR-88 P3) + `scan_structural_integrity` (**L1**: dangling / `code_orphan` =
+  code→nonexistent-rule / duplicate), proven on a fixture; the live check now also surfaces `code_orphan`.
+  Hub-only; read-only; live on 5 rules per the ADR-89 OQ1 naming convention (#194 Arc-1 cohort-1). Check in
+  `audit.py::check_doc_code_edge`.
 - `scripts/verify_handoff_probes.py` — handoff-probe teeth: every probe in the latest v5
   `PROBES.md` bundle binds to live state, by STRUCTURAL resolvability (resolve-only — no
   subprocess; Critical Rule #4). Mechanizes the manual v5 probe-gate (HANDOFF_PROCESS §5/§10):
@@ -352,7 +356,7 @@ proven" headline — green never lies. Per-oracle **deep modes** stay in the per
 | Edge-type | In gate? | Registered + operational | Fires on a representative break (integrated entry) | Deep modes (referenced — not owned here) |
 |---|---|---|---|---|
 | spec→dependent (#172) | yes (`ALL_CHECKS`) | PROVEN | PROVEN — stale `reconciled_with` → `check_reconciled_versions` FAIL | `test_coherence_integration.py` + `test_validate_reconciliation.py` |
-| doc→code (#194) | yes (`ALL_CHECKS`, hub-only) | PROVEN | PROVEN — declaration-registry doc + a broken rule-ID → `check_doc_code_edge` WARN (broken_edge) | `test_doc_code_edge.py` (move-safety, dup-guard, coverage gate, registry-scoping guard); coverage tail → #201/#202/#203 |
+| doc→code (#194) | yes (`ALL_CHECKS`, hub-only) | PROVEN | PROVEN — declaration-registry doc + a broken/orphaned rule-ID → `check_doc_code_edge` WARN (broken_edge / code_orphan) | `test_doc_code_edge.py` (move-safety, dup-guard, coverage gate, registry-scoping guard, **L1 structural-integrity + rebuildable-index round-trip**); coverage tail → #201/#202/#203 |
 | undeclared (#179/#199) | no (awareness, exit 0) | PROVEN | PROVEN — prose ref to a registered spec + no edge → candidate surfaced via `scan`/`main` | `test_scan_undeclared_edges.py` (tiers, fenced-exclusion, false-flag precision) |
 | code↔code (#193) | no (query tool; #195) | PROVEN | PROVEN here (vendored Pyright, skipif-guarded) — real reverse-dep query → ≥1 dependent w/ provenance | `test_reverse_dep_oracle.py`; transitive closure → #193/#195 |
 | **graph-integration** | — | **4/4 PROVEN** | **4/4 PROVEN this env** (code↔code skipif-guarded) | referenced above |
@@ -365,7 +369,7 @@ cell is skipped or gapped. **Skip/gap tracking:** code↔code fires → skip-gua
 portability via **#195** (integrated enforcement) + **#193**; doc→code coverage tail →
 **#201/#202/#203**.
 
-- `tests/` — pytest unit tests for the validators (**809 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**815 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`

@@ -3,8 +3,10 @@
 # The `doc_code_edge` advisory check (audit.py::check_doc_code_edge) discovers every
 # `<!-- rule: ID -->` annotation in the DECLARATION DOCS listed here and resolves each to its
 # `# rule: ID` code annotation under scripts/ (rule-ID identity, path+AST resolution -- move-safe
-# per the e22e883 spike). This file is the doc-side scan scope: an include-list, NOT an
-# exclude-list. The scan reads ONLY these files, so illustrative `<!-- rule: <domain>-<slug> -->`
+# per the e22e883 spike). It is likewise the doc-side scope for the #194 L1 structural-integrity
+# scan + rebuildable index (validate_doc_code_edge.scan_structural_integrity / build_edge_index,
+# which also flags a code_orphan = a `# rule:` declared in no doc). This file is the doc-side scan
+# scope: an include-list, NOT an exclude-list. The scan reads ONLY these files, so illustrative `<!-- rule: <domain>-<slug> -->`
 # tokens anywhere else (immutable design records, teaching sections, the test fixtures) are never
 # live edges. (Belt-and-braces: teaching tokens also use the angle-bracket placeholder form, whose
 # `<`/`>` fall outside the rule-ID charset and never match.)
