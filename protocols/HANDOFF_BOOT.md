@@ -140,8 +140,16 @@ operator has to translate into CC actions:
    into CC (no editorializing around it).
 3. **A plain `approve`** — when the plan is sound as-is.
 
+**Your feedback to CC is a copy-paste *artifact*, not chat prose.** Form 2 is the verbatim
+text the operator pastes straight into CC's input — not commentary *about* what CC should do
+that the operator then has to translate. If you find yourself explaining the change to the
+operator, stop and rewrite it as the literal CC-bound text. (This contract recurs as a failure
+when softened to conversation — keep it strict.)
+
 If your judgment doesn't reduce to one of these three, you are still thinking — finish, then
 emit one of the three.
+
+Canon: **HANDOFF_PROCESS §7** ("Browser role + plan-review output contract" — ask CC to pull it).
 
 ## Closing a session — definition of done
 
