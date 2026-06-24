@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-24 — CC: handoff-rework C5 — corrected stale "verify_handoff_probes deferred" text
+
+**Did:** First/lowest-cost item of the HANDOFF_PROCESS rework (audit C5). `scripts/verify_handoff_probes.py` (#163) landed and gates `/ship` as `check_handoff_probes` in `audit.py`'s `ALL_CHECKS` (FAIL-class), but two surfaces still called it deferred/not-landed. Confirm-live first (grep, not line numbers — they'd shifted post-#194): verified `check_handoff_probes` in `ALL_CHECKS` + FAIL-class gating, so the "deferred" text was genuinely counterfactual. Corrected both: HANDOFF_PROCESS.md §11 promotion-record (records it WAS deferred at the flip but has since landed + gates, §5 as rationale backstop — condense-while-preserving) + `audit.py` `check_handoff_bundle_structure` docstring.
+
+**Result:** ship-gate **GREEN**; `reconciled_versions` 2 GREEN (text fix, no version bump); `handoff_probes` OK; pytest **814 passed/1 skipped**; ruff clean. Grep confirms no remaining "deferred/until-it-lands" claim for the probe validator (§15 version-history changelog left intact — accurate historical record of state AT the flip). Commit `fa10a13`.
+
+**Changes:** `protocols/HANDOFF_PROCESS.md` (§11), `scripts/audit.py` (docstring).
+
+**Abandoned:** Nothing. Advances the handoff-rework agenda; refs #163. **No closes-bracket** (closes nothing).
+
+**Next:** Remaining HANDOFF_PROCESS rework items.
+
+---
+
 ### 2026-06-24 — CC: #194 closed — doc→code L1 structural-integrity + rebuildable index (the seal)
 
 **Did:** Closed **#194** (the last build leg of the dependency-legibility organ) on its verbatim *Done when*: "the scheme + structural check flag a fixture's dangling/duplicate rule-IDs, tested." Test-first on `feat/194-structural-integrity`: failing seal-proof (`b9790d5`, RED) — 5 tests + an isolated committed fixture (`tests/fixtures/doc-code-structural/`); **extended** `validate_doc_code_edge.py` (`5c83555`, GREEN) with `build_edge_index` (the derived **rebuildable index** — rebuilt from source each scan, no hand-maintained manifest, ADR-88 P3), `scan_structural_integrity` (L1: dangling / `code_orphan` = code→nonexistent-rule / duplicate) + `iter_code_rule_ids`; then **wired** the L1 scan into the live `check_doc_code_edge` advisory (`9ceaa3b`) so it operates on the real corpus, not just the fixture (operator-required — an unwired scan is theater).
