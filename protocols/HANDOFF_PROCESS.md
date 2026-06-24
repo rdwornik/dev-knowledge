@@ -227,8 +227,10 @@ to be **atomic**. The flip: renamed this file to `protocols/HANDOFF_PROCESS.md`
 (`Version: 5.0`, `Status: stable`); archived v4.4 to `protocols/archive/HANDOFF_PROCESS_v4.4.md`;
 archived `templates/handoff/*` to `templates/archive/handoff-v4/`; scoped audit checks
 #8/#9 to historical v4 bundles; closed #148 / #124 / #25. The bespoke read-only teeth
-validator (`scripts/verify_handoff_probes.py`) was deferred to a post-flip ticket; until it
-lands, the manual probe-gate (§5) covers v5-bundle validation.
+validator (`scripts/verify_handoff_probes.py`) was deferred to a post-flip ticket; it has
+since **landed (#163)** and gates `/ship` — registered in `audit.py`'s `ALL_CHECKS` as
+`check_handoff_probes` (FAIL-class, so a toothless probe blocks the ship-gate). It mechanizes
+the manual probe-gate (§5), which remains the rationale-quality backstop.
 
 ---
 
