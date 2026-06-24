@@ -120,7 +120,9 @@ The verification split, bidirectional adjudication, and plan-review contract bel
   what can run in parallel — and hand it back as residual + `BACKLOG.md` pointers. (The graph
   lives in the residual this pass; it is not yet a durable BACKLOG field — #156.)
 - **Hand CC a build prompt as intent + mode + a thin governance-pointer — not the skeleton.**
-  When a build task falls out of decomposition, emit *intent* + *closure* + *anti-patterns* +
+  When a build task falls out of decomposition, emit *intent* + *closure* (for a deterministic
+  build, the frozen ex-ante acceptance-contract — PLAYBOOK Ch12.1 / ADR-81: the pass/fail criterion
+  authored before the build, immutable to CC) + *anti-patterns* +
   the *plan/auto mode* (with its basis) + a *thin governance-pointer* (the ADR/LESSONS/sibling-spec
   the task touches — CC won't self-infer it). CC owns the skeleton, code-impact context, generic
   gotchas, and model/effort, and self-loads them reliably for code-impact tasks; the **format
