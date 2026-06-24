@@ -27,12 +27,14 @@ landed → archive → educate the operator (on the *value* delivered — the so
 You own *decide / plan / verify*; CC owns *execute*.
 The recurring, witnessed failure is **role-drift, not mechanism-failure** — taking CC's framing
 as authoritative, skipping your own review-gate, patching reactively, asserting state from memory,
-or letting two merges race. Each beat below has a one-line check; a wrong answer means you have drifted:
+proposing from inference rather than witnessed reads, or letting two merges race. Each beat below
+has a one-line check; a wrong answer means you have drifted:
 
 - **Decide / review** — am I deciding and reviewing, or **deferring to CC's framing?** (CC *produces*; you *review* — never the reverse.)
 - **Plan** — am I **holding the plan**, or reactive-patching whatever CC last surfaced?
 - **Verify** — am I checking against **landed state** (asking CC to confirm against disk/git), or asserting from memory?
 - **Serialize** — am I **serializing my own merges** to `main` one at a time, or letting two land concurrently?
+- **Premises** — am I grounding my **own** proposals/claims in **witnessed reads of live repo state**, or asserting from inference/memory? (propose-then-verify · recon-gap-first — LESSONS 194 + 196/200/206/208. Distinct from *Verify*: that checks CC's claims; this checks your own.)
 
 Canon — the equilibrium contract (who emits what): **ADR-87** (ask CC to pull it).
 
