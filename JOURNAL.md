@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-24 — CC: handoff-rework A3/C3 — architect opening reordered to role → vision → backlog-navigates
+
+**Did:** A3/C3 of the handoff-rework agenda (inherited kickoff §2 orientation decision). Reordered the architect-mode opening sequence to **establish-you're-the-architect → understand-the-vision → the-backlog-navigates**, and **demoted the orientation-grep's navigation-PRIMACY to a tool**. Confirm-live first: the primacy framing lived in **both** `HANDOFF_BOOT.md` (the "Orient first — before any mechanism … Do nothing else until you hold those two orienting lines" bullet) and `HANDOFF_PROCESS.md` §13(c) ("Orientation — the architect's first move, before any mechanism"). BOOT bullet → "**Understand the vision — then the backlog navigates**": the grep is a **tool** that confirms the frame, **not** the navigation gate; once role+vision are in hand the architect starts from `BACKLOG.md` (the task-graph). PROCESS §13(c) header → "Orientation (the vision frame) — a forced-read **tool**, not the navigation gate"; the backlog (b) is what navigates. **Condense-while-preserving** — the vision-frame (exact-line VISION + ARCHITECTURE Ch1 quote) and the anti-bluff read ("cannot be bluffed from a summary, that's the point") KEPT; the grep demoted, not deleted. The `docs/handoffs/README.md` P1 mechanical paste-order left untouched (a different axis, not the conceptual gate).
+
+**Result:** ship-gate **GREEN** (git-bash; 6 WARN dispositioned — PowerShell false-RED on `handoff_probes` avoided), `reconciled_versions` **2 GREEN**, pytest **817 passed / 1 skipped**, ruff clean. `test_handoff_modes.py`'s "orient first / first move" assertion encoded the demoted primacy — updated to assert the new contract (vision frame + grep-not-the-navigation-gate); orientation-probe + substring-check assertions kept. Neither BOOT nor PROCESS carries a `last_reviewed` stamp → no freshness leg. Advances the handoff-rework agenda (A3/C3).
+
+**Changes:** `protocols/HANDOFF_BOOT.md`, `protocols/HANDOFF_PROCESS.md`, `tests/test_handoff_modes.py` (leaf `de06d64`) + this JOURNAL wrap. Branch `fix/handoff-a3c3-opening-reorder`. **Not pushed** (awaiting operator).
+
+**Abandoned:** Nothing. README mechanical paste-order out of scope (not the navigation-primacy). No machinery built.
+
+**Next:** Remaining handoff-rework agenda items. **No closes-bracket** — no BACKLOG item carries a verbatim done-when for the A3/C3 opening-reorder.
+
+---
+
 ### 2026-06-24 — CC: handoff-rework A1-prose — Architect Operating Contract made resident in HANDOFF_BOOT
 
 **Did:** The A1-**prose** half of the Architect Operating Contract residence (the A1-teeth/#200 half closed prose-only last entry — settled, not revisited). Relocated the role-behavior the **file-less browser-architect** must act on INTO `protocols/HANDOFF_BOOT.md` (the only artifact the browser reads at boot) — **essence + pointer to canon**, never hand-copy (drift). Four independently-mergeable steps, serial + solo, each its own commit + `--no-ff` merge from the primary; confirm-live the canonical source before each relocation. **(1)** Operating loop (decide → plan → delegate-with-declared-mode → verify-landed → archive → educate) + role-stability self-check (deciding-or-deferring / plan-held-or-patching / verifying-or-asserting / serializing-my-merges); pointer → ADR-87. **(2)** Worktree-orchestration essentials — decision-rule, native `claude --worktree` / `EnterWorktree` (never raw sibling add), provision→integrate→teardown, integrate-serially-from-primary + commit-and-STOP + the #200 git-structural prevention; pointer → PLAYBOOK §8. **(3)** Plan-review grammar **strengthened** (K7): feedback to CC is a copy-paste **artifact**, not chat prose; pointer → HANDOFF_PROCESS §7. **(4)** Thin mechanism pointers — prompt skeleton (PLAYBOOK §2 + `templates/prompt-template.md`, CC's consumption-spec; honestly notes **no `cc-prompt` skill exists**), session-end gates, ARCHITECTURE Ch2/Ch3 automation map.

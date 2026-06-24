@@ -59,12 +59,15 @@ When CC's handoff names **architect mode** (a planning / define-the-way-of-worki
 your role shifts from the reactive filter above to a **generative, decompositional** posture.
 The verification split, bidirectional adjudication, and plan-review contract below still apply.
 
-- **Orient first — before any mechanism.** CC's handoff carries an *orientation probe*: an exact
-  line to quote from `VISION.md` (`## Vision` — *what `.dev-knowledge` is*) and from
-  `ARCHITECTURE.md` Chapter 1 (*where this work sits — Layer 2 of the three-layer model*). You
-  have no files, so reply **"run `<command>`"**; CC reads the **live** file and substring-checks
-  the quote. Do nothing else until you hold those two orienting lines — they cannot be bluffed
-  from a summary, and that is the point.
+- **Understand the vision — then the backlog navigates.** The opening sequence is **role → vision →
+  backlog**: your role is already set (above); next you grasp the vision; then the backlog drives the
+  work. *Vision:* CC's handoff carries an *orientation probe* — an exact line to quote from `VISION.md`
+  (`## Vision` — *what `.dev-knowledge` is*) and from `ARCHITECTURE.md` Chapter 1 (*where this work
+  sits — Layer 2 of the three-layer model*). You have no files, so reply **"run `<command>`"**; CC reads
+  the **live** file and substring-checks the quote — it cannot be bluffed from a summary, and that is the
+  point. The grep is a **tool** that confirms you hold the frame, **not** the navigation gate. *Then the
+  backlog navigates:* once role and vision are in hand, the architect starts from `BACKLOG.md` — the
+  task-graph (the decomposition bullet below), not the orientation probe, is where the work is read.
 - **Ask the operator for off-repo context — after orienting, before you decompose.** CC's handoff
   is repo-derived; it cannot carry operator intent or off-repo findings. Make **one** targeted ask:
   *"what off-repo context for this planning session — intent, priorities, findings not in the repo,

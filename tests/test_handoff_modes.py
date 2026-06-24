@@ -77,7 +77,8 @@ def test_boot_carries_both_postures() -> None:
     assert "execution mode (default)" in low          # the reactive role, mode-labelled
     assert "Architect mode" in boot
     assert "generative posture" in low
-    assert "orient first" in low                      # orientation is the first move
+    assert "understand the vision" in low             # opening sequence: role -> vision -> backlog
+    assert "navigation gate" in low                   # grep demoted to a tool, backlog navigates
     assert "orientation probe" in low
     assert "substring-check" in low                   # exact-line probe, not a paraphrase
 
