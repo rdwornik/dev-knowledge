@@ -9,6 +9,21 @@ reference sites; your job is to **verdict each one**. You cannot omit a site tha
 exists — that is the whole point: a missed walkthrough step or an un-updated
 diagram must not pass silently.
 
+## Trigger (#205)
+
+Invoked from the **reconciled_with re-stamp flow**, not on a schedule and not from the
+ship-gate. When a spec version bumps, `audit.py reconciled_versions` reports a **mismatch**
+and `scripts/validate_reconciliation.py` (CLI + `restamp_invocations(repo_root)`) **emits
+the exact invocation** for this skill — the `{dependent_path, spec_path, old_version,
+new_version}` flag plus the `coherence_enumerator.py` command. Run that, then do the verdict
+work below, and land the filled checklist in the **re-stamp commit message** (the commit that
+bumps the dependent's `reconciled_with` to the new version). Full procedure: PLAYBOOK
+§"Declared-edge reconciliation" → "Re-stamp flow — the semantic half".
+
+**The ship-gate is deliberately NOT the trigger** (recorded note). Gating every reconciliation
+on an LLM verdict is a false-positive death-spiral; the gate gates the *version mismatch* only,
+and this skill is triggered by the re-stamp flow. See §Scope (v1) — "do not wire the ship-gate".
+
 **Input — the flag** (Prompt A's checker produces it): `{dependent_path, spec_path,
 old_version, new_version}`. The checker's `validate_reconciliation.enumerate_edges(repo_root)`
 yields one real `Edge` per declared reconciliation edge; the enumerator consumes it directly

@@ -24,6 +24,14 @@ Prompt-B contract (the reconciliation enumerator consumes this): `enumerate_edge
 returns one `Edge(dependent_path, spec_path, old_version, new_version)` per well-formed,
 known-spec edge — old = declared in the dependent, new = the spec's current version.
 
+Re-stamp trigger (the SEMANTIC half, #205): `restamp_invocations(root)` emits one
+`check-against-spec` invocation per MISMATCH (a version bump that needs reconciling), and
+the CLI prints it. This is what wires the built-but-uninvoked `check-against-spec` skill
+into the reconciled_with re-stamp flow: a mismatch tells you to reconcile, this tells you
+HOW (enumerate + verdict each site into the re-stamp commit). The ship-gate is DELIBERATELY
+NOT the trigger — it gates the version mismatch only; running/passing check-against-spec is
+never a gate condition (check-against-spec v1 scope forbids gating the semantic skill).
+
 Read-only (Layer-2, ADR-28/36): reads docs + the spec file; writes NOTHING; never gates by
 exit code (the audit adapter owns the Finding; this module's CLI exits 0 always).
 """
@@ -241,6 +249,51 @@ def enumerate_edges(repo_root: Path) -> list[Edge]:
     return edges
 
 
+def restamp_invocation(edge: Edge) -> str:
+    """The `check-against-spec` invocation a reconciled_with version bump TRIGGERS.
+
+    The SEMANTIC half of the re-stamp flow. When a spec advances past a dependent's
+    declared version (a `reconciled_versions` mismatch), the fix is NOT a blind version
+    re-stamp — it is to run the `check-against-spec` skill, which enumerates every
+    candidate reference site in the dependent (`coherence_enumerator.py`) and verdicts
+    each (stale | fine | not-relevant) into the re-stamp COMMIT MESSAGE. This returns the
+    exact, copy-pasteable invocation for one edge: the flag the skill consumes plus the
+    enumerator command.
+
+    Read-only string assembly, ASCII-only (cp1252-safe console output). The ship-gate is
+    DELIBERATELY NOT the trigger: the gate gates the version mismatch; verdicting sites is
+    a re-stamp-time skill, never a gate condition (check-against-spec v1 scope)."""
+    return (
+        f"check-against-spec TRIGGER (reconciled_with re-stamp): {edge.dependent_path} "
+        f"spec advanced {edge.old_version} -> {edge.new_version}; verdict each site before re-stamping.\n"
+        f'  flag: {{"dependent_path": "{edge.dependent_path}", "spec_path": "{edge.spec_path}", '
+        f'"old_version": "{edge.old_version}", "new_version": "{edge.new_version}"}}\n'
+        f"  1. py scripts/coherence_enumerator.py --dependent {edge.dependent_path} "
+        f"--spec {edge.spec_path} --old-version {edge.old_version} --new-version {edge.new_version}\n"
+        f"  2. invoke the check-against-spec skill: verdict EACH enumerated site "
+        f"(stale | fine | not-relevant); put the filled checklist in the re-stamp commit message."
+    )
+
+
+def _restamp_from_results(results: list[ReconResult]) -> list[str]:
+    """One re-stamp invocation per MISMATCH (the version-bump signal). Pure."""
+    out: list[str] = []
+    for r in results:
+        if r.status == "mismatch":
+            spec = _SPEC_REGISTRY[r.spec_id]
+            out.append(restamp_invocation(
+                Edge(r.dependent_path, spec.path, r.declared, r.current)))
+    return out
+
+
+def restamp_invocations(repo_root: Path) -> list[str]:
+    """The re-stamp trigger: one `check-against-spec` invocation per edge needing a
+    re-stamp (a MISMATCH = the spec moved past what the dependent declares). Match edges
+    (already reconciled) emit nothing. Read-only — this is the reconciled_with discipline's
+    own emitter, NOT the ship-gate (which is deliberately not the trigger)."""
+    return _restamp_from_results(reconcile(repo_root))
+
+
 def format_findings(results: list[ReconResult]) -> str:
     """One flat line per MISMATCHED edge (markdown-table-safe — no `|`)."""
     parts = [f"{r.dependent_path} declares {r.spec_id}@{r.declared} but spec is {r.current}"
@@ -259,6 +312,12 @@ def main() -> int:
         print(f"  {r.status:>12}  {r.dependent_path} -> {r.spec_id} "
               f"(declared {r.declared or '-'} / current {r.current or '-'})")
     print(f"validate_reconciliation: {len(results)} edge(s), {len(mismatches)} mismatch(es)")
+    # Re-stamp trigger: each mismatch is a version bump that should drive a
+    # check-against-spec reconciliation (NOT a blind version re-stamp). Emit the
+    # skill invocation so the re-stamp flow always reaches the semantic half.
+    for inv in _restamp_from_results(results):
+        print()
+        print(inv)
     return 0
 
 
