@@ -44,35 +44,9 @@ dispositions:
   # legacy on-main digest, so this WARN no longer surfaces. Removed to avoid a
   # stale-disposition decoration (ADR-75).
 
-  # ---- #140 doc-rot grandfather-baseline (filed with the detector arc, refs #140) ----
-  # The new `doc_rot` checker (ADR-88 FC4 enforcement) surfaces PRE-EXISTING history-accretion
-  # debt on its first run. This arc introduces the DETECTOR, not the debt — so the existing
-  # loci are grandfathered here (standard linter-onboarding baseline) while NEW accretion
-  # blocks going forward (an unmatched locus = RED). Concern unit = the LOCUS (a worse count
-  # later is the same "known debt" concern, not new drift), so each match keys on the locus
-  # token + " (". Each auto-clears (-> [stale], ADR-75) when the locus is condensed below
-  # threshold — condense-preserving grooming (ADR-65/49), done by a human, never the detector.
-  - id: warn-doc-rot-backlog-164
-    organ: doc_rot
-    match: "BACKLOG#164 ("
-    ref: "#140"
-    reason: >-
-      Pre-existing inline bloat on the #164 task line (gross length). Surfaced, not introduced,
-      by the detector; tracked for condensation under #134 (backlog grooming review).
-  - id: warn-doc-rot-backlog-134
-    organ: doc_rot
-    match: "BACKLOG#134 ("
-    ref: "#140"
-    reason: >-
-      Pre-existing inline-history accretion on the #134 task line. Surfaced, not introduced;
-      tracked for condensation under #134 (backlog grooming review) per ADR-65.
-  - id: warn-doc-rot-backlog-77
-    organ: doc_rot
-    match: "BACKLOG#77 ("
-    ref: "#140"
-    reason: >-
-      Pre-existing inline-history accretion on the #77 task line. Surfaced, not introduced;
-      tracked for condensation under #134 (backlog grooming review) per ADR-65.
+  # (cleared 2026-06-25, #134 n=2 groom) warn-doc-rot-backlog-{164,134,77} — the 3 #140
+  # grandfather loci were condensed below threshold (ADR-65/49 condense-preserving), so the
+  # dispositions matched no live WARN and were removed to avoid stale-disposition decoration (ADR-75).
 
   # ---- pre-existing 2026-06-19 direct-to-main commits (operator-ratified 2026-06-20) ----
   # Two non-merge commits landed directly on main 2026-06-19 — after BASELINE_DATE (2026-06-15)
