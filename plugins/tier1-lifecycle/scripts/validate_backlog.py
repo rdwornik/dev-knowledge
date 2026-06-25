@@ -58,8 +58,9 @@ _INPLACE_RESOLVED_RE = re.compile(r"~~.+?~~|\*\*\s*(?:RESOLVED|DONE)\b")
 # The regexes + _parse_deps + _check_dep_references + _check_dep_cycles below are a deliberate
 # VERBATIM twin of the hub's scripts/validate_backlog.py. The floor is operator-generated /
 # child-committed (ADR-78), not a shared module/symlink — so the two copies MUST be kept in
-# sync BY HAND. Tracked _DEPENDS_CLAUSE_RE twin-drift edge; a mechanical hub<->floor parity
-# check (ADR-88) is a queued follow-on — do NOT build it here.
+# sync BY HAND. The twin-drift edge is now PINNED by tests/test_validate_backlog_twin_parity.py
+# (#206, GAP-2); de-dup into a single shared module remains the real fix. Do NOT add the parity
+# check INSIDE this validator (Layer-2: validators stay logic-only) — it lives in tests/.
 _DEPENDS_CLAUSE_RE = re.compile(r"·\s*depends-on\s*:\s*([^·]*)")
 _DEPID_RE = re.compile(r"#(\d+)")
 

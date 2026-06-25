@@ -9,19 +9,29 @@ the command" as STRUCTURAL RESOLVABILITY of the command's targets.
 
 The §10 ladder it mechanizes (HANDOFF_PROCESS.md §10 — degrade loudly), per probe:
   - any load-bearing cell empty (question / source / why / command)   -> FAIL (malformed)
-  - a named source/command-target file does not exist                 -> FAIL (missing source)
+  - NO file/anchor token AND a trivial (value-less) command           -> FAIL (toothless)
+  - a named source/command-target file does not exist (ANY span)      -> FAIL (missing source)
   - a named source file exists but its `#`-anchor is reworded/moved   -> WARN anchor-missing
   - the command's lead executable is absent from PATH                 -> skipped (degraded)
-  - well-formed, every named file + anchor resolves, exe present      -> PASS
-A FAIL is always STRUCTURAL (missing file / errored target / malformed row), never a
-judgment of the probe's rationale — the "Why" column is checked for PRESENCE ONLY, its
-content is never inspected (that stays the manual gate, HANDOFF_PROCESS §5).
+  - well-formed, a binding token resolves (or value-bearing cmd), exe -> PASS
+A FAIL is always STRUCTURAL (missing file / errored target / malformed / toothless row),
+never a judgment of the probe's rationale — the "Why" column is checked for PRESENCE ONLY,
+its content is never inspected (that stays the manual gate, HANDOFF_PROCESS §5).
+
+Toothless rung (#207 / GAP-4): a resolve-only validator cannot give a probe teeth that
+binds to NO resolvable target — a row with no file token (source OR any command span), no
+source `#`-anchor, AND a trivial command (a bare exe / `exe subcommand` that asserts no
+specific live value, e.g. `git rev-parse`) -> FAIL, never a silent PASS on "the tool is on
+PATH". A no-token probe whose command IS value-bearing (`git rev-parse --short HEAD`,
+`git status -sb`) keeps its teeth via the surfaced live value and is NOT failed here.
 
 Parser notes: `split_row` treats `|` inside a backtick span as literal (the named
 failure mode); columns are mapped by HEADER NAME (live tables carry a leading `#` id
-column §5's 4-col example omits); command targets come from the FIRST backtick span
-only (a secondary span may hold a non-path shorthand that would false-FAIL), while
-source-locator targets use ALL spans (the file often sits in the 2nd span).
+column §5's 4-col example omits); command FILE-targets are resolved from ALL backtick
+spans (so a broken path in a SECONDARY span is caught, not silent-passed — #207/GAP-4;
+a non-path shorthand in a later span is harmless: `file_tokens` is precision-over-recall
+and a real path resolves directly or via the unique-basename fallback), while the lead
+executable + the triviality test read the FIRST span only.
 
 Read-only (Layer-2, ADR-28/36): reads PROBES.md + resolves repo paths; writes nothing;
 never orchestrates. The audit adapter (scripts/audit.py check_handoff_probes) maps a
@@ -97,11 +107,9 @@ def backtick_spans(text: str) -> list[str]:
 def first_span(text: str) -> str:
     """Contents of the FIRST backtick span (the canonical command), or "" if none.
 
-    Command targets come from this span ALONE: a probe's verification cell may carry a
-    secondary span (e.g. `audit.py health`, a root-relative shorthand that does not
-    exist as a path) — resolving those would false-FAIL. Source-locators, by contrast,
-    use ALL spans (the file often sits in the 2nd span: `ALL_CHECKS` in `scripts/audit.py`).
-    """
+    The lead executable and the triviality test (`_is_trivial_command`) read this span
+    ALONE. Command FILE-target resolution, by contrast, scans ALL spans (see
+    `_command_file_tokens`) so a broken path in a secondary span is caught (#207/GAP-4)."""
     m = re.search(r"`([^`]+)`", text)
     return m.group(1).strip() if m else ""
 
@@ -253,32 +261,69 @@ def _header_present(header: str, src_files: list[str], repo_root: Path) -> bool:
     return False
 
 
+def _command_file_tokens(command_cell: str) -> list[str]:
+    """File-path tokens from EVERY backtick span of a command cell (not just the first).
+
+    Command-target resolution scans ALL spans so a broken path in a SECONDARY span is
+    caught, not silent-passed (#207 / GAP-4): a probe like `cat X.md` … `ghost/Y.md` must
+    FAIL on the dangling `ghost/Y.md`. A non-path shorthand in a later span (e.g.
+    `audit.py health`) is harmless — `file_tokens` is precision-over-recall (real-extension
+    paths only), so a real path either resolves (directly or via the unique-basename
+    fallback) or is a genuine miss. The lead exe + triviality still read the FIRST span."""
+    return [tok for span in backtick_spans(command_cell) for tok in file_tokens(span)]
+
+
+def _is_trivial_command(cmd: str) -> bool:
+    """True if `cmd` (the first span) is 'trivial' — it surfaces NO specific live value,
+    only that the tool/repo exists: a bare executable or `exe subcommand` with no further
+    operand (`git rev-parse`, `pytest`). A command carrying any additional token surfaces a
+    specific live value (`git rev-parse --short HEAD`, `git status -sb`, `git log | grep x`)
+    and is NOT trivial. Used ONLY together with 'no binding token' to classify a toothless
+    probe (#207/GAP-4): a resolve-only validator cannot give such a probe teeth, so it must
+    not silent-PASS on 'the tool is on PATH' alone."""
+    return len(cmd.split()) <= 2
+
+
 def _classify(probe: dict, repo_root: Path, bundle: str) -> ProbeResult:
     pid = probe["id"]
     # 1. malformed — any load-bearing cell empty (Why: presence only, never content).
     for col in _LOAD_BEARING:
         if not probe[col].strip():
             return ProbeResult(pid, "fail", f"malformed: empty {col} cell", bundle)
-    # 2. missing source/target — source uses ALL spans; command the FIRST span only.
+    # 2. command must ship a runnable `backtick`-delimited command (else nothing binds).
     cmd = first_span(probe["command"])
     if not cmd:
         # a non-empty command cell with no `backtick` span ships no runnable command —
         # nothing binds to live state -> malformed (never falls through to a silent PASS).
         return ProbeResult(pid, "fail",
                            "malformed: command cell has no `backtick`-delimited command", bundle)
-    for rel in file_tokens(probe["source"]) + file_tokens(cmd):
+    # Binding tokens: a file token (source OR any command span) or a source `#`-anchor.
+    src_files = file_tokens(probe["source"])
+    cmd_files = _command_file_tokens(probe["command"])
+    src_anchors = header_tokens(probe["source"])
+    # 3. toothless (#207/GAP-4) — NO binding token AND a trivial command resolves nothing in
+    #    live state; a resolve-only validator can't give it teeth -> FAIL, never a silent
+    #    PASS on 'git is on PATH'. The AND of both conditions (frozen contract): a no-token
+    #    probe with a value-bearing command (`live git` + `git rev-parse --short HEAD`) keeps
+    #    its teeth via the surfaced live value and is NOT failed here.
+    if not (src_files or cmd_files or src_anchors) and _is_trivial_command(cmd):
+        return ProbeResult(pid, "fail",
+                           "toothless: no file/anchor token + trivial command "
+                           "(binds to no resolvable live state)", bundle)
+    # 4. missing source/target — source uses ALL spans; command now uses ALL spans too, so a
+    #    broken path in a SECONDARY command span is caught (#207/GAP-4), not silent-passed.
+    for rel in src_files + cmd_files:
         if _resolve_path(repo_root, rel) is None:
             return ProbeResult(pid, "fail", f"missing source/target: {rel}", bundle)
-    # 3. anchor — a named `#`-header must resolve in a bound (existing) source file.
-    src_files = file_tokens(probe["source"])
-    for hdr in header_tokens(probe["source"]):
+    # 5. anchor — a named `#`-header must resolve in a bound (existing) source file.
+    for hdr in src_anchors:
         if not _header_present(hdr, src_files, repo_root):
             return ProbeResult(pid, "anchor-missing", f"anchor not found: {hdr}", bundle)
-    # 4. tool absent -> skipped (degraded coverage visible, never a synthesized pass).
+    # 6. tool absent -> skipped (degraded coverage visible, never a synthesized pass).
     exe = lead_exe(cmd)
     if exe and not _exe_available(exe):
         return ProbeResult(pid, "skipped", f"tool absent: {exe}", bundle)
-    # 5. well-formed; every named file + anchor resolves; exe present.
+    # 7. well-formed; a binding token resolves (or a value-bearing command); exe present.
     return ProbeResult(pid, "pass", "binds to live state", bundle)
 
 

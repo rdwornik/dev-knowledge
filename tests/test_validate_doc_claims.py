@@ -12,9 +12,12 @@ owns HANDOFF version stamps; #140 owns cross-file fidelity / duplication / bloat
 from __future__ import annotations
 
 import os
+import re
 import sys
 import types
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
@@ -280,6 +283,71 @@ def test_check_failsoft_on_error(monkeypatch):
     findings = aud.check_doc_claims(hub)
     assert findings[0].status == "warn"
     assert "yaml exploded" in findings[0].evidence or "degraded" in findings[0].evidence
+
+
+# --- #208 / GAP-6: the claim REGISTRY is data-driven (every row guarded; new rows auto-tested) ---
+# These three guards iterate vdc._CLAIMS, so a NEWLY-APPENDED claim row is automatically
+# exercised — the GAP-6 "registry extension is auto-tested" contract — with no per-claim test.
+
+
+@pytest.mark.parametrize("claim", vdc._CLAIMS, ids=lambda c: c.name)
+def test_every_claim_row_is_structurally_valid(claim):
+    # Each registry row must carry a callable deriver and a kind-appropriate anchor.
+    assert callable(claim.deriver)
+    assert claim.kind in {"count", "set"}
+    if claim.kind == "count":
+        assert claim.anchor is not None        # count claims resolve a numeric anchor
+    else:
+        assert claim.anchor is None            # the set claim uses extract_claimed_hooks instead
+
+
+@pytest.mark.parametrize("claim", vdc._CLAIMS, ids=lambda c: c.name)
+def test_every_claim_anchor_still_resolves_in_live_doc(claim):
+    # "anchor still present" guard: if a living doc is reworded so a claim's anchor no longer
+    # matches, the claim silently degrades to anchor-missing (un-checkable). Assert every
+    # registered anchor currently resolves in its LIVE doc, so such a reword fails loudly here.
+    text = (Path(vdc._REPO_ROOT) / claim.doc).read_text(encoding="utf-8")
+    if claim.kind == "count":
+        assert claim.anchor.search(text) is not None, \
+            f"{claim.name}: anchor no longer resolves in live {claim.doc} (reworded?)"
+    else:
+        assert vdc.extract_claimed_hooks(text) is not None, \
+            f"{claim.name}: §9 roster anchor no longer resolves in live {claim.doc}"
+
+
+@pytest.mark.parametrize("claim", [c for c in vdc._CLAIMS if not c.expensive], ids=lambda c: c.name)
+def test_every_nonexpensive_deriver_returns_value_on_live_repo(claim):
+    # "working deriver": each cheap deriver must return a non-None ground truth against the
+    # live repo (the expensive pytest deriver is exercised separately, to keep this fast).
+    assert claim.deriver(Path(vdc._REPO_ROOT), 0) is not None
+
+
+def test_registry_extension_is_auto_evaluated_and_mismatch_flagged(tmp_path):
+    # NEGATIVE CONTROL (GAP-6 (2)): extend the registry data-drivenly with a NEW claim row
+    # whose deriver returns a known value (5), pointed at a tmp doc that claims the WRONG
+    # number (99). reconcile must auto-evaluate the appended row and FLAG the mismatch ->
+    # proves the registry is extensible AND a wrong doc number is caught.
+    (tmp_path / "EXTRA.md").write_text(
+        "# extra\n\nThis subsystem declares 99 widgets.\n", encoding="utf-8")
+    extra = vdc.Claim("extra_demo", "EXTRA.md",
+                      re.compile(r"declares (\d+) widgets"), "count",
+                      lambda root, n: 5)
+    by = _by_name(vdc.reconcile(tmp_path, audit_check_count=None, claims=[extra]))
+    assert by["extra_demo"].status == "mismatch"
+    assert by["extra_demo"].claimed == "99"
+    assert by["extra_demo"].actual == "5"
+
+
+def test_registry_extension_matches_when_doc_number_correct(tmp_path):
+    # Positive companion: the SAME extended row matches when the doc states the right number,
+    # so the negative control above is genuinely discriminating, not constant-fail.
+    (tmp_path / "EXTRA.md").write_text(
+        "# extra\n\nThis subsystem declares 5 widgets.\n", encoding="utf-8")
+    extra = vdc.Claim("extra_demo", "EXTRA.md",
+                      re.compile(r"declares (\d+) widgets"), "count",
+                      lambda root, n: 5)
+    by = _by_name(vdc.reconcile(tmp_path, audit_check_count=None, claims=[extra]))
+    assert by["extra_demo"].status == "match"
 
 
 def test_check_passes_run_expensive_false_in_gate_mode(monkeypatch):
