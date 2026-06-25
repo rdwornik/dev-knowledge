@@ -19,6 +19,28 @@
 
 ---
 
+### 2026-06-25 — CC: #209 — promote undeclared reconciled_with edges (2 declared, 5 deferred)
+
+**Did:** Worktree `undeclared-edges` (#209). Spot-checked each of the 7 undeclared-edge candidates against the **live spec @5.3 FIRST** (operator rule: a stale declared edge is worse than an undeclared one), then declared `reconciled_with: handoff-process@5.3` only on the docs whose reference is genuinely current AND a version-coupled v5.3-mechanics dependency. **Declared (2):** `CLAUDE.md` (§1 v5 boot-sequence + §7 `/handoff` command) and `CONTRIBUTING.md` (handoff section explicitly stamps v5.3 + describes the v5.3 §5 probe-manifest consolidation). Both already carried YAML frontmatter; edge added after `last_reviewed`.
+
+**Result:** `validate_reconciliation` 2→**4 edges, 0 mismatches** (joins `ARCHITECTURE.md` + `docs/handoffs/README.md`); `scan_undeclared_edges` candidates **11→9** (CLAUDE + real CONTRIBUTING dropped via the gap-only rule; the remaining CONTRIBUTING hit is a `tests/fixtures/` copy); `canonical_freshness` OK (both edited+stamped today → equal-date pass, **no false re-review claim — `last_reviewed` left as-is**); audit **health OK**; 53 reconciliation/scan tests pass. Arc commit **`be9a224`**.
+
+**Deferred (5 of 7) — recorded with reason (declared NO stale/false/structural-risk edge):**
+- **PLAYBOOK.md — STALE.** L846 (`(v5.2 bundle)` / `per HANDOFF_PROCESS v5.2`) and L2948 (`HANDOFF_PROCESS v5.2`) lag live 5.3 → reconcile to 5.3 before an edge is declared. Also lacks YAML frontmatter.
+- **protocols/HANDOFF_BOOT.md — STRUCTURAL.** Content current @5.3, but it is a browser-paste payload inlined **verbatim** into `PASTE_THIS.md` by `assemble_paste.py` (manifest item 1); adding YAML frontmatter would leak `---` into the boot paste. Defer pending a frontmatter-safe declaration path. Also no frontmatter today.
+- **BACKLOG.md — NOT A DEPENDENCY.** References are work-item tickets (#26/#159/#161/#162/#164), not spec-tracking prose — they don't drift on a spec version bump. Also no frontmatter + schema-validated (`validate_backlog`).
+- **VISION.md — NOT VERSION-COUPLED.** Sole reference (L136 "manual session-close verification per HANDOFF_PROCESS.md") is a thin, version-agnostic mention; a 5.x bump would not require changing it → a pinned edge would be false-positive churn, not a genuine dependency.
+- **protocols/AI_COUNCIL_PROCESS.md — NOT VERSION-COUPLED.** References are analogies/cross-links (L54 "same pattern as HANDOFF_PROCESS"; L408 "gated-loop pattern (handoff analogue): HANDOFF_PROCESS.md + ADR-42/55–62" historical lineage), version-agnostic. Also no YAML frontmatter.
+- **ESSENTIALS.md — operator-deferred** behind its #77 consolidation (known-stale, 449 lines vs its 1-page contract); not touched.
+
+**Changes:** `CLAUDE.md` + `CONTRIBUTING.md` frontmatter (`be9a224`); this JOURNAL wrap. Disjointness confirmed: `reconciled_with` is **frontmatter-driven**, NOT `ecosystem/doc-code-edge.yaml` (the doc→code rule-ID config) — no overlap with the spec-trigger stream, no serialization needed. **Worktree-scoped: NOT merged** (operator integrates serially).
+
+**Abandoned:** Declared no stale edge (PLAYBOOK), no structural-risk edge (HANDOFF_BOOT), no false-coupling edge (VISION/AI_COUNCIL), no ticket-prose edge (BACKLOG). Did not touch ESSENTIALS. Did **not** fix PLAYBOOK's v5.2→v5.3 prose (out of scope — recorded above for reconciliation).
+
+**Next:** Operator integrates `worktree-undeclared-edges` serially. Follow-ups surfaced: reconcile PLAYBOOK L846/L2948 to v5.3 (then its edge becomes declarable); a frontmatter-safe edge mechanism for HANDOFF_BOOT if its edge is wanted; the ESSENTIALS edge rides #77.
+
+---
+
 ### 2026-06-25 — CC: wire check-against-spec into the reconciled_with re-stamp flow (#205)
 
 **Did:** Closed the one true "built-and-forgotten" finding from Audit-B — `check-against-spec` (the semantic half of the coherence spine) was wired in docs and backed by tested code (`coherence_enumerator.py`) but invoked **0×**: it had only a manual trigger, so a spec version bump never drove a reconciliation through it. Wired its invocation into the **reconciled_with version-bump discipline (the re-stamp flow)**, deliberately **NOT** the ship-gate (per its v1 scope + JOURNAL ruling-4: the skill is complementary to the gate, not gated by it). Added `restamp_invocation(edge)` / `restamp_invocations(repo_root)` to `validate_reconciliation.py`; the CLI `main()` now **emits the exact `check-against-spec` invocation on each mismatch** (the `{dependent_path, spec_path, old_version, new_version}` flag + the `coherence_enumerator.py` command, ASCII/cp1252-safe). The `audit.py reconciled_versions` mismatch remediation now points at the re-stamp flow (gate condition unchanged — still gates the version mismatch only); recorded the "ship-gate is deliberately not the trigger" note in the check docstring, the `validate_reconciliation` module docstring, PLAYBOOK §"Re-stamp flow — the semantic half", and the skill's new `## Trigger` section. Worktree `worktree-spec-trigger`; committed, **did not merge** (operator integrates serially).
