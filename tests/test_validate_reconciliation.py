@@ -196,3 +196,53 @@ def test_adapter_no_edges_passes(tmp_path: Path) -> None:
 
 def test_adapter_registered_in_all_checks() -> None:
     assert aud.check_reconciled_versions in aud.ALL_CHECKS
+
+
+# --- re-stamp trigger (#205: check-against-spec wired to the reconciled_with bump) --------
+
+def test_restamp_invocations_fires_on_bump(tmp_path: Path) -> None:
+    """A reconciled_with version bump (mismatch) TRIGGERS one check-against-spec invocation
+    carrying the enumerator command with the correct edge paths + both versions."""
+    _spec(tmp_path, "Version: 5.2")
+    _dependent(tmp_path, "README.md", "handoff-process@5.1")  # spec bumped past declared
+    invs = vr.restamp_invocations(tmp_path)
+    assert len(invs) == 1
+    inv = invs[0]
+    assert "check-against-spec" in inv
+    assert "5.1 -> 5.2" in inv
+    assert ("py scripts/coherence_enumerator.py --dependent README.md "
+            "--spec protocols/HANDOFF_PROCESS.md --old-version 5.1 --new-version 5.2") in inv
+    assert '"new_version": "5.2"' in inv  # the skill's flag contract is present
+
+
+def test_restamp_invocations_empty_on_match(tmp_path: Path) -> None:
+    """An already-reconciled edge (match) emits NO trigger — only a bump fires it."""
+    _spec(tmp_path, "Version: 5.2")
+    _dependent(tmp_path, "README.md", "handoff-process@5.2")
+    assert vr.restamp_invocations(tmp_path) == []
+
+
+def test_restamp_invocations_none_when_no_edges(tmp_path: Path) -> None:
+    _spec(tmp_path)
+    _dependent(tmp_path, "README.md", None)
+    assert vr.restamp_invocations(tmp_path) == []
+
+
+def test_restamp_invocation_is_ascii(tmp_path: Path) -> None:
+    """The emitted invocation is cp1252-safe (printed to a Windows console)."""
+    _spec(tmp_path, "Version: 5.2")
+    _dependent(tmp_path, "README.md", "handoff-process@5.1")
+    inv = vr.restamp_invocations(tmp_path)[0]
+    inv.encode("cp1252")  # raises UnicodeEncodeError if a non-cp1252 glyph slipped in
+
+
+def test_main_emits_trigger_on_mismatch(monkeypatch, tmp_path: Path, capsys) -> None:
+    """The CLI itself fires the trigger: a mismatch makes main() print the invocation."""
+    _spec(tmp_path, "Version: 5.2")
+    _dependent(tmp_path, "README.md", "handoff-process@5.1")
+    monkeypatch.setattr(vr, "_REPO_ROOT", tmp_path)
+    rc = vr.main()
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "check-against-spec TRIGGER" in out
+    assert "coherence_enumerator.py" in out

@@ -1517,6 +1517,11 @@ def check_reconciled_versions(repo_path: Path) -> list[Finding]:
     unknown spec-id, spec absent/unparseable) -> WARN: fail-OPEN on its own error, never a
     synthesized FAIL. Fail-soft on any unexpected error. Read-only. Logic lives in
     scripts/validate_reconciliation.py.
+
+    The mismatch remediation points at the re-stamp flow (run check-against-spec, then bump
+    reconciled_with) — but this gate gates the VERSION MISMATCH only. Running or passing
+    check-against-spec is DELIBERATELY never a gate condition here: the semantic skill is
+    triggered by the re-stamp flow, not the ship-gate (check-against-spec v1 scope). #205.
     """
     try:
         results = _vr.reconcile(Path(repo_path))
@@ -1528,7 +1533,9 @@ def check_reconciled_versions(repo_path: Path) -> list[Finding]:
         if r.status == "mismatch":
             findings.append(Finding("reconciled_versions", "fail",
                 (f"{r.dependent_path} declares {r.spec_id}@{r.declared} but spec is "
-                 f"{r.current} - reconcile and bump reconciled_with").replace("|", "/")))
+                 f"{r.current} - re-stamp flow: run check-against-spec "
+                 f"(py scripts/validate_reconciliation.py emits the invocation), then "
+                 f"bump reconciled_with").replace("|", "/")))
         elif r.status in ("malformed", "unknown-spec"):
             findings.append(Finding("reconciled_versions", "warn",
                 (f"{r.dependent_path}: {r.status} ({r.current})").replace("|", "/")))
