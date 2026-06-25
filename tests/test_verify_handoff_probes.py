@@ -62,6 +62,25 @@ _P5_TRAP = ("P5", "freshness relation",
 _PIPE_CELL = ("P3", "current HEAD + tree",
               "`live git`", "the sha moves on any commit",
               "`git log | grep foo`")
+# --- #207 / GAP-4 toothless rung fixtures -----------------------------------
+# (1) Toothless: source binds no file/anchor, command is trivial (`git rev-parse` just
+# confirms git-on-PATH) -> the silent-PASS the validator must now eliminate.
+_TOOTHLESS = ("PT", "what is HEAD", "`live git`",
+              "the sha moves every commit", "`git rev-parse`")
+# (2) Negative controls: the SAME toothless row given a real binding token -> PASS.
+_TOOTHLESS_W_ANCHOR = ("PTA", "quote the Vision opener", "`VISION.md` `## Vision`",
+                       "a paraphrase is not a substring", "`git rev-parse`")
+_TOOTHLESS_W_FILE = ("PTF", "is the file present", "`VISION.md`",
+                     "the file may be deleted", "`git rev-parse`")
+# AND-reading proof (the live P3 shape): no token, but a VALUE-bearing git command keeps
+# teeth via the surfaced live value -> NOT toothless -> PASS.
+_NONTRIVIAL_NOTOKEN = ("PNV", "current short HEAD sha + tree", "`live git`",
+                       "the sha + sync-state move on any commit",
+                       "`git rev-parse --short HEAD` then `git status -sb`")
+# (3) First command span valid, a LATER span names a broken path -> must be CAUGHT.
+_LATER_SPAN_BROKEN = ("PLS", "compare two files", "`VISION.md`",
+                      "the second target may have moved",
+                      "`grep x VISION.md` then `grep y ghost/MISSING.md`")
 
 
 def _table(rows, hdr=_HDR, sep=_SEP):
@@ -142,6 +161,23 @@ def test_lead_exe_is_first_command_token():
     assert vhp.lead_exe("git log -1") == "git"
 
 
+def test_command_file_tokens_scans_all_spans_not_just_first():
+    # #207/GAP-4: file tokens are pulled from EVERY command span, so a broken path in a
+    # secondary span is visible (the first-span-only blind spot is closed).
+    toks = vhp._command_file_tokens("`grep x VISION.md` then `grep y sub/OTHER.md`")
+    assert toks == ["VISION.md", "sub/OTHER.md"]
+
+
+def test_is_trivial_command_distinguishes_value_bearing_commands():
+    # #207/GAP-4: a bare exe / `exe subcommand` is trivial (asserts only tool presence);
+    # any further operand surfaces a specific live value -> NOT trivial.
+    assert vhp._is_trivial_command("git rev-parse")        # exe + bare subcommand
+    assert vhp._is_trivial_command("pytest")               # bare exe
+    assert not vhp._is_trivial_command("git rev-parse --short HEAD")
+    assert not vhp._is_trivial_command("git status -sb")
+    assert not vhp._is_trivial_command("git log | grep foo")
+
+
 # --- pure core: parse_probes (header-name mapping, multi-table) --------------
 
 def test_parse_probes_maps_columns_by_header_name_ignoring_id_col():
@@ -217,8 +253,10 @@ def test_verify_fail_on_command_cell_without_backtick_span(tmp_path):
 
 
 def test_verify_p5_trap_secondary_span_does_not_false_fail(tmp_path):
-    # ARCHITECTURE.md exists; root `audit.py` does NOT. First-span-only extraction must
-    # keep this PASS (the `audit.py` shorthand in the 2nd span is never resolved).
+    # ARCHITECTURE.md exists; the 2nd-span `audit.py health` shorthand carries the real
+    # file token `audit.py`, which now (#207/GAP-4, all-span resolution) resolves via the
+    # unique-basename fallback to scripts/audit.py -> a resolvable shorthand must not
+    # false-FAIL even though all command spans are scanned. P5 stays PASS.
     bundle = _init_bundle(tmp_path, [_P5_TRAP])
     by = _by_id(vhp.verify(bundle))
     assert by["P5"].status == "pass"
@@ -230,6 +268,54 @@ def test_verify_pipe_in_backtick_command_parses_and_passes(tmp_path):
     by = _by_id(vhp.verify(bundle))
     assert "P3" in by
     assert by["P3"].status == "pass"
+
+
+# --- #207 / GAP-4: toothless live-git probe must not silent-PASS ------------
+
+def test_verify_fail_on_toothless_live_git_zero_token_probe(tmp_path):
+    # FROZEN CONTRACT (1): a `live git` row with NO file/anchor token + a trivial command
+    # (`git rev-parse`, which only confirms git-on-PATH) must FAIL -> the silent-PASS the
+    # old ladder gave such a probe is eliminated.
+    bundle = _init_bundle(tmp_path, [_TOOTHLESS])
+    by = _by_id(vhp.verify(bundle))
+    assert by["PT"].status == "fail"
+    assert by["PT"].status != "pass"
+    assert "toothless" in by["PT"].detail.lower()
+
+
+def test_verify_toothless_passes_with_anchor_token(tmp_path):
+    # FROZEN CONTRACT (2), anchor leg: the SAME trivial command, but now the source binds a
+    # real `#`-anchor (resolvable in VISION.md) -> a binding token exists -> PASS.
+    bundle = _init_bundle(tmp_path, [_TOOTHLESS_W_ANCHOR])
+    by = _by_id(vhp.verify(bundle))
+    assert by["PTA"].status == "pass"
+
+
+def test_verify_toothless_passes_with_file_token(tmp_path):
+    # FROZEN CONTRACT (2), file leg: the SAME trivial command, but the source names a real
+    # file token (VISION.md) -> a binding token exists -> PASS.
+    bundle = _init_bundle(tmp_path, [_TOOTHLESS_W_FILE])
+    by = _by_id(vhp.verify(bundle))
+    assert by["PTF"].status == "pass"
+
+
+def test_verify_no_token_but_value_bearing_command_still_passes(tmp_path):
+    # AND-reading guard (the live P3 shape): no file/anchor token, but a VALUE-bearing git
+    # command surfaces a specific live value -> keeps its teeth -> PASS (NOT toothless).
+    # This is why the live bundle's pure-git P3 stays green.
+    bundle = _init_bundle(tmp_path, [_NONTRIVIAL_NOTOKEN])
+    by = _by_id(vhp.verify(bundle))
+    assert by["PNV"].status == "pass"
+
+
+def test_verify_later_command_span_broken_path_is_caught(tmp_path):
+    # FROZEN CONTRACT (3): the FIRST command span resolves (grep x VISION.md), but a LATER
+    # span names a broken path (ghost/MISSING.md) -> CAUGHT as missing source/target, never
+    # silent-passed on the strength of the first span alone.
+    bundle = _init_bundle(tmp_path, [_LATER_SPAN_BROKEN])
+    by = _by_id(vhp.verify(bundle))
+    assert by["PLS"].status == "fail"
+    assert "ghost/MISSING.md" in by["PLS"].detail
 
 
 def test_verify_skipped_when_executable_absent(tmp_path, monkeypatch):
@@ -347,6 +433,16 @@ def test_check_fail_class_gates_on_a_failing_probe(tmp_path):
     repo = _repo_with_bundle(tmp_path, [_FAIL_MISSING])
     findings = aud.check_handoff_probes(repo)
     assert findings[0].status == "fail"        # FAIL-class -> blocks /ship
+    assert "|" not in findings[0].evidence
+
+
+def test_check_fail_class_gates_on_a_toothless_probe(tmp_path):
+    # #207/GAP-4: a toothless live-git probe is a FAIL-class Finding (blocks audit-health +
+    # ship-gate), not a silent pass — the validator's teeth reach the deployed gate.
+    repo = _repo_with_bundle(tmp_path, [_TOOTHLESS])
+    findings = aud.check_handoff_probes(repo)
+    assert findings[0].status == "fail"
+    assert "toothless" in findings[0].evidence.lower()
     assert "|" not in findings[0].evidence
 
 
