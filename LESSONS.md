@@ -3,11 +3,13 @@
 
 > **Format:** `### YYYY-MM-DD | source | lesson | category | [scope: X] | action taken`
 > New entries go at the top of the Entries section. Never edit old entries. Never delete.
-> Last updated: 2026-06-19
+> Last updated: 2026-06-25
 
 ---
 
 > Split trigger (when navigation by topic becomes painful) deferred 2026-04-24. Rationale: ADR-29 [scope: X] inline field provides equivalent filtering without losing chronology. Reopen if filtering by scope proves insufficient.
+
+### 2026-06-25 | #184 session-close (shared-checkout race, n+1) | A "read-only" AUDIT is NOT a read-only SESSION — it writes a report, so it commits, so it races a shared checkout exactly like any committing session: a concurrent session switched HEAD to `main` between the audit's branch-check and its commit, landing the report commit (`5276b7e`) DIRECTLY on `main` (core-invariant #5 violation) + owing an ADR-85 JOURNAL anchor. The forward rule already existed (the 2026-06-05 #81 + 2026-06-07 peer-audit lessons below: any session that commits needs its OWN worktree; "read-only parallel" means LITERALLY zero commits) and the worktree-orchestration clause is resident in HANDOFF_BOOT — so the gap was APPLICATION, not doctrine: the concurrent audits were launched on the shared checkout instead of given worktrees. Forward rule: classify a session by whether it COMMITS, not by whether it "reads" — an audit/report/wrap that writes anything commits and must hold its own worktree (`claude --worktree`). | process | [scope: meta] | repaired non-destructively (`git branch -f main` back one commit, then `--no-ff`-merged the audits) — JOURNAL 2026-06-25; points to the 2026-06-05/06-07 lessons + ADR-61; #184 closed with this as a SEPARABLE caveat (different axis than the prompt-contract); optional `~/.claude` gotcha last-triggered bump → 2026-06-25
 
 ### 2026-06-19 | confirm-live groom (PLAYBOOK/ESSENTIALS currency) | Architect structural-coherence claims from a text-grep over an uploaded snapshot are NOT Witnessed — fences, intent-notes (the §18-gap note at L8), and ToC-generator behavior are invisible to line-grep; two such claims (§18-as-rot, embedded-H2s-pollute-ToC) were false, while every referential claim (boot/evolve dead, §19/save live, 44 ADRs resolve) held. Confirm-live caught both before any corrupting edit. | verification | [scope: meta] | confirm-live is the mandatory first step of audit-driven grooms; structural checks must be a live organ (linter), not architect eyeball — carried to the doc-lifecycle Council arc.
 
