@@ -153,10 +153,13 @@ def _fmt_set(s) -> str:
     return "{" + ", ".join(sorted(s)) + "}"
 
 
-def reconcile(repo_root: Path, audit_check_count: int,
+def reconcile(repo_root: Path, audit_check_count: Optional[int],
               run_expensive: bool = False) -> list[ClaimResult]:
     """Evaluate every claim against ground truth. Pure; reads only. Claim 3 is skipped
-    unless run_expensive. `audit_check_count` is the injected len(ALL_CHECKS) (claim 1)."""
+    unless run_expensive. `audit_check_count` is the injected len(ALL_CHECKS) (claim 1) —
+    supplied by the caller that drives reconcile (audit.check_doc_claims / tests); pass
+    None when no caller owns it (standalone CLI), making claim 1 report `skipped` instead
+    of importing audit (GAP-1 cycle-break, audit 2026-06-25)."""
     results: list[ClaimResult] = []
     for c in _CLAIMS:
         if c.expensive and not run_expensive:
@@ -223,13 +226,17 @@ _CLAIMS = [
 
 
 def main() -> int:
-    """Standalone CLI: evaluate ALL claims (incl. expensive claim 3); print; exit 0
-    always (awareness layer, never a gate). Ground-truth check count via len(ALL_CHECKS)."""
-    try:
-        from scripts.audit import ALL_CHECKS  # noqa: PLC0415
-    except ImportError:
-        from audit import ALL_CHECKS  # noqa: PLC0415
-    results = reconcile(_REPO_ROOT, len(ALL_CHECKS), run_expensive=True)
+    """Standalone CLI: evaluate every self-derivable claim (incl. expensive claim 3);
+    print; exit 0 always (awareness layer, never a gate).
+
+    The `audit_check_count` claim is NOT evaluated here: its ground truth is
+    len(ALL_CHECKS), owned by audit.py (the aggregator that imports THIS leaf). A leaf
+    reaching back up to audit was the sole import cycle in scripts/ (GAP-1, audit
+    2026-06-25); the dependency is inverted — whoever drives reconcile() supplies the
+    count (audit.check_doc_claims injects len(ALL_CHECKS); tests inject directly), and
+    standalone we pass None so that one claim reports `skipped` rather than recreate the
+    edge. Run `audit health` / `audit run` for the check-count reconciliation."""
+    results = reconcile(_REPO_ROOT, None, run_expensive=True)
     mismatches = [r for r in results if r.status == "mismatch"]
     if not mismatches:
         print(f"validate_doc_claims: OK — {len(results)} claim(s) checked, no prose drift")
