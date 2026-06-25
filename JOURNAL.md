@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-06-25 — CC: dispose the two 2026-06-25 audits (fix + clean + ticket)
+
+**Did:** Read-only is over — disposed Audit-A (dependency-architecture) + Audit-B (process-trigger) in three phases. **Phase 1 (GAP-1):** the "computed-edge keystone" dissolved under diagnosis — the flat `scripts/*.py` import graph (28 nodes / 16 edges) had **exactly one** defect, simultaneously the only cycle and the only layering violation: `validate_doc_claims → audit` (a leaf reaching up into the aggregator for `len(ALL_CHECKS)`). Inverted it — whoever DRIVES `reconcile()` supplies the count (audit injects it; tests inject it); standalone `main()` now passes `None` so claim 1 reports `skipped` rather than recreate the edge (`7825fbb`). **Phase 2 (housekeeping):** fixed CLAUDE.md §8's archived-`verify`-skill self-contradiction + re-stamped (`0e554b6`); removed empty orphan `../dev-knowledge-138` (0 items, no `.git`, confirmed outside OneDrive); deleted the merged `docs/session-close-184-handoff` branch (#184 closed `5c21933`, merged `4ed55fc`). **Phase 3:** authored 5 tickets (#205–#209), closed nothing.
+
+**Result:** Hard metric MET — the flat-module import graph re-runs as a **clean DAG: 28 nodes / 15 edges / 0 cycles / 0 importers of audit** (confirmed via an AST graph re-run, not inferred from green tests); pytest green (164 in the doc_claims/audit/legibility trio). `validate_backlog` OK (7 themes, 21 stories, 86 tasks, 0 warnings). New tickets: **#205** check-against-spec→bump-discipline wiring (P2/S); **#206** GAP-2 validate_backlog hub↔plugin twin-parity (P2/M); **#207** GAP-4 handoff_probes live-git zero-token teeth (P2/M); **#208** GAP-6+GAP-7 test-gap hardening (P3/S); **#209** undeclared `reconciled_with` edge promotion (P3/M).
+
+**Rulings (recorded, not ticketed):** (1) **GAP-1 standing gate is REFUTED by data** (1 defect in 28 nodes) → fix the edge only, **no import-cycle/layering gate built**; defer indefinitely, re-evaluate only if the flat dir grows materially or cycles recur after this fix. (2) **#195 stays the safe-removal gate — it is ≠ GAP-1; not retitled.** (3) **#201 is ADR-class, not AI-Council** (its two options read as bounded design; likely-obvious answer = resolver-allows-N-sites). (4) **check-against-spec is complementary, not redundant** to the `reconciled_with` gate (gate proves the number moved; skill proves the content was re-reasoned) — kept, wired narrowly via #205. (5) **codex-review / /changelog-review / /override dormancy = idle-by-design** — no action. (6) **`ecosystem/conformance.md` (#171) = tracked (ADR-86)**, not this session. Branch `automation/fleet-audit` is **unmerged → surfaced, not deleted**.
+
+**Changes:** `scripts/validate_doc_claims.py` (`7825fbb`), `CLAUDE.md` §8 + §12 v2.24 + re-stamp (`0e554b6`), `BACKLOG.md` (#205–#209), this JOURNAL wrap. Throwaway AST grapher lived in scratchpad only (Layer-2: no tooling committed). Branch `chore/dispose-2026-06-25-audits`.
+
+**Abandoned:** No standing import-cycle gate (GAP-1 gate refuted). Closed no existing ticket. Deleted no unmerged branch. Did not declare an edge to the known-stale ESSENTIALS (deferred behind #77 in #209).
+
+**Next:** Operator-gated `/ship` (merge `--no-ff` → push `main`). Then the #205–#209 backlog; #77 doc-consolidation remains the architect keystone.
+
+---
+
 ### 2026-06-25 — CC: /handoff — architect SUPPLEMENT filled + bundle reconciled to FILLED
 
 **Did:** Follow-on to the architect-bundle generation (same `/handoff` session). The operator **filled `SUPPLEMENT.md`** from the outgoing architect chat(s) and said `supplement filled`. Per the §13 supplement lifecycle: committed the filled file **verbatim** (no re-typing, nothing fabricated — `0362b0c`), then re-ran `scripts/assemble_paste.py` so the **non-empty ANSWERS region folds into `PASTE_THIS.md`** (Q1–Q6 + CC-observed addenda A/B + a predecessor-chat complement A–F now travel in the single paste). **Caught a bundle-coherence defect the fill introduced:** with the supplement now filled, the bundle's original "COLD / §13(d) beat fires FULL" framing became a **self-contradiction** against the folded ANSWERS (exactly the two-claims-that-can't-both-be-acted-on class §8 flags). Reconciled `HANDOFF_BOOT`/`RESIDUAL`/`PROBES` (+ P8's stale "ANSWERS empty" expectation) to **"generated COLD, then FILLED → §13(d) beat NARROWS to 'anything changed since the supplement was written?'"** (the §13(d) refined-not-duplicated path) and regenerated `PASTE_THIS` (`f4cbcac`).
