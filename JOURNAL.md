@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-06-25 — CC: validator-teeth worktree — GAP-4/2/6/7 validator hardening (3 tickets)
+
+**Did:** Parallel-stream worktree (`worktree-validator-teeth`); three frozen-contract tickets serially, committed per ticket, **NOT merged** (operator integrates serially). **#207 (GAP-4, `75145d2`):** gave `verify_handoff_probes._classify` teeth against a toothless `live git` probe — added the toothless rung (NO file/anchor token AND a trivial value-less command → FAIL) + all-span command-target resolution (a broken path in a SECONDARY backtick span is now caught, not first-span-blind). **#206 (GAP-2, `56f9081`):** pinned the hub↔plugin `validate_backlog` carrier-twin (new `tests/test_validate_backlog_twin_parity.py`) — both modules loaded independently must produce identical findings on shared fixtures (dep-cycle/dangling-dep/serialize-group/done-marker) + a source-identity guard on the declared twin; de-dup is the real fix, parity-test the stopgap. **#208 (GAP-6+7, `22000a6`):** made the `validate_doc_claims` `_CLAIMS` registry data-driven (injectable `claims` param; 3 parametrized guards auto-cover new rows + a wrong-number negative control), and covered `validate_doc_rot.scan()`'s live-constant `_FILE_SIZE_BUDGETS` path (201-line CLAUDE.md fires, 199 doesn't).
+
+**Result:** Full suite **844 passed / 4 skipped** (+22: #207 +8, #206 +7, #208 +15 incl. parametrize); ruff clean; `audit health` OK; live `handoff_probes` still **10/10 bind**. All three frozen acceptance contracts hold under test.
+
+**Decision (surfaced + operator-ruled):** #207 clause (1) had an interpretation fork — does the toothless FAIL require (no token) AND (trivial command), or (no token) alone? No-token-alone would FAIL the live, IMMUTABLE bundle's pure-git P3 (`git rev-parse --short HEAD`), RED-ing the ship-gate + breaking `test_registered_check_never_fails_on_live_repo`. Operator chose the **AND-reading** (faithful to the literal "+ a trivial command" clause): a no-token probe with a value-bearing command keeps its teeth (P3 stays green); only a truly trivial `git rev-parse` is failed.
+
+**Changes:** `scripts/verify_handoff_probes.py` + test (`75145d2`); `scripts/validate_backlog.py` + plugin-twin comments + new parity test (`56f9081`); `scripts/validate_doc_claims.py` + test + `tests/test_validate_doc_rot.py` (`22000a6`). Branch `worktree-validator-teeth` — **unmerged, not pushed.**
+
+**Abandoned:** Did not touch the #201 resolver (decided, Wave 2); did not merge to main; did not close #206/#207/#208 in BACKLOG (done-items-leave — operator closes at serial integration).
+
+**Next:** Operator integrates the three worktree streams serially (`--no-ff`). Heads-up: the +22 tests drift ARCHITECTURE.md's `**N collected**` claim → a ship-time `doc_claims` WARN to reconcile at integration (not a pre-commit blocker; health gate-mode skips the expensive pytest claim).
+
+---
+
 ### 2026-06-25 — CC: dispose the two 2026-06-25 audits (fix + clean + ticket)
 
 **Did:** Read-only is over — disposed Audit-A (dependency-architecture) + Audit-B (process-trigger) in three phases. **Phase 1 (GAP-1):** the "computed-edge keystone" dissolved under diagnosis — the flat `scripts/*.py` import graph (28 nodes / 16 edges) had **exactly one** defect, simultaneously the only cycle and the only layering violation: `validate_doc_claims → audit` (a leaf reaching up into the aggregator for `len(ALL_CHECKS)`). Inverted it — whoever DRIVES `reconcile()` supplies the count (audit injects it; tests inject it); standalone `main()` now passes `None` so claim 1 reports `skipped` rather than recreate the edge (`7825fbb`). **Phase 2 (housekeeping):** fixed CLAUDE.md §8's archived-`verify`-skill self-contradiction + re-stamped (`0e554b6`); removed empty orphan `../dev-knowledge-138` (0 items, no `.git`, confirmed outside OneDrive); deleted the merged `docs/session-close-184-handoff` branch (#184 closed `5c21933`, merged `4ed55fc`). **Phase 3:** authored 5 tickets (#205–#209), closed nothing.
