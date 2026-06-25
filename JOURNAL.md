@@ -19,6 +19,34 @@
 
 ---
 
+### 2026-06-25 — CC: /handoff — architect SUPPLEMENT filled + bundle reconciled to FILLED
+
+**Did:** Follow-on to the architect-bundle generation (same `/handoff` session). The operator **filled `SUPPLEMENT.md`** from the outgoing architect chat(s) and said `supplement filled`. Per the §13 supplement lifecycle: committed the filled file **verbatim** (no re-typing, nothing fabricated — `0362b0c`), then re-ran `scripts/assemble_paste.py` so the **non-empty ANSWERS region folds into `PASTE_THIS.md`** (Q1–Q6 + CC-observed addenda A/B + a predecessor-chat complement A–F now travel in the single paste). **Caught a bundle-coherence defect the fill introduced:** with the supplement now filled, the bundle's original "COLD / §13(d) beat fires FULL" framing became a **self-contradiction** against the folded ANSWERS (exactly the two-claims-that-can't-both-be-acted-on class §8 flags). Reconciled `HANDOFF_BOOT`/`RESIDUAL`/`PROBES` (+ P8's stale "ANSWERS empty" expectation) to **"generated COLD, then FILLED → §13(d) beat NARROWS to 'anything changed since the supplement was written?'"** (the §13(d) refined-not-duplicated path) and regenerated `PASTE_THIS` (`f4cbcac`).
+
+**Result:** ship-gate **GREEN** (3 WARN dispositioned — all pre-existing; zero new), `handoff_probes` **10/10 bind** to live state, assembler folds the SUPPLEMENT section (was `[skip]` on empty). The supplement materially sharpens the next session's frame (overrides parts of the CC-derived residual): it is a **hardening/consolidation arc, not expansion** (resist new machinery); **sequence #77 doc-consolidation first, GAP-1 computed-edge second** (sequential by default — the shared-checkout race shifted the prior toward worktree-isolate-then-parallel); and a standing architect test emerged — *"does this mechanism have its consumer/gate?"* (the built-without-consumer class unifying GAP-1 + check-against-spec). Supplement point-F push concern answered: push is **clean** (`5276b7e` is behind `--no-ff` `56cd7c5`, not on the first-parent spine → `block-ff-push` passes).
+
+**Changes:** `docs/handoffs/2026-06-25-dev-knowledge-architect/` — `SUPPLEMENT.md` filled verbatim (`0362b0c`) + `HANDOFF_BOOT`/`RESIDUAL`/`PROBES`/`PASTE_THIS` reconciled (`f4cbcac`) + this JOURNAL wrap. Branch `docs/2026-06-25-architect-handoff`. **Not pushed** (operator-gated).
+
+**Abandoned:** Nothing. Did **not** edit the SUPPLEMENT answer content (verbatim discipline) nor the prior same-session JOURNAL entry (append-only — prepended this distinct leg instead).
+
+**Next:** Operator-gated `/ship` (merge `--no-ff` → push `main`) + optional `-d` of the merged straggler. The next architect session starts from `PASTE_THIS.md`; its keystones are #77 (doc-consolidation, first) then GAP-1/#195 (computed edge).
+
+---
+
+### 2026-06-25 — CC: /handoff — 2026-06-25 architect bundle generated (v5.3 COLD)
+
+**Did:** Generated the **v5.3 architect-mode handoff bundle** for the next planning session (`/handoff dev knowledge architect`). Read the canonical spec live (`HANDOFF_PROCESS.md` v5.3 — not the skill's superseded v4 sections), ran the scope matrix (clean tree; commits since the 2026-06-21 architect bundle; today's architect slug FREE → Phase-1 capture, slug `2026-06-25-dev-knowledge-architect`). Emitted the **5-file COLD bundle** — `HANDOFF_BOOT.md` (session header) + `RESIDUAL.md` + `PROBES.md` + `SUPPLEMENT.md` (empty ANSWERS, cold disposition) + `PASTE_THIS.md` (assembled by `scripts/assemble_paste.py`, SUPPLEMENT correctly `[skip]`ped on empty ANSWERS); **no per-bundle README** (canonical runbook at `docs/handoffs/README.md`). Scoped the residual to the *planning* why: the window since 2026-06-21 was a heavy **execution** window that drained the prior bundle's queue (ADR-88/89 Accepted; **ADR-89 OQ1 ratified + #194 doc→code edge BUILT**; handoff-rework A1–A4/C1–C6 + **v5.2→v5.3**; PLAYBOOK two-part heading restructure; #200/#10/#184 closed + #134 groom 84→81), closing with **two fresh read-only audits (Audit-A/B)**. The next center of gravity: **dispose Audit-A/B + decide the computed-edge keystone** (wire the proven-but-ungated Pyright reverse-dep oracle into a gate — GAP-1/#195/ADR-89 OQ3). Pinned the probes to live state (23 checks / `doc_code_edge` last; 818 collected; ship-gate GREEN/3-disp/no-stale; code-edge group #195/#201/#202/#203).
+
+**Result:** Bundle committed `9b4230c`. **Caught + fixed a probe-validator gotcha:** P2's verification command initially carried a `PYTHONUTF8=1` env-prefix → `verify_handoff_probes` parsed the first token as the tool, `[skip]`ped P2, and **ship-gate went RED** (1 undispositioned WARN); moved the cp1252 workaround to prose and used the bare `python scripts/audit.py checks` → **10/10 probes bind, ship-gate GREEN** (3 WARN dispositioned). Validators: pytest **817 passed / 1 skipped**, ruff clean, `audit.py health` OK. Drift headline clean — the window added **zero** new WARN and the prior bundle's `[stale]` disposition was already cleared by the #134 groom; only open drift is **#204** (CONTRIBUTING nightly-outcome), filed-not-fixed.
+
+**Changes:** `docs/handoffs/2026-06-25-dev-knowledge-architect/` (5-file bundle, `9b4230c`) + this JOURNAL wrap. Branch `docs/2026-06-25-architect-handoff`. **Not pushed** (operator-gated).
+
+**Abandoned:** Nothing. SUPPLEMENT deliberately committed **empty** (COLD handoff — no outgoing architect chat; the defined §13 disposition, not a missing deliverable). The merge to `main` + push left operator-gated (architect-mode completion contract).
+
+**Next:** Operator: paste `PASTE_THIS.md` into a fresh Claude.ai chat to start the next architect session; optionally fill `SUPPLEMENT.md` from the outgoing chat (`supplement filled`). Then `/ship` the branch + push decision. The next session's keystone is the computed code↔code edge (GAP-1/#195).
+
+---
+
 ### 2026-06-25 — CC: #134 n=2 backlog groom — 84→81 (ratify-only digest → one removal commit)
 
 **Did:** Ran the **#134** periodic backlog-grooming pass (n=2; plan-then-auto). Phase-1 read-only digest via 3 parallel Explore agents (done-undetected git cross-ref · 3 deterministic flags · 5 seeded candidates) + **firsthand authoritative-source verification of every removal candidate** (witnessed-outranks-code-read — confirmed #198's PLAYBOOK §8 + HANDOFF_BOOT lines and the live `codex --version`). **Phase-1 found ZERO done-undetected items** (the 3 ids in closing commits — #5 test-fixture FP, #77 voided-misattribution, #164 slice-only — all correctly OPEN/annotated) and all 3 deterministic flags clean (0 kills): retired-token grep (only descriptive/historical or live ADR-68 / Tier-1-lifecycle refs), ref-resolver (0 unresolved in-repo refs), orphan-story (none until #198's removal). Operator ratified the disposition forks (AskUserQuestion).
