@@ -1,7 +1,7 @@
 # HANDOFF_PROCESS v5
 <!-- scope: meta -->
 
-Version: 5.2
+Version: 5.3
 Status: stable
 Effective: 2026-06-11 (canonical)
 Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149)
@@ -105,8 +105,7 @@ teeth-bearing when all three hold:
 | **Live check count** | `ALL_CHECKS` in `scripts/audit.py` | the count drifts every time a check lands; a hardcoded number goes stale | `python scripts/audit.py checks` (count + last name) |
 | **Exact-line quote** | a named `PLAYBOOK`/`ESSENTIALS`/spec section | a paraphrase from a summary is not byte-identical | read the live section; the quote must be a substring |
 | **Live HEAD / tree** | live git | the summary holds the *generation-time* sha; new commits move HEAD | `git rev-parse --short HEAD` + `git status` |
-| **Drift-flag set** | live git ∩ `BACKLOG.md` | the drifted `#id` set is computed at answer-time, documented nowhere | `validate_git_backlog` / `audit.py health` |
-| **Freshness witness** | `CLAUDE.md` frontmatter + live git | a relation (`last_reviewed` vs last commit) over post-handoff commits | `audit.py` freshness inputs |
+| **Ship-gate read-back** | `audit.py ship-gate` ∩ `ecosystem/disposition-register.yaml` | the GREEN/RED verdict, the dispositioned-WARN **count**, and any `[stale]` line are computed at answer-time over live git ∩ `main`-history; a new direct-on-`main` commit re-REDs it — the values are absent from the bundle, so do **not** trust the residual's headline. Folds the former **drift-flag set** + **freshness witness** probes: `git_backlog_drift` and `canonical_freshness` are both `ALL_CHECKS` members, so running the gate re-derives them and prints their evidence inline | `python scripts/audit.py ship-gate` (read the final GREEN/RED verdict + the disposition count + any `[stale]` line) |
 | **Pointer round-trip** | the live `PLAYBOOK` section a pointer names | re-narration is outlawed (§2/§3); the answer exists only by opening it | read the live section; compare |
 
 ### Who runs it (the file-access reality)
@@ -574,3 +573,19 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
   **unchanged**. **Version unchanged (5.2; condense-only — no rule change.)** Companion to the STEP-0
   finding that the C1/C4/C6 v4-corpus *removal* premise is refuted (the named targets are live/gated,
   not dead) — this arc removed nothing, only the redundant evolution prose. Refs #164.
+- v5.3 (2026-06-25, §5 probe-manifest consolidation) — **Version → 5.3** (third minor bump; a
+  probe-contract / bundle-shape change like the v5.1/v5.2 supplement bumps — not a condense). §5's
+  **drift-flag set** + **freshness witness** probes fold into one **Ship-gate read-back** row: both
+  bind to checks `ship-gate` already runs (`git_backlog_drift`, `canonical_freshness` — `ALL_CHECKS`
+  members whose evidence prints inline), so running the gate re-derives them with **zero verification
+  coverage lost**. Anti-bluff preserved — the read-back's teeth rest on the dispositioned-WARN count +
+  any `[stale]` line (both drift, neither is the §1 headline), not the bluffable GREEN/RED verdict.
+  Kept verbatim, the four probes `ship-gate` structurally cannot recover: Live check count (its token
+  lives in `audit.py checks`, not the verdict), Exact-line quote (anti-bluff), Live HEAD/tree (volatile
+  sha), Pointer round-trip (orientation). Net 6 → 5 probes. No `audit.py` change — `parse_probes` reads
+  the bundle PROBES.md table generically; the consolidated §5 keeps the 4-column schema. **Coupled
+  atomic move (this commit):** `CONTRIBUTING.md` stamp v5.2→v5.3, the 2 `reconciled_with` edges
+  (`ARCHITECTURE.md`, `docs/handoffs/README.md`) @5.2→@5.3, and the 3 freshness-gated docs re-read +
+  restamped (the re-read filed #204 — a stale CONTRIBUTING nightly-outcome section). Major stays 5
+  (`CLAUDE.md` / `.claude/commands/handoff.md` unchanged). Executes the deferred "Arc 2 = 5.3 bump +
+  full reconciliation" (afb7421). Refs #161, #204.
