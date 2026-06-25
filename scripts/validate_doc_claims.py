@@ -154,14 +154,20 @@ def _fmt_set(s) -> str:
 
 
 def reconcile(repo_root: Path, audit_check_count: Optional[int],
-              run_expensive: bool = False) -> list[ClaimResult]:
+              run_expensive: bool = False,
+              claims: Optional[list["Claim"]] = None) -> list[ClaimResult]:
     """Evaluate every claim against ground truth. Pure; reads only. Claim 3 is skipped
     unless run_expensive. `audit_check_count` is the injected len(ALL_CHECKS) (claim 1) —
     supplied by the caller that drives reconcile (audit.check_doc_claims / tests); pass
     None when no caller owns it (standalone CLI), making claim 1 report `skipped` instead
-    of importing audit (GAP-1 cycle-break, audit 2026-06-25)."""
+    of importing audit (GAP-1 cycle-break, audit 2026-06-25).
+
+    `claims` defaults to the module `_CLAIMS` registry; pass an explicit list to evaluate a
+    different or EXTENDED registry. The registry is data-driven — a new claim is one appended
+    `Claim` row, auto-evaluated by this loop and auto-covered by the #208 registry-guard test
+    (GAP-6); no per-claim branch is added here."""
     results: list[ClaimResult] = []
-    for c in _CLAIMS:
+    for c in (_CLAIMS if claims is None else claims):
         if c.expensive and not run_expensive:
             results.append(ClaimResult(c.name, "skipped", "",
                                        "off-gate (run via audit.py run / CLI)", c.doc))

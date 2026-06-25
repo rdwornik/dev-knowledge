@@ -182,6 +182,40 @@ def test_scan_skips_missing_docs(tmp_path):
     assert vdr.scan(tmp_path, today=date(2026, 6, 19)) == []
 
 
+# --- #208 / GAP-7: scan() reads _FILE_SIZE_BUDGETS (the live-constant path) -------------
+# scan_file_budget is unit-tested with an explicit budget arg; these exercise the
+# ORCHESTRATION path where scan() itself supplies the budget from the live constant
+# _FILE_SIZE_BUDGETS ({"CLAUDE.md": 200}). This exact wiring fired historically (CLAUDE.md
+# §12 v2.22 — a 201-line CLAUDE.md), yet only the explicit-arg sub-detector was covered.
+
+def _filler_lines(n):
+    # n lines with NO history heading / task line, so ONLY the file-budget detector can fire.
+    return "\n".join(["# CLAUDE"] + [f"filler line {i}" for i in range(n - 1)])
+
+
+def test_scan_fires_file_budget_via_live_constant(tmp_path):
+    # GAP-7 (1): a 201-line CLAUDE.md run through scan() with NO explicit budget must fire the
+    # file-budget locus — scan() reads _FILE_SIZE_BUDGETS["CLAUDE.md"] (== 200) itself.
+    text = _filler_lines(201)
+    assert len(text.splitlines()) == 201
+    (tmp_path / "CLAUDE.md").write_text(text, encoding="utf-8")
+    results = vdr.scan(tmp_path, today=date(2026, 6, 19))
+    budget = [r for r in results if r.category == "file-budget"]
+    assert len(budget) == 1
+    assert budget[0].locus == "CLAUDE.md#size"
+    assert "201 lines" in budget[0].detail and "budget 200" in budget[0].detail
+
+
+def test_scan_no_file_budget_under_via_live_constant(tmp_path):
+    # GAP-7 (2) NEGATIVE CONTROL: a 199-line CLAUDE.md must NOT fire the budget locus
+    # (199 <= 200), proving scan()'s live-constant wiring is discriminating at the boundary.
+    text = _filler_lines(199)
+    assert len(text.splitlines()) == 199
+    (tmp_path / "CLAUDE.md").write_text(text, encoding="utf-8")
+    results = vdr.scan(tmp_path, today=date(2026, 6, 19))
+    assert [r for r in results if r.category == "file-budget"] == []
+
+
 def test_format_findings_no_pipe():
     results = vdr.scan_backlog_accretion(_backlog([_task(134, dates=3, pad=900)]))
     out = vdr.format_findings(results)
