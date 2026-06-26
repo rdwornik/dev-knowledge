@@ -183,6 +183,7 @@ def scan_grooming_cadence(backlog_text: str, today: date) -> list[RotFinding]:
 
 # --- scan (pure orchestration) ----------------------------------------------
 
+# rule: coherence-doc-rot
 def scan(repo_root: Path, *, today: Optional[date] = None) -> list[RotFinding]:
     """Run every sub-detector against the repo; return one RotFinding per rot locus.
 

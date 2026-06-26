@@ -237,19 +237,20 @@ def test_edge_check_only_scans_listed_docs(tmp_path, monkeypatch):
 
 
 def test_edge_check_registered_and_resolves_starter_set():
-    """Registered in ALL_CHECKS (count 24) AND the LIVE hub scan resolves the post-#201 set over
-    the declaration-doc registry: 8 enforced rules -- the 5 cohort-1 (seal-journal-anchor /
+    """Registered in ALL_CHECKS (count 24) AND the LIVE hub scan resolves the post-#202 set over
+    the declaration-doc registry: 12 enforced rules -- the 5 cohort-1 (seal-journal-anchor /
     canonical-freshness / coherence-spec-reconciled / coherence-amendment / governance-backlog-
-    schema) PLUS the #201 governance trio (governance-no-ff / -child-floor / -backlog-leave), the
-    last three multi-site via ADR-90 -- each resolve doc<->code; the edge is REAL + advisory
-    (never FAILs)."""
+    schema) + the #201 governance trio (governance-no-ff / -child-floor / -backlog-leave) + the
+    #202 Tier-3 quartet (coherence-doc-claims / -rot / -structure, handoff-probes-bind), the
+    multi-organ ones via ADR-90 -- each resolve doc<->code; the edge is REAL + advisory (never
+    FAILs)."""
     assert aud.check_doc_code_edge in aud.ALL_CHECKS
     assert len(aud.ALL_CHECKS) == 24
     findings = aud.check_doc_code_edge(Path(aud._REPO_ROOT))
     assert all(f.status != "fail" for f in findings)        # advisory: never FAIL
     assert len(findings) == 1
     assert findings[0].status == "pass"
-    assert "8 doc" in findings[0].evidence                  # 5 cohort-1 + the #201 governance trio
+    assert "12 doc" in findings[0].evidence                 # 5 cohort-1 + trio + Tier-3 quartet
     assert "resolved" in findings[0].evidence
 
 
@@ -614,18 +615,25 @@ def test_load_multi_site_failsoft(tmp_path):
 
 
 _MULTI_RULES = [
+    # #201 governance trio + retro coherence-spec-reconciled
     ("governance-no-ff", 3),
     ("governance-child-floor", 2),
     ("governance-backlog-leave", 3),
     ("coherence-spec-reconciled", 2),
+    # #202 Tier-3 quartet (adapter + logic module, count 2 each)
+    ("coherence-doc-claims", 2),
+    ("coherence-doc-rot", 2),
+    ("coherence-doc-structure", 2),
+    ("handoff-probes-bind", 2),
 ]
 
 
 @pytest.mark.parametrize("rule_id, count", _MULTI_RULES)
 def test_governance_multi_site_rules_resolve_live(rule_id, count):
     """The real multi-organ rules resolve doc<->code on the LIVE hub at their declared count: the
-    #201 governance trio + the retro coherence-spec-reconciled, via the live multi_site map. This
-    is #201 demonstrated on real 2-/3-site rules (e.g. governance-no-ff: validate_no_ff detect +
+    #201 governance trio + retro coherence-spec-reconciled + the #202 Tier-3 quartet (each an
+    audit.py adapter + its validate_*/verify_* logic module), via the live multi_site map. #201
+    demonstrated on real 2-/3-site rules (e.g. governance-no-ff: validate_no_ff detect +
     block_ff_push prevent + check_no_ff_merges adapter)."""
     decl = aud._load_declaration_docs(_REPO_ROOT)
     multi = aud._load_multi_site(_REPO_ROOT)

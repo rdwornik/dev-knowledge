@@ -306,6 +306,7 @@ def scan_heading_scheme(rel: str, text: str, allow: set[tuple[str, str]]) -> lis
 
 # --- scan (pure orchestration) ----------------------------------------------
 
+# rule: coherence-doc-structure
 def scan(repo_root: Path) -> list[StructureFinding]:
     """Run every sub-detector against the repo's living docs; one StructureFinding per locus.
 

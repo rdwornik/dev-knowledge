@@ -1300,6 +1300,7 @@ def check_git_backlog_drift(repo_path: Path) -> list[Finding]:
     ]
 
 
+# rule: coherence-doc-claims
 def check_doc_claims(repo_path: Path) -> list[Finding]:
     """#89 prose-vs-state: a living doc's count/list CLAIMS vs repo ground truth.
 
@@ -1338,6 +1339,7 @@ def check_doc_claims(repo_path: Path) -> list[Finding]:
                     f"{matched} doc self-claim(s) match repo state")]
 
 
+# rule: coherence-doc-rot
 def check_doc_rot(repo_path: Path) -> list[Finding]:
     """#140 doc-rot / grooming checker — the Layer-2 deterministic-trigger for **ADR-88 FC4**
     (history-accretion bloat). Surfaces inline-history accretion so it can't rot silently, and
@@ -1375,6 +1377,7 @@ def check_doc_rot(repo_path: Path) -> list[Finding]:
     ]
 
 
+# rule: coherence-doc-structure
 def check_doc_structure(repo_path: Path) -> list[Finding]:
     """Prose **structural** linter (supplement organ #2) — the Layer-2 deterministic-trigger
     for **ADR-88's prose-shape coherence**: section-numbering integrity, header-scheme
@@ -1451,6 +1454,7 @@ def check_no_ff_merges(repo_path: Path) -> list[Finding]:
     ]
 
 
+# rule: handoff-probes-bind
 def check_handoff_probes(repo_path: Path) -> list[Finding]:
     """#163 handoff-probe teeth: every probe in the LATEST v5 PROBES.md bundle binds
     to live state (structural, RESOLVE-ONLY — Critical Rule #4 "Layer 2 never executes",
