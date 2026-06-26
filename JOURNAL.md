@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-26 — CC: coherence batch — #216 §2 effort reconcile + #209 edge/string closure + #217 filed (plan-then-auto; NOT merged)
+
+**Did:** Ran the coherence batch in worktree `coherence-batch` (branch `worktree-coherence-batch`, off `d35e61f`), parallel to #195 (`scripts/`) and A2 (`docs/essentials-batch`). Four content commits `3af2d2c`..`82b7f96`: (1) **#216** — reconciled PLAYBOOK §2 effort ownership to the `## The two lifelines` canon: **model stays CC's pick, effort becomes the architect's (by token budget), mode the architect's** — 3 wording sites (L2088 "Model + Effort are CC-filled" split; L2093 "it"→"the model" + explicit effort-ownership; L2162 legend "Model + Effort are [CC]"→"Mode + Effort are [A]; Model is [CC]"); wording only, **zero rules changed**. (2) **#209** — declared `reconciled_with: handoff-process@5.3` on HANDOFF_BOOT (added its first frontmatter; content verified genuinely current at v5.3 — a CC-side probe-manifest consolidation, no browser-role change). (3) **#209** — refreshed 3 stale PLAYBOOK handoff-process version strings v5.2→v5.3 (L874 ×2, L2957); **no edge added** (advisory pointer, per the 2026-06-26 spike). (4) Filed **[#217]** [P3][S] (operator follow-up) — add effort to the Lifeline-1 division table for full three-way consistency (table ↔ §2 ↔ ESSENTIALS); **file-only, not acted**.
+
+**Result:** Final full `pytest` **851 passed / 3 skipped** (311s); per-commit `audit.py ship-gate` **GREEN** (4 WARN — all pre-existing/dispositioned: #77 voided-closure + 3 no-ff; **no new**); `reconciled_versions` 4→5 edges, 0 mismatch (HANDOFF_BOOT declared 5.3 / current 5.3); targeted reconciliation 48 passed; `ruff` clean; `validate_backlog` OK (88 tasks, 0 warn). Working tree clean. Arc = `3af2d2c`..`82b7f96`.
+
+**Cross-branch note (surfaced, benign):** This branch lacks A2's ESSENTIALS change (`89be624`) and the #216 BACKLOG filing (`bbd7357`) — both live only on `docs/essentials-batch`. The §2 fix aligns to the **in-branch canon** (which §2 contradicted independently) and **pre-empts** the post-A2-merge contradiction; this branch's ESSENTIALS is silent on effort, so no new conflict was introduced. Full three-way alignment (canon ↔ §2 ↔ ESSENTIALS) realizes at serial merge. Commits **bracket-reference** [#216]/[#209] for traceability only — **no `closes` verb** (a `closes [#216]` here would become a `git_backlog_drift` RED once A2's still-open #216 reaches main).
+
+**Changes:** `protocols/PLAYBOOK.md` (§2 effort reconcile + v5.2→v5.3 strings); `protocols/HANDOFF_BOOT.md` (+frontmatter reconciled edge); `BACKLOG.md` (+#217). Commits `3af2d2c` / `de7ef13` / `67942c5` / `82b7f96`.
+
+**Abandoned:** Did NOT merge (operator integrates serially from the primary, never concurrent with #195/A2). Did NOT close #216 — it's filed in A2's BACKLOG, not this branch; closure is a post-merge operator action. Did NOT touch `scripts/` (#195's). Did NOT act on #217 (file-only). Did NOT add a `reconciled_with` edge to PLAYBOOK (advisory pointer).
+
+**Next:** Operator reviews the diff + confirms effort-ownership reads consistently, then integrates serially (`--no-ff` from the primary). Post-merge: close #216 (in A2's BACKLOG) once both branches land. Optional grooms: #217 (Lifeline-1 table effort), and the §2 value-menu-table model-cell mirror (L2083 "Sonnet / Opus" vs A2's ESSENTIALS "CC's pick" — out of scope here).
+
 ### 2026-06-26 — CC: SEAL-1a integrated to main + pushed (operator-directed)
 
 **Did:** Per operator instruction ("Integruj 1a, branch → main, push re-confirm") integrated the SEAL-1a arc: `git merge --no-ff docs/playbook-condensation` → `main` (merge `9ab191f`), pushed `origin/main` (`0096c82..9ab191f`, 9 commits — only this arc), deleted the merged branch. Operator decisions confirmed: **KEEP** the Ch8 seed-claim reconciliation (not reverted); reference-compression follow-up **NOT authorized** (the −24-line honest result stands). Supersedes the prior wrap entry's "Did NOT merge / Did NOT push".
