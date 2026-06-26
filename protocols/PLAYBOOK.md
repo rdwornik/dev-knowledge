@@ -2085,12 +2085,12 @@ Per **ADR-87** (the architect↔CC equilibrium contract). STEP 1 verified CC sel
 | Effort    | low / medium / high / xhigh / max   |
 ```
 
-**Model + Effort are CC-filled** (CC's pick — see "How to choose Model" below); **Mode** is the architect's. The architect does not choose Model.
+**Model is CC's pick** (see "How to choose Model" below); **Mode and Effort are the architect's** (Effort set by token budget). The architect does not choose Model.
 
 ### How to choose Model
 <!-- scope: llm -->
 
-**Model is CC's pick, not the architect's** (canonical: "The two lifelines" § Lifeline 1) — default **Opus 4.8**, the floor (see "Model / effort platform doctrine" below); CC may route a mechanical sub-step smaller. The architect does not set it; effort is keyed to token budget. CC's routing heuristic:
+**Model is CC's pick, not the architect's** (canonical: "The two lifelines" § Lifeline 1) — default **Opus 4.8**, the floor (see "Model / effort platform doctrine" below); CC may route a mechanical sub-step smaller. The architect does not set the model; **effort is the architect's**, keyed to token budget. CC's routing heuristic:
 
 - **Sonnet** for: mechanical work ("apply this fix"), single-file edits, well-specified implementation, pattern-matched code, boilerplate, file renames, config updates, code-and-test loops where the spec is detailed.
 - **Opus** for: audit / review / synthesis tasks; architecture decisions and clause-level reasoning; judgment-heavy work (severity calibration, ambiguity resolution); long-context comparison across multiple inputs; subtle pattern recognition (security review, gotcha identification); multi-package changes; complex debugging; novel logic design.
@@ -2159,7 +2159,7 @@ Platform-current facts that pin the tables above (Claude Code 2.1.186; refreshed
 ```
 LEGEND  [A] = architect emits  ·  [CC] = CC self-loads  (per "The two lifelines" § Lifeline 1)
 
-| Parameter | Value  |   <- Mode is [A]; Model + Effort are [CC]
+| Parameter | Value  |   <- Mode + Effort are [A]; Model is [CC]
 | --------- | ------ |
 | Model     | [pick] |
 | Mode      | [pick] |
