@@ -248,6 +248,12 @@ The architect emits **intent + closure + anti-patterns + MODE + a thin governanc
 
 **The sealing test (applies to both lifelines):** *"does this mechanism have its consumer / gate?"* — and its refinement, *"is there real signal for a consumer to act on?"* The answer can be **no**: the import-cycle gate was the right shape but guarded nothing, so it was declined. *Built-without-consumer* is the recurring failure class both 2026-06-25 audits found; this test is the standing guard against it.
 
+**Chapter map — every chapter below serves one lifeline (the frame is the backbone; this map organizes, it does not renumber):**
+
+- **Lifeline 1 — Workflow** (the delegation loop): Ch2 (CLAUDE.md contract) · Ch4 + §2 (the prompt contract) · Ch5 (build / test) · Ch7 + §6 + §16 + §17 (review / verify) · Ch8 (session boundaries) · Ch9 (closure loop) · Ch12 (definition of done) · Ch14 (Claude Code internals) · §1 §4 §5 §7 §8 (new-project / lessons / Council / long-session / handoff recipes).
+- **Lifeline 2 — Coherence** (corpus consistency): Ch3 (repo conventions) · Ch6 (doc-file types + freshness / amendment / reconciled-edge checks) · Ch11 (nightly conformance mesh) · §10 (BACKLOG grooming) · §14 (markdown governance) · §19 (scrum-master propagation).
+- **Cross-cutting** (frame both): Ch1 (system architecture) · Ch10 (two-tier automation) · Ch13 (continuous improvement) · §3 §9 §11 §12 §13 §15 (absorb / weekly / tool-eval / multi-project / where-knowledge-lives / anti-patterns) · Appendices A–C.
+
 ## Part I — Reference
 *Foundational doctrine — the durable reference chapters (Ch1–Ch14). Read the chapter you need; this part is reference, not a start-to-finish read.*
 
@@ -388,12 +394,10 @@ When transferring context across LLM boundaries — handoff bundles, chat-to-cha
 references, browser-to-CC interactions, CC-to-Codex review handovers — the sender
 verifies load-bearing claims inline (via tool calls or a colleague-LLM) rather
 than carrying forward "unknown" or "I think this was true earlier." The receiver
-asks back before unilateral interpretation. This emerged from the v4.1 handoff
-first run (2026-05-29), where the sender carried "aborted folder preserved" as
-witnessed when it was actually recalled-from-earlier-session — Phase 2 verification
-caught the drift, but the upstream discipline avoids the drift in the first place.
-
-Applies broadly: not just to handoff process.
+asks back before unilateral interpretation. Applies broadly, not just to the
+handoff process. (Origin: the v4.1 handoff first run carried a recalled claim as
+witnessed; Phase-2 verification caught the drift — the upstream discipline avoids
+it in the first place. Incident: LESSONS 2026-05-30.)
 
 ### Process versioning: beta vs stable promotion
 <!-- scope: meta -->
