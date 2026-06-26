@@ -2106,15 +2106,17 @@ Per **ADR-87** (the architect↔CC equilibrium contract). STEP 1 verified CC sel
 | Effort    | low / medium / high / xhigh / max   |
 ```
 
+**Model + Effort are CC-filled** (CC's pick — see "How to choose Model" below); **Mode** is the architect's. The architect does not choose Model.
+
 ### How to choose Model
 <!-- scope: llm -->
+
+**Model is CC's pick, not the architect's** (canonical: "The two lifelines" § Lifeline 1) — default **Opus 4.8**, the floor (see "Model / effort platform doctrine" below); CC may route a mechanical sub-step smaller. The architect does not set it; effort is keyed to token budget. CC's routing heuristic:
 
 - **Sonnet** for: mechanical work ("apply this fix"), single-file edits, well-specified implementation, pattern-matched code, boilerplate, file renames, config updates, code-and-test loops where the spec is detailed.
 - **Opus** for: audit / review / synthesis tasks; architecture decisions and clause-level reasoning; judgment-heavy work (severity calibration, ambiguity resolution); long-context comparison across multiple inputs; subtle pattern recognition (security review, gotcha identification); multi-package changes; complex debugging; novel logic design.
 
-Rule of thumb: if the task is "do X the way we always do it" → Sonnet. If the task is "figure out the right approach, then do it" → Opus.
-
-**Actively choose per task; do NOT default to Sonnet.** There is no budget ceiling per the LLM-spend rule. When uncertain, lean Opus — Sonnet's failure modes (missed nuance, factual misses) cost more than Opus's overhead.
+Rule of thumb: "do X the way we always do it" → Sonnet; "figure out the right approach, then do it" → Opus. No budget ceiling (LLM-spend rule); when uncertain, lean Opus — Sonnet's failure modes (missed nuance, factual misses) cost more than Opus's overhead.
 
 ### When to escalate to a Dynamic Workflow
 <!-- scope: llm -->
