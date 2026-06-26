@@ -3,9 +3,9 @@
 <!-- scope: meta -->
 
 **Date:** 2026-06-26  
-**Generated:** 2026-06-26T22:03:01  
+**Generated:** 2026-06-26T23:56:12  
 **Repos audited:** 5  
-**Checks:** 115 total — 100 pass, 2 fail, 0 warn, 0 unavailable, 13 n/a
+**Checks:** 120 total — 105 pass, 2 fail, 0 warn, 0 unavailable, 13 n/a
 
 ---
 
@@ -35,10 +35,11 @@
 | `doc_claims` | PASS | hub-only — prose-vs-state check skipped (not the hub repo) |
 | `no_ff_merges` | PASS | hub-only — --no-ff guard skipped (not the hub repo) |
 | `handoff_probes` | PASS | 10 probe(s) bind to live state (2026-06-25-dev-knowledge-architect) |
-| `reconciled_versions` | PASS | 4 reconciled_with edge(s) match live spec version(s) |
+| `reconciled_versions` | PASS | 5 reconciled_with edge(s) match live spec version(s) |
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
 | `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
 | `doc_code_edge` | PASS | hub-only — doc->code edge check skipped (not the hub repo) |
+| `safe_removal` | PASS | no scripts/*.py module removal in the diff |
 
 History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/)
 
@@ -74,6 +75,7 @@ History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
 | `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
 | `doc_code_edge` | PASS | hub-only — doc->code edge check skipped (not the hub repo) |
+| `safe_removal` | PASS | no scripts/*.py module removal in the diff |
 
 History: [`ecosystem\ai-council\history/`](ecosystem\ai-council\history/)
 
@@ -109,6 +111,7 @@ History: [`ecosystem\ai-council\history/`](ecosystem\ai-council\history/)
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
 | `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
 | `doc_code_edge` | PASS | hub-only — doc->code edge check skipped (not the hub repo) |
+| `safe_removal` | PASS | no scripts/*.py module removal in the diff |
 
 History: [`ecosystem\corp-monorepo\history/`](ecosystem\corp-monorepo\history/)
 
@@ -144,6 +147,7 @@ History: [`ecosystem\corp-monorepo\history/`](ecosystem\corp-monorepo\history/)
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
 | `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
 | `doc_code_edge` | PASS | hub-only — doc->code edge check skipped (not the hub repo) |
+| `safe_removal` | PASS | no scripts/*.py module removal in the diff |
 
 History: [`ecosystem\corp-ops\history/`](ecosystem\corp-ops\history/)
 
@@ -179,6 +183,7 @@ History: [`ecosystem\corp-ops\history/`](ecosystem\corp-ops\history/)
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
 | `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
 | `doc_code_edge` | PASS | hub-only — doc->code edge check skipped (not the hub repo) |
+| `safe_removal` | PASS | no scripts/*.py module removal in the diff |
 
 History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time-automation\history/)
 
@@ -187,7 +192,7 @@ History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time
 ## Summary
 
 - 5 repo(s) audited
-- 100/115 checks passed
+- 105/120 checks passed
 - **2 failure(s)** — route findings to repo owners
 - 13 n/a (check not applicable to that repo)
 
