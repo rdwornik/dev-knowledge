@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-06-26 — CC: SEAL-1a integrated to main + pushed (operator-directed)
+
+**Did:** Per operator instruction ("Integruj 1a, branch → main, push re-confirm") integrated the SEAL-1a arc: `git merge --no-ff docs/playbook-condensation` → `main` (merge `9ab191f`), pushed `origin/main` (`0096c82..9ab191f`, 9 commits — only this arc), deleted the merged branch. Operator decisions confirmed: **KEEP** the Ch8 seed-claim reconciliation (not reverted); reference-compression follow-up **NOT authorized** (the −24-line honest result stands). Supersedes the prior wrap entry's "Did NOT merge / Did NOT push".
+
+**Result:** `origin/main` = `main` = `9ab191f`; tree clean; `block-ff-push` passed (`--no-ff` merge on the first-parent spine); `ship-gate` GREEN. Branches: `main` + `automation/fleet-audit` (kept, per prior operator ruling).
+
+**Next:** SEAL-1a closed. 1e (#214) / 1f (#215) stay filed-not-built. Optional future arcs: reference-compression pass (the held-back lever); ESSENTIALS-slim (depends on this arc's pointer handling).
+
 ### 2026-06-26 — CC: SEAL-1a PLAYBOOK rule/history condensation (plan-then-auto; NOT merged)
 
 **Did:** Executed SEAL-1a on branch `docs/playbook-condensation` (off `main`) — separate rule from rationale/history in `protocols/PLAYBOOK.md`, lose zero rules, organize around the two-lifelines spine. 7 commits (Group 0 + A–F): filed BACKLOG #213/#214/#215 (1a/1e/1f; closed nothing); extended the spine with a chapter→lifeline map; relocated incidents to their existing LESSONS pointers + trimmed dated provenance across Ch2/Ch5/Ch8/Ch10–14/§5/§19; de-referenced the one live line-number referrer (`scripts/audit.py` docstring `§924` → section name); wrote the closure artifact `docs/audits/2026-06-26-playbook-condensation-rule-inventory.md`. **Reconciled a refuted claim** (surfaced, not silent): Ch8's "native `claude --worktree` auto-seeds `ecosystem/*/state.yaml` for you" (verified 2026-06-18) → the canonical n=3 rule (seed from the primary; LESSONS 2026-06-19).
