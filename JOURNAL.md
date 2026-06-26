@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-26 — CC: integration wrap (merge two-lifelines + corpus-cleanup; keep fleet-audit)
+
+**Did:** Operator-directed consolidation after the two-lifelines arc wrap. Merged `docs/two-lifelines-canonical` → `main` `--no-ff` (`cc6d15f`, operator-reviewed). Per operator instruction: **KEPT** `automation/fleet-audit`; merged the parallel `worktree-corpus-cleanup` → `main` `--no-ff` (`4848ca4`), resolving the lone JOURNAL conflict by keeping both 2026-06-26 entries verbatim (newest-first); removed the corpus-cleanup worktree + deleted its merged branch. Committed the previously-untracked corpus-graph audit `docs/audits/2026-06-26-corpus-graph-justify-or-retire.md` (`c1ae96a`, merge `323c85e`) to resolve the dangling reference the merged corpus-cleanup work made to it. Deleted my merged branches (two-lifelines + the already-merged `chore/freshness-bump-2026-06-26`).
+
+**Result:** Consolidated tree `pytest` **854 passed**, `ruff` clean, `audit.py ship-gate` **GREEN** (4 WARN, all pre-existing/dispositioned — no new). Working tree clean. Branches: `main` + `automation/fleet-audit` (kept). Worktrees: primary only. main ahead of `origin/main` by ~15, **unpushed** (awaiting operator OK — push needs explicit confirmation).
+
+**Changes:** integration only — merges `cc6d15f` (two-lifelines) / `4848ca4` (corpus-cleanup) / `323c85e` (audit-file); audit-file commit `c1ae96a`. No content edits beyond the JOURNAL conflict resolution (both session entries preserved verbatim).
+
+**Abandoned:** Did NOT push (operator OK required). Did NOT merge/delete `automation/fleet-audit` (operator: it stays). Closed nothing (#211/#212 filed by the corpus-cleanup arc remain open — done-items-leave).
+
+**Next:** Operator decides on push. #77 carries the ESSENTIALS "Writing a Prompt" staleness + the deferred Roles cross-ref + the retire-vs-slim call (fed by the scratchpad classification note + the now-committed corpus-graph audit).
+
+---
+
 ### 2026-06-26 — CC: two-lifelines canonical section + architect↔CC consolidation (#77 advance)
 
 **Did:** Made PLAYBOOK the single canonical home for the architect↔CC division. (1) Added a lean `## The two lifelines` framing section — Lifeline 1 (Workflow: the delegation loop + the equilibrium division table) + Lifeline 2 (Coherence: the four dependency edge-types) + the sealing test — placed ABOVE Part I (the `validate_doc_structure` heading-scheme gate forbids a non-`ChN` heading inside Part I; above Part I is also more accurate — it frames both Parts). (2) Pointerized the scattered division copies to it: §2 "Architect output" bullets, §2 Structure legend, §8 Roles (division-half), and the Ch4 cross-ref flag (dropped its "candidate for a later consolidation — not done here" deferral). (3) Collapsed §2 "How to choose Model" to "model is CC's pick, not the architect's" (Opus 4.8 floor; Sonnet/Opus heuristic preserved as CC routing); summary-table Model/Effort marked CC-filled. Per ADR-87; references ARCHITECTURE Ch1 for the layer canon rather than restating it.
