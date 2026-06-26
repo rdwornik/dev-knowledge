@@ -204,6 +204,30 @@ def iter_code_rule_ids(code_root: Path) -> set[str]:
     return ids
 
 
+def markers_in_source(src: str) -> set[str]:
+    """Collect rule-IDs from real `# rule:` COMMENT tokens in a Python source STRING.
+
+    The single-source-string sibling of `iter_code_rule_ids` (which walks a tree): tokenizes
+    `src` and reads ONLY real COMMENT tokens, so a `# rule: ID` inside a string literal or a
+    docstring is never collected (the audit-check docstrings literally contain `` `# rule: ID` ``
+    in prose -- a naive regex would false-positive; tokenize does not). Used by the #203 coverage
+    drift-guard to read an ALL_CHECKS member's own `# rule:` annotation from its source span.
+    Fail-soft -> set() on an untokenizable fragment (an incomplete snippet can raise TokenError).
+    """
+    ids: set[str] = set()
+    try:
+        tokens = list(tokenize.generate_tokens(io.StringIO(src).readline))
+    except (tokenize.TokenError, SyntaxError, IndentationError):
+        return ids
+    for tok in tokens:
+        if tok.type != tokenize.COMMENT:
+            continue
+        m = CODE_RE.search(tok.string)
+        if m:
+            ids.add(m.group(1))
+    return ids
+
+
 def resolve_edge(rule_id: str, doc_root: Path, code_root: Path,
                  include: tuple[str, ...] | None = None,
                  multi_site: dict[str, int] | None = None) -> EdgeResult:

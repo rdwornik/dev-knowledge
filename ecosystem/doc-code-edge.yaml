@@ -90,3 +90,29 @@ multi_site:
   coherence-doc-rot: 2           # audit.py::check_doc_rot (adapter) + validate_doc_rot.py::scan (logic)
   coherence-doc-structure: 2     # audit.py::check_doc_structure (adapter) + validate_doc_structure.py::scan (logic)
   handoff-probes-bind: 2         # audit.py::check_handoff_probes (adapter) + verify_handoff_probes.py::verify (logic)
+
+# Coverage drift-guard exempt-list -- #203. The ALL_CHECKS members that are NOT declared
+# doc->code behavioral rules and so owe no `# rule:` annotation: the structural/presence baseline
+# checks + the two self-referential meta-checks (doc_code_edge, doc_code_coverage_drift). Entries
+# are CHECK NAMES (a Finding `check_name` = `fn.__name__` minus the `check_` prefix).
+# `audit.py::check_doc_code_coverage_drift` (in ALL_CHECKS, FAIL-class) FAILs when an ALL_CHECKS
+# member is neither annotated with a `coverage_scope` `# rule:` marker NOR listed here -- so a
+# NEW enforced rule that lands as an ALL_CHECKS check cannot silently escape the curated
+# coverage_scope. Append a check here ONLY when it is genuinely a structural/presence/self check
+# with no behavioral doc->code rule (the deliberate decision the drift cost asks for).
+exempt:
+  - vision_md
+  - adr38_baseline
+  - claude_md
+  - dot_prefix_discipline
+  - canonical_md_visibility
+  - workspace_settings
+  - mermaid_theme_directive
+  - handoff_bundle_structure
+  - handoff_tag_canonicity
+  - no_sibling_orphans
+  - canonical_structure
+  - handoff_version_stamp
+  - doc_code_edge              # self-referential (the doc->code edge check itself)
+  - safe_removal              # code->code removal gate (#195) -- not a doc->code rule
+  - doc_code_coverage_drift   # self-referential (this drift-guard)

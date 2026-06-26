@@ -29,6 +29,7 @@ Usage:
 
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import os
@@ -1635,6 +1636,31 @@ def _load_multi_site(repo_path: Path) -> dict[str, int]:
             if isinstance(k, str) and isinstance(v, int) and not isinstance(v, bool) and v >= 2}
 
 
+def _load_coverage_exempt(repo_path: Path) -> set[str]:
+    """Read the doc->code coverage drift-guard exempt-list (`ecosystem/doc-code-edge.yaml`,
+    `exempt:`) -- the ALL_CHECKS members that are NOT declared doc->code behavioral rules: the
+    structural/presence baseline checks + the two self-referential meta-checks (`doc_code_edge`,
+    `doc_code_coverage_drift`). Entries are CHECK NAMES (a Finding `check_name` =
+    `fn.__name__` minus the `check_` prefix).
+
+    Sibling key to `coverage_scope`/`multi_site`; same fail-soft -> set() contract (a
+    missing/malformed file or non-list value yields an empty set -- and `check_doc_code_coverage_drift`
+    treats an empty scope-or-exempt as INERT, so an absent config cannot vacuously pass every
+    member). Resolved from `repo_path` at call time. Read-only.
+    """
+    cfg = Path(repo_path) / "ecosystem" / "doc-code-edge.yaml"
+    try:
+        data = yaml.safe_load(cfg.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return set()
+    if not isinstance(data, dict):
+        return set()
+    raw = data.get("exempt")
+    if not isinstance(raw, list):  # a non-list scalar must degrade, not raise
+        return set()
+    return {s for s in raw if isinstance(s, str)}
+
+
 def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     """#194 doc→code declared-edge integrity (advisory-first, ADR-89 OQ1).
 
@@ -1761,6 +1787,85 @@ def check_safe_removal(repo_path: Path) -> list[Finding]:
                     .replace("|", "/"))]
 
 
+def _markers_for_check(fn) -> set[str]:
+    """The rule-ID(s) an ALL_CHECKS member declares: real `# rule:` COMMENT tokens in its own
+    source body PLUS the contiguous `#`-comment block immediately above its `def`.
+
+    `inspect.getsourcelines` starts at the `def` line and OMITS the leading annotation, so the
+    above-def convention (the marker sits on the line directly above `def`, matching the cohort-1
+    annotations) needs the walk-back. Reads real COMMENT tokens only, via
+    `validate_doc_code_edge.markers_in_source` -- a marker quoted in a docstring/string is never
+    collected. Fail-soft -> set() when the source is unavailable.
+    """
+    try:
+        body_lines, start = inspect.getsourcelines(fn)
+    except (OSError, TypeError):
+        return set()
+    pre: list[str] = []
+    try:
+        module = sys.modules.get(fn.__module__)
+        all_lines = inspect.getsource(module).splitlines(keepends=True)
+        i = start - 2  # 0-based index of the line directly above the def
+        while i >= 0 and all_lines[i].lstrip().startswith("#"):
+            pre.insert(0, all_lines[i])
+            i -= 1
+    except (OSError, TypeError):
+        pre = []
+    return _vdce.markers_in_source("".join(pre) + "".join(body_lines))
+
+
+def _coverage_drift_findings(checks, coverage_scope: set[str],
+                             exempt: set[str]) -> list[tuple[str, set[str]]]:
+    """The testable core of the #203 drift-guard: return `(check_name, markers)` for every check
+    that is NEITHER mapped (>=1 marker, all in `coverage_scope`) NOR exempt. Empty list = full
+    coverage. `check_name` = `fn.__name__` minus the `check_` prefix (the Finding identity)."""
+    drift: list[tuple[str, set[str]]] = []
+    for fn in checks:
+        name = fn.__name__.removeprefix("check_")
+        markers = _markers_for_check(fn)
+        mapped = bool(markers) and markers <= coverage_scope
+        if not mapped and name not in exempt:
+            drift.append((name, markers))
+    return drift
+
+
+def check_doc_code_coverage_drift(repo_path: Path) -> list[Finding]:
+    """#203 doc->code coverage drift-guard. Every ALL_CHECKS member must be EITHER annotated with
+    a `coverage_scope` rule-ID marker OR listed in `exempt:` (ecosystem/doc-code-edge.yaml) --
+    else FAIL, NAMING the escapee. So a NEW enforced rule landing as an ALL_CHECKS check cannot
+    silently escape the curated doc->code `coverage_scope` (the stated drift cost of the FALLBACK
+    curated mechanism). FAIL-class (gating, like check_safe_removal); hub-only; read-only.
+
+    SCOPE (honest limit): this guards ONLY the auto-enumerable ALL_CHECKS surface. Enforcement
+    organs OUTSIDE ALL_CHECKS -- the seal Stop-hook, the commit-msg / pre-push hooks, the
+    standalone pre-commit validators -- are NOT auto-guarded; that heterogeneous remainder stays
+    curated (no single auto-enumerable registry across all mechanisms; doc-code-edge.yaml header).
+    """
+    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+        return [Finding("doc_code_coverage_drift", "pass",
+                        "hub-only -- coverage drift-guard skipped (not the hub repo)")]
+    try:
+        scope = set(_load_coverage_scope(repo_path))
+        exempt = _load_coverage_exempt(repo_path)
+        if not scope or not exempt:
+            # An empty scope OR exempt would let members pass vacuously -- treat as inert config.
+            return [Finding("doc_code_coverage_drift", "warn",
+                            "coverage_scope or exempt empty/absent -- drift-guard inert "
+                            "(ecosystem/doc-code-edge.yaml)")]
+        drift = _coverage_drift_findings(ALL_CHECKS, scope, exempt)
+    except Exception as exc:  # never wedge the gate on an internal error
+        return [Finding("doc_code_coverage_drift", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    if drift:
+        return [Finding("doc_code_coverage_drift", "fail",
+                        ("ALL_CHECKS member(s) neither coverage_scope-annotated nor exempt: "
+                         + "; ".join(f"{n} (markers={sorted(m) or 'none'})" for n, m in drift))
+                        .replace("|", "/"))]
+    return [Finding("doc_code_coverage_drift", "pass",
+                    f"all {len(ALL_CHECKS)} ALL_CHECKS members covered "
+                    "(coverage_scope-annotated or exempt); none escape coverage_scope")]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -1786,6 +1891,7 @@ ALL_CHECKS = [
     check_doc_structure,
     check_doc_code_edge,
     check_safe_removal,
+    check_doc_code_coverage_drift,
 ]
 
 

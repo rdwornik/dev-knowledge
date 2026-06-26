@@ -236,11 +236,11 @@ orchestrate, but it may verify itself). These are the *executable* organs the ma
 above references — the **named deterministic-trigger organs**, curated to what the map
 references, **not an exhaustive inventory** of every script in `scripts/`:
 
-- `scripts/audit.py` — cross-repo conformance + self-audit; **24 registered checks**
+- `scripts/audit.py` — cross-repo conformance + self-audit; **25 registered checks**
   (`python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
   `no_sibling_orphans`, `canonical_structure`, `amendment_coherence`, `git_backlog_drift`,
   `no_ff_merges`, `reconciled_versions`, `doc_rot`, `doc_structure`, `doc_code_edge`,
-  `safe_removal`).
+  `safe_removal`, `doc_code_coverage_drift`).
   `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs);
   `ship-gate` = the #147 pre-ship verification-organ gate (Definition-of-shipped point 6).
   **Seam `ship-gate` vs `health`:** both reuse `ALL_CHECKS`, but `health` gates each
@@ -360,7 +360,7 @@ proven" headline — green never lies. Per-oracle **deep modes** stay in the per
 | Edge-type | In gate? | Registered + operational | Fires on a representative break (integrated entry) | Deep modes (referenced — not owned here) |
 |---|---|---|---|---|
 | spec→dependent (#172) | yes (`ALL_CHECKS`) | PROVEN | PROVEN — stale `reconciled_with` → `check_reconciled_versions` FAIL | `test_coherence_integration.py` + `test_validate_reconciliation.py` |
-| doc→code (#194) | yes (`ALL_CHECKS`, hub-only) | PROVEN | PROVEN — declaration-registry doc + a broken/orphaned rule-ID → `check_doc_code_edge` WARN (broken_edge / code_orphan) | `test_doc_code_edge.py` (move-safety, dup-guard, coverage gate, registry-scoping guard, **L1 structural-integrity + rebuildable-index round-trip**); coverage tail → #201/#202/#203 |
+| doc→code (#194) | yes (`ALL_CHECKS`, hub-only) | PROVEN | PROVEN — declaration-registry doc + a broken/orphaned rule-ID → `check_doc_code_edge` WARN (broken_edge / code_orphan) | `test_doc_code_edge.py` (move-safety, dup-guard, coverage gate, registry-scoping guard, **L1 structural-integrity + rebuildable-index round-trip**, multi-site + coverage-drift teeth); coverage tail #201/#202/#203 **complete** — 12 rules + the `doc_code_coverage_drift` guard |
 | undeclared (#179/#199) | no (awareness, exit 0) | PROVEN | PROVEN — prose ref to a registered spec + no edge → candidate surfaced via `scan`/`main` | `test_scan_undeclared_edges.py` (tiers, fenced-exclusion, false-flag precision) |
 | code↔code (#193) | no (query tool; #195) | PROVEN | PROVEN here (vendored Pyright, skipif-guarded) — real reverse-dep query → ≥1 dependent w/ provenance | `test_reverse_dep_oracle.py`; transitive closure → #193/#195 |
 | **graph-integration** | — | **4/4 PROVEN** | **4/4 PROVEN this env** (code↔code skipif-guarded) | referenced above |
@@ -370,10 +370,11 @@ operational, 4/4 fires-on-break); integration **fully proven (this env)**. An un
 → **7/8 proven, 1 skipped** (code↔code fires — Pyright not provisioned): fully **provable**, not
 fully proven there. No green — test name, output, or this map — reads as "fully proven" while a
 cell is skipped or gapped. **Skip/gap tracking:** code↔code fires → skip-guarded, here proven,
-portability via **#195** (integrated enforcement) + **#193**; doc→code coverage tail →
-**#201/#202/#203**.
+portability via **#195** (integrated enforcement) + **#193**; doc→code coverage tail
+**#201/#202/#203 complete** (12 rules mapped + the `doc_code_coverage_drift` guard over the
+auto-enumerable `ALL_CHECKS` surface; the heterogeneous non-`ALL_CHECKS` remainder stays curated).
 
-- `tests/` — pytest unit tests for the validators (**878 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**884 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`

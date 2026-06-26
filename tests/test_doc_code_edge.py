@@ -237,7 +237,7 @@ def test_edge_check_only_scans_listed_docs(tmp_path, monkeypatch):
 
 
 def test_edge_check_registered_and_resolves_starter_set():
-    """Registered in ALL_CHECKS (count 24) AND the LIVE hub scan resolves the post-#202 set over
+    """Registered in ALL_CHECKS (count 25) AND the LIVE hub scan resolves the post-#202 set over
     the declaration-doc registry: 12 enforced rules -- the 5 cohort-1 (seal-journal-anchor /
     canonical-freshness / coherence-spec-reconciled / coherence-amendment / governance-backlog-
     schema) + the #201 governance trio (governance-no-ff / -child-floor / -backlog-leave) + the
@@ -245,7 +245,7 @@ def test_edge_check_registered_and_resolves_starter_set():
     multi-organ ones via ADR-90 -- each resolve doc<->code; the edge is REAL + advisory (never
     FAILs)."""
     assert aud.check_doc_code_edge in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 24
+    assert len(aud.ALL_CHECKS) == 25
     findings = aud.check_doc_code_edge(Path(aud._REPO_ROOT))
     assert all(f.status != "fail" for f in findings)        # advisory: never FAIL
     assert len(findings) == 1
@@ -642,3 +642,97 @@ def test_governance_multi_site_rules_resolve_live(rule_id, count):
     r = vdce.resolve_edge(rule_id, _REPO_ROOT, code_root, include=decl, multi_site=multi)
     assert r.status == "resolved", f"{rule_id}: {r.status} (code sites={len(r.code_sites)})"
     assert len(r.code_sites) == count                          # all N organs annotated + found
+
+
+# --- #203 coverage drift-guard (the demonstrated catch) --------------------------------
+# check_doc_code_coverage_drift FAILs when an ALL_CHECKS member is neither annotated with a
+# coverage_scope `# rule:` marker NOR exempt -- so a NEW enforced rule can't silently escape the
+# curated scope. The TEETH are proven by SEEDING such a member and asserting the flag NAMES it
+# (a test that never exercises the flag proves nothing -- #195/#207).
+
+# Module-level fakes (inspect.getsource needs them at module scope). check_fake_mapped carries a
+# real above-def marker; the other two carry none.
+def check_fake_undeclared(repo_path):   # no marker, not exempt -> must be FLAGGED
+    return []
+
+
+# rule: canonical-freshness
+def check_fake_mapped(repo_path):       # marker in coverage_scope -> mapped, passes
+    return []
+
+
+def check_fake_exempt(repo_path):       # no marker, but listed exempt -> passes
+    return []
+
+
+def test_markers_in_source_reads_comment_tokens_only():
+    """markers_in_source collects a real `# rule:` COMMENT but NEVER one inside a string or a
+    docstring -- the docstring-false-positive the tokenize approach (not a regex) exists to avoid."""
+    src = (
+        "def f():\n"
+        "    # rule: real-one\n"
+        '    note = "see # rule: string-only here"\n'
+        '    """also # rule: docstring-only"""\n'
+        "    return 1\n"
+    )
+    assert vdce.markers_in_source(src) == {"real-one"}
+
+
+def test_coverage_drift_guard_flags_undeclared_check_naming_it():
+    """THE TEETH (#203), helper level: the per-member core FLAGS a seeded check that is neither
+    coverage_scope-annotated nor exempt, NAMING it; (B) a coverage-marked check and (C) an exempt
+    check both pass (absent from the drift list)."""
+    scope = {"canonical-freshness"}
+    exempt = {"fake_exempt"}
+    drift = aud._coverage_drift_findings(
+        [check_fake_undeclared, check_fake_mapped, check_fake_exempt], scope, exempt)
+    flagged = {name for name, _ in drift}
+    assert flagged == {"fake_undeclared"}, f"expected only fake_undeclared flagged, got {flagged}"
+
+
+def test_coverage_drift_guard_full_check_fails_on_injected_escape(monkeypatch):
+    """End-to-end teeth (the CAPTURED FLAG = #203 closure evidence): inject an unannotated,
+    non-exempt member into ALL_CHECKS -> check_doc_code_coverage_drift returns a FAIL Finding that
+    NAMES the escapee. Not a toothless wiring test -- it exercises the flag."""
+    monkeypatch.setattr(aud, "ALL_CHECKS", list(aud.ALL_CHECKS) + [check_fake_undeclared])
+    findings = aud.check_doc_code_coverage_drift(Path(aud._REPO_ROOT))
+    assert len(findings) == 1
+    assert findings[0].status == "fail"
+    assert "fake_undeclared" in findings[0].evidence
+
+
+def test_coverage_drift_guard_registered_and_clean_on_live_repo():
+    """The drift-guard is in ALL_CHECKS (count 25) and PASSES on the live repo: every member is
+    either coverage_scope-annotated or exempt (the post-#203 end-state)."""
+    assert aud.check_doc_code_coverage_drift in aud.ALL_CHECKS
+    assert len(aud.ALL_CHECKS) == 25
+    findings = aud.check_doc_code_coverage_drift(Path(aud._REPO_ROOT))
+    assert len(findings) == 1
+    assert findings[0].status == "pass", findings[0].evidence
+
+
+def test_load_coverage_exempt_failsoft(tmp_path):
+    """audit._load_coverage_exempt fail-soft: missing / malformed / non-list -> set(); a valid
+    list of str check-names is kept."""
+    assert aud._load_coverage_exempt(tmp_path) == set()                    # absent file
+    eco = tmp_path / "ecosystem"
+    eco.mkdir()
+    (eco / "doc-code-edge.yaml").write_text("exempt: [unclosed", encoding="utf-8")
+    assert aud._load_coverage_exempt(tmp_path) == set()                    # malformed YAML
+    (eco / "doc-code-edge.yaml").write_text("exempt: notalist\n", encoding="utf-8")
+    assert aud._load_coverage_exempt(tmp_path) == set()                    # non-list value
+    (eco / "doc-code-edge.yaml").write_text(
+        "exempt:\n  - vision_md\n  - doc_code_edge\n", encoding="utf-8")
+    assert aud._load_coverage_exempt(tmp_path) == {"vision_md", "doc_code_edge"}
+
+
+def test_coverage_drift_guard_inert_on_empty_config(tmp_path, monkeypatch):
+    """An empty coverage_scope OR exempt makes the guard report INERT (WARN), never a vacuous pass
+    -- an absent config cannot silently certify every member as covered."""
+    _as_hub(tmp_path, monkeypatch)
+    (tmp_path / "ecosystem").mkdir()
+    (tmp_path / "ecosystem" / "doc-code-edge.yaml").write_text(
+        "coverage_scope: []\nexempt: []\n", encoding="utf-8")
+    findings = aud.check_doc_code_coverage_drift(tmp_path)
+    assert findings[0].status == "warn"
+    assert "inert" in findings[0].evidence
