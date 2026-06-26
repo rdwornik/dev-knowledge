@@ -1,3 +1,5 @@
+<!-- ARCHIVED 2026-06-26 — the flat v3.4 two-phase "Stage 1 Question" template, superseded by the v5 handoff template set `templates/handoff/**` (its interview function now lives in `templates/handoff/v5/SUPPLEMENT.md.tmpl`, ADR-82). Per the ADR-83 (protocols) / ADR-60 (docs) archive convention. The live v5 template set is `templates/handoff/**`; this flat template is retired (not read by the v5 `/handoff` command). -->
+
 # Handoff Stage 1 Question Template
 
 <!-- scope: meta -->

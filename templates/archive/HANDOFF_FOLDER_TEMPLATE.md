@@ -1,3 +1,5 @@
+<!-- ARCHIVED 2026-06-26 — the flat v3.4 two-phase "Stage 3 output structure" template, superseded by the v5 handoff template set `templates/handoff/**` (ADR-82). Per the ADR-83 (protocols) / ADR-60 (docs) archive convention. The live v5 template set is `templates/handoff/**`; this flat template is retired (not read by the v5 `/handoff` command). -->
+
 # Handoff Folder Template (Stage 3 output structure)
 
 Used by Claude Code in .dev-knowledge during Stage 3 to generate the

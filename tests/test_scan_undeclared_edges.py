@@ -309,7 +309,8 @@ def test_is_immutable_artifact_unit() -> None:
     ]
     kept = [
         "docs/handoffs/README.md", "docs/decisions/README.md",   # living, allowlisted
-        "protocols/PLAYBOOK.md", "templates/HANDOFF_TEMPLATE.md",
+        "protocols/PLAYBOOK.md",
+        "templates/archive/HANDOFF_TEMPLATE.md",  # archived 2026-06-26; templates/archive/ is NOT an immutable prefix -> still edge-eligible
         "ARCHITECTURE.md", "GUIDE.md",
         "ecosystem/corp-ops/state-notes.md",                     # ecosystem but not /history/
     ]

@@ -1,3 +1,5 @@
+<!-- ARCHIVED 2026-06-26 — the flat v2.0/v3.4 single-file handoff bundle template, superseded by the v5 handoff template set `templates/handoff/**` (ADR-82). Per the ADR-83 (protocols) / ADR-60 (docs) archive convention. The live v5 template set is `templates/handoff/**`; this flat template is retired (not read by the v5 `/handoff` command). -->
+
 # HANDOFF — [Session slug]
 
 <!-- scope: meta -->

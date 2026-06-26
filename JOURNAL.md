@@ -33,6 +33,22 @@
 
 ---
 
+### 2026-06-26 — CC: corpus cleanup (act on the 2026-06-26 corpus-graph audit)
+
+**Did:** Parallel-stream worktree (`worktree-corpus-cleanup`, runs alongside the `two-lifelines` stream); committed per action, **NOT merged** (operator integrates serially). Acted on the high-confidence findings of `docs/audits/2026-06-26-corpus-graph-justify-or-retire.md`, re-verifying zero live referrers at source before each destructive op. (1) **Retired** `scripts/migrate_links.py` (`30a2e3c`) — finished one-shot ADR-34 hyphen-rename tool; `git grep` confirmed zero live referrers (only immutable record). (2) **Archived** the 3 flat v3/v4 handoff templates `templates/HANDOFF_{TEMPLATE,FOLDER_TEMPLATE,QUESTION_TEMPLATE}.md` to `templates/archive/` with tombstones (`ca2e8ce`); the one test-fixture referrer (`test_scan_undeclared_edges.py` kept-sample) updated to the archive path — clean path-update (`templates/archive/` is not an immutable prefix, so the not-immutable assertion holds). (3) **Corrected** the HANDOFF_PROCESS §11 false archival claim (obs B, `8742b5b`) — the record claimed the v5 flip archived `templates/handoff/*` to a `templates/archive/handoff-v4/` dir that never existed; `templates/handoff/**` is LIVE (the v5 set). Factual fix only: Version held 5.3, no `reconciled_with` touch. (4/5) **Ticketed** obs A as **[#211]** (propose/review closure-script hub<->plugin parity, `11c9e03`) and the 416-handoff growth vector as **[#212]** (retention/rollup policy, `54896e3`).
+
+**Result:** Full suite **851 passed / 3 skipped** (unchanged from baseline — removed no test, the one touched test file 30/30). `validate_backlog` OK (84 tasks, 0 warnings). `audit.py ship-gate` **GREEN** (4 WARN, all pre-existing/dispositioned — #77 voided-closure + 3 journal-wrap/transcript no-ff; this arc added zero new WARN). Clean tree.
+
+**Decision (divergence direction noted in [#211], cheap to determine):** propose/review hub<->plugin drift is *mixed* — the carriers legitimately add `_host_root()` ($CLAUDE_PROJECT_DIR resolution, must stay), while the hub gained a `git_log_commits(first_parent=)` precision param the carriers lack (the real drift). A parity test must compare MODULO the known root-resolution delta (as the #206 validate_backlog twin-parity test does for the bundled path).
+
+**Changes:** deleted `scripts/migrate_links.py`; moved 3 `templates/HANDOFF_*.md` to `templates/archive/` + tombstones; `tests/test_scan_undeclared_edges.py` (fixture path); `protocols/HANDOFF_PROCESS.md` §11 (1 line); `BACKLOG.md` (+[#211] +[#212]). Branch `worktree-corpus-cleanup` — **unmerged, not pushed.**
+
+**Abandoned:** Closed NOTHING (done-items-leave — operator closes at integration); did NOT build the [#211] parity fix or the [#212] rollup (ticket only); did NOT touch PLAYBOOK/ESSENTIALS (the `two-lifelines` stream owns those); did NOT bump the HANDOFF_PROCESS version; did NOT archive `templates/handoff/**` (LIVE v5).
+
+**Next:** Operator reviews the diff and integrates `worktree-corpus-cleanup` serially (`--no-ff`). The audit file itself lives on the `two-lifelines`/primary branch; the [#211]/[#212] refs + commit-message audit refs resolve once both streams merge.
+
+---
+
 ### 2026-06-26 — CC: freshness re-stamp (CLAUDE.md + CONTRIBUTING.md)
 
 **Did:** Genuine end-to-end re-read of `CLAUDE.md` (v2.24 content confirmed current) and `CONTRIBUTING.md` (all 10 hooks, handoff v5.3 section, DoD pointer — all accurate). Bumped `last_reviewed` to 2026-06-26 in both files + `**Last updated:**` footer in `CLAUDE.md`. Branch `chore/freshness-bump-2026-06-26`, merged `--no-ff`. Clears the Stop hook's freshness-cadence advisory from the 2026-06-25 arc.
