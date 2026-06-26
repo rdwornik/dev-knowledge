@@ -77,6 +77,11 @@ _TOOTHLESS_W_FILE = ("PTF", "is the file present", "`VISION.md`",
 _NONTRIVIAL_NOTOKEN = ("PNV", "current short HEAD sha + tree", "`live git`",
                        "the sha + sync-state move on any commit",
                        "`git rev-parse --short HEAD` then `git status -sb`")
+# Earned-by-value (#207): no token + a FLAGGED-but-vacuous command — an introspection flag
+# (`--is-inside-work-tree`) is operand-present yet constant-true in the probe's own context,
+# so it surfaces no probe-answering value -> must FAIL (the operand-presence proxy's hole).
+_VACUOUS_FLAG = ("PVF", "are we in a work tree", "`live git`",
+                 "this is constant-true at probe time", "`git rev-parse --is-inside-work-tree`")
 # (3) First command span valid, a LATER span names a broken path -> must be CAUGHT.
 _LATER_SPAN_BROKEN = ("PLS", "compare two files", "`VISION.md`",
                       "the second target may have moved",
@@ -176,6 +181,13 @@ def test_is_trivial_command_distinguishes_value_bearing_commands():
     assert not vhp._is_trivial_command("git rev-parse --short HEAD")
     assert not vhp._is_trivial_command("git status -sb")
     assert not vhp._is_trivial_command("git log | grep foo")
+    # #207 earned-by-value: operand PRESENCE alone is too weak a proxy — a 3-token command
+    # whose only operand is a vacuous introspection flag surfaces no state-specific value
+    # (`--is-inside-work-tree` is constant-true in the probe's own context) -> still trivial.
+    assert vhp._is_trivial_command("git rev-parse --is-inside-work-tree")
+    assert vhp._is_trivial_command("git --version")
+    # ...but a mix of vacuous + a state-bearing operand is NOT trivial (recall guard).
+    assert not vhp._is_trivial_command("git rev-parse --is-inside-work-tree --short HEAD")
 
 
 # --- pure core: parse_probes (header-name mapping, multi-table) --------------
@@ -281,6 +293,17 @@ def test_verify_fail_on_toothless_live_git_zero_token_probe(tmp_path):
     assert by["PT"].status == "fail"
     assert by["PT"].status != "pass"
     assert "toothless" in by["PT"].detail.lower()
+
+
+def test_verify_fail_on_flagged_but_vacuous_live_git_probe(tmp_path):
+    # FROZEN CONTRACT, earned-by-value (#207): a `live git` row with NO file/anchor token
+    # whose command IS operand-bearing but VACUOUS (`git rev-parse --is-inside-work-tree`,
+    # constant-true at probe time) must FAIL — operand presence does not earn teeth. This is
+    # the exact hole the operand-presence proxy left open before the discriminator tightened.
+    bundle = _init_bundle(tmp_path, [_VACUOUS_FLAG])
+    by = _by_id(vhp.verify(bundle))
+    assert by["PVF"].status == "fail"
+    assert "toothless" in by["PVF"].detail.lower()
 
 
 def test_verify_toothless_passes_with_anchor_token(tmp_path):

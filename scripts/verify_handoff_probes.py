@@ -273,15 +273,35 @@ def _command_file_tokens(command_cell: str) -> list[str]:
     return [tok for span in backtick_spans(command_cell) for tok in file_tokens(span)]
 
 
+# Introspection operands that surface NO state-specific value even when present: a
+# version banner (tool exists) or an environment-constant predicate that is invariant in
+# the probe's own execution context (`--is-inside-work-tree` is always true when a probe
+# runs inside the repo). Earned-by-value (#207/GAP-4): operand PRESENCE alone is too weak
+# a proxy — a command whose only operands are drawn from this set is still vacuous and
+# must FAIL, not silent-PASS. Precision-over-recall: only these named flags are downgraded
+# (a non-listed operand like `--short`/`-sb` keeps the command value-bearing).
+_VACUOUS_OPERANDS = frozenset({
+    "--version", "-v", "--help", "-h",
+    "--is-inside-work-tree", "--is-inside-git-dir", "--is-bare-repository",
+})
+
+
 def _is_trivial_command(cmd: str) -> bool:
     """True if `cmd` (the first span) is 'trivial' — it surfaces NO specific live value,
     only that the tool/repo exists: a bare executable or `exe subcommand` with no further
-    operand (`git rev-parse`, `pytest`). A command carrying any additional token surfaces a
-    specific live value (`git rev-parse --short HEAD`, `git status -sb`, `git log | grep x`)
-    and is NOT trivial. Used ONLY together with 'no binding token' to classify a toothless
-    probe (#207/GAP-4): a resolve-only validator cannot give such a probe teeth, so it must
-    not silent-PASS on 'the tool is on PATH' alone."""
-    return len(cmd.split()) <= 2
+    operand (`git rev-parse`, `pytest`), OR a command whose every operand beyond
+    `exe subcommand` is a vacuous introspection flag (`git rev-parse --is-inside-work-tree`,
+    `git --version`) — operand presence alone does not earn teeth (#207/GAP-4). A command
+    carrying any state-specific operand surfaces a live value (`git rev-parse --short HEAD`,
+    `git status -sb`, `git log | grep x`) and is NOT trivial. Used ONLY together with 'no
+    binding token' to classify a toothless probe: a resolve-only validator cannot give such
+    a probe teeth, so it must not silent-PASS on 'the tool is on PATH' alone."""
+    tokens = cmd.split()
+    if len(tokens) <= 2:
+        return True
+    # 3+ tokens, but earned-by-value: still trivial if every operand beyond the
+    # `exe subcommand` lead is a known vacuous introspection flag (surfaces no live value).
+    return all(t in _VACUOUS_OPERANDS for t in tokens[2:])
 
 
 def _classify(probe: dict, repo_root: Path, bundle: str) -> ProbeResult:
