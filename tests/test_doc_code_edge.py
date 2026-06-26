@@ -237,12 +237,12 @@ def test_edge_check_only_scans_listed_docs(tmp_path, monkeypatch):
 
 
 def test_edge_check_registered_and_resolves_starter_set():
-    """Registered in ALL_CHECKS (count 23) AND the LIVE hub scan resolves the #194 cohort-1 set
+    """Registered in ALL_CHECKS (count 24) AND the LIVE hub scan resolves the #194 cohort-1 set
     over the declaration-doc registry: 5 enforced rules (the 3 starters seal-journal-anchor /
     canonical-freshness / coherence-spec-reconciled + Phase-B coherence-amendment /
     governance-backlog-schema) each resolve doc<->code -- the edge is REAL + advisory (never FAILs)."""
     assert aud.check_doc_code_edge in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 23
+    assert len(aud.ALL_CHECKS) == 24
     findings = aud.check_doc_code_edge(Path(aud._REPO_ROOT))
     assert all(f.status != "fail" for f in findings)        # advisory: never FAIL
     assert len(findings) == 1

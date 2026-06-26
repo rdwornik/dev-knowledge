@@ -107,6 +107,13 @@ try:
 except ImportError:
     import validate_doc_structure as _vds
 
+# #195 code→code safe-removal gate (consumes the #193 reverse-dep oracle) — same module-import
+# + thin-adapter shape as the validators above; tests monkeypatch `_sr.check_removal`.
+try:
+    from scripts import safe_remove as _sr
+except ImportError:
+    import safe_remove as _sr
+
 # Gate-mode flag (#89): cmd_health sets this True around its self-audit loop so the
 # expensive claim-3 (pytest --collect-only) is SKIPPED on the per-commit gate and
 # evaluated only on the full-audit path (run/repo/CLI/SessionStart). Operator ruling.
@@ -1665,6 +1672,58 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
                     f"{resolved} doc->code edge(s) resolved; none broken/ambiguous/orphaned")]
 
 
+def check_safe_removal(repo_path: Path) -> list[Finding]:
+    """#195 code->code safe-removal gate: removing a scripts/ module while a live EXTERNAL
+    referrer still uses one of its top-level symbols FAILs, naming the referrer. The consumer
+    that gives the #193 reverse-dep oracle teeth (GAP-1) and the automated form of the manual
+    "scan references before cutting" (LESSONS 2026-06-03) — guards the 2026-03-14 bulk-restore
+    failure class (removing still-needed files).
+
+    Diff-triggered: a clean tree (no scripts/*.py deletion vs HEAD) is an instant PASS — no
+    Pyright cost. On an actual removal, safe_remove.check_removal materializes a query root
+    (working scripts/ + removed module(s) restored from HEAD) and queries the oracle there.
+
+    FAIL-class (gating, like check_handoff_probes): one FAIL Finding per SURVIVING referrer so
+    the #147 ship-gate dispositions each independently. The oracle's inability to verify (Pyright
+    absent -> oracle-unavailable, or an `ambiguous` symbol) is a single WARN — fail-OPEN + ALLOW
+    (operator ruling #195), never a synthesized FAIL. Check's own error -> WARN (fail-soft, never
+    wedge audit-health). RESOLVE-ONLY / read-only (Layer 2): the oracle spawns Pyright for
+    analysis and writes only a temp dir; this writes no repo files. Logic lives in
+    scripts/safe_remove.py.
+
+    HONEST LIMIT (inherited from the oracle): static-Python-only. Dynamic/getattr/string-keyed/
+    cross-language referrers are INVISIBLE -> a non-blocking false PASS is possible here, never a
+    false FAIL. The reliable catch is the pre-removal CLI (queries the live repo); the automatic
+    build-time path's cross-module fidelity depends on Pyright resolving the materialized copy.
+    """
+    try:
+        verdict = _sr.check_removal(Path(repo_path))
+    except Exception as exc:  # never wedge the audit-health gate
+        return [Finding("safe_removal", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    if verdict.status == "safe" and not verdict.removal_set:
+        return [Finding("safe_removal", "pass", "no scripts/*.py module removal in the diff")]
+    findings: list[Finding] = []
+    # One FAIL per surviving referrer (atomic disposition unit) — the load-bearing block.
+    for r in verdict.surviving_referrers:
+        findings.append(Finding(
+            "safe_removal", "fail",
+            (f"{r['referrer']}:{r['line']} still references {r['symbol']} from removed "
+             f"{r['module']} — co-remove the referrer or keep the module").replace("|", "/")))
+    # All unverifiable symbols collapse to ONE WARN (honest static-only limit; allow).
+    if verdict.unverifiable:
+        reasons = ", ".join(sorted({u["reason"] for u in verdict.unverifiable}))
+        findings.append(Finding(
+            "safe_removal", "warn",
+            (f"{len(verdict.unverifiable)} symbol(s) unverifiable ({reasons}) for removal of "
+             f"{', '.join(verdict.removal_set)} — WARN+allow, static-only limit").replace("|", "/")))
+    if findings:
+        return findings
+    return [Finding("safe_removal", "pass",
+                    (f"removal of {', '.join(verdict.removal_set)} has no surviving referrers")
+                    .replace("|", "/"))]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -1689,6 +1748,7 @@ ALL_CHECKS = [
     check_doc_rot,
     check_doc_structure,
     check_doc_code_edge,
+    check_safe_removal,
 ]
 
 
