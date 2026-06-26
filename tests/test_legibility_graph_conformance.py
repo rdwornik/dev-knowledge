@@ -236,9 +236,11 @@ INTEGRATION_CELLS = [
     {"edge": "undeclared", "prop": "fires-on-break", "status": "proven",
      "tracks": "deep: test_scan_undeclared_edges.py"},
     {"edge": "code<->code", "prop": "registered+operational", "status": "proven",
-     "tracks": "query tool, NOT in gate; consumed by #195 (#193)"},
+     "tracks": "oracle = query tool; now CONSUMED by the check_safe_removal gate "
+               "(#195, in ALL_CHECKS) (#193)"},
     {"edge": "code<->code", "prop": "fires-on-break", "status": _CODE_CODE_FIRES,
-     "tracks": "skip-guarded; Pyright vendored here; portability via #195 + #193"},
+     "tracks": "skip-guarded; the removal-gate consumer fires-on-break in "
+               "test_safe_remove.py Layer B (#195 + #193)"},
 ]
 
 
