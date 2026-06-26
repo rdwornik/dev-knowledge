@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-22
+last_reviewed: 2026-06-26
 status: active
 owner: Rob
 ---
@@ -265,12 +265,12 @@ required for promotion. (PLAYBOOK)
 Every formal prompt starts with:
 
 ```
-| Model | Sonnet / Opus |
+| Model | CC's pick (default Opus 4.8) |
 | Mode  | auto-accept / plan-then-auto / plan |
-| Effort| low / medium / high / xhigh |
+| Effort| low / medium / high / xhigh / max |
 ```
 
-**Sonnet** = "do X the way we always do it." **Opus** = "figure out the right approach." **xhigh** = hardest debugging, architecture decisions, magistrala-level verification. Burns more tokens than high.
+**Model is CC's pick** (default Opus 4.8 — the floor; CC may route Sonnet for mechanical "do X the way we always do it" sub-steps, Opus to "figure out the right approach"). The architect sets **Mode** and **Effort** (by token budget), **not** the model. **xhigh** = hardest debugging, architecture decisions, cross-cutting boundary verification (burns more than high); **max** = top rung above xhigh, for the hardest single-session synthesis. Canon: PLAYBOOK "The two lifelines" (model = CC's pick) + ADR-87.
 
 Then (**[A]** architect emits · **[CC]** CC self-loads, per ADR-87): **[A]** Title → **[CC]** Read CLAUDE.md + gotchas → **[CC]** Git workflow → **[A]** UNDERSTAND → **[A]** Steps with COMMIT markers → **[A]** What NOT to do.
 
