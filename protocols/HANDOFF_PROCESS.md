@@ -224,7 +224,7 @@ The flip moved the canonical `Version:` and its four coupled surfaces together �
 `audit.py`'s coupling gates (`check_amendment_coherence`, `check_handoff_version_stamp`) force
 to be **atomic**. The flip: renamed this file to `protocols/HANDOFF_PROCESS.md`
 (`Version: 5.0`, `Status: stable`); archived v4.4 to `protocols/archive/HANDOFF_PROCESS_v4.4.md`;
-archived `templates/handoff/*` to `templates/archive/handoff-v4/`; scoped audit checks
+kept `templates/handoff/**` LIVE as the v5 template set (this record previously claimed these were archived to `templates/archive/handoff-v4/` — corrected 2026-06-26: that directory never existed and the folder set is live, read by the v5 `/handoff` command; the superseded flat v3/v4 single-file templates `templates/HANDOFF_*.md` were the ones archived, to `templates/archive/` on 2026-06-26); scoped audit checks
 #8/#9 to historical v4 bundles; closed #148 / #124 / #25. The bespoke read-only teeth
 validator (`scripts/verify_handoff_probes.py`) was deferred to a post-flip ticket; it has
 since **landed (#163)** and gates `/ship` — registered in `audit.py`'s `ALL_CHECKS` as
