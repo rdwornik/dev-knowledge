@@ -745,21 +745,13 @@ honest answer is "none" — the assertion pins the implementation's current shap
 not the criterion — the test has no teeth. Add an assertion that fails when the
 criterion is violated, even if today's code happens to satisfy it.
 
-**Worked example — this session's #141 vacuous claim-3 test (the live case this
-guard would have flagged):** the `pytest_collected` claim-check test was meant to
-prove claim-3 actually *evaluated* on the expensive path, but its assertion was
-`status != "skipped" or actual`. The intent was "require a non-skip" — yet the
-`or actual` clause let a *skipped* result pass whenever `actual` was non-empty,
-and a skipped result always carries a non-empty `actual` string. So the test
-could not distinguish "claim-3 evaluated and matched" from "claim-3 silently
-skipped"; it went green either way. (A preceding
-`assert status in {"mismatch", "match", "skipped"}` accepted all three states,
-asserting nothing.) It pinned the implementation's reachable states instead of
-the criterion (claim-3 *must* evaluate). The fix grew teeth: a deterministic mock
-of the pytest subprocess so the deriver actually runs, then
-`assert status == "match"` **and** `assert status != "skipped"` (the second, now
-un-weakened, rejects the vacuous skip-pass), with the genuine infra-skip path
-moved to a *separate* test so neither masks the other
+**Worked example (#141 vacuous claim-3 test):** a claim-check assertion
+`status != "skipped" or actual` let a *skipped* result pass whenever `actual` was
+non-empty (a skip always carries a non-empty `actual`), so the test could not tell
+"evaluated and matched" from "silently skipped" — it pinned the implementation's
+reachable states, not the criterion (claim-3 *must* evaluate). Fixed by mocking the
+pytest subprocess so the deriver actually runs, then asserting `status == "match"`
+**and** `status != "skipped"`, with the infra-skip path split to its own test
 (`tests/test_validate_doc_claims.py::test_reconcile_evaluates_test_count_when_expensive`).
 
 The rule: a test must be able to distinguish "criterion met" from "criterion
