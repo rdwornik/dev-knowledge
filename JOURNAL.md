@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-06-26 — CC: two-lifelines canonical section + architect↔CC consolidation (#77 advance)
+
+**Did:** Made PLAYBOOK the single canonical home for the architect↔CC division. (1) Added a lean `## The two lifelines` framing section — Lifeline 1 (Workflow: the delegation loop + the equilibrium division table) + Lifeline 2 (Coherence: the four dependency edge-types) + the sealing test — placed ABOVE Part I (the `validate_doc_structure` heading-scheme gate forbids a non-`ChN` heading inside Part I; above Part I is also more accurate — it frames both Parts). (2) Pointerized the scattered division copies to it: §2 "Architect output" bullets, §2 Structure legend, §8 Roles (division-half), and the Ch4 cross-ref flag (dropped its "candidate for a later consolidation — not done here" deferral). (3) Collapsed §2 "How to choose Model" to "model is CC's pick, not the architect's" (Opus 4.8 floor; Sonnet/Opus heuristic preserved as CC routing); summary-table Model/Effort marked CC-filled. Per ADR-87; references ARCHITECTURE Ch1 for the layer canon rather than restating it.
+
+**Result:** `pytest` **854 passed**, `ruff` clean, `audit.py ship-gate` **GREEN** (4 WARN, all pre-existing + dispositioned — #77 voided-closure + 3 old no-ff; **no new WARN**). `doc_structure`/`doc_claims`/`reconciled_versions`/`doc_code_edge` green; `scan_undeclared_edges` shows PLAYBOOK is **not** a new candidate (no `reconciled_with` edge declared — consistent with #209's deliberate PLAYBOOK-edge deferral while its handoff-process prose is stale). PLAYBOOK net **+31 lines** (3379→3410): the new canonical section minus a −3 pointerization claw-back +2 model-collapse — net-positive, reported honestly per the size-yields-to-substance guard (no rule cut to chase the number). Phase commits: `b6be8db` (section), `543ee9f` (pointerize), `99123ea` (model-collapse).
+
+**Changes:** `protocols/PLAYBOOK.md` (×3 commits + TOC regen), `LESSONS.md` (Part-I heading-scheme gotcha), this `JOURNAL.md`. ESSENTIALS **not** touched (see Abandoned). Uncommitted byproduct (scratchpad, Layer-2 no-tooling): ESSENTIALS section-by-section classification feeding the #77 retire-vs-slim call.
+
+**Abandoned:** The ESSENTIALS "Roles" → two-lifelines cross-ref — **deferred to #77**. A genuine end-to-end re-read for the freshness gate found ESSENTIALS § "Writing a Prompt" (L262–283) actively STALE (effort ladder missing `max`; Model table + heuristic still frame model as the prompt-author's choice — contradicts the new "model is CC's pick" canon). Per the honest-freshness guard, did NOT re-stamp `last_reviewed` and did NOT edit ESSENTIALS; the Roles cross-ref + the "Writing a Prompt" fix ride the #77 arc. Closed nothing (#77 is an advance, not a closure).
+
+**Next:** Operator reviews the diff — final placement (above Part I, forced by the heading-scheme gate) + the exact pointerization list (in the session report) — then merges `--no-ff` from the primary checkout (`/ship` refuses in a worktree). #77 picks up the ESSENTIALS "Writing a Prompt" staleness + the deferred Roles cross-ref + the retire-vs-slim decision (scratch note + parallel corpus-graph audit). Branch `docs/two-lifelines-canonical`, unmerged.
+
+---
+
 ### 2026-06-26 — CC: freshness re-stamp (CLAUDE.md + CONTRIBUTING.md)
 
 **Did:** Genuine end-to-end re-read of `CLAUDE.md` (v2.24 content confirmed current) and `CONTRIBUTING.md` (all 10 hooks, handoff v5.3 section, DoD pointer — all accurate). Bumped `last_reviewed` to 2026-06-26 in both files + `**Last updated:**` footer in `CLAUDE.md`. Branch `chore/freshness-bump-2026-06-26`, merged `--no-ff`. Clears the Stop hook's freshness-cadence advisory from the 2026-06-25 arc.
