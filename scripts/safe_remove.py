@@ -242,11 +242,13 @@ def evaluate_removal(removal_set, repo_root, *, oracle=run_oracle, langserver=No
     return Verdict(status, sorted(removal), surviving, unverifiable, completeness, reason)
 
 
-def check_removal(repo_root: Path, base: str = "HEAD", *, langserver=None,
+def check_removal(repo_root: Path, base: str = "HEAD", *, oracle=run_oracle, langserver=None,
                   timeout: float = DEFAULT_WARM_TIMEOUT) -> Verdict:
     """Build-time engine: detect scripts/*.py deletions vs `base`, then evaluate them against a
     materialized (working-tree + restored) query root. No deletion -> an instant `safe` verdict
-    (no Pyright cost). The temp root is removed in `finally` (no leftovers). Never raises.
+    (no Pyright cost). The temp root is removed in `finally` (no leftovers). `oracle` is
+    injectable so the deterministic plumbing test drives the full diff->materialize->FAIL path
+    without Pyright. Never raises.
     """
     repo_root = Path(repo_root).resolve()
     removal = detect_removed_modules(repo_root, base)
@@ -255,7 +257,8 @@ def check_removal(repo_root: Path, base: str = "HEAD", *, langserver=None,
     tmp = Path(tempfile.mkdtemp(prefix="safe-remove-"))
     try:
         query_root = materialize_query_root(repo_root, removal, tmp, base)
-        return evaluate_removal(removal, query_root, langserver=langserver, timeout=timeout)
+        return evaluate_removal(removal, query_root, oracle=oracle, langserver=langserver,
+                                timeout=timeout)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
