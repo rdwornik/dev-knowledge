@@ -1112,14 +1112,12 @@ case, e.g. a corp-monorepo handoff and an ai-council handoff at the same time). 
 
 **The real trigger is *committing*, not *editing* (sharpened 2026-06-07 — 2nd incident).** Same-repo parallel sessions are allowed in exactly two shapes:
 - **(a) Zero-write** — read/analysis only: no commits, no `git add`/staging, no branch ops. Any number of zero-write sessions may share one checkout safely.
-- **(b) Each committing session in its OWN worktree.** **One checkout = one committing session.** A "single commit at the end" still counts as a committing session — there is no "I'll only commit once" exception. (Witnessed 2026-06-07: a no-worktree session whose lone witness commit `49c7db7` landed on a *concurrent* session's branch, swept its staged file, mis-rooted the branch, and stranded its closeout into a multi-commit tangle. First incident class: 2026-06-01.)
+- **(b) Each committing session in its OWN worktree.** **One checkout = one committing session.** A "single commit at the end" still counts as a committing session — there is no "I'll only commit once" exception. (Why: a no-worktree session's lone commit can land on a *concurrent* session's branch, sweep its staged file, and mis-root the branch — witnessed twice, LESSONS 2026-06-07 / 2026-06-05.)
 
-**#107 SHIPPED (2026-06-07, verify-first + witnessed).** Shape (b) now runs on **CC-native
-managed worktrees** — the low-friction path. The earlier *"sequential exclusivity until #107"*
-interim rule is **retired**, and the old *sibling* worktree naming (`<repo>-parallel` /
-`<repo>-wt-*`) is **superseded** by the in-repo native location below — sibling worktree dirs
-are exactly what spawned the `.dev-knowledge-cadence` / `.dev-knowledge-night-adr` rule-9
-orphans, so do not create them anymore.
+Shape (b) runs on **CC-native managed worktrees** (#107) — the low-friction path. The old *sibling*
+worktree naming (`<repo>-parallel` / `<repo>-wt-*`) is **superseded** by the in-repo native location
+below; sibling dirs spawned the `.dev-knowledge-*` rule-9 orphans (LESSONS 2026-06-02), so do not
+create them anymore.
 
 **Lifecycle (same-repo only):** a worktree is **per-goal scratch, not a persistent
 checkout** — *provision → use → ephemeral teardown*. Create one for a single goal, work it on
@@ -1164,8 +1162,7 @@ this shape first.
   session `cd`-ing into multiple repos) is also safe for the same reason.
 - **Same repo in parallel: REQUIRES a worktree.** One working tree has one HEAD + one index;
   two+ committing sessions on a shared checkout collide — a commit in one sweeps the other's
-  staged file and lands on the wrong branch (witnessed 49c7db7 2026-06-07; the witness replay
-  proving separate worktrees = zero sweep is in the #107 JOURNAL entry / LESSONS).
+  staged file and lands on the wrong branch (LESSONS 2026-06-07; separate worktrees = zero sweep).
 
 **2 — Provision (native-primary)**
 
@@ -1175,17 +1172,17 @@ splitting one session into two same-repo streams):
 2. **Stream A** stays in the **primary** checkout, on its own `feat/<A>` branch — the primary is
    also the integration + serial gate (step 4).
 3. **Stream B:** `claude --worktree <B>` → a session inside `.claude/worktrees/<B>` on branch
-   `worktree-<B>` (`.worktreeinclude` seeds `ecosystem/*/state.yaml` so the audit-health gate
-   passes — see below).
+   `worktree-<B>` (then seed `ecosystem/*/state.yaml` from the primary so the audit-health gate
+   passes — §2a; do not rely on auto-seed, n=3 — see below).
 4. **Integrate from the primary on `main`, one at a time:** `/ship` stream A; then
    `git merge --no-ff worktree-<B>` + `git push`; then tear down B (the §4 three-command
    round-trip) and verify no leftovers.
 
 **The command the architect hands the operator is `claude --worktree <B>` (new terminal) or
 `EnterWorktree` (mid-session) — NEVER a raw sibling `git worktree add ../dev-knowledge-<B>`.** The
-sibling-dir recipe is superseded (above): it skips the `.worktreeinclude` auto-seed (forcing the
-manual seed in §2a) and is the documented source of the `.dev-knowledge-*` rule-9 orphans. Native
-keeps the worktree gitignored under `.claude/worktrees/` and seeds it for you.
+sibling-dir recipe is superseded (above): it is the documented source of the `.dev-knowledge-*`
+rule-9 orphans. Native keeps the worktree gitignored under `.claude/worktrees/` (but seed
+`ecosystem/*/state.yaml` from the primary regardless — neither path reliably auto-seeds, n=3).
 
 The bullets below are the mechanism this recipe rests on.
 
@@ -1194,19 +1191,16 @@ The bullets below are the mechanism this recipe rests on.
   session into one (`ExitWorktree` returns). Both create **`.claude/worktrees/<name>/` on
   branch `worktree-<name>`** (verified). Base ref = `worktree.baseRef` setting: `fresh`
   (default → `origin/<default-branch>`) or `head` (current local HEAD).
-- **`.worktreeinclude` is load-bearing — do NOT delete it.** A fresh worktree is a clean
-  checkout and so OMITS gitignored runtime state — including `ecosystem/*/state.yaml` (ADR-80
-  high-churn pointers). Without them the `audit-health` pre-commit gate runs the worktree's own
-  `audit.py`, sees `repos registered (none)`, reports `health: DEGRADED`, and **blocks every
-  commit** — a fresh committing worktree is dead on arrival. The repo's committed
-  `.worktreeinclude` (lists `ecosystem/*/state.yaml`) makes the **native** worktree-create copy
-  that state in, so the gate passes (witnessed: seeded worktree commit lands; unseeded blocks).
-  **Verified 2026-06-18 (native in-session via `EnterWorktree`):** all 5 `ecosystem/*/state.yaml`
-  — *including the dot-prefixed `.dev-knowledge` hub dir* — auto-seeded with no manual step, and
-  `python scripts/audit.py health` returned `health: OK` / `repos registered (all 5)` from *inside*
-  the worktree. The **raw** `git worktree add` path does NOT honor `.worktreeinclude`, so there the
-  §2a manual seed is still required — that is the seed-friction the sibling-dir flow hits, not the
-  native one.
+- **Seed `ecosystem/*/state.yaml` from the primary — treat a fresh worktree as unseeded by
+  default; do NOT delete `.worktreeinclude`.** A fresh worktree is a clean checkout and OMITS
+  gitignored runtime state — including `ecosystem/*/state.yaml` (ADR-80 high-churn pointers).
+  Without them the `audit-health` pre-commit gate sees `repos registered (none)` → `health:
+  DEGRADED` and **blocks every commit** — a fresh committing worktree is dead on arrival. The
+  committed `.worktreeinclude` lists the 5 `state.yaml` (incl. the dot-prefixed `.dev-knowledge`
+  hub dir) for the native create to copy in, **but neither native nor raw `git worktree add`
+  reliably auto-seeds** (n=3 witnessed misses — LESSONS 2026-06-19; the "native seeds for you"
+  claim is refuted), so seed by hand from the primary (§2a) before the first commit and do not
+  rely on the auto-copy.
 - **Walker safety (why in-repo `.claude/worktrees/` is safe):** it's gitignored, so `git status`
   stays clean and **ruff** (respects gitignore) won't double-lint the full second checkout;
   **pytest** is safe via its default `.*` dot-dir skip (collection stays 329, not 658). These
@@ -1219,24 +1213,23 @@ The bullets below are the mechanism this recipe rests on.
 the state by hand (`.worktreeinclude` does **not** apply to raw `git worktree add`); teardown is
 manual (below). Each session works a distinct branch (git forbids one branch in two worktrees).
 
-**2a — Cold-start specifics** (the four details a fresh operator needs that the recipe above
-assumed — terminal anchor, slug, manual seed, pwd-confirm; verified by the 2026-06-15 smoke test)
+**2a — Cold-start specifics** (the four details a fresh operator needs — terminal anchor, slug,
+manual seed, pwd-confirm)
 
 - **Where you launch it (terminal anchor).** `claude --worktree <name>` (alias `-w`) is run from
   a **fresh PowerShell terminal at the `<repo>` root** — a cold-start session that begins life
   *inside* the new worktree. To split an **already-running** session instead, use the
   `EnterWorktree` tool mid-session (`ExitWorktree` returns to the primary). Either path lands you
-  in `.claude/worktrees/<name>/` on branch `worktree-<name>` (observed, not just documented —
-  the smoke test confirmed this exact in-repo location + branch name on this machine/CC version).
+  in `.claude/worktrees/<name>/` on branch `worktree-<name>` (verified on this machine/CC version).
 - **`<name>` slug convention.** Name the worktree **`<issue#>-<kebab-slug>`** — e.g.
   `156-taskgraph` → dir `.claude/worktrees/156-taskgraph/`, branch `worktree-156-taskgraph`. With
   no backing issue, use a bare `<kebab-purpose>` slug (e.g. `changelog-sync`). This formalizes the
   de-facto `156-taskgraph` example as the convention — it is not a new scheme.
-- **Manual-seed commands (raw `git worktree add` path ONLY).** `.worktreeinclude` is honored by
-  the **native** create but **NOT** by raw `git worktree add`, so a hand-driven worktree starts
-  WITHOUT the gitignored `ecosystem/*/state.yaml` it declares — and its first commit is blocked by
-  the `audit-health` gate (`repos registered (none)` → `health: DEGRADED`). Seed it by hand,
-  copying exactly what `.worktreeinclude` lists. From the `<repo>` root in PowerShell:
+- **Manual-seed commands (any fresh worktree — n=3).** A fresh worktree starts WITHOUT the
+  gitignored `ecosystem/*/state.yaml` that `.worktreeinclude` declares, so its first commit is
+  blocked by the `audit-health` gate (`repos registered (none)` → `health: DEGRADED`). Native
+  *may* copy them but n=3 says don't rely on it (LESSONS 2026-06-19), so seed by hand, copying
+  exactly what `.worktreeinclude` lists. From the `<repo>` root in PowerShell:
 
   ```powershell
   # 1. create the worktree (raw path — same in-repo location the native create uses)
@@ -1252,21 +1245,20 @@ assumed — terminal anchor, slug, manual seed, pwd-confirm; verified by the 202
   }
   ```
 
-  (The native `claude --worktree` / `EnterWorktree` path performs this copy for you — these
-  commands are ONLY for the raw fork. As of 2026-06-15 `.worktreeinclude` lists `ecosystem/*/state.yaml`
-  and `ecosystem/` holds 4 child dirs, each with a gitignored `state.yaml`.)
+  (`.worktreeinclude` lists the 5 `ecosystem/*/state.yaml` — one per `ecosystem/` child plus the
+  dot-prefixed hub dir.)
 - **pwd-confirm before working (ADR-61 rule 5, re-carried into the manual path).** Before any work
   in a hand-driven worktree, verify you are actually in it — `Get-Location` (`pwd`) must resolve to
   `…/.claude/worktrees/<name>`, NOT the primary root. A commit fired from the wrong cwd lands on the
   wrong branch (the shared-index sweep this whole discipline exists to prevent).
 
-**Worked example end-to-end** (copy, don't reconstruct — values observed in the 2026-06-15 smoke test):
+**Worked example end-to-end** (copy, don't reconstruct):
 
 ```
 # 1. fresh PowerShell terminal at the repo root, cold start:
 claude --worktree 156-taskgraph
 #    -> session opens inside .claude/worktrees/156-taskgraph/ on branch worktree-156-taskgraph
-#    -> .worktreeinclude auto-seeds ecosystem/*/state.yaml (native path) so audit-health passes
+# 1b. seed ecosystem/*/state.yaml from the primary (see 2a) so audit-health passes -- n=3: don't rely on auto-seed
 # 2. work the task there -- fully isolated; the primary checkout's `git status` never sees it
 # 3. integrate from the PRIMARY checkout on main (never from inside the worktree):
 git merge --no-ff worktree-156-taskgraph
@@ -1278,9 +1270,7 @@ git branch -d worktree-156-taskgraph
 #    -> git worktree list shows only the primary; the dir is gone; git status clean
 ```
 
-The raw `git worktree add` layer this wraps was run end-to-end on 2026-06-15 (create → isolation
-check → 3-command teardown) and left zero leftovers, confirming the observed dir/branch values
-above. Windows caveat: if VS Code (or any IDE with a recursive file watcher) has the repo open,
+Windows caveat: if VS Code (or any IDE with a recursive file watcher) has the repo open,
 the teardown's first command can deregister the worktree yet fail to delete the now-empty
 directory — re-check `.claude/worktrees/` and clear any empty husk once the IDE releases the handle.
 
@@ -1311,9 +1301,8 @@ directory — re-check `.claude/worktrees/` and clear any empty husk once the ID
 - **Integrate from the primary:** from the primary on `main`, `git merge --no-ff worktree-<name>`
   then `git push` (repo `--no-ff` norm). Don't try to rebase/linearize a branch that is checked
   out in another worktree — git blocks it.
-- **Merge serialization — why two concurrent merges to `main` can't tangle (#200).** The
-  decided guard is *not* a lock/mutex; the verify-first finding (#200) is that the
-  concurrent-merge race is already serialized — by **git itself**, plus the existing FF-block:
+- **Merge serialization — why two concurrent merges to `main` can't tangle (#200).** Not a
+  lock/mutex: the concurrent-merge race is already serialized by **git itself**, plus the FF-block:
   - **`index.lock`** — two simultaneous `git merge` commands can't both proceed; the second
     fails `Unable to create '.git/index.lock': File exists. Another git process seems to be running`.
   - **`MERGE_HEAD` refusal** — a second `git merge` while one is in-progress is refused by git
@@ -1327,11 +1316,9 @@ directory — re-check `.claude/worktrees/` and clear any empty husk once the ID
     `git checkout main` (it's already checked out in the primary), so integration *always*
     funnels through the single primary checkout, where the natives above apply.
   - **Honest limit (not gate-catchable):** a *primary*-checkout self-merge is byte-identical to a
-    legitimate operator merge (same command, same branch shape — no git signal separates them), so
-    **no hook can distinguish them.** That case is held by the commit-and-STOP / integrate-from-the-
-    primary discipline (operator is the serial gate, above) + the A1 empirical close (#184), and by
-    #107 worktree isolation for the shared-HEAD hazard — *not* by machinery. The git-native behavior
-    is witnessed in `tests/test_merge_serialization.py`; #200 closed accepted-prose-only on this basis.
+    legitimate operator merge — no git signal separates them, so **no hook can distinguish them.**
+    Held by the commit-and-STOP / integrate-from-primary discipline (operator is the serial gate)
+    + #107 worktree isolation, not by machinery (witnessed in `tests/test_merge_serialization.py`).
 - **Teardown — native first:** a *changeless* worktree auto-removes on `ExitWorktree`/session
   exit (and `isolation:"worktree"` subagents auto-clean); a worktree that has commits is KEPT.
   After merging, remove it:
@@ -1347,8 +1334,7 @@ git -C <repo> branch -d worktree-<name>
   worktree remove` cannot delete it (a lock source distinct from an IDE file-watcher). Use `git
   worktree remove --force …` when the gitignored seeds (`ecosystem/*/state.yaml`) make git treat
   the worktree as dirty and refuse a plain remove. The native `ExitWorktree` path does both for you
-  (restores cwd first, and removed a seeded changeless worktree cleanly — verified 2026-06-18);
-  these manual steps are the raw-path case. **`remove` is NOT idempotent — if a first remove is
+  (restores cwd first; removes a changeless worktree cleanly); these manual steps are the raw-path case. **`remove` is NOT idempotent — if a first remove is
   interrupted, recover with `git worktree prune` (step 2 above), never a second `remove`; see the
   dedicated gotcha.**
 - **Verify the teardown left nothing behind (no-leftovers round-trip).** `git worktree list`
@@ -1379,13 +1365,12 @@ commands:
 - no stray sibling directories on disk (`<repo>-*` worktree dirs gone — the check G4 step 4 names).
 - `git status` → clean (no untracked scratch/temp files left behind).
 
-**The failure this prevents:** the `.dev-knowledge-cadence` and `.dev-knowledge-night-adr` sibling
-worktree directories — created for a goal, deregistered from git, but never removed from disk, so
-they linger as orphans. (One was locked by another process — which is *exactly* when a `remove`
-silently no-ops and the result must be re-checked, never assumed.) An orphan is invisible to a
-presence-checking audit, which verifies that required files *exist* and structurally cannot detect
-a file that exists but should not (the 2026-05-17 decommissioning-gap LESSON). So the round-trip
-diff is an explicit process step at run end, not something a later scan will catch.
+**The failure this prevents:** sibling worktree dirs deregistered from git but never removed from
+disk linger as orphans (the `.dev-knowledge-*` recurrence — LESSONS 2026-06-02; one was
+process-locked, *exactly* when a `remove` silently no-ops and must be re-checked). An orphan is
+invisible to a presence-checking audit — it verifies that required files *exist* and structurally
+cannot detect a file that exists but should not (the 2026-05-17 decommissioning-gap LESSON). So the
+round-trip diff is an explicit process step at run end, not something a later scan catches.
 
 **Lightweight check, not heavy tooling.** The three commands above *are* the check — a process
 step, not a script (Layer 2 never executes — critical rule #4). Run them at the end of any
