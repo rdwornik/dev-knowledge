@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-25
+last_reviewed: 2026-06-26
 reconciled_with: handoff-process@5.3
 status: active
 owner: Rob
@@ -185,5 +185,5 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 
 ---
 
-**Last updated:** 2026-06-25
+**Last updated:** 2026-06-26
 **Maintained by:** Rob
