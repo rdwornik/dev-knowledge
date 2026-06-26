@@ -122,7 +122,7 @@ Browser chat (analysis)  →  .dev-knowledge (reference)  →  projects (executi
 - "Implement X per spec" → Claude Code (execution)
 - "What did we decide about Y?" → either, but check `.dev-knowledge` first
 
-_Canonical: PLAYBOOK "System Architecture" (ADR-28)._
+_Canonical: the architect↔CC **division** is PLAYBOOK "The two lifelines" § Lifeline 1 (the ADR-87 equilibrium table — do not restate it here); this section is the home of the fuller **Does/Does-NOT** lists + three-layer flow (ADR-28). PLAYBOOK §8 Roles points back here for that detail._
 
 ---
 
