@@ -143,6 +143,7 @@ So that stale ground truth stops silently misleading sessions (the repo's own VI
 So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#5] [P2][M] Add high-leverage ESSENTIALS cheats for ADRs 35-76 under the one-page constraint · Done when: the chosen cheats land + ESSENTIALS stays ~1 page · refs posture-audit C2
 - [#41] [P3][S] Split ARCHITECTURE §Processes into PROCESS.md if it grows past the comfort threshold · Done when: re-evaluated at the next process addition · refs ADR-51
+- [#212] [P3][M] `docs/handoffs/**` retention/rollup policy — 416 immutable handoff bundles are the corpus's single largest growth vector: immutable-by-design (ADR-82) but unbounded. Open question (likely ADR-class): should bundles older than N be compressed / rolled-up the way ADR-49/65 condenses doc section-history, and if so by what mechanism + retention window? The one sanctioned uncontrolled-growth vector should get a deliberate call, not silent drift. Size is a placeholder (M) pending scoping. · Done when: a retention/rollup policy for `docs/handoffs/**` is decided (ADR or operator ruling) — either a compaction/rollup mechanism + window, or an explicit "keep all; unbounded accepted" with a recorded reason · refs docs/audits/2026-06-26-corpus-graph-justify-or-retire.md (latent archive-class question, lines 63-67), ADR-82, ADR-49, ADR-65, #134
 
 ---
 
