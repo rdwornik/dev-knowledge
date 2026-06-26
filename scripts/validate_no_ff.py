@@ -102,6 +102,7 @@ def filter_violations(records: list, baseline: str = BASELINE_DATE) -> list:
     return viol
 
 
+# rule: governance-no-ff
 def find_violations(repo: Path, branch: str = "main", baseline: str = BASELINE_DATE) -> list:
     """Non-merge commits on `branch`'s first-parent spine since `baseline`, automation excluded.
 

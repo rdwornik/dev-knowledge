@@ -40,11 +40,13 @@ declaration_docs:
 # AND exactly ONE `# rule:`-able enforcement site, so Phase B annotates (no new doctrine, no
 # ambiguity). A rule enforced in two organs is HELD OUT below until the scheme handles it.
 #
-# DEFERRED -- two-organ trap (one rule, two `# rule:`-able code sites -> resolve_edge returns
-#   `ambiguous`, never `resolved`; needs a one-rule-two-organs scheme decision first):
-#     governance-no-ff         : validate_no_ff.py (detect) + block_ff_push.py (prevent)
-#     governance-child-floor   : audit.py check_floor_integrity + generate_floor.py validate (emit gate)
-#     governance-backlog-leave : validate_git_backlog.py (git drift) + validate_backlog.py (in-file marker)
+# RESOLVED -- two-organ trap (#201 / ADR-90 resolver-allows-N): a rule legitimately enforced in
+#   N `# rule:`-able code organs declares its expected count in `multi_site:` below; the resolver
+#   then resolves it at EXACTLY that count instead of `ambiguous`. All three now resolve and are
+#   in coverage_scope (counts shown):
+#     governance-no-ff         (3): validate_no_ff.py (detect) + block_ff_push.py (prevent) + audit.py::check_no_ff_merges (adapter)
+#     governance-child-floor   (2): audit.py::check_floor_integrity (detect) + generate_floor.py::validate (emit-gate)
+#     governance-backlog-leave (3): validate_backlog.py (in-file marker) + validate_git_backlog.py (git drift) + audit.py::check_git_backlog_drift (adapter)
 # DEFERRED -- needs an authored declaration first (Tier-3): handoff-probes-bind,
 #   coherence-doc-claims, coherence-doc-rot, coherence-doc-structure.
 # EXEMPT -- structural/presence infra, not a declared behavioral rule (no edge): the baseline
@@ -54,6 +56,22 @@ declaration_docs:
 coverage_scope:
   - seal-journal-anchor        # DONE    -- DEFINITION_OF_DONE.md -> session_end_backpressure.py
   - canonical-freshness        # DONE    -- PLAYBOOK.md -> audit.py::check_canonical_freshness
-  - coherence-spec-reconciled  # DONE    -- PLAYBOOK.md -> validate_reconciliation.py::reconcile
+  - coherence-spec-reconciled  # DONE 2-site (ADR-90) -- PLAYBOOK.md -> validate_reconciliation.py + audit.py::check_reconciled_versions
   - coherence-amendment        # DONE    -- PLAYBOOK.md #895 -> audit.py::check_amendment_coherence
-  - governance-backlog-schema  # DONE    -- PLAYBOOK.md #2766 -> validate_backlog.py
+  - governance-backlog-schema  # DONE    -- PLAYBOOK.md #2766 -> validate_backlog.py::validate
+  - governance-no-ff           # DONE 3-site (ADR-90/#201) -- PLAYBOOK.md -> validate_no_ff.py + block_ff_push.py + audit.py::check_no_ff_merges
+  - governance-child-floor     # DONE 2-site (ADR-90/#201) -- PLAYBOOK.md -> audit.py::check_floor_integrity + generate_floor.py::validate
+  - governance-backlog-leave   # DONE 3-site (ADR-90/#201) -- PLAYBOOK.md -> validate_backlog.py + validate_git_backlog.py + audit.py::check_git_backlog_drift
+
+# Multi-site expected code-site counts -- ADR-90 (resolver-allows-N), the #201 resolution. A rule
+# legitimately enforced in N `# rule:`-able code organs maps `rule-ID -> N` here; the resolver
+# (validate_doc_code_edge.resolve_edge) resolves it at EXACTLY that count + a single doc site,
+# instead of the strict 1:1 duplicate-guard's `ambiguous`. ANY other code count (incl. this count
+# +/-1) still flags `ambiguous` -- the guard keeps its teeth for the declared organs too. A rule
+# ABSENT from this map keeps the strict 1:1 guard. Fail-soft -> {} (audit._load_multi_site): a
+# missing/malformed map degrades every rule to the strict 1:1 guard (can only narrow, never widen).
+multi_site:
+  coherence-spec-reconciled: 2   # validate_reconciliation.py + audit.py::check_reconciled_versions
+  governance-no-ff: 3            # validate_no_ff.py (detect) + block_ff_push.py (prevent) + audit.py::check_no_ff_merges (adapter)
+  governance-child-floor: 2      # audit.py::check_floor_integrity (detect) + generate_floor.py::validate (emit-gate)
+  governance-backlog-leave: 3    # validate_backlog.py (in-file marker) + validate_git_backlog.py (git drift) + audit.py::check_git_backlog_drift (adapter)

@@ -205,7 +205,8 @@ def iter_code_rule_ids(code_root: Path) -> set[str]:
 
 
 def resolve_edge(rule_id: str, doc_root: Path, code_root: Path,
-                 include: tuple[str, ...] | None = None) -> EdgeResult:
+                 include: tuple[str, ...] | None = None,
+                 multi_site: dict[str, int] | None = None) -> EdgeResult:
     """Resolve the doc<->code edge for `rule_id`.
 
     A side that resolves to nothing -> `broken_edge` (the deterministic hard-FAIL the ADR
@@ -215,11 +216,23 @@ def resolve_edge(rule_id: str, doc_root: Path, code_root: Path,
     `include` scopes the DOC-side resolution to the declaration registry (see `find_doc_sites`);
     the live check + coverage gate pass it so a prose mention in a non-declaration doc cannot make
     a real edge `ambiguous`. `include=None` keeps the unscoped spike behaviour (scan all `*.md`).
+
+    `multi_site` (ADR-90 resolver-allows-N) is the declared expected code-site count per rule-ID:
+    a rule legitimately enforced in N `# rule:`-able code organs maps `rule_id -> N`. Such a rule
+    `resolves` iff it has EXACTLY one doc site AND EXACTLY `N` code sites; any other code count
+    (incl. N+/-1) stays `ambiguous`, so the duplicate-guard keeps its teeth for the declared
+    organs too. The doc side is ALWAYS 1:1 (multiplicity is a code-side property). A rule absent
+    from `multi_site` keeps the strict `>1 -> ambiguous` 1:1 duplicate-guard, unchanged.
     """
     doc_sites = tuple(find_doc_sites(rule_id, doc_root, include))
     code_sites = tuple(find_code_sites(rule_id, code_root))
+    expected = (multi_site or {}).get(rule_id)
     if not doc_sites or not code_sites:
         status = "broken_edge"
+    elif expected is not None:
+        # Declared multi-site rule: resolve at EXACTLY the declared code-site count + one doc site.
+        status = ("resolved" if (len(doc_sites) == 1 and len(code_sites) == expected)
+                  else "ambiguous")
     elif len(doc_sites) > 1 or len(code_sites) > 1:
         status = "ambiguous"
     else:
@@ -228,7 +241,8 @@ def resolve_edge(rule_id: str, doc_root: Path, code_root: Path,
 
 
 def build_edge_index(doc_root: Path, code_root: Path,
-                     include: tuple[str, ...]) -> dict[str, EdgeResult]:
+                     include: tuple[str, ...],
+                     multi_site: dict[str, int] | None = None) -> dict[str, EdgeResult]:
     """The derived, rebuildable edge index: every rule-ID on EITHER side -> its `EdgeResult`.
 
     REBUILT from source on every call -- there is no hand-maintained manifest (ADR-88 principle
@@ -237,13 +251,17 @@ def build_edge_index(doc_root: Path, code_root: Path,
     scopes the DOC side to the declaration registry (same contract as `resolve_edge`); the code
     side is the full `# rule:` enumeration under `code_root`, so a code-only orphan
     (code->nonexistent-rule) is present in the index as a `broken_edge` (doc side empty).
+    `multi_site` (ADR-90) threads through to `resolve_edge` so a declared multi-site rule
+    resolves at its expected count rather than as `ambiguous`.
     """
     ids = iter_doc_rule_ids(doc_root, include) | iter_code_rule_ids(code_root)
-    return {rid: resolve_edge(rid, doc_root, code_root, include) for rid in sorted(ids)}
+    return {rid: resolve_edge(rid, doc_root, code_root, include, multi_site)
+            for rid in sorted(ids)}
 
 
 def scan_structural_integrity(doc_root: Path, code_root: Path,
-                              include: tuple[str, ...]) -> list[StructuralFinding]:
+                              include: tuple[str, ...],
+                              multi_site: dict[str, int] | None = None) -> list[StructuralFinding]:
     """L1 structural-integrity scan over the rebuildable index (the #194 "Done when"). DETECT-first.
 
     One `StructuralFinding` per defect in the declared doc<->code edge:
@@ -256,17 +274,20 @@ def scan_structural_integrity(doc_root: Path, code_root: Path,
     A clean resolved edge (exactly one doc + one code site) yields NO finding. Read-only; never
     raises, never gates (advisory-first; hard-gate promotion is data-gated, ADR-89 OQ3).
     """
-    index = build_edge_index(doc_root, code_root, include)
+    index = build_edge_index(doc_root, code_root, include, multi_site)
     findings: list[StructuralFinding] = []
     for rid in sorted(index):
         r = index[rid]
+        # A declared multi-site rule (ADR-90) tolerates exactly its expected code count; an
+        # undeclared rule tolerates 1. Code sites ABOVE that threshold are real over-duplication.
+        code_threshold = (multi_site or {}).get(rid, 1)
         if r.doc_sites and not r.code_sites:
             findings.append(StructuralFinding(rid, "dangling_doc", r.doc_sites, r.code_sites))
         elif r.code_sites and not r.doc_sites:
             findings.append(StructuralFinding(rid, "code_orphan", r.doc_sites, r.code_sites))
         if len(r.doc_sites) > 1:
             findings.append(StructuralFinding(rid, "duplicate_doc", r.doc_sites, r.code_sites))
-        if len(r.code_sites) > 1:
+        if len(r.code_sites) > code_threshold:
             findings.append(StructuralFinding(rid, "duplicate_code", r.doc_sites, r.code_sites))
     return findings
 

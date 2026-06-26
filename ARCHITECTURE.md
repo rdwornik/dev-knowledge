@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-26
+last_reviewed: 2026-06-27
 reconciled_with: handoff-process@5.3
 status: active
 owner: Rob
@@ -320,8 +320,9 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   landed: `build_edge_index` (the derived **rebuildable index** — rebuilt from source each scan, no
   hand-maintained manifest, ADR-88 P3) + `scan_structural_integrity` (**L1**: dangling / `code_orphan` =
   code→nonexistent-rule / duplicate), proven on a fixture; the live check now also surfaces `code_orphan`.
-  Hub-only; read-only; live on 5 rules per the ADR-89 OQ1 naming convention (#194 Arc-1 cohort-1). Check in
-  `audit.py::check_doc_code_edge`.
+  Hub-only; read-only; live on 8 rules per the ADR-89 OQ1 naming convention (the #194 cohort-1 five +
+  the #201 governance trio resolved via **resolver-allows-N / ADR-90**: a rule enforced in N code
+  organs declares its expected `# rule:` count in `multi_site:`). Check in `audit.py::check_doc_code_edge`.
 - `scripts/verify_handoff_probes.py` — handoff-probe teeth: every probe in the latest v5
   `PROBES.md` bundle binds to live state, by STRUCTURAL resolvability (resolve-only — no
   subprocess; Critical Rule #4). Mechanizes the manual v5 probe-gate (HANDOFF_PROCESS §5/§10):
@@ -370,7 +371,7 @@ cell is skipped or gapped. **Skip/gap tracking:** code↔code fires → skip-gua
 portability via **#195** (integrated enforcement) + **#193**; doc→code coverage tail →
 **#201/#202/#203**.
 
-- `tests/` — pytest unit tests for the validators (**864 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**874 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`

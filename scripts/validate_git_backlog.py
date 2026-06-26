@@ -89,6 +89,7 @@ def _strip_code(text: str) -> str:
     return _INLINE_CODE_RE.sub(" ", _FENCE_RE.sub(" ", text or ""))
 
 
+# rule: governance-backlog-leave
 def reconcile(repo_root: Path, backlog_path: Path) -> dict:
     """Direction (a) drift: {id: [(sha, subject), ...]} for every `closes [#id]`
     commit in full history whose `[#id]` is still open in BACKLOG.md (ADR-65).

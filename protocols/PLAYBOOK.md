@@ -347,6 +347,7 @@ Reach for a gate only when the fact can't be self-documented, and an agent only 
 
 ### Child methodology floor (ADR-78)
 <!-- scope: meta -->
+<!-- rule: governance-child-floor -->
 
 Each registered child repo carries a generated `.claude/CLAUDE-FLOOR.md` (≤1,500 tokens, conformance-enforced) plus a `.claude/CLAUDE-FLOOR.md.sha256` sidecar — under the child's own CC config dir, not the repo root (keeps the operator's workspace uncluttered); the child's `CLAUDE.md` references it via an `@.claude/CLAUDE-FLOOR.md` import (verified empirically: CC 2.1.168 resolves `@`-includes at session start, transitively, and degrades fail-soft on a missing target). The floor is the always-loaded methodology baseline (prompt-header, valve discipline, verify cadence, ship rule, context budget, safety pointers) so a child session carries the working style without depending on a bundle upload. It is **self-contained** — no hub-internal references (ADR-72 class); the `.dev-knowledge` hub appears only as a labeled, optional depth escape-hatch (ADR-78 Decision 1).
 
@@ -1311,7 +1312,10 @@ directory — re-check `.claude/worktrees/` and clear any empty husk once the ID
     already advanced is rejected `! [rejected] … (fetch first)`; you `git pull` and re-merge.
     This is git serializing the integration point across clones — lean on it, don't rebuild it.
   - **The FF-block** (`scripts/block_ff_push.py`, pre-push, hub-only) refuses any push adding a
-    non-merge commit to main's first-parent spine (core-invariant #5).
+    non-merge commit to main's first-parent spine (core-invariant #5). <!-- rule: governance-no-ff -->
+    The `--no-ff`-merge norm (every change is a branch → `--no-ff` merge; never a direct or FF
+    commit on `main`'s spine) is the rule this enforces, detected post-hoc by `validate_no_ff.py`
+    (the `no_ff_merges` WARN) and prevented at push by `block_ff_push.py`.
   - **A worktree→`main` merge is git-structurally prevented** — a linked worktree cannot
     `git checkout main` (it's already checked out in the primary), so integration *always*
     funnels through the single primary checkout, where the natives above apply.
@@ -2788,6 +2792,7 @@ Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subse
 
 **Mandate:** `BACKLOG.md` is part of the universal governance baseline (ADR-38 amendment A5, 2026-05-23; ADR-41) — mandatory for every repo regardless of size. (Previously gated to M+ repos; the repo-tier system is deprecated.)
 
+<!-- rule: governance-backlog-leave -->
 **Done-item disposition (ADR-47/65).** Done items **leave** the file on close — git history (the closing commit, located by the entry id per CONTRIBUTING) + the existing per-session JOURNAL entry are the record. **No archive file** (`BACKLOG_ARCHIVE.md` deleted 2026-05-16; CLAUDE.md §5). No collapsed stubs. Closing a backlog item adds **no** new per-item write — the per-session JOURNAL ritual already carries it.
 
 **Layout (ADR-66 — supersedes ADR-64's flat layout).** `BACKLOG.md` is a **story map**: **Big Picture → Theme → User Story → Task**. The operator scans goals (Big Picture + themes + stories); the LLM reads execution detail (tasks). **No `repo:` field** (implicitly `.dev-knowledge`); cross-repo governance lives under the *Cross-repo universalization* theme, naming repos in task text; child-repo *execution* items live in the relocation queue, not here. **Authority chain:** ADR-41 (mandate) → ADR-47 (organization) → ADR-64 (done-items-leave / routing / validator) → ADR-65 (disposition) → ADR-66 (story-map layout). A read-only validator (`scripts/validate_backlog.py`) machine-checks the hierarchy.

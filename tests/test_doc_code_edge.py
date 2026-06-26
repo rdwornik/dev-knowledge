@@ -237,17 +237,19 @@ def test_edge_check_only_scans_listed_docs(tmp_path, monkeypatch):
 
 
 def test_edge_check_registered_and_resolves_starter_set():
-    """Registered in ALL_CHECKS (count 24) AND the LIVE hub scan resolves the #194 cohort-1 set
-    over the declaration-doc registry: 5 enforced rules (the 3 starters seal-journal-anchor /
-    canonical-freshness / coherence-spec-reconciled + Phase-B coherence-amendment /
-    governance-backlog-schema) each resolve doc<->code -- the edge is REAL + advisory (never FAILs)."""
+    """Registered in ALL_CHECKS (count 24) AND the LIVE hub scan resolves the post-#201 set over
+    the declaration-doc registry: 8 enforced rules -- the 5 cohort-1 (seal-journal-anchor /
+    canonical-freshness / coherence-spec-reconciled / coherence-amendment / governance-backlog-
+    schema) PLUS the #201 governance trio (governance-no-ff / -child-floor / -backlog-leave), the
+    last three multi-site via ADR-90 -- each resolve doc<->code; the edge is REAL + advisory
+    (never FAILs)."""
     assert aud.check_doc_code_edge in aud.ALL_CHECKS
     assert len(aud.ALL_CHECKS) == 24
     findings = aud.check_doc_code_edge(Path(aud._REPO_ROOT))
     assert all(f.status != "fail" for f in findings)        # advisory: never FAIL
     assert len(findings) == 1
     assert findings[0].status == "pass"
-    assert "5 doc" in findings[0].evidence                  # the 5 cohort-1 rules (Phase B)
+    assert "8 doc" in findings[0].evidence                  # 5 cohort-1 + the #201 governance trio
     assert "resolved" in findings[0].evidence
 
 
@@ -392,9 +394,11 @@ def test_coverage_all_in_scope_rules_resolve():
     assert scope, "coverage_scope is empty/absent -- the guard would vacuously pass"
     code_root = _REPO_ROOT / "scripts"
     decl = aud._load_declaration_docs(_REPO_ROOT)  # registry-scoped resolution (matches the live check)
+    multi = aud._load_multi_site(_REPO_ROOT)       # ADR-90 multi-site counts (matches the live check)
     unresolved = [
         rid for rid in scope
-        if vdce.resolve_edge(rid, _REPO_ROOT, code_root, include=decl).status != "resolved"
+        if vdce.resolve_edge(rid, _REPO_ROOT, code_root,
+                             include=decl, multi_site=multi).status != "resolved"
     ]
     assert not unresolved, (
         f"{len(unresolved)}/{len(scope)} in-scope rules not yet resolved: "
@@ -518,3 +522,115 @@ def test_iter_code_rule_ids_collects_comment_tokens_only(tmp_path):
     (tmp_path / "b.py").write_text(
         'NOTE = "see # rule: STRING-ONLY here"\n', encoding="utf-8")
     assert vdce.iter_code_rule_ids(tmp_path) == {"CODE-1"}
+
+
+# --- ADR-90 resolver-allows-N: declared multi-site rules (#201) -------------------------
+# A rule legitimately enforced in N `# rule:`-able code organs declares its expected count in
+# `multi_site`; resolve_edge resolves it at EXACTLY that count + ONE doc site. Any other code
+# count (incl. +/-1) stays `ambiguous` -- the duplicate-guard keeps its teeth for declared organs.
+
+def _write_two_organ(tmp_path, n_code=2, n_doc=1, rid="GOV-2ORG"):
+    """A tmp tree: `n_doc` doc declaration(s) of `rid` + `n_code` `# rule: rid` code sites."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "PLAYBOOK.md").write_text(
+        "".join(f"decl {i} <!-- rule: {rid} -->\n" for i in range(n_doc)), encoding="utf-8")
+    scripts = tmp_path / "scripts"
+    scripts.mkdir(exist_ok=True)
+    for i in range(n_code):
+        (scripts / f"organ{i}.py").write_text(
+            f"def f{i}():\n    # rule: {rid}\n    return {i}\n", encoding="utf-8")
+    return tmp_path, scripts
+
+
+def test_multi_site_resolves_at_declared_count(tmp_path):
+    """A 2-code-site rule is `ambiguous` under the strict 1:1 guard but `resolved` once multi_site
+    declares count 2 (the core #201 capability)."""
+    root, code_root = _write_two_organ(tmp_path, n_code=2)
+    strict = vdce.resolve_edge("GOV-2ORG", root, code_root, include=("PLAYBOOK.md",))
+    assert strict.status == "ambiguous"                       # 2 code sites, no declaration
+    declared = vdce.resolve_edge("GOV-2ORG", root, code_root,
+                                 include=("PLAYBOOK.md",), multi_site={"GOV-2ORG": 2})
+    assert declared.status == "resolved"
+    assert len(declared.code_sites) == 2
+
+
+def test_multi_site_count_mismatch_still_ambiguous(tmp_path):
+    """The duplicate-guard keeps its teeth: count+1 (an undeclared extra organ) AND count-1 (a
+    lost organ) both stay `ambiguous` -- declaring N does NOT relax to '>=1'."""
+    over, over_code = _write_two_organ(tmp_path / "over", n_code=3)
+    r_over = vdce.resolve_edge("GOV-2ORG", over, over_code,
+                               include=("PLAYBOOK.md",), multi_site={"GOV-2ORG": 2})
+    assert r_over.status == "ambiguous" and len(r_over.code_sites) == 3      # 3 != declared 2
+    under, under_code = _write_two_organ(tmp_path / "under", n_code=1)
+    r_under = vdce.resolve_edge("GOV-2ORG", under, under_code,
+                                include=("PLAYBOOK.md",), multi_site={"GOV-2ORG": 2})
+    assert r_under.status == "ambiguous" and len(r_under.code_sites) == 1    # 1 != declared 2
+
+
+def test_multi_site_relaxes_code_side_only_doc_stays_1to1(tmp_path):
+    """multi_site governs the CODE side; >1 doc site is still `ambiguous` (declare at one source)."""
+    root, code_root = _write_two_organ(tmp_path, n_code=2, n_doc=2)
+    r = vdce.resolve_edge("GOV-2ORG", root, code_root,
+                          include=("PLAYBOOK.md",), multi_site={"GOV-2ORG": 2})
+    assert r.status == "ambiguous"                            # 2 doc sites -> ambiguous regardless
+
+
+def test_multi_site_unlisted_rule_keeps_strict_guard(tmp_path):
+    """A rule ABSENT from multi_site keeps the strict 1:1 duplicate-guard even when other rules
+    are declared multi-site (per-rule opt-in, conservative default)."""
+    root, code_root = _write_two_organ(tmp_path, n_code=2, rid="UNLISTED-1")
+    r = vdce.resolve_edge("UNLISTED-1", root, code_root,
+                          include=("PLAYBOOK.md",), multi_site={"OTHER-2ORG": 2})
+    assert r.status == "ambiguous"                            # not in the map -> strict >1 guard
+
+
+def test_multi_site_no_duplicate_code_structural_finding_at_count(tmp_path):
+    """scan_structural_integrity does NOT raise `duplicate_code` for a declared multi-site rule at
+    its expected count (the index threads multi_site), but DOES above it."""
+    at_root, _ = _write_two_organ(tmp_path / "at", n_code=2)
+    at = vdce.scan_structural_integrity(at_root, at_root / "scripts",
+                                        include=("PLAYBOOK.md",), multi_site={"GOV-2ORG": 2})
+    assert not [f for f in at if f.kind == "duplicate_code"]               # 2 == declared 2
+    over_root, _ = _write_two_organ(tmp_path / "over", n_code=3)
+    over = vdce.scan_structural_integrity(over_root, over_root / "scripts",
+                                          include=("PLAYBOOK.md",), multi_site={"GOV-2ORG": 2})
+    assert [f for f in over if f.kind == "duplicate_code"]                 # 3 > declared 2
+
+
+def test_load_multi_site_failsoft(tmp_path):
+    """audit._load_multi_site fail-soft contract: missing / malformed / non-mapping -> {}; only
+    str->int(>=2) entries kept (a bool / count<1 / non-int is dropped)."""
+    assert aud._load_multi_site(tmp_path) == {}                            # absent file
+    eco = tmp_path / "ecosystem"
+    eco.mkdir()
+    (eco / "doc-code-edge.yaml").write_text("multi_site: [unclosed", encoding="utf-8")
+    assert aud._load_multi_site(tmp_path) == {}                            # malformed YAML
+    (eco / "doc-code-edge.yaml").write_text("multi_site: notamap\n", encoding="utf-8")
+    assert aud._load_multi_site(tmp_path) == {}                            # non-mapping value
+    (eco / "doc-code-edge.yaml").write_text(
+        "multi_site:\n  good-2: 2\n  good-3: 3\n  bad-one: 1\n  bad-bool: true\n  bad-str: x\n",
+        encoding="utf-8")
+    assert aud._load_multi_site(tmp_path) == {"good-2": 2, "good-3": 3}    # only str->int>=2
+
+
+_MULTI_RULES = [
+    ("governance-no-ff", 3),
+    ("governance-child-floor", 2),
+    ("governance-backlog-leave", 3),
+    ("coherence-spec-reconciled", 2),
+]
+
+
+@pytest.mark.parametrize("rule_id, count", _MULTI_RULES)
+def test_governance_multi_site_rules_resolve_live(rule_id, count):
+    """The real multi-organ rules resolve doc<->code on the LIVE hub at their declared count: the
+    #201 governance trio + the retro coherence-spec-reconciled, via the live multi_site map. This
+    is #201 demonstrated on real 2-/3-site rules (e.g. governance-no-ff: validate_no_ff detect +
+    block_ff_push prevent + check_no_ff_merges adapter)."""
+    decl = aud._load_declaration_docs(_REPO_ROOT)
+    multi = aud._load_multi_site(_REPO_ROOT)
+    assert multi.get(rule_id) == count, f"multi_site must declare {rule_id}={count}, got {multi.get(rule_id)}"
+    code_root = _REPO_ROOT / "scripts"
+    r = vdce.resolve_edge(rule_id, _REPO_ROOT, code_root, include=decl, multi_site=multi)
+    assert r.status == "resolved", f"{rule_id}: {r.status} (code sites={len(r.code_sites)})"
+    assert len(r.code_sites) == count                          # all N organs annotated + found

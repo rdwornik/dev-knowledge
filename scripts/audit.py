@@ -1200,6 +1200,7 @@ def check_amendment_coherence(
 _FLOOR_MD_REF_RE = re.compile(r"[A-Za-z0-9_-]+\.md")
 
 
+# rule: governance-child-floor
 def check_floor_integrity(repo_path: Path) -> list[Finding]:
     """Child methodology-floor conformance (ADR-78 O2; methodology_surface zone, ADR-75).
 
@@ -1260,6 +1261,7 @@ def check_floor_integrity(repo_path: Path) -> list[Finding]:
                     f"(sha256 {actual[:12]}…)")]
 
 
+# rule: governance-backlog-leave
 def check_git_backlog_drift(repo_path: Path) -> list[Finding]:
     """#90 git<->backlog reconciliation (direction (a) STRONG, ADR-65).
 
@@ -1410,6 +1412,7 @@ def check_doc_structure(repo_path: Path) -> list[Finding]:
     ]
 
 
+# rule: governance-no-ff
 def check_no_ff_merges(repo_path: Path) -> list[Finding]:
     """#153 `--no-ff` merge guard (core-invariants rule 5).
 
@@ -1508,6 +1511,7 @@ def check_handoff_probes(repo_path: Path) -> list[Finding]:
                     f"{len(results)} probe(s) bind to live state ({latest.name})")]
 
 
+# rule: coherence-spec-reconciled
 def check_reconciled_versions(repo_path: Path) -> list[Finding]:
     """Coherence-spine reconciliation gate: a dependent's declared `reconciled_with`
     version must match the spec's CURRENT (live) version.
@@ -1601,6 +1605,32 @@ def _load_coverage_scope(repo_path: Path) -> tuple[str, ...]:
     return tuple(s for s in scope if isinstance(s, str))
 
 
+def _load_multi_site(repo_path: Path) -> dict[str, int]:
+    """Read the doc->code multi-site expected-count map (`ecosystem/doc-code-edge.yaml`,
+    `multi_site:`) -- per ADR-90 (resolver-allows-N), a rule legitimately enforced in N code
+    organs declares its expected `# rule:` site count here, so the resolver resolves it at
+    EXACTLY that count instead of classing it `ambiguous` (the strict 1:1 duplicate-guard).
+
+    Sibling key to `coverage_scope`/`declaration_docs`; same fail-soft -> {} contract (a
+    missing/malformed file or non-mapping value degrades every rule to the strict 1:1 guard --
+    conservative: it can only NARROW what resolves, never silently widen it). Only `str -> int`
+    entries with count >= 2 are kept (a bool is rejected -- `bool` is an `int` subclass).
+    Resolved from `repo_path` at call time. Read-only.
+    """
+    cfg = Path(repo_path) / "ecosystem" / "doc-code-edge.yaml"
+    try:
+        data = yaml.safe_load(cfg.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    raw = data.get("multi_site")
+    if not isinstance(raw, dict):  # a non-mapping scalar must degrade, not raise
+        return {}
+    return {k: v for k, v in raw.items()
+            if isinstance(k, str) and isinstance(v, int) and not isinstance(v, bool) and v >= 2}
+
+
 def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     """#194 doc→code declared-edge integrity (advisory-first, ADR-89 OQ1).
 
@@ -1628,6 +1658,7 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     code_root = Path(repo_path) / "scripts"
     try:
         include = _load_declaration_docs(repo_path)
+        multi = _load_multi_site(repo_path)  # ADR-90: declared multi-site expected counts
         ids = _vdce.iter_doc_rule_ids(Path(repo_path), include)
         # L1 structural integrity (#194): also surface code-side ORPHANS — a `# rule:` whose ID
         # is declared in NO declaration doc (code->nonexistent-rule), the direction the doc-side
@@ -1636,7 +1667,8 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
         # dangling/duplicate findings are already reported below as broken_edge/ambiguous, so here
         # we take ONLY its code_orphan findings (a disjoint id set — no double-report). Advisory:
         # WARN-only, never a gate (hard-gate promotion is data-gated, ADR-89 OQ3).
-        orphans = [f for f in _vdce.scan_structural_integrity(Path(repo_path), code_root, include)
+        orphans = [f for f in _vdce.scan_structural_integrity(
+                       Path(repo_path), code_root, include, multi)
                    if f.kind == "code_orphan"]
     except Exception as exc:  # never wedge the audit-health gate
         return [Finding("doc_code_edge", "warn",
@@ -1656,7 +1688,8 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
                          "(ecosystem/doc-code-edge.yaml)")]
     resolved = 0
     for rid in sorted(ids):
-        result = _vdce.resolve_edge(rid, Path(repo_path), code_root, include=include)
+        result = _vdce.resolve_edge(rid, Path(repo_path), code_root,
+                                    include=include, multi_site=multi)
         if result.status == "resolved":
             resolved += 1
         else:
