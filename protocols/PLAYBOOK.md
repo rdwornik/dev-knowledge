@@ -871,7 +871,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `ENVIRONMENT.md` | Tooling state, what's installed | Sectioned, scope-tagged | When tool adopted/deprecated | Rob, Claude Code | Living (sections updated) | Per-repo |
 | `docs/decisions/ADR-NN-*.md` | Architectural decisions | Michael Nygard format | When decision binds | Rob, future contributors | Numbered, immutable (amend in-place per ADR-29) | Per-repo |
 | `docs/decisions/transcripts/council-out-*.md` | Raw Council debate outputs (canonical; legacy `DECISION_NN_*` grandfathered in `transcripts/archive/legacy/`) | Multi-model debate transcript | When Council debate concludes (routed per ADR-43; manual fallback per §5) | Reference for ADR rationale | Numbered, immutable | Per-repo |
-| `docs/handoffs/YYYY-MM-DD-*/` (v5.2 bundle) | Chat-to-chat session summary | Flat bundle entered via `HANDOFF_BOOT.md` (operator session entry) + CC-owned residual/probe-manifest, per HANDOFF_PROCESS v5.2 (ADR-82); legacy v4 `README.md` + `01_ROLE`…`07_ASK_BACK`, single-file, and v3.x `contents/` bundles preserved as history | When session boundary requires continuity | Next browser chat | Dated, immutable | `.dev-knowledge` only |
+| `docs/handoffs/YYYY-MM-DD-*/` (v5.3 bundle) | Chat-to-chat session summary | Flat bundle entered via `HANDOFF_BOOT.md` (operator session entry) + CC-owned residual/probe-manifest, per HANDOFF_PROCESS v5.3 (ADR-82); legacy v4 `README.md` + `01_ROLE`…`07_ASK_BACK`, single-file, and v3.x `contents/` bundles preserved as history | When session boundary requires continuity | Next browser chat | Dated, immutable | `.dev-knowledge` only |
 | `docs/audits/YYYY-MM-DD-*.md` | Point-in-time analyses | Free-form audit | When deep analysis needed | Reference for follow-up work | Dated, immutable (mark SUPERSEDED if redone) | Per-repo |
 
 ### File presence (universal baseline)
@@ -2085,12 +2085,12 @@ Per **ADR-87** (the architect↔CC equilibrium contract). STEP 1 verified CC sel
 | Effort    | low / medium / high / xhigh / max   |
 ```
 
-**Model + Effort are CC-filled** (CC's pick — see "How to choose Model" below); **Mode** is the architect's. The architect does not choose Model.
+**Model is CC's pick** (see "How to choose Model" below); **Mode and Effort are the architect's** (Effort set by token budget). The architect does not choose Model.
 
 ### How to choose Model
 <!-- scope: llm -->
 
-**Model is CC's pick, not the architect's** (canonical: "The two lifelines" § Lifeline 1) — default **Opus 4.8**, the floor (see "Model / effort platform doctrine" below); CC may route a mechanical sub-step smaller. The architect does not set it; effort is keyed to token budget. CC's routing heuristic:
+**Model is CC's pick, not the architect's** (canonical: "The two lifelines" § Lifeline 1) — default **Opus 4.8**, the floor (see "Model / effort platform doctrine" below); CC may route a mechanical sub-step smaller. The architect does not set the model; **effort is the architect's**, keyed to token budget. CC's routing heuristic:
 
 - **Sonnet** for: mechanical work ("apply this fix"), single-file edits, well-specified implementation, pattern-matched code, boilerplate, file renames, config updates, code-and-test loops where the spec is detailed.
 - **Opus** for: audit / review / synthesis tasks; architecture decisions and clause-level reasoning; judgment-heavy work (severity calibration, ambiguity resolution); long-context comparison across multiple inputs; subtle pattern recognition (security review, gotcha identification); multi-package changes; complex debugging; novel logic design.
@@ -2159,7 +2159,7 @@ Platform-current facts that pin the tables above (Claude Code 2.1.186; refreshed
 ```
 LEGEND  [A] = architect emits  ·  [CC] = CC self-loads  (per "The two lifelines" § Lifeline 1)
 
-| Parameter | Value  |   <- Mode is [A]; Model + Effort are [CC]
+| Parameter | Value  |   <- Mode + Effort are [A]; Model is [CC]
 | --------- | ------ |
 | Model     | [pick] |
 | Mode      | [pick] |
@@ -2954,7 +2954,7 @@ If a client engagement generates a dev lesson, strip all client names, proprieta
 ## 14. Markdown Governance
 <!-- scope: dev -->
 
-> **Reconciled 2026-06-23 (Handoff + Snapshots/reports rows).** The Handoff and Snapshots/reports rows below now match practice: handoffs are dated, immutable `docs/handoffs/YYYY-MM-DD-*/` bundles (folder convention per ADR-32 / HANDOFF_PROCESS v5.2), not a living `docs/HANDOFF.md`; dated snapshots/audits under `docs/archive/` are kept **indefinitely** (the prior "delete after 90 days" lifecycle never matched practice — audits are immutable records).
+> **Reconciled 2026-06-23 (Handoff + Snapshots/reports rows).** The Handoff and Snapshots/reports rows below now match practice: handoffs are dated, immutable `docs/handoffs/YYYY-MM-DD-*/` bundles (folder convention per ADR-32 / HANDOFF_PROCESS v5.3), not a living `docs/HANDOFF.md`; dated snapshots/audits under `docs/archive/` are kept **indefinitely** (the prior "delete after 90 days" lifecycle never matched practice — audits are immutable records).
 
 **Every markdown file in the project falls into exactly one category.** If you're about to create a .md file and it doesn't fit any category below — it probably shouldn't exist.
 
