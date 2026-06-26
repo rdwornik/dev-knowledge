@@ -558,7 +558,7 @@ Full doctrine + reversibility: **ADR-89 OQ1 "NAMING CONVENTION — ADOPTED"**. A
 
 **Purpose:** Standardize prompts that browser chat produces for Claude Code execution. Per ADR-28 (three-layer architecture): browser is architect, Claude Code is executor — prompts are the contract between them.
 
-> **Cross-ref (ADR-87):** the architect↔CC equilibrium contract refines this — the architect emits intent + plan/auto mode + a thin governance-pointer, and CC self-loads code-impact context + generic gotchas. See §2 "Creating a Claude Code Prompt" / ADR-87. **Overlap flag:** this section and §2 both cover prompt authoring and both predate ADR-87 — candidate for a later focused consolidation (flagged only; not done here).
+> **Cross-ref (ADR-87):** the architect↔CC equilibrium contract refines this — the architect emits intent + plan/auto mode + a thin governance-pointer, and CC self-loads code-impact context + generic gotchas. The division is canonical in **"The two lifelines" § Lifeline 1** (the equilibrium table); this section and §2 "Creating a Claude Code Prompt" both cover prompt authoring and **point to** that table rather than restate it. Full rationale: ADR-87.
 
 ### Why standard format
 <!-- scope: meta -->
@@ -2091,10 +2091,7 @@ Then for each feature:
 ### Architect output vs CC consumption-spec
 <!-- scope: hybrid -->
 
-Per **ADR-87** (the architect↔CC equilibrium contract). STEP 1 verified CC self-loads context **reliably only for code-impact tasks**; read-only, governance-context, and execution-time gotcha self-load are unreliable. So the labor splits:
-
-- **The architect emits:** *intent* · *closure* (what done looks like) · *anti-patterns* · the **plan/auto mode** (with its basis — "How to choose Mode" below) · a **thin per-task governance-pointer** (the specific ADR / LESSONS entry / sibling-spec this task touches — CC won't self-infer it).
-- **CC owns:** *code-impact context* (the files/tests it self-loads) · *generic gotchas* · the **skeleton** (this section's structure) · *model/effort*.
+Per **ADR-87** (the architect↔CC equilibrium contract). STEP 1 verified CC self-loads context **reliably only for code-impact tasks**; read-only, governance-context, and execution-time gotcha self-load are unreliable. So the labor splits **per the canonical equilibrium table — "The two lifelines" § Lifeline 1** (architect emits *intent · closure · anti-patterns · mode · a thin governance-pointer*; CC owns *code-impact context · generic gotchas · the skeleton · model/effort*). Not restated here; the prompt-authoring nuances that table does not carry follow:
 
 **Intent-only is conditional.** For a code-impact task, intent + mode (+ pointer if governance applies) is enough — CC self-loads the rest. For a **read-only, governance-touching, or gotcha-sensitive** task the thin governance-pointer is **required** — omitting it regresses the gap CC cannot close from inside the repo. The mode is the architect's judgment: state it **and** its basis (plan when uncertain / multi-file / unfamiliar; auto when a trivial one-sentence diff — the criterion is "How to choose Mode" below, not restated here). Full rationale + the self-load finding: **ADR-87**.
 
@@ -2179,7 +2176,7 @@ Platform-current facts that pin the tables above (Claude Code 2.1.186; refreshed
 <!-- scope: hybrid -->
 
 ```
-LEGEND  [A] = architect emits  ·  [CC] = CC self-loads  (per the ADR-87 split above)
+LEGEND  [A] = architect emits  ·  [CC] = CC self-loads  (per "The two lifelines" § Lifeline 1)
 
 | Parameter | Value  |   <- Mode is [A]; Model + Effort are [CC]
 | --------- | ------ |
@@ -2757,7 +2754,7 @@ Canonical: `protocols/HANDOFF_PROCESS.md` §2 (the **residual** CC emits) + §5 
 ### Roles
 <!-- scope: meta -->
 
-Canonical: **ESSENTIALS § Roles** (Does/Does NOT lists, Three-layer flow per ADR-28) + `protocols/HANDOFF_PROCESS.md` §1 (the v5 actor table) / §7 (the browser operating role). Not restated here.
+Canonical: the architect↔CC **division** is the equilibrium table in **"The two lifelines" § Lifeline 1** (ADR-87); the fuller **Does/Does-NOT** lists + three-layer flow are **ESSENTIALS § Roles** (per ADR-28); the v5 actor table / browser operating role are `protocols/HANDOFF_PROCESS.md` §1 / §7. Not restated here.
 
 ### Handoff paths
 <!-- scope: meta -->
