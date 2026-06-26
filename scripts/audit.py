@@ -909,7 +909,8 @@ def check_no_sibling_orphans(repo_path: Path) -> list[Finding]:
 
     A presence-checking audit structurally cannot catch a directory that exists but should
     not (2026-05-17 decommissioning-gap LESSON), so this is an explicit negative assertion —
-    the mechanization PLAYBOOK G5 §924 named.
+    the mechanization PLAYBOOK "No leftovers ... invariant" names (referenced by section name,
+    not line number, so it does not drift).
 
     Read-only (`git worktree list`). Degrades gracefully without git (skipped). PORTABLE:
     a child repo inherits it unchanged — `repo_path.name` resolves to that repo's prefix.

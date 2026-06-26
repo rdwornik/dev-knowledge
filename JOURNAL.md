@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-26 — CC: SEAL-1a PLAYBOOK rule/history condensation (plan-then-auto; NOT merged)
+
+**Did:** Executed SEAL-1a on branch `docs/playbook-condensation` (off `main`) — separate rule from rationale/history in `protocols/PLAYBOOK.md`, lose zero rules, organize around the two-lifelines spine. 7 commits (Group 0 + A–F): filed BACKLOG #213/#214/#215 (1a/1e/1f; closed nothing); extended the spine with a chapter→lifeline map; relocated incidents to their existing LESSONS pointers + trimmed dated provenance across Ch2/Ch5/Ch8/Ch10–14/§5/§19; de-referenced the one live line-number referrer (`scripts/audit.py` docstring `§924` → section name); wrote the closure artifact `docs/audits/2026-06-26-playbook-condensation-rule-inventory.md`. **Reconciled a refuted claim** (surfaced, not silent): Ch8's "native `claude --worktree` auto-seeds `ecosystem/*/state.yaml` for you" (verified 2026-06-18) → the canonical n=3 rule (seed from the primary; LESSONS 2026-06-19).
+
+**Result:** HARD metric MET — zero rules lost; every inbound pointer resolves (14 `ChN` + 18 Part-II headings + all NAME-targets preserved; no renumber). Per-group + final `pytest` **854 passed**, `ruff` clean, `validate_doc_structure` OK, `audit.py ship-gate` **GREEN** (4 WARN, pre-existing/dispositioned), TOC fresh, codemap fresh. Working tree clean. Arc = `bca4116`..`ef2c32d`. PLAYBOOK 3410→3386 (**−24 lines, ~0.7%** — honest byproduct; PLAYBOOK was already lean post-#158, residual relocatable history ~30 ln; no rule cut to chase a number).
+
+**Changes:** `BACKLOG.md` (+#213/#214/#215); `protocols/PLAYBOOK.md` (Groups A–E); `scripts/audit.py` (docstring de-reference); `docs/audits/2026-06-26-playbook-condensation-rule-inventory.md` (new). Commits `bca4116`/`e3b8752`/`f755584`/`47f655a`/`a1d9971`/`929f8af`/`ef2c32d`.
+
+**Abandoned:** Did NOT merge (operator integrates after reviewing the rule-inventory + diff — architect instruction). Did NOT push. Did NOT touch ESSENTIALS (next arc) or close #77/any ticket. Left the larger **reference-compression** lever unpulled (Ch14 4× parallel structure, VS Code workspace templates, §2/§5 prose) — a riskier "thin reference" cut outside the approved posture; operator's call whether to authorize a follow-up.
+
+**Next:** Operator reviews the arc; if approved, integrate from the primary (`/ship` or `git merge --no-ff docs/playbook-condensation`). 1e (#214) / 1f (#215) stay filed-not-built. Optional follow-up: the reference-compression pass.
+
 ### 2026-06-26 — CC: integration wrap (merge two-lifelines + corpus-cleanup; keep fleet-audit)
 
 **Did:** Operator-directed consolidation after the two-lifelines arc wrap. Merged `docs/two-lifelines-canonical` → `main` `--no-ff` (`cc6d15f`, operator-reviewed). Per operator instruction: **KEPT** `automation/fleet-audit`; merged the parallel `worktree-corpus-cleanup` → `main` `--no-ff` (`4848ca4`), resolving the lone JOURNAL conflict by keeping both 2026-06-26 entries verbatim (newest-first); removed the corpus-cleanup worktree + deleted its merged branch. Committed the previously-untracked corpus-graph audit `docs/audits/2026-06-26-corpus-graph-justify-or-retire.md` (`c1ae96a`, merge `323c85e`) to resolve the dangling reference the merged corpus-cleanup work made to it. Deleted my merged branches (two-lifelines + the already-merged `chore/freshness-bump-2026-06-26`).
