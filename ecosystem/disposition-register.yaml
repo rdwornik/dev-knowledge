@@ -77,3 +77,17 @@ dispositions:
       immutable history, unfixable without a rewrite. Violates core-invariants #5 but accepted
       as-is (operator-ratified 2026-06-20). Surfaced, not introduced — headlined ship-gate-RED
       since the 2026-06-19 architect handoff (a6ffcc4).
+  - id: warn-no-ff-533109f-journal-wrap
+    organ: no_ff_merges
+    match: "533109f20"
+    ref: 533109f20
+    reason: >-
+      THIRD instance of this class (journal-wrap direct-to-main): a 2026-06-26 JOURNAL
+      session-wrap recording the freshness re-stamp session, landed direct on main rather
+      than via a --no-ff arc. Same benign signature as the 2026-06-20 pair above
+      (3a894eeb5 / d0f9ead67) — a session-wrap whose diff is JOURNAL-only. Violates
+      core-invariants #5 but immutable-as-history; ratified as-is (operator, 2026-06-26).
+      Keyed on the 9-char sha per precision-over-recall — any future no_ff violation
+      re-surfaces and blocks. RECURRENCE: 3 instances (2026-06-20 x2, 2026-06-26 x1) make
+      this a structural gap, not a one-off — tracked for a standing path-scoped rule by [#210]
+      (per-instance disposition -> rule). Does not auto-clear.
