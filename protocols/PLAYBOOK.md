@@ -1409,7 +1409,7 @@ The canonical layer→job matrix is **ADR-74**; this is its operating-doctrine p
 
 **LLM-judgment automation.** Any organ that runs a model. Invariant: **always read-only + adversarial-skeptic-filtered + operator-ratified** — it proposes, a skeptic kills false positives, and a human funnel ratifies before anything binds. Nothing it emits is binding unattended. Two delivery forms, both ADR-74 Tier 3:
 
-- **Cloud Routine** — self-contained (clones only its own repo, reads no sibling — ADR-72/73); read-only schema-bound agents + skeptic; output via its **declared channel**: a `claude/<task>-YYYY-MM-DD` branch → PR → the GitHub Action diff-guards and **squash-merges** (compliant-by-design — witnessed 2026-06-07, PR #17 squash-merged to `main` as `221c63e`; the single non-merge commit is the *designed* cloud channel, deliberately distinct from the local branch+merge `--no-ff` discipline for human-authored arcs). See "Routine/night deployment standard › The outcome loop".
+- **Cloud Routine** — self-contained (clones only its own repo, reads no sibling — ADR-72/73); read-only schema-bound agents + skeptic; output via its **declared channel**: a `claude/<task>-YYYY-MM-DD` branch → PR → the GitHub Action diff-guards and **squash-merges** (compliant-by-design: the single non-merge commit is the *designed* cloud channel, deliberately distinct from the local branch+merge `--no-ff` discipline for human-authored arcs — witnessed 2026-06-07 PR#17). See "Routine/night deployment standard › The outcome loop".
 - **Dynamic Workflow** — escalation-only heavy/episodic fan-out (the `Workflow` tool). **Operator-invoked, never scheduled**; trigger keyword **`ultracode`** (the word "workflow" stopped triggering — Claude Code 2.1.160). Escalation criteria: §2 "When to escalate to a Dynamic Workflow".
 
 > **Numbering note.** "Two-tier" is the *LLM-judgment axis* (deterministic vs judgment) — **orthogonal** to ADR-70/74's friction-cadence Tiers 1/2/3 (always-on / scheduled / episodic). Both lenses are live and this section never renumbers ADR-74: a cloud Routine is ADR-74 **Tier 3** *and* a judgment organ; the scheduled baseline is ADR-74 **Tier 2** *and* a deterministic organ.
@@ -1499,7 +1499,7 @@ The honest catch: that degradation is **silent** (the machinery that would log a
 A recurring unattended review — local or cloud — graduates to "standard" only when it satisfies **all** of these (ratified by ADR-80):
 
 1. **Self-containment** — consults only its own repo at runtime; no hub reference on the executing path (ADR-72/73; "Cloud-session hub-independence" above). Cross-repo reach is the *local* deterministic baseline's job, not a cloud Routine's.
-2. **Declared output channel.** *Cloud:* `claude/<task>-YYYY-MM-DD` branch → PR → Action diff-guard → **squash-merge** (compliant-by-design — witnessed 2026-06-07, PR #17 squash-merged to `main` as `221c63e`; the single non-merge commit is the *designed* cloud channel, distinct from the local branch+merge `--no-ff` discipline for human-authored arcs). *Local:* the writer commits its own pathspec-bounded output, fail-soft ("Two-tier automation doctrine › Writer policy").
+2. **Declared output channel.** *Cloud:* `claude/<task>-YYYY-MM-DD` branch → PR → Action diff-guard → **squash-merge** (compliant-by-design: the single non-merge commit is the *designed* cloud channel, distinct from the local branch+merge `--no-ff` discipline for human-authored arcs — witnessed 2026-06-07 PR#17). *Local:* the writer commits its own pathspec-bounded output, fail-soft ("Two-tier automation doctrine › Writer policy").
 3. **`Routine: <name>` commit trailer** on every automation commit, so routine output is git-indexable and value-reviewable (#123).
 4. **Per-stage model pins** — every stage pinned by t-shirt size ("T-shirt model pins"); **no `fallbackModel`** on a pinned stage (it breaks evidence comparability — §2 "Model / effort platform doctrine"). Unpinned fan-out is a bug.
 5. **Fail-soft + catch-up posture** — a missed run is tolerated by design: catch-up on next opportunity (local: Task Scheduler "run as soon as possible after a missed start", ADR-76; cloud: the next scheduled night), surfaced at the next SessionStart. No alerting, no wake-from-sleep.
@@ -1851,8 +1851,6 @@ trigger: <when does Claude Code load this — e.g. "before making changes to mod
 
 ### 7d. Subagents (separate Claude instances)
 <!-- scope: runtime -->
-
-**Amendment 2026-04-25 (subagents factually active):** Original v1.0 section called subagents "DEFERRED — no active subagents in Rob's ecosystem." This was incorrect. Verification 2026-04-25 confirmed two active user-level subagents exist at `~/.claude/agents/`. Section now describes actual subagents (Anthropic docs framing preserved as conceptual context). Per Gap #19 amendment-vs-reopen protocol: prescription drift, intent (disambiguation of 4 mechanisms) preserved.
 
 **What (per Anthropic docs + Council #28 research):** Subagents are spawned Claude instances with narrow focus and fresh context window, invoked via main agent's Agent tool. Designed for "read-heavy, write-light" delegation (per Cognition's June 2025 warning against subagents-as-code-generation-peers).
 
