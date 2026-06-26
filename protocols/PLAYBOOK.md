@@ -2401,7 +2401,7 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 ### Council Debate Archival Protocol
 <!-- scope: llm -->
 
-Every Council debate output MUST be archived immediately after the debate completes. Skip this and the debate is effectively lost. Retroactive archive 2026-04-24 recovered 5 debates that sat in `ai-council/output/` for weeks.
+Every Council debate output MUST be archived immediately after the debate completes. Skip this and the debate is effectively lost.
 
 > **Current state (updated 2026-05-26 — ADR-43 routing implemented):** Cross-project transcript routing now ships in `ai-council` (`routing.py` `TargetResolver`, ADR-43 amendment cycle 1). When a debate names a `target-project:` (frontmatter) or `--target-project` (CLI), the CLI writes the transcript to `<dev_root>/<target>/docs/decisions/transcripts/` automatically on completion — for `.dev-knowledge`-targeted debates that is `docs/decisions/transcripts/`, with **no manual archival step**. The canonical copy still lands in `ai-council/output/`; mirror writes are best-effort (a failure logs a warning, the canonical write still succeeds). Routing is **opt-in per invocation**: the manual pipeline below remains the fallback for debates that do **not** set a target-project.
 
@@ -2505,10 +2505,7 @@ Both paths **converge on the same invariant**: the ADR is generated and committe
 
 When validator/tooling reality contradicts an ADR's prescription, two paths exist: amend in place (preserve intent, update prescription) or reopen the decision (intent itself was wrong). This protocol decides which.
 
-**Pattern emerged organically 2026-04-24** — used 3 times in sequence:
-1. ADR-27 amendment: delta rule replaced flat-threshold enforcement (validator built differently than ADR prescribed)
-2. ADR-29 amendment: H1 placement for LESSONS file-level tag (collided with validator's 3-line H1 detection window)
-3. ADR-27 amendment: heading levels H2+H3 explicit, invocation semantics clarified (silent vacuous-pass discovered)
+The pattern emerged organically 2026-04-24 (three ADR-27/29 amendments in sequence — see the Examples table below).
 
 #### Decision tree
 <!-- scope: meta -->
@@ -3155,7 +3152,7 @@ If strażnik catches additional gaps after Stage 2 routing (audit gaps surfaced 
 - Routing: operator routes addendum alongside (or shortly after) the main cover letter.
 - Addendum supplements; it does not supersede.
 
-**Empirical reference:** ai-council scrum-master review 2026-05-11 produced 10 findings + addendum covering I7 (tasks/lessons.md location accepted-as-by-design) and I8 (underscore-prefix archive folder not flagged for rename). Addendum mechanism prevented full report regeneration.
+**Empirical reference:** the ai-council scrum-master review 2026-05-11 (10 findings + an addendum) — the addendum mechanism prevented full report regeneration. (`docs/audits/2026-05-11-ai-council-scrum-master-review.md`.)
 
 ### Distinction from cross-repo amendment handshake
 <!-- scope: meta -->
