@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-06-26 — CC: freshness re-stamp (CLAUDE.md + CONTRIBUTING.md)
+
+**Did:** Genuine end-to-end re-read of `CLAUDE.md` (v2.24 content confirmed current) and `CONTRIBUTING.md` (all 10 hooks, handoff v5.3 section, DoD pointer — all accurate). Bumped `last_reviewed` to 2026-06-26 in both files + `**Last updated:**` footer in `CLAUDE.md`. Branch `chore/freshness-bump-2026-06-26`, merged `--no-ff`. Clears the Stop hook's freshness-cadence advisory from the 2026-06-25 arc.
+
+**Result:** Commit `9133861`, merge `3bd2cd1`. `audit-health` passed at commit. No content drift found in either file.
+
+**Next:** `/review-closures` approval still pending (operator response needed: reply `y` for STRONG #205; type any WEAK `#N` to close). 13 commits ahead of `origin/main`, unpushed.
+
+---
+
 ### 2026-06-25 — CC: validator-teeth worktree — GAP-4/2/6/7 validator hardening (3 tickets)
 
 **Did:** Parallel-stream worktree (`worktree-validator-teeth`); three frozen-contract tickets serially, committed per ticket, **NOT merged** (operator integrates serially). **#207 (GAP-4, `75145d2`):** gave `verify_handoff_probes._classify` teeth against a toothless `live git` probe — added the toothless rung (NO file/anchor token AND a trivial value-less command → FAIL) + all-span command-target resolution (a broken path in a SECONDARY backtick span is now caught, not first-span-blind). **#206 (GAP-2, `56f9081`):** pinned the hub↔plugin `validate_backlog` carrier-twin (new `tests/test_validate_backlog_twin_parity.py`) — both modules loaded independently must produce identical findings on shared fixtures (dep-cycle/dangling-dep/serialize-group/done-marker) + a source-identity guard on the declared twin; de-dup is the real fix, parity-test the stopgap. **#208 (GAP-6+7, `22000a6`):** made the `validate_doc_claims` `_CLAIMS` registry data-driven (injectable `claims` param; 3 parametrized guards auto-cover new rows + a wrong-number negative control), and covered `validate_doc_rot.scan()`'s live-constant `_FILE_SIZE_BUDGETS` path (201-line CLAUDE.md fires, 199 doesn't).
