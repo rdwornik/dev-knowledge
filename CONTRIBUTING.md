@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-26
+last_reviewed: 2026-06-27
 reconciled_with: handoff-process@5.3
 status: active
 owner: Rob
@@ -128,20 +128,21 @@ repo's first GitHub Action (`.github/workflows/nightly-conformance-triage.yml`) 
 the morning so the operator touches only findings:
 
 - **Clean night** (`survived=0` in the digest's machine-readable counts marker
-  `<!-- counts: raw=N survived=N killed=N -->`) → the PR is squash-merged automatically and its
-  branch deleted. No operator action.
-- **Findings night** (`survived=N`, N>0 in the counts marker) → the digest is squash-merged too (it is
-  the record) **and** a `nightly-triage` Issue `Nightly triage <date> — <N> survivor(s)` is
-  opened with the digest's Findings-by-Severity + Next-Actions sections and a link to the
-  merged digest.
+  `<!-- counts: raw=N survived=N killed=N -->`) → the digest is **diverted** onto
+  `automation/conformance-digest` and the PR is **closed** (its `claude/conformance-YYYY-MM-DD`
+  branch deleted) — never merged to `main`. No operator action.
+- **Findings night** (`survived=N`, N>0 in the counts marker) → the digest is **diverted** onto
+  `automation/conformance-digest` too (it is the record, on the branch) **and** a `nightly-triage`
+  Issue `Nightly triage <date> — <N> survivor(s)` is opened with the digest's Findings-by-Severity
+  + Next-Actions sections and a link to the diverted digest (on the automation branch).
 - **Anomalous PR** (anything other than exactly one ADDED digest file) → **nothing is
-  merged**; an `Anomalous nightly PR <date> — guard failed` Issue is opened listing the
+  recorded**; an `Anomalous nightly PR <date> — guard failed` Issue is opened listing the
   changed files, and the PR is left open for human review.
 
-The **diff guard** is the safety gate: the Action merges only when
+The **diff guard** is the safety gate: the Action **diverts** the digest only when
 `git diff --name-status base...head` is exactly one `A` line matching
 `docs/audits/*-conformance-nightly-digest.md` — a mislabeled or lying digest is therefore at
-worst a document on `main`, never code. **Where to look:** open `nightly-triage` Issues are
+worst a stray document on `automation/conformance-digest`, never code and never on `main`. **Where to look:** open `nightly-triage` Issues are
 surfaced at session start by `scripts/surface_triage.ps1` (a `[triage] …` line) and live in
 the repo's Issues tab.
 
@@ -161,7 +162,7 @@ deployment standard"; ADR-72 (cloud self-containment).
 **Residual risk:** the survivor count is read from a code-owned machine-readable marker in the
 digest body (`<!-- counts: raw=N survived=N killed=N -->`, written by `conformance-hub.js`; the
 free-form PR title and the agent's prose are not trusted) and the parse **fails closed** — a
-missing or unparseable marker opens an Issue and blocks the merge rather than guessing. **Layer-2 note:** this Action runs in
+missing or unparseable marker opens an Issue and blocks the divert rather than guessing. **Layer-2 note:** this Action runs in
 GitHub CI and manages the hub's *own* review-output PRs only; it does not orchestrate child
 repos, and `surface_triage.ps1` is read-only — so the Layer-2 "validators only / never
 executes cross-repo" invariant still holds.
