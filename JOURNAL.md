@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-27 — CC: archive-phase lessons capture from the ADR-91 versioning arc (501d999)
+
+**Did:** Archive phase of the versioning/deployment loop — captured the arc's 4 methodology lessons into the live lessons home, closing the gap where a prior session routed a lesson into a commit message instead of LESSONS. Branched `feat/lessons-versioning-arc` off `main`. Verified LIVE first: the prior session's "unsafe append (oldest-top convention)" flag was a **MISREAD** — `LESSONS.md:5` says "New entries go at the **top**" (newest-first, like JOURNAL; "append-only" = never edit/delete existing, not append-at-bottom), so a normal top prepend is the safe mechanism. Prepended **L1** (validate a record-home against the target file's live write-semantics — derived/regenerated files clobber durable fields), **L2** (re-verify inherited starred/load-bearing facts vs live state), **L3** (a deliverable's shape picks its consumer — Council brief ≠ CC prompt), **L4** (the read-live-first gate works; keep it), all `[scope: meta]`. Dropped the literal `★` glyph from L2 (not cp1252). For the oracle line-pin gotcha: found it **already placed + already bumped to 2026-06-27** in `~/.claude/skills/gotchas/gotchas.md`; **enriched** its Symptom with this arc's recurrence (n=2: `Finding` pins re-set 242→247, commit 06add3a, ADR-91 #26).
+
+**Result:** Commit `501d999` (LESSONS, +8 lines). Gates: ruff clean, `audit.py health` **OK** (`doc_rot` no bloat past thresholds; the WARNs shown — `git_backlog_drift #77`, 3 historical `no_ff_merges` — are pre-existing/unrelated), pre-commit hooks all Passed, doc-relevant tests **242 passed**, oracle tests **21 passed** (this branch off `main`: `Finding` at 242, pins match — the 247 state is only on the unmerged arc branch). Full suite not run to completion (ADR-89 Pyright oracle warm-up >6 min; cannot be affected by a markdown-only edit).
+
+**Changes:** `LESSONS.md` (4 entries). Out-of-repo: `~/.claude/skills/gotchas/gotchas.md` enriched in its working tree (uncommitted). Commit `501d999` + this wrap.
+
+**Abandoned:** Did NOT commit `~/.claude` — its `gotchas.md` carries a multi-session uncommitted diff (background-Bash, scripts-reuse, cp1252 — not mine, 2026-06-20/22); committing would be a mixed-concern commit of work I didn't author + outside this branch. Flagged for the operator to commit in the `~/.claude` repo. Did NOT merge/push, no `--no-verify`, no ADR, no versioning/consumer changes. BACKLOG leg advisory only — this archive-phase capture finished no tracked task, so no structural marker (per DoD).
+
+**Next:** (1) Operator reviews `feat/lessons-versioning-arc`; on OK, `/ship` `--no-ff` from the primary. (2) Operator commits the accumulated `~/.claude/skills/gotchas/gotchas.md` diff in that repo.
+
 ### 2026-06-27 — CC: architect supplement FILLED + bundle reconciled COLD→FILLED (refs 2f488b2, 6082c67)
 
 **Did:** Operator said `supplement filled` — pasted the outgoing architect's answers into `SUPPLEMENT.md`. Committed the filled file **verbatim** (`2f488b2`, +195 lines; no re-typing, CC never fabricates). Then reconciled the bundle's COLD/EMPTY framing → **COLD-then-FILLED** across HANDOFF_BOOT/RESIDUAL/PROBES (the §13(d) beat now **narrows** to "anything changed since the supplement?"; P8 expected → ANSWERS FILLED) and regenerated `PASTE_THIS.md` via `assemble_paste.py` — the ANSWERS region now folds in (`6082c67`). Avoids the §8 self-contradiction of a boot saying "EMPTY/FULL" while the paste carries the supplement.
