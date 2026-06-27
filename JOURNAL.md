@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-27 — CC: pre-handoff hygiene — captured review findings + fixed #204 (doc-only; push pending)
+
+**Did:** Two-part pre-handoff arc on branch `docs/pre-handoff-hygiene` (off `main@12e500d`), doc-only, NOT merged. **(1) Capture** — filed three pre-handoff doc-review findings into BACKLOG so `/handoff` carries them (untracked = invisible to the next session): new **[#219]** (cross-reference the two loop framings — PLAYBOOK "## The two lifelines" execution/consistency view ↔ ARCHITECTURE Ch6 "methodology engine" knowledge-evolution view — as complementary, not competing; serialize-group playbook, filed beside #217); a full **generalization-probe** note on **#215** (the first onboarding pilot, ai-council, doubles as the first test of whether the two lifelines transfer to a structurally-different repo-shape) + the **#131↔#215 merge-or-split reconcile** flagged as a start-of-next-session decision; a concise pointer to the same on **#131** (full text on #215; two rationale parentheticals compressed to keep the task ≤1200 chars — net 1199→1190, no new doc_rot WARN). Commit `0b5cd8d`. **(2) Fix #204** — verified the live nightly model at source (ADR-84 §Decision + ARCHITECTURE Ch3/Ch6) FIRST, then reconciled CONTRIBUTING "Nightly outcome management" from the SUPERSEDED squash-merge-to-`main` model to the **divert-and-close** model (digest diverted onto `automation/conformance-digest`, PR closed, never merged to `main`) across the whole section (clean / findings / anomalous / diff-guard / residual-risk); `last_reviewed` 2026-06-26→2026-06-27 after a genuine end-to-end re-read; closed + removed **#204**. Commit `d6a2461`.
+
+**Result:** `ship-gate` **GREEN** after each commit (4 WARN — all pre-existing/dispositioned: #77 voided-closure + 3 no-ff journal-wrap/transcript; **NO new**); `validate_backlog` OK (85 tasks); `doc_rot` OK (no backlog bloat); `canonical_freshness` OK (6 files fresh — CONTRIBUTING restamp accepted). Capture-only honored: did NOT resolve the #131↔#215 reconcile and did NOT edit PLAYBOOK/ARCHITECTURE for the #219 cross-ref (both next-session work).
+
+**Changes:** `BACKLOG.md` (+[#219], amended #131/#215, −[#204]), `CONTRIBUTING.md` (Nightly section reconciled + `last_reviewed` bump). Commits `0b5cd8d` (capture) + `d6a2461` (#204 close) + this wrap. No code touched (doc-only).
+
+**Abandoned:** Did NOT push or merge (operator OK pending). Did NOT touch `scripts/`, PLAYBOOK, or ARCHITECTURE.
+
+**Next:** (1) Operator reviews the new/amended BACKLOG items + the CONTRIBUTING diff. (2) On OK: merge `--no-ff` from the primary, push, then run `/handoff` (which now carries #219 + the #131/#215 notes). (3) Next session: resolve the #131↔#215 merge-or-split reconcile and land the #219 loop cross-ref edits.
+
 ### 2026-06-27 — CC: integration — merged code↔doc completeness chain + closed #201/#202/#203 (operator-directed; push pending)
 
 **Did:** Executed the operator integration runbook from the **primary checkout** (not a worktree — `/ship` refuses there). Merged `worktree-code-doc-completeness` (`--no-ff`, clean auto-merge) → **`2e5a52c`** (5 worktree commits: ADR-90, #201 multi-site resolver, #202 Tier-3 declarations, #203 drift-guard, wrap). No JOURNAL conflict (git auto-merged cleanly). Then ran full gates: `ship-gate` **GREEN** (4 WARN — all pre-existing/dispositioned: #77 voided-closure + 3 no-ff; **NO new**); `pytest` **884 passed / 5 skipped** (391s); first-parent spine = `--no-ff` merge. Verified each task's done-when before closing, then closed #201/#202/#203 on branch `docs/integration-wrap-completeness` → close commit `8c3b8e2` → this wrap.
