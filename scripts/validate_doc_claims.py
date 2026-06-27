@@ -153,6 +153,7 @@ def _fmt_set(s) -> str:
     return "{" + ", ".join(sorted(s)) + "}"
 
 
+# rule: coherence-doc-claims
 def reconcile(repo_root: Path, audit_check_count: Optional[int],
               run_expensive: bool = False,
               claims: Optional[list["Claim"]] = None) -> list[ClaimResult]:

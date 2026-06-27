@@ -137,6 +137,7 @@ def _repo_root() -> Path:
     return Path.cwd()
 
 
+# rule: governance-no-ff
 def violations_in_range(repo: Path, rng: str, baseline: str = BASELINE_DATE) -> list:
     """Non-merge commits on the first-parent spine within `rng`, since `baseline`.
 

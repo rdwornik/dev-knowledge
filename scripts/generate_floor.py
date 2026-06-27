@@ -234,6 +234,7 @@ def render_floor(template_path: Path = TEMPLATE_PATH) -> str:
     return body if body.endswith("\n") else body + "\n"
 
 
+# rule: governance-child-floor
 def validate(floor: str) -> list[str]:
     """Return a list of blocking issues for the floor body (empty = valid)."""
     issues: list[str] = []

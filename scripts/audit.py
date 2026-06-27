@@ -29,6 +29,7 @@ Usage:
 
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import os
@@ -1200,6 +1201,7 @@ def check_amendment_coherence(
 _FLOOR_MD_REF_RE = re.compile(r"[A-Za-z0-9_-]+\.md")
 
 
+# rule: governance-child-floor
 def check_floor_integrity(repo_path: Path) -> list[Finding]:
     """Child methodology-floor conformance (ADR-78 O2; methodology_surface zone, ADR-75).
 
@@ -1260,6 +1262,7 @@ def check_floor_integrity(repo_path: Path) -> list[Finding]:
                     f"(sha256 {actual[:12]}…)")]
 
 
+# rule: governance-backlog-leave
 def check_git_backlog_drift(repo_path: Path) -> list[Finding]:
     """#90 git<->backlog reconciliation (direction (a) STRONG, ADR-65).
 
@@ -1298,6 +1301,7 @@ def check_git_backlog_drift(repo_path: Path) -> list[Finding]:
     ]
 
 
+# rule: coherence-doc-claims
 def check_doc_claims(repo_path: Path) -> list[Finding]:
     """#89 prose-vs-state: a living doc's count/list CLAIMS vs repo ground truth.
 
@@ -1336,6 +1340,7 @@ def check_doc_claims(repo_path: Path) -> list[Finding]:
                     f"{matched} doc self-claim(s) match repo state")]
 
 
+# rule: coherence-doc-rot
 def check_doc_rot(repo_path: Path) -> list[Finding]:
     """#140 doc-rot / grooming checker — the Layer-2 deterministic-trigger for **ADR-88 FC4**
     (history-accretion bloat). Surfaces inline-history accretion so it can't rot silently, and
@@ -1373,6 +1378,7 @@ def check_doc_rot(repo_path: Path) -> list[Finding]:
     ]
 
 
+# rule: coherence-doc-structure
 def check_doc_structure(repo_path: Path) -> list[Finding]:
     """Prose **structural** linter (supplement organ #2) — the Layer-2 deterministic-trigger
     for **ADR-88's prose-shape coherence**: section-numbering integrity, header-scheme
@@ -1410,6 +1416,7 @@ def check_doc_structure(repo_path: Path) -> list[Finding]:
     ]
 
 
+# rule: governance-no-ff
 def check_no_ff_merges(repo_path: Path) -> list[Finding]:
     """#153 `--no-ff` merge guard (core-invariants rule 5).
 
@@ -1448,6 +1455,7 @@ def check_no_ff_merges(repo_path: Path) -> list[Finding]:
     ]
 
 
+# rule: handoff-probes-bind
 def check_handoff_probes(repo_path: Path) -> list[Finding]:
     """#163 handoff-probe teeth: every probe in the LATEST v5 PROBES.md bundle binds
     to live state (structural, RESOLVE-ONLY — Critical Rule #4 "Layer 2 never executes",
@@ -1508,6 +1516,7 @@ def check_handoff_probes(repo_path: Path) -> list[Finding]:
                     f"{len(results)} probe(s) bind to live state ({latest.name})")]
 
 
+# rule: coherence-spec-reconciled
 def check_reconciled_versions(repo_path: Path) -> list[Finding]:
     """Coherence-spine reconciliation gate: a dependent's declared `reconciled_with`
     version must match the spec's CURRENT (live) version.
@@ -1601,6 +1610,57 @@ def _load_coverage_scope(repo_path: Path) -> tuple[str, ...]:
     return tuple(s for s in scope if isinstance(s, str))
 
 
+def _load_multi_site(repo_path: Path) -> dict[str, int]:
+    """Read the doc->code multi-site expected-count map (`ecosystem/doc-code-edge.yaml`,
+    `multi_site:`) -- per ADR-90 (resolver-allows-N), a rule legitimately enforced in N code
+    organs declares its expected `# rule:` site count here, so the resolver resolves it at
+    EXACTLY that count instead of classing it `ambiguous` (the strict 1:1 duplicate-guard).
+
+    Sibling key to `coverage_scope`/`declaration_docs`; same fail-soft -> {} contract (a
+    missing/malformed file or non-mapping value degrades every rule to the strict 1:1 guard --
+    conservative: it can only NARROW what resolves, never silently widen it). Only `str -> int`
+    entries with count >= 2 are kept (a bool is rejected -- `bool` is an `int` subclass).
+    Resolved from `repo_path` at call time. Read-only.
+    """
+    cfg = Path(repo_path) / "ecosystem" / "doc-code-edge.yaml"
+    try:
+        data = yaml.safe_load(cfg.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    raw = data.get("multi_site")
+    if not isinstance(raw, dict):  # a non-mapping scalar must degrade, not raise
+        return {}
+    return {k: v for k, v in raw.items()
+            if isinstance(k, str) and isinstance(v, int) and not isinstance(v, bool) and v >= 2}
+
+
+def _load_coverage_exempt(repo_path: Path) -> set[str]:
+    """Read the doc->code coverage drift-guard exempt-list (`ecosystem/doc-code-edge.yaml`,
+    `exempt:`) -- the ALL_CHECKS members that are NOT declared doc->code behavioral rules: the
+    structural/presence baseline checks + the two self-referential meta-checks (`doc_code_edge`,
+    `doc_code_coverage_drift`). Entries are CHECK NAMES (a Finding `check_name` =
+    `fn.__name__` minus the `check_` prefix).
+
+    Sibling key to `coverage_scope`/`multi_site`; same fail-soft -> set() contract (a
+    missing/malformed file or non-list value yields an empty set -- and `check_doc_code_coverage_drift`
+    treats an empty scope-or-exempt as INERT, so an absent config cannot vacuously pass every
+    member). Resolved from `repo_path` at call time. Read-only.
+    """
+    cfg = Path(repo_path) / "ecosystem" / "doc-code-edge.yaml"
+    try:
+        data = yaml.safe_load(cfg.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return set()
+    if not isinstance(data, dict):
+        return set()
+    raw = data.get("exempt")
+    if not isinstance(raw, list):  # a non-list scalar must degrade, not raise
+        return set()
+    return {s for s in raw if isinstance(s, str)}
+
+
 def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     """#194 doc→code declared-edge integrity (advisory-first, ADR-89 OQ1).
 
@@ -1628,6 +1688,7 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     code_root = Path(repo_path) / "scripts"
     try:
         include = _load_declaration_docs(repo_path)
+        multi = _load_multi_site(repo_path)  # ADR-90: declared multi-site expected counts
         ids = _vdce.iter_doc_rule_ids(Path(repo_path), include)
         # L1 structural integrity (#194): also surface code-side ORPHANS — a `# rule:` whose ID
         # is declared in NO declaration doc (code->nonexistent-rule), the direction the doc-side
@@ -1636,7 +1697,8 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
         # dangling/duplicate findings are already reported below as broken_edge/ambiguous, so here
         # we take ONLY its code_orphan findings (a disjoint id set — no double-report). Advisory:
         # WARN-only, never a gate (hard-gate promotion is data-gated, ADR-89 OQ3).
-        orphans = [f for f in _vdce.scan_structural_integrity(Path(repo_path), code_root, include)
+        orphans = [f for f in _vdce.scan_structural_integrity(
+                       Path(repo_path), code_root, include, multi)
                    if f.kind == "code_orphan"]
     except Exception as exc:  # never wedge the audit-health gate
         return [Finding("doc_code_edge", "warn",
@@ -1656,7 +1718,8 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
                          "(ecosystem/doc-code-edge.yaml)")]
     resolved = 0
     for rid in sorted(ids):
-        result = _vdce.resolve_edge(rid, Path(repo_path), code_root, include=include)
+        result = _vdce.resolve_edge(rid, Path(repo_path), code_root,
+                                    include=include, multi_site=multi)
         if result.status == "resolved":
             resolved += 1
         else:
@@ -1724,6 +1787,85 @@ def check_safe_removal(repo_path: Path) -> list[Finding]:
                     .replace("|", "/"))]
 
 
+def _markers_for_check(fn) -> set[str]:
+    """The rule-ID(s) an ALL_CHECKS member declares: real `# rule:` COMMENT tokens in its own
+    source body PLUS the contiguous `#`-comment block immediately above its `def`.
+
+    `inspect.getsourcelines` starts at the `def` line and OMITS the leading annotation, so the
+    above-def convention (the marker sits on the line directly above `def`, matching the cohort-1
+    annotations) needs the walk-back. Reads real COMMENT tokens only, via
+    `validate_doc_code_edge.markers_in_source` -- a marker quoted in a docstring/string is never
+    collected. Fail-soft -> set() when the source is unavailable.
+    """
+    try:
+        body_lines, start = inspect.getsourcelines(fn)
+    except (OSError, TypeError):
+        return set()
+    pre: list[str] = []
+    try:
+        module = sys.modules.get(fn.__module__)
+        all_lines = inspect.getsource(module).splitlines(keepends=True)
+        i = start - 2  # 0-based index of the line directly above the def
+        while i >= 0 and all_lines[i].lstrip().startswith("#"):
+            pre.insert(0, all_lines[i])
+            i -= 1
+    except (OSError, TypeError):
+        pre = []
+    return _vdce.markers_in_source("".join(pre) + "".join(body_lines))
+
+
+def _coverage_drift_findings(checks, coverage_scope: set[str],
+                             exempt: set[str]) -> list[tuple[str, set[str]]]:
+    """The testable core of the #203 drift-guard: return `(check_name, markers)` for every check
+    that is NEITHER mapped (>=1 marker, all in `coverage_scope`) NOR exempt. Empty list = full
+    coverage. `check_name` = `fn.__name__` minus the `check_` prefix (the Finding identity)."""
+    drift: list[tuple[str, set[str]]] = []
+    for fn in checks:
+        name = fn.__name__.removeprefix("check_")
+        markers = _markers_for_check(fn)
+        mapped = bool(markers) and markers <= coverage_scope
+        if not mapped and name not in exempt:
+            drift.append((name, markers))
+    return drift
+
+
+def check_doc_code_coverage_drift(repo_path: Path) -> list[Finding]:
+    """#203 doc->code coverage drift-guard. Every ALL_CHECKS member must be EITHER annotated with
+    a `coverage_scope` rule-ID marker OR listed in `exempt:` (ecosystem/doc-code-edge.yaml) --
+    else FAIL, NAMING the escapee. So a NEW enforced rule landing as an ALL_CHECKS check cannot
+    silently escape the curated doc->code `coverage_scope` (the stated drift cost of the FALLBACK
+    curated mechanism). FAIL-class (gating, like check_safe_removal); hub-only; read-only.
+
+    SCOPE (honest limit): this guards ONLY the auto-enumerable ALL_CHECKS surface. Enforcement
+    organs OUTSIDE ALL_CHECKS -- the seal Stop-hook, the commit-msg / pre-push hooks, the
+    standalone pre-commit validators -- are NOT auto-guarded; that heterogeneous remainder stays
+    curated (no single auto-enumerable registry across all mechanisms; doc-code-edge.yaml header).
+    """
+    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+        return [Finding("doc_code_coverage_drift", "pass",
+                        "hub-only -- coverage drift-guard skipped (not the hub repo)")]
+    try:
+        scope = set(_load_coverage_scope(repo_path))
+        exempt = _load_coverage_exempt(repo_path)
+        if not scope or not exempt:
+            # An empty scope OR exempt would let members pass vacuously -- treat as inert config.
+            return [Finding("doc_code_coverage_drift", "warn",
+                            "coverage_scope or exempt empty/absent -- drift-guard inert "
+                            "(ecosystem/doc-code-edge.yaml)")]
+        drift = _coverage_drift_findings(ALL_CHECKS, scope, exempt)
+    except Exception as exc:  # never wedge the gate on an internal error
+        return [Finding("doc_code_coverage_drift", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    if drift:
+        return [Finding("doc_code_coverage_drift", "fail",
+                        ("ALL_CHECKS member(s) neither coverage_scope-annotated nor exempt: "
+                         + "; ".join(f"{n} (markers={sorted(m) or 'none'})" for n, m in drift))
+                        .replace("|", "/"))]
+    return [Finding("doc_code_coverage_drift", "pass",
+                    f"all {len(ALL_CHECKS)} ALL_CHECKS members covered "
+                    "(coverage_scope-annotated or exempt); none escape coverage_scope")]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -1749,6 +1891,7 @@ ALL_CHECKS = [
     check_doc_structure,
     check_doc_code_edge,
     check_safe_removal,
+    check_doc_code_coverage_drift,
 ]
 
 

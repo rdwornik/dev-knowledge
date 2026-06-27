@@ -85,6 +85,7 @@ The boot ends with an on-load acknowledgment line so a partial/missing paste is 
 ---
 
 ## 5. The teeth-y forced primary-source read (#148 a)
+<!-- rule: handoff-probes-bind -->
 
 The forced read has **teeth** when its verification **cannot be answered from the compaction
 summary** — the answer exists only in the live primary file/state at answer-time. A probe is

@@ -59,6 +59,9 @@
   - [Canonical-file freshness cadence (audit check #10)](#canonical-file-freshness-cadence-audit-check-10)
   - [Multi-surface amendment coherence (audit check `amendment_coherence`)](#multi-surface-amendment-coherence-audit-check-amendment_coherence)
   - [Declared-edge reconciliation (audit check `reconciled_versions`)](#declared-edge-reconciliation-audit-check-reconciled_versions)
+  - [Prose-vs-state claim coherence (audit check `doc_claims`)](#prose-vs-state-claim-coherence-audit-check-doc_claims)
+  - [Doc-rot / history-accretion (audit check `doc_rot`)](#doc-rot--history-accretion-audit-check-doc_rot)
+  - [Prose structural coherence (audit check `doc_structure`)](#prose-structural-coherence-audit-check-doc_structure)
   - [Common confusions resolved](#common-confusions-resolved)
   - [Supersession & decommissioning](#supersession--decommissioning)
   - [Handoff format spec](#handoff-format-spec)
@@ -242,7 +245,7 @@ The architect emits **intent + closure + anti-patterns + MODE + a thin governanc
 | Edge | Mechanism | State |
 |---|---|---|
 | **code↔code** | reverse-dependency oracle computes referrers before a module is removed | oracle built; consuming gate = #195 safe-removal, pending. The import-cycle gate was **refuted by data** (one defect in 28 nodes) → fixed by dependency inversion; no standing gate. |
-| **code↔doc** | rule-ID `<domain>-<slug>`: doc-side `<!-- rule: -->` ↔ code-side `# rule:`, resolved by the `doc_code_edge` check | gated for the curated rule set; completeness via #201 (`resolver-allows-N`, decided) → #202 → #203. |
+| **code↔doc** | rule-ID `<domain>-<slug>`: doc-side `<!-- rule: -->` ↔ code-side `# rule:`, resolved by the `doc_code_edge` check | gated for the curated rule set; completeness via #201 (`resolver-allows-N`, **ADR-90**) → #202 → #203. |
 | **doc↔doc** | `reconciled_with: <spec>@<version>`: the gate checks the version stamp; `check-against-spec` (triggered on a bump, #205) checks the content was re-reasoned | declared-half gated; undeclared-discovery is advisory-only. |
 | **undeclared** | `scan_undeclared_edges` surfaces prose references lacking a declared edge | surfaces; does **not** gate. |
 
@@ -347,6 +350,7 @@ Reach for a gate only when the fact can't be self-documented, and an agent only 
 
 ### Child methodology floor (ADR-78)
 <!-- scope: meta -->
+<!-- rule: governance-child-floor -->
 
 Each registered child repo carries a generated `.claude/CLAUDE-FLOOR.md` (≤1,500 tokens, conformance-enforced) plus a `.claude/CLAUDE-FLOOR.md.sha256` sidecar — under the child's own CC config dir, not the repo root (keeps the operator's workspace uncluttered); the child's `CLAUDE.md` references it via an `@.claude/CLAUDE-FLOOR.md` import (verified empirically: CC 2.1.168 resolves `@`-includes at session start, transitively, and degrades fail-soft on a missing target). The floor is the always-loaded methodology baseline (prompt-header, valve discipline, verify cadence, ship rule, context budget, safety pointers) so a child session carries the working style without depending on a bundle upload. It is **self-contained** — no hub-internal references (ADR-72 class); the `.dev-knowledge` hub appears only as a labeled, optional depth escape-hatch (ADR-78 Decision 1).
 
@@ -929,6 +933,24 @@ Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are exclude
 
 **Re-stamp flow — the semantic half (#205).** A `reconciled_versions` mismatch (a spec version bump) is a signal to **reconcile**, not to blindly re-stamp the version number. The reconcile step is the `check-against-spec` skill: enumerate every candidate reference site in the dependent and verdict each (`stale | fine | not-relevant`) so a missed walkthrough step or un-updated diagram cannot pass silently. The trigger is wired into the reconciled_with discipline itself — `validate_reconciliation.py` (CLI + `restamp_invocations(repo_root)`) **emits the exact `check-against-spec` invocation on each mismatch**, and the `reconciled_versions` FAIL remediation points at it. Procedure on a bump: (1) `py scripts/validate_reconciliation.py` (or read the FAIL) → copy the emitted invocation; (2) `py scripts/coherence_enumerator.py --dependent <dep> --spec <spec> --old-version <old> --new-version <new>` for the by-category site skeleton; (3) invoke `check-against-spec`, verdict EACH site, put the filled checklist **in the re-stamp commit message**; (4) bump `reconciled_with` in the same commit. **The ship-gate is deliberately NOT the trigger** (recorded note): the gate gates the version mismatch only; running or passing `check-against-spec` is never a gate condition (the semantic skill's v1 scope forbids gating it — gating every reconciliation on an LLM verdict is the false-positive death-spiral the nudge/gate split exists to avoid). The skill fires from the re-stamp flow, not from `audit ship-gate`.
 
+### Prose-vs-state claim coherence (audit check `doc_claims`)
+<!-- scope: meta -->
+<!-- rule: coherence-doc-claims -->
+
+**A living doc's self-contained, deterministically-checkable CLAIMS must match repo ground truth.** A count/list a doc asserts about itself — the `ALL_CHECKS` check-count + the pytest-collected count in `ARCHITECTURE.md`, the pre-commit hook count/roster in `ARCHITECTURE`/`CLAUDE.md` — is reconciled against live state by `scripts/audit.py` `doc_claims` (in `ALL_CHECKS`; teeth in `scripts/validate_doc_claims.py`, a data-driven claim registry). A drifted claim → **WARN** (advisory; the expensive pytest-collected claim runs off the per-commit gate). Single-doc accuracy only: history-accretion bloat is `doc_rot` below, cross-file fidelity the coherence spine (#179–#182). Child-repo-safe; read-only (#89).
+
+### Doc-rot / history-accretion (audit check `doc_rot`)
+<!-- scope: meta -->
+<!-- rule: coherence-doc-rot -->
+
+**A living doc must not accrete unbounded history past its grooming thresholds.** Four read-only sub-detectors in `scripts/validate_doc_rot.py` (surfaced via `scripts/audit.py` `doc_rot`, in `ALL_CHECKS`) flag BACKLOG inline-history accretion, per-section Section-history accretion, file-bloat vs a self-declared line budget, and grooming-cadence lapse — one **WARN** per locus, DETECT-ONLY (never condenses). Load-bearing doctrine: ADR-65 condense-to-git / ADR-49 retired changelogs / ADR-41 cadence (ADR-88 FC4). Pre-existing loci are grandfathered in the disposition register; read-only (#140).
+
+### Prose structural coherence (audit check `doc_structure`)
+<!-- scope: meta -->
+<!-- rule: coherence-doc-structure -->
+
+**A living doc's structure — section numbering, header scheme, ToC accuracy — must stay internally consistent.** `scripts/validate_doc_structure.py` (surfaced via `scripts/audit.py` `doc_structure`, in `ALL_CHECKS`) lints numbering integrity, header-scheme consistency (the canonical heading-scheme convention it enforces is stated once at §"Heading scheme — canonical statement", not restated here), ToC accuracy, and dangling-allow self-policing — one **WARN** per locus, DETECT-ONLY (never renumbers); documented-intentional gaps pass via co-located `structure-allow` markers. Distinct failure class from `doc_rot` (structural shape, not history-accretion); read-only (#192).
+
 ### Common confusions resolved
 <!-- scope: meta -->
 
@@ -1311,7 +1333,10 @@ directory — re-check `.claude/worktrees/` and clear any empty husk once the ID
     already advanced is rejected `! [rejected] … (fetch first)`; you `git pull` and re-merge.
     This is git serializing the integration point across clones — lean on it, don't rebuild it.
   - **The FF-block** (`scripts/block_ff_push.py`, pre-push, hub-only) refuses any push adding a
-    non-merge commit to main's first-parent spine (core-invariant #5).
+    non-merge commit to main's first-parent spine (core-invariant #5). <!-- rule: governance-no-ff -->
+    The `--no-ff`-merge norm (every change is a branch → `--no-ff` merge; never a direct or FF
+    commit on `main`'s spine) is the rule this enforces, detected post-hoc by `validate_no_ff.py`
+    (the `no_ff_merges` WARN) and prevented at push by `block_ff_push.py`.
   - **A worktree→`main` merge is git-structurally prevented** — a linked worktree cannot
     `git checkout main` (it's already checked out in the primary), so integration *always*
     funnels through the single primary checkout, where the natives above apply.
@@ -2788,6 +2813,7 @@ Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subse
 
 **Mandate:** `BACKLOG.md` is part of the universal governance baseline (ADR-38 amendment A5, 2026-05-23; ADR-41) — mandatory for every repo regardless of size. (Previously gated to M+ repos; the repo-tier system is deprecated.)
 
+<!-- rule: governance-backlog-leave -->
 **Done-item disposition (ADR-47/65).** Done items **leave** the file on close — git history (the closing commit, located by the entry id per CONTRIBUTING) + the existing per-session JOURNAL entry are the record. **No archive file** (`BACKLOG_ARCHIVE.md` deleted 2026-05-16; CLAUDE.md §5). No collapsed stubs. Closing a backlog item adds **no** new per-item write — the per-session JOURNAL ritual already carries it.
 
 **Layout (ADR-66 — supersedes ADR-64's flat layout).** `BACKLOG.md` is a **story map**: **Big Picture → Theme → User Story → Task**. The operator scans goals (Big Picture + themes + stories); the LLM reads execution detail (tasks). **No `repo:` field** (implicitly `.dev-knowledge`); cross-repo governance lives under the *Cross-repo universalization* theme, naming repos in task text; child-repo *execution* items live in the relocation queue, not here. **Authority chain:** ADR-41 (mandate) → ADR-47 (organization) → ADR-64 (done-items-leave / routing / validator) → ADR-65 (disposition) → ADR-66 (story-map layout). A read-only validator (`scripts/validate_backlog.py`) machine-checks the hierarchy.

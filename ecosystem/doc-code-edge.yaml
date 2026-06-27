@@ -25,8 +25,9 @@
 # WARN-on-missing/malformed-config so a lost config cannot silently disable a live gate.
 
 declaration_docs:
-  - protocols/PLAYBOOK.md            # canonical-freshness, coherence-spec-reconciled
+  - protocols/PLAYBOOK.md            # canonical-freshness, coherence-spec-reconciled, governance-*, coherence-doc-*
   - protocols/DEFINITION_OF_DONE.md  # seal-journal-anchor (ADR-85 single-source)
+  - protocols/HANDOFF_PROCESS.md     # handoff-probes-bind (§5 probe-gate, ADR-82)
 
 # Coverage scope -- #194 Arc 1 (TEST-FIRST). The in-scope enforced rule-IDs the doc->code
 # rollout must drive to 100% resolved. tests/test_doc_code_edge.py::
@@ -36,17 +37,25 @@ declaration_docs:
 # commit-msg/pre-push gates), with no single auto-enumerable list. Drift cost: a new enforced
 # rule not appended here escapes the coverage test; reviewed when new enforcement lands.
 #
-# Token-only breadth (operator ruling 2026-06-22): every member has an authoritative declaration
-# AND exactly ONE `# rule:`-able enforcement site, so Phase B annotates (no new doctrine, no
-# ambiguity). A rule enforced in two organs is HELD OUT below until the scheme handles it.
+# Breadth: every member has an authoritative declaration AND its `# rule:`-able enforcement
+# site(s). Originally token-only / single-site (operator ruling 2026-06-22); ADR-90
+# (resolver-allows-N, #201) extended this to N declared organs per rule via `multi_site:` below,
+# so a multi-organ rule is no longer held out.
 #
-# DEFERRED -- two-organ trap (one rule, two `# rule:`-able code sites -> resolve_edge returns
-#   `ambiguous`, never `resolved`; needs a one-rule-two-organs scheme decision first):
-#     governance-no-ff         : validate_no_ff.py (detect) + block_ff_push.py (prevent)
-#     governance-child-floor   : audit.py check_floor_integrity + generate_floor.py validate (emit gate)
-#     governance-backlog-leave : validate_git_backlog.py (git drift) + validate_backlog.py (in-file marker)
-# DEFERRED -- needs an authored declaration first (Tier-3): handoff-probes-bind,
-#   coherence-doc-claims, coherence-doc-rot, coherence-doc-structure.
+# RESOLVED -- two-organ trap (#201 / ADR-90 resolver-allows-N): a rule legitimately enforced in
+#   N `# rule:`-able code organs declares its expected count in `multi_site:` below; the resolver
+#   then resolves it at EXACTLY that count instead of `ambiguous`. All three now resolve and are
+#   in coverage_scope (counts shown):
+#     governance-no-ff         (3): validate_no_ff.py (detect) + block_ff_push.py (prevent) + audit.py::check_no_ff_merges (adapter)
+#     governance-child-floor   (2): audit.py::check_floor_integrity (detect) + generate_floor.py::validate (emit-gate)
+#     governance-backlog-leave (3): validate_backlog.py (in-file marker) + validate_git_backlog.py (git drift) + audit.py::check_git_backlog_drift (adapter)
+# RESOLVED -- Tier-3 (#202): authoritative declarations authored (PLAYBOOK Ch6 doc-claims/-rot/
+#   -structure sections + HANDOFF_PROCESS §5 for probes); each adapter (audit.py check_*) + logic
+#   module annotated, in coverage_scope + multi_site (count 2). All four resolve:
+#     coherence-doc-claims    (2): audit.py::check_doc_claims + validate_doc_claims.py::reconcile
+#     coherence-doc-rot       (2): audit.py::check_doc_rot + validate_doc_rot.py::scan
+#     coherence-doc-structure (2): audit.py::check_doc_structure + validate_doc_structure.py::scan
+#     handoff-probes-bind     (2): audit.py::check_handoff_probes + verify_handoff_probes.py::verify
 # EXEMPT -- structural/presence infra, not a declared behavioral rule (no edge): the baseline
 #   checks (vision_md, claude_md, adr38_baseline, canonical_md_visibility, canonical_structure,
 #   dot_prefix, mermaid_theme, workspace_settings, handoff_bundle/tag/version_stamp,
@@ -54,6 +63,56 @@ declaration_docs:
 coverage_scope:
   - seal-journal-anchor        # DONE    -- DEFINITION_OF_DONE.md -> session_end_backpressure.py
   - canonical-freshness        # DONE    -- PLAYBOOK.md -> audit.py::check_canonical_freshness
-  - coherence-spec-reconciled  # DONE    -- PLAYBOOK.md -> validate_reconciliation.py::reconcile
+  - coherence-spec-reconciled  # DONE 2-site (ADR-90) -- PLAYBOOK.md -> validate_reconciliation.py + audit.py::check_reconciled_versions
   - coherence-amendment        # DONE    -- PLAYBOOK.md #895 -> audit.py::check_amendment_coherence
-  - governance-backlog-schema  # DONE    -- PLAYBOOK.md #2766 -> validate_backlog.py
+  - governance-backlog-schema  # DONE    -- PLAYBOOK.md #2766 -> validate_backlog.py::validate
+  - governance-no-ff           # DONE 3-site (ADR-90/#201) -- PLAYBOOK.md -> validate_no_ff.py + block_ff_push.py + audit.py::check_no_ff_merges
+  - governance-child-floor     # DONE 2-site (ADR-90/#201) -- PLAYBOOK.md -> audit.py::check_floor_integrity + generate_floor.py::validate
+  - governance-backlog-leave   # DONE 3-site (ADR-90/#201) -- PLAYBOOK.md -> validate_backlog.py + validate_git_backlog.py + audit.py::check_git_backlog_drift
+  - coherence-doc-claims       # DONE 2-site (#202) -- PLAYBOOK.md -> audit.py::check_doc_claims + validate_doc_claims.py
+  - coherence-doc-rot          # DONE 2-site (#202) -- PLAYBOOK.md -> audit.py::check_doc_rot + validate_doc_rot.py
+  - coherence-doc-structure    # DONE 2-site (#202) -- PLAYBOOK.md -> audit.py::check_doc_structure + validate_doc_structure.py
+  - handoff-probes-bind        # DONE 2-site (#202) -- HANDOFF_PROCESS.md §5 -> audit.py::check_handoff_probes + verify_handoff_probes.py
+
+# Multi-site expected code-site counts -- ADR-90 (resolver-allows-N), the #201 resolution. A rule
+# legitimately enforced in N `# rule:`-able code organs maps `rule-ID -> N` here; the resolver
+# (validate_doc_code_edge.resolve_edge) resolves it at EXACTLY that count + a single doc site,
+# instead of the strict 1:1 duplicate-guard's `ambiguous`. ANY other code count (incl. this count
+# +/-1) still flags `ambiguous` -- the guard keeps its teeth for the declared organs too. A rule
+# ABSENT from this map keeps the strict 1:1 guard. Fail-soft -> {} (audit._load_multi_site): a
+# missing/malformed map degrades every rule to the strict 1:1 guard (can only narrow, never widen).
+multi_site:
+  coherence-spec-reconciled: 2   # validate_reconciliation.py + audit.py::check_reconciled_versions
+  governance-no-ff: 3            # validate_no_ff.py (detect) + block_ff_push.py (prevent) + audit.py::check_no_ff_merges (adapter)
+  governance-child-floor: 2      # audit.py::check_floor_integrity (detect) + generate_floor.py::validate (emit-gate)
+  governance-backlog-leave: 3    # validate_backlog.py (in-file marker) + validate_git_backlog.py (git drift) + audit.py::check_git_backlog_drift (adapter)
+  coherence-doc-claims: 2        # audit.py::check_doc_claims (adapter) + validate_doc_claims.py::reconcile (logic)
+  coherence-doc-rot: 2           # audit.py::check_doc_rot (adapter) + validate_doc_rot.py::scan (logic)
+  coherence-doc-structure: 2     # audit.py::check_doc_structure (adapter) + validate_doc_structure.py::scan (logic)
+  handoff-probes-bind: 2         # audit.py::check_handoff_probes (adapter) + verify_handoff_probes.py::verify (logic)
+
+# Coverage drift-guard exempt-list -- #203. The ALL_CHECKS members that are NOT declared
+# doc->code behavioral rules and so owe no `# rule:` annotation: the structural/presence baseline
+# checks + the two self-referential meta-checks (doc_code_edge, doc_code_coverage_drift). Entries
+# are CHECK NAMES (a Finding `check_name` = `fn.__name__` minus the `check_` prefix).
+# `audit.py::check_doc_code_coverage_drift` (in ALL_CHECKS, FAIL-class) FAILs when an ALL_CHECKS
+# member is neither annotated with a `coverage_scope` `# rule:` marker NOR listed here -- so a
+# NEW enforced rule that lands as an ALL_CHECKS check cannot silently escape the curated
+# coverage_scope. Append a check here ONLY when it is genuinely a structural/presence/self check
+# with no behavioral doc->code rule (the deliberate decision the drift cost asks for).
+exempt:
+  - vision_md
+  - adr38_baseline
+  - claude_md
+  - dot_prefix_discipline
+  - canonical_md_visibility
+  - workspace_settings
+  - mermaid_theme_directive
+  - handoff_bundle_structure
+  - handoff_tag_canonicity
+  - no_sibling_orphans
+  - canonical_structure
+  - handoff_version_stamp
+  - doc_code_edge              # self-referential (the doc->code edge check itself)
+  - safe_removal              # code->code removal gate (#195) -- not a doc->code rule
+  - doc_code_coverage_drift   # self-referential (this drift-guard)

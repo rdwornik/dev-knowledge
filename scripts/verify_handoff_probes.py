@@ -347,6 +347,7 @@ def _classify(probe: dict, repo_root: Path, bundle: str) -> ProbeResult:
     return ProbeResult(pid, "pass", "binds to live state", bundle)
 
 
+# rule: handoff-probes-bind
 def verify(bundle_path, repo_root=None) -> list[ProbeResult]:
     """Classify every probe in <bundle_path>/PROBES.md. Read-only; resolve-only.
 

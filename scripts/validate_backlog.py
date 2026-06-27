@@ -291,6 +291,7 @@ def validate(themes, stories, tasks):
             hard.append(f'task missing [P][S|M|L] band — {loc}')
         if not _DONEWHEN_RE.search(t["rest"]):
             hard.append(f'task missing "Done when:" — {loc}')
+        # rule: governance-backlog-leave
         if _DONE_MARKER_RE.search(t["raw"]):
             hard.append(f'done task present (done tasks leave the file, ADR-65) — {loc}')
         if _INPLACE_RESOLVED_RE.search(t["raw"]):
