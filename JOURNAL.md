@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-06-27 — CC: architect supplement FILLED + bundle reconciled COLD→FILLED (refs 2f488b2, 6082c67)
+
+**Did:** Operator said `supplement filled` — pasted the outgoing architect's answers into `SUPPLEMENT.md`. Committed the filled file **verbatim** (`2f488b2`, +195 lines; no re-typing, CC never fabricates). Then reconciled the bundle's COLD/EMPTY framing → **COLD-then-FILLED** across HANDOFF_BOOT/RESIDUAL/PROBES (the §13(d) beat now **narrows** to "anything changed since the supplement?"; P8 expected → ANSWERS FILLED) and regenerated `PASTE_THIS.md` via `assemble_paste.py` — the ANSWERS region now folds in (`6082c67`). Avoids the §8 self-contradiction of a boot saying "EMPTY/FULL" while the paste carries the supplement.
+
+**Result:** `assemble_paste.py` folded the SUPPLEMENT ANSWERS (1 `=== SUPPLEMENT.md ===` section in PASTE_THIS); `verify_handoff_probes` still **10/10 bind**; pre-commit GREEN. The supplement's off-repo steer (confirms + extends RESIDUAL): **next frontier = cross-repo dissemination, ai-council first, as the generalization probe** (operator-stated); #131↔#215 split = deploy-vs-verify emphasis; #171 supports the onboarding, #218 is independent polish — not the keystone.
+
+**Changes:** `docs/handoffs/2026-06-27-dev-knowledge-architect/` (SUPPLEMENT filled + BOOT/RESIDUAL/PROBES reconciled + PASTE_THIS regenerated), this JOURNAL wrap. Commits `2f488b2` + `6082c67` + this wrap.
+
+**Abandoned:** Did NOT edit the operator's pasted answers (verbatim). Did NOT merge/push (operator-gated). Did NOT fold the supplement's content into RESIDUAL (distinct channels — §13: supplement is the off-repo complement, not a re-narration).
+
+**Next:** (1) `/ship` the branch `docs/2026-06-27-architect-handoff` `--no-ff` from the primary + push, on operator OK. (2) Paste `PASTE_THIS.md` (now carrying the filled supplement) into a fresh Claude.ai chat for the next architect session.
+
 ### 2026-06-27 — CC: generated 2026-06-27 architect handoff bundle (v5.3 COLD; refs 71263b5)
 
 **Did:** Ran `/handoff architect dev knowledge` at a fresh `/clear`ed session (COLD — no outgoing architect). Generated the v5.3 architect-mode five-file bundle at `docs/handoffs/2026-06-27-dev-knowledge-architect/` (HANDOFF_BOOT + RESIDUAL + PROBES + SUPPLEMENT + PASTE_THIS, no per-bundle README) on branch `docs/2026-06-27-architect-handoff` (off `main@0e2af58`). Reconstructed the window since the 2026-06-25 architect handoff (`9b4230c`..`0e2af58`) from JOURNAL + git + live state; four-tag scoped. Bundle commit `71263b5`.
