@@ -43,10 +43,17 @@ The methodology corpus has **no version concept**. A consumer repo cannot be pin
    git push origin v1.0.0
    ```
 
-## Open Questions (explicitly NOT decided here)
+## Record-home decision (resolved in this arc)
 
-- **Where the durable per-consumer deployed-methodology-version record lives.** It must be **committed** (since `ecosystem/*/state.yaml` is gitignored and non-durable). Candidates: `ecosystem/index.yaml` (the hub registry) · a `reconciled_with: methodology@X.Y` frontmatter edge declared in the consumer (self-declared, reusing the `reconciled_versions` check, per ADR-88's declared-edge paradigm) · a new committed consumer-side field. **A separate decision.**
-- **How `fleet_health.py` surfaces version-status** (a repo's deployed version vs the current hub release), versus its current raw commit-count signal. Follows the record-location decision.
+The first Open Question — **where the durable per-consumer deployed-methodology-version record lives** — is **resolved**: a dedicated committed registry **`ecosystem/deployed-versions.yaml`**, modeled 1:1 on the existing `tool-versions.yaml` durable-version pattern (committed · written-by-command · read-by-a-check).
+
+- **NOT `ecosystem/index.yaml`.** A live read refuted that candidate: `index.yaml` is a **derived rollup** — `audit.py::regenerate_index()` rewrites it wholesale from the gitignored per-repo `state.yaml` on every `audit.py run` / `registry update` (its docstring: *"do not edit by hand — manual edits are lost on the next run"*). A field written there by the deploy-runbook would be **silently clobbered**.
+- **NOT `state.yaml`** — gitignored → non-durable (already excluded in Context).
+- **A dedicated file, not folded into `tool-versions.yaml`** — separate writer (the deploy-runbook vs `/changelog-review`) and separate per-deploy lifecycle; same *pattern*, new *axis* (repo-keyed deployed-corpus-version vs tool-keyed reviewed-changelog-version), so not a literal-duplicate fold.
+
+**Built in this arc (the READ side):** the registry slot (`ecosystem/deployed-versions.yaml`, values **unset/`null`** — no release tagged yet), the reader (`audit.py` check `deployed_methodology_version`, surfaced per-repo through `fleet_health`), and the operational doctrine (PLAYBOOK Ch6). The second Open Question — **`fleet_health` version-surfacing** — is addressed in substance by that reader check: the version-aware per-repo signal now exists, superseding a raw-commit-count indicator.
+
+**Remaining (separate piece, deliberately NOT built here):** the **deploy-runbook** — the *writer* that populates `deployed_methodology_version` at deploy time. Until it runs (and a release is tagged), every repo's field stays `null` and the reader reports `n/a` (the expected pre-deploy state).
 
 ## Rejected alternatives
 
@@ -56,9 +63,9 @@ The methodology corpus has **no version concept**. A consumer repo cannot be pin
 ## Consequences
 
 - A single methodology semver becomes the **spanning version** the five carriers lacked.
-- Once the record-location Open Question is decided, consumers can **pin or declare** a methodology version, and drift ("repo X is two majors behind") becomes detectable.
+- With the record-home decided (`ecosystem/deployed-versions.yaml`) and the reader built, each repo's deployed version is **recorded + surfaced**; drift ("repo X is two majors behind") becomes detectable once the deploy-runbook populates the field.
 - Releases become legible via **git tags + BACKLOG numbers** — no new changelog mechanism is added; git-is-the-changelog is preserved.
-- The deferred per-consumer record and the `fleet_health.py` surfacing are sequenced *after* this doctrine lands, on the record-location decision.
+- The remaining piece is the **deploy-runbook** (the writer); the record slot + reader + doctrine land in this arc.
 
 ## Links
 
