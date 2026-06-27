@@ -129,6 +129,11 @@ ECOSYSTEM_INDEX = Path(_REPO_ROOT) / "ecosystem" / "index.yaml"
 # #147 ship-gate: the known-WARN disposition register (read-only). Missing/malformed
 # -> [] (every WARN then counts undispositioned — stricter, never wedged).
 DISPOSITION_REGISTER = Path(_REPO_ROOT) / "ecosystem" / "disposition-register.yaml"
+# ADR-91: the durable per-repo deployed-methodology-version registry (COMMITTED, hand/
+# deploy-runbook-written; read-only here). Hub-resolved (a module constant, NOT repo_path) --
+# it is ONE hub file read for whichever repo is being audited; check_deployed_methodology_version
+# looks up the audited repo by its directory name. Missing/malformed -> WARN (never wedges).
+DEPLOYED_VERSIONS_REGISTRY = Path(_REPO_ROOT) / "ecosystem" / "deployed-versions.yaml"
 
 # ---------------------------------------------------------------------------
 # Universal visual pattern (ADR-59) — constants
@@ -1866,6 +1871,47 @@ def check_doc_code_coverage_drift(repo_path: Path) -> list[Finding]:
                     "(coverage_scope-annotated or exempt); none escape coverage_scope")]
 
 
+def check_deployed_methodology_version(repo_path: Path) -> list[Finding]:
+    """ADR-91 deployed-version reporter: read the hub-committed deployed-versions registry
+    and report THIS repo's deployed methodology-corpus version.
+
+    The registry (ecosystem/deployed-versions.yaml) is the durable record-home ADR-91 chose
+    over the derived ecosystem/index.yaml (which audit.py::regenerate_index overwrites wholesale
+    each run). One hub file, read for whichever repo is being audited: the audited repo is keyed
+    by its directory name (repo_path.name), so each repo's state.yaml carries its OWN
+    deployed-version finding and fleet_health surfaces it per repo.
+
+    Status: `n/a` while the field is null (no methodology release deployed yet -- the expected
+    pre-deploy state; the deploy-runbook writer is a separate, later piece); `pass` with the
+    version once set. A repo missing from the registry, or an unreadable/malformed registry,
+    -> WARN (fail-OPEN on its own input error, never a synthesized FAIL). Read-only; a status
+    reporter, NOT a doc->code behavioral rule (so `exempt` in ecosystem/doc-code-edge.yaml).
+    """
+    name = "deployed_methodology_version"
+    try:
+        data = yaml.safe_load(DEPLOYED_VERSIONS_REGISTRY.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        return [Finding(name, "warn",
+                        f"deployed-versions.yaml unreadable (read-only, non-blocking): {exc!r}"
+                        .replace("|", "/"))]
+    repos = data.get("repos") if isinstance(data, dict) else None
+    if not isinstance(repos, dict):
+        return [Finding(name, "warn",
+                        "deployed-versions.yaml missing/malformed 'repos:' map (ADR-91)")]
+    repo_key = Path(repo_path).name
+    if repo_key not in repos:
+        return [Finding(name, "warn",
+                        f"{repo_key} not listed in deployed-versions.yaml (ADR-91)")]
+    entry = repos[repo_key]
+    version = entry.get("deployed_methodology_version") if isinstance(entry, dict) else entry
+    if version is None:
+        return [Finding(name, "n/a",
+                        f"{repo_key}: unset -- no methodology release deployed yet "
+                        "(deploy-runbook will populate; ADR-91)")]
+    return [Finding(name, "pass",
+                    f"{repo_key}: deployed methodology corpus v{version}")]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -1891,6 +1937,7 @@ ALL_CHECKS = [
     check_doc_structure,
     check_doc_code_edge,
     check_safe_removal,
+    check_deployed_methodology_version,
     check_doc_code_coverage_drift,
 ]
 
