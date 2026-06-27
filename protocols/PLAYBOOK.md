@@ -62,6 +62,7 @@
   - [Prose-vs-state claim coherence (audit check `doc_claims`)](#prose-vs-state-claim-coherence-audit-check-doc_claims)
   - [Doc-rot / history-accretion (audit check `doc_rot`)](#doc-rot--history-accretion-audit-check-doc_rot)
   - [Prose structural coherence (audit check `doc_structure`)](#prose-structural-coherence-audit-check-doc_structure)
+  - [Deployed-version record (audit check `deployed_methodology_version`)](#deployed-version-record-audit-check-deployed_methodology_version)
   - [Common confusions resolved](#common-confusions-resolved)
   - [Supersession & decommissioning](#supersession--decommissioning)
   - [Handoff format spec](#handoff-format-spec)
@@ -950,6 +951,11 @@ Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are exclude
 <!-- rule: coherence-doc-structure -->
 
 **A living doc's structure — section numbering, header scheme, ToC accuracy — must stay internally consistent.** `scripts/validate_doc_structure.py` (surfaced via `scripts/audit.py` `doc_structure`, in `ALL_CHECKS`) lints numbering integrity, header-scheme consistency (the canonical heading-scheme convention it enforces is stated once at §"Heading scheme — canonical statement", not restated here), ToC accuracy, and dangling-allow self-policing — one **WARN** per locus, DETECT-ONLY (never renumbers); documented-intentional gaps pass via co-located `structure-allow` markers. Distinct failure class from `doc_rot` (structural shape, not history-accretion); read-only (#192).
+
+### Deployed-version record (audit check `deployed_methodology_version`)
+<!-- scope: meta -->
+
+**Each repo's deployed methodology-corpus version (ADR-91) is recorded in one committed registry and reported per repo.** Record-home: `ecosystem/deployed-versions.yaml` — a dedicated committed registry on the `tool-versions.yaml` durable-version pattern (committed · written-by-command · read-by-a-check). Deliberately **NOT** `ecosystem/index.yaml` (a *derived* rollup `audit.py::regenerate_index` overwrites wholesale each run → a field written there is clobbered) and **NOT** the gitignored `state.yaml` (non-durable). **Write-contract:** the field is set by the **deploy-runbook** at deploy time (a separate, later piece) to the corpus release it deployed (the ADR-91 `vMAJOR.MINOR.PATCH` git tag) — never hand-fabricate a value (a value cannot precede its release; every repo stays `null` until a release is tagged). **Reader:** `scripts/audit.py` `deployed_methodology_version` (in `ALL_CHECKS`; `exempt` in `doc-code-edge.yaml` — a status reporter, not a doc→code rule) reads the registry by repo directory name → `n/a` while unset (the expected pre-deploy state), `pass` with the version once set — surfaced per repo through `fleet_health`. This version-aware signal supersedes a raw-commit-count drift indicator. Full doctrine: ADR-91; record-home rationale also in ADR-91 "Record-home decision".
 
 ### Common confusions resolved
 <!-- scope: meta -->
