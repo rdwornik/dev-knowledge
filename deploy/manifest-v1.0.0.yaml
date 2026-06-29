@@ -55,9 +55,11 @@ carriers:
     order: 3
     implemented: true
     description: >
-      Pinned pre-commit hooks in the consumer's .pre-commit-config.yaml. The gated
-      requirement is the Tier-1 ruff lint gate (ADR-71 pinned-rev pattern), merged
-      ALONGSIDE the plugin (a CC plugin cannot ship a .pre-commit-config.yaml).
+      Pinned pre-commit hooks in the consumer's .pre-commit-config.yaml. Two gated
+      requirements: (1) the Tier-1 ruff lint gate (ADR-71 pinned-rev pattern),
+      merged ALONGSIDE the plugin (a CC plugin cannot ship a
+      .pre-commit-config.yaml); (2) the .dev-knowledge hub-hooks entry rev-pinned
+      to the methodology version tag (the version-coupling anchor).
     adr: [ADR-71]
     target:
       config_path: .pre-commit-config.yaml
@@ -71,14 +73,29 @@ carriers:
             - id: ruff
               name: Ruff lint gate (Tier-1, pinned rev; blocks on violations)
               args: []  # gate mode: `ruff check` (no --fix) so violations surface
-      # NOTE (resolved at C2, not gated here): the hub doc-tooling hook-source pin
-      # (codemap-freshness / toc-freshness, ADR-71 / .pre-commit-hooks.yaml) is the
-      # other pre-commit-borne element, but its `repo:` value is CONSUMER-LOCAL
-      # (the live .pre-commit-hooks.yaml literally writes `<path-or-url-to-.dev-
-      # knowledge>` — a per-machine path/URL, not a fixed manifest string), and it
-      # is not evidenced as a universal per-repo requirement. It is therefore
-      # documented here but NOT added to required_repos in v1.0.0; the deploy tool
-      # resolves the hub pin per consumer when that requirement is ratified.
+      # The hub-hooks rev-pin — the version-coupling anchor. The consumer's
+      # .dev-knowledge hook-source entry must be pinned at rev = the methodology
+      # version tag, so its pre-commit rev EQUALS deployed_methodology_version (a
+      # second visible version anchor, consistent with ecosystem/deployed-
+      # versions.yaml). rev = the v1.0.0 git tag (annotated + resolvable as a
+      # pre-commit rev; readable + stable).
+      hub_hooks:
+        rev: v1.0.0
+        # PATH-INDEPENDENT identification: the consumer's hub-hooks entry is the
+        # repo whose hook ids intersect these hub-published ids (read live from
+        # .pre-commit-hooks.yaml); its `repo:` path is consumer-local (local clone
+        # path vs URL) and is NOT matched. An existing entry is rev-bumped in
+        # place; `repo`/`hooks` below are used only to CREATE an absent entry.
+        marker_hook_ids:
+          - codemap-freshness
+          - codemap-generate
+          - toc-freshness
+          - toc-generate
+          - backlog-id-on-close
+        repo: https://github.com/rdwornik/dev-knowledge  # canonical hub source (create-only)
+        hooks:
+          - id: codemap-freshness
+          - id: toc-freshness
 
   - id: floor
     order: 4

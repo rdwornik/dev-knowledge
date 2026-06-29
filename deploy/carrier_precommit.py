@@ -68,9 +68,36 @@ class RequiredRepo:
 
 
 @dataclass(frozen=True)
+class HubHooksReq:
+    """The hub-hooks rev-pin requirement — the version-coupling anchor.
+
+    The consumer's `.dev-knowledge` hook-source entry pinned at ``rev`` = the
+    methodology version tag (v1.0.0), so the pre-commit rev EQUALS
+    ``deployed_methodology_version`` — a second visible version anchor.
+
+    Identification is PATH-INDEPENDENT (the consumer's ``repo:`` path varies —
+    local clone path vs URL): the entry is matched by hook-id intersection with
+    ``marker_hook_ids`` (the hub's published ids, read live from
+    .pre-commit-hooks.yaml), never by the ``repo:`` string. ``repo``/``hooks`` are
+    used ONLY to CREATE an absent entry; an existing entry is bumped in place
+    (its ``repo:`` path preserved).
+    """
+
+    rev: str
+    marker_hook_ids: frozenset[str]
+    repo: str  # canonical hub source, used only when creating an absent entry
+    hooks: tuple[dict[str, Any], ...]  # hook stanzas written only on creation
+
+    @property
+    def hook_ids(self) -> tuple[str, ...]:
+        return tuple(h["id"] for h in self.hooks if isinstance(h, dict) and "id" in h)
+
+
+@dataclass(frozen=True)
 class PrecommitTarget:
     config_path: str
     required_repos: tuple[RequiredRepo, ...]
+    hub_hooks: HubHooksReq | None = None
 
 
 def parse_target(target: Any) -> PrecommitTarget:
@@ -80,7 +107,18 @@ def parse_target(target: Any) -> PrecommitTarget:
     for r in target.get("required_repos", []) or []:
         hooks = tuple(dict(h) for h in r.get("hooks", []) or [])
         repos.append(RequiredRepo(repo=r["repo"], rev=str(r["rev"]), hooks=hooks))
-    return PrecommitTarget(config_path=config_path, required_repos=tuple(repos))
+    hub_raw = target.get("hub_hooks")
+    hub_hooks = None
+    if hub_raw:
+        hub_hooks = HubHooksReq(
+            rev=str(hub_raw["rev"]),
+            marker_hook_ids=frozenset(hub_raw.get("marker_hook_ids", []) or []),
+            repo=hub_raw["repo"],
+            hooks=tuple(dict(h) for h in hub_raw.get("hooks", []) or []),
+        )
+    return PrecommitTarget(
+        config_path=config_path, required_repos=tuple(repos), hub_hooks=hub_hooks
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -100,6 +138,26 @@ def _find_repo(config: dict[str, Any], repo_url: str) -> dict[str, Any] | None:
     """Return the consumer repo entry matching ``repo_url`` (detect's helper)."""
     for entry in config.get("repos", []) or []:
         if isinstance(entry, dict) and entry.get("repo") == repo_url:
+            return entry
+    return None
+
+
+def _find_hub_entry(
+    config: dict[str, Any], marker_hook_ids: frozenset[str]
+) -> dict[str, Any] | None:
+    """Find the consumer's hub-hooks entry PATH-INDEPENDENTLY (detect's helper).
+
+    Matched by hook-id intersection with the hub's published ids, NOT by the
+    ``repo:`` string (which is consumer-local). A ``repo: local`` entry is the
+    consumer's OWN hooks (no rev to pin) and is skipped, so a consumer that
+    mirrors the hub's local-hook pattern is not mistaken for the version-pinned
+    hub source.
+    """
+    for entry in config.get("repos", []) or []:
+        if not isinstance(entry, dict) or entry.get("repo") == "local":
+            continue
+        ids = {h.get("id") for h in entry.get("hooks", []) or [] if isinstance(h, dict)}
+        if ids & marker_hook_ids:
             return entry
     return None
 
@@ -127,6 +185,16 @@ def _classify(config: dict[str, Any], target: PrecommitTarget) -> CarrierState:
             missing_required = True
         elif str(entry.get("rev")) != req.rev:
             wrong_version = True
+    # Hub-hooks rev-pin (matched path-independently by hook-ids). Folds into the
+    # same accounting: absent -> a missing requirement; present-but-wrong-rev ->
+    # wrong_version (the rev-pin's real use).
+    if target.hub_hooks is not None:
+        total += 1
+        hub_entry = _find_hub_entry(config, target.hub_hooks.marker_hook_ids)
+        if hub_entry is not None:
+            present += 1
+            if str(hub_entry.get("rev")) != target.hub_hooks.rev:
+                wrong_version = True
     if present == 0:
         return CarrierState.ABSENT
     if missing_required or present < total:
@@ -176,6 +244,25 @@ def _reconcile(
             if hook.get("id") not in have_ids:
                 entry_hooks.append(dict(hook))
                 changes.append(f"added hook {hook.get('id')} to {req.repo}")
+    # Hub-hooks rev-pin: bump the identified entry IN PLACE (preserving its
+    # consumer-local repo: path + hooks); create the canonical entry only when
+    # absent.
+    hub = target.hub_hooks
+    if hub is not None:
+        hub_entry = _find_hub_entry(new, hub.marker_hook_ids)
+        if hub_entry is None:
+            repos.append(
+                {"repo": hub.repo, "rev": hub.rev, "hooks": [dict(h) for h in hub.hooks]}
+            )
+            changes.append(
+                f"added hub-hooks repo {hub.repo}@{hub.rev} with hooks {list(hub.hook_ids)}"
+            )
+        elif str(hub_entry.get("rev")) != hub.rev:
+            changes.append(
+                f"pinned hub-hooks {hub_entry.get('repo')!r} rev "
+                f"{hub_entry.get('rev')!r} -> {hub.rev!r}"
+            )
+            hub_entry["rev"] = hub.rev
     return new, changes
 
 
@@ -219,6 +306,24 @@ def _verify_satisfied(raw_text: str, target: PrecommitTarget) -> list[str]:
         for hid in req.hook_ids:
             if hid not in present_ids:
                 failures.append(f"{req.repo} missing hook {hid}")
+    # Hub-hooks rev-pin — INDEPENDENT path-independent scan (own loop, NOT
+    # _find_hub_entry), so a bug in detect's identifier cannot be mirrored here.
+    hub = target.hub_hooks
+    if hub is not None:
+        hub_entry = None
+        for e in repos:
+            if not isinstance(e, dict) or e.get("repo") == "local":
+                continue
+            eids = {h.get("id") for h in (e.get("hooks") or []) if isinstance(h, dict)}
+            if eids & hub.marker_hook_ids:
+                hub_entry = e
+                break
+        if hub_entry is None:
+            failures.append("missing hub-hooks entry (no pinned repo with hub hook-ids)")
+        elif str(hub_entry.get("rev")) != hub.rev:
+            failures.append(
+                f"hub-hooks rev {hub_entry.get('rev')!r} != target {hub.rev!r}"
+            )
     return failures
 
 
