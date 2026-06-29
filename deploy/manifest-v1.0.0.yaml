@@ -10,18 +10,19 @@
 # shipped. The git tag is recorded in source_tag; ADR-91 proposes v1.0.0 as the
 # baseline corpus release.
 #
-# CARRIER STATUS: all four carriers are DECLARED here (this is the spec). Three are
-# IMPLEMENTED — global-config (deploy/carrier_globalconfig.py, ADR-92 C3), precommit
-# (deploy/carrier_precommit.py, C1) and floor (deploy/carrier_floor.py, C4). Only
-# `tier1-plugin` carries `implemented: false`: it shells out to the `claude plugin
-# install` CLI and needs a real-install smoke-test, so it lands in its own slice.
+# CARRIER STATUS: all four carriers are DECLARED here (this is the spec) and all four
+# are now IMPLEMENTED — global-config (deploy/carrier_globalconfig.py, ADR-92 C3),
+# precommit (deploy/carrier_precommit.py, C1), floor (deploy/carrier_floor.py, C4) and
+# tier1-plugin (deploy/carrier_plugin.py — the external-CLI carrier; its real-install
+# smoke-test closed VERIFY@BUILD finding (a), 2026-06-29). The C2 deploy orchestrator
+# tool (full-reconcile / --dry-run / --force / version-record write) is the next step.
 
 methodology_version: "1.0.0"
 source_tag: v1.0.0
 
 # Ordered carrier set. `order` is the apply sequence the tool walks; `id` matches
 # each carrier's `carrier_id`. `implemented` says whether a carrier module exists
-# yet (do-not-build-is-doctrine, ADR-88 — the unbuilt three are declared edges).
+# yet (do-not-build-is-doctrine, ADR-88); all four carrier modules now exist.
 carriers:
   - id: global-config
     order: 1
@@ -77,13 +78,20 @@ carriers:
 
   - id: tier1-plugin
     order: 2
-    implemented: false
+    implemented: true
     description: >
-      The tier1-lifecycle CC plugin enabled at project scope in the consumer.
-      apply() shells out to `claude plugin install ... --scope project`; verify()
-      reads the consumer's .claude/settings.json enabledPlugins block (the one
-      non-scriptable carrier — VERIFY@BUILD finding (a), confirmed at the CLI
-      surface; a real-install assertion closes at this carrier's build).
+      The tier1-lifecycle CC plugin enabled at project scope in the consumer
+      (deploy/carrier_plugin.py, ADR-92) — the only carrier that reconciles via an
+      external CLI. apply() shells out: `claude plugin marketplace add` (idempotent)
+      then `claude plugin install ... --scope project` (or `plugin update` for a wrong
+      version), each with cwd=repo_root so --scope project writes the consumer settings.
+      Correctness is judged from the RESULTING INSTALLED STATE, never the install
+      command's stdout/exit: detect classifies `claude plugin list --json` (filtered by
+      projectPath) into all four states; verify (D9-independent) cross-checks the consumer
+      .claude/settings.json enabledPlugins against a fresh plugin-list version read. The
+      target version is read live from the hub plugin.json (a spec read), so this target
+      needs no embedded version. VERIFY@BUILD finding (a) is CLOSED — a real `claude plugin
+      install` in a throwaway consumer asserted exit 0 + enabledPlugins written + verify ok.
     adr: [ADR-70]
     target:
       plugin: tier1-lifecycle@dev-knowledge-methodology
