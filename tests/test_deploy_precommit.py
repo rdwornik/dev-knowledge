@@ -20,6 +20,7 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
@@ -38,6 +39,12 @@ _PC_TARGET = next(
 _RUFF_REPO = "https://github.com/astral-sh/ruff-pre-commit"
 _RUFF_REV = "v0.15.5"
 
+# Hub-hooks rev-pin target (sourced from the manifest's precommit hub_hooks).
+_HUB = _PC_TARGET["hub_hooks"]
+_HUB_REPO = _HUB["repo"]
+_HUB_REV = _HUB["rev"]
+_HUB_MARKER = "codemap-freshness"  # one of the hub's published marker ids
+
 
 def _write_config(repo: Path, data: dict) -> Path:
     path = repo / ".pre-commit-config.yaml"
@@ -47,6 +54,27 @@ def _write_config(repo: Path, data: dict) -> Path:
 
 def _carrier(repo: Path) -> cp.PrecommitCarrier:
     return cp.PrecommitCarrier(repo)
+
+
+def _ruff_entry(rev: str = _RUFF_REV, hook_ids: tuple[str, ...] = ("ruff",)) -> dict:
+    return {"repo": _RUFF_REPO, "rev": rev, "hooks": [{"id": h} for h in hook_ids]}
+
+
+def _hub_entry(
+    repo: str = _HUB_REPO,
+    rev: str = _HUB_REV,
+    hook_ids: tuple[str, ...] = ("codemap-freshness", "toc-freshness"),
+) -> dict:
+    return {"repo": repo, "rev": rev, "hooks": [{"id": h} for h in hook_ids]}
+
+
+def _hub_entry_in(repo: Path) -> dict:
+    """The hub-hooks entry from a written config, found path-independently (by id)."""
+    data = yaml.safe_load((repo / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    return next(
+        e for e in data["repos"]
+        if _HUB_MARKER in {h["id"] for h in e.get("hooks", [])}
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -113,9 +141,12 @@ def test_drifted_missing_hook_detects_drifted_then_reconciles(tmp_path):
 
 
 def test_wrong_version_detects_then_repins(tmp_path):
+    # ruff at a wrong rev; hub-hooks correct, so the ONLY drift is ruff's rev
+    # (with hub-hooks now a second requirement, an absent hub entry would be
+    # DRIFTED, not WRONG_VERSION — so it is supplied correct here to isolate ruff).
     _write_config(
         tmp_path,
-        {"repos": [{"repo": _RUFF_REPO, "rev": "v0.14.0", "hooks": [{"id": "ruff"}]}]},
+        {"repos": [{"repo": _RUFF_REPO, "rev": "v0.14.0", "hooks": [{"id": "ruff"}]}, _hub_entry()]},
     )
     car = _carrier(tmp_path)
     assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_WRONG_VERSION
@@ -160,6 +191,7 @@ def test_verify_does_not_route_through_detect_classifier(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cp, "_classify", _boom)
     monkeypatch.setattr(cp, "_find_repo", _boom)
+    monkeypatch.setattr(cp, "_find_hub_entry", _boom)  # hub identifier too (D9)
     assert car.verify(_PC_TARGET).ok is True  # independent path — unaffected
 
 
@@ -209,3 +241,111 @@ def test_manifest_precommit_target_carries_live_ruff_pin():
     ruff = next(r for r in repos if r["repo"] == _RUFF_REPO)
     assert ruff["rev"] == _RUFF_REV
     assert any(h["id"] == "ruff" for h in ruff["hooks"])
+
+
+def test_manifest_precommit_target_carries_hub_hooks_revpin():
+    pc = next(c for c in yaml.safe_load(_MANIFEST.read_text(encoding="utf-8"))["carriers"]
+              if c["id"] == "precommit")
+    hub = pc["target"]["hub_hooks"]
+    assert hub["rev"] == "v1.0.0"  # the version-coupling anchor = the methodology tag
+    assert _HUB_MARKER in hub["marker_hook_ids"]  # path-independent identification key
+
+
+# ---------------------------------------------------------------------------
+# hub-hooks rev-pin — the version-coupling anchor (this slice)
+# ---------------------------------------------------------------------------
+
+
+def test_hub_hooks_absent_detects_drifted_then_adds_at_tag(tmp_path):
+    # ruff correct, hub-hooks entry absent -> a missing requirement (DRIFTED).
+    _write_config(tmp_path, {"repos": [_ruff_entry()]})
+    car = _carrier(tmp_path)
+    assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+
+    result = car.apply(_PC_TARGET)
+    assert result.changed is True
+    assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_CORRECT
+    assert car.verify(_PC_TARGET).ok is True
+    assert _hub_entry_in(tmp_path)["rev"] == _HUB_REV  # added pinned at the tag
+
+
+def test_hub_hooks_wrong_rev_detects_wrong_version_then_repins(tmp_path):
+    # ruff correct, hub-hooks present at a wrong rev -> the rev-pin's real use.
+    _write_config(tmp_path, {"repos": [_ruff_entry(), _hub_entry(rev="v0.9.0")]})
+    car = _carrier(tmp_path)
+    assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_WRONG_VERSION
+
+    car.apply(_PC_TARGET)
+    assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_CORRECT
+    assert car.verify(_PC_TARGET).ok is True
+    assert _hub_entry_in(tmp_path)["rev"] == _HUB_REV  # bumped to the tag
+
+
+def test_hub_hooks_already_at_tag_is_correct_and_idempotent(tmp_path):
+    # both requirements satisfied -> CORRECT; apply writes nothing (byte-identical).
+    _write_config(tmp_path, {"repos": [_ruff_entry(), _hub_entry()]})
+    car = _carrier(tmp_path)
+    assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_CORRECT
+
+    before = (tmp_path / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    result = car.apply(_PC_TARGET)
+    after = (tmp_path / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    assert result.changed is False
+    assert before == after
+
+
+@pytest.mark.parametrize(
+    "hub_repo",
+    [
+        "../.dev-knowledge",                          # consumer-local relative path
+        "https://github.com/rdwornik/dev-knowledge",  # URL pin
+        "/srv/methodology/.dev-knowledge",            # absolute local path
+    ],
+)
+def test_hub_hooks_identified_path_independently(tmp_path, hub_repo):
+    # Whatever the consumer-local repo: path, the entry is matched by hook-id and
+    # rev-bumped IN PLACE — no duplicate, the repo: path preserved.
+    _write_config(
+        tmp_path,
+        {"repos": [_ruff_entry(), _hub_entry(repo=hub_repo, rev="v0.5.0")]},
+    )
+    car = _carrier(tmp_path)
+    assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_WRONG_VERSION
+
+    car.apply(_PC_TARGET)
+    data = yaml.safe_load((tmp_path / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    same_path = [e for e in data["repos"] if e.get("repo") == hub_repo]
+    assert len(same_path) == 1            # bumped in place, not duplicated
+    assert same_path[0]["rev"] == _HUB_REV  # the repo: path was preserved
+    assert car.verify(_PC_TARGET).ok is True
+
+
+def test_hub_local_pattern_not_mistaken_for_hub_pin(tmp_path):
+    # A consumer that mirrors the hub's repo: local codemap hook must NOT be taken
+    # as the version-pinned hub entry (a local repo has no rev to pin).
+    _write_config(
+        tmp_path,
+        {"repos": [
+            _ruff_entry(),
+            {"repo": "local", "hooks": [{"id": "codemap-freshness"}]},
+        ]},
+    )
+    car = _carrier(tmp_path)
+    # the local entry is skipped -> hub-hooks still absent -> DRIFTED, then added.
+    assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+    car.apply(_PC_TARGET)
+    assert car.verify(_PC_TARGET).ok is True
+    data = yaml.safe_load((tmp_path / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    assert any(e.get("repo") == "local" for e in data["repos"])  # local preserved
+    assert any(e.get("repo") == _HUB_REPO for e in data["repos"])  # canonical hub added
+
+
+def test_hub_hooks_verify_reports_missing_and_wrong_rev(tmp_path):
+    # verify names the hub-hooks failure independently (not a silent pass).
+    _write_config(tmp_path, {"repos": [_ruff_entry()]})  # hub absent
+    failures = _carrier(tmp_path).verify(_PC_TARGET).failures
+    assert any("hub-hooks" in f for f in failures)
+
+    _write_config(tmp_path, {"repos": [_ruff_entry(), _hub_entry(rev="v0.1.0")]})
+    failures = _carrier(tmp_path).verify(_PC_TARGET).failures
+    assert any("hub-hooks rev" in f for f in failures)
