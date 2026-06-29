@@ -1,0 +1,45 @@
+# Deployed methodology-corpus version per repo — ADR-91 DURABLE record (COMMITTED).
+#
+# This is NOT the gitignored ecosystem/<repo>/state.yaml (mutable audit pointer) and NOT
+# the derived ecosystem/index.yaml (audit.py::regenerate_index overwrites it WHOLESALE each
+# run — a field written there is clobbered). It records a DURABLE per-repo fact: which
+# methodology-corpus release (the ADR-91 git tag vMAJOR.MINOR.PATCH) is deployed to each repo.
+# Modeled 1:1 on the ecosystem/tool-versions.yaml pattern: committed · written-by-command ·
+# read-by-a-check — same pattern, a new axis (repo-keyed deployed-corpus-version, not
+# tool-keyed reviewed-changelog-version), so a dedicated file, not a fold.
+#
+# WRITE-CONTRACT: the fields are written by the DEPLOY-RUNBOOK at deploy time — a separate,
+# later piece, NOT built yet. The runbook sets `deployed_methodology_version` to the corpus
+# release it deployed, `deployed_date` to the deploy date, and `source_tag` to the hub git
+# tag (e.g. v1.0.0). Do NOT hand-fabricate a value: a value cannot precede its release. No
+# methodology release is tagged yet (ADR-91 proposes baseline v1.0.0), so every field is
+# `null` here — the expected pre-deploy state.
+#
+# READ: audit.py::check_deployed_methodology_version reads THIS file (per repo, by repo dir
+# name) and reports status — `n/a` while null (no release deployed yet), `pass` with the
+# version once set — surfaced per-repo through scripts/fleet_health.py.
+#
+# Layer-2 read-only, yaml.safe_load, one concern per file (the doc-code-edge.yaml /
+# tool-versions.yaml precedent). Keyed by repo directory name (the audit's repo id).
+repos:
+  .dev-knowledge:
+    # The hub IS the methodology source; its entry = the release the hub itself is at.
+    deployed_methodology_version: null
+    deployed_date: null
+    source_tag: null
+  ai-council:
+    deployed_methodology_version: null
+    deployed_date: null
+    source_tag: null
+  corp-monorepo:
+    deployed_methodology_version: null
+    deployed_date: null
+    source_tag: null
+  corp-ops:
+    deployed_methodology_version: null
+    deployed_date: null
+    source_tag: null
+  corp-sca-time-automation:
+    deployed_methodology_version: null
+    deployed_date: null
+    source_tag: null

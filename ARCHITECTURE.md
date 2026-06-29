@@ -236,7 +236,7 @@ orchestrate, but it may verify itself). These are the *executable* organs the ma
 above references — the **named deterministic-trigger organs**, curated to what the map
 references, **not an exhaustive inventory** of every script in `scripts/`:
 
-- `scripts/audit.py` — cross-repo conformance + self-audit; **25 registered checks**
+- `scripts/audit.py` — cross-repo conformance + self-audit; **26 registered checks**
   (`python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
   `no_sibling_orphans`, `canonical_structure`, `amendment_coherence`, `git_backlog_drift`,
   `no_ff_merges`, `reconciled_versions`, `doc_rot`, `doc_structure`, `doc_code_edge`,

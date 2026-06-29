@@ -1875,3 +1875,55 @@ def test_amendment_coherence_canonical_straggler_fires(tmp_path: Path) -> None:
     f = aud.check_amendment_coherence(tmp_path)[0]
     assert f.status == "fail"
     assert "straggler" in f.evidence.lower()
+
+
+# ---------------------------------------------------------------------------
+# check_deployed_methodology_version (ADR-91 deployed-version reporter)
+# ---------------------------------------------------------------------------
+
+def _write_deployed_registry(tmp_path: Path, monkeypatch, body: str) -> None:
+    """Point aud.DEPLOYED_VERSIONS_REGISTRY at a tmp registry with the given YAML body."""
+    reg = tmp_path / "deployed-versions.yaml"
+    reg.write_text(body, encoding="utf-8")
+    monkeypatch.setattr(aud, "DEPLOYED_VERSIONS_REGISTRY", reg)
+
+
+def test_deployed_version_registered_in_all_checks() -> None:
+    """The reader is wired into ALL_CHECKS (so health / run / fleet_health surface it)."""
+    assert aud.check_deployed_methodology_version in aud.ALL_CHECKS
+
+
+def test_deployed_version_unset_is_na(tmp_path: Path, monkeypatch) -> None:
+    """A null field is the expected pre-deploy state -> n/a (not pass/fail), mirroring
+    floor_integrity's 'not adopted' skip; evidence names the repo + 'unset'."""
+    _write_deployed_registry(tmp_path, monkeypatch,
+        "repos:\n  ai-council:\n    deployed_methodology_version: null\n")
+    f = aud.check_deployed_methodology_version(tmp_path / "ai-council")[0]
+    assert f.check_name == "deployed_methodology_version"
+    assert f.status == "n/a"
+    assert "ai-council" in f.evidence and "unset" in f.evidence
+
+
+def test_deployed_version_set_is_pass(tmp_path: Path, monkeypatch) -> None:
+    """A populated field -> pass, evidence carries the version (the post-deploy state)."""
+    _write_deployed_registry(tmp_path, monkeypatch,
+        'repos:\n  ai-council:\n    deployed_methodology_version: "1.0.0"\n')
+    f = aud.check_deployed_methodology_version(tmp_path / "ai-council")[0]
+    assert f.status == "pass"
+    assert "1.0.0" in f.evidence
+
+
+def test_deployed_version_missing_repo_is_warn(tmp_path: Path, monkeypatch) -> None:
+    """A repo absent from the registry -> WARN (fail-open on its own input gap, never FAIL)."""
+    _write_deployed_registry(tmp_path, monkeypatch,
+        "repos:\n  ai-council:\n    deployed_methodology_version: null\n")
+    f = aud.check_deployed_methodology_version(tmp_path / "corp-ops")[0]
+    assert f.status == "warn"
+    assert "corp-ops" in f.evidence
+
+
+def test_deployed_version_unreadable_is_warn(tmp_path: Path, monkeypatch) -> None:
+    """An unreadable/absent registry -> WARN, never a synthesized FAIL (read-only, non-blocking)."""
+    monkeypatch.setattr(aud, "DEPLOYED_VERSIONS_REGISTRY", tmp_path / "does-not-exist.yaml")
+    f = aud.check_deployed_methodology_version(tmp_path / "ai-council")[0]
+    assert f.status == "warn"
