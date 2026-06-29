@@ -26,11 +26,12 @@ Two AI-Council debates (form + scope, transcripts in `docs/decisions/transcripts
 
 2. **The tool is versioned with the methodology.** It ships at the methodology tag, so deploying `vX` uses `vX`'s deploy logic and carrier set. This resolves the chicken-and-egg as carriers evolve: the deploy logic for a release is exactly the logic that release shipped.
 
-3. **Operator-run, two phases:**
-   - **Consumer phase** — carriers are applied and **committed in the consumer's own context**, preserving the Layer-2 rule that the hub does not write into sibling repos (consistent with the existing operator-invoked floor pattern).
-   - **Hub phase** — the version record is written in the **hub** context.
-   The consumer **never holds hub-write credentials** (no consumer→hub writes).
-   *(Architect reconciliation: the two Council security points and our Layer-2 invariant are different axes — **consumer↛hub** (form debate Disagreement #3) and **hub↛sibling** (ADR-28/54/69/78) — and both are satisfied by this operator-bridged split: carriers committed in the consumer, record written in the hub. The synthesizer's "run the orchestrator from the trusted hub/operator context" lands the same place.)*
+3. **Operator-run, two phases — consumer phase (carriers) then hub phase (record).** The precise Layer-2 write boundary is **not** the binary "write-into-sibling XOR emit-for-consumer" this ADR originally posed; the read-only verify (2026-06-29) resolved it to a **three-edge** boundary — **write-yes, commit-no, autonomy-no**:
+   - **(i) Autonomy-no.** No autonomous / scheduled / hook-initiated cross-repo writes from the hub; writes are **operator-invoked at a rollout moment** only (ADR-78 Decision 2).
+   - **(ii) Write-yes.** An operator-run tool **MAY write carrier bytes directly into the consumer's working tree** — this is the ADR-78-blessed precedent: `generate_floor.py --out-dir <child>` already writes the floor + `.sha256` into the sibling's tree. So `apply(target)` **need not be emit-only**; it may write (or stage) directly.
+   - **(iii) Commit-no.** The **commit stays in the consumer's own context** — the tool writes/stages but does **not** commit in the sibling.
+   - **Hub phase** — the version record is written in the **hub** context; the consumer **never holds hub-write credentials** (no consumer→hub writes).
+   *(This refines, not contradicts, the original intent — "carriers applied and committed in the consumer's own context": the byte-write may be operator-bridged, but the commit stays consumer-context. Evidence: ADR-78 Decision 2 + `scripts/generate_floor.py`. The architect reconciliation is unchanged — the two Council security points and our Layer-2 invariant are different axes: **consumer↛hub** (form debate Disagreement #3) and **hub↛sibling** (ADR-28/54/69/78), both satisfied by this operator-bridged split. The synthesizer's "run the orchestrator from the trusted hub/operator context" lands the same place.)*
 
 4. **The hub version-record is committed on a branch; the operator ratifies by merge** (not auto-commit). *(Council form debate, Disagreement #4: branch-and-merge beat auto-commit — at ~5 repos the cost is trivial and the audit checkpoint is real.)*
 
@@ -44,18 +45,20 @@ Two AI-Council debates (form + scope, transcripts in `docs/decisions/transcripts
 
 9. **Core principle — per-carrier verification gates the version-record write.** The registry reflects **verified reality, not intent**. Structured per-carrier output (`detected state | action | result | verification`). `--dry-run` prints the plan. The registry is updated **only on full success**; on partial failure it is left unchanged and the per-carrier outcome is reported. `verify()` should not share a code path with `detect()` (orthogonal logic avoids a shared-bug blind spot).
 
-## VERIFY@BUILD (load-bearing mechanics to confirm against live code before the tool is built)
+## VERIFY@BUILD — RESOLVED (read-only verify, 2026-06-29; claude CLI v2.1.195)
 
-If either check fails, revisit the named clause:
+Both load-bearing mechanics were confirmed against live code before C1 (the carrier-contract design):
 
-- **Plugin-install invocability (Decision 1).** Confirm whether `claude plugin install` is invokable as a non-interactive shell subprocess. If **not**, the bridge is: the tool emits the exact command, the operator runs it in Claude Code, and the tool **verifies the result afterward** (the deterministic post-check still gates the record write).
-- **Layer-2 write boundary (Decision 3).** Confirm the precise boundary: whether an operator-run tool may write into a sibling's working tree (operator-bridged), or must **emit** changes for the consumer to commit. The chosen phase split must match whatever the boundary actually permits.
+- **(a) Plugin-install invocability (Decision 1) — confirmed at the CLI surface.** `claude plugin marketplace add <source> --scope project` and `claude plugin install <plugin>@<marketplace> --scope project` are **non-interactive CLI subcommands** with deterministic flags/exit codes (live `claude plugin … --help`, v2.1.195) — not session-only slash flows. The one interactive surface (`/plugin configure`) is bypassable via `--config <key=value>`. So the plugin carrier's `apply()` **shells out** to `claude plugin install … --scope project`; its `verify()` reads `claude plugin list --json` (or the consumer's `.claude/settings.json` `enabledPlugins` block). The "emit-the-command-for-the-operator" fallback is **not required**.
+  - **Caveat (close at C2/C3, not now):** confirmed at the CLI-surface only — a read-only check could not run a real install. Before the plugin carrier is declared done, one real `claude plugin install … --scope project` in a throwaway clone must assert exit 0 + the `enabledPlugins` block written.
+  - **Deterministic gotchas to encode:** `marketplace add` must precede `install` on a fresh cache; `install` no-ops ("already installed") on an installed repo — upgrades use `plugin update --scope project`; live activation needs a session restart (irrelevant — the tool needs the carrier *applied + verified*, not activated).
+- **(b) Layer-2 write boundary (Decision 3) — resolved.** The original binary framing was wrong; the live boundary is the **three-edge "write-yes, commit-no, autonomy-no"** rule now stated in Decision 3 (evidence: ADR-78 Decision 2 + `scripts/generate_floor.py --out-dir`).
 
 ## Deferred (deliberately NOT decided / built here)
 
 - The deploy tool, the carrier manifest, and the carrier implementations (this ADR is doctrine only).
 - Fleet-batch; version-delta logic; rollback automation; a drift-detection poller; concurrent-deploy handling.
-- Consumer-commit policy (auto-commit consumer carrier edits vs. stage-for-review) — a build-time decision flagged by the form synthesizer; pick one and enforce it consistently.
+- Consumer-commit policy — **deferred to C2**; the read-only verify surfaced four options, all keeping the commit in the consumer context and non-autonomous (so all are permitted by the Decision 3 boundary): (1) tool writes, operator commits — the existing `generate_floor.py` precedent; (2) tool writes + stages, operator reviews `git diff --cached` and commits; (3) tool writes + auto-commits in the consumer (boundary-stretching — flagged); (4) emit-only (reintroduces the omission gap). Pick one and enforce it consistently; regardless of choice, the registry advances only after per-carrier verify (Decision 9).
 
 ## Rejected alternatives
 
