@@ -27,17 +27,53 @@ carriers:
     order: 1
     implemented: true
     description: >
-      The global Codex reviewer config (ADR-54): the hub's canonical codex/AGENTS.md
+      ARCHITECTURE's user-layer L0 carrier (#1, ARCHITECTURE.md Ch4 L460) — the fleet-wide
+      ~/.claude / ~/.codex baseline. This carrier IMPLEMENTS only ONE of that carrier's
+      payloads: the global Codex reviewer config (ADR-54) — the hub's canonical codex/AGENTS.md
       reconciled to the user-level ~/.codex/AGENTS.md. USER-machine scoped — apply()
       copies the hub source to ~/.codex/AGENTS.md (the consumer repo_root is unused);
       verify() independently re-confirms byte-identity. A copied file has no rev, so
       only ABSENT / PRESENT_CORRECT / PRESENT_DRIFTED (no PRESENT_WRONG_VERSION). The
       user-config base is injectable (param / CODEX_HOME) so the real ~/.codex/ is
-      never touched in tests.
+      never touched in tests. implemented:true does NOT imply the whole L0 layer is
+      managed — carrier #1 is a bundle; its other payloads are declared in l0_scope below
+      (deferred deployables + conventions enforced by other organs), so this entry
+      under-claims nothing (no-silent-omission).
     adr: [ADR-54]
     target:
       source_path: codex/AGENTS.md      # hub canonical source (relative to the hub root)
       target_filename: AGENTS.md        # written to <user-config-base>/AGENTS.md (~/.codex/)
+    # ARCHITECTURE Ch4 carrier #1 (user-layer ~/.claude, L460) is a BUNDLE; implemented:true
+    # above covers ONLY codex/AGENTS.md. The remaining L0 payloads are declared here so the
+    # entry is honest about scope (no-silent-omission). NONE is built by this slice — they are
+    # declared edges (ADR-88 do-not-build-is-doctrine), not omissions.
+    l0_scope:
+      implemented:                # the one payload this carrier deploys + verifies
+        - payload: codex-config
+          target: '~/.codex/AGENTS.md'
+          adr: ADR-54
+      deferred_deployables:       # live L0 ~/.claude files this deploy tool does NOT yet manage
+        - payload: surface-closures
+          target: '~/.claude SessionStart hook (surface-closures.ps1)'
+          adr: ADR-70
+          status: 'live, fleet-deployed; candidate for future L0-payload coverage'
+        - payload: block-onedrive
+          target: '~/.claude PreToolUse hook (block-onedrive.ps1), fail-closed P0 guard'
+          adr: ADR-75
+          status: 'live, fleet-deployed; candidate for future L0-payload coverage'
+        - payload: gotchas
+          target: '~/.claude/skills/gotchas/ (user-level skill)'
+          adr: global
+          status: 'live; candidate for future L0-payload coverage'
+        - payload: routing
+          target: '~/.claude/ROUTING.md'
+          adr: global
+          status: 'live; candidate for future L0-payload coverage'
+      enforced_elsewhere:         # carrier #1 payloads that are conventions, NOT L0 deployable files
+        - payload: no-ff-rule
+          rule: 'branch then --no-ff merge is universal (core-invariants #5)'
+          enforced_by: 'pre-commit carrier (#3) hub hooks block-ff-push / validate_no_ff, plus /ship'
+          adr: core-invariants
 
   - id: tier1-plugin
     order: 2
