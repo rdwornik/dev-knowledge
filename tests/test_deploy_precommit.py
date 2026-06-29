@@ -225,13 +225,31 @@ def test_verify_on_absent_config_is_not_ok(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_manifest_declares_all_four_carriers_one_implemented():
+def test_manifest_declares_all_four_carriers_three_implemented():
     data = yaml.safe_load(_MANIFEST.read_text(encoding="utf-8"))
     assert data["methodology_version"] == "1.0.0"
     ids = [c["id"] for c in data["carriers"]]
     assert ids == ["global-config", "tier1-plugin", "precommit", "floor"]
     implemented = [c["id"] for c in data["carriers"] if c["implemented"]]
-    assert implemented == ["precommit"]  # only the reference carrier this slice
+    # global-config (C3), precommit (C1), floor (C4) built; only tier1-plugin (its own
+    # slice — needs a real CLI-install smoke-test) remains unimplemented.
+    assert implemented == ["global-config", "precommit", "floor"]
+
+
+def test_manifest_globalconfig_target_carries_source_and_filename():
+    gc = next(c for c in yaml.safe_load(_MANIFEST.read_text(encoding="utf-8"))["carriers"]
+              if c["id"] == "global-config")
+    assert gc["implemented"] is True
+    assert gc["target"]["source_path"] == "codex/AGENTS.md"  # hub canonical source (ADR-54)
+    assert gc["target"]["target_filename"] == "AGENTS.md"    # under <user-base>/ (~/.codex/)
+
+
+def test_manifest_floor_target_carries_floor_and_sidecar_paths():
+    fl = next(c for c in yaml.safe_load(_MANIFEST.read_text(encoding="utf-8"))["carriers"]
+              if c["id"] == "floor")
+    assert fl["implemented"] is True
+    assert fl["target"]["floor_path"] == ".claude/CLAUDE-FLOOR.md"
+    assert fl["target"]["sidecar_path"] == ".claude/CLAUDE-FLOOR.md.sha256"
 
 
 def test_manifest_precommit_target_carries_live_ruff_pin():
