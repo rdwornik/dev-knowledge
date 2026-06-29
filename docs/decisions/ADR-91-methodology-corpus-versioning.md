@@ -2,7 +2,7 @@
 
 <!-- scope: meta -->
 
-**Status:** Proposed
+**Status:** Accepted (ratified by merge 2026-06-29; baseline release `v1.0.0` tagged)
 **Date:** 2026-06-27
 **Decision tier:** Doctrine (a new corpus-wide versioning model — establishes semver + a git-tag release marker for the methodology corpus). Records the architect's design; **the operator ratifies by merge** (this ADR is not self-accepted). Path-A direct ADR, no Council.
 **Deliberation basis:** the 2026-06-27 deployment-machinery recon (operator↔architect session) established the version axis is greenfield — no `VERSION` file, no methodology `CHANGELOG`, no release tag; the five carriers each have a different freshness model and no single version spans them; a consumer's only durable committed "what hub state I consume" record today is the pre-commit `rev:` SHA, and `ecosystem/*/state.yaml` is gitignored. This ADR formalizes the versioning doctrine that recon's findings call for.
