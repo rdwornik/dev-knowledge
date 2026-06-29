@@ -2,7 +2,7 @@
 
 <!-- scope: meta -->
 
-**Status:** Proposed
+**Status:** Accepted (ratified by merge 2026-06-29)
 **Date:** 2026-06-29
 **Decision tier:** Doctrine (the deployment *process* that writes the per-repo version record ADR-91 built the read-side for — a deterministic, versioned, verification-gated deploy tool). Records the architect's distilled design across two AI-Council debates; **the operator ratifies by merge** (this ADR is not self-accepted). **Doctrine only — the deploy tool, the carrier manifest, and the carrier implementations are deliberately NOT built here** (separate later steps).
 **Deliberation basis:** two 2026-06-29 AI-Council `pick` debates (4-model panel — claude-opus-4-7, deepseek-v4-pro, gemini-3.1-pro-preview, grok-4.3; openai synthesizer; 2 rounds each) decided the process **form** and **scope**, plus the architect's reconciliation of the Council security points against the Layer-2 boundary. The motivating failure: a prior plugin deploy to `ai-council` silently omitted a carrier (a lint/ruff gate), discovered later.
