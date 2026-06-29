@@ -10,10 +10,11 @@
 # shipped. The git tag is recorded in source_tag; ADR-91 proposes v1.0.0 as the
 # baseline corpus release.
 #
-# SLICE SCOPE (C1): all four carriers are DECLARED here (this is the spec), but
-# only `precommit` is IMPLEMENTED in this slice (deploy/carrier_precommit.py).
-# The other three carry `implemented: false` and a descriptive target; their
-# carrier modules land in later steps.
+# CARRIER STATUS: all four carriers are DECLARED here (this is the spec). Three are
+# IMPLEMENTED — global-config (deploy/carrier_globalconfig.py, ADR-92 C3), precommit
+# (deploy/carrier_precommit.py, C1) and floor (deploy/carrier_floor.py, C4). Only
+# `tier1-plugin` carries `implemented: false`: it shells out to the `claude plugin
+# install` CLI and needs a real-install smoke-test, so it lands in its own slice.
 
 methodology_version: "1.0.0"
 source_tag: v1.0.0
@@ -24,13 +25,19 @@ source_tag: v1.0.0
 carriers:
   - id: global-config
     order: 1
-    implemented: false
+    implemented: true
     description: >
-      Global L0 ~/.claude config surfacing (SessionStart hooks, surface-closures).
-      Operator-machine scoped, not a per-repo file write — its target/verify model
-      is deferred to its own build step.
-    adr: [ADR-70, ADR-73]
-    target: {}
+      The global Codex reviewer config (ADR-54): the hub's canonical codex/AGENTS.md
+      reconciled to the user-level ~/.codex/AGENTS.md. USER-machine scoped — apply()
+      copies the hub source to ~/.codex/AGENTS.md (the consumer repo_root is unused);
+      verify() independently re-confirms byte-identity. A copied file has no rev, so
+      only ABSENT / PRESENT_CORRECT / PRESENT_DRIFTED (no PRESENT_WRONG_VERSION). The
+      user-config base is injectable (param / CODEX_HOME) so the real ~/.codex/ is
+      never touched in tests.
+    adr: [ADR-54]
+    target:
+      source_path: codex/AGENTS.md      # hub canonical source (relative to the hub root)
+      target_filename: AGENTS.md        # written to <user-config-base>/AGENTS.md (~/.codex/)
 
   - id: tier1-plugin
     order: 2
@@ -99,12 +106,16 @@ carriers:
 
   - id: floor
     order: 4
-    implemented: false
+    implemented: true
     description: >
-      The per-repo methodology floor — .claude/CLAUDE-FLOOR.md + .sha256 sidecar +
-      the floor-hash-verify local hook (ADR-78). apply() is the existing
-      generate_floor.py --out-dir write precedent; verify() re-hashes the floor
-      against its sidecar.
+      The per-repo methodology floor (ADR-78) — .claude/CLAUDE-FLOOR.md + its .sha256
+      content-integrity sidecar. apply() REUSES generate_floor.py's importable building
+      blocks (render_floor / floor_sha256 / validate) to write ONLY the consumer tree;
+      it never refreshes the hub canonical SHA anchor (the CLI's --out-dir side-effect a
+      consumer carrier must not cause). detect/verify classify the consumer floor against
+      the freshly-generated corpus floor: ABSENT / PRESENT_CORRECT (floor + sidecar both
+      hash to corpus) / PRESENT_DRIFTED (the sidecar is content-integrity, not a version
+      anchor — so no PRESENT_WRONG_VERSION).
     adr: [ADR-78]
     target:
       floor_path: .claude/CLAUDE-FLOOR.md
