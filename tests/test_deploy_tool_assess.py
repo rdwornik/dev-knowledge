@@ -397,10 +397,14 @@ def test_render_plan_emits_assess_banner_and_no_record_footer(tmp_path):
     assert "No record will be written in assess mode" in out
 
 
-def test_cli_execute_flag_is_guarded_for_c2b():
+def test_cli_execute_flag_is_wired_not_guarded():
+    # C2b implemented --execute: the C2a "implemented in C2b" guard is GONE; the
+    # flag now reaches the real execute path (which here aborts at preflight,
+    # since 'myrepo' is not a registered consumer -- so nothing is mutated).
     res = CliRunner().invoke(tool.deploy, ["myrepo", "--target", "v1.0.0", "--execute"])
     assert res.exit_code != 0
-    assert "C2b" in res.output
+    assert "C2b" not in res.output          # the assess-era guard is gone
+    assert "preflight failed" in res.output  # wired to the real execute path
 
 
 def test_cli_surfaces_preflight_failure(monkeypatch):
