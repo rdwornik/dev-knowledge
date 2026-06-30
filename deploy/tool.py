@@ -95,10 +95,30 @@ def _default_git(
     cwd: Path,
     *,
     stdin: str | None = None,
+    stdin_bytes: bytes | None = None,
     env: dict[str, str] | None = None,
 ) -> GitResult:
-    """Real git invoker — fixed argv, no shell. Read on assess; write on execute."""
+    """Real git invoker — fixed argv, no shell. Read on assess; write on execute.
+
+    ``stdin_bytes`` sends raw bytes untranslated (binary stdin) — used to write a
+    blob via ``hash-object`` with LF preserved. Text-mode stdin on Windows would
+    translate ``\\n`` -> ``\\r\\n`` and, because ``hash-object`` is plumbing,
+    autocrlf never re-normalizes it, baking CRLF into the object store.
+    """
     full_env = {**os.environ, **env} if env else None
+    if stdin_bytes is not None:
+        proc = subprocess.run(  # noqa: S603,S607 — fixed argv, no shell, binary stdin
+            ["git", *args],
+            cwd=str(cwd),
+            input=stdin_bytes,
+            capture_output=True,
+            env=full_env,
+        )
+        return GitResult(
+            proc.returncode,
+            (proc.stdout or b"").decode("utf-8", "replace"),
+            (proc.stderr or b"").decode("utf-8", "replace"),
+        )
     proc = subprocess.run(  # noqa: S603,S607 — fixed argv, no shell, operator-invoked
         ["git", *args],
         cwd=str(cwd),
@@ -628,9 +648,13 @@ def write_record_to_branch(
         base_text, repo, deployed_version=deployed_version,
         deployed_date=deployed_date, source_tag=source_tag,
     )
+    # Write the blob as LF BYTES (not text-mode stdin): hash-object is plumbing, so
+    # a CRLF blob here (from Windows text-mode translation) would be baked into the
+    # object store untouched by autocrlf, flipping the whole registry file to CRLF
+    # on merge. LF bytes keep the record blob byte-consistent with the LF registry.
     blob = _git_checked(
         git, ["hash-object", "-w", "--stdin"], hub_root, "write record blob",
-        stdin=new_text,
+        stdin_bytes=new_text.encode("utf-8"),
     ).stdout.strip()
     base_commit = _git_checked(
         git, ["rev-parse", base_ref], hub_root, f"resolve {base_ref}",
