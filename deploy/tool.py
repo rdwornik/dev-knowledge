@@ -33,10 +33,13 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import subprocess
 import sys
+import tempfile
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from datetime import date as _date
 from pathlib import Path
 from typing import Any
 
@@ -536,6 +539,148 @@ class RecordError(Exception):
     """A record-write or consumer-staging git operation failed."""
 
 
+# Field lines under a repo entry in the registry (4-space indent, ADR-91 schema).
+_RECORD_FIELDS = ("deployed_methodology_version", "deployed_date", "source_tag")
+_REPO_HEADER_RE = re.compile(r"^  (\S[^:]*):\s*$")
+_FIELD_RE = re.compile(rf"^    ({'|'.join(_RECORD_FIELDS)}):\s*.*$")
+
+
+def _set_repo_record(
+    text: str, repo: str, *, deployed_version: str, deployed_date: str, source_tag: str
+) -> str:
+    """Set a repo's three record fields in-place, preserving comments + layout.
+
+    A surgical line edit (NOT a yaml round-trip, which would strip the registry's
+    explanatory header comments). Finds ``  <repo>:`` then rewrites the three
+    4-space-indented field lines in that block; everything else is byte-preserved.
+    Raises RecordError if the repo block or any field line is not found.
+    """
+    values = {
+        "deployed_methodology_version": deployed_version,
+        "deployed_date": deployed_date,
+        "source_tag": source_tag,
+    }
+    out: list[str] = []
+    in_block = False
+    found_repo = False
+    seen: set[str] = set()
+    target_header = f"  {repo}:"
+    for line in text.splitlines():
+        if not in_block:
+            out.append(line)
+            if line.rstrip() == target_header:
+                in_block = True
+                found_repo = True
+            continue
+        # Inside the target repo block. A new repo header (or a dedented line)
+        # ends it.
+        m = _FIELD_RE.match(line)
+        if m:
+            key = m.group(1)
+            out.append(f'    {key}: "{values[key]}"')
+            seen.add(key)
+            continue
+        if _REPO_HEADER_RE.match(line) or (line and not line.startswith("    ")):
+            in_block = False
+        out.append(line)
+    if not found_repo:
+        raise RecordError(f"{repo!r} not found under 'repos:' in the registry")
+    missing = [f for f in _RECORD_FIELDS if f not in seen]
+    if missing:
+        raise RecordError(f"could not set fields {missing} for {repo!r}")
+    return "\n".join(out) + "\n"
+
+
+def _git_checked(git: GitRunner, args: Sequence[str], cwd: Path, what: str, **kw: Any) -> GitResult:
+    """Run a git command; raise RecordError on non-zero (no silent partial write)."""
+    res = git(args, cwd, **kw)
+    if res.returncode != 0:
+        raise RecordError(f"{what} failed (git {args[0]} exit {res.returncode}): {res.stderr.strip()}")
+    return res
+
+
+def write_record_to_branch(
+    hub_root: Path,
+    repo: str,
+    *,
+    deployed_version: str,
+    source_tag: str,
+    deployed_date: str,
+    registry_rel: str = "ecosystem/deployed-versions.yaml",
+    base_ref: str = "main",
+    branch: str | None = None,
+    git: GitRunner = _default_git,
+) -> str:
+    """Commit the deployed-version record on a NEW hub branch (ADR-92 Decision 4).
+
+    Uses git plumbing (hash-object + a throwaway index via GIT_INDEX_FILE +
+    commit-tree + branch) so the operator's checked-out branch, HEAD, working
+    tree, and index are NEVER disturbed. The record is based on the committed
+    ``base_ref`` (main), not the working tree, and the branch is left for the
+    operator to merge -- it is NOT written to main and NOT auto-merged.
+    """
+    branch = branch or f"deploy/record-{repo}-{deployed_version}"
+    base_text = _git_checked(
+        git, ["show", f"{base_ref}:{registry_rel}"], hub_root,
+        f"read {registry_rel}@{base_ref}",
+    ).stdout
+    new_text = _set_repo_record(
+        base_text, repo, deployed_version=deployed_version,
+        deployed_date=deployed_date, source_tag=source_tag,
+    )
+    blob = _git_checked(
+        git, ["hash-object", "-w", "--stdin"], hub_root, "write record blob",
+        stdin=new_text,
+    ).stdout.strip()
+    base_commit = _git_checked(
+        git, ["rev-parse", base_ref], hub_root, f"resolve {base_ref}",
+    ).stdout.strip()
+
+    idx = Path(tempfile.gettempdir()) / f"deploy-record-index-{os.getpid()}-{blob[:12]}"
+    try:
+        env = {"GIT_INDEX_FILE": str(idx)}
+        _git_checked(git, ["read-tree", base_ref], hub_root, "seed temp index", env=env)
+        _git_checked(
+            git, ["update-index", "--add", "--cacheinfo", f"100644,{blob},{registry_rel}"],
+            hub_root, "stage record in temp index", env=env,
+        )
+        tree = _git_checked(git, ["write-tree"], hub_root, "write tree", env=env).stdout.strip()
+    finally:
+        if idx.exists():
+            idx.unlink()  # no leftovers — the throwaway index is removed
+
+    msg = (
+        f"deploy(record): {repo} -> methodology {deployed_version} "
+        f"(tag {source_tag}, {deployed_date}) [ADR-91/92]\n\n"
+        f"Deployed-version record for {repo}, written by the deploy tool (C2b) on "
+        f"full per-carrier verify success. Operator merges this branch to main."
+    )
+    commit = _git_checked(
+        git, ["commit-tree", tree, "-p", base_commit, "-m", msg], hub_root, "commit record",
+    ).stdout.strip()
+    _git_checked(
+        git, ["branch", branch, commit], hub_root,
+        f"create record branch {branch} (already exists?)",
+    )
+    log.info("deploy record committed on %s (%s)", branch, commit[:12])
+    return branch
+
+
+def stage_consumer(repo_root: Path, *, git: GitRunner = _default_git) -> tuple[str, ...]:
+    """Stage the carriers' consumer writes (ADR-92 Decision 3: write-yes / commit-no).
+
+    ``git add -A`` in the consumer -- safe + exact because preflight required a
+    clean consumer tree, so the only changes present are the carriers' applies.
+    Returns the staged paths for the operator to review (`git diff --cached`) and
+    commit. The tool NEVER commits in the consumer.
+    """
+    _git_checked(git, ["add", "-A"], repo_root, f"stage consumer {repo_root}")
+    staged = _git_checked(
+        git, ["diff", "--cached", "--name-only"], repo_root, "list staged paths",
+    ).stdout
+    return tuple(p for p in staged.splitlines() if p.strip())
+
+
 def _target_for(manifest: dict[str, Any], carrier_id: str) -> Any:
     """The manifest target entry for a carrier id (what apply/verify receive)."""
     for c in manifest.get("carriers", []) or []:
@@ -645,9 +790,18 @@ def execute(
     record_branch: str | None = None
     staged: tuple[str, ...] = ()
     if not aborted:
-        # FULL SUCCESS — the two writes (consumer staging + hub-branch record)
-        # land in step 4. Until then, success is reported with no writes.
-        _ = (git, hub_root, today)  # used by the step-4 writers
+        # FULL SUCCESS only — two writes, two contexts (ADR-92 Decisions 3 + 4):
+        # (1) stage the consumer's carrier changes (write-yes / commit-no);
+        # (2) commit the version record on a hub branch the operator merges.
+        staged = stage_consumer(ctx.repo_root, git=git)
+        record_branch = write_record_to_branch(
+            hub_root,
+            ctx.repo,
+            deployed_version=str(ctx.manifest.get("methodology_version", ctx.bare_version)),
+            source_tag=ctx.source_tag,
+            deployed_date=today or _date.today().isoformat(),
+            git=git,
+        )
 
     return ExecuteResult(
         repo=ctx.repo,
