@@ -29,6 +29,10 @@ import contract  # noqa: E402
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 # The shipped hub source — read live so tests track the real reviewer-config bytes.
 _SOURCE = _REPO_ROOT / "codex" / "AGENTS.md"
+# The carrier now deploys the COMMITTED (LF) blob, not the working-tree file (which
+# autocrlf renders CRLF on Windows). The expected deployed bytes are therefore the
+# LF-normalized source — computed here INDEPENDENTLY of the carrier (== the git blob).
+_EXPECTED = _SOURCE.read_bytes().replace(b"\r\n", b"\n")
 _GC_TARGET = {"source_path": "codex/AGENTS.md", "target_filename": "AGENTS.md"}
 
 
@@ -57,7 +61,7 @@ def test_absent_detects_then_applies_and_verifies(tmp_path):
     assert result.changed is True
     assert result.changes  # structured output: enumerated what it wrote
 
-    assert _target_file(user_base).read_bytes() == _SOURCE.read_bytes()
+    assert _target_file(user_base).read_bytes() == _EXPECTED
     assert car.detect(_GC_TARGET) is contract.CarrierState.PRESENT_CORRECT
     assert car.verify(_GC_TARGET).ok is True
 
@@ -68,12 +72,22 @@ def test_apply_creates_user_dir_if_absent(tmp_path):
     assert not user_base.exists()
     _carrier(user_base).apply(_GC_TARGET)
     assert user_base.is_dir()
-    assert _target_file(user_base).read_bytes() == _SOURCE.read_bytes()
+    assert _target_file(user_base).read_bytes() == _EXPECTED
 
 
 def test_apply_copies_byte_identical(tmp_path):
     _carrier(tmp_path).apply(_GC_TARGET)
-    assert _target_file(tmp_path).read_bytes() == _SOURCE.read_bytes()  # verbatim copy
+    assert _target_file(tmp_path).read_bytes() == _EXPECTED  # LF canonical (committed blob)
+
+
+def test_apply_deploys_lf_no_crlf(tmp_path):
+    # Regression guard for the Windows-text-mode-CRLF class: the deployed config
+    # must be LF-only, never CRLF (reading the working-tree file on a Windows hub
+    # previously propagated CRLF into ~/.codex/AGENTS.md).
+    _carrier(tmp_path).apply(_GC_TARGET)
+    deployed = _target_file(tmp_path).read_bytes()
+    assert b"\r\n" not in deployed
+    assert b"\r" not in deployed
 
 
 # ---------------------------------------------------------------------------
@@ -90,7 +104,7 @@ def test_drifted_detects_then_reconciles(tmp_path):
     assert result.changed is True
     assert car.detect(_GC_TARGET) is contract.CarrierState.PRESENT_CORRECT
     assert car.verify(_GC_TARGET).ok is True
-    assert _target_file(tmp_path).read_bytes() == _SOURCE.read_bytes()
+    assert _target_file(tmp_path).read_bytes() == _EXPECTED
 
 
 # ---------------------------------------------------------------------------

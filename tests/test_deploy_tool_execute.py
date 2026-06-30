@@ -411,3 +411,23 @@ def test_no_temp_index_leftovers(world):
     _run(world, factory_of(c1), manifest_of("precommit"))
     after = set(os.listdir(tempfile.gettempdir()))
     assert not any(p.startswith("deploy-record-index-") for p in after - before)
+
+
+def test_record_blob_is_lf_not_crlf(world):
+    # Regression guard for the Windows-text-mode-CRLF class: the record blob the
+    # writer commits via plumbing must be LF (0 CR). Text-mode hash-object stdin on
+    # Windows baked CRLF into the object store, flipping the whole LF registry file
+    # to CRLF on merge (and tripping this repo's autocrlf phantom-churn guard).
+    c1 = FakeExecCarrier("precommit", CarrierState.ABSENT, write_rel=".pre-commit-config.yaml")
+    res = _run(world, factory_of(c1), manifest_of("precommit"))
+    record_blob = subprocess.run(
+        ["git", "show", f"{res.record_branch}:ecosystem/deployed-versions.yaml"],
+        cwd=str(world["hub"]), capture_output=True,
+    ).stdout
+    assert b"\r" not in record_blob  # LF only -- no whole-file CRLF flip on merge
+    # the merge target (main) is LF too, so the record diff is the 3 fields, not the file
+    main_blob = subprocess.run(
+        ["git", "show", "main:ecosystem/deployed-versions.yaml"],
+        cwd=str(world["hub"]), capture_output=True,
+    ).stdout
+    assert b"\r" not in main_blob

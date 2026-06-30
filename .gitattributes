@@ -12,3 +12,11 @@ templates/child-methodology-floor.md.tmpl text eol=lf
 # "regenerate each handoff by re-running the assembler") rewrites it LF and produces a
 # content-identical phantom dirty-tree entry. Same fix as the floor sidecars above.
 docs/handoffs/**/PASTE_THIS.md text eol=lf
+
+# LF-pin the deploy version-record registry (ADR-91/92; deploy-lf-normalize).
+# The deploy tool writes ai-council's record on a hub branch via git plumbing
+# (hash-object). The writer now emits LF bytes, but pin the file too so any
+# NON-plumbing touch (a hand edit on a Windows checkout) normalizes to LF and
+# never re-introduces the CRLF whole-file flip that blocked the first record
+# merge. Same phantom-churn fix as the generated files above; defense-in-depth.
+ecosystem/deployed-versions.yaml text eol=lf
