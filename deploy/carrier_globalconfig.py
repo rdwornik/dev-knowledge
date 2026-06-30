@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import logging
 import os
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -57,14 +58,38 @@ DEFAULT_USER_BASE = Path.home() / ".codex"
 # ---------------------------------------------------------------------------
 # Spec read — the hub source bytes. SHARED between detect/verify is D9-fine: this
 # reads the SPEC (what the consumer should match), not the consumer's own state.
-# A verbatim byte copy keeps "deploy by copying" (ADR-54) faithful and sidesteps
-# any newline-translation ambiguity.
+#
+# The canonical source is the COMMITTED blob (`git show HEAD:<rel>`), which is LF
+# in the object store, NOT the working-tree file. Reading the working tree on a
+# Windows hub (autocrlf renders CRLF) and copying it verbatim propagated CRLF into
+# ~/.codex/AGENTS.md -- a content-identical but EOL-different deploy that re-flags
+# drift forever. The committed blob makes the deploy byte-deterministic across
+# platforms and matches the record-writer's "committed, not working-tree"
+# principle. detect/apply/verify all route through here, so they stay consistent.
 # ---------------------------------------------------------------------------
 
 
 def _read_source(source_path: Path) -> bytes:
-    """Read the hub canonical source bytes (the spec)."""
-    return source_path.read_bytes()
+    """The hub canonical source bytes, LF + deterministic (the committed blob).
+
+    Prefers ``git show HEAD:<rel>`` (LF in the object store) read as raw bytes (no
+    newline translation). Falls back to an LF-normalized working-tree read if git
+    or the committed blob is unavailable (uncommitted source / not a repo).
+    """
+    try:
+        rel = source_path.resolve().relative_to(_HUB_ROOT).as_posix()
+    except ValueError:
+        rel = None
+    if rel is not None:
+        proc = subprocess.run(  # noqa: S603,S607 — fixed argv, no shell, read-only
+            ["git", "show", f"HEAD:{rel}"],
+            cwd=str(_HUB_ROOT),
+            capture_output=True,
+        )
+        if proc.returncode == 0:
+            return proc.stdout  # committed blob bytes — LF
+    # Fallback: working-tree read, LF-normalized (defense-in-depth).
+    return source_path.read_bytes().replace(b"\r\n", b"\n")
 
 
 def _resolve_user_base(override: Path | str | None) -> Path:
