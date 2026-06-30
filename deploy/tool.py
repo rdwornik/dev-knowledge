@@ -32,6 +32,7 @@ is scaffolded as an explicit guard here, never implemented.
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 import sys
 from collections.abc import Callable, Sequence
@@ -80,16 +81,28 @@ class GitResult:
     stderr: str = ""
 
 
-GitRunner = Callable[[Sequence[str], Path], GitResult]
+# Accepts (args, cwd, *, stdin=None, env=None). Assess only ever calls it
+# positionally (read-only); the execute writer uses stdin (hash-object) + env
+# (GIT_INDEX_FILE) for the non-disruptive record commit.
+GitRunner = Callable[..., GitResult]
 
 
-def _default_git(args: Sequence[str], cwd: Path) -> GitResult:
-    """Real git invoker — fixed argv, no shell, read-only commands only here."""
-    proc = subprocess.run(  # noqa: S603,S607 — fixed argv, no shell, read-only
+def _default_git(
+    args: Sequence[str],
+    cwd: Path,
+    *,
+    stdin: str | None = None,
+    env: dict[str, str] | None = None,
+) -> GitResult:
+    """Real git invoker — fixed argv, no shell. Read on assess; write on execute."""
+    full_env = {**os.environ, **env} if env else None
+    proc = subprocess.run(  # noqa: S603,S607 — fixed argv, no shell, operator-invoked
         ["git", *args],
         cwd=str(cwd),
+        input=stdin,
         capture_output=True,
         text=True,
+        env=full_env,
     )
     return GitResult(proc.returncode, proc.stdout or "", proc.stderr or "")
 
@@ -510,15 +523,211 @@ def render_plan(plan: DeploymentPlan, console: Console | None = None) -> None:
 
 
 # ---------------------------------------------------------------------------
-# CLI.
+# EXECUTE (C2b) — the WRITER. apply -> verify per carrier, gate the version-record
+# write on EVERY carrier verifying (ADR-92 Decision 9). Two writes on full
+# success only: stage the consumer (write-yes / commit-no, Decision 3) + commit
+# the record on a hub branch the operator merges (Decision 4). On ANY verify
+# failure: ABORT -- no stage, no record (the consumer may be partially applied;
+# the reconcile is rerunnable).
 # ---------------------------------------------------------------------------
 
 
-_EXECUTE_GUARD = (
-    "execute (apply + version-record write + consumer staging) is implemented in "
-    "C2b -- this build is the read-only ASSESS half only. Omit --execute to print "
-    "the deployment plan."
-)
+class RecordError(Exception):
+    """A record-write or consumer-staging git operation failed."""
+
+
+def _target_for(manifest: dict[str, Any], carrier_id: str) -> Any:
+    """The manifest target entry for a carrier id (what apply/verify receive)."""
+    for c in manifest.get("carriers", []) or []:
+        if c.get("id") == carrier_id:
+            return c.get("target")
+    return None
+
+
+@dataclass(frozen=True)
+class CarrierExecOutcome:
+    """One carrier's execute outcome: what was applied + whether it verified."""
+
+    carrier_id: str
+    order: int
+    detected: CarrierState | None
+    applied: bool          # apply() was invoked
+    apply_changed: bool    # apply() reported a real change
+    verify_ok: bool | None  # None if verify was never reached
+    verify_failures: tuple[str, ...] = ()
+    error: str | None = None  # detect/apply/verify raised
+
+
+@dataclass(frozen=True)
+class ExecuteResult:
+    """The full execute result. ``aborted`` => no record, no staging."""
+
+    repo: str
+    version: str
+    source_tag: str
+    outcomes: tuple[CarrierExecOutcome, ...]
+    aborted: bool
+    failed_carrier: str | None
+    record_branch: str | None
+    staged_paths: tuple[str, ...]
+    out_of_scope: tuple[OutOfScopeItem, ...] = ()
+
+
+def execute(
+    ctx: PreflightContext,
+    *,
+    carrier_factory: CarrierFactory = default_carrier_factory,
+    force: bool = False,
+    git: GitRunner = _default_git,
+    hub_root: Path = _HUB_ROOT,
+    today: str | None = None,
+) -> ExecuteResult:
+    """Apply + verify every carrier; gate the record write on ALL verifying.
+
+    Per carrier (manifest order): if it needs apply (drifted/absent) OR ``force``
+    -> apply() then verify(); if already correct -> verify() only (confirm).
+    Fail-fast: the first carrier whose apply/verify raises, or whose verify is not
+    ok, ABORTS the run -- no consumer staging, no record write (the writes land
+    only on full success, in the caller-visible success branch below).
+    """
+    carriers = carrier_factory(ctx.repo_root)
+    plan = assess(ctx, carrier_factory=lambda _root: carriers)
+
+    outcomes: list[CarrierExecOutcome] = []
+    failed: str | None = None
+    for item in plan.items:
+        if not item.implemented:
+            continue  # not part of execute (declared, not built)
+        carrier = carriers.get(item.carrier_id)
+        if carrier is None or item.state is None:
+            # no carrier bound, or detect errored -> cannot safely apply: abort.
+            outcomes.append(
+                CarrierExecOutcome(
+                    item.carrier_id, item.order, item.state, applied=False,
+                    apply_changed=False, verify_ok=False,
+                    error=item.error or "no carrier bound / detect failed",
+                )
+            )
+            failed = item.carrier_id
+            break
+
+        target = _target_for(ctx.manifest, item.carrier_id)
+        do_apply = force or item.state.needs_apply
+        applied = apply_changed = False
+        try:
+            if do_apply:
+                ar = carrier.apply(target)
+                applied = True
+                apply_changed = ar.changed
+            vr = carrier.verify(target)
+        except Exception as exc:  # noqa: BLE001 — a carrier failure aborts; never record
+            outcomes.append(
+                CarrierExecOutcome(
+                    item.carrier_id, item.order, item.state, applied=applied,
+                    apply_changed=apply_changed, verify_ok=False, error=str(exc),
+                )
+            )
+            failed = item.carrier_id
+            break
+
+        outcomes.append(
+            CarrierExecOutcome(
+                item.carrier_id, item.order, item.state, applied=applied,
+                apply_changed=apply_changed, verify_ok=vr.ok,
+                verify_failures=tuple(vr.failures),
+            )
+        )
+        if not vr.ok:
+            failed = item.carrier_id
+            break
+
+    aborted = failed is not None
+    record_branch: str | None = None
+    staged: tuple[str, ...] = ()
+    if not aborted:
+        # FULL SUCCESS — the two writes (consumer staging + hub-branch record)
+        # land in step 4. Until then, success is reported with no writes.
+        _ = (git, hub_root, today)  # used by the step-4 writers
+
+    return ExecuteResult(
+        repo=ctx.repo,
+        version=ctx.version,
+        source_tag=ctx.source_tag,
+        outcomes=tuple(outcomes),
+        aborted=aborted,
+        failed_carrier=failed,
+        record_branch=record_branch,
+        staged_paths=staged,
+        out_of_scope=plan.out_of_scope,
+    )
+
+
+def render_execute(result: ExecuteResult, console: Console | None = None) -> None:
+    """Print the per-carrier execute outcomes + the gate verdict."""
+    console = console or Console()
+    table = Table(
+        title=f"Deploy EXECUTE -- {result.repo} @ {result.version} "
+        f"(tag {result.source_tag})",
+        title_style="bold",
+    )
+    table.add_column("Carrier")
+    table.add_column("Order", justify="right")
+    table.add_column("Detected")
+    table.add_column("Action")
+    table.add_column("Verify")
+    for o in result.outcomes:
+        detected = o.detected.value if o.detected else "[red]ERROR[/]"
+        if o.applied:
+            action = "applied" if o.apply_changed else "applied (no change)"
+        else:
+            action = "verify-only"
+        if o.error:
+            verify = "[red]ERROR[/]"
+        elif o.verify_ok is True:
+            verify = "[green]ok[/]"
+        elif o.verify_ok is False:
+            verify = "[red]FAIL[/]"
+        else:
+            verify = "-"
+        table.add_row(o.carrier_id, str(o.order), detected, action, verify)
+    console.print(table)
+
+    if result.aborted:
+        console.print(
+            f"\n[red bold]ABORTED[/] -- {result.failed_carrier} did not verify. "
+            "NO record written; consumer NOT staged. The reconcile is rerunnable."
+        )
+        for o in result.outcomes:
+            if o.error:
+                console.print(f"  [red]![/] {o.carrier_id}: {o.error}")
+            elif o.verify_ok is False:
+                console.print(f"  [red]![/] {o.carrier_id}: {', '.join(o.verify_failures)}")
+        return
+
+    console.print("\n[green bold]SUCCESS[/] -- every carrier verified.")
+    if result.record_branch is None:
+        console.print(
+            "[dim]Record write + consumer staging land in step 4 of this build.[/]"
+        )
+        return
+    console.print(
+        f"Hub record committed on branch [bold]{result.record_branch}[/] -- the "
+        "operator merges it to main (NOT auto-merged)."
+    )
+    if result.staged_paths:
+        console.print(
+            f"Consumer staged ({len(result.staged_paths)} path(s)) -- review "
+            "`git -C <consumer> diff --cached`, then commit in the consumer:"
+        )
+        for p in result.staged_paths:
+            console.print(f"  [green]+[/] {p}")
+    else:
+        console.print("Consumer already at target -- nothing to stage.")
+
+
+# ---------------------------------------------------------------------------
+# CLI.
+# ---------------------------------------------------------------------------
 
 
 @click.command()
@@ -527,30 +736,42 @@ _EXECUTE_GUARD = (
     "--target",
     "version",
     required=True,
-    help="Methodology release to assess against (e.g. v1.0.0); selects the manifest.",
+    help="Methodology release to deploy/assess against (e.g. v1.0.0); selects the manifest.",
 )
 @click.option(
     "--execute",
     is_flag=True,
-    help="[C2b — not implemented] apply + write the version record. Guarded here.",
+    help="Apply carriers, verify, and (on full success) stage the consumer + write the record.",
 )
-def deploy(repo: str, version: str, execute: bool) -> None:
-    """Assess <REPO> against --target: preflight, detect every carrier, print the plan.
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Re-apply carriers even when detect says they are already correct.",
+)
+def deploy(repo: str, version: str, execute: bool, force: bool) -> None:
+    """Deploy <REPO> against --target. Without --execute: read-only assess + plan.
 
-    Strictly read-only — never applies, never writes the version record, never
-    stages or commits. Run the execute half (C2b) to actually deploy.
+    With --execute: apply each needing-apply carrier then verify; gate the
+    version-record write on EVERY carrier verifying; on full success stage the
+    consumer (commit-no) and commit the record on a hub branch the operator
+    merges. On any verify failure: abort with no record + no staging.
     """
-    if execute:
-        # Scaffolded entry point for C2b — explicitly guarded, never implemented here.
-        raise click.ClickException(_EXECUTE_GUARD)
-
     try:
         ctx = preflight(repo, version)
     except PreflightError as exc:
         raise click.ClickException(f"preflight failed -- {exc}") from exc
 
-    plan = assess(ctx)
-    render_plan(plan)
+    if not execute:
+        render_plan(assess(ctx))
+        return
+
+    try:
+        result = execute(ctx, force=force)
+    except RecordError as exc:
+        raise click.ClickException(f"deploy execute -- write failed: {exc}") from exc
+    render_execute(result)
+    if result.aborted:
+        click.get_current_context().exit(1)
 
 
 def main() -> None:
