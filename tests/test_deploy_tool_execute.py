@@ -440,3 +440,22 @@ def test_record_blob_is_lf_and_utf8_faithful(world):
         cwd=str(world["hub"]), capture_output=True,
     ).stdout
     assert b"\r" not in main_blob
+
+
+def test_malformed_base_registry_raises_loudly_not_silent(world):
+    # Strict-stdout-decode guard: a non-UTF-8 byte in the committed base registry
+    # must raise RecordError (loud) -- NOT be silently replaced with U+FFFD and
+    # baked into the record blob. This is what stops _default_git's stdout decode
+    # from regressing to errors="replace" (the latent silent-corruption handler).
+    bad = (
+        b"# header with an invalid UTF-8 byte: \x80\n"
+        b"repos:\n  ai-council:\n    deployed_methodology_version: null\n"
+        b"    deployed_date: null\n    source_tag: null\n"
+    )
+    (world["hub"] / "ecosystem" / "deployed-versions.yaml").write_bytes(bad)
+    world["git"](world["hub"], "commit", "-am", "malformed registry")
+    c1 = FakeExecCarrier("precommit", CarrierState.ABSENT, write_rel=".pre-commit-config.yaml")
+    with pytest.raises(tool.RecordError, match="non-UTF-8"):
+        _run(world, factory_of(c1), manifest_of("precommit"))
+    # loud fail = NO record branch written (no silent partial / no U+FFFD blob)
+    assert world["git"](world["hub"], "branch", "--list", "deploy/record-*") == ""
