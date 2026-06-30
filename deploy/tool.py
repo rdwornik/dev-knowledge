@@ -84,9 +84,8 @@ class GitResult:
     stderr: str = ""
 
 
-# Accepts (args, cwd, *, stdin=None, env=None). Assess only ever calls it
-# positionally (read-only); the execute writer uses stdin (hash-object) + env
-# (GIT_INDEX_FILE) for the non-disruptive record commit.
+# Accepts (args, cwd, *, stdin=None, stdin_bytes=None, env=None). Always binary
+# I/O + explicit UTF-8 (never text mode) — see the docstring for why.
 GitRunner = Callable[..., GitResult]
 
 
@@ -98,36 +97,37 @@ def _default_git(
     stdin_bytes: bytes | None = None,
     env: dict[str, str] | None = None,
 ) -> GitResult:
-    """Real git invoker — fixed argv, no shell. Read on assess; write on execute.
+    """Real git invoker — fixed argv, no shell, ALWAYS binary I/O + explicit UTF-8.
 
-    ``stdin_bytes`` sends raw bytes untranslated (binary stdin) — used to write a
-    blob via ``hash-object`` with LF preserved. Text-mode stdin on Windows would
-    translate ``\\n`` -> ``\\r\\n`` and, because ``hash-object`` is plumbing,
-    autocrlf never re-normalizes it, baking CRLF into the object store.
+    NEVER text mode (the Windows-text-mode-git-I/O class). On Windows
+    ``subprocess(text=True)`` decodes stdout with the locale encoding (cp1252) AND
+    translates ``\\n`` <-> ``\\r\\n`` — two corruptions on two axes:
+
+    - ENCODING: git's UTF-8 output (e.g. ``—`` = ``E2 80 94``) decoded cp1252 then
+      re-encoded UTF-8 becomes mojibake (this corrupted the record's comments);
+    - EOL: ``\\n`` -> ``\\r\\n`` on a plumbing ``hash-object`` stdin bakes CRLF into
+      the object store (autocrlf can't re-normalize plumbing).
+
+    Binary stdin/stdout + explicit UTF-8 keeps every read AND write byte-faithful
+    and LF on both axes. ``stdin`` (str) is encoded UTF-8; ``stdin_bytes`` is sent
+    verbatim (e.g. the LF record blob).
     """
     full_env = {**os.environ, **env} if env else None
-    if stdin_bytes is not None:
-        proc = subprocess.run(  # noqa: S603,S607 — fixed argv, no shell, binary stdin
-            ["git", *args],
-            cwd=str(cwd),
-            input=stdin_bytes,
-            capture_output=True,
-            env=full_env,
-        )
-        return GitResult(
-            proc.returncode,
-            (proc.stdout or b"").decode("utf-8", "replace"),
-            (proc.stderr or b"").decode("utf-8", "replace"),
-        )
-    proc = subprocess.run(  # noqa: S603,S607 — fixed argv, no shell, operator-invoked
+    data = stdin_bytes if stdin_bytes is not None else (
+        stdin.encode("utf-8") if stdin is not None else None
+    )
+    proc = subprocess.run(  # noqa: S603,S607 — fixed argv, no shell, binary UTF-8 I/O
         ["git", *args],
         cwd=str(cwd),
-        input=stdin,
+        input=data,
         capture_output=True,
-        text=True,
         env=full_env,
     )
-    return GitResult(proc.returncode, proc.stdout or "", proc.stderr or "")
+    return GitResult(
+        proc.returncode,
+        (proc.stdout or b"").decode("utf-8", "replace"),
+        (proc.stderr or b"").decode("utf-8", "replace"),
+    )
 
 
 # ---------------------------------------------------------------------------
