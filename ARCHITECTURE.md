@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-30
+last_reviewed: 2026-07-01
 reconciled_with: handoff-process@5.3
 status: active
 owner: Rob
@@ -374,7 +374,7 @@ portability via **#195** (integrated enforcement) + **#193**; doc→code coverag
 **#201/#202/#203 complete** (12 rules mapped + the `doc_code_coverage_drift` guard over the
 auto-enumerable `ALL_CHECKS` surface; the heterogeneous non-`ALL_CHECKS` remainder stays curated).
 
-- `tests/` — pytest unit tests for the validators (**979 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (**980 collected**; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
