@@ -125,7 +125,14 @@ def _default_git(
     )
     return GitResult(
         proc.returncode,
-        (proc.stdout or b"").decode("utf-8", "replace"),
+        # stdout = DATA: STRICT decode. The registry base_text is read here, round-
+        # tripped, and re-encoded into a git object -- errors="replace" would
+        # silently swap a malformed byte for U+FFFD and bake it into the record
+        # (the silent-corruption class this sweep eliminates). Strict raises
+        # UnicodeDecodeError, surfaced loudly via _git_checked -> RecordError.
+        (proc.stdout or b"").decode("utf-8"),
+        # stderr = ERROR TEXT: lenient. Git error messages can carry locale bytes
+        # on Windows; never crash the error path on them.
         (proc.stderr or b"").decode("utf-8", "replace"),
     )
 
@@ -612,8 +619,17 @@ def _set_repo_record(
 
 
 def _git_checked(git: GitRunner, args: Sequence[str], cwd: Path, what: str, **kw: Any) -> GitResult:
-    """Run a git command; raise RecordError on non-zero (no silent partial write)."""
-    res = git(args, cwd, **kw)
+    """Run a git command; raise RecordError on non-zero or non-UTF-8 output.
+
+    A strict stdout decode (see _default_git) raises UnicodeDecodeError on
+    malformed bytes; surface it loudly as a RecordError rather than letting a raw
+    decode traceback escape or -- worse -- silently corrupting the round-tripped
+    record. No silent partial write.
+    """
+    try:
+        res = git(args, cwd, **kw)
+    except UnicodeDecodeError as exc:
+        raise RecordError(f"{what} produced non-UTF-8 output: {exc}") from exc
     if res.returncode != 0:
         raise RecordError(f"{what} failed (git {args[0]} exit {res.returncode}): {res.stderr.strip()}")
     return res
