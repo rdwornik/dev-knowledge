@@ -894,6 +894,7 @@ def render_execute(result: ExecuteResult, console: Console | None = None) -> Non
 )
 @click.option(
     "--execute",
+    "do_execute",
     is_flag=True,
     help="Apply carriers, verify, and (on full success) stage the consumer + write the record.",
 )
@@ -902,7 +903,7 @@ def render_execute(result: ExecuteResult, console: Console | None = None) -> Non
     is_flag=True,
     help="Re-apply carriers even when detect says they are already correct.",
 )
-def deploy(repo: str, version: str, execute: bool, force: bool) -> None:
+def deploy(repo: str, version: str, do_execute: bool, force: bool) -> None:
     """Deploy <REPO> against --target. Without --execute: read-only assess + plan.
 
     With --execute: apply each needing-apply carrier then verify; gate the
@@ -915,7 +916,7 @@ def deploy(repo: str, version: str, execute: bool, force: bool) -> None:
     except PreflightError as exc:
         raise click.ClickException(f"preflight failed -- {exc}") from exc
 
-    if not execute:
+    if not do_execute:
         render_plan(assess(ctx))
         return
 
