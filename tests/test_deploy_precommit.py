@@ -225,15 +225,15 @@ def test_verify_on_absent_config_is_not_ok(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_manifest_declares_all_four_carriers_three_implemented():
+def test_manifest_declares_all_four_carriers_all_implemented():
     data = yaml.safe_load(_MANIFEST.read_text(encoding="utf-8"))
     assert data["methodology_version"] == "1.0.0"
     ids = [c["id"] for c in data["carriers"]]
     assert ids == ["global-config", "tier1-plugin", "precommit", "floor"]
     implemented = [c["id"] for c in data["carriers"] if c["implemented"]]
-    # global-config (C3), precommit (C1), floor (C4) built; only tier1-plugin (its own
-    # slice — needs a real CLI-install smoke-test) remains unimplemented.
-    assert implemented == ["global-config", "precommit", "floor"]
+    # all four carriers now built: global-config (C3), precommit (C1), floor (C4), and
+    # tier1-plugin (the external-CLI carrier, smoke-test-closed). C2 orchestrator is next.
+    assert implemented == ["global-config", "tier1-plugin", "precommit", "floor"]
 
 
 def test_manifest_globalconfig_target_carries_source_and_filename():
