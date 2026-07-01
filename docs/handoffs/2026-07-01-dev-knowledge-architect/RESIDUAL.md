@@ -9,13 +9,17 @@
 > points at the whole BACKLOG / relevant themes, and the open architecture questions travel as
 > residual so the next session resumes the design rather than rediscovering it.
 >
-> **Generated LIVE at the end of a CC-execution window; SUPPLEMENT EMPTY (cold disposition).**
+> **Generated LIVE at the end of a CC-execution window; then FILLED by the outgoing architect.**
 > The window since the 2026-06-27 architect handoff was a **CC-execution-driven** arc — the deploy
 > subsystem build (ADR-91/92), the first real deploy (ai-council → v1.0.0), the C5 loop close, the
-> hub currency+coherence audit → BACKLOG reconciliation, and this session's pre-handoff capture.
-> There was **no outgoing browser architect chat** holding un-committed strategic deliberation, so
-> `SUPPLEMENT.md` ships **empty** and the incoming **§13(d) beat fires FULL**. The strategic *why*
-> is largely already in the repo: **ADR-91/92**, `LESSONS.md` (the run-#1 retrospective + 3
+> hub currency+coherence audit → BACKLOG reconciliation, and this session's pre-handoff capture. The
+> CC-derived **repo-side** *why* lives in §1–§5 below; the operator then **FILLED `SUPPLEMENT.md`**
+> from the outgoing architect chat, so the **off-repo** *why* — the "configured-not-armed = facade"
+> frame, the **arm-first** priority resolution, the floor-A hash-guard reservation, and the
+> `#226→#230→#222/223→#225→#221` decomposition chain — is in the folded ANSWERS. Because the
+> supplement carries answers, the incoming **§13(d) beat NARROWS** to *"anything changed since?"* —
+> not a FULL re-ask (`HANDOFF_PROCESS.md` §13: "refined, not duplicated"). The repo-side strategic
+> *why* is also largely in the repo: **ADR-91/92**, `LESSONS.md` (run-#1 retrospective + 3
 > meta-lessons), **PLAYBOOK §20** (the deploy runbook), and the JOURNAL arc.
 >
 > **Four-tag discipline.** `witnessed` = CC re-derived it live this generation (the §1 gate
@@ -125,10 +129,12 @@ priority calls, not builds. **recall/inferred** — the architect resumes the de
    auto-load). **Done-metric = the #230 self-test passes in ai-council.** The ADR that formalizes model
    A is authored **during** this build (not before) — #226 owns it. Also reconcile PLAYBOOK §20's
    "local-only" prose (SUPERSEDED by the tracked+guarded model).
-2. **#230 — build the conformance self-test first?** It is the hard-metric acceptance for #226(b) AND
-   the per-repo gate for #221 — a shared gate. **Decision:** build #230 before or alongside #226(b), so
-   arming has a real acceptance test rather than a files-present check. Distinct from #171/`conformance.md`
-   (static presence + staleness); #230 proves the loop FUNCTIONS.
+2. **#230 — the conformance self-test = #226(b)'s acceptance gate.** Per the architect's chain, #230 is
+   built to **prove the arming worked** — end-to-end, incl. **hermetic isolation** (worktree
+   file-disjointness, hooks firing in isolation) and **tamper-detection** (poison the floor → the
+   hash-guard catches it) — not a files-present check. It is also the per-repo gate for #221 — a shared
+   gate, hence its own id. Distinct from #171/`conformance.md` (static presence + staleness); #230
+   proves the loop FUNCTIONS.
 3. **#221 — fleet rollout.** MUST follow #226 (so fleet repos don't replicate ai-council's
    configured-not-armed gap); each repo's deploy uses #230 as its acceptance gate. Target: n=2+
    (corp-monorepo / corp-ops / corp-sca-time-automation) to clear the generalization gate.
@@ -137,17 +143,23 @@ priority calls, not builds. **recall/inferred** — the architect resumes the de
    "when unsure, ask the hub; verification flows upstream." Sub-note flagged: the philosophy line may
    belong in ESSENTIALS/PLAYBOOK — scope when built.
 
-**The competing investment — pay down currency debt first?** #222/#223/#224 (document the deploy
-subsystem in ARCHITECTURE.md + decouple the count from the freshness gate + rotate the ADR lists).
-The architect's call: **arm+rollout now** (momentum, the deploy arc is warm) **vs. currency first**
-(ARCHITECTURE is the structural map and is now materially wrong about a whole subsystem). Both are
-filed; only the priority is undecided — this is exactly the off-repo *why* the §13(d) beat should
-surface.
+**The competing investment — RESOLVED by the outgoing architect (folded SUPPLEMENT §B).** #222/#223/#224
+(document the deploy subsystem in ARCHITECTURE.md + decouple the count from the freshness gate + rotate
+the ADR lists) is real and compounding (the false freshness stamp) — but it is a **map** problem, and
+the architect ruled **function before map**: **arm-first** (a working-inert system is a worse
+incoherence than a stale map; and documenting deploy is *more accurate after* arming). Net sequencing:
+**#226(b) → #230 → #222/#223 → #225 → #221**-fleet-last. The incoming session **inherits this
+priority** (do not relitigate — SUPPLEMENT §3/§5); what stays open is the *build*-level call — the
+**hash-guard robustness bar** (model A's whole safety rests on it; #230 must exercise tamper-detection
+— SUPPLEMENT §A/§4).
 
-**Adjacent open decisions (smaller, filed):** #210 (journal-wrap no-ff standing rule vs per-instance
+**Adjacent open decisions (smaller):** #210 (journal-wrap no-ff standing rule vs per-instance
 disposition); #220 (the MODIFY/semantic-drift axis — verify-first whether any organ catches a
 meaning-change-without-version-bump); the ADR-status-header legibility class (#162/#166 — do NOT "fix"
-a frozen ADR header without deciding the convention first).
+a frozen ADR header without deciding the convention first). **NEW candidate the architect flagged (not
+yet filed): #232 — ship-gate right-sizing** (full-pytest on a doc-only change is disproportionate; the
+fix is right-size, **not** skip — the doc gates caught real errors this session). Carried in the folded
+SUPPLEMENT §4/§6 — the incoming session files or folds it into the #226 build.
 
 ---
 
