@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-02 — CC: #226/#230 CLOSED — feat/226 merged to main (anchors b986711)
+
+**Did:** After the operator's final closure-verify PASS, merged `feat/226-arm-floor-230-conformance` → `main` (`--no-ff`, `b986711`) and closed **#226** + **#230** in BACKLOG (done-items-leave, ADR-65; `closes [#226] [#230]` in `7904709`). Dropped #221's now-satisfied `depends-on: #226` (arming landed). The #226 hard-metric was met: **Layer-2 #230 GREEN 9/9 vs the REAL armed ai-council** (`2675394`), all four legs, from the committed harness.
+
+**Result:** `main` HEAD `b986711` (merge on the first-parent spine); tree clean; audit health OK; #226/#230 gone from BACKLOG. NOT pushed (operator did not request). ai-council consumer carries the committed arming (`2675394`).
+
+**Changes:** merge of the 8-commit `feat/226` arc (carrier arming + precommit hook + `deploy/floor_conformance.py` #230 harness + ADR-93 + PLAYBOOK §20 + registry header); `BACKLOG.md` (#226/#230 closed, #221 dep dropped).
+
+**Abandoned:** Deferred (correctly NOT this arc): the C.3 live `claude -p` floor-sentinel smoke (optional); the fleet rollout (#221); the ARCHITECTURE currency work (#222/#223 — this build enlarged the forced-stamp debt, so it's the more-warranted next arc). Did NOT push.
+
+**Next:** Operator's call on push + `feat/226` branch cleanup. Then #221 (fleet) / #222–#223 (ARCHITECTURE currency).
+
 ### 2026-07-02 — CC: #226 step 5 — armed REAL ai-council + Layer-2 #230 GREEN (9/9) (refs 8517c91)
 
 **Did:** Executed step-5 gates against the REAL ai-council consumer. **Gate 1 (assess, read-only):** predicted 5 arming changes (floor+sidecar already at corpus). **Gate 2 (execute):** `deploy ai-council --target v1.0.0 --execute` wrote+staged the arming (7 paths); CC did NOT commit (ADR-92 commit-no); dropped the redundant hub record branch (re-set identical values already on main — operator ruling). Operator ratified (branch `feat/floor-arming` → `--no-ff` merge; ai-council HEAD `cba43a2`→`2675394`). Answered two operator verify-Qs from live source: settings.json is force-tracked (merge preserves the machine path + `//` comment + enabledPlugins, adds only SessionStart — proven on a copy); the `.pre-commit-config.yaml` round-trip strips NO content (none remained; committed blobs already LF — retracted my wrong CRLF-normalize claim). **Gate 3 (Layer-2 #230 vs real ai-council):** surfaced TWO harness bugs — (A) clone set `autocrlf=false` AFTER checkout → every LF file read as unstaged → pre-commit refused; (B) ai-council's config has a relative-path hub-hooks repo (`../.dev-knowledge`, clone-unresolvable) + a remote ruff repo, and pre-commit inits EVERY repo before running any hook. Fixed: (A) clone with `-c core.autocrlf=false`; (B, operator-ratified R2) assert the real cloned config carries the `floor-hash-verify` stanza (property 0), then scope the clone's config to that ONE real stanza to prove it blocks a commit — faithful (unrelated hooks scoped out only because clone-unresolvable + orthogonal to the floor-hash property, NOT to weaken). Re-ran → **9/9 GREEN** (all 4 legs: clean-pass, tamper both legs, delete-backstop, assert_sessionstart_wired — the last retiring the settings.json known-limit for ai-council BY TEST).
