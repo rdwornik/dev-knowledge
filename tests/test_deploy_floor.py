@@ -20,9 +20,12 @@ network, no real consumer repos, and the hub tree is left untouched.
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
 
@@ -52,6 +55,22 @@ def _sidecar_file(repo: Path) -> Path:
     return repo / ".claude" / "CLAUDE-FLOOR.md.sha256"
 
 
+def _hook_script(repo: Path) -> Path:
+    return repo / ".claude" / "check_floor_hash.py"
+
+
+def _claude_md(repo: Path) -> Path:
+    return repo / "CLAUDE.md"
+
+
+def _gitignore(repo: Path) -> Path:
+    return repo / ".gitignore"
+
+
+def _settings(repo: Path) -> Path:
+    return repo / ".claude" / "settings.json"
+
+
 # ---------------------------------------------------------------------------
 # absent -> apply -> verify
 # ---------------------------------------------------------------------------
@@ -64,7 +83,9 @@ def test_absent_detects_then_applies_and_verifies(tmp_path):
 
     result = car.apply(_FLOOR_TARGET)
     assert result.changed is True
-    assert len(result.changes) == 2  # floor + sidecar, enumerated (structured output)
+    # armed set on a bare consumer: floor + sidecar + hook script + @-include +
+    # .gitignore negation block + settings.json SessionStart hook (structured output).
+    assert len(result.changes) == 6
 
     assert _floor_file(tmp_path).exists()
     assert _sidecar_file(tmp_path).exists()
@@ -207,3 +228,88 @@ def test_apply_does_not_refresh_hub_canonical_sha(tmp_path):
     _carrier(tmp_path).apply(_FLOOR_TARGET)
 
     assert hub_anchor.read_bytes() == before  # hub anchor untouched
+
+
+# ---------------------------------------------------------------------------
+# ARMING (ADR-93) — apply does not merely drop content; it arms the floor so a
+# fresh clone self-arms. Six artifacts; PRESENT_CORRECT requires ALL.
+# ---------------------------------------------------------------------------
+
+
+def test_apply_writes_canonical_guard_script(tmp_path):
+    _carrier(tmp_path).apply(_FLOOR_TARGET)
+    # The one canonical guard both legs run, single-sourced from the hub generator.
+    assert _hook_script(tmp_path).exists()
+    assert (
+        _hook_script(tmp_path).read_text(encoding="utf-8")
+        == cf.gf.CHECK_FLOOR_HASH_SCRIPT
+    )
+
+
+def test_apply_adds_at_include_to_claude_md(tmp_path):
+    _carrier(tmp_path).apply(_FLOOR_TARGET)
+    assert cf.INCLUDE_LINE in _claude_md(tmp_path).read_text(encoding="utf-8")
+
+
+def test_apply_inserts_include_after_frontmatter_preserving_content(tmp_path):
+    existing = "---\nlast_reviewed: 2026-06-02\n---\n\n# CLAUDE.md — Consumer\nBody.\n"
+    _claude_md(tmp_path).write_text(existing, encoding="utf-8", newline="\n")
+    _carrier(tmp_path).apply(_FLOOR_TARGET)
+    text = _claude_md(tmp_path).read_text(encoding="utf-8")
+    assert cf.INCLUDE_LINE in text
+    assert "# CLAUDE.md — Consumer" in text and "Body." in text  # content preserved
+    # include sits after the frontmatter close, before the H1
+    assert text.index(cf.INCLUDE_LINE) > text.index("last_reviewed")
+    assert text.index(cf.INCLUDE_LINE) < text.index("# CLAUDE.md — Consumer")
+
+
+def test_apply_rewrites_bare_claude_gitignore_to_contents_form(tmp_path):
+    _gitignore(tmp_path).write_text("# Claude\n.claude/\n", encoding="utf-8", newline="\n")
+    _carrier(tmp_path).apply(_FLOOR_TARGET)
+    lines = [ln.strip() for ln in _gitignore(tmp_path).read_text(encoding="utf-8").splitlines()]
+    assert ".claude/" not in lines  # bare dir form replaced (defeats negations, #138)
+    assert ".claude/*" in lines
+    for neg in ("!.claude/CLAUDE-FLOOR.md", "!.claude/CLAUDE-FLOOR.md.sha256",
+                "!.claude/check_floor_hash.py"):
+        assert neg in lines
+
+
+def test_apply_adds_sessionstart_guard_with_both_legs(tmp_path):
+    _carrier(tmp_path).apply(_FLOOR_TARGET)
+    data = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+    cmds = [
+        h["command"]
+        for g in data["hooks"]["SessionStart"]
+        for h in g["hooks"]
+    ]
+    assert any("check_floor_hash.py" in c for c in cmds)          # verify leg
+    assert any("pre_commit install" in c for c in cmds)           # bootstrap arm leg
+
+
+def test_apply_merges_sessionstart_preserving_existing_settings(tmp_path):
+    existing = {"enabledPlugins": {"tier1-lifecycle@dev-knowledge-methodology": True}}
+    _settings(tmp_path).parent.mkdir(parents=True, exist_ok=True)
+    _settings(tmp_path).write_text(json.dumps(existing), encoding="utf-8", newline="\n")
+    _carrier(tmp_path).apply(_FLOOR_TARGET)
+    data = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+    assert data["enabledPlugins"] == existing["enabledPlugins"]  # preserved
+    assert data["hooks"]["SessionStart"]                          # guard added
+
+
+@pytest.mark.parametrize("break_it", [
+    lambda repo: _claude_md(repo).write_text("# no include\n", encoding="utf-8", newline="\n"),
+    lambda repo: _hook_script(repo).write_text("print('tampered')\n", encoding="utf-8", newline="\n"),
+    lambda repo: _gitignore(repo).write_text(".claude/\n", encoding="utf-8", newline="\n"),
+    lambda repo: _settings(repo).write_text("{}", encoding="utf-8", newline="\n"),
+])
+def test_missing_arming_artifact_detects_drifted_then_reconciles(tmp_path, break_it):
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_CORRECT
+    break_it(tmp_path)  # floor+sidecar intact, but one arming artifact broken
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+    assert car.verify(_FLOOR_TARGET).ok is False
+
+    car.apply(_FLOOR_TARGET)
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_CORRECT
+    assert car.verify(_FLOOR_TARGET).ok is True

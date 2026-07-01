@@ -181,6 +181,34 @@ To refresh after the hub template changes, re-run the hub generator with
 ============================================================================
 """
 
+def extract_check_floor_hash_script() -> str:
+    """The canonical child-side hash-guard script, single-sourced from INSTALL_NOTE.
+
+    The floor deploy carrier (``deploy/carrier_floor.py``, ADR-93) writes THIS to the
+    consumer's ``.claude/check_floor_hash.py``, so the automated arm and the paste-ready
+    manual runbook can never disagree on the guard bytes (the drift the whole feature
+    guards against). Dedents the 7-space-indented block under INSTALL_NOTE step 2 (from
+    the shebang to the first non-indented, non-blank line). Same extraction the
+    ``test_generate_floor`` paste-ready tests use.
+    """
+    lines = INSTALL_NOTE.splitlines()
+    start = next(i for i, ln in enumerate(lines) if "#!/usr/bin/env python3" in ln)
+    out: list[str] = []
+    for ln in lines[start:]:
+        if ln.strip() == "":
+            out.append("")
+        elif ln.startswith("       "):  # 7-space indent
+            out.append(ln[7:])
+        else:
+            break
+    return "\n".join(out).rstrip("\n") + "\n"
+
+
+#: The canonical guard script bytes (LF, single trailing newline). Both arming legs
+#: (the session-start settings.json hook + the commit-time pre-commit hook) run it.
+CHECK_FLOOR_HASH_SCRIPT = extract_check_floor_hash_script()
+
+
 # Binding ceiling + binding token measure (operator-pinned). See module docstring.
 FLOOR_TOKEN_CEILING = 1500
 _TOKEN_CHARS_PER_TOKEN = 3.5
