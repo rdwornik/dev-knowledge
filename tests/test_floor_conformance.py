@@ -220,3 +220,60 @@ def test_rmtree_guard_deletes_within_temp_root(tmp_path):
     (root / "sub" / "f.txt").write_text("x", encoding="utf-8")
     fc._rmtree_guarded(root, tmp_path)
     assert not root.exists()
+
+
+# ---------------------------------------------------------------------------
+# Layer-2 PATH regression — run_against_consumer's clone (Fix A: -c autocrlf=false)
+# + faithful scope (Fix B: assert the real config carries floor-hash-verify, then scope
+# past a clone-UNRESOLVABLE consumer config). Guards the two step-5 Gate-3 fixes.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def committed_consumer_ai_council_like(tmp_path):
+    """A COMMITTED consumer mirroring ai-council: armed floor, FORCE-TRACKED settings.json
+    (so the SessionStart wiring travels on a clone), and a FULL .pre-commit-config.yaml =
+    the real floor-hash-verify hook PLUS an unrelated, clone-UNRESOLVABLE relative-path repo
+    (like ai-council's `../.dev-knowledge` hub-hooks). run_against_consumer must scope the
+    unrelated repo out and still prove the floor hook blocks a commit."""
+    tree = tmp_path / "consumer"
+    tree.mkdir()
+    _git(["-c", "init.defaultBranch=main", "init", "-q"], tree)
+    _git(["config", "user.email", "c@e.c"], tree)
+    _git(["config", "user.name", "C"], tree)
+    _git(["config", "commit.gpgsign", "false"], tree)
+    (tree / "CLAUDE.md").write_text("# Consumer\n", encoding="utf-8", newline="\n")
+    cf.FloorCarrier(tree).apply(_FLOOR_TARGET)
+    full_cfg = {"repos": [
+        {"repo": "local", "hooks": [_FLOOR_LOCAL_HOOK]},
+        # an unrelated repo that CANNOT resolve from a temp clone (ai-council-like) — the
+        # exact shape (relative-path repo) that broke Gate 3 before the Fix-B scope.
+        {"repo": "../nonexistent-sibling-hub", "rev": "v1.0.0", "hooks": [{"id": "unrelated"}]},
+    ]}
+    (tree / ".pre-commit-config.yaml").write_text(
+        yaml.safe_dump(full_cfg, sort_keys=False), encoding="utf-8", newline="\n")
+    _git(["add", "-A"], tree)
+    _git(["add", "-f", ".claude/settings.json"], tree)  # force-track, like ai-council
+    _git(["commit", "-q", "-m", "arm floor (ai-council-like: settings tracked, full config)"], tree)
+    return tree
+
+
+def test_layer2_path_scopes_unresolvable_repo_and_passes(committed_consumer_ai_council_like):
+    """Fix A + Fix B regression: run_against_consumer clones (LF checkout, no unstaged-
+    config error), asserts the real config carries floor-hash-verify, scopes out the
+    clone-unresolvable unrelated repo, and the full suite passes 9/9 — so Leg 2b works
+    despite an ai-council-like config pre-commit could not otherwise resolve in a clone."""
+    passed = fc.run_against_consumer(committed_consumer_ai_council_like)
+    assert len(passed) == 9  # 1 faithful config check + 8 conformance properties
+    assert "real config carries floor-hash-verify" in passed[0]
+
+
+def test_layer2_path_fails_red_when_floor_hook_absent(committed_consumer_ai_council_like):
+    """Property 0 has teeth: a consumer whose committed config LACKS floor-hash-verify
+    FAILS run_against_consumer (no false green on a missing commit-time arming)."""
+    cfg = committed_consumer_ai_council_like / ".pre-commit-config.yaml"
+    cfg.write_text("repos: []\n", encoding="utf-8", newline="\n")
+    _git(["add", ".pre-commit-config.yaml"], committed_consumer_ai_council_like)
+    _git(["commit", "-q", "-m", "strip floor hook"], committed_consumer_ai_council_like)
+    with pytest.raises(fc.ConformanceError):
+        fc.run_against_consumer(committed_consumer_ai_council_like)

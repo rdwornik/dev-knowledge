@@ -48,6 +48,7 @@ import tempfile
 from pathlib import Path
 
 import click
+import yaml
 
 # Consumer-relative artifact paths (match carrier_floor's arming layout).
 GUARD_REL = ".claude/check_floor_hash.py"
@@ -318,6 +319,59 @@ def _rmtree_guarded(path: Path, temp_parent: Path) -> None:
     shutil.rmtree(path, onerror=_onerror)
 
 
+def _real_floor_hook(config: dict) -> dict | None:
+    """The `floor-hash-verify` stanza from a `- repo: local` block (or None)."""
+    for entry in config.get("repos", []) or []:
+        if isinstance(entry, dict) and entry.get("repo") == "local":
+            for hook in entry.get("hooks", []) or []:
+                if isinstance(hook, dict) and hook.get("id") == "floor-hash-verify":
+                    return hook
+    return None
+
+
+def _verify_and_scope_precommit(clone: Path, env: dict[str, str]) -> str:
+    """FAITHFUL check + portability scope for the commit-time leg (Layer-2 only).
+
+    (1) Asserts the clone's REAL committed .pre-commit-config.yaml carries the
+    `floor-hash-verify` hook wired to the guard script — the deployed arming, verbatim
+    from the real consumer. Then (2) scopes the clone's config to that ONE real stanza
+    and commits it, so pre-commit can run offline + layout-independently.
+
+    WHY THE SCOPE IS FAITHFUL, NOT A CHEAT (operator-ratified 2026-07-01, ADR-93):
+    The #226 property is "the DEPLOYED floor-hash-verify blocks floor drift on the real
+    consumer" — NOT "all of the consumer's hooks pass". This function's step (1) proves
+    the real hook is deployed (verbatim); the commit-time leg then proves THAT real hook
+    (real definition + real guard script + a real git-commit block) blocks the poison.
+    The unrelated hooks that get scoped out (ai-council's `ruff` remote + its relative-
+    path `../.dev-knowledge` hub-hooks) are orthogonal to the floor-hash property — NEITHER
+    checks the floor hash — and their clone-unresolvability is a temp-clone location/network
+    artifact, not real consumer behaviour. They are removed ONLY because they cannot resolve
+    in a temp clone (pre-commit initializes EVERY repo before running any hook), NOT to
+    weaken the floor test. A `repo:local` `language: system` floor hook needs no env/network,
+    so the scoped config runs the real floor block deterministically + offline.
+    """
+    cfg_path = clone / ".pre-commit-config.yaml"
+    if not cfg_path.exists():
+        raise ConformanceError("consumer has no .pre-commit-config.yaml — commit-time leg unarmed")
+    real = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+    hook = _real_floor_hook(real)
+    if hook is None:
+        raise ConformanceError(
+            "real .pre-commit-config.yaml has no floor-hash-verify hook in a repo:local block "
+            "(the commit-time arming did not travel)"
+        )
+    if "check_floor_hash.py" not in str(hook.get("entry", "")):
+        raise ConformanceError(
+            f"floor-hash-verify entry does not run the guard script: {hook.get('entry')!r}"
+        )
+    # Scope to the ONE real stanza + commit (before pre-commit is installed -> clean commit).
+    scoped = {"repos": [{"repo": "local", "hooks": [hook]}]}
+    cfg_path.write_text(yaml.safe_dump(scoped, sort_keys=False), encoding="utf-8", newline="\n")
+    _run(["git", "add", ".pre-commit-config.yaml"], clone, env)
+    _run(["git", "commit", "-m", "conformance: scope pre-commit to the real floor-hash-verify hook"], clone, env)
+    return "real config carries floor-hash-verify (wired to the guard script)"
+
+
 def run_against_consumer(consumer: Path) -> list[str]:
     """Clone the real consumer to a temp dir, run the suite, tear the clone down.
 
@@ -333,11 +387,24 @@ def run_against_consumer(consumer: Path) -> list[str]:
     env = {"PRE_COMMIT_HOME": str(temp_root / ".pc-home")}
     try:
         clone = temp_root / "clone"
-        r = _run(["git", "clone", "--quiet", str(consumer), str(clone)], temp_root)
+        # Clone WITH core.autocrlf=false so the checkout is LF from the start. Setting
+        # it AFTER the clone is too late: a system autocrlf=true checks the tree out as
+        # CRLF, then flipping autocrlf=false makes every LF-committed file read as an
+        # unstaged modification — and pre-commit refuses to run over an "unstaged
+        # configuration", so the commit-time leg can never be reached. -c during clone
+        # keeps the working tree byte-identical to the committed (LF) blobs.
+        r = _run(
+            ["git", "-c", "core.autocrlf=false", "clone", "--quiet", str(consumer), str(clone)],
+            temp_root,
+        )
         if r.returncode != 0:
             raise ConformanceError(f"clone failed: {r.stderr.strip()}")
-        _run(["git", "config", "core.autocrlf", "false"], clone, env)
-        return run_conformance(clone, env)
+        _run(["git", "config", "core.autocrlf", "false"], clone, env)  # persist for the test's own commits
+        _run(["git", "config", "user.email", "conformance@example.com"], clone, env)
+        _run(["git", "config", "user.name", "Floor Conformance"], clone, env)
+        _run(["git", "config", "commit.gpgsign", "false"], clone, env)
+        faithful = _verify_and_scope_precommit(clone, env)
+        return [faithful, *run_conformance(clone, env)]
     finally:
         _rmtree_guarded(temp_root, temp_root.parent)
 
