@@ -42,7 +42,9 @@ import tool  # noqa: E402
 from contract import ApplyResult, CarrierState, VerifyResult  # noqa: E402
 
 REGISTRY_TEXT = (
-    "# Deployed methodology-corpus version per repo (ADR-91). HEADER COMMENT.\n"
+    # Non-ASCII in the header (em-dash + middle-dot) so every record-write test
+    # exercises the ENCODING axis: cp1252-decoding git output would mojibake these.
+    "# Deployed methodology-corpus version per repo — ADR-91 · HEADER COMMENT.\n"
     "# This explanatory block MUST survive a record write.\n"
     "repos:\n"
     "  ai-council:\n"
@@ -413,21 +415,47 @@ def test_no_temp_index_leftovers(world):
     assert not any(p.startswith("deploy-record-index-") for p in after - before)
 
 
-def test_record_blob_is_lf_not_crlf(world):
-    # Regression guard for the Windows-text-mode-CRLF class: the record blob the
-    # writer commits via plumbing must be LF (0 CR). Text-mode hash-object stdin on
-    # Windows baked CRLF into the object store, flipping the whole LF registry file
-    # to CRLF on merge (and tripping this repo's autocrlf phantom-churn guard).
+def test_record_blob_is_lf_and_utf8_faithful(world):
+    # Regression guard for BOTH axes of the Windows-text-mode-git-I/O class:
+    #   (a) EOL  -- the record blob must be LF (0 CR): text-mode hash-object stdin
+    #       baked CRLF into the object store, flipping the whole registry on merge.
+    #   (b) ENCODING -- the record blob must preserve non-ASCII byte-for-byte:
+    #       cp1252-decoding `git show` output then UTF-8-encoding the write
+    #       mojibake'd the registry's em-dashes (E2 80 94 -> "â€").
     c1 = FakeExecCarrier("precommit", CarrierState.ABSENT, write_rel=".pre-commit-config.yaml")
     res = _run(world, factory_of(c1), manifest_of("precommit"))
     record_blob = subprocess.run(
         ["git", "show", f"{res.record_branch}:ecosystem/deployed-versions.yaml"],
         cwd=str(world["hub"]), capture_output=True,
     ).stdout
-    assert b"\r" not in record_blob  # LF only -- no whole-file CRLF flip on merge
+    # (a) EOL: LF only -- no whole-file CRLF flip on merge
+    assert b"\r" not in record_blob
+    # (b) ENCODING: em-dash (E2 80 94) + middle-dot (C2 B7) survive byte-for-byte
+    assert b"\xe2\x80\x94" in record_blob
+    assert b"\xc2\xb7" in record_blob
+    assert "â€" not in record_blob.decode("utf-8")  # no cp1252 mojibake
     # the merge target (main) is LF too, so the record diff is the 3 fields, not the file
     main_blob = subprocess.run(
         ["git", "show", "main:ecosystem/deployed-versions.yaml"],
         cwd=str(world["hub"]), capture_output=True,
     ).stdout
     assert b"\r" not in main_blob
+
+
+def test_malformed_base_registry_raises_loudly_not_silent(world):
+    # Strict-stdout-decode guard: a non-UTF-8 byte in the committed base registry
+    # must raise RecordError (loud) -- NOT be silently replaced with U+FFFD and
+    # baked into the record blob. This is what stops _default_git's stdout decode
+    # from regressing to errors="replace" (the latent silent-corruption handler).
+    bad = (
+        b"# header with an invalid UTF-8 byte: \x80\n"
+        b"repos:\n  ai-council:\n    deployed_methodology_version: null\n"
+        b"    deployed_date: null\n    source_tag: null\n"
+    )
+    (world["hub"] / "ecosystem" / "deployed-versions.yaml").write_bytes(bad)
+    world["git"](world["hub"], "commit", "-am", "malformed registry")
+    c1 = FakeExecCarrier("precommit", CarrierState.ABSENT, write_rel=".pre-commit-config.yaml")
+    with pytest.raises(tool.RecordError, match="non-UTF-8"):
+        _run(world, factory_of(c1), manifest_of("precommit"))
+    # loud fail = NO record branch written (no silent partial / no U+FFFD blob)
+    assert world["git"](world["hub"], "branch", "--list", "deploy/record-*") == ""

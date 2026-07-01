@@ -106,15 +106,25 @@ class PluginCliError(RuntimeError):
 
 
 def _default_runner(args: Sequence[str], cwd: Path) -> CmdResult:
-    """Real CLI invoker — resolves ``claude`` via PATH (``claude.cmd`` on Windows)."""
+    """Real CLI invoker — resolves ``claude`` via PATH; binary I/O + explicit UTF-8.
+
+    NOT text mode (the Windows-text-mode I/O class, same as the git invoker in
+    tool.py): on Windows ``text=True`` decodes the CLI's stdout with the locale
+    encoding (cp1252), which would mojibake any non-ASCII in ``plugin list --json``
+    (a project path / plugin name) before it is JSON-parsed. Binary capture +
+    explicit UTF-8 keeps the JSON byte-faithful.
+    """
     exe = shutil.which(args[0]) or args[0]
-    proc = subprocess.run(  # noqa: S603 — fixed argv, no shell, operator-invoked
+    proc = subprocess.run(  # noqa: S603 — fixed argv, no shell, binary UTF-8 I/O
         [exe, *args[1:]],
         cwd=str(cwd),
         capture_output=True,
-        text=True,
     )
-    return CmdResult(proc.returncode, proc.stdout or "", proc.stderr or "")
+    return CmdResult(
+        proc.returncode,
+        (proc.stdout or b"").decode("utf-8", "replace"),
+        (proc.stderr or b"").decode("utf-8", "replace"),
+    )
 
 
 Runner = Callable[[Sequence[str], Path], CmdResult]
