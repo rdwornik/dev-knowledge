@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-01 — CC: arm the floor carrier (#226b) + #230 conformance harness — hub-side build (refs 41bf6f9, 33434cb, 6b5fe13, 7e28dbe)
+
+**Did:** Executed the approved plan steps 1–4 (hub-side; ai-council NOT armed, branch NOT merged — that is the separate step-5 prompt). (1) `carrier_floor.apply` now ARMS the floor (ADR-93 model A): floor+sidecar + `check_floor_hash.py` (single-sourced from `generate_floor.INSTALL_NOTE` via a new `CHECK_FLOOR_HASH_SCRIPT`) + the `CLAUDE.md` `@`-include + the `.gitignore` `.claude/*`+negation block + a `settings.json` SessionStart hook (verify leg + idempotent `pre-commit install` bootstrap — warn-loud-not-fail if pre-commit absent); detect/verify classify the full armed state, D9 preserved. (2) The **precommit** carrier owns the `.pre-commit-config.yaml` `floor-hash-verify` hook (single-writer-per-file; manifest `required_local_hooks`). (3) `deploy/floor_conformance.py` — 6-property functional harness; **Layer-1 synthetic GREEN** (real carriers arm a throwaway git repo; tamper caught at BOTH legs, auto-arm proven, no-poison-lands), Layer-2 `--consumer` clone-based CLI built-not-run. (4) ADR-93 + PLAYBOOK §20 reconcile ("local-only"→"tracked+hash-guarded", #95 reframed caught-not-avoided) + TOC + `deployed-versions.yaml` header fix + BACKLOG (#226b precommit-owns-hook rewording, header fold, #223 forced-stamp-debt note).
+
+**Result:** 4 commits on `feat/226-arm-floor-230-conformance` (one per step): `41bf6f9`, `33434cb`, `6b5fe13`, `7e28dbe`. Gate green each step (full suites 990 / 984 / **995** passed; ruff clean; `audit health` OK; `validate_backlog` 0 warnings; PLAYBOOK TOC clean). NOT merged (main still `47cc2ff`), tree clean. #226 closure = Layer-2 vs REAL ai-council incl. tamper (step 5), NOT this synthetic green.
+
+**Changes:** `deploy/carrier_floor.py`, `deploy/carrier_precommit.py`, `deploy/floor_conformance.py` (new), `deploy/manifest-v1.0.0.yaml`, `scripts/generate_floor.py`, `tests/test_deploy_floor.py`, `tests/test_deploy_precommit.py`, `tests/test_floor_conformance.py` (new), `docs/decisions/ADR-93-*` (new) + README index, `protocols/PLAYBOOK.md`, `ecosystem/deployed-versions.yaml`, `BACKLOG.md`.
+
+**Abandoned:** Did NOT arm real ai-council or merge (step 5). Did NOT add `!.claude/settings.json` to the negation block — surfaced the greenfield-`settings.json`-tracking gap as an ADR-93/#221 known limit instead (ai-council pre-tracks it, so contract #1 holds there).
+
+**Next:** Architect verifies steps 1–4; then the step-5 prompt arms ai-council (deploy `--execute`, operator ratifies) and runs Layer-2 `#230` against real ai-council = the #226 hard-metric.
+
 ### 2026-07-01 — CC: architect-handoff SUPPLEMENT filled + folded, disposition reconciled (docs) (refs f18b0a9)
 
 **Did:** Operator filled `SUPPLEMENT.md` from the outgoing architect chat (`supplement filled`). Per `HANDOFF_PROCESS.md` §13 lifecycle: committed the ANSWERS verbatim (CC never re-types), re-ran `assemble_paste.py` to **fold** them into `PASTE_THIS.md` (was `[skip]`'d while empty), and **reconciled** `HANDOFF_BOOT`/`PROBES`/`RESIDUAL` from EMPTY/cold/"beat fires FULL" → **FILLED/"beat NARROWS"** (the §8 self-consistency rule — the assembled paste must not claim empty while carrying answers). The supplement supplies the off-repo *why*: **"configured-not-armed = facade"**, the resolved **arm-first** priority (`#226→#230→#222/223→#225→#221`-fleet-last), model-A endorsed **contingent on a robust hash-guard**, and a new **#232** ship-gate-right-sizing candidate (flagged, not filed). RESIDUAL §4 updated from "priority undecided" to the resolved chain.
