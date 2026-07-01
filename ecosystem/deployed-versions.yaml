@@ -8,12 +8,12 @@
 # read-by-a-check — same pattern, a new axis (repo-keyed deployed-corpus-version, not
 # tool-keyed reviewed-changelog-version), so a dedicated file, not a fold.
 #
-# WRITE-CONTRACT: the fields are written by the DEPLOY-RUNBOOK at deploy time — a separate,
-# later piece, NOT built yet. The runbook sets `deployed_methodology_version` to the corpus
-# release it deployed, `deployed_date` to the deploy date, and `source_tag` to the hub git
-# tag (e.g. v1.0.0). Do NOT hand-fabricate a value: a value cannot precede its release. No
-# methodology release is tagged yet (ADR-91 proposes baseline v1.0.0), so every field is
-# `null` here — the expected pre-deploy state.
+# WRITE-CONTRACT: the fields are written by the DEPLOY-RUNBOOK (`deploy/tool.py --execute`)
+# at deploy time. The runbook sets `deployed_methodology_version` to the corpus release it
+# deployed, `deployed_date` to the deploy date, and `source_tag` to the hub git tag (e.g.
+# v1.0.0). Do NOT hand-fabricate a value: a value cannot precede its release. Baseline
+# v1.0.0 is tagged and the runbook is built + proven on n=1 — `ai-council` is populated
+# below (deploy run #1); the hub and the not-yet-deployed repos stay `null` (pre-deploy).
 #
 # READ: audit.py::check_deployed_methodology_version reads THIS file (per repo, by repo dir
 # name) and reports status — `n/a` while null (no release deployed yet), `pass` with the

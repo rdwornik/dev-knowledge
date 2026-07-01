@@ -203,7 +203,7 @@
 - [20. Deploying the methodology corpus to a consumer (deploy runbook)](#20-deploying-the-methodology-corpus-to-a-consumer-deploy-runbook)
   - [The three phases — assess → execute → ratify](#the-three-phases--assess--execute--ratify)
   - [Operational nuances (learned on run #1)](#operational-nuances-learned-on-run-1)
-  - [Floor semantics — local-only for `.claude/`-gitignoring consumers](#floor-semantics--local-only-for-claude-gitignoring-consumers)
+  - [Floor semantics — tracked + hash-guarded (model A)](#floor-semantics--tracked--hash-guarded-model-a)
   - [What to expect on runs #2–4 (per-consumer divergences the run-#1 probe surfaced)](#what-to-expect-on-runs-24-per-consumer-divergences-the-run-1-probe-surfaced)
 - [Appendix A: Claude Code Shortcuts](#appendix-a-claude-code-shortcuts)
   - [Permission Modes (Shift+Tab cycles)](#permission-modes-shifttab-cycles)
@@ -3247,14 +3247,14 @@ Use `templates/scrum-master-cover-letter.md`. Operator fills placeholders for ta
 - **Clean-tree preflight.** The tool requires a clean CONSUMER tree — commit the consumer gate (phase 3) BEFORE re-running `--execute`, or preflight aborts.
 - **Run gates + ship from Git Bash, not PowerShell** (the ship-gate false-RED gotcha — `gotchas.md`).
 
-### Floor semantics — local-only for `.claude/`-gitignoring consumers
+### Floor semantics — tracked + hash-guarded (model A)
 
-The methodology floor (`.claude/CLAUDE-FLOOR.md` + `.sha256`, ADR-78) is generated from **hub-canonical** (ADR-73) and reconciled **per-deploy on disk** — it is **NOT committed** in a consumer that gitignores `.claude/`. Committing it would create the copy-drift the ecosystem already gates against (#95): a consumer holds only **reconciled local state, never a second source** of the floor. So on such consumers the floor + plugin `settings.json` deploy **on-disk-but-unstaged**; only the tracked carrier change (e.g. `.pre-commit-config.yaml`) is committable. Do **not** `git add -f` the floor to "make it tracked."
+The methodology floor (`.claude/CLAUDE-FLOOR.md` + `.sha256`, ADR-78) is generated from **hub-canonical** (ADR-73) and, under **model A (ADR-93)**, is **committed + tracked** in the consumer behind a **two-leg hash-guard**: a session-start `.claude/settings.json` hook + a commit-time `floor-hash-verify` pre-commit hook, both running the one canonical `.claude/check_floor_hash.py`. The hub template stays the **single authoritative source**; the committed consumer floor is a hash-guarded **replica**, so the #95 copy-drift invariant is preserved — drift is **caught by the guard, not avoided by non-tracking** (never a second *unguarded* source). To make the floor/sidecar/guard trackable, the floor carrier rewrites the consumer `.gitignore`'s bare `.claude/` to the contents-form `.claude/*` + `!`-negations (a bare directory exclusion defeats negations, #138), so the floor stages with a plain `git add` — **no `git add -f`**. The carrier writes/stages; the operator commits (ADR-92 commit-no). *(Supersedes the prior "local-only / not committed / on-disk-but-unstaged" framing — it produced the configured-not-armed floor ADR-93 fixes.)*
 
 ### What to expect on runs #2–4 (per-consumer divergences the run-#1 probe surfaced)
 
 The mechanics transfer; the consumer *shapes* differ:
-- **`.gitignore` shape varies** — a `.claude/`-gitignoring consumer deploys the floor + plugin settings on-disk-but-unstaged (only the tracked carrier change stages). Check `git -C <consumer> status --porcelain --ignored`.
+- **`.gitignore` shape varies** — model A rewrites a bare `.claude/` to `.claude/*` + `!`-negations so the floor/sidecar/guard track (the floor carrier does this in `apply`); a consumer that already tracks `.claude/settings.json` (e.g. ai-council, force-added) carries the SessionStart guard hook on a fresh clone (a *greenfield* consumer that gitignores `.claude/` needs `settings.json` tracked too — #221/ADR-93 known limit). Check `git -C <consumer> status --porcelain --ignored` and `git -C <consumer> check-ignore .claude/CLAUDE-FLOOR.md` (should print nothing once armed).
 - **Noisy `.pre-commit-config.yaml` diff** — the precommit carrier round-trips the YAML, reformatting the whole file (comment-strip / reindent). Cosmetic + functionally equivalent (deferred surgical-edit fix). Review the LOGICAL change (added ruff gate + rev-pin), not the reformat noise.
 - **Record generation is now reliable** — writer hardened on the Windows-I/O class; still verify both axes before merging.
 
