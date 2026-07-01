@@ -204,6 +204,30 @@ def test_emitted_check_floor_hash_script_is_valid_python():
     compile(script, "check_floor_hash.py", "exec")  # raises SyntaxError if malformed
 
 
+def test_guard_script_is_single_sourced_byte_identical():
+    """The carrier-written guard (CHECK_FLOOR_HASH_SCRIPT) and the INSTALL_NOTE-embedded
+    guard MUST be byte-identical — one source, so the automated arm and the paste-ready
+    manual runbook can never disagree (the drift this whole feature exists to kill)."""
+    assert gf.CHECK_FLOOR_HASH_SCRIPT == gf.extract_check_floor_hash_script()
+    # both the module extractor and this file's local extractor agree
+    assert gf.CHECK_FLOOR_HASH_SCRIPT == _extract_check_floor_hash_script()
+
+
+def test_guard_script_require_present_fails_loud_on_absent_floor(tmp_path: Path):
+    """--require-present: an absent floor exits 1 with a named reason (session-start leg);
+    without the flag an absent floor is permissive (exit 0, commit-time leg)."""
+    import subprocess as _sp
+    script = tmp_path / "check_floor_hash.py"
+    script.write_text(gf.CHECK_FLOOR_HASH_SCRIPT, encoding="utf-8", newline="\n")
+    (tmp_path / ".claude").mkdir()  # floor deliberately absent
+    loud = _sp.run([sys.executable, str(script), "--require-present"], cwd=tmp_path,
+                   capture_output=True, text=True)
+    assert loud.returncode == 1 and "floor absent" in loud.stderr
+    permissive = _sp.run([sys.executable, str(script)], cwd=tmp_path,
+                         capture_output=True, text=True)
+    assert permissive.returncode == 0  # no flag -> nothing to verify
+
+
 def _extract_precommit_yaml_block() -> str:
     """Pull the .pre-commit-config.yaml block out of step 3 of the install note and
     dedent it (7-space indent, like the script block).

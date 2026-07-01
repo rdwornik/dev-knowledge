@@ -98,6 +98,12 @@ class PrecommitTarget:
     config_path: str
     required_repos: tuple[RequiredRepo, ...]
     hub_hooks: HubHooksReq | None = None
+    # Required hooks under a `- repo: local` block (no rev to pin — the consumer's
+    # OWN hooks). This carrier is the single writer of .pre-commit-config.yaml, so it
+    # owns the floor-hash-verify local hook (the floor carrier writes the SCRIPT the
+    # hook runs; ADR-93 — arming spans two carriers, single-writer-per-file). Matched
+    # by hook id inside the local block; no version axis, so a missing one is DRIFTED.
+    required_local_hooks: tuple[dict[str, Any], ...] = ()
 
 
 def parse_target(target: Any) -> PrecommitTarget:
@@ -116,8 +122,12 @@ def parse_target(target: Any) -> PrecommitTarget:
             repo=hub_raw["repo"],
             hooks=tuple(dict(h) for h in hub_raw.get("hooks", []) or []),
         )
+    local_hooks = tuple(dict(h) for h in target.get("required_local_hooks", []) or [])
     return PrecommitTarget(
-        config_path=config_path, required_repos=tuple(repos), hub_hooks=hub_hooks
+        config_path=config_path,
+        required_repos=tuple(repos),
+        hub_hooks=hub_hooks,
+        required_local_hooks=local_hooks,
     )
 
 
@@ -138,6 +148,18 @@ def _find_repo(config: dict[str, Any], repo_url: str) -> dict[str, Any] | None:
     """Return the consumer repo entry matching ``repo_url`` (detect's helper)."""
     for entry in config.get("repos", []) or []:
         if isinstance(entry, dict) and entry.get("repo") == repo_url:
+            return entry
+    return None
+
+
+def _find_local_entry(config: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the first `- repo: local` entry (detect/apply's helper), or None.
+
+    The local block is the consumer's own hooks — the floor-hash-verify hook lands
+    here. (verify does NOT use this; it re-scans independently — D9.)
+    """
+    for entry in config.get("repos", []) or []:
+        if isinstance(entry, dict) and entry.get("repo") == "local":
             return entry
     return None
 
@@ -195,6 +217,16 @@ def _classify(config: dict[str, Any], target: PrecommitTarget) -> CarrierState:
             present += 1
             if str(hub_entry.get("rev")) != target.hub_hooks.rev:
                 wrong_version = True
+    # Required local hooks (no rev axis): present iff the id is in the local block;
+    # a missing one is a missing requirement -> DRIFTED (via present < total).
+    for lhook in target.required_local_hooks:
+        total += 1
+        local_entry = _find_local_entry(config)
+        have_local = local_entry is not None and lhook.get("id") in {
+            h.get("id") for h in local_entry.get("hooks", []) or [] if isinstance(h, dict)
+        }
+        if have_local:
+            present += 1
     if present == 0:
         return CarrierState.ABSENT
     if missing_required or present < total:
@@ -263,6 +295,22 @@ def _reconcile(
                 f"{hub_entry.get('rev')!r} -> {hub.rev!r}"
             )
             hub_entry["rev"] = hub.rev
+    # Required local hooks: append each to the (created-if-absent) local block,
+    # preserving any sibling local hooks the consumer already has.
+    for lhook in target.required_local_hooks:
+        local_entry = _find_local_entry(new)
+        if local_entry is None:
+            local_entry = {"repo": "local", "hooks": []}
+            repos.append(local_entry)
+            changes.append("added repo: local block")
+        local_hooks = local_entry.get("hooks")
+        if not isinstance(local_hooks, list):
+            local_hooks = []
+            local_entry["hooks"] = local_hooks
+        have_ids = {h.get("id") for h in local_hooks if isinstance(h, dict)}
+        if lhook.get("id") not in have_ids:
+            local_hooks.append(dict(lhook))
+            changes.append(f"added local hook {lhook.get('id')}")
     return new, changes
 
 
@@ -324,6 +372,18 @@ def _verify_satisfied(raw_text: str, target: PrecommitTarget) -> list[str]:
             failures.append(
                 f"hub-hooks rev {hub_entry.get('rev')!r} != target {hub.rev!r}"
             )
+    # Required local hooks — INDEPENDENT inline scan (own loop, NOT _find_local_entry),
+    # so a bug in detect's local finder cannot be mirrored here (D9).
+    for lhook in target.required_local_hooks:
+        hid = lhook.get("id")
+        found = any(
+            isinstance(e, dict)
+            and e.get("repo") == "local"
+            and hid in {h.get("id") for h in (e.get("hooks") or []) if isinstance(h, dict)}
+            for e in repos
+        )
+        if not found:
+            failures.append(f"missing local hook {hid}")
     return failures
 
 
