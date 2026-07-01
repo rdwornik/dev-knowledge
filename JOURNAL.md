@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-02 — CC: comprehensive system audit authored for external architectural review (docs) (refs 644b5cc)
+
+**Did:** Produced a standalone, live-source-grounded system audit for an external reviewer (fresh model / AI Council / architect) to propose architectural decisions. Read the canon LIVE (VISION, ARCHITECTURE, ESSENTIALS, CLAUDE, PLAYBOOK two-lifelines + §20 + Ch12, BACKLOG, DEFINITION_OF_DONE, CONTRIBUTING, recent JOURNAL/LESSONS, the ADR index) directly, and fanned out four read-only subagents for the code-level digests (PLAYBOOK two-track structure; the `deploy/` subsystem; the 26-check `audit.py` registry + coherence spine; the load-bearing ADR set). Synthesized into `docs/audits/2026-07-02-comprehensive-system-audit-for-external-review.md`: preamble + §1 three-layer overview · §2 the two tracks (dwutorowość) faithful via the two-lifelines frame, NOT collapsed · §3 dissemination arm (deploy ADR-91/92/93, configured→armed→proven, the ai-council n=1 case study) · §4 per-doc canonical audit (honest about the ARCHITECTURE forced-stamp + deploy-omission debt #222/#223) · §5 enforcement machinery · §6 next-steps mapped to backlog IDs + the depends-on/serialize-group graph · §7 open architectural tensions (the highest-value section: configured-not-armed as a class, the load-bearing hash-guard, forced-stamp genuineness, open-world doc↔doc edges, the reverse-dep-legibility thesis' partial application, active-push vs drift-catch, two-track coherence/leak, and the deploy-shipped-without-its-own-tracking bonus).
+
+**Result:** Commit `644b5cc` on `docs/2026-07-02-system-audit-external-review` (1 file, +457). All pre-commit gates green (audit-health Passed). Read-only synthesis — no repo state mutated in the audit's production. NOT merged, NOT pushed (operator's call via `/ship`).
+
+**Changes:** New audit output `docs/audits/2026-07-02-comprehensive-system-audit-for-external-review.md` (ADR-60 audits/ zone, immutable-once-landed).
+
+**Abandoned:** Did NOT make any architectural decisions IN the audit (surfaces the §7 tensions, leaves proposals to the reviewer per the brief). Did NOT edit any canonical doc to "fix" the drift it flags (#222/#223/#224 are their own arcs). Did NOT merge/push.
+
+**Next:** Operator merges the branch (`/ship`) and routes the audit to the external reviewer. Follow-ups the audit points at: #222/#223 (ARCHITECTURE currency — decouple count + document deploy), #221 (fleet rollout n≥2), and the §7 forks for the reviewer.
+
 ### 2026-07-02 — CC: #226/#230 CLOSED — feat/226 merged to main (anchors b986711)
 
 **Did:** After the operator's final closure-verify PASS, merged `feat/226-arm-floor-230-conformance` → `main` (`--no-ff`, `b986711`) and closed **#226** + **#230** in BACKLOG (done-items-leave, ADR-65; `closes [#226] [#230]` in `7904709`). Dropped #221's now-satisfied `depends-on: #226` (arming landed). The #226 hard-metric was met: **Layer-2 #230 GREEN 9/9 vs the REAL armed ai-council** (`2675394`), all four legs, from the committed harness.
