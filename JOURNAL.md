@@ -19,6 +19,30 @@
 
 ---
 
+### 2026-07-01 — CC: architect-handoff SUPPLEMENT filled + folded, disposition reconciled (docs) (refs f18b0a9)
+
+**Did:** Operator filled `SUPPLEMENT.md` from the outgoing architect chat (`supplement filled`). Per `HANDOFF_PROCESS.md` §13 lifecycle: committed the ANSWERS verbatim (CC never re-types), re-ran `assemble_paste.py` to **fold** them into `PASTE_THIS.md` (was `[skip]`'d while empty), and **reconciled** `HANDOFF_BOOT`/`PROBES`/`RESIDUAL` from EMPTY/cold/"beat fires FULL" → **FILLED/"beat NARROWS"** (the §8 self-consistency rule — the assembled paste must not claim empty while carrying answers). The supplement supplies the off-repo *why*: **"configured-not-armed = facade"**, the resolved **arm-first** priority (`#226→#230→#222/223→#225→#221`-fleet-last), model-A endorsed **contingent on a robust hash-guard**, and a new **#232** ship-gate-right-sizing candidate (flagged, not filed). RESIDUAL §4 updated from "priority undecided" to the resolved chain.
+
+**Result:** Commit `f18b0a9` on `docs/2026-07-01-architect-handoff` (5 handoff files; this JOURNAL anchor in the follow-up wrap). `handoff_probes` 10 probes bind; audit health OK. NOT merged, NOT pushed.
+
+**Changes:** `docs/handoffs/2026-07-01-dev-knowledge-architect/` (SUPPLEMENT filled; PASTE_THIS re-folded; BOOT/PROBES/RESIDUAL disposition reconciled).
+
+**Abandoned:** Did NOT file #232 (architect's candidate — for the incoming session); did NOT edit the outgoing architect's ANSWERS prose (folded verbatim).
+
+**Next:** Operator `/ship`s the bundle, pastes `PASTE_THIS.md` into a fresh architect chat (now carrying the folded arm-first brief).
+
+### 2026-07-01 — CC: v5 architect handoff generated — bundle 2026-07-01-dev-knowledge-architect (docs) (refs 7cc4b6a)
+
+**Did:** Generated the v5.3 **architect-mode** handoff bundle at `docs/handoffs/2026-07-01-dev-knowledge-architect/` (five files — `HANDOFF_BOOT`/`RESIDUAL`/`PROBES`/`SUPPLEMENT`/`PASTE_THIS`, no per-bundle README, per `HANDOFF_PROCESS.md` §13). Purpose: the **deploy subsystem is built + proven on n=1 (ai-council v1.0.0) but NOT armed/disseminated** — the next architect decides the **#230 → #226(b) → #221** arming+rollout sequencing vs. paying down the ARCHITECTURE currency debt (#222/#223/#224) first. **SUPPLEMENT generated EMPTY (cold disposition** — this was a CC-execution-driven window, no outgoing browser architect chat; the assembler `[skip]`'d it, so the incoming §13(d) beat fires FULL). Bundle cut at HEAD `7cc4b6a`. Drift-flag headline: `ship-gate` GREEN + clean (4 WARN dispositioned, no `[stale]`).
+
+**Result:** Bundle written; `PASTE_THIS.md` assembled by `scripts/assemble_paste.py` (never hand-edited). Committed `b0b9b79` on `docs/2026-07-01-architect-handoff` (this JOURNAL anchor added in the follow-up wrap). NOT merged, NOT pushed (operator merges via `/ship`).
+
+**Changes:** New bundle dir `docs/handoffs/2026-07-01-dev-knowledge-architect/` (5 files) + this JOURNAL marker.
+
+**Abandoned:** No repo state re-narrated (v5 pointer discipline); SUPPLEMENT ANSWERS left empty (no outgoing architect chat — the honest cold disposition, not fabricated).
+
+**Next:** Operator merges the bundle (`/ship`), pastes `PASTE_THIS.md` into a fresh architect chat; optionally fills `SUPPLEMENT.md` from a deploy-arc planning chat if one exists (then re-run `assemble_paste.py`).
+
 ### 2026-07-01 — CC: pre-handoff capture — floor decision + conformance self-test + feedback loop (docs) (refs be9922d)
 
 **Did:** Turned the resolved floor-provisioning decision + two new pieces of scope into tracked BACKLOG state so the **handoff carries them, not the conversation** (the tracked-illusion trap). Doc-only, `BACKLOG.md` only — no code, no fixes, no ADR file. **(1)** Marked **#226(a) DECIDED = model A** (commit the floor + hash-guard hook, tracked NOT gitignored): rationale captured (one-to-many hub push + loud hash-guard = the #95 caught-not-avoided model, beats N repos re-pulling, fresh clone armed at once); reconciliation recorded (PLAYBOOK §20 "local-only" **SUPERSEDED** by `generate_floor.py`'s tracked+guarded model — §20 corrected + the decision formalized as an ADR **during the (b) build**, not now; #226 owns it). **(2)** Filed the **end-to-end conformance self-test as a NEW id #230** (not a #215 extension) — home decision: it's a shared gate #226+#221 both depend on (needs independent closeability) AND functionally distinct from #215's #171-tied static presence view; #215 got a back-pointer. **(3)** Filed **#231** consumer→hub feedback report (structured report on gap/ambiguity/broken-piece instead of guessing; ESSENTIALS/PLAYBOOK philosophy-line sub-note flagged, not acted on). **(4)** Added **#221** sequencing (`depends-on: #226` + prose) + #230 as each repo's acceptance gate.
