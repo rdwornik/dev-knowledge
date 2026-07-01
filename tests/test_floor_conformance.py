@@ -1,0 +1,191 @@
+"""Layer-1 (hermetic, offline) tests for the #230 floor conformance harness (ADR-93).
+
+Builds a SYNTHETIC consumer in a throwaway git repo, arms it with the REAL carriers
+(FloorCarrier + PrecommitCarrier), then runs deploy/floor_conformance.py's functional
+suite end-to-end. This proves the armed loop FUNCTIONS — the guard fails loud on a
+poisoned floor at both legs, the git hook auto-arms, a real task flows through the
+gate — not merely that files are present.
+
+Offline + deterministic (plan C.5): the fixture's .pre-commit-config.yaml carries ONLY
+the floor-hash-verify local hook (language: system — no env, no network); core.autocrlf
+is off + a .gitattributes eol=lf pin; PRE_COMMIT_HOME is a per-run temp dir. No network,
+no real consumer repos.
+
+The operator-run Layer-2 pass against the REAL ai-council (the #226 hard-metric) is the
+same suite via `python deploy/floor_conformance.py --consumer ../ai-council`; it is built
+but NOT run here (step 5).
+"""
+from __future__ import annotations
+
+import importlib.util
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+import yaml
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
+
+import carrier_floor as cf  # noqa: E402
+import carrier_precommit as cp  # noqa: E402
+import floor_conformance as fc  # noqa: E402
+
+pytestmark = pytest.mark.skipif(
+    importlib.util.find_spec("pre_commit") is None,
+    reason="pre-commit not installed — the commit-time leg cannot be exercised offline",
+)
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_MANIFEST = _REPO_ROOT / "deploy" / "manifest-v1.0.0.yaml"
+
+_FLOOR_TARGET = {
+    "floor_path": ".claude/CLAUDE-FLOOR.md",
+    "sidecar_path": ".claude/CLAUDE-FLOOR.md.sha256",
+}
+
+# The floor-hash-verify local hook, sourced from the manifest (single source of truth).
+_FLOOR_LOCAL_HOOK = next(
+    h
+    for c in yaml.safe_load(_MANIFEST.read_text(encoding="utf-8"))["carriers"]
+    if c["id"] == "precommit"
+    for h in c["target"]["required_local_hooks"]
+    if h["id"] == "floor-hash-verify"
+)
+# Offline precommit target: ONLY the floor local hook (no ruff/hub — those need network).
+_PC_LOCAL_TARGET = {
+    "config_path": ".pre-commit-config.yaml",
+    "required_local_hooks": [_FLOOR_LOCAL_HOOK],
+}
+
+
+def _git(args: list[str], cwd: Path, env: dict | None = None) -> subprocess.CompletedProcess:
+    full = {**os.environ, **(env or {})}
+    return subprocess.run(
+        ["git", *args], cwd=str(cwd), capture_output=True, text=True,
+        encoding="utf-8", errors="replace", env=full,
+    )
+
+
+@pytest.fixture
+def armed_consumer(tmp_path: Path) -> Path:
+    """A throwaway git repo armed by the real carriers + an initial committed state."""
+    tree = tmp_path / "consumer"
+    tree.mkdir()
+    # Deterministic git: default branch main, an identity, autocrlf off, LF pin.
+    _git(["-c", "init.defaultBranch=main", "init", "-q"], tree)
+    _git(["config", "user.email", "conformance@example.com"], tree)
+    _git(["config", "user.name", "Conformance"], tree)
+    _git(["config", "commit.gpgsign", "false"], tree)
+    _git(["config", "core.autocrlf", "false"], tree)
+    (tree / ".gitattributes").write_text("* text=auto eol=lf\n", encoding="utf-8", newline="\n")
+    # A pre-existing CLAUDE.md so the @-include is inserted (not created bare).
+    (tree / "CLAUDE.md").write_text(
+        "---\nlast_reviewed: 2026-07-01\n---\n\n# CLAUDE.md — Consumer\nBody.\n",
+        encoding="utf-8", newline="\n",
+    )
+    # Arm via the REAL carriers (this is what the deploy tool runs).
+    cf.FloorCarrier(tree).apply(_FLOOR_TARGET)
+    cp.PrecommitCarrier(tree).apply(_PC_LOCAL_TARGET)
+    # Commit the armed (trackable) state so the floor is tracked for the commit legs.
+    _git(["add", "-A"], tree)
+    _git(["commit", "-q", "-m", "chore: arm floor"], tree)
+    return tree
+
+
+@pytest.fixture
+def pc_env(tmp_path: Path) -> dict:
+    """A per-run PRE_COMMIT_HOME so pre-commit's cache never pollutes ~ (total teardown)."""
+    return {"PRE_COMMIT_HOME": str(tmp_path / ".pc-home")}
+
+
+# ---------------------------------------------------------------------------
+# The whole suite passes on a correctly-armed consumer.
+# ---------------------------------------------------------------------------
+
+
+def test_full_suite_passes_on_armed_consumer(armed_consumer, pc_env):
+    passed = fc.run_conformance(armed_consumer, pc_env)
+    assert len(passed) == 6  # every property proven, not just files-present
+
+
+# ---------------------------------------------------------------------------
+# Each property, isolated (so a failure names the exact broken leg).
+# ---------------------------------------------------------------------------
+
+
+def test_at_include_resolves_and_hashes(armed_consumer):
+    fc.assert_at_include(armed_consumer)  # raises on failure
+
+
+def test_clean_floor_passes_session_start(armed_consumer, pc_env):
+    fc.assert_clean_pass(armed_consumer, pc_env)
+
+
+def test_poison_caught_at_session_start(armed_consumer, pc_env):
+    fc.assert_tamper_caught_sessionstart(armed_consumer, pc_env)
+    # the floor is restored after the assertion (subsequent legs see a clean tree)
+    fc.assert_clean_pass(armed_consumer, pc_env)
+
+
+def test_autoarm_installs_git_hook(armed_consumer, pc_env):
+    hook = armed_consumer / ".git" / "hooks" / "pre-commit"
+    assert not hook.exists()  # absent right after `git init` (never travels with a clone)
+    fc.assert_autoarm(armed_consumer, pc_env)
+    assert hook.exists()  # the SessionStart bootstrap leg created it
+
+
+def test_poison_blocked_at_commit_time(armed_consumer, pc_env):
+    fc.assert_autoarm(armed_consumer, pc_env)  # arm the git hook first
+    fc.assert_tamper_caught_commit(armed_consumer, pc_env)
+    # HEAD unmoved + floor restored -> a clean commit still works afterwards
+    (armed_consumer / "AFTER.md").write_text("after\n", encoding="utf-8", newline="\n")
+    _git(["add", "AFTER.md"], armed_consumer, pc_env)
+    r = _git(["commit", "-m", "chore: after tamper"], armed_consumer, pc_env)
+    assert r.returncode == 0
+
+
+def test_real_task_flows_through_gate(armed_consumer, pc_env):
+    fc.assert_autoarm(armed_consumer, pc_env)
+    fc.assert_task_flow(armed_consumer, pc_env)
+    # the merge landed on the first-parent spine as a --no-ff merge commit
+    fp = _git(["log", "--first-parent", "--oneline", "-3"], armed_consumer, pc_env).stdout
+    assert "conformance task-flow" in fp
+
+
+# ---------------------------------------------------------------------------
+# Negative controls — the harness FAILS loud when the loop is actually broken.
+# ---------------------------------------------------------------------------
+
+
+def test_suite_fails_when_guard_script_missing(armed_consumer, pc_env):
+    (armed_consumer / fc.GUARD_REL).unlink()  # remove the guard the legs run
+    with pytest.raises(fc.ConformanceError):
+        fc.assert_tamper_caught_sessionstart(armed_consumer, pc_env)
+
+
+def test_at_include_fails_when_include_absent(armed_consumer):
+    (armed_consumer / "CLAUDE.md").write_text("# no include\n", encoding="utf-8", newline="\n")
+    with pytest.raises(fc.ConformanceError):
+        fc.assert_at_include(armed_consumer)
+
+
+# ---------------------------------------------------------------------------
+# Layer-2 teardown guard — "no leftovers" without blast radius.
+# ---------------------------------------------------------------------------
+
+
+def test_rmtree_guard_refuses_outside_temp_root(tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    with pytest.raises(fc.ConformanceError):
+        fc._rmtree_guarded(outside, tmp_path / "some_other_root")
+
+
+def test_rmtree_guard_deletes_within_temp_root(tmp_path):
+    root = tmp_path / "root"
+    (root / "sub").mkdir(parents=True)
+    (root / "sub" / "f.txt").write_text("x", encoding="utf-8")
+    fc._rmtree_guarded(root, tmp_path)
+    assert not root.exists()
