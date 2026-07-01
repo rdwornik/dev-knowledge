@@ -3,8 +3,13 @@
 Proves the ARMED floor loop FUNCTIONS end-to-end — not that files are present:
 
 - ``@``-include resolves and the floor hashes to its sidecar;
+- ``.claude/settings.json`` carries the SessionStart self-arm wiring (the verify hook +
+  the ``pre-commit install`` bootstrap) — a consumer whose settings.json did NOT travel
+  FAILS here (no false green on self-arm);
 - the session-start guard PASSES on a clean floor and FAILS LOUD on a poisoned one
   (non-zero exit + a named "floor hash drift" reason);
+- a DELETED (absent-but-tracked) floor FAILS LOUD at session-start (--require-present —
+  the backstop for the delete-case the commit-time leg cannot catch);
 - ``pre-commit install`` AUTO-ARMS the git hook from absent (the SessionStart
   bootstrap leg — git never lets ``.git/hooks`` travel with a clone);
 - the commit-time pre-commit hook BLOCKS a poisoned-floor commit (and no commit lands);
@@ -32,6 +37,7 @@ mutates the tree (poison, stage, branch) restores/leaves-throwaway state.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -71,8 +77,9 @@ def _run(args: list[str], cwd: Path, env: dict[str, str] | None = None) -> subpr
 
 
 def _guard(tree: Path, env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
-    """Run the session-start guard exactly as the SessionStart hook would (cwd=tree)."""
-    return _run([sys.executable, GUARD_REL], tree, env)
+    """Run the session-start guard exactly as the SessionStart hook would — cwd=tree,
+    with --require-present so a deleted-but-tracked floor fails loud (ADR-93)."""
+    return _run([sys.executable, GUARD_REL, "--require-present"], tree, env)
 
 
 def _lf_sha256(text: str) -> str:
@@ -130,6 +137,66 @@ def assert_tamper_caught_sessionstart(tree: Path, env: dict[str, str] | None = N
             )
     finally:
         floor.write_text(original, encoding="utf-8", newline="\n")
+
+
+def assert_absent_caught_sessionstart(tree: Path, env: dict[str, str] | None = None) -> None:
+    """A DELETED (absent-but-expected) floor FAILS the session-start guard LOUD.
+
+    The commit-time leg cannot catch a pure deletion (pre-commit passes no files to a
+    files-filtered hook on deletion), so the session-start --require-present leg is the
+    backstop (ADR-93). This closes the delete-hole a permissive guard would leave open.
+    """
+    floor = tree / FLOOR_REL
+    saved = floor.read_text(encoding="utf-8")
+    floor.unlink()
+    try:
+        r = _guard(tree, env)
+        if r.returncode == 0:
+            raise ConformanceError(
+                "deleted floor PASSED the session-start guard (must fail loud with --require-present)"
+            )
+        if "floor absent" not in r.stderr:
+            raise ConformanceError(
+                f"guard failed on delete but without a named absent-floor reason: {r.stderr.strip()}"
+            )
+    finally:
+        floor.write_text(saved, encoding="utf-8", newline="\n")
+
+
+def assert_sessionstart_wired(tree: Path) -> None:
+    """The consumer's .claude/settings.json carries the SessionStart self-arm wiring.
+
+    Asserts a SessionStart command references the guard script AND the
+    `pre-commit install` bootstrap — path-AGNOSTIC (presence of the hook, not the value
+    of the machine-specific marketplace path). This makes contract #1's self-arm wiring a
+    TESTED property, not an assumption: in Layer 1 it proves the carrier WROTE the wiring;
+    in Layer 2 (a fresh clone of the real consumer) it proves settings.json actually
+    TRAVELS — a consumer whose settings.json did not travel FAILS here (no false green).
+    """
+    settings = tree / ".claude" / "settings.json"
+    if not settings.exists():
+        raise ConformanceError(
+            "settings.json absent -- the SessionStart self-arm wiring did not travel"
+        )
+    try:
+        data = json.loads(settings.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        raise ConformanceError(f"settings.json unreadable: {exc}") from exc
+    cmds = [
+        h.get("command", "")
+        for g in (data.get("hooks", {}) or {}).get("SessionStart", []) or []
+        if isinstance(g, dict)
+        for h in g.get("hooks", []) or []
+        if isinstance(h, dict)
+    ]
+    if not any("check_floor_hash.py" in c for c in cmds):
+        raise ConformanceError(
+            "settings.json SessionStart has no check_floor_hash.py verify hook (self-arm broken)"
+        )
+    if not any(("pre_commit install" in c) or ("pre-commit install" in c) for c in cmds):
+        raise ConformanceError(
+            "settings.json SessionStart has no `pre-commit install` bootstrap hook (commit-leg won't auto-arm)"
+        )
 
 
 def assert_autoarm(tree: Path, env: dict[str, str] | None = None) -> None:
@@ -196,24 +263,29 @@ def assert_task_flow(tree: Path, env: dict[str, str] | None = None) -> None:
 # The ordered conformance suite. Order matters: autoarm before the commit-time legs.
 _SUITE = (
     ("@-include resolves + floor hashes to sidecar", assert_at_include),
+    ("settings.json carries the SessionStart self-arm wiring", assert_sessionstart_wired),
     ("clean floor passes the session-start guard", assert_clean_pass),
     ("poisoned floor caught at session-start (loud, named reason)", assert_tamper_caught_sessionstart),
+    ("deleted floor caught at session-start (--require-present backstop)", assert_absent_caught_sessionstart),
     ("`pre-commit install` auto-arms the git hook from absent", assert_autoarm),
     ("poisoned floor blocked at commit-time (no commit lands)", assert_tamper_caught_commit),
     ("real task flows branch -> commit -> gate -> merge --no-ff", assert_task_flow),
 )
+
+# Assertions that inspect tree state only (no env / subprocess) — called without env.
+_NO_ENV = frozenset({assert_at_include, assert_sessionstart_wired})
 
 
 def run_conformance(tree: Path, env: dict[str, str] | None = None) -> list[str]:
     """Run every conformance assertion against an armed consumer ``tree``.
 
     Returns the list of passed-property labels (in order). Raises ConformanceError at
-    the first failing property (a named reason). ``assert_at_include`` takes no env.
+    the first failing property (a named reason).
     """
     tree = Path(tree)
     passed: list[str] = []
     for label, check in _SUITE:
-        if check is assert_at_include:
+        if check in _NO_ENV:
             check(tree)
         else:
             check(tree, env)

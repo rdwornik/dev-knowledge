@@ -18,6 +18,7 @@ but NOT run here (step 5).
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import subprocess
 import sys
@@ -107,7 +108,7 @@ def pc_env(tmp_path: Path) -> dict:
 
 def test_full_suite_passes_on_armed_consumer(armed_consumer, pc_env):
     passed = fc.run_conformance(armed_consumer, pc_env)
-    assert len(passed) == 6  # every property proven, not just files-present
+    assert len(passed) == 8  # every property proven, not just files-present
 
 
 # ---------------------------------------------------------------------------
@@ -127,6 +128,36 @@ def test_poison_caught_at_session_start(armed_consumer, pc_env):
     fc.assert_tamper_caught_sessionstart(armed_consumer, pc_env)
     # the floor is restored after the assertion (subsequent legs see a clean tree)
     fc.assert_clean_pass(armed_consumer, pc_env)
+
+
+def test_deleted_floor_caught_at_session_start(armed_consumer, pc_env):
+    # FIX-1 coverage: a deleted-but-tracked floor fails loud via --require-present
+    fc.assert_absent_caught_sessionstart(armed_consumer, pc_env)
+    # restored afterwards -> clean tree still passes
+    fc.assert_clean_pass(armed_consumer, pc_env)
+
+
+def test_sessionstart_wiring_present(armed_consumer):
+    # FIX-2: the carrier WROTE the SessionStart self-arm wiring into settings.json
+    fc.assert_sessionstart_wired(armed_consumer)
+
+
+def test_sessionstart_wiring_missing_fails_red(armed_consumer):
+    # negative control (teeth): strip the SessionStart hook -> the assertion must FAIL
+    # (a consumer whose settings.json didn't travel gets no false green on self-arm).
+    settings = armed_consumer / ".claude" / "settings.json"
+    data = json.loads(settings.read_text(encoding="utf-8"))
+    data.get("hooks", {}).pop("SessionStart", None)
+    settings.write_text(json.dumps(data), encoding="utf-8", newline="\n")
+    with pytest.raises(fc.ConformanceError):
+        fc.assert_sessionstart_wired(armed_consumer)
+
+
+def test_sessionstart_wiring_absent_settings_fails_red(armed_consumer):
+    # a clone with no settings.json at all (wiring did not travel) must FAIL red
+    (armed_consumer / ".claude" / "settings.json").unlink()
+    with pytest.raises(fc.ConformanceError):
+        fc.assert_sessionstart_wired(armed_consumer)
 
 
 def test_autoarm_installs_git_hook(armed_consumer, pc_env):

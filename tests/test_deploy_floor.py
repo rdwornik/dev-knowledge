@@ -282,7 +282,8 @@ def test_apply_adds_sessionstart_guard_with_both_legs(tmp_path):
         for g in data["hooks"]["SessionStart"]
         for h in g["hooks"]
     ]
-    assert any("check_floor_hash.py" in c for c in cmds)          # verify leg
+    # verify leg runs --require-present so a deleted-but-tracked floor fails loud (ADR-93)
+    assert any("check_floor_hash.py --require-present" in c for c in cmds)
     assert any("pre_commit install" in c for c in cmds)           # bootstrap arm leg
 
 

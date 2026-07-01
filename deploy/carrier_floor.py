@@ -98,9 +98,11 @@ _GITIGNORE_NEGATIONS = (
 )
 
 # The two SessionStart command legs (relative invocation — CC runs SessionStart hooks
-# with cwd = the project root, and the guard script itself uses repo-relative paths, so
-# the invocation matches the commit-time pre-commit entry exactly).
-_SESSIONSTART_VERIFY_CMD = f"python {HOOK_SCRIPT_REL}"
+# with cwd = the project root, and the guard script itself uses repo-relative paths).
+# The verify leg runs --require-present so a deleted-but-tracked floor fails LOUD at
+# session-start (the commit-time pre-commit leg cannot catch a pure deletion — it is the
+# backstop; ADR-93). The bootstrap leg idempotently arms the commit-time git hook.
+_SESSIONSTART_VERIFY_CMD = f"python {HOOK_SCRIPT_REL} --require-present"
 _SESSIONSTART_ARM_CMD = "python -m pre_commit install"
 # Stable sentinel used to detect an already-armed settings.json (idempotency).
 _SESSIONSTART_SENTINEL = "check_floor_hash.py"
