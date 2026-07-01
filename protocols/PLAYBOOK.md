@@ -200,6 +200,11 @@
   - [Single-round-trip framing](#single-round-trip-framing)
   - [Cover-letter template](#cover-letter-template)
   - [Rules](#rules-1)
+- [20. Deploying the methodology corpus to a consumer (deploy runbook)](#20-deploying-the-methodology-corpus-to-a-consumer-deploy-runbook)
+  - [The three phases — assess → execute → ratify](#the-three-phases--assess--execute--ratify)
+  - [Operational nuances (learned on run #1)](#operational-nuances-learned-on-run-1)
+  - [Floor semantics — local-only for `.claude/`-gitignoring consumers](#floor-semantics--local-only-for-claude-gitignoring-consumers)
+  - [What to expect on runs #2–4 (per-consumer divergences the run-#1 probe surfaced)](#what-to-expect-on-runs-24-per-consumer-divergences-the-run-1-probe-surfaced)
 - [Appendix A: Claude Code Shortcuts](#appendix-a-claude-code-shortcuts)
   - [Permission Modes (Shift+Tab cycles)](#permission-modes-shifttab-cycles)
   - [Keyboard](#keyboard)
@@ -955,7 +960,7 @@ Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are exclude
 ### Deployed-version record (audit check `deployed_methodology_version`)
 <!-- scope: meta -->
 
-**Each repo's deployed methodology-corpus version (ADR-91) is recorded in one committed registry and reported per repo.** Record-home: `ecosystem/deployed-versions.yaml` — a dedicated committed registry on the `tool-versions.yaml` durable-version pattern (committed · written-by-command · read-by-a-check). Deliberately **NOT** `ecosystem/index.yaml` (a *derived* rollup `audit.py::regenerate_index` overwrites wholesale each run → a field written there is clobbered) and **NOT** the gitignored `state.yaml` (non-durable). **Write-contract:** the field is set by the **deploy-runbook** at deploy time (a separate, later piece) to the corpus release it deployed (the ADR-91 `vMAJOR.MINOR.PATCH` git tag) — never hand-fabricate a value (a value cannot precede its release; every repo stays `null` until a release is tagged). **Reader:** `scripts/audit.py` `deployed_methodology_version` (in `ALL_CHECKS`; `exempt` in `doc-code-edge.yaml` — a status reporter, not a doc→code rule) reads the registry by repo directory name → `n/a` while unset (the expected pre-deploy state), `pass` with the version once set — surfaced per repo through `fleet_health`. This version-aware signal supersedes a raw-commit-count drift indicator. Full doctrine: ADR-91; record-home rationale also in ADR-91 "Record-home decision".
+**Each repo's deployed methodology-corpus version (ADR-91) is recorded in one committed registry and reported per repo.** Record-home: `ecosystem/deployed-versions.yaml` — a dedicated committed registry on the `tool-versions.yaml` durable-version pattern (committed · written-by-command · read-by-a-check). Deliberately **NOT** `ecosystem/index.yaml` (a *derived* rollup `audit.py::regenerate_index` overwrites wholesale each run → a field written there is clobbered) and **NOT** the gitignored `state.yaml` (non-durable). **Write-contract:** the field is set by the **deploy-runbook** at deploy time (now built — the ADR-92 deploy tool; operational how-to at §20) to the corpus release it deployed (the ADR-91 `vMAJOR.MINOR.PATCH` git tag) — never hand-fabricate a value (a value cannot precede its release; every repo stays `null` until a release is tagged). **Reader:** `scripts/audit.py` `deployed_methodology_version` (in `ALL_CHECKS`; `exempt` in `doc-code-edge.yaml` — a status reporter, not a doc→code rule) reads the registry by repo directory name → `n/a` while unset (the expected pre-deploy state), `pass` with the version once set — surfaced per repo through `fleet_health`. This version-aware signal supersedes a raw-commit-count drift indicator. Full doctrine: ADR-91; record-home rationale also in ADR-91 "Record-home decision".
 
 ### Common confusions resolved
 <!-- scope: meta -->
@@ -3219,6 +3224,39 @@ Use `templates/scrum-master-cover-letter.md`. Operator fills placeholders for ta
 - Strażnik does NOT directly edit target repo files. Cross-repo changes route via target architect.
 - Pushback opens new handshake. Pushback does not extend the original routing.
 - Addendum is for post-routing gap discovery; not for finding revisions (revisions = re-audit).
+
+---
+
+## 20. Deploying the methodology corpus to a consumer (deploy runbook)
+<!-- scope: hybrid -->
+
+> Operational how-to for the ADR-92 deploy tool (`deploy/tool.py` + the four carriers). **Doctrine is ADR-92 — not restated here.** Proven end-to-end on run #1 (ai-council → v1.0.0; retrospective in `LESSONS.md`). Run from the hub; the tool reconciles ONE consumer per invocation.
+
+### The three phases — assess → execute → ratify
+
+1. **Assess (read-only).** `python deploy/tool.py <repo> --target <vX.Y.Z>` — prints the per-carrier deployment plan (detected state + planned action) and mutates nothing. Review it. If any carrier shows an unexpected state or an error row, STOP and investigate before executing.
+2. **Execute.** `python deploy/tool.py <repo> --target <vX.Y.Z> --execute` — per carrier: apply-if-needed (or `--force`) then verify; the **verify-gate** proceeds to the record write ONLY if EVERY carrier verifies. On full success it (a) **stages** the consumer's carrier changes (write-yes / commit-no) and (b) commits the version record on a **hub branch** `deploy/record-<repo>-<bare-version>`. On any verify failure it ABORTS — no record, no staging (earlier carriers stay applied on disk; rerunnable).
+3. **Ratify (operator — two writes, two contexts).**
+   - **Consumer:** `git -C <consumer> diff --cached` → review → **branch + `--no-ff` commit in the consumer** (the universal no-direct-to-main rule applies to consumers too; core-invariants #5), push per the consumer's norm. The tool NEVER commits in the consumer.
+   - **Hub record:** review + **merge** `deploy/record-<repo>-<bare-version>` → hub main (`--no-ff`). The tool NEVER merges it. This sets `ecosystem/deployed-versions.yaml` for `<repo>` (read by `audit.py deployed_methodology_version`; see Ch6 "Deployed-version record").
+
+### Operational nuances (learned on run #1)
+
+- **Verify the record on BOTH axes before merging.** The record blob must be **0 CR (LF)** AND **non-ASCII byte-faithful**: `git show <branch>:ecosystem/deployed-versions.yaml | tr -cd '\r' | wc -c` → `0`, and em-dashes (`E2 80 94`) present with no `â€` mojibake. Two earlier runs produced a blocked record (CRLF, then mojibake) before the writer was hardened; it is now binary+UTF-8+LF and fails loudly on malformed input, but verifying the bytes is cheap insurance.
+- **Re-run safety.** An existing record branch → `RecordError` (never clobbered). To regenerate: `git -C <hub> branch -D deploy/record-<repo>-<bare-version>` then re-run `--execute`.
+- **Clean-tree preflight.** The tool requires a clean CONSUMER tree — commit the consumer gate (phase 3) BEFORE re-running `--execute`, or preflight aborts.
+- **Run gates + ship from Git Bash, not PowerShell** (the ship-gate false-RED gotcha — `gotchas.md`).
+
+### Floor semantics — local-only for `.claude/`-gitignoring consumers
+
+The methodology floor (`.claude/CLAUDE-FLOOR.md` + `.sha256`, ADR-78) is generated from **hub-canonical** (ADR-73) and reconciled **per-deploy on disk** — it is **NOT committed** in a consumer that gitignores `.claude/`. Committing it would create the copy-drift the ecosystem already gates against (#95): a consumer holds only **reconciled local state, never a second source** of the floor. So on such consumers the floor + plugin `settings.json` deploy **on-disk-but-unstaged**; only the tracked carrier change (e.g. `.pre-commit-config.yaml`) is committable. Do **not** `git add -f` the floor to "make it tracked."
+
+### What to expect on runs #2–4 (per-consumer divergences the run-#1 probe surfaced)
+
+The mechanics transfer; the consumer *shapes* differ:
+- **`.gitignore` shape varies** — a `.claude/`-gitignoring consumer deploys the floor + plugin settings on-disk-but-unstaged (only the tracked carrier change stages). Check `git -C <consumer> status --porcelain --ignored`.
+- **Noisy `.pre-commit-config.yaml` diff** — the precommit carrier round-trips the YAML, reformatting the whole file (comment-strip / reindent). Cosmetic + functionally equivalent (deferred surgical-edit fix). Review the LOGICAL change (added ruff gate + rev-pin), not the reformat noise.
+- **Record generation is now reliable** — writer hardened on the Windows-I/O class; still verify both axes before merging.
 
 ---
 
