@@ -23,7 +23,7 @@
 
 **Did:** Generated the v5.3 **architect-mode** handoff bundle at `docs/handoffs/2026-07-01-dev-knowledge-architect/` (five files — `HANDOFF_BOOT`/`RESIDUAL`/`PROBES`/`SUPPLEMENT`/`PASTE_THIS`, no per-bundle README, per `HANDOFF_PROCESS.md` §13). Purpose: the **deploy subsystem is built + proven on n=1 (ai-council v1.0.0) but NOT armed/disseminated** — the next architect decides the **#230 → #226(b) → #221** arming+rollout sequencing vs. paying down the ARCHITECTURE currency debt (#222/#223/#224) first. **SUPPLEMENT generated EMPTY (cold disposition** — this was a CC-execution-driven window, no outgoing browser architect chat; the assembler `[skip]`'d it, so the incoming §13(d) beat fires FULL). Bundle cut at HEAD `7cc4b6a`. Drift-flag headline: `ship-gate` GREEN + clean (4 WARN dispositioned, no `[stale]`).
 
-**Result:** Bundle written; `PASTE_THIS.md` assembled by `scripts/assemble_paste.py` (never hand-edited). Committed on `docs/2026-07-01-architect-handoff`. NOT merged, NOT pushed (operator merges via `/ship`).
+**Result:** Bundle written; `PASTE_THIS.md` assembled by `scripts/assemble_paste.py` (never hand-edited). Committed `b0b9b79` on `docs/2026-07-01-architect-handoff` (this JOURNAL anchor added in the follow-up wrap). NOT merged, NOT pushed (operator merges via `/ship`).
 
 **Changes:** New bundle dir `docs/handoffs/2026-07-01-dev-knowledge-architect/` (5 files) + this JOURNAL marker.
 
