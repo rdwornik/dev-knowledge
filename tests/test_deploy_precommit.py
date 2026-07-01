@@ -45,6 +45,9 @@ _HUB_REPO = _HUB["repo"]
 _HUB_REV = _HUB["rev"]
 _HUB_MARKER = "codemap-freshness"  # one of the hub's published marker ids
 
+# Required local hook — the ADR-93 floor commit-time guard leg (this carrier owns it).
+_LOCAL_HOOK_ID = "floor-hash-verify"
+
 
 def _write_config(repo: Path, data: dict) -> Path:
     path = repo / ".pre-commit-config.yaml"
@@ -66,6 +69,16 @@ def _hub_entry(
     hook_ids: tuple[str, ...] = ("codemap-freshness", "toc-freshness"),
 ) -> dict:
     return {"repo": repo, "rev": rev, "hooks": [{"id": h} for h in hook_ids]}
+
+
+def _local_floor_entry() -> dict:
+    """A `- repo: local` block already carrying the floor-hash-verify hook — supplied
+    in fixtures that isolate a DIFFERENT drift (rev), so the now-required local hook is
+    not itself the drift under test."""
+    return {"repo": "local", "hooks": [
+        {"id": _LOCAL_HOOK_ID, "entry": "python .claude/check_floor_hash.py",
+         "language": "system"},
+    ]}
 
 
 def _hub_entry_in(repo: Path) -> dict:
@@ -146,7 +159,8 @@ def test_wrong_version_detects_then_repins(tmp_path):
     # DRIFTED, not WRONG_VERSION — so it is supplied correct here to isolate ruff).
     _write_config(
         tmp_path,
-        {"repos": [{"repo": _RUFF_REPO, "rev": "v0.14.0", "hooks": [{"id": "ruff"}]}, _hub_entry()]},
+        {"repos": [{"repo": _RUFF_REPO, "rev": "v0.14.0", "hooks": [{"id": "ruff"}]},
+                   _hub_entry(), _local_floor_entry()]},
     )
     car = _carrier(tmp_path)
     assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_WRONG_VERSION
@@ -192,6 +206,7 @@ def test_verify_does_not_route_through_detect_classifier(tmp_path, monkeypatch):
     monkeypatch.setattr(cp, "_classify", _boom)
     monkeypatch.setattr(cp, "_find_repo", _boom)
     monkeypatch.setattr(cp, "_find_hub_entry", _boom)  # hub identifier too (D9)
+    monkeypatch.setattr(cp, "_find_local_entry", _boom)  # local-hook finder too (D9)
     assert car.verify(_PC_TARGET).ok is True  # independent path — unaffected
 
 
@@ -289,7 +304,8 @@ def test_hub_hooks_absent_detects_drifted_then_adds_at_tag(tmp_path):
 
 def test_hub_hooks_wrong_rev_detects_wrong_version_then_repins(tmp_path):
     # ruff correct, hub-hooks present at a wrong rev -> the rev-pin's real use.
-    _write_config(tmp_path, {"repos": [_ruff_entry(), _hub_entry(rev="v0.9.0")]})
+    _write_config(tmp_path, {"repos": [_ruff_entry(), _hub_entry(rev="v0.9.0"),
+                                       _local_floor_entry()]})
     car = _carrier(tmp_path)
     assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_WRONG_VERSION
 
@@ -300,8 +316,8 @@ def test_hub_hooks_wrong_rev_detects_wrong_version_then_repins(tmp_path):
 
 
 def test_hub_hooks_already_at_tag_is_correct_and_idempotent(tmp_path):
-    # both requirements satisfied -> CORRECT; apply writes nothing (byte-identical).
-    _write_config(tmp_path, {"repos": [_ruff_entry(), _hub_entry()]})
+    # all requirements satisfied -> CORRECT; apply writes nothing (byte-identical).
+    _write_config(tmp_path, {"repos": [_ruff_entry(), _hub_entry(), _local_floor_entry()]})
     car = _carrier(tmp_path)
     assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_CORRECT
 
@@ -325,7 +341,8 @@ def test_hub_hooks_identified_path_independently(tmp_path, hub_repo):
     # rev-bumped IN PLACE — no duplicate, the repo: path preserved.
     _write_config(
         tmp_path,
-        {"repos": [_ruff_entry(), _hub_entry(repo=hub_repo, rev="v0.5.0")]},
+        {"repos": [_ruff_entry(), _hub_entry(repo=hub_repo, rev="v0.5.0"),
+                   _local_floor_entry()]},
     )
     car = _carrier(tmp_path)
     assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_WRONG_VERSION
@@ -367,3 +384,93 @@ def test_hub_hooks_verify_reports_missing_and_wrong_rev(tmp_path):
     _write_config(tmp_path, {"repos": [_ruff_entry(), _hub_entry(rev="v0.1.0")]})
     failures = _carrier(tmp_path).verify(_PC_TARGET).failures
     assert any("hub-hooks rev" in f for f in failures)
+
+
+# ---------------------------------------------------------------------------
+# floor-hash-verify local hook — the ADR-93 commit-time guard leg. This carrier is
+# the SINGLE writer of .pre-commit-config.yaml (the floor carrier writes the script
+# the hook runs); it owns the local-hook entry.
+# ---------------------------------------------------------------------------
+
+
+def _local_hook_ids(repo: Path) -> set[str]:
+    data = yaml.safe_load((repo / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    return {
+        h["id"]
+        for e in data["repos"]
+        if e.get("repo") == "local"
+        for h in e.get("hooks", [])
+    }
+
+
+def test_manifest_precommit_declares_floor_hash_verify_local_hook():
+    pc = next(c for c in yaml.safe_load(_MANIFEST.read_text(encoding="utf-8"))["carriers"]
+              if c["id"] == "precommit")
+    local = pc["target"]["required_local_hooks"]
+    hook = next(h for h in local if h["id"] == _LOCAL_HOOK_ID)
+    assert hook["entry"] == "python .claude/check_floor_hash.py"  # runs the floor script
+    assert hook["language"] == "system"                          # no env to provision
+    assert hook["pass_filenames"] is False
+    assert hook["files"] == r"^\.claude/CLAUDE-FLOOR\.md(\.sha256)?$"
+
+
+def test_floor_hook_absent_detects_drifted_then_adds_to_local_block(tmp_path):
+    # ruff + hub correct, but no floor-hash-verify local hook -> a missing requirement.
+    _write_config(tmp_path, {"repos": [_ruff_entry(), _hub_entry()]})
+    car = _carrier(tmp_path)
+    assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+
+    result = car.apply(_PC_TARGET)
+    assert result.changed is True
+    assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_CORRECT
+    assert car.verify(_PC_TARGET).ok is True
+    assert _LOCAL_HOOK_ID in _local_hook_ids(tmp_path)
+
+
+def test_floor_hook_appends_to_existing_local_block_preserving_siblings(tmp_path):
+    # A consumer with its own local hook: the floor hook is APPENDED, not a 2nd block.
+    _write_config(
+        tmp_path,
+        {"repos": [
+            {"repo": "local", "hooks": [{"id": "my-own-hook"}]},
+            _ruff_entry(), _hub_entry(),
+        ]},
+    )
+    _carrier(tmp_path).apply(_PC_TARGET)
+    data = yaml.safe_load((tmp_path / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    local_blocks = [e for e in data["repos"] if e.get("repo") == "local"]
+    assert len(local_blocks) == 1                                # appended, not duplicated
+    assert {"my-own-hook", _LOCAL_HOOK_ID} <= _local_hook_ids(tmp_path)  # sibling preserved
+
+
+def test_floor_hook_created_local_block_when_absent(tmp_path):
+    # No local block at all -> apply creates `- repo: local` with the floor hook.
+    _write_config(tmp_path, {"repos": [_ruff_entry(), _hub_entry()]})
+    _carrier(tmp_path).apply(_PC_TARGET)
+    assert _LOCAL_HOOK_ID in _local_hook_ids(tmp_path)
+
+
+def test_floor_hook_idempotent_when_already_present(tmp_path):
+    _write_config(
+        tmp_path,
+        {"repos": [
+            _ruff_entry(), _hub_entry(),
+            {"repo": "local", "hooks": [{"id": _LOCAL_HOOK_ID,
+                                         "entry": "python .claude/check_floor_hash.py",
+                                         "language": "system"}]},
+        ]},
+    )
+    car = _carrier(tmp_path)
+    assert car.detect(_PC_TARGET) is contract.CarrierState.PRESENT_CORRECT
+    before = (tmp_path / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    result = car.apply(_PC_TARGET)
+    after = (tmp_path / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    assert result.changed is False
+    assert before == after
+
+
+def test_floor_hook_verify_reports_missing_local_hook(tmp_path):
+    # verify names the missing local hook independently (not a silent pass).
+    _write_config(tmp_path, {"repos": [_ruff_entry(), _hub_entry()]})  # floor hook absent
+    failures = _carrier(tmp_path).verify(_PC_TARGET).failures
+    assert any("local hook" in f and _LOCAL_HOOK_ID in f for f in failures)

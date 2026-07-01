@@ -147,6 +147,19 @@ carriers:
         hooks:
           - id: codemap-freshness
           - id: toc-freshness
+      # The commit-time hash-guard leg (ADR-93). This carrier is the SINGLE writer of
+      # .pre-commit-config.yaml, so it owns the floor-hash-verify local hook; the FLOOR
+      # carrier writes the .claude/check_floor_hash.py SCRIPT this hook runs (arming
+      # spans two carriers). `language: system` — no env to provision; the filespec arms
+      # it only when the floor or its sidecar is staged. Appended to the consumer's
+      # existing `- repo: local` block (create-if-absent).
+      required_local_hooks:
+        - id: floor-hash-verify
+          name: Verify CLAUDE-FLOOR.md matches its sha256 sidecar
+          entry: python .claude/check_floor_hash.py
+          language: system
+          files: '^\.claude/CLAUDE-FLOOR\.md(\.sha256)?$'
+          pass_filenames: false
 
   - id: floor
     order: 4
