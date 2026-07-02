@@ -91,22 +91,11 @@ dispositions:
       re-surfaces and blocks. RECURRENCE: 3 instances (2026-06-20 x2, 2026-06-26 x1) make
       this a structural gap, not a one-off — tracked for a standing path-scoped rule by [#210]
       (per-instance disposition -> rule). Does not auto-clear.
-  - id: warn-doc-claims-pytest-collected-architecture
-    organ: doc_claims
-    match: "pytest_collected@ARCHITECTURE.md"
-    ref: 690d478
-    reason: >-
-      Real but PRE-EXISTING count drift (ARCHITECTURE claims a stale `**N collected**`;
-      main already carried it before this arc's +11 tests — actual outran the claim
-      independent of what is shipping, the #234 validator patch + the ai-council bundle).
-      NOT paper-over: the count-bump fix forces a "reviewed & accurate" `last_reviewed`
-      re-stamp on ARCHITECTURE.md, which [#223] already flags STALE (it omits the ADR-91/92
-      deploy subsystem) — so the stamp would be doubly false (the #222 count-vs-freshness
-      anti-pattern). The honest fix is the #222/#223 arc: a genuine end-to-end re-read PLUS
-      moving the volatile count to a generated fragment so a count bump stops forcing a
-      freshness re-stamp. Keyed on the claim id (not the specific numbers) so any pytest
-      count drift on this claim stays covered until #222 relocates it.
-    auto_clearable_by: "#222"
+  # (cleared 2026-07-02, #222) warn-doc-claims-pytest-collected-architecture — #222 relocated
+  # the three volatile counts to the committed-generated ecosystem/doc-counts.md, so the
+  # pytest_collected claim no longer anchors in ARCHITECTURE.md (doc_claims now reconciles it
+  # against doc-counts.md, a non-freshness file). The disposition matched no live WARN and was
+  # removed to avoid stale-disposition decoration (ADR-75; auto_clearable_by was #222).
   - id: warn-handoff-probes-p5-crossrepo-ai-council-2026-07-02
     organ: handoff_probes
     match: "P5 skipped in 2026-07-02-ai-council-architect"
