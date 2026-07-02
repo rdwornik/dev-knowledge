@@ -9,14 +9,18 @@
 > points at the whole BACKLOG / relevant themes, and the open architecture questions travel as
 > residual so the next session resumes the design rather than rediscovering it.
 >
-> **Generated LIVE at the end of a CC-execution window.** The window since the 2026-07-01
-> architect handoff **executed that handoff's arm-first brief** — the deploy carrier arming
-> (#226), the #230 conformance self-test, the real ai-council arming, the ARCHITECTURE currency
-> arc (#222/#223/#224), plus an external-review audit and the first cross-repo handoff. The
-> strategic "why" is **largely in the repo**: **ADR-93** (floor model A), `LESSONS.md`, PLAYBOOK
-> §20, the two 2026-07-02 audit artifacts, and the JOURNAL arc. There was **no single outgoing
-> browser architect chat** holding un-committed deliberation, so `SUPPLEMENT.md` is generated
-> **empty (the cold-handoff disposition)** and the incoming **§13(d) beat fires FULL**.
+> **Generated LIVE at the end of a CC-execution window; then FILLED by the outgoing architect.**
+> The window since the 2026-07-01 architect handoff **executed that handoff's arm-first brief** —
+> the deploy carrier arming (#226), the #230 conformance self-test, the real ai-council arming, the
+> ARCHITECTURE currency arc (#222/#223/#224), plus an external-review audit and the first cross-repo
+> handoff. The CC-derived **repo-side** *why* lives in §1–§5; the operator then **FILLED
+> `SUPPLEMENT.md`**, so the **off-repo** *why* is in the folded ANSWERS — and it **re-scoped this
+> residual's priority**: the next investment is the **three goals** (Fable whole-system review →
+> ai-council-as-governed-query → close the ADR + ai-council methodology tracks), **NOT** the
+> repo-derived fleet-#221 frontier. The operator ruled the supplement **authoritative on priority**
+> (§6/§A). **§4 below has been re-scoped to lead with the three goals**; fleet #221 is demoted to
+> sequenced-after (kept, not deleted). Because the supplement carries answers, the incoming **§13(d)
+> beat NARROWS** to *"anything changed since?"* — not FULL.
 >
 > **Four-tag discipline.** `witnessed` = CC re-derived it live this generation (the §1 gate
 > outputs); `recall`/`inferred` = reconstructed from the JOURNAL/git window, may have moved —
@@ -110,51 +114,58 @@ from the window; re-derive load-bearing counts via `PROBES.md`.
 
 ---
 
-## §4 — The next frontier (open architecture decisions — this is a DECISION + SEQUENCING session)
+## §4 — The next frontier (open architecture decisions — re-scoped to the FILLED supplement priority)
 
-The deploy subsystem is now **BUILT + ARMED + PROVEN (n=1) + DOCUMENTED**. The arm-first chain
-(#226 → #230 → #222/#223) is **done**. The center of gravity shifts to **disseminating an armed,
-proven subsystem to the fleet** — the leaf that was gated on arming is now **unblocked**. **recall/inferred**
-— the architect resumes the design here.
+The deploy subsystem is now **BUILT + ARMED + PROVEN (n=1) + DOCUMENTED** — the arm-first chain is
+**done and sealed**. The repo-derived reading was that fleet rollout (#221) is next; **the operator's
+FILLED supplement re-scoped that** — fleet is real but **sequenced AFTER** the three goals below. The
+operator ruled the supplement authoritative on priority (§6/§A); this section now **leads with the
+three goals** (source: the folded `SUPPLEMENT.md` §1/§5/§A — read it for the full rationale).
+**recall/inferred** — the architect resumes the design here.
 
-**The remaining chain (the repo encodes the dependency; the priority is the architect's call):**
-> **#225 (surgical precommit carrier — clean diffs at scale)** → **#221 (fleet rollout to n=2+, the leaf)**.
+**The priority (operator-ruled — the repo's dependency graph does NOT encode this):**
+> **(a) FABLE review (time-boxed, FIRST)** → **(b)+(c) wire ai-council-as-governed-query + close the ADR + ai-council methodology tracks (one coupled work-stream, after Fable)** → **fleet #221 (sequenced-after)**.
 
-1. **#221 — fleet rollout (the now-unblocked leaf).** Run `deploy/tool.py` on the other consumers
-   (**corp-monorepo / corp-ops / corp-sca-time-automation**) to reach the **n=2+ generalization gate**
-   and populate the `deployed_methodology_version` registry fleet-wide; each repo's deploy uses the
-   **#230 conformance self-test as its acceptance gate**. #221's done-when **also requires #225 closed**
-   (the deploy-arc residual) — so the sequencing decision is **#225 first (surgical diffs), then fleet**.
-   The generalization probe (from #215): the first non-hub, structurally-different repo is the real test
-   of whether the two lifelines transfer — surface any hub-specific convention that does NOT transfer
-   **before** assuming universality.
-2. **#225 — precommit carrier surgical edit.** `deploy/carrier_precommit.py` currently round-trips the
-   whole `.pre-commit-config.yaml` (YAML load/dump), stripping comments + reindenting → noisy deploy
-   diffs. Replace with a comment-preserving surgical insert/update of only the methodology-owned hooks
-   (matching the version-record writer's byte-faithful principle). Precedes fleet so rollout diffs are
-   clean at scale.
-3. **#231 — consumer→hub feedback loop (open).** When a consumer detects a gap/ambiguity/broken piece
-   (incl. a failing #230), it emits a **structured hub-destined report** instead of guessing. Encodes
-   "when unsure, ask the hub; verification flows upstream." Open: report **schema + transport + home**;
-   the philosophy-line placement (ESSENTIALS/PLAYBOOK) is a flagged sub-note, scope when built.
-4. **#234 — cross-repo probe FAIL-teeth (filed this window).** Harden `check_handoff_probes` so a
-   cross-repo bundle's `.claude/<file>` target resolves against the **target root** — a present
-   floor-guard probe PASSes, a genuinely-absent one **FAILs** (real teeth) — while excluded-dir
-   duplicates stay pruned. Currently honest-partial WARN; the operator accepted that as the interim.
+1. **(a) Run the Fable whole-system review + merge its rulings — FIRST, because it is time-boxed.** The
+   `.dev-knowledge` system audit + the review-ask (Part A: the §7 architecture forks; Part B: process-meta
+   — over-engineering-for-solo, verify-proportionality, canonical-doc naming, deterministic-gate-vs-semantic-
+   property) are **drafted**. Get them to Fable, extract maximum value from the **perishable preview window**
+   (Mythos-tier, possibly export-restricted), then merge Fable's architectural rulings back into the
+   methodology. **Do this first** — Fable's rulings (esp. two-track coherence + the deterministic-gate-vs-
+   semantic-property class) **may reshape goals (b)/(c)**, so closing the methodologies before merging risks
+   an unwind. OPEN: the review **scope** under the time-box (lean focused, not "review everything").
+2. **(b) Wire ai-council as a CC-GOVERNED query mechanism.** Elevate ai-council from a standalone tool to a
+   governed part of the methodology: an architect's multi-model-debate request routes **browser → CC (skill/
+   hook) → ai-council**, with **CC managing the query lifecycle** — question authoring, save-to-correct-path
+   discipline, and ADR management of the output. Closes the loop where ai-council *produces* ADRs but their
+   governance is not yet mechanized. OPEN: the **integration shape** (skill vs hook vs other CC-side trigger)
+   — settled in intent (CC governs the lifecycle regardless of trigger form), undecided in mechanism.
+3. **(c) Close the two open methodology tracks — ADR methodology + ai-council methodology.** These are the
+   operator's named "not yet done" loops; **(b) and (c) are one work-stream** (ai-council produces ADRs, the
+   ADR methodology governs them). Seal both by mechanism, not memory. OPEN: what "closed" **means** for the
+   ADR methodology — the **#170/#168 traceability spine** is the half-built sticking point.
 
-**Adjacent open decisions (smaller):**
-- **#220 — the MODIFY / semantic-drift axis.** VERIFY-FIRST: does the ADR-89 Pyright oracle or any
-  existing organ gate a *meaning-change-without-version-bump*, or only add/remove/exist? Establish a
-  demonstrated-catch bar before any design.
-- **#210 — journal-wrap no-ff standing rule.** 3 instances of one class now dispositioned one-by-one →
-  decide the shape: a path-scoped EXEMPT in `no_ff_merges` (JOURNAL/transcripts-only diffs pass, any
-  other path still WARNs — must NOT weaken core-invariant #5) vs branch-then-merge the wrap (eliminate
-  the class).
-- **#233 — deploy-record-index test tempdir isolation.** Test-hygiene debt: `test_no_temp_index_leftovers`
-  snapshots the shared tempdir → false-fails under concurrent suite runs. Fix: per-run isolated tempdir.
-- **#232 — ship-gate right-sizing (UNFILED candidate, carried from the 2026-07-01 supplement).** Full-pytest
-  on a doc-only change is disproportionate; the fix is **right-size, not skip** (the doc gates caught real
-  errors). Referenced by #233 but **never filed as its own BACKLOG id** — the architect files it or folds it.
+**Fleet #221 + the hardening items — sequenced AFTER (demoted, not deleted):**
+- **#221 — fleet rollout (still gated by intent, not just dependency).** Run `deploy/tool.py` on
+  corp-monorepo / corp-ops / corp-sca-time-automation to reach the n=2+ generalization gate, each using
+  #230 as its acceptance gate; done-when also requires **#225** (surgical precommit carrier) closed. The
+  operator ruled fleet **non-immediate**: scaling to n=3 before merging Fable's rulings would propagate a
+  soon-to-change methodology. **#234** (cross-repo probe teeth) + **#231** (consumer→hub feedback loop) are
+  hardening items that **make fleet safer**, so they **pair with the ai-council work** rather than being
+  rushed ahead. When fleet comes, carry the ai-council-pilot rule: **treat each consumer's `.gitignore` +
+  config shape as an UNKNOWN to probe, not a copy of the hub** (SUPPLEMENT §B; LESSONS 2026-07-01).
+- **#225 — precommit carrier surgical edit** (comment-preserving; precedes fleet for clean diffs at scale).
+- **#231 — consumer→hub feedback loop** (schema + transport + home open; pairs with (b)).
+- **#234 — cross-repo probe FAIL-teeth** (harden `.claude/` cross-repo targets; honest-partial WARN today).
+
+**Adjacent open decisions (smaller, unchanged):**
+- **#220 — the MODIFY / semantic-drift axis.** VERIFY-FIRST: does the ADR-89 Pyright oracle or any existing
+  organ gate a *meaning-change-without-version-bump*, or only add/remove/exist? Demonstrated-catch bar first.
+- **#210 — journal-wrap no-ff standing rule.** Path-scoped EXEMPT (JOURNAL/transcripts-only) vs branch-then-
+  merge the wrap — must NOT weaken core-invariant #5.
+- **#233 — deploy-record-index test tempdir isolation** (per-run isolated tempdir; hygiene debt).
+- **#232 — ship-gate right-sizing (UNFILED candidate).** Right-size, not skip; referenced by #233 but never
+  filed as its own id — the architect files it or folds it.
 
 ---
 
@@ -163,8 +174,13 @@ proven subsystem to the fleet** — the leaf that was gated on arming is now **u
 - **Orient:** `VISION.md` `## Vision`, `ARCHITECTURE.md` Ch1 `## Purpose [CORE]` (forced-read via P1).
 - **Methodology:** `protocols/PLAYBOOK.md` (esp. §20 deploy runbook), `protocols/ESSENTIALS.md`,
   `CLAUDE.md`. Referenced by pointer, enforced mechanically (§3) — never re-narrated.
-- **The arm-first arc's "why":** **ADR-93** (floor model A, armed + conformance-proven), `LESSONS.md`,
-  PLAYBOOK §20, `deploy/` (tool.py + carriers + `carrier_floor.py`), the two 2026-07-02 audit artifacts.
-- **This window's captures:** `BACKLOG.md` #221 / #225 / #231 / #234 / #233; the JOURNAL top entries
-  (`f97360e`, the ai-council handoff arc, `b986711`).
+- **The priority "why" (READ FIRST):** the folded `SUPPLEMENT.md` ANSWERS — the three-goal priority, the
+  Fable-first rationale (§5), the "what NOT to redo" list (§3), and the fleet-after ruling (§A).
+- **The Fable review input (goal a):** `docs/audits/2026-07-02-comprehensive-system-audit-for-external-review.md`
+  (the system audit + the review-ask, Part A §7 architecture forks + Part B process-meta) — the drafted
+  material to hand Fable.
+- **The arm-first arc's "why" (sealed backdrop):** **ADR-93** (floor model A, armed + conformance-proven),
+  `LESSONS.md`, PLAYBOOK §20, `deploy/` (tool.py + carriers + `carrier_floor.py`).
+- **This window's captures:** `BACKLOG.md` #221 / #225 / #231 / #234 / #233 (fleet-and-after); the JOURNAL
+  top entries (`f97360e`, the ai-council handoff arc, `b986711`).
 - **Gate the design against live state:** run `PROBES.md` P1–P9. Any FAIL blocks onboarding.
