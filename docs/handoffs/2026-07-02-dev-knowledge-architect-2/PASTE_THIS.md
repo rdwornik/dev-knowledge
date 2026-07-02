@@ -7,10 +7,10 @@
 |---|---|
 | **Slug** | `2026-07-02-dev-knowledge-architect-2` |
 | **Mode** | **architect** (v5.3 §13 — planning / way-of-working scope) |
-| **Purpose** | **Cold refresh of the same live frontier — the priority is unchanged and is NOT fleet rollout.** The operator's three goals, in order, carry forward from the prior bundle's FILLED supplement: **(a) run the time-boxed FABLE whole-system review + merge its rulings; (b) wire ai-council as a CC-GOVERNED query mechanism (browser → CC → ai-council); (c) CLOSE the two open methodology tracks — ADR methodology + ai-council methodology.** Fleet rollout (**#221**) is real but sequenced **AFTER** the three goals (the Fable review may reshape the methodology, so scaling to n=3 first would propagate a soon-to-change methodology; #234/#231 hardening pair with the ai-council work). **What changed since the prior 2026-07-02 bundle (the ONLY window delta):** a housekeeping **stale-disposition prune** (`b255a8c`) tombstoned the 2 ai-council cross-repo probe dispositions — `handoff_probes` now binds 10 probes clean, so **`ship-gate` is GREEN with `4` WARN dispositioned, down from 6, and NO `[stale]` line.** No new design work landed; the arm-first arc + ARCHITECTURE currency + floor model A remain the sealed backdrop (do NOT redo). The incoming architect's job is unchanged: **run Fable first (perishable window), then wire+seal the two coupled methodology tracks; treat fleet #221 as sequenced-after.** OPEN forks: the Fable review scope under the time-box, the ai-council-integration shape (skill vs hook vs other), and what "closed" means for the ADR methodology (the #170/#168 traceability spine is the sticking point). |
+| **Purpose** | **The FILLED supplement re-scoped the priority to a new P0: close the enforcement-transfer gap.** A CC-verified live finding (all 4 consumers) shows the deploy subsystem carries the **presence** of the methodology, **not its enforcement** — five hub enforcement organs (`session_end_backpressure` JOURNAL hard-block, `canonical_freshness`, `doc_claims`, `git_backlog_drift`, the coherence spine) are **HUB-ONLY**; **nothing inside any consumer enforces them locally (5/5 ABSENT).** "Held by mechanism, not memory" is **TRUE for the hub, FALSE for every consumer** — a constitution violation replicated 4× (proof: ai-council shipped 3 epics with JOURNAL ~1 month stale, unblocked). **P0 = build the consumer-local enforcement carrier the deploy subsystem never had:** decomposition is **(2) Informant Organ** (read-only enforcement-coverage reporter, low-regret, operator-approves its path) → **(3) mesh carrier** — the **located Fable consult** on the mesh-transfer model **(A)** 5th-carrier-local / **(B)** hub-sweep-on-cadence / **(C)** hybrid, whose tension is **local enforcement vs the Layer-2 autonomy-no invariant** → (4) record the *deployed-presence ≠ deployed-enforcement* lesson. **The prior three-goal priority (Fable whole-system review → ai-council-as-governed-query → close ADR + ai-council methodologies) is DEMOTED to sequenced-after** (real, kept; note #170/#168 were reclassified as arc-tracking, NOT the ADR sticking point — that track is less blocked than believed). Fleet **#221** stays sequenced-after; **do NOT onboard corp-monorepo until the mesh carrier + Informant Organ are proven.** **The only git delta this window:** a housekeeping **stale-disposition prune** (`b255a8c`) → `ship-gate` GREEN, **4 WARN dispositioned (down from 6), NO `[stale]`**; the finding itself is off-repo (browser-side), carried in the folded supplement. |
 | **Generated at** | Bundle cut at HEAD `f3c3f51`, **working tree clean**, `main` **in sync with `origin/main`**. This bundle's own commit + the later `/ship` `--no-ff` merge move HEAD and push `main` **ahead of `origin` until pushed**. **Re-derive HEAD / sync at read-time** (`PROBES.md` P3) — do not trust this line. |
 
-> **Cold refresh — this bundle's SUPPLEMENT is EMPTY by disposition; the still-live strategic "why" lives in the PRIOR bundle.** This session was a cold `/clear → /handoff` with no outgoing architect chat holding new deliberation, so `SUPPLEMENT.md` is committed **empty** (the defined cold-handoff disposition, §13). The three-goal priority was captured in the **prior** bundle's FILLED supplement — **`docs/handoffs/2026-07-02-dev-knowledge-architect/SUPPLEMENT.md`** — which remains **authoritative on priority** and un-acted-upon. `RESIDUAL.md` §4 carries that frontier forward (as inferred/recall, pointing at the prior filled supplement); the off-repo "why" is not in THIS paste (the empty supplement is `[skip]`-folded), so the incoming **§13(d) operator-context beat** narrows to *"anything changed since the prior 2026-07-02 supplement's three goals?"* — read the prior filled supplement for the full rationale.
+> **Generated cold, then FILLED — the fill RE-SCOPED the priority to the enforcement-mesh P0.** This bundle's `SUPPLEMENT.md` was generated empty (housekeeping-only git window) and then **FILLED** by the operator from an outgoing architect chat holding a **CC-verified live finding** — the enforcement-transfer gap (above). Its ANSWERS are folded into `PASTE_THIS.md`, carry this window's **off-repo strategic "why,"** and **supersede the prior three-goal priority.** `HANDOFF_BOOT` + `RESIDUAL` §4 are **re-scoped to lead with the enforcement-mesh P0** (three goals + fleet #221 demoted to sequenced-after, kept not deleted). Because the supplement carries answers, the incoming **§13(d) operator-context beat NARROWS** to *"anything changed since?"* — **not** a FULL re-ask. The prior bundle's supplement (`docs/handoffs/2026-07-02-dev-knowledge-architect/SUPPLEMENT.md`) holds the now-demoted three-goal context.
 
 > **Operator runbook is not copied here.** The stable who-each-file-is-for / run-loop / rationale lives **once** in the canonical per-repo runbook **`docs/handoffs/README.md`** — read it for the walkthrough. This file carries only the **session header** (above) + the **paste-pointer** (below). v5 bundles carry **no per-bundle README** (the 2026-06-12 canonical-runbook collapse — `HANDOFF_PROCESS.md` §13).
 
@@ -263,14 +263,15 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > points at the whole BACKLOG / relevant themes, and the open architecture questions travel as
 > residual so the next session resumes the design rather than rediscovering it.
 >
-> **This is a COLD REFRESH of the prior 2026-07-02 bundle.** The session was `/clear → /handoff`
-> with no in-session design work; the only window delta since the prior bundle
-> (`docs/handoffs/2026-07-02-dev-knowledge-architect/`) is a **housekeeping stale-disposition
-> prune** (`b255a8c`). The strategic frontier is **unchanged and un-acted-upon** — the three-goal
-> priority is carried forward here (§4) from that prior bundle's **FILLED** supplement, which stays
-> **authoritative on priority**. This bundle's own `SUPPLEMENT.md` is committed **empty** (cold
-> disposition), so its ANSWERS are not folded into `PASTE_THIS`; the incoming **§13(d) beat**
-> narrows to *"anything changed since the prior supplement's three goals?"*
+> **Generated as a cold refresh, then FILLED — and the fill RE-SCOPED the priority.** The window's
+> only git delta since the prior bundle (`docs/handoffs/2026-07-02-dev-knowledge-architect/`) is a
+> **housekeeping stale-disposition prune** (`b255a8c`, §1/§2). But the operator then **FILLED
+> `SUPPLEMENT.md`** from an outgoing architect chat holding a **CC-verified live finding** that
+> **supersedes** the prior three-goal priority: **the enforcement-transfer gap is now P0** (§4). The
+> filled ANSWERS are folded into `PASTE_THIS`; the incoming **§13(d) beat NARROWS** to *"anything
+> changed since?"* **§4 below leads with the enforcement-mesh P0**; the three goals + fleet #221 are
+> demoted to **sequenced-after** (kept, not deleted). The full rationale is the folded
+> `SUPPLEMENT.md` ANSWERS — read them.
 >
 > **Four-tag discipline.** `witnessed` = CC re-derived it live this generation (the §1 gate
 > outputs); `recall`/`inferred` = reconstructed from the JOURNAL/git window + the prior bundle,
@@ -347,37 +348,68 @@ re-derive load-bearing counts via `PROBES.md`.
 
 ---
 
-## §4 — The next frontier (open architecture decisions — carried forward from the prior FILLED supplement)
+## §4 — The next frontier (open architecture decisions — RE-SCOPED by the FILLED supplement to the enforcement-mesh P0)
 
-**Unchanged from the prior 2026-07-02 bundle** — nothing this window touched the design. The deploy
-subsystem is **BUILT + ARMED + PROVEN (n=1) + DOCUMENTED**; the arm-first chain is **done and sealed**.
-The repo's dependency graph reads fleet (#221) as next, but **the operator's FILLED supplement
-re-scoped that** — fleet is real but **sequenced AFTER** the three goals below. The operator ruled the
-supplement **authoritative on priority**. **Authoritative source (READ IT):**
-`docs/handoffs/2026-07-02-dev-knowledge-architect/SUPPLEMENT.md` ANSWERS. **recall/inferred** — the
-architect resumes the design here.
+**The filled supplement's CC-verified finding re-scoped the priority.** The deploy subsystem is
+**BUILT + ARMED + PROVEN (n=1) + DOCUMENTED** — but it carries the **presence** of the methodology,
+**not its enforcement**. **Authoritative source (READ IT):** the folded
+`SUPPLEMENT.md` ANSWERS (this bundle). **recall/inferred from the fill** — the architect resumes here.
 
-**The priority (operator-ruled — the repo's dependency graph does NOT encode this):**
-> **(a) FABLE review (time-boxed, FIRST)** → **(b)+(c) wire ai-council-as-governed-query + close the ADR + ai-council methodology tracks (one coupled work-stream, after Fable)** → **fleet #221 (sequenced-after)**.
+**THE P0 (new — supersedes the prior three-goal priority):**
+> **Close the enforcement-transfer gap — make "held by mechanism, not memory" TRUE for consumers, not just the hub.**
 
-1. **(a) Run the Fable whole-system review + merge its rulings — FIRST, because it is time-boxed.** The
-   `.dev-knowledge` system audit + the review-ask (Part A: the §7 architecture forks; Part B: process-meta
-   — over-engineering-for-solo, verify-proportionality, canonical-doc naming, deterministic-gate-vs-semantic-
-   property) are **drafted**. Get them to Fable, extract maximum value from the **perishable preview window**
-   (Mythos-tier, possibly export-restricted), then merge Fable's architectural rulings back into the
-   methodology. **Do this first** — Fable's rulings (esp. two-track coherence + the deterministic-gate-vs-
-   semantic-property class) **may reshape goals (b)/(c)**, so closing the methodologies before merging risks
-   an unwind. OPEN: the review **scope** under the time-box (lean focused, not "review everything").
-2. **(b) Wire ai-council as a CC-GOVERNED query mechanism.** Elevate ai-council from a standalone tool to a
-   governed part of the methodology: an architect's multi-model-debate request routes **browser → CC (skill/
-   hook) → ai-council**, with **CC managing the query lifecycle** — question authoring, save-to-correct-path
-   discipline, and ADR management of the output. Closes the loop where ai-council *produces* ADRs but their
-   governance is not yet mechanized. OPEN: the **integration shape** (skill vs hook vs other CC-side trigger)
-   — settled in intent (CC governs the lifecycle regardless of trigger form), undecided in mechanism.
-3. **(c) Close the two open methodology tracks — ADR methodology + ai-council methodology.** These are the
-   operator's named "not yet done" loops; **(b) and (c) are one work-stream** (ai-council produces ADRs, the
-   ADR methodology governs them). Seal both by mechanism, not memory. OPEN: what "closed" **means** for the
-   ADR methodology — the **#170/#168 traceability spine** is the half-built sticking point.
+- **The finding (CC-verified live, all 4 consumers).** Five hub enforcement organs —
+  `session_end_backpressure` (JOURNAL hard-block), `canonical_freshness`, `doc_claims`,
+  `git_backlog_drift`, the coherence spine — are **HUB-ONLY**: they fire only when the hub runs
+  `audit.py` against a consumer from outside. **Nothing inside any consumer enforces them locally
+  (5/5 ABSENT across ai-council / corp-monorepo / corp-ops / corp-sca-time-automation).** The one
+  organ present fleet-wide is the plugin's `propose_closures` — **non-blocking by design.** So there
+  is **zero fail-closed enforcement in any consumer.** Proof it bites, not theory: ai-council shipped
+  3 feature epics this window with JOURNAL ~1 month stale and nothing blocked it. **"Held by mechanism,
+  not memory" is TRUE for the hub, FALSE for every consumer — a constitution violation replicated 4×.**
+- **The gap:** the deploy subsystem's 4 carriers (globalconfig / plugin / precommit / floor) were
+  **never designed to transfer** the hub Stop-hook or the `audit.py` organs. There is **no
+  consumer-local enforcement carrier.**
+- **The decomposition (dependency-ordered; steps 0–1 DONE this window):** (0) stabilize live + (1)
+  fleet-map — **done** (the blast-radius map above; ai-council JOURNAL-backfill instruction sent to
+  its architect) → **(2) build the Informant Organ** (read-only per-consumer × per-organ coverage
+  reporter: enforcing-local / absent) — **low-regret, correct regardless of mesh-model, gives the mesh
+  work its acceptance signal; its file path is a new-path decision needing operator approval** →
+  **(3) build the mesh carrier** — **the located Fable consult** → (4) record the lesson (LESSONS +
+  PLAYBOOK: *deployed presence ≠ deployed enforcement; done only when enforcement-in-effect is
+  demonstrated — the configured→armed→proven distinction, generalized to the mesh*).
+- **The core fork (→ Fable RULES, CC IMPLEMENTS):** the **mesh-transfer model** — **(A)** mesh as a
+  **5th carrier**, organs run locally inside each consumer; **(B) hub-sweep-as-mesh**, the hub runs
+  `audit.py` against the fleet on a cadence (must actually run, not "when I remember"); **(C) hybrid** —
+  fail-closed organs (JOURNAL) go local via (A), awareness organs (freshness/drift) go hub-sweep via
+  (B). **Tension:** local enforcement (autonomy/immediacy) **vs the Layer-2 autonomy-no invariant** — a
+  hub pushing running hooks into consumers on a schedule brushes against "hub initiates no autonomous
+  cross-repo writes." Contested + high-stakes + no-obvious-answer + a Layer-2-invariant tension → clears
+  the routing bar for a Fable consult. **Feed Fable the fleet-map, not an n=1 sample.**
+- **OPEN:** mesh-model A/B/C (→ Fable); per-organ local-vs-hub assignment (JOURNAL clearly local;
+  `git_backlog_drift` + coherence spine may be inherently hub-scoped); Informant-Organ file path
+  (operator approval); does #139 (merged-arc→record) + #170/#168 (arc-tracking spine) fold into this
+  work-stream (likely yes — record-integrity family); **the #168-hard vs Fable-WARN conflict** (#168's
+  Done-when says promote the JOURNAL leg to fail-closed HARD; Fable consult #1 ruled arc-tracking stays
+  WARN with no-item disposition) — **unresolved.**
+- **DON'T lose the un-merged Fable consult #1 rulings** (accepted, disposition pass halted by the
+  re-scope — fold into the next session or they die in the outgoing chat): leg-(e) functional-proof into
+  ADR-81; undeclared-edge scan → ship-gate WARN; immutability re-scope (status-line mutable on
+  ratification, decision-content frozen — narrows core-invariant #5, operator sign-off pending);
+  ai-council wiring lane-split (architect frames, CC mechanically expands).
+
+**The prior three-goal priority — DEMOTED to sequenced-after (real, kept, not deleted):**
+- **(a) FABLE whole-system review + merge rulings** — but note the **mesh-model ruling (step 3 above)
+  is now the highest-value remaining use of the perishable Fable window**; the drafted §7 system-audit
+  review-ask is real but sequenced behind the mesh consult. Input:
+  `docs/audits/2026-07-02-comprehensive-system-audit-for-external-review.md`.
+- **(b) Wire ai-council as a CC-GOVERNED query mechanism** (`/council` via the plugin carrier;
+  browser → CC → ai-council; CC owns the mechanical lifecycle, architect owns question-framing) —
+  **designed, not built.** Sequenced after the mesh gap.
+- **(c) Close the two methodology tracks — ADR + ai-council.** **Unblocked this window:** #170/#168
+  were verified-at-source as **arc-tracking** (issue-ID↔commit anchor, same family as #139), **NOT
+  ADR-lifecycle — the prior handoff mis-filed them as the ADR sticking point.** So ADR-methodology
+  closure is less blocked than believed; **(b)+(c) remain one work-stream**, sequenced after the mesh gap.
 
 **Fleet #221 + the hardening items — sequenced AFTER (demoted, not deleted):**
 - **#221 — fleet rollout** (gated by intent, not dependency): run `deploy/tool.py` on corp-monorepo /
@@ -385,6 +417,10 @@ architect resumes the design here.
   also requires **#225** (surgical precommit carrier) closed. Scaling to n=3 before merging Fable's rulings
   would propagate a soon-to-change methodology. Carry the pilot rule: **treat each consumer's `.gitignore` +
   config shape as an UNKNOWN to probe, not a copy of the hub** (prior SUPPLEMENT §B; LESSONS 2026-07-01).
+  **Rejected — do NOT onboard corp-monorepo now** (supplement §3): it was deliberately sequenced last so
+  this gap would surface on the n=1 pilot; onboarding it through the **current** deploy subsystem would
+  inherit the same enforcement-mesh gap — **do not onboard until the mesh carrier + Informant Organ are
+  proven.**
 - **#225 — precommit carrier surgical edit** (comment-preserving; precedes fleet for clean diffs at scale).
 - **#231 — consumer→hub feedback loop** (schema + transport + home open; pairs with (b)).
 - **#234 — cross-repo probe FAIL-teeth** (harden `.claude/` cross-repo targets; honest-partial WARN today —
@@ -406,16 +442,19 @@ architect resumes the design here.
 - **Orient:** `VISION.md` `## Vision`, `ARCHITECTURE.md` Ch1 `## Purpose [CORE]` (forced-read via P1).
 - **Methodology:** `protocols/PLAYBOOK.md` (esp. §20 deploy runbook), `protocols/ESSENTIALS.md`,
   `CLAUDE.md`. Referenced by pointer, enforced mechanically (§3) — never re-narrated.
-- **The priority "why" (READ FIRST — this bundle's supplement is empty by cold disposition):** the PRIOR
-  bundle's FILLED supplement — `docs/handoffs/2026-07-02-dev-knowledge-architect/SUPPLEMENT.md` ANSWERS —
-  the three-goal priority, the Fable-first rationale (§5), the "what NOT to redo" list (§3), and the
-  fleet-after ruling (§A). **Authoritative on priority; un-acted-upon; still live.**
-- **The Fable review input (goal a):** `docs/audits/2026-07-02-comprehensive-system-audit-for-external-review.md`
-  (the system audit + the review-ask, Part A §7 architecture forks + Part B process-meta).
+- **The priority "why" (READ FIRST — the P0 re-scope):** THIS bundle's FILLED `SUPPLEMENT.md` ANSWERS —
+  the enforcement-mesh finding (5/5 organs ABSENT fleet-wide), the decomposition (Informant Organ → mesh
+  carrier → Fable consult on A/B/C), the "deployed presence ≠ deployed enforcement" lesson, the rejected
+  paths (§3), and the un-merged Fable consult #1 rulings (§6). **Authoritative on priority; P0.** The PRIOR
+  bundle's supplement (`docs/handoffs/2026-07-02-dev-knowledge-architect/SUPPLEMENT.md`) holds the now-demoted
+  three-goal priority — read it for that context, but it is **superseded** on priority.
+- **The Fable review input (demoted goal a):** `docs/audits/2026-07-02-comprehensive-system-audit-for-external-review.md`
+  (the system audit + the review-ask) — sequenced behind the mesh-model Fable consult.
 - **The arm-first arc's "why" (sealed backdrop):** **ADR-93** (floor model A, armed + conformance-proven),
   `LESSONS.md`, PLAYBOOK §20, `deploy/` (tool.py + carriers + `carrier_floor.py`), and the prior bundle's
   `RESIDUAL.md`/`HANDOFF_BOOT.md`.
-- **This window's one capture:** `JOURNAL.md` top entry (`b255a8c`, the prune) + `ecosystem/disposition-register.yaml`.
+- **This window's captures:** `JOURNAL.md` top entry (`b255a8c`, the prune) + `ecosystem/disposition-register.yaml`;
+  the enforcement finding is off-repo (browser-side, CC-verified live) — it lives in the folded `SUPPLEMENT.md`.
 - **Gate the design against live state:** run `PROBES.md` P1–P9. Any FAIL blocks onboarding.
 
 ---
@@ -439,15 +478,13 @@ architect resumes the design here.
 > generation and check-time — the pass criterion is **"answered from the live source,"** never
 > "matches the remembered number."
 >
-> **Cold refresh — SUPPLEMENT is EMPTY this bundle.** This window is housekeeping-only (a stale-
-> disposition prune, `b255a8c`); no design work landed and there was no outgoing architect chat, so
-> `SUPPLEMENT.md` is committed **empty** (cold disposition) and is `[skip]`-folded from the paste. The
-> three-goal priority (Fable review → ai-council-as-governed-query → close the ADR + ai-council
-> methodology tracks) is **carried in `RESIDUAL.md` §4** from the **prior** bundle's FILLED supplement
-> (`docs/handoffs/2026-07-02-dev-knowledge-architect/SUPPLEMENT.md` — authoritative on priority,
-> un-acted-upon). So the §13(d) operator-context beat in P1's gate **NARROWS** to *"anything changed
-> since the prior supplement's three goals?"* — it does **not** fire FULL (the load-bearing off-repo
-> call is already recorded), but the ANSWERS live in the prior bundle, not in this paste.
+> **Generated cold, then FILLED — the fill RE-SCOPED the priority.** The git window is housekeeping-only
+> (a stale-disposition prune, `b255a8c`), but the operator then **FILLED `SUPPLEMENT.md`** with a
+> CC-verified live finding — **the enforcement-transfer gap (5 hub organs HUB-ONLY, 5/5 ABSENT across all
+> 4 consumers)** — that **supersedes** the prior three-goal priority. Its ANSWERS are folded into the
+> paste; `RESIDUAL.md` §4 + `HANDOFF_BOOT` are re-scoped to lead with the **enforcement-mesh P0** (three
+> goals + fleet #221 demoted to sequenced-after). So the §13(d) operator-context beat in P1's gate
+> **NARROWS** to *"anything changed since the supplement was written?"* — it does **not** fire FULL.
 >
 > **Windows note:** `audit.py checks` (P2) crashes mid-listing on a bare cp1252 PowerShell console
 > (a `→` in a check docstring) — run with `PYTHONUTF8=1` or in git-bash. `ship-gate` (P7) can
@@ -469,12 +506,11 @@ navigates** (v5.3 §13c), not this read.
 
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (v5.3 §13d):** the
-browser asks the operator for **off-repo** context. This bundle's supplement is **empty** (cold), so
-its ANSWERS are not in the paste — but the three-goal priority is recorded in `RESIDUAL.md` §4 (from
-the prior filled supplement), so the beat **NARROWS** to *"anything changed since the prior 2026-07-02
-supplement's three goals?"* — **not** a FULL blank re-ask. (The load-bearing off-repo call is already
-answered: **Fable-first, methodologies-next, fleet-after**; the full rationale is in the prior bundle's
-`SUPPLEMENT.md`.)
+browser asks the operator for **off-repo** context. This bundle's supplement is **FILLED** (its ANSWERS
+are in the paste — the enforcement-mesh P0, the Informant-Organ → mesh-carrier decomposition, the
+mesh-model A/B/C fork), so the beat **NARROWS** to *"anything changed since the supplement was
+written?"* — **not** a FULL re-ask. (The load-bearing off-repo call is already answered:
+**enforcement-mesh gap is P0; the prior three goals + fleet are sequenced-after.**)
 
 ## Teeth probes (state fidelity — same contract)
 
@@ -486,16 +522,15 @@ answered: **Fable-first, methodologies-next, fleet-after**; the full rationale i
 | P5 | Is `ARCHITECTURE.md`'s `last_reviewed` stamp **on/after or before** its last git-commit touch — and what are the **two dates**? | `ARCHITECTURE.md` frontmatter + live git | a *relation* over commits; a summary holds neither date precisely — **expected: stamp on/after the last touch (both 2026-07-02); the 2026-07-02 stamp is HONEST (#223 genuine re-read; #222 decoupled the count-claims that had been forcing it) — this housekeeping window did not touch ARCHITECTURE** | `git log -1 --format=%cs -- ARCHITECTURE.md` vs the frontmatter stamp (or `audit.py health` `canonical_freshness`) |
 | P6 | What does `validate_doc_claims` report for **`pytest_collected`** — the doc-claim integer, the live-collected integer, and **do they match**? Note the claim lives in `ecosystem/doc-counts.md`, **not** `ARCHITECTURE.md` (decoupled by #222). | `ecosystem/doc-counts.md` (`doc=` target) + live pytest | the live count drifts on any test change; neither integer appears in the residual — **expected to MATCH (1030/1030)**, but the live count is the only ground truth and the pass test is "answered from the live source," not "matches a remembered number" | `python scripts/validate_doc_claims.py` (the `pytest_collected` line) — `audit.py health` does **not** isolate this; use the standalone |
 | P7 | Does `audit.py ship-gate` come back **GREEN or RED** right now, **how many WARNs are dispositioned**, and **is there a `[stale]` disposition**? | live git ∩ `main` history ∩ `ecosystem/disposition-register.yaml` | **THIS is the §1 headline:** at generation `ship-gate` is **GREEN** with **`4` WARN dispositioned** (#77 voided-closure + 3 journal-wrap/transcript no-ff) AND carries **NO `[stale]` line**. The register dropped **6 → 4** this window — the prune (`b255a8c`) tombstoned the 2 stale ai-council cross-repo P5/P7 dispositions (probes now bind clean). The live answer is the only ground truth (a new direct-on-`main` commit would re-RED it); the values are absent from the bundle | `python scripts/audit.py ship-gate` (read the final GREEN/RED verdict + the disposition count + any `[stale]` line) — re-derive; do **not** trust the residual's prose |
-| P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is a `SUPPLEMENT.md` present (and is its ANSWERS region empty or filled), and where does the stable operator boilerplate live instead? | `docs/handoffs/<slug>/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count or the prior bundle's *filled* supplement; the live bundle + spec are the only ground truth — **expected: FIVE files (BOOT + RESIDUAL + PROBES + SUPPLEMENT + PASTE_THIS), NO `README.md`; `SUPPLEMENT.md` present with ANSWERS EMPTY (this is a COLD refresh — the empty supplement is `[skip]`-folded; the three-goal priority lives in the PRIOR bundle's filled supplement, carried into RESIDUAL §4); boilerplate lives once in `docs/handoffs/README.md`** | `ls docs/handoffs/2026-07-02-dev-knowledge-architect-2/` ∩ `HANDOFF_PROCESS.md` §13 |
+| P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is a `SUPPLEMENT.md` present (and is its ANSWERS region empty or filled), and where does the stable operator boilerplate live instead? | `docs/handoffs/<slug>/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count or the wrong supplement state; the live bundle + spec are the only ground truth — **expected: FIVE files (BOOT + RESIDUAL + PROBES + SUPPLEMENT + PASTE_THIS), NO `README.md`; `SUPPLEMENT.md` present with ANSWERS FILLED (generated cold, then filled by the operator → the ANSWERS region carrying the enforcement-mesh finding is folded into `PASTE_THIS`); boilerplate lives once in `docs/handoffs/README.md`** | `ls docs/handoffs/2026-07-02-dev-knowledge-architect-2/` ∩ `HANDOFF_PROCESS.md` §13 |
 | P9 | How many **serialize-groups** does `validate_backlog` summarize **right now**, which `#id`(s) are in the **code-edge** group, and which `#id`s are in the **coherence** group? | `BACKLOG.md` ∩ `scripts/validate_backlog.py` | #156 made the task-graph durable, so group membership is a live schema fact that drifts on any BACKLOG edit; it is absent from this bundle — **expected: code-edge = ONLY `#218`; coherence = `#180/#181/#182/#220`; the `audit-py` group includes `#234`** (unchanged this window — no BACKLOG edit) | `python scripts/validate_backlog.py` (the serialize-groups summary line) |
 
 ## Gate procedure (CC)
 
 1. **P1 first** — the architect cannot begin design until both orienting lines are read live and
    substring-matched. **Then run the operator-context beat (§13d)** — **NARROWED** to *"anything changed
-   since the prior 2026-07-02 supplement's three goals?"* (this bundle's supplement is empty; the prior
-   filled supplement carries the priority), not a FULL re-ask, before design. Then run P2–P9, each against
-   **live state now** (not generation-time).
+   since the supplement was written?"* (this bundle's supplement is FILLED, ANSWERS folded into the paste),
+   not a FULL re-ask, before design. Then run P2–P9, each against **live state now** (not generation-time).
 2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing /
    command errored / receiver tried to answer from memory or this bundle).
 3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary
@@ -505,6 +540,69 @@ answered: **Fable-first, methodologies-next, fleet-after**; the full rationale i
    6→4) — but the pass criterion is **"answered from the live source,"** never "matches the verdict the
    summary remembered." **P2** is expected to read **26** (last name `doc_code_coverage_drift`). **P5**
    expects an HONEST 2026-07-02 stamp. **P6** is expected to **MATCH** (1030/1030), the claim in
-   `doc-counts.md`. **P8** pins the five-file shape with `SUPPLEMENT.md` **EMPTY** (cold refresh — do NOT
-   confuse with the prior bundle's *filled* supplement; no README). **P9** pins the now-durable
+   `doc-counts.md`. **P8** pins the five-file shape with `SUPPLEMENT.md` **FILLED** (generated cold, then
+   filled by the operator + folded into `PASTE_THIS`; no README). **P9** pins the now-durable
    serialize-group graph (#156) with **code-edge = just #218** and **`#234` in the `audit-py` group**.
+
+---
+
+=== SUPPLEMENT.md ===
+
+System state — confirmed (what this session established vs what stays open)
+The headline finding (CC-verified against live config, all 4 consumers):
+The deploy subsystem carries the presence of the methodology, not its enforcement. Five hub enforcement organs — session_end_backpressure (JOURNAL hard-block), canonical_freshness, doc_claims, git_backlog_drift, the coherence spine — are HUB-ONLY across the entire fleet: they only fire when the hub runs audit.py against a consumer from outside. Nothing inside any consumer enforces them locally.
+Blast-radius matrix (live, this window):
+Consumer5 enforcement organsWhat DID wire in locallyai-council5/5 ABSENTplugin Stop→propose_closures; floor-hash (2-leg); ruff v0.15.5; toc-freshness (1 file)corp-monorepo5/5 ABSENTplugin Stop→propose_closures; ruff v0.15.8; tach-check; toc-freshness (1 file); no floor-hashcorp-ops5/5 ABSENTplugin Stop→propose_closures; surface-conformance.ps1 nudge; no .pre-commit-config.yaml at allcorp-sca-time-automation5/5 ABSENTplugin Stop→propose_closures; floor-hash ONLY
+The proof it matters, not theory: ai-council shipped 3 feature epics this window with JOURNAL ~1 month stale and nothing blocked it — because the organ that would block it (ADR-85 session_end_backpressure) does not exist in that repo. The one organ uniformly present fleet-wide is the plugin's propose_closures — which is non-blocking by design (detect-and-propose, never fail-closed). So there is zero fail-closed enforcement in any consumer.
+What this means at the principle level: "held by mechanism, not memory" — the system's founding standard — is TRUE for the hub and FALSE for every consumer. In consumers, JOURNAL currency, doc freshness, and coherence are held by operator memory. That is a violation of the constitution, replicated 4×.
+Sealed / verified this window (do NOT redo):
+
+The fleet blast-radius map above (CC read-only, live config all 4 repos).
+Verify-at-source on #170/#168: they are arc-tracking (issue-ID↔commit anchor), the same family as #139 — NOT ADR-lifecycle. This unblocks ADR-methodology closure (the prior handoff mis-filed them as the ADR sticking point). Grounded in live BACKLOG quotes.
+Register cleanup: 2 stale cross-repo dispositions pruned; ship-gate 6→4 dispositioned, GREEN, on main (b255a8c).
+
+Still OPEN (the whole point of the next session):
+
+The enforcement mesh has no consumer-local carrier. The deploy subsystem's 4 carriers (globalconfig/plugin/precommit/floor) were never designed to transfer the hub Stop-hook or the audit.py organs. This is the gap.
+
+Mistakes made this session — carry as lessons (accountability, not hand-wringing)
+The load-bearing methodology lesson — this is the one to encode in LESSONS + PLAYBOOK:
+Deployed presence ≠ deployed enforcement. Every prior audit (incl. the ai-council adoption audit) reported CONFORMS ✅ / no adoption gaps — because each measured whether the carrier'd files are present + conforming, never whether the enforcement fires. The gap was structurally invisible to the entire verification chain. The operator repeatedly instructed "map the whole methodology into the consumer"; each time, the carriers that exist landed, and each audit confirmed "done" — so more instruction produced more false-green, not detection. The rule this generates: a deploy/onboard is not "done" on presence-conformance; it is done only when enforcement-in-effect is demonstrated (a hook actually fires, a gate actually blocks) — the exact configured→armed→proven distinction the floor arc already established, never generalized to the mesh.
+The outgoing architect's own miss (this chat, honest): had the ai-council adoption audit in hand — it literally showed JOURNAL stale by a month — and passed CONFORMS through as "adoption good, green light" instead of interrogating whether present meant enforcing. The operator caught by eye what the review gate should have caught. Root cause of the class, though, predates this chat: the deploy subsystem was designed without a mesh carrier, in prior sessions not auditable from here.
+Lesson for the next architect (conduct): this session also failed on delivery — raw reasoning leaked into user-visible output repeatedly, and answers thrashed between walls-of-text and shallow one-liners under pressure. Do not replicate. Keep thinking under the hood; lead insight-first; match depth to the weight of the moment, not to the operator's frustration.
+1. Strategic intent (way-of-working goals, not tasks)
+The single goal: close the enforcement-transfer gap — make "held by mechanism, not memory" true for consumers, not just the hub. Concretely: design and build the mechanism by which hub enforcement organs reach consumers (or by which the hub reliably enforces against them on a cadence), plus a standing organ that makes this class of gap impossible to miss again by measuring enforcement-in-effect rather than presence.
+This supersedes the prior three-goal priority (Fable review → ai-council-as-governed-query → close ADR + ai-council methodologies). Those are real and sequenced-after, but the fleet-wide constitutional gap is now P0. Do not lead with the three goals; lead with the mesh gap.
+2. Tensions weighed
+Mostly OPEN — the next session must weigh them; do not assume settled:
+
+Mesh-transfer model (the core fork). (A) mesh as a 5th carrier — organs run locally inside each consumer; (B) hub-sweep-as-mesh — the hub runs audit.py against the fleet on a cadence, consumers enforce nothing locally but the sweep must actually run on cadence (not "when I remember"); (C) hybrid — fail-closed organs (JOURNAL) go local via (A), awareness organs (freshness/drift) go hub-sweep via (B). Tension: local enforcement (autonomy, immediacy) vs the Layer-2 autonomy-no invariant — a hub that pushes running hooks into consumers on a schedule brushes against "hub initiates no autonomous cross-repo writes." This is genuinely contested + high-stakes + no-obvious-answer → the located moment for a Fable consult. Fable RULES, CC IMPLEMENTS.
+Which organs even belong locally. JOURNAL hard-block clearly should fire in-consumer. But git_backlog_drift and the coherence spine may be inherently hub-scoped (cross-repo reconciliation). The per-organ local-vs-hub call is part of the design, not a given.
+Informant Organ scope. Read-only coverage reporter (per-consumer × per-organ: enforcing-local / absent). Low-regret, buildable independently of the mesh-model decision — but its file path is a new-path decision requiring operator approval.
+
+3. Considered + rejected (do NOT relitigate)
+
+"It's an ai-council incident" → rejected by evidence. The fleet-map proves 5/5 ABSENT across all 4 consumers. Fleet-wide, systemic. Any fix must be fleet-wide, not an ai-council patch.
+"The system is broken" → rejected as framing. The mesh was never built, not broken. The rest of the hub (coherence spine, ship-gate, floor, ADR lifecycle) is verified-working. This is a missing carrier with clear options, not a failed system.
+Onboarding monorepo now → rejected / correctly deferred. monorepo was deliberately sequenced last precisely so this class of gap would surface on the n=1 pilot (ai-council) first. It did. Onboarding monorepo through the current deploy subsystem would inherit the same gap — do NOT onboard it until the mesh carrier + Informant Organ are proven.
+Prior-window rejects still stand: floor Model B; in-place-fragment decouple; escalating routine builds to Council.
+
+4. Open questions
+
+Mesh-model A/B/C — to Fable.
+Per-organ local-vs-hub assignment.
+Informant Organ file path — operator approval (new path).
+Does #139 (merged-arc→record) + #170/#168 (arc-tracking spine) fold into the same work-stream? Likely yes — arc-tracking and enforcement-transfer are adjacent record-integrity families.
+The #168-hard vs Fable-WARN conflict surfaced in consult #1 (#168's Done-when says promote JOURNAL leg to fail-closed HARD; Fable ruled arc-tracking stays WARN with no-item disposition) — unresolved.
+
+5. Decomposition rationale — why this shape
+Four steps, dependency-ordered: (0) stabilize live → (1) fleet-map → (2) Informant Organ → (3) mesh carrier → (4) record the lesson. Steps 0 and 1 are DONE this window (ai-council JOURNAL-backfill instruction sent to that repo's architect; fleet-map complete). The next session starts at step 2/3.
+Why Informant Organ (2) before mesh carrier (3): it is low-regret (read-only, no constitutional change) and correct regardless of which mesh-model wins — you need enforcement-coverage visibility no matter what. Building it first also gives the mesh work its acceptance signal (the fix is "done" when the Informant Organ shows enforcement-local green).
+Why Fable is warranted for (3) specifically: it clears the routing bar (contested + high-stakes + no-obvious-answer + a Layer-2-invariant tension), unlike consult #1's already-optimized forks. Feed it the fleet-map, not an n=1 sample.
+What the next session must NOT redo: the fleet-map (step 1); the #170/#168 classification; the register cleanup. All sealed this window.
+6. Off-repo context
+
+Priority is re-scoped by the finding. The prior supplement's three-goal priority (Fable → ai-council-query → close methodologies) is demoted below the enforcement-mesh gap. The mesh gap is P0; the three goals are sequenced-after. (Per point A: nothing else changed the priority this window — but the CC-verified enforcement finding did, and it dominates.)
+Consult #1 (Fable) is spent and its rulings are pending-disposition, un-merged — the re-scope to vision/recovery halted the disposition pass. The accepted-but-unmerged rulings are: leg-(e) functional-proof into ADR-81; undeclared-edge scan → ship-gate WARN; immutability re-scope (status-line mutable on ratification, decision-content frozen) — operator sign-off pending, it narrows core-invariant #5; ai-council wiring lane-split (architect frames, CC mechanically expands). These must not be lost — fold them into the next session or they die in the outgoing chat.
+ai-council wiring (/council via the plugin carrier) was designed, not built — browser→CC→ai-council, CC owns the mechanical lifecycle, architect owns question-framing. Sequenced after the mesh gap.
+Fable is a time-boxed / possibly export-restricted preview. One consult spent. The mesh-model ruling (step 3) is the highest-value remaining use of the window.
