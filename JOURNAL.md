@@ -19,7 +19,7 @@
 
 ---
 
-### 2026-07-02 — CC: generate v5 architect handoff bundle for dev-knowledge (self, docs) (a95e3b0)
+### 2026-07-02 — CC: generate v5 architect handoff bundle for dev-knowledge (self, docs) (fb8ba4a)
 
 **Did:** `/handoff dev knowledge architect` — v5.3 **self** architect handoff. Ran the scope matrix (clean tree, commits since the 2026-07-01 handoff, today's slug absent → Case 2, capture-window). Re-derived live state: ship-gate GREEN (6 WARN dispositioned, **no `[stale]`**), `validate_git_backlog` = only the standing #77, `validate_backlog` = 94 tasks / 26 checks / last `doc_code_coverage_drift`, `validate_doc_claims` pytest_collected **1030/1030 match** (now via `ecosystem/doc-counts.md`, decoupled by #222). Emitted the 5-file bundle to `docs/handoffs/2026-07-02-dev-knowledge-architect/`: `HANDOFF_BOOT.md` · `RESIDUAL.md` · `PROBES.md` (P1 orientation + P2–P9 teeth, updated expected values) · `SUPPLEMENT.md` (**empty — cold disposition**, CC-execution window, no outgoing chat) · `PASTE_THIS.md` (assembled; empty SUPPLEMENT correctly `[skip]`-folded).
 
