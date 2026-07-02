@@ -539,3 +539,135 @@ def test_registered_check_never_fails_on_live_repo():
     # Production contract: the live hub's latest bundle must resolve (pass/warn), never FAIL.
     findings = aud.check_handoff_probes(Path(aud._REPO_ROOT))
     assert findings[0].status in {"pass", "warn"}
+
+
+# --- cross-repo bundle resolution (ADR-36/41 — probes bind to a TARGET repo) -
+# A handoff bundle lives in the hub but its probes may bind to a DIFFERENT (target) repo
+# (fleet onboarding, #221). check_handoff_probes reads the bundle's `Target repo` row and
+# resolves against the target root; a foreign `.claude/` or ambiguous basename degrades to
+# WARN (honest-partial), a genuine miss still FAILs, a real target file PASSes. #NNN hardens
+# the `.claude/` case to full FAIL teeth.
+
+def _crossrepo_bundle(tmp_path, rows, target="tgt", slug="2026-07-02-x"):
+    """A hub bundle whose HANDOFF_BOOT.md declares a cross-repo target + the sibling target
+    repo on disk. Returns (hub_root, bundle_dir, target_root)."""
+    hub = tmp_path / "hub"
+    bundle = hub / "docs" / "handoffs" / slug
+    bundle.mkdir(parents=True)
+    (bundle / "PROBES.md").write_text(_probes_md(rows), encoding="utf-8")
+    (bundle / "HANDOFF_BOOT.md").write_text(
+        "# boot\n\n| Field | Value |\n|---|---|\n"
+        f"| **Target repo** | **`{target}`** (cross-repo, ADR-36/41) |\n", encoding="utf-8")
+    tgt = tmp_path / target
+    tgt.mkdir()
+    return hub, bundle, tgt
+
+
+def test_resolve_status_classifies_tokens(tmp_path):
+    repo = tmp_path / "t"
+    (repo / "docs" / "sub").mkdir(parents=True)
+    (repo / ".claude").mkdir()
+    (repo / "VISION.md").write_text("v\n", encoding="utf-8")
+    (repo / "docs" / "A.md").write_text("a\n", encoding="utf-8")
+    (repo / "docs" / "sub" / "A.md").write_text("a2\n", encoding="utf-8")   # 2nd copy
+    (repo / ".claude" / "guard.py").write_text("x\n", encoding="utf-8")
+    assert vhp._resolve_status(repo, "VISION.md") == "resolved"       # unique basename
+    assert vhp._resolve_status(repo, ".claude/guard.py") == "excluded"  # excluded-dir path
+    assert vhp._resolve_status(repo, "A.md") == "ambiguous"           # two live copies
+    assert vhp._resolve_status(repo, "GHOST.md") == "missing"         # a genuine miss
+
+
+def test_bundle_target_repo_parses_row(tmp_path):
+    _, bundle, _ = _crossrepo_bundle(tmp_path, [_PASS_SYMBOL], target="ai-council")
+    assert aud._bundle_target_repo(bundle) == "ai-council"
+
+
+def test_bundle_target_repo_none_when_no_boot_or_row(tmp_path):
+    # a self-handoff bundle (no HANDOFF_BOOT.md) -> None -> treated as same-repo.
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL])
+    assert aud._bundle_target_repo(bundle) is None
+
+
+def test_verify_cross_repo_excluded_target_is_warn_not_fail(tmp_path):
+    # a foreign `.claude/` target -> WARN (skipped), never a fake-FAIL nor a fake-PASS.
+    row = ("P5", "is the floor armed", "`.claude/guard.py` here",
+           "armed is a runtime property", "`python .claude/guard.py`")
+    _, bundle, tgt = _crossrepo_bundle(tmp_path, [row])
+    (tgt / ".claude").mkdir()
+    (tgt / ".claude" / "guard.py").write_text("x\n", encoding="utf-8")
+    by = _by_id(vhp.verify(bundle, repo_root=tgt, cross_repo=True))
+    assert by["P5"].status == "skipped"
+    assert "excluded" in by["P5"].detail
+
+
+def test_verify_cross_repo_ambiguous_target_is_warn(tmp_path):
+    row = ("PAM", "reads an ambiguous basename", "`DUP.md` here",
+           "two copies in the target", "`grep x a/DUP.md`")
+    _, bundle, tgt = _crossrepo_bundle(tmp_path, [row])
+    (tgt / "a").mkdir()
+    (tgt / "b").mkdir()
+    (tgt / "a" / "DUP.md").write_text("x\n", encoding="utf-8")
+    (tgt / "b" / "DUP.md").write_text("x\n", encoding="utf-8")
+    by = _by_id(vhp.verify(bundle, repo_root=tgt, cross_repo=True))
+    assert by["PAM"].status == "skipped"
+    assert "ambiguous" in by["PAM"].detail
+
+
+def test_verify_cross_repo_missing_target_still_fails(tmp_path):
+    # a genuine miss in the foreign repo KEEPS full FAIL teeth (not softened to WARN).
+    row = ("PM", "reads a ghost", "`ghost/GONE.md` here",
+           "nothing binds", "`grep x ghost/GONE.md`")
+    _, bundle, tgt = _crossrepo_bundle(tmp_path, [row])
+    by = _by_id(vhp.verify(bundle, repo_root=tgt, cross_repo=True))
+    assert by["PM"].status == "fail"
+    assert "GONE.md" in by["PM"].detail
+
+
+@pytest.mark.skipif(shutil.which("grep") is None, reason="grep not in PATH")
+def test_verify_cross_repo_resolved_target_passes(tmp_path):
+    # a real file in the TARGET repo resolves against the target root -> PASS (teeth kept).
+    row = ("PR", "reads a real target file", "`ONLY_IN_TARGET.md` here",
+           "the file is in the target repo", "`grep x ONLY_IN_TARGET.md`")
+    _, bundle, tgt = _crossrepo_bundle(tmp_path, [row])
+    (tgt / "ONLY_IN_TARGET.md").write_text("t\n", encoding="utf-8")
+    by = _by_id(vhp.verify(bundle, repo_root=tgt, cross_repo=True))
+    assert by["PR"].status == "pass"
+
+
+def test_check_cross_repo_resolves_against_target_no_false_fail(tmp_path):
+    # the probe binds to a file present ONLY in the target repo; check_handoff_probes must
+    # resolve against the target (via the Target-repo row) -> no false FAIL.
+    row = ("PR", "reads a target file", "`ONLY_IN_TARGET.md` here",
+           "lives only in the target repo", "`grep x ONLY_IN_TARGET.md`")
+    hub, _, tgt = _crossrepo_bundle(tmp_path, [row])
+    (tgt / "ONLY_IN_TARGET.md").write_text("t\n", encoding="utf-8")
+    findings = aud.check_handoff_probes(hub)
+    assert all(f.status in {"pass", "warn"} for f in findings)  # never FAIL cross-repo-resolved
+
+
+def test_check_cross_repo_target_absent_is_warn_not_fail(tmp_path):
+    # target repo not present as a sibling -> a single non-gating WARN, never FAIL.
+    hub = tmp_path / "hub"
+    bundle = hub / "docs" / "handoffs" / "2026-07-02-x"
+    bundle.mkdir(parents=True)
+    (bundle / "PROBES.md").write_text(_probes_md([_PASS_SYMBOL]), encoding="utf-8")
+    (bundle / "HANDOFF_BOOT.md").write_text(
+        "| **Target repo** | **`nope-not-here`** |\n", encoding="utf-8")
+    findings = aud.check_handoff_probes(hub)
+    assert len(findings) == 1
+    assert findings[0].status == "warn"
+    assert "not present" in findings[0].evidence
+
+
+def test_check_self_handoff_target_row_not_treated_cross_repo(tmp_path):
+    # a 'Target repo' equal to this repo's own name is a self-handoff -> resolve same-repo.
+    hub = tmp_path / "hub"
+    bundle = hub / "docs" / "handoffs" / "2026-07-02-x"
+    bundle.mkdir(parents=True)
+    (hub / "scripts").mkdir()
+    (hub / "scripts" / "audit.py").write_text("ALL_CHECKS = []\n", encoding="utf-8")
+    (bundle / "PROBES.md").write_text(_probes_md([_PASS_SYMBOL]), encoding="utf-8")
+    (bundle / "HANDOFF_BOOT.md").write_text(
+        "| **Target repo** | **`hub`** |\n", encoding="utf-8")  # == repo dir name
+    findings = aud.check_handoff_probes(hub)
+    assert findings[0].status == "pass"  # resolved against the hub itself, not cross-repo
