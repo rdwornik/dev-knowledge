@@ -105,12 +105,55 @@ from the window; re-derive load-bearing facts via `PROBES.md`.
 
 ---
 
-## §4 — The next frontier (open architecture decisions — this is a DECISION session)
+## §4 — The next frontier (open decisions — this is a DECISION session)
 
-Methodology adoption is **done**; the deploy machinery is **armed**. The center of gravity is the
-**research-driven evolution of the council itself** — the 2026-06-16 audit is a **converged-nothing
-ADR seed**, and the architect's job is to **decide what (if anything) to build and in what order.**
-**recall/inferred** from the audit — the architect resumes the design here.
+> **Re-scoped 2026-07-02 to the folded SUPPLEMENT (operator ruling).** The PRIMARY priority below comes from
+> the outgoing architect's **filled `SUPPLEMENT.md`** — the off-repo intent CC cannot derive from repo state,
+> **authoritative over CC's repo-derived read on a direct priority conflict**. CC's original repo-derived
+> frontier (the council-vs-research architecture audit) is kept **SECONDARY/adjacent** — demoted, not deleted.
+
+### PRIMARY — build the research-mode section in `docs/council-question-guide.md` (folded SUPPLEMENT)
+
+**THE priority** (the outgoing architect is emphatic it is *not one item among several*): a **research-mode
+section** teaching the **research-vs-normal question-authoring distinction**, three parts — **recognition
+test · formulation rules · breadth-over-depth trap** — inserted after the mode-selection table. **Success is
+a hard end-state, not "docs merged":** the next research-mode debate authored after it lands passes
+mode-recognition **without operator rework**; if the next research question is still miswritten, the
+recognition test failed and needs sharpening.
+
+**Build order — dependency-driven, NOT numeric:**
+1. **Pre-commit hook clean-check** (baseline) — a red hook blocks + contaminates verification of every later build; runs first.
+2. **The research-mode section** [primary] — single file, docs-only, highest value / lowest blast radius.
+3. **`AGENTS.md` at repo root** [governance] — tool-agnostic cross-agent governance file, absent, mandated at root for Scale M+.
+4. **ADR-38 Scale-M compliance verification** — confirm required root files present; flag gaps.
+5. **`docs/HANDOFF.md` flat-file status** — deprecate if present.
+6. **LESSONS.md scope-tag backfill** [CONDITIONAL] — execute ONLY after reconciling flag (2); likely obsolete.
+
+**Settled (do NOT redo / re-decide):** the 3-part structure; the docs-only (author-education) path over
+runtime intervention (author *intent* is unresolvable at submission); the rejection of a hybrid mode; the
+dependency-driven baseline-first order.
+
+**Two operational flags (load-bearing):**
+- **(1) ai-council CC is already mid-execution against an older 5-section delivered plan — do NOT re-issue
+  builds in a new format.** This handoff is architect→architect methodology continuity, not task re-delivery to CC.
+- **(2) The scope-tag backfill (#6) cites ADR-46, but ADR-48/49 WITHDREW scope-tag enforcement — reconcile
+  before any backfill** (if withdrawn, the build is obsolete — do not execute).
+
+**Divergence signal (act on it, don't just note it):** CC's repo-derived frontier (SECONDARY, below) diverged
+from the operator's stated intent — so **sanity-check whether ai-council's own `BACKLOG.md` frontier needs
+re-pointing.** The divergence is a signal about the repo's self-description, not merely a bundle choice.
+
+**Open questions the architect carries (from the SUPPLEMENT):** does the built section *train* recognition or
+only *document* it (empirical test = the next authored research debate)? the `>3 sub-questions` breadth-trap
+threshold (inferred — tune if it over/under-fires); whether concrete example question-files or a decision-tree
+mode-selector are needed follow-ups; and a **methodology-apparatus gap** the arc exposed — should the handoff
+apparatus add an explicit *"reconcile carried directives against bundle ADR essences"* step (the ADR-46 vs
+ADR-48/49 miss), or is that authoring-side hygiene? (A candidate hub-methodology item.)
+
+### SECONDARY / adjacent — CC's repo-derived read: the council-vs-research architecture audit
+
+*(Kept for context; the PRIMARY above supersedes it as the stated priority. Real and compounding, but not
+this arc's focus. Methodology adoption is **done**; the deploy machinery is **armed**.)*
 
 **The load-bearing frame (from the audit).** ai-council strongly implements the *"diversity + blind +
 quality-weighted-judge half"* of the MAD research but **largely lacks the *measurement + control
@@ -167,7 +210,10 @@ the **top sequencing call** for the incoming architect.
 
 - **Orient (forced-read via `PROBES.md` P1):** `ai-council/VISION.md` `## Vision`,
   `ai-council/ARCHITECTURE.md` `## Purpose [CORE]`.
-- **The frontier's "why":** `ai-council/docs/audits/2026-06-16-council-architecture-vs-research-audit.md`
+- **The PRIMARY build target (folded SUPPLEMENT priority):** `ai-council/docs/council-question-guide.md`
+  (the mode-selection table + where the research-mode section inserts) and `ai-council/BACKLOG.md`
+  (sanity-check whether its frontier needs re-pointing — the divergence signal, §4).
+- **The SECONDARY frontier's "why" (CC repo-derived):** `ai-council/docs/audits/2026-06-16-council-architecture-vs-research-audit.md`
   (the ADR seed — gaps, invention bank, tension map, open questions §"Open questions"/"next-step") and
   `ai-council/docs/audits/2026-07-02-methodology-adoption-audit.md` (adoption-complete + hygiene).
 - **The council's design canon:** `ai-council/docs/decisions/ADR-01…ADR-08`, `VISION.md` Values,

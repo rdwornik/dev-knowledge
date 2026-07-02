@@ -21,10 +21,10 @@
 > generation and check-time — the pass criterion is **"answered from the live source,"** never
 > "matches the remembered number."
 >
-> **Cold-vs-filled supplement.** `SUPPLEMENT.md` is generated **empty** (this is a cold cross-repo
-> handoff — no outgoing ai-council architect chat was interviewed). If the operator later fills it,
-> its ANSWERS fold into `PASTE_THIS.md` and the §13(d) beat NARROWS; **while empty**, the §13(d)
-> operator-context beat fires **FULL**.
+> **Filled supplement.** `SUPPLEMENT.md` was **FILLED** by the operator from the outgoing ai-council
+> architect chat — its ANSWERS are folded into `PASTE_THIS.md` (the research-mode-authoring priority +
+> the two operational flags), so the §13(d) operator-context beat **NARROWS** to *"anything changed
+> since the supplement was written?"* — **not** a FULL re-ask.
 
 ## P1 — Orientation (the architect's **first move**, before any mechanism — v5.3 §13c)
 
@@ -42,9 +42,9 @@ navigates** (v5.3 §13c), not this read.
 
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (v5.3 §13d):** the
-browser asks the operator for **off-repo** context. The supplement is **EMPTY** (cold cross-repo
-handoff), so the beat fires **FULL** — *what is the intent for this ai-council planning session, what
-priorities/decisions/findings live off-repo?* — **not** a narrowed "anything changed since?" check.
+browser asks the operator for **off-repo** context. The supplement is **FILLED** (its ANSWERS are in
+the paste — the research-mode-authoring priority + operational flags), so the beat **NARROWS** to
+*"anything changed since the supplement was written?"* — **not** a FULL re-ask.
 
 ## Teeth probes (state fidelity — same contract; run in the ai-council checkout)
 
@@ -60,9 +60,10 @@ priorities/decisions/findings live off-repo?* — **not** a narrowed "anything c
 ## Gate procedure (CC)
 
 1. **P1 first** — the architect cannot begin design until both orienting lines are read live and
-   substring-matched. **Then run the operator-context beat (§13d)** — **FULL** (the supplement is
-   empty, cold cross-repo handoff), not narrowed, before design. Then run P2–P7, each against **live
-   ai-council state now** (not generation-time), **from the ai-council checkout**.
+   substring-matched. **Then run the operator-context beat (§13d)** — **NARROWED** to *"anything changed
+   since the supplement was written?"* (the supplement is FILLED, ANSWERS folded into the paste), not a
+   FULL re-ask, before design. Then run P2–P7, each against **live ai-council state now** (not
+   generation-time), **from the ai-council checkout**.
 2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing /
    command errored / receiver tried to answer from memory or this bundle).
 3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary
