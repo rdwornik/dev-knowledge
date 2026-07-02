@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-02 — CC: prune 2 stale handoff-probe dispositions from the register (ADR-75) (b255a8c)
+
+**Did:** Session-start orientation ran the bundle's P1–P9 probes. All matched expected except **P7**: ship-gate surfaced **2 `[stale]` dispositions** — `warn-handoff-probes-p5-crossrepo-ai-council-2026-07-02` + its `p7` sibling. Both keyed to the `2026-07-02-ai-council-architect` bundle as *latest*; the newer `2026-07-02-dev-knowledge-architect` bundle superseded it, so `handoff_probes` now binds 10 probes to live state ([OK]) and both matched no live WARN. Verified no-live-WARN, then tombstoned both entries in `ecosystem/disposition-register.yaml` per the file's clearing convention (ADR-75 decoration rule).
+
+**Result:** Committed on its own (`b255a8c`, audit-health gate passed). Re-ran ship-gate → **GREEN, no `[stale]`**, the 4 remaining dispositions all clean (#77 voided-closure + 3 no-ff journal/transcript). The underlying cross-repo resolve-only gap stays tracked by **[#234]** (unchanged).
+
+**Changes:** `ecosystem/disposition-register.yaml` (−26/+7 tombstone), `JOURNAL.md` (this).
+
+**Abandoned:** Nothing. P3 noted the bundle's `a95e3b0` SHA superseded by live HEAD `26a0ef9` (the architect-handoff merge) — re-derived, no action.
+
+**Next:** `--no-ff` merge `chore/prune-stale-probe-dispositions` → `main` (holding for operator go).
+
 ### 2026-07-02 — CC: generate v5 architect handoff bundle for dev-knowledge (self, docs) (fb8ba4a)
 
 **Did:** `/handoff dev knowledge architect` — v5.3 **self** architect handoff. Ran the scope matrix (clean tree, commits since the 2026-07-01 handoff, today's slug absent → Case 2, capture-window). Re-derived live state: ship-gate GREEN (6 WARN dispositioned, **no `[stale]`**), `validate_git_backlog` = only the standing #77, `validate_backlog` = 94 tasks / 26 checks / last `doc_code_coverage_drift`, `validate_doc_claims` pytest_collected **1030/1030 match** (now via `ecosystem/doc-counts.md`, decoupled by #222). Emitted the 5-file bundle to `docs/handoffs/2026-07-02-dev-knowledge-architect/`: `HANDOFF_BOOT.md` · `RESIDUAL.md` · `PROBES.md` (P1 orientation + P2–P9 teeth, updated expected values) · `SUPPLEMENT.md` (**empty — cold disposition**, CC-execution window, no outgoing chat) · `PASTE_THIS.md` (assembled; empty SUPPLEMENT correctly `[skip]`-folded).
