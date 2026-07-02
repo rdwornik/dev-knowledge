@@ -96,29 +96,10 @@ dispositions:
   # pytest_collected claim no longer anchors in ARCHITECTURE.md (doc_claims now reconciles it
   # against doc-counts.md, a non-freshness file). The disposition matched no live WARN and was
   # removed to avoid stale-disposition decoration (ADR-75; auto_clearable_by was #222).
-  - id: warn-handoff-probes-p5-crossrepo-ai-council-2026-07-02
-    organ: handoff_probes
-    match: "P5 skipped in 2026-07-02-ai-council-architect"
-    ref: 690d478
-    reason: >-
-      Honest-partial cross-repo probe (ADR-36/41; operator Option-3 ruling 2026-07-02). The
-      first cross-repo handoff bundle's floor-guard probe P5 binds to the TARGET repo's
-      `.claude/check_floor_hash.py`; the resolve-only validator excludes `.claude/` from
-      resolution, so it degrades to WARN (skipped) rather than a fake-FAIL or fake-PASS.
-      Accepted as honest-partial pending [#234] (harden `.claude/` cross-repo targets to full
-      FAIL teeth). Keyed to this bundle+probe; goes stale (surfaced, ADR-75) once a newer
-      handoff supersedes it as the latest bundle.
-    auto_clearable_by: "#234"
-  - id: warn-handoff-probes-p7-crossrepo-ai-council-2026-07-02
-    organ: handoff_probes
-    match: "P7 skipped in 2026-07-02-ai-council-architect"
-    ref: 690d478
-    reason: >-
-      Honest-partial cross-repo probe (ADR-36/41; operator Option-3 ruling 2026-07-02). The
-      first cross-repo handoff bundle's ADR-index probe P7 binds to the TARGET repo's
-      `docs/decisions/README.md` via an ambiguous bare basename (`README.md`), which the
-      resolve-only validator cannot disambiguate, so it degrades to WARN (skipped) rather
-      than a fake-FAIL or fake-PASS. Accepted as honest-partial per the Option-3 ruling.
-      Keyed to this bundle+probe; goes stale (surfaced, ADR-75) once a newer handoff
-      supersedes it as the latest bundle.
-    auto_clearable_by: "#234"
+  # (cleared 2026-07-02) warn-handoff-probes-p5-crossrepo-ai-council-2026-07-02 +
+  # warn-handoff-probes-p7-crossrepo-ai-council-2026-07-02 — both keyed to the
+  # 2026-07-02-ai-council-architect bundle as the latest, honest-partial per the operator
+  # Option-3 ruling. A newer bundle (2026-07-02-dev-knowledge-architect) has since superseded
+  # it as latest, so handoff_probes now binds 10 probes to live state ([OK]) and both
+  # dispositions matched no live WARN. Removed to avoid stale-disposition decoration (ADR-75).
+  # The underlying cross-repo resolve-only gap stays tracked by [#234].
