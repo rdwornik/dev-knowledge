@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-26
+last_reviewed: 2026-07-02
 reconciled_with: handoff-process@5.3
 status: active
 owner: Rob
@@ -7,7 +7,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.23 — 2026-06-23 -->
+<!-- version: 2.25 — 2026-07-02 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -164,11 +164,11 @@ Rules (`.claude/rules/`):
 
 Brief one-liners. Full list in `docs/decisions/README.md`; full governance list in `ARCHITECTURE.md`.
 
-- ADR-85: Session-lifecycle enforcement — deterministic session-end Stop-gate (4-model Council): hard block on the un-gameable JOURNAL commit-SHA anchor, advisory nudge on the BACKLOG leg (promoted when the traceability-spine lands, R1); demotes ARCHITECTURE/VISION/LESSONS/CONTRIBUTING to "update when materially affected"; escape only via logged HEAD-bound `/override`; single-source `protocols/DEFINITION_OF_DONE.md` (amended 2026-06-19: per-session SHA anchor — push→session boundary fix)
-- ADR-86: Conformance-dashboard location — `ecosystem/conformance.md` as an ADR-80 committed-generated zone (a read-only validator generates + commits its own output, Layer-2-safe); the surface ADR-85 R2's ungated-doc staleness signal lands in; the ARCHITECTURE Ch2 pointer lands with the build (#171), not before
-- ADR-87: Architect↔CC equilibrium contract — conditional intent-only prompting: CC self-loads reliably only for code-impact tasks, so the architect emits intent · closure · anti-patterns · plan/auto mode · a thin per-task governance-pointer (GAP-3) and CC owns code-impact context · generic gotchas · the skeleton (now its consumption-spec) · model/effort; GAP-2 backstop filed-not-built (#185), empirical close #184
-- ADR-88: File-oriented dependency management (markdown as a design pattern) — repo files are the dependency unit; coherence across declared edges (`reconciled_with`/`serialize-group`/`depends-on`) held by machinery, not memory; five principles incl. narrow-first + do-not-build-is-doctrine; v1 proof = the #172 coherence spine, extends via the `coherence` group #179–#182
 - ADR-89: Computed code-dependency edges (the computed-edge sibling to ADR-88) — "declare what you cannot compute; compute what you can": code→code computed via a Pyright reverse-dependency oracle (a custom code graph rejected for this repo), the benchmark's three limits (repo-scoped / static-Python-only / call-hierarchy warm-up) bound as normative + provenance required on every answer; doctrine only, no tooling wired (Track A)
+- ADR-90: Doc→code resolver-allows-N — a rule enforced in N code organs declares its expected `# rule:` site count in `multi_site:`, so a legitimately multi-organ rule resolves without an `ambiguous` verdict; Path-A direct ADR under ADR-87 (the #201 governance-trio + #202 Tier-3 quartet scheme), reversible mechanism decision
+- ADR-91: Methodology corpus versioning — the corpus gets semver marked by a **git tag on the hub** (no changelog / version file); the per-consumer deployed version records in the committed `ecosystem/deployed-versions.yaml` (read by `audit.py deployed_methodology_version`); baseline v1.0.0 tagged (ai-council run #1)
+- ADR-92: Methodology-deployment doctrine (deploy-runbook) — a deterministic, versioned, **verification-gated** deploy tool (`deploy/tool.py` + four carriers `globalconfig`/`plugin`/`precommit`/`floor`), operator-run from the hub, writing ADR-91's record only if every carrier verifies; motivated by a prior silent partial deploy (a ruff-gate carrier was missed). Runbook PLAYBOOK §20
+- ADR-93: Floor provisioning model A — the consumer **commits** its ADR-78 methodology floor (tracked via a `.gitignore` negation, not gitignored) behind a **two-leg hash-guard** (a SessionStart guard + the commit-time `floor-hash-verify` hook, both running `.claude/check_floor_hash.py`), so floor drift fails loud; supersedes PLAYBOOK §20's prior "local-only" framing; armed + conformance-proven (#226/#230)
 
 ## 12. Section history
 <!-- scope: meta -->
@@ -182,8 +182,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.22 (2026-06-21) — §12 condensed: v1.0–v2.17 rolled into the `git log --follow -p -- CLAUDE.md` pointer above (ADR-49/65, info-preserving — no history lost), clearing both the `doc_rot` section-history WARN (had reached 23 ≥ 12 entries) and the file-budget WARN (the v2.21 §11 ADR-76–80→85–89 rotation had pushed the file to 201 > the self-declared 200-line budget). Operator-approved condensation, landed with the 2026-06-21 three-audit consolidation; targeted same-day edit, `last_reviewed` unchanged.
 - v2.23 (2026-06-23) — corpus-drift cleanup (2026-06-23 fidelity audits): §11 ratified ADR-88/89 from **Proposed** → Accepted (911b561; status-prefix dropped per the index convention) and §8 refreshed the repo-skills inventory ("no skills dir yet" → `.claude/skills/` holds `verify` + `check-against-spec`). Companion genuine end-to-end re-read confirmed the rest current; `last_reviewed` re-stamped 2026-06-23.
 - v2.24 (2026-06-25) — §8 self-contradiction fixed (2026-06-25 process-trigger audit): the user-level (`~/.claude/skills/`) list no longer claims a `verify` skill — it was archived 2026-06-05 (machinery-c3); the live `verify` is hub-local and was already (correctly) listed under Repo-level, so §8 contradicted itself. Replaced the stale bullet with a one-line pointer to the archive + the live hub-local copy. Companion end-to-end re-read confirmed the rest current; `last_reviewed` re-stamped 2026-06-25.
+- v2.25 (2026-07-02) — §11 "last 5" rotated **85–89 → 89–93** (the deferral carried since v2.19–v2.21, now closed for the deploy cohort): genuine reads of ADR-90/91/92/93 (all Accepted — the ARCHITECTURE-currency arc [#222]/[#223]/[#224]); dropped 85–88 (retained in `docs/decisions/README.md` + ARCHITECTURE Governing-ADRs), added the resolver-allows-N / corpus-versioning / deploy-runbook / floor-model-A quartet. Fixed the stale version comment (**2.23** while v2.24 had already landed → **2.25**). Companion genuine end-to-end re-read confirmed §1–§10 current; `last_reviewed` re-stamped 2026-07-02.
 
 ---
 
-**Last updated:** 2026-06-26
+**Last updated:** 2026-07-02
 **Maintained by:** Rob
