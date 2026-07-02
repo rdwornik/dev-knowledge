@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-02 — CC: complete §4 per-doc coverage of the external-review audit (docs) (refs 5a9c327)
+
+**Did:** Operator flagged §4 of the 2026-07-02 external-review audit incomplete — it audited VISION/ARCHITECTURE/CLAUDE/PLAYBOOK/docs-decisions per-doc but omitted the six append-only/protocol/session docs. Live-read each and appended **§4.8–4.13** (LESSONS, JOURNAL, CONTRIBUTING, ESSENTIALS, HANDOFF_PROCESS, DEFINITION_OF_DONE) in the same purpose·state·faithfulness·gaps format, cited to file:line. Appended (not renumbered) to preserve the §7.5→§4.6 cross-reference under the "don't edit other sections" constraint. Verified the operator's specific checks: LESSONS append-only-clean by git-log evidence + recent lessons captured; JOURNAL's recent arc matches the spine (`b986711`/`325db9a` on first-parent); CONTRIBUTING reflects v5.3 + all 10 gates and carries `reconciled_with@5.3` (one of THREE declarants, all matching HANDOFF_PROCESS's live `Version: 5.3`); ESSENTIALS freshness-gated but no `reconciled_with` (summarize-not-copy = convention-only); DEFINITION_OF_DONE reflects the C1 session-boundary amendment, neither freshness-gated nor a spine dependent.
+
+**Result:** Commit `5a9c327` on `docs/2026-07-02-audit-s4-completion` (+22). Pre-commit gates green (audit-health Passed). This is a same-day **completion follow-up** to the already-merged audit (`4467159`), done under operator direction before the artifact is routed to the reviewer. Read-only synthesis; only the audit file's §4 was edited. NOT pushed.
+
+**Changes:** `docs/audits/2026-07-02-comprehensive-system-audit-for-external-review.md` (+§4.8–4.13).
+
+**Abandoned:** Did NOT edit §1/§2/§3/§5/§6/§7 (operator constraint); did NOT renumber §4.6/§4.7 (would break the §7.5 ref). Surfaced but did not act on a minor pre-existing tension (§5.4 says "v1: exactly one edge" while live grep shows 3 `reconciled_with` declarants) — left §5 untouched per the constraint; the new §4.10 states the accurate count.
+
+**Next:** Operator merges (done this session, `--no-ff`) and routes the completed audit to the reviewer.
+
 ### 2026-07-02 — CC: comprehensive system audit authored for external architectural review (docs) (refs 644b5cc)
 
 **Did:** Produced a standalone, live-source-grounded system audit for an external reviewer (fresh model / AI Council / architect) to propose architectural decisions. Read the canon LIVE (VISION, ARCHITECTURE, ESSENTIALS, CLAUDE, PLAYBOOK two-lifelines + §20 + Ch12, BACKLOG, DEFINITION_OF_DONE, CONTRIBUTING, recent JOURNAL/LESSONS, the ADR index) directly, and fanned out four read-only subagents for the code-level digests (PLAYBOOK two-track structure; the `deploy/` subsystem; the 26-check `audit.py` registry + coherence spine; the load-bearing ADR set). Synthesized into `docs/audits/2026-07-02-comprehensive-system-audit-for-external-review.md`: preamble + §1 three-layer overview · §2 the two tracks (dwutorowość) faithful via the two-lifelines frame, NOT collapsed · §3 dissemination arm (deploy ADR-91/92/93, configured→armed→proven, the ai-council n=1 case study) · §4 per-doc canonical audit (honest about the ARCHITECTURE forced-stamp + deploy-omission debt #222/#223) · §5 enforcement machinery · §6 next-steps mapped to backlog IDs + the depends-on/serialize-group graph · §7 open architectural tensions (the highest-value section: configured-not-armed as a class, the load-bearing hash-guard, forced-stamp genuineness, open-world doc↔doc edges, the reverse-dep-legibility thesis' partial application, active-push vs drift-catch, two-track coherence/leak, and the deploy-shipped-without-its-own-tracking bonus).
