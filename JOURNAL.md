@@ -37,6 +37,8 @@
 
 **Update (`0b61b6e`) — re-scoped to the supplement priority (operator ruling).** Operator ruled the filled supplement authoritative on the priority conflict (a contradictory orientation headline is a defect, not a §9-reconciliation case). Re-scoped: BOOT Purpose + RESIDUAL §4 now **lead with** the research-mode-section build in `docs/council-question-guide.md` (research-vs-normal question authoring) as THE priority; the council-vs-research architecture-audit read **demoted to SECONDARY/adjacent** (kept, not deleted). Both operational flags preserved prominently (mid-execution-against-older-plan → don't re-issue builds; scope-tag ADR-46 vs ADR-48/49 → reconcile first) + the divergence-signal line (sanity-check ai-council's own BACKLOG frontier). Flipped the stale cold/EMPTY framing → FILLED (beat NARROWS) across BOOT+PROBES; regenerated `PASTE_THIS`; probes stay WARN-only, tree clean.
 
+**Update (`84d377b`) — ship-gate dispositions + /ship.** Ship-gate was RED on 3 new WARNs; operator-ruled dispositions (all in `ecosystem/disposition-register.yaml`): **pytest_collected@ARCHITECTURE** (real but PRE-EXISTING count drift 980≠1025; the count-bump fix would force a false `last_reviewed` re-stamp on a doc #223 flags stale → doubly false; dispositioned pending **#222**, `auto_clearable_by`) + **P5/P7 cross-repo honest-partial probes** (Option-3 accepted; pending **#234**). Ship-gate → **GREEN (7 WARN dispositioned)**. Then `/ship` merged the branch to `main`.
+
 ---
 
 ### 2026-07-02 — CC: complete §4 per-doc coverage of the external-review audit (docs) (refs 5a9c327)
