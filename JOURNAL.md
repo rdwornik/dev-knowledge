@@ -29,7 +29,9 @@
 
 **Abandoned:** Nothing. Did not push; did not `/ship`. SUPPLEMENT left empty (no outgoing architect chat this CC-execution window) — the incoming §13(d) beat fires FULL.
 
-**Next:** Operator pastes `PASTE_THIS.md` to a fresh chat to start the fleet-rollout planning session; optionally fills `SUPPLEMENT.md` if a scoping chat is reachable → `supplement filled` folds it.
+**Next:** Operator pastes `PASTE_THIS.md` to a fresh chat to start the next planning session; optionally fills `SUPPLEMENT.md` if a scoping chat is reachable → `supplement filled` folds it.
+
+**Update (`824c7ec` → `9dbea9a`) — supplement filled + folded + RE-SCOPED (operator ruling).** Operator filled `SUPPLEMENT.md` from the outgoing architect chat; committed verbatim + folded ANSWERS into `PASTE_THIS` (`824c7ec`). **Divergence surfaced + resolved:** the filled answers rule the priority **authoritative** (§6/§A) as the **three goals** — (a) run the time-boxed **Fable** whole-system review + merge its rulings, (b) wire **ai-council as a CC-governed query mechanism** (browser→CC→ai-council), (c) **close the ADR + ai-council methodology tracks** (#170/#168 traceability spine the sticking point) — with **fleet #221 sequenced AFTER** (Fable may reshape the methodology; scaling before merging risks propagating a soon-to-change methodology). This **diverges from CC's repo-derived RESIDUAL frontier** (fleet #221, from the backlog dependency graph). Per the same supplement-vs-repo precedent set by the ai-council `0b61b6e` re-scope this session, re-scoped BOOT Purpose + RESIDUAL §4 to **lead with the three goals**, demoted fleet #221 + #225/#231/#234 to sequenced-after (kept, not deleted), flipped cold/EMPTY→FILLED framing (beat NARROWS) across BOOT+PROBES+RESIDUAL, P8 expected→FILLED, regenerated `PASTE_THIS` (`9dbea9a`). audit-health OK; tree clean.
 
 ### 2026-07-02 — CC: ARCHITECTURE deploy-subsystem currency — decouple counts + document deploy + rotate ADR lists [#222][#223][#224] (f97360e)
 
