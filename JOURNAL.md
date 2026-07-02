@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-02 — CC: generate v5 architect handoff bundle for dev-knowledge (self, docs) (a95e3b0)
+
+**Did:** `/handoff dev knowledge architect` — v5.3 **self** architect handoff. Ran the scope matrix (clean tree, commits since the 2026-07-01 handoff, today's slug absent → Case 2, capture-window). Re-derived live state: ship-gate GREEN (6 WARN dispositioned, **no `[stale]`**), `validate_git_backlog` = only the standing #77, `validate_backlog` = 94 tasks / 26 checks / last `doc_code_coverage_drift`, `validate_doc_claims` pytest_collected **1030/1030 match** (now via `ecosystem/doc-counts.md`, decoupled by #222). Emitted the 5-file bundle to `docs/handoffs/2026-07-02-dev-knowledge-architect/`: `HANDOFF_BOOT.md` · `RESIDUAL.md` · `PROBES.md` (P1 orientation + P2–P9 teeth, updated expected values) · `SUPPLEMENT.md` (**empty — cold disposition**, CC-execution window, no outgoing chat) · `PASTE_THIS.md` (assembled; empty SUPPLEMENT correctly `[skip]`-folded).
+
+**Result:** Bundle generated on `docs/2026-07-02-architect-handoff`. **Headline:** the 2026-07-01 arm-first chain **executed** this window — `b986711` armed the floor carrier + built #230 conformance + armed real ai-council (**ADR-93** ratified [#226][#230]), then `a95e3b0` closed #222/#223/#224 (documented the armed deploy subsystem + **resolved the forced-freshness-stamp anti-pattern** via the doc-counts.md decouple). Center of gravity → **fleet rollout (#221, now unblocked)**; remaining chain **#225 (surgical precommit) → #221 (fleet leaf)**.
+
+**Changes:** `docs/handoffs/2026-07-02-dev-knowledge-architect/` (new bundle), `JOURNAL.md` (this).
+
+**Abandoned:** Nothing. Did not push; did not `/ship`. SUPPLEMENT left empty (no outgoing architect chat this CC-execution window) — the incoming §13(d) beat fires FULL.
+
+**Next:** Operator pastes `PASTE_THIS.md` to a fresh chat to start the fleet-rollout planning session; optionally fills `SUPPLEMENT.md` if a scoping chat is reachable → `supplement filled` folds it.
+
 ### 2026-07-02 — CC: ARCHITECTURE deploy-subsystem currency — decouple counts + document deploy + rotate ADR lists [#222][#223][#224] (f97360e)
 
 **Did:** Plan-then-auto arc closing the forced-false-stamp failure (the 2026-07-01 `cadf53d` finding: ARCHITECTURE re-stamped while omitting the deploy subsystem + stopping its ADR list at 89). Four commits: (1) `382d6fe` **#222** — moved the three volatile count claims (audit check-count / pre-commit gate-count / pytest collected) out of `ARCHITECTURE.md` into the committed-generated `ecosystem/doc-counts.md` via a new **loose** `scripts/gen_doc_counts.py` (loose so the codemap gains no node — the linchpin), repointed `validate_doc_claims._CLAIMS` `doc=` to it, added a pure generator test + relocated the doc-claims fixture; (2) `0927a68` **#223/#224** — genuine end-to-end re-read, documented the deploy subsystem map-level in Ch2 (deploy tool + 4 carriers + the ADR-93 floor-arming organs), Ch4 (the deploy tool as the versioned **orchestrator across the existing five channels — NOT a sixth carrier**, per the operator taxonomy ruling), Ch6 (`deployed_methodology_version` record + per-carrier verify-gate), Validators (deploy/tool.py + contract + carriers + `floor_conformance` + gen_doc_counts), Governing-ADRs +90/91/92/93, orphan count-literals → stable pointers, honest `last_reviewed` 2026-07-02; (3) `3828b5a` **#224** — CLAUDE §11 "last 5" rotated 85–89 → 89–93 + §12 v2.25 + stale version-comment fix (2.23→2.25) + honest re-stamp; (4) `f97360e` — BACKLOG done-items-leave (#222/#223/#224) + cleared the now-stale `pytest_collected@ARCHITECTURE` disposition (`auto_clearable_by` #222).
