@@ -33,6 +33,8 @@
 
 **Next:** Operator pastes the bundle; optionally `supplement filled` if an ai-council architect chat is reachable → CC folds + regenerates `PASTE_THIS.md`.
 
+**Update (`a35cba3`) — supplement filled + folded.** Operator filled `SUPPLEMENT.md` from the outgoing architect chat; committed verbatim + re-ran `assemble_paste.py` (ANSWERS folded into `PASTE_THIS`). **Divergence surfaced:** the folded answers set the priority as *build the research-mode section in `docs/council-question-guide.md`* (research-vs-normal question authoring), NOT the repo-derived RESIDUAL frontier (the council-vs-research *architecture* audit) — the operator states research-vs-normal is THE priority. Off-repo notes also flag: ai-council CC is already mid-execution against an older 5-section delivered plan (do NOT re-issue builds in the new format), and a carried scope-tag-backfill directive cites ADR-46 but ADR-48/49 withdrew that enforcement (reconcile before executing). Both views now coexist in `PASTE_THIS`; the incoming architect reconciles (v5 §9 bidirectional adjudication). BOOT/RESIDUAL left as CC's repo-derived view (not rewritten to match — coexistence is the design), pending operator direction.
+
 ---
 
 ### 2026-07-02 — CC: complete §4 per-doc coverage of the external-review audit (docs) (refs 5a9c327)
