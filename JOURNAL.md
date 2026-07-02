@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-02 — CC: generate v5 architect handoff bundle `-2` (cold refresh) for dev-knowledge (self, docs)
+
+**Did:** `/handoff architect dev knowledge` — v5.3 **self** architect handoff. Ran the scope matrix: clean tree, commits since the prior 2026-07-02 architect bundle (the `b255a8c` prune arc), today's `-architect` slug already exists → **Case 4 counter-suffix** → slug `2026-07-02-dev-knowledge-architect-2`. Session was `/clear → /handoff` with no design work → **cold refresh**. Re-derived live state: ship-gate GREEN (**4 WARN dispositioned**, down from 6 — the prune tombstoned the 2 ai-council cross-repo P5/P7 dispositions; **no `[stale]`**), `validate_git_backlog` = only the standing #77, `validate_backlog` = 94 tasks / 7 themes / 21 stories, `audit.py checks` = 26 (last `doc_code_coverage_drift`), `validate_doc_claims` pytest_collected **1030/1030 match**. Emitted the 5-file bundle: `HANDOFF_BOOT.md` · `RESIDUAL.md` · `PROBES.md` (P1 orientation + P2–P9 teeth, refreshed expected values) · `SUPPLEMENT.md` (**empty — cold disposition**, CC-note points at the PRIOR bundle's FILLED supplement as authoritative on priority) · `PASTE_THIS.md` (assembled; empty SUPPLEMENT correctly `[skip]`-folded).
+
+**Result:** Bundle generated on `docs/2026-07-02-architect-handoff-2`. **Headline:** the window is **housekeeping-only** — the sole delta is the disposition-register prune (6→4). The strategic frontier is **unchanged and un-acted-upon**: the operator's three-goal priority (Fable review → ai-council-as-governed-query → close ADR + ai-council methodology tracks; **fleet #221 sequenced-after**) carries forward from `docs/handoffs/2026-07-02-dev-knowledge-architect/SUPPLEMENT.md` (still authoritative), reproduced in `RESIDUAL.md` §4.
+
+**Changes:** `docs/handoffs/2026-07-02-dev-knowledge-architect-2/` (new bundle), `JOURNAL.md` (this).
+
+**Abandoned:** Nothing.
+
+**Next:** `--no-ff` merge `docs/2026-07-02-architect-handoff-2` → `main` (holding for operator go). Optional: fill `SUPPLEMENT.md` only if a real outgoing chat holds *new* deliberation since the prior supplement.
+
 ### 2026-07-02 — CC: prune 2 stale handoff-probe dispositions from the register (ADR-75) (b255a8c)
 
 **Did:** Session-start orientation ran the bundle's P1–P9 probes. All matched expected except **P7**: ship-gate surfaced **2 `[stale]` dispositions** — `warn-handoff-probes-p5-crossrepo-ai-council-2026-07-02` + its `p7` sibling. Both keyed to the `2026-07-02-ai-council-architect` bundle as *latest*; the newer `2026-07-02-dev-knowledge-architect` bundle superseded it, so `handoff_probes` now binds 10 probes to live state ([OK]) and both matched no live WARN. Verified no-live-WARN, then tombstoned both entries in `ecosystem/disposition-register.yaml` per the file's clearing convention (ADR-75 decoration rule).
