@@ -19,7 +19,7 @@
 
 ---
 
-### 2026-07-02 — CC: generate v5 architect handoff bundle for ai-council (cross-repo, docs)
+### 2026-07-02 — CC: generate v5 architect handoff bundle for ai-council (cross-repo, docs) (690d478)
 
 **Did:** `/handoff architect ai-council` — v5.3 **cross-repo architect** handoff (target `ai-council`, read-only per ADR-36/41; bundle in the hub). Read-derived ai-council live state (git, pytest, JOURNAL, floor-guard, ADR index) + read both ai-council audits via artifact-reader agents. Emitted the 5-file bundle to `docs/handoffs/2026-07-02-ai-council-architect/`: `HANDOFF_BOOT.md` (session header + paste-pointer) · `RESIDUAL.md` (drift-flags headline + shipped-window + task-state pointer + next-frontier) · `PROBES.md` (P1 orientation bound to ai-council VISION/ARCHITECTURE + P2–P7 teeth bound to ai-council's OWN state — it has no `audit.py`/`ship-gate`) · `SUPPLEMENT.md` (empty — cold cross-repo handoff, no ai-council chat interviewed) · `PASTE_THIS.md` (assembled; empty SUPPLEMENT correctly not folded). Frontier = the **2026-06-16 council-vs-research audit** (converged-nothing ADR seed; G5 baseline = load-bearing). Headline drift = ai-council's JOURNAL/LESSONS lag git ~4 weeks; `feat/floor-arming` straggler; ADR-08 not in the index. Methodology adoption confirmed DONE (deploy #1/#2, floor armed) — not the frontier.
 
