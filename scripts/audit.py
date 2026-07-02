@@ -1460,6 +1460,29 @@ def check_no_ff_merges(repo_path: Path) -> list[Finding]:
     ]
 
 
+def _bundle_target_repo(bundle_dir: Path) -> str | None:
+    """The declared cross-repo target from a bundle's HANDOFF_BOOT.md `Target repo` row
+    (e.g. `ai-council`), or None when the bundle carries no such row (a self-handoff).
+
+    Cross-repo handoffs (ADR-36/41) name their target in the session-header table row
+    "| **Target repo** | **<repo>** ... |" (repo in a backtick span); the target is the
+    first backtick span of that row. Read-only; fail-soft (any read/parse issue -> None ->
+    treated as a self-handoff)."""
+    boot = bundle_dir / "HANDOFF_BOOT.md"
+    if not boot.exists():
+        return None
+    try:
+        for line in boot.read_text(encoding="utf-8").splitlines():
+            s = line.strip()
+            if s.startswith("|") and "target repo" in s.lower():
+                m = re.search(r"`([^`]+)`", s)
+                if m:
+                    return m.group(1).strip()
+    except OSError:
+        return None
+    return None
+
+
 # rule: handoff-probes-bind
 def check_handoff_probes(repo_path: Path) -> list[Finding]:
     """#163 handoff-probe teeth: every probe in the LATEST v5 PROBES.md bundle binds
@@ -1493,8 +1516,25 @@ def check_handoff_probes(repo_path: Path) -> list[Finding]:
         return [Finding("handoff_probes", "pass",
                         "no v5 PROBES.md bundle to validate")]
     latest = bundles[-1]
+    # Cross-repo bundle (ADR-36/41): a handoff whose declared target repo differs from this
+    # one. Its probes bind to the TARGET repo's files, so resolve against the target root,
+    # not the hub — resolving foreign paths against the hub gives both false FAILs (a target
+    # file absent here) AND false PASSes (a basename collision like JOURNAL.md fake-resolves).
+    # Fleet onboarding (#221) makes cross-repo the common case, so this keeps the teeth rather
+    # than skipping them. A `.claude/` or ambiguous foreign target degrades to WARN (#NNN).
+    target = _bundle_target_repo(latest)
+    cross_repo = bool(target) and target != Path(repo_path).name
+    verify_root = None
+    if cross_repo:
+        cand = Path(repo_path).parent / target
+        if not cand.is_dir():
+            return [Finding("handoff_probes", "warn",
+                            f"cross-repo bundle {latest.name}: target repo '{target}' not "
+                            "present as a sibling — cannot resolve foreign probe targets "
+                            "(read-only, non-gating)")]
+        verify_root = cand
     try:
-        results = _vhp.verify(latest)
+        results = _vhp.verify(latest, repo_root=verify_root, cross_repo=cross_repo)
     except Exception as exc:  # never wedge the audit-health gate
         return [Finding("handoff_probes", "warn",
                         f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]

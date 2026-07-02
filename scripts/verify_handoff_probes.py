@@ -232,6 +232,33 @@ def _basename_matches(repo_root: Path, name: str) -> list[Path]:
     return out
 
 
+def _resolve_status(repo_root: Path, rel: str) -> str:
+    """Classify a file token's resolution against repo_root: for CROSS-REPO bundles only.
+
+    Returns one of:
+      'resolved'  — binds to exactly one real, contained, non-excluded file.
+      'excluded'  — the literal path is under an excluded tree (e.g. `.claude/…`), which the
+                    resolver deliberately never binds — unverifiable here, NOT a real miss.
+      'ambiguous' — the bare basename matches >1 non-excluded file (can't pick one).
+      'missing'   — a genuine miss (zero matches) — a real broken/toothless target.
+
+    Cross-repo (ADR-36/41): a bundle in the hub whose probes bind to the TARGET repo. The
+    hub can resolve most target paths, but a foreign `.claude/` path (excluded-dir) or an
+    ambiguously-basenamed target is honest-partial — it degrades to a WARN (never a fake-FAIL
+    nor a fake-PASS), while a genuine 'missing' keeps its FAIL teeth. Same-repo resolution is
+    unchanged: it uses `_resolve_path` and treats any non-resolve as FAIL. (#NNN hardens the
+    `.claude/` case from WARN to real FAIL teeth for cross-repo bundles.)"""
+    if _excluded(Path(rel).parts):
+        return "excluded"
+    if _within_repo_file(repo_root, repo_root / rel) is not None:
+        return "resolved"
+    hits = [m for m in _basename_matches(repo_root, Path(rel).name)
+            if _within_repo_file(repo_root, m) is not None]
+    if len(hits) == 1:
+        return "resolved"
+    return "ambiguous" if len(hits) > 1 else "missing"
+
+
 def _resolve_path(repo_root: Path, rel: str) -> Path | None:
     """Resolve a probe's file token to a real repo file, or None.
 
@@ -304,7 +331,7 @@ def _is_trivial_command(cmd: str) -> bool:
     return all(t in _VACUOUS_OPERANDS for t in tokens[2:])
 
 
-def _classify(probe: dict, repo_root: Path, bundle: str) -> ProbeResult:
+def _classify(probe: dict, repo_root: Path, bundle: str, cross_repo: bool = False) -> ProbeResult:
     pid = probe["id"]
     # 1. malformed — any load-bearing cell empty (Why: presence only, never content).
     for col in _LOAD_BEARING:
@@ -332,7 +359,19 @@ def _classify(probe: dict, repo_root: Path, bundle: str) -> ProbeResult:
                            "(binds to no resolvable live state)", bundle)
     # 4. missing source/target — source uses ALL spans; command now uses ALL spans too, so a
     #    broken path in a SECONDARY command span is caught (#207/GAP-4), not silent-passed.
+    #    Cross-repo (ADR-36/41): resolve against the TARGET root; a foreign `.claude/` or
+    #    ambiguously-basenamed target degrades to WARN (skipped) — honest-partial, never a
+    #    fake-FAIL/fake-PASS — while a genuine miss keeps FAIL teeth (#NNN hardens `.claude/`).
     for rel in src_files + cmd_files:
+        if cross_repo:
+            st = _resolve_status(repo_root, rel)
+            if st == "resolved":
+                continue
+            if st in ("excluded", "ambiguous"):
+                return ProbeResult(pid, "skipped",
+                    f"cross-repo partial: {rel} ({st}) — not resolvable by the hub validator",
+                    bundle)
+            return ProbeResult(pid, "fail", f"missing source/target: {rel}", bundle)
         if _resolve_path(repo_root, rel) is None:
             return ProbeResult(pid, "fail", f"missing source/target: {rel}", bundle)
     # 5. anchor — a named `#`-header must resolve in a bound (existing) source file.
@@ -348,12 +387,15 @@ def _classify(probe: dict, repo_root: Path, bundle: str) -> ProbeResult:
 
 
 # rule: handoff-probes-bind
-def verify(bundle_path, repo_root=None) -> list[ProbeResult]:
+def verify(bundle_path, repo_root=None, cross_repo=False) -> list[ProbeResult]:
     """Classify every probe in <bundle_path>/PROBES.md. Read-only; resolve-only.
 
     `repo_root` defaults to the repo containing the bundle (<repo>/docs/handoffs/<slug>
-    -> parents[2]); pass it explicitly to resolve against a different root. Returns []
-    when the bundle has no PROBES.md (a non-v5 bundle)."""
+    -> parents[2]); pass it explicitly to resolve against a different root. `cross_repo`
+    (ADR-36/41) marks a bundle whose probes bind to a DIFFERENT (target) repo — pass the
+    target root as `repo_root` and set `cross_repo=True`, and a foreign `.claude/` or
+    ambiguously-basenamed target degrades to WARN (skipped) instead of a fake-FAIL, while a
+    genuine miss still FAILs. Returns [] when the bundle has no PROBES.md (a non-v5 bundle)."""
     bundle_path = Path(bundle_path)
     if repo_root is None:
         parents = bundle_path.parents
@@ -363,7 +405,7 @@ def verify(bundle_path, repo_root=None) -> list[ProbeResult]:
     if not probes_file.exists():
         return []
     md = probes_file.read_text(encoding="utf-8")
-    return [_classify(p, repo_root, bundle_path.name) for p in parse_probes(md)]
+    return [_classify(p, repo_root, bundle_path.name, cross_repo) for p in parse_probes(md)]
 
 
 def format_findings(results: list[ProbeResult]) -> str:
