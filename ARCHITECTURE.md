@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-01
+last_reviewed: 2026-07-02
 reconciled_with: handoff-process@5.3
 status: active
 owner: Rob
@@ -215,13 +215,23 @@ local git gate.
 | `handoff_probes` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** (FAIL on broken probe binding; WARN on anchor-missing/skipped) | #163; HANDOFF_PROCESS §5/§10 |
 | `doc_rot` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #140; ADR-88 FC4 (ADR-65/49/41) |
 | `doc_structure` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #192; ADR-88 prose-shape |
-| pre-commit gates (10) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below |
+| `deploy/tool.py` + 4 carriers (`globalconfig`/`plugin`/`precommit`/`floor`) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ADR-91/92/93; PLAYBOOK §20 |
+| `floor-hash-verify` (pre-commit) + SessionStart floor guard (`.claude/check_floor_hash.py`) | consumer commit / session start | consumer (armed by `carrier_floor`) | **fail-closed** (loud on floor drift) | ADR-93 (#226) |
+| pre-commit gates (`.pre-commit-config.yaml`) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below (count in `ecosystem/doc-counts.md`) |
 
 The **Tier-1 closure loop** is three of these organs in a cycle:
 `commit closes [#id]` → `Stop: propose_closures.py` writes `logs/PROPOSALS-*.md`
 (STRONG/WEAK, gitignored) → next `SessionStart: surface-closures.ps1` prints
 `[closures] N proposed` → `/review-closures` confirms → `BACKLOG.md` updated. Detect-
 and-propose only; the human gate closes (ADR-70; distribution in Ch4).
+
+**The deploy subsystem** (orchestrator detail in Ch4; validators below) versions the
+methodology corpus (ADR-91) and delivers it to a consumer through the four carriers behind a
+**per-carrier verify-gate** (ADR-92) — the version record lands only if every carrier
+verifies. The `floor` carrier additionally **arms** the ADR-78 floor under **model A**
+(ADR-93): committed + two-leg hash-guarded (a SessionStart guard + the commit-time
+`floor-hash-verify` hook, both running the consumer's `.claude/check_floor_hash.py`), so floor
+drift fails loud. Operator-run from the hub, one consumer per invocation; runbook PLAYBOOK §20.
 
 **Machinery retired (C3 sweep, 2026-06-05).** `/boot` and `/evolve` archived to
 `~/.claude/archive/2026-06-05-machinery-c3/`; `CHANGELOG.md` + `BACKLOG_ARCHIVE.md`
@@ -236,8 +246,8 @@ orchestrate, but it may verify itself). These are the *executable* organs the ma
 above references — the **named deterministic-trigger organs**, curated to what the map
 references, **not an exhaustive inventory** of every script in `scripts/`:
 
-- `scripts/audit.py` — cross-repo conformance + self-audit; **26 registered checks**
-  (`python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
+- `scripts/audit.py` — cross-repo conformance + self-audit; a registered check suite
+  (count in `ecosystem/doc-counts.md`; `python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
   `no_sibling_orphans`, `canonical_structure`, `amendment_coherence`, `git_backlog_drift`,
   `no_ff_merges`, `reconciled_versions`, `doc_rot`, `doc_structure`, `doc_code_edge`,
   `safe_removal`, `doc_code_coverage_drift`).
@@ -334,6 +344,24 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   `python scripts/verify_handoff_probes.py <bundle>` (#163).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
+- `scripts/gen_doc_counts.py` — generates the committed `ecosystem/doc-counts.md` count
+  fragment (audit check-count · pre-commit gate-count · pytest collected), moved off
+  ARCHITECTURE.md so a count bump no longer trips the freshness gate (`canonical_freshness`
+  A2) into forcing a `last_reviewed` re-stamp (#222). Reuses the #89 derivers; `--write`
+  regenerates, `--check [--gate]` verifies (drift → the `doc_claims` WARN; ship-gate is the
+  teeth). A **loose** module by design — not a codemap node, so its edits never regen the map.
+- `deploy/tool.py` + `deploy/contract.py` + the four carriers (`carrier_globalconfig`,
+  `carrier_plugin`, `carrier_precommit`, `carrier_floor`) — the ADR-92 **deploy orchestrator**
+  (Ch4). A read-only ASSESS CLI (`deploy <repo> --target <vX.Y.Z>`) detects each carrier's
+  state vs a per-tag manifest and prints a plan; `--execute` applies + **per-carrier
+  verify-gates** the version record (`ecosystem/deployed-versions.yaml`, ADR-91) + stages the
+  consumer carriers (write-yes / commit-no — the Layer-2 boundary). Every carrier implements
+  `contract.py`'s `detect`/`apply`/`verify`. Runbook PLAYBOOK §20.
+- `deploy/floor_conformance.py` — #230 end-to-end floor-conformance harness (ADR-93): proves
+  the ARMED floor loop *functions* (not merely present) — the `@`-include hashes to its
+  `.sha256` sidecar, the SessionStart self-arm wiring, the commit-time `floor-hash-verify` hook
+  blocks a poisoned commit, a deleted floor fails loud. Hub CI (synthetic consumer) + Layer-2
+  (`--consumer ../ai-council`, real clone). Read-only.
 - `scripts/reverse_dep_oracle.py` — code→code reverse-dependency **oracle** (**ADR-89**
   computed-edge doctrine; #193). Given a Python symbol, returns its reverse-dependents via a
   headless Pyright `references()` query, with a mandatory **provenance** block (git rev, dirty
@@ -374,7 +402,7 @@ portability via **#195** (integrated enforcement) + **#193**; doc→code coverag
 **#201/#202/#203 complete** (12 rules mapped + the `doc_code_coverage_drift` guard over the
 auto-enumerable `ALL_CHECKS` surface; the heterogeneous non-`ALL_CHECKS` remainder stays curated).
 
-- `tests/` — pytest unit tests for the validators (**980 collected**; `pytest -x --tb=short`).
+- `tests/` — pytest unit tests for the validators (collected count in `ecosystem/doc-counts.md`; `pytest -x --tb=short`).
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
@@ -471,6 +499,14 @@ carriers, each with a different scope and freshness model:
   no hub reference on the executing path; the private hub permanently closes ADR-71's
   "URL-swappable later" hatch *for cloud* (ADR-72). Plugin/pre-commit carriers are
   **inert by design** in a fresh cloud clone — not bugs.
+- **Deploy orchestrator (ADR-91/92; ADR-93 for the floor; validators in Ch2).** The five rows
+  above are the *channels*; the **deploy tool** (`deploy/tool.py` + the four carriers
+  `globalconfig`/`plugin`/`precommit`/`floor`) is the **versioned orchestrator across them** —
+  it reconciles **four of the five** channels (all but the browser bundle) into a consumer at a
+  pinned corpus version (ADR-91), behind a per-carrier verify-gate, then records the deployed
+  version (Ch6 `deployed_methodology_version`). It is **not a sixth carrier** — it is *how* those
+  four are delivered as one gated release; the `floor` carrier also arms the floor under model A
+  (ADR-93). Runbook PLAYBOOK §20; proven end-to-end on run #1 (ai-council → v1.0.0).
 
 **The transfer matrix is the canonical gap map.** Who carries the method, in which of
 seven contexts (hub/child CC, hub/child browser, cloud, local, new-repo) — full
@@ -552,6 +588,15 @@ FAIL is **not** a contradiction — different *dimension* (claims-vs-docs vs
 freshness-stamp) and *scope* (hub-self vs corp-sibling, #100). Per-tier value =
 findings-acted-on vs noise, reviewed in the funnel (PLAYBOOK "What each tier checks").
 
+**Deployed-version record (`deployed_methodology_version`; ADR-91).** Each repo's deployed
+methodology-corpus version is recorded in the committed `ecosystem/deployed-versions.yaml`
+(the `tool-versions.yaml` durable-version pattern — committed · written-by-command ·
+read-by-a-check), **written only by the deploy runbook's per-carrier verify-gate** — the
+record lands iff every carrier verifies (ADR-92; Ch2/Ch4). The reader
+`audit.py deployed_methodology_version` reports it per repo (`n/a` until a release is
+tagged+deployed → `pass` once set), surfaced via `fleet_health` — the version-aware successor
+to a raw commit-count drift signal.
+
 **The nightly outcome loop** (the GitHub Action that turns a cloud run into a
 triaged result):
 
@@ -610,6 +655,7 @@ ledger is `docs/decisions/README.md`. Council transcripts: `docs/decisions/trans
 - **ADR-84** — automation-writer isolation (Q9): both writers commit only to dedicated `automation/*` branches (never `main`); the `no_ff_merges` automation exemption removed — one rule (Ch3/Ch6).
 - **ADR-85/86/87** — session-lifecycle enforcement (deterministic session-end Stop-gate; un-gameable JOURNAL commit-SHA anchor); conformance-dashboard location (`ecosystem/conformance.md`, ADR-80 committed-generated zone); Architect↔CC equilibrium contract (conditional intent-only prompting) (Ch2/Ch6).
 - **ADR-88/89** — file-oriented dependency management (repo files are the dependency unit; declared edges held by machinery, not memory) and computed code-dependency edges (declare-what-you-cannot-compute; Pyright reverse-dependency oracle) — both Accepted 2026-06-21 (`911b561`); ADR-88/89 in-place markers (Ch5/Ch6).
+- **ADR-90/91/92/93** — doc→code resolver-allows-N (a rule declares its expected `# rule:` site count in `multi_site:`; Ch2/Validators); methodology-corpus versioning (semver + a git-tag release marker; the `deployed_methodology_version` record, Ch6); deploy-runbook doctrine (a versioned, verification-gated deploy tool + four carriers, operator-run from the hub; Ch2/Ch4); floor provisioning model A (commit + two-leg hash-guard the ADR-78 floor; Ch2 arming / Ch4 floor carrier) — Accepted.
 
 ---
 

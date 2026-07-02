@@ -58,14 +58,21 @@ def _claude_md(roster_ids):
     )
 
 
-def _architecture_md(checks=15, gates=8, collected=372):
+def _doc_counts_md(checks=15, gates=8, collected=372):
+    # The three count claims live in ecosystem/doc-counts.md (moved off ARCHITECTURE.md by
+    # #222 so a count bump does not trip the freshness gate). Anchors match the _CLAIMS regexes.
     return (
-        "# ARCH\n\n"
-        f"| pre-commit gates ({gates}) | local commit | pre-commit | fail-closed |\n\n"
-        "## Validators\n"
-        f"- `scripts/audit.py` — cross-repo conformance; **{checks} registered checks**.\n"
-        f"- `tests/` — pytest unit tests (**{collected} collected**; `pytest -x`).\n"
+        "# doc-counts\n\n"
+        "<!-- COUNTS:START -->\n"
+        f"- pre-commit gates ({gates}) (`.pre-commit-config.yaml`)\n"
+        f"- audit: **{checks} registered checks**\n"
+        f"- tests: **{collected} collected**\n"
+        "<!-- COUNTS:END -->\n"
     )
+
+
+def _architecture_md():
+    return "# ARCH\n\n## Validators\n- `scripts/audit.py` — cross-repo conformance.\n"
 
 
 def _init_doc_repo(tmp_path, *, checks=15, gates=8, collected=372, ids=None, roster_ids=None):
@@ -73,7 +80,10 @@ def _init_doc_repo(tmp_path, *, checks=15, gates=8, collected=372, ids=None, ros
     roster_ids = list(ids if roster_ids is None else roster_ids)
     repo = tmp_path / "r"
     repo.mkdir()
-    (repo / "ARCHITECTURE.md").write_text(_architecture_md(checks, gates, collected), encoding="utf-8")
+    (repo / "ARCHITECTURE.md").write_text(_architecture_md(), encoding="utf-8")
+    (repo / "ecosystem").mkdir()
+    (repo / "ecosystem" / "doc-counts.md").write_text(
+        _doc_counts_md(checks, gates, collected), encoding="utf-8")
     (repo / ".pre-commit-config.yaml").write_text(_precommit_yaml(ids), encoding="utf-8")
     (repo / "CLAUDE.md").write_text(_claude_md(roster_ids), encoding="utf-8")
     return repo
@@ -165,10 +175,10 @@ def test_reconcile_roster_match_is_order_independent(tmp_path):
 
 
 def test_reconcile_anchor_missing_is_not_a_mismatch(tmp_path):
-    # ARCHITECTURE with the 'registered checks' phrase reworded away -> anchor-missing.
+    # doc-counts.md with the 'registered checks' phrase reworded away -> anchor-missing.
     repo = _init_doc_repo(tmp_path)
-    arch = repo / "ARCHITECTURE.md"
-    arch.write_text(arch.read_text(encoding="utf-8").replace(
+    counts = repo / "ecosystem" / "doc-counts.md"
+    counts.write_text(counts.read_text(encoding="utf-8").replace(
         "**15 registered checks**", "fifteen checks (reworded)"), encoding="utf-8")
     by = _by_name(vdc.reconcile(repo, audit_check_count=15, run_expensive=False))
     assert by["audit_check_count"].status == "anchor-missing"
