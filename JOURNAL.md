@@ -25,7 +25,7 @@
 
 **Result:** Bundle assembled; PASTE_THIS carries 4 sections (no supplement). Residual §4 frontier: (1) review+merge the essence-spec P1 branch [#244] (the immediate open arc), (2) decide whether the mesh-model Fable consult #2 is still needed or resolved by the Informant fleet-map, (3) Stage-4 doctrine #238 + fleet #221 — with the demoted three-goal priority sequenced-after. Prior enforcement-mesh P0 substantially DONE this window (Axis-1 proven n=1, enforcing-local ×2).
 
-**Changes:** `docs/handoffs/2026-07-03-dev-knowledge-architect/` (new bundle, 5 files), `JOURNAL.md` (this marker).
+**Changes:** `docs/handoffs/2026-07-03-dev-knowledge-architect/` (new bundle, 5 files), `JOURNAL.md` (this marker). Bundle committed at **`4dc3f93`** (this session's wrap SHA, anchored here per ADR-85).
 
 **Abandoned:** Nothing. SUPPLEMENT left empty by design (fillable if an outgoing chat holds the essence-spec/mesh-model why).
 
