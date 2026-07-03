@@ -309,6 +309,31 @@ def test_freshness_fire_isolates_from_unresolvable_relative_repo(tmp_path):
     assert "isolation" in cell.evidence
 
 
+@pytest.mark.skipif(not _HAS_PRECOMMIT, reason="pre-commit not installed — commit-time leg unavailable")
+def test_freshness_fire_stales_a_quoted_last_reviewed(tmp_path):
+    """Regression (ai-council, 2026-07-03): the FIRST _FRESHNESS_FILES doc (VISION.md) can carry a
+    QUOTED `last_reviewed: "2026-06-02"` (valid YAML; the deployed gate parses it via yaml). The
+    fire's stale-regex must match the quoted form AND target-selection must pick a STALEABLE doc —
+    else canonical_freshness false-reports `absent` despite a correctly-deployed gate (the exact
+    first live-fire miss). Uses the REAL gate; VISION.md is first in _FRESHNESS_FILES."""
+    gate_src = (_REPO_ROOT / "scripts" / "canonical_freshness_gate.py").read_text(encoding="utf-8")
+    precommit = (
+        "repos:\n  - repo: local\n    hooks:\n"
+        "      - id: canonical_freshness\n"
+        "        name: canonical_freshness last_reviewed gate\n"
+        "        entry: python scripts/canonical_freshness_gate.py\n"
+        "        language: system\n        always_run: true\n        pass_filenames: false\n"
+    )
+    root = _init_consumer(tmp_path / "quoted", {
+        "VISION.md": '---\nlast_reviewed: "2026-06-02"\n---\n# VISION\nbody\n',  # QUOTED
+        "scripts/canonical_freshness_gate.py": gate_src,
+        ".pre-commit-config.yaml": precommit,
+    })
+    cell = _cell(ec.evaluate_full(root), "canonical_freshness")
+    assert cell.verdict == ec.ENFORCING_LOCAL, cell.evidence
+    assert cell.fired is True
+
+
 # ---------------------------------------------------------------------------
 # Verdict vocabulary + audit leg posture.
 # ---------------------------------------------------------------------------

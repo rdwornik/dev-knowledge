@@ -367,7 +367,10 @@ def _freshness_locate(root: Path) -> tuple[bool, str]:
     return _freshness_candidate(root)
 
 
-_LAST_REVIEWED_RE = re.compile(r"(?m)^last_reviewed:\s*\d{4}-\d{2}-\d{2}\s*$")
+# Quote-tolerant: YAML allows `last_reviewed: 2026-06-02` AND `last_reviewed: "2026-06-02"`
+# (ai-council's VISION.md uses the quoted form). The deployed gate parses both (yaml); this stale
+# regex must match both too, or the fire can't stale a quoted-date doc -> false `absent`.
+_LAST_REVIEWED_RE = re.compile(r"""(?m)^last_reviewed:\s*["']?\d{4}-\d{2}-\d{2}["']?\s*$""")
 
 
 def _freshness_files() -> list[str]:
@@ -423,13 +426,21 @@ def _freshness_fire(consumer: Path) -> tuple[bool, str]:
         if hook is None:
             return (False, "canonical_freshness located but not a runnable repo:local hook "
                            "(cannot isolate it for the fire)")
-        target = next((f for f in _freshness_files() if (clone / f).exists()), None)
+        # Pick the first _FRESHNESS_FILES doc that EXISTS **and has a staleable last_reviewed** —
+        # not merely the first that exists. A file with no (or an unmatched) stamp can't be staled,
+        # so selecting it would false-`absent` even though a sibling doc is staleable.
+        target, text = None, ""
+        for f in _freshness_files():
+            fp = clone / f
+            if not fp.exists():
+                continue
+            t = fp.read_text(encoding="utf-8")
+            if _LAST_REVIEWED_RE.search(t):
+                target, text = f, t
+                break
         if target is None:
-            return (False, "no _FRESHNESS_FILES doc present to stale")
+            return (False, "no _FRESHNESS_FILES doc with a staleable last_reviewed stamp")
         doc = clone / target
-        text = doc.read_text(encoding="utf-8")
-        if not _LAST_REVIEWED_RE.search(text):
-            return (False, f"{target} has no last_reviewed frontmatter to stale")
         text = _LAST_REVIEWED_RE.sub("last_reviewed: 2020-01-01", text, count=1)
         doc.write_text(text, encoding="utf-8", newline="\n")
         # Setup commit bypasses the gate (--no-verify) so the doc's last-commit-date is NOW while
