@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-04 — CC (Fable): full architectural review, ANALYSIS-ONLY — report landed in docs/audits/ (worktree fable-arch-review, d319df9)
+
+**Did:** Executed the operator's Fable architectural-review mandate (Mythos-tier, max effort, read-only) in isolated worktree `fable-arch-review`: live corpus read (ARCHITECTURE/PLAYBOOK full-chapter/ESSENTIALS/CLAUDE/VISION, audit.py + live health run, Informant, deploy subsystem + manifest v1.1.0 + release_lint, Stop-gate, hooks/settings hub + ~/.claude + ai-council, key ADRs, BACKLOG full, LESSONS/gotchas targeted, disposition register, 2026-07-02 self-audit, 2026-07-03 bundle + SUPPLEMENT) plus the operator's thesis (`main.md`, method + Wnioski). Delivered the report in-session; operator directed landing → `docs/audits/2026-07-04-fable-architecture-review.md` (**d319df9**, this session's work commit, anchored here per ADR-85).
+
+**Result:** Verdict: architecturally sound; detection stronger than prevention; configured→armed→proven applied to consumers more rigorously than to the hub itself. 9 evidence-backed red flags — headliners: RF-1 P0 OneDrive Edit/Write vector open while the organ map claims coverage (matcher is `Bash|PowerShell` only; #191 under-prioritized); RF-2 hub does not self-arm its own hooks (533109f direct-to-main 6 days after block-ff-push shipped); RF-3 Stop-gate honest limits (dirty-tree evasion, platform block-cap) absent from its canon; RF-5 leg-e stops at organs — reproduced `audit.py checks` cp1252 crash live (the 2026-06-22 gotcha never propagated to `cmd_checks`). Sandbox question answered: real gap; episodic clone-based `claude -p` harness, essence-spec-as-oracle, observer outside the inner agent; no nightly, no LLM-judged gating, no container. Rulings on the self-audit §7 forks incl. dissemination = a third lifeline. 9-item sequenced roadmap (safety edge → hub arming → truth-in-canon → cp1252 test → #139/#210 → consult-lane → P2+sandbox → grooming → operator-load gauge).
+
+**Changes:** `docs/audits/2026-07-04-fable-architecture-review.md` (new, d319df9), `JOURNAL.md` (this entry).
+
+**Abandoned:** Nothing implemented by design — analysis-only mandate; no fixes, no BACKLOG edits (filing the roadmap items is the architect/operator's call on review).
+
+**Next:** Operator/architect review the report; integrate branch `worktree-fable-arch-review` from the PRIMARY (`git merge --no-ff worktree-fable-arch-review`), then tear down the worktree (remove + prune + branch -d). Implementation sequencing per report §8 — RF-1/RF-2 first.
+
 ### 2026-07-03 — CC: architect handoff bundle generated (`2026-07-03-dev-knowledge-architect`) — awaiting operator (marker)
 
 **Did:** `/handoff architect dev knowledge` (v5.3 §13 architect mode). Scope matrix Case 2 (clean tree, commits-since-last-handoff, no today-slug). Generated the 5-file bundle at `docs/handoffs/2026-07-03-dev-knowledge-architect/` (BOOT + RESIDUAL + PROBES + SUPPLEMENT + assembled PASTE_THIS) on `docs/2026-07-03-architect-handoff` **off `main` (`ff3d744`)** — deliberately NOT off the unmerged `feat/essence-spec-p1`, so this handoff's merge never drags the unreviewed P1 arc onto `main`. Generation-witnessed: ship-gate **GREEN** (10 WARN dispositioned, no `[stale]`); 28 checks; pytest 1074/1074 (main); BACKLOG 22 stories/100 tasks (main). `SUPPLEMENT.md` generated **EMPTY** (CC-authored / cold — no outgoing browser chat); assembler `[skip]`ped the empty ANSWERS (§13(d) beat fires FULL).
