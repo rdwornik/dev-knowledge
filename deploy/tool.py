@@ -58,6 +58,7 @@ if str(_DEPLOY_DIR) not in sys.path:
 
 from carrier_floor import FloorCarrier  # noqa: E402
 from carrier_globalconfig import GlobalConfigCarrier  # noqa: E402
+from carrier_mesh import MeshCarrier  # noqa: E402
 from carrier_plugin import PluginCarrier  # noqa: E402
 from carrier_precommit import PrecommitCarrier  # noqa: E402
 from contract import Carrier, CarrierState  # noqa: E402
@@ -306,6 +307,7 @@ def make_carriers(
         PluginCarrier.carrier_id: PluginCarrier(repo_root, runner=plugin_runner),
         PrecommitCarrier.carrier_id: PrecommitCarrier(repo_root),
         FloorCarrier.carrier_id: FloorCarrier(repo_root),
+        MeshCarrier.carrier_id: MeshCarrier(repo_root),
     }
 
 
@@ -325,6 +327,7 @@ _APPLY_HINT = {
     "tier1-plugin": "claude plugin install/update --scope project",
     "precommit": "merge required pins into .pre-commit-config.yaml",
     "floor": "generate .claude/CLAUDE-FLOOR.md + .sha256 sidecar",
+    "enforcement-mesh": "deploy seb + freshness-gate scripts + /override + Stop hook + logs/",
 }
 
 _STATE_VERB = {

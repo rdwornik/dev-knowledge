@@ -1,0 +1,160 @@
+# Carrier manifest — methodology corpus v1.1.0 (ADR-92 Decision 7).
+#
+# Declares the COMPLETE carrier set + order + per-carrier target state that a
+# fully-deployed repo meets at methodology release v1.1.0. The deploy tool reads
+# this to "full-reconcile-to-target" (Decision 5) a single consumer repo per invocation.
+#
+# Versioned WITH the methodology (Decision 2): deploying vX uses vX's manifest +
+# carrier set. `source_tag` records the release git tag (the operator tags at release;
+# CC does not tag — ADR-91). The tool's preflight requires that tag to resolve before
+# --execute, so v1.1.0 must be tagged by the operator before the real deploy runs.
+#
+# WHAT'S NEW vs v1.0.0: the enforcement-mesh carrier (Axis-1 enforcement transfer, #236)
+# — deploys the two portable/ported fail-closed organs (session_end_backpressure via the
+# #237 git-toplevel-first port; canonical_freshness_gate) INTO a consumer so they fire
+# enforcing-local, with hub-parity /override. Paired change: the precommit carrier gains a
+# `canonical_freshness` required_local_hook (single-writer of .pre-commit-config.yaml — the
+# mesh carrier writes the SCRIPT, precommit owns the hook line; arming spans two carriers,
+# the ADR-93 precedent). hub_hooks rev bumped to the v1.1.0 version-coupling anchor.
+
+methodology_version: "1.1.0"
+source_tag: v1.1.0
+
+carriers:
+  - id: global-config
+    order: 1
+    implemented: true
+    description: >
+      ARCHITECTURE's user-layer L0 carrier (#1) — the fleet-wide ~/.claude / ~/.codex
+      baseline. Implements ONE payload: the global Codex reviewer config (ADR-54), the hub's
+      canonical codex/AGENTS.md reconciled to ~/.codex/AGENTS.md. USER-machine scoped; a copied
+      file has no rev (ABSENT / PRESENT_CORRECT / PRESENT_DRIFTED only). Unchanged from v1.0.0.
+    adr: [ADR-54]
+    target:
+      source_path: codex/AGENTS.md
+      target_filename: AGENTS.md
+    l0_scope:
+      implemented:
+        - payload: codex-config
+          target: '~/.codex/AGENTS.md'
+          adr: ADR-54
+      deferred_deployables:
+        - payload: surface-closures
+          target: '~/.claude SessionStart hook (surface-closures.ps1)'
+          adr: ADR-70
+          status: 'live, fleet-deployed; candidate for future L0-payload coverage'
+        - payload: block-onedrive
+          target: '~/.claude PreToolUse hook (block-onedrive.ps1), fail-closed P0 guard'
+          adr: ADR-75
+          status: 'live, fleet-deployed; candidate for future L0-payload coverage'
+        - payload: gotchas
+          target: '~/.claude/skills/gotchas/ (user-level skill)'
+          adr: global
+          status: 'live; candidate for future L0-payload coverage'
+        - payload: routing
+          target: '~/.claude/ROUTING.md'
+          adr: global
+          status: 'live; candidate for future L0-payload coverage'
+      enforced_elsewhere:
+        - payload: no-ff-rule
+          rule: 'branch then --no-ff merge is universal (core-invariants #5)'
+          enforced_by: 'pre-commit carrier (#3) hub hooks block-ff-push / validate_no_ff, plus /ship'
+          adr: core-invariants
+
+  - id: tier1-plugin
+    order: 2
+    implemented: true
+    description: >
+      The tier1-lifecycle CC plugin enabled at project scope in the consumer
+      (deploy/carrier_plugin.py) — reconciles via the external `claude plugin` CLI; correctness
+      judged from the resulting installed state, never stdout. Target version read live from the
+      hub plugin.json. Unchanged from v1.0.0.
+    adr: [ADR-70]
+    target:
+      plugin: tier1-lifecycle@dev-knowledge-methodology
+      marketplace: dev-knowledge-methodology
+      scope: project
+
+  - id: precommit
+    order: 3
+    implemented: true
+    description: >
+      Pinned pre-commit hooks in the consumer's .pre-commit-config.yaml. The single writer of
+      that file (single-writer-per-file). v1.1.0: hub_hooks rev bumped to v1.1.0 (the
+      version-coupling anchor) + a NEW `canonical_freshness` required_local_hook (the enforcement-
+      mesh freshness gate — the mesh carrier writes the SCRIPT it runs, this carrier owns the hook
+      line; arming spans two carriers, ADR-93).
+    adr: [ADR-71]
+    target:
+      config_path: .pre-commit-config.yaml
+      required_repos:
+        - repo: https://github.com/astral-sh/ruff-pre-commit
+          rev: v0.15.5
+          hooks:
+            - id: ruff
+              name: Ruff lint gate (Tier-1, pinned rev; blocks on violations)
+              args: []
+      hub_hooks:
+        rev: v1.1.0
+        marker_hook_ids:
+          - codemap-freshness
+          - codemap-generate
+          - toc-freshness
+          - toc-generate
+          - backlog-id-on-close
+        repo: https://github.com/rdwornik/dev-knowledge
+        hooks:
+          - id: codemap-freshness
+          - id: toc-freshness
+      required_local_hooks:
+        - id: floor-hash-verify
+          name: Verify CLAUDE-FLOOR.md matches its sha256 sidecar
+          entry: python .claude/check_floor_hash.py
+          language: system
+          files: '^\.claude/CLAUDE-FLOOR\.md(\.sha256)?$'
+          pass_filenames: false
+        # Enforcement-mesh (#236): the consumer-local canonical_freshness gate. The mesh carrier
+        # deploys scripts/canonical_freshness_gate.py; this hook line runs it (the Informant's
+        # locate scans pre-commit id/name/entry for `canonical_freshness`/`last_reviewed`).
+        # `always_run` (no `files`) — A2 is a whole-repo state check, not a per-file diff check.
+        - id: canonical_freshness
+          name: canonical_freshness last_reviewed gate (A2 FAIL blocks the commit)
+          entry: python scripts/canonical_freshness_gate.py
+          language: system
+          always_run: true
+          pass_filenames: false
+
+  - id: floor
+    order: 4
+    implemented: true
+    description: >
+      The per-repo methodology floor (ADR-78) — .claude/CLAUDE-FLOOR.md + its .sha256 sidecar,
+      plus its arming artifacts. Unchanged from v1.0.0.
+    adr: [ADR-78]
+    target:
+      floor_path: .claude/CLAUDE-FLOOR.md
+      sidecar_path: .claude/CLAUDE-FLOOR.md.sha256
+
+  # NEW in v1.1.0 — Axis-1 enforcement transfer (#236). Deploys the two fail-closed organs into
+  # the consumer so they fire enforcing-local (Model D: deploy-into-consumer — the Informant's
+  # fire_test clones the consumer, so the invoked scripts must live IN the repo). The carrier
+  # reads the hub bytes and hardcodes the artifact paths, so `target` is descriptive only (the
+  # carrier ignores it). Acceptance is the Informant reporting enforcing-local via demonstrated
+  # firing (ADR-81 leg-(e)), NOT presence — run scripts/enforcement_coverage.py --fire.
+  - id: enforcement-mesh
+    order: 5
+    implemented: true
+    description: >
+      deploy/carrier_mesh.py — writes scripts/session_end_backpressure.py (the #237 git-toplevel-
+      first port) + scripts/canonical_freshness_gate.py + .claude/commands/override.md (hub-parity
+      logged-override; --no-verify does NOT bypass a Stop hook, so /override is seb's only escape)
+      + a .claude/settings.json Stop hook running seb + logs/.gitkeep + a distinct sentinel-
+      delimited .gitignore block for the override token. The freshness pre-commit hook is owned by
+      the precommit carrier (above), not this carrier.
+    adr: [ADR-85, ADR-81]
+    target:
+      organs:
+        - session_end_backpressure   # scripts/session_end_backpressure.py (#237-ported) + Stop hook
+        - canonical_freshness         # scripts/canonical_freshness_gate.py (hook via precommit carrier)
+      override_command: .claude/commands/override.md
+      logs_dir: logs/                 # .gitkeep tracked; token + OVERRIDES.md gitignored
