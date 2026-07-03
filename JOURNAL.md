@@ -31,6 +31,8 @@
 
 **Next:** Operator pastes `PASTE_THIS.md` into a fresh architect chat; optionally fills SUPPLEMENT (`supplement filled`). `--no-ff` merge this handoff branch → `main` from the **primary**. Merged stragglers `feat/mesh-carrier-hubside` + `deploy/record-ai-council-1.1.0` are `-d`-safe; `feat/essence-spec-p1` is the live arc — do NOT delete.
 
+**Update (supplement FILLED + folded, `cd13106`; wrap-SHA anchor `871f8ba`):** Operator filled `SUPPLEMENT.md` from the outgoing architect chat; committed verbatim + re-assembled (`PASTE_THIS` now 5 sections incl. the ANSWERS). Reconciled the bundle framing cold→FILLED for coherence (the `-2` precedent; P8 drift-ref flipped, command-target uses the full bundle path so `verify_handoff_probes` resolves it — `handoff_probes` OK, health OK). Load-bearing answers now authoritative in the paste: **`[#244]` is the methodology LIFECYCLE-MANAGEMENT epic** (transfer·sync·**PRUNE**), **resume at P2 (PRUNE — first deleting phase; Opus, plan-first, gated on operator D1–D3)**; essence-spec P1 spec-path **APPROVED → merge to `main`**; release-lint preflight **deferred**; **mesh-model Fable consult #2 RESOLVED + MOOT** (mesh carrier = "Model D", enforcing-local ×2 — do NOT spin one up); new **continuous-conformance** nightly-hygiene vision (Opus decomposes → Sonnet observers per-file rot-check) under `[#244]`.
+
 ---
 
 ### 2026-07-03 — CC: close #236 (mesh carrier) + #237 (seb port) — done-items-leave, operator-approved (e2161f9)
