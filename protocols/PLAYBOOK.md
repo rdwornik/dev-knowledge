@@ -1547,7 +1547,7 @@ A recurring unattended review — local or cloud — graduates to "standard" onl
 ## Ch12. Definition of done (organs)
 <!-- scope: meta -->
 
-Recorded as **ADR-81** (2026-06-09). An organ — a plugin, hook, command, skill, workflow, generator, or convention — is **not DONE** until it has all four:
+Recorded as **ADR-81** (2026-06-09; leg (e) added 2026-07-03). An organ — a plugin, hook, command, skill, workflow, generator, or convention — is **not DONE** until it has all five:
 
 - **(a) a methodology home** — its rule/doctrine written in PLAYBOOK **sufficiently for a fresh
   session to act on it from that section alone** (existence ≠ sufficiency). Verified at the handoff
@@ -1557,13 +1557,14 @@ Recorded as **ADR-81** (2026-06-09). An organ — a plugin, hook, command, skill
 - **(b) a deployment path** — a runbook or documented install sequence;
 - **(c) a maintenance/refresh cadence** — how it stays current, and how staleness is detected;
 - **(d) actual deployment, OR an explicit documented deferral** that names the gap and what remains.
+- **(e) functional proof** (enforcement mechanisms) — a mechanism (organ / gate / hook / enforcement rule) is not done on presence or configuration alone. Closure requires demonstrated enforcement-in-effect — a functional proof that the mechanism **fires**: a test observing the gate block/trigger, or an observed in-situ firing, not evidence that the artifact is present or conforms. Presence-conformance is necessary but not sufficient; demonstrated firing is the sufficient condition. (ADR-81 Amendment 2026-07-03, Fable consult #1; generalizes the 2026-06-24 hard-metric amendment from deterministic builds to every enforcement mechanism.)
 
-Stopping at build+test is the **half-feature rot trap**: build-and-test ≠ done. (The routine-specific analog is "What every routine must meet" above — this is its generalization to every organ class.)
+Stopping at build+test is the **half-feature rot trap**: build-and-test ≠ done — and for an enforcement mechanism, present-and-conformant ≠ done either (leg (e): it must be shown to fire). (The routine-specific analog is "What every routine must meet" above — this is its generalization to every organ class.)
 
 ### Definition of shipped (closure gate)
 <!-- scope: meta -->
 
-ADR-81 (a)–(d) above answers *"is this organ a complete organ?"* This answers the adjacent question *"is this work actually shipped, or only prematurely announced?"* — the **"deployment is half the success"** gate (LESSONS 2026-06-10). "Unit tests pass → announce shipped" is the EASY metric; declaring on it under momentum is the recurring premature-closure failure (the floor saga is the worked example). A feature/arc is **shipped** only when ALL six hold:
+ADR-81 (a)–(e) above answers *"is this organ a complete organ?"* This answers the adjacent question *"is this work actually shipped, or only prematurely announced?"* — the **"deployment is half the success"** gate (LESSONS 2026-06-10). "Unit tests pass → announce shipped" is the EASY metric; declaring on it under momentum is the recurring premature-closure failure (the floor saga is the worked example). A feature/arc is **shipped** only when ALL six hold:
 
 1. **Git clean + merged** — branch merged `--no-ff` to `main` and pushed; `upstream..HEAD` empty (LESSONS 2026-06-09 /ship-completion).
 2. **Version surfaces coherent** — every coupled version surface agrees with its anchor (`audit.py amendment_coherence` green).
