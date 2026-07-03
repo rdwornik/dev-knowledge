@@ -275,6 +275,40 @@ def test_canonical_freshness_fires_on_stale_stamp(tmp_path):
     assert cell.fired is True
 
 
+@pytest.mark.skipif(not _HAS_PRECOMMIT, reason="pre-commit not installed — commit-time leg unavailable")
+def test_freshness_fire_isolates_from_unresolvable_relative_repo(tmp_path):
+    """Mesh-carrier reachability DE-RISK (load-bearing): a consumer whose .pre-commit-config.yaml
+    carries an UNRESOLVABLE relative `repo: ../x` ref — exactly ai-council's `repo: ../.dev-knowledge`,
+    which is absent from the throwaway clone's parent — must STILL reach enforcing-local. pre-commit
+    clones every repo in a config before running any hook, so a full-commit (or even a single-hook
+    run against the full config) would fail on the missing sibling — a FALSE verdict. The fire
+    isolates the consumer's own freshness hook under a minimal one-hook config. Uses the REAL
+    deployed gate (scripts/canonical_freshness_gate.py)."""
+    gate_src = (_REPO_ROOT / "scripts" / "canonical_freshness_gate.py").read_text(encoding="utf-8")
+    precommit = (
+        "repos:\n"
+        "  - repo: ../this-sibling-does-not-exist\n"
+        "    rev: v1.0.0\n"
+        "    hooks: [{id: toc-freshness}]\n"
+        "  - repo: local\n    hooks:\n"
+        "      - id: canonical_freshness\n"
+        "        name: canonical_freshness last_reviewed gate\n"
+        "        entry: python scripts/canonical_freshness_gate.py\n"
+        "        language: system\n"
+        "        always_run: true\n"
+        "        pass_filenames: false\n"
+    )
+    root = _init_consumer(tmp_path / "relref", {
+        "CLAUDE.md": "---\nlast_reviewed: 2026-07-03\n---\n# CLAUDE\nbody\n",
+        "scripts/canonical_freshness_gate.py": gate_src,
+        ".pre-commit-config.yaml": precommit,
+    })
+    cell = _cell(ec.evaluate_full(root), "canonical_freshness")
+    assert cell.verdict == ec.ENFORCING_LOCAL, cell.evidence
+    assert cell.fired is True
+    assert "isolation" in cell.evidence
+
+
 # ---------------------------------------------------------------------------
 # Verdict vocabulary + audit leg posture.
 # ---------------------------------------------------------------------------

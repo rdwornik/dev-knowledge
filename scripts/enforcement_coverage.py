@@ -380,44 +380,80 @@ def _freshness_files() -> list[str]:
     return list(getattr(_audit, "_FRESHNESS_FILES", ["CLAUDE.md"]))
 
 
+def _extract_freshness_local_hook(root: Path) -> dict | None:
+    """The consumer's OWN `repo: local` canonical_freshness hook dict (id/name/entry/language/...),
+    or None if the organ isn't wired as a runnable local hook. Found by the same token scan the
+    locate uses. Used to run the hook UNDER A MINIMAL ONE-HOOK CONFIG so the fire isolates from
+    the rest of the consumer's .pre-commit-config.yaml — see _freshness_fire.
+    """
+    cfg = _read_yaml(root / ".pre-commit-config.yaml")
+    for repo in cfg.get("repos") or []:
+        if not isinstance(repo, dict) or repo.get("repo") != "local":
+            continue
+        for h in repo.get("hooks") or []:
+            if not isinstance(h, dict):
+                continue
+            blob = " ".join(str(h.get(k, "")) for k in ("id", "name", "entry")).lower()
+            if any(fp in blob for fp in _FRESHNESS_FALSE_POSITIVES):
+                continue
+            if any(tok in blob for tok in _FRESHNESS_TOKENS):
+                return h
+    return None
+
+
 def _freshness_fire(consumer: Path) -> tuple[bool, str]:
     """FIRE test: make a _FRESHNESS_FILES doc A2-stale (last_reviewed predates its last commit),
-    then commit an UNRELATED file through the wired gate and require the commit to be BLOCKED
-    with HEAD unmoved."""
+    then run the consumer's OWN canonical_freshness hook IN ISOLATION and require it to BLOCK.
+
+    Isolation is load-bearing (the mesh-carrier reachability de-risk): `pre-commit` clones EVERY
+    repo in a config before running ANY hook, so a consumer whose `.pre-commit-config.yaml` carries
+    an unresolvable relative `repo: ../sibling` ref (e.g. ai-council's `../.dev-knowledge`, absent
+    from the throwaway clone's parent) makes a full `git commit` — AND even `pre-commit run <one-id>`
+    — fail for the WRONG reason (a clone error, not the freshness gate), a false verdict either way.
+    So we extract the consumer's own local freshness hook and run it under a MINIMAL one-hook config
+    (`repo: local` only → nothing to clone). A non-zero exit is exactly what blocks a real commit;
+    combined with locate (the hook IS wired in the real config) that proves enforcing-local. The
+    fixture `test_freshness_fire_isolates_from_unresolvable_relative_repo` pins this.
+    """
     with _cloned_consumer(consumer) as (clone, env, _fc):
         ok, ev = _freshness_candidate(clone)
         if not ok:
             return (False, "no canonical_freshness gate wired in the committed clone")
+        hook = _extract_freshness_local_hook(clone)
+        if hook is None:
+            return (False, "canonical_freshness located but not a runnable repo:local hook "
+                           "(cannot isolate it for the fire)")
         target = next((f for f in _freshness_files() if (clone / f).exists()), None)
         if target is None:
             return (False, "no _FRESHNESS_FILES doc present to stale")
         doc = clone / target
         text = doc.read_text(encoding="utf-8")
-        if _LAST_REVIEWED_RE.search(text):
-            text = _LAST_REVIEWED_RE.sub("last_reviewed: 2020-01-01", text, count=1)
-        else:
+        if not _LAST_REVIEWED_RE.search(text):
             return (False, f"{target} has no last_reviewed frontmatter to stale")
+        text = _LAST_REVIEWED_RE.sub("last_reviewed: 2020-01-01", text, count=1)
         doc.write_text(text, encoding="utf-8", newline="\n")
-        # Setup commit bypasses the gate (--no-verify) so the file's last-commit-date is NOW while
-        # last_reviewed=2020 -> A2 stale. The ASSERTION commit below runs the real gate.
+        # Setup commit bypasses the gate (--no-verify) so the doc's last-commit-date is NOW while
+        # last_reviewed=2020 -> A2 stale. The isolated run below is the real gate.
         _run_in(["git", "add", target], clone, env)
         _run_in(["git", "commit", "--no-verify", "-m", "enfcov: stale-stamp setup"], clone, env)
-        install = _run_in([sys.executable, "-m", "pre_commit", "install"], clone, env)
-        if install.returncode != 0:
-            return (False, f"pre-commit install failed: {(install.stdout + install.stderr).strip()}")
-        head_before = _run_in(["git", "rev-parse", "HEAD"], clone, env).stdout.strip()
-        (clone / "_enfcov_unrelated.txt").write_text("x\n", encoding="utf-8", newline="\n")
-        _run_in(["git", "add", "_enfcov_unrelated.txt"], clone, env)
-        c = _run_in(["git", "commit", "-m", "enfcov: trigger freshness gate"], clone, env)
-        combined = c.stdout + c.stderr
-        if c.returncode == 0:
-            return (False, "commit was NOT blocked — the freshness gate did not fire")
-        head_after = _run_in(["git", "rev-parse", "HEAD"], clone, env).stdout.strip()
-        if head_after != head_before:
-            return (False, "a commit LANDED despite the gate (HEAD moved)")
+        minimal = clone / "_enfcov_freshness_only.yaml"
+        minimal.write_text(
+            yaml.safe_dump({"repos": [{"repo": "local", "hooks": [hook]}]}, sort_keys=False),
+            encoding="utf-8", newline="\n")
+        hook_id = str(hook.get("id") or "canonical_freshness")
+        r = _run_in([sys.executable, "-m", "pre_commit", "run", hook_id,
+                     "--config", str(minimal), "--all-files"], clone, env)
+        combined = r.stdout + r.stderr
+        try:
+            minimal.unlink()
+        except OSError:
+            pass
+        if r.returncode == 0:
+            return (False, "the canonical_freshness hook did NOT block the stale-stamp state "
+                           "(isolated run, exit 0)")
         named = "canonical_freshness" in combined or "last_reviewed" in combined
-        return (True, "freshness gate blocked a stale-stamp commit (HEAD unmoved)"
-                      + ("; reason names the organ" if named else ""))
+        return (True, "canonical_freshness hook blocked a stale-stamp state in isolation"
+                      + ("; output names the organ" if named else ""))
 
 
 # ---------------------------------------------------------------------------
