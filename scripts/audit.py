@@ -1952,6 +1952,45 @@ def check_deployed_methodology_version(repo_path: Path) -> list[Finding]:
                     f"{repo_key}: deployed methodology corpus v{version}")]
 
 
+def check_enforcement_coverage(repo_path: Path) -> list[Finding]:
+    """Informant Organ leg (Stage-2 enforcement-transfer): a READ-ONLY, non-blocking reporter of
+    whether the 5 hub enforcement organs fire locally in the audited consumer.
+
+    STATIC path only here (never clones — this runs on every hub commit via audit-health):
+    applicability + locate per organ. `enforcing-local` is provable ONLY by the standalone
+    reporter's fire_test (scripts/enforcement_coverage.py), so this leg never claims it — its
+    strongest per-organ label is `present-unverified`. Posture (operator-ratified 2026-07-03):
+    emits `n/a` — never FAIL/WARN — so it cannot RED the hub's own health/ship gate for this
+    known-tracked gap; the gap lives in the digest logs/ENFORCEMENT-COVERAGE.md + the standalone
+    reporter. On the hub itself this is `n/a` (the hub is the SOURCE of the organs, not a consumer
+    coverage row). A status reporter, NOT a doc->code behavioral rule -> `exempt` in
+    ecosystem/doc-code-edge.yaml (ADR-91-sibling posture to check_deployed_methodology_version).
+    Fail-soft: any error -> WARN (fail-OPEN on its own input), never wedges a gate.
+
+    Stage-3 (on the record, NOT built here): once a consumer establishes an enforcing-local
+    baseline, a regression enforcing-local -> absent should WARN. Deferred backlog item.
+    """
+    name = "enforcement_coverage"
+    if Path(repo_path).resolve() == Path(_REPO_ROOT).resolve():
+        return [Finding(name, "n/a",
+                        "hub - source of the 5 enforcement organs; per-consumer coverage is "
+                        "measured by scripts/enforcement_coverage.py (read-only reporter)")]
+    try:
+        from scripts import enforcement_coverage as _enfcov
+    except ImportError:
+        import enforcement_coverage as _enfcov
+    try:
+        cells = _enfcov.evaluate_static(Path(repo_path))
+    except Exception as exc:  # never wedge the audit gate on the reporter's own error
+        return [Finding(name, "warn",
+                        f"reporter degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    summary = "; ".join(f"{c.organ_id}={c.verdict}" for c in cells)
+    return [Finding(name, "n/a",
+                    (f"{Path(repo_path).name}: {summary} "
+                     "(static; enforcing-local proven only by scripts/enforcement_coverage.py)")
+                    .replace("|", "/"))]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -1978,6 +2017,7 @@ ALL_CHECKS = [
     check_doc_code_edge,
     check_safe_removal,
     check_deployed_methodology_version,
+    check_enforcement_coverage,
     check_doc_code_coverage_drift,
 ]
 

@@ -27,6 +27,11 @@ logs/PROPOSALS-*.md
 # durable Tier-2 audit record is docs/audits/*.md, committed by audit.py per ADR-80 §3)
 logs/FLEET-HEALTH.md
 
+# Enforcement-coverage digest (Informant Organ, Stage-2 enforcement-transfer — read-only
+# reporter, auto-refreshed by scripts/enforcement_coverage.py; never committed, same ephemeral
+# pattern as FLEET-HEALTH.md. Writing it must never dirty the tree / trip session-end backpressure.)
+logs/ENFORCEMENT-COVERAGE.md
+
 # Ecosystem mutable pointers (ADR-80 mutable/durable split — high-churn pointer, not committed;
 # durable records are ecosystem/*/history/*.md + docs/audits/*.md, committed by audit.py)
 ecosystem/*/state.yaml
