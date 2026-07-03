@@ -28,9 +28,9 @@ repos:
     deployed_date: null
     source_tag: null
   ai-council:
-    deployed_methodology_version: "1.0.0"
-    deployed_date: "2026-07-01"
-    source_tag: "v1.0.0"
+    deployed_methodology_version: "1.1.0"
+    deployed_date: "2026-07-03"
+    source_tag: "v1.1.0"
   corp-monorepo:
     deployed_methodology_version: null
     deployed_date: null
