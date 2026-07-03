@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-03 — CC: Axis-1-on-ai-council PROVEN — enforcing-local ×2 (leg-(e) acceptance MET) (5f95d06)
+
+**Did:** After the operator re-tagged v1.1.0 + committed the 6 mesh artifacts + reconciled ai-council/CLAUDE.md (§7/§8 command-skill currency: dropped verified-dead `/boot`/`/evolve`/`verify`, added `/override`; §6 dead-boot step; §9 actual hook set), ran Phase-2 `enforcement_coverage.py --consumer ai-council --run-date 2026-07-03 --fire`. First run: seb **enforcing-local**, canonical_freshness **absent** — a MEASUREMENT bug, not a deploy failure: the fire picks the first _FRESHNESS_FILES doc (VISION.md) and its stale-regex only matched UNQUOTED dates, but ai-council's VISION.md uses `last_reviewed: "2026-06-02"` (quoted) → "no last_reviewed to stale" → false absent. Fixed the Informant (hub-only, no re-tag): quote-tolerant `_LAST_REVIEWED_RE` + target-selection picks a STALEABLE doc; +regression test. Re-fired.
+
+**Result:** **enforcing-local for BOTH** — seb: "Stop hook emitted decision:block on unanchored work (JOURNAL reason)"; canonical_freshness: "hook blocked a stale-stamp state in isolation; output names the organ". **The leg-(e) acceptance (demonstrated firing, not presence) is MET — the first empirical proof the deployed methodology BITES in a consumer.** #236 (mesh carrier) + #237 (seb port) pilot gate met — closeable via /review-closures (operator-gated; not closed here). 4 freshness tests green.
+
+**⚠️ Flag (execution-truthfulness):** the committed ai-council CLAUDE.md still has `last_reviewed: 2026-06-02`, NOT the 2026-07-03 the operator stated — the intended stamp did NOT land in bda4fff, which therefore must have used `--no-verify` (the deployed gate exits 1 on this exact A2 state — verified). The now-live gate WILL block ai-council's NEXT real commit until CLAUDE.md is genuinely re-stamped — the organ dogfooding itself. ai-council owes a real re-stamp (never faked).
+
+**Changes:** `scripts/enforcement_coverage.py` (quote-tolerant fire + staleable-target selection), `tests/test_enforcement_coverage.py` (quoted-stamp regression), `ecosystem/doc-counts.md`. (ai-council changes are the operator's commit bda4fff, not the hub.)
+
+**Abandoned:** Nothing. Acceptance MET.
+
+**Next:** operator (a) genuinely re-stamps ai-council/CLAUDE.md `last_reviewed` + commits (clears the live gate); (b) `--no-ff` merges `feat/mesh-carrier-hubside` → main from the primary (the fire is green — the closure gate is passed); (c) merges the hub deploy-record branch `deploy/record-ai-council-1.1.0`; (d) /review-closures to close #236/#237. Fleet rollout n=2+ (#221/#239) remains sequenced-after.
+
 ### 2026-07-03 — CC: mesh-carrier deploy DEFECT caught in Phase-1 staging + fixed; re-tag pending (5f8be71)
 
 **Did:** Ran the mesh deploy Phase-1 (`deploy/tool.py ai-council --target v1.1.0 --execute`) after the operator tagged v1.1.0 at d42ca58. It reported SUCCESS + verify-green but staged only **5 of 7** artifacts. Diagnosed: `git add -A` skipped two WRITTEN artifacts because they were GITIGNORED — `.claude/commands/override.md` (swallowed by the FLOOR carrier's `.claude/*` block) and `logs/.gitkeep` (swallowed by ai-council's pre-existing `logs/` dir-form ignore; git cannot re-include a file under a dir-form-excluded dir — verified). Root cause the carrier's `verify()` MISSED it: it checked working-tree PRESENCE, not committability. Fixed: (a) the mesh `.gitignore` block now RE-INCLUDES override.md via the nested-dir negation `!.claude/commands/` + `!.claude/commands/override.md` (both needed); (b) `verify()` now asserts committability via `git check-ignore` (new `_is_gitignored`) — the lesson: presence ≠ committable; (c) DROPPED tracked `logs/.gitkeep` (un-re-includable under a consumer `logs/` ignore) — the hub `/override` command now self-creates `logs/` (`New-Item -Force`), robust across consumers. Restored ai-council to clean (undid the partial stage) + deleted the premature hub record branch `deploy/record-ai-council-1.1.0`.
