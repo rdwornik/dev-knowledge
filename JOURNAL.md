@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-03 — CC: architect handoff bundle generated (`2026-07-03-dev-knowledge-architect`) — awaiting operator (marker)
+
+**Did:** `/handoff architect dev knowledge` (v5.3 §13 architect mode). Scope matrix Case 2 (clean tree, commits-since-last-handoff, no today-slug). Generated the 5-file bundle at `docs/handoffs/2026-07-03-dev-knowledge-architect/` (BOOT + RESIDUAL + PROBES + SUPPLEMENT + assembled PASTE_THIS) on `docs/2026-07-03-architect-handoff` **off `main` (`ff3d744`)** — deliberately NOT off the unmerged `feat/essence-spec-p1`, so this handoff's merge never drags the unreviewed P1 arc onto `main`. Generation-witnessed: ship-gate **GREEN** (10 WARN dispositioned, no `[stale]`); 28 checks; pytest 1074/1074 (main); BACKLOG 22 stories/100 tasks (main). `SUPPLEMENT.md` generated **EMPTY** (CC-authored / cold — no outgoing browser chat); assembler `[skip]`ped the empty ANSWERS (§13(d) beat fires FULL).
+
+**Result:** Bundle assembled; PASTE_THIS carries 4 sections (no supplement). Residual §4 frontier: (1) review+merge the essence-spec P1 branch [#244] (the immediate open arc), (2) decide whether the mesh-model Fable consult #2 is still needed or resolved by the Informant fleet-map, (3) Stage-4 doctrine #238 + fleet #221 — with the demoted three-goal priority sequenced-after. Prior enforcement-mesh P0 substantially DONE this window (Axis-1 proven n=1, enforcing-local ×2).
+
+**Changes:** `docs/handoffs/2026-07-03-dev-knowledge-architect/` (new bundle, 5 files), `JOURNAL.md` (this marker). Bundle committed at **`4dc3f93`** (this session's wrap SHA, anchored here per ADR-85).
+
+**Abandoned:** Nothing. SUPPLEMENT left empty by design (fillable if an outgoing chat holds the essence-spec/mesh-model why).
+
+**Next:** Operator pastes `PASTE_THIS.md` into a fresh architect chat; optionally fills SUPPLEMENT (`supplement filled`). `--no-ff` merge this handoff branch → `main` from the **primary**. Merged stragglers `feat/mesh-carrier-hubside` + `deploy/record-ai-council-1.1.0` are `-d`-safe; `feat/essence-spec-p1` is the live arc — do NOT delete.
+
+**Update (supplement FILLED + folded, `cd13106`; wrap-SHA anchor `871f8ba`):** Operator filled `SUPPLEMENT.md` from the outgoing architect chat; committed verbatim + re-assembled (`PASTE_THIS` now 5 sections incl. the ANSWERS). Reconciled the bundle framing cold→FILLED for coherence (the `-2` precedent; P8 drift-ref flipped, command-target uses the full bundle path so `verify_handoff_probes` resolves it — `handoff_probes` OK, health OK). Load-bearing answers now authoritative in the paste: **`[#244]` is the methodology LIFECYCLE-MANAGEMENT epic** (transfer·sync·**PRUNE**), **resume at P2 (PRUNE — first deleting phase; Opus, plan-first, gated on operator D1–D3)**; essence-spec P1 spec-path **APPROVED → merge to `main`**; release-lint preflight **deferred**; **mesh-model Fable consult #2 RESOLVED + MOOT** (mesh carrier = "Model D", enforcing-local ×2 — do NOT spin one up); new **continuous-conformance** nightly-hygiene vision (Opus decomposes → Sonnet observers per-file rot-check) under `[#244]`.
+
+---
+
 ### 2026-07-03 — CC: close #236 (mesh carrier) + #237 (seb port) — done-items-leave, operator-approved (e2161f9)
 
 **Did:** `/review-closures` (ADR-70 Tier-1, operator-gated). The gate (`review_closures.py plan --ids 236,237`) returned both in `close` (weak tier — changed-file evidence: #236 `5f95d06`/`edc1f5f`/`99401d7`; #237 those + `dd53c99`), `skip: []`. Operator explicitly approved closing both by id. The **true** done-when evidence is stronger than the weak proxy: **enforcing-local ×2 on the ai-council n=1 pilot** (anchored `e2161f9` — seb `decision:block`, canonical_freshness blocked-in-isolation), which is exactly both tasks' Done-when. Removed both task lines (done-items-leave, ADR-65; no renumber, id gap kept).
