@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-03 — CC: land Fable consult #1 ruling #3 — ADR-94 status-line-mutable-on-ratification (operator-signed) (e682bdd)
+
+**Did:** Operator signed the exact CLAUDE.md §5 item 3 before/after → landed ruling #3 (held in the prior entry). Replaced §5 item 3 with the operator-signed text **char-for-char** (verified by read-back): the "ADRs/transcripts/handoffs/audits immutable" rule gains an **ADR-status-line-only** ratification exception. Created **ADR-94** matching the signed text (exception is ADR-status-line-only; ADR decision content + transcripts/handoffs/audits stay fully immutable; standardizes go-forward on Pattern B (ADR-92) over ADR-88/89's frozen-`Proposed`-header Pattern A). Reconciled §"File lifecycle" (L55) to match. Rotated §11 "last 5" 89–93 → 91–95 (added ADR-94 + ADR-95), added §12 v2.26, re-stamped `last_reviewed` 2026-07-03. Added the ADR-94 README index row (filling the gap left when ADR-95 landed first).
+
+**Result:** ship-gate **GREEN**, audit-health GREEN (`canonical_freshness` fresh — CLAUDE.md re-stamp accepted; `doc_claims` match; `amendment_coherence` coherent; no new `undeclared_edges` from the CLAUDE.md edits), ruff clean. The header↔README status-coherence check is filed **[#242]** (not built); ADR-88/89 retro-normalization deferred (go-forward doctrine only).
+
+**Changes:** `CLAUDE.md` (§5 item 3 signed text, §File-lifecycle L55, §11 rotation, §12 v2.26, `last_reviewed`), `docs/decisions/ADR-94-adr-status-line-mutable-on-ratification.md` (new), `docs/decisions/README.md` (ADR-94 index row).
+
+**Abandoned:** Nothing. All 4 consult #1 rulings now landed.
+
+**Next:** `--no-ff` merge `feat/consult1-disposition` → `main` from the **primary** checkout (commit-and-stop; operator serializes integration). Then consult #2 (mesh-model), which unblocks [#236]/[#243].
+
 ### 2026-07-03 — CC: disposition the 4 Fable consult #1 rulings (#1/#2/#4 landed; #3 held for operator signature) (76d71aa, 62a8248, f956ba5, 189d413)
 
 **Did:** PLAN-first CC prompt (architect-gated). 3 Explore agents recon'd the trace + landing sites: consult #1 survives ONLY as one-line gists (×3 in the `-2` handoff bundle) → **transcribe headline, reconstruct substance**; the reconstructed substance for #1/#3/#4 was ratified/corrected by the architect (6 changes + 2 ratifications). Key recon catch: the gist's "core-invariant #5" is a **mis-reference** — #5 (`~/.claude/rules/core-invariants.md`) is the `--no-ff` rule; the ADR-immutability doctrine #3 re-scopes lives in **CLAUDE.md §5 item 3**. Landed 3 of 4: **#1** leg-(e) functional-proof appended to ADR-81 via a new `## Amendment` (immutability-respecting; (a)–(d) untouched; supersedes the stale L47 "four-point unchanged" line; bar now (a)–(e)) + mirrored to PLAYBOOK Ch12. **#2** wired `scan_undeclared_edges` (#179) as `check_undeclared_edges` ship-gate WARN leg (ALL_CHECKS 27→28) — **demonstrated to FIRE** (crafted-repo TEETH test + 6 live hub candidates), the done-proof for the leg. **#4** recorded the ai-council query lane-split as **ADR-95** (record-only; no `/council` wiring built).
