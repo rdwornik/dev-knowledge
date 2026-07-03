@@ -39,7 +39,15 @@ from typing import Any
 
 import yaml
 
-from contract import ApplyResult, Carrier, CarrierState, VerifyResult
+from contract import (
+    ApplyResult,
+    Carrier,
+    CarrierState,
+    PruneResult,
+    PruneState,
+    PruneUnsupported,
+    VerifyResult,
+)
 
 log = logging.getLogger(__name__)
 
@@ -388,6 +396,131 @@ def _verify_satisfied(raw_text: str, target: PrecommitTarget) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# Remove leg (P2 / [#244] / ADR-96) — prune a status:removed component from the
+# consumer's .pre-commit-config.yaml. The n=1 subject is ruff-gate: a
+# self-contained `- repo: .../ruff-pre-commit` block (whole-entry removal, matched
+# by exact repo URL — never by hook-id intersection, so it can't empty-and-recreate
+# like the hub_hooks entry). The component's `prune:` block carries the identity
+# (`match.repo`) and the last-deployed-shape oracle (`expected: {rev, hooks}`) —
+# the hash-guard: consumer entry == expected → CLEAN (safe); diverged → MODIFIED
+# (locally edited → REFUSE, never clobber). detect and verify use SEPARATE scans
+# (D9): _classify_prune (detect) vs _verify_absent (verify) share no judgment helper.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class PrunableRepo:
+    """A component's prune identity + last-deployed oracle (parsed from `prune:`).
+
+    Spec-parsing only (reads the manifest, not the consumer) — D9-safe, exactly as
+    parse_target is. ``match_repo`` is the exact ``repo:`` URL to remove;
+    ``expected_rev`` / ``expected_hooks`` are the shape the methodology deployed, so
+    a consumer that edited it (different rev / args / hooks) reads as MODIFIED.
+    """
+
+    match_repo: str
+    expected_rev: str
+    expected_hooks: tuple[dict[str, Any], ...]
+
+    @property
+    def expected_hook_index(self) -> dict[str, dict[str, Any]]:
+        return {h["id"]: dict(h) for h in self.expected_hooks if isinstance(h, dict) and "id" in h}
+
+
+def parse_prune(component: Any) -> PrunableRepo:
+    """Interpret a component's ``prune:`` block into the carrier's typed model."""
+    if not isinstance(component, dict):
+        raise PruneUnsupported(f"precommit: component is not a mapping: {component!r}")
+    spec = component.get("prune")
+    if not isinstance(spec, dict):
+        raise PruneUnsupported(
+            f"precommit: component {component.get('id')!r} has no prune: block "
+            "(the remove leg needs match.repo + expected.{rev,hooks})"
+        )
+    match = spec.get("match") or {}
+    expected = spec.get("expected") or {}
+    repo = str(match.get("repo", "")).strip()
+    if not repo:
+        raise PruneUnsupported(
+            f"precommit: component {component.get('id')!r} prune.match.repo is empty"
+        )
+    hooks = tuple(dict(h) for h in expected.get("hooks", []) or [])
+    return PrunableRepo(
+        match_repo=repo,
+        expected_rev=str(expected.get("rev", "")),
+        expected_hooks=hooks,
+    )
+
+
+def _entry_matches_expected(entry: dict[str, Any], prunable: PrunableRepo) -> bool:
+    """True iff the consumer repo entry byte-matches the last-deployed shape.
+
+    Any divergence (rev, hook set, or any hook field) → False → the entry was
+    locally modified since deploy → prune must REFUSE (do not clobber).
+    """
+    if str(entry.get("rev", "")) != prunable.expected_rev:
+        return False
+    have = {
+        h["id"]: dict(h)
+        for h in entry.get("hooks", []) or []
+        if isinstance(h, dict) and "id" in h
+    }
+    want = prunable.expected_hook_index
+    if set(have) != set(want):
+        return False
+    return all(have[hid] == want[hid] for hid in want)
+
+
+def _classify_prune(config: dict[str, Any], prunable: PrunableRepo) -> PruneState:
+    """detect_prune's judgment: consumer config + prune spec -> PruneState.
+
+    absent entry -> ALREADY_ABSENT; present-and-byte-matches-deployed -> PRESENT_CLEAN;
+    present-but-diverged (locally edited) -> PRESENT_MODIFIED (REFUSE).
+    """
+    entry = _find_repo(config, prunable.match_repo)
+    if entry is None:
+        return PruneState.ALREADY_ABSENT
+    if _entry_matches_expected(entry, prunable):
+        return PruneState.PRESENT_CLEAN
+    return PruneState.PRESENT_MODIFIED
+
+
+def _remove_repo_entry(config: dict[str, Any], match_repo: str) -> tuple[dict[str, Any], bool]:
+    """Return (config with the match_repo entry removed, removed?). Preserve all else.
+
+    Mirrors _reconcile's preserve-everything-else discipline in reverse: only the
+    single exact-URL-matched repo block is dropped; every other repo/hook/key is
+    left byte-identical.
+    """
+    new = copy.deepcopy(config) if config else {}
+    repos = new.get("repos")
+    if not isinstance(repos, list):
+        return new, False
+    kept = [e for e in repos if not (isinstance(e, dict) and e.get("repo") == match_repo)]
+    removed = len(kept) != len(repos)
+    new["repos"] = kept
+    return new, removed
+
+
+def _verify_absent(raw_text: str, prunable: PrunableRepo) -> list[str]:
+    """verify_pruned's INDEPENDENT judgment: re-parse fresh, assert the entry is gone.
+
+    Own scan (NOT _find_repo / _classify_prune) so a bug in detect's finder cannot
+    be mirrored here (D9). Empty list => the component is verifiably ABSENT.
+    """
+    failures: list[str] = []
+    try:
+        data = yaml.safe_load(raw_text) or {}
+    except yaml.YAMLError as exc:
+        return [f"config did not parse: {exc}"]
+    repos = data.get("repos", []) if isinstance(data, dict) else []
+    for e in repos:
+        if isinstance(e, dict) and e.get("repo") == prunable.match_repo:
+            failures.append(f"repo {prunable.match_repo} still present after prune")
+    return failures
+
+
+# ---------------------------------------------------------------------------
 # The carrier.
 # ---------------------------------------------------------------------------
 
@@ -437,4 +570,60 @@ class PrecommitCarrier(Carrier):
             ok=ok,
             failures=tuple(failures),
             detail="target satisfied" if ok else f"{len(failures)} unmet requirement(s)",
+        )
+
+    # --- Remove leg (P2 / ADR-96). Component-driven (reads the `prune:` block),
+    # not carrier-target-driven — the removed component is dropped from the target,
+    # so the prune identity/oracle travels on the component. The config path is the
+    # default (the consumer surface this carrier owns). ---
+
+    def _prune_config_path(self) -> Path:
+        return self.repo_root / DEFAULT_CONFIG_NAME
+
+    def detect_prune(self, component: Any) -> PruneState:
+        prunable = parse_prune(component)
+        config = _load_config(self._prune_config_path())
+        state = _classify_prune(config, prunable)
+        log.debug("precommit detect_prune: %s -> %s", prunable.match_repo, state)
+        return state
+
+    def prune(self, component: Any) -> PruneResult:
+        prunable = parse_prune(component)
+        path = self._prune_config_path()
+        config = _load_config(path)
+        state = _classify_prune(config, prunable)
+        if state is PruneState.ALREADY_ABSENT:
+            return PruneResult(pruned=False, detail=f"{prunable.match_repo} already absent")
+        if state is PruneState.PRESENT_MODIFIED:
+            # Hash-guard REFUSE: the consumer edited the entry since deploy. Do NOT
+            # delete — surface the conflict (copier deletion-propagation model).
+            return PruneResult(
+                pruned=False,
+                refused=(
+                    f"{prunable.match_repo} locally modified since deploy "
+                    f"(does not match deployed shape rev {prunable.expected_rev}) -- REFUSING; "
+                    "resolve the local edit or restore the deployed shape before pruning",
+                ),
+                detail="refused: locally-modified target",
+            )
+        desired, removed = _remove_repo_entry(config, prunable.match_repo)
+        if not removed:  # defensive: classified CLEAN but nothing matched
+            return PruneResult(pruned=False, detail=f"{prunable.match_repo} not found on removal")
+        _dump_config(path, desired)
+        change = f"removed repo entry {prunable.match_repo}"
+        log.info("precommit prune: %s", change)
+        return PruneResult(pruned=True, removed=(change,), detail=change)
+
+    def verify_pruned(self, component: Any) -> VerifyResult:
+        prunable = parse_prune(component)
+        path = self._prune_config_path()
+        # Independent read — does NOT call _load_config/_classify_prune (D9).
+        if not path.exists():
+            return VerifyResult(ok=True, detail="config absent -> component absent")
+        failures = _verify_absent(path.read_text(encoding="utf-8"), prunable)
+        ok = not failures
+        return VerifyResult(
+            ok=ok,
+            failures=tuple(failures),
+            detail="verified absent" if ok else f"{len(failures)} still-present artifact(s)",
         )
