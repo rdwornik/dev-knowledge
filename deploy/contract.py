@@ -94,6 +94,68 @@ class VerifyResult:
     detail: str = ""
 
 
+# ---------------------------------------------------------------------------
+# The remove leg (P2 / [#244] / ADR-96). The add-only contract above converges
+# a consumer TOWARD a target; the remove leg converges a ``status: removed``
+# component toward ABSENT. Declarative config-management removal (Terraform
+# destroy-on-remove / Ansible ``state: absent``) — NOT an API deprecation window.
+# Opt-in per carrier (no-big-bang): only a carrier that owns a prunable component
+# overrides the three methods; the base raises ``PruneUnsupported`` so an
+# accidental prune of an unsupported carrier fails LOUD, never silently no-ops.
+# ---------------------------------------------------------------------------
+
+
+class PruneUnsupported(NotImplementedError):
+    """A carrier was asked to prune a component it has no remove leg for.
+
+    Prune is opt-in per carrier (the "no big-bang sweep" boundary): P2 lands the
+    remove leg on exactly one carrier. The base ``Carrier`` methods raise this so
+    an unsupported prune surfaces as a hard error, not a silent success.
+    """
+
+
+class PruneState(Enum):
+    """A removed component's detected state in a consumer (the remove-leg model).
+
+    Mirrors ``CarrierState`` but for absence-convergence rather than
+    presence-convergence:
+
+    - ``ALREADY_ABSENT`` — the artifact is gone; prune is a no-op (idempotent).
+    - ``PRESENT_CLEAN`` — present and byte-matches the last-deployed shape → safe
+      to remove.
+    - ``PRESENT_MODIFIED`` — present but locally edited since deploy (hash/shape
+      mismatch) → **REFUSE**; do not clobber the operator's local work. This is
+      the copier deletion-propagation hash-guard: a template-deleted file the
+      consumer locally modified is surfaced as a conflict, never silently deleted.
+    """
+
+    ALREADY_ABSENT = "already_absent"
+    PRESENT_CLEAN = "present_clean"
+    PRESENT_MODIFIED = "present_modified"
+
+    @property
+    def needs_prune(self) -> bool:
+        """True only when present-and-clean (the sole state prune acts on)."""
+        return self is PruneState.PRESENT_CLEAN
+
+
+@dataclass(frozen=True)
+class PruneResult:
+    """What ``prune()`` removed (or refused) in the consumer tree — structured.
+
+    ``pruned`` is False when nothing was removed (already absent, or the
+    hash-guard refused). ``removed`` enumerates each deleted artifact/edit for the
+    tool's per-component report; ``refused`` names each conflict that blocked
+    removal (a locally-modified target). Like ``apply``, ``prune`` writes/stages
+    only — it never commits (Decision 3, commit-no).
+    """
+
+    pruned: bool
+    removed: tuple[str, ...] = ()
+    refused: tuple[str, ...] = ()
+    detail: str = ""
+
+
 class Carrier(ABC):
     """One deployment vector's detect/apply/verify against a manifest target.
 
@@ -119,3 +181,34 @@ class Carrier(ABC):
     @abstractmethod
     def verify(self, target: Any) -> VerifyResult:
         """Independently confirm the target is met. MUST NOT route through ``detect()``."""
+
+    # --- Remove leg (P2 / ADR-96) — opt-in per carrier. The base raises so an
+    # unsupported prune fails loud; only the carrier owning a prunable component
+    # overrides these three. ``component`` is the manifest ``components:`` entry
+    # (its ``prune:`` block, if any, gives the identity + last-deployed oracle).
+    # verify_pruned MUST be independent of detect_prune (D9), mirroring verify/detect.
+
+    def detect_prune(self, component: Any) -> PruneState:
+        """Classify a removed component's state in the consumer. Read-only."""
+        raise PruneUnsupported(
+            f"{getattr(self, 'carrier_id', '?')}: no remove leg for component "
+            f"{component.get('id') if isinstance(component, dict) else component!r}"
+        )
+
+    def prune(self, component: Any) -> PruneResult:
+        """Remove the component's artifacts; REFUSE on a locally-modified target.
+
+        Writes/stages only — never commits (Decision 3). Idempotent: an
+        already-absent component is a no-op.
+        """
+        raise PruneUnsupported(
+            f"{getattr(self, 'carrier_id', '?')}: no remove leg for component "
+            f"{component.get('id') if isinstance(component, dict) else component!r}"
+        )
+
+    def verify_pruned(self, component: Any) -> VerifyResult:
+        """Independently confirm the component is ABSENT. MUST NOT route through ``detect_prune()``."""
+        raise PruneUnsupported(
+            f"{getattr(self, 'carrier_id', '?')}: no remove leg for component "
+            f"{component.get('id') if isinstance(component, dict) else component!r}"
+        )

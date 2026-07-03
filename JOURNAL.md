@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-04 — CC (Opus): [#244] P2 PRUNE — deploy remove leg SHIPPED + n=1 truth-maker proven on ai-council
+
+**Did:** Executed [#244] P2 (the first *deleting* phase) as an architect delegation (plan-first/Opus, operator-gated). The add-only deploy engine gained a **remove leg**: (1) `deploy/contract.py` — `PruneState`/`PruneResult`/`PruneUnsupported` + concrete-default `detect_prune`/`prune`/`verify_pruned` on `Carrier` (D9-preserving) [`3de6908`]. (2) `deploy/carrier_precommit.py` — the leg for `ruff-gate`: whole-entry removal by exact repo URL, hash-guarded, preserve-all-else [`2193165`]. (3) `deploy/manifest-v1.2.0.yaml` — anchors→1.2.0, `removed_in`/`reason`/`prune` schema, `ruff-gate` flipped to `status: removed`, ruff dropped from the add-target [`4d724f7`]. (4) `release_lint` C6 unlocks `removed` (requires `removed_in`, forbids on active; 2-state, D3) [`1fbdf6f`]. (5) `tool.py` — prune sweep folded into `execute` (converge-then-prune) + Terraform-style destroy-confirm (`--auto-approve` for scripts) + tombstone print [`5766d16`]. (6) `tests/test_deploy_prune.py` (24) + release_lint P2 teeth [`d739551`]. Tagged **`v1.2.0`** (annotated, on `d739551`) before the live run.
+
+**Result:** **Truth-maker PROVEN on ai-council (n=1).** `v1.2.0` tag existence-only-gates confirmed (release_lint C2 + tool.py preflight both `git rev-parse --verify refs/tags/…`, no reachability constraint) → branch-tip tag valid pre-merge. Live consumer-invoked deploy: `ruff-pre-commit` **pruned + verified ABSENT** (presence-checked); a **locally-modified target REFUSED** (edited-and-committed ruff rev → `PRESENT_MODIFIED` → abort, no record, no stage — then ai-council fully restored to `bda4fff`); non-pruned surface **byte-identical** (only ruff removed + the legitimate `hub_hooks` `v1.1.0→v1.2.0` bump); hub record branch `deploy/record-ai-council-1.2.0` writes `deployed_methodology_version: "1.2.0"`. release_lint 5/5 anchors GREEN. Full suite **1130 passed**; ruff clean; ship-gate GREEN after the doc-counts bump (1101→1130).
+
+**Changes:** `deploy/` (contract, carrier_precommit, manifest-v1.2.0.yaml [new], release_lint, tool), `tests/test_deploy_prune.py` [new] + `test_release_lint.py`, `ecosystem/doc-counts.md` (1130), `docs/decisions/ADR-96-deploy-remove-leg.md` [new] + README index, `BACKLOG.md` (#244 P2 SHIPPED; FU-1 #245 + FU-2 #246 filed), `PLAYBOOK.md` (Ch12 P2 functional-proof mirror), `JOURNAL.md` (this entry). Tag `v1.2.0`.
+
+**Abandoned:** `hub-toc-hooks` as the n=1 subject — failed verify-clean (its `hub_hooks` entry IS anchor-3 + is identified-by-its-only-content → empties-and-re-creates; no config keeps both criterion-1 and C3 GREEN). Switched to `ruff-gate` (verify-cleaned at recon depth). The general fix (add-path status-awareness) is **FU-1 #245**, filed not built (no-big-bang boundary).
+
+**Next:** Operator gate on the two n=1 deploy artifacts left staged-not-committed (ADR-92 write-yes/commit-no): commit ai-council's `.pre-commit-config.yaml` + merge `deploy/record-ai-council-1.2.0`. Then the [#244] epic continues: P3 generated roster (D1) · P4 sync surfacing · P5 hub self-prune · P6 fleet (D2/#221 — must re-evaluate the ruff removal before propagating).
+
+---
+
 ### 2026-07-03 — CC: architect handoff bundle generated (`2026-07-03-dev-knowledge-architect`) — awaiting operator (marker)
 
 **Did:** `/handoff architect dev knowledge` (v5.3 §13 architect mode). Scope matrix Case 2 (clean tree, commits-since-last-handoff, no today-slug). Generated the 5-file bundle at `docs/handoffs/2026-07-03-dev-knowledge-architect/` (BOOT + RESIDUAL + PROBES + SUPPLEMENT + assembled PASTE_THIS) on `docs/2026-07-03-architect-handoff` **off `main` (`ff3d744`)** — deliberately NOT off the unmerged `feat/essence-spec-p1`, so this handoff's merge never drags the unreviewed P1 arc onto `main`. Generation-witnessed: ship-gate **GREEN** (10 WARN dispositioned, no `[stale]`); 28 checks; pytest 1074/1074 (main); BACKLOG 22 stories/100 tasks (main). `SUPPLEMENT.md` generated **EMPTY** (CC-authored / cold — no outgoing browser chat); assembler `[skip]`ped the empty ANSWERS (§13(d) beat fires FULL).

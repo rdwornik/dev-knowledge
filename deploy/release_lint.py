@@ -75,8 +75,10 @@ FLOOR_TMPL_REL = "templates/child-methodology-floor.md.tmpl"
 FLOOR_SIDECAR_REL = "templates/child-methodology-floor.sha256"
 
 COMPONENT_KINDS = {"organ", "hook", "command", "skill", "doc-shape", "config"}
-# P1 lifecycle boundary: tombstones (deprecated/removed) unlock in P2 (D3).
-ALLOWED_STATUSES = {"active"}
+# P2 (D3): 2-state lifecycle — active | removed (no `deprecated` tier). A removed
+# component is a tombstone: retained entry, artifacts pruned by the remove leg.
+# C6 requires `removed_in:` iff status:removed and forbids it on active.
+ALLOWED_STATUSES = {"active", "removed"}
 VERIFY_CLASSES = {"fire", "hash", "wired"}
 ROSTER_SECTIONS = {"header", "command", "skill", "precommit-hook", "session-hook"}
 
@@ -263,14 +265,26 @@ def check_components(spec: dict[str, Any]) -> list[Finding]:
             problems.append(f"{cid}: kind {comp.get('kind')!r} not in {sorted(COMPONENT_KINDS)}")
         status = comp.get("status")
         if status not in ALLOWED_STATUSES:
-            problems.append(f"{cid}: status {status!r} not allowed this release "
-                            "(only 'active'; tombstones unlock in P2, operator decision D3)")
+            problems.append(f"{cid}: status {status!r} not in {sorted(ALLOWED_STATUSES)} "
+                            "(2-state lifecycle, D3)")
+        # Tombstone coherence (P2): removed_in is REQUIRED iff status:removed and
+        # FORBIDDEN on active — so a tombstone always names its retiring release and
+        # an active component can never masquerade as one.
+        removed_in = comp.get("removed_in")
+        if status == "removed":
+            if not str(removed_in or "").strip():
+                problems.append(f"{cid}: status:removed requires a removed_in: (the retiring release)")
+        elif removed_in is not None:
+            problems.append(f"{cid}: removed_in {removed_in!r} set on a non-removed (status {status!r}) component")
         if comp.get("verify") not in VERIFY_CLASSES:
             problems.append(f"{cid}: verify {comp.get('verify')!r} not in {sorted(VERIFY_CLASSES)}")
         carrier = str(comp.get("carrier", "")).strip()
         if carrier not in carrier_ids:
             problems.append(f"{cid}: carrier {carrier!r} resolves to no manifest carrier")
-        else:
+        elif status != "removed":
+            # A removed component's carrier must still RESOLVE (checked above), but it
+            # does NOT count toward "implemented carrier covered" — a tombstone is not
+            # live coverage.
             covered.add(carrier)
         roster = comp.get("roster")
         if roster is not None:
