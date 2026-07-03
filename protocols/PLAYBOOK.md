@@ -1561,6 +1561,8 @@ Recorded as **ADR-81** (2026-06-09; leg (e) added 2026-07-03). An organ — a pl
 
 Stopping at build+test is the **half-feature rot trap**: build-and-test ≠ done — and for an enforcement mechanism, present-and-conformant ≠ done either (leg (e): it must be shown to fire). (The routine-specific analog is "What every routine must meet" above — this is its generalization to every organ class.)
 
+**Worked example — removal-in-effect (P2 / ADR-96 / [#244]).** Leg (e) generalizes from *firing* to *removal*: the deploy **remove leg** is not done on "prune code merged + tests green." It closed on a functional proof that the mechanism **removes** — `ruff-gate` pruned from ai-council (n=1) and verified **ABSENT** by an independent `verify_pruned` (D9, which gates the record so it can never report success with the component still present); a locally-modified target **REFUSED** (hash-guard, no clobber); the non-pruned surface byte-identical. Merged ≠ done; **removed-and-verified-absent = done** — the removal analog of the mesh's enforcing-local ×2 firing proof. Same discipline: presence/merge is necessary, demonstrated effect (here, verified absence + a demonstrated refusal) is sufficient.
+
 ### Definition of shipped (closure gate)
 <!-- scope: meta -->
 
