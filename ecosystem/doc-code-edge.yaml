@@ -116,4 +116,5 @@ exempt:
   - doc_code_edge              # self-referential (the doc->code edge check itself)
   - safe_removal              # code->code removal gate (#195) -- not a doc->code rule
   - deployed_methodology_version  # ADR-91 status reporter -- reads deployed-versions.yaml per repo; not a doc->code behavioral rule
+  - enforcement_coverage      # Informant Organ reporter (Stage-2 enforcement-transfer) -- read-only per-consumer coverage; not a doc->code behavioral rule
   - doc_code_coverage_drift   # self-referential (this drift-guard)
