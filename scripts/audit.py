@@ -122,6 +122,14 @@ try:
 except ImportError:
     import scan_undeclared_edges as _sue
 
+# Canonical-freshness gate (enforcement-mesh, #236) — single-sourced so the SAME logic serves
+# this audit leg AND the consumer-local pre-commit gate the mesh carrier deploys. audit-level
+# aliases below keep the existing monkeypatch seam (tests set `_git_last_commit_date`).
+try:
+    from scripts import canonical_freshness_gate as _cfg
+except ImportError:
+    import canonical_freshness_gate as _cfg
+
 # Gate-mode flag (#89): cmd_health sets this True around its self-audit loop so the
 # expensive claim-3 (pytest --collect-only) is SKIPPED on the per-commit gate and
 # evaluated only on the full-audit path (run/repo/CLI/SessionStart). Operator ruling.
@@ -190,13 +198,10 @@ _CANONICAL_ALL = _CANONICAL_MANDATORY + [
 # files (JOURNAL/LESSONS) and the per-session BACKLOG are deliberately EXCLUDED: their
 # freshness is intrinsic to how they are written, so an edit-since-review signal would
 # fire every session by design.
-_FRESHNESS_FILES = ["VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md",
-                    "docs/handoffs/README.md", "protocols/ESSENTIALS.md"]
-
-# Calendar-age backstop (A1): WARN — not FAIL — when last_reviewed exceeds this many
-# days even if the file has not changed. A loose nudge toward periodic re-reading; the
-# load-bearing signal is A2 (edited-since-review), which is the FAIL.
-_FRESHNESS_CADENCE_DAYS = 30
+# Single-sourced in scripts/canonical_freshness_gate.py (deployed consumer-local by the mesh
+# carrier). Aliased here so audit.py + its importers (enforcement_coverage, tests) keep the name.
+_FRESHNESS_FILES = _cfg.DEFAULT_FRESHNESS_FILES
+_FRESHNESS_CADENCE_DAYS = _cfg.FRESHNESS_CADENCE_DAYS
 
 # Required VS Code workspace settings (ADR-59 Decision 3). "upper" (not "default")
 # is what clusters ALL-CAPS canonical .md files ahead of lowercase configs.
@@ -737,62 +742,11 @@ def check_handoff_tag_canonicity(repo_path: Path) -> list[Finding]:
                     "(four-tag canonical) — add a supersession pointer")]
 
 
-def _parse_last_reviewed(text: str) -> Optional[date]:
-    """Extract `last_reviewed` from a file's YAML frontmatter, or None if absent.
-
-    Returns None when the file has no frontmatter, the frontmatter is unclosed or not a
-    mapping, the key is missing, or its value is not a parseable ISO date. YAML parses an
-    unquoted ISO date to a date (or datetime); quoted/string forms are parsed explicitly.
-    """
-    if not text.startswith("---"):
-        return None
-    parts = text.split("---", 2)
-    if len(parts) < 3:
-        return None
-    try:
-        fm = yaml.safe_load(parts[1])
-    except yaml.YAMLError:
-        return None
-    if not isinstance(fm, dict):
-        return None
-    val = fm.get("last_reviewed")
-    if isinstance(val, datetime):
-        return val.date()
-    if isinstance(val, date):
-        return val
-    if isinstance(val, str):
-        try:
-            return date.fromisoformat(val.strip())
-        except ValueError:
-            return None
-    return None
-
-
-def _git_last_commit_date(repo_path: Path, filename: str) -> Optional[date]:
-    """Author date (short ISO) of the most recent commit touching `filename`.
-
-    Uses author date (`%as`), not committer date (`%cs`): author date is preserved across
-    rebase / cherry-pick / amend, so A2 keys off when the content was actually edited rather
-    than when history was last rewritten (avoids spurious staleness FAILs after a rebase).
-
-    Read-only (`git log`). Returns None when git is absent, the path is not a git repo, or
-    the file has no commit history — callers then skip the A2 signal and fall back to the A1
-    calendar backstop, so a non-git consumer degrades gracefully rather than erroring.
-    """
-    try:
-        result = subprocess.run(
-            ["git", "-C", str(repo_path), "log", "-1", "--format=%as", "--", filename],
-            capture_output=True, text=True, encoding="utf-8",
-        )
-    except OSError:
-        return None
-    out = result.stdout.strip()
-    if result.returncode != 0 or not out:
-        return None
-    try:
-        return date.fromisoformat(out)
-    except ValueError:
-        return None
+# Single-sourced in canonical_freshness_gate.py; audit-level aliases keep the monkeypatch seam
+# (tests set `aud._git_last_commit_date` / `aud._parse_last_reviewed`; check_canonical_freshness
+# passes these names into `_cfg.evaluate`, so a monkeypatch at the audit level still applies).
+_parse_last_reviewed = _cfg.parse_last_reviewed
+_git_last_commit_date = _cfg.git_last_commit_date
 
 
 # rule: canonical-freshness
@@ -819,30 +773,14 @@ def check_canonical_freshness(repo_path: Path) -> list[Finding]:
     next audit after the edit is committed, which is the intended enforcement point.
 
     Read-only; degrades gracefully without git (A2 skipped). PORTABLE via _FRESHNESS_FILES.
+    Logic single-sourced in scripts/canonical_freshness_gate.py (the same module the mesh carrier
+    deploys consumer-local); this leg only wraps its (fails, warns) in the Finding envelope. The
+    audit-level `_parse_last_reviewed` / `_git_last_commit_date` are passed in so tests that
+    monkeypatch them at the audit level still take effect.
     """
-    fails: list[str] = []
-    warns: list[str] = []
-    today = date.today()
-
-    for fname in _FRESHNESS_FILES:
-        fpath = repo_path / fname
-        if not fpath.exists():
-            continue  # presence enforced by checks #1/#3/#5 — don't double-report
-        reviewed = _parse_last_reviewed(fpath.read_text(encoding="utf-8"))
-        if reviewed is None:
-            warns.append(f"{fname}: no parseable last_reviewed frontmatter")
-            continue
-        git_date = _git_last_commit_date(repo_path, fname)
-        if git_date is not None and reviewed < git_date:
-            fails.append(
-                f"{fname}: last_reviewed {reviewed.isoformat()} predates last edit "
-                f"{git_date.isoformat()} - edited but not re-reviewed")
-            continue  # A2 dominates; don't also calendar-warn a file already failing
-        age = (today - reviewed).days
-        if age > _FRESHNESS_CADENCE_DAYS:
-            warns.append(
-                f"{fname}: last_reviewed {reviewed.isoformat()} is {age}d old "
-                f"(> {_FRESHNESS_CADENCE_DAYS}d cadence)")
+    fails, warns = _cfg.evaluate(
+        repo_path, _FRESHNESS_FILES,
+        parse_fn=_parse_last_reviewed, git_date_fn=_git_last_commit_date)
 
     if fails:
         evidence = f"{len(fails)} stale (edited since review): " + "; ".join(fails)

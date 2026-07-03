@@ -536,7 +536,13 @@ def _commit(repo, path, content, msg):
 
 
 def _run_hook(repo, stdin_obj=None):
-    """Invoke the hook with its _REPO_ROOT == repo; return stdout (the JSON, or '').
+    """Invoke the hook FROM WITHIN repo (cwd=repo) so its git-toplevel-first `_REPO_ROOT`
+    (#237 port) resolves to repo; return stdout (the JSON, or '').
+
+    cwd=repo mirrors the real invocation on both sides of the mesh: Claude Code runs a Stop hook
+    with cwd = the project root, and the Informant's fire_test runs the hook with cwd = the clone.
+    (Before the #237 port the organ resolved its root from `__file__`; the copy-into-repo above
+    made that land on repo. The port resolves from cwd instead, so the test must set it.)
 
     stdin_obj None -> empty stdin (the CC-2.1.178 reality: no stop_hook_active -> structural
     floor). A dict is fed as JSON on stdin (e.g. {"stop_hook_active": True}).
@@ -544,6 +550,7 @@ def _run_hook(repo, stdin_obj=None):
     return subprocess.run(
         [sys.executable, str(repo / "scripts" / "session_end_backpressure.py")],
         input=("" if stdin_obj is None else json.dumps(stdin_obj)),
+        cwd=str(repo),
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     ).stdout.strip()
 
