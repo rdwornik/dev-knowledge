@@ -74,13 +74,46 @@ noise, contrary to the backpressure principle (flag only what should be repaired
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
 from datetime import date
 from pathlib import Path
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
+
+def _resolve_repo_root() -> Path:
+    """The repo this organ AUDITS — resolved consumer-locally so a deployed copy audits the repo
+    it RUNS in, not the directory it happens to live in (#237, the enforcement-mesh port).
+
+    Priority — **git-toplevel FIRST**, deliberately:
+      1. `git rev-parse --show-toplevel` from the process cwd. This makes the organ portable AND
+         keeps the Informant's fire_test valid: `enforcement_coverage.py` runs this script with
+         `cwd=<clone>` but does NOT set `CLAUDE_PROJECT_DIR` (it inherits the outer env), so a
+         `CLAUDE_PROJECT_DIR`-first order would read the outer session's value and audit the WRONG
+         root — a false enforcing-local verdict. git-toplevel from `cwd=<clone>` always yields the
+         clone, so the fire audits the repo under test.
+      2. `$CLAUDE_PROJECT_DIR` — the Claude Code project dir (agrees with (1) in normal runtime;
+         a fallback when cwd is outside a git work-tree).
+      3. `Path(__file__).parent.parent` — last resort (no git, no env). Historically the only
+         source (the hub-hardcoding this port replaces).
+    """
+    try:
+        r = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            return Path(r.stdout.strip()).resolve()
+    except Exception:
+        pass
+    env = os.environ.get("CLAUDE_PROJECT_DIR")
+    if env:
+        return Path(env).resolve()
+    return Path(__file__).resolve().parent.parent
+
+
+_REPO_ROOT = _resolve_repo_root()
 _JOURNAL = "JOURNAL.md"
 _BACKLOG = "BACKLOG.md"
 _CANON = ("VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md")
