@@ -61,7 +61,7 @@ from carrier_globalconfig import GlobalConfigCarrier  # noqa: E402
 from carrier_mesh import MeshCarrier  # noqa: E402
 from carrier_plugin import PluginCarrier  # noqa: E402
 from carrier_precommit import PrecommitCarrier  # noqa: E402
-from contract import Carrier, CarrierState  # noqa: E402
+from contract import Carrier, CarrierState, PruneState  # noqa: E402
 
 _HUB_ROOT = _DEPLOY_DIR.parent
 HUB_DIR_NAME = _HUB_ROOT.name  # ".dev-knowledge" — the hub is its own registry key
@@ -346,6 +346,18 @@ def planned_action(carrier_id: str, state: CarrierState) -> str:
     return f"{verb} ({hint})" if hint else verb
 
 
+_PRUNE_VERB = {
+    PruneState.ALREADY_ABSENT: "already absent -- skip",
+    PruneState.PRESENT_CLEAN: "would prune (remove from consumer)",
+    PruneState.PRESENT_MODIFIED: "would REFUSE -- locally modified since deploy",
+}
+
+
+def planned_prune(state: PruneState) -> str:
+    """What the remove leg would do for a removed component (narration only)."""
+    return _PRUNE_VERB.get(state, "would prune")
+
+
 # ---------------------------------------------------------------------------
 # The deployment plan — structured, read-only output of the assess step.
 # ---------------------------------------------------------------------------
@@ -374,6 +386,25 @@ class OutOfScopeItem:
 
 
 @dataclass(frozen=True)
+class PrunePlanItem:
+    """One removed component's row in the plan: its detected remove-leg state.
+
+    The remove leg (P2) is COMPONENT-driven (not carrier-driven): a status:removed
+    component is resolved to its carrier, whose detect_prune reports whether the
+    artifact is present-clean (will remove), locally-modified (will refuse), or
+    already absent (no-op). ``removed_in`` / ``reason`` carry the tombstone record.
+    """
+
+    component_id: str
+    carrier_id: str
+    removed_in: str
+    reason: str
+    state: PruneState | None  # None if detect_prune errored / no carrier
+    action: str
+    error: str | None = None
+
+
+@dataclass(frozen=True)
 class DeploymentPlan:
     """The full assess result for one consumer @ one release. Read-only."""
 
@@ -383,6 +414,7 @@ class DeploymentPlan:
     source_tag: str
     items: tuple[CarrierPlanItem, ...]
     out_of_scope: tuple[OutOfScopeItem, ...]
+    prune_items: tuple[PrunePlanItem, ...] = ()
 
     @property
     def needs_apply(self) -> tuple[CarrierPlanItem, ...]:
@@ -399,6 +431,56 @@ class DeploymentPlan:
     @property
     def skipped(self) -> tuple[CarrierPlanItem, ...]:
         return tuple(i for i in self.items if not i.implemented)
+
+    @property
+    def prune_pending(self) -> tuple[PrunePlanItem, ...]:
+        """Removed components whose artifact is PRESENT (clean or modified) — the
+        sweep will touch a real artifact. Drives the destroy-confirm gate."""
+        return tuple(
+            i for i in self.prune_items
+            if i.state in (PruneState.PRESENT_CLEAN, PruneState.PRESENT_MODIFIED)
+        )
+
+
+def build_prune_plan(
+    manifest: dict[str, Any], carriers: dict[str, Carrier]
+) -> tuple[PrunePlanItem, ...]:
+    """Detect the remove-leg state of every status:removed component. Read-only.
+
+    Component-driven: filter components: to status:removed, resolve each to its
+    carrier, call detect_prune(component). A carrier with no remove leg
+    (PruneUnsupported) or a detect_prune that raises is captured as an error row,
+    never a crash — mirroring assess's degraded-fleet tolerance.
+    """
+    items: list[PrunePlanItem] = []
+    for comp in manifest.get("components", []) or []:
+        if not isinstance(comp, dict) or comp.get("status") != "removed":
+            continue
+        cid = str(comp.get("id", ""))
+        carrier_id = str(comp.get("carrier", ""))
+        removed_in = str(comp.get("removed_in", ""))
+        reason = str(comp.get("reason", ""))
+        carrier = carriers.get(carrier_id)
+        if carrier is None:
+            items.append(PrunePlanItem(
+                cid, carrier_id, removed_in, reason, state=None,
+                action="skip -- no carrier bound",
+                error="carrier id not registered in the deploy tool",
+            ))
+            continue
+        try:
+            state = carrier.detect_prune(comp)
+        except Exception as exc:  # noqa: BLE001 — read-only: surface, never crash
+            items.append(PrunePlanItem(
+                cid, carrier_id, removed_in, reason, state=None,
+                action="could not detect", error=str(exc),
+            ))
+            continue
+        items.append(PrunePlanItem(
+            cid, carrier_id, removed_in, reason, state=state,
+            action=planned_prune(state),
+        ))
+    return tuple(items)
 
 
 def extract_out_of_scope(entries: list[dict[str, Any]]) -> list[OutOfScopeItem]:
@@ -494,6 +576,7 @@ def assess(
         source_tag=ctx.source_tag,
         items=tuple(items),
         out_of_scope=tuple(extract_out_of_scope(entries)),
+        prune_items=build_prune_plan(ctx.manifest, carriers),
     )
 
 
@@ -535,6 +618,37 @@ def render_plan(plan: DeploymentPlan, console: Console | None = None) -> None:
 
     for item in plan.errored:
         console.print(f"  [red]![/] {item.carrier_id}: could not detect -- {item.error}")
+
+    if plan.prune_items:
+        console.print(
+            "\n[bold]Remove leg[/] (status:removed components -- the prune sweep):"
+        )
+        ptable = Table(show_header=True, title_style="bold")
+        ptable.add_column("Component")
+        ptable.add_column("Carrier")
+        ptable.add_column("removed_in", justify="right")
+        ptable.add_column("Prune state")
+        ptable.add_column("Planned action")
+        for p in plan.prune_items:
+            if p.state is PruneState.PRESENT_MODIFIED:
+                st = "[red]present_modified[/]"
+            elif p.state is PruneState.PRESENT_CLEAN:
+                st = "[yellow]present_clean[/]"
+            elif p.state is PruneState.ALREADY_ABSENT:
+                st = "[green]already_absent[/]"
+            else:
+                st = "[red]ERROR[/]"
+            ptable.add_row(p.component_id, p.carrier_id, p.removed_in, st, p.action)
+        console.print(ptable)
+        for p in plan.prune_items:
+            if p.error:
+                console.print(f"  [red]![/] {p.component_id}: {p.error}")
+        if plan.prune_pending:
+            console.print(
+                f"  [yellow]{len(plan.prune_pending)} present artifact(s) -- "
+                "--execute will REQUIRE confirmation before pruning "
+                "(--auto-approve to skip in scripted runs).[/]"
+            )
 
     if plan.out_of_scope:
         console.print(
@@ -732,6 +846,14 @@ def _target_for(manifest: dict[str, Any], carrier_id: str) -> Any:
     return None
 
 
+def _component_for(manifest: dict[str, Any], component_id: str) -> dict[str, Any] | None:
+    """The manifest component entry for an id (what detect_prune/prune/verify_pruned receive)."""
+    for c in manifest.get("components", []) or []:
+        if isinstance(c, dict) and c.get("id") == component_id:
+            return c
+    return None
+
+
 @dataclass(frozen=True)
 class CarrierExecOutcome:
     """One carrier's execute outcome: what was applied + whether it verified."""
@@ -747,6 +869,27 @@ class CarrierExecOutcome:
 
 
 @dataclass(frozen=True)
+class PruneExecOutcome:
+    """One removed component's execute outcome: pruned / refused / verified-absent.
+
+    ``pruned`` True iff the artifact was removed AND verify_pruned confirmed absence.
+    ``refused`` names a hash-guard conflict (locally modified). ``removed_in`` /
+    ``reason`` carry the tombstone record for the render + operator log.
+    """
+
+    component_id: str
+    carrier_id: str
+    removed_in: str
+    reason: str
+    state: PruneState | None
+    pruned: bool
+    refused: tuple[str, ...] = ()
+    verify_ok: bool | None = None
+    verify_failures: tuple[str, ...] = ()
+    error: str | None = None
+
+
+@dataclass(frozen=True)
 class ExecuteResult:
     """The full execute result. ``aborted`` => no record, no staging."""
 
@@ -759,6 +902,28 @@ class ExecuteResult:
     record_branch: str | None
     staged_paths: tuple[str, ...]
     out_of_scope: tuple[OutOfScopeItem, ...] = ()
+    prune_outcomes: tuple[PruneExecOutcome, ...] = ()
+    prune_declined: bool = False  # operator declined the destroy-confirm
+
+
+PruneConfirm = Callable[["Sequence[PrunePlanItem]"], bool]
+
+
+def _default_prune_confirm(pending: Sequence[PrunePlanItem]) -> bool:
+    """Interactive destroy-confirmation (Terraform-style) for the prune sweep.
+
+    Prints the components that will be pruned and asks for an explicit yes. Used
+    only when --execute has a present removed component and --auto-approve is off.
+    Tests inject their own confirm fn; the CLI passes this.
+    """
+    lines = "\n".join(
+        f"  - {p.component_id} ({p.carrier_id}, removed_in {p.removed_in}) -- {p.action}"
+        for p in pending
+    )
+    click.echo(
+        f"\nThe remove leg will PRUNE {len(pending)} component(s) from the consumer:\n{lines}"
+    )
+    return click.confirm("Proceed with the prune?", default=False)
 
 
 def execute(
@@ -769,14 +934,21 @@ def execute(
     git: GitRunner = _default_git,
     hub_root: Path = _HUB_ROOT,
     today: str | None = None,
+    auto_approve: bool = False,
+    prune_confirm: PruneConfirm = _default_prune_confirm,
 ) -> ExecuteResult:
-    """Apply + verify every carrier; gate the record write on ALL verifying.
+    """Apply + verify every carrier, then prune removed components; gate the record.
 
     Per carrier (manifest order): if it needs apply (drifted/absent) OR ``force``
     -> apply() then verify(); if already correct -> verify() only (confirm).
-    Fail-fast: the first carrier whose apply/verify raises, or whose verify is not
-    ok, ABORTS the run -- no consumer staging, no record write (the writes land
-    only on full success, in the caller-visible success branch below).
+    Then the REMOVE LEG (P2): converge-then-prune — after the add-loop succeeds,
+    prune every status:removed component. A destroy-confirm is REQUIRED before
+    pruning when a removed artifact is present, unless ``auto_approve``.
+    Fail-fast: the first carrier that fails verify, OR a prune that REFUSES (a
+    locally-modified target), OR a failed verify_pruned, OR a declined confirm,
+    ABORTS the run -- no consumer staging, no record write. So there is never a
+    state where the record says success while a removed component is still present
+    (D9 / criterion 5). The reconcile is rerunnable.
     """
     carriers = carrier_factory(ctx.repo_root)
     plan = assess(ctx, carrier_factory=lambda _root: carriers)
@@ -830,6 +1002,69 @@ def execute(
             break
 
     aborted = failed is not None
+
+    # --- REMOVE LEG (P2 / ADR-96) — converge-then-prune. Runs only if the add-loop
+    # fully succeeded. Destroy-confirm gates a present prune (unless auto_approve);
+    # a decline, a REFUSE (locally-modified target), or a failed verify_pruned aborts
+    # BEFORE any stage/record, so the record never reports success with a removed
+    # component still present (criterion 3/5 / D9). ---
+    prune_outcomes: list[PruneExecOutcome] = []
+    prune_declined = False
+    if not aborted:
+        pending = plan.prune_pending
+        if pending and not auto_approve and not prune_confirm(pending):
+            prune_declined = True
+            aborted = True
+        if not aborted:
+            for p in plan.prune_items:
+                carrier = carriers.get(p.carrier_id)
+                comp = _component_for(ctx.manifest, p.component_id)
+                if carrier is None or comp is None:
+                    prune_outcomes.append(PruneExecOutcome(
+                        p.component_id, p.carrier_id, p.removed_in, p.reason,
+                        state=p.state, pruned=False, verify_ok=False,
+                        error=p.error or "no carrier bound / component not found",
+                    ))
+                    failed = p.component_id
+                    aborted = True
+                    break
+                try:
+                    state = carrier.detect_prune(comp)  # fresh — apply ran since assess
+                    if state is PruneState.ALREADY_ABSENT:
+                        prune_outcomes.append(PruneExecOutcome(
+                            p.component_id, p.carrier_id, p.removed_in, p.reason,
+                            state=state, pruned=False, verify_ok=True,
+                        ))
+                        continue
+                    pr = carrier.prune(comp)
+                    if not pr.pruned:  # REFUSED (locally modified) — no delete
+                        prune_outcomes.append(PruneExecOutcome(
+                            p.component_id, p.carrier_id, p.removed_in, p.reason,
+                            state=state, pruned=False, refused=pr.refused,
+                            verify_ok=False, error=pr.detail,
+                        ))
+                        failed = p.component_id
+                        aborted = True
+                        break
+                    vr = carrier.verify_pruned(comp)
+                except Exception as exc:  # noqa: BLE001 — a prune failure aborts; never record
+                    prune_outcomes.append(PruneExecOutcome(
+                        p.component_id, p.carrier_id, p.removed_in, p.reason,
+                        state=p.state, pruned=False, verify_ok=False, error=str(exc),
+                    ))
+                    failed = p.component_id
+                    aborted = True
+                    break
+                prune_outcomes.append(PruneExecOutcome(
+                    p.component_id, p.carrier_id, p.removed_in, p.reason,
+                    state=state, pruned=vr.ok, verify_ok=vr.ok,
+                    verify_failures=tuple(vr.failures),
+                ))
+                if not vr.ok:  # pruned but verify_pruned did not confirm absence
+                    failed = p.component_id
+                    aborted = True
+                    break
+
     record_branch: str | None = None
     staged: tuple[str, ...] = ()
     if not aborted:
@@ -856,6 +1091,8 @@ def execute(
         record_branch=record_branch,
         staged_paths=staged,
         out_of_scope=plan.out_of_scope,
+        prune_outcomes=tuple(prune_outcomes),
+        prune_declined=prune_declined,
     )
 
 
@@ -889,9 +1126,54 @@ def render_execute(result: ExecuteResult, console: Console | None = None) -> Non
         table.add_row(o.carrier_id, str(o.order), detected, action, verify)
     console.print(table)
 
+    # Remove-leg outcomes (P2) + tombstone records.
+    if result.prune_outcomes:
+        ptable = Table(title="Remove leg -- prune sweep", title_style="bold")
+        ptable.add_column("Component")
+        ptable.add_column("Carrier")
+        ptable.add_column("Prune")
+        ptable.add_column("Verify absent")
+        for po in result.prune_outcomes:
+            if po.refused:
+                pverb = "[red]REFUSED[/]"
+            elif po.state is PruneState.ALREADY_ABSENT:
+                pverb = "already absent"
+            elif po.pruned:
+                pverb = "[green]pruned[/]"
+            else:
+                pverb = "[red]not pruned[/]"
+            if po.verify_ok is True:
+                pver = "[green]ABSENT[/]"
+            elif po.verify_ok is False:
+                pver = "[red]FAIL[/]"
+            else:
+                pver = "-"
+            ptable.add_row(po.component_id, po.carrier_id, pverb, pver)
+        console.print(ptable)
+        # Tombstone records — the operator logs these (JOURNAL / audit trail).
+        pruned_ok = [po for po in result.prune_outcomes if po.pruned and po.verify_ok]
+        if pruned_ok:
+            console.print("\n[bold]Tombstone record(s)[/] (append to the audit trail):")
+            for po in pruned_ok:
+                console.print(
+                    f"  [dim]tombstone[/] {po.component_id} | removed_in {po.removed_in} | "
+                    f"carrier {po.carrier_id} | reason: {po.reason}"
+                )
+
     if result.aborted:
+        if result.prune_declined:
+            console.print(
+                "\n[yellow bold]ABORTED[/] -- prune declined at the confirm prompt. "
+                "NO record written; consumer NOT staged. Re-run with --auto-approve "
+                "to skip the prompt in scripted runs."
+            )
+            return
+        reason = f"{result.failed_carrier} did not verify"
+        refused = [po for po in result.prune_outcomes if po.refused]
+        if refused:
+            reason = f"{result.failed_carrier} prune REFUSED (locally-modified target)"
         console.print(
-            f"\n[red bold]ABORTED[/] -- {result.failed_carrier} did not verify. "
+            f"\n[red bold]ABORTED[/] -- {reason}. "
             "NO record written; consumer NOT staged. The reconcile is rerunnable."
         )
         for o in result.outcomes:
@@ -899,6 +1181,13 @@ def render_execute(result: ExecuteResult, console: Console | None = None) -> Non
                 console.print(f"  [red]![/] {o.carrier_id}: {o.error}")
             elif o.verify_ok is False:
                 console.print(f"  [red]![/] {o.carrier_id}: {', '.join(o.verify_failures)}")
+        for po in result.prune_outcomes:
+            if po.refused:
+                console.print(f"  [red]![/] {po.component_id}: {', '.join(po.refused)}")
+            elif po.verify_ok is False and po.error:
+                console.print(f"  [red]![/] {po.component_id}: {po.error}")
+            elif po.verify_ok is False:
+                console.print(f"  [red]![/] {po.component_id}: {', '.join(po.verify_failures)}")
         return
 
     console.print("\n[green bold]SUCCESS[/] -- every carrier verified.")
@@ -946,13 +1235,22 @@ def render_execute(result: ExecuteResult, console: Console | None = None) -> Non
     is_flag=True,
     help="Re-apply carriers even when detect says they are already correct.",
 )
-def deploy(repo: str, version: str, do_execute: bool, force: bool) -> None:
+@click.option(
+    "--auto-approve",
+    "auto_approve",
+    is_flag=True,
+    help="Skip the interactive prune confirmation (Terraform-style) for scripted runs. "
+    "Without it, --execute prompts before pruning any present status:removed component.",
+)
+def deploy(repo: str, version: str, do_execute: bool, force: bool, auto_approve: bool) -> None:
     """Deploy <REPO> against --target. Without --execute: read-only assess + plan.
 
-    With --execute: apply each needing-apply carrier then verify; gate the
-    version-record write on EVERY carrier verifying; on full success stage the
-    consumer (commit-no) and commit the record on a hub branch the operator
-    merges. On any verify failure: abort with no record + no staging.
+    With --execute: apply each needing-apply carrier then verify; then prune every
+    status:removed component (destroy-confirm required unless --auto-approve); gate
+    the version-record write on EVERY carrier verifying AND every prune verifying
+    absent. On full success stage the consumer (commit-no) and commit the record on
+    a hub branch the operator merges. On any verify failure, prune refusal, or
+    declined confirm: abort with no record + no staging.
     """
     try:
         ctx = preflight(repo, version)
@@ -964,7 +1262,7 @@ def deploy(repo: str, version: str, do_execute: bool, force: bool) -> None:
         return
 
     try:
-        result = execute(ctx, force=force)
+        result = execute(ctx, force=force, auto_approve=auto_approve)
     except RecordError as exc:
         raise click.ClickException(f"deploy execute -- write failed: {exc}") from exc
     render_execute(result)
