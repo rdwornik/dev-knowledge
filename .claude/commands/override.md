@@ -33,6 +33,7 @@ false-positive), not to skip writing the journal.
    $head   = (git rev-parse HEAD).Trim()
    $branch = (git branch --show-current).Trim()
    $ts     = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+   if (-not (Test-Path logs)) { New-Item -ItemType Directory logs | Out-Null }  # logs/ is not tracked (gitignored-ephemeral); create on demand
    if (-not (Test-Path logs/OVERRIDES.md)) { Set-Content logs/OVERRIDES.md "# Session-gate overrides (ADR-85)`n`nAppend-only, newest-first. Gitignored ephemeral local audit (override-rate telemetry).`n" -Encoding utf8 }
    $existing = Get-Content logs/OVERRIDES.md -Raw
    $entry = "## $ts — $branch @ $($head.Substring(0,7))`n$reason`n`n"

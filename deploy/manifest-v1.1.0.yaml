@@ -148,13 +148,14 @@ carriers:
       deploy/carrier_mesh.py — writes scripts/session_end_backpressure.py (the #237 git-toplevel-
       first port) + scripts/canonical_freshness_gate.py + .claude/commands/override.md (hub-parity
       logged-override; --no-verify does NOT bypass a Stop hook, so /override is seb's only escape)
-      + a .claude/settings.json Stop hook running seb + logs/.gitkeep + a distinct sentinel-
-      delimited .gitignore block for the override token. The freshness pre-commit hook is owned by
-      the precommit carrier (above), not this carrier.
+      + a .claude/settings.json Stop hook running seb + a distinct sentinel-delimited .gitignore
+      block that ignores the ephemeral override token AND re-includes override.md past the floor's
+      .claude/* block (else git add -A skips it -> false absent). logs/ is created at runtime by
+      /override (not tracked). The freshness pre-commit hook is owned by the precommit carrier.
     adr: [ADR-85, ADR-81]
     target:
       organs:
         - session_end_backpressure   # scripts/session_end_backpressure.py (#237-ported) + Stop hook
         - canonical_freshness         # scripts/canonical_freshness_gate.py (hook via precommit carrier)
-      override_command: .claude/commands/override.md
-      logs_dir: logs/                 # .gitkeep tracked; token + OVERRIDES.md gitignored
+      override_command: .claude/commands/override.md   # re-included past floor .claude/* by the .gitignore block
+      logs_dir: logs/                 # runtime-created by /override; token + OVERRIDES.md gitignored

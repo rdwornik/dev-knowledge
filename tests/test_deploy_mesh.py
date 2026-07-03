@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -39,13 +40,12 @@ def test_absent_detects_then_applies_and_verifies(tmp_path):
 
     result = car.apply(None)
     assert result.changed is True
-    # seb + freshness gate + override.md + Stop hook + logs/.gitkeep + .gitignore block.
-    assert len(result.changes) == 6
+    # seb + freshness gate + override.md + Stop hook + .gitignore block (logs/ is runtime-created).
+    assert len(result.changes) == 5
 
     assert _read(tmp_path, cm.SEB_REL) == _SEB
     assert _read(tmp_path, cm.FRESHNESS_GATE_REL) == _GATE
     assert _read(tmp_path, cm.OVERRIDE_CMD_REL) == _OVERRIDE
-    assert (tmp_path / cm.GITKEEP_REL).exists()
     assert car.detect(None) is contract.CarrierState.PRESENT_CORRECT
     assert car.verify(None).ok is True
 
@@ -57,7 +57,8 @@ def test_stop_hook_and_gitignore_shape(tmp_path):
                  for g in settings["hooks"]["Stop"] for h in g["hooks"]]
     assert any("session_end_backpressure" in c for c in stop_cmds)
     gi = [ln.strip() for ln in _read(tmp_path, cm.GITIGNORE_REL).splitlines()]
-    assert "logs/.session-override-token" in gi and "logs/OVERRIDES.md" in gi
+    assert "logs/.session-override-token" in gi and "logs/OVERRIDES.md" in gi  # ephemeral ignored
+    assert "!.claude/commands/override.md" in gi and "!.claude/commands/" in gi  # re-include negations
 
 
 # --- idempotent ---------------------------------------------------------------
@@ -163,3 +164,35 @@ def test_registered_in_make_carriers(tmp_path):
     carriers = tool.make_carriers(tmp_path)
     assert cm.MeshCarrier.carrier_id in carriers
     assert isinstance(carriers[cm.MeshCarrier.carrier_id], cm.MeshCarrier)
+
+
+# --- REGRESSION: override.md committable under the floor .claude/* + a logs/ ignore ----
+
+def _git(repo, *args):
+    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True)
+
+
+def test_override_md_committable_under_floor_and_logs_ignore(tmp_path):
+    """Deploy defect found 2026-07-03: the floor carrier's `.claude/*` block silently swallows
+    .claude/commands/override.md (and a consumer's `logs/` dir-form ignore swallows anything under
+    logs/), so `git add -A` skips override.md -> no committed /override -> the fire's committed-state
+    clone reports a false `absent` and hub-parity breaks. The mesh gitignore block must RE-INCLUDE
+    override.md. Reproduces ai-council's exact ignore shape."""
+    repo = tmp_path / "consumer"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    (repo / ".gitignore").write_text(
+        ".claude/*\n!.claude/CLAUDE-FLOOR.md\n!.claude/CLAUDE-FLOOR.md.sha256\nlogs/\n",
+        encoding="utf-8")
+    car = cm.MeshCarrier(repo)
+    car.apply(None)
+    # present AND committable (not gitignored) AND actually staged by add -A.
+    assert (repo / cm.OVERRIDE_CMD_REL).exists()
+    assert not cm._is_gitignored(repo, cm.OVERRIDE_CMD_REL), "override.md must re-include past .claude/*"
+    _git(repo, "add", "-A")
+    staged = _git(repo, "diff", "--cached", "--name-only").stdout.splitlines()
+    assert cm.OVERRIDE_CMD_REL in staged, f"override.md not staged; staged={staged}"
+    # verify() independently catches committability (fails if the negation were missing).
+    assert car.verify(None).ok is True
+    # the ephemeral override token stays ignored.
+    assert cm._is_gitignored(repo, "logs/.session-override-token")
