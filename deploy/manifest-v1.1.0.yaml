@@ -20,6 +20,49 @@
 methodology_version: "1.1.0"
 source_tag: v1.1.0
 
+# ---------------------------------------------------------------------------
+# ESSENCE-SPEC v1 (P1, behavior-preserving) — this manifest is also the
+# methodology's component-granular self-model. Three sections:
+#   carriers:   the HOW — per-carrier target state the deploy tool executes.
+#               UNCHANGED by the P1 conversion (byte-identical to the
+#               pre-essence manifest; pinned by tests/fixtures/
+#               manifest-v1.1.0-pre-essence.yaml + the golden-diff test).
+#   anchors:    NEW durable release pins for the two version anchors the
+#               manifest previously did not pin at all (R6). The other three
+#               anchors are linted IN PLACE, never duplicated here:
+#               source_tag (the ADR-91 git tag), methodology_version
+#               (must == source_tag), and the precommit carrier's
+#               hub_hooks.rev (must == source_tag).
+#   components: NEW — the WHAT: one entry per methodology element, with
+#               lifecycle status. INERT to deploy/tool.py this release (the
+#               tool reads only `carriers:`); read by deploy/release_lint.py,
+#               which cross-checks the two sections (every component's
+#               carrier resolves; every implemented carrier has >=1
+#               component) so one-file-two-sections cannot drift silently.
+#   doc_shapes: NEW — the canonical doc-shape declaration, MIRRORED from its
+#               current authoritative homes (audit.py::_CANONICAL_SPINE +
+#               canonical_freshness_gate.DEFAULT_FRESHNESS_FILES) and
+#               lint-guarded against them (release_lint C7), so the mirror
+#               fails loud instead of drifting. audit.py remains the reader
+#               of record this release (zero behavior change).
+# Lifecycle vocabulary: status active | deprecated | removed — THIS release
+# only `active` is legal (release_lint C6 rejects anything else; tombstones
+# unlock in P2, gated on operator decision D3).
+# verify legend (ADR-81 leg-e typed acceptance): fire = demonstrated firing
+# (Informant fire_test) | hash = byte identity | wired = config presence.
+# ---------------------------------------------------------------------------
+
+anchors:
+  # tier1-lifecycle plugin version at this release. The plugin carrier reads
+  # plugin.json live at deploy time; this pin makes the release's expected
+  # plugin version durable + lintable (previously unpinned anywhere).
+  plugin_version: "0.1.10"
+  # sha256 of templates/child-methodology-floor.md.tmpl (== the shipped
+  # templates/child-methodology-floor.sha256 sidecar). Pins the floor bytes
+  # to the release; release_lint recomputes from the template and compares
+  # all three (spec pin / sidecar / actual bytes).
+  floor_sha256: "4d268f329a7edc8dc95a1c8fded9bdf8244ad8de60be69bf8e250a9b15a8111f"
+
 carriers:
   - id: global-config
     order: 1
@@ -159,3 +202,216 @@ carriers:
         - canonical_freshness         # scripts/canonical_freshness_gate.py (hook via precommit carrier)
       override_command: .claude/commands/override.md   # re-included past floor .claude/* by the .gitignore block
       logs_dir: logs/                 # runtime-created by /override; token + OVERRIDES.md gitignored
+
+# ---------------------------------------------------------------------------
+# components — the methodology's element inventory at v1.1.0 (essence-spec v1).
+# One entry per methodology element a consumer receives. Fields:
+#   id        stable component identifier (unique)
+#   kind      organ | hook | command | skill | doc-shape | config
+#   carrier   the carriers: entry that deploys it (release_lint C6 resolves it)
+#   status    active | deprecated | removed — only `active` legal this release
+#   verify    fire | hash | wired (leg-e typed acceptance class)
+#   artifacts what lands in / is wired into the consumer:
+#               - path/source: a deployed file (consumer path <- hub source)
+#               - wiring:      a config edge (hook line, settings entry, pin)
+#   roster    the one line the consumer-facing surface (CLAUDE.md rosters)
+#             must carry for this component — DECLARATIVE ONLY this release
+#             (roster generation is P3, gated on operator decision D1).
+# ---------------------------------------------------------------------------
+
+components:
+  - id: codex-agents-config
+    kind: config
+    carrier: global-config
+    status: active
+    verify: hash
+    artifacts:
+      - path: "~/.codex/AGENTS.md"
+        source: codex/AGENTS.md
+    # USER-machine scoped (L0) — no consumer CLAUDE.md roster line.
+    roster: null
+
+  - id: tier1-lifecycle-plugin
+    kind: config
+    carrier: tier1-plugin
+    status: active
+    verify: wired
+    artifacts:
+      - wiring: ".claude/settings.json enabledPlugins: tier1-lifecycle@dev-knowledge-methodology (project scope)"
+    roster:
+      section: header
+      line: "Plugin `tier1-lifecycle@dev-knowledge-methodology` enabled (`.claude/settings.json`)"
+
+  - id: propose-closures-stop-hook
+    kind: hook
+    carrier: tier1-plugin
+    status: active
+    verify: wired
+    artifacts:
+      - wiring: "plugin Stop hook -> propose_closures.py (non-blocking, detect-and-propose)"
+    roster:
+      section: session-hook
+      line: "Stop: propose_closures (tier1-lifecycle plugin, non-blocking closure proposals)"
+
+  - id: review-closures-command
+    kind: command
+    carrier: tier1-plugin
+    status: active
+    verify: wired
+    artifacts:
+      - wiring: "plugin command /review-closures"
+    roster:
+      section: command
+      line: "/review-closures — review + execute ONLY operator-approved closures (ADR-70 Tier-1)"
+
+  - id: ship-command
+    kind: command
+    carrier: tier1-plugin
+    status: active
+    verify: wired
+    artifacts:
+      - wiring: "plugin command /ship"
+    roster:
+      section: command
+      line: "/ship — merge the current branch to main via --no-ff, push, delete the branch (refuses inside a worktree)"
+
+  - id: ruff-gate
+    kind: hook
+    carrier: precommit
+    status: active
+    verify: wired
+    artifacts:
+      - wiring: ".pre-commit-config.yaml repo ruff-pre-commit rev v0.15.5, hook ruff"
+    roster:
+      section: precommit-hook
+      line: "ruff — lint gate; blocks on violations (pinned rev)"
+
+  - id: hub-toc-hooks
+    kind: hook
+    carrier: precommit
+    status: active
+    verify: wired
+    artifacts:
+      - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hooks toc-freshness + toc-generate"
+    roster:
+      section: precommit-hook
+      line: "toc-freshness / toc-generate — TOC freshness (hub hooks, pinned rev)"
+
+  - id: floor-hash-verify-hook
+    kind: hook
+    carrier: precommit
+    status: active
+    verify: wired
+    artifacts:
+      - wiring: ".pre-commit-config.yaml local hook floor-hash-verify -> python .claude/check_floor_hash.py"
+    roster:
+      section: precommit-hook
+      line: "floor-hash-verify — verifies .claude/CLAUDE-FLOOR.md matches its sha256 sidecar"
+
+  - id: methodology-floor
+    kind: config
+    carrier: floor
+    status: active
+    verify: hash
+    artifacts:
+      - path: .claude/CLAUDE-FLOOR.md
+        source: templates/child-methodology-floor.md.tmpl
+      - path: .claude/CLAUDE-FLOOR.md.sha256
+      - path: .claude/check_floor_hash.py
+    roster:
+      section: header
+      line: "@.claude/CLAUDE-FLOOR.md — methodology floor (hash-guarded replica, ADR-78/93)"
+
+  - id: floor-sessionstart-guard
+    kind: hook
+    carrier: floor
+    status: active
+    verify: wired
+    artifacts:
+      - wiring: ".claude/settings.json SessionStart hook -> python .claude/check_floor_hash.py --require-present"
+    roster:
+      section: session-hook
+      line: "SessionStart: check_floor_hash.py --require-present (floor guard) + python -m pre_commit install (arms the commit hooks)"
+
+  - id: session-end-backpressure
+    kind: organ
+    carrier: enforcement-mesh
+    status: active
+    verify: fire
+    artifacts:
+      - path: scripts/session_end_backpressure.py
+        source: scripts/session_end_backpressure.py
+      - wiring: ".claude/settings.json Stop hook -> python $CLAUDE_PROJECT_DIR/scripts/session_end_backpressure.py"
+    roster:
+      section: session-hook
+      line: "Stop: session_end_backpressure.py — deterministic session-end gate (JOURNAL SHA-anchor hard block)"
+
+  - id: canonical-freshness
+    kind: organ
+    carrier: enforcement-mesh
+    status: active
+    verify: fire
+    artifacts:
+      - path: scripts/canonical_freshness_gate.py
+        source: scripts/canonical_freshness_gate.py
+      # The hook LINE that arms this organ is owned by the precommit carrier
+      # (required_local_hooks canonical_freshness) — the ADR-93 two-carrier
+      # arming span. The mesh carrier writes the script; precommit wires it.
+      - wiring: ".pre-commit-config.yaml local hook canonical_freshness (owned by the precommit carrier)"
+    roster:
+      section: precommit-hook
+      line: "canonical_freshness — last_reviewed A2 gate; FAIL blocks the commit on a canonical doc edited since its last review"
+
+  - id: override-command
+    kind: command
+    carrier: enforcement-mesh
+    status: active
+    verify: wired
+    artifacts:
+      - path: .claude/commands/override.md
+        source: .claude/commands/override.md
+      - wiring: ".gitignore enforcement-mesh sentinel block (ignores the ephemeral override token; re-includes override.md past the floor's .claude/* block)"
+    roster:
+      section: command
+      line: "/override — bypass the ADR-85 session-end gate for this HEAD (logged, HEAD-bound)"
+
+# ---------------------------------------------------------------------------
+# doc_shapes — the canonical doc-shape declaration (kind doc-shape payload).
+# MIRROR of the current authoritative constants; release_lint C7 fails on any
+# divergence from them, so this cannot silently drift:
+#   spine            <- scripts/audit.py::_CANONICAL_SPINE
+#   freshness_gated  <- scripts/canonical_freshness_gate.DEFAULT_FRESHNESS_FILES
+# audit.py / the gate remain the readers of record this release; pointing them
+# at this spec is a later, behavior-changing phase.
+# ---------------------------------------------------------------------------
+
+doc_shapes:
+  VISION.md:
+    spine: ["## Vision", "## Scope", "## Values", "## Lifecycle", "## References"]
+    freshness_gated: true
+  ARCHITECTURE.md:
+    spine: ["## Purpose", "## Codemap", "## Layer Boundaries & Invariants",
+            "## Key conventions", "## Authority and governance",
+            "## Validators and enforcement"]
+    freshness_gated: true
+  CLAUDE.md:
+    spine: ["## 1. First read", "## 5. Critical rules", "## 6. Session start protocol"]
+    freshness_gated: true
+  BACKLOG.md:
+    spine: ["## Big picture"]
+    freshness_gated: false
+  CONTRIBUTING.md:
+    spine: ["## Branch naming", "## Commit style", "## Handoff process"]
+    freshness_gated: true
+  JOURNAL.md:
+    spine: ["# Journal"]
+    freshness_gated: false
+  LESSONS.md:
+    spine: ["# Lessons Learned"]
+    freshness_gated: false
+  docs/handoffs/README.md:
+    spine: []
+    freshness_gated: true
+  protocols/ESSENTIALS.md:
+    spine: []
+    freshness_gated: true

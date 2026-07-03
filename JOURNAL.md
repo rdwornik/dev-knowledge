@@ -35,6 +35,18 @@
 
 ---
 
+### 2026-07-03 — CC (Fable): P1 essence-spec v1 + release-lint SHIPPED on feat/essence-spec-p1 — commit-and-stop, NOT merged (c7eefc5)
+
+**Did:** Executed Phase P1 of the Fable essence-lifecycle plan (transfer·sync·PRUNE architecture; P1 = the behavior-preserving foundation). (1) Froze the pre-essence manifest as a golden fixture (16c31ee). (2) `deploy/manifest-v1.1.0.yaml` grew the essence-spec sections — `anchors:` (the 2 previously-unpinned version anchors: plugin_version 0.1.10 + floor_sha256), `components:` (13 entries: kind/status/carrier/verify/artifacts/roster — status `active` only; INERT to tool.py), `doc_shapes:` (mirror of `_CANONICAL_SPINE` + `DEFAULT_FRESHNESS_FILES`, lint-guarded) — with `carriers:` byte-identical (5d530d4). (3) `deploy/release_lint.py` — C1–C7 reconciling all 5 version anchors to `source_tag`; lives in deploy/ (floor_conformance precedent; avoids the scripts/-codemap→ARCHITECTURE-re-stamp ripple) (6913abc). (4) 27 acceptance tests: golden-diff (real `tool.assess` over old-vs-new → identical plan + identical per-carrier targets) + 17 injected-mismatch teeth classes (99f6ba1). Bookkeeping: doc-counts 1074→1101 (6cfe2d9), [#244] epic filed (c7eefc5).
+
+**Result:** ACCEPTANCE MET, demonstrated: live golden-diff `deploy assess ai-council --target v1.1.0` before/after = **IDENTICAL**; release-lint **GREEN on live state** (7 checks, exit 0) and **FAILS each of 17 injected mismatch classes** (incl. tombstone-before-P2 — the P1 lifecycle boundary is itself linted); full suite **1101 passed**; **ship-gate GREEN**. Honest limit: release-lint is MANUALLY invoked — wired into neither ALL_CHECKS nor deploy preflight (preflight wiring recommended, behavior-changing → deferred for architect placement).
+
+**Changes:** `deploy/manifest-v1.1.0.yaml` (+anchors/components/doc_shapes), `deploy/release_lint.py` (new), `tests/test_essence_spec.py` + `tests/test_release_lint.py` (new), `tests/fixtures/manifest-v1.1.0-pre-essence.yaml` (frozen golden), `ecosystem/doc-counts.md` (regen), `BACKLOG.md` (+#244).
+
+**Abandoned:** Nothing built beyond P1 by design — NO remove leg/tombstone apply (P2/D3), NO roster generation (P3/D1), NO divergence allowlist (D2), NO hub self-prune (P5), NO fleet (P6). Spec-path decision surfaced for architect review: evolved `manifest-v1.1.0.yaml` IN PLACE (absorb-not-pair; a `manifest-v1.2.0` would imply an untagged release preflight refuses, and a second spec file recreates the drift-twin the analysis rejected).
+
+**Next:** Architect review of this branch (integration from the primary via `--no-ff` is the architect's; NOT merged here). Then P2 (PRUNE) gated on operator D3. Standing ai-council debt from the analysis: its CLAUDE.md re-stamp (the live A2 FAIL) still owed in the ai-council chat.
+
 ### 2026-07-03 — CC: close #236 (mesh carrier) + #237 (seb port) — done-items-leave, operator-approved (e2161f9)
 
 **Did:** `/review-closures` (ADR-70 Tier-1, operator-gated). The gate (`review_closures.py plan --ids 236,237`) returned both in `close` (weak tier — changed-file evidence: #236 `5f95d06`/`edc1f5f`/`99401d7`; #237 those + `dd53c99`), `skip: []`. Operator explicitly approved closing both by id. The **true** done-when evidence is stronger than the weak proxy: **enforcing-local ×2 on the ai-council n=1 pilot** (anchored `e2161f9` — seb `decision:block`, canonical_freshness blocked-in-isolation), which is exactly both tasks' Done-when. Removed both task lines (done-items-leave, ADR-65; no renumber, id gap kept).
