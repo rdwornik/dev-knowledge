@@ -117,4 +117,5 @@ exempt:
   - safe_removal              # code->code removal gate (#195) -- not a doc->code rule
   - deployed_methodology_version  # ADR-91 status reporter -- reads deployed-versions.yaml per repo; not a doc->code behavioral rule
   - enforcement_coverage      # Informant Organ reporter (Stage-2 enforcement-transfer) -- read-only per-consumer coverage; not a doc->code behavioral rule
+  - undeclared_edges          # #179 undeclared-edge scan (Fable consult #1 ruling #2) -- coherence DISCOVERY reporter surfacing prose refs lacking reconciled_with; not a doc->code behavioral rule
   - doc_code_coverage_drift   # self-referential (this drift-guard)

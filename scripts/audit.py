@@ -115,6 +115,13 @@ try:
 except ImportError:
     import safe_remove as _sr
 
+# #179 undeclared-edge scan (Fable consult #1 ruling #2, 2026-07-03) — ship-gate WARN leg; same
+# module-import + thin-adapter shape; tests monkeypatch `_sue.scan`.
+try:
+    from scripts import scan_undeclared_edges as _sue
+except ImportError:
+    import scan_undeclared_edges as _sue
+
 # Gate-mode flag (#89): cmd_health sets this True around its self-audit loop so the
 # expensive claim-3 (pytest --collect-only) is SKIPPED on the per-commit gate and
 # evaluated only on the full-audit path (run/repo/CLI/SessionStart). Operator ruling.
@@ -1383,6 +1390,52 @@ def check_doc_rot(repo_path: Path) -> list[Finding]:
     ]
 
 
+def check_undeclared_edges(repo_path: Path) -> list[Finding]:
+    """#179 undeclared-edge scan wired as a ship-gate WARN leg (Fable consult #1 ruling #2,
+    2026-07-03). Surfaces docs that reference a registered spec in PROSE but carry no
+    `reconciled_with: <spec>@<ver>` declaration (ADR-88 failure class FC2) — the DISCOVERY half
+    of the coherence spine that validate_reconciliation's staleness gate (which only sees
+    already-declared edges) is blind to.
+
+    Hub-only: the spec registry + the tracked-mutable corpus are .dev-knowledge-specific, so on
+    any other repo this is a no-op pass (mirrors check_doc_rot / check_git_backlog_drift).
+
+    Awareness layer: emits one WARN PER candidate (never FAIL -> never blocks the audit-health
+    commit gate; one Finding per candidate so the #147 ship-gate dispositions each independently
+    — same contract as doc_rot / git_backlog_drift). A discovery reporter, NOT a doc->code
+    behavioral rule -> `exempt` in ecosystem/doc-code-edge.yaml (same posture as
+    check_enforcement_coverage). Fail-soft: any error -> WARN. Read-only; logic in
+    scripts/scan_undeclared_edges.py.
+
+    Tier filter (architect-noted): only Tier<=2 candidates (scan_undeclared_edges._CANDIDATE_TIER_MAX)
+    are WARNed. Tier-3 rows are the scan's own explicitly-designated WEAK signals — bare-name prose
+    mentions, human-promotable, NOT confirmed content-dependencies — and format_report splits them
+    off the same way. Filtering to Tier<=2 mirrors the tool's own candidate definition; it does NOT
+    hide a genuine undeclared edge (a Tier-3 bare mention is not yet a confirmed edge). The standalone
+    reporter (scripts/scan_undeclared_edges.py) still surfaces the Tier-3 signals for human promotion.
+    """
+    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+        return [Finding("undeclared_edges", "pass",
+                        "hub-only — undeclared-edge scan skipped (not the hub repo)")]
+    try:
+        cands = _sue.scan(Path(repo_path))
+    except Exception as exc:  # never wedge the audit-health gate
+        return [Finding("undeclared_edges", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    candidates = [c for c in cands if c.best_tier <= _sue._CANDIDATE_TIER_MAX]
+    if not candidates:
+        return [Finding("undeclared_edges", "pass",
+                        "no undeclared prose edges (tier<=2) — every registered-spec prose "
+                        "reference is declared (reconciled_with) or a tier-3 weak signal")]
+    return [
+        Finding("undeclared_edges", "warn",
+                (f"undeclared prose edge (ADR-88 FC2): {c.dependent_path} -> {c.spec_id} "
+                 f"(tier {c.best_tier}) — declare `reconciled_with` or disposition")
+                .replace("|", "/"))
+        for c in candidates
+    ]
+
+
 # rule: coherence-doc-structure
 def check_doc_structure(repo_path: Path) -> list[Finding]:
     """Prose **structural** linter (supplement organ #2) — the Layer-2 deterministic-trigger
@@ -2018,6 +2071,7 @@ ALL_CHECKS = [
     check_safe_removal,
     check_deployed_methodology_version,
     check_enforcement_coverage,
+    check_undeclared_edges,
     check_doc_code_coverage_drift,
 ]
 

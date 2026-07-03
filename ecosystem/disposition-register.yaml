@@ -91,6 +91,63 @@ dispositions:
       re-surfaces and blocks. RECURRENCE: 3 instances (2026-06-20 x2, 2026-06-26 x1) make
       this a structural gap, not a one-off — tracked for a standing path-scoped rule by [#210]
       (per-instance disposition -> rule). Does not auto-clear.
+  # ---- pre-existing undeclared prose edges surfaced by the newly-wired undeclared_edges leg ----
+  # (Fable consult #1 ruling #2, 2026-07-03). Wiring scan_undeclared_edges (#179) as a ship-gate
+  # WARN leg surfaced its FIRST live inventory: 6 tier-1 docs prose-reference handoff-process
+  # without a `reconciled_with` declaration. These predate the leg — the leg introduced no drift,
+  # it revealed a standing state. Blanket-declaring all 6 is REFUSED here: per LESSONS /
+  # "declare reconciled_with only for coupled+current refs" a stale/structural declaration is worse
+  # than none, and two of the six (VISION.md, ESSENTIALS.md) are canonical_freshness-gated so a
+  # declaration would force a re-stamp (a genuine re-read) — not landable unilaterally. So each is
+  # dispositioned as a known pre-existing edge and the per-doc adjudication (declare the genuinely
+  # version-coupled refs e.g. PLAYBOOK/SESSION_SETUP vs permanently defer the analogy/ticket refs)
+  # is tracked by [#241]. Keyed on the specific "<doc> -> handoff-process" pair (NOT a bare id) per
+  # precision-over-recall: a 7th doc, or an edge to a DIFFERENT spec, re-surfaces and blocks; when a
+  # doc declares its edge the candidate disappears and the entry decorates stale (ADR-75).
+  - id: warn-undeclared-backlog-handoff-process
+    organ: undeclared_edges
+    match: "BACKLOG.md -> handoff-process"
+    ref: "#241"
+    reason: >-
+      Pre-existing tier-1 prose reference (ticket descriptions naming HANDOFF_PROCESS). A
+      ticket/structural ref, not a version-coupled claim — defer declaration, adjudicate under [#241].
+  - id: warn-undeclared-vision-handoff-process
+    organ: undeclared_edges
+    match: "VISION.md -> handoff-process"
+    ref: "#241"
+    reason: >-
+      Pre-existing tier-1 prose reference (session-close verification pointer). VISION.md is
+      canonical_freshness-gated — a reconciled_with declaration would force a re-stamp; defer to [#241].
+  - id: warn-undeclared-ai-council-handoff-process
+    organ: undeclared_edges
+    match: "protocols/AI_COUNCIL_PROCESS.md -> handoff-process"
+    ref: "#241"
+    reason: >-
+      Pre-existing prose reference (handoff-analogue pattern citation — "the same pattern as
+      HANDOFF_PROCESS"). An analogy ref, not a version-coupled dependency; adjudicate under [#241].
+  - id: warn-undeclared-essentials-handoff-process
+    organ: undeclared_edges
+    match: "protocols/ESSENTIALS.md -> handoff-process"
+    ref: "#241"
+    reason: >-
+      Pre-existing tier-1 prose reference. ESSENTIALS.md is canonical_freshness-gated — a
+      reconciled_with declaration would force a re-stamp; defer to the [#241] grooming pass.
+  - id: warn-undeclared-playbook-handoff-process
+    organ: undeclared_edges
+    match: "protocols/PLAYBOOK.md -> handoff-process"
+    ref: "#241"
+    reason: >-
+      Pre-existing prose reference; PLAYBOOK carries a version-coupled "Authoritative spec:
+      HANDOFF_PROCESS.md v5" line — a likely DECLARE outcome, but committing the doc to ongoing
+      version-coupling is an operator call; deferred to [#241] rather than declared unilaterally.
+  - id: warn-undeclared-session-setup-handoff-process
+    organ: undeclared_edges
+    match: "protocols/SESSION_SETUP.md -> handoff-process"
+    ref: "#241"
+    reason: >-
+      Pre-existing prose reference ("follow HANDOFF_PROCESS v5") — version-coupled, a likely DECLARE
+      outcome; deferred to [#241] rather than committing the doc to version-coupling unilaterally.
+
   # (cleared 2026-07-02, #222) warn-doc-claims-pytest-collected-architecture — #222 relocated
   # the three volatile counts to the committed-generated ecosystem/doc-counts.md, so the
   # pytest_collected claim no longer anchors in ARCHITECTURE.md (doc_claims now reconciles it
