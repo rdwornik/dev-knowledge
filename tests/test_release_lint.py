@@ -9,6 +9,7 @@ probe is injected — no test depends on real tags.
 """
 from __future__ import annotations
 
+import copy
 import os
 import shutil
 import sys
@@ -71,6 +72,56 @@ def test_unmutated_copy_is_green(tmp_path):
     root = make_root(tmp_path)
     findings = rl.lint(root, "v1.1.0", tag_probe=_TAG_OK)
     assert _fails(findings) == [], [f.evidence for f in _fails(findings)]
+
+
+def test_live_v120_state_is_green():
+    """The real v1.2.0 manifest (ruff-gate tombstone) passes -- keeps P2 honest."""
+    findings = rl.lint(_REPO_ROOT, "1.2.0", tag_probe=_TAG_OK)
+    assert _fails(findings) == [], [f.evidence for f in _fails(findings)]
+
+
+# ---------------------------------------------------------------------------
+# P2 tombstone teeth (C6 removed_in coherence) — direct check_components calls
+# against the real v1.2.0 spec, one injected mutation each.
+# ---------------------------------------------------------------------------
+
+_V120_SPEC = yaml.safe_load(
+    (_REPO_ROOT / "deploy" / "manifest-v1.2.0.yaml").read_text(encoding="utf-8"))
+
+
+def _v120_components(mutate=None):
+    spec = copy.deepcopy(_V120_SPEC)
+    if mutate is not None:
+        mutate(spec)
+    return rl.check_components(spec)
+
+
+def test_c6_valid_tombstone_passes():
+    """ruff-gate removed WITH removed_in -> C6 green (the shipped shape)."""
+    assert not _fails(_v120_components())
+
+
+def test_c6_removed_without_removed_in_fails():
+    def mut(s):
+        next(c for c in s["components"] if c["id"] == "ruff-gate").pop("removed_in")
+    findings = _v120_components(mut)
+    assert "C6-components" in _checks_failing(findings)
+    assert any("removed_in" in f.evidence for f in _fails(findings))
+
+
+def test_c6_active_with_removed_in_fails():
+    def mut(s):
+        next(c for c in s["components"] if c["status"] == "active")["removed_in"] = "1.2.0"
+    findings = _v120_components(mut)
+    assert "C6-components" in _checks_failing(findings)
+    assert any("removed_in" in f.evidence for f in _fails(findings))
+
+
+def test_c6_deprecated_status_still_rejected():
+    """2-state lifecycle (D3): `deprecated` is never legal, even post-P2."""
+    def mut(s):
+        next(c for c in s["components"] if c["status"] == "active")["status"] = "deprecated"
+    assert "C6-components" in _checks_failing(_v120_components(mut))
 
 
 def test_missing_tag_is_warn_not_fail(tmp_path):
