@@ -22,9 +22,11 @@
 > **P9/BACKLOG → 23 stories / 101 tasks** (the `#244` epic). The pass criterion is still "answered
 > from the live source" — note *which* branch is live before comparing to the hint.
 >
-> **This is a CC-authored (cold) handoff.** `SUPPLEMENT.md` is generated with an **empty** ANSWERS
-> section (no outgoing browser chat fed a strategic *why*). So the §13(d) operator-context beat in P1's
-> gate fires **FULL** (there is nothing folded to narrow against) — see P1's gate.
+> **`SUPPLEMENT.md` is FILLED.** The operator supplied this window's strategic *why* from the outgoing
+> architect chat; its ANSWERS are folded into `PASTE_THIS.md` and supersede the residual on
+> priority/design (P2/PRUNE resume · essence-spec merge APPROVED · mesh-model consult MOOT ·
+> continuous-conformance vision). So the §13(d) operator-context beat in P1's gate **NARROWS** to
+> *"anything changed since?"* — not a FULL re-ask. **P8's expected value is FILLED** (see P8).
 >
 > **Windows note:** `audit.py checks` (P2) crashes mid-listing on a bare cp1252 PowerShell console
 > (a `→` in a check docstring) — run with `PYTHONUTF8=1` or in git-bash. `ship-gate` (P7) can
@@ -46,12 +48,11 @@ navigates** (v5.3 §13c), not this read.
 
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (v5.3 §13d):** the
-browser asks the operator for **off-repo** context. This bundle's supplement is **EMPTY** (a cold,
-CC-authored handoff — no outgoing chat), so the beat fires **FULL**: intent, priorities, changed
-decisions, and off-repo findings — it does **not** narrow to *"anything changed since?"* (there is no
-folded supplement to narrow against). The load-bearing off-repo call the next session must make is the
-**essence-spec P1 merge decision** and whether the **mesh-model Fable consult #2 is still needed** — the
-operator's intent on both is off-repo.
+browser asks the operator for **off-repo** context. This bundle's supplement is **FILLED** (its ANSWERS
+are folded into `PASTE_THIS.md`), so the beat **NARROWS** to *"anything changed since the supplement was
+written?"* — **not** a FULL re-ask. The load-bearing off-repo calls are **already answered** in the
+folded supplement: essence-spec P1 merge **APPROVED**, resume at **P2 (PRUNE)**; the **mesh-model Fable
+consult #2 is MOOT** (do not spin one up).
 
 ## Teeth probes (state fidelity — same contract)
 
@@ -63,16 +64,16 @@ operator's intent on both is off-repo.
 | P5 | Is `ARCHITECTURE.md`'s `last_reviewed` stamp **on/after or before** its last git-commit touch — and what are the **two dates**? | `ARCHITECTURE.md` frontmatter + live git | a *relation* over commits; a summary holds neither date precisely — **expected: stamp on/after the last touch (both 2026-07-02); HONEST — this window did not touch ARCHITECTURE on `main`** | `git log -1 --format=%cs -- ARCHITECTURE.md` vs the frontmatter stamp (or `audit.py health` `canonical_freshness`) |
 | P6 | What does `validate_doc_claims` report for **`pytest_collected`** — the doc-claim integer, the live-collected integer, and **do they match**? Note the claim lives in `ecosystem/doc-counts.md`, **not** `ARCHITECTURE.md` (decoupled by #222). | `ecosystem/doc-counts.md` (`doc=` target) + live pytest | the live count drifts on any test change; neither integer appears in the residual — **expected to MATCH: `1074/1074` on `main`, or `1101/1101` on `feat/essence-spec-p1`** (the P1 suite adds 27 tests + regen'd doc-counts). The pass test is "answered from the live source on the live branch," not "matches a remembered number" | `python scripts/validate_doc_claims.py` (the `pytest_collected` line) — `audit.py health` does **not** isolate this; use the standalone |
 | P7 | Does `audit.py ship-gate` come back **GREEN or RED** right now, **how many WARNs are dispositioned**, and **is there a `[stale]` disposition**? | live git ∩ `main` history ∩ `ecosystem/disposition-register.yaml` | **THIS is the §1 headline:** at generation `ship-gate` is **GREEN** with **`10` WARN dispositioned** (#77 voided-closure + 3 journal-wrap/transcript no-ff + **6 `…→handoff-process` undeclared edges under #241**, NEW this window) AND carries **NO `[stale]` line**. The live answer is the only ground truth (a new direct-on-`main` commit would re-RED it); the values are absent from the bundle | `python scripts/audit.py ship-gate` (read the final GREEN/RED verdict + the disposition count + any `[stale]` line) — re-derive; do **not** trust the residual's prose |
-| P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is a `SUPPLEMENT.md` present (and is its ANSWERS region empty or filled), and where does the stable operator boilerplate live instead? | `docs/handoffs/<slug>/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count or the wrong supplement state; the live bundle + spec are the only ground truth — **expected: FIVE files (BOOT + RESIDUAL + PROBES + SUPPLEMENT + PASTE_THIS), NO `README.md`; `SUPPLEMENT.md` present with ANSWERS EMPTY (this is a cold, CC-authored handoff — the empty ANSWERS is the defined cold disposition, NOT folded into `PASTE_THIS`); boilerplate lives once in `docs/handoffs/README.md`** | `ls docs/handoffs/2026-07-03-dev-knowledge-architect/` ∩ `HANDOFF_PROCESS.md` §13 |
+| P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is a `SUPPLEMENT.md` present (and is its ANSWERS region empty or filled), and where does the stable operator boilerplate live instead? | `docs/handoffs/<slug>/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count or the wrong supplement state; the live bundle + spec are the only ground truth — **expected: FIVE files (BOOT + RESIDUAL + PROBES + SUPPLEMENT + PASTE_THIS), NO `README.md`; `SUPPLEMENT.md` present with ANSWERS **FILLED** (the operator filled it from the outgoing chat → the ANSWERS region IS folded into `PASTE_THIS.md`); boilerplate lives once in `docs/handoffs/README.md`** | `ls docs/handoffs/2026-07-03-dev-knowledge-architect/` ∩ `HANDOFF_PROCESS.md` §13 (∩ `grep -A2 'PASTE CHAT ANSWERS' docs/handoffs/2026-07-03-dev-knowledge-architect/SUPPLEMENT.md` — is there substantive text below the divider?) |
 | P9 | How many **serialize-groups** does `validate_backlog` summarize **right now**, which `#id`(s) are in the **code-edge** group, and which `#id`s are in the **coherence** group? | `BACKLOG.md` ∩ `scripts/validate_backlog.py` | #156 made the task-graph durable, so group membership is a live schema fact that drifts on any BACKLOG edit; it is absent from this bundle — **expected: code-edge = ONLY `#218`; coherence = `#180/#181/#182/#220/#241`** (`#241` added this window); the `audit-py` group includes `#234/#240/#242/#243`. On `main`: 22 stories / 100 tasks; on `feat/essence-spec-p1`: 23 / 101 (the `#244` epic) | `python scripts/validate_backlog.py` (the serialize-groups summary line) |
 
 ## Gate procedure (CC)
 
 1. **P1 first** — the architect cannot begin design until both orienting lines are read live and
-   substring-matched. **Then run the operator-context beat (§13d)** — it fires **FULL** (this bundle's
-   supplement is EMPTY / cold; nothing folded to narrow against): ask the operator for off-repo intent
-   / priorities / changed decisions / findings, **especially** the essence-spec P1 merge call + whether
-   the mesh-model Fable consult #2 is still needed. Then run P2–P9, each against **live state now**.
+   substring-matched. **Then run the operator-context beat (§13d)** — it **NARROWS** (this bundle's
+   supplement is FILLED, ANSWERS folded into the paste) to *"anything changed since the supplement was
+   written?"* — not a FULL re-ask (the essence-spec merge + mesh-model calls are already answered). Then
+   run P2–P9, each against **live state now**.
 2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing /
    command errored / receiver tried to answer from memory or this bundle).
 3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary
@@ -83,5 +84,5 @@ operator's intent on both is off-repo.
    `[stale]` line** — but the pass criterion is **"answered from the live source,"** never "matches the
    verdict the summary remembered." **P2** is expected to read **28** (last name `doc_code_coverage_drift`).
    **P5** expects an HONEST 2026-07-02 stamp. **P8** pins the five-file shape with `SUPPLEMENT.md`
-   **EMPTY** (cold handoff; not folded; no README). **P9** pins the now-durable serialize-group graph
+   **FILLED** (ANSWERS folded into `PASTE_THIS`; no README). **P9** pins the now-durable serialize-group graph
    (#156) with **code-edge = just #218** and **#241 newly in coherence**.

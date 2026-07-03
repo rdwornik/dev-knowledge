@@ -7,10 +7,10 @@
 |---|---|
 | **Slug** | `2026-07-03-dev-knowledge-architect` |
 | **Mode** | **architect** (v5.3 §13 — planning / way-of-working scope) |
-| **Purpose** | **The prior handoff's enforcement-mesh P0 is substantially DONE — Axis-1 enforcement-transfer is PROVEN on ai-council (n=1).** This window built the **Informant Organ** (`enforcement_coverage.py`, `[#235]` Stage-2 — read-only per-consumer × per-organ coverage reporter; first run reproduced the honest 0-enforcing-local fleet-map) → the **mesh carrier** hub-side (`deploy/carrier_mesh.py`, `#236` + the `session_end_backpressure` git-toplevel-first port `#237`) → deployed methodology **v1.1.0 to ai-council** (tag `v1.1.0`, ADR-91 record) → **fired `enforcement_coverage.py --fire` and got `enforcing-local ×2`** (seb `decision:block` on unanchored work + `canonical_freshness` blocked-in-isolation) — **the first empirical proof the deployed methodology BITES in a consumer** (ADR-81 leg-(e) acceptance MET). `#236`/`#237` **closed** (done-items-leave). Separately, **all 4 Fable consult #1 rulings landed** (**ADR-94** status-line-mutable-on-ratification, **ADR-95** ai-council query lane-split, the **#179** undeclared-edge ship-gate WARN leg, **ADR-81 leg-(e)** functional-proof). **The immediate open arc: the P1 essence-spec + release-lint on `feat/essence-spec-p1` — committed but NOT merged (commit-and-stop, `[#244]`), awaiting architect review + integration decision.** The next frontier: **(1)** review + merge the essence-spec P1 branch (+ its 3 surfaced decisions: absorb-in-place spec-path, release-lint preflight wiring, P2/PRUNE gating); **(2)** decide whether the **mesh-model Fable consult #2 (A/B/C)** is still needed or already resolved by the Informant fleet-map — the empirical organ-portability split (freshness+seb → local; `doc_claims`+`git_backlog_drift` → hub-scoped-by-construction) reads like **model C decided by measurement**; **(3)** Stage-4 doctrine writeup (`#238` "deployed presence ≠ deployed enforcement") + fleet n=2+ (`#221`, now that the carrier is proven). **The demoted three-goal priority stays real, sequenced-after:** Fable whole-system review · ai-council-as-governed-query · close the ADR + ai-council methodology tracks. |
+| **Purpose** | **The prior handoff's enforcement-mesh P0 is substantially DONE — Axis-1 enforcement-transfer is PROVEN on ai-council (n=1).** This window built the **Informant Organ** (`enforcement_coverage.py`, `[#235]` Stage-2 — read-only per-consumer × per-organ coverage reporter; first run reproduced the honest 0-enforcing-local fleet-map) → the **mesh carrier** hub-side (`deploy/carrier_mesh.py`, `#236` + the `session_end_backpressure` git-toplevel-first port `#237`) → deployed methodology **v1.1.0 to ai-council** (tag `v1.1.0`, ADR-91 record) → **fired `enforcement_coverage.py --fire` and got `enforcing-local ×2`** (seb `decision:block` on unanchored work + `canonical_freshness` blocked-in-isolation) — **the first empirical proof the deployed methodology BITES in a consumer** (ADR-81 leg-(e) acceptance MET). `#236`/`#237` **closed** (done-items-leave). Separately, **all 4 Fable consult #1 rulings landed** (**ADR-94** status-line-mutable-on-ratification, **ADR-95** ai-council query lane-split, the **#179** undeclared-edge ship-gate WARN leg, **ADR-81 leg-(e)** functional-proof). **The immediate open arc: the P1 essence-spec + release-lint on `feat/essence-spec-p1` — committed but NOT merged (commit-and-stop, `[#244]`), awaiting architect review + integration decision.** The next frontier: **(1)** review + merge the essence-spec P1 branch (+ its 3 surfaced decisions: absorb-in-place spec-path, release-lint preflight wiring, P2/PRUNE gating); **(2)** ~~decide whether the mesh-model Fable consult #2 is needed~~ — **answered by the filled supplement: RESOLVED + MOOT**, settled by measurement + build (mesh carrier = "Model D", enforcing-local ×2), do NOT spin one up; only `#243` stays open; **(3)** Stage-4 doctrine writeup (`#238` "deployed presence ≠ deployed enforcement") + fleet n=2+ (`#221`, now that the carrier is proven). **The demoted three-goal priority stays real, sequenced-after:** Fable whole-system review · ai-council-as-governed-query · close the ADR + ai-council methodology tracks. |
 | **Generated at** | Bundle cut on branch `docs/2026-07-03-architect-handoff` **off `main` (`ff3d744`)** — deliberately NOT off `feat/essence-spec-p1`, so merging this handoff never drags the unreviewed P1 arc onto `main`. Working tree **clean**; `main` **in sync with `origin/main`** at generation. This bundle's own commit + the later `/ship` `--no-ff` merge move HEAD and push `main` ahead of `origin` until pushed. **Re-derive HEAD / sync at read-time** (`PROBES.md` P3) — do not trust this line. |
 
-> **This is a repo-derived (CC-authored) handoff — `SUPPLEMENT.md` is generated EMPTY (cold-handoff shape).** This bundle was assembled by CC directly from committed repo state, not from an outgoing browser architect chat. `SUPPLEMENT.md` is written **unconditionally** with its QUESTIONS + an **empty** ANSWERS section (v5.2 always-generated fillable file). **If** an outgoing chat holds this window's strategic *why* (e.g. why essence-spec was prioritized, the operator's intent for the `[#244]` P2–P6 lifecycle, or the mesh-model direction), the operator fills it and says `supplement filled`; **otherwise it stays empty** and the incoming **§13(d) operator-context beat fires FULL** (nothing to narrow against — the defined cold-handoff disposition). Until then the assembler `[skip]`s the empty ANSWERS and `PASTE_THIS.md` carries **no supplement section**.
+> **`SUPPLEMENT.md` is FILLED — its ANSWERS are folded into `PASTE_THIS.md` and SUPERSEDE the residual on priority/design.** The bundle was assembled by CC from committed repo state, but the operator then filled the supplement from the outgoing architect chat. **Load-bearing answers (read the folded `SUPPLEMENT.md` in full — authoritative):** `[#244]` is the methodology **LIFECYCLE-MANAGEMENT** epic (transfer · sync · **PRUNE**) — **resume at P2 (PRUNE, the first deleting phase; Opus, plan-first, gated on operator D1–D3)**; the essence-spec P1 spec-path (in-place absorb-not-pair) is **APPROVED → merge `feat/essence-spec-p1` to `main`**; release-lint preflight wiring **correctly deferred** out of P1; the **mesh-model Fable consult #2 is RESOLVED + MOOT** (settled by measurement + build — mesh carrier is "Model D", fired enforcing-local ×2; **do NOT spin one up**); a **continuous-conformance** nightly-hygiene routine (Opus decomposes → Sonnet observers per-file rot-check) rides in as new vision under `[#244]`. Because the supplement carries answers, the incoming **§13(d) operator-context beat NARROWS** to *"anything changed since?"* — not a FULL re-ask.
 
 > **Operator runbook is not copied here.** The stable who-each-file-is-for / run-loop / rationale lives **once** in the canonical per-repo runbook **`docs/handoffs/README.md`** — read it for the walkthrough. This file carries only the **session header** (above) + the **paste-pointer** (below). v5 bundles carry **no per-bundle README** (the 2026-06-12 canonical-runbook collapse — `HANDOFF_PROCESS.md` §13).
 
@@ -270,11 +270,18 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > consult #1 rulings landed. The one **un-integrated** arc is the P1 essence-spec on
 > `feat/essence-spec-p1` (commit-and-stop, `[#244]`) — **the immediate architect review item** (§4).
 >
-> **This is a CC-authored (repo-derived) handoff — `SUPPLEMENT.md` is EMPTY (cold shape).** There
-> is no outgoing browser chat feeding a strategic *why*; the residual below is reconstructed from
-> the committed JOURNAL/git window. If an outgoing chat holds the essence-spec / mesh-model *why*,
-> the operator fills the supplement (`supplement filled`); otherwise the incoming §13(d) beat fires
-> FULL (§4).
+> **`SUPPLEMENT.md` is now FILLED — it SUPERSEDES this residual on priority/design.** The operator
+> supplied this window's strategic *why* from the outgoing architect chat; it is folded into
+> `PASTE_THIS.md` (**read it in full — authoritative**), so the incoming §13(d) beat **NARROWS** to
+> *"anything changed since?"* Headline answers: **`[#244]` is the methodology LIFECYCLE-MANAGEMENT
+> epic** (transfer · sync · **PRUNE**) — **resume at P2 (PRUNE, the first *deleting* phase; Opus,
+> plan-first, gated on operator D1–D3)**; the essence-spec P1 spec-path (in-place absorb-not-pair) is
+> **APPROVED → merge `feat/essence-spec-p1` to `main`**; release-lint preflight wiring is **correctly
+> deferred** out of P1; the **mesh-model Fable consult #2 is RESOLVED + MOOT** (settled by
+> measurement + build — the mesh carrier shipped as "**Model D**", fired enforcing-local ×2; **do NOT
+> spin one up**). A new vision element rides in: a **continuous-conformance** nightly hygiene routine
+> (Opus decomposes → cheap Sonnet observers do per-file binary rot-checks). §4's posed questions
+> below are **answered by the supplement** — kept for the reasoning, not to relitigate.
 >
 > **Four-tag discipline.** `witnessed` = CC re-derived it live this generation (the §1 gate
 > outputs); `recall`/`inferred` = reconstructed from the JOURNAL/git window, may have moved — the
@@ -385,6 +392,11 @@ architect resumes here; if an outgoing chat holds more, the operator fills `SUPP
 
 ### (1) IMMEDIATE — review + integrate the essence-spec P1 branch (`feat/essence-spec-p1`, `[#244]`)
 
+> **→ ANSWERED (supplement §2/§A):** spec-path (in-place absorb-not-pair) **APPROVED**;
+> release-lint preflight **DEFERRED** (correctly out of P1); action = **`--no-ff` merge to `main`
+> from the primary**. Then resume the epic at **P2 (PRUNE)**. The posed decisions below are settled —
+> kept for the rationale.
+
 The one un-merged arc; committed commit-and-stop precisely so the architect owns the integration call.
 - **Merge decision:** review the 7-commit branch; integrate from the **primary** checkout via `--no-ff`
   (never a worktree — the seed-state lesson). P1 is behavior-preserving (golden-diff IDENTICAL) — low risk.
@@ -399,6 +411,14 @@ The one un-merged arc; committed commit-and-stop precisely so the architect owns
   Sequence the epic.
 
 ### (2) The mesh generalization — is the Fable consult #2 (mesh-model A/B/C) still needed?
+
+> **→ ANSWERED (supplement §B): RESOLVED + MOOT — do NOT spin up a Fable consult #2.** The A/B/C
+> question was settled by research + live recon (corp-ops has no git remote → CI-as-universal-guarantee
+> is structurally impossible → **local-carrier + central-detection**) + build (the mesh carrier shipped
+> as **Model D**, fired enforcing-local ×2). The Informant fleet-map settled *which* organs are portable
+> (Group A freshness/reconciled = portable-local; Group C seb = ported-local; Group B
+> `doc_claims`/`git_backlog_drift` = hub-scoped by construction). Settled-by-measurement-and-build. The
+> reasoning below stands as the record; the open call is now only `#243`.
 
 The prior handoff located a Fable consult on the **mesh-transfer model**: **(A)** 5th carrier, organs
 run locally; **(B)** hub-sweep-on-cadence; **(C)** hybrid. **VERIFY-FIRST:** the Informant Organ's
@@ -509,9 +529,11 @@ model-A carrier settle the design** — leaving only `#243` (below) as the open 
 > **P9/BACKLOG → 23 stories / 101 tasks** (the `#244` epic). The pass criterion is still "answered
 > from the live source" — note *which* branch is live before comparing to the hint.
 >
-> **This is a CC-authored (cold) handoff.** `SUPPLEMENT.md` is generated with an **empty** ANSWERS
-> section (no outgoing browser chat fed a strategic *why*). So the §13(d) operator-context beat in P1's
-> gate fires **FULL** (there is nothing folded to narrow against) — see P1's gate.
+> **`SUPPLEMENT.md` is FILLED.** The operator supplied this window's strategic *why* from the outgoing
+> architect chat; its ANSWERS are folded into `PASTE_THIS.md` and supersede the residual on
+> priority/design (P2/PRUNE resume · essence-spec merge APPROVED · mesh-model consult MOOT ·
+> continuous-conformance vision). So the §13(d) operator-context beat in P1's gate **NARROWS** to
+> *"anything changed since?"* — not a FULL re-ask. **P8's expected value is FILLED** (see P8).
 >
 > **Windows note:** `audit.py checks` (P2) crashes mid-listing on a bare cp1252 PowerShell console
 > (a `→` in a check docstring) — run with `PYTHONUTF8=1` or in git-bash. `ship-gate` (P7) can
@@ -533,12 +555,11 @@ navigates** (v5.3 §13c), not this read.
 
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (v5.3 §13d):** the
-browser asks the operator for **off-repo** context. This bundle's supplement is **EMPTY** (a cold,
-CC-authored handoff — no outgoing chat), so the beat fires **FULL**: intent, priorities, changed
-decisions, and off-repo findings — it does **not** narrow to *"anything changed since?"* (there is no
-folded supplement to narrow against). The load-bearing off-repo call the next session must make is the
-**essence-spec P1 merge decision** and whether the **mesh-model Fable consult #2 is still needed** — the
-operator's intent on both is off-repo.
+browser asks the operator for **off-repo** context. This bundle's supplement is **FILLED** (its ANSWERS
+are folded into `PASTE_THIS.md`), so the beat **NARROWS** to *"anything changed since the supplement was
+written?"* — **not** a FULL re-ask. The load-bearing off-repo calls are **already answered** in the
+folded supplement: essence-spec P1 merge **APPROVED**, resume at **P2 (PRUNE)**; the **mesh-model Fable
+consult #2 is MOOT** (do not spin one up).
 
 ## Teeth probes (state fidelity — same contract)
 
@@ -550,16 +571,16 @@ operator's intent on both is off-repo.
 | P5 | Is `ARCHITECTURE.md`'s `last_reviewed` stamp **on/after or before** its last git-commit touch — and what are the **two dates**? | `ARCHITECTURE.md` frontmatter + live git | a *relation* over commits; a summary holds neither date precisely — **expected: stamp on/after the last touch (both 2026-07-02); HONEST — this window did not touch ARCHITECTURE on `main`** | `git log -1 --format=%cs -- ARCHITECTURE.md` vs the frontmatter stamp (or `audit.py health` `canonical_freshness`) |
 | P6 | What does `validate_doc_claims` report for **`pytest_collected`** — the doc-claim integer, the live-collected integer, and **do they match**? Note the claim lives in `ecosystem/doc-counts.md`, **not** `ARCHITECTURE.md` (decoupled by #222). | `ecosystem/doc-counts.md` (`doc=` target) + live pytest | the live count drifts on any test change; neither integer appears in the residual — **expected to MATCH: `1074/1074` on `main`, or `1101/1101` on `feat/essence-spec-p1`** (the P1 suite adds 27 tests + regen'd doc-counts). The pass test is "answered from the live source on the live branch," not "matches a remembered number" | `python scripts/validate_doc_claims.py` (the `pytest_collected` line) — `audit.py health` does **not** isolate this; use the standalone |
 | P7 | Does `audit.py ship-gate` come back **GREEN or RED** right now, **how many WARNs are dispositioned**, and **is there a `[stale]` disposition**? | live git ∩ `main` history ∩ `ecosystem/disposition-register.yaml` | **THIS is the §1 headline:** at generation `ship-gate` is **GREEN** with **`10` WARN dispositioned** (#77 voided-closure + 3 journal-wrap/transcript no-ff + **6 `…→handoff-process` undeclared edges under #241**, NEW this window) AND carries **NO `[stale]` line**. The live answer is the only ground truth (a new direct-on-`main` commit would re-RED it); the values are absent from the bundle | `python scripts/audit.py ship-gate` (read the final GREEN/RED verdict + the disposition count + any `[stale]` line) — re-derive; do **not** trust the residual's prose |
-| P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is a `SUPPLEMENT.md` present (and is its ANSWERS region empty or filled), and where does the stable operator boilerplate live instead? | `docs/handoffs/<slug>/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count or the wrong supplement state; the live bundle + spec are the only ground truth — **expected: FIVE files (BOOT + RESIDUAL + PROBES + SUPPLEMENT + PASTE_THIS), NO `README.md`; `SUPPLEMENT.md` present with ANSWERS EMPTY (this is a cold, CC-authored handoff — the empty ANSWERS is the defined cold disposition, NOT folded into `PASTE_THIS`); boilerplate lives once in `docs/handoffs/README.md`** | `ls docs/handoffs/2026-07-03-dev-knowledge-architect/` ∩ `HANDOFF_PROCESS.md` §13 |
+| P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is a `SUPPLEMENT.md` present (and is its ANSWERS region empty or filled), and where does the stable operator boilerplate live instead? | `docs/handoffs/<slug>/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count or the wrong supplement state; the live bundle + spec are the only ground truth — **expected: FIVE files (BOOT + RESIDUAL + PROBES + SUPPLEMENT + PASTE_THIS), NO `README.md`; `SUPPLEMENT.md` present with ANSWERS **FILLED** (the operator filled it from the outgoing chat → the ANSWERS region IS folded into `PASTE_THIS.md`); boilerplate lives once in `docs/handoffs/README.md`** | `ls docs/handoffs/2026-07-03-dev-knowledge-architect/` ∩ `HANDOFF_PROCESS.md` §13 (∩ `grep -A2 'PASTE CHAT ANSWERS' docs/handoffs/2026-07-03-dev-knowledge-architect/SUPPLEMENT.md` — is there substantive text below the divider?) |
 | P9 | How many **serialize-groups** does `validate_backlog` summarize **right now**, which `#id`(s) are in the **code-edge** group, and which `#id`s are in the **coherence** group? | `BACKLOG.md` ∩ `scripts/validate_backlog.py` | #156 made the task-graph durable, so group membership is a live schema fact that drifts on any BACKLOG edit; it is absent from this bundle — **expected: code-edge = ONLY `#218`; coherence = `#180/#181/#182/#220/#241`** (`#241` added this window); the `audit-py` group includes `#234/#240/#242/#243`. On `main`: 22 stories / 100 tasks; on `feat/essence-spec-p1`: 23 / 101 (the `#244` epic) | `python scripts/validate_backlog.py` (the serialize-groups summary line) |
 
 ## Gate procedure (CC)
 
 1. **P1 first** — the architect cannot begin design until both orienting lines are read live and
-   substring-matched. **Then run the operator-context beat (§13d)** — it fires **FULL** (this bundle's
-   supplement is EMPTY / cold; nothing folded to narrow against): ask the operator for off-repo intent
-   / priorities / changed decisions / findings, **especially** the essence-spec P1 merge call + whether
-   the mesh-model Fable consult #2 is still needed. Then run P2–P9, each against **live state now**.
+   substring-matched. **Then run the operator-context beat (§13d)** — it **NARROWS** (this bundle's
+   supplement is FILLED, ANSWERS folded into the paste) to *"anything changed since the supplement was
+   written?"* — not a FULL re-ask (the essence-spec merge + mesh-model calls are already answered). Then
+   run P2–P9, each against **live state now**.
 2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing /
    command errored / receiver tried to answer from memory or this bundle).
 3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary
@@ -570,5 +591,113 @@ operator's intent on both is off-repo.
    `[stale]` line** — but the pass criterion is **"answered from the live source,"** never "matches the
    verdict the summary remembered." **P2** is expected to read **28** (last name `doc_code_coverage_drift`).
    **P5** expects an HONEST 2026-07-02 stamp. **P8** pins the five-file shape with `SUPPLEMENT.md`
-   **EMPTY** (cold handoff; not folded; no README). **P9** pins the now-durable serialize-group graph
+   **FILLED** (ANSWERS folded into `PASTE_THIS`; no README). **P9** pins the now-durable serialize-group graph
    (#156) with **code-edge = just #218** and **#241 newly in coherence**.
+
+---
+
+=== SUPPLEMENT.md ===
+
+SUPPLEMENT — outgoing architect answers (essence-transfer epic [#244], resume at P2)
+
+=== 1. Strategic intent (way-of-working goal) ===
+Build the methodology's LIFECYCLE-MANAGEMENT system: make the methodology a governed, versioned,
+PRUNABLE artifact across repos — not an add-only pile. Concretely: close the "only-adds-never-
+removes" gap so the live consumer-facing surface (CLAUDE.md rosters, gotchas, active
+organs/commands/skills) stays current BY MECHANISM, not by a human catching rot by eye. Epic
+[#244]. Resume at P2 (PRUNE — the first deleting phase).
+
+=== 2. Tensions weighed — where we landed + why ===
+- Spec representation (separate file vs in-place manifest evolution): landed IN-PLACE (evolve
+  manifest-v1.1.0.yaml). Absorb-not-pair (F1): a separate methodology-spec.yaml recreates the
+  drift-twin the analysis rejected; a v1.2.0 file is untagged -> preflight refuses -> live
+  golden-diff undemonstrable. In-place keeps behavior byte-identical + provable.
+- PRUNE vs Layer-2 autonomy-no invariant (how does the hub remove things from a consumer without
+  an autonomous cross-repo write): landed on consumer-invoked deploy ONLY, staged-not-committed,
+  hash-guarded (locally-modified = conflict-REFUSE, surfaced not deleted). Nothing autonomous
+  deletes.
+- Append-only vs prune: landed on the PATHOLOGY SPLIT — the audit trail (LESSONS/JOURNAL/ADRs)
+  stays append-only/immutable; the live surface (CLAUDE.md/gotchas/active organs) gets pruned; a
+  tombstone is itself an append to the audit trail.
+- Conformance shape (one organ vs two): landed on ONE — extend the Informant
+  (enforcement_coverage.py), three tiers (fire / presence / essence-conformance); firing and shape
+  never conflated.
+- Version granularity: landed on ONE methodology semver; component-level status:/removed_in: gives
+  granularity without ~5x version-anchor drift.
+- CLAUDE.md roster home: LEANING separate @-included generated file (keeps CLAUDE.md 100% human
+  prose so the freshness gate keeps its teeth undiluted) — but this is operator decision D1 (open).
+
+=== 3. Considered + rejected (do NOT relitigate) ===
+- Separate methodology-spec.yaml — rejected (drift-twin, F1; absorb into the manifest).
+- v1.2.0 file for P1 — rejected (untagged -> preflight refuse -> golden-diff undemonstrable).
+- copier-LITERAL (adopt as a dependency) — rejected (templating doesn't fit organs with firing
+  acceptance; the carriers are proven). Adopt the copier MODEL (deletion-propagation), not the tool.
+- Renovate/Dependabot/Backstage/OPA as mechanisms — rejected (no cross-repo PR infra on local
+  sibling repos; conformance is better-fitted in the Informant). Their SHAPE confirms the pattern
+  (pinned versions + surfaced drift + gated update); we additionally have a demonstrated-firing
+  standard they lack.
+- Two conformance organs — rejected (duplicates the Informant's fleet plumbing + clone harness).
+- Big-bang "solve everything in one pass" — rejected (PRUNE = deletion; autonomous deletion is
+  forbidden; phased with a demonstrable per-phase acceptance is the discipline).
+- Per-component semver — rejected (5x anchor-drift surface for no decision the operator would make
+  differently).
+- CI-as-guarantee for enforcement — rejected earlier (corp-ops has NO git remote -> a universal CI
+  gate is structurally impossible fleet-wide; local-carrier + central-detection is the model).
+
+=== 4. Open questions (deferred / unresolved) ===
+- D1 — roster home: separate @-included generated file (rec) vs a marked block inside CLAUDE.md
+  (ADR-53 doctrine call). Needed for P3.
+- D2 — divergence-allowlist home: consumer-side .claude/methodology.yaml (rec) vs hub-side registry.
+- D3 — grace state: a "deprecated" warning tier between active/removed, or straight active->tombstone
+  (rec: no grace state at n=4).
+- Global vs local conformance coverage: MUST cover BOTH ~/.claude (global gotchas/skills) AND
+  per-repo (local) surfaces. Fable inventoried global; local per-repo coverage to be designed at
+  P4 / Informant-Tier-3.
+- release-lint wiring into preflight — behavior-changing, deferred to a later phase (manual-only today).
+- #236 depends-on removal from #238/#240 — verify it actually unblocked them (flagged, unconfirmed).
+
+=== 5. Decomposition rationale (why this shape; what NOT to redo) ===
+Dependency order P1 -> P2 -> {P3, P4} -> P5 -> P6, each phase with a DEMONSTRABLE acceptance
+(a mechanism that FIRES / a prune that REMOVES + verifies-absent), ai-council n=1 throughout before
+any fleet step. P1 first because it's behavior-preserving (golden-diff) — the safe foundation that
+establishes the self-model with zero risk. P2 (prune) is the crux + first DELETING phase -> Opus,
+plan-first, gated on D1-D3. Fleet (P6) only after prune proven on n=1.
+MUST NOT redo/re-decide: the corpus inventory (Fable did it — re-derive from the live repo, never
+re-analyze from a summary); the essence-spec schema (built in P1); the in-place spec-path decision;
+the mesh carrier (built + proven, Model D); the mesh-model A/B/C question (MOOT — see B).
+
+=== 6. Off-repo context (not in the repo) ===
+- CONTINUOUS-CONFORMANCE vision (operator's own contribution — do NOT lose): an ongoing nightly
+  hygiene routine that reads the corpus FILE-BY-FILE for rot ("does this reference something
+  obsolete / is this no longer needed"). Shape (validated; maps to Anthropic orchestrator+subagents):
+  architect/Opus DECOMPOSES -> cheap Sonnet observer-agents do the per-file BINARY rot-check
+  (zero/one: rotted y/n) -> surface. This is the continuous-conformance layer ABOVE P4/P5, and where
+  release-lint (manual today) gets wired. Cost-appropriate + scalable. Home = [#244].
+- Model routing: Fable's architecture job is DONE — do NOT re-invoke it for build phases; reserved
+  for a genuinely-new contested fork only. P2 = Opus, plan-first. Mechanical phases + the
+  observer-agents = Sonnet.
+- Standing debts: P1 merge feat/essence-spec-p1 -> main (primary, --no-ff); ai-council CLAUDE.md
+  GENUINE re-stamp (the deployed freshness gate is blocking ai-council's next commit on a live A2 —
+  this is the first live-drift firing of the transferred organ; do a real re-read, NEVER a date-bump).
+
+=== A. Essence-spec P1 merge intent + verdict on the two surfaced decisions ===
+feat/essence-spec-p1 was committed-and-stopped for BOTH: architect review of the two surfaced
+decisions AND to serialize integration (operator merges from primary). Verdicts:
+- Spec-path (in-place absorb-not-pair): APPROVED. Fable chose a third option over the two offered,
+  and it is the correct one (endorsed at review). methodology_version stays 1.1.0 for P1 (same
+  version, richer representation, behavior identical); the next bump = P2 -> v1.2.0 tagged then
+  (behavior-changing prune).
+- release-lint preflight placement: DEFERRED — correctly OUT of P1. Preflight-wiring is
+  behavior-changing; keep release-lint manual until a later phase that owns that behavior change.
+Action: --no-ff merge to main from primary.
+
+=== B. Mesh-model consult status ===
+RESOLVED + MOOT — do NOT spin up a Fable consult #2 on the mesh-transfer model. The A/B/C question
+was settled by RESEARCH (git-hooks: local-advisory vs central-enforcement) + LIVE RECON (corp-ops
+has no git remote -> CI-as-universal-guarantee structurally impossible -> local-carrier +
+central-detection is the model) + BUILD (the mesh carrier shipped as Model D and FIRED
+enforcing-local x2 on ai-council). The Informant fleet-map settled WHICH organs are portable
+(Group A canonical_freshness/reconciled = portable-local; Group C seb = ported-local; Group B
+doc_claims/git_backlog_drift = hub-scoped by construction), feeding the carrier scope. So:
+settled-by-measurement-and-build, not awaiting a consult. The Fable window was instead spent on the
+essence-transfer architecture (the larger question), which subsumed the propagation question.

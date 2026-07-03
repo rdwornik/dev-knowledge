@@ -16,11 +16,18 @@
 > consult #1 rulings landed. The one **un-integrated** arc is the P1 essence-spec on
 > `feat/essence-spec-p1` (commit-and-stop, `[#244]`) — **the immediate architect review item** (§4).
 >
-> **This is a CC-authored (repo-derived) handoff — `SUPPLEMENT.md` is EMPTY (cold shape).** There
-> is no outgoing browser chat feeding a strategic *why*; the residual below is reconstructed from
-> the committed JOURNAL/git window. If an outgoing chat holds the essence-spec / mesh-model *why*,
-> the operator fills the supplement (`supplement filled`); otherwise the incoming §13(d) beat fires
-> FULL (§4).
+> **`SUPPLEMENT.md` is now FILLED — it SUPERSEDES this residual on priority/design.** The operator
+> supplied this window's strategic *why* from the outgoing architect chat; it is folded into
+> `PASTE_THIS.md` (**read it in full — authoritative**), so the incoming §13(d) beat **NARROWS** to
+> *"anything changed since?"* Headline answers: **`[#244]` is the methodology LIFECYCLE-MANAGEMENT
+> epic** (transfer · sync · **PRUNE**) — **resume at P2 (PRUNE, the first *deleting* phase; Opus,
+> plan-first, gated on operator D1–D3)**; the essence-spec P1 spec-path (in-place absorb-not-pair) is
+> **APPROVED → merge `feat/essence-spec-p1` to `main`**; release-lint preflight wiring is **correctly
+> deferred** out of P1; the **mesh-model Fable consult #2 is RESOLVED + MOOT** (settled by
+> measurement + build — the mesh carrier shipped as "**Model D**", fired enforcing-local ×2; **do NOT
+> spin one up**). A new vision element rides in: a **continuous-conformance** nightly hygiene routine
+> (Opus decomposes → cheap Sonnet observers do per-file binary rot-checks). §4's posed questions
+> below are **answered by the supplement** — kept for the reasoning, not to relitigate.
 >
 > **Four-tag discipline.** `witnessed` = CC re-derived it live this generation (the §1 gate
 > outputs); `recall`/`inferred` = reconstructed from the JOURNAL/git window, may have moved — the
@@ -131,6 +138,11 @@ architect resumes here; if an outgoing chat holds more, the operator fills `SUPP
 
 ### (1) IMMEDIATE — review + integrate the essence-spec P1 branch (`feat/essence-spec-p1`, `[#244]`)
 
+> **→ ANSWERED (supplement §2/§A):** spec-path (in-place absorb-not-pair) **APPROVED**;
+> release-lint preflight **DEFERRED** (correctly out of P1); action = **`--no-ff` merge to `main`
+> from the primary**. Then resume the epic at **P2 (PRUNE)**. The posed decisions below are settled —
+> kept for the rationale.
+
 The one un-merged arc; committed commit-and-stop precisely so the architect owns the integration call.
 - **Merge decision:** review the 7-commit branch; integrate from the **primary** checkout via `--no-ff`
   (never a worktree — the seed-state lesson). P1 is behavior-preserving (golden-diff IDENTICAL) — low risk.
@@ -145,6 +157,14 @@ The one un-merged arc; committed commit-and-stop precisely so the architect owns
   Sequence the epic.
 
 ### (2) The mesh generalization — is the Fable consult #2 (mesh-model A/B/C) still needed?
+
+> **→ ANSWERED (supplement §B): RESOLVED + MOOT — do NOT spin up a Fable consult #2.** The A/B/C
+> question was settled by research + live recon (corp-ops has no git remote → CI-as-universal-guarantee
+> is structurally impossible → **local-carrier + central-detection**) + build (the mesh carrier shipped
+> as **Model D**, fired enforcing-local ×2). The Informant fleet-map settled *which* organs are portable
+> (Group A freshness/reconciled = portable-local; Group C seb = ported-local; Group B
+> `doc_claims`/`git_backlog_drift` = hub-scoped by construction). Settled-by-measurement-and-build. The
+> reasoning below stands as the record; the open call is now only `#243`.
 
 The prior handoff located a Fable consult on the **mesh-transfer model**: **(A)** 5th carrier, organs
 run locally; **(B)** hub-sweep-on-cadence; **(C)** hybrid. **VERIFY-FIRST:** the Informant Organ's
