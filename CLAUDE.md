@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-02
+last_reviewed: 2026-07-03
 reconciled_with: handoff-process@5.3
 status: active
 owner: Rob
@@ -52,7 +52,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 - **Testing:** `pytest -x --tb=short`
 - **Linting:** `ruff check --fix` (manual / via `/save`); `ruff check` is also enforced as a pre-commit gate (see §9) — violations block commits
 - **Scope tags:** `<!-- scope: X -->` (`dev|llm|hybrid|runtime|meta`) — informal only; not enforced (ADR-27; enforcement withdrawn per ADR-48)
-- **File lifecycle:** Append-only: `LESSONS.md`, `logs/TOKEN-LOG.md` (never edit), `JOURNAL.md` (newest-first prepend). Immutable: ADRs, transcripts, handoffs, audits (supersede with new file). Living: `VISION.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/*.md`, `BACKLOG.md` (update in place).
+- **File lifecycle:** Append-only: `LESSONS.md`, `logs/TOKEN-LOG.md` (never edit), `JOURNAL.md` (newest-first prepend). Immutable: ADRs, transcripts, handoffs, audits (supersede with new file; an ADR *status line* is editable in place on ratification per §5 item 3 / ADR-94). Living: `VISION.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/*.md`, `BACKLOG.md` (update in place).
 - **Freshness cadence:** the living docs `VISION/ARCHITECTURE/CLAUDE/CONTRIBUTING/ESSENTIALS` carry a `last_reviewed` frontmatter stamp meaning *re-read end-to-end and confirmed accurate (or drift filed)* — **not** merely "touched". `audit.py` check #10 fails when a stamp predates the file's last edit (edited-but-not-re-reviewed) and warns past a 30-day backstop. Bump `last_reviewed` only after a genuine review. See PLAYBOOK "Canonical-file freshness cadence".
 
 **Out of scope for this repo:**
@@ -69,7 +69,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 
 1. **`LESSONS.md` and `logs/TOKEN-LOG.md` are append-only** — never edit old entries; only append (ADR-29, ADR-39)
 2. **`JOURNAL.md` is append-only newest-first** — prepend at session wrap or workday close
-3. **ADRs, transcripts, handoffs, audits are immutable** — supersede with a new file or in-file marker; never edit in place
+3. **ADRs, transcripts, handoffs, and audits are immutable** — supersede with a new file or an in-file amendment marker; never edit in place. **ADR ratification exception (ADR-94):** an ADR's *status line* MAY be edited in place on ratification (e.g. Proposed → Accepted) — the status line is metadata, not decision content. This exception is ADR-specific and covers the status line only; ADR decision content, and transcripts / handoffs / audits in full, remain immutable.
 4. **Layer 2 never executes** — no orchestration scripts; `scripts/` contains read-only validators only (ADR-28, ADR-36)
 5. **No new markdown files without checking navigation/growth triggers** — when navigation overhead emerges, evaluate DevVault migration. Root `README.md` deleted 2026-05-23 (deprecated per ADR-38 amendment A5; redundant with VISION + CLAUDE.md + ARCHITECTURE for this internal-only repo) — do not recreate it.
 6. **Keep files consistent** — ESSENTIALS summarizes PLAYBOOK, not copies it; divergence causes drift
@@ -164,11 +164,11 @@ Rules (`.claude/rules/`):
 
 Brief one-liners. Full list in `docs/decisions/README.md`; full governance list in `ARCHITECTURE.md`.
 
-- ADR-89: Computed code-dependency edges (the computed-edge sibling to ADR-88) — "declare what you cannot compute; compute what you can": code→code computed via a Pyright reverse-dependency oracle (a custom code graph rejected for this repo), the benchmark's three limits (repo-scoped / static-Python-only / call-hierarchy warm-up) bound as normative + provenance required on every answer; doctrine only, no tooling wired (Track A)
-- ADR-90: Doc→code resolver-allows-N — a rule enforced in N code organs declares its expected `# rule:` site count in `multi_site:`, so a legitimately multi-organ rule resolves without an `ambiguous` verdict; Path-A direct ADR under ADR-87 (the #201 governance-trio + #202 Tier-3 quartet scheme), reversible mechanism decision
 - ADR-91: Methodology corpus versioning — the corpus gets semver marked by a **git tag on the hub** (no changelog / version file); the per-consumer deployed version records in the committed `ecosystem/deployed-versions.yaml` (read by `audit.py deployed_methodology_version`); baseline v1.0.0 tagged (ai-council run #1)
 - ADR-92: Methodology-deployment doctrine (deploy-runbook) — a deterministic, versioned, **verification-gated** deploy tool (`deploy/tool.py` + four carriers `globalconfig`/`plugin`/`precommit`/`floor`), operator-run from the hub, writing ADR-91's record only if every carrier verifies; motivated by a prior silent partial deploy (a ruff-gate carrier was missed). Runbook PLAYBOOK §20
 - ADR-93: Floor provisioning model A — the consumer **commits** its ADR-78 methodology floor (tracked via a `.gitignore` negation, not gitignored) behind a **two-leg hash-guard** (a SessionStart guard + the commit-time `floor-hash-verify` hook, both running `.claude/check_floor_hash.py`), so floor drift fails loud; supersedes PLAYBOOK §20's prior "local-only" framing; armed + conformance-proven (#226/#230)
+- ADR-94: ADR status line mutable on ratification (decision content frozen) — an ADR's *status line* MAY be edited in place on ratification (Proposed → Accepted); the exception is **ADR-status-line-only** (ADR decision content + transcripts/handoffs/audits stay fully immutable); standardizes go-forward on Pattern B (ADR-92) over ADR-88/89's frozen-header Pattern A; narrows CLAUDE.md §5 item 3 + §File-lifecycle; the header↔README coherence check is filed **#242**, not built (Fable consult #1, operator-signed)
+- ADR-95: AI-council query lane-split — "architect frames the question, CC mechanically expands"; the ai-council-query specialization of ADR-87's equilibrium contract applied to the ADR-67 loop's Frame step; **record-only**, no `/council` wiring built (Fable consult #1)
 
 ## 12. Section history
 <!-- scope: meta -->
@@ -183,8 +183,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.23 (2026-06-23) — corpus-drift cleanup (2026-06-23 fidelity audits): §11 ratified ADR-88/89 from **Proposed** → Accepted (911b561; status-prefix dropped per the index convention) and §8 refreshed the repo-skills inventory ("no skills dir yet" → `.claude/skills/` holds `verify` + `check-against-spec`). Companion genuine end-to-end re-read confirmed the rest current; `last_reviewed` re-stamped 2026-06-23.
 - v2.24 (2026-06-25) — §8 self-contradiction fixed (2026-06-25 process-trigger audit): the user-level (`~/.claude/skills/`) list no longer claims a `verify` skill — it was archived 2026-06-05 (machinery-c3); the live `verify` is hub-local and was already (correctly) listed under Repo-level, so §8 contradicted itself. Replaced the stale bullet with a one-line pointer to the archive + the live hub-local copy. Companion end-to-end re-read confirmed the rest current; `last_reviewed` re-stamped 2026-06-25.
 - v2.25 (2026-07-02) — §11 "last 5" rotated **85–89 → 89–93** (the deferral carried since v2.19–v2.21, now closed for the deploy cohort): genuine reads of ADR-90/91/92/93 (all Accepted — the ARCHITECTURE-currency arc [#222]/[#223]/[#224]); dropped 85–88 (retained in `docs/decisions/README.md` + ARCHITECTURE Governing-ADRs), added the resolver-allows-N / corpus-versioning / deploy-runbook / floor-model-A quartet. Fixed the stale version comment (**2.23** while v2.24 had already landed → **2.25**). Companion genuine end-to-end re-read confirmed §1–§10 current; `last_reviewed` re-stamped 2026-07-02.
+- v2.26 (2026-07-03) — Fable consult #1 ruling #3 landed (operator-signed): §5 item 3 narrowed — the "ADRs/transcripts/handoffs/audits immutable" rule gains an **ADR-status-line-only** ratification exception (ADR-94: an ADR's *status line* is editable in place on Proposed→Accepted; decision content + transcripts/handoffs/audits stay fully immutable), standardizing go-forward on Pattern B (ADR-92) over ADR-88/89's frozen-header Pattern A; §"File lifecycle" (L55) reconciled to match; §11 "last 5" rotated **89–93 → 91–95** (dropped 89/90, added the new ADR-94 + the consult's ADR-95 lane-split). The header↔README status-coherence check is filed **#242** (not built); ADR-88/89 retro-normalization deferred. Companion end-to-end re-read confirmed §1–§10 current; `last_reviewed` re-stamped 2026-07-03.
 
 ---
 
-**Last updated:** 2026-07-02
+**Last updated:** 2026-07-03
 **Maintained by:** Rob
