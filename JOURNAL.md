@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-03 — CC: close #236 (mesh carrier) + #237 (seb port) — done-items-leave, operator-approved (e2161f9)
+
+**Did:** `/review-closures` (ADR-70 Tier-1, operator-gated). The gate (`review_closures.py plan --ids 236,237`) returned both in `close` (weak tier — changed-file evidence: #236 `5f95d06`/`edc1f5f`/`99401d7`; #237 those + `dd53c99`), `skip: []`. Operator explicitly approved closing both by id. The **true** done-when evidence is stronger than the weak proxy: **enforcing-local ×2 on the ai-council n=1 pilot** (anchored `e2161f9` — seb `decision:block`, canonical_freshness blocked-in-isolation), which is exactly both tasks' Done-when. Removed both task lines (done-items-leave, ADR-65; no renumber, id gap kept).
+
+**Result:** both closed (gate re-surface: "not currently open"). Side-effect resolved: closing #236 orphaned `depends-on: #236` on **#238** + **#240** → `validate_backlog` hard-failed → removed the now-satisfied `depends-on` from both (the dependency IS satisfied — #236 done; they're unblocked; the historical `refs …#236` stays). `validate_backlog: OK (22 stories, 100 tasks, 0 warn)`.
+
+**Changes:** `BACKLOG.md` (−#236, −#237; #238/#240 depends-on cleanup).
+
+**Abandoned:** Nothing. #238 (Stage-4 record+formalize), #239 (Tier-2 breadth), #240 (regression teeth), #221 (fleet n=2+) remain open — Axis-1 pilot is proven on n=1; fleet generalization + the Stage-4 doctrine writeup are the open forward work.
+
+**Next:** Stage 4 (#238) — record the "deployed presence ≠ deployed enforcement" doctrine in LESSONS/PLAYBOOK + the deploy-and-re-verify runbook. Then fleet rollout (#221) n=2+.
+
 ### 2026-07-03 — CC: Axis-1-on-ai-council PROVEN — enforcing-local ×2 (leg-(e) acceptance MET) (5f95d06)
 
 **Did:** After the operator re-tagged v1.1.0 + committed the 6 mesh artifacts + reconciled ai-council/CLAUDE.md (§7/§8 command-skill currency: dropped verified-dead `/boot`/`/evolve`/`verify`, added `/override`; §6 dead-boot step; §9 actual hook set), ran Phase-2 `enforcement_coverage.py --consumer ai-council --run-date 2026-07-03 --fire`. First run: seb **enforcing-local**, canonical_freshness **absent** — a MEASUREMENT bug, not a deploy failure: the fire picks the first _FRESHNESS_FILES doc (VISION.md) and its stale-regex only matched UNQUOTED dates, but ai-council's VISION.md uses `last_reviewed: "2026-06-02"` (quoted) → "no last_reviewed to stale" → false absent. Fixed the Informant (hub-only, no re-tag): quote-tolerant `_LAST_REVIEWED_RE` + target-selection picks a STALEABLE doc; +regression test. Re-fired.
