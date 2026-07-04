@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-03
+last_reviewed: 2026-07-04
 reconciled_with: handoff-process@5.3
 status: active
 owner: Rob
@@ -7,7 +7,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.25 — 2026-07-02 -->
+<!-- version: 2.27 — 2026-07-04 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -105,11 +105,7 @@ Repo-level (`./.claude/commands/`):
 - `/save` — commit workflow with full body per git-discipline rule
 - `/handoff` — generate/complete handoff per `HANDOFF_PROCESS.md` v5 (ADR-82)
 - `/changelog-review` — operator-invoked review of tool changelogs (claude-code + codex) since last review; classify per the audit rubric, write a digest, bump the state file (PUSH-triggered; never implements adoptions)
-- `/override` — bypass the ADR-85 session-end hard gate for this HEAD; explicit + logged, no auto-bypass (the gate's only escape — ADR-85 §4)
-
-Plugin-provided (`tier1-lifecycle@dev-knowledge-methodology`, §8):
-- `/review-closures` — review the session-end closure proposals + execute ONLY operator-approved closures (ADR-70 Tier-1; human-gated, done-items-leave). Fleet-wide via the plugin; the hub-local duplicate command was dropped so the hub uses the plugin's like the child repos ([#76]).
-- `/ship` — merge the current feature branch to `main` via `--no-ff`, push, and auto-delete the merged branch (git-finish); **refuses inside a worktree** — integrate from the primary checkout (seed-state-yaml lesson).
+Deployed methodology commands — `/review-closures`, `/ship`, `/override` — are enumerated in the generated roster (§9, `@`-imported); governance stays at canonical homes: ADR-70 Tier-1 + §8 / `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle" ([#76] — the hub uses the plugin's, not a hub-local duplicate) for `/review-closures` + `/ship` (the `/ship` worktree-refusal is the seed-state `LESSONS.md` 2026-06-19 lesson); ADR-85 §4 (explicit + logged, no auto-bypass — the gate's only escape) for `/override`.
 
 (When to invoke each + auto-vs-manual for hooks: PLAYBOOK §"Usage protocol: which command / hook, when".)
 
@@ -137,6 +133,7 @@ Pre-commit (`.pre-commit-config.yaml`):
 - `codemap-freshness` — ARCHITECTURE codemap vs `scripts/` staleness check
 - `toc-freshness` — ARCHITECTURE.md TOC vs its own headers staleness check (ADR-71 source-repo pattern)
 - `toc-freshness-playbook` — PLAYBOOK.md TOC staleness check (same `scripts/toc/` tool, PLAYBOOK target)
+- `roster-freshness` — regen-and-diff gate for `.claude/methodology-roster.md` vs `deploy/manifest-v*.yaml` (`gen_methodology_roster.py --check`; blocks a hand-edited or manifest-stale roster); HUB-ONLY (n=1), [#244] P3
 - `validate-backlog` — BACKLOG.md story-map schema (ADR-66)
 - `audit-health` — self-conformance gate: `audit.py health` (FAIL blocks the commit, WARN informs); added by [#69]
 - `ruff` — lint gate: `ruff check` (gate mode; blocks on violations); version-pinned >=0.15.5 via `pyproject.toml`; `language: system` (no mismatch); added by [#13]
@@ -148,6 +145,12 @@ Session hooks (`.claude/settings.json`, project-level — merges with, does not 
 
 Rules (`.claude/rules/`):
 - `git-discipline.md` — mandatory commit after every file edit; clean working tree at session end
+
+### Methodology-deployed roster (generated — do not hand-edit)
+
+The deployed methodology corpus (the commands / hooks / config the deploy tool ships to a consumer) is machine-generated from `deploy/manifest-v*.yaml` `components:[].roster` and `@`-imported below — regenerated-from-source, not review-stamped (deliberately OUT of the freshness gate; regenerate: `python scripts/gen_methodology_roster.py --write`). §7–§9 stay hand-authored for the hub-LOCAL surface (items with no manifest entry). Drift-gated by the `roster-freshness` pre-commit hook.
+
+@.claude/methodology-roster.md
 
 ## 10. Anti-patterns specific to Claude Code in this repo
 <!-- scope: meta -->
@@ -184,8 +187,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.24 (2026-06-25) — §8 self-contradiction fixed (2026-06-25 process-trigger audit): the user-level (`~/.claude/skills/`) list no longer claims a `verify` skill — it was archived 2026-06-05 (machinery-c3); the live `verify` is hub-local and was already (correctly) listed under Repo-level, so §8 contradicted itself. Replaced the stale bullet with a one-line pointer to the archive + the live hub-local copy. Companion end-to-end re-read confirmed the rest current; `last_reviewed` re-stamped 2026-06-25.
 - v2.25 (2026-07-02) — §11 "last 5" rotated **85–89 → 89–93** (the deferral carried since v2.19–v2.21, now closed for the deploy cohort): genuine reads of ADR-90/91/92/93 (all Accepted — the ARCHITECTURE-currency arc [#222]/[#223]/[#224]); dropped 85–88 (retained in `docs/decisions/README.md` + ARCHITECTURE Governing-ADRs), added the resolver-allows-N / corpus-versioning / deploy-runbook / floor-model-A quartet. Fixed the stale version comment (**2.23** while v2.24 had already landed → **2.25**). Companion genuine end-to-end re-read confirmed §1–§10 current; `last_reviewed` re-stamped 2026-07-02.
 - v2.26 (2026-07-03) — Fable consult #1 ruling #3 landed (operator-signed): §5 item 3 narrowed — the "ADRs/transcripts/handoffs/audits immutable" rule gains an **ADR-status-line-only** ratification exception (ADR-94: an ADR's *status line* is editable in place on Proposed→Accepted; decision content + transcripts/handoffs/audits stay fully immutable), standardizing go-forward on Pattern B (ADR-92) over ADR-88/89's frozen-header Pattern A; §"File lifecycle" (L55) reconciled to match; §11 "last 5" rotated **89–93 → 91–95** (dropped 89/90, added the new ADR-94 + the consult's ADR-95 lane-split). The header↔README status-coherence check is filed **#242** (not built); ADR-88/89 retro-normalization deferred. Companion end-to-end re-read confirmed §1–§10 current; `last_reviewed` re-stamped 2026-07-03.
+- v2.27 (2026-07-04) — [#244] P3 generated-roster currency (Fable R3): the deployed methodology corpus (commands / hooks / config) is now machine-generated from `deploy/manifest-v*.yaml` `components:[].roster` into `.claude/methodology-roster.md`, `@`-imported via a new §9 "Methodology-deployed roster (generated)" subsection — so it can no longer be hand-maintained and thus cannot rot. §7 trimmed of the three deployed commands (`/review-closures`/`/ship`/`/override`), replaced by a pointer note that keeps every non-enumeration rationale at its verified canonical home (ADR-70 + §8/ARCHITECTURE [#76]; the `/ship` worktree-refusal `LESSONS.md` 2026-06-19; ADR-85 §4). §9 gains the blocking `roster-freshness` regen-and-diff hook. The generated file is deliberately OUT of `DEFAULT_FRESHNESS_FILES` (currency = regen); CLAUDE.md STAYS in (100% hand-prose, gated). `@import` sanctioned: the ADR-45 / 2026-05-26-council `@path` ban is browser-handoff-delivery-scoped, NOT local session-boot (quoted at review; the live `@.claude/CLAUDE-FLOOR.md` precedent corroborates). Methodology version HELD (hub-only n=1 tooling; consumer rollout is P6). Hub-local items stay hand-authored (no machine source; follow-up filed). Genuine end-to-end re-read confirmed §1–§11 current; `last_reviewed` re-stamped 2026-07-04.
 
 ---
 
-**Last updated:** 2026-07-03
+**Last updated:** 2026-07-04
 **Maintained by:** Rob

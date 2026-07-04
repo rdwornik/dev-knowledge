@@ -49,6 +49,19 @@ repos:
         language: system
         files: '^protocols/PLAYBOOK\.md$'
         pass_filenames: false
+      - id: roster-freshness
+        name: Methodology roster freshness check ([#244] P3)
+        # Fail-on-stale, mirroring toc-freshness: regenerate with
+        # `python scripts/gen_methodology_roster.py --write`. Catches BOTH drift
+        # directions — a hand-edited roster AND a manifest change without a regen —
+        # so the deployed-corpus roster (.claude/methodology-roster.md, @-imported
+        # into CLAUDE.md) can no longer be hand-maintained and thus cannot rot (R3).
+        # HUB-ONLY (n=1); deliberately NOT in the manifest precommit carrier — rolling
+        # the generator to consumers is P6.
+        entry: python scripts/gen_methodology_roster.py --check
+        language: system
+        files: '(^deploy/manifest-v.*\.yaml$|^\.claude/methodology-roster\.md$)'
+        pass_filenames: false
       - id: validate-backlog
         name: Validate BACKLOG.md story-map (ADR-66)
         entry: python scripts/validate_backlog.py
