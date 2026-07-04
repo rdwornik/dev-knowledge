@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-05 — CC (Opus): Phase-0 batch integration merge (serial consolidation MERGE 1)
+
+**Did:** Executed the architect's session-close serial-consolidation **MERGE 1**: merged `chore/phase0-batch` → `main` `--no-ff` (merge `3a95e49`), the integration wrap the Phase-0 delegation lane (commit-per-item-and-STOP) deferred. Pre-merge gate on the branch tip: **full suite 1210 passed, 0 failed** (item 4 cleared the standing #251 test-red). Four disjoint low-risk items: **1a41630** PLAYBOOK — refresh two stale coherence-edge gate-state surfaces (coherence-spine RF-1); **f41460d** DEFINITION_OF_DONE — honest-limits section (Fable RF-3); **5c6765d** validate_reconciliation.py — correct stale corpus-scope docstring (RF-8); **c919393** test_deploy_tool_execute.py — ANSI-robust branch-report assertion (#251 stale-test). Then tore down the phase0-batch worktree + branch (see below).
+
+**Result:** main at `3a95e49`, 4-file diff (+50/−8: DoD, PLAYBOOK, validate_reconciliation, test_deploy_tool_execute). **Item-1 relabel (on record):** the Phase-0 prompt named this anti-bluff *handoff*-RF-1; the actually-correct fix applied was the coherence-spine RF-1 *stale-surface* refresh — the anti-bluff handoff surface stays in the deferred §5 handoff-RF arc, untouched. **/override note:** the in-branch `/override @ c919393` (logs/OVERRIDES.md, gitignored) was the sanctioned Stop-gate bypass — the lane journaled nothing in-branch to avoid adding a 5th file + a JOURNAL prepend-conflict with the parallel Slice-B lane; this entry IS that deferred journaling. **#251:** its test-red is cleared and its done-when (test passes + stale-test decision recorded) is now met on main — left OPEN for `/review-closures` (pure advance; the lane closed no task). Post-merge verify below.
+
+**Changes:** merge `3a95e49` (protocols/DEFINITION_OF_DONE.md, protocols/PLAYBOOK.md, scripts/validate_reconciliation.py, tests/test_deploy_tool_execute.py); `JOURNAL.md` (this entry). No BACKLOG task added/closed.
+
+**Abandoned:** none. Left `automation/fleet-audit` untouched (routine baseline, per architect). Held `feat/lived-sandbox-slice-b` unmerged (MERGE 2 HOLD — C4 closure gated on the operator's Step-7 live-freeze).
+
+**Next:** `/review-closures` may now close #251 (evidence on main). Slice B lands in one `--no-ff` at Step 7 (operator, post key-rotation); expect a trivial chronological JOURNAL merge (this entry on main + the Slice-B branch entry) — keep both.
+
+---
+
 ### 2026-07-04 — CC (Opus): /handoff architect (#2) — v5.3 architect bundle generated (2026-07-04-dev-knowledge-architect-2)
 
 **Did:** Ran `/handoff architect dev knowledge` (v5.3 default flow, architect mode) a **second time today**. Scope matrix → **Case 4** (clean tree; today's `-architect` slug already exists from `c185c09`; but new first-parent commits landed since it — `fbf88ae` ARCHITECTURE currency, `2e7b072` RF-2 hub-arm, `f62d4f4` [#251] log, `9d5ebe5` handoff-generator, `a523fca` sandbox Slice A) → counter-differentiated slug **`2026-07-04-dev-knowledge-architect-2`**, on branch `docs/2026-07-04-architect-handoff-2` off `main` `a523fca`. Authored the 4-file bundle by hand from live state (gen_handoff.py adoption deferred to a later handoff — the architect residual is planning-narrative the generator can't synthesize): `HANDOFF_BOOT.md` (session header → **Slice A review is the primary next job**), `RESIDUAL.md` (§1 standing-flags headline → §2 the 4-lane window map → §3 task-state pointer 7/23/109 → §4 next-frontier: **(1) review Slice A → build Slice B; (2) integrate the deferred handoff-spec §5/§13→5.4 arc; (3) route the 4 carried Fable reviews (RF-1 now structurally half-done); (4) P5/P6 HELD + ai-council re-stamp debt + API-key-rotation flag** → §5 pointers), `PROBES.md` (P1 orientation exact-line + P2–P9 teeth, **all answer VALUES withheld — RF-1 now structurally enforced**), `SUPPLEMENT.md` (empty, from template + 2 CC addenda: Slice-A accept bar, spec-arc-vs-sandbox sequencing). `PASTE_THIS.md` assembled by `scripts/assemble_paste.py` (supplement empty → `[skip]`, beat fires FULL).
