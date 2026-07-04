@@ -206,13 +206,102 @@ def repo_summary(state: dict) -> tuple:
     )
 
 
-def build_digest(states: list, run_date: date, completed_at: str | None = None) -> str:
+# ---------------------------------------------------------------------------
+# Sync-drift roll-up ([#244] P4 Step 7). AGGREGATES each consumer's own local
+# .methodology.yaml allowlist (contract 5 -- no central exception registry). Uses
+# the Informant's static (no-clone / no-fire) drift summary, so it is SessionStart-safe:
+# cheap local file reads, once/day, exit 0, ASCII-only. Gated by siblings_available
+# in main() (isolated/cloud clones skip it entirely).
+# ---------------------------------------------------------------------------
+
+
+def _import_enforcement_coverage():
+    """Lazy sibling import (the scripts/ sibling gotcha): put scripts/ on sys.path, then a bare
+    ``import enforcement_coverage``. Kept out of module import so fleet_health's cheap paths
+    (parse/surface) never pull click/yaml/deploy."""
+    if str(_SCRIPTS_DIR) not in sys.path:
+        sys.path.insert(0, str(_SCRIPTS_DIR))
+    import enforcement_coverage  # noqa: E402
+    return enforcement_coverage
+
+
+def _resolve_consumer_root(state: dict, repo_root: Path) -> Path | None:
+    """Resolve a consumer's on-disk root from its state.yaml ``path:`` (or the conventional
+    ``<parent>/<name>`` slot next to the hub) — the same resolution siblings_available uses.
+    None when neither resolves (isolated/cloud clone)."""
+    stored = state.get("path", "")
+    if stored and Path(stored).exists():
+        return Path(stored)
+    candidate = repo_root.parent / state.get("name", "")
+    return candidate if candidate.exists() else None
+
+
+def drift_summaries(ecosystem_dir: Path, repo_root: Path, run_date: date) -> dict:
+    """Per-consumer STATIC drift roll-up (contract 5 — aggregation, not a central store).
+
+    For each on-disk consumer (resolved via state.yaml path / <parent>/<name>), read its OWN
+    ``.methodology.yaml`` allowlist through enforcement_coverage.static_drift_summary — NO clone,
+    NO fire (SessionStart-safe: local file reads only). The hub's waivability policy comes from
+    the hub manifest. The hub itself is skipped (it is the baseline source, not a consumer).
+    Fail-soft: an import/policy error yields {}; a bad single consumer is dropped, not fatal —
+    the drift line never blocks or breaks the digest."""
+    try:
+        ec = _import_enforcement_coverage()
+        policy = ec.waivability_policy_from_manifest(ec._latest_manifest())
+    except Exception as exc:  # noqa: BLE001 — surfacing organ: never break the digest
+        print(f"fleet_health: WARNING -- drift roll-up unavailable: {exc!r}", file=sys.stderr)
+        return {}
+    out: dict = {}
+    for state in load_all_states(ecosystem_dir):
+        root = _resolve_consumer_root(state, repo_root)
+        if root is None or not root.is_dir():
+            continue
+        if root.resolve() == repo_root.resolve():
+            continue  # the hub is the baseline, not a consumer to check against itself
+        try:
+            out[state.get("name", "?")] = ec.static_drift_summary(
+                root, run_date=run_date, waivable_policy=policy)
+        except Exception:  # noqa: BLE001 — skip a bad consumer, keep the rest
+            continue
+    return out
+
+
+def _drift_section(drift_by_repo: dict | None) -> list:
+    """The [#244] P4 fleet drift block: a small SECTION (not a new table column, so the legacy
+    repo table + its tests are untouched). Empty when no consumer allowlists resolve. ASCII-only."""
+    if not drift_by_repo:
+        return []
+    lines = [
+        "## Drift (static; fire-based Tier-3 in the CLI is authoritative)",
+        "",
+        "Per-consumer sanctioned-divergence roll-up, aggregated from each consumer's own",
+        "`.methodology.yaml` (no central registry -- contract 5). declared/valid/rejected count",
+        "allowlist entries; absent-organs = mapped organs statically absent (candidate drift).",
+        "",
+        "| Consumer | Declared | Valid | Rejected | Absent-organs |",
+        "|----------|----------|-------|----------|---------------|",
+    ]
+    for name in sorted(drift_by_repo):
+        d = drift_by_repo[name] or {}
+        lines.append(
+            f"| {name} | {d.get('declared', 0)} | {d.get('valid', 0)} | "
+            f"{d.get('rejected_non_waivable', 0)} | {d.get('static_absent_mapped_organs', 0)} |")
+    lines.append("")
+    return lines
+
+
+def build_digest(states: list, run_date: date, completed_at: str | None = None,
+                 drift_by_repo: dict | None = None) -> str:
     """Build the FLEET-HEALTH.md content from a list of state dicts.
 
     completed_at: ISO timestamp written to the frontmatter only when the audit
     completed a full successful pass. When None the baseline is INCOMPLETE
     (audit error/timeout) and no completed_at line is emitted, so a downstream
     staleness check (is_completed_stale) sees no fresh completion stamp.
+
+    drift_by_repo: optional {consumer_name: static_drift_summary dict} ([#244] P4);
+    renders a trailing Drift section (aggregated from each consumer's own allowlist).
+    None/empty -> no section (legacy two/three-arg callers are unchanged).
     """
     rows = [repo_summary(s) for s in states]
     n_pass = sum(1 for _, p, f, _w in rows if f == 0)
@@ -249,6 +338,7 @@ def build_digest(states: list, run_date: date, completed_at: str | None = None) 
     else:
         lines += [f"{n_fail}/{len(rows)} repo(s) have findings -- run `audit.py run` for details."]
     lines += [""]
+    lines += _drift_section(drift_by_repo)
     return "\n".join(lines)
 
 
@@ -331,8 +421,11 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
               file=sys.stderr)
         return False
     completed_at = (now or datetime.now()).isoformat(timespec="seconds") if ok else None
+    # Per-consumer drift roll-up ([#244] P4): static (no clone / no fire), fail-soft to {}.
+    # Reached only on the once/day, siblings-present refresh path -> SessionStart-safe.
+    drift_by_repo = drift_summaries(ecosystem_dir, repo_root, today)
     logs_dir.mkdir(exist_ok=True)
-    _atomic_write(health_file, build_digest(states, today, completed_at))
+    _atomic_write(health_file, build_digest(states, today, completed_at, drift_by_repo))
     return ok
 
 
