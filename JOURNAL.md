@@ -25,7 +25,7 @@
 
 **Result:** Bundle at `docs/handoffs/2026-07-04-dev-knowledge-architect/` (5 files, no README). **RF-1 corrective applied** (Fable handoff-adoption finding, this window): probe answer VALUES deliberately withheld — no counts/SHAs/dates/verdicts/orienting-lines stated — so the bundle dogfoods the anti-bluff contract instead of inverting it; paste shrank 59KB→49KB. Generation-time live state (witnessed): ship-gate **GREEN, 10 WARN dispositioned, no `[stale]`**; ALL_CHECKS **28** (last `doc_code_coverage_drift`); backlog **7/23/107**; `validate_git_backlog` only the standing #77; ai-council deployed **1.2.0**.
 
-**Changes:** `docs/handoffs/2026-07-04-dev-knowledge-architect/{HANDOFF_BOOT,RESIDUAL,PROBES,SUPPLEMENT,PASTE_THIS}.md` [new], `JOURNAL.md` (this entry).
+**Changes:** `docs/handoffs/2026-07-04-dev-knowledge-architect/{HANDOFF_BOOT,RESIDUAL,PROBES,SUPPLEMENT,PASTE_THIS}.md` [new], `JOURNAL.md` (this entry). Bundle commit **`c185c09`** (this anchor added as a follow-up commit).
 
 **Abandoned:** none.
 
