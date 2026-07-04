@@ -25,7 +25,7 @@
 
 **Result:** Bundle at `docs/handoffs/2026-07-04-dev-knowledge-architect-2/` (5 files, no README). **Anti-bluff dogfood PASSED 10/10** — `verify_handoff_probes.py` on the new bundle: 10 probes, 0 fail, 0 warn (the RF-1 structural gate this window shipped, now validating the very next bundle). Paste **48.9KB** (leaner than the prior 59KB — withholding held). Generation-time live state (witnessed): ship-gate **GREEN, 10 WARN dispositioned, no `[stale]`** (standing set only — #77 / 3 no-ff / 6 undeclared-edges); `ALL_CHECKS` **29** (last `doc_code_coverage_drift`); backlog **7/23/109**; `validate_git_backlog` only the standing #77; ai-council deployed **1.2.0** (unchanged, P6 held).
 
-**Changes:** `docs/handoffs/2026-07-04-dev-knowledge-architect-2/{HANDOFF_BOOT,RESIDUAL,PROBES,SUPPLEMENT,PASTE_THIS}.md` [new], `JOURNAL.md` (this entry).
+**Changes:** `docs/handoffs/2026-07-04-dev-knowledge-architect-2/{HANDOFF_BOOT,RESIDUAL,PROBES,SUPPLEMENT,PASTE_THIS}.md` [new], `JOURNAL.md` (this entry). Bundle commit **`48962fc`** (this anchor added as a follow-up commit).
 
 **Abandoned:** none.
 
