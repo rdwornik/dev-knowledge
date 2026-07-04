@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-04 — CC (Opus): /handoff architect — v5.3 architect bundle generated (2026-07-04-dev-knowledge-architect)
+
+**Did:** Ran `/handoff architect dev knowledge` (v5.3 default flow, architect mode). Scope matrix → **Case 2** (clean tree, commits since the 2026-07-03 handoff, today's slug absent) → Phase-1 generate, slug `2026-07-04-dev-knowledge-architect`, on branch `docs/2026-07-04-architect-handoff` off `main` `25b104e`. Authored the 4-file bundle by hand from live repo state (the #164 generator is still deferred): `HANDOFF_BOOT.md` (session header + paste-pointer), `RESIDUAL.md` (§1 drift-flags headline → §2 [#244] P1→P4 close + the 4 Fable landings → §3 task-state pointer → §4 next-frontier adjudication → §5 pointers), `PROBES.md` (P1 orientation exact-line probes + P2–P9 teeth), `SUPPLEMENT.md` (empty, from `templates/handoff/v5/SUPPLEMENT.md.tmpl` + 2 CC-observed addenda). `PASTE_THIS.md` assembled by `scripts/assemble_paste.py` (supplement empty → `[skip]` not folded, beat fires FULL).
+
+**Result:** Bundle at `docs/handoffs/2026-07-04-dev-knowledge-architect/` (5 files, no README). **RF-1 corrective applied** (Fable handoff-adoption finding, this window): probe answer VALUES deliberately withheld — no counts/SHAs/dates/verdicts/orienting-lines stated — so the bundle dogfoods the anti-bluff contract instead of inverting it; paste shrank 59KB→49KB. Generation-time live state (witnessed): ship-gate **GREEN, 10 WARN dispositioned, no `[stale]`**; ALL_CHECKS **28** (last `doc_code_coverage_drift`); backlog **7/23/107**; `validate_git_backlog` only the standing #77; ai-council deployed **1.2.0**.
+
+**Changes:** `docs/handoffs/2026-07-04-dev-knowledge-architect/{HANDOFF_BOOT,RESIDUAL,PROBES,SUPPLEMENT,PASTE_THIS}.md` [new], `JOURNAL.md` (this entry). Bundle commit **`c185c09`** (this anchor added as a follow-up commit).
+
+**Abandoned:** none.
+
+**Next:** Operator pastes `PASTE_THIS.md` into a fresh architect chat; optionally fills `SUPPLEMENT.md` from the outgoing chat (`supplement filled`) → I commit + re-assemble. Operator-gated on OK: `/ship` this branch (`--no-ff` from primary), push `main`.
+
+**Update — supplement FILLED + folded (`0684174`):** Operator filled `SUPPLEMENT.md` from the outgoing architect chat and I committed it verbatim + re-assembled `PASTE_THIS.md` (ANSWERS region folded, paste 49KB→59KB). The answers **re-sequence the forward program** around the operator's stated priority **deployment · sandbox · tests**: RULE **P5/P6 WAIT** (don't onboard n=2+ through a moving corpus / unfixed P0s); **Phase 0** safety+self-honesty (RF-1 OneDrive Edit/Write P0 guard, hub self-arming, anti-bluff **re-ratify**) → **Phase 1** build the **sandbox** (episodic lived-workflow harness, throwaway-clone, Sonnet observers, essence-spec `engages:` as oracle) as the retroactive acceptance instrument for P1–P4 → **Phase 2** the fleet arc re-gated. Rot-algorithm **defer-until-after-sandbox** (shared observer machinery). Staleness caveat recorded: the Fable-5 architecture review predates P2/P3/P4 — re-verify its claims against current HEAD. The supplement independently **confirms this bundle's RF-1 corrective** ("treat every `expected:` as SUSPECT").
+
+---
+
 ### 2026-07-04 — CC (Opus): [#244] P4 Session 2 — fleet drift line + n=1 demonstrated-catch, SHIPPED
 
 **Did:** Executed [#244] P4 Steps 6–8 (resumed on `feat/244-p4-sync-surfacing`, per-step verify cadence from Git Bash). (6) `scripts/enforcement_coverage.py` `static_drift_summary(consumer_root, *, run_date, waivable_policy)` — a NO-clone/NO-fire snapshot (working-tree allowlist + locate-only `evaluate_static`) counting declared/valid/rejected-non-waivable entries + statically-absent mapped organs, labelled "static; fire-based Tier-3 in the CLI is authoritative." `audit.py` LEFT UNTOUCHED (operator fold-in 2 dropped the optional `drift_declared` token — it touched a line-pin-fragile ship-gate-critical file for no contract) [`5109642`]. (7) `scripts/fleet_health.py` per-consumer drift roll-up — AGGREGATES each on-disk consumer's OWN `.methodology.yaml` (contract 5, no central store) via `static_drift_summary`, resolved through the existing `siblings_available`/state.yaml-path guard, rendered as a small Drift SECTION in `build_digest` (not a new column, so the legacy table + its tests are untouched). SessionStart contract preserved: no clone, no fire, once/day, exit 0, ASCII; sibling gotcha `sys.path.insert(_SCRIPTS_DIR)` + bare import [`a5347e6`]. (8) real n=1 demonstrated-catch + version-hold + records [this commit].
