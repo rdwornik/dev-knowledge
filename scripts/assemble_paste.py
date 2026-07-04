@@ -25,6 +25,12 @@ import click
 
 _SECTION_SEP = "\n\n---\n\n"
 
+# RF-2 item 2: surface paste growth so it stops creeping unchecked (36.5 KB -> 59 KB across
+# 06-15..07-03 with no budget). The healthy filled paste is ~59 KB; warn just past that so
+# genuine bloat (re-narration creep, RF-6) trips a visible [warn] without nagging on a normal
+# bundle. A WARN, not a gate — assembly still succeeds. Tunable.
+_SIZE_WARN_BYTES = 65_000
+
 
 def _extract_session_header(text: str) -> str:
     """Return the session-header block from a bundle HANDOFF_BOOT.md.
@@ -138,7 +144,11 @@ def main(bundle_dir: Path) -> None:
     body = _SECTION_SEP.join(f"=== {label} ===\n\n{content}" for label, content in sections)
     paste_path = bundle_dir / "PASTE_THIS.md"
     paste_path.write_text(body + "\n", encoding="utf-8", newline="\n")
-    click.echo(f"Written: {paste_path}")
+    size = len(body.encode("utf-8"))
+    click.echo(f"Written: {paste_path} ({size} bytes)")
+    if size > _SIZE_WARN_BYTES:
+        click.echo(f"[warn] PASTE_THIS.md is {size} bytes (> {_SIZE_WARN_BYTES}) — heavy boot; "
+                   "check for re-narration creep (RF-2/RF-6) before shipping", err=True)
 
 
 if __name__ == "__main__":

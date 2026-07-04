@@ -361,3 +361,34 @@ def test_template_carries_questions_and_marker() -> None:
         "Off-repo context",
     ):
         assert q in text, f"template missing question: {q}"
+
+
+# ------------------------------------------------------------------ #
+# Test 13: Paste byte-size is surfaced; a normal bundle does not warn (RF-2 item 2)
+# ------------------------------------------------------------------ #
+
+def test_normal_bundle_surfaces_size_without_warn(tmp_path: Path) -> None:
+    """The assembled byte-size is printed (so paste growth is visible) but a normal-sized
+    bundle stays under the threshold — no false [warn]."""
+    bundle, script = _make_bundle(tmp_path, mode="architect")
+
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    assert "bytes)" in result.stdout          # size surfaced on the Written line
+    assert "[warn]" not in result.stderr        # a small bundle must not trip the bloat warn
+
+
+# ------------------------------------------------------------------ #
+# Test 14: An oversized paste trips a non-gating [warn] (RF-2: arrest paste growth)
+# ------------------------------------------------------------------ #
+
+def test_oversized_paste_emits_size_warn(tmp_path: Path) -> None:
+    """A paste past _SIZE_WARN_BYTES trips a [warn] — but assembly still succeeds (a WARN,
+    not a gate), so an over-budget bundle surfaces the bloat without blocking regeneration."""
+    bundle, script = _make_bundle(tmp_path, mode="architect")
+    (bundle / "RESIDUAL.md").write_text("# R\n\n" + ("padding " * 12000), encoding="utf-8")
+
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr   # WARN, never a gate
+    assert "[warn]" in result.stderr
+    assert "heavy boot" in result.stderr
