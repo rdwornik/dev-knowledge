@@ -31,6 +31,8 @@
 
 **Next:** Operator pastes `PASTE_THIS.md` into a fresh architect chat; optionally fills `SUPPLEMENT.md` from the outgoing chat (`supplement filled`) → I commit + re-assemble. Operator-gated on OK: `/ship` this branch (`--no-ff` from primary), push `main`.
 
+**Update — supplement FILLED + folded (`0684174`):** Operator filled `SUPPLEMENT.md` from the outgoing architect chat and I committed it verbatim + re-assembled `PASTE_THIS.md` (ANSWERS region folded, paste 49KB→59KB). The answers **re-sequence the forward program** around the operator's stated priority **deployment · sandbox · tests**: RULE **P5/P6 WAIT** (don't onboard n=2+ through a moving corpus / unfixed P0s); **Phase 0** safety+self-honesty (RF-1 OneDrive Edit/Write P0 guard, hub self-arming, anti-bluff **re-ratify**) → **Phase 1** build the **sandbox** (episodic lived-workflow harness, throwaway-clone, Sonnet observers, essence-spec `engages:` as oracle) as the retroactive acceptance instrument for P1–P4 → **Phase 2** the fleet arc re-gated. Rot-algorithm **defer-until-after-sandbox** (shared observer machinery). Staleness caveat recorded: the Fable-5 architecture review predates P2/P3/P4 — re-verify its claims against current HEAD. The supplement independently **confirms this bundle's RF-1 corrective** ("treat every `expected:` as SUSPECT").
+
 ---
 
 ### 2026-07-04 — CC (Opus): [#244] P4 Session 2 — fleet drift line + n=1 demonstrated-catch, SHIPPED
