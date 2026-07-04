@@ -86,6 +86,18 @@ _VACUOUS_FLAG = ("PVF", "are we in a work tree", "`live git`",
 _LATER_SPAN_BROKEN = ("PLS", "compare two files", "`VISION.md`",
                       "the second target may have moved",
                       "`grep x VISION.md` then `grep y ghost/MISSING.md`")
+# --- §5 / RF-1 anti-bluff rung fixtures -------------------------------------
+# The exact RF-1 disease: a Why cell that bakes the answer as an `expected:` hint (the shape
+# every historical architect bundle carried, e.g. 2026-06-25). Otherwise a fine live-git
+# probe -> the answer-hint rung must FAIL it regardless (bluffable, §5-rejected).
+_ANSWER_HINT_WHY = ("P2H", "how many checks are in ALL_CHECKS",
+                    "`ALL_CHECKS` in `scripts/audit.py`",
+                    "the count drifts every commit — **expected: 23, last `doc_code_edge`**",
+                    "`python scripts/audit.py checks`")
+# The bare-space form (`expected 23`, no colon) must also FAIL — RF-1's `/expected[ :]/`.
+_ANSWER_HINT_SPACE = ("P4H", "which #ids does the drift check flag",
+                      "`BACKLOG.md` ∩ live git", "computed at answer-time — expected 77 only",
+                      "`python scripts/validate_git_backlog.py`")
 
 
 def _table(rows, hdr=_HDR, sep=_SEP):
@@ -339,6 +351,53 @@ def test_verify_later_command_span_broken_path_is_caught(tmp_path):
     by = _by_id(vhp.verify(bundle))
     assert by["PLS"].status == "fail"
     assert "ghost/MISSING.md" in by["PLS"].detail
+
+
+# --- §5 / RF-1: the anti-bluff answer-hint rung -----------------------------
+
+def test_verify_fail_on_answer_hint_in_why_cell(tmp_path):
+    # RF-1: a row that prints its answer as `expected: <value>` is bluffable -> FAIL, even
+    # though the probe is otherwise well-formed and live-grounded. This is the exact
+    # regression the historical bundles (2026-06-25 etc.) shipped in the Why column.
+    by = _by_id(vhp.verify(_init_bundle(tmp_path, [_ANSWER_HINT_WHY])))
+    assert by["P2H"].status == "fail"
+    assert "answer-hint" in by["P2H"].detail.lower()
+
+
+def test_verify_fail_on_answer_hint_bare_space_form(tmp_path):
+    # RF-1's `/expected[ :]/` also catches the colon-less `expected 77` form.
+    by = _by_id(vhp.verify(_init_bundle(tmp_path, [_ANSWER_HINT_SPACE])))
+    assert by["P4H"].status == "fail"
+    assert "answer-hint" in by["P4H"].detail.lower()
+
+
+def test_verify_clean_row_without_answer_hint_still_passes(tmp_path):
+    # Negative control: the rung must not fire on an honest probe (no `expected:` in any
+    # cell) — _PASS_SYMBOL binds live and carries no answer value -> PASS.
+    by = _by_id(vhp.verify(_init_bundle(tmp_path, [_PASS_SYMBOL])))
+    assert by["P2"].status == "pass"
+
+
+def test_anti_bluff_rung_ignores_expected_in_preamble_prose(tmp_path):
+    # The rung is ROW-scoped: `expected:` in the PREAMBLE (the manifest's own anti-bluff
+    # note) is not a table row, so parse_probes never yields it and _classify never sees it.
+    # This is the live 2026-07-04-bundle property (its only `expected:` is preamble prose).
+    preamble = ("# Probe manifest\n<!-- scope: meta -->\n\n"
+                "> RF-1: recent bundles printed answers as `expected: <value>` hints — "
+                "withheld here by construction.\n\n## Teeth\n\n")
+    md = _probes_md([_PASS_SYMBOL], preamble=preamble)
+    by = _by_id(vhp.verify(_init_bundle(tmp_path, [_PASS_SYMBOL], probes_md=md)))
+    assert by["P2"].status == "pass"
+
+
+def test_check_fail_class_gates_on_answer_hint_probe(tmp_path):
+    # The rung reaches the DEPLOYED gate with NO audit.py edit: status 'fail' -> the adapter
+    # (check_handoff_probes) maps it to a FAIL-class Finding that blocks audit-health + ship.
+    repo = _repo_with_bundle(tmp_path, [_ANSWER_HINT_WHY])
+    findings = aud.check_handoff_probes(repo)
+    assert findings[0].status == "fail"
+    assert "answer-hint" in findings[0].evidence.lower()
+    assert "|" not in findings[0].evidence
 
 
 def test_verify_skipped_when_executable_absent(tmp_path, monkeypatch):

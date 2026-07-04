@@ -56,6 +56,14 @@ _FILE_RE = re.compile(r"(?:[\w.-]+/)*[\w-]+\.(?:py|md|ya?ml|toml|json|sh|ps1)")
 # The four load-bearing columns a well-formed probe row must carry (non-empty).
 _LOAD_BEARING = ("question", "source", "why", "command")
 
+# §5 anti-bluff (RF-1 dogfood): a probe ROW that prints its own answer as an `expected:` /
+# `expected ` hint is bluffable and REJECTED (HANDOFF_PROCESS §5 cond. 2 — "never the
+# answer"). Matched on the parsed ROW CELLS only (never the raw file), so a PROBES preamble
+# that merely *describes* the anti-bluff rule is never classified — `parse_probes` yields
+# table rows, so `_classify` only ever sees a row's cells. The pattern is RF-1's specified
+# `/expected[ :]/`: a probe row has no honest reason to carry the word "expected" at all.
+_ANSWER_HINT_RE = re.compile(r"expected[ :]", re.IGNORECASE)
+
 # Dirs excluded from the unique-basename fallback in _resolve_path: VCS internals,
 # nested CC worktree checkouts (`.claude/worktrees/<name>/…` are full duplicate trees),
 # vendored deps, and immutable/aborted/in-progress handoff bundles. A duplicate copy of
@@ -337,6 +345,17 @@ def _classify(probe: dict, repo_root: Path, bundle: str, cross_repo: bool = Fals
     for col in _LOAD_BEARING:
         if not probe[col].strip():
             return ProbeResult(pid, "fail", f"malformed: empty {col} cell", bundle)
+    # 1b. anti-bluff (RF-1 / §5 cond. 2) — a ROW that bakes its answer in as an `expected:`
+    #     value is bluffable and REJECTED. Scans the four load-bearing CELLS only (all
+    #     non-empty by rung 1), so the PROBES preamble's own prose ABOUT `expected:` hints is
+    #     never seen (parse_probes yields table rows only). Emits `fail`, which the audit
+    #     adapter (check_handoff_probes) already maps to a gating Finding — no audit.py edit.
+    for col in _LOAD_BEARING:
+        if _ANSWER_HINT_RE.search(probe[col]):
+            return ProbeResult(pid, "fail",
+                               f"answer-hint: {col} cell prints an 'expected:' answer value "
+                               "(§5 anti-bluff — a probe that bakes its answer is bluffable, "
+                               "rejected)", bundle)
     # 2. command must ship a runnable `backtick`-delimited command (else nothing binds).
     cmd = first_span(probe["command"])
     if not cmd:
