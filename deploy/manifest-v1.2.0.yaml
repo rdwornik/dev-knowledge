@@ -247,6 +247,39 @@ carriers:
 #   roster    the one line the consumer-facing surface (CLAUDE.md rosters)
 #             must carry for this component — DECLARATIVE ONLY this release
 #             (roster generation is P3, gated on operator decision D1).
+#   engages   ([#252] Slice B) the lived-workflow ENGAGEMENT expectation — the
+#             {trigger, observable, expect} triple the OUTER sandbox observer
+#             reconciles against a REAL headless-session arc. This is the
+#             enforcement-in-effect oracle (ADR-81 leg-e): presence != firing.
+#               trigger    when the component should engage, from the arc
+#                          lifecycle: session-start | edit | pre-commit |
+#                          commit-msg | pre-push | stop  (arc stages), or
+#                          operator-invoke | deploy-time (NON-arc — the observer
+#                          classifies these OUT-OF-ARC, present in the oracle but
+#                          not exercised by the branch->edit->commit->wrap arc).
+#               observable the external channel the observer reads (NEVER inner
+#                          narration): hook-stdout (STRUCTURED tool-result events,
+#                          not a transcript text-grep) | git-state | transcript-event.
+#                          A component whose observable is `hook-stdout` AND whose
+#                          trigger is an arc stage is a FIRING hook the lived arc
+#                          GATES on (the deployed-mesh six + the ruff tombstone);
+#                          git-state / transcript-event components are OBSERVED,
+#                          not gated (release_lint C8 derives the gated set this way).
+#               expect     the signature checked against the channel: a non-empty
+#                          string (must APPEAR), or {absent: true, signature: <str>}
+#                          for a tombstone (must NOT appear — prune conformance).
+#             CALIBRATION: the triple STRUCTURE is the frozen ex-ante contract
+#             (immutable to the executor); the exact `expect` signature token is
+#             calibration data, tuned against the real GATE-0 run at freeze time
+#             (Slice B Step 7) so it is grounded in observed firing, never guessed.
+#   ---------------------------------------------------------------------------
+#   [NB-1] version provenance: `engages:` (like `waivable:`) was ADDED AFTER the
+#   v1.2.0 tag. It is INERT to deploy/tool.py (reads only carriers:), so it moves
+#   NO deployed behavior and the methodology version stays HELD. It IS, however,
+#   consumer-VISIBLE if the manifest transfers verbatim — recorded here + in
+#   JOURNAL so #220 (meaning-change-without-a-version-bump) is satisfied on record:
+#   this is additive self-model metadata for the hub-side lived-sandbox, not a
+#   change to what a consumer's deploy DOES.
 # ---------------------------------------------------------------------------
 
 components:
@@ -256,6 +289,10 @@ components:
     status: active
     waivable: true   # user-machine-scoped config (~/.codex), not a consumer-repo gate
     verify: hash
+    engages:
+      trigger: deploy-time      # user-machine (~/.codex); NOT exercised by the repo arc
+      observable: git-state
+      expect: "~/.codex/AGENTS.md present (hash-matched)"
     artifacts:
       - path: "~/.codex/AGENTS.md"
         source: codex/AGENTS.md
@@ -268,6 +305,10 @@ components:
     status: active
     waivable: true   # ships user-invoked commands + an ADVISORY Stop hook; the blocking closure ENFORCEMENT (seb, canonical_freshness) is separately non-waivable — waiving the plugin loses ergonomics/workflow, not a gate
     verify: wired
+    engages:
+      trigger: deploy-time      # plugin enablement is a settings edge, not an arc firing
+      observable: git-state
+      expect: "enabledPlugins tier1-lifecycle@dev-knowledge-methodology"
     artifacts:
       - wiring: ".claude/settings.json enabledPlugins: tier1-lifecycle@dev-knowledge-methodology (project scope)"
     roster:
@@ -280,6 +321,10 @@ components:
     status: active
     waivable: true   # explicitly NON-BLOCKING (detect-and-propose) — not a fail-closed gate
     verify: wired
+    engages:                    # GATED SIX — firing hook, stop stage
+      trigger: stop
+      observable: hook-stdout
+      expect: "closure"         # calibrate@step7: propose_closures.py proposal stdout
     artifacts:
       - wiring: "plugin Stop hook -> propose_closures.py (non-blocking, detect-and-propose)"
     roster:
@@ -292,6 +337,10 @@ components:
     status: active
     waivable: true   # a user-invoked command, not a gate
     verify: wired
+    engages:                    # the >=1 command-act observed in the arc (C3); OUT-OF-ARC gate
+      trigger: operator-invoke
+      observable: transcript-event
+      expect: "review-closures"
     artifacts:
       - wiring: "plugin command /review-closures"
     roster:
@@ -304,6 +353,10 @@ components:
     status: active
     waivable: true   # a user-invoked command; the --no-ff rule is a core-invariant, not this command
     verify: wired
+    engages:
+      trigger: operator-invoke  # OUT-OF-ARC (the arc never pushes — refusal); command exists, not exercised
+      observable: transcript-event
+      expect: "ship"
     artifacts:
       - wiring: "plugin command /ship"
     roster:
@@ -322,6 +375,12 @@ components:
     # no naturally-dead component exists at n=1).
     reason: "P2/[#244] n=1 prune truth-maker — demonstrates the remove-leg on ai-council. NOT a fleet retirement of ruff. Per-consumer scoping awaits D2 (divergence-allowlist); P6 fleet rollout MUST re-evaluate before propagating this removal."
     verify: wired
+    engages:                    # TOMBSTONE — prune conformance: ruff must NOT fire in the pruned mesh
+      trigger: pre-commit
+      observable: hook-stdout
+      expect:
+        absent: true
+        signature: "Ruff lint gate"   # the hook NAME; appears only if the pruned ruff hook ran
     artifacts:
       - wiring: ".pre-commit-config.yaml repo ruff-pre-commit rev v0.15.5, hook ruff"
     # Remove-leg identity + last-deployed oracle (the hash-guard). The consumer's
@@ -346,6 +405,10 @@ components:
     status: active
     waivable: true   # doc-hygiene TOC-staleness gate; a CLI repo may have no TOC to gate (the canonical waivable case)
     verify: wired
+    engages:                    # GATED SIX — firing hook, pre-commit stage
+      trigger: pre-commit
+      observable: hook-stdout
+      expect: "toc-freshness"   # pre-commit prints "toc-freshness....Passed"
     artifacts:
       - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hooks toc-freshness + toc-generate"
     roster:
@@ -358,6 +421,10 @@ components:
     status: active
     waivable: false   # LOAD-BEARING: fail-closed commit-time integrity guard; absence lets floor tampering/drift commit undetected
     verify: wired
+    engages:                    # GATED SIX — firing hook, pre-commit stage
+      trigger: pre-commit
+      observable: hook-stdout
+      expect: "floor-hash-verify"   # pre-commit prints "floor-hash-verify....Passed"
     artifacts:
       - wiring: ".pre-commit-config.yaml local hook floor-hash-verify -> python .claude/check_floor_hash.py"
     roster:
@@ -370,6 +437,10 @@ components:
     status: active
     waivable: false   # LOAD-BEARING: the floor baseline content itself; waiving it opts the consumer out of the entire methodology floor (maximal integrity regression)
     verify: hash
+    engages:                    # OBSERVED (git-state), not a firing hook — the guard hook is separate
+      trigger: session-start
+      observable: git-state
+      expect: ".claude/CLAUDE-FLOOR.md present"
     artifacts:
       - path: .claude/CLAUDE-FLOOR.md
         source: templates/child-methodology-floor.md.tmpl
@@ -385,6 +456,10 @@ components:
     status: active
     waivable: false   # LOAD-BEARING: fail-closed presence guard (--require-present) + arms the commit hooks; absence disarms the whole floor loop
     verify: wired
+    engages:                    # GATED SIX — firing hook, session-start stage
+      trigger: session-start
+      observable: hook-stdout
+      expect: "check_floor_hash"   # calibrate@step7: guard stdout / "pre-commit installed" (arming)
     artifacts:
       - wiring: ".claude/settings.json SessionStart hook -> python .claude/check_floor_hash.py --require-present"
     roster:
@@ -397,6 +472,10 @@ components:
     status: active
     waivable: false   # LOAD-BEARING: fail-closed session-end gate; absence lets un-anchored sessions ship silently (the founding-standard regression the mesh exists to stop)
     verify: fire
+    engages:                    # GATED SIX — firing hook, stop stage
+      trigger: stop
+      observable: hook-stdout
+      expect: "session_end_backpressure"   # calibrate@step7: Stop-hook decision/reason stdout
     artifacts:
       - path: scripts/session_end_backpressure.py
         source: scripts/session_end_backpressure.py
@@ -411,6 +490,10 @@ components:
     status: active
     waivable: false   # LOAD-BEARING: fail-closed commit gate; absence lets stale canonical ground-truth ship undetected
     verify: fire
+    engages:                    # GATED SIX — firing hook, pre-commit stage
+      trigger: pre-commit
+      observable: hook-stdout
+      expect: "canonical_freshness"   # confirmed: the gate prints "canonical_freshness ..."
     artifacts:
       - path: scripts/canonical_freshness_gate.py
         source: scripts/canonical_freshness_gate.py
@@ -428,6 +511,10 @@ components:
     status: active
     waivable: true   # an escape-hatch command; its absence is a stricter posture, not a safety regression (NB coupling: seb non-waivable + override waivable => a consumer can sanction its own loss of the only seb-escape and self-strand — operability hazard, not safety; candidate for a LATER validation warning, not built in P4)
     verify: wired
+    engages:
+      trigger: operator-invoke  # escape-hatch command; OUT-OF-ARC (the arc never overrides)
+      observable: transcript-event
+      expect: "override"
     artifacts:
       - path: .claude/commands/override.md
         source: .claude/commands/override.md
