@@ -26,9 +26,10 @@ _SECRET_RE = re.compile(r"sk-ant-[A-Za-z0-9_-]{8}")
 
 # --- isolation verdict logic (the correctness property, encoded) ---
 
-def _result(a: bool, b: bool) -> iso.IsolationResult:
+def _result(a: bool, b: bool, exitA: int = 0, exitB: int = 0) -> iso.IsolationResult:
     return iso.IsolationResult(marker="M", present_in_configA=a, absent_in_configB=b,
-                               exitA=0, exitB=0, transcriptA=None, transcriptB=None, tempdir=Path("."))
+                               exitA=exitA, exitB=exitB, transcriptA=None, transcriptB=None,
+                               tempdir=Path("."))
 
 
 def test_isolation_passes_only_when_both_legs_hold():
@@ -38,9 +39,18 @@ def test_isolation_passes_only_when_both_legs_hold():
     assert not _result(False, False).passed
 
 
+def test_isolation_requires_successful_child_exits():
+    """Codex CRITICAL 2026-07-04: a FAILED child whose SessionStart hook fired before the failure
+    must NOT count as a proof (false-green = measuring a facade)."""
+    assert _result(True, True, exitA=0, exitB=0).passed
+    assert not _result(True, True, exitA=1, exitB=0).passed   # configA run failed
+    assert not _result(True, True, exitA=0, exitB=1).passed   # configB run failed
+
+
 def test_isolation_summary_names_the_verdict():
     assert "PROVEN" in _result(True, True).summary()
     assert "FAILED" in _result(True, False).summary()
+    assert "FAILED" in _result(True, True, exitA=1).summary()
 
 
 # --- isolated-config writing ---
@@ -106,6 +116,45 @@ def test_teardown_deletes_the_root(tmp_path):
     (root / "sub" / "f.txt").write_text("x", encoding="utf-8")
     sp.teardown(root)
     assert not root.exists()
+
+
+def test_teardown_refuses_outside_system_temp(monkeypatch, tmp_path):
+    """Codex CRITICAL 2026-07-04: teardown must REFUSE a path outside the system temp dir (the
+    guard's trusted parent is the system temp root, not the vacuous temp_root.parent)."""
+    fake_temp = tmp_path / "systemp"
+    fake_temp.mkdir()
+    monkeypatch.setattr(sp.tempfile, "gettempdir", lambda: str(fake_temp))
+    inside = fake_temp / "lived-sandbox-x"
+    inside.mkdir()
+    outside = tmp_path / "precious"
+    outside.mkdir()
+    with pytest.raises(sp.SandboxError):
+        sp.teardown(outside)
+    assert outside.exists()          # refused BEFORE deleting
+    sp.teardown(inside)              # under (faked) system temp -> deleted
+    assert not inside.exists()
+
+
+def test_child_env_extra_env_cannot_override_protected(tmp_path):
+    """Codex HIGH 2026-07-04: extra_env may add safe keys but must NOT override the
+    isolation-critical CLAUDE_CONFIG_DIR / ANTHROPIC_API_KEY / CLAUDE_PROJECT_DIR."""
+    env = sp._child_env(tmp_path / "cfg", "REALKEY", {
+        "CLAUDE_CONFIG_DIR": "/evil", "CLAUDE_PROJECT_DIR": "/outer",
+        "ANTHROPIC_API_KEY": "WRONGKEY", "PRE_COMMIT_HOME": "/pc"})
+    assert env["CLAUDE_CONFIG_DIR"] == str(tmp_path / "cfg")   # not /evil
+    assert env["ANTHROPIC_API_KEY"] == "REALKEY"              # not WRONGKEY
+    assert "CLAUDE_PROJECT_DIR" not in env                    # dropped, not reintroduced
+    assert env["PRE_COMMIT_HOME"] == "/pc"                    # safe addition allowed
+
+
+def test_spawn_wraps_missing_claude(monkeypatch, tmp_path):
+    """Codex HIGH 2026-07-04: a missing `claude` / launch failure surfaces as SandboxError, not a
+    raw traceback (the CLI is the operator stop point)."""
+    def boom(*_a, **_k):
+        raise FileNotFoundError("no claude on PATH")
+    monkeypatch.setattr(sp.subprocess, "run", boom)
+    with pytest.raises(sp.SandboxError):
+        sp.spawn(tmp_path / "work", "hi", config_dir=tmp_path / "cfg", api_key="K")
 
 
 # --- the FROZEN isolation fixtures are real evidence (marker in A, not B; and no secret) ---

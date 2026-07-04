@@ -32,11 +32,17 @@ class IsolationResult:
 
     @property
     def passed(self) -> bool:
-        return self.present_in_configA and self.absent_in_configB
+        # Both legs must hold AND both child runs must have SUCCEEDED (exit 0). A failed child
+        # whose SessionStart hook fired before the failure could otherwise fake a green — a
+        # false-green isolation proof is exactly the facade this must never measure (Codex
+        # CRITICAL 2026-07-04; Fable §6 "if isolation can't be proven cleanly, STOP").
+        return (self.exitA == 0 and self.exitB == 0
+                and self.present_in_configA and self.absent_in_configB)
 
     def summary(self) -> str:
         verdict = "PROVEN" if self.passed else "FAILED"
-        return (f"isolation {verdict}: sentinel '{self.marker}' "
+        clean = "" if (self.exitA == 0 and self.exitB == 0) else " [child run FAILED — not a clean proof]"
+        return (f"isolation {verdict}{clean}: sentinel '{self.marker}' "
                 f"present-in-configA={self.present_in_configA} (positive control, exit {self.exitA}) / "
                 f"absent-in-configB={self.absent_in_configB} (isolation, exit {self.exitB})")
 

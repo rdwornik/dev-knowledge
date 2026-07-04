@@ -125,11 +125,14 @@ class SpawnResult:
 
 def _child_env(config_dir: Path, api_key: str, extra_env: dict | None) -> dict:
     env = {k: v for k, v in os.environ.items() if k in _KEEP_ENV}
-    env["CLAUDE_CONFIG_DIR"] = str(config_dir)
-    env["ANTHROPIC_API_KEY"] = api_key
-    env.pop("CLAUDE_PROJECT_DIR", None)  # let the child resolve it to its own cwd (#237)
     if extra_env:
         env.update(extra_env)
+    # Pin the isolation-critical keys LAST so extra_env can NEVER override them (Codex HIGH
+    # 2026-07-04): a caller may add e.g. PRE_COMMIT_HOME, but cannot redirect the isolated config,
+    # swap the credential, or reintroduce the outer CLAUDE_PROJECT_DIR (#237).
+    env["CLAUDE_CONFIG_DIR"] = str(config_dir)
+    env["ANTHROPIC_API_KEY"] = api_key
+    env.pop("CLAUDE_PROJECT_DIR", None)
     return env
 
 
@@ -164,10 +167,19 @@ def spawn(work_dir: Path, prompt: str, *, config_dir: Path, api_key: str,
     work_dir = Path(work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
     env = _child_env(Path(config_dir), api_key, extra_env)
-    proc = subprocess.run(
-        [CLAUDE_BIN, "-p", prompt, "--model", model, "--output-format", "stream-json", "--verbose"],
-        cwd=str(work_dir), env=env, capture_output=True, text=True, timeout=timeout,
-    )
+    # Normalize launch failures to SandboxError — the CLI is the operator stop point, so a missing
+    # `claude` / timeout / OS error must surface cleanly, not as a raw traceback (Codex HIGH 2026-07-04).
+    try:
+        proc = subprocess.run(
+            [CLAUDE_BIN, "-p", prompt, "--model", model, "--output-format", "stream-json", "--verbose"],
+            cwd=str(work_dir), env=env, capture_output=True, text=True, timeout=timeout,
+        )
+    except FileNotFoundError as exc:
+        raise SandboxError(f"`{CLAUDE_BIN}` not found on PATH — cannot spawn the child session") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise SandboxError(f"child `claude -p` timed out after {timeout}s") from exc
+    except OSError as exc:
+        raise SandboxError(f"failed to launch `{CLAUDE_BIN}`: {exc}") from exc
     return SpawnResult(
         exit_code=proc.returncode,
         stdout=proc.stdout + ("\n" + proc.stderr if proc.stderr else ""),
@@ -203,9 +215,16 @@ def sandbox_clone(source_repo: Path, prefix: str = "lived-sandbox-") -> Iterator
         _fc._run(["git", "config", "commit.gpgsign", "false"], clone, env)
         yield clone, env
     finally:
-        _fc._rmtree_guarded(temp_root, temp_root.parent)
+        teardown(temp_root)
 
 
 def teardown(temp_root: Path) -> None:
-    """Plain-delete a sandbox temp root, blast-radius-guarded (refuses to escape the root)."""
-    _fc._rmtree_guarded(Path(temp_root), Path(temp_root).parent)
+    """Plain-delete a sandbox temp root — but ONLY when it lives under the system temp dir
+    (mkdtemp's home). The trusted parent is the SYSTEM TEMP root, not `temp_root.parent` (which
+    would make the guard vacuous — every path is under its own parent), so `teardown(an_important_dir)`
+    REFUSES rather than deletes (Codex CRITICAL 2026-07-04; "ask before destructive" + no-leftovers)."""
+    root = Path(temp_root).resolve()
+    sys_temp = Path(tempfile.gettempdir()).resolve()
+    if sys_temp != root and sys_temp not in root.parents:
+        raise SandboxError(f"refusing to teardown a path outside the system temp dir: {root}")
+    _fc._rmtree_guarded(root, sys_temp)
