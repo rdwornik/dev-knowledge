@@ -7,6 +7,7 @@ acceptance section at the bottom, produced by the operator's live freeze (Step 7
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -375,3 +376,72 @@ def test_cli_freeze_arc_writes_clean_fixture(tmp_path, monkeypatch):
                       changes=())
     assert cli._freeze_arc(run, "arc-green.jsonl") == "arc-green.jsonl"
     assert (tmp_path / "fx" / "arc-green.jsonl").exists()
+
+
+# ===========================================================================
+# ACCEPTANCE — C3 + C4 discrimination against the REAL frozen fixtures.
+# These are the CLOSURE proof ([#252]). Skip-gated until the operator's live freeze
+# (Step 7) produces arc-green.jsonl + arc-silent.jsonl; both green offline == closure.
+# The two directions TOGETHER pin discrimination (Q2 ruling): arc-green -> no
+# false-positive, arc-silent -> no false-negative. A silent-only assertion could pass
+# with an observer that flags everything, so both are required.
+# ===========================================================================
+
+_FIXTURES = _REPO / "tests" / "fixtures" / "lived-workflow"
+_ARC_GREEN = _FIXTURES / "arc-green.jsonl"
+_ARC_SILENT = _FIXTURES / "arc-silent.jsonl"
+_SECRET_RE = re.compile(r"sk-ant-[A-Za-z0-9_-]{8}")
+_needs_fixtures = pytest.mark.skipif(
+    not (_ARC_GREEN.exists() and _ARC_SILENT.exists()),
+    reason="arc fixtures not captured — run cli observe-arc --freeze [+ --leg-e] (Step 7)")
+
+
+def _events_from_fixture(path: Path) -> list[dict]:
+    events: list[dict] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            events.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return events
+
+
+@_needs_fixtures
+def test_acceptance_arc_green_all_six_fired_no_false_positive():
+    """C3: the arc fires all six + >=1 command act, observed GREEN — no false-positive."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    r = obs.observe(_events_from_fixture(_ARC_GREEN), o, clone=None)
+    assert r.passed, r.summary()
+    assert {f.component_id for f in r.gated_findings if f.verdict == obs.FIRED} == _GATED_SIX
+    assert len(r.commands_observed) >= 1  # >=1 command acts and is observed
+    assert not r.flags
+
+
+@_needs_fixtures
+def test_acceptance_arc_silent_catches_seeded_silence():
+    """C4: with one gated hook disabled, the observer FLAGS the silence — no false-negative."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    r = obs.observe(_events_from_fixture(_ARC_SILENT), o, clone=None)
+    assert not r.passed
+    assert r.silences, "the seeded EXPECTED-BUT-SILENT hook must be flagged"
+
+
+@_needs_fixtures
+def test_acceptance_discrimination_is_closure_C4():
+    """THE closure proof: the SAME observer greens arc-green AND flags arc-silent. Both
+    directions together pin discrimination (the real C4 necessary condition)."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    green = obs.observe(_events_from_fixture(_ARC_GREEN), o)
+    silent = obs.observe(_events_from_fixture(_ARC_SILENT), o)
+    assert green.passed and not silent.passed, (
+        f"green={green.summary()} | silent={silent.summary()}")
+
+
+@_needs_fixtures
+def test_acceptance_fixtures_carry_no_secret():
+    """[MC-2] belt-and-braces: no sk-ant- key survived into a committed fixture."""
+    for p in (_ARC_GREEN, _ARC_SILENT):
+        assert not _SECRET_RE.search(p.read_text(encoding="utf-8")), p.name
