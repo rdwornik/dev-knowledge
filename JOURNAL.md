@@ -64,6 +64,19 @@
 **Abandoned:** Nothing implemented by design — analysis-only mandate; no ADR, no spec/BACKLOG edit, no code (the audit doc is the sole write). One of three parallel read-only audits — nothing to integrate here, no merge.
 
 **Next:** Operator/architect review the report; integrate branch `worktree-fable-handoff-review` from the PRIMARY (`git merge --no-ff`), then tear down the worktree (remove + prune + branch -d). Any routed items (§4) are filed on the architect's call — highest-stakes is RF-1 (re-ratify the anti-bluff contract) + RF-3b (the boot-transcript echo that closes #159 on evidence).
+---
+
+### 2026-07-04 — CC (Fable): rot-algorithm DESIGN, analysis-only — nightly referential-integrity report designed + landed in docs/audits/ (worktree fable-rot-design, 493fccb)
+
+**Did:** Executed the operator's rot-algorithm design mandate (Fable, read-only, one of three parallel audits) in isolated worktree `fable-rot-design`: JOURNAL-scoped arc mining (coherence spine / #244 deletion / conformance-Informant, agent-delegated), live reads of the edge primitives (#179 `scan_undeclared_edges`, #193 `reverse_dep_oracle` + #195 `safe_remove`, `validate_reconciliation`, `doc-code-edge.yaml`, essence-spec manifest v1.2.0 + ADR-96, `enforcement_coverage`), the two nightly tracks (ADR-74/76; `\DevKnowledge\fleet-baseline` verified REGISTERED+Ready via `schtasks /query`), and live blast-radius data (ESSENTIALS referenced from ~15–20 actionable files). Delivered the design in-session; operator approved design + landing → `docs/audits/2026-07-04-rot-algorithm-design.md` (**493fccb**, this session's only work commit, anchored here per ADR-85).
+
+**Result:** Verdict: build it, but small — an assembly job over existing primitives, not an invention. Proposed `scripts/rot_report.py`: a typed reverse-reference multimap rebuilt nightly (deterministic, zero-LLM, sub-10s), three existence predicates (P1 dangling-path / P2 dangling-wiring — the Pyright-invisible cross-language class / P3 tombstone blast-radius off the manifest `status: removed` field), an `--impact` pre-deletion query, delta-aware morning report on the ADR-76 Task Scheduler track (sibling task), SessionStart surfacing, co-located `rot-allow` markers; noise defenses inherit #199 pruning (proven 245→12) + #123 findings-acted-on demotion. Boundary: aggregates-not-replaces the coherence spine / Informant / safe_remove; feeds #244 P4/P5; implements #169's intent; natural generator for #171 on later promotion; semantic claim-rot explicitly OUT (live evidence: stale P1-era comments in manifest-v1.2.0 header + release_lint docstring, flagged for same-day fix). Defaults D-A..D-D approved unremarked.
+
+**Changes:** `docs/audits/2026-07-04-rot-algorithm-design.md` [new, 493fccb], `JOURNAL.md` (this entry). No code, no BACKLOG edit (design record only; implementation filing is the operator's separate step).
+
+**Abandoned:** the full "dependency graph database + per-node staleness scoring" shape — rejected as over-engineered in the design itself; nightly code→code Pyright sweep — excluded (commit-time `safe_removal` owns that moment).
+
+**Next:** Operator: merge `worktree-fable-rot-design` to `main` via `--no-ff` from the primary checkout; if implementing, file the BACKLOG item with an ex-ante ADR-81 contract + the ratifying ADR; fix the two stale deploy-comment claims (manifest-v1.2.0 L40-43, release_lint docstring).
 
 ---
 
