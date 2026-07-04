@@ -110,13 +110,25 @@ class Tier2Cell:
 
 
 @dataclass(frozen=True)
+class Tier3Cell:
+    """One (consumer x divergent component) Tier-3 drift result: DRIFT | SANCTIONED.
+    A SEPARATE axis from the Tier-1 organ verdicts (never conflated)."""
+
+    component_id: str
+    organ_id: str
+    classification: str
+    evidence: str
+
+
+@dataclass(frozen=True)
 class ConsumerReport:
-    """A single consumer's full row: Tier-1 firing cells + Tier-2 presence cells."""
+    """A single consumer's full row: Tier-1 firing + Tier-2 presence + Tier-3 drift cells."""
 
     name: str
     root: str
     tier1: tuple[Cell, ...]
     tier2: tuple[Tier2Cell, ...]
+    tier3: tuple[Tier3Cell, ...] = ()
 
 
 # ---------------------------------------------------------------------------
@@ -767,6 +779,103 @@ def evaluate_tier2(consumer_root: Path, *, manifest_version: str = "1.0.0") -> l
 
 
 # ---------------------------------------------------------------------------
+# Tier-3 — drift surfacing ([#244] P4). A data-driven CLASSIFICATION layer over
+# Tier-1: a component DIVERGES when its Tier-1 fire verdict is ABSENT; Tier-3
+# re-classifies each MAPPED divergence as SANCTIONED (a valid allowlist entry) or
+# DRIFT (none / invalid / rejected). Keeps the Tier-1 vocabulary untouched (a
+# separate axis). Organs with no manifest component (reconciled_versions /
+# doc_claims / git_backlog_drift) stay Tier-1-only.
+# ---------------------------------------------------------------------------
+
+DRIFT = "drift"
+SANCTIONED = "sanctioned"
+
+# Tier-1 organ_id -> manifest component id. ONLY the two verify:fire organs map to a
+# manifest component today, and both are NON-waivable -> a real n=1 fire divergence can
+# only be DRIFT/REJECTED. A real production SANCTIONED row needs a waivable AND measurable
+# component (a P5/P6 milestone); the anti-correlation is EXPECTED of a well-designed floor.
+_ORGAN_TO_COMPONENT = {
+    "session_end_backpressure": "session-end-backpressure",
+    "canonical_freshness": "canonical-freshness",
+}
+
+
+def _latest_manifest() -> dict:
+    """Load the highest-semver deploy manifest (the current baseline self-model)."""
+    def _ver(p: Path) -> tuple:
+        try:
+            return tuple(int(x) for x in p.stem.split("-v")[-1].split("."))
+        except ValueError:
+            return (0,)
+    paths = sorted(_DEPLOY_DIR.glob("manifest-v*.yaml"), key=_ver)
+    return _read_yaml(paths[-1]) if paths else {}
+
+
+def waivability_policy_from_manifest(manifest: dict) -> dict[str, bool]:
+    """component_id -> waivable bool (default True if unset — only an explicit False is
+    non-waivable, so an older manifest without the field never falsely rejects)."""
+    policy: dict[str, bool] = {}
+    for comp in manifest.get("components") or []:
+        if isinstance(comp, dict) and comp.get("id"):
+            policy[str(comp["id"])] = bool(comp.get("waivable", True))
+    return policy
+
+
+def _divergences_from_tier1(cells: list[Cell]) -> list[tuple[str, str, str]]:
+    """(component_id, organ_id, evidence) for each applicable-and-ABSENT organ that maps to a
+    manifest component. A non-ABSENT / n-a verdict is not a divergence; an unmapped organ
+    stays Tier-1-only (never a Tier-3 row)."""
+    out: list[tuple[str, str, str]] = []
+    for cell in cells:
+        component = _ORGAN_TO_COMPONENT.get(cell.organ_id)
+        if component and cell.verdict == ABSENT:
+            out.append((component, cell.organ_id, cell.evidence))
+    return out
+
+
+def classify_tier3(divergences, allowlist, *, run_date, waivable_policy) -> list[Tier3Cell]:
+    """Re-classify each divergence as SANCTIONED (a VALID matching allowlist entry) or DRIFT.
+
+    PURE: takes already-mapped (component_id, organ_id, evidence) divergences + the consumer's
+    allowlist + the hub waivability policy + run_date (a param, never wall-clock). A non-waivable
+    component's entry validates as rejected-non-waivable (never valid) -> DRIFT (contract 2).
+    """
+    by_component: dict[str, list[AllowlistEntry]] = {}
+    for entry in allowlist:
+        by_component.setdefault(entry.component, []).append(entry)
+    cells: list[Tier3Cell] = []
+    for component_id, organ_id, _div_ev in divergences:
+        sanctioned_ev = None
+        drift_reasons: list[str] = []
+        for entry in by_component.get(component_id, []):
+            status, ev = validate_allowlist_entry(
+                entry, run_date=run_date, waivable_policy=waivable_policy)
+            if status == AL_VALID:
+                sanctioned_ev = ev
+                break
+            drift_reasons.append(status)
+        if sanctioned_ev is not None:
+            cells.append(Tier3Cell(component_id, organ_id, SANCTIONED,
+                                   f"sanctioned -- {sanctioned_ev}"))
+        else:
+            why = "; ".join(drift_reasons) if drift_reasons else "no allowlist entry"
+            cells.append(Tier3Cell(component_id, organ_id, DRIFT,
+                                   f"unsanctioned drift (allowlist: {why})"))
+    return cells
+
+
+def _allowlist_from_committed(consumer_root: Path) -> list[AllowlistEntry]:
+    """Read the consumer's allowlist from a fresh CLONE (committed state) — the uniform read
+    model (D2): the SAME source the fire_test clones read, so no working-tree/clone split and no
+    .gitignore footgun. Fail-soft: [] on any clone/read error (a hiccup never wedges the report)."""
+    try:
+        with _cloned_consumer(Path(consumer_root)) as (clone, _env, _fc):
+            return read_allowlist(clone)
+    except Exception:  # noqa: BLE001 — read-only reporter: surface nothing rather than crash
+        return []
+
+
+# ---------------------------------------------------------------------------
 # Fleet enumeration + report assembly.
 # ---------------------------------------------------------------------------
 
@@ -786,10 +895,22 @@ def consumer_paths() -> list[tuple[str, Path]]:
     return out
 
 
-def build_report(name: str, root: Path, *, fire: bool, tier2: bool) -> ConsumerReport:
+def build_report(name: str, root: Path, *, fire: bool, tier2: bool, run_date=None) -> ConsumerReport:
     tier1 = evaluate_full(root) if fire else evaluate_static(root)
     t2 = tuple(evaluate_tier2(root)) if tier2 else ()
-    return ConsumerReport(name=name, root=str(root), tier1=tuple(tier1), tier2=t2)
+    # Tier-3 (drift surfacing) is a FIRE-path classification: divergences come from the fired
+    # Tier-1 verdicts, the allowlist from the consumer's committed clone (uniform read), the
+    # waivability policy from the hub manifest. The static path leaves tier3=() (no fire => no
+    # authoritative divergence set; static_drift_summary is the no-fire surface, Step 6).
+    t3: tuple[Tier3Cell, ...] = ()
+    if fire:
+        divergences = _divergences_from_tier1(list(tier1))
+        if divergences:
+            allowlist = _allowlist_from_committed(root)
+            policy = waivability_policy_from_manifest(_latest_manifest())
+            t3 = tuple(classify_tier3(divergences, allowlist,
+                                      run_date=run_date, waivable_policy=policy))
+    return ConsumerReport(name=name, root=str(root), tier1=tuple(tier1), tier2=t2, tier3=t3)
 
 
 # ---------------------------------------------------------------------------
@@ -891,7 +1012,7 @@ def main(consumer: str | None, fire: bool, tier2: bool, run_date: str, write: bo
             reports.append(ConsumerReport(name, str(root),
                            (Cell("*", "unavailable", "consumer tree not found on disk"),), ()))
             continue
-        reports.append(build_report(name, root, fire=fire, tier2=tier2))
+        reports.append(build_report(name, root, fire=fire, tier2=tier2, run_date=run_date))
 
     digest = render_digest(reports, run_date=run_date)
     if write:
