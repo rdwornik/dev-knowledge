@@ -3,9 +3,9 @@
 <!-- scope: meta -->
 
 **Date:** 2026-07-04  
-**Generated:** 2026-07-04T18:53:03  
+**Generated:** 2026-07-04T23:40:38  
 **Repos audited:** 5  
-**Checks:** 140 total — 115 pass, 3 fail, 1 warn, 0 unavailable, 21 n/a
+**Checks:** 145 total — 120 pass, 3 fail, 1 warn, 0 unavailable, 21 n/a
 
 ---
 
@@ -31,10 +31,11 @@
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v5.3 |
 | `amendment_coherence` | PASS | 2 coupled-surface version mention(s) coherent across 1 set(s) |
 | `floor_integrity` | N/A | no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip) |
+| `hooks_armed` | PASS | hub-only — git-hook arming check skipped (not the hub repo) |
 | `git_backlog_drift` | PASS | hub-only — git<->backlog drift check skipped (not the hub repo) |
 | `doc_claims` | PASS | hub-only — prose-vs-state check skipped (not the hub repo) |
 | `no_ff_merges` | PASS | hub-only — --no-ff guard skipped (not the hub repo) |
-| `handoff_probes` | PASS | 10 probe(s) bind to live state (2026-07-04-dev-knowledge-architect) |
+| `handoff_probes` | PASS | 10 probe(s) bind to live state (2026-07-04-dev-knowledge-architect-2) |
 | `reconciled_versions` | PASS | 5 reconciled_with edge(s) match live spec version(s) |
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
 | `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
@@ -71,6 +72,7 @@ History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/
 | `handoff_version_stamp` | PASS | no protocols/HANDOFF_PROCESS.md — nothing to validate |
 | `amendment_coherence` | PASS | 0 coupled-surface version mention(s) coherent across 1 set(s) |
 | `floor_integrity` | PASS | CLAUDE-FLOOR.md present; hash matches sidecar; F5 clean; pointers resolve (sha256 4d268f329a7e…) |
+| `hooks_armed` | PASS | hub-only — git-hook arming check skipped (not the hub repo) |
 | `git_backlog_drift` | PASS | hub-only — git<->backlog drift check skipped (not the hub repo) |
 | `doc_claims` | PASS | hub-only — prose-vs-state check skipped (not the hub repo) |
 | `no_ff_merges` | PASS | hub-only — --no-ff guard skipped (not the hub repo) |
@@ -111,6 +113,7 @@ History: [`ecosystem\ai-council\history/`](ecosystem\ai-council\history/)
 | `handoff_version_stamp` | PASS | no protocols/HANDOFF_PROCESS.md — nothing to validate |
 | `amendment_coherence` | PASS | 0 coupled-surface version mention(s) coherent across 1 set(s) |
 | `floor_integrity` | N/A | no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip) |
+| `hooks_armed` | PASS | hub-only — git-hook arming check skipped (not the hub repo) |
 | `git_backlog_drift` | PASS | hub-only — git<->backlog drift check skipped (not the hub repo) |
 | `doc_claims` | PASS | hub-only — prose-vs-state check skipped (not the hub repo) |
 | `no_ff_merges` | PASS | hub-only — --no-ff guard skipped (not the hub repo) |
@@ -151,6 +154,7 @@ History: [`ecosystem\corp-monorepo\history/`](ecosystem\corp-monorepo\history/)
 | `handoff_version_stamp` | PASS | no protocols/HANDOFF_PROCESS.md — nothing to validate |
 | `amendment_coherence` | PASS | 0 coupled-surface version mention(s) coherent across 1 set(s) |
 | `floor_integrity` | N/A | no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip) |
+| `hooks_armed` | PASS | hub-only — git-hook arming check skipped (not the hub repo) |
 | `git_backlog_drift` | PASS | hub-only — git<->backlog drift check skipped (not the hub repo) |
 | `doc_claims` | PASS | hub-only — prose-vs-state check skipped (not the hub repo) |
 | `no_ff_merges` | PASS | hub-only — --no-ff guard skipped (not the hub repo) |
@@ -191,6 +195,7 @@ History: [`ecosystem\corp-ops\history/`](ecosystem\corp-ops\history/)
 | `handoff_version_stamp` | PASS | no protocols/HANDOFF_PROCESS.md — nothing to validate |
 | `amendment_coherence` | PASS | 0 coupled-surface version mention(s) coherent across 1 set(s) |
 | `floor_integrity` | PASS | CLAUDE-FLOOR.md present; hash matches sidecar; F5 clean; pointers resolve (sha256 4d268f329a7e…) |
+| `hooks_armed` | PASS | hub-only — git-hook arming check skipped (not the hub repo) |
 | `git_backlog_drift` | PASS | hub-only — git<->backlog drift check skipped (not the hub repo) |
 | `doc_claims` | PASS | hub-only — prose-vs-state check skipped (not the hub repo) |
 | `no_ff_merges` | PASS | hub-only — --no-ff guard skipped (not the hub repo) |
@@ -212,7 +217,7 @@ History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time
 ## Summary
 
 - 5 repo(s) audited
-- 115/140 checks passed
+- 120/145 checks passed
 - **3 failure(s)** — route findings to repo owners
 - 1 warning(s)
 - 21 n/a (check not applicable to that repo)
