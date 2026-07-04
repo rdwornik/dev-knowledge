@@ -561,3 +561,46 @@ def test_tier3_build_report_fire_attaches_drift(tmp_path):
     report = ec.build_report("t3fire", root, fire=True, tier2=False, run_date="2026-07-04")
     seb_t3 = [c for c in report.tier3 if c.component_id == "session-end-backpressure"]
     assert seb_t3 and seb_t3[0].classification == ec.DRIFT
+
+
+# ---------------------------------------------------------------------------
+# Tier-3 digest section + surface line ([#244] P4 Step 5).
+# ---------------------------------------------------------------------------
+
+
+def test_render_digest_has_tier3_section():
+    rep = ec.ConsumerReport("demo", "/x", (), (), (
+        ec.Tier3Cell("hub-toc-hooks", "hub-toc-hooks", ec.SANCTIONED, "sanctioned -- ok"),
+        ec.Tier3Cell("session-end-backpressure", "session_end_backpressure", ec.DRIFT,
+                     "unsanctioned drift (allowlist: no allowlist entry)"),
+    ))
+    out = ec.render_digest([rep], run_date="2026-07-04")
+    assert "## Tier-3" in out
+    assert "hub-toc-hooks" in out and "session-end-backpressure" in out
+    assert ec.SANCTIONED in out and ec.DRIFT in out
+
+
+def test_surface_line_counts_drift_and_sanctioned():
+    rep = ec.ConsumerReport("demo", "/x", (), (), (
+        ec.Tier3Cell("a", "o", ec.DRIFT, "x"),
+        ec.Tier3Cell("b", "o", ec.DRIFT, "y"),
+        ec.Tier3Cell("c", "o", ec.SANCTIONED, "z"),
+    ))
+    line = ec.surface_line([rep])
+    assert "2 drift" in line
+    assert "1 sanctioned" in line
+
+
+def test_tier3_sanctioned_is_a_distinct_class_from_tier1():
+    """SANCTIONED surfaces ONLY as a Tier-3 classification, never as a Tier-1 verdict
+    (contract 3 -- sanctioned divergence is its own class). Checks the BOLD verdict form
+    so the intro's descriptive 'sanctioned' word is not a false positive."""
+    rep = ec.ConsumerReport("demo", "/x",
+        (ec.Cell("session_end_backpressure", ec.ABSENT, "did not block"),),
+        (),
+        (ec.Tier3Cell("hub-toc-hooks", "hub-toc-hooks", ec.SANCTIONED, "sanctioned -- ok"),))
+    out = ec.render_digest([rep], run_date="2026-07-04")
+    bold_sanctioned = f"**{ec.SANCTIONED}**"
+    tier1_block = out.split("## Tier-1")[1].split("## Tier-3")[0]
+    assert bold_sanctioned not in tier1_block            # never a Tier-1 verdict
+    assert bold_sanctioned in out.split("## Tier-3")[1]  # its own Tier-3 class

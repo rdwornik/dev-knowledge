@@ -937,7 +937,8 @@ def render_digest(reports: list[ConsumerReport], *, run_date: str) -> str:
         f"run_date: {run_date}",
         "",
         "Read-only reporter (ADR-28/36). Measures whether each hub enforcement organ FIRES",
-        "locally, not whether files are present. Tier-1 = firing; Tier-2 = presence (separate).",
+        "locally, not whether files are present. Tier-1 = firing; Tier-2 = presence; "
+        "Tier-3 = drift (sanctioned vs unsanctioned) -- all separate axes.",
         "",
         "## Tier-1 — enforcement firing "
         "{enforcing-local | absent | hub-scoped | n/a-no-edges | present-unverified}",
@@ -960,6 +961,18 @@ def render_digest(reports: list[ConsumerReport], *, run_date: str) -> str:
             for t2 in rep.tier2:
                 lines.append(f"- {t2.carrier_id}: **{t2.state}** — {t2.evidence}")
             lines.append("")
+    if any(rep.tier3 for rep in reports):
+        lines.append("## Tier-3 -- drift surfacing {drift | sanctioned} "
+                     "(unsanctioned drift = divergence MINUS the consumer's valid allowlist)")
+        lines.append("")
+        for rep in reports:
+            if not rep.tier3:
+                continue
+            lines.append(f"### {rep.name}")
+            for t3 in rep.tier3:
+                lines.append(f"- {t3.component_id} (via {t3.organ_id}): "
+                             f"**{t3.classification}** -- {t3.evidence}")
+            lines.append("")
     lines.append("<!-- organs: " + ", ".join(organs) + " -->")
     lines.append("")
     return "\n".join(lines)
@@ -968,6 +981,7 @@ def render_digest(reports: list[ConsumerReport], *, run_date: str) -> str:
 def surface_line(reports: list[ConsumerReport]) -> str:
     """A one-line SessionStart-style summary (propose-only; no hook wired this stage)."""
     enforcing = absent = hubscoped = 0
+    drift = sanctioned = 0
     for rep in reports:
         for cell in rep.tier1:
             if cell.verdict == ENFORCING_LOCAL:
@@ -976,8 +990,14 @@ def surface_line(reports: list[ConsumerReport]) -> str:
                 absent += 1
             elif cell.verdict == HUB_SCOPED:
                 hubscoped += 1
+        for t3 in rep.tier3:
+            if t3.classification == DRIFT:
+                drift += 1
+            elif t3.classification == SANCTIONED:
+                sanctioned += 1
     return (f"[enforcement-coverage] {len(reports)} consumer(s): "
-            f"{enforcing} enforcing-local, {absent} absent, {hubscoped} hub-scoped "
+            f"{enforcing} enforcing-local, {absent} absent, {hubscoped} hub-scoped; "
+            f"{drift} drift, {sanctioned} sanctioned "
             f"-- see logs/ENFORCEMENT-COVERAGE.md")
 
 
