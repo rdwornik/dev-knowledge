@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-02
+last_reviewed: 2026-07-04
 reconciled_with: handoff-process@5.3
 status: active
 owner: Rob
@@ -193,7 +193,7 @@ local git gate.
 
 | Organ | Trigger | Layer | Failure posture | Defining ref |
 |---|---|---|---|---|
-| `block-onedrive.ps1` (PreToolUse) | every Bash/Edit/Write tool call | L0 | **fail-closed** (P0) | ADR-75, global CLAUDE.md §P0 |
+| `block-onedrive.ps1` (PreToolUse) | every Bash/PowerShell/Edit/Write/NotebookEdit call (command + file_path/notebook_path) | L0 | **fail-closed** (P0) | ADR-75, global CLAUDE.md §P0 |
 | `block_immutable_edits.py` (PreToolUse) | Edit/Write on `docs/decisions/transcripts/**` | hub | fail-closed in-zone, fail-open out-of-zone | ADR-77 (#105) |
 | `fleet_health.py` (SessionStart) | session start, throttled >24h | hub · Tier-2 | fail-soft | ADR-69/70/76 |
 | `surface_triage.ps1` (SessionStart) | session start | hub | fail-soft | nightly outcome loop (Ch6) |
@@ -314,8 +314,10 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   **prose-only** edges (a doc prose-references a registered spec but carries no `reconciled_with`)
   and surfaces them as **candidates for human confirm — NO auto-declare**; writes nothing, exits 0
   (awareness layer). Registry-scoped heuristic (Tier-1 path/basename + Tier-2 spec-id → candidates;
-  Tier-3 title-prose → retained weak signals); fenced code regions excluded from matching. **Not**
-  in `ALL_CHECKS`, not a hook (a flat module, so not a codemap node). **Candidate scope (#199):**
+  Tier-3 title-prose → retained weak signals); fenced code regions excluded from matching. Surfaced
+  via the `undeclared_edges` audit check — **in `ALL_CHECKS`** since 2026-07-03 as a **WARN-only**
+  ship-gate leg (Fable consult #1 ruling #2; never FAIL-gates), not a hook (a flat module, so not a
+  codemap node). **Candidate scope (#199):**
   the scan prunes immutable zones (handoff bundles, ADRs, transcripts, audits, append-only
   JOURNAL/LESSONS/TOKEN-LOG, ADR-80 `ecosystem/*/history`) and gitignored scratch (via
   `git check-ignore`, fail-open if git absent) — neither can carry a `reconciled_with` edge — so the
@@ -376,9 +378,11 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
 edge-validators above are each proven by their own suite; the *integrating* property — all
 four **registered + operational**, and each **firing on a representative break through its
 real integrated entry point** — is owned by `tests/test_legibility_graph_conformance.py` (it
-adds the graph-level proof and closes nothing). Two edge-types are **enforcers wired into the
-`audit.py` gate** (`ALL_CHECKS`); two are **awareness/query tools that exit 0 by design** — so
-"integrated" is **not** "all four gate" (the "in gate?" column keeps that honest). The
+adds the graph-level proof and closes nothing). Three edge-types are **registered in the
+`audit.py` gate** (`ALL_CHECKS`) — one FAIL-gates (spec→dependent), two are **WARN-only awareness
+legs that exit 0 by design** (doc→code, and undeclared — wired 2026-07-03); the fourth is a
+**query tool** that exits 0 and is **not** registered (code↔code) — so "integrated" is **not**
+"all four FAIL-gate" (the "in gate?" column keeps that honest). The
 code↔code fires-cell is **skipif-guarded** on the *same* `find_langserver` check the test's
 3-state ledger (proven/skipped/gap) derives from: with Pyright vendored (`node_modules/`, this
 env) it runs+passes; where Pyright is absent it **skips** and the tally drops the "fully
@@ -389,7 +393,7 @@ proven" headline — green never lies. Per-oracle **deep modes** stay in the per
 |---|---|---|---|---|
 | spec→dependent (#172) | yes (`ALL_CHECKS`) | PROVEN | PROVEN — stale `reconciled_with` → `check_reconciled_versions` FAIL | `test_coherence_integration.py` + `test_validate_reconciliation.py` |
 | doc→code (#194) | yes (`ALL_CHECKS`, hub-only) | PROVEN | PROVEN — declaration-registry doc + a broken/orphaned rule-ID → `check_doc_code_edge` WARN (broken_edge / code_orphan) | `test_doc_code_edge.py` (move-safety, dup-guard, coverage gate, registry-scoping guard, **L1 structural-integrity + rebuildable-index round-trip**, multi-site + coverage-drift teeth); coverage tail #201/#202/#203 **complete** — 12 rules + the `doc_code_coverage_drift` guard |
-| undeclared (#179/#199) | no (awareness, exit 0) | PROVEN | PROVEN — prose ref to a registered spec + no edge → candidate surfaced via `scan`/`main` | `test_scan_undeclared_edges.py` (tiers, fenced-exclusion, false-flag precision) |
+| undeclared (#179/#199) | yes (`ALL_CHECKS`, WARN-only) | PROVEN | PROVEN — prose ref to a registered spec + no edge → candidate surfaced via `scan`/`main` | `test_scan_undeclared_edges.py` (tiers, fenced-exclusion, false-flag precision) |
 | code↔code (#193) | no (query tool; #195) | PROVEN | PROVEN here (vendored Pyright, skipif-guarded) — real reverse-dep query → ≥1 dependent w/ provenance | `test_reverse_dep_oracle.py`; transitive closure → #193/#195 |
 | **graph-integration** | — | **4/4 PROVEN** | **4/4 PROVEN this env** (code↔code skipif-guarded) | referenced above |
 
@@ -406,7 +410,8 @@ auto-enumerable `ALL_CHECKS` surface; the heterogeneous non-`ALL_CHECKS` remaind
 
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
-(PLAYBOOK.md), `validate-backlog`, `audit-health`, `ruff` (≥0.15.5),
+(PLAYBOOK.md), `roster-freshness` (methodology-roster vs manifest, #244 P3),
+`validate-backlog`, `audit-health`, `ruff` (≥0.15.5),
 `coherence-nudge` (non-blocking forgotten-version-bump nudge — exits 0 always),
 `backlog-id-on-close` (commit-msg), and `block-ff-push` (pre-push — #153 prevent
 half; activate once via `pre-commit install --hook-type pre-push`). Editing **this
