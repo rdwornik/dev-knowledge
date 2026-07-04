@@ -26,6 +26,7 @@ is how the plumbing + staging are honestly exercised), but nothing leaves tmp.
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -40,6 +41,20 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
 import contract  # noqa: E402
 import tool  # noqa: E402
 from contract import ApplyResult, CarrierState, VerifyResult  # noqa: E402
+
+# #251 (stale-test): the CLI prints the record branch via Rich `console.print`, whose
+# ReprHighlighter wraps the `1.0.0` semver in ANSI SGR codes MID-TOKEN when highlighting
+# is active (real TTY / FORCE_COLOR / CliRunner(color=True)) -> the branch string is
+# operator-visible and correctly emitted (tool.py:1199-1202, unconditional), but a LITERAL
+# substring `in res.output` breaks. Strip SGR sequences before matching so the assertion is
+# robust to whether Rich colorizes. Test-only: tool.py is unchanged (no product defect).
+_ANSI_SGR_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI SGR (color) escape sequences so output assertions are ANSI-robust."""
+    return _ANSI_SGR_RE.sub("", text)
+
 
 REGISTRY_TEXT = (
     # Non-ASCII in the header (em-dash + middle-dot) so every record-write test
@@ -402,8 +417,9 @@ def test_cli_execute_success_reports_branch_and_zero_exit(monkeypatch):
     monkeypatch.setattr(tool, "execute", lambda *a, **k: ok)
     res = CliRunner().invoke(tool.deploy, ["ai-council", "--target", "v1.0.0", "--execute"])
     assert res.exit_code == 0
-    assert "SUCCESS" in res.output
-    assert "deploy/record-ai-council-1.0.0" in res.output
+    assert "SUCCESS" in _strip_ansi(res.output)
+    # ANSI-robust (#251): Rich highlights the `1.0.0` semver mid-token when colorizing.
+    assert "deploy/record-ai-council-1.0.0" in _strip_ansi(res.output)
 
 
 # tempfile import kept meaningful: assert the writer leaves no throwaway index.

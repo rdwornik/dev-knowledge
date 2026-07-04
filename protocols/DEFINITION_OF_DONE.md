@@ -25,7 +25,8 @@ two docs that both rot worst *and* legitimately change every working session.
 Any session that produces commits **must** add a `JOURNAL.md` entry, and that entry
 **must reference ≥1 commit SHA produced this session**. The SHA anchor is what makes this
 un-gameable: a generic "did some work" line does not pass; the entry has to name a real
-commit from this session's work.
+commit from this session's work. (Un-gameable in **content** — bounded in **state**; see
+**Honest limits** below.)
 
 **"This session" = the session boundary, not the push boundary (ADR-85 amendment 2026-06-19, C1).**
 The arc gated is the trailing run of commits **since the last JOURNAL-citing ("journal-wrap")
@@ -64,6 +65,27 @@ change (a `[#NN]` issue-ID, a `status:` keyword, or a `[ ]`/`[x]` checkbox).
   but does not *finish* a tracked task legitimately warrants no backlog edit. Hard-gating
   it now would manufacture false-positives. It is **promoted to a hard block when the
   traceability-spine ADR lands** and gives it an airtight issue-ID↔commit anchor.
+
+## Honest limits — what this gate does NOT prove
+The Stop-gate is a **record** seal, not a **correctness** or **enforcement-in-effect** proof.
+State the bounds plainly (a fresh session otherwise reads "un-gameable" as absolute; Fable
+architecture review RF-3, `docs/audits/2026-07-04-fable-architecture-review.md`):
+
+- **State-evadeable (not just content-un-gameable).** Every leg — **including** the hard
+  JOURNAL-SHA leg — short-circuits on a dirty tree (`session_end_backpressure.py::check_journal_sha_anchor`
+  returns `None` when `not _is_clean()`). So *not committing*, or leaving **any** file dirty,
+  silences the whole seal. The content of a JOURNAL line cannot be faked; the *committed-clean
+  state* that arms the check can simply be withheld. The gate fires only at a plausible **wrap**.
+- **Platform block-cap auto-override.** The Stop-hook can only emit `decision: block`; the CC
+  harness **force-ends** a turn after N consecutive blocks (witnessed: "9 consecutive times —
+  overriding"; documented in the ADR-85 2026-06-19 amendment). This is a platform-side bypass
+  the hook cannot prevent — so **persistence can beat policy** at the platform layer, independent
+  of the explicit `/override`.
+- **Record ≠ work correctness ≠ organ enforcement.** A passing seal proves a session-close
+  *record* exists and anchors to a real SHA. It does **not** prove the work is correct, the
+  methodology was followed, or that any conformance organ actually *fires in effect*.
+  **Enforcement-in-effect** is the **lived-workflow sandbox's** job (observing the real
+  branch→edit→commit→wrap arc, [#252]), **not** this gate's.
 
 ## NOT gated — "update when materially affected"
 `ARCHITECTURE.md`, `VISION.md`, `LESSONS.md`, `CONTRIBUTING.md` are **not** a per-session
