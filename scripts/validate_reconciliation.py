@@ -7,9 +7,13 @@ frontmatter edge; this checker resolves the spec's CURRENT version from a regist
 FAILs when the declared version lags. It is the trigger that turns "the spec moved and a
 dependent still claims the old version" from invisible drift into a gating Finding.
 
-Generic by construction (reads the frontmatter graph, compares each declared edge) but in
-v1 exactly ONE edge is declared in the repo:
-  docs/handoffs/README.md  reconciled_with  handoff-process@<HANDOFF_PROCESS.md Version>.
+Corpus scope — generic by construction: it walks the frontmatter graph and compares EVERY
+dependent that declares a `reconciled_with:` edge (minus the excluded dirs below), not a
+fixed list. The declared edges currently all reconcile against ONE spec — the canonical
+living docs plus the operator runbook carry
+  <dependent>  reconciled_with  handoff-process@<HANDOFF_PROCESS.md Version>.
+The exact declarant COUNT is deliberately not pinned in this docstring (it rots — it was 1,
+then 3, now more; #222 de-number pattern); derive the live set from `enumerate_edges(root)`.
 
 Status model (the audit adapter, scripts/audit.py check_reconciled_versions, maps these):
   - declared != current                         -> 'mismatch'    -> Finding FAIL (fail-closed)
