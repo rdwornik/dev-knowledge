@@ -250,10 +250,10 @@ The architect emits **intent + closure + anti-patterns + MODE + a thin governanc
 
 | Edge | Mechanism | State |
 |---|---|---|
-| **code↔code** | reverse-dependency oracle computes referrers before a module is removed | oracle built; consuming gate = #195 safe-removal, pending. The import-cycle gate was **refuted by data** (one defect in 28 nodes) → fixed by dependency inversion; no standing gate. |
+| **code↔code** | reverse-dependency oracle computes referrers before a module is removed | oracle built; consuming gate = #195 safe-removal **(M1) shipped** (audit check #24, `scripts/safe_remove.py`; #195 closed 2026-06-26) — M2+M3 deferred as **#218**. The import-cycle gate was **refuted by data** (one defect in 28 nodes) → fixed by dependency inversion; no standing gate. |
 | **code↔doc** | rule-ID `<domain>-<slug>`: doc-side `<!-- rule: -->` ↔ code-side `# rule:`, resolved by the `doc_code_edge` check | gated for the curated rule set; completeness via #201 (`resolver-allows-N`, **ADR-90**) → #202 → #203. |
 | **doc↔doc** | `reconciled_with: <spec>@<version>`: the gate checks the version stamp; `check-against-spec` (triggered on a bump, #205) checks the content was re-reasoned | declared-half gated; undeclared-discovery is advisory-only. |
-| **undeclared** | `scan_undeclared_edges` surfaces prose references lacking a declared edge | surfaces; does **not** gate. |
+| **undeclared** | `scan_undeclared_edges` surfaces prose references lacking a declared edge | surfaces as a ship-gate **WARN** leg (`check_undeclared_edges` in `ALL_CHECKS`, #179 / Fable consult #1 ruling #2, 2026-07-03); awareness-only — one WARN per candidate, never FAIL, does **not block** the commit. |
 
 **The sealing test (applies to both lifelines):** *"does this mechanism have its consumer / gate?"* — and its refinement, *"is there real signal for a consumer to act on?"* The answer can be **no**: the import-cycle gate was the right shape but guarded nothing, so it was declined. *Built-without-consumer* is the recurring failure class both 2026-06-25 audits found; this test is the standing guard against it.
 
