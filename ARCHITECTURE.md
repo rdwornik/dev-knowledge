@@ -215,6 +215,7 @@ local git gate.
 | `handoff_probes` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** (FAIL on broken probe binding; WARN on anchor-missing/skipped) | #163; HANDOFF_PROCESS §5/§10 |
 | `doc_rot` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #140; ADR-88 FC4 (ADR-65/49/41) |
 | `doc_structure` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #192; ADR-88 prose-shape |
+| `hooks_armed` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | **fail-closed** (FAIL on a missing/foreign `.git/hooks` gate) | RF-2 (Fable arch review 2026-07-04 §4); self-armed by the SessionStart `pre_commit install` |
 | `deploy/tool.py` + 4 carriers (`globalconfig`/`plugin`/`precommit`/`floor`) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ADR-91/92/93; PLAYBOOK §20 |
 | `floor-hash-verify` (pre-commit) + SessionStart floor guard (`.claude/check_floor_hash.py`) | consumer commit / session start | consumer (armed by `carrier_floor`) | **fail-closed** (loud on floor drift) | ADR-93 (#226) |
 | pre-commit gates (`.pre-commit-config.yaml`) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below (count in `ecosystem/doc-counts.md`) |
