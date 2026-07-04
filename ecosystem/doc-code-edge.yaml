@@ -118,4 +118,5 @@ exempt:
   - deployed_methodology_version  # ADR-91 status reporter -- reads deployed-versions.yaml per repo; not a doc->code behavioral rule
   - enforcement_coverage      # Informant Organ reporter (Stage-2 enforcement-transfer) -- read-only per-consumer coverage; not a doc->code behavioral rule
   - undeclared_edges          # #179 undeclared-edge scan (Fable consult #1 ruling #2) -- coherence DISCOVERY reporter surfacing prose refs lacking reconciled_with; not a doc->code behavioral rule
+  - hooks_armed               # RF-2 git-hook arming check (Fable architecture review 2026-07-04 §4) -- per-checkout presence/arming assertion (.git/hooks pre-commit-managed); not a doc->code behavioral rule
   - doc_code_coverage_drift   # self-referential (this drift-guard)
