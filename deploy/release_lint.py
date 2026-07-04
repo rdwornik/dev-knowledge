@@ -46,6 +46,13 @@ Checks (each FAIL exits 1; WARN informs):
   the ``freshness_gated: true`` set ==
   ``canonical_freshness_gate.DEFAULT_FRESHNESS_FILES``. The mirror fails loud
   instead of drifting; audit.py stays the reader of record this release.
+- C8 engages ([#252] Slice B) — every ``status: active`` component carries a
+  well-formed ``engages: {trigger, observable, expect}`` triple (the lived-workflow
+  observer's enforcement-in-effect oracle, ADR-81 leg-e). ``trigger`` in the arc
+  vocabulary, ``observable`` a valid external channel, ``expect`` a non-empty
+  string or ``{absent: true, signature}`` (tombstone/prune-conformance). Gated only
+  once the manifest DECLARES engages, so pre-Slice-B manifests stay green (the
+  waivable [#244] P4 pattern). Removed components MAY carry it (validated if present).
 
 HONEST LIMIT (state-what-it-does-not-do): this lint is **manually invoked**
 this phase — it is wired into neither ``ALL_CHECKS`` nor the deploy preflight,
@@ -83,8 +90,17 @@ COMPONENT_KINDS = {"organ", "hook", "command", "skill", "doc-shape", "config"}
 # component is a tombstone: retained entry, artifacts pruned by the remove leg.
 # C6 requires `removed_in:` iff status:removed and forbids it on active.
 ALLOWED_STATUSES = {"active", "removed"}
-VERIFY_CLASSES = {"fire", "hash", "wired"}
+# `engaged` (Slice B, [#252]): a leg-e acceptance class for a component whose firing is
+# proven by the lived-workflow observer against a real arc (not fire_test/hash/config).
+VERIFY_CLASSES = {"fire", "hash", "wired", "engaged"}
 ROSTER_SECTIONS = {"header", "command", "skill", "precommit-hook", "session-hook"}
+# engages: vocabulary (C8). Triggers split arc-stage (the branch->edit->commit->wrap
+# lifecycle the observer gates) from non-arc (present in the oracle, classified OUT-OF-ARC).
+ENGAGES_TRIGGERS = {
+    "session-start", "edit", "pre-commit", "commit-msg", "pre-push", "stop",  # arc stages
+    "operator-invoke", "deploy-time",  # non-arc
+}
+ENGAGES_CHANNELS = {"hook-stdout", "git-state", "transcript-event"}  # external channels only
 
 
 @dataclass(frozen=True)
@@ -314,6 +330,65 @@ def check_components(spec: dict[str, Any]) -> list[Finding]:
                   f"{len(components)} components valid; all {len(implemented)} implemented carriers covered")]
 
 
+def _check_expect(cid: str, expect: Any) -> list[str]:
+    """engages.expect: a non-empty string (must APPEAR), or {absent: true, signature: <str>}.
+
+    The mapping form is the tombstone / prune-conformance oracle — the signature must
+    NOT appear in the channel (the pruned component did not fire).
+    """
+    if isinstance(expect, str):
+        return [] if expect.strip() else [f"{cid}: engages.expect is an empty string"]
+    if isinstance(expect, dict):
+        problems: list[str] = []
+        if expect.get("absent") is not True:
+            problems.append(f"{cid}: engages.expect mapping must set absent: true (tombstone form)")
+        sig = expect.get("signature")
+        if not isinstance(sig, str) or not sig.strip():
+            problems.append(f"{cid}: engages.expect.signature must be a non-empty string")
+        return problems
+    return [f"{cid}: engages.expect must be a non-empty string or {{absent: true, signature}}"]
+
+
+def check_engages(spec: dict[str, Any]) -> list[Finding]:
+    """C8 — every active component carries a well-formed engages: triple ([#252] Slice B).
+
+    The lived-workflow observer's enforcement-in-effect oracle (ADR-81 leg-e:
+    presence != firing). Gated only once the manifest DECLARES engages — older
+    pre-Slice-B manifests without it stay green (mirroring the waivable [#244] P4
+    pattern). A removed component MAY carry engages (the ruff tombstone's expect-absent
+    prune-conformance); when present it is validated the same way.
+    """
+    components = spec.get("components")
+    if not isinstance(components, list) or not components:
+        return []  # a missing/empty components section is already C6's FAIL
+    declares = any(isinstance(c, dict) and "engages" in c for c in components)
+    if not declares:
+        return [_pass("C8-engages", "manifest declares no engages: (pre-Slice-B) -- not required")]
+    problems: list[str] = []
+    carried = 0
+    for comp in components:
+        if not isinstance(comp, dict):
+            continue  # C6 handles non-mapping entries
+        cid = str(comp.get("id", "?")).strip() or "?"
+        eng = comp.get("engages")
+        if eng is None:
+            if comp.get("status") == "active":
+                problems.append(f"{cid}: status:active requires an engages: triple ([#252] Slice B)")
+            continue
+        carried += 1
+        if not isinstance(eng, dict):
+            problems.append(f"{cid}: engages must be a mapping {{trigger, observable, expect}}")
+            continue
+        if eng.get("trigger") not in ENGAGES_TRIGGERS:
+            problems.append(f"{cid}: engages.trigger {eng.get('trigger')!r} not in {sorted(ENGAGES_TRIGGERS)}")
+        if eng.get("observable") not in ENGAGES_CHANNELS:
+            problems.append(f"{cid}: engages.observable {eng.get('observable')!r} not in {sorted(ENGAGES_CHANNELS)}")
+        problems.extend(_check_expect(cid, eng.get("expect")))
+    if problems:
+        return [_fail("C8-engages", "; ".join(problems))]
+    return [_pass("C8-engages", f"{carried} components carry a valid engages: triple")]
+
+
 def check_doc_shapes(spec: dict[str, Any]) -> list[Finding]:
     """C7 — doc_shapes mirrors the authoritative audit/freshness constants exactly."""
     shapes = spec.get("doc_shapes")
@@ -359,6 +434,7 @@ def lint(repo_root: Path, version: str, *, tag_probe: TagProbe = default_tag_pro
     findings.extend(check_floor_pin(spec, Path(repo_root)))
     findings.extend(check_components(spec))
     findings.extend(check_doc_shapes(spec))
+    findings.extend(check_engages(spec))
     return findings
 
 

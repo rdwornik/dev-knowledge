@@ -155,6 +155,77 @@ def test_load_bearing_components_non_waivable():
     }
 
 
+# ---------------------------------------------------------------------------
+# C8 engages teeth ([#252] Slice B) — direct check_engages calls against the real
+# v1.2.0 spec, one injected mutation each. The pass-case is the shipped manifest.
+# ---------------------------------------------------------------------------
+
+
+def _v120_engages(mutate=None):
+    spec = copy.deepcopy(_V120_SPEC)
+    if mutate is not None:
+        mutate(spec)
+    return rl.check_engages(spec)
+
+
+def _active(spec):
+    return next(c for c in spec["components"] if c["status"] == "active")
+
+
+def test_c8_real_v120_engages_green():
+    """Every active v1.2.0 component carries a valid engages: triple (the shipped shape)."""
+    assert not _fails(_v120_engages())
+
+
+def test_c8_missing_engages_on_active_fails():
+    def mut(s):
+        _active(s).pop("engages")
+    findings = _v120_engages(mut)
+    assert "C8-engages" in _checks_failing(findings)
+    assert any("engages" in f.evidence for f in _fails(findings))
+
+
+def test_c8_bad_trigger_fails():
+    def mut(s):
+        _active(s)["engages"]["trigger"] = "whenever"
+    assert "C8-engages" in _checks_failing(_v120_engages(mut))
+
+
+def test_c8_bad_observable_fails():
+    def mut(s):
+        _active(s)["engages"]["observable"] = "telepathy"  # inner narration is the forbidden channel
+    assert "C8-engages" in _checks_failing(_v120_engages(mut))
+
+
+def test_c8_empty_string_expect_fails():
+    def mut(s):
+        _active(s)["engages"]["expect"] = "   "
+    assert "C8-engages" in _checks_failing(_v120_engages(mut))
+
+
+def test_c8_tombstone_absent_without_true_fails():
+    """The ruff tombstone's expect mapping must set absent: true."""
+    def mut(s):
+        next(c for c in s["components"] if c["id"] == "ruff-gate")["engages"]["expect"] = {
+            "signature": "Ruff lint gate"}  # missing absent: true
+    assert "C8-engages" in _checks_failing(_v120_engages(mut))
+
+
+def test_c8_pre_slice_b_manifest_stays_green():
+    """A manifest with no engages: on any component (pre-Slice-B) is NOT required to."""
+    spec = copy.deepcopy(_V120_SPEC)
+    for c in spec["components"]:
+        c.pop("engages", None)
+    assert not _fails(rl.check_engages(spec))
+
+
+def test_c6_engaged_verify_class_accepted():
+    """`engaged` is a valid verify class ([#252]) — C6 must not reject it."""
+    def mut(s):
+        _active(s)["verify"] = "engaged"
+    assert "C6-components" not in _checks_failing(_v120_components(mut))
+
+
 def test_missing_tag_is_warn_not_fail(tmp_path):
     """Pre-tag authoring state: WARN (operator tags at release), never FAIL."""
     root = make_root(tmp_path)
