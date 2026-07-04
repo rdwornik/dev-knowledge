@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-04 — CC (Fable): rot-algorithm DESIGN, analysis-only — nightly referential-integrity report designed + landed in docs/audits/ (worktree fable-rot-design, 493fccb)
+
+**Did:** Executed the operator's rot-algorithm design mandate (Fable, read-only, one of three parallel audits) in isolated worktree `fable-rot-design`: JOURNAL-scoped arc mining (coherence spine / #244 deletion / conformance-Informant, agent-delegated), live reads of the edge primitives (#179 `scan_undeclared_edges`, #193 `reverse_dep_oracle` + #195 `safe_remove`, `validate_reconciliation`, `doc-code-edge.yaml`, essence-spec manifest v1.2.0 + ADR-96, `enforcement_coverage`), the two nightly tracks (ADR-74/76; `\DevKnowledge\fleet-baseline` verified REGISTERED+Ready via `schtasks /query`), and live blast-radius data (ESSENTIALS referenced from ~15–20 actionable files). Delivered the design in-session; operator approved design + landing → `docs/audits/2026-07-04-rot-algorithm-design.md` (**493fccb**, this session's only work commit, anchored here per ADR-85).
+
+**Result:** Verdict: build it, but small — an assembly job over existing primitives, not an invention. Proposed `scripts/rot_report.py`: a typed reverse-reference multimap rebuilt nightly (deterministic, zero-LLM, sub-10s), three existence predicates (P1 dangling-path / P2 dangling-wiring — the Pyright-invisible cross-language class / P3 tombstone blast-radius off the manifest `status: removed` field), an `--impact` pre-deletion query, delta-aware morning report on the ADR-76 Task Scheduler track (sibling task), SessionStart surfacing, co-located `rot-allow` markers; noise defenses inherit #199 pruning (proven 245→12) + #123 findings-acted-on demotion. Boundary: aggregates-not-replaces the coherence spine / Informant / safe_remove; feeds #244 P4/P5; implements #169's intent; natural generator for #171 on later promotion; semantic claim-rot explicitly OUT (live evidence: stale P1-era comments in manifest-v1.2.0 header + release_lint docstring, flagged for same-day fix). Defaults D-A..D-D approved unremarked.
+
+**Changes:** `docs/audits/2026-07-04-rot-algorithm-design.md` [new, 493fccb], `JOURNAL.md` (this entry). No code, no BACKLOG edit (design record only; implementation filing is the operator's separate step).
+
+**Abandoned:** the full "dependency graph database + per-node staleness scoring" shape — rejected as over-engineered in the design itself; nightly code→code Pyright sweep — excluded (commit-time `safe_removal` owns that moment).
+
+**Next:** Operator: merge `worktree-fable-rot-design` to `main` via `--no-ff` from the primary checkout; if implementing, file the BACKLOG item with an ex-ante ADR-81 contract + the ratifying ADR; fix the two stale deploy-comment claims (manifest-v1.2.0 L40-43, release_lint docstring).
+
+---
+
 ### 2026-07-04 — CC (Opus): [#244] P2 PRUNE — deploy remove leg SHIPPED + n=1 truth-maker proven on ai-council
 
 **Did:** Executed [#244] P2 (the first *deleting* phase) as an architect delegation (plan-first/Opus, operator-gated). The add-only deploy engine gained a **remove leg**: (1) `deploy/contract.py` — `PruneState`/`PruneResult`/`PruneUnsupported` + concrete-default `detect_prune`/`prune`/`verify_pruned` on `Carrier` (D9-preserving) [`3de6908`]. (2) `deploy/carrier_precommit.py` — the leg for `ruff-gate`: whole-entry removal by exact repo URL, hash-guarded, preserve-all-else [`2193165`]. (3) `deploy/manifest-v1.2.0.yaml` — anchors→1.2.0, `removed_in`/`reason`/`prune` schema, `ruff-gate` flipped to `status: removed`, ruff dropped from the add-target [`4d724f7`]. (4) `release_lint` C6 unlocks `removed` (requires `removed_in`, forbids on active; 2-state, D3) [`1fbdf6f`]. (5) `tool.py` — prune sweep folded into `execute` (converge-then-prune) + Terraform-style destroy-confirm (`--auto-approve` for scripts) + tombstone print [`5766d16`]. (6) `tests/test_deploy_prune.py` (24) + release_lint P2 teeth [`d739551`]. Tagged **`v1.2.0`** (annotated, on `d739551`) before the live run.
