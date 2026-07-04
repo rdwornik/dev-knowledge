@@ -32,6 +32,10 @@ logs/FLEET-HEALTH.md
 # pattern as FLEET-HEALTH.md. Writing it must never dirty the tree / trip session-end backpressure.)
 logs/ENFORCEMENT-COVERAGE.md
 
+# Lived-workflow sandbox operator funnel (Slice A: isolation-proof outcomes; read-only reporter,
+# same ephemeral pattern as ENFORCEMENT-COVERAGE — the sandbox writes it, it is never committed).
+logs/LIVED-WORKFLOW.md
+
 # Ecosystem mutable pointers (ADR-80 mutable/durable split — high-churn pointer, not committed;
 # durable records are ecosystem/*/history/*.md + docs/audits/*.md, committed by audit.py)
 ecosystem/*/state.yaml
