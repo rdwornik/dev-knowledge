@@ -57,6 +57,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
+from datetime import date, datetime
 from pathlib import Path
 from typing import Callable
 
@@ -140,6 +141,98 @@ def _read_json(path: Path) -> dict:
     except (OSError, json.JSONDecodeError):
         return {}
     return data if isinstance(data, dict) else {}
+
+
+# ---------------------------------------------------------------------------
+# Consumer-side sanctioned-divergence allowlist ([#244] P4). CONFORMANCE METADATA
+# read by the hub Informant (NOT a session-boot artifact) -> lives at the consumer
+# repo ROOT (.methodology.yaml), committed-by-default, so it is read from the SAME
+# clone as every other Informant read (D2 / operator ruling 2026-07-04 — no
+# working-tree/clone split, no .gitignore-negation footgun). Each entry: a MANDATORY
+# reason + a time-box (expiry-or-review-date). run_date is always a PARAMETER (never
+# wall-clock) — honors the Informant rule; the CLI passes --run-date, fleet_health
+# passes its own date.today().
+# ---------------------------------------------------------------------------
+
+ALLOWLIST_REL = ".methodology.yaml"
+
+# Allowlist entry statuses (the "shape"/policy verdicts — a SEPARATE axis from the
+# Tier-1 organ verdicts above; never conflated).
+AL_VALID = "valid"
+AL_NO_REASON = "invalid-no-reason"
+AL_NO_DATE = "invalid-no-date"
+AL_EXPIRED = "expired"
+AL_REJECTED = "rejected-non-waivable"
+
+
+@dataclass(frozen=True)
+class AllowlistEntry:
+    """One consumer-declared sanctioned divergence (parsed from .methodology.yaml)."""
+
+    component: str
+    reason: str
+    expiry: date | None
+    review_date: date | None
+    raw: dict
+
+
+def _parse_date(value) -> date | None:
+    """Coerce a YAML date / datetime / ISO-8601 string to a date (None if unparseable)."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    try:
+        return date.fromisoformat(str(value).strip())
+    except (ValueError, TypeError):
+        return None
+
+
+def read_allowlist(consumer_root: Path) -> list[AllowlistEntry]:
+    """Read <root>/.methodology.yaml `sanctioned_divergences` (fail-soft: [] if absent/malformed)."""
+    data = _read_yaml(Path(consumer_root) / ALLOWLIST_REL)
+    entries: list[AllowlistEntry] = []
+    for raw in data.get("sanctioned_divergences") or []:
+        if not isinstance(raw, dict):
+            continue
+        entries.append(AllowlistEntry(
+            component=str(raw.get("component", "")).strip(),
+            reason=str(raw.get("reason", "")).strip(),
+            expiry=_parse_date(raw.get("expiry")),
+            review_date=_parse_date(raw.get("review_date")),
+            raw=raw,
+        ))
+    return entries
+
+
+def validate_allowlist_entry(
+    entry: AllowlistEntry, *, run_date, waivable_policy: dict
+) -> tuple[str, str]:
+    """Pure shape+policy verdict for ONE allowlist entry (run_date is a param, never wall-clock).
+
+    Order: shape (reason -> date) first, then policy (non-waivable -> expiry). A
+    NON-waivable component can NEVER be validly allowlisted (contract 2). An entry
+    for an unknown component is inert (not in the policy -> not rejected; it simply
+    matches no divergence downstream), so a typo cannot silently suppress a real one.
+    """
+    run = _parse_date(run_date)
+    if not entry.reason.strip():  # whitespace-only reason is no reason (robust even if unstripped)
+        return (AL_NO_REASON,
+                f"{entry.component or '<no component>'}: allowlist entry has no reason (mandatory)")
+    effective = entry.expiry or entry.review_date
+    if effective is None:
+        return (AL_NO_DATE,
+                f"{entry.component}: no expiry/review_date (exceptions are time-boxed, not permanent)")
+    if waivable_policy.get(entry.component) is False:
+        return (AL_REJECTED,
+                f"{entry.component}: NON-WAIVABLE component cannot be allowlisted (contract 2) -- REJECTED")
+    if run is not None and effective < run:
+        return (AL_EXPIRED,
+                f"{entry.component}: allowlist entry expired ({effective.isoformat()} < run_date {run.isoformat()})")
+    return (AL_VALID,
+            f"{entry.component}: valid sanctioned divergence (through {effective.isoformat()})")
 
 
 def _precommit_hooks(root: Path) -> list[dict]:

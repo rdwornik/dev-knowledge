@@ -386,3 +386,76 @@ def test_tier2_carrier_state_mapping():
     assert ec._carrier_state_label(CarrierState.PRESENT_DRIFTED) == ec.T2_PRESENT_NOT_WIRED
     assert ec._carrier_state_label(CarrierState.PRESENT_WRONG_VERSION) == ec.T2_PRESENT_NOT_WIRED
     assert ec._carrier_state_label(CarrierState.ABSENT) == ec.T2_ABSENT
+
+
+# ---------------------------------------------------------------------------
+# Allowlist reader + schema validator ([#244] P4 — the "shape" leg; firing != shape).
+# PURE: construct entries / read a file, never clone or fire. run_date is a param.
+# ---------------------------------------------------------------------------
+
+_WAIVABLE = {"hub-toc-hooks": True, "session-end-backpressure": False}
+
+
+def _entry(component="hub-toc-hooks", reason="CLI repo has no TOC to gate",
+           expiry="2999-01-01", review_date=None):
+    return ec.AllowlistEntry(component=component, reason=reason,
+                             expiry=ec._parse_date(expiry),
+                             review_date=ec._parse_date(review_date), raw={})
+
+
+def test_allowlist_valid_entry():
+    status, _ = ec.validate_allowlist_entry(
+        _entry(), run_date="2026-07-04", waivable_policy=_WAIVABLE)
+    assert status == ec.AL_VALID
+
+
+def test_allowlist_reasonless_is_invalid():
+    status, _ = ec.validate_allowlist_entry(
+        _entry(reason="  "), run_date="2026-07-04", waivable_policy=_WAIVABLE)
+    assert status == ec.AL_NO_REASON
+
+
+def test_allowlist_no_date_is_invalid():
+    status, _ = ec.validate_allowlist_entry(
+        _entry(expiry=None, review_date=None), run_date="2026-07-04", waivable_policy=_WAIVABLE)
+    assert status == ec.AL_NO_DATE
+
+
+def test_allowlist_expired_vs_run_date():
+    status, _ = ec.validate_allowlist_entry(
+        _entry(expiry="2026-01-01"), run_date="2026-07-04", waivable_policy=_WAIVABLE)
+    assert status == ec.AL_EXPIRED
+
+
+def test_allowlist_review_date_satisfies_the_time_box():
+    """A future review_date (no expiry) is a valid time-box."""
+    status, _ = ec.validate_allowlist_entry(
+        _entry(expiry=None, review_date="2999-01-01"),
+        run_date="2026-07-04", waivable_policy=_WAIVABLE)
+    assert status == ec.AL_VALID
+
+
+def test_allowlist_non_waivable_component_is_rejected():
+    """A non-waivable component can NEVER be validly allowlisted (contract 2)."""
+    status, _ = ec.validate_allowlist_entry(
+        _entry(component="session-end-backpressure"),
+        run_date="2026-07-04", waivable_policy=_WAIVABLE)
+    assert status == ec.AL_REJECTED
+
+
+def test_read_allowlist_absent_is_empty(tmp_path):
+    assert ec.read_allowlist(tmp_path) == []
+
+
+def test_read_allowlist_parses_entries(tmp_path):
+    (tmp_path / ec.ALLOWLIST_REL).write_text(
+        "sanctioned_divergences:\n"
+        "  - component: hub-toc-hooks\n"
+        "    reason: CLI repo has no ARCHITECTURE.md TOC to gate\n"
+        "    review_date: 2999-01-01\n",
+        encoding="utf-8")
+    entries = ec.read_allowlist(tmp_path)
+    assert len(entries) == 1
+    assert entries[0].component == "hub-toc-hooks"
+    assert entries[0].reason.startswith("CLI repo")
+    assert entries[0].review_date == ec._parse_date("2999-01-01")
