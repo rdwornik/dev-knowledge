@@ -386,3 +386,277 @@ def test_tier2_carrier_state_mapping():
     assert ec._carrier_state_label(CarrierState.PRESENT_DRIFTED) == ec.T2_PRESENT_NOT_WIRED
     assert ec._carrier_state_label(CarrierState.PRESENT_WRONG_VERSION) == ec.T2_PRESENT_NOT_WIRED
     assert ec._carrier_state_label(CarrierState.ABSENT) == ec.T2_ABSENT
+
+
+# ---------------------------------------------------------------------------
+# Allowlist reader + schema validator ([#244] P4 — the "shape" leg; firing != shape).
+# PURE: construct entries / read a file, never clone or fire. run_date is a param.
+# ---------------------------------------------------------------------------
+
+_WAIVABLE = {"hub-toc-hooks": True, "session-end-backpressure": False}
+
+
+def _entry(component="hub-toc-hooks", reason="CLI repo has no TOC to gate",
+           expiry="2999-01-01", review_date=None):
+    return ec.AllowlistEntry(component=component, reason=reason,
+                             expiry=ec._parse_date(expiry),
+                             review_date=ec._parse_date(review_date), raw={})
+
+
+def test_allowlist_valid_entry():
+    status, _ = ec.validate_allowlist_entry(
+        _entry(), run_date="2026-07-04", waivable_policy=_WAIVABLE)
+    assert status == ec.AL_VALID
+
+
+def test_allowlist_reasonless_is_invalid():
+    status, _ = ec.validate_allowlist_entry(
+        _entry(reason="  "), run_date="2026-07-04", waivable_policy=_WAIVABLE)
+    assert status == ec.AL_NO_REASON
+
+
+def test_allowlist_no_date_is_invalid():
+    status, _ = ec.validate_allowlist_entry(
+        _entry(expiry=None, review_date=None), run_date="2026-07-04", waivable_policy=_WAIVABLE)
+    assert status == ec.AL_NO_DATE
+
+
+def test_allowlist_expired_vs_run_date():
+    status, _ = ec.validate_allowlist_entry(
+        _entry(expiry="2026-01-01"), run_date="2026-07-04", waivable_policy=_WAIVABLE)
+    assert status == ec.AL_EXPIRED
+
+
+def test_allowlist_review_date_satisfies_the_time_box():
+    """A future review_date (no expiry) is a valid time-box."""
+    status, _ = ec.validate_allowlist_entry(
+        _entry(expiry=None, review_date="2999-01-01"),
+        run_date="2026-07-04", waivable_policy=_WAIVABLE)
+    assert status == ec.AL_VALID
+
+
+def test_allowlist_non_waivable_component_is_rejected():
+    """A non-waivable component can NEVER be validly allowlisted (contract 2)."""
+    status, _ = ec.validate_allowlist_entry(
+        _entry(component="session-end-backpressure"),
+        run_date="2026-07-04", waivable_policy=_WAIVABLE)
+    assert status == ec.AL_REJECTED
+
+
+def test_read_allowlist_absent_is_empty(tmp_path):
+    assert ec.read_allowlist(tmp_path) == []
+
+
+def test_read_allowlist_parses_entries(tmp_path):
+    (tmp_path / ec.ALLOWLIST_REL).write_text(
+        "sanctioned_divergences:\n"
+        "  - component: hub-toc-hooks\n"
+        "    reason: CLI repo has no ARCHITECTURE.md TOC to gate\n"
+        "    review_date: 2999-01-01\n",
+        encoding="utf-8")
+    entries = ec.read_allowlist(tmp_path)
+    assert len(entries) == 1
+    assert entries[0].component == "hub-toc-hooks"
+    assert entries[0].reason.startswith("CLI repo")
+    assert entries[0].review_date == ec._parse_date("2999-01-01")
+
+
+# ---------------------------------------------------------------------------
+# Tier-3 classifier — demonstrated-catch BOTH directions ([#244] P4 contract 4).
+# All route through the SAME classify_tier3 (operator condition 1). The SANCTIONED
+# direction uses a FABRICATED waivable-component divergence (synthetic substrate — no
+# wired-component fire-measurement exists at n=1; that is the P5/P6 milestone). The
+# real fire divergences (seb) can only be DRIFT/REJECTED, which is exactly right.
+# ---------------------------------------------------------------------------
+
+# Mirrors the real v1.2.0 manifest waivability (the two fire organs non-waivable).
+_REAL_POLICY = {
+    "session-end-backpressure": False,
+    "canonical-freshness": False,
+    "hub-toc-hooks": True,
+}
+
+
+def _valid_entry(component, when="2999-01-01"):
+    return ec.AllowlistEntry(component=component, reason="documented local reason",
+                             expiry=None, review_date=ec._parse_date(when), raw={})
+
+
+def test_tier3_divergence_no_allowlist_is_drift():
+    """A real seb divergence (mapped ABSENT cell) with NO allowlist -> DRIFT (contract 3)."""
+    cells = [ec.Cell("session_end_backpressure", ec.ABSENT, "Stop hook did NOT block")]
+    divergences = ec._divergences_from_tier1(cells)
+    assert divergences  # seb maps to a manifest component
+    t3 = ec.classify_tier3(divergences, [], run_date="2026-07-04", waivable_policy=_REAL_POLICY)
+    assert [c.classification for c in t3] == [ec.DRIFT]
+    assert t3[0].component_id == "session-end-backpressure"
+
+
+def test_tier3_non_waivable_allowlisted_still_drift_rejected():
+    """seb allowlisted BUT non-waivable -> REJECTED -> DRIFT (contract 2 + the reject half of 4)."""
+    cells = [ec.Cell("session_end_backpressure", ec.ABSENT, "Stop hook did NOT block")]
+    divergences = ec._divergences_from_tier1(cells)
+    t3 = ec.classify_tier3(divergences, [_valid_entry("session-end-backpressure")],
+                           run_date="2026-07-04", waivable_policy=_REAL_POLICY)
+    assert t3[0].classification == ec.DRIFT
+    assert "rejected-non-waivable" in t3[0].evidence
+
+
+def test_tier3_waivable_component_allowlisted_is_sanctioned():
+    """A waivable component's divergence WITH a valid allowlist entry -> SANCTIONED (positive
+    direction). FABRICATED divergence (synthetic substrate) through the real classify_tier3."""
+    divergences = [("hub-toc-hooks", "hub-toc-hooks", "fabricated wired divergence (P5/P6 measurable)")]
+    t3 = ec.classify_tier3(divergences, [_valid_entry("hub-toc-hooks")],
+                           run_date="2026-07-04", waivable_policy=_REAL_POLICY)
+    assert t3[0].classification == ec.SANCTIONED
+    assert t3[0].component_id == "hub-toc-hooks"
+
+
+def test_tier3_same_divergence_reclassifies_by_allowlist():
+    """Inject -> catch -> allowlist -> re-classify (contract 4), SAME classify_tier3: the SAME
+    hub-toc-hooks divergence is DRIFT with no entry and SANCTIONED once validly allowlisted."""
+    div = [("hub-toc-hooks", "hub-toc-hooks", "fabricated")]
+    drift = ec.classify_tier3(div, [], run_date="2026-07-04", waivable_policy=_REAL_POLICY)
+    sanctioned = ec.classify_tier3(div, [_valid_entry("hub-toc-hooks")],
+                                   run_date="2026-07-04", waivable_policy=_REAL_POLICY)
+    assert drift[0].classification == ec.DRIFT
+    assert sanctioned[0].classification == ec.SANCTIONED
+
+
+def test_tier3_expired_allowlist_is_drift():
+    """A waivable component with an EXPIRED entry -> DRIFT (time-boxing enforced)."""
+    div = [("hub-toc-hooks", "hub-toc-hooks", "fabricated")]
+    t3 = ec.classify_tier3(div, [_valid_entry("hub-toc-hooks", when="2020-01-01")],
+                           run_date="2026-07-04", waivable_policy=_REAL_POLICY)
+    assert t3[0].classification == ec.DRIFT
+    assert "expired" in t3[0].evidence
+
+
+def test_tier3_classification_vocabulary():
+    """Every Tier3Cell classification is in the honest {DRIFT, SANCTIONED} axis."""
+    div = [("hub-toc-hooks", "hub-toc-hooks", "x"),
+           ("session-end-backpressure", "session_end_backpressure", "y")]
+    t3 = ec.classify_tier3(div, [_valid_entry("hub-toc-hooks")],
+                           run_date="2026-07-04", waivable_policy=_REAL_POLICY)
+    assert {c.classification for c in t3} <= {ec.DRIFT, ec.SANCTIONED}
+    assert len(t3) == 2
+
+
+def test_tier3_unmapped_organ_stays_tier1_only():
+    """reconciled_versions/doc_claims/git_backlog_drift have no component -> no Tier-3 row."""
+    cells = [ec.Cell("doc_claims", ec.HUB_SCOPED, "hub-only"),
+             ec.Cell("reconciled_versions", ec.ABSENT, "absent but unmapped")]
+    assert ec._divergences_from_tier1(cells) == []
+
+
+def test_tier3_build_report_fire_attaches_drift(tmp_path):
+    """End-to-end wiring: a consumer with an INERT seb (candidate but non-blocking) + no
+    allowlist -> build_report(fire=True) attaches a DRIFT Tier3Cell for session-end-backpressure."""
+    root = _init_consumer(tmp_path / "t3fire", {
+        "JOURNAL.md": "# Journal\n",
+        "scripts/session_end_backpressure.py": _INERT_STOP,
+        ".claude/settings.json": _stop_settings(
+            'python "$CLAUDE_PROJECT_DIR/scripts/session_end_backpressure.py"'),
+    })
+    report = ec.build_report("t3fire", root, fire=True, tier2=False, run_date="2026-07-04")
+    seb_t3 = [c for c in report.tier3 if c.component_id == "session-end-backpressure"]
+    assert seb_t3 and seb_t3[0].classification == ec.DRIFT
+
+
+# ---------------------------------------------------------------------------
+# Tier-3 digest section + surface line ([#244] P4 Step 5).
+# ---------------------------------------------------------------------------
+
+
+def test_render_digest_has_tier3_section():
+    rep = ec.ConsumerReport("demo", "/x", (), (), (
+        ec.Tier3Cell("hub-toc-hooks", "hub-toc-hooks", ec.SANCTIONED, "sanctioned -- ok"),
+        ec.Tier3Cell("session-end-backpressure", "session_end_backpressure", ec.DRIFT,
+                     "unsanctioned drift (allowlist: no allowlist entry)"),
+    ))
+    out = ec.render_digest([rep], run_date="2026-07-04")
+    assert "## Tier-3" in out
+    assert "hub-toc-hooks" in out and "session-end-backpressure" in out
+    assert ec.SANCTIONED in out and ec.DRIFT in out
+
+
+def test_surface_line_counts_drift_and_sanctioned():
+    rep = ec.ConsumerReport("demo", "/x", (), (), (
+        ec.Tier3Cell("a", "o", ec.DRIFT, "x"),
+        ec.Tier3Cell("b", "o", ec.DRIFT, "y"),
+        ec.Tier3Cell("c", "o", ec.SANCTIONED, "z"),
+    ))
+    line = ec.surface_line([rep])
+    assert "2 drift" in line
+    assert "1 sanctioned" in line
+
+
+def test_tier3_sanctioned_is_a_distinct_class_from_tier1():
+    """SANCTIONED surfaces ONLY as a Tier-3 classification, never as a Tier-1 verdict
+    (contract 3 -- sanctioned divergence is its own class). Checks the BOLD verdict form
+    so the intro's descriptive 'sanctioned' word is not a false positive."""
+    rep = ec.ConsumerReport("demo", "/x",
+        (ec.Cell("session_end_backpressure", ec.ABSENT, "did not block"),),
+        (),
+        (ec.Tier3Cell("hub-toc-hooks", "hub-toc-hooks", ec.SANCTIONED, "sanctioned -- ok"),))
+    out = ec.render_digest([rep], run_date="2026-07-04")
+    bold_sanctioned = f"**{ec.SANCTIONED}**"
+    tier1_block = out.split("## Tier-1")[1].split("## Tier-3")[0]
+    assert bold_sanctioned not in tier1_block            # never a Tier-1 verdict
+    assert bold_sanctioned in out.split("## Tier-3")[1]  # its own Tier-3 class
+
+
+# ---------------------------------------------------------------------------
+# Static (no-fire) drift summary ([#244] P4 Step 6). No clone, no fire: reads the
+# consumer's WORKING-tree allowlist + locate-only evaluate_static. Feeds the
+# fleet_health drift roll-up (Step 7). run_date is a param; policy is passed in.
+# ---------------------------------------------------------------------------
+
+
+def test_static_drift_summary_counts_absent_mapped_organs(tmp_path):
+    """A consumer with a JOURNAL but no organ wiring: both mapped organs (seb + canonical_freshness)
+    are statically ABSENT -> static_absent_mapped_organs == 2; no allowlist -> declared 0."""
+    root = tmp_path / "bare"
+    root.mkdir()
+    (root / "JOURNAL.md").write_text("# Journal\n", encoding="utf-8")
+    summary = ec.static_drift_summary(root, run_date="2026-07-04", waivable_policy=_REAL_POLICY)
+    assert summary["declared"] == 0
+    assert summary["valid"] == 0
+    assert summary["rejected_non_waivable"] == 0
+    assert summary["static_absent_mapped_organs"] == 2
+    assert "authoritative" in summary["note"]
+
+
+def test_static_drift_summary_valid_waivable_entry(tmp_path):
+    """A declared, valid allowlist entry for a WAIVABLE component counts as valid (not rejected)."""
+    root = tmp_path / "waivable"
+    root.mkdir()
+    (root / "JOURNAL.md").write_text("# Journal\n", encoding="utf-8")
+    (root / ec.ALLOWLIST_REL).write_text(
+        "sanctioned_divergences:\n"
+        "  - component: hub-toc-hooks\n"
+        "    reason: CLI repo has no ARCHITECTURE.md TOC to gate\n"
+        "    review_date: 2999-01-01\n",
+        encoding="utf-8")
+    summary = ec.static_drift_summary(root, run_date="2026-07-04", waivable_policy=_REAL_POLICY)
+    assert summary["declared"] == 1
+    assert summary["valid"] == 1
+    assert summary["rejected_non_waivable"] == 0
+
+
+def test_static_drift_summary_rejects_non_waivable_entry(tmp_path):
+    """A declared allowlist entry for a NON-waivable component is rejected-non-waivable — a
+    fire-INDEPENDENT drift signal surfaced even by the static summary (contract 2)."""
+    root = tmp_path / "reject"
+    root.mkdir()
+    (root / "JOURNAL.md").write_text("# Journal\n", encoding="utf-8")
+    (root / ec.ALLOWLIST_REL).write_text(
+        "sanctioned_divergences:\n"
+        "  - component: session-end-backpressure\n"
+        "    reason: we think we can skip it\n"
+        "    review_date: 2999-01-01\n",
+        encoding="utf-8")
+    summary = ec.static_drift_summary(root, run_date="2026-07-04", waivable_policy=_REAL_POLICY)
+    assert summary["declared"] == 1
+    assert summary["valid"] == 0
+    assert summary["rejected_non_waivable"] == 1

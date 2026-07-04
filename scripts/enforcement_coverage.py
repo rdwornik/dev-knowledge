@@ -57,6 +57,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
+from datetime import date, datetime
 from pathlib import Path
 from typing import Callable
 
@@ -109,13 +110,25 @@ class Tier2Cell:
 
 
 @dataclass(frozen=True)
+class Tier3Cell:
+    """One (consumer x divergent component) Tier-3 drift result: DRIFT | SANCTIONED.
+    A SEPARATE axis from the Tier-1 organ verdicts (never conflated)."""
+
+    component_id: str
+    organ_id: str
+    classification: str
+    evidence: str
+
+
+@dataclass(frozen=True)
 class ConsumerReport:
-    """A single consumer's full row: Tier-1 firing cells + Tier-2 presence cells."""
+    """A single consumer's full row: Tier-1 firing + Tier-2 presence + Tier-3 drift cells."""
 
     name: str
     root: str
     tier1: tuple[Cell, ...]
     tier2: tuple[Tier2Cell, ...]
+    tier3: tuple[Tier3Cell, ...] = ()
 
 
 # ---------------------------------------------------------------------------
@@ -140,6 +153,98 @@ def _read_json(path: Path) -> dict:
     except (OSError, json.JSONDecodeError):
         return {}
     return data if isinstance(data, dict) else {}
+
+
+# ---------------------------------------------------------------------------
+# Consumer-side sanctioned-divergence allowlist ([#244] P4). CONFORMANCE METADATA
+# read by the hub Informant (NOT a session-boot artifact) -> lives at the consumer
+# repo ROOT (.methodology.yaml), committed-by-default, so it is read from the SAME
+# clone as every other Informant read (D2 / operator ruling 2026-07-04 — no
+# working-tree/clone split, no .gitignore-negation footgun). Each entry: a MANDATORY
+# reason + a time-box (expiry-or-review-date). run_date is always a PARAMETER (never
+# wall-clock) — honors the Informant rule; the CLI passes --run-date, fleet_health
+# passes its own date.today().
+# ---------------------------------------------------------------------------
+
+ALLOWLIST_REL = ".methodology.yaml"
+
+# Allowlist entry statuses (the "shape"/policy verdicts — a SEPARATE axis from the
+# Tier-1 organ verdicts above; never conflated).
+AL_VALID = "valid"
+AL_NO_REASON = "invalid-no-reason"
+AL_NO_DATE = "invalid-no-date"
+AL_EXPIRED = "expired"
+AL_REJECTED = "rejected-non-waivable"
+
+
+@dataclass(frozen=True)
+class AllowlistEntry:
+    """One consumer-declared sanctioned divergence (parsed from .methodology.yaml)."""
+
+    component: str
+    reason: str
+    expiry: date | None
+    review_date: date | None
+    raw: dict
+
+
+def _parse_date(value) -> date | None:
+    """Coerce a YAML date / datetime / ISO-8601 string to a date (None if unparseable)."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    try:
+        return date.fromisoformat(str(value).strip())
+    except (ValueError, TypeError):
+        return None
+
+
+def read_allowlist(consumer_root: Path) -> list[AllowlistEntry]:
+    """Read <root>/.methodology.yaml `sanctioned_divergences` (fail-soft: [] if absent/malformed)."""
+    data = _read_yaml(Path(consumer_root) / ALLOWLIST_REL)
+    entries: list[AllowlistEntry] = []
+    for raw in data.get("sanctioned_divergences") or []:
+        if not isinstance(raw, dict):
+            continue
+        entries.append(AllowlistEntry(
+            component=str(raw.get("component", "")).strip(),
+            reason=str(raw.get("reason", "")).strip(),
+            expiry=_parse_date(raw.get("expiry")),
+            review_date=_parse_date(raw.get("review_date")),
+            raw=raw,
+        ))
+    return entries
+
+
+def validate_allowlist_entry(
+    entry: AllowlistEntry, *, run_date, waivable_policy: dict
+) -> tuple[str, str]:
+    """Pure shape+policy verdict for ONE allowlist entry (run_date is a param, never wall-clock).
+
+    Order: shape (reason -> date) first, then policy (non-waivable -> expiry). A
+    NON-waivable component can NEVER be validly allowlisted (contract 2). An entry
+    for an unknown component is inert (not in the policy -> not rejected; it simply
+    matches no divergence downstream), so a typo cannot silently suppress a real one.
+    """
+    run = _parse_date(run_date)
+    if not entry.reason.strip():  # whitespace-only reason is no reason (robust even if unstripped)
+        return (AL_NO_REASON,
+                f"{entry.component or '<no component>'}: allowlist entry has no reason (mandatory)")
+    effective = entry.expiry or entry.review_date
+    if effective is None:
+        return (AL_NO_DATE,
+                f"{entry.component}: no expiry/review_date (exceptions are time-boxed, not permanent)")
+    if waivable_policy.get(entry.component) is False:
+        return (AL_REJECTED,
+                f"{entry.component}: NON-WAIVABLE component cannot be allowlisted (contract 2) -- REJECTED")
+    if run is not None and effective < run:
+        return (AL_EXPIRED,
+                f"{entry.component}: allowlist entry expired ({effective.isoformat()} < run_date {run.isoformat()})")
+    return (AL_VALID,
+            f"{entry.component}: valid sanctioned divergence (through {effective.isoformat()})")
 
 
 def _precommit_hooks(root: Path) -> list[dict]:
@@ -674,6 +779,134 @@ def evaluate_tier2(consumer_root: Path, *, manifest_version: str = "1.0.0") -> l
 
 
 # ---------------------------------------------------------------------------
+# Tier-3 — drift surfacing ([#244] P4). A data-driven CLASSIFICATION layer over
+# Tier-1: a component DIVERGES when its Tier-1 fire verdict is ABSENT; Tier-3
+# re-classifies each MAPPED divergence as SANCTIONED (a valid allowlist entry) or
+# DRIFT (none / invalid / rejected). Keeps the Tier-1 vocabulary untouched (a
+# separate axis). Organs with no manifest component (reconciled_versions /
+# doc_claims / git_backlog_drift) stay Tier-1-only.
+# ---------------------------------------------------------------------------
+
+DRIFT = "drift"
+SANCTIONED = "sanctioned"
+
+# Tier-1 organ_id -> manifest component id. ONLY the two verify:fire organs map to a
+# manifest component today, and both are NON-waivable -> a real n=1 fire divergence can
+# only be DRIFT/REJECTED. A real production SANCTIONED row needs a waivable AND measurable
+# component (a P5/P6 milestone); the anti-correlation is EXPECTED of a well-designed floor.
+_ORGAN_TO_COMPONENT = {
+    "session_end_backpressure": "session-end-backpressure",
+    "canonical_freshness": "canonical-freshness",
+}
+
+
+def _latest_manifest() -> dict:
+    """Load the highest-semver deploy manifest (the current baseline self-model)."""
+    def _ver(p: Path) -> tuple:
+        try:
+            return tuple(int(x) for x in p.stem.split("-v")[-1].split("."))
+        except ValueError:
+            return (0,)
+    paths = sorted(_DEPLOY_DIR.glob("manifest-v*.yaml"), key=_ver)
+    return _read_yaml(paths[-1]) if paths else {}
+
+
+def waivability_policy_from_manifest(manifest: dict) -> dict[str, bool]:
+    """component_id -> waivable bool (default True if unset — only an explicit False is
+    non-waivable, so an older manifest without the field never falsely rejects)."""
+    policy: dict[str, bool] = {}
+    for comp in manifest.get("components") or []:
+        if isinstance(comp, dict) and comp.get("id"):
+            policy[str(comp["id"])] = bool(comp.get("waivable", True))
+    return policy
+
+
+def _divergences_from_tier1(cells: list[Cell]) -> list[tuple[str, str, str]]:
+    """(component_id, organ_id, evidence) for each applicable-and-ABSENT organ that maps to a
+    manifest component. A non-ABSENT / n-a verdict is not a divergence; an unmapped organ
+    stays Tier-1-only (never a Tier-3 row)."""
+    out: list[tuple[str, str, str]] = []
+    for cell in cells:
+        component = _ORGAN_TO_COMPONENT.get(cell.organ_id)
+        if component and cell.verdict == ABSENT:
+            out.append((component, cell.organ_id, cell.evidence))
+    return out
+
+
+def classify_tier3(divergences, allowlist, *, run_date, waivable_policy) -> list[Tier3Cell]:
+    """Re-classify each divergence as SANCTIONED (a VALID matching allowlist entry) or DRIFT.
+
+    PURE: takes already-mapped (component_id, organ_id, evidence) divergences + the consumer's
+    allowlist + the hub waivability policy + run_date (a param, never wall-clock). A non-waivable
+    component's entry validates as rejected-non-waivable (never valid) -> DRIFT (contract 2).
+    """
+    by_component: dict[str, list[AllowlistEntry]] = {}
+    for entry in allowlist:
+        by_component.setdefault(entry.component, []).append(entry)
+    cells: list[Tier3Cell] = []
+    for component_id, organ_id, _div_ev in divergences:
+        sanctioned_ev = None
+        drift_reasons: list[str] = []
+        for entry in by_component.get(component_id, []):
+            status, ev = validate_allowlist_entry(
+                entry, run_date=run_date, waivable_policy=waivable_policy)
+            if status == AL_VALID:
+                sanctioned_ev = ev
+                break
+            drift_reasons.append(status)
+        if sanctioned_ev is not None:
+            cells.append(Tier3Cell(component_id, organ_id, SANCTIONED,
+                                   f"sanctioned -- {sanctioned_ev}"))
+        else:
+            why = "; ".join(drift_reasons) if drift_reasons else "no allowlist entry"
+            cells.append(Tier3Cell(component_id, organ_id, DRIFT,
+                                   f"unsanctioned drift (allowlist: {why})"))
+    return cells
+
+
+def _allowlist_from_committed(consumer_root: Path) -> list[AllowlistEntry]:
+    """Read the consumer's allowlist from a fresh CLONE (committed state) — the uniform read
+    model (D2): the SAME source the fire_test clones read, so no working-tree/clone split and no
+    .gitignore footgun. Fail-soft: [] on any clone/read error (a hiccup never wedges the report)."""
+    try:
+        with _cloned_consumer(Path(consumer_root)) as (clone, _env, _fc):
+            return read_allowlist(clone)
+    except Exception:  # noqa: BLE001 — read-only reporter: surface nothing rather than crash
+        return []
+
+
+def static_drift_summary(consumer_root, *, run_date, waivable_policy: dict) -> dict:
+    """No-clone / no-fire drift snapshot for the fleet + SessionStart surface ([#244] P4 Step 6).
+
+    Reads the consumer's WORKING-tree ``.methodology.yaml`` allowlist and runs the cheap
+    locate-only ``evaluate_static`` (never clones, never fires) to count MAPPED organs that are
+    statically ABSENT. Reports DECLARED counts only: how many allowlist entries are declared /
+    valid / rejected-non-waivable (shape+policy against the PASSED run_date — never wall-clock),
+    plus the count of statically-absent mapped organs (candidate divergences). It does NOT match
+    entries against a live fire divergence set — the fire-based Tier-3 in the CLI
+    (``build_report(fire=True)``) is authoritative for that; this is a pre-filter, never a verdict.
+    Fail-soft through the underlying readers (absent/malformed allowlist -> zero counts)."""
+    root = Path(consumer_root)
+    entries = read_allowlist(root)
+    valid = rejected = 0
+    for entry in entries:
+        status, _ev = validate_allowlist_entry(
+            entry, run_date=run_date, waivable_policy=waivable_policy)
+        if status == AL_VALID:
+            valid += 1
+        elif status == AL_REJECTED:
+            rejected += 1
+    static_absent = len(_divergences_from_tier1(evaluate_static(root)))
+    return {
+        "declared": len(entries),
+        "valid": valid,
+        "rejected_non_waivable": rejected,
+        "static_absent_mapped_organs": static_absent,
+        "note": "static; fire-based Tier-3 in the CLI is authoritative",
+    }
+
+
+# ---------------------------------------------------------------------------
 # Fleet enumeration + report assembly.
 # ---------------------------------------------------------------------------
 
@@ -693,10 +926,22 @@ def consumer_paths() -> list[tuple[str, Path]]:
     return out
 
 
-def build_report(name: str, root: Path, *, fire: bool, tier2: bool) -> ConsumerReport:
+def build_report(name: str, root: Path, *, fire: bool, tier2: bool, run_date=None) -> ConsumerReport:
     tier1 = evaluate_full(root) if fire else evaluate_static(root)
     t2 = tuple(evaluate_tier2(root)) if tier2 else ()
-    return ConsumerReport(name=name, root=str(root), tier1=tuple(tier1), tier2=t2)
+    # Tier-3 (drift surfacing) is a FIRE-path classification: divergences come from the fired
+    # Tier-1 verdicts, the allowlist from the consumer's committed clone (uniform read), the
+    # waivability policy from the hub manifest. The static path leaves tier3=() (no fire => no
+    # authoritative divergence set; static_drift_summary is the no-fire surface, Step 6).
+    t3: tuple[Tier3Cell, ...] = ()
+    if fire:
+        divergences = _divergences_from_tier1(list(tier1))
+        if divergences:
+            allowlist = _allowlist_from_committed(root)
+            policy = waivability_policy_from_manifest(_latest_manifest())
+            t3 = tuple(classify_tier3(divergences, allowlist,
+                                      run_date=run_date, waivable_policy=policy))
+    return ConsumerReport(name=name, root=str(root), tier1=tuple(tier1), tier2=t2, tier3=t3)
 
 
 # ---------------------------------------------------------------------------
@@ -723,7 +968,8 @@ def render_digest(reports: list[ConsumerReport], *, run_date: str) -> str:
         f"run_date: {run_date}",
         "",
         "Read-only reporter (ADR-28/36). Measures whether each hub enforcement organ FIRES",
-        "locally, not whether files are present. Tier-1 = firing; Tier-2 = presence (separate).",
+        "locally, not whether files are present. Tier-1 = firing; Tier-2 = presence; "
+        "Tier-3 = drift (sanctioned vs unsanctioned) -- all separate axes.",
         "",
         "## Tier-1 — enforcement firing "
         "{enforcing-local | absent | hub-scoped | n/a-no-edges | present-unverified}",
@@ -746,6 +992,18 @@ def render_digest(reports: list[ConsumerReport], *, run_date: str) -> str:
             for t2 in rep.tier2:
                 lines.append(f"- {t2.carrier_id}: **{t2.state}** — {t2.evidence}")
             lines.append("")
+    if any(rep.tier3 for rep in reports):
+        lines.append("## Tier-3 -- drift surfacing {drift | sanctioned} "
+                     "(unsanctioned drift = divergence MINUS the consumer's valid allowlist)")
+        lines.append("")
+        for rep in reports:
+            if not rep.tier3:
+                continue
+            lines.append(f"### {rep.name}")
+            for t3 in rep.tier3:
+                lines.append(f"- {t3.component_id} (via {t3.organ_id}): "
+                             f"**{t3.classification}** -- {t3.evidence}")
+            lines.append("")
     lines.append("<!-- organs: " + ", ".join(organs) + " -->")
     lines.append("")
     return "\n".join(lines)
@@ -754,6 +1012,7 @@ def render_digest(reports: list[ConsumerReport], *, run_date: str) -> str:
 def surface_line(reports: list[ConsumerReport]) -> str:
     """A one-line SessionStart-style summary (propose-only; no hook wired this stage)."""
     enforcing = absent = hubscoped = 0
+    drift = sanctioned = 0
     for rep in reports:
         for cell in rep.tier1:
             if cell.verdict == ENFORCING_LOCAL:
@@ -762,8 +1021,14 @@ def surface_line(reports: list[ConsumerReport]) -> str:
                 absent += 1
             elif cell.verdict == HUB_SCOPED:
                 hubscoped += 1
+        for t3 in rep.tier3:
+            if t3.classification == DRIFT:
+                drift += 1
+            elif t3.classification == SANCTIONED:
+                sanctioned += 1
     return (f"[enforcement-coverage] {len(reports)} consumer(s): "
-            f"{enforcing} enforcing-local, {absent} absent, {hubscoped} hub-scoped "
+            f"{enforcing} enforcing-local, {absent} absent, {hubscoped} hub-scoped; "
+            f"{drift} drift, {sanctioned} sanctioned "
             f"-- see logs/ENFORCEMENT-COVERAGE.md")
 
 
@@ -798,7 +1063,7 @@ def main(consumer: str | None, fire: bool, tier2: bool, run_date: str, write: bo
             reports.append(ConsumerReport(name, str(root),
                            (Cell("*", "unavailable", "consumer tree not found on disk"),), ()))
             continue
-        reports.append(build_report(name, root, fire=fire, tier2=tier2))
+        reports.append(build_report(name, root, fire=fire, tier2=tier2, run_date=run_date))
 
     digest = render_digest(reports, run_date=run_date)
     if write:

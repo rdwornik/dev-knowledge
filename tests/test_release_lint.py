@@ -124,6 +124,37 @@ def test_c6_deprecated_status_still_rejected():
     assert "C6-components" in _checks_failing(_v120_components(mut))
 
 
+def test_c6_waivable_non_bool_fails():
+    """waivable must be a bool -> a string value FAILs C6 ([#244] P4)."""
+    def mut(s):
+        next(c for c in s["components"] if c["status"] == "active")["waivable"] = "yes"
+    findings = _v120_components(mut)
+    assert "C6-components" in _checks_failing(findings)
+    assert any("waivable" in f.evidence for f in _fails(findings))
+
+
+def test_c6_missing_waivable_on_active_fails():
+    """Once the manifest declares waivable, every status:active component must carry it."""
+    def mut(s):
+        next(c for c in s["components"] if c["status"] == "active").pop("waivable")
+    findings = _v120_components(mut)
+    assert "C6-components" in _checks_failing(findings)
+    assert any("waivable" in f.evidence for f in _fails(findings))
+
+
+def test_load_bearing_components_non_waivable():
+    """The FULL non-waivable floor set is locked false on the real v1.2.0 manifest
+    ([#244] P4 contract 2 — load-bearing / fail-closed, NOT derived from verify type)."""
+    non_waivable = {c["id"] for c in _V120_SPEC["components"] if c.get("waivable") is False}
+    assert non_waivable == {
+        "session-end-backpressure",
+        "canonical-freshness",
+        "methodology-floor",
+        "floor-hash-verify-hook",
+        "floor-sessionstart-guard",
+    }
+
+
 def test_missing_tag_is_warn_not_fail(tmp_path):
     """Pre-tag authoring state: WARN (operator tags at release), never FAIL."""
     root = make_root(tmp_path)

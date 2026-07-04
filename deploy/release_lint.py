@@ -33,10 +33,14 @@ Checks (each FAIL exits 1; WARN informs):
   ``templates/child-methodology-floor.sha256`` sidecar == the recomputed
   sha256 of ``templates/child-methodology-floor.md.tmpl`` bytes.
 - C6 components schema — section present + non-empty; ids unique; ``kind`` /
-  ``status`` / ``verify`` in vocabulary (``status: active`` only, per above);
-  every component's ``carrier`` resolves to a manifest carrier id; every
-  IMPLEMENTED carrier has >=1 component (the two sections cannot drift apart
-  silently); ``roster`` is null or ``{section, line}`` with a known section.
+  ``status`` / ``verify`` in vocabulary; ``removed_in`` required iff
+  ``status: removed`` (forbidden on active); every component's ``carrier``
+  resolves to a manifest carrier id; every IMPLEMENTED carrier has >=1
+  component (the two sections cannot drift apart silently); ``roster`` is null
+  or ``{section, line}`` with a known section; ``waivable`` is a bool when
+  present and REQUIRED on every ``status: active`` component once the manifest
+  declares it ([#244] P4 — the hub-side non-waivable floor set the Informant
+  Tier-3 classifier reads; older pre-P4 manifests without the field stay green).
 - C7 doc_shapes mirror — the spec's ``doc_shapes`` exactly mirrors the current
   authoritative constants: non-empty spines == ``audit.py::_CANONICAL_SPINE``;
   the ``freshness_gated: true`` set ==
@@ -240,13 +244,16 @@ def check_floor_pin(spec: dict[str, Any], repo_root: Path) -> list[Finding]:
 
 
 def check_components(spec: dict[str, Any]) -> list[Finding]:
-    """C6 — components schema + the components<->carriers cross-check."""
+    """C6 — components schema (incl. waivable, [#244] P4) + components<->carriers cross-check."""
     components = spec.get("components")
     if not isinstance(components, list) or not components:
         return [_fail("C6-components", "spec has no components: section (essence-spec v1 requires it)")]
     carrier_ids = {str(c.get("id")) for c in spec.get("carriers") or [] if isinstance(c, dict)}
     implemented = {str(c.get("id")) for c in spec.get("carriers") or []
                    if isinstance(c, dict) and c.get("implemented")}
+    # waivable ([#244] P4): required on status:active ONLY once the manifest declares
+    # it (so older pre-P4 manifests without the field stay green); bool when present.
+    declares_waivable = any(isinstance(c, dict) and "waivable" in c for c in components)
     problems: list[str] = []
     seen: set[str] = set()
     covered: set[str] = set()
@@ -278,6 +285,12 @@ def check_components(spec: dict[str, Any]) -> list[Finding]:
             problems.append(f"{cid}: removed_in {removed_in!r} set on a non-removed (status {status!r}) component")
         if comp.get("verify") not in VERIFY_CLASSES:
             problems.append(f"{cid}: verify {comp.get('verify')!r} not in {sorted(VERIFY_CLASSES)}")
+        wv = comp.get("waivable")
+        if wv is not None and not isinstance(wv, bool):
+            problems.append(f"{cid}: waivable {wv!r} must be a bool (true/false)")
+        if declares_waivable and status == "active" and "waivable" not in comp:
+            problems.append(f"{cid}: status:active requires waivable: <bool> "
+                            "(Informant Tier-3 non-waivable set, [#244] P4)")
         carrier = str(comp.get("carrier", "")).strip()
         if carrier not in carrier_ids:
             problems.append(f"{cid}: carrier {carrier!r} resolves to no manifest carrier")

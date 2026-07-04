@@ -380,3 +380,91 @@ def test_refresh_incomplete_omits_completed_at(tmp_path):
     assert ok is False
     text = health.read_text(encoding="utf-8")
     assert "completed_at:" not in text and "incomplete" in text.lower()
+
+
+# --- drift roll-up ([#244] P4 Step 7) ---------------------------------------
+# Aggregation from each consumer's own .methodology.yaml (no central store). The
+# waivability policy comes from the REAL hub manifest (session-end-backpressure
+# non-waivable; hub-toc-hooks waivable) -- the same invariant release_lint locks.
+
+
+def _write_consumer(base: Path, name: str, allowlist: str | None) -> Path:
+    root = base / name
+    root.mkdir(parents=True)
+    (root / "JOURNAL.md").write_text("# Journal\n", encoding="utf-8")
+    if allowlist is not None:
+        (root / ".methodology.yaml").write_text(allowlist, encoding="utf-8")
+    return root
+
+
+def test_drift_summaries_aggregates_on_disk_consumers(tmp_path):
+    hub = tmp_path / "hub"
+    hub.mkdir()
+    eco = hub / "ecosystem"
+    c1 = _write_consumer(
+        tmp_path, "ai-council",
+        "sanctioned_divergences:\n"
+        "  - component: hub-toc-hooks\n"
+        "    reason: CLI has no ARCHITECTURE.md TOC to gate\n"
+        "    review_date: 2999-01-01\n")
+    c2 = _write_consumer(tmp_path, "corp-ops", None)
+    _write_state(eco, "ai-council", str(c1))
+    _write_state(eco, "corp-ops", str(c2))
+    out = fh.drift_summaries(eco, hub, date(2026, 7, 4))
+    assert set(out) == {"ai-council", "corp-ops"}
+    assert out["ai-council"]["declared"] == 1
+    assert out["ai-council"]["valid"] == 1          # hub-toc-hooks is waivable -> valid
+    assert out["corp-ops"]["declared"] == 0
+
+
+def test_drift_summaries_flags_non_waivable_as_rejected(tmp_path):
+    """A consumer that allowlists a NON-waivable component (session-end-backpressure) is a real
+    drift signal even statically -> rejected_non_waivable == 1 (contract 2, aggregated)."""
+    hub = tmp_path / "hub"
+    hub.mkdir()
+    eco = hub / "ecosystem"
+    c = _write_consumer(
+        tmp_path, "ai-council",
+        "sanctioned_divergences:\n"
+        "  - component: session-end-backpressure\n"
+        "    reason: we think we can skip it\n"
+        "    review_date: 2999-01-01\n")
+    _write_state(eco, "ai-council", str(c))
+    out = fh.drift_summaries(eco, hub, date(2026, 7, 4))
+    assert out["ai-council"]["rejected_non_waivable"] == 1
+    assert out["ai-council"]["valid"] == 0
+
+
+def test_drift_summaries_skips_when_isolated(tmp_path):
+    """No sibling on disk (stored path absent, no <parent>/<name> slot) -> empty roll-up,
+    no writes (cloud-safe skip)."""
+    hub = tmp_path / "hub"
+    hub.mkdir()
+    eco = hub / "ecosystem"
+    _write_state(eco, "ai-council", "C:\\nope\\ai-council")
+    assert fh.drift_summaries(eco, hub, date(2026, 7, 4)) == {}
+
+
+def test_drift_summaries_skips_the_hub_itself(tmp_path):
+    """The hub is the baseline, not a consumer to check against itself -> excluded."""
+    hub = tmp_path / "hub"
+    hub.mkdir()
+    eco = hub / "ecosystem"
+    _write_state(eco, ".dev-knowledge", str(hub))
+    assert fh.drift_summaries(eco, hub, date(2026, 7, 4)) == {}
+
+
+def test_build_digest_renders_drift_section():
+    drift = {"ai-council": {"declared": 1, "valid": 1, "rejected_non_waivable": 0,
+                            "static_absent_mapped_organs": 2}}
+    out = fh.build_digest(_STATES, date(2026, 7, 4),
+                          completed_at="2026-07-04T09:00:00", drift_by_repo=drift)
+    assert "## Drift" in out
+    drift_block = out.split("## Drift")[1]
+    assert "ai-council" in drift_block           # consumer row rendered in the drift section
+    assert "| ai-council | 1 | 1 | 0 | 2 |" in drift_block
+
+
+def test_build_digest_no_drift_section_when_empty():
+    assert "## Drift" not in fh.build_digest(_STATES, date(2026, 7, 4))
+    assert "## Drift" not in fh.build_digest(_STATES, date(2026, 7, 4), drift_by_repo={})

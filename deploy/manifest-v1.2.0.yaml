@@ -218,6 +218,22 @@ carriers:
 #   removed_in the release that retired the component — REQUIRED iff status:removed,
 #             FORBIDDEN on active (release_lint C6). The manifest entry is retained
 #             as a tombstone; the remove leg prunes its artifacts from the consumer.
+#   waivable  true | false — MAY a consumer sanction this component's divergence from
+#             the baseline (Informant Tier-3 / [#244] P4)? A per-component SAFETY
+#             judgment, NOT derived from `verify` type: any LOAD-BEARING / fail-closed
+#             protection whose absence is a safety/integrity regression is
+#             `waivable: false` (the non-waivable floor set) EVEN IF not fire-
+#             measurable — a consumer's root .methodology.yaml allowlist entry against
+#             a non-waivable component is REJECTED (contract 2). Non-waivable @ v1.2.0:
+#             session-end-backpressure, canonical-freshness (fail-closed gates) +
+#             methodology-floor, floor-hash-verify-hook, floor-sessionstart-guard
+#             (floor integrity/presence). Required on status:active (release_lint C6);
+#             moot on a tombstone. NB this field was ADDED AFTER the v1.2.0 tag (a
+#             versioned-file-vs-tag divergence, acknowledged not silent): it is INERT
+#             to deploy/tool.py (reads only carriers:) and consumed only by the
+#             hub-side Informant, so it changes nothing deployed at tag v1.2.0 and
+#             moves no version anchor — the methodology version is HELD (P4 is
+#             hub-only n=1 tooling, no deploy). See JOURNAL [#244] P4.
 #   verify    fire | hash | wired (leg-e typed acceptance class)
 #   artifacts what lands in / is wired into the consumer:
 #               - path/source: a deployed file (consumer path <- hub source)
@@ -238,6 +254,7 @@ components:
     kind: config
     carrier: global-config
     status: active
+    waivable: true   # user-machine-scoped config (~/.codex), not a consumer-repo gate
     verify: hash
     artifacts:
       - path: "~/.codex/AGENTS.md"
@@ -249,6 +266,7 @@ components:
     kind: config
     carrier: tier1-plugin
     status: active
+    waivable: true   # ships user-invoked commands + an ADVISORY Stop hook; the blocking closure ENFORCEMENT (seb, canonical_freshness) is separately non-waivable — waiving the plugin loses ergonomics/workflow, not a gate
     verify: wired
     artifacts:
       - wiring: ".claude/settings.json enabledPlugins: tier1-lifecycle@dev-knowledge-methodology (project scope)"
@@ -260,6 +278,7 @@ components:
     kind: hook
     carrier: tier1-plugin
     status: active
+    waivable: true   # explicitly NON-BLOCKING (detect-and-propose) — not a fail-closed gate
     verify: wired
     artifacts:
       - wiring: "plugin Stop hook -> propose_closures.py (non-blocking, detect-and-propose)"
@@ -271,6 +290,7 @@ components:
     kind: command
     carrier: tier1-plugin
     status: active
+    waivable: true   # a user-invoked command, not a gate
     verify: wired
     artifacts:
       - wiring: "plugin command /review-closures"
@@ -282,6 +302,7 @@ components:
     kind: command
     carrier: tier1-plugin
     status: active
+    waivable: true   # a user-invoked command; the --no-ff rule is a core-invariant, not this command
     verify: wired
     artifacts:
       - wiring: "plugin command /ship"
@@ -294,6 +315,8 @@ components:
     carrier: precommit
     status: removed
     removed_in: "1.2.0"
+    waivable: true   # MOOT on a tombstone (removed component); set for clarity — C6 requires waivable only on status: active
+
     # P2 / [#244] n=1 prune truth-maker. The reason is the VERBATIM fleet-scope
     # caveat (operator-authored) — see ADR-96 for why ruff (clean-mechanism proof;
     # no naturally-dead component exists at n=1).
@@ -321,6 +344,7 @@ components:
     kind: hook
     carrier: precommit
     status: active
+    waivable: true   # doc-hygiene TOC-staleness gate; a CLI repo may have no TOC to gate (the canonical waivable case)
     verify: wired
     artifacts:
       - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hooks toc-freshness + toc-generate"
@@ -332,6 +356,7 @@ components:
     kind: hook
     carrier: precommit
     status: active
+    waivable: false   # LOAD-BEARING: fail-closed commit-time integrity guard; absence lets floor tampering/drift commit undetected
     verify: wired
     artifacts:
       - wiring: ".pre-commit-config.yaml local hook floor-hash-verify -> python .claude/check_floor_hash.py"
@@ -343,6 +368,7 @@ components:
     kind: config
     carrier: floor
     status: active
+    waivable: false   # LOAD-BEARING: the floor baseline content itself; waiving it opts the consumer out of the entire methodology floor (maximal integrity regression)
     verify: hash
     artifacts:
       - path: .claude/CLAUDE-FLOOR.md
@@ -357,6 +383,7 @@ components:
     kind: hook
     carrier: floor
     status: active
+    waivable: false   # LOAD-BEARING: fail-closed presence guard (--require-present) + arms the commit hooks; absence disarms the whole floor loop
     verify: wired
     artifacts:
       - wiring: ".claude/settings.json SessionStart hook -> python .claude/check_floor_hash.py --require-present"
@@ -368,6 +395,7 @@ components:
     kind: organ
     carrier: enforcement-mesh
     status: active
+    waivable: false   # LOAD-BEARING: fail-closed session-end gate; absence lets un-anchored sessions ship silently (the founding-standard regression the mesh exists to stop)
     verify: fire
     artifacts:
       - path: scripts/session_end_backpressure.py
@@ -381,6 +409,7 @@ components:
     kind: organ
     carrier: enforcement-mesh
     status: active
+    waivable: false   # LOAD-BEARING: fail-closed commit gate; absence lets stale canonical ground-truth ship undetected
     verify: fire
     artifacts:
       - path: scripts/canonical_freshness_gate.py
@@ -397,6 +426,7 @@ components:
     kind: command
     carrier: enforcement-mesh
     status: active
+    waivable: true   # an escape-hatch command; its absence is a stricter posture, not a safety regression (NB coupling: seb non-waivable + override waivable => a consumer can sanction its own loss of the only seb-escape and self-strand — operability hazard, not safety; candidate for a LATER validation warning, not built in P4)
     verify: wired
     artifacts:
       - path: .claude/commands/override.md
