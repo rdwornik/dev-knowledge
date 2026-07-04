@@ -604,3 +604,59 @@ def test_tier3_sanctioned_is_a_distinct_class_from_tier1():
     tier1_block = out.split("## Tier-1")[1].split("## Tier-3")[0]
     assert bold_sanctioned not in tier1_block            # never a Tier-1 verdict
     assert bold_sanctioned in out.split("## Tier-3")[1]  # its own Tier-3 class
+
+
+# ---------------------------------------------------------------------------
+# Static (no-fire) drift summary ([#244] P4 Step 6). No clone, no fire: reads the
+# consumer's WORKING-tree allowlist + locate-only evaluate_static. Feeds the
+# fleet_health drift roll-up (Step 7). run_date is a param; policy is passed in.
+# ---------------------------------------------------------------------------
+
+
+def test_static_drift_summary_counts_absent_mapped_organs(tmp_path):
+    """A consumer with a JOURNAL but no organ wiring: both mapped organs (seb + canonical_freshness)
+    are statically ABSENT -> static_absent_mapped_organs == 2; no allowlist -> declared 0."""
+    root = tmp_path / "bare"
+    root.mkdir()
+    (root / "JOURNAL.md").write_text("# Journal\n", encoding="utf-8")
+    summary = ec.static_drift_summary(root, run_date="2026-07-04", waivable_policy=_REAL_POLICY)
+    assert summary["declared"] == 0
+    assert summary["valid"] == 0
+    assert summary["rejected_non_waivable"] == 0
+    assert summary["static_absent_mapped_organs"] == 2
+    assert "authoritative" in summary["note"]
+
+
+def test_static_drift_summary_valid_waivable_entry(tmp_path):
+    """A declared, valid allowlist entry for a WAIVABLE component counts as valid (not rejected)."""
+    root = tmp_path / "waivable"
+    root.mkdir()
+    (root / "JOURNAL.md").write_text("# Journal\n", encoding="utf-8")
+    (root / ec.ALLOWLIST_REL).write_text(
+        "sanctioned_divergences:\n"
+        "  - component: hub-toc-hooks\n"
+        "    reason: CLI repo has no ARCHITECTURE.md TOC to gate\n"
+        "    review_date: 2999-01-01\n",
+        encoding="utf-8")
+    summary = ec.static_drift_summary(root, run_date="2026-07-04", waivable_policy=_REAL_POLICY)
+    assert summary["declared"] == 1
+    assert summary["valid"] == 1
+    assert summary["rejected_non_waivable"] == 0
+
+
+def test_static_drift_summary_rejects_non_waivable_entry(tmp_path):
+    """A declared allowlist entry for a NON-waivable component is rejected-non-waivable — a
+    fire-INDEPENDENT drift signal surfaced even by the static summary (contract 2)."""
+    root = tmp_path / "reject"
+    root.mkdir()
+    (root / "JOURNAL.md").write_text("# Journal\n", encoding="utf-8")
+    (root / ec.ALLOWLIST_REL).write_text(
+        "sanctioned_divergences:\n"
+        "  - component: session-end-backpressure\n"
+        "    reason: we think we can skip it\n"
+        "    review_date: 2999-01-01\n",
+        encoding="utf-8")
+    summary = ec.static_drift_summary(root, run_date="2026-07-04", waivable_policy=_REAL_POLICY)
+    assert summary["declared"] == 1
+    assert summary["valid"] == 0
+    assert summary["rejected_non_waivable"] == 1

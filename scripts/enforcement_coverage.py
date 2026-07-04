@@ -875,6 +875,37 @@ def _allowlist_from_committed(consumer_root: Path) -> list[AllowlistEntry]:
         return []
 
 
+def static_drift_summary(consumer_root, *, run_date, waivable_policy: dict) -> dict:
+    """No-clone / no-fire drift snapshot for the fleet + SessionStart surface ([#244] P4 Step 6).
+
+    Reads the consumer's WORKING-tree ``.methodology.yaml`` allowlist and runs the cheap
+    locate-only ``evaluate_static`` (never clones, never fires) to count MAPPED organs that are
+    statically ABSENT. Reports DECLARED counts only: how many allowlist entries are declared /
+    valid / rejected-non-waivable (shape+policy against the PASSED run_date — never wall-clock),
+    plus the count of statically-absent mapped organs (candidate divergences). It does NOT match
+    entries against a live fire divergence set — the fire-based Tier-3 in the CLI
+    (``build_report(fire=True)``) is authoritative for that; this is a pre-filter, never a verdict.
+    Fail-soft through the underlying readers (absent/malformed allowlist -> zero counts)."""
+    root = Path(consumer_root)
+    entries = read_allowlist(root)
+    valid = rejected = 0
+    for entry in entries:
+        status, _ev = validate_allowlist_entry(
+            entry, run_date=run_date, waivable_policy=waivable_policy)
+        if status == AL_VALID:
+            valid += 1
+        elif status == AL_REJECTED:
+            rejected += 1
+    static_absent = len(_divergences_from_tier1(evaluate_static(root)))
+    return {
+        "declared": len(entries),
+        "valid": valid,
+        "rejected_non_waivable": rejected,
+        "static_absent_mapped_organs": static_absent,
+        "note": "static; fire-based Tier-3 in the CLI is authoritative",
+    }
+
+
 # ---------------------------------------------------------------------------
 # Fleet enumeration + report assembly.
 # ---------------------------------------------------------------------------
