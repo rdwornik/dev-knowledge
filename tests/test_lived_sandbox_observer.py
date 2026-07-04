@@ -316,3 +316,62 @@ def test_live_arc_gate_zero_holds():
     """Live GATE-0 under real work — never runs in offline CI (Step 7 operator freeze)."""
     run = arcmod.run_arc(model="haiku")
     assert run.gate.passed, run.gate.summary()
+
+
+# --- cli.py: observe-arc dispatch + the [MC-2] scrub guard ---
+
+
+def test_cli_usage_on_unknown_subcommand():
+    from lived_sandbox import cli
+    assert cli.main(["nonsense"]) == 2
+    assert cli.main([]) == 2
+
+
+def test_cli_observe_arc_is_a_known_subcommand():
+    """observe-arc dispatches (does not hit the usage path). Monkeypatch run_arc to stay offline."""
+    from lived_sandbox import arc as _arc
+    from lived_sandbox import cli
+
+    def fake_run(**_kw):
+        gate = _arc.GateZero(True, True, True)
+        return _arc.ArcRun(exit_code=0, gate=gate,
+                           observation=obs.observe(_green_events(), orc.load_oracle(_MANIFEST_V120)),
+                           transcript_jsonl="", changes=())
+    orig = _arc.run_arc
+    _arc.run_arc = fake_run
+    try:
+        assert cli.main(["observe-arc"]) == 0  # gate passed, nothing to freeze
+    finally:
+        _arc.run_arc = orig
+
+
+def test_cli_leg_e_target_parsing():
+    from lived_sandbox import cli
+    assert cli._leg_e_target(["observe-arc"]) is None
+    assert cli._leg_e_target(["observe-arc", "--leg-e", "toc-freshness"]) == "toc-freshness"
+    assert cli._leg_e_target(["observe-arc", "--leg-e", "--freeze"]) == cli._LEG_E_DEFAULT
+
+
+def test_cli_freeze_arc_scrub_rejects_key(tmp_path, monkeypatch):
+    """[MC-2]: a transcript carrying an sk-ant- key is REFUSED, never frozen."""
+    from lived_sandbox import arc as _arc
+    from lived_sandbox import cli
+    monkeypatch.setattr(cli, "_FIXTURES", tmp_path / "fx")
+    run = _arc.ArcRun(exit_code=0, gate=_arc.GateZero(True, True, True),
+                      observation=obs.observe([], orc.load_oracle(_MANIFEST_V120)),
+                      transcript_jsonl='{"k":"sk-ant-DEADBEEFdeadbeef"}', changes=())
+    with pytest.raises(sp.SandboxError):
+        cli._freeze_arc(run, "arc-green.jsonl")
+    assert not (tmp_path / "fx" / "arc-green.jsonl").exists()  # refused before writing
+
+
+def test_cli_freeze_arc_writes_clean_fixture(tmp_path, monkeypatch):
+    from lived_sandbox import arc as _arc
+    from lived_sandbox import cli
+    monkeypatch.setattr(cli, "_FIXTURES", tmp_path / "fx")
+    run = _arc.ArcRun(exit_code=0, gate=_arc.GateZero(True, True, True),
+                      observation=obs.observe([], orc.load_oracle(_MANIFEST_V120)),
+                      transcript_jsonl='{"type":"user","content":"floor-hash-verify Passed"}',
+                      changes=())
+    assert cli._freeze_arc(run, "arc-green.jsonl") == "arc-green.jsonl"
+    assert (tmp_path / "fx" / "arc-green.jsonl").exists()
