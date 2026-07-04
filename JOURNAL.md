@@ -51,6 +51,22 @@
 
 **Next:** Operator reviews the audit; if integrated, `--no-ff` merge `audit/coherence-spine-review` → `main` from the primary (sibling to the two other parallel audits). The findings' cheap-first sequence (§4) is a separate operator-gated build decision, not started.
 
+---
+
+### 2026-07-04 — CC (Fable): handoff-process adoption + quality review, ANALYSIS-ONLY — report landed in docs/audits/ (worktree fable-handoff-review, 132c5c9)
+
+**Did:** Executed the operator's Fable handoff-process audit mandate (Mythos-tier, architect role, read-only) in isolated worktree `fable-handoff-review`: JOURNAL-scoped read of the whole HANDOFF_PROCESS v5.3 surface — spec + boot + `docs/handoffs/README.md` runbook + `.claude/commands/handoff.md` + `assemble_paste.py` + `verify_handoff_probes.py` + the `SUPPLEMENT.md.tmpl` schema, the live `2026-07-03-dev-knowledge-architect` bundle (all 5 files), the handoff arc across ~20 v5 bundles (fill/empty supplement census, `expected`-hint creep + paste-byte growth measured per-bundle), the 2026-06-23 handoff-process audit + its 06-24/25 rework landing, BACKLOG #26/#159/#161/#162/#164/#234, LESSONS handoff entries. Delivered the report in-session; operator approved landing → `docs/audits/2026-07-04-handoff-adoption-review.md` (**132c5c9**, this session's sole work commit, anchored here per ADR-85).
+
+**Result:** Verdict: adopted + self-correcting on the CC side, unguarded on the three axes v5 was built to guarantee. 9 severity-ranked red flags — headliners: RF-1 the anti-bluff probe contract is INVERTED (every recent bundle prints its probes' answers as `expected:` hints; §5 says such probes are "rejected"; the bluff-dogfood ran once at promotion 06-11, never re-run — hint count crept 1→11 across the series); RF-2 the #164 generator is unbuilt so every bundle is hand-copied from its predecessor (= how RF-1 propagated; paste grew 36→59KB, no budget); RF-3 the browser-side contract is structurally unwitnessable (#159 unclosable after 12 filled supplements — the exercise happens in a chat the repo can't see); RF-4 CLAUDE.md §5 "handoffs immutable" contradicts the §13 fill/fold lifecycle practice follows; RF-5 through RF-9 (shell-fragile run loop, re-narration creep, no paste-currency check, dead execution-mode default + un-specced lean CC-successor shape, cross-repo honest-partial coupling to #221). Pattern: every property with a mechanical guard held; every property held by prose eroded. §4 routes 9 items; files nothing.
+
+**Changes:** `docs/audits/2026-07-04-handoff-adoption-review.md` (new, 132c5c9), `JOURNAL.md` (this entry).
+
+**Abandoned:** Nothing implemented by design — analysis-only mandate; no ADR, no spec/BACKLOG edit, no code (the audit doc is the sole write). One of three parallel read-only audits — nothing to integrate here, no merge.
+
+**Next:** Operator/architect review the report; integrate branch `worktree-fable-handoff-review` from the PRIMARY (`git merge --no-ff`), then tear down the worktree (remove + prune + branch -d). Any routed items (§4) are filed on the architect's call — highest-stakes is RF-1 (re-ratify the anti-bluff contract) + RF-3b (the boot-transcript echo that closes #159 on evidence).
+
+---
+
 ### 2026-07-04 — CC (Opus): [#244] P2 PRUNE — deploy remove leg SHIPPED + n=1 truth-maker proven on ai-council
 
 **Did:** Executed [#244] P2 (the first *deleting* phase) as an architect delegation (plan-first/Opus, operator-gated). The add-only deploy engine gained a **remove leg**: (1) `deploy/contract.py` — `PruneState`/`PruneResult`/`PruneUnsupported` + concrete-default `detect_prune`/`prune`/`verify_pruned` on `Carrier` (D9-preserving) [`3de6908`]. (2) `deploy/carrier_precommit.py` — the leg for `ruff-gate`: whole-entry removal by exact repo URL, hash-guarded, preserve-all-else [`2193165`]. (3) `deploy/manifest-v1.2.0.yaml` — anchors→1.2.0, `removed_in`/`reason`/`prune` schema, `ruff-gate` flipped to `status: removed`, ruff dropped from the add-target [`4d724f7`]. (4) `release_lint` C6 unlocks `removed` (requires `removed_in`, forbids on active; 2-state, D3) [`1fbdf6f`]. (5) `tool.py` — prune sweep folded into `execute` (converge-then-prune) + Terraform-style destroy-confirm (`--auto-approve` for scripts) + tombstone print [`5766d16`]. (6) `tests/test_deploy_prune.py` (24) + release_lint P2 teeth [`d739551`]. Tagged **`v1.2.0`** (annotated, on `d739551`) before the live run.
