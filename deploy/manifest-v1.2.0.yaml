@@ -478,7 +478,10 @@ components:
     engages:                    # GATED SIX — firing hook, stop stage
       trigger: stop
       observable: hook-stdout
-      expect: "session_end_backpressure"   # calibrate@step7: Stop-hook decision/reason stdout
+      expect: "Session-end"     # [#253c] calibrated@step7: BOTH print paths open with it —
+                                # "Session-end gate BLOCKED" (hard) / "Session-end hygiene"
+                                # (advisory). The script name never appears in its own stdout,
+                                # so the prior signature could only match the hook COMMAND line.
     artifacts:
       - path: scripts/session_end_backpressure.py
         source: scripts/session_end_backpressure.py

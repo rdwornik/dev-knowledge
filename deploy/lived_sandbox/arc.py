@@ -19,6 +19,7 @@ measure enforcement-in-effect. Three parts, deterministic-first:
 """
 from __future__ import annotations
 
+import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -113,6 +114,7 @@ ARC_ALLOW_RULES = (
     "Write(SANDBOX_ARC.md)",
     "Edit(SANDBOX_ARC.md)",
     "SlashCommand(/review-closures)",
+    "SlashCommand(/tier1-lifecycle:review-closures)",  # the plugin-namespaced resolution
 )
 
 
@@ -234,6 +236,72 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
+def seed_ecosystem_state(source_root: Path, clone: Path) -> list[str]:
+    """Copy the hub's gitignored ``ecosystem/*/state.yaml`` into the clone (Step-7 finding:
+    without them the clone's audit-health commit gate fails 'repos registered (none)' and
+    BLOCKS the arc's commit — the standing worktree/clone seeding lesson, applied here)."""
+    seeded: list[str] = []
+    src_eco = Path(source_root) / "ecosystem"
+    if not src_eco.is_dir():
+        return seeded
+    for state in sorted(src_eco.glob("*/state.yaml")):
+        dest = Path(clone) / "ecosystem" / state.parent.name / "state.yaml"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(state.read_text(encoding="utf-8"), encoding="utf-8", newline="\n")
+        seeded.append(f"seeded ecosystem/{state.parent.name}/state.yaml")
+    return seeded
+
+
+# Deterministic install stamp for the seeded plugin registration (no live clock in fixtures).
+_PLUGIN_STAMP = "2026-01-01T00:00:00.000Z"
+_MARKETPLACE = "dev-knowledge-methodology"
+_PLUGIN_NAME = "tier1-lifecycle"
+
+
+def seed_tier1_plugin(config_dir: Path, clone: Path) -> str | None:
+    """Install the clone's in-tree tier1-lifecycle plugin into the ISOLATED config (Step-7
+    finding: the clone's settings enable the plugin, but the plugin cache lives in the outer
+    ~/.claude — unreachable from the isolated CLAUDE_CONFIG_DIR, so the propose-closures Stop
+    hook and /review-closures could NEVER fire). Clone-rooted + deterministic: the plugin
+    source is the clone's own plugins/ tree; registration mirrors the real installed_plugins/
+    known_marketplaces shape with a fixed stamp. Returns the seeded version, or None when the
+    clone carries no plugin source."""
+    import shutil as _shutil
+    src = Path(clone) / "plugins" / _PLUGIN_NAME
+    plugin_json = src / ".claude-plugin" / "plugin.json"
+    if not plugin_json.exists():
+        plugin_json = src / "plugin.json"
+    if not plugin_json.exists():
+        return None
+    version = str(json.loads(plugin_json.read_text(encoding="utf-8")).get("version", "0.0.0"))
+    plug_root = Path(config_dir) / "plugins"
+    install = plug_root / "cache" / _MARKETPLACE / _PLUGIN_NAME / version
+    if install.exists():
+        _shutil.rmtree(install)
+    _shutil.copytree(src, install)
+    head = _observe.head_commit(Path(clone)) or ""
+    (plug_root / "installed_plugins.json").write_text(json.dumps({
+        "version": 2,
+        "plugins": {f"{_PLUGIN_NAME}@{_MARKETPLACE}": [{
+            "scope": "project",
+            "projectPath": str(clone),
+            "installPath": str(install),
+            "version": version,
+            "installedAt": _PLUGIN_STAMP,
+            "lastUpdated": _PLUGIN_STAMP,
+            "gitCommitSha": head,
+        }]},
+    }, indent=2), encoding="utf-8", newline="\n")
+    (plug_root / "known_marketplaces.json").write_text(json.dumps({
+        _MARKETPLACE: {
+            "source": {"source": "directory", "path": str(clone)},
+            "installLocation": str(clone),
+            "lastUpdated": _PLUGIN_STAMP,
+        },
+    }, indent=2), encoding="utf-8", newline="\n")
+    return version
+
+
 @dataclass
 class ArcRun:
     """The teardown-safe evidence of one live arc — everything is computed INSIDE the clone's
@@ -259,6 +327,7 @@ def run_arc(*, repo_root: Path | None = None, api_key: str | None = None,
     oracle = _oracle.load_for_version("1.2.0", repo_root=root)
     with _spawn.sandbox_clone(root, prefix="lived-sandbox-arc-") as (clone, env):
         changes = consumer_shape(clone, repo_root=root)
+        changes.extend(seed_ecosystem_state(root, clone))  # audit-health gate needs state
         if leg_e_hook_id:
             disable_precommit_hook(clone, leg_e_hook_id)
         # User-level isolated config carrying ONLY the provenance sentinel (the six live at
@@ -266,6 +335,9 @@ def run_arc(*, repo_root: Path | None = None, api_key: str | None = None,
         cfg = _spawn.write_isolated_config(
             clone.parent / "cfg", session_start_marker=PROVENANCE_MARKER,
             allow_rules=ARC_ALLOW_RULES)  # [#253a]: scoped seam, never bypass
+        seeded_ver = seed_tier1_plugin(cfg, clone)  # Stop hook + /review-closures live here
+        if seeded_ver:
+            changes.append(f"seeded tier1-lifecycle plugin v{seeded_ver} into isolated config")
         result = _spawn.spawn(clone, ARC_PROMPT, config_dir=cfg, api_key=key,
                               model=model, extra_env=env, timeout=timeout)
         gate = evaluate_gate_zero(result, clone=clone)  # [#253d]: self-emittable markers filtered

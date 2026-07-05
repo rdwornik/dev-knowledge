@@ -28,7 +28,7 @@ _MANIFEST_V120 = _REPO / "deploy" / "manifest-v1.2.0.yaml"
 # The six gated firing-hook signatures as authored in manifest-v1.2.0.yaml.
 _SIX_SIGNATURES = [
     "check_floor_hash", "floor-hash-verify", "canonical_freshness",
-    "toc-freshness", "session_end_backpressure", "propose_closures:",
+    "toc-freshness", "Session-end", "propose_closures:",
 ]
 
 
@@ -374,6 +374,75 @@ def test_gate_zero_independent_of_hook_completeness():
     arc-silent freeze (a silenced hook does not fail the gate)."""
     r = _spawn_result(arcmod.PROVENANCE_MARKER, exit_code=0)  # zero hook signatures present
     assert arcmod.evaluate_gate_zero(r).passed
+
+
+# --- attachment-wrapped hook events (the on-disk transcript shape, Step-7 witnessed) ---
+
+
+def _attachment_hook(stdout: str, command: str = "python x.py") -> dict:
+    return {"type": "user", "attachment": {"type": "hook_success", "hookName": "Stop",
+            "stdout": stdout, "command": command}}
+
+
+def test_observer_reads_attachment_hook_stdout():
+    """Hook firings land as {"attachment": {"type": "hook_success", stdout}} in the on-disk
+    transcript — that stdout IS external evidence and must enter the hook-stdout channel."""
+    assert "Session-end" in obs.hook_stdout_surface(
+        [_attachment_hook("Session-end hygiene (deterministic backpressure)")])
+
+
+def test_observer_attachment_command_field_never_counts():
+    """The command line names the hook's own script path — matching it would be a firing
+    verdict with zero output. Only stdout/stderr/content count."""
+    ev = _attachment_hook("", command="python scripts/session_end_backpressure.py")
+    assert "session_end_backpressure" not in obs.hook_stdout_surface([ev])
+
+
+def test_observer_non_hook_attachment_excluded():
+    ev = {"type": "user", "attachment": {"type": "task_reminder",
+                                         "stdout": "canonical_freshness noise"}}
+    assert "canonical_freshness" not in obs.hook_stdout_surface([ev])
+
+
+# --- Step-7 seeding: ecosystem state + the tier1 plugin into the isolated config ---
+
+
+def test_seed_ecosystem_state_copies_state_files(tmp_path):
+    src = tmp_path / "src"
+    (src / "ecosystem" / "repoA").mkdir(parents=True)
+    (src / "ecosystem" / "repoA" / "state.yaml").write_text("ok: 1\n", encoding="utf-8")
+    clone = tmp_path / "clone"
+    clone.mkdir()
+    seeded = arcmod.seed_ecosystem_state(src, clone)
+    assert seeded == ["seeded ecosystem/repoA/state.yaml"]
+    assert (clone / "ecosystem" / "repoA" / "state.yaml").read_text(encoding="utf-8") == "ok: 1\n"
+
+
+def test_seed_tier1_plugin_installs_into_isolated_config(tmp_path):
+    """The plugin is seeded clone-rooted (its own plugins/ tree) into the isolated config's
+    cache + registration files, deterministically — the Stop hook / command act seam."""
+    clone = tmp_path / "clone"
+    meta = clone / "plugins" / "tier1-lifecycle" / ".claude-plugin"
+    meta.mkdir(parents=True)
+    (meta / "plugin.json").write_text('{"version": "9.9.9"}', encoding="utf-8")
+    (clone / "plugins" / "tier1-lifecycle" / "hooks.json").write_text("{}", encoding="utf-8")
+    cfg = tmp_path / "cfg"
+    assert arcmod.seed_tier1_plugin(cfg, clone) == "9.9.9"
+    install = cfg / "plugins" / "cache" / "dev-knowledge-methodology" / "tier1-lifecycle" / "9.9.9"
+    assert (install / "hooks.json").exists()
+    reg = json.loads((cfg / "plugins" / "installed_plugins.json").read_text(encoding="utf-8"))
+    entry = reg["plugins"]["tier1-lifecycle@dev-knowledge-methodology"][0]
+    assert entry["projectPath"] == str(clone) and entry["version"] == "9.9.9"
+    market = json.loads((cfg / "plugins" / "known_marketplaces.json").read_text(encoding="utf-8"))
+    assert market["dev-knowledge-methodology"]["source"] == {
+        "source": "directory", "path": str(clone)}
+    assert arcmod.seed_tier1_plugin(cfg, clone) == "9.9.9"  # idempotent re-seed
+
+
+def test_seed_tier1_plugin_none_without_source(tmp_path):
+    clone = tmp_path / "clone"
+    clone.mkdir()
+    assert arcmod.seed_tier1_plugin(tmp_path / "cfg", clone) is None
 
 
 # --- [#253a] the arc permission seam: scoped allowlist, never bypass ---

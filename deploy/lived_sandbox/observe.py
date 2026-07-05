@@ -101,6 +101,17 @@ def hook_stdout_surface(events: list[dict]) -> str:
                 v = ev.get(k)
                 if isinstance(v, str):
                     parts.append(v)
+        # Attachment-wrapped hook events — the on-disk transcript shape for hook firings
+        # (witnessed at Step-7: {"attachment": {"type": "hook_success", "stdout": ...}}).
+        # Only hook_* attachment types, and NEVER the `command` field: a hook's command
+        # line names its script path (e.g. session_end_backpressure.py), which would
+        # self-match the signature without the hook producing any output.
+        att = ev.get("attachment")
+        if isinstance(att, dict) and str(att.get("type", "")).startswith("hook_"):
+            for k in ("stdout", "stderr", "content"):
+                v = att.get(k)
+                if isinstance(v, str):
+                    parts.append(v)
     return "\n".join(parts)
 
 
