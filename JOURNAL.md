@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-05 — CC (Fable, EPIC lane llm-first-docs, cont.): CONDITIONAL GRANT executed — S1→S4 shipped, lane closed with EPIC RETURN ([#259])
+
+**Did:** Root's conditional grant verified TRUE (colliding organ = codemap generator + `codemap-freshness` hook; block generator-managed) and mirrored into EPIC_RETURN (`9f723ba`). Stories executed commit-per-story under the frozen direction (GENERATED compact text; hand-authoring refused): **S1** ADR-51 amendment authored as a separate Proposed file — LLM-first canonical docs, Mermaid leaves them, visualization = future Tier-4 surface, check #7 retired (`d29c2e1`). **S2** `text_emit.py` new canonical emitter (module/layer table + dependency list; orphan/cycle flags; `mermaid_emit.py` retained unwired for the visualization surface); hub ARCHITECTURE codemap regenerated through the tool + layer-model flowchart → text (4 actors, 6 labelled edges — no fact dropped); **zero mermaid fences**; the codemap-freshness hook itself Passed on the commit (`baa0db8`). **S3** check #7 retired (function + registration + 5 pinning tests + fixtures; retirement-guard test added); self-adjudicated 2-literal 29→28 repair in `test_doc_code_edge.py` count assertions, recorded ARCHITECT-REVIEW-PENDING (`f6a8caf`). **S4** template to compact-text canonical example (derived via `text_emit`), §Diagrams reframed as the visualization surface (`8bd952c`). Lane closed: [#259] checkboxes ticked, EPIC_RETURN fully filled (§1–§5: evidence, 13 adjudication/pending items, BACKLOG delta, merge-readiness).
+
+**Result:** Epic done-contract met on the hard metric — hub ARCHITECTURE renders zero Mermaid, same dependency facts in text, audit coherent, suite 1297 passed / 0 failed, all in-lane gates green; ship-gate carries exactly the 2 pre-declared integration-owned WARNs (doc-counts regen + worktree-dirname artifact). Awaiting root review → serial `--no-ff` merge.
+
+**Changes:** `9f723ba` (grant record), `d29c2e1` (S1 amendment), `baa0db8` (S2 codemap+ARCHITECTURE), `f6a8caf` (S3 audit #7), `8bd952c` (S4 template), lane-close commit (EPIC_RETURN fill + BACKLOG [#259] checkboxes + this entry).
+
+**Abandoned:** nothing; no presence-ban replacement for check #7 (deliberate, amendment D4).
+
+**Next:** root reviews EPIC_RETURN → merge `--no-ff` → applies §4 BACKLOG delta (close [#259]; child-migration + protocols-reconciliation follow-ups) → regenerates doc-counts once → ratifies the amendment (ADR-94 status-line path) → teardown.
+
+---
+
 ### 2026-07-05 — CC (Fable, EPIC lane llm-first-docs): boot + probes green, S2 gate-collision escalation persisted, lane STOPPED ([#259])
 
 **Did:** Epic lane booted per `EPIC_BOOT.md` (worktree `epic-llm-first-docs`, branch `epic/llm-first-docs`); probes E1–E5 all PASS (E4 with the known worktree-dirname `deployed_methodology_version` WARN — environmental, recorded, not dispositioned). Recon before S1 surfaced a **boundary collision**: S2's done-when (hub ARCHITECTURE.md renders zero Mermaid) cannot commit through the armed gates — the out-of-boundary `codemap-freshness` pre-commit hook fires on any ARCHITECTURE.md change and `scripts/codemap/check.py` hard-fails both S2 shapes (text-in-markers → drift exit 1; markers removed → exit 3). Per the boundary contract: STOP, escalate — no story work attempted (S1/S3 must cohere with the ruling; amendments are immutable once landed). On root order, the full escalation (colliding organ, verified exit paths, proposed minimal grant, deferred consumer surfaces) was persisted verbatim into `EPIC_RETURN.md` §3 as ARCHITECT-REVIEW-PENDING (`f222941`).

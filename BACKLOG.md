@@ -178,10 +178,10 @@ So that ESSENTIALS is a true 1–2-page session frame with every canonical detai
 ### Epic 4 — LLM-first canonical docs (slug: llm-first-docs) — Wave-2 lane (ADR-97)
 So that canonical root docs are LLM-first — dependency facts in compact text, Mermaid moved off the canonical surface to a future human-facing visualization layer.
 - [#259] [P2][L] Epic 4 lane — LLM-first canonical docs (stories = checkboxes below; FULL scope-contract: the EPIC_BOOT bundle). BOUNDARY may-touch: ARCHITECTURE.md, templates/ARCHITECTURE-template.md, scripts/audit.py NARROW GRANT (check #7 retire/replace ONLY), docs/decisions/ (new ADR-51 amendment), this block, JOURNAL (append); NOT: protocols/**, deploy/**, doc-counts (root regenerates at integration). No information loss — the codemap graphs are redundant with the tables. Lane rules: own-block checkboxes only; commit-and-STOP + EPIC RETURN (§14b); escalate any boundary need. · Done when: hub ARCHITECTURE.md renders zero Mermaid AND carries the same dependency facts in text form AND audit checks coherent with the amendment AND gates green on branch · refs ADR-97, ADR-51, docs/handoffs/2026-07-05-dev-knowledge-epic-llm-first-docs/ · serialize-group: architecture · serialize-group: audit-py
-  - [ ] S1 ADR-51 amendment (LLM-first canonical docs)
-  - [ ] S2 codemap Mermaid → compact text form
-  - [ ] S3 audit check #7 retire/replace
-  - [ ] S4 ARCHITECTURE template updated
+  - [x] S1 ADR-51 amendment (LLM-first canonical docs) — d29c2e1
+  - [x] S2 codemap Mermaid → compact text form — baa0db8
+  - [x] S3 audit check #7 retire/replace — f6a8caf
+  - [x] S4 ARCHITECTURE template updated — 8bd952c
 
 ---
 
