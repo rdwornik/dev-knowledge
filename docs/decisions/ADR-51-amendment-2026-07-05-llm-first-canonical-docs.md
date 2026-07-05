@@ -1,6 +1,6 @@
 # ADR-51 Amendment 2026-07-05 — LLM-first canonical docs: Mermaid leaves canonical root docs
 
-- **Status:** Proposed (authored in epic lane `llm-first-docs` [#259] under root conditional grant, ADR-97; the ROOT ratifies at integration — the lane does not self-accept)
+- **Status:** Accepted (ratified by ROOT at Wave-2 integration 2026-07-05, ADR-94 status-line-only path; authored in epic lane `llm-first-docs` [#259] under root conditional grant, ADR-97 — the lane did not self-accept). Ratification affirms the frozen direction: canonical root docs are LLM-first · Mermaid leaves canonical root docs · the codemap stays **GENERATED** (only its output format changed, Mermaid → compact text) · visualization is a future Tier-4 human-facing surface · audit check #7 (`mermaid_theme_directive`) retired.
 - **Date:** 2026-07-05
 - **Amends:** ADR-51 — authored as a **separate file** because this epic's grant treats ADR-51 as immutable (CLAUDE.md §5 item 3); ADR-51's in-file amendments 2026-05-22 / 2026-05-23 / 2026-05-28 / 2026-05-28-v2 / 2026-06-03 are point-in-time records and stay as written
 - **Related:** ADR-39 (immutable dated artifacts), ADR-59 (visual repository pattern), ADR-97 (tree orchestration — the lane/grant mechanics this amendment was authored under)

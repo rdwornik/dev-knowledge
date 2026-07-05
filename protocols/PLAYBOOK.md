@@ -2452,7 +2452,7 @@ If you find yourself writing a lesson that sounds like "always do X" or "never d
 
 **Council debates are valuable but can become procrastination.** Hard rule: max 2 debates before implementation starts. Full format guide lives in the council project's docs/ folder.
 
-> **End-to-end operational lifecycle:** see `protocols/AI_COUNCIL_PROCESS.md` (six stages: frame → author → route → debate → verdict → ADR → close), the prose companion to the ARCHITECTURE.md C3 "AI Council debate pipeline" Mermaid diagram. This section gives the *when* and the format summary; the runbook gives the full *how* with gate checks, troubleshooting, and code-grounded references.
+> **End-to-end operational lifecycle:** see `protocols/AI_COUNCIL_PROCESS.md` (six stages: frame → author → route → debate → verdict → ADR → close), the prose companion to the AI Council debate pipeline in `ARCHITECTURE.md` (Ch6 decision-flow, compact text — Mermaid left canonical docs per the ADR-51 amendment 2026-07-05). This section gives the *when* and the format summary; the runbook gives the full *how* with gate checks, troubleshooting, and code-grounded references.
 
 ### When to use Council vs. decide yourself
 <!-- scope: llm -->
@@ -3212,11 +3212,11 @@ Before authoring any diagram in a living doc, pick the lightest form that carrie
 
 1. linear ≤1-branch → text arrow-chain
 2. inventory/mapping → table
-3. ≥2-branches / cycle / ≥3-actors → Mermaid (ADR-51 theme)
+3. ≥2-branches / cycle / ≥3-actors → Mermaid (on the human-facing visualization surface only)
 4. auto-generable fact → generated only
 5. any Mermaid >12 nodes → split or demote
 
-Mermaid is the heaviest form (token cost + AI-edit-reliability drop above ~100 lines of markup) — reserve it for genuine branching/cyclic/multi-actor structure, and demote on the first rule that a lighter form satisfies. Refs #91 (amendment A), ADR-51.
+Mermaid is the heaviest form (token cost + AI-edit-reliability drop above ~100 lines of markup) — reserve it for genuine branching/cyclic/multi-actor structure, and demote on the first rule that a lighter form satisfies. **Canonical root docs carry no Mermaid** — since the ADR-51 amendment 2026-07-05 (LLM-first canonical docs) diagrams live on the separate visualization surface (ADR-59), so rule 3 applies there, not in `ARCHITECTURE.md`/`CLAUDE.md`/`VISION.md`/`protocols/*`. Refs #91 (amendment A), ADR-51 + amendment 2026-07-05.
 
 ---
 
@@ -3553,9 +3553,9 @@ Keep CLAUDE.md under 200 lines per file. Instruction adherence drops above that.
 ## Codemap workflow
 <!-- scope: meta -->
 
-The codemap section of every M/L `ARCHITECTURE.md` is an auto-generated embedded Mermaid block showing the repo's top-level Python packages, their import relationships, and their layer assignments (if `tach.toml` is present). VS Code 1.121 and GitHub render Mermaid natively — the diagram is clickable and navigable without a separate SVG pipeline. Governing authority: ADR-51 Decision 6 + amendment 2026-05-22.
+The codemap section of every M/L `ARCHITECTURE.md` is an auto-generated **compact-text** block — a module/layer list plus a `from -> to` dependency list, with orphan and cycle classification and per-module source paths — showing the repo's top-level Python packages, their import relationships, and their layer assignments (if `tach.toml` is present). It is optimized for the LLM readers that consume canonical docs: the same dependency facts the earlier Mermaid form carried, at a fraction of the token cost. Governing authority: ADR-51 Decision 6 + amendment 2026-05-22, **as amended 2026-07-05** (Mermaid → compact text; the codemap stays generated, `mermaid_emit.py` retained unwired for the future visualization surface).
 
-**Mermaid theme directive (required on every block in `ARCHITECTURE.md`).** Every Mermaid fence in `ARCHITECTURE.md` (the codemap block AND every hand-authored diagram) opens with the custom-base theme directive `%%{init: {'theme':'base', 'themeVariables': {…}}}%%` so diagrams render readably on dark backgrounds; every `classDef` with a light `fill:` must also carry an explicit `color:` to prevent inherited-light-text on light-fill. Standard: ADR-51 amendment 2026-05-28 (v2). Enforcement: `scripts/audit.py` check #7 `mermaid_theme_directive` (scope: `ARCHITECTURE.md` + `templates/ARCHITECTURE-template.md`). The generator emits the directive automatically for the codemap block; hand-authored diagrams must include it manually — copy from the canonical example in `templates/ARCHITECTURE-template.md`.
+**Visualization surface (was: the Mermaid theme directive).** The ADR-51 amendment 2026-07-05 moved Mermaid out of canonical `ARCHITECTURE.md`, and `scripts/audit.py` check #7 `mermaid_theme_directive` is **retired** (with its pinning tests + fixtures). The high-contrast custom-base theme standard (ADR-51 amendment 2026-05-28 v2) is **not revoked** — it is re-scoped as *guidance* for the separate, human-facing visualization surface (ADR-59), no longer an audited gate. Diagrams are a rendering *of* canonical facts, produced on demand or stored outside canonical docs; `mermaid_emit.py` is the natural emitter for that surface.
 
 ### When the generator runs
 <!-- scope: meta -->
@@ -3566,7 +3566,7 @@ A pre-commit hook (`codemap-freshness`) fires whenever Python source files, `pyp
 <!-- scope: meta -->
 
 ```bash
-# Dry-run — print generated Mermaid block to stdout (does not modify ARCHITECTURE.md)
+# Dry-run — print the generated compact-text codemap block to stdout (does not modify ARCHITECTURE.md)
 python -m scripts.codemap.cli generate . --source-root <path>
 
 # Write — replace CODEMAP-bounded region in ARCHITECTURE.md in place

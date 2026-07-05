@@ -109,6 +109,9 @@ repo/git state, so a stale summary can't bluff its way through. (Full rationale 
 
 ## The sequence at a glance
 
+<!-- Human-facing operator-onboarding diagram, intentionally retained. This runbook is a
+     NON-canonical living doc; the ADR-51 amendment 2026-07-05 (Mermaid leaves canonical docs)
+     re-scopes Mermaid to exactly this human-facing visualization surface — it does not remove it here. -->
 ```mermaid
 flowchart TD
     A["1 · Paste PASTE_THIS.md<br/>(the single self-contained boot payload)"] --> B["2 · Browser acks the boot line"]
