@@ -28,7 +28,7 @@ _MANIFEST_V120 = _REPO / "deploy" / "manifest-v1.2.0.yaml"
 # The six gated firing-hook signatures as authored in manifest-v1.2.0.yaml.
 _SIX_SIGNATURES = [
     "check_floor_hash", "floor-hash-verify", "canonical_freshness",
-    "toc-freshness", "session_end_backpressure", "closure",
+    "toc-freshness", "session_end_backpressure", "propose_closures:",
 ]
 
 
@@ -113,6 +113,37 @@ def test_oracle_empty_expect_raises():
 def test_oracle_absent_mapping_without_signature_raises():
     with pytest.raises(orc.OracleError):
         orc._parse_expect("x", {"absent": True})
+
+
+# --- signature-breadth discipline ([#253c]) ---
+
+
+def test_signature_breadth_guard_flags_the_closure_case_253c():
+    """[#253c] regression: the bare word `closure` is every failure mode at once — short,
+    separator-free, a partial-word match on review_closures.py, and a substring of the
+    arc prompt's /review-closures. The guard must flag it."""
+    exp = orc.Expectation(component_id="x", kind="hook", status="active", trigger="stop",
+                          observable="hook-stdout", signature="closure", absent=False)
+    o = orc.Oracle(version="t", expectations=(exp,))
+    probs = orc.signature_breadth_problems(o, repo_root=_REPO, arc_prompt=arcmod.ARC_PROMPT)
+    assert any("shorter" in p for p in probs)
+    assert any("bare word" in p for p in probs)
+    assert any("partial-word-matches" in p for p in probs)
+    assert any("arc prompt" in p for p in probs)
+
+
+def test_signature_breadth_real_manifest_is_disciplined_253c():
+    """THE lint gate: every gated signature in the live manifest passes the discipline
+    (longest-stable-substring calibration; re-run after every step-7 recalibration)."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    assert orc.signature_breadth_problems(
+        o, repo_root=_REPO, arc_prompt=arcmod.ARC_PROMPT) == []
+
+
+def test_partial_word_match_semantics_253c():
+    assert orc._is_partial_word_match("closure", "review_closures.py")
+    assert not orc._is_partial_word_match("canonical_freshness", "canonical_freshness_gate.py")
+    assert not orc._is_partial_word_match("closure", "unrelated.py")
 
 
 # --- the observer: gated verdict over the external channels ---

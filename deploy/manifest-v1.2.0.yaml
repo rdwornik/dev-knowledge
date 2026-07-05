@@ -324,7 +324,10 @@ components:
     engages:                    # GATED SIX — firing hook, stop stage
       trigger: stop
       observable: hook-stdout
-      expect: "closure"         # calibrate@step7: propose_closures.py proposal stdout
+      expect: "propose_closures:"   # [#253c] longest stable substring — every propose_closures.py
+                                    # print path starts "propose_closures:". The prior bare word
+                                    # `closure` partial-word-matched review_closures.py AND the arc
+                                    # prompt's /review-closures (breadth leak). calibrate@step7
     artifacts:
       - wiring: "plugin Stop hook -> propose_closures.py (non-blocking, detect-and-propose)"
     roster:

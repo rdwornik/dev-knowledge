@@ -19,6 +19,7 @@ Reads only the spec — never inner narration.
 """
 from __future__ import annotations
 
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -150,6 +151,63 @@ def load_oracle(manifest_path: Path | str) -> Oracle:
     if not exps:
         raise OracleError(f"manifest carries no engages: expectations (pre-Slice-B?): {path}")
     return Oracle(version=version, expectations=tuple(exps))
+
+
+# ---------------------------------------------------------------------------
+# Signature-breadth discipline ([#253c]): a gated hook-stdout signature must be the
+# LONGEST STABLE SUBSTRING of the hook's own stdout — never a fragment broad enough to
+# match a filename echoed in git output or a generic word in prose (the `closure` case,
+# which matched review_closures.py AND the arc prompt's "/review-closures").
+# ---------------------------------------------------------------------------
+
+_SIG_MIN_LEN = 8
+_SIG_SEPARATORS = set("-_ :.")
+
+
+def _tracked_basenames(repo_root: Path) -> tuple[str, ...]:
+    r = subprocess.run(  # noqa: S603 — fixed argv, no shell
+        ["git", "ls-files"], cwd=str(repo_root), capture_output=True, text=True)
+    if r.returncode != 0:
+        return ()
+    return tuple({line.rsplit("/", 1)[-1] for line in r.stdout.splitlines() if line.strip()})
+
+
+def _is_partial_word_match(sig: str, name: str) -> bool:
+    """True when `sig` occurs inside `name` NOT aligned on word boundaries — i.e. the char
+    before or after the match is alphanumeric. `closure` in `review_closures.py` is partial
+    (followed by `s`); `canonical_freshness` in `canonical_freshness_gate.py` is aligned."""
+    start = name.find(sig)
+    while start != -1:
+        before = name[start - 1] if start > 0 else ""
+        after = name[start + len(sig)] if start + len(sig) < len(name) else ""
+        if not (before.isalnum() or after.isalnum()):
+            return False  # this occurrence is boundary-aligned -> not partial
+        start = name.find(sig, start + 1)
+    return name.find(sig) != -1
+
+
+def signature_breadth_problems(oracle: Oracle, *, repo_root: Path | None = None,
+                               arc_prompt: str | None = None) -> list[str]:
+    """Lint every GATED hook-stdout signature for over-breadth ([#253c]). Returns a flat
+    problem list (empty == disciplined). Checks: minimum length; contains a separator
+    (a bare alphabetic word is generic prose); no partial-word match inside a tracked
+    filename (git-output echo risk); not a substring of the arc prompt (which echoes
+    into the transcript as a user message)."""
+    problems: list[str] = []
+    names = _tracked_basenames(repo_root) if repo_root else ()
+    for exp in oracle.gated:
+        sig, cid = exp.signature, exp.component_id
+        if len(sig) < _SIG_MIN_LEN:
+            problems.append(f"{cid}: signature {sig!r} shorter than {_SIG_MIN_LEN} chars")
+        if not any(c in _SIG_SEPARATORS for c in sig):
+            problems.append(f"{cid}: signature {sig!r} is a bare word (no separator) — generic")
+        for name in names:
+            if _is_partial_word_match(sig, name):
+                problems.append(
+                    f"{cid}: signature {sig!r} partial-word-matches tracked file {name!r}")
+        if arc_prompt and sig in arc_prompt:
+            problems.append(f"{cid}: signature {sig!r} appears in the arc prompt itself")
+    return problems
 
 
 def _repo_root() -> Path:
