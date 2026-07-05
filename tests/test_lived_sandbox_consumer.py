@@ -1,0 +1,195 @@
+"""Layer-1 (hermetic, offline) tests for the CONSUMER measurement seam ([#252] Phase 0.5).
+
+Frozen-ruling coverage: oracle = HUB manifest (never the consumer's); partial-mesh consumer
+-> FAIL-by-coverage, not a crash; observe-as-is (no shaping flags); C1 (narration never
+evidence); verbatim evidence quotes; CLI exit semantics 0/1/2.
+"""
+from __future__ import annotations
+
+import contextlib
+import sys
+import types
+from pathlib import Path
+
+_REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_REPO / "deploy"))
+
+from lived_sandbox import arc as arcmod  # noqa: E402
+from lived_sandbox import cli  # noqa: E402
+from lived_sandbox import consumer as con  # noqa: E402
+from lived_sandbox import observe as obs  # noqa: E402
+from lived_sandbox import oracle as orc  # noqa: E402
+from lived_sandbox import spawn as sp  # noqa: E402
+
+_MANIFEST_V120 = _REPO / "deploy" / "manifest-v1.2.0.yaml"
+
+_SIX_SIGNATURES = [
+    "check_floor_hash", "floor-hash-verify", "canonical_freshness",
+    "toc-freshness", "session_end_backpressure", "closure",
+]
+
+
+def _tool_result(text: str) -> dict:
+    return {"type": "user", "message": {"role": "user",
+            "content": [{"type": "tool_result", "content": text}]}}
+
+
+def _assistant_text(text: str) -> dict:
+    return {"type": "assistant", "message": {"role": "assistant",
+            "content": [{"type": "text", "text": text}]}}
+
+
+def _tool_use(name: str, command: str) -> dict:
+    return {"type": "assistant", "message": {"role": "assistant",
+            "content": [{"type": "tool_use", "name": name, "input": {"command": command}}]}}
+
+
+def _events(signatures: list[str], *, with_command: bool = True) -> list[dict]:
+    evs = [_tool_result(f"hook fired: {s}....Passed") for s in signatures]
+    if with_command:
+        evs.append(_tool_use("SlashCommand", "/review-closures"))
+    return evs
+
+
+def _oracle() -> orc.Oracle:
+    return orc.load_oracle(_MANIFEST_V120)
+
+
+def _report(events: list[dict], *, gate_ok: bool = True) -> con.ConsumerReport:
+    o = _oracle()
+    gate = arcmod.GateZero(gate_ok, gate_ok, gate_ok)
+    return con.build_report("X:/consumer", gate, obs.observe(events, o), o, events)
+
+
+# --- coverage verdicts -------------------------------------------------------------------
+
+
+def test_full_coverage_consumer_is_full():
+    r = _report(_events(_SIX_SIGNATURES))
+    assert (r.coverage_fired, r.coverage_total) == (6, 6)
+    assert r.tombstones_ok and r.full_coverage
+    assert "VERDICT: FULL-COVERAGE" in r.summary()
+
+
+def test_partial_mesh_consumer_fails_by_coverage_not_crash():
+    """THE frozen-ruling case: a partial-mesh consumer measures as FAIL-by-coverage."""
+    r = _report(_events(["canonical_freshness", "check_floor_hash"]))
+    assert (r.coverage_fired, r.coverage_total) == (2, 6)
+    assert not r.full_coverage
+    assert "FAIL-by-coverage" in r.summary()
+    assert "2-of-6 enforcing" in r.summary()
+    silent = {f.component_id for f in r.observation.silences}
+    assert len(silent) == 4  # the four un-fired gated-active hooks are named SILENT
+
+
+def test_tombstone_regression_blocks_full_coverage():
+    evs = _events(_SIX_SIGNATURES) + [_tool_result("Ruff lint gate....Passed")]
+    r = _report(evs)
+    assert r.coverage_fired == 6 and not r.tombstones_ok and not r.full_coverage
+    assert "tombstones REGRESSED" in r.summary()
+
+
+def test_gate_fail_report_still_builds():
+    r = _report(_events(_SIX_SIGNATURES), gate_ok=False)
+    assert not r.gate.passed and r.coverage_fired == 6  # measurement survives; caller labels it
+
+
+# --- evidence quotes (C1 + masking) ------------------------------------------------------
+
+
+def test_evidence_lines_are_verbatim_hook_stdout():
+    r = _report(_events(["canonical_freshness"]))
+    (lines,) = (v for k, v in r.evidence.items() if k == "canonical-freshness")
+    assert lines == ("hook fired: canonical_freshness....Passed",)
+    assert "| hook fired: canonical_freshness....Passed" in r.summary()
+
+
+def test_narration_never_produces_evidence_C1():
+    evs = [_assistant_text("canonical_freshness fired, floor-hash-verify OK, all good!")]
+    r = _report(evs)
+    assert r.coverage_fired == 0 and not r.evidence
+
+
+def test_evidence_masks_a_key_shaped_token():
+    evs = [_tool_result("canonical_freshness saw sk-ant-abcdefgh12345678 in env")]
+    lines = con.evidence_lines(evs, _oracle())
+    assert all("sk-ant-abcdefgh" not in ln for ls in lines.values() for ln in ls)
+    assert any("MASKED" in ln for ls in lines.values() for ln in ls)
+
+
+# --- run_consumer_arc: hub oracle, consumer without a manifest ---------------------------
+
+
+def test_run_consumer_arc_uses_hub_oracle_never_consumer_manifest(tmp_path, monkeypatch):
+    """The consumer clone carries NO manifest — the oracle must come from the hub root."""
+    consumer_repo = tmp_path / "consumer"
+    consumer_repo.mkdir()
+    clone_dir = tmp_path / "clone"
+    clone_dir.mkdir()
+
+    @contextlib.contextmanager
+    def fake_clone(source, prefix="x"):
+        assert Path(source) == consumer_repo.resolve()
+        yield clone_dir, {}
+
+    def fake_spawn(work_dir, prompt, *, config_dir, api_key, model="sonnet",
+                   extra_env=None, timeout=0):
+        assert Path(work_dir) == clone_dir  # the arc runs INSIDE the clone, never the source
+        stdout = arcmod.PROVENANCE_MARKER + "\nhook fired: canonical_freshness....Passed"
+        return sp.SpawnResult(exit_code=0, stdout=stdout,
+                              events=_events(["canonical_freshness"], with_command=False),
+                              transcript_path=None, config_dir=tmp_path / "cfg",
+                              work_dir=clone_dir)
+
+    monkeypatch.setattr(sp, "sandbox_clone", fake_clone)
+    monkeypatch.setattr(sp, "spawn", fake_spawn)
+    report = con.run_consumer_arc(consumer_repo, hub_root=_REPO, api_key="k")
+    assert report.oracle_version == "1.2.0"          # hub manifest, not a consumer file
+    assert report.gate.passed
+    assert (report.coverage_fired, report.coverage_total) == (1, 6)
+    assert not report.full_coverage
+
+
+# --- CLI seam ----------------------------------------------------------------------------
+
+
+class _FakeReport:
+    def __init__(self, *, gate_ok: bool, full: bool):
+        self.gate = types.SimpleNamespace(passed=gate_ok)
+        self.full_coverage = full
+
+    def summary(self) -> str:
+        return "fake consumer report"
+
+
+def _run_cli(monkeypatch, argv, *, gate_ok=True, full=False):
+    monkeypatch.setattr(con, "run_consumer_arc",
+                        lambda c, model: _FakeReport(gate_ok=gate_ok, full=full))
+    return cli.main(argv)
+
+
+def test_cli_consumer_full_coverage_exit_0(monkeypatch, capsys):
+    assert _run_cli(monkeypatch, ["observe-arc", "--consumer", "X:/c"], full=True) == 0
+    assert "fake consumer report" in capsys.readouterr().out
+
+
+def test_cli_consumer_partial_coverage_exit_2(monkeypatch):
+    assert _run_cli(monkeypatch, ["observe-arc", "--consumer", "X:/c"], full=False) == 2
+
+
+def test_cli_consumer_gate_fail_exit_1_report_printed(monkeypatch, capsys):
+    assert _run_cli(monkeypatch, ["observe-arc", "--consumer", "X:/c"], gate_ok=False) == 1
+    captured = capsys.readouterr()
+    assert "fake consumer report" in captured.out       # measurement still printed
+    assert "NOT trusted" in captured.err
+
+
+def test_cli_consumer_requires_a_value(capsys):
+    assert cli.main(["observe-arc", "--consumer"]) == 2
+    assert "requires a <repo-path>" in capsys.readouterr().err
+
+
+def test_cli_consumer_refuses_freeze_and_leg_e(capsys):
+    assert cli.main(["observe-arc", "--consumer", "X:/c", "--freeze"]) == 2
+    assert cli.main(["observe-arc", "--consumer", "X:/c", "--leg-e"]) == 2
+    assert "observe-as-is" in capsys.readouterr().err
