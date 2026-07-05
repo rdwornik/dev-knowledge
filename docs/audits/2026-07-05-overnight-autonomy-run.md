@@ -154,4 +154,89 @@ failure mode changed (refusal → permission stall); freshness-gate delta invisi
 
 ---
 
-*(Appended at subsequent block boundaries.)*
+## BLOCK C — audit-vs-reality diff — **DELIVERED** (merge `39ddd00`)
+
+`docs/audits/2026-07-05-audit-vs-reality.md`: all **106 findings** of the five 2026-07-04
+audits classified vs `main` — BUILT 12 / PARTIAL 20 / PENDING 53 / REJECTED 7 / INFO 14 /
+**UNKNOWN 0, zero unaccounted** — with the 24h-improvement synthesis + residual-concentration
+read. Drafted by a read-only fan-out pass; spot-verified in the main session across three
+verdict classes (ROUTING.md live-read PENDING ✓, anti-bluff rung BUILT-on-main ✓, manifest
+INC-1 stale-claim ✓ — all three confirmed the draft).
+
+## BLOCK D — §5/§13 spec-arc + #164 + doc-counts — **SHIPPED** (merge `df645c5`)
+
+HANDOFF_PROCESS **5.3→5.4, additive only** (§5 "Structural enforcement — anti-bluff by
+construction" documenting the `9d5ebe5` option-b mechanism; §13 generator note with the
+honest adoption caveat; v5.4 history entry). **Coupled atomic move landed green**: 5
+`reconciled_with` edges @5.4 (site-enumerated; the additive diff bounds staleness to
+version-strings — 6 stale sites found, all fixed), CONTRIBUTING stamp + amendment clause,
+3 PLAYBOOK advisory strings, genuine re-reads + re-stamps of ARCHITECTURE / CLAUDE /
+CONTRIBUTING / handoffs-README (currency drift found by the reads and fixed: CONTRIBUTING's
+missing `roster-freshness` row; ARCHITECTURE's probe-bullet missing the v5.4 answer-hint
+rung; CLAUDE v2.28). #164 annotated keep-open (net-trimmed vs the doc_rot threshold);
+doc-counts regenerated (zero diff). Gates: `reconciled_versions` 5/5, `handoff_version_stamp`
+v5.4, `amendment_coherence`, `canonical_freshness` 6/6, 305 module tests green.
+**Known new WARN left standing LOUD (deliberate):** HANDOFF_PROCESS section-history hit the
+12-entry doc_rot threshold — the v5.4 entry is mandatory; condensation is operator-gated and
+dispositioning a NEW warn is envelope-forbidden → queued for the operator (**SA-4**).
+
+## BLOCK E — plan-only drafts — **DELIVERED** (merge `e2c5e55`)
+
+`2026-07-05-draft-tier2-nightly-layer.md` (load-gauge FIRST per the standing operator rule;
+frozen ex-ante funnel-shrink metric M1/M2 + pre-registered kill criterion) and
+`2026-07-05-draft-tier3-claudemd-generability.md` (~35–40% of CLAUDE.md derivable via the
+roster @import seam; five migration risks incl. the doc_claims check-leg retirement;
+enumeration-not-template rule). Nothing built.
+
+## SELF-ADJUDICATION LEDGER (consolidated — the morning architect's queue)
+
+1. **SEQ-1** — Block A run before Phase 0.5 (dependency-clean sequencing; §above).
+2. **SEQ-2** — Phase 0.5 built off the Slice-B tip; its `--no-ff` merge DEFERRED
+   (`feat/consumer-arc` pushed @ `1655789`, unmerged — merging would land Slice-B outside
+   its Step-7 contract). **Decision needed: merge order for consumer-arc vs Slice-B.**
+3. **AC-1** — ai-council relic `core.hooksPath` unset + hooks armed (old value recorded in
+   the Block-B section — one-line restore if deliberate; every gate had been silently
+   bypassed since the repo moved).
+4. **AC-2** — ai-council left UNPUSHED (its main now ahead 5: the operator's 3 pre-existing
+   commits + the CLAUDE.md re-review merge `75006db`). **Decision needed: push.**
+5. **SA-3** — the 5-edge re-stamp checklist compressed to the diff-scoped form (full
+   per-site lists omitted from the commit message; rationale + the 6 stale sites in
+   `309399c`'s message; enumerator outputs preserved in the session transcript).
+6. **SA-4** — the 12-entry section-history WARN left standing loud (above).
+7. **[#253] rulings (a)–(d)** — arc permission wall / observer C1 result-field leak /
+   `closure` signature breadth / hub-clone marker confound (filed in BACKLOG).
+
+## SAFETY SELF-REPORT — **zero envelope violations**
+
+- Scope held: `.dev-knowledge` + `ai-council` only; no corp-*; no OneDrive path touched.
+- Secrets: nothing read from `.secrets`; key from env only (profile-loaded shell), never
+  echoed, never written to disk; 5 live spawns, ALL through the lived_sandbox harness
+  (smoke, green-freeze, consumer ×3); no fixture frozen (GATE-0 refused); zero temp
+  leftovers verified after the failure path.
+- Discipline: single lane serial; 6 hub merges + 1 ai-council merge, one at a time, all
+  `--no-ff`; every push at a block boundary; no gate weakened or bypassed; no `--no-verify`;
+  no disposition added; every freshness re-stamp rode a genuine read; no content deleted
+  (BACKLOG trims net-neutral, facts retained in git/JOURNAL); no new top-level folders;
+  ai-council never pushed.
+
+## WINDOW BOUNDARIES
+
+Single window (window 1, Fable) — no token-death resume was needed; the BOOT protocol was
+validated at Phase 0.3 and by the committed-state resume points at every block boundary.
+
+## VERDICT vs the night objective function
+
+- **Minimum success: NOT MET** — Block A (C4 closure + #252 ship) DEGRADED per its frozen
+  contract on a real GATE-0 confound; the Block C artifact half IS delivered.
+- **Full-success components: DELIVERED** — Block B honest coverage measurement recorded
+  (both runs + a deterministic-refusal retry, GATE-0 PROVEN 3/3 on a real consumer,
+  [#253] filed) and Block D shipped green.
+- **Hard zero: MET** — no safety-envelope violation; every self-adjudication logged; every
+  block closed with evidence SHAs or explicitly DEGRADED with reason.
+- Net: the night's priority-#1 lane (prove the hub on ai-council like a sandbox) advanced to
+  its two real blockers — the GATE-0 hub-clone confound and the arc permission/refusal wall —
+  both now named, evidenced, and queued with rulings rather than silently green.
+
+Evidence spine (hub `main`): `5ed18b2` (Phase 0 + Block A) → `b557239` (Block B + [#253]) →
+`39ddd00` (Block C) → `df645c5` (Block D) → `e2c5e55` (Block E) → this wrap. Branch:
+`feat/consumer-arc` @ `1655789` (pushed, unmerged). ai-council local: `75006db`.
