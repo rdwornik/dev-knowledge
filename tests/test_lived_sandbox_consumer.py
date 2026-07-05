@@ -184,6 +184,24 @@ def test_cli_consumer_gate_fail_exit_1_report_printed(monkeypatch, capsys):
     assert "NOT trusted" in captured.err
 
 
+def test_cli_consumer_sandbox_error_is_concise_exit_1(monkeypatch, capsys):
+    """Codex HIGH 2026-07-05: expected live failures never escape as tracebacks."""
+    def boom(c, model):
+        raise sp.SandboxError("clone failed: not a git repo")
+    monkeypatch.setattr(con, "run_consumer_arc", boom)
+    assert cli.main(["observe-arc", "--consumer", "X:/c"]) == 1
+    err = capsys.readouterr().err
+    assert "consumer measurement could not run" in err and "not a git repo" in err
+
+
+def test_cli_consumer_oracle_error_is_concise_exit_1(monkeypatch, capsys):
+    def boom(c, model):
+        raise orc.OracleError("manifest not found")
+    monkeypatch.setattr(con, "run_consumer_arc", boom)
+    assert cli.main(["observe-arc", "--consumer", "X:/c"]) == 1
+    assert "manifest not found" in capsys.readouterr().err
+
+
 def test_cli_consumer_requires_a_value(capsys):
     assert cli.main(["observe-arc", "--consumer"]) == 2
     assert "requires a <repo-path>" in capsys.readouterr().err

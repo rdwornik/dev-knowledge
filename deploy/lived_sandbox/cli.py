@@ -136,9 +136,16 @@ def cmd_observe_arc(freeze: bool, model: str, leg_e: str | None) -> int:
 
 def cmd_observe_consumer(consumer: str, model: str) -> int:
     """Measure a REAL consumer against the HUB oracle ([#252] Phase 0.5). The report is
-    printed even on a failed gate (labeled untrusted) — measurement is the deliverable."""
+    printed even on a failed gate (labeled untrusted) — measurement is the deliverable.
+    Expected live failures (auth/clone/spawn/oracle) exit concisely, never as tracebacks
+    (Codex HIGH 2026-07-05)."""
     from . import consumer as _consumer
-    report = _consumer.run_consumer_arc(consumer, model=model)
+    from . import oracle as _oracle
+    try:
+        report = _consumer.run_consumer_arc(consumer, model=model)
+    except (_spawn.SandboxError, _oracle.OracleError) as exc:
+        print(f"consumer measurement could not run: {exc}", file=sys.stderr)
+        return 1
     print(report.summary())
     if not report.gate.passed:
         print("GATE-0 FAILED — isolation unproven; the measurement above is NOT trusted.",
