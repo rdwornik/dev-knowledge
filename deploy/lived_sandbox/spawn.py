@@ -79,7 +79,8 @@ def _hook_print(marker: str) -> str:
 
 
 def write_isolated_config(config_dir: Path, *, session_start_marker: str | None = None,
-                          allow_rules: tuple[str, ...] | None = None) -> Path:
+                          allow_rules: tuple[str, ...] | None = None,
+                          sanction: str | None = None) -> Path:
     """Create an ISOLATED CLAUDE_CONFIG_DIR seeded with a minimal settings.json.
 
     Empty hooks by default. If `session_start_marker` is given, install ONE SessionStart hook
@@ -91,6 +92,12 @@ def write_isolated_config(config_dir: Path, *, session_start_marker: str | None 
     allowlist — exactly the operations the sanctioned arc needs, enumerated by the caller.
     NEVER a bypass: no bypassPermissions / defaultMode escape is ever written here; anything
     outside the allowlist still hits the normal permission wall.
+
+    `sanction` (G3, measurement-#2 root ruling): authorization travels through the OWNED-CONFIG
+    channel, never prompt prose — the text lands as this profile's user-level CLAUDE.md (the
+    principal's channel on a real machine), declaring the scoped, ex-ante operator consent in
+    the config's own voice. A prompt-embedded claim of authority reads as injection to a
+    floor-carrying child (witnessed at measurement #2); a config-carried one is standing consent.
     """
     config_dir = Path(config_dir)
     config_dir.mkdir(parents=True, exist_ok=True)
@@ -102,6 +109,8 @@ def write_isolated_config(config_dir: Path, *, session_start_marker: str | None 
         settings["permissions"] = {"allow": list(allow_rules)}
     (config_dir / "settings.json").write_text(
         json.dumps(settings, indent=2), encoding="utf-8", newline="\n")
+    if sanction:
+        (config_dir / "CLAUDE.md").write_text(sanction, encoding="utf-8", newline="\n")
     return config_dir
 
 

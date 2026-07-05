@@ -520,11 +520,49 @@ def test_arc_allow_rules_are_scoped_to_the_arc_253a():
     assert "SlashCommand(/review-closures)" in arcmod.ARC_ALLOW_RULES  # the one command act
 
 
-def test_arc_prompt_honestly_self_legitimizing_253a():
-    """[#253a]: sanctioned test-harness CONTEXT stated in the prompt — context, not trickery."""
-    p = arcmod.ARC_PROMPT.lower()
-    assert "sanctioned" in p and "test-harness" in p and "throwaway" in p
-    assert "authorized" in p
+def test_arc_prompt_references_config_sanction_g3():
+    """G3 (supersedes the [#253a] self-legitimizing preamble): the prompt only REFERENCES the
+    owned-config sanction — it no longer asserts its own authority (measurement #2 witnessed
+    a floor-carrying child rightly refusing a prompt-embedded authority claim as injection)."""
+    p = arcmod.ARC_PROMPT
+    assert "CLAUDE.md" in p and "consent" in p.lower()
+    assert "SANCTIONED test-harness" not in p        # the superseded self-legitimizing claim
+    assert "This work is authorized" not in p        # authority claims live in the config now
+    # The mechanics are unchanged: same four steps, same refusals, same terse reply contract.
+    for step in ("git checkout -b feat/sandbox-arc", "SANDBOX_ARC.md",
+                 "git add -A && git commit", "/review-closures", "Do NOT push", "ARC DONE"):
+        assert step in p
+
+
+def test_sanction_lands_as_user_level_claude_md_g3(tmp_path):
+    """G3: the sanction is written as the isolated profile's own CLAUDE.md — the principal's
+    channel — by the ONE shared builder both arc paths use (the measurement-#2 failure was
+    exactly this seam existing on one path only)."""
+    cfg = arcmod.arc_isolated_config(tmp_path / "cfg")
+    text = (cfg / "CLAUDE.md").read_text(encoding="utf-8")
+    assert text == arcmod.ARC_SANCTION
+    # Scoped consent: the four arc operations, the floor otherwise intact, no blanket grant.
+    for needle in ("feat/sandbox-arc", "SANDBOX_ARC.md", "/review-closures",
+                   "remains fully in force", "do not push"):
+        assert needle in text
+    # And the settings side carries the [#253a] allowlist (full parity through the builder).
+    raw = (cfg / "settings.json").read_text(encoding="utf-8")
+    assert json.loads(raw)["permissions"]["allow"] == list(arcmod.ARC_ALLOW_RULES)
+    assert "bypassPermissions" not in raw
+
+
+def test_sanction_never_carries_the_provenance_marker_g3():
+    """GATE-0 soundness guard: the sanction text can echo into the child transcript, so the
+    LITERAL provenance token inside it would hand the positive control a false-positive
+    channel (marker present without the SessionStart hook firing). Prefix mention only."""
+    assert arcmod.PROVENANCE_MARKER not in arcmod.ARC_SANCTION
+    assert "LSANDBOX" in arcmod.ARC_SANCTION  # the explanation stays (prefix, not the token)
+
+
+def test_write_isolated_config_without_sanction_writes_no_claude_md_g3(tmp_path):
+    """Slice-A callers (prove-isolation) are unchanged: no sanction -> no CLAUDE.md."""
+    cfg = sp.write_isolated_config(tmp_path / "cfg", session_start_marker="M")
+    assert not (cfg / "CLAUDE.md").exists()
 
 
 _RUFF_EXPECTED_BLOCK = {
