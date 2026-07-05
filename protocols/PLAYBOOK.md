@@ -75,7 +75,7 @@
   - [Recursive planning anti-pattern](#recursive-planning-anti-pattern)
   - [Session resumption protocol](#session-resumption-protocol)
   - [Parallel sessions & worktree discipline (per ADR-61)](#parallel-sessions--worktree-discipline-per-adr-61)
-  - [No leftovers: automated processes clean up — and verify it (invariant)](#no-leftovers-automated-processes-clean-up--and-verify-it-invariant)
+  - [Tree orchestration — architect-root + epic-chat lanes (ADR-97)](#tree-orchestration--architect-root--epic-chat-lanes-adr-97)
 - [Ch9. Tier-1 closure loop — usage](#ch9-tier-1-closure-loop--usage)
   - [Propagating a plugin change across the fleet](#propagating-a-plugin-change-across-the-fleet)
 - [Ch10. Two-tier automation doctrine](#ch10-two-tier-automation-doctrine)
@@ -1383,7 +1383,38 @@ Full rationale: ADR-61 (as superseded by the #107 native-worktree convention). T
 the worktree-specific case of the broader rule that any automated or scratch-creating process
 cleans up — and verifies it cleaned up — everything it created (the no-leftovers invariant, next).
 
-### No leftovers: automated processes clean up — and verify it (invariant)
+### Tree orchestration — architect-root + epic-chat lanes (ADR-97)
+<!-- scope: meta -->
+
+**Extends the worktree discipline above from CC sessions to whole browser lanes** (additive —
+every rule above still holds; formalizes the 2026-07-04 lived precedent). Handoff contracts:
+HANDOFF_PROCESS §14 (§14a EPIC handoff / §14b EPIC RETURN). Decision record: ADR-97.
+
+**The tree.** **Root** = the one architect chat: owns ADRs, backlog structure, epic
+decomposition, the parallelism ruling, plan review at epic level, ALL merges to main (serial,
+`--no-ff`), closure declaration, and worktree lifecycle. **Branch** = epic chats — one browser
+chat + one root-provisioned worktree per epic (branch `epic/<slug>`), each owning one epic
+end-to-end (story decomposition, CC delegations, review, own-epic BACKLOG checkboxes); they
+commit-and-STOP. **Leaf** = user stories, executed by CC sessions serialized on the epic branch
+(commit-per-story). Worktree per EPIC, not per story — a genuinely disjoint large story gets a
+sub-worktree only by architect escalation, never self-provisioned.
+
+**The file-boundary mechanism.** Each epic lane's §14a handoff declares the explicit file/dir
+set it may touch — the parallelism ruling made mechanical. Two concurrent epics MUST have
+disjoint boundaries (adjudicated by the root **at spawn, not discovered at merge**); a needed
+file outside the boundary = escalate, don't touch. This generalizes "disjoint substantive
+files?" (step 0 above) from a self-check into a root-issued contract.
+
+**Root-only merges.** Only the root merges to main, one merge at a time — the never-self-merge
+rule (step 4 above) generalized from CC sessions to whole lanes. An epic lane never merges,
+never writes ADRs, never restructures the backlog, never provisions or tears down worktrees.
+Structural BACKLOG changes travel in the §14b EPIC RETURN and are applied by the root at
+integration (lanes tick checkboxes only inside their own epic block); JOURNAL entries merge
+chronologically, both kept (the trivial-conflict rule above).
+
+**The cap: 2–3 concurrent epic lanes.** The root's review + serial-merge bandwidth is the
+deliberate bottleneck — more lanes queue at the gate, they don't add throughput. Authority does
+not descend; every lane boots from a generated §14a handoff and closes with a §14b return.
 <!-- scope: meta -->
 
 **Invariant.** Any automated or scratch-creating process — a parallel-session worktree (above),
