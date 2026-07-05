@@ -305,6 +305,55 @@ def test_mirror_skips_nongit_source_and_urls_g7(tmp_path):
     assert not (tmp_path / "sandbox" / "ghost").exists()
 
 
+def test_mirror_nonmapping_yaml_is_a_noted_noop_codex_high(tmp_path):
+    """Codex HIGH 2026-07-06: a syntactically valid but NON-MAPPING pre-commit YAML
+    (list/scalar) — or unparseable YAML — must be a NOTED no-op, never an AttributeError
+    that crashes the harness before spawn."""
+    real_consumer = tmp_path / "real" / "consumer"
+    real_consumer.mkdir(parents=True)
+    clone = tmp_path / "sandbox" / "clone"
+    clone.mkdir(parents=True)
+    cfg = clone / ".pre-commit-config.yaml"
+    for body, needle in (
+            ("- just\n- a\n- list\n", "not a mapping"),
+            ("scalar-only\n", "not a mapping"),
+            ("repos: {not: {valid", "not parseable"),
+            ("repos: 42\n", None)):                      # mapping, repos non-list -> silent no-op
+        cfg.write_text(body, encoding="utf-8")
+        notes = con.mirror_relative_precommit_sources(real_consumer, clone)  # must not raise
+        if needle:
+            assert any(needle in n for n in notes), (body, notes)
+        else:
+            assert notes == []
+
+
+def test_mirror_notes_surface_in_the_report_codex_high(tmp_path, monkeypatch):
+    """Codex HIGH 2026-07-06: mirror diagnostics ride the ConsumerReport — a missing
+    sibling repo / escape-skip / clone failure is distinguishable from hook silence."""
+    consumer_repo = tmp_path / "consumer"
+    consumer_repo.mkdir()
+    clone_dir = tmp_path / "clone"
+    clone_dir.mkdir()
+    (clone_dir / ".pre-commit-config.yaml").write_text(
+        "repos:\n- repo: ../ghost\n  hooks: []\n", encoding="utf-8")
+
+    @contextlib.contextmanager
+    def fake_clone(source, prefix="x"):
+        yield clone_dir, {}
+
+    def fake_spawn(work_dir, prompt, *, config_dir, api_key, model="sonnet",
+                   extra_env=None, timeout=0):
+        return sp.SpawnResult(exit_code=0, stdout=arcmod.PROVENANCE_MARKER, events=[],
+                              transcript_path=None, config_dir=Path(config_dir),
+                              work_dir=clone_dir)
+
+    monkeypatch.setattr(sp, "sandbox_clone", fake_clone)
+    monkeypatch.setattr(sp, "spawn", fake_spawn)
+    report = con.run_consumer_arc(consumer_repo, hub_root=_REPO, api_key="k")
+    assert any("not a git repo on the real machine" in n for n in report.mirror_notes)
+    assert "~ mirror: SKIPPED mirror '../ghost'" in report.summary()
+
+
 def test_run_consumer_arc_seeds_arc_allowlist_g1(tmp_path, monkeypatch):
     """G1 (measurement-#2 root ruling): the consumer child's HARNESS-OWNED user-level config
     carries the scoped #253a allowlist — the untrusted sandbox workspace IGNORES the clone's
