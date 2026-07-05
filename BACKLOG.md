@@ -170,9 +170,9 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 ### Epic 3 — doc-consolidation (slug: doc-consolidation) — Wave-2 lane (ADR-97)
 So that ESSENTIALS is a true 1–2-page session frame with every canonical detail living ONCE in PLAYBOOK, and CLAUDE.md's derivable sections are generated, not hand-synced.
 - [#258] [P2][L] Epic 3 lane — doc-consolidation (stories = checkboxes below; FULL scope-contract: the EPIC_BOOT bundle). BOUNDARY may-touch: protocols/ESSENTIALS.md, protocols/PLAYBOOK.md, hub CLAUDE.md (generability seam only), new scripts/ generator if needed, this block, JOURNAL (append); NOT: ARCHITECTURE.md, audit.py, templates/, deploy/**, doc-counts (root regenerates at integration). S1 deletion list travels in the EPIC RETURN for operator approval BEFORE merge. Lane rules: own-block checkboxes only; commit-and-STOP + EPIC RETURN (§14b); escalate any boundary need. · Done when: ESSENTIALS ≤ its charter length with zero canonical detail duplicated against PLAYBOOK AND generability phase-1 sections generated-not-authored AND gates green on branch · refs ADR-97, docs/handoffs/2026-07-05-dev-knowledge-epic-doc-consolidation/, #220, #213 · serialize-group: playbook · serialize-group: claude-md
-  - [ ] S1 ESSENTIALS back to charter (deletion list → EPIC RETURN, operator-gated)
-  - [ ] S2 PLAYBOOK absorbs orphaned canonical detail
-  - [ ] S3 CLAUDE.md generability phase 1 (roster @import seam)
+  - [x] S1 ESSENTIALS back to charter (deletion list → EPIC RETURN, operator-gated)
+  - [x] S2 PLAYBOOK absorbs orphaned canonical detail
+  - [x] S3 CLAUDE.md generability phase 1 (roster @import seam)
   - [ ] S4 #220 semantic-currency (only if natural fallout)
 
 ### Epic 4 — LLM-first canonical docs (slug: llm-first-docs) — Wave-2 lane (ADR-97)

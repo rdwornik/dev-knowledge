@@ -33,6 +33,7 @@
 - [Ch3. Repo conventions](#ch3-repo-conventions)
   - [Default branch — `main`](#default-branch--main)
   - [File naming conventions](#file-naming-conventions)
+  - [Commit message standard](#commit-message-standard)
   - [Folder structure](#folder-structure)
   - [Root hygiene convention](#root-hygiene-convention)
   - [Additional root hygiene rules (added 2026-05-24, root hygiene pass 2)](#additional-root-hygiene-rules-added-2026-05-24-root-hygiene-pass-2)
@@ -46,6 +47,7 @@
   - [Standard structure (8 sections)](#standard-structure-8-sections)
   - [Per-Scale guidance](#per-scale-guidance)
   - [Delivery format](#delivery-format)
+  - [Architect → operator channel-discipline (execution actions)](#architect--operator-channel-discipline-execution-actions)
   - [Pre-send checklist](#pre-send-checklist)
   - [Anti-patterns](#anti-patterns)
   - [Checkable rules: concrete over aspirational](#checkable-rules-concrete-over-aspirational)
@@ -95,6 +97,7 @@
 - [Ch12. Definition of done (organs)](#ch12-definition-of-done-organs)
   - [Definition of shipped (closure gate)](#definition-of-shipped-closure-gate)
 - [Ch13. Continuous Improvement](#ch13-continuous-improvement)
+  - [Project-evolution posture (always be improving)](#project-evolution-posture-always-be-improving)
   - [Pipeline overview](#pipeline-overview)
   - [Stage 1: Discovery](#stage-1-discovery)
   - [Stage 2: Triage](#stage-2-triage)
@@ -161,6 +164,10 @@
 - [8. Handing Off Between Sessions](#8-handing-off-between-sessions)
   - [What the v5 handoff carries](#what-the-v5-handoff-carries)
   - [Roles](#roles)
+  - [Architect epistemic discipline: explicit verification markers](#architect-epistemic-discipline-explicit-verification-markers)
+  - [Architect epistemic discipline: completion claims require state verification](#architect-epistemic-discipline-completion-claims-require-state-verification)
+  - [Architect routing for technical proposals](#architect-routing-for-technical-proposals)
+  - [Artifact generation direction](#artifact-generation-direction)
   - [Handoff paths](#handoff-paths)
   - [Token log cadence](#token-log-cadence)
   - [Output the operator copies into browser chat (render-layer note)](#output-the-operator-copies-into-browser-chat-render-layer-note)
@@ -479,6 +486,18 @@ Phase 2 (destructive — explicit confirm before each):
 
 Per ADR-34 (ratified 2026-04-29, amended 2026-05-11). Canonical source: `docs/decisions/ADR-34-file-naming-convention.md`. Key rules: hyphen separator universal across filenames and foldernames; `ADR-NN-topic.md` for decisions; `council-out-YYYYMMDD-HHMMSS-topic.md` for Council CLI output; `DECISION_NN_*` legacy transcripts grandfathered; kebab-case + ISO date for audits/handoffs; UPPERCASE for living docs.
 
+### Commit message standard
+<!-- scope: dev -->
+
+Git history IS the changelog (no CHANGELOG.md since 2026-05-16) — commit messages carry the load CHANGELOG used to. (Moved from ESSENTIALS 2026-07-05, [#258] — ESSENTIALS keeps the pointer.)
+
+- **Conventional Commits.** `type(scope): summary` — types are `feat`, `fix`, `docs`, `refactor`, `test`, `chore`. Scope is optional but use the file/folder slug when it clarifies.
+- **Summary line.** Imperative mood, specific, describes WHAT changed. Under ~72 chars. **Never** "wip", "fix", "updates", "stuff", "various changes".
+- **Body required for any non-trivial change.** WHAT changed and WHY — enough detail that `git log` answers "what happened here" without a separate changelog. One-line typo fixes can skip the body.
+- **One logical change per commit.** If you'd write "and" in the summary, split the commit.
+
+`/save` follows this standard. See CONTRIBUTING.md for live examples and the pre-commit hook list.
+
 ### Folder structure
 <!-- scope: meta -->
 
@@ -613,6 +632,18 @@ Template: `templates/prompt-template.md`
 Prompts are **downloadable `.md` artifacts**, not inline code blocks. Browser chat outputs them as fenced markdown blocks; Rob saves as file, then pastes file content into Claude Code's prompt field.
 
 Why: pasted-as-text is fine, but file form preserves structure for re-use, audit, and handoff.
+
+### Architect → operator channel-discipline (execution actions)
+<!-- scope: meta -->
+
+The browser-chat architect never writes git commands, shell sequences, or executable code inline in chat prose as informational text the operator manually copies. Two channels only, scale-determined (moved from ESSENTIALS 2026-07-05, [#258] — ESSENTIALS keeps the frame + pointer):
+
+- **Scale S** (one command, one mechanical edit, no judgment): PowerShell snippet in a fenced code block; operator copy-pastes and runs as-is.
+- **Scale M+** (multi-step, multi-file, judgment needed, merge ops): Claude Code prompt as a downloadable `.md` file with full structure per this chapter.
+
+**Test:** if the operator has to edit, paraphrase, or interpret anything when copying, the format is wrong.
+
+Sourced from LESSONS #10 (2026-05-13). Architect-side enforcement is operator-review; mechanical enforcement on executor side via the Claude Code harness.
 
 ### Pre-send checklist
 <!-- scope: meta -->
@@ -1622,6 +1653,25 @@ New tools, models, agents, and patterns emerge constantly in 2025-2026 LLM dev (
 
 This section defines the lifecycle: from "I saw something on Twitter" to "we adopted/rejected/deferred."
 
+### Project-evolution posture (always be improving)
+<!-- scope: meta -->
+
+Distinct from the tool-adoption lifecycle below: the default posture for every project. (Moved from ESSENTIALS 2026-07-05, [#258] — ESSENTIALS keeps the one-liner + pointer.)
+
+- Project goal at meta level is continuous development and refinement; specific session goals are immediate scope, the long-term posture is always advancing.
+- Static maintenance is the exception and requires explicit declaration in VISION Lifecycle (e.g., archived project, frozen for compliance).
+- "Feature-complete" never means "done" — it means "no near-term feature additions planned, but improvement continues."
+- Improvements emerge from real usage and lessons, not feature speculation.
+- VISION is reviewed at session boundaries; if a Vision section appears realized, propose the next horizon (per ADR-33 lifecycle pattern).
+
+**Applied to per-repo VISION.md:** the Lifecycle section MUST reflect the continuous-improvement posture unless an explicit static-maintenance declaration with justification exists.
+
+Wrong (frozen state implied):
+> "Feature-complete v1. Active maintenance. No planned major features."
+
+Correct (continuous improvement implied):
+> "Active development with continuous improvement focus. Roadmap reviewed at session boundaries — improvements emerge from real usage and lessons. Static-maintenance posture is exception requiring explicit declaration."
+
 ### Pipeline overview
 <!-- scope: meta -->
 
@@ -2295,6 +2345,7 @@ LEGEND  [A] = architect emits  ·  [CC] = CC self-loads  (per "The two lifelines
 - JOURNAL `Changes:` line in the session entry if files changed (CHANGELOG retired — §14)
 - Bypass permissions (no approval) → almost never, only for trivial read-only operations
 - **Pruning symmetry** — every adding flow gets a review-gated pruning counterpart: CC PROPOSES removals with evidence (superseded-by ADR/commit, dead reference, obsoleted scope), operator ratifies, git history preserves; auto-delete stays forbidden. Point-of-use: the prompt template's Final "obsolescence pass" line (`templates/prompt-template.md`) — every session proposes deletion of content its change supersedes, instead of writing around it. Refs #136, #91 capture, #134 (family pattern), no-delete invariant
+- **Multi-prompt sessions:** if the browser generates 3+ prompts for one feature, check for overlap before running — duplicate context wastes tokens and creates conflicting diffs. (Moved from ESSENTIALS 2026-07-05, [#258].)
 
 ### Prompt Generation Card maintenance rule (per ADR-56, Council Q3)
 <!-- scope: hybrid -->
@@ -2567,7 +2618,7 @@ An ADR reaches the repo by one of **two authorship paths** — choose by the dec
 - **Chat-drafted** — the browser architect drafts the decision in conversation (operator-ruled calls, synthesis, single-correct-fix decisions below the Council gate); **Claude Code** then creates the ADR in-repo with the next number, frontmatter, and template. Default path for operator rulings (e.g. ADR-80 itself).
 - **Council-convened** — an AI Council debate produces a transcript; the **post-debate protocol** (§5) distills it into an ADR, number verified and template-aligned. Used when the decision clears the Council gate (architectural ripple, multi-ADR impact, genuine cross-model uncertainty — e.g. ADR-76 from the local-scheduler debate).
 
-Both paths **converge on the same invariant**: the ADR is generated and committed *in Claude Code* — never hand-pasted from browser chat into the repo (ESSENTIALS "Artifact generation direction"; LESSONS #8) — numbered, frontmatter-stamped, and **immutable thereafter** (changes go through "Amendment vs Reopen", below).
+Both paths **converge on the same invariant**: the ADR is generated and committed *in Claude Code* — never hand-pasted from browser chat into the repo (§8 "Artifact generation direction"; LESSONS #8) — numbered, frontmatter-stamped, and **immutable thereafter** (changes go through "Amendment vs Reopen", below).
 
 ### Amendment vs Reopen Decision Protocol
 <!-- scope: meta -->
@@ -2778,7 +2829,7 @@ After archival, cross-link FROM:
 <!-- scope: hybrid -->
 
 1. Run full test suite
-2. Prepend a JOURNAL.md entry (Did/Result/Changes/Next) if files changed (CHANGELOG retired — §14)
+2. Prepend a JOURNAL.md entry if files changed (CHANGELOG retired — §14). Structure: `### YYYY-MM-DD — <session topic>` header, then bullets — `- Did:` what was actually done · `- Result:` outcome / state on disk · `- Changes:` what files / areas moved (this is the change record — there is no CHANGELOG) · `- Abandoned:` items deliberately dropped (each non-trivial drop also gets a short note in `docs/decisions/`; do not record reasoning inline in JOURNAL) · `- Next:` follow-ups
 3. Update project handoff doc (if exists)
 4. `git status` (must be clean — if "27 modified files", STOP and commit)
 5. Write 3-line handoff note
@@ -2802,7 +2853,100 @@ Canonical: `protocols/HANDOFF_PROCESS.md` §2 (the **residual** CC emits) + §5 
 ### Roles
 <!-- scope: meta -->
 
-Canonical: the architect↔CC **division** is the equilibrium table in **"The two lifelines" § Lifeline 1** (ADR-87); the fuller **Does/Does-NOT** lists + three-layer flow are **ESSENTIALS § Roles** (per ADR-28); the v5 actor table / browser operating role are `protocols/HANDOFF_PROCESS.md` §1 / §7. Not restated here.
+Canonical: the architect↔CC **division** is the equilibrium table in **"The two lifelines" § Lifeline 1** (ADR-87); the v5 actor table / browser operating role are `protocols/HANDOFF_PROCESS.md` §1 / §7. The fuller **Does/Does-NOT** lists + three-layer flow (ADR-28) live below — moved from ESSENTIALS 2026-07-05 ([#258]); ESSENTIALS keeps the day-to-day frame + pointer.
+
+Two distinct LLM contexts collaborate on every workstream. Mixing them = chaos.
+
+**Browser chat (architect)** — strategic thinking, decisions, prompt generation, conversation that won't survive across sessions.
+
+Does:
+- Discusses design, architecture, trade-offs with Rob
+- Writes downloadable `.md` prompts for Claude Code
+- Reviews Claude Code session summaries, decides next step
+- Holds context across one session (not across sessions)
+- References `.dev-knowledge` documents when uploaded
+
+Does NOT:
+- Touch any repo file directly (no filesystem access)
+- Run commands, tests, or git operations
+- Persist memory between conversations
+- Make state-changing decisions without Rob's confirmation
+
+**Claude Code (executor)** — execution, file changes, commits, validations, testing.
+
+Does:
+- Reads CLAUDE.md on session start (auto). Codex reads CLAUDE.md via project_doc_fallback_filenames. CLAUDE.md is the single canonical agent-instruction contract; the handoff process does not narrate or manage it (ADR-53)
+- Executes downloadable prompts from browser chat
+- Modifies files, runs tests, commits, branches
+- Reports session summary back to Rob
+- Has filesystem and shell access
+
+Does NOT:
+- Make architectural decisions without explicit prompt instruction
+- Skip pre-commit hooks or validators
+- Push to remote without Rob's confirmation
+- Operate without a clear prompt — "improvise" is forbidden
+
+**Three-layer flow (per ADR-28):**
+
+```
+Browser chat (analysis)  →  .dev-knowledge (reference)  →  projects (execution)
+                                  ↑
+              both sides read .dev-knowledge for universal rules
+```
+
+- **Information flow:** bidirectional (browser ↔ .dev-knowledge ↔ projects)
+- **Execution flow:** one-way (browser produces prompts → Claude Code executes in projects)
+- **No shortcuts:** browser does not edit project files; Claude Code does not redesign architecture
+
+**When in doubt about which role applies:** "Should we...?" → browser (decision) · "Implement X per spec" → Claude Code (execution) · "What did we decide about Y?" → either, but check `.dev-knowledge` first.
+
+### Architect epistemic discipline: explicit verification markers
+<!-- scope: meta -->
+
+The browser-chat architect distinguishes three claim categories explicitly in handoffs, summaries, and any factual statement about repo state or prior work (moved from ESSENTIALS 2026-07-05, [#258]):
+
+- **Witnessed** — directly observed by the architect (read a file, ran a command, saw a transcript)
+- **Inference** — derived from witnessed evidence but one step removed (e.g. "test must pass because the commit message says so")
+- **Unknown** — not verifiable from current context
+
+Bundle-asserted facts (SHAs, file counts, version pins, prior session claims) are never propagated as Witnessed unless the architect actually verified them. Default for any claim arriving through a handoff bundle is Inference at most, Unknown if not corroborated.
+
+Sourced from LESSONS #1 (2026-05-12). Architect-side enforcement is operator review; ADR-45 Stage 3 verification provides mechanical cross-check on executor side. Companion executor-side discipline: Ch2 "LLM-LLM context transfer is back-and-forth, not unilateral" (verify inline, ask back; don't carry forward unknown).
+
+### Architect epistemic discipline: completion claims require state verification
+<!-- scope: meta -->
+
+Before declaring a session, directive list, or task "done" / "closed" / "complete", the architect verifies against actual state — BACKLOG residuals, untouched scope items, files modified but not committed, things mentioned earlier in chat that were never resolved. Pattern-matched "all done" framing from prompt structure alone is not evidence; it's a failure mode. (Moved from ESSENTIALS 2026-07-05, [#258].)
+
+If the architect cannot verify completion (no filesystem access from browser chat), the claim becomes a question: "based on what I see here, X and Y look complete; please confirm Z is also done before I declare closure."
+
+Sourced from LESSONS #2 (2026-05-12). Architect-side enforcement is operator review; the ADR-45 shared validator was never implemented — enforcement is operator review only.
+
+### Architect routing for technical proposals
+<!-- scope: meta -->
+
+The browser-chat architect does not seek operator validation on technical proposals where the operator lacks expertise to validate ("is this approach better?", "does this design make sense?", "should I use X or Y?"). The operator's role in technical questions is constraints, priorities, and scope — not technical adjudication. (Moved from ESSENTIALS 2026-07-05, [#258].)
+
+For technical questions the architect cannot resolve alone:
+- Research mode: web search, documentation, prior session memory
+- AI Council: research or pick debate via `ai-council` CLI
+- Analysis: build the comparison/proposal with explicit trade-offs the operator can choose from
+
+Operator is asked: "which of these matters most to you?", "what's the constraint here?", "is this priority correct?" — not "is my technical choice right?".
+
+Sourced from LESSONS #6 (2026-05-12). Architect-side enforcement is operator review.
+
+### Artifact generation direction
+<!-- scope: meta -->
+
+Repo artifacts (ADRs, AI Council transcripts, audit reports, handoff bundles, any file destined for a source-of-truth repo) are generated IN Claude Code with proper repo path, ADR-NN numbering, frontmatter, archival convention, and commit hygiene — never generated as markdown artifacts in browser chat for the operator to copy-paste into the repo. (Moved from ESSENTIALS 2026-07-05, [#258].)
+
+Browser chat role: architect-review of artifacts that Claude Code produces. Not artifact-source for repo files. The operator may upload a final repo artifact (e.g. an ADR draft) back to chat for review; the architect reviews and approves, Claude Code merges.
+
+Sourced from LESSONS #8 (2026-05-13). Architect-side enforcement is the workflow rule itself; this is a permanent invariant per LESSONS.md 2026-05-13 (ADR-45 was explored but not adopted).
+
+**Council ADR distillation** is a mandatory automated step of the post-debate protocol: number verified, template-aligned, committed by Claude Code — never a browser-chat hand-off with a placeholder. See §5 "Post-debate protocol". End-to-end Council lifecycle runbook: `protocols/AI_COUNCIL_PROCESS.md`.
 
 ### Handoff paths
 <!-- scope: meta -->
@@ -2827,7 +2971,7 @@ The trap is the **render layer**, not what Claude writes. A plain markdown pipe-
 1. **Flat** — plain markdown or `key: value` lines / bullets; no column-padding spaces.
 2. **Code-fenced** — wrap it in a triple-backtick block. A fenced block renders raw (monospace, un-painted), so the pasted text is exactly the characters Claude wrote — no borders.
 
-A bare (un-fenced) pipe-table is the failure case: clean-looking in the TUI, box-drawing on paste. This is the same fenced-block discipline already used for Scale-S PowerShell snippets (ESSENTIALS § "Architect → operator channel-discipline for execution actions") and downloadable prompts (§2 "Delivery format") — extended to every copy-back report. Reconciles with Path A above (`/session-summary` → paste into Claude.ai).
+A bare (un-fenced) pipe-table is the failure case: clean-looking in the TUI, box-drawing on paste. This is the same fenced-block discipline already used for Scale-S PowerShell snippets (Ch4 "Architect → operator channel-discipline (execution actions)") and downloadable prompts (§2 "Delivery format") — extended to every copy-back report. Reconciles with Path A above (`/session-summary` → paste into Claude.ai).
 
 **Operator-side option (not a repo change):** Claude Code also exposes an output-style setting; a plainer style reduces TUI table-painting globally. That is runtime config under `~/.claude/` — outside this repo's scope, noted for the operator, not changed here.
 
@@ -3009,7 +3153,7 @@ See §4 *Extracting Lessons from Any Session → When a lesson becomes a rule* f
 ### Data sanitization
 <!-- scope: meta -->
 
-If a client engagement generates a dev lesson, strip all client names, proprietary schemas, and identifying details before writing to `.dev-knowledge/`.
+If a client engagement generates a dev lesson, strip all client names, proprietary schemas, internal tool names, and client-specific API endpoints before writing to `.dev-knowledge/` — replace with `[client]` or generic placeholders. Methodology generalizes; project specifics don't — those belong in the Obsidian vault.
 
 ### Migration triggers
 <!-- scope: meta -->
@@ -3486,5 +3630,5 @@ Large canonical docs carry an **auto-maintained table of contents** between `<!-
 - **Freshness gate:** the `toc-freshness` pre-commit hook (`python -m scripts.toc.cli check <file>`) fails-on-stale with a unified diff, exactly like `codemap-freshness`. It is a standalone hook (not an `audit.py` check), matching where `codemap-freshness` lives. The hook fires only on the target doc's own edits (the TOC depends solely on that doc's headers — no source-root dependency).
 - **Adoption:** insert the two markers in the natural spot (after the title/intro, before the first `##` section), add a `toc-freshness` hook entry scoped to the file, run `generate --write`, and commit. Unlike the codemap (hardwired to `ARCHITECTURE.md`), the TOC CLI takes the target file as an argument, so the same mechanism applies to any doc.
 
-Applied to `ARCHITECTURE.md`. **Not** auto-applied to every doc — add only where navigation overhead is real (see threshold note in ESSENTIALS). Authority: ADR-51 § Auto-TOC (same freshness regime as the codemap).
+Applied to `ARCHITECTURE.md` and `protocols/PLAYBOOK.md`. **Not** auto-applied to every doc — add only where navigation overhead is real (threshold: roughly **≥~400 lines / ~8+ sections**). Authority: ADR-51 § Auto-TOC (same freshness regime as the codemap).
 
