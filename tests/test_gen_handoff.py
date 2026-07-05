@@ -181,3 +181,90 @@ def test_supplement_not_clobbered_on_regeneration(tmp_path):
 def test_invalid_mode_rejected(tmp_path):
     with pytest.raises(ValueError):
         gh.generate(_stub_repo(tmp_path), mode="bogus", slug="0000-00-00-t")
+
+
+# --- epic mode (§14a/§14b, ADR-97) — the dummy-epic done-contract demonstration ---
+
+def _gen_epic(tmp_path, *, slug="0000-00-00-epic-t", epic_slug="dummy-epic"):
+    """A dummy-epic bundle generated from a committed-state stub repo (the Epic 2
+    done-contract demonstration: `--mode epic` produces a valid EPIC_BOOT bundle)."""
+    repo = _stub_repo(tmp_path)
+    return gh.generate(repo, mode="epic", slug=slug, repo=".dev-knowledge", date="2026-07-05",
+                       bundle_root=repo / "docs" / "handoffs", epic_slug=epic_slug,
+                       assemble=True)  # assemble is a no-op in epic mode (no PASTE_THIS)
+
+
+def test_epic_bundle_writes_contract_files_and_no_v5_files(tmp_path):
+    # EPIC_BOOT + PROBES + EPIC_RETURN; no v5 architect/execution artifacts (no SUPPLEMENT /
+    # RESIDUAL / PASTE_THIS — assemble_paste's manifest is v5-shaped, deliberately skipped).
+    b = _gen_epic(tmp_path).bundle_dir
+    for name in ("EPIC_BOOT.md", "PROBES.md", "EPIC_RETURN.md"):
+        assert (b / name).exists(), name
+    for name in ("SUPPLEMENT.md", "RESIDUAL.md", "PASTE_THIS.md", "HANDOFF_BOOT.md"):
+        assert not (b / name).exists(), name
+    boot = (b / "EPIC_BOOT.md").read_text(encoding="utf-8")
+    assert "EPIC_BOOT.md.tmpl" not in boot          # template-authoring comment stripped
+    assert boot.lstrip().startswith("# EPIC HANDOFF — dummy-epic")
+    assert "`epic/dummy-epic`" in boot              # {{EPIC_BRANCH}} substituted
+    assert "epic-dummy-epic" in boot                # worktree naming convention
+    assert re.search(r"(?im)^\|\s*\*{0,2}mode\*{0,2}\s*\|\s*\*{0,2}epic", boot)
+
+
+def test_epic_probe_rows_are_answer_free_and_not_toothless(tmp_path):
+    # The recurring bluff-dogfood, epic flavor: no generated row carries an answer hint, and
+    # every row binds (file/anchor token or value-bearing command) — §5 held by construction.
+    rows = _rows(_gen_epic(tmp_path).bundle_dir)
+    assert len(rows) == 5
+    hits = [(r["id"], c) for r in rows for c in ("question", "source", "why", "command")
+            if re.search(r"expected[ :]", r[c], re.IGNORECASE)]
+    assert hits == [], f"generated epic probe rows carry answer hints: {hits}"
+    for r in rows:
+        assert all(r[c].strip() for c in ("question", "source", "why", "command")), r
+        has_token = bool(vhp.file_tokens(r["source"]) or vhp._command_file_tokens(r["command"])
+                         or vhp.header_tokens(r["source"]))
+        value_bearing = not vhp._is_trivial_command(vhp.first_span(r["command"]))
+        assert has_token or value_bearing, f"toothless generated epic row: {r['id']}"
+
+
+def test_epic_bundle_has_no_failing_probe(tmp_path):
+    # The done-contract bullet: the generated dummy-epic bundle VALIDATES — resolved by
+    # verify_handoff_probes against the self-contained stub repo, no probe is FAIL-class.
+    res = _gen_epic(tmp_path)
+    results = vhp.verify(res.bundle_dir, repo_root=res.bundle_dir.parents[2])
+    assert len(results) == 5
+    fails = [(r.probe_id, r.detail) for r in results if r.status == "fail"]
+    assert fails == [], f"generated epic bundle has failing probes: {fails}"
+
+
+def test_epic_fillins_and_return_survive_regeneration(tmp_path):
+    # RF-6 carried into epic mode: the root's FILL-IN contract content and a lane-filled
+    # EPIC_RETURN are preserved byte-for-byte across a re-render (never clobbered).
+    res = _gen_epic(tmp_path)
+    b = res.bundle_dir
+    boot = (b / "EPIC_BOOT.md").read_text(encoding="utf-8")
+    marker = "<!-- FILL-IN:boundary END -->"
+    boot = boot.replace(marker, "ROOT-BOUNDARY-SENTINEL\n" + marker)
+    (b / "EPIC_BOOT.md").write_text(boot, encoding="utf-8")
+    ret_path = b / "EPIC_RETURN.md"
+    ret_path.write_text(ret_path.read_text(encoding="utf-8") + "\nLANE-FILLED-RETURN\n",
+                        encoding="utf-8")
+    gh.generate(b.parents[2], mode="epic", slug=b.name, repo=".dev-knowledge",
+                date="2026-07-05", bundle_root=b.parent, epic_slug="dummy-epic", assemble=False)
+    assert "ROOT-BOUNDARY-SENTINEL" in (b / "EPIC_BOOT.md").read_text(encoding="utf-8")
+    assert "LANE-FILLED-RETURN" in ret_path.read_text(encoding="utf-8")
+
+
+def test_epic_slug_defaults_to_bundle_slug_and_hints_stay_out(tmp_path):
+    # epic_slug omitted -> falls back to the bundle slug; the JOURNAL draft carries the
+    # drift-reference hints and the bundle files carry none (answer-free invariant).
+    repo = _stub_repo(tmp_path)
+    res = gh.generate(repo, mode="epic", slug="0000-00-00-e2", repo=".dev-knowledge",
+                      date="2026-07-05", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    boot = (res.bundle_dir / "EPIC_BOOT.md").read_text(encoding="utf-8")
+    assert "`epic/0000-00-00-e2`" in boot
+    assert "drift-reference hints" in res.journal_draft
+    for name in ("EPIC_BOOT.md", "PROBES.md", "EPIC_RETURN.md"):
+        text = (res.bundle_dir / name).read_text(encoding="utf-8")
+        for row in vhp.parse_probes(text):
+            for c in ("question", "source", "why", "command"):
+                assert not re.search(r"expected[ :]", row[c], re.IGNORECASE)

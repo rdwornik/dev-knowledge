@@ -47,6 +47,47 @@
 
 ---
 
+### 2026-07-05 — CC (Fable): Epic 2 lane — tree-orchestration §14 integration (ADR-97; dogfood recursion)
+
+**Did:** Ran as the **Epic 2 EPIC-CHAT lane** (worktree `epic-tree-orch`, branch
+`epic/tree-orchestration` off post-SA-4 main) integrating `tree-orchestration-design-spec.md` —
+**the lane is itself an instance of the model it integrated** (this session booted from a §14a-shaped
+EPIC handoff, worked commit-per-story inside a root-provisioned worktree, and closes with a §14b-shaped
+EPIC RETURN: the dogfood recursion is the point). **S1** `a7bf41c` — ADR-97 (tree orchestration:
+root/epic/leaf split, five invariants, worktree-per-EPIC, 2–3-lane cap, BACKLOG single-writer) +
+index row. **S2** `489c51f` — HANDOFF_PROCESS **5.4→5.5**: new §14 epic-lane handoffs (§14a EPIC /
+§14b EPIC RETURN), token-log §14→§15 verbatim renumber (PLAYBOOK pointer fixed same commit), the
+5-edge `reconciled_with` atomic re-stamp @5.5 under a **root-granted narrow boundary extension**
+(escalated mid-lane: the gate-forced atomic set spans ARCHITECTURE/CLAUDE/CONTRIBUTING/HANDOFF_BOOT/
+handoffs-README, all outside the lane boundary; grant = version-string sites + stamps only), each
+edge site-enumerated + verdicted per `check-against-spec` (213 sites, 6 stale, checklists compressed
+into the commit message per the `309399c` precedent). **S3** `0397d33` — PLAYBOOK §8 additive
+tree-orchestration subsection (tree model, file-boundary mechanism, root-only-merges, the cap) + TOC
+regen. **S4** `57f3415` — `templates/handoff/epic/{EPIC_BOOT,EPIC_RETURN,PROBES}.md.tmpl` +
+`gen_handoff.py --mode epic` (v5 assembly machinery reused; boundary-scoped probes E1–E5; no
+PASTE_THIS — assemble_paste's manifest is v5-shaped and out-of-boundary; EPIC_BOOT is the paste) +
+5 tests incl. the done-contract dummy-epic demonstration; doc-counts regenerated.
+
+**Result:** Epic done-contract met on the hard metric: `gen_handoff.py --mode epic` produces a
+validating EPIC_BOOT bundle from committed state (test-demonstrated, 5 probes zero-FAIL) and the
+spec surfaces (§14 + PLAYBOOK §8 + ADR-97) are internally reconciled (`reconciled_versions` 5/5
+match; suite green on the branch). Commit-and-STOP — no merges; EPIC RETURN handed to the root.
+
+**Changes:** `docs/decisions/ADR-97-tree-orchestration.md` [new], `docs/decisions/README.md`,
+`protocols/HANDOFF_PROCESS.md` (v5.5), `protocols/PLAYBOOK.md`, `ARCHITECTURE.md` / `CLAUDE.md` /
+`CONTRIBUTING.md` / `protocols/HANDOFF_BOOT.md` / `docs/handoffs/README.md` (stamp-only re-stamps),
+`templates/handoff/epic/` [new ×3], `scripts/gen_handoff.py`, `tests/test_gen_handoff.py`,
+`ecosystem/doc-counts.md`, `JOURNAL.md` (this entry). Branch `epic/tree-orchestration`, unmerged.
+
+**Abandoned:** none. **DEFERRED to the root (EPIC RETURN):** the BACKLOG epic block (absent from
+the file — creating it is backlog *structure*, root-only per ADR-97; proposed delta carried in the
+return); a CLAUDE.md §12 entry for the @5.5 stamp (content edit beyond the grant).
+
+**Next:** Root — review the EPIC RETURN vs contract; merge order ruled SA-4 → Slice B →
+consumer-arc → this epic; apply the BACKLOG delta; teardown `epic-tree-orch`.
+
+---
+
 ### 2026-07-05 — CC (Fable): session hermetization — architect rulings flushed to repo truth, residue closed
 
 **Did:** Serial consolidation lane (execution mode, all rulings pre-made by the architect). (1) **Pre-step recap now on record**: SA-4 HANDOFF_PROCESS §-history condensation (leaf `d616181`, merge `697e048`, ship-gate GREEN) and AC-2 ai-council push (`bda4fff..75006db`, gates re-proven first). (2) **Branch adjudications filed**: `automation/fleet-audit` ruled **KEEP** (data-branch organ, gh-pages pattern; orphan history, 61 daily baselines, still active) → formalization filed **[#254]**; `origin/automation/conformance-digest` → **verify-then-delete** filed **[#255]**; `feat/lived-sandbox-slice-b` @`c1647f1` + `feat/consumer-arc` @`1655789` held per contract (Epic 1 / SEQ-2). (3) **Pytest latency profile → Epic 5 ruling filed [#256]** (serial 9m42s vs `-n auto` 2m05s, 4.6×; docs-only diff touches only ~20-30 live-repo-sensitive tests; /ship today runs the full serial suite) + **[#257]** venv hygiene (no repo venv — pytest-xdist landed in system Python 3.12 site-packages). (4) **[#253]** annotated with the directional rulings (a: scoped-allowlist seam in isolated config; d: outer-vs-project marker discrimination — impl in Epic 1). (5) **Unreviewed-session inventory (step-1 finding)**: NOTHING landed on main/branches after `697e048` from either `playbook-fidelity-audit` or `prompt-format-enrichment-pack` — clean tree, no stashes, no stray branches/worktrees; the reported §14 heading-convention + `validate_doc_structure.py` work matches long-merged `a21108a` (2026-06-24); `prompt-format-enrichment-pack` left zero traces. Evidence held for architect review, nothing reverted. (6) **Residue**: `CC-Overnight-Harness` scheduled task unregistered (harness shelved — manual git-boot is the standing resume mechanism) + gotcha appended; both epic worktrees (`epic-slice-b-close` @`c1647f1`, `epic-tree-orch` @`697e048`) re-verified healthy.
