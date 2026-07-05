@@ -515,54 +515,17 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
 
 ## Section history
 
-- v5.0-beta (2026-06-11) — initial parallel-ship beta. Records model C (ADR-82, Proposed):
-  CC owns/initiates the handoff; thin browser boot (`HANDOFF_BOOT.md`) replaces the heavy
-  bundle; residual + drift-flags-as-headline; teeth-y forced primary-source read reusing the
-  existing read-only validators; lean pointer-not-narration task-state; verification split +
-  bidirectional adjudication; self-updating `/handoff`. Ships beta beside live v4.4; promotion
-  to canonical is Council + fresh-eyes + empirical-teeth-dogfood gated (§11).
-- v5.0-beta (2026-06-11, §13 added) — `architect | execution` modes as residual-profile +
-  browser-posture variants selected by a `/handoff` parameter (#150). Architect mode adds the
-  scope-D orientation layer as a §5 **exact-line-quote** probe bound to `VISION.md` /
-  `ARCHITECTURE.md` Ch1 (forced read, never copied, never paraphrased), a planning-scoped
-  residual, and a generative/decompositional browser posture; execution mode is the existing
-  §§1–12 behaviour. Durable task-graph encoding deferred to #156; the return channel stays
-  §2/§6 (no new artifact). Version unchanged (still 5.0-beta; §13 is additive).
-- v5.0 (2026-06-11) — **promoted to canonical** in the #149 atomic flip (`Version: 5.0`,
-  `Status: stable`). v4.4 archived to `protocols/archive/HANDOFF_PROCESS_v4.4.md`; the four
-  coupled surfaces + the prose surfaces (#151) moved in the same `--no-ff` merge; the
-  parallel-ship test fence retired. Council gate waived by operator authority (§11); ADR-82
-  operator-ratified. Carried forward as still-open post-flip work: #159 (operator-context
-  beat — exercise in a real architect session), #162 (architect actor-vs-mode vocab), #161
-  (teeth probe-core), and the deferred `verify_handoff_probes.py` validator.
-- v5.0 (2026-06-12, §13 README-shape pointer) — added the **operator-first bundle README**
-  pattern: §13 now points at `templates/handoff/v5/README.md.tmpl` as the canonical README shape
-  (walkthrough-first, rationale demoted) and #164 is bound to emit it. Fixes the rationale-first
-  README defect (the operator couldn't follow the hand-assembled bundle README). Pointer only;
-  the mechanics in §§1–13 are unchanged. Version unchanged (5.0; additive).
-- v5.0 (2026-06-12, §13 bundle-shape — no per-bundle README) — superseded the operator-first
-  *bundle* README with a single **canonical per-repo operator runbook** at `docs/handoffs/README.md`.
-  v5 bundles now carry **three** files (`HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md`) and no
-  README; the stable boilerplate (walkthrough · run loop · diagram · rationale) stops being
-  regenerated/copied per bundle (kills the regenerate-every-handoff token waste + the per-copy
-  drift + the rotting root index). The session-header (slug · purpose · mode) moves into the bundle
-  `HANDOFF_BOOT.md`. `templates/handoff/v5/README.md.tmpl` reduced to a deferred #164 stub (no
-  hand-synced second copy). #164 rescoped to seed the runbook per-repo + emit the three-file bundle.
-  Mechanics §§1–12 unchanged; this is the §13 bundle-shape only. Version unchanged (5.0; additive).
-- v5.0 (2026-06-15, §14 token-log cadence relocated in) — **§14 added**: the token-log cadence
-  (7-day staleness check + short-format snapshot via `ccusage --json`) **relocated here from PLAYBOOK §8**
-  (#152). It is session-boundary maintenance fired by `/session-summary`, so it belongs with handoff
-  mechanics; PLAYBOOK §8 now points at §14 (the #152 move-then-point pattern, nothing dropped). §§1–13
-  unchanged. Version unchanged (5.0; additive).
-- v5.0 (2026-06-15, §13 bundle-shape — four files, `PASTE_THIS.md`) — the v5 bundle now carries a
-  **fourth** file, `PASTE_THIS.md`: a single assembled boot payload (resident role file + residual +
-  probes + optional supplement, concatenated by `scripts/assemble_paste.py`, never hand-edited) so the
-  file-less browser onboards from **one** paste instead of the operator hand-feeding the role file +
-  individual bundle files in sequence. Supersedes the 2026-06-12 *three-file* shape (that dated entry
-  stays as the historical record). The canonical operator runbook (`docs/handoffs/README.md`) reconciled
-  to the single-paste flow; P1 orienting answers remain **out** of the payload (the teeth). This is the
-  #164-generator's operator-paste slice landed early; the sync-key + cross-repo-routing remainder stays
-  #164. §§1–12 unchanged; §13 bundle-shape only. Version unchanged (5.0; additive).
+- v5.0-beta → v5.0 (2026-06-11 → 2026-06-15, seven entries condensed 2026-07-05 per ADR-49/65 —
+  info-preserving; full prior entries: `git log --follow -p -- protocols/HANDOFF_PROCESS.md`) —
+  the v5 genesis arc: initial parallel-ship beta recording model C (ADR-82 — CC-owned handoff,
+  thin browser boot, residual + drift-flags-as-headline, teeth-y forced primary-source reads);
+  §13 `architect | execution` modes added (#150); **promoted to canonical** in the #149 atomic
+  flip (v4.4 archived, Council gate operator-waived, ADR-82 ratified; #159/#161/#162 carried
+  open); §13 bundle-shape iterated README-tmpl → no-per-bundle-README + canonical per-repo
+  operator runbook (`docs/handoffs/README.md`) → **four-file bundle** (`HANDOFF_BOOT.md` +
+  `RESIDUAL.md` + `PROBES.md` + `PASTE_THIS.md`, assembled by `scripts/assemble_paste.py`,
+  single-paste onboarding; #164 rescoped to the generator); §14 token-log cadence relocated in
+  from PLAYBOOK §8 (#152). Version ended 5.0 (all additive post-flip).
 - v5.1 (2026-06-16, §13 architect strategic supplement — interview extraction) — **Version → 5.1**
   (first minor bump; additive, architect-mode only). New §13 sub-section "Architect strategic
   supplement — interview extraction": the architect's strategic *why* (intent · tensions weighed ·
