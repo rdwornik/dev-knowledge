@@ -285,6 +285,53 @@ def test_gate_zero_fails_when_outer_markers_leak():
     assert not g.passed and not g.outer_markers_absent
 
 
+def test_gate_zero_hub_self_clone_passes_253d(tmp_path):
+    """[#253d] regression (the Step-7 failure): a hub self-clone legitimately emits
+    [fleet]/[changelog]/[closures] from its OWN project-level hooks — those are INVALID
+    controls, filtered at gate time, so the self-clone scenario PASSES GATE-0."""
+    clone = tmp_path / "clone"
+    (clone / "scripts").mkdir(parents=True)
+    (clone / "scripts" / "fleet_health.py").write_text(
+        'print("[fleet] ok")', encoding="utf-8")
+    (clone / "scripts" / "changelog_sentinel.py").write_text(
+        'print("[changelog] x")', encoding="utf-8")
+    (clone / "plugins").mkdir()
+    (clone / "plugins" / "review_closures.py").write_text(
+        'msg = "[closures] proposed"', encoding="utf-8")
+    r = _spawn_result(
+        f"{arcmod.PROVENANCE_MARKER}\n[fleet] 2 issue(s) in 5 repos\n[changelog] claude-code",
+        exit_code=0)
+    g = arcmod.evaluate_gate_zero(r, clone=clone)
+    assert g.passed, g.summary()
+    assert g.control_markers == ()  # honest-vacuous, reported in the summary
+    assert "VACUOUS" in g.summary()
+
+
+def test_gate_zero_outer_only_marker_still_fails_253d(tmp_path):
+    """A marker the clone can NOT self-emit remains a live control: its leak fails the gate."""
+    clone = tmp_path / "clone"
+    (clone / "scripts").mkdir(parents=True)
+    (clone / "scripts" / "fleet_health.py").write_text('print("[fleet] ok")', encoding="utf-8")
+    leaked = _spawn_result(f"{arcmod.PROVENANCE_MARKER}\n[closures] 3 proposed", exit_code=0)
+    g = arcmod.evaluate_gate_zero(leaked, clone=clone)
+    assert not g.passed and not g.outer_markers_absent
+    assert g.control_markers == ("[changelog]", "[closures]")  # [fleet] filtered, rest live
+    clean = _spawn_result(arcmod.PROVENANCE_MARKER, exit_code=0)
+    assert arcmod.evaluate_gate_zero(clean, clone=clone).passed
+
+
+def test_outer_only_markers_real_hub_all_self_emittable_253d():
+    """Documents the Step-7 invalidity: the REAL hub self-emits every candidate marker
+    (fleet_health / changelog_sentinel / review_closures), so the valid outer-only set
+    for a hub self-clone is empty — the provenance sentinel carries the isolation proof."""
+    assert arcmod.outer_only_markers(_REPO) == ()
+
+
+def test_outer_only_markers_none_clone_is_strict():
+    """No clone -> no filtering: the full candidate set applies (the strict default)."""
+    assert arcmod.outer_only_markers(None) == arcmod.OUTER_MARKER_CANDIDATES
+
+
 def test_gate_zero_fails_on_nonzero_exit():
     """Codex false-green guard, extended to the arc: a crashed child never proves isolation."""
     r = _spawn_result(arcmod.PROVENANCE_MARKER, exit_code=1)

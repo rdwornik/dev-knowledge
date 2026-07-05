@@ -10,7 +10,8 @@ measure enforcement-in-effect. Three parts, deterministic-first:
   (~/.codex) and the tier1-plugin marketplace install ([MC-3]: all three are clone-rooted).
 - ``evaluate_gate_zero`` — **[MF-1] isolation-ONLY**, decoupled from hook-completeness
   (that is C3, the observer's job). config-provenance (a DEDICATED user-level sentinel,
-  separate from the six) + outer-L0-markers-absent + child-exit-0. Because the sentinel is
+  separate from the six) + outer-ONLY-markers-absent ([#253d]: candidates the clone can
+  self-emit are filtered out — a hub self-clone is not a leak) + child-exit-0. Because the sentinel is
   USER-level and the six are PROJECT-level, ``--leg-e`` (silencing one of the six) can never
   silence the isolation signal -> GATE-0 still passes on the arc-silent freeze.
 - ``run_arc`` — the live driver (skip-gated: needs ``claude`` + a key + LIVED_SANDBOX_LIVE).
@@ -40,9 +41,49 @@ from carrier_precommit import PrecommitCarrier  # noqa: E402
 # token: no assistant narration emits it, only the isolated config's hook (so the blob check
 # is safe here, unlike the enforcement channel which is structured-event keyed — [NB-2]).
 PROVENANCE_MARKER = "LSANDBOX_ARC_PROVENANCE"
-# The outer machine's real ~/.claude SessionStart surfacing markers — the negative control.
-# If ANY appears in the child transcript, isolation leaked. Broad (blob) check = strictest.
-OUTER_MARKERS = ("[fleet]", "[changelog]", "[closures]")
+# Negative-control CANDIDATES — the outer machine's surfacing markers. [#253d]: a candidate is
+# a VALID control only if the clone cannot legitimately emit it itself; in a hub self-clone the
+# project-level fleet/changelog/closures hooks emit all three, so candidates are FILTERED
+# against the clone's own hook-source surface at gate time (`outer_only_markers`). The
+# config-provenance sentinel (positive control) remains the primary isolation proof.
+OUTER_MARKER_CANDIDATES = ("[fleet]", "[changelog]", "[closures]")
+# Back-compat name: the UNFILTERED candidate set (strictest — correct only for a clone that
+# cannot self-emit any candidate; never use directly on a hub self-clone).
+OUTER_MARKERS = OUTER_MARKER_CANDIDATES
+
+# The clone dirs whose files can drive project-level hook emissions (the self-emission
+# surface scanned by `outer_only_markers`): repo hook scripts, project config, plugin code.
+_SELF_EMISSION_DIRS = ("scripts", ".claude", "plugins")
+
+
+def outer_only_markers(clone: Path | str | None,
+                       candidates: tuple[str, ...] = OUTER_MARKER_CANDIDATES) -> tuple[str, ...]:
+    """Filter negative-control candidates to those the CLONE cannot legitimately emit itself.
+
+    [#253d]: a marker appearing anywhere in the clone's hook-source surface (scripts/,
+    .claude/, plugins/) is project-level-emittable inside the child — an INVALID control
+    (the hub self-clone emits [fleet]/[changelog]/[closures] on its own). Only the survivors
+    discriminate OUTER-user-level origin; on a full self-clone the set is honestly EMPTY
+    (reported vacuous) rather than false-failing GATE-0."""
+    if clone is None:
+        return tuple(candidates)
+    clone = Path(clone)
+    remaining = list(candidates)
+    for d in _SELF_EMISSION_DIRS:
+        base = clone / d
+        if not base.is_dir():
+            continue
+        for f in base.rglob("*"):
+            if not remaining:
+                return ()
+            if not f.is_file():
+                continue
+            try:
+                text = f.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            remaining = [m for m in remaining if m not in text]
+    return tuple(remaining)
 
 _MANIFEST_REL = "deploy/manifest-v1.2.0.yaml"
 
@@ -136,8 +177,9 @@ class GateZero:
     """
 
     provenance_present: bool   # the dedicated user-level sentinel fired -> child read OUR config
-    outer_markers_absent: bool  # the real ~/.claude L0 markers did NOT leak in
+    outer_markers_absent: bool  # no OUTER-ONLY marker leaked in ([#253d]: filtered control set)
     exit_ok: bool               # the child run exited 0 (no false-green from a crashed child)
+    control_markers: tuple[str, ...] = OUTER_MARKER_CANDIDATES  # the EFFECTIVE negative controls
 
     @property
     def passed(self) -> bool:
@@ -145,20 +187,29 @@ class GateZero:
 
     def summary(self) -> str:
         v = "PROVEN" if self.passed else "FAILED"
+        controls = ",".join(self.control_markers) if self.control_markers else "VACUOUS(self-clone)"
         return (f"GATE-0 isolation {v}: provenance={self.provenance_present} "
-                f"outer-absent={self.outer_markers_absent} exit-ok={self.exit_ok}")
+                f"outer-absent={self.outer_markers_absent} exit-ok={self.exit_ok} "
+                f"controls={controls}")
 
 
 def evaluate_gate_zero(result, *, provenance_marker: str = PROVENANCE_MARKER,
-                       outer_markers: tuple[str, ...] = OUTER_MARKERS) -> GateZero:
+                       outer_markers: tuple[str, ...] | None = None,
+                       clone: Path | None = None) -> GateZero:
     """Derive GATE-0 from a SpawnResult. Isolation signals use unique tokens over the broad
     transcript surface (Slice-A precedent) — distinct from the enforcement channel, which is
-    structured-event keyed. Does NOT assert any of the six fired (that is C3)."""
+    structured-event keyed. Does NOT assert any of the six fired (that is C3).
+
+    [#253d]: when `clone` is given the negative controls are the OUTER-ONLY survivors of
+    `outer_only_markers(clone)` — a marker the clone can self-emit never fails the gate.
+    An explicit `outer_markers` overrides; with neither, the raw candidates apply (strict)."""
+    markers = outer_markers if outer_markers is not None else outer_only_markers(clone)
     blob = result.transcript_text()
     return GateZero(
         provenance_present=provenance_marker in blob,
-        outer_markers_absent=not any(m in blob for m in outer_markers),
+        outer_markers_absent=not any(m in blob for m in markers),
         exit_ok=result.exit_code == 0,
+        control_markers=tuple(markers),
     )
 
 
@@ -199,7 +250,7 @@ def run_arc(*, repo_root: Path | None = None, api_key: str | None = None,
             clone.parent / "cfg", session_start_marker=PROVENANCE_MARKER)
         result = _spawn.spawn(clone, ARC_PROMPT, config_dir=cfg, api_key=key,
                               model=model, extra_env=env, timeout=timeout)
-        gate = evaluate_gate_zero(result)
+        gate = evaluate_gate_zero(result, clone=clone)  # [#253d]: self-emittable markers filtered
         observation = _observe.observe_spawn(result, oracle, clone=clone)
         jsonl = (result.transcript_path.read_text(encoding="utf-8", errors="replace")
                  if result.transcript_path and result.transcript_path.exists() else "")
