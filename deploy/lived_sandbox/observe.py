@@ -66,34 +66,44 @@ def _message(ev: dict) -> dict:
     return m if isinstance(m, dict) else ev
 
 
-def _role(ev: dict) -> str:
-    return str(_message(ev).get("role") or ev.get("role") or ev.get("type") or "")
+def _bash_tool_use_ids(events: list[dict]) -> set:
+    """The tool_use ids of Bash invocations — the ONLY tool whose results can carry hook
+    stdout (pre-commit prints into the `git commit` result). A Read/Grep result echoes
+    repo CONTENT: witnessed at Step-7 leg-e, the child Read JOURNAL.md and the echo of a
+    signature string false-FIRED a disabled hook ([#253c]'s content-echo variant)."""
+    ids = set()
+    for ev in events:
+        content = _message(ev).get("content")
+        if isinstance(content, list):
+            for item in content:
+                if isinstance(item, dict) and item.get("type") == "tool_use" \
+                        and item.get("name") == "Bash":
+                    ids.add(item.get("id"))
+    return ids
 
 
 def hook_stdout_surface(events: list[dict]) -> str:
-    """Concatenate ONLY externally-produced text: tool_result contents + system/hook stdout.
-    Assistant *text* content items AND stream-json `result` events (the child's final
-    narration) are EXCLUDED — narration is not evidence ([NB-2], [#253b])."""
+    """Concatenate ONLY text that can carry hook stdout: Bash tool_result contents +
+    hook-event payloads (attachment hook_* / top-level system/hook stdout). Assistant
+    narration, stream-json `result` events ([#253b]), bare prompt strings, and non-Bash
+    tool_results (file-read echoes of repo content) are ALL excluded ([NB-2])."""
+    bash_ids = _bash_tool_use_ids(events)
     parts: list[str] = []
     for ev in events:
         if ev.get("type") == "result":
             # A stream-json result event's `result` field IS the child's final narration
             # ([#253b]) — C1 forbids it as evidence, so the whole event is excluded.
             continue
-        role = _role(ev)
         content = _message(ev).get("content")
         if isinstance(content, list):
             for item in content:
                 if not isinstance(item, dict):
                     continue
-                itype = item.get("type")
-                if itype == "tool_result":
+                if item.get("type") == "tool_result" and item.get("tool_use_id") in bash_ids:
                     parts.append(_stringify(item.get("content")))
                 # type == "text" (assistant/user prose) is narration -> skip.
                 # type == "tool_use" is a command/edit -> the transcript-event channel, not here.
-        elif isinstance(content, str) and role not in ("assistant",):
-            # A bare-string system/hook/user payload (non-assistant) is external stdout.
-            parts.append(content)
+                # a non-Bash tool_result is a content echo (Read/Grep/Write ack) -> skip.
         # Top-level hook/system stdout fields (some event shapes surface hook output here).
         # NOT "result" events — excluded above ([#253b]: their `result` field is narration).
         if ev.get("type") in ("system", "hook"):
@@ -116,6 +126,14 @@ def hook_stdout_surface(events: list[dict]) -> str:
                 v = att.get(k)
                 if isinstance(v, str):
                     parts.append(v)
+            # A blocking Stop hook's reason rides nested: attachment.blockingError
+            # .blockingError (witnessed at Step-7). Take the MESSAGE only — the sibling
+            # `command` key is config echo, excluded like every command field.
+            be = att.get("blockingError")
+            if isinstance(be, dict):
+                be = be.get("blockingError")
+            if isinstance(be, str):
+                parts.append(be)
     return "\n".join(parts)
 
 

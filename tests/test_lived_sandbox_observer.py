@@ -32,10 +32,19 @@ _SIX_SIGNATURES = [
 ]
 
 
-def _tool_result(text: str) -> dict:
-    """A user message carrying a tool_result (Bash stdout / hook output) — external evidence."""
-    return {"type": "user", "message": {"role": "user",
-            "content": [{"type": "tool_result", "content": text}]}}
+_TOOL_ID = iter(range(10_000))
+
+
+def _tool_result(text: str, tool: str = "Bash") -> list[dict]:
+    """A tool_use/tool_result PAIR (as real transcripts carry them). Bash results are the
+    hook-stdout channel; any other tool's result is a content echo the channel excludes."""
+    tid = f"toolu_{next(_TOOL_ID):05d}"
+    return [
+        {"type": "assistant", "message": {"role": "assistant",
+         "content": [{"type": "tool_use", "id": tid, "name": tool, "input": {}}]}},
+        {"type": "user", "message": {"role": "user",
+         "content": [{"type": "tool_result", "tool_use_id": tid, "content": text}]}},
+    ]
 
 
 def _assistant_text(text: str) -> dict:
@@ -50,8 +59,10 @@ def _tool_use(name: str, command: str) -> dict:
 
 
 def _green_events():
-    """All six hook signatures in REAL tool-result stdout + a command act; ruff absent."""
-    evs = [_tool_result(f"pre-commit hook fired: {s}....Passed") for s in _SIX_SIGNATURES]
+    """All six hook signatures in REAL Bash tool-result stdout + a command act; ruff absent."""
+    evs = []
+    for s in _SIX_SIGNATURES:
+        evs.extend(_tool_result(f"pre-commit hook fired: {s}....Passed"))
     evs.append(_tool_use("SlashCommand", "/review-closures"))
     return evs
 
@@ -161,8 +172,7 @@ def test_observer_flags_one_silent_hook():
     """A single gated firing hook whose stdout is absent -> EXPECTED-BUT-SILENT -> not passed."""
     o = orc.load_oracle(_MANIFEST_V120)
     # Drop the canonical_freshness signal (one of the six).
-    events = [e for e in _green_events()
-              if "canonical_freshness" not in obs.hook_stdout_surface([e])]
+    events = [e for e in _green_events() if "canonical_freshness" not in json.dumps(e)]
     r = obs.observe(events, o)
     assert not r.passed
     assert any(f.component_id == "canonical-freshness" and f.verdict == obs.SILENT
@@ -179,8 +189,8 @@ def test_observer_ruff_tombstone_absent_ok():
 def test_observer_flags_ruff_tombstone_if_it_fires():
     """Prune regression: if ruff fired, the tombstone is UNEXPECTED -> not passed."""
     o = orc.load_oracle(_MANIFEST_V120)
-    events = _green_events() + [_tool_result(
-        "Ruff linter (version-pinned >=0.15.5; system binary; blocks on violations)....Passed")]
+    events = _green_events() + _tool_result(
+        "Ruff linter (version-pinned >=0.15.5; system binary; blocks on violations)....Passed")
     r = obs.observe(events, o)
     assert not r.passed
     assert any(f.component_id == "ruff-gate" and f.verdict == obs.UNEXPECTED for f in r.flags)
@@ -204,7 +214,16 @@ def test_observer_narration_excluded_from_hook_surface():
     assert "canonical_freshness" not in obs.hook_stdout_surface(
         [_assistant_text("canonical_freshness passed")])
     assert "canonical_freshness" in obs.hook_stdout_surface(
-        [_tool_result("canonical_freshness passed")])
+        _tool_result("canonical_freshness passed"))
+
+
+def test_observer_read_echo_never_counts_as_hook_stdout():
+    """Step-7 leg-e witnessed: the child Read JOURNAL.md and the tool_result echoed a
+    signature string from repo CONTENT, false-FIRING a disabled hook. Only BASH results
+    can carry hook stdout; a Read/Grep result is a content echo -> excluded."""
+    text = "canonical_freshness last_reviewed gate (A2 FAIL blocks the commit)"
+    assert "canonical_freshness" not in obs.hook_stdout_surface(_tool_result(text, tool="Read"))
+    assert "canonical_freshness" in obs.hook_stdout_surface(_tool_result(text))
 
 
 def _result_event(text: str) -> dict:
@@ -230,7 +249,7 @@ def test_observer_result_event_excluded_from_hook_surface_253b():
     assert "canonical_freshness" not in obs.hook_stdout_surface(
         [_result_event("canonical_freshness....Passed")])
     assert "canonical_freshness" in obs.hook_stdout_surface(
-        [_tool_result("canonical_freshness....Passed")])
+        _tool_result("canonical_freshness....Passed"))
 
 
 def test_observer_counts_command_act():
