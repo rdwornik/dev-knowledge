@@ -73,7 +73,7 @@ def main() -> None:
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    gen_p = sub.add_parser("generate", help="Generate Mermaid codemap")
+    gen_p = sub.add_parser("generate", help="Generate compact-text codemap")
     gen_p.add_argument("repo_path", help="Path to repository root")
     gen_p.add_argument("--source-root", default="src", help="Source root directory (default: src)")
     gen_p.add_argument(

@@ -683,49 +683,16 @@ def test_audit_run_passes_structural_checks_on_synthetic_repo() -> None:
     assert statuses.get("adr38_baseline") in ("pass", "warn")
 
 # ---------------------------------------------------------------------------
-# Check #7: mermaid_theme_directive (ADR-51 v2)
+# Check #7: mermaid_theme_directive — RETIRED 2026-07-05 (ADR-51 amendment,
+# LLM-first canonical docs); its assertions + the mermaid-theme-pass/-fail
+# fixtures were removed with it. A registry guard below pins the retirement.
 # ---------------------------------------------------------------------------
 
-MERMAID_PASS_FIXTURE = FIXTURES / "mermaid-theme-pass"
-MERMAID_FAIL_FIXTURE = FIXTURES / "mermaid-theme-fail"
 
-
-def test_mermaid_theme_directive_pass() -> None:
-    """ARCHITECTURE.md with correct base+themeVariables + classDef color: must pass."""
-    findings = aud.check_mermaid_theme_directive(MERMAID_PASS_FIXTURE)
-    assert len(findings) == 1
-    f = findings[0]
-    assert f.status == "pass", f"Expected pass, got {f.status}: {f.evidence}"
-
-
-def test_mermaid_theme_directive_fail_bare_dark() -> None:
-    """ARCHITECTURE.md with bare 'dark' theme must fail rule 1."""
-    findings = aud.check_mermaid_theme_directive(MERMAID_FAIL_FIXTURE)
-    assert len(findings) == 1
-    f = findings[0]
-    assert f.status == "fail", f"Expected fail, got {f.status}: {f.evidence}"
-    assert "base+themeVariables" in f.evidence
-
-
-def test_mermaid_theme_directive_fail_classdef_missing_color() -> None:
-    """classDef with fill:# but no color:# must be reported in the failure evidence."""
-    findings = aud.check_mermaid_theme_directive(MERMAID_FAIL_FIXTURE)
-    f = findings[0]
-    assert f.status == "fail"
-    assert "color:#" in f.evidence or "classDef" in f.evidence
-
-
-def test_mermaid_theme_directive_no_architecture_md(tmp_path: Path) -> None:
-    """Repo with no ARCHITECTURE.md passes vacuously (nothing to scan)."""
-    findings = aud.check_mermaid_theme_directive(tmp_path)
-    assert findings[0].status == "pass"
-
-
-def test_mermaid_theme_directive_no_mermaid_blocks(tmp_path: Path) -> None:
-    """ARCHITECTURE.md with no mermaid fences passes vacuously."""
-    (tmp_path / "ARCHITECTURE.md").write_text("# Architecture\n\nNo diagrams here.\n")
-    findings = aud.check_mermaid_theme_directive(tmp_path)
-    assert findings[0].status == "pass"
+def test_mermaid_theme_directive_retired() -> None:
+    """Check #7 stays retired: no function, no ALL_CHECKS registration (ADR-51 2026-07-05)."""
+    assert not hasattr(aud, "check_mermaid_theme_directive")
+    assert all(c.__name__ != "check_mermaid_theme_directive" for c in aud.ALL_CHECKS)
 
 # ---------------------------------------------------------------------------
 # Check #8: handoff_bundle_structure (HANDOFF_PROCESS v4.3 item F)
