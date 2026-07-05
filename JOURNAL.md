@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-07-05 — CC (Fable): Epic 2 lane — tree-orchestration §14 integration (ADR-97; dogfood recursion)
+
+**Did:** Ran as the **Epic 2 EPIC-CHAT lane** (worktree `epic-tree-orch`, branch
+`epic/tree-orchestration` off post-SA-4 main) integrating `tree-orchestration-design-spec.md` —
+**the lane is itself an instance of the model it integrated** (this session booted from a §14a-shaped
+EPIC handoff, worked commit-per-story inside a root-provisioned worktree, and closes with a §14b-shaped
+EPIC RETURN: the dogfood recursion is the point). **S1** `a7bf41c` — ADR-97 (tree orchestration:
+root/epic/leaf split, five invariants, worktree-per-EPIC, 2–3-lane cap, BACKLOG single-writer) +
+index row. **S2** `489c51f` — HANDOFF_PROCESS **5.4→5.5**: new §14 epic-lane handoffs (§14a EPIC /
+§14b EPIC RETURN), token-log §14→§15 verbatim renumber (PLAYBOOK pointer fixed same commit), the
+5-edge `reconciled_with` atomic re-stamp @5.5 under a **root-granted narrow boundary extension**
+(escalated mid-lane: the gate-forced atomic set spans ARCHITECTURE/CLAUDE/CONTRIBUTING/HANDOFF_BOOT/
+handoffs-README, all outside the lane boundary; grant = version-string sites + stamps only), each
+edge site-enumerated + verdicted per `check-against-spec` (213 sites, 6 stale, checklists compressed
+into the commit message per the `309399c` precedent). **S3** `0397d33` — PLAYBOOK §8 additive
+tree-orchestration subsection (tree model, file-boundary mechanism, root-only-merges, the cap) + TOC
+regen. **S4** `57f3415` — `templates/handoff/epic/{EPIC_BOOT,EPIC_RETURN,PROBES}.md.tmpl` +
+`gen_handoff.py --mode epic` (v5 assembly machinery reused; boundary-scoped probes E1–E5; no
+PASTE_THIS — assemble_paste's manifest is v5-shaped and out-of-boundary; EPIC_BOOT is the paste) +
+5 tests incl. the done-contract dummy-epic demonstration; doc-counts regenerated.
+
+**Result:** Epic done-contract met on the hard metric: `gen_handoff.py --mode epic` produces a
+validating EPIC_BOOT bundle from committed state (test-demonstrated, 5 probes zero-FAIL) and the
+spec surfaces (§14 + PLAYBOOK §8 + ADR-97) are internally reconciled (`reconciled_versions` 5/5
+match; suite green on the branch). Commit-and-STOP — no merges; EPIC RETURN handed to the root.
+
+**Changes:** `docs/decisions/ADR-97-tree-orchestration.md` [new], `docs/decisions/README.md`,
+`protocols/HANDOFF_PROCESS.md` (v5.5), `protocols/PLAYBOOK.md`, `ARCHITECTURE.md` / `CLAUDE.md` /
+`CONTRIBUTING.md` / `protocols/HANDOFF_BOOT.md` / `docs/handoffs/README.md` (stamp-only re-stamps),
+`templates/handoff/epic/` [new ×3], `scripts/gen_handoff.py`, `tests/test_gen_handoff.py`,
+`ecosystem/doc-counts.md`, `JOURNAL.md` (this entry). Branch `epic/tree-orchestration`, unmerged.
+
+**Abandoned:** none. **DEFERRED to the root (EPIC RETURN):** the BACKLOG epic block (absent from
+the file — creating it is backlog *structure*, root-only per ADR-97; proposed delta carried in the
+return); a CLAUDE.md §12 entry for the @5.5 stamp (content edit beyond the grant).
+
+**Next:** Root — review the EPIC RETURN vs contract; merge order ruled SA-4 → Slice B →
+consumer-arc → this epic; apply the BACKLOG delta; teardown `epic-tree-orch`.
+
+---
+
 ### 2026-07-05 — CC (Fable): overnight autonomy run — Phase 0 · Block A degrade · consumer seam · first ai-council measurement
 
 **Did:** Ran the CC MEGA-MISSION (operator pre-authorized, autonomous no-stop). (1) **Phase 0 PASS**: recovery anchor pushed; Slice-B freeze-readiness verified (4 acceptance SKIPs, GATE-0 units green); **spawn-auth GO** via the profile-loaded-shell path (haiku smoke `exit=0`, no secret in transcript; key never echoed). (2) **Block A DEGRADED per its frozen contract**: the first live six-hook arc hit GATE-0 `outer-absent=False` — the `OUTER_MARKERS` negative control is confounded on hub self-clones (the hub's own project SessionStart hooks emit `[fleet]`/`[changelog]` inside the clone); deterministic, so no retry burned; nothing frozen, zero temp leftovers; evidence merged `5ed18b2`. (3) **Phase 0.5 COMPLETE**: built `observe-arc --consumer` on `feat/consumer-arc` (hub-manifest oracle vs consumer firing; FAIL-by-coverage = correct verdict; 15 hermetic tests; full suite **1266 passed/6 skipped**); **Codex gate 0 CRIT/1 HIGH** — the HIGH (traceback escape at the CLI boundary) fixed same-arc; pushed `49d46d6`+`1655789`; **merge deferred (SEQ-2)** — the branch bases on the architect-held Slice-B tip. (4) **Block B DELIVERED (measurement)**: ai-council measured 3× — **GATE-0 isolation PROVEN 3/3**; **FAIL-by-coverage 1-of-6 as-measured** (the lone FIRED is an observer C1 narration leak → ~0-of-6 firing-verified); the child never reached the commit (×2 refused the arc as suspicious; ×1 stalled on git-approval permissions) → **no in-the-wild gate fire witnessed** — four architect rulings filed as **[#253]**. Genuine ai-council CLAUDE.md re-review merged there (`75006db`): ruff-prune reconciled, plugin commands added, honest re-stamp clears its A2 FAIL. **Incident repaired in ai-council**: a relic `core.hooksPath` (pre-move path) had every git hook silently bypassed — unset + `pre-commit install` armed + gates re-proven on HEAD (the configured-not-armed class, live on a consumer).
