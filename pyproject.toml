@@ -1,3 +1,21 @@
+# Dependency-isolation policy (#257, decided 2026-07-05): this repo runs on the
+# SYSTEM Python 3.12 by design — no venv. Rationale: every enforcement surface
+# (pre-commit `language: system` hooks, plugin Stop/SessionStart hooks, /ship
+# pre-flight) invokes the system interpreter; a venv would fork interpreter
+# paths across .pre-commit-config.yaml and hook wiring for zero isolation gain
+# in a single-user, validators-only Layer-2 repo. The trade is made honest by
+# DECLARING the dev toolchain below (PEP 735) so a rebuilt machine restores it
+# reproducibly:
+#   py -m pip install --group dev        (pip >= 25.1)
+[dependency-groups]
+dev = [
+    "pytest>=9.0",
+    "pytest-xdist>=3.8",   # /ship pre-flight parallel runs (-n auto), #256
+    "ruff>=0.15.5",        # matches [tool.ruff] required-version floor
+    "pre-commit>=4.5",
+    "pyyaml>=6.0",         # scripts/ validators (audit.py etc.)
+]
+
 [tool.pytest.ini_options]
 # Diff-shaped ship pre-flight tiering (#256/#260). `live_repo` marks the tests that
 # assert against the LIVE repo tree (markdown/docs) — the only tests a docs-only

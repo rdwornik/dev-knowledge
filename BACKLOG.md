@@ -252,7 +252,7 @@ So that ship latency meets a measured per-diff-class budget without coverage los
   - [x] S1 -n auto in ship pre-flight
   - [x] S2 diff-shaped selection per budget class
   - [x] S3 full-suite nightly/on-demand path documented
-  - [ ] S4 #257 venv/dep-isolation + pytest-xdist declared
+  - [x] S4 #257 venv/dep-isolation + pytest-xdist declared
 
 ---
 
