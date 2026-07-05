@@ -31,6 +31,8 @@
 
 **Next:** Blocks C (audit-vs-reality diff), D (§5/§13 spec-arc), E (plan-only drafts), F (final audit + handoff bundle + push). Architect morning queue: [#253] rulings (a)–(d), `feat/consumer-arc` merge decision, ai-council push decision, the ARCHITECT-REVIEW-PENDING list in the run audit.
 
+**Update — Blocks C/D/E/F closed (same window):** **C** `39ddd00` — audit-vs-reality diff, all 106 findings of the five 07-04 audits classified (12 BUILT / 20 PARTIAL / 53 PENDING / 7 REJECTED / 14 INFO / 0 UNKNOWN), spot-verified. **D** `df645c5` — HANDOFF_PROCESS **5.3→5.4** additive (§5 structural anti-bluff = the RF-1 option-b spec catch-up; §13 generator note) + the 5-edge `reconciled_with` re-stamp atomic + genuine re-reads/re-stamps (ARCHITECTURE/CLAUDE/CONTRIBUTING/handoffs-README; currency drift fixed: CONTRIBUTING +roster-freshness row, ARCHITECTURE probe-bullet +answer-hint rung) + #164 keep-open annotation + doc-counts regen (zero diff); one deliberate NEW doc_rot WARN left LOUD (HANDOFF_PROCESS section-history 12 ≥ 12 — condensation is operator-gated; SA-4). **E** `e2c5e55` — two plan-only drafts (Tier-2 load-gauge-first + funnel-shrink metric; Tier-3 CLAUDE.md generability). **F** — run audit finalized (self-adjudication ledger SEQ-1/SEQ-2/AC-1/AC-2/SA-3/SA-4 + safety self-report: **zero envelope violations**, 5 spawns all through the harness, key never echoed) + this v5.4-era handoff bundle generated via `gen_handoff.py` (its first live adoption). **Verdict:** minimum-success NOT met (Block A degraded honestly), full-success components B+D delivered, hard zero MET.
+
 ---
 
 ### 2026-07-05 — CC (Opus): Phase-0 batch integration merge (serial consolidation MERGE 1)
