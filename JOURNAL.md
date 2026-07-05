@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-06 — CC (Fable, Wave-3 lane, close): ROOT DECLARED PRIORITY-#1 CLOSED — declaration recorded, 5 adjudications executed ([#267] reshaped, [#238] noted)
+
+**Did:** Root accepted STOP-POINT 2 and **declared priority-#1 ("prove the hub on ai-council like a sandbox") CLOSED**: enforcement-in-effect proven (before 1-of-6 real-~0 → after 4-of-6 FIRED + 2 ARMED-BUT-SKIPPED as correct file-scope behavior; GATE-0 PROVEN throughout), zero consumer-side changes, all gaps instrument-side, Codex-hardened. Executed the five adjudications: (1) **[#267] reshaped** REFINEMENT P3→P2, not a closure gate — witness the two file-scoped hooks FIRED via an in-scope arc edit + encode scope-conditional `engages:`; armed-as-enforcing NOT adopted as doctrine. (2) **Runbook home RATIFIED**: `templates/consumer-onboarding-runbook.md` stays; [#238] annotated (runbook half advanced; LESSONS+PLAYBOOK doctrine half open). (3) **LESSONS +2** (trust-seam proof points, root-ratified): authorization travels the owned-config channel — a deployed floor correctly refuses prompt-asserted authority; a narrowed allowlist produces honest refuse-and-ask at a failing gate (`--no-verify` declined) — floor held under live fire. (4) **Codex pass over the G7 diff** (`80fbaa9`): **0 CRIT / 2 HIGH / 0 MED-LOW** — both HIGHs fixed immediately per the ruling (non-mapping-YAML shape guard so a malformed consumer config is a noted no-op, not a harness crash; mirror notes now surfaced in `ConsumerReport` so an environment failure is never mistaken for hook silence); fix merge follows this entry, no tickets needed (no MED/LOW). (5) **ai-council relative-path fragility pointer** filed per ADR-41 into the hub BACKLOG's ai-council-residuals pointer block (CI-risk note: breaks ANY out-of-layout checkout) for the dedicated ai-council session.
+
+**Result:** Wave-3 lane closed end-to-end: measure (STOP-1) → root-ruled instrument hardening (G1–G4 + Codex, G7) → FULL-COVERAGE re-measure → closure records → root declaration. The consumer-onboarding process is repeatable (`templates/consumer-onboarding-runbook.md`); ai-council untouched all lane.
+
+**Changes:** LESSONS.md (+2 entries, header stamp 2026-07-06), BACKLOG.md ([#267] reshape, [#238] note, ai-council pointer block extension), JOURNAL.md (this entry); follow-up fix merge: `deploy/lived_sandbox/consumer.py` (yaml guard + mirror-notes surfacing), tests, `docs/audits/2026-07-06-codex-g7-mirror.md`.
+
+**Abandoned:** nothing.
+
+**Next:** [#267] P2 when scheduled; [#238] doctrine half (PLAYBOOK lane); ai-council session picks up the pointer block; fleet rollout n=2+ (#221) now has the proven onboarding loop.
+
+---
+
 ### 2026-07-06 — CC (Fable, Wave-3 lane, cont.): FULL-COVERAGE on ai-council — priority-#1 evidence complete, STOP-2 issued ([#267] filed)
 
 **Did:** Post-Codex batch merged `--no-ff` (**`8b9fe3e`**, 0 CRIT / 4 HIGH fixed pre-merge incl. the self-found `git commit --no-verify` hole; suite 1318 green). STEP-3 re-measure ×2: **3-of-6** (child WORKED — G3 refusal wall closed — created/staged `SANDBOX_ARC.md`, commit attempted, and it **declined to self-authorize `--no-verify`** when pre-commit errored; permission_denials recorded — the narrowed seam held live). Attribution via retention run: **G7** — ai-council pins `repo: ../.dev-knowledge` (RELATIVE path) in `.pre-commit-config.yaml`, unresolvable beside a temp-dir clone → pre-commit errors before ANY hook. Fixed in amended lane scope (G2-class operator-machine mirror, temp-root blast-radius guarded): `mirror_relative_precommit_sources` (**`7b3147e`**, merge **`80fbaa9`**). Final fresh-clone run: **FULL-COVERAGE, exit 0** — GATE-0 PROVEN; 4 FIRED with verbatim evidence (propose-closures over the consumer's 400 commits; floor-sessionstart-guard; **session-end-backpressure BLOCKING the child's stop**; canonical-freshness executed Passed) + 2 ARMED-BUT-SKIPPED (file-scoped toc/floor-hash — [#267] filed) + tombstone genuinely ok; /review-closures command act OBSERVED; /override OBSERVED (escape hatch exercised in-sandbox).
