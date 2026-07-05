@@ -7,6 +7,7 @@ evidence); verbatim evidence quotes; CLI exit semantics 0/1/2.
 from __future__ import annotations
 
 import contextlib
+import itertools
 import sys
 import types
 from pathlib import Path
@@ -24,14 +25,25 @@ from lived_sandbox import spawn as sp  # noqa: E402
 _MANIFEST_V120 = _REPO / "deploy" / "manifest-v1.2.0.yaml"
 
 _SIX_SIGNATURES = [
-    "check_floor_hash", "floor-hash-verify", "canonical_freshness",
-    "toc-freshness", "session_end_backpressure", "closure",
+    "pre-commit installed at", "sha256 sidecar", "canonical_freshness",
+    "TOC freshness", "Session-end", "propose_closures:",
 ]
 
+_UID = itertools.count(1)
 
-def _tool_result(text: str) -> dict:
-    return {"type": "user", "message": {"role": "user",
-            "content": [{"type": "tool_result", "content": text}]}}
+
+def _tool_result(text: str) -> list[dict]:
+    """A Bash-correlated tool_use/tool_result pair — the ONLY tool_result shape the
+    tightened hook-stdout channel admits ([#253c] content-echo fix: results must be
+    tool_use_id-correlated to a Bash invocation)."""
+    uid = f"toolu_{next(_UID):04d}"
+    return [
+        {"type": "assistant", "message": {"role": "assistant",
+         "content": [{"type": "tool_use", "id": uid, "name": "Bash",
+                      "input": {"command": "git commit -m x"}}]}},
+        {"type": "user", "message": {"role": "user",
+         "content": [{"type": "tool_result", "tool_use_id": uid, "content": text}]}},
+    ]
 
 
 def _assistant_text(text: str) -> dict:
@@ -45,7 +57,7 @@ def _tool_use(name: str, command: str) -> dict:
 
 
 def _events(signatures: list[str], *, with_command: bool = True) -> list[dict]:
-    evs = [_tool_result(f"hook fired: {s}....Passed") for s in signatures]
+    evs = [ev for s in signatures for ev in _tool_result(f"hook fired: {s}....Passed")]
     if with_command:
         evs.append(_tool_use("SlashCommand", "/review-closures"))
     return evs
@@ -73,7 +85,7 @@ def test_full_coverage_consumer_is_full():
 
 def test_partial_mesh_consumer_fails_by_coverage_not_crash():
     """THE frozen-ruling case: a partial-mesh consumer measures as FAIL-by-coverage."""
-    r = _report(_events(["canonical_freshness", "check_floor_hash"]))
+    r = _report(_events(["canonical_freshness", "pre-commit installed at"]))
     assert (r.coverage_fired, r.coverage_total) == (2, 6)
     assert not r.full_coverage
     assert "FAIL-by-coverage" in r.summary()
@@ -83,7 +95,7 @@ def test_partial_mesh_consumer_fails_by_coverage_not_crash():
 
 
 def test_tombstone_regression_blocks_full_coverage():
-    evs = _events(_SIX_SIGNATURES) + [_tool_result("Ruff lint gate....Passed")]
+    evs = _events(_SIX_SIGNATURES) + _tool_result("Ruff linter....Passed")
     r = _report(evs)
     assert r.coverage_fired == 6 and not r.tombstones_ok and not r.full_coverage
     assert "tombstones REGRESSED" in r.summary()
@@ -111,7 +123,7 @@ def test_narration_never_produces_evidence_C1():
 
 
 def test_evidence_masks_a_key_shaped_token():
-    evs = [_tool_result("canonical_freshness saw sk-ant-abcdefgh12345678 in env")]
+    evs = _tool_result("canonical_freshness saw sk-ant-abcdefgh12345678 in env")
     lines = con.evidence_lines(evs, _oracle())
     assert all("sk-ant-abcdefgh" not in ln for ls in lines.values() for ln in ls)
     assert any("MASKED" in ln for ls in lines.values() for ln in ls)
