@@ -2785,7 +2785,7 @@ Canonical: the architect↔CC **division** is the equilibrium table in **"The tw
 ### Token log cadence
 <!-- scope: meta -->
 
-Relocated to `protocols/HANDOFF_PROCESS.md` §14 (#152, 2026-06-15) — session-boundary maintenance fired by `/session-summary` (7-day staleness check + short-format `ccusage --json` snapshot, newest-first prepend to `logs/TOKEN-LOG.md`). Canonical there; not restated here.
+Relocated to `protocols/HANDOFF_PROCESS.md` §15 (#152, 2026-06-15; §14→§15 renumber in handoff-process v5.5) — session-boundary maintenance fired by `/session-summary` (7-day staleness check + short-format `ccusage --json` snapshot, newest-first prepend to `logs/TOKEN-LOG.md`). Canonical there; not restated here.
 
 ### Output the operator copies into browser chat (render-layer note)
 <!-- scope: runtime -->

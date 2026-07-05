@@ -1,7 +1,7 @@
 # HANDOFF_PROCESS v5
 <!-- scope: meta -->
 
-Version: 5.4
+Version: 5.5
 Status: stable
 Effective: 2026-06-11 (canonical)
 Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149)
@@ -473,9 +473,62 @@ single file; the browser receives the complete role + residual + probes + supple
 
 ---
 
-## 14. Token-log cadence (session-boundary maintenance, runs on /session-summary)
+## 14. Epic-lane handoffs — EPIC (§14a) + EPIC RETURN (§14b)
 
-Relocated from PLAYBOOK §8 (#152, 2026-06-15): this is session-boundary maintenance fired by `/session-summary`, so it belongs with handoff mechanics rather than as a resident copy in PLAYBOOK. PLAYBOOK §8 now points here.
+Tree orchestration (**ADR-97**; operating model in PLAYBOOK §8) adds two handoff types for
+**epic lanes** — additive to §13, which is unchanged for root-to-root architect succession.
+An epic lane is an L1 browser chat with the same stance as §1's browser, scoped down to one
+epic inside a **root-provisioned worktree** (branch `epic/<slug>`). The governing invariant:
+**every lane boots from a generated handoff and closes with a return** — no lane runs on
+chat-prose instructions; the contract is the artifact (ADR-97 invariant 5).
+
+### §14a — EPIC handoff (architect → epic chat)
+
+A scope-contract, generated per epic at lane spawn. Carries:
+
+1. **Epic scope** — the BACKLOG slice (epic id, stories, done-when per story).
+2. **Epic done-contract** — the hard closure metric for the whole epic (ex-ante,
+   architect-authored, immutable to the lane).
+3. **Worktree + branch** — names provisioned by the architect (`claude --worktree
+   <epic-slug>`; branch `epic/<slug>`); **RELATIVE PATHS ONLY** (the
+   absolute-path-bypasses-worktree lesson is a hard rule).
+4. **FILE-BOUNDARY** — the explicit file/dir set the lane may touch. This is the parallelism
+   ruling made mechanical — two concurrent epics MUST have disjoint boundaries; a needed file
+   outside the boundary = **escalate, don't touch**.
+5. **Escalation rules** — ADR-worthy fork, boundary-breach need, cross-epic dependency
+   discovered → STOP, return to the architect. Everything intra-epic is the lane's own
+   judgment.
+6. **Refusals** — no merge to main, no ADRs, no backlog structure, no worktree lifecycle ops,
+   no new top-level folders, no content deletion without operator ask.
+
+### §14b — EPIC RETURN handoff (epic chat → architect)
+
+The lane's closing report, **required before any merge**:
+
+1. Commits on the epic branch (SHAs, one line each) + branch state (clean tree, tests green
+   ON THE BRANCH).
+2. **Contract-vs-outcome per story** (met / partial / dropped, with evidence) — closure
+   claimed on the hard metric, never "committed".
+3. Self-adjudications + anything ARCHITECT-REVIEW-PENDING.
+4. **Proposed BACKLOG delta** (structural changes for the architect to apply — the
+   BACKLOG-single-writer-for-structure ruling, ADR-97).
+5. **Merge-readiness checklist**: boundary respected (diff touches only the declared set), no
+   main merges performed, JOURNAL entry on branch names session SHAs.
+
+The architect then: reviews the return vs the contract → serial merge `--no-ff` → applies the
+backlog delta → declares closure → teardown (worktree remove + prune + branch -d + orphan
+check). **The loop closes at the root, always.**
+
+**Generator.** `templates/handoff/epic/{EPIC_BOOT,EPIC_RETURN}.md.tmpl`, emitted by
+`scripts/gen_handoff.py --mode epic` (reuses the v5 assembler; **probes stay** — an epic lane
+still boots on live-state probes scoped to its boundary; the §5 answer-free structural
+contract applies unchanged).
+
+---
+
+## 15. Token-log cadence (session-boundary maintenance, runs on /session-summary)
+
+Relocated from PLAYBOOK §8 (#152, 2026-06-15): this is session-boundary maintenance fired by `/session-summary`, so it belongs with handoff mechanics rather than as a resident copy in PLAYBOOK. PLAYBOOK §8 now points here. (Renumbered §14 → §15 in v5.5 — the epic-lane handoff types took §14, keeping the handoff-type sections contiguous with §13; pre-v5.5 references to "§14" in the Section history below mean this section.)
 
 Every /session-summary run checks TOKEN-LOG.md staleness. If latest entry >7 days old, a new short-format snapshot is appended via `ccusage --json`. Otherwise skipped.
 
@@ -598,3 +651,24 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
   `check-against-spec`), freshness-gated dependents genuinely re-read + restamped, and the 3
   PLAYBOOK advisory version strings refreshed. Major stays 5. Refs #164, RF-1 (2026-07-04
   handoff-adoption review), 2026-07-05 overnight run Block D.
+- v5.5 (2026-07-05, §14 epic-lane handoffs + token-log renumber §14→§15) — **Version → 5.5**
+  (fifth minor bump; additive — no §1–§13 rule changed). New **§14 "Epic-lane handoffs"**
+  records the two tree-orchestration handoff types (**ADR-97**; operating model PLAYBOOK §8):
+  **§14a EPIC handoff** (architect → epic chat scope-contract: epic scope · ex-ante immutable
+  done-contract · root-provisioned worktree/branch, relative paths only · FILE-BOUNDARY as the
+  parallelism ruling made mechanical · escalations · refusals) and **§14b EPIC RETURN** (epic
+  chat → architect closing report, required before any merge: branch commits/state ·
+  contract-vs-outcome on the hard metric · self-adjudications · proposed BACKLOG delta ·
+  merge-readiness checklist), plus the root's post-return sequence (review → serial `--no-ff`
+  merge → backlog delta → closure → teardown). Generator: `templates/handoff/epic/` +
+  `gen_handoff.py --mode epic` (v5 assembler reuse; §5 answer-free probe contract unchanged,
+  boundary-scoped). The former §14 (token-log cadence) renumbered → **§15** verbatim (the only
+  live external pointer, PLAYBOOK's relocation note, updated in the same commit; historical
+  "§14" mentions in this Section history refer to it, per the §15 renumber note). §13 is
+  untouched — epic lanes are a new handoff type, not a third §13 mode. **Coupled atomic move
+  (this commit-set, root-granted boundary extension 2026-07-05):** the 5 `reconciled_with`
+  edges (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/handoffs/README.md`,
+  `protocols/HANDOFF_BOOT.md`) @5.4→@5.5 (each site-enumerated + verdicted per
+  `check-against-spec`), version-string sites refreshed, freshness-gated dependents genuinely
+  re-read + restamped. Major stays 5. Refs ADR-97, Epic 2 (tree-orchestration §14
+  integration), 2026-07-04 lived precedent.
