@@ -57,9 +57,18 @@ def mirror_relative_precommit_sources(real_repo: Path, clone: Path) -> list[str]
     try:
         data = _yaml.safe_load(cfg.read_text(encoding="utf-8")) or {}
     except _yaml.YAMLError:
+        notes.append("SKIPPED mirror scan: .pre-commit-config.yaml is not parseable YAML")
+        return notes
+    # Codex HIGH 2026-07-06: a syntactically-valid-but-non-mapping YAML (list/scalar) must
+    # be a NOTED no-op, never an AttributeError that crashes the harness before spawn.
+    if not isinstance(data, dict):
+        notes.append("SKIPPED mirror scan: .pre-commit-config.yaml is not a mapping")
+        return notes
+    repos = data.get("repos")
+    if not isinstance(repos, list):
         return notes
     temp_root = Path(clone).resolve().parent
-    for entry in data.get("repos") or []:
+    for entry in repos:
         repo_ref = entry.get("repo", "") if isinstance(entry, dict) else ""
         if not isinstance(repo_ref, str) or not repo_ref.startswith(("..", "./")):
             continue  # URLs, `local`, `meta`, absolute paths: nothing to mirror
@@ -132,6 +141,8 @@ class ConsumerReport:
     coverage_armed_skipped: int   # G4a: consulted-but-Skipped (enforcing for their file scope)
     tombstone_state: str          # "ok" | "REGRESSED" | "VACUOUS" (G4b)
     evidence: dict[str, tuple[str, ...]]  # component_id -> verbatim matched stdout lines
+    mirror_notes: tuple[str, ...] = ()    # G7 environment diagnostics (Codex HIGH: surfaced,
+    #   never discarded — a missing/failed mirror must be distinguishable from hook silence)
 
     @property
     def tombstones_ok(self) -> bool:
@@ -152,6 +163,8 @@ class ConsumerReport:
             f"oracle: HUB manifest v{self.oracle_version} (expectation), consumer firing (reality)",
             self.gate.summary(),
         ]
+        for n in self.mirror_notes:
+            lines.append(f"  ~ mirror: {n}")
         for f in self.observation.gated_findings:
             lines.append(f"  [{f.verdict}] {f.component_id} ({f.channel})")
             for ev in self.evidence.get(f.component_id, ()):
@@ -173,7 +186,8 @@ class ConsumerReport:
 
 
 def build_report(consumer: str, gate: _arc.GateZero, observation: _observe.ObservationResult,
-                 oracle: _oracle.Oracle, events: list[dict]) -> ConsumerReport:
+                 oracle: _oracle.Oracle, events: list[dict],
+                 mirror_notes: tuple[str, ...] = ()) -> ConsumerReport:
     """Pure assembly: verdicts -> coverage figures + evidence quotes (unit-testable offline)."""
     fired = {f.component_id for f in observation.gated_findings if f.verdict == _observe.FIRED}
     armed = {f.component_id for f in observation.gated_findings
@@ -197,6 +211,7 @@ def build_report(consumer: str, gate: _arc.GateZero, observation: _observe.Obser
         coverage_armed_skipped=len(armed & active_ids),
         tombstone_state=tombstone_state,
         evidence=evidence_lines(events, oracle),
+        mirror_notes=tuple(mirror_notes),
     )
 
 
@@ -232,10 +247,11 @@ def run_consumer_arc(consumer_repo: Path | str, *, hub_root: Path | None = None,
         # G7: materialize the consumer's relative-path pre-commit sources beside the clone
         # (operator-machine layout mirror) so pre-commit can run AT ALL — else it errors
         # before any hook and the pre-commit trio is unmeasurable (STEP-3 witnessed).
-        mirror_relative_precommit_sources(consumer_repo, clone)
+        mirror_notes = tuple(mirror_relative_precommit_sources(consumer_repo, clone))
         result = _spawn.spawn(clone, _arc.ARC_PROMPT, config_dir=cfg, api_key=key,
                               model=model, extra_env=env, timeout=timeout)
         gate = _arc.evaluate_gate_zero(result)
         events = _observe.events_from_spawn(result)
         observation = _observe.observe(events, oracle, clone=clone)
-        return build_report(str(consumer_repo), gate, observation, oracle, events)
+        return build_report(str(consumer_repo), gate, observation, oracle, events,
+                            mirror_notes=mirror_notes)
