@@ -180,6 +180,10 @@ def spawn(work_dir: Path, prompt: str, *, config_dir: Path, api_key: str,
         proc = subprocess.run(
             [CLAUDE_BIN, "-p", prompt, "--model", model, "--output-format", "stream-json", "--verbose"],
             cwd=str(work_dir), env=env, capture_output=True, text=True, timeout=timeout,
+            # Explicit UTF-8: text=True alone uses the locale codec (cp1252 on Windows), and a
+            # UTF-8 byte in child stdout crashes the reader THREAD (witnessed at Step-7 leg-e:
+            # UnicodeDecodeError in _readerthread -> stdout capture lost).
+            encoding="utf-8", errors="replace",
         )
     except FileNotFoundError as exc:
         raise SandboxError(f"`{CLAUDE_BIN}` not found on PATH — cannot spawn the child session") from exc

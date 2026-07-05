@@ -323,7 +323,7 @@ class ArcRun:
 
 def run_arc(*, repo_root: Path | None = None, api_key: str | None = None,
             model: str = _spawn.DEFAULT_MODEL, leg_e_hook_id: str | None = None,
-            timeout: int = 600) -> ArcRun:
+            timeout: int = 1200) -> ArcRun:  # leg-e runs thrash the Stop-block loop; 600s timed out live
     """LIVE: clone+shape the hub, seed the user-level provenance sentinel, run the arc, and
     observe it — all before teardown. ``leg_e_hook_id`` disables one gated pre-commit hook
     first (the seeded EXPECTED-BUT-SILENT case, C4). Skip-gated in tests — needs ``claude`` +
