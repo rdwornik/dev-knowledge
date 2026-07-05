@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-07-05  
-**Generated:** 2026-07-05T14:20:40  
+**Generated:** 2026-07-05T19:37:10  
 **Repos audited:** 5  
 **Checks:** 145 total — 120 pass, 2 fail, 2 warn, 0 unavailable, 21 n/a
 
@@ -18,7 +18,7 @@
 |---|---|---|
 | `vision_md` | PASS | VISION.md present; frontmatter keys: ['last_reviewed', 'owner', 'status', 'version'] |
 | `adr38_baseline` | PASS | All ADR-38 universal governance baseline files present |
-| `claude_md` | PASS | CLAUDE.md present (25451 chars) |
+| `claude_md` | PASS | CLAUDE.md present (23385 chars) |
 | `dot_prefix_discipline` | PASS | All root config files dot-prefixed or on ADR-59 exception list |
 | `canonical_md_visibility` | PASS | Mandatory canonical files present + correctly cased: ['VISION.md', 'ARCHITECTURE.md', 'CLAUDE.md', 'BACKLOG.md', 'CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
 | `workspace_settings` | PASS | .dev-knowledge.code-workspace present, dot-prefixed, required sort settings correct |
@@ -28,14 +28,14 @@
 | `canonical_freshness` | PASS | 6 canonical living files fresh (last_reviewed not before last edit; within 30d) |
 | `no_sibling_orphans` | PASS | No orphaned '.dev-knowledge-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
-| `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v5.4 |
+| `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v5.5 |
 | `amendment_coherence` | PASS | 2 coupled-surface version mention(s) coherent across 1 set(s) |
 | `floor_integrity` | N/A | no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip) |
 | `hooks_armed` | PASS | hub-only — git-hook arming check skipped (not the hub repo) |
 | `git_backlog_drift` | PASS | hub-only — git<->backlog drift check skipped (not the hub repo) |
 | `doc_claims` | PASS | hub-only — prose-vs-state check skipped (not the hub repo) |
 | `no_ff_merges` | PASS | hub-only — --no-ff guard skipped (not the hub repo) |
-| `handoff_probes` | PASS | 10 probe(s) bind to live state (2026-07-05-dev-knowledge-architect) |
+| `handoff_probes` | PASS | 5 probe(s) bind to live state (2026-07-05-dev-knowledge-epic-test-tiering) |
 | `reconciled_versions` | PASS | 5 reconciled_with edge(s) match live spec version(s) |
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
 | `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
