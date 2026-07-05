@@ -36,6 +36,55 @@ _MASK = "sk-ant-****MASKED****"
 _PLUGIN_KEY = "tier1-lifecycle@dev-knowledge-methodology"
 
 
+def mirror_relative_precommit_sources(real_repo: Path, clone: Path) -> list[str]:
+    """G7 (STEP-3 witnessed, 2026-07-06): a consumer may pin a pre-commit source by
+    RELATIVE path (ai-council: ``repo: ../.dev-knowledge`` @ rev v1.2.0) — resolvable on
+    the operator machine's layout, unresolvable beside a sandbox clone in the temp dir, so
+    pre-commit errors before ANY hook runs and the three pre-commit components can never
+    be measured. Same class as G2 (root-ratified): MIRROR the operator machine's state —
+    for each relative local repo path in the CLONE's pre-commit config, git-clone what it
+    resolves to on the REAL machine into the same relative position beside the clone.
+
+    Blast-radius guards: the mirror target must land INSIDE the sandbox temp root (an
+    escaping path like ../../x is skipped + noted, never written); the source must exist
+    as a git repo on the real machine (else skipped + noted — that IS the honest
+    consumer-environment finding). The clone itself is never touched (observe-as-is)."""
+    notes: list[str] = []
+    cfg = Path(clone) / ".pre-commit-config.yaml"
+    if not cfg.exists():
+        return notes
+    import yaml as _yaml
+    try:
+        data = _yaml.safe_load(cfg.read_text(encoding="utf-8")) or {}
+    except _yaml.YAMLError:
+        return notes
+    temp_root = Path(clone).resolve().parent
+    for entry in data.get("repos") or []:
+        repo_ref = entry.get("repo", "") if isinstance(entry, dict) else ""
+        if not isinstance(repo_ref, str) or not repo_ref.startswith(("..", "./")):
+            continue  # URLs, `local`, `meta`, absolute paths: nothing to mirror
+        source = (Path(real_repo) / repo_ref).resolve()
+        target = (Path(clone) / repo_ref).resolve()
+        if temp_root != target.parent and temp_root not in target.parents:
+            notes.append(f"SKIPPED mirror {repo_ref!r}: escapes the sandbox temp root")
+            continue
+        if not (source / ".git").exists():
+            notes.append(f"SKIPPED mirror {repo_ref!r}: {source} is not a git repo on the "
+                         "real machine (consumer-environment finding)")
+            continue
+        if target.exists():
+            notes.append(f"mirror {repo_ref!r}: already present")
+            continue
+        import floor_conformance as _fc
+        r = _fc._run(["git", "-c", "core.autocrlf=false", "clone", "--quiet",
+                      str(source), str(target)], temp_root)
+        if r.returncode != 0:
+            notes.append(f"SKIPPED mirror {repo_ref!r}: clone failed ({r.stderr.strip()[:120]})")
+            continue
+        notes.append(f"mirrored {repo_ref!r} -> {target.name} (operator-machine layout)")
+    return notes
+
+
 def consumer_declares_plugin(clone: Path) -> bool:
     """True iff the CONSUMER's own tracked settings declare the tier1 plugin enabled
     (exact JSON check, never a substring). Codex HIGH 2026-07-06: plugin seeding must be
@@ -180,6 +229,10 @@ def run_consumer_arc(consumer_repo: Path | str, *, hub_root: Path | None = None,
         # then the honest not-deployed reading, never a harness-manufactured firing.
         if consumer_declares_plugin(clone):
             _arc.seed_tier1_plugin(cfg, clone, source_root=root)
+        # G7: materialize the consumer's relative-path pre-commit sources beside the clone
+        # (operator-machine layout mirror) so pre-commit can run AT ALL — else it errors
+        # before any hook and the pre-commit trio is unmeasurable (STEP-3 witnessed).
+        mirror_relative_precommit_sources(consumer_repo, clone)
         result = _spawn.spawn(clone, _arc.ARC_PROMPT, config_dir=cfg, api_key=key,
                               model=model, extra_env=env, timeout=timeout)
         gate = _arc.evaluate_gate_zero(result)

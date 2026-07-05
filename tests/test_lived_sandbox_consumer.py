@@ -239,6 +239,72 @@ def test_plugin_seeding_gated_on_consumer_declaration_codex_high(tmp_path, monke
     assert seeded == [_REPO]                                      # declared -> hub-sourced seed
 
 
+def _git_repo_with_commit(root: Path) -> Path:
+    root.mkdir(parents=True, exist_ok=True)
+    for args in (["init", "-q"], ["config", "user.email", "t@e.st"],
+                 ["config", "user.name", "T"], ["config", "commit.gpgsign", "false"]):
+        obs._git(root, *args)
+    (root / "x.txt").write_text("x\n", encoding="utf-8")
+    obs._git(root, "add", "-A")
+    obs._git(root, "commit", "-q", "-m", "seed")
+    return root
+
+
+def test_mirror_relative_precommit_source_g7(tmp_path):
+    """G7 (STEP-3 witnessed): a consumer pinning a pre-commit source by RELATIVE path
+    (ai-council's `repo: ../.dev-knowledge`) breaks beside a temp-dir clone — the mirror
+    materializes the real machine's target at the same relative position, inside the
+    sandbox temp root, without touching the clone."""
+    real_hub = _git_repo_with_commit(tmp_path / "real" / "hubX")
+    real_consumer = tmp_path / "real" / "consumer"
+    real_consumer.mkdir(parents=True)
+    sandbox = tmp_path / "sandbox"
+    clone = sandbox / "clone"
+    clone.mkdir(parents=True)
+    (clone / ".pre-commit-config.yaml").write_text(
+        "repos:\n- repo: ../hubX\n  rev: v1\n  hooks: []\n"
+        "- repo: local\n  hooks: []\n", encoding="utf-8")
+    before = (clone / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    notes = con.mirror_relative_precommit_sources(real_consumer, clone)
+    assert any("mirrored '../hubX'" in n for n in notes)
+    assert (sandbox / "hubX" / ".git").exists()          # operator-layout position
+    assert (sandbox / "hubX" / "x.txt").exists()
+    assert (clone / ".pre-commit-config.yaml").read_text(encoding="utf-8") == before
+    assert real_hub.exists()                             # source untouched
+    notes2 = con.mirror_relative_precommit_sources(real_consumer, clone)
+    assert any("already present" in n for n in notes2)   # idempotent
+
+
+def test_mirror_refuses_temp_root_escape_g7(tmp_path):
+    """Blast-radius: a relative source resolving OUTSIDE the sandbox temp root is skipped
+    and noted — the mirror never writes beyond the teardown boundary."""
+    real_consumer = tmp_path / "real" / "consumer"
+    real_consumer.mkdir(parents=True)
+    clone = tmp_path / "sandbox" / "clone"
+    clone.mkdir(parents=True)
+    (clone / ".pre-commit-config.yaml").write_text(
+        "repos:\n- repo: ../../evil\n  hooks: []\n", encoding="utf-8")
+    notes = con.mirror_relative_precommit_sources(real_consumer, clone)
+    assert any("escapes the sandbox temp root" in n for n in notes)
+    assert not (tmp_path / "evil").exists()
+
+
+def test_mirror_skips_nongit_source_and_urls_g7(tmp_path):
+    """A missing/non-git real-machine target is a NOTED consumer-environment finding, not a
+    crash; URL / local / meta entries are never touched."""
+    real_consumer = tmp_path / "real" / "consumer"
+    real_consumer.mkdir(parents=True)
+    clone = tmp_path / "sandbox" / "clone"
+    clone.mkdir(parents=True)
+    (clone / ".pre-commit-config.yaml").write_text(
+        "repos:\n- repo: ../ghost\n  hooks: []\n"
+        "- repo: https://github.com/x/y\n  rev: v1\n  hooks: []\n", encoding="utf-8")
+    notes = con.mirror_relative_precommit_sources(real_consumer, clone)
+    assert any("not a git repo on the real machine" in n for n in notes)
+    assert len(notes) == 1                               # the URL entry produced no note
+    assert not (tmp_path / "sandbox" / "ghost").exists()
+
+
 def test_run_consumer_arc_seeds_arc_allowlist_g1(tmp_path, monkeypatch):
     """G1 (measurement-#2 root ruling): the consumer child's HARNESS-OWNED user-level config
     carries the scoped #253a allowlist — the untrusted sandbox workspace IGNORES the clone's
