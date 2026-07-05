@@ -20,6 +20,7 @@ measure enforcement-in-effect. Three parts, deterministic-first:
 from __future__ import annotations
 
 import json
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -52,39 +53,90 @@ OUTER_MARKER_CANDIDATES = ("[fleet]", "[changelog]", "[closures]")
 # cannot self-emit any candidate; never use directly on a hub self-clone).
 OUTER_MARKERS = OUTER_MARKER_CANDIDATES
 
-# The clone dirs whose files can drive project-level hook emissions (the self-emission
-# surface scanned by `outer_only_markers`): repo hook scripts, project config, plugin code.
-_SELF_EMISSION_DIRS = ("scripts", ".claude", "plugins")
+_HOOK_SCRIPT_EXTS = (".py", ".ps1", ".psm1", ".sh")
+
+
+def _hook_group_commands(data: dict) -> list[str]:
+    """All hook command strings in a settings/hooks.json-shaped mapping."""
+    cmds: list[str] = []
+    for groups in (data.get("hooks") or {}).values():
+        for g in groups or []:
+            if not isinstance(g, dict):
+                continue
+            for h in g.get("hooks") or []:
+                if isinstance(h, dict) and isinstance(h.get("command"), str):
+                    cmds.append(h["command"])
+    return cmds
+
+
+def _iter_wired_hook_commands(clone: Path):
+    """Yield (command_string, var_root) for every hook ACTIVELY WIRED in the clone:
+    project settings hooks, plugin hooks.json, pre-commit entries. var_root resolves
+    ${CLAUDE_PLUGIN_ROOT} for plugin commands."""
+    settings = clone / ".claude" / "settings.json"
+    if settings.exists():
+        try:
+            for c in _hook_group_commands(json.loads(settings.read_text(encoding="utf-8"))):
+                yield c, clone
+        except (json.JSONDecodeError, OSError):
+            pass
+    for hooks_json in clone.glob("plugins/*/hooks/hooks.json"):
+        try:
+            for c in _hook_group_commands(json.loads(hooks_json.read_text(encoding="utf-8"))):
+                yield c, hooks_json.parent.parent
+        except (json.JSONDecodeError, OSError):
+            pass
+    pc = clone / ".pre-commit-config.yaml"
+    if pc.exists():
+        try:
+            cfg = yaml.safe_load(pc.read_text(encoding="utf-8")) or {}
+        except (yaml.YAMLError, OSError):
+            cfg = {}
+        for repo in cfg.get("repos") or []:
+            for h in (repo.get("hooks") or []) if isinstance(repo, dict) else []:
+                if isinstance(h, dict) and isinstance(h.get("entry"), str):
+                    yield h["entry"], clone
+
+
+def _wired_emission_texts(clone: Path) -> list[str]:
+    """The self-emission surface: every wired hook command string PLUS the content of each
+    script file it invokes (resolved under the clone)."""
+    texts: list[str] = []
+    for cmd, var_root in _iter_wired_hook_commands(clone):
+        texts.append(cmd)
+        for tok in re.split(r"""[\s"']+""", cmd):
+            tok = tok.replace("${CLAUDE_PLUGIN_ROOT}", str(var_root))
+            tok = tok.replace("$CLAUDE_PLUGIN_ROOT", str(var_root))
+            tok = tok.replace("$CLAUDE_PROJECT_DIR", str(clone))
+            if not tok.endswith(_HOOK_SCRIPT_EXTS):
+                continue
+            p = Path(tok)
+            if not p.is_absolute():
+                p = clone / tok
+            if p.exists():
+                try:
+                    texts.append(p.read_text(encoding="utf-8", errors="replace"))
+                except OSError:
+                    continue
+    return texts
 
 
 def outer_only_markers(clone: Path | str | None,
                        candidates: tuple[str, ...] = OUTER_MARKER_CANDIDATES) -> tuple[str, ...]:
     """Filter negative-control candidates to those the CLONE cannot legitimately emit itself.
 
-    [#253d]: a marker appearing anywhere in the clone's hook-source surface (scripts/,
-    .claude/, plugins/) is project-level-emittable inside the child — an INVALID control
-    (the hub self-clone emits [fleet]/[changelog]/[closures] on its own). Only the survivors
-    discriminate OUTER-user-level origin; on a full self-clone the set is honestly EMPTY
-    (reported vacuous) rather than false-failing GATE-0."""
+    [#253d], tightened per Codex HIGH 2026-07-05: the self-emission surface is the clone's
+    ACTIVE HOOK WIRING (settings hooks / plugin hooks.json / pre-commit entries + the scripts
+    they invoke), NOT blanket directory content — a marker merely QUOTED somewhere in the
+    repo (e.g. `[closures]` inside the manually-run review_closures.py) stays a LIVE control.
+    Empirical check: two real frozen arcs (incl. the /review-closures command act) emitted
+    no `[closures]`. Polarity is fail-closed: if a future arc legitimately emits a live
+    marker, GATE-0 fails LOUD and the wiring derivation is recalibrated — never the reverse."""
     if clone is None:
         return tuple(candidates)
     clone = Path(clone)
-    remaining = list(candidates)
-    for d in _SELF_EMISSION_DIRS:
-        base = clone / d
-        if not base.is_dir():
-            continue
-        for f in base.rglob("*"):
-            if not remaining:
-                return ()
-            if not f.is_file():
-                continue
-            try:
-                text = f.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
-            remaining = [m for m in remaining if m not in text]
-    return tuple(remaining)
+    texts = _wired_emission_texts(clone)
+    return tuple(m for m in candidates if not any(m in t for t in texts))
 
 _MANIFEST_REL = "deploy/manifest-v1.2.0.yaml"
 
@@ -242,6 +294,27 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
+def commit_shape_baseline(clone: Path) -> None:
+    """Commit the consumer-shape as the BASELINE so the child starts on a CLEAN tree (Step-7
+    witnessed: a dirty .pre-commit-config.yaml makes pre-commit refuse the arc's commit, and
+    the child's add-scope varies run to run). Hooks are not yet armed in the clone's .git, so
+    this is a plain commit. VERIFIED (Codex HIGH 2026-07-05): both git calls are checked and
+    the tree must end porcelain-clean — a dirty baseline would make the observer measure
+    setup failure, not lived-workflow behavior."""
+    clone = Path(clone)
+    r_add = _observe._git(clone, "add", "-A")
+    r_commit = _observe._git(clone, "commit", "-q", "-m", "chore(sandbox): consumer-shape baseline")
+    commit_ok = r_commit.returncode == 0 or "nothing to commit" in (r_commit.stdout + r_commit.stderr)
+    status = _observe._git(clone, "status", "--porcelain")
+    dirty = status.returncode != 0 or bool(status.stdout.strip())
+    if r_add.returncode != 0 or not commit_ok or dirty:
+        raise _spawn.SandboxError(
+            "consumer-shape baseline commit failed: "
+            f"add rc={r_add.returncode}, commit rc={r_commit.returncode} "
+            f"({(r_commit.stderr or r_commit.stdout).strip()[:150]}), "
+            f"status={status.stdout.strip()[:150] or 'clean'}")
+
+
 def seed_ecosystem_state(source_root: Path, clone: Path) -> list[str]:
     """Copy the hub's gitignored ``ecosystem/*/state.yaml`` into the clone (Step-7 finding:
     without them the clone's audit-health commit gate fails 'repos registered (none)' and
@@ -336,12 +409,7 @@ def run_arc(*, repo_root: Path | None = None, api_key: str | None = None,
         changes.extend(seed_ecosystem_state(root, clone))  # audit-health gate needs state
         if leg_e_hook_id:
             disable_precommit_hook(clone, leg_e_hook_id)
-        # Commit the shape as the BASELINE so the child starts on a CLEAN tree (Step-7
-        # witnessed: a dirty .pre-commit-config.yaml makes pre-commit refuse the arc's
-        # commit outright, and the child's add-scope varies run to run). Hooks are not
-        # yet armed in the clone's .git at this point, so this is a plain commit.
-        _observe._git(clone, "add", "-A")
-        _observe._git(clone, "commit", "-q", "-m", "chore(sandbox): consumer-shape baseline")
+        commit_shape_baseline(clone)
         # User-level isolated config carrying ONLY the provenance sentinel (the six live at
         # PROJECT level in the clone — the [MF-1] split). config_dir under the clone's temp root.
         cfg = _spawn.write_isolated_config(

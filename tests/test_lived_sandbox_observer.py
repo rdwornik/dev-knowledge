@@ -336,33 +336,41 @@ def test_gate_zero_fails_when_outer_markers_leak():
     assert not g.passed and not g.outer_markers_absent
 
 
-def test_gate_zero_hub_self_clone_passes_253d(tmp_path):
-    """[#253d] regression (the Step-7 failure): a hub self-clone legitimately emits
-    [fleet]/[changelog]/[closures] from its OWN project-level hooks — those are INVALID
-    controls, filtered at gate time, so the self-clone scenario PASSES GATE-0."""
+def _wire_clone(tmp_path, scripts: dict[str, str]) -> Path:
+    """A minimal clone whose .claude/settings.json WIRES the given scripts as hooks —
+    the wiring-derived self-emission surface (Codex HIGH 2026-07-05 tightening)."""
     clone = tmp_path / "clone"
     (clone / "scripts").mkdir(parents=True)
-    (clone / "scripts" / "fleet_health.py").write_text(
-        'print("[fleet] ok")', encoding="utf-8")
-    (clone / "scripts" / "changelog_sentinel.py").write_text(
-        'print("[changelog] x")', encoding="utf-8")
-    (clone / "plugins").mkdir()
-    (clone / "plugins" / "review_closures.py").write_text(
-        'msg = "[closures] proposed"', encoding="utf-8")
+    (clone / ".claude").mkdir()
+    hooks = []
+    for name, body in scripts.items():
+        (clone / "scripts" / name).write_text(body, encoding="utf-8")
+        hooks.append({"type": "command", "command": f'python "$CLAUDE_PROJECT_DIR/scripts/{name}"'})
+    (clone / ".claude" / "settings.json").write_text(json.dumps(
+        {"hooks": {"SessionStart": [{"matcher": "", "hooks": hooks}]}}), encoding="utf-8")
+    return clone
+
+
+def test_gate_zero_hub_self_clone_passes_253d(tmp_path):
+    """[#253d] regression (the Step-7 failure): markers the clone's WIRED hooks legitimately
+    emit ([fleet]/[changelog]) are invalid controls — filtered, so the self-clone passes;
+    a merely-QUOTED marker ([closures] in an unwired script) stays a LIVE control."""
+    clone = _wire_clone(tmp_path, {
+        "fleet_health.py": 'print("[fleet] ok")',
+        "changelog_sentinel.py": 'print("[changelog] x")'})
+    (clone / "scripts" / "review_closures.py").write_text(
+        'msg = "[closures] proposed"', encoding="utf-8")  # NOT wired -> not self-emittable
     r = _spawn_result(
         f"{arcmod.PROVENANCE_MARKER}\n[fleet] 2 issue(s) in 5 repos\n[changelog] claude-code",
         exit_code=0)
     g = arcmod.evaluate_gate_zero(r, clone=clone)
     assert g.passed, g.summary()
-    assert g.control_markers == ()  # honest-vacuous, reported in the summary
-    assert "VACUOUS" in g.summary()
+    assert g.control_markers == ("[closures]",)  # quoted-but-unwired stays live
 
 
 def test_gate_zero_outer_only_marker_still_fails_253d(tmp_path):
     """A marker the clone can NOT self-emit remains a live control: its leak fails the gate."""
-    clone = tmp_path / "clone"
-    (clone / "scripts").mkdir(parents=True)
-    (clone / "scripts" / "fleet_health.py").write_text('print("[fleet] ok")', encoding="utf-8")
+    clone = _wire_clone(tmp_path, {"fleet_health.py": 'print("[fleet] ok")'})
     leaked = _spawn_result(f"{arcmod.PROVENANCE_MARKER}\n[closures] 3 proposed", exit_code=0)
     g = arcmod.evaluate_gate_zero(leaked, clone=clone)
     assert not g.passed and not g.outer_markers_absent
@@ -371,11 +379,24 @@ def test_gate_zero_outer_only_marker_still_fails_253d(tmp_path):
     assert arcmod.evaluate_gate_zero(clean, clone=clone).passed
 
 
-def test_outer_only_markers_real_hub_all_self_emittable_253d():
-    """Documents the Step-7 invalidity: the REAL hub self-emits every candidate marker
-    (fleet_health / changelog_sentinel / review_closures), so the valid outer-only set
-    for a hub self-clone is empty — the provenance sentinel carries the isolation proof."""
-    assert arcmod.outer_only_markers(_REPO) == ()
+def test_outer_only_markers_real_hub_wiring_derived_253d():
+    """On the REAL hub: [fleet]/[changelog] are wired-hook-emittable (filtered); [closures]
+    is only QUOTED (surfaced by the global ~/.claude path, not the arc) -> stays a LIVE
+    control (Codex HIGH 2026-07-05; both real frozen arcs emitted no [closures])."""
+    assert arcmod.outer_only_markers(_REPO) == ("[closures]",)
+
+
+def test_commit_shape_baseline_verifies_clean(tmp_path):
+    """Baseline commit is CHECKED: success leaves porcelain-clean; a non-repo raises."""
+    repo = _init_repo(tmp_path / "r")
+    (repo / "shaped.txt").write_text("x\n", encoding="utf-8")
+    arcmod.commit_shape_baseline(repo)  # commits the dirt, ends clean
+    assert obs._git(repo, "status", "--porcelain").stdout.strip() == ""
+    arcmod.commit_shape_baseline(repo)  # idempotent: nothing-to-commit tolerated
+    not_repo = tmp_path / "not-a-repo"
+    not_repo.mkdir()
+    with pytest.raises(sp.SandboxError):
+        arcmod.commit_shape_baseline(not_repo)
 
 
 def test_outer_only_markers_none_clone_is_strict():
