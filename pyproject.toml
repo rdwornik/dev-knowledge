@@ -1,3 +1,36 @@
+# Dependency-isolation policy (#257, decided 2026-07-05): this repo runs on the
+# SYSTEM Python 3.12 by design — no venv. Rationale: every enforcement surface
+# (pre-commit `language: system` hooks, plugin Stop/SessionStart hooks, /ship
+# pre-flight) invokes the system interpreter; a venv would fork interpreter
+# paths across .pre-commit-config.yaml and hook wiring for zero isolation gain
+# in a single-user, validators-only Layer-2 repo. The trade is made honest by
+# DECLARING the dev toolchain below (PEP 735) so a rebuilt machine restores it
+# reproducibly:
+#   py -m pip install --group dev        (pip >= 25.1)
+[dependency-groups]
+dev = [
+    "pytest>=9.0",
+    "pytest-xdist>=3.8",   # /ship pre-flight parallel runs (-n auto), #256
+    "ruff>=0.15.5",        # matches [tool.ruff] required-version floor
+    "pre-commit>=4.5",
+    "pyyaml>=6.0",         # scripts/ validators (audit.py etc.)
+]
+
+[tool.pytest.ini_options]
+# Diff-shaped ship pre-flight tiering (#256/#260). `live_repo` marks the tests that
+# assert against the LIVE repo tree (markdown/docs) — the only tests a docs-only
+# diff can break. Docs-only pre-flight: `pytest -m live_repo` + `audit.py ship-gate`.
+markers = [
+    "live_repo: test asserts against the live repo tree (docs/config), not a tmp_path fixture",
+]
+# Full SERIAL suite — the nightly/on-demand path (#256 S3). The tiered /ship
+# pre-flight never runs this; it exists to catch what parallelism can mask
+# (xdist worker crashes, test-ordering coupling, load-sensitive timing):
+#   py -m pytest -q                  (full serial; ~9m42s wall, 2026-07-05 profile)
+# Run it on demand when xdist behavior is itself suspect, or as a nightly
+# sweep (no cron wired yet — deliberate; a documented invocation is the
+# current contract). Parallel full equivalent: py -m pytest -n auto --dist worksteal -q
+
 [tool.ruff]
 # Floor at the grounded version (0.15.5, 2026-06-02).
 # local pre-commit hook uses the system binary (language: system) so version

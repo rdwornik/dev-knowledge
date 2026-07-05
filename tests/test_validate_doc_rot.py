@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 import validate_doc_rot as vdr  # noqa: E402
 import audit as aud  # noqa: E402
 from pathlib import Path  # noqa: E402
+import pytest
 
 
 # --- fixtures ---------------------------------------------------------------
@@ -266,6 +267,7 @@ def test_check_registered_in_all_checks():
     assert aud.check_doc_rot in aud.ALL_CHECKS
 
 
+@pytest.mark.live_repo
 def test_registered_check_never_fails_on_live_repo():
     # WARN-only contract holds in production: the live hub run must never return FAIL.
     for f in aud.check_doc_rot(Path(aud._REPO_ROOT)):

@@ -2,6 +2,7 @@
 
 import importlib.util
 from pathlib import Path
+import pytest
 
 _VB = Path(__file__).resolve().parent.parent / "scripts" / "validate_backlog.py"
 
@@ -127,6 +128,7 @@ def test_clean_task_with_done_when_passes_inplace_check():
     assert not any("in-place" in h for h in hard)
 
 
+@pytest.mark.live_repo
 def test_live_backlog_passes_inplace_check():
     text = (Path(vb.__file__).resolve().parent.parent / "BACKLOG.md").read_text(encoding="utf-8")
     hard, _ = _run(text)
@@ -308,6 +310,7 @@ def test_title_tokens_strips_band_and_stopwords():
     assert toks == {"sync", "floor", "validator"}
 
 
+@pytest.mark.live_repo
 def test_live_backlog_no_spurious_dup_warn():
     # specificity regression: the real BACKLOG has no near-duplicate pairs at the tuned
     # threshold (max distinct-pair Jaccard is well below it) -> zero dedup WARNs

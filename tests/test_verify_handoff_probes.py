@@ -594,6 +594,7 @@ def test_check_is_registered_in_all_checks():
     assert "handoff_probes" in names
 
 
+@pytest.mark.live_repo
 def test_registered_check_never_fails_on_live_repo():
     # Production contract: the live hub's latest bundle must resolve (pass/warn), never FAIL.
     findings = aud.check_handoff_probes(Path(aud._REPO_ROOT))
