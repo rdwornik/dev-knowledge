@@ -71,10 +71,15 @@ def _role(ev: dict) -> str:
 
 
 def hook_stdout_surface(events: list[dict]) -> str:
-    """Concatenate ONLY externally-produced text: tool_result contents + system/hook/result
-    stdout. Assistant *text* content items are EXCLUDED — narration is not evidence ([NB-2])."""
+    """Concatenate ONLY externally-produced text: tool_result contents + system/hook stdout.
+    Assistant *text* content items AND stream-json `result` events (the child's final
+    narration) are EXCLUDED — narration is not evidence ([NB-2], [#253b])."""
     parts: list[str] = []
     for ev in events:
+        if ev.get("type") == "result":
+            # A stream-json result event's `result` field IS the child's final narration
+            # ([#253b]) — C1 forbids it as evidence, so the whole event is excluded.
+            continue
         role = _role(ev)
         content = _message(ev).get("content")
         if isinstance(content, list):
@@ -90,7 +95,8 @@ def hook_stdout_surface(events: list[dict]) -> str:
             # A bare-string system/hook/user payload (non-assistant) is external stdout.
             parts.append(content)
         # Top-level hook/system stdout fields (some event shapes surface hook output here).
-        if ev.get("type") in ("system", "hook", "result"):
+        # NOT "result" events — excluded above ([#253b]: their `result` field is narration).
+        if ev.get("type") in ("system", "hook"):
             for k in ("stdout", "output", "hookOutput", "result"):
                 v = ev.get(k)
                 if isinstance(v, str):

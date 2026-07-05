@@ -175,6 +175,32 @@ def test_observer_narration_excluded_from_hook_surface():
         [_tool_result("canonical_freshness passed")])
 
 
+def _result_event(text: str) -> dict:
+    """A stream-json final `result` event — its `result` field is the child's closing
+    narration (the [#253b] leak channel), never hook stdout."""
+    return {"type": "result", "subtype": "success", "is_error": False, "result": text}
+
+
+def test_observer_result_event_narration_excluded_253b():
+    """[#253b] regression: a transcript whose ONLY signature matches live in the result
+    event's narration field yields SILENT for all six — never FIRED. (This leak made
+    Block B's lone FIRED a narration artifact.)"""
+    o = orc.load_oracle(_MANIFEST_V120)
+    narrated = [_result_event(
+        "ARC DONE — hooks all fired: " + " ".join(f"{s}....Passed" for s in _SIX_SIGNATURES))]
+    r = obs.observe(narrated, o)
+    assert not r.passed, "a result-event narration must never produce a green verdict"
+    assert {f.component_id for f in r.silences} == _GATED_SIX
+
+
+def test_observer_result_event_excluded_from_hook_surface_253b():
+    """The result field never enters the hook-stdout surface; a real tool_result still does."""
+    assert "canonical_freshness" not in obs.hook_stdout_surface(
+        [_result_event("canonical_freshness....Passed")])
+    assert "canonical_freshness" in obs.hook_stdout_surface(
+        [_tool_result("canonical_freshness....Passed")])
+
+
 def test_observer_counts_command_act():
     o = orc.load_oracle(_MANIFEST_V120)
     r = obs.observe(_green_events(), o)
