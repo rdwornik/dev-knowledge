@@ -1,3 +1,11 @@
+[tool.pytest.ini_options]
+# Diff-shaped ship pre-flight tiering (#256/#260). `live_repo` marks the tests that
+# assert against the LIVE repo tree (markdown/docs) — the only tests a docs-only
+# diff can break. Docs-only pre-flight: `pytest -m live_repo` + `audit.py ship-gate`.
+markers = [
+    "live_repo: test asserts against the live repo tree (docs/config), not a tmp_path fixture",
+]
+
 [tool.ruff]
 # Floor at the grounded version (0.15.5, 2026-06-02).
 # local pre-commit hook uses the system binary (language: system) so version

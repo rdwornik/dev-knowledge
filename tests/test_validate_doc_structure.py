@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 import validate_doc_structure as vds  # noqa: E402
 import audit as aud  # noqa: E402
 from pathlib import Path  # noqa: E402
+import pytest
 
 
 # --- fixtures ---------------------------------------------------------------
@@ -296,6 +297,7 @@ def test_check_registered_in_all_checks():
     assert aud.check_doc_structure in aud.ALL_CHECKS
 
 
+@pytest.mark.live_repo
 def test_registered_check_never_fails_on_live_repo():
     for f in aud.check_doc_structure(Path(aud._REPO_ROOT)):
         assert f.status in {"pass", "warn"}
@@ -316,11 +318,13 @@ def _live(rel: str) -> str:
     return (Path(vds._REPO_ROOT) / rel).read_text(encoding="utf-8")
 
 
+@pytest.mark.live_repo
 def test_live_hub_scan_is_clean():
     # The headline acceptance: the live docs PASS (§18 marker + fence-awareness keep it clean).
     assert vds.scan(Path(vds._REPO_ROOT)) == []
 
 
+@pytest.mark.live_repo
 def test_live_playbook_section18_marker_is_load_bearing():
     # The §18 oracle on REAL data: the gap is suppressed BY the marker (and is not dangling).
     pb = _live("protocols/PLAYBOOK.md")
@@ -330,11 +334,13 @@ def test_live_playbook_section18_marker_is_load_bearing():
     assert vds.scan_dangling_allow("protocols/PLAYBOOK.md", vds.numbering_gaps(pb), allow) == []
 
 
+@pytest.mark.live_repo
 def test_live_playbook_toc_fence_awareness():
     # The embedded-template oracle on REAL data: PLAYBOOK's fenced H2s don't read as orphans.
     assert vds.scan_toc("protocols/PLAYBOOK.md", _live("protocols/PLAYBOOK.md")) == []
 
 
+@pytest.mark.live_repo
 def test_live_playbook_heading_scheme_is_clean():
     # The Ch/§ convention on REAL data: Part I chapters are ChN. sequential, Part II is `## N.`.
     pb = _live("protocols/PLAYBOOK.md")

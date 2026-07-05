@@ -23,11 +23,23 @@ Merge the current feature branch to `main` — the standard git-finish sequence.
    `Pre-flight FAILED: /ship must run on a feature branch, not main.`
 3. **Clean working tree** — run `git status --porcelain`. If non-empty, stop:
    `Pre-flight FAILED: working tree is dirty — commit or stash all changes first.`
-4. **Validators green** — run `pytest -n auto -x --tb=short && ruff check`. If either fails, stop:
+4. **Validators green (diff-shaped, #256/#260)** — classify the arc first:
+   `git diff --name-only main...HEAD`. If **every** changed path ends in `.md` the arc is
+   **docs-only**; anything else (or any non-`.md` path) makes it a **code diff**. The
+   docs-only tier applies only where `pyproject.toml` registers the `live_repo` marker
+   (hub — same hub-vs-child guard as step 5); in a repo without it, use the code-diff
+   command (a bare `-m live_repo` there would select nothing and exit 5).
+   - **docs-only** → `pytest -m live_repo -q && ruff check`. The `live_repo` marker selects
+     the tests that assert against the live repo tree — the only tests a markdown-only diff
+     can break (hermetic tmp_path tests exercise unchanged code); step 5's
+     `audit.py ship-gate` still runs and covers the doc gates. Measured 2026-07-05:
+     ~21s tests + ~13s ship-gate ≈ 34s (budget ≤60s).
+   - **code diff** → `pytest -n auto --dist worksteal -x --tb=short && ruff check` — the
+     full suite in parallel (pytest-xdist, declared dev dep; measured 2026-07-05: ~2m05s
+     wall vs 9m42s serial; floor-bound by one 90s E2E test). If xdist is unavailable the
+     flag errors out — install dev deps rather than silently falling back to serial.
+   If either command fails, stop:
    `Pre-flight FAILED: validators red — fix before merging.`
-   (`-n auto` = pytest-xdist parallel run, declared dev dep — measured 9m42s serial → ~2min
-   parallel on the hub suite, 2026-07-05 profile [#256]. If xdist is unavailable the flag
-   errors out — install dev deps rather than silently falling back to serial.)
 5. **Verification organs green for THIS arc (hub-only, #147)** — makes "Definition of
    shipped" point (6) enforceable: the organs must have *run green against this arc*, not
    merely exist. **Skip silently if `scripts/audit.py` is absent** (child repo — the organs

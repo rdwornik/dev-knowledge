@@ -236,6 +236,7 @@ def test_edge_check_only_scans_listed_docs(tmp_path, monkeypatch):
     assert "advisory inactive" in findings[0].evidence
 
 
+@pytest.mark.live_repo
 def test_edge_check_registered_and_resolves_starter_set():
     """Registered in ALL_CHECKS (count 28) AND the LIVE hub scan resolves the post-#202 set over
     the declaration-doc registry: 12 enforced rules -- the 5 cohort-1 (seal-journal-anchor /
@@ -343,6 +344,7 @@ _STARTERS = [
 
 
 @pytest.mark.parametrize("rule_id, doc_rel, code_rel", _STARTERS)
+@pytest.mark.live_repo
 def test_real_starter_edges_resolve_and_break(tmp_path, rule_id, doc_rel, code_rel):
     """On REAL content + real wiring: each starter resolves as it ships AND breaking it is caught.
 
@@ -379,6 +381,7 @@ def test_real_starter_edges_resolve_and_break(tmp_path, rule_id, doc_rel, code_r
 # or if a rule is added to coverage_scope without its doc+code annotation.
 
 
+@pytest.mark.live_repo
 def test_coverage_all_in_scope_rules_resolve():
     """Every rule-ID in coverage_scope (the #194 in-scope enforced rules) must resolve doc<->code.
 
@@ -629,6 +632,7 @@ _MULTI_RULES = [
 
 
 @pytest.mark.parametrize("rule_id, count", _MULTI_RULES)
+@pytest.mark.live_repo
 def test_governance_multi_site_rules_resolve_live(rule_id, count):
     """The real multi-organ rules resolve doc<->code on the LIVE hub at their declared count: the
     #201 governance trio + retro coherence-spec-reconciled + the #202 Tier-3 quartet (each an
@@ -690,6 +694,7 @@ def test_coverage_drift_guard_flags_undeclared_check_naming_it():
     assert flagged == {"fake_undeclared"}, f"expected only fake_undeclared flagged, got {flagged}"
 
 
+@pytest.mark.live_repo
 def test_coverage_drift_guard_full_check_fails_on_injected_escape(monkeypatch):
     """End-to-end teeth (the CAPTURED FLAG = #203 closure evidence): inject an unannotated,
     non-exempt member into ALL_CHECKS -> check_doc_code_coverage_drift returns a FAIL Finding that
@@ -701,6 +706,7 @@ def test_coverage_drift_guard_full_check_fails_on_injected_escape(monkeypatch):
     assert "fake_undeclared" in findings[0].evidence
 
 
+@pytest.mark.live_repo
 def test_coverage_drift_guard_registered_and_clean_on_live_repo():
     """The drift-guard is in ALL_CHECKS (count 29) and PASSES on the live repo: every member is
     either coverage_scope-annotated or exempt (the post-#203 end-state)."""

@@ -312,6 +312,7 @@ def test_every_claim_row_is_structurally_valid(claim):
 
 
 @pytest.mark.parametrize("claim", vdc._CLAIMS, ids=lambda c: c.name)
+@pytest.mark.live_repo
 def test_every_claim_anchor_still_resolves_in_live_doc(claim):
     # "anchor still present" guard: if a living doc is reworded so a claim's anchor no longer
     # matches, the claim silently degrades to anchor-missing (un-checkable). Assert every
@@ -326,6 +327,7 @@ def test_every_claim_anchor_still_resolves_in_live_doc(claim):
 
 
 @pytest.mark.parametrize("claim", [c for c in vdc._CLAIMS if not c.expensive], ids=lambda c: c.name)
+@pytest.mark.live_repo
 def test_every_nonexpensive_deriver_returns_value_on_live_repo(claim):
     # "working deriver": each cheap deriver must return a non-None ground truth against the
     # live repo (the expensive pytest deriver is exercised separately, to keep this fast).
@@ -389,6 +391,7 @@ def test_e2e_seeded_mismatch_fires_through_registered_check(tmp_path, monkeypatc
     assert aud.check_doc_claims in aud.ALL_CHECKS          # actually registered
 
 
+@pytest.mark.live_repo
 def test_registered_check_never_fails_on_live_repo():
     # WARN-only contract holds in production: the live hub run must never return FAIL.
     findings = aud.check_doc_claims(Path(aud._REPO_ROOT))

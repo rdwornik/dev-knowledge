@@ -19,6 +19,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import coherence_enumerator as ce  # noqa: E402
+import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _RUNBOOK = _REPO_ROOT / "docs" / "handoffs" / "README.md"
@@ -32,6 +33,7 @@ def _live_sites():
 
 # --- Step 1: deterministic site-extraction pass ----------------------------
 
+@pytest.mark.live_repo
 def test_extract_surfaces_the_mermaid_diagram():
     """The single fenced ```mermaid block must surface as a discrete diagram site."""
     diagrams = _live_sites()["diagrams"]
@@ -42,6 +44,7 @@ def test_extract_surfaces_the_mermaid_diagram():
     assert site.line_end > site.line_start    # a block range, not a single line
 
 
+@pytest.mark.live_repo
 def test_extract_surfaces_both_walkthrough_blocks():
     """Both numbered procedures — the 7-step boot walkthrough AND the 3-step
     supplement procedure — must surface as discrete step blocks."""
@@ -63,6 +66,7 @@ def test_empty_ordered_item_does_not_fragment_a_step_block():
     assert steps[0].line_start == 3 and steps[0].line_end == 5
 
 
+@pytest.mark.live_repo
 def test_extract_surfaces_spec_name_mentions():
     """Mentions of the spec name / family must surface under `sections`."""
     sections = _live_sites()["sections"]
@@ -70,6 +74,7 @@ def test_extract_surfaces_spec_name_mentions():
     assert any("HANDOFF_PROCESS" in s.text for s in sections)
 
 
+@pytest.mark.live_repo
 def test_extract_surfaces_command_invocations():
     """CLI invocations — incl. the PowerShell discovery fence — surface as commands."""
     commands = _live_sites()["commands"]
@@ -77,6 +82,7 @@ def test_extract_surfaces_command_invocations():
     assert any("Get-ChildItem" in s.anchor for s in commands), "powershell fence missing"
 
 
+@pytest.mark.live_repo
 def test_every_category_is_present_in_the_map():
     """The map always carries every category (so the checklist can state empties)."""
     sites = _live_sites()
@@ -89,6 +95,7 @@ def test_read_spec_version_from_fixture():
     assert ce.read_spec_version("# Spec\n\nno version here\n") == ""
 
 
+@pytest.mark.live_repo
 def test_read_spec_version_live_is_not_hardcoded():
     """The live spec parses to a real version-shaped value — asserted by SHAPE,
     never by the literal current value (which advances)."""
@@ -164,6 +171,7 @@ def test_checklist_renders_a_verdict_slot_per_site():
 
 # --- Step 3: isolated COMPLETENESS proof (not a drift-catch) ----------------
 
+@pytest.mark.live_repo
 def test_mutation_completeness_surfaces_the_sites_drift_would_slip_past(tmp_path):
     """COMPLETENESS proof, NOT a drift-catch.
 

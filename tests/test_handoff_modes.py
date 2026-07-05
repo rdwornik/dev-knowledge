@@ -10,6 +10,9 @@ that PLAYBOOK pointerizes rather than re-describes them. They go RED on silent d
 """
 
 from pathlib import Path
+import pytest
+
+pytestmark = pytest.mark.live_repo  # whole file asserts live protocol/command docs
 
 _REPO = Path(__file__).resolve().parents[1]
 
