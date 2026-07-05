@@ -98,7 +98,7 @@ Canonical: PLAYBOOK §2 "Creating a Claude Code Prompt" (incl. "Architect output
 - **docs/ taxonomy** (one semantic role per subfolder; two repo-type variants; immutable records never rewritten on move) → ADR-60; PLAYBOOK Ch3
 - **Commit messages** (Conventional Commits; git history IS the changelog — WHAT in summary, WHY in body, one logical change per commit) → PLAYBOOK Ch3 "Commit message standard"
 - **Rule-IDs** (`<domain>-<slug>` at doc + code side; declare at the authoritative source, never in a summary) → PLAYBOOK Ch3; ADR-89 OQ1
-- **Mermaid theme** (custom-base dark directive on every `ARCHITECTURE.md` block; audit check #7) → PLAYBOOK "Codemap workflow"; ADR-51 v2
+- **Mermaid theme** (re-scoped to the human-facing visualization surface as guidance — canonical `ARCHITECTURE.md` carries no Mermaid, audit check #7 retired) → PLAYBOOK "Codemap workflow"; ADR-51 amendment 2026-07-05
 - **Auto-TOC** (generator-driven between `<!-- TOC:START/END -->`, freshness-gated, never hand-maintained) → PLAYBOOK "Auto-TOC for large canonical docs"; ADR-51
 
 ---
