@@ -1,0 +1,81 @@
+<!--
+  EPIC_BOOT.md.tmpl — the §14a EPIC handoff scope-contract (HANDOFF_PROCESS §14a; ADR-97).
+  Rendered by `scripts/gen_handoff.py --mode epic`, generalized from the two handoffs the
+  root cut 2026-07-05 (the Epic 1 / Epic 2 lane spawns).
+
+  ANSWER-FREE BY CONSTRUCTION (§5 / RF-1 option b): the interpolation tokens are STRUCTURAL
+  ONLY — {{SLUG}} {{REPO}} {{DATE}} {{BRANCH}} {{MODE_SCOPE}} {{EPIC_SLUG}} {{EPIC_BRANCH}}.
+  None may carry a probe answer (a count, sha, verdict, date-relation).
+
+  SCAFFOLD, NOT NARRATION (RF-6): the ROOT-authored contract content (scope, done-contract,
+  boundary, escalations) lives in FILL-IN regions — the generator scaffolds, the root
+  architect authors; a re-render preserves each FILL-IN region byte-for-byte.
+-->
+# EPIC HANDOFF — {{EPIC_SLUG}} · {{DATE}}
+<!-- scope: meta -->
+
+| Field | Value |
+|---|---|
+| **Slug** | {{SLUG}} |
+| **Mode** | **epic** — {{MODE_SCOPE}} |
+| **Repo** | {{REPO}} |
+| **Date** | {{DATE}} |
+| **Epic branch** | `{{EPIC_BRANCH}}` (root-provisioned; bundle generated on `{{BRANCH}}`) |
+
+## Boot (epic lane)
+
+You are an **EPIC-CHAT lane** (HANDOFF_PROCESS §14a; ADR-97). The root architect owns ADR
+acceptance, backlog structure, parallelism rulings, and ALL merges to main. On load reply:
+"Epic lane {{EPIC_SLUG}} booted — worktree + boundary acknowledged."
+
+## Worktree + branch
+
+Worktree `epic-{{EPIC_SLUG}}` (root-provisioned — never self-provisioned) · branch
+`{{EPIC_BRANCH}}`. **RELATIVE PATHS ONLY** (the absolute-path-bypasses-worktree lesson is a
+hard rule). Commit-per-story; **commit-and-STOP** — no merges to main.
+
+## Epic scope (the BACKLOG slice)
+<!-- FILL-IN:scope START — ROOT authors: epic id · stories in order · done-when per story -->
+_FILL-IN (root): epic id · stories (in order) · done-when per story._
+<!-- FILL-IN:scope END -->
+
+## Epic done-contract (ex-ante, immutable to this lane)
+<!-- FILL-IN:done-contract START — the hard closure metric for the WHOLE epic -->
+_FILL-IN (root): the hard closure metric — closure is claimed on this, never on "docs edited"
+or "committed"._
+<!-- FILL-IN:done-contract END -->
+
+## FILE-BOUNDARY (hard)
+<!-- FILL-IN:boundary START — may-touch / may-NOT-touch; disjoint from every concurrent epic -->
+_FILL-IN (root): May touch: … · May NOT touch: … A needed file outside the boundary →
+STOP, escalate — don't touch._
+<!-- FILL-IN:boundary END -->
+
+## Escalation
+<!-- FILL-IN:escalation START — epic-specific triggers beyond the standing set -->
+_FILL-IN (root): epic-specific escalation triggers. Standing set (always): ADR-worthy fork ·
+boundary-breach need · cross-epic dependency discovered → STOP, return to the root.
+Everything intra-epic is the lane's own judgment._
+<!-- FILL-IN:escalation END -->
+
+## Refusals (standing — not editable by the lane)
+
+No merge to main · no ADRs · no backlog structure (checkboxes inside this epic's own block
+only) · no worktree lifecycle ops · no new top-level folders · no content deletion without
+operator ask.
+
+## EPIC RETURN (required before any merge)
+
+Close the lane by filling `EPIC_RETURN.md` in this bundle (§14b): commits + branch state ·
+contract-vs-outcome per story · self-adjudications · proposed BACKLOG delta ·
+merge-readiness. The root reviews the return against this contract → serial `--no-ff` merge →
+applies the backlog delta → declares closure → tears down the worktree.
+
+## Probes
+
+Boot on `PROBES.md` (this bundle) — live-state probes scoped to this epic's boundary
+(HANDOFF_PROCESS §5 contract: question + source-locator + command, **never the answer**).
+
+> **Operator note.** Paste THIS file + `PROBES.md` into the fresh epic chat. Epic mode
+> assembles no `PASTE_THIS.md` — the v5 paste manifest is architect/execution-shaped
+> (requires `RESIDUAL.md`); the EPIC_BOOT scope-contract IS the paste.

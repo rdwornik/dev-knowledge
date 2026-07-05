@@ -39,6 +39,7 @@ import click
 _SCRIPTS = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS.parent
 _TMPL_DIR = _REPO_ROOT / "templates" / "handoff" / "v5"
+_TMPL_DIR_EPIC = _REPO_ROOT / "templates" / "handoff" / "epic"
 
 # Per-mode framing that is structural (never an answer value).
 _MODE = {
@@ -51,6 +52,13 @@ _MODE = {
         "scope": "execution / task scope",
         "posture": ("the reactive-filter posture — execute the named task-graph against live state and "
                     "verify after each step, escalating on any drift"),
+    },
+    # §14a epic-lane mode (ADR-97): a scope-contract bundle, not a v5 architect/execution one.
+    "epic": {
+        "scope": "one epic end-to-end, inside a root-provisioned worktree (ADR-97; HANDOFF_PROCESS §14a)",
+        "posture": ("the epic-lane posture — decompose the epic into user stories, delegate to CC, "
+                    "review, keep own-epic BACKLOG checkboxes current, commit-and-STOP on the epic "
+                    "branch; escalate ADR-worthy forks / boundary needs / cross-epic deps to the root"),
     },
 }
 
@@ -212,8 +220,9 @@ def _strip_leading_comment(text: str) -> str:
     return re.sub(r"\A<!--.*?-->\s*(?=#)", "", text, count=1, flags=re.DOTALL)
 
 
-def _render(tmpl_name: str, tokens: dict[str, str], bundle_dir: Path, out_name: str) -> None:
-    tmpl = (_TMPL_DIR / tmpl_name).read_text(encoding="utf-8")
+def _render(tmpl_name: str, tokens: dict[str, str], bundle_dir: Path, out_name: str,
+            tmpl_dir: Path = _TMPL_DIR) -> None:
+    tmpl = (tmpl_dir / tmpl_name).read_text(encoding="utf-8")
     rendered = _strip_leading_comment(_substitute(tmpl, tokens))
     existing = bundle_dir / out_name
     prior = existing.read_text(encoding="utf-8") if existing.exists() else None
@@ -247,12 +256,22 @@ class GenResult:
 
 def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str | None = None,
              repo: str | None = None, date: str | None = None, force_filled: bool | None = None,
-             assemble: bool = True, bundle_root: Path | None = None) -> GenResult:
+             assemble: bool = True, bundle_root: Path | None = None,
+             epic_slug: str | None = None) -> GenResult:
     """Emit a v5 bundle from committed repo state. Returns the bundle dir + the JOURNAL draft.
 
     force_filled overrides the auto-detected fill-state (RF-2's `--filled`). bundle_root defaults
     to <repo_root>/docs/handoffs (overridable for tests). SUPPLEMENT.md is written only if absent
     (an operator-filled supplement is never clobbered).
+
+    mode="epic" (§14a, ADR-97) emits the epic-lane scope-contract bundle instead:
+    EPIC_BOOT.md (root-authored FILL-IN contract scaffold) + PROBES.md (boundary-scoped
+    teeth) + EPIC_RETURN.md (§14b closing-report skeleton, write-if-absent — a lane-filled
+    return is never clobbered). It reuses this generator's v5 assembly machinery (render /
+    FILL-IN splice / structural tokens / the answer-free invariant) but assembles NO
+    PASTE_THIS.md: scripts/assemble_paste.py's manifest is v5-shaped (requires RESIDUAL.md);
+    the EPIC_BOOT scope-contract is the paste. `epic_slug` names the epic (branch
+    `epic/<epic_slug>`, worktree `epic-<epic_slug>`); defaults to the bundle slug.
     """
     if mode not in _MODE:
         raise ValueError(f"mode must be one of {sorted(_MODE)}; got {mode!r}")
@@ -266,6 +285,20 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     state = collect_state(repo_root)
     filled = force_filled if force_filled is not None else detect_fill_state(bundle_dir)
     tokens = _tokens(mode, slug, repo, date, state, filled)
+
+    if mode == "epic":
+        eslug = epic_slug or slug
+        tokens.update({"EPIC_SLUG": eslug, "EPIC_BRANCH": f"epic/{eslug}"})
+        # §14b return skeleton: write-if-absent — the SUPPLEMENT.md never-clobber precedent.
+        if not (bundle_dir / "EPIC_RETURN.md").exists():
+            ret = _strip_leading_comment(_substitute(
+                (_TMPL_DIR_EPIC / "EPIC_RETURN.md.tmpl").read_text(encoding="utf-8"), tokens))
+            (bundle_dir / "EPIC_RETURN.md").write_text(ret, encoding="utf-8", newline="\n")
+        _render("EPIC_BOOT.md.tmpl", tokens, bundle_dir, "EPIC_BOOT.md", tmpl_dir=_TMPL_DIR_EPIC)
+        _render("PROBES.md.tmpl", tokens, bundle_dir, "PROBES.md", tmpl_dir=_TMPL_DIR_EPIC)
+        hints = collect_hints(repo_root)
+        return GenResult(bundle_dir=bundle_dir,
+                         journal_draft=journal_draft(slug, date, state, hints), filled=filled)
 
     # SUPPLEMENT first (architect mode) — but never clobber an operator-filled one. Its presence
     # feeds detect_fill_state on a later re-run; on this run `filled` already reflects it.
@@ -288,8 +321,11 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
 
 
 @click.command()
-@click.option("--mode", type=click.Choice(["architect", "execution"]), default="architect",
+@click.option("--mode", type=click.Choice(["architect", "execution", "epic"]), default="architect",
               show_default=True)
+@click.option("--epic-slug", default=None,
+              help="epic mode only: the epic name (branch epic/<slug>, worktree epic-<slug>); "
+                   "default the bundle slug")
 @click.option("--slug", default=None, help="bundle slug; default <date>-<repo>-<mode>")
 @click.option("--repo", default=None, help="repo display name; default the repo dir name")
 @click.option("--date", default=None, help="handoff date YYYY-MM-DD; default today")
@@ -298,7 +334,7 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
 @click.option("--assemble/--no-assemble", default=True, help="run assemble_paste to emit PASTE_THIS.md")
 @click.option("--emit-journal/--no-emit-journal", default=True,
               help="print the JOURNAL generation-entry DRAFT to stdout (never writes JOURNAL.md)")
-def main(mode: str, slug: str | None, repo: str | None, date: str | None,
+def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, date: str | None,
          force_filled: bool | None, assemble: bool, emit_journal: bool) -> None:
     """Generate a v5 handoff bundle from committed repo state."""
     state = collect_state(_REPO_ROOT)
@@ -306,7 +342,7 @@ def main(mode: str, slug: str | None, repo: str | None, date: str | None,
         click.echo("[warn] working tree is DIRTY — a v5 bundle is cut from COMMITTED state; "
                    "commit first or the probes bind to un-committed drift.", err=True)
     res = generate(_REPO_ROOT, mode=mode, slug=slug, repo=repo, date=date, force_filled=force_filled,
-                   assemble=assemble)
+                   assemble=assemble, epic_slug=epic_slug)
     click.echo(f"Generated bundle: {res.bundle_dir}  (fill-state: {'FILLED' if res.filled else 'cold'})")
     if emit_journal:
         click.echo("\n----- JOURNAL generation-entry DRAFT (prepend to JOURNAL.md at wrap; "
