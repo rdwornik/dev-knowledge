@@ -1,6 +1,6 @@
 ---
-last_reviewed: 2026-06-27
-reconciled_with: handoff-process@5.3
+last_reviewed: 2026-07-05
+reconciled_with: handoff-process@5.4
 status: active
 owner: Rob
 ---
@@ -102,6 +102,7 @@ Pre-commit hooks (`.pre-commit-config.yaml`):
 | `codemap-freshness` | commit | Checks the ARCHITECTURE.md codemap block is current vs `scripts/`. |
 | `toc-freshness` | commit | Fail-on-stale check that ARCHITECTURE.md's TOC matches its headers. Regenerate: `python -m scripts.toc.cli generate ARCHITECTURE.md --write`. |
 | `toc-freshness-playbook` | commit | Same check for `protocols/PLAYBOOK.md`'s TOC. Regenerate: `python -m scripts.toc.cli generate protocols/PLAYBOOK.md --write`. |
+| `roster-freshness` | commit | Regen-and-diff gate for `.claude/methodology-roster.md` vs `deploy/manifest-v*.yaml` (`gen_methodology_roster.py --check`); blocks a hand-edited or manifest-stale roster. Hub-only ([#244] P3). |
 | `validate-backlog` | commit | Validates the BACKLOG.md story-map structure (ADR-66). |
 | `audit-health` | commit | Runs `audit.py health` (the self-conformance checks incl. canonical-file freshness). **FAIL-level findings block the commit; WARN-level only inform.** ~1.4s. Bypass: `--no-verify`. |
 | `ruff` | commit | Lint gate — `ruff check` (version-pinned >=0.15.5, `language: system`). Blocks on violations. [#13] closed. |
@@ -185,7 +186,7 @@ See ADR-27 through ADR-41 for style reference.
 
 <!-- scope: meta -->
 
-Protocol: `protocols/HANDOFF_PROCESS.md` — **v5** (stamp v5.3, *stable*; ADR-82, operator-ratified 2026-06-11 per #149, amended 2026-06-16 for the v5.1 architect strategic supplement, 2026-06-17 for the v5.2 always-generated supplement file, and 2026-06-25 for the v5.3 §5 probe-manifest consolidation). v5 inverts the v4 model: instead of a browser-delivered 8-file bundle, **CC owns the handoff** — it emits a lean **residual** + a **probe manifest** under `docs/handoffs/<slug>/`, and a fresh browser chat boots from the thin `protocols/HANDOFF_BOOT.md`. Verification has teeth: the probes force CC to re-derive every load-bearing fact from the live primary source at check-time. v4.4 is archived at `protocols/archive/HANDOFF_PROCESS_v4.4.md`. The ADR-36 read-only contract holds: a handoff never writes to a target repo.
+Protocol: `protocols/HANDOFF_PROCESS.md` — **v5** (stamp v5.4, *stable*; ADR-82, operator-ratified 2026-06-11 per #149, amended 2026-06-16 for the v5.1 architect strategic supplement, 2026-06-17 for the v5.2 always-generated supplement file, 2026-06-25 for the v5.3 §5 probe-manifest consolidation, and 2026-07-05 for the v5.4 §5 structural anti-bluff + §13 generator note). v5 inverts the v4 model: instead of a browser-delivered 8-file bundle, **CC owns the handoff** — it emits a lean **residual** + a **probe manifest** under `docs/handoffs/<slug>/`, and a fresh browser chat boots from the thin `protocols/HANDOFF_BOOT.md`. Verification has teeth: the probes force CC to re-derive every load-bearing fact from the live primary source at check-time. v4.4 is archived at `protocols/archive/HANDOFF_PROCESS_v4.4.md`. The ADR-36 read-only contract holds: a handoff never writes to a target repo.
 
 Claude Code command: **`/handoff`** — `create handoff for <repo>` has CC emit the **residual** + **probe manifest** under `docs/handoffs/<slug>/` and point the next browser at the thin boot (`protocols/HANDOFF_BOOT.md`); `complete handoff for <repo>` cross-checks repo state and finalizes. `<repo>` defaults to `.dev-knowledge` (self-handoff). Not `/session-summary` — that is a separate session-summary command, not the handoff generator.
 

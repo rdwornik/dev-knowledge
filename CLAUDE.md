@@ -1,6 +1,6 @@
 ---
-last_reviewed: 2026-07-04
-reconciled_with: handoff-process@5.3
+last_reviewed: 2026-07-05
+reconciled_with: handoff-process@5.4
 status: active
 owner: Rob
 ---
@@ -188,8 +188,9 @@ Brief one-liners. Full list in `docs/decisions/README.md`; full governance list 
 - v2.25 (2026-07-02) — §11 "last 5" rotated **85–89 → 89–93** (the deferral carried since v2.19–v2.21, now closed for the deploy cohort): genuine reads of ADR-90/91/92/93 (all Accepted — the ARCHITECTURE-currency arc [#222]/[#223]/[#224]); dropped 85–88 (retained in `docs/decisions/README.md` + ARCHITECTURE Governing-ADRs), added the resolver-allows-N / corpus-versioning / deploy-runbook / floor-model-A quartet. Fixed the stale version comment (**2.23** while v2.24 had already landed → **2.25**). Companion genuine end-to-end re-read confirmed §1–§10 current; `last_reviewed` re-stamped 2026-07-02.
 - v2.26 (2026-07-03) — Fable consult #1 ruling #3 landed (operator-signed): §5 item 3 narrowed — the "ADRs/transcripts/handoffs/audits immutable" rule gains an **ADR-status-line-only** ratification exception (ADR-94: an ADR's *status line* is editable in place on Proposed→Accepted; decision content + transcripts/handoffs/audits stay fully immutable), standardizing go-forward on Pattern B (ADR-92) over ADR-88/89's frozen-header Pattern A; §"File lifecycle" (L55) reconciled to match; §11 "last 5" rotated **89–93 → 91–95** (dropped 89/90, added the new ADR-94 + the consult's ADR-95 lane-split). The header↔README status-coherence check is filed **#242** (not built); ADR-88/89 retro-normalization deferred. Companion end-to-end re-read confirmed §1–§10 current; `last_reviewed` re-stamped 2026-07-03.
 - v2.27 (2026-07-04) — [#244] P3 generated-roster currency (Fable R3): the deployed methodology corpus (commands / hooks / config) is now machine-generated from `deploy/manifest-v*.yaml` `components:[].roster` into `.claude/methodology-roster.md`, `@`-imported via a new §9 "Methodology-deployed roster (generated)" subsection — so it can no longer be hand-maintained and thus cannot rot. §7 trimmed of the three deployed commands (`/review-closures`/`/ship`/`/override`), replaced by a pointer note that keeps every non-enumeration rationale at its verified canonical home (ADR-70 + §8/ARCHITECTURE [#76]; the `/ship` worktree-refusal `LESSONS.md` 2026-06-19; ADR-85 §4). §9 gains the blocking `roster-freshness` regen-and-diff hook. The generated file is deliberately OUT of `DEFAULT_FRESHNESS_FILES` (currency = regen); CLAUDE.md STAYS in (100% hand-prose, gated). `@import` sanctioned: the ADR-45 / 2026-05-26-council `@path` ban is browser-handoff-delivery-scoped, NOT local session-boot (quoted at review; the live `@.claude/CLAUDE-FLOOR.md` precedent corroborates). Methodology version HELD (hub-only n=1 tooling; consumer rollout is P6). Hub-local items stay hand-authored (no machine source; follow-up filed). Genuine end-to-end re-read confirmed §1–§11 current; `last_reviewed` re-stamped 2026-07-04.
+- v2.28 (2026-07-05) — handoff-process 5.3→5.4 reconciliation (overnight-run Block D): frontmatter `reconciled_with` re-stamped @5.4 after site-enumeration (the §1/§7 handoff references are major-level and unaffected — the v5.4 change is additive-only: §5 structural anti-bluff + §13 generator note, documenting the `9d5ebe5` mechanism). Genuine end-to-end review basis: full-file read at session boot + §7/§8/§9 claims exercised live through the night's work; `last_reviewed` re-stamped 2026-07-05.
 
 ---
 
-**Last updated:** 2026-07-04
+**Last updated:** 2026-07-05
 **Maintained by:** Rob

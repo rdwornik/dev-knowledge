@@ -1,6 +1,6 @@
 ---
-last_reviewed: 2026-07-04
-reconciled_with: handoff-process@5.3
+last_reviewed: 2026-07-05
+reconciled_with: handoff-process@5.4
 status: active
 owner: Rob
 ---
@@ -341,7 +341,9 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
 - `scripts/verify_handoff_probes.py` — handoff-probe teeth: every probe in the latest v5
   `PROBES.md` bundle binds to live state, by STRUCTURAL resolvability (resolve-only — no
   subprocess; Critical Rule #4). Mechanizes the manual v5 probe-gate (HANDOFF_PROCESS §5/§10):
-  malformed row / missing source-or-command target → FAIL, reworded `#`-anchor → WARN
+  malformed row / missing source-or-command target → FAIL, row-scoped `expected[ :]`
+  answer-hint → FAIL (the v5.4 anti-bluff rung — a probe that ships its answer is bluffable
+  by construction), reworded `#`-anchor → WARN
   anchor-missing, absent tool → skipped. Read-only; surfaced via the `handoff_probes` audit
   check (FAIL-class — a toothless probe blocks `/ship`). Standalone CLI:
   `python scripts/verify_handoff_probes.py <bundle>` (#163).
