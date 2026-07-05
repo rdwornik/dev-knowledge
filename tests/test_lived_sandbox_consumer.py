@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import contextlib
 import itertools
+import json
 import sys
 import types
 from pathlib import Path
@@ -160,6 +161,39 @@ def test_run_consumer_arc_uses_hub_oracle_never_consumer_manifest(tmp_path, monk
     assert report.gate.passed
     assert (report.coverage_fired, report.coverage_total) == (1, 6)
     assert not report.full_coverage
+
+
+def test_run_consumer_arc_seeds_arc_allowlist_g1(tmp_path, monkeypatch):
+    """G1 (measurement-#2 root ruling): the consumer child's HARNESS-OWNED user-level config
+    carries the scoped #253a allowlist — the untrusted sandbox workspace IGNORES the clone's
+    own settings.local.json allows (witnessed verbatim at measurement #2), so user-level is
+    the only place a headless child honors them. Never a bypass. Timeout matches the hub arc
+    path (600s Stop-block thrash witnessed at Step 7)."""
+    consumer_repo = tmp_path / "consumer"
+    consumer_repo.mkdir()
+    clone_dir = tmp_path / "clone"
+    clone_dir.mkdir()
+    seen = {}
+
+    @contextlib.contextmanager
+    def fake_clone(source, prefix="x"):
+        yield clone_dir, {}
+
+    def fake_spawn(work_dir, prompt, *, config_dir, api_key, model="sonnet",
+                   extra_env=None, timeout=0):
+        seen["config_dir"] = Path(config_dir)
+        seen["timeout"] = timeout
+        return sp.SpawnResult(exit_code=0, stdout=arcmod.PROVENANCE_MARKER, events=[],
+                              transcript_path=None, config_dir=Path(config_dir),
+                              work_dir=clone_dir)
+
+    monkeypatch.setattr(sp, "sandbox_clone", fake_clone)
+    monkeypatch.setattr(sp, "spawn", fake_spawn)
+    con.run_consumer_arc(consumer_repo, hub_root=_REPO, api_key="k")
+    raw = (seen["config_dir"] / "settings.json").read_text(encoding="utf-8")
+    assert json.loads(raw)["permissions"]["allow"] == list(arcmod.ARC_ALLOW_RULES)
+    assert "bypassPermissions" not in raw and "defaultMode" not in raw
+    assert seen["timeout"] == 1200
 
 
 # --- CLI seam ----------------------------------------------------------------------------

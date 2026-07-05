@@ -114,7 +114,7 @@ def build_report(consumer: str, gate: _arc.GateZero, observation: _observe.Obser
 
 def run_consumer_arc(consumer_repo: Path | str, *, hub_root: Path | None = None,
                      api_key: str | None = None, model: str = _spawn.DEFAULT_MODEL,
-                     timeout: int = 600) -> ConsumerReport:
+                     timeout: int = 1200) -> ConsumerReport:
     """LIVE: clone the CONSUMER as-is, run the same six-hook arc prompt inside the clone,
     and measure firing against the HUB oracle. Never shapes the clone, never touches the
     real consumer repo. GATE-0 (isolation-only) is evaluated; the caller decides exit
@@ -124,8 +124,14 @@ def run_consumer_arc(consumer_repo: Path | str, *, hub_root: Path | None = None,
     key = api_key or _spawn.load_api_key()
     oracle = _oracle.load_for_version("1.2.0", repo_root=root)
     with _spawn.sandbox_clone(consumer_repo, prefix="lived-consumer-") as (clone, env):
+        # G1 (measurement-#2 root ruling): FULL #253a parity with the hub arc path — the
+        # scoped allowlist rides the HARNESS-OWNED user-level config, the only place a
+        # headless child honors it (witnessed verbatim at measurement #2: the sandbox
+        # workspace is untrusted, so the clone's own settings.local.json allows are
+        # IGNORED). Never a bypass — anything beyond the arc still hits the wall.
         cfg = _spawn.write_isolated_config(
-            clone.parent / "cfg", session_start_marker=_arc.PROVENANCE_MARKER)
+            clone.parent / "cfg", session_start_marker=_arc.PROVENANCE_MARKER,
+            allow_rules=_arc.ARC_ALLOW_RULES)
         result = _spawn.spawn(clone, _arc.ARC_PROMPT, config_dir=cfg, api_key=key,
                               model=model, extra_env=env, timeout=timeout)
         gate = _arc.evaluate_gate_zero(result)
