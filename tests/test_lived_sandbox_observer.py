@@ -376,6 +376,46 @@ def test_gate_zero_independent_of_hook_completeness():
     assert arcmod.evaluate_gate_zero(r).passed
 
 
+# --- [#253a] the arc permission seam: scoped allowlist, never bypass ---
+
+
+def test_isolated_config_seeds_scoped_allowlist_253a(tmp_path):
+    """The harness owns the child's config: it seeds EXACTLY the arc-op allowlist,
+    deterministically, and never any bypass escape."""
+    cfg = sp.write_isolated_config(tmp_path / "cfg", session_start_marker="M",
+                                   allow_rules=arcmod.ARC_ALLOW_RULES)
+    raw = (cfg / "settings.json").read_text(encoding="utf-8")
+    settings = json.loads(raw)
+    assert settings["permissions"]["allow"] == list(arcmod.ARC_ALLOW_RULES)
+    assert "bypassPermissions" not in raw and "defaultMode" not in raw
+    # Deterministic: a second write yields byte-identical settings.
+    sp.write_isolated_config(tmp_path / "cfg2", session_start_marker="M",
+                             allow_rules=arcmod.ARC_ALLOW_RULES)
+    assert raw == (tmp_path / "cfg2" / "settings.json").read_text(encoding="utf-8")
+
+
+def test_isolated_config_without_rules_stays_minimal_253a(tmp_path):
+    """Slice-A callers (prove-isolation) are unchanged: no allow_rules -> no permissions key."""
+    cfg = sp.write_isolated_config(tmp_path / "cfg")
+    assert "permissions" not in json.loads((cfg / "settings.json").read_text(encoding="utf-8"))
+
+
+def test_arc_allow_rules_are_scoped_to_the_arc_253a():
+    """Every rule names a specific arc operation — no blanket Bash, no wildcard tool grant."""
+    for rule in arcmod.ARC_ALLOW_RULES:
+        assert rule != "*" and not rule.startswith(("Bash(*", "Bash(:")), rule
+    bash_rules = [r for r in arcmod.ARC_ALLOW_RULES if r.startswith("Bash(")]
+    assert all(r.startswith("Bash(git ") for r in bash_rules)  # only the git arc ops
+    assert "SlashCommand(/review-closures)" in arcmod.ARC_ALLOW_RULES  # the one command act
+
+
+def test_arc_prompt_honestly_self_legitimizing_253a():
+    """[#253a]: sanctioned test-harness CONTEXT stated in the prompt — context, not trickery."""
+    p = arcmod.ARC_PROMPT.lower()
+    assert "sanctioned" in p and "test-harness" in p and "throwaway" in p
+    assert "authorized" in p
+
+
 _RUFF_EXPECTED_BLOCK = {
     "repos": [{
         "repo": "https://github.com/astral-sh/ruff-pre-commit",

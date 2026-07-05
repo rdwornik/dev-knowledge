@@ -78,21 +78,28 @@ def _hook_print(marker: str) -> str:
     return f"python -c \"print('{marker}')\""
 
 
-def write_isolated_config(config_dir: Path, *, session_start_marker: str | None = None) -> Path:
+def write_isolated_config(config_dir: Path, *, session_start_marker: str | None = None,
+                          allow_rules: tuple[str, ...] | None = None) -> Path:
     """Create an ISOLATED CLAUDE_CONFIG_DIR seeded with a minimal settings.json.
 
     Empty hooks by default. If `session_start_marker` is given, install ONE SessionStart hook
     that prints it — the isolation POSITIVE control (a user-level hook that fires iff this config
     is the one the child reads). Because CLAUDE_CONFIG_DIR points here, the child never consults
     the real ~/.claude, so an outer L0 hook living only there cannot fire.
+
+    `allow_rules` ([#253a]): the harness OWNS this config, so it seeds a SCOPED permission
+    allowlist — exactly the operations the sanctioned arc needs, enumerated by the caller.
+    NEVER a bypass: no bypassPermissions / defaultMode escape is ever written here; anything
+    outside the allowlist still hits the normal permission wall.
     """
     config_dir = Path(config_dir)
     config_dir.mkdir(parents=True, exist_ok=True)
+    settings: dict = {"hooks": {}}
     if session_start_marker:
-        settings = {"hooks": {"SessionStart": [
-            {"matcher": "", "hooks": [{"type": "command", "command": _hook_print(session_start_marker)}]}]}}
-    else:
-        settings = {"hooks": {}}
+        settings["hooks"] = {"SessionStart": [
+            {"matcher": "", "hooks": [{"type": "command", "command": _hook_print(session_start_marker)}]}]}
+    if allow_rules:
+        settings["permissions"] = {"allow": list(allow_rules)}
     (config_dir / "settings.json").write_text(
         json.dumps(settings, indent=2), encoding="utf-8", newline="\n")
     return config_dir

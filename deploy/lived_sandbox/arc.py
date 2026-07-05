@@ -89,13 +89,30 @@ _MANIFEST_REL = "deploy/manifest-v1.2.0.yaml"
 
 # The arc the inner session performs. No push (refusal); /review-closures is the >=1 command
 # act. Kept terse + deterministic so the observer measures the mesh, not the model's prose.
+# [#253a]: honestly SELF-LEGITIMIZING — the child is told exactly what context it runs in
+# (a sanctioned test-harness sandbox measuring hook enforcement) — context, never trickery.
 ARC_PROMPT = (
-    "You are in a throwaway sandbox clone. Perform EXACTLY this workflow, then stop:\n"
+    "You are a headless child session inside a SANCTIONED test-harness sandbox: a throwaway\n"
+    "clone of the operator's own repository, used to measure that the deployed git hooks\n"
+    "fire during a real workflow. This work is authorized; the clone is discarded afterwards.\n"
+    "Perform EXACTLY this workflow, then stop:\n"
     "1. git checkout -b feat/sandbox-arc\n"
     "2. Create a file SANDBOX_ARC.md containing one line: sandbox lived-workflow arc\n"
     "3. git add -A && git commit -m 'feat(arc): sandbox lived-workflow edit'\n"
     "4. Run the /review-closures command.\n"
     "Do NOT push. Do NOT edit any other file. Reply with only: ARC DONE"
+)
+
+# [#253a] The SCOPED permission allowlist the harness seeds into the isolated config —
+# exactly the arc's operations (branch/edit/stage/commit + the one command act), nothing
+# broader. NEVER bypassPermissions: anything else the child tries still hits the wall.
+ARC_ALLOW_RULES = (
+    "Bash(git checkout:*)",
+    "Bash(git add:*)",
+    "Bash(git commit:*)",
+    "Write(SANDBOX_ARC.md)",
+    "Edit(SANDBOX_ARC.md)",
+    "SlashCommand(/review-closures)",
 )
 
 
@@ -247,7 +264,8 @@ def run_arc(*, repo_root: Path | None = None, api_key: str | None = None,
         # User-level isolated config carrying ONLY the provenance sentinel (the six live at
         # PROJECT level in the clone — the [MF-1] split). config_dir under the clone's temp root.
         cfg = _spawn.write_isolated_config(
-            clone.parent / "cfg", session_start_marker=PROVENANCE_MARKER)
+            clone.parent / "cfg", session_start_marker=PROVENANCE_MARKER,
+            allow_rules=ARC_ALLOW_RULES)  # [#253a]: scoped seam, never bypass
         result = _spawn.spawn(clone, ARC_PROMPT, config_dir=cfg, api_key=key,
                               model=model, extra_env=env, timeout=timeout)
         gate = evaluate_gate_zero(result, clone=clone)  # [#253d]: self-emittable markers filtered
