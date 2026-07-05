@@ -108,16 +108,14 @@ def hook_stdout_surface(events: list[dict]) -> str:
         # self-match the signature without the hook producing any output.
         att = ev.get("attachment")
         if isinstance(att, dict) and str(att.get("type", "")).startswith("hook_"):
+            # stdout/stderr/content ONLY — NEVER the command field. Witnessed at Step-7:
+            # a hook that succeeds SILENTLY leaves no transcript record at all (every
+            # logged hook_success carries output), so a command string can never be
+            # execution evidence — matching it would fire on a mere config echo.
             for k in ("stdout", "stderr", "content"):
                 v = att.get(k)
                 if isinstance(v, str):
                     parts.append(v)
-            # hook_success ONLY: the command line is proof-of-execution for a hook that is
-            # silent on success (the floor guard) — the record exists only because the hook
-            # RAN to exit 0. Never for hook_cancelled/other (a cancelled hook echoes its
-            # command without having run).
-            if att.get("type") == "hook_success" and isinstance(att.get("command"), str):
-                parts.append(att["command"])
     return "\n".join(parts)
 
 

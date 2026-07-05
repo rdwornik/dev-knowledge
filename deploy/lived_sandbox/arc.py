@@ -336,6 +336,12 @@ def run_arc(*, repo_root: Path | None = None, api_key: str | None = None,
         changes.extend(seed_ecosystem_state(root, clone))  # audit-health gate needs state
         if leg_e_hook_id:
             disable_precommit_hook(clone, leg_e_hook_id)
+        # Commit the shape as the BASELINE so the child starts on a CLEAN tree (Step-7
+        # witnessed: a dirty .pre-commit-config.yaml makes pre-commit refuse the arc's
+        # commit outright, and the child's add-scope varies run to run). Hooks are not
+        # yet armed in the clone's .git at this point, so this is a plain commit.
+        _observe._git(clone, "add", "-A")
+        _observe._git(clone, "commit", "-q", "-m", "chore(sandbox): consumer-shape baseline")
         # User-level isolated config carrying ONLY the provenance sentinel (the six live at
         # PROJECT level in the clone — the [MF-1] split). config_dir under the clone's temp root.
         cfg = _spawn.write_isolated_config(

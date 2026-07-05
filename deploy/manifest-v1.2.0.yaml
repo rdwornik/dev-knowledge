@@ -470,11 +470,15 @@ components:
     engages:                    # GATED SIX — firing hook, session-start stage
       trigger: session-start
       observable: hook-stdout
-      expect: "--require-present"   # [#253c] calibrated@step7: the guard is SILENT on success,
-                                    # so the firing evidence is its hook_success command record
-                                    # (proof-of-execution channel); unique to the guard leg and
-                                    # immune to git-status filename echo (`check_floor_hash.py`
-                                    # in a status listing false-fired the old signature).
+      expect: "pre-commit installed at"   # [#253c] calibrated@step7: the guard VERIFY leg is
+                                          # silent-on-success and a silent hook leaves NO
+                                          # transcript record — the observable firing evidence
+                                          # is the guard group's ARM leg stdout ("pre-commit
+                                          # installed at .git\hooks\..."), emitted only by this
+                                          # wiring. Verify-leg failure prints loud (floor
+                                          # absent / hash drift), so group-fired + no failure
+                                          # text == guard green. Honest limit: this observes
+                                          # the GROUP, not the silent verify leg alone.
     artifacts:
       - wiring: ".claude/settings.json SessionStart hook -> python .claude/check_floor_hash.py --require-present"
     roster:

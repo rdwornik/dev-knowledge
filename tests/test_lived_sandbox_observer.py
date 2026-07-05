@@ -27,7 +27,7 @@ _MANIFEST_V120 = _REPO / "deploy" / "manifest-v1.2.0.yaml"
 
 # The six gated firing-hook signatures as authored in manifest-v1.2.0.yaml.
 _SIX_SIGNATURES = [
-    "--require-present", "sha256 sidecar", "canonical_freshness",
+    "pre-commit installed at", "sha256 sidecar", "canonical_freshness",
     "TOC freshness", "Session-end", "propose_closures:",
 ]
 
@@ -392,16 +392,12 @@ def test_observer_reads_attachment_hook_stdout():
         [_attachment_hook("Session-end hygiene (deterministic backpressure)")])
 
 
-def test_observer_hook_success_command_is_proof_of_execution():
-    """hook_success ONLY: the command record counts (a silent-on-success hook like the floor
-    guard has no stdout — the hook_success event itself proves it ran). A cancelled hook's
-    command echo must NOT count: it names the script without the hook having run."""
-    ran = _attachment_hook("", command="python .claude/check_floor_hash.py --require-present")
-    assert "--require-present" in obs.hook_stdout_surface([ran])
-    cancelled = {"type": "user", "attachment": {
-        "type": "hook_cancelled", "hookName": "SessionStart",
-        "command": "python .claude/check_floor_hash.py --require-present"}}
-    assert "--require-present" not in obs.hook_stdout_surface([cancelled])
+def test_observer_attachment_command_field_never_counts():
+    """The command field is config echo, not execution evidence (Step-7 witnessed: a hook
+    succeeding SILENTLY leaves no transcript record at all, so a command string can never
+    stand in for output). Matching it would fire on wiring alone."""
+    ev = _attachment_hook("", command="python scripts/session_end_backpressure.py")
+    assert "session_end_backpressure" not in obs.hook_stdout_surface([ev])
 
 
 def test_observer_non_hook_attachment_excluded():
