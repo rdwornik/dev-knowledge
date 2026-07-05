@@ -38,14 +38,14 @@ Hub `ARCHITECTURE.md` renders **zero Mermaid**, carries the **same dependency fa
 
 ## FILE-BOUNDARY (hard)
 <!-- FILL-IN:boundary START — may-touch / may-NOT-touch; disjoint from every concurrent epic -->
-**May touch:** `ARCHITECTURE.md` · `templates/ARCHITECTURE-template.md` · `scripts/audit.py` (**NARROW GRANT: check #7 Mermaid-theme retire/replace ONLY**) · `docs/decisions/` (the new ADR-51 amendment) · own BACKLOG block ([#259] checkboxes only) · `JOURNAL.md` (append).
+**May touch:** `ARCHITECTURE.md` · `templates/ARCHITECTURE-template.md` · `scripts/audit.py` (**NARROW GRANT: check #7 Mermaid-theme retire/replace ONLY**) · `tests/`: **check-#7 assertions ONLY** (the tests that pin audit check #7's behavior — no other test files; root ruling E4-1, 2026-07-05) · `docs/decisions/` (the new ADR-51 amendment) · own BACKLOG block ([#259] checkboxes only) · `JOURNAL.md` (append).
 **May NOT touch:** `protocols/**` · `deploy/**` · `ecosystem/doc-counts.md` (**FORBIDDEN** — the root regenerates it once at integration).
 A needed file outside the boundary → STOP, escalate — don't touch. 3 lanes = the ADR-97 cap ceiling — this lane spawns no sub-work outside its worktree.
 <!-- FILL-IN:boundary END -->
 
 ## Escalation
 <!-- FILL-IN:escalation START — epic-specific triggers beyond the standing set -->
-Epic-specific: (1) any `audit.py` change beyond check #7 (another check's contract, shared helpers whose edit ripples into other checks) → STOP, return to root; (2) an ARCHITECTURE edit that would drop a dependency FACT (not just its Mermaid rendering) → escalate — the no-information-loss clause is load-bearing; (3) Mermaid found in a canonical doc OUTSIDE the boundary (e.g. protocols/) → list in the EPIC RETURN, do not chase. Standing set (always): ADR-worthy fork · boundary-breach need · cross-epic dependency discovered → STOP, return to the root. Everything intra-epic is the lane's own judgment.
+Epic-specific: (1) any `audit.py` OR `tests/` change beyond the check-#7 grant (another check's contract, shared helpers whose edit ripples into other checks, any test file that does not pin check #7) → STOP, return to root; (2) an ARCHITECTURE edit that would drop a dependency FACT (not just its Mermaid rendering) → escalate — the no-information-loss clause is load-bearing; (3) Mermaid found in a canonical doc OUTSIDE the boundary (e.g. protocols/) → list in the EPIC RETURN, do not chase. Standing set (always): ADR-worthy fork · boundary-breach need · cross-epic dependency discovered → STOP, return to the root. Everything intra-epic is the lane's own judgment.
 <!-- FILL-IN:escalation END -->
 
 ## Refusals (standing — not editable by the lane)
