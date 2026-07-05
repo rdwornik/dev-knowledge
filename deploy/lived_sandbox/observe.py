@@ -19,6 +19,7 @@ every gated firing hook FIRED and every gated tombstone is CORRECTLY-ABSENT.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -29,13 +30,46 @@ from . import oracle as _oracle
 # Verdicts.
 FIRED = "FIRED"
 SILENT = "EXPECTED-BUT-SILENT"          # a gated firing hook that did not fire — the C4 catch
+SKIPPED_ARMED = "ARMED-BUT-SKIPPED"     # G4a: pre-commit reported the hook but Skipped it —
+#   wired + consulted (enforcing for its file scope), yet the check did NOT execute on this
+#   commit; counted ok, never conflated with FIRED (measurement-#2 root ruling: a skip
+#   name-echo must not inflate the FIRED reading).
 UNEXPECTED = "UNEXPECTED"               # a must-be-absent tombstone that fired (prune regression)
 ABSENT_OK = "CORRECTLY-ABSENT"          # a gated tombstone that did not fire (prune conformance)
+VACUOUS = "VACUOUS"                     # G4b: a tombstone whose stage never ran — absence proves
+#   nothing (no commit was attempted, so the hook never had the chance to appear).
 OBSERVED = "OBSERVED"                   # non-gated, signal present
 NOT_OBSERVED = "NOT-OBSERVED"           # non-gated, signal absent
 
-_GATED_OK = frozenset({FIRED, ABSENT_OK})
-_GATED_FLAG = frozenset({SILENT, UNEXPECTED})
+_GATED_OK = frozenset({FIRED, ABSENT_OK, SKIPPED_ARMED})
+# VACUOUS is a gated failure class (Codex MED 2026-07-06): `passed` already fails on it,
+# and `flags` must SURFACE it — an unproven tombstone silently missing from the flag list
+# would print "FLAGGED ... flags: none" for the exact failure G4 added.
+_GATED_FLAG = frozenset({SILENT, UNEXPECTED, VACUOUS})
+
+# G4a: pre-commit prints a hook's NAME even when it Skipped it (files-filter miss) — a line
+# is a skip-echo, not execution evidence, when it matches PRE-COMMIT'S REPORT SHAPE: the
+# dot-leader + "(no files to check)" / a dot-leader ending in the Skipped trailer. Codex
+# HIGH 2026-07-06: anchored to that shape so a NON-pre-commit hook whose real output merely
+# ends with the word "Skipped" is never soft-classified.
+_SKIP_ECHO_RE = re.compile(r"\(no files to check\)|\.{4,}.*Skipped\s*$")
+# G4b: evidence the pre-commit stage ran at all — ONLY pre-commit's per-hook report shape
+# (dot-leader + Passed/Failed/Skipped trailer) counts. Codex HIGH 2026-07-06: a bare
+# "...Passed" in unrelated Bash output must not fake the stage into having run.
+_STAGE_RAN_RE = re.compile(r"\.{4,}.*(Passed|Failed|Skipped)\s*$", re.MULTILINE)
+
+
+def signature_lines(surface: str, signature: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Split the surface lines carrying `signature` into (executed, skip_echo) — the G4a
+    discriminator between a hook that RAN and one pre-commit merely reported as Skipped.
+    Skip-echo semantics are pre-commit report semantics: the CALLER applies the skipped
+    bucket only to pre-commit-stage expectations (Codex HIGH 2026-07-06)."""
+    executed: list[str] = []
+    skipped: list[str] = []
+    for ln in surface.splitlines():
+        if signature in ln:
+            (skipped if _SKIP_ECHO_RE.search(ln) else executed).append(ln)
+    return tuple(executed), tuple(skipped)
 
 
 # ---------------------------------------------------------------------------
@@ -212,28 +246,69 @@ class Finding:
 
 
 def _classify(exp: _oracle.Expectation, *, hook_surface: str, event_surface: str,
-              clone: Path | None) -> Finding:
+              clone: Path | None, precommit_ran: bool) -> Finding:
     if exp.observable == "hook-stdout":
-        present = exp.signature in hook_surface
+        executed, skipped = signature_lines(hook_surface, exp.signature)
+        if exp.trigger != "pre-commit":
+            # Skip-echo semantics exist only at the pre-commit stage (Codex HIGH
+            # 2026-07-06): for session-start/stop hooks a matching line IS real output.
+            executed, skipped = (*executed, *skipped), ()
         if exp.absent:  # tombstone / prune-conformance
-            verdict = UNEXPECTED if present else ABSENT_OK
+            if executed or skipped:
+                # A skip-echo still means the hook is WIRED — prune regression either way.
+                verdict, ev = UNEXPECTED, (
+                    f"found tombstone signature {exp.signature!r} in hook-stdout")
+            elif exp.trigger == "pre-commit" and not precommit_ran:
+                verdict, ev = VACUOUS, (
+                    "no pre-commit stage output observed — absence proves nothing "
+                    "(no commit attempted)")  # G4b
+            else:
+                verdict, ev = ABSENT_OK, f"absent signature {exp.signature!r} in hook-stdout"
+        elif executed:
+            verdict, ev = FIRED, f"found signature {exp.signature!r} in hook-stdout"
+        elif skipped:
+            verdict, ev = SKIPPED_ARMED, (
+                f"pre-commit reported {exp.signature!r} but Skipped it "
+                "(wired + consulted; file scope not exercised by this commit)")  # G4a
         else:
-            verdict = FIRED if present else SILENT
-        ev = f"{'found' if present else 'absent'} signature {exp.signature!r} in hook-stdout"
+            verdict, ev = SILENT, f"absent signature {exp.signature!r} in hook-stdout"
         return Finding(exp.component_id, exp.is_gated, verdict, "hook-stdout", ev)
     if exp.observable == "transcript-event":
         present = exp.signature in event_surface
         return Finding(exp.component_id, exp.is_gated,
                        OBSERVED if present else NOT_OBSERVED, "transcript-event",
                        f"{'found' if present else 'absent'} {exp.signature!r} in tool_use events")
-    # git-state — best-effort file-presence over the clone (observed-only; never gated).
-    present = False
+    # git-state — best-effort declared/present state over the clone (observed-only; never
+    # gated). G4c: no first-token path artifacts — a machine-level (~-rooted) signature is
+    # honestly unprobeable from a clone, path-shaped tokens are tried as paths, and a
+    # settings-declared expectation is checked against the clone's .claude/settings.json.
+    sig = exp.signature
+    if sig.startswith("~"):
+        return Finding(exp.component_id, exp.is_gated, NOT_OBSERVED, "git-state",
+                       f"machine-level path {sig!r} — unobservable from a clone (not probed)")
+    present, ev = False, f"absent {sig!r} in clone"
+    tokens = sig.split()
     if clone is not None:
-        token = exp.signature.split()[0] if exp.signature.split() else exp.signature
-        present = path_present(clone, token) or file_in_head(clone, token)
+        for tok in tokens:
+            if ("/" in tok or "\\" in tok or "." in tok) and (
+                    path_present(clone, tok) or file_in_head(clone, tok)):
+                present, ev = True, f"path {tok!r} present in clone"
+                break
+        if not present and tokens and tokens[0] == "enabledPlugins" and len(tokens) > 1:
+            # Settings-DECLARED expectation: exact JSON check, never a substring (Codex
+            # MED 2026-07-06 — `enabledPlugins` with a DIFFERENT plugin must not match).
+            settings = Path(clone) / ".claude" / "settings.json"
+            if settings.exists():
+                try:
+                    data = json.loads(settings.read_text(encoding="utf-8", errors="replace"))
+                except (json.JSONDecodeError, OSError):
+                    data = {}
+                enabled = data.get("enabledPlugins")
+                if isinstance(enabled, dict) and enabled.get(tokens[1]) is True:
+                    present, ev = True, (
+                        f"enabledPlugins[{tokens[1]!r}] declared in .claude/settings.json")
     return Finding(exp.component_id, exp.is_gated,
-                   OBSERVED if present else NOT_OBSERVED, "git-state",
-                   f"{'present' if present else 'absent'} {exp.signature!r} in clone")
+                   OBSERVED if present else NOT_OBSERVED, "git-state", ev)
 
 
 @dataclass(frozen=True)
@@ -254,6 +329,12 @@ class ObservationResult:
         return tuple(f for f in self.gated_findings if f.verdict == SILENT)
 
     @property
+    def armed_skipped(self) -> tuple[Finding, ...]:
+        """G4a: gated hooks pre-commit consulted but Skipped — enforcing-for-their-scope,
+        reported distinctly so they never inflate the FIRED count."""
+        return tuple(f for f in self.gated_findings if f.verdict == SKIPPED_ARMED)
+
+    @property
     def observed_not_gated(self) -> tuple[Finding, ...]:
         return tuple(f for f in self.findings if not f.gated)
 
@@ -272,8 +353,9 @@ class ObservationResult:
     def summary(self) -> str:
         verdict = "GREEN" if self.passed else "FLAGGED"
         flagged = ", ".join(f"{f.component_id}:{f.verdict}" for f in self.flags) or "none"
+        armed = f", {len(self.armed_skipped)} armed-but-skipped" if self.armed_skipped else ""
         return (f"observer {verdict}: {len(self.gated_findings)} gated "
-                f"({sum(f.verdict in _GATED_OK for f in self.gated_findings)} ok), "
+                f"({sum(f.verdict in _GATED_OK for f in self.gated_findings)} ok{armed}), "
                 f"flags: {flagged}; commands observed: {len(self.commands_observed)}")
 
 
@@ -283,8 +365,10 @@ def observe(events: list[dict], oracle: _oracle.Oracle, *, clone: Path | None = 
     reads only structured events + git-state, never inner narration (C1)."""
     hook_surface = hook_stdout_surface(events)
     event_surface = tool_use_surface(events)
+    precommit_ran = bool(_STAGE_RAN_RE.search(hook_surface))  # G4b: any per-hook report line
     findings = tuple(
-        _classify(exp, hook_surface=hook_surface, event_surface=event_surface, clone=clone)
+        _classify(exp, hook_surface=hook_surface, event_surface=event_surface, clone=clone,
+                  precommit_ran=precommit_ran)
         for exp in oracle.expectations
     )
     return ObservationResult(findings=findings)

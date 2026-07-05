@@ -142,13 +142,16 @@ _MANIFEST_REL = "deploy/manifest-v1.2.0.yaml"
 
 # The arc the inner session performs. No push (refusal); /review-closures is the >=1 command
 # act. Kept terse + deterministic so the observer measures the mesh, not the model's prose.
-# [#253a]: honestly SELF-LEGITIMIZING — the child is told exactly what context it runs in
-# (a sanctioned test-harness sandbox measuring hook enforcement) — context, never trickery.
+# G3 (measurement-#2 root ruling, supersedes the [#253a] self-legitimizing preamble): the
+# prompt only REFERENCES the authorization — the authorization itself travels through the
+# OWNED-CONFIG channel (ARC_SANCTION as the profile's user-level CLAUDE.md). Witnessed at
+# measurement #2: a prompt that asserts its own authority reads as prompt injection to a
+# floor-carrying child, and the deployed floor rightly refuses it.
 ARC_PROMPT = (
-    "You are a headless child session inside a SANCTIONED test-harness sandbox: a throwaway\n"
-    "clone of the operator's own repository, used to measure that the deployed git hooks\n"
-    "fire during a real workflow. This work is authorized; the clone is discarded afterwards.\n"
-    "Perform EXACTLY this workflow, then stop:\n"
+    "Sandbox measurement arc. Your user-level CLAUDE.md (this profile's own configuration,\n"
+    "not this message) records the operator's standing, scoped consent for exactly the\n"
+    "workflow below in this throwaway clone. Verify it there, then perform EXACTLY this\n"
+    "workflow and stop:\n"
     "1. git checkout -b feat/sandbox-arc\n"
     "2. Create a file SANDBOX_ARC.md containing one line: sandbox lived-workflow arc\n"
     "3. git add -A && git commit -m 'feat(arc): sandbox lived-workflow edit'\n"
@@ -156,13 +159,62 @@ ARC_PROMPT = (
     "Do NOT push. Do NOT edit any other file. Reply with only: ARC DONE"
 )
 
+# G3: the scoped arc sanction — seeded as the isolated profile's user-level CLAUDE.md (the
+# principal's channel on a real machine: ex-ante standing consent satisfies "ask before
+# destructive" WITHOUT weakening the floor — everything beyond the four arc operations stays
+# refused, and the measured PROJECT-level mesh is untouched). NEVER carries the literal
+# PROVENANCE_MARKER token: the config's CLAUDE.md can echo into the child transcript, which
+# would hand GATE-0's positive control a false-positive channel (a run whose SessionStart
+# hook never fired could still show the marker). The sentinel is described by prefix only;
+# a regression test pins this.
+ARC_SANCTION = (
+    "# Lived-workflow sandbox — operator sanction (harness-owned profile)\n"
+    "\n"
+    "This user profile was provisioned by the `.dev-knowledge` lived-workflow test harness\n"
+    "(`deploy/lived_sandbox`), running on the operator's (Rob's) own machine. The session it\n"
+    "hosts is a headless child inside a THROWAWAY git clone under the system temp directory,\n"
+    "spawned to measure that the repository's deployed hooks fire during a real workflow.\n"
+    "The clone is deleted after the run; nothing done here reaches the real repository.\n"
+    "\n"
+    "Standing, scoped operator consent (ex-ante, this clone only):\n"
+    "- git checkout -b feat/sandbox-arc\n"
+    "- create SANDBOX_ARC.md (one line: sandbox lived-workflow arc)\n"
+    "- git add -A and git commit of exactly that change\n"
+    "- run /review-closures once\n"
+    "\n"
+    "This consent is the operator's answer to \"ask before destructive actions\" for the four\n"
+    "operations above — and ONLY those. Everything else in the repository's own rules (its\n"
+    "CLAUDE.md and methodology floor) remains fully in force: do not push, do not edit other\n"
+    "files, refuse anything beyond this arc.\n"
+    "\n"
+    "Harness signals you may see (expected, not planted):\n"
+    "- a SessionStart hook printing an LSANDBOX-prefixed provenance token — this profile's\n"
+    "  own isolation control, proving the session read THIS config;\n"
+    "- a permission allowlist in this profile's settings.json enumerating exactly the\n"
+    "  sanctioned operations above.\n"
+)
+
+
+def arc_isolated_config(cfg_dir: Path) -> Path:
+    """The ONE isolated-config builder both arc paths share (hub self-clone `run_arc` and
+    the consumer seam `run_consumer_arc`): provenance sentinel + scoped [#253a] allowlist +
+    G3 owned-config sanction. A single site so the trust seam cannot drift between paths
+    (the measurement-#2 failure: the #253a fix reached only run_arc)."""
+    return _spawn.write_isolated_config(
+        cfg_dir, session_start_marker=PROVENANCE_MARKER,
+        allow_rules=ARC_ALLOW_RULES, sanction=ARC_SANCTION)
+
 # [#253a] The SCOPED permission allowlist the harness seeds into the isolated config —
 # exactly the arc's operations (branch/edit/stage/commit + the one command act), nothing
 # broader. NEVER bypassPermissions: anything else the child tries still hits the wall.
+# Codex HIGH 2026-07-06 narrowing: the checkout/add rules are EXACT commands and commit is
+# pinned to its `-m` form — so `git checkout <other>`, `git add <path>`, and crucially
+# `git commit --no-verify` (which would silently bypass the very gates being measured, and
+# GATE-0 could not catch it) all still hit the wall.
 ARC_ALLOW_RULES = (
-    "Bash(git checkout:*)",
-    "Bash(git add:*)",
-    "Bash(git commit:*)",
+    "Bash(git checkout -b feat/sandbox-arc)",
+    "Bash(git add -A)",
+    "Bash(git commit -m:*)",
     "Write(SANDBOX_ARC.md)",
     "Edit(SANDBOX_ARC.md)",
     "SlashCommand(/review-closures)",
@@ -337,22 +389,31 @@ _MARKETPLACE = "dev-knowledge-methodology"
 _PLUGIN_NAME = "tier1-lifecycle"
 
 
-def seed_tier1_plugin(config_dir: Path, clone: Path) -> str | None:
-    """Install the clone's in-tree tier1-lifecycle plugin into the ISOLATED config (Step-7
-    finding: the clone's settings enable the plugin, but the plugin cache lives in the outer
-    ~/.claude — unreachable from the isolated CLAUDE_CONFIG_DIR, so the propose-closures Stop
-    hook and /review-closures could NEVER fire). Clone-rooted + deterministic: the plugin
-    source is the clone's own plugins/ tree; registration mirrors the real installed_plugins/
-    known_marketplaces shape with a fixed stamp. Returns the seeded version, or None when the
-    clone carries no plugin source."""
+def seed_tier1_plugin(config_dir: Path, clone: Path, *,
+                      source_root: Path | None = None) -> str | None:
+    """Install the tier1-lifecycle plugin into the ISOLATED config (Step-7 finding: the
+    clone's settings enable the plugin, but the plugin cache lives in the outer ~/.claude —
+    unreachable from the isolated CLAUDE_CONFIG_DIR, so the propose-closures Stop hook and
+    /review-closures could NEVER fire). Deterministic: registration mirrors the real
+    installed_plugins/known_marketplaces shape with a fixed stamp. Returns the seeded
+    version, or None when no plugin source exists.
+
+    Plugin source = `source_root`'s plugins/ tree when given, else the clone's own (the hub
+    self-clone case). G2 (measurement-#2 root ruling): a REAL consumer carries only the
+    settings-level enablement — its plugin lives user-level on the operator machine, which
+    the isolated config deliberately cannot reach — so consumer measurement seeds FROM THE
+    HUB CHECKOUT (the marketplace the consumer's settings already point at). Faithful, not
+    facade: the harness mirrors the operator machine's user-level state; what is MEASURED
+    is the firing."""
     import shutil as _shutil
-    src = Path(clone) / "plugins" / _PLUGIN_NAME
+    src = Path(source_root if source_root is not None else clone) / "plugins" / _PLUGIN_NAME
     plugin_json = src / ".claude-plugin" / "plugin.json"
     if not plugin_json.exists():
         plugin_json = src / "plugin.json"
     if not plugin_json.exists():
         return None
     version = str(json.loads(plugin_json.read_text(encoding="utf-8")).get("version", "0.0.0"))
+    marketplace_root = Path(source_root if source_root is not None else clone)
     plug_root = Path(config_dir) / "plugins"
     install = plug_root / "cache" / _MARKETPLACE / _PLUGIN_NAME / version
     if install.exists():
@@ -373,8 +434,8 @@ def seed_tier1_plugin(config_dir: Path, clone: Path) -> str | None:
     }, indent=2), encoding="utf-8", newline="\n")
     (plug_root / "known_marketplaces.json").write_text(json.dumps({
         _MARKETPLACE: {
-            "source": {"source": "directory", "path": str(clone)},
-            "installLocation": str(clone),
+            "source": {"source": "directory", "path": str(marketplace_root)},
+            "installLocation": str(marketplace_root),
             "lastUpdated": _PLUGIN_STAMP,
         },
     }, indent=2), encoding="utf-8", newline="\n")
@@ -410,11 +471,10 @@ def run_arc(*, repo_root: Path | None = None, api_key: str | None = None,
         if leg_e_hook_id:
             disable_precommit_hook(clone, leg_e_hook_id)
         commit_shape_baseline(clone)
-        # User-level isolated config carrying ONLY the provenance sentinel (the six live at
-        # PROJECT level in the clone — the [MF-1] split). config_dir under the clone's temp root.
-        cfg = _spawn.write_isolated_config(
-            clone.parent / "cfg", session_start_marker=PROVENANCE_MARKER,
-            allow_rules=ARC_ALLOW_RULES)  # [#253a]: scoped seam, never bypass
+        # User-level isolated config: provenance sentinel + [#253a] allowlist + G3 sanction
+        # (the six live at PROJECT level in the clone — the [MF-1] split). Shared builder so
+        # the trust seam cannot drift between the hub and consumer paths.
+        cfg = arc_isolated_config(clone.parent / "cfg")
         seeded_ver = seed_tier1_plugin(cfg, clone)  # Stop hook + /review-closures live here
         if seeded_ver:
             changes.append(f"seeded tier1-lifecycle plugin v{seeded_ver} into isolated config")

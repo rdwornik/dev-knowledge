@@ -417,6 +417,137 @@ def test_gate_zero_independent_of_hook_completeness():
     assert arcmod.evaluate_gate_zero(r).passed
 
 
+# --- G4 fidelity: skip-echo guard, vacuous tombstone, git-state probes ---
+
+
+def test_skipped_hook_name_echo_is_not_fired_g4a():
+    """G4a (measurement-#2 root ruling): pre-commit prints a hook's NAME even when it Skipped
+    it — a skip line must yield ARMED-BUT-SKIPPED (ok-class, reported distinctly), never
+    FIRED. Live risk: ai-council's toc-freshness is file-scoped to COUNCIL_QUESTION_GUIDE.md."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result(
+        "ARCHITECTURE.md TOC freshness check..................(no files to check)Skipped")
+    r = obs.observe(events, o)
+    toc = next(f for f in r.gated_findings if f.component_id == "hub-toc-hooks")
+    assert toc.verdict == obs.SKIPPED_ARMED
+    assert "Skipped" in toc.evidence
+    assert "armed-but-skipped" in r.summary()
+
+
+def test_skip_echo_never_outranks_real_execution_g4a():
+    """A hook that both Skipped once and RAN once (two commits) is FIRED — execution wins."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result(
+        "ARCHITECTURE.md TOC freshness check..................(no files to check)Skipped\n"
+        "ARCHITECTURE.md TOC freshness check..............................................Passed")
+    r = obs.observe(events, o)
+    toc = next(f for f in r.gated_findings if f.component_id == "hub-toc-hooks")
+    assert toc.verdict == obs.FIRED
+
+
+def test_tombstone_vacuous_when_no_commit_attempted_g4b():
+    """G4b: with NO pre-commit stage output at all (the measurement-#2 shape — the child
+    never reached `git commit`), the ruff tombstone's absence proves nothing -> VACUOUS,
+    not CORRECTLY-ABSENT."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result("pre-commit installed at .git\\hooks\\pre-commit")
+    r = obs.observe(events, o)
+    ruff = next(f for f in r.gated_findings if f.component_id == "ruff-gate")
+    assert ruff.verdict == obs.VACUOUS
+    assert "no commit attempted" in ruff.evidence
+
+
+def test_tombstone_absent_ok_when_stage_ran_g4b():
+    """Any per-hook report line (Passed/Failed/Skipped trailer) proves the stage ran —
+    absence is then genuine prune-conformance."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result("canonical_freshness last_reviewed gate..........Passed")
+    r = obs.observe(events, o)
+    ruff = next(f for f in r.gated_findings if f.component_id == "ruff-gate")
+    assert ruff.verdict == obs.ABSENT_OK
+
+
+def test_tombstone_skip_echo_is_still_a_regression_g4b():
+    """A Skipped ruff line still means ruff is WIRED in the consumer's config — the prune
+    failed. Skip-echo softens a positive verdict, never a tombstone."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result("Ruff linter..........................(no files to check)Skipped")
+    r = obs.observe(events, o)
+    ruff = next(f for f in r.gated_findings if f.component_id == "ruff-gate")
+    assert ruff.verdict == obs.UNEXPECTED
+
+
+def test_skip_echo_scoped_to_precommit_stage_codex_high():
+    """Codex HIGH 2026-07-06: skip-echo semantics are pre-commit REPORT semantics — a
+    session-start/stop hook whose real output happens to look skip-shaped is still FIRED
+    (its line IS execution evidence; file-scope skipping does not exist at those stages)."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result(
+        "Session-end backpressure..............(no files to check)Skipped")  # contrived shape
+    r = obs.observe(events, o)
+    seb = next(f for f in r.gated_findings if f.component_id == "session-end-backpressure")
+    assert seb.verdict == obs.FIRED
+
+
+def test_stage_ran_needs_precommit_report_shape_codex_high():
+    """Codex HIGH 2026-07-06: a bare '...Passed' trailer in unrelated Bash output must not
+    fake the pre-commit stage into having run — the tombstone stays VACUOUS."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result("pre-commit installed at .git/hooks/pre-commit")
+    events += _tool_result("All 5 integration checks Passed")   # no dot-leader report shape
+    r = obs.observe(events, o)
+    ruff = next(f for f in r.gated_findings if f.component_id == "ruff-gate")
+    assert ruff.verdict == obs.VACUOUS
+
+
+def test_vacuous_tombstone_is_surfaced_as_a_flag_codex_med():
+    """Codex MED 2026-07-06: VACUOUS is a gated failure — it must appear in `flags`, never
+    yield 'FLAGGED ... flags: none'."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    r = obs.observe(_tool_result("pre-commit installed at .git/hooks/pre-commit"), o)
+    assert any(f.component_id == "ruff-gate" and f.verdict == obs.VACUOUS for f in r.flags)
+    assert "ruff-gate:VACUOUS" in r.summary()
+
+
+def test_git_state_plugin_probe_requires_exact_enablement_codex_med(tmp_path):
+    """Codex MED 2026-07-06: `enabledPlugins` with a DIFFERENT plugin must not read as the
+    tier1 declaration — exact JSON key check, never a substring."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    clone = tmp_path / "clone"
+    (clone / ".claude").mkdir(parents=True)
+    (clone / ".claude" / "settings.json").write_text(json.dumps(
+        {"enabledPlugins": {"some-other-plugin@elsewhere": True}}), encoding="utf-8")
+    r = obs.observe([], o, clone=clone)
+    plug = next(f for f in r.findings if f.component_id == "tier1-lifecycle-plugin")
+    assert plug.verdict == obs.NOT_OBSERVED
+
+
+def test_git_state_machine_level_path_not_probed_g4c():
+    """G4c: a ~-rooted signature is machine-level state a clone cannot witness — the probe
+    says so honestly instead of path-testing the signature's first token."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    r = obs.observe([], o, clone=Path("."))
+    codex = next(f for f in r.findings if f.component_id == "codex-agents-config")
+    assert codex.verdict == obs.NOT_OBSERVED
+    assert "unobservable from a clone" in codex.evidence
+
+
+def test_git_state_settings_declared_enablement_g4c(tmp_path):
+    """G4c: the tier1 plugin's git-state expectation is a settings DECLARATION, not a path —
+    probe the clone's .claude/settings.json content (measurement #2 showed the old
+    first-token path test could never observe it)."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    clone = tmp_path / "clone"
+    (clone / ".claude").mkdir(parents=True)
+    (clone / ".claude" / "settings.json").write_text(json.dumps(
+        {"enabledPlugins": {"tier1-lifecycle@dev-knowledge-methodology": True}}),
+        encoding="utf-8")
+    r = obs.observe([], o, clone=clone)
+    plug = next(f for f in r.findings if f.component_id == "tier1-lifecycle-plugin")
+    assert plug.verdict == obs.OBSERVED
+    assert "declared in .claude/settings.json" in plug.evidence
+
+
 # --- attachment-wrapped hook events (the on-disk transcript shape, Step-7 witnessed) ---
 
 
@@ -487,6 +618,29 @@ def test_seed_tier1_plugin_none_without_source(tmp_path):
     assert arcmod.seed_tier1_plugin(tmp_path / "cfg", clone) is None
 
 
+def test_seed_tier1_plugin_from_hub_source_root_g2(tmp_path):
+    """G2 (measurement-#2 root ruling): a REAL consumer clone carries NO plugins/ tree (only
+    the settings enablement) — seeding sources the HUB checkout, registers the marketplace
+    at the hub path, and keeps projectPath on the CLONE (the project the child runs in)."""
+    hub = tmp_path / "hub"
+    meta = hub / "plugins" / "tier1-lifecycle" / ".claude-plugin"
+    meta.mkdir(parents=True)
+    (meta / "plugin.json").write_text('{"version": "1.2.0"}', encoding="utf-8")
+    (hub / "plugins" / "tier1-lifecycle" / "hooks.json").write_text("{}", encoding="utf-8")
+    clone = tmp_path / "consumer-clone"
+    clone.mkdir()  # deliberately NO plugins/ tree — the real-consumer shape
+    cfg = tmp_path / "cfg"
+    assert arcmod.seed_tier1_plugin(cfg, clone, source_root=hub) == "1.2.0"
+    install = cfg / "plugins" / "cache" / "dev-knowledge-methodology" / "tier1-lifecycle" / "1.2.0"
+    assert (install / "hooks.json").exists()
+    reg = json.loads((cfg / "plugins" / "installed_plugins.json").read_text(encoding="utf-8"))
+    entry = reg["plugins"]["tier1-lifecycle@dev-knowledge-methodology"][0]
+    assert entry["projectPath"] == str(clone)      # the child's project stays the clone
+    market = json.loads((cfg / "plugins" / "known_marketplaces.json").read_text(encoding="utf-8"))
+    assert market["dev-knowledge-methodology"]["source"] == {
+        "source": "directory", "path": str(hub)}   # the marketplace is the hub, as on a real machine
+
+
 # --- [#253a] the arc permission seam: scoped allowlist, never bypass ---
 
 
@@ -520,11 +674,60 @@ def test_arc_allow_rules_are_scoped_to_the_arc_253a():
     assert "SlashCommand(/review-closures)" in arcmod.ARC_ALLOW_RULES  # the one command act
 
 
-def test_arc_prompt_honestly_self_legitimizing_253a():
-    """[#253a]: sanctioned test-harness CONTEXT stated in the prompt — context, not trickery."""
-    p = arcmod.ARC_PROMPT.lower()
-    assert "sanctioned" in p and "test-harness" in p and "throwaway" in p
-    assert "authorized" in p
+def test_arc_allow_rules_narrowed_to_exact_arc_ops_codex_high():
+    """Codex HIGH 2026-07-06: checkout/add are EXACT commands, commit is pinned to its `-m`
+    form — `git checkout <other>`, `git add <path>`, and above all `git commit --no-verify`
+    (a silent bypass of the very gates being measured) all still hit the permission wall."""
+    assert "Bash(git checkout -b feat/sandbox-arc)" in arcmod.ARC_ALLOW_RULES
+    assert "Bash(git add -A)" in arcmod.ARC_ALLOW_RULES
+    assert "Bash(git commit -m:*)" in arcmod.ARC_ALLOW_RULES
+    for broad in ("Bash(git checkout:*)", "Bash(git add:*)", "Bash(git commit:*)"):
+        assert broad not in arcmod.ARC_ALLOW_RULES, broad
+
+
+def test_arc_prompt_references_config_sanction_g3():
+    """G3 (supersedes the [#253a] self-legitimizing preamble): the prompt only REFERENCES the
+    owned-config sanction — it no longer asserts its own authority (measurement #2 witnessed
+    a floor-carrying child rightly refusing a prompt-embedded authority claim as injection)."""
+    p = arcmod.ARC_PROMPT
+    assert "CLAUDE.md" in p and "consent" in p.lower()
+    assert "SANCTIONED test-harness" not in p        # the superseded self-legitimizing claim
+    assert "This work is authorized" not in p        # authority claims live in the config now
+    # The mechanics are unchanged: same four steps, same refusals, same terse reply contract.
+    for step in ("git checkout -b feat/sandbox-arc", "SANDBOX_ARC.md",
+                 "git add -A && git commit", "/review-closures", "Do NOT push", "ARC DONE"):
+        assert step in p
+
+
+def test_sanction_lands_as_user_level_claude_md_g3(tmp_path):
+    """G3: the sanction is written as the isolated profile's own CLAUDE.md — the principal's
+    channel — by the ONE shared builder both arc paths use (the measurement-#2 failure was
+    exactly this seam existing on one path only)."""
+    cfg = arcmod.arc_isolated_config(tmp_path / "cfg")
+    text = (cfg / "CLAUDE.md").read_text(encoding="utf-8")
+    assert text == arcmod.ARC_SANCTION
+    # Scoped consent: the four arc operations, the floor otherwise intact, no blanket grant.
+    for needle in ("feat/sandbox-arc", "SANDBOX_ARC.md", "/review-closures",
+                   "remains fully in force", "do not push"):
+        assert needle in text
+    # And the settings side carries the [#253a] allowlist (full parity through the builder).
+    raw = (cfg / "settings.json").read_text(encoding="utf-8")
+    assert json.loads(raw)["permissions"]["allow"] == list(arcmod.ARC_ALLOW_RULES)
+    assert "bypassPermissions" not in raw
+
+
+def test_sanction_never_carries_the_provenance_marker_g3():
+    """GATE-0 soundness guard: the sanction text can echo into the child transcript, so the
+    LITERAL provenance token inside it would hand the positive control a false-positive
+    channel (marker present without the SessionStart hook firing). Prefix mention only."""
+    assert arcmod.PROVENANCE_MARKER not in arcmod.ARC_SANCTION
+    assert "LSANDBOX" in arcmod.ARC_SANCTION  # the explanation stays (prefix, not the token)
+
+
+def test_write_isolated_config_without_sanction_writes_no_claude_md_g3(tmp_path):
+    """Slice-A callers (prove-isolation) are unchanged: no sanction -> no CLAUDE.md."""
+    cfg = sp.write_isolated_config(tmp_path / "cfg", session_start_marker="M")
+    assert not (cfg / "CLAUDE.md").exists()
 
 
 _RUFF_EXPECTED_BLOCK = {
@@ -682,13 +885,23 @@ def _events_from_fixture(path: Path) -> list[dict]:
 
 
 @_needs_fixtures
-def test_acceptance_arc_green_all_six_fired_no_false_positive():
-    """C3: the arc fires all six + >=1 command act, observed GREEN — no false-positive."""
+def test_acceptance_arc_green_all_six_engaged_no_false_positive():
+    """C3: the arc engages all six + >=1 command act, observed GREEN — no false-positive.
+    G4a recalibration (measurement-#2 root ruling): the two file-scoped pre-commit hooks
+    (hub-toc-hooks, floor-hash-verify) are reported by pre-commit as Skipped for the arc's
+    single-file commit — the frozen fixture proves they were name-echoes, so they are now
+    honestly ARMED-BUT-SKIPPED (wired + consulted, ok-class), never conflated with FIRED.
+    The four hooks that genuinely produced output stay FIRED. Same fixture, uninflated read."""
     o = orc.load_oracle(_MANIFEST_V120)
     r = obs.observe(_events_from_fixture(_ARC_GREEN), o, clone=None)
     assert r.passed, r.summary()
-    assert {f.component_id for f in r.gated_findings if f.verdict == obs.FIRED} == _GATED_SIX
-    assert len(r.commands_observed) >= 1  # >=1 command acts and is observed
+    fired = {f.component_id for f in r.gated_findings if f.verdict == obs.FIRED}
+    armed = {f.component_id for f in r.gated_findings if f.verdict == obs.SKIPPED_ARMED}
+    assert fired == {"floor-sessionstart-guard", "canonical-freshness",
+                     "session-end-backpressure", "propose-closures-stop-hook"}
+    assert armed == {"hub-toc-hooks", "floor-hash-verify-hook"}
+    assert fired | armed == _GATED_SIX          # every gated hook engaged — nothing silent
+    assert len(r.commands_observed) >= 1        # >=1 command acts and is observed
     assert not r.flags
 
 
