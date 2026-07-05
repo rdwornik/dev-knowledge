@@ -249,7 +249,7 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 ### Epic 5 — ship-gate test tiering (slug: test-tiering) — Wave-2 lane (ADR-97) — operator priority: tests EFFECTIVE + DYNAMIC
 So that ship latency meets a measured per-diff-class budget without coverage loss, with the full serial suite on a defined nightly/on-demand path.
 - [#260] [P2][L] Epic 5 lane — ship-gate test tiering; executes #256 + #257 (stories = checkboxes below; FULL scope-contract: the EPIC_BOOT bundle). BOUNDARY may-touch: plugins/tier1-lifecycle/** (ship pre-flight), pytest/pyproject config, new scripts/ selection helper if needed, #257 venv surfaces, this block, JOURNAL (append); NOT: test file contents beyond markers (broad sweeps escalate), audit.py, doc-counts (root regenerates at integration). Lane rules: own-block checkboxes only; commit-and-STOP + EPIC RETURN (§14b); escalate any boundary need. · Done when: MEASURED ship latency meets budget per diff class (docs-only ≤60s, code ≤2min; timed-run evidence in the RETURN) AND the full-suite path is documented AND gates green on branch · refs ADR-97, #256, #257, docs/handoffs/2026-07-05-dev-knowledge-epic-test-tiering/ · serialize-group: pre-commit-config
-  - [ ] S1 -n auto in ship pre-flight
+  - [x] S1 -n auto in ship pre-flight
   - [ ] S2 diff-shaped selection per budget class
   - [ ] S3 full-suite nightly/on-demand path documented
   - [ ] S4 #257 venv/dep-isolation + pytest-xdist declared

@@ -23,8 +23,11 @@ Merge the current feature branch to `main` — the standard git-finish sequence.
    `Pre-flight FAILED: /ship must run on a feature branch, not main.`
 3. **Clean working tree** — run `git status --porcelain`. If non-empty, stop:
    `Pre-flight FAILED: working tree is dirty — commit or stash all changes first.`
-4. **Validators green** — run `pytest -x --tb=short && ruff check`. If either fails, stop:
+4. **Validators green** — run `pytest -n auto -x --tb=short && ruff check`. If either fails, stop:
    `Pre-flight FAILED: validators red — fix before merging.`
+   (`-n auto` = pytest-xdist parallel run, declared dev dep — measured 9m42s serial → ~2min
+   parallel on the hub suite, 2026-07-05 profile [#256]. If xdist is unavailable the flag
+   errors out — install dev deps rather than silently falling back to serial.)
 5. **Verification organs green for THIS arc (hub-only, #147)** — makes "Definition of
    shipped" point (6) enforceable: the organs must have *run green against this arc*, not
    merely exist. **Skip silently if `scripts/audit.py` is absent** (child repo — the organs
