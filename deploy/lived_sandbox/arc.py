@@ -207,10 +207,14 @@ def arc_isolated_config(cfg_dir: Path) -> Path:
 # [#253a] The SCOPED permission allowlist the harness seeds into the isolated config —
 # exactly the arc's operations (branch/edit/stage/commit + the one command act), nothing
 # broader. NEVER bypassPermissions: anything else the child tries still hits the wall.
+# Codex HIGH 2026-07-06 narrowing: the checkout/add rules are EXACT commands and commit is
+# pinned to its `-m` form — so `git checkout <other>`, `git add <path>`, and crucially
+# `git commit --no-verify` (which would silently bypass the very gates being measured, and
+# GATE-0 could not catch it) all still hit the wall.
 ARC_ALLOW_RULES = (
-    "Bash(git checkout:*)",
-    "Bash(git add:*)",
-    "Bash(git commit:*)",
+    "Bash(git checkout -b feat/sandbox-arc)",
+    "Bash(git add -A)",
+    "Bash(git commit -m:*)",
     "Write(SANDBOX_ARC.md)",
     "Edit(SANDBOX_ARC.md)",
     "SlashCommand(/review-closures)",

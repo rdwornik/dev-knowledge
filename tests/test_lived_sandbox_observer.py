@@ -477,6 +477,51 @@ def test_tombstone_skip_echo_is_still_a_regression_g4b():
     assert ruff.verdict == obs.UNEXPECTED
 
 
+def test_skip_echo_scoped_to_precommit_stage_codex_high():
+    """Codex HIGH 2026-07-06: skip-echo semantics are pre-commit REPORT semantics — a
+    session-start/stop hook whose real output happens to look skip-shaped is still FIRED
+    (its line IS execution evidence; file-scope skipping does not exist at those stages)."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result(
+        "Session-end backpressure..............(no files to check)Skipped")  # contrived shape
+    r = obs.observe(events, o)
+    seb = next(f for f in r.gated_findings if f.component_id == "session-end-backpressure")
+    assert seb.verdict == obs.FIRED
+
+
+def test_stage_ran_needs_precommit_report_shape_codex_high():
+    """Codex HIGH 2026-07-06: a bare '...Passed' trailer in unrelated Bash output must not
+    fake the pre-commit stage into having run — the tombstone stays VACUOUS."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result("pre-commit installed at .git/hooks/pre-commit")
+    events += _tool_result("All 5 integration checks Passed")   # no dot-leader report shape
+    r = obs.observe(events, o)
+    ruff = next(f for f in r.gated_findings if f.component_id == "ruff-gate")
+    assert ruff.verdict == obs.VACUOUS
+
+
+def test_vacuous_tombstone_is_surfaced_as_a_flag_codex_med():
+    """Codex MED 2026-07-06: VACUOUS is a gated failure — it must appear in `flags`, never
+    yield 'FLAGGED ... flags: none'."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    r = obs.observe(_tool_result("pre-commit installed at .git/hooks/pre-commit"), o)
+    assert any(f.component_id == "ruff-gate" and f.verdict == obs.VACUOUS for f in r.flags)
+    assert "ruff-gate:VACUOUS" in r.summary()
+
+
+def test_git_state_plugin_probe_requires_exact_enablement_codex_med(tmp_path):
+    """Codex MED 2026-07-06: `enabledPlugins` with a DIFFERENT plugin must not read as the
+    tier1 declaration — exact JSON key check, never a substring."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    clone = tmp_path / "clone"
+    (clone / ".claude").mkdir(parents=True)
+    (clone / ".claude" / "settings.json").write_text(json.dumps(
+        {"enabledPlugins": {"some-other-plugin@elsewhere": True}}), encoding="utf-8")
+    r = obs.observe([], o, clone=clone)
+    plug = next(f for f in r.findings if f.component_id == "tier1-lifecycle-plugin")
+    assert plug.verdict == obs.NOT_OBSERVED
+
+
 def test_git_state_machine_level_path_not_probed_g4c():
     """G4c: a ~-rooted signature is machine-level state a clone cannot witness — the probe
     says so honestly instead of path-testing the signature's first token."""
@@ -627,6 +672,17 @@ def test_arc_allow_rules_are_scoped_to_the_arc_253a():
     bash_rules = [r for r in arcmod.ARC_ALLOW_RULES if r.startswith("Bash(")]
     assert all(r.startswith("Bash(git ") for r in bash_rules)  # only the git arc ops
     assert "SlashCommand(/review-closures)" in arcmod.ARC_ALLOW_RULES  # the one command act
+
+
+def test_arc_allow_rules_narrowed_to_exact_arc_ops_codex_high():
+    """Codex HIGH 2026-07-06: checkout/add are EXACT commands, commit is pinned to its `-m`
+    form — `git checkout <other>`, `git add <path>`, and above all `git commit --no-verify`
+    (a silent bypass of the very gates being measured) all still hit the permission wall."""
+    assert "Bash(git checkout -b feat/sandbox-arc)" in arcmod.ARC_ALLOW_RULES
+    assert "Bash(git add -A)" in arcmod.ARC_ALLOW_RULES
+    assert "Bash(git commit -m:*)" in arcmod.ARC_ALLOW_RULES
+    for broad in ("Bash(git checkout:*)", "Bash(git add:*)", "Bash(git commit:*)"):
+        assert broad not in arcmod.ARC_ALLOW_RULES, broad
 
 
 def test_arc_prompt_references_config_sanction_g3():

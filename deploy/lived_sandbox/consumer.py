@@ -18,6 +18,7 @@ against the HUB's expectation. Frozen rulings (2026-07-05 overnight run):
 """
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -31,6 +32,24 @@ from . import spawn as _spawn
 # token ever appears there (the report is printed, never committed — [MC-2] posture anyway).
 _SECRET_RE = re.compile(r"sk-ant-[A-Za-z0-9_-]{8,}")
 _MASK = "sk-ant-****MASKED****"
+
+_PLUGIN_KEY = "tier1-lifecycle@dev-knowledge-methodology"
+
+
+def consumer_declares_plugin(clone: Path) -> bool:
+    """True iff the CONSUMER's own tracked settings declare the tier1 plugin enabled
+    (exact JSON check, never a substring). Codex HIGH 2026-07-06: plugin seeding must be
+    GATED on this — seeding a consumer that never deployed the enablement would let the
+    harness MANUFACTURE plugin firing instead of measuring consumer enforcement."""
+    settings = Path(clone) / ".claude" / "settings.json"
+    if not settings.exists():
+        return False
+    try:
+        data = json.loads(settings.read_text(encoding="utf-8", errors="replace"))
+    except (json.JSONDecodeError, OSError):
+        return False
+    enabled = data.get("enabledPlugins")
+    return isinstance(enabled, dict) and enabled.get(_PLUGIN_KEY) is True
 
 
 def evidence_lines(events: list[dict], oracle: _oracle.Oracle,
@@ -156,7 +175,11 @@ def run_consumer_arc(consumer_repo: Path | str, *, hub_root: Path | None = None,
         # user config — mirroring the operator machine's user-level state, which the
         # isolated CLAUDE_CONFIG_DIR deliberately cannot reach. What is MEASURED is the
         # firing (the Stop hook + the /review-closures command act), never the presence.
-        _arc.seed_tier1_plugin(cfg, clone, source_root=root)
+        # GATED on the consumer's OWN enablement declaration (Codex HIGH 2026-07-06): a
+        # consumer that never deployed the plugin gets no seed — its Stop-hook silence is
+        # then the honest not-deployed reading, never a harness-manufactured firing.
+        if consumer_declares_plugin(clone):
+            _arc.seed_tier1_plugin(cfg, clone, source_root=root)
         result = _spawn.spawn(clone, _arc.ARC_PROMPT, config_dir=cfg, api_key=key,
                               model=model, extra_env=env, timeout=timeout)
         gate = _arc.evaluate_gate_zero(result)

@@ -42,19 +42,28 @@ OBSERVED = "OBSERVED"                   # non-gated, signal present
 NOT_OBSERVED = "NOT-OBSERVED"           # non-gated, signal absent
 
 _GATED_OK = frozenset({FIRED, ABSENT_OK, SKIPPED_ARMED})
-_GATED_FLAG = frozenset({SILENT, UNEXPECTED})
+# VACUOUS is a gated failure class (Codex MED 2026-07-06): `passed` already fails on it,
+# and `flags` must SURFACE it — an unproven tombstone silently missing from the flag list
+# would print "FLAGGED ... flags: none" for the exact failure G4 added.
+_GATED_FLAG = frozenset({SILENT, UNEXPECTED, VACUOUS})
 
 # G4a: pre-commit prints a hook's NAME even when it Skipped it (files-filter miss) — a line
-# is a skip-echo, not execution evidence, when it carries pre-commit's skip trailer.
-_SKIP_ECHO_RE = re.compile(r"\(no files to check\)|Skipped\s*$")
-# G4b: evidence the pre-commit stage ran at all — pre-commit's per-hook report lines end
-# with a Passed/Failed/Skipped trailer; none present means no commit was ever attempted.
-_STAGE_RAN_RE = re.compile(r"(Passed|Failed|Skipped)\s*$", re.MULTILINE)
+# is a skip-echo, not execution evidence, when it matches PRE-COMMIT'S REPORT SHAPE: the
+# dot-leader + "(no files to check)" / a dot-leader ending in the Skipped trailer. Codex
+# HIGH 2026-07-06: anchored to that shape so a NON-pre-commit hook whose real output merely
+# ends with the word "Skipped" is never soft-classified.
+_SKIP_ECHO_RE = re.compile(r"\(no files to check\)|\.{4,}.*Skipped\s*$")
+# G4b: evidence the pre-commit stage ran at all — ONLY pre-commit's per-hook report shape
+# (dot-leader + Passed/Failed/Skipped trailer) counts. Codex HIGH 2026-07-06: a bare
+# "...Passed" in unrelated Bash output must not fake the stage into having run.
+_STAGE_RAN_RE = re.compile(r"\.{4,}.*(Passed|Failed|Skipped)\s*$", re.MULTILINE)
 
 
 def signature_lines(surface: str, signature: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Split the surface lines carrying `signature` into (executed, skip_echo) — the G4a
-    discriminator between a hook that RAN and one pre-commit merely reported as Skipped."""
+    discriminator between a hook that RAN and one pre-commit merely reported as Skipped.
+    Skip-echo semantics are pre-commit report semantics: the CALLER applies the skipped
+    bucket only to pre-commit-stage expectations (Codex HIGH 2026-07-06)."""
     executed: list[str] = []
     skipped: list[str] = []
     for ln in surface.splitlines():
@@ -240,6 +249,10 @@ def _classify(exp: _oracle.Expectation, *, hook_surface: str, event_surface: str
               clone: Path | None, precommit_ran: bool) -> Finding:
     if exp.observable == "hook-stdout":
         executed, skipped = signature_lines(hook_surface, exp.signature)
+        if exp.trigger != "pre-commit":
+            # Skip-echo semantics exist only at the pre-commit stage (Codex HIGH
+            # 2026-07-06): for session-start/stop hooks a matching line IS real output.
+            executed, skipped = (*executed, *skipped), ()
         if exp.absent:  # tombstone / prune-conformance
             if executed or skipped:
                 # A skip-echo still means the hook is WIRED — prune regression either way.
@@ -274,20 +287,26 @@ def _classify(exp: _oracle.Expectation, *, hook_surface: str, event_surface: str
         return Finding(exp.component_id, exp.is_gated, NOT_OBSERVED, "git-state",
                        f"machine-level path {sig!r} — unobservable from a clone (not probed)")
     present, ev = False, f"absent {sig!r} in clone"
+    tokens = sig.split()
     if clone is not None:
-        for tok in sig.split():
+        for tok in tokens:
             if ("/" in tok or "\\" in tok or "." in tok) and (
                     path_present(clone, tok) or file_in_head(clone, tok)):
                 present, ev = True, f"path {tok!r} present in clone"
                 break
-        if not present:
+        if not present and tokens and tokens[0] == "enabledPlugins" and len(tokens) > 1:
+            # Settings-DECLARED expectation: exact JSON check, never a substring (Codex
+            # MED 2026-07-06 — `enabledPlugins` with a DIFFERENT plugin must not match).
             settings = Path(clone) / ".claude" / "settings.json"
             if settings.exists():
-                text = settings.read_text(encoding="utf-8", errors="replace")
-                for tok in sig.split():
-                    if len(tok) >= 8 and tok in text:
-                        present, ev = True, f"{tok!r} declared in .claude/settings.json"
-                        break
+                try:
+                    data = json.loads(settings.read_text(encoding="utf-8", errors="replace"))
+                except (json.JSONDecodeError, OSError):
+                    data = {}
+                enabled = data.get("enabledPlugins")
+                if isinstance(enabled, dict) and enabled.get(tokens[1]) is True:
+                    present, ev = True, (
+                        f"enabledPlugins[{tokens[1]!r}] declared in .claude/settings.json")
     return Finding(exp.component_id, exp.is_gated,
                    OBSERVED if present else NOT_OBSERVED, "git-state", ev)
 
