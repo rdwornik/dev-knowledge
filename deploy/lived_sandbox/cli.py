@@ -2,12 +2,17 @@
 
     PYTHONPATH=deploy python -m lived_sandbox.cli prove-isolation [--freeze] [--haiku]
     PYTHONPATH=deploy python -m lived_sandbox.cli observe-arc [--freeze] [--haiku] [--leg-e <hook_id>]
+    PYTHONPATH=deploy python -m lived_sandbox.cli observe-arc --consumer <repo-path> [--haiku]
 
 `prove-isolation` (Slice A): the REAL isolated `claude -p` isolation proof.
 `observe-arc` (Slice B, [#252]): clone+consumer-shape the hub, run the six-hook
 branch->edit->commit->wrap arc, evaluate GATE-0 (isolation-only, [MF-1]) and the OUTER
 observer, and `--freeze` the transcript as tests/fixtures/lived-workflow/arc-green.jsonl
 (or arc-silent.jsonl with `--leg-e`, which disables one gated hook to seed the C4 catch).
+`observe-arc --consumer` ([#252] Phase 0.5): measure a REAL consumer AS-IS against the HUB
+oracle — clone + observe only (no shaping, no leg-e, never mutates the real repo); exit 0
+full coverage, 1 GATE-0 failed (report untrusted), 2 FAIL-by-coverage (the correct
+partial-mesh verdict — measurement, never forced green).
 
 `--freeze` writes the captured transcript (secret-scrubbed, [MC-2]) + appends a line to
 logs/LIVED-WORKFLOW.md (the gitignored operator funnel). GATE-0 failure STOPs non-zero — a
@@ -129,6 +134,26 @@ def cmd_observe_arc(freeze: bool, model: str, leg_e: str | None) -> int:
     return 0
 
 
+def cmd_observe_consumer(consumer: str, model: str) -> int:
+    """Measure a REAL consumer against the HUB oracle ([#252] Phase 0.5). The report is
+    printed even on a failed gate (labeled untrusted) — measurement is the deliverable.
+    Expected live failures (auth/clone/spawn/oracle) exit concisely, never as tracebacks
+    (Codex HIGH 2026-07-05)."""
+    from . import consumer as _consumer
+    from . import oracle as _oracle
+    try:
+        report = _consumer.run_consumer_arc(consumer, model=model)
+    except (_spawn.SandboxError, _oracle.OracleError) as exc:
+        print(f"consumer measurement could not run: {exc}", file=sys.stderr)
+        return 1
+    print(report.summary())
+    if not report.gate.passed:
+        print("GATE-0 FAILED — isolation unproven; the measurement above is NOT trusted.",
+              file=sys.stderr)
+        return 1
+    return 0 if report.full_coverage else 2
+
+
 def _leg_e_target(argv: list[str]) -> str | None:
     """--leg-e <hook_id> (or bare --leg-e -> the default gated hook). None when absent."""
     if "--leg-e" not in argv:
@@ -138,8 +163,18 @@ def _leg_e_target(argv: list[str]) -> str | None:
     return nxt if nxt and not nxt.startswith("--") else _LEG_E_DEFAULT
 
 
+def _consumer_target(argv: list[str]) -> str | None:
+    """--consumer <repo-path>. None when absent; "" when the value is missing (usage error)."""
+    if "--consumer" not in argv:
+        return None
+    i = argv.index("--consumer")
+    nxt = argv[i + 1] if i + 1 < len(argv) else ""
+    return nxt if nxt and not nxt.startswith("--") else ""
+
+
 _USAGE = ("usage: PYTHONPATH=deploy python -m lived_sandbox.cli "
-          "{prove-isolation | observe-arc} [--freeze] [--haiku] [--leg-e <hook_id>]")
+          "{prove-isolation | observe-arc} [--freeze] [--haiku] [--leg-e <hook_id>] "
+          "| observe-arc --consumer <repo-path> [--haiku]")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -151,6 +186,17 @@ def main(argv: list[str] | None = None) -> int:
     model = "haiku" if "--haiku" in argv else _spawn.DEFAULT_MODEL
     if argv[0] == "prove-isolation":
         return cmd_prove_isolation(freeze, model)
+    consumer = _consumer_target(argv)
+    if consumer is not None:
+        if consumer == "":
+            print("--consumer requires a <repo-path> value", file=sys.stderr)
+            print(_USAGE, file=sys.stderr)
+            return 2
+        if freeze or "--leg-e" in argv:
+            print("--consumer is observe-as-is: --freeze / --leg-e do not combine with it "
+                  "(no shaping, no seeded silence, nothing frozen)", file=sys.stderr)
+            return 2
+        return cmd_observe_consumer(consumer, model)
     return cmd_observe_arc(freeze, model, _leg_e_target(argv))
 
 
