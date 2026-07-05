@@ -245,7 +245,7 @@ def test_edge_check_registered_and_resolves_starter_set():
     multi-organ ones via ADR-90 -- each resolve doc<->code; the edge is REAL + advisory (never
     FAILs)."""
     assert aud.check_doc_code_edge in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 29
+    assert len(aud.ALL_CHECKS) == 28  # 29 -> 28: check #7 retired (ADR-51 amendment 2026-07-05)
     findings = aud.check_doc_code_edge(Path(aud._REPO_ROOT))
     assert all(f.status != "fail" for f in findings)        # advisory: never FAIL
     assert len(findings) == 1
@@ -702,10 +702,10 @@ def test_coverage_drift_guard_full_check_fails_on_injected_escape(monkeypatch):
 
 
 def test_coverage_drift_guard_registered_and_clean_on_live_repo():
-    """The drift-guard is in ALL_CHECKS (count 29) and PASSES on the live repo: every member is
+    """The drift-guard is in ALL_CHECKS (count 28) and PASSES on the live repo: every member is
     either coverage_scope-annotated or exempt (the post-#203 end-state)."""
     assert aud.check_doc_code_coverage_drift in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 29
+    assert len(aud.ALL_CHECKS) == 28  # 29 -> 28: check #7 retired (ADR-51 amendment 2026-07-05)
     findings = aud.check_doc_code_coverage_drift(Path(aud._REPO_ROOT))
     assert len(findings) == 1
     assert findings[0].status == "pass", findings[0].evidence
