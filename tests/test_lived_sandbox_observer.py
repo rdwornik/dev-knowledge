@@ -417,6 +417,92 @@ def test_gate_zero_independent_of_hook_completeness():
     assert arcmod.evaluate_gate_zero(r).passed
 
 
+# --- G4 fidelity: skip-echo guard, vacuous tombstone, git-state probes ---
+
+
+def test_skipped_hook_name_echo_is_not_fired_g4a():
+    """G4a (measurement-#2 root ruling): pre-commit prints a hook's NAME even when it Skipped
+    it — a skip line must yield ARMED-BUT-SKIPPED (ok-class, reported distinctly), never
+    FIRED. Live risk: ai-council's toc-freshness is file-scoped to COUNCIL_QUESTION_GUIDE.md."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result(
+        "ARCHITECTURE.md TOC freshness check..................(no files to check)Skipped")
+    r = obs.observe(events, o)
+    toc = next(f for f in r.gated_findings if f.component_id == "hub-toc-hooks")
+    assert toc.verdict == obs.SKIPPED_ARMED
+    assert "Skipped" in toc.evidence
+    assert "armed-but-skipped" in r.summary()
+
+
+def test_skip_echo_never_outranks_real_execution_g4a():
+    """A hook that both Skipped once and RAN once (two commits) is FIRED — execution wins."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result(
+        "ARCHITECTURE.md TOC freshness check..................(no files to check)Skipped\n"
+        "ARCHITECTURE.md TOC freshness check..............................................Passed")
+    r = obs.observe(events, o)
+    toc = next(f for f in r.gated_findings if f.component_id == "hub-toc-hooks")
+    assert toc.verdict == obs.FIRED
+
+
+def test_tombstone_vacuous_when_no_commit_attempted_g4b():
+    """G4b: with NO pre-commit stage output at all (the measurement-#2 shape — the child
+    never reached `git commit`), the ruff tombstone's absence proves nothing -> VACUOUS,
+    not CORRECTLY-ABSENT."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result("pre-commit installed at .git\\hooks\\pre-commit")
+    r = obs.observe(events, o)
+    ruff = next(f for f in r.gated_findings if f.component_id == "ruff-gate")
+    assert ruff.verdict == obs.VACUOUS
+    assert "no commit attempted" in ruff.evidence
+
+
+def test_tombstone_absent_ok_when_stage_ran_g4b():
+    """Any per-hook report line (Passed/Failed/Skipped trailer) proves the stage ran —
+    absence is then genuine prune-conformance."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result("canonical_freshness last_reviewed gate..........Passed")
+    r = obs.observe(events, o)
+    ruff = next(f for f in r.gated_findings if f.component_id == "ruff-gate")
+    assert ruff.verdict == obs.ABSENT_OK
+
+
+def test_tombstone_skip_echo_is_still_a_regression_g4b():
+    """A Skipped ruff line still means ruff is WIRED in the consumer's config — the prune
+    failed. Skip-echo softens a positive verdict, never a tombstone."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result("Ruff linter..........................(no files to check)Skipped")
+    r = obs.observe(events, o)
+    ruff = next(f for f in r.gated_findings if f.component_id == "ruff-gate")
+    assert ruff.verdict == obs.UNEXPECTED
+
+
+def test_git_state_machine_level_path_not_probed_g4c():
+    """G4c: a ~-rooted signature is machine-level state a clone cannot witness — the probe
+    says so honestly instead of path-testing the signature's first token."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    r = obs.observe([], o, clone=Path("."))
+    codex = next(f for f in r.findings if f.component_id == "codex-agents-config")
+    assert codex.verdict == obs.NOT_OBSERVED
+    assert "unobservable from a clone" in codex.evidence
+
+
+def test_git_state_settings_declared_enablement_g4c(tmp_path):
+    """G4c: the tier1 plugin's git-state expectation is a settings DECLARATION, not a path —
+    probe the clone's .claude/settings.json content (measurement #2 showed the old
+    first-token path test could never observe it)."""
+    o = orc.load_oracle(_MANIFEST_V120)
+    clone = tmp_path / "clone"
+    (clone / ".claude").mkdir(parents=True)
+    (clone / ".claude" / "settings.json").write_text(json.dumps(
+        {"enabledPlugins": {"tier1-lifecycle@dev-knowledge-methodology": True}}),
+        encoding="utf-8")
+    r = obs.observe([], o, clone=clone)
+    plug = next(f for f in r.findings if f.component_id == "tier1-lifecycle-plugin")
+    assert plug.verdict == obs.OBSERVED
+    assert "declared in .claude/settings.json" in plug.evidence
+
+
 # --- attachment-wrapped hook events (the on-disk transcript shape, Step-7 witnessed) ---
 
 
@@ -743,13 +829,23 @@ def _events_from_fixture(path: Path) -> list[dict]:
 
 
 @_needs_fixtures
-def test_acceptance_arc_green_all_six_fired_no_false_positive():
-    """C3: the arc fires all six + >=1 command act, observed GREEN — no false-positive."""
+def test_acceptance_arc_green_all_six_engaged_no_false_positive():
+    """C3: the arc engages all six + >=1 command act, observed GREEN — no false-positive.
+    G4a recalibration (measurement-#2 root ruling): the two file-scoped pre-commit hooks
+    (hub-toc-hooks, floor-hash-verify) are reported by pre-commit as Skipped for the arc's
+    single-file commit — the frozen fixture proves they were name-echoes, so they are now
+    honestly ARMED-BUT-SKIPPED (wired + consulted, ok-class), never conflated with FIRED.
+    The four hooks that genuinely produced output stay FIRED. Same fixture, uninflated read."""
     o = orc.load_oracle(_MANIFEST_V120)
     r = obs.observe(_events_from_fixture(_ARC_GREEN), o, clone=None)
     assert r.passed, r.summary()
-    assert {f.component_id for f in r.gated_findings if f.verdict == obs.FIRED} == _GATED_SIX
-    assert len(r.commands_observed) >= 1  # >=1 command acts and is observed
+    fired = {f.component_id for f in r.gated_findings if f.verdict == obs.FIRED}
+    armed = {f.component_id for f in r.gated_findings if f.verdict == obs.SKIPPED_ARMED}
+    assert fired == {"floor-sessionstart-guard", "canonical-freshness",
+                     "session-end-backpressure", "propose-closures-stop-hook"}
+    assert armed == {"hub-toc-hooks", "floor-hash-verify-hook"}
+    assert fired | armed == _GATED_SIX          # every gated hook engaged — nothing silent
+    assert len(r.commands_observed) >= 1        # >=1 command acts and is observed
     assert not r.flags
 
 

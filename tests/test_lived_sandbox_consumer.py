@@ -107,6 +107,31 @@ def test_gate_fail_report_still_builds():
     assert not r.gate.passed and r.coverage_fired == 6  # measurement survives; caller labels it
 
 
+def test_armed_skipped_counted_distinctly_never_as_fired_g4a():
+    """G4a (measurement-#2 root ruling): a file-scoped hook pre-commit consulted but Skipped
+    counts as covered (it enforces for its scope) yet is REPORTED separately — the FIRED
+    figure stays uninflated."""
+    evs = _events(["canonical_freshness", "pre-commit installed at",
+                   "Session-end", "propose_closures:"])
+    evs += _tool_result(
+        "protocols TOC freshness check....................(no files to check)Skipped")
+    evs += _tool_result(
+        "Verify CLAUDE-FLOOR.md matches its sha256 sidecar....(no files to check)Skipped")
+    r = _report(evs)
+    assert (r.coverage_fired, r.coverage_armed_skipped) == (4, 2)
+    assert r.full_coverage
+    assert "4-of-6 enforcing on this consumer + 2 armed-but-skipped" in r.summary()
+
+
+def test_vacuous_tombstone_never_reads_as_ok_g4b():
+    """G4b: when no commit was attempted (the measurement-#2 shape), the tombstone is
+    VACUOUS — not silently 'ok' — and full coverage is off the table."""
+    evs = _tool_result("pre-commit installed at .git/hooks/pre-commit")
+    r = _report(evs)
+    assert r.tombstone_state == "VACUOUS" and not r.tombstones_ok and not r.full_coverage
+    assert "tombstones VACUOUS" in r.summary()
+
+
 # --- evidence quotes (C1 + masking) ------------------------------------------------------
 
 

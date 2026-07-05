@@ -37,13 +37,15 @@ def evidence_lines(events: list[dict], oracle: _oracle.Oracle,
                    *, max_lines_per_component: int = 3) -> dict[str, tuple[str, ...]]:
     """Verbatim hook-stdout lines matching each gated-active signature — the
     enforcement-in-effect proof quotes. Extraction only touches the structured hook-stdout
-    surface (C1 holds: narration never enters it)."""
+    surface (C1 holds: narration never enters it). G4a: executed lines lead; a skip-echo
+    line is quoted too (it IS the honest evidence for an ARMED-BUT-SKIPPED verdict) but
+    never masquerades ahead of real execution output."""
     surface = _observe.hook_stdout_surface(events)
-    lines = surface.splitlines()
     out: dict[str, tuple[str, ...]] = {}
     for exp in oracle.gated_active:
+        executed, skipped = _observe.signature_lines(surface, exp.signature)
         hits = tuple(_SECRET_RE.sub(_MASK, ln.strip())
-                     for ln in lines if exp.signature in ln)[:max_lines_per_component]
+                     for ln in (*executed, *skipped))[:max_lines_per_component]
         if hits:
             out[exp.component_id] = hits
     return out
@@ -59,12 +61,21 @@ class ConsumerReport:
     observation: _observe.ObservationResult
     coverage_fired: int           # gated-active components that FIRED on this consumer
     coverage_total: int           # gated-active components the hub expects (the six)
-    tombstones_ok: bool           # every gated tombstone CORRECTLY-ABSENT (no prune regression)
+    coverage_armed_skipped: int   # G4a: consulted-but-Skipped (enforcing for their file scope)
+    tombstone_state: str          # "ok" | "REGRESSED" | "VACUOUS" (G4b)
     evidence: dict[str, tuple[str, ...]]  # component_id -> verbatim matched stdout lines
 
     @property
+    def tombstones_ok(self) -> bool:
+        return self.tombstone_state == "ok"
+
+    @property
     def full_coverage(self) -> bool:
-        return self.coverage_fired == self.coverage_total and self.tombstones_ok
+        # G4a: an armed-but-skipped hook counts as covered (it enforces for its file scope;
+        # the arc's single-file commit simply cannot exercise every files-filter) — but it is
+        # never REPORTED as FIRED, so the reading stays uninflated.
+        covered = self.coverage_fired + self.coverage_armed_skipped
+        return covered == self.coverage_total and self.tombstones_ok
 
     def report_lines(self) -> list[str]:
         """The per-component measurement report (stdout-facing, flat — no box glyphs)."""
@@ -79,9 +90,11 @@ class ConsumerReport:
                 lines.append(f"      | {ev}")
         for f in self.observation.observed_not_gated:
             lines.append(f"  ({f.verdict}) {f.component_id} ({f.channel}) — observed, not gated")
+        armed = (f" + {self.coverage_armed_skipped} armed-but-skipped"
+                 if self.coverage_armed_skipped else "")
         lines.append(
             f"COVERAGE: {self.coverage_fired}-of-{self.coverage_total} enforcing on this consumer"
-            f"; tombstones {'ok' if self.tombstones_ok else 'REGRESSED'}")
+            f"{armed}; tombstones {self.tombstone_state}")
         lines.append(
             "VERDICT: FULL-COVERAGE" if self.full_coverage
             else "VERDICT: FAIL-by-coverage (partial mesh — correct measurement, not an error)")
@@ -95,11 +108,17 @@ def build_report(consumer: str, gate: _arc.GateZero, observation: _observe.Obser
                  oracle: _oracle.Oracle, events: list[dict]) -> ConsumerReport:
     """Pure assembly: verdicts -> coverage figures + evidence quotes (unit-testable offline)."""
     fired = {f.component_id for f in observation.gated_findings if f.verdict == _observe.FIRED}
+    armed = {f.component_id for f in observation.gated_findings
+             if f.verdict == _observe.SKIPPED_ARMED}
     active_ids = {e.component_id for e in oracle.gated_active}
-    tombstones_ok = all(
-        f.verdict == _observe.ABSENT_OK
-        for f in observation.gated_findings
-        if f.component_id in {e.component_id for e in oracle.gated_absent})
+    tomb_ids = {e.component_id for e in oracle.gated_absent}
+    tomb_verdicts = [f.verdict for f in observation.gated_findings if f.component_id in tomb_ids]
+    if any(v == _observe.UNEXPECTED for v in tomb_verdicts):
+        tombstone_state = "REGRESSED"
+    elif any(v == _observe.VACUOUS for v in tomb_verdicts):
+        tombstone_state = "VACUOUS"    # G4b: absence unproven — no commit was attempted
+    else:
+        tombstone_state = "ok"
     return ConsumerReport(
         consumer=consumer,
         oracle_version=oracle.version,
@@ -107,7 +126,8 @@ def build_report(consumer: str, gate: _arc.GateZero, observation: _observe.Obser
         observation=observation,
         coverage_fired=len(fired & active_ids),
         coverage_total=len(active_ids),
-        tombstones_ok=tombstones_ok,
+        coverage_armed_skipped=len(armed & active_ids),
+        tombstone_state=tombstone_state,
         evidence=evidence_lines(events, oracle),
     )
 
