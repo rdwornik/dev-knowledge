@@ -131,6 +131,12 @@ def run_consumer_arc(consumer_repo: Path | str, *, hub_root: Path | None = None,
         # allows, witnessed verbatim at measurement #2) + the G3 owned-config sanction.
         # Never a bypass — anything beyond the arc still hits the wall.
         cfg = _arc.arc_isolated_config(clone.parent / "cfg")
+        # G2 (measurement-#2 root ruling): plugin PRESENCE is harness-seeded from the HUB
+        # checkout (the marketplace the consumer's settings point at) into the isolated
+        # user config — mirroring the operator machine's user-level state, which the
+        # isolated CLAUDE_CONFIG_DIR deliberately cannot reach. What is MEASURED is the
+        # firing (the Stop hook + the /review-closures command act), never the presence.
+        _arc.seed_tier1_plugin(cfg, clone, source_root=root)
         result = _spawn.spawn(clone, _arc.ARC_PROMPT, config_dir=cfg, api_key=key,
                               model=model, extra_env=env, timeout=timeout)
         gate = _arc.evaluate_gate_zero(result)

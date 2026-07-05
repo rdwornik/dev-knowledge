@@ -321,6 +321,10 @@ components:
     status: active
     waivable: true   # explicitly NON-BLOCKING (detect-and-propose) — not a fail-closed gate
     verify: wired
+    # NOTE (G2, measurement-#2 root ruling 2026-07-06): in CONSUMER measurement the plugin
+    # PRESENCE is harness-seeded from the hub checkout into the isolated user config (a real
+    # consumer machine carries the plugin user-level, unreachable from the isolated
+    # CLAUDE_CONFIG_DIR); what the lived arc MEASURES is this hook's firing, never presence.
     engages:                    # GATED SIX — firing hook, stop stage
       trigger: stop
       observable: hook-stdout

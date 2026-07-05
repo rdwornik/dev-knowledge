@@ -487,6 +487,29 @@ def test_seed_tier1_plugin_none_without_source(tmp_path):
     assert arcmod.seed_tier1_plugin(tmp_path / "cfg", clone) is None
 
 
+def test_seed_tier1_plugin_from_hub_source_root_g2(tmp_path):
+    """G2 (measurement-#2 root ruling): a REAL consumer clone carries NO plugins/ tree (only
+    the settings enablement) — seeding sources the HUB checkout, registers the marketplace
+    at the hub path, and keeps projectPath on the CLONE (the project the child runs in)."""
+    hub = tmp_path / "hub"
+    meta = hub / "plugins" / "tier1-lifecycle" / ".claude-plugin"
+    meta.mkdir(parents=True)
+    (meta / "plugin.json").write_text('{"version": "1.2.0"}', encoding="utf-8")
+    (hub / "plugins" / "tier1-lifecycle" / "hooks.json").write_text("{}", encoding="utf-8")
+    clone = tmp_path / "consumer-clone"
+    clone.mkdir()  # deliberately NO plugins/ tree — the real-consumer shape
+    cfg = tmp_path / "cfg"
+    assert arcmod.seed_tier1_plugin(cfg, clone, source_root=hub) == "1.2.0"
+    install = cfg / "plugins" / "cache" / "dev-knowledge-methodology" / "tier1-lifecycle" / "1.2.0"
+    assert (install / "hooks.json").exists()
+    reg = json.loads((cfg / "plugins" / "installed_plugins.json").read_text(encoding="utf-8"))
+    entry = reg["plugins"]["tier1-lifecycle@dev-knowledge-methodology"][0]
+    assert entry["projectPath"] == str(clone)      # the child's project stays the clone
+    market = json.loads((cfg / "plugins" / "known_marketplaces.json").read_text(encoding="utf-8"))
+    assert market["dev-knowledge-methodology"]["source"] == {
+        "source": "directory", "path": str(hub)}   # the marketplace is the hub, as on a real machine
+
+
 # --- [#253a] the arc permission seam: scoped allowlist, never bypass ---
 
 

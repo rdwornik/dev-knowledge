@@ -385,22 +385,31 @@ _MARKETPLACE = "dev-knowledge-methodology"
 _PLUGIN_NAME = "tier1-lifecycle"
 
 
-def seed_tier1_plugin(config_dir: Path, clone: Path) -> str | None:
-    """Install the clone's in-tree tier1-lifecycle plugin into the ISOLATED config (Step-7
-    finding: the clone's settings enable the plugin, but the plugin cache lives in the outer
-    ~/.claude — unreachable from the isolated CLAUDE_CONFIG_DIR, so the propose-closures Stop
-    hook and /review-closures could NEVER fire). Clone-rooted + deterministic: the plugin
-    source is the clone's own plugins/ tree; registration mirrors the real installed_plugins/
-    known_marketplaces shape with a fixed stamp. Returns the seeded version, or None when the
-    clone carries no plugin source."""
+def seed_tier1_plugin(config_dir: Path, clone: Path, *,
+                      source_root: Path | None = None) -> str | None:
+    """Install the tier1-lifecycle plugin into the ISOLATED config (Step-7 finding: the
+    clone's settings enable the plugin, but the plugin cache lives in the outer ~/.claude —
+    unreachable from the isolated CLAUDE_CONFIG_DIR, so the propose-closures Stop hook and
+    /review-closures could NEVER fire). Deterministic: registration mirrors the real
+    installed_plugins/known_marketplaces shape with a fixed stamp. Returns the seeded
+    version, or None when no plugin source exists.
+
+    Plugin source = `source_root`'s plugins/ tree when given, else the clone's own (the hub
+    self-clone case). G2 (measurement-#2 root ruling): a REAL consumer carries only the
+    settings-level enablement — its plugin lives user-level on the operator machine, which
+    the isolated config deliberately cannot reach — so consumer measurement seeds FROM THE
+    HUB CHECKOUT (the marketplace the consumer's settings already point at). Faithful, not
+    facade: the harness mirrors the operator machine's user-level state; what is MEASURED
+    is the firing."""
     import shutil as _shutil
-    src = Path(clone) / "plugins" / _PLUGIN_NAME
+    src = Path(source_root if source_root is not None else clone) / "plugins" / _PLUGIN_NAME
     plugin_json = src / ".claude-plugin" / "plugin.json"
     if not plugin_json.exists():
         plugin_json = src / "plugin.json"
     if not plugin_json.exists():
         return None
     version = str(json.loads(plugin_json.read_text(encoding="utf-8")).get("version", "0.0.0"))
+    marketplace_root = Path(source_root if source_root is not None else clone)
     plug_root = Path(config_dir) / "plugins"
     install = plug_root / "cache" / _MARKETPLACE / _PLUGIN_NAME / version
     if install.exists():
@@ -421,8 +430,8 @@ def seed_tier1_plugin(config_dir: Path, clone: Path) -> str | None:
     }, indent=2), encoding="utf-8", newline="\n")
     (plug_root / "known_marketplaces.json").write_text(json.dumps({
         _MARKETPLACE: {
-            "source": {"source": "directory", "path": str(clone)},
-            "installLocation": str(clone),
+            "source": {"source": "directory", "path": str(marketplace_root)},
+            "installLocation": str(marketplace_root),
             "lastUpdated": _PLUGIN_STAMP,
         },
     }, indent=2), encoding="utf-8", newline="\n")
