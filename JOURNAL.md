@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-05 — CC (Fable, EPIC lane test-tiering): [#260] S1–S4 executed, lane closed ([#256]/[#257])
+
+**Did:** Epic lane booted per EPIC_BOOT (probes E1–E5 all PASS live; the E4 ship-gate RED root-caused to the worktree-name artifact — `deployed_methodology_version` keys by dir name, `epic-test-tiering` absent from the registry; environmental, not a branch regression). Executed the four stories commit-per-story: **S1** `ca20073` /ship pre-flight parallel (`-n auto`); **S2** `b59f035` diff-shaped selection — 36 live-repo-sensitive test functions (50 nodes, 8 files) marked `live_repo` (markers + enabling `import pytest` only; curated by full classification of all 59 test files), /ship step 4 branches docs-only vs code diff with a hub-vs-child guard; **S3** `3b87161` full-serial nightly/on-demand invocation documented in pyproject; **S4** `8f3547b` #257 decision recorded — system-Python documented policy (venv would force out-of-boundary `.pre-commit-config.yaml` edits), dev toolchain declared via PEP 735 `[dependency-groups]`, proven resolvable with `pip install --group dev --dry-run`.
+
+**Result:** MEASURED: docs-only class ~34s (18.9s live_repo run + 13.1s ship-gate) — inside ≤60s; code-diff class 1m47s–2m16s across 4 clean runs (median ≈ the #256 profile's 2m05s; floor-bound by the 90s `test_e2e_five_paths`) — meets "~2min", straddles a strict 120s reading (adjudicated in EPIC_RETURN §3). Suite green on branch at HEAD: 1294 passed, 7 skipped in 106.85s. One transient unidentified single-test failure in one of five full runs (not reproduced; identity lost to the green-run cache clear) — flagged for root; the S3 serial path is the designed catcher.
+
+**Changes:** branch `epic/test-tiering`: `plugins/tier1-lifecycle/commands/ship.md` (step 4 diff-shaped), `pyproject.toml` (+pytest markers config, +full-serial doc, +dependency-groups + isolation policy), 8 `tests/test_*.py` (markers only), BACKLOG [#260] 4 checkboxes, EPIC_RETURN.md filled, this entry.
+
+**Abandoned:** nothing; no out-of-boundary edits (the venv option was declined, not attempted).
+
+**Next:** root reviews EPIC_RETURN → serial `--no-ff` merge, applies proposed BACKLOG delta (#256/#257 closable on the measurements), regenerates doc-counts, tears down the worktree.
+
+---
+
 ### 2026-07-05 — CC (Fable, ROOT lane, cont.): grant executed + session cleanup + Wave-2 prep ([#258]/[#259]/[#260])
 
 **Did:** Root's STOP-2 reply executed. (1) **Grant:** CLAUDE.md §12 condensed v2.18–v2.24 → one summary block (ADR-49/65, operator-granted; v2.25–v2.29 verbatim; 191 lines, 6 entries) — **ship-gate GREEN** (merge `126786a`). (2) **Cleanup:** process inventory (8 claude-related) — my session trio identified; the 2:21 AM overnight session is ATTACHED to a live VS Code terminal (Code.exe 02:19) → left, listed for operator; the one clearly-stale orphan (24h `rg`, parent dead) exited before termination; epic-slice-b-close dir lock released after the operator closed the epic terminal → removed + pruned, `.claude/worktrees/` empty, worktree list = primary only; zero branch-config/ref/worktree-metadata residue for the deleted branches. (3) **Wave-2 prep (Part C):** three epic blocks filed [#258] doc-consolidation + [#259] llm-first-docs + [#260] test-tiering (executes #256+#257) — validate_backlog OK (26 stories / 114 tasks; serialize-groups registered: playbook+claude-md / architecture+audit-py / pre-commit-config); three `gen_handoff --mode epic` bundles generated (FIRST REAL DOGFOOD) with root-authored FILL-INs (scope / done-contract / FILE-BOUNDARY / escalation; shared Wave-2 rules baked in). Dogfood findings: default slug collides across same-day epics (`--slug` override required — wrongly-slugged first bundle removed); re-render preserves filled FILL-IN regions byte-for-byte (0-diff verified). No worktrees provisioned, no lanes launched.
