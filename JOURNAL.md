@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-05 — CC (Fable): overnight autonomy run — Phase 0 · Block A degrade · consumer seam · first ai-council measurement
+
+**Did:** Ran the CC MEGA-MISSION (operator pre-authorized, autonomous no-stop). (1) **Phase 0 PASS**: recovery anchor pushed; Slice-B freeze-readiness verified (4 acceptance SKIPs, GATE-0 units green); **spawn-auth GO** via the profile-loaded-shell path (haiku smoke `exit=0`, no secret in transcript; key never echoed). (2) **Block A DEGRADED per its frozen contract**: the first live six-hook arc hit GATE-0 `outer-absent=False` — the `OUTER_MARKERS` negative control is confounded on hub self-clones (the hub's own project SessionStart hooks emit `[fleet]`/`[changelog]` inside the clone); deterministic, so no retry burned; nothing frozen, zero temp leftovers; evidence merged `5ed18b2`. (3) **Phase 0.5 COMPLETE**: built `observe-arc --consumer` on `feat/consumer-arc` (hub-manifest oracle vs consumer firing; FAIL-by-coverage = correct verdict; 15 hermetic tests; full suite **1266 passed/6 skipped**); **Codex gate 0 CRIT/1 HIGH** — the HIGH (traceback escape at the CLI boundary) fixed same-arc; pushed `49d46d6`+`1655789`; **merge deferred (SEQ-2)** — the branch bases on the architect-held Slice-B tip. (4) **Block B DELIVERED (measurement)**: ai-council measured 3× — **GATE-0 isolation PROVEN 3/3**; **FAIL-by-coverage 1-of-6 as-measured** (the lone FIRED is an observer C1 narration leak → ~0-of-6 firing-verified); the child never reached the commit (×2 refused the arc as suspicious; ×1 stalled on git-approval permissions) → **no in-the-wild gate fire witnessed** — four architect rulings filed as **[#253]**. Genuine ai-council CLAUDE.md re-review merged there (`75006db`): ruff-prune reconciled, plugin commands added, honest re-stamp clears its A2 FAIL. **Incident repaired in ai-council**: a relic `core.hooksPath` (pre-move path) had every git hook silently bypassed — unset + `pre-commit install` armed + gates re-proven on HEAD (the configured-not-armed class, live on a consumer).
+
+**Result:** Minimum-success criterion (Block A C4 closure) NOT met — degraded honestly with evidence; the priority-#1 deliverable (prove the hub on ai-council like a sandbox) advanced to its real blocker: the arc's permission/refusal wall. Full detail + verbatim run outputs: `docs/audits/2026-07-05-overnight-autonomy-run.md`.
+
+**Changes:** hub `main`: `docs/audits/2026-07-05-overnight-autonomy-run.md` (new + appends), `BACKLOG.md` (+[#253]), `JOURNAL.md` (this entry); branch `feat/consumer-arc` (pushed, unmerged): `deploy/lived_sandbox/consumer.py` [new], `deploy/lived_sandbox/cli.py`, `tests/test_lived_sandbox_consumer.py` [new], `docs/audits/2026-07-05-codex-consumer-arc.md` [new]. ai-council: CLAUDE.md merge `75006db` + hooks armed (config change logged, reversible; repo left unpushed — operator's call).
+
+**Abandoned:** Block A steps 2–7 (contract degrade — architect-owned seam).
+
+**Next:** Blocks C (audit-vs-reality diff), D (§5/§13 spec-arc), E (plan-only drafts), F (final audit + handoff bundle + push). Architect morning queue: [#253] rulings (a)–(d), `feat/consumer-arc` merge decision, ai-council push decision, the ARCHITECT-REVIEW-PENDING list in the run audit.
+
+---
+
 ### 2026-07-05 — CC (Opus): Phase-0 batch integration merge (serial consolidation MERGE 1)
 
 **Did:** Executed the architect's session-close serial-consolidation **MERGE 1**: merged `chore/phase0-batch` → `main` `--no-ff` (merge `3a95e49`), the integration wrap the Phase-0 delegation lane (commit-per-item-and-STOP) deferred. Pre-merge gate on the branch tip: **full suite 1210 passed, 0 failed** (item 4 cleared the standing #251 test-red). Four disjoint low-risk items: **1a41630** PLAYBOOK — refresh two stale coherence-edge gate-state surfaces (coherence-spine RF-1); **f41460d** DEFINITION_OF_DONE — honest-limits section (Fable RF-3); **5c6765d** validate_reconciliation.py — correct stale corpus-scope docstring (RF-8); **c919393** test_deploy_tool_execute.py — ANSI-robust branch-report assertion (#251 stale-test). Then tore down the phase0-batch worktree + branch (see below).

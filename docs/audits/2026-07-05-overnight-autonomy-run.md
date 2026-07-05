@@ -85,4 +85,73 @@ hub-clone-specific — an ai-council consumer clone carries no hub fleet-surfaci
 
 ---
 
+## PHASE 0.5 — `--consumer` seam — **COMPLETE** (built under SEQ-2; merge deferred)
+
+Built `observe-arc --consumer <repo-path>` on `feat/consumer-arc` (base: the architect-held
+Slice-B tip `c1647f1`, per SEQ-2 — merging tonight would land Slice-B outside its Step-7
+contract, so the branch is **pushed, not merged**). Frozen rulings applied verbatim: hub
+manifest = oracle; consumer firing = reality; per-component FIRED / EXPECTED-BUT-SILENT /
+tombstone verdicts + n-of-6 coverage; FAIL-by-coverage = correct verdict (exit 2); observe
+as-is (no shaping, `--freeze`/`--leg-e` refused); clone-only, real repo never mutated;
+verbatim secret-masked evidence quotes. 15 hermetic tests incl. the mandated
+partial-coverage-consumer case; **full suite 1266 passed / 6 skipped**; ruff clean.
+**CODEX GATE:** `docs/audits/2026-07-05-codex-consumer-arc.md` — 0 CRIT / **1 HIGH**
+(SandboxError/OracleError escaping the CLI as tracebacks) / 0 MED / 0 LOW; the HIGH fixed
+pre-push with 2 tests. Commits `49d46d6` (seam) + `1655789` (Codex fix + audit), branch
+pushed to origin.
+
+## BLOCK B — first ai-council consumer measurement — **DELIVERED (measurement), with four architect findings**
+
+**Run 1** (as-is clone, sonnet child) + **verbatim RETRY** (n=2) + **Run 2** (fresh clone
+after the CLAUDE.md fix). All three: **GATE-0 isolation PROVEN** (provenance=True,
+outer-absent=True, exit-ok=True — the Block-A marker confound is confirmed
+hub-clone-specific) and **COVERAGE 1-of-6, FAIL-by-coverage, exit 2** (the contract-correct
+verdict). Honest bottom line: **no in-the-wild deployed-gate fire was witnessed** — the
+child never reached the arc's commit step, so the pre-commit gates (incl. the predicted
+`canonical_freshness` FAIL on the A2-stale CLAUDE.md) were never exercised.
+
+Findings for the architect (recorded, deliberately NOT fixed tonight — observer/arc are
+Slice-B territory):
+
+1. **ARC_PROMPT permission/refusal wall (blocks the whole measurement class):** run-1 ×2 the
+   child refused the arc as suspected prompt-injection ("suspicious pre-message hook text and
+   a nonexistent `/review-closures` command … I won't reply 'ARC DONE' as if everything
+   completed"); run-2 it accepted the task but **stalled asking approval for `git checkout`**
+   (headless `-p` default permissions; nobody can approve). Same wall likely explains
+   Block A's "5/6 SILENT + 0 commands". Needs a permission-mode/allowlist design ruling —
+   a safety-posture change not self-adjudicated at night.
+2. **Observer C1 leak:** the `result`-type event's `result` field (the child's final
+   narration) enters `hook_stdout_surface` — the lone FIRED (`propose-closures-stop-hook`)
+   matched **narration**, not a hook. Firing-verified coverage is therefore ~0-of-6.
+3. **`closure` expect-signature too broad:** run-1-retry it also matched a listed *filename*
+   (`2026-05-09-…-governance-closure.md`). Calibration (Step-7 class) must use longer stable
+   substrings.
+4. **Run-2 behavioral delta from the CLAUDE.md fix:** after §7 gained the plugin commands,
+   the child no longer flagged `/review-closures` as nonexistent/suspicious — doc currency
+   measurably changed child behavior (n=1, noted, not claimed proven).
+
+**Step 2 (genuine re-review, real ai-council):** CLAUDE.md read end-to-end + verified against
+live state; real staleness fixed (§9 still claimed the ruff pre-commit gate that `31e785d`
+pruned in the v1.2.0 deploy; §7 lacked the plugin's `/review-closures`/`/ship`); honest
+`last_reviewed` 2026-06-02 → 2026-07-05; v2.4 history entry. Merged `--no-ff` in ai-council:
+**`75006db`** (leaf `5643895`). Its A2 FAIL is cleared (freshness gate now exit 0; the two
+33-day VISION/CONTRIBUTING WARNs remain, out of tonight's scope).
+
+**Incident found + repaired in ai-council (configured-not-armed, live):** the re-review
+commit ran through **zero hooks** — `core.hooksPath` pointed at the repo's pre-move relic
+path (`C:\Users\1028120\Documents\Scripts\ai-council\.git\hooks`, empty), so every git hook
+was silently bypassed AND the SessionStart `pre_commit install` had been refusing (exact hub
+RF-2 precedent, operator-fixed there 07-04). Repaired: `core.hooksPath` unset (old value
+recorded here — reversible one-liner), `pre-commit install` now armed, `canonical_freshness`
+re-run **Passed through the armed hook path**; floor gate exit 0 on HEAD.
+**ARCHITECT-REVIEW-PENDING: AC-1** (the hooksPath unset — sanctioned-shaped but a consumer
+config change) and **AC-2** (ai-council left UNPUSHED: main there is now ahead 5, incl. the
+operator's own 3 pre-existing commits — publishing them wasn't clearly sanctioned).
+
+Follow-ups filed as **[#253]** (BACKLOG, mesh epic). Delta Run 1 → Run 2: coverage unchanged;
+failure mode changed (refusal → permission stall); freshness-gate delta invisible in-arc
+(commit never reached) but proven directly on HEAD.
+
+---
+
 *(Appended at subsequent block boundaries.)*
