@@ -1,11 +1,15 @@
-"""Orchestration: ast_walker + tach.toml layer extraction + mermaid_emit."""
+"""Orchestration: ast_walker + tach.toml layer extraction + text_emit.
+
+Output form is compact text per ADR-51 amendment 2026-07-05; ``mermaid_emit``
+is retained for the human-facing visualization surface but no longer wired in.
+"""
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
 from .ast_walker import analyze_repo
-from .mermaid_emit import emit_mermaid
+from .text_emit import emit_text
 
 
 def _load_tach_layers(repo_path: Path) -> dict[str, str]:
@@ -42,7 +46,7 @@ def _load_tach_layers(repo_path: Path) -> dict[str, str]:
 
 
 def generate_codemap(repo_path: Path, source_root: str = "src") -> tuple[str, list[str]]:
-    """Return (mermaid_source, warnings).
+    """Return (codemap_text, warnings).
 
     warnings is a list of stderr-bound strings for orphan/cycle/tach issues.
     """
@@ -82,9 +86,9 @@ def generate_codemap(repo_path: Path, source_root: str = "src") -> tuple[str, li
         return any(dfs(p) for p in packages if color[p] == 0)
 
     if has_cycle():
-        warnings.append("circular imports detected — cycle edges marked in diagram")
+        warnings.append("circular imports detected — cycle edges marked in codemap")
 
-    mermaid_source = emit_mermaid(
+    codemap_text = emit_text(
         packages, edges, layers=layers, source_root=source_root
     )
-    return mermaid_source, warnings
+    return codemap_text, warnings

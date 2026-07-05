@@ -45,11 +45,11 @@ def check_codemap(
 
     current = content[start_idx + len(_START_MARKER) : end_idx]
 
-    fresh_mermaid, warnings = generate_codemap(repo_path, source_root)
+    fresh_text, warnings = generate_codemap(repo_path, source_root)
     for w in warnings:
         print(f"warning: {w}", file=sys.stderr)
 
-    fresh = "\n" + fresh_mermaid
+    fresh = "\n" + fresh_text
 
     if current == fresh:
         return 0, ""
