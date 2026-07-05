@@ -27,8 +27,8 @@ _MANIFEST_V120 = _REPO / "deploy" / "manifest-v1.2.0.yaml"
 
 # The six gated firing-hook signatures as authored in manifest-v1.2.0.yaml.
 _SIX_SIGNATURES = [
-    "check_floor_hash", "floor-hash-verify", "canonical_freshness",
-    "toc-freshness", "Session-end", "propose_closures:",
+    "--require-present", "sha256 sidecar", "canonical_freshness",
+    "TOC freshness", "Session-end", "propose_closures:",
 ]
 
 
@@ -83,7 +83,7 @@ def test_oracle_ruff_tombstone_is_gated_absent():
     o = orc.load_oracle(_MANIFEST_V120)
     assert {e.component_id for e in o.gated_absent} == {"ruff-gate"}
     ruff = o.by_id("ruff-gate")
-    assert ruff.absent is True and ruff.signature == "Ruff lint gate"
+    assert ruff.absent is True and ruff.signature == "Ruff linter"
 
 
 def test_oracle_observed_not_gated_excludes_the_six():
@@ -179,7 +179,8 @@ def test_observer_ruff_tombstone_absent_ok():
 def test_observer_flags_ruff_tombstone_if_it_fires():
     """Prune regression: if ruff fired, the tombstone is UNEXPECTED -> not passed."""
     o = orc.load_oracle(_MANIFEST_V120)
-    events = _green_events() + [_tool_result("Ruff lint gate....Passed")]
+    events = _green_events() + [_tool_result(
+        "Ruff linter (version-pinned >=0.15.5; system binary; blocks on violations)....Passed")]
     r = obs.observe(events, o)
     assert not r.passed
     assert any(f.component_id == "ruff-gate" and f.verdict == obs.UNEXPECTED for f in r.flags)
@@ -391,11 +392,16 @@ def test_observer_reads_attachment_hook_stdout():
         [_attachment_hook("Session-end hygiene (deterministic backpressure)")])
 
 
-def test_observer_attachment_command_field_never_counts():
-    """The command line names the hook's own script path — matching it would be a firing
-    verdict with zero output. Only stdout/stderr/content count."""
-    ev = _attachment_hook("", command="python scripts/session_end_backpressure.py")
-    assert "session_end_backpressure" not in obs.hook_stdout_surface([ev])
+def test_observer_hook_success_command_is_proof_of_execution():
+    """hook_success ONLY: the command record counts (a silent-on-success hook like the floor
+    guard has no stdout — the hook_success event itself proves it ran). A cancelled hook's
+    command echo must NOT count: it names the script without the hook having run."""
+    ran = _attachment_hook("", command="python .claude/check_floor_hash.py --require-present")
+    assert "--require-present" in obs.hook_stdout_surface([ran])
+    cancelled = {"type": "user", "attachment": {
+        "type": "hook_cancelled", "hookName": "SessionStart",
+        "command": "python .claude/check_floor_hash.py --require-present"}}
+    assert "--require-present" not in obs.hook_stdout_surface([cancelled])
 
 
 def test_observer_non_hook_attachment_excluded():
@@ -507,6 +513,23 @@ def test_consumer_shape_prunes_ruff(tmp_path):
     after = (clone / ".pre-commit-config.yaml").read_text(encoding="utf-8")
     assert "ruff-pre-commit" not in after
     assert any("removed repo entry" in c for c in changes)
+
+
+def test_consumer_shape_drops_hub_local_ruff(tmp_path):
+    """Step-7 finding: the hub carries ruff INSIDE `repo: local` — the repo-entry prune
+    classifies it 'already absent' and leaves it RUNNING. Consumer shape must drop it."""
+    clone = tmp_path / "clone"
+    clone.mkdir()
+    import yaml
+    (clone / ".pre-commit-config.yaml").write_text(yaml.safe_dump({"repos": [
+        {"repo": "local", "hooks": [
+            {"id": "ruff", "name": "Ruff linter (version-pinned)", "entry": "ruff check"},
+            {"id": "canonical_freshness"}]}]}, sort_keys=False), encoding="utf-8")
+    changes = arcmod.consumer_shape(clone, repo_root=_REPO)
+    after = (clone / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    assert "Ruff linter" not in after and "id: ruff" not in after
+    assert "canonical_freshness" in after  # the rest of the local block survives
+    assert any("removed hub-local ruff hook" in c for c in changes)
 
 
 def test_disable_precommit_hook_silences_one(tmp_path):

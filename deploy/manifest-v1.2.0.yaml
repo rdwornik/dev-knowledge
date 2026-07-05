@@ -383,7 +383,10 @@ components:
       observable: hook-stdout
       expect:
         absent: true
-        signature: "Ruff lint gate"   # the hook NAME; appears only if the pruned ruff hook ran
+        signature: "Ruff linter"  # [#253c] calibrated@step7: the HUB-LOCAL hook's printed name
+                                  # ("Ruff linter (version-pinned ...)"); the repo-form name
+                                  # "Ruff lint gate" never prints on a hub self-clone, which
+                                  # false-greened the tombstone while ruff actually RAN.
     artifacts:
       - wiring: ".pre-commit-config.yaml repo ruff-pre-commit rev v0.15.5, hook ruff"
     # Remove-leg identity + last-deployed oracle (the hash-guard). The consumer's
@@ -411,7 +414,10 @@ components:
     engages:                    # GATED SIX — firing hook, pre-commit stage
       trigger: pre-commit
       observable: hook-stdout
-      expect: "toc-freshness"   # pre-commit prints "toc-freshness....Passed"
+      expect: "TOC freshness"   # [#253c] calibrated@step7: pre-commit prints hook NAMEs, not
+                                # ids — "TOC freshness (markdown doc vs its own headers)" /
+                                # "ARCHITECTURE.md TOC freshness check" both carry it; the id
+                                # `toc-freshness` never appears in the run output.
     artifacts:
       - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hooks toc-freshness + toc-generate"
     roster:
@@ -427,7 +433,9 @@ components:
     engages:                    # GATED SIX — firing hook, pre-commit stage
       trigger: pre-commit
       observable: hook-stdout
-      expect: "floor-hash-verify"   # pre-commit prints "floor-hash-verify....Passed"
+      expect: "sha256 sidecar"  # [#253c] calibrated@step7: the hook's printed NAME is
+                                # "Verify CLAUDE-FLOOR.md matches its sha256 sidecar"; the id
+                                # `floor-hash-verify` never appears in the run output.
     artifacts:
       - wiring: ".pre-commit-config.yaml local hook floor-hash-verify -> python .claude/check_floor_hash.py"
     roster:
@@ -462,7 +470,11 @@ components:
     engages:                    # GATED SIX — firing hook, session-start stage
       trigger: session-start
       observable: hook-stdout
-      expect: "check_floor_hash"   # calibrate@step7: guard stdout / "pre-commit installed" (arming)
+      expect: "--require-present"   # [#253c] calibrated@step7: the guard is SILENT on success,
+                                    # so the firing evidence is its hook_success command record
+                                    # (proof-of-execution channel); unique to the guard leg and
+                                    # immune to git-status filename echo (`check_floor_hash.py`
+                                    # in a status listing false-fired the old signature).
     artifacts:
       - wiring: ".claude/settings.json SessionStart hook -> python .claude/check_floor_hash.py --require-present"
     roster:

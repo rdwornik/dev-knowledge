@@ -154,6 +154,12 @@ def consumer_shape(clone: Path, *, repo_root: Path | None = None) -> list[str]:
         pr = pre.prune(ruff)
         changes.extend(pr.removed)
         changes.extend(f"REFUSED: {x}" for x in pr.refused)
+    # Step-7 finding: the hub carries ruff as a hook INSIDE `repo: local` (language: system),
+    # which the repo-entry prune classifies "already absent" and leaves RUNNING — the pruned
+    # consumer target has no ruff in ANY form, so consumer-shaping drops the local hook too
+    # (genuine prune-conformance for the tombstone).
+    if disable_precommit_hook(clone, "ruff"):
+        changes.append("removed hub-local ruff hook (consumer shape)")
     changes.extend(pre.apply(_carrier_target(spec, "precommit")).changes)
     changes.extend(FloorCarrier(clone).apply(_carrier_target(spec, "floor")).changes)
     changes.extend(MeshCarrier(clone).apply(_carrier_target(spec, "enforcement-mesh")).changes)

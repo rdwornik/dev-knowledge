@@ -112,6 +112,12 @@ def hook_stdout_surface(events: list[dict]) -> str:
                 v = att.get(k)
                 if isinstance(v, str):
                     parts.append(v)
+            # hook_success ONLY: the command line is proof-of-execution for a hook that is
+            # silent on success (the floor guard) — the record exists only because the hook
+            # RAN to exit 0. Never for hook_cancelled/other (a cancelled hook echoes its
+            # command without having run).
+            if att.get("type") == "hook_success" and isinstance(att.get("command"), str):
+                parts.append(att["command"])
     return "\n".join(parts)
 
 
