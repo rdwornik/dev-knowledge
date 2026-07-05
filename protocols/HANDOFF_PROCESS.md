@@ -1,7 +1,7 @@
 # HANDOFF_PROCESS v5
 <!-- scope: meta -->
 
-Version: 5.3
+Version: 5.4
 Status: stable
 Effective: 2026-06-11 (canonical)
 Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149)
@@ -128,6 +128,23 @@ handoff and attempt to answer each probe **from the compaction summary alone** �
 **must fail** to be bluffed. A probe answerable from the summary is removed or hardened. The
 flip gate tests that the teeth force a primary-source read, not merely that the spec reads
 well (§11).
+
+### Structural enforcement — anti-bluff by construction (v5.4; RF-1 option b)
+
+Item 2's "never the answer" contract is **machine-held, not hand-discipline** (landed
+`9d5ebe5`, 2026-07-04, after the 06-20..07-03 `expected:`-hint erosion showed hand-copy
+alone regresses):
+
+- **Answer-hint FAIL rung** — `scripts/verify_handoff_probes.py` FAILs any probe **row**
+  carrying an `expected[ :]`-form answer hint (row-scoped, so historical bundles stay judged
+  by their own era; the deployed `handoff_probes` check reads the latest bundle and gates
+  `/ship`).
+- **Answer-free by construction** — `scripts/gen_handoff.py` never hands the render
+  functions the generation-time hint VALUES (HEAD / check counts / ship-gate verdict /
+  backlog counts); those are diverted to a **stdout JOURNAL-draft** for the wrap entry —
+  never into a browser-visible bundle file, never auto-appended.
+- The empirical dogfood above therefore re-runs **structurally on every bundle** via the
+  gate, not once at promotion.
 
 ---
 
@@ -407,6 +424,17 @@ then consumed (its ANSWERS folded) by the next session, exactly like
 hand-maintained-surface disease (§12). And it is a **forward** brief (outgoing architect → next
 session via `PASTE_THIS`), distinct from the return channel above — it adds **no** return-leg.
 
+**Generator note (v5.4).** The bundle lifecycle above is emitted by `scripts/gen_handoff.py`
+(#164 RF-2 slice, `9d5ebe5`): `HANDOFF_BOOT.md`/`RESIDUAL.md` are **state-filled scaffolds**
+whose FILL-IN narrative survives a `--filled` re-render byte-for-byte; `PROBES.md` renders from
+the answer-free probe-core template (`templates/handoff/v5/PROBES.md.tmpl` — the §5 structural
+contract); `SUPPLEMENT.md` is written unconditionally in architect mode (the v5.2 flow above,
+unchanged); and `scripts/assemble_paste.py` warns past a paste size budget (the re-narration
+creep counterweight). The cold→FILLED flip is mechanized via the assembler's shared fill-state —
+the §13(d) beat fires FULL exactly when ANSWERS is empty. Adoption note: the generator exists
+and is dogfooded against a stub repo; live bundles MAY still be hand-authored until #164's
+adoption slice closes (hand-authored bundles remain bound by the same §5 gate).
+
 **The carrier is the file itself.** The interview **answers ARE the artifact** — carried verbatim
 and advisory; the file exists from generation as the durable workspace + tracking record.
 
@@ -590,3 +618,20 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
   restamped (the re-read filed #204 — a stale CONTRIBUTING nightly-outcome section). Major stays 5
   (`CLAUDE.md` / `.claude/commands/handoff.md` unchanged). Executes the deferred "Arc 2 = 5.3 bump +
   full reconciliation" (afb7421). Refs #161, #204.
+- v5.4 (2026-07-05, §5 structural anti-bluff + §13 generator note) — **Version → 5.4** (fourth
+  minor bump; additive only — no rule removed or weakened). §5 gains "Structural enforcement —
+  anti-bluff by construction": the item-2 "never the answer" contract is now machine-held
+  (row-scoped `expected[ :]` FAIL rung in `verify_handoff_probes.py`; `gen_handoff.py` renders
+  bundles answer-free by construction, diverting generation-time values to a stdout
+  JOURNAL-draft; the promotion dogfood re-runs structurally per-bundle via the gate). §13 gains
+  the generator note (#164 RF-2 slice: scaffold fill-preservation, answer-free probe template,
+  unconditional SUPPLEMENT, paste size-warn, mechanized cold→FILLED flip) with the honest
+  adoption caveat (live bundles MAY still be hand-authored until #164's adoption slice closes).
+  Documents the RF-1 option-b mechanism landed `9d5ebe5` (2026-07-04) — the spec catches up to
+  shipped structure, deferred at that merge to fold into this reconciliation arc. **Coupled
+  atomic move (this arc):** `CONTRIBUTING.md` stamp v5.3→v5.4, the 5 `reconciled_with` edges
+  (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/handoffs/README.md`,
+  `protocols/HANDOFF_BOOT.md`) @5.3→@5.4 (each site-enumerated + verdicted per
+  `check-against-spec`), freshness-gated dependents genuinely re-read + restamped, and the 3
+  PLAYBOOK advisory version strings refreshed. Major stays 5. Refs #164, RF-1 (2026-07-04
+  handoff-adoption review), 2026-07-05 overnight run Block D.
