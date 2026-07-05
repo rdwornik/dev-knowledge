@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-05 — CC (Fable, EPIC lane llm-first-docs): boot + probes green, S2 gate-collision escalation persisted, lane STOPPED ([#259])
+
+**Did:** Epic lane booted per `EPIC_BOOT.md` (worktree `epic-llm-first-docs`, branch `epic/llm-first-docs`); probes E1–E5 all PASS (E4 with the known worktree-dirname `deployed_methodology_version` WARN — environmental, recorded, not dispositioned). Recon before S1 surfaced a **boundary collision**: S2's done-when (hub ARCHITECTURE.md renders zero Mermaid) cannot commit through the armed gates — the out-of-boundary `codemap-freshness` pre-commit hook fires on any ARCHITECTURE.md change and `scripts/codemap/check.py` hard-fails both S2 shapes (text-in-markers → drift exit 1; markers removed → exit 3). Per the boundary contract: STOP, escalate — no story work attempted (S1/S3 must cohere with the ruling; amendments are immutable once landed). On root order, the full escalation (colliding organ, verified exit paths, proposed minimal grant, deferred consumer surfaces) was persisted verbatim into `EPIC_RETURN.md` §3 as ARCHITECT-REVIEW-PENDING (`f222941`).
+
+**Result:** Lane STOPPED awaiting root's ruling on the S2 grant extension; zero story commits; escalation durable in the bundle.
+
+**Changes:** `f222941` (EPIC_RETURN.md §3 escalation), this entry. E3 post-commit: diff touches only the lane's own bundle + JOURNAL.
+
+**Abandoned:** nothing — S1–S4 untouched by design pending the ruling.
+
+**Next:** root rules on the proposed grant (`.pre-commit-config.yaml` codemap-freshness retire + CLAUDE.md §4/§9 reconciliation, or reshape S2) → lane resumes S1→S4 commit-per-story.
+
+---
+
 ### 2026-07-05 — CC (Fable, ROOT lane, cont.): grant executed + session cleanup + Wave-2 prep ([#258]/[#259]/[#260])
 
 **Did:** Root's STOP-2 reply executed. (1) **Grant:** CLAUDE.md §12 condensed v2.18–v2.24 → one summary block (ADR-49/65, operator-granted; v2.25–v2.29 verbatim; 191 lines, 6 entries) — **ship-gate GREEN** (merge `126786a`). (2) **Cleanup:** process inventory (8 claude-related) — my session trio identified; the 2:21 AM overnight session is ATTACHED to a live VS Code terminal (Code.exe 02:19) → left, listed for operator; the one clearly-stale orphan (24h `rg`, parent dead) exited before termination; epic-slice-b-close dir lock released after the operator closed the epic terminal → removed + pruned, `.claude/worktrees/` empty, worktree list = primary only; zero branch-config/ref/worktree-metadata residue for the deleted branches. (3) **Wave-2 prep (Part C):** three epic blocks filed [#258] doc-consolidation + [#259] llm-first-docs + [#260] test-tiering (executes #256+#257) — validate_backlog OK (26 stories / 114 tasks; serialize-groups registered: playbook+claude-md / architecture+audit-py / pre-commit-config); three `gen_handoff --mode epic` bundles generated (FIRST REAL DOGFOOD) with root-authored FILL-INs (scope / done-contract / FILE-BOUNDARY / escalation; shared Wave-2 rules baked in). Dogfood findings: default slug collides across same-day epics (`--slug` override required — wrongly-slugged first bundle removed); re-render preserves filled FILL-IN regions byte-for-byte (0-diff verified). No worktrees provisioned, no lanes launched.
