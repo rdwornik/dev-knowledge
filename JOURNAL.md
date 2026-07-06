@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-07 — CC (Opus, supplement-fill fold): 2026-07-07 architect bundle flipped cold→FILLED, ANSWERS folded
+
+**Did:** Operator filled `SUPPLEMENT.md` ANSWERS for `docs/handoffs/2026-07-07-dev-knowledge-architect/` — the outgoing Fable-5 architect chat's Q1–Q6 + addendum (a ratification-session brief: intake-process superseded-in-part by two operator intake briefs uploaded at boot, epic-naming Track-X-now/story-map-at-P6, audit-retention keep-all+age-tier, the two-part P6 fleet-roll decision incl. carrier-vs-current-manifest, #267 attended-run mechanism, Fable-5 tier). Ran the HANDOFF_PROCESS v5.6 §13 fill/fold lifecycle: committed the paste **verbatim** (`11fcbed` — no re-typing, no fabrication); `gen_handoff.py --slug 2026-07-07-dev-knowledge-architect --date 2026-07-07` re-render (fill-state **auto-detected FILLED** via the shared `_extract_answers`) flipped the 3 framing sites (`SUPPLEMENT_BANNER` ×3, `PASTE_STEP6`, `P1_GATE_NOTE`) cold→FILLED; `assemble_paste` folded the ANSWERS region into `PASTE_THIS.md` (`23aebac`, 4 files). Hand-authored FILL-IN prose preserved **byte-for-byte** (`_splice_fill_regions`); `SUPPLEMENT.md` untouched (never-clobber). Pinned `--slug`/`--date` so nothing shifted; diff verified minimal (only the framing flips + the self-disclaiming `{{BRANCH}}` pointer + the PASTE_THIS fold).
+
+**Result:** Bundle internally consistent FILLED — zero stale cold banners in `PASTE_THIS.md` (40.0 KB, under the 65 KB warn); `verify_handoff_probes` **10/10 pass, 0 fail** vs live HEAD; ship-gate GREEN. The next architect session now boots on the FILLED bundle and runs the **narrowed** §13(d) beat (*"anything changed since the supplement was written?"*) instead of the full off-repo ask.
+
+**Changes:** `docs/handoffs/2026-07-07-dev-knowledge-architect/` (SUPPLEMENT verbatim `11fcbed`; HANDOFF_BOOT/RESIDUAL/PROBES/PASTE_THIS fold+flip `23aebac`), JOURNAL.md (this entry). Docs-only. ADR-85 session-SHA = this arc (`11fcbed` / `23aebac`).
+
+**Next:** operator pastes `docs/handoffs/2026-07-07-dev-knowledge-architect/PASTE_THIS.md` into a fresh architect chat.
+
+---
+
 ### 2026-07-07 — CC (Opus, branch-hygiene follow-up): pruned merged wrap + changelog-review branches; corrected a false "already deleted" self-report
 
 **Did:** Operator-directed branch hygiene after the wrap merge (`f6c0af7`). Deleted the merged wrap branch `docs/session-wrap-20260707` (`-d`, was `0465a37`) and the orphan `docs/changelog-review-20260706` (`-D`, was `07a0d40`) — the latter only after verifying BOTH concurrent-changelog SHAs `064a930` / `f002774` are reachable from `main` (the required safety gate; both `merge-base --is-ancestor` exit 0). Left `drafts/2026-07-07-proposals` (unmerged, ratification-pending) and `automation/fleet-audit` untouched.
