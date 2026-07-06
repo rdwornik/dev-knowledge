@@ -17,14 +17,20 @@
 # fires for claude-code (gap) and is silent for codex (current).
 tools:
   claude-code:
-    last_reviewed_version: "2.1.177"
-    reviewed_date: "2026-06-15"
+    # 2.1.178–2.1.201 reviewed 2026-07-06 (digest:
+    # docs/audits/2026-07-06-changelog-review.md); installed 2.1.200. Bumped to the
+    # latest CHANGELOG header reviewed (2.1.201), one ahead of installed. 2 ADOPT
+    # (Sonnet-5 pin refresh, cloud-night auto-mode nets) flagged to the architect; the
+    # rest NOISE. 1 VERIFY open: is claude-sonnet-4-6 deprecated (agent/workflow pins).
+    last_reviewed_version: "2.1.201"
+    reviewed_date: "2026-07-06"
     source_url: "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md"
   codex:
-    # 0.139.0 reviewed 2026-06-15 (digest: docs/audits/2026-06-15-changelog-review.md);
-    # installed is still 0.136.0 — reviewed AHEAD of installed is intended (keeps the
-    # sentinel quiet until a still-newer version installs). 0.138.0+0.139.0 reviewed
-    # 2026-06-15; all NOISE for our /codex-review-only usage.
-    last_reviewed_version: "0.139.0"
-    reviewed_date: "2026-06-15"
+    # 0.140.0–0.142.5 (8 stable) reviewed 2026-07-06 (digest:
+    # docs/audits/2026-07-06-changelog-review.md); installed is still 0.136.0 —
+    # reviewed AHEAD of installed is intended (keeps the sentinel quiet until a
+    # still-newer version installs). All NOISE for our /codex-review-only usage
+    # (one auto-fixed review-path crash noted, 0.140.0 #22879). Alphas skipped.
+    last_reviewed_version: "0.142.5"
+    reviewed_date: "2026-07-06"
     source_url: "https://github.com/openai/codex/releases"
