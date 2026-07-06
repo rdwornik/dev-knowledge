@@ -62,6 +62,18 @@ repos:
         language: system
         files: '(^deploy/manifest-v.*\.yaml$|^\.claude/methodology-roster\.md$)'
         pass_filenames: false
+      - id: claude-rosters-freshness
+        name: CLAUDE.md generated-fragment freshness check ([#258] phase-2)
+        # Fail-on-stale regen-and-diff, mirroring roster-freshness: regenerate with
+        # `python scripts/gen_claude_rosters.py --write`. Guards the two @-imported
+        # CLAUDE.md fragments (.claude/generated/{commands-repo,recent-adrs}.md) —
+        # [#258] phase-1 generated them but left them ungated, so a new command file
+        # or ADR (or a hand-edit) could drift the fragment silently. Fires on BOTH the
+        # disk sources AND the targets, so either drift direction is caught. HUB-ONLY.
+        entry: python scripts/gen_claude_rosters.py --check
+        language: system
+        files: '(^\.claude/commands/.*\.md$|^docs/decisions/ADR-.*\.md$|^\.claude/generated/(commands-repo|recent-adrs)\.md$)'
+        pass_filenames: false
       - id: validate-backlog
         name: Validate BACKLOG.md story-map (ADR-66)
         entry: python scripts/validate_backlog.py

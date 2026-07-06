@@ -103,6 +103,7 @@ Pre-commit hooks (`.pre-commit-config.yaml`):
 | `toc-freshness` | commit | Fail-on-stale check that ARCHITECTURE.md's TOC matches its headers. Regenerate: `python -m scripts.toc.cli generate ARCHITECTURE.md --write`. |
 | `toc-freshness-playbook` | commit | Same check for `protocols/PLAYBOOK.md`'s TOC. Regenerate: `python -m scripts.toc.cli generate protocols/PLAYBOOK.md --write`. |
 | `roster-freshness` | commit | Regen-and-diff gate for `.claude/methodology-roster.md` vs `deploy/manifest-v*.yaml` (`gen_methodology_roster.py --check`); blocks a hand-edited or manifest-stale roster. Hub-only ([#244] P3). |
+| `claude-rosters-freshness` | commit | Regen-and-diff gate for the two `@`-imported CLAUDE.md fragments `.claude/generated/{commands-repo,recent-adrs}.md` (`gen_claude_rosters.py --check`); fires on the command files / ADR headers / the fragments. Hub-only ([#258] phase-2). |
 | `validate-backlog` | commit | Validates the BACKLOG.md story-map structure (ADR-66). |
 | `audit-health` | commit | Runs `audit.py health` (the self-conformance checks incl. canonical-file freshness). **FAIL-level findings block the commit; WARN-level only inform.** ~1.4s. Bypass: `--no-verify`. |
 | `ruff` | commit | Lint gate — `ruff check` (version-pinned >=0.15.5, `language: system`). Blocks on violations. [#13] closed. |
