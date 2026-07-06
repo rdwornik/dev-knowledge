@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-06-24
+> Last updated: 2026-07-06
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -2285,11 +2285,13 @@ Source: research note `docs/archive/2026-06-03-dynamic-workflows-research-note.m
 
 ### Model / effort platform doctrine (Claude Code 2.1.x)
 <!-- scope: hybrid -->
-<!-- last-verified: 2026-06-23 -->
+<!-- last-verified: 2026-07-06 -->
 
-Platform-current facts that pin the tables above (Claude Code 2.1.186; refreshed for #84 from `docs/audits/2026-06-07-platform-max-audit.md`). The pins below are dated by the `last-verified` stamp — re-ground them against `claude --version` and the live tool schemas before trusting:
+Platform-current facts that pin the tables above (Claude Code 2.1.202; refreshed for #84 from `docs/audits/2026-06-07-platform-max-audit.md`; Sonnet-5/XL refresh 2026-07-06, Arc 5 — `docs/audits/2026-07-06-changelog-review.md` A1 + ADR-70 amendment 2026-07-07). The pins below are dated by the `last-verified` stamp — re-ground them against `claude --version` and the live tool schemas before trusting:
 
 - **Opus 4.8 is the default model and defaults to `high` effort.** Don't treat "use Opus" as exceptional for judgment work — it's the floor. Reserve the explicit Effort knob mainly for moving *off* `high`.
+- **The Sonnet/M tier is Sonnet 5 (`claude-sonnet-5`).** The CC platform default since 2.1.197 (native 1M-token context); verified live on our install 2026-07-06 (accepted, no deprecation warn — the prior `claude-sonnet-4-6` is still active, so the A1 pin refresh was discretionary, ratified GO). Every "Sonnet" row in the tables above means Sonnet 5; the t-shirt size pins themselves are unchanged (S=Haiku / M=Sonnet / L,judgment=Opus).
+- **XL = Claude Fable 5, browser-architect layer ONLY (ADR-70 amendment 2026-07-07).** Adjudication, multi-document synthesis, and ratification sessions at the browser layer route XL. It is **not a fourth CC-side fan-out size** — the S/M/L fan-out pins stay untouched (amendment Decision 2). Conditional on current pricing/availability; coarse availability fallback = Opus. Anti-conflation (mandatory, amendment Decision 4): that Opus fallback is an interactive browser-layer availability fallback, **not** a `fallbackModel` on a pinned stage — the ADR-80 §5 pinned-stage `fallbackModel` ban is untouched.
 - **Implementation waves run on Opus, not Sonnet.** A wave that wires multiple items across hooks / platform config (commit-msg hooks, pre-commit `language` modes, git pathspec behavior on Windows) carries real debugging risk: the failure modes are platform-specific and *silent*. Witnessed 2026-06-07 (wave-A closeout) — the `backlog-id-on-close` `pass_filenames` gate-bypass, the `language:python` flat-layout `pip install .` trap, and the Windows glob-pathspec miss each surfaced only under careful multi-step debugging. Tier these as Opus from the start; Sonnet under-resolves the multi-layer interactions. (Gotchas captured under "Pre-commit hook authoring" + "Git".)
 - **`xhigh`** is for the hardest *single-session* synthesis — clause-level architecture, end-to-end verification, this-codification class. It burns more tokens than `high`; use it deliberately, not by default. **`max`** is the rung above it (top of the live `low / medium / high / xhigh / max` ladder) — reserve for cases even `xhigh` under-resolves.
 - **Fast mode** (`/fast`) trades token cost for output speed on Opus 4.8/4.7/4.6 — same model, faster output (it does *not* downgrade to a smaller model). Use it for latency-sensitive interactive work; skip it for routine/unattended work where speed buys nothing. *(The historical ≈2× cost / ≈2.5× speed multipliers are unverified — pending re-check for Opus 4.8; do not treat as a current pin.)*
