@@ -46,6 +46,7 @@ from typing import Any
 import click
 import yaml
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 # This module lives in deploy/ beside the carriers + contract, which import each
@@ -1155,9 +1156,15 @@ def render_execute(result: ExecuteResult, console: Console | None = None) -> Non
         if pruned_ok:
             console.print("\n[bold]Tombstone record(s)[/] (append to the audit trail):")
             for po in pruned_ok:
+                # #247: escape the interpolated data — a reason carrying a bracketed backlog
+                # id (e.g. "[#244]") is read by Rich as a markup tag and DROPPED from the
+                # printed record, which is the copy-source for the JOURNAL tombstone; a
+                # vanished [#id] there trips backlog-id-on-close / git_backlog_drift at fleet
+                # scale. escape() keeps the brackets literal.
                 console.print(
-                    f"  [dim]tombstone[/] {po.component_id} | removed_in {po.removed_in} | "
-                    f"carrier {po.carrier_id} | reason: {po.reason}"
+                    f"  [dim]tombstone[/] {escape(po.component_id)} | "
+                    f"removed_in {escape(po.removed_in)} | "
+                    f"carrier {escape(po.carrier_id)} | reason: {escape(po.reason)}"
                 )
 
     if result.aborted:

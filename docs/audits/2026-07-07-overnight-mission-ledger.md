@@ -272,7 +272,23 @@ fixtures) would have to become **scope-AWARE**, and #267 leaves the mechanism un
 Full analysis + the 3 design options + the discovered scopes: `docs/audits/2026-07-07-ai-council-measurement-4.md`.
 **#267 stays OPEN** (conjunct b done, conjunct a deferred to an attended run). ai-council HEAD
 untouched (probe clone only, auto-cleaned) — Wave-3 invariant held. Evidence SHAs: *(at merge)*.
-### BLOCK 6 — optional residuals — *(pending; #246 pre-declared SKIP per CH-8)*
+### BLOCK 6 — optional residuals — **#233 + #247 CLOSED; #245 + #246 SKIPPED**
+
+- **#233 CLOSED** — pid-scoped the `test_no_temp_index_leftovers` assertion: the record writer
+  already names its temp index `deploy-record-index-<pid>-…` (tool.py:796), so the test now
+  filters the tempdir set-diff to `deploy-record-index-{os.getpid()}-` → concurrency-robust (a
+  concurrent pytest / xdist worker has a different pid; the 2026-07-01 false-fail can't recur).
+- **#247 CLOSED** — `rich.markup.escape()` on the tombstone-print interpolated fields
+  (`deploy/tool.py` render_execute) so a reason carrying `[#244]` survives the Rich render
+  verbatim (Rich was reading it as a markup tag and dropping it → the JOURNAL copy-source lost
+  the `[#id]`, tripping `backlog-id-on-close`/`git_backlog_drift` at fleet scale). Test:
+  `test_tombstone_reason_preserves_bracketed_id_247` (Console record → `[#244]` present).
+- **#245 SKIPPED** — M-sized (add-path `status: removed` awareness + last-deployed-bytes oracle);
+  deliberately not opened at mission end to wrap cleanly rather than start a bigger item. Stays
+  OPEN, decision-free Done-when intact for a future session.
+- **#246 SKIPPED** per CH-8 — its Done-when carries "(if still desired)" (a live decision) AND
+  pruning `hub-toc-hooks` writes to a consumer (ADR-41). Both disqualify it overnight. Stays OPEN.
+Evidence SHAs: *(at merge)*.
 
 ---
 

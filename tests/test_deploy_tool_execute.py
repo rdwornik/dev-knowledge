@@ -428,7 +428,12 @@ def test_no_temp_index_leftovers(world):
     c1 = FakeExecCarrier("precommit", CarrierState.ABSENT, write_rel=".pre-commit-config.yaml")
     _run(world, factory_of(c1), manifest_of("precommit"))
     after = set(os.listdir(tempfile.gettempdir()))
-    assert not any(p.startswith("deploy-record-index-") for p in after - before)
+    # #233: assert ONLY this run's temp artifacts — the record writer names its index
+    # `deploy-record-index-<pid>-...` (tool.py), so pid-scoping the check makes it
+    # concurrency-robust: a CONCURRENT pytest process/xdist worker has a different pid, so
+    # its leftover files no longer trip this set-diff (the witnessed 2026-07-01 false-fail).
+    own = f"deploy-record-index-{os.getpid()}-"
+    assert not any(p.startswith(own) for p in after - before)
 
 
 def test_record_blob_is_lf_and_utf8_faithful(world):
@@ -475,3 +480,24 @@ def test_malformed_base_registry_raises_loudly_not_silent(world):
         _run(world, factory_of(c1), manifest_of("precommit"))
     # loud fail = NO record branch written (no silent partial / no U+FFFD blob)
     assert world["git"](world["hub"], "branch", "--list", "deploy/record-*") == ""
+
+
+def test_tombstone_reason_preserves_bracketed_id_247():
+    # #247: a tombstone reason carrying a bracketed backlog id must survive the Rich render
+    # verbatim (Rich reads `[#244]` as a markup tag and DROPS it without escape()). The
+    # printed record is the copy-source for the JOURNAL tombstone; a vanished [#id] there
+    # trips backlog-id-on-close / git_backlog_drift at fleet scale.
+    from rich.console import Console
+
+    po = tool.PruneExecOutcome(
+        component_id="ruff-gate", carrier_id="precommit", removed_in="1.2.0",
+        reason="P2/[#244] n=1 prune truth-maker", state=None, pruned=True, verify_ok=True)
+    result = tool.ExecuteResult(
+        repo="ai-council", version="1.2.0", source_tag="v1.2.0", outcomes=(),
+        aborted=False, failed_carrier=None, record_branch=None, staged_paths=(),
+        prune_outcomes=(po,))
+    console = Console(record=True, width=200, force_terminal=False)
+    tool.render_execute(result, console)
+    text = _strip_ansi(console.export_text())
+    assert "[#244]" in text  # the bracketed id survives verbatim (the escape() fix)
+    assert "reason: P2/[#244] n=1 prune truth-maker" in text
