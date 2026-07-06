@@ -1,13 +1,13 @@
 ---
-last_reviewed: 2026-07-05
-reconciled_with: handoff-process@5.5
+last_reviewed: 2026-07-06
+reconciled_with: handoff-process@5.6
 status: active
 owner: Rob
 ---
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.27 — 2026-07-04 -->
+<!-- version: 2.31 — 2026-07-06 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -181,8 +181,9 @@ Machine-enumerated (last 5 by number, from `docs/decisions/ADR-*.md` headers; re
 - v2.28 (2026-07-05) — handoff-process 5.3→5.4 reconciliation (overnight-run Block D): frontmatter `reconciled_with` re-stamped @5.4 after site-enumeration (the §1/§7 handoff references are major-level and unaffected — the v5.4 change is additive-only: §5 structural anti-bluff + §13 generator note, documenting the `9d5ebe5` mechanism). Genuine end-to-end review basis: full-file read at session boot + §7/§8/§9 claims exercised live through the night's work; `last_reviewed` re-stamped 2026-07-05.
 - v2.29 (2026-07-05) — handoff-process 5.4→5.5 reconciliation completed at Wave-1 root integration: the frontmatter `reconciled_with` @5.5 re-stamp itself landed IN-GRANT on the Epic 2 branch (`489c51f`, the 5-edge atomic move — its compressed check-against-spec sweep verdicted all 49 CLAUDE.md sites: only L3 stale; §1/§7 v5 refs major-level fine, §12 historical entries fine); this §12 entry is the recorded ARCHITECT-REVIEW-PENDING content edit **beyond that grant**, applied by root at integration per ADR-97 (v2.28-precedent style). Companion §11 "last 5" rotated **91–95 → 93–97** after genuine reads of ADR-96 (deploy remove leg) + ADR-97 (tree orchestration — the v5.5 decision record); dropped 91/92 (retained in `docs/decisions/README.md` + ARCHITECTURE Governing-ADRs). Genuine end-to-end re-read basis: full-file read at root-lane boot + §5/§7/§9 claims exercised live through the three Wave-1 merges (JOURNAL prepend-resolution, /override gate, pre-commit roster); `last_reviewed` 2026-07-05 stands (same-day arc rule).
 - v2.30 (2026-07-05) — [#258] S3 generability phase 1 (Epic-3 lane, seam grant): the two hand-synced lists become generated-not-authored via the [#244] `@`-import seam — §7's repo-level command list (from `.claude/commands/*.md` frontmatter → `.claude/generated/commands-repo.md`) and §11's last-5 ADR list (from `docs/decisions/ADR-*.md` headers → `.claude/generated/recent-adrs.md`), both rendered by the new disk-truth generator `scripts/gen_claude_rosters.py` (kept separate from the manifest-driven roster generator — different sources of truth). §11's curated one-liners retire from this surface (the mechanical list replaces them; editorial depth stays in `docs/decisions/README.md` + the ADRs — ends the hand-rotation toil of v2.21/v2.25/v2.26/v2.29). §9's pre-commit list is deliberately NOT generated (the `doc_claims` check window-anchors it in this file's raw text; retiring that leg needs its own arc per the Tier-3 draft) and §8 skills stay hand-prose. Regen-and-diff pre-commit hooks for the new fragments are proposed in the EPIC RETURN (out of lane boundary). Fragments OUT of `DEFAULT_FRESHNESS_FILES`; CLAUDE.md stays in. Genuine same-day arc basis: full-file read at lane boot; `last_reviewed` 2026-07-05 stands.
+- v2.31 (2026-07-06) — handoff-process 5.5→5.6 reconciliation (overnight-mission Block 0b, architect-approved CH-1): frontmatter `reconciled_with` re-stamped @5.6 after the check-against-spec sweep (41 sites enumerated; only the frontmatter stamp stale — the v5.6 change is additive §14a-only: the mandatory execution-MODE item, the plan-mode corrective). Also fixed the stale L10 version comment (**2.27** while v2.30 had landed → **2.31**, the v2.25-precedent defect class). Genuine end-to-end review basis: full-file read at mission boot (system-context copy verified against disk); `last_reviewed` re-stamped 2026-07-06.
 
 ---
 
-**Last updated:** 2026-07-05
+**Last updated:** 2026-07-06
 **Maintained by:** Rob

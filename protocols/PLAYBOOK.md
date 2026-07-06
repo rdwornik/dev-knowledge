@@ -624,7 +624,7 @@ Template: `templates/prompt-template.md`
 
 - **Scale S** (single file, <50 lines change): use minimal version — Title + Steps + What NOT to do. Skip UNDERSTAND if change is mechanical.
 - **Scale M** (multi-file): full template, but UNDERSTAND can be 1-2 sentences.
-- **Scale L** (3+ files, architectural): full template required, prefer `plan-then-auto` mode for review checkpoint after Step 1.
+- **Scale L** (3+ files, architectural): full template required, prefer `plan-then-auto` mode for review checkpoint after Step 1. **L-sized epic stories default plan-first** (full plan mode, reviewed before execution), and **every architect prompt re-declares MODE** — a lane/session inherits no mode from a prior prompt (HANDOFF_PROCESS §14a item 7; the 2026-07-06 plan-gate corrective).
 
 ### Delivery format
 <!-- scope: meta -->
@@ -1446,6 +1446,11 @@ chronologically, both kept (the trivial-conflict rule above).
 **The cap: 2–3 concurrent epic lanes.** The root's review + serial-merge bandwidth is the
 deliberate bottleneck — more lanes queue at the gate, they don't add throughput. Authority does
 not descend; every lane boots from a generated §14a handoff and closes with a §14b return.
+
+**Execution MODE is part of the contract (v5.6).** Every §14a handoff — and every subsequent
+architect prompt into a lane — declares the execution mode (plan / plan-then-auto /
+auto-accept) with its basis; **L-sized epic stories default plan-first** (HANDOFF_PROCESS §14a
+item 7; the 2026-07-06 plan-gate corrective — a lane inherits no mode from a prior prompt).
 <!-- scope: meta -->
 
 **Invariant.** Any automated or scratch-creating process — a parallel-session worktree (above),

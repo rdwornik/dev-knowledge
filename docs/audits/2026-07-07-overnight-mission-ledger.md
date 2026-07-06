@@ -69,7 +69,7 @@ probes 10/10   JOURNAL.md:36 "verify_handoff_probes 10/10, audit health OK"
 
 ## SELF-ADJUDICATION LOG (ARCHITECT-REVIEW-PENDING)
 
-### BLOCK 0 — fidelity + evidence + corrective — *in progress*
+### BLOCK 0 — fidelity + evidence + corrective — **CLOSED**
 
 **0a (`docs/block0-evidence`):** ledger created (this file, seeded with the Phase-P record) ·
 LESSONS entry: RF-1 bluff-dogfood PASS (the 2026-07-06 architect bundle withheld every probe
@@ -80,9 +80,21 @@ that carry it are immutable, so this ledger + LESSONS + JOURNAL are the closure 
 **#159 CLOSED** on the adjudicated evidence: the §13(d) beat fired in the 2026-07-06 architect
 session against the FILLED supplement and received the operator's answer (intent change → this
 overnight one-shot); supersedes the f913266 honest-correction (its "NEXT architect session"
-has now run the narrowed beat). Evidence SHAs: *(filled at merge)*.
+has now run the narrowed beat). Evidence SHAs: leaf `94cea11`, merge `13b6df0`; full suite
+1328 passed / 2 skipped, ruff clean, ship-gate GREEN pre-merge.
 
-**0b (`docs/block0-mode-corrective`):** *(pending)*
+**0b (`docs/block0-mode-corrective`):** CH-1 landed full (a)+(b)+(c) in ONE atomic commit
+(the v5.4→5.5 5-edge precedent): HANDOFF_PROCESS **5.5→5.6** (§14a gains item 7 — mandatory
+execution-MODE declaration; Section-history v5.6 entry) · `EPIC_BOOT.md.tmpl` gains the
+Execution-mode header row + root-authored `FILL-IN:exec-mode` region (generic FILL-IN splice,
+no generator change) · PLAYBOOK rule at Ch4 Per-Scale L + Ch8 tree-orchestration ("L-sized
+epic stories default plan-first; every architect prompt re-declares MODE") · the 5
+`reconciled_with` edges @5.5→@5.6 with compressed check-against-spec sweeps (203 sites total:
+ARCHITECTURE 72, CLAUDE 41, CONTRIBUTING 23, HANDOFF_BOOT 20, handoffs-README 47 — stale only:
+the 5 frontmatter stamps + CONTRIBUTING §Handoff-process version clause; all else
+fine/not-relevant, change additive §14a-only) · freshness-gated dependents genuinely re-read
+end-to-end this session + `last_reviewed` re-stamped · CLAUDE.md §12 v2.31 entry + stale
+version-comment fix (2.27→2.31). Evidence SHAs: *(filled at merge)*.
 
 ### BLOCK 1 — P6 gate-closure — *(pending)*
 ### BLOCK 2 — #238 doctrine + Stage-3 memo — *(pending)*

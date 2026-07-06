@@ -1,7 +1,7 @@
 # HANDOFF_PROCESS v5
 <!-- scope: meta -->
 
-Version: 5.5
+Version: 5.6
 Status: stable
 Effective: 2026-06-11 (canonical)
 Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149)
@@ -500,6 +500,11 @@ A scope-contract, generated per epic at lane spawn. Carries:
    judgment.
 6. **Refusals** — no merge to main, no ADRs, no backlog structure, no worktree lifecycle ops,
    no new top-level folders, no content deletion without operator ask.
+7. **Execution MODE** — the lane's execution mode, declared ex-ante by the root
+   (plan / plan-then-auto / auto-accept) with its basis. **L-sized epic stories default
+   plan-first**, and **every architect prompt into the lane re-declares MODE** — a lane
+   inherits no mode from a prior prompt. (v5.6 corrective, origin the 2026-07-06 mission
+   plan gate; mode criteria live in PLAYBOOK Ch4 "How to choose Mode", not here.)
 
 ### §14b — EPIC RETURN handoff (epic chat → architect)
 
@@ -672,3 +677,19 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
   `check-against-spec`), version-string sites refreshed, freshness-gated dependents genuinely
   re-read + restamped. Major stays 5. Refs ADR-97, Epic 2 (tree-orchestration §14
   integration), 2026-07-04 lived precedent.
+- v5.6 (2026-07-06, §14a execution-MODE item — the plan-mode corrective) — **Version → 5.6**
+  (sixth minor bump; additive — §1–§13 and §14b untouched). **§14a gains item 7:** the EPIC
+  handoff carries a mandatory **execution-MODE declaration** (plan / plan-then-auto /
+  auto-accept, root-declared ex-ante with its basis); **L-sized epic stories default
+  plan-first**, and **every architect prompt into a lane re-declares MODE** (a lane inherits
+  no mode from a prior prompt). Template: `templates/handoff/epic/EPIC_BOOT.md.tmpl` gains the
+  Execution-mode header row + a root-authored `FILL-IN:exec-mode` region (the generic FILL-IN
+  splice carries it — no generator change). PLAYBOOK carries the operating rule (Ch4 Per-Scale
+  L + Ch8 tree-orchestration). Origin: the 2026-07-06 overnight-mission plan gate
+  (architect-approved corrective CH-1, full (a)+(b)+(c)). **Coupled atomic move (this
+  commit):** the 5 `reconciled_with` edges (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`,
+  `docs/handoffs/README.md`, `protocols/HANDOFF_BOOT.md`) @5.5→@5.6, each site-enumerated +
+  verdicted per `check-against-spec` (compressed sweep — the change is additive §14a-only:
+  only the frontmatter stamps + CONTRIBUTING's §Handoff-process version clause stale; every
+  other site fine/not-relevant); freshness-gated dependents genuinely re-read + restamped.
+  Major stays 5.

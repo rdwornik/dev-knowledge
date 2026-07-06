@@ -21,6 +21,7 @@
 | **Repo** | {{REPO}} |
 | **Date** | {{DATE}} |
 | **Epic branch** | `{{EPIC_BRANCH}}` (root-provisioned; bundle generated on `{{BRANCH}}`) |
+| **Execution mode** | root-declared in §Execution MODE below (mandatory — §14a item 7) |
 
 ## Boot (epic lane)
 
@@ -57,6 +58,13 @@ _FILL-IN (root): epic-specific escalation triggers. Standing set (always): ADR-w
 boundary-breach need · cross-epic dependency discovered → STOP, return to the root.
 Everything intra-epic is the lane's own judgment._
 <!-- FILL-IN:escalation END -->
+
+## Execution MODE (mandatory, root-declared — §14a item 7)
+<!-- FILL-IN:exec-mode START — plan / plan-then-auto / auto-accept + its basis; L-sized stories default plan-first -->
+_FILL-IN (root): the execution mode — **plan / plan-then-auto / auto-accept** — and its basis.
+**L-sized epic stories default plan-first**; every architect prompt into this lane re-declares
+MODE (the lane inherits no mode from a prior prompt)._
+<!-- FILL-IN:exec-mode END -->
 
 ## Refusals (standing — not editable by the lane)
 
