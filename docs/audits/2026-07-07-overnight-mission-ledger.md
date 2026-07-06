@@ -96,7 +96,19 @@ fine/not-relevant, change additive §14a-only) · freshness-gated dependents gen
 end-to-end this session + `last_reviewed` re-stamped · CLAUDE.md §12 v2.31 entry + stale
 version-comment fix (2.27→2.31). Evidence SHAs: *(filled at merge)*.
 
-### BLOCK 1 — P6 gate-closure — *(pending)*
+### BLOCK 1 — P6 gate-closure — *in progress*
+
+**1.1 #225 (`fix/225-surgical-precommit-carrier`) — CLOSED on the Done-when.** The carrier's
+apply + prune legs now splice ONLY the methodology-owned lines on the raw config text (typed
+ops from `_reconcile` → `_surgical_edit`; spans exclude trailing comments so consumer prose
+above a neighbor entry never travels with a removal; approved ruling (ii): comments above a
+pruned entry stay). Safety: post-condition `yaml.safe_load(spliced) == desired` — mismatch or
+non-spliceable shape (flow style, empty hooks) falls back to the old full re-dump, so
+semantics never regress (fallback proven by a sabotage test + a flow-style fixture). Byte I/O
+via read_bytes/write_bytes (tool.py `_set_repo_record` discipline); `verify`/`detect` paths
+untouched (D9 intact). Tests: `tests/test_deploy_precommit_surgical.py` (11 — byte-identity on
+rev-bump/append/prune, idempotency-on-bytes, CRLF fidelity, refuse-writes-nothing, fallback
+teeth); existing precommit/prune/tool suites green (96 total). Evidence SHAs: *(at merge)*.
 ### BLOCK 2 — #238 doctrine + Stage-3 memo — *(pending)*
 ### BLOCK 3 — consolidation mechanicals — *(pending)*
 ### BLOCK 4 — proposal drafts (branch-only) — *(pending)*
