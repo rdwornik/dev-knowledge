@@ -8,7 +8,7 @@ against the HUB's expectation. Frozen rulings (2026-07-05 overnight run):
 - **Reality = the consumer clone's actual firing** across the three external channels
   (C1 — inner narration is never evidence).
 - **Report per gated component**: FIRED / EXPECTED-BUT-SILENT / tombstone verdicts, plus a
-  COVERAGE figure (n-of-6 enforcing on this consumer). **FAIL-by-coverage on a partial-mesh
+  COVERAGE figure (n-of-N enforcing on this consumer). **FAIL-by-coverage on a partial-mesh
   consumer is the CORRECT verdict** — the deliverable is measurement, never forced green.
 - **No consumer-shaping** (no ruff-prune, no carriers — observe as-is) and **no mutation of
   the real consumer** (``sandbox_clone`` + observe only; the arc runs inside the throwaway
@@ -137,7 +137,7 @@ class ConsumerReport:
     gate: _arc.GateZero
     observation: _observe.ObservationResult
     coverage_fired: int           # gated-active components that FIRED on this consumer
-    coverage_total: int           # gated-active components the hub expects (the six)
+    coverage_total: int           # gated-active components the hub expects (seven w/ #250)
     coverage_armed_skipped: int   # G4a: consulted-but-Skipped (enforcing for their file scope)
     tombstone_state: str          # "ok" | "REGRESSED" | "VACUOUS" (G4b)
     evidence: dict[str, tuple[str, ...]]  # component_id -> verbatim matched stdout lines
@@ -218,7 +218,7 @@ def build_report(consumer: str, gate: _arc.GateZero, observation: _observe.Obser
 def run_consumer_arc(consumer_repo: Path | str, *, hub_root: Path | None = None,
                      api_key: str | None = None, model: str = _spawn.DEFAULT_MODEL,
                      timeout: int = 1200) -> ConsumerReport:
-    """LIVE: clone the CONSUMER as-is, run the same six-hook arc prompt inside the clone,
+    """LIVE: clone the CONSUMER as-is, run the same gated-mesh arc prompt inside the clone,
     and measure firing against the HUB oracle. Never shapes the clone, never touches the
     real consumer repo. GATE-0 (isolation-only) is evaluated; the caller decides exit
     semantics — the report is produced either way (labeled untrusted on a failed gate)."""

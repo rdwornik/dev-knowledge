@@ -326,7 +326,7 @@ components:
     # PRESENCE is harness-seeded from the hub checkout into the isolated user config (a real
     # consumer machine carries the plugin user-level, unreachable from the isolated
     # CLAUDE_CONFIG_DIR); what the lived arc MEASURES is this hook's firing, never presence.
-    engages:                    # GATED SIX — firing hook, stop stage
+    engages:                    # GATED — firing hook, stop stage
       trigger: stop
       observable: hook-stdout
       expect: "propose_closures:"   # [#253c] longest stable substring — every propose_closures.py
@@ -416,7 +416,7 @@ components:
     status: active
     waivable: true   # doc-hygiene TOC-staleness gate; a CLI repo may have no TOC to gate (the canonical waivable case)
     verify: wired
-    engages:                    # GATED SIX — firing hook, pre-commit stage
+    engages:                    # GATED — firing hook, pre-commit stage
       trigger: pre-commit
       observable: hook-stdout
       expect: "TOC freshness"   # [#253c] calibrated@step7: pre-commit prints hook NAMEs, not
@@ -463,7 +463,7 @@ components:
     status: active
     waivable: false   # LOAD-BEARING: fail-closed commit-time integrity guard; absence lets floor tampering/drift commit undetected
     verify: wired
-    engages:                    # GATED SIX — firing hook, pre-commit stage
+    engages:                    # GATED — firing hook, pre-commit stage
       trigger: pre-commit
       observable: hook-stdout
       expect: "sha256 sidecar"  # [#253c] calibrated@step7: the hook's printed NAME is
@@ -500,7 +500,7 @@ components:
     status: active
     waivable: false   # LOAD-BEARING: fail-closed presence guard (--require-present) + arms the commit hooks; absence disarms the whole floor loop
     verify: wired
-    engages:                    # GATED SIX — firing hook, session-start stage
+    engages:                    # GATED — firing hook, session-start stage
       trigger: session-start
       observable: hook-stdout
       expect: "pre-commit installed at"   # [#253c] calibrated@step7: the guard VERIFY leg is
@@ -524,7 +524,7 @@ components:
     status: active
     waivable: false   # LOAD-BEARING: fail-closed session-end gate; absence lets un-anchored sessions ship silently (the founding-standard regression the mesh exists to stop)
     verify: fire
-    engages:                    # GATED SIX — firing hook, stop stage
+    engages:                    # GATED — firing hook, stop stage
       trigger: stop
       observable: hook-stdout
       expect: "Session-end"     # [#253c] calibrated@step7: BOTH print paths open with it —
@@ -545,7 +545,7 @@ components:
     status: active
     waivable: false   # LOAD-BEARING: fail-closed commit gate; absence lets stale canonical ground-truth ship undetected
     verify: fire
-    engages:                    # GATED SIX — firing hook, pre-commit stage
+    engages:                    # GATED — firing hook, pre-commit stage
       trigger: pre-commit
       observable: hook-stdout
       expect: "canonical_freshness"   # confirmed: the gate prints "canonical_freshness ..."

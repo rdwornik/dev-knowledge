@@ -25,10 +25,10 @@ from lived_sandbox import spawn as sp  # noqa: E402
 
 _MANIFEST_V120 = _REPO / "deploy" / "manifest-v1.2.0.yaml"
 
-_SIX_SIGNATURES = [
+_GATED_SIGNATURES = [
     "pre-commit installed at", "sha256 sidecar", "canonical_freshness",
-    "TOC freshness", "Session-end", "propose_closures:",
-]
+    "TOC freshness", "Session-end", "propose_closures:", "Codemap freshness",
+]  # seven w/ #250 (hub-codemap-hooks joined the gated firing-hook set)
 
 _UID = itertools.count(1)
 
@@ -78,8 +78,8 @@ def _report(events: list[dict], *, gate_ok: bool = True) -> con.ConsumerReport:
 
 
 def test_full_coverage_consumer_is_full():
-    r = _report(_events(_SIX_SIGNATURES))
-    assert (r.coverage_fired, r.coverage_total) == (6, 6)
+    r = _report(_events(_GATED_SIGNATURES))
+    assert (r.coverage_fired, r.coverage_total) == (7, 7)
     assert r.tombstones_ok and r.full_coverage
     assert "VERDICT: FULL-COVERAGE" in r.summary()
 
@@ -87,24 +87,24 @@ def test_full_coverage_consumer_is_full():
 def test_partial_mesh_consumer_fails_by_coverage_not_crash():
     """THE frozen-ruling case: a partial-mesh consumer measures as FAIL-by-coverage."""
     r = _report(_events(["canonical_freshness", "pre-commit installed at"]))
-    assert (r.coverage_fired, r.coverage_total) == (2, 6)
+    assert (r.coverage_fired, r.coverage_total) == (2, 7)
     assert not r.full_coverage
     assert "FAIL-by-coverage" in r.summary()
-    assert "2-of-6 enforcing" in r.summary()
+    assert "2-of-7 enforcing" in r.summary()
     silent = {f.component_id for f in r.observation.silences}
-    assert len(silent) == 4  # the four un-fired gated-active hooks are named SILENT
+    assert len(silent) == 5  # the five un-fired gated-active hooks are named SILENT
 
 
 def test_tombstone_regression_blocks_full_coverage():
-    evs = _events(_SIX_SIGNATURES) + _tool_result("Ruff linter....Passed")
+    evs = _events(_GATED_SIGNATURES) + _tool_result("Ruff linter....Passed")
     r = _report(evs)
-    assert r.coverage_fired == 6 and not r.tombstones_ok and not r.full_coverage
+    assert r.coverage_fired == 7 and not r.tombstones_ok and not r.full_coverage
     assert "tombstones REGRESSED" in r.summary()
 
 
 def test_gate_fail_report_still_builds():
-    r = _report(_events(_SIX_SIGNATURES), gate_ok=False)
-    assert not r.gate.passed and r.coverage_fired == 6  # measurement survives; caller labels it
+    r = _report(_events(_GATED_SIGNATURES), gate_ok=False)
+    assert not r.gate.passed and r.coverage_fired == 7  # measurement survives; caller labels it
 
 
 def test_armed_skipped_counted_distinctly_never_as_fired_g4a():
@@ -117,10 +117,12 @@ def test_armed_skipped_counted_distinctly_never_as_fired_g4a():
         "protocols TOC freshness check....................(no files to check)Skipped")
     evs += _tool_result(
         "Verify CLAUDE-FLOOR.md matches its sha256 sidecar....(no files to check)Skipped")
+    evs += _tool_result(
+        "Codemap freshness check....................(no files to check)Skipped")
     r = _report(evs)
-    assert (r.coverage_fired, r.coverage_armed_skipped) == (4, 2)
+    assert (r.coverage_fired, r.coverage_armed_skipped) == (4, 3)
     assert r.full_coverage
-    assert "4-of-6 enforcing on this consumer + 2 armed-but-skipped" in r.summary()
+    assert "4-of-7 enforcing on this consumer + 3 armed-but-skipped" in r.summary()
 
 
 def test_vacuous_tombstone_never_reads_as_ok_g4b():
@@ -184,7 +186,7 @@ def test_run_consumer_arc_uses_hub_oracle_never_consumer_manifest(tmp_path, monk
     report = con.run_consumer_arc(consumer_repo, hub_root=_REPO, api_key="k")
     assert report.oracle_version == "1.2.0"          # hub manifest, not a consumer file
     assert report.gate.passed
-    assert (report.coverage_fired, report.coverage_total) == (1, 6)
+    assert (report.coverage_fired, report.coverage_total) == (1, 7)
     assert not report.full_coverage
 
 
