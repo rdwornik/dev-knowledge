@@ -209,7 +209,19 @@ both drift directions. First-ever tests for `gen_claude_rosters.py` (`tests/test
 fragments fresh, check drift/missing/roundtrip). Ripple (per the plan's flag): pre-commit gate
 count 11→12 (`doc-counts.md` regen), CLAUDE.md §9 + CONTRIBUTING Validators table + ARCHITECTURE
 pre-commit list gain the hook (hand-prose — §9 is `doc_claims`-checked, not generated). All
-today-stamped, no forced re-stamp. Evidence SHAs: *(at merge)*.
+today-stamped, no forced re-stamp. Evidence SHAs: leaf `d2a03e9`, merge `b14f41a`.
+
+**3.2 ENVIRONMENT disposition (`docs/environment-disposition`) — VERDICT: REFRESH (own it), MERGED.**
+Per CH-7, assessed refresh-vs-retire: **retire REJECTED** (55 inbound refs + the bulk — paths /
+providers / Council decisions / VS Code / hardware — is stable reference with no other home;
+retiring would touch 55 files for little gain). **Refresh** the stale-and-verified facts +
+re-stamp 2026-06-03 → 2026-07-06: CLI 2.1.161→2.1.200; model list → the Claude 5 family (Fable 5
+/ Sonnet 5 / Opus 4.8 / Haiku 4.5); `~/.claude/commands/` → the live set (boot/evolve archived,
+handoff/save now skills+plugin); dropped the removed `CLAUDE_CODE_SUBAGENT_MODEL` setting. Facts
+NOT re-verified live (Python/VS Code/ccusage exact versions, hardware) carried forward + marked
+"not re-verified" — honest re-stamp (genuine end-to-end read + verified-what-I-could, drift
+noted, per the freshness-stamp contract). canonical_freshness GREEN. Deletion never merged (this
+is the refresh path, not the retire-prep path). Evidence SHAs: *(at merge)*.
 ### BLOCK 4 — proposal drafts (branch-only) — *(pending)*
 ### BLOCK 5 — #267 sandbox refinement — *(pending)*
 ### BLOCK 6 — optional residuals — *(pending; #246 pre-declared SKIP per CH-8)*

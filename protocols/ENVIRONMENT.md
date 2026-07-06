@@ -1,17 +1,24 @@
 # Dev Environment — Current State
 
 > **Living document.** Update when any config changes.
-> Last updated: 2026-06-03
+> Last updated: 2026-07-06
+>
+> **Refresh basis (2026-07-06, [#258] Block-3.2 own-it verdict):** retire was rejected — 55
+> inbound references + the bulk here (paths · providers · Council decisions · VS Code · hardware)
+> is stable reference with no other home. Targeted refresh of the facts verified live this pass
+> (CLI version · model family · `~/.claude/` command set · settings keys). Facts NOT re-verified
+> this pass (VS Code / ccusage exact versions, hardware) are carried forward as last-known — a
+> deeper live re-audit is a separate pass if wanted.
 
 ---
 
 ## Claude Code CLI
 <!-- scope: runtime -->
 
-- **Version:** 2.1.161 (native installer, auto-updates)
+- **Version:** 2.1.200 (native installer, auto-updates; changelog-review state last reviewed 2.1.177 → run `/changelog-review`). Checked 2026-07-06.
 - **Plan:** Claude Max $100/month
 - **Model routing:** opusplan (Opus plans, Sonnet executes)
-- **Available models:** Opus 4.8, Sonnet 4.6, Haiku 4.5. xhigh effort level available (Opus only). `/code-review ultra` for cloud-based multi-agent code review (`/ultrareview` is a deprecated alias for the same command).
+- **Available models (Claude 5 family, 2026-07):** **Fable 5** (`claude-fable-5`, Mythos-class, above Opus), **Sonnet 5** (`claude-sonnet-5`), **Opus 4.8** (`claude-opus-4-8`, 1M-context + Fast mode), **Haiku 4.5** (`claude-haiku-4-5`). `max` effort level available. `/code-review ultra` for cloud-based multi-agent code review (`/ultrareview` is a deprecated alias for the same command).
 
 ### Usage tracking: ccusage (npm global)
 <!-- scope: runtime -->
@@ -30,11 +37,11 @@
 
 - MAX_THINKING_TOKENS: 10000
 - CLAUDE_AUTOCOMPACT_PCT_OVERRIDE: 40
-- CLAUDE_CODE_SUBAGENT_MODEL: haiku
 - CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: 1
 - CLAUDE_CODE_USE_POWERSHELL_TOOL: 1
 - defaultShell: powershell
 - showThinkingSummaries: true — shows Claude thinking before actions. Added 2026-04-15.
+- _(CLAUDE_CODE_SUBAGENT_MODEL: haiku removed from settings.json as of 2026-07-06 — subagent model now resolves per-agent, no global pin.)_
 
 ### ~/.claude/ directory
 <!-- scope: runtime -->
@@ -49,10 +56,10 @@
     ecosystem-snapshot.md     ← Haiku subagent
   skills/
     gotchas/gotchas.md       ← Universal entries (cp1252, az shell, pytest-asyncio)
-  commands/
-    handoff.md               ← Token-efficient output for browser chat
-    boot.md                  ← Session start: load memory, verify rules, check trends
-    evolve.md                ← Weekly evolution audit: promote/prune/graduate rules
+  commands/                  ← (as of 2026-07-06) codex-review.md, session-summary.md
+                             ←   boot.md / evolve.md archived 2026-06-05 (Phase-C3);
+                             ←   handoff/save/review-closures/ship now ship via skills + the
+                             ←   tier1-lifecycle plugin, not user-level command files
   hooks/
     PreToolUse:Bash → block-onedrive.ps1   ← CRITICAL: blocks OneDrive paths
     Stop → claude-notify.ps1               ← Session end notification
@@ -264,8 +271,8 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
 
 | Component   | Version                       | Last checked |
 | ----------- | ----------------------------- | ------------ |
-| Claude Code | 2.1.161 (native, auto-updates) | 2026-06-03   |
-| Python      | 3.12.10                        | 2026-06-03   |
-| VS Code     | 1.122.1 + extensions           | 2026-06-03   |
+| Claude Code | 2.1.200 (native, auto-updates) | 2026-07-06   |
+| Python      | 3.12.10                        | 2026-06-03 (not re-verified 07-06) |
+| VS Code     | 1.122.1 + extensions           | 2026-06-03 (not re-verified 07-06) |
 
 Project versions tracked in each project's CLAUDE.md / git history.
