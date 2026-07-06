@@ -147,9 +147,9 @@ log('budget.total=' + String(budget.total) + ' spent=' + budget.spent())
 
 phase('Stage 1 - verifiers')
 const [v1, v2, v3] = await parallel([
-  () => agent(V1, { label: 'V1-journal-vs-git', phase: 'Stage 1 - verifiers', schema: verifierSchema, model: 'claude-sonnet-4-6' }),
-  () => agent(V2, { label: 'V2-livingdoc-claims', phase: 'Stage 1 - verifiers', schema: verifierSchema, model: 'claude-sonnet-4-6' }),
-  () => agent(V3, { label: 'V3-backlog-closures', phase: 'Stage 1 - verifiers', schema: verifierSchema, model: 'claude-sonnet-4-6' }),
+  () => agent(V1, { label: 'V1-journal-vs-git', phase: 'Stage 1 - verifiers', schema: verifierSchema, model: 'claude-sonnet-5' }),
+  () => agent(V2, { label: 'V2-livingdoc-claims', phase: 'Stage 1 - verifiers', schema: verifierSchema, model: 'claude-sonnet-5' }),
+  () => agent(V3, { label: 'V3-backlog-closures', phase: 'Stage 1 - verifiers', schema: verifierSchema, model: 'claude-sonnet-5' }),
 ])
 
 const verifiers = [v1, v2, v3].filter(Boolean)

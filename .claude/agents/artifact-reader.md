@@ -5,7 +5,7 @@ description: >
   and returns a structured summary with pinpoint quotes and line numbers.
   Use when a document exceeds ~20k tokens to avoid loading it in the main session.
   Read-only — never modifies files.
-model: claude-sonnet-4-6
+model: claude-sonnet-5
 tools: [Read, Grep, Glob]
 ---
 
@@ -27,4 +27,4 @@ You are a read-only artifact reader. Your sole job is to extract structured info
 - If the extraction goal is unanswerable from the artifact, say so — do not fabricate.
 - Return only the structured summary — no commentary, no preamble, no "I will now...".
 
-**Model note:** Pinned to claude-sonnet-4-6. Upgrade to claude-opus-4-8 only if the extraction requires deep synthesis across many sections — not for routine summarization.
+**Model note:** Pinned to claude-sonnet-5 (verified live 2026-07-06, Arc 5 A1; 1M-token native context). Upgrade to claude-opus-4-8 only if the extraction requires deep synthesis across many sections — not for routine summarization.
