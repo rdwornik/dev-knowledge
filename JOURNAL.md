@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-07 — CC (Opus, architect session wrap): archived overnight-mission rulings + hermetization (HERMETIC) + cut next architect bundle; bundled a concurrent /changelog-review arc
+
+**Did:** Architect-half session wrap (EXECUTION mode, runbook-driven). **§1 — archived the browser-architect's post-verification rulings** (`dffe4f3`): mission closure DECLARED on the hard metric (10 sections green vs live @ `07a0d40`, independently verified); Stage-3 enforcement-transfer closure ACCEPTED (#236/#237 confirmed closed 2026-07-03; ai-council FULL-COVERAGE adjudicated COMPLEMENTARY to the carrier port per the stage3 memo); BACKLOG **fold FLAG RESOLVED** (#168/#170 co-sequence with #239/#240 on the shared `session_end_backpressure` organ, #243 co-seq, #139 stays separate); E1 drafts-branch deviation ACCEPTED (1 commit not 3 — intact-and-unmerged holds in substance, the false count a self-report defect the mechanism caught); #267 **mechanism LEAN** recorded (annotated, not decided); C7 nit deferred to P6 (no commit). BACKLOG edits net-neutral on dates+length (#267 1187→1178 chars, 2 dates — under the doc_rot cap). **§2 — hermetization**: all gates GREEN (ship-gate, validate_backlog, doc_rot, gen_audit_index/methodology_roster/claude_rosters `--check`); an independent read-only currency pass verdicted **HERMETIC** — every mission/wrap doctrine already in its canonical home (PLAYBOOK Ch12 + Scale-L, LESSONS, ARCHITECTURE/CONTRIBUTING enumeration; the gate-mask lesson correctly filed as a universal gotcha, not a hub doc); the `drafts/2026-07-07-proposals` branch confirmed intact-and-unmerged. The wrap authored **no new doctrine** (rulings are backlog dispositions + this record). **§3 — cut the next architect bundle** `2026-07-07-dev-knowledge-architect` (`70ed4e4`): ratification agenda (intake-process / epic-naming / audit-retention) + P6 WAIT-lift & #267 attended-run decision queue + an ADR-41 routed-elsewhere block; MODE declared plan-first/design; SUPPLEMENT scaffolded EMPTY (anti-bluff — 10/10 probes bind, no probe value baked).
+
+**Concurrent-session collision (operator-adjudicated):** a parallel operator-invoked `/changelog-review` landed a complete self-contained arc on this wrap branch — `064a930` (digest `docs/audits/2026-07-06-changelog-review.md` + tool-versions bump claude-code→2.1.201 / codex→0.142.5) + `f002774` (its own JOURNAL entry, ADR-85 anchored) — interleaved with my `dffe4f3` (entangled; can't split without history surgery). Surfaced to the operator, who ruled **bundle & proceed**: the changelog arc rides into `main` via this wrap's `--no-ff` merge; its architect-flagged **A1/A2/V1** (Sonnet-5 pin refresh / native auto-mode nets / deprecation verify) folded into the new bundle's decision queue. Its side-effect (audit-index stale from the new digest) fixed under §2 (`0dff33e`, 194→195).
+
+**Result:** wrap complete, ship-gate GREEN, full suite green; the next architect session boots on the 2026-07-07 bundle. ADR-85 session-SHA = this arc's commits (`dffe4f3` / `0dff33e` / `70ed4e4`).
+
+**Changes:** `BACKLOG.md` (FLAG resolved + #267 LEAN), `docs/audits/README.md` (index regen 194→195), `docs/handoffs/2026-07-07-dev-knowledge-architect/` (new bundle), `JOURNAL.md` (this entry). Bundled the concurrent changelog arc (`064a930` / `f002774`). Docs-only.
+
+**Next:** operator pastes `docs/handoffs/2026-07-07-dev-knowledge-architect/PASTE_THIS.md` into a fresh architect chat → that session ratifies the 3 proposals + tees the P6/#267 decisions. `drafts/2026-07-07-proposals` stays unmerged until then.
+
+---
+
 ### 2026-07-06 — CC (Opus, /changelog-review): claude-code 2.1.178→2.1.201 + codex 0.140.0→0.142.5 reviewed; 2 ADOPT flagged to architect
 
 **Did:** Operator-invoked `/changelog-review` (PUSH half of #113; sentinel nudge `claude-code 2.1.200 > 2.1.177`). Fetched + classified claude-code 2.1.178→2.1.201 (raw CHANGELOG) and codex 0.140.0→0.142.5 (8 stable releases; `0.143.0-alpha.*` skipped) against the audit-trio rubric, intersected against our stack.
