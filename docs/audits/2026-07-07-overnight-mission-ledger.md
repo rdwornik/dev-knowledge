@@ -221,7 +221,19 @@ handoff/save now skills+plugin); dropped the removed `CLAUDE_CODE_SUBAGENT_MODEL
 NOT re-verified live (Python/VS Code/ccusage exact versions, hardware) carried forward + marked
 "not re-verified" — honest re-stamp (genuine end-to-end read + verified-what-I-could, drift
 noted, per the freshness-stamp contract). canonical_freshness GREEN. Deletion never merged (this
-is the refresh path, not the retire-prep path). Evidence SHAs: *(at merge)*.
+is the refresh path, not the retire-prep path). Evidence SHAs: leaf `35d8434`, merge `a1633d9`.
+
+**3.3 Audit-index (`feat/audit-index`) — index exists + tested.** New loose generator
+`scripts/gen_audit_index.py` (collect/render/--write/--check, mirroring the gen-script pattern)
+emitting `docs/audits/README.md` — a reverse-chronological, month-grouped index of all 193
+`docs/audits/*.md` (date · slug · first-`#`-title; the index excludes itself). Satisfies the
+§5.5 navigation-overhead trigger in the existing docs area (no new top-level path). Tests: 11 in
+`tests/test_gen_audit_index.py` (parse/sort/exclude-self/undated-kept/title-placeholder/pipe-safe/
+check-missing/roundtrip/drift/live-fresh). A caught bug: Python binds default args at definition
+time, so the check/write functions now resolve `_AUDITS_DIR` at CALL time (monkeypatch-honest).
+**No freshness HOOK** this block (deliberate — gating + the retention/roll-up RULE are ADR-class,
+proposed in Block 4 / [#212]); the index will be regenerated at FINAL after all mission audit
+files exist. Evidence SHAs: *(at merge)*.
 ### BLOCK 4 — proposal drafts (branch-only) — *(pending)*
 ### BLOCK 5 — #267 sandbox refinement — *(pending)*
 ### BLOCK 6 — optional residuals — *(pending; #246 pre-declared SKIP per CH-8)*
