@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-06 — CC (Opus, architect handoff cont.): SUPPLEMENT filled → bundle flipped cold→FILLED, ANSWERS folded
+
+**Did:** Operator ran `supplement filled` — pasted the outgoing architect wrap's Q1–Q6 answers into `SUPPLEMENT.md` ANSWERS (verbatim). Re-rendered via `gen_handoff` (fill-state auto-detected FILLED): the three framing banners flipped cold→FILLED (the incoming §13(d) beat NARROWS to *"anything changed since?"*), hand-authored FILL-IN prose preserved byte-for-byte, the operator SUPPLEMENT untouched; `assemble_paste` folded the ANSWERS into `PASTE_THIS.md` (47.6 KB); corrected the RESIDUAL §4 stale `(generated EMPTY)` parenthetical. Committed `18d3a04`.
+
+**Result:** Bundle is now internally consistent FILLED — no cold-framing leftover, `verify_handoff_probes` 10/10, audit health OK. The supplement carries the operator's own Phase-2 framing: a **consolidation wave** (epic-naming universalization, child Mermaid #262, References generability, ENVIRONMENT retire-or-own, audit-index/retention, test-tiering transfer to consumers) + the **undesigned functional-architect → technical-architect → epic-chat intake process** (the explicit design ask) — which supersedes any tag-uncertainty in the CC-derived residual.
+
+**#159 (honest correction):** this bundle only **sets up** #159's evidence-close (a filled supplement ready for the incoming beat); the §13(d) beat itself is exercised by the **NEXT** architect session when it boots — **NOT closed here.** Do not mark #159 done until that session runs the narrowed beat. (The `18d3a04` commit body overstated "Closes #159"; no `closes` tag was applied and BACKLOG is untouched — this note is the correction.)
+
+**Changes:** bundle files (SUPPLEMENT / HANDOFF_BOOT / RESIDUAL / PROBES / PASTE_THIS) `18d3a04`; JOURNAL.md (this entry, anchoring `18d3a04`). No code touched (docs-only).
+
+**Next:** operator pastes `PASTE_THIS.md` into a fresh architect chat (the incoming §13(d) beat then exercises → #159 evidence-close). Operator-gated on my OK: merge `--no-ff` to main + push; `-d` merged stragglers.
+
+---
+
 ### 2026-07-06 — CC (Opus, architect handoff): generated `2026-07-06-dev-knowledge-architect` v5 bundle — post-priority-#1 frontier, fleet-roll decision teed up
 
 **Did:** Ran `/handoff architect dev-knowledge` (HANDOFF_PROCESS v5.5, canonical). Scope matrix → **Case 2** (clean tree, commits since last bundle, no today-slug) → slug `2026-07-06-dev-knowledge-architect`. Branched `docs/2026-07-06-architect-handoff`; cut the scaffold via `scripts/gen_handoff.py --mode architect` from committed `fb11266`; hand-authored the four FILL-IN regions (HANDOFF_BOOT purpose + RESIDUAL §1 drift-flags-by-reference / §2 shipped-map / §4 next-frontier); re-ran `assemble_paste.py` (PASTE_THIS 40.5 KB; SUPPLEMENT generated EMPTY → cold, so the incoming §13(d) beat fires FULL); SUPPLEMENT.md committed empty for the operator.
