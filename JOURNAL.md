@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-06 — CC (Opus, architect handoff): generated `2026-07-06-dev-knowledge-architect` v5 bundle — post-priority-#1 frontier, fleet-roll decision teed up
+
+**Did:** Ran `/handoff architect dev-knowledge` (HANDOFF_PROCESS v5.5, canonical). Scope matrix → **Case 2** (clean tree, commits since last bundle, no today-slug) → slug `2026-07-06-dev-knowledge-architect`. Branched `docs/2026-07-06-architect-handoff`; cut the scaffold via `scripts/gen_handoff.py --mode architect` from committed `fb11266`; hand-authored the four FILL-IN regions (HANDOFF_BOOT purpose + RESIDUAL §1 drift-flags-by-reference / §2 shipped-map / §4 next-frontier); re-ran `assemble_paste.py` (PASTE_THIS 40.5 KB; SUPPLEMENT generated EMPTY → cold, so the incoming §13(d) beat fires FULL); SUPPLEMENT.md committed empty for the operator.
+
+**Result:** `verify_handoff_probes` **10/10 pass** (P1a/P1b orientation + P2–P9 teeth, all answer-free by construction). Frontier framed: **PRIMARY** = the n=2+ **fleet-roll sequencing decision** (#221/#244 P6 — is the P5/P6 WAIT lifted now the corpus stabilized (Wave-2) + the sandbox proved (Wave-3)?); then **close the enforcement-transfer epic** (#238 doctrine half + Stage-3 #236/#237 verify-first adjudication + #267 P2 refinement); carried Fable-review halves (RF-1 bluff-dogfood, RF-4 §5-vs-§13, RF-5/#220 semantic-drift, #159 boot-echo); held/off-repo debt (ai-council relative-path + A2-stale, deploy-arc residuals #225/#233/#247/#245/#246, corpus-growth #212/#213).
+
+**Generation-time state (JOURNAL-only — NOT in the bundle; the browser never sees this, and the bundle withholds every value per §5):** HEAD `fb11266`; `ALL_CHECKS` = 28 (last `doc_code_coverage_drift`); ship-gate / backlog values are re-derived live via PROBES P2/P4/P7/P9 at onboarding.
+
+**Changes:** new bundle `docs/handoffs/2026-07-06-dev-knowledge-architect/` (HANDOFF_BOOT + RESIDUAL + PROBES + SUPPLEMENT + PASTE_THIS), JOURNAL.md (this entry). No code touched (docs-only).
+
+**Abandoned:** nothing.
+
+**Next:** operator pastes `PASTE_THIS.md` into a fresh architect chat; optionally fills `SUPPLEMENT.md` (→ `supplement filled` folds the answers + is exactly #159's evidence-close). Operator-gated on my OK: merge `--no-ff` to main + push; `-d` merged stragglers.
+
+---
+
 ### 2026-07-06 — CC (Fable, Wave-3 lane, close): ROOT DECLARED PRIORITY-#1 CLOSED — declaration recorded, 5 adjudications executed ([#267] reshaped, [#238] noted)
 
 **Did:** Root accepted STOP-POINT 2 and **declared priority-#1 ("prove the hub on ai-council like a sandbox") CLOSED**: enforcement-in-effect proven (before 1-of-6 real-~0 → after 4-of-6 FIRED + 2 ARMED-BUT-SKIPPED as correct file-scope behavior; GATE-0 PROVEN throughout), zero consumer-side changes, all gaps instrument-side, Codex-hardened. Executed the five adjudications: (1) **[#267] reshaped** REFINEMENT P3→P2, not a closure gate — witness the two file-scoped hooks FIRED via an in-scope arc edit + encode scope-conditional `engages:`; armed-as-enforcing NOT adopted as doctrine. (2) **Runbook home RATIFIED**: `templates/consumer-onboarding-runbook.md` stays; [#238] annotated (runbook half advanced; LESSONS+PLAYBOOK doctrine half open). (3) **LESSONS +2** (trust-seam proof points, root-ratified): authorization travels the owned-config channel — a deployed floor correctly refuses prompt-asserted authority; a narrowed allowlist produces honest refuse-and-ask at a failing gate (`--no-verify` declined) — floor held under live fire. (4) **Codex pass over the G7 diff** (`80fbaa9`): **0 CRIT / 2 HIGH / 0 MED-LOW** — both HIGHs fixed immediately per the ruling (non-mapping-YAML shape guard so a malformed consumer config is a noted no-op, not a harness crash; mirror notes now surfaced in `ConsumerReport` so an environment failure is never mistaken for hook silence); fix merge follows this entry, no tickets needed (no MED/LOW). (5) **ai-council relative-path fragility pointer** filed per ADR-41 into the hub BACKLOG's ai-council-residuals pointer block (CI-risk note: breaks ANY out-of-layout checkout) for the dedicated ai-council session.
