@@ -179,7 +179,24 @@ policy + E2E DRIFT→SANCTIONED via the REAL policy — the Done-when's Tier-3 c
 release_lint C6/C8 validate the entry for free; 195 in the affected suites. Evidence SHAs:
 *(at merge)*.
 
-### BLOCK 2 — #238 doctrine + Stage-3 memo — *(pending)*
+### BLOCK 2 — #238 doctrine + Stage-3 memo — **CLOSED**
+
+**#238 doctrine (CLOSED per CH-5).** Landed the enforcement-transfer doctrine — "deployed
+presence ≠ deployed enforcement; done only on enforcement-in-effect (configured→armed→proven,
+generalized to the mesh)" — in **PLAYBOOK Ch12** ("Worked example — enforcement-in-effect across
+the mesh", parallel to the removal-in-effect example) **+ LESSONS** (2026-07-06 entry), both
+**pointing** to `templates/consumer-onboarding-runbook.md` (never a copy). #238's Done-when is
+met on the hard metric (doctrine in LESSONS+PLAYBOOK **and** the runbook exists, root-ratified
+Wave-3) → **#238 closed** (`closes [#238]`). Closing #238 does NOT close the epic (#239/#240
+follow-ups remain).
+
+**Stage-3 evidence memo** `docs/audits/2026-07-07-stage3-adjudication-memo.md` — reports: #236/#237
+already CLOSED 2026-07-03 (`40ce318`/`ff3d744`; the mission's "do NOT close" premise was stale,
+CH-3); the ai-council FULL-COVERAGE proof (measurement-3) is COMPLEMENTARY to the carrier's port
+(the enforcement-in-effect half of leg-e), not orthogonal — it strengthens Stage-3 closure; the
+ARMED-BUT-SKIPPED residual is #267 (Block 5), not a Stage-3 defect. Recommendation: Stage-3
+closure STANDS. #139/#168/#170 FLAG (verbatim) + #243 surfaced as inputs, **decision RESERVED**
+for the architect (ADR-97 root-only). Nothing closed beyond #238. Evidence SHAs: *(at merge)*.
 ### BLOCK 3 — consolidation mechanicals — *(pending)*
 ### BLOCK 4 — proposal drafts (branch-only) — *(pending)*
 ### BLOCK 5 — #267 sandbox refinement — *(pending)*
