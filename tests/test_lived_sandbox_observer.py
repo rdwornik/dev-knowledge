@@ -169,6 +169,32 @@ def test_observer_green_when_all_gated_fired():
     assert not r.flags
 
 
+def test_failing_floor_hook_is_fired_not_silent_267():
+    # [#267] the floor-fail witness semantics: a floor EDIT makes floor-hash-verify FIRE and
+    # FAIL ("...Failed"). The observer must classify that as FIRED (the hook ran — engaged),
+    # never SILENT and never ARMED-BUT-SKIPPED (that is the "(no files to check)Skipped" case).
+    # A blocked commit still proves the hook fired. The live scope-exercising arc that produces
+    # this in a consumer is DEFERRED (Block-5 degrade — scope-aware ARC is a design decision);
+    # this pins the observer semantics that deferred measurement will rely on.
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result(
+        "Verify CLAUDE-FLOOR.md matches its sha256 sidecar...........................Failed")
+    r = obs.observe(events, o)
+    floor = next(f for f in r.gated_findings if f.component_id == "floor-hash-verify-hook")
+    assert floor.verdict == obs.FIRED  # a FAILING file-scoped hook is FIRED (engaged), not SILENT
+
+
+def test_scope_matching_toc_edit_fires_not_skipped_267():
+    # [#267] the FIRED (not ARMED-BUT-SKIPPED) case for the file-scoped toc hook: a commit
+    # staging a scope-matching file yields REAL (non-"Skipped") hook-stdout -> FIRED. Contrast
+    # the frozen-fixture single-file arc where the same hook is present-as-Skipped -> G4a armed.
+    o = orc.load_oracle(_MANIFEST_V120)
+    events = _tool_result("ARCHITECTURE.md TOC freshness check.........................Passed")
+    r = obs.observe(events, o)
+    toc = next(f for f in r.gated_findings if f.component_id == "hub-toc-hooks")
+    assert toc.verdict == obs.FIRED
+
+
 def test_observer_flags_one_silent_hook():
     """A single gated firing hook whose stdout is absent -> EXPECTED-BUT-SILENT -> not passed."""
     o = orc.load_oracle(_MANIFEST_V120)

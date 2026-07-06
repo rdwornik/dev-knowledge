@@ -423,6 +423,12 @@ components:
                                 # ids — "TOC freshness (markdown doc vs its own headers)" /
                                 # "ARCHITECTURE.md TOC freshness check" both carry it; the id
                                 # `toc-freshness` never appears in the run output.
+      # [#267] SCOPE CONDITION: this is a FILE-SCOPED hook — it FIRES (expect present, not
+      # "Skipped") ONLY on a commit staging a file matching the consumer's toc-freshness
+      # `files:` pattern; on a commit that touches no matching file it is ARMED-BUT-SKIPPED
+      # (present-as-Skipped -> G4a armed, still engaged). The scope-matching path is
+      # CONSUMER-SPECIFIC (hub: ^ARCHITECTURE\.md$ ; ai-council: ^protocols/COUNCIL_QUESTION_GUIDE\.md$).
+      scope: "file-scoped: FIRED iff an edit matches the consumer's toc-freshness files: pattern, else ARMED-BUT-SKIPPED ([#267])"
     artifacts:
       - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hooks toc-freshness + toc-generate"
     roster:
@@ -469,6 +475,12 @@ components:
       expect: "sha256 sidecar"  # [#253c] calibrated@step7: the hook's printed NAME is
                                 # "Verify CLAUDE-FLOOR.md matches its sha256 sidecar"; the id
                                 # `floor-hash-verify` never appears in the run output.
+      # [#267] SCOPE CONDITION: file-scoped on `^\.claude/CLAUDE-FLOOR\.md(\.sha256)?$` (same
+      # pattern hub + consumer). FIRES only on a commit staging the floor file; a floor EDIT
+      # makes it fire AND FAIL the hash check — that block IS the witnessable firing (a passing
+      # floor is silent-on-no-match -> ARMED-BUT-SKIPPED). The floor-fail witness is the
+      # scope-exercising design DEFERRED here (see the memo / ledger Block-5 degrade).
+      scope: "file-scoped on ^\\.claude/CLAUDE-FLOOR\\.md(\\.sha256)?$: FIRED (and FAILING) iff a floor edit is staged, else ARMED-BUT-SKIPPED ([#267])"
     artifacts:
       - wiring: ".pre-commit-config.yaml local hook floor-hash-verify -> python .claude/check_floor_hash.py"
     roster:
