@@ -6,9 +6,9 @@
 | **Slug** | `2026-07-07-dev-knowledge-architect` |
 | **Mode** | **architect** (HANDOFF_PROCESS §13 — planning / way-of-working scope) |
 | **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->**Ratification session.** **MODE: plan-first / design** (§14a item-7 re-declare-MODE discipline — deliberate-and-decide, NO auto-execution; each ratified decision then spawns its own execution arc; L-sized work defaults plan-first). Three design questions are decision-ready on the intact `drafts/2026-07-07-proposals` branch (`git show`, unmerged by design — this session consumes it): **(a)** the functional→technical-architect→epic-chat **intake process** (the operator's strategic ask; today undesigned); **(b)** the **epic-naming convention** (draft rec: Track-X labels now, story-map at P6); **(c)** the **audit-retention rule** (draft rec: keep-all + age-tiered index, folding #212 into an ADR). Then the **decision queue**: the **P6 fleet-roll WAIT-lift** (its gates closed + independently verified per the mission ledger — the mission did NOT lift it) and the **#267 attended re-measurement** run. Start from `BACKLOG.md` (Cross-repo-universalization epic + #221 / #244-P6) and the drafts branch — a **way-of-working / ratification** session, not single-task execution.<!-- FILL-IN:purpose END --> |
-| **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/session-wrap-20260707`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
+| **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/2026-07-07-supplement-fill`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -34,7 +34,7 @@
    `run <command>`, CC reads live `VISION.md` / `ARCHITECTURE.md` Ch1 and substring-checks. The architect
    may not begin design until it holds both orienting lines (P1's grep is a *tool* that confirms the frame
    — the **backlog navigates**, §13c).
-6. **Then the operator-context beat (§13d).** The supplement is **generated EMPTY**, so unless the operator fills it first the beat fires **FULL**: *"what off-repo context — intent, priorities, findings not in the repo, changed decisions?"*
+6. **Then the operator-context beat (§13d).** The supplement is **FILLED**; its ANSWERS are in the paste, so the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 7. Hand `RESIDUAL.md` — **drift-flags first** (the §1 headline) — then the **next-frontier decisions**
    (§4) + the **shipped-this-window** map (§2), then run the rest of `PROBES.md` (P2–P9). Any probe FAIL
    blocks onboarding (the escalation ladder). **Re-derive the drift-flag values live (P4/P6/P7/P9) — the
