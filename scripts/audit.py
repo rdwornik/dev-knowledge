@@ -1971,6 +1971,110 @@ def check_enforcement_coverage(repo_path: Path) -> list[Finding]:
                     .replace("|", "/"))]
 
 
+# ---------------------------------------------------------------------------
+# @import edge integrity (#249) — a Claude-Code `@import` whose target is missing
+# silently drops session-boot content. The coherence spine tracks reconciled_with
+# PROSE edges (validate_reconciliation) but NOT the `@path` file-include graph, so a
+# broken/renamed @import target dangles with no gate (the @.claude/CLAUDE-FLOOR.md and
+# the [#244] @-imports have been unchecked this way). This check resolves the transitive
+# @import graph from the root CLAUDE.md (BFS, cycle-safe, matches Claude-Code boot
+# semantics) and FAILs on any target that resolves to nothing. STRUCTURAL presence check,
+# not a doc->code behavioral rule -> `exempt` in ecosystem/doc-code-edge.yaml.
+# ---------------------------------------------------------------------------
+
+# `@` preceded by start-of-line or whitespace (the (?<!\S) guard excludes emails like
+# x@gmail.com and plugin@marketplace tokens); target chars = a path.
+_IMPORT_RE = re.compile(r"(?<!\S)@([A-Za-z0-9_~./\\-]+)")
+_IMPORT_MAX_DEPTH = 5  # Claude Code resolves @imports recursively up to 5 hops
+
+
+def _blank_preserving_lines(match: "re.Match[str]") -> str:
+    """Replace a multi-line match with the same number of newlines (keeps line nos)."""
+    return "\n" * match.group(0).count("\n")
+
+
+def _strip_code_regions(text: str) -> str:
+    """Blank fenced code blocks, HTML comments, and inline code spans so a `@path`
+    quoted as an example — or the roster's backtick-neutralized import tokens
+    (gen_methodology_roster._neutralize_import) — is not read as a live @import.
+    Multi-line regions are blanked line-count-preserving; inline spans are single-line."""
+    text = re.sub(r"(?ms)^```.*?^```", _blank_preserving_lines, text)
+    text = re.sub(r"(?s)<!--.*?-->", _blank_preserving_lines, text)
+    text = re.sub(r"`[^`\n]*`", "", text)
+    return text
+
+
+def _looks_like_import_path(target: str) -> bool:
+    """A Claude-Code @import target is a FILE PATH — it has a path separator or a
+    (alphabetic) file extension. This excludes version tokens like `@5.4` / `@5.5`
+    (a `.4` suffix is not an extension) that pepper the section-history prose."""
+    if "/" in target or "\\" in target:
+        return True
+    return bool(re.search(r"\.[A-Za-z]{2,}$", target))
+
+
+def _import_targets(text: str) -> list[tuple[int, str]]:
+    """Return (1-indexed line-no, target) for each live @import in `text`."""
+    out: list[tuple[int, str]] = []
+    for i, line in enumerate(_strip_code_regions(text).splitlines(), start=1):
+        for m in _IMPORT_RE.finditer(line):
+            target = m.group(1)
+            if _looks_like_import_path(target):
+                out.append((i, target))
+    return out
+
+
+def check_import_edges(repo_path: Path) -> list[Finding]:
+    """#249 — every Claude-Code `@import` target reachable from the root CLAUDE.md exists.
+
+    BFS the transitive @import graph (cycle-safe, depth <= 5). A target that resolves
+    against neither the importing file's directory nor the repo root is a broken edge
+    (FAIL — a broken @import silently drops session-boot content; audit-health makes the
+    rename-a-generated-fragment failure mode commit-blocking on the hub). Machine-scoped
+    (`~`-home) and absolute targets are skipped (counted, never failed). Read-only.
+    """
+    name = "import_edges"
+    repo_root = Path(repo_path)
+    root = repo_root / "CLAUDE.md"
+    if not root.exists():
+        return [Finding(name, "n/a", "no root CLAUDE.md (presence gated by check_claude_md)")]
+    visited: set[Path] = set()
+    queue: list[tuple[Path, int]] = [(root, 0)]
+    broken: list[str] = []
+    edge_count = 0
+    file_count = 0
+    while queue:
+        current, depth = queue.pop(0)
+        rc = current.resolve()
+        if rc in visited or depth > _IMPORT_MAX_DEPTH:
+            continue
+        visited.add(rc)
+        try:
+            text = current.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        file_count += 1
+        for lineno, target in _import_targets(text):
+            if target.startswith("~") or Path(target).is_absolute():
+                continue  # machine-scoped / absolute — count nothing, never fail
+            edge_count += 1
+            cand_dir = current.parent / target
+            cand_root = repo_root / target
+            resolved = cand_dir if cand_dir.exists() else (
+                cand_root if cand_root.exists() else None)
+            rel = (str(current.relative_to(repo_root))
+                   if current.is_relative_to(repo_root) else current.name)
+            if resolved is None:
+                broken.append(f"{rel}:{lineno} -> @{target}".replace("|", "/"))
+            elif resolved.suffix == ".md":
+                queue.append((resolved, depth + 1))
+    if broken:
+        return [Finding(name, "fail",
+                        "broken CLAUDE.md @import target(s): " + "; ".join(broken))]
+    return [Finding(name, "pass",
+                    f"{edge_count} @import edge(s) resolve across {file_count} file(s)")]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -2001,6 +2105,7 @@ ALL_CHECKS = [
     check_enforcement_coverage,
     check_undeclared_edges,
     check_doc_code_coverage_drift,
+    check_import_edges,
 ]
 
 

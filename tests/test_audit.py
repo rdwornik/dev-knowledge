@@ -1989,3 +1989,92 @@ def test_arm_hooks_no_config_exits_zero(tmp_path: Path) -> None:
     import arm_hooks
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     assert arm_hooks.main(tmp_path) == 0
+
+
+# ---------------------------------------------------------------------------
+# check_import_edges (#249) — the CLAUDE.md @import target-exists gate
+# ---------------------------------------------------------------------------
+
+
+def _mk(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def test_import_edges_resolving_passes(tmp_path: Path) -> None:
+    _mk(tmp_path / ".claude" / "frag.md", "# fragment\n")
+    _mk(tmp_path / "CLAUDE.md", "# C\n\n@.claude/frag.md\n")
+    f = aud.check_import_edges(tmp_path)[0]
+    assert f.status == "pass"
+    assert "1 @import edge" in f.evidence
+
+
+def test_import_edges_broken_target_fails_naming_site(tmp_path: Path) -> None:
+    _mk(tmp_path / "CLAUDE.md", "# C\n\nprose\n@.claude/missing.md\n")
+    f = aud.check_import_edges(tmp_path)[0]
+    assert f.status == "fail"
+    assert "CLAUDE.md:4" in f.evidence
+    assert "@.claude/missing.md" in f.evidence
+
+
+def test_import_edges_recurses_depth_two(tmp_path: Path) -> None:
+    # CLAUDE.md -> a.md -> (broken) b.md — the transitive break is caught.
+    _mk(tmp_path / "a.md", "# a\n\n@b.md\n")
+    _mk(tmp_path / "CLAUDE.md", "# C\n\n@a.md\n")
+    f = aud.check_import_edges(tmp_path)[0]
+    assert f.status == "fail"
+    assert "@b.md" in f.evidence
+
+
+def test_import_edges_ignores_backticked_and_fenced_and_versions(tmp_path: Path) -> None:
+    # roster-neutralized (backticked) import token + fenced example + a version token
+    # (@5.6) must NOT be read as live imports.
+    body = (
+        "# C\n\n"
+        "See `@.claude/CLAUDE-FLOOR.md` for the floor (backticked = not an import).\n"
+        "```\n@dataclass\n@.claude/also-not-real.md\n```\n"
+        "handoff-process @5.5->@5.6 reconciliation (a version token, not a path).\n"
+        "plugin id tier1-lifecycle@dev-knowledge-methodology.\n"
+    )
+    _mk(tmp_path / "CLAUDE.md", body)
+    f = aud.check_import_edges(tmp_path)[0]
+    assert f.status == "pass", f.evidence
+    assert "0 @import edge" in f.evidence
+
+
+def test_import_edges_skips_home_and_absolute(tmp_path: Path) -> None:
+    abs = "/etc/hosts.md" if os.name != "nt" else "C:/Windows/notreal.md"
+    _mk(tmp_path / "CLAUDE.md", f"# C\n\n@~/global/floor.md\n@{abs}\n")
+    f = aud.check_import_edges(tmp_path)[0]
+    # both skipped -> no edges counted, no failure
+    assert f.status == "pass"
+    assert "0 @import edge" in f.evidence
+
+
+def test_import_edges_cycle_terminates(tmp_path: Path) -> None:
+    _mk(tmp_path / "a.md", "# a\n\n@b.md\n")
+    _mk(tmp_path / "b.md", "# b\n\n@a.md\n")
+    _mk(tmp_path / "CLAUDE.md", "# C\n\n@a.md\n")
+    f = aud.check_import_edges(tmp_path)[0]  # must return, not hang
+    assert f.status == "pass"
+
+
+def test_import_edges_no_claude_md_is_na(tmp_path: Path) -> None:
+    f = aud.check_import_edges(tmp_path)[0]
+    assert f.status == "n/a"
+
+
+def test_import_edges_live_repo_passes_and_is_registered() -> None:
+    f = aud.check_import_edges(Path(aud._REPO_ROOT))[0]
+    assert f.status == "pass", f.evidence
+    assert aud.check_import_edges in aud.ALL_CHECKS
+    assert len(aud.ALL_CHECKS) == 29
+
+
+def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
+    # end-to-end: a broken import surfaces as an import_edges FAIL through the
+    # real ALL_CHECKS registry (not just the function in isolation).
+    _mk(tmp_path / "CLAUDE.md", "# C\n\n@.claude/missing.md\n")
+    state = aud.audit_repo("tmp", tmp_path, date(2026, 7, 6))
+    edge = [f for f in state.findings if f.check_name == "import_edges"]
+    assert edge and edge[0].status == "fail"
