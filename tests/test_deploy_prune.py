@@ -361,17 +361,21 @@ def world(tmp_path):
     return {"hub": hub, "consumer": consumer, "git": g}
 
 
-def _ctx(world, manifest):
+def _ctx(world, manifest, *, deployed_version="1.1.0"):
+    # deployed_version defaults NON-null: these sweep tests model a previously-
+    # deployed consumer (ai-council), where full ADR-96 prune semantics apply.
+    # Greenfield (None) is exercised explicitly by the greenfield tests below.
     return tool.PreflightContext(
         repo="ai-council", version="v1.2.0", bare_version="1.2.0",
         repo_root=world["consumer"], source_tag="v1.2.0",
         manifest=manifest, manifest_path=Path("manifest-v1.2.0.yaml"),
+        deployed_version=deployed_version,
     )
 
 
-def _exec(world, carrier, manifest, **kw):
+def _exec(world, carrier, manifest, *, deployed_version="1.1.0", **kw):
     return tool.execute(
-        _ctx(world, manifest),
+        _ctx(world, manifest, deployed_version=deployed_version),
         carrier_factory=lambda _root: {carrier.carrier_id: carrier},
         git=tool._default_git, hub_root=world["hub"], today="2026-07-04", **kw,
     )
@@ -443,4 +447,57 @@ def test_failed_verify_pruned_aborts_before_record(world):
     res = _exec(world, car, _manifest(), auto_approve=True)
     assert res.aborted is True
     assert res.prune_outcomes[0].verify_ok is False
+    assert res.record_branch is None
+
+
+# --- Greenfield skip (ADR-96 amendment 2026-07-06): a consumer whose registry
+# record is null was never deployed to, so the sweep has nothing methodology-
+# deployed to prune. The remove leg must be SKIPPED (no prune, no prompt, no
+# abort) even when a URL-matched consumer-OWNED artifact reads PRESENT_MODIFIED
+# -- the n=2 corp-monorepo case (its own ruff at a diverged rev). REFUSE
+# semantics stay fully intact for previously-deployed consumers.
+
+
+def test_greenfield_null_skips_remove_leg_even_when_modified(world):
+    car = FakePruneCarrier("precommit", prune_state=PruneState.PRESENT_MODIFIED)
+    res = _exec(world, car, _manifest(), deployed_version=None)
+    assert res.aborted is False
+    assert res.prune_outcomes == ()          # the sweep never ran
+    assert "prune" not in car.calls
+    assert res.prune_skipped_greenfield is True
+    assert res.record_branch is not None     # the deploy completes -- record written
+
+
+def test_greenfield_never_prompts(world):
+    car = FakePruneCarrier("precommit", prune_state=PruneState.PRESENT_CLEAN)
+
+    def boom(pending):
+        raise AssertionError("greenfield must NOT call the confirm prompt")
+
+    res = _exec(world, car, _manifest(), deployed_version=None, prune_confirm=boom)
+    assert res.aborted is False
+    assert res.prune_skipped_greenfield is True
+
+
+def test_greenfield_assess_flags_plan_and_empties_pending(world):
+    # assess stays honest: detect_prune still runs and the table is populated,
+    # but nothing is pending, so the destroy-confirm gate can never engage.
+    car = FakePruneCarrier("precommit", prune_state=PruneState.PRESENT_CLEAN)
+    plan = tool.assess(
+        _ctx(world, _manifest(), deployed_version=None),
+        carrier_factory=lambda _root: {car.carrier_id: car},
+    )
+    assert plan.greenfield is True
+    assert plan.prune_items
+    assert plan.prune_pending == ()
+
+
+def test_deployed_consumer_refuse_still_aborts(world):
+    # Regression pin for the amendment: a NON-null record keeps full ADR-96
+    # REFUSE semantics -- a locally-modified target aborts before any record.
+    car = FakePruneCarrier("precommit", prune_state=PruneState.PRESENT_MODIFIED)
+    res = _exec(world, car, _manifest(), deployed_version="1.1.0", auto_approve=True)
+    assert res.aborted is True
+    assert res.prune_outcomes[0].refused
+    assert res.prune_skipped_greenfield is False
     assert res.record_branch is None
