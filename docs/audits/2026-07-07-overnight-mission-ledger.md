@@ -148,6 +148,20 @@ no data loss:
    envelope forbids history rewrite on main, so the RED merge stays in the trail with this
    correction after it, honestly. The #262 CODE (cli.py capability) was always sound; only the
    BACKLOG prose bloated.
+**1.3 #249 (`feat/249-import-edges-check`) — CLOSED on the Done-when.** New FAIL-tier
+`check_import_edges` in `scripts/audit.py`: BFS the transitive @import graph from the root
+CLAUDE.md (cycle-safe, depth ≤5, matches Claude-Code boot semantics), FAIL naming
+`file:line -> @target` on any target resolving against neither the importing file's dir nor
+the repo root. Code-region stripping (fenced/HTML-comment/inline-span, line-count-preserving)
+honors the roster's backtick-neutralized `@path` tokens; a path-shape guard (`/` or alphabetic
+extension) excludes version tokens like `@5.5→@5.6` — caught live during dev (the check
+false-failed on §12 version prose before the guard; witnessed-behavior-outranks-code-read).
+Ripple (all count-pin homes): `ALL_CHECKS` 28→29, `test_doc_code_edge.py` L249+L714 pins,
+`doc-counts.md` regen (29 checks), `import_edges` added to `doc-code-edge.yaml` `exempt:` (the
+#203 drift-guard FAILs any new non-annotated check). Tests: 9 in `test_audit.py`
+(pass/broken/depth-2/backtick+fence+version-immunity/home+absolute-skip/cycle/n-a/live-repo/via-audit_repo).
+Evidence SHAs: *(at merge)*.
+
 ### BLOCK 2 — #238 doctrine + Stage-3 memo — *(pending)*
 ### BLOCK 3 — consolidation mechanicals — *(pending)*
 ### BLOCK 4 — proposal drafts (branch-only) — *(pending)*
