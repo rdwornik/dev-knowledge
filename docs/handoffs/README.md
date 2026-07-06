@@ -1,6 +1,6 @@
 ---
-last_reviewed: 2026-07-06
-reconciled_with: handoff-process@5.6
+last_reviewed: 2026-07-07
+reconciled_with: handoff-process@5.7
 ---
 <!-- scope: meta -->
 <!-- CANONICAL OPERATOR RUNBOOK for HANDOFF_PROCESS v5 bundles.
@@ -157,6 +157,26 @@ Full mechanics: `protocols/HANDOFF_PROCESS.md` §5 (teeth) and §13 (modes).
 
 ---
 
+## Other bundle shapes (epic · developer · functional)
+
+The walkthrough above is the **architect | execution** flow (§13). Three further mode flags
+exist; each produces its own single paste and **skips this walkthrough entirely**:
+
+- **Epic (`--mode epic`)** — the §14a epic-lane scope-contract: paste the bundle's
+  `EPIC_BOOT.md` + `PROBES.md` into the fresh epic chat. No `PASTE_THIS.md` is assembled —
+  the boot IS the paste (its own closing operator note says exactly this).
+- **Developer (`--mode developer`)** — an **additive alias** of epic (ADR-98): same bundle,
+  byte-identical. **The bundle header still renders `epic`** — expected, not a bug; the
+  naming flip to `developer` is deferred to the alias-deprecation arc
+  (`protocols/HANDOFF_PROCESS.md` §14).
+- **Functional (`--mode functional`)** — the §16 intake-capture boot: ONE file,
+  `FUNCTIONAL_BOOT.md`, pasted alone into a fresh functional-architect chat. No probes, no
+  run loop, no beat — the chat captures requirements into an intake doc
+  (`intake/README.md`; ADR-98). Boot ack line: "Functional architect booted — intake
+  capture only."
+
+---
+
 ## Format eras & navigation
 
 The bundle shape changed over time. Current bundles are **v5**; older eras are archived, not
@@ -178,7 +198,8 @@ Get-ChildItem docs/handoffs/ | Sort-Object Name | Select-Object -Last 5
 ```
 
 ### References
-- `protocols/HANDOFF_PROCESS.md` — the operational spec (§5 teeth, §13 modes + bundle shape)
+- `protocols/HANDOFF_PROCESS.md` — the operational spec (§5 teeth, §13 modes + bundle shape,
+  §14 epic lanes + developer alias, §16 functional/intake)
 - `protocols/HANDOFF_BOOT.md` — the resident browser role file (inlined into `PASTE_THIS.md`)
 - `scripts/assemble_paste.py` — assembles `PASTE_THIS.md` from the bundle sources
 - `docs/decisions/ADR-42-handoff-format-v3.md` — the historical v3.2 format spec

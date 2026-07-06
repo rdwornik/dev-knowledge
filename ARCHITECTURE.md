@@ -1,6 +1,6 @@
 ---
-last_reviewed: 2026-07-06
-reconciled_with: handoff-process@5.6
+last_reviewed: 2026-07-07
+reconciled_with: handoff-process@5.7
 status: active
 owner: Rob
 ---
@@ -50,8 +50,8 @@ owner: Rob
 `.dev-knowledge` is the universal LLM-driven development guide and methodology
 framework for all `Dev/` projects. It is **Layer 2** of the ADR-28 three-layer
 ecosystem model — passive storage and governance authority, not an execution
-engine. It holds operational protocols, ADRs, handoffs, templates, and read-only
-validators; it prescribes conventions that child repos (corp-monorepo, ai-council,
+engine. It holds operational protocols, ADRs, intake docs, handoffs, templates, and
+read-only validators; it prescribes conventions that child repos (corp-monorepo, ai-council,
 corp-ops, corp-sca-time-automation) must follow; it is consulted as context by
 Claude Code, Codex, Cursor, and other agents. **Nothing here executes orchestration**
 — everything is read, consulted, or passively validated. The six chapters below are
@@ -603,6 +603,12 @@ triaged result):
 
 → then `SessionStart: surface_triage.ps1` prints `[triage] N …` so the operator
 touches only findings (CONTRIBUTING "Nightly outcome management"; ADR-72/76/80/84).
+
+**Requirements intake (upstream of decomposition; ADR-98).** Operator intent →
+`gen_handoff.py --mode functional` boots the intake-capture chat → confirm-gated intake doc in
+`intake/` (WHAT/WHY; acceptance criteria copy verbatim into the epic UAT) → technical-architect
+triage → BACKLOG epics / ADRs. Format + lifecycle: `intake/README.md`; chain documentation:
+PLAYBOOK Part II §2; boot contract: HANDOFF_PROCESS §16.
 
 **Decision flow (how a contested need becomes binding doctrine).**
 `Council brief (ephemeral)` → `ai-council debate (5-provider, blind vote — ai-council ADR-03)`
