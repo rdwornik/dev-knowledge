@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-06 — CC (Opus, ship pre-flight): regenerated `ecosystem/doc-counts.md` 1304→1330 (pre-existing Wave-3 drift; regen-not-disposition)
+
+**Did:** At `/ship` pre-flight for the architect-handoff arc, `audit.py ship-gate` came back **RED** on `doc_claims: pytest_collected@ecosystem/doc-counts.md (doc 1304 != actual 1330)`. Root-caused: **pre-existing drift on `main`** — Wave-2 last regenerated the count to 1304, Wave-3 added ~26 tests (suite 1304→1330) without regenerating; `main:ecosystem/doc-counts.md` itself carries 1304, so `main` was already gate-RED before this docs-only handoff arc (which adds no tests). Fixed the sanctioned way: `python scripts/gen_doc_counts.py --write` (regen, **not** disposition — it is a real count change; the file is a committed-generated fragment, not freshness-gated, #222). Ship-gate re-run → **GREEN** (10 WARN dispositioned).
+
+**Result:** One-line diff (1304→1330), ship-gate GREEN, docs-only arc preserved (`doc-counts.md` is `.md`). Unblocks the handoff merge AND any other ship (main was RED for everyone until this).
+
+**Changes:** `ecosystem/doc-counts.md` (count 1304→1330), JOURNAL.md (this entry). No code touched.
+
+**Abandoned:** dispositioning the WARN (rejected — it is a genuine drift, not a false positive).
+
+**Next:** complete the `--no-ff` merge of the handoff arc to main + push.
+
+---
+
 ### 2026-07-06 — CC (Opus, architect handoff cont.): SUPPLEMENT filled → bundle flipped cold→FILLED, ANSWERS folded
 
 **Did:** Operator ran `supplement filled` — pasted the outgoing architect wrap's Q1–Q6 answers into `SUPPLEMENT.md` ANSWERS (verbatim). Re-rendered via `gen_handoff` (fill-state auto-detected FILLED): the three framing banners flipped cold→FILLED (the incoming §13(d) beat NARROWS to *"anything changed since?"*), hand-authored FILL-IN prose preserved byte-for-byte, the operator SUPPLEMENT untouched; `assemble_paste` folded the ANSWERS into `PASTE_THIS.md` (47.6 KB); corrected the RESIDUAL §4 stale `(generated EMPTY)` parenthetical. Committed `18d3a04`.
