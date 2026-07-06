@@ -354,3 +354,108 @@ def test_cli_arch_file_check_and_generate(tmp_path):
     assert r.returncode == 0
     assert "<!-- CODEMAP:START -->" in alt.read_text()
     assert not (repo / "ARCHITECTURE.md").exists()
+
+
+# ---------------------------------------------------------------------------
+# #262 — hub-side consumer capability: --init-markers bootstrap + newline fix.
+# These exercise the CLI end-to-end against tmp-COPIED fixture repos (the
+# "arbitrary consumer repo root" claim really tested), so a future child-repo
+# chat can invoke `codemap generate` on a doc that has no markers yet.
+# ---------------------------------------------------------------------------
+
+
+def _arch_bytes(repo: Path) -> bytes:
+    return (repo / "ARCHITECTURE.md").read_bytes()
+
+
+def test_cli_generate_write_preserves_bytes_outside_markers(tmp_path):
+    shutil.copytree(str(ARCH_CLEAN), str(tmp_path / "repo"))
+    repo = tmp_path / "repo"
+    before = (repo / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    s = before.index("<!-- CODEMAP:START -->")
+    e = before.index("<!-- CODEMAP:END -->")
+    prefix, suffix = before[:s], before[e:]
+    assert _run_cli("generate", str(repo), "--write").returncode == 0
+    after = (repo / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    # everything outside the marker block is byte-identical
+    assert after.startswith(prefix)
+    assert after.endswith(suffix[len("<!-- CODEMAP:END -->"):] or "")
+    assert after[after.index("<!-- CODEMAP:END -->"):] == suffix
+
+
+def test_cli_init_markers_bootstraps_and_is_idempotent(tmp_path):
+    shutil.copytree(str(ARCH_NOMARKERS), str(tmp_path / "repo"))
+    repo = tmp_path / "repo"
+    original = (repo / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    assert "<!-- CODEMAP:START -->" not in original
+
+    r1 = _run_cli("generate", str(repo), "--write", "--init-markers")
+    assert r1.returncode == 0
+    after1 = (repo / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    # markers appended exactly once, block filled, original prose preserved as prefix
+    assert after1.startswith(original)
+    assert after1.count("<!-- CODEMAP:START -->") == 1
+    assert after1.count("<!-- CODEMAP:END -->") == 1
+    assert "| module | layer | path | flags |" in after1
+
+    # second run finds the markers -> normal splice -> byte-identical (idempotent)
+    bytes1 = _arch_bytes(repo)
+    r2 = _run_cli("generate", str(repo), "--write", "--init-markers")
+    assert r2.returncode == 0
+    assert _arch_bytes(repo) == bytes1
+    # and a plain re-generate (no flag) is also a byte no-op now the markers exist
+    assert _run_cli("generate", str(repo), "--write").returncode == 0
+    assert _arch_bytes(repo) == bytes1
+
+
+def test_cli_no_markers_without_flag_still_exits_3(tmp_path):
+    shutil.copytree(str(ARCH_NOMARKERS), str(tmp_path / "repo"))
+    repo = tmp_path / "repo"
+    before = _arch_bytes(repo)
+    r = _run_cli("generate", str(repo), "--write")
+    assert r.returncode == 3  # default behavior preserved
+    assert _arch_bytes(repo) == before  # untouched
+
+
+def test_cli_init_markers_half_pair_still_errors(tmp_path):
+    # A doc with only START (no END) is malformed; --init-markers must NOT append
+    # a duplicate pair — it still errors exit 3.
+    shutil.copytree(str(ARCH_NOMARKERS), str(tmp_path / "repo"))
+    repo = tmp_path / "repo"
+    arch = repo / "ARCHITECTURE.md"
+    arch.write_text(arch.read_text(encoding="utf-8") + "\n<!-- CODEMAP:START -->\n",
+                    encoding="utf-8", newline="\n")
+    before = arch.read_bytes()
+    r = _run_cli("generate", str(repo), "--write", "--init-markers")
+    assert r.returncode == 3
+    assert arch.read_bytes() == before
+
+
+def test_cli_check_green_after_init_markers(tmp_path):
+    shutil.copytree(str(ARCH_NOMARKERS), str(tmp_path / "repo"))
+    repo = tmp_path / "repo"
+    assert _run_cli("generate", str(repo), "--write", "--init-markers").returncode == 0
+    # the freshness loop closes against the same tmp repo
+    assert _run_cli("check", str(repo)).returncode == 0
+
+
+def test_cli_written_file_has_no_crlf(tmp_path):
+    # GAP-2 regression: newline=None would CRLF-ify the whole doc on Windows.
+    # Control the input EOL explicitly (the checked-out fixture's on-disk EOL is
+    # environment-dependent) — seed a KNOWN-LF doc, then assert --write keeps LF.
+    shutil.copytree(str(ARCH_NOMARKERS), str(tmp_path / "repo"))
+    repo = tmp_path / "repo"
+    arch = repo / "ARCHITECTURE.md"
+    arch.write_bytes(
+        b"# Architecture\n\n<!-- CODEMAP:START -->\n<!-- CODEMAP:END -->\n"
+    )
+    assert b"\r\n" not in arch.read_bytes()  # seeded LF
+    assert _run_cli("generate", str(repo), "--write").returncode == 0
+    assert b"\r\n" not in arch.read_bytes()  # still LF after --write (the fix)
+
+
+def test_cli_init_markers_no_crlf_on_bootstrap(tmp_path):
+    shutil.copytree(str(ARCH_NOMARKERS), str(tmp_path / "repo"))
+    repo = tmp_path / "repo"
+    assert _run_cli("generate", str(repo), "--write", "--init-markers").returncode == 0
+    assert b"\r\n" not in _arch_bytes(repo)

@@ -108,7 +108,30 @@ semantics never regress (fallback proven by a sabotage test + a flow-style fixtu
 via read_bytes/write_bytes (tool.py `_set_repo_record` discipline); `verify`/`detect` paths
 untouched (D9 intact). Tests: `tests/test_deploy_precommit_surgical.py` (11 — byte-identity on
 rev-bump/append/prune, idempotency-on-bytes, CRLF fidelity, refuse-writes-nothing, fallback
-teeth); existing precommit/prune/tool suites green (96 total). Evidence SHAs: *(at merge)*.
+teeth); existing precommit/prune/tool suites green (96 total). Evidence SHAs: leaf `d4068ec`,
+merge `2bfcc01`; full suite 1339 passed / 2 skipped, ship-gate GREEN.
+
+**1.2 #262 hub-side (`feat/262-codemap-consumer-capability`) — capability landed; #262 STAYS
+OPEN (annotated hub-side-done).** Per CH-4 (approved): the hub-side half is the two real
+capability gaps blocking a future child chat from invoking the existing CLI — `--init-markers`
+bootstrap on `codemap generate` (a marker-less child doc previously exit-3'd; now appends a
+fresh marker pair at EOF then splices; default behavior unchanged) + the latent `write_text`
+newline bug (`newline=None` CRLF-ified the WHOLE target doc on Windows → phantom churn; now
+`newline="\n"`). Tests: 8 new E2E in `tests/test_codemap.py` (bootstrap idempotent, no-flag
+still exit-3, half-pair still errors, check-green-after-init, no-CRLF, bytes-outside-markers
+preserved) — 42/42. #262's live Done-when is CHILD-side (each child ARCHITECTURE.md
+regenerated) and cannot close overnight (consumer writes forbidden, ADR-41).
+
+> **CARRIER DEFERRAL → surfaces at the P6 / fleet-roll decision (#221 / #244 P6).** The full
+> deploy-carrier interpretation (a new `deploy/carrier_codemap.py` mirroring `carrier_floor.py`
+> — detect/apply/verify over the marker block, drift = `check_codemap`, prune n/a) was
+> REJECTED for tonight: it adds a `carriers:` entry that `deploy/tool.py` READS, changing
+> post-tag deploy behavior on the tagged v1.2.0 manifest — exactly what the [NB-1] INERT-only
+> precedent forbids; it would force a v1.3.0 release arc + child-side verification. **This is a
+> fleet-roll-coupled decision:** if/when the operator lifts the P5/P6 WAIT and rolls the corpus
+> to n=2, the codemap carrier (v1.3.0) is the natural companion to the child-repo codemap
+> migration (#262 child-side). Designed, deferred-by-precedent, teed for the morning session's
+> fleet-roll call. Evidence SHAs: *(at merge)*.
 ### BLOCK 2 — #238 doctrine + Stage-3 memo — *(pending)*
 ### BLOCK 3 — consolidation mechanicals — *(pending)*
 ### BLOCK 4 — proposal drafts (branch-only) — *(pending)*
