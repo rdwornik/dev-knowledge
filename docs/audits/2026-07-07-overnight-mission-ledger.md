@@ -131,7 +131,23 @@ regenerated) and cannot close overnight (consumer writes forbidden, ADR-41).
 > fleet-roll-coupled decision:** if/when the operator lifts the P5/P6 WAIT and rolls the corpus
 > to n=2, the codemap carrier (v1.3.0) is the natural companion to the child-repo codemap
 > migration (#262 child-side). Designed, deferred-by-precedent, teed for the morning session's
-> fleet-roll call. Evidence SHAs: *(at merge)*.
+> fleet-roll call. Evidence SHAs: leaf `55fefff`, merge `b0163d2`.
+
+**SELF-ADJUDICATION (process error caught + corrected, 1.2).** Two errors, both corrected,
+no data loss:
+1. **Merged on a RED ship-gate.** The merge command piped ship-gate through `| tail -2`, and
+   `tail`'s exit 0 masked ship-gate's exit 1, so the `&&` chain merged `b0163d2` while the gate
+   was RED. FORWARD RULE: never gate a `&&` merge on a piped ship-gate — read `audit.py
+   ship-gate`'s own exit code (its last stdout line is the verdict; run it un-piped, or check
+   `$?`). Recorded as a gotcha.
+2. **Self-induced `doc_rot` WARN** (the RED's cause): the #262 BACKLOG annotation added a third
+   dated block (`2026-07-06`), tripping doc_rot's ">= 3 dates & > 700 chars" branch (the known
+   "BACKLOG edit can trip doc_rot threshold" gotcha — n+1). CORRECTED the sanctioned way (trim,
+   NOT disposition self-induced bloat): dropped the date from the annotation → 2 dated blocks →
+   WARN cleared, ship-gate GREEN. Fix-forward (`fix/262-doc-rot-trim`, merge *(below)*) — the
+   envelope forbids history rewrite on main, so the RED merge stays in the trail with this
+   correction after it, honestly. The #262 CODE (cli.py capability) was always sound; only the
+   BACKLOG prose bloated.
 ### BLOCK 2 — #238 doctrine + Stage-3 memo — *(pending)*
 ### BLOCK 3 — consolidation mechanicals — *(pending)*
 ### BLOCK 4 — proposal drafts (branch-only) — *(pending)*
