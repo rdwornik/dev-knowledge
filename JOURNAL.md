@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-07 — CC (Opus, branch-hygiene follow-up): pruned merged wrap + changelog-review branches; corrected a false "already deleted" self-report
+
+**Did:** Operator-directed branch hygiene after the wrap merge (`f6c0af7`). Deleted the merged wrap branch `docs/session-wrap-20260707` (`-d`, was `0465a37`) and the orphan `docs/changelog-review-20260706` (`-D`, was `07a0d40`) — the latter only after verifying BOTH concurrent-changelog SHAs `064a930` / `f002774` are reachable from `main` (the required safety gate; both `merge-base --is-ancestor` exit 0). Left `drafts/2026-07-07-proposals` (unmerged, ratification-pending) and `automation/fleet-audit` untouched.
+
+**Correction (self-report defect):** the 2026-07-07 wrap summary claimed `docs/changelog-review-20260706` was "already deleted by the concurrent session" — **FALSE**. The branch existed (at `07a0d40`); the claim was an unverified inference from a misread two-argument `git rev-parse --short <A> <B>` error ("Needed a single revision" — a CLI-form quirk, NOT branch-absence; the same error recurred on `origin/main main`, both extant). "Verify before asserting" was skipped. The branch is now genuinely deleted.
+
+**Changes:** JOURNAL.md (this entry); local branch refs only (no tree/content change beyond this note).
+
+**Next:** none — hygiene complete.
+
+---
+
 ### 2026-07-07 — CC (Opus, architect session wrap): archived overnight-mission rulings + hermetization (HERMETIC) + cut next architect bundle; bundled a concurrent /changelog-review arc
 
 **Did:** Architect-half session wrap (EXECUTION mode, runbook-driven). **§1 — archived the browser-architect's post-verification rulings** (`dffe4f3`): mission closure DECLARED on the hard metric (10 sections green vs live @ `07a0d40`, independently verified); Stage-3 enforcement-transfer closure ACCEPTED (#236/#237 confirmed closed 2026-07-03; ai-council FULL-COVERAGE adjudicated COMPLEMENTARY to the carrier port per the stage3 memo); BACKLOG **fold FLAG RESOLVED** (#168/#170 co-sequence with #239/#240 on the shared `session_end_backpressure` organ, #243 co-seq, #139 stays separate); E1 drafts-branch deviation ACCEPTED (1 commit not 3 — intact-and-unmerged holds in substance, the false count a self-report defect the mechanism caught); #267 **mechanism LEAN** recorded (annotated, not decided); C7 nit deferred to P6 (no commit). BACKLOG edits net-neutral on dates+length (#267 1187→1178 chars, 2 dates — under the doc_rot cap). **§2 — hermetization**: all gates GREEN (ship-gate, validate_backlog, doc_rot, gen_audit_index/methodology_roster/claude_rosters `--check`); an independent read-only currency pass verdicted **HERMETIC** — every mission/wrap doctrine already in its canonical home (PLAYBOOK Ch12 + Scale-L, LESSONS, ARCHITECTURE/CONTRIBUTING enumeration; the gate-mask lesson correctly filed as a universal gotcha, not a hub doc); the `drafts/2026-07-07-proposals` branch confirmed intact-and-unmerged. The wrap authored **no new doctrine** (rulings are backlog dispositions + this record). **§3 — cut the next architect bundle** `2026-07-07-dev-knowledge-architect` (`70ed4e4`): ratification agenda (intake-process / epic-naming / audit-retention) + P6 WAIT-lift & #267 attended-run decision queue + an ADR-41 routed-elsewhere block; MODE declared plan-first/design; SUPPLEMENT scaffolded EMPTY (anti-bluff — 10/10 probes bind, no probe value baked).
