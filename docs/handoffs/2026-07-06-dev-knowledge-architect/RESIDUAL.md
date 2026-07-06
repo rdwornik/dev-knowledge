@@ -11,7 +11,7 @@
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -54,7 +54,7 @@ Two waves landed since the last architect bundle (`2026-07-05-dev-knowledge-arch
 ## §4 — Next-frontier decisions (the design "why" that travels)
 
 <!-- FILL-IN:frontier START (hand-authored — the open architecture questions + decision context the next session must resume rather than rediscover; the residual's core payload in architect mode) -->
-The re-sequenced program (2026-07-04 supplement — **read it**: `docs/handoffs/2026-07-04-dev-knowledge-architect/SUPPLEMENT.md`) was **Phase 0 safety → Phase 1 sandbox as the retroactive acceptance instrument → Phase 2 fleet re-gated**, with **P5/P6 held WAIT** while the corpus was moving. Wave-2 stabilized the corpus (three epics integrated) and Wave-3 delivered the Phase-1 payoff (priority-#1 CLOSED — the hub proven enforcing on a real consumer). **The frontier is Phase 2.** recall/inferred — the outgoing chat's strategic *why* fills `SUPPLEMENT.md` (generated EMPTY).
+The re-sequenced program (2026-07-04 supplement — **read it**: `docs/handoffs/2026-07-04-dev-knowledge-architect/SUPPLEMENT.md`) was **Phase 0 safety → Phase 1 sandbox as the retroactive acceptance instrument → Phase 2 fleet re-gated**, with **P5/P6 held WAIT** while the corpus was moving. Wave-2 stabilized the corpus (three epics integrated) and Wave-3 delivered the Phase-1 payoff (priority-#1 CLOSED — the hub proven enforcing on a real consumer). **The frontier is Phase 2.** The outgoing chat's strategic *why* is **now in `SUPPLEMENT.md` (FILLED)** — its ANSWERS are folded into `PASTE_THIS.md` below; read them for the operator's own framing of Phase 2 (a consolidation wave + the undesigned functional/technical-architect intake process), which supersedes any tag-uncertainty in this CC-derived residual.
 
 ### (1) PRIMARY — the fleet-roll sequencing decision (#221 / #244 P6)
 

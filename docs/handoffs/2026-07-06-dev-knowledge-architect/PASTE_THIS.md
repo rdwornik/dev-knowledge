@@ -10,7 +10,7 @@
 | **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->Plan the **post-priority-#1 frontier.** With the hub proven **enforcing** on a real consumer (ai-council measured FULL-COVERAGE, priority-#1 CLOSED) and the consumer-onboarding loop now repeatable (`templates/consumer-onboarding-runbook.md`), the central open decision is whether the n=2+ **fleet-roll WAIT is lifted** and how to sequence it (#221 / #244 P6) — alongside closing the enforcement-transfer epic's doctrine half (#238) and the Wave-3 refinement (#267). A **way-of-working / sequencing** session: start from `BACKLOG.md` (Cross-repo universalization + the enforcement-transfer mesh epic), not a single-task execution.<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/2026-07-06-architect-handoff`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -273,7 +273,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -316,7 +316,7 @@ Two waves landed since the last architect bundle (`2026-07-05-dev-knowledge-arch
 ## §4 — Next-frontier decisions (the design "why" that travels)
 
 <!-- FILL-IN:frontier START (hand-authored — the open architecture questions + decision context the next session must resume rather than rediscover; the residual's core payload in architect mode) -->
-The re-sequenced program (2026-07-04 supplement — **read it**: `docs/handoffs/2026-07-04-dev-knowledge-architect/SUPPLEMENT.md`) was **Phase 0 safety → Phase 1 sandbox as the retroactive acceptance instrument → Phase 2 fleet re-gated**, with **P5/P6 held WAIT** while the corpus was moving. Wave-2 stabilized the corpus (three epics integrated) and Wave-3 delivered the Phase-1 payoff (priority-#1 CLOSED — the hub proven enforcing on a real consumer). **The frontier is Phase 2.** recall/inferred — the outgoing chat's strategic *why* fills `SUPPLEMENT.md` (generated EMPTY).
+The re-sequenced program (2026-07-04 supplement — **read it**: `docs/handoffs/2026-07-04-dev-knowledge-architect/SUPPLEMENT.md`) was **Phase 0 safety → Phase 1 sandbox as the retroactive acceptance instrument → Phase 2 fleet re-gated**, with **P5/P6 held WAIT** while the corpus was moving. Wave-2 stabilized the corpus (three epics integrated) and Wave-3 delivered the Phase-1 payoff (priority-#1 CLOSED — the hub proven enforcing on a real consumer). **The frontier is Phase 2.** The outgoing chat's strategic *why* is **now in `SUPPLEMENT.md` (FILLED)** — its ANSWERS are folded into `PASTE_THIS.md` below; read them for the operator's own framing of Phase 2 (a consolidation wave + the undesigned functional/technical-architect intake process), which supersedes any tag-uncertainty in this CC-derived residual.
 
 ### (1) PRIMARY — the fleet-roll sequencing decision (#221 / #244 P6)
 
@@ -388,7 +388,7 @@ the whole task-state.
 > branch is checked out so CC knows which live value to compare — **re-derive HEAD / tree / branch /
 > ahead-behind live (P3); do not trust this line.**
 >
-> > **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> > **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 >
 > **Windows note:** `audit.py checks` (P2) can crash mid-listing on a bare cp1252 PowerShell console
 > (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` or in git-bash. `ship-gate` (P7)
@@ -411,7 +411,7 @@ navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d):** the browser
 asks the operator for **off-repo** context.
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -440,3 +440,44 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
    never "matches a remembered number." P7 is the headline (GREEN/RED + dispositioned-WARN count +
    any `[stale]` line). P8 pins the bundle shape **and the live supplement fill-state**. First check
    which branch is live (P3), then re-derive every load-bearing fact from the live primary source.
+
+---
+
+=== SUPPLEMENT.md ===
+
+# SUPPLEMENT ANSWERS (enriched) — outgoing architect wrap · 2026-07-06
+# Paste into the outgoing bundle's ANSWERS region (replaces the earlier compressed draft).
+
+## Q1 — Strategic intent (way-of-working level)
+The session closed the ecosystem's central claim: enforcement-in-effect is now a MEASURABLE property with a runbook (measure → attribute → complete → re-measure), proven end-to-end on ai-council (1/6 → FULL-COVERAGE, ZERO consumer-side changes — every gap was instrument-side). The next session's way-of-working goal is two-part:
+(A) CONSOLIDATION WAVE from the operator's audit list: universalize epic-naming across repos (hub ADR-66 story-map vs ai-council "Epic A/B/C" — one convention or none); child-repo Mermaid migration (#262); References sections in CLAUDE/CONTRIBUTING → generability phase 2; ENVIRONMENT.md retire-or-own (stale ~06-03); audit proliferation → an audit-index/retention rule; transfer Epic-5 test tiering to consumers (ai-council check.ps1 got nothing — tiering is methodology, ship it via the deploy pipeline).
+(B) DESIGN THE INTAKE PROCESS the operator sketched: functional architect (gathers requirements, writes intake) → technical architect (owns backlog + ADRs, cuts §14 epic handoffs) → epic browser-chats (one epic each, to completion). Lands in PLAYBOOK as methodology; ai-council wired for genuinely contested forks. This is the operator's explicit ask and UNDESIGNED.
+Only after A+B: P6 fleet roll — its WAIT condition (sandbox as acceptance instrument) expired this session; its own gates #225/#249/#250 stand. Phase-2 rot-report equally UNLOCKED (defer-until-after-sandbox expired) — it is the designed answer to the operator's dead-code/redundancy concern; build it rather than hand-sweeping.
+
+## Q2 — Tensions weighed (where landed, why)
+- Measure-first vs assume-gaps (Wave 3): measure-first; vindicated — the assumed "mesh completion 1/6→6/6" was a phantom; consumer was healthy, instrument was blind.
+- Authorization channel (G3): prompt self-legitimization vs owned-config; CONFIG won — a deployed floor CORRECTLY refuses prompt-asserted authority (witnessed: the child refused the arc as injection citing ai-council's own floor). User-config is the principal's channel; ex-ante standing consent satisfies "ask before destructive" without weakening the floor.
+- Armed vs fired (#267): armed-as-enforcing REJECTED as doctrine; file-scoped hooks correctly skipping out-of-scope diffs is correct behavior, not silence. #267 = refinement (in-scope arc edit + scope-conditional engages:), not a closure gate.
+- Epic ceremony vs serial: worktree-per-EPIC (not per-story), 2–3-lane cap, root-only merges, file-boundaries adjudicated at spawn — held through two waves incl. self-application (Epic 2 refused BACKLOG-structure edits citing the ADR it was integrating).
+- Plan-mode vs execution (operator finding, CONCEDED): plan-first was used at genuine forks (Slice B plan — surfaced two forks; consumer seam) but Waves 2–3 defaulted to EXECUTION and §14a carries no MODE field. Real drift from PLAYBOOK. CORRECTIVE (do early, small): §14a template gains a mandatory Mode row; L-sized epic stories default plan-first; every architect prompt re-declares MODE.
+- Autonomy boundary (overnight): execute pre-authorized contracts YES / design decisions NO — held; Block A DEGRADED honestly on a real GATE-0 confound rather than improvising past it; zero safety-envelope violations unattended.
+
+## Q3 — Considered + rejected (do not relitigate)
+Hand-copied mesh transfer (deploy pipeline only) · armed-as-enforcing · splitting the 90s E2E test (budget "~2min" met per #256's own framing) · LLM-gating semantic properties · sibling-dir worktrees · AI Council for CLAUDE.md quality (architect review + generability epic was right) · prompt-prose authorization for sandbox children · Task-Scheduler auto-resume harness (FAILED in practice: never fired the resume; clean-tree gate + untested wake path; manual git-boot re-paste is the reliable resume — treat re-automation as a fresh design, not a retry).
+
+## Q4 — Open questions (unresolved / deferred)
+- Intake process shape (Q1-B) — undesigned; needs PLAYBOOK section + intake template; how the audit corpus feeds it (operator flags audit proliferation; consider audit-index + retention).
+- Epic-naming universalization (fleet-wide convention pick).
+- Test-tiering transfer to consumers (hub-only today).
+- ENVIRONMENT.md purpose · child Mermaid #262 · References generability · #267 · #254/#255 · #261 (generator slug) · #263–#266 · content-echo doctrine follow-through.
+- Vault V1–V5/OM1–4 sign-off: corp-monorepo audit merged (32b4e20) — OPERATOR ratification in a corp-OS session; pointer only, do NOT pull into hub scope.
+- Plan-mode corrective (Q2) — first small move.
+
+## Q5 — Decomposition rationale (do not redo)
+Dependency-gated waves: instrument before consumers (sandbox = the acceptance instrument), measure before complete (killed a phantom workstream), §14 rails before the 3-lane wave that ran on them, merge order 5→3→4 (ship speedup first; Epic-4's stale loci fixed against post-Epic-3 text). Sealed: C4 closure + fixtures · G3 config-channel trust seam · ADR-51 amendment + check-#7 retirement · ADR-97 · Epic-5 tiering rulings · the operator-approved ESSENTIALS deletion list · priority-#1 closure declaration (8e1dd57).
+
+## Q6 — Off-repo context + the honest ledgers
+EVIDENCE SPINE: main a523fca → fb11266 (~25 --no-ff merges, all pushed); suite 1216 → 1323 tests; closed #251/#252/#253a–d/#256–#260; filed #254/#255/#261–#267; ADR-97 new, ADR-51 amended, HANDOFF_PROCESS 5.3→5.4→5.5; ESSENTIALS 448→174 lines; /ship docs-only 9m42s→~34s, code ~2min; ai-council 1/6→FULL-COVERAGE with IDENTICAL consumer HEAD before/after.
+INCIDENTS THE INSTRUMENT CAUGHT (methodology wins, on record): ai-council's relic core.hooksPath had EVERY git hook silently bypassed since the repo move (found+repaired mid-mission); the ruff tombstone prune-proof was false-green ("already absent" while ruff ran); the content-echo channel class (repo files quoting signatures leak into tool_result echoes); a deployed floor refusing prompt-asserted authority; the child declining git commit --no-verify at a failing gate under a narrowed allowlist.
+ARCHITECT DEFECT LEDGER (the outgoing session's own error rate — trust the mechanism, not the architect): four contract-authoring defects (item-1 RF-1 mislabel; nonexistent docs/adr/ path; S2 bump-vs-boundary contradiction; E4-1 missing tests path) — ALL caught downstream by lane escalation or the fidelity check; plan-mode drift (conceded above); the overnight relaunch harness failure; one mid-session thread-sprawl episode (fixed by hermetization + a STOP rule: nothing new opens until the current wave closes — keep the rule).
+OPERATIONAL: API credits funded (negative balance found 07-05; sandbox children bill API credits, NOT the Max subscription — by design of the isolation seam). CC update pending 2.1.177→2.1.200 (native; all claude.exe must exit first; one 14h --dangerously-skip-permissions terminal from the overnight window flagged for conscious close). Overnight-harness scheduled task unregister pending (needs elevation). No LLM-budget ceiling.
