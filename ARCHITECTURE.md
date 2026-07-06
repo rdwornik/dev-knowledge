@@ -398,6 +398,7 @@ auto-enumerable `ALL_CHECKS` surface; the heterogeneous non-`ALL_CHECKS` remaind
 **Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
 (PLAYBOOK.md), `roster-freshness` (methodology-roster vs manifest, #244 P3),
+`claude-rosters-freshness` (CLAUDE.md `.claude/generated/*` fragments vs disk, #258 phase-2),
 `validate-backlog`, `audit-health`, `ruff` (≥0.15.5),
 `coherence-nudge` (non-blocking forgotten-version-bump nudge — exits 0 always),
 `backlog-id-on-close` (commit-msg), and `block-ff-push` (pre-push — #153 prevent

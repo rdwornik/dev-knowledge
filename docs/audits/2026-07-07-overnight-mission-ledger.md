@@ -197,7 +197,19 @@ CH-3); the ai-council FULL-COVERAGE proof (measurement-3) is COMPLEMENTARY to th
 ARMED-BUT-SKIPPED residual is #267 (Block 5), not a Stage-3 defect. Recommendation: Stage-3
 closure STANDS. #139/#168/#170 FLAG (verbatim) + #243 surfaced as inputs, **decision RESERVED**
 for the architect (ADR-97 root-only). Nothing closed beyond #238. Evidence SHAs: *(at merge)*.
-### BLOCK 3 — consolidation mechanicals — *(pending)*
+### BLOCK 3 — consolidation mechanicals — *in progress*
+
+**3.1 References generability phase-2 (`feat/258-generability-phase2`) — DONE per CH-6.** The
+v2.30 EPIC-RETURN's own named follow-up: added the **`claude-rosters-freshness`** pre-commit
+hook (regen-and-diff `gen_claude_rosters.py --check`, mirroring `roster-freshness`) so the two
+`@`-imported CLAUDE.md fragments (`.claude/generated/{commands-repo,recent-adrs}.md`) can no
+longer drift silently — it fires on the command files / ADR headers / the fragments, catching
+both drift directions. First-ever tests for `gen_claude_rosters.py` (`tests/test_gen_claude_rosters.py`,
+12 — collectors/renderers via tmp fixtures, both ADR status dialects + qualifier trim, live
+fragments fresh, check drift/missing/roundtrip). Ripple (per the plan's flag): pre-commit gate
+count 11→12 (`doc-counts.md` regen), CLAUDE.md §9 + CONTRIBUTING Validators table + ARCHITECTURE
+pre-commit list gain the hook (hand-prose — §9 is `doc_claims`-checked, not generated). All
+today-stamped, no forced re-stamp. Evidence SHAs: *(at merge)*.
 ### BLOCK 4 — proposal drafts (branch-only) — *(pending)*
 ### BLOCK 5 — #267 sandbox refinement — *(pending)*
 ### BLOCK 6 — optional residuals — *(pending; #246 pre-declared SKIP per CH-8)*
