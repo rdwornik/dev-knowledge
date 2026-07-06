@@ -37,11 +37,24 @@ def _cmd_generate(args: argparse.Namespace) -> int:
     end_idx = content.find(_END_MARKER)
 
     if start_idx == -1 or end_idx == -1:
-        print(
-            f"error: CODEMAP markers not found in {arch_file}",
-            file=sys.stderr,
-        )
-        return 3
+        both_absent = start_idx == -1 and end_idx == -1
+        if not (args.init_markers and both_absent):
+            # A half-present pair is malformed and still errors even under
+            # --init-markers (do not append a duplicate marker).
+            print(
+                f"error: CODEMAP markers not found in {arch_file}",
+                file=sys.stderr,
+            )
+            return 3
+        # Bootstrap (#262 --init-markers): a consumer adopting the compact-text
+        # codemap for the first time has no marker pair. Append a fresh one at EOF,
+        # then splice as normal. Default behavior (no flag) is unchanged — still
+        # exit 3 — so this never surprises the freshness hook.
+        if content and not content.endswith("\n"):
+            content += "\n"
+        content = content + "\n" + _START_MARKER + "\n" + _END_MARKER + "\n"
+        start_idx = content.find(_START_MARKER)
+        end_idx = content.find(_END_MARKER)
 
     new_content = (
         content[: start_idx + len(_START_MARKER)]
@@ -50,7 +63,10 @@ def _cmd_generate(args: argparse.Namespace) -> int:
         + content[end_idx:]
     )
     try:
-        arch_file.write_text(new_content, encoding="utf-8")
+        # newline="\n" (#262): the default (newline=None) translates \n -> os.linesep
+        # on write, CRLF-ifying the WHOLE target doc on Windows. The repo-wide LF
+        # discipline: write bytes faithfully.
+        arch_file.write_text(new_content, encoding="utf-8", newline="\n")
     except OSError as exc:
         print(f"error: cannot write {arch_file}: {exc}", file=sys.stderr)
         return 2
@@ -82,6 +98,12 @@ def main() -> None:
         help="Target doc to write (default: <repo_path>/ARCHITECTURE.md)",
     )
     gen_p.add_argument("--write", action="store_true", help="Write output into the target doc")
+    gen_p.add_argument(
+        "--init-markers",
+        action="store_true",
+        help="If the target doc has no CODEMAP markers, append a fresh pair at EOF "
+        "(bootstrap a consumer's first compact-text codemap) instead of exiting 3.",
+    )
     gen_p.set_defaults(func=_cmd_generate)
 
     chk_p = sub.add_parser("check", help="Check ARCHITECTURE.md codemap freshness")
