@@ -234,8 +234,44 @@ time, so the check/write functions now resolve `_AUDITS_DIR` at CALL time (monke
 **No freshness HOOK** this block (deliberate — gating + the retention/roll-up RULE are ADR-class,
 proposed in Block 4 / [#212]); the index will be regenerated at FINAL after all mission audit
 files exist. Evidence SHAs: *(at merge)*.
-### BLOCK 4 — proposal drafts (branch-only) — *(pending)*
-### BLOCK 5 — #267 sandbox refinement — *(pending)*
+### BLOCK 4 — proposal drafts (branch-only) — **CLOSED (branch intact, UNMERGED)**
+
+Three marked-DRAFT decision-ready artifacts + one draft template on `drafts/2026-07-07-proposals`
+(head `3da29ea`, **NOT merged** — zero merges to main, per contract):
+- `docs/audits/2026-07-07-DRAFT-intake-process-design.md` (+ `templates/intake-template.md`) — the
+  operator's explicit undesigned ask: functional→technical→epic-chat intake pipeline, PLAYBOOK
+  section draft, template, open questions, recommendation (three-role progression + confirm-gated
+  intake doc).
+- `docs/audits/2026-07-07-DRAFT-epic-naming-convention-proposal.md` — hub ADR-66 story-map vs
+  ai-council "Epic A/B/C"; 4 options + recommendation ((D) rename-to-Track now → converge on the
+  story-map at P6).
+- `docs/audits/2026-07-07-DRAFT-audit-retention-index-rule-proposal.md` — the retention +
+  index-currency RULE Block-3.3 deferred; pairs with #212; options + recommendation (keep-all +
+  age-tier the index + add the freshness hook; one ADR covering audits+handoffs).
+Every draft ends decision-reserved. **To review:** `git show drafts/2026-07-07-proposals` (3 files
++ template on the branch). Evidence SHA: branch head `3da29ea`.
+### BLOCK 5 — #267 sandbox refinement — **DEGRADED (per the frozen contract) — half-b landed, half-a fork stated**
+
+**Feasibility PROVEN (not the blocker).** `prove-isolation --haiku` → *isolation PROVEN … exit 0*
+(claude 2.1.200 on PATH; key via `DEV_SECRETS_ENV`→`.secrets/.env`, 108-char sk-ant-; no orphan
+clones). The credit-billing consumer arc *could* run.
+
+**LANDED (Done-when conjunct b, safe + tested):** the `engages:` **scope condition** on
+`hub-toc-hooks` + `floor-hash-verify-hook` (`deploy/manifest-v1.2.0.yaml` — INERT additive
+metadata, version HELD, #220-recorded) + hermetic observer tests pinning the witness semantics
+(`test_failing_floor_hook_is_fired_not_silent_267` — a FAILING floor hook classifies FIRED not
+SILENT; `test_scope_matching_toc_edit_fires_not_skipped_267`).
+
+**DEGRADED (Done-when conjunct a — the live re-measurement) — FORK STATED:** #267 wants "a second
+commit touching a **per-consumer** scope-matching file," but the scope paths are consumer-specific
+(verified on the real clone: ai-council toc = `^protocols/COUNCIL_QUESTION_GUIDE\.md$`, hub toc =
+`^ARCHITECTURE\.md$`; floor same). The **shared** ARC_PROMPT (pinned by the frozen GATE-0
+fixtures) would have to become **scope-AWARE**, and #267 leaves the mechanism unspecified
+(hardcode-per-consumer / discover-from-config / instruct-the-child). That is a measurement-harness
+**design decision** the envelope forbids improvising — so the billed consumer arc was NOT run.
+Full analysis + the 3 design options + the discovered scopes: `docs/audits/2026-07-07-ai-council-measurement-4.md`.
+**#267 stays OPEN** (conjunct b done, conjunct a deferred to an attended run). ai-council HEAD
+untouched (probe clone only, auto-cleaned) — Wave-3 invariant held. Evidence SHAs: *(at merge)*.
 ### BLOCK 6 — optional residuals — *(pending; #246 pre-declared SKIP per CH-8)*
 
 ---
