@@ -174,6 +174,19 @@ def test_preflight_passes_when_all_gates_met(preflight_world):
     assert ctx.bare_version == "1.0.0"
     assert ctx.source_tag == "v1.0.0"
     assert ctx.repo_root.name == "myrepo"
+    # The fixture registry records null -> a GREENFIELD consumer (ADR-96 amendment).
+    assert ctx.deployed_version is None
+
+
+def test_preflight_threads_nonnull_deployed_version(preflight_world):
+    # A previously-deployed consumer's record rides the context (the remove leg
+    # keys its greenfield-skip off this exact field).
+    preflight_world["registry"].write_text(
+        yaml.safe_dump({"repos": {"myrepo": {"deployed_methodology_version": "1.2.0"}}}),
+        encoding="utf-8",
+    )
+    ctx = _preflight(preflight_world)
+    assert ctx.deployed_version == "1.2.0"
 
 
 def test_preflight_accepts_bare_and_v_prefixed_version(preflight_world):

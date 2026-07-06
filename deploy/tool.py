@@ -159,6 +159,11 @@ class PreflightContext:
     source_tag: str       # the git tag the manifest declares for this release
     manifest: dict[str, Any]
     manifest_path: Path
+    # The consumer's registry record (deployed_methodology_version). None = the
+    # registry says null: a GREENFIELD consumer no release was ever deployed to,
+    # so the remove leg has nothing methodology-deployed to prune (ADR-96
+    # amendment 2026-07-06 -- the prune oracle is the last-DEPLOYED shape).
+    deployed_version: str | None = None
 
 
 def normalize_version(version: str) -> str:
@@ -249,6 +254,11 @@ def preflight(
             f"{repo!r} is not a registered consumer in {registry_path.name} "
             f"(known: {', '.join(sorted(repos)) or 'none'})"
         )
+    entry = repos[repo]
+    deployed_raw = (
+        entry.get("deployed_methodology_version") if isinstance(entry, dict) else None
+    )
+    deployed_version = str(deployed_raw) if deployed_raw is not None else None
 
     repo_root = resolve_repo_root(repo, hub_root)
     if not repo_root.is_dir():
@@ -276,6 +286,7 @@ def preflight(
         source_tag=source_tag,
         manifest=manifest,
         manifest_path=mpath,
+        deployed_version=deployed_version,
     )
 
 
@@ -416,6 +427,14 @@ class DeploymentPlan:
     items: tuple[CarrierPlanItem, ...]
     out_of_scope: tuple[OutOfScopeItem, ...]
     prune_items: tuple[PrunePlanItem, ...] = ()
+    # True when the consumer's registry record is null (never deployed). The
+    # remove leg is component-driven off the LAST-DEPLOYED shape (ADR-96 D2);
+    # with no deploy ever recorded, "locally modified since deploy" is a
+    # category error -- any URL-matched artifact is consumer property, not
+    # methodology residue, so --execute skips the prune sweep entirely
+    # (ADR-96 amendment 2026-07-06). prune_items stays POPULATED (read-only
+    # detect) so assess remains honest about what exists on disk.
+    greenfield: bool = False
 
     @property
     def needs_apply(self) -> tuple[CarrierPlanItem, ...]:
@@ -436,7 +455,11 @@ class DeploymentPlan:
     @property
     def prune_pending(self) -> tuple[PrunePlanItem, ...]:
         """Removed components whose artifact is PRESENT (clean or modified) — the
-        sweep will touch a real artifact. Drives the destroy-confirm gate."""
+        sweep will touch a real artifact. Drives the destroy-confirm gate.
+        Empty on a greenfield consumer: the sweep never runs, so nothing is
+        pending and no destroy-confirm may fire (ADR-96 amendment)."""
+        if self.greenfield:
+            return ()
         return tuple(
             i for i in self.prune_items
             if i.state in (PruneState.PRESENT_CLEAN, PruneState.PRESENT_MODIFIED)
@@ -578,6 +601,7 @@ def assess(
         items=tuple(items),
         out_of_scope=tuple(extract_out_of_scope(entries)),
         prune_items=build_prune_plan(ctx.manifest, carriers),
+        greenfield=ctx.deployed_version is None,
     )
 
 
@@ -644,7 +668,14 @@ def render_plan(plan: DeploymentPlan, console: Console | None = None) -> None:
         for p in plan.prune_items:
             if p.error:
                 console.print(f"  [red]![/] {p.component_id}: {p.error}")
-        if plan.prune_pending:
+        if plan.greenfield:
+            console.print(
+                "  [yellow]Remove leg SKIPPED on --execute -- greenfield consumer "
+                "(deployed_methodology_version: null; nothing methodology-deployed "
+                "to prune; ADR-96 REFUSE semantics preserved for previously-deployed "
+                "consumers).[/]"
+            )
+        elif plan.prune_pending:
             console.print(
                 f"  [yellow]{len(plan.prune_pending)} present artifact(s) -- "
                 "--execute will REQUIRE confirmation before pruning "
@@ -905,6 +936,9 @@ class ExecuteResult:
     out_of_scope: tuple[OutOfScopeItem, ...] = ()
     prune_outcomes: tuple[PruneExecOutcome, ...] = ()
     prune_declined: bool = False  # operator declined the destroy-confirm
+    # True when the remove leg was skipped because the consumer is greenfield
+    # (registry record null -- ADR-96 amendment); rendered as operator evidence.
+    prune_skipped_greenfield: bool = False
 
 
 PruneConfirm = Callable[["Sequence[PrunePlanItem]"], bool]
@@ -944,7 +978,9 @@ def execute(
     -> apply() then verify(); if already correct -> verify() only (confirm).
     Then the REMOVE LEG (P2): converge-then-prune — after the add-loop succeeds,
     prune every status:removed component. A destroy-confirm is REQUIRED before
-    pruning when a removed artifact is present, unless ``auto_approve``.
+    pruning when a removed artifact is present, unless ``auto_approve``. On a
+    GREENFIELD consumer (registry record null) the sweep is skipped entirely —
+    nothing methodology-deployed exists to prune (ADR-96 amendment 2026-07-06).
     Fail-fast: the first carrier that fails verify, OR a prune that REFUSES (a
     locally-modified target), OR a failed verify_pruned, OR a declined confirm,
     ABORTS the run -- no consumer staging, no record write. So there is never a
@@ -1011,7 +1047,11 @@ def execute(
     # component still present (criterion 3/5 / D9). ---
     prune_outcomes: list[PruneExecOutcome] = []
     prune_declined = False
-    if not aborted:
+    # Greenfield consumers (registry record null) skip the sweep entirely: the
+    # prune oracle is the last-DEPLOYED shape, and nothing was ever deployed
+    # here -- a URL-matched artifact is consumer property, never methodology
+    # residue (ADR-96 amendment 2026-07-06).
+    if not aborted and not plan.greenfield:
         pending = plan.prune_pending
         if pending and not auto_approve and not prune_confirm(pending):
             prune_declined = True
@@ -1094,6 +1134,7 @@ def execute(
         out_of_scope=plan.out_of_scope,
         prune_outcomes=tuple(prune_outcomes),
         prune_declined=prune_declined,
+        prune_skipped_greenfield=plan.greenfield and bool(plan.prune_items),
     )
 
 
@@ -1166,6 +1207,13 @@ def render_execute(result: ExecuteResult, console: Console | None = None) -> Non
                     f"removed_in {escape(po.removed_in)} | "
                     f"carrier {escape(po.carrier_id)} | reason: {escape(po.reason)}"
                 )
+
+    if result.prune_skipped_greenfield:
+        console.print(
+            "\n[yellow]Remove leg SKIPPED[/] -- greenfield consumer "
+            "(deployed_methodology_version: null; nothing methodology-deployed "
+            "to prune; ADR-96 amendment)."
+        )
 
     if result.aborted:
         if result.prune_declined:
