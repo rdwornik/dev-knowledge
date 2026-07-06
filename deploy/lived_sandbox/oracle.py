@@ -8,8 +8,8 @@ expectation — it reads the oracle and checks the named channel for the named s
 Partitioning (the observer's gate vs report split, per the [#252] operator ruling):
 
 - **GATED** — ``observable == hook-stdout`` AND an arc-stage ``trigger``: the deployed-mesh
-  firing hooks the lived arc gates. Split into ``gated_active`` (the six methodology hooks
-  that MUST fire) and ``gated_absent`` (a tombstone whose signature must NOT appear —
+  firing hooks the lived arc gates. Split into ``gated_active`` (the seven methodology hooks
+  that MUST fire; #250 added hub-codemap-hooks) and ``gated_absent`` (a tombstone whose signature must NOT appear —
   prune-conformance).
 - **OBSERVED-not-gated** — everything else (``git-state`` / ``transcript-event`` channels,
   or a non-arc ``operator-invoke`` / ``deploy-time`` trigger): present in the oracle,
@@ -62,7 +62,7 @@ class Expectation:
     @property
     def is_gated(self) -> bool:
         """A firing hook on an arc stage — the deployed mesh the arc exercises. True for
-        the six active methodology hooks AND the ruff tombstone (gated as expect-absent)."""
+        the seven active methodology hooks AND the ruff tombstone (gated as expect-absent)."""
         return self.is_firing_hook and self.is_arc_stage
 
 
@@ -113,7 +113,7 @@ class Oracle:
 
     @property
     def gated_active(self) -> tuple[Expectation, ...]:
-        """The deployed firing hooks that MUST fire (the six)."""
+        """The deployed firing hooks that MUST fire (seven w/ #250)."""
         return tuple(e for e in self.gated if e.status == "active" and not e.absent)
 
     @property

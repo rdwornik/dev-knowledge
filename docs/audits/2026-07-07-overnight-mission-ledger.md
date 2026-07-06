@@ -162,6 +162,23 @@ Ripple (all count-pin homes): `ALL_CHECKS` 28→29, `test_doc_code_edge.py` L249
 (pass/broken/depth-2/backtick+fence+version-immunity/home+absolute-skip/cycle/n-a/live-repo/via-audit_repo).
 Evidence SHAs: *(at merge)*.
 
+**1.4 #250 (`feat/250-codemap-manifest-component`) — CLOSED on the Done-when.** Added the
+`hub-codemap-hooks` component to `deploy/manifest-v1.2.0.yaml` after `hub-toc-hooks` (kind hook,
+carrier precommit, **`waivable: true`** — the doc-hygiene class, that IS the Done-when's
+waivability judgment; `engages:` {pre-commit, hook-stdout, "Codemap freshness"}; roster line;
+[NB-2] post-tag provenance — INERT to `deploy/tool.py`, the codemap-freshness hook already
+ships via the precommit carrier's `hub_hooks.marker_hook_ids`, so version HELD and no deployed
+behavior changed; the entry only makes its per-consumer drift Tier-3-CLASSIFIABLE). Approved
+design judgment (i): honest engages shape grows the gated firing-hook set six→seven; the
+frozen GATE-0 fixtures already carry "Codemap freshness …Skipped" (verified) so acceptance
+holds (codemap → SKIPPED_ARMED, parallel to hub-toc-hooks — no re-freeze). Ripple: roster regen
+(codemap line; roster-freshness gates it), observer test 13→14 + `_GATED_SIX`→`_GATED_SET` +
+`_SIX_SIGNATURES`→`_GATED_SIGNATURES` (+codemap +signature, +armed-set), observe.py/oracle.py
+"six"→"seven" prose. Tests: 2 new in `test_enforcement_coverage.py` (live-manifest waivable
+policy + E2E DRIFT→SANCTIONED via the REAL policy — the Done-when's Tier-3 classifiability);
+release_lint C6/C8 validate the entry for free; 195 in the affected suites. Evidence SHAs:
+*(at merge)*.
+
 ### BLOCK 2 — #238 doctrine + Stage-3 memo — *(pending)*
 ### BLOCK 3 — consolidation mechanicals — *(pending)*
 ### BLOCK 4 — proposal drafts (branch-only) — *(pending)*

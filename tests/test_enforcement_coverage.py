@@ -532,6 +532,31 @@ def test_tier3_expired_allowlist_is_drift():
     assert "expired" in t3[0].evidence
 
 
+# --- #250: codemap-freshness is now a manifest component -> Tier-3-classifiable ---
+
+
+def test_codemap_component_waivable_in_live_manifest():
+    """#250 Done-when: hub-codemap-hooks carries a waivability JUDGMENT read from the LIVE
+    manifest (waivable: true, the doc-hygiene class) — so it is no longer invisible to the
+    Tier-3 policy the way an unlisted deployed hook was."""
+    policy = ec.waivability_policy_from_manifest(ec._latest_manifest())
+    assert policy["hub-codemap-hooks"] is True
+
+
+def test_tier3_codemap_divergence_sanctionable_via_live_policy():
+    """#250 Done-when, end-to-end: a hub-codemap-hooks divergence classifies through the REAL
+    manifest policy — DRIFT with no allowlist, SANCTIONED once validly allowlisted (the
+    per-consumer drift is now Tier-3-classifiable, which it was not before the components: entry)."""
+    policy = ec.waivability_policy_from_manifest(ec._latest_manifest())
+    div = [("hub-codemap-hooks", "hub-codemap-hooks", "fabricated codemap drift (P5/P6 measurable)")]
+    drift = ec.classify_tier3(div, [], run_date="2026-07-04", waivable_policy=policy)
+    sanctioned = ec.classify_tier3(div, [_valid_entry("hub-codemap-hooks")],
+                                   run_date="2026-07-04", waivable_policy=policy)
+    assert drift[0].classification == ec.DRIFT
+    assert sanctioned[0].classification == ec.SANCTIONED
+    assert sanctioned[0].component_id == "hub-codemap-hooks"
+
+
 def test_tier3_classification_vocabulary():
     """Every Tier3Cell classification is in the honest {DRIFT, SANCTIONED} axis."""
     div = [("hub-toc-hooks", "hub-toc-hooks", "x"),

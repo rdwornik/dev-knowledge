@@ -262,9 +262,10 @@ carriers:
 #                          not a transcript text-grep) | git-state | transcript-event.
 #                          A component whose observable is `hook-stdout` AND whose
 #                          trigger is an arc stage is a FIRING hook the lived arc
-#                          GATES on (the deployed-mesh six + the ruff tombstone);
-#                          git-state / transcript-event components are OBSERVED,
-#                          not gated (release_lint C8 derives the gated set this way).
+#                          GATES on (the deployed-mesh gated set — seven w/ #250 —
+#                          + the ruff tombstone); git-state / transcript-event
+#                          components are OBSERVED, not gated (release_lint C8
+#                          derives the gated set this way).
 #               expect     the signature checked against the channel: a non-empty
 #                          string (must APPEAR), or {absent: true, signature: <str>}
 #                          for a tombstone (must NOT appear — prune conformance).
@@ -427,6 +428,34 @@ components:
     roster:
       section: precommit-hook
       line: "toc-freshness / toc-generate — TOC freshness (hub hooks, pinned rev)"
+
+  - id: hub-codemap-hooks
+    kind: hook
+    carrier: precommit
+    status: active
+    waivable: true   # doc-hygiene codemap-staleness gate; a repo with no codemap block / no
+                     # matching source tree has nothing to gate (same class as hub-toc-hooks)
+    verify: wired
+    engages:                    # GATED (seven w/ #250) — firing hook, pre-commit stage
+      trigger: pre-commit
+      observable: hook-stdout
+      expect: "Codemap freshness"  # hook NAME substring — carried by both forms ("Codemap
+                                   # freshness check" hub-local / "Codemap freshness
+                                   # (ARCHITECTURE.md vs source tree)" hook-repo); grounded in
+                                   # the frozen GATE-0 fixtures (present-as-Skipped -> G4a armed,
+                                   # exactly parallel to hub-toc-hooks — no re-freeze needed)
+    artifacts:
+      - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hooks codemap-freshness + codemap-generate"
+    roster:
+      section: precommit-hook
+      line: "codemap-freshness / codemap-generate — ARCHITECTURE.md codemap freshness (hub hooks, pinned rev)"
+    # [NB-2] version provenance: hub-codemap-hooks (like `waivable:`/`engages:`, [NB-1]) was
+    # ADDED AFTER the v1.2.0 tag (#250). It is INERT to deploy/tool.py (reads only carriers:) —
+    # the codemap-freshness hook already ships via the precommit carrier's hub_hooks
+    # marker_hook_ids; this entry only gives it a components: row so the Informant Tier-3
+    # waivability policy can CLASSIFY its per-consumer drift (previously invisible). Deployed
+    # behavior unchanged, version HELD; consumer-visible if the manifest transfers verbatim
+    # (recorded here + JOURNAL, #220-satisfied). Grows the gated firing-hook set six -> seven.
 
   - id: floor-hash-verify-hook
     kind: hook

@@ -12,7 +12,7 @@ channels only — and NEVER from the inner session's narration (C1; LESSONS 2026
   3. transcript-event — structured ``tool_use`` invocations (the >=1 command act, the edit).
 
 Against the ``engages`` oracle it classifies each expectation and GATES only the deployed
-mesh (the six firing hooks + the ruff tombstone); everything else is OBSERVED-not-gated
+mesh (the seven firing hooks + the ruff tombstone; #250 added hub-codemap-hooks); everything else is OBSERVED-not-gated
 (watched + reported, never pass/fail — the operator's [#252] ruling). ``passed`` is true iff
 every gated firing hook FIRED and every gated tombstone is CORRECTLY-ABSENT.
 """
