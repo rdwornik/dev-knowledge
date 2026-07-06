@@ -2,11 +2,12 @@
 
 - **Status:** Proposed | Accepted | Superseded
 - **Date:** YYYY-MM-DD
+- **Decision tier:** <the route this decision took — e.g. "Architecture (Path A — direct architect/operator ruling)", "Council-ratified", or "Path A — operator ruling, session YYYY-MM-DD"; names how it was decided, not the topic>
 - **Amends:** <ADR-NN if this amends an earlier decision; omit if not applicable>
 - **Supersedes:** <ADR-NN if this replaces an earlier decision; omit if not applicable>
 - **Related:** <ADR-NN or other refs for context; omit if none>
 - **Decommission:** <files, folders, or sections made obsolete by this decision and therefore to be removed; write "none" if nothing>
-- **Source:** <AI Council debate, session debate, Rob's decision — with date and ref>
+- **Source:** <provenance line — AI Council debate / session debate / operator ruling, with date + ref (branch, transcript, session, or brief)>
 
 <!-- Decommission: if non-empty, each listed item becomes a BACKLOG entry and stays open until removed. A decision is not complete while its Decommission items remain. -->
 
