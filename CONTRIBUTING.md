@@ -1,6 +1,6 @@
 ---
-last_reviewed: 2026-07-05
-reconciled_with: handoff-process@5.5
+last_reviewed: 2026-07-06
+reconciled_with: handoff-process@5.6
 status: active
 owner: Rob
 ---
@@ -186,7 +186,7 @@ See ADR-27 through ADR-41 for style reference.
 
 <!-- scope: meta -->
 
-Protocol: `protocols/HANDOFF_PROCESS.md` — **v5** (stamp v5.5, *stable*; ADR-82, operator-ratified 2026-06-11 per #149, amended 2026-06-16 for the v5.1 architect strategic supplement, 2026-06-17 for the v5.2 always-generated supplement file, 2026-06-25 for the v5.3 §5 probe-manifest consolidation, 2026-07-05 for the v5.4 §5 structural anti-bluff + §13 generator note, and 2026-07-05 for the v5.5 §14 epic-lane handoffs — EPIC + EPIC RETURN, ADR-97). v5 inverts the v4 model: instead of a browser-delivered 8-file bundle, **CC owns the handoff** — it emits a lean **residual** + a **probe manifest** under `docs/handoffs/<slug>/`, and a fresh browser chat boots from the thin `protocols/HANDOFF_BOOT.md`. Verification has teeth: the probes force CC to re-derive every load-bearing fact from the live primary source at check-time. v4.4 is archived at `protocols/archive/HANDOFF_PROCESS_v4.4.md`. The ADR-36 read-only contract holds: a handoff never writes to a target repo.
+Protocol: `protocols/HANDOFF_PROCESS.md` — **v5** (stamp v5.6, *stable*; ADR-82, operator-ratified 2026-06-11 per #149, amended 2026-06-16 for the v5.1 architect strategic supplement, 2026-06-17 for the v5.2 always-generated supplement file, 2026-06-25 for the v5.3 §5 probe-manifest consolidation, 2026-07-05 for the v5.4 §5 structural anti-bluff + §13 generator note, 2026-07-05 for the v5.5 §14 epic-lane handoffs — EPIC + EPIC RETURN, ADR-97, and 2026-07-06 for the v5.6 §14a execution-MODE item). v5 inverts the v4 model: instead of a browser-delivered 8-file bundle, **CC owns the handoff** — it emits a lean **residual** + a **probe manifest** under `docs/handoffs/<slug>/`, and a fresh browser chat boots from the thin `protocols/HANDOFF_BOOT.md`. Verification has teeth: the probes force CC to re-derive every load-bearing fact from the live primary source at check-time. v4.4 is archived at `protocols/archive/HANDOFF_PROCESS_v4.4.md`. The ADR-36 read-only contract holds: a handoff never writes to a target repo.
 
 Claude Code command: **`/handoff`** — `create handoff for <repo>` has CC emit the **residual** + **probe manifest** under `docs/handoffs/<slug>/` and point the next browser at the thin boot (`protocols/HANDOFF_BOOT.md`); `complete handoff for <repo>` cross-checks repo state and finalizes. `<repo>` defaults to `.dev-knowledge` (self-handoff). Not `/session-summary` — that is a separate session-summary command, not the handoff generator.
 
