@@ -27,7 +27,7 @@
 
 **Generation-time state (JOURNAL-only — NOT in the bundle; the browser never sees this, and the bundle withholds every value per §5):** HEAD `fb11266`; `ALL_CHECKS` = 28 (last `doc_code_coverage_drift`); ship-gate / backlog values are re-derived live via PROBES P2/P4/P7/P9 at onboarding.
 
-**Changes:** new bundle `docs/handoffs/2026-07-06-dev-knowledge-architect/` (HANDOFF_BOOT + RESIDUAL + PROBES + SUPPLEMENT + PASTE_THIS), JOURNAL.md (this entry). No code touched (docs-only).
+**Changes:** new bundle `docs/handoffs/2026-07-06-dev-knowledge-architect/` (HANDOFF_BOOT + RESIDUAL + PROBES + SUPPLEMENT + PASTE_THIS) + JOURNAL.md — committed `668d7d0`; this follow-up commit anchors that SHA (ADR-85 wrap-SHA chicken-and-egg). No code touched (docs-only).
 
 **Abandoned:** nothing.
 
