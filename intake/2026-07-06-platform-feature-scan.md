@@ -1,8 +1,8 @@
 ---
 intake-id: 2
-status: SEED
+status: CONSUMED
 origin: operator ask + architect web research, 2026-07-06
-consumed-by:
+consumed-by: "#272 (Arc-5 triage epic, executed 2026-07-06/07), #273 (R3), #274 (R4); evidence: docs/audits/2026-07-06-arc5-must-verification.md + docs/audits/2026-07-06-arc5-buy-vs-build-verdicts.md + docs/audits/2026-07-06-arc5-routines-pilot-design.md"
 ---
 
 # INTAKE BRIEF — platform feature scan: buy-vs-build audit (Claude/CC, H1-2026 features)
@@ -64,3 +64,7 @@ Context: the /changelog-review command (#113, sentinel-driven, buckets ADOPT/OBS
 - /batch governance compatibility (the make-or-break question for adopting it).
 - Auto mode ("background safety checks" replacing prompts) vs our deny-first floor — reconcile or reject; never both silently.
 - Which of our G-batch permission workarounds are obsoleted by the Week-26 subagent-permission change (verify empirically).
+
+## 8. Triage record (status transition, 2026-07-07)
+
+ACCEPTED by the technical-architect triage ruling 2026-07-07; decomposed as the Arc-5 epic (#272, filed-and-executed in one arc per the #268 precedent) + R-filings #273/#274. §6 dispositions: **R1** SHIPPED in #268 (the /changelog-review → intake SEED feed is live); **R2** resolved obsolete 2026-07-06 (fix present via codex 0.141+; #119 removed-not-closed); **R3** filed as #273; **R4** filed as #274; **R5** deferred-with-reason — bucket-taxonomy ↔ MUST/PILOT/WATCH reconciliation waits until both funnels have n≥2 runs (one changelog-feed SEED batch + one nightly-loop run minimum), no item filed. §7 open questions answered where the pilots reached them (see the verdicts doc §AC2/§cross-cutting); pilot follow-ups seeded as intake doc #4.
