@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -245,18 +246,64 @@ def _classify(config: dict[str, Any], target: PrecommitTarget) -> CarrierState:
 
 
 # ---------------------------------------------------------------------------
-# apply path — _reconcile + _dump_config.
+# apply path — _reconcile (semantic engine, also emits typed ops) + the
+# surgical text splice (#225) + _dump_config (the fallback writer).
+#
+# #225: the consumer's .pre-commit-config.yaml is consumer-owned prose too —
+# a YAML round-trip re-dump strips every comment and reindents the whole file.
+# The splice engine edits ONLY the methodology-owned lines on the raw text
+# (the byte-faithful principle of deploy/tool.py::_set_repo_record) and every
+# untouched line stays byte-identical. Safety: after splicing, the new text
+# must PARSE EQUAL to the semantic engine's `desired` dict — any mismatch (or
+# a YAML shape the engine does not understand: flow style, empty block, odd
+# nesting) falls back to the full re-dump, so semantics never regress.
 # ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class _OpSetRev:
+    """Replace the rev: value inside the entry anchored at `anchor_repo`."""
+
+    anchor_repo: str
+    new_rev: str
+
+
+@dataclass(frozen=True)
+class _OpAppendHooks:
+    """Append hook stanzas to the hooks: list of the entry at `anchor_repo`."""
+
+    anchor_repo: str
+    hooks: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True)
+class _OpAppendEntry:
+    """Append a whole new repo entry at the end of the repos: block."""
+
+    entry: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class _OpRemoveEntry:
+    """Remove the whole entry anchored at `anchor_repo` (the prune leg)."""
+
+    anchor_repo: str
+
+
+_Op = _OpSetRev | _OpAppendHooks | _OpAppendEntry | _OpRemoveEntry
 
 
 def _reconcile(
     config: dict[str, Any] | None, target: PrecommitTarget
-) -> tuple[dict[str, Any], list[str]]:
-    """Return (desired config, list of change descriptions). Empty list => no-op.
+) -> tuple[dict[str, Any], list[str], tuple[_Op, ...]]:
+    """Return (desired config, change descriptions, typed ops). Empty list => no-op.
 
     Reconcile, not overwrite: ensure each required repo entry exists at the target
     rev with the required hooks; preserve every other repo/hook/key the consumer
     has. Drives apply's idempotency — a config already at target yields no changes.
+    The ops mirror the change list 1:1 for the surgical splice; anchors are the
+    CONCRETE repo: strings found in the consumer config (path-independent hub
+    identification is already resolved here, before any text work).
     """
     new = copy.deepcopy(config) if config else {}
     repos = new.get("repos")
@@ -264,26 +311,32 @@ def _reconcile(
         repos = []
         new["repos"] = repos
     changes: list[str] = []
+    ops: list[_Op] = []
     for req in target.required_repos:
         entry = _find_repo(new, req.repo)
         if entry is None:
-            repos.append(
-                {"repo": req.repo, "rev": req.rev, "hooks": [dict(h) for h in req.hooks]}
-            )
+            created = {"repo": req.repo, "rev": req.rev, "hooks": [dict(h) for h in req.hooks]}
+            repos.append(created)
             changes.append(f"added repo {req.repo}@{req.rev} with hooks {list(req.hook_ids)}")
+            ops.append(_OpAppendEntry(copy.deepcopy(created)))
             continue
         if str(entry.get("rev")) != req.rev:
             changes.append(f"pinned {req.repo} rev {entry.get('rev')!r} -> {req.rev!r}")
             entry["rev"] = req.rev
+            ops.append(_OpSetRev(req.repo, req.rev))
         entry_hooks = entry.get("hooks")
         if not isinstance(entry_hooks, list):
             entry_hooks = []
             entry["hooks"] = entry_hooks
         have_ids = {h.get("id") for h in entry_hooks if isinstance(h, dict)}
+        added_hooks: list[dict[str, Any]] = []
         for hook in req.hooks:
             if hook.get("id") not in have_ids:
                 entry_hooks.append(dict(hook))
                 changes.append(f"added hook {hook.get('id')} to {req.repo}")
+                added_hooks.append(dict(hook))
+        if added_hooks:
+            ops.append(_OpAppendHooks(req.repo, tuple(added_hooks)))
     # Hub-hooks rev-pin: bump the identified entry IN PLACE (preserving its
     # consumer-local repo: path + hooks); create the canonical entry only when
     # absent.
@@ -291,26 +344,32 @@ def _reconcile(
     if hub is not None:
         hub_entry = _find_hub_entry(new, hub.marker_hook_ids)
         if hub_entry is None:
-            repos.append(
-                {"repo": hub.repo, "rev": hub.rev, "hooks": [dict(h) for h in hub.hooks]}
-            )
+            created = {"repo": hub.repo, "rev": hub.rev, "hooks": [dict(h) for h in hub.hooks]}
+            repos.append(created)
             changes.append(
                 f"added hub-hooks repo {hub.repo}@{hub.rev} with hooks {list(hub.hook_ids)}"
             )
+            ops.append(_OpAppendEntry(copy.deepcopy(created)))
         elif str(hub_entry.get("rev")) != hub.rev:
             changes.append(
                 f"pinned hub-hooks {hub_entry.get('repo')!r} rev "
                 f"{hub_entry.get('rev')!r} -> {hub.rev!r}"
             )
+            ops.append(_OpSetRev(str(hub_entry.get("repo")), hub.rev))
             hub_entry["rev"] = hub.rev
     # Required local hooks: append each to the (created-if-absent) local block,
-    # preserving any sibling local hooks the consumer already has.
+    # preserving any sibling local hooks the consumer already has. When THIS run
+    # creates the local block, the hooks ride inside the creation op (an empty
+    # `hooks: []` renders flow-style, which the hook-append splice can't extend).
+    created_local_op_hooks: list[dict[str, Any]] | None = None
     for lhook in target.required_local_hooks:
         local_entry = _find_local_entry(new)
         if local_entry is None:
             local_entry = {"repo": "local", "hooks": []}
             repos.append(local_entry)
             changes.append("added repo: local block")
+            created_local_op_hooks = []
+            ops.append(_OpAppendEntry({"repo": "local", "hooks": created_local_op_hooks}))
         local_hooks = local_entry.get("hooks")
         if not isinstance(local_hooks, list):
             local_hooks = []
@@ -319,7 +378,214 @@ def _reconcile(
         if lhook.get("id") not in have_ids:
             local_hooks.append(dict(lhook))
             changes.append(f"added local hook {lhook.get('id')}")
-    return new, changes
+            if created_local_op_hooks is not None:
+                created_local_op_hooks.append(dict(lhook))
+            else:
+                ops.append(_OpAppendHooks("local", (dict(lhook),)))
+    return new, changes, tuple(ops)
+
+
+# --- the splice engine -------------------------------------------------------
+
+
+def _unquote(value: str) -> str:
+    v = value.strip()
+    if len(v) >= 2 and v[0] == v[-1] and v[0] in ("'", '"'):
+        return v[1:-1]
+    return v
+
+
+def _line_body_eol(line: str) -> tuple[str, str]:
+    """Split a keepends line into (body, eol)."""
+    if line.endswith("\r\n"):
+        return line[:-2], "\r\n"
+    if line.endswith("\n"):
+        return line[:-1], "\n"
+    return line, ""
+
+
+@dataclass(frozen=True)
+class _RepoSpans:
+    repos_idx: int          # index of the top-level `repos:` line
+    block_end: int          # first index past the repos block
+    item_indent: int | None  # indent of `- ` item lines (None if no items)
+    spans: tuple[tuple[str | None, int, int], ...]  # (repo value, start, end-exclusive)
+
+
+def _scan_repo_spans(lines: list[str]) -> _RepoSpans | None:
+    """Map the top-level block-style `repos:` list into entry spans.
+
+    Trailing blank/comment lines are EXCLUDED from each span (they visually
+    belong to whatever follows — removing an entry must not eat the comment
+    block above its successor). Returns None when the file has no block-style
+    `repos:` line — the caller falls back to the full re-dump.
+    """
+    repos_idx = None
+    for i, ln in enumerate(lines):
+        body, _ = _line_body_eol(ln)
+        if re.match(r"^repos:\s*(#.*)?$", body):
+            repos_idx = i
+            break
+    if repos_idx is None:
+        return None
+    spans: list[tuple[str | None, int, int]] = []
+    item_indent: int | None = None
+    cur_start: int | None = None
+    cur_repo: str | None = None
+
+    def close(end: int) -> None:
+        nonlocal cur_start, cur_repo
+        if cur_start is None:
+            return
+        while end - 1 > cur_start:
+            b, _ = _line_body_eol(lines[end - 1])
+            if b.strip() == "" or b.lstrip().startswith("#"):
+                end -= 1
+            else:
+                break
+        spans.append((cur_repo, cur_start, end))
+        cur_start, cur_repo = None, None
+
+    block_end = len(lines)
+    i = repos_idx + 1
+    while i < len(lines):
+        body, _ = _line_body_eol(lines[i])
+        stripped = body.strip()
+        if stripped == "" or stripped.startswith("#"):
+            i += 1
+            continue
+        indent = len(body) - len(body.lstrip())
+        m = re.match(r"^(\s*)-\s", body)
+        if m and (item_indent is None or len(m.group(1)) == item_indent):
+            if item_indent is None:
+                item_indent = len(m.group(1))
+            close(i)
+            cur_start = i
+            rm = re.match(r"^\s*-\s+repo:\s*(.+?)\s*(#.*)?$", body)
+            cur_repo = _unquote(rm.group(1)) if rm else None
+        elif item_indent is not None and indent <= item_indent and not m:
+            # dedent to (or past) item level without a dash: the block ended
+            close(i)
+            block_end = i
+            break
+        elif cur_start is not None:
+            # entry continuation; late-bind the repo: key if the dash line lacked it
+            if cur_repo is None:
+                rm = re.match(r"^\s*repo:\s*(.+?)\s*(#.*)?$", body)
+                if rm:
+                    cur_repo = _unquote(rm.group(1))
+        else:
+            # content under repos: before any item — a shape this engine
+            # does not understand (flow style, nested map): bail out.
+            return None
+        i += 1
+    close(min(i, len(lines)))
+    return _RepoSpans(repos_idx, block_end, item_indent, tuple(spans))
+
+
+def _render_yaml_lines(payload: Any, indent: int, eol: str) -> list[str]:
+    """Render `payload` via safe_dump and re-indent every line by `indent`."""
+    text = yaml.safe_dump(payload, sort_keys=False, default_flow_style=False, width=4096)
+    pad = " " * indent
+    return [pad + ln + eol for ln in text.splitlines()]
+
+
+def _apply_one_op(text: str, op: _Op) -> str | None:
+    """Apply a single op to the raw text; None => not surgically expressible."""
+    lines = text.splitlines(keepends=True)
+    scan = _scan_repo_spans(lines)
+    if scan is None:
+        return None
+    eol = "\r\n" if "\r\n" in text else "\n"
+
+    def find_span(anchor: str) -> tuple[int, int] | None:
+        matches = [(s, e) for repo, s, e in scan.spans if repo == anchor]
+        return matches[0] if len(matches) == 1 else None
+
+    if isinstance(op, _OpSetRev):
+        span = find_span(op.anchor_repo)
+        if span is None:
+            return None
+        rev_idxs = []
+        for i in range(span[0], span[1]):
+            body, _ = _line_body_eol(lines[i])
+            if re.match(r"^\s*(-\s+)?rev:\s*\S", body):
+                rev_idxs.append(i)
+        if len(rev_idxs) != 1:
+            return None
+        body, line_eol = _line_body_eol(lines[rev_idxs[0]])
+        m = re.match(
+            r"^(?P<pre>\s*(?:-\s+)?rev:\s*)(?P<q>[\"']?)(?P<val>[^#]*?)(?P=q)(?P<post>\s*(?:#.*)?)$",
+            body,
+        )
+        if m is None or not m.group("val").strip():
+            return None
+        new_body = m.group("pre") + m.group("q") + op.new_rev + m.group("q") + m.group("post")
+        lines[rev_idxs[0]] = new_body + line_eol
+        return "".join(lines)
+
+    if isinstance(op, _OpAppendHooks):
+        span = find_span(op.anchor_repo)
+        if span is None:
+            return None
+        hooks_idx = None
+        for i in range(span[0], span[1]):
+            body, _ = _line_body_eol(lines[i])
+            if re.match(r"^\s*(-\s+)?hooks:\s*(#.*)?$", body):
+                hooks_idx = i
+                break
+        if hooks_idx is None:
+            return None
+        hook_indent = None
+        for i in range(hooks_idx + 1, span[1]):
+            body, _ = _line_body_eol(lines[i])
+            if body.strip() == "" or body.lstrip().startswith("#"):
+                continue
+            m = re.match(r"^(\s*)-\s", body)
+            if m:
+                hook_indent = len(m.group(1))
+            break
+        if hook_indent is None:
+            return None  # empty or non-block hooks list — fall back
+        rendered = _render_yaml_lines([dict(h) for h in op.hooks], hook_indent, eol)
+        insert_at = span[1]
+        lines[insert_at:insert_at] = rendered
+        return "".join(lines)
+
+    if isinstance(op, _OpAppendEntry):
+        if scan.item_indent is None:
+            return None  # `repos:` with no block items (empty / flow style)
+        rendered = _render_yaml_lines([copy.deepcopy(op.entry)], scan.item_indent, eol)
+        insert_at = scan.block_end
+        lines[insert_at:insert_at] = rendered
+        return "".join(lines)
+
+    if isinstance(op, _OpRemoveEntry):
+        span = find_span(op.anchor_repo)
+        if span is None:
+            return None
+        del lines[span[0]:span[1]]
+        return "".join(lines)
+
+    return None
+
+
+def _surgical_edit(text: str, ops: tuple[_Op, ...]) -> str | None:
+    """Apply all ops in order, re-scanning between ops; None => fall back."""
+    if not ops:
+        return text
+    cur = text
+    for op in ops:
+        nxt = _apply_one_op(cur, op)
+        if nxt is None:
+            return None
+        cur = nxt
+    return cur
+
+
+def _write_config_text(path: Path, text: str) -> None:
+    """Byte-faithful write (no newline translation — tool.py's I/O discipline)."""
+    path.write_bytes(text.encode("utf-8"))
 
 
 def _dump_config(path: Path, config: dict[str, Any]) -> None:
@@ -546,11 +812,34 @@ class PrecommitCarrier(Carrier):
     def apply(self, target: Any) -> ApplyResult:
         t = parse_target(target)
         path = self._config_path(t)
+        raw = path.read_bytes().decode("utf-8") if path.exists() else None
         config = _load_config(path) if path.exists() else None
-        desired, changes = _reconcile(config, t)
+        desired, changes, ops = _reconcile(config, t)
         if not changes:
             return ApplyResult(changed=False, detail="already at target")
-        _dump_config(path, desired)
+        # #225 surgical path: splice only the methodology-owned lines, keep every
+        # other byte (comments, indentation) identical. Post-condition: the spliced
+        # text must PARSE EQUAL to the semantic engine's `desired`; any mismatch or
+        # non-spliceable shape falls back to the full re-dump (semantics never regress).
+        wrote_surgical = False
+        if raw is not None:
+            new_text = _surgical_edit(raw, ops)
+            if new_text is not None:
+                try:
+                    roundtrip = yaml.safe_load(new_text)
+                except yaml.YAMLError:
+                    roundtrip = None
+                if roundtrip == desired:
+                    _write_config_text(path, new_text)
+                    wrote_surgical = True
+        if not wrote_surgical:
+            if raw is not None:
+                log.warning(
+                    "precommit apply: surgical edit unavailable for %s -- "
+                    "falling back to full YAML re-dump (comments not preserved)",
+                    path,
+                )
+            _dump_config(path, desired)
         log.info("precommit apply: %s -> %d change(s)", path, len(changes))
         return ApplyResult(
             changed=True, changes=tuple(changes), detail=f"{len(changes)} change(s) written"
@@ -609,7 +898,28 @@ class PrecommitCarrier(Carrier):
         desired, removed = _remove_repo_entry(config, prunable.match_repo)
         if not removed:  # defensive: classified CLEAN but nothing matched
             return PruneResult(pruned=False, detail=f"{prunable.match_repo} not found on removal")
-        _dump_config(path, desired)
+        # #225 surgical path (mirror of apply): drop only the matched entry's lines,
+        # preserving all other bytes; comments immediately above the pruned entry are
+        # deliberately LEFT IN PLACE (never delete consumer prose — approved ruling).
+        wrote_surgical = False
+        raw = path.read_bytes().decode("utf-8") if path.exists() else None
+        if raw is not None:
+            new_text = _surgical_edit(raw, (_OpRemoveEntry(prunable.match_repo),))
+            if new_text is not None:
+                try:
+                    roundtrip = yaml.safe_load(new_text)
+                except yaml.YAMLError:
+                    roundtrip = None
+                if roundtrip == desired:
+                    _write_config_text(path, new_text)
+                    wrote_surgical = True
+        if not wrote_surgical:
+            log.warning(
+                "precommit prune: surgical edit unavailable for %s -- "
+                "falling back to full YAML re-dump (comments not preserved)",
+                path,
+            )
+            _dump_config(path, desired)
         change = f"removed repo entry {prunable.match_repo}"
         log.info("precommit prune: %s", change)
         return PruneResult(pruned=True, removed=(change,), detail=change)
