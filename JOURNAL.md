@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-07 — CC: handoff `2026-07-07-dev-knowledge-functional` generated (drift-reference hints — NOT in the bundle)
+
+Generation-time state, for the JOURNAL entry only (the browser has no file access and never sees this; the bundle states none of it):
+- HEAD: `0238989` on `main` (committed state the functional bundle is cut from); tree clean at wrap
+- ALL_CHECKS: 29 (last `import_edges`)
+- ship-gate: GREEN (10 WARN dispositioned) — re-verify with `python scripts/audit.py ship-gate`
+- backlog: 112 tasks (7 themes / 24 stories / 0 warn) — re-verify with `python scripts/validate_backlog.py`
+
+Bundle: `docs/handoffs/2026-07-07-dev-knowledge-functional/FUNCTIONAL_BOOT.md` (functional mode, HANDOFF_PROCESS §16 / ADR-98; one-file probe-free requirements-intake boot, CC-authored state-summary FILL-IN).
+
+---
+
 ### 2026-07-07 — CC (Fable 5, Arc-4 P6 fleet roll, Phases 2–6): corp-monorepo deployed at v1.2.0 — n=2 recorded, #221 CLOSED [#221] [#100]
 
 **Did:** Executed Phases 2–6 of the approved Arc-4 plan. **Phase 2 assess** (read-only, from merged main): actuals matched the plan §3 predictions row-for-row (global-config present_correct · tier1-plugin absent · precommit present_drifted · floor/mesh absent · prune row `ruff-gate present_modified` with the greenfield SKIP note rendering live). **Phase 3 corp prep** (`chore/adopt-methodology-v1.2.0`): corp `[#14]` filed + genuine CLAUDE.md re-read/restamp v2.3 — executes hub **#100**; the review found §9 stale vs the live config and fixed it, honest-stamp discipline (`17478db`); all three git-hook stages armed via `default_install_hook_types` (`712a18e`). **Phase 4 execute + ratify:** `deploy/tool.py corp-monorepo --target v1.2.0 --execute` WITHOUT `--auto-approve` → 5/5 carriers verified ok, **Remove leg SKIPPED (greenfield)**, no prompt fired, exactly the 10 predicted paths staged, record branch written; corp ratified (`0cab8be`; the newly wired gates ran live on that very commit) + consumer reconcile `default_stages`/tracked-.claude negations/`.methodology.yaml` ruff sanction/CLAUDE.md v2.4 (`3b5fbe8`). **Phase 5 battery:** idempotence re-assess 5/5 present_correct · **#230 self-test CONFORMANCE PASS (9 properties)** · Informant fire_test: **seb enforcing-local** (`{"decision":"block"}` on a corp clone) + **canonical_freshness enforcing-local**; doc_claims/git_backlog_drift hub-scoped (by construction, not a gap) · three trip tests, each BLOCKED then cleanly reverted (HEAD unmoved, 0 dirty, no-leftovers verified): pre-commit = poisoned floor → `floor hash drift: 8e131bd060d8 != sidecar 4d268f329a7e`; commit-msg = temp fail hook → `TRIP commit-msg fired` → commit blocked; pre-push = temp fail hook on a scratch branch pushed to a LOCAL bare remote → `TRIP pre-push fired` → push rejected (origin never touched) · arming re-proof: the floor's plain `python -m pre_commit install` re-arms all three stages (the #275 corrective holds under the tagged carrier). **Phase 6 closure:** corp `run-all-tests.ps1` 2588 passed / 5 skipped (== pre-deploy baseline) → corp merge `--no-ff` `249ff61` pushed · hub record merged after the H6 byte check (0 CR, em-dashes intact, exactly 3 fields flip) → **`22def9f`: registry records corp-monorepo 1.2.0 / v1.2.0 — n=2** · corp re-audit: `deployed_methodology_version` pass, `floor_integrity` pass.
