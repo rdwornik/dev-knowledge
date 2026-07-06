@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-07-06 — CC (Fable, overnight mega-mission Block 0a): mission ledger opened + RF-1 dogfood PASS recorded + #159 closed on adjudicated evidence
+
+**Did:** Overnight one-shot mission started under the architect-approved Phase-P plan (plan gate: 8 contract challenges adjudicated, GO received; envelope + STOP rule in force). Block 0a: created `docs/audits/2026-07-07-overnight-mission-ledger.md` (as-I-go self-adjudication ledger, seeded with the fidelity-check results + the per-item adjudication); prepended the LESSONS entry recording the **RF-1 bluff-dogfood PASS** (bundle withheld every probe value; 10/10 answered only from live state; HEAD-move fb11266→14a4f1b proved nothing bakeable) — RF-1's remaining half closed by evidence; **closed #159**: its Done-when ("the incoming §13(d) beat is exercised in a real architect session with a *filled* supplement") was met when the 2026-07-06 architect session booted on the FILLED bundle, ran the narrowed beat, and received the operator's answer (intent change → this overnight one-shot). This **supersedes the `f913266` honest-correction** — its "exercised by the NEXT architect session" condition has now occurred; the adjudication was made at plan approval and is transcribed here, not relitigated.
+
+**Changes:** `docs/audits/2026-07-07-overnight-mission-ledger.md` (new), `LESSONS.md` (RF-1 entry, top-prepend), `BACKLOG.md` (#159 leaves — done-items-leave), JOURNAL.md (this entry). Docs-only.
+
+**Next:** Block 0b (MODE corrective: §14a + EPIC_BOOT.tmpl + HANDOFF_PROCESS 5.5→5.6 + PLAYBOOK plan-first rule), then Blocks 1–6 per the ledger.
+
+---
+
 ### 2026-07-06 — CC (Opus, ship pre-flight): regenerated `ecosystem/doc-counts.md` 1304→1330 (pre-existing Wave-3 drift; regen-not-disposition)
 
 **Did:** At `/ship` pre-flight for the architect-handoff arc, `audit.py ship-gate` came back **RED** on `doc_claims: pytest_collected@ecosystem/doc-counts.md (doc 1304 != actual 1330)`. Root-caused: **pre-existing drift on `main`** — Wave-2 last regenerated the count to 1304, Wave-3 added ~26 tests (suite 1304→1330) without regenerating; `main:ecosystem/doc-counts.md` itself carries 1304, so `main` was already gate-RED before this docs-only handoff arc (which adds no tests). Fixed the sanctioned way: `python scripts/gen_doc_counts.py --write` (regen, **not** disposition — it is a real count change; the file is a committed-generated fragment, not freshness-gated, #222). Ship-gate re-run → **GREEN** (10 WARN dispositioned).
