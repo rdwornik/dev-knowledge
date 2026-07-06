@@ -17,13 +17,13 @@
 # fires for claude-code (gap) and is silent for codex (current).
 tools:
   claude-code:
-    # 2.1.178–2.1.201 reviewed 2026-07-06 (digest:
-    # docs/audits/2026-07-06-changelog-review.md); installed 2.1.200. Bumped to the
-    # latest CHANGELOG header reviewed (2.1.201), one ahead of installed. 2 ADOPT
-    # (Sonnet-5 pin refresh, cloud-night auto-mode nets) flagged to the architect; the
-    # rest NOISE. 1 VERIFY open: is claude-sonnet-4-6 deprecated (agent/workflow pins).
-    last_reviewed_version: "2.1.201"
-    reviewed_date: "2026-07-06"
+    # 2.1.202 reviewed 2026-07-07 (digest: docs/audits/2026-07-07-changelog-review.md);
+    # installed 2.1.202. 1 ADOPT (dynamic-workflow-size /config setting — UNDERUSED-NATIVE;
+    # seeded intake-id 5), 1 VERIFY resolved (/review→single-pass reversion: no doc drift,
+    # we already name /code-review for multi-agent), 16 NOISE. First run with the ADR-98 §7
+    # SEED-feed wired (#268). Prior: 2.1.178–2.1.201 reviewed 2026-07-06.
+    last_reviewed_version: "2.1.202"
+    reviewed_date: "2026-07-07"
     source_url: "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md"
   codex:
     # 0.140.0–0.142.5 (8 stable) reviewed 2026-07-06 (digest:
