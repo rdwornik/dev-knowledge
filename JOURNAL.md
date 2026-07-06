@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-07-06 — CC (Opus, ship pre-flight): regenerated `ecosystem/doc-counts.md` 1304→1330 (pre-existing Wave-3 drift; regen-not-disposition)
+
+**Did:** At `/ship` pre-flight for the architect-handoff arc, `audit.py ship-gate` came back **RED** on `doc_claims: pytest_collected@ecosystem/doc-counts.md (doc 1304 != actual 1330)`. Root-caused: **pre-existing drift on `main`** — Wave-2 last regenerated the count to 1304, Wave-3 added ~26 tests (suite 1304→1330) without regenerating; `main:ecosystem/doc-counts.md` itself carries 1304, so `main` was already gate-RED before this docs-only handoff arc (which adds no tests). Fixed the sanctioned way: `python scripts/gen_doc_counts.py --write` (regen, **not** disposition — it is a real count change; the file is a committed-generated fragment, not freshness-gated, #222). Ship-gate re-run → **GREEN** (10 WARN dispositioned).
+
+**Result:** One-line diff (1304→1330), ship-gate GREEN, docs-only arc preserved (`doc-counts.md` is `.md`). Unblocks the handoff merge AND any other ship (main was RED for everyone until this).
+
+**Changes:** `ecosystem/doc-counts.md` (count 1304→1330), JOURNAL.md (this entry). No code touched.
+
+**Abandoned:** dispositioning the WARN (rejected — it is a genuine drift, not a false positive).
+
+**Next:** complete the `--no-ff` merge of the handoff arc to main + push.
+
+---
+
+### 2026-07-06 — CC (Opus, architect handoff cont.): SUPPLEMENT filled → bundle flipped cold→FILLED, ANSWERS folded
+
+**Did:** Operator ran `supplement filled` — pasted the outgoing architect wrap's Q1–Q6 answers into `SUPPLEMENT.md` ANSWERS (verbatim). Re-rendered via `gen_handoff` (fill-state auto-detected FILLED): the three framing banners flipped cold→FILLED (the incoming §13(d) beat NARROWS to *"anything changed since?"*), hand-authored FILL-IN prose preserved byte-for-byte, the operator SUPPLEMENT untouched; `assemble_paste` folded the ANSWERS into `PASTE_THIS.md` (47.6 KB); corrected the RESIDUAL §4 stale `(generated EMPTY)` parenthetical. Committed `18d3a04`.
+
+**Result:** Bundle is now internally consistent FILLED — no cold-framing leftover, `verify_handoff_probes` 10/10, audit health OK. The supplement carries the operator's own Phase-2 framing: a **consolidation wave** (epic-naming universalization, child Mermaid #262, References generability, ENVIRONMENT retire-or-own, audit-index/retention, test-tiering transfer to consumers) + the **undesigned functional-architect → technical-architect → epic-chat intake process** (the explicit design ask) — which supersedes any tag-uncertainty in the CC-derived residual.
+
+**#159 (honest correction):** this bundle only **sets up** #159's evidence-close (a filled supplement ready for the incoming beat); the §13(d) beat itself is exercised by the **NEXT** architect session when it boots — **NOT closed here.** Do not mark #159 done until that session runs the narrowed beat. (The `18d3a04` commit body overstated "Closes #159"; no `closes` tag was applied and BACKLOG is untouched — this note is the correction.)
+
+**Changes:** bundle files (SUPPLEMENT / HANDOFF_BOOT / RESIDUAL / PROBES / PASTE_THIS) `18d3a04`; JOURNAL.md (this entry, anchoring `18d3a04`). No code touched (docs-only).
+
+**Next:** operator pastes `PASTE_THIS.md` into a fresh architect chat (the incoming §13(d) beat then exercises → #159 evidence-close). Operator-gated on my OK: merge `--no-ff` to main + push; `-d` merged stragglers.
+
+---
+
+### 2026-07-06 — CC (Opus, architect handoff): generated `2026-07-06-dev-knowledge-architect` v5 bundle — post-priority-#1 frontier, fleet-roll decision teed up
+
+**Did:** Ran `/handoff architect dev-knowledge` (HANDOFF_PROCESS v5.5, canonical). Scope matrix → **Case 2** (clean tree, commits since last bundle, no today-slug) → slug `2026-07-06-dev-knowledge-architect`. Branched `docs/2026-07-06-architect-handoff`; cut the scaffold via `scripts/gen_handoff.py --mode architect` from committed `fb11266`; hand-authored the four FILL-IN regions (HANDOFF_BOOT purpose + RESIDUAL §1 drift-flags-by-reference / §2 shipped-map / §4 next-frontier); re-ran `assemble_paste.py` (PASTE_THIS 40.5 KB; SUPPLEMENT generated EMPTY → cold, so the incoming §13(d) beat fires FULL); SUPPLEMENT.md committed empty for the operator.
+
+**Result:** `verify_handoff_probes` **10/10 pass** (P1a/P1b orientation + P2–P9 teeth, all answer-free by construction). Frontier framed: **PRIMARY** = the n=2+ **fleet-roll sequencing decision** (#221/#244 P6 — is the P5/P6 WAIT lifted now the corpus stabilized (Wave-2) + the sandbox proved (Wave-3)?); then **close the enforcement-transfer epic** (#238 doctrine half + Stage-3 #236/#237 verify-first adjudication + #267 P2 refinement); carried Fable-review halves (RF-1 bluff-dogfood, RF-4 §5-vs-§13, RF-5/#220 semantic-drift, #159 boot-echo); held/off-repo debt (ai-council relative-path + A2-stale, deploy-arc residuals #225/#233/#247/#245/#246, corpus-growth #212/#213).
+
+**Generation-time state (JOURNAL-only — NOT in the bundle; the browser never sees this, and the bundle withholds every value per §5):** HEAD `fb11266`; `ALL_CHECKS` = 28 (last `doc_code_coverage_drift`); ship-gate / backlog values are re-derived live via PROBES P2/P4/P7/P9 at onboarding.
+
+**Changes:** new bundle `docs/handoffs/2026-07-06-dev-knowledge-architect/` (HANDOFF_BOOT + RESIDUAL + PROBES + SUPPLEMENT + PASTE_THIS) + JOURNAL.md — committed `668d7d0`; this follow-up commit anchors that SHA (ADR-85 wrap-SHA chicken-and-egg). No code touched (docs-only).
+
+**Abandoned:** nothing.
+
+**Next:** operator pastes `PASTE_THIS.md` into a fresh architect chat; optionally fills `SUPPLEMENT.md` (→ `supplement filled` folds the answers + is exactly #159's evidence-close). Operator-gated on my OK: merge `--no-ff` to main + push; `-d` merged stragglers.
+
+---
+
 ### 2026-07-06 — CC (Fable, Wave-3 lane, close): ROOT DECLARED PRIORITY-#1 CLOSED — declaration recorded, 5 adjudications executed ([#267] reshaped, [#238] noted)
 
 **Did:** Root accepted STOP-POINT 2 and **declared priority-#1 ("prove the hub on ai-council like a sandbox") CLOSED**: enforcement-in-effect proven (before 1-of-6 real-~0 → after 4-of-6 FIRED + 2 ARMED-BUT-SKIPPED as correct file-scope behavior; GATE-0 PROVEN throughout), zero consumer-side changes, all gaps instrument-side, Codex-hardened. Executed the five adjudications: (1) **[#267] reshaped** REFINEMENT P3→P2, not a closure gate — witness the two file-scoped hooks FIRED via an in-scope arc edit + encode scope-conditional `engages:`; armed-as-enforcing NOT adopted as doctrine. (2) **Runbook home RATIFIED**: `templates/consumer-onboarding-runbook.md` stays; [#238] annotated (runbook half advanced; LESSONS+PLAYBOOK doctrine half open). (3) **LESSONS +2** (trust-seam proof points, root-ratified): authorization travels the owned-config channel — a deployed floor correctly refuses prompt-asserted authority; a narrowed allowlist produces honest refuse-and-ask at a failing gate (`--no-verify` declined) — floor held under live fire. (4) **Codex pass over the G7 diff** (`80fbaa9`): **0 CRIT / 2 HIGH / 0 MED-LOW** — both HIGHs fixed immediately per the ruling (non-mapping-YAML shape guard so a malformed consumer config is a noted no-op, not a harness crash; mirror notes now surfaced in `ConsumerReport` so an environment failure is never mistaken for hook silence); fix merge follows this entry, no tickets needed (no MED/LOW). (5) **ai-council relative-path fragility pointer** filed per ADR-41 into the hub BACKLOG's ai-council-residuals pointer block (CI-risk note: breaks ANY out-of-layout checkout) for the dedicated ai-council session.
