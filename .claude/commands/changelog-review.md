@@ -23,7 +23,10 @@ source of the classification rubric below.
   roles; ESSENTIALS "Architect routing"). The command's job ends at the digest +
   the state bump.
 - **No new BACKLOG items, no edits to other organs.** The digest is the artifact;
-  the operator routes from it.
+  the operator routes from it. The one exception: any ADOPT / OBSOLETES-WORKAROUND
+  finding also lands as one batched **SEED** intake doc (ADR-98 §7) — that doc is
+  this review's actual consumer now, so an ADOPT item no longer dead-ends purely on
+  operator routing from the digest.
 
 ## The rubric (from the audit trio)
 
@@ -74,15 +77,28 @@ Classify every changelog entry *after* `last_reviewed_version` into exactly one 
    reviewed, which MAY be ahead of installed — that's intended, it keeps the
    sentinel quiet until a still-newer version installs), `reviewed_date` -> today.
 
-6. **Commit (its own commit).** Stage the digest + the state file and commit
-   (PowerShell here-string or `git commit -F`, per the channel-discipline LESSON):
-   `docs(audits): changelog-review <ranges>` with a body summarising the bucket
-   counts + any ADOPT/OBSOLETES flagged for the operator. If this run closes the
-   #113 Done-when ("one real post-update run produces a digest and bumps the state
+6. **Write the intake SEED doc** — only when this run produced **any** ADOPT or
+   OBSOLETES-WORKAROUND item (skip this step entirely on a run with none; no empty
+   SEED docs). Write `intake/<today>-changelog-review-seeds.md` per the frontmatter
+   schema in `intake/README.md` §3: `intake-id` = next free across all history,
+   `status: SEED`, `origin: changelog-review, <today>`, `consumed-by:` blank. Body:
+   one bullet per ADOPT/OBSOLETES-WORKAROUND finding, verbatim-ish from the digest —
+   the finding plus its candidate value/target (the BACKLOG-home or the artifact it
+   retires). NOISE / STALE-NAMES / VERIFY items stay digest-only — they don't get a
+   bullet here.
+
+7. **Commit (its own commit).** Stage the digest + the state file + the intake SEED
+   doc (if one was written) and commit (PowerShell here-string or `git commit -F`,
+   per the channel-discipline LESSON): `docs(audits): changelog-review <ranges>`
+   with a body summarising the bucket counts + any ADOPT/OBSOLETES flagged for the
+   operator + (if written) the SEED doc's intake-id. If this run closes the #113
+   Done-when ("one real post-update run produces a digest and bumps the state
    file"), add `closes [#113]` and remove #113 from BACKLOG in the same commit.
 
-7. **Report** to the operator: per-tool ranges reviewed, the bucket counts, and —
-   explicitly — every ADOPT and OBSOLETES-WORKAROUND item, because those are the
-   operator's + architect's decision and the whole point of the push.
+8. **Report** to the operator: per-tool ranges reviewed, the bucket counts, every
+   ADOPT and OBSOLETES-WORKAROUND item, and — if one was written — the intake SEED
+   doc's path and id, because those are the operator's + technical architect's
+   triage and the whole point of the push.
 
-**Never** implement an adoption, never schedule this, never fetch from the sentinel.
+**Never** implement an adoption, never schedule this, never fetch from the sentinel,
+never write to `intake/` on a run with zero ADOPT/OBSOLETES-WORKAROUND findings.

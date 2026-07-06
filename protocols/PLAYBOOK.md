@@ -121,6 +121,7 @@
   - [CLAUDE.md template (minimum viable)](#claudemd-template-minimum-viable)
   - [First commit, then dev loop](#first-commit-then-dev-loop)
 - [2. Creating a Claude Code Prompt](#2-creating-a-claude-code-prompt)
+  - [The intake pipeline — intent → intake doc → decomposition → epic lanes (ADR-98)](#the-intake-pipeline--intent--intake-doc--decomposition--epic-lanes-adr-98)
   - [Architect output vs CC consumption-spec](#architect-output-vs-cc-consumption-spec)
   - [Summary table (required at top of every formal prompt)](#summary-table-required-at-top-of-every-formal-prompt)
   - [How to choose Model](#how-to-choose-model)
@@ -1451,6 +1452,10 @@ not descend; every lane boots from a generated §14a handoff and closes with a �
 architect prompt into a lane — declares the execution mode (plan / plan-then-auto /
 auto-accept) with its basis; **L-sized epic stories default plan-first** (HANDOFF_PROCESS §14a
 item 7; the 2026-07-06 plan-gate corrective — a lane inherits no mode from a prior prompt).
+
+**Naming (ADR-98):** *developer* is the **mode** an epic lane's chat runs under (the additive
+alias of epic mode); the *epic lane* is the **unit of work**. Defined once in Part II §2 "The
+intake pipeline" — cross-referenced, never synonyms.
 <!-- scope: meta -->
 
 **Invariant.** Any automated or scratch-creating process — a parallel-session worktree (above),
@@ -2194,6 +2199,19 @@ Then for each feature:
 
 **The prompt skeleton below is CC's consumption-spec** — the contract for what a *complete* prompt contains and the shape CC works from, **not** a checklist the architect hand-authors top to bottom. Front-loading the spec still eliminates 2-3 discovery turns and the skeleton's shape stays non-negotiable; but per **ADR-87** the architect's actual output is thinner — CC self-loads the code-impact context and generic gotchas and fills the skeleton itself. What the architect emits (and the one gap CC can't self-infer) is the next subsection. Every formal prompt still resolves to a summary table that determines execution parameters.
 
+### The intake pipeline — intent → intake doc → decomposition → epic lanes (ADR-98)
+<!-- scope: hybrid -->
+
+Where a formal prompt comes **from**. Before anything below is authored, a new initiative runs the ratified intake pipeline (ADR-98) — three roles, each a boot **mode/profile** of `scripts/gen_handoff.py`, one chain:
+
+1. **Functional architect** (`--mode functional`, HANDOFF_PROCESS.md §16) — a fluid conversation that captures the operator's intent as an **intake doc** (WHAT/WHY: problem, scenarios, requirements, **ex-ante acceptance criteria**). Confirm-gated: the operator approves the draft before it lands in `intake/` (format + lifecycle: `intake/README.md`; feeds like `/changelog-review` drop `status: SEED` candidates into the same folder).
+2. **Technical architect** (`--mode architect`, HANDOFF_PROCESS.md §13) — triages the confirmed intake doc (accept / defer / reject), then decomposes: BACKLOG epics (ADR-66 story-map, each citing its intake-id + ADR ids), any ADRs the initiative forces, and one §14a epic handoff per parallelizable epic. The prompt-authoring spec below is this role's output surface.
+3. **Developer** (`--mode developer`, HANDOFF_PROCESS.md §14 — the additive alias of epic mode, ADR-98) — executes one epic lane end-to-end; UAT at EPIC RETURN = the intake doc's acceptance criteria **verbatim**; go-live = root merge.
+
+**Terminology (defined here, once — cross-referenced, never synonyms):** **developer = the mode/profile** (the boot contract a chat runs under); **epic lane = the unit of work** (one epic · one root-provisioned worktree · one browser chat; ADR-97). A developer *works on* an epic lane. Other sections and specs point back here rather than re-defining.
+
+**Genre demarcation (ADR-98 §3):** intake doc = **WHAT/WHY** (0..1 per initiative) · ADR = **the DECISION at a genuine fork** (0..n per intake) · backlog epic = **the WORK** (1..n per accepted intake). Acceptance criteria copy **verbatim** from intake doc → epic UAT; the intake↔epic edge stays advisory until n=2 docs are consumed end-to-end (ADR-98 §5). Corporate mapping: blueprint = intake doc · implementation = epic lanes · UAT = the EPIC-RETURN acceptance check · go-live = root merge.
+
 ### Architect output vs CC consumption-spec
 <!-- scope: hybrid -->
 
@@ -2855,7 +2873,7 @@ Cross-refs: ADR-82 (v5 ratification), ADR-62 (v4 ratification — superseded), A
 ### What the v5 handoff carries
 <!-- scope: meta -->
 
-Canonical: `protocols/HANDOFF_PROCESS.md` §2 (the **residual** CC emits) + §5 (the teeth-y **probe manifest**) + §13 (the `architect | execution` modes). Not restated here — a resident copy is the drift this section names as its own failure. (The historical v4 8-file bundle is superseded; preserved bundles in `docs/handoffs/` are point-in-time history.)
+Canonical: `protocols/HANDOFF_PROCESS.md` §2 (the **residual** CC emits) + §5 (the teeth-y **probe manifest**) + §13 (the `architect | execution` modes). Not restated here — a resident copy is the drift this section names as its own failure. (The historical v4 8-file bundle is superseded; preserved bundles in `docs/handoffs/` are point-in-time history.) Upstream of every handoff: where initiatives *enter* is the intake pipeline — Part II §2 "The intake pipeline" (ADR-98; HANDOFF_PROCESS.md §16 functional mode).
 
 ### Roles
 <!-- scope: meta -->

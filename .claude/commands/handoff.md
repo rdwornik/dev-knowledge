@@ -50,7 +50,10 @@ it here):
 §13 — read it, don't restate it here). v5 takes an optional mode parameter, default
 `execution`, selecting the residual **profile** + browser **posture**. Parse it alongside the
 `v5` flag: `… v5` / `… v5 execution` → execution; `… v5 architect` → architect. Mode applies
-**only** in v5 mode — v4.4 has no modes.
+**only** in v5 mode — v4.4 has no modes. Three further generator flags exist
+(`scripts/gen_handoff.py`, not §13 residual profiles): `epic` (§14a scope-contract bundle),
+`developer` (additive alias of epic per ADR-98 — bundle header renders `epic` until the
+deferred naming flip), and `functional` (§16 one-file intake-capture boot, no probes).
 - **execution** — the four v5 emissions above, unchanged (lean residual + thin boot + probe
   manifest + pointer task-state); the browser gets the §7 reactive-filter role.
 - **architect** — re-profile the residual for a *planning* session: scope it to the planning

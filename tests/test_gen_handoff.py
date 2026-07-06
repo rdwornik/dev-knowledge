@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import sys
 
 import pytest
@@ -33,6 +34,11 @@ _STUB_FILES = {
     "protocols/HANDOFF_PROCESS.md": "# H\n\nno per-bundle README\n",
     "ecosystem/doc-counts.md": "- tests: **1 collected**\n",
     "ecosystem/disposition-register.yaml": "dispositions: []\n",
+    "intake/README.md": "# INTAKE AREA DEFINITION\n",
+    "intake/2026-01-01-first.md": (
+        "---\nintake-id: 1\nstatus: SEED\norigin: test\nconsumed-by:\n---\n\n"
+        "# First Stub Intake\n"
+    ),
 }
 
 
@@ -268,3 +274,79 @@ def test_epic_slug_defaults_to_bundle_slug_and_hints_stay_out(tmp_path):
         for row in vhp.parse_probes(text):
             for c in ("question", "source", "why", "command"):
                 assert not re.search(r"expected[ :]", row[c], re.IGNORECASE)
+
+
+# --- functional mode (§16, ADR-98) — the minimal one-file intake-capture boot -----
+
+def _gen_functional(tmp_path, *, slug="0000-00-00-func-t", strip_intake=False):
+    """A functional-mode bundle from a committed-state stub repo. `strip_intake` removes
+    the stub intake/ fixtures first, to exercise the absent-dir degrade path."""
+    repo = _stub_repo(tmp_path)
+    if strip_intake:
+        shutil.rmtree(repo / "intake")
+    return gh.generate(repo, mode="functional", slug=slug, repo=".dev-knowledge", date="2026-07-07",
+                       bundle_root=repo / "docs" / "handoffs", assemble=True)  # assemble is a no-op
+
+
+def test_functional_bundle_is_one_file(tmp_path):
+    b = _gen_functional(tmp_path).bundle_dir
+    assert (b / "FUNCTIONAL_BOOT.md").exists()
+    for name in ("PROBES.md", "RESIDUAL.md", "SUPPLEMENT.md", "EPIC_BOOT.md", "PASTE_THIS.md"):
+        assert not (b / name).exists(), name
+
+
+def test_functional_boot_carries_vision_extract_and_intake_index(tmp_path):
+    boot = (_gen_functional(tmp_path).bundle_dir / "FUNCTIONAL_BOOT.md").read_text(encoding="utf-8")
+    assert "What .dev-knowledge is." in boot                 # the stub VISION.md `## Vision` body
+    assert "2026-01-01-first.md" in boot                     # intake index: filename
+    assert "SEED" in boot                                    # intake index: status
+    assert "First Stub Intake" in boot                        # intake index: title
+    assert "INTAKE AREA DEFINITION" not in boot               # README.md excluded from the index
+
+
+def test_functional_boot_is_probe_free_and_hint_free(tmp_path):
+    res = _gen_functional(tmp_path)
+    boot = (res.bundle_dir / "FUNCTIONAL_BOOT.md").read_text(encoding="utf-8")
+    assert vhp.parse_probes(boot) == []
+    assert not re.search(r"expected[ :]", boot, re.IGNORECASE)
+    assert "drift-reference hints" in res.journal_draft       # hints still computed...
+    assert "NOT in the bundle" in res.journal_draft            # ...but stay out of the bundle
+
+
+def test_functional_absent_intake_dir_degrades(tmp_path):
+    # No intake/ at all (feed not yet run, or a repo that hasn't adopted the scene): the
+    # generator must degrade to the literal marker, never guess, and never raise.
+    res = _gen_functional(tmp_path, strip_intake=True)
+    boot = (res.bundle_dir / "FUNCTIONAL_BOOT.md").read_text(encoding="utf-8")
+    assert "(no intake docs yet)" in boot
+
+
+def test_functional_state_summary_fillin_survives_regeneration(tmp_path):
+    # RF-6 in the functional shape: CC's authored state-summary paragraph is preserved
+    # byte-for-byte across a re-render (mirrors test_epic_fillins_and_return_survive_regeneration).
+    res = _gen_functional(tmp_path)
+    b = res.bundle_dir
+    boot = (b / "FUNCTIONAL_BOOT.md").read_text(encoding="utf-8")
+    marker = "<!-- FILL-IN:state-summary END -->"
+    boot = boot.replace(marker, "STATE-SUMMARY-SENTINEL\n" + marker)
+    (b / "FUNCTIONAL_BOOT.md").write_text(boot, encoding="utf-8")
+    gh.generate(b.parents[2], mode="functional", slug=b.name, repo=".dev-knowledge",
+                date="2026-07-07", bundle_root=b.parent, assemble=False)
+    assert "STATE-SUMMARY-SENTINEL" in (b / "FUNCTIONAL_BOOT.md").read_text(encoding="utf-8")
+
+
+# --- developer mode (ADR-98) — a pure additive alias of epic ---------------------
+
+def test_developer_alias_is_byte_identical_to_epic(tmp_path):
+    repo = _stub_repo(tmp_path)
+    res_epic = gh.generate(repo, mode="epic", slug="0000-00-00-alias-t", repo=".dev-knowledge",
+                           date="2026-07-05", bundle_root=repo / "docs" / "handoffs-epic",
+                           epic_slug="dummy-epic", assemble=False)
+    res_dev = gh.generate(repo, mode="developer", slug="0000-00-00-alias-t", repo=".dev-knowledge",
+                          date="2026-07-05", bundle_root=repo / "docs" / "handoffs-dev",
+                          epic_slug="dummy-epic", assemble=False)
+    for name in ("EPIC_BOOT.md", "PROBES.md", "EPIC_RETURN.md"):
+        epic_bytes = (res_epic.bundle_dir / name).read_bytes()
+        dev_bytes = (res_dev.bundle_dir / name).read_bytes()
+        assert epic_bytes == dev_bytes, name
+    assert not (res_dev.bundle_dir / "FUNCTIONAL_BOOT.md").exists()

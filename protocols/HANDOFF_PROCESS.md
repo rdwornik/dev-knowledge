@@ -1,7 +1,7 @@
 # HANDOFF_PROCESS v5
 <!-- scope: meta -->
 
-Version: 5.6
+Version: 5.7
 Status: stable
 Effective: 2026-06-11 (canonical)
 Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149)
@@ -527,7 +527,9 @@ check). **The loop closes at the root, always.**
 **Generator.** `templates/handoff/epic/{EPIC_BOOT,EPIC_RETURN}.md.tmpl`, emitted by
 `scripts/gen_handoff.py --mode epic` (reuses the v5 assembler; **probes stay** — an epic lane
 still boots on live-state probes scoped to its boundary; the §5 answer-free structural
-contract applies unchanged).
+contract applies unchanged). `--mode developer` is an **additive alias** of `--mode epic`
+(ADR-98 — the executor mode's go-forward name, alias-first; a developer-mode bundle is
+byte-identical to an epic one and its header renders `epic` until the deferred naming flip).
 
 ---
 
@@ -568,6 +570,47 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
 - Manual weekly ritual rejected: forgetting risk (4 weeks stale before ccusage adoption)
 - Threshold-based: amortized ~$0.006/run, auto-triggers on staleness, zero forgetting risk
 - Short format keeps entries scannable over months; full format reserved for migrations
+
+---
+
+## 16. Functional mode — the intake-capture boot (ADR-98)
+
+The requirements-intake handoff type: a boot for the **functional architect** — a lightweight
+browser chat whose **sole product is an intake document** (WHAT/WHY: problem, scenarios,
+requirements, ex-ante acceptance criteria — never HOW). Additive to §13 (unchanged —
+functional is a new boot contract, not a third §13 residual profile) and §14. Pipeline
+position + genre demarcation (intake doc / ADR / backlog epic): **ADR-98**; the one-place
+chain documentation: PLAYBOOK Part II §2; artifact format + lifecycle + confirm-gate:
+`intake/README.md` + `templates/intake-template.md`.
+
+**The boot (one file, generated).** `scripts/gen_handoff.py --mode functional` emits
+`FUNCTIONAL_BOOT.md` from `templates/handoff/functional/FUNCTIONAL_BOOT.md.tmpl` — the whole
+paste (no `PROBES.md` / `RESIDUAL.md` / `SUPPLEMENT.md` / `PASTE_THIS.md`, no assembler; the
+§14 epic-mode precedent). It carries:
+
+1. **Role contract** — does / does-NOT (listen, probe with scenario questions, structure the
+   operator's intent; never solutionize, never write ADRs, never touch the backlog), the
+   output format, the conversion path (converse → CC converts the synthesis into the intake
+   template → **the operator approves the draft before it lands** — the ADR-98 §4
+   confirm-gate), and the deflection rule: a technical-factual turn is answered *"that's a
+   technical-architect question"* and recorded as an open question, never guessed.
+2. **Vision extract** — the committed `VISION.md` `## Vision` body, copied mechanically at
+   generation time.
+3. **CC-authored state summary** — one FILL-IN paragraph (the RF-6 splice; a re-render
+   preserves it byte-for-byte).
+4. **Intake index** — a committed-state enumeration of `intake/*.md` (id · status · title;
+   README excluded) so conversations don't re-discover open/parked docs and seeds.
+
+**NO live-state probes — by design, not omission.** The functional chat's subject is the
+operator's head, not the repo; ground-truth verification is the technical architect's lane
+(§13). A functional boot is therefore deliberately **state-carrying** — committed-state
+copies, not probe answers — and the §5 answer-free invariant applies in **narrowed form**: no
+counts, SHAs, verdicts, or date-relations enter the boot; generation-time values still flow
+only to the JOURNAL draft, never the bundle.
+
+**Rent (ex-ante).** The scene's consumer is the technical-architect triage; intake docs
+unconsumed after ~1 month put the scene under review for removal (ADR-98 §6). The
+intake↔epic edge stays **advisory until n=2** intake docs are consumed end-to-end (ADR-98 §5).
 
 ---
 
@@ -693,3 +736,21 @@ New TOKEN-LOG entries go at the top (after file header, before previous newest e
   only the frontmatter stamps + CONTRIBUTING's §Handoff-process version clause stale; every
   other site fine/not-relevant); freshness-gated dependents genuinely re-read + restamped.
   Major stays 5.
+- v5.7 (2026-07-07, §16 functional mode + §14 developer alias — the ADR-98 intake scene) —
+  **Version → 5.7** (seventh minor bump; additive — §1–§15 rules unchanged; §14 gains one
+  alias sentence). New **§16 "Functional mode — the intake-capture boot"**: the
+  requirements-intake handoff type (ADR-98) — a one-file, probe-free `FUNCTIONAL_BOOT.md`
+  (role contract · VISION extract · CC-authored state-summary FILL-IN · intake index),
+  emitted by `gen_handoff.py --mode functional` from `templates/handoff/functional/`;
+  deliberately state-carrying (committed-state copies, not probe answers), the §5
+  answer-free invariant kept in narrowed form (no counts/SHAs/verdicts; generation-time
+  values stay JOURNAL-draft-only). §14's generator note gains `--mode developer` as a pure
+  additive alias of epic (byte-identical bundles; header renders `epic` until the deferred
+  naming flip). Artifact format/lifecycle/confirm-gate: `intake/README.md` +
+  `templates/intake-template.md`; chain documentation: PLAYBOOK Part II §2. **Coupled
+  atomic move (this commit):** `CONTRIBUTING.md` stamp v5.6→v5.7, the 5 `reconciled_with`
+  edges (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/handoffs/README.md`,
+  `protocols/HANDOFF_BOOT.md`) @5.6→@5.7, each site-enumerated + verdicted per
+  `check-against-spec` (compressed sweep — the change is additive §16 + one §14 sentence);
+  freshness-gated dependents genuinely re-read + restamped. Major stays 5. Refs ADR-98,
+  #268 (Arc 2 intake-scene build).
