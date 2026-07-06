@@ -25,10 +25,10 @@ from lived_sandbox import spawn as sp  # noqa: E402
 
 _MANIFEST_V120 = _REPO / "deploy" / "manifest-v1.2.0.yaml"
 
-# The six gated firing-hook signatures as authored in manifest-v1.2.0.yaml.
-_SIX_SIGNATURES = [
+# The gated firing-hook signatures as authored in manifest-v1.2.0.yaml (seven w/ #250).
+_GATED_SIGNATURES = [
     "pre-commit installed at", "sha256 sidecar", "canonical_freshness",
-    "TOC freshness", "Session-end", "propose_closures:",
+    "TOC freshness", "Session-end", "propose_closures:", "Codemap freshness",
 ]
 
 
@@ -59,18 +59,19 @@ def _tool_use(name: str, command: str) -> dict:
 
 
 def _green_events():
-    """All six hook signatures in REAL Bash tool-result stdout + a command act; ruff absent."""
+    """All seven hook signatures in REAL Bash tool-result stdout + a command act; ruff absent."""
     evs = []
-    for s in _SIX_SIGNATURES:
+    for s in _GATED_SIGNATURES:
         evs.extend(_tool_result(f"pre-commit hook fired: {s}....Passed"))
     evs.append(_tool_use("SlashCommand", "/review-closures"))
     return evs
 
-_GATED_SIX = {
+_GATED_SET = {
     "floor-sessionstart-guard",
     "floor-hash-verify-hook",
     "canonical-freshness",
     "hub-toc-hooks",
+    "hub-codemap-hooks",
     "session-end-backpressure",
     "propose-closures-stop-hook",
 }
@@ -82,12 +83,12 @@ _GATED_SIX = {
 def test_oracle_loads_the_real_v120_manifest():
     o = orc.load_oracle(_MANIFEST_V120)
     assert o.version == "1.2.0"
-    assert len(o.expectations) == 13  # every component carries a triple
+    assert len(o.expectations) == 14  # every component carries a triple (13 -> 14: #250 hub-codemap-hooks)
 
 
-def test_oracle_gated_active_is_exactly_the_six():
+def test_oracle_gated_active_is_exactly_the_gated_set():
     o = orc.load_oracle(_MANIFEST_V120)
-    assert {e.component_id for e in o.gated_active} == _GATED_SIX
+    assert {e.component_id for e in o.gated_active} == _GATED_SET
 
 
 def test_oracle_ruff_tombstone_is_gated_absent():
@@ -97,10 +98,10 @@ def test_oracle_ruff_tombstone_is_gated_absent():
     assert ruff.absent is True and ruff.signature == "Ruff linter"
 
 
-def test_oracle_observed_not_gated_excludes_the_six():
+def test_oracle_observed_not_gated_excludes_the_gated_set():
     o = orc.load_oracle(_MANIFEST_V120)
     ids = {e.component_id for e in o.observed_not_gated}
-    assert _GATED_SIX.isdisjoint(ids)
+    assert _GATED_SET.isdisjoint(ids)
     assert "methodology-floor" in ids          # git-state channel -> observed, not gated
     assert "review-closures-command" in ids    # operator-invoke -> OUT-OF-ARC
 
@@ -113,7 +114,7 @@ def test_oracle_string_expect_is_present_signature():
 
 def test_oracle_load_for_version_resolves_the_manifest():
     o = orc.load_for_version("1.2.0")
-    assert {e.component_id for e in o.gated_active} == _GATED_SIX
+    assert {e.component_id for e in o.gated_active} == _GATED_SET
 
 
 def test_oracle_empty_expect_raises():
@@ -160,18 +161,18 @@ def test_partial_word_match_semantics_253c():
 # --- the observer: gated verdict over the external channels ---
 
 
-def test_observer_green_when_all_six_fired():
+def test_observer_green_when_all_gated_fired():
     o = orc.load_oracle(_MANIFEST_V120)
     r = obs.observe(_green_events(), o)
     assert r.passed, r.summary()
-    assert {f.component_id for f in r.gated_findings if f.verdict == obs.FIRED} == _GATED_SIX
+    assert {f.component_id for f in r.gated_findings if f.verdict == obs.FIRED} == _GATED_SET
     assert not r.flags
 
 
 def test_observer_flags_one_silent_hook():
     """A single gated firing hook whose stdout is absent -> EXPECTED-BUT-SILENT -> not passed."""
     o = orc.load_oracle(_MANIFEST_V120)
-    # Drop the canonical_freshness signal (one of the six).
+    # Drop the canonical_freshness signal (one of the gated set).
     events = [e for e in _green_events() if "canonical_freshness" not in json.dumps(e)]
     r = obs.observe(events, o)
     assert not r.passed
@@ -197,15 +198,15 @@ def test_observer_flags_ruff_tombstone_if_it_fires():
 
 
 def test_observer_ignores_inner_narration_C1():
-    """C1 (THE proof): the six signatures appearing ONLY in assistant *narration* must NOT
+    """C1 (THE proof): the gated signatures appearing ONLY in assistant *narration* must NOT
     count as firing — the observer flags them SILENT. Verify-by-state, never by narration."""
     o = orc.load_oracle(_MANIFEST_V120)
     narrated = [_assistant_text(
-        "I ran all the hooks: " + " ".join(f"{s}....Passed" for s in _SIX_SIGNATURES)
+        "I ran all the hooks: " + " ".join(f"{s}....Passed" for s in _GATED_SIGNATURES)
         + " and /review-closures — everything is green.")]
     r = obs.observe(narrated, o)
     assert not r.passed, "narration must never produce a green verdict"
-    assert {f.component_id for f in r.silences} == _GATED_SIX
+    assert {f.component_id for f in r.silences} == _GATED_SET
 
 
 def test_observer_narration_excluded_from_hook_surface():
@@ -234,14 +235,14 @@ def _result_event(text: str) -> dict:
 
 def test_observer_result_event_narration_excluded_253b():
     """[#253b] regression: a transcript whose ONLY signature matches live in the result
-    event's narration field yields SILENT for all six — never FIRED. (This leak made
+    event's narration field yields SILENT for all gated — never FIRED. (This leak made
     Block B's lone FIRED a narration artifact.)"""
     o = orc.load_oracle(_MANIFEST_V120)
     narrated = [_result_event(
-        "ARC DONE — hooks all fired: " + " ".join(f"{s}....Passed" for s in _SIX_SIGNATURES))]
+        "ARC DONE — hooks all fired: " + " ".join(f"{s}....Passed" for s in _GATED_SIGNATURES))]
     r = obs.observe(narrated, o)
     assert not r.passed, "a result-event narration must never produce a green verdict"
-    assert {f.component_id for f in r.silences} == _GATED_SIX
+    assert {f.component_id for f in r.silences} == _GATED_SET
 
 
 def test_observer_result_event_excluded_from_hook_surface_253b():
@@ -411,7 +412,7 @@ def test_gate_zero_fails_on_nonzero_exit():
 
 
 def test_gate_zero_independent_of_hook_completeness():
-    """[MF-1]: GATE-0 asserts ONLY isolation, never that the six fired -> it holds on the
+    """[MF-1]: GATE-0 asserts ONLY isolation, never that the gated set fired -> it holds on the
     arc-silent freeze (a silenced hook does not fail the gate)."""
     r = _spawn_result(arcmod.PROVENANCE_MARKER, exit_code=0)  # zero hook signatures present
     assert arcmod.evaluate_gate_zero(r).passed
@@ -885,8 +886,8 @@ def _events_from_fixture(path: Path) -> list[dict]:
 
 
 @_needs_fixtures
-def test_acceptance_arc_green_all_six_engaged_no_false_positive():
-    """C3: the arc engages all six + >=1 command act, observed GREEN — no false-positive.
+def test_acceptance_arc_green_all_gated_engaged_no_false_positive():
+    """C3: the arc engages all gated + >=1 command act, observed GREEN — no false-positive.
     G4a recalibration (measurement-#2 root ruling): the two file-scoped pre-commit hooks
     (hub-toc-hooks, floor-hash-verify) are reported by pre-commit as Skipped for the arc's
     single-file commit — the frozen fixture proves they were name-echoes, so they are now
@@ -899,8 +900,8 @@ def test_acceptance_arc_green_all_six_engaged_no_false_positive():
     armed = {f.component_id for f in r.gated_findings if f.verdict == obs.SKIPPED_ARMED}
     assert fired == {"floor-sessionstart-guard", "canonical-freshness",
                      "session-end-backpressure", "propose-closures-stop-hook"}
-    assert armed == {"hub-toc-hooks", "floor-hash-verify-hook"}
-    assert fired | armed == _GATED_SIX          # every gated hook engaged — nothing silent
+    assert armed == {"hub-toc-hooks", "floor-hash-verify-hook", "hub-codemap-hooks"}
+    assert fired | armed == _GATED_SET          # every gated hook engaged — nothing silent
     assert len(r.commands_observed) >= 1        # >=1 command acts and is observed
     assert not r.flags
 

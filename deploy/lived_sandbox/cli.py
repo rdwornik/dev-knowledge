@@ -5,7 +5,7 @@
     PYTHONPATH=deploy python -m lived_sandbox.cli observe-arc --consumer <repo-path> [--haiku]
 
 `prove-isolation` (Slice A): the REAL isolated `claude -p` isolation proof.
-`observe-arc` (Slice B, [#252]): clone+consumer-shape the hub, run the six-hook
+`observe-arc` (Slice B, [#252]): clone+consumer-shape the hub, run the gated-mesh
 branch->edit->commit->wrap arc, evaluate GATE-0 (isolation-only, [MF-1]) and the OUTER
 observer, and `--freeze` the transcript as tests/fixtures/lived-workflow/arc-green.jsonl
 (or arc-silent.jsonl with `--leg-e`, which disables one gated hook to seed the C4 catch).
@@ -112,7 +112,7 @@ def _append_arc_report(run: _arc.ArcRun, frozen: str | None, leg_e: str | None) 
 
 
 def cmd_observe_arc(freeze: bool, model: str, leg_e: str | None) -> int:
-    """Run the six-hook arc (GATE-0 + observer) and optionally freeze the fixture.
+    """Run the gated-mesh arc (GATE-0 + observer) and optionally freeze the fixture.
 
     GATE-0 gates the CLI (isolation must hold under real work, [MF-1]); on failure it STOPs
     non-zero and does NOT freeze — a facade is never measured. The observation VERDICT is

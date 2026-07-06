@@ -1,4 +1,4 @@
-"""Lived-workflow sandbox — the SIX-HOOK ARC driver + GATE-0 (Slice B; [#252]).
+"""Lived-workflow sandbox — the GATED-MESH ARC driver + GATE-0 (Slice B; [#252]).
 
 Drives a REAL headless ``claude -p`` session through ``branch -> edit -> commit -> wrap``
 inside a consumer-shaped clone, so the deployed mesh's hooks fire and the observer can
@@ -10,9 +10,9 @@ measure enforcement-in-effect. Three parts, deterministic-first:
   (~/.codex) and the tier1-plugin marketplace install ([MC-3]: all three are clone-rooted).
 - ``evaluate_gate_zero`` — **[MF-1] isolation-ONLY**, decoupled from hook-completeness
   (that is C3, the observer's job). config-provenance (a DEDICATED user-level sentinel,
-  separate from the six) + outer-ONLY-markers-absent ([#253d]: candidates the clone can
+  separate from the gated set) + outer-ONLY-markers-absent ([#253d]: candidates the clone can
   self-emit are filtered out — a hub self-clone is not a leak) + child-exit-0. Because the sentinel is
-  USER-level and the six are PROJECT-level, ``--leg-e`` (silencing one of the six) can never
+  USER-level and the gated set is PROJECT-level, ``--leg-e`` (silencing one of the gated set) can never
   silence the isolation signal -> GATE-0 still passes on the arc-silent freeze.
 - ``run_arc`` — the live driver (skip-gated: needs ``claude`` + a key + LIVED_SANDBOX_LIVE).
   ``leg_e`` disables one gated hook to seed the EXPECTED-BUT-SILENT case (C4).
@@ -327,7 +327,7 @@ def evaluate_gate_zero(result, *, provenance_marker: str = PROVENANCE_MARKER,
                        clone: Path | None = None) -> GateZero:
     """Derive GATE-0 from a SpawnResult. Isolation signals use unique tokens over the broad
     transcript surface (Slice-A precedent) — distinct from the enforcement channel, which is
-    structured-event keyed. Does NOT assert any of the six fired (that is C3).
+    structured-event keyed. Does NOT assert any of the gated set fired (that is C3).
 
     [#253d]: when `clone` is given the negative controls are the OUTER-ONLY survivors of
     `outer_only_markers(clone)` — a marker the clone can self-emit never fails the gate.
@@ -472,7 +472,7 @@ def run_arc(*, repo_root: Path | None = None, api_key: str | None = None,
             disable_precommit_hook(clone, leg_e_hook_id)
         commit_shape_baseline(clone)
         # User-level isolated config: provenance sentinel + [#253a] allowlist + G3 sanction
-        # (the six live at PROJECT level in the clone — the [MF-1] split). Shared builder so
+        # (the gated set lives at PROJECT level in the clone — the [MF-1] split). Shared builder so
         # the trust seam cannot drift between the hub and consumer paths.
         cfg = arc_isolated_config(clone.parent / "cfg")
         seeded_ver = seed_tier1_plugin(cfg, clone)  # Stop hook + /review-closures live here

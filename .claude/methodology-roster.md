@@ -27,5 +27,6 @@
 
 ## Pre-commit hooks
 - toc-freshness / toc-generate — TOC freshness (hub hooks, pinned rev)
+- codemap-freshness / codemap-generate — ARCHITECTURE.md codemap freshness (hub hooks, pinned rev)
 - floor-hash-verify — verifies .claude/CLAUDE-FLOOR.md matches its sha256 sidecar
 - canonical_freshness — last_reviewed A2 gate; FAIL blocks the commit on a canonical doc edited since its last review
