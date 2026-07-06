@@ -292,6 +292,59 @@ Evidence SHAs: *(at merge)*.
 
 ---
 
-## SAFETY SELF-REPORT — *(completed at wrap)*
-## WINDOW BOUNDARIES — start: 2026-07-06, `main` @ `14a4f1b` · end: *(at wrap)*
-## VERDICT vs the night objective function — *(at wrap)*
+## SAFETY SELF-REPORT — **zero envelope violations**
+
+No consumer-repo writes (ai-council HEAD untouched — Block 5 used only an auto-cleaned probe
+clone). No deletions merged (ENVIRONMENT refresh, not retire; the Block-4 drafts are unmerged).
+No `--no-verify`, no force-push, no history rewrite on main. No design decisions made — Block 5's
+scope-aware-arc fork was DEGRADED, not improvised; #236/#237/Stage-3/#243 and the #139/#168/#170
+fold stay reserved for the architect. No WAIT lift. No new top-level paths. No faked freshness (the
+CLAUDE.md/ENVIRONMENT re-stamps rode genuine end-to-end reads). No new dependencies.
+
+**One process error, caught + corrected (not a violation):** the #262 merge command piped
+`ship-gate` through `| tail`, masking its exit code, so the `&&` chain merged `b0163d2` on a RED
+gate (a self-induced `doc_rot` WARN from an over-long #262 annotation). Caught immediately,
+fixed-forward (`d43ba6f`, trim to net-neutral), gotcha filed (`~/.claude/skills/gotchas`), and
+every subsequent merge read the gate's exit code un-piped. Recurred once as the same doc_rot
+class on #267 (trimmed pre-commit, never merged red).
+
+## WINDOW BOUNDARIES — start: 2026-07-06, `main` @ `14a4f1b` (clean) · end: 2026-07-06, `main` @ the wrap merge (pushed); 13 `--no-ff` arcs on the first-parent spine + 1 unmerged drafts branch.
+
+## VERDICT vs the night objective function
+
+- **Minimum (Block 0 + ship-gate GREEN):** ✅ met.
+- **Full (Blocks 0–5 closed per contract; Block 4 branch-only; Block 6 as time permits):** ✅ met —
+  Blocks 0–4 + 6 CLOSED; Block 5 **DEGRADED per its frozen contract** (half-b landed, half-a fork
+  stated, feasibility proven) — a contract-honest degrade, not a miss.
+- **Hard-zero (no envelope violation):** ✅ held (the one process error was caught + corrected, no
+  envelope breach).
+
+**Tickets:** closed #159, #225, #249, #250, #238, #233, #247 (+ #262 hub-side, annotated OPEN).
+DEGRADED #267 (half-b done). SKIPPED #245 (M-sized, clean-wrap), #246 (CH-8: decision-gated +
+consumer write). Reserved for the architect: Stage-3 / #236-#237 disposition, #139/#168/#170 fold,
+#243, and the 3 Block-4 proposal drafts.
+
+## EVIDENCE SPINE (merge SHAs, baseline `14a4f1b`)
+
+```
+Block  Ticket(s)                 leaf        merge       verdict
+0a     #159 closed               94cea11     13b6df0     CLOSED
+0b     v5.6 MODE corrective      426e787     46b0b1c     CLOSED
+1.1    #225 closed               d4068ec     2bfcc01     CLOSED
+1.2    #262 hub-side (OPEN)      55fefff     b0163d2     LANDED (annotated OPEN)
+1.2c   #262 doc_rot fix-forward  ee4010e     d43ba6f     CORRECTED
+1.3    #249 closed               375f1d1     21032ba     CLOSED
+1.4    #250 closed               81e076a/e7a0813  2c59193  CLOSED
+2      #238 closed + memo        2f0a07f     c2c5547     CLOSED
+3.1    #258 phase-2 hook         d2a03e9     b14f41a     DONE
+3.2    ENVIRONMENT refresh       35d8434     a1633d9     DONE (refresh)
+3.3    audit-index              c825934     08cc066     DONE
+4      3 proposal drafts        3da29ea     (unmerged)  BRANCH-ONLY
+5      #267 half-b / DEGRADE     e9f8fe5     ffe4d87     DEGRADED
+6      #233 + #247 closed        a57a878     242283a     CLOSED
+wrap   JOURNAL + ledger          (this)      (this)      —
+```
+
+Morning review: `git log --first-parent 14a4f1b..main` shows every arc as a `--no-ff` merge
+(core-invariant #5); each closed `#id` is `git show`-able to its evidence; the Block-4 drafts are
+`git show drafts/2026-07-07-proposals`.

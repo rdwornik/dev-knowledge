@@ -19,6 +19,23 @@
 
 ---
 
+### 2026-07-06 — CC (Fable→Opus, overnight mega-mission WRAP): 11 blocks, 13 arcs merged, 8 tickets closed, 1 DEGRADE
+
+**Did:** Completed the architect-approved overnight one-shot mission (Phase-P plan, 8 challenges adjudicated → GO). Serial `--no-ff` arcs, ship-gate GREEN before every merge, STOP rule held. **Blocks 0–6 all landed:**
+- **0a** (`13b6df0`) opened the ledger + RF-1 dogfood PASS lesson + **closed #159**; **0b** (`46b0b1c`) HANDOFF_PROCESS **v5.5→5.6** (§14a execution-MODE item, the plan-mode corrective) + 5-edge `reconciled_with` re-stamp.
+- **Block 1 (P6 gates):** **#225** surgical comment-preserving precommit carrier (`2bfcc01`); **#262** hub-side codemap `--init-markers` + LF fix (`b0163d2`, +correction `d43ba6f`, stays OPEN annotated hub-side-done); **#249** `check_import_edges` @import target-exists gate, ALL_CHECKS 28→29 (`21032ba`); **#250** `hub-codemap-hooks` Tier-3-classifiable, gated set 6→7 (`2c59193`).
+- **Block 2** (`c2c5547`) **#238** enforcement-transfer doctrine (PLAYBOOK Ch12 + LESSONS) + Stage-3 memo (decision reserved); **Block 3** generability-phase-2 hook + tests (`b14f41a`), ENVIRONMENT own-it refresh (`a1633d9`), audit-index generator (`08cc066`); **Block 4** 3 proposal DRAFTS on unmerged `drafts/2026-07-07-proposals` (`3da29ea`, intact); **Block 5** (`ffe4d87`) **#267 DEGRADED** — half-b (engages scope condition + observer tests) landed, half-a (live re-measurement) deferred as a stated design fork (spawn feasibility PROVEN); **Block 6** (`242283a`) **#233** + **#247** closed.
+
+**#220 record (post-tag manifest edits):** `deploy/manifest-v1.2.0.yaml` gained the `hub-codemap-hooks` component (#250) + `scope:` fields on two engages entries (#267) — all ADDED AFTER the v1.2.0 tag, INERT to `deploy/tool.py` (reads only `carriers:`), so **methodology version HELD**; consumer-visible-if-transferred, recorded per #220 (mirrors [NB-1]).
+
+**Result:** 8 tickets closed (#159/#225/#249/#250/#238/#233/#247 + #262 hub-side); #267 DEGRADED+annotated; #245/#246 SKIPPED (reasons in ledger). Full suite 1383 passed / 2 skipped; ship-gate GREEN on main. Zero envelope violations (one process error — a piped ship-gate masked its exit → merged on a self-induced doc_rot WARN on #262; caught + fixed-forward `d43ba6f` + gotcha filed).
+
+**Changes:** see the evidence spine in `docs/audits/2026-07-07-overnight-mission-ledger.md` (per-block contract→verdict→SHAs). This entry anchors the wrap; ADR-85 session-SHA = this arc's merges above (e.g. `242283a`).
+
+**Next:** morning architect session — the ledger + Stage-3 memo + measurement-4 memo + the 3 Block-4 drafts (`git show drafts/2026-07-07-proposals`) are the decision queue; the P5/P6 fleet-roll WAIT is untouched (the mission closed its gates, did not lift it).
+
+---
+
 ### 2026-07-06 — CC (Fable, overnight mega-mission Block 0a): mission ledger opened + RF-1 dogfood PASS recorded + #159 closed on adjudicated evidence
 
 **Did:** Overnight one-shot mission started under the architect-approved Phase-P plan (plan gate: 8 contract challenges adjudicated, GO received; envelope + STOP rule in force). Block 0a: created `docs/audits/2026-07-07-overnight-mission-ledger.md` (as-I-go self-adjudication ledger, seeded with the fidelity-check results + the per-item adjudication); prepended the LESSONS entry recording the **RF-1 bluff-dogfood PASS** (bundle withheld every probe value; 10/10 answered only from live state; HEAD-move fb11266→14a4f1b proved nothing bakeable) — RF-1's remaining half closed by evidence; **closed #159**: its Done-when ("the incoming §13(d) beat is exercised in a real architect session with a *filled* supplement") was met when the 2026-07-06 architect session booted on the FILLED bundle, ran the narrowed beat, and received the operator's answer (intent change → this overnight one-shot). This **supersedes the `f913266` honest-correction** — its "exercised by the NEXT architect session" condition has now occurred; the adjudication was made at plan approval and is transcribed here, not relitigated.
