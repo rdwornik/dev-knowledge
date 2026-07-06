@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-06 — CC (Opus, /changelog-review): claude-code 2.1.178→2.1.201 + codex 0.140.0→0.142.5 reviewed; 2 ADOPT flagged to architect
+
+**Did:** Operator-invoked `/changelog-review` (PUSH half of #113; sentinel nudge `claude-code 2.1.200 > 2.1.177`). Fetched + classified claude-code 2.1.178→2.1.201 (raw CHANGELOG) and codex 0.140.0→0.142.5 (8 stable releases; `0.143.0-alpha.*` skipped) against the audit-trio rubric, intersected against our stack.
+
+**Result:** Buckets — ADOPT 2, OBSOLETES 0, STALE-NAMES 0 confirmed, VERIFY 1, NOISE bulk. Flagged for architect (capture-only; no organ touched): **A1** refresh Sonnet pins to Sonnet 5 — `.claude/agents/artifact-reader.md:8` + `.claude/workflows/conformance-hub.js:150-152` still pin `claude-sonnet-4-6`; Sonnet 5 (GA 2.1.197) = native 1M ctx + promo pricing. **A2** native auto-mode safety nets (2.1.178/.183/.193) for the #86 cloud-night envelope. **V1** (gates A1): confirm `claude-sonnet-4-6` not deprecated. codex all NOISE for `/codex-review`-only usage. Confirmed non-issues by config-read: the 2.1.191 comma-matcher + 2.1.195 hyphen-matcher bugs (our matchers are pipe-form `Edit|MultiEdit|Write|NotebookEdit`). #113 stays closed (pure ADD).
+
+**Changes:** `docs/audits/2026-07-06-changelog-review.md` (new digest), `ecosystem/tool-versions.yaml` (last_reviewed claude-code 2.1.177→2.1.201, codex 0.139.0→0.142.5, both 2026-07-06), JOURNAL.md (this entry). Commit `064a930`; landed on `docs/session-wrap-20260707` (operator's concurrent wrap branch — HEAD had moved mid-session). ADR-85 session-SHA = **`064a930`**.
+
+**Next:** architect adjudicates A1/A2 after running V1; operator routes the `064a930` commit + decides the empty `docs/changelog-review-20260706` orphan branch.
+
+---
+
 ### 2026-07-06 — CC (Fable→Opus, overnight mega-mission WRAP): 11 blocks, 13 arcs merged, 8 tickets closed, 1 DEGRADE
 
 **Did:** Completed the architect-approved overnight one-shot mission (Phase-P plan, 8 challenges adjudicated → GO). Serial `--no-ff` arcs, ship-gate GREEN before every merge, STOP rule held. **Blocks 0–6 all landed:**
