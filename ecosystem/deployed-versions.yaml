@@ -32,9 +32,9 @@ repos:
     deployed_date: "2026-07-04"
     source_tag: "v1.2.0"
   corp-monorepo:
-    deployed_methodology_version: null
-    deployed_date: null
-    source_tag: null
+    deployed_methodology_version: "1.2.0"
+    deployed_date: "2026-07-07"
+    source_tag: "v1.2.0"
   corp-ops:
     deployed_methodology_version: null
     deployed_date: null
