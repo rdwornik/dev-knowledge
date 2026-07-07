@@ -277,6 +277,12 @@ operating role, §4/§7). The mode is chosen from what the *next* session will d
 **advance-a-backlog-item → execution**; **define-or-reshape-the-way-of-working → architect**
 (architecture / planning scope — the audit's scope D). Default is **execution**.
 
+**Operator invocation** — which mode, the exact `scripts/gen_handoff.py` command, and one
+copy-paste example per mode (architect · execution · epic · developer · functional) — is the
+single runbook **PLAYBOOK §8 "How to hand off"** (the command surface is
+`.claude/commands/handoff.md`). This section is the *mechanics*; that runbook is the
+*invocation table* — it points here, not the reverse.
+
 ### Execution mode (default)
 
 v5 exactly as specified in §§1–12 — the mode label on the current behaviour, nothing added:
