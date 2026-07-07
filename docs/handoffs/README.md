@@ -19,6 +19,10 @@ reconciled_with: handoff-process@5.7
 > session for any v5 handoff. **Start at the bundle's `HANDOFF_BOOT.md`** — it sends you here for
 > the process and tells you which file to paste first.
 
+> **To *generate* a handoff** (which mode, what exactly to type): **PLAYBOOK §8 "How to hand
+> off"** is the single invocation runbook. **This file is the other half** — how to *consume* a
+> generated bundle (boot a fresh browser from it).
+
 A v5 handoff is a small folder under `docs/handoffs/{YYYY-MM-DD}-{slug}/` with **four** files —
 `HANDOFF_BOOT.md`, `RESIDUAL.md`, `PROBES.md`, and `PASTE_THIS.md` (architect-mode bundles also carry a
 `SUPPLEMENT.md` — always generated, fillable; see *The strategic supplement* below) — plus this runbook
@@ -172,7 +176,7 @@ exist; each produces its own single paste and **skips this walkthrough entirely*
 - **Functional (`--mode functional`)** — the §16 intake-capture boot: ONE file,
   `FUNCTIONAL_BOOT.md`, pasted alone into a fresh functional-architect chat. No probes, no
   run loop, no beat — the chat captures requirements into an intake doc
-  (`intake/README.md`; ADR-98). Boot ack line: "Functional architect booted — intake
+  (`docs/intake/README.md`; ADR-98). Boot ack line: "Functional architect booted — intake
   capture only."
 
 ---

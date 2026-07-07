@@ -180,13 +180,13 @@ def _vision_extract(repo_root: Path) -> str:
 
 
 def _intake_index(repo_root: Path) -> str:
-    """Enumerate `intake/*.md` (excluding README.md) as a committed-state bullet index —
+    """Enumerate `docs/intake/*.md` (excluding README.md) as a committed-state bullet index —
     filename, `intake-id` + `status` from the leading frontmatter, and the doc title (its
     first `# ` heading, falling back to the filename stem). Degrade contract: an absent or
-    empty intake/ directory returns a literal "no intake docs yet" marker, never a guess;
+    empty docs/intake/ directory returns a literal "no intake docs yet" marker, never a guess;
     a doc that fails to parse still gets a bullet (fallback fields), never gets dropped
     silently. Deliberately no count/total line (answer-free scoping, §16)."""
-    intake_dir = repo_root / "intake"
+    intake_dir = repo_root / "docs" / "intake"
     if not intake_dir.is_dir():
         return "(no intake docs yet)"
     docs = sorted(p for p in intake_dir.glob("*.md") if p.name != "README.md")
@@ -356,7 +356,7 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     a minimal requirements-intake boot for a browser "functional architect" chat. No
     live-state probes, so no PROBES.md / RESIDUAL.md / SUPPLEMENT.md / PASTE_THIS.md and
     no assembler call: the boot IS the paste (the epic-mode precedent). It carries
-    committed-state copies (a VISION.md extract, an intake/ index) rather than probe
+    committed-state copies (a VISION.md extract, a docs/intake/ index) rather than probe
     answers — still no counts/SHAs/verdicts (the answer-free invariant, narrowed to this
     mode's shape).
     """

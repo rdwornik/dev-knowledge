@@ -277,6 +277,12 @@ operating role, §4/§7). The mode is chosen from what the *next* session will d
 **advance-a-backlog-item → execution**; **define-or-reshape-the-way-of-working → architect**
 (architecture / planning scope — the audit's scope D). Default is **execution**.
 
+**Operator invocation** — which mode, the exact `scripts/gen_handoff.py` command, and one
+copy-paste example per mode (architect · execution · epic · developer · functional) — is the
+single runbook **PLAYBOOK §8 "How to hand off"** (the command surface is
+`.claude/commands/handoff.md`). This section is the *mechanics*; that runbook is the
+*invocation table* — it points here, not the reverse.
+
 ### Execution mode (default)
 
 v5 exactly as specified in §§1–12 — the mode label on the current behaviour, nothing added:
@@ -581,7 +587,7 @@ requirements, ex-ante acceptance criteria — never HOW). Additive to §13 (unch
 functional is a new boot contract, not a third §13 residual profile) and §14. Pipeline
 position + genre demarcation (intake doc / ADR / backlog epic): **ADR-98**; the one-place
 chain documentation: PLAYBOOK Part II §2; artifact format + lifecycle + confirm-gate:
-`intake/README.md` + `templates/intake-template.md`.
+`docs/intake/README.md` + `templates/intake-template.md`.
 
 **The boot (one file, generated).** `scripts/gen_handoff.py --mode functional` emits
 `FUNCTIONAL_BOOT.md` from `templates/handoff/functional/FUNCTIONAL_BOOT.md.tmpl` — the whole
@@ -598,7 +604,7 @@ paste (no `PROBES.md` / `RESIDUAL.md` / `SUPPLEMENT.md` / `PASTE_THIS.md`, no as
    generation time.
 3. **CC-authored state summary** — one FILL-IN paragraph (the RF-6 splice; a re-render
    preserves it byte-for-byte).
-4. **Intake index** — a committed-state enumeration of `intake/*.md` (id · status · title;
+4. **Intake index** — a committed-state enumeration of `docs/intake/*.md` (id · status · title;
    README excluded) so conversations don't re-discover open/parked docs and seeds.
 
 **NO live-state probes — by design, not omission.** The functional chat's subject is the
@@ -746,7 +752,7 @@ intake↔epic edge stays **advisory until n=2** intake docs are consumed end-to-
   answer-free invariant kept in narrowed form (no counts/SHAs/verdicts; generation-time
   values stay JOURNAL-draft-only). §14's generator note gains `--mode developer` as a pure
   additive alias of epic (byte-identical bundles; header renders `epic` until the deferred
-  naming flip). Artifact format/lifecycle/confirm-gate: `intake/README.md` +
+  naming flip). Artifact format/lifecycle/confirm-gate: `docs/intake/README.md` +
   `templates/intake-template.md`; chain documentation: PLAYBOOK Part II §2. **Coupled
   atomic move (this commit):** `CONTRIBUTING.md` stamp v5.6→v5.7, the 5 `reconciled_with`
   edges (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/handoffs/README.md`,

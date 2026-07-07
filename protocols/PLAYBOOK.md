@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-07-06
+> Last updated: 2026-07-07
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -164,6 +164,7 @@
   - [Session end protocol](#session-end-protocol)
 - [8. Handing Off Between Sessions](#8-handing-off-between-sessions)
   - [What the v5 handoff carries](#what-the-v5-handoff-carries)
+  - [How to hand off — which mode, what to type (operator runbook)](#how-to-hand-off--which-mode-what-to-type-operator-runbook)
   - [Roles](#roles)
   - [Architect epistemic discipline: explicit verification markers](#architect-epistemic-discipline-explicit-verification-markers)
   - [Architect epistemic discipline: completion claims require state verification](#architect-epistemic-discipline-completion-claims-require-state-verification)
@@ -2204,7 +2205,7 @@ Then for each feature:
 
 Where a formal prompt comes **from**. Before anything below is authored, a new initiative runs the ratified intake pipeline (ADR-98) — three roles, each a boot **mode/profile** of `scripts/gen_handoff.py`, one chain:
 
-1. **Functional architect** (`--mode functional`, HANDOFF_PROCESS.md §16) — a fluid conversation that captures the operator's intent as an **intake doc** (WHAT/WHY: problem, scenarios, requirements, **ex-ante acceptance criteria**). Confirm-gated: the operator approves the draft before it lands in `intake/` (format + lifecycle: `intake/README.md`; feeds like `/changelog-review` drop `status: SEED` candidates into the same folder).
+1. **Functional architect** (`--mode functional`, HANDOFF_PROCESS.md §16) — a fluid conversation that captures the operator's intent as an **intake doc** (WHAT/WHY: problem, scenarios, requirements, **ex-ante acceptance criteria**). Confirm-gated: the operator approves the draft before it lands in `docs/intake/` (format + lifecycle: `docs/intake/README.md`; feeds like `/changelog-review` drop `status: SEED` candidates into the same folder).
 2. **Technical architect** (`--mode architect`, HANDOFF_PROCESS.md §13) — triages the confirmed intake doc (accept / defer / reject), then decomposes: BACKLOG epics (ADR-66 story-map, each citing its intake-id + ADR ids), any ADRs the initiative forces, and one §14a epic handoff per parallelizable epic. The prompt-authoring spec below is this role's output surface.
 3. **Developer** (`--mode developer`, HANDOFF_PROCESS.md §14 — the additive alias of epic mode, ADR-98) — executes one epic lane end-to-end; UAT at EPIC RETURN = the intake doc's acceptance criteria **verbatim**; go-live = root merge.
 
@@ -2876,6 +2877,49 @@ Cross-refs: ADR-82 (v5 ratification), ADR-62 (v4 ratification — superseded), A
 <!-- scope: meta -->
 
 Canonical: `protocols/HANDOFF_PROCESS.md` §2 (the **residual** CC emits) + §5 (the teeth-y **probe manifest**) + §13 (the `architect | execution` modes). Not restated here — a resident copy is the drift this section names as its own failure. (The historical v4 8-file bundle is superseded; preserved bundles in `docs/handoffs/` are point-in-time history.) Upstream of every handoff: where initiatives *enter* is the intake pipeline — Part II §2 "The intake pipeline" (ADR-98; HANDOFF_PROCESS.md §16 functional mode).
+
+### How to hand off — which mode, what to type (operator runbook)
+<!-- scope: meta -->
+
+**Single home for "which handoff mode, and what exactly do I type."** Every mode is one
+generator — `scripts/gen_handoff.py --mode <mode>` — run from the repo root. The command
+help (`.claude/commands/handoff.md`) carries the same invocations at the point of use;
+`protocols/HANDOFF_PROCESS.md` §13 and `docs/handoffs/README.md` point here, not copy.
+`HANDOFF_PROCESS.md` is the *mechanics*; this table is the *copy-paste*. (Consuming a
+generated bundle — booting the browser from it — is the separate `docs/handoffs/README.md`
+runbook.)
+
+| Mode | Use it when | Type exactly (from repo root) | Generates in `docs/handoffs/<slug>/` | Paste |
+|---|---|---|---|---|
+| **architect** | Planning / reshaping the way-of-working — weigh design tensions, drive the decomposition (§13) | `python scripts/gen_handoff.py --mode architect` | `SUPPLEMENT.md` · `HANDOFF_BOOT.md` · `RESIDUAL.md` · `PROBES.md` · `PASTE_THIS.md` | `PASTE_THIS.md` (one paste) into a fresh Claude.ai chat |
+| **execution** *(the default)* | Advancing a named backlog item — reactive execute-and-verify (§13) | `python scripts/gen_handoff.py --mode execution` | `HANDOFF_BOOT.md` · `RESIDUAL.md` · `PROBES.md` · `PASTE_THIS.md` (no supplement) | `PASTE_THIS.md` (one paste) |
+| **epic** | Spawning one epic lane in a root-provisioned worktree (§14a) | `python scripts/gen_handoff.py --mode epic --epic-slug <epic-slug>` | `EPIC_BOOT.md` · `PROBES.md` · `EPIC_RETURN.md` (no `PASTE_THIS`) | `EPIC_BOOT.md` + `PROBES.md` into the fresh epic chat |
+| **developer** | Additive alias of **epic** (ADR-98 — the go-forward executor name; §14) | `python scripts/gen_handoff.py --mode developer --epic-slug <epic-slug>` | Byte-identical to **epic** (`{{MODE}}` renders `epic` until the deferred naming flip) | Same as epic |
+| **functional** | Requirements intake — capture WHAT/WHY into an intake doc, **no probes** (§16) | `python scripts/gen_handoff.py --mode functional` | `FUNCTIONAL_BOOT.md` (one file only) | `FUNCTIONAL_BOOT.md` alone into a fresh functional-architect chat |
+
+*(architect | execution are the two §13 residual profiles; epic + developer share one bundle; functional is the §16 intake boot — the four bundle shapes.)*
+
+**`--epic-slug <epic-slug>`** (epic / developer only) names the epic: it sets the lane
+branch `epic/<epic-slug>` and worktree `epic-<epic-slug>`. Kebab-case, no spaces; tie the
+backlog id in for traceability; defaults to the bundle slug if omitted. In PowerShell,
+single-quote it so nothing in the value is parsed — `--epic-slug '278-test-suite-hygiene'`.
+
+**Optional (all modes):** `--slug <name>` overrides the bundle folder (default
+`<date>-<repo>-<mode>`); `--repo <name>` / `--date YYYY-MM-DD` override the display name /
+date; `--no-assemble` skips `PASTE_THIS.md` (architect / execution only). For
+architect | execution the richer interview + strategic-supplement lifecycle also runs via
+the `/handoff` command ("please create handoff for dev-knowledge" → fill answers →
+"complete handoff for dev-knowledge").
+
+**Worked example — an epic handoff for story #278 (the test-suite-hygiene epic):**
+
+```
+python scripts/gen_handoff.py --mode epic --epic-slug 278-test-suite-hygiene
+```
+
+writes `docs/handoffs/<today>-dev-knowledge-epic/` holding `EPIC_BOOT.md` (the scope
+contract, branch `epic/278-test-suite-hygiene`), `PROBES.md`, and `EPIC_RETURN.md`; paste
+`EPIC_BOOT.md` + `PROBES.md` into the fresh epic chat.
 
 ### Roles
 <!-- scope: meta -->

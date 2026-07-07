@@ -34,8 +34,8 @@ _STUB_FILES = {
     "protocols/HANDOFF_PROCESS.md": "# H\n\nno per-bundle README\n",
     "ecosystem/doc-counts.md": "- tests: **1 collected**\n",
     "ecosystem/disposition-register.yaml": "dispositions: []\n",
-    "intake/README.md": "# INTAKE AREA DEFINITION\n",
-    "intake/2026-01-01-first.md": (
+    "docs/intake/README.md": "# INTAKE AREA DEFINITION\n",
+    "docs/intake/2026-01-01-first.md": (
         "---\nintake-id: 1\nstatus: SEED\norigin: test\nconsumed-by:\n---\n\n"
         "# First Stub Intake\n"
     ),
@@ -280,10 +280,10 @@ def test_epic_slug_defaults_to_bundle_slug_and_hints_stay_out(tmp_path):
 
 def _gen_functional(tmp_path, *, slug="0000-00-00-func-t", strip_intake=False):
     """A functional-mode bundle from a committed-state stub repo. `strip_intake` removes
-    the stub intake/ fixtures first, to exercise the absent-dir degrade path."""
+    the stub docs/intake/ fixtures first, to exercise the absent-dir degrade path."""
     repo = _stub_repo(tmp_path)
     if strip_intake:
-        shutil.rmtree(repo / "intake")
+        shutil.rmtree(repo / "docs" / "intake")
     return gh.generate(repo, mode="functional", slug=slug, repo=".dev-knowledge", date="2026-07-07",
                        bundle_root=repo / "docs" / "handoffs", assemble=True)  # assemble is a no-op
 
@@ -314,7 +314,7 @@ def test_functional_boot_is_probe_free_and_hint_free(tmp_path):
 
 
 def test_functional_absent_intake_dir_degrades(tmp_path):
-    # No intake/ at all (feed not yet run, or a repo that hasn't adopted the scene): the
+    # No docs/intake/ at all (feed not yet run, or a repo that hasn't adopted the scene): the
     # generator must degrade to the literal marker, never guess, and never raise.
     res = _gen_functional(tmp_path, strip_intake=True)
     boot = (res.bundle_dir / "FUNCTIONAL_BOOT.md").read_text(encoding="utf-8")

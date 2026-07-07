@@ -12,6 +12,50 @@ cross-repo handoff (read-only on the target — ADR-36/41).
 **Source of truth:** `protocols/HANDOFF_PROCESS.md` (v5, canonical). This skill is a dispatch
 summary, not a substitute. Where they disagree, the spec wins — fix the divergence.
 
+## Modes & exact invocation (operator copy-paste)
+
+The natural-language `/handoff` triggers above drive the **architect | execution** interview
+lifecycle. All four bundle shapes are one generator, `scripts/gen_handoff.py --mode <mode>`,
+which the operator can also invoke directly (run from the repo root). **When-to-use runbook —
+the single home:** PLAYBOOK §8 "How to hand off". Exact syntax, one copy-paste example per mode:
+
+**architect** — planning / reshaping the way-of-working (§13).
+```
+python scripts/gen_handoff.py --mode architect
+```
+→ `docs/handoffs/<slug>/`: `SUPPLEMENT.md` + `HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md` + `PASTE_THIS.md`. Paste **`PASTE_THIS.md`** into a fresh Claude.ai chat.
+
+**execution** *(default)* — advancing a named backlog item (§13).
+```
+python scripts/gen_handoff.py --mode execution
+```
+→ same minus `SUPPLEMENT.md` (`HANDOFF_BOOT` + `RESIDUAL` + `PROBES` + `PASTE_THIS`). Paste **`PASTE_THIS.md`**.
+
+**epic** — one epic lane in a root-provisioned worktree (§14a).
+```
+python scripts/gen_handoff.py --mode epic --epic-slug 278-test-suite-hygiene
+```
+→ `docs/handoffs/<slug>/`: `EPIC_BOOT.md` + `PROBES.md` + `EPIC_RETURN.md` (no `PASTE_THIS`). Paste **`EPIC_BOOT.md` + `PROBES.md`** into the fresh epic chat.
+
+**developer** — additive alias of `epic` (ADR-98; §14). Byte-identical bundle; `{{MODE}}` renders `epic` until the deferred naming flip.
+```
+python scripts/gen_handoff.py --mode developer --epic-slug 278-test-suite-hygiene
+```
+→ same as epic; same paste.
+
+**functional** — requirements intake, **no probes** (§16).
+```
+python scripts/gen_handoff.py --mode functional
+```
+→ `docs/handoffs/<slug>/FUNCTIONAL_BOOT.md` (one file). Paste **`FUNCTIONAL_BOOT.md`** alone into a fresh functional-architect chat.
+
+**Arguments.** `--epic-slug <epic-slug>` (epic / developer only): the epic name — sets branch
+`epic/<epic-slug>` + worktree `epic-<epic-slug>`; kebab-case, no spaces; defaults to the bundle
+slug. In PowerShell single-quote it: `--epic-slug '278-test-suite-hygiene'`. `--slug <name>`
+overrides the bundle folder (default `<date>-<repo>-<mode>`); `--repo` / `--date` override the
+display name / date; `--no-assemble` skips `PASTE_THIS` (architect / execution). Consuming a
+generated bundle (booting the browser) is `docs/handoffs/README.md`.
+
 ## v5 (canonical — default flow; HANDOFF_PROCESS v5 / ADR-82)
 
 HANDOFF_PROCESS **v5** is canonical at `protocols/HANDOFF_PROCESS.md` (CC-owned handoff,
