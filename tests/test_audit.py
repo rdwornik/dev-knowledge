@@ -1908,6 +1908,72 @@ def test_deployed_version_unreadable_is_warn(tmp_path: Path, monkeypatch) -> Non
     assert f.status == "warn"
 
 
+# --- #265: key by repo ROOT (main worktree), not the linked-worktree basename -------------
+
+def test_git_repo_root_name_abs_common_dir(monkeypatch) -> None:
+    """_git_repo_root_name parses `--git-common-dir` (absolute `<root>/.git`) -> repo-root name."""
+    monkeypatch.setattr(aud.subprocess, "run", lambda *a, **k: SimpleNamespace(
+        returncode=0, stdout="/tmp/some/myrepo/.git\n", stderr=""))
+    assert aud._git_repo_root_name(Path("/tmp/some/myrepo-topic")) == "myrepo"
+
+
+def test_git_repo_root_name_relative_common_dir(tmp_path: Path, monkeypatch) -> None:
+    """A relative `.git` common-dir is resolved against repo_path (main-worktree case)."""
+    root = tmp_path / "myrepo"
+    (root / ".git").mkdir(parents=True)
+    monkeypatch.setattr(aud.subprocess, "run", lambda *a, **k: SimpleNamespace(
+        returncode=0, stdout=".git\n", stderr=""))
+    assert aud._git_repo_root_name(root) == "myrepo"
+
+
+def test_git_repo_root_name_none_when_git_fails(monkeypatch) -> None:
+    """git absent / not a repo -> None, so the caller falls back to the working-dir basename."""
+    monkeypatch.setattr(aud.subprocess, "run", lambda *a, **k: SimpleNamespace(
+        returncode=128, stdout="", stderr="not a git repository"))
+    assert aud._git_repo_root_name(Path("/nowhere")) is None
+
+
+def test_deployed_version_worktree_keys_by_repo_root(tmp_path: Path, monkeypatch) -> None:
+    """#265: an audit from a linked-worktree-shaped dir keys by the repo ROOT, not its own
+    basename — the throwaway `<repo>-<topic>` dir resolves to the parent's registry entry."""
+    _write_deployed_registry(tmp_path, monkeypatch,
+        'repos:\n  .dev-knowledge:\n    deployed_methodology_version: "1.2.0"\n')
+    monkeypatch.setattr(aud, "_git_repo_root_name", lambda rp: ".dev-knowledge")
+    f = aud.check_deployed_methodology_version(tmp_path / ".dev-knowledge-epic-x")[0]
+    assert f.status == "pass"          # keyed by root -> found; NOT the worktree-dir WARN
+    assert ".dev-knowledge" in f.evidence and "1.2.0" in f.evidence
+
+
+def test_deployed_version_unlisted_repo_still_warns(tmp_path: Path, monkeypatch) -> None:
+    """No weakening: a repo whose ROOT name is genuinely unlisted still WARNs (#265 anti-pattern)."""
+    _write_deployed_registry(tmp_path, monkeypatch,
+        "repos:\n  .dev-knowledge:\n    deployed_methodology_version: null\n")
+    monkeypatch.setattr(aud, "_git_repo_root_name", lambda rp: "some-unlisted-repo")
+    f = aud.check_deployed_methodology_version(tmp_path / "some-unlisted-repo")[0]
+    assert f.status == "warn"
+    assert "some-unlisted-repo" in f.evidence
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="git not available")
+def test_deployed_version_real_git_worktree_resolves_to_root(tmp_path: Path, monkeypatch) -> None:
+    """REAL git, no mocks: an audit run from an actual linked worktree keys the deployed-version
+    record by the MAIN worktree's basename end-to-end (the #265 witnessed RED, now GREEN)."""
+    repo = tmp_path / "myrepo"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    (repo / "f.txt").write_text("x")
+    _git(repo, "add", "f.txt")
+    _git(repo, "commit", "-qm", "init")
+    wt = tmp_path / "myrepo-epic-lane"
+    _git(repo, "worktree", "add", "-q", "--detach", str(wt))
+    assert aud._git_repo_root_name(wt) == "myrepo"          # helper resolves worktree -> root
+    _write_deployed_registry(tmp_path, monkeypatch,
+        'repos:\n  myrepo:\n    deployed_methodology_version: "1.2.0"\n')
+    f = aud.check_deployed_methodology_version(wt)[0]        # audited FROM the worktree
+    assert f.status == "pass", f.evidence                    # keyed by root, not "myrepo-epic-lane"
+    assert "myrepo" in f.evidence
+
+
 # ---------------------------------------------------------------------------
 # check_hooks_armed (RF-2 — hub git-hook arming; Fable architecture review 2026-07-04 §4)
 # ---------------------------------------------------------------------------
