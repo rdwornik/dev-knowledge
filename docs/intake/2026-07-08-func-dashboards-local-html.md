@@ -7,6 +7,8 @@ consumed-by:
 
 # Dashboards as local HTML — the Tier-4 human surface opens in VS Code, not the cloud
 
+> **Backlog lineage (grooming leg-c, 2026-07-08):** absorbs #264 — the build-vs-park decision for the Tier-4 visualization surface rides SEED-9 triage; `mermaid_emit.py` stays parked until then.
+
 ## Problem / motivation
 
 The Tier-4 human-facing visualization surface has drifted between two candidate forms. Intake doc #4
