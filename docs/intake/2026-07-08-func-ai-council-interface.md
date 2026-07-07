@@ -7,6 +7,8 @@ consumed-by:
 
 # AI-Council browser interface — launch a debate from one browser prompt
 
+> **Backlog lineage (grooming leg-c, 2026-07-08):** absorbs #70 (operationalize the AI-Council gated question→verdict→ADR loop, ADR-67) and #96 (producer-side VERDICT marker). This epic is the requirements spine those two backlog tasks fold into.
+
 ## Problem / motivation
 
 Launching a Council debate today is **manual and undocumented**: the operator has no one-prompt

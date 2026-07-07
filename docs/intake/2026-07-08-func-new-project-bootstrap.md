@@ -7,6 +7,8 @@ consumed-by:
 
 # New-project bootstrap — "register project X with purpose Y" as one elaborated flow
 
+> **Backlog lineage (grooming leg-c, 2026-07-08):** absorbs #16 #17 #109 #129 — template/scaffold scope (maximal workspace template, ADR-guidance in CLAUDE-md-template, subdirectory-CLAUDE.md convention, skill-authoring scaffold) folds into this bootstrap epic. #43 remains the decomposition target.
+
 ## Problem / motivation
 
 Starting a new repo under `Dev/` has no single entry point. PLAYBOOK §1 ("Starting a

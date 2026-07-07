@@ -27,16 +27,13 @@
 # "kept-as-manifest with a reason" form #146 explicitly blesses, not a hidden hardcode.
 
 dispositions:
-  - id: warn-77-voided-closure
-    organ: git_backlog_drift
-    match: "77e5d7d"
-    ref: 77e5d7d
-    reason: >-
-      Voided closure (ADR-65). Merge 77e5d7d carried `closes [#77]` but shipped
-      different work — #77 was re-scoped, not done, so it legitimately remains open
-      (corrected 2026-06-09, commit 9639597). Direction-(a) #90a cannot tell a
-      misattributed closure from a real one; only arc-content inspection (#139) can.
-    auto_clearable_by: "#139"
+  # (cleared 2026-07-08, grooming leg-c) warn-77-voided-closure — #77 was KILL-removed from
+  # BACKLOG (leg-c ruling, removed-not-closed per the #134 precedent). git_backlog_drift
+  # direction-(a) fires only on a `closes [#id]` whose id is STILL present in BACKLOG; with #77
+  # gone, 77e5d7d's `closes [#77]` no longer fires, so the WARN cleared and this entry decorated
+  # stale. The 77e5d7d voided-closure misattribution (merge carried `closes [#77]` but shipped
+  # different work; corrected 9639597) is now permanently moot for the ship-gate; #277(a) will
+  # likewise drop the #77 STRONG false-positive from propose_closures. Removed per ADR-75.
 
   # (retired 2026-06-13, ADR-84/Q9) warn-61c5b50-nightly-digest-writer — the
   # nightly digest no longer commits to main (it diverts to
@@ -148,36 +145,31 @@ dispositions:
       Pre-existing prose reference ("follow HANDOFF_PROCESS v5") — version-coupled, a likely DECLARE
       outcome; deferred to [#241] rather than committing the doc to version-coupling unilaterally.
 
-  # ---- pre-existing BACKLOG history-accretion bloat, slated for grooming leg-c (#286) ----
-  # The 2026-07-07 census-triage arc (filed #286, amended #262/#278) pushed three tasks past the
-  # doc_rot accretion threshold. They are NOT introduced by the 2026-07-08 architect-handoff arc (a
-  # pure ADD + this drift-clearing wrap) and are the GROOMING session's own explicit targets — leg-c
-  # rules KEEP/KILL/MERGE/DEFER and condenses below threshold (the #134 n=2 precedent that cleared
-  # warn-doc-rot-backlog-{164,134,77}). Dispositioned as pending-groom (deferred, not hidden); each
-  # decorates stale (ADR-75) and is removed the moment grooming condenses its task. Keyed on the
-  # BACKLOG#<id> token per the established doc-rot disposition pattern (one Finding per id).
-  - id: warn-doc-rot-backlog-286
-    organ: doc_rot
-    match: "BACKLOG#286"
-    ref: "#286"
-    reason: >-
-      Pre-existing accretion on the grooming worksheet task itself (#286 leg-b done, leg-c pending).
-      Not introduced by the 2026-07-08 architect-handoff arc. Resolved by grooming leg-c (rule +
-      condense); decorates stale and is removed then.
+  # ---- BACKLOG history-accretion bloat, ruled by grooming leg-c (2026-07-08) ----
+  # The 2026-07-07 census-triage arc pushed three tasks past the doc_rot accretion threshold.
+  # Grooming leg-c (2026-07-08) ruled them: #286 was re-scoped below threshold (WARN cleared, entry
+  # removed just below); #262 KEEP untouched and #278 PROMOTE (P3->P2) — neither condensed, so both
+  # WARNs stand and stay dispositioned here (condense deferred to each task's own build). Keyed on
+  # the BACKLOG#<id> token per the doc-rot disposition pattern (one Finding per id).
+  # (cleared 2026-07-08, grooming leg-c) warn-doc-rot-backlog-286 — leg-c re-scoped #286 to its
+  # remaining leg (S<n> ids + validate_backlog schema extension), dropping its dated blocks below
+  # the accretion threshold. Removed to avoid stale-disposition decoration (ADR-75).
   - id: warn-doc-rot-backlog-262
     organ: doc_rot
     match: "BACKLOG#262"
-    ref: "#286"
+    ref: "#262"
     reason: >-
-      Pre-existing accretion (child-repo codemap migration; amended by the 2026-07-07 census-triage
-      arc). Not introduced by this handoff arc. Slated for grooming leg-c ruling + condense.
+      Accretion on the child-repo codemap-migration task. Grooming leg-c (2026-07-08) ruled #262
+      KEEP untouched (cross-repo tracking; per-repo Wave-1 work), so the WARN stands; condense
+      deferred to a future currency pass. Not introduced by the grooming arc.
   - id: warn-doc-rot-backlog-278
     organ: doc_rot
     match: "BACKLOG#278"
-    ref: "#286"
+    ref: "#278"
     reason: >-
-      Pre-existing accretion (test-suite-hygiene epic; amended by the 2026-07-07 census-triage arc).
-      Not introduced by this handoff arc. Slated for grooming leg-c ruling + condense.
+      Accretion on the test-suite-hygiene epic. Grooming leg-c (2026-07-08) ruled #278 a PROMOTE
+      (P3->P2, evidence-backed), not a condense, so the WARN stands; condense deferred to the
+      epic's own build. Not introduced by the grooming arc.
 
   # (cleared 2026-07-02, #222) warn-doc-claims-pytest-collected-architecture — #222 relocated
   # the three volatile counts to the committed-generated ecosystem/doc-counts.md, so the
