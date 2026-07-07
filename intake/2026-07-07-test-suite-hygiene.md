@@ -1,8 +1,8 @@
 ---
 intake-id: 3
-status: SEED
+status: CONSUMED
 origin: operator concern, captured 2026-07-07 (Arc-2 epic prompt)
-consumed-by:
+consumed-by: "#278 (test-suite-hygiene epic, filed 2026-07-07 post-triage ruling; UAT = this doc's ex-ante ACs verbatim)"
 ---
 
 # Test-suite hygiene — theatricality review + impacted-test selection
@@ -68,5 +68,7 @@ cleanup number is meaningless.
 
 ## Status
 
-SEED — dropped by the operator during the Arc-2 epic prompt; not yet picked up by a
-functional-architect conversation. See `intake/README.md` §5 for the full lifecycle.
+CONSUMED — 2026-07-07 post-triage ruling ACCEPTED this triage and filed epic **#278**
+(test-suite-hygiene) with this doc's ex-ante ACs as its UAT verbatim; decomposition/build
+is a later session. Originally dropped by the operator during the Arc-2 epic prompt. See
+`intake/README.md` §5 for the full lifecycle.
