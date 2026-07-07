@@ -46,6 +46,13 @@ _STALE_AFTER_HOURS = 48
 _DATE_RE = re.compile(r"^run_date:\s*(\d{4}-\d{2}-\d{2})", re.M)
 _COMPLETED_RE = re.compile(r"^completed_at:\s*(\S+)", re.M)
 
+# Overdue-quarterly-groom escalation (BACKLOG "Grooming log" footer). The digest gains
+# one line when the most-recent past groom is older than this. Mirrors the footer parse
+# in validate_doc_rot (its 21-day audit WARN) at a 92-day SessionStart threshold.
+_GROOM_QUARTERLY_DAYS = 92
+_GROOMING_LOG_RE = re.compile(r"grooming log", re.IGNORECASE)
+_GROOM_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
 
 # ---------------------------------------------------------------------------
 # Pure helpers (unit-tested directly)
@@ -96,6 +103,41 @@ def is_completed_stale(text: str, now: datetime, max_age_hours: int = _STALE_AFT
     except ValueError:
         return False
     return (now - ts) > timedelta(hours=max_age_hours)
+
+
+def groom_escalation_line(backlog_text: str, today: date):
+    """A SessionStart escalation line when the quarterly BACKLOG groom is overdue, else None.
+
+    Reads the BACKLOG "Grooming log" footer, takes the most-recent PAST groom date
+    (dates <= today; the future "Next quarterly:" target is excluded), and returns an
+    ASCII-only escalation string when that date is older than _GROOM_QUARTERLY_DAYS.
+    Fail-soft: an absent / unparseable grooming line returns None (never a spurious line).
+
+    Parallels validate_doc_rot._latest_groom_date, which runs the same footer parse for
+    the 21-day audit-gate WARN; kept inline here so this SessionStart-critical helper
+    carries no cross-script import.
+    """
+    last = None
+    for line in backlog_text.splitlines():
+        if not _GROOMING_LOG_RE.search(line):
+            continue
+        dates = []
+        for s in _GROOM_DATE_RE.findall(line):
+            try:
+                d = date.fromisoformat(s)
+            except ValueError:
+                continue
+            if d <= today:
+                dates.append(d)
+        last = max(dates) if dates else None
+        break
+    if last is None:
+        return None
+    age = (today - last).days
+    if age <= _GROOM_QUARTERLY_DAYS:
+        return None
+    return (f"[fleet] overdue quarterly groom -- last groom {last.isoformat()}, "
+            f"{age}d ago (> {_GROOM_QUARTERLY_DAYS}d); run a grooming pass")
 
 
 def audit_timeout_budget(n_repos: int) -> int:
@@ -452,6 +494,14 @@ def main() -> int:
             text = _HEALTH_FILE.read_text(encoding="utf-8", errors="replace")
             if is_completed_stale(text, datetime.now()):
                 print("[fleet] digest stale (>48h) -- scheduled run may be failing")
+        # Overdue-quarterly-groom escalation -- unthrottled (surfaces every session, not
+        # only on refresh days) and fail-soft (guarded read; swallowed by the outer except).
+        backlog = _REPO_ROOT / "BACKLOG.md"
+        if backlog.exists():
+            groom = groom_escalation_line(
+                backlog.read_text(encoding="utf-8", errors="replace"), date.today())
+            if groom:
+                print(groom)
         print(surface_line(_HEALTH_FILE))
         return 0
     except Exception as exc:
