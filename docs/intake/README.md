@@ -157,6 +157,11 @@ Both feeds write **status: SEED only** — a feed proposes, it never decomposes 
 never mutates the backlog directly (the same never-mutate boundary the nightly loop
 carries generally).
 
+Beyond these two automated feeds, an **audit** (evidence, `docs/audits/`) feeds intake by
+hand when a finding turns out **requirement-shaped** — it crosses the folder line as a SEED
+and runs the full spine (**audit → SEED → triage → ADR → backlog → build → UAT**), evidence
+becoming a request.
+
 ## 9. Advisory edge note
 
 A backlog epic (or a §14a-style epic handoff) that cites a confirmed intake doc forms
