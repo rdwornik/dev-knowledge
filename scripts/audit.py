@@ -200,7 +200,15 @@ _CANONICAL_ALL = _CANONICAL_MANDATORY + [
 # fire every session by design.
 # Single-sourced in scripts/canonical_freshness_gate.py (deployed consumer-local by the mesh
 # carrier). Aliased here so audit.py + its importers (enforcement_coverage, tests) keep the name.
-_FRESHNESS_FILES = _cfg.DEFAULT_FRESHNESS_FILES
+# The PORTABLE base (DEFAULT_FRESHNESS_FILES) is what a consumer inherits verbatim via the deployed
+# canonical_freshness gate; the HUB-ONLY extras are hub governance docs under protocols/ that do NOT
+# exist in a consumer (so they'd be skipped there anyway) and are gated only here, where audit.py
+# runs (audit.py is hub-only). Added per the 2026-07-08 fleet-census A-2 ruling — PLAYBOOK is the
+# largest ungated canonical doc but is DEFERRED (no last_reviewed frontmatter yet + a genuine
+# end-to-end re-read is its own arc; see BACKLOG). SESSION_SETUP + AI_COUNCIL_PROCESS were genuinely
+# re-read and stamped in that arc, so they join now.
+_HUB_ONLY_FRESHNESS_FILES = ["protocols/SESSION_SETUP.md", "protocols/AI_COUNCIL_PROCESS.md"]
+_FRESHNESS_FILES = _cfg.DEFAULT_FRESHNESS_FILES + _HUB_ONLY_FRESHNESS_FILES
 _FRESHNESS_CADENCE_DAYS = _cfg.FRESHNESS_CADENCE_DAYS
 
 # Required VS Code workspace settings (ADR-59 Decision 3). "upper" (not "default")

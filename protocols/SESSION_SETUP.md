@@ -1,3 +1,9 @@
+---
+last_reviewed: 2026-07-07
+status: active
+owner: Rob
+---
+
 # Session Setup
 
 > Browser chat workflow. 5 chronological steps.

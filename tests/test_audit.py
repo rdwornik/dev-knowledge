@@ -1100,6 +1100,18 @@ def test_freshness_includes_essentials() -> None:
     assert "protocols/ESSENTIALS.md" in aud._FRESHNESS_FILES
 
 
+def test_freshness_includes_hub_only_protocol_docs() -> None:
+    """SESSION_SETUP + AI_COUNCIL_PROCESS joined the gate (fleet-census A-2 ruling 2026-07-08).
+    They are HUB-ONLY extras over the portable DEFAULT_FRESHNESS_FILES base — a consumer that
+    lacks protocols/ skips them. PLAYBOOK is deliberately NOT here yet (deferred: no last_reviewed
+    frontmatter + a full re-read is its own arc; see BACKLOG)."""
+    assert "protocols/SESSION_SETUP.md" in aud._FRESHNESS_FILES
+    assert "protocols/AI_COUNCIL_PROCESS.md" in aud._FRESHNESS_FILES
+    # The extras are additive over the portable base (which the deployed gate ships to consumers).
+    assert set(aud._cfg.DEFAULT_FRESHNESS_FILES).issubset(set(aud._FRESHNESS_FILES))
+    assert "protocols/PLAYBOOK.md" not in aud._FRESHNESS_FILES  # deferred, not yet stamped
+
+
 @pytest.mark.skipif(not _HAS_GIT, reason="git not available")
 def test_git_last_commit_date_no_history_returns_none(tmp_path: Path) -> None:
     """REAL git: an untracked (never-committed) file has no commit date → None (A2 skipped)."""

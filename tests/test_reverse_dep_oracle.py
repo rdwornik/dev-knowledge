@@ -76,7 +76,7 @@ def test_position_points_at_name_not_keyword():
     assert d.file == "scripts/audit.py"
     assert d.kind == "ClassDef"
     assert d.character == 6          # len("class ") — points at the F, not the keyword
-    assert d.line == 258            # 0-based (audit.py:259 is 1-based)
+    assert d.line == 266            # 0-based (audit.py:267 is 1-based)
 
 
 # --- provenance ------------------------------------------------------------------------
@@ -212,10 +212,10 @@ def test_finding_headline_resolves_with_provenance():
     res = ans["resolution"]
     assert res["status"] == "resolved", ans
     assert res["definition"]["file"] == "scripts/audit.py"
-    assert res["definition"]["line"] == 259                  # 1-based output
+    assert res["definition"]["line"] == 267                  # 1-based output
     assert ans["reverse_dependent_count"] >= 50              # floor (measured ~110), drift-robust
     # the declaration site is not its own reverse-dependent
-    assert {"file": "scripts/audit.py", "line": 259} not in ans["reverse_dependents"]
+    assert {"file": "scripts/audit.py", "line": 267} not in ans["reverse_dependents"]
     prov = ans["provenance"]
     assert prov["completeness"] == "complete"
     assert prov["git_rev"]

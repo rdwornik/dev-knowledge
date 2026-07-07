@@ -9,7 +9,8 @@ consumed-by: <ADR/backlog ids — leave blank until status: CONSUMED>
   Intake-doc template — ADR-98 (Accepted 2026-07-07), built by BACKLOG #268.
   Format + lifecycle + frontmatter schema are defined in `docs/intake/README.md` — read
   that first if this is your first intake doc. Do not hand-roll the shape; copy this
-  file to `docs/intake/YYYY-MM-DD-slug.md` (date = origin date) and fill it in.
+  file to `docs/intake/YYYY-MM-DD-{func|tech}-slug.md` (date = origin date; func =
+  elicitation-born requirement, tech = technical follow-up — see README §4) and fill it in.
   FRONTMATTER STAYS FIRST — the functional-boot intake index parses it from the top
   of the file; nothing may precede the opening `---`.
   Genre reminder (ADR-98 §3): this doc is WHAT/WHY only — no HOW, no solutioning,
