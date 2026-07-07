@@ -6,6 +6,7 @@
 - **Amends:** <ADR-NN if this amends an earlier decision; omit if not applicable>
 - **Supersedes:** <ADR-NN if this replaces an earlier decision; omit if not applicable>
 - **Related:** <ADR-NN or other refs for context; omit if none>
+- **Intake:** <intake-id(s) this ADR was born from — e.g. "#3"; omit if not intake-born. RULE: an ADR born from an intake doc MUST cite its intake-id — the docs/intake/ ↔ ADR traceability edge (ADR-98).>
 - **Decommission:** <files, folders, or sections made obsolete by this decision and therefore to be removed; write "none" if nothing>
 - **Source:** <provenance line — AI Council debate / session debate / operator ruling, with date + ref (branch, transcript, session, or brief)>
 
