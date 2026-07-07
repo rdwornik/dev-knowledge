@@ -764,6 +764,41 @@ def _git_registered_worktrees(repo_path: Path) -> Optional[set[str]]:
     return registered
 
 
+def _git_repo_root_name(repo_path: Path) -> Optional[str]:
+    """Directory name of the MAIN worktree (repo root) for `repo_path`.
+
+    A linked worktree's own basename is a throwaway (`.dev-knowledge-<topic>`); the durable
+    repo identity is the main worktree's directory name. `git rev-parse --git-common-dir`
+    returns the SHARED `.git` gitdir — `<main-root>/.git` — from any worktree of the repo, so
+    its parent's name is the repo-root identity regardless of which worktree we audit from.
+
+    Read-only (`git rev-parse`). Returns None when git is absent or the path is not a git repo
+    (same graceful-degradation contract as `_git_registered_worktrees`), so a non-git consumer
+    falls back to the working-dir basename at the call site.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_path), "rev-parse", "--git-common-dir"],
+            capture_output=True, text=True, encoding="utf-8",
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    common = result.stdout.strip()
+    if not common:
+        return None
+    common_path = Path(common)
+    if not common_path.is_absolute():
+        common_path = Path(repo_path) / common_path
+    try:
+        common_path = common_path.resolve()
+    except OSError:
+        pass
+    # `--git-common-dir` is the main worktree's `.git` gitdir; its parent is the repo root.
+    return common_path.parent.name
+
+
 def _looks_like_worktree_remnant(path: Path) -> bool:
     """True when `path` shows evidence of being a torn-down worktree leftover rather
     than an independent repo or an unrelated populated folder.
@@ -1906,8 +1941,10 @@ def check_deployed_methodology_version(repo_path: Path) -> list[Finding]:
     The registry (ecosystem/deployed-versions.yaml) is the durable record-home ADR-91 chose
     over the derived ecosystem/index.yaml (which audit.py::regenerate_index overwrites wholesale
     each run). One hub file, read for whichever repo is being audited: the audited repo is keyed
-    by its directory name (repo_path.name), so each repo's state.yaml carries its OWN
-    deployed-version finding and fleet_health surfaces it per repo.
+    by its repo-ROOT directory name (the main worktree's basename, resolved via
+    `git rev-parse --git-common-dir`), so an audit run from a linked worktree keys the record by
+    the parent repo — not the throwaway `<repo>-<topic>` worktree basename (#265) — and each
+    repo's state.yaml carries its OWN deployed-version finding that fleet_health surfaces per repo.
 
     Status: `n/a` while the field is null (no methodology release deployed yet -- the expected
     pre-deploy state; the deploy-runbook writer is a separate, later piece); `pass` with the
@@ -1926,7 +1963,9 @@ def check_deployed_methodology_version(repo_path: Path) -> list[Finding]:
     if not isinstance(repos, dict):
         return [Finding(name, "warn",
                         "deployed-versions.yaml missing/malformed 'repos:' map (ADR-91)")]
-    repo_key = Path(repo_path).name
+    # Key by the repo-root basename so a linked worktree audits as its parent repo (#265);
+    # fall back to the working-dir basename when git is unavailable (non-git consumer).
+    repo_key = _git_repo_root_name(repo_path) or Path(repo_path).name
     if repo_key not in repos:
         return [Finding(name, "warn",
                         f"{repo_key} not listed in deployed-versions.yaml (ADR-91)")]
