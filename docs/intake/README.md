@@ -72,9 +72,24 @@ resulting epic(s) cite back (§1). Don't renumber on rejection or on folder grow
 
 ## 4. Naming
 
-`YYYY-MM-DD-slug.md` — the repo's standard dated-artifact convention (CLAUDE.md §4).
-The date is the **origin** date (when the conversation happened / the SEED landed),
-not the date the doc was formatted or triaged.
+Going-forward: `YYYY-MM-DD-{func|tech}-slug.md` — the repo's standard dated-artifact
+convention (CLAUDE.md §4) plus a genre infix:
+
+- **`func`** — an elicitation-born requirement (a functional-architect conversation; the
+  WHAT/WHY the operator surfaced).
+- **`tech`** — a technical follow-up (a requirement raised by the technical architect's
+  triage, or a technical-factual item spun out of a `func` doc).
+
+The date is the **origin** date (when the conversation happened / the SEED landed), not
+the date the doc was formatted or triaged.
+
+**Genre is folder-first, infix-second.** The hard split is the *folder*: `docs/audits/` =
+evidence (what a read-only census/audit found), `docs/intake/` = requests (what someone
+wants built). The `{func|tech}` infix subdivides *within* intake; it never crosses the
+folder line.
+
+Ratified 2026-07-08. **No mass-rename** — existing intake docs keep their current
+`YYYY-MM-DD-slug.md` names; the infix applies only to docs created from here on.
 
 ## 5. Lifecycle
 
