@@ -19,6 +19,19 @@
 
 ---
 
+### 2026-07-09 — CC (Opus 4.8): deletion-candidates sweep — repo is lean; the headline is a backup gap
+
+**Did:** Read-only, propose-only deletion sweep across the hub + 8 fleet repos (OneDrive zone excluded from every walk), on `audit/2026-07-09-deletion-candidates`. Seven legs via 3 parallel read-only subagents + direct hub checks: git branches (hub+fleet), dead code (`scripts/`+`deploy/`), orphaned docs/templates/protocols, untracked buildup, config/registry rot, and cross-check-against-existing-tracking. Report: `docs/audits/2026-07-09-deletion-candidates-report.md`.
+
+**Result:** Corpus is LEAN. **0 dead-code candidates** (3 UNKNOWN kept-by-design per the #218 boundary: `probe_child_backlogs`, `review_closures` plugin-twin, `release_lint` #244). **0 true orphan docs** — already justify-or-retire audited 2026-06-26; the one THIN cluster (v4 handoff templates, 8 files) is GATED by **#164**/ADR-83, `AGENT_FRAMEWORK.md` by **#227**. No >10 MB buildup (`temp/` verified EMPTY post-#229 = 703.87 MB already reclaimed); config clean (all pre-commit scripts exist, disposition-register 0-stale, the one stale doc-code-edge entry is **#263**). Only clean-confidence action: **3 merged-and-undeleted branches** (`docs/2026-07-08-architect-handoff` + `worktree-cadence-teeth` in hub, `feat/master-deck-audit` in demo-prep). **Headline is a BACKUP GAP, not a deletion:** corp-ops (no remote), corp-sca (`feature/tenrox-loader` unpushed), demo-prep (origin set, nothing pushed) all hold unbacked work on one disk — corroborates night-audit **F1** (#284 premise false) and adds **demo-prep** as newly surfaced. Cross-check tied every other candidate to existing tracking (#254/#255/#263/#244) — no forked tickets.
+
+**Changes:** `docs/audits/2026-07-09-deletion-candidates-report.md` (new), `docs/audits/README.md` (index regen), `JOURNAL.md`. No BACKLOG edit, no deletions (propose-only). ADR-85 session-SHAs: `565e1c9` (report) → this wrap.
+
+**Abandoned:** Nothing deleted (deliberate). The 3 branch deletes + the fleet-backup task sit in the report's RATIFICATION QUEUE for operator sign-off.
+
+**Next:** operator ratifies the deletion queue + backup posture; then the architect SEED 6–9 triage + Wave-1 session (handoff bundle `2026-07-09-dev-knowledge-architect`).
+
+
 ### 2026-07-09 — CC (Opus 4.8): night verification audit — full-day re-proof, GREEN, 0 P0
 
 **Did:** Adversarially re-verified everything the 2026-07-08 session shipped, from live disk/git (trust-no-report), on `audit/2026-07-09-night-verification`. Phase 0 — ground-truth spine matches the day's reports, no deviation. Phase 1 — gate battery all GREEN (pytest 1422/2, ruff, ship-gate 0-stale, backlog 74 tasks, git_backlog / doc_claims / doc_rot / handoff_probes 10-pass / roster+claude-rosters+audit-index freshness). Phase 2 — Codex 0.141.0 read-only review of the day's code diff `68c4705..HEAD` (4 findings, all triaged). Phase 3 — functional re-proof of all 8 mechanisms against live state: filing-backpressure trip-test (block/pass + full reset), groom-escalation (absent + positive), #265 worktree repo-root keying, #275b 3-stage arm sandbox, OneDrive guard v3 **15/15** matrix, #215 runbook conformance cmds, grooming reconciliation via an independent subagent (**CLEAN**), cross-repo spot checks. Phase 5 — deterministic audit-index regen + cut the next architect handoff bundle.
