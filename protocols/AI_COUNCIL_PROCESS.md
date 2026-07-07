@@ -1,3 +1,9 @@
+---
+last_reviewed: 2026-07-07
+status: active
+owner: Rob
+---
+
 # AI_COUNCIL_PROCESS v2.0
 
 <!-- version: 2.0 — 2026-06-01 (ADR-67: gated loop + /council-question trigger + deterministic ADR return) -->

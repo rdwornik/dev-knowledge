@@ -74,6 +74,18 @@ repos:
         language: system
         files: '(^\.claude/commands/.*\.md$|^docs/decisions/ADR-.*\.md$|^\.claude/generated/(commands-repo|recent-adrs)\.md$)'
         pass_filenames: false
+      - id: audit-index-freshness
+        name: Audits index freshness check (fleet-census A-2 ruling; #269 freshness-hook leg)
+        # Fail-on-stale regen-and-diff, mirroring roster-freshness / claude-rosters-freshness:
+        # regenerate with `python scripts/gen_audit_index.py --write`. Guards the generated
+        # docs/audits/README.md against silent rot (the test_gen_audit_index red the 2026-07-08
+        # fleet census cleared at ca9ded0 can otherwise recur). Fires on ANY docs/audits/*.md
+        # (an add/edit/remove changes the index) OR the generator itself. The --check regen-and-diff
+        # is shape-agnostic, so it survives #269's later count-tiered reshape. HUB-ONLY.
+        entry: python scripts/gen_audit_index.py --check
+        language: system
+        files: '(^docs/audits/.*\.md$|^scripts/gen_audit_index\.py$)'
+        pass_filenames: false
       - id: validate-backlog
         name: Validate BACKLOG.md story-map (ADR-66)
         entry: python scripts/validate_backlog.py
