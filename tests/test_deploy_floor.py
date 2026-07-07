@@ -287,6 +287,18 @@ def test_apply_adds_sessionstart_guard_with_both_legs(tmp_path):
     assert any("pre_commit install" in c for c in cmds)           # bootstrap arm leg
 
 
+def test_apply_arms_all_three_hook_stages(tmp_path):
+    """#275b: the SessionStart arm command the carrier writes arms ALL THREE hook stages
+    (pre-commit / commit-msg / pre-push), not just pre-commit — else commit-msg / pre-push
+    stage hooks land wired-but-dormant on a fresh consumer."""
+    _carrier(tmp_path).apply(_FLOOR_TARGET)
+    data = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+    cmds = [h["command"] for g in data["hooks"]["SessionStart"] for h in g["hooks"]]
+    arm = next(c for c in cmds if "pre_commit install" in c)
+    for tok in ("-t pre-commit", "-t commit-msg", "-t pre-push"):
+        assert tok in arm, f"arm cmd missing {tok!r} (#275b): {arm!r}"
+
+
 def test_apply_merges_sessionstart_preserving_existing_settings(tmp_path):
     existing = {"enabledPlugins": {"tier1-lifecycle@dev-knowledge-methodology": True}}
     _settings(tmp_path).parent.mkdir(parents=True, exist_ok=True)

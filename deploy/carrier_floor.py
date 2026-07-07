@@ -103,7 +103,10 @@ _GITIGNORE_NEGATIONS = (
 # session-start (the commit-time pre-commit leg cannot catch a pure deletion — it is the
 # backstop; ADR-93). The bootstrap leg idempotently arms the commit-time git hook.
 _SESSIONSTART_VERIFY_CMD = f"python {HOOK_SCRIPT_REL} --require-present"
-_SESSIONSTART_ARM_CMD = "python -m pre_commit install"
+# Arm ALL THREE managed hook stages (#275b): a bare `pre_commit install` arms the
+# pre-commit stage ONLY, so commit-msg / pre-push stage hooks land wired-but-dormant on a
+# fresh consumer. The `-t` flags mirror the hub's own 3-stage self-arm (scripts/arm_hooks.py).
+_SESSIONSTART_ARM_CMD = "python -m pre_commit install -t pre-commit -t commit-msg -t pre-push"
 # Stable sentinel used to detect an already-armed settings.json (idempotency).
 _SESSIONSTART_SENTINEL = "check_floor_hash.py"
 

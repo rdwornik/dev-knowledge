@@ -167,6 +167,32 @@ def test_autoarm_installs_git_hook(armed_consumer, pc_env):
     assert hook.exists()  # the SessionStart bootstrap leg created it
 
 
+def test_arm_step_installs_all_three_hook_stages(armed_consumer, pc_env):
+    """#275b trip-test: the SessionStart arm command the floor carrier WROTE installs all
+    three managed git-hook stages (pre-commit / commit-msg / pre-push), not just pre-commit.
+    Runs the exact settings.json command verbatim; a regression to a 1-stage `pre_commit
+    install` leaves commit-msg / pre-push absent and fails here (standalone — NOT part of the
+    run_conformance suite, so it does not perturb the len()==8/==9 count assertions)."""
+    settings = json.loads(
+        (armed_consumer / ".claude" / "settings.json").read_text(encoding="utf-8")
+    )
+    cmds = [h["command"] for g in settings["hooks"]["SessionStart"] for h in g["hooks"]]
+    arm = next(c for c in cmds if "pre_commit install" in c)
+    argv = arm.split()
+    assert argv[0] == "python"
+    argv[0:1] = [sys.executable]  # run under this interpreter, not a bare `python` on PATH
+    hooks = armed_consumer / ".git" / "hooks"
+    for name in ("pre-commit", "commit-msg", "pre-push"):
+        (hooks / name).unlink(missing_ok=True)  # prove install-from-absent
+    r = subprocess.run(
+        argv, cwd=str(armed_consumer), capture_output=True, text=True,
+        encoding="utf-8", errors="replace", env={**os.environ, **pc_env},
+    )
+    assert r.returncode == 0, r.stderr
+    for name in ("pre-commit", "commit-msg", "pre-push"):
+        assert (hooks / name).exists(), f"{name} hook not installed (#275b regression)"
+
+
 def test_poison_blocked_at_commit_time(armed_consumer, pc_env):
     fc.assert_autoarm(armed_consumer, pc_env)  # arm the git hook first
     fc.assert_tamper_caught_commit(armed_consumer, pc_env)
