@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-07 — CC (Opus 4.8): post-arc triage + wrap + post-triage rulings (Arc-4/Arc-5 tail)
+
+**Did:** After the Arc-4 (corp-monorepo n=2 deploy) and Arc-5 (platform triage) integrations landed on main, ran the post-arc triage session then the operator's post-triage rulings. **Triage/wrap:** committed the functional-boot bundle + JOURNAL generation-entry (`d6f7938`); adjudicated #275 — retro-fix leg LANDED (ai-council `5d78ce4`), item left OPEN on the carrier-side v1.3.x leg, Done-when tightened (`ff8cca2`); ran /review-closures (49 proposed: 2 STRONG documented-FPs #5/#77 + 47 bare-file-churn WEAK) → triaged REJECT-all, nothing applied; ran /changelog-review claude-code 2.1.201→2.1.202 (first run with the #268 SEED-feed wired) — 1 ADOPT (dynamic-workflow-size /config setting) seeded to `intake/2026-07-07-changelog-review-seeds.md` (intake-id 5), 1 VERIFY-resolved (/review reversion, no doc drift), 16 NOISE, codex quiet (`94a4292`). **Rulings:** filed #277 (propose_closures signal repair — the 49:0 run fails the survival metric on our own organ), #278 (test-suite-hygiene epic, consumes intake-id 3 SEED→CONSUMED, UAT = doc #3 ex-ante ACs verbatim), #279 (validate_backlog advisory WARN for an L-epic missing an intake-id citation) + the ADR-98 amendment (intake-edge advisory→WARN now n=2 is met; block-level deferred to n≥4) (`a8effba`).
+
+**Result:** All tail work landed via branch → `--no-ff` → push; ship-gate GREEN (10 WARN dispositioned) at every merge; tree clean. Open BACKLOG 112 → 115 (filed #277/#278/#279). #264 HELD (no action — pending the operator's dashboard usability call). Nothing applied from the closure batch (REJECT all 49). The #268 intake SEED-feed is proven end-to-end on its first real changelog-review run.
+
+**Changes:** `docs/handoffs/2026-07-07-dev-knowledge-functional/`, `JOURNAL.md`, `BACKLOG.md` (#275 annotate; #277/#278/#279 filed), `docs/audits/2026-07-07-changelog-review.md`, `ecosystem/tool-versions.yaml` (2.1.201→2.1.202), `intake/2026-07-07-changelog-review-seeds.md` (new), `intake/2026-07-07-test-suite-hygiene.md` (SEED→CONSUMED), `docs/decisions/ADR-98-intake-pipeline.md` (amendment). ADR-85 session-SHAs: `d6f7938`, `ff8cca2`, `94a4292`, `a8effba`.
+
+**Abandoned:** No closures applied (architect adjudicated REJECT-all). #264 no action. No build of #277/#278/#279 (filed-only; decomposition is later sessions). Carrier-side #275 leg deferred to v1.3.x.
+
+**Next:** Architect rulings queue: build #277 (closure-signal repair), #278 (test-suite-hygiene, after the why-faster precondition), #279 (validate_backlog WARN); ai-council #275 carrier-side leg at next release; #264 on the operator's dashboard call.
+
+---
+
 ### 2026-07-07 — CC: handoff `2026-07-07-dev-knowledge-functional` generated (drift-reference hints — NOT in the bundle)
 
 Generation-time state, for the JOURNAL entry only (the browser has no file access and never sees this; the bundle states none of it):
