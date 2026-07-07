@@ -606,8 +606,8 @@ touches only findings (CONTRIBUTING "Nightly outcome management"; ADR-72/76/80/8
 
 **Requirements intake (upstream of decomposition; ADR-98).** Operator intent →
 `gen_handoff.py --mode functional` boots the intake-capture chat → confirm-gated intake doc in
-`intake/` (WHAT/WHY; acceptance criteria copy verbatim into the epic UAT) → technical-architect
-triage → BACKLOG epics / ADRs. Format + lifecycle: `intake/README.md`; chain documentation:
+`docs/intake/` (WHAT/WHY; acceptance criteria copy verbatim into the epic UAT) → technical-architect
+triage → BACKLOG epics / ADRs. Format + lifecycle: `docs/intake/README.md`; chain documentation:
 PLAYBOOK Part II §2; boot contract: HANDOFF_PROCESS §16.
 
 **Decision flow (how a contested need becomes binding doctrine).**

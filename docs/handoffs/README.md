@@ -172,7 +172,7 @@ exist; each produces its own single paste and **skips this walkthrough entirely*
 - **Functional (`--mode functional`)** — the §16 intake-capture boot: ONE file,
   `FUNCTIONAL_BOOT.md`, pasted alone into a fresh functional-architect chat. No probes, no
   run loop, no beat — the chat captures requirements into an intake doc
-  (`intake/README.md`; ADR-98). Boot ack line: "Functional architect booted — intake
+  (`docs/intake/README.md`; ADR-98). Boot ack line: "Functional architect booted — intake
   capture only."
 
 ---

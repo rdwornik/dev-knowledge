@@ -79,8 +79,8 @@ Classify every changelog entry *after* `last_reviewed_version` into exactly one 
 
 6. **Write the intake SEED doc** — only when this run produced **any** ADOPT or
    OBSOLETES-WORKAROUND item (skip this step entirely on a run with none; no empty
-   SEED docs). Write `intake/<today>-changelog-review-seeds.md` per the frontmatter
-   schema in `intake/README.md` §3: `intake-id` = next free across all history,
+   SEED docs). Write `docs/intake/<today>-changelog-review-seeds.md` per the frontmatter
+   schema in `docs/intake/README.md` §3: `intake-id` = next free across all history,
    `status: SEED`, `origin: changelog-review, <today>`, `consumed-by:` blank. Body:
    one bullet per ADOPT/OBSOLETES-WORKAROUND finding, verbatim-ish from the digest —
    the finding plus its candidate value/target (the BACKLOG-home or the artifact it
@@ -101,4 +101,4 @@ Classify every changelog entry *after* `last_reviewed_version` into exactly one 
    triage and the whole point of the push.
 
 **Never** implement an adoption, never schedule this, never fetch from the sentinel,
-never write to `intake/` on a run with zero ADOPT/OBSOLETES-WORKAROUND findings.
+never write to `docs/intake/` on a run with zero ADOPT/OBSOLETES-WORKAROUND findings.

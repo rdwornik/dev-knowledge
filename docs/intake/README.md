@@ -1,8 +1,8 @@
-# intake/ — the requirements spine
+# docs/intake/ — the requirements spine
 
 <!-- scope: meta -->
 
-`intake/` holds **intake documents** — the requirements-capture artifact ratified by
+`docs/intake/` holds **intake documents** — the requirements-capture artifact ratified by
 ADR-98 (Accepted 2026-07-07) and built by BACKLOG **#268** (Arc 2, "the intake scene").
 This README defines the format, the frontmatter schema, and the lifecycle; the
 fill-in skeleton is `templates/intake-template.md`.
@@ -106,7 +106,7 @@ ADR or epic.
 
 Conversion path for a fluid session: voice/chat ramble → CC converts the transcript
 or the functional-architect synthesis into the template shape → **operator approves
-the draft** → it lands in `intake/` at DRAFT or READY-FOR-TECHNICAL. A doc that
+the draft** → it lands in `docs/intake/` at DRAFT or READY-FOR-TECHNICAL. A doc that
 hasn't cleared that approval step does not belong in this folder yet (it's still a
 transcript, not an intake doc).
 
@@ -145,7 +145,7 @@ carries generally).
 ## 9. Advisory edge note
 
 A backlog epic (or a §14a-style epic handoff) that cites a confirmed intake doc forms
-a coherence edge between `intake/` and the epic surface. Per ADR-98 §5 that edge
+a coherence edge between `docs/intake/` and the epic surface. Per ADR-98 §5 that edge
 stays **advisory** — nothing gates on it — **until two intake docs have been consumed
 end-to-end**. Only at that n=2 point does hardening (a required-linked-intake gate on
 new epics) get decided. Don't build or propose that gate before the evidence exists.

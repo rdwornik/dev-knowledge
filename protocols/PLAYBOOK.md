@@ -2204,7 +2204,7 @@ Then for each feature:
 
 Where a formal prompt comes **from**. Before anything below is authored, a new initiative runs the ratified intake pipeline (ADR-98) — three roles, each a boot **mode/profile** of `scripts/gen_handoff.py`, one chain:
 
-1. **Functional architect** (`--mode functional`, HANDOFF_PROCESS.md §16) — a fluid conversation that captures the operator's intent as an **intake doc** (WHAT/WHY: problem, scenarios, requirements, **ex-ante acceptance criteria**). Confirm-gated: the operator approves the draft before it lands in `intake/` (format + lifecycle: `intake/README.md`; feeds like `/changelog-review` drop `status: SEED` candidates into the same folder).
+1. **Functional architect** (`--mode functional`, HANDOFF_PROCESS.md §16) — a fluid conversation that captures the operator's intent as an **intake doc** (WHAT/WHY: problem, scenarios, requirements, **ex-ante acceptance criteria**). Confirm-gated: the operator approves the draft before it lands in `docs/intake/` (format + lifecycle: `docs/intake/README.md`; feeds like `/changelog-review` drop `status: SEED` candidates into the same folder).
 2. **Technical architect** (`--mode architect`, HANDOFF_PROCESS.md §13) — triages the confirmed intake doc (accept / defer / reject), then decomposes: BACKLOG epics (ADR-66 story-map, each citing its intake-id + ADR ids), any ADRs the initiative forces, and one §14a epic handoff per parallelizable epic. The prompt-authoring spec below is this role's output surface.
 3. **Developer** (`--mode developer`, HANDOFF_PROCESS.md §14 — the additive alias of epic mode, ADR-98) — executes one epic lane end-to-end; UAT at EPIC RETURN = the intake doc's acceptance criteria **verbatim**; go-live = root merge.
 

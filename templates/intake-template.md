@@ -1,5 +1,5 @@
 ---
-intake-id: <N>            # stable integer, next free across all history — see intake/README.md §3
+intake-id: <N>            # stable integer, next free across all history — see docs/intake/README.md §3
 status: DRAFT             # SEED | DRAFT | READY-FOR-TECHNICAL | CONSUMED (ids) | REJECTED (why)
 origin: <one line: who / where / when — e.g. "operator voice session, 2026-07-06">
 consumed-by: <ADR/backlog ids — leave blank until status: CONSUMED>
@@ -7,9 +7,9 @@ consumed-by: <ADR/backlog ids — leave blank until status: CONSUMED>
 
 <!--
   Intake-doc template — ADR-98 (Accepted 2026-07-07), built by BACKLOG #268.
-  Format + lifecycle + frontmatter schema are defined in `intake/README.md` — read
+  Format + lifecycle + frontmatter schema are defined in `docs/intake/README.md` — read
   that first if this is your first intake doc. Do not hand-roll the shape; copy this
-  file to `intake/YYYY-MM-DD-slug.md` (date = origin date) and fill it in.
+  file to `docs/intake/YYYY-MM-DD-slug.md` (date = origin date) and fill it in.
   FRONTMATTER STAYS FIRST — the functional-boot intake index parses it from the top
   of the file; nothing may precede the opening `---`.
   Genre reminder (ADR-98 §3): this doc is WHAT/WHY only — no HOW, no solutioning,
