@@ -105,11 +105,6 @@ So that observed failure-modes become written guidance instead of recurring.
 So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
 - [#23] [P3][M] Build a navigable supersedes/related/amends graph from ADR frontmatter (or an index doc) · Done when: the graph renders + is freshness-checked · refs posture-audit I1
 
-### Operationalize the Council decision loop
-So that Council questions are gated and their verdicts return deterministically instead of being shuttled by hand.
-- [#110] [P3][S] ai-council round-2 isolation audit — verify whether round-2 debaters see round-1 peer arguments; 2026 evidence: 58% sycophantic convergence in debate, 23.9% unanimous-wrong by round 3; confirm blind-vote isolation properties hold for our 2-round design · execute in the ai-council dedicated chat · Done when: isolation properties confirmed or a remediation is recorded · refs #96, ADR-03, research transcript 2026-06-06 · 2026-06-07 groom: ADR-03 is an ai-council-repo ADR (no such ADR in dev-knowledge/docs/decisions) — verify the ref in the ai-council chat
-- [#128] [P3][S] ai-council prompt caching — apply `cache_control` to the repeated brief/persona blocks reused across providers and debate rounds, cutting input-token cost on multi-round debates · **execute in the ai-council dedicated chat** (ADR-41 — queue-only here) · Done when: a council run reuses cached brief/persona blocks and the input-token saving is recorded · refs Anthropic API prompt-caching docs, #96, #110
-
 ### Close the small ADR cross-reference + registry amendments
 So that the ADR web is internally consistent.
 - [#19] [P3][M] Complete the ADR-39 register — (a) add a BACKLOG.md lifecycle entry (formerly bundled with #20); (b) decide register/exempt/hybrid for the non-handoff templates/ class (merged from #21, 2026-06-07 groom) · Done when: ADR-39 registry includes BACKLOG.md AND the templates/ class decision is recorded · refs ADR-39/41
