@@ -468,3 +468,45 @@ def test_build_digest_renders_drift_section():
 def test_build_digest_no_drift_section_when_empty():
     assert "## Drift" not in fh.build_digest(_STATES, date(2026, 7, 4))
     assert "## Drift" not in fh.build_digest(_STATES, date(2026, 7, 4), drift_by_repo={})
+
+
+# --- groom_escalation_line (overdue quarterly-groom escalation) --------------
+
+# Footer shaped like the real BACKLOG "Grooming log" line (Recent: dates + Next quarterly:).
+_GROOM_OLD = ("**Grooming log:** git history is the record. "
+              "Recent: 2026-01-10 · 2026-02-15 · 2026-03-20. Next quarterly: 2026-04-01.\n")
+_GROOM_FUTURE = ("**Grooming log:** Recent: 2026-01-01 · 2026-01-15. "
+                 "Next quarterly: 2026-12-31.\n")
+
+
+def test_groom_escalation_fires_when_overdue():
+    line = fh.groom_escalation_line(_GROOM_OLD, date(2026, 10, 15))  # ~197d past 2026-04-01
+    assert line is not None
+    assert "overdue quarterly groom" in line
+    assert "2026-04-01" in line          # most-recent past date reported
+
+
+def test_groom_escalation_silent_when_fresh():
+    assert fh.groom_escalation_line(_GROOM_OLD, date(2026, 5, 1)) is None  # 30d, within cadence
+
+
+def test_groom_escalation_excludes_future_next_quarterly():
+    # The future "Next quarterly: 2026-12-31" must NOT count as a completed groom; the
+    # newest PAST date (2026-01-15) drives the age -> overdue.
+    line = fh.groom_escalation_line(_GROOM_FUTURE, date(2026, 6, 1))
+    assert line is not None
+    assert "2026-01-15" in line
+    assert "2026-12-31" not in line
+
+
+def test_groom_escalation_none_when_no_grooming_line():
+    assert fh.groom_escalation_line("# a digest with no grooming footer\n", date(2026, 10, 15)) is None
+
+
+def test_groom_escalation_boundary_at_threshold():
+    last = date(2026, 1, 1)
+    at = last + timedelta(days=fh._GROOM_QUARTERLY_DAYS)       # age == 92 -> not yet overdue
+    over = last + timedelta(days=fh._GROOM_QUARTERLY_DAYS + 1)  # age == 93 -> overdue
+    footer = f"**Grooming log:** Recent: {last.isoformat()}.\n"
+    assert fh.groom_escalation_line(footer, at) is None
+    assert fh.groom_escalation_line(footer, over) is not None

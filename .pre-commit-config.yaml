@@ -127,6 +127,15 @@ repos:
         language: system
         stages: [commit-msg]
         always_run: true
+      - id: backlog-filing-backpressure
+        name: Filing backpressure — kill-candidates on new task id (+ #279 intake WARN)
+        # Add-side sibling of backlog-id-on-close: a commit ADDING a new `- [#id]` must
+        # carry a `kill-candidates:` line (BLOCK); a new L-epic lacking an intake-id earns
+        # an advisory WARN (#279, ADR-98). Proposals only — never auto-removes anything.
+        entry: python scripts/check_backlog_filing.py
+        language: system
+        stages: [commit-msg]
+        always_run: true
       - id: block-ff-push
         name: Block direct-to-main / FF push to main (#153 prevent — core-invariant #5)
         # Pre-push GATE (the PREVENT half of #5; validate_no_ff stays the WARN detector).
