@@ -148,6 +148,37 @@ dispositions:
       Pre-existing prose reference ("follow HANDOFF_PROCESS v5") — version-coupled, a likely DECLARE
       outcome; deferred to [#241] rather than committing the doc to version-coupling unilaterally.
 
+  # ---- pre-existing BACKLOG history-accretion bloat, slated for grooming leg-c (#286) ----
+  # The 2026-07-07 census-triage arc (filed #286, amended #262/#278) pushed three tasks past the
+  # doc_rot accretion threshold. They are NOT introduced by the 2026-07-08 architect-handoff arc (a
+  # pure ADD + this drift-clearing wrap) and are the GROOMING session's own explicit targets — leg-c
+  # rules KEEP/KILL/MERGE/DEFER and condenses below threshold (the #134 n=2 precedent that cleared
+  # warn-doc-rot-backlog-{164,134,77}). Dispositioned as pending-groom (deferred, not hidden); each
+  # decorates stale (ADR-75) and is removed the moment grooming condenses its task. Keyed on the
+  # BACKLOG#<id> token per the established doc-rot disposition pattern (one Finding per id).
+  - id: warn-doc-rot-backlog-286
+    organ: doc_rot
+    match: "BACKLOG#286"
+    ref: "#286"
+    reason: >-
+      Pre-existing accretion on the grooming worksheet task itself (#286 leg-b done, leg-c pending).
+      Not introduced by the 2026-07-08 architect-handoff arc. Resolved by grooming leg-c (rule +
+      condense); decorates stale and is removed then.
+  - id: warn-doc-rot-backlog-262
+    organ: doc_rot
+    match: "BACKLOG#262"
+    ref: "#286"
+    reason: >-
+      Pre-existing accretion (child-repo codemap migration; amended by the 2026-07-07 census-triage
+      arc). Not introduced by this handoff arc. Slated for grooming leg-c ruling + condense.
+  - id: warn-doc-rot-backlog-278
+    organ: doc_rot
+    match: "BACKLOG#278"
+    ref: "#286"
+    reason: >-
+      Pre-existing accretion (test-suite-hygiene epic; amended by the 2026-07-07 census-triage arc).
+      Not introduced by this handoff arc. Slated for grooming leg-c ruling + condense.
+
   # (cleared 2026-07-02, #222) warn-doc-claims-pytest-collected-architecture — #222 relocated
   # the three volatile counts to the committed-generated ecosystem/doc-counts.md, so the
   # pytest_collected claim no longer anchors in ARCHITECTURE.md (doc_claims now reconciles it
