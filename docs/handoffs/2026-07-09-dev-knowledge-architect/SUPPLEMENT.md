@@ -30,5 +30,26 @@ Repo: .dev-knowledge · Mode: architect · Date: 2026-07-09
    repo.
 <!-- generator may append session-specific CC-observed addenda here as "A./B. ..." -->
 
+A. **CC-observed residual (session-close 2026-07-09, #255 retirement):** the conformance-digest
+   mechanism was retired (workflow removed, remote branch deleted, `surface_triage.ps1` Surfacing 2
+   removed, #255 closed) — but the LIVING-doc narrative still describes it as current in
+   `ARCHITECTURE.md` (Ch ~440/442/600, incl. an outcome-table row) and `CONTRIBUTING.md` (~L134–147).
+   Left un-edited deliberately (out of the operator's #255 contract scope + touching them triggers a
+   `canonical_freshness` re-stamp); ship-gate is GREEN (the prose is ungated). Reconcile this
+   narrative as part of absorbing the retirement. The ADR-84 record itself is immutable (correct as
+   history).
+
 ===================== PASTE CHAT ANSWERS BELOW THIS LINE =====================
 <!-- operator: paste answers here; combine multiple chats if needed; leave empty if there is no outgoing chat -->
+
+A1 (strategic intent): SEED 6–9 triage (accept→elaborate / defer / reject) → selective brainstorm Wave-1 admission (F1: backlog stays short, post-shrink budget ~74) → Wave-1 per-repo sequencing, ai-council first. #264 rides SEED-9.
+
+A2 (tensions weighed): build-pull of 4 fresh SEEDs vs admission discipline; night layer (SEED-8) stays behind #270 gate absolutely.
+
+A3 (considered + rejected — do NOT relitigate): all 2026-07-08 leg-c rulings; the 39 WEAK rejections; #255 retirement; guard-v3 three-tier design.
+
+A4 (open questions): first LIVE exercise of the filing-backpressure hook (proven in tests, not yet in a real filing); #122 shim references (billing_leak_sentinel) need untangling before delete; V1/V2 changelog spot-checks optional.
+
+A5 (decomposition rationale): triage order 6→7→8→9 (bootstrap = biggest absorber first; dashboards last — needs the operator's one-sentence Arc-5 P6 usability verdict as its ex-ante gate).
+
+A6 (off-repo context): Fable reset ~21:00; three-repo backups now exist (F1 closed via #291); operator usability sentence for #264/SEED-9 still outstanding.

@@ -390,3 +390,19 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
    never "matches a remembered number." P7 is the headline (GREEN/RED + dispositioned-WARN count +
    any `[stale]` line). P8 pins the bundle shape **and the live supplement fill-state**. First check
    which branch is live (P3), then re-derive every load-bearing fact from the live primary source.
+
+---
+
+=== SUPPLEMENT.md ===
+
+A1 (strategic intent): SEED 6–9 triage (accept→elaborate / defer / reject) → selective brainstorm Wave-1 admission (F1: backlog stays short, post-shrink budget ~74) → Wave-1 per-repo sequencing, ai-council first. #264 rides SEED-9.
+
+A2 (tensions weighed): build-pull of 4 fresh SEEDs vs admission discipline; night layer (SEED-8) stays behind #270 gate absolutely.
+
+A3 (considered + rejected — do NOT relitigate): all 2026-07-08 leg-c rulings; the 39 WEAK rejections; #255 retirement; guard-v3 three-tier design.
+
+A4 (open questions): first LIVE exercise of the filing-backpressure hook (proven in tests, not yet in a real filing); #122 shim references (billing_leak_sentinel) need untangling before delete; V1/V2 changelog spot-checks optional.
+
+A5 (decomposition rationale): triage order 6→7→8→9 (bootstrap = biggest absorber first; dashboards last — needs the operator's one-sentence Arc-5 P6 usability verdict as its ex-ante gate).
+
+A6 (off-repo context): Fable reset ~21:00; three-repo backups now exist (F1 closed via #291); operator usability sentence for #264/SEED-9 still outstanding.
