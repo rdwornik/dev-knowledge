@@ -66,6 +66,7 @@ coverage_scope:
   - coherence-spec-reconciled  # DONE 2-site (ADR-90) -- PLAYBOOK.md -> validate_reconciliation.py + audit.py::check_reconciled_versions
   - coherence-amendment        # DONE    -- PLAYBOOK.md #895 -> audit.py::check_amendment_coherence
   - governance-backlog-schema  # DONE    -- PLAYBOOK.md #2766 -> validate_backlog.py::validate
+  - governance-backlog-story-id # DONE   -- PLAYBOOK.md (Schema §Rules) -> validate_backlog.py::validate ([S<n>] grammar, #286)
   - governance-no-ff           # DONE 3-site (ADR-90/#201) -- PLAYBOOK.md -> validate_no_ff.py + block_ff_push.py + audit.py::check_no_ff_merges
   - governance-child-floor     # DONE 2-site (ADR-90/#201) -- PLAYBOOK.md -> audit.py::check_floor_integrity + generate_floor.py::validate
   - governance-backlog-leave   # DONE 3-site (ADR-90/#201) -- PLAYBOOK.md -> validate_backlog.py + validate_git_backlog.py + audit.py::check_git_backlog_drift

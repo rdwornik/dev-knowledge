@@ -3091,20 +3091,21 @@ Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subse
 ## Big picture              <- 2-3 sentences + the theme backbone list (no stories/tasks)
 ## <Theme>                  <- backbone header; a durable area of work
 > As a <persona>, I want <goal>.       <- theme intent (persona = operator or an AI agent)
-### <User story>            <- human goal — the layer the operator scans
+### [S<n>] <User story>     <- human goal (stable numeric story id); the layer the operator scans
 So that <why>.              <- the why (required, immediately under the story)
 - [#id] [P1][M] <action> · Done when: <criterion> · refs <ADR/file>   <- task (for the machine)
 ```
 
 - **Big Picture** — what `.dev-knowledge` is working toward (from VISION) + the theme list. The map, not a priority queue.
 - **Theme** — a `## ` backbone header; a durable area of work.
-- **User Story** — a `### ` header in human language + one `So that …` line. Personas = the operator and the AI agents (Claude Code / Codex) who inherit the repo. This is the scan layer.
+- **User Story** — a `### [S<n>] ` header (a stable numeric story id + human language) + one `So that …` line. Personas = the operator and the AI agents (Claude Code / Codex) who inherit the repo. This is the scan layer.
 - **Task** — a bullet `- [#id] [P{1-3}][{S|M|L}] <terse technical action> · Done when: <criterion> · refs <…>`. Technical density is expected here. No `repo:`/`status:` field — in-file = open; done tasks **leave** (ADR-65).
 
+<!-- rule: governance-backlog-story-id -->
 **Rules** (validator hard-fail unless marked warn):
 - every **task** has a unique `[#id]`, a `[P{1-3}][{S|M|L}]` band, and a `Done when:` clause;
 - every task sits **under a Story under a Theme** (no orphans; nothing directly under `## Big picture`);
-- every **User Story** has a `So that` line;
+- every **User Story** has a `So that` line **and a stable numeric `[S<n>]` id prefix** (unique across the file; a missing or duplicate `[S<n>]` hard-fails, #286);
 - **no done task** in the file — a `status:done` / `[x]` / `~~strikethrough~~` marker hard-fails (done tasks leave);
 - *(warn-only: a story with zero tasks.)*
 

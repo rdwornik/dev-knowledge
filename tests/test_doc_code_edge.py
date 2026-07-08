@@ -251,7 +251,7 @@ def test_edge_check_registered_and_resolves_starter_set():
     assert all(f.status != "fail" for f in findings)        # advisory: never FAIL
     assert len(findings) == 1
     assert findings[0].status == "pass"
-    assert "12 doc" in findings[0].evidence                 # 5 cohort-1 + trio + Tier-3 quartet
+    assert "13 doc" in findings[0].evidence                 # 5 cohort-1 + trio + Tier-3 quartet + governance-backlog-story-id (#286)
     assert "resolved" in findings[0].evidence
 
 

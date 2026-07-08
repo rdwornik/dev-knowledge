@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-09 — CC (Opus 4.8): EXECUTION session — GATE-0 probes, [#292] filed, [#286] story-ids shipped
+
+**Did:** Operator's execution-first session, four ordered actions. **(1) GATE-0** — ran teeth-probes P2–P10 against live state: **P2–P9 all PASS** (P2 29 checks last=import_edges; P3 HEAD 2e533f6 clean/main 0-0; P4 no git-backlog drift; P5 ARCHITECTURE last_reviewed=commit 2026-07-07; P6 pytest_collected 1414=1414; P7 ship-gate GREEN 11-disp no-[stale]; P8 5-file v5 bundle, no README, SUPPLEMENT FILLED; P9 serialize-groups live). **P10** (new, #164 claim) — `9d5ebe5` exists (merge landing gen_handoff.py +318 + templates + tests), gen_handoff.py on main → "core SHIPPED" **TRUE**; bonus finding: `--mode functional`/`developer`/`epic` ALSO already shipped (5617fe1/57f3415), so #164's "not built" premise is partially stale. **(2)** Filed **[#292]** handoff-completeness gate (refuse unfilled `(fill:` markers), kill-candidate #117 — the **filing-backpressure hook's FIRST LIVE firing: PASSED, no misbehavior** (detected the ADD, required+accepted the kill-candidates line, no L-epic WARN since S-sized). Merged `3f2e096`. **(3)** Executed **[#286]** remaining leg: assigned stable **S1–S20** to every story (`d76622b`), extended `validate_backlog` to parse/hard-fail a missing/duplicate `[S<n>]` id +5 tests (`2d0c56e`), closed #286 (`bc0f422`). Did NOT touch #270 (P1, operator-deferred) or handoff-group items, per the admission bar.
+
+**Result:** GATE-0 clean (no STOP). Filing hook proven live. #286 shipped — every story visibly numbered, grammar enforced. Suite + ship-gate GREEN. doc-counts 1414→1419.
+
+**Changes:** BACKLOG.md ([#292] filed; S1–S20; [#286] closed), scripts/validate_backlog.py, tests/test_validate_backlog.py, ecosystem/doc-counts.md, JOURNAL.md. ADR-85 session SHAs: `3f2e096` (#292 merge) → `d76622b` → `2d0c56e` → `bc0f422` → this wrap → the #286 merge.
+
+**Abandoned:** #164 build (out of this session's scope — P10 flagged the mode-split is largely already shipped; architect to re-scope #164's remaining). #270 left (operator-deferred).
+
+**Next:** Wave-1 ai-council onboarding (the operator's A1(b)); #164 re-scope given the P10 finding.
+
 ### 2026-07-09 — CC (Opus 4.8): session-close arc — WEAK-triage record · #255 retirement · architect SUPPLEMENT filled
 
 **Did:** Operator-ratified session-close on `chore/session-close-0709`. **(1)** Architect triage of the 39 WEAK closure proposals → **39/39 WEAK proposals rejected at architect triage — fresh evidence for #277 signal repair** (all are items deliberately ruled KEEP/DEFER in the 2026-07-08 leg-c pass with unmet Done-whens; closed NONE). **(2)** #255 RETIRE-with-successor: removed `surface_triage.ps1` Surfacing 2 (the Action-run health probe + the `automation/conformance-digest` branch digest-presence probe; kept Surfacing 1 = open nightly-triage Issues); deleted `.github/workflows/nightly-conformance-triage.yml`; deleted `origin/automation/conformance-digest`; closed #255 (`retired: PR-triggered organ under a local-merge workflow = vacuous; successor = fleet_health digest`); rewrote `tests/test_surface_triage.py` into a retirement regression guard; doc-counts 1425→1423. Frozen contract met: surface_triage runs clean (exit 0), 0 live executable refs to the branch, suite + ship-gate GREEN. **(3)** Filled the cold architect SUPPLEMENT (`docs/handoffs/2026-07-09-dev-knowledge-architect/`) with the outgoing-architect Q1–Q6 ANSWERS verbatim + regenerated PASTE_THIS (31828 bytes, ANSWERS folded).

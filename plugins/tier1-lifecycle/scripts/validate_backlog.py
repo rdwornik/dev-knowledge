@@ -206,6 +206,9 @@ def validate(themes, stories, tasks):
             hard.append(f'user story missing a "So that" line — {sloc}')
         if s["ntasks"] == 0:
             warn.append(f'user story with no tasks — {sloc}')
+        # NOTE: the hub's governance-backlog-story-id ([S<n>]) rule is deliberately NOT
+        # carried here — child story-id adoption is a Wave-1 rollout (#281/#286), so the
+        # floor twin must keep classifying not-yet-migrated child backlogs as conformant.
     # #156 task-graph checks (CARRIER-DOCTRINE TWIN of the hub) — run independently so a
     # reference failure doesn't mask a real cycle among the valid edges.
     hard += _check_dep_references(tasks)
