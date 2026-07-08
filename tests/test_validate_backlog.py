@@ -22,10 +22,10 @@ A short paragraph.
 **Themes (backbone):** Theme A
 ## Theme A
 > As a persona, I want a goal.
-### Story one
+### [S1] Story one
 So that reasons hold.
 - [#1] [P1][M] do a thing · Done when: it is done · refs ADR-1
-### Story two
+### [S2] Story two
 So that more reasons.
 - [#2] [P3][S] do another thing · Done when: criterion met
 """
@@ -94,10 +94,41 @@ def test_legit_bracket_x_in_prose_passes():
 
 
 def test_empty_story_warns_not_fails():
-    text = VALID + "### Empty story\nSo that nothing.\n"
+    text = VALID + "### [S3] Empty story\nSo that nothing.\n"
     hard, warn = _run(text)
     assert hard == []
     assert any("no tasks" in w for w in warn)
+
+
+# --- #286 stable [S<n>] story-id grammar ------------------------------------
+
+def test_parse_extracts_story_sid():
+    _, stories, _ = vb.parse(VALID)
+    assert [s["sid"] for s in stories] == ["1", "2"]
+
+
+def test_story_missing_sid_fails():
+    # strip the [S1] prefix off the first story heading.
+    hard, _ = _run(VALID.replace("### [S1] Story one", "### Story one"))
+    assert any("[S<n>] id" in h for h in hard)
+
+
+def test_duplicate_story_sid_fails():
+    # collide S2 onto S1.
+    hard, _ = _run(VALID.replace("### [S2] Story two", "### [S1] Story two"))
+    assert any("duplicate story id [S1]" in h for h in hard)
+
+
+def test_valid_story_sids_pass():
+    # both stories carry distinct [S<n>] ids -> no story-id hard fail.
+    hard, _ = _run(VALID)
+    assert not any("[S<n>] id" in h or "duplicate story id" in h for h in hard)
+
+
+def test_story_sid_must_have_title_after_it():
+    # a bare [S1] with no title is not a valid story-id prefix -> missing-id fail.
+    hard, _ = _run(VALID.replace("### [S1] Story one", "### [S1]"))
+    assert any("[S<n>] id" in h for h in hard)
 
 
 # --- #83: in-place RESOLVED / struck-through task lines (ADR-65 done-items-leave) ---
@@ -148,7 +179,7 @@ A short paragraph.
 **Themes (backbone):** Theme A
 ## Theme A
 > As a persona, I want a goal.
-### Story one
+### [S1] Story one
 So that reasons hold.
 - [#1] [P1][M] task one · Done when: x{dep1}
 - [#2] [P1][M] task two · Done when: x{dep2}
@@ -265,7 +296,7 @@ A short paragraph.
 **Themes (backbone):** Theme A
 ## Theme A
 > As a persona, I want a goal.
-### Story one
+### [S1] Story one
 So that reasons hold.
 - [#1] [P1][M] {t1} · Done when: x
 - [#2] [P1][M] {t2} · Done when: y
