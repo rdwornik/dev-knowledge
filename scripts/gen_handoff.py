@@ -107,6 +107,38 @@ def _framing(site: str, filled: bool) -> str:
     return _FRAMING[site][1 if filled else 0]
 
 
+# Per-mode chat-title role (#287). The browser chat name the operator copies from the bundle
+# header so a fleet of parallel sessions is nameable-at-a-glance. STRUCTURAL identity only.
+_TITLE_ROLE = {
+    "functional": "Functional Architect",
+    "architect": "Technical Architect",
+    "execution": "Developer",
+    "epic": "Developer",  # "developer" is normalized to "epic" before this is reached
+}
+
+
+def _chat_title(mode: str, repo: str, ident: str) -> str:
+    """The proposed browser chat-title for the bundle header (#287; #164 leg e).
+
+    Grammar (frozen — #164 closure contract): `[REPO] <role> <ident> · SEQ 1`, role per mode
+    (functional->Functional Architect, architect->Technical Architect,
+    execution/epic/developer->Developer). For epic/developer `ident` is the epic slug (name +
+    number, the live [S<n>] story-id era, #286) and `EPIC <n>` is derived from its leading
+    number; other modes carry the bundle slug as `<ident>`.
+
+    ANSWER-FREE (RF-1): every part is session IDENTITY already present in the bundle (repo,
+    mode-role, slug/epic-slug) plus the literal `SEQ 1` naming slot the operator increments —
+    NO probe answer (count / sha / verdict / date-relation). So this token never breaches the
+    answer-free invariant, the same as {{SLUG}} / {{REPO}} / {{MODE}}."""
+    name = repo.lstrip(".")
+    role = _TITLE_ROLE[mode]
+    if mode == "epic":
+        m = re.match(r"(\d+)", ident)
+        epic_no = f" EPIC {m.group(1)}" if m else ""
+        return f"[{name}] {role} {ident}{epic_no} · SEQ 1"
+    return f"[{name}] {role} — {ident} · SEQ 1"
+
+
 # --- committed state + generation hints -------------------------------------
 
 @dataclass(frozen=True)
@@ -276,6 +308,9 @@ def _tokens(mode: str, slug: str, repo: str, date: str, state: _State, filled: b
         "SUPPLEMENT_BANNER": _framing("SUPPLEMENT_BANNER", filled),
         "P1_GATE_NOTE": _framing("P1_GATE_NOTE", filled),
         "PASTE_STEP6": _framing("PASTE_STEP6", filled),
+        # #287: slug-based title for architect/execution/functional; the epic branch of
+        # generate() overrides this with an epic-slug-aware title after EPIC_SLUG is resolved.
+        "CHAT_TITLE": _chat_title(mode, repo, slug),
     }
 
 
@@ -381,6 +416,9 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     if mode == "epic":
         eslug = epic_slug or slug
         tokens.update({"EPIC_SLUG": eslug, "EPIC_BRANCH": f"epic/{eslug}"})
+        # #287: re-render the chat-title against the resolved epic slug (name + number), so an
+        # epic/developer bundle's title carries `<epic-slug> EPIC <n>`, not the bundle slug.
+        tokens["CHAT_TITLE"] = _chat_title("epic", repo, eslug)
         # §14b return skeleton: write-if-absent — the SUPPLEMENT.md never-clobber precedent.
         if not (bundle_dir / "EPIC_RETURN.md").exists():
             ret = _strip_leading_comment(_substitute(

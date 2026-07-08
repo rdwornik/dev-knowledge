@@ -350,3 +350,44 @@ def test_developer_alias_is_byte_identical_to_epic(tmp_path):
         dev_bytes = (res_dev.bundle_dir / name).read_bytes()
         assert epic_bytes == dev_bytes, name
     assert not (res_dev.bundle_dir / "FUNCTIONAL_BOOT.md").exists()
+
+
+# --- chat-title in every bundle header (#287 / #164 leg e) ------------------------
+
+def test_chat_title_unit_grammar_per_mode():
+    # The frozen grammar: `[REPO] <role> <ident> · SEQ 1`; role per mode; epic derives EPIC <n>.
+    assert gh._chat_title("architect", ".dev-knowledge", "s") == "[dev-knowledge] Technical Architect — s · SEQ 1"
+    assert gh._chat_title("execution", ".dev-knowledge", "s") == "[dev-knowledge] Developer — s · SEQ 1"
+    assert gh._chat_title("functional", ".dev-knowledge", "s") == "[dev-knowledge] Functional Architect — s · SEQ 1"
+    # epic: ident is the epic slug (name + number); EPIC <n> derived from the leading number.
+    assert gh._chat_title("epic", ".dev-knowledge", "164-handoff-generator") == \
+        "[dev-knowledge] Developer 164-handoff-generator EPIC 164 · SEQ 1"
+    # epic slug with NO leading number: no EPIC <n> fabricated (degrade, never guess).
+    assert gh._chat_title("epic", ".dev-knowledge", "hygiene-sweep") == \
+        "[dev-knowledge] Developer hygiene-sweep · SEQ 1"
+
+
+def test_chat_title_row_in_architect_and_execution_headers(tmp_path):
+    for mode, role in (("architect", "Technical Architect"), ("execution", "Developer")):
+        boot = (_gen(tmp_path / mode, mode=mode).bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+        assert re.search(r"(?im)^\|\s*\*{0,2}chat title\*{0,2}\s*\|", boot), f"{mode}: no Chat title row"
+        assert f"[dev-knowledge] {role}" in boot
+        assert "· SEQ 1" in boot
+        assert "{{" not in boot          # token fully substituted
+
+
+def test_chat_title_row_in_functional_header(tmp_path):
+    boot = (_gen_functional(tmp_path).bundle_dir / "FUNCTIONAL_BOOT.md").read_text(encoding="utf-8")
+    assert "[dev-knowledge] Functional Architect" in boot
+    assert "· SEQ 1" in boot
+    assert "{{" not in boot
+
+
+def test_chat_title_row_in_epic_header_uses_epic_slug(tmp_path):
+    repo = _stub_repo(tmp_path)
+    b = gh.generate(repo, mode="epic", slug="0000-00-00-e", repo=".dev-knowledge", date="2026-07-08",
+                    bundle_root=repo / "docs" / "handoffs", epic_slug="164-handoff-generator",
+                    assemble=False).bundle_dir
+    boot = (b / "EPIC_BOOT.md").read_text(encoding="utf-8")
+    assert "[dev-knowledge] Developer 164-handoff-generator EPIC 164 · SEQ 1" in boot
+    assert "{{" not in boot
