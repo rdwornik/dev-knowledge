@@ -10,7 +10,7 @@
 | **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->Triage the SEED intake docs #6–#9 (bootstrap / ai-council-interface / night-routines / dashboards) into accept→ADR/epic, defer, or reject. Brainstorm Wave-1 selective admission and per-repo onboarding sequencing (ai-council first per the runbook). Grooming is complete (BACKLOG 124→74, leg-c fully applied) — see `docs/audits/2026-07-09-night-verification-report.md` for verified state and its two P1 findings (F1 the #284 backup-posture premise is false on live state; F2 a latent groom-parser bug). Work from `BACKLOG.md` + `docs/intake/`.<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `audit/2026-07-09-night-verification`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -273,7 +273,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -338,7 +338,7 @@ the whole task-state.
 > branch is checked out so CC knows which live value to compare — **re-derive HEAD / tree / branch /
 > ahead-behind live (P3); do not trust this line.**
 >
-> > **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> > **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 >
 > **Windows note:** `audit.py checks` (P2) can crash mid-listing on a bare cp1252 PowerShell console
 > (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` or in git-bash. `ship-gate` (P7)
@@ -361,7 +361,7 @@ navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d):** the browser
 asks the operator for **off-repo** context.
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -395,14 +395,9 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
 
 === SUPPLEMENT.md ===
 
-A1 (strategic intent): SEED 6–9 triage (accept→elaborate / defer / reject) → selective brainstorm Wave-1 admission (F1: backlog stays short, post-shrink budget ~74) → Wave-1 per-repo sequencing, ai-council first. #264 rides SEED-9.
-
-A2 (tensions weighed): build-pull of 4 fresh SEEDs vs admission discipline; night layer (SEED-8) stays behind #270 gate absolutely.
-
-A3 (considered + rejected — do NOT relitigate): all 2026-07-08 leg-c rulings; the 39 WEAK rejections; #255 retirement; guard-v3 three-tier design.
-
-A4 (open questions): first LIVE exercise of the filing-backpressure hook (proven in tests, not yet in a real filing); #122 shim references (billing_leak_sentinel) need untangling before delete; V1/V2 changelog spot-checks optional.
-
-A5 (decomposition rationale): triage order 6→7→8→9 (bootstrap = biggest absorber first; dashboards last — needs the operator's one-sentence Arc-5 P6 usability verdict as its ex-ante gate).
-
-A6 (off-repo context): Fable reset ~21:00; three-repo backups now exist (F1 closed via #291); operator usability sentence for #264/SEED-9 still outstanding.
+A1 (strategic intent): EXECUTION-FIRST session — the operator's explicit verdict on 07-08/09: too much governance, near-zero visible results. The way-of-working goal: convert the prepared infrastructure into VISIBLE outcomes. Concretely, in order: (a) #286 remaining leg — make S<n> story numbers VISIBLE in BACKLOG story titles + validate_backlog schema (mechanical, do first, the operator sees it immediately); (b) Wave-1 onboarding EXECUTED, not planned: emit the ai-council onboarding prompt from the runbook and run the pilot n=1 in its dedicated chat (carries #281 story-map convergence, #282 gitattributes, #262 child codemap, #110/#128 re-file) — this is ALSO the runbook's own first real test (#131 Done-when); corp-monorepo second; (c) #164 — BUILD the v5 /handoff generator with the architect|functional|technical|developer mode split (the operator has asked for this split in three consecutive sessions; it is decided (ADR-98 modes), it is not built — build it); (d) SEED triage COMPRESSED and timeboxed, only as far as it feeds (b)/(c). Admission bar for ANY new meta/governance work this session: it must unblock onboarding or be rejected.
+A2 (tensions weighed): planned SEED-triage depth vs operator's execution demand — landed execution-first, triage compressed (SEED-6 only where it resolves the #43/#131/#215 bootstrap-vs-onboarding boundary; SEED-8 stays absolutely behind #270; SEED-9 blocked on the operator's usability sentence). New-path governance: docs/runbooks/ was created on #131's own task text but WITHOUT an explicit operator surfacing — process miss, acknowledged; this session must surface any new folder/path as an explicit question BEFORE creation, no exceptions.
+A3 (considered + rejected — do NOT relitigate): all 2026-07-08 leg-c rulings; the 39 WEAK closure rejections; #255 retirement-with-successor; guard-v3 three-tier design; S<n> numeric ids (letters rejected); v1.3.x design-only ruling (the release BUILD arc is a separate contract, sequence it with onboarding needs, do not reopen the design).
+A4 (open questions): residual A — ARCHITECTURE.md (~Ch440/442/600) + CONTRIBUTING.md (~L134–147) still narrate the retired conformance-digest as current; reconcile inside a genuine canonical_freshness re-stamp arc, not a drive-by. First LIVE exercise of the filing-backpressure hook (proven in tests only). #122 shim untangle (billing_leak_sentinel reference) before delete. #264/SEED-9: operator's one-sentence Arc-5 P6 usability verdict still outstanding. V1/V2 changelog spot-checks optional.
+A5 (decomposition rationale): order = visible-first, dependency-second: (1) #286 S-numbers (30-min mechanical, instant visibility); (2) ai-council onboarding prompt + pilot (everything Wave-1 was prepared FOR — runbook, #275b, arm-check map all feed it); (3) #164 generator build (mode split); (4) timeboxed SEED pass. Do NOT redo: the grooming (74 is the ruled state), the runbook content, the release contract, the night audits. Do NOT convert this session into another grooming/governance session under any framing.
+A6 (off-repo context): OPERATOR VERDICT ON RECORD — dissatisfied with the visible-results ratio of the last two sessions; the acceptance bar for this session's plan is "results the operator can SEE in his own workflow" (numbers in BACKLOG, a repo actually onboarded, a handoff he can generate in three modes). Operator's standing priorities verbatim: onboard ALL repos; handoff split func/tech/dev; epic numbering visible; everything end-to-end TESTED (hooks, skills, gotchas reviewed); dashboards = lowest priority (operator's own words). Fable reset ~21:00 — spend it on this session's rulings/plan-reviews only. Three-repo backups now exist (F1 closed via #291). docs/runbooks/ relocation: operator may rule keep-or-move at session start — surface it as question #1.
