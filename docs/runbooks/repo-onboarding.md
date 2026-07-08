@@ -128,20 +128,21 @@ Each row is **run X → expect Y**, naming a command. "Configured ≠ armed ≠ 
 is not enforcement, so the last three rows exercise the organs actually firing.
 
 ```bash
-python scripts/audit.py repo <name> --repo-path <consumer>
+python scripts/audit.py repo <name> --repo-path <consumer>   # [hub-runnable]
 #   -> floor_integrity OK (floor bytes hash to corpus; F5 self-contained; no orphaned root floor)
-python scripts/audit.py health
+python scripts/audit.py health                               # [hub-runnable]
 #   -> hooks_armed OK + reconciled_versions OK; exit 0
-python .claude/check_floor_hash.py --require-present          # run inside the consumer
+python .claude/check_floor_hash.py --require-present   # [consumer-only] — run inside the consumer
 #   -> PASS (fails LOUD on a deleted-but-tracked floor)
-python scripts/enforcement_coverage.py --consumer <consumer> --fire
+python scripts/enforcement_coverage.py --consumer <consumer> --fire   # [hub-runnable]
+#   note: --fire requires --run-date (the fire_test needs a run date to stamp the synthetic arc)
 #   -> the deployed mesh organs FIRE on a real branch->edit->commit arc (Informant fire_test)
-PYTHONPATH=deploy python -m lived_sandbox.cli observe-arc --consumer <consumer>
+PYTHONPATH=deploy python -m lived_sandbox.cli observe-arc --consumer <consumer>   # [hub-runnable]
 #   -> per-component FIRED / ARMED-BUT-SKIPPED / EXPECTED-BUT-SILENT + coverage n-of-6 (exit 0/1/2)
-python deploy/floor_conformance.py --consumer <consumer>
+python deploy/floor_conformance.py --consumer <consumer>   # [hub-runnable]
 #   -> the armed loop FUNCTIONS end-to-end (guard fails loud both legs; git hook auto-arms;
 #      a real task flows through the gate) — not merely files-present
-python scripts/fleet_health.py
+python scripts/fleet_health.py                               # [hub-runnable]
 #   -> the consumer is registered and reachable in the fleet roll-up
 ```
 
