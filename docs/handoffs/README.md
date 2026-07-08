@@ -10,7 +10,10 @@ reconciled_with: handoff-process@5.7
      its own HANDOFF_BOOT.md, which points back here for the process. A fresh operator who knows
      nothing about teeth/probes must be able to follow this top-to-bottom and boot a session.
      Per-repo: every repo gets this same runbook (it is generic across repos of the same handoff
-     version); #164 will seed/update each repo's copy idempotently from one source. -->
+     version). This file is the canonical SOURCE `scripts/seed_runbook.py` generalizes from;
+     seed/update a repo's copy idempotently with `python scripts/seed_runbook.py --target-root
+     <repo>` (#164 leg b — the hub-side seeder; the cross-repo consumer fan-out runs per-repo in
+     the Wave-1/Wave-2 onboarding arcs, ADR-41, so the hub never writes a consumer's tree). -->
 
 # Handoffs — operator runbook (`.dev-knowledge`)
 
