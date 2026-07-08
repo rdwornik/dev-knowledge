@@ -310,7 +310,9 @@ def validate(themes, stories, tasks):
             hard.append(f'user story missing a "So that" line — {sloc}')
         if s["ntasks"] == 0:
             warn.append(f'user story with no tasks — {sloc}')
-        # rule: governance-backlog-story-id (#286) — every story carries a unique numeric [S<n>] id
+        # rule: governance-backlog-story-id (#286) — every story carries a unique numeric [S<n>] id.
+        # HUB-ONLY: deliberately NOT in the plugin floor twin — child story-id adoption is Wave-1
+        # (#281), so the deployed floor keeps classifying not-yet-migrated child backlogs as conformant.
         if s["sid"] is None:
             hard.append(f'user story missing a stable [S<n>] id — {sloc}')
         elif s["sid"] in seen_sids:
