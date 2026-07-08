@@ -19,6 +19,10 @@
 
 ---
 
+### 2026-07-09 — CC (Sonnet): CORRECTION — #284's 2026-07-08 close was false on live state
+
+**Correction:** #284 was closed 2026-07-08 on the premise "corp-ops remote added + corp-sca branch pushed" — night-audit **F1** proved that false (corp-ops had NO remote; corp-sca `feature/tenrox-loader` unpushed; deletion-sweep added demo-prep unbacked). Morning-ops leg A executed the real backup (all three now pushed + verified 0/0) and refiled as **#291** which explicitly **supersedes the false close of #284**, closed same-arc on verified evidence. See the morning-ops arc entry above for detail.
+
 ### 2026-07-09 — CC (Opus 4.8): deletion-candidates sweep — repo is lean; the headline is a backup gap
 
 **Did:** Read-only, propose-only deletion sweep across the hub + 8 fleet repos (OneDrive zone excluded from every walk), on `audit/2026-07-09-deletion-candidates`. Seven legs via 3 parallel read-only subagents + direct hub checks: git branches (hub+fleet), dead code (`scripts/`+`deploy/`), orphaned docs/templates/protocols, untracked buildup, config/registry rot, and cross-check-against-existing-tracking. Report: `docs/audits/2026-07-09-deletion-candidates-report.md`.
