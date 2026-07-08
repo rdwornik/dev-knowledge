@@ -41,6 +41,7 @@ BACKLOG = Path(__file__).resolve().parent.parent / "BACKLOG.md"
 
 _THEME_RE = re.compile(r"^## (.+?)\s*$")
 _STORY_RE = re.compile(r"^### (.+?)\s*$")
+_STORYID_RE = re.compile(r"^\[S(\d+)\]\s+\S")  # #286 — a story title's stable [S<n>] id prefix
 _TASK_RE = re.compile(r"^- \[#(\d+)\]\s*(.*)$")
 _SOTHAT_RE = re.compile(r"^So that\b", re.IGNORECASE)
 _PSIZE_RE = re.compile(r"\[P[1-3]\]\[(?:S|M|L)\]")
@@ -150,7 +151,10 @@ def parse(text):
             continue
         s = _STORY_RE.match(raw)
         if s:
-            cur_story = {"name": s.group(1).strip(), "theme": cur_theme, "line": lineno,
+            title = s.group(1).strip()
+            sm = _STORYID_RE.match(title)
+            cur_story = {"name": title, "sid": sm.group(1) if sm else None,
+                         "theme": cur_theme, "line": lineno,
                          "sothat": False, "ntasks": 0}
             stories.append(cur_story)
             expect_sothat = True
@@ -198,6 +202,7 @@ def validate(themes, stories, tasks):
             hard.append(f'done task present (done tasks leave the file, ADR-65) — {loc}')
         if _INPLACE_RESOLVED_RE.search(t["raw"]):
             hard.append(f'in-place resolved/struck-through task (done tasks leave the file, ADR-65) — {loc}')
+    seen_sids = {}
     for s in stories:
         sloc = f'story "{s["name"][:48]}" line {s["line"]}'
         if not s["theme"] or s["theme"] == BIG_PICTURE:
@@ -206,6 +211,13 @@ def validate(themes, stories, tasks):
             hard.append(f'user story missing a "So that" line — {sloc}')
         if s["ntasks"] == 0:
             warn.append(f'user story with no tasks — {sloc}')
+        # rule: governance-backlog-story-id (#286) — every story carries a unique numeric [S<n>] id
+        if s["sid"] is None:
+            hard.append(f'user story missing a stable [S<n>] id — {sloc}')
+        elif s["sid"] in seen_sids:
+            hard.append(f'duplicate story id [S{s["sid"]}] — lines {seen_sids[s["sid"]]} and {s["line"]}')
+        else:
+            seen_sids[s["sid"]] = s["line"]
     # #156 task-graph checks (CARRIER-DOCTRINE TWIN of the hub) — run independently so a
     # reference failure doesn't mask a real cycle among the valid edges.
     hard += _check_dep_references(tasks)

@@ -66,8 +66,10 @@ _PREAMBLE = (
 
 
 def _backlog(task_lines: str, *, theme: str = "Theme A", story: str = "A user story") -> str:
+    # story carries a stable [S<n>] id (#286) so the governance-backlog-story-id rule
+    # (present in BOTH twins) does not fire and mask the machinery under test.
     return (_PREAMBLE
-            + f"## {theme}\n\n### {story}\n\nSo that we have a goal.\n\n"
+            + f"## {theme}\n\n### [S1] {story}\n\nSo that we have a goal.\n\n"
             + task_lines)
 
 
