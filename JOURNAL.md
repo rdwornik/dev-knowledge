@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-09 — CC (Opus 4.8): morning-ops arc — F1 backup fix · #284 correction · F2 fix · deletion-queue exec · changelog-review
+
+**Did:** Executed the operator-ratified morning-ops arc on `chore/morning-ops-0709`, witnessed per leg (model note: the brief nominated Sonnet; live runtime is **Opus 4.8** — stated honestly, cannot self-switch model). **(A)** F1 backup fix — created a private remote for corp-ops + pushed `main`; pushed corp-sca `feature/tenrox-loader`; pushed demo-prep `main` + `fix/audit-needs-input` + the newer unbacked `feat/master-deck-build`; each verified `remote -v` + ahead/behind 0/0. **(B)** Refiled the falsely-closed #284 as **#291** (kill-candidates line) + one-line JOURNAL correction, then closed #291 same-arc on the verified backup. **(C)** F2 fix — `validate_doc_rot._latest_groom_date` now truncates the line at the "Next quarterly:" marker so a PAST target no longer masks groom escalation; frozen-contract test added, 4 existing green, suite 1423p/2s, doc-counts 1424→1425. **(D)** Deletion queue — deleted 2 merged hub branches; demo-prep `feat/master-deck-audit` was already merged+deleted 2026-07-08 (repo moved to `feat/master-deck-build`); pushed `automation/fleet-audit` + noted #254 part-(b) progress. **(E)** Surfaced the 39 WEAK closure proposals as a triage list — closed NONE. **(F)** /changelog-review claude-code 2.1.203–2.1.204 + codex 0.143.0.
+
+**Result:** All ratified legs done + verified. **D[3] STOP-and-report:** did NOT delete `origin/automation/conformance-digest` / close #255 — its writer (`.github/workflows/nightly-conformance-triage.yml`) is ACTIVE + **PR-triggered** (last fired 2026-06-25 only because the fleet switched to local `--no-ff` merges, no PRs since), has no successor organ, and `surface_triage.ps1` still reads the branch → the "never blind-delete" bar is unmet; #255 stays open with findings. Changelog-review: 0 ADOPT / 0 OBSOLETES → no SEED doc; 2 CC-runnable VERIFY spot-checks flagged (V1 worktree-subagent cross-lane contamination re-test; V2 background-output empty-file on Windows).
+
+**Changes:** BACKLOG.md (#291 refile+close, #254 note), JOURNAL.md, scripts/validate_doc_rot.py + tests/test_validate_doc_rot.py + ecosystem/doc-counts.md, docs/audits/2026-07-09-changelog-review.md + docs/audits/README.md, ecosystem/tool-versions.yaml. Child repos: new remote/pushes in corp-ops, corp-sca-time-automation, demo-prep. ADR-85 session SHAs: `d79cfae` → `595bef1` → `ae11691` → `3e1fc49` → `d845256` → this wrap.
+
+**Abandoned:** #255 close (blind-delete bar unmet — reported, not actioned). No closures from the 39 WEAK proposals (left for operator triage).
+
+**Next:** operator triages the 39 WEAK closures + decides #255's writer-retirement; architect SEED 6–9 triage + Wave-1 (handoff bundle `2026-07-09-dev-knowledge-architect`).
+
 ### 2026-07-09 — CC (Sonnet): CORRECTION — #284's 2026-07-08 close was false on live state
 
 **Correction:** #284 was closed 2026-07-08 on the premise "corp-ops remote added + corp-sca branch pushed" — night-audit **F1** proved that false (corp-ops had NO remote; corp-sca `feature/tenrox-loader` unpushed; deletion-sweep added demo-prep unbacked). Morning-ops leg A executed the real backup (all three now pushed + verified 0/0) and refiled as **#291** which explicitly **supersedes the false close of #284**, closed same-arc on verified evidence. See the morning-ops arc entry above for detail.
