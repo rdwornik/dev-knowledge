@@ -71,6 +71,9 @@ _BULLET_RE = re.compile(r"^\s*-\s+\S")
 # A Section-history / changelog heading (the `N.` ordinal prefix is stripped first).
 _HISTORY_HEADING_RE = re.compile(r"^(?:section[ -]history|history|changelog)$", re.IGNORECASE)
 _GROOMING_LOG_RE = re.compile(r"grooming log", re.IGNORECASE)
+# The forward-looking "Next quarterly:" target marker. Any date at/after it is a TARGET,
+# not a completed groom — excluded regardless of whether that target is past or future.
+_NEXT_QUARTERLY_RE = re.compile(r"next\s+quarterly", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -150,14 +153,20 @@ def scan_file_budget(rel: str, text: str, budget: int) -> list[RotFinding]:
 def _latest_groom_date(backlog_text: str, today: date) -> Optional[date]:
     """The most-recent past grooming date on the BACKLOG 'Grooming log' line, or None.
 
-    Future dates (the 'Next quarterly:' target) are excluded — only dates <= today count
-    as an actual completed groom.
+    The 'Next quarterly:' target date is excluded **regardless of past or future** — it
+    is a target, never a completed groom. A past target must NOT reset the cadence clock
+    (F2, 2026-07-09: a past 'Next quarterly:' date was counting as a groom and masking the
+    escalation). The residual ``d <= today`` guard drops any other stray future date.
     """
     for line in backlog_text.splitlines():
         if not _GROOMING_LOG_RE.search(line):
             continue
+        # Truncate the line at the "Next quarterly:" marker so its target date — past or
+        # future — is never considered a completed groom.
+        marker = _NEXT_QUARTERLY_RE.search(line)
+        scan = line[: marker.start()] if marker else line
         dates = []
-        for s in _DATE_RE.findall(line):
+        for s in _DATE_RE.findall(scan):
             try:
                 d = date.fromisoformat(s)
             except ValueError:
