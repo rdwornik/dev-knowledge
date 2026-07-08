@@ -152,6 +152,17 @@ def test_grooming_cadence_excludes_future_date():
     assert findings and "2026-01-01" in findings[0].detail
 
 
+def test_grooming_cadence_past_next_quarterly_does_not_mask():
+    # F2 (2026-07-09) frozen contract: once the "Next quarterly:" TARGET date is itself in
+    # the past, it must NOT be counted as a completed groom — the cadence clock stays pinned
+    # to the real past groom date so an overdue escalation still fires.
+    log = "**Grooming log:** Recent: 2026-07-08 (pass). Next quarterly: 2026-10-08."
+    findings = vdr.scan_grooming_cadence(_backlog([], groom_line=log), today=date(2026, 10, 20))
+    assert len(findings) == 1                       # escalation NOT masked
+    assert "2026-07-08" in findings[0].detail       # clock pinned to the real groom...
+    assert "2026-10-08" not in findings[0].detail   # ...not the past target date
+
+
 def test_grooming_cadence_none_when_no_log():
     assert vdr.scan_grooming_cadence(_backlog([_task(1)]), today=date(2026, 6, 19)) == []
 
