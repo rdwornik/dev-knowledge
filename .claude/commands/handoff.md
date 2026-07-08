@@ -3,8 +3,8 @@ description: Generate or complete a handoff per HANDOFF_PROCESS.md v5 — CC-own
 ---
 
 Invoked by Rob saying one of:
-- `please create handoff for <repo>` — Phase 1 (interview)
-- `complete handoff for <repo>` — Phase 2 (consolidate)
+- `please create handoff for <repo>` — generate the bundle
+- `complete handoff for <repo>` — finalize (fold the filled supplement, re-assemble)
 
 `<repo>` defaults to `.dev-knowledge` (self-handoff). A different repo name is a
 cross-repo handoff (read-only on the target — ADR-36/41).
@@ -62,12 +62,14 @@ HANDOFF_PROCESS **v5** is canonical at `protocols/HANDOFF_PROCESS.md` (CC-owned 
 thin browser boot, teeth-y forced read — model C) since the #149 flip (2026-06-11; v4.4
 archived to `protocols/archive/HANDOFF_PROCESS_v4.4.md`). v5 is the **default** flow.
 
-> **Superseded mechanics below.** The detailed v4 8-file two-phase generator in the
-> "## Conventions" / "## Phase 1" / "## Phase 2" / "## Hard constraints" sections is the
-> **v4 (superseded)** path, retained for reference until the v5 residual/probe/boot generator
-> replaces it. Building that generator is deferred post-flip work (the same class as the
-> deferred `verify_handoff_probes.py` teeth validator). For current v5 behaviour follow the
-> v5 emissions specified next + `protocols/HANDOFF_PROCESS.md`.
+> **v4 two-phase mechanics removed (#164 leg g).** The v5 generator (`scripts/gen_handoff.py`)
+> has replaced the old 8-file two-phase interview, so the hand-copied v4 `## Conventions` /
+> `## Phase 1` / `## Phase 2` / `## Hard constraints` prose is gone from this file — it was the
+> exact "hand-copied process that drifts" the v5 self-updating rule below forbids. The v4
+> mechanics survive intact, un-duplicated, at their immutable homes for any legacy v4 cross-repo
+> handoff: the spec `protocols/archive/HANDOFF_PROCESS_v4.4.md` + the retained bundle templates
+> `templates/handoff/01_ROLE…07_ASK_BACK.md.tmpl` + `templates/handoff/README.md.tmpl`
+> (kept live for cross-repo v4 per ADR-83; `docs/handoffs/README.md` "Format eras").
 
 **Self-updating — the #148(c) rule, applies to BOTH modes.** This command carries **no
 hand-copied process or methodology.** At handoff time it pulls live:
@@ -141,201 +143,19 @@ To capture this session's strategic "why" (optional but recommended):
 Operator-gated, mine to run on your OK: push main; -d the merged stragglers
 ```
 
-## Conventions
+## Legacy v4 cross-repo handoffs (pointer, not mechanics)
 
-- `slug` = `YYYY-MM-DD-<repo>-<type>` (today's date; `type` defaults to `session`,
-  or `onboarding` for a new-repo handoff). `<repo>` strips any path — e.g.
-  `.dev-knowledge` → `dev-knowledge`.
-- Interview (in-progress): `docs/handoffs/in-progress/<slug>/_handoff-interview.md`.
-- Bundle: `docs/handoffs/<slug>/` (README + `01`–`07`); Phase 2 removes `in-progress/<slug>/`.
-- One commit per phase on a feature branch. Validators must pass each commit.
+The v4 two-phase 8-file interview mechanics that used to live here are **removed** (#164
+leg g) — see the blockquote under *v5 (canonical)* above. For the rare legacy **v4
+cross-repo** handoff (a v4 repo not yet on v5), do not re-derive the flow from memory:
+read the frozen spec and drive the retained templates directly.
 
-## Default scope decision — comprehensive matrix (run FIRST, no operator input)
+- **Spec (frozen):** `protocols/archive/HANDOFF_PROCESS_v4.4.md` — the full two-phase
+  interview + consolidate mechanics, immutable per ADR-83.
+- **Templates (retained live):** `templates/handoff/README.md.tmpl` +
+  `templates/handoff/01_ROLE…07_ASK_BACK.md.tmpl` — kept for cross-repo v4 per ADR-83
+  (`docs/handoffs/README.md` "Format eras & navigation").
 
-On `please create handoff for dev-knowledge` **without** an explicit `--slug`
-override, run this decision silently and proceed to the correct action. **Never ask
-a scope question. Never present a menu.** This matrix is the single entry point for
-scope/slug selection; the State machine below then governs Phase 1/2 detection for
-whichever slug this picks.
+Everything else (self-handoff, and every mode `architect | execution | epic | developer |
+functional`) is **v5** — governed by the sections above + `protocols/HANDOFF_PROCESS.md`.
 
-### Step 1 — gather state (read-only)
-
-```bash
-UNCOMMITTED=$(git status --short)
-LAST_HANDOFF_DIR=$(ls -d docs/handoffs/[0-9]*-*/ 2>/dev/null | sort | tail -1)
-LAST_HANDOFF_ADD_SHA=$(git log --diff-filter=A --pretty=format:%H -- "${LAST_HANDOFF_DIR}README.md" | tail -1)
-COMMITS_SINCE=$(git log --oneline ${LAST_HANDOFF_ADD_SHA}..HEAD 2>/dev/null)
-TODAY=$(date +%Y-%m-%d)                       # PowerShell: (Get-Date -Format yyyy-MM-dd)
-TODAY_DEFAULT_SLUG="${TODAY}-dev-knowledge-session"
-TODAY_SLUG_EXISTS=$(test -d "docs/handoffs/${TODAY_DEFAULT_SLUG}" && echo yes || echo no)
-```
-
-### Step 2 — apply the 5-case matrix
-
-| # | Uncommitted | Commits since last handoff | Today's slug exists | → Action |
-|---|---|---|---|---|
-| 1 | yes | n/a | n/a | **Capture current session.** Phase 1, today's default slug. Standard v4 flow. |
-| 2 | no | yes | no | **Capture window since last handoff.** Phase 1, today's default slug. |
-| 3 | no | no | no | **Forward-looking cold-start.** Phase 1, today's default slug, reconstructed from JOURNAL/BACKLOG (no live interview content); tag recent facts `inferred`, not `witnessed`. |
-| 4 | no | yes | yes | **Counter-differentiated slug.** Smallest `N≥2` where `docs/handoffs/${TODAY_DEFAULT_SLUG}-${N}/` does not exist → slug = `${TODAY_DEFAULT_SLUG}-${N}`. Phase 1 normal. |
-| 5 | no | no | yes | **Clean exit — no Phase 1.** Print the clean-exit message (below) and stop. Create nothing. |
-
-Cases 1–4 proceed to **Phase 1 — Interview** immediately with the chosen slug, no
-scope-clarification step. Case 5 stops before Phase 1.
-
-### Clean-exit message (Case 5 only)
-
-Create no files, branches, or commits. Print this and stop:
-
-```
-✅ No handoff needed — repository is up to date.
-
-  Last bundle:        docs/handoffs/<TODAY_DEFAULT_SLUG>/
-  Working tree:       clean
-  Commits since last: 0
-
-The last handoff captures the current repository state. There is nothing new to hand off.
-
-To force regenerate with a specific slug, invoke explicitly:
-  please create handoff for dev-knowledge --slug <your-slug-name>
-```
-
-### Operator override
-
-If the invocation includes `--slug <name>`, use that slug regardless of state — skip
-the matrix and proceed to Phase 1. This is the escape hatch for edge cases the matrix
-doesn't anticipate.
-
-### Why this is deterministic
-
-- All 5 cases resolve from `git status` + `git log` + `ls` — no inference, no judgment,
-  no operator question.
-- Case 4 counter naming is positional (`-2`, then `-3`, …) — no topic inference, no
-  timestamps, fully predictable.
-- Case 5 exit is informative, not silent — the operator learns why nothing happened.
-
-## State machine (detect by CONTENT, not file existence)
-
-| State | Detected by | Action |
-|---|---|---|
-| Fresh | no `in-progress/<slug>/_handoff-interview.md` | Phase 1 |
-| Awaiting answers | interview exists, nothing below the PASTE marker | instruct operator (idempotent — do NOT regenerate) |
-| Ready | interview exists **with** non-empty content below the marker | Phase 2 |
-| Complete | `docs/handoffs/<slug>/` already exists | instruct operator on use |
-
-The PASTE marker is the line `=== PASTE ANSWERS BELOW THIS LINE ===`. "Non-empty
-answers" = substantive prose below it, not whitespace/placeholder. The
-bundle-exists-on-`create` case is **not** ambiguous — the scope matrix above resolves
-it deterministically (Case 4 counter-suffix when new work exists since the last
-handoff; Case 5 clean-exit when none). Never ask a scope question; never overwrite an
-existing bundle.
-
-## Phase 1 — Interview
-
-1. Pre-flight: confirm `<repo>` path exists and is a git repo; capture its state
-   read-only — HEAD SHA (`git rev-parse HEAD`), branch (`git branch --show-current`),
-   working tree (`git status --porcelain`).
-2. If `in-progress/<slug>/_handoff-interview.md` already exists → you are NOT fresh;
-   report the detected state and stop (don't clobber).
-3. Create `docs/handoffs/in-progress/<slug>/` if absent. Write `_handoff-interview.md`
-   with the **sage→apprentice** content below — verbatim, matching HANDOFF_PROCESS
-   §3.1 (the apprentice reads the books independently; the sage transmits only this
-   project's lived implementation this session, NOT methodology curriculum):
-   - A header table: repo, slug, date, type, captured HEAD/branch/working-tree, and
-     a `Process` row. Substitute the captured values.
-   - The **Role frame** preamble (elder sage handing wisdom to a tired apprentice;
-     books = theory, sage = lived implementation) and the **four-tag** claim
-     discipline (v4.2 Amendment A — supersedes the three-tag §3.1 body; carry these
-     definitions verbatim into the preamble) + skip-if-N/A instruction:
-     - **witnessed** = I just verified this OR saw it happen recently AND have no reason to think it changed since
-     - **recall** = I remember this from earlier in the session — state may have changed; prefer verifying via CC inline if the claim is load-bearing
-     - **inferred** = reasoning from evidence (not direct knowledge)
-     - **unknown** = I don't know — say so explicitly
-   - A **single cluster of 5 questions**: `1. Past — what shipped`, `2. Present —
-     where things stand`, `3. Future — natural next step`, `4. Wisdom — key
-     decisions`, `5. Warnings — landmines`. Question wording matches §3.1 verbatim.
-   - The marker line `=== PASTE ANSWERS BELOW THIS LINE ===` with empty space below.
-4. Append a JOURNAL marker entry (newest-first): handoff Phase 1 interview generated
-   for `<slug>`; HEAD captured; awaiting operator answers.
-5. Run validators (`pre-commit run --all-files` or pytest/ruff/audit). Commit on the
-   feature branch.
-6. Report: interview written; next step — paste the question block into the sender
-   chat, paste answers below the marker, save, then say `complete handoff for <repo>`.
-
-## Phase 2 — Consolidate
-
-1. Read `in-progress/<slug>/_handoff-interview.md`. If no non-empty answers below the
-   marker → report "awaiting answers" and stop (idempotent).
-2. Re-capture current repo state. **Cross-check** the browser answers against actual
-   repo state (git log/branch/status, BACKLOG, file existence). Surface any drift to
-   the operator — both the claim and the repo fact — and let the bundle reflect
-   verified state.
-3. Read `templates/handoff/` (README + `01`–`07`). For each, resolve markers from
-   source at handoff time:
-   - `{{PULL: <source>#<section>}}` — condense the named section of the live source
-     (PLAYBOOK / ESSENTIALS / VISION / CLAUDE / BACKLOG, or `git branch -v`). For
-     cross-repo, pull project files from the **target** repo when present.
-   - `{{SYNTHESIZE: <source>}}` — write narrative prose (JOURNAL arc, interview
-     answers folded inline, claims cross-check, dynamic comprehension questions).
-   - `{{CONTEXT: <var>}}` / `{{VERSION}}` / `{{STATUS}}` — substitute captured values
-     (slug, repo, type, date, branch, head_sha, working_tree_state, degradation_notes,
-     drift_notes) and the spec version/status. **Do NOT hardcode the version or status
-     here** (that drift class is closed): read `{{VERSION}}` from the `Version:` line
-     of `protocols/HANDOFF_PROCESS.md`'s header, and `{{STATUS}}` from the latest
-     amendment's Status line in that same file (it is whatever the live spec says —
-     currently `beta` under v4.4, promoting to `stable` per the v4.3.1 §B
-     judgment-augmented criterion: Stage-1 <2 critical findings AND reviewer Stage-3
-     verdict PROMOTE/PROMOTE-WITH-CAVEATS, reviewer judgment overriding count).
-   - `04_RECENT.md`: synthesize from JOURNAL last N entries (N=20 OR last 7 days,
-     whichever smaller) as NARRATIVE prose, fold in the interview answers, and inline
-     the load-bearing-claims cross-check (v4 home of the old `11_CLAIMS.md`).
-3a. **Always-emit rules** (v4.2 items B/C/D + v4.3 item B — emit whether or not drift was found):
-   - `04_RECENT.md` carries the **Four-tag discipline (canonical)** standalone section
-     (v4.3 item B) between the narrative arc and the Load-bearing facts table —
-     verbatim from the template, so the apprentice applies the discipline from the
-     bundle alone without reading the spec.
-   - `04_RECENT.md` Load-bearing facts table is a **required section**, columns fixed
-     `Claim from sender | Repo fact | Phase-2 verdict | Verification command`. No drift → the
-     single row `| (all sender claims) | matches repo state | ✅ no drift detected |
-     (verified at Phase 2) |`. Drift → one row per claim with the EXACT detection
-     command in the Verification command column.
-   - `README.md` carries the **Drift cross-check** section right after the paste
-     sequence + escalation ladder, before the bundle contents table. No drift →
-     `**No drift detected** — all sender claims verified against repo state at Phase 2.`
-   - `README.md` header carries the stamp `Generated by HANDOFF_PROCESS v<VERSION>
-     (status: <STATUS>)` — resolved from the live spec header + latest amendment Status
-     line (above), never a hardcoded number.
-   - **File separators (v4.4 §E):** wrap each pasted teaching file `01`–`07` with a
-     literal `===== FILE: NN_NAME — start =====` first line and `===== FILE: NN_NAME —
-     end =====` last line; `README` is operator-facing (not pasted) and is exempt.
-   - **Quote-grounded comprehension (v4.4 §C):** `06_QUESTIONS` pass criterion requires
-     every answer to name the bundle file + section it draws from; an uncited answer
-     fails that answer. `README` Step B tells the operator to check the references.
-4. Respect line budgets: 01≤100, 02≤200, 03≤150, 04≤250, 05≤100, 06≤80, 07≤50.
-5. Write the bundle to `docs/handoffs/<slug>/` (8 files, flat, markdown only — NO
-   JSON manifest, NO gate-probe file, NO separate claims file).
-6. **Graceful degradation:** missing source file → build from fallbacks, omit the
-   section, and note it in `README.md` degradation notes — never fabricate.
-   Unresolvable marker (section renamed/removed) → stop on that file, report the
-   marker + its target source, ask the operator. Never ship a literal marker.
-7. Remove the `in-progress/<slug>/` folder (interview content is folded into `04_RECENT`).
-8. Append a JOURNAL marker entry: handoff Phase 2 complete for `<slug>`; bundle at
-   `docs/handoffs/<slug>/`.
-9. Run validators. Commit on the feature branch.
-10. Report: bundle generated; any drift found; any degradation noted; next step —
-    use the bundle per its `README.md` escalation ladder (paste 01–05, then 06,
-    Tier 1/2/3 on failure, then 07).
-
-## Hard constraints (violation is a process failure)
-
-- **Two phases only.** No Stage vocabulary, no placeholder-file dance, no separate
-  scratch files per artifact — one interview file, one bundle.
-- **Eight files, flat, markdown only.** README + `01`–`07`. No JSON manifest, no
-  `10_GATE_PROBE`, no `11_CLAIMS`, no `12_OPERATIONAL_*`.
-- **Generate from source, never hand-maintain.** Every bundle is as current as the
-  repo at handoff time. Resolve all markers; degrade loudly, never fabricate.
-- **Cross-repo is read-only (ADR-36/41).** Never write to or direct work on another
-  repo. Bundle always lives in `.dev-knowledge/docs/handoffs/`.
-- **Operator-triggered only.** CC never proposes a handoff unprompted.
-- **No ADR authored here.** The v4 architecture decision goes through AI Council, not
-  this skill.
