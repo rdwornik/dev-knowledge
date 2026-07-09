@@ -11,7 +11,7 @@
 | **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->Execute **plan-v3** (fleet execution & methodology rollout — copied in as `PLAN.md`): **G8 runbook fix → B-S2 corp-monorepo onboarding** (n=2 runbook gate), the **QA-role intake decomposition** (EPIC G) after the operator's functional session, and the **`#300` hermetization ADR** (EPIC I) BEFORE Wave-2; EPIC H (subagent/model-routing doctrine) + `#270` re-admission (nightly layer) queue behind them. The operator's **execution-first bar governs** — visible outcomes over governance; new meta-work must unblock onboarding or be rejected. Start at `PLAN.md`, then `BACKLOG.md` (the spec).<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/night-handoff-0709`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since?"*.
 
 > **`PLAN.md` present (manual instance of `#301`).** This bundle carries the operator's plan-v3 as
 > **`PLAN.md`** — the session plan of record. It was copied in **by hand**: the `#301` architect-mode
@@ -279,7 +279,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since?"*.
 
 ---
 
@@ -412,3 +412,165 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
    never "matches a remembered number." P7 is the headline (GREEN/RED + dispositioned-WARN count +
    any `[stale]` line). P8 pins the bundle shape **and the live supplement fill-state**. First check
    which branch is live (P3), then re-derive every load-bearing fact from the live primary source.
+
+---
+
+=== SUPPLEMENT.md ===
+
+A1 (strategic intent): EXECUTE plan-v3 §D — theme: "teeth for the edges".
+Convert 07-09's incident set (I1–I6) into mechanism: G8 runbook fix first
+(gates B-S2), corp-monorepo onboarded as runbook n=2 + seeder first consumer,
+#300 hermetization ADR drafted (P1, before Wave-2), EPIC G decomposition the
+moment the operator's QA-functional intake lands. Visible-results bar stands.
+
+A2 (tensions weighed): night autonomy vs proposals-only → proposals-only,
+validated n=1 (zero unwanted mutations, full queue honored). d.iii retroactive
+vs prospective → prospective + grandfather + canonical CLASS enum (S3
+quantified: retro = ~65% corpus rename for near-zero gain). PLAN.md generator
+vs manual → manual n=1 done (this bundle), generator build = #301. Subagent
+parallelism → read-only fan-out only; git mutations serial (index-race,
+ratified from lived-QA + night run).
+
+A3 (considered + rejected — do NOT relitigate): retroactive audit renames;
+parallel subagent commits on one tree; fabricating SUPPLEMENT/retrospectives
+for past sessions (07-05 cold bundle → accept-and-annotate, not backfill);
+mandatory-TDD (council-rejected, stands); night merges beyond the 4 committed
+classes; docs/plans/ top-level (plans are bundle-resident, #301).
+
+A4 (open questions): #300 d.ii mode-boot bundle home + fate of the 07-07
+committed functional bundle + 27 superseded-era bundles (S4-3, one migration
+pass); d.iii CLASS enum contents (ruling shape decided, list to draft in the
+ADR); age-based backstop design — the night audit's single structural theme
+(intake-age → #270/#271, cold-bundle → #292 gate, Pattern-C
+amendment-summary drift has NO organ yet, unfiled); EPIC H doctrine (run
+changelog V1 worktree-contamination verify as its first input); #254(b)
+fleet-audit auto-push vs manual cadence; P7 (operator, one line, closes
+EPIC C); QA-functional session output pending.
+
+A5 (decomposition rationale): §D order is dependency-true: G8 fix gates
+B-S2 (n=2 must run the corrected layer-6 verify); B-S2 gates v4-template
+archival (corp must be off v4) and provides #262 tool-managed n≥1; #300
+before Wave-2 (artifact classes multiply per repo onboarded); QA
+decomposition ∥ B-S2 is collision-free (hub/browser vs corp-monorepo chat).
+Session-start batch (small, serial): ADR-51 README one-liner (verify-then-
+fix) · 2 stale intake Status: lines · #181 citation convention ·
+docs/handoffs README documents PLAN.md as bundle member · demo-prep backup
+verdict if terminal check showed unpushed work. Do NOT redo: the grooming,
+#300 scope text (filed verbatim), the d.iii ruling, the night autonomy
+contract, C-S3v2 results, lived-QA findings (F1 already filed as #302).
+
+A6 (off-repo context): operator verdicts on record this cycle: QA must be
+a PROCESS-level role (playbook + onboarding legs, fleet carrier); test
+depth proportional to T1–T5 scope tags; subagent routing doctrine wanted
+(EPIC H); night runs wanted — gated by #270, which RE-ENTERS admission;
+plans are part of every session (#301, operator-ratified pattern); folder/
+naming discipline is a hard trigger for the operator — treat R13 and #300
+as P1 posture, not paperwork. WMI machine incident root-caused and fixed
+(elevated winmgmt restart; G9 latent, dormant). Operator still owes: P7
+one-liner + the QA-functional session (boot is printed and ready). Budget:
+sky-is-the-limit stands; Opus+high effort default for judgment work.
+
+
+---
+
+=== PLAN.md (session plan of record -- appended into PASTE_THIS for the file-less browser; manual #301 instance) ===
+
+<!-- scope: meta -->
+> **PLAN.md — operator plan of record (plan-v3), copied into this bundle BY HAND.**
+> Manual instance of the `#301` session-plan-artifact pattern (mode->artifact symmetry): the
+> architect-mode PLAN.md generator feature is filed (2026-07-09 night run) but NOT yet built, so
+> plan-v3 was copied in verbatim below. Source: the operator's
+> `2026-07-09-program-plan-fleet-execution-v3.md` (supersedes plan v2). On close, the `#301` pattern
+> calls for a RETROSPECTIVE fill here (done / not-done / incidents / carry-forward) — deferred to the
+> generator build; for now the plan is read-only.
+
+---
+
+# PROGRAM PLAN v3 — Fleet Execution & Methodology Rollout
+**Status:** SESSION RETROSPECTIVE + FORWARD PLAN · **Supersedes:** v2
+**Session reviewed:** 2026-07-09-dev-knowledge-architect (executed 07-08/09 wall-clock)
+**New drivers:** session incidents I1–I6 · operator directives OD1–OD4 (QA-in-process, proportional test depth, subagent utilization, night schedule)
+
+## CHANGELOG v2 → v3
+| Δ | Change |
+|---|---|
+| RETRO | §A added: full done/not-done/incident accounting for the executed session |
+| OD1 | QA role arc formalized: EPIC G (intake → ADR → build → fleet carrier). Evidence register I1–I6 attached |
+| OD2 | Proportional test-depth requirement keyed to existing T1–T5 scope-tags — routed into EPIC G intake as structural requirement |
+| OD3 | Subagent/model-routing doctrine gap acknowledged (opusplan exists; deliberate Opus→Sonnet→Haiku orchestration is uncodified) → EPIC H (research + PLAYBOOK doctrine + carrier) |
+| OD4 | Night schedule: routed to existing intake-id 8 (night-routines suite) — GATED by #270, which therefore RE-ENTERS admission (it now unblocks an operator-demanded capability) |
+| NEW | EPIC I: docs-taxonomy hermetization (filed this session) — BEFORE Wave-2 |
+| D-reg | D1 demoted to INTERIM (operator questioned twice) — final ruling in hermetization ADR d(i). D8 added (night-layer go/no-go rests on #270 + intake-8 triage) |
+
+---
+
+## §A — SESSION RETROSPECTIVE (vs v2 §4 plan)
+
+### Done (planned)
+| Item | Evidence |
+|---|---|
+| GATE-0 P2–P10 | all PASS; P10 bonus: mode-split already shipped → C rescoped finish-only |
+| A-S1 #286 | 5dd2907 · [S1]–[S20] visible · validator grammar + tests · hub-only scope call RATIFIED |
+| A-S2 #292 | filed, kill-candidate #117 · backpressure hook FIRST LIVE FIRING: correct |
+| A-S3 runbook F5 | 6cf51a6 · markings [hub-runnable]/[consumer-only] + --run-date note |
+| B-S1 ai-council pilot | 1bdc2ea · contract 10/10 · fire_test FIRED · gap-notes G1–G9 · fix-arc fba7b13 (SessionStart) — Wave-1 n=1 COMPLETE |
+| C (#164) | closed 9e6ceb6 · legs {b-hub,e,g} built, rest evidenced · Done-when amended on record (fan-out → Wave arcs) · C-S3v2 matrix 7/8 · polish filed #298 |
+| Consolidation | #294–#297 filed from gap-notes · census docs/handoffs amendment recorded · QA premise-grep (no QA role exists; TDD council-rejected; ADR-81 test-first contract is the nearest construct) |
+
+### Done (unplanned, absorbed)
+QA-bundle slug incident remediation (ephemeral pattern) · WMI machine fix (elevated, verified on real path) · git mid-merge incident recovery (in flight) · G8/G9 · temp-repo rule → machine memory.
+
+### NOT done (carried forward)
+| Item | Why | Carries to |
+|---|---|---|
+| F-S1 SEED-6 boundary triage | eaten by incidents | next architect session buffer |
+| Step-6 educate/close + handoff | pending recovery + lived-QA returns + P7 | session close |
+| P7 operator content verdict (3 modes) | operator's one-liner outstanding | closes EPIC C formally |
+
+### Incident register (I*) — QA-intake EVIDENCE SET
+| I | Incident | Lesson class |
+|---|---|---|
+| I1 | C-S3v1 shallow test (no matrix, no quality rubric) — caught by operator, not mechanism | test-depth unenforced |
+| I2 | G8: runbook verify used shim interpreter, hook runtime uses .venv | verify ≠ runtime path |
+| I3 | G9: WMI hang — import works, CLI hangs; machine-scoped | env-layer testing gap |
+| I4 | dateless slug sailed through every gate (architect-authored) | convention without teeth |
+| I5 | F-A: session reported "merged, GREEN" over an uncommitted MERGE_HEAD | premature closure / claim-vs-disk |
+| I6 | F-B: maintenance commit in live checkout finalized foreign merge | session isolation unenforced |
+
+---
+
+## §B — PROGRAM STATE (epics)
+
+| Epic | State |
+|---|---|
+| A visibility | ✅ CLOSED |
+| B Wave-1 | B-S1 ✅ · B-S2 corp-monorepo NEXT SESSION (precondition: G8 runbook fix — layer-6 verify must invoke the hook's own command line) |
+| C generator | ✅ technically closed · P7 operator verdict pending · #298 polish pegged |
+| D e2e test | D-S1 evidence live (pilot + lived-QA exercise in flight) · D-S2 dedicated pass session +2 — MERGES INTO EPIC G protocol once QA role lands (no duplicate test doctrine) |
+| E Wave-2 | unchanged; BLOCKED-BY EPIC I (hermetization) by design |
+| F architect buffer | carried |
+| **G — QA role (NEW)** | intake session = operator's next move (boot printed, evidence I1–I6 + requirements OD2 ready) → technical decomposition → ADR (role, protocol, report-gate) → build → FLEET CARRIER (PLAYBOOK + runbook legs, so every onboarded repo inherits it) |
+| **H — subagent/model-routing doctrine (NEW)** | research spike (Task-subagent capabilities/costs/parallelism) → PLAYBOOK doctrine: default routing Opus=orchestration/judgment · Sonnet=bounded probes/mechanical · Haiku=cheap fan-out where quality floor allows → binds EPIC G's protocol (QA runs are the first consumer) |
+| **I — docs hermetization (NEW, filed)** | ADR arc: sanctioned top-level set · per-class name grammar `<date>-<class>-<slug>` (audit classes: technical/functional/qa/census/verification) · pre-commit refusal gate · sub-rulings: d(i) runbooks location · d(ii) mode-boot bundle home · d(iii) audit classes. PEG: BEFORE Wave-2 |
+
+## §C — Decisions register (delta)
+| ID | Decision | State |
+|---|---|---|
+| D1 | docs/runbooks location | DEMOTED to interim-keep → final in hermetization ADR d(i) |
+| D6 | life-architect privacy gate | STANDING (unchanged, hard) |
+| D7 | terminal-setup in Wave-2 | standing recommendation: include |
+| **D8** | night-layer go/no-go: after #270 lands + intake-8 triage; unattended = proposal classes only, NEVER autonomous merges | operator rules at that gate |
+| P7 | 3-mode content verdict | OPERATOR — one line, closes EPIC C |
+
+## §D — NEXT SESSION PLAN (architect, fresh chat via generated architect bundle)
+| Step | What | Notes |
+|---|---|---|
+| 0 | Boot from /handoff architect bundle (dogfood) + probes | |
+| 1 | G8 runbook fix (small, serial) | gates B-S2 |
+| 2 | B-S2 corp-monorepo onboarding (dedicated chat, plan-first) | n=2 runbook gate · D4 surface · #262 tool-managed n≥1 target · runs the SEEDER (leg-b fan-out first consumer) |
+| 3 | ∥ hub: QA intake decomposition (after operator's functional session) → ADR draft + EPIC G stories | admission: #270 re-enters (unblocks OD4) |
+| 4 | ∥ hub: hermetization ADR (EPIC I) if capacity | else session +2, still before Wave-2 |
+| 5 | F-S1 SEED-6 boundary (carried) | buffer |
+
+## §E — Session close conditions (this session)
+Recovery report GREEN + pushed · lived-QA exercise report reviewed · P7 received · educate artifact delivered · architect close-out handoff generated (dogfood) — then this chat wraps per context self-eval (a).

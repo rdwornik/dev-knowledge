@@ -9,7 +9,7 @@
 | **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->Execute **plan-v3** (fleet execution & methodology rollout — copied in as `PLAN.md`): **G8 runbook fix → B-S2 corp-monorepo onboarding** (n=2 runbook gate), the **QA-role intake decomposition** (EPIC G) after the operator's functional session, and the **`#300` hermetization ADR** (EPIC I) BEFORE Wave-2; EPIC H (subagent/model-routing doctrine) + `#270` re-admission (nightly layer) queue behind them. The operator's **execution-first bar governs** — visible outcomes over governance; new meta-work must unblock onboarding or be rejected. Start at `PLAN.md`, then `BACKLOG.md` (the spec).<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/night-handoff-0709`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since?"*.
 
 > **`PLAN.md` present (manual instance of `#301`).** This bundle carries the operator's plan-v3 as
 > **`PLAN.md`** — the session plan of record. It was copied in **by hand**: the `#301` architect-mode
@@ -40,7 +40,7 @@
    `run <command>`, CC reads live `VISION.md` / `ARCHITECTURE.md` Ch1 and substring-checks. The architect
    may not begin design until it holds both orienting lines (P1's grep is a *tool* that confirms the frame
    — the **backlog navigates**, §13c).
-6. **Then the operator-context beat (§13d).** The supplement is **generated EMPTY**, so unless the operator fills it first the beat fires **FULL**: *"what off-repo context — intent, priorities, findings not in the repo, changed decisions?"*
+6. **Then the operator-context beat (§13d).** The supplement is **FILLED**, so the beat **NARROWS** to *"anything changed since the supplement was written?"* — the strategic off-repo why (intent, priorities, changed decisions) is already folded into the paste.
 7. Hand `RESIDUAL.md` — **drift-flags first** (the §1 headline) — then the **next-frontier decisions**
    (§4) + the **shipped-this-window** map (§2), then run the rest of `PROBES.md` (P2–P9). Any probe FAIL
    blocks onboarding (the escalation ladder). **Re-derive the drift-flag values live (P4/P6/P7/P9) — the
