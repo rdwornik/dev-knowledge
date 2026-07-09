@@ -153,6 +153,41 @@ def test_force_filled_overrides_detection(tmp_path):
     assert "NARROWS" in (res.bundle_dir / "PROBES.md").read_text(encoding="utf-8")
 
 
+def test_reflow_framing_flips_cold_sources_after_late_fill(tmp_path):
+    # The fill-step bug the A5-5 fix closes: a bundle generated COLD, then the SUPPLEMENT filled
+    # AFTER generation (the real workflow — assemble_paste is re-run, gen_handoff is not). The
+    # source files still announce "generated EMPTY" until reflow_framing (now called by
+    # assemble_paste) flips them, without clobbering hand-authored FILL-IN narrative.
+    b = _gen(tmp_path).bundle_dir  # cold
+    assert "generated EMPTY" in (b / "PROBES.md").read_text(encoding="utf-8")
+    # operator hand-authors a frontier sentence that merely MENTIONS "generated EMPTY" (must be
+    # preserved) and fills the supplement answers
+    resid = (b / "RESIDUAL.md").read_text(encoding="utf-8")
+    resid = resid.replace("<!-- FILL-IN:frontier END -->",
+                          "The why: SUPPLEMENT ANSWERS is generated EMPTY per the author.\n"
+                          "<!-- FILL-IN:frontier END -->")
+    (b / "RESIDUAL.md").write_text(resid, encoding="utf-8")
+    sup = (b / "SUPPLEMENT.md").read_text(encoding="utf-8")
+    (b / "SUPPLEMENT.md").write_text(sup + "\n1. Intent: ship it.\n", encoding="utf-8")
+
+    flipped = gh.reflow_framing(b)
+    assert "PROBES.md" in flipped and "HANDOFF_BOOT.md" in flipped
+    probes = (b / "PROBES.md").read_text(encoding="utf-8")
+    assert "generated EMPTY" not in probes
+    assert "NARROWS" in probes
+    # the differently-worded hand-authored sentence is NOT matched by the surgical block replace
+    assert "generated EMPTY per the author." in (b / "RESIDUAL.md").read_text(encoding="utf-8")
+    # idempotent: a second reflow finds no cold framing block left to flip
+    assert gh.reflow_framing(b) == []
+
+
+def test_reflow_framing_noop_on_cold_bundle(tmp_path):
+    # A cold (unfilled) supplement must leave the cold framing untouched — reflow is fill-gated.
+    b = _gen(tmp_path).bundle_dir
+    assert gh.reflow_framing(b) == []
+    assert "generated EMPTY" in (b / "PROBES.md").read_text(encoding="utf-8")
+
+
 # --- bundle shape / structure -----------------------------------------------
 
 def test_architect_bundle_writes_all_files_and_mode_row(tmp_path):

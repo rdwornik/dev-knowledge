@@ -94,6 +94,17 @@ def main(bundle_dir: Path) -> None:
     """Assemble PASTE_THIS.md for BUNDLE_DIR from canonical sources."""
     repo_root = Path(__file__).parent.parent
 
+    # Fill-step flip (§13 "the cold->FILLED flip is mechanized via the assembler's shared
+    # fill-state"): when the SUPPLEMENT was FILLED after a cold generation, flip the cold
+    # framing banners to FILLED in the SOURCE files first, so PASTE_THIS and its sources agree
+    # with the folded ANSWERS instead of still announcing "generated EMPTY". No-op on a cold /
+    # unfilled bundle; surgical (never clobbers hand-authored FILL-IN narrative).
+    from gen_handoff import reflow_framing  # noqa: PLC0415 (sibling CLI; deferred import)
+    flipped = reflow_framing(bundle_dir)
+    if flipped:
+        click.echo("[reflow] SUPPLEMENT filled -> flipped cold framing to FILLED in: "
+                   f"{', '.join(flipped)}", err=True)
+
     sections: list[tuple[str, str]] = []
 
     # 0. Optional: bundle session-header (slug/mode/purpose/generated-at). The Mode row

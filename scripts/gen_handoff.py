@@ -267,6 +267,32 @@ def detect_fill_state(bundle_dir: Path) -> bool:
     return _extract_answers(sup.read_text(encoding="utf-8")) is not None
 
 
+def reflow_framing(bundle_dir: Path) -> list[str]:
+    """Flip the fill-state framing blocks (SUPPLEMENT_BANNER / P1_GATE_NOTE / PASTE_STEP6) from
+    their COLD text to their FILLED text, IN PLACE, in an already-rendered bundle whose SUPPLEMENT
+    was FILLED *after* a cold generation. This is what lets the documented fill step
+    (`assemble_paste.py`) actually flip the boilerplate the operator sees — §13's "the cold->FILLED
+    flip is mechanized via the assembler" — WITHOUT a full template re-render, so hand-authored
+    FILL-IN narrative is never clobbered: it replaces only the exact framing block, so differently
+    worded prose that merely mentions "generated EMPTY" is not matched. No-op (returns []) on a cold
+    / unfilled supplement, and idempotent once flipped. Returns the file names it changed."""
+    if not detect_fill_state(bundle_dir):
+        return []
+    flipped: list[str] = []
+    for name in ("HANDOFF_BOOT.md", "RESIDUAL.md", "PROBES.md"):
+        f = bundle_dir / name
+        if not f.exists():
+            continue
+        text = f.read_text(encoding="utf-8")
+        new = text
+        for cold, warm in _FRAMING.values():
+            new = new.replace(cold, warm)
+        if new != text:
+            f.write_text(new, encoding="utf-8", newline="\n")
+            flipped.append(name)
+    return flipped
+
+
 # --- rendering (fence-aware; framing tokens only, never a hint value) --------
 
 # A FILL-IN region: <!-- FILL-IN:<name> START ... --> body <!-- FILL-IN:<name> END -->.
