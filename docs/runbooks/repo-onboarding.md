@@ -115,9 +115,14 @@ python -m pre_commit install -t pre-commit -t commit-msg -t pre-push
 # verify: all three managed stages are installed + pre-commit-managed
 ls .git/hooks/pre-commit .git/hooks/commit-msg .git/hooks/pre-push
 python scripts/audit.py health                               # -> hooks_armed OK
-# verify (amendment): the hook shim's INSTALL_PYTHON resolves to a python that imports
-# pre_commit — a stale/foreign interpreter = armed-but-erroring hooks:
-python -c "import pre_commit"                                # with the shim's interpreter -> no error
+# verify (#299 fix): run the arm command through the hook's OWN runtime interpreter -- the
+# INSTALL_PYTHON baked into the installed shim, which git execs at commit time, NOT a bare
+# ambient python. A stale/foreign interpreter that cannot import pre_commit fails HERE; the
+# old  python -c "import pre_commit"  ran on a different ambient python and passed while the
+# armed hook errored: No module named pre_commit
+INSTALL_PYTHON=$(sed -n "s/^INSTALL_PYTHON='\(.*\)'.*/\1/p" .git/hooks/pre-commit)
+[ -n "$INSTALL_PYTHON" ] || { echo "FAIL #299: cannot resolve hook runtime interpreter (shim absent, format changed, or core.hooksPath relocates hooks -- check 'git config core.hooksPath')" >&2; exit 1; }
+"$INSTALL_PYTHON" -m pre_commit install -t pre-commit -t commit-msg -t pre-push   # hook's own interpreter runs the verbatim arm cmd -> no error
 ```
 
 ---
