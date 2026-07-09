@@ -6,7 +6,7 @@ consumed-by: "#272 (Arc-5 triage epic, executed 2026-07-06/07), #273 (R3), #274 
 ---
 
 # INTAKE BRIEF — platform feature scan: buy-vs-build audit (Claude/CC, H1-2026 features)
-Status: INTAKE-DRAFT (SEED → for functional-architect review, then technical triage) · Origin: operator ask + architect web research, 2026-07-06 · Sources: official CC what's-new/changelogs + release notes + Code-with-Claude-2026 coverage (verify each item against docs at build time — third-party writeups may drift).
+Status: CONSUMED (#272, #273, #274; evidence in frontmatter `consumed-by`) · Origin: operator ask + architect web research, 2026-07-06 · Sources: official CC what's-new/changelogs + release notes + Code-with-Claude-2026 coverage (verify each item against docs at build time — third-party writeups may drift).
 
 ## 1. Problem / motivation
 The platform absorbed several patterns we hand-built (scheduled agents, multi-agent worktree orchestration, output-grading loops, live dashboards). Hand-rolled scaffolding that a native primitive now covers is rot surface — derive-don't-maintain applies to our OWN tooling. We need a deliberate buy-vs-build pass: adopt native where it replaces ceremony, keep our governance layer (boundaries, contracts, §14, closure discipline) where it is the actual value-add.

@@ -39,7 +39,8 @@
 > {{SUPPLEMENT_BANNER}}
 >
 > **Windows note:** `audit.py checks` (P2) can crash mid-listing on a bare cp1252 PowerShell console
-> (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` or in git-bash. `ship-gate` (P7)
+> (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` (or `PYTHONIOENCODING=utf-8`); this
+> is Python's stdout encoding, shell-independent, so git-bash does **not** avoid it. `ship-gate` (P7)
 > can false-RED on `handoff_probes` under PowerShell — **verify in git-bash.**
 
 ## P1 — Orientation (the architect's **first move**, before any mechanism — §13c)

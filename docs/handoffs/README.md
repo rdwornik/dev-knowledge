@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-08
+last_reviewed: 2026-07-10
 reconciled_with: handoff-process@5.7
 ---
 <!-- scope: meta -->
@@ -28,7 +28,8 @@ reconciled_with: handoff-process@5.7
 
 A v5 handoff is a small folder under `docs/handoffs/{YYYY-MM-DD}-{slug}/` with **four** files —
 `HANDOFF_BOOT.md`, `RESIDUAL.md`, `PROBES.md`, and `PASTE_THIS.md` (architect-mode bundles also carry a
-`SUPPLEMENT.md` — always generated, fillable; see *The strategic supplement* below) — plus this runbook
+`SUPPLEMENT.md` — always generated, fillable; see *The strategic supplement* below; current bundles also
+carry a `PLAN.md` — the operator-ratified session plan, #301, CC-authored, never pasted) — plus this runbook
 one level up. There is no per-bundle README; this is it.
 
 ## Who each file is for
@@ -47,6 +48,7 @@ its **sources** and your **reference** — you do not paste them separately.
 | `RESIDUAL.md` | source | Assembled into `PASTE_THIS.md`. Your reference — do not paste separately. |
 | `PROBES.md` | source | Assembled into `PASTE_THIS.md`. Your reference — do not paste separately. |
 | `SUPPLEMENT.md` *(architect)* | **You (fill it)** | Always generated. Paste its QUESTIONS to the outgoing architect chat; paste the answers back. Its **ANSWERS** (only) fold into the next session's `PASTE_THIS`. See *The strategic supplement* below. |
+| `PLAN.md` | **You / CC** | The operator-ratified session plan (#301) — CC-authored, carried in the bundle for the session's own use. Generic reference; **never pasted** into the browser. |
 
 > ⚠️ **Same-name collision (read this once).** The bundle contains a file **named** `HANDOFF_BOOT.md`,
 > and the repo contains the resident role file `protocols/HANDOFF_BOOT.md`. **You paste neither** — the

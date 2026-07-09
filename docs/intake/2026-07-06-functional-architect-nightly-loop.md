@@ -6,7 +6,7 @@ consumed-by: "ADR-98, #268"
 ---
 
 # INTAKE BRIEF — the functional-architect scene + the nightly proposal loop
-Status: INTAKE-DRAFT (design input for the technical architect) · Origin: operator voice session + architect synthesis, 2026-07-06
+Status: CONSUMED (ADR-98, #268) · Origin: operator voice session + architect synthesis, 2026-07-06
 Meta: this document is itself the FIRST artifact of the process it proposes — file it as intake doc #1 and dogfood the triage on it.
 
 ## 1. Problem

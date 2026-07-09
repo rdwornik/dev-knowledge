@@ -86,6 +86,9 @@ def _make_bundle(
     scripts_dir.mkdir(exist_ok=True)
     script_copy = scripts_dir / "assemble_paste.py"
     shutil.copy(SCRIPT, script_copy)
+    # assemble_paste.py resolves `from gen_handoff import reflow_framing` at runtime via
+    # sys.path[0] = its own dir, so its sibling must sit beside it in the temp scripts/ dir.
+    shutil.copy(SCRIPT.parent / "gen_handoff.py", scripts_dir / "gen_handoff.py")
 
     return bundle, script_copy
 
