@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-09 — CC (Opus 4.8): #299 G8 — runbook Layer-6 verify exercises the hook's real interpreter (fire-tested)
+
+**Did:** #299 (pilot finding G8; bug class I2 verify-vs-runtime-path, plan-v3 §A). Fixed the onboarding-runbook Layer-6 verify (`docs/runbooks/repo-onboarding.md` L118-125) — replaced the proxy `python -c "import pre_commit"` (a bare ambient python, NOT the hook's runtime interpreter) with a verify that extracts the installed shim's baked `INSTALL_PYTHON` and runs the verbatim arm cmd (`… -m pre_commit install -t pre-commit -t commit-msg -t pre-push`) through it, **guarded** so an empty extraction FAILS LOUD (operator ruling: an unverifiable runtime path is a failure, not a skip; guard msg carries a `core.hooksPath` hint). Recon (witnessed, not assumed): the SessionStart arm hook is `python scripts/arm_hooks.py` wrapping `sys.executable -m pre_commit install -t …` (NOT a literal `python -m pre_commit install`); the hook's runtime interpreter IS the shim's `INSTALL_PYTHON`, which the shim execs with NO fallback when it's executable-but-lacking-pre_commit = the exact `No module named pre_commit` of #299. Design fork operator-chosen: Option A (extract INSTALL_PYTHON) over Option B (fire the shim) — most literal to the ADR-81 ex-ante contract, isolated fire signal. Edited in place (no relocation — #300 unratified); no new files / no deletes; new block rendered all-ASCII (it lives in a copy-run bash fence; gotcha L40-45).
+
+**Result:** Closure = a 3-leg fire-test in a DISPOSABLE temp repo (removed after — no leftovers): GREEN armed → exit 0; RED (shim drifted to a pre_commit-less venv) → OLD proxy exit 0 (FALSE GREEN, the bug) WHILE the new verify exit 1 (`…\badenv\python.exe: No module named pre_commit`) AND the shim fired directly (git commit-time path) exit 1; GUARD (shim absent) → exit 1 + `FAIL #299` msg; restore → exit 0. The verify goes red on a broken hook and green on a correct one — it IS enforcement (closure ≠ "edit applied"). Commit-time gates GREEN (audit-health Passed; ruff clean). SHA `d9ef53c` → this wrap → the `--no-ff` merge.
+
+**Changes:** docs/runbooks/repo-onboarding.md (L118-125, +8 / -3); JOURNAL.md.
+
+**Abandoned:** nothing. Deferred (not staged, avoids contaminating this arc): TOKEN-LOG ccusage update (8 days stale, last 2026-07-01).
+
+**Next:** confirm the in-flight full-`pytest` run green, then `/ship` (`--no-ff` to main; merge commit carries bracket `[#299]`), then close #299 via Tier-1 `/review-closures` citing this fire-test evidence. corp-monorepo shares the latent pre_commit-in-`.venv`-undeclared fragility = B-S2 (log-don't-fix-here); #302 pre-push parity is adjacent (untouched).
+
 ### 2026-07-09 — CC (Opus 4.8): finalize 2026-07-10 architect bundle for boot (operator-attended)
 
 **Did:** Operator returned, approved the A1–A6 strategic supplement + gave 4 finalization tasks (branch `docs/finalize-2026-07-10-bundle`). (1) `SUPPLEMENT.md` ANSWERS filled with the operator's A1–A6 (operator pre-pasted; verified verbatim). (2) Flipped the now-stale "SUPPLEMENT EMPTY / §13d fires FULL" framing to **FILLED** in HANDOFF_BOOT + RESIDUAL (else the boot paste would contradict the folded answers — the §13d beat now NARROWS), re-assembled `PASTE_THIS.md` (folds the ANSWERS), and **appended `PLAN.md` into PASTE_THIS** for the file-less browser (manual #301 instance — generator feature filed, not built). (3) Reframed **#302 → PARITY-DEPLOY**: today's operator `git push` fired the hub's `block-ff-push` (#153) pre-push gate, confirming the hub HAS direct-to-`main` prevention and consumers LACK it (not a fleet-wide gap).
