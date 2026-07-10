@@ -183,3 +183,124 @@ release-cut arc that authors the manifest, tags, and deploys.
   `deploy/carrier_precommit.py` (#276 `detect_prune`) · `deploy/manifest-v1.2.0.yaml` (copy-source) ·
   `deploy/release_lint.py` (C1–C8) · `docs/runbooks/repo-onboarding.md` (the onboarding half) ·
   `docs/audits/2026-07-08-fleet-consistency-census.md` (the fleet-state evidence).
+
+---
+
+## Addendum 2026-07-11 — #302 / #309 commit-discipline carriers (LANE-B arc)
+
+> **Provenance.** Two scope items added after the 2026-07-08 draft. Their **hub-side carrier
+> engine landed in the LANE-B arc** (branch `feat/302-309-carriers`): the `block-ff-push`
+> hub-source entry in `.pre-commit-hooks.yaml` (commit `6b15709`) + firing tests (commit
+> `dfa2427`). Per the version-provenance note above, **the methodology version stays HELD at
+> v1.2.0** — the hub-source entries are undeployed engine code (the `[NB]` precedent); the
+> `manifest-v1.3.0.yaml` rows below are **specified ready-to-paste and DEFERRED to the
+> release-cut arc**, alongside #280/#245/#246/#276. Nothing here is deployed to a consumer.
+
+### 3.5 #302 — pre-push `block-ff-push` carrier · hub-side BUILD landed; manifest DESIGN-DEFER
+- **What:** expose the pre-push gate (`scripts/block_ff_push.py`, core-invariant #5 prevent
+  organ) as a hub-source hook so a consumer inherits push-time direct-to-main / FF protection.
+- **Why:** the 2026-07-08 census (Part 5) witnessed every deployed consumer's pre-push stage
+  **armed-but-empty** — the stage installs (#275b) but no hub gate carries into it; a direct
+  commit to `main` lands push-able on ai-council (F1/N4) and corp (morning-brief §5).
+- **Portability:** the mechanism is fully generic — range resolution (native-stdin + pre-commit
+  `PRE_COMMIT_*` env), `PROTECTED_REF=refs/heads/main`, fail-soft (exit 0 on any git error). The
+  `BASELINE_DATE=2026-06-15` grandfather is a hub-history artifact but a **non-issue for
+  consumers**: a normal push scans only the incoming range (`remote..local`), so already-pushed
+  legacy commits are never rescanned; only a fresh-remote first push scans full history. The
+  hard `import validate_no_ff` means the carrier ships both scripts from the same hub clone.
+- **Acceptance (BACKLOG #302 Done-when):** "a consumer gains the guard, verified FIRING on a
+  direct-to-main push, with tests." **Met hub-side** by the `@requires_precommit` E2E
+  (`tests/test_carrier_hooks_source.py::test_carried_block_ff_push_refuses_direct_to_main` — a
+  throwaway consumer installs the hub-source hook and its direct-to-main push is REFUSED).
+  The per-consumer install/verify is the named rollout follow-up.
+- **Surface:** `.pre-commit-hooks.yaml` (landed) + the manifest rows below (deferred).
+
+### 3.6 #309 — commit-msg gate parity · portable subset carried; filing-backpressure hub-only
+- **What:** carry the *portable* commit-msg gate — `backlog-id-on-close`
+  (`scripts/check_backlog_commit_msg.py`), already exposed in `.pre-commit-hooks.yaml`.
+- **Portability decision (operator, 2026-07-11):**
+  - **`backlog-id-on-close` — CARRIED.** Portable: a consumer with a `- [#id]` story-map
+    BACKLOG.md inherits close-traceability; a consumer without one is **fail-open** (empty
+    `git diff -- BACKLOG.md` → no removed ids → pass), so shipping it is safe fleet-wide.
+  - **`backlog-filing-backpressure` — HUB-ONLY-BY-CONSTRUCTION (not carried).** Reason: its
+    Leg-1 `kill-candidates:` filing-discipline (PLAYBOOK §10) and Leg-3 intake / `[P1-3][L]`
+    size-band advisory (ADR-98 §3) are **hub methodology conventions not fleet-adopted** —
+    carrying Leg-1 would impose the hub's paired-removal ritual on every consumer commit that
+    adds a task, and Leg-3 depends on hub-specific size-band + intake-doc notation. Recorded
+    per #309's "or each is recorded hub-only-by-construction with a reason" clause. Pinned by
+    `tests/test_carrier_hooks_source.py::test_filing_backpressure_not_carried`.
+- **Acceptance (BACKLOG #309 Done-when):** "the portable commit-msg gate(s) ship to a consumer
+  via a manifest carrier, verified firing on a seeded violation, with tests (or each is recorded
+  hub-only-by-construction with a reason)." **Met hub-side** by the carried-gate E2E
+  (`::test_carried_backlog_id_blocks_unreferenced_close` — a consumer removing a `- [#id]` line
+  without citing the id is BLOCKED) + the filing-backpressure hub-only record above.
+- **Surface:** `.pre-commit-hooks.yaml` (`backlog-id-on-close` already present) + manifest rows below.
+
+### Prune-scoping interaction (verified live 2026-07-11)
+Per-consumer prune scoping (#276 / #245) **does not exist** — both OPEN / design-deferred (§3.3,
+§3.4). There is **no** per-component `hub_only` / `scope` / `targets` field; transferability is
+decided by manifest **inclusion vs omission**. These two carriers are **add-path only** — they
+add `status: active` components, never a `status: removed` one — so the ADR-96 remove/prune leg
+is **not engaged** and the #276 REFUSE-forcing-function is not touched. No prune dependency; the
+additions are safe to paste into a v1.3.0 cut ahead of #276 landing.
+
+### Ready-to-paste `manifest-v1.3.0.yaml` rows
+
+At the release cut, alongside the §Deferred recipe (bump `methodology_version` / `source_tag` /
+`hub_hooks.rev` to `v1.3.0`), add to the **`precommit` carrier** `target.hub_hooks`:
+
+```yaml
+        marker_hook_ids:
+          - block-ff-push          # NEW (#302); backlog-id-on-close already a marker
+        hooks:
+          - id: block-ff-push      # NEW (#302)
+          - id: backlog-id-on-close # NEW (#309) — entry already in .pre-commit-hooks.yaml
+```
+
+and two `components:` rows (model: the `hub-toc-hooks` component). Calibrate each `expect:`
+substring against real hook output at the cut, per the `hub-toc-hooks` `[#253c]` precedent
+(`block_ff_push` emits its refusal on stderr; pre-commit surfaces hook output regardless of stream):
+
+```yaml
+  - id: hub-block-ff-push
+    kind: hook
+    carrier: precommit
+    status: active
+    waivable: false   # core-invariant #5 main-branch protection is universal; inert (never fires)
+                      # on a non-main default branch rather than needing a waiver
+    verify: wired
+    engages:
+      trigger: pre-push
+      observable: hook-stdout
+      expect: "REFUSED"            # calibrate@cut: "REFUSED — N non-merge commit(s)…"
+      scope: "FIRES on a push adding a non-merge commit to main's first-parent spine; a --no-ff merge or non-main push passes; fail-soft exits 0 on git error"
+    artifacts:
+      - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hook block-ff-push (ships scripts/block_ff_push.py + scripts/validate_no_ff.py)"
+    roster:
+      section: precommit-hook
+      line: "block-ff-push — pre-push gate; refuses direct-to-main / FF push (core-invariant #5 prevent)"
+
+  - id: hub-backlog-id-hook
+    kind: hook
+    carrier: precommit
+    status: active
+    waivable: true    # needs a consumer BACKLOG.md with the `- [#id]` story-map format; a repo
+                      # without one is fail-open (empty diff -> pass), nothing to gate
+    verify: wired
+    engages:
+      trigger: commit-msg
+      observable: hook-stdout
+      expect: "removed but not referenced"   # calibrate@cut
+      scope: "FIRES on a commit removing a `- [#id]` line from BACKLOG.md without [#id] in the message; a consumer without BACKLOG.md is fail-open"
+    artifacts:
+      - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hook backlog-id-on-close (ships scripts/check_backlog_commit_msg.py)"
+    roster:
+      section: precommit-hook
+      line: "backlog-id-on-close — commit-msg gate; require [#id] when a BACKLOG task line is removed"
+```
+
+`backlog-filing-backpressure` gets **no component row** (hub-only-by-construction, above). After
+pasting, `python deploy/release_lint.py --version 1.3.0` (C6 wants both new components to resolve
+their carrier + carry `waivable` + `engages`; C3 wants `hub_hooks.rev == source_tag`) and
+`python scripts/gen_methodology_roster.py --write` (regenerates `.claude/methodology-roster.md`,
+gated by `roster-freshness`) reconcile the cut.
