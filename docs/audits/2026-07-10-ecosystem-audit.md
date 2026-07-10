@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-07-10  
-**Generated:** 2026-07-10T01:11:32  
+**Generated:** 2026-07-10T20:53:38  
 **Repos audited:** 5  
 **Checks:** 145 total — 123 pass, 1 fail, 2 warn, 0 unavailable, 19 n/a
 
@@ -34,7 +34,7 @@
 | `git_backlog_drift` | PASS | hub-only — git<->backlog drift check skipped (not the hub repo) |
 | `doc_claims` | PASS | hub-only — prose-vs-state check skipped (not the hub repo) |
 | `no_ff_merges` | PASS | hub-only — --no-ff guard skipped (not the hub repo) |
-| `handoff_probes` | PASS | 10 probe(s) bind to live state (2026-07-10-dev-knowledge-architect) |
+| `handoff_probes` | PASS | 10 probe(s) bind to live state (2026-07-11-dev-knowledge-architect) |
 | `reconciled_versions` | PASS | 5 reconciled_with edge(s) match live spec version(s) |
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
 | `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
@@ -100,7 +100,7 @@ History: [`ecosystem\ai-council\history/`](ecosystem\ai-council\history/)
 |---|---|---|
 | `vision_md` | PASS | VISION.md present; frontmatter keys: ['last_reviewed', 'owner', 'status', 'version'] |
 | `adr38_baseline` | PASS | All ADR-38 universal governance baseline files present |
-| `claude_md` | PASS | CLAUDE.md present (10935 chars) |
+| `claude_md` | PASS | CLAUDE.md present (11459 chars) |
 | `dot_prefix_discipline` | PASS | All root config files dot-prefixed or on ADR-59 exception list |
 | `canonical_md_visibility` | PASS | Mandatory canonical files present + correctly cased: ['VISION.md', 'ARCHITECTURE.md', 'CLAUDE.md', 'BACKLOG.md', 'CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
 | `workspace_settings` | PASS | .corp-monorepo.code-workspace present, dot-prefixed, required sort settings correct |
