@@ -5,14 +5,22 @@
 - **Status:** PROPOSAL-ONLY. Executed mutations this run were limited to: new report files in `docs/audits/`, `Status:`-line updates in `docs/intake/` (Phase 3), and the JOURNAL append. Every verdict below is a proposal for the operator; nothing was deleted, renamed, moved, ratified, or filed to BACKLOG.
 - **Model:** Opus 4.8 (`claude-opus-4-8[1m]`), effort max. Web + cross-repo research fanned to read-only subagents; every claim carries a SHA / file:line / URL, or an explicit UNVERIFIED flag.
 
-> **Brief assembly status:** Phase 1 ✓ (separate file) · Phase 2 ✓ · Phase 3 ✓ · Phase 4 ✓ · **Phase 5 ✓** · Exec summary + Action menu + Kill-list _pending_.
-> Built incrementally with a checkpoint commit per phase (Fable-flip-safe — Finding 1). Sections marked _(pending)_ are not yet authored; a partial file is expected mid-run.
+> **Brief assembly status: COMPLETE** — Phase 1 ✓ (separate file) · Phase 2 ✓ · Phase 3 ✓ · Phase 4 ✓ · Phase 5 ✓ · Phase 6 ✓ (exec summary + action menu + kill-list).
+> Built incrementally with a checkpoint commit per phase (Fable-flip-safe — Finding 1): `0a3ef2d` P1 · `ff6e9e1` P2 · `9f2da71` P3 · `21e25a5` P4 · `e78e9ad` P5 · P6 = this commit.
 
 ---
 
 ## 1. Executive so-what
 
-_(assembled last — Phase 6)_
+**Bottom line:** the 2026-07-08/09 night reports are **~70% already actioned** (SHAs in §2); the honest OPEN residue is small and named. This run added two ADR-101-conforming audit files and made **zero** deletions / renames / BACKLOG-edits, reconciling nothing it could not verify on live state.
+
+1. **Naming (§4) — the operator's core ask.** Ratify ADR-101: **adopt on-disk token forms** (`codex`, `conformance-nightly-digest`) = **zero rename**; add `fresh-eyes` as the 11th class; a **lowercase-kebab casing rule** fixes the uppercase divergence; **build the specced refusal-gate** — corp's UPPERCASE `_AUDIT_` names are *actively growing* for lack of one.
+2. **Highest structural leverage (§2/§3).** The one gap the corpus has no organ for is **clock-triggered staleness** — the intake-SEED age signal (#270 load-gauge → #271). 4 of 6 open SEEDs are the sole surviving record of groomed-away scope → future rot = silent loss.
+3. **Intake (§3) is clean** — 3 CONSUMED / 6 SEED, every Status line coherent → **0 edits**. Archival: status-line-only + a status-grouped index, **never move** (preserves the intake-id join key; no ADR-101 amendment).
+4. **Bookkeeping.** Close **#299** (fix landed `5ee7fb2`; caveat: verified by fire-test, **no committed pytest**); file **G10/G12/G13** (paste-ready, §3c); augment #262 (G11, corp = 2nd failing codemap layout).
+5. **Skills/gotchas (§5).** ai-council has **no project-gotchas skill** (gap); promote 1 new gotcha + F7 + 2 straggler child LESSONS to the universal store; decide the `verify`-skill #9 home.
+6. **Changelog (§6):** **0 ADOPT, 1 TRIAL** (`/doctor`); **"Codex 5.6" is a label mismatch** (real CLI 0.144.1); /codex-review safe.
+7. **Cleanup:** lane-a worktree cleanly merged → remove; **lane-b carries one leftover JOURNAL-anchor** (content in main) → verify-then-remove.
 
 ---
 
@@ -292,16 +300,56 @@ Home proposed: `~/.claude/skills/gotchas/gotchas.md`, **Python/Testing** section
 
 ## 6. Changelog adoption shortlist (Phase 1)
 
-_(folded here in Phase 6 — full analysis in `docs/audits/2026-07-11-changelog-review-codex-cc.md`)_
+Full analysis: `docs/audits/2026-07-11-changelog-review-codex-cc.md`. ADOPT-NOW / TRIAL only:
+
+- **TRIAL — `/doctor` CLAUDE.md-trim (claude-code 2.1.206):** UNDERUSED-NATIVE. Run once, read its suggestions, **do NOT auto-apply** (governance prose here is deliberately dense + freshness-gated). Effort S.
+- **0 ADOPT-NOW.** Everything else in 2.1.205–206 is automatic hardening already landed on the installed build (consistent with the 2026-07-09 review's 0-ADOPT).
+- **Codex:** **no action.** "Codex 5.6" is a **label mismatch** (real CLI = 0.144.1; GPT-5.6 is a Bedrock *model*). /codex-review is safe across 0.143.0→0.144.1 (nothing to wire, no documented exec-contract break, and it runs against the older installed 0.136.0). Optional: a 30-second `codex exec` smoke-test to positively close the "absence-of-announced-change" caveat.
+- **Still-open seed:** S1 (`/config` dynamic-workflow-size, intake-id 5) remains an **architect adoption ruling** — no release closes it.
 
 ---
 
 ## 7. MORNING ACTION MENU
 
-_(assembled last — Phase 6)_
+Each row is paste-ready for a one-word verdict. Ordered by leverage. Nothing here was executed — all are proposals.
+
+**A. Ratification / build decisions (unblock the naming arc)**
+
+- **[M1] Ratify ADR-101** (the trio) — **recommend: ACCEPT** with (a) `fresh-eyes` = the enum's **11th** class (4-file evidence, exact token), (b) token-form = **adopt on-disk** (`codex`, `conformance-nightly-digest`), (c) **Amends ADR-34** (not just Related — it extends ADR-34's naming row + realizes its 2.5-mo-overdue enforcement). — why: all three are low-risk, zero-rename, evidence-backed; unblocks M2/M3.
+- **[M2] Build the refusal-gate** `validate_hermetization.py` (ADR-101 §3 Rule A+B), wire HUB-ONLY pre-commit — **recommend: FILE the named follow-up + BUILD** — why: the only enforcement with teeth for hand-authored *and* automated names; consumer carrier (floor/plugin) is P6.
+- **[M3] Naming template home** — **recommend: ADD `templates/audit-template.md`** (peer of intake-template) + fold the casing rule + required header block into the ADR-101 amendment — why: skeleton for authors + enforceable home; the casing rule is what fixes the uppercase concern.
+- **[M4] Intake-archival ruling** — **recommend: BUILD `gen_intake_index.py`** (status-grouped, option iii) as a [P3][S]; **do NOT create an archive folder** — why: preserves the intake-id join key, no ADR-101 amendment, reuses the proven index pattern.
+- **[M5] `verify`-skill #9 home** — **recommend: DECIDE** — distribute via floor/plugin (like `tier1-lifecycle`) vs ratify permanently hub-local — why: the skill self-flags the open question; ai-council's missing project-gotchas is the parallel half-adoption gap.
+
+**B. Filings (paste-ready in §3c)**
+
+- **[M6] G10 → file `#303`** (make `seed_runbook.py` child-class-aware, ADR-36) — **recommend: FILE** — why: the leg-b seeder would create the exact `docs/handoffs/` dir ADR-36 forbids in any no-local-handoffs child; de-risks the #131/#293 fan-out.
+- **[M7] G12 → file `#304`** (runbook deploy notation `<name>` + consumer arg-form table) — **recommend: FILE** — why: a literal-reading operator's first runbook command aborts preflight; doc-only.
+- **[M8] G13 → file `#305`** (verify-only / already-onboarded re-run mode) — **recommend: FILE** — why: every re-verify (n=2+) is verify-heavy but the runbook is greenfield-only; likely a doc-note.
+- **[M9] G11 → augment `#262`** (corp = 2nd failing codemap layout, alongside #295) — **recommend: AUGMENT #262 + cross-ref #295** — why: corrects the plan-v3 premise (tach-presence ≠ #262 rescue); the fix must handle flat + single-package. Kill-candidate: keep single-package/flat hand-authored by policy.
+
+**C. Bookkeeping & residue**
+
+- **[M10] #299 → formal close (G14)** — **recommend: CLOSE via `/review-closures`** citing `5ee7fb2` + the two-direction fire-test — **CAVEAT (verify first):** the fix `d9ef53c` is **runbook prose only** (`docs/runbooks/repo-onboarding.md`), **no committed regression test** — the "Done when" test clause is met by the **fire-test**, not a pytest. Accept that basis, or file a tiny test follow-up. Bonus: fragility now closed both legs (hub #299 + corp pyproject `5798598`).
+- **[M11] Deletion-candidate batch** — **recommend: ACK DONE** — items 1–4 + backup + `#291` closed (`e097212`/`57ae83a`); item 5 keep-by-design; **item 6 (v4 templates) STAYS GATED** on corp's v4→v5 migration (unverified); item 7 (`docs/archive/` triage) = schedule a periodic review.
+- **[M12] Intake-SEED age signal (S1-1) — highest structural leverage** — **recommend: PRIORITIZE #270** (load-gauge, the gating first element) then **#271** — why: the only clock-triggered-staleness gap; 4/6 open SEEDs are the sole record of groomed-away scope.
+- **[M13] Changelog adoptions (§6)** — **recommend: TRIAL `/doctor`** CLAUDE.md-trim (do-not-auto-apply); 0 ADOPT-NOW; optional `codex exec` smoke-test — why: "Codex 5.6" label mismatch; /codex-review safe; seed S1 stays an architect ruling.
+- **[M14] Gotcha + LESSONS promotions (§5)** — **recommend: APPROVE** the new subprocess-test-fixture gotcha → `~/.claude` gotchas (Python/Testing); promote F7 + 2 straggler child LESSONS (ai-council `mock.patch`, corp `ruff-version`) — why: generic traps; **operator applies** (core-invariant #6 bars a hub session from writing `~/.claude`).
+- **[M15] Cold 2026-07-05 architect bundle (S4-1)** — **recommend: ANNOTATE-as-cold** (do NOT fabricate the retrospective) — why: still leaks 8 `(fill:` markers; immutable handoff; n=2 of the #292 fill-omission class.
+- **[M16] Refresh BACKLOG #292 evidence (S4-2)** — **recommend: UPDATE when next touched** — why: cites the fixed 07-09 bundle; should point at the still-leaking 07-05 one.
+- **[M17] #254(a) organ-map declaration** — **recommend: DO** the ARCHITECTURE Ch2 organ-map entry for `automation/fleet-audit` — why: part (b) pushed, but the routine re-lags origin (no auto-push) + the declaration is still open.
+- **[M18] ai-council S6 mirror + residuals footer** — **recommend: ROUTE to the ai-council chat** (ADR-41) — why: S6-1..S6-4 are cross-repo; hub-side, reconcile the now-resolved ai-council-residuals BACKLOG footer pointer.
+- **[M19] Worktree cleanups** — **recommend: REMOVE `lane-a`** (cleanly merged); **VERIFY-then-remove `lane-b`** (ADR-101 content in main; one leftover JOURNAL-anchor `a77b1a5` whose content main's #300 JOURNAL edit likely already carries — eyeball before removing); **remove `lane-n`** after this review — **CAVEAT:** all three are `locked` and may hold a live `--worktree` session (a remove fails while its session is open).
 
 ---
 
 ## 8. Kill-list
 
-_(assembled last — Phase 6)_
+Findings that should formally **die** — not acted on, because they are as-designed or a documented convention, not a defect:
+
+- **F3 (`kill-candidates:` accepts bare `none`/any `#id`)** — **KILL the hardening note.** The hook is a proposals-only *nudge* (docstring: "never removes or closes anything"); leniency is the design. Tightening buys near-zero value.
+- **F4 (any `intake` substring satisfies the L-epic WARN)** — **KILL the hardening note.** Advisory-only (WARN never blocks). Not worth a tightening pass.
+- **S3-4 (filename date = content/session date, not git-add date)** — **KILL as a "finding."** It is an intentional convention, already codified in ADR-101 §3 ("name-shape only; a misdated detector must diff the content header, never `git log`"). Recording it as an open item mislabels a rule as a defect.
+- **(Watch, not kill) DE-universalize 3 gotcha sections** (§5c: "ai-council merge gate" / "tier1-lifecycle plugin" / "Windows Task-Scheduler") — low urgency; revisit only if the universal file's load cost matters.
+
+> **What is NOT on the kill-list:** every DONE row in §2 is *closed*, not killed (it was real and got fixed). The OPEN residue (S4-1, S4-2, S1-1, #254a, S6, #299-close) is genuine work, not kill-fodder.
