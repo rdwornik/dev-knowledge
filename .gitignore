@@ -36,6 +36,10 @@ logs/ENFORCEMENT-COVERAGE.md
 # same ephemeral pattern as ENFORCEMENT-COVERAGE — the sandbox writes it, it is never committed).
 logs/LIVED-WORKFLOW.md
 
+# Fleet CLAUDE.md boundary-marker drift digest (#312 read-only reporter; auto-refreshed by
+# scripts/boundary_report.py, never committed — same ephemeral pattern as FLEET-HEALTH.md.)
+logs/BOUNDARY-DRIFT.md
+
 # Ecosystem mutable pointers (ADR-80 mutable/durable split — high-churn pointer, not committed;
 # durable records are ecosystem/*/history/*.md + docs/audits/*.md, committed by audit.py)
 ecosystem/*/state.yaml
