@@ -8,10 +8,10 @@
 | **Slug** | `2026-07-11-dev-knowledge-architect` |
 | **Chat title** | `[dev-knowledge] Technical Architect — 2026-07-11-dev-knowledge-architect · SEQ 1` — name the fresh browser chat this (bump `SEQ` per parallel chat) |
 | **Mode** | **architect** (HANDOFF_PROCESS §13 — planning / way-of-working scope) |
-| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->Plan the post-plan-v3 frontier: 2026-07-10 executed most of plan-v3 §D (ADR-101 hermetization **ratified**, #299 G8 runbook fix **closed**, #303–#309 filed — see RESIDUAL §2), so this session resumes from what remains. The standing operator ruling makes **#270 (the P1 operator-load gauge) the headline** — the gating FIRST element before any Tier-2 nightly-layer revival (#271) — with the remaining plan-v3 legs behind it: **B-S2 corp onboarding** (now unblocked; a dedicated ADR-41 corp chat), the **EPIC G QA-role** decomposition (waits on the operator's functional QA intake session), **EPIC H** model-routing doctrine, and the hermetization build follow-ups (#306 refusal-gate, #307 intake-index). The operator's **execution-first bar governs** — visible outcomes over governance; new meta-work must unblock onboarding or be rejected. Start at `BACKLOG.md` (the spec; §S20 #270 first), with `docs/handoffs/2026-07-10-dev-knowledge-architect/PLAN.md` as the now-largely-executed plan-v3 of record.<!-- FILL-IN:purpose END --> |
+| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->Plan the post-plan-v3 frontier: 2026-07-10 executed most of plan-v3 §D (ADR-101 hermetization **ratified**, #299 G8 runbook fix **closed**, #303–#309 filed — see RESIDUAL §2), so this session resumes from what remains. The **filled `SUPPLEMENT.md` sets the priority** (operator, this fill): the P1 headline is a **fleet universalization/hermetization boundary audit** across dev-knowledge / ai-council / corp-monorepo — an evidence-based methodology-vs-project boundary per surface → a divergence matrix → PLAYBOOK → mechanisms (carriers/gates), because Wave-1 n=2 proved *enforcement* in effect but never *structural uniformity*. **#270 (operator-load gauge) drops to position 2.** The repo-derived legs behind them: **B-S2 corp onboarding** (unblocked; a dedicated ADR-41 corp chat), the **EPIC G QA-role** decomposition (waits on the operator's functional QA intake session), **EPIC H** model-routing doctrine, the hermetization build follow-ups (#306/#307). The operator's **execution-first bar governs** — visible outcomes over governance. Start from the folded **SUPPLEMENT** (the operator's charter) + `BACKLOG.md` (the spec), with `docs/handoffs/2026-07-10-dev-knowledge-architect/PLAN.md` as the now-largely-executed plan-v3 of record.<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/handoff-2026-07-11-architect`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -274,7 +274,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -301,7 +301,7 @@ Window = the **2026-07-10 execution arc** (the plan-v3 §D session; 5 JOURNAL en
 - **#310 filed / #311 closed** — cold-bundle annotation surface (M15, `cec46d7`); fleet_health groom-parser twin fix (`7024ec4`).
 - **Lane-N night consolidation integrated** (`bee5b0d`) — 6-corpus census + morning brief + changelog review (`docs/audits/2026-07-11-*`).
 
-State pointer: `BACKLOG.md` — **7 themes / 20 stories / 89 tasks** (§S20 #270 is the headline). _[witnessed count — `validate_backlog.py` re-run this generation; the arc itself is recall — reconstructed from the 2026-07-10 JOURNAL entries + `git log`, not lived this session]_
+State pointer: `BACKLOG.md` — **7 themes / 20 stories / 89 tasks** (§4 sets the current priority — the filled SUPPLEMENT's universalization/hermetization audit leads; #270 at position 2). _[witnessed count — `validate_backlog.py` re-run this generation; the arc itself is recall — reconstructed from the 2026-07-10 JOURNAL entries + `git log`, not lived this session]_
 <!-- FILL-IN:shipped END -->
 
 ---
@@ -309,9 +309,11 @@ State pointer: `BACKLOG.md` — **7 themes / 20 stories / 89 tasks** (§S20 #270
 ## §4 — Next-frontier decisions (the design "why" that travels)
 
 <!-- FILL-IN:frontier START (hand-authored — the open architecture questions + decision context the next session must resume rather than rediscover; the residual's core payload in architect mode) -->
-The operator's **execution-first bar still governs** — visible outcomes over governance; any new meta/governance work must unblock onboarding or be rejected. Most of plan-v3 §D executed on 2026-07-10 (§2); what remains, in priority order:
+**Priority per the FILLED `SUPPLEMENT` (operator, this fill) — read it first; it supersedes the repo-derived ordering below.** The operator's **P1 headline is a fleet universalization/hermetization boundary audit** (dev-knowledge / ai-council / corp-monorepo → an evidence-based methodology-vs-project boundary per surface, a **divergence matrix** with per-item disposition, then PLAYBOOK + mechanisms — *not* prose; "all onboarded = all OK" is a **rejected** claim shape — Wave-1 n=2 proved *enforcement* in effect, never *structural uniformity*). One big read-only comparative fan-out that **builds on** (never repeats) the 2026-07-11 corp root-hygiene audit + naming census + ADR-101 + the QA n=2 scorecard, ending in a matrix + dispositions, **never a verdict**. **#270 is demoted to position 2.** The full charter, tensions weighed, and rejected options are in the folded SUPPLEMENT — not re-narrated here.
 
-- **#270 operator-load gauge — THE HEADLINE** (`[P1]`, §S20; the 2026-07-10 JOURNAL M12 names it the *next architect-session headline* — "the one clock-triggered-staleness gap"). The standing operator ruling makes the load-gauge the gating FIRST element of any Tier-2 nightly-layer revival — it lands **before** #271 (nightly proposal loop, `depends-on #270`). The build-ready design + ex-ante success metric + pre-registered kill criterion are already specced (`docs/audits/2026-07-05-draft-tier2-nightly-layer.md`); this is a **build, not a re-decision**. _[recall — plan-v3 OD4 + 2026-07-10 JOURNAL 'Next']_
+The operator's **execution-first bar still governs** — visible outcomes over governance. Most of plan-v3 §D executed on 2026-07-10 (§2); the **repo-derived work inventory** below is the remaining backlog — read it as inventory, **not** the priority order (the SUPPLEMENT sets priority):
+
+- **#270 operator-load gauge — position 2** (`[P1]`, §S20; was the repo-derived headline — the 2026-07-10 JOURNAL M12 named it the *next architect-session headline* — **demoted to position 2 by the operator's filled SUPPLEMENT**). Still the gating FIRST element *within* any Tier-2 nightly-layer revival — it lands **before** #271 (nightly proposal loop, `depends-on #270`). The build-ready design + ex-ante success metric + pre-registered kill criterion are already specced (`docs/audits/2026-07-05-draft-tier2-nightly-layer.md`); this is a **build, not a re-decision**. _[recall — plan-v3 OD4 + 2026-07-10 JOURNAL 'Next']_
 - **B-S2 corp-monorepo onboarding — now UNBLOCKED** (#299 G8 fix closed today). The **n=2** runbook gate after the ai-council n=1 pilot; a dedicated corp chat (ADR-41), plan-first. Runs the leg-b seeder as first real consumer; surfaces #262/#295 (corp is the *second* concrete failing codemap layout — **node-granularity, not tach-presence, is the blocker**, per #262's 2026-07-11 correction) + the runbook fixes #303/#304/#305 the corp gap-notes (G10/G12/G13) raised. _[recall — plan-v3 §D · #299 close]_
 - **EPIC G QA-role decomposition** — waits on the operator's **functional QA intake session** (still pending; the functional boot is printed/ready). Then technical decomposition → ADR (role · protocol · report-gate) → build → **FLEET CARRIER** (every onboarded repo inherits it). Evidence set: incidents I1–I6 + OD2 proportional test-depth keyed to the T1–T5 scope-tags (#278 test-suite hygiene is the nearest live consumer; #144 feature-DoD E2E adjacent). _[recall — plan-v3 §A/§B]_
 - **Hermetization — RULED, now BUILD** (ADR-101 Accepted today). d.iii is landed; the follow-ups are **#306** (`validate_hermetization.py` refusal-gate — HUB-ONLY, prospective-only, added-paths-filter) + **#307** (`gen_intake_index.py`); d.i/d.ii landings + closing **#300** remain. Filed, not built, per the 07-10 mandate (capture-precedes-construction). _[witnessed — BACKLOG #300/#306/#307 open; ADR-101 Accepted]_
@@ -319,7 +321,7 @@ The operator's **execution-first bar still governs** — visible outcomes over g
 - **Operator-owed (not CC work):** P7 3-mode one-liner (formally closes EPIC C — #164 itself already closed) · the QA-functional session · close the 3 live worktree sessions + re-run the verdict-sheet Section C removes (`lane-a -d`; `lane-b`/`lane-n -D`, superseded). _[recall — 2026-07-10 JOURNAL 'Next']_
 - **Corp session (ADR-41, separate chat — queue-only here):** CLAUDE.md §4 YAML one-liner · models/eval READMEs · the D4 ARCHITECTURE refresh · #262 corp codemap · #283 dup · #126 loop pilot. _[recall — 2026-07-10 JOURNAL 'Next']_
 
-**Provenance (honest).** This is a **cold** architect self-handoff cut from a fresh `/clear` CC session — there is no lived session "why" of my own to transmit; the frontier above is **reconstructed** from the 2026-07-10 JOURNAL 'Next' lines + live `BACKLOG.md`, not witnessed deliberation (hence the `recall` tags). The strategic "why" a warm outgoing architect chat would carry is **not** in this bundle — `SUPPLEMENT.md` is generated EMPTY, so the §13(d) operator-context beat fires **FULL**; if the operator has an outgoing 2026-07-10 architect chat, fill the supplement to narrow it.
+**Provenance (honest).** This architect self-handoff was cut from a fresh `/clear` CC session, so the repo-derived frontier above is **reconstructed** from the 2026-07-10 JOURNAL 'Next' lines + live `BACKLOG.md`, not witnessed deliberation (hence the `recall` tags). The operator has since **FILLED `SUPPLEMENT.md`** — the strategic "why" (intent · tensions weighed · rejected options · the reprioritization above) now travels in the folded SUPPLEMENT, so the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 **This bundle supersedes `docs/handoffs/2026-07-10-dev-knowledge-architect/`** (complete + immutable — its plan-v3 was executed 2026-07-10; boot THIS one, the 07-10 bundle stays as history). Slug dated **2026-07-11** (next working session) because the 07-10 slug is held by that consumed bundle — the same convention the 07-10 bundle used to avoid its 07-09 collision.
 <!-- FILL-IN:frontier END -->
@@ -358,7 +360,7 @@ the whole task-state.
 > branch is checked out so CC knows which live value to compare — **re-derive HEAD / tree / branch /
 > ahead-behind live (P3); do not trust this line.**
 >
-> > **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> > **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 >
 > **Windows note:** `audit.py checks` (P2) can crash mid-listing on a bare cp1252 PowerShell console
 > (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` (or `PYTHONIOENCODING=utf-8`); this
@@ -382,7 +384,7 @@ navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d):** the browser
 asks the operator for **off-repo** context.
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -411,3 +413,77 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
    never "matches a remembered number." P7 is the headline (GREEN/RED + dispositioned-WARN count +
    any `[stale]` line). P8 pins the bundle shape **and the live supplement fill-state**. First check
    which branch is live (P3), then re-derive every load-bearing fact from the live primary source.
+
+---
+
+=== SUPPLEMENT.md ===
+
+1. STRATEGIC INTENT — Universalization + hermetization of the methodology across the three
+repos (dev-knowledge / ai-council / corp-monorepo) is priority ONE. Dev-knowledge is the
+source of truth over what is methodology-specific vs project-specific. Next session's
+way-of-working goal: produce the evidence-based BOUNDARY per surface (root files, CLAUDE.md
+sections, hooks inventory, folders, protocols/, .code-workspace, caches, tests layout),
+document it in the PLAYBOOK, and route it into mechanisms (carriers/gates/routines), not
+prose. Framing correction on record: Wave-1 n=2 proved the ENFORCEMENT layer is in effect;
+it never proved structural uniformity — that gap is this charter. "All onboarded = all OK"
+is hereby rejected as a claim shape.
+
+2. TENSIONS WEIGHED — (a) universal-vs-project boundary: land = every CLAUDE.md carries an
+explicit methodology block (~identical fleet-wide, hub-owned) + a free project block.
+(b) visible-outcomes bar vs meta-work: this audit is meta but operator-ruled P1; it
+qualifies because trustworthy fleet rollout (P6 carriers) is blocked without the boundary.
+(c) epic numbering: KEEP numbered IDs fleet-wide (EPIC n / S-n / #n) — referenceability
+wins; settled, do not relitigate. (d) ARCHITECTURE ToC: operator leans REMOVE — but
+toc-freshness is a deployed hub@v1.2.0 carrier component, so removal = a methodology
+component deprecation decision, not a doc edit. (e) Mermaid: operator now leans REMOVE-ALL
+(visualization method changing) — NOTE this reverses the 2026-07-11 menu-12 ruling
+(M1/M2 KEEP-HAND-AUTHORED) and, with #262 BLOCKED, deletion without a successor leaves corp
+mapless. Successor first, deletion second.
+
+3. CONSIDERED + REJECTED (do not relitigate) — (a) deleting .methodology.yaml: REJECTED
+WITH EVIDENCE — permanently answered 2026-07-11 (corp brief §3.2-A): hub Informant contract
+file at the fixed root path (enforcement_coverage ALLOWLIST_REL + fleet_health); operator
+ratified KEEP-ROOT + the CLAUDE.md §4 note. (b) "only hub has pre-commit hooks": CORRECTED
+— all three repos have armed hooks (corp: 6 firing, QA-proven scorecard; ai-council: B-S1);
+the real divergence is hook-SET inventories (empty commit-msg/pre-push stages = #302 +
+parity item). Audit compares inventories, never presence. (c) retroactive renames: rejected
+by ADR-101 (prospective-only + grandfather, Accepted). (d) redoing dependency mapping
+(code-to-code/file-to-file): works, not a bottleneck, out of scope. (e) re-numbering
+debate: settled per (2c).
+
+4. OPEN QUESTIONS (the audit's charter) — (a) where exactly the methodology/project
+boundary runs, per surface. (b) protocols/ as a methodology-mandated genre? (ai-council
+has it, corp lacks it; operator wants per-package protocol docs in corp — "interface in
+markdown", coupled to ARCHITECTURE). (c) ToC deprecation (carrier impact) + Mermaid
+successor (vs the #262 codemap north star; corp G11 requirement input stands). (d) the
+missing consolidation MECHANISM: a routine/generator that concatenates + diffs all
+CLAUDE.md (methodology blocks) fleet-wide and surfaces drift continuously — the "3 months
+and still invisible" gap; candidate new organ. (e) .claude/ full review across repos
+(worktrees, workflows, skills — gotchas already universalized); commands documentation
+coverage in each CLAUDE.md (/codex-review present; /code-review and other session commands
+missing). (f) INSTALL.md in ai-council root vs absent in corp — why, and which is
+methodology. (g) .code-workspace diffs; cache-folder policy (ai-council has ruff/pytest/
+mypy caches, corp doesn't — programming-style drift evidence). (h) CI/CD report currency.
+(i) tests/ layout chaos in corp (separate dedicated session — flag only). (j) web-research
+leg: are there better current libraries/approaches for architecture + dependency
+visualization (file-to-file, file-to-code, code-to-code) than our home-grown set —
+sky-is-the-limit budget.
+
+5. DECOMPOSITION RATIONALE — shape: ONE big multi-dimensional comparative audit session
+(read-heavy → read-only parallel fan-out per repo is sanctioned; synthesis serial),
+deliverable = a DIVERGENCE MATRIX with per-item disposition (methodology-generic vs
+project-specific vs defect) + PLAYBOOK update; mechanism-building sessions follow, never
+inside the audit. The audit must BUILD ON (not repeat): the 2026-07-11 corp root-hygiene
+audit + the naming census (they are INPUTS — corp root is already inventoried to the file),
+ADR-101 + audit-template (ratified), the QA n=2 scorecard (gates fire — do not re-prove),
+gotchas universalization (done). The audit must NOT end with a verdict ("all OK" is a
+banned claim shape) — it ends with the matrix + dispositions for operator ruling.
+
+6. OFF-REPO CONTEXT — Operator trust statement on record: trust in the system is GATED on
+visible universalization; treat as P1 posture until the boundary is documented and
+mechanism-held. Queue after the audit: #270 (clock-triggered staleness — demoted from
+headline to position 2 by operator priority), builds #306/#307, corp D4 refresh (GO
+stands), CLAUDE.md trim RANK 1+2+3 (architect GO stands), #302 + commit-msg parity,
+57 WEAK closure candidates grooming pass. Standing: codex-review now pinned gpt-5.6-sol
+(A/B-proven, caught #311); P7 one-liner STILL OWED (closes EPIC C). Session plan file +
+verdict sheet from 2026-07-10/11 are the audit's provenance trail.

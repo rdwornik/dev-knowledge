@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): fold the FILLED architect SUPPLEMENT + reconcile the bundle to the operator's reprioritization
+
+**Did/Result:** Operator filled `SUPPLEMENT.md` ANSWERS (Q1–Q6) on the 2026-07-11 architect bundle — committed **verbatim** (CC never fabricates answers). Re-ran `assemble_paste.py`: `reflow_framing` flipped the cold→**FILLED** framing banners in HANDOFF_BOOT/RESIDUAL/PROBES, and the ANSWERS folded into PASTE_THIS (37.8→44.1 KB). The answers carry a **material reprioritization**: the operator's P1 headline is now a **fleet universalization/hermetization boundary audit** (dev-knowledge/ai-council/corp-monorepo → an evidence-based methodology-vs-project boundary per surface → divergence matrix → PLAYBOOK → mechanisms; "all onboarded = all OK" rejected — Wave-1 n=2 proved enforcement, never structural uniformity), and **#270 drops from headline to position 2**. To avoid the §8 self-contradiction (my repo-derived residual had emphatically headlined #270), surgically reconciled the HANDOFF_BOOT purpose + RESIDUAL §4/§2 to **defer priority to the folded SUPPLEMENT** (a pointer, not re-narration — the supplement carries the charter, tensions, rejected options). Verify GREEN under git-bash: `verify_handoff_probes` 10/10, `ship-gate` GREEN (11 WARN dispositioned), `health` OK, no `_(fill:` / stale-cold leftovers.
+
+**Changes:** docs/handoffs/2026-07-11-dev-knowledge-architect/{SUPPLEMENT (operator verbatim), HANDOFF_BOOT, RESIDUAL, PROBES, PASTE_THIS}.md + this JOURNAL prepend.
+
+**Next:** operator pastes `PASTE_THIS.md` to boot the next architect session (headline = the universalization/hermetization boundary audit; #270 at position 2). Operator-gated: push `main`; delete merged straggler branch refs.
+
+---
+
 ### 2026-07-11 — CC (Opus 4.8): cut the 2026-07-11 architect handoff bundle (supersedes the consumed 07-10 plan-v3 bundle)
 
 **Did/Result:** Generated a fresh **architect** handoff (`docs/handoffs/2026-07-11-dev-knowledge-architect/`, commit `6fe87e4`) via `gen_handoff.py --mode architect` on a distinct next-working-session slug. The 2026-07-10 plan-v3 executor bundle was **consumed** — its §D executed across today's 5 JOURNAL entries (ADR-101 ratified, #299 closed, #303–#309 filed, #310/#311) — and handoffs are immutable, so this **supersedes** it rather than regenerating in place (which would have clobbered the committed PLAN.md bundle). Filled the four architect FILL-INs (purpose · driftflags · shipped-map · frontier): a **cold** self-handoff (fresh `/clear`, no lived session "why"; frontier reconstructed from the 07-10 JOURNAL 'Next' + live BACKLOG, honestly `recall`-tagged), `SUPPLEMENT.md` generated EMPTY (§13(d) beat fires FULL). Next-session headline: **#270 operator-load gauge** (P1, the standing gating-first element), then B-S2 corp onboarding (unblocked by #299), EPIC G QA-role (pending the operator's functional session), EPIC H, hermetization build (#306/#307). Verify GREEN under git-bash: `ship-gate` GREEN (11 WARN dispositioned, zero new content drift), `health` OK, `verify_handoff_probes` 10/10 pass, no `_(fill:` markers. A bare-PowerShell ship-gate reads a spurious RED (3 `handoff_probes` P1a/P1b/P8 SKIPs from grep/sed/ls PATH-absence) that clears `[OK]` under the git-bash/pre-commit shell — recorded in the bundle driftflags.
