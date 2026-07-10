@@ -129,3 +129,37 @@ AXIS                              | Form A: fenced markers        | Form B: floo
 
 **Grandfathering (the one-time cost)**
 - A single hand pass over the 3 CLAUDE.md files wrapping the agreed methodology regions in comment markers — bounded, prose-preserving. The **exact region set** is an operator-ruling input (§6), seeded by the §2 Surface-2 section evidence (candidate `owner=hub`: §1, §6, the universal subset of §5, §10; candidate `mixed` needing sub-section marks: §4, §11; candidate `owner=repo`: §2, §3, §12 and the repo-specific roster spans of §7/§8/§9).
+
+## 4. Diff-routine design sketch (read-only reporter — DESIGN ONLY, nothing built)
+
+The consumer of the marker: a **read-only fleet reporter**, a faithful sibling of `scripts/fleet_health.py` / `scripts/audit.py`, **kin to the #132 ORGAN-INDEX generator** (walker → classified table → freshness/surfacing). Layer-2-safe: reads child repos, writes only `.dev-knowledge` paths, never mutates a child file (the `audit.py` hard constraint, ADR-36). Working design name: `scripts/boundary_report.py` (name is an implementation detail; not built here).
+
+### 4.1 Inputs & traversal (reuse the existing deterministic enumerator)
+- **Repo set** = `audit.py::discover_repos()` — `sorted(ECOSYSTEM_DIR.iterdir())` where a `state.yaml` exists (presence == registration). Deterministic, stable order.
+- **On-disk root** per repo = the `path:` recorded in its `state.yaml`, fallback `<repo_root.parent>/<name>` (the `fleet_health.siblings_available` / `audit.cmd_run` resolution). A repo absent on disk (cloud/isolated clone) → `unavailable`, fail-soft skip — never a spurious FAIL (mirror `fleet_health`).
+- **Baseline** = the hub's own `CLAUDE.md`. **Skip the hub as a diff target** (mirror `fleet_health.drift_summaries`: `if root.resolve() == repo_root.resolve(): continue`) — it is the source the others are measured against.
+- **Target** = `<root>/CLAUDE.md` for each non-hub registered repo.
+
+### 4.2 Extraction & diff
+1. Parse each `CLAUDE.md` for `methodology:start/end` pairs (the §3.2 spec) → a list of regions `{id, owner, body}`. Unbalanced/mis-nested pairs → a loud parse `warn` (not a silent skip).
+2. Build the **hub baseline map** `{id → body}` over the hub's `owner=hub` regions.
+3. For each consumer, per region:
+   - `owner=hub`, `id` in baseline, body matches (modulo declared variables) → **match**.
+   - `owner=hub`, `id` in baseline, body differs → **drift** (the DEFECT the routine exists to surface).
+   - `owner=hub` id in baseline but **absent** in the consumer → **missing**; `owner=hub` id in the consumer but **not** in baseline → **extra/orphan**.
+   - `owner=repo` → **inventoried as project, never diffed**.
+
+### 4.3 Output shape
+Two surfaces, both existing idioms:
+- **Per-repo `Finding`** (the LOCKED `audit.py` contract — `check_name` / `status` / `evidence`): e.g. `Finding("claude_md_boundary", "warn", "ai-council: 1 hub region drifted (critical-rules-universal), 0 missing, 3 project regions")`. `status` ∈ the five-value enum; `fail`/`warn` by policy (recommend **warn** — a reporter, not a gate).
+- **Fleet digest** (a `fleet_health.build_digest`-style table) written atomically to a gitignored `logs/` file (e.g. `logs/BOUNDARY-DRIFT.md`): one row per repo `| Repo | Regions | Match | Drift | Missing | Project |`, surfaced as a one-line SessionStart summary (`fleet_health.surface_line` idiom) — **continuous surfacing**, the "3 months and still invisible" fix the operator named.
+
+### 4.4 Formalises existing implicit logic
+- **ADR-78 `methodology_surface` whitelist/blacklist** — today checked by "render + grep the F5 blacklist" in hub CI; the marker gives that grep a precise, machine-readable target.
+- **`audit.py::_CANONICAL_SPINE` `[U]/[R]/[C]`** (universal / repo-specific / conditional) — the nearest existing "classify CLAUDE.md sections" logic; the marker makes the `[U]` set explicit and diffable rather than a hard-coded heading list.
+
+### 4.5 Honest limits (what it deliberately does NOT do)
+- **Detects, does not PREVENT.** It is a read-only reporter; drift-prevention (a gate, or a carrier that single-sources `owner=hub` regions) is a **separate downstream** organ. Stating this avoids implying more coverage than exists.
+- **Blind to unmarked repos.** It classifies only what is marked; the grandfathering pass (§3.2) is a precondition — an un-marked consumer reports as "0 hub regions," which the surfacing must distinguish from "clean."
+- **Registration-scoped.** A repo not under `ecosystem/*/state.yaml` is invisible (same as every existing fleet organ) — correct, but worth surfacing when the fleet set changes.
+- **Variable-aware diffing is a build decision.** "Matches modulo declared variables" (e.g. repo name) needs a small substitution rule at build time; the design flags it, does not solve it.
