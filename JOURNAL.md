@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): file the fleet-boundary-matrix DEFER rulings (#312–#315) + audit amendment
+
+**Did/Result:** Operator ruled on the fleet-boundary-matrix DEFERs; **file-only session** (no builds, no rename). Filed 4 BACKLOG tasks (`91f0623`): **#312** [P2][M] fleet methodology-boundary marker + CLAUDE.md diff-routine (DESIGN-ONLY, C1 — hub as decision-tree root, boundary machine-readable without searching); **#313** [P3][S] rename the audit to `…-technical-fleet-boundary-matrix.md` (ADR-101 R3/R4, C5); **#314** [P2][M] `protocols/` is a methodology-mandated genre fleet-wide (Surface 5 — hub-pointer vs local-marked split); **#315** [P3][S] `INSTALL.md` uniform, hub-owned, deploy-carried (Surface 8). Recorded the rulings in the audit via an **in-file amendment marker** (audits immutable, CLAUDE.md §5) — Surface 5/8 DEFER→RULED inline + an Amendment section; C1/C5 noted at §Candidate mechanisms. Trimmed the 4 tasks to clear self-induced `doc_rot` (redundant date mentions). Verify: `validate_backlog` OK (89→93 tasks), `health` OK.
+
+**Changes:** BACKLOG.md (#312–#315) + docs/audits/2026-07-11-fleet-boundary-matrix.md (amendment) + this JOURNAL prepend. Ship SHA: `91f0623`.
+
+**Next:** operator/architect picks up **#312** (the C1 design headline). Operator-gated: push `main`; delete merged straggler branch refs.
+
+---
+
 ### 2026-07-11 — CC (Opus 4.8): fleet boundary matrix audit (P1 universalization charter deliverable) + pre-commit orphan-lock incident
 
 **Did/Result:** Executed the operator's frozen acceptance contract → `docs/audits/2026-07-11-fleet-boundary-matrix.md` (`d9d7324`, merged `a596e47`): an **11-surface methodology-vs-project divergence matrix** across dev-knowledge / ai-council / corp-monorepo, each row per-repo witnessed (evidence-cited) with exactly one disposition (METHODOLOGY-GENERIC / PROJECT-SPECIFIC / DEFECT / DEFER), open-Q (a)–(j) mapping, candidate mechanisms C1–C5 (proposals only), **PROPOSAL-ONLY with NO aggregate verdict** ("all onboarded = all OK" treated as the banned claim shape). Read-only fan-out (2 `Explore` subagents: ai-council + corp-monorepo; hub self-sweep) + serial main-thread synthesis + commit (contract item 6). Builds-on/cites: ADR-101 + `templates/audit-template.md` (dogfooded the R5 header block), census brief Phase 4 naming-census + Phase 5 gotchas-universalization (line-cited), corp `2026-07-11-qa-lived-onboarding-and-root-hygiene.md` (root-hygiene + QA n=2 scorecard), ai-council `2026-07-09-qa-lived-exercise.md`. Headline findings: the CLAUDE.md 12-section skeleton is de-facto methodology but the boundary is **unmarked** (Surface 2 DEFECT → C1 fleet CLAUDE.md diff-routine, the open-Q(d) headline candidate); consumer commit-msg/pre-push stages **armed-but-empty** (Surface 3 DEFECT, #302/#309); `.claude/` **under-specified** (Surface 9 DEFECT, #308). Filename honors the frozen contract name; flagged the ADR-101 `<class>` nuance (would be `-technical-`; #306 refusal-gate unbuilt, grandfathered).
