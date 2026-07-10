@@ -19,6 +19,12 @@
 
 ---
 
+### 2026-07-10 — CC (Opus 4.8): /review-closures — close #311 (fleet_health groom-parser twin fix)
+
+**Did/Result:** Operator-approved single-id closure via the Tier-1 /review-closures loop (ADR-70). The gate `review_closures.py plan --ids 311` re-verified #311 open with evidence present — **WEAK** tier (the fix commit `7024ec4` carried `[#311]`, not `closes [#311]`, so it wasn't auto-STRONG; the operator explicitly named #311, a valid single-id WEAK approval, never a bulk approve). Closed via done-items-leave (ADR-65): removed the exact task line the gate returned, `closes [#311]` on this commit. Evidence `7024ec4` = the fleet_health.py "Next quarterly:" marker-truncation fix (twin of ae11691) + regression test `test_groom_escalation_past_next_quarterly_does_not_mask` + the corrected overdue test. validate_backlog OK (90 → 89 tasks). ship-gate GREEN. Branch → `--no-ff`.
+
+---
+
 ### 2026-07-10 — CC (Opus 4.8): post-batch residue sweep — M15 filing + CLAUDE.md-trim capture + verify sweep
 
 **Did/Result:** Filed **#310** (`cec46d7`, kill-candidate #292) — define a sanctioned cold-bundle annotation surface + annotate the 2026-07-05 architect bundle as-cold (the HUB CONSOLIDATION M15 no-surface finding). Ran a **read-only CLAUDE.md-trim analysis** — the built-in `/doctor` slash command is **not agent-invokable** (the harness runs slash commands, not the model; no `/doctor` tool exists), so this is my proxy analysis, captured VERBATIM to the session report for a later operator/architect ruling, **APPLIED NOTHING**. Verify sweep GREEN: worktrees = **primary only** (operator cleaned the 3 formerly-locked lanes), ship-gate GREEN (11 dispositioned WARN, 0 new), main == origin/main. Chore branch → `--no-ff`.
