@@ -12,8 +12,8 @@
 
 ## 2026-07
 
+- [2026-07-11](2026-07-11-technical-fleet-boundary-matrix.md) — Fleet boundary matrix — methodology-vs-project divergence across dev-knowledge / ai-council / corp-monorepo
 - [2026-07-11](2026-07-11-technical-fleet-boundary-marker-design.md) — Fleet methodology-boundary marker + CLAUDE.md diff-routine — design (DESIGN-ONLY)
-- [2026-07-11](2026-07-11-fleet-boundary-matrix.md) — Fleet boundary matrix — methodology-vs-project divergence across dev-knowledge / ai-council / corp-monorepo
 - [2026-07-11](2026-07-11-changelog-review-codex-cc.md) — Changelog review — claude-code + codex (2026-07-11 morning brief)
 - [2026-07-11](2026-07-11-census-consolidated-morning-brief.md) — Census consolidated — morning action brief (2026-07-11)
 - [2026-07-09](2026-07-09-night-verification-report.md) — Night verification report — 2026-07-08/09
