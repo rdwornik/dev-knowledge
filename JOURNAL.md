@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): cut the 2026-07-11 architect handoff bundle (supersedes the consumed 07-10 plan-v3 bundle)
+
+**Did/Result:** Generated a fresh **architect** handoff (`docs/handoffs/2026-07-11-dev-knowledge-architect/`, commit `6fe87e4`) via `gen_handoff.py --mode architect` on a distinct next-working-session slug. The 2026-07-10 plan-v3 executor bundle was **consumed** — its §D executed across today's 5 JOURNAL entries (ADR-101 ratified, #299 closed, #303–#309 filed, #310/#311) — and handoffs are immutable, so this **supersedes** it rather than regenerating in place (which would have clobbered the committed PLAN.md bundle). Filled the four architect FILL-INs (purpose · driftflags · shipped-map · frontier): a **cold** self-handoff (fresh `/clear`, no lived session "why"; frontier reconstructed from the 07-10 JOURNAL 'Next' + live BACKLOG, honestly `recall`-tagged), `SUPPLEMENT.md` generated EMPTY (§13(d) beat fires FULL). Next-session headline: **#270 operator-load gauge** (P1, the standing gating-first element), then B-S2 corp onboarding (unblocked by #299), EPIC G QA-role (pending the operator's functional session), EPIC H, hermetization build (#306/#307). Verify GREEN under git-bash: `ship-gate` GREEN (11 WARN dispositioned, zero new content drift), `health` OK, `verify_handoff_probes` 10/10 pass, no `_(fill:` markers. A bare-PowerShell ship-gate reads a spurious RED (3 `handoff_probes` P1a/P1b/P8 SKIPs from grep/sed/ls PATH-absence) that clears `[OK]` under the git-bash/pre-commit shell — recorded in the bundle driftflags.
+
+**Changes:** docs/handoffs/2026-07-11-dev-knowledge-architect/{HANDOFF_BOOT,RESIDUAL,PROBES,SUPPLEMENT,PASTE_THIS}.md (new) + this JOURNAL prepend. Bundle commit `6fe87e4`; generation-time HEAD `5678d4d`, ALL_CHECKS 29, BACKLOG 7 themes/20 stories/89 tasks.
+
+**Next:** operator pastes `PASTE_THIS.md` into a fresh Claude.ai chat to boot the next architect session; optionally fill `SUPPLEMENT.md` from an outgoing 07-10 architect chat (`supplement filled` → CC folds ANSWERS into PASTE_THIS). Operator-gated: push `main`; delete merged straggler branch refs (`docs/finalize-2026-07-10-bundle`, this branch).
+
+---
+
 ### 2026-07-10 — CC (Opus 4.8): /review-closures — close #311 (fleet_health groom-parser twin fix)
 
 **Did/Result:** Operator-approved single-id closure via the Tier-1 /review-closures loop (ADR-70). The gate `review_closures.py plan --ids 311` re-verified #311 open with evidence present — **WEAK** tier (the fix commit `7024ec4` carried `[#311]`, not `closes [#311]`, so it wasn't auto-STRONG; the operator explicitly named #311, a valid single-id WEAK approval, never a bulk approve). Closed via done-items-leave (ADR-65): removed the exact task line the gate returned, `closes [#311]` on this commit. Evidence `7024ec4` = the fleet_health.py "Next quarterly:" marker-truncation fix (twin of ae11691) + regression test `test_groom_escalation_past_next_quarterly_does_not_mask` + the corrected overdue test. validate_backlog OK (90 → 89 tasks). ship-gate GREEN. Branch → `--no-ff`.
