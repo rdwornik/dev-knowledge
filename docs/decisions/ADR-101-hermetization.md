@@ -1,8 +1,9 @@
 # ADR-101: Hermetization — sanctioned top-level set, per-class name grammar, refusal gate (d.i/d.ii/d.iii)
 
-- **Status:** Proposed
-- **Date:** 2026-07-10
-- **Decision tier:** Architecture (Path A — operator ruling; drafted lane B 2026-07-10, awaiting operator ratification — the lane never self-accepts, ADR-94)
+- **Status:** Accepted (ratified 2026-07-11 — operator ruling via the 2026-07-11 morning verdict sheet [M1]; the three embedded ratification-decisions are resolved in the **Ratification amendment (2026-07-11)** below)
+- **Date:** 2026-07-10 (drafted) · 2026-07-11 (ratified)
+- **Decision tier:** Architecture (Path A — operator ruling; drafted lane B 2026-07-10, ratified 2026-07-11 by operator — the lane never self-accepts, ADR-94)
+- **Amends:** ADR-34 (file-naming convention) — extends its `Audits / handoffs` naming row into the `<date>-<class>-<slug>` grammar AND realizes its ~2.5-month-deferred "pre-commit hook validates new file paths" enforcement (ADR-34 §Enforcement / §Follow-ups). Reclassified from *Related* to *Amends* at ratification (verdict sheet B1c): ADR-101 modifies ADR-34's operative naming row and delivers its deferred gate, which is an amendment, not a mere relation.
 - **Related:** ADR-34 (file-naming convention — this **extends** its `Audits / handoffs` row into `<date>-<class>-<slug>` and **realizes** its long-deferred "pre-commit hook validates new file paths (follow-up)" — ADR-34 §Enforcement/§Follow-ups), ADR-60 (docs/ folder taxonomy — the genre-folder roles this seals), ADR-98 (intake pipeline — genre-folder-first, `docs/intake/README.md` §4), ADR-36 (audit-tool architecture — cites `docs/audits/` structurally, the tree d.iii names), CLAUDE.md §4 (Naming conventions), protocols/HANDOFF_PROCESS.md §16 (functional mode-boot), #300 (this decision's backlog task), #299 (runbook Layer-6 fix landed in-place — the d.i keep basis), #301 (session-plan artifact class — "bundle-resident only, no new top-level docs class"), #131 (docs/runbooks created without surfacing — the d.i root-cause), #190 (#300's kill-candidate)
 - **Decommission:** the committed `docs/handoffs/2026-07-07-dev-knowledge-functional/` bundle — obsoleted by the d.ii ephemeral-mode-boot ruling; removed in the one migration pass (operator-signed, **post-ratification**), tracked under #300. **This draft removes nothing.**
 - **Source:** 2026-07-08 incident-recovery arc (operator remediation prompt) → BACKLOG #300; night-hygiene audit `docs/audits/2026-07-09-night-hygiene-audit.md` §S3 (the d.iii ruling shape) + §S4-3 (superseded-era bundles); 2026-07-10 architect bundle `PLAN.md` §C (D1 demoted to interim) + `SUPPLEMENT.md` A2/A4 (the d.ii/d.iii open items). Drafted lane B (EPIC I peg), commit-and-STOP, no merge.
@@ -93,3 +94,56 @@ The §S3 ruling shape, formalized by §2–§3 above: the grammar and enum are *
 - **Empirical-families-only enum** (drop the semantic axis, keep just the on-disk families). Not adopted: loses the clean semantic partition operator-authored human audits need; the reconciled union keeps both and pays for it only with the anti-bloat clause.
 - **Move `docs/runbooks/`** to `protocols/` or a bundle-resident home. Rejected: the #299 fix just landed in-place; a relocation is churn that re-points references for no structural gain.
 - **Archive the superseded-era bundles in the same pass.** Not chosen: §S4-3 judged them fine as historical, `archive/` holds a different class here, and sweeping ~28 dirs the audit called by-design violates the "minimal, no drive-by" spirit of the one pass.
+
+---
+
+## Ratification amendment (2026-07-11)
+
+> **In-file amendment marker (CLAUDE.md §5 item 3 / ADR-94).** The decision body above is preserved verbatim as drafted; this section records the operator's ratification rulings on the three decisions the draft deliberately left open, and folds the audit-file casing rule + required header block into the decision. Ratified via the 2026-07-11 morning verdict sheet (Section B1, architect-co-signed, operator-ratified by launching the execution).
+
+### R1 — `fresh-eyes` joins the CLOSED enum as the **11th** class (resolves §2 `[RATIFICATION-DECISION]`)
+
+`fresh-eyes` is **IN**. Basis: real corpus evidence (**4 files**, all `2026-06-01-fresh-eyes-*`, exact on-disk token) and it is a genuine *reviewer-origin* family, not a bespoke one-off. Adding it is the anti-bloat clause's first legitimate test case (a deliberate, evidence-backed inclusion), not convention drift. The ruled ten becomes the **ruled eleven**.
+
+### R2 — Token-form direction: the **enum adopts the on-disk forms** (resolves §2 token-form reconciliation)
+
+The enum adopts what three repos already write on disk — **zero rename**:
+- `codex-review` → the enum token is **`codex`** (34 hub + 4 corp + 13 ai-council files).
+- `conformance-digest` → the enum token is **`conformance-nightly-digest`** (10 hub + 18 corp; the rarer `conformance-baseline-digest` / `conformance-rerun-delta-digest` stay grandfathered variants).
+- `ecosystem-audit`, `changelog-review` — already exact on-disk matches, unchanged.
+
+This makes ADR-101's "stays conforming, zero rename" property **true** rather than assumed; grandfathering holds either way. It is an implementation choice, not a re-opened policy question.
+
+### R3 — CLOSED CLASS enum, as ratified (the ruled **eleven**)
+
+Whole-token **longest-match** (never split-on-first-hyphen — the multi-word tokens require it):
+- *semantic:* `technical` · `functional` · `qa` · `census` · `verification`
+- *recurring/automated (on-disk forms per R2):* `ecosystem-audit` · `conformance-nightly-digest` · `changelog-review`
+- *reviewer-origin (on-disk forms per R1/R2):* `codex` · `fresh-eyes`
+- *incident:* `incident-evidence`
+
+Adding a class remains a **one-line ADR-101 amendment** (deliberate), never ad-hoc convention drift.
+
+### R4 — Casing rule (folded from verdict sheet §4b; the operator's uppercase concern)
+
+Every `docs/audits/*.md` name is **all-lowercase kebab-case**, everywhere — date, class, and slug. **No `UPPERCASE`, no `_underscore_`, no `CamelCase`.** Sole charset carve-out: a literal `.` inside the slug when it is a meaningful repo/version token (`.dev-knowledge`, `v3.4`) — a rename there would be lossy (S3-1). This is the rule that fixes the cross-repo divergence the census found (corp-monorepo's UPPERCASE `_AUDIT_`/`_BRIEF_` family, actively growing for lack of a gate). The §3 refusal-gate (Rule B) enforces it prospectively.
+
+### R5 — Required header block (folded from verdict sheet §4b)
+
+Every audit file opens with this minimal block (dogfooded by both 2026-07-11 outputs):
+
+```
+# <Title>
+- **Class:** <class> (ADR-101 enum) · **Date:** YYYY-MM-DD
+- **Source-session:** <run / lane / HEAD or session context>
+- **Status:** <PROPOSAL-ONLY | complete | …>
+```
+
+(Model-in-effect is recommended for unattended runs, per ADR-80 §5 silent-swap doctrine.)
+
+### R6 — Enforceable home + named follow-up
+
+- **Author-facing skeleton:** `templates/audit-template.md` (created this arc, peer of `templates/intake-template.md`) carries the filename grammar, the R4 casing rule, the R3 enum, the slug rules, and the R5 header block as a fill-in skeleton.
+- **The rule's enforceable home** is this amendment (R3/R4/R5) feeding the §3 refusal-gate.
+- **Named follow-up, filed at ratification:** build the refusal-gate validator + wire the HUB-ONLY pre-commit hook (§3 Rule A+B) — **BACKLOG #306**. Consumer carrier (floor/plugin) is the P6 rollout, not now. Capture-precedes-construction (ADR-70).
+- The §5 d.ii one migration pass (remove the committed functional bundle, operator-signed) stays tracked under **#300**; this ratification does not itself remove the bundle.
