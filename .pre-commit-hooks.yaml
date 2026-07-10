@@ -65,3 +65,17 @@
   language: script
   stages: [commit-msg]
   always_run: true
+
+- id: block-ff-push
+  name: Block direct-to-main / FF push to main
+  description: >
+    Pre-push gate — refuse a push that adds a non-merge commit to main's first-parent
+    spine (a direct-to-main commit OR a true fast-forward merge). The prevent organ of
+    core-invariant #5 (a --no-ff merge passes). Fail-soft: exits 0 on any git error, so a
+    hook bug never blocks a legitimate push; bypass with `git push --no-verify`. Ships with
+    its sibling scripts/validate_no_ff.py (shared FF-signature) from the same hub clone.
+  entry: scripts/block_ff_push.py
+  language: script
+  stages: [pre-push]
+  always_run: true
+  pass_filenames: false
