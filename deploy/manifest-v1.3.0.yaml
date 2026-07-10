@@ -1,0 +1,692 @@
+# Carrier manifest — methodology corpus v1.3.0 (ADR-92 Decision 7).
+#
+# Declares the COMPLETE carrier set + order + per-carrier target state that a
+# fully-deployed repo meets at methodology release v1.3.0. The deploy tool reads
+# this to "full-reconcile-to-target" (Decision 5) a single consumer repo per invocation.
+#
+# Versioned WITH the methodology (Decision 2): deploying vX uses vX's manifest +
+# carrier set. `source_tag` records the release git tag (the operator tags at release;
+# CC does not tag — ADR-91). The tool's preflight requires that tag to resolve before
+# --execute, so v1.3.0 must be tagged by the operator before the real deploy runs.
+#
+# WHAT'S NEW vs v1.2.0: the two COMMIT-DISCIPLINE carriers (#302 / #309), whose
+# hub-side engine landed in the LANE-B arc (undeployed until this cut, the [NB]
+# precedent) and is carried to consumers by this release per the v1.3.x release
+# contract Addendum §3.5/§3.6:
+#   - #302 hub-block-ff-push  — the pre-push block-ff-push gate (core-invariant #5
+#     prevent organ) becomes a hub-source hook a consumer inherits; every deployed
+#     consumer's pre-push stage was armed-but-empty (2026-07-08 census Part 5).
+#   - #309 hub-backlog-id-hook — the portable commit-msg gate backlog-id-on-close
+#     ships to a consumer (fail-open on a repo without a `- [#id]` story-map BACKLOG).
+#     backlog-filing-backpressure is HUB-ONLY-BY-CONSTRUCTION (not carried — its
+#     kill-candidates / intake conventions are not fleet-adopted; contract §3.6).
+# Anchors (plugin_version / floor_sha256) and doc_shapes carry forward UNCHANGED
+# from v1.2.0 — the floor template is untouched by #275b (carrier code only). The
+# v1.2.0 REMOVE LEG below is retained context (no prune runs from this add-only cut).
+#
+# WHAT'S NEW vs v1.1.0: the REMOVE LEG (P2 / [#244] / ADR-96). The methodology was
+# add-only — components could only accrete on a consumer's live surface. v1.2.0 gives
+# the deploy engine the ability to PRUNE a `status: removed` component from a consumer,
+# safely (hash-guarded: a locally-modified target is REFUSED) and verifiably (an
+# independent absence check gates the record). D3 decided: straight active -> removed,
+# 2-state, no `deprecated` tier. n=1 truth-maker: `ruff-gate` is flipped to removed and
+# pruned from ai-council (the clean-mechanism subject — self-contained repo entry, not a
+# version anchor). NOTE: this is NOT a fleet retirement of ruff — see the ruff-gate
+# reason: field; P6 fleet rollout MUST re-evaluate before propagating.
+
+methodology_version: "1.3.0"
+source_tag: v1.3.0
+
+# ---------------------------------------------------------------------------
+# ESSENCE-SPEC v1 (P1, behavior-preserving) — this manifest is also the
+# methodology's component-granular self-model. Three sections:
+#   carriers:   the HOW — per-carrier target state the deploy tool executes.
+#               UNCHANGED by the P1 conversion (byte-identical to the
+#               pre-essence manifest; pinned by tests/fixtures/
+#               manifest-v1.1.0-pre-essence.yaml + the golden-diff test).
+#   anchors:    NEW durable release pins for the two version anchors the
+#               manifest previously did not pin at all (R6). The other three
+#               anchors are linted IN PLACE, never duplicated here:
+#               source_tag (the ADR-91 git tag), methodology_version
+#               (must == source_tag), and the precommit carrier's
+#               hub_hooks.rev (must == source_tag).
+#   components: NEW — the WHAT: one entry per methodology element, with
+#               lifecycle status. INERT to deploy/tool.py this release (the
+#               tool reads only `carriers:`); read by deploy/release_lint.py,
+#               which cross-checks the two sections (every component's
+#               carrier resolves; every implemented carrier has >=1
+#               component) so one-file-two-sections cannot drift silently.
+#   doc_shapes: NEW — the canonical doc-shape declaration, MIRRORED from its
+#               current authoritative homes (audit.py::_CANONICAL_SPINE +
+#               canonical_freshness_gate.DEFAULT_FRESHNESS_FILES) and
+#               lint-guarded against them (release_lint C7), so the mirror
+#               fails loud instead of drifting. audit.py remains the reader
+#               of record this release (zero behavior change).
+# Lifecycle vocabulary: status active | removed (2-state — D3 decided against a
+# `deprecated` tier: we own the fleet, so the tier's only value is coordinating
+# uncontrolled consumers we don't have). As of v1.2.0 (P2) `removed` is legal:
+# release_lint C6 requires a `removed_in:` on every removed component and forbids
+# it on active ones. A removed component is a TOMBSTONE — the entry is RETAINED
+# (append-in-spirit), its artifacts pruned from the consumer by the remove leg.
+# verify legend (ADR-81 leg-e typed acceptance): fire = demonstrated firing
+# (Informant fire_test) | hash = byte identity | wired = config presence.
+# ---------------------------------------------------------------------------
+
+anchors:
+  # tier1-lifecycle plugin version at this release. The plugin carrier reads
+  # plugin.json live at deploy time; this pin makes the release's expected
+  # plugin version durable + lintable (previously unpinned anywhere).
+  plugin_version: "0.1.10"
+  # sha256 of templates/child-methodology-floor.md.tmpl (== the shipped
+  # templates/child-methodology-floor.sha256 sidecar). Pins the floor bytes
+  # to the release; release_lint recomputes from the template and compares
+  # all three (spec pin / sidecar / actual bytes).
+  floor_sha256: "4d268f329a7edc8dc95a1c8fded9bdf8244ad8de60be69bf8e250a9b15a8111f"
+
+carriers:
+  - id: global-config
+    order: 1
+    implemented: true
+    description: >
+      ARCHITECTURE's user-layer L0 carrier (#1) — the fleet-wide ~/.claude / ~/.codex
+      baseline. Implements ONE payload: the global Codex reviewer config (ADR-54), the hub's
+      canonical codex/AGENTS.md reconciled to ~/.codex/AGENTS.md. USER-machine scoped; a copied
+      file has no rev (ABSENT / PRESENT_CORRECT / PRESENT_DRIFTED only). Unchanged from v1.0.0.
+    adr: [ADR-54]
+    target:
+      source_path: codex/AGENTS.md
+      target_filename: AGENTS.md
+    l0_scope:
+      implemented:
+        - payload: codex-config
+          target: '~/.codex/AGENTS.md'
+          adr: ADR-54
+      deferred_deployables:
+        - payload: surface-closures
+          target: '~/.claude SessionStart hook (surface-closures.ps1)'
+          adr: ADR-70
+          status: 'live, fleet-deployed; candidate for future L0-payload coverage'
+        - payload: block-onedrive
+          target: '~/.claude PreToolUse hook (block-onedrive.ps1), fail-closed P0 guard'
+          adr: ADR-75
+          status: 'live, fleet-deployed; candidate for future L0-payload coverage'
+        - payload: gotchas
+          target: '~/.claude/skills/gotchas/ (user-level skill)'
+          adr: global
+          status: 'live; candidate for future L0-payload coverage'
+        - payload: routing
+          target: '~/.claude/ROUTING.md'
+          adr: global
+          status: 'live; candidate for future L0-payload coverage'
+      enforced_elsewhere:
+        - payload: no-ff-rule
+          rule: 'branch then --no-ff merge is universal (core-invariants #5)'
+          enforced_by: 'pre-commit carrier (#3) hub hooks block-ff-push / validate_no_ff, plus /ship'
+          adr: core-invariants
+
+  - id: tier1-plugin
+    order: 2
+    implemented: true
+    description: >
+      The tier1-lifecycle CC plugin enabled at project scope in the consumer
+      (deploy/carrier_plugin.py) — reconciles via the external `claude plugin` CLI; correctness
+      judged from the resulting installed state, never stdout. Target version read live from the
+      hub plugin.json. Unchanged from v1.0.0.
+    adr: [ADR-70]
+    target:
+      plugin: tier1-lifecycle@dev-knowledge-methodology
+      marketplace: dev-knowledge-methodology
+      scope: project
+
+  - id: precommit
+    order: 3
+    implemented: true
+    description: >
+      Pinned pre-commit hooks in the consumer's .pre-commit-config.yaml. The single writer of
+      that file (single-writer-per-file). v1.1.0: hub_hooks rev bumped to v1.1.0 (the
+      version-coupling anchor) + a NEW `canonical_freshness` required_local_hook (the enforcement-
+      mesh freshness gate — the mesh carrier writes the SCRIPT it runs, this carrier owns the hook
+      line; arming spans two carriers, ADR-93).
+    adr: [ADR-71]
+    target:
+      config_path: .pre-commit-config.yaml
+      # v1.2.0 (P2 / [#244]): ruff-pre-commit DROPPED from the add-target — the
+      # ruff-gate component is `status: removed`, pruned by the remove leg. Leg 1
+      # of the remove design-tension: the add-path stops re-adding it. Clean
+      # list-drop (exact-URL entry, no anchor coupling). See the ruff-gate tombstone
+      # in components: below. required_repos is now empty (all pins are hub_hooks /
+      # required_local_hooks).
+      required_repos: []
+      hub_hooks:
+        rev: v1.3.0
+        marker_hook_ids:
+          - codemap-freshness
+          - codemap-generate
+          - toc-freshness
+          - toc-generate
+          - backlog-id-on-close
+          - block-ff-push          # NEW (#302); backlog-id-on-close already a marker
+        repo: https://github.com/rdwornik/dev-knowledge
+        hooks:
+          - id: codemap-freshness
+          - id: toc-freshness
+          - id: block-ff-push       # NEW (#302)
+          - id: backlog-id-on-close # NEW (#309) — entry already in .pre-commit-hooks.yaml
+      required_local_hooks:
+        - id: floor-hash-verify
+          name: Verify CLAUDE-FLOOR.md matches its sha256 sidecar
+          entry: python .claude/check_floor_hash.py
+          language: system
+          files: '^\.claude/CLAUDE-FLOOR\.md(\.sha256)?$'
+          pass_filenames: false
+        # Enforcement-mesh (#236): the consumer-local canonical_freshness gate. The mesh carrier
+        # deploys scripts/canonical_freshness_gate.py; this hook line runs it (the Informant's
+        # locate scans pre-commit id/name/entry for `canonical_freshness`/`last_reviewed`).
+        # `always_run` (no `files`) — A2 is a whole-repo state check, not a per-file diff check.
+        - id: canonical_freshness
+          name: canonical_freshness last_reviewed gate (A2 FAIL blocks the commit)
+          entry: python scripts/canonical_freshness_gate.py
+          language: system
+          always_run: true
+          pass_filenames: false
+
+  - id: floor
+    order: 4
+    implemented: true
+    description: >
+      The per-repo methodology floor (ADR-78) — .claude/CLAUDE-FLOOR.md + its .sha256 sidecar,
+      plus its arming artifacts. Unchanged from v1.0.0.
+    adr: [ADR-78]
+    target:
+      floor_path: .claude/CLAUDE-FLOOR.md
+      sidecar_path: .claude/CLAUDE-FLOOR.md.sha256
+
+  # NEW in v1.1.0 — Axis-1 enforcement transfer (#236). Deploys the two fail-closed organs into
+  # the consumer so they fire enforcing-local (Model D: deploy-into-consumer — the Informant's
+  # fire_test clones the consumer, so the invoked scripts must live IN the repo). The carrier
+  # reads the hub bytes and hardcodes the artifact paths, so `target` is descriptive only (the
+  # carrier ignores it). Acceptance is the Informant reporting enforcing-local via demonstrated
+  # firing (ADR-81 leg-(e)), NOT presence — run scripts/enforcement_coverage.py --fire.
+  - id: enforcement-mesh
+    order: 5
+    implemented: true
+    description: >
+      deploy/carrier_mesh.py — writes scripts/session_end_backpressure.py (the #237 git-toplevel-
+      first port) + scripts/canonical_freshness_gate.py + .claude/commands/override.md (hub-parity
+      logged-override; --no-verify does NOT bypass a Stop hook, so /override is seb's only escape)
+      + a .claude/settings.json Stop hook running seb + a distinct sentinel-delimited .gitignore
+      block that ignores the ephemeral override token AND re-includes override.md past the floor's
+      .claude/* block (else git add -A skips it -> false absent). logs/ is created at runtime by
+      /override (not tracked). The freshness pre-commit hook is owned by the precommit carrier.
+    adr: [ADR-85, ADR-81]
+    target:
+      organs:
+        - session_end_backpressure   # scripts/session_end_backpressure.py (#237-ported) + Stop hook
+        - canonical_freshness         # scripts/canonical_freshness_gate.py (hook via precommit carrier)
+      override_command: .claude/commands/override.md   # re-included past floor .claude/* by the .gitignore block
+      logs_dir: logs/                 # runtime-created by /override; token + OVERRIDES.md gitignored
+
+# ---------------------------------------------------------------------------
+# components — the methodology's element inventory at v1.1.0 (essence-spec v1).
+# One entry per methodology element a consumer receives. Fields:
+#   id        stable component identifier (unique)
+#   kind      organ | hook | command | skill | doc-shape | config
+#   carrier   the carriers: entry that deploys it (release_lint C6 resolves it)
+#   status    active | removed (2-state, D3) — `removed` legal as of v1.2.0 (P2)
+#   removed_in the release that retired the component — REQUIRED iff status:removed,
+#             FORBIDDEN on active (release_lint C6). The manifest entry is retained
+#             as a tombstone; the remove leg prunes its artifacts from the consumer.
+#   waivable  true | false — MAY a consumer sanction this component's divergence from
+#             the baseline (Informant Tier-3 / [#244] P4)? A per-component SAFETY
+#             judgment, NOT derived from `verify` type: any LOAD-BEARING / fail-closed
+#             protection whose absence is a safety/integrity regression is
+#             `waivable: false` (the non-waivable floor set) EVEN IF not fire-
+#             measurable — a consumer's root .methodology.yaml allowlist entry against
+#             a non-waivable component is REJECTED (contract 2). Non-waivable @ v1.2.0:
+#             session-end-backpressure, canonical-freshness (fail-closed gates) +
+#             methodology-floor, floor-hash-verify-hook, floor-sessionstart-guard
+#             (floor integrity/presence). Required on status:active (release_lint C6);
+#             moot on a tombstone. NB this field was ADDED AFTER the v1.2.0 tag (a
+#             versioned-file-vs-tag divergence, acknowledged not silent): it is INERT
+#             to deploy/tool.py (reads only carriers:) and consumed only by the
+#             hub-side Informant, so it changes nothing deployed at tag v1.2.0 and
+#             moves no version anchor — the methodology version is HELD (P4 is
+#             hub-only n=1 tooling, no deploy). See JOURNAL [#244] P4.
+#   verify    fire | hash | wired (leg-e typed acceptance class)
+#   artifacts what lands in / is wired into the consumer:
+#               - path/source: a deployed file (consumer path <- hub source)
+#               - wiring:      a config edge (hook line, settings entry, pin)
+#   prune     (status:removed only) the remove-leg identity + last-deployed oracle:
+#               match:    carrier-specific identity of the consumer artifact to remove
+#                         (precommit: {repo: <exact url>})
+#               expected: the shape the methodology deployed — the hash-guard oracle;
+#                         a consumer entry that diverges reads as locally-modified and
+#                         the prune REFUSES (precommit: {rev, hooks}).
+#   roster    the one line the consumer-facing surface (CLAUDE.md rosters)
+#             must carry for this component — DECLARATIVE ONLY this release
+#             (roster generation is P3, gated on operator decision D1).
+#   engages   ([#252] Slice B) the lived-workflow ENGAGEMENT expectation — the
+#             {trigger, observable, expect} triple the OUTER sandbox observer
+#             reconciles against a REAL headless-session arc. This is the
+#             enforcement-in-effect oracle (ADR-81 leg-e): presence != firing.
+#               trigger    when the component should engage, from the arc
+#                          lifecycle: session-start | edit | pre-commit |
+#                          commit-msg | pre-push | stop  (arc stages), or
+#                          operator-invoke | deploy-time (NON-arc — the observer
+#                          classifies these OUT-OF-ARC, present in the oracle but
+#                          not exercised by the branch->edit->commit->wrap arc).
+#               observable the external channel the observer reads (NEVER inner
+#                          narration): hook-stdout (STRUCTURED tool-result events,
+#                          not a transcript text-grep) | git-state | transcript-event.
+#                          A component whose observable is `hook-stdout` AND whose
+#                          trigger is an arc stage is a FIRING hook the lived arc
+#                          GATES on (the deployed-mesh gated set — seven w/ #250 —
+#                          + the ruff tombstone); git-state / transcript-event
+#                          components are OBSERVED, not gated (release_lint C8
+#                          derives the gated set this way).
+#               expect     the signature checked against the channel: a non-empty
+#                          string (must APPEAR), or {absent: true, signature: <str>}
+#                          for a tombstone (must NOT appear — prune conformance).
+#             CALIBRATION: the triple STRUCTURE is the frozen ex-ante contract
+#             (immutable to the executor); the exact `expect` signature token is
+#             calibration data, tuned against the real GATE-0 run at freeze time
+#             (Slice B Step 7) so it is grounded in observed firing, never guessed.
+#   ---------------------------------------------------------------------------
+#   [NB-1] version provenance: `engages:` (like `waivable:`) was ADDED AFTER the
+#   v1.2.0 tag. It is INERT to deploy/tool.py (reads only carriers:), so it moves
+#   NO deployed behavior and the methodology version stays HELD. It IS, however,
+#   consumer-VISIBLE if the manifest transfers verbatim — recorded here + in
+#   JOURNAL so #220 (meaning-change-without-a-version-bump) is satisfied on record:
+#   this is additive self-model metadata for the hub-side lived-sandbox, not a
+#   change to what a consumer's deploy DOES.
+# ---------------------------------------------------------------------------
+
+components:
+  - id: codex-agents-config
+    kind: config
+    carrier: global-config
+    status: active
+    waivable: true   # user-machine-scoped config (~/.codex), not a consumer-repo gate
+    verify: hash
+    engages:
+      trigger: deploy-time      # user-machine (~/.codex); NOT exercised by the repo arc
+      observable: git-state
+      expect: "~/.codex/AGENTS.md present (hash-matched)"
+    artifacts:
+      - path: "~/.codex/AGENTS.md"
+        source: codex/AGENTS.md
+    # USER-machine scoped (L0) — no consumer CLAUDE.md roster line.
+    roster: null
+
+  - id: tier1-lifecycle-plugin
+    kind: config
+    carrier: tier1-plugin
+    status: active
+    waivable: true   # ships user-invoked commands + an ADVISORY Stop hook; the blocking closure ENFORCEMENT (seb, canonical_freshness) is separately non-waivable — waiving the plugin loses ergonomics/workflow, not a gate
+    verify: wired
+    engages:
+      trigger: deploy-time      # plugin enablement is a settings edge, not an arc firing
+      observable: git-state
+      expect: "enabledPlugins tier1-lifecycle@dev-knowledge-methodology"
+    artifacts:
+      - wiring: ".claude/settings.json enabledPlugins: tier1-lifecycle@dev-knowledge-methodology (project scope)"
+    roster:
+      section: header
+      line: "Plugin `tier1-lifecycle@dev-knowledge-methodology` enabled (`.claude/settings.json`)"
+
+  - id: propose-closures-stop-hook
+    kind: hook
+    carrier: tier1-plugin
+    status: active
+    waivable: true   # explicitly NON-BLOCKING (detect-and-propose) — not a fail-closed gate
+    verify: wired
+    # NOTE (G2, measurement-#2 root ruling 2026-07-06): in CONSUMER measurement the plugin
+    # PRESENCE is harness-seeded from the hub checkout into the isolated user config (a real
+    # consumer machine carries the plugin user-level, unreachable from the isolated
+    # CLAUDE_CONFIG_DIR); what the lived arc MEASURES is this hook's firing, never presence.
+    engages:                    # GATED — firing hook, stop stage
+      trigger: stop
+      observable: hook-stdout
+      expect: "propose_closures:"   # [#253c] longest stable substring — every propose_closures.py
+                                    # print path starts "propose_closures:". The prior bare word
+                                    # `closure` partial-word-matched review_closures.py AND the arc
+                                    # prompt's /review-closures (breadth leak). calibrate@step7
+    artifacts:
+      - wiring: "plugin Stop hook -> propose_closures.py (non-blocking, detect-and-propose)"
+    roster:
+      section: session-hook
+      line: "Stop: propose_closures (tier1-lifecycle plugin, non-blocking closure proposals)"
+
+  - id: review-closures-command
+    kind: command
+    carrier: tier1-plugin
+    status: active
+    waivable: true   # a user-invoked command, not a gate
+    verify: wired
+    engages:                    # the >=1 command-act observed in the arc (C3); OUT-OF-ARC gate
+      trigger: operator-invoke
+      observable: transcript-event
+      expect: "review-closures"
+    artifacts:
+      - wiring: "plugin command /review-closures"
+    roster:
+      section: command
+      line: "/review-closures — review + execute ONLY operator-approved closures (ADR-70 Tier-1)"
+
+  - id: ship-command
+    kind: command
+    carrier: tier1-plugin
+    status: active
+    waivable: true   # a user-invoked command; the --no-ff rule is a core-invariant, not this command
+    verify: wired
+    engages:
+      trigger: operator-invoke  # OUT-OF-ARC (the arc never pushes — refusal); command exists, not exercised
+      observable: transcript-event
+      expect: "ship"
+    artifacts:
+      - wiring: "plugin command /ship"
+    roster:
+      section: command
+      line: "/ship — merge the current branch to main via --no-ff, push, delete the branch (refuses inside a worktree)"
+
+  - id: ruff-gate
+    kind: hook
+    carrier: precommit
+    status: removed
+    removed_in: "1.2.0"
+    waivable: true   # MOOT on a tombstone (removed component); set for clarity — C6 requires waivable only on status: active
+
+    # P2 / [#244] n=1 prune truth-maker. The reason is the VERBATIM fleet-scope
+    # caveat (operator-authored) — see ADR-96 for why ruff (clean-mechanism proof;
+    # no naturally-dead component exists at n=1).
+    reason: "P2/[#244] n=1 prune truth-maker — demonstrates the remove-leg on ai-council. NOT a fleet retirement of ruff. Per-consumer scoping awaits D2 (divergence-allowlist); P6 fleet rollout MUST re-evaluate before propagating this removal."
+    verify: wired
+    engages:                    # TOMBSTONE — prune conformance: ruff must NOT fire in the pruned mesh
+      trigger: pre-commit
+      observable: hook-stdout
+      expect:
+        absent: true
+        signature: "Ruff linter"  # [#253c] calibrated@step7: the HUB-LOCAL hook's printed name
+                                  # ("Ruff linter (version-pinned ...)"); the repo-form name
+                                  # "Ruff lint gate" never prints on a hub self-clone, which
+                                  # false-greened the tombstone while ruff actually RAN.
+    artifacts:
+      - wiring: ".pre-commit-config.yaml repo ruff-pre-commit rev v0.15.5, hook ruff"
+    # Remove-leg identity + last-deployed oracle (the hash-guard). The consumer's
+    # ruff-pre-commit entry must byte-match `expected` to be pruned; any local edit
+    # (rev/args/hooks) reads as MODIFIED and the prune REFUSES.
+    prune:
+      match:
+        repo: https://github.com/astral-sh/ruff-pre-commit
+      expected:
+        rev: v0.15.5
+        hooks:
+          - id: ruff
+            name: Ruff lint gate (Tier-1, pinned rev; blocks on violations)
+            args: []
+    roster:
+      section: precommit-hook
+      line: "ruff — lint gate; blocks on violations (pinned rev)"
+
+  - id: hub-toc-hooks
+    kind: hook
+    carrier: precommit
+    status: active
+    waivable: true   # doc-hygiene TOC-staleness gate; a CLI repo may have no TOC to gate (the canonical waivable case)
+    verify: wired
+    engages:                    # GATED — firing hook, pre-commit stage
+      trigger: pre-commit
+      observable: hook-stdout
+      expect: "TOC freshness"   # [#253c] calibrated@step7: pre-commit prints hook NAMEs, not
+                                # ids — "TOC freshness (markdown doc vs its own headers)" /
+                                # "ARCHITECTURE.md TOC freshness check" both carry it; the id
+                                # `toc-freshness` never appears in the run output.
+      # [#267] SCOPE CONDITION: this is a FILE-SCOPED hook — it FIRES (expect present, not
+      # "Skipped") ONLY on a commit staging a file matching the consumer's toc-freshness
+      # `files:` pattern; on a commit that touches no matching file it is ARMED-BUT-SKIPPED
+      # (present-as-Skipped -> G4a armed, still engaged). The scope-matching path is
+      # CONSUMER-SPECIFIC (hub: ^ARCHITECTURE\.md$ ; ai-council: ^protocols/COUNCIL_QUESTION_GUIDE\.md$).
+      scope: "file-scoped: FIRED iff an edit matches the consumer's toc-freshness files: pattern, else ARMED-BUT-SKIPPED ([#267])"
+    artifacts:
+      - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hooks toc-freshness + toc-generate"
+    roster:
+      section: precommit-hook
+      line: "toc-freshness / toc-generate — TOC freshness (hub hooks, pinned rev)"
+
+  - id: hub-codemap-hooks
+    kind: hook
+    carrier: precommit
+    status: active
+    waivable: true   # doc-hygiene codemap-staleness gate; a repo with no codemap block / no
+                     # matching source tree has nothing to gate (same class as hub-toc-hooks)
+    verify: wired
+    engages:                    # GATED (seven w/ #250) — firing hook, pre-commit stage
+      trigger: pre-commit
+      observable: hook-stdout
+      expect: "Codemap freshness"  # hook NAME substring — carried by both forms ("Codemap
+                                   # freshness check" hub-local / "Codemap freshness
+                                   # (ARCHITECTURE.md vs source tree)" hook-repo); grounded in
+                                   # the frozen GATE-0 fixtures (present-as-Skipped -> G4a armed,
+                                   # exactly parallel to hub-toc-hooks — no re-freeze needed)
+    artifacts:
+      - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hooks codemap-freshness + codemap-generate"
+    roster:
+      section: precommit-hook
+      line: "codemap-freshness / codemap-generate — ARCHITECTURE.md codemap freshness (hub hooks, pinned rev)"
+    # [NB-2] version provenance: hub-codemap-hooks (like `waivable:`/`engages:`, [NB-1]) was
+    # ADDED AFTER the v1.2.0 tag (#250). It is INERT to deploy/tool.py (reads only carriers:) —
+    # the codemap-freshness hook already ships via the precommit carrier's hub_hooks
+    # marker_hook_ids; this entry only gives it a components: row so the Informant Tier-3
+    # waivability policy can CLASSIFY its per-consumer drift (previously invisible). Deployed
+    # behavior unchanged, version HELD; consumer-visible if the manifest transfers verbatim
+    # (recorded here + JOURNAL, #220-satisfied). Grows the gated firing-hook set six -> seven.
+
+  # NEW in v1.3.0 — #302/#309 commit-discipline carriers (release contract Addendum §3.5/§3.6).
+  # The hub-side engine landed in the LANE-B arc (undeployed until this cut, the [NB] precedent);
+  # these two rows carry the hooks to consumers at v1.3.0. `expect:` substrings calibrated against
+  # real captured hook output at the cut (both print to stderr; pre-commit surfaces hook output
+  # regardless of stream — the [#253c] precedent). backlog-filing-backpressure gets NO row
+  # (hub-only-by-construction; pinned by tests/test_carrier_hooks_source.py::test_filing_backpressure_not_carried).
+  - id: hub-block-ff-push
+    kind: hook
+    carrier: precommit
+    status: active
+    waivable: false   # core-invariant #5 main-branch protection is universal; inert (never fires)
+                      # on a non-main default branch rather than needing a waiver
+    verify: wired
+    engages:
+      trigger: pre-push
+      observable: hook-stdout
+      expect: "REFUSED"            # calibrate@cut: "REFUSED — N non-merge commit(s)…"
+      scope: "FIRES on a push adding a non-merge commit to main's first-parent spine; a --no-ff merge or non-main push passes; fail-soft exits 0 on git error"
+    artifacts:
+      - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hook block-ff-push (ships scripts/block_ff_push.py + scripts/validate_no_ff.py)"
+    roster:
+      section: precommit-hook
+      line: "block-ff-push — pre-push gate; refuses direct-to-main / FF push (core-invariant #5 prevent)"
+
+  - id: hub-backlog-id-hook
+    kind: hook
+    carrier: precommit
+    status: active
+    waivable: true    # needs a consumer BACKLOG.md with the `- [#id]` story-map format; a repo
+                      # without one is fail-open (empty diff -> pass), nothing to gate
+    verify: wired
+    engages:
+      trigger: commit-msg
+      observable: hook-stdout
+      expect: "removed but not referenced"   # calibrate@cut
+      scope: "FIRES on a commit removing a `- [#id]` line from BACKLOG.md without [#id] in the message; a consumer without BACKLOG.md is fail-open"
+    artifacts:
+      - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hook backlog-id-on-close (ships scripts/check_backlog_commit_msg.py)"
+    roster:
+      section: precommit-hook
+      line: "backlog-id-on-close — commit-msg gate; require [#id] when a BACKLOG task line is removed"
+
+  - id: floor-hash-verify-hook
+    kind: hook
+    carrier: precommit
+    status: active
+    waivable: false   # LOAD-BEARING: fail-closed commit-time integrity guard; absence lets floor tampering/drift commit undetected
+    verify: wired
+    engages:                    # GATED — firing hook, pre-commit stage
+      trigger: pre-commit
+      observable: hook-stdout
+      expect: "sha256 sidecar"  # [#253c] calibrated@step7: the hook's printed NAME is
+                                # "Verify CLAUDE-FLOOR.md matches its sha256 sidecar"; the id
+                                # `floor-hash-verify` never appears in the run output.
+      # [#267] SCOPE CONDITION: file-scoped on `^\.claude/CLAUDE-FLOOR\.md(\.sha256)?$` (same
+      # pattern hub + consumer). FIRES only on a commit staging the floor file; a floor EDIT
+      # makes it fire AND FAIL the hash check — that block IS the witnessable firing (a passing
+      # floor is silent-on-no-match -> ARMED-BUT-SKIPPED). The floor-fail witness is the
+      # scope-exercising design DEFERRED here (see the memo / ledger Block-5 degrade).
+      scope: "file-scoped on ^\\.claude/CLAUDE-FLOOR\\.md(\\.sha256)?$: FIRED (and FAILING) iff a floor edit is staged, else ARMED-BUT-SKIPPED ([#267])"
+    artifacts:
+      - wiring: ".pre-commit-config.yaml local hook floor-hash-verify -> python .claude/check_floor_hash.py"
+    roster:
+      section: precommit-hook
+      line: "floor-hash-verify — verifies .claude/CLAUDE-FLOOR.md matches its sha256 sidecar"
+
+  - id: methodology-floor
+    kind: config
+    carrier: floor
+    status: active
+    waivable: false   # LOAD-BEARING: the floor baseline content itself; waiving it opts the consumer out of the entire methodology floor (maximal integrity regression)
+    verify: hash
+    engages:                    # OBSERVED (git-state), not a firing hook — the guard hook is separate
+      trigger: session-start
+      observable: git-state
+      expect: ".claude/CLAUDE-FLOOR.md present"
+    artifacts:
+      - path: .claude/CLAUDE-FLOOR.md
+        source: templates/child-methodology-floor.md.tmpl
+      - path: .claude/CLAUDE-FLOOR.md.sha256
+      - path: .claude/check_floor_hash.py
+    roster:
+      section: header
+      line: "@.claude/CLAUDE-FLOOR.md — methodology floor (hash-guarded replica, ADR-78/93)"
+
+  - id: floor-sessionstart-guard
+    kind: hook
+    carrier: floor
+    status: active
+    waivable: false   # LOAD-BEARING: fail-closed presence guard (--require-present) + arms the commit hooks; absence disarms the whole floor loop
+    verify: wired
+    engages:                    # GATED — firing hook, session-start stage
+      trigger: session-start
+      observable: hook-stdout
+      expect: "pre-commit installed at"   # [#253c] calibrated@step7: the guard VERIFY leg is
+                                          # silent-on-success and a silent hook leaves NO
+                                          # transcript record — the observable firing evidence
+                                          # is the guard group's ARM leg stdout ("pre-commit
+                                          # installed at .git\hooks\..."), emitted only by this
+                                          # wiring. Verify-leg failure prints loud (floor
+                                          # absent / hash drift), so group-fired + no failure
+                                          # text == guard green. Honest limit: this observes
+                                          # the GROUP, not the silent verify leg alone.
+    artifacts:
+      - wiring: ".claude/settings.json SessionStart hook -> python .claude/check_floor_hash.py --require-present"
+    roster:
+      section: session-hook
+      line: "SessionStart: check_floor_hash.py --require-present (floor guard) + python -m pre_commit install (arms the commit hooks)"
+
+  - id: session-end-backpressure
+    kind: organ
+    carrier: enforcement-mesh
+    status: active
+    waivable: false   # LOAD-BEARING: fail-closed session-end gate; absence lets un-anchored sessions ship silently (the founding-standard regression the mesh exists to stop)
+    verify: fire
+    engages:                    # GATED — firing hook, stop stage
+      trigger: stop
+      observable: hook-stdout
+      expect: "Session-end"     # [#253c] calibrated@step7: BOTH print paths open with it —
+                                # "Session-end gate BLOCKED" (hard) / "Session-end hygiene"
+                                # (advisory). The script name never appears in its own stdout,
+                                # so the prior signature could only match the hook COMMAND line.
+    artifacts:
+      - path: scripts/session_end_backpressure.py
+        source: scripts/session_end_backpressure.py
+      - wiring: ".claude/settings.json Stop hook -> python $CLAUDE_PROJECT_DIR/scripts/session_end_backpressure.py"
+    roster:
+      section: session-hook
+      line: "Stop: session_end_backpressure.py — deterministic session-end gate (JOURNAL SHA-anchor hard block)"
+
+  - id: canonical-freshness
+    kind: organ
+    carrier: enforcement-mesh
+    status: active
+    waivable: false   # LOAD-BEARING: fail-closed commit gate; absence lets stale canonical ground-truth ship undetected
+    verify: fire
+    engages:                    # GATED — firing hook, pre-commit stage
+      trigger: pre-commit
+      observable: hook-stdout
+      expect: "canonical_freshness"   # confirmed: the gate prints "canonical_freshness ..."
+    artifacts:
+      - path: scripts/canonical_freshness_gate.py
+        source: scripts/canonical_freshness_gate.py
+      # The hook LINE that arms this organ is owned by the precommit carrier
+      # (required_local_hooks canonical_freshness) — the ADR-93 two-carrier
+      # arming span. The mesh carrier writes the script; precommit wires it.
+      - wiring: ".pre-commit-config.yaml local hook canonical_freshness (owned by the precommit carrier)"
+    roster:
+      section: precommit-hook
+      line: "canonical_freshness — last_reviewed A2 gate; FAIL blocks the commit on a canonical doc edited since its last review"
+
+  - id: override-command
+    kind: command
+    carrier: enforcement-mesh
+    status: active
+    waivable: true   # an escape-hatch command; its absence is a stricter posture, not a safety regression (NB coupling: seb non-waivable + override waivable => a consumer can sanction its own loss of the only seb-escape and self-strand — operability hazard, not safety; candidate for a LATER validation warning, not built in P4)
+    verify: wired
+    engages:
+      trigger: operator-invoke  # escape-hatch command; OUT-OF-ARC (the arc never overrides)
+      observable: transcript-event
+      expect: "override"
+    artifacts:
+      - path: .claude/commands/override.md
+        source: .claude/commands/override.md
+      - wiring: ".gitignore enforcement-mesh sentinel block (ignores the ephemeral override token; re-includes override.md past the floor's .claude/* block)"
+    roster:
+      section: command
+      line: "/override — bypass the ADR-85 session-end gate for this HEAD (logged, HEAD-bound)"
+
+# ---------------------------------------------------------------------------
+# doc_shapes — the canonical doc-shape declaration (kind doc-shape payload).
+# MIRROR of the current authoritative constants; release_lint C7 fails on any
+# divergence from them, so this cannot silently drift:
+#   spine            <- scripts/audit.py::_CANONICAL_SPINE
+#   freshness_gated  <- scripts/canonical_freshness_gate.DEFAULT_FRESHNESS_FILES
+# audit.py / the gate remain the readers of record this release; pointing them
+# at this spec is a later, behavior-changing phase.
+# ---------------------------------------------------------------------------
+
+doc_shapes:
+  VISION.md:
+    spine: ["## Vision", "## Scope", "## Values", "## Lifecycle", "## References"]
+    freshness_gated: true
+  ARCHITECTURE.md:
+    spine: ["## Purpose", "## Codemap", "## Layer Boundaries & Invariants",
+            "## Key conventions", "## Authority and governance",
+            "## Validators and enforcement"]
+    freshness_gated: true
+  CLAUDE.md:
+    spine: ["## 1. First read", "## 5. Critical rules", "## 6. Session start protocol"]
+    freshness_gated: true
+  BACKLOG.md:
+    spine: ["## Big picture"]
+    freshness_gated: false
+  CONTRIBUTING.md:
+    spine: ["## Branch naming", "## Commit style", "## Handoff process"]
+    freshness_gated: true
+  JOURNAL.md:
+    spine: ["# Journal"]
+    freshness_gated: false
+  LESSONS.md:
+    spine: ["# Lessons Learned"]
+    freshness_gated: false
+  docs/handoffs/README.md:
+    spine: []
+    freshness_gated: true
+  protocols/ESSENTIALS.md:
+    spine: []
+    freshness_gated: true
