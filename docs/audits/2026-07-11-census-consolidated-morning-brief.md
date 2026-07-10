@@ -5,7 +5,7 @@
 - **Status:** PROPOSAL-ONLY. Executed mutations this run were limited to: new report files in `docs/audits/`, `Status:`-line updates in `docs/intake/` (Phase 3), and the JOURNAL append. Every verdict below is a proposal for the operator; nothing was deleted, renamed, moved, ratified, or filed to BACKLOG.
 - **Model:** Opus 4.8 (`claude-opus-4-8[1m]`), effort max. Web + cross-repo research fanned to read-only subagents; every claim carries a SHA / file:line / URL, or an explicit UNVERIFIED flag.
 
-> **Brief assembly status:** Phase 1 ✓ (separate file) · Phase 2 ✓ · Phase 3 ✓ · **Phase 4 ✓** · Phase 5 _pending_ · Exec summary + Action menu + Kill-list _pending_.
+> **Brief assembly status:** Phase 1 ✓ (separate file) · Phase 2 ✓ · Phase 3 ✓ · Phase 4 ✓ · **Phase 5 ✓** · Exec summary + Action menu + Kill-list _pending_.
 > Built incrementally with a checkpoint commit per phase (Fable-flip-safe — Finding 1). Sections marked _(pending)_ are not yet authored; a partial file is expected mid-run.
 
 ---
@@ -231,7 +231,62 @@ How the grammar gets **enforced** fleet-wide rather than merely requested:
 
 ## 5. Skills / gotchas universalization matrix + new-gotcha draft (Phase 5)
 
-_(pending — Phase 5)_
+### 5a — Fleet inventory (read-only)
+
+- **Hub skills** (`.claude/skills/`): `check-against-spec` (spec-reconciliation enumerator, tied to `scripts/coherence_enumerator.py`) · `verify` (pytest+ruff+git cadence, **self-flags "canonical-home open — #9, hub-local pilot"**). Plugin `tier1-lifecycle` (`plugins/`, v0.1.10) = the ADR-70 closure loop, already a distribution carrier (marketplace → children).
+- **Gotchas:** the universal store is **user-level** `~/.claude/skills/gotchas/` (105 KB, 18 sections) — the hub itself carries **no** gotchas skill. corp-monorepo carries a project `corp-gotchas` (`.claude/skills/gotchas/`, 9 sections). **ai-council carries NONE** (no `.claude/skills/` dir at all; it has `.claude/rules/` instead).
+- **LESSONS.md** in all three (hub 233 · ai-council 7 · corp 2), same append-only pipe-format (ADR-29); **no duplicated entries** — hub is the meta/methodology store, children hold local empirical lessons.
+
+### 5b — Staleness vs current reality (post-#299, post-ADR-101)
+
+- **No skill/gotcha artifact contradicts post-#299 / post-ADR-101 reality.** The universal gotchas' Codex/pre-commit + plugin sections match the current stack; `tier1-lifecycle` v0.1.10 is live; `verify`/`check-against-spec` describe current cadence. (Scope honesty: per-entry currency of the 105 KB universal file was **not** exhaustively re-read this run — census is section-level + targeted checks, not a line audit.)
+- **The telling gap: ADR-101's naming grammar is in NO skill or gotcha.** The new lowercase-kebab + closed-enum rule has no session-time author-facing carrier — which is exactly §4c's point (the rule is *requested*, not yet *enforced or even surfaced*). A gotcha/skill carrier would be the advisory half; the refusal-gate the teeth.
+- **OneDrive/filesystem-safety theme lives in 3 homes** — `~/.claude/rules/core-invariants.md §1` (the definer) + user gotchas "Shell safety (P0 exclusion zone)" + corp gotchas "MyWork & OneDrive" (restatements). Not drift (the rule is authoritative; gotchas restate for context), but worth a coherence glance at #289's build (hub-own the guard).
+
+### 5c — Universalization matrix
+
+Verdict: **CURRENT** · **DUPLICATE** (canonical-copy proposal) · **UNIVERSALIZE** (should be hub-carried) · **DE-UNIVERSALIZE** (project-specific content sitting in a load-everywhere file).
+
+| Artifact | Where | Verdict | Carrier route (proposal) |
+|---|---|---|---|
+| `gotchas` (universal) | `~/.claude/skills/gotchas/` | CURRENT | stays user-level (correctly delegates project gotchas per-repo); but see DE-UNIVERSALIZE row |
+| `check-against-spec` | hub `.claude/skills/` | CURRENT (hub-specific) | stays hub-local (coupled to `coherence_enumerator.py`) — not a universalize target |
+| `verify` | hub `.claude/skills/` | **UNIVERSALIZE-CANDIDATE** (self-flagged #9) | decide: distribute via the floor/plugin carrier (like `tier1-lifecycle`) **or** ratify as permanently hub-local. It is the "canonical-home open" question #9 already names |
+| `tier1-lifecycle` | hub `plugins/` | CURRENT | already universalized (marketplace → children) — the reference pattern |
+| `corp-gotchas` | corp `.claude/skills/gotchas/` | CURRENT | project-scoped by design (complements the universal store) |
+| **ai-council project-gotchas** | **ABSENT** | **UNIVERSALIZE-PATTERN (gap)** | the universal+per-project gotchas pattern is only half-adopted; seed ai-council a `.claude/skills/gotchas/` (child-scope, ADR-41 — route to the ai-council chat) |
+| ai-council `.claude/rules/{python-env,testing,code-standards}.md` | ai-council | DUPLICATE-ish (overlaps universal gotchas Python sections) | reconcile/consolidate — child-scope (ADR-41) |
+| ai-council LESSON "mock.patch string literals invisible to import-refactoring" | ai-council `LESSONS.md` | **UNIVERSALIZE** | generic Python/testing trap sitting in a child log → promote to `~/.claude/skills/gotchas` (Python/Testing). Operator-approved (core-invariant #6) |
+| corp LESSON "ruff hook-version mismatch (pinned pre-commit vs venv ruff)" | corp `LESSONS.md` | **UNIVERSALIZE** | generic tooling trap → promote to `~/.claude/skills/gotchas` (Codex/pre-commit or Pre-commit-authoring section). Operator-approved |
+| universal gotchas sections "ai-council merge gate" / "tier1-lifecycle plugin" / "Windows Task-Scheduler CC harness" | `~/.claude/skills/gotchas/` | **DE-UNIVERSALIZE candidate** | fleet/project-specific content in a load-everywhere file → consider moving to a hub-scoped or project gotchas store; low urgency |
+| **NEW gotcha (subprocess-test fixture)** | (propose) | **NEW → UNIVERSALIZE** | `~/.claude/skills/gotchas` Python/Testing (provider-agnostic). Draft in §5d |
+| F7 pre-commit-stash-drop (Phase 2C) | captured as auto-memory only | **UNDER-CAPTURED** | promote memory → hub `LESSONS.md` **or** `~/.claude/skills/gotchas` (Git/pre-commit). `grep` confirms it is not yet in either |
+
+**So-what:** the promotion pipe hub-LESSONS → universal gotchas already works (hub entries record being captured up). The two child LESSONS above are **stragglers** — generic traps stuck in child logs that never got promoted. And ai-council is the structural gap (no project-gotchas skill at all). None of this is a hub *file* mutation this run — all are operator-approved (`~/.claude/`, core-invariant #6) or child-scope (ADR-41) proposals.
+
+### 5d — NEW gotcha draft (proposed entry — grounded in this run's evidence)
+
+Home proposed: `~/.claude/skills/gotchas/gotchas.md`, **Python/Testing** section (provider-agnostic; a hub session does not edit `~/.claude/` unilaterally — core-invariant #6 — so this is a PROPOSAL for operator approval).
+
+```
+- **Gotcha:** A subprocess-based test that copies only the script-under-test into a temp
+  dir fails with ModuleNotFoundError when that script imports a sibling module from its
+  own directory.
+- **Trigger:** Adding a cross-module import (`from sibling import x`) to a script whose
+  test invokes it as a subprocess after copying just that one script into a temp
+  `scripts/` dir. The import resolves at runtime via `sys.path[0]` = the script's own
+  dir, so the sibling must sit beside it there.
+- **Symptom:** `ModuleNotFoundError: No module named '<sibling>'` from the subprocess
+  (passes in-process, fails as a subprocess); the temp dir has the script but not its
+  sibling.
+- **Fix:** copy the sibling alongside the script in the fixture —
+  `shutil.copy(SCRIPT.parent / "sibling.py", scripts_dir / "sibling.py")`. General rule:
+  when a subprocess-under-test gains a new intra-package import, the fixture's file-copy
+  set must grow to match the script's actual import closure.
+- **Last triggered:** 2026-07-10 — A5 batch `c08ac47`: `assemble_paste.py` gained
+  `from gen_handoff import reflow_framing`; `test_assemble_paste.py` had to
+  `shutil.copy(... "gen_handoff.py", scripts_dir / "gen_handoff.py")`.
+```
 
 ---
 
