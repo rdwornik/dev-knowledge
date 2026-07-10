@@ -129,6 +129,39 @@ def test_file_budget_no_fire_under():
     assert vdr.scan_file_budget("CLAUDE.md", text, 200) == []
 
 
+# --- #312: comment-only lines are EXCLUDED from the prose budget -------------
+
+def test_is_comment_only_boundary():
+    # A fully render-invisible comment line (any surrounding whitespace) -> excluded.
+    assert vdr._is_comment_only("<!-- methodology:start id=x owner=hub -->")
+    assert vdr._is_comment_only("  <!-- scope: meta -->  ")
+    assert vdr._is_comment_only("<!-- version: 2.35 -->")
+    # A line that MIXES prose with a comment still counts (narrow loophole).
+    assert not vdr._is_comment_only("prose <!-- trailing note -->")
+    assert not vdr._is_comment_only("<!-- leading --> then prose")
+    assert not vdr._is_comment_only("- **Naming:** UPPERCASE living docs")
+
+
+def test_file_budget_excludes_comment_only_lines():
+    # 190 prose lines (< 200) plus 40 comment-only marker lines: raw count 230 would fire,
+    # but the prose budget must NOT — the markers are render-invisible metadata (#312).
+    prose = [f"line {i}" for i in range(190)]
+    markers = ["<!-- methodology:start id=r owner=hub -->",
+               "<!-- methodology:end id=r -->"] * 20
+    text = "\n".join(prose + markers)
+    assert len(text.splitlines()) == 230  # raw line count is over budget
+    assert vdr.scan_file_budget("CLAUDE.md", text, 200) == []  # prose count (190) is not
+
+
+def test_file_budget_counts_mixed_prose_comment_lines():
+    # 201 lines each mixing prose with a trailing comment -> NOT comment-only -> all count.
+    text = "\n".join(f"line {i} <!-- note -->" for i in range(201))
+    findings = vdr.scan_file_budget("CLAUDE.md", text, 200)
+    assert len(findings) == 1
+    assert findings[0].category == "file-budget"
+    assert "201 lines" in findings[0].detail
+
+
 # --- sub-detector: grooming-cadence lapse -----------------------------------
 
 def test_grooming_cadence_fires_when_stale():

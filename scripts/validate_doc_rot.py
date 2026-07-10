@@ -21,8 +21,11 @@ constant, each precision-over-recall (one false positive kills adoption):
   2. Per-section "Section history" accretion (ADR-49 retired inline changelogs): a
      Section-history / changelog block with >= _SECTION_HISTORY_MAX_ENTRIES entries.
   3. File bloat vs a self-declared budget (_FILE_SIZE_BUDGETS): a file over its own stated
-     line contract (e.g. CLAUDE.md's "<=200 lines", ADR-53). No arbitrary global cap — only
-     files that declare a budget, so PLAYBOOK/JOURNAL/LESSONS are never mis-flagged.
+     line contract (e.g. CLAUDE.md's "<=200 lines", ADR-53). The budget is PROSE-rot
+     backpressure, so render-invisible comment-only HTML lines (machine metadata — the #312
+     Form-A boundary markers, the scope/generated/version sentinels) are EXCLUDED from the
+     count; see `scan_file_budget` / `_is_comment_only`. No arbitrary global cap — only files
+     that declare a budget, so PLAYBOOK/JOURNAL/LESSONS are never mis-flagged.
   4. Grooming-cadence lapse (ADR-41): the BACKLOG "Grooming log" most-recent date is older
      than _GROOMING_CADENCE_DAYS.
 
@@ -141,9 +144,31 @@ def scan_section_history(rel: str, text: str) -> list[RotFinding]:
     return []
 
 
+def _is_comment_only(line: str) -> bool:
+    """True if `line`, stripped of surrounding whitespace, is ENTIRELY one HTML comment.
+
+    Deliberately narrow (the loophole boundary): the stripped line must both START with
+    ``<!--`` AND END with ``-->``. A line that MIXES prose with an inline/trailing comment
+    is NOT comment-only and still counts toward the budget — only fully render-invisible
+    lines are exempt.
+    """
+    s = line.strip()
+    return s.startswith("<!--") and s.endswith("-->")
+
+
 def scan_file_budget(rel: str, text: str, budget: int) -> list[RotFinding]:
-    """A RotFinding when `rel` exceeds its self-declared line budget."""
-    n = len(text.splitlines())
+    """A RotFinding when `rel` exceeds its self-declared PROSE line budget.
+
+    ADR-53's "<=200 lines" for CLAUDE.md is a reader-scannability contract — PROSE-rot
+    backpressure. Render-invisible, comment-only HTML lines (the #312 Form-A
+    ``methodology:start/end`` boundary markers, plus the scope/generated/version sentinels)
+    are machine metadata, not prose, so they are EXCLUDED from the count (see
+    `_is_comment_only`): taxing them would make the budget fight the boundary mechanism it
+    now coexists with, while prose still cannot grow an inch. ADR-53 does not enumerate "all
+    lines" verbatim, so this definition of a *counted line* lives here — the check is its
+    living home (#312, 2026-07-10 ruling).
+    """
+    n = sum(1 for line in text.splitlines() if not _is_comment_only(line))
     if n > budget:
         return [RotFinding("file-budget", f"{rel}#size",
                            f"{n} lines (self-declared budget {budget})")]
