@@ -480,10 +480,11 @@ _GROOM_FUTURE = ("**Grooming log:** Recent: 2026-01-01 · 2026-01-15. "
 
 
 def test_groom_escalation_fires_when_overdue():
-    line = fh.groom_escalation_line(_GROOM_OLD, date(2026, 10, 15))  # ~197d past 2026-04-01
+    line = fh.groom_escalation_line(_GROOM_OLD, date(2026, 10, 15))  # ~209d past 2026-03-20
     assert line is not None
     assert "overdue quarterly groom" in line
-    assert "2026-04-01" in line          # most-recent past date reported
+    assert "2026-03-20" in line          # newest PAST *Recent* date reported...
+    assert "2026-04-01" not in line      # ...NOT the excluded "Next quarterly:" target (F2-twin)
 
 
 def test_groom_escalation_silent_when_fresh():
@@ -497,6 +498,20 @@ def test_groom_escalation_excludes_future_next_quarterly():
     assert line is not None
     assert "2026-01-15" in line
     assert "2026-12-31" not in line
+
+
+def test_groom_escalation_past_next_quarterly_does_not_mask():
+    # F2-twin frozen contract (GPT-5.6 A/B trial 2026-07-11, verified-real): once the
+    # "Next quarterly:" TARGET is itself in the past, it must NOT count as a completed groom
+    # — else it resets the cadence clock and MASKS the overdue escalation. Here the real
+    # groom (2026-06-01, 141d) is overdue but the past target (2026-09-01, 49d) would
+    # suppress the escalation entirely if it were counted. Mirrors
+    # test_grooming_cadence_past_next_quarterly_does_not_mask in test_validate_doc_rot.py.
+    log = "**Grooming log:** Recent: 2026-06-01. Next quarterly: 2026-09-01.\n"
+    line = fh.groom_escalation_line(log, date(2026, 10, 20))
+    assert line is not None                 # escalation NOT masked
+    assert "2026-06-01" in line             # clock pinned to the real groom...
+    assert "2026-09-01" not in line         # ...not the past target date
 
 
 def test_groom_escalation_none_when_no_grooming_line():

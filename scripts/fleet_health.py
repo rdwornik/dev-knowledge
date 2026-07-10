@@ -52,6 +52,10 @@ _COMPLETED_RE = re.compile(r"^completed_at:\s*(\S+)", re.M)
 _GROOM_QUARTERLY_DAYS = 92
 _GROOMING_LOG_RE = re.compile(r"grooming log", re.IGNORECASE)
 _GROOM_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+# The forward-looking "Next quarterly:" target marker. Any date at/after it is a TARGET,
+# not a completed groom — excluded regardless of whether that target is past or future
+# (twin of validate_doc_rot._NEXT_QUARTERLY_RE; F2-twin fix, GPT-5.6 A/B trial 2026-07-11).
+_NEXT_QUARTERLY_RE = re.compile(r"next\s+quarterly", re.IGNORECASE)
 
 
 # ---------------------------------------------------------------------------
@@ -108,21 +112,29 @@ def is_completed_stale(text: str, now: datetime, max_age_hours: int = _STALE_AFT
 def groom_escalation_line(backlog_text: str, today: date):
     """A SessionStart escalation line when the quarterly BACKLOG groom is overdue, else None.
 
-    Reads the BACKLOG "Grooming log" footer, takes the most-recent PAST groom date
-    (dates <= today; the future "Next quarterly:" target is excluded), and returns an
-    ASCII-only escalation string when that date is older than _GROOM_QUARTERLY_DAYS.
+    Reads the BACKLOG "Grooming log" footer, takes the most-recent PAST groom date, and
+    returns an ASCII-only escalation string when that date is older than
+    _GROOM_QUARTERLY_DAYS. The "Next quarterly:" TARGET date is excluded **regardless of
+    past or future** — it is a target, never a completed groom. A PAST target must NOT
+    reset the cadence clock (F2-twin, GPT-5.6 A/B trial 2026-07-11: an expired target was
+    passing the ``d <= today`` guard and becoming max(dates), masking the escalation). The
+    residual ``d <= today`` guard stays as belt-and-suspenders for stray future dates.
     Fail-soft: an absent / unparseable grooming line returns None (never a spurious line).
 
-    Parallels validate_doc_rot._latest_groom_date, which runs the same footer parse for
-    the 21-day audit-gate WARN; kept inline here so this SessionStart-critical helper
-    carries no cross-script import.
+    Parallels validate_doc_rot._latest_groom_date, which runs the same footer parse (same
+    marker-truncation fix) for the 21-day audit-gate WARN; kept inline here so this
+    SessionStart-critical helper carries no cross-script import.
     """
     last = None
     for line in backlog_text.splitlines():
         if not _GROOMING_LOG_RE.search(line):
             continue
+        # Truncate the line at the "Next quarterly:" marker so its target date — past or
+        # future — is never considered a completed groom.
+        marker = _NEXT_QUARTERLY_RE.search(line)
+        scan = line[: marker.start()] if marker else line
         dates = []
-        for s in _GROOM_DATE_RE.findall(line):
+        for s in _GROOM_DATE_RE.findall(scan):
             try:
                 d = date.fromisoformat(s)
             except ValueError:
