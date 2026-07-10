@@ -29,7 +29,7 @@
 
 Both emit on **stderr** (stdout empty) — `observable: hook-stdout` is correct (pre-commit surfaces hook output regardless of stream). No manifest change from calibration. Consumers UNTOUCHED — no deploy. Commit-and-STOP: **NOT tagged, NOT merged** (operator tags `v1.3.0` on `main` after merge — a branch-side tag would point off-spine).
 
-**Changes:** `deploy/manifest-v1.3.0.yaml` (new — copy of v1.2.0 + #302/#309 rows + 1.3.0 anchors); `.claude/methodology-roster.md` (regen → v1.3.0); `BACKLOG.md` (#302/#309 follow-up (a) annotated cut-landed, net-safe <1200); this JOURNAL prepend. SHA `950a81d` (manifest+roster) + this wrap. Branch `worktree-lane-c-v130-release-cut`.
+**Changes:** `deploy/manifest-v1.3.0.yaml` (new — copy of v1.2.0 + #302/#309 rows + 1.3.0 anchors); `.claude/methodology-roster.md` (regen → v1.3.0); `BACKLOG.md` (#302/#309 follow-up (a) annotated cut-landed, net-safe <1200); this JOURNAL prepend. SHAs `950a81d` (manifest+roster) · `be89cc9` (this wrap) · `befd348` (post-wrap #302 doc_rot trim — dropped a redundant date, net-neutral). Branch `worktree-lane-c-v130-release-cut`.
 
 **Abandoned:** the `v1.3.0` tag (operator cuts it on `main` post-merge); the deploy (per-consumer rollout is per-repo follow-up chats); #280/#245/#246/#276 (unbuilt — excluded, not carried "for completeness").
 
