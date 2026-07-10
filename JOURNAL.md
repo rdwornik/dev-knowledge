@@ -25,6 +25,8 @@
 
 **Changes:** docs/handoffs/2026-07-11-dev-knowledge-architect/{SUPPLEMENT (operator verbatim), HANDOFF_BOOT, RESIDUAL, PROBES, PASTE_THIS}.md + this JOURNAL prepend.
 
+**Ship SHAs:** `a6534bc` (fold + reconcile) → `d8b564b` (`--no-ff` merge to main); this line added by an ADR-85 follow-up JOURNAL-anchor commit (the fold commit could not name its own not-yet-existing SHA). Prior arc this session: bundle-cut `6fe87e4` → merge `086aa13`.
+
 **Next:** operator pastes `PASTE_THIS.md` to boot the next architect session (headline = the universalization/hermetization boundary audit; #270 at position 2). Operator-gated: push `main`; delete merged straggler branch refs.
 
 ---
