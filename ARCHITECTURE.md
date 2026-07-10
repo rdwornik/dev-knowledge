@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-07
+last_reviewed: 2026-07-10
 reconciled_with: handoff-process@5.7
 status: active
 owner: Rob
@@ -193,6 +193,7 @@ local git gate.
 | `/ship`, `/review-closures` (commands) | operator | plugin (fleet-wide) | branch→`--no-ff`→clean-tree gate | git-discipline; ADR-70 |
 | `/changelog-review`, `/codex-review` | operator (push) | hub / L0 | — | #113 / ADR-54 |
 | `conformance-hub.js` (Workflow) | operator (`ultracode`) or cloud Routine | Tier-3 | read-only + skeptic + evidence-required | ADR-70 (#81) |
+| `_commit_routine_outputs` → `automation/fleet-audit` (audit.py Routine writer) | Routine/nightly durable-output commit | hub | **fail-soft** (pathspec-bounded `commit-tree`; main tree untouched, never `git add -A`) | ADR-84; #125; #254(a) |
 | `git_backlog_drift` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #90; ADR-65 |
 | `doc_claims` (audit check) | `audit.py health` — pre-commit gate (counts/lists) + full sweep (test-count) | hub | fail-soft (WARN) | #89 |
 | `no_ff_merges` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #153; ADR-84; core-invariants #5 |
@@ -399,9 +400,11 @@ auto-enumerable `ALL_CHECKS` surface; the heterogeneous non-`ALL_CHECKS` remaind
 `codemap-freshness`, `toc-freshness` (ARCHITECTURE.md), `toc-freshness-playbook`
 (PLAYBOOK.md), `roster-freshness` (methodology-roster vs manifest, #244 P3),
 `claude-rosters-freshness` (CLAUDE.md `.claude/generated/*` fragments vs disk, #258 phase-2),
+`audit-index-freshness` (`docs/audits/README.md` index vs `docs/audits/*`, census A-2),
 `validate-backlog`, `audit-health`, `ruff` (≥0.15.5),
 `coherence-nudge` (non-blocking forgotten-version-bump nudge — exits 0 always),
-`backlog-id-on-close` (commit-msg), and `block-ff-push` (pre-push — #153 prevent
+`backlog-id-on-close` + `backlog-filing-backpressure` (commit-msg — the remove-side and
+add-side backlog gates), and `block-ff-push` (pre-push — #153 prevent
 half; activate once via `pre-commit install --hook-type pre-push`). Editing **this
 file** fires `normalize-dated-headers`, `codemap-freshness`, `toc-freshness`, and
 `audit-health`.
