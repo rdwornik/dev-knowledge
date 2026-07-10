@@ -1,4 +1,4 @@
-# Methodology-deployed roster — generated (manifest v1.2.0)
+# Methodology-deployed roster — generated (manifest v1.3.0)
 
 > **This is the manifest-declared DEPLOYABLE methodology corpus** — the commands /
 > hooks / config a *fully-deployed consumer* receives, generated from
@@ -28,5 +28,7 @@
 ## Pre-commit hooks
 - toc-freshness / toc-generate — TOC freshness (hub hooks, pinned rev)
 - codemap-freshness / codemap-generate — ARCHITECTURE.md codemap freshness (hub hooks, pinned rev)
+- block-ff-push — pre-push gate; refuses direct-to-main / FF push (core-invariant #5 prevent)
+- backlog-id-on-close — commit-msg gate; require [#id] when a BACKLOG task line is removed
 - floor-hash-verify — verifies .claude/CLAUDE-FLOOR.md matches its sha256 sidecar
 - canonical_freshness — last_reviewed A2 gate; FAIL blocks the commit on a canonical doc edited since its last review
