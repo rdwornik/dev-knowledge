@@ -5,7 +5,7 @@
 - **Status:** PROPOSAL-ONLY. Executed mutations this run were limited to: new report files in `docs/audits/`, `Status:`-line updates in `docs/intake/` (Phase 3), and the JOURNAL append. Every verdict below is a proposal for the operator; nothing was deleted, renamed, moved, ratified, or filed to BACKLOG.
 - **Model:** Opus 4.8 (`claude-opus-4-8[1m]`), effort max. Web + cross-repo research fanned to read-only subagents; every claim carries a SHA / file:line / URL, or an explicit UNVERIFIED flag.
 
-> **Brief assembly status:** Phase 1 ✓ (separate file) · Phase 2 ✓ · **Phase 3 ✓** · Phase 4 _pending_ · Phase 5 _pending_ · Exec summary + Action menu + Kill-list _pending_.
+> **Brief assembly status:** Phase 1 ✓ (separate file) · Phase 2 ✓ · Phase 3 ✓ · **Phase 4 ✓** · Phase 5 _pending_ · Exec summary + Action menu + Kill-list _pending_.
 > Built incrementally with a checkpoint commit per phase (Fable-flip-safe — Finding 1). Sections marked _(pending)_ are not yet authored; a partial file is expected mid-run.
 
 ---
@@ -153,7 +153,79 @@ Source: `corp-monorepo/docs/intake/2026-07-10-runbook-gap-notes.md` (B-S2, execu
 
 ## 4. Audit-naming: census + universal template spec + enforcement carrier (Phase 4)
 
-_(pending — Phase 4)_
+### 4a — Naming census (hub full history + fleet LOOK)
+
+**Hub `docs/audits/` — 209 files** (207 at the ADR-101 §S3 census + this run's 2, both ADR-101-conforming — dogfooded). The §S3 measured basis (independently re-confirmed this run: `codex ×34`, `ecosystem-audit ×16`, `conformance-nightly-digest ×10`, `changelog-review ×5`, `fresh-eyes ×4`):
+
+| Class-position bucket | Count | Examples |
+|---|---|---|
+| **Already class-led** (class token right after date) | 41 | `codex ×34`, `fresh-eyes ×4`, `draft-tier ×2`, `census-amendment ×1` |
+| **Trivially compliant** (whole slug IS the class — recurring reports) | 31 | `ecosystem-audit ×16`, `conformance-nightly-digest ×10`, `changelog-review ×5` |
+| **Subject-before-class** (class buried at slug-end) | ~130 | `-audit`, `-discovery`, `-verification`, `-inventory`, `-census`, `-execution-plan`, `-retrofit-plan` |
+| **Class-less** (no class token) | 4 | `2026-05-20-handoff-process.md`, `2026-06-26-corpus-graph-justify-or-retire.md`, `2026-04-21-dev-knowledge-scope-tagging.md`, `2026-05-29-harness-engineering-positioning.md` |
+| **Dot-slug carve-out** (embedded `.` is a repo/version token) | 3 | `2026-05-23-.dev-knowledge-audit.md`, `2026-05-29-handoff-v3.4-*.md ×2` |
+
+Hub is **100% lowercase-kebab** — no UPPERCASE / underscore in the live tree. The proliferation pattern is **shallow**: one-off audits invent a bespoke *trailing* suffix rather than reuse a controlled vocabulary. Retroactive compliance would rename ~65% for near-zero gain (the index disambiguates by date; ~78% of citations are in immutable/append-only docs — ADR-100) → ADR-101's **prospective-only + grandfather** is the honest call.
+
+**Fleet LOOK (read-only; no writes) — the operator's "diverging naming" concern, sourced:**
+
+| Repo | Audit folder | Dominant patterns | Divergences vs the hub `<date>-<class>-<slug>` lowercase enum |
+|---|---|---|---|
+| **ai-council** | `docs/audits/` (22 + README) | `<date>-codex-<slug> ×13`, `<date>-<subject>-audit ×5`, no-class ×4 | **Cleanest child** — README *documents & enforces* the hub rule (`YYYY-MM-DD-<topic>`, hyphen+lowercase) and **quarantines** pre-ADR-34 UPPERCASE to `archive/legacy/` (`2026-03-15_CODE_REVIEW_REPORT.md`). Live divergences minor: `qa-lived-exercise` (qa class ✓ in enum), subject-before-class, bare `codex`, one dup-date anomaly (`…-review-2026-05-12.md`). |
+| **corp-monorepo** | `docs/audits/` (65, **NO README, no convention**) | `<date>-conformance-nightly-digest ×18`, `<date>_UPPERCASE_<slug> ×10`, `<date>-deep-<slug> ×12 (+.html)`, `<date>-functional-<slug> ×5`, `<date>-codex-<slug> ×4` | **Least-disciplined.** A rich **UPPERCASE-underscore class enum runs parallel** to the lowercase files in the *same folder* and is **actively growing** (2026-07-07/08: `_AUDIT_`, `_BRIEF_`, `_EVIDENCE_`, `_HANDOFF_`, `_BRAINSTORM-BACKLOG_`). Also: `.html`/`.json` in the audit folder; no-date `DECISION_NN_…_SUPERSEDED.md ×28` transcripts; `conformance-baseline-digest` vs `-nightly-digest` split. |
+
+**Operator's concern, mapped to the fix:** (a) *uppercase variants* → **corp's `_AUDIT_`/`_BRIEF_` family** (cross-repo; the casing rule §4b fixes it) + ai-council's quarantined legacy; (b) *Functional/QA/code-review styles* → corp `functional-* ×5`, ai-council `qa-lived`, corp `code-quality-audit`/`codex-hotfix-review` — the enum's semantic `functional`/`qa` classes cover these as **lowercase** tokens, and `code-review`→on-disk `codex`; (c) *subject-before-class* → the hub ~130 + common in both children, all grandfathered.
+
+**Lane-B Flag-1 token-form reconciliation — proposed DIRECTION: adopt the on-disk forms (grammar describes reality, zero rename).**
+
+| Enum label (ADR-101 draft) | On-disk token | Volume | Recommendation |
+|---|---|---|---|
+| `codex-review` | **`codex`** | 34 hub + 4 corp + 13 ai-council | **Enum adopts `codex`** — grammar matches what 3 repos already write; the alternative (rename 51 grandfathered files) is what ADR-101's prospective-only doctrine explicitly rejects. |
+| `conformance-digest` | **`conformance-nightly-digest`** | 10 hub + 18 corp | **Enum adopts `conformance-nightly-digest`** (dominant form). The rarer `conformance-baseline-digest` (corp ×1) / `conformance-rerun-delta-digest` (hub ×1) stay grandfathered variants. *Secondary option if the operator wants the variants covered going-forward: a family longest-match `conformance-<*>-digest`.* |
+| `ecosystem-audit`, `changelog-review` | exact match | 16+5 hub | no change — already reality. |
+
+Direction rationale: this **makes ADR-101's "stays conforming, zero rename" property TRUE rather than assumed** (§2 flags it as a build-time choice). It is an implementation choice, not a re-opened policy question — grandfathering holds either way.
+
+### 4b — Canonical audit-file template spec (DRAFT — canonical home is a morning ruling)
+
+> One universal convention for every `docs/audits/*.md`. Base: ADR-101 §2 d.iii grammar, extended with a casing rule + a required header block.
+
+**1. Filename grammar.** `<YYYY-MM-DD>-<class>-<slug>.md`, or the degenerate `<YYYY-MM-DD>-<class>.md` for pure recurring reports (no slug).
+
+**2. Casing rule (NEW — the operator's uppercase concern).** **All-lowercase kebab-case**, everywhere: date, class, slug. No `UPPERCASE`, no `_underscore_`, no `CamelCase`. Sole charset carve-out: a literal `.` inside the slug when it is a meaningful repo/version token (`.dev-knowledge`, `v3.4`) — a rename there would be lossy (ADR-101 S3-1).
+
+**3. Class ∈ the CLOSED enum** (whole-token **longest-match**, not split-on-first-hyphen — required for the multi-word tokens):
+- *semantic:* `technical` · `functional` · `qa` · `census` · `verification`
+- *recurring/automated:* `ecosystem-audit` · `conformance-nightly-digest` · `changelog-review`  ← on-disk forms per §4a
+- *reviewer-origin:* `codex`  ← on-disk form per §4a
+- *incident:* `incident-evidence`
+- *`fresh-eyes`* — **[RATIFICATION-DECISION: recommend INCLUDE as the 11th]**: real corpus evidence (4 files, exact on-disk token), and it is a genuine reviewer-origin family, not a bespoke one-off. Adding it is the anti-bloat clause's first legitimate test, not drift.
+- **Adding a class = a one-line ADR-101 amendment** (deliberate), never convention drift.
+
+**4. Slug rules.** kebab-case, lowercase; `.` allowed only for repo/version tokens; optional (omit for recurring reports). No date-in-slug redundancy (ai-council's `…-review-2026-05-12.md` anomaly).
+
+**5. Minimal REQUIRED header block** (every audit file — dogfooded by both this run's outputs):
+```
+# <Title>
+- **Class:** <class> (ADR-101 enum) · **Date:** YYYY-MM-DD
+- **Source-session:** <run/lane/HEAD or session context>
+- **Status:** <PROPOSAL-ONLY | complete | …>
+```
+(Model-in-effect is recommended for unattended runs, per ADR-80 §5 silent-swap doctrine.)
+
+**Canonical-home options (morning ruling):** (a) a section in `templates/` as `templates/audit-template.md` (mirrors `templates/intake-template.md` — **recommended**, it is the natural peer); (b) an ADR-101 amendment folding §4b's casing rule + header block into the decision; (c) a hub skill. Recommend **(a) + (b)**: the template gives authors a fill-in skeleton; the ADR-101 amendment gives the rule its enforceable home (feeds §4c).
+
+### 4c — Enforcement carrier (NEEDS-RULING — design only, NOT built)
+
+How the grammar gets **enforced** fleet-wide rather than merely requested:
+
+| Option | Covers | Teeth | Verdict |
+|---|---|---|---|
+| **(i) Refusal-gate validator** (`validate_hermetization.py`, ADR-101 §3 Rule A+B) — a `language: system` pre-commit hook inspecting only ADDED paths; shipped to consumers via the floor/plugin carrier like `block-ff-push` / the enforcement mesh | hand-authored **AND** automated | **Yes** (deterministic BLOCK) | **RECOMMEND — primary.** Already specced in ADR-101 §3 (build is a named follow-up); the only option that catches the actual proliferation source (§S3: one-off hand-authored audits inventing bespoke suffixes). |
+| (ii) Hub skill read at session start | hand-authored (agent-created) | No (advisory) | Skip as the sole mechanism — relies on agent compliance, no teeth. Fine as author guidance *alongside* (i). |
+| (iii) Generator-side naming (report-writers name their own output) | automated reports only | Partial | Useful **complement** for the high-volume automated families (`ecosystem-audit`/`conformance-nightly-digest`/`codex`/`changelog-review`), but leaves hand-authored one-offs unchecked. |
+
+**Recommendation: build (i) as primary** (ADR-101 §3 realizes ADR-34's 2.5-month-overdue enforcement), **optionally pair with (iii)** for the generators (belt-and-suspenders). The fleet evidence is decisive: **corp-monorepo's UPPERCASE `_AUDIT_` names are actively growing precisely because its `docs/audits/` has no README and no gate**, while ai-council's README-enforced discipline + quarantine holds the line — a shipped gate is what closes that gap. **Scope caveat (ADR-101 §Consequences):** the gate is **HUB-ONLY until a P6 rollout** (mirroring `roster-freshness`/`claude-rosters-freshness`); the consumer carrier (floor/plugin) is the P6 step, not now. Note (iii) covers automated reports but **not** hand-authored audits — so it cannot substitute for (i).
 
 ---
 
