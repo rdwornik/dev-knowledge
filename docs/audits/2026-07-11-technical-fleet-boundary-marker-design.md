@@ -163,3 +163,24 @@ Two surfaces, both existing idioms:
 - **Blind to unmarked repos.** It classifies only what is marked; the grandfathering pass (§3.2) is a precondition — an un-marked consumer reports as "0 hub regions," which the surfacing must distinguish from "clean."
 - **Registration-scoped.** A repo not under `ecosystem/*/state.yaml` is invisible (same as every existing fleet organ) — correct, but worth surfacing when the fleet set changes.
 - **Variable-aware diffing is a build decision.** "Matches modulo declared variables" (e.g. repo name) needs a small substitution rule at build time; the design flags it, does not solve it.
+
+## 5. Root-files extension assessment (Surface 1 — recommendation only, one page)
+
+**Question:** does the Form A marker concept extend to the root **file set** (matrix Surface 1)?
+
+**Finding: the boundary concept extends, but the marker *form* does not — root files need a manifest/declaration form, not an in-band marker.** Reasoning:
+
+- **Surface 1 is a *file-set* boundary, not an *intra-file* one.** The matrix dispositions it **METHODOLOGY-GENERIC (core set uniform)**: the universal root set is the 7 UPPERCASE living docs + `CLAUDE/CONTRIBUTING/VISION` + `pyproject.toml` + `.{repo}.code-workspace` + `.gitignore`/`.gitattributes`/`.pre-commit-config.yaml`, with per-file deltas individually dispositioned (`.env`/`tach.toml` = project; `.methodology.yaml` = methodology deploy artifact; `INSTALL.md` → Surface 8 → #315). The classification question is **"which files are methodology vs project,"** not "which spans inside a file" — so the Form A in-band comment (which lives *inside* a text file) is the wrong granularity: you cannot mark a *set membership* from inside one member, and most root files (`.gitignore`, `pyproject.toml`) are not prose you would annotate.
+
+- **The right machine-readable form here is a declaration the actual tree can be diffed against.** Crucially, the Form-C sidecar objection (invisible drift from the content it describes) is **much weaker for a file set**: a declared root-file classification can be checked against a plain directory listing (`ls`) **deterministically** — the "content" it describes is the file list itself, which is itself machine-enumerable, so desync is *detectable*, not invisible. This is the inverse of the intra-file case, and it is why the recommended *form* flips: **intra-file → Form A (co-location); file-set → manifest/declaration.**
+
+- **A declaration substrate already exists — assess before inventing.** `deploy/manifest-v*.yaml` is the fleet's machine-readable *component* declaration (commands/hooks/config/floor the methodology ships), and the `.methodology.yaml` deploy artifact already marks a repo as onboarded. The manifest carries *deployable components* but does **not** today enumerate the universal *root living-doc set* (VISION/ARCHITECTURE/… are scaffolded, not deploy-carried). So the manifest is the natural **home** but not yet the **content**.
+
+- **Recommendation (assess-only, no build):** lift the matrix's Surface-1 "Boundary:" prose into a **hub-owned root-file classification** — either a `root_files:` block in `deploy/manifest-v*.yaml` (preferred: one existing machine-readable declaration, already carrier-aware) or a small per-repo root manifest — enumerating each sanctioned root entry as `{methodology-generic | project | conditional}`. The **same read-only reporter (§4)** (or a sibling check) then diffs *declared set* vs *actual `ls`* per repo. This is the identical shape the **#314 (`protocols/` genre) and #315 (`INSTALL.md` placement)** rulings already imply — both are file-set/placement boundaries — so a single root-files declaration would absorb them. **Route to the architect as a follow-up scoping item; not part of #312's CLAUDE.md-first build.**
+
+## 6. Open questions for operator ruling
+1. **Marker form** — ratify **Form A + floor** (§3.1), or select Form B / Form C / a hybrid.
+2. **Exact `owner=hub` region set** — confirm the seed classification (§3.2 grandfathering bullet): `owner=hub` = §1, §6, universal-subset-of-§5, §10; `mixed` (sub-section marks) = §4, §11; `owner=repo` = §2, §3, §12 + repo-specific roster spans of §7/§8/§9.
+3. **Reporter severity** — `warn` (recommended, a reporter) vs `fail` (a gate) for `owner=hub` drift.
+4. **Downstream sequencing** — is the reporter build (§4) the next ticket, and is a drift-*prevention* carrier (single-sourcing `owner=hub` regions) in or out of that scope?
+5. **Root-files boundary (§5)** — open a separate scoping ticket folding #314/#315, or defer.
