@@ -137,6 +137,43 @@ def _repo_root() -> Path:
     return Path.cwd()
 
 
+def _under_precommit(env) -> bool:
+    """True when pre-commit is driving the hook — it exports PRE_COMMIT_* vars AND has
+    already consumed the native pre-push stdin (so our own stdin is empty). The signal
+    that the env fallback, not the native-stdin path, is the only ref source we have."""
+    return any(k.startswith("PRE_COMMIT_") for k in env)
+
+
+def _rev_parse(repo: Path, ref: str) -> str:
+    """Resolved commit sha for `ref`, or '' if it does not resolve. Read-only; fail-soft
+    (a missing ref / non-repo / git error yields '', never raises)."""
+    r = _git(repo, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def _reconstruct_main_range(repo: Path, env, protected: str = PROTECTED_REF) -> str | None:
+    """Rebuild the protected-`main` push range from LOCAL git refs when pre-commit's env
+    hid it. pre-commit forwards only ONE parsed ref pair, so it cannot express main in two
+    shapes: a MULTI-REF push where main is not the forwarded ref, and an EMPTY-REMOTE
+    INITIAL push (all_files path) that sets neither PRE_COMMIT_TO_REF nor FROM_REF. Rather
+    than trust the forwarded ref, read main's own tips:
+        local  = refs/heads/main
+        remote = refs/remotes/<PRE_COMMIT_REMOTE_NAME>/main (its tracking tip),
+                 or absent/unknown -> full local history (the fresh-remote scan).
+    Reuses `_range_for` so the range is built identically to every other path. Read-only;
+    fail-soft — no local main -> None (nothing to protect); no tracking ref -> full
+    history. Precision note: on a rule-clean main this range is empty (or merges-only), so
+    a clean repo is NEVER refused; it only surfaces a genuine non-merge commit that already
+    sits on local main."""
+    local_sha = _rev_parse(repo, protected)
+    if not local_sha:
+        return None
+    remote_name = env.get("PRE_COMMIT_REMOTE_NAME", "").strip()
+    branch = protected.rsplit("/", 1)[-1]  # refs/heads/main -> main
+    remote_sha = _rev_parse(repo, f"refs/remotes/{remote_name}/{branch}") if remote_name else ""
+    return _range_for(local_sha, remote_sha)
+
+
 # rule: governance-no-ff
 def violations_in_range(repo: Path, rng: str, baseline: str = BASELINE_DATE) -> list:
     """Non-merge commits on the first-parent spine within `rng`, since `baseline`.
@@ -151,11 +188,20 @@ def violations_in_range(repo: Path, rng: str, baseline: str = BASELINE_DATE) -> 
 def main(argv=None) -> int:
     """Refuse (1) a push that adds a non-merge commit to main; allow (0) otherwise.
     Fail-soft to 0 on any error — a hook bug must never block a legitimate push."""
+    reconstructed = False
     try:
-        rng = resolve_push_range(parse_stdin_lines(_read_stdin()), os.environ)
+        repo = _repo_root()
+        lines = parse_stdin_lines(_read_stdin())
+        rng = resolve_push_range(lines, os.environ)
+        # pre-commit consumed the native stdin (lines empty) and re-exposes only ONE ref
+        # pair, so it can hide main on a multi-ref or empty-remote-initial push. When the
+        # forwarded ref gave no main range, reconstruct main's range from local git refs.
+        if rng is None and not lines and _under_precommit(os.environ):
+            rng = _reconstruct_main_range(repo, os.environ)
+            reconstructed = rng is not None
         if rng is None:
             return 0  # not a push to main (or a main deletion) — nothing to gate
-        violations = violations_in_range(_repo_root(), rng)
+        violations = violations_in_range(repo, rng)
     except Exception as exc:  # noqa: BLE001 — fail-soft is the contract
         print(f"block_ff_push: degraded ({exc}) — allowing push", file=sys.stderr)
         return 0
@@ -164,6 +210,10 @@ def main(argv=None) -> int:
     print(f"block_ff_push: REFUSED — {len(violations)} non-merge commit(s) would land "
           "on main's first-parent spine (core-invariant #5 wants a `--no-ff` merge, "
           "not a direct/FF commit):", file=sys.stderr)
+    if reconstructed:
+        print("  core-invariant #5 violation on local 'main' (surfaced by this push; "
+              "main's range was reconstructed for this push — the refusal names main, "
+              "not the ref you pushed):", file=sys.stderr)
     for v in violations:
         print(f"  FF/DIRECT  {format_one(v)}", file=sys.stderr)
     print("  fix: redo as a --no-ff merge — "
