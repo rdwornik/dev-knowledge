@@ -4,11 +4,11 @@
 
 `.dev-knowledge` is the ecosystem's methodology brain: it absorbs lessons from every repo, universalizes them into enforced conventions, and audits the ecosystem against them — the LLM-development "scrum master" for all `Dev/` projects (VISION: Knowledge Guardian · Methodology Author · Auditor · Disseminator). The backlog advances that mission across seven themes.
 
-**Themes (backbone):** Handoff continuity · Enforced governance · Lessons feedback loop · Decision management · Canonical-file integrity · Cross-repo universalization · Tooling & evaluation
+**Themes (backbone) — epic ids:** [E1] Handoff continuity · [E2] Enforced governance · [E3] Lessons feedback loop · [E4] Decision management · [E5] Canonical-file integrity · [E6] Cross-repo universalization · [E7] Tooling & evaluation
 
 ---
 
-## Handoff continuity
+## [E1] Handoff continuity
 > As a session inheriting this repo, I want to pick up with full state and lose nothing.
 
 ### [S1] Match the handoff payload to the work mode
@@ -23,7 +23,7 @@ So that the canonical v5 handoff is fully implemented (generator) and mechanical
 
 ---
 
-## Enforced governance
+## [E2] Enforced governance
 > As the operator, I want load-bearing conventions enforced by tools, not memory, so they can't silently drift.
 
 ### [S3] Turn advisory guards into enforced gates
@@ -98,7 +98,7 @@ Backbone (dependency-ordered; done stages recorded here as the epic ledger — A
 - [#325] [P3][S] Carry `/save` to consumers via a manifest command-artifact carrier — the hub `/save` command (stage-all + Conventional-Commits commit) is hub-only; a consumer inherits no `/save`. Ship it the way the enforcement-mesh carrier already ships `.claude/commands/override.md` (a command-file artifact: path/source pair). `/handoff` stays INTENTIONALLY hub-only — its format is hub-authored (ADR-42 handoff-format-v3) and ADR-36 children carry no local handoff surface — note it, do NOT carry. Sibling of the override-command carrier (#236) and #315 (INSTALL.md carry). · Done when: `/save` ships to a consumer via a manifest command-artifact carrier (verified present in-repo, n≥1) AND `/handoff`'s intentional absence is recorded with the ADR-42/ADR-36 reason · refs .claude/commands/save.md, .claude/commands/override.md, deploy/manifest-v1.3.1.yaml, ADR-42, ADR-36, #236, #315 · kill-candidates: none — operator-ruled post-rollout commands-parity gap (ai-council live on v1.3.1) · serialize-group: settings-json · DEFER — peg: P6 consumer-carrier step
 ---
 
-## Lessons feedback loop
+## [E3] Lessons feedback loop
 > As the methodology author, I want lessons to flow back into enforced rules, not sit in an archive.
 
 ### [S9] Make lessons an active feedback loop, not a passive archive
@@ -114,7 +114,7 @@ So that observed failure-modes become written guidance instead of recurring.
 
 ---
 
-## Decision management
+## [E4] Decision management
 > As a reader of 65+ ADRs, I want decisions navigable and free of silent contradiction.
 
 ### [S11] Keep the decision corpus navigable and contradiction-aware
@@ -128,7 +128,7 @@ So that the ADR web is internally consistent.
 
 ---
 
-## Canonical-file integrity
+## [E5] Canonical-file integrity
 > As any agent reading this repo, I want the canonical files accurate and current.
 
 ### [S13] Keep canonical files accurate
@@ -149,7 +149,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 
 ---
 
-## Cross-repo universalization
+## [E6] Cross-repo universalization
 > As the disseminator, I want every child repo to converge on the universal baseline.
 
 ### [S15] Converge every child repo on the universal baseline
@@ -183,7 +183,7 @@ So that a new repo inherits the full baseline in one step, not by re-derivation.
 
 ---
 
-## Tooling & evaluation
+## [E7] Tooling & evaluation
 > As the operator, I want low-friction tooling and timely tech adoption.
 
 ### [S18] Cut session friction with better tooling
