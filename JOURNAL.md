@@ -33,6 +33,20 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): #318 pre-push adapter ref-stream fix (worktree `318-prepush-ranges`; committed, NOT integrated)
+
+**Did:** Closed the code-side of **#318** (Codex A3). Re-derived the gap LIVE from pre-commit 4.5.1 source (not just the finding): pre-commit **consumes** the native pre-push stdin and re-exposes only **ONE** parsed ref pair via `PRE_COMMIT_*` (`_pre_push_ns` returns on the first pushable line), so `block_ff_push`'s env path missed `main` on (1) a **multi-ref** push where main isn't the forwarded ref and (2) an **empty-remote INITIAL** push (all_files path sets `REMOTE_BRANCH=main` but neither `TO_REF` nor `FROM_REF`, never the all-zeros sha). Fix (`scripts/block_ff_push.py` only, +52): when the pure resolver yields no range under pre-commit, **reconstruct** main's range from local refs (`refs/remotes/<remote>/main..refs/heads/main`, or full history on a fresh remote) reusing `_range_for`; fail-soft; the reconstructed-path refusal **attributes the violation to local `'main'`** (operator amendment). Reuse-integrity with `validate_no_ff` preserved. 12 tests added (Tier-1 deterministic RED→GREEN both misses · Tier-2 helper/precision/native-suppression/attribution · Tier-3 real pre-commit-adapter E2E).
+
+**Result:** commit **`00603b5`** on `worktree-318-prepush-ranges`; RED→GREEN confirmed for both misses; full suite **1510p/8s**, ruff + audit-health + all pre-commit gates GREEN. **Empirical finding:** this git feeds `refs/heads/main` FIRST in the pre-push stream regardless of argv/HEAD/branch, so a *real* multi-ref push already forwards main (env path catches it) — the multi-ref miss is git-order-dependent; the reconstruction is the version-robust guarantee (memory: `precommit-prepush-adapter-ref-stream`). Empty-remote miss IS real (reproduced through the real adapter).
+
+**Changes:** `scripts/block_ff_push.py` + `tests/test_block_ff_push.py` at `00603b5`; this JOURNAL entry — on `worktree-318-prepush-ranges`.
+
+**Abandoned:** none. (Carrier/manifest #319 stream + `tests/test_carrier_hooks_source.py` left untouched — file-disjoint by contract.)
+
+**Next:** integrate to main in the PRIMARY session via `/ship` (this is a worktree — `/ship` refuses here); BACKLOG #318 annotation/closure happens at integration (advisory note skipped to avoid a self-induced doc_rot WARN on the already-long task line).
+
+---
+
 ### 2026-07-11 — CC (Opus 4.8): arc wrap — next architect handoff cut (`-2`) + #322 filed + Codex pin verified (gpt-5.5, NOT 5.6-sol)
 
 **Did:** Wrapped the arc + cut the next architect bundle. (1) Verified LIVE the codex-review model pin: **`gpt-5.5`** (codex-cli 0.144.0, `~/.codex/config.toml`; effort medium, script-overridden to high) — **NOT the expected gpt-5.6-sol**; no `sol`/`tera`/`luna` variants in config or CLI (the migration path tops out at gpt-5.5). (2) Filed **#322** (fleet dashboard: existing data sources + C4-owed viz layer + surfacing habit; sibling of #270/#171) at `3abcebc`. (3) Generated the next architect bundle **`docs/handoffs/2026-07-11-dev-knowledge-architect-2/`** (architect mode, distinct `-2` slug), CC-filled RESIDUAL §1/§2/§4 (the operator's P1–P4 priority order) + the HANDOFF_BOOT purpose; **extended the EPIC H charter** with a second axis — Codex-5.6 variant-routing (SOL/TERA/LUNA task classes · producer-role pilot with ex-ante criteria · CC-verifies-Codex contract), flagged **AVAILABILITY-GATED** (5.6 absent). Referenced the operator-held plan-vs-execution doc as the §4 comparison baseline (#301 iv).

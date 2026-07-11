@@ -15,6 +15,7 @@ objects), so the detector and the gate can never disagree about what a violation
 """
 from __future__ import annotations
 
+import importlib.util
 import os
 import shutil
 import subprocess
@@ -295,3 +296,299 @@ def test_gate_and_detector_agree(tmp_path):
     gate = bfp.violations_in_range(repo, f"{seed}..{_rev(repo, 'main')}", baseline="2026-06-10")
     det = vnf.find_violations(repo, baseline="2026-06-10")
     assert [v[2] for v in gate] == [v[2] for v in det] == ["feat: direct on main"]
+
+
+# ============================================================================
+# #318 — pre-commit adapter ref-stream edges (empty-remote initial + multi-ref)
+# ============================================================================
+# Under the REAL carrier block_ff runs as a pre-commit-managed pre-push hook: pre-commit
+# CONSUMES the native pre-push stdin and re-exposes only ONE parsed ref pair via the
+# PRE_COMMIT_* env vars (pre-commit 4.5.1 hook_impl.py). So block_ff's env path can miss
+# `main` two ways it cannot express — a MULTI-REF push where main is not the forwarded
+# ref, and an EMPTY-REMOTE INITIAL push (pre-commit's all_files shape sets
+# PRE_COMMIT_REMOTE_BRANCH=refs/heads/main but neither PRE_COMMIT_TO_REF nor FROM_REF,
+# and never the all-zeros sha). The fix reconstructs main's range from local git refs.
+# Tier 1 drives the real script subprocess with the exact env pre-commit produces
+# (deterministic — no dependence on git's stdin ordering); Tier 3 drives a real
+# `git push` through the pre-commit pre-push adapter (closes the Codex-A3 "real adapter
+# not asserted" coverage gap).
+
+
+# --- Tier 1: behavioral RED->GREEN via the real script subprocess -----------
+
+@requires_git
+def test_precommit_multiref_hidden_main_refused(tmp_path):
+    # Multi-ref push: pre-commit forwarded feat/x (empty stdin + PRE_COMMIT_* env), hiding
+    # main. Current code returns 0 (miss); after the fix, main's range is reconstructed
+    # from refs/remotes/origin/main..refs/heads/main and the direct commit is refused.
+    repo, _seed = _with_remote(tmp_path)
+    _commit(repo, "feat: oops direct on main (multiref)",
+            adate="2026-06-16T10:00:00", fname="a.txt")
+    _run(repo, "checkout", "-q", "-b", "feat/x")
+    _commit(repo, "feat: legit on feat/x", adate="2026-06-16T10:00:00", fname="x.txt")
+    res = _invoke(repo, "", env_extra={
+        "PRE_COMMIT_REMOTE_NAME": "origin",
+        "PRE_COMMIT_REMOTE_BRANCH": "refs/heads/feat/x",
+        "PRE_COMMIT_TO_REF": _rev(repo, "feat/x"),
+        "PRE_COMMIT_FROM_REF": _ZERO,
+    })
+    assert res.returncode == 1, res.stderr
+    assert "oops direct on main" in res.stderr
+
+
+@requires_git
+def test_precommit_empty_remote_initial_refused(tmp_path):
+    # Empty-remote INITIAL push: pre-commit's all_files shape sets REMOTE_BRANCH=main but
+    # NO TO_REF/FROM_REF (and never the all-zeros sha). Current code -> _range_for("","")
+    # -> None -> 0 (miss); after the fix -> full local history -> the direct commit refused.
+    repo = _init_repo(tmp_path)
+    _commit(repo, "feat: direct on brand-new main (initial)",
+            adate="2026-06-16T10:00:00", fname="a.txt")
+    res = _invoke(repo, "", env_extra={
+        "PRE_COMMIT_REMOTE_NAME": "origin",
+        "PRE_COMMIT_REMOTE_BRANCH": "refs/heads/main",
+    })
+    assert res.returncode == 1, res.stderr
+    assert "direct on brand-new main" in res.stderr
+
+
+# --- Tier 3: real pre-commit pre-push ADAPTER (closes Codex-A3 coverage gap) --
+# A repo:local + language:system config wires the WORKING-TREE block_ff_push.py at the
+# pre-push stage, so pre-commit runs the live script (not a hub clone-at-rev) through its
+# real PRE_COMMIT_* adapter — RED/GREEN track the current working tree, no commit needed.
+
+_HAS_PRECOMMIT = importlib.util.find_spec("pre_commit") is not None
+requires_precommit = pytest.mark.skipif(
+    not _HAS_PRECOMMIT or shutil.which("git") is None,
+    reason="pre-commit or git not available",
+)
+_HUB = Path(__file__).resolve().parent.parent
+
+
+def _pc_env(tmp_path):
+    """Env with an ISOLATED pre-commit store so the E2E never contends the shared
+    ~/.cache/pre-commit lock (the orphan-lock-hang gotcha)."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("PRE_COMMIT_")}
+    env["PRE_COMMIT_HOME"] = str(tmp_path / "pc-cache")
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    return env
+
+
+def _local_pre_push_config() -> str:
+    """A repo:local pre-commit config wiring the WORKING-TREE block_ff_push.py at the
+    pre-push stage (language: system -> pre-commit runs the live script, exercising the
+    real PRE_COMMIT_* adapter against the current fix)."""
+    hp = str(_HUB / "scripts").replace("\\", "/")
+    return (
+        "default_install_hook_types: [pre-push]\n"
+        "repos:\n  - repo: local\n    hooks:\n"
+        "      - id: block-ff-push\n        name: block-ff-push\n"
+        f"        entry: python {hp}/block_ff_push.py\n"
+        "        language: system\n        stages: [pre-push]\n        always_run: true\n"
+        "        pass_filenames: false\n")
+
+
+def _pc_consumer(tmp_path):
+    """A consumer repo whose single seed commit (pre-baseline -> grandfathered) already
+    carries the local pre-push carrier, with an isolated store and the pre-push hook
+    armed. Seeding the config INTO the grandfathered commit keeps main's baseline clean
+    (a separate post-baseline config commit would itself be a violation)."""
+    repo = tmp_path / "consumer"
+    repo.mkdir()
+    _run(repo, "init", "-q")
+    _run(repo, "config", "user.email", "c@c.c")
+    _run(repo, "config", "user.name", "c")
+    _run(repo, "config", "commit.gpgsign", "false")
+    (repo / "seed.txt").write_text("seed", encoding="utf-8")
+    (repo / ".pre-commit-config.yaml").write_text(_local_pre_push_config(), encoding="utf-8")
+    _run(repo, "add", "-A")
+    env0 = dict(os.environ)
+    env0["GIT_AUTHOR_DATE"] = env0["GIT_COMMITTER_DATE"] = "2026-06-01T00:00:00"
+    subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "seed"],
+                   check=True, capture_output=True, text=True, encoding="utf-8", env=env0)
+    _run(repo, "branch", "-M", "main")
+    env = _pc_env(tmp_path)
+    inst = subprocess.run([sys.executable, "-m", "pre_commit", "install",
+                           "--hook-type", "pre-push"], cwd=str(repo),
+                          capture_output=True, text=True, env=env)
+    assert inst.returncode == 0, inst.stderr
+    return repo, env
+
+
+def _push(repo, env, *refs):
+    return subprocess.run(["git", "-C", str(repo), "push", "origin", *refs],
+                          capture_output=True, text=True, env=env)
+
+
+@requires_precommit
+def test_precommit_adapter_empty_remote_initial_refuses(tmp_path):
+    # Real adapter, empty-remote INITIAL push: fresh bare origin (no main yet). A
+    # post-baseline direct commit on main + the first `git push origin main` -> REFUSED.
+    repo, env = _pc_consumer(tmp_path)
+    bare = _init_bare(tmp_path)
+    _run(repo, "remote", "add", "origin", str(bare))
+    _commit(repo, "feat: direct on main (initial adapter)",
+            adate="2026-06-16T10:00:00", fname="a.txt")
+    push = _push(repo, env, "main")
+    out = push.stdout + push.stderr
+    assert push.returncode != 0, f"empty-remote initial direct-to-main push should be refused:\n{out}"
+    assert "REFUSED" in out.upper() or "local 'main'" in out, out
+
+
+@requires_precommit
+def test_precommit_adapter_multiref_dirty_main_stays_refused(tmp_path):
+    # Real adapter, MULTI-REF push: origin/main established, a post-baseline direct commit
+    # on main, then `git push origin feat/x main`.
+    # NOTE (empirical, this git version): git feeds `refs/heads/main` FIRST in the pre-push
+    # stream regardless of argv/HEAD/branch-name, so pre-commit forwards MAIN and the env
+    # path catches the violation directly — the multi-ref miss is NOT reproducible as a
+    # real push here (it is git/remote-helper-order-dependent). This test therefore asserts
+    # the end-to-end INVARIANT (a multi-ref push carrying a direct-to-main commit is
+    # refused), passing before AND after the fix. The deterministic RED->GREEN proof for
+    # the multi-ref code path is test_precommit_multiref_hidden_main_refused (Tier 1),
+    # which exercises the case where the adapter forwards a NON-main ref first.
+    repo, env = _pc_consumer(tmp_path)
+    bare = _init_bare(tmp_path)
+    _run(repo, "remote", "add", "origin", str(bare))
+    _push(repo, env, "main")  # establish origin/main (grandfathered seed -> passes)
+    _commit(repo, "feat: oops direct on main (adapter multiref)",
+            adate="2026-06-16T10:00:00", fname="a.txt")
+    _run(repo, "checkout", "-q", "-b", "feat/x")
+    _commit(repo, "feat: legit on feat/x", adate="2026-06-16T10:00:00", fname="x.txt")
+    push = _push(repo, env, "feat/x", "main")
+    out = push.stdout + push.stderr
+    assert push.returncode != 0, f"multi-ref push carrying a direct-to-main commit should be refused:\n{out}"
+    assert "REFUSED" in out.upper() or "local 'main'" in out, out
+
+
+@requires_precommit
+def test_precommit_adapter_feature_only_clean_main_passes(tmp_path):
+    # Precision guard (real adapter): a feature-only push with a CLEAN main is never
+    # refused, even though reconstruction runs (origin/main..main is empty).
+    repo, env = _pc_consumer(tmp_path)
+    bare = _init_bare(tmp_path)
+    _run(repo, "remote", "add", "origin", str(bare))
+    _push(repo, env, "main")  # clean main established on origin
+    _run(repo, "checkout", "-q", "-b", "feat/y")
+    _commit(repo, "feat: do y", adate="2026-06-16T10:00:00", fname="y.txt")
+    push = _push(repo, env, "feat/y")
+    assert push.returncode == 0, f"feature push with clean main must pass:\n{push.stdout}\n{push.stderr}"
+
+
+# --- Tier 2: helper units, precision guards, native-suppression, attribution -
+
+def test_under_precommit_flag():
+    assert bfp._under_precommit({"PRE_COMMIT_REMOTE_NAME": "origin"})
+    assert bfp._under_precommit({"PRE_COMMIT_FROM_REF": "x"})
+    assert not bfp._under_precommit({})
+    assert not bfp._under_precommit({"PATH": "/usr/bin", "HOME": "/home/x"})
+
+
+@requires_git
+def test_reconstruct_multiref_hidden_main(tmp_path):
+    # tracking ref present -> range is remote-tracking-main..local-main, and the scan
+    # surfaces exactly the post-baseline direct commit.
+    repo, seed = _with_remote(tmp_path)
+    _commit(repo, "feat: direct on main", adate="2026-06-16T10:00:00", fname="a.txt")
+    main_sha = _rev(repo, "main")
+    rng = bfp._reconstruct_main_range(repo, {"PRE_COMMIT_REMOTE_NAME": "origin"})
+    assert rng == f"{seed}..{main_sha}"
+    assert [v[2] for v in bfp.violations_in_range(repo, rng)] == ["feat: direct on main"]
+
+
+@requires_git
+def test_reconstruct_empty_remote_initial(tmp_path):
+    # no remote-tracking ref -> full local history (just the local main sha).
+    repo = _init_repo(tmp_path)
+    _commit(repo, "feat: direct", adate="2026-06-16T10:00:00", fname="a.txt")
+    main_sha = _rev(repo, "main")
+    rng = bfp._reconstruct_main_range(repo, {"PRE_COMMIT_REMOTE_NAME": "origin"})
+    assert rng == main_sha
+    assert [v[2] for v in bfp.violations_in_range(repo, rng)] == ["feat: direct"]
+
+
+@requires_git
+def test_reconstruct_missing_tracking_ref_no_crash(tmp_path):
+    # tracking ref deleted -> full-history fallback, no crash (fail-soft).
+    repo, _seed = _with_remote(tmp_path)
+    _run(repo, "update-ref", "-d", "refs/remotes/origin/main")
+    main_sha = _rev(repo, "main")
+    assert bfp._reconstruct_main_range(repo, {"PRE_COMMIT_REMOTE_NAME": "origin"}) == main_sha
+
+
+@requires_git
+def test_reconstruct_no_local_main_skips(tmp_path):
+    # no local main ref -> None (nothing to protect), never a crash.
+    repo = _init_repo(tmp_path)
+    _run(repo, "branch", "-M", "trunk")  # rename main away
+    assert bfp._reconstruct_main_range(repo, {"PRE_COMMIT_REMOTE_NAME": "origin"}) is None
+
+
+@requires_git
+def test_precommit_feature_push_clean_main_passes(tmp_path):
+    # Precision guard (subprocess): reconstruction RUNS on a feature-ref pre-commit push,
+    # but local main advanced only by a proper --no-ff MERGE (excluded by --no-merges) ->
+    # no violation -> rc 0. A clean repo is never refused.
+    repo, _seed = _with_remote(tmp_path)
+    _run(repo, "checkout", "-q", "-b", "feat/z")
+    _commit(repo, "feat: do z", adate="2026-06-16T10:00:00", fname="z.txt")
+    _run(repo, "checkout", "-q", "main")
+    _run(repo, "merge", "--no-ff", "-q", "-m", "Merge feat/z --no-ff", "feat/z")
+    _run(repo, "checkout", "-q", "-b", "feat/w")
+    _commit(repo, "feat: do w", adate="2026-06-16T10:00:00", fname="w.txt")
+    res = _invoke(repo, "", env_extra={
+        "PRE_COMMIT_REMOTE_NAME": "origin",
+        "PRE_COMMIT_REMOTE_BRANCH": "refs/heads/feat/w",
+        "PRE_COMMIT_TO_REF": _rev(repo, "feat/w"),
+        "PRE_COMMIT_FROM_REF": _ZERO,
+    })
+    assert res.returncode == 0, res.stderr
+
+
+@requires_git
+def test_native_feature_push_does_not_reconstruct(tmp_path):
+    # The `not lines` guard: a NATIVE feature push carries a ref line, so even with a dirty
+    # local main we must NOT reconstruct (native stdin already saw every ref) -> rc 0.
+    repo, _remote_sha = _with_remote(tmp_path)
+    _commit(repo, "feat: direct on main (dirty, not pushed)",
+            adate="2026-06-16T10:00:00", fname="a.txt")
+    _run(repo, "checkout", "-q", "-b", "feat/x")
+    _commit(repo, "feat: on feat/x", adate="2026-06-16T10:00:00", fname="x.txt")
+    line = _push_line(_rev(repo, "feat/x"), _ZERO, ref="refs/heads/feat/x")
+    res = _invoke(repo, line)  # native stdin present, PRE_COMMIT_* scrubbed
+    assert res.returncode == 0, res.stderr
+
+
+@requires_git
+def test_reconstructed_refusal_attributes_to_local_main(tmp_path):
+    # The reconstructed-path refusal must attribute the violation to LOCAL main + this push
+    # (so a consumer pushing a feature branch understands why the refusal names main).
+    repo, _seed = _with_remote(tmp_path)
+    _commit(repo, "feat: direct on main (attribution)",
+            adate="2026-06-16T10:00:00", fname="a.txt")
+    _run(repo, "checkout", "-q", "-b", "feat/x")
+    _commit(repo, "feat: legit", adate="2026-06-16T10:00:00", fname="x.txt")
+    res = _invoke(repo, "", env_extra={
+        "PRE_COMMIT_REMOTE_NAME": "origin",
+        "PRE_COMMIT_REMOTE_BRANCH": "refs/heads/feat/x",
+        "PRE_COMMIT_TO_REF": _rev(repo, "feat/x"),
+        "PRE_COMMIT_FROM_REF": _ZERO,
+    })
+    assert res.returncode == 1, res.stderr
+    assert "local 'main'" in res.stderr
+    assert "surfaced by this push" in res.stderr
+
+
+@requires_git
+def test_normal_env_path_refusal_omits_reconstruction_note(tmp_path):
+    # A refusal via the ordinary env path (main forwarded, valid TO/FROM) is NOT the
+    # reconstructed path -> it must NOT carry the local-main attribution note.
+    repo, remote_sha = _with_remote(tmp_path)
+    _commit(repo, "feat: direct via env path", adate="2026-06-16T10:00:00", fname="a.txt")
+    res = _invoke(repo, "", env_extra={
+        "PRE_COMMIT_REMOTE_BRANCH": "refs/heads/main",
+        "PRE_COMMIT_TO_REF": _rev(repo, "main"),
+        "PRE_COMMIT_FROM_REF": remote_sha,
+    })
+    assert res.returncode == 1, res.stderr
+    assert "surfaced by this push" not in res.stderr
