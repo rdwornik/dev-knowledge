@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): ARCHITECTURE.md → CC-facing — hub leg of #326 (strip ToC, un-gate toc-freshness) + close #165
+
+**Did:** Executed the **hub leg of #326** (operator ruling 2026-07-11: `ARCHITECTURE.md` is CC-facing → strip ToC + all Mermaid; ToC convention stays PLAYBOOK-only). **Key finding:** ARCHITECTURE.md already carried **zero Mermaid fences** (removed by the ADR-51 amendment 2026-07-05), so the Mermaid leg was a no-op — the 3 explanatory Mermaid *prose* lines (L67 codemap rationale, §Key-conventions render-layer pointer, Governing-ADRs one-liner) were **kept** (operator Fork-1: doctrine rationale, not diagrams). **(1) Commit A** `f7a548d` — the mandatory gate-collision pairing: removed the `<!-- TOC:START/END -->` block from ARCHITECTURE.md **and** deleted the hub-local `toc-freshness` hook from `.pre-commit-config.yaml` in the same commit (else `toc/check.py` exit-3 reds); updated the §Validators pre-commit prose to drop `toc-freshness`; bumped ARCHITECTURE `last_reviewed` 2026-07-11 (genuine full re-read). Reconciled `doc_claims`: dropped the CLAUDE.md §9 `toc-freshness` bullet + regenerated `ecosystem/doc-counts.md` (16→15 gates), CLAUDE.md v2.36 (net-neutral prose, `last_reviewed` already 2026-07-11). **(2) Commit B** `d2c8587` — closed **[#165]** (the declared kill-candidate; the ruling settles ASCII-vs-mermaid for ARCHITECTURE.md at n=1). PLAYBOOK's `toc-freshness-playbook` hook + ToC untouched throughout.
+
+**Result:** commits `f7a548d` (strip+un-gate) + `d2c8587` (close #165); merge SHA follows this wrap. **pytest 1516 passed / 3 skipped** (removing the live hook broke zero tests — observer/enforcement/deploy tests are fixture-based, not live-config readers). `audit.py health` = **OK**: `doc_claims` **[OK] 3 claims match** (roster+count reconciled), `doc_structure` **[OK]** (ToC removal clean — `scan_toc` no-ops without markers), no new `doc_rot` on CLAUDE.md (net-neutral held); all `[~~]` pre-existing (BACKLOG #262/#278/#328 accretion, 3 old no_ff, handoff-process undeclared edges). PLAYBOOK toc check exit 0 (still armed). `ruff` clean. `validate_backlog` OK (0 warnings; #165 gone from the architecture serialize-group).
+
+**Changes:** `ARCHITECTURE.md` (ToC block + prose + last_reviewed), `.pre-commit-config.yaml` (−`toc-freshness` hook), `CLAUDE.md` (§9 roster −1 + §12 v2.36 + version comment), `ecosystem/doc-counts.md` (16→15 gates), `BACKLOG.md` (−#165); this JOURNAL wrap.
+
+**Abandoned:** none.
+
+**Next:** **#326 stays OPEN** — fleet-wide, hub-first; the consumer ARCHITECTURE.md strip-ToC legs run per-repo in their own chats (ADR-41). System-visualization work stays deferred wholesale (C4 memo = intake #10, the reopen input).
+
+---
+
 ### 2026-07-11 — CC (Opus 4.8): fleet-parity register ACCEPTED → merged + 5 E6 follow-ups filed (#327–#331)
 
 **Did:** Operator ruled ACCEPT on the fleet-parity register (all verdicts as written; **§9a** = hub gets its own `.methodology.yaml`, no implicit exception; **§9b** = `review_date` enforcement advisory-WARN in v1, hardening later per the ADR-85 pattern). **(1) Merged the register:** `git merge --no-ff docs/fleet-parity-register` → **`1b624e52`**; resolved the expected JOURNAL prepend conflict newest-first (intake #10/#11 → fleet-parity register → serial-integration). **(2) Filed the 5 named follow-ups** under E6 → S15, next-free ids across all history (max real id was 326; the 900s/999 are test fixtures): **#327** [P2][M] protocols-as-interface genre ruling · **#328** [P2][M] fleet_parity ownership manifest + WARN-only audit check (carries the §9a/§9b rulings) · **#329** [P3][S] VS Code ownership viz GENERATED from #328 (`depends-on: #328`) · **#330** [P3][S] root-archive prohibition rule · **#331** [P2][S] consumer BACKLOG schema adoption ruling. Each carries an inline `kill-candidates: none — operator-ruled register follow-up`; the commit + merge messages carry the filing-backpressure line.

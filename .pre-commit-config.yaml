@@ -31,16 +31,6 @@ repos:
         language: system
         files: '(^scripts/.*\.py$|^pyproject\.toml$|^tach\.toml$|^ARCHITECTURE\.md$)'
         pass_filenames: false
-      - id: toc-freshness
-        name: ARCHITECTURE.md TOC freshness check
-        # Fail-on-stale, mirroring codemap-freshness: regenerate with
-        # `python -m scripts.toc.cli generate ARCHITECTURE.md --write`.
-        # Depends only on the doc's own headers, so it fires solely on
-        # ARCHITECTURE.md edits (no source-root dependency like the codemap).
-        entry: python -m scripts.toc.cli check ARCHITECTURE.md
-        language: system
-        files: '^ARCHITECTURE\.md$'
-        pass_filenames: false
       - id: toc-freshness-playbook
         name: PLAYBOOK.md TOC freshness check
         # Mirrors toc-freshness above. Regenerate with:
