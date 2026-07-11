@@ -170,6 +170,18 @@ dispositions:
       Accretion on the test-suite-hygiene epic. Grooming leg-c (2026-07-08) ruled #278 a PROMOTE
       (P3->P2, evidence-backed), not a condense, so the WARN stands; condense deferred to the
       epic's own build. Not introduced by the grooming arc.
+  # (2026-07-11) #328 surfaced by the #326 hub-leg ship-gate — the first FULL ship-gate run since
+  # #328 was filed (the fleet-parity register session merged via audit.py health, which passes WARNs).
+  - id: warn-doc-rot-backlog-328
+    organ: doc_rot
+    match: "BACKLOG#328"
+    ref: "#328"
+    reason: >-
+      Pre-existing accretion on the fleet_parity ownership-manifest task (filed 2026-07-11 in the
+      fleet-parity register acceptance; #328 carries the §9a/§9b rulings). Surfaced — NOT introduced —
+      by the #326 arc's ship-gate, the first full ship-gate run since #328 was filed. #328's charter
+      text is load-bearing (root-cause mechanism ticket), so condensation is deferred to #328's own
+      build session (operator-ruled 2026-07-11). Keyed on BACKLOG#328 per the doc-rot disposition pattern.
 
   # (cleared 2026-07-02, #222) warn-doc-claims-pytest-collected-architecture — #222 relocated
   # the three volatile counts to the committed-generated ecosystem/doc-counts.md, so the
