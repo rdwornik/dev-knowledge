@@ -86,6 +86,19 @@ repos:
         language: system
         files: '(^docs/audits/.*\.md$|^scripts/gen_audit_index\.py$)'
         pass_filenames: false
+      - id: validate-hermetization
+        name: ADR-101 hermetization refusal gate (#306; HUB-ONLY, prospective-only)
+        # Prospective-only tree seal (ADR-101 §3): inspects only staged ADDs
+        # (git diff --cached --diff-filter=A); existing files grandfathered. Rule A BLOCKs a
+        # new unsanctioned Tier-1 top-level dir / file-class / docs/<genre>/ folder; Rule B
+        # BLOCKs a docs/audits/*.md off the <date>-<class>-<slug> grammar, R4 casing, or the
+        # CLOSED 11-class enum. Name-shape only, never date-accuracy. HUB-ONLY (the floor/plugin
+        # carrier is the P6 rollout). Computes its own staged-add set → always_run. Bypass:
+        # --no-verify.
+        entry: python scripts/validate_hermetization.py
+        language: system
+        always_run: true
+        pass_filenames: false
       - id: validate-backlog
         name: Validate BACKLOG.md story-map (ADR-66)
         entry: python scripts/validate_backlog.py
