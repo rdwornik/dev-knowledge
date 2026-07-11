@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-12 — CC (Opus 4.8): intake #13 → v4 — Phase A0 exit split into two required legs
+
+**Did:** Operator-directed amendment to `docs/intake/2026-07-11-tech-plan-of-record-fleet-hygiene.md`. Bumped `revision: v3 → v4` (frontmatter + the `REVISION` heading line, with a delta-vs-v3 note) and replaced the Phase A0 trailing `Exit:` sentence with an explicit **two-leg, both-required** exit: (a) conformance + `.methodology.yaml` declarations + manifest DRAFT→settled (the prior single leg), and NEW (b) the OPERATIONAL MINIMUM verified working per consumer — hooks/skills/commands/handoffs each **WITNESSED** functioning in ai-council and corp-monorepo (`presence ≠ enforcement ≠ usable`); product-work-ready may be declared only after (b).
+
+**Result:** leaf **`a07028d`** on branch `docs/intake-13-v4-operational-minimum-exit`; edge validators clean (scan_undeclared_edges: not a new candidate; doc_code_edge N/A; reconciliation out-of-scope), all pre-commit gates Passed. Reported diff verbatim; awaiting operator go for `/ship`. Merge SHA follows on ship.
+
+**Changes:** `docs/intake/2026-07-11-tech-plan-of-record-fleet-hygiene.md` (`a07028d`); this note.
+
+**Abandoned:** none.
+
+**Next:** operator to approve the `--no-ff` merge to `main`.
+
+---
+
 ### 2026-07-12 — CC (Opus 4.8): Phase-A0 handoff `supplement filled` — fold architect ANSWERS + flip framing
 
 **Did:** Operator filled the Phase-A0 bundle's `SUPPLEMENT.md` ANSWERS (outgoing architect's off-repo "why": strategic intent = shift to WORKABLE-CONSUMERS posture with A0's two-leg exit (template conformance + verified operational minimum per consumer), tensions weighed, considered+rejected, the seven A0 open questions, decomposition rationale, off-repo priorities). Ran the documented fill step `python scripts/assemble_paste.py <bundle>`, which **reflowed** the cold→FILLED framing in HANDOFF_BOOT/RESIDUAL/PROBES (surgical — my hand-authored FILL-IN prose untouched) and **folded** the ANSWERS into `PASTE_THIS.md` (34.9→40.4 KB, under the 65 KB budget). The incoming session's §13(d) operator-context beat now NARROWS to "anything changed since the supplement was written?" instead of firing full.
