@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): fleet-parity register ACCEPTED → merged + 5 E6 follow-ups filed (#327–#331)
+
+**Did:** Operator ruled ACCEPT on the fleet-parity register (all verdicts as written; **§9a** = hub gets its own `.methodology.yaml`, no implicit exception; **§9b** = `review_date` enforcement advisory-WARN in v1, hardening later per the ADR-85 pattern). **(1) Merged the register:** `git merge --no-ff docs/fleet-parity-register` → **`1b624e52`**; resolved the expected JOURNAL prepend conflict newest-first (intake #10/#11 → fleet-parity register → serial-integration). **(2) Filed the 5 named follow-ups** under E6 → S15, next-free ids across all history (max real id was 326; the 900s/999 are test fixtures): **#327** [P2][M] protocols-as-interface genre ruling · **#328** [P2][M] fleet_parity ownership manifest + WARN-only audit check (carries the §9a/§9b rulings) · **#329** [P3][S] VS Code ownership viz GENERATED from #328 (`depends-on: #328`) · **#330** [P3][S] root-archive prohibition rule · **#331** [P2][S] consumer BACKLOG schema adoption ruling. Each carries an inline `kill-candidates: none — operator-ruled register follow-up`; the commit + merge messages carry the filing-backpressure line.
+
+**Result:** register merge **`1b624e52`**; ticket leaf **`b9a820c9`**, merged **`b4b1997f`** (--no-ff). `validate_backlog` OK (7 themes / 20 stories / 107 tasks / **0 warnings** — no dedup false-positive, `depends-on: #328` resolves); ship-gate `audit.py health` = **OK** at both merges (all `[~~]` pre-existing); pushed `2d16b8e3..1b624e52` then `1b624e52..b4b1997f`; both merged branches deleted. The register is now on main (`docs/audits/2026-07-11-technical-fleet-parity-register.md`); the divergence-register intake #11 (`superseded-pending`) is formally superseded by it.
+
+**Changes:** merge `1b624e52` (register file + audits index onto main); `BACKLOG.md` +5 E6 tasks (leaf `b9a820c9`, merge `b4b1997f`); this JOURNAL wrap.
+
+**Abandoned:** none. (First `git merge -F -` attempt failed — merge does not read stdin like commit; redone via a message file.)
+
+**Next:** #328 is the register's "missing mechanism" (item 22) — build the parity manifest + WARN check + hub `.methodology.yaml` first, HUB-ONLY; #329 unblocks off it; #331 ruling feeds #328's per-consumer declaration. The FIX-NOW rows (d1 corp→ADR-101 lowercase, e2 `.hypothesis` gitignore, g1 corp handoff v4→v5) execute per-repo in each repo's chat (ADR-41).
+
+---
+
 ### 2026-07-11 — CC (Opus 4.8): intake two operator-held artifacts → docs/intake/ (#10, #11)
 
 **Did:** Operator-directed intake of two architect artifacts out of the operator's Downloads into the tree (plan-of-record: artifacts live in the tree, not Downloads). Read both, placed under the ADR-98 intake convention with frontmatter (intake-id/status/origin) + the operator-dictated one-line intake note each; `tech` infix (technical-architect outputs), origin date 2026-07-11; next-free intake-ids verified across all git history (max was 9 → assigned 10, 11). **(1)** `docs/intake/2026-07-11-tech-c4-visualization-memo.md` (**#10**, status `input-for-deferred-work`) — architect research memo, input for the deferred system-visualization work (#326 ruling / #165), narrowed by the 2026-07-11 CC-facing/viz-deferred ruling. **(2)** `docs/intake/2026-07-11-tech-fleet-divergence-register.md` (**#11**, status `superseded-pending`) — architect-compiled 23-item master register; snapshot whose verified successor is the fleet-parity sweep register (kept for provenance). Confirmed `gen_intake_index.py` sends the two custom statuses to the loud `OTHER` group (no fail) before writing; regenerated the index.
