@@ -33,6 +33,20 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): fleet-parity register — hub · ai-council · corp-monorepo (read-only; branch, no merge)
+
+**Did:** Operator-directed READ-ONLY fleet-parity sweep consolidating the recurring divergence list into one canonical ADR-101 register. Fanned 3 parallel read-only evidence-gatherers (one per repo) over the operator-dictated items (a)–(g) + a `.methodology.yaml` meta-scan; assembled one row per divergence with FIX-NOW / DECLARE-LOCAL / TICKET / AT-PARITY verdict **proposals** + owner repo. Two honesty flags surfaced and reported faithfully rather than papered over: **`runbox/` is ABSENT** in the hub (no dir, no git history — the prompt premise "hub runbox/ single file" does not match live state → NO-ACTION premise-void), and the **hub has no `.methodology.yaml`** (both consumers do → shapes the proposed check: hub = baseline). Also proposed (design only, not built) a WARN-only `fleet_parity` check extending `scripts/enforcement_coverage.py`: every surface at parity or declared in `.methodology.yaml`, else WARN in the nightly ecosystem audit — so the list can't silently regress. Filename carries the `technical` ADR-101 class token (hub `validate-hermetization` gate passed, not bypassed).
+
+**Result:** `docs/audits/2026-07-11-technical-fleet-parity-register.md` committed **`6e62eb3`** on branch `docs/fleet-parity-register`, **no merge** (main untouched at `e746fe1`). 18 divergence rows + 1 meta-finding. Key rulings surfaced: (d) corp UPPERCASE `_AUDIT_`/`_BRIEF_` vs hub lowercase — **ADR-101 R4 already ruled lowercase wins** (corp named verbatim); (b) consumer story-map is ADR-99 P6 rollout; (a) corp still carries 2 Mermaid flowcharts #326 stripped. All pre-commit gates passed (hermetization refusal gate + audit-index regen 221→222). Proposals only — zero files moved/renamed/deleted in any of the three repos. Operator verb-rules each row later.
+
+**Changes:** new `docs/audits/2026-07-11-technical-fleet-parity-register.md` + `docs/audits/README.md` index regen (`6e62eb3`); this JOURNAL wrap.
+
+**Abandoned:** none.
+
+**Next:** operator verb-rules the register rows; the §9 `fleet_parity` check + `ecosystem/parity-surfaces.yaml` is a named BACKLOG task to file (HUB-ONLY first, consumer carrier at P6). Direction-already-ruled rows lean FIX-NOW: d1 (corp→ADR-101 lowercase), e2 (`.hypothesis` gitignore), g1 (corp handoff v4→v5).
+
+---
+
 ### 2026-07-11 — CC (Opus 4.8): serial integration — #324 verb-list merged to main + methodology v1.3.1 release cut
 
 **Did:** Two serial operator-directed operations. **(1) Verb-list integration:** `git merge --no-ff docs/audit-corpus-verb-list` → merge **`65c9827`** (M1) bringing the #324 leg-c audit-corpus verb list onto main; ship-gate GREEN (no self-induced drift — `doc_claims` OK, 11 WARN all dispositioned); pushed main. **Operator ruling recorded (in the M1 merge message + here):** verb list **ACCEPTED as proposed — 0 deletions**; the **34 archive-candidates are handled by the ADR-100 §2 index archive-section (index grouping only), NO physical moves**; 186 keep / 34 archive-candidate / 0 delete-candidate across 220 audits. **(2) v1.3.1 release cut:** the v1.3.0 tag (`f583509b`) did NOT contain the #318/#319 fixes (verified by the ai-council session via tag-ancestry). Cut `deploy/manifest-v1.3.1.yaml` (copy of v1.3.0 with the three coupled anchors re-pointed: `methodology_version` 1.3.1 / `source_tag` v1.3.1 / precommit `hub_hooks.rev` v1.3.1) + roster regen — commit **`effe26d`**, merged **`84d47ab`** (M2); mirrors the LANE-C v1.3.0 cut (`950a81d` = manifest + roster). `release_lint --version 1.3.1`: 0 FAIL / 7 pass / C2 WARN-until-tag. Annotated tag **`v1.3.1` @ `84d47ab`**.
