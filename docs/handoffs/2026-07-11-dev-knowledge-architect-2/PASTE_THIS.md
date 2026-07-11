@@ -11,7 +11,7 @@
 | **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->Execute the fleet universalization/hermetization rollout — the operator's execution-first headline. **P1: triage Codex gaps #318/#319 (the #302/#309 parity the rollout arms), then run the ai-council rollout** from the staged draft → corp next (P2, ADR-41 dedicated chat). Visible outcomes (consumers onboarded) govern over meta-work; the **C4 visualization research is the standing architect debt** (P3, ~4× overdue — it gates the Mermaid ruling + the #322 dashboard viz layer), and the EPIC-H model-routing spike + its new availability-gated Codex-5.6 axis is P4. Start at **`RESIDUAL.md` §4** (the priority order), then `BACKLOG.md` (the spec).<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/2026-07-11-architect-handoff`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -274,7 +274,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -314,7 +314,7 @@ Terse map (JOURNAL `2026-07-11` two entries encode the detail):
 - **P1 — the hermetization/universalization goal LANDS HERE: #318/#319 triage → ai-council rollout.** First triage the two Codex-surfaced enforcement-transfer gaps — **#318** (block-ff-push pre-push adapter misses empty-remote/multi-ref ranges) + **#319** (v1.3.0 carrier bumps `rev` but does not append the new hook ids to existing consumers) — because both undercut the #302/#309 parity the rollout arms. THEN the **ai-council rollout** from the staged draft `docs/audits/2026-07-12-technical-night-rollout-ai-council.md` (grandfather map aligned to the hub baseline · carrier-arm v1.3.0 · commands gap · #314/#315 deltas). This rollout IS the operator's universalization/hermetization headline — visible outcome, not meta-work.
 - **P2 — corp rollout (ADR-41) + D4 staleness.** From `…-rollout-corp-monorepo.md`: carrier-arm (corp has NEITHER gate) + the D4 staleness fix (only **ADR-31 at `corp-monorepo/ARCHITECTURE.md:568`** is genuinely stale — a "Layer-2" misattribution; N2 verified ADR-30/38/53/54 current). Runs in the corp dedicated chat (ADR-41 — hub cannot write a child).
 - **P3 — C4 visualization research [ARCHITECT-OWED · STANDING DEBT · ~4× overdue — FLAG].** The open-web codemap/diagram/visualization research the architect owes; the repo-side requirements are staged in `…-c4-requirements.md` (fleet Mermaid inventory=12 · the #262/#295 `ast_walker` node-granularity root-cause · per-repo tach matrix · the hub's own codemap is a 2-orphan stub). It has slipped multiple handoffs — treat as the standing debt, not a fresh item. It **GATES** the Mermaid/ToC diagram-selection ruling (#165) AND the #322 Fleet-dashboard **visualization layer** (leg b).
-- **P4 — EPIC H spike (incl. the NEW Codex axis) → then #270, #317, grooming.** EPIC H = subagent/model-routing doctrine (OD3): research spike → PLAYBOOK doctrine (Opus=orchestration/judgment · Sonnet=bounded probes/mechanical · Haiku=cheap fan-out). **This night-batch + integration is itself an evidence datapoint** — an Opus orchestrator + 5 Sonnet read-only subagents ran cleanly with EVERY git mutation serial in the main thread; the doctrine held under load (and two incidents — the accidental out-of-order merge + the immutable-bundle overwrite — were caught + recovered, evidencing the verify-and-surface discipline). **CHARTER EXTENSION (this wrap): a SECOND routing axis — Codex-5.6 variant-routing.** SOL/TERA/LUNA task-class routing + a **producer-role pilot** (Codex as a code PRODUCER, not only reviewer) with **ex-ante success criteria** + a **CC-verifies-Codex contract** (CC adversarially checks every Codex-produced artifact — the inverse of tonight's Codex-verifies-CC). **GATED ON AVAILABILITY (verified live this wrap): the 5.6 variants are ABSENT** — codex-cli 0.144.0 pins `model = gpt-5.5` (effort medium, script-overridden to high); no `sol`/`tera`/`luna` in `~/.codex/config.toml` or the CLI (migration path tops out at gpt-5.5). So the variant-routing pilot is charter-only until 5.6/sol/tera/luna land; the producer-role + CC-verifies contract can be designed now against gpt-5.5. THEN **#270** (operator-load gauge, re-enters admission), **#317** (parallel-test — **post-D1**: the global core-invariant #2 change is operator-gated, never unilateral), and grooming.
+- **P4 — EPIC H spike (incl. the NEW Codex axis) → then #270, #317, grooming.** EPIC H = subagent/model-routing doctrine (OD3): research spike → PLAYBOOK doctrine (Opus=orchestration/judgment · Sonnet=bounded probes/mechanical · Haiku=cheap fan-out). **This night-batch + integration is itself an evidence datapoint** — an Opus orchestrator + 5 Sonnet read-only subagents ran cleanly with EVERY git mutation serial in the main thread; the doctrine held under load (and two incidents — the accidental out-of-order merge + the immutable-bundle overwrite — were caught + recovered, evidencing the verify-and-surface discipline). **CHARTER EXTENSION (this wrap): a SECOND routing axis — Codex-5.6 variant-routing.** SOL/TERRA/LUNA task-class routing + a **producer-role pilot** (Codex as a code PRODUCER, not only reviewer) with **ex-ante success criteria** + a **CC-verifies-Codex contract** (CC adversarially checks every Codex-produced artifact — the inverse of tonight's Codex-verifies-CC). **UNBLOCKED — the 5.6 variants ARE available [CORRECTION, 2026-07-11 operator live-verification].** The operator verified the Codex CLI `/model` picker exposes `gpt-5.6-sol` / `gpt-5.6-terra` / `gpt-5.6-luna` (codex-cli 0.144.0) — **overruling CC's earlier config-derived "ABSENT" claim**, which wrongly conflated the `config.toml` DEFAULT pin (was `gpt-5.5`; **now updated to `gpt-5.6-sol`**, effort still script-overridden to high) with CLI AVAILABILITY. So the variant-routing pilot is **READY, not charter-only** — design it against sol/terra/luna directly. (A config pin states the DEFAULT, never availability; the `/model` selector is the availability source — LESSONS 2026-07-11.) THEN **#270** (operator-load gauge, re-enters admission), **#317** (parallel-test — **post-D1**: the global core-invariant #2 change is operator-gated, never unilateral), and grooming.
 
 **Plan-continuity (per #301 clause iv — the reason this residual exists).** The incoming session's plan-vs-implementation comparison baseline is the **operator-held plan-vs-execution review doc** — it lives in the operator's browser workspace, NOT in the hub tree (searched `docs/handoffs/**` + `docs/audits/`, not found; the operator carries it forward). Compare this arc's ACTUAL execution — the night-batch + morning integration (JOURNAL `2026-07-11` two entries) — against that plan-of-record before starting P1. The #301(iv) fold this wrap names the carrier that makes this mechanical next time (a `prior_plan:` bundle field + gen_handoff discover-step + a RETROSPECTIVE plan-vs-execution subsection), so a future handoff carries the prior plan automatically rather than relying on the operator holding it.
 <!-- FILL-IN:frontier END -->
@@ -353,7 +353,7 @@ the whole task-state.
 > branch is checked out so CC knows which live value to compare — **re-derive HEAD / tree / branch /
 > ahead-behind live (P3); do not trust this line.**
 >
-> > **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> > **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 >
 > **Windows note:** `audit.py checks` (P2) can crash mid-listing on a bare cp1252 PowerShell console
 > (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` (or `PYTHONIOENCODING=utf-8`); this
@@ -377,7 +377,7 @@ navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d):** the browser
 asks the operator for **off-repo** context.
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -406,3 +406,77 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
    never "matches a remembered number." P7 is the headline (GREEN/RED + dispositioned-WARN count +
    any `[stale]` line). P8 pins the bundle shape **and the live supplement fill-state**. First check
    which branch is live (P3), then re-derive every load-bearing fact from the live primary source.
+
+---
+
+=== SUPPLEMENT.md ===
+
+STRATEGIC INTENT — CONSUMER ROLLOUT WAVE: universalize + hermetize ai-council and
+corp-monorepo as goal ONE. Every mechanism built in the prior arc must be SEEN
+working in a consumer: Form-A boundary markers in each consumer CLAUDE.md, carried
+gates ARMED AND FIRING, global-vs-local split visible per repo (methodology =
+hub-owned, project = local, machine-readable). Way-of-working shift: hub-building
+posture -> fleet-rollout posture. Second axis: the methodology must be TESTABLE
+continuously — the night-batch pattern (proven 2026-07-11->12) becomes a standing
+routine: night runs verify hygiene/audit-naming/boundary-drift + stage work; a
+standard MORNING PROMPT consumes the verdict-sheet (review -> consolidate ->
+decide). Third axis: token economy — Codex as PRODUCER for long bounded tasks
+(CC verifies state-fidelity, architect reviews), Claude Opus reserved for
+judgment; Codex substrate confirmed at 5.6 (sol/terra/luna live in CLI).
+
+TENSIONS WEIGHED — (a) rollout speed vs carrier quality: #318/#319 (Codex parity
+findings) triage FIRST, then ai-council GO — arming known-holed gates in a
+consumer is rejected. (b) Codex producer substrate: CONFIRMED live by operator
+(gpt-5.6-sol/terra/luna in the CLI /model selector; the config.toml pin was
+stale at gpt-5.5 -> corrected to gpt-5.6-sol). Producer/CC-verifies contract AND
+the variant-routing pilot both proceed NOW: working hypothesis = SOL for
+long/complex bounded builds, TERRA for everyday bounded tasks, LUNA for cheap
+fan-out/mechanical passes — mirroring the Opus/Sonnet/Haiku doctrine one-to-one;
+the pilot assigns real task classes with ex-ante criteria. (c) audit-corpus
+growth vs navigability: the corpus earned its cost (matrix -> rulings ->
+mechanisms) but needs a sequential review pass — every audit gets a verb
+(keep/archive/delete-candidate), lists + paths produced by a night leg, operator
+rules deletions. (d) plan-continuity placement: the plan-of-record is authored
+at session END by the outgoing architect and consumed at the NEXT session's boot
+as the comparison baseline (#301 clause iv prior_plan carrier) — both ends, one
+artifact.
+
+CONSIDERED + REJECTED (do not relitigate) — (a) consumer rollout before
+#318/#319 triage: rejected. (b) ad-hoc Codex adoption without doctrine: rejected
+— EPIC H axis, pilot with ex-ante criteria. (c) deleting audits without a
+reviewed verb list: rejected (never-delete-without-asking). (d) waiting or
+gating on Codex 5.6 availability: OBSOLETE — availability operator-confirmed
+live; the earlier "ABSENT from CLI" claim was a config-vs-selector conflation
+(config pin states the DEFAULT, the CLI selector states AVAILABILITY). (e)
+treating the night-batch as one-off: rejected — it graduates to a standing
+routine with a morning-prompt consumer.
+
+OPEN QUESTIONS — (a) Mermaid/ToC successor: C4 architect-owed, 4x overdue,
+blocks DEFER(c) + the #322 dashboard visualization leg. (b) D1 ruling (global
+core-invariant #2 -> parallel verify) at #317 build. (c) BACKLOG notation
+grooming (restore S-n/epic markers, E-prefix decision, 57 WEAK). (d) Codex
+SOL/TERRA/LUNA task-class assignment — pilot design, first consumer = which
+task? (e) automation/fleet-audit integrate-or-abandon. (f) which night-batch
+legs become the standing routine vs stay on-demand.
+
+DECOMPOSITION RATIONALE — P1: #318/#319 triage -> ai-council rollout (staged
+draft docs/audits/2026-07-12-technical-night-rollout-ai-council.md) -> corp
+rollout (ADR-41 chat, staged draft + D4 STALENESS dimension). P2: audit-corpus
+sequential review (night leg produces the list, operator rules verbs) +
+nightly-routine codification (workflow: night batch -> verdict-sheet -> morning
+prompt). P3: C4 -> Mermaid/ToC ruling -> #322 dashboards. P4: EPIC H incl. the
+Codex variant-routing pilot (now unblocked) -> #317 (post-D1) -> #270 ->
+grooming. Do NOT redo: the boundary matrix, the marker design, v1.3.0, the
+night findings — all are canon inputs now.
+
+OFF-REPO CONTEXT — Codex: config pin was stale (gpt-5.5) while 5.6
+sol/terra/luna are live in the CLI — operator verified in the /model selector,
+pin corrected to gpt-5.6-sol; the arc's night reviews ran on 5.5 (findings
+stand, re-review on 5.6 optional). LESSONS entry owed/extended: premise
+verification must target the AUTHORITATIVE surface (config = default, selector
+= availability); this failed twice in one chain (architect stale memory, then
+CC's config-only read accepted without the selector check). Token-budget
+pressure is real and drives the Codex-producer strategy. win-tooling is
+registered (operator's own arc, c198cf1) — onboarding DEFERRED until after
+ai-council + corp. The plan-vs-execution review doc (2026-07-11) is committed
+alongside the -2 bundle as the incoming session's comparison baseline.

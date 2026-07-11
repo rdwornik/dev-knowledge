@@ -29,7 +29,9 @@
 
 **Abandoned:** the accidental regeneration of the immutable `2026-07-11-dev-knowledge-architect` bundle (reverted; zero net change).
 
-**Next:** operator fills the `-2` SUPPLEMENT + launches the next architect session (P1: #318/#319 triage → ai-council rollout). The ai-council rollout stays its own session.
+**Next:** operator has now FILLED the `-2` SUPPLEMENT (consumer-rollout strategic intent) — launch the next architect session (P1: #318/#319 triage → ai-council rollout); the rollout stays its own session.
+
+**Correction (same arc, `848a880`):** the Codex-5.6 variants ARE available — the operator live-verified the CLI `/model` picker exposes `gpt-5.6-sol`/`gpt-5.6-terra`/`gpt-5.6-luna` (codex-cli 0.144.0), **overruling CC's earlier config-derived "ABSENT" claim** (which conflated the `config.toml` DEFAULT pin with CLI AVAILABILITY). Applied: config pin `gpt-5.5`→`gpt-5.6-sol` (verified codex resolves it), the `-2` §4 EPIC-H axis un-gated (pilot READY; SOL/TERRA/LUNA ↔ Opus/Sonnet/Haiku) with correction provenance, and **LESSONS 2026-07-11** records the authoritative-surface leg (a config pin states the DEFAULT, never availability; the selector is the availability source).
 
 ---
 
