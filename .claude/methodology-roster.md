@@ -26,8 +26,8 @@
 - Stop: session_end_backpressure.py — deterministic session-end gate (JOURNAL SHA-anchor hard block)
 
 ## Pre-commit hooks
-- toc-freshness / toc-generate — TOC freshness (hub hooks, pinned rev)
-- codemap-freshness / codemap-generate — ARCHITECTURE.md codemap freshness (hub hooks, pinned rev)
+- toc-freshness — TOC freshness (hub hooks, pinned rev)
+- codemap-freshness — ARCHITECTURE.md codemap freshness (hub hooks, pinned rev)
 - block-ff-push — pre-push gate; refuses direct-to-main / FF push (core-invariant #5 prevent)
 - backlog-id-on-close — commit-msg gate; require [#id] when a BACKLOG task line is removed
 - floor-hash-verify — verifies .claude/CLAUDE-FLOOR.md matches its sha256 sidecar
