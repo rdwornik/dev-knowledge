@@ -86,6 +86,17 @@ repos:
         language: system
         files: '(^docs/audits/.*\.md$|^scripts/gen_audit_index\.py$)'
         pass_filenames: false
+      - id: intake-index-freshness
+        name: Intake index freshness check (#307; docs/intake/README.md Contents block)
+        # Fail-on-stale regen-and-diff, mirroring audit-index-freshness: regenerate with
+        # `python scripts/gen_intake_index.py --write`. Guards the generated status-grouped
+        # Contents block in docs/intake/README.md against silent rot. Fires on ANY
+        # docs/intake/*.md (a status change or add/remove shifts the index) OR the generator.
+        # The --check regen-and-diff is shape-agnostic. HUB-ONLY.
+        entry: python scripts/gen_intake_index.py --check
+        language: system
+        files: '(^docs/intake/.*\.md$|^scripts/gen_intake_index\.py$)'
+        pass_filenames: false
       - id: validate-backlog
         name: Validate BACKLOG.md story-map (ADR-66)
         entry: python scripts/validate_backlog.py
