@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): morning integration — night-batch 4 branches merged to main + register-win-tooling incident recovery + follow-up filings
+
+**Did:** Operator-approved morning triage of the night verdict-sheet. (1) **RECOVERED an incident:** a mislabeled `chore/registry-win-tooling` branch (accidentally cut off `docs/night-hygiene`) had merged the whole hygiene branch onto local main out-of-order, AND origin/main had advanced in parallel to the operator's pushed **`c198cf1`** register-win-tooling arc (a769066 — REGISTRY.md + index.yaml). Per operator ruling + 3 safeguards (verified 157628a had zero unique commits; `git fetch` before each merge confirming origin unmoved; confirmed the branch was a pure duplicate) → `git reset --hard origin/main` (dropped only the unpushed accidental merge), deleted the duplicate branch. (2) Confirmed REGISTRY.md is **declarative-only** (`discover_repos` reads `ecosystem/*/state.yaml`, not REGISTRY) — win-tooling was already traversed via its gitignored state.yaml, showing as a 5th `unmarked` boundary_report consumer (expected, not a gate red). (3) **Merged the 4 night branches `--no-ff` in order** onto c198cf1: `be93a53` (#306) → `5e8a248` (#307, conflict-resolved: kept both new hooks in .pre-commit-config + CLAUDE §9, regen doc-counts 16 gates/1503) → `e253814` (feat/e2e, doc-counts regen 1504) → `4a30662` (docs/night-hygiene, clean). ship-gate GREEN + full pytest after the conflict merge (1501p/2s) and final (1501p/3s). Pushed `c198cf1..4a30662`; block-ff-push PASSED; tore down all 4 branches (-d). (4) **Filed follow-ups** on `docs/morning-triage-filings`: #318 (Codex A3 pre-push adapter edge), #319 (Codex A4/A5 carrier hook-append), #320 (fleet backup posture — the prior-sweep item never filed), #321 (ARCHITECTURE Ch2 organ-map: boundary_report missing — scheduled genuine re-read, NOT quick-patched); folded the plan-continuity carrier into #301 clause (iv).
+
+**Result:** main = **`4a30662`** on origin, all night work integrated + Codex-hardened; 15→16 pre-commit gates, 1504 tests; ship-gate GREEN. 4 tickets filed (#318–#321) + #301 fold. No data lost (the operator's c198cf1 preserved; the accidental 157628a was unpushed + zero-unique).
+
+**Changes:** merges `be93a53`/`5e8a248`/`e253814`/`4a30662`; BACKLOG (#318–#321 + #301 edit) + this JOURNAL entry on `docs/morning-triage-filings`.
+
+**Abandoned:** the accidental `157628a` (out-of-order hygiene merge, reset away) + `chore/registry-win-tooling` (duplicate, deleted).
+
+**Next:** **ai-council rollout is its OWN session** (operator ruling — launches after A3/A4 triage), using the staged `docs/audits/2026-07-12-technical-night-rollout-ai-council.md`. ARCHITECTURE organ-map (#321) awaits a genuine re-read. Fleet backup posture (#320) is operator/child-repo scope.
+
+---
+
 ### 2026-07-11→12 — CC (Opus 4.8): autonomous night-batch — #306/#307 builds + E2E gauntlet + Codex hardening + hygiene (ALL UNMERGED, operator triages)
 
 **Did:** Unattended night run (Opus orchestrates · Sonnet probes · Codex adversarial reviewer). **Phase 1** (parallel read-only fan-out): 3 Codex passes over today's arc + 2 rollout-recon subagents (N2) + 1 C4-requirements subagent (N3). **Phase 2** (serial builds, commit-and-STOP, NO merge): **#306** `validate_hermetization.py` — ADR-101 §3 refusal gate, HUB-ONLY prospective-only (Rule A top-level seal + Rule B audit-grammar/R4-casing/11-class enum), wired hub-only pre-commit (14→15 gates) + 26 tests (`feat/306-hermetization-gate` `874d452`); **#307** `gen_intake_index.py` — status-grouped `docs/intake/README.md` Contents splice + `intake-index-freshness` gate + 10 tests (`feat/307-intake-index` `c299ba6`). **Post-build Codex** found 3 HIGH loopholes in EACH build → all fixed in-branch with tests (#306 `26f3802`: rename-bypass/malformed-slug/uppercase-.MD; #307 `3223f90`: misleading-label/splice-validation/unterminated-frontmatter). **Phase 2.5** E2E consumer-lifecycle gauntlet (`feat/e2e-lifecycle` `abcf8c2`, opt-in `slow`+RUN_E2E). **Phase 2.75** hygiene (this branch `docs/night-hygiene`): 7 deliverable audits + H1 PLAYBOOK boundary doctrine + this wrap.
