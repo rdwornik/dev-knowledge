@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): serial integration — #319 v1.3.0 carrier hook-append merged to main (#318 held in its worktree)
+
+**Did:** Serial (one-at-a-time) integration of the #319 stream only. (1) Pre-split disjointness check first: confirmed the #319 edit set (`carrier_precommit.py`, `manifest-v1.3.0.yaml`, `test_carrier_hooks_source.py`, `test_deploy_precommit_surgical.py`, `methodology-roster.md`) is DISJOINT from #318's (`block_ff_push.py`/`validate_no_ff.py` + their tests); no shared conftest (none exists repo-wide). (2) `git merge --no-ff worktree-319-carrier-append` → merge **`ee6582e`** (carrier `_reconcile()` hub_hooks branch now APPENDS `block-ff-push`/`backlog-id-on-close` on a rev bump instead of rev-pinning only; per-id detect/verify; v1.3.0 generate-hooks claim corrected to freshness-only). Branch commits `75a8111` (append + per-id detect/verify) + `103ce93` (manifest/roster reconcile). (3) ship-gate RED on a single self-induced WARN — `#319`'s new test bumped `pytest --collect-only` 1504→1505, staling the machine-count in `ecosystem/doc-counts.md`; regenerated via `gen_doc_counts.py --write` (the documented reconciliation) → GREEN.
+
+**Result:** #319 integrated on main; ship-gate GREEN (the count-drift WARN was the only new one; all others `[OK]`/`[disp]`). This wrap **resolves the #319 worktree `/override`** (logged `worktree-319-carrier-append @ 103ce93`, 16:12:40 — the commit-and-STOP contract deferred JOURNAL wrap + #319 closure + the grooming note to this primary integration; all three now landed here). #318 remains untouched in its worktree; its merge is a separate serial pass.
+
+**Changes:** merge `ee6582e` (+ `75a8111`/`103ce93`); `ecosystem/doc-counts.md` regen (1505); BACKLOG (closed #319, filed #323 design-question + #324 Phase-6 axis-2 charter) + this JOURNAL entry on the wrap commit.
+
+**Abandoned:** none.
+
+**Next:** #318 pre-push adapter stream — separate serial merge (still running in its worktree). #323/#324 are deferred (design-decision / next-session codification).
+
+---
+
 ### 2026-07-11 — CC (Opus 4.8): arc wrap — next architect handoff cut (`-2`) + #322 filed + Codex pin verified (gpt-5.5, NOT 5.6-sol)
 
 **Did:** Wrapped the arc + cut the next architect bundle. (1) Verified LIVE the codex-review model pin: **`gpt-5.5`** (codex-cli 0.144.0, `~/.codex/config.toml`; effort medium, script-overridden to high) — **NOT the expected gpt-5.6-sol**; no `sol`/`tera`/`luna` variants in config or CLI (the migration path tops out at gpt-5.5). (2) Filed **#322** (fleet dashboard: existing data sources + C4-owed viz layer + surfacing habit; sibling of #270/#171) at `3abcebc`. (3) Generated the next architect bundle **`docs/handoffs/2026-07-11-dev-knowledge-architect-2/`** (architect mode, distinct `-2` slug), CC-filled RESIDUAL §1/§2/§4 (the operator's P1–P4 priority order) + the HANDOFF_BOOT purpose; **extended the EPIC H charter** with a second axis — Codex-5.6 variant-routing (SOL/TERA/LUNA task classes · producer-role pilot with ex-ante criteria · CC-verifies-Codex contract), flagged **AVAILABILITY-GATED** (5.6 absent). Referenced the operator-held plan-vs-execution doc as the §4 comparison baseline (#301 iv).
