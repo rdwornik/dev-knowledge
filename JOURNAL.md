@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): #324 leg-c — audit-corpus verb list (read-only; branch, no merge)
+
+**Did:** Read-only night-leg per #324 (audit-corpus sequential review, leg c). Fanned 8 parallel read-only agents over all **220** `docs/audits/*.md`; assembled one line per audit (path · what-it-is · proposed verb · rationale) grounded in **ADR-100 keep-all-accepted** (default = keep; "archive-candidate" = index archive-*section* per §2, NOT a filesystem move; any physical move is §3-gated). Independently refuted the single agent-proposed delete-candidate (`2026-05-23-.dev-knowledge-audit` claimed byte-dup of `…-ecosystem-audit` → false on sha256/diff: distinct single-repo 20:25 re-run, 848 B vs 1948 B). Filename: operator-specified bare name was off ADR-101 R3 grammar (hub `validate-hermetization` refused it); inserted the `technical` class token rather than `--no-verify` a safety gate.
+
+**Result:** `docs/audits/2026-07-11-technical-audit-corpus-verb-list.md` committed **`fba8a8e`** on branch `docs/audit-corpus-verb-list`, **no merge** (main untouched at `313500c`). Verb tally: **186 keep / 34 archive-candidate / 0 delete-candidate**. All pre-commit gates passed. Proposals only — zero deletions, zero moves. Operator rules every verb later.
+
+**Changes:** new verb-list file (the leg's sole authored write) + required `gen_audit_index.py` index regen (220→221 in `docs/audits/README.md`) + this JOURNAL entry.
+
+**Abandoned:** none.
+
+**Next:** operator dispositions the verbs; if any archive-candidate is to physically move, ADR-100 §3 requires a referential scan + architect ruling first. #323 remains deferred; #324 leg-c delivered.
+
+---
+
 ### 2026-07-11 — CC (Opus 4.8): serial integration — #318 pre-push adapter range fix merged to main (pair complete)
 
 **Did:** Second and final serial merge of the #318/#319 pair. (1) `git merge --no-ff worktree-318-prepush-ranges` → merge **`0b158a3`** (block-ff-push reconstructs every pushed `main` range under pre-commit's lossy one-ref-pair env — fixes the empty-remote-initial + multi-ref misses, Codex A3). Branch commits `00603b5` (fix + 12 tests) + `0b95d13` (worktree journal anchor). Merge base was `5f3814b` (branch predates #319), so #319's carrier files merged clean; only `JOURNAL.md` conflicted — resolved keeping BOTH the #319 wrap and #318 worktree entries in chronological order (neither dropped). (2) ship-gate RED on the single expected self-induced WARN — #318's tests bumped `pytest --collect-only` 1505→1519, staling `ecosystem/doc-counts.md`; regenerated via `gen_doc_counts.py --write` → GREEN (no other RED class). (3) Wrap authored **branch-first** (`docs/2026-07-11-318-wrap` → `--no-ff`) per the [[merge-on-main-leaves-wrap-commit-direct]] lesson from the #319 pass — never direct on main's spine.
