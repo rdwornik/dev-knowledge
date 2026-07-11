@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): serial integration — #324 verb-list merged to main + methodology v1.3.1 release cut
+
+**Did:** Two serial operator-directed operations. **(1) Verb-list integration:** `git merge --no-ff docs/audit-corpus-verb-list` → merge **`65c9827`** (M1) bringing the #324 leg-c audit-corpus verb list onto main; ship-gate GREEN (no self-induced drift — `doc_claims` OK, 11 WARN all dispositioned); pushed main. **Operator ruling recorded (in the M1 merge message + here):** verb list **ACCEPTED as proposed — 0 deletions**; the **34 archive-candidates are handled by the ADR-100 §2 index archive-section (index grouping only), NO physical moves**; 186 keep / 34 archive-candidate / 0 delete-candidate across 220 audits. **(2) v1.3.1 release cut:** the v1.3.0 tag (`f583509b`) did NOT contain the #318/#319 fixes (verified by the ai-council session via tag-ancestry). Cut `deploy/manifest-v1.3.1.yaml` (copy of v1.3.0 with the three coupled anchors re-pointed: `methodology_version` 1.3.1 / `source_tag` v1.3.1 / precommit `hub_hooks.rev` v1.3.1) + roster regen — commit **`effe26d`**, merged **`84d47ab`** (M2); mirrors the LANE-C v1.3.0 cut (`950a81d` = manifest + roster). `release_lint --version 1.3.1`: 0 FAIL / 7 pass / C2 WARN-until-tag. Annotated tag **`v1.3.1` @ `84d47ab`**.
+
+**Result:** #324 leg-c integrated on main; methodology **v1.3.1 tagged**. Ship-gate GREEN at both merges. **Ancestry proof:** `git merge-base --is-ancestor 00603b5 v1.3.1` = YES **and** `75a8111 v1.3.1` = YES (also 103ce93 YES) — the tag now carries the #318 pre-push range fix + #319 carrier hub_hooks append that the v1.3.0 tag lacked. No component/carrier changes (pure anchor re-point); no deploy runs from this cut.
+
+**Changes:** merge `65c9827` (verb-list + regen index 220→221); `deploy/manifest-v1.3.1.yaml` (new) + `.claude/methodology-roster.md` regen (`effe26d`/merge `84d47ab`); tag `v1.3.1`; this JOURNAL wrap.
+
+**Abandoned:** none.
+
+**Next:** deploy v1.3.1 to consumers is a separate per-repo arc (ai-council first, corp-monorepo second) — not run here. Operator dispositions any archive-candidate physical move only under ADR-100 §3 (referential scan + architect ruling).
+
+---
+
 ### 2026-07-11 — CC (Opus 4.8): #324 leg-c — audit-corpus verb list (read-only; branch, no merge)
 
 **Did:** Read-only night-leg per #324 (audit-corpus sequential review, leg c). Fanned 8 parallel read-only agents over all **220** `docs/audits/*.md`; assembled one line per audit (path · what-it-is · proposed verb · rationale) grounded in **ADR-100 keep-all-accepted** (default = keep; "archive-candidate" = index archive-*section* per §2, NOT a filesystem move; any physical move is §3-gated). Independently refuted the single agent-proposed delete-candidate (`2026-05-23-.dev-knowledge-audit` claimed byte-dup of `…-ecosystem-audit` → false on sha256/diff: distinct single-repo 20:25 re-run, 848 B vs 1948 B). Filename: operator-specified bare name was off ADR-101 R3 grammar (hub `validate-hermetization` refused it); inserted the `technical` class token rather than `--no-verify` a safety gate.
