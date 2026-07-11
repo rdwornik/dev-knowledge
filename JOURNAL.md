@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-12 — CC (Opus 4.8): Phase-A0 handoff `supplement filled` — fold architect ANSWERS + flip framing
+
+**Did:** Operator filled the Phase-A0 bundle's `SUPPLEMENT.md` ANSWERS (outgoing architect's off-repo "why": strategic intent = shift to WORKABLE-CONSUMERS posture with A0's two-leg exit (template conformance + verified operational minimum per consumer), tensions weighed, considered+rejected, the seven A0 open questions, decomposition rationale, off-repo priorities). Ran the documented fill step `python scripts/assemble_paste.py <bundle>`, which **reflowed** the cold→FILLED framing in HANDOFF_BOOT/RESIDUAL/PROBES (surgical — my hand-authored FILL-IN prose untouched) and **folded** the ANSWERS into `PASTE_THIS.md` (34.9→40.4 KB, under the 65 KB budget). The incoming session's §13(d) operator-context beat now NARROWS to "anything changed since the supplement was written?" instead of firing full.
+
+**Result:** leaf **`951d181`** (5 bundle files); merge SHA follows. No `generated EMPTY` text remains in the three sources; ship-gate GREEN expected (framing flip + fold only — probes/structure unchanged).
+
+**Changes:** the 5 files of `docs/handoffs/2026-07-11-dev-knowledge-architect-phase-a0/` (`951d181`); this note.
+
+**Abandoned:** none.
+
+**Next:** the Phase-A0 bundle is now fully filled and ready to paste into the next architect chat. Unchanged: next session runs Phase A0; #328 is Phase A1.
+
+---
+
 ### 2026-07-12 — CC (Opus 4.8): 2026-07-11 session-closure arc — intake #13 v3 stamp · temp/ delete EXECUTED · Phase-A0 architect handoff cut
 
 **Did:** Four-part operator-directed closure arc on one branch (`docs/session-closure-2026-07-11`). **(1)** Stamped intake #13 frontmatter `revision: v3` + a `delta-note`, reconciling it with the operator's v3 body (already on disk, byte-identical to the Downloads v3 file) — frontmatter-only, body/index untouched (`1d055bf`). **(2)** EXECUTED the operator-approved deletion of the empty untracked hub `temp/` dir — re-verified EMPTY (`find temp -mindepth 1` → 0; `git ls-files temp`/`git log --all -- temp` → empty) then `rmdir temp` (no git op; git never tracked it) — and recorded the executed verdict as an **in-file amendment marker** on the fleet-parity register (`docs/audits/2026-07-11-technical-fleet-parity-register.md`), NOT an in-place row edit, per the §5.3 audit-immutability rule (`5d9b20c`). **(3)** Cut the architect handoff bundle for the NEXT session's **Phase A0** (manual template consolidation across hub · ai-council · corp) via `gen_handoff --mode architect`; hand-authored the four FILL-IN regions — Purpose (Phase A0), drift-flags (value-free per the anti-bluff contract), shipped-map, and next-frontier (the seven A0 rulings + carry-open items: #328 as Phase A1, #327/#329/#330/#331, Phase C v1.4.0 = #315 + toc re-scope + waiver retirement + #325, Phase E requirements pack, EPIC-H + Codex pilot, corp branch `docs/backlog-transcript-mime-fix`, ai-council #21) — then re-assembled `PASTE_THIS.md` (`ccf4450b`).
