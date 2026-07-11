@@ -141,3 +141,32 @@ def test_cmd_check_missing_markers_is_2(tmp_path, monkeypatch):
     monkeypatch.setattr(gi, "_TARGET", readme)
     monkeypatch.setattr(gi, "_REPO_ROOT", tmp_path)
     assert gi._cmd_check() == 2
+
+
+# --- codex-review 2026-07-11 hardening ---------------------------------------
+
+def test_parse_frontmatter_unterminated_is_empty():
+    # `---` with no closing `---` is INVALID -> empty (not silently parsed from the body).
+    assert gi._parse_frontmatter("---\nstatus: SEED\nintake-id: 3\n\n# body, no close\n") == {}
+
+
+def test_missing_intake_id_renders_loud_label(tmp_path):
+    # A doc lacking intake-id must render a LOUD MISSING-ID label, never a `[2026]` fragment.
+    d = _make_intake_dir(tmp_path, {"2026-07-07-x.md": "---\nstatus: SEED\n---\n\n# X\n"})
+    out = gi.render_contents(d)
+    assert "MISSING-ID" in out
+    assert "[2026]" not in out
+
+
+def test_splice_rejects_duplicate_markers():
+    import pytest
+    dup = f"# t\n{gi._START_MARKER}\na\n{gi._END_MARKER}\n{gi._START_MARKER}\nb\n{gi._END_MARKER}\n"
+    with pytest.raises(RuntimeError):
+        gi._splice(dup, "x\n")
+
+
+def test_splice_rejects_reversed_markers():
+    import pytest
+    rev = f"# t\n{gi._END_MARKER}\nmid\n{gi._START_MARKER}\n"
+    with pytest.raises(RuntimeError):
+        gi._splice(rev, "x\n")

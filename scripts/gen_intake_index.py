@@ -48,13 +48,18 @@ def _parse_frontmatter(text: str) -> dict[str, str]:
         return {}
     lines = text.splitlines()
     fm: dict[str, str] = {}
+    closed = False
     for line in lines[1:]:
         if line.strip() == "---":
+            closed = True
             break
         m = _FM_KV_RE.match(line)
         if m:
             fm[m.group(1).lower()] = m.group(2)
-    return fm
+    # Unterminated frontmatter (no closing `---`) is INVALID -> return empty so the doc
+    # surfaces loudly in OTHER with a MISSING-ID label, rather than being silently
+    # mis-parsed from body lines that happen to match `status:` (codex-review 2026-07-11).
+    return fm if closed else {}
 
 
 def _title_of(text: str) -> str:
@@ -107,18 +112,26 @@ def render_contents(intake_dir: Path | None = None) -> str:
             continue
         out += ["", f"### {status} ({len(g)})", ""]
         for _status, intake_id, filename, title in g:
-            label = f"#{intake_id}" if intake_id else filename.split("-", 3)[0]
+            # A blank/missing intake-id is a schema break -> flag it LOUDLY; never render a
+            # date fragment as a pseudo-id (which would read as `[2026]`, codex-review 2026-07-11).
+            label = f"#{intake_id}" if intake_id else "MISSING-ID"
             out.append(f"- [{label}]({filename}) — {title}")
     return "\n".join(out) + "\n"
 
 
 def _splice(content: str, block: str) -> str:
+    # Require EXACTLY one START and one END with START before END. Reversed or duplicated
+    # markers would let --write rewrite OUTSIDE the generated block and corrupt hand-authored
+    # doctrine -- the one thing this splice must never do (codex-review 2026-07-11).
+    if content.count(_START_MARKER) != 1 or content.count(_END_MARKER) != 1:
+        raise RuntimeError(
+            f"INTAKE-INDEX markers must appear EXACTLY once each in {_TARGET.name} -- add the "
+            f"{_START_MARKER} / {_END_MARKER} pair once, then regenerate")
     start_idx = content.find(_START_MARKER)
     end_idx = content.find(_END_MARKER)
-    if start_idx == -1 or end_idx == -1:
+    if start_idx > end_idx:
         raise RuntimeError(
-            f"INTAKE-INDEX markers not found in {_TARGET.name} -- add the "
-            f"{_START_MARKER} / {_END_MARKER} pair once, then regenerate")
+            f"INTAKE-INDEX START marker must precede END in {_TARGET.name}")
     return content[: start_idx + len(_START_MARKER)] + "\n" + block + content[end_idx:]
 
 
