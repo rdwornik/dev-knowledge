@@ -22,6 +22,7 @@ dev = [
 # diff can break. Docs-only pre-flight: `pytest -m live_repo` + `audit.py ship-gate`.
 markers = [
     "live_repo: test asserts against the live repo tree (docs/config), not a tmp_path fixture",
+    "slow: opt-in slow test (subprocess / pre-commit / real-git spawns) — the #317 marker tier; the E2E consumer-lifecycle gauntlet gates additionally on RUN_E2E=1",
 ]
 # Full SERIAL suite — the nightly/on-demand path (#256 S3). The tiered /ship
 # pre-flight never runs this; it exists to catch what parallelism can mask
