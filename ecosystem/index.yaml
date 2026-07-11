@@ -1,4 +1,4 @@
-generated: '2026-06-02T01:28:58'
+generated: '2026-07-11T12:30:02'
 repos:
 - findings:
   - check_name: vision_md
@@ -9,34 +9,134 @@ repos:
     evidence: All ADR-38 universal governance baseline files present
     status: pass
   - check_name: claude_md
-    evidence: CLAUDE.md present (12094 chars)
+    evidence: CLAUDE.md present (26832 chars)
     status: pass
   - check_name: dot_prefix_discipline
     evidence: All root config files dot-prefixed or on ADR-59 exception list
     status: pass
   - check_name: canonical_md_visibility
     evidence: 'Mandatory canonical files present + correctly cased: [''VISION.md'',
-      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'']'
+      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'', ''CONTRIBUTING.md'', ''JOURNAL.md'',
+      ''LESSONS.md'']'
     status: pass
   - check_name: workspace_settings
     evidence: .dev-knowledge.code-workspace present, dot-prefixed, required sort settings
       correct
     status: pass
-  - check_name: mermaid_theme_directive
-    evidence: 'All mermaid blocks use base+themeVariables; all classDef fill: have
-      color:'
-    status: pass
   - check_name: handoff_bundle_structure
-    evidence: 4 stamped v4 bundle(s) valid (structure + sections + budgets)
+    evidence: 12 stamped v4 bundle(s) valid (structure + sections + budgets)
     status: pass
   - check_name: handoff_tag_canonicity
-    evidence: '§3.1 canonical: four canonical tags enumerated'
-    status: pass
+    evidence: §3.1 section not found (consolidated?) — nothing to lint
+    status: n/a
   - check_name: canonical_freshness
-    evidence: 4 canonical living files fresh (last_reviewed not before last edit;
+    evidence: 8 canonical living files fresh (last_reviewed not before last edit;
       within 30d)
     status: pass
-  last_audit: '2026-06-02'
+  - check_name: no_sibling_orphans
+    evidence: No orphaned '.dev-knowledge-*' siblings (each is a registered worktree
+      or a real repo/folder, not a worktree remnant; or none exist)
+    status: pass
+  - check_name: canonical_structure
+    evidence: All present canonical files carry their required [U] spine headings
+    status: pass
+  - check_name: handoff_version_stamp
+    evidence: All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match
+      canonical HANDOFF_PROCESS v5.7
+    status: pass
+  - check_name: amendment_coherence
+    evidence: 2 coupled-surface version mention(s) coherent across 1 set(s)
+    status: pass
+  - check_name: floor_integrity
+    evidence: no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor
+      (skip)
+    status: n/a
+  - check_name: hooks_armed
+    evidence: pre-commit / commit-msg / pre-push installed and pre-commit-managed
+    status: pass
+  - check_name: git_backlog_drift
+    evidence: no closed-but-present backlog drift (direction (a) STRONG, full history)
+    status: pass
+  - check_name: doc_claims
+    evidence: 4 doc self-claim(s) match repo state
+    status: pass
+  - check_name: no_ff_merges
+    evidence: 'non-merge commit on main (FF/direct — expected a --no-ff merge): 533109f20
+      (2026-06-26) docs(journal): record 2026-06-26 freshness re-stamp session (3bd2cd1)'
+    status: warn
+  - check_name: no_ff_merges
+    evidence: 'non-merge commit on main (FF/direct — expected a --no-ff merge): 3a894eeb5
+      (2026-06-19) docs(journal): 2026-06-19 session-wrap — anchor d0f9ead (transcript
+      archive)'
+    status: warn
+  - check_name: no_ff_merges
+    evidence: 'non-merge commit on main (FF/direct — expected a --no-ff merge): d0f9ead67
+      (2026-06-19) chore(transcripts): archive 2 deep-research reports (dependency-detection
+      + doc<->code traceability)'
+    status: warn
+  - check_name: handoff_probes
+    evidence: 10 probe(s) bind to live state (2026-07-11-dev-knowledge-architect)
+    status: pass
+  - check_name: reconciled_versions
+    evidence: 5 reconciled_with edge(s) match live spec version(s)
+    status: pass
+  - check_name: doc_rot
+    evidence: 'history-accretion bloat: backlog-accretion BACKLOG#262 (6 dated block(s),
+      2554 chars (>= 3 dates & > 700, or > 1200))'
+    status: warn
+  - check_name: doc_rot
+    evidence: 'history-accretion bloat: backlog-accretion BACKLOG#278 (3 dated block(s),
+      1508 chars (>= 3 dates & > 700, or > 1200))'
+    status: warn
+  - check_name: doc_structure
+    evidence: no structural rot (numbering / headers / ToC / dangling-allow / heading-scheme)
+    status: pass
+  - check_name: doc_code_edge
+    evidence: 13 doc->code edge(s) resolved; none broken/ambiguous/orphaned
+    status: pass
+  - check_name: safe_removal
+    evidence: no scripts/*.py module removal in the diff
+    status: pass
+  - check_name: deployed_methodology_version
+    evidence: '.dev-knowledge: unset -- no methodology release deployed yet (deploy-runbook
+      will populate; ADR-91)'
+    status: n/a
+  - check_name: enforcement_coverage
+    evidence: hub - source of the 5 enforcement organs; per-consumer coverage is measured
+      by scripts/enforcement_coverage.py (read-only reporter)
+    status: n/a
+  - check_name: undeclared_edges
+    evidence: 'undeclared prose edge (ADR-88 FC2): BACKLOG.md -> handoff-process (tier
+      1) — declare `reconciled_with` or disposition'
+    status: warn
+  - check_name: undeclared_edges
+    evidence: 'undeclared prose edge (ADR-88 FC2): VISION.md -> handoff-process (tier
+      1) — declare `reconciled_with` or disposition'
+    status: warn
+  - check_name: undeclared_edges
+    evidence: 'undeclared prose edge (ADR-88 FC2): protocols/AI_COUNCIL_PROCESS.md
+      -> handoff-process (tier 1) — declare `reconciled_with` or disposition'
+    status: warn
+  - check_name: undeclared_edges
+    evidence: 'undeclared prose edge (ADR-88 FC2): protocols/ESSENTIALS.md -> handoff-process
+      (tier 1) — declare `reconciled_with` or disposition'
+    status: warn
+  - check_name: undeclared_edges
+    evidence: 'undeclared prose edge (ADR-88 FC2): protocols/PLAYBOOK.md -> handoff-process
+      (tier 1) — declare `reconciled_with` or disposition'
+    status: warn
+  - check_name: undeclared_edges
+    evidence: 'undeclared prose edge (ADR-88 FC2): protocols/SESSION_SETUP.md -> handoff-process
+      (tier 1) — declare `reconciled_with` or disposition'
+    status: warn
+  - check_name: doc_code_coverage_drift
+    evidence: all 29 ALL_CHECKS members covered (coverage_scope-annotated or exempt);
+      none escape coverage_scope
+    status: pass
+  - check_name: import_edges
+    evidence: 3 @import edge(s) resolve across 4 file(s)
+    status: pass
+  last_audit: '2026-07-11'
   name: .dev-knowledge
   path: C:\Users\1028120\Documents\Dev\.dev-knowledge
 - findings:
@@ -48,35 +148,95 @@ repos:
     evidence: All ADR-38 universal governance baseline files present
     status: pass
   - check_name: claude_md
-    evidence: CLAUDE.md present (7231 chars)
+    evidence: CLAUDE.md present (10972 chars)
     status: pass
   - check_name: dot_prefix_discipline
     evidence: All root config files dot-prefixed or on ADR-59 exception list
     status: pass
   - check_name: canonical_md_visibility
     evidence: 'Mandatory canonical files present + correctly cased: [''VISION.md'',
-      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'']'
+      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'', ''CONTRIBUTING.md'', ''JOURNAL.md'',
+      ''LESSONS.md'']'
     status: pass
   - check_name: workspace_settings
     evidence: .ai-council.code-workspace present, dot-prefixed, required sort settings
       correct
     status: pass
-  - check_name: mermaid_theme_directive
-    evidence: 'All mermaid blocks use base+themeVariables; all classDef fill: have
-      color:'
-    status: pass
   - check_name: handoff_bundle_structure
     evidence: no docs/handoffs/ — nothing to validate
-    status: pass
+    status: n/a
   - check_name: handoff_tag_canonicity
     evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
-    status: pass
+    status: n/a
   - check_name: canonical_freshness
-    evidence: '1 stale (edited since review): ARCHITECTURE.md: last_reviewed 2026-05-27
-      predates last edit 2026-05-28 - edited but not re-reviewed | also 1 warn: CLAUDE.md:
-      no parseable last_reviewed frontmatter'
-    status: fail
-  last_audit: '2026-06-02'
+    evidence: 8 canonical living files fresh (last_reviewed not before last edit;
+      within 30d)
+    status: pass
+  - check_name: no_sibling_orphans
+    evidence: No orphaned 'ai-council-*' siblings (each is a registered worktree or
+      a real repo/folder, not a worktree remnant; or none exist)
+    status: pass
+  - check_name: canonical_structure
+    evidence: All present canonical files carry their required [U] spine headings
+    status: pass
+  - check_name: handoff_version_stamp
+    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    status: pass
+  - check_name: amendment_coherence
+    evidence: 0 coupled-surface version mention(s) coherent across 1 set(s)
+    status: pass
+  - check_name: floor_integrity
+    evidence: CLAUDE-FLOOR.md present; hash matches sidecar; F5 clean; pointers resolve
+      (sha256 4d268f329a7e…)
+    status: pass
+  - check_name: hooks_armed
+    evidence: hub-only — git-hook arming check skipped (not the hub repo)
+    status: pass
+  - check_name: git_backlog_drift
+    evidence: hub-only — git<->backlog drift check skipped (not the hub repo)
+    status: pass
+  - check_name: doc_claims
+    evidence: hub-only — prose-vs-state check skipped (not the hub repo)
+    status: pass
+  - check_name: no_ff_merges
+    evidence: hub-only — --no-ff guard skipped (not the hub repo)
+    status: pass
+  - check_name: handoff_probes
+    evidence: no docs/handoffs/ — no probe bundle to validate
+    status: pass
+  - check_name: reconciled_versions
+    evidence: no reconciled_with edges declared
+    status: pass
+  - check_name: doc_rot
+    evidence: hub-only — doc-rot / grooming checker skipped (not the hub repo)
+    status: pass
+  - check_name: doc_structure
+    evidence: hub-only — prose structural linter skipped (not the hub repo)
+    status: pass
+  - check_name: doc_code_edge
+    evidence: hub-only — doc->code edge check skipped (not the hub repo)
+    status: pass
+  - check_name: safe_removal
+    evidence: no scripts/*.py module removal in the diff
+    status: pass
+  - check_name: deployed_methodology_version
+    evidence: 'ai-council: deployed methodology corpus v1.2.0'
+    status: pass
+  - check_name: enforcement_coverage
+    evidence: 'ai-council: session_end_backpressure=present-unverified; canonical_freshness=present-unverified;
+      reconciled_versions=n/a-no-edges; doc_claims=hub-scoped; git_backlog_drift=hub-scoped
+      (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
+    status: n/a
+  - check_name: undeclared_edges
+    evidence: hub-only — undeclared-edge scan skipped (not the hub repo)
+    status: pass
+  - check_name: doc_code_coverage_drift
+    evidence: hub-only -- coverage drift-guard skipped (not the hub repo)
+    status: pass
+  - check_name: import_edges
+    evidence: 1 @import edge(s) resolve across 2 file(s)
+    status: pass
+  last_audit: '2026-07-11'
   name: ai-council
   path: C:\Users\1028120\Documents\Dev\ai-council
 - findings:
@@ -88,37 +248,96 @@ repos:
     evidence: All ADR-38 universal governance baseline files present
     status: pass
   - check_name: claude_md
-    evidence: CLAUDE.md present (8671 chars)
+    evidence: CLAUDE.md present (11459 chars)
     status: pass
   - check_name: dot_prefix_discipline
     evidence: All root config files dot-prefixed or on ADR-59 exception list
     status: pass
   - check_name: canonical_md_visibility
     evidence: 'Mandatory canonical files present + correctly cased: [''VISION.md'',
-      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'']'
+      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'', ''CONTRIBUTING.md'', ''JOURNAL.md'',
+      ''LESSONS.md'']'
     status: pass
   - check_name: workspace_settings
     evidence: .corp-monorepo.code-workspace present, dot-prefixed, required sort settings
       correct
     status: pass
-  - check_name: mermaid_theme_directive
-    evidence: 'All mermaid blocks use base+themeVariables; all classDef fill: have
-      color:'
-    status: pass
   - check_name: handoff_bundle_structure
     evidence: no docs/handoffs/ — nothing to validate
-    status: pass
+    status: n/a
   - check_name: handoff_tag_canonicity
     evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
-    status: pass
+    status: n/a
   - check_name: canonical_freshness
-    evidence: '2 stale (edited since review): VISION.md: last_reviewed 2026-05-27
-      predates last edit 2026-05-28 - edited but not re-reviewed; ARCHITECTURE.md:
-      last_reviewed 2026-05-27 predates last edit 2026-05-28 - edited but not re-reviewed
-      | also 2 warn: CLAUDE.md: no parseable last_reviewed frontmatter; CONTRIBUTING.md:
-      no parseable last_reviewed frontmatter'
-    status: fail
-  last_audit: '2026-06-02'
+    evidence: 'VISION.md: last_reviewed 2026-06-02 is 39d old (> 30d cadence); ARCHITECTURE.md:
+      last_reviewed 2026-06-04 is 37d old (> 30d cadence); CONTRIBUTING.md: last_reviewed
+      2026-06-02 is 39d old (> 30d cadence)'
+    status: warn
+  - check_name: no_sibling_orphans
+    evidence: No orphaned 'corp-monorepo-*' siblings (each is a registered worktree
+      or a real repo/folder, not a worktree remnant; or none exist)
+    status: pass
+  - check_name: canonical_structure
+    evidence: All present canonical files carry their required [U] spine headings
+    status: pass
+  - check_name: handoff_version_stamp
+    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    status: pass
+  - check_name: amendment_coherence
+    evidence: 0 coupled-surface version mention(s) coherent across 1 set(s)
+    status: pass
+  - check_name: floor_integrity
+    evidence: CLAUDE-FLOOR.md present; hash matches sidecar; F5 clean; pointers resolve
+      (sha256 4d268f329a7e…)
+    status: pass
+  - check_name: hooks_armed
+    evidence: hub-only — git-hook arming check skipped (not the hub repo)
+    status: pass
+  - check_name: git_backlog_drift
+    evidence: hub-only — git<->backlog drift check skipped (not the hub repo)
+    status: pass
+  - check_name: doc_claims
+    evidence: hub-only — prose-vs-state check skipped (not the hub repo)
+    status: pass
+  - check_name: no_ff_merges
+    evidence: hub-only — --no-ff guard skipped (not the hub repo)
+    status: pass
+  - check_name: handoff_probes
+    evidence: no docs/handoffs/ — no probe bundle to validate
+    status: pass
+  - check_name: reconciled_versions
+    evidence: no reconciled_with edges declared
+    status: pass
+  - check_name: doc_rot
+    evidence: hub-only — doc-rot / grooming checker skipped (not the hub repo)
+    status: pass
+  - check_name: doc_structure
+    evidence: hub-only — prose structural linter skipped (not the hub repo)
+    status: pass
+  - check_name: doc_code_edge
+    evidence: hub-only — doc->code edge check skipped (not the hub repo)
+    status: pass
+  - check_name: safe_removal
+    evidence: no scripts/*.py module removal in the diff
+    status: pass
+  - check_name: deployed_methodology_version
+    evidence: 'corp-monorepo: deployed methodology corpus v1.2.0'
+    status: pass
+  - check_name: enforcement_coverage
+    evidence: 'corp-monorepo: session_end_backpressure=present-unverified; canonical_freshness=present-unverified;
+      reconciled_versions=n/a-no-edges; doc_claims=hub-scoped; git_backlog_drift=hub-scoped
+      (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
+    status: n/a
+  - check_name: undeclared_edges
+    evidence: hub-only — undeclared-edge scan skipped (not the hub repo)
+    status: pass
+  - check_name: doc_code_coverage_drift
+    evidence: hub-only -- coverage drift-guard skipped (not the hub repo)
+    status: pass
+  - check_name: import_edges
+    evidence: 1 @import edge(s) resolve across 2 file(s)
+    status: pass
+  last_audit: '2026-07-11'
   name: corp-monorepo
   path: C:\Users\1028120\Documents\Dev\corp-monorepo
 - findings:
@@ -130,35 +349,98 @@ repos:
     evidence: All ADR-38 universal governance baseline files present
     status: pass
   - check_name: claude_md
-    evidence: CLAUDE.md present (5961 chars)
+    evidence: CLAUDE.md present (6818 chars)
     status: pass
   - check_name: dot_prefix_discipline
     evidence: All root config files dot-prefixed or on ADR-59 exception list
     status: pass
   - check_name: canonical_md_visibility
     evidence: 'Mandatory canonical files present + correctly cased: [''VISION.md'',
-      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'']'
+      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'', ''CONTRIBUTING.md'', ''JOURNAL.md'',
+      ''LESSONS.md'']'
     status: pass
   - check_name: workspace_settings
     evidence: .corp-ops.code-workspace present, dot-prefixed, required sort settings
       correct
     status: pass
-  - check_name: mermaid_theme_directive
-    evidence: 'All mermaid blocks use base+themeVariables; all classDef fill: have
-      color:'
-    status: pass
   - check_name: handoff_bundle_structure
     evidence: no docs/handoffs/ — nothing to validate
-    status: pass
+    status: n/a
   - check_name: handoff_tag_canonicity
     evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
-    status: pass
+    status: n/a
   - check_name: canonical_freshness
-    evidence: '1 stale (edited since review): ARCHITECTURE.md: last_reviewed 2026-05-27
-      predates last edit 2026-05-28 - edited but not re-reviewed | also 1 warn: CLAUDE.md:
-      no parseable last_reviewed frontmatter'
-    status: fail
-  last_audit: '2026-06-02'
+    evidence: 'VISION.md: last_reviewed 2026-06-02 is 39d old (> 30d cadence); ARCHITECTURE.md:
+      last_reviewed 2026-06-02 is 39d old (> 30d cadence); CLAUDE.md: last_reviewed
+      2026-06-02 is 39d old (> 30d cadence); CONTRIBUTING.md: last_reviewed 2026-06-02
+      is 39d old (> 30d cadence)'
+    status: warn
+  - check_name: no_sibling_orphans
+    evidence: No orphaned 'corp-ops-*' siblings (each is a registered worktree or
+      a real repo/folder, not a worktree remnant; or none exist)
+    status: pass
+  - check_name: canonical_structure
+    evidence: All present canonical files carry their required [U] spine headings
+    status: pass
+  - check_name: handoff_version_stamp
+    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    status: pass
+  - check_name: amendment_coherence
+    evidence: 0 coupled-surface version mention(s) coherent across 1 set(s)
+    status: pass
+  - check_name: floor_integrity
+    evidence: no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor
+      (skip)
+    status: n/a
+  - check_name: hooks_armed
+    evidence: hub-only — git-hook arming check skipped (not the hub repo)
+    status: pass
+  - check_name: git_backlog_drift
+    evidence: hub-only — git<->backlog drift check skipped (not the hub repo)
+    status: pass
+  - check_name: doc_claims
+    evidence: hub-only — prose-vs-state check skipped (not the hub repo)
+    status: pass
+  - check_name: no_ff_merges
+    evidence: hub-only — --no-ff guard skipped (not the hub repo)
+    status: pass
+  - check_name: handoff_probes
+    evidence: no docs/handoffs/ — no probe bundle to validate
+    status: pass
+  - check_name: reconciled_versions
+    evidence: no reconciled_with edges declared
+    status: pass
+  - check_name: doc_rot
+    evidence: hub-only — doc-rot / grooming checker skipped (not the hub repo)
+    status: pass
+  - check_name: doc_structure
+    evidence: hub-only — prose structural linter skipped (not the hub repo)
+    status: pass
+  - check_name: doc_code_edge
+    evidence: hub-only — doc->code edge check skipped (not the hub repo)
+    status: pass
+  - check_name: safe_removal
+    evidence: no scripts/*.py module removal in the diff
+    status: pass
+  - check_name: deployed_methodology_version
+    evidence: 'corp-ops: unset -- no methodology release deployed yet (deploy-runbook
+      will populate; ADR-91)'
+    status: n/a
+  - check_name: enforcement_coverage
+    evidence: 'corp-ops: session_end_backpressure=absent; canonical_freshness=absent;
+      reconciled_versions=n/a-no-edges; doc_claims=hub-scoped; git_backlog_drift=hub-scoped
+      (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
+    status: n/a
+  - check_name: undeclared_edges
+    evidence: hub-only — undeclared-edge scan skipped (not the hub repo)
+    status: pass
+  - check_name: doc_code_coverage_drift
+    evidence: hub-only -- coverage drift-guard skipped (not the hub repo)
+    status: pass
+  - check_name: import_edges
+    evidence: 0 @import edge(s) resolve across 1 file(s)
+    status: pass
+  last_audit: '2026-07-11'
   name: corp-ops
   path: C:\Users\1028120\Documents\Dev\corp-ops
 - findings:
@@ -170,34 +452,200 @@ repos:
     evidence: All ADR-38 universal governance baseline files present
     status: pass
   - check_name: claude_md
-    evidence: CLAUDE.md present (6536 chars)
+    evidence: CLAUDE.md present (6920 chars)
     status: pass
   - check_name: dot_prefix_discipline
     evidence: All root config files dot-prefixed or on ADR-59 exception list
     status: pass
   - check_name: canonical_md_visibility
     evidence: 'Mandatory canonical files present + correctly cased: [''VISION.md'',
-      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'']'
+      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'', ''CONTRIBUTING.md'', ''JOURNAL.md'',
+      ''LESSONS.md'']'
     status: pass
   - check_name: workspace_settings
     evidence: .corp-sca-time-automation.code-workspace present, dot-prefixed, required
       sort settings correct
     status: pass
-  - check_name: mermaid_theme_directive
-    evidence: 'All mermaid blocks use base+themeVariables; all classDef fill: have
-      color:'
-    status: pass
   - check_name: handoff_bundle_structure
     evidence: no docs/handoffs/ — nothing to validate
-    status: pass
+    status: n/a
   - check_name: handoff_tag_canonicity
     evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
-    status: pass
+    status: n/a
   - check_name: canonical_freshness
-    evidence: '1 stale (edited since review): ARCHITECTURE.md: last_reviewed 2026-05-27
-      predates last edit 2026-05-28 - edited but not re-reviewed | also 1 warn: CLAUDE.md:
-      no parseable last_reviewed frontmatter'
+    evidence: '1 stale (edited since review): CLAUDE.md: last_reviewed 2026-06-02
+      predates last edit 2026-06-08 - edited but not re-reviewed | also 3 warn: VISION.md:
+      last_reviewed 2026-06-02 is 39d old (> 30d cadence); ARCHITECTURE.md: last_reviewed
+      2026-06-02 is 39d old (> 30d cadence); CONTRIBUTING.md: last_reviewed 2026-06-02
+      is 39d old (> 30d cadence)'
     status: fail
-  last_audit: '2026-06-02'
+  - check_name: no_sibling_orphans
+    evidence: No orphaned 'corp-sca-time-automation-*' siblings (each is a registered
+      worktree or a real repo/folder, not a worktree remnant; or none exist)
+    status: pass
+  - check_name: canonical_structure
+    evidence: All present canonical files carry their required [U] spine headings
+    status: pass
+  - check_name: handoff_version_stamp
+    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    status: pass
+  - check_name: amendment_coherence
+    evidence: 0 coupled-surface version mention(s) coherent across 1 set(s)
+    status: pass
+  - check_name: floor_integrity
+    evidence: CLAUDE-FLOOR.md present; hash matches sidecar; F5 clean; pointers resolve
+      (sha256 4d268f329a7e…)
+    status: pass
+  - check_name: hooks_armed
+    evidence: hub-only — git-hook arming check skipped (not the hub repo)
+    status: pass
+  - check_name: git_backlog_drift
+    evidence: hub-only — git<->backlog drift check skipped (not the hub repo)
+    status: pass
+  - check_name: doc_claims
+    evidence: hub-only — prose-vs-state check skipped (not the hub repo)
+    status: pass
+  - check_name: no_ff_merges
+    evidence: hub-only — --no-ff guard skipped (not the hub repo)
+    status: pass
+  - check_name: handoff_probes
+    evidence: no docs/handoffs/ — no probe bundle to validate
+    status: pass
+  - check_name: reconciled_versions
+    evidence: no reconciled_with edges declared
+    status: pass
+  - check_name: doc_rot
+    evidence: hub-only — doc-rot / grooming checker skipped (not the hub repo)
+    status: pass
+  - check_name: doc_structure
+    evidence: hub-only — prose structural linter skipped (not the hub repo)
+    status: pass
+  - check_name: doc_code_edge
+    evidence: hub-only — doc->code edge check skipped (not the hub repo)
+    status: pass
+  - check_name: safe_removal
+    evidence: no scripts/*.py module removal in the diff
+    status: pass
+  - check_name: deployed_methodology_version
+    evidence: 'corp-sca-time-automation: unset -- no methodology release deployed
+      yet (deploy-runbook will populate; ADR-91)'
+    status: n/a
+  - check_name: enforcement_coverage
+    evidence: 'corp-sca-time-automation: session_end_backpressure=absent; canonical_freshness=absent;
+      reconciled_versions=n/a-no-edges; doc_claims=hub-scoped; git_backlog_drift=hub-scoped
+      (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
+    status: n/a
+  - check_name: undeclared_edges
+    evidence: hub-only — undeclared-edge scan skipped (not the hub repo)
+    status: pass
+  - check_name: doc_code_coverage_drift
+    evidence: hub-only -- coverage drift-guard skipped (not the hub repo)
+    status: pass
+  - check_name: import_edges
+    evidence: 1 @import edge(s) resolve across 2 file(s)
+    status: pass
+  last_audit: '2026-07-11'
   name: corp-sca-time-automation
   path: C:\Users\1028120\Documents\Dev\corp-sca-time-automation
+- findings:
+  - check_name: vision_md
+    evidence: 'VISION.md present; frontmatter keys: [''last_reviewed'', ''owner'',
+      ''status'', ''version'']'
+    status: pass
+  - check_name: adr38_baseline
+    evidence: All ADR-38 universal governance baseline files present
+    status: pass
+  - check_name: claude_md
+    evidence: CLAUDE.md present (6859 chars)
+    status: pass
+  - check_name: dot_prefix_discipline
+    evidence: 'Root config files not dot-prefixed (not on ADR-59 exception list):
+      [''config.yaml'']'
+    status: fail
+  - check_name: canonical_md_visibility
+    evidence: 'Mandatory canonical files present + correctly cased: [''VISION.md'',
+      ''ARCHITECTURE.md'', ''CLAUDE.md'', ''BACKLOG.md'', ''CONTRIBUTING.md'', ''JOURNAL.md'',
+      ''LESSONS.md'']'
+    status: pass
+  - check_name: workspace_settings
+    evidence: '.win-tooling.code-workspace: explorer.sortOrder=''<absent>'' (expected
+      ''default''); explorer.sortOrderLexicographicOptions=''<absent>'' (expected
+      ''upper'')'
+    status: warn
+  - check_name: handoff_bundle_structure
+    evidence: no docs/handoffs/ — nothing to validate
+    status: n/a
+  - check_name: handoff_tag_canonicity
+    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    status: n/a
+  - check_name: canonical_freshness
+    evidence: 8 canonical living files fresh (last_reviewed not before last edit;
+      within 30d)
+    status: pass
+  - check_name: no_sibling_orphans
+    evidence: No orphaned 'win-tooling-*' siblings (each is a registered worktree
+      or a real repo/folder, not a worktree remnant; or none exist)
+    status: pass
+  - check_name: canonical_structure
+    evidence: All present canonical files carry their required [U] spine headings
+    status: pass
+  - check_name: handoff_version_stamp
+    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    status: pass
+  - check_name: amendment_coherence
+    evidence: 0 coupled-surface version mention(s) coherent across 1 set(s)
+    status: pass
+  - check_name: floor_integrity
+    evidence: no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor
+      (skip)
+    status: n/a
+  - check_name: hooks_armed
+    evidence: hub-only — git-hook arming check skipped (not the hub repo)
+    status: pass
+  - check_name: git_backlog_drift
+    evidence: hub-only — git<->backlog drift check skipped (not the hub repo)
+    status: pass
+  - check_name: doc_claims
+    evidence: hub-only — prose-vs-state check skipped (not the hub repo)
+    status: pass
+  - check_name: no_ff_merges
+    evidence: hub-only — --no-ff guard skipped (not the hub repo)
+    status: pass
+  - check_name: handoff_probes
+    evidence: no docs/handoffs/ — no probe bundle to validate
+    status: pass
+  - check_name: reconciled_versions
+    evidence: no reconciled_with edges declared
+    status: pass
+  - check_name: doc_rot
+    evidence: hub-only — doc-rot / grooming checker skipped (not the hub repo)
+    status: pass
+  - check_name: doc_structure
+    evidence: hub-only — prose structural linter skipped (not the hub repo)
+    status: pass
+  - check_name: doc_code_edge
+    evidence: hub-only — doc->code edge check skipped (not the hub repo)
+    status: pass
+  - check_name: safe_removal
+    evidence: no scripts/*.py module removal in the diff
+    status: pass
+  - check_name: deployed_methodology_version
+    evidence: win-tooling not listed in deployed-versions.yaml (ADR-91)
+    status: warn
+  - check_name: enforcement_coverage
+    evidence: 'win-tooling: session_end_backpressure=absent; canonical_freshness=absent;
+      reconciled_versions=n/a-no-edges; doc_claims=hub-scoped; git_backlog_drift=hub-scoped
+      (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
+    status: n/a
+  - check_name: undeclared_edges
+    evidence: hub-only — undeclared-edge scan skipped (not the hub repo)
+    status: pass
+  - check_name: doc_code_coverage_drift
+    evidence: hub-only -- coverage drift-guard skipped (not the hub repo)
+    status: pass
+  - check_name: import_edges
+    evidence: 0 @import edge(s) resolve across 1 file(s)
+    status: pass
+  last_audit: '2026-07-11'
+  name: win-tooling
+  path: C:\Users\1028120\Documents\Dev\win-tooling
