@@ -7,14 +7,14 @@ note: "the incoming sessions' comparison baseline per #301(iv) + the A-F build s
 ---
 
 # Plan-of-record — Fleet Hygiene System build (post 2026-07-11 session)
-> Authored by the architect at the 2026-07-11 session wrap; operator-approved framing: the hub is a SIEM-class information system (sensors → event pipeline → rules engine → dashboards → response). This document is the incoming sessions' comparison baseline (#301 iv) and the build sequence. Each phase: goal + exit criteria; strictly ordered unless marked parallel.
+> REVISION v2 (supersedes the v1 intake body — delta: Phase E rebuilt requirements-first with the Council decision-gate; Phase A JSONL least-commitment clause). Authored by the architect at the 2026-07-11 session wrap; operator-approved framing: the hub is a SIEM-class information system (sensors → event pipeline → rules engine → dashboards → response). This document is the incoming sessions' comparison baseline (#301 iv) and the build sequence. Each phase: goal + exit criteria; strictly ordered unless marked parallel.
 
 ## Architecture frame (binding)
 Sensors = per-repo gates + nightly legs · Event pipeline = ONE structured event schema (JSONL: repo, check, severity, verdict, sha, ts) emitted by every check · Rules engine = audit.py + the #328 decision tree · Inventory = ownership manifest (intake #12) + REGISTRY + deployed-versions.yaml · Presentation = #322 dashboard + #329 VS Code layer · Response = #324 morning prompt. Open-source posture: libraries not platforms (JSONL + SQLite/DuckDB-class store + one viewer); full SIEM stacks rejected as oversized.
 
 ## Phase A — #328: ownership manifest + fleet_parity check (THE root mechanism)
 Charter: intake #12 (docs/intake/2026-07-11-tech-ownership-manifest.md). Build: manifest file (hub, per-role tiers MUST/SHOULD/LOCAL/IGNORE + inverse rules) · the decision-tree walker as an audit check (WARN-only v1 per §9b; hub included per §9a) · **each verdict emitted as a structured event (the JSONL schema is born here)**.
-Exit: check runs on all three repos; today's six known deviations (temp/, ruff-config triple-form, corp protocols/, docs/diagrams, .vscode ruling, audit-naming clash) each appear as a WARN or a declared row — zero silent passes. Candidate FIRST Codex-producer pilot task (bounded, testable) with CC-verifies contract (EPIC-H).
+Exit: check runs on all three repos; today's six known deviations (temp/, ruff-config triple-form, corp protocols/, docs/diagrams, .vscode ruling, audit-naming clash) each appear as a WARN or a declared row — zero silent passes. Event emission is deliberately LEAST-COMMITMENT (JSONL sidecar, schema free to evolve; store/viewer decisions belong to Phase E after requirements) — Phase A does not pre-commit any observability architecture. Candidate FIRST Codex-producer pilot task (bounded, testable) with CC-verifies contract (EPIC-H).
 
 ## Phase B — #324 codification: nightly routine + morning prompt (the response loop)
 Night batch runs the #328 walker + existing hygiene legs, writes the verdict-sheet FROM the event log; standard morning prompt consumes it (review → consolidate → decide).
@@ -26,7 +26,8 @@ Exit: consumers upgraded; waiver count DROPS (the system's first self-cleaning).
 
 ## Phase D — manifest consumers (after A): #329 VS Code ownership colors (generated from the manifest, never hand-set) · #331 consumer BACKLOG schema ruling+apply · #330 root-archive rule (+ the CLAUDE.md archived-refs cleanup it mandates) · #327 protocols-as-interface genre ruling + minimal start (README + one interface doc per repo; corp gets protocols/, closing #314).
 
-## Phase E — #322 fleet dashboard: renders the Phase-A event log (fleet level = Context: registry+versions; repo level = parity/gate state). Leg 0 = the buy-vs-build library decision (operator rules). Visualization of SYSTEM ARCHITECTURE stays deferred (intake #10 is the reopen input) — the dashboard is operational state, not architecture diagrams.
+## Phase E — observability layer: REQUIREMENTS FIRST, then dashboard (#322)
+Operator scale concern (2026-07-11): fleet grows to 5-8+ repos; beyond gate verdicts he wants methodology-ADOPTION telemetry (are carried hooks/skills/gotchas actually USED per repo?) and hub-side collection of consumer logs. Leg 0 therefore = a functional-requirements pack (night-leg authored, operator-ruled): event sources + volumes inventory · the questions the operator wants answered · collection model (hub PULL vs consumer PUSH — hermetization implications) · retention · privacy/scope of what consumers expose. ARCHITECTURE DECISION GATE: if the requirements reveal a genuine fork, it goes to AI Council WITH the requirements as material; if not, the architect rules (libraries-not-platforms posture stands: JSONL events + SQLite/DuckDB-class store + one viewer; full SIEM stacks pre-rejected as oversized for this scale). Only then the dashboard build. Visualization of SYSTEM ARCHITECTURE stays deferred (intake #10 is the reopen input) — the dashboard is operational state, not architecture diagrams.
 
 ## Phase F — EPIC-H doctrine write-up: Opus/Sonnet/Haiku + Codex sol/terra/luna variant-routing, evidenced by this session (night batch, worktree pair, Codex A3/A4 hit-rate, refuted delete-candidate) + the Phase-A pilot outcome.
 
