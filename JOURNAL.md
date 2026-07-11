@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): intake #13 plan-of-record → v2 (Phase E requirements-first + Council gate; Phase A least-commitment)
+
+**Did:** Applied the operator-supplied **v2 revision** to intake #13's body (`docs/intake/2026-07-11-tech-plan-of-record-fleet-hygiene.md`), superseding the v1 body it explicitly marks stale. Two deltas: **Phase E** rebuilt requirements-first — a functional-requirements pack (adoption-telemetry: are carried hooks/skills/gotchas actually USED per repo; hub-side consumer-log collection at 5–8+ repo scale; PULL-vs-PUSH hermetization; retention; privacy) gated by an **architecture-decision gate → AI Council if a genuine fork, else architect rules** (libraries-not-platforms stands), dashboard build only after; **Phase A** gains the **JSONL least-commitment** clause (event schema free to evolve, store/viewer deferred to Phase E). Frontmatter untouched (id 13, `plan-of-record-active`, note verbatim); body-only diff (4+/3−); title unchanged so `gen_intake_index --check` clean (no index churn).
+
+**Result:** leaf **`b89ec51`**; merge SHA follows this note. All pre-commit gates green (hermetization ✓, intake-index-freshness ✓, audit-health ✓); ship-gate GREEN (12 pre-existing WARNs dispositioned); block-ff-push ✓.
+
+**Changes:** `docs/intake/2026-07-11-tech-plan-of-record-fleet-hygiene.md` (v1→v2 body, `b89ec51`); this JOURNAL note. Branch `docs/intake-13-plan-of-record-v2` pruned post-merge (safe `-d`).
+
+**Abandoned:** none.
+
+**Next:** unchanged — Phase A = #328 (charter intake #12); intake #13 v2 is the incoming sessions' baseline (#301 iv). Phase E now carries the explicit Council decision-gate when its requirements land.
+
+---
+
 ### 2026-07-11 — CC (Opus 4.8): DAY-ANCHOR wrap — fleet-hygiene arc consolidation (#318/#319 → v1.3.1 → register → #326 → intakes #10–#13 → plan-of-record)
 
 **Did:** Workday-level anchor entry consolidating the full 2026-07-11 fleet-hygiene arc (per-arc detail lives in the dated entries below; this entry is the single day spine + SHA index). **Direct in THIS CC session:** (1) read-only **fleet structure comparison** (hub · ai-council · corp-monorepo, L1/L2/L3) landed as a `technical`-class audit — merge **`dec23526`**; (2) intake **#12** ownership manifest + nightly decision tree (#328 charter input) — merge **`c00271dd`** (leaf `163052b`); (3) intake **#13** plan-of-record "Fleet Hygiene System build" (status `plan-of-record-active`; the incoming sessions' comparison baseline per #301 iv + the A–F build sequence; Phase A charter = intake #12) — leaf **`8d28263`**, this wrap's merge follows. **Landed earlier today across sibling sessions/chats (SHA-anchored, entries below):** the **#318/#319 pair** — #318 block-ff-push adapter range fix under pre-commit's lossy env (`00603b5`, merged `0b158a3d`, wrap `313500c3`) + #319 v1.3.0 carrier appends new `hub_hooks` ids on rev-bump (`75a8111`/`103ce93`, merged `ee6582ef`, wrap `617e17a5`); the **v1.3.1 cut** re-pointing anchors to those fixes (`effe26d9`, merged `84d47ab9`, tag `v1.3.1`); **both consumer rollouts** — ai-council deployed-version bump recorded hub-side (`28c962ec`, merged `b82dd054`), corp-monorepo rollout executed in its own chat per ADR-41; **E-prefix epic ids** E1–E7 on the BACKLOG backbone (`0ee50b2a`); the **fleet-parity register ACCEPTED** (all verdicts as written; §9a hub gets its own `.methodology.yaml`, §9b `review_date` advisory-WARN v1) — merge **`1b624e52`** — plus the **5 E6 follow-ups #327–#331** filed (`b4b1997f`); **#326 all three legs** — hub CC-facing ruling filed (`e746fe13`) + hub strip-ToC/un-gate leg **`473d2501`** (`f7a548d`/`d2c8587`, close #165, a verified Mermaid no-op), ai-council + corp legs run per-repo in their chats (corp carries the only real ToC/Mermaid removal); **intakes #10–#11** C4 viz memo + fleet divergence register (`a92f82b8`, leaf `9390b82`).
