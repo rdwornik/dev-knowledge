@@ -448,10 +448,13 @@ components:
       # CONSUMER-SPECIFIC (hub: ^ARCHITECTURE\.md$ ; ai-council: ^protocols/COUNCIL_QUESTION_GUIDE\.md$).
       scope: "file-scoped: FIRED iff an edit matches the consumer's toc-freshness files: pattern, else ARMED-BUT-SKIPPED ([#267])"
     artifacts:
-      - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hooks toc-freshness + toc-generate"
+      # #319 A5: the carried install set is freshness-only — toc-generate is NOT in
+      # hub_hooks.hooks (whether to carry the auto-fix generate hook is a separate
+      # consumer-behavior decision, deferred). Claim reconciled to match the install list.
+      - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hooks toc-freshness"
     roster:
       section: precommit-hook
-      line: "toc-freshness / toc-generate — TOC freshness (hub hooks, pinned rev)"
+      line: "toc-freshness — TOC freshness (hub hooks, pinned rev)"
 
   - id: hub-codemap-hooks
     kind: hook
@@ -469,10 +472,12 @@ components:
                                    # the frozen GATE-0 fixtures (present-as-Skipped -> G4a armed,
                                    # exactly parallel to hub-toc-hooks — no re-freeze needed)
     artifacts:
-      - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hooks codemap-freshness + codemap-generate"
+      # #319 A5: freshness-only install set (codemap-generate not in hub_hooks.hooks;
+      # carrying the auto-fix generate hook is a deferred consumer-behavior decision).
+      - wiring: ".pre-commit-config.yaml repo <hub> rev == source_tag, hooks codemap-freshness"
     roster:
       section: precommit-hook
-      line: "codemap-freshness / codemap-generate — ARCHITECTURE.md codemap freshness (hub hooks, pinned rev)"
+      line: "codemap-freshness — ARCHITECTURE.md codemap freshness (hub hooks, pinned rev)"
     # [NB-2] version provenance: hub-codemap-hooks (like `waivable:`/`engages:`, [NB-1]) was
     # ADDED AFTER the v1.2.0 tag (#250). It is INERT to deploy/tool.py (reads only carriers:) —
     # the codemap-freshness hook already ships via the precommit carrier's hub_hooks

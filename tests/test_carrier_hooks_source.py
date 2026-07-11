@@ -39,6 +39,18 @@ requires_precommit = pytest.mark.skipif(
     reason="pre-commit or git not available",
 )
 
+# The deploy carrier + its typed contract (the #319 upgrade-path test drives the
+# real reconcile engine, not the hub-source E2E). Idiom mirrors test_deploy_precommit.py.
+sys.path.insert(0, str(_HUB / "deploy"))
+import carrier_precommit as cp   # noqa: E402
+import contract                  # noqa: E402
+
+# The live v1.3.0 precommit target (tracks the shipped pin, like _PC_TARGET there).
+_PC_TARGET_V130 = next(
+    c for c in yaml.safe_load((_HUB / "deploy" / "manifest-v1.3.0.yaml").read_text("utf-8"))["carriers"]
+    if c["id"] == "precommit"
+)["target"]
+
 
 # --- structural (always-run): the hub-source entries are well-formed ---------
 
@@ -184,3 +196,69 @@ def test_carried_backlog_id_blocks_unreferenced_close(tmp_path):
     ok = subprocess.run(["git", "-C", str(repo), "commit", "-m", "chore: drop it [#42]"],
                         capture_output=True, text=True, env=env)
     assert ok.returncode == 0, f"close WITH [#42] should pass:\n{ok.stdout}\n{ok.stderr}"
+
+
+# --- Upgrade-path simulation (#319): the carrier must APPEND new hub hooks -----
+# A consumer already carrying a v1.2.0 hub_hooks entry, deployed against the
+# v1.3.0 target, must GAIN the two new hub hook ids (block-ff-push #302,
+# backlog-id-on-close #309) IN PLACE — not merely a rev bump. Pre-fix the carrier
+# rev-bumps only and both detect+verify are blind to the missing ids (falsely
+# green); this proves the append-on-bump gap is closed. No pre-commit dependency.
+
+def _v120_consumer_config():
+    """A fully-v1.2.0-satisfied consumer: hub entry pinned v1.2.0 with only the
+    v1.2.0 hook set, plus both required local hooks — so against the v1.3.0 target
+    the ONLY drift is the hub entry (rev + the two new hub hook ids)."""
+    return {
+        "repos": [
+            {
+                "repo": "https://github.com/rdwornik/dev-knowledge",
+                "rev": "v1.2.0",
+                "hooks": [{"id": "codemap-freshness"}, {"id": "toc-freshness"}],
+            },
+            {
+                "repo": "local",
+                "hooks": [{"id": "floor-hash-verify"}, {"id": "canonical_freshness"}],
+            },
+        ]
+    }
+
+
+def _hub_entry_of(repo_root):
+    """Read back the hub entry PATH-INDEPENDENTLY (by hook-id intersection)."""
+    data = yaml.safe_load((repo_root / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    return next(
+        e for e in data["repos"]
+        if "codemap-freshness" in {h["id"] for h in e.get("hooks", [])}
+    )
+
+
+def test_v120_to_v130_appends_new_hub_hooks(tmp_path):
+    (tmp_path / ".pre-commit-config.yaml").write_text(
+        yaml.safe_dump(_v120_consumer_config(), sort_keys=False),
+        encoding="utf-8", newline="\n",
+    )
+    car = cp.PrecommitCarrier(tmp_path)
+
+    # (i) BEFORE apply: the missing hub hook ids make it DRIFTED, not merely
+    #     WRONG_VERSION (a rev-only carrier reports the latter and never appends).
+    state = car.detect(_PC_TARGET_V130)
+    assert state is contract.CarrierState.PRESENT_DRIFTED
+    assert state.needs_apply
+
+    assert car.apply(_PC_TARGET_V130).changed is True
+
+    # (ii) AFTER apply: the hub entry carries BOTH new ids at rev v1.3.0, in place,
+    #      originals preserved.
+    hub = _hub_entry_of(tmp_path)
+    ids = {h["id"] for h in hub["hooks"]}
+    assert {"block-ff-push", "backlog-id-on-close"} <= ids, ids
+    assert {"codemap-freshness", "toc-freshness"} <= ids, ids
+    assert hub["rev"] == "v1.3.0"
+
+    # (iii) verify (independent re-scan) confirms the target is satisfied.
+    assert car.verify(_PC_TARGET_V130).ok is True
+
+    # Idempotency: a second detect is CORRECT and a second apply writes nothing.
+    assert car.detect(_PC_TARGET_V130) is contract.CarrierState.PRESENT_CORRECT
+    assert car.apply(_PC_TARGET_V130).changed is False

@@ -97,21 +97,30 @@ def _read(path: Path) -> str:
 
 
 def test_rev_bump_changes_exactly_the_rev_token(tmp_path):
-    path = _write(tmp_path, _COMMENTED_CONFIG)
+    # Isolate the rev-token splice: the hub entry ALREADY carries the full hub hook
+    # set, so a version bump has nothing to append and edits exactly the rev token.
+    # (#319 added per-id hub-hook append; the combined bump+append path — which uses
+    # the same _OpAppendHooks splice as required_repos — is covered by
+    # test_append_missing_required_hook_preserves_every_original_line.)
+    config = _COMMENTED_CONFIG.replace(
+        "      - id: toc-freshness\n",
+        "      - id: toc-freshness\n      - id: codemap-freshness\n",
+    )
+    path = _write(tmp_path, config)
     carrier = cp.PrecommitCarrier(tmp_path)
     target = _hub_target("v9.9.9")
     # the hub entry is identified path-independently (marker hook-id intersection)
     result = carrier.apply(target)
     assert result.changed
-    assert _read(path) == _COMMENTED_CONFIG.replace("rev: v1.0.0", "rev: v9.9.9")
+    assert _read(path) == config.replace("rev: v1.0.0", "rev: v9.9.9")
     assert carrier.verify(target).ok
 
 
 def test_append_missing_required_hook_preserves_every_original_line(tmp_path):
     path = _write(tmp_path, _COMMENTED_CONFIG)
     carrier = cp.PrecommitCarrier(tmp_path)
-    # required_repos DO append missing hooks (hub_hooks by design only rev-pins
-    # an existing entry) — target the config's exact-URL entry with an extra hook.
+    # required_repos append missing hooks by EXACT-URL match (hub_hooks appends by
+    # marker-id match since #319) — this test targets the exact-URL required_repos leg.
     target = {
         "config_path": ".pre-commit-config.yaml",
         "required_repos": [

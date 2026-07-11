@@ -87,9 +87,10 @@ class HubHooksReq:
     Identification is PATH-INDEPENDENT (the consumer's ``repo:`` path varies —
     local clone path vs URL): the entry is matched by hook-id intersection with
     ``marker_hook_ids`` (the hub's published ids, read live from
-    .pre-commit-hooks.yaml), never by the ``repo:`` string. ``repo``/``hooks`` are
-    used ONLY to CREATE an absent entry; an existing entry is bumped in place
-    (its ``repo:`` path preserved).
+    .pre-commit-hooks.yaml), never by the ``repo:`` string. ``repo`` is used ONLY to
+    CREATE an absent entry; ``hooks`` is the install set — on an existing entry the
+    rev is bumped in place AND any missing ``hooks`` ids are appended (#319), its
+    ``repo:`` path preserved.
     """
 
     rev: str
@@ -224,7 +225,14 @@ def _classify(config: dict[str, Any], target: PrecommitTarget) -> CarrierState:
         hub_entry = _find_hub_entry(config, target.hub_hooks.marker_hook_ids)
         if hub_entry is not None:
             present += 1
-            if str(hub_entry.get("rev")) != target.hub_hooks.rev:
+            have_ids = {
+                h.get("id") for h in hub_entry.get("hooks", []) or [] if isinstance(h, dict)
+            }
+            # A missing hub hook id is a missing requirement -> DRIFTED (takes
+            # precedence over a rev mismatch, mirroring the required_repos leg; #319).
+            if any(hid not in have_ids for hid in target.hub_hooks.hook_ids):
+                missing_required = True
+            elif str(hub_entry.get("rev")) != target.hub_hooks.rev:
                 wrong_version = True
     # Required local hooks (no rev axis): present iff the id is in the local block;
     # a missing one is a missing requirement -> DRIFTED (via present < total).
@@ -350,13 +358,33 @@ def _reconcile(
                 f"added hub-hooks repo {hub.repo}@{hub.rev} with hooks {list(hub.hook_ids)}"
             )
             ops.append(_OpAppendEntry(copy.deepcopy(created)))
-        elif str(hub_entry.get("rev")) != hub.rev:
-            changes.append(
-                f"pinned hub-hooks {hub_entry.get('repo')!r} rev "
-                f"{hub_entry.get('rev')!r} -> {hub.rev!r}"
-            )
-            ops.append(_OpSetRev(str(hub_entry.get("repo")), hub.rev))
-            hub_entry["rev"] = hub.rev
+        else:
+            # Bump the rev-pin AND append any newly-declared hub hook ids IN PLACE,
+            # anchored on the CONCRETE consumer-local repo: string (path-independent
+            # identification is already resolved). Mirrors the required_repos leg so a
+            # methodology-version upgrade that ADDS hub hooks converges, not just re-pins
+            # (#319: else a v1.2.0 consumer is stamped v1.3.0 while lacking the new gates).
+            anchor = str(hub_entry.get("repo"))
+            if str(hub_entry.get("rev")) != hub.rev:
+                changes.append(
+                    f"pinned hub-hooks {hub_entry.get('repo')!r} rev "
+                    f"{hub_entry.get('rev')!r} -> {hub.rev!r}"
+                )
+                ops.append(_OpSetRev(anchor, hub.rev))
+                hub_entry["rev"] = hub.rev
+            hub_hooks_list = hub_entry.get("hooks")
+            if not isinstance(hub_hooks_list, list):
+                hub_hooks_list = []
+                hub_entry["hooks"] = hub_hooks_list
+            have_ids = {h.get("id") for h in hub_hooks_list if isinstance(h, dict)}
+            added_hub_hooks: list[dict[str, Any]] = []
+            for hook in hub.hooks:
+                if hook.get("id") not in have_ids:
+                    hub_hooks_list.append(dict(hook))
+                    changes.append(f"added hub hook {hook.get('id')} to {anchor}")
+                    added_hub_hooks.append(dict(hook))
+            if added_hub_hooks:
+                ops.append(_OpAppendHooks(anchor, tuple(added_hub_hooks)))
     # Required local hooks: append each to the (created-if-absent) local block,
     # preserving any sibling local hooks the consumer already has. When THIS run
     # creates the local block, the hooks ride inside the creation op (an empty
@@ -642,10 +670,19 @@ def _verify_satisfied(raw_text: str, target: PrecommitTarget) -> list[str]:
                 break
         if hub_entry is None:
             failures.append("missing hub-hooks entry (no pinned repo with hub hook-ids)")
-        elif str(hub_entry.get("rev")) != hub.rev:
-            failures.append(
-                f"hub-hooks rev {hub_entry.get('rev')!r} != target {hub.rev!r}"
-            )
+        else:
+            if str(hub_entry.get("rev")) != hub.rev:
+                failures.append(
+                    f"hub-hooks rev {hub_entry.get('rev')!r} != target {hub.rev!r}"
+                )
+            # Per-id presence — the append-on-bump requirement (#319). Independent
+            # inline scan (D9), mirroring the required_repos verify above.
+            present_ids = [
+                h.get("id") for h in (hub_entry.get("hooks") or []) if isinstance(h, dict)
+            ]
+            for hid in hub.hook_ids:
+                if hid not in present_ids:
+                    failures.append(f"hub-hooks missing hook {hid}")
     # Required local hooks — INDEPENDENT inline scan (own loop, NOT _find_local_entry),
     # so a bug in detect's local finder cannot be mirrored here (D9).
     for lhook in target.required_local_hooks:
