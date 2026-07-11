@@ -80,6 +80,7 @@
   - [Tree orchestration — architect-root + epic-chat lanes (ADR-97)](#tree-orchestration--architect-root--epic-chat-lanes-adr-97)
 - [Ch9. Tier-1 closure loop — usage](#ch9-tier-1-closure-loop--usage)
   - [Propagating a plugin change across the fleet](#propagating-a-plugin-change-across-the-fleet)
+  - [The methodology↔project boundary (what IS methodology)](#the-methodologyproject-boundary-what-is-methodology)
 - [Ch10. Two-tier automation doctrine](#ch10-two-tier-automation-doctrine)
   - [Writer policy — automation that writes the tree commits its own output (ADR-80)](#writer-policy--automation-that-writes-the-tree-commits-its-own-output-adr-80)
   - [What each tier checks (a green one and a red other are both correct)](#what-each-tier-checks-a-green-one-and-a-red-other-are-both-correct)
@@ -1506,6 +1507,14 @@ When the `tier1-lifecycle` plugin source changes in `.dev-knowledge`:
 4. restart the session.
 
 The cache is **version-keyed** — `marketplace update` alone won't refresh at an unchanged version, and `plugin install` no-ops on an already-installed repo (use `update`, not `install`). `--scope project` is mandatory for project-scoped installs. Full reference: `plugins/tier1-lifecycle/INSTALL.md`.
+
+### The methodology↔project boundary (what IS methodology)
+
+Before propagating anything across the fleet you must answer, per surface, **methodology or project?** — WITHOUT searching. The hub is the **root of a decision tree** that classifies every fleet surface, and the boundary is made **machine-readable** so the answer is a lookup, not a judgment call (operator charter; fleet-boundary-matrix Surface 2 / candidate C1).
+
+- **Marker form (Form A).** A methodology span inside a shared doc is wrapped in a fenced region: `<!-- methodology:start id=<id> owner=hub|repo -->` … `<!-- methodology:end id=<id> -->`. `owner=hub` = a universal span that must stay byte-aligned to the hub baseline fleet-wide; `owner=repo` = project-local. Full spec + owner-set + form-vs-floor rationale live in `docs/audits/2026-07-11-technical-fleet-boundary-marker-design.md` (the 11-surface divergence it answers: `…-technical-fleet-boundary-matrix.md`) — not restated here. CLAUDE.md is the first application (grandfathered, #312); the root-file-**set** boundary is #316.
+- **The drift organ.** `scripts/boundary_report.py` (read-only, Layer-2) aligns every consumer's `owner=hub` regions against the hub CLAUDE.md baseline by `id` and REPORTS drift — it DETECTS, never prevents (a reporter, not a gate; ruling severity=warn). Unmarked consumers read as `unmarked`, distinct from clean.
+- **The sequence.** A boundary question resolves **audit → operator ruling → mechanism**, never ad-hoc: the matrix audit surfaced the divergence, the operator ruled per surface, and each ruling lands as a marker / reporter / carrier — the capture-precedes-construction discipline of ADR-70. New boundary surfaces (`protocols/` as a mandated genre #314, `INSTALL.md` uniform #315) follow it.
 
 ---
 
