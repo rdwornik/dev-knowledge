@@ -16,6 +16,23 @@ opt-in pytest (`tests/test_e2e_consumer_lifecycle.py`, `feat/e2e-lifecycle` `abc
 reproduces 10/11 with 3c self-skipped. **Recommendation: ai-council rollout GO** — tomorrow's
 grandfather + carrier-arm + reporter steps are now a rehearsed move, not a first attempt.
 
+## E2E-0 — ai-council's enforcement-sandbox role (as designed vs as lived)
+
+**As designed:** ai-council is the fleet's **n=1 onboarding pilot / enforcement-sandbox** — the
+first consumer the deploy subsystem (ADR-91/92), the enforcement-transfer mesh (#235–#238), and
+the v5 handoff-process were piloted against. Its pilot arcs are the hub's
+`…-ai-council-measurement-2/3/4.md` audits (2026-07-05→07), which surfaced the pilot gaps still
+open as BACKLOG #294 (validate_backlog carrier), #296 (audit --repo-path report), #297 (observe-arc
+dry mode), #267 (armed-but-skipped scope witness). **As lived:** genuinely exercised, not nominal —
+4 measurement arcs through 2026-07-07, its tracked `ecosystem/ai-council/state.yaml` shows
+`last_audit: 2026-07-11` (a hub audit ran against it TODAY), and it is the sole consumer already
+converged onto the ADR-66 story-map (#281). Role-as-designed ≈ role-as-lived: the sandbox is real.
+**The one gap:** the enforcement MESH is measured (Informant rows), but the FIVE hub-only organs
+(session_end_backpressure, canonical_freshness, doc_claims, git_backlog_drift, the coherence spine)
+remain hub-only — the founding-standard gap epic S8 (#235–#238) exists to close. Tonight's E2E
+rehearses the CARRIED gates (block-ff-push / backlog-id-on-close) that DO transfer; those five are
+the un-transferred remainder.
+
 ## Findings (per-stage evidence, run-1 on feat/306; identical on runs 2-3)
 
 Flat evidence table (fenced — render-layer discipline):
