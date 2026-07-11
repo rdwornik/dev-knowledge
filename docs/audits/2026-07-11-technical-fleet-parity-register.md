@@ -202,3 +202,9 @@ The `.methodology.yaml` files are already *"read by the hub Informant (`scripts/
 **Design to approve then file:** §9 `fleet_parity` WARN check.
 
 *Read-only sweep: no file in any of the three repos was moved, renamed, or deleted. This register is committed on `docs/fleet-parity-register`, no merge.*
+
+## Amendment — 2026-07-11 (post-authoring execution record)
+
+> In-file amendment marker (CLAUDE.md §5 item 3 — the rows above are an immutable audit; an executed verdict is recorded here, never by editing a row in place).
+>
+> **f1 `temp/` — DELETE-CANDIDATE → EXECUTED (DONE).** Operator-approved deletion during the 2026-07-11 session-closure arc (the operator's paste was the approval; core-invariant #3 satisfied). `temp/` was re-verified **EMPTY and UNTRACKED** (`find temp -mindepth 1` → 0 entries; `git ls-files temp` → empty; `git log --all -- temp` → empty) and then removed via a local `rmdir temp` — no git operation, because git never tracked the empty dir. The row-32 / §6-f1 DELETE-CANDIDATE verdict is now resolved; anchored in the same closure arc's JOURNAL day-addendum.
