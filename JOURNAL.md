@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): intake #13 plan-of-record → v3 (insert Phase A0 template consolidation before #328)
+
+**Did:** Applied the operator-supplied **v3 revision** to intake #13's body, superseding v1/v2. One delta vs v2: a **NEW Phase A0 — manual, operator-ruled TEMPLATE CONSOLIDATION runs FIRST**, before any checker exists. A fresh session brings all three repos to actual one-template conformance by hand (worklist = fleet-parity register + ownership manifest #12), the operator ruling each open row on the spot — audit-naming winner (+ ADR-100-gated rename plan), single ruff-config form, `.vscode` carried-vs-local, consumer BACKLOG schema #331, command-roster/archive cleanups (#325/#330), remaining register rows to parity/declaration — with doc2doc/doc2file/doc2code/code2code hygiene checked per-edit by the existing edge validators. Exit: all three conform, residual divergence lives only as `.methodology.yaml` declarations, and the ownership manifest is **promoted DRAFT → settled template**. Phase A's charter line now reads "intake #12 **as PROMOTED by Phase A0**" so #328's checker encodes a settled template, not a moving target. Frontmatter untouched; body-only diff (5+/2−); title unchanged → `gen_intake_index --check` clean.
+
+**Result:** leaf **`5474bbc`**; merge SHA follows. All pre-commit gates green (hermetization ✓, intake-index-freshness ✓, audit-health ✓); ship-gate GREEN (12 pre-existing WARNs dispositioned); block-ff-push ✓.
+
+**Changes:** `docs/intake/2026-07-11-tech-plan-of-record-fleet-hygiene.md` (v2→v3 body, `5474bbc`); this JOURNAL note. Branch `docs/intake-13-plan-of-record-v3` pruned post-merge (safe `-d`).
+
+**Abandoned:** none.
+
+**Next:** Phase A0 (manual template-consolidation session) is now the true first step; Phase A/#328 build starts only once A0 promotes the manifest. Baseline for incoming sessions is intake #13 v3.
+
+---
+
 ### 2026-07-11 — CC (Opus 4.8): intake #13 plan-of-record → v2 (Phase E requirements-first + Council gate; Phase A least-commitment)
 
 **Did:** Applied the operator-supplied **v2 revision** to intake #13's body (`docs/intake/2026-07-11-tech-plan-of-record-fleet-hygiene.md`), superseding the v1 body it explicitly marks stale. Two deltas: **Phase E** rebuilt requirements-first — a functional-requirements pack (adoption-telemetry: are carried hooks/skills/gotchas actually USED per repo; hub-side consumer-log collection at 5–8+ repo scale; PULL-vs-PUSH hermetization; retention; privacy) gated by an **architecture-decision gate → AI Council if a genuine fork, else architect rules** (libraries-not-platforms stands), dashboard build only after; **Phase A** gains the **JSONL least-commitment** clause (event schema free to evolve, store/viewer deferred to Phase E). Frontmatter untouched (id 13, `plan-of-record-active`, note verbatim); body-only diff (4+/3−); title unchanged so `gen_intake_index --check` clean (no index churn).
