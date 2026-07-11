@@ -126,6 +126,28 @@ def test_rule_b_silent_on_non_audit_paths():
     assert vh.rule_b_violation("scripts/x.py") is None
 
 
+# --- Rule B: codex-review 2026-07-11 hardening (uppercase .MD / malformed slug) ---
+
+def test_rule_b_blocks_uppercase_md_extension():
+    # An uppercase .MD extension must NOT dodge Rule B (apply is extension-case-insensitive).
+    r = vh.rule_b_violation("docs/audits/2026-07-11-technical-good.MD")
+    assert r is not None and "casing" in r
+
+
+def test_rule_b_blocks_empty_slug():
+    r = vh.rule_b_violation("docs/audits/2026-07-11-technical-.md")
+    assert r is not None and "slug" in r
+
+
+def test_rule_b_blocks_malformed_slug_double_and_trailing_hyphen():
+    assert "slug" in vh.rule_b_violation("docs/audits/2026-07-11-technical--foo.md")
+    assert "slug" in vh.rule_b_violation("docs/audits/2026-07-11-technical-foo-.md")
+
+
+def test_rule_b_wellformed_multi_segment_slug_passes():
+    assert vh.rule_b_violation("docs/audits/2026-07-11-technical-a-b-c.md") is None
+
+
 # --- classify / check aggregation --------------------------------------------
 
 def test_classify_rule_a_precedes_rule_b():
@@ -223,6 +245,20 @@ def test_allows_newly_added_conformant(tmp_path):
     _git(repo, "add", str(good1), str(good2 / "newmod.py"))
     res = _run_hook(repo)
     assert res.returncode == 0, res.stderr
+
+
+def test_rename_to_bad_audit_name_is_blocked(tmp_path):
+    # codex-review 2026-07-11: a rename INTRODUCES a new pathname; --no-renames surfaces it
+    # as an ADD so the off-grammar destination is policed (not silently skipped as status R).
+    repo = _init_repo(tmp_path)
+    good = repo / "docs" / "audits" / "2026-07-11-technical-ok.md"
+    good.write_text("# ok\n", encoding="utf-8")
+    _git(repo, "add", str(good))
+    _git(repo, "commit", "-q", "-m", "add a good audit")
+    _git(repo, "mv", str(good), str(repo / "docs" / "audits" / "2026-07-11-BAD_RENAME.md"))
+    res = _run_hook(repo)
+    assert res.returncode == 1
+    assert "casing" in res.stderr
 
 
 def test_main_fail_open_on_git_error(monkeypatch, capsys):

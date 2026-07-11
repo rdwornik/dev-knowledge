@@ -92,8 +92,13 @@ _ENUM_BY_LEN = tuple(sorted(AUDIT_CLASS_ENUM, key=len, reverse=True))
 _DATE_SHAPE = re.compile(r"^\d{4}-\d{2}-\d{2}-")           # SHAPE only (S3-4)
 _DATE_PREFIX_LEN = len("YYYY-MM-DD-")                       # 11 chars incl. trailing hyphen
 # R4 casing: all-lowercase kebab-case + digits; `.` carve-out (repo/version tokens). No
-# uppercase, no underscore, no other charset.
+# uppercase, no underscore, no other charset. Applied to the FULL filename (incl. the `.md`
+# extension) so an uppercase `.MD` extension is caught too (codex-review 2026-07-11).
 _LOWER_KEBAB_DOT = re.compile(r"^[a-z0-9.-]+$")
+# A well-formed slug after the class: 1+ kebab segments of [a-z0-9.] joined by SINGLE
+# hyphens — rejects empty / leading- / trailing- / double-hyphen slugs (codex-review
+# 2026-07-11). The `.` repo/version carve-out rides inside a segment.
+_SLUG_RE = re.compile(r"^[a-z0-9.]+(-[a-z0-9.]+)*$")
 
 
 # --- pure classifiers (unit-tested directly; no git) ----------------------------------
@@ -132,30 +137,43 @@ def rule_b_violation(path: str) -> Optional[str]:
     """Rule B (audit grammar + R4 casing). Applies ONLY to an added docs/audits/*.md.
     Return a BLOCK reason, or None."""
     parts = _posix_parts(path)
+    # Applicability is EXTENSION-CASE-INSENSITIVE so an uppercase `.MD` cannot dodge Rule B
+    # by escaping the `.md` match (codex-review 2026-07-11); the casing rule below then
+    # rejects the uppercase extension itself.
     if not (len(parts) == 3 and parts[0] == "docs" and parts[1] == "audits"
-            and parts[2].endswith(".md")):
+            and parts[2].lower().endswith(".md")):
         return None  # not an audit file -> Rule B is silent
-    if parts[2] == "README.md":
+    fname = parts[2]
+    if fname.lower() == "readme.md":
         return None  # the generated index, not an audit artifact
-    stem = parts[2][: -len(".md")]
 
-    # R4 casing first (the corp UPPERCASE/underscore divergence class).
-    if not _LOWER_KEBAB_DOT.match(stem):
-        return (f"casing: '{parts[2]}' must be all-lowercase kebab-case everywhere "
-                f"(no UPPERCASE, no _underscore_, no CamelCase; only a `.` inside the "
-                f"slug for a repo/version token) -- ADR-101 R4")
+    # R4 casing FIRST, on the FULL filename incl. extension (the corp UPPERCASE/underscore
+    # divergence class + the .MD extension loophole).
+    if not _LOWER_KEBAB_DOT.match(fname):
+        return (f"casing: '{fname}' must be all-lowercase kebab-case everywhere incl. the "
+                f".md extension (no UPPERCASE, no _underscore_, no CamelCase; only a `.` "
+                f"inside the slug for a repo/version token) -- ADR-101 R4")
+    stem = fname[: -len(".md")]  # fname is now guaranteed lowercase '.md'
 
     # Grammar: leading YYYY-MM-DD- (SHAPE only, never date-accuracy).
     if not _DATE_SHAPE.match(stem):
-        return (f"grammar: '{parts[2]}' must start with a <YYYY-MM-DD>- date shape "
+        return (f"grammar: '{fname}' must start with a <YYYY-MM-DD>- date shape "
                 f"(ADR-101 section 2); name-shape only, date-accuracy is never checked")
 
-    # Class: whole-token LONGEST-MATCH against the CLOSED enum, then optional -slug.
+    # Class: whole-token LONGEST-MATCH against the CLOSED enum. A degenerate <date>-<class>
+    # passes; a class-then-slug requires a WELL-FORMED slug (no empty/leading-/double-hyphen).
     remainder = stem[_DATE_PREFIX_LEN:]
     for cls in _ENUM_BY_LEN:
-        if remainder == cls or remainder.startswith(cls + "-"):
-            return None  # matched a closed-enum class (degenerate or class-then-slug)
-    return (f"class: '{parts[2]}' has no CLOSED-enum <class> token after the date "
+        if remainder == cls:
+            return None  # degenerate <date>-<class>.md (recurring report, no slug)
+        if remainder.startswith(cls + "-"):
+            slug = remainder[len(cls) + 1:]
+            if _SLUG_RE.match(slug):
+                return None  # class-then-well-formed-slug
+            return (f"slug: '{fname}' has a malformed slug after <class> '{cls}' "
+                    f"(empty / leading- / trailing- / double-hyphen) -- ADR-101 section 2 "
+                    f"kebab-case")
+    return (f"class: '{fname}' has no CLOSED-enum <class> token after the date "
             f"(ADR-101 R3: technical/functional/qa/census/verification/ecosystem-audit/"
             f"conformance-nightly-digest/changelog-review/codex/fresh-eyes/"
             f"incident-evidence; whole-token longest-match)")
@@ -179,10 +197,12 @@ def check(added_paths: list[str]) -> list[str]:
 # --- git glue (fail-open-loud) --------------------------------------------------------
 
 def staged_added_paths() -> list[str]:
-    """Paths staged with status A (added). Prospective-only: modified/renamed/existing
-    files are NOT returned, so they are grandfathered. Fail-open on any git error."""
+    """Paths staged with status A (added). Prospective-only: MODIFIED existing files are
+    grandfathered. `--no-renames` forces a rename to surface as delete+ADD so a rename that
+    introduces a NEW unsanctioned pathname is policed too (codex-review 2026-07-11) -- a
+    rename introduces a new pathname just as much as a plain add. Fail-open on git error."""
     out = subprocess.run(
-        ["git", "diff", "--cached", "--diff-filter=A", "--name-only"],
+        ["git", "diff", "--cached", "--diff-filter=A", "--no-renames", "--name-only"],
         capture_output=True, text=True, encoding="utf-8",
     )
     if out.returncode != 0:
