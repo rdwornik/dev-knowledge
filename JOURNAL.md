@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): serial integration — #318 pre-push adapter range fix merged to main (pair complete)
+
+**Did:** Second and final serial merge of the #318/#319 pair. (1) `git merge --no-ff worktree-318-prepush-ranges` → merge **`0b158a3`** (block-ff-push reconstructs every pushed `main` range under pre-commit's lossy one-ref-pair env — fixes the empty-remote-initial + multi-ref misses, Codex A3). Branch commits `00603b5` (fix + 12 tests) + `0b95d13` (worktree journal anchor). Merge base was `5f3814b` (branch predates #319), so #319's carrier files merged clean; only `JOURNAL.md` conflicted — resolved keeping BOTH the #319 wrap and #318 worktree entries in chronological order (neither dropped). (2) ship-gate RED on the single expected self-induced WARN — #318's tests bumped `pytest --collect-only` 1505→1519, staling `ecosystem/doc-counts.md`; regenerated via `gen_doc_counts.py --write` → GREEN (no other RED class). (3) Wrap authored **branch-first** (`docs/2026-07-11-318-wrap` → `--no-ff`) per the [[merge-on-main-leaves-wrap-commit-direct]] lesson from the #319 pass — never direct on main's spine.
+
+**Result:** #318 integrated; the #318/#319 pair is fully landed on main. ship-gate GREEN. Both worktrees torn down (this wrap completes the pair — zero worktrees should remain).
+
+**Changes:** merge `0b158a3` (+ `00603b5`/`0b95d13`); `ecosystem/doc-counts.md` regen (1519); BACKLOG (closed #318) + this JOURNAL entry on the branch-first wrap commit.
+
+**Abandoned:** none.
+
+**Next:** #302/#309 per-consumer rollout of the now-hardened pre-push + commit-msg gates (separate session); #323/#324 remain deferred.
+
+---
+
 ### 2026-07-11 — CC (Opus 4.8): serial integration — #319 v1.3.0 carrier hook-append merged to main (#318 held in its worktree)
 
 **Did:** Serial (one-at-a-time) integration of the #319 stream only. (1) Pre-split disjointness check first: confirmed the #319 edit set (`carrier_precommit.py`, `manifest-v1.3.0.yaml`, `test_carrier_hooks_source.py`, `test_deploy_precommit_surgical.py`, `methodology-roster.md`) is DISJOINT from #318's (`block_ff_push.py`/`validate_no_ff.py` + their tests); no shared conftest (none exists repo-wide). (2) `git merge --no-ff worktree-319-carrier-append` → merge **`ee6582e`** (carrier `_reconcile()` hub_hooks branch now APPENDS `block-ff-push`/`backlog-id-on-close` on a rev bump instead of rev-pinning only; per-id detect/verify; v1.3.0 generate-hooks claim corrected to freshness-only). Branch commits `75a8111` (append + per-id detect/verify) + `103ce93` (manifest/roster reconcile). (3) ship-gate RED on a single self-induced WARN — `#319`'s new test bumped `pytest --collect-only` 1504→1505, staling the machine-count in `ecosystem/doc-counts.md`; regenerated via `gen_doc_counts.py --write` (the documented reconciliation) → GREEN.
