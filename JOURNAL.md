@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): intake two operator-held artifacts → docs/intake/ (#10, #11)
+
+**Did:** Operator-directed intake of two architect artifacts out of the operator's Downloads into the tree (plan-of-record: artifacts live in the tree, not Downloads). Read both, placed under the ADR-98 intake convention with frontmatter (intake-id/status/origin) + the operator-dictated one-line intake note each; `tech` infix (technical-architect outputs), origin date 2026-07-11; next-free intake-ids verified across all git history (max was 9 → assigned 10, 11). **(1)** `docs/intake/2026-07-11-tech-c4-visualization-memo.md` (**#10**, status `input-for-deferred-work`) — architect research memo, input for the deferred system-visualization work (#326 ruling / #165), narrowed by the 2026-07-11 CC-facing/viz-deferred ruling. **(2)** `docs/intake/2026-07-11-tech-fleet-divergence-register.md` (**#11**, status `superseded-pending`) — architect-compiled 23-item master register; snapshot whose verified successor is the fleet-parity sweep register (kept for provenance). Confirmed `gen_intake_index.py` sends the two custom statuses to the loud `OTHER` group (no fail) before writing; regenerated the index.
+
+**Result:** leaf **`9390b82`** on `docs/intake-c4-and-divergence`, merged **`a92f82b8`** (--no-ff) to main; ship-gate `audit.py health` = **OK** (all `[~~]` pre-existing WARNs, none self-induced); pushed `e746fe1..a92f82b8`; merged branch deleted. Intake index 9→11 docs, `intake-index-freshness` check clean; ADR-101 hermetization gate passed (docs/intake/ sanctioned, tech-infix names valid).
+
+**Changes:** 2 new `docs/intake/*.md` + `docs/intake/README.md` index regen (leaf `9390b82`, merge `a92f82b8`); this JOURNAL wrap.
+
+**Abandoned:** none.
+
+**Next:** #10 feeds the deferred #165/#322b visualization rulings when that work is picked up; #11 is superseded-pending — supersede formally once the fleet-parity sweep register (branch `docs/fleet-parity-register`, `6e62eb3`) is operator-verb-ruled and lands.
+
+---
+
 ### 2026-07-11 — CC (Opus 4.8): serial integration — #324 verb-list merged to main + methodology v1.3.1 release cut
 
 **Did:** Two serial operator-directed operations. **(1) Verb-list integration:** `git merge --no-ff docs/audit-corpus-verb-list` → merge **`65c9827`** (M1) bringing the #324 leg-c audit-corpus verb list onto main; ship-gate GREEN (no self-induced drift — `doc_claims` OK, 11 WARN all dispositioned); pushed main. **Operator ruling recorded (in the M1 merge message + here):** verb list **ACCEPTED as proposed — 0 deletions**; the **34 archive-candidates are handled by the ADR-100 §2 index archive-section (index grouping only), NO physical moves**; 186 keep / 34 archive-candidate / 0 delete-candidate across 220 audits. **(2) v1.3.1 release cut:** the v1.3.0 tag (`f583509b`) did NOT contain the #318/#319 fixes (verified by the ai-council session via tag-ancestry). Cut `deploy/manifest-v1.3.1.yaml` (copy of v1.3.0 with the three coupled anchors re-pointed: `methodology_version` 1.3.1 / `source_tag` v1.3.1 / precommit `hub_hooks.rev` v1.3.1) + roster regen — commit **`effe26d`**, merged **`84d47ab`** (M2); mirrors the LANE-C v1.3.0 cut (`950a81d` = manifest + roster). `release_lint --version 1.3.1`: 0 FAIL / 7 pass / C2 WARN-until-tag. Annotated tag **`v1.3.1` @ `84d47ab`**.
