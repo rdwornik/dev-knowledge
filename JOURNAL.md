@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-11 — CC (Opus 4.8): arc wrap — next architect handoff cut (`-2`) + #322 filed + Codex pin verified (gpt-5.5, NOT 5.6-sol)
+
+**Did:** Wrapped the arc + cut the next architect bundle. (1) Verified LIVE the codex-review model pin: **`gpt-5.5`** (codex-cli 0.144.0, `~/.codex/config.toml`; effort medium, script-overridden to high) — **NOT the expected gpt-5.6-sol**; no `sol`/`tera`/`luna` variants in config or CLI (the migration path tops out at gpt-5.5). (2) Filed **#322** (fleet dashboard: existing data sources + C4-owed viz layer + surfacing habit; sibling of #270/#171) at `3abcebc`. (3) Generated the next architect bundle **`docs/handoffs/2026-07-11-dev-knowledge-architect-2/`** (architect mode, distinct `-2` slug), CC-filled RESIDUAL §1/§2/§4 (the operator's P1–P4 priority order) + the HANDOFF_BOOT purpose; **extended the EPIC H charter** with a second axis — Codex-5.6 variant-routing (SOL/TERA/LUNA task classes · producer-role pilot with ex-ante criteria · CC-verifies-Codex contract), flagged **AVAILABILITY-GATED** (5.6 absent). Referenced the operator-held plan-vs-execution doc as the §4 comparison baseline (#301 iv).
+
+**Result:** bundle valid (`handoff_bundle_structure`/`handoff_probes` OK); SUPPLEMENT **cold** (operator fills the 4 framing sites → the incoming §13(d) beat fires FULL). **INCIDENT recovered:** gen_handoff's default slug collided with THIS session's committed (immutable) boot bundle `2026-07-11-dev-knowledge-architect` and overwrote 4 of its files — caught via `git status`, `git checkout --` reverted it verbatim, regenerated under the `-2` slug. Immutability preserved (the old bundle diff is empty).
+
+**Changes:** BACKLOG (#322) at `3abcebc`; the new `-2` bundle + this JOURNAL entry on `docs/2026-07-11-architect-handoff`.
+
+**Abandoned:** the accidental regeneration of the immutable `2026-07-11-dev-knowledge-architect` bundle (reverted; zero net change).
+
+**Next:** operator fills the `-2` SUPPLEMENT + launches the next architect session (P1: #318/#319 triage → ai-council rollout). The ai-council rollout stays its own session.
+
+---
+
 ### 2026-07-11 — CC (Opus 4.8): morning integration — night-batch 4 branches merged to main + register-win-tooling incident recovery + follow-up filings
 
 **Did:** Operator-approved morning triage of the night verdict-sheet. (1) **RECOVERED an incident:** a mislabeled `chore/registry-win-tooling` branch (accidentally cut off `docs/night-hygiene`) had merged the whole hygiene branch onto local main out-of-order, AND origin/main had advanced in parallel to the operator's pushed **`c198cf1`** register-win-tooling arc (a769066 — REGISTRY.md + index.yaml). Per operator ruling + 3 safeguards (verified 157628a had zero unique commits; `git fetch` before each merge confirming origin unmoved; confirmed the branch was a pure duplicate) → `git reset --hard origin/main` (dropped only the unpushed accidental merge), deleted the duplicate branch. (2) Confirmed REGISTRY.md is **declarative-only** (`discover_repos` reads `ecosystem/*/state.yaml`, not REGISTRY) — win-tooling was already traversed via its gitignored state.yaml, showing as a 5th `unmarked` boundary_report consumer (expected, not a gate red). (3) **Merged the 4 night branches `--no-ff` in order** onto c198cf1: `be93a53` (#306) → `5e8a248` (#307, conflict-resolved: kept both new hooks in .pre-commit-config + CLAUDE §9, regen doc-counts 16 gates/1503) → `e253814` (feat/e2e, doc-counts regen 1504) → `4a30662` (docs/night-hygiene, clean). ship-gate GREEN + full pytest after the conflict merge (1501p/2s) and final (1501p/3s). Pushed `c198cf1..4a30662`; block-ff-push PASSED; tore down all 4 branches (-d). (4) **Filed follow-ups** on `docs/morning-triage-filings`: #318 (Codex A3 pre-push adapter edge), #319 (Codex A4/A5 carrier hook-append), #320 (fleet backup posture — the prior-sweep item never filed), #321 (ARCHITECTURE Ch2 organ-map: boundary_report missing — scheduled genuine re-read, NOT quick-patched); folded the plan-continuity carrier into #301 clause (iv).
