@@ -1,3 +1,7 @@
+---
+reconciled_with: handoff-process@5.7
+---
+
 # protocols/ — canonical universal-methodology genre (hub)
 
 **Scope marker (BACKLOG #314 / #327).** In the fleet, `protocols/` is a
