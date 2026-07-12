@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-12 — CC (Opus 4.8): pin hub ruff hook to fleet-canonical astral-sh/ruff-pre-commit @ v0.15.5 (chore/ruff-hub-pin)
+
+**Did:** Converted the hub's `ruff` pre-commit hook from the hub-local `language: system` system-binary form to the fleet-canonical pinned-rev form (`astral-sh/ruff-pre-commit` @ v0.15.5, `args: []` = check-only, no `--fix`), matching both consumers (corp-monorepo + ai-council, both `id: ruff`). rev == the `pyproject.toml` `[tool.ruff]` required-version floor (>=0.15.5). Lockstep coherence (operator-approved, v2.36 precedent): `pyproject.toml` floor comment re-worded off the system-binary rationale; CLAUDE §9 ruff line re-worded off the now-false `language: system` claim; §12 **v2.40** folded into the v2.39 bullet (holds section-history at 11 under the ADR-49/65 condense threshold — the self-induced 12-entry WARN, caught + cleared), version 2.39→2.40, `last_reviewed` 2026-07-12 stands.
+
+**Result:** 2 commits on `chore/ruff-hub-pin` — **`ce81f99c`** (config + pyproject + CLAUDE) · **`553450cc`** (codex audit artifact). Witnessed gate test: staged violating `.py` (F401 unused import) **BLOCKED** verbatim (`ruff (legacy alias)......Failed`, exit 1); clean `.py` **Passed** (exit 0); probe deleted, no leftovers. Hook-id count unchanged (15 gates); `validate_doc_claims` OK; `audit.py health` OK; deploy/sandbox/carrier tests **189 passed / 1 skipped**; doc tests **70 passed**. Codex `/codex-review` returned one **HIGH** (`id: ruff` "rejected in v0.15.5, use `ruff-check`") — **REFUTED** by the witnessed run: pre-commit accepted `id: ruff` as a working legacy alias (both consumers use it; parity requires it). Forward note (not this arc): `ruff`→`ruff-check` is a deprecation all 3 repos would migrate together.
+
+**Changes:** `.pre-commit-config.yaml`, `pyproject.toml`, `CLAUDE.md`, `docs/audits/2026-07-12-codex-ruff-hub-pin.md`, `docs/audits/README.md`; this note.
+
+**Abandoned:** none.
+
+**Next:** merge `--no-ff` to main, push, delete branch. Fleet forward-item: consider `id: ruff`→`ruff-check` migration across hub + both consumers together (raise with operator).
+
+---
+
 ### 2026-07-12 — CC (Opus 4.8): templates-canon doc-review fixes F1/F2/F4/F5 (consumer-safe canon, same branch)
 
 **Did:** Applied the operator-ruled doc-review findings on `worktree-t1-templates-canon`. **F1** — §1 first-read region: hub-pointer phrasing replacing bare `protocols/ESSENTIALS.md`/`PLAYBOOK.md` local paths (canon + `templates/claude-regions/` extract, byte-matched) so the region is applicable verbatim in a consumer; `protocols/README.md` already consumer-safe (no mirror). **F2** — CONTRIBUTING **template** only: C5 backlog-id enforcement + C7 DoD stated at pointer level ("carried commit-msg gate / session-end Stop-hook where installed"); concrete hub-local script paths moved to LOCAL-marked comments. **F4** — unified C4 branch/commit contract with **identical wording** across the CLAUDE `conventions-commit-branch` region (+ extract), the CONTRIBUTING template, and hub CONTRIBUTING (branch prefixes `feat/ fix/ docs/ chore/` only; commit **types** incl. `refactor`/`test`, types ≠ prefixes; branch → `--no-ff`, never direct main). **F5** — §5 rule 9 region: dropped hub-specific incident wording (night-agent/ADR-68, `.dev-knowledge-*` orphans), kept the universal cleanup rule. CLAUDE §12 **v2.39** + v2.30 fold + version 2.38→2.39.

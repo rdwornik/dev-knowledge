@@ -34,7 +34,9 @@ markers = [
 
 [tool.ruff]
 # Floor at the grounded version (0.15.5, 2026-06-02).
-# local pre-commit hook uses the system binary (language: system) so version
-# mismatch is not possible at runtime — this constraint catches accidental
-# downgrade if the environment is rebuilt.
+# The pre-commit ruff hook is the fleet-canonical pinned-rev form
+# (astral-sh/ruff-pre-commit @ v0.15.5, matching both consumers) — its rev EQUALS
+# this floor, so the managed hook and any system / dev-group ruff agree. This
+# constraint still catches an accidental downgrade of any ruff invoked in the repo
+# (manual `ruff check --fix`, the dev dependency group) if the environment is rebuilt.
 required-version = ">=0.15.5"
