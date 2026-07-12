@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-12 — CC (Opus 4.8): the A0 seal arc (traceability merge + intake settles + SIEM ruled pack + lessons/PLAYBOOK codification + #326 close)
+
+**Did:** Serial 7-step seal, verify-after-each. **(1)** Merged `docs/a0-traceability` `--no-ff` with the audit index regenerated IN the merge commit (Codex skipped it under its one-file constraint). **(2)** Promoted intake #12 (ownership manifest) DRAFT→**settled** with the blocking **§9a contract reconciliation** the Codex derivation named (`…-codex.md:34`): the Tier-1 inverse rule no longer forbids `.methodology.yaml` in the hub — it's REMOVED from the inverse rule and ADDED to the hub MUST (the hub carries its own as a fleet member); #328 now has a fixed target. **(3)** Created `docs/intake/2026-07-12-siem-requirements-ruled-pack.md` (**RULED**, consumed-by #328): unions the two independent #14 derivations — adopts Codex's five-state model / opportunity-denominator / collector self-health / idempotency; keeps Fable's volumes arithmetic / scenarios / register-grammar; **ratifies PULL** (default ratify, operator may still Council); **reclassifies W1/S1** stop-hook evidence as an OBSERVABILITY gap (repo-state designed no-op — healthy vs broken silence indistinguishable), not an organ failure; adds **FR-A sanctioned-lanes queryability** + **FR-4 ruling-addressability**. Source drafts kept as provenance. **(4)** LESSONS: 5 A0-seal lessons (recall-vs-witnessed / invalid-input≠absent-capability / absence-class taxonomy / ruling-addressability / review-before-STOP). **(5)** PLAYBOOK codified: §16 Codex-utilization doctrine (exact sol/terra/luna strings never bare `gpt-5.6`; terra default; doc-lane via `codex exec` until #333; every plan names its lane), Ch4 plan-review output contract (option-select/typed, never dialog), Ch12 review-before-STOP. **(6)** SUP-02: verified #326's fleet Done-when fulfilled (hub `f7a548d2` + corp `df29a3c` + ai `30e4dce` no-op, per the traceability table; #165 settled documentarily; no disposition/xref to orphan), **closed [#326]**, deleted the fully-merged `docs/file-arch-cc-facing-ruling`. SUP-01/03/04 stay deferred with owners (no action).
+
+**Result:** step 1 merge **`893416a9`** on main; seal branch `docs/a0-seal` commits **`6600a56e`** (#12) · **`91577a10`** (#14 pack) · **`56d9a761`** (lessons) · **`e7abe31e`** (playbook) · **`5e3b780`** (#326 close) + this JOURNAL wrap. Gates green each step (audit-health OK · validate_backlog OK 107 tasks · intake/audit index freshness · toc-freshness · hermetization). Branch deleted: `docs/file-arch-cc-facing-ruling`.
+
+**Changes:** `docs/audits/{2026-07-13-technical-a0-traceability-closure.md,README.md}` (step 1); `docs/intake/{2026-07-11-tech-ownership-manifest.md,2026-07-12-siem-requirements-ruled-pack.md,README.md}`; `LESSONS.md`; `protocols/PLAYBOOK.md`; `BACKLOG.md` (#326 removed); this note.
+
+**Abandoned:** none.
+
+**Next:** ship-gate GREEN → merge `docs/a0-seal` `--no-ff` to main, push, delete branch. #328 builds against the settled #12 manifest + the RULED #14 pack. Two #14 source drafts remain DRAFT as provenance (mark consumed if desired).
+
+---
+
 ### 2026-07-12 — CC (Opus 4.8): pin hub ruff hook to fleet-canonical astral-sh/ruff-pre-commit @ v0.15.5 (chore/ruff-hub-pin)
 
 **Did:** Converted the hub's `ruff` pre-commit hook from the hub-local `language: system` system-binary form to the fleet-canonical pinned-rev form (`astral-sh/ruff-pre-commit` @ v0.15.5, `args: []` = check-only, no `--fix`), matching both consumers (corp-monorepo + ai-council, both `id: ruff`). rev == the `pyproject.toml` `[tool.ruff]` required-version floor (>=0.15.5). Lockstep coherence (operator-approved, v2.36 precedent): `pyproject.toml` floor comment re-worded off the system-binary rationale; CLAUDE §9 ruff line re-worded off the now-false `language: system` claim; §12 **v2.40** folded into the v2.39 bullet (holds section-history at 11 under the ADR-49/65 condense threshold — the self-induced 12-entry WARN, caught + cleared), version 2.39→2.40, `last_reviewed` 2026-07-12 stands.
