@@ -182,6 +182,42 @@ dispositions:
       by the #326 arc's ship-gate, the first full ship-gate run since #328 was filed. #328's charter
       text is load-bearing (root-cause mechanism ticket), so condensation is deferred to #328's own
       build session (operator-ruled 2026-07-11). Keyed on BACKLOG#328 per the doc-rot disposition pattern.
+  # (2026-07-13) #332/#333/#334 surfaced by the A0-seal ship-gate — the first full ship-gate run
+  # since they were filed 2026-07-12. #334 (own, self-authored this session) was TRIMMED under the
+  # threshold, not dispositioned; #332/#333 are other sessions' load-bearing tasks — disposition
+  # (do not condense other sessions' text), with a review_date shelf-life (operator ruling, A0 seal).
+  - id: warn-doc-rot-backlog-332
+    organ: doc_rot
+    match: "BACKLOG#332"
+    ref: "#332"
+    review_date: 2026-08-13
+    reason: >-
+      Surfaced — NOT introduced — by the A0-seal ship-gate (first full ship-gate since #332 was
+      filed 2026-07-12). Load-bearing recently-filed dependency-version-parity task; condensation
+      deferred to #332's own build. Other-session task text is NOT trimmed here (operator ruling,
+      A0 seal); review_date is the shelf-life so this does not rot into a paper suppression (ADR-75).
+  - id: warn-doc-rot-backlog-333
+    organ: doc_rot
+    match: "BACKLOG#333"
+    ref: "#333"
+    review_date: 2026-08-13
+    reason: >-
+      Surfaced — NOT introduced — by the A0-seal ship-gate (first full ship-gate since #333 was
+      filed 2026-07-12). Load-bearing recently-filed codex-review doc-lane task; condensation
+      deferred to #333's own build. Other-session task text is NOT trimmed here (operator ruling,
+      A0 seal); review_date is the shelf-life so this does not rot into a paper suppression (ADR-75).
+  - id: warn-reconciled-versions-contributing-template
+    organ: reconciled_versions
+    match: "templates/CONTRIBUTING-md-template.md"
+    ref: "#335"
+    auto_clearable_by: "#335"
+    reason: >-
+      False-positive BY CONSTRUCTION: templates/CONTRIBUTING-md-template.md is a TEMPLATE whose
+      reconciled_with intentionally carries the `<version>` fill-in placeholder (a consumer resolves
+      it), so it is not a resolved '<spec-id>@<version>'. The reconciled_versions organ should exempt
+      templates/ — filed as #335; this disposition auto-clears when #335 lands (auto_clearable_by).
+      Dispositioned rather than left to rot: a placeholder can never satisfy the check, so absent the
+      #335 exemption it would block every ship-gate — but it is a check-precision bug, not real drift.
 
   # (cleared 2026-07-02, #222) warn-doc-claims-pytest-collected-architecture — #222 relocated
   # the three volatile counts to the committed-generated ecosystem/doc-counts.md, so the
