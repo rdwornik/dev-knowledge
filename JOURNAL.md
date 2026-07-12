@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-13 — CC (Fable 5): W3 hub legs — Wave-3 census merge + ruff config home + fleet .gitattributes baseline (chore/w3-hub-legs)
+
+**Did:** **(1)** Merged `docs/wave3-census` `--no-ff` (`2b18520e`, audit index regenerated in-merge), pushed, branch deleted. **(2)** On `chore/w3-hub-legs`: moved the hub lint rules `.ruff.toml` → `pyproject.toml` `[tool.ruff.lint]` (fixture per-file-ignores) and deleted `.ruff.toml` — one config home, and a real fix: while `.ruff.toml` existed it took precedence, so the whole pyproject `[tool.ruff]` table **including the required-version floor was silently inert**; the floor is now live. Adopted the fleet `.gitattributes` baseline (`* text=auto eol=lf` + `*.ps1 text eol=crlf`, #282 target shape), existing generated-file LF pins kept as additive lines (last-match-wins). **RENORMALIZE NOT RUN:** `git add --renormalize --dry-run` churn = **1283 files** > 0 → W3-16 boundary held; the renormalize migration is a separately reviewed arc (until it runs, files edited under the new baseline normalize to LF as they're touched — whole-file EOL diffs may ride interim commits).
+
+**Result:** commit **`25c298e3`**. Witnessed: staged violating `.py` **BLOCKED** (F401, exit 1) by the ruff gate under the pyproject config home; clean probe Passed; probe deleted, no leftovers. `ruff check` repo-wide clean (fixture ignores honored from pyproject). Gates: live_repo tier **51 passed** · dot-prefix audit tests 4 passed · all pre-commit hooks green.
+
+**Changes:** `pyproject.toml`, `.gitattributes`, `.ruff.toml` (deleted); `docs/audits/{2026-07-13-technical-wave3-reading-friction-census.md,README.md}` (step 1); this note.
+
+**Abandoned:** the renormalize commit (deliberate — W3-16 boundary, churn 1283).
+
+**Next:** merge `--no-ff`, push, delete branch; Lane 1 worktree branches from the reported main SHA. W3-16 arc owns the renormalize.
+
+---
+
 ### 2026-07-12 — CC (Opus 4.8): the A0 seal arc (traceability merge + intake settles + SIEM ruled pack + lessons/PLAYBOOK codification + #326 close)
 
 **Did:** Serial 7-step seal, verify-after-each. **(1)** Merged `docs/a0-traceability` `--no-ff` with the audit index regenerated IN the merge commit (Codex skipped it under its one-file constraint). **(2)** Promoted intake #12 (ownership manifest) DRAFT→**settled** with the blocking **§9a contract reconciliation** the Codex derivation named (`…-codex.md:34`): the Tier-1 inverse rule no longer forbids `.methodology.yaml` in the hub — it's REMOVED from the inverse rule and ADDED to the hub MUST (the hub carries its own as a fleet member); #328 now has a fixed target. **(3)** Created `docs/intake/2026-07-12-siem-requirements-ruled-pack.md` (**RULED**, consumed-by #328): unions the two independent #14 derivations — adopts Codex's five-state model / opportunity-denominator / collector self-health / idempotency; keeps Fable's volumes arithmetic / scenarios / register-grammar; **ratifies PULL** (default ratify, operator may still Council); **reclassifies W1/S1** stop-hook evidence as an OBSERVABILITY gap (repo-state designed no-op — healthy vs broken silence indistinguishable), not an organ failure; adds **FR-A sanctioned-lanes queryability** + **FR-4 ruling-addressability**. Source drafts kept as provenance. **(4)** LESSONS: 5 A0-seal lessons (recall-vs-witnessed / invalid-input≠absent-capability / absence-class taxonomy / ruling-addressability / review-before-STOP). **(5)** PLAYBOOK codified: §16 Codex-utilization doctrine (exact sol/terra/luna strings never bare `gpt-5.6`; terra default; doc-lane via `codex exec` until #333; every plan names its lane), Ch4 plan-review output contract (option-select/typed, never dialog), Ch12 review-before-STOP. **(6)** SUP-02: verified #326's fleet Done-when fulfilled (hub `f7a548d2` + corp `df29a3c` + ai `30e4dce` no-op, per the traceability table; #165 settled documentarily; no disposition/xref to orphan), **closed [#326]**, deleted the fully-merged `docs/file-arch-cc-facing-ruling`. SUP-01/03/04 stay deferred with owners (no action).
