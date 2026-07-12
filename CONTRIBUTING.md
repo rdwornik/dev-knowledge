@@ -22,7 +22,9 @@ docs/short-description
 chore/short-description
 ```
 
-Default branch: `main` (ADR-30). Never commit directly to `main`. Branch → commit → merge.
+Default branch: `main` (ADR-30).
+
+Branch prefixes are `feat/ fix/ docs/ chore/` (these four only). Commit **types** follow Conventional Commits and additionally include `refactor` and `test` — commit types are **not** branch prefixes. Never commit directly to `main`: branch → `--no-ff` merge.
 
 ## Commit style
 

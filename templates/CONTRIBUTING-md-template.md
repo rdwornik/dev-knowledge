@@ -29,7 +29,9 @@ docs/short-description
 chore/short-description
 ```
 
-Default branch: `main` (ADR-30). Never commit directly to `main`. Branch → commit → merge.
+Default branch: `main` (ADR-30).
+
+Branch prefixes are `feat/ fix/ docs/ chore/` (these four only). Commit **types** follow Conventional Commits and additionally include `refactor` and `test` — commit types are **not** branch prefixes. Never commit directly to `main`: branch → `--no-ff` merge.
 
 <!-- CANONICAL: Commit style (sync verbatim from hub) -->
 ## Commit style
@@ -48,7 +50,7 @@ chore: update dev dependencies
 
 Scopes are optional but use the file/folder slug when it clarifies. See recent commits in `git log` for live examples.
 
-<!-- CANONICAL: Backlog-id references incl. the D2 cross-repo rule (sync verbatim from hub) -->
+<!-- CANONICAL: Backlog-id references — closure grammar + the D2 cross-repo rule sync verbatim from hub; the enforcement teeth are stated at pointer level (the concrete gate script is in the LOCAL comment below, not the contract prose). -->
 ### Backlog-id references (forward-only index)
 
 <!-- scope: meta -->
@@ -69,11 +71,13 @@ docs(adr): ADR-65 done-item disposition           # ADR number is itself the ind
 
 This indexes commits **going forward only.** Git history is immutable — **historical commits are never rewritten** (ADR-65). Pre-convention closures are located via the SHAs already embedded in retired entries (preserved in the one-time migration JOURNAL map).
 
-**Enforced by a `commit-msg` hook.** `scripts/check_backlog_commit_msg.py` (pre-commit `commit-msg` stage) **fails any commit that removes a `- [#id]` task from `BACKLOG.md` without referencing that id** (`[#id]` or `closes [#id]`) in the message. A reworded task (id present before and after) does not trigger. Install it once per machine alongside the standard hooks:
+**Enforced by the carried `commit-msg` gate** (where installed): a commit that removes a `- [#id]` task from `BACKLOG.md` without referencing that id (`[#id]` or `closes [#id]`) is rejected. A reworded task (id present before and after) does not trigger. Install the commit-msg stage once per machine:
 
 ```
 pre-commit install --hook-type commit-msg
 ```
+
+<!-- LOCAL: the concrete gate script in this repo is `scripts/check_backlog_commit_msg.py` (pre-commit `commit-msg` stage). -->
 
 **"What's been implemented" query.** Because done tasks **leave** `BACKLOG.md` (ADR-65) and git is the implementation record, the list of completed tasks with their implementing commits is:
 
@@ -138,9 +142,11 @@ Claude Code command: **`/handoff`** — `create handoff for <repo>` emits the re
 
 `BACKLOG.md` (root): cross-session pending items per ADR-41. Universal mandate (ADR-38 amendment A5 — every repo, no tier gating). Review before chartering new session.
 
-<!-- CANONICAL: Definition of done (sync verbatim from hub) -->
+<!-- CANONICAL: Definition of done — pointer level; the concrete Stop-hook script is in the LOCAL comment below (do not hard-code hub-local paths). -->
 ## Definition of done (session close)
 
 <!-- scope: meta -->
 
-`protocols/DEFINITION_OF_DONE.md` is the single source of truth for what "done" means at session close (ADR-85): a session that produces commits adds a `JOURNAL.md` entry naming ≥1 commit SHA from this arc (**hard-gated**), and should update `BACKLOG.md` with a structural marker (**advisory** in v1). It is enforced **mechanically and deterministically** by the session-end Stop-hook (`scripts/session_end_backpressure.py`) — no LLM in the gate — and the only escape is `/override [reason]`. The other living docs (`ARCHITECTURE`, `VISION`, `LESSONS`, this file) are "update when materially affected", not per-session-gated. Pointer only — the rules live in that file, not here (resident copies drift).
+`protocols/DEFINITION_OF_DONE.md` is the single source of truth for what "done" means at session close (ADR-85): a session that produces commits adds a `JOURNAL.md` entry naming ≥1 commit SHA from this arc (**hard-gated**), and should update `BACKLOG.md` with a structural marker (**advisory** in v1). It is enforced **mechanically and deterministically** by the carried session-end Stop-hook (no LLM in the gate) — and the only escape is `/override [reason]`. The other living docs (`ARCHITECTURE`, `VISION`, `LESSONS`, this file) are "update when materially affected", not per-session-gated. Pointer only — the rules live in that file, not here (resident copies drift).
+
+<!-- LOCAL: the concrete Stop-hook script in this repo is `scripts/session_end_backpressure.py`. -->
