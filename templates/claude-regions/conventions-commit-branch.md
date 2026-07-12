@@ -1,0 +1,2 @@
+- **Commits:** Conventional Commits — `feat/fix/docs/chore/refactor`
+- **Branches:** `feat/<topic>`, `fix/<issue>`, `docs/<scope>`, `chore/<scope>` off `main`
