@@ -2,7 +2,7 @@
 intake-id: 14
 status: DRAFT
 origin: "Codex (sol), operator-directed independent derivation, 2026-07-12"
-consumed-by:
+consumed-by: "2026-07-12-siem-requirements-ruled-pack.md (#14 RULED consolidation pack; this draft retained as provenance)"
 ---
 
 # Fleet-management and observability requirements — independent Codex derivation

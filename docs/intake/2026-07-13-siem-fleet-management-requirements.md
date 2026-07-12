@@ -2,7 +2,7 @@
 intake-id: 14
 status: DRAFT
 origin: research session (execution mode, operator-directed brief), 2026-07-12/13 overnight — intake #13 v4 Phase E Leg 0 pulled FORWARD as research-only; no decision, no tool selection
-consumed-by:
+consumed-by: "2026-07-12-siem-requirements-ruled-pack.md (#14 RULED consolidation pack; this draft retained as provenance)"
 ---
 
 > **Intake note:** The functional-requirements pack intake #13 v4 Phase E names as its Leg 0 — event sources + volumes, the operator's questions, collection model (pull vs push), retention, privacy/scope — plus the four-question pattern survey the operator's brief ordered (parity-as-versioned-state · fire-telemetry schema · pull-vs-push · conformance decision-tree). Requirements before tools; every requirement traces to a witnessed failure or a named register row (Annex E). Per the Phase E ARCHITECTURE DECISION GATE this doc RECOMMENDS where the evidence is lopsided and forks only what is genuinely contested — nothing here is decided until the operator rules (ADR-98 §4 confirm-gate).

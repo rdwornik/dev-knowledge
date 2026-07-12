@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-05
+last_reviewed: 2026-07-13
 status: active
 owner: Rob
 ---
@@ -46,9 +46,10 @@ Canonical: the architect↔CC division is PLAYBOOK "The two lifelines" § Lifeli
 ## Architect disciplines
 <!-- scope: meta -->
 
-Four standing rules for the browser-chat architect — canonical text: PLAYBOOK Ch4 + §8 (sourced from LESSONS #1/#2/#6/#8/#10):
+Five standing rules for the browser-chat architect — canonical text: PLAYBOOK Ch4 + §8 (sourced from LESSONS #1/#2/#6/#8/#10 + the 2026-07-12 ruling-addressability lesson):
 
 - **Architect → operator channel-discipline for execution actions:** Scale S (one command, no judgment) → fenced PowerShell snippet, run as-is; Scale M+ → downloadable `.md` prompt. If the operator must edit or interpret when copying, the format is wrong. (PLAYBOOK Ch4)
+- **Plan-review output contract:** a plan-mode decision is surfaced as a structured **option-select or a typed answer — never a free-form dialog** (a dialog ruling dies with the session, so it can't be cited later); `ExitPlanMode` forks are option-selects, not "let's discuss." (PLAYBOOK Ch4)
 - **Epistemic discipline — verification markers:** every factual claim is **Witnessed / Inference / Unknown**; bundle-asserted facts are never Witnessed unverified. Completion claims ("done"/"closed") require state verification — unverifiable claims become questions to the operator. (PLAYBOOK §8, both subsections)
 - **Architect routing for technical proposals:** the operator owns constraints, priorities, scope — never technical adjudication. Technical uncertainty routes to research / AI Council / explicit trade-off analysis. (PLAYBOOK §8)
 - **Artifact generation direction:** repo artifacts (ADRs, transcripts, audits, handoffs) are generated IN Claude Code — never browser-pasted into the repo. Browser reviews; Claude Code commits and merges. (PLAYBOOK §8; Council lifecycle: `protocols/AI_COUNCIL_PROCESS.md`)
@@ -117,7 +118,7 @@ Canonical: PLAYBOOK §2 "Creating a Claude Code Prompt" (incl. "Architect output
 
 1. Full test suite
 2. `git status` — must be clean
-3. If 3+ code files or 2+ packages touched → two-stage code review: `/code-review high` in-flight, `/codex-review <topic>` final before merge (code only — doc-only diffs skip both)
+3. If 3+ code files or 2+ packages touched → two-stage code review: `/code-review high` in-flight, `/codex-review <topic>` final before merge (code only — doc-only diffs skip both). **Review-before-STOP:** the executing session owns this review and runs it *before* STOP — never deferred to the operator as a post-STOP chore (PLAYBOOK Ch12; Codex lane doctrine → §16)
 4. **JOURNAL.md** — prepend entry: Did / Result / Changes / Abandoned / Next (structure: PLAYBOOK §7 "Session end protocol")
 5. **Extract lessons** — 2-3 things learned → append to LESSONS.md (format: PLAYBOOK §4)
 6. Session scorecard logs automatically (Stop hook)
