@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-12 — CC (Opus 4.8): templates-canon doc-review fixes F1/F2/F4/F5 (consumer-safe canon, same branch)
+
+**Did:** Applied the operator-ruled doc-review findings on `worktree-t1-templates-canon`. **F1** — §1 first-read region: hub-pointer phrasing replacing bare `protocols/ESSENTIALS.md`/`PLAYBOOK.md` local paths (canon + `templates/claude-regions/` extract, byte-matched) so the region is applicable verbatim in a consumer; `protocols/README.md` already consumer-safe (no mirror). **F2** — CONTRIBUTING **template** only: C5 backlog-id enforcement + C7 DoD stated at pointer level ("carried commit-msg gate / session-end Stop-hook where installed"); concrete hub-local script paths moved to LOCAL-marked comments. **F4** — unified C4 branch/commit contract with **identical wording** across the CLAUDE `conventions-commit-branch` region (+ extract), the CONTRIBUTING template, and hub CONTRIBUTING (branch prefixes `feat/ fix/ docs/ chore/` only; commit **types** incl. `refactor`/`test`, types ≠ prefixes; branch → `--no-ff`, never direct main). **F5** — §5 rule 9 region: dropped hub-specific incident wording (night-agent/ADR-68, `.dev-knowledge-*` orphans), kept the universal cleanup rule. CLAUDE §12 **v2.39** + v2.30 fold + version 2.38→2.39.
+
+**Result:** one commit **`af4a1ad`**. Script-verified: all 8 regions byte-match CLAUDE.md (3 changed — first-read / conventions-commit-branch / critical-rules-no-leftovers); the C4 contract is byte-identical in all 4 files; F1/F5 flagged wording removed; F2 script paths only in LOCAL comments. Full suite **1511 passed / 8 skipped**; `audit.py health` OK; `ruff` clean; `canonical_freshness` green (CLAUDE + CONTRIBUTING re-stamps stand, same-day). **NOT merged, NOT pushed** — commit-and-STOP; Codex `terra` lane N/A (doc-only diff).
+
+**Changes:** `CLAUDE.md`, `CONTRIBUTING.md`, `templates/CONTRIBUTING-md-template.md`, 3 `templates/claude-regions/*.md`; this note.
+
+**Abandoned:** none.
+
+**Next:** primary-session integration (`/ship`). Deferred unchanged: D2 enforcement (#328), corp `protocols/README.md` + full genre wording (#327), T2 consumer sync.
+
+---
+
 ### 2026-07-12 — CC (Opus 4.8): templates-canon — extract owner=hub CLAUDE regions + fix hub-side parity defects (t1-templates-canon lane, commit-and-STOP)
 
 **Did:** Executed the operator-approved templates-canon plan in the `t1-templates-canon` worktree (authority: `docs/audits/2026-07-13-technical-content-parity-inventory.md`). Two halves. (1) HUB FIXES: **C2** — corrected JOURNAL's preamble mislabel of LESSONS order ("oldest-top"→"newest-first"); **C6** — set-matched CONTRIBUTING's validator roster to the live 15-hook `.pre-commit-config.yaml` (dropped stale `toc-freshness`; added `audit-index-freshness` / `validate-hermetization` / `intake-index-freshness` / `backlog-filing-backpressure`; refreshed `codemap-freshness` desc); **D2** — codified repo-qualified cross-repo refs (`hub#N`/`ai#N`/`corp#N`) in CONTRIBUTING (enforcement = #328); **B5** — added the live `arm_hooks.py` to CLAUDE §9 SessionStart prose (+ §12 v2.38, version 2.37→2.38, v2.28–29 fold to clear the self-induced section-history WARN, `last_reviewed` stands same-day; CONTRIBUTING re-stamped). (2) TEMPLATES: extracted the 8 `owner=hub` CLAUDE region bodies byte-exact to `templates/claude-regions/<id>.md` (**A1–A8**, filename==marker id, markers stay in the consuming file); reshaped `CLAUDE-md-template.md` to the 15-region marker topology with owner=hub SYNC-by-id refs (**B1**); new `LESSONS`/`JOURNAL`/`CONTRIBUTING` `-md-template.md` preamble/shell templates (**C1–C5/C7**); seeded hub `protocols/README.md` genre shell (**F3**, inverted-for-hub); marked BACKLOG #314 partial.
