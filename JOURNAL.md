@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-12 — CC (Opus 4.8): serial merge of the two SIEM-intake lanes + parity-inventory audit to main
+
+**Did:** Operator-directed serial cleanup. (1) Verified topology, then merged both SIEM-intake lanes to main `--no-ff`: `80fb1fa7` (Fable derivation → `docs/intake/2026-07-13-siem-fleet-management-requirements.md`) and `9b5c67e0` (Codex independent derivation → `...-codex.md`). The Codex clean-merge only ran commit-msg hooks, leaving `docs/intake/README.md` stale (14→15 docs, #307), so regenerated the intake index and folded it into the merge via `--amend` (merge parents preserved). Pushed main, deleted both branches, verified zero leftovers. (2) Merged `docs/content-parity-inventory` `--no-ff` (`cead8306` → adds `docs/audits/2026-07-13-technical-content-parity-inventory.md`); same clean-merge stale-index pattern on `docs/audits/README.md` (223→224, #269) — regenerated + folded via `--amend`. (3) Read-only fleet state check across hub / corp-monorepo / ai-council + the #332-sanctioned one-time `pytest-xdist` bootstrap into ai-council's venv (witnessed `450 tests collected` under `-n auto`).
+
+**Result:** SIEM lanes shipped + pushed (tip `9b5c67e0`). Parity-inventory merge `cead8306` on main is **local, NOT pushed**; branch `docs/content-parity-inventory` **not yet deleted** — awaiting operator on push + branch-delete. All pre-commit gates green on both `--amend` commits (intake + audit index freshness Passed). ai-council venv now carries pytest-xdist 3.8.0 / execnet 2.1.2.
+
+**Changes:** merges `80fb1fa7` / `9b5c67e0` / `cead8306`; index regens `docs/intake/README.md` + `docs/audits/README.md`; this note.
+
+**Abandoned:** none.
+
+**Next:** operator rules push + branch-delete for the parity-inventory lane. Untouched out-of-scope local branches noted for later pruning: hub `automation/fleet-audit`, `docs/file-arch-cc-facing-ruling`; corp-monorepo `docs/backlog-transcript-mime-fix`.
+
+---
+
 ### 2026-07-12 — CC (Fable 5): intake #14 — SIEM/fleet-observability requirements pack (Phase E Leg 0, research-only, commit-and-STOP)
 
 **Did:** Operator-directed research intake (intake #13 v4 Phase E Leg 0 pulled forward; no decisions, no tool selection). Read the ordered evidence base (intake #13 v4 · intake #12 · fleet-parity register + structure comparison · BACKLOG #328/#332 · the 2026-07-12 JOURNAL witnesses across hub/ai-council/corp · the codex d1 three-way port review · disposition-register + enforcement_coverage · SUPPLEMENT CONSIDERED+REJECTED) and authored `docs/intake/2026-07-13-siem-fleet-management-requirements.md` (intake-id **14**, status DRAFT): 20 traced functional requirements (traceability register W1–W8/R1–R8 — every FR cites a witnessed failure or named register row), a 7-class pattern survey at library scale (GitOps drift / check-mode / policy-as-code / renovate-class / workspace-lint / dead-man's-switch / store-viewer — extraction, not adoption), PULL-vs-PUSH collection analysis → **PULL recommended** (fork judged not genuinely contested; reopen tripwires named; operator ratifies per the Phase E gate), NON-GOALS reaffirming the REJECTED register (Grafana/Loki/ELK-class stays permanently rejected) + a platform tripwire, and 8 open operator questions. Event-record constraints kept least-commitment (the JSONL schema itself stays Phase A's to birth, per intake #13). `docs/intake/README.md` index regenerated in the same commit (the #307 gate's mechanical companion).
