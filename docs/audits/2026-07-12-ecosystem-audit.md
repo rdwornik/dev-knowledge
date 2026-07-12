@@ -3,9 +3,9 @@
 <!-- scope: meta -->
 
 **Date:** 2026-07-12  
-**Generated:** 2026-07-12T02:09:57  
+**Generated:** 2026-07-12T15:31:31  
 **Repos audited:** 6  
-**Checks:** 174 total — 145 pass, 2 fail, 4 warn, 0 unavailable, 23 n/a
+**Checks:** 174 total — 144 pass, 3 fail, 4 warn, 0 unavailable, 23 n/a
 
 ---
 
@@ -18,7 +18,7 @@
 |---|---|---|
 | `vision_md` | PASS | VISION.md present; frontmatter keys: ['last_reviewed', 'owner', 'status', 'version'] |
 | `adr38_baseline` | PASS | All ADR-38 universal governance baseline files present |
-| `claude_md` | PASS | CLAUDE.md present (29953 chars) |
+| `claude_md` | PASS | CLAUDE.md present (30279 chars) |
 | `dot_prefix_discipline` | PASS | All root config files dot-prefixed or on ADR-59 exception list |
 | `canonical_md_visibility` | PASS | Mandatory canonical files present + correctly cased: ['VISION.md', 'ARCHITECTURE.md', 'CLAUDE.md', 'BACKLOG.md', 'CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
 | `workspace_settings` | PASS | .dev-knowledge.code-workspace present, dot-prefixed, required sort settings correct |
@@ -59,7 +59,7 @@ History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/
 |---|---|---|
 | `vision_md` | PASS | VISION.md present; frontmatter keys: ['last_reviewed', 'owner', 'status', 'version'] |
 | `adr38_baseline` | PASS | All ADR-38 universal governance baseline files present |
-| `claude_md` | PASS | CLAUDE.md present (15408 chars) |
+| `claude_md` | PASS | CLAUDE.md present (16928 chars) |
 | `dot_prefix_discipline` | PASS | All root config files dot-prefixed or on ADR-59 exception list |
 | `canonical_md_visibility` | PASS | Mandatory canonical files present + correctly cased: ['VISION.md', 'ARCHITECTURE.md', 'CLAUDE.md', 'BACKLOG.md', 'CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
 | `workspace_settings` | PASS | .ai-council.code-workspace present, dot-prefixed, required sort settings correct |
@@ -229,7 +229,7 @@ History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time
 | `workspace_settings` | WARN | .win-tooling.code-workspace: explorer.sortOrder='<absent>' (expected 'default'); explorer.sortOrderLexicographicOptions='<absent>' (expected 'upper') |
 | `handoff_bundle_structure` | N/A | no docs/handoffs/ — nothing to validate |
 | `handoff_tag_canonicity` | N/A | no protocols/HANDOFF_PROCESS.md — nothing to validate |
-| `canonical_freshness` | PASS | 8 canonical living files fresh (last_reviewed not before last edit; within 30d) |
+| `canonical_freshness` | FAIL | 2 stale (edited since review): VISION.md: last_reviewed 2026-07-11 predates last edit 2026-07-12 - edited but not re-reviewed; ARCHITECTURE.md: last_reviewed 2026-07-11 predates last edit 2026-07-12 - edited but not re-reviewed |
 | `no_sibling_orphans` | PASS | No orphaned 'win-tooling-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | no protocols/HANDOFF_PROCESS.md — nothing to validate |
@@ -258,8 +258,8 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 145/174 checks passed
-- **2 failure(s)** — route findings to repo owners
+- 144/174 checks passed
+- **3 failure(s)** — route findings to repo owners
 - 4 warning(s)
 - 23 n/a (check not applicable to that repo)
 
