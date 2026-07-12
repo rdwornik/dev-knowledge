@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-12 — CC (Opus 4.8): file [#332] fleet dependency-version parity (#328 family)
+
+**Did:** Operator-directed BACKLOG add. Filed `[#332] [P2][M] Fleet dependency-version parity` — the automated leg of the `#328` fleet_parity checker (verify each consumer's dependency versions against a hub-recommended versioned manifest; drift = WARN). Placed under **E6/S15** next to the rest of the `#328` family. Reconciled the operator's "E-A1" location: there is no `E-A1` epic in the story-map — it's the intake #13 v4 plan-of-record **phase label** ("Phase A = #328 = Phase A1"), so the family's real home is E6/S15. Schema-completed the given text with the ADR-66-required `Done when:` clause and a family-style `kill-candidates:` clause; kept the operator's `serialize-group: audit-py`, refs, and witnessed-trigger note (2026-07-12 ai-council d1: pytest-xdist absent, `-n` unrecognized, suite degraded to serial).
+
+**Result:** leaf **`bde6b55`**, merge **`105cabc`** on `main` (branch `docs/backlog-332-dep-version-parity`, deleted post-merge). validate_backlog OK (107 tasks, 0 warnings; `#332` joins the `audit-py` serialize-group); 119 backlog tests + ruff green; all pre-commit gates Passed (filing-backpressure, audit self-conformance). Not pushed.
+
+**Changes:** `BACKLOG.md` (`bde6b55`); this note.
+
+**Abandoned:** none.
+
+**Next:** unchanged — `#332` is deferred build (Phase A1 automated leg, after Phase A0 + #328). One-time manual dependency alignment permitted as bootstrap in the interim.
+
+---
+
 ### 2026-07-12 — CC (Opus 4.8): intake #13 → v4 — Phase A0 exit split into two required legs
 
 **Did:** Operator-directed amendment to `docs/intake/2026-07-11-tech-plan-of-record-fleet-hygiene.md`. Bumped `revision: v3 → v4` (frontmatter + the `REVISION` heading line, with a delta-vs-v3 note) and replaced the Phase A0 trailing `Exit:` sentence with an explicit **two-leg, both-required** exit: (a) conformance + `.methodology.yaml` declarations + manifest DRAFT→settled (the prior single leg), and NEW (b) the OPERATIONAL MINIMUM verified working per consumer — hooks/skills/commands/handoffs each **WITNESSED** functioning in ai-council and corp-monorepo (`presence ≠ enforcement ≠ usable`); product-work-ready may be declared only after (b).
