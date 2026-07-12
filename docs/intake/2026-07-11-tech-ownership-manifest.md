@@ -1,12 +1,12 @@
 ---
 intake-id: 12
-status: charter-input-for-#328
+status: settled
 origin: architect draft, 2026-07-11 — derived from the three 2026-07-11 structural reports (hub fleet-structure comparison · corp #326 leg · ai-council #326+parity leg)
 consumed-by:
-note: "architect-drafted ownership manifest + nightly decision tree, derived from the three 2026-07-11 structural reports; #328's build consumes this as its charter"
+note: "architect-drafted ownership manifest + nightly decision tree, derived from the three 2026-07-11 structural reports; SETTLED at A0 promotion 2026-07-12 with the §9a hub-`.methodology.yaml` contract reconciliation (see the Tier-1 inverse-rule note); #328's build consumes this as its FIXED charter target"
 ---
 
-# Fleet Ownership Manifest (DRAFT) + Nightly Hygiene Decision Tree
+# Fleet Ownership Manifest (SETTLED) + Nightly Hygiene Decision Tree
 > #328 charter input. Derived from the three 2026-07-11 structural reports (hub fleet-structure comparison · corp #326 leg · ai-council #326+parity leg). Operator's model: TWO TREES — the hub template tree (per-role) and each repo's implementation tree; the manifest is their join; the nightly check walks it.
 
 ## Severity model (operator-defined)
@@ -26,9 +26,10 @@ note: "architect-drafted ownership manifest + nightly decision tree, derived fro
 | tests/, scripts/, logs/, config/ | shape only; contents role-dependent |
 | CLAUDE.md: Form-A owner markers + human-visible boundary note | machine map = markers; waivers = .methodology.yaml |
 
-**Consumers additionally MUST:** INSTALL.md (hub-canonical; durable carrier = #315) · .methodology.yaml (the divergence register — a consumer without one is unauditable).
-**Hub additionally MUST (source role):** .pre-commit-hooks.yaml (hook exporter) · deploy/ · ecosystem/ · plugins/ · templates/. The hub is a ROLE in the manifest, not an exception (§9a ruling).
-**Inverse rule (presence = violation):** docs/handoffs/ in a consumer (ADR-42 centralizes handoffs at the hub) · src/ in the hub (Layer-2 never executes) · INSTALL.md / .methodology.yaml in the hub.
+**Consumers additionally MUST:** INSTALL.md (hub-canonical; durable carrier = #315) · .methodology.yaml (the divergence register — a repo without one is unauditable).
+**Hub additionally MUST (source role):** .methodology.yaml (its OWN — §9a: the hub is a fleet member, not an implicit exception) · .pre-commit-hooks.yaml (hook exporter) · deploy/ · ecosystem/ · plugins/ · templates/. The hub is a ROLE in the manifest, not an exception (§9a ruling).
+**Inverse rule (presence = violation):** docs/handoffs/ in a consumer (ADR-42 centralizes handoffs at the hub) · src/ in the hub (Layer-2 never executes) · INSTALL.md in the hub.
+> **A0-promotion reconciliation (2026-07-12):** the DRAFT's inverse rule listed `.methodology.yaml in the hub` as a violation (consumer-only / forbidden-in-hub). That is SUPERSEDED by the operator's §9a ruling — the hub carries its OWN `.methodology.yaml` as a fleet member (no implicit exception) — so `.methodology.yaml` is REMOVED from the hub inverse rule and ADDED to the hub MUST list above. This is the blocking contract-reconciliation named by the Codex derivation (`docs/intake/2026-07-13-siem-fleet-management-requirements-codex.md:34`); with it settled, #328 has a fixed target (`FPR-M` / `HBL:172`).
 
 ## TIER 2 — Role/size-conditional (SHOULD → WARN)
 | Entry | Condition |

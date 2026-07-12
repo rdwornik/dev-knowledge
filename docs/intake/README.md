@@ -42,7 +42,7 @@ fill-in skeleton is `templates/intake-template.md`.
 
 - [#10](2026-07-11-tech-c4-visualization-memo.md) — C4 / Codemap Visualization — Architect Research Memo
 - [#11](2026-07-11-tech-fleet-divergence-register.md) — Fleet Divergence Register — Master List (operator-raised items)
-- [#12](2026-07-11-tech-ownership-manifest.md) — Fleet Ownership Manifest (DRAFT) + Nightly Hygiene Decision Tree
+- [#12](2026-07-11-tech-ownership-manifest.md) — Fleet Ownership Manifest (SETTLED) + Nightly Hygiene Decision Tree
 - [#13](2026-07-11-tech-plan-of-record-fleet-hygiene.md) — Plan-of-record — Fleet Hygiene System build (post 2026-07-11 session)
 <!-- INTAKE-INDEX:END -->
 
