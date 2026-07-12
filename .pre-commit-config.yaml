@@ -115,16 +115,6 @@ repos:
         language: system
         always_run: true
         pass_filenames: false
-      - id: ruff
-        name: Ruff linter (version-pinned >=0.15.5; system binary; blocks on violations)
-        # Gate mode: ruff check (no --fix) so violations are always surfaced.
-        # language: system uses the installed ruff binary directly — no pre-commit
-        # virtualenv, no version mismatch, no phantom errors (corp-monorepo I001 lesson).
-        # required-version floor is enforced by pyproject.toml [tool.ruff].
-        entry: ruff check
-        language: system
-        types: [python]
-        pass_filenames: true
       - id: coherence-nudge
         name: Coherence forgotten-version-bump nudge (non-blocking)
         # Fires on a registered spec changed-without-a-version-bump (the
@@ -162,3 +152,15 @@ repos:
         stages: [pre-push]
         always_run: true
         pass_filenames: false
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Fleet-canonical form (matches corp-monorepo + ai-council): a pinned-rev managed
+    # hook, converted from the former hub-local `language: system` ruff for fleet parity.
+    # rev pins v0.15.5 == the pyproject.toml [tool.ruff] required-version floor, so the
+    # managed ruff and any system / dev-group ruff agree — no version-mismatch phantom
+    # errors (the corp-monorepo I001 lesson). Gate mode: `args: []` == `ruff check`
+    # (no --fix), so violations surface + block and are never auto-fixed.
+    rev: v0.15.5
+    hooks:
+      - id: ruff
+        args: []
