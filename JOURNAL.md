@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-12 — CC (Opus 4.8): close [#330] via /review-closures (operator-approved)
+
+**Did:** Integration + closure arc. Pushed main, integrated the `worktree-c2-claude-md-330` branch via `--no-ff` merge (`35e5d58`, "merge: #330 register-faithful root-archive sweep [#330]"; resolved the JOURNAL prepend collision newest-first — #330's leaves 02:50/02:51 over #332's 02:27/02:29), pushed. Tore down the worktree (stale lock from a dead pid 49876 — unlocked then removed cleanly; no live session), pruned, deleted the merged branch; verified zero leftovers (`git worktree list` = primary only, branch gone, `.claude/worktrees/` empty). Then ran `/review-closures`: operator explicitly approved **#330** (WEAK candidate — evidence is the parity-register file changes, not a `closes` tag); gate re-verified it open and returned the exact line; removed it via done-items-leave (no renumber, id gap stays).
+
+**Result:** BACKLOG 107→106 tasks, validate_backlog OK (0 warnings; #330 gone from the `claude-md` serialize-group). #330's substantive work (`6a417b4` PLAYBOOK rule, `144050a` CLAUDE.md g2 sweep) shipped on `35e5d58`. All pre-commit gates green on the merge.
+
+**Changes:** `BACKLOG.md` (remove #330), `JOURNAL.md` (this note + the merged #330/#332 entries).
+
+**Abandoned:** none.
+
+**Next:** none for #330 — closed.
+
+---
+
 ### 2026-07-12 — CC (Opus 4.8): [#330] root-archive prohibition — rule codified + CLAUDE.md register-g2 sweep
 
 **Did:** Executed [#330] (register-faithful, operator-ruled after recon surfaced item-23-maximal vs parity-register-g2 conflict). (1) Codified the rule in `protocols/PLAYBOOK.md` Ch2 "What CLAUDE.md is NOT" — root/`CLAUDE.md` reference only CURRENT surfaces; archived detail lives in `templates/archive/`/`LESSONS.md`/`docs/`; an archived command must not head a live protocol list. (2) Swept the hub `CLAUDE.md`: removed the archived `/boot` as §6 Session-start step-1 (the g2 defect; live steps renumbered 1–6), removed archived `/boot`+`/evolve` from §7's user-level "commands **available**" list, stripped the `~/.claude/archive/2026-06-05-machinery-c3/` clause from the §8 `verify`-skill note (current fact kept). Relocated provenance to the §12 changelog; `last_reviewed`→2026-07-12, version 2.36→2.37; folded v2.27 into the ADR-49/65 condensed pointer to hold §12 at 11 entries (the added entry would have tripped the ≥12 doc_rot WARN). Deliberately kept the marked guardrails (§2/§5/§10 — a "do not recreate deleted X" rule must name X); §4 L71 confirmed out-of-scope (live destination pointer).
