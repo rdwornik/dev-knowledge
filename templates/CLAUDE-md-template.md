@@ -6,125 +6,141 @@ owner: <Rob | other>
 
 # CLAUDE.md — <Repo>
 <!-- scope: meta -->
-<!-- version: 2.2 — 2026-06-02 -->
+<!-- version: 2.3 — 2026-07-12 -->
+
+<!-- CONDITIONAL (consumers only): child repos import the methodology floor here and carry
+     a human-facing boundary note; the HUB does NOT (@import absent — hub asymmetry, per
+     the fleet-boundary marker design). For a consumer, uncomment the import line:
+@.claude/CLAUDE-FLOOR.md
+     (methodology floor — hash-guarded replica, ADR-78/93) -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
-> **For universal rules:** read `<absolute path>/.dev-knowledge/protocols/ESSENTIALS.md` and `protocols/PLAYBOOK.md`.
+> **For universal rules:** read `protocols/ESSENTIALS.md` and `protocols/PLAYBOOK.md`.
 
 ## 1. First read (session start)
 <!-- scope: meta -->
-
-In order, read:
-1. This file (you're here)
-2. `<path>/.dev-knowledge/protocols/ESSENTIALS.md` — Rob's universal working style
-3. `<path>/.dev-knowledge/protocols/PLAYBOOK.md` — universal protocols (only sections relevant to current task)
-4. Most recent `docs/handoffs/*.md` if continuing prior session
-5. Last 5 entries of `JOURNAL.md` (if the repo keeps one)
-
-**Skip if not applicable** — but always read 1-2.
+<!-- methodology:start id=first-read owner=hub -->
+<!-- SYNC verbatim from templates/claude-regions/first-read.md — do not hand-edit; owner=hub -->
+<!-- methodology:end id=first-read -->
 
 ## 2. Repo identity
 <!-- scope: meta -->
+<!-- methodology:start id=repo-identity owner=repo -->
 
 - **Name:** `<repo-name>`
 - **Status:** `<active | maintenance | archived>`
+- **Purpose:** `<one-sentence purpose>`
+- **Owner:** `<Rob | other>`
+- **Critical paths:** `<key dirs/files>`
+<!-- methodology:end id=repo-identity -->
 
 ## 3. Architecture
 <!-- scope: meta -->
+<!-- methodology:start id=repo-architecture owner=repo -->
 
 See `ARCHITECTURE.md` for the structural model; read it before structural changes (required for every repo, per ADR-51 as amended 2026-05-23).
+<!-- methodology:end id=repo-architecture -->
 
 ## 4. Conventions
 <!-- scope: meta -->
 
-- **Naming:** `<e.g. snake_case Python, kebab-case markdown, UPPERCASE living docs>`
-- **Commits:** `<e.g. Conventional Commits — feat/fix/docs/chore/refactor>`
-- **Branches:** `<e.g. feat/topic, fix/topic, docs/topic off main>`
-- **Testing:** `<e.g. pytest -x --tb=short; asyncio_mode = auto in pyproject.toml>`
-- **Linting:** `<e.g. ruff check src/ tests/ --fix>`
+- **Naming:** `<repo naming conventions>`
+<!-- methodology:start id=conventions-commit-branch owner=hub -->
+<!-- SYNC verbatim from templates/claude-regions/conventions-commit-branch.md — do not hand-edit; owner=hub -->
+<!-- methodology:end id=conventions-commit-branch -->
+- **Testing:** `<e.g. pytest -x --tb=short>`
+- **Linting:** `<e.g. ruff check --fix>`
 
 **Out of scope for this repo:**
-- `<e.g. Client/pre-sales data → Obsidian vault>`
-- `<e.g. Cross-repo lessons → .dev-knowledge/LESSONS.md>`
-- `<add as relevant>`
+- `<what belongs elsewhere — e.g. client/pre-sales data → Obsidian vault>`
+<!-- methodology:start id=conventions-output-formatting owner=hub -->
+<!-- SYNC verbatim from templates/claude-regions/conventions-output-formatting.md — do not hand-edit; owner=hub -->
+<!-- methodology:end id=conventions-output-formatting -->
 
-## 5. Critical rules (non-negotiable for Claude Code)
+## 5. Critical rules
 <!-- scope: meta -->
 
-These rules apply to THIS tool (Claude Code) operating in THIS repo. Universal rules in PLAYBOOK/ESSENTIALS. Repo-specific governance lives here.
+<!-- methodology:start id=critical-rules-records owner=hub -->
+<!-- SYNC verbatim from templates/claude-regions/critical-rules-records.md (rules 1-3) — do not hand-edit; owner=hub -->
+<!-- methodology:end id=critical-rules-records -->
+4. `<repo-specific rule>`
+5. `<repo-specific rule>`
+<!-- methodology:start id=critical-rules-consistency owner=hub -->
+<!-- SYNC verbatim from templates/claude-regions/critical-rules-consistency.md (rule 6) — do not hand-edit; owner=hub -->
+<!-- methodology:end id=critical-rules-consistency -->
+7. `<repo-specific rule>`
+8. `<repo-specific rule>`
+<!-- methodology:start id=critical-rules-no-leftovers owner=hub -->
+<!-- SYNC verbatim from templates/claude-regions/critical-rules-no-leftovers.md (rule 9) — do not hand-edit; owner=hub -->
+<!-- methodology:end id=critical-rules-no-leftovers -->
 
-1. `<rule, e.g. "Run pytest -x --tb=short and ruff check src/ tests/ --fix after every numbered step in any prompt">`
-2. `<rule, e.g. "Never push to remote without Rob's explicit confirmation">`
-3. `<rule, e.g. "If pre-commit hook fails, stop and ask Rob — never bypass with --no-verify">`
-4. `<add 5-7 more, repo-specific>`
-
-Total ≤10 bullets. If you have more, they belong in dedicated docs (ADRs, PLAYBOOK sections), not here.
+The owner=hub rules (records 1-3, consistency 6, no-leftovers 9) are fixed and synced by id; number your repo-specific rules around them. Total ≤10 bullets.
 
 ## 6. Session start protocol
 <!-- scope: runtime -->
-
-1. `/boot` (if available — loads skills, memory, recent commits)
-2. `git status` — clean working tree?
-3. `git log --oneline -5` — recent context
-4. Read most recent handoff if continuing
-5. Wait for Rob's prompt — never improvise
+<!-- methodology:start id=session-start-protocol owner=hub -->
+<!-- SYNC verbatim from templates/claude-regions/session-start-protocol.md — do not hand-edit; owner=hub -->
+<!-- methodology:end id=session-start-protocol -->
 
 ## 7. Slash commands available
 <!-- scope: runtime -->
+<!-- methodology:start id=commands-repo-roster owner=repo -->
 
 User-level (`~/.claude/commands/`):
-- `/session-summary` — generate handoff at session end
-- `/boot` — load context
-- `<add as discovered>`
+- `<command + one-line purpose>`
 
 Repo-level (`./.claude/commands/`):
 - `<command + one-line purpose>`
-- `<add as created>`
+<!-- methodology:end id=commands-repo-roster -->
 
 ## 8. Skills active
 <!-- scope: runtime -->
+<!-- methodology:start id=skills-repo-roster owner=repo -->
 
 User-level (`~/.claude/skills/`):
-- `<skill name + path + trigger>`
+- `<skill + trigger>`
 
-Repo-level (`./.claude/skills/`):
-- `gotchas` (if exists) — empirical patterns this repo has stumbled on. Read before changes.
-- `<add as created>`
+Repo-level (`./.claude/`):
+- `<skill + purpose>`
+<!-- methodology:end id=skills-repo-roster -->
 
 ## 9. Hooks active
 <!-- scope: runtime -->
+<!-- methodology:start id=hooks-repo-roster owner=repo -->
 
-Pre-commit (from `.pre-commit-config.yaml`):
+Pre-commit (`.pre-commit-config.yaml` — set-match this list to the live config):
 - `<hook + purpose>`
-- `<add as configured>`
 
-Other (`.claude/settings.json`):
+Session hooks (`.claude/settings.json`):
 - `<hook + purpose>`
+<!-- methodology:end id=hooks-repo-roster -->
 
 ## 10. Anti-patterns specific to Claude Code in this repo
 <!-- scope: meta -->
-
-Things this tool has gotten wrong here:
-- `<pattern, e.g. "Don't run validators with no args — vacuous pass; always pass --all or specific paths">`
-- `<add as discovered, link to LESSONS.md entry if applicable>`
+<!-- methodology:start id=antipatterns-universal owner=hub -->
+<!-- SYNC verbatim from templates/claude-regions/antipatterns-universal.md — do not hand-edit; owner=hub -->
+<!-- methodology:end id=antipatterns-universal -->
 
 ## 11. Recent ADRs binding here (last 5)
 <!-- scope: meta -->
+<!-- methodology:start id=recent-adrs-roster owner=repo -->
 
-Brief one-liners. Full list in `docs/decisions/README.md`. (Conditional — present only where the repo has `docs/decisions/`.)
+Brief one-liners (or a generated fragment). Full list in `docs/decisions/README.md`. (Conditional — present only where the repo has `docs/decisions/`.)
 
 - ADR-NN: `<topic — one sentence>`
-- ADR-NN: `<topic — one sentence>`
-- `<auto-rotate as new ADRs land>`
+<!-- methodology:end id=recent-adrs-roster -->
 
 ## 12. Section history
 <!-- scope: meta -->
+<!-- methodology:start id=section-history owner=repo -->
 
 - v1.0 (2026-04-24) — initial template per Gap #5. Hybrid pattern, thin pointer, ≤200 lines target.
 - v2.0 (2026-05-19) — ADR-53: retire thin-pointer/AGENTS.md framing; CLAUDE.md is now the substantive single canonical per-repo agent-instruction file.
-- v2.1 (2026-05-19) — add §3 Architecture (pointer to ARCHITECTURE.md) and §4 Conventions (naming/commits/testing/linting/out-of-scope); renumber old §3–§10 to §5–§12 to accommodate.
-- v2.2 (2026-06-02) — ADR-38 A6 (canonical structure lock): add the mandatory `last_reviewed`/`status`/`owner` YAML frontmatter the standard requires (was missing); H1 → `# CLAUDE.md — <Repo>`; §11 → "(last 5)" + conditional-on-`docs/decisions/` note. The 12-section spine is the locked CLAUDE.md canonical template. (ADR-54–63 content refresh remains BACKLOG #17.)
+- v2.1 (2026-05-19) — add §3 Architecture and §4 Conventions; renumber old §3–§10 to §5–§12.
+- v2.2 (2026-06-02) — ADR-38 A6: add mandatory `last_reviewed`/`status`/`owner` frontmatter; H1 → `# CLAUDE.md — <Repo>`; §11 → "(last 5)". The 12-section spine is the locked CLAUDE.md canonical template.
+- v2.3 (2026-07-12) — content-parity inventory B1: add the 15-region methodology-marker topology (8 owner=hub + 7 owner=repo) matching the live hub CLAUDE.md, preserving the §4/§5 interleaving; owner=hub regions now SYNC by id from `templates/claude-regions/<id>.md` (not embedded — DRY); child-floor `@import` + boundary note marked CONDITIONAL (consumers only; hub asymmetry). Content refresh of the placeholder bodies remains BACKLOG #17.
+<!-- methodology:end id=section-history -->
 
 ---
 

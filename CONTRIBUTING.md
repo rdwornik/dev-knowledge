@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-07
+last_reviewed: 2026-07-12
 reconciled_with: handoff-process@5.7
 status: active
 owner: Rob
@@ -22,7 +22,9 @@ docs/short-description
 chore/short-description
 ```
 
-Default branch: `main` (ADR-30). Never commit directly to `main`. Branch → commit → merge.
+Default branch: `main` (ADR-30).
+
+Branch prefixes are `feat/ fix/ docs/ chore/` (these four only). Commit **types** follow Conventional Commits and additionally include `refactor` and `test` — commit types are **not** branch prefixes. Never commit directly to `main`: branch → `--no-ff` merge.
 
 ## Commit style
 
@@ -56,6 +58,7 @@ docs(adr): ADR-65 done-item disposition           # ADR number is itself the ind
 - **Closing** a backlog item: add `closes [#<id>]` (summary or body) — pairs with the item leaving `BACKLOG.md` in the same or a following commit.
 - **`closes` vs `advances`:** use `closes [#<id>]` on the commit that **finishes** an item — not `advances [#<id>]`. `advances` records intermediate progress only: the item stays open in `BACKLOG.md` **and** invisible to the closure detector (which keys on `closes`), so it silently accumulates as done-but-open and must be closed manually (this is what forced the manual close of #73). A multi-commit arc may use `advances` along the way, but the commit that completes the work must use `closes`.
 - `<id>` is the entry's stable `id:` field (monotonic, never reused — PLAYBOOK §10 schema).
+- **Cross-repo references are repo-qualified.** A bare `[#<id>]` denotes a task in THIS repo only. To reference another fleet repo's backlog item, qualify it: `hub#<id>`, `ai#<id>`, `corp#<id>`. (Operator ruling, content-parity inventory D2 / #331 — qualified-refs chosen over a global allocator. Automated enforcement lands with #328; this is the convention it will check.)
 
 This indexes commits **going forward only.** Git history is immutable — **historical commits are never rewritten** (ADR-65). Pre-convention closures are located via the SHAs already embedded in retired entries (preserved in the one-time migration JOURNAL map).
 
@@ -99,16 +102,19 @@ Pre-commit hooks (`.pre-commit-config.yaml`):
 | Hook | Stage | What it does |
 |------|-------|--------------|
 | `normalize-dated-headers` | commit | Rewrites dated-log entry headers to canonical `### YYYY-MM-DD` form. Idempotent. Auto-format style: rewrites; never fails. |
-| `codemap-freshness` | commit | Checks the ARCHITECTURE.md codemap block is current vs `scripts/`. |
-| `toc-freshness` | commit | Fail-on-stale check that ARCHITECTURE.md's TOC matches its headers. Regenerate: `python -m scripts.toc.cli generate ARCHITECTURE.md --write`. |
-| `toc-freshness-playbook` | commit | Same check for `protocols/PLAYBOOK.md`'s TOC. Regenerate: `python -m scripts.toc.cli generate protocols/PLAYBOOK.md --write`. |
+| `codemap-freshness` | commit | Checks the ARCHITECTURE.md compact-text codemap is current vs `scripts/` (compact text since the ADR-51 amendment 2026-07-05; gate retained). |
+| `toc-freshness-playbook` | commit | Staleness check for `protocols/PLAYBOOK.md`'s TOC. Regenerate: `python -m scripts.toc.cli generate protocols/PLAYBOOK.md --write`. |
 | `roster-freshness` | commit | Regen-and-diff gate for `.claude/methodology-roster.md` vs `deploy/manifest-v*.yaml` (`gen_methodology_roster.py --check`); blocks a hand-edited or manifest-stale roster. Hub-only ([#244] P3). |
 | `claude-rosters-freshness` | commit | Regen-and-diff gate for the two `@`-imported CLAUDE.md fragments `.claude/generated/{commands-repo,recent-adrs}.md` (`gen_claude_rosters.py --check`); fires on the command files / ADR headers / the fragments. Hub-only ([#258] phase-2). |
+| `audit-index-freshness` | commit | Regen-and-diff gate for the generated `docs/audits/README.md` index vs `docs/audits/*.md` (`gen_audit_index.py --check`); shape-agnostic. Hub-only. |
+| `validate-hermetization` | commit | ADR-101 tree-seal refusal gate, prospective-only on staged ADDs: blocks a new unsanctioned Tier-1 top-level dir/file-class or `docs/<genre>/` folder (Rule A) or an off-grammar `docs/audits/*.md` name (Rule B). `scripts/validate_hermetization.py`, bypass `--no-verify`. Hub-only. |
+| `intake-index-freshness` | commit | Regen-and-diff gate for the status-grouped Contents block in `docs/intake/README.md` vs `docs/intake/*.md` frontmatter `status:` (`gen_intake_index.py --check`). Hub-only. |
 | `validate-backlog` | commit | Validates the BACKLOG.md story-map structure (ADR-66). |
 | `audit-health` | commit | Runs `audit.py health` (the self-conformance checks incl. canonical-file freshness). **FAIL-level findings block the commit; WARN-level only inform.** ~1.4s. Bypass: `--no-verify`. |
 | `ruff` | commit | Lint gate — `ruff check` (version-pinned >=0.15.5, `language: system`). Blocks on violations. [#13] closed. |
 | `coherence-nudge` | commit | **Non-blocking** nudge: a registered spec changed without a version bump → stdout nudge + `logs/coherence-nudge.log`; always exits 0 (pairs with the `reconciled_versions` audit check). |
 | `backlog-id-on-close` | commit-msg | Requires `[#id]` / `closes [#id]` when a commit removes a `- [#id]` task. |
+| `backlog-filing-backpressure` | commit-msg | Add-side sibling of `backlog-id-on-close`: a commit that ADDS a new BACKLOG task id must carry a `kill-candidates:` line (≥1 existing `#id`, or `none — <reason>`) — BLOCK if absent. `scripts/check_backlog_filing.py`, proposals only. Hub-only. |
 | `block-ff-push` | pre-push | Refuses a push placing a non-merge commit on `main`'s first-parent spine (a direct-to-`main` commit or a true FF merge); a `--no-ff` merge passes. Hub-only, fail-soft, bypass `git push --no-verify`. **Activate once per machine: `pre-commit install --hook-type pre-push`** (`default_install_hook_types` only wires it on a fresh install). |
 
 `audit.py health` (the gate above) is also runnable standalone for an on-demand sweep: `python scripts/audit.py health`. It runs the self-conformance checks incl. the canonical-file **freshness** check (`last_reviewed` staleness; see PLAYBOOK); FAIL blocks a commit, WARN (e.g. the 30-day freshness backstop) only informs.
