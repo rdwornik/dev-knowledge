@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-13 — CC (Opus 4.8): ARC 1 — session-archive-closeout (ESSENTIALS↔PLAYBOOK pointers + #14 draft consumed-by)
+
+**Did:** Serial ARC 1 of a 3-arc session (branch `docs/session-archive-closeout` off `main`; parked lanes `docs/satellite-census` + `worktree-fable-328-build` untouched). **(1)** Reconciled `ESSENTIALS.md` against PLAYBOOK's three A0-seal sections (§16 Codex-utilization doctrine, Ch4 plan-review output contract, Ch12 review-before-STOP; codified `e7abe31e`). ESSENTIALS-scope verdict (critical-rule #6 — point, never copy): **Ch4 plan-review output contract** (option-select/typed, never a free-form dialog) → **QUALIFIES** → new 5th "Architect disciplines" bullet; **Ch12 review-before-STOP** (executing session owns the review, before STOP, never deferred to the operator) → **QUALIFIES** → folded into "Ending a Session" step 3; **§16 Codex doctrine** → **no standalone bullet** (copying the exact `gpt-5.6-{sol,terra,luna}` strings would be the rule-#6 disease) → carried as the pointer reference "Codex lane doctrine → §16" inside the review-before-STOP line, mirroring Ch12's own phrasing. `last_reviewed` 2026-07-05→2026-07-13 after a genuine end-to-end re-read. **(2)** Verified both #14 SIEM source drafts' `consumed-by` — **found-state: EMPTY on both** — filled both with a pointer to the RULED pack (`2026-07-12-siem-requirements-ruled-pack.md`, intake-id 14); status stays **DRAFT** (retained-as-provenance per the pack's note + the 2026-07-12 JOURNAL "mark consumed if desired"); index-neutral (`gen_intake_index` groups by `status:` only).
+
+**Result:** 2 work commits — **`a6c766a4`** (ESSENTIALS) · **`6f8142da`** (intake). Gates green: full pytest **1516 passed / 3 skipped** (0 fail, 17m); scoped doc-surface **240 passed**; `audit.py health` OK; `ruff` clean; `gen_intake_index --check` clean; both commits' pre-commit gates green (`Intake index freshness` **Passed**, `audit-health` **Passed**, hermetization **Passed**, canonical_freshness honored by the same-commit restamp).
+
+**Changes:** `protocols/ESSENTIALS.md` (2 pointers + restamp); `docs/intake/{2026-07-13-siem-fleet-management-requirements.md, -codex.md}` (consumed-by); this note.
+
+**Abandoned:** none.
+
+**Next:** merge `docs/session-archive-closeout` `--no-ff` to main, push, delete branch. Then ARC 2 (two consumer architect handoffs) + ARC 3 (hub architect handoff). Parked lanes stay untouched: `docs/satellite-census` (Codex, pending operator morning review), `worktree-fable-328-build` (Fable #328, locked).
+
+---
+
 ### 2026-07-13 — CC (Fable 5): W3 hub legs — Wave-3 census merge + ruff config home + fleet .gitattributes baseline (chore/w3-hub-legs)
 
 **Did:** **(1)** Merged `docs/wave3-census` `--no-ff` (`2b18520e`, audit index regenerated in-merge), pushed, branch deleted. **(2)** On `chore/w3-hub-legs`: moved the hub lint rules `.ruff.toml` → `pyproject.toml` `[tool.ruff.lint]` (fixture per-file-ignores) and deleted `.ruff.toml` — one config home, and a real fix: while `.ruff.toml` existed it took precedence, so the whole pyproject `[tool.ruff]` table **including the required-version floor was silently inert**; the floor is now live. Adopted the fleet `.gitattributes` baseline (`* text=auto eol=lf` + `*.ps1 text eol=crlf`, #282 target shape), existing generated-file LF pins kept as additive lines (last-match-wins). **RENORMALIZE NOT RUN:** `git add --renormalize --dry-run` churn = **1283 files** > 0 → W3-16 boundary held; the renormalize migration is a separately reviewed arc (until it runs, files edited under the new baseline normalize to LF as they're touched — whole-file EOL diffs may ride interim commits).
