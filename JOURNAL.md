@@ -6,7 +6,7 @@
 > as of 2026-05-16 (Council Simplification): `Did / Result / Changes /
 > Abandoned / Next`. Newest-first prepend ordering.
 >
-> Distinct from LESSONS (per-learning generalized rules, oldest-top per
+> Distinct from LESSONS (per-learning generalized rules, newest-first per
 > ADR-29) and handoffs (per-session boundary artifacts for browser-chat
 > resumption). JOURNAL is the within-Claude-Code-sessions tactical log
 > enabling context recovery across sessions in same repo. The `Changes:`
