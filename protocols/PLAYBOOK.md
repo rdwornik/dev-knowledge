@@ -46,6 +46,7 @@
   - [Why standard format](#why-standard-format)
   - [Standard structure (8 sections)](#standard-structure-8-sections)
   - [Per-Scale guidance](#per-scale-guidance)
+  - [Plan-review output contract](#plan-review-output-contract)
   - [Delivery format](#delivery-format)
   - [Architect → operator channel-discipline (execution actions)](#architect--operator-channel-discipline-execution-actions)
   - [Pre-send checklist](#pre-send-checklist)
@@ -198,6 +199,7 @@
 - [The 10 Commandments](#the-10-commandments)
 - [16. Cross-Tool Review](#16-cross-tool-review)
   - [Review Tools](#review-tools)
+  - [Codex-utilization doctrine (lanes + exact model strings)](#codex-utilization-doctrine-lanes--exact-model-strings)
 - [17. Code Quality Audit Process](#17-code-quality-audit-process)
   - [Severity tiers](#severity-tiers)
   - [Process](#process-1)
@@ -629,6 +631,11 @@ Template: `templates/prompt-template.md`
 - **Scale S** (single file, <50 lines change): use minimal version — Title + Steps + What NOT to do. Skip UNDERSTAND if change is mechanical.
 - **Scale M** (multi-file): full template, but UNDERSTAND can be 1-2 sentences.
 - **Scale L** (3+ files, architectural): full template required, prefer `plan-then-auto` mode for review checkpoint after Step 1. **L-sized epic stories default plan-first** (full plan mode, reviewed before execution), and **every architect prompt re-declares MODE** — a lane/session inherits no mode from a prior prompt (HANDOFF_PROCESS §14a item 7; the 2026-07-06 plan-gate corrective).
+
+### Plan-review output contract
+<!-- scope: meta -->
+
+In plan mode, what the operator is asked to decide is surfaced as a **structured, addressable choice — an option-select (pick one/several) or a typed answer — NEVER a free-form dialog exchange.** A ruling given as a dialog turn dies with the session (a hung/closed chat takes its conversation with it), so a plan-review answer must be a durable, citable artifact: an `AskUserQuestion`-style option-select, or an explicit "type X" instruction whose answer lands in the plan/prompt. Corollary: `ExitPlanMode` presents the plan for approval; any fork it raises is an option-select, not "let's discuss." This is why operator rulings live in prompts/plans, not conversation (LESSONS 2026-07-12 ruling-addressability; the FR-4 ruling-addressability requirement, intake #14 ruled pack) — a later session must be able to cite "already ruled @ &lt;ref&gt;", which a dialog turn cannot provide.
 
 ### Delivery format
 <!-- scope: meta -->
@@ -1661,6 +1668,8 @@ ADR-81 (a)–(e) above answers *"is this organ a complete organ?"* This answers 
 6. **The verification organs RUN green** — `audit-health`, `validate_doc_claims` (#89), `validate_git_backlog` (#90a), `canonical_freshness` actually **executed against THIS arc**, not merely existing. Building an organ ≠ running it on the feature it should guard. **"Organs run green" is class-specific:** hard-fail organs (`audit-health`, `amendment_coherence`) exit 0; awareness organs (`validate_doc_claims`, `validate_git_backlog`) surface no new or undispositioned WARN — a documented pre-existing WARN (e.g. a voided closure pending #139) does not block.
 
 Announcing before (2)–(6) is **premature closure**, not shipped. Point (6) is **operator-enforced discipline until #147** wires it as a pre-ship gate (a hook/command that RUNS the organs and BLOCKS `/ship` on red). De-dup: point (3) E2E = **#144**; codification-completeness of the methodology home = **#145**; #147 = the run-organs-as-gate mechanism — three distinct items.
+
+**Review-before-STOP (closure-contract standard step).** The code / second-reader review is a step INSIDE the closure contract, run **BEFORE** the session STOPs — never deferred to the operator as a post-STOP task. Deferred past the session boundary a review becomes the operator's chore and routinely doesn't happen, so defects ship unreviewed; and the second-reader catch is only worth anything while the author can still act on it. The executing session owns the review — `/codex-review` (code, per the §16 lane doctrine) or `/code-review` — as a named step every plan carries and every session runs before handing back. A plan that ends "…STOP; operator reviews" has misplaced the review. (LESSONS 2026-07-12 review-before-STOP; pairs with the two-stage review applicability, Ch4, and the Codex-utilization doctrine, §16.)
 
 **Authored before the build — the ex-ante half (deterministic build tasks).** The six points above are the *ex-post* checklist (at ship time, confirm these held). For a **deterministic build task** there is also an *ex-ante* property: the executable **pass/fail criterion is authored by the architect _before_ the build and frozen** — immutable to the executor (CC may *strengthen* it — add cases, tighten assertions — but **never weaken** the gate: no assertion removal, input-specific branching, or scope-narrowing), so closure is declared on a contract that **predates** the work rather than one reverse-engineered to fit a green run. Review verifies the contract was **not gamed** (assertions intact, scope not narrowed) — green status alone does not close. Proven exemplar: **#194 Phase-A** — the xfail-strict coverage test whose failing output *is* the rollout inventory, committed before any annotation (the xfail-strict decorator made a premature green *fail* — immutability in action). This is the test-first generalization the **ADR-81 amendment (2026-06-24)** records; it is **deterministic-scoped** — the fuzzy band (decks/prose, where "done" cannot reduce to an exact assertion) is deferred to its own arc. **#144** folds the requirement into ADR-81(d).
 
@@ -3365,6 +3374,14 @@ Both satisfy S15 review requirement. Choose based on quality of findings after 2
 Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
 
 **Codex reviewer config:** The global reviewer config (role, checklist, output format) lives at `~/.codex/AGENTS.md`; canonical source tracked in `.dev-knowledge/codex/AGENTS.md` (ADR-54). Per-repo `AGENTS.md` adds only repo-specific rules — it does not repeat the global config.
+
+### Codex-utilization doctrine (lanes + exact model strings)
+<!-- scope: dev -->
+
+- **Exact model strings only.** The Codex 5.6 lanes are `gpt-5.6-sol` / `gpt-5.6-terra` / `gpt-5.6-luna` — always the full string, **never a bare `gpt-5.6`** (an invalid identifier: a bare-string call fails as bad input, which is NOT evidence the capability is absent — LESSONS 2026-07-12 invalid-input-vs-absent-capability). Nicknames map exactly: **sol / terra / luna = `gpt-5.6-sol` / `-terra` / `-luna`**.
+- **terra is the default for code review** (`/codex-review`); choose sol or luna only when a lane's stated strength fits the task better, and say why.
+- **Doc-lane review runs via `codex exec` directly** — the `/codex-review` wrapper's code-only path-guard filters markdown out, so a doc/prose diff that needs a Codex second reader goes through `codex exec` **until [#333]** lands the first-class doc-lane review path.
+- **Every plan names its Codex lane.** A plan / architect prompt states which lane (sol/terra/luna) + surface (code via `/codex-review`, doc via `codex exec`) its review leg uses — an addressable planned decision, not an ad-hoc runtime pick (pairs with review-before-STOP, Ch12).
 
 ---
 
