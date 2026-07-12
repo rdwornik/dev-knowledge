@@ -16,7 +16,7 @@ owner: <Rob | other>
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
-> **For universal rules:** read `protocols/ESSENTIALS.md` and `protocols/PLAYBOOK.md`.
+> **For universal rules:** read the hub methodology protocols `ESSENTIALS.md` and `PLAYBOOK.md` (at the hub `.dev-knowledge/protocols/` set; hub-pointer, never copied into a consumer).
 
 ## 1. First read (session start)
 <!-- scope: meta -->
