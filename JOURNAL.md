@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-12 — CC (Fable 5): intake #14 — SIEM/fleet-observability requirements pack (Phase E Leg 0, research-only, commit-and-STOP)
+
+**Did:** Operator-directed research intake (intake #13 v4 Phase E Leg 0 pulled forward; no decisions, no tool selection). Read the ordered evidence base (intake #13 v4 · intake #12 · fleet-parity register + structure comparison · BACKLOG #328/#332 · the 2026-07-12 JOURNAL witnesses across hub/ai-council/corp · the codex d1 three-way port review · disposition-register + enforcement_coverage · SUPPLEMENT CONSIDERED+REJECTED) and authored `docs/intake/2026-07-13-siem-fleet-management-requirements.md` (intake-id **14**, status DRAFT): 20 traced functional requirements (traceability register W1–W8/R1–R8 — every FR cites a witnessed failure or named register row), a 7-class pattern survey at library scale (GitOps drift / check-mode / policy-as-code / renovate-class / workspace-lint / dead-man's-switch / store-viewer — extraction, not adoption), PULL-vs-PUSH collection analysis → **PULL recommended** (fork judged not genuinely contested; reopen tripwires named; operator ratifies per the Phase E gate), NON-GOALS reaffirming the REJECTED register (Grafana/Loki/ELK-class stays permanently rejected) + a platform tripwire, and 8 open operator questions. Event-record constraints kept least-commitment (the JSONL schema itself stays Phase A's to birth, per intake #13). `docs/intake/README.md` index regenerated in the same commit (the #307 gate's mechanical companion).
+
+**Result:** leaf **`af895f34`** on `docs/intake-siem-requirements`; all pre-commit gates Passed; **NOT merged, NOT pushed** — commit-and-STOP per brief; ADR-98 §4 confirm-gate pending. **Cross-lane collision surfaced + repaired:** a parallel Codex session created `docs/intake-siem-codex` and switched the shared checkout mid-arc, so `af895f34` initially landed on that branch; repair = fast-forwarded `docs/intake-siem-requirements` to `af895f34`, restored `docs/intake-siem-codex` to its creation SHA `10871795` (removing only my accidental commit from it; the codex lane's untracked draft `docs/intake/2026-07-13-siem-fleet-management-requirements-codex.md` left untouched). Operator serializes the two lanes (one merge per repo at a time).
+
+**Changes:** `docs/intake/2026-07-13-siem-fleet-management-requirements.md` (new) + `docs/intake/README.md` (regen) — `af895f34`; this note.
+
+**Abandoned:** none. ESSENTIALS/PLAYBOOK were read targeted-only this session (the execution brief carried its own ordered read list).
+
+**Next:** operator rules the DRAFT (ADR-98 §4) + the 8 open questions (incl. the operator-specified filename lacking the README §4 `tech-` infix, and PULL ratification); then revise or `--no-ff` merge. #328 Phase A builds against the pack once ruled.
+
+---
+
 ### 2026-07-12 — CC (Opus 4.8): close [#330] via /review-closures (operator-approved)
 
 **Did:** Integration + closure arc. Pushed main, integrated the `worktree-c2-claude-md-330` branch via `--no-ff` merge (`35e5d58`, "merge: #330 register-faithful root-archive sweep [#330]"; resolved the JOURNAL prepend collision newest-first — #330's leaves 02:50/02:51 over #332's 02:27/02:29), pushed. Tore down the worktree (stale lock from a dead pid 49876 — unlocked then removed cleanly; no live session), pruned, deleted the merged branch; verified zero leftovers (`git worktree list` = primary only, branch gone, `.claude/worktrees/` empty). Then ran `/review-closures`: operator explicitly approved **#330** (WEAK candidate — evidence is the parity-register file changes, not a `closes` tag); gate re-verified it open and returned the exact line; removed it via done-items-leave (no renumber, id gap stays).
