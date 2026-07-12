@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-12 — CC (Opus 4.8): [#330] root-archive prohibition — rule codified + CLAUDE.md register-g2 sweep
+
+**Did:** Executed [#330] (register-faithful, operator-ruled after recon surfaced item-23-maximal vs parity-register-g2 conflict). (1) Codified the rule in `protocols/PLAYBOOK.md` Ch2 "What CLAUDE.md is NOT" — root/`CLAUDE.md` reference only CURRENT surfaces; archived detail lives in `templates/archive/`/`LESSONS.md`/`docs/`; an archived command must not head a live protocol list. (2) Swept the hub `CLAUDE.md`: removed the archived `/boot` as §6 Session-start step-1 (the g2 defect; live steps renumbered 1–6), removed archived `/boot`+`/evolve` from §7's user-level "commands **available**" list, stripped the `~/.claude/archive/2026-06-05-machinery-c3/` clause from the §8 `verify`-skill note (current fact kept). Relocated provenance to the §12 changelog; `last_reviewed`→2026-07-12, version 2.36→2.37; folded v2.27 into the ADR-49/65 condensed pointer to hold §12 at 11 entries (the added entry would have tripped the ≥12 doc_rot WARN). Deliberately kept the marked guardrails (§2/§5/§10 — a "do not recreate deleted X" rule must name X); §4 L71 confirmed out-of-scope (live destination pointer).
+
+**Result:** leaves **`6a417b4`** (PLAYBOOK rule) + **`144050a`** (CLAUDE.md sweep) on branch `worktree-c2-claude-md-330`; merge SHA follows on ship. Verification all green: `ruff` clean, `pytest` 1511 passed / 8 skipped, `audit.py health` OK (`canonical_freshness` A2 cleared by the re-stamp, spine intact, section-history doc_rot WARN cleared by the fold). Closure greps: zero `2026-06-05-machinery-c3` archive-path refs outside the sanctioned §12 changelog; no `/boot` as a §6 step or §7 bullet. All pre-commit gates Passed.
+
+**Changes:** `protocols/PLAYBOOK.md` (`6a417b4`), `CLAUDE.md` (`144050a`); this note.
+
+**Abandoned:** none. #330 left OPEN in BACKLOG (formal close is operator `/review-closures` post-merge — no unilateral close/annotate).
+
+**Next:** operator integrates from primary via `--no-ff` merge (`/ship` refuses in a worktree) + closes #330 via `/review-closures`.
+
+---
+
 ### 2026-07-12 — CC (Opus 4.8): intake #13 → v4 — Phase A0 exit split into two required legs
 
 **Did:** Operator-directed amendment to `docs/intake/2026-07-11-tech-plan-of-record-fleet-hygiene.md`. Bumped `revision: v3 → v4` (frontmatter + the `REVISION` heading line, with a delta-vs-v3 note) and replaced the Phase A0 trailing `Exit:` sentence with an explicit **two-leg, both-required** exit: (a) conformance + `.methodology.yaml` declarations + manifest DRAFT→settled (the prior single leg), and NEW (b) the OPERATIONAL MINIMUM verified working per consumer — hooks/skills/commands/handoffs each **WITNESSED** functioning in ai-council and corp-monorepo (`presence ≠ enforcement ≠ usable`); product-work-ready may be declared only after (b).
