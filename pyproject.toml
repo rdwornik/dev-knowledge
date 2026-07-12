@@ -39,4 +39,13 @@ markers = [
 # this floor, so the managed hook and any system / dev-group ruff agree. This
 # constraint still catches an accidental downgrade of any ruff invoked in the repo
 # (manual `ruff check --fix`, the dev dependency group) if the environment is rebuilt.
+# Lint rules moved here from .ruff.toml (W3 hub leg, 2026-07-13) — one config home;
+# while .ruff.toml existed it took precedence and this whole [tool.ruff] table
+# (including the floor) was silently inert.
 required-version = ">=0.15.5"
+
+[tool.ruff.lint]
+extend-select = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/fixtures/**" = ["F401", "F811", "E402"]

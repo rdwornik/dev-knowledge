@@ -1,3 +1,10 @@
+# Fleet EOL-normalization baseline (#282 target shape; W3 hub leg, 2026-07-13).
+# All text files normalize to LF in the repo and on checkout; PowerShell scripts
+# check out CRLF (Windows-native). The generated-file pins below predate this
+# baseline and stay as ADDITIVE defense-in-depth (last match wins).
+* text=auto eol=lf
+*.ps1 text eol=crlf
+
 # LF-pin generated floor hash sidecars (#137).
 # The floor hash is computed over LF-normalized bytes (scripts/generate_floor.py), so
 # git autocrlf re-normalizing these to CRLF on Windows produced a content-identical
