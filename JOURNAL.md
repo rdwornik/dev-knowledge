@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-12 — CC (Opus 4.8): [#330] root-archive prohibition — rule codified + CLAUDE.md register-g2 sweep
+
+**Did:** Executed [#330] (register-faithful, operator-ruled after recon surfaced item-23-maximal vs parity-register-g2 conflict). (1) Codified the rule in `protocols/PLAYBOOK.md` Ch2 "What CLAUDE.md is NOT" — root/`CLAUDE.md` reference only CURRENT surfaces; archived detail lives in `templates/archive/`/`LESSONS.md`/`docs/`; an archived command must not head a live protocol list. (2) Swept the hub `CLAUDE.md`: removed the archived `/boot` as §6 Session-start step-1 (the g2 defect; live steps renumbered 1–6), removed archived `/boot`+`/evolve` from §7's user-level "commands **available**" list, stripped the `~/.claude/archive/2026-06-05-machinery-c3/` clause from the §8 `verify`-skill note (current fact kept). Relocated provenance to the §12 changelog; `last_reviewed`→2026-07-12, version 2.36→2.37; folded v2.27 into the ADR-49/65 condensed pointer to hold §12 at 11 entries (the added entry would have tripped the ≥12 doc_rot WARN). Deliberately kept the marked guardrails (§2/§5/§10 — a "do not recreate deleted X" rule must name X); §4 L71 confirmed out-of-scope (live destination pointer).
+
+**Result:** leaves **`6a417b4`** (PLAYBOOK rule) + **`144050a`** (CLAUDE.md sweep) on branch `worktree-c2-claude-md-330`; merge SHA follows on ship. Verification all green: `ruff` clean, `pytest` 1511 passed / 8 skipped, `audit.py health` OK (`canonical_freshness` A2 cleared by the re-stamp, spine intact, section-history doc_rot WARN cleared by the fold). Closure greps: zero `2026-06-05-machinery-c3` archive-path refs outside the sanctioned §12 changelog; no `/boot` as a §6 step or §7 bullet. All pre-commit gates Passed.
+
+**Changes:** `protocols/PLAYBOOK.md` (`6a417b4`), `CLAUDE.md` (`144050a`); this note.
+
+**Abandoned:** none. #330 left OPEN in BACKLOG (formal close is operator `/review-closures` post-merge — no unilateral close/annotate).
+
+**Next:** operator integrates from primary via `--no-ff` merge (`/ship` refuses in a worktree) + closes #330 via `/review-closures`.
+
+---
+
 ### 2026-07-12 — CC (Opus 4.8): file [#332] fleet dependency-version parity (#328 family)
 
 **Did:** Operator-directed BACKLOG add. Filed `[#332] [P2][M] Fleet dependency-version parity` — the automated leg of the `#328` fleet_parity checker (verify each consumer's dependency versions against a hub-recommended versioned manifest; drift = WARN). Placed under **E6/S15** next to the rest of the `#328` family. Reconciled the operator's "E-A1" location: there is no `E-A1` epic in the story-map — it's the intake #13 v4 plan-of-record **phase label** ("Phase A = #328 = Phase A1"), so the family's real home is E6/S15. Schema-completed the given text with the ADR-66-required `Done when:` clause and a family-style `kill-candidates:` clause; kept the operator's `serialize-group: audit-py`, refs, and witnessed-trigger note (2026-07-12 ai-council d1: pytest-xdist absent, `-n` unrecognized, suite degraded to serial).

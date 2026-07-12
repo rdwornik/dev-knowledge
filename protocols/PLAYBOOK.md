@@ -340,6 +340,7 @@ Where each class of per-repo content lives (v2.1 template, 12 sections):
 - Universal rules — those live in `.dev-knowledge/`
 - Architecture documentation — that's `docs/ARCHITECTURE.md`
 - Decision rationale — that's `docs/decisions/ADR-NN-*.md`
+- Pointers to archived/retired/deleted content — root and `CLAUDE.md` reference only CURRENT surfaces; archived detail lives in `templates/archive/`, `LESSONS.md`, or `docs/` (git history + the CLAUDE.md §12 changelog preserve provenance). An archived command must not head a live protocol list. Per [#330] / parity-register g2. (A marked "do not recreate X" guardrail that names a deleted file is the rule working, not a violation — the ban is on *live* pointers to archived surfaces.)
 
 ### Why ≤200 lines
 <!-- scope: meta -->
