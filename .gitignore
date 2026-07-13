@@ -40,6 +40,14 @@ logs/LIVED-WORKFLOW.md
 # scripts/boundary_report.py, never committed — same ephemeral pattern as FLEET-HEALTH.md.)
 logs/BOUNDARY-DRIFT.md
 
+# Fleet-parity digest + checker-run JSONL events (#328 read-only checker, WARN-only v1 —
+# scripts/fleet_parity.py; same ephemeral pattern as ENFORCEMENT-COVERAGE. The events file
+# is append-only, rotation-capped (single .1 backup), gitignored runtime per FR-8/FR-13;
+# the durable record is the JOURNAL-pasted verdict table + eventual committed digests.)
+logs/FLEET-PARITY.md
+logs/parity-events.jsonl
+logs/parity-events.jsonl.1
+
 # Ecosystem mutable pointers (ADR-80 mutable/durable split — high-churn pointer, not committed;
 # durable records are ecosystem/*/history/*.md + docs/audits/*.md, committed by audit.py)
 ecosystem/*/state.yaml
