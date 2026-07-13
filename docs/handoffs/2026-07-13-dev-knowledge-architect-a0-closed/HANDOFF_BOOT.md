@@ -6,8 +6,8 @@
 | **Slug** | `2026-07-13-dev-knowledge-architect-a0-closed` |
 | **Chat title** | `[dev-knowledge] Technical Architect — 2026-07-13-dev-knowledge-architect-a0-closed · SEQ 1` — name the fresh browser chat this (bump `SEQ` per parallel chat) |
 | **Mode** | **architect** (HANDOFF_PROCESS §13 — planning / way-of-working scope) |
-| **Purpose** | Succeed the outgoing hub Technical Architect with **A0 CLOSED on both legs** (declaration 2026-07-13: 72/72 traceability, witnessed operational minimum in both consumers). The operator is **unblocked for PRODUCT work** in the consumers; hub work now runs **parallel, never blocking**: the SIEM track (**#328**, built overnight by Fable — **review its self-run table FIRST**), satellite onboarding (census + draft prompts), and the W3 hygiene tail. Navigate via `BACKLOG.md` (E1–E7 themes) + the morning-order decomposition in `SUPPLEMENT.md` §Decomposition rationale. |
-| **Generated at** | Hand-authored from **live hub state** on branch `docs/hub-architect-handoff`. States **no** sha / count / verdict — **re-derive HEAD / tree / branch / ahead-behind live** (`PROBES.md` P3). |
+| **Purpose** | Succeed the outgoing hub Technical Architect with **A0 CLOSED on both legs** (declaration 2026-07-13: 72/72 traceability, witnessed operational minimum in both consumers). The operator is **unblocked for PRODUCT work** in the consumers; hub work runs **parallel, never blocking**. **Consolidation is DONE** (spine `2bc02196`): #328 fleet_parity + the satellite census + all micro-branches merged, the Fable worktree torn down — **#328 / #332 stay OPEN** (Done-when includes consumer-side deployment, a later carrier arc). Remaining hub tail: the 8 `fleet_parity` WARN triage, W3-16 renormalize (window now open), satellite tier rulings, W3-13. Navigate via `BACKLOG.md` (E1–E7 themes) + the next-session order in `SUPPLEMENT.md` §Decomposition rationale. |
+| **Generated at** | Hand-authored from **live hub state**; **SUPPLEMENT re-answered v2 + residual reconciled POST-consolidation** (2026-07-13, branch `docs/handoff-answers-v2`). States **no** sha / count / verdict — **re-derive HEAD / tree / branch / ahead-behind live** (`PROBES.md` P3). |
 
 > **`SUPPLEMENT.md` is FILLED.** Its ANSWERS (the outgoing architect's strategic *why*) fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
@@ -23,7 +23,7 @@
 4. **architect mode** — the browser adopts the posture from `protocols/HANDOFF_BOOT.md`: orient first, drive decomposition, hold the whole-system view, surface design tensions — not the reactive-filter default.
 5. **Orient before any mechanism** — hand the browser `PROBES.md` **P1** (orientation) first; it replies `run <command>`, CC reads live `VISION.md` / `ARCHITECTURE.md` Ch1 and substring-checks. The architect may not begin design until it holds both orienting lines (P1's grep is a *tool* that confirms the frame — the **backlog navigates**, §13c).
 6. **Then the operator-context beat (§13d), NARROWED** — the supplement is FILLED, so the browser asks only *"anything changed since the supplement was written?"*.
-7. Hand `RESIDUAL.md` — **drift-flags first** (the §1 headline), then the in-flight lanes (§2) + the next-frontier decisions (§4), then run the rest of `PROBES.md` (P2–P9). Any probe FAIL blocks onboarding (the escalation ladder). **Re-derive the drift-flag values live (P4/P6/P7) — the bundle states none.**
+7. Hand `RESIDUAL.md` — **drift-flags first** (the §1 headline), then the merged-lanes map (§2 — consolidation done) + the next-frontier decisions (§4), then run the rest of `PROBES.md` (P2–P9). Any probe FAIL blocks onboarding (the escalation ladder). **Re-derive the drift-flag values live (P4/P6/P7) — the bundle states none.**
 
 ## Why a pointer, not a copy
 
