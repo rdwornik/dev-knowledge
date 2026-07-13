@@ -184,13 +184,26 @@ def _refusal(surface_id: str, reason: str) -> ParityFinding:
                          _ACTIONS[REFUSED])
 
 
+# Required probe params per type -- validated at load so a malformed row REFUSES
+# instead of crashing the facts collector (codex code-review 2026-07-13).
+_PROBE_REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
+    "path_tracked": ("path",), "dir_tracked": ("path",), "dir_exists": ("path",),
+    "file_exists": ("path",), "file_contains": ("path", "token"),
+    "glob_tracked": ("glob",), "command_present": ("file",),
+    "precommit_hook": ("hook_id",), "precommit_remote": ("repo_token",),
+    "settings_hook": ("event", "token"), "plugin_enabled": ("token",),
+    "settings_local_blocks": (), "claude_subtrees": (), "commands_roster": (),
+    "check_ignore": ("candidate",), "ruff_config_form": (),
+}
+
+
 def load_manifest(path: Path) -> tuple[dict, list[ParityFinding]]:
     """Parse + validate the parity manifest. Structural unusability raises
     ManifestUnreadable (exit-2 class); a malformed individual ROW yields a refusal
     finding and the row is skipped -- refused, never guessed."""
     try:
         data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as exc:
+    except (OSError, yaml.YAMLError, UnicodeDecodeError, ValueError) as exc:
         raise ManifestUnreadable(f"parity manifest unreadable ({path}): {exc}") from exc
     if not isinstance(data, dict) or not isinstance(data.get("fleet"), dict) \
             or not isinstance(data.get("surfaces"), list):
@@ -210,6 +223,7 @@ def load_manifest(path: Path) -> tuple[dict, list[ParityFinding]]:
     valid_keys = set(fleet.keys()) | ROLES
     seen_ids: set[str] = set()
     seen_waivers: set[str] = set()
+    seen_tombstone_joins: set[str] = set()
     rows: list[dict] = []
     for i, row in enumerate(data["surfaces"]):
         rid = row.get("id") if isinstance(row, dict) else None
@@ -237,6 +251,16 @@ def load_manifest(path: Path) -> tuple[dict, list[ParityFinding]]:
         if not isinstance(probe, dict) or not probe.get("type"):
             refusals.append(_refusal(label, "probe: must be a mapping with a type"))
             continue
+        required = _PROBE_REQUIRED_FIELDS.get(str(probe["type"]))
+        if required is None:
+            refusals.append(_refusal(label, f"unknown probe type '{probe['type']}'"))
+            continue
+        missing = [f for f in required if not probe.get(f)]
+        if missing:
+            refusals.append(_refusal(
+                label, f"probe type '{probe['type']}' missing required field(s): "
+                       f"{', '.join(missing)}"))
+            continue
         wc = str(row.get("waiver_component") or rid)
         if wc in seen_waivers:
             # The structural half of one-declaration-one-concern: two rows sharing a
@@ -251,6 +275,13 @@ def load_manifest(path: Path) -> tuple[dict, list[ParityFinding]]:
                     label, "TOMBSTONE row without join.manifest_component (ambiguous "
                            "tombstone pointer -- refusing, not guessing)"))
                 continue
+            jc = str(join["manifest_component"])
+            if jc in seen_tombstone_joins:
+                refusals.append(_refusal(
+                    label, f"second TOMBSTONE row joining deploy component '{jc}' "
+                           f"(ambiguous join -- refusing, not guessing)"))
+                continue
+            seen_tombstone_joins.add(jc)
         seen_ids.add(rid)
         seen_waivers.add(wc)
         rows.append(row)
@@ -265,7 +296,7 @@ def load_baseline(path: Path) -> tuple[dict, list[ParityFinding]]:
     refusals: list[ParityFinding] = []
     try:
         data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as exc:
+    except (OSError, yaml.YAMLError, UnicodeDecodeError, ValueError) as exc:
         return {"dependencies": []}, [_refusal(
             "dependency-baseline", f"baseline unreadable ({path}): {exc}")]
     if not isinstance(data, dict) or not isinstance(data.get("dependencies"), list):
@@ -280,6 +311,18 @@ def load_baseline(path: Path) -> tuple[dict, list[ParityFinding]]:
         rows.append(row)
     data["dependencies"] = rows
     return data, refusals
+
+
+def _dev_dir(hub_root: Path) -> Path:
+    """The directory holding the fleet's sibling repos. Worktree-safe: resolve the
+    PRIMARY checkout via git-common-dir (a linked worktree's plain parent would be
+    .claude/worktrees/ -- the codex-flagged false-unavailable class)."""
+    rc, out = _git(["rev-parse", "--path-format=absolute", "--git-common-dir"],
+                   hub_root)
+    if rc == 0 and out:
+        primary = Path(out).parent  # <primary>/.git -> <primary>
+        return primary.parent
+    return Path(hub_root).parent
 
 
 def resolve_fleet(manifest: dict, hub_root: Path, registry_path: Path,
@@ -325,7 +368,8 @@ def resolve_fleet(manifest: dict, hub_root: Path, registry_path: Path,
             if stored and Path(stored).is_dir():
                 root, note = Path(stored), "resolved via ecosystem state.yaml path"
             else:
-                root, note = hub_root.parent / repo_id, "resolved via hub-sibling fallback"
+                root = _dev_dir(hub_root) / repo_id
+                note = "resolved via dev-dir sibling fallback (worktree-safe)"
         if not (Path(root) / ".git").exists():
             targets.append(RepoTarget(repo_id, role, None,
                                       f"unresolved: {root} is not a git repo"))
@@ -348,13 +392,6 @@ def _git(args: list[str], cwd: Path) -> tuple[int, str]:
         return 999, f"git unavailable: {exc}"
 
 
-def _tracked_paths(root: Path) -> list[str]:
-    rc, out = _git(["ls-files", "-z"], root)
-    if rc != 0:
-        return []
-    return sorted(p for p in out.split("\0") if p)
-
-
 def _local_token(row: dict, repo_id: str, default: str) -> str:
     names = row.get("local_names") or {}
     return str(names.get(repo_id, default))
@@ -366,7 +403,10 @@ def collect_facts(target: RepoTarget, manifest: dict, baseline: dict,
     ``verdicts()`` is pure over the result. Sorted, ASCII, no wall-clock."""
     root = target.root
     assert root is not None
-    tracked = _tracked_paths(root)
+    rc_ls, ls_out = _git(["ls-files", "-z"], root)
+    git_error = "" if rc_ls == 0 else (f"git ls-files failed (rc={rc_ls}): "
+                                       f"{ls_out[:120]}")
+    tracked = sorted(p for p in ls_out.split("\0") if p) if rc_ls == 0 else []
     tracked_set = set(tracked)
     top_level = sorted({p.split("/", 1)[0] for p in tracked})
 
@@ -404,7 +444,9 @@ def collect_facts(target: RepoTarget, manifest: dict, baseline: dict,
     plugin_names = sorted(plugins.keys()) if isinstance(plugins, dict) else \
         sorted(str(p) for p in plugins) if isinstance(plugins, list) else []
     settings_by_event: dict[str, list[str]] = {}
-    for ev in ("SessionStart", "Stop", "PreToolUse", "PostToolUse"):
+    hooks_cfg = settings.get("hooks")
+    events = sorted(hooks_cfg.keys()) if isinstance(hooks_cfg, dict) else []
+    for ev in events:  # EVERY configured event, never a hardcoded subset
         cmds = ec._settings_hook_commands(root, ev)
         if cmds:
             settings_by_event[ev] = cmds
@@ -526,10 +568,12 @@ def collect_facts(target: RepoTarget, manifest: dict, baseline: dict,
     return {
         "repo_id": target.repo_id,
         "role": target.role,
+        "git_error": git_error,
         "head": head if rc_head == 0 else "unknown",
         "dirty": bool(status) if rc_st == 0 else True,
         "hooks_path_cfg": hooks_path_cfg if rc_hp == 0 and hooks_path_cfg else "",
         "hooks_armed": armed,
+        "has_precommit_config": (root / ".pre-commit-config.yaml").exists(),
         "top_level_tracked": top_level,
         "claude_subdirs": claude_subdirs,
         "commands": commands,
@@ -686,6 +730,9 @@ def _row_waivable(row: dict, tier_token: str) -> bool:
 class _RepoEval:
     findings: list[ParityFinding] = field(default_factory=list)
     consumed: set[str] = field(default_factory=set)
+    # components that showed a LIVE divergence this run (consumed or not): a stale
+    # decoration must never fire on a surface that actually diverged (codex 2026-07-13)
+    diverged: set[str] = field(default_factory=set)
     must_settings_tokens: list[str] = field(default_factory=list)
 
 
@@ -711,8 +758,14 @@ def verdicts(manifest: dict, baseline: dict, targets: list[RepoTarget],
     finding per concern. Also returns the per-repo CONSUMED declaration components
     (feeds the stale/unmapped awareness rendering)."""
     policy = ec.waivability_policy_from_manifest(deploy_manifest)
-    deploy_components = {str(c.get("id")): c for c in deploy_manifest.get("components") or []
-                         if isinstance(c, dict) and c.get("id")}
+    deploy_components: dict[str, dict] = {}
+    deploy_dup_ids: set[str] = set()
+    for c in deploy_manifest.get("components") or []:
+        if isinstance(c, dict) and c.get("id"):
+            cid = str(c["id"])
+            if cid in deploy_components:
+                deploy_dup_ids.add(cid)  # ambiguous join target -> refuse downstream
+            deploy_components[cid] = c
     out: list[ParityFinding] = []
     consumed_by_repo: dict[str, set] = {}
 
@@ -729,19 +782,55 @@ def verdicts(manifest: dict, baseline: dict, targets: list[RepoTarget],
                                      _ACTIONS[UNAVAILABLE]))
             continue
         facts = facts_by_repo[target.repo_id]
+        if facts.get("git_error"):
+            # A repo git cannot enumerate is UNAVAILABLE -- never a storm of false
+            # MUST-absent findings (codex 2026-07-13; Codex FR-12 never-silently-green).
+            out.append(ParityFinding(
+                target.repo_id, "fleet-membership", UNAVAILABLE, SEV_WARN,
+                _ascii(f"facts snapshot unavailable: {facts['git_error']} -- surface "
+                       f"walk skipped, nothing rendered green"),
+                _ACTIONS[UNAVAILABLE]))
+            consumed_by_repo[target.repo_id] = set()
+            continue
         allowlist = allowlists.get(target.repo_id, [])
         ev = _RepoEval()
         ev.must_settings_tokens = _must_settings_tokens(manifest, target.repo_id,
                                                         target.role)
         for row in manifest["surfaces"]:
             _eval_row(row, target, facts, allowlist, policy, deploy_components,
-                      run_date, ev)
+                      run_date, ev, deploy_dup_ids)
         _eval_sweep(manifest, target, facts, allowlist, policy, run_date, ev)
         _eval_deps(baseline, target, facts, allowlist, policy, run_date, ev)
-        _eval_stale(manifest, target, facts, allowlist, ev)
+        _eval_hooks_armed(target, facts, allowlist, policy, run_date, ev)
+        _eval_stale(manifest, baseline, target, facts, allowlist, ev)
         consumed_by_repo[target.repo_id] = ev.consumed
         out.extend(ev.findings)
     return out, consumed_by_repo
+
+
+def _eval_hooks_armed(target: RepoTarget, facts: dict, allowlist: list, policy: dict,
+                      run_date, ev: _RepoEval) -> None:
+    """FR-6 'installed+armed stages': a repo that CARRIES a .pre-commit-config.yaml
+    must have the three standard stages armed in its effective hooks dir (worktree/
+    hooksPath-safe probe). One concern per repo; complements the hub-only audit.py
+    hooks_armed self-check with fleet reach. No config -> no expectation."""
+    if not facts.get("has_precommit_config"):
+        return
+    armed = facts.get("hooks_armed") or {}
+    missing = sorted(stage for stage, ok in armed.items() if not ok)
+    hp = facts.get("hooks_path_cfg")
+    if not missing:
+        ev.findings.append(ParityFinding(
+            target.repo_id, "hooks-armed", AT_PARITY, SEV_INFO,
+            _ascii("all three hook stages armed in the effective hooks dir"
+                   + (f" (core.hooksPath={hp})" if hp else "")), "-", "hooks-armed"))
+        return
+    _sweep_style_finding(
+        target, "hooks-armed", "hooks-armed",
+        f"pre-commit config present but stage(s) NOT armed: {', '.join(missing)}"
+        + (f"; core.hooksPath={hp}" if hp else "")
+        + " (installed+armed effect probe -- a carried config with dead hooks is the"
+          " relic-hooksPath silence class)", allowlist, policy, run_date, ev)
 
 
 def _pass_or_declare(row: dict, target: RepoTarget, tier_token: str, divergence_ev: str,
@@ -752,6 +841,7 @@ def _pass_or_declare(row: dict, target: RepoTarget, tier_token: str, divergence_
     advisory-rewarn (expired); non-waivable rows and missing declarations WARN."""
     sid = row["id"]
     component = str(row.get("waiver_component") or sid)
+    ev.diverged.add(component)
     if not _row_waivable(row, tier_token):
         ev.findings.append(ParityFinding(
             target.repo_id, sid, warn_verdict, warn_sev,
@@ -782,7 +872,8 @@ def _pass_or_declare(row: dict, target: RepoTarget, tier_token: str, divergence_
 
 
 def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
-              policy: dict, deploy_components: dict, run_date, ev: _RepoEval) -> None:
+              policy: dict, deploy_components: dict, run_date, ev: _RepoEval,
+              deploy_dup_ids: set | None = None) -> None:
     sid = row["id"]
     tier_token = _tier_for(row, target.repo_id, target.role)
     if tier_token is None:
@@ -808,6 +899,7 @@ def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
 
     if tier_token == "MUST":
         if not present:
+            ev.diverged.add(component)
             ev.findings.append(ParityFinding(
                 target.repo_id, sid, MUST_ABSENT, SEV_ERROR,
                 _ascii(f"MUST surface absent: {detail}"), _ACTIONS[MUST_ABSENT],
@@ -815,10 +907,13 @@ def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
             return
         fidelity_bad = _fidelity_problem(res)
         if fidelity_bad:
+            # unfaithful carriage of a MUST surface is the error class (present !=
+            # carried) -- the remediation is FIX, never DECLARE (codex 2026-07-13)
+            ev.diverged.add(component)
             ev.findings.append(ParityFinding(
                 target.repo_id, sid, WARN_UNDECLARED, SEV_ERROR,
                 _ascii(f"present but not carried faithfully: {fidelity_bad}"),
-                _ACTIONS[WARN_UNDECLARED], component))
+                _ACTIONS[MUST_ABSENT], component))
             return
         expected_div = (row.get("declared_divergence") or {}).get(target.repo_id)
         if expected_div:
@@ -838,6 +933,7 @@ def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
                     _ascii(f"declared behavioral divergence EXPIRED -- {decl_ev}"),
                     _ACTIONS[ADVISORY_REWARN], component))
             else:
+                ev.diverged.add(component)
                 ev.findings.append(ParityFinding(
                     target.repo_id, sid, WARN_UNDECLARED, SEV_WARN,
                     _ascii(f"manifest expects a declared behavioral divergence here "
@@ -879,6 +975,7 @@ def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
 
     if tier_token == "INVERSE":
         if present:
+            ev.diverged.add(component)
             ev.findings.append(ParityFinding(
                 target.repo_id, sid, MUST_ABSENT, SEV_ERROR,
                 _ascii(f"surface present where the role forbids it: {detail}"),
@@ -903,6 +1000,14 @@ def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
 
     if tier_token == "TOMBSTONE":
         comp_id = row["join"]["manifest_component"]
+        if deploy_dup_ids and comp_id in deploy_dup_ids:
+            ev.findings.append(ParityFinding(
+                target.repo_id, sid, REFUSED, SEV_WARN,
+                _ascii(f"ambiguous tombstone join: the deploy manifest carries more "
+                       f"than one component with id '{comp_id}' -- refusing to "
+                       f"evaluate (no action proposed)"), _ACTIONS[REFUSED],
+                component))
+            return
         comp = deploy_components.get(comp_id)
         if comp is None:
             ev.findings.append(ParityFinding(
@@ -989,9 +1094,15 @@ def _eval_settings_blocks(row: dict, target: RepoTarget, facts: dict, allowlist:
                    f"({len(all_cmds)} command(s))"), "-",
             str(row.get("waiver_component") or sid)))
         return
+    seen_components: dict[str, int] = {}
     for cmd in unmatched:
         short = cmd if len(cmd) <= 90 else cmd[:87] + "..."
-        component = "settings-hook:" + _short_token(cmd)
+        base = "settings-hook:" + _short_token(cmd)
+        # basename collisions get a deterministic ordinal so one declaration can
+        # never suppress two distinct commands (codex 2026-07-13)
+        n = seen_components.get(base, 0)
+        seen_components[base] = n + 1
+        component = base if n == 0 else f"{base}#{n + 1}"
         _sweep_style_finding(target, sid, component,
                              f"settings.json hook command not hub-carried and not "
                              f"manifest-owned: '{short}'", allowlist, policy,
@@ -1049,6 +1160,7 @@ def _sweep_style_finding(target: RepoTarget, sid: str, component: str, divergenc
                          severity: str = SEV_WARN) -> None:
     """Divergences discovered by enumeration (sweep / roster / subtree): declaration
     component = the concrete entry name, exact-equality matched."""
+    ev.diverged.add(component)
     status, decl_ev = _match_declaration(component, allowlist, run_date=run_date,
                                          policy=policy)
     if status == "valid":
@@ -1104,7 +1216,11 @@ def _eval_sweep(manifest: dict, target: RepoTarget, facts: dict, allowlist: list
     """The decision tree's NO branch (anti-regress property): every TRACKED top-level
     entry not covered by an applicable manifest row is declared, Tier-4-tracked
     (tracked-ephemera), or WARN-undeclared. Untracked/ignored entries are invisible by
-    construction (sanctioned worktree lanes, venvs, scratch never false-positive)."""
+    construction (sanctioned worktree lanes, venvs, scratch never false-positive).
+    GRAIN LIMIT (honest, deliberate): the sweep walks TOP-LEVEL entries only -- the
+    intake #12 tree's own grain ('per root entry E'). Depth inside a covered top-level
+    dir (e.g. a rogue docs/ genre) is Rule-A hermetization's job at the hub and a
+    hardening candidate fleet-wide; this v1 does not claim it."""
     covered = _covered_top_segments(manifest, target.repo_id, target.role)
     globs = [c.split(":", 1)[1] for c in covered if c.startswith("__globs__:")]
     for entry in facts["top_level_tracked"]:
@@ -1142,11 +1258,17 @@ def _eval_deps(baseline: dict, target: RepoTarget, facts: dict, allowlist: list,
                     f"{installed or 'absent'} ({d.get('installed_src')})")
         sid = f"dep-{name}"
         component = str(dep.get("waiver_component") or sid)
-        if _satisfies(installed, rec):
+        # AT-PARITY needs BOTH halves of the #332 contract: the declared set AND the
+        # active environment (installed-only was the codex-flagged false-green -- an
+        # undeclared dep vanishes on the next clean env rebuild).
+        if _satisfies(installed, rec) and declared:
             ev.findings.append(ParityFinding(
                 target.repo_id, sid, AT_PARITY, SEV_INFO, _ascii(evidence), "-",
                 component))
             continue
+        if _satisfies(installed, rec) and not declared:
+            evidence += " -- installed but UNDECLARED (pin it or declare the divergence)"
+        ev.diverged.add(component)
         status, decl_ev = _match_declaration(component, allowlist, run_date=run_date,
                                              policy=policy)
         if status == "valid":
@@ -1167,17 +1289,32 @@ def _eval_deps(baseline: dict, target: RepoTarget, facts: dict, allowlist: list,
                 component))
 
 
-def _eval_stale(manifest: dict, target: RepoTarget, facts: dict, allowlist: list,
-                ev: _RepoEval) -> None:
-    """ADR-75-class decoration: a declaration that maps to a manifest surface which
-    showed NO divergence this run is STALE (waivers must not rot into paper
-    suppressions). Declarations mapping to no surface at all are inert (rendered in
-    the digest's unmapped section, never a WARN)."""
+def _eval_stale(manifest: dict, baseline: dict, target: RepoTarget, facts: dict,
+                allowlist: list, ev: _RepoEval) -> None:
+    """ADR-75-class decoration: a declaration that maps to a manifest surface (or a
+    dependency-baseline row) which showed NO divergence this run is STALE (waivers
+    must not rot into paper suppressions). A surface that DID diverge is never
+    stale-decorated, whatever consumed the declaration (codex 2026-07-13).
+    Declarations mapping to nothing are inert (digest unmapped section, never a WARN)."""
     waiver_to_row = {str(r.get("waiver_component") or r["id"]): r
                      for r in manifest["surfaces"]}
+    dep_components = {}
+    for dep in baseline.get("dependencies", []):
+        comp = str(dep.get("waiver_component") or f"dep-{dep['name']}")
+        dep_components[comp] = dep
     for entry in allowlist:
         component = entry.component.strip()
-        if not component or component in ev.consumed:
+        if not component or component in ev.consumed or component in ev.diverged:
+            continue
+        dep = dep_components.get(component)
+        if dep is not None:
+            applies = dep.get("applies_to") or ["hub", "consumer"]
+            if target.role in applies or target.repo_id in applies:
+                ev.findings.append(ParityFinding(
+                    target.repo_id, f"dep-{dep['name']}", STALE_DECLARATION, SEV_WARN,
+                    _ascii(f"declaration '{component}' matches no live dependency "
+                           f"drift (state: at parity) -- stale decoration"),
+                    _ACTIONS[STALE_DECLARATION], component))
             continue
         row = waiver_to_row.get(component)
         if row is None:
@@ -1320,8 +1457,12 @@ def render_digest(findings: list[ParityFinding], targets: list[RepoTarget],
 # ---------------------------------------------------------------------------
 
 
-def _event_id(ts_utc: str, repo_id: str, organ_id: str, event_type: str) -> str:
-    raw = "|".join((ts_utc, repo_id, organ_id, event_type))
+def _event_id(ts_utc: str, repo_id: str, organ_id: str, event_type: str,
+              component: str = "") -> str:
+    # component disambiguates multi-finding surfaces (root-sweep, settings blocks):
+    # same (ts, repo, organ) must NOT collapse under idempotent ingestion
+    # (codex 2026-07-13 / Codex FR-07).
+    raw = "|".join((ts_utc, repo_id, organ_id, event_type, component))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
 
@@ -1344,12 +1485,14 @@ def emit_events(findings: list[ParityFinding], targets: list[RepoTarget],
         for f in findings:
             lines.append(json.dumps({
                 "schema_version": 1,
-                "event_id": _event_id(ts_utc, f.repo_id, f.surface_id, "parity-verdict"),
+                "event_id": _event_id(ts_utc, f.repo_id, f.surface_id,
+                                      "parity-verdict", f.waiver_component or ""),
                 "ts_utc": ts_utc,
                 "repo_id": f.repo_id,
                 "repo_head": head_by_repo.get(f.repo_id, "unknown"),
                 "dirty_state": dirty_by_repo.get(f.repo_id, "unknown"),
                 "organ_id": f.surface_id,
+                "component": f.waiver_component or "",
                 "event_type": "parity-verdict",
                 "severity": f.severity,
                 "verdict": f.verdict,
@@ -1429,14 +1572,25 @@ def _parse_overrides(pairs: tuple[str, ...]) -> dict[str, Path]:
 @click.option("--mode", "mode", type=click.Choice(["actual", "synthetic"]),
               default="actual",
               help="Event mode: synthetic runs never count as fleet history.")
+@click.option("--deploy-manifest", "deploy_manifest_path", default=None,
+              help="Deploy manifest override (tests; default = highest deploy/manifest-v*).")
 def main(run_date: str, manifest_path: str, baseline_path: str, registry_path: str,
          ecosystem_dir: str, only_repos: tuple, repo_roots: tuple, hub_root_opt,
          write: bool, events: bool, events_path: str, max_events_bytes: int,
-         mode: str) -> None:
+         mode: str, deploy_manifest_path) -> None:
     """Deterministic read-only fleet-parity walk (#328). WARN-only: a completed run
     exits 0 whatever it finds; exit 2 only when the parity manifest is unusable (and
     then no digest is written -- never silently green)."""
     hub_root = Path(hub_root_opt) if hub_root_opt else _REPO_ROOT
+    try:
+        from datetime import date as _date
+        _date.fromisoformat(run_date)
+    except ValueError:
+        # an unparseable run_date would silently disable declaration shelf-life
+        # (expired -> valid); refuse loudly instead (codex 2026-07-13)
+        click.echo(f"fleet-parity: REFUSED -- --run-date {run_date!r} is not a valid "
+                   f"YYYY-MM-DD date", err=True)
+        sys.exit(2)
     try:
         manifest, refusals = load_manifest(Path(manifest_path))
     except ManifestUnreadable as exc:
@@ -1459,7 +1613,8 @@ def main(run_date: str, manifest_path: str, baseline_path: str, registry_path: s
                                                      Path(registry_path))
             allowlists[t.repo_id] = ec.read_allowlist(t.root)
 
-    deploy_manifest = ec._latest_manifest()
+    deploy_manifest = (ec._read_yaml(Path(deploy_manifest_path))
+                       if deploy_manifest_path else ec._latest_manifest())
     verdict_findings, consumed_by_repo = verdicts(
         manifest, baseline, targets, facts_by_repo, allowlists, deploy_manifest,
         run_date)
@@ -1474,8 +1629,14 @@ def main(run_date: str, manifest_path: str, baseline_path: str, registry_path: s
         digest = digest.replace("## Targets",
                                 f"SUBSET RUN: {', '.join(sorted(only_repos))}\n\n## Targets", 1)
     if write:
-        _atomic_write(DIGEST_PATH, digest)
-        click.echo(f"wrote {DIGEST_PATH.relative_to(_REPO_ROOT)}")
+        try:
+            _atomic_write(DIGEST_PATH, digest)
+            click.echo(f"wrote {DIGEST_PATH.relative_to(_REPO_ROOT)}")
+        except OSError as exc:
+            # digest is ONE of three output channels (stdout + events remain); a
+            # write failure is loud but never converts a completed run into a crash
+            # exit (codex 2026-07-13; exit 2 stays manifest-unreadable-only)
+            click.echo(f"digest write skipped (fail-open): {_ascii(repr(exc))}")
     if events:
         note = emit_events(findings, targets, facts_by_repo, path=Path(events_path),
                            mode=mode, versions=versions, run_date=run_date,

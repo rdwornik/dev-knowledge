@@ -160,6 +160,60 @@ def test_manifest_unreadable_raises(tmp_path):
     bad.write_text("just: a scalar\n", encoding="utf-8")
     with pytest.raises(fp.ManifestUnreadable):
         fp.load_manifest(bad)
+    # invalid UTF-8 is the exit-2 class too, never a raw UnicodeDecodeError crash
+    # (codex 2026-07-13)
+    binary = tmp_path / "binary.yaml"
+    binary.write_bytes(b"version: 1.0.0\nfleet: {\x80\xff}\n")
+    with pytest.raises(fp.ManifestUnreadable):
+        fp.load_manifest(binary)
+
+
+def test_probe_missing_required_field_is_refusal_not_crash(tmp_path):
+    # codex 2026-07-13: a malformed path_tracked row must REFUSE at load, never
+    # reach probe["path"] and crash the facts collector.
+    fleet = {"hub-r": {"role": "hub"}}
+    surfaces = [
+        {"id": "no-path", "kind": "path", "tier": {"hub": "MUST"},
+         "probe": {"type": "path_tracked"}},
+        {"id": "ok-row", "kind": "path", "tier": {"hub": "MUST"},
+         "probe": {"type": "path_tracked", "path": "VISION.md"}},
+    ]
+    manifest = _loaded(tmp_path, fleet, surfaces)
+    refusals = manifest["_refusals"]
+    assert len(refusals) == 1 and "missing required field" in refusals[0].evidence
+    assert [r["id"] for r in manifest["surfaces"]] == ["ok-row"]
+    hub = _init_repo(tmp_path / "hub", dict(_BASE_FILES))
+    findings, *_ = _run(manifest, _EMPTY_BASELINE, {"hub-r": hub}, "hub-r")
+    assert any(f.surface_id == "ok-row" and f.verdict == fp.AT_PARITY
+               for f in findings)
+
+
+def test_duplicate_tombstone_join_is_refused(tmp_path):
+    fleet = {"hub-r": {"role": "hub"}}
+    rows = [dict(_TOMB_ROW, id="tomb-1", tier={"hub": "TOMBSTONE"}),
+            dict(_TOMB_ROW, id="tomb-2", tier={"hub": "TOMBSTONE"})]
+    manifest = _loaded(tmp_path, fleet, rows)
+    refusals = manifest["_refusals"]
+    assert len(refusals) == 1 and "ambiguous join" in refusals[0].evidence
+    assert [r["id"] for r in manifest["surfaces"]] == ["tomb-1"]
+
+
+def test_hooks_armed_warns_when_config_present_but_stages_dead(tmp_path):
+    # FR-6 installed+armed: a carried .pre-commit-config.yaml with no armed stages is
+    # the relic-hooksPath silence class -- one WARN per repo, declaration-waivable.
+    fleet = {"hub-r": {"role": "hub"}}
+    hub = _init_repo(tmp_path / "hub", dict(
+        _BASE_FILES, **{".pre-commit-config.yaml": _precommit_cfg("some-hook")}))
+    manifest = _loaded(tmp_path, fleet, [])
+    findings, *_ = _run(manifest, _EMPTY_BASELINE, {"hub-r": hub}, "hub-r")
+    armed = [f for f in findings if f.surface_id == "hooks-armed"]
+    assert len(armed) == 1 and armed[0].verdict == fp.WARN_UNDECLARED
+    assert "NOT armed" in armed[0].evidence
+    # a repo with NO pre-commit config has no arming expectation
+    bare = _init_repo(tmp_path / "bare", dict(_BASE_FILES))
+    manifest2 = _loaded(tmp_path / "m2", fleet, [])
+    findings2, *_ = _run(manifest2, _EMPTY_BASELINE, {"hub-r": bare}, "hub-r")
+    assert not [f for f in findings2 if f.surface_id == "hooks-armed"]
 
 
 def test_duplicate_waiver_component_is_structural_refusal(tmp_path):
@@ -220,9 +274,13 @@ _DEP_BASELINE = {"version": "1.0.0", "dependencies": [
      "applies_to": ["hub", "consumer"], "status": "active"}]}
 
 
+_DEP_PYPROJECT = '[dependency-groups]\ndev = ["pytest-xdist>=3.8"]\n'
+
+
 def test_acceptance_2_dep_missing_warns_with_expected_vs_actual(tmp_path):
     fleet = {"hub-r": {"role": "hub"}, "cons": {"role": "consumer"}}
-    hub = _init_repo(tmp_path / "hub", dict(_BASE_FILES))
+    hub = _init_repo(tmp_path / "hub",
+                     dict(_BASE_FILES, **{"pyproject.toml": _DEP_PYPROJECT}))
     cons = _init_repo(tmp_path / "cons", dict(_BASE_FILES))
     (hub / ".venv/Lib/site-packages/pytest_xdist-3.8.0.dist-info").mkdir(parents=True)
     manifest = _loaded(tmp_path, fleet, [])
@@ -230,12 +288,26 @@ def test_acceptance_2_dep_missing_warns_with_expected_vs_actual(tmp_path):
     findings, *_ = _run(manifest, _DEP_BASELINE, {"hub-r": hub, "cons": cons}, "hub-r")
     dep = [f for f in findings if f.surface_id == "dep-pytest-xdist"]
     by_repo = {f.repo_id: f for f in dep}
-    assert by_repo["hub-r"].verdict == fp.AT_PARITY          # at-parity -> no WARN
+    assert by_repo["hub-r"].verdict == fp.AT_PARITY   # declared AND installed -> ok
     w = by_repo["cons"]
     assert w.verdict == fp.WARN_UNDECLARED                    # missing -> WARN
     assert "expected pytest-xdist >=3.8" in w.evidence        # expected...
     assert "installed: absent" in w.evidence                  # ...vs actual
     assert "block" not in w.verdict.lower()                   # WARN, never a block
+
+
+def test_dep_installed_but_undeclared_warns(tmp_path):
+    # codex 2026-07-13: installed-only satisfaction was a false green -- an
+    # undeclared dep vanishes on the next clean env rebuild (#332 contract is
+    # DECLARED + installed).
+    fleet = {"hub-r": {"role": "hub"}}
+    hub = _init_repo(tmp_path / "hub", dict(_BASE_FILES))
+    (hub / ".venv/Lib/site-packages/pytest_xdist-3.8.0.dist-info").mkdir(parents=True)
+    manifest = _loaded(tmp_path, fleet, [])
+    findings, *_ = _run(manifest, _DEP_BASELINE, {"hub-r": hub}, "hub-r")
+    f = [x for x in findings if x.surface_id == "dep-pytest-xdist"][0]
+    assert f.verdict == fp.WARN_UNDECLARED
+    assert "UNDECLARED" in f.evidence and "installed: 3.8.0" in f.evidence
 
 
 def test_acceptance_2_declared_consumer_does_not_warn(tmp_path):
@@ -684,7 +756,11 @@ def test_determinism_two_runs_identical(tmp_path):
     surfaces = [{"id": "canonical-doc-vision", "kind": "path",
                  "tier": {"hub": "MUST", "consumer": "MUST"},
                  "probe": {"type": "path_tracked", "path": "VISION.md"}}]
-    hub = _init_repo(tmp_path / "hub", dict(_BASE_FILES))
+    hub = _init_repo(tmp_path / "hub",
+                     dict(_BASE_FILES, **{"pyproject.toml": _DEP_PYPROJECT}))
+    # a fixture .venv keeps the dep probe off the runner's own environment
+    # (hermeticity: codex 2026-07-13)
+    (hub / ".venv/Lib/site-packages/pytest_xdist-3.8.0.dist-info").mkdir(parents=True)
     cons = _init_repo(tmp_path / "cons",
                       dict(_BASE_FILES, **{"straydir/f.txt": "x\n"}))
     manifest = _loaded(tmp_path, fleet, surfaces)

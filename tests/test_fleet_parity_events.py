@@ -45,10 +45,13 @@ def _init_repo(root: Path, files: dict[str, str]) -> Path:
 
 
 def _world(tmp_path: Path):
-    """A tiny two-repo fleet + manifest + baseline + registry, all under tmp."""
+    """A tiny two-repo fleet + manifest + baseline + registry + deploy manifest, all
+    under tmp -- the CLI never reads the real checkout's contract files (hermeticity:
+    codex 2026-07-13)."""
     hub = _init_repo(tmp_path / "hub", {"VISION.md": "v\n"})
     cons = _init_repo(tmp_path / "cons",
-                      {"VISION.md": "v\n", "straydir/f.txt": "x\n"})
+                      {"VISION.md": "v\n", "straydir/f.txt": "x\n",
+                       "straydir2/f.txt": "y\n"})
     manifest = tmp_path / "parity.yaml"
     manifest.write_text(yaml.safe_dump({
         "version": "1.0.0",
@@ -64,15 +67,18 @@ def _world(tmp_path: Path):
     registry.write_text(yaml.safe_dump(
         {"repos": {"hub-r": {"source_tag": None}, "cons": {"source_tag": None}}}),
         encoding="utf-8")
-    return hub, cons, manifest, baseline, registry
+    deploy = tmp_path / "deploy.yaml"
+    deploy.write_text(yaml.safe_dump({"components": []}), encoding="utf-8")
+    return hub, cons, manifest, baseline, registry, deploy
 
 
 def _invoke(tmp_path: Path, events_path: Path, extra: list[str] | None = None):
-    hub, cons, manifest, baseline, registry = _world(tmp_path)
+    hub, cons, manifest, baseline, registry, deploy = _world(tmp_path)
     args = ["--run-date", "2026-07-13",
             "--manifest", str(manifest), "--baseline", str(baseline),
             "--registry", str(registry), "--ecosystem-dir", str(tmp_path / "eco"),
             "--hub-root", str(hub), "--repo-root", f"cons={cons}",
+            "--deploy-manifest", str(deploy),
             "--events-path", str(events_path), "--mode", "synthetic", "--no-write"]
     return CliRunner().invoke(fp.main, args + (extra or []))
 
@@ -104,7 +110,42 @@ def test_event_id_is_deterministic_content_hash():
     a = fp._event_id("2026-07-13T00:00:00+00:00", "r", "s", "parity-verdict")
     b = fp._event_id("2026-07-13T00:00:00+00:00", "r", "s", "parity-verdict")
     c = fp._event_id("2026-07-13T00:00:00+00:00", "r", "s2", "parity-verdict")
-    assert a == b and a != c and len(a) == 32  # replay-idempotent (Codex FR-07)
+    d = fp._event_id("2026-07-13T00:00:00+00:00", "r", "s", "parity-verdict", "comp")
+    assert a == b and a != c and a != d and len(a) == 32  # replay-idempotent (FR-07)
+
+
+def test_event_ids_unique_across_multi_finding_surfaces(tmp_path):
+    # codex 2026-07-13: two root-sweep findings share (ts, repo, organ) -- the
+    # component in the hash must keep their ids distinct or idempotent ingestion
+    # collapses them.
+    events = tmp_path / "events.jsonl"
+    result = _invoke(tmp_path, events)
+    assert result.exit_code == 0
+    lines = [json.loads(ln) for ln in
+             events.read_text(encoding="utf-8").splitlines() if ln]
+    sweep = [ev for ev in lines if ev["organ_id"] == "root-sweep"]
+    assert len(sweep) >= 2  # straydir + straydir2
+    ids = [ev["event_id"] for ev in lines]
+    assert len(ids) == len(set(ids)), "event ids must be unique within a run"
+
+
+def test_invalid_run_date_refuses_exit_2(tmp_path):
+    events = tmp_path / "events.jsonl"
+    result = _invoke(tmp_path, events, extra=None)
+    assert result.exit_code == 0
+    bad = _invoke(tmp_path / "bad", tmp_path / "e2.jsonl",
+                  extra=None)  # sanity: helper still green
+    assert bad.exit_code == 0
+    hub, cons, manifest, baseline, registry, deploy = _world(tmp_path / "w2")
+    result2 = CliRunner().invoke(fp.main, [
+        "--run-date", "not-a-date", "--manifest", str(manifest),
+        "--baseline", str(baseline), "--registry", str(registry),
+        "--ecosystem-dir", str(tmp_path / "eco"), "--hub-root", str(hub),
+        "--deploy-manifest", str(deploy),
+        "--events-path", str(tmp_path / "e3.jsonl"), "--no-write"])
+    assert result2.exit_code == 2
+    assert "not a valid" in result2.output
+    assert not (tmp_path / "e3.jsonl").exists()
 
 
 def test_events_fail_open_on_real_oserror(tmp_path):
@@ -138,13 +179,14 @@ def test_events_rotation_is_windows_safe(tmp_path):
 
 
 def test_exit_2_on_unreadable_manifest_and_no_digest(tmp_path):
-    hub, cons, _m, baseline, registry = _world(tmp_path)
+    hub, cons, _m, baseline, registry, deploy = _world(tmp_path)
     digest_before = fp.DIGEST_PATH.read_text(encoding="utf-8") \
         if fp.DIGEST_PATH.exists() else None
     result = CliRunner().invoke(fp.main, [
         "--run-date", "2026-07-13", "--manifest", str(tmp_path / "absent.yaml"),
         "--baseline", str(baseline), "--registry", str(registry),
         "--ecosystem-dir", str(tmp_path / "eco"), "--hub-root", str(hub),
+        "--deploy-manifest", str(deploy),
         "--events-path", str(tmp_path / "e.jsonl")])
     assert result.exit_code == 2
     assert "REFUSED" in result.output
