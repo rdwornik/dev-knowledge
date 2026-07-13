@@ -1,0 +1,507 @@
+# Fleet parity-surfaces manifest -- the #328 versioned parity contract (FR-1/FR-2).
+#
+# ONE machine-readable contract: surfaces x role-tiers x one probe each, consuming the
+# A0-SETTLED template (docs/intake/2026-07-11-tech-ownership-manifest.md, intake #12,
+# SETTLED 2026-07-12 incl. the section-9a ruling: the hub is a fleet MEMBER, not an
+# implicit exception). Consumed by scripts/fleet_parity.py (read-only, WARN-only v1,
+# zero blocking gates -- section 9b / ADR-85 hardening pattern).
+#
+# Version line below is nudge-parseable (validate_reconciliation._VERSION_LINE_RE,
+# IGNORECASE): bump it when surface semantics change.
+version: 1.0.0
+#
+# GRAMMAR
+#   fleet:      every ecosystem/deployed-versions.yaml registry key MUST appear here
+#               (cross-checked both directions by the checker; mismatch = refusal
+#               finding). role: hub | consumer | pre-deploy. pre-deploy repos are
+#               rendered "skipped (pre-deploy)" -- never silently absent.
+#   surfaces[]: id                 -- canonical id (FR-2): stable, independent of local
+#                                     filename / hook id / byte shape. Where a live
+#                                     .methodology.yaml declaration exists 1:1, the id
+#                                     EQUALS the declared component id.
+#               kind               -- path | precommit-hook | settings-hook-block |
+#                                     claude-subtree | command | gitignore-effect |
+#                                     tombstone-join | doc-marker | roster
+#               tier:              -- map keyed by ROLE or REPO-ID (repo-id overrides
+#                                     role; a key absent = surface not in that repo's
+#                                     template -> falls to the sweep branches).
+#                                     Tokens: MUST | SHOULD | LOCAL | IGNORE | INVERSE
+#                                     | TOMBSTONE (intake #12 severity model).
+#               probe:             -- effect-probe spec (FR-6: assert the EFFECT where
+#                                     semantics exist -- git check-ignore for ignore
+#                                     rules, installed+armed stages for hooks,
+#                                     tag-ancestry for pinned revs; never text-grep
+#                                     where an effect probe exists).
+#               waivable:          -- may a repo's .methodology.yaml declaration flip a
+#                                     divergence to PASS-declared? default: true for
+#                                     SHOULD/LOCAL/TOMBSTONE + sweep hits, false for
+#                                     MUST/INVERSE (a necessary condition cannot be
+#                                     waived away in v1; hardening may revisit).
+#               waiver_component:  -- the declaration component id that matches this
+#                                     row (default = id). UNIQUE across rows: one
+#                                     declaration can never suppress two concerns
+#                                     (disposition-register grammar, one-per-concern).
+#               local_names:       -- repo-id -> local name/token (FR-2 / d1: one
+#                                     canonical id, N local names; identity never
+#                                     rests on filename or byte shape).
+#               declared_by:       -- "intake-12" on Tier-3 rows whose divergence the
+#                                     SETTLED template itself enumerates: template
+#                                     membership IS the declaration of record until
+#                                     the per-repo .methodology.yaml migration (P6).
+#               declared_divergence: -- repo-id -> short text: a BEHAVIORAL divergence
+#                                     the template EXPECTS that repo to declare (the
+#                                     d1 corp skip-set class). A valid declaration on
+#                                     such a row is PASS-declared, never stale.
+#               pending_migration: -- representation ONLY of a ruled-but-not-executed
+#                                     coordinated migration ({to, ticket}); the checker
+#                                     annotates, never verdicts on it (#334 seed).
+#               join:              -- tombstone-join rows: {manifest_component: <id>}.
+#                                     AUTHORITY for removed-status stays the deploy
+#                                     manifest component (status: removed); the checker
+#                                     cross-checks and REFUSES on mismatch/ambiguity
+#                                     (FR-5; never an action proposal).
+#
+# The intake-#12 nightly decision tree is the verdict algorithm; verdict vocabulary =
+# register grammar: AT-PARITY | PASS-declared | WARN-undeclared | MUST-absent |
+# tombstone-violated (+ advisory-rewarn | stale-declaration | refused | unavailable |
+# skipped-pre-deploy | tracked-ephemera). WARN-only v1: severity labels are REPORT
+# labels; the checker never blocks and never mutates (ADR-28/36 Layer-2 posture).
+
+fleet:
+  .dev-knowledge: {role: hub}
+  ai-council: {role: consumer}
+  corp-monorepo: {role: consumer}
+  corp-ops: {role: pre-deploy}
+  corp-sca-time-automation: {role: pre-deploy}
+
+surfaces:
+  # ---- Tier-1: the 7 canonical docs (every fleet repo) --------------------------------
+  - id: canonical-doc-vision
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: path_tracked, path: VISION.md}
+  - id: canonical-doc-architecture
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: path_tracked, path: ARCHITECTURE.md}
+  - id: canonical-doc-claude
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: path_tracked, path: CLAUDE.md}
+  - id: canonical-doc-contributing
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: path_tracked, path: CONTRIBUTING.md}
+  - id: canonical-doc-journal
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: path_tracked, path: JOURNAL.md}
+  - id: canonical-doc-lessons
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: path_tracked, path: LESSONS.md}
+  - id: canonical-doc-backlog
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: path_tracked, path: BACKLOG.md}
+
+  # ---- Tier-1: governance shape docs/{audits,decisions,intake,archive} ----------------
+  - id: docs-genre-audits
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: dir_tracked, path: docs/audits}
+  - id: docs-genre-decisions
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: dir_tracked, path: docs/decisions}
+  - id: docs-genre-intake
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: dir_tracked, path: docs/intake}
+  - id: docs-genre-archive
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: dir_tracked, path: docs/archive}
+
+  # ---- Tier-1: root config files -------------------------------------------------------
+  - id: root-gitignore
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: path_tracked, path: .gitignore}
+  - id: root-gitattributes
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: path_tracked, path: .gitattributes}
+  - id: root-pyproject
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: path_tracked, path: pyproject.toml}
+  - id: root-precommit-config
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: path_tracked, path: .pre-commit-config.yaml}
+  - id: root-code-workspace
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: glob_tracked, glob: "*.code-workspace"}
+
+  # ---- Tier-1: shape-only dirs (contents role-dependent) ------------------------------
+  - id: shape-dir-tests
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: dir_exists, path: tests}
+  - id: shape-dir-scripts
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: dir_exists, path: scripts}
+  - id: shape-dir-logs
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: dir_exists, path: logs}
+  - id: shape-dir-config
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: dir_exists, path: config}
+
+  # ---- Tier-1: .claude floor set (consumers; hub = origin, no replica) ----------------
+  - id: claude-floor-file
+    kind: path
+    tier: {consumer: MUST}
+    probe: {type: file_exists, path: .claude/CLAUDE-FLOOR.md}
+  - id: claude-floor-sidecar
+    kind: path
+    tier: {consumer: MUST}
+    probe: {type: file_exists, path: .claude/CLAUDE-FLOOR.md.sha256}
+  - id: claude-floor-import
+    kind: doc-marker
+    tier: {consumer: MUST}
+    probe: {type: file_contains, path: CLAUDE.md, token: "@.claude/CLAUDE-FLOOR.md"}
+  - id: command-override
+    kind: command
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: command_present, file: override.md}
+  - id: claude-md-form-a-markers
+    kind: doc-marker
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: file_contains, path: CLAUDE.md, token: "<!-- methodology:start"}
+    # intake #12 Tier-1: CLAUDE.md carries Form-A owner markers + the human-visible
+    # boundary note (machine map = markers, #312). Presence probe only -- per-region
+    # fidelity/diff is owned by the #312 boundary reporter (scripts/boundary_report.py),
+    # never duplicated here (FR-12).
+
+  # settings.json hub-carried hook blocks (W3-07 hook-block ownership, MUST half)
+  - id: settings-floor-guard
+    kind: settings-hook-block
+    tier: {consumer: MUST}
+    probe: {type: settings_hook, event: SessionStart, token: check_floor_hash}
+  - id: settings-precommit-arm
+    kind: settings-hook-block
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: settings_hook, event: SessionStart, token: pre_commit install}
+    local_names: {.dev-knowledge: arm_hooks.py}
+  - id: settings-stop-backpressure
+    kind: settings-hook-block
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: settings_hook, event: Stop, token: session_end_backpressure}
+  - id: settings-plugin-tier1
+    kind: settings-hook-block
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: plugin_enabled, token: tier1-lifecycle}
+
+  # settings.json LOCAL-owned hook blocks (W3-07 hook-block ownership, local half):
+  # any hook command matching neither a MUST-block token above nor this owned map WARNs.
+  - id: settings-local-blocks
+    kind: settings-hook-block
+    tier: {hub: MUST, consumer: MUST}
+    probe:
+      type: settings_local_blocks
+      owned:
+        .dev-knowledge: [fleet_health.py, surface_triage.ps1, billing_leak_sentinel.ps1,
+                         changelog_sentinel.py, block_immutable_edits.py]
+        corp-monorepo: [surface-conformance.ps1]
+
+  # hub pre-commit block fidelity: consumers pin rdwornik/dev-knowledge to the TAG their
+  # deployed-versions record says was deployed (present != carried; effect probe =
+  # rev equality vs source_tag + tag existence/ancestry in the hub repo itself), AND
+  # the block must carry the required hook IDS (intake #12: fidelity = rev + hook ids).
+  # required set = the universal floor both consumers carry per manifest v1.3.1; the
+  # toc pair is consumer-variable via declared waivers (hub-toc-hooks), so not required.
+  - id: precommit-hub-block
+    kind: precommit-hook
+    tier: {consumer: MUST}
+    probe: {type: precommit_remote, repo_token: dev-knowledge,
+            expected_rev_from: deployed-versions, ancestry: true,
+            required_hook_ids: [backlog-id-on-close, block-ff-push]}
+
+  # ---- Tier-1: consumer-only MUSTs + inverse rules -------------------------------------
+  - id: install-md
+    kind: path
+    tier: {consumer: MUST, hub: INVERSE}
+    probe: {type: path_tracked, path: INSTALL.md}
+  - id: methodology-yaml
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: path_tracked, path: .methodology.yaml}
+  - id: docs-handoffs-dir
+    kind: path
+    tier: {hub: MUST, consumer: INVERSE}
+    probe: {type: dir_tracked, path: docs/handoffs}
+  - id: src-dir
+    kind: path
+    tier: {hub: INVERSE, consumer: LOCAL}
+    declared_by: intake-12
+    probe: {type: dir_tracked, path: src}
+
+  # ---- Tier-1: hub-additional MUSTs (source role, intake #12 section 9a list) ----------
+  - id: hub-precommit-hooks-export
+    kind: path
+    tier: {hub: MUST}
+    probe: {type: path_tracked, path: .pre-commit-hooks.yaml}
+  - id: hub-deploy-dir
+    kind: path
+    tier: {hub: MUST}
+    probe: {type: dir_tracked, path: deploy}
+  - id: hub-ecosystem-dir
+    kind: path
+    tier: {hub: MUST}
+    probe: {type: dir_tracked, path: ecosystem}
+  - id: hub-plugins-dir
+    kind: path
+    tier: {hub: MUST}
+    probe: {type: dir_tracked, path: plugins}
+  - id: hub-templates-dir
+    kind: path
+    tier: {hub: MUST}
+    probe: {type: dir_tracked, path: templates}
+
+  # ---- Tier-2: role/size-conditional (SHOULD -> WARN) ----------------------------------
+  - id: protocols-dir
+    kind: path
+    tier: {hub: SHOULD, consumer: SHOULD}
+    probe: {type: dir_tracked, path: protocols}
+    # corp absence here is the EXPECTED #314 WARN ("becomes a Tier-2 WARN the day the
+    # check ships" -- intake #12 deviations row 3).
+  - id: tach-toml
+    kind: path
+    tier: {corp-monorepo: SHOULD}
+    probe: {type: path_tracked, path: tach.toml}
+  - id: github-ci
+    kind: path
+    tier: {corp-monorepo: LOCAL}
+    waiver_component: github-ci-local
+    probe: {type: dir_tracked, path: .github}
+    # intake #12 Tier-2 lists .github as "today corp-only -- OPEN ruling: fleet-generic
+    # or local?". Represented LOCAL (not SHOULD) deliberately: corp's A0-sealed
+    # .methodology.yaml already DECLARES github-ci-local, and a SHOULD-present reading
+    # would decorate that sealed declaration stale. Declared-LOCAL is the
+    # least-commitment form until the operator rules the scope question.
+  - id: backlog-story-map-schema
+    kind: doc-marker
+    tier: {hub: MUST}
+    probe: {type: file_contains, path: BACKLOG.md, token: "## [E"}
+    # intake #12 Tier-2: BACKLOG E-prefix/S-n story-map schema. Consumers are
+    # deliberately ABSENT from this tier map: their applicability is the OPEN #331
+    # DECISION ticket ("consumers pending #331 ruling"; ADR-99: fleet-wide at P6) --
+    # representing them here before that ruling would verdict an unruled question.
+  - id: backlog-schema-gate
+    kind: precommit-hook
+    tier: {hub: MUST}
+    probe: {type: precommit_hook, hook_id: validate-backlog}
+    # Register b2: the validate_backlog story-map gate is HUB-ONLY today and ships to
+    # consumers WITH the schema at P6, never before it (the twin/child-conformance
+    # hazard) -- same pending-#331 boundary as the schema row above.
+  - id: ruff-config-home
+    kind: path
+    tier: {hub: LOCAL, consumer: LOCAL}
+    declared_by: intake-12
+    probe: {type: ruff_config_form}
+    # intake #12 Tier-3 CONVERGENCE CANDIDATE: ruff config exists in three forms
+    # across the fleet (post-W3: hub pyproject [tool.ruff], corp .ruff.toml, ai
+    # pyproject; ai also keeps assets/ruff-pre-commit.yaml as INSTALL reference).
+    # Representation-only: the checker REPORTS each repo's form as evidence and never
+    # verdicts a winner -- W3-14 (one form, rest declared) is an OPEN ruling.
+
+  # ---- Tier-3: LOCAL surfaces the SETTLED template itself enumerates -------------------
+  # (declared_by: intake-12 -- template membership is the declaration of record until the
+  #  per-repo .methodology.yaml migration at P6; consumer files are not edited by #328.)
+  - id: corp-local-data
+    kind: path
+    tier: {corp-monorepo: LOCAL}
+    declared_by: intake-12
+    probe: {type: dir_tracked, path: data}
+  - id: corp-local-eval
+    kind: path
+    tier: {corp-monorepo: LOCAL}
+    declared_by: intake-12
+    probe: {type: dir_tracked, path: eval}
+  - id: corp-local-models
+    kind: path
+    tier: {corp-monorepo: LOCAL}
+    declared_by: intake-12
+    probe: {type: dir_tracked, path: models}
+  - id: local-output-dir
+    kind: path
+    tier: {corp-monorepo: LOCAL, ai-council: LOCAL}
+    declared_by: intake-12
+    probe: {type: dir_tracked, path: output}
+  - id: corp-docs-diagrams
+    kind: path
+    tier: {corp-monorepo: LOCAL}
+    declared_by: intake-12
+    # NOTE (intake #12 Tier-3): interacts with the deferred-visualization ruling --
+    # review at reopen. Absence after the corp 2026-07-12 delete arc is conforming.
+    probe: {type: dir_tracked, path: docs/diagrams}
+  - id: ai-local-council-inbox
+    kind: path
+    tier: {ai-council: LOCAL}
+    declared_by: intake-12
+    probe: {type: dir_tracked, path: council_inbox}
+  - id: ai-local-transcripts
+    kind: path
+    tier: {ai-council: LOCAL}
+    declared_by: intake-12
+    probe: {type: dir_tracked, path: transcripts}
+  - id: ai-local-assets
+    kind: path
+    tier: {ai-council: LOCAL}
+    declared_by: intake-12
+    probe: {type: dir_tracked, path: assets}
+
+  # ---- hub-LOCAL surfaces (NOT in the fleet template; the hub declares them in its OWN
+  #      .methodology.yaml -- section 9a symmetry, no implicit exception) ---------------
+  - id: hub-hermetization-rule-a
+    kind: precommit-hook
+    tier: {hub: LOCAL}
+    probe: {type: precommit_hook, hook_id: validate-hermetization}
+    # Rule A concern: the ADR-101 top-level tree seal is HUB-LOCAL (consumers carry the
+    # casing branch only -- see audit-casing-r4). Consumers' matching declarations are
+    # inert-but-recorded on their side (their files say so verbatim).
+  - id: hub-hermetization-rule-b-grammar
+    kind: precommit-hook
+    tier: {hub: LOCAL}
+    probe: {type: precommit_hook, hook_id: validate-hermetization}
+    # Rule B concern: date-shape grammar + the CLOSED 11-class enum, HUB-LOCAL (d1).
+  - id: token-log
+    kind: path
+    tier: {hub: LOCAL}
+    probe: {type: path_tracked, path: logs/TOKEN-LOG.md}
+  - id: command-handoff
+    kind: command
+    tier: {hub: LOCAL}
+    probe: {type: command_present, file: handoff.md}
+  - id: command-save
+    kind: command
+    tier: {hub: LOCAL}
+    probe: {type: command_present, file: save.md}
+  - id: command-changelog-review
+    kind: command
+    tier: {hub: LOCAL}
+    probe: {type: command_present, file: changelog-review.md}
+
+  # ---- d1 identity row: ONE canonical casing-gate id, three local names ---------------
+  - id: audit-casing-r4
+    kind: precommit-hook
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: precommit_hook, hook_id: validate-audit-casing}
+    local_names: {.dev-knowledge: validate-hermetization}
+    declared_divergence:
+      corp-monorepo: >-
+        11-name enumerated grandfather skip-set (LEGACY_GRANDFATHERED in
+        scripts/validate_audit_casing.py, mirrored verbatim in corp
+        .methodology.yaml audit-casing-r4) -- the single behavioral divergence the
+        d1 three-way review found; declared, never byte-diffed.
+
+  # ---- tombstone-join: the ruff prune (#244) as first-class deliberate-absence --------
+  - id: ruff-gate
+    kind: tombstone-join
+    tier: {hub: TOMBSTONE, consumer: TOMBSTONE}
+    waivable: true
+    probe: {type: precommit_remote, repo_token: ruff-pre-commit}
+    join: {manifest_component: ruff-gate}
+    pending_migration: {to: ruff-check, ticket: "#334"}
+    # Deploy manifest authority: component ruff-gate status: removed (removed_in 1.2.0,
+    # [#244] deploy 31e785d). A repo RUNNING a ruff gate is divergent-by-definition and
+    # must declare it (both consumers do; the hub declares its own fleet-canonical
+    # pinned gate -- chore/ruff-hub-pin 2026-07-12). Undeclared re-appearance =
+    # tombstone-violated (S3, the resurrected-prune class). #334 rides as data only.
+
+  # ---- W3-07: .claude subtree ownership (machine-readable; never copy local organs) ---
+  - id: claude-subtree-ownership
+    kind: claude-subtree
+    tier: {hub: MUST, consumer: MUST}
+    probe:
+      type: claude_subtrees
+      shared: [commands]
+      owned:
+        .dev-knowledge: [agents, generated, hooks, rules, skills, workflows]
+        ai-council: [rules]
+        corp-monorepo: [skills, workflows]
+
+  # command roster closure: a command file with NO covering row WARNs (override is the
+  # MUST row; handoff/save/changelog-review are hub-LOCAL rows above).
+  - id: claude-commands-roster
+    kind: roster
+    tier: {hub: MUST, consumer: MUST}
+    probe:
+      type: commands_roster
+      expected_all: [override.md]
+      expected_repo:
+        .dev-knowledge: [handoff.md, save.md, changelog-review.md]
+
+  # ---- Tier-4: IGNORE parity (effect probes -- git check-ignore, the S4 class) --------
+  # check = gitignore parity via the resolver, NEVER presence (intake #12 Tier-4) and
+  # NEVER text-grep (FR-6: the corp inline-comment gotcha false-passes a text probe).
+  - id: ignore-venv
+    kind: gitignore-effect
+    tier: {hub: IGNORE, consumer: IGNORE}
+    probe: {type: check_ignore, candidate: .venv/x}
+  - id: ignore-pycache
+    kind: gitignore-effect
+    tier: {hub: IGNORE, consumer: IGNORE}
+    probe: {type: check_ignore, candidate: __pycache__/x.pyc}
+  - id: ignore-pytest-cache
+    kind: gitignore-effect
+    tier: {hub: IGNORE, consumer: IGNORE}
+    probe: {type: check_ignore, candidate: .pytest_cache/x}
+  - id: ignore-ruff-cache
+    kind: gitignore-effect
+    tier: {hub: IGNORE, consumer: IGNORE}
+    probe: {type: check_ignore, candidate: .ruff_cache/x}
+  - id: ignore-mypy-cache
+    kind: gitignore-effect
+    tier: {hub: IGNORE, consumer: IGNORE}
+    probe: {type: check_ignore, candidate: .mypy_cache/x}
+  - id: ignore-hypothesis
+    kind: gitignore-effect
+    tier: {hub: IGNORE, consumer: IGNORE}
+    probe: {type: check_ignore, candidate: .hypothesis/x}
+    # Register e2: FIX-NOW (hub + ai-council lack the line today) -- expected WARNs
+    # until that cheap fix lands; the checker existing is what keeps e2 visible.
+  - id: ignore-egg-info
+    kind: gitignore-effect
+    tier: {hub: IGNORE, consumer: IGNORE}
+    probe: {type: check_ignore, candidate: probe.egg-info/x}
+  - id: ignore-node-modules
+    kind: gitignore-effect
+    tier: {hub: IGNORE}
+    probe: {type: check_ignore, candidate: node_modules/x}
+    # hub-only tooling (register e5 AT-PARITY): consumers carry no node scaffold, so
+    # the row does not apply to them.
+  - id: ai-env-ignored
+    kind: gitignore-effect
+    tier: {ai-council: IGNORE}
+    probe: {type: check_ignore, candidate: .env}
+    # intake #12 Tier-3 lists ai-council's .env (gitignored CWD-fallback, verified);
+    # the checkable settled property is the ignore EFFECT -- an untracked file is
+    # sweep-invisible by design, so this row is where .env is represented.
+
+# Known convergence candidates deliberately carrying NO verdict-bearing row in v1
+# (OPEN rulings -- a verdicting row would manufacture WARNs on questions the operator
+# has not ruled):
+#   - ruff config placement: REPRESENTED evidence-only via the ruff-config-home row
+#     (form reported per repo, never verdicted; W3-14 proposes pyproject-everywhere)
+#   - .vscode tracking (register e1; hub declares its own tracked .vscode in its
+#     .methodology.yaml until e1 is ruled; BOTH consumers adopted .vscode 2026-07-12 --
+#     their sweep hits are HONEST undeclared findings until they declare or e1 rules)
+#   - audit filename convention outside docs/audits (corp ADR-14 MyWork domain boundary)
+#   - consumer BACKLOG story-map adoption (#331 DECISION ticket; hub-side rows only)

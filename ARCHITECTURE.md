@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-11
+last_reviewed: 2026-07-13
 reconciled_with: handoff-process@5.7
 status: active
 owner: Rob
@@ -186,6 +186,7 @@ local git gate.
 | `doc_rot` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #140; ADR-88 FC4 (ADR-65/49/41) |
 | `doc_structure` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #192; ADR-88 prose-shape |
 | `hooks_armed` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | **fail-closed** (FAIL on a missing/foreign `.git/hooks` gate) | RF-2 (Fable arch review 2026-07-04 §4); self-armed by the SessionStart `pre_commit install` |
+| `fleet_parity.py` (CLI) | operator / nightly leg (manual; deliberately NOT in `ALL_CHECKS` — ship-gate REDs undispositioned WARNs, battery wiring is a later ruling) | hub | fail-soft (WARN-only v1: completed run exits 0 whatever it finds; exit 2 only on an unreadable parity manifest, and then NO digest is written) | #328/#332; intake #12 + the RULED #14 pack; `ecosystem/parity-surfaces.yaml` + `dependency-baseline.yaml` |
 | `deploy/tool.py` + 4 carriers (`globalconfig`/`plugin`/`precommit`/`floor`) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ADR-91/92/93; PLAYBOOK §20 |
 | `floor-hash-verify` (pre-commit) + SessionStart floor guard (`.claude/check_floor_hash.py`) | consumer commit / session start | consumer (armed by `carrier_floor`) | **fail-closed** (loud on floor drift) | ADR-93 (#226) |
 | pre-commit gates (`.pre-commit-config.yaml`) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below (count in `ecosystem/doc-counts.md`) |
@@ -325,6 +326,17 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   A2) into forcing a `last_reviewed` re-stamp (#222). Reuses the #89 derivers; `--write`
   regenerates, `--check [--gate]` verifies (drift → the `doc_claims` WARN; ship-gate is the
   teeth). A **loose** module by design — not a codemap node, so its edits never regen the map.
+- `scripts/fleet_parity.py` — the #328 fleet-parity checker (WARN-only v1): a deterministic
+  read-only walk of the registered fleet (hub included, intake #12 §9a) against the versioned
+  `ecosystem/parity-surfaces.yaml` + `ecosystem/dependency-baseline.yaml` (#332 dep leg),
+  consulting each repo's `.methodology.yaml` through the Informant's own reader (one taxonomy;
+  expired `review_date` = advisory re-WARN per §9b). Register-grammar verdicts; effect-probes
+  (`git check-ignore`, armed hook stages, tag-ancestry) over text-grep; refusal findings on
+  ambiguous/mis-addressed pointers — detect-and-report, NEVER an action proposal. Writes the
+  gitignored `logs/FLEET-PARITY.md` digest + appends schema-versioned checker-run JSONL events
+  to the gitignored rotation-capped `logs/parity-events.jsonl` (fail-open emission). A loose
+  module (not a codemap node); NOT in `ALL_CHECKS` this phase. Standalone CLI:
+  `python scripts/fleet_parity.py --run-date YYYY-MM-DD` (#328).
 - `deploy/tool.py` + `deploy/contract.py` + the four carriers (`carrier_globalconfig`,
   `carrier_plugin`, `carrier_precommit`, `carrier_floor`) — the ADR-92 **deploy orchestrator**
   (Ch4). A read-only ASSESS CLI (`deploy <repo> --target <vX.Y.Z>`) detects each carrier's

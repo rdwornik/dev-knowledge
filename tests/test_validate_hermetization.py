@@ -54,6 +54,13 @@ def test_rule_a_allows_sanctioned_top_level_file():
         assert vh.rule_a_violation(f) is None, f
 
 
+def test_rule_a_allows_root_methodology_yaml_section_9a():
+    # ADR-101 amendment 2026-07-13 ([#328]): intake #12 section 9a (SETTLED 2026-07-12)
+    # rules the hub carries its OWN .methodology.yaml as a fleet member -- the closed
+    # Tier-1 file class grew by amendment, never a drive-by add.
+    assert vh.rule_a_violation(".methodology.yaml") is None
+
+
 def test_rule_a_allows_file_in_sanctioned_genre():
     assert vh.rule_a_violation("docs/audits/2026-07-11-technical-foo.md") is None
     assert vh.rule_a_violation("docs/decisions/ADR-102-thing.md") is None

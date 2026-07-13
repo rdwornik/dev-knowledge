@@ -1,0 +1,110 @@
+# Hub conformance metadata -- the .dev-knowledge repo's OWN sanctioned-divergence
+# register, read by the hub Informant (scripts/enforcement_coverage.py, [#244] P4/D2)
+# and the #328 fleet_parity checker (FR-4). Intake #12 section 9a (SETTLED 2026-07-12):
+# the hub is a fleet MEMBER, not an implicit exception -- hub-local surfaces outside the
+# settled fleet template are DECLARED here exactly as consumers declare theirs
+# (ADR-101 amendment 2026-07-13 sanctions this file's top-level presence).
+# Each entry: component id + MANDATORY reason + time-box (expiry or review_date).
+sanctioned_divergences:
+  # --- hub-local enforcement organs (fleet ruling d1: consumers carry the casing
+  #     branch only; the two hub-local branches stay hub-side) -----------------------
+  - component: hub-hermetization-rule-a
+    reason: >-
+      Rule A (ADR-101 top-level tree seal) is HUB-LOCAL by design: the gate is keyed
+      to the HUB tree's sanctioned Tier-1 set, and carrying it verbatim into a
+      consumer would block normal development under src/ (fleet ruling d1; both
+      consumers record the NON-carry on their side under this same component id).
+      The parity manifest models the hub carry as a LOCAL-tier surface; this entry
+      sanctions it.
+    review_date: 2026-10-13
+  - component: hub-hermetization-rule-b-grammar
+    reason: >-
+      Rule B's date-shape grammar + the CLOSED 11-class audit-class enum are
+      HUB-LOCAL (fleet ruling d1): consumers enforce the R4 casing branch only
+      (validate_audit_casing.py); the enum and date grammar remain hub-side. Same
+      canonical id both consumers already record as not-carried.
+    review_date: 2026-10-13
+
+  # --- hub-only append-only record + authoring commands (ADR-36/42 centralization) --
+  - component: token-log
+    reason: >-
+      logs/TOKEN-LOG.md is a HUB-ONLY append-only usage record (ADR-39 lifecycle;
+      CLAUDE.md section 5). Not in the fleet template -- consumers carry no token
+      log; the surface is hub-LOCAL in the parity manifest.
+    review_date: 2026-10-13
+  - component: command-handoff
+    reason: >-
+      /handoff is HUB-ONLY by doctrine: handoffs are generated at the hub only
+      (ADR-36; ADR-42 centralizes handoffs -- docs/handoffs/ is INVERSE-forbidden in
+      consumers, so the generating command has no consumer home either).
+    review_date: 2026-10-13
+  - component: command-save
+    reason: >-
+      /save is a hub-local authoring convenience (fleet-parity register c1, lean
+      DECLARE-LOCAL): consumers commit via the tier1-lifecycle plugin /ship + manual
+      commits; distributing /save is a separate operator call.
+    review_date: 2026-10-13
+  - component: command-changelog-review
+    reason: >-
+      /changelog-review is hub-local tool-changelog review machinery (#113 arc;
+      register command-roster row): it reviews claude-code/codex changelogs for the
+      METHODOLOGY, a source-role concern with no consumer analogue.
+    review_date: 2026-10-13
+
+  # --- the ruff tombstone, hub side (section 9a symmetry with both consumers) -------
+  - component: ruff-gate
+    reason: >-
+      The hub runs the fleet-canonical pinned ruff gate (astral-sh/ruff-pre-commit
+      mirror @ v0.15.5, gate mode `args: []` = check-only, bare `id: ruff` prune-safe
+      byte-shape; chore/ruff-hub-pin 2026-07-12, merge 6de45b47). The managed
+      methodology hook set carries NO ruff since the [#244] prune (deploy manifest
+      component ruff-gate status: removed), so ANY fleet repo running a ruff gate is
+      divergent-by-definition and declares it -- both consumers already do under this
+      id; section 9a symmetry puts the hub's own entry here. Fleet-coordinated
+      `ruff` -> `ruff-check` id migration is PENDING as [#334] (represented as data
+      on the parity manifest row; never executed by a checker).
+    review_date: 2026-10-12
+
+  # --- ADR-101-sanctioned hub root entries NOT in the intake #12 fleet template -----
+  - component: .vscode
+    reason: >-
+      The hub tracks .vscode/settings.json (shared workspace settings). Fleet-parity
+      register e1 is an OPEN operator ruling (hub adds the ignore line vs declares a
+      shared editor config) -- SHORT shelf-life deliberately set so the declaration
+      forces the e1 revisit; note both consumers began tracking .vscode on
+      2026-07-12, so the real question is now fleet-template membership.
+    review_date: 2026-08-13
+  - component: .claude-plugin
+    reason: >-
+      .claude-plugin/ is the tier1-lifecycle plugin MARKETPLACE root (the source the
+      consumers install from; ARCHITECTURE Tier-1 self-enforcing lifecycle). ADR-101
+      section 1 sanctions the dir in the hub tree; it is source-role structural and
+      not part of the per-repo fleet template, hence declared.
+    review_date: 2026-10-13
+  - component: .worktreeinclude
+    reason: >-
+      .worktreeinclude configures the native parallel-session worktree lanes
+      (ADR-61/#107 -- it is why gitignored ecosystem state is visible inside a lane).
+      Hub-local session machinery; ADR-101-sanctioned file class; not a fleet-template
+      surface.
+    review_date: 2026-10-13
+  - component: codex
+    reason: >-
+      codex/ holds the canonical source of the global Codex reviewer config
+      (codex/AGENTS.md -> ~/.codex, ADR-54). Authoring home is hub-local; the
+      DEPLOYED standard is the user-level global config, so no consumer carries the
+      dir.
+    review_date: 2026-10-13
+  - component: package.json
+    reason: >-
+      Node scaffold pin for the vendored Pyright reverse-dependency oracle
+      (#193/ADR-89) and the toc/codemap tooling; node_modules/ is gitignored and
+      rebuilt per checkout. Hub-only tooling (register e5 reads node_modules
+      AT-PARITY for the same reason); not a fleet-template surface.
+    review_date: 2026-10-13
+  - component: package-lock.json
+    reason: >-
+      Lockfile of the hub-only Node scaffold above -- its own top-level entry, so its
+      own declared concern (one declaration never suppresses two; the sweep matches
+      by exact entry name).
+    review_date: 2026-10-13
