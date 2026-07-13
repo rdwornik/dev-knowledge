@@ -1,0 +1,34 @@
+# Hub-recommended dependency baseline -- the #332 / FR-7 dependency-parity manifest.
+#
+# The versioned record of dependencies REQUIRED TO OPERATE METHODOLOGY MECHANISMS
+# (never application-library lockstep -- Codex FR-05). Same durable-record pattern as
+# ecosystem/deployed-versions.yaml (committed - written deliberately - read by a
+# check); a SIBLING file, not a fold, because dependency pins churn on a faster
+# lifecycle than surface topology and ship to consumers via their own deploy-manifest
+# component at P6 ("carried with the methodology package", #332).
+#
+# Read by scripts/fleet_parity.py's dependency leg: per fleet repo it compares
+#   declared  -- pyproject [project.optional-dependencies] / [dependency-groups] /
+#                requirements*.txt (parsed, never executed)
+#   installed -- dist-info directory scan of <repo>/.venv/Lib/site-packages, or the
+#                running interpreter's environment for the no-venv hub (#257 policy);
+#                evidence stamps WHICH source was read
+# against `recommended`. Drift / absence / uninspectable = WARN, never a hard block;
+# a valid .methodology.yaml declaration (component = the row's waiver_component,
+# default "dep-<name>") clears the WARN without erasing the observed evidence.
+# One-time manual alignment is the sanctioned bootstrap; ROUTINE manual checking is
+# the anti-pattern this file exists to end (#332 charter, verbatim scope).
+#
+# Version line is nudge-parseable (validate_reconciliation._VERSION_LINE_RE).
+version: 1.0.0
+
+dependencies:
+  # Seed row -- the witnessed trigger (#332): 2026-07-12 ai-council d1 arc ran "Full
+  # serial suite 444 passed" with pytest-xdist absent; `-n` unrecognized, the suite
+  # silently degraded to serial and nothing surfaced it. The hub declares
+  # pytest-xdist>=3.8 ([dependency-groups] dev, #256 /ship pre-flight parallel runs).
+  - name: pytest-xdist
+    recommended: ">=3.8"
+    applies_to: [hub, consumer]
+    rationale: "parallel test lane (-n auto --dist worksteal); #332 witnessed serial degradation"
+    status: active
