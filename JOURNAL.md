@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-13 — CC (Opus 4.8): ARC 3 — hub architect handoff (a0-closed) + 3-arc session wrap
+
+**Did:** Serial ARC 3 (branch `docs/hub-architect-handoff` off `main`). Generated the HUB architect handoff bundle `2026-07-13-dev-knowledge-architect-a0-closed/` per HANDOFF_PROCESS v5 from **live hub state** (5 files: HANDOFF_BOOT · RESIDUAL · PROBES · SUPPLEMENT · assembled PASTE_THIS). Purpose: hub architect **succession, A0 CLOSED on both legs** (2026-07-13); product primary in consumers, SIEM #328 + satellite onboarding parallel. RESIDUAL carries the in-flight/parked lanes (**Fable `feat/328-fleet-parity` @ `25c8f38a` in the locked worktree** — review the self-run table + terra findings first, then merge+teardown; **Codex `docs/satellite-census` @ `9f4fd15a`, 1-ahead-of-main, parked** pending operator tier rulings — both **untouched**), W3-16 renormalize (**1283-file** churn, first merge-free slot), W3-13 ToC retirement (operator-present), **SUP-01 [#254] / SUP-03 [corp#15] / SUP-04 [#280]** owners, #333/#334 pending builds. SUPPLEMENT ANSWERS pasted **VERBATIM** (operator-approved). PROBES = P1 orientation (VISION/ARCHITECTURE exact-line) + P2–P9 teeth.
+
+**Result:** work commit `1e5a1136`. Self-eval: `verify_handoff_probes.py` → **10/10 pass, 0 fail** (P1a/P1b anchors resolve + P2–P9 bind); PASTE_THIS folds the FILLED ANSWERS (~36 KB). **Lane-safety held all session:** `docs/satellite-census` + the Fable worktree (`feat/328-fleet-parity` / `worktree-fable-328-build`) never merged/rebased/deleted/committed-onto.
+
+**Changes:** `docs/handoffs/2026-07-13-dev-knowledge-architect-a0-closed/{HANDOFF_BOOT,RESIDUAL,PROBES,SUPPLEMENT,PASTE_THIS}.md` (new); this note.
+
+**Abandoned:** none.
+
+**Next:** merge `docs/hub-architect-handoff` `--no-ff`, push, delete branch — the session's three serial arcs are then complete. Morning order (bundle SUPPLEMENT §Decomposition): Fable #328 self-run+terra → W3-16 renormalize → merge `chore/w3-*-legs` → satellite tier rulings → W3-13 + first-read diet → PRODUCT work.
+
+---
+
 ### 2026-07-13 — CC (Opus 4.8): ARC 2 — two consumer architect handoffs (corp-monorepo + ai-council product-resume)
 
 **Did:** Serial ARC 2 (branch `docs/consumer-handoffs` off `main`; parked lanes untouched). Generated + self-evaluated TWO v5 **architect-mode** handoff bundles in the hub `docs/handoffs/` (ADR-36/42 — the hub is the sole handoff carrier; consumers hold no handoff surface), each derived **READ-ONLY** from the sibling repo: `2026-07-13-corp-monorepo-architect-product-resume/` + `2026-07-13-ai-council-architect-product-resume/`. Each = 5 files (HANDOFF_BOOT · RESIDUAL · PROBES · SUPPLEMENT · assembled PASTE_THIS). **Purpose** per bundle: resume PRODUCT work; methodology layer **A0-closed** (2026-07-13); methodology questions route to the hub. Both consumers' `chore/w3-*-legs` lanes already exist → folded each branch's JOURNAL session-summary block. RESIDUAL carries: pending unmerged branches (corp: `chore/w3-corp-legs` + carried `docs/backlog-transcript-mime-fix`/corp#15; ai: `chore/w3-ai-legs`, merge HELD), the live BACKLOG pointer, and a **4-probe anti-bluff manifest** (HEAD · `validate_backlog` counts · hooks-armed · one CLAUDE-region substring — answers withheld by construction). SUPPLEMENT ANSWERS **EMPTY** (cold-handoff disposition — the methodology work was CC-side, no outgoing chat).
