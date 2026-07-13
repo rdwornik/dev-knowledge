@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-13 — CC (Opus 4.8): hub a0-closed handoff — SUPPLEMENT v2 (post-consolidation) + residual reconcile
+
+**Did:** Branch `docs/handoff-answers-v2`. Replaced the hub `2026-07-13-dev-knowledge-architect-a0-closed` SUPPLEMENT ANSWERS with the browser architect's **v2** (post-consolidation; supersedes the pre-authored v1 — CC transcribes verbatim, author = browser architect). Reconciled the bundle to post-consolidation live state so the residual contradicts nothing: RESIDUAL §2 "in-flight/parked lanes (do NOT integrate)" → **"MERGED"** (worktree torn down; branches `main` + `automation/fleet-audit` only), §1 fleet_parity 8-WARN advisory, §4 morning tail (WARN triage → W3-16 window-now → satellite tiers [flagged life-architect contradiction] → W3-13), + HANDOFF_BOOT purpose/step-7/generated-at.
+
+**Result:** commit `15c8bb30`. Re-validated: `verify_handoff_probes` **10/10 pass**; receiver-sim **GAPS→PASS** (fixed a stale "in-flight lanes (§2)" ref in HANDOFF_BOOT step 7); PASTE_THIS re-folds the v2 ANSWERS (P8 now reports SUPPLEMENT FILLED); audit health OK.
+
+**Changes:** `docs/handoffs/2026-07-13-dev-knowledge-architect-a0-closed/{HANDOFF_BOOT,RESIDUAL,SUPPLEMENT,PASTE_THIS}.md`; this note.
+
+**Abandoned:** none.
+
+**Next:** merge `docs/handoff-answers-v2` `--no-ff`, push, delete branch.
+
+---
+
 ### 2026-07-13 — CC (Opus 4.8): consolidation — integrate both parked lanes (satellite census + #328 fleet_parity) [#328] [#332]
 
 **Did:** Operator-directed morning consolidation (branch `docs/consolidation-wrap` off `main`), integrating the two lanes carried untouched through the 3-arc session. **(1)** Merged `docs/satellite-census` `--no-ff` (**`71b92f82`**) with the **audit index regenerated IN the merge commit** (the Codex `commit-and-STOP` lane skipped it under its one-file constraint — A0-seal precedent) — adds `docs/audits/2026-07-13-technical-satellite-onboarding-census.md`. **(2)** Merged `feat/328-fleet-parity` `--no-ff` (**`2bc02196`**, message carrying `[#328] [#332]`) — the overnight Fable #328 build: `scripts/fleet_parity.py` checker + hermetic tests + `ecosystem/{parity-surfaces,dependency-baseline}.yaml` manifests + hub `.methodology.yaml` (§9a executed via an ADR-101 in-file amendment). Only `JOURNAL.md` conflicted → resolved **newest-first by commit time** (#328 wrap `3bf53a03` 03:41 › ARC 3 02:25 › ARC 2 02:14 › ARC 1 01:54); 13 other files auto-merged. Tore down the `fable-328-build` worktree (unlock → remove → prune → deleted `feat/328-fleet-parity` + `worktree-fable-328-build`) — **zero leftovers** (dir gone).
