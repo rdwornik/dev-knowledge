@@ -61,6 +61,9 @@ SANCTIONED_TIER1_FILES: frozenset[str] = frozenset({
     ".gitignore", ".gitattributes", ".pre-commit-config.yaml",
     ".pre-commit-hooks.yaml", ".ruff.toml", ".worktreeinclude",
     ".dev-knowledge.code-workspace",
+    # intake #12 section-9a ruling (SETTLED 2026-07-12): the hub carries its OWN
+    # .methodology.yaml as a fleet member -- ADR-101 amendment 2026-07-13, [#328].
+    ".methodology.yaml",
     # build / package manifests
     "package.json", "package-lock.json", "pyproject.toml",
 })
