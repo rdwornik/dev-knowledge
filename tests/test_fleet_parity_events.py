@@ -137,14 +137,15 @@ def test_invalid_run_date_refuses_exit_2(tmp_path):
                   extra=None)  # sanity: helper still green
     assert bad.exit_code == 0
     hub, cons, manifest, baseline, registry, deploy = _world(tmp_path / "w2")
-    result2 = CliRunner().invoke(fp.main, [
-        "--run-date", "not-a-date", "--manifest", str(manifest),
-        "--baseline", str(baseline), "--registry", str(registry),
-        "--ecosystem-dir", str(tmp_path / "eco"), "--hub-root", str(hub),
-        "--deploy-manifest", str(deploy),
-        "--events-path", str(tmp_path / "e3.jsonl"), "--no-write"])
-    assert result2.exit_code == 2
-    assert "not a valid" in result2.output
+    for bad_date in ("not-a-date", "20260713", "2026-W28-1"):
+        result2 = CliRunner().invoke(fp.main, [
+            "--run-date", bad_date, "--manifest", str(manifest),
+            "--baseline", str(baseline), "--registry", str(registry),
+            "--ecosystem-dir", str(tmp_path / "eco"), "--hub-root", str(hub),
+            "--deploy-manifest", str(deploy),
+            "--events-path", str(tmp_path / "e3.jsonl"), "--no-write"])
+        assert result2.exit_code == 2, bad_date  # exact YYYY-MM-DD shape enforced
+        assert "not a valid" in result2.output
     assert not (tmp_path / "e3.jsonl").exists()
 
 

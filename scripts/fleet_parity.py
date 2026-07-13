@@ -681,6 +681,23 @@ def _satisfies(installed: str | None, recommended: str) -> bool:
     return _version_tuple(installed) >= _version_tuple(rec)
 
 
+_DECLARED_VERSION_RE = re.compile(r"(>=|==|~=|>)\s*([0-9][0-9.]*)")
+
+
+def _declared_ok(declared: str | None, recommended: str) -> bool:
+    """The DECLARED specifier must itself satisfy the baseline: a declaration pinned
+    BELOW the recommendation (e.g. ==3.1 vs >=3.8) false-passes on a lucky env and
+    regresses on a clean rebuild (codex delta re-review 2026-07-13). An unpinned
+    declaration asserts presence, not version -- accepted, evidence shows the pin
+    state either way."""
+    if not declared:
+        return False
+    m = _DECLARED_VERSION_RE.search(declared)
+    if not m:
+        return True  # unpinned declaration: presence declared, no version floor
+    return _satisfies(m.group(2), recommended)
+
+
 # ---------------------------------------------------------------------------
 # Declaration matching (the FR-4 leg -- exact-id, shelf-life honored).
 # ---------------------------------------------------------------------------
@@ -878,12 +895,14 @@ def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
     tier_token = _tier_for(row, target.repo_id, target.role)
     if tier_token is None:
         return
+    component = str(row.get("waiver_component") or sid)
     res = facts["surfaces"].get(sid, {})
     if res.get("error"):
+        ev.diverged.add(component)  # unevaluable, never stale-decorated
         ev.findings.append(ParityFinding(target.repo_id, sid, REFUSED, SEV_WARN,
-                                         _ascii(res["error"]), _ACTIONS[REFUSED]))
+                                         _ascii(res["error"]), _ACTIONS[REFUSED],
+                                         component))
         return
-    component = str(row.get("waiver_component") or sid)
     present = bool(res.get("present"))
     detail = res.get("detail", sid)
 
@@ -1001,6 +1020,11 @@ def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
     if tier_token == "TOMBSTONE":
         comp_id = row["join"]["manifest_component"]
         if deploy_dup_ids and comp_id in deploy_dup_ids:
+            # refused = unevaluable: mark diverged so _eval_stale can never ALSO
+            # decorate this component's declaration stale in the same run (a
+            # "no action proposed" run must not propose pruning a declaration --
+            # codex delta re-review 2026-07-13)
+            ev.diverged.add(component)
             ev.findings.append(ParityFinding(
                 target.repo_id, sid, REFUSED, SEV_WARN,
                 _ascii(f"ambiguous tombstone join: the deploy manifest carries more "
@@ -1010,6 +1034,7 @@ def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
             return
         comp = deploy_components.get(comp_id)
         if comp is None:
+            ev.diverged.add(component)
             ev.findings.append(ParityFinding(
                 target.repo_id, sid, REFUSED, SEV_WARN,
                 _ascii(f"tombstone pointer mis-addressed: deploy manifest has no "
@@ -1017,6 +1042,7 @@ def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
                        f"proposed)"), _ACTIONS[REFUSED], component))
             return
         if comp.get("status") != "removed":
+            ev.diverged.add(component)
             ev.findings.append(ParityFinding(
                 target.repo_id, sid, REFUSED, SEV_WARN,
                 _ascii(f"tombstone join mismatch: parity row says TOMBSTONE but deploy "
@@ -1260,14 +1286,19 @@ def _eval_deps(baseline: dict, target: RepoTarget, facts: dict, allowlist: list,
         component = str(dep.get("waiver_component") or sid)
         # AT-PARITY needs BOTH halves of the #332 contract: the declared set AND the
         # active environment (installed-only was the codex-flagged false-green -- an
-        # undeclared dep vanishes on the next clean env rebuild).
-        if _satisfies(installed, rec) and declared:
+        # undeclared dep vanishes on the next clean env rebuild), and the declared
+        # specifier must itself satisfy the baseline (a ==3.1 pin with 3.8 luckily
+        # installed regresses on rebuild -- codex delta re-review).
+        if _satisfies(installed, rec) and _declared_ok(declared, rec):
             ev.findings.append(ParityFinding(
                 target.repo_id, sid, AT_PARITY, SEV_INFO, _ascii(evidence), "-",
                 component))
             continue
         if _satisfies(installed, rec) and not declared:
             evidence += " -- installed but UNDECLARED (pin it or declare the divergence)"
+        elif _satisfies(installed, rec) and declared:
+            evidence += (" -- installed OK but the DECLARED pin does not satisfy the "
+                         "baseline (regresses on a clean rebuild)")
         ev.diverged.add(component)
         status, decl_ev = _match_declaration(component, allowlist, run_date=run_date,
                                              policy=policy)
@@ -1582,12 +1613,15 @@ def main(run_date: str, manifest_path: str, baseline_path: str, registry_path: s
     exits 0 whatever it finds; exit 2 only when the parity manifest is unusable (and
     then no digest is written -- never silently green)."""
     hub_root = Path(hub_root_opt) if hub_root_opt else _REPO_ROOT
+    # exact YYYY-MM-DD shape THEN calendar validity: fromisoformat alone also accepts
+    # compact/week forms like 20260713 (codex delta re-review 2026-07-13); a malformed
+    # run_date silently disabling shelf-life is the refused class either way
     try:
         from datetime import date as _date
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", run_date):
+            raise ValueError("shape")
         _date.fromisoformat(run_date)
     except ValueError:
-        # an unparseable run_date would silently disable declaration shelf-life
-        # (expired -> valid); refuse loudly instead (codex 2026-07-13)
         click.echo(f"fleet-parity: REFUSED -- --run-date {run_date!r} is not a valid "
                    f"YYYY-MM-DD date", err=True)
         sys.exit(2)

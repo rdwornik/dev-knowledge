@@ -325,6 +325,43 @@ def test_acceptance_2_declared_consumer_does_not_warn(tmp_path):
     assert "installed: absent" in dep["cons"].evidence  # evidence NOT erased (FR-05)
 
 
+def test_dep_declared_pin_below_baseline_warns(tmp_path):
+    # codex delta re-review 2026-07-13: a declaration pinned BELOW the baseline
+    # (==3.1) with a satisfying env (3.8 installed) false-passed -- it regresses on
+    # a clean rebuild. An unpinned declaration (presence, no floor) stays accepted.
+    fleet = {"hub-r": {"role": "hub"}}
+    hub = _init_repo(tmp_path / "hub", dict(
+        _BASE_FILES,
+        **{"pyproject.toml": '[dependency-groups]\ndev = ["pytest-xdist==3.1"]\n'}))
+    (hub / ".venv/Lib/site-packages/pytest_xdist-3.8.0.dist-info").mkdir(parents=True)
+    manifest = _loaded(tmp_path, fleet, [])
+    findings, *_ = _run(manifest, _DEP_BASELINE, {"hub-r": hub}, "hub-r")
+    f = [x for x in findings if x.surface_id == "dep-pytest-xdist"][0]
+    assert f.verdict == fp.WARN_UNDECLARED
+    assert "DECLARED pin does not satisfy" in f.evidence
+    # unpinned declaration + satisfying install -> AT-PARITY (presence declared)
+    (hub / "pyproject.toml").write_text(
+        '[dependency-groups]\ndev = ["pytest-xdist"]\n', encoding="utf-8")
+    findings2, *_ = _run(manifest, _DEP_BASELINE, {"hub-r": hub}, "hub-r")
+    f2 = [x for x in findings2 if x.surface_id == "dep-pytest-xdist"][0]
+    assert f2.verdict == fp.AT_PARITY
+
+
+def test_refused_tombstone_join_never_stale_decorates(tmp_path):
+    # codex delta re-review 2026-07-13: a refused (unevaluable) join must not ALSO
+    # propose pruning the component's declaration as stale in the same run.
+    fleet = {"hub-r": {"role": "hub"}}
+    row = dict(_TOMB_ROW, tier={"hub": "TOMBSTONE"},
+               join={"manifest_component": "ruff-gato"})  # mis-addressed
+    hub = _init_repo(tmp_path / "hub", dict(
+        _BASE_FILES, **{".pre-commit-config.yaml": _RUFF_CFG,
+                        ".methodology.yaml": _decl(["ruff-gate"])}))
+    manifest = _loaded(tmp_path, fleet, [row])
+    findings, *_ = _run(manifest, _EMPTY_BASELINE, {"hub-r": hub}, "hub-r")
+    assert [f for f in findings if f.verdict == fp.REFUSED]
+    assert not [f for f in findings if f.verdict == fp.STALE_DECLARATION]
+
+
 def test_dep_version_drift_warns(tmp_path):
     fleet = {"hub-r": {"role": "hub"}}
     hub = _init_repo(tmp_path / "hub", dict(_BASE_FILES))
