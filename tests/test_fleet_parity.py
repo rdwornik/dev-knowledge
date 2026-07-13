@@ -345,6 +345,15 @@ def test_dep_declared_pin_below_baseline_warns(tmp_path):
     findings2, *_ = _run(manifest, _DEP_BASELINE, {"hub-r": hub}, "hub-r")
     f2 = [x for x in findings2 if x.surface_id == "dep-pytest-xdist"][0]
     assert f2.verdict == fp.AT_PARITY
+    # codex round-3: an upper-bound/compound specifier must never read as unpinned --
+    # refused-to-assume -> WARN ('<4' cannot prove the >=3.8 floor on a clean rebuild)
+    for spec in ("pytest-xdist<4", "pytest-xdist>=3.8,<4"):
+        (hub / "pyproject.toml").write_text(
+            f'[dependency-groups]\ndev = ["{spec}"]\n', encoding="utf-8")
+        findings3, *_ = _run(manifest, _DEP_BASELINE, {"hub-r": hub}, "hub-r")
+        f3 = [x for x in findings3 if x.surface_id == "dep-pytest-xdist"][0]
+        assert f3.verdict == fp.WARN_UNDECLARED, spec
+        assert "DECLARED pin does not satisfy" in f3.evidence
 
 
 def test_refused_tombstone_join_never_stale_decorates(tmp_path):

@@ -681,7 +681,8 @@ def _satisfies(installed: str | None, recommended: str) -> bool:
     return _version_tuple(installed) >= _version_tuple(rec)
 
 
-_DECLARED_VERSION_RE = re.compile(r"(>=|==|~=|>)\s*([0-9][0-9.]*)")
+_DECLARED_VERSION_RE = re.compile(r"^(>=|==|~=|>)\s*([0-9][0-9.]*)\s*$")
+_DEP_NAME_PREFIX_RE = re.compile(r"^\s*[A-Za-z0-9_.\[\]-]+\s*")
 
 
 def _declared_ok(declared: str | None, recommended: str) -> bool:
@@ -689,12 +690,17 @@ def _declared_ok(declared: str | None, recommended: str) -> bool:
     BELOW the recommendation (e.g. ==3.1 vs >=3.8) false-passes on a lucky env and
     regresses on a clean rebuild (codex delta re-review 2026-07-13). An unpinned
     declaration asserts presence, not version -- accepted, evidence shows the pin
-    state either way."""
+    state either way. v1 EVALUATES single >=/==/~=/> constraints only; any other
+    specifier shape (upper bounds, compounds, unparseable) is REFUSED-to-assume ->
+    not ok -> WARN (codex round-3: '<3.8' must never read as unpinned)."""
     if not declared:
         return False
-    m = _DECLARED_VERSION_RE.search(declared)
-    if not m:
+    spec = _DEP_NAME_PREFIX_RE.sub("", declared.strip(), count=1).strip()
+    if not spec:
         return True  # unpinned declaration: presence declared, no version floor
+    m = _DECLARED_VERSION_RE.match(spec)
+    if not m:
+        return False  # unsupported/compound/upper-bound specifier: never assume
     return _satisfies(m.group(2), recommended)
 
 
@@ -1298,7 +1304,9 @@ def _eval_deps(baseline: dict, target: RepoTarget, facts: dict, allowlist: list,
             evidence += " -- installed but UNDECLARED (pin it or declare the divergence)"
         elif _satisfies(installed, rec) and declared:
             evidence += (" -- installed OK but the DECLARED pin does not satisfy the "
-                         "baseline (regresses on a clean rebuild)")
+                         "baseline (below-floor, upper-bound, or compound specifier; "
+                         "v1 evaluates single >=/==/~=/> constraints -- regresses on "
+                         "a clean rebuild)")
         ev.diverged.add(component)
         status, decl_ev = _match_declaration(component, allowlist, run_date=run_date,
                                              policy=policy)
