@@ -180,6 +180,14 @@ surfaces:
     kind: command
     tier: {hub: MUST, consumer: MUST}
     probe: {type: command_present, file: override.md}
+  - id: claude-md-form-a-markers
+    kind: doc-marker
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: file_contains, path: CLAUDE.md, token: "<!-- methodology:start"}
+    # intake #12 Tier-1: CLAUDE.md carries Form-A owner markers + the human-visible
+    # boundary note (machine map = markers, #312). Presence probe only -- per-region
+    # fidelity/diff is owned by the #312 boundary reporter (scripts/boundary_report.py),
+    # never duplicated here (FR-12).
 
   # settings.json hub-carried hook blocks (W3-07 hook-block ownership, MUST half)
   - id: settings-floor-guard
@@ -214,12 +222,16 @@ surfaces:
 
   # hub pre-commit block fidelity: consumers pin rdwornik/dev-knowledge to the TAG their
   # deployed-versions record says was deployed (present != carried; effect probe =
-  # rev equality vs source_tag + tag existence/ancestry in the hub repo itself).
+  # rev equality vs source_tag + tag existence/ancestry in the hub repo itself), AND
+  # the block must carry the required hook IDS (intake #12: fidelity = rev + hook ids).
+  # required set = the universal floor both consumers carry per manifest v1.3.1; the
+  # toc pair is consumer-variable via declared waivers (hub-toc-hooks), so not required.
   - id: precommit-hub-block
     kind: precommit-hook
     tier: {consumer: MUST}
     probe: {type: precommit_remote, repo_token: dev-knowledge,
-            expected_rev_from: deployed-versions, ancestry: true}
+            expected_rev_from: deployed-versions, ancestry: true,
+            required_hook_ids: [backlog-id-on-close, block-ff-push]}
 
   # ---- Tier-1: consumer-only MUSTs + inverse rules -------------------------------------
   - id: install-md
@@ -278,6 +290,36 @@ surfaces:
     tier: {corp-monorepo: LOCAL}
     waiver_component: github-ci-local
     probe: {type: dir_tracked, path: .github}
+    # intake #12 Tier-2 lists .github as "today corp-only -- OPEN ruling: fleet-generic
+    # or local?". Represented LOCAL (not SHOULD) deliberately: corp's A0-sealed
+    # .methodology.yaml already DECLARES github-ci-local, and a SHOULD-present reading
+    # would decorate that sealed declaration stale. Declared-LOCAL is the
+    # least-commitment form until the operator rules the scope question.
+  - id: backlog-story-map-schema
+    kind: doc-marker
+    tier: {hub: MUST}
+    probe: {type: file_contains, path: BACKLOG.md, token: "## [E"}
+    # intake #12 Tier-2: BACKLOG E-prefix/S-n story-map schema. Consumers are
+    # deliberately ABSENT from this tier map: their applicability is the OPEN #331
+    # DECISION ticket ("consumers pending #331 ruling"; ADR-99: fleet-wide at P6) --
+    # representing them here before that ruling would verdict an unruled question.
+  - id: backlog-schema-gate
+    kind: precommit-hook
+    tier: {hub: MUST}
+    probe: {type: precommit_hook, hook_id: validate-backlog}
+    # Register b2: the validate_backlog story-map gate is HUB-ONLY today and ships to
+    # consumers WITH the schema at P6, never before it (the twin/child-conformance
+    # hazard) -- same pending-#331 boundary as the schema row above.
+  - id: ruff-config-home
+    kind: path
+    tier: {hub: LOCAL, consumer: LOCAL}
+    declared_by: intake-12
+    probe: {type: ruff_config_form}
+    # intake #12 Tier-3 CONVERGENCE CANDIDATE: ruff config exists in three forms
+    # across the fleet (post-W3: hub pyproject [tool.ruff], corp .ruff.toml, ai
+    # pyproject; ai also keeps assets/ruff-pre-commit.yaml as INSTALL reference).
+    # Representation-only: the checker REPORTS each repo's form as evidence and never
+    # verdicts a winner -- W3-14 (one form, rest declared) is an OPEN ruling.
 
   # ---- Tier-3: LOCAL surfaces the SETTLED template itself enumerates -------------------
   # (declared_by: intake-12 -- template membership is the declaration of record until the
@@ -445,11 +487,21 @@ surfaces:
     probe: {type: check_ignore, candidate: node_modules/x}
     # hub-only tooling (register e5 AT-PARITY): consumers carry no node scaffold, so
     # the row does not apply to them.
+  - id: ai-env-ignored
+    kind: gitignore-effect
+    tier: {ai-council: IGNORE}
+    probe: {type: check_ignore, candidate: .env}
+    # intake #12 Tier-3 lists ai-council's .env (gitignored CWD-fallback, verified);
+    # the checkable settled property is the ignore EFFECT -- an untracked file is
+    # sweep-invisible by design, so this row is where .env is represented.
 
-# Known convergence candidates deliberately NOT rows in v1 (OPEN rulings -- a row would
-# manufacture WARNs on questions the operator has not ruled):
-#   - ruff config placement (three forms; W3-14 proposes pyproject-everywhere)
-#   - .vscode tracking (register e1; hub declares its own tracked .vscode below its
-#     .methodology.yaml until e1 is ruled; corp adopted .vscode 2026-07-12 -- its sweep
-#     hit is an HONEST undeclared finding until corp declares or e1 rules)
+# Known convergence candidates deliberately carrying NO verdict-bearing row in v1
+# (OPEN rulings -- a verdicting row would manufacture WARNs on questions the operator
+# has not ruled):
+#   - ruff config placement: REPRESENTED evidence-only via the ruff-config-home row
+#     (form reported per repo, never verdicted; W3-14 proposes pyproject-everywhere)
+#   - .vscode tracking (register e1; hub declares its own tracked .vscode in its
+#     .methodology.yaml until e1 is ruled; BOTH consumers adopted .vscode 2026-07-12 --
+#     their sweep hits are HONEST undeclared findings until they declare or e1 rules)
 #   - audit filename convention outside docs/audits (corp ADR-14 MyWork domain boundary)
+#   - consumer BACKLOG story-map adoption (#331 DECISION ticket; hub-side rows only)

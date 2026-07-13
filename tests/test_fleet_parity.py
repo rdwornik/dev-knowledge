@@ -584,7 +584,9 @@ def test_hub_block_rev_fidelity_present_not_carried(tmp_path):
                  "tier": {"consumer": "MUST"},
                  "probe": {"type": "precommit_remote", "repo_token": "dev-knowledge",
                            "expected_rev_from": "deployed-versions",
-                           "ancestry": True}}]
+                           "ancestry": True,
+                           "required_hook_ids": ["backlog-id-on-close",
+                                                 "block-ff-push"]}}]
     hub = _init_repo(tmp_path / "hub", dict(_BASE_FILES))
     _git(["tag", "v1.0.0"], hub)
     cfg = yaml.safe_dump({"repos": [
@@ -596,23 +598,54 @@ def test_hub_block_rev_fidelity_present_not_carried(tmp_path):
     registry = _write_yaml(tmp_path / "reg.yaml", {"repos": {
         "hub-r": {"source_tag": None}, "cons": {"source_tag": "v1.0.0"}}})
 
-    targets = [fp.RepoTarget("cons", "consumer", cons, "")]
-    facts = {"cons": fp.collect_facts(targets[0], manifest, _EMPTY_BASELINE, hub,
-                                      registry)}
-    findings, _ = fp.verdicts(manifest, _EMPTY_BASELINE, targets, facts, {},
-                              _DEPLOY_TOMBSTONE, "2026-07-13")
-    f = [x for x in findings if x.surface_id == "precommit-hub-block"][0]
+    def _cons_finding():
+        targets = [fp.RepoTarget("cons", "consumer", cons, "")]
+        facts = {"cons": fp.collect_facts(targets[0], manifest, _EMPTY_BASELINE, hub,
+                                          registry)}
+        findings, _ = fp.verdicts(manifest, _EMPTY_BASELINE, targets, facts, {},
+                                  _DEPLOY_TOMBSTONE, "2026-07-13")
+        return [x for x in findings if x.surface_id == "precommit-hub-block"][0]
+
+    f = _cons_finding()
     assert f.verdict == fp.WARN_UNDECLARED
     assert "present != carried" in f.evidence and "v9.9.9" in f.evidence
-    # aligned rev + real tag -> AT-PARITY with the ancestry note
-    cfg_ok = cfg.replace("v9.9.9", "v1.0.0")
+    # rev aligned but a required hook id missing -> still not carried faithfully
+    # (intake #12: fidelity = rev + hook IDS)
+    (cons / ".pre-commit-config.yaml").write_text(
+        cfg.replace("v9.9.9", "v1.0.0"), encoding="utf-8")
+    f_ids = _cons_finding()
+    assert f_ids.verdict == fp.WARN_UNDECLARED
+    assert "backlog-id-on-close" in f_ids.evidence
+    assert "rev + hook ids" in f_ids.evidence
+    # aligned rev + full required id set + real tag -> AT-PARITY with ancestry note
+    cfg_ok = yaml.safe_dump({"repos": [
+        {"repo": "https://github.com/x/dev-knowledge", "rev": "v1.0.0",
+         "hooks": [{"id": "backlog-id-on-close"}, {"id": "block-ff-push"}]}]},
+        sort_keys=False)
     (cons / ".pre-commit-config.yaml").write_text(cfg_ok, encoding="utf-8")
-    facts2 = {"cons": fp.collect_facts(targets[0], manifest, _EMPTY_BASELINE, hub,
-                                       registry)}
-    findings2, _ = fp.verdicts(manifest, _EMPTY_BASELINE, targets, facts2, {},
-                               _DEPLOY_TOMBSTONE, "2026-07-13")
-    f2 = [x for x in findings2 if x.surface_id == "precommit-hub-block"][0]
+    f2 = _cons_finding()
     assert f2.verdict == fp.AT_PARITY and "ancestor" in f2.evidence
+
+
+def test_ruff_config_form_is_representation_only(tmp_path):
+    # W3-14 / intake #12 Tier-3 convergence candidate: the FORM is evidence, never a
+    # verdict -- pyproject vs .ruff.toml both read AT-PARITY with the form named.
+    fleet = {"hub-r": {"role": "hub"}, "cons": {"role": "consumer"}}
+    row = {"id": "ruff-config-home", "kind": "path",
+           "tier": {"hub": "LOCAL", "consumer": "LOCAL"}, "declared_by": "intake-12",
+           "probe": {"type": "ruff_config_form"}}
+    hub = _init_repo(tmp_path / "hub", dict(
+        _BASE_FILES, **{"pyproject.toml": "[tool.ruff]\nrequired-version = '>=0.15.5'\n"}))
+    cons = _init_repo(tmp_path / "cons",
+                      dict(_BASE_FILES, **{".ruff.toml": "[lint]\n"}))
+    manifest = _loaded(tmp_path, fleet, [row])
+    findings, *_ = _run(manifest, _EMPTY_BASELINE, {"hub-r": hub, "cons": cons},
+                        "hub-r")
+    forms = {f.repo_id: f for f in findings if f.surface_id == "ruff-config-home"}
+    assert forms["hub-r"].verdict == fp.AT_PARITY
+    assert "pyproject [tool.ruff]" in forms["hub-r"].evidence
+    assert forms["cons"].verdict == fp.AT_PARITY
+    assert ".ruff.toml" in forms["cons"].evidence
 
 
 def test_pre_deploy_rendered_and_unavailable_surfaced(tmp_path):

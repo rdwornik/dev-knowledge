@@ -394,7 +394,10 @@ def collect_facts(target: RepoTarget, manifest: dict, baseline: dict,
     remotes = []
     for repo in precommit_cfg.get("repos") or []:
         if isinstance(repo, dict) and isinstance(repo.get("repo"), str):
-            remotes.append({"repo": repo["repo"], "rev": str(repo.get("rev", ""))})
+            ids = [str(h.get("id")) for h in repo.get("hooks") or []
+                   if isinstance(h, dict) and h.get("id")]
+            remotes.append({"repo": repo["repo"], "rev": str(repo.get("rev", "")),
+                            "hook_ids": ids})
 
     settings = ec._read_json(root / ".claude" / "settings.json")
     plugins = settings.get("enabledPlugins")
@@ -455,6 +458,10 @@ def collect_facts(target: RepoTarget, manifest: dict, baseline: dict,
             res["present"] = hit is not None
             res["rev"] = hit["rev"] if hit else None
             res["detail"] = f"pre-commit remote containing '{token}'"
+            required_ids = [str(x) for x in probe.get("required_hook_ids") or []]
+            if hit and required_ids:
+                # intake #12 Tier-1: carried-block fidelity = rev + hook IDS.
+                res["missing_hook_ids"] = sorted(set(required_ids) - set(hit["hook_ids"]))
             if probe.get("expected_rev_from") == "deployed-versions":
                 res["expected_rev"] = source_tag
                 if hit and source_tag:
@@ -488,6 +495,26 @@ def collect_facts(target: RepoTarget, manifest: dict, baseline: dict,
             res["ignored"] = rc == 0
             res["present"] = res["ignored"]
             res["detail"] = f"git check-ignore {probe['candidate']} (effect probe)"
+        elif ptype == "ruff_config_form":
+            # Representation-only (intake #12 Tier-3 convergence candidate / W3-14
+            # OPEN): the FORM is reported as evidence, never verdicted.
+            forms = []
+            pyp = root / "pyproject.toml"
+            if pyp.exists():
+                try:
+                    import tomllib
+                    if "ruff" in (tomllib.loads(
+                            pyp.read_text(encoding="utf-8")).get("tool") or {}):
+                        forms.append("pyproject [tool.ruff]")
+                except Exception:  # noqa: BLE001 -- malformed toml reads as no-form
+                    pass
+            if (root / ".ruff.toml").exists():
+                forms.append(".ruff.toml")
+            if (root / "assets" / "ruff-pre-commit.yaml").exists():
+                forms.append("assets/ruff-pre-commit.yaml")
+            res["present"] = bool(forms)
+            res["detail"] = ("ruff config form(s): "
+                             + (", ".join(forms) if forms else "none"))
         else:
             res["error"] = f"unknown probe type '{ptype}'"
         surfaces[sid] = res
@@ -917,16 +944,19 @@ def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
 def _fidelity_problem(res: dict) -> str | None:
     if "expected_rev" in res:
         expected, actual = res.get("expected_rev"), res.get("rev")
-        if expected is None:
-            return None  # no recorded deploy tag -> presence-only (evidence notes it)
-        if actual != expected:
-            return (f"rev {actual!r} != recorded deploy source_tag {expected!r} "
-                    f"(present != carried)")
-        if res.get("tag_exists_in_hub") is False:
-            return f"pinned rev {actual!r} is not a tag in the hub repo"
-        if res.get("tag_is_ancestor") is False:
-            return (f"pinned tag {actual!r} exists but is not an ancestor of hub HEAD "
-                    f"(tag-ancestry effect probe)")
+        if expected is not None:
+            if actual != expected:
+                return (f"rev {actual!r} != recorded deploy source_tag {expected!r} "
+                        f"(present != carried)")
+            if res.get("tag_exists_in_hub") is False:
+                return f"pinned rev {actual!r} is not a tag in the hub repo"
+            if res.get("tag_is_ancestor") is False:
+                return (f"pinned tag {actual!r} exists but is not an ancestor of hub "
+                        f"HEAD (tag-ancestry effect probe)")
+    if res.get("missing_hook_ids"):
+        return (f"hub block missing required hook id(s): "
+                f"{', '.join(res['missing_hook_ids'])} "
+                f"(carried-block fidelity = rev + hook ids, intake #12)")
     return None
 
 
