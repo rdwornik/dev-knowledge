@@ -18,9 +18,12 @@ the extension states ``advisory-rewarn | stale-declaration | refused | unavailab
 skipped-pre-deploy | tracked-ephemera``. Severity labels (info|warn|error) are REPORT
 labels only -- the intake #12 severity model rendered honestly; the PROCESS posture is
 WARN-only v1 (section 9b, ADR-85 hardening pattern): a completed run ALWAYS exits 0,
-is wired into no gate, and is deliberately NOT an ``audit.py`` ``ALL_CHECKS`` member
-(``cmd_ship_gate`` REDs on any undispositioned WARN, so battery-wiring would create a
-de-facto blocking gate; wiring is a later operator ruling). Exit 2 ONLY when the
+participates in NO gate verdict, and is deliberately NOT an ``audit.py`` ``ALL_CHECKS``
+member (``cmd_ship_gate`` REDs on any undispositioned WARN, so battery-wiring would
+create a de-facto blocking gate). As of the [#337] ruling it IS surfaced INFORMATIONALLY
+by ``cmd_ship_gate`` -- visible on every ship, but read by nothing in the verdict path;
+promotion to a blocking ``ALL_CHECKS`` check is tracked by [#337], gated on a TRUE
+zero-WARN steady state (waits for [#336] to land). Exit 2 ONLY when the
 manifest itself is unreadable / unparseable -- and then NO digest is written, so a
 broken contract can never render as a green "0 findings" (the never-silently-green
 rule, Codex FR-12).
