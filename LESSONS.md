@@ -3,11 +3,13 @@
 
 > **Format:** `### YYYY-MM-DD | source | lesson | category | [scope: X] | action taken`
 > New entries go at the top of the Entries section. Never edit old entries. Never delete.
-> Last updated: 2026-07-12
+> Last updated: 2026-07-16
 
 ---
 
 > Split trigger (when navigation by topic becomes painful) deferred 2026-04-24. Rationale: ADR-29 [scope: X] inline field provides equivalent filtering without losing chronology. Reopen if filtering by scope proves insufficient.
+
+### 2026-07-16 | tail micro-arc (LESSONS lifecycle ruling) | **`LESSONS.md` is append-only INVIOLABLE — the only legal way to shrink or reorganize it is a legacy-file split, never an in-place edit or deletion.** When the log grows past comfortable navigation (the standing 2026-04-24 split-trigger question), the sanctioned mechanism is to MOVE a contiguous older block wholesale into a dated legacy file (e.g. `LESSONS-legacy-<period>.md`) and leave `LESSONS.md` active with a pointer to it — the relocated entries stay byte-unchanged, never rewritten, condensed, or dropped (contrast the ADR-49/65 CLAUDE §12 condense, sanctioned ONLY for that file's own history section, NOT for LESSONS). Forward rule: to manage LESSONS size, split to a legacy file (relocate + pointer, byte-identical); the append-only-inviolable contract forbids editing or deleting any existing entry in place. | methodology | [scope: meta] | ruling recorded this arc; the build (split tooling + threshold) opened as BACKLOG [#339]
 
 ### 2026-07-12 | A0 seal arc (recall-vs-witnessed, session-wide) | **A contract binds to a live-disk procedure, never to an architect-supplied number or path.** Four pointer/premise errors surfaced across this one session — the Codex-review HIGH that `id: ruff` is "rejected in v0.15.5" (refuted by the witnessed `ruff (legacy alias)…Passed` run); the architect-supplied `2026-07-13` date on artifacts the machine clock stamped `2026-07-12`; the audit index Codex left stale under its one-file constraint; and intake #12's Tier-1 inverse rule contradicting the later §9a hub-`.methodology.yaml` ruling — and EVERY one was caught by a gate or a live-disk read (witnessed run · git clock · audit-index-freshness · a coherence read), not by trusting the supplied value. Forward rule: treat every architect/Codex-supplied number, path, rev-id, date, or "already done" as a HYPOTHESIS; bind the step to the live-disk procedure that authoritatively answers it and read THAT before building — the gates are the net, the discipline is verifying at the source first. | epistemic-discipline | [scope: meta] | ran each through its authoritative check this arc; extends the premise-verification family (2026-05-19 / 06-16 / 06-19 / 07-11)
 
