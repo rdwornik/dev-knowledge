@@ -1,0 +1,69 @@
+# Satellite onboarding-profile rulings — operator-ruled machine truth
+#
+# WHAT THIS IS: the canonical hub-side record of the operator's onboarding-PROFILE
+# ruling for each satellite consumer (full gate set vs floor-only). The satellite
+# onboarding census (census_ref below) proposed DRAFT profiles; this file records the
+# operator's BINDING rulings. The census framed the profile as "a rollout choice, not
+# repo metadata" (census line 21), so it had no machine home — this register is that
+# home.
+#
+# DECOUPLED FROM CHECKER INPUT: this file is NOT read by scripts/fleet_parity.py and
+# does NOT touch ecosystem/parity-surfaces.yaml (the #328 parity contract; its schema
+# remodel is #336's arc). It records the TARGET-PROFILE ruling — a decision — not
+# deployed state; a satellite enters the parity fleet map only when actually onboarded.
+#
+# POSTURE (v1): advisory/informational — the same posture as the #337 fleet_parity
+# ship-gate surfacing. The companion checker scripts/validate_onboarding_rulings.py is
+# READ-ONLY (Layer-2, ADR-28/36) and wired into NO blocking gate; a future ALL_CHECKS
+# promotion would be its own one-line arc.
+#
+# SCHEMA (per entry): profile (full | floor-only) · ruled_by · ruled_date (YYYY-MM-DD)
+# · census_ref · [gating] optional onboarding precondition · [override] optional block
+# {proposed, proposed_by, proposed_reason, ruled, ruled_by, ruled_reason} — REQUIRED
+# when the ruling overrides the census proposal, naming BOTH sides.
+
+version: 1
+
+rulings:
+  corp-ops:
+    profile: full
+    ruled_by: operator
+    ruled_date: "2026-07-16"
+    census_ref: docs/audits/2026-07-13-technical-satellite-onboarding-census.md
+
+  corp-sca-time-automation:
+    profile: full
+    ruled_by: operator
+    ruled_date: "2026-07-16"
+    census_ref: docs/audits/2026-07-13-technical-satellite-onboarding-census.md
+    gating: >-
+      Onboarding starts ONLY from an operator-approved clean main baseline —
+      after feature/tenrox-loader is dispositioned (census corp-sca proposal,
+      lines 50-52).
+
+  life-architect:
+    profile: full
+    ruled_by: operator
+    ruled_date: "2026-07-16"
+    census_ref: docs/audits/2026-07-13-technical-satellite-onboarding-census.md
+    override:
+      proposed: floor-only
+      proposed_by: census 2026-07-13 (gpt-5.6-sol), lines 54-56
+      proposed_reason: >-
+        docs-heavy repo (37 docs / 2 code files); ADR-04 deliberately keeps
+        governance light and defers the enforcement mesh — the census proposed
+        floor-only "without silently overruling a settled local ADR".
+      ruled: full
+      ruled_by: operator
+      ruled_reason: >-
+        Operator standing statement: life-architect takes the FULL gate set.
+        This deliberately OVERRIDES both the census floor-only proposal and
+        ADR-04's light-governance deferral; the onboarding arc must surface the
+        ADR-04 reconciliation (amend / supersede in life-architect) as a
+        plan-gate choice, never silently.
+
+  demo-prep:
+    profile: full
+    ruled_by: operator
+    ruled_date: "2026-07-16"
+    census_ref: docs/audits/2026-07-13-technical-satellite-onboarding-census.md
