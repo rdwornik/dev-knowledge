@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-16 — CC (Opus 4.8): codex-review doc-lane + §16 Codex model-string re-pin [#333]
+
+**Did:** LANE #333 (worktree `333-codex-doc-lane`, commit-and-STOP). **(1)** Global infra (Core-Invariant-#6 ruling, this-lane scope only; `.bak` provenance + pre/post sha in the commit): `~/.claude/bin/codex-review.ps1` gained a **doc-lane** — a pure-prose diff (no code files, ≥1 `.md`/`.rst`/`.txt`) now routes to a prose/structural profile pinned `-c model=gpt-5.6-terra` instead of exiting unreviewed; code lane byte-unchanged (no `-m` flag → still inherits config `sol`); `-FullAudit` stays code-only. Command doc updated alongside. **(2)** Hub: `protocols/PLAYBOOK.md` §16 re-pinned to the verified registry (terra-first `gpt-5.6-{terra,sol,luna}`, bare `gpt-5.6` prohibited, doc-lane first-class) — **`d56292a3`**; then a self-review pass (doc-lane on the lane's own diff, terra) surfaced 2 High + 2 Medium in my own text (skip-rule contradiction, terra over-claim, incomplete allowlist, routing imprecision) → fixed in **`516c15d0`**.
+
+**Result:** both closure witnesses green (doc diff → `doc-review`/terra produced a real review; code diff → `diff-review`/sol unchanged; live codex-cli 0.144.5, scratch out-dir = no tree leftovers); ruff clean; pytest **1555 passed / 8 skipped**; ship-gate **GREEN** (15 pre-existing WARN dispositioned, none introduced). Config-vs-doctrine `sol`-vs-`terra` drift + mixed-auth smell + `~/.claude` version-control follow-up handed to the primary for a hub ticket at integration (NOT filed from the worktree).
+
+**Changes:** `protocols/PLAYBOOK.md` §16 (2 commits); global `~/.claude/bin/codex-review.ps1` + `~/.claude/commands/codex-review.md` (traced in `d56292a3`, not hub-tracked); this note.
+
+**Abandoned:** none. Code-lane/config `sol` pin left untouched by ruling (deferred to the integration ticket).
+
+**Next:** operator merges `worktree-333-codex-doc-lane` `--no-ff` (2 commits) and files the drift/follow-up ticket per the STOP summary.
+
+---
+
 ### 2026-07-16 — CC (Opus 4.8): fleet_parity ARC-A hub leg — ignore-parity + leg-1 deferral ticket [#328] [#336]
 
 **Did:** ARC-A of the #328 fleet_parity FIX set (branch `chore/fleet-parity-arc-a`). Pre-work `fleet_parity --run-date 2026-07-16` = 8 warn-undeclared, matching the brief's 3 FIX categories (5 lines) + 3 ARC-B DECLARE rows (no delta). HUB LEG: **(1)** added `.hypothesis/` + `*.egg-info/` to `.gitignore` (**`3c384c1`**) — clears hub `ignore-hypothesis` + `ignore-egg-info` (IGNORE-tier effect probe → AT-PARITY, no declaration needed). **(2)** Filed **`[#336]`** (**`8679ffb`**) deferring leg-1: corp's dev-knowledge hub-block is pinned v1.3.1 (gate uplift `efe5bd1`: block-ff-push + backlog-id-on-close, the #318/#319 fixes) on a v1.2.0 corpus body (`0cab8be`; floor/scripts/plugin sha-verified unchanged) — `precommit-hub-block` is MUST/non-waivable so record-stamp / redeploy / pin-revert are each wrong (operator ruling 2026-07-16: defer; do NOT touch the record or pin this arc).
