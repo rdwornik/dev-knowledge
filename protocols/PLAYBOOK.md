@@ -1189,6 +1189,8 @@ case, e.g. a corp-monorepo handoff and an ai-council handoff at the same time). 
 - **(a) Zero-write** — read/analysis only: no commits, no `git add`/staging, no branch ops. Any number of zero-write sessions may share one checkout safely.
 - **(b) Each committing session in its OWN worktree.** **One checkout = one committing session.** A "single commit at the end" still counts as a committing session — there is no "I'll only commit once" exception. (Why: a no-worktree session's lone commit can land on a *concurrent* session's branch, sweep its staged file, and mis-root the branch — witnessed twice, LESSONS 2026-06-07 / 2026-06-05.)
 
+**Integration authority — operator authorizes, CC-primary executes (2026-07-16 ruling).** Merge execution is delegated to the CC-primary session: on the operator's explicit **GO** (one authorization per integration), CC performs the `--no-ff` merge to `main` **from the primary checkout**, verifies (that repo's suite + — for the hub — `ship-gate` green; any failure STOPS the chain and surfaces), then deletes the merged branch. The operator is the **authorization gate, not the executor**. Invariants unchanged: one merge to `main` at a time; integration only from the primary checkout; parallel/worktree sessions still **commit-and-STOP and never self-merge** — they hand their branch to the primary for the authorized merge.
+
 Shape (b) runs on **CC-native managed worktrees** (#107) — the low-friction path. The old *sibling*
 worktree naming (`<repo>-parallel` / `<repo>-wt-*`) is **superseded** by the in-repo native location
 below; sibling dirs spawned the `.dev-knowledge-*` rule-9 orphans (LESSONS 2026-06-02), so do not
