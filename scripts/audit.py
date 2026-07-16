@@ -2695,6 +2695,39 @@ def _match_disposition(finding: "Finding", dispositions: list[dict]) -> Optional
     return None
 
 
+_FLEET_PARITY_SCRIPT = os.path.join(_SCRIPTS_DIR, "fleet_parity.py")
+
+
+def _fleet_parity_surface(repo_root: str) -> list[str]:
+    """INFORMATIONAL fleet-parity surface for the ship-gate ([#337]) — visible on every
+    ship but NEVER a gate input. Runs the read-only #328 walk as a fail-open subprocess
+    (`--no-write --no-events`; a wall-clock run-date because this is a LIVE surface, not
+    a pure verdict) and returns the `[fleet-parity]` summary line(s) for the caller to
+    echo. The verdict logic never reads this.
+
+    Fail-open BY CONTRACT: any error / timeout / non-zero exit yields a single ASCII
+    note and NEVER raises, so the surface can neither block nor crash the gate.
+    fleet_parity is deliberately NOT an `ALL_CHECKS` member (it emits WARNs the gate
+    would RED on); promotion to a blocking `ALL_CHECKS` check is tracked by [#337],
+    gated on a TRUE zero-WARN steady state (waits for [#336] to land, never a date).
+    """
+    try:
+        proc = subprocess.run(
+            [sys.executable, _FLEET_PARITY_SCRIPT, "--run-date", date.today().isoformat(),
+             "--no-write", "--no-events"],
+            cwd=repo_root, capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=120)
+    except (OSError, subprocess.SubprocessError) as exc:  # spawn/timeout — fail-open
+        return [f"(fleet-parity surface unavailable, fail-open: {exc!r})"]
+    lines = [ln for ln in (proc.stdout or "").splitlines()
+             if ln.startswith("[fleet-parity]")]
+    if lines:
+        return lines
+    tail = (proc.stderr or proc.stdout or "no output").strip().splitlines()
+    note = f"; {tail[-1][:120]}" if tail else ""
+    return [f"(fleet-parity surface unavailable, fail-open: rc={proc.returncode}{note})"]
+
+
 @cli.command("ship-gate")
 def cmd_ship_gate() -> None:
     """Pre-ship verification-organ gate (#147): make "Definition of shipped" point (6)
@@ -2766,6 +2799,15 @@ def cmd_ship_gate() -> None:
     for d in stale:
         click.echo(f"  [stale] disposition {d.get('id')} matched no live WARN — "
                    f"review/remove (ADR-75 decoration rule)")
+
+    # INFORMATIONAL fleet-parity surface ([#337]) — visible every ship, NEVER a gate
+    # input. It is printed here for awareness only; nothing below reads it, so a
+    # fleet_parity WARN can neither block this gate nor flip the verdict. Promotion to
+    # a blocking ALL_CHECKS check is tracked by [#337] (gated on a zero-WARN steady
+    # state; waits for [#336] to land).
+    click.echo("fleet-parity ([#337]; informational — never blocks this gate):")
+    for line in _fleet_parity_surface(str(_REPO_ROOT)):
+        click.echo(f"  {line}")
 
     if fails or undispositioned:
         reasons = []
