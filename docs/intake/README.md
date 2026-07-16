@@ -45,7 +45,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#12](2026-07-11-tech-ownership-manifest.md) — Fleet Ownership Manifest (SETTLED) + Nightly Hygiene Decision Tree
 - [#13](2026-07-11-tech-plan-of-record-fleet-hygiene.md) — Plan-of-record — Fleet Hygiene System build (post 2026-07-11 session)
 - [#14](2026-07-12-siem-requirements-ruled-pack.md) — SIEM / fleet-observability requirements — RULED consolidation pack (#14)
-- [MISSING-ID](2026-07-16-satellite-onboarding-prompts.md) — Satellite onboarding prompts — ready to fire (four consumers)
+- [#15](2026-07-16-satellite-onboarding-prompts.md) — Satellite onboarding prompts — ready to fire (four consumers)
 <!-- INTAKE-INDEX:END -->
 
 ## 1. What this folder is
