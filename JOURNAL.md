@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-16 — CC (Opus 4.8): fleet_parity ARC-A hub leg — ignore-parity + leg-1 deferral ticket [#328] [#336]
+
+**Did:** ARC-A of the #328 fleet_parity FIX set (branch `chore/fleet-parity-arc-a`). Pre-work `fleet_parity --run-date 2026-07-16` = 8 warn-undeclared, matching the brief's 3 FIX categories (5 lines) + 3 ARC-B DECLARE rows (no delta). HUB LEG: **(1)** added `.hypothesis/` + `*.egg-info/` to `.gitignore` (**`3c384c1`**) — clears hub `ignore-hypothesis` + `ignore-egg-info` (IGNORE-tier effect probe → AT-PARITY, no declaration needed). **(2)** Filed **`[#336]`** (**`8679ffb`**) deferring leg-1: corp's dev-knowledge hub-block is pinned v1.3.1 (gate uplift `efe5bd1`: block-ff-push + backlog-id-on-close, the #318/#319 fixes) on a v1.2.0 corpus body (`0cab8be`; floor/scripts/plugin sha-verified unchanged) — `precommit-hub-block` is MUST/non-waivable so record-stamp / redeploy / pin-revert are each wrong (operator ruling 2026-07-16: defer; do NOT touch the record or pin this arc).
+
+**Result:** hub ship-gate **GREEN** (15 WARN dispositioned; #336 is under the 1200-char doc_rot threshold — adds no new WARN); ruff clean; targeted pytest **118/118** (validate_backlog / fleet_parity / validate_doc_rot / check_backlog_filing). `fleet_parity --run-date 2026-07-16` now **159 at-parity / 6 warn-undeclared** (was 157 / 8) — the hub's 2 ignore rows cleared, **zero new WARN**. Legs 2 (corp pytest-xdist) + 3b (ai `.hypothesis`) follow on their own repo branches (commit-and-STOP; operator merges).
+
+**Changes:** `.gitignore` (+2), `BACKLOG.md` (+`[#336]`), this note.
+
+**Abandoned:** leg-1 record/redeploy/pin reconciliation — deferred to `[#336]` (operator ruling; split-state has no clean minimal fix).
+
+**Next:** operator merges `chore/fleet-parity-arc-a` `--no-ff`; then ARC-A legs 2 (corp-monorepo) + 3b (ai-council) on their own branches.
+
+---
+
 ### 2026-07-13 — CC (Opus 4.8): hub a0-closed handoff — SUPPLEMENT v2 (post-consolidation) + residual reconcile
 
 **Did:** Branch `docs/handoff-answers-v2`. Replaced the hub `2026-07-13-dev-knowledge-architect-a0-closed` SUPPLEMENT ANSWERS with the browser architect's **v2** (post-consolidation; supersedes the pre-authored v1 — CC transcribes verbatim, author = browser architect). Reconciled the bundle to post-consolidation live state so the residual contradicts nothing: RESIDUAL §2 "in-flight/parked lanes (do NOT integrate)" → **"MERGED"** (worktree torn down; branches `main` + `automation/fleet-audit` only), §1 fleet_parity 8-WARN advisory, §4 morning tail (WARN triage → W3-16 window-now → satellite tiers [flagged life-architect contradiction] → W3-13), + HANDOFF_BOOT purpose/step-7/generated-at.
