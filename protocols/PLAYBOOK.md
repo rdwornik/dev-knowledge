@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-07-07
+> Last updated: 2026-07-16
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -3354,7 +3354,7 @@ Mermaid is the heaviest form (token cost + AI-edit-reliability drop above ~100 l
 <!-- scope: dev -->
 
 **When:** Feature branch touches 3+ files OR 2+ packages OR safety-critical paths (vault writes, OneDrive ops, cleanup/delete)
-**Skip when:** Single-file fix, test-only changes, documentation updates
+**Skip when:** Single-file fix, test-only changes. (Documentation/prose diffs are *not* skipped wholesale — they route to the `/codex-review` doc-lane; see "Code-vs-doc routing" below and [#333].)
 
 (Gated by change size and risk, above — not by any repo tier; the repo-tier system was deprecated 2026-05-23.)
 
@@ -3369,7 +3369,7 @@ Cloud-based multi-agent review. Run without arguments (current branch) or with a
 **Option B — Codex CLI (automated, single command):**
 `/codex-review <topic>` wraps `codex exec --output-last-message`. Produces dated, frontmatter-wrapped audit at `docs/audits/YYYY-MM-DD-codex-{topic}.md`. Read-only sandbox. Opt-in `-AutoCommit`. Requires ChatGPT Plus subscription. See `~/.claude/bin/codex-review.README.md`.
 
-**Code-only rule (per-change codex-review):** codex-review is for code review, not markdown/prose. The wrapper enforces a path-guard against an extension allowlist (`.py .ps1 .sh .ts .tsx .js .jsx .go .rs .rb .java .cs .cpp .c .h .sql .toml .yaml .yml .json .ini`). Mixed diffs are filtered to the code subset before invoking codex. Markdown-only or empty diffs exit cleanly without invoking codex. Mechanically enforced in `~/.claude/bin/codex-review.ps1`.
+**Code-vs-doc routing (per-change codex-review):** the wrapper routes by an extension path-guard against a code allowlist (`.py .ps1 .psm1 .sh .bash .ts .tsx .js .jsx .go .rs .rb .java .cs .cpp .cc .c .h .hpp .sql .toml .yaml .yml .json .ini` — the wrapper is authoritative; this list is illustrative) and a prose set (`.md .rst .txt`). A diff containing **any** code file uses the **code profile**; a diff with **no code files but ≥1 prose file** routes to the **doc-lane** prose/structural profile ([#333]) rather than exiting unreviewed (non-prose paths like images are ignored in the review, not a blocker). Mixed code+prose diffs filter to the code subset (code profile). Empty diffs — or diffs with neither code nor prose — exit cleanly without invoking codex. Mechanically enforced in `~/.claude/bin/codex-review.ps1`.
 
 Both satisfy S15 review requirement. Choose based on quality of findings after 2-week A/B test.
 
@@ -3380,10 +3380,10 @@ Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
 ### Codex-utilization doctrine (lanes + exact model strings)
 <!-- scope: dev -->
 
-- **Exact model strings only.** The Codex 5.6 lanes are `gpt-5.6-sol` / `gpt-5.6-terra` / `gpt-5.6-luna` — always the full string, **never a bare `gpt-5.6`** (an invalid identifier: a bare-string call fails as bad input, which is NOT evidence the capability is absent — LESSONS 2026-07-12 invalid-input-vs-absent-capability). Nicknames map exactly: **sol / terra / luna = `gpt-5.6-sol` / `-terra` / `-luna`**.
-- **terra is the default for code review** (`/codex-review`); choose sol or luna only when a lane's stated strength fits the task better, and say why.
-- **Doc-lane review runs via `codex exec` directly** — the `/codex-review` wrapper's code-only path-guard filters markdown out, so a doc/prose diff that needs a Codex second reader goes through `codex exec` **until [#333]** lands the first-class doc-lane review path.
-- **Every plan names its Codex lane.** A plan / architect prompt states which lane (sol/terra/luna) + surface (code via `/codex-review`, doc via `codex exec`) its review leg uses — an addressable planned decision, not an ad-hoc runtime pick (pairs with review-before-STOP, Ch12).
+- **Exact model strings only.** The Codex 5.6 lanes are `gpt-5.6-terra` / `gpt-5.6-sol` / `gpt-5.6-luna` — always the full string, **never a bare `gpt-5.6`** (an invalid identifier: a bare-string call fails as bad input — a 400 on ChatGPT auth — which is NOT evidence the capability is absent — LESSONS 2026-07-12 invalid-input-vs-absent-capability). Nicknames map exactly: **terra / sol / luna = `gpt-5.6-terra` / `-sol` / `-luna`**. Verified against the live codex-cli `/model` selector (registry snapshot in [#333]).
+- **terra is the doctrinal default review lane** — but mind the live drift: the doc-lane pins `gpt-5.6-terra` explicitly, while the **code lane currently inherits the codex config default (`gpt-5.6-sol` as of 2026-07-16)** because the wrapper passes no `-m` flag on that path. This config-vs-doctrine drift is tracked for reconciliation (see [#333] follow-up). Choose sol or luna deliberately only when a lane's stated strength fits the task better, and say why.
+- **Doc-lane review is first-class in `/codex-review`** ([#333]): a prose diff (no code files, ≥1 `.md`/`.rst`/`.txt`) routes to the wrapper's **doc-lane** — a prose/structural profile (disposition-faithfulness, cross-doc consistency, structural integrity, template usability) pinned to `gpt-5.6-terra`. The code-only path-guard still filters markdown out of the *code* profile; mixed diffs review as code. (Ad-hoc `codex exec` remains available for one-off reads outside a diff.)
+- **Every plan names its Codex lane.** A plan / architect prompt states which lane (terra/sol/luna) + surface (code or doc, both via `/codex-review`) its review leg uses — an addressable planned decision, not an ad-hoc runtime pick (pairs with review-before-STOP, Ch12).
 
 ---
 
