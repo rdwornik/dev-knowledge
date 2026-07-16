@@ -2717,7 +2717,7 @@ def _fleet_parity_surface(repo_root: str) -> list[str]:
              "--no-write", "--no-events"],
             cwd=repo_root, capture_output=True, text=True, encoding="utf-8",
             errors="replace", timeout=120)
-    except (OSError, subprocess.SubprocessError) as exc:  # spawn/timeout — fail-open
+    except Exception as exc:  # noqa: BLE001 — fail-open BY CONTRACT (never crash the gate)
         return [f"(fleet-parity surface unavailable, fail-open: {exc!r})"]
     lines = [ln for ln in (proc.stdout or "").splitlines()
              if ln.startswith("[fleet-parity]")]
