@@ -83,7 +83,14 @@ with a per-entry reason: field (the operator's "answers for everything,
 tracked" — recommended: fold it in). Satellite prompts (intake #15) ready,
 UNFIRED — operator fires per rollout order. #338/#339 scheduling; W3-13
 operator-present. BACKLOG grooming probe: operator wants every open item
-verified live / dead / awaiting-ruling at next boot.
+verified live / dead / awaiting-ruling at next boot. · **[CC addendum,
+2026-07-17 corrective micro-arc]** Codex dual-role mechanism design (#341,
+the R2 fork): producer-activation path undecided — a per-run codex
+profile/flag vs a sanctioned repo-local AGENTS.md override; decide from
+WITNESSED AGENTS.md-precedence evidence, never assumed. Producer guardrails
+are operator-sanctioned standing (isolated branch · bounded prompt · no-commit
+· CC verifies · terra pre-merge · Windows danger-full-access = operator-owned
+risk, never re-ask); the R5 interim fallback is live now.
 
 5. DECOMPOSITION RATIONALE — serialize around the manifest (both #336 and
 #316 touch parity-surfaces.yaml): (1) #336 schema remodel → clears the sole
@@ -110,3 +117,14 @@ sessions (operator reminded to reset after high-effort night runs).
 Operator hard rule (new, 2026-07-16): zero invented filesystem paths —
 every emitted path must come from a quoted governance source or be
 delegated to CC to derive from primary sources; hyphen-only naming.
+· **[CC addendum, 2026-07-17 corrective micro-arc]** ai-council 2026-07-17
+Codex role-governance feedback (R1–R5) received and reconciled this morning:
+**R1** (the global Codex config `~/.codex/AGENTS.md` + `config.toml` is
+HUB-OWNED, a core-invariant #6 surface) RATIFIED into PLAYBOOK §16; **R4**
+(the global config currently fixes Codex as read-only reviewer → the EPIC-H
+producer lane is NOT activatable as written today) reconciled; **R5** interim
+producer-lane fallback (Codex specifies under a bounded prompt → CC implements
+→ terra read-only review pre-merge, as executed ai-council #30) CODIFIED — all
+landed in PLAYBOOK §16 this morning; the R2+R3 producer *mechanism* is ticketed
+as #341 (distinct from #338's reviewer-path drift). Terra doc-lane review of
+the change surfaced 1 High (design-advisory boundary), resolved pre-merge.
