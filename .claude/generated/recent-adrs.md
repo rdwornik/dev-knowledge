@@ -10,4 +10,4 @@
 - ADR-99 (Accepted, 2026-07-07): Epic-naming convention — Track-X now, ADR-66 story-map fleet-wide at P6
 - ADR-100 (Accepted, 2026-07-07): Audit retention — keep-all-accepted + count-tiered index (folds and closes #212)
 - ADR-101 (Accepted, 2026-07-10): Hermetization — sanctioned top-level set, per-class name grammar, refusal gate (d.i/d.ii/d.iii)
-- ADR-102 (Proposed, 2026-07-17): Parity-surfaces enforcement-gate-rev axis — gate rev modeled separately from corpus source_tag
+- ADR-102 (Accepted, 2026-07-17): Parity-surfaces enforcement-gate-rev axis — gate rev modeled separately from corpus source_tag
