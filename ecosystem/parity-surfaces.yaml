@@ -8,7 +8,7 @@
 #
 # Version line below is nudge-parseable (validate_reconciliation._VERSION_LINE_RE,
 # IGNORECASE): bump it when surface semantics change.
-version: 1.1.0
+version: 1.2.0
 #
 # GRAMMAR
 #   fleet:      every ecosystem/deployed-versions.yaml registry key MUST appear here
@@ -60,6 +60,18 @@ version: 1.1.0
 #                                     manifest component (status: removed); the checker
 #                                     cross-checks and REFUSES on mismatch/ambiguity
 #                                     (FR-5; never an action proposal).
+#               ownership:         -- ADR-103: MANDATORY on EVERY row (loader refuses a
+#                                     missing/malformed block). A SINGLE per-row wrapper
+#                                     (ownership is hub-authoritative, not per-consumer --
+#                                     contrast repo-keyed gate_rev_ahead): {value, reason
+#                                     (MANDATORY non-blank), provenance (MANDATORY list of
+#                                     {kind, repo, ref})}. value is the CLOSED enum
+#                                     {methodology-generic | project | conditional}
+#                                     (reconciled from #316 + the 2026-07-16 census; ADR-102's
+#                                     bare "methodology" aside is non-normative). Shares the
+#                                     ADR-102 value/reason/provenance grammar VERBATIM via
+#                                     the one _declaration_bad predicate (no fork). #329
+#                                     renders a VIEW mapping FROM these tokens.
 #               gate_rev_ahead:    -- ADR-102: precommit_remote MUST rows only. repo-id ->
 #                                     {gate_tag, reason (MANDATORY), provenance (MANDATORY
 #                                     list of {kind, repo, ref})}. "declared" = a HUB
@@ -96,110 +108,213 @@ surfaces:
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: path_tracked, path: VISION.md}
+    ownership:
+      value: methodology-generic
+      reason: "VISION.md -- one of the 7 canonical living docs, the methodology corpus every fleet repo carries (MUST both); hub-authoritative, not repo-local content."
+      provenance: &own-prov
+        - {kind: backlog, repo: .dev-knowledge, ref: "#316"}
+        - {kind: adr, repo: .dev-knowledge, ref: ADR-103}
+        - {kind: audit, repo: .dev-knowledge, ref: docs/audits/2026-07-16-technical-fleet-structure-census.md}
   - id: canonical-doc-architecture
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: path_tracked, path: ARCHITECTURE.md}
+    ownership:
+      value: methodology-generic
+      reason: "ARCHITECTURE.md -- canonical living doc mandated MUST fleet-wide; methodology-owned structural map."
+      provenance: *own-prov
   - id: canonical-doc-claude
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: path_tracked, path: CLAUDE.md}
+    ownership:
+      value: methodology-generic
+      reason: "CLAUDE.md -- canonical session-contract doc mandated MUST fleet-wide; methodology-owned (Form-A owner markers, #312)."
+      provenance: *own-prov
   - id: canonical-doc-contributing
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: path_tracked, path: CONTRIBUTING.md}
+    ownership:
+      value: methodology-generic
+      reason: "CONTRIBUTING.md -- canonical living doc mandated MUST fleet-wide; methodology-owned commit/branch/gate contract."
+      provenance: *own-prov
   - id: canonical-doc-journal
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: path_tracked, path: JOURNAL.md}
+    ownership:
+      value: methodology-generic
+      reason: "JOURNAL.md -- canonical append-only session record mandated MUST fleet-wide; methodology-owned format (newest-first, SHA-anchored)."
+      provenance: *own-prov
   - id: canonical-doc-lessons
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: path_tracked, path: LESSONS.md}
+    ownership:
+      value: methodology-generic
+      reason: "LESSONS.md -- canonical append-only lessons record mandated MUST fleet-wide; methodology-owned institutional record."
+      provenance: *own-prov
   - id: canonical-doc-backlog
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: path_tracked, path: BACKLOG.md}
+    ownership:
+      value: methodology-generic
+      reason: "BACKLOG.md -- canonical living work-tracker mandated MUST fleet-wide; methodology-owned (story-map schema, ADR-66)."
+      provenance: *own-prov
 
   # ---- Tier-1: governance shape docs/{audits,decisions,intake,archive} ----------------
   - id: docs-genre-audits
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: dir_tracked, path: docs/audits}
+    ownership:
+      value: methodology-generic
+      reason: "docs/audits -- methodology-mandated governance genre (MUST both, ADR-101 sealed set); the evidence spine every fleet repo carries."
+      provenance: *own-prov
   - id: docs-genre-decisions
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: dir_tracked, path: docs/decisions}
+    ownership:
+      value: methodology-generic
+      reason: "docs/decisions -- methodology-mandated ADR genre (MUST both, ADR-101 sealed set); fleet-wide governance record."
+      provenance: *own-prov
   - id: docs-genre-intake
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: dir_tracked, path: docs/intake}
+    ownership:
+      value: methodology-generic
+      reason: "docs/intake -- methodology-mandated intake genre (MUST both, ADR-98/101); fleet-wide request-to-change-state pipeline."
+      provenance: *own-prov
   - id: docs-genre-archive
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: dir_tracked, path: docs/archive}
+    ownership:
+      value: methodology-generic
+      reason: "docs/archive -- methodology-mandated archive genre (MUST both, ADR-101 sealed set); fleet-wide retired-content home."
+      provenance: *own-prov
 
   # ---- Tier-1: root config files -------------------------------------------------------
   - id: root-gitignore
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: path_tracked, path: .gitignore}
+    ownership:
+      value: methodology-generic
+      reason: ".gitignore -- root config the methodology mandates present fleet-wide (MUST both); the presence mandate is methodology-owned though contents vary."
+      provenance: *own-prov
   - id: root-gitattributes
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: path_tracked, path: .gitattributes}
+    ownership:
+      value: methodology-generic
+      reason: ".gitattributes -- root config mandated present fleet-wide (MUST both); methodology-owned presence mandate (line-ending/encoding hygiene)."
+      provenance: *own-prov
   - id: root-pyproject
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: path_tracked, path: pyproject.toml}
+    ownership:
+      value: methodology-generic
+      reason: "pyproject.toml -- root config mandated present fleet-wide (MUST both); methodology-owned presence mandate (ruff floor, tooling)."
+      provenance: *own-prov
   - id: root-precommit-config
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: path_tracked, path: .pre-commit-config.yaml}
+    ownership:
+      value: methodology-generic
+      reason: ".pre-commit-config.yaml -- root config mandated present fleet-wide (MUST both); methodology-owned (carries the deployed hook corpus)."
+      provenance: *own-prov
   - id: root-code-workspace
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: glob_tracked, glob: "*.code-workspace"}
+    ownership:
+      value: methodology-generic
+      reason: "*.code-workspace -- root config mandated present fleet-wide (MUST both); methodology-owned presence mandate for the editor workspace."
+      provenance: *own-prov
 
   # ---- Tier-1: shape-only dirs (contents role-dependent) ------------------------------
   - id: shape-dir-tests
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: dir_exists, path: tests}
+    ownership:
+      value: methodology-generic
+      reason: "tests/ -- shape dir the methodology mandates present fleet-wide (MUST both); the shape mandate is methodology-owned though contents are role-dependent."
+      provenance: *own-prov
   - id: shape-dir-scripts
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: dir_exists, path: scripts}
+    ownership:
+      value: methodology-generic
+      reason: "scripts/ -- shape dir mandated present fleet-wide (MUST both); methodology-owned shape mandate (Layer-2: validators only here)."
+      provenance: *own-prov
   - id: shape-dir-logs
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: dir_exists, path: logs}
+    ownership:
+      value: methodology-generic
+      reason: "logs/ -- shape dir mandated present fleet-wide (MUST both); methodology-owned shape mandate for append-only records."
+      provenance: *own-prov
   - id: shape-dir-config
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: dir_exists, path: config}
+    ownership:
+      value: methodology-generic
+      reason: "config/ -- shape dir mandated present fleet-wide (MUST both); methodology-owned shape mandate though contents are role-dependent."
+      provenance: *own-prov
 
   # ---- Tier-1: .claude floor set (consumers; hub = origin, no replica) ----------------
   - id: claude-floor-file
     kind: path
     tier: {consumer: MUST}
     probe: {type: file_exists, path: .claude/CLAUDE-FLOOR.md}
+    ownership:
+      value: methodology-generic
+      reason: ".claude/CLAUDE-FLOOR.md -- the methodology floor (hash-guarded replica, ADR-78/93); the hub is origin, consumers carry it MUST. Pure methodology."
+      provenance: *own-prov
   - id: claude-floor-sidecar
     kind: path
     tier: {consumer: MUST}
     probe: {type: file_exists, path: .claude/CLAUDE-FLOOR.md.sha256}
+    ownership:
+      value: methodology-generic
+      reason: ".claude/CLAUDE-FLOOR.md.sha256 -- the floor's integrity sidecar (ADR-78/93); methodology-owned, consumer MUST."
+      provenance: *own-prov
   - id: claude-floor-import
     kind: doc-marker
     tier: {consumer: MUST}
     probe: {type: file_contains, path: CLAUDE.md, token: "@.claude/CLAUDE-FLOOR.md"}
+    ownership:
+      value: methodology-generic
+      reason: "The CLAUDE.md @-import of the floor -- methodology-owned wiring (consumer MUST); binds the hash-guarded floor into the consumer's session contract."
+      provenance: *own-prov
   - id: command-override
     kind: command
     tier: {hub: MUST, consumer: MUST}
     probe: {type: command_present, file: override.md}
+    ownership:
+      value: methodology-generic
+      reason: "/override -- a deployed methodology command (ADR-85 gate bypass, logged); MUST fleet-wide, methodology-owned."
+      provenance: *own-prov
   - id: claude-md-form-a-markers
     kind: doc-marker
     tier: {hub: MUST, consumer: MUST}
     probe: {type: file_contains, path: CLAUDE.md, token: "<!-- methodology:start"}
+    ownership:
+      value: methodology-generic
+      reason: "CLAUDE.md Form-A owner markers -- the methodology boundary machinery (#312); MUST fleet-wide, methodology-owned by construction."
+      provenance: *own-prov
     # intake #12 Tier-1: CLAUDE.md carries Form-A owner markers + the human-visible
     # boundary note (machine map = markers, #312). Presence probe only -- per-region
     # fidelity/diff is owned by the #312 boundary reporter (scripts/boundary_report.py),
@@ -210,19 +325,35 @@ surfaces:
     kind: settings-hook-block
     tier: {consumer: MUST}
     probe: {type: settings_hook, event: SessionStart, token: check_floor_hash}
+    ownership:
+      value: methodology-generic
+      reason: "SessionStart floor-hash guard hook block -- methodology-shipped enforcement organ (consumer MUST); methodology-owned."
+      provenance: *own-prov
   - id: settings-precommit-arm
     kind: settings-hook-block
     tier: {hub: MUST, consumer: MUST}
     probe: {type: settings_hook, event: SessionStart, token: pre_commit install}
     local_names: {.dev-knowledge: arm_hooks.py}
+    ownership:
+      value: methodology-generic
+      reason: "SessionStart pre-commit-arm hook block -- methodology-shipped self-arm organ (MUST both); methodology-owned (RF-2 hub self-arm)."
+      provenance: *own-prov
   - id: settings-stop-backpressure
     kind: settings-hook-block
     tier: {hub: MUST, consumer: MUST}
     probe: {type: settings_hook, event: Stop, token: session_end_backpressure}
+    ownership:
+      value: methodology-generic
+      reason: "Stop session-end-backpressure hook block -- methodology-shipped deterministic gate (MUST both, ADR-85); methodology-owned."
+      provenance: *own-prov
   - id: settings-plugin-tier1
     kind: settings-hook-block
     tier: {hub: MUST, consumer: MUST}
     probe: {type: plugin_enabled, token: tier1-lifecycle}
+    ownership:
+      value: methodology-generic
+      reason: "tier1-lifecycle plugin enablement -- the methodology-shipped Tier-1 closure loop (MUST both, ADR-70); methodology-owned."
+      provenance: *own-prov
 
   # settings.json LOCAL-owned hook blocks (W3-07 hook-block ownership, local half):
   # any hook command matching neither a MUST-block token above nor this owned map WARNs.
@@ -235,6 +366,10 @@ surfaces:
         .dev-knowledge: [fleet_health.py, surface_triage.ps1, billing_leak_sentinel.ps1,
                          changelog_sentinel.py, block_immutable_edits.py]
         corp-monorepo: [surface-conformance.ps1]
+    ownership:
+      value: methodology-generic
+      reason: "The local-hook-block ownership BOUNDARY (W3-07, MUST both) -- methodology-owned governance rule; it enumerates each repo's LOCAL hooks but the boundary mechanism itself is methodology. [borderline: the enumerated hooks are repo-local; sol/terra to confirm methodology-generic vs conditional.]"
+      provenance: *own-prov
 
   # hub pre-commit block fidelity: consumers pin rdwornik/dev-knowledge to the TAG their
   # deployed-versions record says was deployed (present != carried; effect probe =
@@ -269,47 +404,87 @@ surfaces:
           - {kind: git-tag, repo: .dev-knowledge, ref: v1.3.1}
           - {kind: git-commit, repo: corp-monorepo, ref: efe5bd1}
           - {kind: backlog, repo: .dev-knowledge, ref: "#336"}
+    ownership:
+      value: methodology-generic
+      reason: "The consumer hub-block pin -- the methodology enforcement gate every consumer carries MUST (rev + required hook ids); methodology-owned by construction."
+      provenance: *own-prov
 
   # ---- Tier-1: consumer-only MUSTs + inverse rules -------------------------------------
   - id: install-md
     kind: path
     tier: {consumer: MUST, hub: INVERSE}
     probe: {type: path_tracked, path: INSTALL.md}
+    ownership:
+      value: methodology-generic
+      reason: "INSTALL.md -- the methodology install doc consumers carry MUST (hub INVERSE: source has none); methodology-owned onboarding artifact."
+      provenance: *own-prov
   - id: methodology-yaml
     kind: path
     tier: {hub: MUST, consumer: MUST}
     probe: {type: path_tracked, path: .methodology.yaml}
+    ownership:
+      value: methodology-generic
+      reason: ".methodology.yaml -- THE methodology declaration file (MUST both); methodology-owned by definition."
+      provenance: *own-prov
   - id: docs-handoffs-dir
     kind: path
     tier: {hub: MUST, consumer: INVERSE}
     probe: {type: dir_tracked, path: docs/handoffs}
+    ownership:
+      value: methodology-generic
+      reason: "docs/handoffs -- the methodology handoff-process dir (hub MUST, consumer INVERSE); methodology-owned process artifact home."
+      provenance: *own-prov
   - id: src-dir
     kind: path
     tier: {hub: INVERSE, consumer: LOCAL}
     declared_by: intake-12
     probe: {type: dir_tracked, path: src}
+    ownership:
+      value: project
+      reason: "src/ -- repo-local product source (consumer LOCAL, hub INVERSE since Layer-2 has no product code); template-declared (intake-12). Owned by the repo's product, not the methodology."
+      provenance: *own-prov
 
   # ---- Tier-1: hub-additional MUSTs (source role, intake #12 section 9a list) ----------
   - id: hub-precommit-hooks-export
     kind: path
     tier: {hub: MUST}
     probe: {type: path_tracked, path: .pre-commit-hooks.yaml}
+    ownership:
+      value: methodology-generic
+      reason: ".pre-commit-hooks.yaml -- the hub's exported methodology hook definitions (hub MUST, source role); methodology-owned machinery."
+      provenance: *own-prov
   - id: hub-deploy-dir
     kind: path
     tier: {hub: MUST}
     probe: {type: dir_tracked, path: deploy}
+    ownership:
+      value: methodology-generic
+      reason: "deploy/ -- the hub's methodology deploy manifests + carriers (hub MUST, source role); the methodology distribution source, methodology-owned."
+      provenance: *own-prov
   - id: hub-ecosystem-dir
     kind: path
     tier: {hub: MUST}
     probe: {type: dir_tracked, path: ecosystem}
+    ownership:
+      value: methodology-generic
+      reason: "ecosystem/ -- the hub's fleet-state + parity contracts (hub MUST, source role); methodology-owned governance machinery."
+      provenance: *own-prov
   - id: hub-plugins-dir
     kind: path
     tier: {hub: MUST}
     probe: {type: dir_tracked, path: plugins}
+    ownership:
+      value: methodology-generic
+      reason: "plugins/ -- the hub's methodology plugin source (tier1-lifecycle marketplace; hub MUST, source role); methodology-owned."
+      provenance: *own-prov
   - id: hub-templates-dir
     kind: path
     tier: {hub: MUST}
     probe: {type: dir_tracked, path: templates}
+    ownership:
+      value: methodology-generic
+      reason: "templates/ -- the hub's methodology template corpus (hub MUST, source role); methodology-owned distribution source."
+      provenance: *own-prov
 
   # ---- Tier-2: role/size-conditional (SHOULD -> WARN) ----------------------------------
   - id: protocols-dir
@@ -318,10 +493,18 @@ surfaces:
     probe: {type: dir_tracked, path: protocols}
     # corp absence here is the EXPECTED #314 WARN ("becomes a Tier-2 WARN the day the
     # check ships" -- intake #12 deviations row 3).
+    ownership:
+      value: methodology-generic
+      reason: "protocols/ -- the methodology protocol set (ESSENTIALS/PLAYBOOK; SHOULD both); methodology-owned. SHOULD tier is a size-conditional PRESENCE nuance, not repo ownership."
+      provenance: *own-prov
   - id: tach-toml
     kind: path
     tier: {corp-monorepo: SHOULD}
     probe: {type: path_tracked, path: tach.toml}
+    ownership:
+      value: conditional
+      reason: "tach.toml -- corp's module-boundary tool config (corp SHOULD only); toolchain-derived, present only where that stack is used. Not a methodology mandate, not product content."
+      provenance: *own-prov
   - id: github-ci
     kind: path
     tier: {corp-monorepo: LOCAL}
@@ -332,6 +515,10 @@ surfaces:
     # .methodology.yaml already DECLARES github-ci-local, and a SHOULD-present reading
     # would decorate that sealed declaration stale. Declared-LOCAL is the
     # least-commitment form until the operator rules the scope question.
+    ownership:
+      value: conditional
+      reason: ".github CI dir -- repo infrastructure present-if-the-repo-runs-CI (corp LOCAL today); toolchain/infra, not product content nor a methodology mandate. [borderline: an OPEN fleet-generic-vs-local SCOPE ruling exists (intake-12); that is a tier question, not the ownership category -- sol/terra to confirm conditional vs project.]"
+      provenance: *own-prov
   - id: backlog-story-map-schema
     kind: doc-marker
     tier: {hub: MUST}
@@ -340,6 +527,10 @@ surfaces:
     # deliberately ABSENT from this tier map: their applicability is the OPEN #331
     # DECISION ticket ("consumers pending #331 ruling"; ADR-99: fleet-wide at P6) --
     # representing them here before that ruling would verdict an unruled question.
+    ownership:
+      value: methodology-generic
+      reason: "The BACKLOG story-map schema marker -- a methodology construct (ADR-66/99, hub MUST); methodology-owned. Consumer applicability is the #331 tier question, not an ownership question."
+      provenance: *own-prov
   - id: backlog-schema-gate
     kind: precommit-hook
     tier: {hub: MUST}
@@ -347,6 +538,10 @@ surfaces:
     # Register b2: the validate_backlog story-map gate is HUB-ONLY today and ships to
     # consumers WITH the schema at P6, never before it (the twin/child-conformance
     # hazard) -- same pending-#331 boundary as the schema row above.
+    ownership:
+      value: methodology-generic
+      reason: "The validate-backlog story-map gate (hub MUST today, ships at P6) -- methodology enforcement organ; methodology-owned. Hub-only-for-now is a distribution phase, not repo ownership."
+      provenance: *own-prov
   - id: ruff-config-home
     kind: path
     tier: {hub: LOCAL, consumer: LOCAL}
@@ -357,6 +552,10 @@ surfaces:
     # pyproject; ai also keeps assets/ruff-pre-commit.yaml as INSTALL reference).
     # Representation-only: the checker REPORTS each repo's form as evidence and never
     # verdicts a winner -- W3-14 (one form, rest declared) is an OPEN ruling.
+    ownership:
+      value: conditional
+      reason: "ruff config PLACEMENT/form (pyproject vs .ruff.toml vs ai form; LOCAL both, representation-only) -- toolchain-config form that varies by repo stack; the checker never verdicts a winner. Not a methodology mandate on the form, not product content."
+      provenance: *own-prov
 
   # ---- Tier-3: LOCAL surfaces the SETTLED template itself enumerates -------------------
   # (declared_by: intake-12 -- template membership is the declaration of record until the
@@ -366,21 +565,37 @@ surfaces:
     tier: {corp-monorepo: LOCAL}
     declared_by: intake-12
     probe: {type: dir_tracked, path: data}
+    ownership:
+      value: project
+      reason: "data/ -- corp's repo-local product data dir (corp LOCAL, template-declared intake-12); owned by the product/domain, never the methodology."
+      provenance: *own-prov
   - id: corp-local-eval
     kind: path
     tier: {corp-monorepo: LOCAL}
     declared_by: intake-12
     probe: {type: dir_tracked, path: eval}
+    ownership:
+      value: project
+      reason: "eval/ -- corp's repo-local product evaluation dir (corp LOCAL, template-declared intake-12); product-owned domain content."
+      provenance: *own-prov
   - id: corp-local-models
     kind: path
     tier: {corp-monorepo: LOCAL}
     declared_by: intake-12
     probe: {type: dir_tracked, path: models}
+    ownership:
+      value: project
+      reason: "models/ -- corp's repo-local product model dir (corp LOCAL, template-declared intake-12); product-owned domain content."
+      provenance: *own-prov
   - id: local-output-dir
     kind: path
     tier: {corp-monorepo: LOCAL, ai-council: LOCAL}
     declared_by: intake-12
     probe: {type: dir_tracked, path: output}
+    ownership:
+      value: project
+      reason: "output/ -- repo-local generated product output (corp + ai LOCAL, template-declared intake-12); product-owned artifacts, not methodology."
+      provenance: *own-prov
   - id: corp-docs-diagrams
     kind: path
     tier: {corp-monorepo: LOCAL}
@@ -388,21 +603,37 @@ surfaces:
     # NOTE (intake #12 Tier-3): interacts with the deferred-visualization ruling --
     # review at reopen. Absence after the corp 2026-07-12 delete arc is conforming.
     probe: {type: dir_tracked, path: docs/diagrams}
+    ownership:
+      value: project
+      reason: "docs/diagrams -- corp's repo-local product diagrams (corp LOCAL, template-declared intake-12); product-owned domain content."
+      provenance: *own-prov
   - id: ai-local-council-inbox
     kind: path
     tier: {ai-council: LOCAL}
     declared_by: intake-12
     probe: {type: dir_tracked, path: council_inbox}
+    ownership:
+      value: project
+      reason: "council_inbox/ -- ai-council's repo-local product inbox (ai LOCAL, template-declared intake-12); product-owned domain content."
+      provenance: *own-prov
   - id: ai-local-transcripts
     kind: path
     tier: {ai-council: LOCAL}
     declared_by: intake-12
     probe: {type: dir_tracked, path: transcripts}
+    ownership:
+      value: project
+      reason: "transcripts/ -- ai-council's repo-local product transcripts (ai LOCAL, template-declared intake-12); product-owned domain content."
+      provenance: *own-prov
   - id: ai-local-assets
     kind: path
     tier: {ai-council: LOCAL}
     declared_by: intake-12
     probe: {type: dir_tracked, path: assets}
+    ownership:
+      value: project
+      reason: "assets/ -- ai-council's repo-local product assets (ai LOCAL, template-declared intake-12); product-owned domain content."
+      provenance: *own-prov
 
   # ---- hub-LOCAL surfaces (NOT in the fleet template; the hub declares them in its OWN
   #      .methodology.yaml -- section 9a symmetry, no implicit exception) ---------------
@@ -413,27 +644,51 @@ surfaces:
     # Rule A concern: the ADR-101 top-level tree seal is HUB-LOCAL (consumers carry the
     # casing branch only -- see audit-casing-r4). Consumers' matching declarations are
     # inert-but-recorded on their side (their files say so verbatim).
+    ownership:
+      value: methodology-generic
+      reason: "The ADR-101 tree-seal enforcement (Rule A; hub LOCAL by construction) -- methodology enforcement organ; methodology-owned. Hub-local is a distribution fact, not repo ownership."
+      provenance: *own-prov
   - id: hub-hermetization-rule-b-grammar
     kind: precommit-hook
     tier: {hub: LOCAL}
     probe: {type: precommit_hook, hook_id: validate-hermetization}
     # Rule B concern: date-shape grammar + the CLOSED 11-class enum, HUB-LOCAL (d1).
+    ownership:
+      value: methodology-generic
+      reason: "The ADR-101 audit-grammar enforcement (Rule B; hub LOCAL by construction) -- methodology enforcement organ; methodology-owned. Hub-local is distribution, not repo ownership."
+      provenance: *own-prov
   - id: token-log
     kind: path
     tier: {hub: LOCAL}
     probe: {type: path_tracked, path: logs/TOKEN-LOG.md}
+    ownership:
+      value: methodology-generic
+      reason: "logs/TOKEN-LOG.md -- a methodology-defined append-only record format (hub LOCAL today); methodology owns the record concept. [borderline: hub-only presence; sol/terra to confirm methodology-generic vs conditional.]"
+      provenance: *own-prov
   - id: command-handoff
     kind: command
     tier: {hub: LOCAL}
     probe: {type: command_present, file: handoff.md}
+    ownership:
+      value: methodology-generic
+      reason: "/handoff -- a methodology command (HANDOFF_PROCESS v5, ADR-82; hub LOCAL today); methodology-owned. Hub-local is a distribution phase, not repo ownership."
+      provenance: *own-prov
   - id: command-save
     kind: command
     tier: {hub: LOCAL}
     probe: {type: command_present, file: save.md}
+    ownership:
+      value: methodology-generic
+      reason: "/save -- a methodology command (Conventional-Commits stage+commit; hub LOCAL today); methodology-owned."
+      provenance: *own-prov
   - id: command-changelog-review
     kind: command
     tier: {hub: LOCAL}
     probe: {type: command_present, file: changelog-review.md}
+    ownership:
+      value: methodology-generic
+      reason: "/changelog-review -- a methodology command (tool-changelog audit trio; hub LOCAL today); methodology-owned."
+      provenance: *own-prov
 
   # ---- d1 identity row: ONE canonical casing-gate id, three local names ---------------
   - id: audit-casing-r4
@@ -447,6 +702,10 @@ surfaces:
         scripts/validate_audit_casing.py, mirrored verbatim in corp
         .methodology.yaml audit-casing-r4) -- the single behavioral divergence the
         d1 three-way review found; declared, never byte-diffed.
+    ownership:
+      value: methodology-generic
+      reason: "The ADR-101 audit-casing gate (one canonical id, N local names; MUST both) -- methodology enforcement organ carried fleet-wide; methodology-owned."
+      provenance: *own-prov
 
   # ---- tombstone-join: the ruff prune (#244) as first-class deliberate-absence --------
   - id: ruff-gate
@@ -461,6 +720,10 @@ surfaces:
     # must declare it (both consumers do; the hub declares its own fleet-canonical
     # pinned gate -- chore/ruff-hub-pin 2026-07-12). Undeclared re-appearance =
     # tombstone-violated (S3, the resurrected-prune class). #334 rides as data only.
+    ownership:
+      value: methodology-generic
+      reason: "The ruff-gate deliberate-absence tombstone (deploy-manifest authority: component removed_in 1.2.0; TOMBSTONE both) -- the tombstone-join governance is methodology-owned. [borderline: it tracks a ruff toolchain gate; sol/terra to confirm methodology-generic vs conditional.]"
+      provenance: *own-prov
 
   # ---- W3-07: .claude subtree ownership (machine-readable; never copy local organs) ---
   - id: claude-subtree-ownership
@@ -473,6 +736,10 @@ surfaces:
         .dev-knowledge: [agents, generated, hooks, rules, skills, workflows]
         ai-council: [rules]
         corp-monorepo: [skills, workflows]
+    ownership:
+      value: methodology-generic
+      reason: "The .claude subtree-ownership map (W3-07, MUST both) -- methodology-owned governance mechanism; it enumerates each repo's owned subtrees but the ownership-map construct itself is methodology."
+      provenance: *own-prov
 
   # command roster closure: a command file with NO covering row WARNs (override is the
   # MUST row; handoff/save/changelog-review are hub-LOCAL rows above).
@@ -484,6 +751,10 @@ surfaces:
       expected_all: [override.md]
       expected_repo:
         .dev-knowledge: [handoff.md, save.md, changelog-review.md]
+    ownership:
+      value: methodology-generic
+      reason: "The command-roster closure (MUST both) -- methodology-owned governance construct asserting every command file has a covering row; methodology machinery."
+      provenance: *own-prov
 
   # ---- Tier-4: IGNORE parity (effect probes -- git check-ignore, the S4 class) --------
   # check = gitignore parity via the resolver, NEVER presence (intake #12 Tier-4) and
@@ -492,38 +763,70 @@ surfaces:
     kind: gitignore-effect
     tier: {hub: IGNORE, consumer: IGNORE}
     probe: {type: check_ignore, candidate: .venv/x}
+    ownership:
+      value: conditional
+      reason: ".venv ignore effect -- toolchain-derived (Python virtualenv); present-if-applicable, not a methodology mandate nor product content."
+      provenance: *own-prov
   - id: ignore-pycache
     kind: gitignore-effect
     tier: {hub: IGNORE, consumer: IGNORE}
     probe: {type: check_ignore, candidate: __pycache__/x.pyc}
+    ownership:
+      value: conditional
+      reason: "__pycache__ ignore effect -- toolchain-derived (CPython bytecode); present-if-applicable."
+      provenance: *own-prov
   - id: ignore-pytest-cache
     kind: gitignore-effect
     tier: {hub: IGNORE, consumer: IGNORE}
     probe: {type: check_ignore, candidate: .pytest_cache/x}
+    ownership:
+      value: conditional
+      reason: ".pytest_cache ignore effect -- toolchain-derived (pytest); present-if-applicable."
+      provenance: *own-prov
   - id: ignore-ruff-cache
     kind: gitignore-effect
     tier: {hub: IGNORE, consumer: IGNORE}
     probe: {type: check_ignore, candidate: .ruff_cache/x}
+    ownership:
+      value: conditional
+      reason: ".ruff_cache ignore effect -- toolchain-derived (ruff); present-if-applicable."
+      provenance: *own-prov
   - id: ignore-mypy-cache
     kind: gitignore-effect
     tier: {hub: IGNORE, consumer: IGNORE}
     probe: {type: check_ignore, candidate: .mypy_cache/x}
+    ownership:
+      value: conditional
+      reason: ".mypy_cache ignore effect -- toolchain-derived (mypy); present-if-applicable."
+      provenance: *own-prov
   - id: ignore-hypothesis
     kind: gitignore-effect
     tier: {hub: IGNORE, consumer: IGNORE}
     probe: {type: check_ignore, candidate: .hypothesis/x}
     # Register e2: FIX-NOW (hub + ai-council lack the line today) -- expected WARNs
     # until that cheap fix lands; the checker existing is what keeps e2 visible.
+    ownership:
+      value: conditional
+      reason: ".hypothesis ignore effect -- toolchain-derived (hypothesis test lib); present-if-applicable."
+      provenance: *own-prov
   - id: ignore-egg-info
     kind: gitignore-effect
     tier: {hub: IGNORE, consumer: IGNORE}
     probe: {type: check_ignore, candidate: probe.egg-info/x}
+    ownership:
+      value: conditional
+      reason: ".egg-info ignore effect -- toolchain-derived (setuptools packaging); present-if-applicable."
+      provenance: *own-prov
   - id: ignore-node-modules
     kind: gitignore-effect
     tier: {hub: IGNORE}
     probe: {type: check_ignore, candidate: node_modules/x}
     # hub-only tooling (register e5 AT-PARITY): consumers carry no node scaffold, so
     # the row does not apply to them.
+    ownership:
+      value: conditional
+      reason: "node_modules ignore effect -- toolchain-derived (node tooling; hub-only scaffold, consumers carry none); present-if-applicable, not methodology nor product."
+      provenance: *own-prov
   - id: ai-env-ignored
     kind: gitignore-effect
     tier: {ai-council: IGNORE}
@@ -531,6 +834,10 @@ surfaces:
     # intake #12 Tier-3 lists ai-council's .env (gitignored CWD-fallback, verified);
     # the checkable settled property is the ignore EFFECT -- an untracked file is
     # sweep-invisible by design, so this row is where .env is represented.
+    ownership:
+      value: conditional
+      reason: ".env ignore effect -- ai-council's repo-local env/config file (ai IGNORE); present-if-applicable runtime config, not a methodology mandate. [borderline: repo-local env; sol/terra to confirm conditional vs project.]"
+      provenance: *own-prov
 
 # Known convergence candidates deliberately carrying NO verdict-bearing row in v1
 # (OPEN rulings -- a verdicting row would manufacture WARNs on questions the operator

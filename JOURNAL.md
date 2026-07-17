@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-17 — CC (Opus 4.8, 1M): ARC 3 — #316 ownership + REASON axis (parity-surfaces enrichment, ADR-103)
+
+**Did:** Gave every governed parity surface its WHY (#316 "answers for everything, tracked"). Added a per-entry `ownership` axis to `ecosystem/parity-surfaces.yaml` adopting the ADR-102 `value/reason/provenance` declaration grammar **verbatim** (shared grammar, separate axes). Landed **ADR-103 Accepted in-arc** (architect ratification ruling; skips the Proposed interim). Extracted the shared `_declaration_bad` predicate so gate_rev_ahead (ADR-102) + ownership (ADR-103) can't fork. Classified **all 73 surface rows** {methodology-generic:52 · project:9 · conditional:12} with a per-row reason + provenance; taught the loader to **refuse** a missing/malformed ownership block (mandatory on every row) and added an ownership tally to the `[fleet-parity]` summary/digest (the #329 management surface). **Architect corrections folded:** #337 is OPEN (blocking-promotion sequenced AFTER this arc); this arc stays **WARN-only** per ADR-102 §Consequences. 5 borderline rows (settings-local-blocks/github-ci/token-log/ruff-gate/ai-env-ignored) flagged inline for the sol/terra table review — none locked yet.
+
+**Result:** fleet_parity runs clean — 0 refused, 0 warn-undeclared, zero-WARN state preserved; `[fleet-parity] ownership: 52 methodology-generic, 9 project, 12 conditional`. Full `test_fleet_parity` 51 pass (+6 new: positive / mandatory-missing / malformed-table / no-fork shared-grammar / tally / live-manifest-zero-refusal); events 8 pass. doc-counts 1585→1591. All pre-commit gates green each commit.
+
+**Changes:** `docs/decisions/ADR-103-parity-ownership-axis.md` (new) + `README.md` index row; `scripts/fleet_parity.py` (`_declaration_bad`, `_OWNERSHIP_VALUES`, mandatory loader block, `ownership_tally`/`ownership_line`, digest); `ecosystem/parity-surfaces.yaml` (73 ownership blocks, v1.1.0→1.2.0, header); `tests/test_fleet_parity.py` (fixtures + 6 tests); `ecosystem/doc-counts.md`; `.claude/generated/recent-adrs.md`; `BACKLOG.md` (#316 removed). Branch `feat/316-ownership-axis`: `65150440` (ADR-103) → `08a2b511` (refactor) → `e868c51b` (classify) → `f72b2df5` (loader+tests) → `7afaa719` (counts) → this close commit; `--no-ff` merge to follow.
+
+**Abandoned:** none. Held anti-patterns: no #306 refusal gate, no #329 viz, no #337 promotion — this arc defines the data only.
+
+**Next:** sol reviews the 73-row classification table (esp. the 5 borderline rows); terra `/codex-review` pre-merge; then `--no-ff` merge `[#316]`. Downstream: #337 promotes fleet_parity to a blocking `ALL_CHECKS` member on top of this enriched schema; #329 renders the ownership tally.
+
+---
+
 ### 2026-07-17 — CC (Opus 4.8, 1M): ratified ADR-102 Proposed → Accepted (ADR-94 in-place)
 
 **Did:** Ratified ADR-102 (parity enforcement-gate-rev axis) now the Council/architect leg cleared. Edited the ADR `**Status:**` line in place Proposed → Accepted (ADR-94 status-line-only exception) and dropped the `**Proposed** — ` prefix from its `docs/decisions/README.md` `## ADR Index` row; regenerated `.claude/generated/recent-adrs.md` (the generator reads the ADR Status line, so it flipped to `(Accepted, …)`).
