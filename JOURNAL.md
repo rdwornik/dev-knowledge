@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-17 — CC (Opus 4.8, 1M): architect handoff FINALIZED — SUPPLEMENT filled + P10 BACKLOG-grooming probe added to the v5 probe-core
+
+**Did:** Operator filled the `2026-07-17-dev-knowledge-architect` `SUPPLEMENT.md` directly on disk (browser architect's answers, **verbatim** — CC transcribes, never fabricates; author line = browser architect). Finalized per HANDOFF_PROCESS §13: **(1)** added a durable **P10 BACKLOG-grooming probe** to the v5 probe-core (`templates/handoff/v5/PROBES.md.tmpl` + `HANDOFF_BOOT.md.tmpl` step-7 `P2–P10`; dogfood count 10→11 in `test_gen_handoff.py`) — the successor grooms the **whole open BACKLOG** at boot (live / dead / awaiting-ruling per open `#id`), answer-free + resolve-only (binds `BACKLOG.md` + `scripts/validate_backlog.py` + live git); operator ruling 2026-07-17 — `1b8db014`. **(2)** Re-rendered the bundle: cold→FILLED framing flip, P10 into PROBES, ANSWERS folded into `PASTE_THIS.md` — `fca8c167`. FILL-IN residual/purpose preserved byte-for-byte; the filled SUPPLEMENT never clobbered.
+
+**Result:** `verify_handoff_probes` **11/11 pass** (P10 binds live); full pytest **1570 passed / 3 skipped**; ship-gate **GREEN** (14 WARN dispositioned, no `[stale]`); ruff clean.
+
+**Changes:** `templates/handoff/v5/{PROBES,HANDOFF_BOOT}.md.tmpl`, `tests/test_gen_handoff.py`, `docs/handoffs/2026-07-17-dev-knowledge-architect/{HANDOFF_BOOT,RESIDUAL,PROBES,SUPPLEMENT,PASTE_THIS}.md`; this note. Commits `1b8db014` + `fca8c167` (+ the `--no-ff` merge).
+
+**Abandoned:** none.
+
+**Next:** operator pastes the printed `PASTE_THIS.md` into a fresh browser chat (architect boot; chat title `[dev-knowledge] Technical Architect — … · SEQ 1`). Folded SUPPLEMENT decomposition (browser architect): serialize `#336` schema remodel → `#337` promotion → `#316` ownership+REASON axis → `#306` tree-seal → `#324` nightly runtime LAST; P4 rulings (.vscode e1, ai `.claude/skills`) slot anywhere.
+
+---
+
 ### 2026-07-17 — CC (Opus 4.8, 1M): architect handoff bundle generated — fleet-governance maturation frontier
 
 **Did:** `/handoff architect dev knowledge`. Read the canonical `HANDOFF_PROCESS.md` (v5.7) + the generator, gathered live state (JOURNAL/BACKLOG/ship-gate), branched `docs/handoff-2026-07-17-architect`, and ran `scripts/gen_handoff.py --mode architect` → the `2026-07-17-dev-knowledge-architect` v5 bundle. **Cold handoff** — SUPPLEMENT generated empty (this `/clear`ed CC session has no outgoing architect chat to interview; the defined cold-handoff disposition, §13(d) beat fires FULL next session). Authored the four CC-owned FILL-IN regions (repo-derived, answer-free by construction — no verdict/count/sha baked in): HANDOFF_BOOT **purpose** + RESIDUAL **§1 drift-flags** (by-reference: all standing WARNs pre-dispositioned, none new), **§2 shipped-map** (2026-07-16 close-out pointers), **§4 next-frontier** (the payload: the consumer/satellite onboarding wave as the shared DEFER-peg blocker; `#336` fleet_parity split-state modeling; `#339` LESSONS↔ADR-29 reconciliation; `#338` codex-review global-infra/core-invariant-#6; standing `#162` vocab collision). Re-assembled PASTE_THIS after fill.
