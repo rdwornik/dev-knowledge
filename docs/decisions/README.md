@@ -13,7 +13,7 @@ subfolder holds AI Council debate outputs that informed them.
 |-----|------|-------|
 | ADR-27 | 2026-04-21 | Scope tagging — single-repo `dev\|llm\|hybrid\|runtime\|meta` vocabulary, hybrid ≤25% ceiling, pre-commit enforcement |
 | ADR-28 | 2026-04-21 | Three-layer architecture — browser chat → .dev-knowledge → projects; descriptive ADR documenting existing practice |
-| ADR-29 | 2026-04-21 | LESSONS.md grandfathering — existing entries untouched; new entries include inline `[scope: X]` tag |
+| ADR-29 | 2026-04-21 | LESSONS.md grandfathering — existing entries untouched; new entries include inline `[scope: X]` tag; **amended 2026-07-17 — chronological legacy-archival split sanctioned** (`LESSONS-legacy-<span>.md`; distinct from the still-rejected by-scope split) |
 | ADR-30 | 2026-04-26 | Default git branch `main` — universal rule for all Rob's repos |
 | ADR-31 | 2026-04-27 | Authority model — prescriptive with conformance audit (Option 1B); .dev-knowledge prescriptions are binding |
 | ADR-32 | 2026-04-27 | Handoff format and browser/agent role split — folder-format handoffs, strict role boundary |

@@ -399,3 +399,18 @@ as final step. Prompt template enforcement is the practical boundary.
 - ADR-36 (audit tool — enforcement consumer)
 - ADR-37 (session boundary protocol — JOURNAL update timing)
 - ADR-38 (universal repo architecture — mandatory files context)
+
+## Amendment — 2026-07-17 (LESSONS-legacy-<span>.md file class registered; [#339] / ADR-29 amend.)
+
+> **In-file amendment (append-only; ADR-94 / ADR-88-89 appended-marker pattern).** ADR-29's 2026-07-17 amendment sanctions a chronological legacy-archival split of `LESSONS.md`, creating a new file class. ADR-39 mandates all six lifecycle elements *before* a file is created; this registers them. The legacy file itself is **NOT** created here — that is [#339]'s build leg, blocked until this entry exists. The existing `LESSONS.md` registry row is unchanged (entries are still never edited/deleted; the archival relocation is a size-management move); its Grooming cell's long-standing *"Quarterly archive option per ADR-29"* is the option this amendment gives a concrete mechanism + trigger.
+
+#### LESSONS-legacy-<span>.md
+
+| Element | Value |
+|---|---|
+| Purpose | Frozen, read-only dated archive of an older contiguous `LESSONS.md` block, moved **byte-identical** (chronological archival; ADR-29 amend. 2026-07-17). Size-management, not content change. |
+| Update trigger | Read-only / frozen after the one archival write. Append-only in the *logical-log* sense (the active `LESSONS.md` + its legacy files tile the timeline). |
+| Owner | Claude Code (via the [#339] split-execution build) + Rob |
+| Grooming | None (frozen). |
+| Boundaries | Derived-from-`LESSONS.md`, byte-identical; the active `LESSONS.md` pointer line is canonical for the boundary. One logical chronological log across active + legacy files — no gap, no overlap, strict date order. |
+| Enforcement | The [#339] A2 read-only byte-identity helper (diff each archived block against the **pre-split git blob**) + the split-execution test. |

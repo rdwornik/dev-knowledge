@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-13
+last_reviewed: 2026-07-17
 reconciled_with: handoff-process@5.7
 status: active
 owner: Rob
@@ -105,7 +105,10 @@ resource** the whole system economizes — every protocol that compresses contex
 3. **Prescriptive authority.** PLAYBOOK + ADRs bind child repos; children may not
    locally override them (ADR-31; see Authority below).
 4. **Append-only files are never edited** — `LESSONS.md`, `logs/TOKEN-LOG.md`
-   accept only appends (ADR-29, ADR-39).
+   accept only appends (ADR-29, ADR-39). *LESSONS.md-only exception (ADR-29 amend.
+   2026-07-17):* a contiguous older block MAY relocate **byte-identical** into a dated
+   `LESSONS-legacy-<span>.md` (chronological archival; edits/deletes still forbidden;
+   `logs/TOKEN-LOG.md` stays strict).
 5. **Dated artifacts are immutable** — ADRs, transcripts, handoffs, audits are
    superseded by a new file or in-file marker, never edited in place (Ch5).
 
@@ -524,7 +527,7 @@ and the zones where edits are blocked outright.
 
 | Class | Files | Rule |
 |---|---|---|
-| Append-only | `LESSONS.md`, `logs/TOKEN-LOG.md` | only append; never edit old entries |
+| Append-only | `LESSONS.md`, `logs/TOKEN-LOG.md` | only append; never edit old entries (LESSONS.md may relocate an older block byte-identical to `LESSONS-legacy-<span>.md` — ADR-29 amend. 2026-07-17; TOKEN-LOG strict) |
 | Append-only (newest-first) | `JOURNAL.md` | prepend at session/day close |
 | Immutable | ADRs, transcripts, handoffs, audits, research | supersede via new file / in-file marker; never edit in place |
 | Living | `VISION`, `ARCHITECTURE`, `CLAUDE.md`, `PLAYBOOK`, `ESSENTIALS`, `BACKLOG` | update in place when reality shifts |
