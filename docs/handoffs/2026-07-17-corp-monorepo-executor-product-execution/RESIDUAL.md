@@ -25,7 +25,7 @@ Drift-flags are re-derived by the consumer's own live checks — **re-derive at 
 ## §2 — Pending / shipped this window (pointer, not re-narration)
 
 **PENDING — the executor's first three moves (charter §4; do NOT re-plan here, submit each to the senior architect first):**
-- **Arc-B execution** — the five signed batches (BACKLOG `#19–#23`). The execution prompt is in the operator's Downloads (`2026-07-17_PROMPT_arc-b-execution.md`), named in charter §4: one revertable commit per batch; Batch 2 repoints `search_facts`→notes_fts then `corp index rebuild`; Batch 3 witnesses the dead-lane boundary before cutting; Batch 4 fires only on the recorded zero-use word.
+- **Arc-B execution** — the five signed batches (BACKLOG `#19–#23`). The execution prompt is `PROMPT_arc-b-execution.md` in this bundle directory (charter §4 Addendum A resolves to it): one revertable commit per batch; Batch 2 repoints `search_facts`→notes_fts then `corp index rebuild`; Batch 3 witnesses the dead-lane boundary before cutting; Batch 4 fires only on the recorded zero-use word.
 - **Arc-C wave 1** — the canonical-home unifications not gated on the config capstone: LLM-JSON→`schema.utils` (#27), frontmatter→`vault_io` (#26), the models+pricing registry BUILT from the live per-provider dicts (#25).
 - **E3 / E5** in disjoint worktrees where parallelizable.
 
