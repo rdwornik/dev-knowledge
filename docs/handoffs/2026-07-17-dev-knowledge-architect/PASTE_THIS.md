@@ -11,7 +11,7 @@
 | **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->Plan the next way-of-working frontier after the 2026-07-16 CC-primary multi-arc close-out landed clean (ship-gate GREEN, `main` + `automation/fleet-audit` only). The open threads cluster around **fleet-governance maturation** — the fleet_parity checker exists but is only informational, and its promotion to a blocking gate is deferred behind an unresolved corp split-state — plus two lifecycle-doctrine decisions (a LESSONS chronological-archival split needing an ADR-29 reconciliation, and a codex-review global-infra consolidation). Orient (P1), take the operator-context beat (§13d, FULL — cold supplement), then **navigate from `BACKLOG.md`** — the load-bearing themes are E2/S8 (enforcement-transfer mesh: #336→#337), E3/S9 (#339), E6/S15–S16 (satellite onboarding fan-out), E7 (#338).<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/handoff-2026-07-17-architect`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -274,7 +274,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -366,7 +366,7 @@ the whole task-state.
 > branch is checked out so CC knows which live value to compare — **re-derive HEAD / tree / branch /
 > ahead-behind live (P3); do not trust this line.**
 >
-> > **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> > **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 >
 > **Windows note:** `audit.py checks` (P2) can crash mid-listing on a bare cp1252 PowerShell console
 > (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` (or `PYTHONIOENCODING=utf-8`); this
@@ -390,7 +390,7 @@ navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d):** the browser
 asks the operator for **off-repo** context.
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -404,18 +404,102 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
 | P7 | Does `audit.py ship-gate` come back **GREEN or RED** right now, **how many WARNs are dispositioned**, and **is there a `[stale]` disposition**? | live git ∩ `main` history ∩ `ecosystem/disposition-register.yaml` | **THIS is the §1 headline** — the GREEN/RED verdict, the dispositioned-WARN count, and any `[stale]` line are computed at answer-time over live git ∩ `main`; a new direct-on-`main` commit re-REDs it; the values are absent from the bundle | `python scripts/audit.py ship-gate` (read the final GREEN/RED verdict + the disposition count + any `[stale]` line) — re-derive; do **not** trust the residual's prose |
 | P8 | How many files does a **v5 architect bundle** carry, does it include a **per-bundle `README.md`**, is `SUPPLEMENT.md` present, **is its ANSWERS region empty or filled**, and where does the stable operator boilerplate live instead? | `docs/handoffs/2026-07-17-dev-knowledge-architect/` listing ∩ `HANDOFF_PROCESS.md` §13 | a summary may "remember" a stale file count or the wrong supplement fill-state; the live bundle + spec are the only ground truth | `ls docs/handoffs/2026-07-17-dev-knowledge-architect/` ∩ `grep -A3 'PASTE CHAT ANSWERS' docs/handoffs/2026-07-17-dev-knowledge-architect/SUPPLEMENT.md` (is there substantive text below the divider?) |
 | P9 | How many **serialize-groups** does `validate_backlog` summarize **right now**, which `#id`(s) are in the **code-edge** group, and which `#id`s are in the **coherence** group? | `BACKLOG.md` ∩ `scripts/validate_backlog.py` | group membership is a live schema fact that drifts on any BACKLOG edit; it is absent from this bundle | `python scripts/validate_backlog.py` (the serialize-groups summary line) |
+| P10 | **BACKLOG grooming (operator ruling 2026-07-17).** For **every OPEN item** in `BACKLOG.md`, is each still **live** (actively in-progress), **dead** (superseded / obsoleted / already-shipped — a grooming close per ADR-65), or **awaiting-ruling** (blocked on an operator / Council decision)? The successor grooms the **whole open set** at boot — no open `#id` may pass unreconciled. | `BACKLOG.md` ∩ `scripts/validate_backlog.py` ∩ live git | the live / dead / awaiting-ruling status of each open item is an at-boot judgment over current git ∩ `BACKLOG.md`; a summary holds a stale snapshot and cannot tell a still-live item from one the fleet already shipped or superseded | `python scripts/validate_backlog.py` (schema + serialize-groups) then `git log --first-parent --oneline main` to cross-check each open `#id` against its closing merge |
 
 ## Gate procedure (CC)
 
 1. **P1 first** — the architect cannot begin design until both orienting lines are read live and
-   substring-matched. **Then run the operator-context beat (§13d).** Then run P2–P9, each against
+   substring-matched. **Then run the operator-context beat (§13d).** Then run P2–P10, each against
    **live state now**.
 2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing /
    command errored / receiver tried to answer from memory or this bundle).
 3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary
    source → CC re-derives the fact → abort if still unmet).
-4. Probes P2–P9 are *designed to move* between generation and check-time — that is the point. **Answer
+4. Probes P2–P10 are *designed to move* between generation and check-time — that is the point. **Answer
    values are deliberately absent (§5)**: the pass criterion is **"answered from the live source,"**
    never "matches a remembered number." P7 is the headline (GREEN/RED + dispositioned-WARN count +
-   any `[stale]` line). P8 pins the bundle shape **and the live supplement fill-state**. First check
+   any `[stale]` line). P8 pins the bundle shape **and the live supplement fill-state**. P10 grooms the
+   whole open BACKLOG at boot (live / dead / awaiting-ruling per open `#id`). First check
    which branch is live (P3), then re-derive every load-bearing fact from the live primary source.
+
+---
+
+=== SUPPLEMENT.md ===
+
+ANSWERS — outgoing browser architect (authored by the browser architect;
+CC transcribes verbatim). 2026-07-17.
+
+1. STRATEGIC INTENT — Move fleet structural governance from SEEN to
+EXPLAINED → ENFORCED → UNATTENDED → REPLICABLE, working ON the census
+document of record (docs/audits/2026-07-16-technical-fleet-structure-
+census.md), never around it. Operator doctrine, binding: a PASS verdict
+without a recorded WHY is not governance — every root-level divergence
+(.claude layout, .github, assets, config, каждая) must carry a machine-
+readable reason; the consolidated model must then deploy automatically onto
+a new repo (correct-by-default scaffold), run unattended nightly, and only
+then be optimized. Each repo stays hermetized in its own way of working —
+uniformity is never the goal; explained, declared, enforced divergence is.
+
+2. TENSIONS WEIGHED — (a) uniformity vs product-local hermetization: held
+DECLARED-WITH-REASON; census category (b) is nearly empty — the discipline
+is current. (b) teeth-now vs teeth-after-zero: promotion (#337) stays
+pegged on #336, never a date. (c) #336 split-state: mechanism over stamp —
+record-stamp rejected as over-claim; schema remodel is the path.
+(d) verdict-labels vs operator's WHY-ask: verdicts alone ruled
+insufficient; the ownership+reason axis (#316) is elevated to the cycle's
+centerpiece. (e) canonical-doc content: stays repo-authored except floor +
+Form-A regions (#312); the boundary formalization is #316's file-set grain.
+(f) tool caches: on-disk presence is runtime noise (local test runs);
+the governed surface is gitignore effect — AT-PARITY fleet-wide; do not
+re-open as structural drift.
+
+3. CONSIDERED + REJECTED — record-stamp / full-redeploy / pin-revert for
+#336 (over-claims corpus / re-appends the #276-removed hook / discards
+#318-#319 uplift) → ticketed remodel instead. Verbatim hub Rule-A carry to
+consumers (would brick dev under src/, data/, council_inbox/) → per-repo
+sanctioned set DERIVED from the manifest (P2 shape). Ultracode auto-
+orchestration for night batches → self-orchestrated Task fan-out per our
+own doctrine (explicit shape, haiku walkers / sonnet probes / opus
+orchestrator). A dedicated .vscode policy row before the e1 ruling →
+generic root-sweep + declared LOCAL with forcing shelf-life. Any greenfield
+mechanism → barred; every arc maps to a filed ticket (#306/#316/#324/#336/
+#337). Codex --yolo: operator-ruled IN for overnight legs, review/
+derivation ONLY, never edit authority — accepted-risk posture, do not
+relitigate.
+
+4. OPEN QUESTIONS (operator) — P4a .vscode e1: durable LOCAL vs fleet
+template (architect rec: LOCAL; shelf-life 2026-08-13 forces it). P4b
+ai-council .claude/skills/ (#308): adopt minimal vs waive (rec: adopt —
+FULL-profile consistency). #336 schema shape (separate enforcement-gate-rev
+axis) — the design fork inside P1's first arc. Extend #316's Done-when
+with a per-entry reason: field (the operator's "answers for everything,
+tracked" — recommended: fold it in). Satellite prompts (intake #15) ready,
+UNFIRED — operator fires per rollout order. #338/#339 scheduling; W3-13
+operator-present. BACKLOG grooming probe: operator wants every open item
+verified live / dead / awaiting-ruling at next boot.
+
+5. DECOMPOSITION RATIONALE — serialize around the manifest (both #336 and
+#316 touch parity-surfaces.yaml): (1) #336 schema remodel → clears the sole
+WARN; (2) #337 promotion to blocking ALL_CHECKS; (3) #316 ownership+REASON
+axis (unblocks #329 viz) — the operator's management-system centerpiece;
+(4) #306 consumer tree-seal (sanctioned set derived from the enriched
+manifest, so it follows #316); (5) #324 nightly runtime LAST — it consumes
+everything above into the walk → verdict sheet → morning prompt. P4
+rulings slot anywhere. NOT redo / NOT re-decide: the census's divergence
+classifications and coverage audit (sol-derived, terra-reviewed); ARC-A/B
+declarations + shelf-lives; satellite tier rulings (all FULL); W3-16
+no-op closures (fleet is LF — proven); merge/push execution delegation
+(PLAYBOOK Ch8); TARGET-REPO guard; ADR-65 grooming discipline (done tasks
+leave — the operator has re-confirmed this expectation).
+
+6. OFF-REPO CONTEXT — Operator's strategic ladder, verbatim intent:
+explain → consolidate → document → deploy automatically onto other repos →
+manage → optimize; the census is the working document for it. Codex
+registry healthy (sol 36-point derivation + terra doc-lane both clean on
+the census); native codex exec is the working path, .ps1 wrapper halt is
+#338(e). Corp product-architect browser chat: payload printed by corp CC,
+NOT yet booted — operator's move. CC effort settings persist across
+sessions (operator reminded to reset after high-effort night runs).
+Operator hard rule (new, 2026-07-16): zero invented filesystem paths —
+every emitted path must come from a quoted governance source or be
+delegated to CC to derive from primary sources; hyphen-only naming.
