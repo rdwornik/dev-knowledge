@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-17 — CC (Opus 4.8, 1M): drafted ADR-29 amendment — chronological legacy-archival split (LANE-B, [#339])
+
+**Did:** Drafted the ADR-29 in-file amendment sanctioning the LESSONS **chronological legacy-archival split** — the mechanism the 2026-07-16 LESSONS ruling recorded (a contiguous older block relocated byte-identical into a dated `LESSONS-legacy-<span>.md`, pointer left behind). Parallel worktree lane; **commit-and-STOP** (no merge to main — operator serializes integration from primary). Resolved the three open [#339] decisions with recommendation + justification: **A1 split trigger** = machine-checkable hard entry-count threshold (recommended dial 300 trip → ≤~180 floor, hysteresis) + retained soft navigation-pain override as an *earlier* trigger (the hard count is the backstop the never-fired soft trigger lacked); **A2 boundary helper** = yes, spec a read-only enumerator + **byte-identity verifier** (the load-bearing proof for the redefined append-only invariant), build deferred to [#339]; **A3 amendment form** = **in-file amendment** (not successor ADR) — derived from the repo taxonomy precedent (ADR-101 amends-in-file when refining its own subject; ADR-102 successor'd only for a *different* domain — the chronological split redefines ADR-29's *own* append-only/single-log invariants, so it is the ADR-101 case).
+
+**Result:** Amendment marked **Proposed 2026-07-17** (lane never self-accepts, ADR-94); explicitly preserves ADR-29's by-scope-split rejection ("STILL REJECTED … STANDS unchanged") and redefines append-only ("never leaves the file" → "relocated byte-identical only, never edited/deleted") + single-log ("one physical file" → "one logical log = active + dated legacy files that tile the timeline"). **No LESSONS.md content moved** (241 entries < 300 → not-yet-needed; execution is [#339]'s build leg). Reconciled with ADR-39 registry ("Quarterly archive option per ADR-29" now defined).
+
+**Changes:** `docs/decisions/ADR-29-lessons-grandfathering.md` (appended `## Amendment — 2026-07-17` section), `JOURNAL.md` (this entry). BACKLOG #339 status edit deferred to integration (cross-stream conflict avoidance). README ADR-29 index annotation deferred to ratification (per the amendment's ratify note). Awaiting: **terra doc-lane review** + **architect-review stop** before any integration request.
+
+**Abandoned:** none.
+
+**Next:** terra doc-lane review of the drafted amendment; then present for architect review. Integration (ratify Proposed → Accepted, README annotation, [#339] build leg) is a later operator-serialized step from the primary checkout — never from this lane.
+
+---
+
 ### 2026-07-17 — CC (Opus 4.8, 1M): ratified ADR-102 Proposed → Accepted (ADR-94 in-place)
 
 **Did:** Ratified ADR-102 (parity enforcement-gate-rev axis) now the Council/architect leg cleared. Edited the ADR `**Status:**` line in place Proposed → Accepted (ADR-94 status-line-only exception) and dropped the `**Proposed** — ` prefix from its `docs/decisions/README.md` `## ADR Index` row; regenerated `.claude/generated/recent-adrs.md` (the generator reads the ADR Status line, so it flipped to `(Accepted, …)`).
