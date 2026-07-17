@@ -1,25 +1,15 @@
-<!--
-  HANDOFF_BOOT.md.tmpl — v5 bundle session-header + paste-pointer (HANDOFF_PROCESS §13).
-  Rendered by scripts/gen_handoff.py. Two region classes:
-    {{TOKEN}} spans                  are structural / framing, re-substituted every render.
-    FILL-IN:<name> comment regions   are hand-authored narrative; the generator copies each
-                                     region byte-for-byte from the on-disk file on re-render, so
-                                     a --filled re-run never clobbers what CC wrote (RF-6).
-  ANSWER-FREE: no SHA / count / verdict / date value is ever templated here — those are the
-  probes' live answers (P3/P4/P6/P7). Only {{BRANCH}} (which branch is checked out) appears.
--->
-# Handoff boot — session header + paste-pointer ({{MODE}} mode)
+# Handoff boot — session header + paste-pointer (architect mode)
 <!-- scope: meta -->
 
 | Field | Value |
 |---|---|
-| **Slug** | `{{SLUG}}` |
-| **Chat title** | `{{CHAT_TITLE}}` — name the fresh browser chat this (bump `SEQ` per parallel chat) |
-| **Mode** | **{{MODE}}** (HANDOFF_PROCESS §13 — {{MODE_SCOPE}}) |
-| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->_(fill: one-line session purpose — what the next session should achieve; ~3 sentences + a `BACKLOG.md` pointer, no re-narration)_<!-- FILL-IN:purpose END --> |
-| **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `{{BRANCH}}`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
+| **Slug** | `2026-07-17-dev-knowledge-architect` |
+| **Chat title** | `[dev-knowledge] Technical Architect — 2026-07-17-dev-knowledge-architect · SEQ 1` — name the fresh browser chat this (bump `SEQ` per parallel chat) |
+| **Mode** | **architect** (HANDOFF_PROCESS §13 — planning / way-of-working scope) |
+| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->Plan the next way-of-working frontier after the 2026-07-16 CC-primary multi-arc close-out landed clean (ship-gate GREEN, `main` + `automation/fleet-audit` only). The open threads cluster around **fleet-governance maturation** — the fleet_parity checker exists but is only informational, and its promotion to a blocking gate is deferred behind an unresolved corp split-state — plus two lifecycle-doctrine decisions (a LESSONS chronological-archival split needing an ADR-29 reconciliation, and a codex-review global-infra consolidation). Orient (P1), take the operator-context beat (§13d, FULL — cold supplement), then **navigate from `BACKLOG.md`** — the load-bearing themes are E2/S8 (enforcement-transfer mesh: #336→#337), E3/S9 (#339), E6/S15–S16 (satellite onboarding fan-out), E7 (#338).<!-- FILL-IN:purpose END --> |
+| **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/handoff-2026-07-17-architect`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-{{SUPPLEMENT_BANNER}}
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -39,13 +29,13 @@
    never hand-feed individual files to the file-less browser.
 3. The browser replies with its on-load acknowledgment line (it names the Layer-1 actor); a partial or
    missing paste is then visible.
-4. **{{MODE}} mode** — the browser adopts the mode posture from `protocols/HANDOFF_BOOT.md` (§"{{MODE}}
-   mode"): {{MODE_POSTURE}}.
+4. **architect mode** — the browser adopts the mode posture from `protocols/HANDOFF_BOOT.md` (§"architect
+   mode"): orient first, ask the operator for off-repo context, drive decomposition, hold the whole-system view, surface design tensions — not the reactive-filter default.
 5. **Orient before any mechanism** — hand the browser `PROBES.md` **P1** (orientation) first; it replies
    `run <command>`, CC reads live `VISION.md` / `ARCHITECTURE.md` Ch1 and substring-checks. The architect
    may not begin design until it holds both orienting lines (P1's grep is a *tool* that confirms the frame
    — the **backlog navigates**, §13c).
-{{PASTE_STEP6}}
+6. **Then the operator-context beat (§13d).** The supplement is **FILLED**; its ANSWERS are in the paste, so the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 7. Hand `RESIDUAL.md` — **drift-flags first** (the §1 headline) — then the **next-frontier decisions**
    (§4) + the **shipped-this-window** map (§2), then run the rest of `PROBES.md` (P2–P10). Any probe FAIL
    blocks onboarding (the escalation ladder). **Re-derive the drift-flag values live (P4/P6/P7/P9) — the

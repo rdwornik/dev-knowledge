@@ -69,7 +69,7 @@ def test_dogfood_no_probe_row_carries_an_answer_value(tmp_path):
     # ANTI-BLUFF BY CONSTRUCTION: no generated probe ROW may print an `expected:` answer hint
     # (the exact RF-1 regression). Re-runs every generation, so the property cannot silently rot.
     rows = _rows(_gen(tmp_path).bundle_dir)
-    assert len(rows) == 10
+    assert len(rows) == 11  # P1a/P1b + P2..P10 (P10 = BACKLOG grooming, operator ruling 2026-07-17)
     hits = [(r["id"], c) for r in rows for c in ("question", "source", "why", "command")
             if re.search(r"expected[ :]", r[c], re.IGNORECASE)]
     assert hits == [], f"generated probe rows carry answer hints: {hits}"
@@ -81,7 +81,7 @@ def test_dogfood_generated_bundle_has_no_failing_probe(tmp_path):
     # `fail`; a fail would mean a toothless/malformed/missing-source generated row.)
     res = _gen(tmp_path)
     results = vhp.verify(res.bundle_dir, repo_root=res.bundle_dir.parents[2])
-    assert len(results) == 10
+    assert len(results) == 11  # P1a/P1b + P2..P10 (P10 = BACKLOG grooming, operator ruling 2026-07-17)
     fails = [(r.probe_id, r.detail) for r in results if r.status == "fail"]
     assert fails == [], f"generated bundle has failing probes: {fails}"
 
