@@ -745,6 +745,176 @@ def test_hub_block_rev_fidelity_present_not_carried(tmp_path):
     assert f2.verdict == fp.AT_PARITY and "ancestor" in f2.evidence
 
 
+# ---------------------------------------------------------------------------
+# ADR-102: enforcement-gate-rev axis (gate legitimately ahead of corpus).
+# The hub fixture carries two REAL tags: v1.2.0 (corpus, ancestor) and v1.3.1
+# (gate, descendant) -- ancestry is genuine, never hand-shaped (LESSONS 2026-06-05).
+# ---------------------------------------------------------------------------
+
+
+def _gate_hub(tmp_path):
+    """Temp hub with v1.2.0 (commit 1) as a strict ancestor of v1.3.1 (commit 2 = HEAD)."""
+    hub = _init_repo(tmp_path / "hub", dict(_BASE_FILES))
+    _git(["tag", "v1.2.0"], hub)                       # corpus tag at commit 1
+    (hub / "gate.txt").write_text("g\n", encoding="utf-8", newline="\n")
+    _git(["add", "-A"], hub)
+    _git(["commit", "-q", "-m", "gate uplift"], hub)
+    _git(["tag", "v1.3.1"], hub)                       # gate tag at commit 2 (descendant)
+    return hub
+
+
+def _gate_row(*, declare=True, gate_tag="v1.3.1"):
+    row = {"id": "precommit-hub-block", "kind": "precommit-hook",
+           "tier": {"consumer": "MUST"},
+           "probe": {"type": "precommit_remote", "repo_token": "dev-knowledge",
+                     "expected_rev_from": "deployed-versions", "ancestry": True,
+                     "required_hook_ids": ["backlog-id-on-close", "block-ff-push"]}}
+    if declare:
+        row["gate_rev_ahead"] = {"cons": {
+            "gate_tag": gate_tag,
+            "reason": "gate uplifted ahead of corpus for test (#318/#319)",
+            "provenance": [{"kind": "git-tag", "repo": ".dev-knowledge", "ref": gate_tag},
+                           {"kind": "backlog", "repo": ".dev-knowledge", "ref": "#336"}]}}
+    return row
+
+
+def _gate_cons(tmp_path, *, pin="v1.3.1", hooks=("backlog-id-on-close", "block-ff-push"),
+               config=True, methodology=None):
+    files = dict(_BASE_FILES)
+    if config:
+        files[".pre-commit-config.yaml"] = yaml.safe_dump({"repos": [
+            {"repo": "https://github.com/x/dev-knowledge", "rev": pin,
+             "hooks": [{"id": h} for h in hooks]}]}, sort_keys=False)
+    if methodology is not None:
+        files[".methodology.yaml"] = methodology
+    return _init_repo(tmp_path / "cons", files)
+
+
+def _gate_finding(tmp_path, hub, cons, row, *, corpus="v1.2.0", allow=None):
+    fleet = {"hub-r": {"role": "hub"}, "cons": {"role": "consumer"}}
+    manifest = _loaded(tmp_path, fleet, [row])
+    registry = _write_yaml(tmp_path / "reg.yaml", {"repos": {
+        "hub-r": {"source_tag": None}, "cons": {"source_tag": corpus}}})
+    targets = [fp.RepoTarget("cons", "consumer", cons, "")]
+    facts = {"cons": fp.collect_facts(targets[0], manifest, _EMPTY_BASELINE, hub,
+                                      registry)}
+    findings, _ = fp.verdicts(manifest, _EMPTY_BASELINE, targets, facts, allow or {},
+                              _DEPLOY_TOMBSTONE, "2026-07-13")
+    return next(x for x in findings if x.surface_id == "precommit-hub-block")
+
+
+def test_gate_ahead_declared_when_proven_ahead(tmp_path):
+    # ACCEPTANCE #1: gate ahead + full declaration + all predicates -> GATE_AHEAD_DECLARED,
+    # zero WARN. The pin is a proven strict descendant of the corpus source_tag.
+    hub = _gate_hub(tmp_path)
+    cons = _gate_cons(tmp_path)
+    f = _gate_finding(tmp_path, hub, cons, _gate_row())
+    assert f.verdict == fp.GATE_AHEAD_DECLARED
+    assert f.severity == fp.SEV_INFO
+    assert "v1.3.1" in f.evidence and "v1.2.0" in f.evidence and "ADR-102" in f.evidence
+
+
+def test_gate_ahead_undeclared_split_still_warns(tmp_path):
+    # NEGATIVE (a): the SAME ahead-state with NO gate_rev_ahead declaration still WARNs.
+    hub = _gate_hub(tmp_path)
+    cons = _gate_cons(tmp_path)
+    f = _gate_finding(tmp_path, hub, cons, _gate_row(declare=False))
+    assert f.verdict == fp.WARN_UNDECLARED and f.severity == fp.SEV_ERROR
+    assert "present != carried" in f.evidence and "v1.3.1" in f.evidence
+
+
+def test_gate_ahead_declared_tag_mismatch_warns(tmp_path):
+    # NEGATIVE (a'): declared gate_tag != the actual pin -> A != G -> WARN (anti-regress).
+    hub = _gate_hub(tmp_path)
+    cons = _gate_cons(tmp_path, pin="v1.3.1")
+    f = _gate_finding(tmp_path, hub, cons, _gate_row(gate_tag="v1.2.0"))
+    assert f.verdict == fp.WARN_UNDECLARED
+
+
+def test_gate_ahead_missing_hook_id_warns(tmp_path):
+    # NEGATIVE (a'): an ahead gate that DROPS a required hook id is not carried faithfully.
+    hub = _gate_hub(tmp_path)
+    cons = _gate_cons(tmp_path, hooks=("block-ff-push",))  # missing backlog-id-on-close
+    f = _gate_finding(tmp_path, hub, cons, _gate_row())
+    assert f.verdict == fp.WARN_UNDECLARED
+
+
+def test_gate_ahead_pin_revert_behind_corpus_warns(tmp_path):
+    # NEGATIVE (b): a pin-revert (gate BEHIND corpus) is not "ahead" -> WARN, never blessed.
+    # corpus source_tag = v1.3.1 (descendant); pin = v1.2.0 (ancestor) -> C is NOT an
+    # ancestor of the pin, so corpus_is_ancestor_of_rev is False.
+    hub = _gate_hub(tmp_path)
+    cons = _gate_cons(tmp_path, pin="v1.2.0")
+    f = _gate_finding(tmp_path, hub, cons, _gate_row(gate_tag="v1.2.0"), corpus="v1.3.1")
+    assert f.verdict == fp.WARN_UNDECLARED
+
+
+def test_gate_ahead_absent_surface_still_must_absent(tmp_path):
+    # NEGATIVE (b): a gate_rev_ahead declaration cannot CONJURE presence -- an absent
+    # hub-block is still MUST_ABSENT.
+    hub = _gate_hub(tmp_path)
+    cons = _gate_cons(tmp_path, config=False)  # no .pre-commit-config.yaml at all
+    f = _gate_finding(tmp_path, hub, cons, _gate_row())
+    assert f.verdict == fp.MUST_ABSENT and f.severity == fp.SEV_ERROR
+
+
+def test_gate_ahead_methodology_declaration_cannot_clear(tmp_path):
+    # NEGATIVE (b): a .methodology.yaml waiver does NOT clear a gate mismatch -- the MUST
+    # row stays non-waivable and the waiver channel is unreachable for it.
+    assert fp._row_waivable(_gate_row(), "MUST") is False
+    hub = _gate_hub(tmp_path)
+    cons = _gate_cons(tmp_path)  # ahead pin, but NO manifest gate_rev_ahead declaration
+    allow = {"cons": fp.ec.read_allowlist(
+        _gate_cons(tmp_path / "declared", methodology=_decl(["precommit-hub-block"])))}
+    f = _gate_finding(tmp_path, hub, cons, _gate_row(declare=False), allow=allow)
+    assert f.verdict == fp.WARN_UNDECLARED   # NOT PASS_DECLARED -- waiver does not apply
+
+
+def test_gate_ahead_inert_declaration_surfaces_stale(tmp_path):
+    # RETIREMENT: once the corpus catches up (source_tag == pin), the ahead expectation is
+    # self-invalidated -> a visible STALE_DECLARATION, not a false pass.
+    hub = _gate_hub(tmp_path)
+    cons = _gate_cons(tmp_path, pin="v1.3.1")
+    f = _gate_finding(tmp_path, hub, cons, _gate_row(), corpus="v1.3.1")
+    assert f.verdict == fp.STALE_DECLARATION and f.severity == fp.SEV_WARN
+    assert "caught up" in f.evidence and "PRUNE" in f.evidence
+
+
+def test_waivable_true_on_must_row_is_loader_refusal(tmp_path):
+    # ADR-102 loader refusal: a necessary condition can never be marked waivable.
+    fleet = {"hub-r": {"role": "hub"}}
+    surfaces = [
+        {"id": "good", "kind": "path", "tier": {"hub": "MUST"},
+         "probe": {"type": "path_tracked", "path": "VISION.md"}},
+        {"id": "waivable-must", "kind": "path", "tier": {"hub": "MUST"}, "waivable": True,
+         "probe": {"type": "path_tracked", "path": "x"}},
+        {"id": "waivable-inverse", "kind": "path", "tier": {"consumer": "INVERSE"},
+         "waivable": True, "probe": {"type": "path_tracked", "path": "y"}},
+    ]
+    manifest = _loaded(tmp_path, fleet, surfaces)
+    refusals = manifest["_refusals"]
+    refused_ids = {f.surface_id for f in refusals if f.verdict == fp.REFUSED}
+    assert {"waivable-must", "waivable-inverse"} <= refused_ids
+    assert [r["id"] for r in manifest["surfaces"]] == ["good"]   # good row survives
+    assert any("never waivable" in f.evidence for f in refusals)
+
+
+def test_gate_ahead_schema_does_not_break_registry_crosscheck(tmp_path):
+    # NEGATIVE (c): the both-directions registry cross-check is unaffected by the v1.1.0
+    # gate_rev_ahead schema -- a surface-row field cannot touch the fleet<->registry keys.
+    manifest_path = _write_yaml(tmp_path / "m.yaml", _manifest(
+        {"hub-r": {"role": "hub"}, "extra": {"role": "consumer"}},
+        [_gate_row()], version="1.1.0"))
+    manifest, _ = fp.load_manifest(manifest_path)
+    registry = _write_yaml(tmp_path / "reg.yaml",
+                           {"repos": {"hub-r": {}, "missing": {}}})
+    hub = _init_repo(tmp_path / "hub", dict(_BASE_FILES))
+    _, findings = fp.resolve_fleet(manifest, hub, registry, tmp_path, {})
+    ev = " ".join(f.evidence for f in findings)
+    assert "missing" in ev and "extra" in ev
+    assert all(f.verdict == fp.REFUSED for f in findings)
+
+
 def test_ruff_config_form_is_representation_only(tmp_path):
     # W3-14 / intake #12 Tier-3 convergence candidate: the FORM is evidence, never a
     # verdict -- pyproject vs .ruff.toml both read AT-PARITY with the form named.
