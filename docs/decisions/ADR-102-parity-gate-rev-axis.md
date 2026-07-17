@@ -1,6 +1,6 @@
 # ADR-102: Parity-surfaces enforcement-gate-rev axis — gate rev modeled separately from corpus source_tag
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-07-17
 **Decision tier:** Architecture (Path A — direct operator ruling; drafted lane B under plan-first architect review, 2026-07-17; the lane never self-accepts, ADR-94)
 **Related:** ADR-91 (deployed-versions durable record — the corpus `source_tag` authority this axis reads but never rewrites), ADR-101 (hermetization — deliberately NOT amended; governs tree structure/naming, not parity-schema semantics), ADR-28/36 (Layer-2 read-only, WARN-only posture the checker keeps), ADR-85 (advisory-then-hardening pattern), ADR-87 (equilibrium contract — this arc's authoring split), #328 (the parity mechanism this extends, designed in `docs/audits/2026-07-11-technical-fleet-parity-register.md §9`), #336 (this decision's backlog task), #316 (ownership classification — adopts the declaration grammar below), #337 (blocking-promotion, gated on the zero-WARN steady state this unblocks), #342 (deferred max-fidelity follow-up)
