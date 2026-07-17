@@ -1221,10 +1221,11 @@ def _gate_ahead_ok(row: dict, target: RepoTarget, res: dict) -> bool:
     if not isinstance(entry, dict):
         return False
     gate_tag = entry.get("gate_tag")
-    reason = entry.get("reason")
-    prov = entry.get("provenance")
-    shape_ok = (bool(gate_tag) and isinstance(reason, str) and bool(reason.strip())
-                and isinstance(prov, list) and len(prov) > 0)
+    # No-fork (ADR-103, terra HIGH 2026-07-17): validate reason+provenance through the
+    # SAME _declaration_bad the loader uses -- a weaker inline re-check here would let a
+    # malformed-provenance entry bless GATE_AHEAD_DECLARED via a direct engine caller
+    # that bypasses load_manifest. gate_tag is the axis-specific value (kept inline).
+    shape_ok = _nonblank(gate_tag) and _declaration_bad(entry) is None
     return bool(
         shape_ok
         and res.get("rev") == gate_tag             # A == G (declared gate == actual pin)

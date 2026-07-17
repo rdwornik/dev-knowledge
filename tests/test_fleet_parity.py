@@ -1077,6 +1077,32 @@ def test_ownership_and_gate_share_declaration_grammar_no_fork(tmp_path):
         assert gate_refused == own_refused == expect_bad, wrapper
 
 
+def test_gate_ahead_ok_rejects_malformed_provenance_no_fork(tmp_path):
+    # terra HIGH (2026-07-17): the RUNTIME predicate _gate_ahead_ok must route
+    # reason+provenance through the SAME _declaration_bad as the loader -- a malformed
+    # provenance item cannot bless GATE_AHEAD_DECLARED even for a direct engine caller
+    # that bypasses load_manifest. All ancestry conjuncts held true; only the grammar varies.
+    target = fp.RepoTarget("cons", "consumer", tmp_path, "")
+    res = {"rev": "v1.3.1", "tag_exists_in_hub": True, "tag_is_ancestor": True,
+           "gate_strictly_ahead": True, "missing_hook_ids": []}
+    ok_prov = [{"kind": "git-tag", "repo": ".dev-knowledge", "ref": "v1.3.1"}]
+
+    def _row(entry):
+        return {"gate_rev_ahead": {"cons": entry}}
+
+    good = _row({"gate_tag": "v1.3.1", "reason": "r", "provenance": ok_prov})
+    assert fp._gate_ahead_ok(good, target, res) is True
+    # malformed provenance item -> _declaration_bad fails -> no bless (the fork is closed)
+    assert fp._gate_ahead_ok(
+        _row({"gate_tag": "v1.3.1", "reason": "r", "provenance": [{}]}), target, res) is False
+    # blank reason likewise rejected by the shared predicate
+    assert fp._gate_ahead_ok(
+        _row({"gate_tag": "v1.3.1", "reason": " ", "provenance": ok_prov}), target, res) is False
+    # empty provenance list rejected
+    assert fp._gate_ahead_ok(
+        _row({"gate_tag": "v1.3.1", "reason": "r", "provenance": []}), target, res) is False
+
+
 def test_ownership_tally_and_line(tmp_path):
     # ADR-103: the ownership tally + [fleet-parity]-prefixed line (the management surface
     # #329 reads; harvested by the ship-gate surface too).
