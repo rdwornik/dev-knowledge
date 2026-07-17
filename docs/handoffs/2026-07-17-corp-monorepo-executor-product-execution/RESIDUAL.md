@@ -6,7 +6,7 @@
 >
 > **Four-tag discipline.** `witnessed` = CC re-derived it live at derivation; `recall`/`inferred` = reconstructed from the corp JOURNAL/git window, may have moved (the load-bearing ones are re-checkable via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is EMPTY (cold handoff).** ANSWERS committed empty; the incoming §13(d) operator-context beat fires **FULL**.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 

@@ -10,7 +10,7 @@
 | **Purpose** | Resume **PRODUCT execution** in corp-monorepo. The plan is fully encoded in the repo; the single first-read is the **execution charter** `docs/audits/2026-07-17-execution-charter.md`. The executor works `BACKLOG.md` top-down (R10 order E1→E2→E3→E5→E6→E4→E7), submitting each arc's plan to the SENIOR architect (this browser, via the operator) BEFORE execution. First move = Arc-B execution (prompt `PROMPT_arc-b-execution.md` in this bundle directory; charter §4 Addendum A resolves to it). |
 | **Generated at** | Hand-authored in the hub from **READ-ONLY live git** of `../corp-monorepo` (hub is the carrier; no write ever touches the consumer). States **no** sha / count / verdict — **re-derive HEAD / tree / counts / armed-state live in the corp checkout** (`PROBES.md`). |
 
-> **`SUPPLEMENT.md` is EMPTY (cold handoff).** No outgoing chat carried this session's strategic *why* — the charter + the signed manifest + the A3 ruling ARE the encoded plan. ANSWERS is committed empty: the defined cold-handoff disposition, not a defect; the incoming §13(d) operator-context beat fires **FULL** (the operator names the off-repo queue items and the current product focus).
+> **`SUPPLEMENT.md` is FILLED.** The outgoing senior-architect chat answered all six questions; the ANSWERS fold into `PASTE_THIS.md` and carry the strategic *why* (intent · tensions · rejected options · open questions · decomposition rationale · off-repo queue) alongside the in-repo charter + signed manifest + A3 ruling. The incoming §13(d) operator-context beat therefore **NARROWS** to *"anything changed since the supplement was written?"* (the operator queue itself is Answer 4 / charter §5).
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer value** by construction — no SHAs, counts, region/quote text, or armed-state. The withholding IS the teeth; run the commands **in the corp-monorepo checkout**.
 
@@ -23,7 +23,7 @@
 3. The browser replies with its on-load acknowledgment line (naming the Layer-1 actor); a partial/missing paste is then visible.
 4. **execution mode** — the browser adopts the SENIOR-architect posture: it does **not** execute, it **reviews the executor's per-arc plan** and emits exactly one of the plan-review output-contract forms (the exact CC option to select / paste-ready feedback / `approve`). Methodology questions are out of scope — route them to the hub.
 5. **Orient before execution** — hand the browser `PROBES.md` **P4** (the forced charter-§3 read) first; it replies `run <command>`, CC reads the live corp charter §3 and substring-checks the NOT-list ruling. This confirms the integration-protocol ruling is materialized before any arc opens.
-6. **Then the operator-context beat (§13d), FULL** — the supplement is empty, so the browser asks the operator for the off-repo context: the open operator queue (charter §5) and which arc to open first.
+6. **Then the operator-context beat (§13d), NARROWED** — the supplement is FILLED, so its ANSWERS are already in the paste; the browser asks only *"anything changed since the supplement was written?"* and which arc to open first (the operator queue is Answer 4 / charter §5).
 7. Hand `RESIDUAL.md` — the role split + supervision loop, the R10 rationale, the charter first-read pointer, and the operator-queue pointer — then run the rest of `PROBES.md` (P1–P3). Any probe FAIL blocks onboarding (the escalation ladder). **Re-derive every value live — the bundle states none.**
 
 ## Why a pointer, not a copy

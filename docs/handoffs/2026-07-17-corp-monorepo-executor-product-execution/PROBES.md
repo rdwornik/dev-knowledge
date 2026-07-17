@@ -18,7 +18,7 @@
 
 ## Gate procedure (CC)
 
-1. **P4 first** — the forced charter-§3 read orients the session (confirms the integration-protocol ruling — R2/R6/T6/N2 + the NOT-list — is materialized before any arc opens). **Then run the §13(d) operator-context beat FULL** (the supplement is empty — nothing to narrow against). Then P1–P3, each against **live corp state now**.
+1. **P4 first** — the forced charter-§3 read orients the session (confirms the integration-protocol ruling — R2/R6/T6/N2 + the NOT-list — is materialized before any arc opens). **Then run the §13(d) operator-context beat NARROWED** (the supplement is FILLED — its ANSWERS are in the paste; ask only *"anything changed since the supplement was written?"*). Then P1–P3, each against **live corp state now**.
 2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing / command errored / receiver tried to answer from memory or this bundle).
 3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary source → CC re-derives the fact → abort if still unmet).
 4. Answer values are deliberately absent (§5): the pass criterion is **"answered from the live source,"** never "matches a remembered value." P1's HEAD/branch is designed to move as arcs merge — re-derive it live, do not trust the residual's prose.
