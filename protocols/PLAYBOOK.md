@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-07-16
+> Last updated: 2026-07-17
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -200,6 +200,7 @@
 - [16. Cross-Tool Review](#16-cross-tool-review)
   - [Review Tools](#review-tools)
   - [Codex-utilization doctrine (lanes + exact model strings)](#codex-utilization-doctrine-lanes--exact-model-strings)
+  - [Codex dual-role — reviewer today, producer gated](#codex-dual-role--reviewer-today-producer-gated)
 - [17. Code Quality Audit Process](#17-code-quality-audit-process)
   - [Severity tiers](#severity-tiers)
   - [Process](#process-1)
@@ -3384,6 +3385,14 @@ Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
 - **terra is the doctrinal default review lane** — but mind the live drift: the doc-lane pins `gpt-5.6-terra` explicitly, while the **code lane currently inherits the codex config default (`gpt-5.6-sol` as of 2026-07-16)** because the wrapper passes no `-m` flag on that path. This config-vs-doctrine drift is tracked for reconciliation (see [#333] follow-up). Choose sol or luna deliberately only when a lane's stated strength fits the task better, and say why.
 - **Doc-lane review is first-class in `/codex-review`** ([#333]): a prose diff (no code files, ≥1 `.md`/`.rst`/`.txt`) routes to the wrapper's **doc-lane** — a prose/structural profile (disposition-faithfulness, cross-doc consistency, structural integrity, template usability) pinned to `gpt-5.6-terra`. The code-only path-guard still filters markdown out of the *code* profile; mixed diffs review as code. (Ad-hoc `codex exec` remains available for one-off reads outside a diff.)
 - **Every plan names its Codex lane.** A plan / architect prompt states which lane (terra/sol/luna) + surface (code or doc, both via `/codex-review`) its review leg uses — an addressable planned decision, not an ad-hoc runtime pick (pairs with review-before-STOP, Ch12).
+
+### Codex dual-role — reviewer today, producer gated
+
+Codex has two potential roles in the fleet — **reviewer** (the live, doctrinal one — everything above) and **producer** (author of code/design, the EPIC-H charter axis). Their governance (ratified from the ai-council 2026-07-17 role-governance feedback, R1/R4/R5):
+
+- **The global Codex config is HUB-OWNED (R1 — fleet doctrine).** The global reviewer config — `~/.codex/AGENTS.md` (role / checklist / output format; canonical source `.dev-knowledge/codex/AGENTS.md`, ADR-54) **and** `~/.codex/config.toml` (model pin, effort) — is owned at the hub, exactly as **core-invariant #6** governs `~/.claude/` hooks/rules and hub protocols. **Consumers never edit it**, and a session never edits it unilaterally; a change is an explicit hub ruling, never a per-repo or per-session drive-by. This is the global-infra "exception-with-ruling" invariant, now stated for the Codex surface (same class as `#289` OneDrive-guard and `#338`(c)).
+- **The producer lane is NOT activatable as written today (R4 — reconciliation).** The EPIC-H charter extension describes a Codex **producer** role (Codex authors, CC adversarially verifies — the inverse of the live Codex-verifies-CC review flow). But the hub-owned global config currently **fixes Codex as a read-only reviewer** (`~/.codex/AGENTS.md` pins the reviewer role; the exec sandbox is read-only). So the producer lane is **charter-only** — a documented intent, not a switch a session may flip — until the activation mechanism (`#341`) lands and is ruled. Do not treat "Codex producer" as available; a plan that names a producer leg is describing future work, not a runnable lane.
+- **Sanctioned interim producer-lane fallback (R5 — codified).** Until per-invocation producer activation is designed (`#341`), the sanctioned way to get producer-grade leverage from Codex **without editing global infra** is: **Codex fully specifies the design under a bounded prompt → CC implements → terra (`gpt-5.6-terra`) read-only review pre-merge.** The design-specification step is a **bounded, read-only `codex exec` design prompt** — Codex emits a spec/plan *as text* inside the read-only sandbox, **writes nothing to the tree, and never authors the merged artifact (CC does).** This is a **distinct invocation** from the `/codex-review` **reviewer** role (findings-only, governed by `~/.codex/AGENTS.md`) — so it is not bound by that config's "review findings, don't author fixes" contract — **and** it stops short of the gated **producer** role (authoring merged code). Nothing about the hub-owned config changes. This is exactly the flow executed on **ai-council #30**. *Whether an ad-hoc design-spec `codex exec` prompt should carry its own bounded reviewer-config reconciliation* is inside `#341`'s scope — which also carries the producer *mechanism itself* (repo-local `AGENTS.md` precedence, per-invocation activation, the producer guardrails).
 
 ---
 
