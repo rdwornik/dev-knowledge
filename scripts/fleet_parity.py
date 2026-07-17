@@ -208,6 +208,27 @@ def _nonblank(v) -> bool:
     return isinstance(v, str) and bool(v.strip())
 
 
+def _declaration_bad(entry) -> str | None:
+    """Shared ADR-102/ADR-103 declaration-grammar predicate -- the reason +
+    provenance half that BOTH declarative axes (gate_rev_ahead, ADR-102; ownership,
+    ADR-103) use verbatim. Returns an ASCII reason string when malformed, else None.
+    The axis-specific `value` scalar (gate_tag / ownership category) is validated by
+    each caller; this predicate owns ONLY the shared wrapper, so the grammar cannot
+    fork (asserted by the cross-axis no-fork test)."""
+    if not isinstance(entry, dict):
+        return "declaration must be a mapping"
+    if not _nonblank(entry.get("reason")):
+        return "declaration needs a non-blank reason"
+    prov = entry.get("provenance")
+    if not (isinstance(prov, list) and prov):
+        return "declaration needs a non-empty provenance list"
+    if not all(isinstance(p, dict) and _nonblank(p.get("kind"))
+               and _nonblank(p.get("repo")) and _nonblank(p.get("ref"))
+               for p in prov):
+        return "provenance items must each be {kind, repo, ref} non-blank strings"
+    return None
+
+
 def load_manifest(path: Path) -> tuple[dict, list[ParityFinding]]:
     """Parse + validate the parity manifest. Structural unusability raises
     ManifestUnreadable (exit-2 class); a malformed individual ROW yields a refusal
@@ -278,12 +299,9 @@ def load_manifest(path: Path) -> tuple[dict, list[ParityFinding]]:
                     if rk not in fleet:
                         gra_bad = f"gate_rev_ahead key '{rk}' is not a fleet repo"
                     elif not isinstance(entry, dict) or not _nonblank(entry.get("gate_tag")) \
-                            or not _nonblank(entry.get("reason")) \
-                            or not (isinstance(entry.get("provenance"), list)
-                                    and entry["provenance"]) \
-                            or not all(isinstance(p, dict) and _nonblank(p.get("kind"))
-                                       and _nonblank(p.get("repo")) and _nonblank(p.get("ref"))
-                                       for p in entry["provenance"]):
+                            or _declaration_bad(entry) is not None:
+                        # gate_tag is the axis-specific value; reason + provenance are the
+                        # shared ADR-102 wrapper validated by _declaration_bad (no fork).
                         gra_bad = (f"gate_rev_ahead[{rk}] malformed -- needs gate_tag + "
                                    f"non-blank reason + provenance list of "
                                    f"{{kind, repo, ref}} (ADR-102)")
