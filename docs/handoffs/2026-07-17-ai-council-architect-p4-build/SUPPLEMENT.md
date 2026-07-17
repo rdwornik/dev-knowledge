@@ -1,0 +1,25 @@
+# Architect strategic supplement — 2026-07-17-ai-council-architect-p4-build
+
+Repo: ai-council (bundle hosted in the hub .dev-knowledge) · Mode: architect · Date: 2026-07-17
+
+> **Operator — 3 steps:**
+> 1. Copy the QUESTIONS below into the outgoing architect chat (the chat that did this session's work).
+> 2. Paste that chat's answers into the ANSWERS section at the bottom — combine multiple chats if needed.
+> 3. Tell CC `supplement filled` → CC commits this file on the handoff branch and folds the answers into the next session's PASTE_THIS.
+>
+> **No outgoing chat to ask (cold / cleared handoff)?** Leave ANSWERS empty. The next session captures off-repo context live via the §13(d) operator-context beat. The empty file is still committed — a record that this session had no transmissible live "why" (the defined cold-handoff disposition, not a defect). **This bundle is generated COLD: it is authored CC-side in the hub from the operator's frozen plan-of-record + live consumer state; there is no outgoing ai-council architect chat, so ANSWERS is intentionally empty and the incoming §13(d) beat fires FULL.**
+
+## QUESTIONS — paste these to the outgoing architect chat
+
+1. **Strategic intent** — what should the next session achieve at the way-of-working level? (A design / methodology goal, not a task.)
+2. **Tensions weighed** — which design trade-offs were weighed, where did you land, and why?
+3. **Considered + rejected** — which options were rejected and why (so the next session does not relitigate them)?
+4. **Open questions** — which design questions are unresolved or deliberately deferred?
+5. **Decomposition rationale** — why this task-graph shape? What must the next session NOT redo or re-decide?
+6. **Off-repo context** — intent, priorities, changed decisions, or findings not in the repo.
+
+A. **(CC-observed) Build-wave ordering** — is the frozen #25 → #16 → #26 order fixed, or may the operator open a different lane first given the `output.py` contention (verdict package #26 + `seats[]` #16 both touch it)?
+B. **(CC-observed) Codex producer-lane** — confirm the interim fallback (CC-implements + terra review) governs the whole P4 wave, and the hub reconciliation (EPIC-H) is deferred to a separate hub session.
+
+===================== PASTE CHAT ANSWERS BELOW THIS LINE =====================
+<!-- operator: paste answers here; combine multiple chats if needed; leave empty if there is no outgoing chat -->
