@@ -229,6 +229,11 @@ def _declaration_bad(entry) -> str | None:
     return None
 
 
+# ADR-103: the CLOSED ownership category enum (reconciled from #316 + the 2026-07-16
+# census; ADR-102's bare "methodology" aside is non-normative for the vocabulary).
+_OWNERSHIP_VALUES = ("methodology-generic", "project", "conditional")
+
+
 def load_manifest(path: Path) -> tuple[dict, list[ParityFinding]]:
     """Parse + validate the parity manifest. Structural unusability raises
     ManifestUnreadable (exit-2 class); a malformed individual ROW yields a refusal
@@ -310,6 +315,28 @@ def load_manifest(path: Path) -> tuple[dict, list[ParityFinding]]:
             if gra_bad is not None:
                 refusals.append(_refusal(label, gra_bad))
                 continue
+        # ADR-103: the ownership axis is MANDATORY on every row -- a missing or malformed
+        # block is refused (row skipped, never guessed). value is the closed enum; reason +
+        # provenance share the ADR-102 wrapper via _declaration_bad (the no-fork anchor).
+        own = row.get("ownership")
+        if own is None:
+            refusals.append(_refusal(
+                label, "ownership block is mandatory (ADR-103) -- needs value in "
+                       "{methodology-generic|project|conditional} + non-blank reason + "
+                       "provenance list of {kind, repo, ref}"))
+            continue
+        own_bad = None
+        if not isinstance(own, dict):
+            own_bad = "ownership must be a mapping"
+        elif own.get("value") not in _OWNERSHIP_VALUES:
+            own_bad = (f"ownership value {own.get('value')!r} not in "
+                       f"{{methodology-generic|project|conditional}} (ADR-103)")
+        elif _declaration_bad(own) is not None:
+            own_bad = (f"ownership malformed -- {_declaration_bad(own)} "
+                       f"(ADR-103; shares the ADR-102 grammar)")
+        if own_bad is not None:
+            refusals.append(_refusal(label, own_bad))
+            continue
         probe = row.get("probe")
         if not isinstance(probe, dict) or not probe.get("type"):
             refusals.append(_refusal(label, "probe: must be a mapping with a type"))
@@ -1550,6 +1577,29 @@ def summarize(findings: list[ParityFinding]) -> dict[str, int]:
     return counts
 
 
+def ownership_tally(manifest: dict) -> dict[str, int]:
+    """ADR-103: per-run ownership-category tally across the surviving surface rows
+    (every row carries a mandatory ownership block post-load, so this counts the whole
+    classified manifest). This is the management surface #329 renders as a VIEW mapping
+    from these tokens (ADR-102 decision 3: the summary line is the #316/#329 surface)."""
+    counts: dict[str, int] = {}
+    for row in manifest.get("surfaces", []):
+        val = (row.get("ownership") or {}).get("value")
+        if val:
+            counts[val] = counts.get(val, 0) + 1
+    return counts
+
+
+def ownership_line(manifest: dict) -> str:
+    """The ownership tally as a `[fleet-parity]`-prefixed line so the ship-gate surface
+    harvester ([#337]) and #329 both pick it up. Informational -- gates nothing."""
+    c = ownership_tally(manifest)
+    return (f"[fleet-parity] ownership (ADR-103): "
+            f"{c.get('methodology-generic', 0)} methodology-generic, "
+            f"{c.get('project', 0)} project, "
+            f"{c.get('conditional', 0)} conditional -- management surface #329")
+
+
 def surface_line(findings: list[ParityFinding], targets: list[RepoTarget]) -> str:
     c = summarize(findings)
     walked = sum(1 for t in targets if t.root is not None and t.role != "pre-deploy")
@@ -1566,7 +1616,8 @@ def surface_line(findings: list[ParityFinding], targets: list[RepoTarget]) -> st
 
 def render_digest(findings: list[ParityFinding], targets: list[RepoTarget],
                   facts_by_repo: dict[str, dict], run_date: str, versions: dict,
-                  unmapped: dict[str, list[str]]) -> str:
+                  unmapped: dict[str, list[str]],
+                  ownership_counts: dict[str, int] | None = None) -> str:
     lines = [
         "# Fleet parity -- #328 conformance walk (WARN-only v1)",
         "",
@@ -1618,6 +1669,11 @@ def render_digest(findings: list[ParityFinding], targets: list[RepoTarget],
                          f"components matching no v1 manifest surface (their files "
                          f"call them 'inert-but-recorded'); candidates for later "
                          f"manifest rows, never WARNs")
+    if ownership_counts is not None:
+        lines += ["", "## Ownership (ADR-103; management surface #329)", "",
+                  f"- methodology-generic: {ownership_counts.get('methodology-generic', 0)}",
+                  f"- project: {ownership_counts.get('project', 0)}",
+                  f"- conditional: {ownership_counts.get('conditional', 0)}"]
     lines += ["", surface_line(findings, targets), ""]
     return "\n".join(lines)
 
@@ -1796,8 +1852,9 @@ def main(run_date: str, manifest_path: str, baseline_path: str, registry_path: s
     versions = {"checker": __version__, "manifest": str(manifest.get("version")),
                 "baseline": str(baseline.get("version", "-"))}
 
+    own_counts = ownership_tally(manifest)
     digest = render_digest(findings, targets, facts_by_repo, run_date, versions,
-                           unmapped)
+                           unmapped, own_counts)
     if only_repos:
         digest = digest.replace("## Targets",
                                 f"SUBSET RUN: {', '.join(sorted(only_repos))}\n\n## Targets", 1)
@@ -1818,6 +1875,7 @@ def main(run_date: str, manifest_path: str, baseline_path: str, registry_path: s
             click.echo(note)
 
     click.echo(surface_line(findings, targets))
+    click.echo(ownership_line(manifest))
     for f in sorted(findings, key=lambda f: (f.repo_id, f.surface_id)):
         if f.verdict not in (AT_PARITY,):
             click.echo(f"  {f.repo_id:26} {f.surface_id:32} {f.verdict:18} {f.evidence[:100]}")

@@ -67,7 +67,20 @@ def _write_yaml(path: Path, data: dict) -> Path:
     return path
 
 
-def _manifest(fleet: dict, surfaces: list, version: str = "1.0.0") -> dict:
+# ADR-103: a valid default ownership block. Ownership is MANDATORY on every row, so the
+# fixtures auto-inject this into any row that does not set its own -- keeping the pre-#316
+# tests fixture-compatible. The ownership axis tests pass inject_ownership=False to control
+# presence/shape exactly.
+_OWN_OK = {"value": "methodology-generic", "reason": "test ownership",
+           "provenance": [{"kind": "backlog", "repo": "hub-r", "ref": "#316"}]}
+
+
+def _manifest(fleet: dict, surfaces: list, version: str = "1.0.0",
+              inject_ownership: bool = True) -> dict:
+    if inject_ownership:
+        surfaces = [({**s, "ownership": _OWN_OK}
+                     if isinstance(s, dict) and "ownership" not in s else s)
+                    for s in surfaces]
     return {"version": version, "fleet": fleet, "surfaces": surfaces}
 
 
@@ -111,8 +124,9 @@ def _run(manifest: dict, baseline: dict, repos: dict[str, Path], hub_id: str,
     return refusals + findings, targets, facts, allow, consumed
 
 
-def _loaded(tmp_path: Path, fleet: dict, surfaces: list):
-    path = _write_yaml(tmp_path / "parity-surfaces.yaml", _manifest(fleet, surfaces))
+def _loaded(tmp_path: Path, fleet: dict, surfaces: list, inject_ownership: bool = True):
+    path = _write_yaml(tmp_path / "parity-surfaces.yaml",
+                       _manifest(fleet, surfaces, inject_ownership=inject_ownership))
     manifest, refusals = fp.load_manifest(path)
     manifest["_refusals"] = refusals
     return manifest
@@ -960,6 +974,140 @@ def test_gate_rev_ahead_malformed_declaration_is_loader_refusal(tmp_path):
         m = _loaded(tmp_path / f"case{i}", fleet, [_row(gra), good])
         assert any(f.verdict == fp.REFUSED for f in m["_refusals"]), gra
         assert [r["id"] for r in m["surfaces"]] == ["ok"]   # bad row skipped, good survives
+
+
+# ---- ADR-103 ownership axis --------------------------------------------------------
+
+def _own_prov():
+    return [{"kind": "backlog", "repo": "hub-r", "ref": "#316"}]
+
+
+def test_ownership_wellformed_loads_clean(tmp_path):
+    # ADR-103: a well-formed ownership block loads with no refusal; the classification is
+    # readable off the surviving row.
+    fleet = {"hub-r": {"role": "hub"}}
+    row = {"id": "t", "kind": "path", "tier": {"hub": "MUST"},
+           "probe": {"type": "path_tracked", "path": "VISION.md"},
+           "ownership": {"value": "project", "reason": "repo-local product dir",
+                         "provenance": _own_prov()}}
+    m = _loaded(tmp_path, fleet, [row], inject_ownership=False)
+    assert m["_refusals"] == []
+    assert [r["id"] for r in m["surfaces"]] == ["t"]
+    assert m["surfaces"][0]["ownership"]["value"] == "project"
+
+
+def test_ownership_missing_is_loader_refusal(tmp_path):
+    # ADR-103: ownership is MANDATORY -- a row without it is refused (row skipped), the
+    # good row survives.
+    fleet = {"hub-r": {"role": "hub"}}
+    bad = {"id": "nope", "kind": "path", "tier": {"hub": "MUST"},
+           "probe": {"type": "path_tracked", "path": "VISION.md"}}          # no ownership
+    good = {"id": "ok", "kind": "path", "tier": {"hub": "MUST"},
+            "probe": {"type": "path_tracked", "path": "VISION.md"}, "ownership": _OWN_OK}
+    m = _loaded(tmp_path, fleet, [bad, good], inject_ownership=False)
+    assert any(f.verdict == fp.REFUSED for f in m["_refusals"])
+    assert [r["id"] for r in m["surfaces"]] == ["ok"]
+
+
+def test_ownership_malformed_declaration_is_loader_refusal(tmp_path):
+    # ADR-103: the malformed-ownership refusal table -- value/reason/provenance grammar,
+    # mirroring the gate_rev_ahead table (the two share _declaration_bad).
+    fleet = {"hub-r": {"role": "hub"}}
+    good = {"id": "ok", "kind": "path", "tier": {"hub": "MUST"},
+            "probe": {"type": "path_tracked", "path": "VISION.md"}, "ownership": _OWN_OK}
+    ok_prov = _own_prov()
+
+    def _row(own):
+        return {"id": "tgt", "kind": "path", "tier": {"hub": "MUST"},
+                "probe": {"type": "path_tracked", "path": "VISION.md"}, "ownership": own}
+
+    cases = [
+        "not-a-mapping",                                                     # truthy non-dict
+        {"value": "wrong", "reason": "r", "provenance": ok_prov},            # value not in enum
+        {"value": 1, "reason": "r", "provenance": ok_prov},                 # non-string value
+        {"reason": "r", "provenance": ok_prov},                            # missing value
+        {"value": "project", "reason": " ", "provenance": ok_prov},         # blank reason
+        {"value": "project", "provenance": ok_prov},                       # missing reason
+        {"value": "project", "reason": "r", "provenance": "not-a-list"},     # provenance not a list
+        {"value": "project", "reason": "r", "provenance": []},             # empty provenance
+        {"value": "project", "reason": "r", "provenance": [{}]},           # provenance item empty
+        {"value": "project", "reason": "r",
+         "provenance": [{"kind": "  ", "repo": "r", "ref": "x"}]},          # whitespace field
+        {"value": "project", "reason": "r",
+         "provenance": [{"kind": 1, "repo": "r", "ref": "x"}]},             # non-string field
+    ]
+    for i, own in enumerate(cases):
+        m = _loaded(tmp_path / f"own{i}", fleet, [_row(own), good], inject_ownership=False)
+        assert any(f.verdict == fp.REFUSED for f in m["_refusals"]), own
+        assert [r["id"] for r in m["surfaces"]] == ["ok"], own            # bad skipped, good survives
+
+
+def test_ownership_and_gate_share_declaration_grammar_no_fork(tmp_path):
+    # ADR-102/ADR-103: BOTH axes validate reason+provenance through the ONE _declaration_bad
+    # predicate. For a battery of shared-wrapper shapes, the gate row and the ownership row
+    # (differing ONLY in the axis-specific value: gate_tag vs ownership value) are
+    # refused-or-accepted IDENTICALLY -- the grammar cannot fork.
+    fleet = {"hub-r": {"role": "hub"}, "cons": {"role": "consumer"}}
+    ok_prov = _own_prov()
+    shapes = [
+        ({"reason": "r", "provenance": ok_prov}, False),                   # well-formed
+        ({"reason": " ", "provenance": ok_prov}, True),                    # blank reason
+        ({"reason": "r", "provenance": []}, True),                         # empty provenance
+        ({"reason": "r", "provenance": [{}]}, True),                       # bad provenance item
+        ({"reason": "r", "provenance": "x"}, True),                        # provenance not a list
+    ]
+    for i, (wrapper, expect_bad) in enumerate(shapes):
+        # the shared predicate directly
+        assert (fp._declaration_bad(wrapper) is not None) == expect_bad, wrapper
+        # gate_rev_ahead row (axis value = gate_tag)
+        gate_row = {"id": "precommit-hub-block", "kind": "precommit-hook",
+                    "tier": {"consumer": "MUST"},
+                    "probe": {"type": "precommit_remote", "repo_token": "dev-knowledge",
+                              "expected_rev_from": "deployed-versions"},
+                    "gate_rev_ahead": {"cons": {"gate_tag": "v1", **wrapper}},
+                    "ownership": _OWN_OK}
+        gm = _loaded(tmp_path / f"gate{i}", fleet, [gate_row], inject_ownership=False)
+        gate_refused = any(f.verdict == fp.REFUSED for f in gm["_refusals"])
+        # ownership row (axis value = ownership category)
+        own_row = {"id": "tgt", "kind": "path", "tier": {"hub": "MUST"},
+                   "probe": {"type": "path_tracked", "path": "VISION.md"},
+                   "ownership": {"value": "project", **wrapper}}
+        om = _loaded(tmp_path / f"own{i}", fleet, [own_row], inject_ownership=False)
+        own_refused = any(f.verdict == fp.REFUSED for f in om["_refusals"])
+        assert gate_refused == own_refused == expect_bad, wrapper
+
+
+def test_ownership_tally_and_line(tmp_path):
+    # ADR-103: the ownership tally + [fleet-parity]-prefixed line (the management surface
+    # #329 reads; harvested by the ship-gate surface too).
+    fleet = {"hub-r": {"role": "hub"}}
+    rows = [
+        {"id": "a", "kind": "path", "tier": {"hub": "MUST"},
+         "probe": {"type": "path_tracked", "path": "VISION.md"},
+         "ownership": {"value": "methodology-generic", "reason": "r",
+                       "provenance": [{"kind": "adr", "repo": "hub-r", "ref": "ADR-103"}]}},
+        {"id": "b", "kind": "path", "tier": {"hub": "MUST"},
+         "probe": {"type": "path_tracked", "path": "ARCHITECTURE.md"},
+         "ownership": {"value": "project", "reason": "r", "provenance": _own_prov()}},
+    ]
+    m = _loaded(tmp_path, fleet, rows, inject_ownership=False)
+    assert fp.ownership_tally(m) == {"methodology-generic": 1, "project": 1}
+    line = fp.ownership_line(m)
+    assert line.startswith("[fleet-parity] ownership")
+    assert "1 methodology-generic" in line and "1 project" in line
+    assert line.isascii()
+
+
+def test_live_manifest_loads_with_zero_refusals():
+    # ADR-103 frozen contract: the real, fully-classified manifest loads with ZERO refusals
+    # (mandatory ownership on every row) -- no partially-classified manifest lands on main.
+    root = Path(__file__).resolve().parents[1]
+    manifest, refusals = fp.load_manifest(root / "ecosystem" / "parity-surfaces.yaml")
+    assert refusals == [], [(f.surface_id, f.evidence) for f in refusals]
+    assert manifest["surfaces"], "no surfaces survived the load"
+    assert all(s.get("ownership", {}).get("value") in
+               ("methodology-generic", "project", "conditional")
+               for s in manifest["surfaces"])
 
 
 def test_ruff_config_form_is_representation_only(tmp_path):
