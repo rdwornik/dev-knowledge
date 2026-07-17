@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-17 — CC (Opus 4.8, 1M): completed the corp-monorepo executor handoff — folded filled SUPPLEMENT (`supplement filled`)
+
+**Did:** Ran the `supplement filled` step for the hub-carried **execution**-mode bundle `docs/handoffs/2026-07-17-corp-monorepo-executor-product-execution/` (targets corp-monorepo). The bundle was generated **cold**; the operator supplied the outgoing senior-architect chat's 6-question interview answers in-chat. Pasted the ANSWERS **byte-verbatim** below the SUPPLEMENT divider (CC never fabricates), re-ran `scripts/assemble_paste.py` to fold the **ANSWERS region only** into `PASTE_THIS.md`, and **hand-flipped** the four cold→FILLED framing sites (BOOT banner + step-6, RESIDUAL banner, PROBES gate step-1): *EMPTY / §13(d) beat FULL* → *FILLED / beat NARROWS to "anything changed since?"*. Hand-flipped because the marker-based `reflow_framing` matches by exact literal and this bundle is hand-authored — its banners don't match, so the mechanized reflow no-ops. SUPPLEMENT cold-note reworded *generated COLD* → *generated COLD, then FILLED*.
+
+**Result:** 136 handoff/assembler/supplement tests pass; all pre-commit gates green at commit; exactly the 5 bundle files touched. Fold boundary verified — the folded section carries only *"ANSWERS — supplement…"* through Answer 6, no QUESTIONS/scaffolding/stray operator instruction. `PASTE_THIS.md` 29.6 KB → 34.4 KB (under the 65 KB warn budget). Operator's **BLOCKING** open question preserved for the executor: the 2648/5 → 2624/6 corp test-collection delta must be explained before Arc-B starts.
+
+**Changes:** `docs/handoffs/2026-07-17-corp-monorepo-executor-product-execution/{SUPPLEMENT,PASTE_THIS,HANDOFF_BOOT,RESIDUAL,PROBES}.md`; this note. Commit `8c726f4` on branch `docs/2026-07-17-corp-executor-supplement-filled` (worktree — integrate `--no-ff` from the primary hub; `/ship` refuses in a worktree).
+
+**Abandoned:** none.
+
+**Next:** operator integrates the branch via `/ship` from the primary hub checkout; corp executor session boots from the now-FILLED bundle and clears the test-collection-delta gate before Arc-B.
+
+---
+
 ### 2026-07-17 — CC (Opus 4.8, 1M): v5 architect handoff bundle GENERATED for ai-council P4 build wave (cross-repo, hub-carried)
 
 **Did:** Generated the v5 **architect** handoff bundle IN THE HUB (sole carrier, ADR-36/42) for the next browser-ARCHITECT session TARGETING **ai-council**; all state derived **READ-ONLY** from `../ai-council` (confirmed untouched post-gen: HEAD `2a00c37`, clean). Session WORK = product BUILD: the **P4 wave** (#25 doctor → #16 CLI seats → #26 verdict package) per ai-council `docs/intake/2026-07-16-plan-of-record.md`, with the **sidecar seam rule** (first lane defines the extension; `output.py` highest-contention→serialize) + the **refactoring-guide pre-work map** (A2→doctor, A1→A3→CLI seats, A4→verdict package) carried in RESIDUAL §1/§2. RESIDUAL §3 carries the three operator-flagged residuals: **G3 open** (operator blind-scoring of the 40-item pack → Beat-1 → #24 report+ruling = the Epic-B event un-gating #18/#19/#9), the **hub-feedback file** (Codex global read-only vs producer doctrine, EPIC-H, hub-side), the **interim Codex-producer fallback** (CC-implements-Codex's-design + terra read-only review); pause **LIFTED** as of `2a00c37`. PROBES (anti-bluff, answers withheld): P1 live HEAD/branch/status · P2 `validate_backlog` counts · P3 armed hooks · P4 substring-exact plan-of-record P4 phase-table row.
