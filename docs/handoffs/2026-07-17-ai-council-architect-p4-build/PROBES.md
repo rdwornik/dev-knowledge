@@ -18,7 +18,7 @@
 
 ## Gate procedure (CC)
 
-1. **P4 first** — the forced phase-table read orients the session: it anchors the build-wave order (doctor → CLI seats → verdict package, mapped to #25/#16/#26) in the frozen primary source before design begins. **Then run the §13(d) operator-context beat FULL** (the supplement is empty — nothing to narrow against; ask which lane opens first + launch config). Then P1–P3, each against **live ai-council state now**.
+1. **P4 first** — the forced phase-table read orients the session: it anchors the build-wave order (doctor → CLI seats → verdict package, mapped to #25/#16/#26) in the frozen primary source before design begins. **Then run the §13(d) operator-context beat NARROWED** (the supplement is FILLED — it already carries the off-repo context, so ask only *"anything changed since it was written?"*). Then P1–P3, each against **live ai-council state now**.
 2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing / command errored / receiver tried to answer from memory or this bundle).
 3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary source → CC re-derives the fact → abort if still unmet).
 4. Answer values are deliberately absent (§5): the pass criterion is **"answered from the live source,"** never "matches a remembered value." P1's HEAD/branch is designed to move (the build wave commits) — re-derive it live, do not trust the residual's prose.

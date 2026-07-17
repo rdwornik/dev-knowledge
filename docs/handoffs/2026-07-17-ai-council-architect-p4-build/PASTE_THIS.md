@@ -12,7 +12,7 @@
 | **Purpose** | Drive the **P4 build wave** in ai-council — **#25 doctor → #16 CLI seats (claude+codex) → #26 verdict package**, per ai-council `docs/intake/2026-07-16-plan-of-record.md`. Enforce the **sidecar seam rule** (first lane defines the extension mechanism, never built concurrently) and the **refactoring-guide pre-work map** (A2→doctor, A1→A3→CLI seats, A4→verdict package). **Feature-work pause is LIFTED** (ai-council `2a00c37`, G2). Navigate the build via ai-council `BACKLOG.md` [E1]/[E3] + the plan-of-record; the RESIDUAL carries only what the repo does not already encode. |
 | **Generated at** | Hand-authored in the hub from **READ-ONLY live git** of `../ai-council` (hub is the carrier; no write ever touches the consumer). States **no** sha / count / verdict / armed-state — **re-derive HEAD / tree / branch / counts / hooks live in the ai-council checkout** (`PROBES.md` P1–P3) and quote the phase table live (P4). |
 
-> **`SUPPLEMENT.md` is EMPTY (cold handoff).** No outgoing architect chat carried this session's strategic *why* — this bundle is generated CC-side in the hub from the operator's frozen plan-of-record + live consumer state. ANSWERS is committed empty: the defined cold-handoff disposition, not a defect; the incoming §13(d) operator-context beat fires **FULL**.
+> **`SUPPLEMENT.md` is FILLED.** The outgoing architect chat answered the 6-question strategic interview (+ the two CC-observed addenda A/B); the ANSWERS region is folded into `PASTE_THIS.md`. The incoming §13(d) operator-context beat therefore **NARROWS** to *"anything changed since the supplement was written (design 2026-07-16, filled 2026-07-17)?"* — it does not fire full (Q6 already carries the off-repo context).
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer value** by construction — no SHAs, counts, region text, phase-table lines, or armed-state. The withholding IS the teeth; run the commands **in the ai-council checkout**.
 
@@ -264,7 +264,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 >
 > **Four-tag discipline.** `witnessed` = CC re-derived it live at derivation; `recall`/`inferred` = reconstructed from the ai-council plan-of-record / JOURNAL / git window, may have moved (the load-bearing ones are re-checkable via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is EMPTY (cold handoff).** ANSWERS committed empty; the incoming §13(d) operator-context beat fires **FULL**.
+> **`SUPPLEMENT.md` is FILLED.** The outgoing architect's answers are folded into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"* (not full).
 
 ---
 
@@ -306,7 +306,7 @@ Drift-flags are re-derived by the consumer's own live checks — **re-derive at 
 
 ## §4 — Next-frontier (the design "why" that travels)
 
-**Primary — drive P4 build wave 1 in order (#25 → #16 → #26), against the plan-of-record, honoring the sidecar seam rule + the pre-work map (§1/§2).** The whole-system view the architect must hold: the seam contracts are fixed (design against, never redesign); `output.py` is serialized (highest contention); the sidecar's first-lander defines the extension; the verdict package consumes by reference. The specific starting lane + launch config (model / effort / autonomy) is off-repo — the §13(d) beat (FULL, since the supplement is empty) captures it live.
+**Primary — drive P4 build wave 1 in order (#25 → #16 → #26), against the plan-of-record, honoring the sidecar seam rule + the pre-work map (§1/§2).** The whole-system view the architect must hold: the seam contracts are fixed (design against, never redesign); `output.py` is serialized (highest contention); the sidecar's first-lander defines the extension; the verdict package consumes by reference. The specific starting lane + launch config (model / effort / autonomy) rides the filled supplement (Q6 + addendum A: #25→#16→#26 is the recommended default, not dogma; #23 qualifies as an early disjoint parallel lane, #22 must wait for A2) — the narrowed §13(d) beat only re-checks whether anything changed since.
 
 **Carry-open (do NOT redo / re-decide in this build chat):**
 - **G3 (#24)** is the **operator's** blind-scoring mission (§3a) — its ruling is the Epic B event that un-gates #18/#19/#9. This chat builds P4; it does not score or rule.
@@ -344,7 +344,74 @@ The **BACKLOG is the spec; items are tickets.** Task-state is: a pointer to the 
 
 ## Gate procedure (CC)
 
-1. **P4 first** — the forced phase-table read orients the session: it anchors the build-wave order (doctor → CLI seats → verdict package, mapped to #25/#16/#26) in the frozen primary source before design begins. **Then run the §13(d) operator-context beat FULL** (the supplement is empty — nothing to narrow against; ask which lane opens first + launch config). Then P1–P3, each against **live ai-council state now**.
+1. **P4 first** — the forced phase-table read orients the session: it anchors the build-wave order (doctor → CLI seats → verdict package, mapped to #25/#16/#26) in the frozen primary source before design begins. **Then run the §13(d) operator-context beat NARROWED** (the supplement is FILLED — it already carries the off-repo context, so ask only *"anything changed since it was written?"*). Then P1–P3, each against **live ai-council state now**.
 2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing / command errored / receiver tried to answer from memory or this bundle).
 3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary source → CC re-derives the fact → abort if still unmet).
 4. Answer values are deliberately absent (§5): the pass criterion is **"answered from the live source,"** never "matches a remembered value." P1's HEAD/branch is designed to move (the build wave commits) — re-derive it live, do not trust the residual's prose.
+
+---
+
+=== SUPPLEMENT.md ===
+
+ANSWERS — outgoing architect (2026-07-17)
+
+1. STRATEGIC INTENT: Shift the way-of-working from generative planning to build-governance.
+   CC produces plan-mode proposals per task; the browser-architect reviews each against the
+   frozen plan-of-record (docs/intake/2026-07-16-plan-of-record.md) + seam rules; closure is
+   the empirical done-contract (real runs witnessed), never tests-pass. The arc's product
+   north star: the delegation window — an external repo invokes the council via CLI/contract
+   (ADR-11) and gets a transcript-free verdict package back.
+
+2. TENSIONS WEIGHED: (i) build speed vs record discipline -> record first: G2 consolidation
+   preceded any build. (ii) evidence purity vs operator time -> EPI-1 prep decoupled from
+   operator scoring; G2 reordered ahead of G3 so a human-time dependency never blocks a
+   mechanical unblock. (iii) Codex-producer doctrine vs hub-owned global read-only policy ->
+   interim fallback (CC-implements-Codex's-design + terra read-only review); reconciliation
+   is the hub's. (iv) workspace taxonomy -> output/ is RESERVED for run artifacts (it is
+   also the EPI-1 evidence corpus); homes derive from quoted governance, never inference.
+   (v) parallel throughput vs unattended risk -> night work ran serial legs with hard stop
+   conditions; the stop fired and was correct.
+
+3. CONSIDERED + REJECTED (do not relitigate): overnight P4 build (seam sequencing requires
+   architect plan-review); filing a task for P0 (ADR-65 — done-at-merge tasks don't enter);
+   stretching E6 to carry governance (charter dilution -> new E7); retaining both #1/#24
+   evidence methods (split truth -> #1 absorbed, ruling recorded); editing ~/.codex/AGENTS.md
+   from a consumer session (global infra is hub-owned); resurrecting functional-requirements-
+   master (superseded by the intake by design).
+
+4. OPEN QUESTIONS / DEFERRED: G3 — operator blind scoring of the 40-item pack, then the
+   Beat-1 mini-session (#24 report + ruling = the Epic-B event). The METHOD is settled and
+   sealed — only execution is pending; do not redesign it. Seal disposition at finalization
+   already ruled: key + judge second-opinion get committed once un-blinding is recorded.
+   Hub-side (separate hub session, not this chat): Codex dual-role mechanism (feedback file
+   docs/intake/2026-07-17-hub-feedback-codex-producer-lane.md), EPIC-H doc reconciliation.
+   DRAFT-GOV-2 deliberately unratified. #20/#21 remain known pre-existing.
+
+5. DECOMPOSITION RATIONALE: gates-before-phases, because the two real blockers were
+   decision-shaped (rulings, evidence ruling), not work-shaped. The phase->task map in the
+   plan-of-record is 1:1 — navigate by it, do not re-derive. The task-graph shape is
+   CONTENTION-driven as much as dependency-driven: cli.py (A2 decompose + doctor + #22) and
+   output.py (A4 + B3 + seats[] + verdict package) are the two serialization points. Do NOT
+   redo: the RULED register (15 + fork + scope header), ADR-14, the E7 addition, the
+   pre-work mapping, the sidecar seam rule.
+
+6. OFF-REPO CONTEXT: Operator's priority = the delegation window (other repos commissioning
+   council debates by CLI command) with CLI-subscription token savings as the economic
+   driver (ADR-12; parity #27 is the flip evidence). Operator scoring time is the scarce
+   resource — keep it off the critical path. Standing sanctions in force: Codex YOLO
+   (danger-full-access on this Windows box, operator owns the risk, sandbox-scoped only);
+   zero-invented-paths (every path from quoted governance or delegated derivation);
+   night/major session reports persist as audits-class artifacts.
+
+A. BUILD-WAVE ORDERING: #25 -> #16 -> #26 is the recommended default (A2 unblocks the
+   cli.py surface; doctor's liveness feeds the seats; the first-landing lane defines the
+   sidecar extension mechanism), but it is NOT dogma — the operator may open a parallel
+   lane where files are disjoint. Specifically, given the operator's window priority:
+   #23 (research --return-dir; research/runner.py) qualifies as an early parallel lane;
+   #22 (--file frontmatter; cli.py) must WAIT for A2 to land — same-file contention.
+   #26 stays last of the wave (output.py contention + consumes seats[] by reference).
+
+B. CODEX PRODUCER-LANE: Confirmed — the interim fallback (CC implements Codex's design +
+   terra read-only review) governs the ENTIRE P4 wave. Hub reconciliation (EPIC-H) is a
+   separate hub session. The YOLO sanction covers the sandbox only; the global role policy
+   stays hub-owned and untouched.

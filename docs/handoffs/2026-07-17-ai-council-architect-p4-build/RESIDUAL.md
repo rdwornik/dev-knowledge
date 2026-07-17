@@ -6,7 +6,7 @@
 >
 > **Four-tag discipline.** `witnessed` = CC re-derived it live at derivation; `recall`/`inferred` = reconstructed from the ai-council plan-of-record / JOURNAL / git window, may have moved (the load-bearing ones are re-checkable via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is EMPTY (cold handoff).** ANSWERS committed empty; the incoming §13(d) operator-context beat fires **FULL**.
+> **`SUPPLEMENT.md` is FILLED.** The outgoing architect's answers are folded into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"* (not full).
 
 ---
 
@@ -48,7 +48,7 @@ Drift-flags are re-derived by the consumer's own live checks — **re-derive at 
 
 ## §4 — Next-frontier (the design "why" that travels)
 
-**Primary — drive P4 build wave 1 in order (#25 → #16 → #26), against the plan-of-record, honoring the sidecar seam rule + the pre-work map (§1/§2).** The whole-system view the architect must hold: the seam contracts are fixed (design against, never redesign); `output.py` is serialized (highest contention); the sidecar's first-lander defines the extension; the verdict package consumes by reference. The specific starting lane + launch config (model / effort / autonomy) is off-repo — the §13(d) beat (FULL, since the supplement is empty) captures it live.
+**Primary — drive P4 build wave 1 in order (#25 → #16 → #26), against the plan-of-record, honoring the sidecar seam rule + the pre-work map (§1/§2).** The whole-system view the architect must hold: the seam contracts are fixed (design against, never redesign); `output.py` is serialized (highest contention); the sidecar's first-lander defines the extension; the verdict package consumes by reference. The specific starting lane + launch config (model / effort / autonomy) rides the filled supplement (Q6 + addendum A: #25→#16→#26 is the recommended default, not dogma; #23 qualifies as an early disjoint parallel lane, #22 must wait for A2) — the narrowed §13(d) beat only re-checks whether anything changed since.
 
 **Carry-open (do NOT redo / re-decide in this build chat):**
 - **G3 (#24)** is the **operator's** blind-scoring mission (§3a) — its ruling is the Epic B event that un-gates #18/#19/#9. This chat builds P4; it does not score or rule.
