@@ -125,6 +125,7 @@ REFUSED = "refused"
 UNAVAILABLE = "unavailable"
 SKIPPED_PRE_DEPLOY = "skipped-pre-deploy"
 TRACKED_EPHEMERA = "tracked-ephemera"
+GATE_AHEAD_DECLARED = "gate-ahead-declared"  # ADR-102: proven gate-ahead (at-parity family, NOT waiver)
 
 SEV_INFO = "info"
 SEV_WARN = "warn"
@@ -137,6 +138,7 @@ ROLES = frozenset({"hub", "consumer", "pre-deploy"})
 _ACTIONS = {
     AT_PARITY: "-",
     PASS_DECLARED: "-",
+    GATE_AHEAD_DECLARED: "-",
     SKIPPED_PRE_DEPLOY: "-",
     WARN_UNDECLARED: "FIX or DECLARE-LOCAL",
     MUST_ABSENT: "FIX-NOW",
@@ -249,6 +251,13 @@ def load_manifest(path: Path) -> tuple[dict, list[ParityFinding]]:
             continue
         if bad_tok is not None:
             refusals.append(_refusal(label, f"unknown tier token '{bad_tok}'"))
+            continue
+        if row.get("waivable") is True and ({"MUST", "INVERSE"} & set(tier.values())):
+            # ADR-102: a necessary condition (MUST/INVERSE) can never be marked waivable
+            # -- close the _row_waivable explicit-override hole below the schema.
+            refusals.append(_refusal(
+                label, "waivable: true on a MUST/INVERSE row -- a necessary condition "
+                       "is never waivable (ADR-102 loader refusal)"))
             continue
         probe = row.get("probe")
         if not isinstance(probe, dict) or not probe.get("type"):
@@ -517,6 +526,16 @@ def collect_facts(target: RepoTarget, manifest: dict, baseline: dict,
                         anc_rc, _ = _git(["merge-base", "--is-ancestor",
                                           f"refs/tags/{hit['rev']}", "HEAD"], hub_root)
                         res["tag_is_ancestor"] = anc_rc == 0
+                    # ADR-102 gate-ahead: is the corpus source_tag a STRICT ancestor of
+                    # the actual pin? (C ancestor-of G, G != C) -- the "gate strictly
+                    # ahead of corpus" predicate, computed only when a gate_rev_ahead
+                    # declaration exists for this repo (else the field stays absent).
+                    if (row.get("gate_rev_ahead") or {}).get(target.repo_id) \
+                            and hit["rev"] != source_tag:
+                        ca_rc, _ = _git(["merge-base", "--is-ancestor",
+                                         f"refs/tags/{source_tag}",
+                                         f"refs/tags/{hit['rev']}"], hub_root)
+                        res["corpus_is_ancestor_of_rev"] = ca_rc == 0
         elif ptype == "settings_hook":
             token = _local_token(row, target.repo_id, probe["token"])
             cmds = settings_by_event.get(probe["event"], [])
@@ -935,6 +954,19 @@ def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
             return
         fidelity_bad = _fidelity_problem(res)
         if fidelity_bad:
+            # ADR-102 gate-ahead REFINEMENT (not a waiver): a proven enforcement gate
+            # legitimately ahead of the deployed corpus is blessed here, BEFORE the WARN
+            # -- but only when every MUST_OK conjunct holds (_gate_ahead_ok). This never
+            # routes through _pass_or_declare / .methodology.yaml.
+            if _gate_ahead_ok(row, target, res):
+                entry = row["gate_rev_ahead"][target.repo_id]
+                ev.findings.append(ParityFinding(
+                    target.repo_id, sid, GATE_AHEAD_DECLARED, SEV_INFO,
+                    _ascii(f"enforcement gate declared ahead of corpus: pin "
+                           f"{res.get('rev')} is a proven descendant of corpus "
+                           f"{res.get('expected_rev')} (ADR-102) -- {entry.get('reason')}"),
+                    "-", component))
+                return
             # unfaithful carriage of a MUST surface is the error class (present !=
             # carried) -- the remediation is FIX, never DECLARE (codex 2026-07-13)
             ev.diverged.add(component)
@@ -967,6 +999,20 @@ def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
                     _ascii(f"manifest expects a declared behavioral divergence here "
                            f"({expected_div}) but the declaration is {status}"),
                     _ACTIONS[WARN_UNDECLARED], component))
+            return
+        # ADR-102: an inert gate_rev_ahead declaration -- fidelity is now clean
+        # (pin == corpus source_tag: the corpus caught up), so the gate-ahead
+        # expectation is self-invalidated -> surface it as a visible STALE line to
+        # prompt retirement (replaces a review_date time-box).
+        if (row.get("gate_rev_ahead") or {}).get(target.repo_id) \
+                and res.get("expected_rev") is not None \
+                and res.get("rev") == res.get("expected_rev"):
+            ev.findings.append(ParityFinding(
+                target.repo_id, sid, STALE_DECLARATION, SEV_WARN,
+                _ascii(f"gate-ahead declaration inert: corpus caught up (pin "
+                       f"{res.get('rev')} == corpus {res.get('expected_rev')}) -- PRUNE "
+                       f"the gate_rev_ahead entry (ADR-102)"),
+                _ACTIONS[STALE_DECLARATION], component))
             return
         ev.findings.append(ParityFinding(
             target.repo_id, sid, AT_PARITY, SEV_INFO,
@@ -1079,6 +1125,28 @@ def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
                        f"({pm.get('ticket')}) -- representation only, no verdict "
                        f"effect"), "-", None))
         return
+
+
+def _gate_ahead_ok(row: dict, target: RepoTarget, res: dict) -> bool:
+    """ADR-102: True iff a proven enforcement-gate-ahead split should be blessed to
+    GATE_AHEAD_DECLARED. A REFINEMENT of the MUST fidelity predicate, NEVER a waiver --
+    it never consults the .methodology.yaml allowlist and never marks a component
+    consumed. Every false conjunct falls through to the existing MUST error path."""
+    entry = (row.get("gate_rev_ahead") or {}).get(target.repo_id)
+    if not isinstance(entry, dict):
+        return False
+    gate_tag = entry.get("gate_tag")
+    reason = entry.get("reason")
+    prov = entry.get("provenance")
+    shape_ok = (bool(gate_tag) and isinstance(reason, str) and bool(reason.strip())
+                and isinstance(prov, list) and len(prov) > 0)
+    return bool(
+        shape_ok
+        and res.get("rev") == gate_tag             # A == G (declared gate == actual pin)
+        and res.get("tag_exists_in_hub")           # G is a real hub tag
+        and res.get("tag_is_ancestor")             # G ancestor-of hub HEAD
+        and res.get("corpus_is_ancestor_of_rev")   # C ancestor-of G, G != C (strictly ahead)
+        and not res.get("missing_hook_ids"))       # required hook ids present
 
 
 def _fidelity_problem(res: dict) -> str | None:
@@ -1429,6 +1497,7 @@ def surface_line(findings: list[ParityFinding], targets: list[RepoTarget]) -> st
     walked = sum(1 for t in targets if t.root is not None and t.role != "pre-deploy")
     return (f"[fleet-parity] {walked} repo(s) walked: "
             f"{c.get(AT_PARITY, 0)} at-parity, {c.get(PASS_DECLARED, 0)} pass-declared, "
+            f"{c.get(GATE_AHEAD_DECLARED, 0)} gate-ahead-declared, "
             f"{c.get(WARN_UNDECLARED, 0)} warn-undeclared, "
             f"{c.get(MUST_ABSENT, 0)} must-absent, "
             f"{c.get(TOMBSTONE_VIOLATED, 0)} tombstone-violated, "
@@ -1451,8 +1520,8 @@ def render_digest(findings: list[ParityFinding], targets: list[RepoTarget],
         "ecosystem/parity-surfaces.yaml + ecosystem/dependency-baseline.yaml.",
         "Verdict grammar: AT-PARITY / PASS-declared / WARN-undeclared / MUST-absent /",
         "tombstone-violated (+ advisory-rewarn, stale-declaration, refused, unavailable,",
-        "skipped-pre-deploy, tracked-ephemera). Severity labels are REPORT labels;",
-        "process posture is WARN-only: this run gates nothing (section 9b).",
+        "skipped-pre-deploy, tracked-ephemera, gate-ahead-declared). Severity labels are",
+        "REPORT labels; process posture is WARN-only: this run gates nothing (section 9b).",
         "",
         "## Targets",
         "",
@@ -1469,7 +1538,8 @@ def render_digest(findings: list[ParityFinding], targets: list[RepoTarget],
     lines += ["", "## Findings (non-at-parity first)", ""]
     order = {MUST_ABSENT: 0, TOMBSTONE_VIOLATED: 1, WARN_UNDECLARED: 2,
              TRACKED_EPHEMERA: 3, ADVISORY_REWARN: 4, STALE_DECLARATION: 5, REFUSED: 6,
-             UNAVAILABLE: 7, SKIPPED_PRE_DEPLOY: 8, PASS_DECLARED: 9, AT_PARITY: 10}
+             UNAVAILABLE: 7, SKIPPED_PRE_DEPLOY: 8, GATE_AHEAD_DECLARED: 9,
+             PASS_DECLARED: 10, AT_PARITY: 11}
     for f in sorted(findings, key=lambda f: (order.get(f.verdict, 99), f.repo_id,
                                              f.surface_id, f.evidence)):
         if f.verdict == AT_PARITY:
