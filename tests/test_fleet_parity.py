@@ -949,6 +949,12 @@ def test_gate_rev_ahead_malformed_declaration_is_loader_refusal(tmp_path):
         {"cons": {"reason": "r", "provenance": ok_prov}},                 # missing gate_tag
         {"cons": {"gate_tag": "v1", "reason": " ", "provenance": ok_prov}},  # blank reason
         {"ghost": {"gate_tag": "v1", "reason": "r", "provenance": ok_prov}},  # key not in fleet
+        {"cons": {"gate_tag": "v1", "reason": "r", "provenance": "not-a-list"}},  # provenance not a list
+        {"cons": {"gate_tag": "v1", "reason": "r",
+                  "provenance": [{"kind": "  ", "repo": "r", "ref": "x"}]}},  # whitespace field
+        {"cons": {"gate_tag": "v1", "reason": "r",
+                  "provenance": [{"kind": 1, "repo": "r", "ref": "x"}]}},     # non-string field
+        {"cons": {"gate_tag": 1.3, "reason": "r", "provenance": ok_prov}},    # non-string gate_tag
     ]
     for i, gra in enumerate(cases):
         m = _loaded(tmp_path / f"case{i}", fleet, [_row(gra), good])

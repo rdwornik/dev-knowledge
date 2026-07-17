@@ -202,6 +202,12 @@ _PROBE_REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
 }
 
 
+def _nonblank(v) -> bool:
+    """A non-blank string -- the declaration-grammar field predicate (ADR-102). A
+    whitespace-only or non-string value is not meaningful, auditable evidence."""
+    return isinstance(v, str) and bool(v.strip())
+
+
 def load_manifest(path: Path) -> tuple[dict, list[ParityFinding]]:
     """Parse + validate the parity manifest. Structural unusability raises
     ManifestUnreadable (exit-2 class); a malformed individual ROW yields a refusal
@@ -271,13 +277,12 @@ def load_manifest(path: Path) -> tuple[dict, list[ParityFinding]]:
                 for rk, entry in gra.items():
                     if rk not in fleet:
                         gra_bad = f"gate_rev_ahead key '{rk}' is not a fleet repo"
-                    elif not isinstance(entry, dict) or not entry.get("gate_tag") \
-                            or not (isinstance(entry.get("reason"), str)
-                                    and entry["reason"].strip()) \
+                    elif not isinstance(entry, dict) or not _nonblank(entry.get("gate_tag")) \
+                            or not _nonblank(entry.get("reason")) \
                             or not (isinstance(entry.get("provenance"), list)
                                     and entry["provenance"]) \
-                            or not all(isinstance(p, dict) and p.get("kind")
-                                       and p.get("repo") and p.get("ref")
+                            or not all(isinstance(p, dict) and _nonblank(p.get("kind"))
+                                       and _nonblank(p.get("repo")) and _nonblank(p.get("ref"))
                                        for p in entry["provenance"]):
                         gra_bad = (f"gate_rev_ahead[{rk}] malformed -- needs gate_tag + "
                                    f"non-blank reason + provenance list of "
