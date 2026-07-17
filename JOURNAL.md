@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-17 — CC (Opus 4.8, 1M): ratified ADR-102 Proposed → Accepted (ADR-94 in-place)
+
+**Did:** Ratified ADR-102 (parity enforcement-gate-rev axis) now the Council/architect leg cleared. Edited the ADR `**Status:**` line in place Proposed → Accepted (ADR-94 status-line-only exception) and dropped the `**Proposed** — ` prefix from its `docs/decisions/README.md` `## ADR Index` row; regenerated `.claude/generated/recent-adrs.md` (the generator reads the ADR Status line, so it flipped to `(Accepted, …)`).
+
+**Result:** 3 files / 3 lines. All pre-commit gates green (incl. `claude-rosters-freshness`); `audit.py health` → `health: OK` (14 pre-existing WARNs, 0 new from this arc). No decision content touched; scope held to the ratification diff.
+
+**Changes:** `docs/decisions/ADR-102-parity-gate-rev-axis.md` (Status line), `docs/decisions/README.md` (index-row prefix), `.claude/generated/recent-adrs.md` (regen). Branch `docs/ratify-adr-102`: `fcaf888` → merged `--no-ff` `4de214e`.
+
+**Abandoned:** none.
+
+**Next:** push `main` to `origin` when the operator is ready (merge is local only). [#337] blocking-promotion stays un-gated.
+
 ### 2026-07-17 — CC (Opus 4.8, 1M): ARC 1 [#336] — parity-surfaces enforcement-gate-rev axis (ADR-102); the sole standing fleet_parity WARN cleared honestly
 
 **Did:** Built the ADR-102 **enforcement-gate-rev axis** resolving [#336] (the census's sole live WARN): corp's `precommit-hub-block` pin `v1.3.1` (gate uplift) vs corpus `source_tag` `v1.2.0` was a MUST/non-waivable, undeclarable WARN. Modelled the gate rev **separately** from corpus `source_tag` via a **hub-owned `gate_rev_ahead` declaration** on the surface row in `ecosystem/parity-surfaces.yaml` (v1.0.0→1.1.0) — a **refinement of the MUST fidelity predicate, never a waiver** (never routes through `_pass_or_declare`/`.methodology.yaml`): blessed to a distinct `GATE_AHEAD_DECLARED` (SEV_INFO, visible in the summary line) only when the pin is a **proven strict descendant** of the corpus tag (`C anc-of G` AND `G not anc-of C`), tag ancestor of hub HEAD, required hook ids present. Loader now **refuses** `waivable:true` on MUST/INVERSE + a malformed `gate_rev_ahead`. Inert decl (corpus caught up) → visible `STALE_DECLARATION`. Reusable `value/reason/provenance` grammar for [#316] (ownership enum stays #316 scope). **Codex lane:** sol adversarial derivation BEFORE the plan (converged independently on schema-home / non-waiver / ancestry-direction / successor-ADR); terra pre-merge — **3 rounds, 3 HIGH found + fixed** (strict-ancestry alias hole, malformed-decl crash/grammar, provenance-field truthiness), round-3 **CLEAN**. Deferred max-fidelity items filed [#342].
