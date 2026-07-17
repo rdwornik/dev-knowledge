@@ -259,6 +259,34 @@ def load_manifest(path: Path) -> tuple[dict, list[ParityFinding]]:
                 label, "waivable: true on a MUST/INVERSE row -- a necessary condition "
                        "is never waivable (ADR-102 loader refusal)"))
             continue
+        gra = row.get("gate_rev_ahead")
+        if gra is not None:
+            # ADR-102: validate the gate-ahead declaration SHAPE at load -- a malformed
+            # entry is refused (row skipped), never crashes collect_facts and never
+            # blesses a MUST mismatch without the mandatory reason + provenance.
+            gra_bad = None
+            if not isinstance(gra, dict) or not gra:
+                gra_bad = "gate_rev_ahead must be a non-empty repo-id map"
+            else:
+                for rk, entry in gra.items():
+                    if rk not in fleet:
+                        gra_bad = f"gate_rev_ahead key '{rk}' is not a fleet repo"
+                    elif not isinstance(entry, dict) or not entry.get("gate_tag") \
+                            or not (isinstance(entry.get("reason"), str)
+                                    and entry["reason"].strip()) \
+                            or not (isinstance(entry.get("provenance"), list)
+                                    and entry["provenance"]) \
+                            or not all(isinstance(p, dict) and p.get("kind")
+                                       and p.get("repo") and p.get("ref")
+                                       for p in entry["provenance"]):
+                        gra_bad = (f"gate_rev_ahead[{rk}] malformed -- needs gate_tag + "
+                                   f"non-blank reason + provenance list of "
+                                   f"{{kind, repo, ref}} (ADR-102)")
+                    if gra_bad:
+                        break
+            if gra_bad is not None:
+                refusals.append(_refusal(label, gra_bad))
+                continue
         probe = row.get("probe")
         if not isinstance(probe, dict) or not probe.get("type"):
             refusals.append(_refusal(label, "probe: must be a mapping with a type"))
@@ -526,16 +554,23 @@ def collect_facts(target: RepoTarget, manifest: dict, baseline: dict,
                         anc_rc, _ = _git(["merge-base", "--is-ancestor",
                                           f"refs/tags/{hit['rev']}", "HEAD"], hub_root)
                         res["tag_is_ancestor"] = anc_rc == 0
-                    # ADR-102 gate-ahead: is the corpus source_tag a STRICT ancestor of
-                    # the actual pin? (C ancestor-of G, G != C) -- the "gate strictly
-                    # ahead of corpus" predicate, computed only when a gate_rev_ahead
+                    # ADR-102 gate-ahead: is the actual pin STRICTLY ahead of the corpus
+                    # source_tag? strictly-ahead = C is an ancestor of G AND G is NOT an
+                    # ancestor of C. The second leg matters: `merge-base --is-ancestor` is
+                    # REFLEXIVE, so two differently-NAMED tags on the SAME commit (an
+                    # alias) are EQUAL, never ahead -- name inequality alone would misbless
+                    # (terra HIGH 2026-07-17). Computed only when a gate_rev_ahead
                     # declaration exists for this repo (else the field stays absent).
-                    if (row.get("gate_rev_ahead") or {}).get(target.repo_id) \
-                            and hit["rev"] != source_tag:
+                    if (isinstance(row.get("gate_rev_ahead"), dict)
+                            and row["gate_rev_ahead"].get(target.repo_id)
+                            and hit["rev"] != source_tag):
                         ca_rc, _ = _git(["merge-base", "--is-ancestor",
                                          f"refs/tags/{source_tag}",
                                          f"refs/tags/{hit['rev']}"], hub_root)
-                        res["corpus_is_ancestor_of_rev"] = ca_rc == 0
+                        cd_rc, _ = _git(["merge-base", "--is-ancestor",
+                                         f"refs/tags/{hit['rev']}",
+                                         f"refs/tags/{source_tag}"], hub_root)
+                        res["gate_strictly_ahead"] = (ca_rc == 0 and cd_rc != 0)
         elif ptype == "settings_hook":
             token = _local_token(row, target.repo_id, probe["token"])
             cmds = settings_by_event.get(probe["event"], [])
@@ -1145,7 +1180,7 @@ def _gate_ahead_ok(row: dict, target: RepoTarget, res: dict) -> bool:
         and res.get("rev") == gate_tag             # A == G (declared gate == actual pin)
         and res.get("tag_exists_in_hub")           # G is a real hub tag
         and res.get("tag_is_ancestor")             # G ancestor-of hub HEAD
-        and res.get("corpus_is_ancestor_of_rev")   # C ancestor-of G, G != C (strictly ahead)
+        and res.get("gate_strictly_ahead")         # C ancestor-of G AND G not ancestor-of C
         and not res.get("missing_hook_ids"))       # required hook ids present
 
 

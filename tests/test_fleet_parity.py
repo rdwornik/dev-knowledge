@@ -915,6 +915,47 @@ def test_gate_ahead_schema_does_not_break_registry_crosscheck(tmp_path):
     assert all(f.verdict == fp.REFUSED for f in findings)
 
 
+def test_gate_ahead_alias_tag_same_commit_still_warns(tmp_path):
+    # terra HIGH (2026-07-17): two DIFFERENTLY-NAMED tags on the SAME commit are EQUAL,
+    # never ahead -- `merge-base --is-ancestor` is REFLEXIVE, so tag-name inequality alone
+    # must NOT bless. Requires the strict predicate (C anc G AND G NOT anc C).
+    hub = _init_repo(tmp_path / "hub", dict(_BASE_FILES))
+    _git(["tag", "v1.2.0"], hub)
+    _git(["tag", "v1.2.0-alias"], hub)          # SAME commit, different name
+    cons = _gate_cons(tmp_path, pin="v1.2.0-alias")
+    f = _gate_finding(tmp_path, hub, cons, _gate_row(gate_tag="v1.2.0-alias"),
+                      corpus="v1.2.0")
+    assert f.verdict == fp.WARN_UNDECLARED       # equal-by-commit, not strictly ahead
+
+
+def test_gate_rev_ahead_malformed_declaration_is_loader_refusal(tmp_path):
+    # terra HIGH (2026-07-17): a malformed gate_rev_ahead is refused at LOAD -- it never
+    # crashes collect_facts and never blesses a MUST mismatch without reason+provenance.
+    fleet = {"hub-r": {"role": "hub"}, "cons": {"role": "consumer"}}
+    probe = {"type": "precommit_remote", "repo_token": "dev-knowledge",
+             "expected_rev_from": "deployed-versions"}
+    good = {"id": "ok", "kind": "path", "tier": {"hub": "MUST"},
+            "probe": {"type": "path_tracked", "path": "VISION.md"}}
+
+    def _row(gra):
+        return {"id": "precommit-hub-block", "kind": "precommit-hook",
+                "tier": {"consumer": "MUST"}, "probe": dict(probe),
+                "gate_rev_ahead": gra}
+
+    ok_prov = [{"kind": "git-tag", "repo": ".dev-knowledge", "ref": "v1"}]
+    cases = [
+        "not-a-mapping",                                              # truthy non-dict (crash guard)
+        {"cons": {"gate_tag": "v1", "reason": "r", "provenance": [{}]}},   # bad provenance item
+        {"cons": {"reason": "r", "provenance": ok_prov}},                 # missing gate_tag
+        {"cons": {"gate_tag": "v1", "reason": " ", "provenance": ok_prov}},  # blank reason
+        {"ghost": {"gate_tag": "v1", "reason": "r", "provenance": ok_prov}},  # key not in fleet
+    ]
+    for i, gra in enumerate(cases):
+        m = _loaded(tmp_path / f"case{i}", fleet, [_row(gra), good])
+        assert any(f.verdict == fp.REFUSED for f in m["_refusals"]), gra
+        assert [r["id"] for r in m["surfaces"]] == ["ok"]   # bad row skipped, good survives
+
+
 def test_ruff_config_form_is_representation_only(tmp_path):
     # W3-14 / intake #12 Tier-3 convergence candidate: the FORM is evidence, never a
     # verdict -- pyproject vs .ruff.toml both read AT-PARITY with the form named.
