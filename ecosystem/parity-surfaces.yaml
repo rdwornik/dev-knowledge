@@ -8,7 +8,7 @@
 #
 # Version line below is nudge-parseable (validate_reconciliation._VERSION_LINE_RE,
 # IGNORECASE): bump it when surface semantics change.
-version: 1.0.0
+version: 1.1.0
 #
 # GRAMMAR
 #   fleet:      every ecosystem/deployed-versions.yaml registry key MUST appear here
@@ -60,12 +60,28 @@ version: 1.0.0
 #                                     manifest component (status: removed); the checker
 #                                     cross-checks and REFUSES on mismatch/ambiguity
 #                                     (FR-5; never an action proposal).
+#               gate_rev_ahead:    -- ADR-102: precommit_remote MUST rows only. repo-id ->
+#                                     {gate_tag, reason (MANDATORY), provenance (MANDATORY
+#                                     list of {kind, repo, ref})}. "declared" = a HUB
+#                                     manifest expectation, NOT a .methodology.yaml waiver.
+#                                     REFINES the MUST fidelity predicate (the enforcement
+#                                     gate is legitimately ahead of the deployed corpus
+#                                     source_tag): a proven strict-descendant gate ->
+#                                     GATE_AHEAD_DECLARED; it NEVER waives the MUST. No
+#                                     review_date -- self-invalidating (corpus catch-up ->
+#                                     inert decl surfaces STALE_DECLARATION). The reusable
+#                                     value/reason/provenance grammar #316 adopts (its
+#                                     ownership enum is #316 scope, not defined here).
+#                                     waivable: true on a MUST/INVERSE row is a loader
+#                                     REFUSAL (a necessary condition is never waivable).
 #
 # The intake-#12 nightly decision tree is the verdict algorithm; verdict vocabulary =
 # register grammar: AT-PARITY | PASS-declared | WARN-undeclared | MUST-absent |
 # tombstone-violated (+ advisory-rewarn | stale-declaration | refused | unavailable |
-# skipped-pre-deploy | tracked-ephemera). WARN-only v1: severity labels are REPORT
-# labels; the checker never blocks and never mutates (ADR-28/36 Layer-2 posture).
+# skipped-pre-deploy | tracked-ephemera | gate-ahead-declared). WARN-only v1: severity
+# labels are REPORT labels; the checker never blocks and never mutates (ADR-28/36
+# Layer-2 posture). gate-ahead-declared (ADR-102) is an at-parity-FAMILY info state --
+# a proven enforcement-gate-ahead split, NOT a PASS-declared/waiver outcome.
 
 fleet:
   .dev-knowledge: {role: hub}
@@ -232,6 +248,27 @@ surfaces:
     probe: {type: precommit_remote, repo_token: dev-knowledge,
             expected_rev_from: deployed-versions, ancestry: true,
             required_hook_ids: [backlog-id-on-close, block-ff-push]}
+    # gate_rev_ahead (ADR-102): the enforcement gate is legitimately uplifted AHEAD of
+    # the deployed corpus source_tag. A hub-owned expectation (NOT a .methodology.yaml
+    # waiver) -- a REFINEMENT of the MUST fidelity predicate, never a waiver. Blessed to
+    # GATE_AHEAD_DECLARED only when the pin is a proven STRICT DESCENDANT of the corpus
+    # tag (C ancestor-of G, G ancestor-of hub HEAD, G != C) carrying the required hook
+    # ids; anything else (absent / behind / broken / undeclared) stays the MUST error.
+    gate_rev_ahead:
+      corp-monorepo:
+        gate_tag: v1.3.1
+        reason: >-
+          Enforcement gate uplifted ahead of corpus: block-ff-push +
+          backlog-id-on-close (#318/#319 range-reconstruction fixes) landed in
+          corp's dev-knowledge hub-block pin, while corp's corpus body stays at
+          v1.2.0 -- a full redeploy would re-append the codemap-freshness hook
+          corp removed (#276 unlanded), and record-stamping v1.3.1 would
+          over-claim a corpus that was never deployed. Strictly ahead of corpus,
+          not a pin-revert.
+        provenance:
+          - {kind: git-tag, repo: .dev-knowledge, ref: v1.3.1}
+          - {kind: git-commit, repo: corp-monorepo, ref: efe5bd1}
+          - {kind: backlog, repo: .dev-knowledge, ref: "#336"}
 
   # ---- Tier-1: consumer-only MUSTs + inverse rules -------------------------------------
   - id: install-md
