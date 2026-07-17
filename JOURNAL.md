@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-17 — CC (Opus 4.8, 1M): ADR-29 chronological legacy-split RATIFIED (Stage-2 atomic canon reconciliation, [#339 sanction])
+
+**Did:** Executed the operator-ruled (core-invariant #6) Stage-2 atomic canon-edit set ratifying ADR-29's 2026-07-17 chronological legacy-archival split amendment. Six items, one branch: (1) ADR-29 **append-marker** ratification (H3 form — Proposed → Accepted by *append*, NOT in-place; the L60 "Proposed" line untouched); (2) CLAUDE.md §4/§5/§10 LESSONS-only archival exception — §5 record 1 + §10 are `owner=hub` → their `templates/claude-regions/{critical-rules-records,antipatterns-universal}.md` extracts edited in lockstep (byte-match); (3) ARCHITECTURE.md L107 + Ch5 table row; (4) PLAYBOOK.md by-topic-split → chronological-split + entry-count threshold (L3258) + registry row (L922); (5) ADR-39 appended six-element `LESSONS-legacy-<span>.md` registry entry (the H2 prerequisite); (6) README ADR-29 row annotation. `logs/TOKEN-LOG.md`/JOURNAL append-only + ADR/transcript/handoff/audit immutability preserved unchanged. Stage-1 **D5**: #300(d.iii) audit-class grammar is **COVERED** by ADR-101 (§2 tagged "(d.iii)" + R3 closed-enum + R4 casing/R5 header).
+
+**Result:** ship-gate GREEN; `canonical_freshness` 8/8 fresh (CLAUDE.md + ARCHITECTURE.md `last_reviewed` re-stamped 2026-07-17); no new `doc_rot` WARN (§12 v2.42 folded into the v2.41 bullet — count held at 11; CLAUDE L10 2.41→2.42). **LESSONS.md content UNMOVED** (241 < 300; the archival move is [#339]'s build leg). Full pytest green.
+
+**Concurrent-session incident (recovered non-destructively):** a parallel `ai-council-P6-handoff` session sharing this checkout switched branches out from under me (`docs/339` → `main` → its own branch → `--no-ff` merge `ee61dff9`, pushed to origin), so my reconciliation commit `95c195bb` landed DIRECT on `main` (core-invariant #5 violation). Recovered: relocated `95c195bb` to `docs/339` (`checkout -B`), restored `main` to `origin/main=ee61dff9` (`branch -f`; NO `reset --hard`, no work lost), then integrated this arc via `--no-ff`. The parallel session's `ee61dff9` merge is legitimate and left untouched.
+
+**Changes:** `CLAUDE.md`, `ARCHITECTURE.md`, `protocols/PLAYBOOK.md`, `docs/decisions/{ADR-29,ADR-39,README}.md`, `templates/claude-regions/{critical-rules-records,antipatterns-universal}.md`. Branch `docs/339-adr29-sanction-ratification`: `95c195bb` (reconciliation) → this JOURNAL anchor → `--no-ff` merge `[#339 sanction]`.
+
+**Abandoned:** none.
+
+**Next:** #339 stays **OPEN** — its build leg (split-execution + the A2 byte-identity helper, gated on the ~300-entry threshold) is a separate prompt; do NOT create `LESSONS-legacy-*.md` until the ADR-39 entry (now landed) + the A2 helper exist.
+
+---
+
 ### 2026-07-17 — CC (Opus 4.8, 1M): ARC 3 — #316 ownership + REASON axis (parity-surfaces enrichment, ADR-103)
 
 **Did:** Gave every governed parity surface its WHY (#316 "answers for everything, tracked"). Added a per-entry `ownership` axis to `ecosystem/parity-surfaces.yaml` adopting the ADR-102 `value/reason/provenance` declaration grammar **verbatim** (shared grammar, separate axes). Landed **ADR-103 Accepted in-arc** (architect ratification ruling; skips the Proposed interim). Extracted the shared `_declaration_bad` predicate so gate_rev_ahead (ADR-102) + ownership (ADR-103) can't fork. Classified **all 73 surface rows** {methodology-generic:52 · project:9 · conditional:12} with a per-row reason + provenance; taught the loader to **refuse** a missing/malformed ownership block (mandatory on every row) and added an ownership tally to the `[fleet-parity]` summary/digest (the #329 management surface). **Architect corrections folded:** #337 is OPEN (blocking-promotion sequenced AFTER this arc); this arc stays **WARN-only** per ADR-102 §Consequences. 5 borderline rows (settings-local-blocks/github-ci/token-log/ruff-gate/ai-env-ignored) flagged inline for the sol/terra table review — none locked yet.

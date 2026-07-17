@@ -919,7 +919,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `PLAYBOOK.md` | Universal protocols, this file | Sectioned, scope-tagged, versioned | Per Stream B implementation gaps | Rob + Claude (browser + Code) | Living + section history | Universal (`.dev-knowledge` only) |
 | `JOURNAL.md` | Tactical per-session log | Append-only, dated entries: Did/Failed/Next | Every Claude Code session | Future Claude Code (last 5 entries on startup) | Newest-first prepend | Per-repo (optional; kept when a repo benefits from a per-session log) |
 | `CHANGELOG.md` | RETIRED ecosystem-wide (ADR-49) — git history + JOURNAL `Changes:` line replace it; row kept for legacy context | Newest-first dated entries | n/a | — | n/a | Removed |
-| `LESSONS.md` | Process lessons learned | Append-only with `[scope: X]` inline (per ADR-29) | When new lesson emerges (auto-promote at 2× repeat) | Rob, future Claude | Append-only | Universal (`.dev-knowledge` only) |
+| `LESSONS.md` | Process lessons learned | Append-only with `[scope: X]` inline (per ADR-29) | When new lesson emerges (auto-promote at 2× repeat) | Rob, future Claude | Append-only (chronological legacy-archival split option per ADR-29 amend. 2026-07-17) | Universal (`.dev-knowledge` only) |
 | `logs/TOKEN-LOG.md` | Claude usage snapshots | Threshold-triggered (7-day) via /session-summary | Auto when stale | Rob | Newest-first (prepend) | Universal (`.dev-knowledge` only) |
 | `ENVIRONMENT.md` | Tooling state, what's installed | Sectioned, scope-tagged | When tool adopted/deprecated | Rob, Claude Code | Living (sections updated) | Per-repo |
 | `docs/decisions/ADR-NN-*.md` | Architectural decisions | Michael Nygard format | When decision binds | Rob, future contributors | Numbered, immutable (amend in-place per ADR-29) | Per-repo |
@@ -3255,7 +3255,7 @@ If a client engagement generates a dev lesson, strip all client names, proprieta
 <!-- scope: meta -->
 
 - **`.dev-knowledge/` navigation overhead emerges** (cross-file search starts feeling slow; new files don't slot into an obvious folder) → evaluate creating a dedicated Obsidian DevVault
-- **LESSONS.md becomes hard to navigate by topic** → split into topic files
+- **LESSONS.md outgrows single-file navigation (size/age)** → **chronological legacy-archival split** (ADR-29 amend. 2026-07-17): relocate the oldest contiguous by-date block **byte-identical** into a dated `LESSONS-legacy-<span>.md`, pointer left behind, when the active file exceeds the entry-count threshold (recommended dial ~300 entries → archive to ≤~180). NOT a by-topic / by-scope split — that stays **rejected** (ADR-29); the `[scope: X]` inline field handles topic filtering.
 - Rob opens Obsidian to search for dev methodology → immediate signal DevVault is needed
 
 > Triggers, not caps. See LESSONS.md 2026-04-28 entry "Distinguish triggers from limits."
