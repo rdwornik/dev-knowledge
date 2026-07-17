@@ -327,7 +327,7 @@ The open way-of-working questions, in rough dependency order. These are **decisi
 
 **3. LESSONS lifecycle — the ADR-29 reconciliation (`#339`, E3/S9).** The ruling (recorded in `LESSONS.md`, 2026-07-16) proposes a **chronological** legacy split (move a contiguous older block byte-unchanged into `LESSONS-legacy-<period>.md`, leave a pointer) — which is **distinct from the by-topic split ADR-29 rejected**, so it stays UNsanctioned until ADR-29 is formally amended/superseded. **Decisions:** (i) the split *threshold* — a hard line/entry count vs the softer navigation-pain trigger; (ii) whether a read-only helper enumerates the split boundary; (iii) draft the ADR-29 amendment that sanctions chronological-but-not-topical archival. This is the append-only-record doctrine (ADR-29/39) meeting a real navigation-scale problem.
 
-**4. codex-review consolidation — the global-infra question (`#338`, E7).** Five folded items; the load-bearing one is **(c): bring `~/.claude/bin/codex-review.ps1` + the `/codex-review` command under version control / a deploy carrier.** This is per-machine, un-versioned global infra → it needs a **core-invariant #6 ruling** (global-infra edits are exception-with-ruling, never unilateral). The meta-question: *how does fleet methodology take ownership of per-machine Claude Code runtime config* — the same class as `#289` (OneDrive-guard should be hub-owned). Also live: (a) config default `sol` vs doctrine `terra` (because the code path passes no `-m`), and (e) the `.ps1` sandbox-halt vs the native `codex exec review --base` path.
+**4. codex-review consolidation — the global-infra question (`#338`, E7).** Five folded items; the load-bearing one is **(c): bring `~/.claude/bin/codex-review.ps1` + the `/codex-review` command under version control / a deploy carrier.** This is per-machine, un-versioned global infra → it needs a **core-invariant #6 ruling** (global-infra edits are exception-with-ruling, never unilateral). The meta-question: *how does fleet methodology take ownership of per-machine Claude Code runtime config* — the same class as `#289` (OneDrive-guard should be hub-owned). Also live: (a) config default `sol` vs doctrine `terra` (because the code path passes no `-m`), and (e) the `.ps1` sandbox-halt vs the native `codex exec review --base` path. **Producer axis (landed 2026-07-17, ai-council role-governance feedback — folded here post-generation):** PLAYBOOK §16 now ratifies **R1** (the global Codex config is HUB-OWNED, core-invariant #6), reconciles **R4** (the EPIC-H producer lane is charter-only — not activatable while the global config fixes Codex read-only), and codifies **R5** (interim: Codex specifies under a bounded prompt → CC implements → terra read-only review pre-merge, per ai-council #30). The producer **mechanism** — repo-local `AGENTS.md` precedence (witnessed, never assumed), per-invocation activation *without* global-infra edits, and the producer guardrails — is `#341`, distinct from `#338`'s reviewer path. **Open fork inside `#341`:** a per-run codex profile/flag vs a sanctioned repo-local `AGENTS.md` override, decided from witnessed precedence evidence.
 
 **Cross-cutting:** the through-line is the ecosystem crossing from **hub-only enforcement to a fleet/satellite mesh** (ADR-28 Layer-2 governing all of `Dev/`). Questions 1, 2, and 4 are all facets of "how does the hub's methodology reach and stay in-sync with N consumers without the hub reaching into their trees." A standing older thread worth a decision if bandwidth allows: **`#162`/S1** — the "architect" actor-vs-mode vocab collision is still live (the model decision, not just the boot-ack slice).
 <!-- FILL-IN:frontier END -->
@@ -476,7 +476,14 @@ with a per-entry reason: field (the operator's "answers for everything,
 tracked" — recommended: fold it in). Satellite prompts (intake #15) ready,
 UNFIRED — operator fires per rollout order. #338/#339 scheduling; W3-13
 operator-present. BACKLOG grooming probe: operator wants every open item
-verified live / dead / awaiting-ruling at next boot.
+verified live / dead / awaiting-ruling at next boot. · **[CC addendum,
+2026-07-17 corrective micro-arc]** Codex dual-role mechanism design (#341,
+the R2 fork): producer-activation path undecided — a per-run codex
+profile/flag vs a sanctioned repo-local AGENTS.md override; decide from
+WITNESSED AGENTS.md-precedence evidence, never assumed. Producer guardrails
+are operator-sanctioned standing (isolated branch · bounded prompt · no-commit
+· CC verifies · terra pre-merge · Windows danger-full-access = operator-owned
+risk, never re-ask); the R5 interim fallback is live now.
 
 5. DECOMPOSITION RATIONALE — serialize around the manifest (both #336 and
 #316 touch parity-surfaces.yaml): (1) #336 schema remodel → clears the sole
@@ -503,3 +510,14 @@ sessions (operator reminded to reset after high-effort night runs).
 Operator hard rule (new, 2026-07-16): zero invented filesystem paths —
 every emitted path must come from a quoted governance source or be
 delegated to CC to derive from primary sources; hyphen-only naming.
+· **[CC addendum, 2026-07-17 corrective micro-arc]** ai-council 2026-07-17
+Codex role-governance feedback (R1–R5) received and reconciled this morning:
+**R1** (the global Codex config `~/.codex/AGENTS.md` + `config.toml` is
+HUB-OWNED, a core-invariant #6 surface) RATIFIED into PLAYBOOK §16; **R4**
+(the global config currently fixes Codex as read-only reviewer → the EPIC-H
+producer lane is NOT activatable as written today) reconciled; **R5** interim
+producer-lane fallback (Codex specifies under a bounded prompt → CC implements
+→ terra read-only review pre-merge, as executed ai-council #30) CODIFIED — all
+landed in PLAYBOOK §16 this morning; the R2+R3 producer *mechanism* is ticketed
+as #341 (distinct from #338's reviewer-path drift). Terra doc-lane review of
+the change surfaced 1 High (design-advisory boundary), resolved pre-merge.
