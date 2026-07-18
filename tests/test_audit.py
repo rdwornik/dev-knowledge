@@ -2146,7 +2146,7 @@ def test_import_edges_live_repo_passes_and_is_registered() -> None:
     f = aud.check_import_edges(Path(aud._REPO_ROOT))[0]
     assert f.status == "pass", f.evidence
     assert aud.check_import_edges in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 29
+    assert len(aud.ALL_CHECKS) == 30  # 29 -> 30: check_fleet_parity added ([#337], 2026-07-18)
 
 
 def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
@@ -2156,3 +2156,60 @@ def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
     state = aud.audit_repo("tmp", tmp_path, date(2026, 7, 6))
     edge = [f for f in state.findings if f.check_name == "import_edges"]
     assert edge and edge[0].status == "fail"
+
+
+# --- [#337] fleet_parity as a blocking ALL_CHECKS member --------------------------------
+
+def test_fleet_parity_registered_in_all_checks():
+    assert "check_fleet_parity" in [c.__name__ for c in aud.ALL_CHECKS]
+    assert len(aud.ALL_CHECKS) == 30
+
+
+def test_fleet_parity_findings_maps_blocking_verdicts():
+    """The frozen-contract proof + the ruled verdict->status map: FAIL on
+    refused/must-absent/tombstone; WARN (undispositioned -> RED) on
+    undeclared/unavailable/tracked-ephemera; stale/advisory + info-family non-blocking."""
+    import fleet_parity as fp
+    fail_v = {fp.REFUSED, fp.MUST_ABSENT, fp.TOMBSTONE_VIOLATED}
+    warn_v = {fp.WARN_UNDECLARED, fp.UNAVAILABLE, fp.TRACKED_EPHEMERA}
+
+    def pf(verdict, sev=fp.SEV_WARN):
+        return fp.ParityFinding("cons", "surf", verdict, sev, "evidence text")
+
+    rows = [pf(fp.REFUSED), pf(fp.MUST_ABSENT), pf(fp.TOMBSTONE_VIOLATED),
+            pf(fp.WARN_UNDECLARED), pf(fp.UNAVAILABLE), pf(fp.TRACKED_EPHEMERA),
+            pf(fp.STALE_DECLARATION), pf(fp.ADVISORY_REWARN),
+            pf(fp.AT_PARITY, fp.SEV_INFO), pf(fp.PASS_DECLARED, fp.SEV_INFO),
+            pf(fp.GATE_AHEAD_DECLARED, fp.SEV_INFO)]
+    out = aud._fleet_parity_findings(rows, {"WARN-undeclared": 1}, fail_v, warn_v)
+    assert len([f for f in out if f.status == "fail"]) == 3   # refused/must-absent/tombstone
+    assert len([f for f in out if f.status == "warn"]) == 3   # undeclared/unavailable/ephemera
+    assert not [f for f in out if f.status == "pass"]         # blocking present -> no summary
+    assert len(out) == 6                                      # stale/advisory/info -> NO Finding
+    assert all(f.check_name == "fleet_parity" for f in out)
+
+
+def test_fleet_parity_findings_all_benign_one_visible_summary():
+    """No blocking row -> ONE summary `pass`; stale/advisory counts stay VISIBLE (not blocking)."""
+    import fleet_parity as fp
+    fail_v = {fp.REFUSED, fp.MUST_ABSENT, fp.TOMBSTONE_VIOLATED}
+    warn_v = {fp.WARN_UNDECLARED, fp.UNAVAILABLE, fp.TRACKED_EPHEMERA}
+    rows = [fp.ParityFinding("hub", "v", fp.AT_PARITY, fp.SEV_INFO, "ok"),
+            fp.ParityFinding("cons", "w", fp.STALE_DECLARATION, fp.SEV_WARN, "prune me")]
+    out = aud._fleet_parity_findings(rows, {"AT-PARITY": 161, "stale-declaration": 1},
+                                     fail_v, warn_v)
+    assert len(out) == 1 and out[0].status == "pass"
+    assert "stale-declaration 1" in out[0].evidence          # advisory stays visible
+
+
+def test_check_fleet_parity_hub_only(tmp_path):
+    out = aud.check_fleet_parity(tmp_path)                    # not the hub
+    assert len(out) == 1 and out[0].status == "pass" and "hub-only" in out[0].evidence
+
+
+def test_check_fleet_parity_green_on_live_repo():
+    """[#337] zero-WARN steady state, mechanized: no REAL blocking divergence on the live
+    fleet (promotion REDs nothing). Tolerates UNAVAILABLE (a sibling not checked out here)."""
+    out = aud.check_fleet_parity(aud._REPO_ROOT)
+    real = [f for f in out if f.status in ("fail", "warn") and "unavailable" not in f.evidence]
+    assert not real, f"live fleet not green: {[f.evidence for f in real]}"

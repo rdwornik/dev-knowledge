@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""fleet_parity.py -- the #328 fleet-parity checker (WARN-only v1; FR-3/FR-4/FR-5/FR-6).
+"""fleet_parity.py -- the #328 fleet-parity checker (FR-3/FR-4/FR-5/FR-6; a blocking ALL_CHECKS gate since [#337]).
 
 Deterministic, READ-ONLY conformance walk of the registered fleet against the versioned
 parity manifest ``ecosystem/parity-surfaces.yaml`` (FR-1/FR-2) + the dependency baseline
@@ -16,17 +16,16 @@ Verdict vocabulary = the register grammar (fleet-parity register section 9 / FR-
 ``AT-PARITY | PASS-declared | WARN-undeclared | MUST-absent | tombstone-violated`` plus
 the extension states ``advisory-rewarn | stale-declaration | refused | unavailable |
 skipped-pre-deploy | tracked-ephemera``. Severity labels (info|warn|error) are REPORT
-labels only -- the intake #12 severity model rendered honestly; the PROCESS posture is
-WARN-only v1 (section 9b, ADR-85 hardening pattern): a completed run ALWAYS exits 0,
-participates in NO gate verdict, and is deliberately NOT an ``audit.py`` ``ALL_CHECKS``
-member (``cmd_ship_gate`` REDs on any undispositioned WARN, so battery-wiring would
-create a de-facto blocking gate). As of the [#337] ruling it IS surfaced INFORMATIONALLY
-by ``cmd_ship_gate`` -- visible on every ship, but read by nothing in the verdict path;
-promotion to a blocking ``ALL_CHECKS`` check is tracked by [#337], gated on a TRUE
-zero-WARN steady state (waits for [#336] to land). Exit 2 ONLY when the
-manifest itself is unreadable / unparseable -- and then NO digest is written, so a
-broken contract can never render as a green "0 findings" (the never-silently-green
-rule, Codex FR-12).
+labels only -- the intake #12 severity model rendered honestly. The standalone CLI stays
+READ-ONLY and exit-0 (a completed run ALWAYS exits 0 whatever it finds; exit 2 ONLY when the
+manifest itself is unreadable / unparseable -- and then NO digest is written, so a broken
+contract can never render as a green "0 findings", the never-silently-green rule, Codex FR-12).
+Since [#337] (2026-07-18; [#336] having cleared the last standing WARN) the walk is ALSO a
+BLOCKING gate: ``audit.py::check_fleet_parity`` calls ``walk()`` in-process as an ``ALL_CHECKS``
+member and maps blocking verdicts to Findings -- FAIL on refused / must-absent /
+tombstone-violated; WARN->RED on warn-undeclared / unavailable / tracked-ephemera;
+stale-declaration + advisory-rewarn stay advisory-but-visible (never RED from a date/corpus
+advance). The gate reads the in-process ``walk()`` result, NEVER the CLI exit code.
 
 Extends -- never duplicates -- the existing machinery (FR-12):
   * ``enforcement_coverage`` is the ``.methodology.yaml`` authority: this module reuses
@@ -1620,7 +1619,8 @@ def render_digest(findings: list[ParityFinding], targets: list[RepoTarget],
                   unmapped: dict[str, list[str]],
                   ownership_counts: dict[str, int] | None = None) -> str:
     lines = [
-        "# Fleet parity -- #328 conformance walk (WARN-only v1)",
+        "# Fleet parity -- #328 conformance walk (read-only CLI; the ship-gate blocks via "
+        "audit.py::check_fleet_parity, [#337])",
         "",
         f"run_date: {run_date}",
         f"source_version: checker {versions['checker']} / manifest "
@@ -1631,7 +1631,8 @@ def render_digest(findings: list[ParityFinding], targets: list[RepoTarget],
         "Verdict grammar: AT-PARITY / PASS-declared / WARN-undeclared / MUST-absent /",
         "tombstone-violated (+ advisory-rewarn, stale-declaration, refused, unavailable,",
         "skipped-pre-deploy, tracked-ephemera, gate-ahead-declared). Severity labels are",
-        "REPORT labels; process posture is WARN-only: this run gates nothing (section 9b).",
+        "REPORT labels; the standalone CLI gates nothing, but audit.py::check_fleet_parity "
+        "gates the ship-gate on this walk (section 9b -> [#337]).",
         "",
         "## Targets",
         "",
@@ -1771,6 +1772,54 @@ def _parse_overrides(pairs: tuple[str, ...]) -> dict[str, Path]:
     return out
 
 
+@dataclass(frozen=True)
+class WalkResult:
+    """The in-process result of walk() -- reused by main() (CLI rendering/digest) and
+    audit.py::check_fleet_parity (the blocking ALL_CHECKS gate)."""
+    findings: list          # list[ParityFinding]
+    targets: list           # list[RepoTarget]
+    facts_by_repo: dict
+    allowlists: dict
+    consumed_by_repo: dict
+    manifest: dict
+    baseline: dict
+
+
+def walk(run_date: str, *, hub_root: "Path | None" = None,
+         manifest_path=DEFAULT_MANIFEST, baseline_path=DEFAULT_BASELINE,
+         registry_path=DEFAULT_REGISTRY, ecosystem_dir=DEFAULT_ECOSYSTEM_DIR,
+         only_repos: tuple = (), repo_roots: tuple = (),
+         deploy_manifest_path=None) -> WalkResult:
+    """Pure READ-ONLY fleet-parity walk: load_manifest/baseline -> resolve_fleet ->
+    per-target collect_facts -> verdicts(). The in-process seam reused by main() (the CLI,
+    which renders/writes the digest and exits) AND audit.py::check_fleet_parity (which maps the
+    findings to gating Findings). Raises ManifestUnreadable on an unreadable manifest -- main()
+    maps it to exit 2, the check maps it to a degraded WARN. run_date must be a valid YYYY-MM-DD
+    (the caller validates; the CLI does so before calling)."""
+    hub = Path(hub_root) if hub_root else _REPO_ROOT
+    manifest, refusals = load_manifest(Path(manifest_path))
+    baseline, base_refusals = load_baseline(Path(baseline_path))
+    refusals += base_refusals
+    targets, fleet_findings = resolve_fleet(manifest, hub, Path(registry_path),
+                                            Path(ecosystem_dir), _parse_overrides(repo_roots))
+    if only_repos:
+        targets = [t for t in targets if t.repo_id in set(only_repos)]
+    facts_by_repo: dict[str, dict] = {}
+    allowlists: dict[str, list] = {}
+    for t in targets:
+        if t.root is not None and t.role != "pre-deploy":
+            facts_by_repo[t.repo_id] = collect_facts(t, manifest, baseline, hub,
+                                                     Path(registry_path))
+            allowlists[t.repo_id] = ec.read_allowlist(t.root)
+    deploy_manifest = (ec._read_yaml(Path(deploy_manifest_path))
+                       if deploy_manifest_path else ec._latest_manifest())
+    verdict_findings, consumed_by_repo = verdicts(
+        manifest, baseline, targets, facts_by_repo, allowlists, deploy_manifest, run_date)
+    findings = refusals + fleet_findings + verdict_findings
+    return WalkResult(findings, targets, facts_by_repo, allowlists, consumed_by_repo,
+                      manifest, baseline)
+
+
 @click.command()
 @click.option("--run-date", required=True,
               help="Verdict run date YYYY-MM-DD -- a parameter, never wall-clock.")
@@ -1822,33 +1871,17 @@ def main(run_date: str, manifest_path: str, baseline_path: str, registry_path: s
                    f"YYYY-MM-DD date", err=True)
         sys.exit(2)
     try:
-        manifest, refusals = load_manifest(Path(manifest_path))
+        r = walk(run_date, hub_root=hub_root, manifest_path=manifest_path,
+                 baseline_path=baseline_path, registry_path=registry_path,
+                 ecosystem_dir=ecosystem_dir, only_repos=only_repos,
+                 repo_roots=repo_roots, deploy_manifest_path=deploy_manifest_path)
     except ManifestUnreadable as exc:
         click.echo(f"fleet-parity: REFUSED -- {_ascii(str(exc))}", err=True)
         sys.exit(2)
-    baseline, base_refusals = load_baseline(Path(baseline_path))
-    refusals += base_refusals
-
-    targets, fleet_findings = resolve_fleet(manifest, hub_root, Path(registry_path),
-                                            Path(ecosystem_dir),
-                                            _parse_overrides(repo_roots))
-    if only_repos:
-        targets = [t for t in targets if t.repo_id in set(only_repos)]
-
-    facts_by_repo: dict[str, dict] = {}
-    allowlists: dict[str, list] = {}
-    for t in targets:
-        if t.root is not None and t.role != "pre-deploy":
-            facts_by_repo[t.repo_id] = collect_facts(t, manifest, baseline, hub_root,
-                                                     Path(registry_path))
-            allowlists[t.repo_id] = ec.read_allowlist(t.root)
-
-    deploy_manifest = (ec._read_yaml(Path(deploy_manifest_path))
-                       if deploy_manifest_path else ec._latest_manifest())
-    verdict_findings, consumed_by_repo = verdicts(
-        manifest, baseline, targets, facts_by_repo, allowlists, deploy_manifest,
-        run_date)
-    findings = refusals + fleet_findings + verdict_findings
+    # rebind to the names the render/write/exit tail below already uses (extract-method, #337)
+    findings, targets = r.findings, r.targets
+    facts_by_repo, allowlists = r.facts_by_repo, r.allowlists
+    consumed_by_repo, manifest, baseline = r.consumed_by_repo, r.manifest, r.baseline
     unmapped = unmapped_declarations(manifest, targets, allowlists, consumed_by_repo)
     versions = {"checker": __version__, "manifest": str(manifest.get("version")),
                 "baseline": str(baseline.get("version", "-"))}
