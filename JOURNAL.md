@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-18 — CC (Opus 4.8, 1M): ARC 4 opening move — RULING-W codified into ADR-36 + ADR-41 (mechanism before act)
+
+**Did:** First consumer-leg step per RULING-W. Amended **ADR-36** (new `## Amendments` section, qualifies §Q5 read/write boundary) and **ADR-41** (appended, narrows the don't-touch-consumers guardrail) with the 2026-07-18 operator ruling **RULING-W quoted verbatim**: the hub MAY/SHOULD write into a consumer via a **separate worktree/branch → report**; never a direct push into a live consumer checkout; re-witness the consumer live first. Both carry **RULING-S** reader-visible Universal-rule / Repo-application subsections + a `#344 Ask-2` cross-reference; reconciled ADR-28 (no Layer-2 orchestration script added — the audit *tool* stays read-only, RULING-W is a distinct agent-mediated path). Narrowed the overbroad `seed_runbook.py` guardrail-narration line (docstring only, zero behavior). Annotated the README ADR-index rows. Then split the commit (prose vs code) so the ADR prose got a **gpt-5.6-terra doc-lane** codex review.
+
+**Result:** branch `docs/adr-36-41-ruling-w-hub-write-path`, 3 commits [`bf8527e`] prose · [`6e10ba4`] docstring · [`2f25039`] terra-review evidence — **NOT merged** (operator-gated serial `--no-ff`). Ship-gate GREEN (ruff clean · audit `health: OK` · full pytest **1595 passed / 3 skipped** on the byte-identical tree · codemap + audit-index ✓). Split tree verified **byte-identical** to the pre-split combined commit `ab52de2d`. **Terra doc-lane found 3 High** on the amendment prose (`#344 Ask-2` cross-ref is currently the opposite consumer→hub direction ×2; ADR-41 "seeder now sanctioned to fan out" contradicts the seeder's own still-deferred docstring) — **held for browser adjudication before merge; NOT fixed.**
+
+**Changes:** `docs/decisions/ADR-36-*.md`, `docs/decisions/ADR-41-*.md`, `docs/decisions/README.md`, `scripts/seed_runbook.py`; audit artifact `docs/audits/2026-07-18-codex-ruling-w-adr-amendment.md` + regenerated `docs/audits/README.md`. No BACKLOG structural change — no tracked task closed (#344 stays open; advisory gate n/a).
+
+**Abandoned:** none. `audit.py` L5 deliberately left untouched (tool-contract-scoped, still true).
+
+**Adjudicated [`bb519522`] + re-reviewed [`8c60e29`]:** operator ruled (Part A) — F1/F2 = neither broaden nor reframe; the amendment must NOT pre-decide #344's guard architecture (NEEDS-RULING, operator-owned), so the `#344 Ask-2` cross-ref became a **pure boundary constraint** ("whatever shape the guard takes, it MUST allow the RULING-W path and MUST block unmediated hub writes; design decided in #344, not here") in both ADRs. F3 = approved reword ("future consumer fan-out sanctioned only through this shape; the seeder itself remains deferred/single-target for now"). **terra doc-lane v2 = 0 findings** all bands; ship-gate GREEN (ruff · audit `health: OK`); ADR-only prose change, full suite unaffected (last green 1595/3 on the code-identical tree).
+
+**Next:** operator GO → serial `--no-ff` merge of `docs/adr-36-41-ruling-w-hub-write-path` from primary (Part B). Then Part C (plan mode): codify the two-tier new-path rule (pattern-sanctioned-with-citation vs unsanctioned-STOP; folders always gated) + machine-readable sanctioned-pattern registry, folded into the #344 guard design + fleet replication.
+
+---
+
 ### 2026-07-18 — CC (Opus 4.8, 1M): architect handoff cut — ARC 4 fleet-equalization bundle for the successor
 
 **Did:** Generated the HANDOFF_PROCESS v5 **architect-mode** bundle `docs/handoffs/2026-07-18-dev-knowledge-architect/` for the next `.dev-knowledge` architect session. Survivor re-verify first (`main` + `automation/fleet-audit`, primary worktree only, clean). Cut via `gen_handoff.py --mode architect`, then hand-filled: RESIDUAL (drift-flags — flagging `fleet_parity` as CHANGED-this-window to a blocking `ALL_CHECKS` member, and the #341 fork as now-closed by R2 / shipped-map / next-frontier), **SUPPLEMENT ANSWERS with the seven operator rulings transcribed VERBATIM** (RULING-W hub-writes-consumers-mechanism-first · RULING-S reader-visible sections · RULING-PY ruff py311 floor · RULING-CF ai-council conformance · #329 `.vscode` decoration · #341-R2 repo-local `AGENTS.md` override · satellite freeze), a hand-authored **PLAN.md** (#301 instance — ARC 4 plan-of-record + open queue #344/#341/#338/#339/#342/#343/#300 + 15 night-triage), and the HANDOFF_BOOT purpose. Re-assembled PASTE_THIS (rulings folded; assembler flipped cold→FILLED).

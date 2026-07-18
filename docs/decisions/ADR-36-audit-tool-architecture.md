@@ -313,3 +313,49 @@ manifest.json. Browser chat verifies repo HEAD before executing fixes
 - ADR-35 (lessons activation)
 - ADR-37 (session boundary protocol — two-phase handoff)
 - ADR-38 (universal repo architecture)
+
+## Amendments
+
+### 2026-07-18 — RULING-W: sanctioned hub→consumer write path (qualifies §Q5)
+
+- **Source:** Operator ruling **RULING-W**, 2026-07-18 architect supplement
+  (`docs/handoffs/2026-07-18-dev-knowledge-architect/SUPPLEMENT.md`, ANSWERS §BINDING
+  RULINGS). Quoted **verbatim** as the ruling source:
+
+  > RULING-W: hub MAY/SHOULD write into consumer repos for methodology/cleanup —
+  > separate worktree/branch, then report; FIRST step of any consumer leg = codify this
+  > as the ADR-36/41 amendment (mechanism before act).
+
+- **Decision tier:** Path A — records an operator-settled binding that qualifies an
+  existing hard constraint (§Q5 "Read/write boundary"); no Council convene.
+
+**Universal rule (fleet-wide).** The hub MAY and SHOULD write into a consumer repo for
+methodology/cleanup work. The **only sanctioned write shape** is:
+
+> **consumer worktree/branch → report** — the hub creates a **separate git worktree/branch
+> inside the consumer**, makes its edits there, then **reports**.
+
+Hard bounds on that shape:
+- **Never a direct push into a live consumer checkout** (no unmediated edit of the
+  consumer's working tree or a fast-forward onto its `main`).
+- **Re-witness the consumer live before any edit** — never act from a stale ledger of the
+  consumer's HEAD.
+- The consumer's own merge discipline governs integration of the branch (operator GO,
+  `--no-ff`), same as any change arc.
+
+**Cross-reference — #344 Ask-2 (pure boundary constraint, not a guard-architecture
+decision).** Whatever shape the #344 Ask-2 guard takes, it MUST allow exactly the RULING-W
+path (consumer worktree/branch → report) and MUST block unmediated hub writes into a live
+consumer checkout. The guard's design (unified vs sibling vs other) is decided in #344, not
+here — #344 is an explicit NEEDS-RULING item and that ruling belongs to the operator.
+
+**Repo application (.dev-knowledge hub).** §Q5's read-only contract is **narrowed, not
+revoked**: it still binds the audit **tool**. `audit.py` writes only to `.dev-knowledge`
+paths and never touches child-repo files (unchanged — no write path to child-repo paths is
+added). RULING-W is a **separate, agent-mediated write path**, distinct from the tool: a
+hub *session* using standard `git` in the consumer's own worktree, not the auditor and not
+a validator. This preserves ADR-28 (Layer-2 invariant): **no orchestration script is added
+to `.dev-knowledge`** — Layer 2 still resides no executable that drives child state; the
+write is performed by an agent in the consumer's tree, then reported back. §Q5's phrase
+"NEVER touches child repos" now reads: *the tool never touches child repos; a hub session
+may, only via the sanctioned worktree/branch → report shape above.*
