@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-18 — CC (Opus 4.8, 1M): architect handoff cut — ARC 4 fleet-equalization bundle for the successor
+
+**Did:** Generated the HANDOFF_PROCESS v5 **architect-mode** bundle `docs/handoffs/2026-07-18-dev-knowledge-architect/` for the next `.dev-knowledge` architect session. Survivor re-verify first (`main` + `automation/fleet-audit`, primary worktree only, clean). Cut via `gen_handoff.py --mode architect`, then hand-filled: RESIDUAL (drift-flags — flagging `fleet_parity` as CHANGED-this-window to a blocking `ALL_CHECKS` member, and the #341 fork as now-closed by R2 / shipped-map / next-frontier), **SUPPLEMENT ANSWERS with the seven operator rulings transcribed VERBATIM** (RULING-W hub-writes-consumers-mechanism-first · RULING-S reader-visible sections · RULING-PY ruff py311 floor · RULING-CF ai-council conformance · #329 `.vscode` decoration · #341-R2 repo-local `AGENTS.md` override · satellite freeze), a hand-authored **PLAN.md** (#301 instance — ARC 4 plan-of-record + open queue #344/#341/#338/#339/#342/#343/#300 + 15 night-triage), and the HANDOFF_BOOT purpose. Re-assembled PASTE_THIS (rulings folded; assembler flipped cold→FILLED).
+
+**Result:** bundle committed on `docs/handoff-dev-knowledge-architect-2026-07-18` [`812f41f`]; clean through all pre-commit gates; `verify_handoff_probes` **11/11 pass, 0 answer-hints**. NOT merged — `--no-ff` integration is operator-gated.
+
+**Changes:** new bundle dir only (6 files); no source/BACKLOG structural change (pure handoff artifact — advisory BACKLOG gate n/a).
+
+**Next:** operator integrates the branch → `main`; the successor session boots from PASTE_THIS and opens ARC 4 with the ADR-36/41 consumer-write amendment (RULING-W, mechanism before act).
+
+**Supplement completion [`12e47fa1`]:** operator supplied the outgoing **browser architect's** ANSWERS (supersedes the CC draft in full) — the strategic frame sharpens: **UNIVERSALIZATION is the meta-goal** (one fleet-wide structure pattern + universalized deployment; "never again ask why files differ between repos"), and **ARC 4 equalization is its first APPLICATION** (align as replicable manifest/template/carrier material, not one-off fixes). Adds the operator's 5-priority program (universalization · engineering-loop formalization incl. a sanctioned safe-deletion pattern for the tombstone junkyard · configured night/multiagent workflows · session-discipline inheritance · handoff refinement LAST). Re-folded via `assemble_paste`; probes 11/11, 0 hints; reconciled `PLAN.md` §A (goal-vs-arc) + §D (new open items; #300 d.iii noted covered by ADR-101).
+
+---
+
 ### 2026-07-18 — CC (Opus 4.8, 1M): serial integration close-out — #337 + corp + ai-council merged; #343 cross-session collision resolved
 
 **Did:** Serial primary-checkout integration of the day's parallel work + a session-close hygiene sweep, on a quiet primary the day after a concurrent session had briefly hijacked the shared checkout (fully recovered, no work lost). (1) Shipped **ARC 2 [#337]** fleet_parity → blocking-`ALL_CHECKS` via `--no-ff` **`6673904f`** (final full suite **1595 passed / 3 skipped / 0 failed**; ship-gate GREEN in both `python scripts/audit.py` and `python -m scripts.audit` modes; the codex-terra P1 — a bare package-import — fixed pre-merge). (2) Integrated the **corp-monorepo architect handoff** bundle via `--no-ff` **`7ff9b89e`** (JOURNAL resolved newest-first). (3) Confirmed the ai-council-handoff session dead (pid 6864), tore down its worktree, and integrated it via `--no-ff` **`1eeea5fb`** after **renumbering its #343 → #344** — a cross-session id collision (main owns **#343** = fleet_parity ship-gate scoping; the ai-council filing = **#344** session-close gate); BACKLOG auto-merged clean (0 duplicate ids). (4) Dispositioned the surfaced `doc_rot` BACKLOG#344 (load-bearing NEEDS-RULING; #332 A0-seal precedent; `review_date` shelf-life) via `--no-ff` **`54c502fc`**. Deleted every stale/merged branch (feat/337 + both handoff branches + `worktree-monorepo-handoff` @ 4c8ef659 which had 0 unique commits).
