@@ -19,6 +19,10 @@
 
 ---
 
+### 2026-07-18 — CC (Opus 4.8, 1M): filed 2026-07-17 night-run audit bundle into docs/audits/ (owed close hygiene)
+
+**Did:** Filed the 2026-07-17 night-run's 4 scratchpad artifacts (verdict sheet · live-fire S1–S7 · divergence ledger post-sol · handoff evidence) into `docs/audits/` under the ADR-101 `<date>-technical-<slug>` grammar (class `technical` derived from the closed 11-enum), content byte-unchanged + a provenance block; regenerated the audits index (234→238). The read-only zero-commit night rule held (no real-tree writes overnight); this docs-only arc is its first commit. **Result:** ship-gate GREEN (14 dispositioned, 0 new); pre-commit hermetization + audit-index-freshness + audit-health all passed. **Changes:** `docs/audits/2026-07-17-technical-night-{verdict-sheet,live-fire-sheet,divergence-ledger,handoff-evidence-pack}.md`, `docs/audits/README.md`. Branch `docs/2026-07-17-night-audit` → `--no-ff` merge **4c8ef659** (pushed).
+
 ### 2026-07-17 — CC (Opus 4.8, 1M): ADR-29 chronological legacy-split RATIFIED (Stage-2 atomic canon reconciliation, [#339 sanction])
 
 **Did:** Executed the operator-ruled (core-invariant #6) Stage-2 atomic canon-edit set ratifying ADR-29's 2026-07-17 chronological legacy-archival split amendment. Six items, one branch: (1) ADR-29 **append-marker** ratification (H3 form — Proposed → Accepted by *append*, NOT in-place; the L60 "Proposed" line untouched); (2) CLAUDE.md §4/§5/§10 LESSONS-only archival exception — §5 record 1 + §10 are `owner=hub` → their `templates/claude-regions/{critical-rules-records,antipatterns-universal}.md` extracts edited in lockstep (byte-match); (3) ARCHITECTURE.md L107 + Ch5 table row; (4) PLAYBOOK.md by-topic-split → chronological-split + entry-count threshold (L3258) + registry row (L922); (5) ADR-39 appended six-element `LESSONS-legacy-<span>.md` registry entry (the H2 prerequisite); (6) README ADR-29 row annotation. `logs/TOKEN-LOG.md`/JOURNAL append-only + ADR/transcript/handoff/audit immutability preserved unchanged. Stage-1 **D5**: #300(d.iii) audit-class grammar is **COVERED** by ADR-101 (§2 tagged "(d.iii)" + R3 closed-enum + R4 casing/R5 header).
