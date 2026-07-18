@@ -10,7 +10,7 @@
 | **Purpose** | Resume **PRODUCT architecture** in corp-monorepo — decompose + sequence the next arc. The last window CLOSED clean (Arc-B `#19–23` · Arc-C Wave-1 `#25/#26/#27` · E5-registry design · the night process audit — RESIDUAL §2). The live architectural call is the ordering of the **SIM-1 gap-fill day-arc** vs the **E5 build** (`#35→#38→#40→#36`), under the A3 R10 knowledge-loop-before-RFP priority (RESIDUAL §4). Navigate product work via the corp `BACKLOG.md` E1–E7 story-map. Methodology questions route to the **hub** (corp is A0-closed), not this chat. |
 | **Generated at** | Hand-authored in the hub from **READ-ONLY live git** of `../corp-monorepo` (hub is the carrier; no write ever touches the consumer). States **no** sha / count / verdict — **re-derive HEAD / tree / branch / ahead-behind live in the corp checkout** (`PROBES.md` P1). |
 
-> **`SUPPLEMENT.md` is EMPTY (cold handoff).** No single outgoing chat carried this session's strategic *why* — the last window's work was CC-side across executor + integration + audit sessions. ANSWERS is committed empty: the defined cold-handoff disposition, not a defect; the incoming §13(d) operator-context beat fires **FULL**.
+> **`SUPPLEMENT.md` is FILLED.** The outgoing architect chat's strategic *why* (four focus streams · tensions · rejected options · open questions · decomposition rationale · operator off-repo intent) is folded into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer value** by construction — no SHAs, counts, region text, or armed-state. The withholding IS the teeth; run the commands **in the corp-monorepo checkout**.
 
@@ -23,7 +23,7 @@
 3. The browser replies with its on-load acknowledgment line (naming the Layer-1 actor); a partial/missing paste is then visible.
 4. **architect mode** — the browser adopts the generative / decompositional posture from `protocols/HANDOFF_BOOT.md`: orient, ask the operator for off-repo context, then drive the operator's PRODUCT decomposition + review plans before execution. Methodology questions are **out of scope** — route them to the hub.
 5. **Orient before design** — hand the browser `PROBES.md` **P4** (the forced CLAUDE-region read) first; it replies `run <command>`, CC reads the live corp `CLAUDE.md` region and substring-checks. This confirms the hub methodology is materialized verbatim (corp A0-closed) before product planning resumes.
-6. **Then the operator-context beat (§13d), FULL** — the supplement is empty, so the browser asks the operator for all off-repo product context (priorities, and critically: **which frontier opens first — the SIM-1 gap day-arc or the E5 build**, plus the operator-queue items in RESIDUAL §4).
+6. **Then the operator-context beat (§13d), NARROWED** — the supplement is filled (its ANSWERS are in the paste: the operator ruled **knowledge-modules-first, decks next phase** on 2026-07-18, with four focus streams), so the browser asks only *"anything changed since the supplement was written?"* and confirms the operator-queue items in RESIDUAL §4.
 7. Hand `RESIDUAL.md` — the closed-window status + no-open-branches (§1/§2), then the next-frontier decomposition "why" (§4), then run the rest of `PROBES.md` (P1–P3). Any probe FAIL blocks onboarding (the escalation ladder). **Re-derive every value live — the bundle states none.**
 
 ## Why a pointer, not a copy

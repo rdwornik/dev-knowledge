@@ -6,7 +6,7 @@
 >
 > **Four-tag discipline.** `witnessed` = CC re-derived it live at derivation; `recall`/`inferred` = reconstructed from the corp JOURNAL/git window, may have moved (the load-bearing ones are re-checkable via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is EMPTY (cold handoff).** ANSWERS committed empty; the incoming §13(d) operator-context beat fires **FULL**.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS (the outgoing architect's strategic *why*) fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -37,7 +37,7 @@ Drift-flags are re-derived by the consumer's own live checks — **re-derive at 
 
 ## §4 — Next-frontier (the design "why" that travels)
 
-**Primary — the architect's job this session is to sequence and decompose the next product arc.** Two candidate frontiers are both ready and the ordering is the live architectural call (§13(d) captures the operator's priority):
+**Primary — the architect's job this session is to decompose the next product arc within the operator's ruling.** The folded `SUPPLEMENT` carries the operator's 2026-07-18 ruling — **knowledge modules first, decks the NEXT phase** — over four focus streams (metadata management · URL/source management · knowledge extractor · RFP agent), with SIM-2 (not SIM-1) as the phase acceptance bar and per-module witnessed sandbox runs (BACKLOG `#34` shape, `SIM-ACCEPTANCE-TESTS.md` C1–C4/C6) as this session's acceptance. The architect decomposes those streams; the two ready frontiers below are the concrete entry points:
 
 1. **The SIM-1 gap-fill "day-arc"** (from the night audit). The 07-18 JOURNAL is explicit: *"the day-arc launches as a FRESH executor session on the senior's formal prompt (authored from the HUB session, not here)"* — i.e. **this architect chat authors that executor prompt.** The ranked queue: (1) ingest content-registry fallback+bootstrap [F1]; (2) note-body FTS **or** wire the facts pipeline [F6/F7]; (3) project↔vault link + client propagation [F16/F9]; then the missing **Content-Manifest producer** (SIM-1's one absent output — the T6 corp↔consumer seam). SIM-2: the `data/kb` RFP producer [F11], CKE tier/schema drift [F21/F22].
 2. **The E5 registry BUILD** (`#35→#38→#40→#36`) — the design is ratified and merged; the build arc executes from it. **Graph API consent gates `#36`/`#40` live resolution** (operator queue, below).

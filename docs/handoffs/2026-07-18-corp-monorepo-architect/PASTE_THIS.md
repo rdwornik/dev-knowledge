@@ -12,7 +12,7 @@
 | **Purpose** | Resume **PRODUCT architecture** in corp-monorepo — decompose + sequence the next arc. The last window CLOSED clean (Arc-B `#19–23` · Arc-C Wave-1 `#25/#26/#27` · E5-registry design · the night process audit — RESIDUAL §2). The live architectural call is the ordering of the **SIM-1 gap-fill day-arc** vs the **E5 build** (`#35→#38→#40→#36`), under the A3 R10 knowledge-loop-before-RFP priority (RESIDUAL §4). Navigate product work via the corp `BACKLOG.md` E1–E7 story-map. Methodology questions route to the **hub** (corp is A0-closed), not this chat. |
 | **Generated at** | Hand-authored in the hub from **READ-ONLY live git** of `../corp-monorepo` (hub is the carrier; no write ever touches the consumer). States **no** sha / count / verdict — **re-derive HEAD / tree / branch / ahead-behind live in the corp checkout** (`PROBES.md` P1). |
 
-> **`SUPPLEMENT.md` is EMPTY (cold handoff).** No single outgoing chat carried this session's strategic *why* — the last window's work was CC-side across executor + integration + audit sessions. ANSWERS is committed empty: the defined cold-handoff disposition, not a defect; the incoming §13(d) operator-context beat fires **FULL**.
+> **`SUPPLEMENT.md` is FILLED.** The outgoing architect chat's strategic *why* (four focus streams · tensions · rejected options · open questions · decomposition rationale · operator off-repo intent) is folded into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer value** by construction — no SHAs, counts, region text, or armed-state. The withholding IS the teeth; run the commands **in the corp-monorepo checkout**.
 
@@ -264,7 +264,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 >
 > **Four-tag discipline.** `witnessed` = CC re-derived it live at derivation; `recall`/`inferred` = reconstructed from the corp JOURNAL/git window, may have moved (the load-bearing ones are re-checkable via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is EMPTY (cold handoff).** ANSWERS committed empty; the incoming §13(d) operator-context beat fires **FULL**.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS (the outgoing architect's strategic *why*) fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -295,7 +295,7 @@ Drift-flags are re-derived by the consumer's own live checks — **re-derive at 
 
 ## §4 — Next-frontier (the design "why" that travels)
 
-**Primary — the architect's job this session is to sequence and decompose the next product arc.** Two candidate frontiers are both ready and the ordering is the live architectural call (§13(d) captures the operator's priority):
+**Primary — the architect's job this session is to decompose the next product arc within the operator's ruling.** The folded `SUPPLEMENT` carries the operator's 2026-07-18 ruling — **knowledge modules first, decks the NEXT phase** — over four focus streams (metadata management · URL/source management · knowledge extractor · RFP agent), with SIM-2 (not SIM-1) as the phase acceptance bar and per-module witnessed sandbox runs (BACKLOG `#34` shape, `SIM-ACCEPTANCE-TESTS.md` C1–C4/C6) as this session's acceptance. The architect decomposes those streams; the two ready frontiers below are the concrete entry points:
 
 1. **The SIM-1 gap-fill "day-arc"** (from the night audit). The 07-18 JOURNAL is explicit: *"the day-arc launches as a FRESH executor session on the senior's formal prompt (authored from the HUB session, not here)"* — i.e. **this architect chat authors that executor prompt.** The ranked queue: (1) ingest content-registry fallback+bootstrap [F1]; (2) note-body FTS **or** wire the facts pipeline [F6/F7]; (3) project↔vault link + client propagation [F16/F9]; then the missing **Content-Manifest producer** (SIM-1's one absent output — the T6 corp↔consumer seam). SIM-2: the `data/kb` RFP producer [F11], CKE tier/schema drift [F21/F22].
 2. **The E5 registry BUILD** (`#35→#38→#40→#36`) — the design is ratified and merged; the build arc executes from it. **Graph API consent gates `#36`/`#40` live resolution** (operator queue, below).
@@ -340,3 +340,73 @@ The **BACKLOG is the spec; items are tickets.** Task-state is: a pointer to the 
 2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing / command errored / receiver tried to answer from memory or this bundle).
 3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary source → CC re-derives the fact → abort if still unmet).
 4. Answer values are deliberately absent (§5): the pass criterion is **"answered from the live source,"** never "matches a remembered value." P1's HEAD/branch is designed to move (the next product arc) — re-derive it live, do not trust the residual's prose.
+
+---
+
+=== SUPPLEMENT.md ===
+
+1. STRATEGIC INTENT. Take the KNOWLEDGE CORE from witnessed-in-audit to tested-and-deployed.
+Four focus streams, operator-ruled (2026-07-18): (a) METADATA MANAGEMENT — the Obsidian vault as
+the system of record: rule the canonical metadata layer (rich frontmatter vs the DB projections
+the audit showed empty), then wire index/analytics to it; the T1 metadata charter and intake-16
+anchors (A1/A2/A3) are the inputs. (b) URL/SOURCE MANAGEMENT — build the FR-10 registry +
+deterministic source-value scoring per intake-16, order #35 → #38 → #40 → #36. (c) KNOWLEDGE
+EXTRACTOR — harden the module the audit proved alive: fix F1 (fresh-env ingest crash), F16/F9
+(client propagation), F8 (index hygiene), and the cross-entry-point inconsistencies F21/F22;
+single CKE invoker (#28, F24 evidence). (d) RFP AGENT — harden the working CLI lane: F6 body-FTS
+so retrieval finds content (the grounding bottleneck at scale), cost/token observability.
+DECKS / demo-prep / PowerPoint building = the NEXT phase (operator-ruled): SIM-2 remains THE
+phase acceptance bar, but its deck leg (test condition C5) and therefore the SIM-2 RUN move to
+that phase. This session's acceptance = each focus module has a green, WITNESSED sandbox
+end-to-end run (the BACKLOG #34 shape), tested and deployed, per SIM-ACCEPTANCE-TESTS.md
+conditions C1–C4 + C6.
+
+2. TENSIONS WEIGHED. (a) Deck-now vs knowledge-first: operator re-sequenced on 2026-07-18 —
+knowledge modules first, decks next phase; do not re-open. (b) Metadata canonical layer:
+frontmatter is rich (18 key_facts, quality, costs) while every DB projection reads zero — the
+metadata stream must RULE which layer is truth and derive the other; this couples to (c) the F7
+facts question: reviving facts/facts_fts partially reverses Arc-B's signed B2 kill under a new
+premise — ADR-class decision inside the metadata stream, not a reflex fix. (d) "PageRank":
+deterministic scoring ONLY (type/recency/curation/operator priors + single-pass neighbor
+propagation from intrinsic scores) — literal PageRank stays on the NOT-list; learning stays
+behind the quantified v2 trigger. (e) Retrieval surface: body-FTS chosen for grounding; a facts
+FTS only if the F7 ADR revives the pipeline.
+
+3. CONSIDERED + REJECTED (do not relitigate). Literal PageRank (FIXED, NOT-list). SIM-1 as a
+phase bar (operator: diagnostic checkpoint only). Building the slide bridge / absorbing
+demo-prep THIS session (operator: next phase; absorption itself stays verify-and-absorb at T6).
+Building the Word/Excel RFP agent's data/kb producer now (later phase; the CLI rfp lane is the
+working surface and grounds from the vault). Facts revival without an ADR. All prior FIXED
+items stand: A3 R1–R10, signed manifest + AMD record + amended deletion doctrine (column-level
+enumeration; runtime-claim kills default GATED), theme order, depends-on edges.
+
+4. OPEN QUESTIONS. Design: the metadata canonical-layer ruling (frontmatter vs DB) and the F7
+facts ADR — both senior-ruled during this session, evidence-first. KE hardening scope: unify
+tiering/model choice across entry points (F21) and local-extractor schema drift (F22) — how far
+this session goes vs logs. Operator-only: intake-16 ratification (DRAFT→READY + D1–D5: registry
+config path, auth shape, ratification interface, archive trigger, yield weights) · Graph API
+consent (gates #36 scout + live URL resolution) · AMD-1 sign-off (31-site enumeration ready) ·
+AMD-2/AMD-3 ack · vault git remote · credential rotations · zone names · ADR-35 leg-2.
+Execution: the CR batch (N1-A/B/C/D — never ran 07-17 night; prompt exists; Codex UP at last
+smoke but quota VOLATILE, re-smoke) + audit hygiene set (F18/F26 sandbox recipe, F2/F13/F23/F31
+cost observability, F28 freshness on 01_Knowledge) · Lane-A terra confirm-pass at quota reset.
+
+5. DECOMPOSITION RATIONALE. The session spine = the four focus streams above; the registry order
+#35 → #38 → #40 → #36 is D8-corrected and FIXED (#35 = ContentRegistry ROUTING gate — includes
+F1; the FR-10 source registry is #38/#40 — do not conflate them again). The audit's ranked gaps
+and SIM-ACCEPTANCE-TESTS.md C1–C4/C6 are the necessary-conditions list — cite
+docs/audits/2026-07-18-process-audit.md and the committed test spec; re-derive nothing. Do NOT
+redo: the process audit, the adjudicated E5 design (intake-16), the amended deletion doctrine,
+the closing-sweep BACKLOG folding. Supervision loop unchanged: executor plans → senior reviews →
+one output-contract form → execute; deletion candidates (Arc-C old copies + AMD-1 + DEFER) wait
+for the NEXT signed manifest under the amended doctrine.
+
+6. OFF-REPO CONTEXT. Operator priority statement (2026-07-18, verbatim intent): "focus on the
+modules that WORK — Knowledge Extractor and RFP Agent; Obsidian, metadata management, URL
+management; demo-prep and building PowerPoints is the next phase." Invest where the audit proved
+life; close those modules' gaps before opening new fronts. Standing contracts the successor must
+hold: inherit NO verdict from any prior chat without a live probe (the audit overturned two
+senior verdicts and one proposal premise); reporting is product-owner concrete, use-case by
+use-case, with evidence and a what's-missing list — no unexplained acronyms, plain human terms
+first; unattended night missions are pre-authorized (safety = stop conditions, not bedtime
+gates); Codex lanes terra/sol/luna with quota volatile this week — smoke before relying.
