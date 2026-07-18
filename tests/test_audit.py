@@ -2213,3 +2213,18 @@ def test_check_fleet_parity_green_on_live_repo():
     out = aud.check_fleet_parity(aud._REPO_ROOT)
     real = [f for f in out if f.status in ("fail", "warn") and "unavailable" not in f.evidence]
     assert not real, f"live fleet not green: {[f.evidence for f in real]}"
+
+
+def test_check_fleet_parity_package_mode_import():
+    """[#337] regression (codex terra P1): check_fleet_parity must import fleet_parity via the
+    dual package/script pattern, so `python -m scripts.audit` (repo ROOT on sys.path, not
+    scripts/) does not ModuleNotFoundError into a synthetic 'walk degraded' WARN that would RED
+    every package-mode ship-gate."""
+    root = Path(aud.__file__).resolve().parents[1]
+    code = ("from scripts import audit; "
+            "out = audit.check_fleet_parity(audit._REPO_ROOT); "
+            "print('DEGRADED' if any('degraded' in f.evidence for f in out) else 'OK')")
+    proc = subprocess.run([sys.executable, "-c", code],
+                          capture_output=True, text=True, cwd=str(root))
+    assert proc.returncode == 0, proc.stderr[-800:]
+    assert proc.stdout.strip().endswith("OK"), proc.stdout + proc.stderr

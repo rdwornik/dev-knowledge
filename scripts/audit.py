@@ -1977,7 +1977,10 @@ def check_fleet_parity(repo_path: Path) -> list[Finding]:
         return [Finding("fleet_parity", "pass",
                         "hub-only -- fleet-parity walk skipped (not the hub repo)")]
     try:
-        import fleet_parity as fp
+        try:
+            from scripts import fleet_parity as fp   # package-mode: `python -m scripts.audit`
+        except ImportError:
+            import fleet_parity as fp                # script-mode: `python scripts/audit.py`
         from datetime import date as _date
         r = fp.walk(_date.today().isoformat())
         register = fp.summarize(r.findings)
