@@ -314,3 +314,44 @@ universal; see ADR-38 A6 Delta 3.
 **What still stands from ADR-41.** The core insight — a single canonical cross-session
 `BACKLOG.md` as the source of truth for pending items, split-brain-free from handoffs — is
 unchanged and is the foundation the later ADRs refine.
+
+### 2026-07-18 — RULING-W: sanctioned hub→consumer write path (narrows the don't-touch-consumers guardrail)
+
+- **Source:** Operator ruling **RULING-W**, 2026-07-18 architect supplement
+  (`docs/handoffs/2026-07-18-dev-knowledge-architect/SUPPLEMENT.md`, ANSWERS §BINDING
+  RULINGS). Quoted **verbatim** as the ruling source:
+
+  > RULING-W: hub MAY/SHOULD write into consumer repos for methodology/cleanup —
+  > separate worktree/branch, then report; FIRST step of any consumer leg = codify this
+  > as the ADR-36/41 amendment (mechanism before act).
+
+- **Decision tier:** Path A — records an operator-settled binding that narrows the
+  "don't-touch-consumers" guardrail this ADR anchors (`seed_runbook.py` deferred the
+  cross-repo fan-out because "a hub session never writes into a consumer's tree"); no
+  Council convene. Companion to the ADR-36 amendment of the same date (same ruling, the
+  read/write-boundary anchor).
+
+**Universal rule (fleet-wide).** The hub MAY and SHOULD write into a consumer repo for
+methodology/cleanup work. The **only sanctioned write shape** is:
+
+> **consumer worktree/branch → report** — the hub creates a **separate git worktree/branch
+> inside the consumer**, makes its edits there, then **reports**.
+
+Hard bounds: **never a direct push into a live consumer checkout**; **re-witness the
+consumer live before any edit** (never from a stale HEAD ledger); the consumer's own merge
+discipline (operator GO, `--no-ff`) governs integration.
+
+**Cross-reference — #344 Ask-2.** The future consumer-side write-guard (BACKLOG #344 Ask-2)
+must **ALLOW exactly this shape** and **BLOCK the unmediated case** — this amendment is the
+sanctioned mechanism it enforces.
+
+**Repo application (.dev-knowledge hub) — the backlog/methodology-file angle.** ADR-41
+governs the cross-session/cross-repo backlog: child repos maintain their own `BACKLOG.md`
+(ADR-38 A6, universal). Under RULING-W, **hub-authored changes to a consumer's tree —
+including its `BACKLOG.md` and other methodology-carried files — go through the mediated
+worktree/branch → report shape**, never a direct edit of the consumer's live checkout. The
+seeder `seed_runbook.py`, whose docstring **deferred** the cross-repo consumer fan-out as
+the don't-touch-consumers guardrail, is now sanctioned to fan out **only** through this
+shape; the tool itself remains single-target and read-only w.r.t. the tracked spine
+(unchanged). No orchestration script is added to Layer 2 (ADR-28 preserved) — the write is
+an agent in the consumer's own worktree.

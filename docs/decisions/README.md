@@ -20,12 +20,12 @@ subfolder holds AI Council debate outputs that informed them.
 | ADR-33 | 2026-04-28 | VISION.md universalization — mandatory at ≥1 dependent; Standard/Lite tiers per scale |
 | ADR-34 | 2026-04-29 | File naming convention — per-file-type table; codifies existing de-facto patterns cross-repo; **amended 2026-07-11 by ADR-101** (extends the audits/handoffs naming row into `<date>-<class>-<slug>` and realizes the deferred pre-commit path-validation enforcement) |
 | ADR-35 | 2026-04-29 | Lessons base activation — lessons-index.json + SessionStart retrieval + CLI querying |
-| ADR-36 | 2026-04-30 | Audit tool architecture — .dev-knowledge as ecosystem auditor; 4-phase implementation plan |
+| ADR-36 | 2026-04-30 | Audit tool architecture — .dev-knowledge as ecosystem auditor; 4-phase implementation plan; amended 2026-07-18 (RULING-W hub→consumer write path — sanctioned worktree/branch → report, qualifies §Q5 read-only boundary) |
 | ADR-37 | 2026-04-30 | Session boundary protocol — two-phase handoff (Current State + Future State) |
 | ADR-38 | 2026-04-30 | Universal repo architecture baseline — mandatory files per tier S/M/L; foundation for ADR-39/40/41; amended 2026-05-23 (A5: tier deprecation → universal baseline) + 2026-06-02 (A6: seven-file canonical set + canonical structure standard) |
 | ADR-39 | 2026-04-30 | File lifecycle governance — 6-element pattern per file (purpose/trigger/owner/grooming/boundaries/enforcement) |
 | ADR-40 | 2026-04-30 | Scale tier evaluation algorithm — logarithmic Maintainability Index pattern; 3 signals (module count, test count, TCR) |
-| ADR-41 | 2026-04-30 | Cross-session backlog architecture — BACKLOG.md mandate at M+ tier; no Scrum vocabulary; amended 2026-06-02 (supersession chain 47/64/65/66 + ecosystem story-map binding with proportional depth, closes #20) |
+| ADR-41 | 2026-04-30 | Cross-session backlog architecture — BACKLOG.md mandate at M+ tier; no Scrum vocabulary; amended 2026-06-02 (supersession chain 47/64/65/66 + ecosystem story-map binding with proportional depth, closes #20) + 2026-07-18 (RULING-W hub→consumer write path — sanctioned worktree/branch → report) |
 | ADR-42 | 2026-05-09 | Handoff format v3 — three-stage generation flow; v3.2 = flat per-session folder, Q&A iteration loop; amended 2026-05-26 (Q5: full invariants retained + executor-gate contract + manifest integrity) |
 | ADR-43 | 2026-05-11 | Cross-project transcript routing — per-invocation, opt-in, config-driven; `target-project:` frontmatter + `--target-project` flag; `TargetResolver` in ai-council CLI |
 | ADR-44 | — | Reserved — scrum-master review propagation authority codification; held pending N=2 empirical instance (corp-monorepo scrum-master review). See PLAYBOOK § 19. |
