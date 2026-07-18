@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-18 — CC (Opus 4.8, 1M): ARC 4 opening move — RULING-W codified into ADR-36 + ADR-41 (mechanism before act)
+
+**Did:** First consumer-leg step per RULING-W. Amended **ADR-36** (new `## Amendments` section, qualifies §Q5 read/write boundary) and **ADR-41** (appended, narrows the don't-touch-consumers guardrail) with the 2026-07-18 operator ruling **RULING-W quoted verbatim**: the hub MAY/SHOULD write into a consumer via a **separate worktree/branch → report**; never a direct push into a live consumer checkout; re-witness the consumer live first. Both carry **RULING-S** reader-visible Universal-rule / Repo-application subsections + a `#344 Ask-2` cross-reference; reconciled ADR-28 (no Layer-2 orchestration script added — the audit *tool* stays read-only, RULING-W is a distinct agent-mediated path). Narrowed the overbroad `seed_runbook.py` guardrail-narration line (docstring only, zero behavior). Annotated the README ADR-index rows. Then split the commit (prose vs code) so the ADR prose got a **gpt-5.6-terra doc-lane** codex review.
+
+**Result:** branch `docs/adr-36-41-ruling-w-hub-write-path`, 3 commits [`bf8527e`] prose · [`6e10ba4`] docstring · [`2f25039`] terra-review evidence — **NOT merged** (operator-gated serial `--no-ff`). Ship-gate GREEN (ruff clean · audit `health: OK` · full pytest **1595 passed / 3 skipped** on the byte-identical tree · codemap + audit-index ✓). Split tree verified **byte-identical** to the pre-split combined commit `ab52de2d`. **Terra doc-lane found 3 High** on the amendment prose (`#344 Ask-2` cross-ref is currently the opposite consumer→hub direction ×2; ADR-41 "seeder now sanctioned to fan out" contradicts the seeder's own still-deferred docstring) — **held for browser adjudication before merge; NOT fixed.**
+
+**Changes:** `docs/decisions/ADR-36-*.md`, `docs/decisions/ADR-41-*.md`, `docs/decisions/README.md`, `scripts/seed_runbook.py`; audit artifact `docs/audits/2026-07-18-codex-ruling-w-adr-amendment.md` + regenerated `docs/audits/README.md`. No BACKLOG structural change — no tracked task closed (#344 stays open; advisory gate n/a).
+
+**Abandoned:** none. `audit.py` L5 deliberately left untouched (tool-contract-scoped, still true).
+
+**Next:** operator adjudicates the 3 terra findings — F1/F2 pick (a) broaden `#344 Ask-2` / (b) sibling-guard reframe / (c) soften wording; F3 confirm the "future fan-out sanctioned only via this shape; seeder itself deferred" reword. On GO: apply approved wording, re-run terra doc-lane + ship-gate, commit-and-STOP for the serial merge from primary.
+
+---
+
 ### 2026-07-18 — CC (Opus 4.8, 1M): architect handoff cut — ARC 4 fleet-equalization bundle for the successor
 
 **Did:** Generated the HANDOFF_PROCESS v5 **architect-mode** bundle `docs/handoffs/2026-07-18-dev-knowledge-architect/` for the next `.dev-knowledge` architect session. Survivor re-verify first (`main` + `automation/fleet-audit`, primary worktree only, clean). Cut via `gen_handoff.py --mode architect`, then hand-filled: RESIDUAL (drift-flags — flagging `fleet_parity` as CHANGED-this-window to a blocking `ALL_CHECKS` member, and the #341 fork as now-closed by R2 / shipped-map / next-frontier), **SUPPLEMENT ANSWERS with the seven operator rulings transcribed VERBATIM** (RULING-W hub-writes-consumers-mechanism-first · RULING-S reader-visible sections · RULING-PY ruff py311 floor · RULING-CF ai-council conformance · #329 `.vscode` decoration · #341-R2 repo-local `AGENTS.md` override · satellite freeze), a hand-authored **PLAN.md** (#301 instance — ARC 4 plan-of-record + open queue #344/#341/#338/#339/#342/#343/#300 + 15 night-triage), and the HANDOFF_BOOT purpose. Re-assembled PASTE_THIS (rulings folded; assembler flipped cold→FILLED).
