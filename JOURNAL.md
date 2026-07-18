@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-18 — CC (Opus 4.8, 1M): cross-repo architect handoff for corp-monorepo (hand-authored v5 bundle)
+
+**Did:** Ran `/handoff corp-monorepo-architect` — a **cross-repo architect handoff** for the child repo corp-monorepo. Established the automated `gen_handoff.py` cannot root at a child repo (CLI hard-roots at `.dev-knowledge`; `--repo` is display-label only; the #164 cross-repo generator is still deferred), so followed the **designed path** documented in corp's own CLAUDE.md: a hand-authored v5 bundle hosted in the hub (corp holds no `docs/handoffs/` by the ADR-36 read-only contract), derived READ-ONLY from `../corp-monorepo` live git/JOURNAL/BACKLOG/A3-ruling. Authored the 5 architect-mode files (HANDOFF_BOOT · RESIDUAL · PROBES · SUPPLEMENT · assembled PASTE_THIS) modeled on the 2026-07-13 corp architect bundle; probes P1–P4 bind to corp's live sources (git, `validate_backlog`, `.git/hooks`, the `conventions-commit-branch` owner=hub CLAUDE region at corp `CLAUDE.md:61`). `SUPPLEMENT` generated **cold** (last window CC-side across executor/integration/audit sessions — no outgoing chat to interview; §13d beat fires FULL).
+
+**Result:** Bundle `docs/handoffs/2026-07-18-corp-monorepo-architect/` committed on `docs/2026-07-18-corp-monorepo-architect-handoff` [`0adc8887`]; all pre-commit gates passed/skipped; `verify_handoff_probes` GREEN (4/4 pass, 0 answer-hints). Frontier captured for the incoming architect: sequence the SIM-1 gap-fill day-arc vs the E5 build (`#35→#38→#40→#36`) under A3 R10 knowledge-loop-before-RFP priority; corp `main` clean, no open branches. **Not yet merged to main** — `/ship` refuses in this worktree; `--no-ff` integration is operator/primary-side.
+
+**Changes:** `docs/handoffs/2026-07-18-corp-monorepo-architect/{HANDOFF_BOOT,RESIDUAL,PROBES,SUPPLEMENT,PASTE_THIS}.md` (new, via `0adc8887`); `JOURNAL.md` (this entry). No `src/`/spec/BACKLOG touched; corp-monorepo untouched (read-only).
+
+**Abandoned:** none.
+
+**Next (operator):** `--no-ff` merge `0adc8887` → main + push (from primary); optionally `supplement filled` to fold the outgoing chat's strategic why; `-d` corp's merged straggler `docs/2026-07-18-manifest-doctrine-closeout`.
+
 ### 2026-07-17 — CC (Opus 4.8, 1M): ADR-29 chronological legacy-split RATIFIED (Stage-2 atomic canon reconciliation, [#339 sanction])
 
 **Did:** Executed the operator-ruled (core-invariant #6) Stage-2 atomic canon-edit set ratifying ADR-29's 2026-07-17 chronological legacy-archival split amendment. Six items, one branch: (1) ADR-29 **append-marker** ratification (H3 form — Proposed → Accepted by *append*, NOT in-place; the L60 "Proposed" line untouched); (2) CLAUDE.md §4/§5/§10 LESSONS-only archival exception — §5 record 1 + §10 are `owner=hub` → their `templates/claude-regions/{critical-rules-records,antipatterns-universal}.md` extracts edited in lockstep (byte-match); (3) ARCHITECTURE.md L107 + Ch5 table row; (4) PLAYBOOK.md by-topic-split → chronological-split + entry-count threshold (L3258) + registry row (L922); (5) ADR-39 appended six-element `LESSONS-legacy-<span>.md` registry entry (the H2 prerequisite); (6) README ADR-29 row annotation. `logs/TOKEN-LOG.md`/JOURNAL append-only + ADR/transcript/handoff/audit immutability preserved unchanged. Stage-1 **D5**: #300(d.iii) audit-class grammar is **COVERED** by ADR-101 (§2 tagged "(d.iii)" + R3 closed-enum + R4 casing/R5 header).
