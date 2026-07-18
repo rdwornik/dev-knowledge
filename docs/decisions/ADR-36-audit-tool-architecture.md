@@ -343,11 +343,11 @@ Hard bounds on that shape:
 - The consumer's own merge discipline governs integration of the branch (operator GO,
   `--no-ff`), same as any change arc.
 
-**Cross-reference — #344 Ask-2.** The future consumer-side PreToolUse write-guard (BACKLOG
-#344 Ask-2) must **ALLOW exactly this shape** (a hub-authored edit landing in a consumer
-worktree/branch) and **BLOCK the unmediated case** (a direct write into a live consumer
-checkout without the worktree/branch mediation). This amendment is the "mechanism"; #344
-Ask-2 is the "guard that enforces it" — they are two halves of the same boundary.
+**Cross-reference — #344 Ask-2 (pure boundary constraint, not a guard-architecture
+decision).** Whatever shape the #344 Ask-2 guard takes, it MUST allow exactly the RULING-W
+path (consumer worktree/branch → report) and MUST block unmediated hub writes into a live
+consumer checkout. The guard's design (unified vs sibling vs other) is decided in #344, not
+here — #344 is an explicit NEEDS-RULING item and that ruling belongs to the operator.
 
 **Repo application (.dev-knowledge hub).** §Q5's read-only contract is **narrowed, not
 revoked**: it still binds the audit **tool**. `audit.py` writes only to `.dev-knowledge`

@@ -341,17 +341,20 @@ Hard bounds: **never a direct push into a live consumer checkout**; **re-witness
 consumer live before any edit** (never from a stale HEAD ledger); the consumer's own merge
 discipline (operator GO, `--no-ff`) governs integration.
 
-**Cross-reference — #344 Ask-2.** The future consumer-side write-guard (BACKLOG #344 Ask-2)
-must **ALLOW exactly this shape** and **BLOCK the unmediated case** — this amendment is the
-sanctioned mechanism it enforces.
+**Cross-reference — #344 Ask-2 (pure boundary constraint, not a guard-architecture
+decision).** Whatever shape the #344 Ask-2 guard takes, it MUST allow exactly the RULING-W
+path (consumer worktree/branch → report) and MUST block unmediated hub writes into a live
+consumer checkout. The guard's design (unified vs sibling vs other) is decided in #344, not
+here — #344 is an explicit NEEDS-RULING item and that ruling belongs to the operator.
 
 **Repo application (.dev-knowledge hub) — the backlog/methodology-file angle.** ADR-41
 governs the cross-session/cross-repo backlog: child repos maintain their own `BACKLOG.md`
 (ADR-38 A6, universal). Under RULING-W, **hub-authored changes to a consumer's tree —
 including its `BACKLOG.md` and other methodology-carried files — go through the mediated
 worktree/branch → report shape**, never a direct edit of the consumer's live checkout. The
-seeder `seed_runbook.py`, whose docstring **deferred** the cross-repo consumer fan-out as
-the don't-touch-consumers guardrail, is now sanctioned to fan out **only** through this
-shape; the tool itself remains single-target and read-only w.r.t. the tracked spine
-(unchanged). No orchestration script is added to Layer 2 (ADR-28 preserved) — the write is
-an agent in the consumer's own worktree.
+seeder `seed_runbook.py` docstring **deferred** the cross-repo consumer fan-out as the
+don't-touch-consumers guardrail: **future consumer fan-out is sanctioned only through this
+shape; the seeder itself remains deferred/single-target for now** (read-only w.r.t. the
+tracked spine, unchanged — its docstring still correctly states it is not that path). No
+orchestration script is added to Layer 2 (ADR-28 preserved) — the write is an agent in the
+consumer's own worktree.
