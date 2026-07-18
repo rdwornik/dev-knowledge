@@ -196,6 +196,19 @@ dispositions:
       filed 2026-07-12). Load-bearing recently-filed dependency-version-parity task; condensation
       deferred to #332's own build. Other-session task text is NOT trimmed here (operator ruling,
       A0 seal); review_date is the shelf-life so this does not rot into a paper suppression (ADR-75).
+  # (2026-07-18) #344 surfaced by the ai-council P6-handoff integration ship-gate — the session-close-gate
+  # task (renumbered from the #343 cross-session collision; main owns #343 = fleet_parity ship-gate scoping).
+  - id: warn-doc-rot-backlog-344
+    organ: doc_rot
+    match: "BACKLOG#344"
+    ref: "#344"
+    review_date: 2026-08-18
+    reason: >-
+      Surfaced — NOT introduced — by the ai-council P6-handoff integration ship-gate. Load-bearing
+      NEEDS-RULING task (Ask 1 session-close gate + Ask 2 consumer hub-write guard; awaits an operator
+      ruling per core-invariant #6); condensation deferred to #344's own ruling/build. Other-session
+      task text is NOT trimmed here (A0-seal precedent, #332); review_date is the shelf-life so this
+      does not rot into a paper suppression (ADR-75).
   - id: warn-reconciled-versions-contributing-template
     organ: reconciled_versions
     match: "templates/CONTRIBUTING-md-template.md"
