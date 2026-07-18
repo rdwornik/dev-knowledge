@@ -25,7 +25,7 @@
 
 **Result:** clean fold — revised ANSWERS in, QUESTIONS block + stale answers OUT; `verify_handoff_probes` still 4/4; PASTE_THIS 40,371 B. Landed via `--no-ff` on `worktree-ai-council-handoff`.
 
-**Changes:** `docs/handoffs/2026-07-17-ai-council-architect-p6-window-completion/{SUPPLEMENT,PASTE_THIS}.md`.
+**Changes:** `docs/handoffs/2026-07-17-ai-council-architect-p6-window-completion/{SUPPLEMENT,PASTE_THIS}.md`. Commit `71915e1` → merge `09e7dd57` (SHA anchor added in a follow-up wrap per the ADR-85 gate — the merge hash was unknowable at first write).
 
 **Abandoned:** none.
 
