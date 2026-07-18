@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-17
+last_reviewed: 2026-07-18
 reconciled_with: handoff-process@5.7
 status: active
 owner: Rob
@@ -189,7 +189,7 @@ local git gate.
 | `doc_rot` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #140; ADR-88 FC4 (ADR-65/49/41) |
 | `doc_structure` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #192; ADR-88 prose-shape |
 | `hooks_armed` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | **fail-closed** (FAIL on a missing/foreign `.git/hooks` gate) | RF-2 (Fable arch review 2026-07-04 §4); self-armed by the SessionStart `pre_commit install` |
-| `fleet_parity.py` (CLI) | operator / nightly leg (manual; deliberately NOT in `ALL_CHECKS` — ship-gate REDs undispositioned WARNs, battery wiring is a later ruling) | hub | fail-soft (WARN-only v1: completed run exits 0 whatever it finds; exit 2 only on an unreadable parity manifest, and then NO digest is written) | #328/#332; intake #12 + the RULED #14 pack; `ecosystem/parity-surfaces.yaml` + `dependency-baseline.yaml` |
+| `fleet_parity.py` → `check_fleet_parity` (audit check) | `audit.py health` (pre-commit) + `ship-gate` — blocking `ALL_CHECKS` member since [#337] ([#336] cleared the last WARN); the standalone CLI stays read-only | hub | **fail-closed** on a real divergence (FAIL: refused/must-absent/tombstone-violated; WARN→RED: undeclared/unavailable/tracked-ephemera; stale-declaration/advisory-rewarn stay advisory). The ~8s walk runs per-commit too — ship-gate-scoping is a filed follow-up | #328/#332/#337; intake #12 + RULED #14; ADR-102/103; `ecosystem/parity-surfaces.yaml` + `dependency-baseline.yaml` |
 | `deploy/tool.py` + 4 carriers (`globalconfig`/`plugin`/`precommit`/`floor`) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ADR-91/92/93; PLAYBOOK §20 |
 | `floor-hash-verify` (pre-commit) + SessionStart floor guard (`.claude/check_floor_hash.py`) | consumer commit / session start | consumer (armed by `carrier_floor`) | **fail-closed** (loud on floor drift) | ADR-93 (#226) |
 | pre-commit gates (`.pre-commit-config.yaml`) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below (count in `ecosystem/doc-counts.md`) |
@@ -225,7 +225,7 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   (count in `ecosystem/doc-counts.md`; `python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
   `no_sibling_orphans`, `canonical_structure`, `amendment_coherence`, `git_backlog_drift`,
   `no_ff_merges`, `reconciled_versions`, `doc_rot`, `doc_structure`, `doc_code_edge`,
-  `safe_removal`, `doc_code_coverage_drift`).
+  `safe_removal`, `doc_code_coverage_drift`, `fleet_parity`).
   `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs);
   `ship-gate` = the #147 pre-ship verification-organ gate (Definition-of-shipped point 6).
   **Seam `ship-gate` vs `health`:** both reuse `ALL_CHECKS`, but `health` gates each
@@ -329,7 +329,7 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   A2) into forcing a `last_reviewed` re-stamp (#222). Reuses the #89 derivers; `--write`
   regenerates, `--check [--gate]` verifies (drift → the `doc_claims` WARN; ship-gate is the
   teeth). A **loose** module by design — not a codemap node, so its edits never regen the map.
-- `scripts/fleet_parity.py` — the #328 fleet-parity checker (WARN-only v1): a deterministic
+- `scripts/fleet_parity.py` — the #328 fleet-parity checker (a blocking `ALL_CHECKS` member via `check_fleet_parity` since [#337]; the CLI itself stays read-only): a deterministic
   read-only walk of the registered fleet (hub included, intake #12 §9a) against the versioned
   `ecosystem/parity-surfaces.yaml` + `ecosystem/dependency-baseline.yaml` (#332 dep leg),
   consulting each repo's `.methodology.yaml` through the Informant's own reader (one taxonomy;
@@ -338,8 +338,10 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   ambiguous/mis-addressed pointers — detect-and-report, NEVER an action proposal. Writes the
   gitignored `logs/FLEET-PARITY.md` digest + appends schema-versioned checker-run JSONL events
   to the gitignored rotation-capped `logs/parity-events.jsonl` (fail-open emission). A loose
-  module (not a codemap node); NOT in `ALL_CHECKS` this phase. Standalone CLI:
-  `python scripts/fleet_parity.py --run-date YYYY-MM-DD` (#328).
+  module (not a codemap node). **Promoted to a blocking `ALL_CHECKS` member** ([#337], 2026-07-18):
+  `audit.py::check_fleet_parity` calls `fleet_parity.walk()` in-process and maps blocking verdicts
+  to gating Findings (`exempt:` in doc-code-edge.yaml — manifest-driven, not a doc→code rule). The
+  standalone CLI is unchanged: `python scripts/fleet_parity.py --run-date YYYY-MM-DD` (#328/#337).
 - `deploy/tool.py` + `deploy/contract.py` + the four carriers (`carrier_globalconfig`,
   `carrier_plugin`, `carrier_precommit`, `carrier_floor`) — the ADR-92 **deploy orchestrator**
   (Ch4). A read-only ASSESS CLI (`deploy <repo> --target <vX.Y.Z>`) detects each carrier's

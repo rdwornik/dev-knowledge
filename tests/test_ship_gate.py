@@ -66,16 +66,13 @@ _REGISTER_77 = (
 _EMPTY_REGISTER = "dispositions: []\n"
 
 
-def _run(monkeypatch, checks, *, register_text=None, register_path=None, tmp_path=None,
-         fleet_lines=None):
+def _run(monkeypatch, checks, *, register_text=None, register_path=None, tmp_path=None):
     """Invoke the ship-gate command via the real click path with controlled checks
     and a controlled register; returns the CliRunner result.
 
-    The [#337] informational fleet-parity surface is stubbed (default: silent) so the
-    suite never spawns the real fleet walk and stays deterministic; a caller exercising
-    the surface passes `fleet_lines`."""
+    ALL_CHECKS is monkeypatched to `checks`, so the real [#337] fleet-parity walk
+    (`check_fleet_parity`) never runs here — the suite stays deterministic + fast."""
     monkeypatch.setattr(aud, "ALL_CHECKS", checks)
-    monkeypatch.setattr(aud, "_fleet_parity_surface", lambda root: list(fleet_lines or []))
     if register_path is not None:
         monkeypatch.setattr(aud, "DISPOSITION_REGISTER", register_path)
     elif register_text is not None:
@@ -225,28 +222,7 @@ def test_ship_gate_failsoft_on_malformed_register(monkeypatch, tmp_path):
     assert res.exception is None or isinstance(res.exception, SystemExit)
 
 
-# --- [#337]: fleet-parity surface is INFORMATIONAL — visible but never a gate input ---
-
-def test_ship_gate_fleet_parity_surface_is_informational(monkeypatch, tmp_path):
-    # The surface is printed (header + its line(s)) AND, crucially, whatever it says
-    # cannot flip the verdict: a surface line advertising WARNs / must-absent still
-    # leaves a clean ALL_CHECKS run GREEN. TEETH: were the surface fed into the verdict,
-    # a "must-absent" line would RED this and the assertion below would fail.
-    res = _run(monkeypatch, [_check_returning(aud.Finding("structural", "pass", "ok"))],
-               register_text=_EMPTY_REGISTER, tmp_path=tmp_path,
-               fleet_lines=["[fleet-parity] 3 repo(s) walked: 5 warn-undeclared, "
-                            "2 must-absent -- see logs/FLEET-PARITY.md"])
-    assert res.exit_code == 0
-    assert "GREEN" in res.output
-    assert "fleet-parity ([#337]" in res.output              # header present
-    assert "warn-undeclared" in res.output                   # the surface line echoed
-
-
-def test_fleet_parity_surface_fail_open(monkeypatch):
-    # The helper NEVER raises: a spawn failure returns a one-line fail-open note.
-    def _boom(*a, **k):
-        raise OSError("no python here")
-    monkeypatch.setattr(aud.subprocess, "run", _boom)
-    out = aud._fleet_parity_surface("/nonexistent")
-    assert isinstance(out, list) and len(out) == 1
-    assert "fail-open" in out[0]
+# [#337] The two informational fleet-parity-surface tests were removed WITH the surface
+# itself (`_fleet_parity_surface` retired): fleet_parity is now a BLOCKING `ALL_CHECKS`
+# member (`check_fleet_parity`) — its verdict->status mapping, hub-only guard, live-zero,
+# and package-mode import are tested in test_audit.py; the walk seam in test_fleet_parity.py.

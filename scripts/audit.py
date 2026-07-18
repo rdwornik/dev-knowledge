@@ -1934,6 +1934,64 @@ def check_doc_code_coverage_drift(repo_path: Path) -> list[Finding]:
                     "(coverage_scope-annotated or exempt); none escape coverage_scope")]
 
 
+def _fleet_parity_findings(parity_findings, register: dict,
+                           fail_verdicts: set, warn_verdicts: set) -> list["Finding"]:
+    """Testable core of check_fleet_parity ([#337]): map fleet_parity ParityFinding verdicts
+    to gating Findings. ONE Finding PER blocking row (disposition contract, Codex CRITICAL
+    2026-06-10) -- a register entry keys on check_name='fleet_parity' + a substring of THIS
+    row's evidence, so it suppresses one row, never the whole organ. If no row blocks, ONE
+    summary `pass` Finding carrying the full register tally, so stale/advisory counts stay
+    VISIBLE without blocking."""
+    out: list[Finding] = []
+    for f in parity_findings:
+        status = ("fail" if f.verdict in fail_verdicts
+                  else "warn" if f.verdict in warn_verdicts else None)
+        if status:
+            ev = f"{f.repo_id} {f.surface_id} {f.verdict}: {f.evidence}"
+            out.append(Finding("fleet_parity", status, ev.replace("|", "/")[:300]))
+    if not out:
+        tally = ", ".join(f"{k} {v}" for k, v in sorted(register.items()) if v)
+        out.append(Finding("fleet_parity", "pass",
+                           f"fleet at parity -- {tally or 'no findings'} (blocking verdicts: 0)"
+                           .replace("|", "/")))
+    return out
+
+
+def check_fleet_parity(repo_path: Path) -> list[Finding]:
+    """[#337] fleet-parity gate -- the #328 cross-repo parity walk as a BLOCKING ALL_CHECKS
+    member (promoted once [#336] cleared the last standing WARN; the fleet is at a zero-WARN
+    steady state). Runs `fleet_parity.walk()` IN-PROCESS (the CLI exit code cannot carry the
+    signal -- it is always 0/2) and maps blocking verdicts to Findings. HUB-ONLY: the walk is
+    fleet-wide, run from the hub. Manifest-driven (ecosystem/parity-surfaces.yaml), so `exempt:`
+    in doc-code-edge.yaml -- like enforcement_coverage / deployed_methodology_version, not a
+    doc->code rule. Read-only (Layer-2, ADR-28/36).
+
+    Verdict->status map (operator ruling 2026-07-18): FAIL on refused / must-absent /
+    tombstone-violated; WARN (undispositioned -> RED) on warn-undeclared / unavailable /
+    tracked-ephemera; stale-declaration + advisory-rewarn stay advisory-but-VISIBLE (surfaced in
+    the summary, never RED from a date/corpus advance -- which is why the wall-clock run-date is
+    safe). PERF ([#337] rider, 2026-07-18): the walk is ~8s and ALL_CHECKS also runs on the
+    per-commit audit-health gate; ship-gate-only scoping is a filed follow-up, not this arc.
+    """
+    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+        return [Finding("fleet_parity", "pass",
+                        "hub-only -- fleet-parity walk skipped (not the hub repo)")]
+    try:
+        try:
+            from scripts import fleet_parity as fp   # package-mode: `python -m scripts.audit`
+        except ImportError:
+            import fleet_parity as fp                # script-mode: `python scripts/audit.py`
+        from datetime import date as _date
+        r = fp.walk(_date.today().isoformat())
+        register = fp.summarize(r.findings)
+        fail_v = {fp.REFUSED, fp.MUST_ABSENT, fp.TOMBSTONE_VIOLATED}
+        warn_v = {fp.WARN_UNDECLARED, fp.UNAVAILABLE, fp.TRACKED_EPHEMERA}
+    except Exception as exc:  # never wedge the gate on an internal error (mirrors coverage-drift)
+        return [Finding("fleet_parity", "warn",
+                        f"fleet-parity walk degraded (read-only): {exc!r}".replace("|", "/"))]
+    return _fleet_parity_findings(r.findings, register, fail_v, warn_v)
+
+
 def check_deployed_methodology_version(repo_path: Path) -> list[Finding]:
     """ADR-91 deployed-version reporter: read the hub-committed deployed-versions registry
     and report THIS repo's deployed methodology-corpus version.
@@ -2153,6 +2211,7 @@ ALL_CHECKS = [
     check_undeclared_edges,
     check_doc_code_coverage_drift,
     check_import_edges,
+    check_fleet_parity,   # [#337] blocking #328 fleet-parity gate (was informational)
 ]
 
 
@@ -2695,37 +2754,9 @@ def _match_disposition(finding: "Finding", dispositions: list[dict]) -> Optional
     return None
 
 
-_FLEET_PARITY_SCRIPT = os.path.join(_SCRIPTS_DIR, "fleet_parity.py")
-
-
-def _fleet_parity_surface(repo_root: str) -> list[str]:
-    """INFORMATIONAL fleet-parity surface for the ship-gate ([#337]) — visible on every
-    ship but NEVER a gate input. Runs the read-only #328 walk as a fail-open subprocess
-    (`--no-write --no-events`; a wall-clock run-date because this is a LIVE surface, not
-    a pure verdict) and returns the `[fleet-parity]` summary line(s) for the caller to
-    echo. The verdict logic never reads this.
-
-    Fail-open BY CONTRACT: any error / timeout / non-zero exit yields a single ASCII
-    note and NEVER raises, so the surface can neither block nor crash the gate.
-    fleet_parity is deliberately NOT an `ALL_CHECKS` member (it emits WARNs the gate
-    would RED on); promotion to a blocking `ALL_CHECKS` check is tracked by [#337],
-    gated on a TRUE zero-WARN steady state (waits for [#336] to land, never a date).
-    """
-    try:
-        proc = subprocess.run(
-            [sys.executable, _FLEET_PARITY_SCRIPT, "--run-date", date.today().isoformat(),
-             "--no-write", "--no-events"],
-            cwd=repo_root, capture_output=True, text=True, encoding="utf-8",
-            errors="replace", timeout=120)
-    except Exception as exc:  # noqa: BLE001 — fail-open BY CONTRACT (never crash the gate)
-        return [f"(fleet-parity surface unavailable, fail-open: {exc!r})"]
-    lines = [ln for ln in (proc.stdout or "").splitlines()
-             if ln.startswith("[fleet-parity]")]
-    if lines:
-        return lines
-    tail = (proc.stderr or proc.stdout or "no output").strip().splitlines()
-    note = f"; {tail[-1][:120]}" if tail else ""
-    return [f"(fleet-parity surface unavailable, fail-open: rc={proc.returncode}{note})"]
+# [#337] the INFORMATIONAL fleet-parity subprocess surface (`_fleet_parity_surface` /
+# `_FLEET_PARITY_SCRIPT`) was RETIRED when fleet_parity became a blocking ALL_CHECKS member
+# (`check_fleet_parity` above) -- the gate now reads the in-process walk, not an echoed subprocess.
 
 
 @cli.command("ship-gate")
@@ -2800,15 +2831,9 @@ def cmd_ship_gate() -> None:
         click.echo(f"  [stale] disposition {d.get('id')} matched no live WARN — "
                    f"review/remove (ADR-75 decoration rule)")
 
-    # INFORMATIONAL fleet-parity surface ([#337]) — visible every ship, NEVER a gate
-    # input. It is printed here for awareness only; nothing below reads it, so a
-    # fleet_parity WARN can neither block this gate nor flip the verdict. Promotion to
-    # a blocking ALL_CHECKS check is tracked by [#337] (gated on a zero-WARN steady
-    # state; waits for [#336] to land).
-    click.echo("fleet-parity ([#337]; informational — never blocks this gate):")
-    for line in _fleet_parity_surface(str(_REPO_ROOT)):
-        click.echo(f"  {line}")
-
+    # [#337] fleet_parity is now a blocking ALL_CHECKS member (check_fleet_parity); its
+    # Findings render inline in the loop above and gate via the normal fails/undispositioned
+    # path below -- no separate informational echo.
     if fails or undispositioned:
         reasons = []
         if fails:

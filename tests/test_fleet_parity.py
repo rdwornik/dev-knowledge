@@ -1223,3 +1223,24 @@ def test_digest_is_ascii_and_atomic(tmp_path):
     assert out.read_text(encoding="utf-8") == digest
     fp._atomic_write(out, digest + "x\n")
     assert out.read_text(encoding="utf-8").endswith("x\n")
+
+
+def test_walk_returns_walkresult_shape():
+    """[#337] walk() is the in-process seam reused by main() + audit.check_fleet_parity."""
+    r = fp.walk("2026-07-18")
+    assert isinstance(r, fp.WalkResult)
+    assert r.findings and r.targets
+    assert all(hasattr(f, "verdict") for f in r.findings)
+
+
+def test_cli_main_emits_surface_line_after_walk_extract():
+    """[#337] smoke: the walk()-extract main() still emits the surface_line and exits 0
+    (proves the extract preserved main()'s output contract)."""
+    root = Path(__file__).resolve().parents[1]
+    proc = subprocess.run(
+        [sys.executable, str(root / "scripts" / "fleet_parity.py"),
+         "--run-date", "2026-07-18", "--no-write", "--no-events"],
+        capture_output=True, text=True, cwd=str(root))
+    assert proc.returncode == 0, proc.stderr
+    assert any(ln.startswith("[fleet-parity] ") and "repo(s) walked" in ln
+               for ln in proc.stdout.splitlines())
