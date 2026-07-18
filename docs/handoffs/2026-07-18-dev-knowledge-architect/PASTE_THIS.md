@@ -427,77 +427,32 @@ The operator has **filled** the supplement, so its ANSWERS are in the paste and 
 
 === SUPPLEMENT.md ===
 
-ANSWERS — outgoing architect (2026-07-18 serial-integration close-out session)
+ANSWERS — authored by the outgoing browser architect (2026-07-18); CC transcribes verbatim. Supersedes the CC-drafted fill in full.
 
-These are OPERATOR RULINGS made in the outgoing chat and transcribed VERBATIM —
-they exist only in chat and must travel. Read them as the binding off-repo "why"
-for ARC 4; the schema mapping below is secondary to the verbatim text.
+STRATEGIC INTENT — One goal above all others, operator-dictated: UNIVERSALIZATION. A single fleet-wide pattern for system architecture, file naming, folder structure, and file structure — AND a universalized DEPLOYMENT of that pattern — so every repo is manageable from the center and improvable uniformly. The operator's bar, verbatim in spirit: "I never again want to ask why files differ between repos." Equalization of corp-monorepo + ai-council (ARC 4) is the first APPLICATION of the pattern, not the goal itself: every align must, where possible, land as manifest/template/carrier material that REPLICATES onto the next repo, not as a one-off file fix. This includes dependency/test-library parity (a missing pytest library made one repo's tests slower — dep parity is part of structure), test-suite optimization, and rolling libraries out where needed. Ladder position: explain→consolidate→document→ENFORCE are done; this cycle enters AUTO-DEPLOY and MANAGE.
 
-RULINGS (verbatim):
+OPERATOR PRIORITY PROGRAM (dictated 2026-07-18, in priority order — the next sessions' agenda skeleton):
+1. Universalization of structure + deployment (above).
+2. Formalize the engineering loop/harness end-to-end: intake → functional requirements (a functional-architect session that seeds the backlog) → ADR → implementation → sandbox/console dynamic testing → review → backlog close + REAL deletion. Standing pain named by the operator: files get frozen/tombstoned instead of properly deleted — the junkyard effect; design a sanctioned safe-deletion pattern (extends the proof-then-delete ruling on #122).
+3. Night routines + CONFIGURED multiagent workflows (self-orchestrated Sonnet/Haiku fan-out, no ultracode) + backlog grooming as routine + Q&A sessions — stop re-improvising these per session; make them configuration.
+4. Mechanize session discipline: a fresh browser must inherit "a session ends only after proper testing and the close sequence" from a gate/boot mechanism, never from the operator reminding it.
+5. Handoff-process improvements — other browsers able to trigger a handoff; file-dependency issues at handoff; general refinement. Explicitly LAST priority.
 
-- RULING-W: hub MAY/SHOULD write into consumer repos for methodology/cleanup —
-  separate worktree/branch, then report; FIRST step of any consumer leg = codify
-  this as the ADR-36/41 amendment (mechanism before act).
+BINDING RULINGS (made in the outgoing chat; travel verbatim):
+- RULING-W: hub MAY/SHOULD write into consumer repos for methodology/cleanup — separate worktree/branch, then report; FIRST step of any consumer leg = codify this as the ADR-36/41 amendment (mechanism before act).
+- RULING-S: every governed file gets READER-VISIBLE sections separating methodology-universal vs repo-personal content (CLAUDE.md + configs; machine markers alone insufficient).
+- RULING-PY: ruff baseline targets py311 now (corp floor ≥3.11); standing direction "always newest Python" → file the fleet-Python-upgrade ticket.
+- RULING-CF: ai-council adopts the conformance workflow (equalize upward).
+- #329 design input: editor-side background decoration (grey/navy on dark theme) of owner=hub/owner=repo regions via versioned .vscode — the human-facing half of RULING-S.
+- #341 R2: producer-activation = sanctioned repo-local AGENTS.md override (per-run flag REJECTED on witnessed precedence evidence).
+- Satellite wave: FROZEN until corp + ai-council lessons are extracted.
 
-- RULING-S: every governed file gets READER-VISIBLE sections separating
-  methodology-universal vs repo-personal (CLAUDE.md + configs; machine markers
-  alone insufficient).
+TENSIONS WEIGHED — pattern-vs-patch: operator explicitly rejects one-off aligns without a deployable pattern behind them. Mechanism-before-act: the ADR-36/41 amendment lands before any consumer edit. Freeze-vs-delete: tombstone doctrine served safety but breeds the junkyard; a real deletion path is now wanted (design question, not yet ruled). Breadth-vs-depth: unchanged — two Wave-1 consumers first, wave frozen.
 
-- RULING-PY: ruff baseline targets py311 now (corp floor); standing direction
-  "always newest Python" -> file the fleet-upgrade ticket.
+CONSIDERED + REJECTED (do not relitigate): per-run codex profile/flag (#341 R2, witnessed); firing the satellite wave now; unmediated hub↔consumer writes (RULING-W path only); immediate newest-Python baseline bump (ticketed lift instead); equalization as one-off fixes without replication material (operator intent).
 
-- RULING-CF: ai-council adopts the conformance workflow.
+OPEN / DEFERRED: #344 session-close gate + consumer hub-write guard (needs ruling; its guard must ALLOW the RULING-W path); fleet-Python-upgrade ticket unfiled; safe-deletion pattern design; functional-architect role/session design (seeds backlog with functional requirements); night-workflow configuration formalization; #343 fleet_parity ship-gate-only scoping; #339 build leg; #342; #300 residual d.i/d.ii (d.iii COVERED by ADR-101, closeable); #341 build (mechanism ruled); #338; night-triage 15 findings; #162 vocab collision; handoff-trigger-from-other-browsers (last).
 
-- #329 design input: editor-side background decoration of owner=hub/repo regions
-  via versioned .vscode (grey/navy on dark theme).
+DECOMPOSITION RATIONALE — ARC 4 opens the cycle: (1) ADR-36/41 amendment (RULING-W codified), (2) re-witness BOTH consumers live (their HEADs moved repeatedly — never edit from a stale ledger), (3) equalize with replication in mind (manifest rows / templates / carrier material), sections per RULING-S throughout. Then the loop-formalization work (priority 2-3) as its own arcs. Do NOT redo: the seven rulings, the census classifications, the R2 mechanism, the frozen wave, the night-ledger verdicts (re-witness refreshes state, not the verdict logic).
 
-- #341 R2 ruling: producer-activation = sanctioned repo-local AGENTS.md override
-  (per-run flag rejected, witnessed evidence).
-
-- Satellite wave: still FROZEN until corp + ai-council lessons extracted.
-
---- schema mapping (CC framing of the verbatim rulings above; the rulings are authoritative) ---
-
-1. STRATEGIC INTENT: run ARC 4 — fleet equalization. Bring the Wave-1 consumers
-   (corp-monorepo, ai-council) into methodology parity with the hub, harvesting
-   their lessons first. RULING-W is the enabling doctrine: the read-only hub
-   becomes one that can WRITE into consumers under a mechanism-first discipline
-   (worktree/branch → report). The way-of-working goal is the ADR-36/41 amendment
-   that sanctions this — it is the FIRST step of any consumer leg, before any
-   equalization edit.
-
-2. TENSIONS WEIGHED: breadth-first onboarding vs depth-first hub hardening —
-   resolved toward equalizing the two Wave-1 consumers before firing the satellite
-   wave (which stays FROZEN until their lessons are extracted). Mechanism-before-act
-   (RULING-W) over expedient direct writes: the amendment lands before the edits.
-   Machine markers vs human legibility (RULING-S) — resolved that reader-visible
-   sections are REQUIRED; the owner=hub/repo comment markers are necessary but not
-   sufficient, and #329's editor decoration is the complementary human-facing half.
-
-3. CONSIDERED + REJECTED (do not relitigate): a per-run codex profile/flag for
-   producer activation — REJECTED in favor of a sanctioned repo-local AGENTS.md
-   override, on witnessed precedence evidence (#341 R2). Firing the satellite
-   onboarding wave now — REJECTED (frozen until corp + ai-council lessons land).
-   Unmediated hub→consumer or consumer→hub tree writes — REJECTED; the sanctioned
-   path is worktree/branch + report (RULING-W). Chasing "always newest Python" as an
-   immediate baseline bump — deferred to a filed fleet-upgrade ticket; the ruff
-   baseline stays py311 (corp floor) for now (RULING-PY).
-
-4. OPEN / DEFERRED: #344 session-close gate + consumer hub-write guard
-   (NEEDS-RULING — Ask 1 pre-handoff gate, Ask 2 consumer-side PreToolUse guard;
-   RULING-W defines the sanctioned write path Ask 2 must allow). The fleet-upgrade
-   ("always newest Python") ticket is not yet filed. #300 hermetization residual
-   (d.i/d.ii/d.iii) pegged BEFORE Wave-2. #339 ADR-29 chronological-split build leg.
-   The #162/S1 architect actor-vs-mode vocab collision, standing.
-
-5. DECOMPOSITION RATIONALE: ARC 4 opens with the ADR-36/41 amendment (RULING-W,
-   mechanism-first) — NOT an equalization edit — then re-witnesses each consumer
-   live before touching it. The reviewer-path (#338) and producer-path (#341) are
-   disjoint codex threads; #341's activation decision is already made (R2), so it is
-   build, not design. Do NOT re-derive the producer-activation mechanism (repo-local
-   AGENTS.md, ruled) or re-open the satellite freeze.
-
-6. OFF-REPO CONTEXT: the ARC 4 prompt file is operator-held (approved, off-repo).
-   Re-witness the consumers first — their state may have moved since the last window.
-   All seven rulings above are this session's binding operator input and exist only
-   in chat; they are the reason the equalization arc can proceed at all.
+OFF-REPO CONTEXT — The approved ARC 4 prompt file is operator-held (off-repo). Two stale background agents (5d/11d) were stood down with commit-and-STOP wind-down orders; their reports may surface residual branches — operator rules integrate-vs-discard. The 2026-07-17 night-audit artifacts are filed in docs/audits (four files). This supplement was authored by the browser architect; CC transcribed it verbatim (the authorship rule is now standing).

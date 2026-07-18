@@ -20,19 +20,36 @@ freeze — all in `SUPPLEMENT.md` ANSWERS (verbatim).
 
 ---
 
-## §A — THE ARC (what ARC 4 is)
+## §A — THE GOAL (universalization) and THE ARC (ARC 4 as its first application)
 
-Bring the Wave-1 consumers (**corp-monorepo**, **ai-council**) into methodology parity with
-the hub — harvest their lessons, then propagate. This is the ecosystem crossing from
-**hub-only enforcement to a fleet mesh** (ADR-28 Layer-2). The enabling doctrine is **RULING-W**:
-the read-only hub becomes one that can WRITE into consumers under a **mechanism-first**
-discipline.
+**The goal above all others (operator-dictated, `SUPPLEMENT.md` ANSWERS):** **UNIVERSALIZATION** —
+a single fleet-wide pattern for system architecture, file naming, folder structure, and file
+structure, AND a universalized DEPLOYMENT of that pattern, so every repo is manageable from the
+center and improvable uniformly. Operator's bar: *"I never again want to ask why files differ
+between repos."* The methodology ladder has climbed explain→consolidate→document→ENFORCE; this
+cycle enters **AUTO-DEPLOY and MANAGE**.
+
+**ARC 4 (equalize corp-monorepo + ai-council) is the FIRST APPLICATION of the pattern, not the
+goal itself.** Every align must, where possible, land as **manifest / template / carrier material
+that REPLICATES onto the next repo** — not a one-off file fix. Dep/test-library parity counts as
+structure (a missing pytest library slowed one repo's tests). This is the ecosystem crossing from
+**hub-only enforcement to a fleet mesh** (ADR-28 Layer-2), enabled by **RULING-W**: the read-only
+hub becomes one that can WRITE into consumers under a **mechanism-first** discipline.
+
+**The operator priority program** (dictated 2026-07-18, full text in `SUPPLEMENT.md`): (1)
+universalization of structure + deployment; (2) formalize the engineering loop end-to-end (intake
+→ functional requirements → ADR → implementation → dynamic testing → review → close + REAL
+deletion — the junkyard/tombstone pain, a sanctioned safe-deletion pattern wanted); (3) night
+routines + configured multiagent workflows + backlog grooming as routine; (4) mechanize
+session-discipline inheritance (a fresh browser inherits the test-then-close gate, never operator
+reminders); (5) handoff-process refinement — explicitly LAST.
 
 **Hard opening constraint (RULING-W).** The FIRST step of ANY consumer leg is to **codify the
 consumer-write mechanism as the ADR-36/41 amendment** — mechanism before act. No equalization
 edit into a consumer tree happens before that amendment lands. Every consumer write goes
 **separate worktree/branch → report**, never a direct push into a consumer checkout.
-**Re-witness each consumer live** before touching it — state may have moved since the last window.
+**Re-witness BOTH consumers live** before touching them — their HEADs moved repeatedly; never
+edit from a stale ledger.
 
 ## §B — DECISIONS ALREADY MADE (do not relitigate)
 
@@ -66,8 +83,13 @@ edit into a consumer tree happens before that amendment lands. Every consumer wr
 | #339 | LESSONS legacy-split BUILD leg | ADR-29 chronological-archival amendment ratified in docs; execute the split once (byte-identical, test proving zero entry-body change) |
 | #342 | fleet_parity gate-ahead max-fidelity hardening (3 items) | deferred #336/ADR-102; serialize-group audit-py |
 | #343 | fleet_parity ship-gate-only perf scoping (RIDER-2) | the ~8s walk should not tax every pre-commit; existing skip-flag pattern |
-| #300 | Hermetization residual (d.i runbooks / d.ii mode-boot home / d.iii audit-class grammar) | DEFER — peg BEFORE Wave-2 |
+| #300 | Hermetization residual — **d.i runbooks / d.ii mode-boot home** open; **d.iii audit-class grammar COVERED by ADR-101 → closeable** | DEFER — peg BEFORE Wave-2 |
 | triage | 15 nightly findings await (#47…#19, Issues tab) | night-triage backlog; surface + triage |
+| new | **Safe-deletion pattern** — sanctioned real-deletion path to end the freeze/tombstone junkyard (extends the proof-then-delete ruling on #122); design question, not yet ruled | priority-2 (loop formalization) |
+| new | **Functional-architect role/session** — a functional-requirements session that seeds the BACKLOG (intake → functional reqs leg of the loop) | priority-2 |
+| new | **Night-workflow configuration** — configured self-orchestrated Sonnet/Haiku fan-out (no ultracode) + backlog grooming + Q&A as routine, not per-session improvisation | priority-3 |
+| new | **Session-discipline inheritance** — a fresh browser inherits the test-then-close gate from a mechanism, never operator reminders | priority-4 |
+| new | **fleet-Python-upgrade ticket** (RULING-PY "always newest Python") — unfiled | file next session |
 
 ## §E — SESSION CLOSE CONDITIONS
 Consumer legs each reported (worktree/branch → report, RULING-W) · ADR-36/41 amendment landed
