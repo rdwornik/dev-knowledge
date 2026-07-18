@@ -10,8 +10,10 @@ never has to be hand-copied and cannot silently rot.
 **Single-target by construction (operator rider).** One invocation seeds exactly ONE repo — the
 onboarding chat for a repo runs it for *that* repo. There is no fleet-batch mode here; the
 cross-repo consumer FAN-OUT is deliberately deferred to the per-repo Wave-1/Wave-2 onboarding
-arcs (ADR-41), so a hub session never writes into a consumer's tree (the don't-touch-consumers
-guardrail). This session ships the MECHANISM + a hermetic test; it seeds no consumer.
+arcs (ADR-41), so a hub session never writes into a consumer's tree *unmediated* — the
+sanctioned path is a consumer-local worktree/branch → report (RULING-W, ADR-36/41 amend.
+2026-07-18); this tool is not that path. This session ships the MECHANISM + a hermetic test;
+it seeds no consumer.
 
 Idempotency + frontmatter (RF): equivalence is on the runbook BODY only. A target's own leading
 YAML frontmatter (e.g. a hub `last_reviewed` review stamp) is PRESERVED on update and never
