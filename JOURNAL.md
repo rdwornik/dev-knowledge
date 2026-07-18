@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-18 — CC (Opus 4.8, 1M): P6 SUPPLEMENT ANSWERS re-folded (operator revision — continuation emphasis)
+
+**Did:** Operator externally revised the P6-window SUPPLEMENT ANSWERS (three-themes / "continuation emphasis" framing — the wave's completion is a milestone, not mission-done). Added the canonical `PASTE CHAT ANSWERS BELOW THIS LINE` divider so `assemble_paste.py` folds only the ANSWERS region (the prior fold had no divider → whole-file fallback pulled the QUESTIONS block + the stale earlier answers into PASTE_THIS), re-stamped the STATUS line (2026-07-18 revision), and regenerated PASTE_THIS.
+
+**Result:** clean fold — revised ANSWERS in, QUESTIONS block + stale answers OUT; `verify_handoff_probes` still 4/4; PASTE_THIS 40,371 B. Landed via `--no-ff` on `worktree-ai-council-handoff`.
+
+**Changes:** `docs/handoffs/2026-07-17-ai-council-architect-p6-window-completion/{SUPPLEMENT,PASTE_THIS}.md`.
+
+**Abandoned:** none.
+
+**Next:** unchanged — operator carries #341/#343 to a ruling and integrates the worktree branch → `main`.
+
+---
+
 ### 2026-07-18 — CC (Opus 4.8, 1M): ai-council P6-window-completion handoff bundle UPDATED post-close + hub #343 filed
 
 **Did:** Updated the existing `2026-07-17-ai-council-architect-p6-window-completion` handoff bundle **IN PLACE** (operator ruling — not a new bundle; the bundle had been generated mid-session, before the ai-council session actually closed). Verified the delta READ-ONLY against live ai-council git (`3862749..5d50f08`: night deliverables → synthesizer swap `gemini→openai` → morning-close currency/hygiene → JOURNAL) — no values baked into probes. Rewrote the session header (purpose = **P6 completion wave**: #22/#23 → #39–#43 → #27; "Generated at" re-authored honestly), the RESIDUAL headline (session closed clean; **G3/Epic B RESOLVED by operator ruling**, EPI-1 pack retained as the reversible instrument; night-audit §4.2 gap-map as the intake pointer; both hub NEEDS-RULING intakes carried), replaced the stale **P4** probe (it named an ai-council-only path that FAILED the hub validator) with one binding to the live BACKLOG #22/#23 ready-slack, and refilled the SUPPLEMENT ANSWERS with the outgoing architect's context. Regenerated `PASTE_THIS.md` via `assemble_paste.py`. **Rides-along:** disposed the two consumer→hub NEEDS-RULING intakes — the codex-producer-lane one is already tracked as hub **#341**; filed the session-close-gate one as new hub **#343** (Stop-gate blocks handoff-gen until close-criteria + a consumer hub-write guard; awaits an operator ruling per core-invariant #6).
