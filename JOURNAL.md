@@ -25,11 +25,13 @@
 
 **Result:** Bundle `docs/handoffs/2026-07-18-corp-monorepo-architect/` committed on `docs/2026-07-18-corp-monorepo-architect-handoff` [`0adc8887`]; all pre-commit gates passed/skipped; `verify_handoff_probes` GREEN (4/4 pass, 0 answer-hints). Frontier captured for the incoming architect: sequence the SIM-1 gap-fill day-arc vs the E5 build (`#35→#38→#40→#36`) under A3 R10 knowledge-loop-before-RFP priority; corp `main` clean, no open branches. **Not yet merged to main** — `/ship` refuses in this worktree; `--no-ff` integration is operator/primary-side.
 
-**Changes:** `docs/handoffs/2026-07-18-corp-monorepo-architect/{HANDOFF_BOOT,RESIDUAL,PROBES,SUPPLEMENT,PASTE_THIS}.md` (new, via `0adc8887`); `JOURNAL.md` (this entry). No `src/`/spec/BACKLOG touched; corp-monorepo untouched (read-only).
+**Supplement filled (same session):** operator pasted the outgoing architect chat's answers; folded verbatim + flipped the cold→FILLED framing in HANDOFF_BOOT/RESIDUAL + reassembled PASTE_THIS (37.7KB) [`c76ba20d`]. The captured *why*: operator ruled **knowledge-modules-first, decks next phase** (2026-07-18) over four focus streams (metadata mgmt · URL/source mgmt · knowledge extractor · RFP agent); SIM-2 is the phase bar; per-module witnessed sandbox runs are this arc's acceptance. §13(d) beat now NARROWS.
+
+**Changes:** `docs/handoffs/2026-07-18-corp-monorepo-architect/{HANDOFF_BOOT,RESIDUAL,PROBES,SUPPLEMENT,PASTE_THIS}.md` (new bundle via `0adc8887`; filled-supplement fold via `c76ba20d`); `JOURNAL.md` (this entry). No `src/`/spec/BACKLOG touched; corp-monorepo untouched (read-only).
 
 **Abandoned:** none.
 
-**Next (operator):** `--no-ff` merge `0adc8887` → main + push (from primary); optionally `supplement filled` to fold the outgoing chat's strategic why; `-d` corp's merged straggler `docs/2026-07-18-manifest-doctrine-closeout`.
+**Next (operator):** `--no-ff` merge the branch (`0adc8887`+`c76ba20d`) → main + push (from primary — `/ship` refuses in this worktree); `-d` corp's merged straggler `docs/2026-07-18-manifest-doctrine-closeout`.
 
 ### 2026-07-17 — CC (Opus 4.8, 1M): ADR-29 chronological legacy-split RATIFIED (Stage-2 atomic canon reconciliation, [#339 sanction])
 
