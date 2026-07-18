@@ -29,7 +29,9 @@
 
 **Abandoned:** none. `audit.py` L5 deliberately left untouched (tool-contract-scoped, still true).
 
-**Next:** operator adjudicates the 3 terra findings — F1/F2 pick (a) broaden `#344 Ask-2` / (b) sibling-guard reframe / (c) soften wording; F3 confirm the "future fan-out sanctioned only via this shape; seeder itself deferred" reword. On GO: apply approved wording, re-run terra doc-lane + ship-gate, commit-and-STOP for the serial merge from primary.
+**Adjudicated [`bb519522`] + re-reviewed [`8c60e29`]:** operator ruled (Part A) — F1/F2 = neither broaden nor reframe; the amendment must NOT pre-decide #344's guard architecture (NEEDS-RULING, operator-owned), so the `#344 Ask-2` cross-ref became a **pure boundary constraint** ("whatever shape the guard takes, it MUST allow the RULING-W path and MUST block unmediated hub writes; design decided in #344, not here") in both ADRs. F3 = approved reword ("future consumer fan-out sanctioned only through this shape; the seeder itself remains deferred/single-target for now"). **terra doc-lane v2 = 0 findings** all bands; ship-gate GREEN (ruff · audit `health: OK`); ADR-only prose change, full suite unaffected (last green 1595/3 on the code-identical tree).
+
+**Next:** operator GO → serial `--no-ff` merge of `docs/adr-36-41-ruling-w-hub-write-path` from primary (Part B). Then Part C (plan mode): codify the two-tier new-path rule (pattern-sanctioned-with-citation vs unsanctioned-STOP; folders always gated) + machine-readable sanctioned-pattern registry, folded into the #344 guard design + fleet replication.
 
 ---
 
