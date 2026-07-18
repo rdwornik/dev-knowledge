@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-18 — CC (Opus 4.8, 1M): ARC 4 Part C — two-tier new-path rule codified into ADR-101 (convention-compliance IS authorization)
+
+**Did:** Codified the operator ruling (relayed from corp-monorepo 2026-07-19) as an **in-file ADR-101 amendment** (own-invariant refinement, ADR-94 + ADR-34 authority, ADR-102 §1 analogy): the new-path gate blocks convention-**VIOLATING** creations, **never** COMPLIANT ones — compliance IS the authorization. Two tiers (pattern-sanctioned file → executor derives+cites+proceeds, no STOP; unsanctioned/ambiguous/any-new-folder → STOP; folders hard-gated always). RULING-S Universal-rule / Repo-application sections. Proposed (not built) a **standalone `ecosystem/*.yaml` path-pattern registry** externalizing the `validate_hermetization.py` frozensets (home + naming rule + source pointer), read by a refactored gate; replication-ready. Folded into the **#344 Ask-2** guard (must ALLOW the RULING-W shape AND enforce the two-tier rule — two orthogonal auth axes). Filed **#345** (registry build) + **#346** (persist executor rule to `~/.claude`). README ADR-101 row annotated. Doctrine-only leg — **no new files/folders** (executor-behavior agent rule flagged as a separate `~/.claude` global ruling, core-invariant #6).
+
+**Result:** branch `docs/adr-101-two-tier-new-path-rule`, 8 commits [`a95d9cb`→`073647e`] — **NOT merged** (operator-gated serial `--no-ff`). Ship-gate GREEN (ruff · audit `health: OK` · `validate_backlog` 112 tasks · live_repo 51-pass docs-only tier). **Five terra doc-lane rounds** (v1–v5), each finding adjudicated with the browser and applied: re-dated 2026-07-18 (provenance 2026-07-19 kept verbatim); "in force now by operator ruling" layered framing (#345 mechanizes gate, #346 persists rule, neither a precondition; riders: ambiguity→STOP, citation mandatory); ADR-102 demoted to analogy; #346 BACKLOG aligned to "persist the in-force rule"; effective-pattern set enumerated (ADR-34/ADR-98+intake-README§4/audits§2·R3·R4/JOURNAL); path-auth≠content-auth. **Standing operator overrule:** the terra date-High (2026-07-19 provenance vs 2026-07-18 record) is a twice-ruled accepted state.
+
+**Changes:** `docs/decisions/ADR-101-hermetization.md` (amendment), `docs/decisions/README.md` (row), `BACKLOG.md` (#345/#346); 5 terra audit artifacts + `docs/audits/README.md` index. No tracked task closed (advisory BACKLOG gate n/a — pure advance).
+
+**Abandoned:** none. NOTE — an untracked `docs/handoffs/2026-07-18-corp-monorepo-e5-registry-developer/` bundle (NOT this session's, not mine) appeared in the tree mid-session; left untouched, flagged to operator.
+
+**Next:** operator GO → serial `--no-ff` merge from primary. Then #345 (registry build, needs a new-file authorization line) + #346 (`~/.claude` executor-rule global ruling).
+
+---
+
 ### 2026-07-18 — CC (Opus 4.8, 1M): ARC 4 opening move — RULING-W codified into ADR-36 + ADR-41 (mechanism before act)
 
 **Did:** First consumer-leg step per RULING-W. Amended **ADR-36** (new `## Amendments` section, qualifies §Q5 read/write boundary) and **ADR-41** (appended, narrows the don't-touch-consumers guardrail) with the 2026-07-18 operator ruling **RULING-W quoted verbatim**: the hub MAY/SHOULD write into a consumer via a **separate worktree/branch → report**; never a direct push into a live consumer checkout; re-witness the consumer live first. Both carry **RULING-S** reader-visible Universal-rule / Repo-application subsections + a `#344 Ask-2` cross-reference; reconciled ADR-28 (no Layer-2 orchestration script added — the audit *tool* stays read-only, RULING-W is a distinct agent-mediated path). Narrowed the overbroad `seed_runbook.py` guardrail-narration line (docstring only, zero behavior). Annotated the README ADR-index rows. Then split the commit (prose vs code) so the ADR prose got a **gpt-5.6-terra doc-lane** codex review.
