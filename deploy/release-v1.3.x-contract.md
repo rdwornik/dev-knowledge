@@ -304,3 +304,29 @@ pasting, `python deploy/release_lint.py --version 1.3.0` (C6 wants both new comp
 their carrier + carry `waivable` + `engages`; C3 wants `hub_hooks.rev == source_tag`) and
 `python scripts/gen_methodology_roster.py --write` (regenerates `.claude/methodology-roster.md`,
 gated by `roster-freshness`) reconcile the cut.
+
+## Addendum 2026-07-18 — ARC 4 leg 1 fleet ruff-shape + pytest-floor equalization
+
+### 3.7 ARC 4 leg 1 — fleet ruff-shape + pytest-floor equalization · MATERIAL (satellite wave frozen)
+- **What:** the equalized fleet ruff SHAPE (`required-version` `>=0.15.5` · `target-version`
+  `py311` · `line-length` `120`) + the declared pytest floor (`minversion` `9.0`), each with
+  RULING-S reader-visible `=== UNIVERSAL ===` / `=== REPO-PERSONAL ===` section headers in every
+  governed `pyproject.toml`.
+- **Rulings (2026-07-18):** RULING-PY (py311 baseline; "always newest Python" lift tracked as
+  #351), RULING-S (reader-visible universal/personal split), RULING-W (consumer writes via
+  worktree/branch → report; per-consumer merge GO with the operator).
+- **Canonical source:** `templates/ruff-config-block.toml` — copy-paste MATERIAL. A `pyproject.toml`
+  is repo-authored and carries much else, so these blocks are HAND-MERGED per RULING-W, never
+  file-copied over an existing pyproject.
+- **Carrier posture — MATERIAL ONLY, not a manifest cut:** the satellite wave is FROZEN until corp
+  + ai-council lessons are extracted (operator standing ruling). This section is the
+  ready-to-replicate spec; **no** `manifest-v*.yaml` row is cut here. When the wave thaws, the
+  shape ships as a documented pyproject-fragment carrier (or a pyproject-merge helper), NOT a
+  whole-file `path`/`source` carrier (which would clobber a consumer's pyproject).
+- **Divergence handling:** the three ruff keys + `minversion` are `fleet_parity`-gated; each repo's
+  lint posture (`select` / `ignore` / `per-file-ignores` / `format`) and pytest markers stay
+  REPO-PERSONAL, declared in `.methodology.yaml` (the #328 mechanism). An undeclared divergence
+  WARNs in the nightly ecosystem audit.
+- **Live application (ARC 4 leg 1):** hub `pyproject.toml` equalized on
+  `feat/arc4-leg1-ruff-equalization`; consumers (corp-monorepo, ai-council) via per-consumer
+  RULING-W worktrees, each commit-and-STOP + report.
