@@ -8,7 +8,7 @@
 #
 # Version line below is nudge-parseable (validate_reconciliation._VERSION_LINE_RE,
 # IGNORECASE): bump it when surface semantics change.
-version: 1.2.0
+version: 1.3.0
 #
 # GRAMMAR
 #   fleet:      every ecosystem/deployed-versions.yaml registry key MUST appear here
@@ -547,14 +547,54 @@ surfaces:
     tier: {hub: LOCAL, consumer: LOCAL}
     declared_by: intake-12
     probe: {type: ruff_config_form}
-    # intake #12 Tier-3 CONVERGENCE CANDIDATE: ruff config exists in three forms
-    # across the fleet (post-W3: hub pyproject [tool.ruff], corp .ruff.toml, ai
-    # pyproject; ai also keeps assets/ruff-pre-commit.yaml as INSTALL reference).
+    # intake #12 Tier-3 CONVERGENCE CANDIDATE: ruff config HOME/form. As of ARC-4 leg-1
+    # (2026-07-18) all three repos use pyproject [tool.ruff] (corp's .ruff.toml is GONE
+    # -- confirmed no .ruff.toml in corp/ai); ai also keeps assets/ruff-pre-commit.yaml as
+    # an INSTALL reference. The config VALUES are now MUST-gated by the ruff-* surfaces below.
     # Representation-only: the checker REPORTS each repo's form as evidence and never
     # verdicts a winner -- W3-14 (one form, rest declared) is an OPEN ruling.
     ownership:
       value: conditional
       reason: "ruff config PLACEMENT/form (pyproject vs .ruff.toml vs ai form; LOCAL both, representation-only) -- toolchain-config form that varies by repo stack; the checker never verdicts a winner. Not a methodology mandate on the form, not product content."
+      provenance: *own-prov
+
+  # ---- ARC-4 leg-1: universal ruff-shape + pytest-floor VALUE surfaces (MUST-uniform) --
+  # The 4 methodology-universal config VALUES, pinned uniform fleet-wide (ARC-4 leg-1,
+  # 2026-07-18; RULING-PY target baseline, RULING-S universal/personal split). Distinct
+  # from ruff-config-home above (config HOME/form, LOCAL) -- these are the VALUES:
+  # MUST-uniform, non-waivable. Canonical: hub templates/ruff-config-block.toml. Pre-deploy
+  # repos (corp-ops, corp-sca) are rendered skipped, never warned (satellite wave frozen).
+  - id: ruff-target-version
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: file_contains, path: pyproject.toml, token: 'target-version = "py311"'}
+    ownership:
+      value: methodology-generic
+      reason: "ruff target-version pinned py311 fleet-wide (ARC-4 leg-1 RULING-PY baseline; MUST both). Universal methodology config value; the 'always newest Python' lift is tracked #351. Uniformity mandate, not repo-local."
+      provenance: *own-prov
+  - id: ruff-line-length
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: file_contains, path: pyproject.toml, token: 'line-length = 120'}
+    ownership:
+      value: methodology-generic
+      reason: "ruff line-length pinned 120 fleet-wide (ARC-4 leg-1 D1; MUST both). Universal methodology config value; uniformity mandate."
+      provenance: *own-prov
+  - id: ruff-required-version
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: file_contains, path: pyproject.toml, token: 'required-version = ">=0.15.5"'}
+    ownership:
+      value: methodology-generic
+      reason: "ruff required-version floor >=0.15.5 fleet-wide (ARC-4 leg-1; == pinned pre-commit ruff rev v0.15.5; MUST both). Universal methodology config value."
+      provenance: *own-prov
+  - id: pytest-minversion
+    kind: path
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: file_contains, path: pyproject.toml, token: 'minversion = "9.0"'}
+    ownership:
+      value: methodology-generic
+      reason: "pytest minversion floor 9.0 fleet-wide (ARC-4 leg-1 D2; MUST both; lowest shared 9.0.x). Universal methodology config value; uniformity mandate."
       provenance: *own-prov
 
   # ---- Tier-3: LOCAL surfaces the SETTLED template itself enumerates -------------------
