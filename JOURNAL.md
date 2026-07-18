@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-18 — CC (Opus 4.8, 1M): ai-council P6-window-completion handoff bundle UPDATED post-close + hub #343 filed
+
+**Did:** Updated the existing `2026-07-17-ai-council-architect-p6-window-completion` handoff bundle **IN PLACE** (operator ruling — not a new bundle; the bundle had been generated mid-session, before the ai-council session actually closed). Verified the delta READ-ONLY against live ai-council git (`3862749..5d50f08`: night deliverables → synthesizer swap `gemini→openai` → morning-close currency/hygiene → JOURNAL) — no values baked into probes. Rewrote the session header (purpose = **P6 completion wave**: #22/#23 → #39–#43 → #27; "Generated at" re-authored honestly), the RESIDUAL headline (session closed clean; **G3/Epic B RESOLVED by operator ruling**, EPI-1 pack retained as the reversible instrument; night-audit §4.2 gap-map as the intake pointer; both hub NEEDS-RULING intakes carried), replaced the stale **P4** probe (it named an ai-council-only path that FAILED the hub validator) with one binding to the live BACKLOG #22/#23 ready-slack, and refilled the SUPPLEMENT ANSWERS with the outgoing architect's context. Regenerated `PASTE_THIS.md` via `assemble_paste.py`. **Rides-along:** disposed the two consumer→hub NEEDS-RULING intakes — the codex-producer-lane one is already tracked as hub **#341**; filed the session-close-gate one as new hub **#343** (Stop-gate blocks handoff-gen until close-criteria + a consumer hub-write guard; awaits an operator ruling per core-invariant #6).
+
+**Result:** `verify_handoff_probes.py` **4/4 pass** (P4 now resolves; was 3/1 fail before). `validate_backlog` OK (110 tasks, #343 under [E1]/[S2] handoff group). ruff clean; tree clean. Bundle-update + #343 landed on `worktree-ai-council-handoff` via `--no-ff` merge **`fdc7b068`**; first-parent spine intact (core-invariant #5). Integration to `main` is the operator's via `/ship` from the primary (this is a worktree).
+
+**Changes:** `docs/handoffs/2026-07-17-ai-council-architect-p6-window-completion/{HANDOFF_BOOT,RESIDUAL,PROBES,SUPPLEMENT,PASTE_THIS}.md`, `BACKLOG.md` (+#343). Commits `ab67dbf0` (bundle) + `3a848986` (#343) → merge `fdc7b068`.
+
+**Abandoned:** none.
+
+**Next:** operator carries #341/#343 to a ruling; operator integrates `worktree-ai-council-handoff` → `main`. The next ai-council architect session boots from the updated bundle (P6 completion wave).
+
+---
+
 ### 2026-07-17 — CC (Opus 4.8, 1M): ADR-29 chronological legacy-split RATIFIED (Stage-2 atomic canon reconciliation, [#339 sanction])
 
 **Did:** Executed the operator-ruled (core-invariant #6) Stage-2 atomic canon-edit set ratifying ADR-29's 2026-07-17 chronological legacy-archival split amendment. Six items, one branch: (1) ADR-29 **append-marker** ratification (H3 form — Proposed → Accepted by *append*, NOT in-place; the L60 "Proposed" line untouched); (2) CLAUDE.md §4/§5/§10 LESSONS-only archival exception — §5 record 1 + §10 are `owner=hub` → their `templates/claude-regions/{critical-rules-records,antipatterns-universal}.md` extracts edited in lockstep (byte-match); (3) ARCHITECTURE.md L107 + Ch5 table row; (4) PLAYBOOK.md by-topic-split → chronological-split + entry-count threshold (L3258) + registry row (L922); (5) ADR-39 appended six-element `LESSONS-legacy-<span>.md` registry entry (the H2 prerequisite); (6) README ADR-29 row annotation. `logs/TOKEN-LOG.md`/JOURNAL append-only + ADR/transcript/handoff/audit immutability preserved unchanged. Stage-1 **D5**: #300(d.iii) audit-class grammar is **COVERED** by ADR-101 (§2 tagged "(d.iii)" + R3 closed-enum + R4 casing/R5 header).
