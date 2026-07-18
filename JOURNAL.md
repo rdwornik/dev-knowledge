@@ -29,6 +29,8 @@
 
 **Next:** operator integrates the branch → `main`; the successor session boots from PASTE_THIS and opens ARC 4 with the ADR-36/41 consumer-write amendment (RULING-W, mechanism before act).
 
+**Supplement completion [`12e47fa1`]:** operator supplied the outgoing **browser architect's** ANSWERS (supersedes the CC draft in full) — the strategic frame sharpens: **UNIVERSALIZATION is the meta-goal** (one fleet-wide structure pattern + universalized deployment; "never again ask why files differ between repos"), and **ARC 4 equalization is its first APPLICATION** (align as replicable manifest/template/carrier material, not one-off fixes). Adds the operator's 5-priority program (universalization · engineering-loop formalization incl. a sanctioned safe-deletion pattern for the tombstone junkyard · configured night/multiagent workflows · session-discipline inheritance · handoff refinement LAST). Re-folded via `assemble_paste`; probes 11/11, 0 hints; reconciled `PLAN.md` §A (goal-vs-arc) + §D (new open items; #300 d.iii noted covered by ADR-101).
+
 ---
 
 ### 2026-07-18 — CC (Opus 4.8, 1M): serial integration close-out — #337 + corp + ai-council merged; #343 cross-session collision resolved
