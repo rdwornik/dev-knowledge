@@ -1,0 +1,44 @@
+# templates/ruff-config-block.toml
+# =============================================================================
+# CANONICAL FLEET RUFF SHAPE + PYTEST FLOOR — copy-paste material (ARC 4 leg 1).
+# =============================================================================
+# This is REPLICATION MATERIAL, not a whole-file carrier: a consumer's
+# pyproject.toml is repo-authored and carries much else, so these blocks are
+# MERGED BY HAND into the consumer's pyproject under the RULING-W discipline
+# (worktree/branch -> report), never file-copied over an existing pyproject.
+#
+# RULING-S (2026-07-18): every governed file gets reader-visible sections
+# separating methodology-UNIVERSAL keys from REPO-PERSONAL ones. Keep the
+# `=== UNIVERSAL ===` / `=== REPO-PERSONAL ===` header comments verbatim so a
+# human reading any repo's pyproject sees the same split.
+#
+# The three UNIVERSAL ruff keys + the pytest `minversion` floor are gated by the
+# `fleet_parity` check. Any repo that must differ declares the divergence in its
+# `.methodology.yaml` (the #328 mechanism); an undeclared divergence WARNs.
+#
+# Fleet values (ARC 4, 2026-07-18):
+#   ruff required-version = ">=0.15.5"  (== pinned pre-commit ruff rev v0.15.5)
+#   ruff target-version   = "py311"     (RULING-PY baseline; newest-Python = #351)
+#   ruff line-length      = 120         (ARC 4 D1)
+#   pytest minversion     = "9.0"       (ARC 4 D2; lowest shared 9.0.x line)
+# =============================================================================
+
+[tool.ruff]
+# === UNIVERSAL (fleet methodology) ===========================================
+# Do not diverge from these three keys without a `.methodology.yaml` declaration.
+required-version = ">=0.15.5"   # floor == pinned pre-commit ruff rev (v0.15.5)
+target-version = "py311"        # RULING-PY baseline; "always newest Python" lift = #351
+line-length = 120               # agreed fleet line-length (ARC 4 D1)
+
+# === REPO-PERSONAL (this repo's lint posture — may differ; declared) ==========
+# Each repo keeps its own select / ignore / per-file-ignores / format. Examples:
+#   hub:        extend-select = []                         (default rule set)
+#   corp:       select = ["E", "F", "I"]; ignore = ["E501"]
+#   ai-council: select = ["E", "F", "I", "W"]; [tool.ruff.format] quote-style = "double"
+[tool.ruff.lint]
+# select = [...]   # repo-personal
+
+[tool.pytest.ini_options]
+# === UNIVERSAL (fleet methodology) ===========================================
+minversion = "9.0"   # declared fleet pytest floor (ARC 4 D2)
+# === REPO-PERSONAL (markers / addopts / testpaths / asyncio_mode — may differ) =

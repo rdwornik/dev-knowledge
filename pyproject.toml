@@ -17,6 +17,9 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
+# === UNIVERSAL (fleet methodology — ARC 4 leg 1, 2026-07-18; RULING-S split) ===
+minversion = "9.0"   # declared fleet pytest floor (ARC 4 D2; live: hub/corp 9.0.2, ai-council 9.0.3)
+# === REPO-PERSONAL (this repo's markers / ship tiering — may differ) ===========
 # Diff-shaped ship pre-flight tiering (#256/#260). `live_repo` marks the tests that
 # assert against the LIVE repo tree (markdown/docs) — the only tests a docs-only
 # diff can break. Docs-only pre-flight: `pytest -m live_repo` + `audit.py ship-gate`.
@@ -33,17 +36,16 @@ markers = [
 # current contract). Parallel full equivalent: py -m pytest -n auto --dist worksteal -q
 
 [tool.ruff]
-# Floor at the grounded version (0.15.5, 2026-06-02).
-# The pre-commit ruff hook is the fleet-canonical pinned-rev form
-# (astral-sh/ruff-pre-commit @ v0.15.5, matching both consumers) — its rev EQUALS
-# this floor, so the managed hook and any system / dev-group ruff agree. This
-# constraint still catches an accidental downgrade of any ruff invoked in the repo
-# (manual `ruff check --fix`, the dev dependency group) if the environment is rebuilt.
-# Lint rules moved here from .ruff.toml (W3 hub leg, 2026-07-13) — one config home;
-# while .ruff.toml existed it took precedence and this whole [tool.ruff] table
-# (including the floor) was silently inert.
-required-version = ">=0.15.5"
+# === UNIVERSAL (fleet methodology — ARC 4 leg 1, 2026-07-18) ==================
+# The three keys below are the equalized fleet ruff SHAPE (RULING-S reader-visible
+# split; RULING-PY target baseline). Do not diverge without a `.methodology.yaml`
+# declaration — fleet_parity gates them. Canonical: templates/ruff-config-block.toml.
+required-version = ">=0.15.5"   # floor == pinned pre-commit ruff rev (v0.15.5)
+target-version = "py311"        # RULING-PY baseline; "always newest Python" lift = #351
+line-length = 120               # agreed fleet line-length (ARC 4 D1)
+# .ruff.toml retired 2026-07-13 (W3) — this [tool.ruff] table is the one config home.
 
+# === REPO-PERSONAL (this repo's lint posture — may differ; declared) ==========
 [tool.ruff.lint]
 extend-select = []
 
