@@ -7,7 +7,7 @@ Repo: ai-council (bundle hosted in the hub .dev-knowledge) · Mode: architect ·
 > 2. Paste that chat's answers into the ANSWERS section at the bottom — combine multiple chats if needed.
 > 3. Tell CC `supplement filled` → CC commits this file on the handoff branch and folds the answers into the next session's PASTE_THIS.
 >
-> **STATUS: FILLED (2026-07-17)** — authored by the outgoing #26-session CC (which drove the P4-wave close), so the incoming §13(d) beat narrows to *"anything changed since?"*.
+> **STATUS: FILLED (2026-07-17; ANSWERS revised 2026-07-18 — continuation emphasis)** — authored by the outgoing session CC (P4-wave close → unattended night E2E audit → supervised morning close), then operator-revised to frame the P6 window as one milestone on the three still-open product themes. The incoming §13(d) beat narrows to *"anything changed since?"*.
 
 ## QUESTIONS — paste these to the outgoing architect chat
 
@@ -20,14 +20,60 @@ Repo: ai-council (bundle hosted in the hub .dev-knowledge) · Mode: architect ·
 
 ## ANSWERS
 
-1. **Strategic intent.** Complete the delegation window. The P4 wave built the *council-side* machinery (doctor, CLI seats, verdict package); the way-of-working goal now is to make the ADR-11 contract **honest and versionable** — empty CONTRACT §7's known-deviations so the surface can carry `Contract-Version: 1.0`. A versioned CLI-as-ABI is the whole point of ADR-11; a `1.0` that ships with known deviations would be a lie (L-INT Q7). Small build, high closure value.
+<!-- PASTE CHAT ANSWERS BELOW THIS LINE -->
 
-2. **Tensions weighed.** (a) *Scope of #26's "witnessed run"* — a synthetic emission vs a real LLM debate. Landed on a **real debate** (twice: once pre-terra-fix, once on shipping code) because binding closure evidence to code that never ships is the easy-proxy failure the contract exists to block. (b) *Terra gate vs codex rate-limit* — landed on an **explicit recorded waiver + filed follow-up (#33)**, offset by fresh empirical re-witness, never a silent skip. (c) *"zero added lines to save_to_file"* vs the mandated mirror block — the architect **amended the contract** to "all content-building in helpers/sibling; save_to_file stays pure orchestration + at most the package/mirror calls," and the mirror folded into `_build_header`.
+ANSWERS — outgoing architect (2026-07-18, revised: continuation emphasis)
 
-3. **Considered + rejected.** (a) Verdict package as a *sidecar extension* — rejected; it is a separate caller-facing deliverable, consuming `seats[]`/`synthesis` by reference (a terra-Critical forced the shared `_seat_payload` serializer so no parallel seat schema drifts). (b) *Inventing a `contract_version` value* for #26 — rejected; emit `null` until the D2 deviations empty (that emptying is exactly this next session's job). (c) *Council-side batch / multi-question* — rejected (L-INT Q5, settled); caller-side decomposition (RIDER 2 / #37) is the sanctioned form.
+FRAME FOR THE INCOMING SESSION: the operator's three product themes are the
+mission, and NONE of them is finished. (T1) de-biased, higher-value debate;
+(T2) CLI-subscription engine replacing API spend; (T3) the delegation-window
+protocol for other repos. P4 built foundations under all three; the next
+sessions CONTINUE them — completion of the window is a milestone on that road,
+not the destination.
 
-4. **Open questions (deferred).** The DRAFT-INT-2 `1.0` *stamping moment* is defined (at §7-empty) but not executed — it is this session's to perform once #22/#23 land. Whether #22 truly "falls out of" the already-landed A2 decomposition or needs its own wiring is unverified — check the live `cli.py` `@click.group` state first. #34 (research-path parity) is the one place the verdict package is not yet lane-complete.
+1. STRATEGIC INTENT: continue the three themes in dependency order. T3 first —
+finish the protocol so other repos can rely on it: empty CONTRACT §7 (#22/#23),
+harden the artifact surface (#39–#43), research-path parity (#34), then an
+honest Contract-Version: 1.0 (a 1.0 with known deviations would be a lie —
+L-INT Q7). T2 next — #27 parity (n=12) to EARN the ADR-12 §5 default flip;
+until the flip, the cost thesis is proven ($0 CLI lane witnessed) but not
+harvested. T1 is now un-gated and has ZERO code built — #18 (tool-grounded crux
+resolution) + #19 (debate-time framing defense) + #9 get a dedicated planning
+session; they are the largest unfinished half of the mission, not an afterthought.
 
-5. **Decomposition rationale.** #22 before #23 is not mandatory — they are disjoint (`cli.py` `--file` path vs `run_research`). #22 is expected smaller (structural basis exists post-A2). Do NOT re-derive the verdict-package design or the seam contracts — they are settled and shipped. Do NOT re-plan Codex-as-producer (interim fallback in force). The `1.0` stamp is the *joining* step after both parity fixes — sequence it last.
+2. TENSIONS WEIGHED: (a) evidence vs operator authority on G3 — resolved by
+authority, de-risked by the retained sealed EPI-1 pack + the night's 4/4
+corroboration of openai synthesis; chosen deliberately to keep operator scoring
+time (the scarcest resource) off the critical path of T1. (b) terra outage vs
+review discipline — explicit recorded waivers, never silent passes; #33 is the
+dated backstop (2026-07-23). (c) unattended autonomy vs safety — pre-authorized
+night batch, hard stop conditions, zero fired. (d) completion vs new build —
+T3/T2 completion work is deliberately sequenced BEFORE T1 design so the protocol
+other repos consume stabilizes first.
 
-6. **Off-repo context.** P4 wave closed cleanly on 2026-07-17 (three merges, all terra-reviewed; #26's pass-3 the only waived residual, date-gated 2026-07-23). G3 (#24 operator blind-scoring) remains the operator's open mission and gates Epic B — pause-independent. P5 (#27 CLI-4 parity) is now *runnable* since #16 landed. RIDER 2 filed the caller-side advisor story [S13]/#36–#38 (filing only). No priority shift signalled beyond "complete the window"; confirm live.
+3. CONSIDERED + REJECTED (do not relitigate): re-running the LLM-judge over
+EPI-1 (moot-by-ruling + duplicates the existing second-opinion note); extending
+the night batch into code fixes (no unattended edits); a fresh bundle instead of
+updating this one (operator ruling: update in place); treating the wave's
+completion as mission completion (rejected — the three themes remain open).
+
+4. OPEN / DEFERRED: T1 design entirely (#18/#19/#9 — un-gated, unplanned; own
+session); T2 flip evidence (#27); T3 remainder (#22/#23, #34, 1.0 stamp, and
+the caller-side advisor [S13]/#36–#38 — the operator's named front half of the
+delegation window). The two hub NEEDS-RULING intakes (codex-producer,
+session-close-gate) await rulings. §6.3 scope fork unadjudicated. ADR-01
+amendment for the synthesizer swap owed if convention requires. Whether #22
+truly falls out of the landed A2 — verify against live cli.py first.
+
+5. DECOMPOSITION RATIONALE: #22/#23 → #39–#43 → 1.0 stamp → #27 (T3 then T2),
+with the T1 planning session schedulable in parallel to any of it (it is
+design, not code, and touches no contended module). #22/#23 are disjoint
+(cli.py --file vs run_research). Do NOT re-derive the verdict-package design or
+seam contracts (shipped), re-score/re-rule G3 (resolved; pack retained as the
+reversal instrument), or re-plan Codex-as-producer (interim fallback in force).
+
+6. OFF-REPO CONTEXT: operator's standing priorities are the three themes, in
+his words: CLI engine, the inter-repo protocol with an advisor front-end, and
+minimized cognitive bias in the debate. None is declared done by him. Terra
+returns 2026-07-23. Operator scoring time stays scarce; the EPI-1 pack remains
+his one-evening reversal instrument if openai synthesis quality ever disappoints.

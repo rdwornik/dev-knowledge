@@ -29,6 +29,20 @@
 
 **Codex terra (pre-merge) — one P1, fixed:** a bare `import fleet_parity` in `check_fleet_parity` broke package-mode `python -m scripts.audit` (repo root on sys.path, not `scripts/`) → `ModuleNotFoundError` → synthetic walk-degraded WARN → **every package-mode ship-gate RED**. Fixed with the dual `from scripts import …` / `import …` pattern the rest of `audit.py` already uses, + a package-mode regression test (`214a95ce`). ship-gate GREEN in BOTH invocation modes. The full `pytest` then caught 12 `test_ship_gate.py` failures the targeted runs had missed — the retired `_fleet_parity_surface` was still referenced by the ship-gate test helper (`_run`) + 2 dedicated tests (a plan-grep miss, NOT contamination); the helper already monkeypatches `ALL_CHECKS` so the walk never runs, so the broken stub was dropped + the obsolete surface tests removed (`6eabae63`). **Final clean full `pytest` GREEN — 1595 passed, 3 skipped, 0 failed** (on a quiet primary the next day, after a concurrent `worktree-monorepo-handoff` session had briefly hijacked the shared checkout mid-run); the 2 test removals settled the collected count at 1598, so `doc-counts.md` was regenerated to keep `doc_claims` GREEN; ship-gate GREEN. Clean to `/ship` (`--no-ff`, closes [#337]).
 
+### 2026-07-18 — CC (Opus 4.8, 1M): P6 SUPPLEMENT ANSWERS re-folded (operator revision — continuation emphasis)
+
+**Did:** Operator externally revised the P6-window SUPPLEMENT ANSWERS (three-themes / "continuation emphasis" framing — the wave's completion is a milestone, not mission-done). Added the canonical `PASTE CHAT ANSWERS BELOW THIS LINE` divider so `assemble_paste.py` folds only the ANSWERS region (the prior fold had no divider → whole-file fallback pulled the QUESTIONS block + the stale earlier answers into PASTE_THIS), re-stamped the STATUS line (2026-07-18 revision), and regenerated PASTE_THIS.
+
+**Result:** clean fold — revised ANSWERS in, QUESTIONS block + stale answers OUT; `verify_handoff_probes` still 4/4; PASTE_THIS 40,371 B. Landed via `--no-ff` on `worktree-ai-council-handoff`.
+
+**Changes:** `docs/handoffs/2026-07-17-ai-council-architect-p6-window-completion/{SUPPLEMENT,PASTE_THIS}.md`. Commit `71915e1` → merge `09e7dd57` (SHA anchor added in a follow-up wrap per the ADR-85 gate — the merge hash was unknowable at first write).
+
+**Abandoned:** none.
+
+**Next:** unchanged — operator carries #341/#344 to a ruling and integrates the worktree branch → `main`.
+
+---
+
 ### 2026-07-18 — CC (Opus 4.8, 1M): cross-repo architect handoff for corp-monorepo (hand-authored v5 bundle)
 
 **Did:** Ran `/handoff corp-monorepo-architect` — a **cross-repo architect handoff** for the child repo corp-monorepo. Established the automated `gen_handoff.py` cannot root at a child repo (CLI hard-roots at `.dev-knowledge`; `--repo` is display-label only; the #164 cross-repo generator is still deferred), so followed the **designed path** documented in corp's own CLAUDE.md: a hand-authored v5 bundle hosted in the hub (corp holds no `docs/handoffs/` by the ADR-36 read-only contract), derived READ-ONLY from `../corp-monorepo` live git/JOURNAL/BACKLOG/A3-ruling. Authored the 5 architect-mode files (HANDOFF_BOOT · RESIDUAL · PROBES · SUPPLEMENT · assembled PASTE_THIS) modeled on the 2026-07-13 corp architect bundle; probes P1–P4 bind to corp's live sources (git, `validate_backlog`, `.git/hooks`, the `conventions-commit-branch` owner=hub CLAUDE region at corp `CLAUDE.md:61`). `SUPPLEMENT` generated **cold** (last window CC-side across executor/integration/audit sessions — no outgoing chat to interview; §13d beat fires FULL).
@@ -42,6 +56,20 @@
 **Abandoned:** none.
 
 **Next (operator):** `--no-ff` merge the branch (`0adc8887`+`c76ba20d`) → main + push (from primary — `/ship` refuses in this worktree); `-d` corp's merged straggler `docs/2026-07-18-manifest-doctrine-closeout`.
+
+### 2026-07-18 — CC (Opus 4.8, 1M): ai-council P6-window-completion handoff bundle UPDATED post-close + hub #344 filed
+
+**Did:** Updated the existing `2026-07-17-ai-council-architect-p6-window-completion` handoff bundle **IN PLACE** (operator ruling — not a new bundle; the bundle had been generated mid-session, before the ai-council session actually closed). Verified the delta READ-ONLY against live ai-council git (`3862749..5d50f08`: night deliverables → synthesizer swap `gemini→openai` → morning-close currency/hygiene → JOURNAL) — no values baked into probes. Rewrote the session header (purpose = **P6 completion wave**: #22/#23 → #39–#43 → #27; "Generated at" re-authored honestly), the RESIDUAL headline (session closed clean; **G3/Epic B RESOLVED by operator ruling**, EPI-1 pack retained as the reversible instrument; night-audit §4.2 gap-map as the intake pointer; both hub NEEDS-RULING intakes carried), replaced the stale **P4** probe (it named an ai-council-only path that FAILED the hub validator) with one binding to the live BACKLOG #22/#23 ready-slack, and refilled the SUPPLEMENT ANSWERS with the outgoing architect's context. Regenerated `PASTE_THIS.md` via `assemble_paste.py`. **Rides-along:** disposed the two consumer→hub NEEDS-RULING intakes — the codex-producer-lane one is already tracked as hub **#341**; filed the session-close-gate one as new hub **#344** (Stop-gate blocks handoff-gen until close-criteria + a consumer hub-write guard; awaits an operator ruling per core-invariant #6).
+
+**Result:** `verify_handoff_probes.py` **4/4 pass** (P4 now resolves; was 3/1 fail before). `validate_backlog` OK (110 tasks, #344 under [E1]/[S2] handoff group). ruff clean; tree clean. Bundle-update + #344 landed on `worktree-ai-council-handoff` via `--no-ff` merge **`fdc7b068`**; first-parent spine intact (core-invariant #5). Integration to `main` is the operator's via `/ship` from the primary (this is a worktree).
+
+**Changes:** `docs/handoffs/2026-07-17-ai-council-architect-p6-window-completion/{HANDOFF_BOOT,RESIDUAL,PROBES,SUPPLEMENT,PASTE_THIS}.md`, `BACKLOG.md` (+#344). Commits `ab67dbf0` (bundle) + `3a848986` (#344) → merge `fdc7b068`.
+
+**Abandoned:** none.
+
+**Next:** operator carries #341/#344 to a ruling; operator integrates `worktree-ai-council-handoff` → `main`. The next ai-council architect session boots from the updated bundle (P6 completion wave).
+
+---
 
 ### 2026-07-18 — CC (Opus 4.8, 1M): filed 2026-07-17 night-run audit bundle into docs/audits/ (owed close hygiene)
 
