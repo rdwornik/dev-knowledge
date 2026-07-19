@@ -19,6 +19,23 @@
 
 ---
 
+### 2026-07-19 — CC (Opus 4.8, 1M): worktree/handoff consolidation — both cross-repo architect bundles merged, 5 branches retired
+
+**Did:** Operator-directed consolidation sweep across the fleet. Surveyed the hub plus `ai-council` / `corp-monorepo` / `corp-ops`: **all outstanding work was hub-local** — the three child repos each carried only `main`, clean, with no extra branches and no worktrees, so the "corp-monorepo" and "ai-council" handoff work is hub-hosted cross-repo documentation (ADR-36/41), not consumer-side work to merge. Classified the hub's 6 non-main branches: 2 with real content, 3 zero-ahead `worktree-*` stubs (two of them sitting *behind* main at `e0421a13`), 1 orphan automation channel. All three worktrees confirmed clean before any destructive step.
+
+**Result:** two `--no-ff` merges onto main — `ae01532f` (corp-monorepo architect bundle) then `9cc2876b` (ai-council architect bundle), **+2176 lines / 11 files, pure additions, docs-only** (verified: nothing outside `docs/handoffs/` + `JOURNAL.md` changed, so the 1595-test suite was not put at risk and was not re-run). Both merges conflicted in `JOURNAL.md` — both branches prepend, and main had advanced past their base. Resolved by **commit time, newest-first** rather than by merge order: ai-council 15:43 → corp-monorepo 15:03 → ARC-5 15:00 → branch-consolidation 13:47. All 14 pre-commit gates Passed on both merge commits (`backlog-id-on-close` + `backlog-filing-backpressure` Passed — docs-only merges add and remove no BACKLOG task, so no `[#id]`/`kill-candidates:` owed). Pushed `5c360be5..9cc2876b`; `block-ff-push` Passed.
+
+**Changes:** `docs/handoffs/2026-07-19-ai-council-architect/` + `docs/handoffs/2026-07-19-corp-monorepo-architect/` (5 files each, arrived via their own commits) + `JOURNAL.md`. No source, protocol, ADR, BACKLOG, or consumer edits. Zero writes to any child repo.
+
+**Abandoned:** none. **Deliberately not done:** `automation/fleet-audit` left entirely untouched and unpushed per explicit operator instruction — it remains the orphan nightly-routine data channel (no common ancestor with main; 11 commits ahead of its own remote), consistent with the prior session's ruling.
+
+**Branches retired (5, all via safe `git branch -d`):** `docs/ai-council-architect-handoff`, `docs/2026-07-19-corp-monorepo-architect-handoff` (both merged above), and the three empty stubs `worktree-ai-council-handoff`, `worktree-corp-monorepo-handoff`, `worktree-monorepo-handoff` (0 commits ahead — scaffolding, no work lost). Hub now carries **main + automation/fleet-audit only**.
+
+**Open (operator action):** the `.claude/worktrees/ai-council-handoff` **directory survives, empty**, and its git metadata is already unregistered (`git worktree list` is clean, `prune` is a no-op) — `rmdir` returns *Device or resource busy*. This is the known gotcha: a **live Claude session still holds the handle**. Not forced. It disappears with a plain `rmdir` once that session is closed; nothing else in the tree depends on it. This is the second occurrence of the same live-session-holds-worktree-dir pattern (cf. the 2026-07-19 branch-consolidation entry's pid-41596 case) — the removal is blocked on session lifecycle, not on git.
+
+**Next:** the two merged bundles are now on main and ready to paste; `automation/fleet-audit` continues to accrue nightly baselines independently.
+
+
 ### 2026-07-19 — CC (Opus 4.8, 1M): ai-council cross-repo ARCHITECT handoff bundle — probes re-bound to the target
 
 **Did:** Generated a v5 §13 **architect**-mode handoff for **ai-council** (cross-repo, ADR-36/41 — hosted in the hub, derived READ-ONLY from the ai-council checkout; the target repo was never written to). Ran `gen_handoff.py --mode architect --repo ai-council`, then **re-authored the bundle rather than shipping it as generated**: the generator emits probes bound to hub surfaces (`ALL_CHECKS`, `audit.py ship-gate`, `ecosystem/doc-counts.md`, the disposition register) that ai-council carries **none** of, so the as-generated bundle would have failed every teeth anchor by construction. P1–P7 re-bound to the target's own surfaces (`VISION.md ## Vision` / `ARCHITECTURE.md ## Purpose [CORE]` orientation, live git, `scripts/validate_backlog.py`, the #69/#71 ready-slack exact-line read, `.git/hooks` armed-state, `scripts/check.ps1`, whole-open-BACKLOG grooming). Derived the residual from the ai-council JOURNAL/BACKLOG window (2026-07-18 → 2026-07-19).
