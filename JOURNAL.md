@@ -31,7 +31,9 @@
 
 **Gate note:** commit needed `SKIP=audit-health` — commit-context `fleet_parity` mis-resolved this hub worktree as a consumer (false MUST-absent on corp-monorepo). Verified clean out-of-band **before** skipping: `audit.py health` = OK (blocking verdicts 0) and `pre-commit run audit-health --all-files` = Passed. Surgical skip, recorded in the commit message — not `--no-verify`.
 
-**Abandoned:** none. **Next (operator-gated):** merge `docs/ai-council-architect-handoff` → main `--no-ff`; optionally fill `SUPPLEMENT.md` from the outgoing architect chat and re-assemble.
+**Abandoned:** none. **Next (operator-gated):** merge `docs/ai-council-architect-handoff` → main `--no-ff`.
+
+**Supplement filled + folded (same session, `102ab34b` + `3b98e6e2`).** Operator relayed the outgoing architect's answers to the 6-question schema; committed **verbatim and unedited** (`102ab34b`, +154 lines — CC never re-types or fabricates answers), then re-ran `assemble_paste.py` (`3b98e6e2`): ANSWERS fold into `PASTE_THIS.md` and the bundle flips **cold → FILLED**, so the incoming §13(d) beat **NARROWS**. Two things the fold surfaced that the tooling does not catch: (1) the assembler reflows only its **own** framing sites, so a hand-authored fill-state claim survives it — the sweep found exactly one (PROBES.md gate-procedure step 1 still ordering the beat FULL "the supplement is generated empty") and it was corrected; a bundle-wide grep confirmed no other survivor. (2) The filled supplement cites hub **`#343`** for the session-close-gate ticket, but the live hub BACKLOG shows **`#344`** (`#343` is unrelated `fleet_parity` scoping). Per §13 the supplement is **advisory and never trusted over the repo**, and it is never rewritten by CC — so the wrong id stands verbatim in that file by design and the correction is recorded in `RESIDUAL.md` §3(c). `verify_handoff_probes`: **8/8 pass** against `repo_root=ai-council` after every re-assembly.
 
 ---
 
