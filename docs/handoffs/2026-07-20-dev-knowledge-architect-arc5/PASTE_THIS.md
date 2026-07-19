@@ -445,3 +445,15 @@ DO-NOT-REDO: the nine seeds' adjudication (terra-corrected kill-candidates stand
 OFF-REPO CONTEXT: the 14 audit artifacts live on branch `audit/2026-07-19-cycle-close` (worktree `night-audit-cycle-close`, base 6077c428) — MERGE IS THE FIRST MECHANICAL ACT of the next session (serial, --no-ff, operator GO) so the seeds become citable from main. The e5-registry bundle sits quarantined on `docs/corp-e5-registry-developer-handoff` (3b6b3f18) pending R8. Corp freshness debt cleared by corp's own session (verified genuine re-read). Operator frustration is itself context: visible results per wave (W1 first is deliberate — colors are the most visible), one wave = one merged arc, educate artifact per wave with file-level before→after.
 
 DECOMPOSITION RATIONALE: waves are ordered by operator pain-priority, not dependency elegance; W6 seed-1 doc lane may run parallel from day one (file-disjoint from W1/W2). Every wave: frozen acceptance contract before delegation, Codex terra pre-merge, RULING-W for any consumer write, replication material over one-off fixes, educate with before→after. The successor's first three moves: (1) merge the audit branch, (2) collect R1–R8 rulings (single bounded-pick message to the operator), (3) open W1.
+
+---
+
+
+
+**CC-OBSERVED ADDENDUM (not operator-authored — generation-time state correction).**
+
+The OFF-REPO CONTEXT above names merging `audit/2026-07-19-cycle-close` as "the FIRST MECHANICAL ACT of the next session", and the closing line lists it as successor move (1). **That merge has already landed** — completed 2026-07-19 at `9292d38a` (*Merge audit/2026-07-19-cycle-close — night-audit cycle-close artifacts (9 streams + E1 + luna + consolidated + sol/terra) + JOURNAL anchor*, 16 files / +1620). The `audit/2026-07-19-cycle-close` branch no longer exists and the `night-audit-cycle-close` worktree is torn down (no orphan dirs). Two commits landed on top since: `8aed1e62` (corp-E5 registry-developer bundle) and `e0421a13` (JOURNAL branch-consolidation anchor).
+
+**Consequence for the successor:** the 14 audit artifacts ARE citable from `main` now — the purpose that step served is satisfied. The successor's first three moves therefore begin at **(2) collect the R1–R8 rulings** (single bounded-pick message to the operator), then **(3) open W1**. Everything else in the ANSWERS above stands unchanged.
+
+**W5 evidence (new, witnessed this session).** During this handoff generation a concurrent session transiently checked out `worktree-monorepo-handoff` in the PRIMARY working tree, moving HEAD off this branch mid-command (reflog `HEAD@{0}: checkout: moving from docs/handoff-dev-knowledge-architect-arc5 to worktree-monorepo-handoff`); a running heredoc failed as its target directory was swapped out, and a subsequent regeneration wrote a COLD bundle into the other session's tree (caught and removed before contamination). No guard fired. This is a **sixth** recovered-not-prevented incident for the W5 justification pile, and unlike the prior five it carries a clean reflog trace — direct evidence for the `.claude/.session-lock` HEAD-movement advisory and the `#353` boot contract.
