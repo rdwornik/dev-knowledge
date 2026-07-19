@@ -2146,7 +2146,7 @@ def test_import_edges_live_repo_passes_and_is_registered() -> None:
     f = aud.check_import_edges(Path(aud._REPO_ROOT))[0]
     assert f.status == "pass", f.evidence
     assert aud.check_import_edges in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 30  # 29 -> 30: check_fleet_parity added ([#337], 2026-07-18)
+    assert len(aud.ALL_CHECKS) == 31  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18)
 
 
 def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
@@ -2162,7 +2162,7 @@ def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
 
 def test_fleet_parity_registered_in_all_checks():
     assert "check_fleet_parity" in [c.__name__ for c in aud.ALL_CHECKS]
-    assert len(aud.ALL_CHECKS) == 30
+    assert len(aud.ALL_CHECKS) == 31  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19)
 
 
 def test_fleet_parity_findings_maps_blocking_verdicts():
