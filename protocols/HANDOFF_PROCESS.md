@@ -441,6 +441,20 @@ the §13(d) beat fires FULL exactly when ANSWERS is empty. Adoption note: the ge
 and is dogfooded against a stub repo; live bundles MAY still be hand-authored until #164's
 adoption slice closes (hand-authored bundles remain bound by the same §5 gate).
 
+**Residual completeness — the FILL-IN contract (ARC-5).** A bundle's hand-authored FILL-IN
+regions **must be authored before the bundle is committed**; a region still carrying its
+generator placeholder **fails the ship-gate**. Two placeholder forms are governed: `_(fill: …)_`
+in `RESIDUAL.md` / `PASTE_THIS.md`, and `_FILL-IN (root): …_` in `HANDOFF_BOOT.md` /
+`EPIC_BOOT.md` / `FUNCTIONAL_BOOT.md`. Enforced by `residual_completeness` (an `ALL_CHECKS`
+FAIL-class member; logic in `scripts/validate_residual_completeness.py`). **Diff-triggered:** it
+examines bundle files added or modified against HEAD, so an already-committed bundle is
+grandfathered while the commit that *lands* an unfilled one is refused. It asserts only that the
+placeholder was **replaced** — never that any particular value is present, because §5's
+anti-bluff contract requires the ship-gate verdict, the WARN count and drifted ids to be
+**absent** from the bundle; `PROBES.md` is therefore never inspected by this check. *Origin:* the
+ARC-5 bundle merged with §1 ("THE HEADLINE"), §2 and §4 ("the residual's core payload") as
+literal unfilled templates and no organ objected.
+
 **The carrier is the file itself.** The interview **answers ARE the artifact** — carried verbatim
 and advisory; the file exists from generation as the durable workspace + tracking record.
 
