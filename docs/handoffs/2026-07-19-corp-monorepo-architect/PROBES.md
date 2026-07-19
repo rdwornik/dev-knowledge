@@ -16,7 +16,7 @@ A plain-language "what is this project" is **summary-bluffable** and so fails §
 | P1a | Quote, **substring-exact**, the **opening sentence** of corp `VISION.md` `## Vision` — *what corp-monorepo is*. | corp `VISION.md` `## Vision` | a paraphrase of "what this is" is not a substring; a summary rounds it off | `grep -A4 '^## Vision' VISION.md` → the quote must be a substring of the live section |
 | P1b | Quote, **substring-exact**, the **opening line** of corp `ARCHITECTURE.md` Ch1 (`## Purpose [CORE]`) — *where this work sits*. | corp `ARCHITECTURE.md` `## Purpose [CORE]` | the orienting line is in the live file only; a summary holds a gist, not the substring | `sed -n '/^## Purpose \[CORE\]/,+5p' ARCHITECTURE.md` → the quote must be a substring of the live section |
 
-**Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d).** This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+**Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d).** The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — answers deliberately withheld, §5)
 
@@ -30,7 +30,7 @@ A plain-language "what is this project" is **summary-bluffable** and so fails §
 
 ## Gate procedure (CC)
 
-1. **P1 first** — the forced orientation read (P1a + P1b) establishes the vision frame before product planning resumes; the architect may not begin design until it holds both lines. **Then run the §13(d) operator-context beat FULL** (the supplement is generated empty — nothing to narrow against). Then P2–P6, each against **live corp state now**.
+1. **P1 first** — the forced orientation read (P1a + P1b) establishes the vision frame before product planning resumes; the architect may not begin design until it holds both lines. **Then run the §13(d) operator-context beat NARROWED** — the supplement is FILLED and its ANSWERS are in the paste, so the ask is *"anything changed since the supplement was written?"*, not the full off-repo interview. Then P2–P6, each against **live corp state now**.
 2. **P5 early among the teeth** — the forced CLAUDE-region read confirms the hub methodology layer is materialized verbatim (corp is A0-closed; methodology questions route to the hub, not this chat).
 3. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing / command errored / receiver tried to answer from memory or this bundle).
 4. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary source → CC re-derives the fact → abort if still unmet).

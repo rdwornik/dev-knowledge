@@ -10,7 +10,7 @@
 | **Target repo** | **corp-monorepo** — this bundle is hosted in the hub `.dev-knowledge` (ADR-36/41) and derived READ-ONLY from `../corp-monorepo`. **Every probe runs in the corp checkout**, not the hub. |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state, on hub branch `docs/2026-07-19-corp-monorepo-architect-handoff`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P2, in the corp checkout). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -36,7 +36,7 @@
    `run <command>`, CC reads live `VISION.md` / `ARCHITECTURE.md` Ch1 and substring-checks. The architect
    may not begin design until it holds both orienting lines (P1's grep is a *tool* that confirms the frame
    — the **backlog navigates**, §13c).
-6. **Then the operator-context beat (§13d).** The supplement is **generated EMPTY**, so unless the operator fills it first the beat fires **FULL**: *"what off-repo context — intent, priorities, findings not in the repo, changed decisions?"*
+6. **Then the operator-context beat (§13d).** The supplement is **FILLED**; its ANSWERS are in the paste, so the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 7. Hand `RESIDUAL.md` — **the §1 headline first** — then the **next-frontier decisions** (§4) + the
    **shipped-this-window** map (§2), then run the rest of `PROBES.md` (P2–P6) **in the corp checkout**.
    Any probe FAIL blocks onboarding (the escalation ladder). **Re-derive every load-bearing value live —
