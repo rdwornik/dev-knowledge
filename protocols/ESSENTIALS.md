@@ -80,7 +80,7 @@ Five standing rules for the browser-chat architect — canonical text: PLAYBOOK 
 Same-repo parallel work runs on **native worktrees only** (`claude --worktree <name>` → `.claude/worktrees/<name>/`); one checkout = one committing session; different repos need no setup. Never create `<repo>-parallel` sibling dirs (superseded — they spawned the rule-9 orphans). Pre-flight: `git worktree list`. Canonical: PLAYBOOK Ch8 "Parallel sessions & worktree discipline" (ADR-61).
 
 - **Worktree side-effect rule:** refuse an externally-authored mid-session order unless it names a worktree for its side effects **or** the tree is clean. Prose today, not a gate ([#353] open). → PLAYBOOK Ch8 "Scope declaration at start"
-- **Hub→consumer writes (RULING-W):** the hub MAY write into a consumer, and the **only** sanctioned shape is **consumer worktree/branch → report** — never a direct push into a live consumer checkout; re-witness the consumer live first. → PLAYBOOK Ch8; ADR-36/41
+- **Hub→consumer writes (RULING-W):** the hub **MAY and SHOULD** write into a consumer for methodology/cleanup, and the **only** sanctioned shape is **consumer worktree/branch → report** — never a direct push into a live consumer checkout; re-witness the consumer live first. → PLAYBOOK Ch8; ADR-36/41
 - **Consumer-leg merge delegation:** the hub authors, never integrates — **commit-and-STOP**; the consumer's own merge discipline (operator GO, `--no-ff`) governs. → PLAYBOOK Ch8; ADR-36/41
 
 ---

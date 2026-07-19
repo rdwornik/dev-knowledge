@@ -1246,9 +1246,11 @@ consumer**, makes its edits there, then **reports**. Hard bounds:
 
 **Consumer-leg merge delegation (the composite).** The hub session **never merges its own consumer
 branch**. The **consumer's own merge discipline governs integration** — operator **GO** + `--no-ff`,
-same as any change arc — so the consumer leg runs **worktree off the consumer's live `main` → gates +
-review pre-merge → commit-and-STOP → report**, and the operator merges. This is the cross-repo twin of
-the integration-authority rule above: the hub is the *author*, never the integrator. A **pre-existing,
+same as any change arc — so the consumer leg runs **worktree off the consumer's live `main` → that
+repo's gates green + a `gpt-5.6-terra` codex doc/code-lane review pre-merge → commit-and-STOP →
+report**. Integration then follows the **consumer's own** authority split (the rule above, applied in
+that repo): operator **GO**, and the merge executed from **that repo's primary checkout** — never by
+the hub session, which is the *author* and never the integrator. A **pre-existing,
 orthogonal** gate failure in the consumer (owned by that repo's own session) is **reported, not
 silently fixed and not quietly bypassed**; a failure **caused by your diff** is fixed, never bypassed.
 
