@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-13
+last_reviewed: 2026-07-19
 status: active
 owner: Rob
 ---
@@ -79,6 +79,10 @@ Five standing rules for the browser-chat architect — canonical text: PLAYBOOK 
 
 Same-repo parallel work runs on **native worktrees only** (`claude --worktree <name>` → `.claude/worktrees/<name>/`); one checkout = one committing session; different repos need no setup. Never create `<repo>-parallel` sibling dirs (superseded — they spawned the rule-9 orphans). Pre-flight: `git worktree list`. Canonical: PLAYBOOK Ch8 "Parallel sessions & worktree discipline" (ADR-61).
 
+- **Worktree side-effect rule:** refuse an externally-authored mid-session order unless it names a worktree for its side effects **or** the tree is clean. Prose today, not a gate ([#353] open). → PLAYBOOK Ch8 "Scope declaration at start"
+- **Hub→consumer writes (RULING-W):** the hub **MAY and SHOULD** write into a consumer for methodology/cleanup, and the **only** sanctioned shape is **consumer worktree/branch → report** — never a direct push into a live consumer checkout; re-witness the consumer live first. → PLAYBOOK Ch8; ADR-36/41
+- **Consumer-leg merge delegation:** the hub authors, never integrates — **commit-and-STOP**; the consumer's own merge discipline (operator GO, `--no-ff`) governs. → PLAYBOOK Ch8; ADR-36/41
+
 ---
 
 ## Writing a Prompt
@@ -101,6 +105,7 @@ Canonical: PLAYBOOK §2 "Creating a Claude Code Prompt" (incl. "Architect output
 - **Rule-IDs** (`<domain>-<slug>` at doc + code side; declare at the authoritative source, never in a summary) → PLAYBOOK Ch3; ADR-89 OQ1
 - **Mermaid theme** (re-scoped to the human-facing visualization surface as guidance — canonical `ARCHITECTURE.md` carries no Mermaid, audit check #7 retired) → PLAYBOOK "Codemap workflow"; ADR-51 amendment 2026-07-05
 - **Auto-TOC** (generator-driven between `<!-- TOC:START/END -->`, freshness-gated, never hand-maintained) → PLAYBOOK "Auto-TOC for large canonical docs"; ADR-51
+- **Two-tier new-path rule** (**convention-compliance IS authorization**: a codified-pattern *file* → cite the governing source and proceed, no operator STOP; any new *folder*, unpatterned file, or ambiguity → STOP. Path authorization ≠ content authorization) → PLAYBOOK Ch3 "File naming conventions"; ADR-101 amendment 2026-07-18
 
 ---
 

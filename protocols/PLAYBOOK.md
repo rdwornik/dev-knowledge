@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-07-17
+> Last updated: 2026-07-19
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -492,6 +492,28 @@ Phase 2 (destructive — explicit confirm before each):
 <!-- scope: meta -->
 
 Per ADR-34 (ratified 2026-04-29, amended 2026-05-11). Canonical source: `docs/decisions/ADR-34-file-naming-convention.md`. Key rules: hyphen separator universal across filenames and foldernames; `ADR-NN-topic.md` for decisions; `council-out-YYYYMMDD-HHMMSS-topic.md` for Council CLI output; `DECISION_NN_*` legacy transcripts grandfathered; kebab-case + ISO date for audits/handoffs; UPPERCASE for living docs.
+
+**Two-tier new-path rule — convention-compliance IS authorization (ADR-101 amendment 2026-07-18).**
+Block convention-**VIOLATING** creations and **never** convention-**COMPLIANT** ones. Two tiers, and
+which one applies decides whether you STOP:
+
+- **Tier 1 — pattern-sanctioned new paths:** a new **file** matching a **codified, citable**
+  convention. Currently-effective set: ADRs at `docs/decisions/ADR-NN-{slug}.md` (ADR-34); intake
+  docs at `docs/intake/YYYY-MM-DD-{func|tech}-slug.md` (ADR-98 + `docs/intake/README.md` §4);
+  `docs/audits/*.md` per the ADR-101 §2 / R3 / R4 grammar; JOURNAL entries. For a covered class the
+  executor **derives the path, CITES the governing source in the log/commit message, and PROCEEDS**
+  — **no per-instance operator STOP** (the citation is the audit trail).
+- **Tier 2 — unsanctioned paths:** any **new FOLDER**, any file matching **no** codified pattern, or
+  any **ambiguity** about which pattern applies → **operator authorization required; absent → STOP.**
+
+Two standing riders: **any ambiguity about which pattern applies = tier 2 = STOP**, and the
+**citation is MANDATORY for every proceed — no citation, no proceed.** **Folder creation stays
+hard-gated in ALL cases** — every new folder is surfaced *before* creation. **Path authorization is
+not content authorization** — creating an ADR/intake file at its sanctioned path does not approve the
+decision or content inside it. The rule is **in force now** by operator ruling; until the #345
+registry-driven gate lands it is upheld by executor/reviewer discipline (cite-and-proceed / STOP),
+not by machinery. (Distinct from Ch10's "two-tier automation doctrine" — same adjective, unrelated
+axis.)
 
 ### Commit message standard
 <!-- scope: dev -->
@@ -1105,6 +1127,20 @@ Every session opens with explicit scope. If Rob doesn't state it, browser chat a
 **Example (bad):**
 > Let's work on .dev-knowledge today. (No scope = unbounded session = guaranteed creep)
 
+**Worktree side-effect rule — refuse an undeclared mid-session order (operator-ruled 2026-07-18,
+[#353]).** A session must **REFUSE to act on an externally-authored order** — a prompt injecting new
+work mid-session — unless **either** (a) the order **names a worktree for its side effects**, **or**
+(b) **the tree is clean**. Dirty tree + no worktree declaration = **STOP and ask**, do not start.
+
+*Why:* the ARC-4 session inherited a pre-existing untracked bundle mid-session; the
+isolate-to-worktree / no-dirty-tree-action discipline lived in prose, not in a gate — five recovery
+episodes since 2026-06-05, each fixed **after** the fact, **none prevented**.
+
+*Honest limit:* this is **prose discipline today, not a mechanism.** `session_end_backpressure.py` is
+Stop-only (wrong lifecycle phase) and no boot-time organ exists — the boot-snapshot + PreToolUse
+refusal is [#353]'s open build. Until it lands, the rule is upheld by the executor, so apply it
+deliberately at every mid-session order.
+
 ### Stop-signs (recognize and act)
 <!-- scope: meta -->
 
@@ -1191,6 +1227,32 @@ case, e.g. a corp-monorepo handoff and an ai-council handoff at the same time). 
 - **(b) Each committing session in its OWN worktree.** **One checkout = one committing session.** A "single commit at the end" still counts as a committing session — there is no "I'll only commit once" exception. (Why: a no-worktree session's lone commit can land on a *concurrent* session's branch, sweep its staged file, and mis-root the branch — witnessed twice, LESSONS 2026-06-07 / 2026-06-05.)
 
 **Integration authority — operator authorizes, CC-primary executes (2026-07-16 ruling).** Merge execution is delegated to the CC-primary session: on the operator's explicit **GO** (one authorization per integration), CC performs the `--no-ff` merge to `main` **from the primary checkout**, verifies (that repo's suite + — for the hub — `ship-gate` green; any failure STOPS the chain and surfaces), then completes teardown — a plain merged branch is deleted directly; a worktree branch requires the worktree to be **removed first** (a checked-out branch cannot be `-d` deleted), per the worked example below. The operator is the **authorization gate, not the executor**. Invariants unchanged: one merge to `main` at a time; integration only from the primary checkout; parallel/worktree sessions still **commit-and-STOP and never self-merge** — they hand their branch to the primary for the authorized merge.
+
+**Hub→consumer writes — the only sanctioned shape (RULING-W; ADR-36/41 amendments 2026-07-18).** The
+hub **MAY and SHOULD** write into a consumer repo for methodology/cleanup work — the read-only
+"don't-touch-consumers" guardrail is **narrowed, not revoked**. The **only sanctioned write shape** is
+**consumer worktree/branch → report**: the hub creates a **separate git worktree/branch inside the
+consumer**, makes its edits there, then **reports**. Hard bounds:
+
+- **Never a direct push into a live consumer checkout** — no unmediated edit of the consumer's
+  working tree and no fast-forward onto its `main`.
+- **Re-witness the consumer live before any edit** — never act from a stale ledger of the consumer's
+  HEAD.
+- **Mechanism before act:** the FIRST step of any consumer leg is codifying the mechanism (that
+  amendment is landed — ADR-36 qualifies §Q5, ADR-41 narrows the guardrail).
+- The write is **agent-mediated, not tooled**: `audit.py` stays read-only w.r.t. child repos and **no
+  orchestration script is added to Layer 2** (ADR-28 preserved). §Q5 now reads: *the tool never
+  touches child repos; a hub session may, only via this shape.*
+
+**Consumer-leg merge delegation (the composite).** The hub session **never merges its own consumer
+branch**. The **consumer's own merge discipline governs integration** — operator **GO** + `--no-ff`,
+same as any change arc — so the consumer leg runs **worktree off the consumer's live `main` → that
+repo's gates green + a `gpt-5.6-terra` codex doc/code-lane review pre-merge → commit-and-STOP →
+report**. Integration then follows the **consumer's own** authority split (the rule above, applied in
+that repo): operator **GO**, and the merge executed from **that repo's primary checkout** — never by
+the hub session, which is the *author* and never the integrator. A **pre-existing,
+orthogonal** gate failure in the consumer (owned by that repo's own session) is **reported, not
+silently fixed and not quietly bypassed**; a failure **caused by your diff** is fixed, never bypassed.
 
 Shape (b) runs on **CC-native managed worktrees** (#107) — the low-friction path. The old *sibling*
 worktree naming (`<repo>-parallel` / `<repo>-wt-*`) is **superseded** by the in-repo native location
