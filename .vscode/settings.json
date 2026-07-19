@@ -5,28 +5,28 @@
     "**/.claude/worktrees/**": true
   },
 
-  "//boundary": "Background decoration of the #312 Form-A methodology boundary. owner=hub regions paint NAVY, owner=repo regions paint GREY, tuned for a dark theme. The regions are keyed on the MARKER vocabulary (<!-- methodology:start id=... owner=hub|repo -->), which is the single source of truth -- the reader-visible headers these bands also cover are GENERATED from the same markers by scripts/boundary_headers.py. Requires the recommended extension in .vscode/extensions.json; VS Code core cannot paint arbitrary line ranges from settings alone.",
+  "//boundary": "Background decoration of the #312 Form-A methodology boundary. owner=hub regions paint GREY, owner=repo regions paint NAVY, tuned for a dark theme. The regions are keyed on the MARKER vocabulary (<!-- methodology:start id=... owner=hub|repo -->), which is the single source of truth -- the reader-visible headers these bands also cover are GENERATED from the same markers by scripts/boundary_headers.py. Requires the recommended extension in .vscode/extensions.json; VS Code core cannot paint arbitrary line ranges from settings alone.",
 
   "highlight.regexFlags": "gm",
   "highlight.regexes": {
-    "((?:^> \\*\\*\\[HUB - methodology\\]\\*\\* region `[a-z0-9-]+` - [^\\n]*\\n)?^<!-- methodology:start id=([a-z0-9-]+) owner=hub(?: v=\\S+)? -->[\\s\\S]*?^<!-- methodology:end id=\\2 -->$)": {
+    "((?:^> \\*\\*\\[HUB - methodology\\]\\*\\* region `[a-z0-9-]+` - [^\\n]*\\n)?^<!--[ \\t]*methodology:start[ \\t]+id=([a-z0-9-]+)[ \\t]+owner=hub(?:[ \\t]+v=\\S+)?[ \\t]*-->[\\s\\S]*?^<!--[ \\t]*methodology:end[ \\t]+id=\\2[ \\t]*-->$)": {
+      "filterFileRegex": ".*(CLAUDE\\.md|[\\\\/]\\.claude[\\\\/].*\\.md)$",
+      "decorations": [
+        {
+          "backgroundColor": "rgba(140,140,140,0.16)",
+          "isWholeLine": true,
+          "overviewRulerColor": "rgba(140,140,140,0.70)",
+          "overviewRulerLane": 2
+        }
+      ]
+    },
+    "((?:^> \\*\\*\\[REPO - local\\]\\*\\* region `[a-z0-9-]+` - [^\\n]*\\n)?^<!--[ \\t]*methodology:start[ \\t]+id=([a-z0-9-]+)[ \\t]+owner=repo(?:[ \\t]+v=\\S+)?[ \\t]*-->[\\s\\S]*?^<!--[ \\t]*methodology:end[ \\t]+id=\\2[ \\t]*-->$)": {
       "filterFileRegex": ".*(CLAUDE\\.md|[\\\\/]\\.claude[\\\\/].*\\.md)$",
       "decorations": [
         {
           "backgroundColor": "rgba(38,79,140,0.30)",
           "isWholeLine": true,
           "overviewRulerColor": "rgba(38,79,140,0.85)",
-          "overviewRulerLane": 2
-        }
-      ]
-    },
-    "((?:^> \\*\\*\\[REPO - local\\]\\*\\* region `[a-z0-9-]+` - [^\\n]*\\n)?^<!-- methodology:start id=([a-z0-9-]+) owner=repo(?: v=\\S+)? -->[\\s\\S]*?^<!-- methodology:end id=\\2 -->$)": {
-      "filterFileRegex": ".*(CLAUDE\\.md|[\\\\/]\\.claude[\\\\/].*\\.md)$",
-      "decorations": [
-        {
-          "backgroundColor": "rgba(128,140,152,0.16)",
-          "isWholeLine": true,
-          "overviewRulerColor": "rgba(128,140,152,0.70)",
           "overviewRulerLane": 2
         }
       ]

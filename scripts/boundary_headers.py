@@ -85,7 +85,7 @@ _REPO_HEADER = "> **" + _REPO_LABEL + "** region `{id}` - this repo owns these l
 _GENERATED_RE = re.compile(
     r"^> \*\*\[(?:HUB - methodology|REPO - local)\]\*\* region `[a-z0-9-]+` - .*$"
 )
-_FENCE_RE = re.compile(r"^\s*(?:```|~~~)")
+_FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})")
 
 
 def is_generated_header(line: str) -> bool:
@@ -115,15 +115,23 @@ def _marker_flags(lines: list[str]) -> list[bool]:
     would emit a header into a code block and, worse, count it in coverage.
     """
     flags: list[bool] = []
-    in_fence = False
+    fence: str | None = None          # the OPENING delimiter char, or None
     for raw in lines:
         line = raw.rstrip("\r\n")
-        if _FENCE_RE.match(line):
-            in_fence = not in_fence
-            flags.append(False)
-            continue
+        m = _FENCE_RE.match(line)
+        if m:
+            tok = m.group(1)[0]
+            if fence is None:         # opening
+                fence = tok
+                flags.append(False)
+                continue
+            if fence == tok:          # matching close
+                fence = None
+                flags.append(False)
+                continue
+            # a ``` line inside a ~~~ block (or vice versa) is CONTENT, not a delimiter
         s = line.strip()
-        flags.append(not in_fence and bool(_START_RE.match(s) or _END_RE.match(s)))
+        flags.append(fence is None and bool(_START_RE.match(s) or _END_RE.match(s)))
     return flags
 
 
@@ -134,17 +142,28 @@ def _start_match(raw: str):
 def _strip_generated(lines: list[str], is_marker: list[bool]) -> list[str]:
     """Drop generated headers that sit immediately before a real start marker.
 
-    Marker-adjacency is the safety property: a line matching the grammar but NOT followed
-    by a region opener is authored prose (an example, a history entry) and is preserved.
+    Marker-adjacency is the safety property: a line matching the grammar but NOT leading
+    into a region opener is authored prose (an example, a history entry) and is preserved.
+
+    A contiguous RUN of generated-grammar lines before one start marker is stripped whole.
+    Stripping only the adjacent line would leave a stale duplicate that then survives every
+    later regeneration -- a header disagreeing with its marker while `--check` reports no
+    drift, which is precisely the failure this module exists to make impossible.
     """
-    out: list[str] = []
-    for i, raw in enumerate(lines):
-        if is_generated_header(raw):
-            nxt = i + 1
-            if nxt < len(lines) and is_marker[nxt] and _start_match(lines[nxt]):
-                continue  # ours: regenerate it
-        out.append(raw)
-    return out
+    drop = [False] * len(lines)
+    i = 0
+    while i < len(lines):
+        if is_generated_header(lines[i]):
+            j = i
+            while j < len(lines) and is_generated_header(lines[j]):
+                j += 1
+            if j < len(lines) and is_marker[j] and _start_match(lines[j]):
+                for k in range(i, j):
+                    drop[k] = True
+            i = j
+            continue
+        i += 1
+    return [raw for i, raw in enumerate(lines) if not drop[i]]
 
 
 def apply_headers(text: str) -> str:
@@ -228,6 +247,13 @@ def discover_governed(repo_root: Path = _REPO_ROOT) -> tuple[list[Path], list[st
             continue
         if rel in _REQUIRED_GOVERNED or has_markers(text):
             found.append(path)
+            if rel not in _REQUIRED_GOVERNED:
+                # Discovery is a TRIPWIRE, not the source of the governed set. Left
+                # undeclared, this file would silently leave the denominator the day its
+                # markers were deleted -- coverage would read 100% with the boundary gone.
+                errors.append(f"{rel}: carries markers but is not declared in "
+                              f"_REQUIRED_GOVERNED -- declare it, so coverage cannot go "
+                              f"blind if its markers are later deleted")
 
     present = {p.relative_to(repo_root).as_posix() for p in found}
     for rel in _REQUIRED_GOVERNED:
@@ -245,6 +271,16 @@ def inspect(repo_root: Path = _REPO_ROOT) -> tuple[list[FileReport], list[str]]:
         text = path.read_text(encoding="utf-8")
         regions, warnings = parse_regions(text)
         errs: list[str] = []
+        kept = text.splitlines(keepends=True)
+        seen_starts = sum(1 for raw, flag in zip(kept, _marker_flags(kept))
+                          if flag and _start_match(raw))
+        if seen_starts != len(regions):
+            # The generator is fence-aware; boundary_report is not. A disagreement means a
+            # marker sits inside (or after an unterminated) fence -- resolve it rather than
+            # letting the two organs classify the same lines differently.
+            errs.append(f"{rel}: generator sees {seen_starts} start marker(s) but "
+                        f"boundary_report parses {len(regions)} region(s) -- a fenced or "
+                        f"unterminated-fence disagreement; resolve before generating")
         if rel in _REQUIRED_GOVERNED and not regions:
             errs.append(f"{rel}: required governed file carries NO markers "
                         f"-- the boundary has gone invisible")

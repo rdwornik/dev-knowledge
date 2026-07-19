@@ -146,6 +146,60 @@ def test_markers_inside_a_fenced_code_block_are_examples_not_markers():
     assert out.count("region `alpha`") == 1
 
 
+def test_a_duplicated_stale_header_does_not_survive_regeneration():
+    """A contiguous RUN of generated headers is stripped whole.
+
+    Stripping only the marker-adjacent line left a stale duplicate that then survived every
+    later regeneration -- a header disagreeing with its marker while --check reported clean.
+    """
+    doubled = _SAMPLE.replace(
+        "<!-- methodology:start id=alpha owner=hub -->",
+        "> **[HUB - methodology]** region `stale-wrong-id` - single-sourced from the hub.\n"
+        "> **[HUB - methodology]** region `alpha` - single-sourced from the hub.\n"
+        "<!-- methodology:start id=alpha owner=hub -->")
+    out = bh.apply_headers(doubled)
+    assert "stale-wrong-id" not in out, "a stale duplicate header survived regeneration"
+    assert out.count("region `alpha`") == 1
+    assert out == bh.apply_headers(_SAMPLE)
+
+
+def test_a_tilde_fence_containing_backticks_does_not_desync_the_scanner():
+    """Fence tracking must match the OPENING delimiter, not toggle on any fence line."""
+    doc = (
+        "# Doc\n\n"
+        "~~~\n"
+        "```\n"                       # content inside the ~~~ block, NOT a delimiter
+        "<!-- methodology:start id=example owner=hub -->\n"
+        "~~~\n\n"
+        + _SAMPLE
+    )
+    out = bh.apply_headers(doc)
+    assert "region `example`" not in out, "a fenced example was treated as a real marker"
+    assert out.count("region `alpha`") == 1
+
+
+def test_a_marker_hidden_by_a_fence_is_reported_not_silently_skipped(tmp_path):
+    """The generator is fence-aware, boundary_report is not. A disagreement must be loud."""
+    doc = ("# T\n\n```\n"
+           "<!-- methodology:start id=alpha owner=hub -->\nb\n"
+           "<!-- methodology:end id=alpha -->\n```\n")
+    repo = _seed_repo(tmp_path, doc)
+    reports, errors = bh.inspect(repo)
+    assert any("disagreement" in e for r in reports for e in r.errors) or errors, \
+        "a fenced/unfenced marker disagreement was not surfaced"
+    assert bh.cmd_check(repo) == 1
+
+
+def test_an_undeclared_governed_file_is_an_error(tmp_path):
+    """Discovery is a tripwire: a marked file must be DECLARED, not silently counted."""
+    repo = _seed_repo(tmp_path, bh.apply_headers(_SAMPLE),
+                      **{".claude/extra.md": bh.apply_headers(_SAMPLE)})
+    _reports, errors = bh.discover_governed(repo)[1], bh.inspect(repo)[1]
+    assert any("_REQUIRED_GOVERNED" in e for e in errors), \
+        "an undeclared governed file was accepted silently"
+    assert bh.cmd_coverage(repo) == 1
+
+
 def test_crlf_line_endings_are_preserved_exactly():
     """Region bodies must not be silently rewritten LF<->CRLF by regeneration."""
     crlf = _SAMPLE.replace("\n", "\r\n")
@@ -323,24 +377,34 @@ def test_vscode_is_scoped_to_governed_surfaces():
         assert "CLAUDE" in spec.get("filterFileRegex", "")
 
 
-def test_vscode_uses_navy_for_hub_and_grey_for_repo():
+def test_vscode_uses_grey_for_hub_and_navy_for_repo():
     regexes, _ = _vscode_regexes()
     for pattern, spec in regexes.items():
         bg = spec["decorations"][0]["backgroundColor"]
         r, g, b = (int(x) for x in re.findall(r"\d+", bg)[:3])
+        grey = abs(r - g) <= 20 and abs(g - b) <= 20
+        navy = b > r and b > g
+        # Mutually exclusive on purpose: a blue-tinted "grey" would satisfy BOTH and the
+        # hub/repo distinction would not actually be legible.
         if "owner=hub" in pattern:
-            assert b > r and b > g, f"hub band should read navy, got {bg}"
+            assert grey and not navy, f"hub band must read unambiguously grey, got {bg}"
         else:
-            assert abs(r - g) <= 20 and abs(g - b) <= 20, f"repo band should read grey, got {bg}"
+            assert navy and not grey, f"repo band must read unambiguously navy, got {bg}"
 
 
 # ---------------------------------------------------------------- coverage gate
 
-def test_coverage_fails_on_a_seeded_unheadered_governed_file(tmp_path):
-    """The acceptance demonstration, as a permanent regression test."""
+def test_coverage_fails_on_a_seeded_unheadered_governed_file(tmp_path, monkeypatch):
+    """The acceptance demonstration, as a permanent regression test.
+
+    The seeded file is DECLARED (the tripwire in
+    `test_an_undeclared_governed_file_is_an_error` covers the undeclared path), so this
+    exercises the headed/unheaded axis on its own: FAIL at 1/2, GREEN at 2/2 after --write.
+    """
+    monkeypatch.setattr(bh, "_REQUIRED_GOVERNED", ("CLAUDE.md", ".claude/seed.md"))
     repo = _seed_repo(tmp_path, bh.apply_headers(_SAMPLE),
                       **{".claude/seed.md": _SAMPLE})  # markers, NO headers
     assert bh.cmd_coverage(repo) == 1, "unheadered governed file must fail coverage"
-    bh.cmd_write(repo)
+    assert bh.cmd_write(repo) == 0
     assert bh.cmd_coverage(repo) == 0, "coverage must pass once headers are generated"
     assert bh.cmd_check(repo) == 0

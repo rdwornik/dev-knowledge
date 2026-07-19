@@ -1,20 +1,20 @@
-# Carrier manifest — methodology corpus v1.3.1 (ADR-92 Decision 7).
+# Carrier manifest — methodology corpus v1.4.0 (ADR-92 Decision 7).
 #
 # Declares the COMPLETE carrier set + order + per-carrier target state that a
-# fully-deployed repo meets at methodology release v1.3.1. The deploy tool reads
+# fully-deployed repo meets at methodology release v1.4.0. The deploy tool reads
 # this to "full-reconcile-to-target" (Decision 5) a single consumer repo per invocation.
 #
 # Versioned WITH the methodology (Decision 2): deploying vX uses vX's manifest +
 # carrier set. `source_tag` records the release git tag (the operator tags at release;
 # CC does not tag — ADR-91). The tool's preflight requires that tag to resolve before
-# --execute, so v1.3.1 must be tagged by the operator before the real deploy runs.
+# --execute, so v1.4.0 must be tagged by the operator before the real deploy runs.
 #
-# WHAT'S NEW vs v1.3.1: MINOR release — the shared EDITOR-CONFIG carrier (#312 follow-on).
+# WHAT'S NEW vs v1.3.1: MINOR release — the shared EDITOR-CONFIG carrier ([#352]).
 # The operator ruled 2026-07-19 that `.vscode` is a SHARED FLEET CONFIGURATION the hub owns
 # and carries to consumers (fleet-parity register e1, whose hub `.methodology.yaml`
 # declaration carried a forcing 2026-08-13 shelf-life). This release declares that material:
 # carrier `editor-config` + component `vscode-boundary-decoration`, shipping the Form-A
-# boundary background decoration (owner=hub navy / owner=repo grey, dark theme) plus the
+# boundary background decoration (owner=hub grey / owner=repo navy, dark theme) plus the
 # extension recommendation that renders it. The carrier is DECLARATION-ONLY at this cut
 # (implemented: false) — the hub half is built, the consumer write-through is the next
 # ticket, because both consumers already track a `.vscode` of their own (2026-07-12) and a
@@ -330,7 +330,7 @@ carriers:
       consumers as fleet material (operator ruling 2026-07-19; fleet-parity register e1:
       `.vscode` is a SHARED FLEET CONFIGURATION, not a per-repo ignore line). Ships
       .vscode/settings.json — the #312 Form-A boundary background decoration, owner=hub
-      navy / owner=repo grey, dark-theme tuned, keyed on the MARKER vocabulary — and
+      grey / owner=repo navy, dark-theme tuned, keyed on the MARKER vocabulary — and
       .vscode/extensions.json, the recommendation for the extension that renders those
       bands (VS Code core cannot paint arbitrary line ranges from settings alone).
       DECLARATION-ONLY at v1.4.0 (implemented: false): the hub half is built and the
@@ -362,7 +362,7 @@ components:
         source: .vscode/extensions.json
     roster:
       section: header
-      line: "`.vscode/` shared editor config — owner=hub / owner=repo boundary decoration (navy / grey, dark theme)"
+      line: "`.vscode/` shared editor config — owner=hub / owner=repo boundary decoration (grey / navy, dark theme)"
 
   - id: codex-agents-config
     kind: config
