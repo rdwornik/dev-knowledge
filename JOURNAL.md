@@ -19,6 +19,44 @@
 
 ---
 
+### 2026-07-19 — CC (Opus 4.8, 1M): ARC-5 first real mechanism — residual-completeness gate, census evidence archived, [#353] evidence n=7
+
+**Did:** Commit-and-STOP lane on `feat/residual-completeness-gate` off `a90b2c10`. Branched **before** the first commit, per the standing guard written after this session's own core-invariant #5 violation. Archived the census evidence into the repo, built the arc's first enforcing mechanism, recorded the direct-to-main incident as evidence, and ran the gate past a Codex review.
+
+**Result (every sha):** `0a0d06de` census evidence archived + `[E8]` baseline pointer · `622baedb` the residual-completeness gate · `e48e3e27` `[#353]` evidence line · `2e444fa3` doc-counts regen fixup · `e2c2d9f7` two HIGH codex findings closed + review archived · plus this JOURNAL commit. **Not merged** — the branch awaits an integration GO.
+
+**Census evidence archived** (`docs/audits/2026-07-19-census-silent-rule-ledger.md`, class `census` — the ADR-101 enum HAS a census class, unlike the educate artifact which had to take `technical`). The measurement previously lived only in `.claude/plans/` on one machine while `[E8]` cited its numbers, so the baseline was unreproducible from the repo. Carries the 176-item itemisation by file:line, the 14-item declared list, the near-miss list (on-surface admissions that FAILED the declaration test on a closed or absent ticket — `#333`/`#328`/`#164` closed plus five ticketless), the pending-#242 per-ADR table with the 49-rule risk set, the matrix, the limitations, and the acceptance matrix.
+
+**The gate** (`scripts/validate_residual_completeness.py` + `check_residual_completeness`, ALL_CHECKS **30 → 31**). Refuses a bundle shipping a hand-authored FILL-IN region still carrying its generator placeholder — the failure that let the ARC-5 bundle merge with §1 ("THE HEADLINE"), §2 and §4 ("the residual's core payload") as literal templates while nothing objected.
+
+**Insertion point — audit.py, basis stated.** Not the generator: it scaffolds those regions unfilled *by design* and cannot know when the author is done, so a generation-time check fires always or never. Not `verify_handoff_probes`: its contract is PROBES.md row binding, a different subject. `audit.py` is the phase that matters — commit and ship time, already bundle-aware, and home to the sibling `check_handoff_bundle_structure`.
+
+**Diff-triggered, and the design was forced by evidence.** The live arc5 bundle is unfilled *and* is the latest, so a `check_handoff_probes`-style latest-bundle check would FAIL instantly and block every commit in the repo. Prospective-only instead (the `check_safe_removal` shape + ADR-101 grandfathering). Stated plainly: it does **not** retroactively fail the bundle that motivated it, but it **would** have failed the commit that landed it.
+
+**Anti-bluff non-collision, verified two ways.** The gate asserts only that the placeholder was *replaced*, never that a value is *present* — because demanding content would push an author to write the ship-gate verdict / WARN count / drifted id that probe P7 and the `verify_handoff_probes` answer-hint rung require to be ABSENT. The driftflags marker says so in its own text. Pinned by `test_by_reference_fill_passes` (a fill naming no values passes, verified per-region) and `test_probes_md_is_never_inspected` (PROBES.md is outside the carrier set). Empirically `check_handoff_probes` still returns pass, 11 probes bind, unchanged.
+
+**ACCEPTANCE — both runs shown, on the real artifact.** RED: the live arc5 bundle, exit 1. GREEN: the same content filled, including a by-reference fill naming no verdict/count/id. Also demonstrated through the `audit.py` path on a seeded bundle, RED then GREEN.
+
+**A test caught a real defect, not a test bug.** `git status --porcelain` collapses an entirely NEW untracked bundle directory to one entry, so a freshly generated bundle — the exact case the gate exists for — was invisible. Fixed with `-uall`.
+
+**Codex review: 0 Critical / 2 High / 0 Medium / 0 Low. Both HIGH were REAL and both were verified by execution before acceptance.** *HIGH-1:* the carrier set covered only RESIDUAL/PASTE_THIS, but the FILL-IN carriers on disk also include HANDOFF_BOOT, EPIC_BOOT and FUNCTIONAL_BOOT — which use a **second placeholder form** (`_FILL-IN (root): ..._`) the predicate never matched, so an epic or functional bundle could ship wholly unfilled and pass. *HIGH-2:* under DOTALL a lazy `.*?` backtracks to the LAST `)_`, so a region holding the placeholder *and* authored prose ending in `)_` read as placeholder-only — a **false FAIL** that would have blocked legitimate work. Both fixed, both pinned, plus a **drift guard** that derives carriers from `templates/handoff/` on disk and fails if one is unlisted. Material: post-fix the arc5 bundle reports **eight** unfilled regions, not seven — the original gate missed `HANDOFF_BOOT.md` region `purpose` on the very bundle it was built to catch.
+
+**`[#353]` evidence n=7** — `96bafe21` landed direct-to-main because the preceding merge left the session on main; caught by manually running `validate_no_ff`, by no gate; `block-ff-push` would have refused only at push time. Scope and Done-when byte-unchanged, asserted before write. **Constraint flagged:** `[#353]` sat at 1095 chars against the 1200 `doc_rot` cap, leaving ~105 for evidence — a ticket whose purpose is accumulating "n=N recovered-not-prevented" evidence will hit the cap after roughly two more incidents.
+
+**Boundary departures, both mechanically forced and both flagged rather than quiet:** `ecosystem/doc-code-edge.yaml` (a new ALL_CHECKS member that is neither `coverage_scope`-annotated nor exempt FAILs `doc_code_coverage_drift`, blocking every subsequent commit) and `docs/audits/README.md` (generated index, regen-and-diff gated). The exemption is recorded as **honest but temporary**: the rule the gate enforces is not yet written into `protocols/HANDOFF_PROCESS.md`, because `protocols/` was out of scope for this lane. **That is enforcement without a written rule — the mirror image of the phantom-enforcement class in `[#359]`** — and must be promoted to `coverage_scope` when the doc-side rule lands.
+
+**Review-lane discrepancy:** the operator asked for **terra**; the wrapper ran **`gpt-5.6-sol`**, because the terra pin applies to the DOC lane and this diff is code-shaped, so the code lane inherited the config default. Findings were sound, but it is not the lane requested — the `[#333]`/`[#341]` config-vs-doctrine drift, observed live.
+
+**Coupling sites updated (all four, per the known traps):** `len(ALL_CHECKS)==31` in `test_doc_code_edge.py` x2 and `test_audit.py` x2; the `class Finding` line pins in `test_reverse_dep_oracle.py` (267 to 275, 266 to 274) shifted by the new import block; `ecosystem/doc-counts.md` regenerated twice (30 to 31 checks; 1598 to 1624 to 1627 tests — the first regen ran before the tests existed, caught by ship-gate as a `doc_claims` drift).
+
+**Gates:** ship-gate **GREEN at 14 WARN dispositioned**, nothing dispositioned to force it. `validate_backlog` GREEN (8 themes / 22 stories / 125 tasks). Full suite run on the pinned branch HEAD after this commit, tree non-moving.
+
+**Changes:** `scripts/validate_residual_completeness.py` (new), `scripts/audit.py`, `tests/test_residual_completeness.py` (new), `tests/test_audit.py`, `tests/test_doc_code_edge.py`, `tests/test_reverse_dep_oracle.py`, `ecosystem/doc-code-edge.yaml`, `ecosystem/doc-counts.md`, `docs/audits/2026-07-19-census-silent-rule-ledger.md` (new), `docs/audits/2026-07-19-codex-residual-completeness-gate.md` (new), `docs/audits/README.md`, `BACKLOG.md`, `JOURNAL.md`.
+
+**Abandoned / not done, with reasons:** (1) **No escalation fixed** — `[#358]`-`[#361]` belong to their waves. (2) **`protocols/` untouched** — forbidden this lane, which is why the gate's rule is unwritten and its coverage exemption is temporary. (3) **Not merged** — commit-and-STOP. (4) **The gate does not retro-fail the arc5 bundle** — prospective-only, stated rather than hidden.
+
+**Next:** integration GO for this branch. Then write the gate's rule into `HANDOFF_PROCESS.md` and promote its `doc-code-edge` exemption to `coverage_scope`, closing the enforcement-without-a-written-rule gap this lane opened.
+
 ### 2026-07-19 — CC (Opus 4.8, 1M): ARC-5 trim + census merge, educate artifact, and a self-inflicted direct-to-main caught and recovered
 
 **Did:** Architect ruled TRIM (not disposition) on the two inherited `doc_rot` WARNs — a disposition on a ticket filed the same day is the "declare instead of fix" pattern the declaration test exists to prevent. Trimmed `[#355]` and `[#356]`, merged `docs/arc5-census-filing` to main, produced the ARC-5 educate artifact, and ran the full suite to close the seed-1 test gap.
