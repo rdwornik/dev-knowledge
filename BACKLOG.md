@@ -296,7 +296,7 @@ partial-mechanism rules (one leg gated, the rest not) are folded into `enforced`
 them strictly would raise N_silent. Controls held: the ADR-template intake-id cite rule and the
 merge-delegation composite both measured `silent`; the worktree side-effect rule measured
 `declared-unenforced`, having been converted out of `silent` by `8c913a6a` — the canon inoculation
-working as designed, not a model failure.
+working as designed, not a model failure. **Evidence** — the 176-item itemisation, the declared list, the near-misses, and the pending-#242 per-ADR table are archived at `docs/audits/2026-07-19-census-silent-rule-ledger.md`.
 
 #### OPEN DECISIONS — ALL UNRULED (recommendations attached; no ruling has been made)
 
