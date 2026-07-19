@@ -19,6 +19,28 @@
 
 ---
 
+### 2026-07-19 — CC (Opus 4.8, 1M): ARC-5 trim + census merge, educate artifact, and a self-inflicted direct-to-main caught and recovered
+
+**Did:** Architect ruled TRIM (not disposition) on the two inherited `doc_rot` WARNs — a disposition on a ticket filed the same day is the "declare instead of fix" pattern the declaration test exists to prevent. Trimmed `[#355]` and `[#356]`, merged `docs/arc5-census-filing` to main, produced the ARC-5 educate artifact, and ran the full suite to close the seed-1 test gap.
+
+**Result:** `00f86494` (trim) → merge **`9a3fb86b`** (census filing: `[E8]` declaration test + baseline + R12, `[S22]` with `[#357]`–`[#362]`) → `96bafe21` (educate artifact + audit-index regen 261→262) → merge **`<this merge>`**. Branch `docs/arc5-census-filing` deleted (was `00f86494`); `docs/arc5-educate` deleted after merge. Leftover checks clean both times: worktree list = primary only, `.claude/worktrees/` empty, no dangling ref, tree clean.
+
+**Trim, with claims intact:** `[#355]` **1441 → 1155** chars, `[#356]` **1324 → 1183** chars, both under the 1200 `doc_rot` threshold. Nothing weakened — `#355` keeps the inversion evidence in substance (`INSTALL.md` reported absent while present, `docs/handoffs/` reported present while absent, direct `audit.py health` returning OK in the same tree, "exact and reproducible") plus the false-positives-train-bypass impact line; `#356` keeps "**two rules binding in force today with no ratified decision record at all**" verbatim. What was cut was re-witness *narration* already carried by JOURNAL @ `cc1a680e`, which both tickets now point to rather than restate — de-duplicated against the record that holds it, not destroyed.
+
+**Gates:** `validate_backlog` GREEN (8 themes / 22 stories / 125 tasks, 0 warnings). Ship-gate **GREEN at exactly 14 WARN dispositioned** — back to baseline, the two inherited WARNs gone by trim, nothing dispositioned to force it.
+
+**Error made and recovered — recorded, not smoothed.** After the census merge I was left standing **on `main`**, and committed the educate artifact there: `96bafe21` landed as a **non-merge commit on main's first-parent spine**, a core-invariant #5 violation and a 4th FF/DIRECT entry in `validate_no_ff` (the other three are pre-existing and dispositioned). This is the exact "merge-on-main leaves the next commit direct-to-main" trap. Caught by running `validate_no_ff` rather than by a gate — `block-ff-push` would have refused the push, but only later. Recovered by relocating, not rewriting: branch `docs/arc5-educate` created **at** `96bafe21` first (so the commit was never at risk), verified to hold the artifact, then `main` reset to `9a3fb86b`, then re-merged `--no-ff`. `validate_no_ff` back to 3. No content lost; the artifact's own sha is preserved inside the merge.
+
+**Educate artifact:** `docs/audits/2026-07-19-technical-arc5-educate.md`. Surface chosen, not invented — class `technical` in `docs/audits/`, following the live arc-close convention (`2026-07-19-technical-night-consolidated-cycle-close.md`, itself `[E8]`'s cited Source). **There is no `educate` genre or class**: ADR-101's genre set is `archive/audits/decisions/handoffs/intake/runbooks` and the audit-class enum is closed at 11. `docs/audits/README.md` is a generated index; its regen is a mechanical consequence of adding the file (the regen-and-diff gate would otherwise block), committed together per the `dd7f3615` precedent, and flagged as sitting outside the literal file boundary.
+
+**Test gap:** the seed-1 canon-inoculation merge shipped on the doc-gate subset (**104 tests**) plus `toc.cli` and `audit-health` — never a full suite. Closed this session against post-merge main, but **after** the merge rather than before it, which is the wrong order and is recorded as such in the artifact's not-done section. A first suite run was **invalidated** mid-flight when the recovery `reset --hard` changed the tree under it; it was discarded and re-run clean rather than reported.
+
+**Changes:** `BACKLOG.md` (trim of two task lines), `docs/audits/2026-07-19-technical-arc5-educate.md` (new), `docs/audits/README.md` (regenerated index), `JOURNAL.md` (this entry).
+
+**Abandoned / not done, with reasons:** (1) **No escalation fixed** — `[#358]`–`[#361]` remain filed-not-repaired, per the standing filing-only instruction. (2) **R12 left UNRULED** — a recommendation is not a ruling. (3) **Zero backlog tasks closed this arc** — accretion 116→125, all nine arc-minted; stated plainly in the artifact rather than netted out against the clause (d) exclusion.
+
+**Next:** operator rules R1–R8 (+R1b) and R12. `[#357]` completes the denominator by sweeping `docs/decisions/`. W1 opens against its 2026-08-13 shelf-life.
+
 ### 2026-07-19 — CC (Opus 4.8, 1M): ARC-5 plan-of-record integrated, worktree torn down, silent-rule census filed into [E8] + 6 tickets
 
 **Did:** Two lanes under one operator GO. **Part 1 (integration, on `main`):** merged `docs/arc5-plan-of-record` (`cc1a680e` + `496ac6ac`) into main `--no-ff` from the primary checkout — a real merge, both sides having moved from base `9ffb7eeb`. **Part 2 (filing, commit-and-STOP):** recorded the census metric definition, baseline, and one unruled decision into `[E8]`, and filed six tickets. File boundary held: `BACKLOG.md` + `JOURNAL.md` only, no `scripts/` or `protocols/` edit, and **no escalation fixed in this lane** — filing only.
