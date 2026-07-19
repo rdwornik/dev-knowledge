@@ -60,6 +60,48 @@ def test_authored_bodies_are_filled(body):
 
 # --- scanning --------------------------------------------------------------------------
 
+# --- codex-review regressions (both findings were confirmed by execution, not accepted on
+# --- assertion; see docs/audits/2026-07-19-codex-residual-completeness-gate.md) -----------
+
+def test_placeholder_plus_authored_prose_ending_in_terminator_is_filled():
+    """codex HIGH-2 regression.
+
+    Under DOTALL a plain `.*?` backtracks to the LAST `)_`, so a region holding the
+    placeholder AND authored prose that happens to end in `)_` read as placeholder-only —
+    a false FAIL blocking a legitimately authored region. The tempered pattern requires the
+    FIRST `)_` to terminate the body.
+    """
+    assert vrc.region_is_unfilled("_(fill: x)_\n_(authored prose)_") is False
+    assert vrc.region_is_unfilled("Authored text (with a trailing parenthetical)_") is False
+    # the genuine wrapped placeholder must still be caught
+    assert vrc.region_is_unfilled("_(fill: wrapped\nacross\nlines)_") is True
+
+
+def test_second_placeholder_form_is_recognised():
+    """codex HIGH-1 regression, half 1: the EPIC/FUNCTIONAL/BOOT `_FILL-IN ..._` form."""
+    assert vrc.region_is_unfilled("_FILL-IN (root): epic id · stories · done-when per story._") is True
+    assert vrc.region_is_unfilled("_FILL-IN (root): the hard closure metric_") is True
+    assert vrc.region_is_unfilled("The root authored this properly.") is False
+
+
+def test_bundle_files_covers_every_template_carrier():
+    """codex HIGH-1 regression, half 2 — a DRIFT GUARD.
+
+    Every template under templates/handoff/ that carries a FILL-IN region must appear in
+    BUNDLE_FILES, or that carrier ships un-gated. PROBES.md stays excluded by design
+    (anti-bluff). If a new carrier template is added, this fails until it is listed.
+    """
+    root = Path(__file__).resolve().parents[1] / "templates" / "handoff"
+    carriers = {
+        p.name.replace(".tmpl", "")
+        for p in root.rglob("*.tmpl")
+        if "FILL-IN" in p.read_text(encoding="utf-8", errors="replace")
+    }
+    assert carriers, "no FILL-IN carrier templates found — the guard would be vacuous"
+    missed = carriers - set(vrc.BUNDLE_FILES) - {"PROBES.md"}
+    assert not missed, f"FILL-IN carrier(s) not covered by BUNDLE_FILES: {sorted(missed)}"
+
+
 def test_unfilled_region_is_detected():
     text = region("frontier", UNFILLED_BODY)
     found = vrc.scan_text(text, "RESIDUAL.md")

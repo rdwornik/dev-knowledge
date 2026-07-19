@@ -50,9 +50,18 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-# Hand-authored regions live in these two bundle files. PROBES.md is deliberately ABSENT —
-# see the anti-bluff note in the module docstring.
-BUNDLE_FILES: frozenset[str] = frozenset({"RESIDUAL.md", "PASTE_THIS.md"})
+# Every FILL-IN carrier, EXCEPT PROBES.md which is deliberately absent (anti-bluff note above).
+# Derived from the carriers under templates/handoff/ plus the assembled PASTE_THIS.md; a drift
+# test (test_bundle_files_covers_every_template_carrier) fails if a new carrier template appears
+# and is not listed here — the codex review caught exactly this gap, where EPIC_BOOT/
+# FUNCTIONAL_BOOT/HANDOFF_BOOT could ship wholly unfilled without a FAIL.
+BUNDLE_FILES: frozenset[str] = frozenset({
+    "RESIDUAL.md",
+    "PASTE_THIS.md",
+    "HANDOFF_BOOT.md",
+    "EPIC_BOOT.md",
+    "FUNCTIONAL_BOOT.md",
+})
 
 # <!-- FILL-IN:<name> START (guidance...) --> body <!-- FILL-IN:<name> END -->
 # Backreference on the name so a mismatched START/END pair never silently spans two regions.
@@ -61,8 +70,20 @@ _REGION_RE = re.compile(
     re.DOTALL,
 )
 
-# The generator's placeholder: _(fill: ... )_  — may wrap across lines.
-_PLACEHOLDER_RE = re.compile(r"^_\(fill:.*?\)_$", re.DOTALL)
+# The generator emits TWO placeholder forms; both must be recognised or the carrier they
+# appear in is un-gated:
+#   1. `_(fill: ...)_`            — RESIDUAL.md / PASTE_THIS.md; may wrap across lines.
+#   2. `_FILL-IN (root): ..._`    — EPIC_BOOT / FUNCTIONAL_BOOT / HANDOFF_BOOT; single line.
+#
+# Form 1 is TEMPERED (`(?:(?!\)_).)*`) so the FIRST `)_` must terminate the body. A plain
+# `.*?` under DOTALL backtracks to the LAST `)_`, which made
+# `_(fill: x)_\n_(authored prose)_` read as placeholder-only — a false FAIL that would block
+# a legitimately authored region. Caught by codex review; pinned by
+# test_placeholder_plus_authored_prose_ending_in_terminator_is_filled.
+_PLACEHOLDER_RES: tuple[re.Pattern[str], ...] = (
+    re.compile(r"^_\(fill:(?:(?!\)_).)*\)_$", re.DOTALL),
+    re.compile(r"^_FILL-IN\b[^\n]*_$"),
+)
 
 
 @dataclass(frozen=True)
@@ -81,7 +102,7 @@ def region_is_unfilled(body: str) -> bool:
     stripped = body.strip()
     if not stripped:
         return True
-    return bool(_PLACEHOLDER_RE.match(stripped))
+    return any(rx.match(stripped) for rx in _PLACEHOLDER_RES)
 
 
 def scan_text(text: str, path: str) -> list[Unfilled]:
