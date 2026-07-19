@@ -13,7 +13,7 @@
 > = reconstructed from the ai-council JOURNAL / BACKLOG / git window, may have moved (the load-bearing
 > ones are re-checkable via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -51,6 +51,14 @@ Terse map only; ai-council `JOURNAL.md` (2026-07-18 → 2026-07-19 entries) and 
 **(b) `#71` is shipped code violating the rule that was being enforced the same day.** `--no-persist` calls `mkdtemp()` with **no cleanup anywhere in the module** — a live violation of §5 item 9 "No leftovers." It is also a **concrete instance of the #68 guard proposal**, which strengthens that proposal's case materially. Whether that converts #68 from proposal to accepted work is an **architect call**.
 
 **(c) The two consumer→hub NEEDS-RULING intakes remain hub-tracked, ruling pending.** Filed locally in ai-council `docs/intake/` and carried across the boundary (the sanctioned consumer→hub path): `2026-07-17-hub-feedback-codex-producer-lane.md` (hub `#341`) and `2026-07-17-hub-feedback-session-close-gate.md` (hub `#344`). **Do not re-plan these in an ai-council chat** — they are a hub session's work. `unknown`: whether either has been ruled since filing.
+
+> **Supplement correction (§13: advisory, never trusted over the repo).** The filled `SUPPLEMENT.md`
+> §4 cites the session-close-gate ticket as hub **`#343`**. That is **wrong** — `witnessed` against the
+> live hub `BACKLOG.md` this generation: **`#344`** is "Session-close gate for handoff generation +
+> consumer hub-write guard (NEEDS-RULING)"; **`#343`** is an unrelated `fleet_parity` ship-gate-scoping
+> perf item. The supplement is committed **verbatim and unedited** (CC never rewrites the architect's
+> answers) — so the wrong id stands in that file by design, and this note is the correction. **Use
+> `#344`.**
 
 **(d) The interim Codex-producer fallback — verify before assuming it still binds.** The 2026-07-17 ruling held that bounded build tasks run as **CC-implements + terra read-only review pre-merge** (never Codex-writes), pending the hub's #341 reconciliation. It shipped several arcs cleanly and terra caught real defects each time. **But its stated rationale referenced the credit-exhaustion premise that §1 falsified** — so the *fallback* may still be right while its *stated reason* is now partly stale. Worth an explicit re-confirmation rather than silent inheritance.
 
