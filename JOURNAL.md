@@ -19,6 +19,44 @@
 
 ---
 
+### 2026-07-19 — CC (Opus 4.8, 1M): residual gate merged + pushed; its rule declared, and a codex review that found my own verification method wrong
+
+**Did:** Part 1 — merged `feat/residual-completeness-gate` to main `--no-ff` from primary, deleted the branch, pushed. Part 2 (commit-and-STOP, branch `docs/residual-rule-declaration`) — closed the orphan enforcement by writing the gate's rule into the protocol, bound the temporary `doc-code-edge` exemption to a ticket, and filed five tickets across two rounds.
+
+**Result (every sha):** Part 1 merge **`ecc8b5aa`** (pushed `9ffb7eeb..ecc8b5aa`, `block-ff-push` passed). Part 2: `70fb4cfc` protocol rule · `9c25f94f` exemption bound to `[#365]` + `[#363]`/`[#364]`/`[#365]` · `cb3fac3a` three codex findings closed + `[#366]`/`[#367]` · plus this entry. **Not merged** — awaits an integration GO.
+
+**Orphan enforcement closed.** The gate had been in force since `622baedb` while no protocol declared the rule it enforces, because the building lane's boundary excluded `protocols/`. That is the mirror image of `[#359]`: there a rule claims a mechanism that doesn't exist; here a mechanism enforced a rule nobody had written. The rule now lives in `HANDOFF_PROCESS.md` beside the Generator note that already governs FILL-IN scaffolds — existing bolded-lead-in shape, no invented section.
+
+**No `<!-- rule: -->` marker added, deliberately, and the reason was witnessed not assumed.** A doc marker without its `# rule:` code counterpart yields `broken_edge (doc sites=1, code sites=0)` — observed live — a WARN that reds the ship-gate at 15. `scripts/` is outside this lane, so both halves land together in `[#365]`.
+
+**The exemption could not be removed, so it was BOUND.** Writing the rule discharged the *original* exemption reason, but `coverage_scope` needs a resolvable edge and therefore both marker halves. Rather than leave an undeclared temporary exemption — precisely the silent category this arc exists to eliminate — the in-file comment now records the discharge, the remaining blocker, the witnessed evidence, and `[#365]`.
+
+**Codex review: 0 Critical / 3 High / 1 Medium. All four verified by execution or source read before acceptance. One of them was about me.**
+
+*HIGH-1 — my "7/7 verified" claim was false, and the shape of the falsehood is the arc's own thesis pointed back at me.* I verified **doc→code** (every prose claim is true of the code) and never **code→doc** (does the prose omit behaviour the code enforces?). `region_is_unfilled()` also fails an **empty** region; the written rule mentioned only the placeholder. A one-directional check reports agreement it never established — which is exactly the recorded-vs-enforced gap the census measures. Fixed: the rule now reads "empty **or** still carries its generator placeholder".
+
+*HIGH-2 — the commit-refusal guarantee was overstated.* The check identifies changed paths via `git status` but reads them **from disk**, so a bundle staged unfilled and then filled without re-staging passes. Fixed in prose as an explicit `*Honest limit:*` clause naming `[#366]`; the code fix needs `scripts/`.
+
+*HIGH-3 — `Version: 5.7` held while adding normative text*, so every `handoff-process@5.7` dependent stays green without ever reviewing the new rule. Deliberate at authoring time (reconciliation touches protocol files outside the boundary) but not a resolution — filed as `[#367]` rather than left as a commit-message aside.
+
+*MEDIUM — `[#365]`'s plan named ONE code marker.* This check has two organs (the `audit.py` adapter and the validator logic), so it needs two `# rule:` markers plus `multi_site: handoff-residual-filled: 2`, matching the `handoff-probes-bind` Tier-3 pattern. One marker leaves the logic unbound; two without `multi_site` go `ambiguous`. `[#365]` corrected.
+
+**Review-lane: SECOND data point for `[#363]`, and worse than the first.** The model was `gpt-5.6-sol` again, not terra. But the sharper failure is the **file filter**: this lane's substance is `protocols/HANDOFF_PROCESS.md` and `BACKLOG.md`, and the wrapper restricted the review to **`ecosystem/doc-code-edge.yaml` alone** — one incidental config file — because `.yaml` sits on the CODE extension allowlist and a mixed diff is filtered to its code subset. The findings were good only because the reviewer read the excluded files as context. **A prose change can be pulled into the code lane by a single `.yaml` and then have its actual content excluded from the review.** That is not a model-choice problem; it is a scoping problem, and it means "terra reviewed the diff" can be true and meaningless at once.
+
+**A first review invocation was killed by my own command.** `Select-Object -First 30` terminated the PowerShell pipeline early, killing codex before it wrote its artifact. Re-run to completion with `-Force`; no partial verdict was read or reported.
+
+**Five tickets filed:** `[#363]` codex lane routing (bound to `[#333]`/`[#341]`) · `[#364]` `doc_rot`'s cap blocks `[#353]` from accumulating evidence (~11 chars left; options recorded, no ruling) · `[#365]` promote the exemption to `coverage_scope` · `[#366]` working-tree-vs-staged-blob gap · `[#367]` the held 5.7 version.
+
+**Concurrent session observed, untouched.** A second worktree `.claude/worktrees/visible-boundary` (branch `worktree-visible-boundary` @ `9ffb7eeb`, locked) appeared at 22:59 — another lane provisioning W1, whose `.vscode` work this lane's boundary forbids. Not mine, not a leftover, not removed.
+
+**Gates:** ship-gate **GREEN at 14 WARN dispositioned** throughout. `validate_backlog` GREEN (8 themes / 22 stories / **130 tasks**). Full suite on the pinned branch HEAD after this commit.
+
+**Changes:** `protocols/HANDOFF_PROCESS.md` (the rule + its honest limit), `ecosystem/doc-code-edge.yaml` (exemption bound to `[#365]`), `BACKLOG.md` (`[#363]`–`[#367]`), `docs/audits/2026-07-19-codex-residual-rule-declaration.md` (new), `docs/audits/README.md` (generated index), `JOURNAL.md`.
+
+**Abandoned / not done, with reasons:** (1) **Exemption not removed** — needs both marker halves; `scripts/` out of boundary. (2) **Version not bumped** — dependent reconciliation touches forbidden files; filed as `[#367]`. (3) **Staged-blob fix not made** — `scripts/` out of boundary; filed as `[#366]`. (4) **Not merged** — commit-and-STOP.
+
+**Next:** integration GO. Then `[#365]` (both markers + `multi_site` atomically) and `[#367]` (the 5.7→5.8 bump with dependent reconciliation) are the two that close what this lane could only declare.
+
 ### 2026-07-19 — CC (Opus 4.8, 1M): ARC-5 first real mechanism — residual-completeness gate, census evidence archived, [#353] evidence n=7
 
 **Did:** Commit-and-STOP lane on `feat/residual-completeness-gate` off `a90b2c10`. Branched **before** the first commit, per the standing guard written after this session's own core-invariant #5 violation. Archived the census evidence into the repo, built the arc's first enforcing mechanism, recorded the direct-to-main incident as evidence, and ran the gate past a Codex review.
