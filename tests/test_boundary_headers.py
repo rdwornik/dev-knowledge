@@ -3,18 +3,22 @@
 The point of this module is that the boundary has ONE vocabulary. The machine markers
 (`<!-- methodology:start ... owner=hub|repo -->`) are the single source of truth; the
 reader-visible headers and the .vscode background decoration are both DERIVED from them.
-These tests hold that invariant from three directions:
+These tests hold that invariant from four directions:
 
   * generator units      -- headers are a pure function of the marker attributes
   * placement contract   -- headers never enter a region body (byte-match with
                             templates/claude-regions/ survives)
   * decoration coupling  -- the .vscode regexes select exactly the parsed marker regions,
                             so the editor cannot paint a boundary the parser disagrees with
+  * adversarial safety   -- the classes a codex review found on the first cut: prose
+                            deletion, fenced examples, CRLF rewriting, vacuous coverage,
+                            and a decoration regex that accepts a looser marker language
 """
 
 import importlib.util
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -34,20 +38,6 @@ def _load():
 
 bh = _load()
 
-
-# ---------------------------------------------------------------- generator units
-
-def test_header_is_a_pure_function_of_the_marker_attributes():
-    assert bh.header_for("first-read", "hub").startswith("> **[HUB - methodology]**")
-    assert "`first-read`" in bh.header_for("first-read", "hub")
-    assert bh.header_for("repo-identity", "repo").startswith("> **[REPO - local]**")
-    assert "`repo-identity`" in bh.header_for("repo-identity", "repo")
-
-
-def test_hub_and_repo_headers_are_visually_distinct():
-    assert bh.header_for("x", "hub") != bh.header_for("x", "repo")
-
-
 _SAMPLE = (
     "# T\n\n"
     "<!-- methodology:start id=alpha owner=hub -->\n"
@@ -57,6 +47,29 @@ _SAMPLE = (
     "repo body\n"
     "<!-- methodology:end id=beta -->\n"
 )
+
+
+def _seed_repo(tmp_path: Path, claude_text: str, **extra: str) -> Path:
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    (tmp_path / "CLAUDE.md").write_text(claude_text, encoding="utf-8", newline="")
+    for rel, body in extra.items():
+        p = tmp_path / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(body, encoding="utf-8", newline="")
+    subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
+    return tmp_path
+
+
+# ---------------------------------------------------------------- generator units
+
+def test_header_is_a_pure_function_of_the_marker_attributes():
+    assert bh.header_for("first-read", "hub").startswith("> **[HUB - methodology]**")
+    assert "`first-read`" in bh.header_for("first-read", "hub")
+    assert bh.header_for("repo-identity", "repo").startswith("> **[REPO - local]**")
+
+
+def test_hub_and_repo_headers_are_visually_distinct():
+    assert bh.header_for("x", "hub") != bh.header_for("x", "repo")
 
 
 def test_apply_headers_inserts_one_header_per_start_marker():
@@ -74,7 +87,7 @@ def test_regeneration_repairs_a_hand_edited_header():
     """A hand-edited header is REPLACED -- markers win, prose does not."""
     tampered = bh.apply_headers(_SAMPLE).replace(
         "> **[HUB - methodology]** region `alpha`",
-        "> **[HUB - methodology]** region `WRONG-ID`")
+        "> **[HUB - methodology]** region `wrong-id`")
     assert bh.apply_headers(tampered) == bh.apply_headers(_SAMPLE)
 
 
@@ -97,28 +110,99 @@ def test_is_fully_headed_detects_a_missing_header():
     assert bh.is_fully_headed(bh.apply_headers(_SAMPLE))
 
 
+# ------------------------------------------------- adversarial safety (codex findings)
+
+def test_prose_quoting_the_header_format_is_never_deleted():
+    """CRITICAL regression: stripping must be MARKER-ADJACENT.
+
+    A history entry or doc that quotes the header grammar is authored content. An earlier
+    cut used startswith() and would silently delete it on --write.
+    """
+    doc = (
+        "# Doc\n\n"
+        "The generator emits lines like this one:\n"
+        "> **[HUB - methodology]** region `example` - single-sourced from the hub.\n"
+        "...and that is the whole convention.\n\n"
+        + _SAMPLE
+    )
+    out = bh.apply_headers(doc)
+    assert "region `example` - single-sourced from the hub." in out, \
+        "authored prose that merely quotes the header format was deleted"
+    assert out.count("> **[HUB - methodology]** region `alpha`") == 1
+
+
+def test_markers_inside_a_fenced_code_block_are_examples_not_markers():
+    fenced = (
+        "# Doc\n\n"
+        "```\n"
+        "<!-- methodology:start id=example owner=hub -->\n"
+        "body\n"
+        "<!-- methodology:end id=example -->\n"
+        "```\n\n"
+        + _SAMPLE
+    )
+    out = bh.apply_headers(fenced)
+    assert "region `example`" not in out, "a fenced example was treated as a real marker"
+    assert out.count("region `alpha`") == 1
+
+
+def test_crlf_line_endings_are_preserved_exactly():
+    """Region bodies must not be silently rewritten LF<->CRLF by regeneration."""
+    crlf = _SAMPLE.replace("\n", "\r\n")
+    out = bh.apply_headers(crlf)
+    assert "\r\n" in out
+    assert re.search(r"[^\r]\n", out) is None, "a CRLF file gained bare-LF lines"
+    assert out.count("\r\n") == crlf.count("\r\n") + 2  # two headers inserted
+
+
+def test_write_refuses_on_an_unbalanced_marker(tmp_path):
+    broken = "# T\n\n<!-- methodology:start id=alpha owner=hub -->\nbody, never closed\n"
+    repo = _seed_repo(tmp_path, broken)
+    assert bh.cmd_write(repo) == 1, "must refuse to write into an unparseable file"
+    assert bh.cmd_check(repo) == 1
+    assert (repo / "CLAUDE.md").read_text(encoding="utf-8") == broken, "file was mutated"
+
+
+def test_coverage_is_not_vacuous_when_every_marker_is_deleted(tmp_path):
+    """The metric must FAIL when the boundary disappears, not report an empty 100%."""
+    repo = _seed_repo(tmp_path, "# T\n\nno markers at all\n")
+    assert bh.cmd_coverage(repo) == 1, "marker-less required file reported as covered"
+
+
+def test_mismatched_close_id_is_a_parse_warning_and_fails_check(tmp_path):
+    bad = ("# T\n\n<!-- methodology:start id=alpha owner=hub -->\nb\n"
+           "<!-- methodology:end id=beta -->\n")
+    repo = _seed_repo(tmp_path, bad)
+    assert bh.cmd_check(repo) == 1
+
+
 # ---------------------------------------------------------------- live-tree state
 
 def test_live_tree_governed_files_are_discovered():
-    govs = [p.name for p in bh.discover_governed(_ROOT)]
-    assert "CLAUDE.md" in govs, "CLAUDE.md carries markers and must be governed"
+    paths, errors = bh.discover_governed(_ROOT)
+    assert not errors, errors
+    assert "CLAUDE.md" in [p.name for p in paths]
 
 
 def test_live_tree_coverage_is_complete():
-    reports = bh.inspect(_ROOT)
+    reports, errors = bh.inspect(_ROOT)
+    assert not errors, errors
     unheaded = [r.rel for r in reports if not r.headed]
     assert not unheaded, f"governed files missing reader-visible headers: {unheaded}"
 
 
 def test_live_tree_headers_match_markers():
     """Regen-and-diff: the gate form. Fails if headers drift from markers."""
-    drifted = [r.rel for r in bh.inspect(_ROOT) if r.drifted]
+    reports, _ = bh.inspect(_ROOT)
+    drifted = [r.rel for r in reports if r.drifted]
     assert not drifted, f"headers stale vs markers: {drifted}"
 
 
 def test_live_tree_markers_parse_without_warnings():
-    for rep in bh.inspect(_ROOT):
+    reports, _ = bh.inspect(_ROOT)
+    for rep in reports:
         assert not rep.warnings, f"{rep.rel}: {rep.warnings}"
+        assert not rep.errors, f"{rep.rel}: {rep.errors}"
 
 
 # ------------------------------------------------------- placement contract
@@ -152,6 +236,15 @@ def test_hub_region_bodies_still_byte_match_the_templates():
     assert checked == 8, f"expected 8 hub region extracts, checked {checked}"
 
 
+def test_regeneration_does_not_change_any_region_body(tmp_path):
+    """End-to-end form of the placement contract, on exact bytes."""
+    from boundary_report import parse_regions
+    text = (_ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+    before, _ = parse_regions(text)
+    after, _ = parse_regions(bh.apply_headers(text))
+    assert {r.id: r.body for r in before} == {r.id: r.body for r in after}
+
+
 # --------------------------------------------------- decoration coupling
 
 def _vscode_regexes():
@@ -163,58 +256,71 @@ def test_vscode_declares_a_pattern_for_each_owner():
     regexes, flags = _vscode_regexes()
     assert "m" in flags, "line anchors require the multiline flag"
     owners = sorted("hub" if "owner=hub" in p else "repo" for p in regexes)
-    assert owners == ["hub", "repo"], f"expected one pattern per owner, got {owners}"
+    assert owners == ["hub", "repo"]
+
+
+def _paint(text: str):
+    regexes, _ = _vscode_regexes()
+    out = []
+    for pattern in regexes:
+        owner = "hub" if "owner=hub" in pattern else "repo"
+        for m in re.finditer(pattern, text, re.M):
+            start = text.count("\n", 0, m.start())
+            out.append((start, start + m.group(0).count("\n"), owner))
+    return sorted(out)
 
 
 def test_vscode_decoration_selects_exactly_the_parsed_marker_regions():
-    """The two-vocabularies guard.
-
-    The editor decoration and the marker parser must agree on WHICH lines are hub and
-    which are repo. If someone re-words a .vscode regex so it stops tracking the marker
-    vocabulary, this fails.
-    """
+    """The two-vocabularies guard: the editor and the parser must agree."""
     from boundary_report import parse_regions
     text = (_ROOT / "CLAUDE.md").read_text(encoding="utf-8").replace("\r\n", "\n")
     regions, _ = parse_regions(text)
     expected = {"hub": sum(1 for r in regions if r.owner == "hub"),
                 "repo": sum(1 for r in regions if r.owner == "repo")}
-
-    regexes, _flags = _vscode_regexes()
-    painted: list[tuple[int, int, str]] = []
-    for pattern in regexes:
-        owner = "hub" if "owner=hub" in pattern else "repo"
-        for m in re.finditer(pattern, text, re.M):
-            start = text.count("\n", 0, m.start())
-            painted.append((start, start + m.group(0).count("\n"), owner))
-
+    painted = _paint(text)
     got = {"hub": sum(1 for p in painted if p[2] == "hub"),
            "repo": sum(1 for p in painted if p[2] == "repo")}
     assert got == expected, f"decoration painted {got}, markers say {expected}"
-
-    painted.sort()
     for (s1, e1, _o1), (s2, _e2, _o2) in zip(painted, painted[1:]):
         assert e1 < s2, f"decoration bands overlap at lines {s1}-{e1} / {s2}-"
 
 
 def test_vscode_bands_start_at_the_generated_header():
-    """Each painted band opens on the generated header, so the reader sees the label
-    and the shaded body as one block."""
     text = (_ROOT / "CLAUDE.md").read_text(encoding="utf-8").replace("\r\n", "\n")
-    regexes, _flags = _vscode_regexes()
+    regexes, _ = _vscode_regexes()
     n = 0
     for pattern in regexes:
         for m in re.finditer(pattern, text, re.M):
-            assert bh.is_generated_header(m.group(0).splitlines()[0]), \
-                f"band does not open on a generated header: {m.group(0)[:60]!r}"
+            assert bh.is_generated_header(m.group(0).splitlines()[0])
             n += 1
     assert n == 15, f"expected 15 painted regions, found {n}"
 
 
+def test_vscode_regex_rejects_a_looser_marker_language():
+    """The decoration must not paint what the parser would reject."""
+    from boundary_report import parse_regions
+    bogus = (
+        "<!-- methodology:start id=alpha owner=hubbish -->\n"
+        "not a real owner\n"
+        "<!-- methodology:end id=alpha -->\n"
+    )
+    assert parse_regions(bogus)[0] == [], "precondition: parser rejects owner=hubbish"
+    assert _paint(bogus) == [], "decoration painted a marker the parser rejects"
+
+
+def test_vscode_regex_requires_the_close_id_to_match_the_open_id():
+    mismatched = (
+        "<!-- methodology:start id=alpha owner=hub -->\n"
+        "body\n"
+        "<!-- methodology:end id=beta -->\n"
+    )
+    assert _paint(mismatched) == [], "decoration paints across a mismatched close id"
+
+
 def test_vscode_is_scoped_to_governed_surfaces():
     regexes, _ = _vscode_regexes()
-    for pattern, spec in regexes.items():
-        assert "CLAUDE" in spec.get("filterFileRegex", ""), \
-            "decoration must be scoped, not applied to every file"
+    for _pattern, spec in regexes.items():
+        assert "CLAUDE" in spec.get("filterFileRegex", "")
 
 
 def test_vscode_uses_navy_for_hub_and_grey_for_repo():
@@ -230,19 +336,11 @@ def test_vscode_uses_navy_for_hub_and_grey_for_repo():
 
 # ---------------------------------------------------------------- coverage gate
 
-def test_coverage_fails_on_a_seeded_unheadered_governed_file(tmp_path, monkeypatch):
+def test_coverage_fails_on_a_seeded_unheadered_governed_file(tmp_path):
     """The acceptance demonstration, as a permanent regression test."""
-    import subprocess
-    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
-    (tmp_path / ".claude").mkdir()
-    good = tmp_path / "CLAUDE.md"
-    good.write_text(bh.apply_headers(_SAMPLE), encoding="utf-8")
-    seeded = tmp_path / ".claude" / "seed.md"
-    seeded.write_text(_SAMPLE, encoding="utf-8")  # markers, NO headers
-    subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
-
-    assert bh.cmd_coverage(tmp_path) == 1, "unheadered governed file must fail coverage"
-
-    bh.cmd_write(tmp_path)
-    assert bh.cmd_coverage(tmp_path) == 0, "coverage must pass once headers are generated"
-    assert bh.cmd_check(tmp_path) == 0
+    repo = _seed_repo(tmp_path, bh.apply_headers(_SAMPLE),
+                      **{".claude/seed.md": _SAMPLE})  # markers, NO headers
+    assert bh.cmd_coverage(repo) == 1, "unheadered governed file must fail coverage"
+    bh.cmd_write(repo)
+    assert bh.cmd_coverage(repo) == 0, "coverage must pass once headers are generated"
+    assert bh.cmd_check(repo) == 0

@@ -9,7 +9,7 @@
 
   "highlight.regexFlags": "gm",
   "highlight.regexes": {
-    "((?:^> \\*\\*\\[HUB - methodology\\]\\*\\*[^\\n]*\\n)?^<!-- methodology:start id=[a-z0-9-]+ owner=hub[^\\n]*-->[\\s\\S]*?^<!-- methodology:end id=[a-z0-9-]+ -->$)": {
+    "((?:^> \\*\\*\\[HUB - methodology\\]\\*\\* region `[a-z0-9-]+` - [^\\n]*\\n)?^<!-- methodology:start id=([a-z0-9-]+) owner=hub(?: v=\\S+)? -->[\\s\\S]*?^<!-- methodology:end id=\\2 -->$)": {
       "filterFileRegex": ".*(CLAUDE\\.md|[\\\\/]\\.claude[\\\\/].*\\.md)$",
       "decorations": [
         {
@@ -20,7 +20,7 @@
         }
       ]
     },
-    "((?:^> \\*\\*\\[REPO - local\\]\\*\\*[^\\n]*\\n)?^<!-- methodology:start id=[a-z0-9-]+ owner=repo[^\\n]*-->[\\s\\S]*?^<!-- methodology:end id=[a-z0-9-]+ -->$)": {
+    "((?:^> \\*\\*\\[REPO - local\\]\\*\\* region `[a-z0-9-]+` - [^\\n]*\\n)?^<!-- methodology:start id=([a-z0-9-]+) owner=repo(?: v=\\S+)? -->[\\s\\S]*?^<!-- methodology:end id=\\2 -->$)": {
       "filterFileRegex": ".*(CLAUDE\\.md|[\\\\/]\\.claude[\\\\/].*\\.md)$",
       "decorations": [
         {

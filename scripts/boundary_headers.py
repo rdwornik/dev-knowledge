@@ -18,23 +18,36 @@ Placement contract
 A generated header is emitted on the line IMMEDIATELY BEFORE its ``methodology:start``
 marker -- never inside the region. Region BODIES therefore stay byte-identical to the
 ``templates/claude-regions/*.md`` extracts, preserving the v2.39/v2.42 byte-match
-discipline. Regeneration first strips every previously generated header, so the transform
-is idempotent and ``--check`` is a true regen-and-diff.
+discipline.
+
+Safety properties (each earned from a codex finding on the first cut)
+--------------------------------------------------------------------
+* **Stripping is marker-adjacent.** A generated header is removed only when it matches the
+  full-line grammar AND the next line opens a region. Prose that merely *quotes* the header
+  format -- documentation, an example, a §12 history entry -- is never eaten.
+* **Fence-aware.** Markers inside a fenced code block are examples, not markers.
+* **Line endings preserved.** Terminators are carried through untouched, so regenerating a
+  CRLF file cannot silently rewrite every region body to LF.
+* **Validate before transform.** Any parser warning (unbalanced / nested / mismatched-id)
+  refuses ``--write`` and fails ``--check`` rather than emitting into a broken structure.
+* **Coverage cannot be vacuous.** Required governed files are declared independently of
+  marker presence, so deleting every marker FAILS instead of reporting an empty 100%.
 
 Modes
 -----
-``--check``      regen-and-diff every governed file; exit 1 on drift (gate form).
-``--write``      rewrite governed files in place.
-``--coverage``   print ``headed/total`` governed files; exit 1 below 100%.
+``--check``      validate + regen-and-diff every governed file; exit 1 on drift or warning.
+``--write``      rewrite governed files in place (refuses on a parser warning).
+``--coverage``   print ``headed/total`` governed files; exit 1 below 100% or if vacuous.
 
 Layer-2 safe: reads and writes only ``.dev-knowledge`` paths (ADR-28/36).
 """
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from fnmatch import fnmatch
 from pathlib import Path
 
@@ -52,22 +65,36 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 # config, and counting them would make coverage meaningless.
 _GOVERNED_GLOBS = ("CLAUDE.md", ".claude/*.md", ".claude/**/*.md")
 
+# Files that are governed BY DECLARATION, not by whether they currently carry markers.
+# Without this, deleting every marker from CLAUDE.md would drop it out of the denominator
+# and report a vacuous 0/0 = 100% -- the metric would go blind exactly when the boundary
+# disappeared, which is the one failure it exists to catch.
+_REQUIRED_GOVERNED = ("CLAUDE.md",)
+
+_HUB_LABEL = "[HUB - methodology]"
+_REPO_LABEL = "[REPO - local]"
 _HUB_HEADER = (
-    "> **[HUB - methodology]** region `{id}` - single-sourced from the hub; "
+    "> **" + _HUB_LABEL + "** region `{id}` - single-sourced from the hub; "
     "do not edit these lines here."
 )
-_REPO_HEADER = (
-    "> **[REPO - local]** region `{id}` - this repo owns these lines."
-)
+_REPO_HEADER = "> **" + _REPO_LABEL + "** region `{id}` - this repo owns these lines."
 
-# Recognises a line this module previously emitted, so regeneration can strip it. Kept
-# deliberately narrow (the exact rendered shape) so hand-written prose is never eaten.
-_GENERATED_PREFIXES = ("> **[HUB - methodology]** region ", "> **[REPO - local]** region ")
+# Full-line grammar of a line THIS module emits. Anchored and complete -- not a prefix
+# test -- so a lookalike or a hand-altered header is never silently accepted as current,
+# and prose quoting the format is not matched by accident.
+_GENERATED_RE = re.compile(
+    r"^> \*\*\[(?:HUB - methodology|REPO - local)\]\*\* region `[a-z0-9-]+` - .*$"
+)
+_FENCE_RE = re.compile(r"^\s*(?:```|~~~)")
 
 
 def is_generated_header(line: str) -> bool:
-    """True if `line` is a header this module emitted (and may therefore strip)."""
-    return line.startswith(_GENERATED_PREFIXES)
+    """True if `line` matches the exact grammar this module emits.
+
+    NOTE: matching the grammar is necessary but NOT sufficient for removal -- see
+    `_strip_generated`, which additionally requires the line to be marker-adjacent.
+    """
+    return bool(_GENERATED_RE.match(line.rstrip("\r\n")))
 
 
 def header_for(region_id: str, owner: str) -> str:
@@ -76,38 +103,89 @@ def header_for(region_id: str, owner: str) -> str:
     return template.format(id=region_id)
 
 
-def apply_headers(text: str) -> str:
-    """Return `text` with exactly one generated header before each `methodology:start`.
+def _split_keepends(text: str) -> list[str]:
+    """Lines WITH their terminators, so CRLF/LF is carried through untouched."""
+    return text.splitlines(keepends=True)
 
-    Strips previously generated headers first, so the transform is idempotent:
-    ``apply_headers(apply_headers(t)) == apply_headers(t)``.
+
+def _marker_flags(lines: list[str]) -> list[bool]:
+    """Per line: is this a REAL marker line (i.e. not inside a fenced code block)?
+
+    A fenced example is documentation, not a boundary declaration. Treating it as one
+    would emit a header into a code block and, worse, count it in coverage.
     """
-    kept = [ln for ln in text.splitlines() if not is_generated_header(ln)]
+    flags: list[bool] = []
+    in_fence = False
+    for raw in lines:
+        line = raw.rstrip("\r\n")
+        if _FENCE_RE.match(line):
+            in_fence = not in_fence
+            flags.append(False)
+            continue
+        s = line.strip()
+        flags.append(not in_fence and bool(_START_RE.match(s) or _END_RE.match(s)))
+    return flags
+
+
+def _start_match(raw: str):
+    return _START_RE.match(raw.rstrip("\r\n").strip())
+
+
+def _strip_generated(lines: list[str], is_marker: list[bool]) -> list[str]:
+    """Drop generated headers that sit immediately before a real start marker.
+
+    Marker-adjacency is the safety property: a line matching the grammar but NOT followed
+    by a region opener is authored prose (an example, a history entry) and is preserved.
+    """
     out: list[str] = []
-    for line in kept:
-        ms = _START_RE.match(line.strip())
-        if ms:
-            out.append(header_for(ms.group(1), ms.group(2)))
-        out.append(line)
-    trailing = "\n" if text.endswith("\n") else ""
-    return "\n".join(out) + trailing
+    for i, raw in enumerate(lines):
+        if is_generated_header(raw):
+            nxt = i + 1
+            if nxt < len(lines) and is_marker[nxt] and _start_match(lines[nxt]):
+                continue  # ours: regenerate it
+        out.append(raw)
+    return out
+
+
+def apply_headers(text: str) -> str:
+    """Return `text` with exactly one generated header before each real start marker.
+
+    Idempotent: ``apply_headers(apply_headers(t)) == apply_headers(t)``.
+    Line terminators are preserved exactly.
+    """
+    lines = _split_keepends(text)
+    kept = _strip_generated(lines, _marker_flags(lines))
+    kept_flags = _marker_flags(kept)
+
+    # Terminator to use for an inserted line: match the line it precedes.
+    out: list[str] = []
+    for i, raw in enumerate(kept):
+        if kept_flags[i]:
+            ms = _start_match(raw)
+            if ms:
+                term = "\r\n" if raw.endswith("\r\n") else ("\n" if raw.endswith("\n") else "")
+                out.append(header_for(ms.group(1), ms.group(2)) + term)
+        out.append(raw)
+    return "".join(out)
 
 
 def has_markers(text: str) -> bool:
-    """True if `text` carries at least one well-formed marker line."""
-    return any(_START_RE.match(ln.strip()) or _END_RE.match(ln.strip())
-               for ln in text.splitlines())
+    """True if `text` carries at least one real (non-fenced) marker line."""
+    return any(_marker_flags(_split_keepends(text)))
 
 
 def is_fully_headed(text: str) -> bool:
-    """True if every `methodology:start` in `text` is immediately preceded by its header."""
-    lines = text.splitlines()
-    for i, line in enumerate(lines):
-        ms = _START_RE.match(line.strip())
+    """True if every real start marker is immediately preceded by its exact header."""
+    lines = _split_keepends(text)
+    flags = _marker_flags(lines)
+    for i, raw in enumerate(lines):
+        if not flags[i]:
+            continue
+        ms = _start_match(raw)
         if not ms:
             continue
         want = header_for(ms.group(1), ms.group(2))
-        if i == 0 or lines[i - 1] != want:
+        if i == 0 or lines[i - 1].rstrip("\r\n") != want:
             return False
     return True
 
@@ -119,7 +197,8 @@ class FileReport:
     regions: int
     headed: bool
     drifted: bool
-    warnings: list[str]
+    warnings: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
 
 def _tracked_files(repo_root: Path) -> list[str]:
@@ -129,46 +208,78 @@ def _tracked_files(repo_root: Path) -> list[str]:
     return [ln for ln in proc.stdout.splitlines() if ln]
 
 
-def discover_governed(repo_root: Path = _REPO_ROOT) -> list[Path]:
-    """Governed files = tracked files under `_GOVERNED_GLOBS` that carry >=1 marker.
+def discover_governed(repo_root: Path = _REPO_ROOT) -> tuple[list[Path], list[str]]:
+    """(governed files, errors).
 
-    Discovery, not a hardcoded list -- a newly marked config file is picked up
-    automatically, which is what lets the coverage check fail on an unheadered file.
+    Governed = every `_REQUIRED_GOVERNED` file (unconditionally) plus any tracked file
+    under `_GOVERNED_GLOBS` that carries >=1 real marker. An unreadable candidate is an
+    ERROR, never a silent skip.
     """
     found: list[Path] = []
+    errors: list[str] = []
     for rel in _tracked_files(repo_root):
         if not any(fnmatch(rel, g) for g in _GOVERNED_GLOBS):
             continue
         path = repo_root / rel
         try:
             text = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+        except (OSError, UnicodeDecodeError) as exc:
+            errors.append(f"{rel}: unreadable governed candidate ({exc.__class__.__name__})")
             continue
-        if has_markers(text):
+        if rel in _REQUIRED_GOVERNED or has_markers(text):
             found.append(path)
-    return sorted(found)
+
+    present = {p.relative_to(repo_root).as_posix() for p in found}
+    for rel in _REQUIRED_GOVERNED:
+        if rel not in present:
+            errors.append(f"{rel}: required governed file missing from the tracked tree")
+    return sorted(found), errors
 
 
-def inspect(repo_root: Path = _REPO_ROOT) -> list[FileReport]:
-    """Report per governed file: region count, headed?, would-regeneration-change-it?"""
+def inspect(repo_root: Path = _REPO_ROOT) -> tuple[list[FileReport], list[str]]:
+    """Per governed file: region count, headed?, would-regeneration-change-it?"""
+    paths, errors = discover_governed(repo_root)
     reports: list[FileReport] = []
-    for path in discover_governed(repo_root):
+    for path in paths:
+        rel = path.relative_to(repo_root).as_posix()
         text = path.read_text(encoding="utf-8")
         regions, warnings = parse_regions(text)
+        errs: list[str] = []
+        if rel in _REQUIRED_GOVERNED and not regions:
+            errs.append(f"{rel}: required governed file carries NO markers "
+                        f"-- the boundary has gone invisible")
         reports.append(FileReport(
-            path=path,
-            rel=path.relative_to(repo_root).as_posix(),
-            regions=len(regions),
+            path=path, rel=rel, regions=len(regions),
             headed=is_fully_headed(text),
             drifted=apply_headers(text) != text,
-            warnings=warnings,
+            warnings=warnings, errors=errs,
         ))
-    return reports
+    return reports, errors
+
+
+def _report_problems(reports: list[FileReport], errors: list[str]) -> bool:
+    """Print every error/warning. True if anything disqualifying was found."""
+    bad = False
+    for err in errors:
+        print(f"[ERROR] {err}")
+        bad = True
+    for rep in reports:
+        for err in rep.errors:
+            print(f"[ERROR] {err}")
+            bad = True
+        for w in rep.warnings:
+            print(f"[ERROR] {rep.rel}: marker parse warning -- {w}")
+            bad = True
+    return bad
 
 
 def cmd_write(repo_root: Path) -> int:
+    reports, errors = inspect(repo_root)
+    if _report_problems(reports, errors):
+        print("[FAIL] refusing to write into a file whose markers do not parse cleanly")
+        return 1
     changed = 0
-    for rep in inspect(repo_root):
+    for rep in reports:
         text = rep.path.read_text(encoding="utf-8")
         new = apply_headers(text)
         if new != text:
@@ -182,14 +293,14 @@ def cmd_write(repo_root: Path) -> int:
 
 
 def cmd_check(repo_root: Path) -> int:
-    drifted = [r for r in inspect(repo_root) if r.drifted]
-    for rep in inspect(repo_root):
-        for w in rep.warnings:
-            print(f"[warn]  {rep.rel}: {w}")
-    if drifted:
-        for rep in drifted:
+    reports, errors = inspect(repo_root)
+    bad = _report_problems(reports, errors)
+    for rep in reports:
+        if rep.drifted:
             print(f"[FAIL]  {rep.rel}: headers stale vs markers "
                   f"-- run `python scripts/boundary_headers.py --write`")
+            bad = True
+    if bad:
         return 1
     print("boundary-headers: all generated headers match their markers")
     return 0
@@ -197,19 +308,23 @@ def cmd_check(repo_root: Path) -> int:
 
 def cmd_coverage(repo_root: Path) -> int:
     """Coverage = governed files carrying reader-visible headers / total governed files."""
-    reports = inspect(repo_root)
+    reports, errors = inspect(repo_root)
+    bad = _report_problems(reports, errors)
     total = len(reports)
     headed = sum(1 for r in reports if r.headed)
     for rep in reports:
         mark = "OK  " if rep.headed else "MISS"
         print(f"[{mark}] {rep.rel}: {rep.regions} region(s)")
-    pct = 100.0 if total == 0 else 100.0 * headed / total
+    if total == 0:
+        print("[FAIL] no governed files discovered -- coverage would be vacuous")
+        return 1
+    pct = 100.0 * headed / total
     print(f"boundary-header coverage: {headed}/{total} governed files headed ({pct:.0f}%)")
     if headed != total:
         print("[FAIL] unheaded governed file(s) -- run "
               "`python scripts/boundary_headers.py --write`")
         return 1
-    return 0
+    return 1 if bad else 0
 
 
 def main(argv: list[str] | None = None) -> int:
