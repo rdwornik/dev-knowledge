@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-19 — CC (Opus 4.8, 1M): ai-council cross-repo ARCHITECT handoff bundle — probes re-bound to the target
+
+**Did:** Generated a v5 §13 **architect**-mode handoff for **ai-council** (cross-repo, ADR-36/41 — hosted in the hub, derived READ-ONLY from the ai-council checkout; the target repo was never written to). Ran `gen_handoff.py --mode architect --repo ai-council`, then **re-authored the bundle rather than shipping it as generated**: the generator emits probes bound to hub surfaces (`ALL_CHECKS`, `audit.py ship-gate`, `ecosystem/doc-counts.md`, the disposition register) that ai-council carries **none** of, so the as-generated bundle would have failed every teeth anchor by construction. P1–P7 re-bound to the target's own surfaces (`VISION.md ## Vision` / `ARCHITECTURE.md ## Purpose [CORE]` orientation, live git, `scripts/validate_backlog.py`, the #69/#71 ready-slack exact-line read, `.git/hooks` armed-state, `scripts/check.ps1`, whole-open-BACKLOG grooming). Derived the residual from the ai-council JOURNAL/BACKLOG window (2026-07-18 → 2026-07-19).
+
+**Result:** commit **`d6ba033`** on `docs/ai-council-architect-handoff` — 5-file bundle `docs/handoffs/2026-07-19-ai-council-architect/` (+692 lines), `SUPPLEMENT.md` committed **empty** (cold handoff — the assembler `[skip]`d the fold, so the incoming §13(d) beat fires FULL). **`verify_handoff_probes`: 8/8 pass** against `repo_root=ai-council`, `cross_repo=True`. Residual headline: the *"codex credits exhausted until 2026-07-23"* premise was **empirically falsified** in the target's window (a class of review debt had been date-gated on an unprobed assumption), and **#44 closed via its "(or fixes filed)" clause rather than on clean surfaces** — surfaced as a decision for the operator, not inherited silently.
+
+**Changes:** `docs/handoffs/2026-07-19-ai-council-architect/` (new bundle), `JOURNAL.md` (this entry). No protocol, BACKLOG, ADR, or consumer-repo edits.
+
+**Caught pre-commit (worth carrying):** (1) A pointer asserted from precedent — `docs/intake/2026-07-16-plan-of-record.md` — was **verified and found ARCHIVED**; prior ai-council bundles cite it and the seam-contract intake at live paths. The residual now carries the correction rather than propagating a stale navigation pointer. (2) The bare `verify_handoff_probes.py` **CLI has no cross-repo flag** — it gives false FAILs on target-only paths and false PASSes on shared basenames; the API must be called with `repo_root`/`cross_repo`. `audit.py check_handoff_probes` handles it correctly but reads the target from the `HANDOFF_BOOT.md` **`Target repo` header row**, making that row load-bearing; from a linked worktree it degrades to a **non-gating WARN** (no sibling target dir) and resolves only from the primary checkout.
+
+**Gate note:** commit needed `SKIP=audit-health` — commit-context `fleet_parity` mis-resolved this hub worktree as a consumer (false MUST-absent on corp-monorepo). Verified clean out-of-band **before** skipping: `audit.py health` = OK (blocking verdicts 0) and `pre-commit run audit-health --all-files` = Passed. Surgical skip, recorded in the commit message — not `--no-verify`.
+
+**Abandoned:** none. **Next (operator-gated):** merge `docs/ai-council-architect-handoff` → main `--no-ff`; optionally fill `SUPPLEMENT.md` from the outgoing architect chat and re-assemble.
+
+---
+
 ### 2026-07-19 — CC (Opus 4.8, 1M): branch consolidation — night-audit + corp-E5 merged to main, merged branches retired
 
 **Did:** Operator-directed branch/worktree sweep. Surveyed 7 local branches + 1 linked worktree against `main` (`6077c428`). Classified: 5 fully-merged (0 ahead), 2 genuinely unmerged, 1 orphan. Surfaced the two non-obvious cases for ruling rather than merging on assumption — (a) `docs/corp-e5-registry-developer-handoff`, whose own commit message carried a standing 2026-07-18 quarantine ruling ("NOT merged — held for the corp-E5 channel's disposition"), and (b) `automation/fleet-audit`, proven an **orphan branch — no common ancestor with main** (107 machine-written nightly `chore(routine/fleet-audit)` baselines; tree is only `docs/` + `ecosystem/`). **Operator ruled:** merge the corp-E5 bundle (superseding the 2026-07-18 quarantine); leave the orphan automation channel alone. Merging the night-audit branch likewise supersedes the prior entry's "this audit branch stays UNMERGED (no merge per mandate)".
