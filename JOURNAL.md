@@ -19,6 +19,28 @@
 
 ---
 
+### 2026-07-20 — CC (Opus 4.8, 1M): supplement pain-map + guardrails added; the third instructed fix was a NO-OP and was reported, not fabricated
+
+**Did:** Three instructed patches to the merged bundle's `SUPPLEMENT.md` + its `PASTE_THIS` fold. **Two were real and landed. The third was already done — the reported defect did not exist.**
+
+**Result:** **`5b3b7c70`** — 2 files, 52 insertions. Probes **11/11**. Ship-gate **15 WARN / 14 dispositioned**, no `[stale]`, unchanged; the lone undispositioned WARN is still the VISION freshness rollover (`[#368]`) — enumerated, not forced.
+
+**FIX 1 WAS A NO-OP.** The lane reported two assembler-mangled strings needing verbatim restoration. **Both were already correct, in both files, before this commit:** `naming YYYY-MM-DD-<class>-<slug>` and `move the file to <folder>/archive/` were present verbatim in `SUPPLEMENT.md` *and* `PASTE_THIS.md`, and **neither mangled form (`YYYY-MM-DD--`, `/archive/`) existed anywhere in the bundle.** Asserted programmatically in both directions before touching anything. **The assembler did not eat them.**
+
+**What the operator actually saw is a RENDER-layer artifact, and it is a real risk with a wrong fix.** `<class>`, `<slug>` and `<folder>` are swallowed as HTML tags by a markdown renderer — so the tokens are correct **on disk** but will read lossy **when pasted into a browser chat**, which is this artifact's entire purpose. The obvious remedy (wrap them in backticks) would edit the **operator-authored answers region**, which is under the standing verbatim-transcription rule. So the fix is an operator call, not mine: **left byte-unchanged, flagged for a ruling.** Restoring text that was never damaged would have been fabricated work reported as a fix.
+
+**FIX 2 — PAIN → BUILD MAP** added to STRATEGIC INTENT: one operator-pain line per wave W1–W7. This is the *why he cares*, which `[E8]` carries only implicitly. Deliberately **not** a re-narration of `[E8]`'s build detail — the supplement points at the theme rather than duplicating it, so the two cannot drift apart.
+
+**FIX 3 — BINDING / DO-NOT-REDO** appended as explicit lists. These constraints already existed but were **scattered through sections 2–6 as prose**, where a successor scanning for guardrails could miss them. Now enumerated: the 320/176 baseline, the ledger schema, the two-condition declaration test, `.vscode` as shared fleet config, hub-read-only + handoff-sole-writable, Pyrefly universal, archive-precedes-lifecycle, and *all* rules rather than a slice.
+
+**Re-verified after the fold, not assumed:** both angle-bracket tokens still intact in `PASTE_THIS`, all seven wave lines present, both guardrail blocks present, and `AUDITS ARE OVER` / `collect R1-R8` still **absent**.
+
+**Changes:** `docs/handoffs/2026-07-20-dev-knowledge-architect/{SUPPLEMENT,PASTE_THIS}.md`, `JOURNAL.md`.
+
+**Abandoned / not done:** (1) **FIX 1 not applied** — nothing to fix; the render-layer risk is flagged for a ruling instead. (2) No BACKLOG structural-marker change — closes no tracked task.
+
+**Next:** operator rules on whether the `<…>` tokens should be backticked to survive the browser render layer (it would break byte-verbatim on his own answers — his call). The two older open items stand: the same-era handoff-archiving convention, and the lexical-max coupling that has `check_handoff_probes` validating the arc5 bundle rather than the live one.
+
 ### 2026-07-20 — CC (Opus 4.8, 1M): hub handoff supplement filled + folded; the arc5 bundle NOT archived (no convention for a same-era bundle)
 
 **Did:** Wrote this session's architect answers into the OUTBOUND bundle `2026-07-20-dev-knowledge-architect`, folded them into `PASTE_THIS`, and adjudicated whether yesterday's consumed INBOUND arc5 bundle should be archived.
