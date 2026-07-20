@@ -1514,17 +1514,166 @@ def _bundle_target_repo(bundle_dir: Path) -> str | None:
     return None
 
 
+# Repo-location env vars git inherits from a hook/pre-commit parent; GIT_DIR overrides both
+# `cwd=` and `-C`. Mirrors _GIT_LOCATION_ENV in scripts/fleet_parity.py ([#355]) and is
+# deliberately DUPLICATED rather than imported: audit.py imports fleet_parity LAZILY (inside
+# check_fleet_parity, for dual script/package mode), and bundle selection must not acquire a
+# dependency on that import path. Scrubbed by NAME, never a `startswith("GIT_")` strip -- a
+# blanket strip would also drop GIT_CONFIG_GLOBAL / GIT_AUTHOR_* / GIT_SSH_COMMAND.
+#
+# Applied ONLY inside _select_active_bundle's runner. Deliberately NOT applied to the
+# fleet-automation commit path further down, which sets GIT_INDEX_FILE ON PURPOSE via its own
+# explicit env= dict -- routing that through this scrub would silently break it.
+# DERIVED from `git rev-parse --local-env-vars` (git's own canonical repo-local list, and its
+# documented advice for hooks touching a foreign repo), unioned with repo-SCOPING vars git
+# does not class as local-env. Deriving removes the rot mode: the first hand-written version
+# of this list omitted 8 of git's 15, caught in review. _FALLBACK applies only if git is absent.
+_GIT_LOCATION_ENV_EXTRA = ("GIT_CEILING_DIRECTORIES", "GIT_NAMESPACE")
+_GIT_LOCATION_ENV_FALLBACK = (
+    "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
+    "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX",
+    "GIT_CONFIG", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS", "GIT_GRAFT_FILE",
+    "GIT_IMPLICIT_WORK_TREE", "GIT_NO_REPLACE_OBJECTS", "GIT_REPLACE_REF_BASE",
+    "GIT_SHALLOW_FILE",
+)
+_GIT_LOCATION_ENV_CACHE: Optional[frozenset] = None
+
+
+def _git_location_env() -> frozenset:
+    """git's own repo-local env vars (+ _EXTRA). Queried once, cached; pinned fallback if
+    git is unavailable. The query itself is repo-agnostic, so it needs no scrubbing."""
+    global _GIT_LOCATION_ENV_CACHE
+    if _GIT_LOCATION_ENV_CACHE is None:
+        names: set[str] = set(_GIT_LOCATION_ENV_FALLBACK)
+        try:
+            p = subprocess.run(["git", "rev-parse", "--local-env-vars"],
+                               capture_output=True, text=True, encoding="utf-8",
+                               errors="replace")
+            if p.returncode == 0:
+                names |= {ln.strip() for ln in p.stdout.split() if ln.strip()}
+        except OSError:
+            pass
+        _GIT_LOCATION_ENV_CACHE = frozenset(names | set(_GIT_LOCATION_ENV_EXTRA))
+    return _GIT_LOCATION_ENV_CACHE
+
+
+def _select_active_bundle(
+    repo_path: Path, candidates: list[Path]
+) -> tuple[Optional[Path], str, str]:
+    """Pick the ACTIVE handoff bundle from `candidates` by GIT ADD DATE, not slug order.
+
+    Returns ``(bundle, kind, detail)`` where kind is one of:
+      "sole"      -- exactly one candidate; no git needed
+      "fresh"     -- exactly one candidate with no add-commit (untracked OR staged): the
+                     bundle being generated right now, so it outranks every tracked one
+      "add-date"  -- newest first-add commit among the tracked candidates
+      "no-git"    -- not a git repo / unborn HEAD -> lexical-max fallback (legacy heuristic;
+                     a bundle is still returned, so the check stays useful)
+      "ambiguous" -- >=2 candidates are fresh; `bundle` is None. NEVER silently pick one:
+                     a silent pick between two uncommitted bundles is the same "green about
+                     the wrong file" class this selector exists to kill.
+      "degraded"  -- git present but a probe errored; `bundle` is None -> caller WARNs.
+
+    WHY not lexical (the defect this replaces): "2026-07-20-dev-knowledge-architect-arc5"
+    sorts AFTER "2026-07-20-dev-knowledge-architect" because "-arc5" > "", yet arc5 was
+    git-added 2026-07-19 and the plain slug 2026-07-20 -- so the gate validated a stale
+    bundle and reported green about the wrong file while the active bundle went unchecked.
+    mtime is not usable as a tiebreak: a git worktree checkout re-stamps every file.
+
+    Read-only; fail-soft. EVERY git call here runs through the scrubbed env -- an inherited
+    GIT_DIR would resolve the guard below to the WRONG toplevel and silently degrade
+    selection to the lexical fallback, reintroducing the exact bug ([#355] recursion).
+    """
+    lexical = max(candidates, key=lambda d: d.name)
+    if len(candidates) == 1:
+        return candidates[0], "sole", candidates[0].name
+
+    scrub = _git_location_env()
+    env = {k: v for k, v in os.environ.items() if k not in scrub}
+
+    def _run(args: list[str]) -> Optional[str]:
+        try:
+            p = subprocess.run(["git", "-C", str(repo_path), *args], capture_output=True,
+                               text=True, encoding="utf-8", errors="replace", env=env)
+        except OSError:
+            return None
+        return p.stdout if p.returncode == 0 else None
+
+    # Guard: an empty `--diff-filter=A` means "never added" ONLY inside a real repo whose
+    # root IS repo_path. Without this, a temp dir nested under some ancestor repo reports
+    # every bundle as fresh -> a bogus ambiguous FAIL.
+    #
+    # The three failure shapes below are deliberately NOT collapsed into one lexical
+    # fallback. Collapsing them is how the stale-bundle false green returns: a git
+    # misconfiguration would silently restore exactly the behaviour this selector replaces.
+    # Only a confirmed NON-git tree earns the legacy heuristic; everything else degrades
+    # loudly.
+    top = _run(["rev-parse", "--show-toplevel"])
+    if not top or not top.strip():
+        # Not a git repo (or git absent). The legacy lexical heuristic is the honest
+        # degradation here -- a non-git consumer still gets its bundle validated.
+        return lexical, "no-git", lexical.name
+    try:
+        same = (os.path.normcase(str(Path(top.strip()).resolve()))
+                == os.path.normcase(str(Path(repo_path).resolve())))
+    except OSError:
+        same = False
+    if not same:
+        # repo_path is nested inside a DIFFERENT repo, so add-dates would be read from the
+        # wrong history. Never fall back silently -- surface it.
+        return None, "degraded", (f"git toplevel {top.strip()} is not {repo_path} "
+                                  "(nested repo?) — cannot trust add-dates")
+    if _run(["rev-parse", "--verify", "HEAD"]) is None:
+        # Unborn HEAD in a real repo: nothing is committed, so EVERY candidate is
+        # genuinely fresh. Fall into the ambiguity rule rather than picking lexically --
+        # otherwise a fresh repo with two bundles silently gets the wrong one.
+        return None, "ambiguous", ", ".join(sorted(d.name for d in candidates))
+
+    fresh: list[Path] = []
+    dated: list[tuple[int, str, Path]] = []
+    for d in candidates:
+        # No `-1`: git applies -1 BEFORE --reverse, which would yield the NEWEST commit.
+        # %at (author unix seconds) not %aI: an integer cannot misorder across timezone
+        # offsets, and author-date survives a rebase that rewrites committer dates.
+        out = _run(["log", "--diff-filter=A", "--reverse", "--format=%at",
+                    "--", f"docs/handoffs/{d.name}"])
+        if out is None:
+            return None, "degraded", f"git log failed for {d.name}"
+        lines = [ln.strip() for ln in out.splitlines() if ln.strip()]
+        if not lines:
+            fresh.append(d)          # untracked, or staged-but-never-committed
+            continue
+        try:
+            dated.append((int(lines[0]), d.name, d))
+        except ValueError:
+            return None, "degraded", f"unparseable add-date for {d.name}"
+
+    if len(fresh) > 1:
+        return None, "ambiguous", ", ".join(sorted(d.name for d in fresh))
+    if len(fresh) == 1:
+        return fresh[0], "fresh", fresh[0].name
+    if not dated:
+        return lexical, "no-git", lexical.name
+    dated.sort(key=lambda t: (t[0], t[1]))   # add-date, then slug as a stable tiebreak
+    return dated[-1][2], "add-date", dated[-1][1]
+
+
 # rule: handoff-probes-bind
 def check_handoff_probes(repo_path: Path) -> list[Finding]:
     """#163 handoff-probe teeth: every probe in the LATEST v5 PROBES.md bundle binds
     to live state (structural, RESOLVE-ONLY — Critical Rule #4 "Layer 2 never executes",
     zero false positives). Mechanizes the manual v5 probe-gate (HANDOFF_PROCESS §5/§10).
 
-    Bundle-presence-based: validates the lexically-max docs/handoffs/<slug>/PROBES.md
-    (excluding aborted/in-progress/archive); a repo with no such bundle is a no-op pass,
-    so this no-ops on the fleet's child repos. Only the ACTIVE (latest) handoff is
-    checked — older bundles are immutable historical artifacts whose source anchors
-    legitimately drift, so re-validating them against current state would mis-flag.
+    Bundle-presence-based: validates the ACTIVE docs/handoffs/<slug>/PROBES.md (excluding
+    aborted/in-progress/archive); a repo with no such bundle is a no-op pass, so this
+    no-ops on the fleet's child repos. Only the ACTIVE handoff is checked — older bundles
+    are immutable historical artifacts whose source anchors legitimately drift, so
+    re-validating them against current state would mis-flag.
+
+    "Active" is decided by _select_active_bundle: an uncommitted bundle (the one being
+    generated now), else the newest by GIT ADD DATE — never slug order, which picked a
+    stale "<date>-<slug>-arc5" over the newer "<date>-<slug>" ([#372]). Two uncommitted
+    bundles is ambiguous → FAIL, never a silent pick.
 
     FAIL-class (gating, unlike the WARN-only doc_claims): a malformed row or a missing
     source/command-target FAILs -> Finding "fail" -> the audit-health + ship-gate block
@@ -1537,16 +1686,26 @@ def check_handoff_probes(repo_path: Path) -> list[Finding]:
     if not handoffs.exists():
         return [Finding("handoff_probes", "pass",
                         "no docs/handoffs/ — no probe bundle to validate")]
-    bundles = sorted(
+    candidates = sorted(
         (d for d in handoffs.iterdir()
          if d.is_dir() and d.name not in _BUNDLE_EXCLUDE_DIRS
          and (d / "PROBES.md").exists()),
         key=lambda d: d.name,
     )
-    if not bundles:
+    if not candidates:
         return [Finding("handoff_probes", "pass",
                         "no v5 PROBES.md bundle to validate")]
-    latest = bundles[-1]
+    latest, kind, detail = _select_active_bundle(Path(repo_path), candidates)
+    if kind == "ambiguous":
+        return [Finding("handoff_probes", "fail",
+                        f"ambiguous active handoff bundle: {detail} are all uncommitted "
+                        "— commit or remove all but one. Refusing to guess which bundle "
+                        "the gate validates (a silent pick is a green about the wrong "
+                        "file)".replace("|", "/"))]
+    if latest is None:
+        return [Finding("handoff_probes", "warn",
+                        f"bundle selection degraded (read-only, non-blocking): {detail}"
+                        .replace("|", "/"))]
     # Cross-repo bundle (ADR-36/41): a handoff whose declared target repo differs from this
     # one. Its probes bind to the TARGET repo's files, so resolve against the target root,
     # not the hub — resolving foreign paths against the hub gives both false FAILs (a target

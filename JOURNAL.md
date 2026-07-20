@@ -19,6 +19,28 @@
 
 ---
 
+### 2026-07-20 — CC (Opus 4.8, 1M): two lying enforcement organs fixed — neither defect was what the intent said it was
+
+**Did:** Fixed `fleet_parity` (#355) and `check_handoff_probes` bundle selection (new **[#372]**), serial, one commit per leg, on `worktree-gate-fixes`. **Both diagnoses in the intent were wrong, and acting on either would have made things worse.** Recon gap answered first as instructed: separate files (`scripts/fleet_parity.py`, `scripts/audit.py`).
+
+**Result:** `7a9ddc6d`, `36ca03f0`, `b0443523`, `95ef6d26`, `40c7bce3` — **1661 passed / 8 skipped**, ruff clean, tree clean. Every commit through the full gate set **with no `SKIP=audit-health`** — the bypass #355 had trained is no longer needed, which is the point.
+
+**#355 IS NOT A POLARITY BUG.** The verdict engine is correct and was already locked by a *passing* test (`test_inverse_rule_and_hub_as_member`). The defect: `_git()` passed `cwd=` but no `env=`, and an inherited `GIT_DIR` overrides `cwd=` **and** `-C`. Under pre-commit, every `collect_facts` probe of a consumer read the **hub's** index while labelling the facts with the consumer's `repo_id`. Proven by execution: `cwd=corp + GIT_DIR=hub` returns byte-identically to the hub's own facts (`INSTALL.md` absent, `docs/handoffs/` 587) — both #355 symptoms. **The instructed sign-flip would have inverted a working engine and left the real defect in place.** Prove-by-violation on the live walk: pre-fix corp MUST-absent **2** (`install-md`, `docs-handoffs-dir`), post-fix **0**.
+
+**[#372] — the gate was green about a file it was not reading, and staler than reported.** `sorted(dirs, key=name)[-1]` picked `…-architect-arc5` (git-added **07-19 14:42**) over **three** newer bundles — not "yesterday's bundle" but one 4 bundles and 2 days stale. `-arc5` sorts last only because `"-arc5" > ""`. **The intent's "newest-by-mtime" was unusable:** a worktree checkout re-stamps every file (all `20:22:0x` here), so git add-date is the only truth. Operator ruled the tie-break: uncommitted bundle wins; **two** uncommitted is ambiguous → FAIL, never a silent pick.
+
+**The fix was vulnerable to the bug it follows — operator caught this pre-merge, not me.** `audit.py` imports `fleet_parity` lazily, so the #355 scrub never reached the selector's own git calls. Closed with a per-call scrub + a test that instruments `subprocess.run` and asserts the env of **each** invocation, so the "every git call is scrubbed" claim is test-enforced rather than review-enforced.
+
+**Codex returned 4 HIGH findings and all 4 were real** — the pre-merge review earned its keep. (1) The hand-written scrub set covered **7 of git's 15** repo-local vars; fixed at the class by deriving from `git rev-parse --local-env-vars` rather than patching the omission. (2) **The lexical fallback silently swallowed three different failures** — an unborn repo with two uncommitted bundles bypassed the ambiguity refusal in exactly the case it exists for, and any git misconfiguration silently restored the stale-bundle green. (3) **Test fixtures never asserted git return codes** — a failed second commit would leave its bundle "fresh" and the selection tests would pass for entirely the wrong reason. (4) The scrub test locked the outcome, not the invariant. Findings 2–4 are the *same class this session exists to kill*. Teeth verified for every remediation test by restoring the old logic at runtime. Codex also **refused to review a dirty tree**, correctly citing the session-start protocol.
+
+**Changes:** `scripts/{fleet_parity,audit}.py`, `tests/{test_fleet_parity,test_verify_handoff_probes}.py`, `BACKLOG.md` (**[#372]** filed), `docs/audits/2026-07-20-codex-leg{1,2}-*.md` + regenerated index, `JOURNAL.md`.
+
+**Abandoned / not done:** (1) **Not merged** — `/ship` refuses in a worktree; integration to `main` is the primary session's. (2) The `GIT_DIR`-beats-`cwd` gotcha **not** written to `~/.claude/skills/gotchas/` — global infra is exception-with-ruling (core-invariant #6); saved to project memory pending a call. (3) `#355`/`#372` left OPEN — closure is the Tier-1 `/review-closures` path, not a self-declared verdict.
+
+**Watch:** in *this worktree* `handoff_probes` now WARNs, because the correctly-selected newest bundle (`2026-07-20-ai-council-architect`, added 17:17) is cross-repo and `ai-council` is not a sibling of `worktrees/`. Against the primary it is `pass | 11 probe(s) bind to live state`. Environmental — the known linked-worktree sibling-resolution limit, non-gating, **not** a regression to disposition.
+
+**Next:** merge from the primary; operator ruling on promoting the gotcha to `~/.claude/`. Closes the prior entry's open item — the lexical-max coupling is fixed.
+
 ### 2026-07-20 — CC (Opus 4.8, 1M): [#352] (f) render diagnostic — witness target was WRONG; the real defect is a never-built consumer write-through
 
 **Did:** Diagnosed why the reader-visible ownership boundary does not render, in a `render-diagnostic` worktree. Phase A four-node fork test (extension / markers / open-mode / regex), then an operator-caught correction of the witness target, then the artifact + two tickets.

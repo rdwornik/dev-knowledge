@@ -1244,3 +1244,71 @@ def test_cli_main_emits_surface_line_after_walk_extract():
     assert proc.returncode == 0, proc.stderr
     assert any(ln.startswith("[fleet-parity] ") and "repo(s) walked" in ln
                for ln in proc.stdout.splitlines())
+
+
+# ---------------------------------------------------------------------------
+# [#355] Commit-context repo resolution: GIT_DIR must never override cwd.
+# ---------------------------------------------------------------------------
+
+
+def test_collect_facts_ignores_inherited_git_dir(tmp_path, monkeypatch):
+    """[#355] Under pre-commit, git exports GIT_DIR (+ GIT_INDEX_FILE) for the HUB, and
+    GIT_DIR OVERRIDES the ``cwd=`` we pass (it beats ``-C`` too). Every probe in
+    collect_facts would then read the HUB's index while labelling the facts with the
+    CONSUMER's repo_id -- the exact inversion in #355: corp-monorepo reported as lacking
+    INSTALL.md (it has one) and carrying docs/handoffs/ (it has none), both being the hub's
+    own facts. Drives the REAL probe seam (collect_facts -> _git); the _run() helper above
+    hand-builds RepoTarget and never stresses it, which is why the bug survived.
+
+    Two-sided on purpose: asserting only "consumer file present" would still pass if facts
+    were a union, and asserting only "other file absent" would pass on an empty snapshot.
+    """
+    # Both repos MUST be built before the monkeypatch -- this module's own _git helper is
+    # unscrubbed, so an inherited GIT_DIR would break the fixture construction itself.
+    consumer = _init_repo(tmp_path / "consumer", {"CONSUMER_ONLY.md": "c\n"})
+    other = _init_repo(tmp_path / "other", {"OTHER_ONLY.md": "o\n"})
+
+    # Exactly what pre-commit leaks into the hook environment.
+    monkeypatch.setenv("GIT_DIR", str(other / ".git"))
+    monkeypatch.setenv("GIT_INDEX_FILE", str(other / ".git" / "index"))
+
+    manifest = _loaded(tmp_path, {"consumer-r": {"role": "consumer"}}, [])
+    manifest.pop("_refusals", None)
+    target = fp.RepoTarget("consumer-r", "consumer", consumer, "")
+    facts = fp.collect_facts(target, manifest, _EMPTY_BASELINE, consumer,
+                             tmp_path / "nonexistent-registry.yaml")
+
+    assert facts["git_error"] == ""
+    assert "CONSUMER_ONLY.md" in facts["top_level_tracked"]
+    assert "OTHER_ONLY.md" not in facts["top_level_tracked"]
+
+
+def test_git_location_env_covers_gits_own_local_env_var_list():
+    """Codex review [HIGH]: the first hand-written scrub tuple omitted 8 of git's 15
+    repo-local vars (GIT_CONFIG, GIT_CONFIG_PARAMETERS, GIT_GRAFT_FILE, GIT_SHALLOW_FILE,
+    GIT_IMPLICIT_WORK_TREE, GIT_NO_REPLACE_OBJECTS, GIT_REPLACE_REF_BASE, GIT_CONFIG_COUNT)
+    -- each able to redirect config/worktree/object-graph state and so re-open #355 by a
+    different door. git PUBLISHES the authoritative list, so the set is derived from it;
+    this locks that contract and would catch a regression to hand-maintenance.
+
+    Also pins the deliberate NON-scrubs: identity/transport/global-config vars a blanket
+    `startswith("GIT_")` strip would have silently eaten.
+    """
+    scrub = fp._git_location_env()
+
+    r = subprocess.run(["git", "rev-parse", "--local-env-vars"],
+                       capture_output=True, text=True, encoding="utf-8")
+    if r.returncode == 0:
+        canonical = {ln.strip() for ln in r.stdout.split() if ln.strip()}
+        assert canonical <= scrub, f"not scrubbed: {sorted(canonical - scrub)}"
+
+    # Repo-scoping vars git does not class as local-env, but which still redirect discovery.
+    assert {"GIT_CEILING_DIRECTORIES", "GIT_NAMESPACE"} <= scrub
+    # The pinned fallback must itself stay a superset-in-spirit if git ever vanishes.
+    assert set(fp._GIT_LOCATION_ENV_FALLBACK) <= scrub
+    # Deliberately PRESERVED -- scrubbing these would break identity, transport, and the
+    # config isolation that test harnesses and CI rely on.
+    for keep in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_DATE", "GIT_COMMITTER_NAME",
+                 "GIT_COMMITTER_DATE", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM",
+                 "GIT_SSH_COMMAND", "GIT_TERMINAL_PROMPT"):
+        assert keep not in scrub, f"{keep} must NOT be scrubbed"
