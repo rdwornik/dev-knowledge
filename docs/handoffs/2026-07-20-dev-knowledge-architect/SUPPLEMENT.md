@@ -43,6 +43,15 @@ way-of-working goal: treat GREEN as a claim to falsify, not a result to trust �
 The residual-completeness gate built this session is the template: it shipped only because it was
 demonstrated RED on a real unfilled bundle, not because it was registered.
 
+PAIN → BUILD MAP (why the operator cares, one line per wave; the build detail lives in [E8], not here)
+- W1 visible boundary — the colours, his single most-repeated ask across ~20 sessions (MERGED, render witness pending).
+- W2 structure — "why do the folders differ": assets/→config/, Pyrefly universal, root-vs-config rule.
+- W3 lifecycle — intake→ADR→close→DELETE: the process problem, real deletion, accretion brake.
+- W4 archive — he must SEE live vs archived; archiving coupled to status, precedes W3.
+- W5 guards — the worktree pain; hub goes read-only, handoff the sole writable surface.
+- W6 canon+prompt — inoculation legibility (shipped) + the co-change enforcement half ([#354]).
+- W7 testing+fleet — evidence gate + the fleet-state collector.
+
 2. TENSIONS WEIGHED
 - Measure-the-whole-corpus vs ship-mechanisms → ship, with a measured baseline behind it (320
   MUST-shaped rules, 176 silent = 55%, a FLOOR — docs/decisions/ unswept, #357).
@@ -100,3 +109,20 @@ convention on the operator's explicit reasoning that he must SEE live vs archive
   preferences (sort order) must NOT live in fleet-canonical config. This is a W2 boundary question.
 - NOTHING was deleted this arc and NO backlog task was closed (116→132+). The visible pain the
   operator still sees — the assets/ folder — is W2 work, granted but not executed.
+
+BINDING — do not relitigate
+- The baseline is established: 320 MUST-shaped rules, 176 silent (a FLOOR — docs/decisions/ unswept).
+- The four-state ledger schema stands.
+- The declaration test stands: on-surface AND bound to an open ticket. Neither condition suffices alone.
+- .vscode is SHARED FLEET CONFIG, hub-owned.
+- The hub is READ-ONLY to consumers; docs/handoffs/ is the sole writable surface.
+- Pyrefly is universal across the fleet — NOT a sanctioned mypy divergence.
+- Archiving is coupled to status, and the ARCHIVE wave PRECEDES the lifecycle wave.
+- The goal is ALL rules, prioritised — not a bounded slice. The goal is never lowered.
+
+DO-NOT-REDO
+- [E8] is filed as a BACKLOG theme — do not re-file it or convert it to an ADR.
+- The baseline is measured — do not re-derive it.
+- The nine seeds are adjudicated — terra killed none; W1 and W4 are the seedless waves; seeds 5 and 6
+  map to W2 and W5 by CONTENT, not by label.
+- The residual-completeness gate is built AND demonstrated RED on a real bundle — do not rebuild it.
