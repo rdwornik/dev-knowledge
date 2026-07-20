@@ -19,6 +19,30 @@
 
 ---
 
+### 2026-07-20 — CC (Opus 4.8, 1M): cross-repo architect handoff for ai-council — four stock probes re-bound, a dotfile tokenizer bug found
+
+**Did:** Generated the v5 architect handoff bundle targeting **ai-council** (cross-repo, ADR-36/41 — bundle hosted in the hub, read-only on the target). The generator has **no cross-repo mode**: `--repo` sets the display *name* only, so it emitted **hub** state throughout — hub HEAD, hub `ALL_CHECKS` (31, last `fleet_parity`), hub ship-gate, hub `validate_backlog`. The bundle as generated was pointed at the wrong repo.
+
+**Result:** merge-pending on branch `docs/ai-council-architect-handoff`, single commit **`fc6268b5`** (5 files, +996). Bundle at `docs/handoffs/2026-07-20-ai-council-architect/`.
+
+**Four stock probes would have FAILed `anchor-missing`.** ai-council carries no `scripts/audit.py`/`ALL_CHECKS`, no `validate_git_backlog.py`, no `ecosystem/doc-counts.md`, no `ecosystem/disposition-register.yaml` — so P2/P4/P6/P7 all bound to organs that do not exist there. Each was re-bound to a target surface and **every anchor verified by running it live in ai-council** before it went in the manifest. Two re-bindings came out better than the originals: **P2** now compares the pre-commit roster against `ARCHITECTURE.md`'s prose, hand-building the doc-vs-reality tooth ai-council lacks entirely (it has no `doc_claims`); **P7** reads exit codes *explicitly*, because several of its gates pass **silently** — "no output" must not be scored as "no drift". **P8** was re-bound too: it pointed at the hub bundle dir, unresolvable from the target root.
+
+**The `Target repo` row is what makes the gate work, and the generator never emits it.** `check_handoff_probes` calls `_bundle_target_repo()` on `HANDOFF_BOOT.md`; without that row it resolves foreign paths against the **hub**, producing both false FAILs (target file absent here) and **false PASSes** (a basename collision like `JOURNAL.md` fake-resolves). Added it. Verified afterwards: **11/11 probes bind to live state** against the ai-council root; `residual_completeness` OK.
+
+**A real bug in hub tooling, found and NOT patched.** `verify_handoff_probes.file_tokens` **strips a leading dot**: a backticked `` `.pre-commit-config.yaml` `` is looked up as `pre-commit-config.yaml` and resolves nowhere, so the probe FAILs though the file plainly exists (`_resolve_path` resolves the dotted form fine — verified both ways). **Consequence: no probe in any bundle, hub or cross-repo, can currently bind to a dotfile — and dotfiles are exactly where config gates live.** Worked around by un-backticking the path (documented in the bundle); deliberately **not** fixed from inside a handoff, since hub infra is exception-with-ruling (core-invariant #6). **Unfiled — needs a ticket.**
+
+**This bundle is not covered by the gate.** `check_handoff_probes` validates the **lexically-max** bundle, and `2026-07-20-dev-knowledge-architect-arc5` sorts above `2026-07-20-ai-council-architect` (`d` > `a`). The gate reported PASS for arc5, never touching this one. Verified 11/11 by hand against the target root instead — an honest substitute, not the gate's own word.
+
+**`SKIP=audit-health`, surgically, with the false positives verified as false.** The hook FAILed on two corp-monorepo `fleet_parity` MUST-absent rows that **invert reality**: it claims `INSTALL.md` is absent (it exists on corp-monorepo's real top-level) and `docs/handoffs/` is present (it is not). `audit.py health` run directly returns **health: OK**, zero FAILs — the known commit-context worktree mis-resolution. One hook skipped, never `--no-verify`; every other gate ran and passed. Recorded in the commit message too.
+
+**Changes:** `docs/handoffs/2026-07-20-ai-council-architect/` (new bundle: `HANDOFF_BOOT`/`RESIDUAL`/`PROBES`/`SUPPLEMENT`/`PASTE_THIS`), this entry.
+
+**Abandoned:** patching the dotfile tokenizer (core-invariant #6 — file it, don't fix it mid-handoff). Filing the tokenizer ticket, and filing anything to BACKLOG at all: this session closed no tracked task, so the advisory needs no marker; the ticket is a scope decision for Rob, and `backlog-filing-backpressure` would demand `kill-candidates:` besides.
+
+**Next:** operator merges to main **from the primary checkout** (`/ship` refuses inside a worktree) and pushes; optionally `supplement filled` to fold the outgoing architect's strategic *why* into `PASTE_THIS`; file the dotfile-tokenizer bug.
+
+---
+
 ### 2026-07-20 — CC (Opus 4.8, 1M): session close — visible-boundary integrated, worktree torn down, two prompt premises found stale
 
 **Did:** Session-closing lane. Integrated the colours lane, tore down its worktree, filed the freshness and hook-gap tickets, and closed the session. **Two of the lane's instructed steps turned out to be already-done or non-existent, and both were verified before being skipped rather than executed blindly.**
