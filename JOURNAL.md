@@ -19,6 +19,17 @@
 
 ---
 
+### 2026-07-20 — CC (Opus 4.8, 1M): housekeeping — two public drifts closed at the source
+
+**Did:** Closed **[#355]** (STRONG, evidence `e7d1a3c11`) and **[#372]** (WEAK, evidence `40c7bce3a`/`b0443523a`) via ADR-65 done-items-leave, operator-approved explicitly per id (WEAK never bulk-approved; the gate re-verified both, `skip: []`). Regenerated `ecosystem/doc-counts.md` (`pytest_collected` **1660 → 1669**) — the enforcement-organ lane added 9 tests and the count was never regenerated, so a false claim reached pushed main.
+
+**Why the closure clears a WARN at its source, and an amend does not.** The `git_backlog_drift` WARN existed because the `e7d1a3c1` merge SUBJECT reads `organs fixed [#355]`, and `CLOSES_RE` matches `fixed` + `[#id]` — so the subject is a formal closure declaration, not prose, while the body said the ticket stayed OPEN. That merge is on pushed main; amending it would require a force-push. Operator-ruled: **do not amend — close at the source.** The declaration and the backlog now agree.
+
+**Correction made in flight:** the instruction named `gen_audit_index --write` for `doc-counts.md`; that generator writes the audits index. The correct tool is `scripts/gen_doc_counts.py`, used here.
+
+**Changes:** `BACKLOG.md` (135 → 133 tasks), `ecosystem/doc-counts.md`, `JOURNAL.md`.
+
+**Watch:** **[#370]** stays OPEN (ownership-model completeness, no owner nominated — operator's call). `#372`'s `doc_rot` WARN leaves with the ticket. The VISION cadence WARN ([#368]) stands and must clear by a genuine re-read, never a stamp.
 ### 2026-07-20 — CC (Opus 4.8, 1M): two lying enforcement organs fixed — neither defect was what the intent said it was
 
 **Did:** Fixed `fleet_parity` (#355) and `check_handoff_probes` bundle selection (new **[#372]**), serial, one commit per leg, on `worktree-gate-fixes`. **Both diagnoses in the intent were wrong, and acting on either would have made things worse.** Recon gap answered first as instructed: separate files (`scripts/fleet_parity.py`, `scripts/audit.py`).
