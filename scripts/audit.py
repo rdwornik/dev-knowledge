@@ -1524,11 +1524,37 @@ def _bundle_target_repo(bundle_dir: Path) -> str | None:
 # Applied ONLY inside _select_active_bundle's runner. Deliberately NOT applied to the
 # fleet-automation commit path further down, which sets GIT_INDEX_FILE ON PURPOSE via its own
 # explicit env= dict -- routing that through this scrub would silently break it.
-_GIT_LOCATION_ENV = (
+# DERIVED from `git rev-parse --local-env-vars` (git's own canonical repo-local list, and its
+# documented advice for hooks touching a foreign repo), unioned with repo-SCOPING vars git
+# does not class as local-env. Deriving removes the rot mode: the first hand-written version
+# of this list omitted 8 of git's 15, caught in review. _FALLBACK applies only if git is absent.
+_GIT_LOCATION_ENV_EXTRA = ("GIT_CEILING_DIRECTORIES", "GIT_NAMESPACE")
+_GIT_LOCATION_ENV_FALLBACK = (
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
-    "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
-    "GIT_PREFIX", "GIT_CEILING_DIRECTORIES", "GIT_NAMESPACE",
+    "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX",
+    "GIT_CONFIG", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS", "GIT_GRAFT_FILE",
+    "GIT_IMPLICIT_WORK_TREE", "GIT_NO_REPLACE_OBJECTS", "GIT_REPLACE_REF_BASE",
+    "GIT_SHALLOW_FILE",
 )
+_GIT_LOCATION_ENV_CACHE: Optional[frozenset] = None
+
+
+def _git_location_env() -> frozenset:
+    """git's own repo-local env vars (+ _EXTRA). Queried once, cached; pinned fallback if
+    git is unavailable. The query itself is repo-agnostic, so it needs no scrubbing."""
+    global _GIT_LOCATION_ENV_CACHE
+    if _GIT_LOCATION_ENV_CACHE is None:
+        names: set[str] = set(_GIT_LOCATION_ENV_FALLBACK)
+        try:
+            p = subprocess.run(["git", "rev-parse", "--local-env-vars"],
+                               capture_output=True, text=True, encoding="utf-8",
+                               errors="replace")
+            if p.returncode == 0:
+                names |= {ln.strip() for ln in p.stdout.split() if ln.strip()}
+        except OSError:
+            pass
+        _GIT_LOCATION_ENV_CACHE = frozenset(names | set(_GIT_LOCATION_ENV_EXTRA))
+    return _GIT_LOCATION_ENV_CACHE
 
 
 def _select_active_bundle(
@@ -1562,7 +1588,8 @@ def _select_active_bundle(
     if len(candidates) == 1:
         return candidates[0], "sole", candidates[0].name
 
-    env = {k: v for k, v in os.environ.items() if k not in _GIT_LOCATION_ENV}
+    scrub = _git_location_env()
+    env = {k: v for k, v in os.environ.items() if k not in scrub}
 
     def _run(args: list[str]) -> Optional[str]:
         try:
