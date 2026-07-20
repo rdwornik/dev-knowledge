@@ -19,6 +19,26 @@
 
 ---
 
+### 2026-07-20 — CC (Opus 4.8, 1M): hub handoff supplement filled + folded; the arc5 bundle NOT archived (no convention for a same-era bundle)
+
+**Did:** Wrote this session's architect answers into the OUTBOUND bundle `2026-07-20-dev-knowledge-architect`, folded them into `PASTE_THIS`, and adjudicated whether yesterday's consumed INBOUND arc5 bundle should be archived.
+
+**Result:** **`42f63015`** on `docs/supplement-fill-hub-handoff` — 5 files, 149 insertions. Probes re-verified **11/11**. Ship-gate **15 WARN / 14 dispositioned**, no `[stale]` — unchanged, the lone undispositioned WARN still the VISION freshness rollover (`[#368]`).
+
+**Two-way assertion against the stale-supplement failure.** The answers went below the ANSWERS divider **replacing** the empty region, and both directions were asserted programmatically rather than eyeballed: the 5195-char block is present **verbatim** in `PASTE_THIS` (all six sections individually confirmed), and `AUDITS ARE OVER` / `collect R1-R8` are **absent** from it. The arc5 supplement was never read into the new bundle.
+
+**Swept for the reflow's blind spot.** The fold flipped cold→FILLED framing in `HANDOFF_BOOT`/`RESIDUAL`/`PROBES`, but that reflow rewrites only the generator's OWN sites — hand-authored cold-state prose survives and self-contradicts. Swept: the single survivor is `SUPPLEMENT`'s **conditional** operator instruction ("No outgoing chat? Leave ANSWERS empty"), which is standing guidance, not a claim about this bundle. Correctly left.
+
+**STEP 4 REFUSED ON EVIDENCE — the arc5 bundle was NOT moved.** The `docs/handoffs/archive/` convention is **format-era based**, not consumed-state based: the README's "Format eras & navigation" archives *older eras* (v3.2 `session-sync`, `legacy/`), and every one of the 15 archived bundles is a superseded shape. Bundle arc5 is **v5 — the same current era as the outbound bundle**. Archiving it would invent a new consumed-state convention, which the lane prompt explicitly forbade. Three further costs confirmed it: (1) `BACKLOG.md:237` `[E8]`'s **Source.** pointer is load-bearing provenance for the whole ARC-5 plan of record; (2) `ecosystem/.dev-knowledge/state.yaml` carries three probe-evidence references; (3) **`JOURNAL.md` references the path in several entries and JOURNAL is append-only** — a move would leave immutable records pointing at a path that no longer exists, and I am forbidden from editing them to compensate.
+
+**A real coupling surfaced while adjudicating it.** `check_handoff_probes` validates the **lexically-max** bundle, and `…-architect-arc5` sorts above `…-architect`, so the gate reported PASS for **arc5** and never touched today's bundle. Moving arc5 would silently hand the gate a different target. That is a mechanism behaviour change deserving its own decision, not a side effect of tidying — recorded, not acted on. Today's bundle was verified **by hand instead**, 11/11 against its own root.
+
+**Changes:** `docs/handoffs/2026-07-20-dev-knowledge-architect/` (all five files), `JOURNAL.md`.
+
+**Abandoned / not done:** (1) arc5 **not archived** — reasons above. (2) **Not merged, not shipped** — the bundle lives on its branch for the operator's call. (3) No BACKLOG structural-marker change — closes no tracked task.
+
+**Next:** operator pastes `PASTE_THIS.md` into a fresh architect chat. The handoff-archiving convention for same-era consumed bundles, and the lexical-max probe-gate coupling, both want a ruling.
+
 ### 2026-07-20 — CC (Opus 4.8, 1M): folder-mode sort fix — a load-path gap, not a regression; the fleet-vs-personal boundary resolved for one key
 
 **Did:** Diagnosed (read-only, prior turn) then fixed the operator's `docs/audits/` oldest-first sorting. Committed on `fix/vscode-sort-folder-mode`, branched from `main` `0e5d015b` — deliberately NOT from the unmerged handoff branch, so the two arcs stay separable.
