@@ -11,7 +11,7 @@
 | **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->Get ARC-5 unblocked at the decision layer. Ten `[E8]` decisions (R1, R1b, R2–R8, R12) are unruled and several waves cannot open without their pick, so the first substantive move is one bounded-pick message to the operator — led by R12, which decides what the arc's closure target even is. Then settle whether W1 closes, given that its operator render-witness does not exist and its Codex review artifact was never archived. Task-state: the `[E8]` theme in `BACKLOG.md`.<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `main`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -274,7 +274,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -430,7 +430,7 @@ the whole task-state.
 > branch is checked out so CC knows which live value to compare — **re-derive HEAD / tree / branch /
 > ahead-behind live (P3); do not trust this line.**
 >
-> > **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> > **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 >
 > **Windows note:** `audit.py checks` (P2) can crash mid-listing on a bare cp1252 PowerShell console
 > (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` (or `PYTHONIOENCODING=utf-8`); this
@@ -454,7 +454,7 @@ navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d):** the browser
 asks the operator for **off-repo** context.
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -485,3 +485,75 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
    any `[stale]` line). P8 pins the bundle shape **and the live supplement fill-state**. P10 grooms the
    whole open BACKLOG at boot (live / dead / awaiting-ruling per open `#id`). First check
    which branch is live (P3), then re-derive every load-bearing fact from the live primary source.
+
+---
+
+=== SUPPLEMENT.md ===
+
+1. STRATEGIC INTENT
+The thesis grew from "recorded ≠ enforced" to "recorded ≠ enforced ≠ EFFECTIVE". Four
+green-that-means-nothing instances in one day: phantom enforcement (#359, a rule naming an absent
+mechanism); a Codex review that filtered its own subject out of the diff and returned a verdict
+(#363); a colour test whose grey predicate also satisfied navy so it passed either way; and a
+one-directional doc↔code check reporting agreement it never established. Next session's
+way-of-working goal: treat GREEN as a claim to falsify, not a result to trust — prove by violation.
+The residual-completeness gate built this session is the template: it shipped only because it was
+demonstrated RED on a real unfilled bundle, not because it was registered.
+
+2. TENSIONS WEIGHED
+- Measure-the-whole-corpus vs ship-mechanisms → ship, with a measured baseline behind it (320
+  MUST-shaped rules, 176 silent = 55%, a FLOOR — docs/decisions/ unswept, #357).
+- Ledger as report vs as mechanism → mechanism; a one-off table decays.
+- Generate the .vscode config vs eliminate the state → elimination (two regexes keyed on markers
+  carry no per-region state, cannot rot). Recorded as a [#352] Done-when amendment. #329 still
+  genuinely needs generation from parity-surfaces.yaml.
+- Markers vs headers as boundary source of truth → markers win; headers generated from them.
+
+3. CONSIDERED + REJECTED — do not relitigate
+- Narrowing the arc to a ~55-rule slice → REJECTED by the operator. Fix ALL rules, prioritised,
+  goal never lowered. ARC 5 is the first tranche of a tracked burn-down.
+- A fifth ledger state for advisory rules → REJECTED; a MUST-shaped-only denominator drops them out.
+- Ratifying the six off-canon intake statuses → REJECTED. One enforced pattern instead:
+  SEED→DRAFT→READY→{ACCEPTED|CONSUMED|SUPERSEDED|REJECTED}, the "to what" in required companion
+  fields; naming YYYY-MM-DD-<class>-<slug>. Dissolves the id:14 triple.
+- mypy as a sanctioned divergence → REJECTED by the operator. Python stack, tooling universal →
+  Pyrefly (stable 1.0 May 2026, ships AI-agent workflow docs incl. Stop-event hooks matching this
+  fleet; `pyrefly init` migrates from mypy config cheaply).
+- Mid-arc re-planning → REJECTED. The plan governs; new scope goes to BACKLOG, execution does not swerve.
+
+4. OPEN QUESTIONS — unresolved / deferred
+- [#352] W1 is MERGED, NOT CLOSED — closes only on the operator's render witness, which has not
+  happened. Closure clause (f) open.
+- W1 clause (c): no archived Codex review artifact — the reviews ran, the evidence was never
+  written to docs/audits/. Clause (c) is itself a MUST-rule with no mechanism: the closure contract
+  is silently unenforced from wave 1. Rule it now, at n=1.
+- Two failure classes the four-state ledger cannot express: phantom enforcement (#359) and orphan
+  enforcement (a mechanism no rule declares).
+- codex-review scoping (#363): filters mixed diffs to their code subset; can review a fraction while
+  reporting a whole-diff verdict. Until fixed, invoke `codex exec` with files named explicitly.
+- R8 (corp #38) is OUT — the architect handles hub + methodology only, nothing corp-side.
+
+5. DECOMPOSITION RATIONALE — what NOT to redo
+The ARC-5 plan of record is BACKLOG theme [E8] (NOT an ADR — a wave map must evolve). Read [E8];
+do not re-file it, re-derive the baseline, or re-adjudicate the nine seeds (terra killed none; W1
+and W4 are the seedless waves; seeds 5 and 6 map to W2/W5 by content). Recommended first move: the
+STRUCTURE wave (W2) — assets/ dissolution (operator GO recorded; relocate to config/ first, then
+delete), the Pyrefly rollout, and the root-vs-config placement rule (root only for tool-mandated
+files like pyproject.toml — a named closed exception list; everything else to config/). It is where
+the operator's granted rulings sit and what he sees in every repo. The ARCHIVE wave now PRECEDES the
+lifecycle wave: archiving is coupled to status (terminal statuses move the file to <folder>/archive/,
+so it is a file move needing a reference-integrity check — reversing the inbound "stay-in-place"
+convention on the operator's explicit reasoning that he must SEE live vs archived).
+
+6. OFF-REPO CONTEXT
+- Operator rulings this session, binding: .vscode is SHARED FLEET CONFIG (hub-owned). Consumers get
+  READ-ONLY hub access — read and query, never write; the sole writable surface is docs/handoffs/,
+  which another repo may trigger. Simplifies the #344 Ask-2 guard from a HEAD-bound token to a
+  path-scoped write deny; aligns with ADR-28 (Layer 2 is passive, not an execution engine).
+- ROLE EXPANDED: the architect owns Python engineering standards and cross-repo dependency
+  management (real incident: one repo lacked pytest requirements another had), tooling choice, and
+  folder/file naming — not only LLM working-methodology.
+- The sort-order incident surfaced the .vscode shared-vs-personal boundary: personal view
+  preferences (sort order) must NOT live in fleet-canonical config. This is a W2 boundary question.
+- NOTHING was deleted this arc and NO backlog task was closed (116→132+). The visible pain the
+  operator still sees — the assets/ folder — is W2 work, granted but not executed.
