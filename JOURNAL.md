@@ -19,6 +19,28 @@
 
 ---
 
+### 2026-07-20 — CC (Opus 4.8, 1M): [#352] (f) render diagnostic — witness target was WRONG; the real defect is a never-built consumer write-through
+
+**Did:** Diagnosed why the reader-visible ownership boundary does not render, in a `render-diagnostic` worktree. Phase A four-node fork test (extension / markers / open-mode / regex), then an operator-caught correction of the witness target, then the artifact + two tickets.
+
+**Result:** **`a8136b4`** — 3 files, 200 insertions. Clause (f) remains **OPEN** by design; nothing was closed on a green gate.
+
+**Phase A found the extension missing** — `fabiospampinato.vscode-highlight` absent, the same-publisher `vscode-open-in-application` installed instead (wrong pick from the picker). The other three nodes verified HEALTHY against live state, not asserted: markers 15/15, folder-mode loads `.vscode/settings.json`, and the real regexes executed with Node matched 15/15 with `filterFileRegex` true. Extension now installed user-global (2.1.0).
+
+**THE WITNESS TARGET WAS WRONG, and the operator caught it.** Phase A ran against the HUB's own `CLAUDE.md`. **The hub is entirely methodology by definition** — no repo-local content to contrast — so grey/navy there is a single-colour wall proving nothing about a *boundary*. A green witness in the hub would have been worthless. Clause (f) must be witnessed in a **CONSUMER**, where hub methodology sits beside repo-local content.
+
+**THE REAL DEFECT — declared, never built, never ticketed.** Both consumers carry a **77/72-byte** `.vscode/settings.json` with **zero** highlight keys, so the now-user-global extension activates in a consumer folder and **finds nothing to read**. `deploy/manifest-v1.4.0.yaml:325` carrier `editor-config` is `implemented: false` — *"the consumer write-through is the next ticket"* — and **that ticket was never filed**, which is why the gap survived ~20 sessions of the operator asking to see the boundary. Consumers are otherwise READY: both `CLAUDE.md` carry both owner values, and the hub regexes yield **8 grey / 13 navy** (corp-monorepo) and **8 grey / 15 navy** (ai-council), `filterFileRegex` true.
+
+**Also corrected mid-lane, not silently:** an earlier sufficiency claim ("zero repo diff, machine-local install only") contradicted the finding that §7/§8 runtime lines fall outside the roster regions. Resolved by measurement — the install alone does **not** paint them. Operator-ruled those lines **out of clause (f)'s scope** (not marker-owned boundary material).
+
+**Investigated open question for the fleet-template ADR:** the consumer `files.watcherExclude` block is fleet material **by ruling** (`ai-council 2707d73`) but appears in **no** manifest artifact list or parity-surfaces row — so the ADR-93 merge target is *undeclared fleet content*, not neutral repo-local config.
+
+**Changes:** `docs/audits/2026-07-20-technical-352-boundary-render-diagnostic.md` (new), `docs/audits/README.md` (regen), `BACKLOG.md` ([#370], [#371]), `JOURNAL.md`.
+
+**Abandoned / not done:** (1) **No merge** — operator integrates serially from the primary. (2) **B3 marker-scope widening NOT authorized** — no marker/template/test file touched. (3) **[#371] deliberately not implemented** — its vehicle is decided by the pending buy-vs-build fleet-template ADR (R7 pattern); a bespoke write was declined. (4) **Clause (f) not witnessed** — artifact stamped `PREDICTED / PENDING-ADOPTION`, flips only on the operator's eye in **ai-council first**, corp-monorepo second.
+
+**Watch:** the commit carries a surgical **`SKIP=audit-health`** (not `--no-verify`). Its two `[!!]` findings were verified **false against live disk** — it claimed corp-monorepo's `INSTALL.md` absent (it exists) and `docs/handoffs/` present (it doesn't) — while direct `audit.py health` returns **OK**. Known commit-context `fleet_parity` mis-resolution inside a linked worktree; re-runs clean from the primary at merge.
+
 ### 2026-07-20 — CC (Opus 4.8, 1M): supplement pain-map + guardrails added; the third instructed fix was a NO-OP and was reported, not fabricated
 
 **Did:** Three instructed patches to the merged bundle's `SUPPLEMENT.md` + its `PASTE_THIS` fold. **Two were real and landed. The third was already done — the reported defect did not exist.**
