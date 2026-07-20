@@ -743,12 +743,18 @@ def _git_repo(root: Path):
     """Make `root` a throwaway git repo; returns a runner. (tests/test_fleet_parity.py idiom.)"""
     root.mkdir(parents=True, exist_ok=True)
 
-    def run(args, env=None):
-        return subprocess.run(["git", *args], cwd=str(root), capture_output=True,
-                              text=True, encoding="utf-8", errors="replace",
-                              env=None if env is None else {**os.environ, **env})
+    def run(args, env=None, check=True):
+        p = subprocess.run(["git", *args], cwd=str(root), capture_output=True,
+                           text=True, encoding="utf-8", errors="replace",
+                           env=None if env is None else {**os.environ, **env})
+        # A silently-failing fixture is worse than no fixture: if the SECOND commit fails,
+        # its bundle stays uncommitted and then wins as "fresh" -- so the selection tests
+        # would pass for entirely the wrong reason.
+        if check:
+            assert p.returncode == 0, f"git {' '.join(args)} failed: {p.stderr.strip()}"
+        return p
 
-    if run(["init", "-q", "-b", "main"]).returncode != 0:
+    if run(["init", "-q", "-b", "main"], check=False).returncode != 0:
         run(["init", "-q"])
     for cfg in (["core.autocrlf", "false"], ["user.email", "hp@example.com"],
                 ["user.name", "Handoff Probe Test"], ["commit.gpgsign", "false"]):
@@ -758,10 +764,16 @@ def _git_repo(root: Path):
 
 def _commit_at(run, pathspec: str, when: str, msg: str):
     """Commit `pathspec` with BOTH author and committer dates pinned, so add-date ordering
-    under test is deterministic and independent of wall-clock or checkout mtime."""
+    under test is deterministic and independent of wall-clock or checkout mtime. Every
+    invocation is return-code checked (see _git_repo.run)."""
     run(["add", "--", pathspec])
     run(["commit", "-q", "-m", msg],
         env={"GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when})
+    # Prove the commit actually landed AND carries the pinned date -- the add-date ordering
+    # under test is meaningless if either silently drifted.
+    got = run(["log", "-1", "--format=%at", "--", pathspec]).stdout.strip()
+    assert got, f"no commit recorded for {pathspec}"
+    return int(got)
 
 
 _needs_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not in PATH")
@@ -777,8 +789,13 @@ def _arc5_shaped(tmp_path):
     plain.mkdir(parents=True)
     (plain / "PROBES.md").write_text(_probes_md([_PASS_SYMBOL]), encoding="utf-8")
     run = _git_repo(repo)
-    _commit_at(run, "docs/handoffs/2026-07-20-x-arc5", "2026-07-19T14:42:52+02:00", "arc5")
-    _commit_at(run, ".", "2026-07-20T17:04:33+02:00", "plain + repo files")
+    t_arc5 = _commit_at(run, "docs/handoffs/2026-07-20-x-arc5",
+                        "2026-07-19T14:42:52+02:00", "arc5")
+    t_plain = _commit_at(run, ".", "2026-07-20T17:04:33+02:00", "plain + repo files")
+    # The premise of every test built on this fixture: arc5 is LEXICALLY LAST but
+    # CHRONOLOGICALLY FIRST. If either half stops holding, the tests below are vacuous.
+    assert t_arc5 < t_plain, "fixture premise broken: arc5 must be the OLDER add"
+    assert max("2026-07-20-x-arc5", "2026-07-20-x") == "2026-07-20-x-arc5"
     return repo
 
 
@@ -862,3 +879,81 @@ def test_check_selects_correctly_under_inherited_git_dir(tmp_path, monkeypatch):
     assert findings[0].status == "pass"
     assert "2026-07-20-x" in findings[0].evidence
     assert "arc5" not in findings[0].evidence
+
+
+@_needs_git
+def test_every_selector_git_call_receives_the_scrubbed_env(tmp_path, monkeypatch):
+    """Codex review [HIGH]: asserting only the final SELECTION lets a regression slip
+    through -- e.g. `rev-parse --verify HEAD` bypassing the scrubbed runner while the other
+    two calls stay scrubbed would still produce the right answer here, yet violate the
+    stated "every git call is scrubbed" invariant. So instrument the runner and assert the
+    env of EACH invocation, not just the outcome."""
+    repo = _arc5_shaped(tmp_path)
+    monkeypatch.setenv("GIT_DIR", str(tmp_path / "nowhere" / ".git"))
+    monkeypatch.setenv("GIT_INDEX_FILE", str(tmp_path / "nowhere" / "index"))
+    monkeypatch.setenv("GIT_CONFIG_PARAMETERS", "'core.bare=true'")
+    # Deliberate non-scrubs: these MUST survive into every call.
+    monkeypatch.setenv("GIT_AUTHOR_NAME", "Keep Me")
+    monkeypatch.setenv("GIT_SSH_COMMAND", "ssh -o Keep=1")
+
+    seen: list[tuple[list[str], dict]] = []
+    real = aud.subprocess.run
+
+    def spy(cmd, *a, **kw):
+        if isinstance(cmd, (list, tuple)) and cmd and cmd[0] == "git":
+            seen.append((list(cmd), dict(kw.get("env") or {})))
+        return real(cmd, *a, **kw)
+
+    monkeypatch.setattr(aud.subprocess, "run", spy)
+    aud.check_handoff_probes(repo)
+
+    selector_calls = [(c, e) for c, e in seen if "-C" in c]
+    assert len(selector_calls) >= 3, f"expected the guard + log calls, saw {selector_calls}"
+    for cmd, env in selector_calls:
+        assert env, f"no explicit env passed to {cmd} — it would inherit os.environ"
+        for leaked in ("GIT_DIR", "GIT_INDEX_FILE", "GIT_CONFIG_PARAMETERS"):
+            assert leaked not in env, f"{leaked} leaked into {cmd}"
+        assert env.get("GIT_AUTHOR_NAME") == "Keep Me", f"identity stripped from {cmd}"
+        assert env.get("GIT_SSH_COMMAND") == "ssh -o Keep=1", f"transport stripped from {cmd}"
+
+
+@_needs_git
+def test_check_refuses_rather_than_guessing_on_an_unborn_head(tmp_path):
+    """Codex review [HIGH]: an unborn HEAD used to collapse into the lexical fallback,
+    so a fresh repo holding two uncommitted bundles silently got the lexically-max one --
+    bypassing the ambiguity refusal in exactly the situation it exists for."""
+    _init_bundle(tmp_path, [_PASS_SYMBOL], slug="2026-07-20-a")
+    repo = tmp_path / "repo"
+    _git_repo(repo)                      # real repo, nothing committed at all
+    second = repo / "docs" / "handoffs" / "2026-07-20-b"
+    second.mkdir(parents=True)
+    (second / "PROBES.md").write_text(_probes_md([_PASS_SYMBOL]), encoding="utf-8")
+
+    findings = aud.check_handoff_probes(repo)
+    assert findings[0].status == "fail"
+    assert "ambiguous" in findings[0].evidence.lower()
+    assert "2026-07-20-a" in findings[0].evidence
+    assert "2026-07-20-b" in findings[0].evidence
+
+
+@_needs_git
+def test_check_degrades_loudly_when_repo_is_nested_in_another_repo(tmp_path):
+    """Codex review [HIGH]: a git-toplevel mismatch used to fall back to lexical silently,
+    which is precisely how the stale-bundle false green would return under a
+    misconfiguration. It must surface as a WARN instead."""
+    outer = tmp_path / "outer"
+    _git_repo(outer)
+    (outer / "seed.md").write_text("s\n", encoding="utf-8")
+    _commit_at(_git_repo(outer), ".", "2026-07-01T00:00:00+02:00", "outer seed")
+
+    # A bundle-bearing dir NESTED inside `outer`, with no repo of its own.
+    inner = outer / "nested"
+    for slug, rows in (("2026-07-20-a", [_PASS_SYMBOL]), ("2026-07-20-b", [_PASS_SYMBOL])):
+        d = inner / "docs" / "handoffs" / slug
+        d.mkdir(parents=True)
+        (d / "PROBES.md").write_text(_probes_md(rows), encoding="utf-8")
+
+    findings = aud.check_handoff_probes(inner)
+    assert findings[0].status == "warn"
+    assert "degraded" in findings[0].evidence.lower()
+    assert "|" not in findings[0].evidence

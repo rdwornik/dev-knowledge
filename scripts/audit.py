@@ -1602,16 +1602,32 @@ def _select_active_bundle(
     # Guard: an empty `--diff-filter=A` means "never added" ONLY inside a real repo whose
     # root IS repo_path. Without this, a temp dir nested under some ancestor repo reports
     # every bundle as fresh -> a bogus ambiguous FAIL.
+    #
+    # The three failure shapes below are deliberately NOT collapsed into one lexical
+    # fallback. Collapsing them is how the stale-bundle false green returns: a git
+    # misconfiguration would silently restore exactly the behaviour this selector replaces.
+    # Only a confirmed NON-git tree earns the legacy heuristic; everything else degrades
+    # loudly.
     top = _run(["rev-parse", "--show-toplevel"])
     if not top or not top.strip():
+        # Not a git repo (or git absent). The legacy lexical heuristic is the honest
+        # degradation here -- a non-git consumer still gets its bundle validated.
         return lexical, "no-git", lexical.name
     try:
         same = (os.path.normcase(str(Path(top.strip()).resolve()))
                 == os.path.normcase(str(Path(repo_path).resolve())))
     except OSError:
         same = False
-    if not same or _run(["rev-parse", "--verify", "HEAD"]) is None:
-        return lexical, "no-git", lexical.name
+    if not same:
+        # repo_path is nested inside a DIFFERENT repo, so add-dates would be read from the
+        # wrong history. Never fall back silently -- surface it.
+        return None, "degraded", (f"git toplevel {top.strip()} is not {repo_path} "
+                                  "(nested repo?) — cannot trust add-dates")
+    if _run(["rev-parse", "--verify", "HEAD"]) is None:
+        # Unborn HEAD in a real repo: nothing is committed, so EVERY candidate is
+        # genuinely fresh. Fall into the ambiguity rule rather than picking lexically --
+        # otherwise a fresh repo with two bundles silently gets the wrong one.
+        return None, "ambiguous", ", ".join(sorted(d.name for d in candidates))
 
     fresh: list[Path] = []
     dated: list[tuple[int, str, Path]] = []
