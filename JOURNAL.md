@@ -27,7 +27,7 @@
 
 **Correction made in flight:** the instruction named `gen_audit_index --write` for `doc-counts.md`; that generator writes the audits index. The correct tool is `scripts/gen_doc_counts.py`, used here.
 
-**Changes:** `BACKLOG.md` (135 → 133 tasks), `ecosystem/doc-counts.md`, `JOURNAL.md`.
+**Changes:** `BACKLOG.md` (135 → 133 tasks), `ecosystem/doc-counts.md`, `JOURNAL.md`. **Result:** `520bfd56` (closures + regen), anchored by this follow-up.
 
 **Watch:** **[#370]** stays OPEN (ownership-model completeness, no owner nominated — operator's call). `#372`'s `doc_rot` WARN leaves with the ticket. The VISION cadence WARN ([#368]) stands and must clear by a genuine re-read, never a stamp.
 ### 2026-07-20 — CC (Opus 4.8, 1M): two lying enforcement organs fixed — neither defect was what the intent said it was
