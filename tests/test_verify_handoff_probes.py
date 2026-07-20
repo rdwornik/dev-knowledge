@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -731,3 +732,133 @@ def test_check_self_handoff_target_row_not_treated_cross_repo(tmp_path):
         "| **Target repo** | **`hub`** |\n", encoding="utf-8")  # == repo dir name
     findings = aud.check_handoff_probes(hub)
     assert findings[0].status == "pass"  # resolved against the hub itself, not cross-repo
+
+
+# ---------------------------------------------------------------------------
+# [#370] Active-bundle SELECTION: git add-date, never slug order.
+# ---------------------------------------------------------------------------
+
+
+def _git_repo(root: Path):
+    """Make `root` a throwaway git repo; returns a runner. (tests/test_fleet_parity.py idiom.)"""
+    root.mkdir(parents=True, exist_ok=True)
+
+    def run(args, env=None):
+        return subprocess.run(["git", *args], cwd=str(root), capture_output=True,
+                              text=True, encoding="utf-8", errors="replace",
+                              env=None if env is None else {**os.environ, **env})
+
+    if run(["init", "-q", "-b", "main"]).returncode != 0:
+        run(["init", "-q"])
+    for cfg in (["core.autocrlf", "false"], ["user.email", "hp@example.com"],
+                ["user.name", "Handoff Probe Test"], ["commit.gpgsign", "false"]):
+        run(["config", *cfg])
+    return run
+
+
+def _commit_at(run, pathspec: str, when: str, msg: str):
+    """Commit `pathspec` with BOTH author and committer dates pinned, so add-date ordering
+    under test is deterministic and independent of wall-clock or checkout mtime."""
+    run(["add", "--", pathspec])
+    run(["commit", "-q", "-m", msg],
+        env={"GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when})
+
+
+_needs_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not in PATH")
+
+
+def _arc5_shaped(tmp_path):
+    """The live defect's exact shape: '<date>-x-arc5' sorts AFTER '<date>-x' (because
+    '-arc5' > ''), yet arc5 was added EARLIER. arc5 carries a FAILING probe, the plain
+    slug a passing one, so the selected bundle is legible from the verdict alone."""
+    _init_bundle(tmp_path, [_FAIL_MISSING], slug="2026-07-20-x-arc5")
+    repo = tmp_path / "repo"
+    plain = repo / "docs" / "handoffs" / "2026-07-20-x"
+    plain.mkdir(parents=True)
+    (plain / "PROBES.md").write_text(_probes_md([_PASS_SYMBOL]), encoding="utf-8")
+    run = _git_repo(repo)
+    _commit_at(run, "docs/handoffs/2026-07-20-x-arc5", "2026-07-19T14:42:52+02:00", "arc5")
+    _commit_at(run, ".", "2026-07-20T17:04:33+02:00", "plain + repo files")
+    return repo
+
+
+@_needs_git
+def test_check_selects_bundle_by_git_add_date_not_slug_order(tmp_path):
+    """Lexical-max validated the STALE arc5 bundle and reported about the wrong file,
+    while the actually-active bundle went unchecked. mtime cannot substitute: a worktree
+    checkout re-stamps every file."""
+    findings = aud.check_handoff_probes(_arc5_shaped(tmp_path))
+    assert findings[0].status == "pass"
+    assert "2026-07-20-x" in findings[0].evidence
+    assert "arc5" not in findings[0].evidence
+
+
+@_needs_git
+def test_check_prefers_the_uncommitted_bundle_over_every_tracked_one(tmp_path):
+    """A freshly generated bundle has no add-commit (untracked, or `git add`ed by the very
+    pre-commit run validating it). It IS the active handoff, so it outranks every committed
+    bundle. Deliberately lexically SMALLEST and FAILING, so slug order cannot fake the pass."""
+    _init_bundle(tmp_path, [_PASS_SYMBOL], slug="2026-07-25-zzz-committed")
+    repo = tmp_path / "repo"
+    run = _git_repo(repo)
+    _commit_at(run, ".", "2026-07-25T09:00:00+02:00", "committed bundle")
+
+    live = repo / "docs" / "handoffs" / "2026-07-01-aaa-live"
+    live.mkdir(parents=True)
+    (live / "PROBES.md").write_text(_probes_md([_FAIL_MISSING]), encoding="utf-8")
+
+    findings = aud.check_handoff_probes(repo)
+    assert findings[0].status == "fail"
+    assert "2026-07-01-aaa-live" in findings[0].evidence
+
+
+@_needs_git
+def test_check_fails_loudly_when_two_bundles_are_uncommitted(tmp_path):
+    """Operator tie-break ruling: two uncommitted candidates is AMBIGUOUS -> FAIL, never a
+    silent pick. A silent pick between two uncommitted bundles is the same 'green about the
+    wrong file' class this selector exists to kill."""
+    _init_bundle(tmp_path, [_PASS_SYMBOL], slug="2026-07-20-a")
+    repo = tmp_path / "repo"
+    run = _git_repo(repo)
+    # Seed HEAD without committing any bundle: the unborn-HEAD guard would otherwise
+    # fall back to lexical and this case would never be reached.
+    _commit_at(run, "VISION.md", "2026-07-20T09:00:00+02:00", "seed HEAD only")
+
+    second = repo / "docs" / "handoffs" / "2026-07-20-b"
+    second.mkdir(parents=True)
+    (second / "PROBES.md").write_text(_probes_md([_PASS_SYMBOL]), encoding="utf-8")
+
+    findings = aud.check_handoff_probes(repo)
+    assert len(findings) == 1
+    assert findings[0].status == "fail"
+    assert "ambiguous" in findings[0].evidence.lower()
+    assert "2026-07-20-a" in findings[0].evidence
+    assert "2026-07-20-b" in findings[0].evidence
+    assert "|" not in findings[0].evidence
+
+
+@_needs_git
+def test_check_selects_correctly_under_inherited_git_dir(tmp_path, monkeypatch):
+    """[#370 + #355] The selector is vulnerable to the very defect #355 fixed. Under
+    pre-commit, GIT_DIR is exported for the WHOLE hook run. If the guard's
+    `rev-parse --show-toplevel` does not go through the scrubbed env, it resolves to the
+    FOREIGN repo's toplevel, the normcase-vs-repo_path guard fails, and selection silently
+    degrades to the no-git lexical fallback -- re-picking arc5. Green in every clean-env
+    test above, broken in the only environment that actually matters.
+
+    Every git call inside _select_active_bundle (BOTH guard rev-parse calls and the
+    log --diff-filter=A) must be scrubbed; any one of them bypassing it re-opens this.
+    """
+    repo = _arc5_shaped(tmp_path)                        # built BEFORE the monkeypatch
+    foreign = tmp_path / "foreign"
+    _git_repo(foreign)
+    (foreign / "seed.md").write_text("s\n", encoding="utf-8")
+    _commit_at(_git_repo(foreign), ".", "2026-07-01T00:00:00+02:00", "foreign seed")
+
+    monkeypatch.setenv("GIT_DIR", str(foreign / ".git"))
+    monkeypatch.setenv("GIT_INDEX_FILE", str(foreign / ".git" / "index"))
+
+    findings = aud.check_handoff_probes(repo)
+    assert findings[0].status == "pass"
+    assert "2026-07-20-x" in findings[0].evidence
+    assert "arc5" not in findings[0].evidence
