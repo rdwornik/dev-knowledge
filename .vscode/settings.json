@@ -1,9 +1,13 @@
 {
-  "//": "SHARED FLEET CONFIGURATION (operator ruling, fleet-parity register e1). The hub owns this file and carries it to consumers as methodology material -- see deploy/manifest-v1.4.0.yaml component `vscode-boundary-decoration`. Do not add machine-local settings here.",
+  "//": "SHARED FLEET CONFIGURATION (operator ruling, fleet-parity register e1). The hub owns this file and carries it to consumers as methodology material -- see deploy/manifest-v1.4.0.yaml component `vscode-boundary-decoration`. Do not add machine-local settings here, EXCEPT inside an explicitly-marked `repo-personal` section (see `//repo-personal` below): keys under such a marker are NOT fleet material and a carrier write-through must not propagate them. Amended 2026-07-20 -- the blanket prohibition had no carve-out, so a repo-personal view preference had nowhere to live in folder-mode.",
 
   "files.watcherExclude": {
     "**/.claude/worktrees/**": true
   },
+
+  "//repo-personal": "REPO-PERSONAL VIEW PREFERENCES -- NOT fleet material, NOT hub methodology. Everything from here to the end of this block is exempt from the SHARED FLEET CONFIGURATION rule above and must NOT be written through to a consumer by the `editor-config` carrier (deploy/manifest-v1.4.0.yaml, currently implemented: false -- the consumer write-through ticket must honour this marker). Marked with a `//`-comment key because this file is JSON and carries NO <!-- methodology:start owner=... --> regions: those markers are markdown-only, and boundary_headers.py governs CLAUDE.md (_REQUIRED_GOVERNED), not .vscode. The `owner=hub`/`owner=repo` strings elsewhere in this file are regex PATTERNS that select regions in OTHER files -- they do not classify this one.",
+  "//repo-personal-sort": "explorer.sortOrderReverse gives newest-first inside dated folders (docs/audits/, docs/handoffs/, docs/decisions/transcripts/) whose names are YYYY-MM-DD-slug. It is duplicated from .dev-knowledge.code-workspace:63 ON PURPOSE: that file loads ONLY when the project is opened as a WORKSPACE, so in folder-mode the preference vanished and dated folders fell back to the VS Code default (ascending = oldest-first). Both sources now agree on newest-first; explorer.sortOrder is deliberately left UNSET here (VS Code default is `default`, which is what the workspace file sets explicitly) so the two cannot disagree.",
+  "explorer.sortOrderReverse": true,
 
   "//boundary": "Background decoration of the #312 Form-A methodology boundary. owner=hub regions paint GREY, owner=repo regions paint NAVY, tuned for a dark theme. The regions are keyed on the MARKER vocabulary (<!-- methodology:start id=... owner=hub|repo -->), which is the single source of truth -- the reader-visible headers these bands also cover are GENERATED from the same markers by scripts/boundary_headers.py. Requires the recommended extension in .vscode/extensions.json; VS Code core cannot paint arbitrary line ranges from settings alone.",
 
