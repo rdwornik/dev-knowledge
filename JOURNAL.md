@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-21 — CC (Opus 4.8, 1M): housekeeping merged; id-range reserved; a concurrent HEAD swap put a commit direct on main
+
+**Did:** Merged the housekeeping branch on operator GO — `980584e2` (closures `[#355]`/`[#372]` + doc-counts regen), pushed; ship-gate dropped to the single expected VISION `[#368]` WARN, with `git_backlog_drift` and `doc_claims` both back to `[OK]`. Then reserved id range **`[#373]`–`[#380]`** ahead of the night batch — `94426dc0`.
+
+**INCIDENT — `94426dc0` is a non-merge commit on main's first-parent spine (core-invariant #5).** Not pushed; `block-ff-push` would refuse it. Cause is a **concurrent HEAD swap in the primary checkout**, not a missed branch step. The reflog is explicit: `checkout: moving from main to chore/reserve-id-range-373-380` (branch created), then `checkout: moving from chore/reserve-id-range-373-380 to main` — a checkout **this session did not run** — and the commit landed after it. Between those points this session ran only an Edit, `validate_backlog.py`, `git diff --stat`, `git add`, `git commit`; none moves HEAD. The `ai-council-handoff` session was live throughout (its branch advanced `e7d1a3c1` → `edc09bf5`). `chore/reserve-id-range-373-380` was left orphaned at `980584e2`.
+
+**Not repaired — awaiting an operator ruling.** The fix (`branch -f` → `reset --hard` main → re-merge `--no-ff`) rewrites main and hard-resets a checkout another live session is actively using; it could destroy that session's in-flight work, and the same race could recur mid-repair. Recorded rather than executed. **This is the second time this arc that a concurrent session's HEAD swap has cost real work** — the earlier one is in project memory; this one escalates it from "degraded artifact" to "invariant violation".
+
+**Reservation substance (valid regardless of the incident's disposition):** next-free is `[#373]` — max bracketed id **372** by both the canonical subject scan (`git log --all --oneline`) and a stricter full-body scan, while live-BACKLOG max is **371**. That one-id gap is a live proof of the doctrine: `[#372]` closed and left the file this session, so the live file understates. The range is a header note (task count unchanged at 133), and the commit subject carries `[#380]` so the canonical `max+1` returns `[#381]`. **Stated limit: a mitigation, not a lock** — it binds a concurrent lane only after that lane fetches the commit carrying it, and while `94426dc0` stays unpushed it protects nothing.
+
+**Harness audit (STEP 2, read-only):** there is **no scheduled night-batch harness**. The "night batch" is an operator-run orchestrated session; the cloud Routine is strictly read-only and ADR-68's local agent was never registered. Batch contract confirmed safe: proposals only (files no ticket ids), all git mutations serial in one orchestrator, commit-and-STOP, never self-merges. The repo has **no id-uniqueness gate anywhere** — `check_backlog_filing.py` checks `kill-candidates` and never the id; `validate_backlog` detects a duplicate only once both ids are in the same file, i.e. post-merge. That is the gap `[#370]` fell through.
+
+**Changes:** `BACKLOG.md` (reservation note), `JOURNAL.md`.
+
+**Next:** operator ruling on the `94426dc0` recovery (recover-now / coordinate-first / disposition); then push so the reservation actually binds; then the batch queue ruling. `[#370]` stays OPEN.
+
 ### 2026-07-20 — CC (Opus 4.8, 1M): housekeeping — two public drifts closed at the source
 
 **Did:** Closed **[#355]** (STRONG, evidence `e7d1a3c11`) and **[#372]** (WEAK, evidence `40c7bce3a`/`b0443523a`) via ADR-65 done-items-leave, operator-approved explicitly per id (WEAK never bulk-approved; the gate re-verified both, `skip: []`). Regenerated `ecosystem/doc-counts.md` (`pytest_collected` **1660 → 1669**) — the enforcement-organ lane added 9 tests and the count was never regenerated, so a false claim reached pushed main.

@@ -6,6 +6,8 @@
 
 **Themes (backbone) — epic ids:** [E1] Handoff continuity · [E2] Enforced governance · [E3] Lessons feedback loop · [E4] Decision management · [E5] Canonical-file integrity · [E6] Cross-repo universalization · [E7] Tooling & evaluation · [E8] ARC-5 execution (time-boxed arc, not a permanent mission theme)
 
+**RESERVED ID RANGE — `[#373]`–`[#380]`, held by the 2026-07-21 primary-session night-batch work.** Do not allocate into this range from another lane. Reserved per the PLAYBOOK pre-split ritual ("reserve a non-overlapping range per arc by writing it into BACKLOG *before* the split … reserve in the *file*, never in conversation") after the `[#370]` collision, where two parallel worktrees each read their own stale `main` and allocated the same id. Next-free OUTSIDE the reservation is **`[#381]`**. **Binding limit — read this before relying on it:** the repo has no id lock, and the canonical next-free formula scans *git history*, so this reservation binds a concurrent lane only once that lane fetches/rebases onto the commit that carries it. A lane that never syncs still computes `[#373]` and will collide. Release the range by deleting this line when the arc that holds it is done.
+
 ---
 
 ## [E1] Handoff continuity
