@@ -19,6 +19,28 @@
 
 ---
 
+### 2026-07-20 — CC (Opus 4.8, 1M): architect handoff bundle generated — residual authored against live state, W1 closure gap surfaced
+
+**Did:** `/handoff dev-knowledge architect`. Generated the v5 architect bundle, authored the four hand-authored spans the generator cannot write (RESIDUAL §1/§2/§4 + the HANDOFF_BOOT purpose header), re-assembled `PASTE_THIS`, and committed the bundle on its own branch.
+
+**Result:** commit **`0727e3a0`** on `docs/handoff-2026-07-20-architect` — `docs/handoffs/2026-07-20-dev-knowledge-architect/` (5 files, 790 insertions). Probes **11/11 pass, 0 fail, 0 warn** (`verify_handoff_probes`). All pre-commit gates passed; no `SKIP`, no `--no-verify`. **Not merged** — integration is operator-gated.
+
+**`SUPPLEMENT.md` committed EMPTY (cold handoff).** The assembler correctly declined to fold an empty ANSWERS region, so the incoming §13(d) operator-context beat fires FULL rather than narrowed. No answers were fabricated.
+
+**The residual's §4 frontier, authored — two items worth re-reading.** (1) **Ten `[E8]` decisions are unruled** (R1, R1b, R2–R8, R12) and several waves cannot open without their pick; **R12 carries no recommendation at all** and decides what the arc's closure target even is, so it leads the bounded-pick message rather than trailing it. (2) **W1 has two independent closure gaps** — the `[#352]` operator render-witness does not exist (clause f), *and* W1's Codex reviews were run but **never archived**, so clause (c) has no evidence and the artifacts are unrecoverable.
+
+**The generalization that gap forces.** Nothing gates a wave merge on the presence of its review artifact — so ARC-5's own per-wave closure contract is, **by the arc's own census definition, a silently-unenforced MUST-shaped rule.** Recorded in the residual as a decision to make at n=1 rather than discover at W7. Not filed as a ticket this session: it is a decision for the operator, and minting a ticket would pre-empt the ruling.
+
+**§1 drift-flags — the VISION WARN stands undispositioned, deliberately.** Carried forward from the preceding lane's reasoning rather than re-litigated: `last_reviewed` means *re-read and confirmed*, so a stamp-to-green is a false signal and a disposition is the same move in a different costume. `[#368]` owns the genuine re-read. Also recorded: `[#355]` now sits within a couple of characters of the `doc_rot` per-task cap — the second ticket pinned there, which is `[#364]`'s concrete case.
+
+**One tool-use correction, self-caught:** first `verify_handoff_probes` invocation passed `PROBES.md` instead of the bundle **directory** and returned a benign "no probes found" — read as a false-clean rather than a pass, re-run against the directory, 11/11.
+
+**Changes:** `docs/handoffs/2026-07-20-dev-knowledge-architect/` (new bundle), `JOURNAL.md`.
+
+**Abandoned / not done:** (1) bundle **not merged to main** — operator-gated, no GO given. (2) `SUPPLEMENT` **not filled** — awaits the operator's paste-back. (3) **No BACKLOG structural-marker change** — this session advanced no tracked task and closed none; the session-end BACKLOG check is advisory and correctly needs no edit here.
+
+**Next:** operator pastes `PASTE_THIS.md` into a fresh architect chat; optionally fills `SUPPLEMENT.md` (`supplement filled` → I commit + re-fold). `docs/handoff-2026-07-20-architect` needs an integration GO.
+
 ### 2026-07-20 — CC (Opus 4.8, 1M): session close — visible-boundary integrated, worktree torn down, two prompt premises found stale
 
 **Did:** Session-closing lane. Integrated the colours lane, tore down its worktree, filed the freshness and hook-gap tickets, and closed the session. **Two of the lane's instructed steps turned out to be already-done or non-existent, and both were verified before being skipped rather than executed blindly.**
