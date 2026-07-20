@@ -735,7 +735,7 @@ def test_check_self_handoff_target_row_not_treated_cross_repo(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# [#370] Active-bundle SELECTION: git add-date, never slug order.
+# [#372] Active-bundle SELECTION: git add-date, never slug order.
 # ---------------------------------------------------------------------------
 
 
@@ -856,7 +856,7 @@ def test_check_fails_loudly_when_two_bundles_are_uncommitted(tmp_path):
 
 @_needs_git
 def test_check_selects_correctly_under_inherited_git_dir(tmp_path, monkeypatch):
-    """[#370 + #355] The selector is vulnerable to the very defect #355 fixed. Under
+    """[#372 + #355] The selector is vulnerable to the very defect #355 fixed. Under
     pre-commit, GIT_DIR is exported for the WHOLE hook run. If the guard's
     `rev-parse --show-toplevel` does not go through the scrubbed env, it resolves to the
     FOREIGN repo's toplevel, the normcase-vs-repo_path guard fails, and selection silently

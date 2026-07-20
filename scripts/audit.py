@@ -1672,7 +1672,7 @@ def check_handoff_probes(repo_path: Path) -> list[Finding]:
 
     "Active" is decided by _select_active_bundle: an uncommitted bundle (the one being
     generated now), else the newest by GIT ADD DATE — never slug order, which picked a
-    stale "<date>-<slug>-arc5" over the newer "<date>-<slug>" ([#370]). Two uncommitted
+    stale "<date>-<slug>-arc5" over the newer "<date>-<slug>" ([#372]). Two uncommitted
     bundles is ambiguous → FAIL, never a silent pick.
 
     FAIL-class (gating, unlike the WARN-only doc_claims): a malformed row or a missing
