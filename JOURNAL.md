@@ -19,6 +19,36 @@
 
 ---
 
+### 2026-07-20 — CC (Opus 4.8, 1M): session close — visible-boundary integrated, worktree torn down, two prompt premises found stale
+
+**Did:** Session-closing lane. Integrated the colours lane, tore down its worktree, filed the freshness and hook-gap tickets, and closed the session. **Two of the lane's instructed steps turned out to be already-done or non-existent, and both were verified before being skipped rather than executed blindly.**
+
+**Result (every sha):** merge **`21ec4653`** (`feat/visible-boundary`) · `10f71693` tickets `[#368]`/`[#369]` + `[#355]` evidence · `d84e86c7` two self-inflicted WARNs un-tripped · plus this entry, on branch `docs/session-close-arc5`.
+
+**Step 1 was already done.** The prompt asked to merge `docs/residual-rule-declaration` (`4772967e`) "prompted earlier and never ran". It *had* run, in the immediately preceding lane: `4772967e` is an ancestor of HEAD, the branch was deleted, and main was already at `9f229f70` and pushed — not `ecc8b5aa` as the prompt stated. Verified four ways before skipping. Re-running it would have been a no-op at best.
+
+**Step 4 had no subject.** The prompt asked to archive "both Codex artifacts from the session scratchpad". This session's scratchpad is **empty**: the wrapper writes straight to `docs/audits/`, so both of my Codex artifacts (`2026-07-19-codex-residual-completeness-gate.md`, `2026-07-19-codex-residual-rule-declaration.md`) were archived and committed *when they were produced*, with their index regens. The colours lane's own reviews (its commits cite a CRITICAL + four HIGH, then six more terra findings) left **no artifact anywhere** — not in the merge, not in any scratchpad from its window; the newest scratchpad artifact on disk is 17:46 and already archived. `gen_audit_index --check` returns clean. So: nothing to archive, index already current, no invented genre. **The colours lane's Codex reviews are unarchived and now unrecoverable — its findings survive only as commit-message prose.**
+
+**Visible-boundary merge.** Real merge — base `9ffb7eeb`, branch +5, main +30. One conflict, `JOURNAL.md`, resolved as a clean keep-both in newest-first commit-time order: the two visible-boundary entries (00:58, 23:57) ahead of the seven ARC-5 entries (23:20 and earlier). No entry from either side dropped — **627 main + 622 branch headers all present**. `BACKLOG.md`, `CLAUDE.md` and `.claude/methodology-roster.md` auto-merged clean. `[#321]`/`[#352]` are modified in place, so no id was minted or removed.
+
+**`[#352]` IS MERGED BUT NOT CLOSED.** Its Done-when includes the operator seeing the decoration render, and **that witness does not exist yet**. The `.vscode` settings, the generated headers and their tests are all on main; none of that is the same as the operator confirming the colours appear as intended. **Merged is not done.** It stays open pending that render confirmation.
+
+**Worktree teardown.** Lock named `pid 9144`, verified **dead** before unlocking rather than force-removing. `unlock → remove → prune → branch -d` all exit 0. Six leftover checks clean: worktree list shows only the primary · `.claude/worktrees/` empty · `.git/worktrees/` absent · no dangling ref · branch gone · ref unresolvable.
+
+**Ship-gate: 15 WARN / 14 dispositioned, and the single undispositioned entry is the VISION freshness rollover — confirmed by enumerating the residue, nothing else hiding in it.** It came back RED at **three** new WARNs first, and two of those were mine, so they were fixed rather than reported: `[#368]` tripped `doc_rot`'s "3+ dated blocks AND >700 chars" rule on its own first commit (three calendar dates; rewritten to one, substance intact), and `doc_claims` drifted because the merge brought `tests/test_boundary_headers.py` (doc-counts regenerated, **1627 → 1660**).
+
+**The VISION WARN is neither dispositioned nor stamped.** `last_reviewed: 2026-06-19` aged past the 30-day cadence by pure calendar rollover — 30d one day, 31d the next, with the file itself untouched since `7e6f996b`. `[#368]` records explicitly that **re-stamping without reading is a false stamp and is forbidden**: `last_reviewed` means "re-read end-to-end and confirmed accurate", not "touched". Bumping the date to reach a green number would convert an honest signal into a lie — the exact declare-instead-of-fix pattern ARC-5 exists to eliminate. Dispositioning it would be the same move in a different costume. It stands, and it is true.
+
+**`[#355]` evidence n=4** (worktree `fleet_parity` mis-resolution, against corp's real top-level). Scope and Done-when byte-unchanged, asserted before write. The line had to fit **45 characters** of headroom and the ticket now sits at **1198/1200** — a *second* ticket pinned against the `doc_rot` cap, which is the concrete case `[#364]` argues from.
+
+**`[#369]` filed:** `boundary_headers.py --check` is not wired into pre-commit. Not a hole today — the suite runs at ship-gate, so a hand-edited header is caught before merge — but it is unenforced at commit time, unlike every sibling generated surface (codemap, toc, roster, claude-rosters, audit-index, intake-index), each of which has its own regen-and-diff hook. Gates 15 → 16 when wired. Routed to W6.
+
+**Changes:** `BACKLOG.md` (`[#368]`, `[#369]`, `[#355]` evidence), `ecosystem/doc-counts.md` (1627 → 1660), `JOURNAL.md`, plus everything carried by the `feat/visible-boundary` merge (`.vscode/`, `scripts/boundary_headers.py`, `tests/test_boundary_headers.py`, `deploy/manifest-v1.4.0.yaml`, `CLAUDE.md`, `.claude/methodology-roster.md`).
+
+**Abandoned / not done, with reasons:** (1) **Step 1 skipped** — already merged and pushed in the prior lane. (2) **Step 4 skipped** — no unarchived artifact exists; index already current. (3) **`[#352]` not closed** — the operator's render witness does not exist. (4) **VISION not re-stamped** — a stamp without a read is a lie; `[#368]` owns the real fix. (5) **This lane is NOT merged to main** — the GO covered two merges and both were spent; the session-close commits sit on `docs/session-close-arc5`.
+
+**Next:** the operator confirms the `[#352]` render (or files what is wrong), then `[#368]`'s genuine VISION re-read. `docs/session-close-arc5` needs an integration GO — it is the one thing this session leaves for the next.
+
 ### 2026-07-20 — CC (Opus 4.8, 1M): visible boundary, architect corrections — colours to spec, ticket identity fixed, 7 more terra findings closed
 
 **Did:** Continuation of the 2026-07-19 visible-boundary lane (entry below) on `feat/visible-boundary`, executing four architect rulings on the deltas that lane flagged, then a second adversarial review.
