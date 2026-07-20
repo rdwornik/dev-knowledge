@@ -19,6 +19,30 @@
 
 ---
 
+### 2026-07-20 — CC (Opus 4.8, 1M): folder-mode sort fix — a load-path gap, not a regression; the fleet-vs-personal boundary resolved for one key
+
+**Did:** Diagnosed (read-only, prior turn) then fixed the operator's `docs/audits/` oldest-first sorting. Committed on `fix/vscode-sort-folder-mode`, branched from `main` `0e5d015b` — deliberately NOT from the unmerged handoff branch, so the two arcs stay separable.
+
+**Result:** **`34c59b6d`** — `.vscode/settings.json`, 5 insertions / 1 deletion. Full suite **1657 passed / 3 skipped** (1660 collected, matching `ecosystem/doc-counts.md`). `ruff check` clean. **NOT merged** — commit-and-stop per the lane guard.
+
+**The diagnosis overturned both prime suspects.** Today's `.vscode` work (`2fa2929a`, `a4c0c49f`, `897577b7`) touches only `files.watcherExclude`, the `//boundary` prose, and the `highlight.*` regexes/colours — **no sort key was ever added, changed, or removed**. The generated `docs/audits/README.md` is newest-first at HEAD *and* at `ecc8b5aa`; `gen_audit_index.py:61` sorts `reverse=True` and has one commit (2026-07-06). **So this was never a regression.** `explorer.sortOrderReverse` lived only in `.dev-knowledge.code-workspace:63`, which loads **only in WORKSPACE mode**; in folder-mode the preference was simply absent all along and `YYYY-MM-DD-slug` names fell to the VS Code ascending default. The bug is a **load-path gap**, and it would have been mis-fixed as a revert.
+
+**The boundary question was resolved here, not deferred.** The file's own header said *"Do not add machine-local settings here"* — so adding a view preference under a blanket prohibition would have left it self-contradicting, which is precisely the stale-prose class this arc exists to eliminate. The header is **amended** to carve out an explicitly-marked `repo-personal` section, and the key sits under two `//`-comment markers declaring it non-fleet material a carrier write-through must not propagate.
+
+**The marking vocabulary was checked, not assumed.** `.vscode/settings.json` carries **no** `<!-- methodology:start owner=… -->` regions — those markers are markdown-only, `boundary_headers.py`'s `_REQUIRED_GOVERNED` is `("CLAUDE.md",)`, and the decoration's `filterFileRegex` targets `CLAUDE.md|.claude/*.md`. The `owner=hub`/`owner=repo` strings *in* this file are regex **patterns selecting regions in other files** — they do not classify this one. JSON cannot carry HTML comments, so the honest vocabulary is the `"//"` comment-key convention the file already uses.
+
+**Propagation risk is NIL today, and that is a timing fact, not a design guarantee.** The `editor-config` carrier is `implemented: false` at manifest v1.4.0, so nothing writes this file to a consumer yet. The marker exists for the consumer write-through ticket, which must honour it — otherwise a whole-file copy would ship a personal preference fleet-wide.
+
+**Ship-gate: 15 WARN / 14 dispositioned, no `[stale]` — and the residue was enumerated, not assumed.** The single undispositioned WARN is the pre-existing `canonical_freshness` VISION rollover (`last_reviewed 2026-06-19`, 31d). **This commit added zero new WARNs**; the gate was RED before it and is RED after it for the same one reason. Not forced, not dispositioned — `[#368]` owns the genuine re-read.
+
+**Changes:** `.vscode/settings.json`, `JOURNAL.md`.
+
+**Abandoned / not done:** (1) **No merge** — commit-and-stop. (2) `explorer.sortOrderLexicographicOptions: "upper"` **not** mirrored into folder-mode — it is a separate ALL-CAPS grouping preference, not the reported breakage; left workspace-only rather than silently widening scope. (3) `explorer.sortOrder` left unset — VS Code's default already equals the workspace file's explicit `"default"`. (4) No BACKLOG structural-marker change — this closes no tracked task.
+
+**Also found, untouched:** `.claude/worktrees/ai-council-handoff` is a **registered and locked** worktree on `docs/ai-council-architect-handoff` (`1d4ea278`). It is gitignored so it cannot contaminate this commit, and a locked worktree may belong to a live session — reported, not removed.
+
+**Next:** operator confirms the explorer now sorts newest-first in folder-mode. If the consumer write-through ticket for `editor-config` is filed, it must honour the `//repo-personal` marker.
+
 ### 2026-07-20 — CC (Opus 4.8, 1M): session close — visible-boundary integrated, worktree torn down, two prompt premises found stale
 
 **Did:** Session-closing lane. Integrated the colours lane, tore down its worktree, filed the freshness and hook-gap tickets, and closed the session. **Two of the lane's instructed steps turned out to be already-done or non-existent, and both were verified before being skipped rather than executed blindly.**
