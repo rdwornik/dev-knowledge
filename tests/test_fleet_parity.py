@@ -1244,3 +1244,40 @@ def test_cli_main_emits_surface_line_after_walk_extract():
     assert proc.returncode == 0, proc.stderr
     assert any(ln.startswith("[fleet-parity] ") and "repo(s) walked" in ln
                for ln in proc.stdout.splitlines())
+
+
+# ---------------------------------------------------------------------------
+# [#355] Commit-context repo resolution: GIT_DIR must never override cwd.
+# ---------------------------------------------------------------------------
+
+
+def test_collect_facts_ignores_inherited_git_dir(tmp_path, monkeypatch):
+    """[#355] Under pre-commit, git exports GIT_DIR (+ GIT_INDEX_FILE) for the HUB, and
+    GIT_DIR OVERRIDES the ``cwd=`` we pass (it beats ``-C`` too). Every probe in
+    collect_facts would then read the HUB's index while labelling the facts with the
+    CONSUMER's repo_id -- the exact inversion in #355: corp-monorepo reported as lacking
+    INSTALL.md (it has one) and carrying docs/handoffs/ (it has none), both being the hub's
+    own facts. Drives the REAL probe seam (collect_facts -> _git); the _run() helper above
+    hand-builds RepoTarget and never stresses it, which is why the bug survived.
+
+    Two-sided on purpose: asserting only "consumer file present" would still pass if facts
+    were a union, and asserting only "other file absent" would pass on an empty snapshot.
+    """
+    # Both repos MUST be built before the monkeypatch -- this module's own _git helper is
+    # unscrubbed, so an inherited GIT_DIR would break the fixture construction itself.
+    consumer = _init_repo(tmp_path / "consumer", {"CONSUMER_ONLY.md": "c\n"})
+    other = _init_repo(tmp_path / "other", {"OTHER_ONLY.md": "o\n"})
+
+    # Exactly what pre-commit leaks into the hook environment.
+    monkeypatch.setenv("GIT_DIR", str(other / ".git"))
+    monkeypatch.setenv("GIT_INDEX_FILE", str(other / ".git" / "index"))
+
+    manifest = _loaded(tmp_path, {"consumer-r": {"role": "consumer"}}, [])
+    manifest.pop("_refusals", None)
+    target = fp.RepoTarget("consumer-r", "consumer", consumer, "")
+    facts = fp.collect_facts(target, manifest, _EMPTY_BASELINE, consumer,
+                             tmp_path / "nonexistent-registry.yaml")
+
+    assert facts["git_error"] == ""
+    assert "CONSUMER_ONLY.md" in facts["top_level_tracked"]
+    assert "OTHER_ONLY.md" not in facts["top_level_tracked"]

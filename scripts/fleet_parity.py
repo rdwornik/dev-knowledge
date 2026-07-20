@@ -472,10 +472,39 @@ def resolve_fleet(manifest: dict, hub_root: Path, registry_path: Path,
 # ---------------------------------------------------------------------------
 
 
+# Repo-location env vars git inherits from a hook/pre-commit parent. GIT_DIR (and friends)
+# OVERRIDE `cwd=` entirely -- and `-C` too -- so under `pre-commit`, which exports GIT_DIR +
+# GIT_INDEX_FILE for the HUB, an unscrubbed probe of a CONSUMER repo silently reads the HUB's
+# index. [#355]: corp-monorepo was reported as lacking INSTALL.md (it has one) and carrying
+# 587 docs/handoffs/ files (it has none) -- the hub's own facts wearing corp's repo_id.
+#
+# Scrubbed by NAME, never by a `startswith("GIT_")` prefix strip: a blanket strip would also
+# drop GIT_CONFIG_GLOBAL / GIT_CONFIG_SYSTEM / GIT_AUTHOR_* / GIT_SSH_COMMAND, which test
+# harnesses and CI legitimately set. Over-scrubbing fails QUIETLY (identity/config loss);
+# under-scrubbing merely preserves today's behaviour for a var we forgot.
+_GIT_LOCATION_ENV = (
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_INDEX_FILE",
+    "GIT_COMMON_DIR",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_PREFIX",
+    "GIT_CEILING_DIRECTORIES",
+    "GIT_NAMESPACE",
+)
+
+
+def _scrubbed_git_env() -> dict:
+    """os.environ minus the repo-location vars, so ``cwd=`` alone decides which repo git reads."""
+    return {k: v for k, v in os.environ.items() if k not in _GIT_LOCATION_ENV}
+
+
 def _git(args: list[str], cwd: Path) -> tuple[int, str]:
     try:
         p = subprocess.run(["git", *args], cwd=str(cwd), capture_output=True,
-                           text=True, encoding="utf-8", errors="replace")
+                           text=True, encoding="utf-8", errors="replace",
+                           env=_scrubbed_git_env())
         return p.returncode, (p.stdout or "").strip()
     except OSError as exc:  # git missing etc. -- surfaced in evidence, never a crash
         return 999, f"git unavailable: {exc}"
