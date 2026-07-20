@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-17
+last_reviewed: 2026-07-20
 reconciled_with: handoff-process@5.7
 status: active
 owner: Rob
@@ -7,7 +7,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.42 — 2026-07-17 -->
+<!-- version: 2.44 — 2026-07-20 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -15,6 +15,7 @@ owner: Rob
 
 ## 1. First read (session start)
 <!-- scope: meta -->
+> **[HUB - methodology]** region `first-read` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=first-read owner=hub -->
 
 In order, read:
@@ -28,6 +29,7 @@ In order, read:
 
 ## 2. Repo identity
 <!-- scope: meta -->
+> **[REPO - local]** region `repo-identity` - this repo owns these lines.
 <!-- methodology:start id=repo-identity owner=repo -->
 
 - **Name:** `.dev-knowledge`
@@ -41,6 +43,7 @@ In order, read:
 
 ## 3. Architecture
 <!-- scope: meta -->
+> **[REPO - local]** region `repo-architecture` - this repo owns these lines.
 <!-- methodology:start id=repo-architecture owner=repo -->
 
 See `ARCHITECTURE.md` for the structural model; read it before structural changes (required for every repo, per ADR-51 as amended 2026-05-23). NOT a code project — markdown governance files + read-only validators only.
@@ -52,6 +55,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 <!-- scope: meta -->
 
 - **Naming:** UPPERCASE for top-level living docs (`VISION.md`, `CLAUDE.md`, etc.); `ADR-NN-topic.md` for decisions; `YYYY-MM-DD-slug.md` for dated artifacts; `council-out-YYYYMMDD_HHMMSS-topic.md` for Council CLI output; kebab-case otherwise
+> **[HUB - methodology]** region `conventions-commit-branch` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=conventions-commit-branch owner=hub -->
 - **Commits & branches:** Branch prefixes are `feat/ fix/ docs/ chore/` (these four only). Commit **types** follow Conventional Commits and additionally include `refactor` and `test` — commit types are **not** branch prefixes. Never commit directly to `main`: branch → `--no-ff` merge.
 <!-- methodology:end id=conventions-commit-branch -->
@@ -68,6 +72,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 - Claude Code runtime config → `~/.claude/`
 - Council debate transcripts originate in `ai-council/`; they archive here in `docs/decisions/transcripts/`
 
+> **[HUB - methodology]** region `conventions-output-formatting` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=conventions-output-formatting owner=hub -->
 - **Output formatting (render-layer):** Claude does **not** emit box-drawing glyphs — the Claude Code TUI *paints* plain markdown pipe-tables (`| col | col |`) as Unicode borders (`┌─┬─┐ │ └─┴─┘`) **client-side at render time**. So a bare table looks clean in the terminal but copies into browser chat as costly border glyphs (~3× the tokens), and a rule that merely bans Claude from *writing* box-drawing is a no-op (Claude already doesn't). The working fix is at the render layer: any report the operator copies out must be (1) **flat** — plain markdown or `key: value` / bullet lists, no column-padding spaces — **and** (2) **wrapped in a triple-backtick code fence**, which makes the TUI render it raw/un-painted so the copied text carries no borders. Same fenced-block discipline already used for Scale-S snippets (ESSENTIALS) and downloadable prompts (§2). Persistent diagrams live on the separate human-facing visualization surface (ADR-59; the ADR-51 amendment 2026-07-05 moved Mermaid out of canonical `ARCHITECTURE.md` — its codemap is now compact text), out of scope. Full rationale + `/session-summary` reconciliation: PLAYBOOK §8 "Output the operator copies into browser chat".
 <!-- methodology:end id=conventions-output-formatting -->
@@ -75,6 +80,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 ## 5. Critical rules
 <!-- scope: meta -->
 
+> **[HUB - methodology]** region `critical-rules-records` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=critical-rules-records owner=hub -->
 1. **`LESSONS.md` and `logs/TOKEN-LOG.md` are append-only** — never edit old entries; only append (ADR-29, ADR-39). **LESSONS.md-only exception (ADR-29 amend. 2026-07-17):** a contiguous *older* block MAY be relocated **byte-identical** into a dated `LESSONS-legacy-<span>.md` (sanctioned chronological archival — the sole way an entry leaves the active file; edits/deletes still forbidden); `logs/TOKEN-LOG.md` stays strict
 2. **`JOURNAL.md` is append-only newest-first** — prepend at session wrap or workday close
@@ -82,17 +88,20 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 <!-- methodology:end id=critical-rules-records -->
 4. **Layer 2 never executes** — no orchestration scripts; `scripts/` contains read-only validators only (ADR-28, ADR-36)
 5. **No new markdown files without checking navigation/growth triggers** — when navigation overhead emerges, evaluate DevVault migration. Root `README.md` deleted 2026-05-23 (deprecated per ADR-38 amendment A5; redundant with VISION + CLAUDE.md + ARCHITECTURE for this internal-only repo) — do not recreate it.
+> **[HUB - methodology]** region `critical-rules-consistency` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=critical-rules-consistency owner=hub -->
 6. **Keep files consistent** — ESSENTIALS summarizes PLAYBOOK, not copies it; divergence causes drift
 <!-- methodology:end id=critical-rules-consistency -->
 7. **No executable rules in this repo** — those go in `~/.claude/` with `verify:` lines
 8. **Do not recreate `CHANGELOG.md` or `BACKLOG_ARCHIVE.md`** — deleted 2026-05-16; git history + JOURNAL `Changes:` line replace CHANGELOG
+> **[HUB - methodology]** region `critical-rules-no-leftovers` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=critical-rules-no-leftovers owner=hub -->
 9. **No leftovers** — any automated or scratch-creating process (parallel-session worktree, temp file, scratch dir) removes **and verifies removal of** everything it created before it counts as done; cleanup fires even on abort. The provision→cleanup round-trip must leave the tree identical. See PLAYBOOK §Session-boundaries "No leftovers"
 <!-- methodology:end id=critical-rules-no-leftovers -->
 
 ## 6. Session start protocol
 <!-- scope: runtime -->
+> **[HUB - methodology]** region `session-start-protocol` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=session-start-protocol owner=hub -->
 
 1. `git status` — clean working tree?
@@ -114,6 +123,7 @@ User-level (`~/.claude/commands/`):
 - `/session-summary` — generate token-efficient session summary + handoff
 - `/codex-review` — invoke Codex review on a staged **code** diff (code only)
 
+> **[REPO - local]** region `commands-repo-roster` - this repo owns these lines.
 <!-- methodology:start id=commands-repo-roster owner=repo -->
 Repo-level (`./.claude/commands/` — machine-enumerated from command-file frontmatter, generated like §9's roster; regenerate: `python scripts/gen_claude_rosters.py --write`):
 
@@ -134,6 +144,7 @@ User-level (`~/.claude/skills/`):
 
 (`boot`/`session-summary`/`handoff`/`save` are **commands**, not skills — see §7; current Claude Code also surfaces commands in its skill picker, but their files live under `commands/`, not `skills/`.)
 
+> **[REPO - local]** region `skills-repo-roster` - this repo owns these lines.
 <!-- methodology:start id=skills-repo-roster owner=repo -->
 Repo-level (`./.claude/`):
 - `.claude/skills/` holds `verify` (ecosystem verification scripts, run after `pytest`) + `check-against-spec` (spec-reconciliation site enumerator). Repo-specific empirical patterns also live in `LESSONS.md` (append-only) — read it before structural changes; universal gotchas are the user-level `gotchas` skill above. A repo-specific gotchas skill, if added, goes under `.claude/skills/gotchas/`.
@@ -144,6 +155,7 @@ Plugin:
 
 ## 9. Hooks active
 <!-- scope: runtime -->
+> **[REPO - local]** region `hooks-repo-roster` - this repo owns these lines.
 <!-- methodology:start id=hooks-repo-roster owner=repo -->
 
 Pre-commit (`.pre-commit-config.yaml`):
@@ -177,6 +189,7 @@ The deployed methodology corpus (the commands / hooks / config the deploy tool s
 
 ## 10. Anti-patterns specific to Claude Code in this repo
 <!-- scope: meta -->
+> **[HUB - methodology]** region `antipatterns-universal` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=antipatterns-universal owner=hub -->
 
 - **Editing old LESSONS.md or logs/TOKEN-LOG.md entries** — append-only; editing corrupts the institutional record (a *byte-identical* chronological relocation of an older block into `LESSONS-legacy-<span>.md` is NOT an edit — the ADR-29 2026-07-17 archival exception; any content change still is)
@@ -189,6 +202,7 @@ The deployed methodology corpus (the commands / hooks / config the deploy tool s
 
 ## 11. Recent ADRs binding here (last 5)
 <!-- scope: meta -->
+> **[REPO - local]** region `recent-adrs-roster` - this repo owns these lines.
 <!-- methodology:start id=recent-adrs-roster owner=repo -->
 
 Machine-enumerated (last 5 by number, from `docs/decisions/ADR-*.md` headers; regenerate: `python scripts/gen_claude_rosters.py --write`). Editorial one-liners live in `docs/decisions/README.md`; full governance list in `ARCHITECTURE.md`.
@@ -198,6 +212,7 @@ Machine-enumerated (last 5 by number, from `docs/decisions/ADR-*.md` headers; re
 
 ## 12. Section history
 <!-- scope: meta -->
+> **[REPO - local]** region `section-history` - this repo owns these lines.
 <!-- methodology:start id=section-history owner=repo -->
 
 > _Entries v1.0–v2.17 condensed to git history per ADR-49/65 (info-preserving — full prior history: `git log --follow -p -- CLAUDE.md`)._
@@ -212,10 +227,10 @@ Machine-enumerated (last 5 by number, from `docs/decisions/ADR-*.md` headers; re
 - v2.37 (2026-07-12) — [#330] root-archive prohibition sweep (register-faithful, operator-ruled): the codified rule landed in PLAYBOOK Ch2 "What CLAUDE.md is NOT" (root/`CLAUDE.md` reference only CURRENT surfaces; archived detail lives in `templates/archive/`/`LESSONS.md`/`docs/`). The CLAUDE.md sweep fixed register-**g2** — the archived `/boot` no longer heads §6's Session-start protocol (removed as step-1, live steps renumbered 1–6) — and removed the archived `/boot`+`/evolve` from §7's user-level "commands **available**" list (an archived command isn't available), and stripped the archive-path clause from the §8 `verify`-skill note (current fact kept: verify is hub-local). **Relocated (not deleted) provenance:** `/boot`+`/evolve` were archived 2026-06-05 Phase-C3 → `~/.claude/archive/2026-06-05-machinery-c3/` (the user-level `verify` copy the same) — the pointer moves here + to git history; the archived command *content* stays put. This moves the hub **toward** consumer parity (both consumers already have no `/boot`). Deliberately **kept** the marked guardrails — §5 "do not recreate `README.md`/`CHANGELOG.md`/`BACKLOG_ARCHIVE.md`" (deleted), §10 "don't narrate retired `AGENTS.md`", §2 repo-tier deprecation note — because a guardrail forbidding a deleted file's resurrection must name it (register: "marked, not silent" = fine, not the g2 defect). §4 L71 (Council transcripts → `docs/decisions/transcripts/`) confirmed OUT of scope: a live destination pointer, not archived content. L10 version 2.36→2.37. Genuine end-to-end re-read to place every disposition; `last_reviewed` re-stamped 2026-07-12.
 - v2.38 (2026-07-12) — §9 SessionStart roster reconciliation (t1-templates-canon lane, content-parity inventory B5): added the live `arm_hooks.py` (RF-2 hub self-arm — idempotent `pre-commit install` of the 3 hook types, asserted by `audit.py` check_hooks_armed) to the §9 SessionStart prose — `.claude/settings.json` runs five SessionStart commands, §9 listed only four. L10 version 2.37→2.38. Additive §9-only edit; genuine basis: full-file re-read at lane boot + the §9 SessionStart prose ↔ `.claude/settings.json` set-match exercised live; `last_reviewed` 2026-07-12 stands (same-day arc).
 - v2.39–v2.40 (2026-07-12) — doc-review findings F1/F4/F5 (consumer-safe canon, operator-ruled): three owner=hub region bodies changed IN CANON + their `templates/claude-regions/` extracts in the same commit (byte-match preserved) — **F1** §1 first-read: bare `protocols/ESSENTIALS.md`/`PLAYBOOK.md` → hub-pointer phrasing (read at the hub `.dev-knowledge/protocols/` set, never copied — applicable verbatim in a consumer); **F4** §4 commit/branch: unified C4 contract (branch prefixes `feat/ fix/ docs/ chore/` only; commit **types** incl. `refactor`/`test`, types ≠ prefixes; `--no-ff`, never direct main) — identical wording mirrored into hub + template CONTRIBUTING; **F5** §5 rule 9: dropped hub-specific incident wording (night-agent/ADR-68, `.dev-knowledge-*` orphans), kept the universal cleanup rule. L10 version 2.38→2.39. Genuine re-read of each edited region; `last_reviewed` 2026-07-12 stands (same-day arc). **v2.40** (same day, `chore/ruff-hub-pin`) — §9 ruff-line coherence fix in lockstep with a config change: the hub's `ruff` pre-commit hook converted from the hub-local `language: system` system-binary form to the fleet-canonical pinned-rev form (`astral-sh/ruff-pre-commit` @ v0.15.5, `args: []`), matching both consumers (corp-monorepo + ai-council); rev == the `pyproject.toml` required-version floor so no version-mismatch phantom errors. §9 line 161 re-worded off the now-false `language: system` claim (the v2.36 lockstep precedent — a config hook change + its §9 roster line move together); the `pyproject.toml` `[tool.ruff]` floor comment likewise updated off the system-binary rationale. Hook-id count unchanged (ruff stays one id) → `doc-counts.md` (15 gates) + `validate_doc_claims` untouched. Folded into this bullet (not a new §12 entry) to hold the section-history count at 11 under the ADR-49/65 condense threshold. L10 version 2.39→2.40. Genuine basis: full-file re-read + the §9 line ↔ `.pre-commit-config.yaml` set-match exercised live.
-- v2.41 (2026-07-16) — §1 first-read diet (TAIL micro-arc, operator-ruled): `PLAYBOOK.md` demoted from a numbered mandatory first-read item to an on-demand **reference** pointer; `ESSENTIALS.md` stays the direct first-read (the always-on subset). The `owner=hub` §1 body was edited IN CANON + its `templates/claude-regions/first-read.md` extract in lockstep (byte-match preserved — the v2.39 discipline); scoped hub-repo-only, no consumer-repo propagation (a consumer never copies PLAYBOOK, so the demotion is consistent for it at next onboard). Paired for one `--no-ff` integration with the LESSONS legacy-split ruling (LESSONS.md append) + its build ticket [#339]. The doc-lane review (the [#333] profile's first production use) caught + fixed pre-merge: the header "For universal rules" line + the §1 on-demand fallback made consistent with the PLAYBOOK demotion, the stale footer "Last updated" re-stamped 2026-07-16, and the LESSONS ruling reframed as a reopen-of-ADR-29 (a chronological archival split, distinct from ADR-29's rejected by-scope split — [#339] owns the formal ADR-29 reconciliation). L10 version 2.40→2.41. Genuine full-file end-to-end re-read (all 12 sections confirmed accurate); `last_reviewed` re-stamped 2026-07-16. **v2.42 (2026-07-17)** completes that anticipated [#339] pairing — the ADR-29 chronological legacy-archival split RATIFICATION ([#339 sanction], operator-ruled core-invariant #6, Stage-2 atomic): the LESSONS-only archival exception landed in §4 File-lifecycle (owner=repo) + §5 record 1 (owner=hub → `templates/claude-regions/critical-rules-records.md` extract in lockstep, byte-match) + §10 anti-pattern (owner=hub → `antipatterns-universal.md` extract in lockstep) — a contiguous older block MAY relocate byte-identical into a dated `LESSONS-legacy-<span>.md`; `logs/TOKEN-LOG.md`/JOURNAL stay strict, ADR/transcript/handoff/audit immutability unchanged. Atomic with ARCHITECTURE L107 + Ch5 table, PLAYBOOK by-topic→chronological + threshold, the ADR-39 `LESSONS-legacy` six-element registry entry, README ADR-29 row, and the ADR-29 append-marker ratification. LESSONS.md content unmoved (241 < 300; move is [#339]'s build leg). L10 version 2.41→2.42; `last_reviewed` re-stamped 2026-07-17 (genuine re-read of every edited §4/§5/§10 span + both extracts). Folded here (not a new §12 bullet) to hold the section-history count at 11 (ADR-49/65 condense threshold; the v2.40 precedent).
+- v2.41 (2026-07-16) — §1 first-read diet (TAIL micro-arc, operator-ruled): `PLAYBOOK.md` demoted from a numbered mandatory first-read item to an on-demand **reference** pointer; `ESSENTIALS.md` stays the direct first-read (the always-on subset). The `owner=hub` §1 body was edited IN CANON + its `templates/claude-regions/first-read.md` extract in lockstep (byte-match preserved — the v2.39 discipline); scoped hub-repo-only, no consumer-repo propagation (a consumer never copies PLAYBOOK, so the demotion is consistent for it at next onboard). Paired for one `--no-ff` integration with the LESSONS legacy-split ruling (LESSONS.md append) + its build ticket [#339]. The doc-lane review (the [#333] profile's first production use) caught + fixed pre-merge: the header "For universal rules" line + the §1 on-demand fallback made consistent with the PLAYBOOK demotion, the stale footer "Last updated" re-stamped 2026-07-16, and the LESSONS ruling reframed as a reopen-of-ADR-29 (a chronological archival split, distinct from ADR-29's rejected by-scope split — [#339] owns the formal ADR-29 reconciliation). L10 version 2.40→2.41. Genuine full-file end-to-end re-read (all 12 sections confirmed accurate); `last_reviewed` re-stamped 2026-07-16. **v2.42 (2026-07-17)** completes that anticipated [#339] pairing — the ADR-29 chronological legacy-archival split RATIFICATION ([#339 sanction], operator-ruled core-invariant #6, Stage-2 atomic): the LESSONS-only archival exception landed in §4 File-lifecycle (owner=repo) + §5 record 1 (owner=hub → `templates/claude-regions/critical-rules-records.md` extract in lockstep, byte-match) + §10 anti-pattern (owner=hub → `antipatterns-universal.md` extract in lockstep) — a contiguous older block MAY relocate byte-identical into a dated `LESSONS-legacy-<span>.md`; `logs/TOKEN-LOG.md`/JOURNAL stay strict, ADR/transcript/handoff/audit immutability unchanged. Atomic with ARCHITECTURE L107 + Ch5 table, PLAYBOOK by-topic→chronological + threshold, the ADR-39 `LESSONS-legacy` six-element registry entry, README ADR-29 row, and the ADR-29 append-marker ratification. LESSONS.md content unmoved (241 < 300; move is [#339]'s build leg). L10 version 2.41→2.42; `last_reviewed` re-stamped 2026-07-17 (genuine re-read of every edited §4/§5/§10 span + both extracts). Folded here (not a new §12 bullet) to hold the section-history count at 11 (ADR-49/65 condense threshold; the v2.40 precedent). **v2.43 (2026-07-19)** — visible-boundary lane (#312 follow-on, operator-ruled): the boundary gained a second, READER-VISIBLE representation without gaining a second vocabulary. `scripts/boundary_headers.py` **generates** a one-line ownership header for each of the 15 Form-A regions, deriving `owner`+`id` by *importing* `boundary_report`'s `_START_RE`/`parse_regions` — so markers stay the single source of truth and a hand-edited header is overwritten on regen (`--check` = regen-and-diff; `--coverage` = headed/total governed files, exit 1 below 100%; hand-maintained headers are structurally impossible, not merely discouraged). Headers sit IMMEDIATELY BEFORE each `methodology:start`, never inside a region, so the 8 `owner=hub` bodies stay byte-identical to their `templates/claude-regions/` extracts (verified 8/8, `tests/test_boundary_headers.py`). Prose 177→192 of the ADR-53 200 budget (comment-only lines excluded, v2.35 rule). Paired with `.vscode/` background decoration of the same regions (`owner=hub` grey / `owner=repo` navy, dark theme), declared FLEET material — not a per-repo local — by the new `editor-config` carrier + `vscode-boundary-decoration` component in `deploy/manifest-v1.4.0.yaml`, resolving fleet-parity register **e1** ahead of its 2026-08-13 forcing date; carrier is declaration-only (`implemented: false`), the consumer write-through is the next ticket. L10 version 2.42→2.43; `last_reviewed` re-stamped 2026-07-19 (genuine full-file end-to-end re-read; all 12 sections confirmed accurate). **v2.44 (2026-07-20)** — architect-ruled corrections to that same lane: (a) the colour assignment is flipped to the **[#352]** written spec — grey = `owner=hub`, navy = `owner=repo`; v2.43 shipped them INVERTED on an aesthetic judgment that overrode a written spec (flagged pre-merge, not shipped silently), and every asserting site moved in lockstep (`.vscode`, manifest carrier + roster line, the colour test, this entry); (b) the lane's ticket identity is corrected to **[#352]** — v2.43 and its commits cited #312, which is the marker *substrate* this builds on, not this ticket. [#352]'s generator Done-when was amended (architect ruling) to record satisfied-by-elimination rather than leaving a silent spec-vs-build gap. L10 version 2.43→2.44; `last_reviewed` re-stamped 2026-07-20 (genuine full-file end-to-end re-read).
 <!-- methodology:end id=section-history -->
 
 ---
 
-**Last updated:** 2026-07-17
+**Last updated:** 2026-07-20
 **Maintained by:** Rob
