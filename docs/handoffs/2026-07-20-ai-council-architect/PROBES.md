@@ -42,7 +42,7 @@ confirmed at generation time by running each command in the target). Where the h
 hooks are **formatters that rewrite files**, which would violate the read-only contract on a
 cross-repo target. The P7 sweep calls the read-only validators directly instead.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## P1 — Orientation (the architect's **first move**, before any mechanism — §13c)
 
@@ -61,7 +61,7 @@ navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d):** the browser
 asks the operator for **off-repo** context.
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -113,6 +113,7 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
 6. **Bundle-shape / supplement fill-state is NOT a probe here** (the stock P8 was re-bound — it
    pointed at the hub bundle dir, which is unresolvable from the target root). This bundle carries
    `HANDOFF_BOOT` + `RESIDUAL` + `PROBES` + `SUPPLEMENT` + `PASTE_THIS` and **no per-bundle README**
-   (HANDOFF_PROCESS §13); the supplement is **generated EMPTY**, so the §13(d) beat fires **FULL**
-   unless the operator runs `supplement filled` first. Confirm by looking at the bundle directory in
-   the hub — it is CC-side bookkeeping, not target state.
+   (HANDOFF_PROCESS §13); the supplement is **FILLED** — its ANSWERS are folded into `PASTE_THIS.md`,
+   so the §13(d) beat **NARROWS** to *"anything changed since the supplement was written?"* rather
+   than firing full. Confirm by looking at the bundle directory in the hub — it is CC-side
+   bookkeeping, not target state.

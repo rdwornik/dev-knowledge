@@ -25,7 +25,7 @@
 > against verified-live ai-council surfaces** (see the `PROBES.md` cross-repo header for which four
 > and why).
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -115,7 +115,27 @@ disposition) already encodes the detail; do not re-read it as narrative here.
 
 <!-- FILL-IN:frontier START (hand-authored — the open architecture questions + decision context the next session must resume rather than rediscover; the residual's core payload in architect mode) -->
 The design questions this window **surfaced but deliberately did not settle**. Resume these; do not
-rediscover them. Ordered by how much they constrain everything downstream.
+rediscover them.
+
+> **⚠ READ THE SUPPLEMENT SECTION FIRST — it outranks this section's ordering.** This residual is
+> **repo-derived**; the supplement carries the outgoing architect's own *why*, and on three points it
+> **corrects** what follows:
+> 1. **`[#27]` Phase-3 blind scoring (0/12) is the gating item** — non-delegable, one operator
+>    sitting, and it gates the ADR-12 §5 flip → `[#41]` → `[#66]`. **This section does not mention it
+>    at all.** Rank it first; my ordering below was derived from the defect surface, which cannot see
+>    an operator-blocked scoring task.
+> 2. **Do not couple a compliance fix to the 1.1 bump.** Item (2) below floats folding `[#77]` into
+>    Contract-Version 1.1; the supplement rejects that coupling for Contract A on the ground that a
+>    compliance fix forces no version bump (precedent `[#39]`). `[#34]` + `[#76]` remain 1.1.
+>    Treat item (2)'s "argument for folding it in" as **answered, not open**.
+> 3. **Scope:** this window was the **output-contract** arc. The Python/stack/assets/mypy work is
+>    **ARC 5, hub-side — a different repo and a different handoff.** If the live pain is stack config,
+>    the next session is not an ai-council window at all.
+>
+> Where the two disagree, the supplement wins on *intent and priority*; this section stays
+> authoritative on *what the defects are*. Everything factual in both is still re-derived live (P4–P10).
+
+Ordered below by how much each constrains the others — **after** applying the correction above.
 
 **(1) `options_considered` — settle it as a CONTRACT, not a third patch. [#77]**
 The live decision, not a bug-fix task. The function has now been known-broken across two windows and

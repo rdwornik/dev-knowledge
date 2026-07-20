@@ -12,7 +12,7 @@
 | **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->**CROSS-REPO — the target is `ai-council`, not the hub.** Settle the delegation-surface contract questions that the 2026-07-19/20 reintegration-and-adversarial arc surfaced but deliberately left open: the `options_considered` extraction **contract** ([#77] — decide the boundary, not the regexes), the **Contract-Version 1.1** bundle ([#34] + [#76], versioned together), and the inbox/CLI **parity** pattern now on its fourth recorded instance ([#69]). Also rule on the one genuinely cross-repo question: whether `ai-council`'s thin, silent-passing enforcement surface is correct-by-design or a gap, given that this window's central lesson was that per-lane green does not compose to whole-repo green. Navigate from `ai-council/BACKLOG.md` (theme backbone [E1]–[E7]; [E1] delegation-readiness carries most of the above — P9 re-derives the live counts) — **and note `RESIDUAL.md` §4 is the payload here, not §2.**<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/ai-council-architect-handoff`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -289,7 +289,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > against verified-live ai-council surfaces** (see the `PROBES.md` cross-repo header for which four
 > and why).
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -379,7 +379,27 @@ disposition) already encodes the detail; do not re-read it as narrative here.
 
 <!-- FILL-IN:frontier START (hand-authored — the open architecture questions + decision context the next session must resume rather than rediscover; the residual's core payload in architect mode) -->
 The design questions this window **surfaced but deliberately did not settle**. Resume these; do not
-rediscover them. Ordered by how much they constrain everything downstream.
+rediscover them.
+
+> **⚠ READ THE SUPPLEMENT SECTION FIRST — it outranks this section's ordering.** This residual is
+> **repo-derived**; the supplement carries the outgoing architect's own *why*, and on three points it
+> **corrects** what follows:
+> 1. **`[#27]` Phase-3 blind scoring (0/12) is the gating item** — non-delegable, one operator
+>    sitting, and it gates the ADR-12 §5 flip → `[#41]` → `[#66]`. **This section does not mention it
+>    at all.** Rank it first; my ordering below was derived from the defect surface, which cannot see
+>    an operator-blocked scoring task.
+> 2. **Do not couple a compliance fix to the 1.1 bump.** Item (2) below floats folding `[#77]` into
+>    Contract-Version 1.1; the supplement rejects that coupling for Contract A on the ground that a
+>    compliance fix forces no version bump (precedent `[#39]`). `[#34]` + `[#76]` remain 1.1.
+>    Treat item (2)'s "argument for folding it in" as **answered, not open**.
+> 3. **Scope:** this window was the **output-contract** arc. The Python/stack/assets/mypy work is
+>    **ARC 5, hub-side — a different repo and a different handoff.** If the live pain is stack config,
+>    the next session is not an ai-council window at all.
+>
+> Where the two disagree, the supplement wins on *intent and priority*; this section stays
+> authoritative on *what the defects are*. Everything factual in both is still re-derived live (P4–P10).
+
+Ordered below by how much each constrains the others — **after** applying the correction above.
 
 **(1) `options_considered` — settle it as a CONTRACT, not a third patch. [#77]**
 The live decision, not a bug-fix task. The function has now been known-broken across two windows and
@@ -514,7 +534,7 @@ confirmed at generation time by running each command in the target). Where the h
 hooks are **formatters that rewrite files**, which would violate the read-only contract on a
 cross-repo target. The P7 sweep calls the read-only validators directly instead.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## P1 — Orientation (the architect's **first move**, before any mechanism — §13c)
 
@@ -533,7 +553,7 @@ navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d):** the browser
 asks the operator for **off-repo** context.
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -585,6 +605,77 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
 6. **Bundle-shape / supplement fill-state is NOT a probe here** (the stock P8 was re-bound — it
    pointed at the hub bundle dir, which is unresolvable from the target root). This bundle carries
    `HANDOFF_BOOT` + `RESIDUAL` + `PROBES` + `SUPPLEMENT` + `PASTE_THIS` and **no per-bundle README**
-   (HANDOFF_PROCESS §13); the supplement is **generated EMPTY**, so the §13(d) beat fires **FULL**
-   unless the operator runs `supplement filled` first. Confirm by looking at the bundle directory in
-   the hub — it is CC-side bookkeeping, not target state.
+   (HANDOFF_PROCESS §13); the supplement is **FILLED** — its ANSWERS are folded into `PASTE_THIS.md`,
+   so the §13(d) beat **NARROWS** to *"anything changed since the supplement was written?"* rather
+   than firing full. Confirm by looking at the bundle directory in the hub — it is CC-side
+   bookkeeping, not target state.
+
+---
+
+=== SUPPLEMENT.md ===
+
+===================== PASTE CHAT ANSWERS BELOW THIS LINE =====================
+
+SUPPLEMENT ANSWERS — outgoing ai-council architect (2026-07-20); CC transcribes VERBATIM
+
+STRATEGIC INTENT (way-of-working level): the failure this repo keeps paying for is "decision
+recorded ≠ decision enforced ≠ decision legible." This window converted three silent failures into
+mechanisms — a checker per contract, a composed cross-lane witness, two armed pre-commit guards —
+so "merged" can no longer be reported as "deployed." The next session finishes the legibility half:
+T1 de-bias, deferred for a FOURTH consecutive window with zero code, is the standing debt and must
+land plan-AND-build in one session, not another design document. NOTE ON SCOPE: this window shipped
+output-contract BEHAVIOUR (27a45d1..eabd962, pushed). It did NOT touch the Python/tooling stack,
+assets/, or mypy — that is ARC 5 / hub-side, a different repo. If the live pain is stack config, the
+next session is ARC 5, not another ai-council window.
+
+TENSIONS WEIGHED:
+(a) Raise-at-source vs record-and-aggregate. Landed: aggregate. Raising inside the writer aborted
+    the orchestrator before the minority report and verdict package were written CANONICALLY —
+    silent failure traded for data loss. All three debate writers share return_dir (common-mode),
+    so the orchestrator raises once after all canonical writes complete.
+(b) Merge order A2→A1→C — load-bearing. A1 adds raises in the writer layer; cli.py:799 had NO
+    handler on original main, so A1-first turns a silent exit 0 into a raw traceback. A2 first
+    closed that window and, per Finding 2, fixed a live pre-existing verdict-package traceback on
+    its own.
+(c) #66 witness: $0 offline vs billed. Landed: honest GAP, no spend — no first-class codex seat, so
+    a live witness bills; CC refused rather than fake a PASS. #66 now gated on #27's ADR-12 §5 flip.
+(d) doctor in Contract A: output resolution IN, probe surface OUT (#32's), or a lane drifts into #32.
+
+CONSIDERED + REJECTED (do not relitigate):
+- Coupling Contract A to #34's 1.1 bump — rejected: A is a COMPLIANCE fix (ADR-10/R4 already
+  promises fail-loud; precedent #39, no §2 entry), forces no bump. #34 keeps 1.1, versions with #76.
+- One epic for the silent-failure trio — rejected: split into two contracts on the file surface
+  (output-routing vs panel-resolution); a combined acceptance contract stops being checkable.
+- #68 as a blanket docs/ ban — rejected: would reject archive/ and both registered corpora. Built
+  as a registry check.
+- F8 "restrict the scan" fix — rejected: a Risks-only document makes that heading the FIRST match
+  too, so narrowing leaves the defect. Dropped the bare "considered" marker instead.
+
+OPEN QUESTIONS / DEFERRED:
+- #27 Phase 3 blind scoring: 0/12, untouched. THE highest-leverage item, the one objective function
+  of five that missed. Non-delegable, one operator sitting, 60 binary cells. Gates the ADR-12 §5
+  flip → #41 → #66.
+- Lane B (#69 panel parity + #64 frontmatter robustness): never ran, deferred on cli.py
+  serialization. cli.py is now free — cheapest next arc.
+- #77 (options_considered extraction contract): CORRUPTED ON MAIN TODAY via F6/F7, latent only
+  because nothing consumes the verdict package yet. MUST land before the caller-side advisor
+  [S13]/#36–#38 ships.
+- #75, #76 (1.1 with #34), #78, #79 filed, out of window.
+
+DECOMPOSITION RATIONALE: split by FILE SURFACE, not ticket. cli.py was contended (A-ii and B → serial);
+output.py + guards disjoint → parallel. The lesson that cost a RED main: file-disjointness is NOT
+contract-disjointness — A1 changed OutputRoutingError's constructor, A2's fixtures hardcoded the old
+signature, zero shared files, real coupling. STANDING RULE: before splitting lanes, list each lane's
+changed PUBLIC SIGNATURES and grep the others. DO NOT REDO: the A2→A1→C order, the two-contract
+split, the #68 registry-check design, the F8 marker-drop, the 1.0 stamp holding (compliance, not ABI).
+
+OFF-REPO CONTEXT: operator's live frustration is that 8 hours produced no visible STACK/TOOLING
+result — root cause is scope: this was the output-contract window, the Python/stack/assets/mypy work
+is ARC 5 / hub-side, a different handoff and repo. Educate every close with file-level before→after
+the operator can run (git log 27a45d1..eabd962; check.ps1), never ticket names. HUB PACKET for Rob to
+route, none actionable from an ai-council chat: (1) Tier-1 /review-closures is structurally stale
+(proposals written at session START → same-session deliveries classify WEAK); (2) codex-review.ps1
+summary regex misses '### [HIGH]' — CONSOLE-ONLY, no committed audit is wrong, one one-line fix in
+operator-owned tooling; (3) provisioner branch-naming vs CLAUDE.md §4; (4) #341 and #344 unruled.
+Prove-by-reversion footgun: commit the fix BEFORE reverting, or git checkout -- <file> destroys
+uncommitted work.
