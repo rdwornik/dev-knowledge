@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-21 — CC (Opus 4.8, 1M): night backlog-trust audit (lane 3 of 3) — 133 open items classified, detect-and-propose only
+
+**Did:** Audited every open `BACKLOG.md` task for trustworthiness and kill-candidacy. Pre-flight per the lane prompt: `git merge --ff-only origin/main` (clean FF `980584e2..e3e79ada`), next-free confirmed `[#381]` with `[#373]`-`[#380]` reserved and nothing filed into the range. Method: 7 parallel verifiers, one per epic-group, cross-checking against git first-parent history, `git log --all`, JOURNAL, `logs/`, live code/config, and — for consumer-side clauses — the real consumer repos. **Every returned kill-candidate was then independently re-verified** before reaching the list.
+
+**Result:** `571fd234` — report at `docs/audits/2026-07-21-technical-night-backlog-audit.md`. **116 LIVE / 9 MERGED-NOT-CLOSED / 6 kill-candidates / 2 demoted.** Integrity clean on three checks: **zero** open tickets carry a genuine `closes [#id]` (the single hit, `#370` @ `12e6b45b`, is convention-quoting prose asserting the opposite — the precision lever the memory note warns about); **zero** orphan ids among 221 referenced; **zero** silently-deleted tickets (the 19 id-sequence gaps were never allocated, verified `git log -S` per id). `validate_backlog` OK, 0 warnings.
+
+**The second pass earned its keep — it changed three verdicts.** `#339` demoted: `ADR-29:124/:126` define its build leg as including the A2 byte-identity helper, which does not exist and has no successor ticket, while the ticket's own Done-when omits it — text reads done, ADR does not. `#327` demoted: corp's own `protocols/` files still read *"Full genre wording deferred to #327"*, so the deliverable is declared outstanding by the files that would be its proof. And my own pre-fan-out hypothesis that `#343` was a prime candidate was **refuted** — the `fleet_parity` skip was never wired and the docstring says so.
+
+**Kill list (all evidence-backed):** `#302`+`#309` (consumer parity at n=2 with *witnessed* REFUSED/BLOCKED firings in both consumer JOURNALs, not merely installed) · `#131`+`#215` (onboarding runbook: 6 layers ordered, distinct conformance-verify section) · `#314` (protocols genre, n=2 on disk) · `#292` (medium — residual gate `622baedb`, satisfied-by-elimination and narrower than asked; rule with `#310`). The common thread is not rot but **stale in-ticket status prose** — each says "rollout pending"/"BUILD PARTIAL" in text written hours before the work landed.
+
+**Anomalies flagged, not resolved:** `ecosystem/deployed-versions.yaml` records corp at `1.2.0` while corp pins `v1.3.1` — the hub's registry of its own deployments is wrong about a consumer, untracked and unfiled. Plus the `#370`/`#372` collision (resolved; 3 accepted-stale citations, and the repo still has **no id-uniqueness gate**), R9-R11 never existed, `#277`/`#181` rest on gitignored evidence (`#277`'s ratio measured live at **91:0**, worse than the 49:0 its Done-when must beat), `#320`'s premise obsolete, and line-number citation drift in three `[E8]` tickets.
+
+**Changes:** `docs/audits/2026-07-21-technical-night-backlog-audit.md` (new) + `docs/audits/README.md` regenerated 268→269 (mechanical — `audit-index-freshness` blocks otherwise). **`BACKLOG.md` deliberately untouched** per the read-only contract; no ticket id filed, no closure executed, no merge, no push.
+
+**Next:** operator runs `/review-closures` over the 6 kill-candidates on one GO — that pass, not this one, is where deletions happen. Before approving: `#292`+`#310` must be ruled together; `#314` needs the stale `#327` forward-markers swept in the same arc; `#339`/`#327` each need one operator sentence, not more evidence. Watch-out: closing `#241` (×4 register entries), `#210`, `#146`, `#277` or `#335` orphans a disposition — none of the 6 candidates is in that set.
+
 ### 2026-07-21 — CC (Opus 4.8, 1M): housekeeping merged; id-range reserved; a concurrent HEAD swap put a commit direct on main
 
 **Did:** Merged the housekeeping branch on operator GO — `980584e2` (closures `[#355]`/`[#372]` + doc-counts regen), pushed; ship-gate dropped to the single expected VISION `[#368]` WARN, with `git_backlog_drift` and `doc_claims` both back to `[OK]`. Then reserved id range **`[#373]`–`[#380]`** ahead of the night batch — `94426dc0`.
