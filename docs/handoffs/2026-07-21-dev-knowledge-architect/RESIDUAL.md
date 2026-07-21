@@ -11,7 +11,7 @@
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -23,11 +23,16 @@ Produced by the live read-only drift-checks (`audit.py ship-gate`, `validate_git
 verdict, WARN count, `[stale]` status, drifted `#id`, or count — those are the probes' live answers.
 
 <!-- FILL-IN:driftflags START (hand-authored — describe WHICH flags are STANDING vs NEW and WHY, BY REFERENCE. Do NOT state the ship-gate verdict, the WARN count, the [stale] status, or any drifted #id/sha — those are P7/P4's LIVE answer; naming a value here re-inverts the anti-bluff contract.) -->
-**This is a COLD handoff.** The generating session was `/clear`ed and did no work of its own — everything
-below is repo-derived from the git/JOURNAL window since `2026-07-20-dev-knowledge-architect`, tagged
-`witnessed` where re-derived live at generation and `recall` where read out of the record. There is no
-un-committed session "why" to transmit, which is exactly why `SUPPLEMENT.md` is empty and the §13(d)
-beat fires FULL.
+**The CC session that generated this was cold; the SUPPLEMENT is not.** The generating session was
+`/clear`ed and did no work of its own, so everything in **this file** is repo-derived from the
+git/JOURNAL window since `2026-07-20-dev-knowledge-architect`, tagged `witnessed` where re-derived live
+at generation and `recall` where read out of the record. **`SUPPLEMENT.md` was subsequently FILLED** by
+the outgoing architect chat and its ANSWERS are folded into `PASTE_THIS.md` — so the §13(d) beat
+**NARROWS** to *"anything changed since the supplement was written?"*, it does not fire full.
+
+**Read the SUPPLEMENT before this file's §4.** The two were authored in that order and the supplement
+**overrides §4 on sequencing** — the reconciliation is marked inline at §4 rather than by silently
+rewriting it, so you can see what the repo said and what the operator ruled.
 
 **Standing (dispositioned — expect them; they are not news).** `witnessed` — the same four register
 families as the previous bundle, unchanged in composition: the `no_ff_merges` journal-wrap /
@@ -94,6 +99,29 @@ EXECUTION"* — and against §4 item 2 below, which is where it bites.
 ## §4 — Next-frontier decisions (the design "why" that travels)
 
 <!-- FILL-IN:frontier START (hand-authored — the open architecture questions + decision context the next session must resume rather than rediscover; the residual's core payload in architect mode) -->
+> **RECONCILIATION — the SUPPLEMENT was filled AFTER this section and overrides it on sequencing.**
+> §4 was authored from repo state alone; the supplement then arrived carrying the operator's intent.
+> Where they disagree **the supplement wins**, and the disagreement is marked here rather than edited
+> away, so the next session can see both. Per item:
+>
+> - **Item 1 — OVERRIDDEN on sequencing.** The supplement's mandate is **one delivery lane**
+>   (`assets/` dissolution in ai-council, already granted 2026-07-19 — *execute, do not re-seek
+>   permission*), **not** a bounded-pick message. It also effectively rules **R12** by rejecting the
+>   narrowing option outright (*"goal is ALL rules, prioritised, never lowered"*), and it names a
+>   **different owed-ruling set** — five one-sentence rulings on `#339`, `#327`, `#304`+`#305`,
+>   `#262`+`#295`, `#215`. Treat *that* list as the live ask, not R1–R8.
+> - **Item 2 — PARTIALLY ruled.** *"Consume the three audits, do not commission more"*; they are the
+>   last input. **The clause-(d) accretion tension is NOT resolved** — that half of the item stands.
+> - **Item 3 — AFFIRMED and given a disposition.** The polyrepo bet is confirmed as the sharpest
+>   hole and routed to **its own session**, deliberately not mixed into the delivery work, with a
+>   standing brake: *do not build more fleet machinery until it is ruled.*
+> - **Items 4 and 5 — UNTOUCHED by the supplement; they stand.** Item 4 is independently corroborated:
+>   the supplement's DO-NOT-REDO list carries the same `#320` refutation from the other direction.
+> - **Item 6 — the buy-vs-build half is RULED.** The template engine is **rejected** (merge-replay
+>   engines fail at this divergence profile; the hub is already regenerate-shaped), keeping only the
+>   per-consumer version-pin scalar. So `[#371]`'s vehicle is no longer blocked on an open engine
+>   question. The clause-(f) operator witness remains open.
+
 ### 1. The ten unruled decisions are STILL unruled — this is the second handoff to say so
 
 `[E8]`'s decision table (R1, R1b, R2–R8, R12) is unchanged and **entirely unruled**. The previous

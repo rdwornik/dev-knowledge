@@ -8,10 +8,10 @@
 | **Slug** | `2026-07-21-dev-knowledge-architect` |
 | **Chat title** | `[dev-knowledge] Technical Architect — 2026-07-21-dev-knowledge-architect · SEQ 1` — name the fresh browser chat this (bump `SEQ` per parallel chat) |
 | **Mode** | **architect** (HANDOFF_PROCESS §13 — planning / way-of-working scope) |
-| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->**Unblock ARC-5 by ruling, then decide what to do with three untriaged audits.** The `[E8]` decision table in `BACKLOG.md` is still entirely unruled for a second window running, and several waves are formally blocked on it — so the first substantive move is one bounded-pick message to the operator, not another analysis pass. The window that just closed shipped three read-only audit lanes and a hygiene arc but opened **zero waves**, and one of those audits raises a question (is the polyrepo shape itself decided?) that sits above ARC-5 and may change what R12 is choosing between. Start at `BACKLOG.md` `[E8]` — the wave map, the closure contract, and the decision table are all there; `RESIDUAL.md` §4 carries the six open threads and why each is live.<!-- FILL-IN:purpose END --> |
+| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->**Break the plan→ship deadlock by DELIVERING one thing end-to-end — this session is judged on delivery, not planning.** The operator's mandate (see `SUPPLEMENT.md`, which is filled and authoritative on sequencing) is a single lane: dissolve `assets/` in ai-council to a **deployed, operator-witnessed** end-state — already granted 2026-07-19, so execute it rather than re-seeking permission. Merged is not done; witnessed is done. Treat any new audit, intake, or ADR as a distraction unless it directly enables that one shipped change, and read `SUPPLEMENT.md` **before** `RESIDUAL.md` §4 — §4 was written from repo state alone and carries an inline reconciliation marking where the supplement overrides it. Repo-side context that is *not* in the supplement and still stands: `RESIDUAL.md` §4 items 4 and 5 (a witnessed contradiction between two sibling night-batch lanes, and the code audit's independent rediscovery of `[E8]`'s own thesis). Task-state pointer: `BACKLOG.md` `[E8]`.<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/handoff-dev-knowledge-architect-0721`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -274,7 +274,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -286,11 +286,16 @@ Produced by the live read-only drift-checks (`audit.py ship-gate`, `validate_git
 verdict, WARN count, `[stale]` status, drifted `#id`, or count — those are the probes' live answers.
 
 <!-- FILL-IN:driftflags START (hand-authored — describe WHICH flags are STANDING vs NEW and WHY, BY REFERENCE. Do NOT state the ship-gate verdict, the WARN count, the [stale] status, or any drifted #id/sha — those are P7/P4's LIVE answer; naming a value here re-inverts the anti-bluff contract.) -->
-**This is a COLD handoff.** The generating session was `/clear`ed and did no work of its own — everything
-below is repo-derived from the git/JOURNAL window since `2026-07-20-dev-knowledge-architect`, tagged
-`witnessed` where re-derived live at generation and `recall` where read out of the record. There is no
-un-committed session "why" to transmit, which is exactly why `SUPPLEMENT.md` is empty and the §13(d)
-beat fires FULL.
+**The CC session that generated this was cold; the SUPPLEMENT is not.** The generating session was
+`/clear`ed and did no work of its own, so everything in **this file** is repo-derived from the
+git/JOURNAL window since `2026-07-20-dev-knowledge-architect`, tagged `witnessed` where re-derived live
+at generation and `recall` where read out of the record. **`SUPPLEMENT.md` was subsequently FILLED** by
+the outgoing architect chat and its ANSWERS are folded into `PASTE_THIS.md` — so the §13(d) beat
+**NARROWS** to *"anything changed since the supplement was written?"*, it does not fire full.
+
+**Read the SUPPLEMENT before this file's §4.** The two were authored in that order and the supplement
+**overrides §4 on sequencing** — the reconciliation is marked inline at §4 rather than by silently
+rewriting it, so you can see what the repo said and what the operator ruled.
 
 **Standing (dispositioned — expect them; they are not news).** `witnessed` — the same four register
 families as the previous bundle, unchanged in composition: the `no_ff_merges` journal-wrap /
@@ -357,6 +362,29 @@ EXECUTION"* — and against §4 item 2 below, which is where it bites.
 ## §4 — Next-frontier decisions (the design "why" that travels)
 
 <!-- FILL-IN:frontier START (hand-authored — the open architecture questions + decision context the next session must resume rather than rediscover; the residual's core payload in architect mode) -->
+> **RECONCILIATION — the SUPPLEMENT was filled AFTER this section and overrides it on sequencing.**
+> §4 was authored from repo state alone; the supplement then arrived carrying the operator's intent.
+> Where they disagree **the supplement wins**, and the disagreement is marked here rather than edited
+> away, so the next session can see both. Per item:
+>
+> - **Item 1 — OVERRIDDEN on sequencing.** The supplement's mandate is **one delivery lane**
+>   (`assets/` dissolution in ai-council, already granted 2026-07-19 — *execute, do not re-seek
+>   permission*), **not** a bounded-pick message. It also effectively rules **R12** by rejecting the
+>   narrowing option outright (*"goal is ALL rules, prioritised, never lowered"*), and it names a
+>   **different owed-ruling set** — five one-sentence rulings on `#339`, `#327`, `#304`+`#305`,
+>   `#262`+`#295`, `#215`. Treat *that* list as the live ask, not R1–R8.
+> - **Item 2 — PARTIALLY ruled.** *"Consume the three audits, do not commission more"*; they are the
+>   last input. **The clause-(d) accretion tension is NOT resolved** — that half of the item stands.
+> - **Item 3 — AFFIRMED and given a disposition.** The polyrepo bet is confirmed as the sharpest
+>   hole and routed to **its own session**, deliberately not mixed into the delivery work, with a
+>   standing brake: *do not build more fleet machinery until it is ruled.*
+> - **Items 4 and 5 — UNTOUCHED by the supplement; they stand.** Item 4 is independently corroborated:
+>   the supplement's DO-NOT-REDO list carries the same `#320` refutation from the other direction.
+> - **Item 6 — the buy-vs-build half is RULED.** The template engine is **rejected** (merge-replay
+>   engines fail at this divergence profile; the hub is already regenerate-shaped), keeping only the
+>   per-consumer version-pin scalar. So `[#371]`'s vehicle is no longer blocked on an open engine
+>   question. The clause-(f) operator witness remains open.
+
 ### 1. The ten unruled decisions are STILL unruled — this is the second handoff to say so
 
 `[E8]`'s decision table (R1, R1b, R2–R8, R12) is unchanged and **entirely unruled**. The previous
@@ -489,7 +517,7 @@ the whole task-state.
 > branch is checked out so CC knows which live value to compare — **re-derive HEAD / tree / branch /
 > ahead-behind live (P3); do not trust this line.**
 >
-> > **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> > **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 >
 > **Windows note:** `audit.py checks` (P2) can crash mid-listing on a bare cp1252 PowerShell console
 > (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` (or `PYTHONIOENCODING=utf-8`); this
@@ -513,7 +541,7 @@ navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d):** the browser
 asks the operator for **off-repo** context.
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -544,3 +572,129 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
    any `[stale]` line). P8 pins the bundle shape **and the live supplement fill-state**. P10 grooms the
    whole open BACKLOG at boot (live / dead / awaiting-ruling per open `#id`). First check
    which branch is live (P3), then re-derive every load-bearing fact from the live primary source.
+
+---
+
+=== SUPPLEMENT.md ===
+
+1. STRATEGIC INTENT
+
+The next session must break the plan→execution deadlock. This fleet has spent 3-5 sessions
+planning what it cannot ship: assets/ still sits in ai-council, granted-and-planned since
+2026-07-19, never executed. That is the way-of-working defect to fix — not another audit, not
+another intake, not another ADR. The methodology-management goal (structure, naming, config,
+dependencies — not only LLM working-methodology) is sound and the theory is complete. What is
+missing is DELIVERY. So the intent is: pick ONE narrow, fully-specified, operator-witnessed
+equalization and DRIVE IT TO A DEPLOYED END-STATE the operator sees with his own eyes — assets/
+dissolution in ai-council is the obvious first, because it is the smallest granted-but-unexecuted
+item and it is the operator's own symbol of the execution failure. Merged is not done; deployed-
+and-witnessed is done. If the next session ends with assets/ gone from ai-council and the operator
+confirms it, the deadlock is broken and the pattern is proven repeatable. If it ends with another
+plan, the way-of-working has failed again and THAT becomes the finding.
+
+The deeper way-of-working question the vision audit forced open: WHY can this fleet plan but not
+ship? The likely answer is that the meta-work (audits, intakes, ADRs, census) has been crowding
+out the object-work (actually changing consumer repos). The next session should treat "did a
+consumer repo visibly change" as its only success metric, and treat any new audit/intake/ADR as
+a distraction from that unless it is the direct enabler of the one shipped change.
+
+2. TENSIONS WEIGHED
+
+- PLAN vs SHIP. Weighed hard, landed on SHIP. Every prior session produced excellent artifacts
+  and zero consumer-visible change. The bias must invert: no new planning artifact unless it is
+  the direct enabler of a shipped change this session.
+- BUY vs BUILD (the template engine). Weighed via the vision audit and REVERSED the earlier
+  buy-vs-build draft: Copier/cruft are merge-replay engines that fail at heavy declared
+  divergence; the field moved to projen's REGENERATE-DON'T-MERGE model, and the hub IS ALREADY
+  THAT (generated rosters, floor-hash replica, regen-and-diff gates). Landing: do NOT adopt a
+  template engine. Take only Copier's one good idea — a per-consumer template-version scalar as
+  the desired-state hash — and keep the existing regenerate machinery. This DELETES a large
+  planned workstream rather than building it, which serves intent #1.
+- SIEM FRAME vs STATE-DIFF. Landed on state-diff. The fleet is nightly cooperative state-diff,
+  not real-time adversarial event-stream. Keep the requirements (they're state-shaped already),
+  drop the SIEM frame and its ingestion-machinery pull.
+- SCOPE of the first ship: whole-fleet equalization vs one consumer, one surface. Landed on ONE
+  (ai-council, assets/). Proving the delivery loop once beats planning the whole matrix again.
+- NARROW vs BROAD id-allocation / session-coordination fix. The night proved (n=3) the repo holds
+  serialization by discipline not machinery. Weighed building the organ now vs parking it. Landed:
+  PARK it as a named ticket, do not let it become the next session's object-work — it is
+  infrastructure, and infrastructure is how this fleet has avoided shipping. Fix it AFTER the
+  delivery loop is proven once.
+
+3. CONSIDERED + REJECTED (do not relitigate)
+
+- Template engine adoption (Copier/cruft as the fleet engine) — REJECTED by the vision audit on
+  evidence: merge-replay fails at this divergence profile; the hub is already regenerate-shaped.
+  Keep only the version-pin scalar. Do not re-open "should we adopt Copier".
+- Renovate for dependency parity — REJECTED: it needs a hosted platform; on local-disk repos it's
+  detect-only. #332's central-constraints-file + per-repo-sync is already the proven pattern.
+- SIEM as the architecture frame — REJECTED as the wrong mental model. Do not build event-pipeline
+  ingestion.
+- Narrowing the ARC-5 rule-fix goal to a bounded slice — REJECTED earlier by the operator (goal is
+  ALL rules, prioritised, never lowered). Still stands.
+- Auto-deleting from the backlog in a night batch — REJECTED; operator is the strike gate via
+  /review-closures. Still stands.
+- Another round of audits as the next session's work — REJECTED implicitly by intent #1. AUDITS ARE
+  OVER (ARC-5's own banner, twice-violated). The three night audits are the last input; the next
+  session consumes them, it does not commission more.
+- Hand-close / hand-edit tickets outside the gate to force closures — REJECTED; the cleanup session
+  held the line (closure set = 5 not 6 because #215 is gate-unreachable; declined rather than
+  hand-forced).
+
+4. OPEN QUESTIONS (unresolved / deliberately deferred)
+
+- FIVE OWED RULINGS (one sentence each, needed before their tickets can close): #339 demotion
+  (A2 byte-identical helper leg unbuilt, no owner); #327 demotion (clauses appear met but corp's
+  own markers contradict — wording done + markers stale, or genuinely live?); #304+#305 (doc pass
+  closes #304; #305 needs a code clause blocked by PreflightError — re-scope?); #262+#295 (policy
+  ruling: abandon generator-management for flat layouts?); #215 (permanent gate-invisibility —
+  text edit to make it gate-visible, or accept a manual disposition path?).
+- THE POLYREPO BET, never decided (vision audit's sharpest hole): zero ADRs weigh monorepo vs
+  polyrepo; the 10-20-repo target is asserted, never argued. The only coherent n=1 justification
+  is that the workforce is AGENT SESSIONS. This is an afternoon's ADR that re-prices every other
+  bet — deferred to its OWN awake session, NOT mixed into the delivery work. Do not build more
+  fleet machinery until this is ruled, or you risk building an elegant solution to a problem a
+  monorepo would dissolve.
+- LITERAL hub-push into consumers (vs the ADR-28 read-only + hub-reports-PRs model) — an open
+  ADR-28-amendment question, deferred.
+- The session-coordination organ (live-session detection + fleet-scoped id-allocation) — the
+  night's proven infrastructure gap; parked as a ticket, deferred until the delivery loop ships
+  once.
+
+5. DECOMPOSITION RATIONALE (what NOT to redo)
+
+The task-graph shape is deliberately INVERTED from prior sessions: object-work first, meta-work
+only as its enabler. The next session is ONE delivery lane (assets/ dissolution in ai-council to a
+witnessed end-state), not a matrix of planning artifacts.
+
+Do NOT redo / re-decide:
+- The three night audits are DONE and merged — consume them, do not commission more.
+- The cleanup is DONE — backlog is 5 tickets lighter and TRUE; the registry is annotated; four
+  audit refutations are recorded (do not resurrect: #361 line-drift is false, #320 was wrong on
+  three counts, #244 #130 is a delete-not-swap, #314 companion edit is premature). The audit's
+  watch-out #1 orphan list is WRONG both ways (flags #210/#146/#277 which orphan nothing; misses
+  #262/#278/#332/#344 which do; #241 is ×6) — use the registry lane's JOURNAL correction, NOT the
+  audit, on the next /review-closures.
+- The buy-vs-build and SIEM decisions are made (reject the engine, drop the frame) — do not
+  re-derive them.
+- assets/ dissolution is already GRANTED (operator GO 2026-07-19: relocate to config/ first,
+  verify, then delete) — do not re-seek permission, EXECUTE it.
+- The equalization scope enumeration exists (living-docs, folder layout, naming, .vscode, .claude
+  surface, Python parity) — do not re-enumerate; pull ONE row and ship it.
+
+6. OFF-REPO CONTEXT
+
+- OPERATOR'S CORE FRUSTRATION, stated explicitly: this is the 3rd-5th session where everything is
+  planned, theorised, prepared — and NOTHING ships. assets/ still sits in ai-council as the symbol
+  of it. He expects the theory, the audits, the intakes, the ADRs to FINALLY be implemented
+  intelligently. The next session is judged on delivery, not planning.
+- The methodology-management scope is broad by operator ruling: not only LLM working-methodology
+  but naming, file/folder structure, Python engineering standards, dependency parity — the
+  architect owns all of it.
+- The vision audit (Fable, cold-boot) is the operator's requested fresh-eyes critique of the whole
+  direction — he takes it seriously and wants its theses acted on in their own session, not buried.
+- Push is standing-permission; the operator is the merge/strike gate; he judges when a session ends.
+- The two intake drafts (buy-vs-build, nightly-audit-standard) exist as downloadable files, NOT yet
+  ingested into docs/intake/. Given the reject-the-engine ruling, the buy-vs-build intake needs
+  REWRITING before ingest (it argued FOR a pivot the vision audit reversed) — flag, do not ingest
+  as-is.
