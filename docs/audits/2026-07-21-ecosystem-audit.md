@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-07-21  
-**Generated:** 2026-07-21T15:43:38  
+**Generated:** 2026-07-21T23:51:21  
 **Repos audited:** 6  
 **Checks:** 186 total — 152 pass, 3 fail, 8 warn, 0 unavailable, 23 n/a
 
@@ -34,7 +34,7 @@
 | `git_backlog_drift` | PASS | hub-only — git<->backlog drift check skipped (not the hub repo) |
 | `doc_claims` | PASS | hub-only — prose-vs-state check skipped (not the hub repo) |
 | `no_ff_merges` | PASS | hub-only — --no-ff guard skipped (not the hub repo) |
-| `handoff_probes` | PASS | 11 probe(s) bind to live state (2026-07-20-ai-council-architect) |
+| `handoff_probes` | PASS | 13 probe(s) bind to live state (2026-07-21-ai-council-architect) |
 | `reconciled_versions` | WARN | templates/CONTRIBUTING-md-template.md: malformed (reconciled_with not '<spec-id>@<version>') |
 | `doc_rot` | PASS | hub-only — doc-rot / grooming checker skipped (not the hub repo) |
 | `doc_structure` | PASS | hub-only — prose structural linter skipped (not the hub repo) |
