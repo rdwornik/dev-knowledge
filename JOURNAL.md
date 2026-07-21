@@ -55,6 +55,14 @@
 
 **Next:** operator runs `/review-closures` over the 6 kill-candidates on one GO — that pass, not this one, is where deletions happen. Before approving: `#292`+`#310` must be ruled together; `#314` needs the stale `#327` forward-markers swept in the same arc; `#339`/`#327` each need one operator sentence, not more evidence. Watch-out: closing `#241` (×4 register entries), `#210`, `#146`, `#277` or `#335` orphans a disposition — none of the 6 candidates is in that set.
 
+### 2026-07-21 — CC (Opus 4.8, 1M): NIGHT BATCH lane 1 of 3 — vision/direction critique (read-only)
+
+**Did:** Ran the night-batch **lane 1** vision/direction critique in the `night-vision-audit` worktree — read-only, web-grounded review of whether the fleet-governance system is the right thing to be building at all. Report at `docs/audits/2026-07-21-technical-night-vision-audit.md`, committed **`6dd559a2`** on the lane branch.
+
+**Changes:** `docs/audits/2026-07-21-technical-night-vision-audit.md` (new, 351 lines) + `docs/audits/README.md` (generated index lockstep). No JOURNAL, no code, no backlog mutation.
+
+**Next:** operator triage of the report alongside lanes 2 and 3. **Anchored retroactively by the consolidation session** — this lane shipped its report commit but *no journal anchor* (1 commit, not 2, unlike lanes 2/3), so `6dd559a2` appeared nowhere in JOURNAL until this entry. All three lane SHAs are now anchored.
+
 ### 2026-07-21 — CC (Opus 4.8, 1M): housekeeping merged; id-range reserved; a concurrent HEAD swap put a commit direct on main
 
 **Did:** Merged the housekeeping branch on operator GO — `980584e2` (closures `[#355]`/`[#372]` + doc-counts regen), pushed; ship-gate dropped to the single expected VISION `[#368]` WARN, with `git_backlog_drift` and `doc_claims` both back to `[OK]`. Then reserved id range **`[#373]`–`[#380]`** ahead of the night batch — `94426dc0`.
