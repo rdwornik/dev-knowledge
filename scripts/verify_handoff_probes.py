@@ -254,7 +254,7 @@ def _resolve_status(repo_root: Path, rel: str) -> str:
     hub can resolve most target paths, but a foreign `.claude/` path (excluded-dir) or an
     ambiguously-basenamed target is honest-partial — it degrades to a WARN (never a fake-FAIL
     nor a fake-PASS), while a genuine 'missing' keeps its FAIL teeth. Same-repo resolution is
-    unchanged: it uses `_resolve_path` and treats any non-resolve as FAIL. (#NNN hardens the
+    unchanged: it uses `_resolve_path` and treats any non-resolve as FAIL. (#234 hardens the
     `.claude/` case from WARN to real FAIL teeth for cross-repo bundles.)"""
     if _excluded(Path(rel).parts):
         return "excluded"
@@ -380,7 +380,7 @@ def _classify(probe: dict, repo_root: Path, bundle: str, cross_repo: bool = Fals
     #    broken path in a SECONDARY command span is caught (#207/GAP-4), not silent-passed.
     #    Cross-repo (ADR-36/41): resolve against the TARGET root; a foreign `.claude/` or
     #    ambiguously-basenamed target degrades to WARN (skipped) — honest-partial, never a
-    #    fake-FAIL/fake-PASS — while a genuine miss keeps FAIL teeth (#NNN hardens `.claude/`).
+    #    fake-FAIL/fake-PASS — while a genuine miss keeps FAIL teeth (#234 hardens `.claude/`).
     for rel in src_files + cmd_files:
         if cross_repo:
             st = _resolve_status(repo_root, rel)

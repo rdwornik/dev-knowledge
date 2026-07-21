@@ -1711,7 +1711,7 @@ def check_handoff_probes(repo_path: Path) -> list[Finding]:
     # not the hub — resolving foreign paths against the hub gives both false FAILs (a target
     # file absent here) AND false PASSes (a basename collision like JOURNAL.md fake-resolves).
     # Fleet onboarding (#221) makes cross-repo the common case, so this keeps the teeth rather
-    # than skipping them. A `.claude/` or ambiguous foreign target degrades to WARN (#NNN).
+    # than skipping them. A `.claude/` or ambiguous foreign target degrades to WARN (#234).
     target = _bundle_target_repo(latest)
     cross_repo = bool(target) and target != Path(repo_path).name
     verify_root = None

@@ -606,7 +606,7 @@ def test_registered_check_never_fails_on_live_repo():
 # A handoff bundle lives in the hub but its probes may bind to a DIFFERENT (target) repo
 # (fleet onboarding, #221). check_handoff_probes reads the bundle's `Target repo` row and
 # resolves against the target root; a foreign `.claude/` or ambiguous basename degrades to
-# WARN (honest-partial), a genuine miss still FAILs, a real target file PASSes. #NNN hardens
+# WARN (honest-partial), a genuine miss still FAILs, a real target file PASSes. #234 hardens
 # the `.claude/` case to full FAIL teeth.
 
 def _crossrepo_bundle(tmp_path, rows, target="tgt", slug="2026-07-02-x"):
