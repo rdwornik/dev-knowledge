@@ -19,6 +19,42 @@
 
 ---
 
+### 2026-07-21 — CC (Opus 4.8, 1M): supplement filled + folded — the bundle is no longer cold; anchors `e78cebe2`, `26929336`
+
+**Did:** Operator filled `SUPPLEMENT.md` (122 lines, all six schema questions answered substantively). Committed it **byte-verbatim** — **`e78cebe2`**, supplement only, no other file — so the operator's words land untouched before any reconciliation of mine. Then ran `assemble_paste.py` (ANSWERS folded, `PASTE_THIS` 43,675 → 54,719 bytes) and swept the hand-authored regions — **`26929336`**.
+
+**The sweep is the load-bearing half, and it is the known failure mode.** `assemble_paste.py` flips only **its own** framing sites (it reported the reflow across `HANDOFF_BOOT`/`RESIDUAL`/`PROBES`); hand-authored "this is a COLD handoff / the §13(d) beat fires FULL" prose survives untouched, producing a bundle that reads FILLED in generator prose and COLD in mine — a §8 self-contradiction **no drift-check catches** because each claim is checked against state and never against the other. Swept manually; a post-fold grep confirms no stale cold framing anywhere in the assembled paste.
+
+**THE SUPPLEMENT CONTRADICTS MY OWN §4, AND I MARKED IT RATHER THAN EDITING IT AWAY.** §4 was authored from repo state alone and named the `[E8]` bounded-pick message as the first substantive move. The supplement's mandate is the opposite in kind: **one delivery lane** — dissolve `assets/` in ai-council to a deployed, operator-witnessed end-state, already granted 2026-07-19, *execute rather than re-seek permission* — with any new audit/intake/ADR treated as a distraction unless it enables that change. Both cannot be the first move. §4 now carries an inline **RECONCILIATION** block stating per item where the supplement wins, so the next session sees what the repo said *and* what the operator ruled, instead of a silently rewritten §4.
+
+**Per-item disposition recorded there:** item 1 **overridden** (and R12 is effectively ruled — the narrowing option is rejected outright, *"ALL rules, prioritised, never lowered"*; the live ask is a different five-ruling set: `#339`, `#327`, `#304`+`#305`, `#262`+`#295`, `#215`). Item 2 **partially ruled** — consume the three audits, commission no more — but the **clause-(d) accretion tension is not resolved and stands**. Item 3 **affirmed** and routed to its own session with a standing brake (*build no more fleet machinery until the polyrepo bet is ruled*). Items 4 and 5 **untouched and standing** — and item 4 is **independently corroborated**, the supplement's DO-NOT-REDO list carrying the same `#320` refutation from the other direction. Item 6's buy-vs-build half **ruled**: template engine rejected (merge-replay fails at this divergence profile; the hub is already regenerate-shaped), keeping only the per-consumer version-pin scalar.
+
+**`HANDOFF_BOOT` purpose rewritten** to the delivery mandate, pointing at `SUPPLEMENT.md` **before** `RESIDUAL.md` §4 and naming the two repo-side findings the supplement does not carry (the cross-lane contradiction; the code audit's rediscovery of `[E8]`'s thesis).
+
+**Result:** probes **11/11**, `residual_completeness` OK, ANSWERS present in `PASTE_THIS`, no stale cold framing; both commits cleared the full gate set with no bypass.
+
+**Changes:** `docs/handoffs/2026-07-21-dev-knowledge-architect/{SUPPLEMENT,RESIDUAL,HANDOFF_BOOT,PROBES,PASTE_THIS}.md`, `JOURNAL.md` (this entry).
+
+**Next:** paste `PASTE_THIS.md` into a fresh chat. Branch awaits `/ship` on operator GO. **Flagged, not acted on:** the supplement records two intake drafts (buy-vs-build, nightly-audit-standard) as un-ingested downloadable files, and notes the buy-vs-build one **argues for a pivot the vision audit reversed** — it needs rewriting before ingest, not ingesting as-is.
+
+### 2026-07-21 — CC (Opus 4.8, 1M): architect handoff bundle cut (COLD) — anchor `70d9f4a5`
+
+**Did:** Generated `docs/handoffs/2026-07-21-dev-knowledge-architect/` via `scripts/gen_handoff.py --mode architect` (HANDOFF_PROCESS v5.7 §13), authored the four FILL-IN regions, re-assembled `PASTE_THIS.md`, and committed on `docs/handoff-dev-knowledge-architect-0721`. **`70d9f4a5`** — 5 files, 908 insertions. No merge, no push.
+
+**This is a COLD handoff and is labelled as such in the bundle.** The session was `/clear`ed at boot and did no work of its own, so there is no un-committed session "why" to transmit; `SUPPLEMENT.md` is committed **empty** (the defined cold disposition, §13) and the incoming §13(d) operator-context beat therefore fires **FULL**, not narrowed. The residual is entirely repo-derived from the window since `2026-07-20-dev-knowledge-architect`, tagged `witnessed` vs `recall` per the four-tag discipline.
+
+**Generation-time state (drift hints — bundle-excluded by construction, §5; recorded here because the browser never sees them):** HEAD `5b2ccadb` on `main` at cut, tree clean, `main` level with `origin/main`; `ALL_CHECKS` 31, last `fleet_parity`; ship-gate **RED on the single expected `[#368]` VISION cadence WARN**, all other WARNs dispositioned, no `[stale]` line; `validate_backlog` 8 themes / 22 stories / 128 tasks / 0 warnings.
+
+**The residual's §4 payload — six frontier threads, the reason this bundle is worth reading.** (1) The ten `[E8]` decisions (R1–R8, R1b, R12) are unruled for a **second consecutive window**, with several waves formally blocked on them — the previous bundle named the bounded-pick message as the successor's first move and it did not happen. (2) Three night-audit reports sit untriaged, and discharging them **mints non-wave tickets that count against closure clause (d)** — so the triage budget is itself a decision, not a task. (3) The vision audit's §6 question (*what survives if the three repos fold into one?*) sits **above** ARC-5: the polyrepo shape was never decided by any ADR, and W2 invests in exactly the layer that question puts at risk. (4) **Two sibling lanes of the same night batch contradict each other** — H7's three backup-posture facts were refuted the same night by the backlog lane (`[#320]` corrected at `7c592062`), while H7 still reads as live in an immutable artifact; nothing in the batch cross-checked lanes against each other, which is the §8 self-consistency failure shape at n=1 witnessed. (5) The code audit **independently rediscovered `[E8]`'s "recorded ≠ enforced ≠ legible" thesis** from the Python side ("designed invariants with no organ asserting them"), supplying the principle *make the existing gate real, don't add a gate*. (6) W1's tail (`[#352]` clause (f), `[#371]`) is now entangled with the buy-vs-build ADR — but the clause-(f) operator witness does **not** depend on that ADR, which is the cheap escape.
+
+**Anti-bluff self-check caught a real leak before commit.** §2's shipped-map initially named the two most recent merge SHAs; main's tip is **P3's live answer**, so both were withheld and replaced with branch-name references (the withholding is stated in-line rather than done silently). Historical merges deeper in the spine are kept — the precedent set by the previous bundle's `8c913a6a`.
+
+**Result:** probes **11/11 pass**, `residual_completeness` OK, `ruff` clean; the commit cleared the full pre-commit set (`audit-health`, hermetization, both commit-msg gates) with **no bypass**.
+
+**Changes:** `docs/handoffs/2026-07-21-dev-knowledge-architect/` (5 files, new), `JOURNAL.md` (this entry).
+
+**Next:** operator pastes `PASTE_THIS.md` into a fresh Claude.ai chat. `SUPPLEMENT.md` is fillable — pasting its QUESTIONS into an outgoing architect chat and saying `supplement filled` folds the ANSWERS into `PASTE_THIS` and narrows the §13(d) beat; with no outgoing chat to ask, leaving it empty is correct, not a defect. Branch awaits `/ship` on operator GO.
+
 ### 2026-07-21 — CC (Opus 4.8, 1M): BACKLOG hygiene — night-audit A5–A7 repairs + 5 gate-approved closures
 
 **Did:** Discharged the actionable findings of the 2026-07-21 night backlog audit (lane 3, `docs/audits/2026-07-21-technical-night-backlog-audit.md`) in the `cleanup-backlog` worktree, serial: metadata repairs first, then closures. Three commits — **`0c7f04e9`** (7 tickets repointed), **`3e1e3f00`** (4 `#NNN` placeholders resolved), **`9fc1a8b4`** (5 tickets closed) — plus this entry. Commit-and-STOP honoured: no merge, no push; `origin/main` untouched. BACKLOG **133 → 128 tasks, 0 warnings** throughout.
