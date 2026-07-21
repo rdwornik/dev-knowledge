@@ -184,6 +184,32 @@
 
 **Next:** operator ruling on the `94426dc0` recovery (recover-now / coordinate-first / disposition); then push so the reservation actually binds; then the batch queue ruling. `[#370]` stays OPEN.
 
+### 2026-07-21 — CC (Opus 4.8, 1M): cross-repo architect handoff for ai-council — the spike's evidence is in a dangling object
+
+**Did:** Generated the v5 cross-repo architect bundle `docs/handoffs/2026-07-21-ai-council-architect/` (HANDOFF_PROCESS §13, ADR-36/41) on `docs/ai-council-architect-handoff-0721`. Established the window by timestamp rather than by date: the `2026-07-20` bundle was cut **17:17–17:51**, and **29 ai-council commits landed after it** (19:36–23:57), so this handoff covers work the prior bundle structurally could not see.
+
+**Result:** `a827a0e8` — 5 files, gates clean, no `SKIP=`. **13/13 probes bind to live state** verified against the real target root via `verify_handoff_probes.verify(..., repo_root=<ai-council>, cross_repo=True)`. Target verified **untouched** at `f758fa6`, clean tree — the ADR-36/41 read-only contract held end-to-end.
+
+**The headline finding is a live re-derivation, not a transcription.** The markdown-it-py spike branch was deleted `-D`; its JOURNAL prose was preserved by two cherry-picks, but **those carried `JOURNAL.md` only** — `spike/FINDINGS.md`, `spike/evidence.py` and four implementation files are on **no branch**, surviving solely in unreachable object `26192dd`, pending `gc`. The teardown entry **named this exact risk in writing** and the mitigation was applied to the prose half only. It matters because the bundle's §4 asks the architect to rule on `[#80]`/`[#81]` and on buy-vs-build, and **the empirical basis for both rulings is inside that object** — in a repo whose own new doctrine is *"a report without a re-runnable checker is a claim, not a witness."* Surfaced with a recovery handle; **deliberately not recovered** (target's call).
+
+**Two prior-bundle claims corrected by live re-derivation.** (1) Its §4 item (1) is **DONE** — `[#77]` closed — not still-open as its ordering implied. (2) It asserted `LESSONS.md` records the inbox/CLI parity pattern *"three separate times"*; the live file carries **two** write-ups, each self-reporting *"3rd instance"* while naming **different** third incidents — so the underlying bug has more distinct occurrences than either entry alone claims, and the structural-fix argument is **stronger**, not weaker. A handoff that inherits its predecessor's prose uncritically would have shipped both errors forward.
+
+**Derived, and not previously named anywhere in the record:** `[#81]` **cannot be closed as written by any implementation.** The operator-ruled F8 doctrine prefers an honestly-empty result over a plausibly-wrong one; `[#81]`'s done-when requires that a fenced options list is *not* silently emptied — it **forbids what the doctrine prefers**. The ruling is therefore not "which parser" but "amend the done-when, or except this case." Carried as §4 item (1) and as supplement addendum B.
+
+**Also corrected the JOURNAL's own framing on scale:** the `--no-verify` push reads there as a 3-commit anomaly; live git shows the non-merge population on `main`'s first-parent spine is far larger and long-standing, dominated by post-merge journal-anchor commits (the same mechanism as the hub's own merge-on-main lesson). Systemic tension with core-invariant #5, not a one-off — bound as probe **P12**.
+
+**Changes:** `docs/handoffs/2026-07-21-ai-council-architect/{HANDOFF_BOOT,RESIDUAL,PROBES,SUPPLEMENT,PASTE_THIS}.md`, `JOURNAL.md`. No `ai-council` file touched; no hub governance file touched.
+
+**Probes re-authored, not stock (n=3 on this defect class).** `ai-council` carries no `audit.py`/`ALL_CHECKS`, no `validate_git_backlog`, no `validate_doc_claims`, no `doc-counts.md`, no disposition register — the generated P2/P4/P6/P7/P9 rows would **all** have failed `anchor-missing`. Each re-bound to a verified-live target surface. **Two new probes:** **P11** (spike-evidence reachability — the only probe with an *expiring* window, flagged run-early) and **P12** (spine non-merge population). P4 carries an explicit caution that a bracketed `[#id]` in a merge subject does **not** imply closure here, since this window merged `[#18]` *without* closing it.
+
+**Abandoned / not done:** (1) **Not merged** — `/ship` refuses in a worktree; integration to `main` is the primary session's. (2) Did **not** recover the dangling spike object, and did **not** patch the hub's dotfile-tokenizer defect that P2 works around — both are exception-with-ruling / target-owned (core-invariant #6, ADR-36/41). (3) **Supplement left cold** (empty ANSWERS) — no outgoing chat was held by this session; the incoming §13(d) beat therefore fires FULL. Two session-specific addenda appended per §13. (4) **No BACKLOG change** — this session closed and advanced no tracked task; a pure artifact addition needs no structural marker.
+
+**Watch:** the bare `verify_handoff_probes.py <dir>` CLI reports a **false P7 fail** on any cross-repo bundle — it resolves against the hub, and the `2026-07-20` bundle fails identically under it. The trustworthy paths are the API with `cross_repo=True`, or `audit.py check_handoff_probes`, which reads the `HANDOFF_BOOT.md` `Target repo` row. In *this worktree* that check degrades to the known non-gating WARN (`ai-council` is not a sibling of `worktrees/`) — the prior entry's "Watch" note predicted this exactly; environmental, **not** a regression to disposition.
+
+**Next:** operator pastes `PASTE_THIS.md` into a fresh chat; optionally fills `SUPPLEMENT.md` then `supplement filled` to fold the ANSWERS. Merge from the primary. **Time-boxed:** P11's answer expires when `gc` collects `26192dd` — if the spike evidence is wanted, that decision is not deferrable.
+
+---
+
 ### 2026-07-20 — CC (Opus 4.8, 1M): housekeeping — two public drifts closed at the source
 
 **Did:** Closed **[#355]** (STRONG, evidence `e7d1a3c11`) and **[#372]** (WEAK, evidence `40c7bce3a`/`b0443523a`) via ADR-65 done-items-leave, operator-approved explicitly per id (WEAK never bulk-approved; the gate re-verified both, `skip: []`). Regenerated `ecosystem/doc-counts.md` (`pytest_collected` **1660 → 1669**) — the enforcement-organ lane added 9 tests and the count was never regenerated, so a false claim reached pushed main.
