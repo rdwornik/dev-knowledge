@@ -19,6 +19,24 @@
 
 ---
 
+### 2026-07-21 — CC (Opus 4.8, 1M): supplement filled + folded — the bundle is no longer cold; anchors `e78cebe2`, `26929336`
+
+**Did:** Operator filled `SUPPLEMENT.md` (122 lines, all six schema questions answered substantively). Committed it **byte-verbatim** — **`e78cebe2`**, supplement only, no other file — so the operator's words land untouched before any reconciliation of mine. Then ran `assemble_paste.py` (ANSWERS folded, `PASTE_THIS` 43,675 → 54,719 bytes) and swept the hand-authored regions — **`26929336`**.
+
+**The sweep is the load-bearing half, and it is the known failure mode.** `assemble_paste.py` flips only **its own** framing sites (it reported the reflow across `HANDOFF_BOOT`/`RESIDUAL`/`PROBES`); hand-authored "this is a COLD handoff / the §13(d) beat fires FULL" prose survives untouched, producing a bundle that reads FILLED in generator prose and COLD in mine — a §8 self-contradiction **no drift-check catches** because each claim is checked against state and never against the other. Swept manually; a post-fold grep confirms no stale cold framing anywhere in the assembled paste.
+
+**THE SUPPLEMENT CONTRADICTS MY OWN §4, AND I MARKED IT RATHER THAN EDITING IT AWAY.** §4 was authored from repo state alone and named the `[E8]` bounded-pick message as the first substantive move. The supplement's mandate is the opposite in kind: **one delivery lane** — dissolve `assets/` in ai-council to a deployed, operator-witnessed end-state, already granted 2026-07-19, *execute rather than re-seek permission* — with any new audit/intake/ADR treated as a distraction unless it enables that change. Both cannot be the first move. §4 now carries an inline **RECONCILIATION** block stating per item where the supplement wins, so the next session sees what the repo said *and* what the operator ruled, instead of a silently rewritten §4.
+
+**Per-item disposition recorded there:** item 1 **overridden** (and R12 is effectively ruled — the narrowing option is rejected outright, *"ALL rules, prioritised, never lowered"*; the live ask is a different five-ruling set: `#339`, `#327`, `#304`+`#305`, `#262`+`#295`, `#215`). Item 2 **partially ruled** — consume the three audits, commission no more — but the **clause-(d) accretion tension is not resolved and stands**. Item 3 **affirmed** and routed to its own session with a standing brake (*build no more fleet machinery until the polyrepo bet is ruled*). Items 4 and 5 **untouched and standing** — and item 4 is **independently corroborated**, the supplement's DO-NOT-REDO list carrying the same `#320` refutation from the other direction. Item 6's buy-vs-build half **ruled**: template engine rejected (merge-replay fails at this divergence profile; the hub is already regenerate-shaped), keeping only the per-consumer version-pin scalar.
+
+**`HANDOFF_BOOT` purpose rewritten** to the delivery mandate, pointing at `SUPPLEMENT.md` **before** `RESIDUAL.md` §4 and naming the two repo-side findings the supplement does not carry (the cross-lane contradiction; the code audit's rediscovery of `[E8]`'s thesis).
+
+**Result:** probes **11/11**, `residual_completeness` OK, ANSWERS present in `PASTE_THIS`, no stale cold framing; both commits cleared the full gate set with no bypass.
+
+**Changes:** `docs/handoffs/2026-07-21-dev-knowledge-architect/{SUPPLEMENT,RESIDUAL,HANDOFF_BOOT,PROBES,PASTE_THIS}.md`, `JOURNAL.md` (this entry).
+
+**Next:** paste `PASTE_THIS.md` into a fresh chat. Branch awaits `/ship` on operator GO. **Flagged, not acted on:** the supplement records two intake drafts (buy-vs-build, nightly-audit-standard) as un-ingested downloadable files, and notes the buy-vs-build one **argues for a pivot the vision audit reversed** — it needs rewriting before ingest, not ingesting as-is.
+
 ### 2026-07-21 — CC (Opus 4.8, 1M): architect handoff bundle cut (COLD) — anchor `70d9f4a5`
 
 **Did:** Generated `docs/handoffs/2026-07-21-dev-knowledge-architect/` via `scripts/gen_handoff.py --mode architect` (HANDOFF_PROCESS v5.7 §13), authored the four FILL-IN regions, re-assembled `PASTE_THIS.md`, and committed on `docs/handoff-dev-knowledge-architect-0721`. **`70d9f4a5`** — 5 files, 908 insertions. No merge, no push.
