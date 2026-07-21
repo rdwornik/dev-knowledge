@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-21 — CC (Opus 4.8, 1M): cleanup lane — registry annotated, night-audit A1 refuted
+
+**Did:** Cleanup-registry worktree (file-disjoint lane, commit-and-STOP honoured — `main` untouched). **JOB 1: declined the instructed bump, annotated instead** — `3234b4a0`, comment-only, corp-monorepo values unchanged at `1.2.0 / 2026-07-07 / v1.2.0`. **JOB 2 (disposition-register): confirmed a no-op**, nothing retired — the 6 kill-candidates (`#302 #309 #131 #215 #314 #292`) have empty intersection with every live register ref. Full refutation lives in `3234b4a0`'s commit body; this entry carries only what a later session needs.
+
+**Result:** ruff clean · pytest 1661 passed / 8 skipped · `audit.py health` OK, with `fleet_parity: gate-ahead-declared 1` confirming corp's declaration still live (the bump would have flipped it to `STALE_DECLARATION`).
+
+**Two corrections to `docs/audits/2026-07-21-technical-night-backlog-audit.md` — the audit is immutable, so they are recorded here:**
+1. **Finding A1 is a FALSE POSITIVE.** The hub registry is *not* lying about corp. It records the deployed **corpus** version (1.2.0); corp's `v1.3.1` pin is an enforcement-gate carrier repoint (2 hooks, codemap/ToC declined). The divergence is deliberate and already modeled at `ecosystem/parity-surfaces.yaml:392-404` — ADR-102 `gate_rev_ahead`, whose own reason states record-stamping v1.3.1 *"would over-claim a corpus that was never deployed"*. So **`#336`/ADR-102 (Accepted 2026-07-17) owns it** and ruled not to bump, superseding corp `JOURNAL:937`'s owed-bump note. A1 concluded "no ticket owns this" because it never read `parity-surfaces.yaml`.
+2. **Operator watch-out #1 (`:261-265`) is wrong in BOTH directions — it has teeth, because it is the list an operator acts on during `/review-closures`.** *Over-broad:* `#210`, `#146`, `#277` have **zero** live register entries — `#210` appears only in the prose of `warn-no-ff-533109f-journal-wrap`'s `reason` (`:89`), `#146` only in a header comment (`:27`), `#277` only in a cleared-entry tombstone (`:35`); closing any of the three orphans nothing. *Under-inclusive:* it **omits four live `doc_rot` entries** whose refs are open tickets and **would** orphan on close — **`#262`, `#278`, `#332`, `#344`** (all four fired as live WARNs this run). *Minor:* `#241` is **×6**, not ×4 (adds playbook + session-setup) — six live `undeclared_edges` WARNs confirm.
+
+**Changes:** `ecosystem/deployed-versions.yaml` (comment-only, `3234b4a0`), `JOURNAL.md`. `BACKLOG.md` and `ecosystem/disposition-register.yaml` deliberately untouched.
+
+**Next:** the backlog lane's next `/review-closures` pass must use correction 2 above, not the audit's watch-out #1, or it will retire the wrong entries and miss four real orphans.
+
+---
+
 ### 2026-07-21 — CC (Opus 4.8, 1M): NIGHT BATCH lane 2 of 3 — code-quality / Clean Architecture audit (read-only)
 
 **Did:** Ran the night-batch **lane 2** code audit in the `night-code-audit` worktree — read-only critical review of the whole Python surface (80 prod files, 25,636 LOC across `scripts/` `deploy/` `plugins/` `.claude/`; `tests/` 100 files/24,286 LOC as evidence only). Seven parallel reviewers over disjoint slices, then **every headline claim independently re-verified at HEAD before being written down — 53 checks, 3 live reproductions**. Report at `docs/audits/2026-07-21-technical-night-code-audit.md`, committed **`c8f7741d`** on the lane branch. Commit-and-STOP honoured: no merge, no push, `main` byte-identical to `origin/main`.
