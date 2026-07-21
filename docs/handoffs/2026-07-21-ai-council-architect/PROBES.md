@@ -47,11 +47,11 @@ has an organ `ai-council` genuinely lacks, the probe says so rather than inventi
 hooks are **formatters that rewrite files**, which would violate the read-only contract on a
 cross-repo target. The P7 sweep calls the read-only validators directly instead.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it the assembler folds nothing and
-> the incoming §13(d) operator-context beat fires **FULL** — *"what off-repo context: intent,
-> priorities, findings not in the repo, changed decisions?"* **This window that beat is load-bearing,
-> not routine:** the residual's §4 item 1 (the filing moratorium) turns on a reason CC structurally
-> cannot see from inside the repo.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS are folded into `PASTE_THIS.md`, so the incoming §13(d)
+> operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*
+> **Read the ANSWERS before the residual's §4 ordering** — they correct it on two load-bearing points
+> (the moratorium was lifted mid-window; H1 is resolved as a sequence, not a fork), and the supplement
+> wins on intent and priority. The residual stays authoritative on *what the defects are*.
 
 ## P1 — Orientation (the architect's **first move**, before any mechanism — §13c)
 
@@ -68,10 +68,12 @@ navigates** (§13c), not this read.
 | P1b | Quote, **substring-exact**, the **opening line** of `ARCHITECTURE.md` Ch1 (`## Purpose [CORE]`) — *where this work sits in the `Dev/` ecosystem*. | `ARCHITECTURE.md` `## Purpose [CORE]` | the orienting line is in the live file only; a summary holds a gist, not the substring | `sed -n '/^## Purpose \[CORE\]/,+3p' ARCHITECTURE.md` → the quote must be a substring of the live section |
 
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
-by CC, substring-matched. **P1a is unusually load-bearing this window:** residual §4 item 3 asks the
-architect to rule the **H1 vision fork**, which is a question about *whether that very line is still
-the right frame*. Read the line before ruling on it. **Then, before design, the operator-context beat
-fires (§13d)** — and because the supplement is empty, it fires **FULL**.
+by CC, substring-matched. **P1a is unusually load-bearing this window, and for a sharper reason than
+the residual first stated:** the supplement resolves H1 by ruling that the Council is a decision engine
+whose *input stage* is question-boosting — and it says `VISION.md` **must be amended** to state that
+boost→decide chain, because today it claims the decision half only. So P1a reads *the exact line that
+is slated to change*. Read it live before drafting any amendment to it. **Then, before design, the
+operator-context beat fires (§13d)** — **NARROWED**, since the supplement is filled.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -87,7 +89,7 @@ fires (§13d)** — and because the supplement is empty, it fires **FULL**.
 | P9 | **[RE-BOUND — `ai-council`'s `validate_backlog` prints NO serialize-groups line; its summary is counts-only.]** What does `validate_backlog` report **right now** for the number of **themes**, **stories**, **tasks**, and **warnings**? | `BACKLOG.md` ∩ `scripts/validate_backlog.py` | all four integers drift on any BACKLOG edit, this window moved two of them, and none appears in this bundle | **TARGET:** `python scripts/validate_backlog.py` (read the `OK (N themes, N stories, N tasks, N warning(s))` summary line) |
 | P10 | **BACKLOG grooming (operator ruling 2026-07-17).** For **every OPEN item** in `BACKLOG.md`, is each still **live** (actively in-progress), **dead** (superseded / obsoleted / already-shipped — a grooming close per hub ADR-65), or **awaiting-ruling** (blocked on an operator / Council decision)? The successor grooms the **whole open set** at boot — no open `#id` may pass unreconciled. | `BACKLOG.md` ∩ live git | the live / dead / awaiting-ruling status of each open item is an at-boot judgment over current git ∩ `BACKLOG.md`; a summary holds a stale snapshot and cannot tell a still-live item from one already shipped or superseded. **This window the grooming must also reconcile against work that was fixed or found but never ticketed** (residual §1) — a gap no validator can see | **TARGET:** `python scripts/validate_backlog.py` then `git log --first-parent --oneline main` to cross-check each open `#id` against its closing merge (this subsumes P4's mechanical half — P10 is the judgment layer over it) |
 | P11 | **[NEW this window — the orphan-evidence rescue.]** Does the tag `spike/md-parser-evidence` exist **locally**, does it exist **on the remote**, and do the two point at the **same commit**? | live git ∩ `origin` | this tag anchors a 4-commit arc that was reachable from **no ref at all** — a `gc --prune=now` would have destroyed it irreversibly — and it is the **entire evidence base that residual §4 item 2's `[#81]` ruling depends on**. A branch push does **not** carry tags, so local-only is a live possibility; only the remote can answer it, and the JOURNAL's claim about it is point-in-time and was already corrected once | **TARGET:** `git tag -l 'spike/*'` then `git ls-remote --tags origin` — compare the sha each side reports. **If the remote does not carry it, that is the one item in this handoff that still guards against irreversible loss** — surface it to the operator before any design work begins |
-| P12 | **[NEW this window — the moratorium's actual size.]** How many distinct `P1-*` finding ids does `docs/audits/2026-07-20-night-code-audit-opus.md` carry, how many of those does `JOURNAL.md` record as **already fixed**, and how many appear as a filed `[#id]` in `BACKLOG.md`? | `docs/audits/2026-07-20-night-code-audit-opus.md` ∩ `JOURNAL.md` ∩ `BACKLOG.md` | **this is the number residual §4 item 1 is a decision about** — the gap between what the repo *knows* is broken and what it *tracks*. It exists only by intersecting three sources at answer-time; no validator computes it (audit finding ids are not `#id`s), and a summary cannot produce it because the moratorium means the sets were never reconciled | **TARGET:** `grep -o 'P1-[0-9]\+' docs/audits/2026-07-20-night-code-audit-opus.md \| sort -u \| wc -l`, then read the two 2026-07-21 lane entries in `JOURNAL.md` for which ids they record as fixed, then check `BACKLOG.md` for any corresponding filed id. **Report the gap as a number, not a verdict** |
+| P12 | **[NEW this window — the moratorium's actual size.]** How many distinct `P1-*` finding ids does `docs/audits/2026-07-20-night-code-audit-opus.md` carry, how many of those does `JOURNAL.md` record as **already fixed**, and how many appear as a filed `[#id]` in `BACKLOG.md`? | `docs/audits/2026-07-20-night-code-audit-opus.md` ∩ `JOURNAL.md` ∩ `BACKLOG.md` | **this is the size of the absorb-work the next window inherits** — the gap between what the repo *knows* is broken and what it *tracks*. The supplement records that the moratorium was **lifted mid-window** and that the fixes went in **fix-on-main with no ticket churn**, so the gap was never closed: the lift removed the *block*, not the *backlog*. It exists only by intersecting three sources at answer-time; no validator computes it (audit finding ids are not `#id`s), and a summary cannot produce it because the sets have still never been reconciled | **TARGET:** `grep -o 'P1-[0-9]\+' docs/audits/2026-07-20-night-code-audit-opus.md \| sort -u \| wc -l`, then read the two 2026-07-21 lane entries in `JOURNAL.md` for which ids they record as fixed, then check `BACKLOG.md` for any corresponding filed id. **Report the gap as a number, not a verdict** |
 
 > **Dotfile note (P2) — a live limitation of the hub validator, not sloppiness.** The repo-root
 > pre-commit config file is written **un-backticked** in P2's command cell on purpose. The hub's
@@ -107,8 +109,9 @@ fires (§13d)** — and because the supplement is empty, it fires **FULL**.
    contents (`BACKLOG.md`, `ARCHITECTURE.md`, `VISION.md`, `scripts/validate_backlog.py` all exist in
    both). This is the single most likely failure mode of a cross-repo bundle.
 2. **P1 first** — the architect cannot begin design until both orienting lines are read live and
-   substring-matched. **Then run the operator-context beat (§13d), which fires FULL this window.**
-   Then run P2–P12, each against **live state now**.
+   substring-matched. **Then run the operator-context beat (§13d), NARROWED** (the supplement is
+   filled — ask only *"anything changed since it was written?"*). Then run P2–P12, each against
+   **live state now**.
 3. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing /
    command errored / receiver tried to answer from memory or this bundle).
 4. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary
@@ -125,5 +128,6 @@ fires (§13d)** — and because the supplement is empty, it fires **FULL**.
 6. **Bundle-shape / supplement fill-state is NOT a probe here** (the stock row pointed at the hub
    bundle dir, which is unresolvable from the target root). This bundle carries `HANDOFF_BOOT` +
    `RESIDUAL` + `PROBES` + `SUPPLEMENT` + `PASTE_THIS` and **no per-bundle README**
-   (HANDOFF_PROCESS §13); the supplement is **generated EMPTY**, so the §13(d) beat fires **FULL**.
-   Confirm by looking at the bundle directory in the hub — it is CC-side bookkeeping, not target state.
+   (HANDOFF_PROCESS §13); the supplement is **FILLED**, so its ANSWERS are folded into `PASTE_THIS.md`
+   and the §13(d) beat **NARROWS**. Confirm by looking at the bundle directory in the hub — it is
+   CC-side bookkeeping, not target state.

@@ -7,10 +7,10 @@
 | **Target repo** | `ai-council` — **CROSS-REPO** (ADR-36/41). The bundle is hosted in the `.dev-knowledge` hub; the **subject** is `ai-council`. Every `#id`, path, and `BACKLOG.md` reference is **ai-council's** unless marked hub. |
 | **Chat title** | `[ai-council] Technical Architect — 2026-07-21-ai-council-architect · SEQ 1` — name the fresh browser chat this (bump `SEQ` per parallel chat) |
 | **Mode** | **architect** (HANDOFF_PROCESS §13 — planning / way-of-working scope) |
-| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->**Rule the moratorium, then rule the three decisions everything downstream is queued behind.** This window ran four night audits, a combined review, and two P1 fix lanes — and deliberately filed *nothing*: the filing moratorium is now the binding constraint on the backlog, the audit cadence, and the next build window all at once. The session's job is a **decision session, not a build session**: lift-or-hold the moratorium (and if lift, absorb the ~10 new P1s into tickets), then rule **#81** (preferred-failure: fabrication vs total option loss), **H1** (the vision fork — decision engine vs creativity/boosting engine), and the input-layer architecture fork that H1 gates. Spec: `ai-council/BACKLOG.md`, themes `[E1]`–`[E7]`; the decision inputs are `docs/audits/2026-07-21-night-audit-combined-review.md` §5 top-5 and §6.<!-- FILL-IN:purpose END --> |
+| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->**Rule the boost layer's OWNER, then BUILD — this is an execution window, not another planning one.** The supplement is explicit and it outranks CC's repo-derived reading: the moratorium was **lifted mid-window**, and **H1 is already resolved** — the Council is a decision engine whose *input stage* is question-boosting, a **sequence, not a fork**. So the one genuinely open design question is the boost layer's **owner**: **(A)** caller-side advisor (`#36`, Council stays a stateless CLI per ADR-11) vs **(C)** council-side entry stage (the caller needs to know nothing, but this **reopens ADR-11**). Rule A-vs-C, amend `VISION.md` + ADR-11 to state the boost→decide chain, **then build** — in the supplement's order: boost layer → the claim-vs-reality checker → `#4`'s ADR-02 amendment → `#81` + the remaining P1 waves + the backlog renumber. **The operator's standing demand: the theory is done; "produced another document" is a failure signal for this window.** Spec: `ai-council/BACKLOG.md`, themes `[E1]`–`[E7]`; read `docs/audits/2026-07-21-night-audit-combined-review.md` first — it is the vision material, and its findings are this session's *input*, not something to re-derive.<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `worktree-ai-council-handoff`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -36,11 +36,12 @@
    `run <command>`, CC reads live `VISION.md` / `ARCHITECTURE.md` Ch1 and substring-checks. The architect
    may not begin design until it holds both orienting lines (P1's grep is a *tool* that confirms the frame
    — the **backlog navigates**, §13c).
-6. **Then the operator-context beat (§13d).** The supplement is **generated EMPTY**, so unless the operator fills it first the beat fires **FULL**: *"what off-repo context — intent, priorities, findings not in the repo, changed decisions?"*
+6. **Then the operator-context beat (§13d).** The supplement is **FILLED**; its ANSWERS are in the paste, so the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 7. Hand `RESIDUAL.md` — **drift-flags first** (the §1 headline) — then the **next-frontier decisions**
-   (§4) + the **shipped-this-window** map (§2), then run the rest of `PROBES.md` (P2–P10). Any probe FAIL
+   (§4) + the **shipped-this-window** map (§2), then run the rest of `PROBES.md` (P2–P12). Any probe FAIL
    blocks onboarding (the escalation ladder). **Re-derive the drift-flag values live (P4/P6/P7/P9) — the
-   bundle states none.**
+   bundle states none.** **Read §4's supplement-correction block before acting on §4's ordering** — the
+   supplement corrects the residual on the moratorium and on H1, and it wins on intent and priority.
 
 ## Why a pointer, not a copy
 

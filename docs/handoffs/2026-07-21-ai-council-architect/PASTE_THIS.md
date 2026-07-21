@@ -9,10 +9,10 @@
 | **Target repo** | `ai-council` — **CROSS-REPO** (ADR-36/41). The bundle is hosted in the `.dev-knowledge` hub; the **subject** is `ai-council`. Every `#id`, path, and `BACKLOG.md` reference is **ai-council's** unless marked hub. |
 | **Chat title** | `[ai-council] Technical Architect — 2026-07-21-ai-council-architect · SEQ 1` — name the fresh browser chat this (bump `SEQ` per parallel chat) |
 | **Mode** | **architect** (HANDOFF_PROCESS §13 — planning / way-of-working scope) |
-| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->**Rule the moratorium, then rule the three decisions everything downstream is queued behind.** This window ran four night audits, a combined review, and two P1 fix lanes — and deliberately filed *nothing*: the filing moratorium is now the binding constraint on the backlog, the audit cadence, and the next build window all at once. The session's job is a **decision session, not a build session**: lift-or-hold the moratorium (and if lift, absorb the ~10 new P1s into tickets), then rule **#81** (preferred-failure: fabrication vs total option loss), **H1** (the vision fork — decision engine vs creativity/boosting engine), and the input-layer architecture fork that H1 gates. Spec: `ai-council/BACKLOG.md`, themes `[E1]`–`[E7]`; the decision inputs are `docs/audits/2026-07-21-night-audit-combined-review.md` §5 top-5 and §6.<!-- FILL-IN:purpose END --> |
+| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->**Rule the boost layer's OWNER, then BUILD — this is an execution window, not another planning one.** The supplement is explicit and it outranks CC's repo-derived reading: the moratorium was **lifted mid-window**, and **H1 is already resolved** — the Council is a decision engine whose *input stage* is question-boosting, a **sequence, not a fork**. So the one genuinely open design question is the boost layer's **owner**: **(A)** caller-side advisor (`#36`, Council stays a stateless CLI per ADR-11) vs **(C)** council-side entry stage (the caller needs to know nothing, but this **reopens ADR-11**). Rule A-vs-C, amend `VISION.md` + ADR-11 to state the boost→decide chain, **then build** — in the supplement's order: boost layer → the claim-vs-reality checker → `#4`'s ADR-02 amendment → `#81` + the remaining P1 waves + the backlog renumber. **The operator's standing demand: the theory is done; "produced another document" is a failure signal for this window.** Spec: `ai-council/BACKLOG.md`, themes `[E1]`–`[E7]`; read `docs/audits/2026-07-21-night-audit-combined-review.md` first — it is the vision material, and its findings are this session's *input*, not something to re-derive.<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `worktree-ai-council-handoff`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -291,7 +291,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > and **ai-council** ADRs when cited as product decisions (ADR-01/03/05/11/12/43/95) — the residual
 > marks which each time.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -311,11 +311,19 @@ sense. The target's drift surface is four independent read-only validators plus 
 **Treat the absence of a consolidated verdict as the flag**, not as a green light: several of those
 gates pass *silently*, so "no output" is not "no drift" (P7 reads exit codes explicitly for this reason).
 
-**THE HEADLINE — the record and the ticket-space are deliberately out of sync, and that is a
-*decision state*, not an accident.** A **filing moratorium** held across this entire window: four
-night audits ran, a combined review synthesized them, and two fix lanes landed real code — and
-**nothing was filed and nothing was struck** except the two verified-done items. The consequence is a
-drift class the hub's machinery has no equivalent for:
+**THE HEADLINE — the record and the ticket-space are out of sync, and the gap is still open.**
+
+> **⚠ CORRECTED BY THE SUPPLEMENT (which outranks this repo-derived reading).** CC wrote this section
+> from the committed record, where a filing moratorium appears to hold across the whole window. The
+> supplement records that the operator **LIFTED the moratorium mid-window**, and that the P1 fixes then
+> went in **fix-on-main with no ticket churn**. **The consequence below is unchanged and is what
+> matters:** the lift removed the *block*, not the *backlog* — nothing was absorbed, so the sync gap is
+> still open and is now *inherited work* rather than a *policy state*. Read "moratorium" below as "the
+> period during which nothing was filed," not as a live constraint to rule on.
+
+A filing moratorium held for most of this window: four night audits ran, a combined review synthesized
+them, and two fix lanes landed real code — and **nothing was filed and nothing was struck** except the
+two verified-done items. The consequence is a drift class the hub's machinery has no equivalent for:
 
 - **Fixed-but-never-ticketed.** The six defects repaired this window (the night code audit's own
   `P1-*` finding ids, not `#id`s) were confirmed by that audit as **not already tracked**, so no
@@ -408,10 +416,52 @@ re-read it as narrative here. **The window's defining property: heavy audit + re
 ## §4 — Next-frontier decisions (the design "why" that travels)
 
 <!-- FILL-IN:frontier START (hand-authored — the open architecture questions + decision context the next session must resume rather than rediscover; the residual's core payload in architect mode) -->
-**This is a DECISION session, not a build session.** The window just past produced four audits, a
-combined review, and six real fixes — and its own closing note says the same thing four times: the
-work is now **queued behind unmade decisions**, not behind unwritten code. Ordered below by how much
-each constrains the others.
+> ## ⚠ READ THE SUPPLEMENT ANSWERS FIRST — THEY OUTRANK THIS SECTION'S FRAMING AND ITS ORDERING
+>
+> This residual is **repo-derived**; the supplement carries the outgoing architect's own *why*, and on
+> **four** points it does not merely re-rank this section — it **overturns** it. Where the two disagree,
+> **the supplement wins on intent and priority**; this section stays authoritative on *what the defects
+> are*. Everything factual in both is still re-derived live (P2–P12).
+>
+> 1. **This is NOT a decision session. It is an EXECUTION session.** CC's framing below ("a decision
+>    session, not a build session") is **wrong** — it was inferred from a record in which nothing was
+>    filed. The operator's standing demand, stated plainly: *the theory is done — audits, intakes, ADRs,
+>    plans all exist — and he wants them **executed intelligently**, not added to.* **Treat "produced
+>    another document" as a failure signal for this window.**
+> 2. **Item (1) below — the moratorium — is ALREADY RULED.** The operator lifted it mid-window. Do not
+>    re-open it. What survives is not a decision but *inherited absorb-work* (P12 measures it).
+> 3. **Item (3) below — H1 — is ALREADY RESOLVED, and not in the shape this section states.** It is
+>    **not** a fork between "decision engine" and "boosting engine"; the operator ruled it a
+>    **SEQUENCE**: the Council is a decision engine whose **input stage is question-boosting**. Neither
+>    half stands alone — a foreign repo does not know the template or the methodology, so a raw question
+>    must be boosted into a well-formed brief *before* the debate can decide well. **`VISION.md` must be
+>    amended** to state that chain. The one thing still genuinely open is the boost layer's **OWNER** —
+>    **(A)** caller-side advisor (`#36`; Council stays a stateless CLI per ADR-11, but the caller must be
+>    able to execute the boost) vs **(C)** council-side entry stage (caller needs to know nothing, but
+>    this **reopens ADR-11**). The operator's own framing — *"the foreign repo does not know the
+>    methodology"* — pushes toward **C**. **Rule A-vs-C and amend VISION + ADR-11 BEFORE building the
+>    boost layer**, or the build anchors the wrong side.
+> 4. **Item (4) below is the *input* to that ruling, not work to re-derive.** The 2026-07-21
+>    input-layer night audit already designed the boost architectures and named this exact ADR-11
+>    tension. Do not re-audit it.
+>
+> **The supplement's build order supersedes this section's ordering:** (1) rule H1's owner + amend
+> `VISION`/ADR-11; (2) **build the boost layer** — the core of the vision and the least-built part of
+> the chain; (3) **build the claim-vs-reality checker** (this section's item 9, now with a verdict —
+> see the note there); (4) `#4`'s ADR-02 amendment; (5) `#81` ruling + the remaining P1 waves + the
+> backlog renumber.
+>
+> **Also settled by the supplement, do not relitigate:** the **markdown-it-py** spike ran to decision —
+> **KEEP-SCANNER** (the library *inverts* `#81`'s failure mode and regresses perf ~11.6× inside
+> `md.parse`); recommendation is to hand-port only the fence-skip structure. And the cross-lane lesson
+> repeated *again* this window: Lane B relocated a `classify_error` consumer and widened a `seat_router`
+> except clause, so Lane A's code ran on inputs neither lane predicted — **only the merged-tree gate
+> caught it.** Standing rule reconfirmed: **verify cross-lane contracts on the MERGED tree, never
+> per-lane.**
+
+**What follows is CC's repo-derived reading, retained for its defect detail.** Ordered by how much each
+constrains the others — **an ordering the supplement supersedes** (see the block above). The window
+just past produced four audits, a combined review, and six real fixes.
 
 > **Carried forward from the PREVIOUS architect supplement (2026-07-20) — do NOT relitigate.**
 > These were settled by the outgoing architect one window ago and nothing since has disturbed them:
@@ -422,7 +472,10 @@ each constrains the others.
 > **(iii)** Do not redo: the A2→A1→C merge order, the two-contract split, the **[#68]** registry-check
 > design, the F8 marker-drop, or the 1.0-stamp-holds ruling.
 
-**(1) THE MORATORIUM — lift, hold, or scope it. This is the gating meta-decision.**
+**(1) ~~THE MORATORIUM — lift, hold, or scope it.~~ ✅ ALREADY RULED — LIFTED mid-window by the
+operator. Do not re-open.** *Retained only for the mechanism it explains: why the backlog is an
+under-count, and why P12's absorb-work exists. The reasoning below about what the moratorium was
+protecting is answered — read it as background, not as an open question.*
 A filing moratorium has held for the whole window (§2). The combined review is explicit that it blocks
 **two of its own top-five actions** — absorbing the new `P1` set into tickets, and closing the verified
 record drift — while the other three are **not** blocked. It is also explicit that the moratorium, *not
@@ -445,7 +498,12 @@ precedent**, where the operator chose *under-match toward the loud failure* — 
 **It is also upstream of [#77]'s real architectural question** (below), and of **[#80]** (multi-line
 option truncation, the same design-fork class). **The evidence base is the rescued spike tag** — whose
 tip is the commit where the spike *reversed its own conclusion*, which is precisely the substance the
-ruling turns on. Confirm the evidence is durable (**P11**) before ruling on it.
+ruling turns on. Confirm the evidence is durable (**P11**) before ruling on it. **Supplement update:
+the spike ran to DECISION — KEEP-SCANNER**, because the library *inverts* the failure mode (the scanner
+fabricates options from a fence; the library loses the whole list when the options are fenced) and
+regresses perf ~11.6× inside `md.parse`. **Neither option satisfies `[#81]`'s done-when, so the ruling
+is still owed** — but the tool choice is settled, and the recommendation is to hand-port only the
+fence-skip structure (the one CommonMark rule the spike proved real). **[#80]** rides the same ruling.
 
 **(2b) [#77] — the boundary question underneath the ticket.**
 Filed as **one** contract-scoped ticket to force an *ex-ante* contract with tests written before the
@@ -454,7 +512,12 @@ heuristic parsing of synthesizer prose at the output layer at all, or should the
 to emit structured options directly, so there is nothing to parse?** Every patch so far has assumed the
 former without ever deciding it. Rule the boundary, then the contract writes itself.
 
-**(3) Rule H1 — the vision fork. NOT moratorium-blocked, and it gates item 4.**
+**(3) ~~Rule H1 — the vision fork.~~ ✅ ALREADY RESOLVED, and the shape below is WRONG.** The operator
+ruled H1 a **sequence, not a fork** — decision engine with question-boosting as its input stage (see the
+correction block above; the live question is the boost layer's **owner**, A vs C). *Retained for the
+evidence it cites — the `ideas`-path thinness and the `[#55]`-adjudicator caveat are still true and
+still bear on how the boost layer gets built.* **Do not run the for/against survey below as an open
+question.**
 `VISION.md` frames a *"multi-model AI debate and research tool for architectural decision-making"*;
 the vision audit's H1 finds a **creativity/boosting engine** in the mission framing that the record does
 not carry (the `ideas` mode is the least-developed path — one round, no divergence step, and the quality
@@ -524,7 +587,15 @@ above **structurally cannot see an operator-blocked scoring task** — the same 
 residual had to be corrected for. **Decide where it ranks now; do not let it disappear for a fifth
 consecutive window by default.**
 
-**(9) Enforcement asymmetry with the hub — carried, still unruled, and evidence has accumulated.**
+**(9) Enforcement asymmetry with the hub — ✅ RULED (b), and PROMOTED to this window's headline BUILD.**
+The supplement settles it and escalates it: the claim-vs-reality failure is now **systemic across every
+artifact layer**, not just code — a docstring says *"Never raises"* while the code can (`P1-1`); ticket
+**[#82]** asserts retrieval-on-every-debate while the code makes it conditional; an ADR-01 stamp claimed
+an open residual thirteen lines above where it had been discharged. **The ruling is to BUILD the
+mechanism:** one composed, **read-only "repo-health" checker** that compares **claims against reality**
+— doc-vs-config, docstring-vs-behaviour, ticket-premise-vs-source — and **fails loud on drift**. That is
+step (3) of the supplement's build order, and it is the concrete discharge of the 2026-07-20
+enforcement-asymmetry question. *The two readings below are retained only as the rationale; (b) won.*
 `ai-council` has four independent read-only validators and **no consolidated gate**; the hub has a
 registry, a ship-gate verdict, and a disposition register. Two honest readings: **(a)** correct —
 `ai-council` is a *code* repo, the hub is a *governance* repo, so their enforcement shapes should
@@ -543,10 +614,17 @@ test.* **[#69]** is the next instance — the two entry points guard the same fr
 **Also unadjudicated: its severity** (combined-review **X2** — filed P2, the code audit argues P1).
 Patching it in isolation makes it instance four of five.
 
-**(11) Rulings owed, tracked but not expanded here.** Named in the JOURNAL's own "rulings still owed"
-line: **[#6]**, **[#8]**, **[#73]**, plus the **[#4]** re-scope whose condition has now fired (§1).
-These are listed so they are not rediscovered; none is expanded because none is this session's
-gating decision.
+**(11) Rulings owed + carried triage — pointer only, deliberately not expanded here.** Named in the
+JOURNAL's own "rulings still owed" line: **[#6]**, **[#8]**, **[#73]**. **[#4]** is no longer merely
+"owed" — the supplement confirms its condition **fired at strike time** (the Gemini escape hatch is
+void), making it an **unblocked, required ADR-02 amendment** and **step (4) of the build order**, with
+a stale *"No open remainder"* stamp mirroring the ADR-01 one this window fixed. **The supplement also
+carries forward, in its own words:** **[#19]** F4-lift (undesigned), codex **H3** (`_client_for_loop`
+abandons the old SDK client on rebind — needs an async close lifecycle), a **test-mock-integrity
+sweep** (a broken mock made a **live API call** this window, so other suites may hide the same), the
+remaining **P1-6/10/11** and **P1-14/15/16** waves plus ~30 P2/P3, and two machine-level gotchas to
+route to the **hub** rather than fix here. **Read those from the supplement ANSWERS, not from here** —
+re-narrating them into the residual is exactly the §2 disease this bundle is built to avoid.
 <!-- FILL-IN:frontier END -->
 
 ---
@@ -627,11 +705,11 @@ has an organ `ai-council` genuinely lacks, the probe says so rather than inventi
 hooks are **formatters that rewrite files**, which would violate the read-only contract on a
 cross-repo target. The P7 sweep calls the read-only validators directly instead.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it the assembler folds nothing and
-> the incoming §13(d) operator-context beat fires **FULL** — *"what off-repo context: intent,
-> priorities, findings not in the repo, changed decisions?"* **This window that beat is load-bearing,
-> not routine:** the residual's §4 item 1 (the filing moratorium) turns on a reason CC structurally
-> cannot see from inside the repo.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS are folded into `PASTE_THIS.md`, so the incoming §13(d)
+> operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*
+> **Read the ANSWERS before the residual's §4 ordering** — they correct it on two load-bearing points
+> (the moratorium was lifted mid-window; H1 is resolved as a sequence, not a fork), and the supplement
+> wins on intent and priority. The residual stays authoritative on *what the defects are*.
 
 ## P1 — Orientation (the architect's **first move**, before any mechanism — §13c)
 
@@ -648,10 +726,12 @@ navigates** (§13c), not this read.
 | P1b | Quote, **substring-exact**, the **opening line** of `ARCHITECTURE.md` Ch1 (`## Purpose [CORE]`) — *where this work sits in the `Dev/` ecosystem*. | `ARCHITECTURE.md` `## Purpose [CORE]` | the orienting line is in the live file only; a summary holds a gist, not the substring | `sed -n '/^## Purpose \[CORE\]/,+3p' ARCHITECTURE.md` → the quote must be a substring of the live section |
 
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
-by CC, substring-matched. **P1a is unusually load-bearing this window:** residual §4 item 3 asks the
-architect to rule the **H1 vision fork**, which is a question about *whether that very line is still
-the right frame*. Read the line before ruling on it. **Then, before design, the operator-context beat
-fires (§13d)** — and because the supplement is empty, it fires **FULL**.
+by CC, substring-matched. **P1a is unusually load-bearing this window, and for a sharper reason than
+the residual first stated:** the supplement resolves H1 by ruling that the Council is a decision engine
+whose *input stage* is question-boosting — and it says `VISION.md` **must be amended** to state that
+boost→decide chain, because today it claims the decision half only. So P1a reads *the exact line that
+is slated to change*. Read it live before drafting any amendment to it. **Then, before design, the
+operator-context beat fires (§13d)** — **NARROWED**, since the supplement is filled.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -667,7 +747,7 @@ fires (§13d)** — and because the supplement is empty, it fires **FULL**.
 | P9 | **[RE-BOUND — `ai-council`'s `validate_backlog` prints NO serialize-groups line; its summary is counts-only.]** What does `validate_backlog` report **right now** for the number of **themes**, **stories**, **tasks**, and **warnings**? | `BACKLOG.md` ∩ `scripts/validate_backlog.py` | all four integers drift on any BACKLOG edit, this window moved two of them, and none appears in this bundle | **TARGET:** `python scripts/validate_backlog.py` (read the `OK (N themes, N stories, N tasks, N warning(s))` summary line) |
 | P10 | **BACKLOG grooming (operator ruling 2026-07-17).** For **every OPEN item** in `BACKLOG.md`, is each still **live** (actively in-progress), **dead** (superseded / obsoleted / already-shipped — a grooming close per hub ADR-65), or **awaiting-ruling** (blocked on an operator / Council decision)? The successor grooms the **whole open set** at boot — no open `#id` may pass unreconciled. | `BACKLOG.md` ∩ live git | the live / dead / awaiting-ruling status of each open item is an at-boot judgment over current git ∩ `BACKLOG.md`; a summary holds a stale snapshot and cannot tell a still-live item from one already shipped or superseded. **This window the grooming must also reconcile against work that was fixed or found but never ticketed** (residual §1) — a gap no validator can see | **TARGET:** `python scripts/validate_backlog.py` then `git log --first-parent --oneline main` to cross-check each open `#id` against its closing merge (this subsumes P4's mechanical half — P10 is the judgment layer over it) |
 | P11 | **[NEW this window — the orphan-evidence rescue.]** Does the tag `spike/md-parser-evidence` exist **locally**, does it exist **on the remote**, and do the two point at the **same commit**? | live git ∩ `origin` | this tag anchors a 4-commit arc that was reachable from **no ref at all** — a `gc --prune=now` would have destroyed it irreversibly — and it is the **entire evidence base that residual §4 item 2's `[#81]` ruling depends on**. A branch push does **not** carry tags, so local-only is a live possibility; only the remote can answer it, and the JOURNAL's claim about it is point-in-time and was already corrected once | **TARGET:** `git tag -l 'spike/*'` then `git ls-remote --tags origin` — compare the sha each side reports. **If the remote does not carry it, that is the one item in this handoff that still guards against irreversible loss** — surface it to the operator before any design work begins |
-| P12 | **[NEW this window — the moratorium's actual size.]** How many distinct `P1-*` finding ids does `docs/audits/2026-07-20-night-code-audit-opus.md` carry, how many of those does `JOURNAL.md` record as **already fixed**, and how many appear as a filed `[#id]` in `BACKLOG.md`? | `docs/audits/2026-07-20-night-code-audit-opus.md` ∩ `JOURNAL.md` ∩ `BACKLOG.md` | **this is the number residual §4 item 1 is a decision about** — the gap between what the repo *knows* is broken and what it *tracks*. It exists only by intersecting three sources at answer-time; no validator computes it (audit finding ids are not `#id`s), and a summary cannot produce it because the moratorium means the sets were never reconciled | **TARGET:** `grep -o 'P1-[0-9]\+' docs/audits/2026-07-20-night-code-audit-opus.md \| sort -u \| wc -l`, then read the two 2026-07-21 lane entries in `JOURNAL.md` for which ids they record as fixed, then check `BACKLOG.md` for any corresponding filed id. **Report the gap as a number, not a verdict** |
+| P12 | **[NEW this window — the moratorium's actual size.]** How many distinct `P1-*` finding ids does `docs/audits/2026-07-20-night-code-audit-opus.md` carry, how many of those does `JOURNAL.md` record as **already fixed**, and how many appear as a filed `[#id]` in `BACKLOG.md`? | `docs/audits/2026-07-20-night-code-audit-opus.md` ∩ `JOURNAL.md` ∩ `BACKLOG.md` | **this is the size of the absorb-work the next window inherits** — the gap between what the repo *knows* is broken and what it *tracks*. The supplement records that the moratorium was **lifted mid-window** and that the fixes went in **fix-on-main with no ticket churn**, so the gap was never closed: the lift removed the *block*, not the *backlog*. It exists only by intersecting three sources at answer-time; no validator computes it (audit finding ids are not `#id`s), and a summary cannot produce it because the sets have still never been reconciled | **TARGET:** `grep -o 'P1-[0-9]\+' docs/audits/2026-07-20-night-code-audit-opus.md \| sort -u \| wc -l`, then read the two 2026-07-21 lane entries in `JOURNAL.md` for which ids they record as fixed, then check `BACKLOG.md` for any corresponding filed id. **Report the gap as a number, not a verdict** |
 
 > **Dotfile note (P2) — a live limitation of the hub validator, not sloppiness.** The repo-root
 > pre-commit config file is written **un-backticked** in P2's command cell on purpose. The hub's
@@ -687,8 +767,9 @@ fires (§13d)** — and because the supplement is empty, it fires **FULL**.
    contents (`BACKLOG.md`, `ARCHITECTURE.md`, `VISION.md`, `scripts/validate_backlog.py` all exist in
    both). This is the single most likely failure mode of a cross-repo bundle.
 2. **P1 first** — the architect cannot begin design until both orienting lines are read live and
-   substring-matched. **Then run the operator-context beat (§13d), which fires FULL this window.**
-   Then run P2–P12, each against **live state now**.
+   substring-matched. **Then run the operator-context beat (§13d), NARROWED** (the supplement is
+   filled — ask only *"anything changed since it was written?"*). Then run P2–P12, each against
+   **live state now**.
 3. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing /
    command errored / receiver tried to answer from memory or this bundle).
 4. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary
@@ -705,5 +786,120 @@ fires (§13d)** — and because the supplement is empty, it fires **FULL**.
 6. **Bundle-shape / supplement fill-state is NOT a probe here** (the stock row pointed at the hub
    bundle dir, which is unresolvable from the target root). This bundle carries `HANDOFF_BOOT` +
    `RESIDUAL` + `PROBES` + `SUPPLEMENT` + `PASTE_THIS` and **no per-bundle README**
-   (HANDOFF_PROCESS §13); the supplement is **generated EMPTY**, so the §13(d) beat fires **FULL**.
-   Confirm by looking at the bundle directory in the hub — it is CC-side bookkeeping, not target state.
+   (HANDOFF_PROCESS §13); the supplement is **FILLED**, so its ANSWERS are folded into `PASTE_THIS.md`
+   and the §13(d) beat **NARROWS**. Confirm by looking at the bundle directory in the hub — it is
+   CC-side bookkeeping, not target state.
+
+---
+
+=== SUPPLEMENT.md ===
+
+===================== PASTE CHAT ANSWERS BELOW THIS LINE =====================
+
+SUPPLEMENT ANSWERS — outgoing ai-council architect (2026-07-21); CC transcribes VERBATIM
+
+1. STRATEGIC INTENT (way-of-working level).
+The failure this repo keeps paying for has moved up a layer. It used to be "decision recorded ≠
+enforced" at the code level; this window's four-axis night audit proved it is now systemic across
+EVERY artifact layer — a docstring says "Never raises" while the code can (P1-1); a ticket (#82)
+asserts "retrieval on every debate" while the code makes it conditional; an ADR-01 stamp claims a
+residual open 13 lines above where it was discharged. The next session's way-of-working goal is NOT
+another audit and NOT another plan — it is to build the ONE mechanism that closes this class: a
+composed, read-only "repo-health" checker that compares CLAIMS against REALITY (doc-vs-config,
+docstring-vs-behaviour, ticket-premise-vs-source) and fails loud on drift. This is the §4(4)
+enforcement-asymmetry ruling from 2026-07-20, now with overwhelming evidence. The operator has been
+explicit for two windows: the theory is done, the plans exist, the audits/intakes/ADRs are written —
+what he wants is INTELLIGENT EXECUTION of that theory, not more of it. His priority framing for the
+whole project, in his words: managing the methodology and the ecosystem — naming, versions, where each
+concern lives (documented vs coded) — not just the LLM debate. Treat "produced another document" as a
+failure signal for the next window.
+
+2. TENSIONS WEIGHED.
+(a) Moratorium vs execution. The intake/ADR moratorium was holding back the audits' highest-value
+output (~10 verified P1s + backlog drift). Landed: operator LIFTED it mid-window on explicit
+instruction ("puść prąd"). The fixes went in fix-on-main (no ticket churn); JOURNAL records them.
+(b) Parallelism by file-surface. ~10 P1s split into two parallel code lanes (providers/ ∥
+debate+output+synthesis+orchestrator+models) + one docs lane. Held: file-disjoint is necessary, not
+sufficient — proven AGAIN this window. Lane B relocated the classify_error consumer (debate.py:68→:99)
+and widened seat_router's except from ProviderError to Exception, so Lane A's classify_cli_failure now
+runs on any exception. Neither lane summary predicted the coupling; only the combined-tree gate (793
+tests) caught it. STANDING RULE reconfirmed: verify cross-lane contracts on the MERGED tree, never
+per-lane.
+(c) Audit cadence vs cost. Four Mythos/Opus night batches produced value ONCE. Landed: none is a
+nightly routine — vision/input are TRIGGERED (regenerate until a ruling lands), backlog is merge-arc
+cadence, code full-sweep re-reports the same P1s until absorbed (its nightly-shaped form is
+/codex-review, which already exists). The real cadence binder is the moratorium, not audit design.
+(d) Buy-vs-build enforced. The markdown-it-py spike was run to DECISION before adoption: KEEP-SCANNER,
+because the library inverts #81's failure mode (scanner fabricates options from a fence; library loses
+the whole list when the options are fenced) and regresses perf 11.6x inside md.parse. Neither satisfies
+#81's done-when — the ruling is still owed.
+
+3. CONSIDERED + REJECTED (do not relitigate).
+- Adopting markdown-it-py to dissolve #80/#81 — REJECTED: it only inverts #81's failure mode and
+  regresses perf; recommend KEEP-SCANNER + hand-port the fence-skip structure (the one CommonMark rule
+  the spike proved real).
+- Running the P1 fixes as one worktree — REJECTED: file-surface split into disjoint lanes; a combined
+  acceptance contract would have stopped being checkable.
+- Emitting the verdict package on synthesis failure (P1-9) — REJECTED: it hardcodes exit_semantics:0,
+  which would assert a usable verdict that does not exist against the real exit 1. Preserve transcript
+  + metrics only; exit stays 1.
+- Two-value provider_statuses (P1-8) — REJECTED: flattening back to ok/failed loses exactly the
+  mid-debate-loss signal the fix exists to surface. Landed three-value ok/lost/failed, proven
+  contract-1.0-safe by grepping every consumer.
+- Nightly full-src code audit as a standing routine — REJECTED: it re-reports the same findings until
+  the backlog absorbs them; the diff-scoped form already exists as /codex-review.
+- Treating H1 as an either/or fork (decision engine VS boosting engine) — REJECTED by the operator:
+  it is a sequence, not a fork (see 4).
+
+4. OPEN QUESTIONS / DEFERRED (ranked by leverage).
+- H1 — RESOLVED by the operator, and the resolution sharpens the next build. It is NOT a fork between
+  "decision engine" and "boosting engine" — it is a SEQUENCE: the Council is a decision engine whose
+  INPUT stage is question-boosting. Neither half stands alone — a foreign repo does not know the
+  template or the methodology, so a raw question must be boosted into a well-formed brief (by type:
+  research vs decision) BEFORE the debate can decide well. VISION.md must be amended to state this
+  boost→decide chain explicitly (today it claims "decision engine" only, and the boost layer
+  #36/#37/#38 is the least-built part of the chain). The ONE thing still genuinely open is the boost
+  layer's OWNER, and it is a real ADR-11 decision, not a preference: (A) caller-side advisor (#36) —
+  boost runs as prompts in the foreign agent, Council stays a stateless CLI per ADR-11, but the caller
+  must be capable of executing the boost; (C) council-side entry stage — Council boosts the raw
+  question itself as a first stage, the caller needs to know nothing, but this REOPENS ADR-11 (Council
+  is no longer a pure stateless CLI). The operator's own framing ("the foreign repo does not know the
+  methodology") pushes toward C. Next window: rule A vs C, amend VISION + ADR-11 accordingly, THEN
+  build the boost layer — do not build the advisor before this owner ruling lands, or it anchors the
+  wrong side. The 2026-07-21 input-layer night audit already designed 2-3 boost architectures and
+  named this exact ADR-11 tension — it is the input to this ruling, not a re-derivation.
+- #4 — a LIVE knock-on this window created: striking #2/#3 fired #4's condition (its "closed if Gemini
+  retained" escape hatch is void — Gemini was not retained). #4 is now an unblocked REQUIRED ADR-02
+  amendment with a stale "No open remainder" stamp, mirroring the ADR-01 stamp fixed this window. Not
+  deferred by choice — it became live at strike time.
+- #81 fabrication-vs-total-loss — highest-leverage OUTSTANDING code ruling; two windows have spent
+  effort downstream of it. Evidence now tag-preserved (spike/md-parser-evidence, on origin).
+- #27 Phase-3 blind scoring, still 0/12 — the operator sitting that gates the ADR-12 §5 CLI-default
+  flip → #66. Non-delegable, unchanged.
+- #19 F4-lift (design the runtime framing alarm + role — undesigned) — deferred; T1 shipped #18 solo.
+- The enforcement mechanism itself (Strategic Intent §1) — the deferred BUILD, not a question.
+
+5. DECOMPOSITION RATIONALE.
+Split by FILE SURFACE, not ticket, and verified public-signature disjointness before splitting — then
+STILL caught a cross-lane contract coupling on the merged tree (see 2b). What the next session must NOT
+redo: the P1-1/2/3/7/8/9 fixes (landed, 793 green, terra-passed); the #2/#3 strike (done, verified);
+the markdown-it-py spike (decided — KEEP-SCANNER); the four night audits (run — their findings are the
+input, do not re-audit). What it MUST do fresh, in order: (1) rule H1's owner (A vs C) + amend
+VISION/ADR-11; (2) build the boost layer per that ruling — the core of the vision, least-built part of
+the chain; (3) build the claim-vs-reality checker as the first execution of the enforcement-asymmetry
+ruling; (4) #4 ADR-02 amendment; (5) #81 ruling + remaining P1 waves + backlog renumber.
+
+6. OFF-REPO CONTEXT.
+The operator's standing demand, stated plainly this window: the theory is DONE — audits, intakes, ADRs,
+plans all exist — and he wants them EXECUTED INTELLIGENTLY, not added to. The four night reports + the
+combined review (docs/audits/2026-07-21-night-audit-combined-review.md) are the vision material — read
+that ONE file first. Recurring machine-level gotchas to route to the hub, not fix here: (1) worktree
+locks outlive their process — Get-Process the pid before any -f -f (fired 3x across two windows);
+(2) the codex-review severity counter prints "High 0" over real HIGH findings — console-only regex
+defect, read the artifact body not the counter (fired 3x). Triage carried forward, unfiled: codex H3
+(_client_for_loop abandons the old SDK client on rebind — needs an async close lifecycle, out of the P1
+lane); a test-mock-integrity sweep (a broken mock made a LIVE API call this window — other suites may
+hide the same). Remaining waves: P1-6/10/11 (research), P1-14/15/16 (test-integrity), ~30 P2/P3;
+backlog edits now unblocked: renumber #110→#84/#128→#85, resolve dangling #96, correct #82's overstated
+premise. main was +22 ahead of origin at write time — confirm the push landed before trusting this
+bundle's SHAs.
