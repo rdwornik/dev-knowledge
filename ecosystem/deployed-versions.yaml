@@ -32,6 +32,10 @@ repos:
     deployed_date: "2026-07-11"
     source_tag: "v1.3.1"
   corp-monorepo:
+    # Stays 1.2.0 BY DESIGN — corp's hub-block pin v1.3.1 is an enforcement-gate carrier
+    # repoint (2 hooks), not a corpus deploy; modeled as ADR-102 gate_rev_ahead in
+    # parity-surfaces.yaml. #336/ADR-102 (Accepted 2026-07-17) ruled NOT to bump,
+    # superseding corp JOURNAL:937's owed-bump note. Do not "fix" to 1.3.1.
     deployed_methodology_version: "1.2.0"
     deployed_date: "2026-07-07"
     source_tag: "v1.2.0"
