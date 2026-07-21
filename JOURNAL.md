@@ -19,6 +19,31 @@
 
 ---
 
+### 2026-07-21 — CC (Opus 4.8): North-Star ingestion — intake #16 filed, theme [E9] + gating chain, and a live correction record for the fabricated "10–20" figure
+
+**Did:** Ingested the consolidated FLEET NORTH STAR artifact into the methodology so it carries lifecycle rather than loose-file status, and structured the backlog behind it. One commit on `docs/north-star-ingestion`: **`b73319ef`**. Docs-only, commit-and-STOP — no merge, no push.
+
+Filed `docs/intake/2026-07-21-func-fleet-north-star.md` per the LIVE intake canon (`docs/intake/README.md` §3–§5): **intake-id 16**, status **DRAFT**, `{func|tech}` infix = `func` (elicitation-born, operator-dictated vision), body **byte-identical** to the source (verified with `cmp`). Frontmatter names the two consumers. Backlog gained theme **[E9] Fleet Desired-State System (North Star)** — five stories **[S23]–[S27]** / tasks **[#381]–[#385]** mapping intake §6, gating carried as machine-checked `depends-on` (382→381, 383→382, 385→383) rather than prose — plus three standalone tickets under existing stories: **[#386]** PLAYBOOK codification of the proven delivery loop (S10), **[#387]** rewrite the buy-vs-build intake (S19), **[#388]** the "10–20" figure (S13).
+
+**LIVE CORRECTION RECORD — the fabricated "10–20 repo" fleet-scale target.** The figure is **fabricated**; live scale requirements say **5–8+**. It propagated from one origin into three downstream bundle files. Verified sites at this HEAD:
+
+- `docs/audits/2026-07-21-technical-night-vision-audit.md` :18, :341-342 — **the ORIGIN**
+- `docs/handoffs/2026-07-21-dev-knowledge-architect/PASTE_THIS.md` :427, :653
+- `docs/handoffs/2026-07-21-dev-knowledge-architect/RESIDUAL.md` :164
+- `docs/handoffs/2026-07-21-dev-knowledge-architect/SUPPLEMENT.md` :109
+
+**Every one of the four is an immutable record** (CLAUDE.md §5 rule 3 — audits and handoffs are superseded, never edited; the bundle is a committed three-commit artifact `70d9f4a5`/`e78cebe2`/`26929336`). **Mechanism used: this live correction record — no file was edited and no amendment marker was written into any bundle file.** Anything restating the figure from here carries **5–8+**; the four sites stand as written, corrected by this record and by [#388]. Directional consequence, recorded because it bears on an unmade decision: at the real 5–8 the repo-dissolution case in [#381] **weakens**.
+
+**Result:** `validate_backlog` OK — **9 themes, 27 stories, 136 tasks, 0 warnings**. `validate_doc_rot` **net-neutral**: the three new tickets initially tripped backlog-accretion and were **trimmed**, not dispositioned, returning the file to its 4 pre-existing loci (#344, #262, #332, #278). Full pre-commit set passed, including the filing-backpressure gate (`kill-candidates: none` with reason) and the ADR-101 hermetization gate. **[#368]'s VISION `canonical_freshness` WARN was deliberately left standing and undispositioned** — known and owned; re-stamping without a genuine re-read would be a false stamp.
+
+**Canon deltas found (reported, not fixed):** (a) the live lifecycle enum is `SEED → DRAFT → READY-FOR-TECHNICAL → CONSUMED | REJECTED` — there is no `ACCEPTED` or `SUPERSEDED` state, and `READY` is spelled `READY-FOR-TECHNICAL`; (b) intake README §2 requires the eight-section `templates/intake-template.md` shape, which this artifact does **not** follow — it was filed verbatim by explicit instruction, so intake #16 is a consolidated vision doc wearing intake frontmatter, and a reader expecting scenarios/acceptance-criteria will not find them; (c) the intake schema has no `consumers:` field, so the two consumers were recorded as an **added** frontmatter key (generator-safe — `gen_intake_index` reads only `status`/`intake-id`) and W3 seed 2's planned `validate_intake.py` closed-schema gate may reject it; (d) BACKLOG's reserved-range line declared next-free `[#381]`, which this lane consumed through `[#388]` — the pointer was corrected to `[#389]` and the reserved `[#373]`–`[#380]` were left untouched; (e) the live `intake-id: 14` triple collision noted in [E8] W3 is still present.
+
+**Changes:** `docs/intake/2026-07-21-func-fleet-north-star.md` (new) · `docs/intake/README.md` (index regenerated) · `BACKLOG.md` (theme [E9] + 5 stories + 8 tasks; backbone line seven→eight themes; next-free pointer) · `JOURNAL.md`.
+
+**Abandoned:** Writing dated amendment markers into the three bundle files — the alternative the lane offered. Rejected because the contract reads "handled **without touching immutable records**", and an in-file marker still writes bytes into a committed immutable bundle; the live correction record achieves the correction at zero immutability cost. Worth knowing: `block_immutable_edits.py` scopes its guard to `docs/decisions/transcripts/` **only**, so nothing would have blocked such an edit — handoff and audit immutability is rule-enforced, not hook-enforced ([#361] tracks exactly this gap).
+
+**Next:** Operator review, then merge on GO after architect review. [#381] is the gate for the rest of [E9] — the standing brake (no new fleet machinery) holds until it rules.
+
 ### 2026-07-21 — CC (Opus 4.8, 1M): integration — three branches merged to main; "merge everything" scoped down first
 
 **Did:** Integrated the day's handoff work on operator GO. Three `--no-ff` merges: **`35421081`** (dev-knowledge architect bundle), **`85b1a9cc`** (ai-council cross-repo bundle, from the locked worktree), **`323b8bd9`** (the superseded ai-council attempt). Branch `docs/ai-council-architect-handoff-0721` deleted with `-d` (merge-verified, not forced) after its merge.
