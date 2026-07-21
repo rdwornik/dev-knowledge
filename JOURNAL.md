@@ -19,6 +19,30 @@
 
 ---
 
+### 2026-07-21 — CC (Opus 4.8, 1M): cross-repo architect handoff cut for `ai-council` [no task closed]
+
+**Did:** Cut the v5 **cross-repo architect** bundle `docs/handoffs/2026-07-21-ai-council-architect/` (ADR-36/41 — target `ai-council`, hosted here) in the `ai-council-handoff` worktree. One commit, **`36cf6b42`**. Generated via `gen_handoff.py --mode architect --repo ai-council --cold`, then the cross-repo surfaces re-authored by hand. **Read-only on the target throughout** — deliberately did *not* run `pre-commit run --all-files` there, since its `normalize-headers`/`toc-generate` hooks are formatters that rewrite files.
+
+**Four stock probes were hub-bound and had to be re-bound.** `ai-council` carries no `scripts/audit.py`/`ALL_CHECKS`, no `validate_git_backlog.py`, no `ecosystem/doc-counts.md`, no `ecosystem/disposition-register.yaml` — the generated P2/P4/P6/P7 rows would each have FAILed `anchor-missing`. Re-bound to verified-live target surfaces (P7 became a four-validator exit-code sweep standing in for the absent single ship-gate verdict; P2 a hand-built doc-vs-config tooth for the missing `validate_doc_claims`). Every anchor was confirmed by running its command in the target *before* writing the row, not assumed. Where the hub has an organ the target genuinely lacks, the row says so rather than inventing an equivalent.
+
+**Two probes added, both earned by this window's state.** **P11** — is the `spike/md-parser-evidence` tag on the *remote*, not just local (it anchors a 4-commit arc that was reachable from no ref; a branch push does not carry tags; it is the evidence base `#81`'s ruling depends on). **P12** — the moratorium's actual size, by intersecting the night code audit's `P1-*` finding ids against JOURNAL-recorded-fixed and BACKLOG-filed; no validator computes this, because audit finding ids are not `#id`s.
+
+**Residual headline framing (the judgment that does not survive a compaction summary):** a filing moratorium held across the target's entire window — four night audits, a combined review, two P1 fix lanes, and *nothing filed or struck* beyond two verified-done items. So `ai-council/BACKLOG.md` is a deliberate **under-count**: work exists that is fixed-but-unticketed and found-but-unfiled. §4 was written as a **decision queue, not a task list**, and carries `#27` Phase-3 blind scoring forward *unmoved* — the previous supplement ranked it first, this window did not touch it, and defect-driven ordering structurally cannot see an operator-blocked scoring task.
+
+**Result:** `verify_handoff_probes` **13/13 pass** against the `ai-council` root (`repo_root=<target>, cross_repo=True` — the way `audit.py check_handoff_probes` invokes it); `validate_residual_completeness` OK, no unfilled FILL-IN region; all pre-commit gates passed on `36cf6b42`.
+
+**Three tooling limits hit and recorded rather than patched** (all hub-infra, exception-with-ruling per core-invariant #6): (1) `gen_handoff.py` has **no `--repo-root`** — `--repo` sets the display name only and state is collected from the hub, so a cross-repo bundle must be hand-re-authored (the #164 cross-repo generator is still deferred, as its own adoption caveat says). (2) `verify_handoff_probes.py`'s **standalone CLI also has no `--repo-root`**, so running it directly on a cross-repo bundle reports **false FAILs** (here P7 + P12) purely from defaulting to the hub root; only `audit.py`'s check passes `repo_root`/`cross_repo`. Worth a ticket — the CLI is the surface a human reaches for. (3) In a **linked worktree** the gate's sibling resolution (`Path(repo_path).parent / target`) looks for `ai-council` beside `.claude/worktrees/`, does not find it, and degrades to a **non-gating WARN**; it resolves correctly from the primary hub checkout. Environmental, same class as the known worktree `deployed_methodology_version` WARN.
+
+**Changes:** `docs/handoffs/2026-07-21-ai-council-architect/` (5 new files — `HANDOFF_BOOT` / `RESIDUAL` / `PROBES` / `SUPPLEMENT` / `PASTE_THIS`), `JOURNAL.md` (this entry). **No target-repo write of any kind.**
+
+**Abandoned:** Nothing. `SUPPLEMENT.md` committed **empty** — the defined cold-handoff disposition, so the assembler folds nothing and the incoming §13(d) operator-context beat fires **FULL**. That is load-bearing this time rather than routine: the residual's gating question is *why* the moratorium exists, which is off-repo and CC structurally cannot see it.
+
+**BACKLOG (advisory) dispositioned correctly-no-action:** this session closed and advanced no tracked hub task — a pure advance, which DEFINITION_OF_DONE 'BACKLOG' allows without a structural marker.
+
+**Next:** Operator-gated — push, and optionally fill `SUPPLEMENT.md` from the outgoing `ai-council` architect chat (`supplement filled` → commit + re-assemble). The three tooling limits above are candidate hub filings, deliberately not filed from inside a handoff session.
+
+---
+
 ### 2026-07-21 — CC (Opus 4.8, 1M): BACKLOG hygiene — night-audit A5–A7 repairs + 5 gate-approved closures
 
 **Did:** Discharged the actionable findings of the 2026-07-21 night backlog audit (lane 3, `docs/audits/2026-07-21-technical-night-backlog-audit.md`) in the `cleanup-backlog` worktree, serial: metadata repairs first, then closures. Three commits — **`0c7f04e9`** (7 tickets repointed), **`3e1e3f00`** (4 `#NNN` placeholders resolved), **`9fc1a8b4`** (5 tickets closed) — plus this entry. Commit-and-STOP honoured: no merge, no push; `origin/main` untouched. BACKLOG **133 → 128 tasks, 0 warnings** throughout.
