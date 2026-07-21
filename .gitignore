@@ -42,6 +42,12 @@ logs/LIVED-WORKFLOW.md
 # scripts/boundary_report.py, never committed — same ephemeral pattern as FLEET-HEALTH.md.)
 logs/BOUNDARY-DRIFT.md
 
+# L5a descriptive analytics digest — hotspot / change-coupling / rot frames ([#384] read-only
+# reporter; auto-refreshed by scripts/fleet_analytics.py, never committed — same ephemeral
+# pattern as FLEET-HEALTH.md. Frames change on every commit by construction, so committing
+# this would churn the tree constantly and trip session-end backpressure.)
+logs/FLEET-ANALYTICS.md
+
 # Fleet-parity digest + checker-run JSONL events (#328 read-only checker, WARN-only v1 —
 # scripts/fleet_parity.py; same ephemeral pattern as ENFORCEMENT-COVERAGE. The events file
 # is append-only, rotation-capped (single .1 backup), gitignored runtime per FR-8/FR-13;

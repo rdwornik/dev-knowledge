@@ -15,6 +15,17 @@ dev = [
     "pre-commit>=4.5",
     "pyyaml>=6.0",         # scripts/ validators (audit.py etc.)
 ]
+# L5a descriptive analytics lane ([#384], intake #16 section 3). Separate group: the lane is
+# HUB-ONLY (it mines siblings read-only but runs here), so a consumer never needs it and it
+# deliberately carries NO row in ecosystem/dependency-baseline.yaml -- that surface governs
+# deps required to OPERATE METHODOLOGY MECHANISMS fleet-wide, which this is not.
+# pandas was already installed (2.3.3) but UNDECLARED; declaring it here fixes that real
+# parity defect. PyDriller is deliberately absent -- see the D1 deviation note in
+# scripts/fleet_analytics.py.
+#   py -m pip install --group analytics
+analytics = [
+    "pandas>=2.0",
+]
 
 [tool.pytest.ini_options]
 # === UNIVERSAL (fleet methodology — ARC 4 leg 1, 2026-07-18; RULING-S split) ===
