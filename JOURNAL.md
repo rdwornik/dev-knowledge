@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-21 — CC (Opus 4.8, 1M): integration — three branches merged to main; "merge everything" scoped down first
+
+**Did:** Integrated the day's handoff work on operator GO. Three `--no-ff` merges: **`35421081`** (dev-knowledge architect bundle), **`85b1a9cc`** (ai-council cross-repo bundle, from the locked worktree), **`323b8bd9`** (the superseded ai-council attempt). Branch `docs/ai-council-architect-handoff-0721` deleted with `-d` (merge-verified, not forced) after its merge.
+
+**"Merge everything to main" was NOT executed literally — two of the four branches were withheld pending a ruling, and the operator confirmed both.** `automation/fleet-audit` is the cloud Routine's machine-written baseline (124 ahead / **3685 behind** main, tracks its own remote) — merging it would drag automation commits onto the spine; **left alone**. `docs/ai-council-architect-handoff-0721` builds the **same bundle slug** as the worktree branch (`2026-07-21-ai-council-architect`) with divergent content, 16h old and 24 behind — a guaranteed 5-file conflict; operator ruled **merge-and-delete**.
+
+**The superseded branch turned out NOT to be a pure duplicate, which changed the resolution.** A first read said "drop it"; reading its JOURNAL entry before acting showed **unique institutional findings recorded nowhere else** — an `[#81]` derivation explicitly flagged *"not previously named anywhere in the record"*, the markdown-it-py spike evidence surviving only in a dangling object, the `[#77]` status correction, and a `verify_handoff_probes.py` CLI limit (false P7 fail on any cross-repo bundle). So the merge was resolved **asymmetrically on purpose**: the five bundle files kept **main's** newer supplement-filled version (`--ours`), while the JOURNAL entry was **preserved in full**. The superseded bundle's content is not lost — merging rather than deleting keeps it reachable at `a827a0e8`.
+
+**JOURNAL conflicts resolved newest-first BY COMMIT TIME, verified rather than assumed.** Merge 2: ai-council (16:32:13) placed above dev-knowledge (16:29:41); their branch's second journal commit *extended* an existing entry rather than prepending, so the union is 1 new entry — asserted by count (646 → 647), not by eye. Merge 3: their session ran **00:30–00:33**, older than the id-range reservation (00:40) and all three night lanes (01:19 / 01:33 / 01:52), so its entry was placed **above the 2026-07-20 block**, not at the top where a naive union would have put it (647 → 648).
+
+**Result:** `pytest -n auto` **1666 passed / 3 skipped**; `handoff_probes` **13/13**; ship-gate **byte-identical to the pre-merge baseline** — 15 WARNs, 14 dispositioned, the lone undispositioned one still the `[#368]` VISION cadence flag. **No merge introduced a WARN.** Spine holds core-invariant #5: all three integrations are merge commits, and this entry is on its own branch precisely because a wrap commit made while standing on `main` would land direct-to-spine.
+
+**Changes:** `JOURNAL.md` (this entry). The three merges carried the handoff bundles and their journal entries.
+
+**Next:** push. `[#368]` still owns the only red, and still wants a genuine `VISION.md` re-read rather than a stamp.
+
 ### 2026-07-21 — CC (Opus 4.8, 1M): cross-repo architect handoff cut for `ai-council` [no task closed]
 
 **Did:** Cut the v5 **cross-repo architect** bundle `docs/handoffs/2026-07-21-ai-council-architect/` (ADR-36/41 — target `ai-council`, hosted here) in the `ai-council-handoff` worktree. One commit, **`36cf6b42`**. Generated via `gen_handoff.py --mode architect --repo ai-council --cold`, then the cross-repo surfaces re-authored by hand. **Read-only on the target throughout** — deliberately did *not* run `pre-commit run --all-files` there, since its `normalize-headers`/`toc-generate` hooks are formatters that rewrite files.
