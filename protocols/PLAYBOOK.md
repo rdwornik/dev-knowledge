@@ -1,11 +1,11 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-07-19
+> Last updated: 2026-07-22
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
-> **Organization:** Two explicit parts. **Part I — Reference** (chapters Ch1–Ch14: System Architecture, the CLAUDE.md contract, repo conventions, documentation file types, session boundaries, Claude Code internals, …) → **Part II — Workflows** (numbered recipes §1–§19; the §18 gap is intentional — it was deleted; git has it) followed by **Appendices A–C** plus tooling addenda (Codemap, Auto-TOC). Every heading carries an ordinal under an explicit Part; the numbered spine is the workflow-recipe middle, not the whole document.
+> **Organization:** Two explicit parts. **Part I — Reference** (chapters Ch1–Ch14: System Architecture, the CLAUDE.md contract, repo conventions, documentation file types, session boundaries, Claude Code internals, …) → **Part II — Workflows** (numbered recipes §1–§21; the §18 gap is intentional — it was deleted; git has it) followed by **Appendices A–C** plus tooling addenda (Codemap, Auto-TOC). Every heading carries an ordinal under an explicit Part; the numbered spine is the workflow-recipe middle, not the whole document.
 
 <!-- structure-allow: numbering-gap 18 — deleted, git has it -->
 
@@ -218,6 +218,7 @@
   - [Operational nuances (learned on run #1)](#operational-nuances-learned-on-run-1)
   - [Floor semantics — tracked + hash-guarded (model A)](#floor-semantics--tracked--hash-guarded-model-a)
   - [What to expect on runs #2–4 (per-consumer divergences the run-#1 probe surfaced)](#what-to-expect-on-runs-24-per-consumer-divergences-the-run-1-probe-surfaced)
+- [21. The delivery loop (end-to-end)](#21-the-delivery-loop-end-to-end)
 - [Appendix A: Claude Code Shortcuts](#appendix-a-claude-code-shortcuts)
   - [Permission Modes (Shift+Tab cycles)](#permission-modes-shifttab-cycles)
   - [Keyboard](#keyboard)
@@ -704,6 +705,7 @@ Before delivering a prompt to Claude Code, verify:
 - [ ] **Context-budget pass** — every read instruction is scoped (no "read the whole repo"); per §7 read-scoping rule
 - [ ] **JOURNAL-read needed?** — does the task need recent session continuity (last few JOURNAL entries) to avoid re-deciding settled things?
 - [ ] **Inherited-framing counter-check** — *"Have I assumed any operator decision as resolved that the operator has not actually ruled on?"* (origin: a floor/rollout assumption treated as settled while still pending)
+- [ ] **TARGET-REPO guard is line one** (cross-repo prompts) — every prompt whose work lands in a repo other than the session's own opens with `TARGET-REPO: <absolute path>` as its **first line, above the parameter table and before any instruction** (skeleton: §2 "Structure"). Not buried in a REPO field mid-prompt: a session that reads the task before it reads the target has already begun reasoning against the wrong tree, and the hub↔consumer confusion is the expensive one (Ch8 "Hub→consumer writes"). Pairs with — does not replace — *Absolute paths* and *Out-of-scope items explicit* above.
 
 Skip checklist items only when not applicable to specific task type. If unsure, include them.
 
@@ -1237,12 +1239,31 @@ consumer**, makes its edits there, then **reports**. Hard bounds:
 - **Never a direct push into a live consumer checkout** — no unmediated edit of the consumer's
   working tree and no fast-forward onto its `main`.
 - **Re-witness the consumer live before any edit** — never act from a stale ledger of the consumer's
-  HEAD.
+  HEAD. The re-witness is the **unfiltered live-session check** below, and it runs *first*, before
+  the branch — not after the edits are staged.
 - **Mechanism before act:** the FIRST step of any consumer leg is codifying the mechanism (that
   amendment is landed — ADR-36 qualifies §Q5, ADR-41 narrows the guardrail).
 - The write is **agent-mediated, not tooled**: `audit.py` stays read-only w.r.t. child repos and **no
   orchestration script is added to Layer 2** (ADR-28 preserved). §Q5 now reads: *the tool never
   touches child repos; a hub session may, only via this shape.*
+
+**The unfiltered live-session check — run BEFORE any consumer write (proven 2026-07-21).** A live
+session in the target repo can swap `HEAD` mid-command, so writing under one corrupts both lanes;
+this is the class that put a stray commit on hub `main` on 2026-07-20 and the class the `assets/`
+lane's check **blocked** the next day. The check is *checkable*, not a feeling:
+
+- **Transcript-cwd is authoritative.** Answer *"is a session live in repo X?"* from
+  `~/.claude/projects/<mangled-cwd>/*.jsonl` plus a `"cwd"` grep — worktrees mangle to their own
+  distinct dirs, so each is answered separately. **Process inspection cannot answer it**:
+  `Win32_Process` carries no cwd and the parent chain resolves only to `cmd`/`pwsh`.
+- **Stopped-growing ≠ closed.** A stalled transcript mtime means *idle-at-prompt*, not gone;
+  corroborate against the live `claude.exe` count before concluding a repo is free.
+- **Unfiltered means unfiltered.** The check covers every session, not the subset you expect to
+  matter. A filtered check is the *"green that means nothing"* class — it reports safe by
+  construction, which is worse than not checking.
+- **Never branch, commit, or merge under a live session.** If one is live: STOP and report. Do not
+  wait it out silently, and do not kill it — a worktree dir held by a live session is a session-
+  lifecycle matter, not a git one ("Lifecycle" below).
 
 **Consumer-leg merge delegation (the composite).** The hub session **never merges its own consumer
 branch**. The **consumer's own merge discipline governs integration** — operator **GO** + `--no-ff`,
@@ -2391,6 +2412,9 @@ Platform-current facts that pin the tables above (Claude Code 2.1.202; refreshed
 ```
 LEGEND  [A] = architect emits  ·  [CC] = CC self-loads  (per "The two lifelines" § Lifeline 1)
 
+[A]  TARGET-REPO: <absolute path>   <- cross-repo prompts ONLY: first line, above the table
+                                       (Ch4 pre-send checklist)
+
 | Parameter | Value  |   <- Mode + Effort are [A]; Model is [CC]
 | --------- | ------ |
 | Model     | [pick] |
@@ -2398,7 +2422,7 @@ LEGEND  [A] = architect emits  ·  [CC] = CC self-loads  (per "The two lifelines
 | Effort    | [pick] |
 
 [A]  TITLE: What we're doing
-[A]  REPO: Which repo/package
+[A]  REPO: Which repo/package   <- same-repo prompts; TARGET-REPO supersedes it cross-repo
 [A]  PURPOSE: Why (1 sentence)
 
 [CC] → Read CLAUDE.md + relevant gotchas
@@ -2556,6 +2580,10 @@ If you find yourself writing a lesson that sounds like "always do X" or "never d
 1. Keep the lesson entry in `LESSONS.md` (provenance — the why).
 2. Add the rule to `~/.claude/rules/`, `gotchas.md`, or `learned-rules.md` with a `verify:` line.
 3. Cross-reference both with the file path.
+
+**Prove, then codify (intake #16 §5 rule 3).** Working discipline enters PLAYBOOK **after it has shipped once — never as a substitute for shipping.** A practice written up before it has survived a real end-to-end run is a plan wearing doctrine's clothes: it codifies what we *intended* to do, and the codification itself then reads as progress. That is the plan-without-ship failure the 2026-07-21 `assets/` delivery broke after 3–5 sessions of it — and why the delivery loop (§21) was owed only *after* that run, not during the sessions that designed it. The threshold here is **one shipped run**, which is deliberately *lower* than Ch11's routine "evidence gate" (**n=2 before graduation**) — a routine must prove it repeats; a working practice need only prove it happened at all. Corollary: when a lane wants to write up a **working practice** it has not yet run, the honest move is to run it and file the write-up, not to write it up and file the run.
+
+**Not in tension with "mechanism before act" (Ch8, RULING-W).** The two rules govern **different objects**, and the corollary above is deliberately scoped to *working practice*, not to Ch8's sense of *mechanism*. *Mechanism-before-act* governs **authorization** — a hub→consumer write needs its sanctioning amendment landed *first*, because the amendment is what makes the act legitimate at all; that amendment is a permission, and permissions cannot be earned retroactively. *Prove-then-codify* governs **working discipline** — how a practice becomes doctrine, which is a claim about evidence, not about permission. Where both bear on the same consumer leg the order is: **land the authorizing amendment → run the leg → codify what the run taught.** The amendment is not the doctrine, and the doctrine is not the permission.
 
 ---
 
@@ -3077,6 +3105,10 @@ Before declaring a session, directive list, or task "done" / "closed" / "complet
 If the architect cannot verify completion (no filesystem access from browser chat), the claim becomes a question: "based on what I see here, X and Y look complete; please confirm Z is also done before I declare closure."
 
 Sourced from LESSONS #2 (2026-05-12). Architect-side enforcement is operator review; the ADR-45 shared validator was never implemented — enforcement is operator review only.
+
+**Discharge with evidence — closure names its artifact.** The Witnessed / Inference / Unknown ladder above governs *claims*; this governs *closure*. Every item declared done discharges against a **named evidence artifact** — a SHA, a command's actual output, or the operator's own eye — cited at the point of closure, not gestured at. "Tests pass", "it's merged", "that's handled" name no artifact and discharge nothing.
+
+**Witnessed is the operator's eye or a mechanical report — never a proxy** (intake #16 §5 rule 4). The proxy this rejects is **unsupported self-attestation** — "I verified it", "it's working" — which is Inference wearing Witnessed's label. It does **not** disqualify CC's state-verification reports: captured command output, a gate's actual verdict, or a cited SHA are exactly the *mechanical report* half of the rule, and the architect assessing them is the sanctioned evidence path (Ch2 "LLM-LLM context transfer"). The line is between a claim that carries its artifact and a claim that asks to be believed. Consequently **merged ≠ done** — merge is one of Ch12.1's six shipped conditions, not a synonym for them, and for an enforcement mechanism ADR-81 leg (e) requires demonstrated *firing* on top (Ch12 — pointers, not restated here). Worked precedent already in the record: **`[#352]` sat merged-but-open** pending the operator's render witness, and closing it on the merge would have been the exact error.
 
 ### Architect routing for technical proposals
 <!-- scope: meta -->
@@ -3609,6 +3641,35 @@ The mechanics transfer; the consumer *shapes* differ:
 - **`.gitignore` shape varies** — model A rewrites a bare `.claude/` to `.claude/*` + `!`-negations so the floor/sidecar/guard track (the floor carrier does this in `apply`); a consumer that already tracks `.claude/settings.json` (e.g. ai-council, force-added) carries the SessionStart guard hook on a fresh clone (a *greenfield* consumer that gitignores `.claude/` needs `settings.json` tracked too — #221/ADR-93 known limit). Check `git -C <consumer> status --porcelain --ignored` and `git -C <consumer> check-ignore .claude/CLAUDE-FLOOR.md` (should print nothing once armed).
 - **Noisy `.pre-commit-config.yaml` diff** — the precommit carrier round-trips the YAML, reformatting the whole file (comment-strip / reindent). Cosmetic + functionally equivalent (deferred surgical-edit fix). Review the LOGICAL change (added ruff gate + rev-pin), not the reformat noise.
 - **Record generation is now reliable** — writer hardened on the Windows-I/O class; still verify both axes before merging.
+
+---
+
+## 21. The delivery loop (end-to-end)
+<!-- scope: meta -->
+
+The eight gates a change passes from intent to closure. Every gate below is **canonical somewhere else** — this section exists because the pieces were scattered across Ch8, Ch12.1, §8 and §16, so no cold reader could find *the loop* as a whole. Read it as an index with an order, not as doctrine: each row points, none restates.
+
+Proven end-to-end on **2026-07-21** (ai-council `assets/` dissolution, merge `88b0876`) — the first complete pass after 3–5 sessions of plan-without-ship, with every safety gate firing for real. Per *"prove, then codify"* (§4), that run is what made this write-up owed.
+
+| # | Gate | Canonical home (read it there — the constraints live there, not here) |
+|---|---|---|
+| 1 | **Frozen ex-ante contract** | Ch12.1 "Authored before the build"; ADR-81 amend. 2026-06-24 |
+| 2 | **Branch + commit-and-STOP** | Ch8 "Integration authority" (2026-07-16 ruling) |
+| 3 | **Gates green in the target repo** | Ch8 "Consumer-leg merge delegation" (incl. the pre-existing-failure posture); Ch12.1 point 6 |
+| 4 | **terra review pre-merge** — name the lane *and* the surface | §16 "Codex-utilization doctrine" — lane routing, the mixed-diff rule, and the exact model strings are all specified there |
+| 5 | **Operator GO** | Ch8 "Integration authority" |
+| 6 | **`--no-ff` serial merge from the primary checkout** | Ch8; core-invariant #5; `block-ff-push` |
+| 7 | **OPERATOR WITNESS** | §8 "Discharge with evidence" |
+| 8 | **Educate** — change · why · what-next | "The two lifelines" § Lifeline 1 (`… → archive → educate`) |
+
+**Merged ≠ done.** Gate 6 is one of Ch12.1's six shipped conditions, not a synonym for them; gates 7–8 sit *after* it. A lane that stops at the merge has completed six of eight — which is the whole reason this section is an ordered list and not a prose paragraph.
+
+**The four supporting substances, and where each lives** (this section points; it does not own them):
+
+- **Unfiltered live-session check** — before any consumer write; transcript-cwd is authoritative → **Ch8 "Hub→consumer writes"**
+- **TARGET-REPO guard** — line one of every cross-repo prompt → **Ch4 "Pre-send checklist"** (skeleton: §2 "Structure")
+- **Prove, then codify** — discipline enters PLAYBOOK only after it ships once → **§4 "When a lesson becomes a rule"**
+- **Discharge with evidence** — closure names its artifact → **§8 "Completion claims require state verification"**
 
 ---
 
