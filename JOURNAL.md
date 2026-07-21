@@ -31,7 +31,7 @@
 
 **Sequencing fact for the operator (integration is yours, both lanes serial):** the push moved `main` `a31cea07 → 2da5da22`. At this lane's START, `worktree-l5a-analytics` forked from `a31cea07` (the pre-push `origin/main`). **[corrected live at session wrap]** — by wrap, l5a had **already synced onto current `main`**: `merge-base(l5a, main)` = `2da5da22`, l5a contains `b73319ef`, so it now sees its own `[#384]` entry and the concern that it couldn't is **resolved, not outstanding**. Current relation: l5a is **1 commit ahead of `2da5da22`** and shares my exact base. Both `[#386]` (this branch) and `[#384]` (l5a) integrate serially from primary on your GO; I merged **neither**. No id collision either way (386 → 389–390, 384 disjoint); whichever you sequence second rebases onto the first as normal. **Both branches share base `2da5da22`, so neither faces a surprise rebase** — the pre-push-skew hazard the operator flagged did not materialize because l5a resynced on its own.
 
-**Changes:** `protocols/PLAYBOOK.md` (+§21, four in-place blocks, TOC), `BACKLOG.md` ([#389]/[#390] + next-free → [#391]), `JOURNAL.md` (this entry). No ESSENTIALS/VISION re-stamp, no ADR, no scripts, no new folders, no consumer writes.
+**Changes:** `protocols/PLAYBOOK.md` (+§21, four in-place blocks, TOC), `BACKLOG.md` ([#389]/[#390] + next-free → [#391]), `JOURNAL.md` (this entry, anchored + live-corrected in `13a794ea` / `af74b36`). No ESSENTIALS/VISION re-stamp, no ADR, no scripts, no new folders, no consumer writes.
 
 **Abandoned / deliberately not done:** the four pre-existing `protocols/` `undeclared_edges` WARNs (out of scope, operator anti-pattern); the VISION [#368] freshness WARN (stays honest); ESSENTIALS one-liner (operator ruled PLAYBOOK-only).
 
