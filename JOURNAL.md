@@ -19,6 +19,27 @@
 
 ---
 
+### 2026-07-21 — CC (Opus 4.8, 1M): NIGHT BATCH lane 2 of 3 — code-quality / Clean Architecture audit (read-only)
+
+**Did:** Ran the night-batch **lane 2** code audit in the `night-code-audit` worktree — read-only critical review of the whole Python surface (80 prod files, 25,636 LOC across `scripts/` `deploy/` `plugins/` `.claude/`; `tests/` 100 files/24,286 LOC as evidence only). Seven parallel reviewers over disjoint slices, then **every headline claim independently re-verified at HEAD before being written down — 53 checks, 3 live reproductions**. Report at `docs/audits/2026-07-21-technical-night-code-audit.md`, committed **`c8f7741d`** on the lane branch. Commit-and-STOP honoured: no merge, no push, `main` byte-identical to `origin/main`.
+
+**Two premise corrections, both recorded in the report rather than silently adapted.** (1) The prompt specified "`src/` review" — **there is no `src/`** (CLAUDE.md §3: markdown governance + read-only validators), so scope was retargeted to the real code surface. (2) The prompt cited `crux_check.max_tokens` as the proven dead-config precedent — **that symbol exists nowhere in this repo** (only `max_tokens` hit is unrelated prose in a 2026-06-07 council transcript). The axis was re-established independently and does hold: **44 unread manifest key declarations**.
+
+**Headline (all unticketed; de-dup verified — `circular`/`ast_walker`/`GIT_DIR`/`dotfile`/`consumer_paths`/`atomic_write` return 0 BACKLOG hits, and all 20 `cycle` hits are `lifecycle`):**
+- **The gated cycle detector is vacuous.** `scripts/codemap/ast_walker.py:23-27` counts only `__init__.py` directories; direct invocation returns **2 nodes / 0 edges** — all 45 flat `scripts/*.py` modules invisible, `[cycle]` can never fire, `deploy/` never scanned. **Four real import cycles** hide behind it (`audit`↔`enforcement_coverage`, `gen_handoff`↔`assemble_paste`, +2 transitive), all masked by function-local imports whose stated rationale is "decoupling", not cycle-breaking.
+- **Root cause, shared:** neither `scripts/` nor `deploy/` is a package (no `__init__.py`), so cross-module imports run through **17 `sys.path.insert` sites**; there is **no `conftest.py` anywhere** and **30 test files** each duplicate the mutation.
+- `scripts/enforcement_coverage.py` has **zero** GIT env scrub (`_run_in:355` re-injects `os.environ`) and `consumer_paths()` resolves **0 of 5** repos in a worktree while listing the hub as its own consumer — reproduced side-by-side against `fleet_parity.resolve_fleet()`, same registry, all correct with a role model. The `[#355]` class, unfixed here.
+- `deploy/carrier_precommit.py:242` matches `required_local_hooks` by **id alone** on the add side while the prune leg byte-compares — so an edited hook `entry:` reads `PRESENT_CORRECT` and passes verify **while the floor hash-gate is silently disarmed**.
+- The `_git` wrapper is copy-pasted **9×**; exactly **1** scrubs, and that scrub is itself duplicated verbatim between `audit.py` and `fleet_parity.py`.
+
+**Self-corrections (both left visible in the report, not quietly amended):** a scan reporting "15 `_git` wrappers, 0 scrub" was **wrong** — `^def _git` prefix-matched helpers like `_git_location_env` — corrected to **9/1**; and the `toc/cli.py:50` CRLF finding was **downgraded HIGH→MEDIUM** after `.gitattributes` `* text=auto eol=lf` was verified to absorb most of its blast radius — demonstrated inadvertently when this session's own index regen flipped 294 lines yet `git diff --numstat` reported `2 1`.
+
+**Result:** all pre-commit gates passed with **no bypass** (`audit-health` OK, `ruff` clean, hermetization Rule B pass, audit-index freshness pass). Deliberately **not** recommended: splitting `audit.py` — at 3082 lines it is a legitimate registry of 31 uniform independent checks; only the ~190-line ADR-84 writer (L2548–2738) is a real seam. Cross-cutting observation recorded for triage: items 1/3/5 of the shortlist share one shape — *designed invariants with no organ asserting them* — so the durable fix is usually "make the existing gate real", not "add a gate".
+
+**Changes:** `docs/audits/2026-07-21-technical-night-code-audit.md` (new, 723 lines), `docs/audits/README.md` (generated index — mechanically required lockstep, `audit-index-freshness` fires on any `docs/audits/*.md` add), `JOURNAL.md`. **No code file touched, no ticket filed, no id allocated** — findings are proposals. Also corrected two stale project memories found wrong during verification: `class Finding:` is **L275** not L267 (and only 2 of the cited pins are live), and the ALL_CHECKS count pins number **five**, not three.
+
+**Next:** operator triage of the report per its §0 test (location + falsifiable defect ⇒ ticket; opinion without a location ⇒ logged-reject, already recorded in §11). Lane branch `worktree-night-code-audit` awaits integration — expect a JOURNAL prepend conflict against sibling lanes 1/3, resolve newest-first by commit time. Next-free id remains **`[#381]`**; nothing in this lane consumed one.
+
 ### 2026-07-21 — CC (Opus 4.8, 1M): housekeeping merged; id-range reserved; a concurrent HEAD swap put a commit direct on main
 
 **Did:** Merged the housekeeping branch on operator GO — `980584e2` (closures `[#355]`/`[#372]` + doc-counts regen), pushed; ship-gate dropped to the single expected VISION `[#368]` WARN, with `git_backlog_drift` and `doc_claims` both back to `[OK]`. Then reserved id range **`[#373]`–`[#380]`** ahead of the night batch — `94426dc0`.
