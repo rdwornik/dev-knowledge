@@ -19,6 +19,26 @@
 
 ---
 
+### 2026-07-22 — CC (Opus 4.8): L5a analytics lane stood up — hotspot / coupling / rot frames over the live fleet [#384]
+
+**Did:** Built the L5a descriptive analytics lane (intake #16 §3, [S26]/[#384]) in the `l5a-analytics` worktree, parallel to the #386 PLAYBOOK lane in primary (disjoint files — no coordination). Plan-then-auto per ADR-87. One commit on `worktree-l5a-analytics`: **`5631660`**. Commit-and-STOP — NO merge, NO push (linked worktree; integration is serial from primary, operator-gated).
+
+New: `scripts/fleet_analytics.py` (read-only reporter — pure/impure split, fail-soft, `main()` always 0, NOT in `audit.ALL_CHECKS`) + `tests/test_fleet_analytics.py` (64 tests: byte-literal parser units, tmp_path real-git integration, live smoke). Config: `pyproject.toml` gained `[dependency-groups] analytics = ["pandas>=2.0"]` (fixing a real installed-but-undeclared parity defect — pandas 2.3.3 was present, undeclared; hub-local group, so deliberately NO row in `ecosystem/dependency-baseline.yaml`); `.gitignore` gained `logs/FLEET-ANALYTICS.md` (gitignored digest, FLEET-HEALTH precedent).
+
+**Two operator-ruled deviations from the literal spec** (documented in the module docstring, from-tool-name-toward-cited-model, NOT the v2.44 override-a-spec defect): **D1** — `git log --numstat` not PyDriller (measured 3.0s over the whole hub vs ~60×; lizard cyclomatic is null on the ~70%-markdown fleet; CodeScene — the model §3 actually cites — uses indentation complexity). **D2** — complexity = `sum(1 + indent_units)` not CodeScene's `sum(indent_units)`, so flat prose in a docs-heavy corpus can rank.
+
+**Result:** First live run over 6 repos, 28s, `parse_anomalies=0` (the `-z` numstat format held everywhere), state.yaml exclude fired (0 mechanical pairs, the R4 hazard). Frames reviewed: top hotspot `JOURNAL.md`; hottest *code* is `scripts/audit.py`; coupling is dominated by the healthy `test↔src` spine (surfaced as `same_dir`, not filtered); 3 rot candidates, all in the oldest sibling (`corp-sca-time-automation`, 204d). Hub reports 0 rot **honestly** — oldest meaningful edit 113d < 180d threshold. **A build-surfaced finding:** `corp-monorepo` has 311/812 files (38%) with no meaningful-edit record — invisible to the rot frame; made countable via a `files_no_edit_record` diagnostic column rather than left silent. Fixed a worktree-naming bug pre-commit (hub was labelled `l5a-analytics` from the worktree dir → now canonical `.dev-knowledge` via git-common-dir).
+
+Gates: **1725 passed / 8 skipped** (skips pre-existing) · ruff clean · `audit.py health: OK`, fleet at parity (pandas correctly draws no parity finding — not a governed baseline dep).
+
+**Changes:** `scripts/fleet_analytics.py` (new), `tests/test_fleet_analytics.py` (new), `pyproject.toml`, `.gitignore`.
+
+**Abandoned:** nothing.
+
+**Next:** [#384] is materially advanced but NOT closed — its done-when "rot findings become tickets" is a follow-on (the 3 corp-sca rot candidates + the 311-file corp-monorepo blind spot are the raw material). Ship the branch from primary via `/ship`. Follow-ups filed in the plan, not built: extract `scripts/gitenv.py` (env scrub now in 3 places — audit/fleet_parity/fleet_analytics); `--csv` frames for L5b; cross-repo reference index (R6 — the hub's rot scan is cross-repo blind); `docs/intake/README.md` index stale (flagged, not fixed).
+
+---
+
 ### 2026-07-21 — CC (Opus 4.8): North-Star ingestion — intake #16 filed, theme [E9] + gating chain, and a live correction record for the fabricated "10–20" figure
 
 **Did:** Ingested the consolidated FLEET NORTH STAR artifact into the methodology so it carries lifecycle rather than loose-file status, and structured the backlog behind it. One commit on `docs/north-star-ingestion`: **`b73319ef`**. Docs-only, commit-and-STOP — no merge, no push.
