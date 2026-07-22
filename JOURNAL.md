@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-22 — CC (Opus 4.8): [#384] CLOSED (Tier-1, evidence-verified) + ai-council-handoff husk removed
+
+**Did:** Two operator-ruled cleanups. **Removed the `ai-council-handoff` worktree** — a pure husk (branch fully merged into main, 0 unique commits, session long closed, clean tree); unlock→remove→prune→`branch -d`. Worktree inventory now **primary only**. `automation/fleet-audit` left **completely untouched** per operator ruling (no backup for now, revisit later). **Closed [#384]** through the Tier-1 gate (operator-approved), verifying against the real merge SHAs — NOT the session-start-stale proposals file. Done-when quoted verbatim ("*the first hotspot + change-coupling frames are reviewed and their rot findings become tickets*") and both clauses ruled MET: frames reviewed via the fleet_analytics run recorded in `docs/audits/2026-07-22-verification-night-batch-integration-386-384.md` §5 (`09c50cc0` code, `a6b326f1` fix, `09e4d707` record on origin); rot findings filed as **#393**/**#394**. The "runs as a nightly lane" prose gap is a follow-on (**#391**), NOT part of the closure contract — not a blocker.
+
+**Result:** `[#384]` line removed from [S26] (which retains #391-394); validate_backlog OK (9 themes, 27 stories, **143** tasks, 0 warnings). **[#386] stays OPEN** — closes on operator witness of the merged §21.
+
+**Changes:** `BACKLOG.md` (closed #384), `JOURNAL.md`. No other edits. `automation/fleet-audit` untouched.
+
+**Next:** [#386] operator witness; #384's follow-ons (#391 nightly-wiring, #392 rename-alias, #393/#394 rot) proceed independently.
+
+---
+
 ### 2026-07-22 — CC (Opus 4.8): night-batch integration closed — #384 landed + both pushed, night evidence relocated to docs/audits, 6 follow-ups filed
 
 **Did:** Execution lane closing the 2026-07-22 night batch. Step-0 live-session scan clean (claude.exe=1=me; l5a transcript 682min = long closed). **Landed #384 (path A):** `fix/doc-counts-384` off main @ `09c50cc0` → `python scripts/gen_doc_counts.py --write` (the blocker: pytest_collected **1669→1733**, #384's un-run regen) → commit **`c8de7212`** → `--no-ff` merge **`a6b326f1`**. Post-fix ship-gate net-new WARN **0** (VISION [#368] freshness stays, expected, NOT re-stamped), pytest **1730/3**, ruff clean, health OK. **Pushed** `2da5da22..a6b326f1` (block-ff-push Passed) — #386 + #384 + the fix now on origin/main. **Teardown:** removed the l5a worktree (unlock→remove), deleted merged `worktree-l5a-analytics` + `docs/playbook-delivery-loop` + my `fix/doc-counts-384`. Inventory = primary + the pre-existing ai-council-handoff worktree (left per instruction).
