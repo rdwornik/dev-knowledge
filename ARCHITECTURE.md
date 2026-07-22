@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-22
+last_reviewed: 2026-07-23
 reconciled_with: handoff-process@5.7
 status: active
 owner: Rob
@@ -641,7 +641,7 @@ PLAYBOOK Part II §2; boot contract: HANDOFF_PROCESS §16.
 
 **Decision flow (how a contested need becomes binding doctrine).**
 `Council brief (ephemeral)` → `ai-council debate (5-provider, blind vote — ai-council ADR-03)`
-→ `routed transcript (target/docs/decisions/transcripts/ — ADR-43)` → `operator
+→ `routed transcript (target/docs/decisions/transcripts/ — ADR-43; the hub's own archive deleted 2026-07-22, operator ruling)` → `operator
 distils an ADR` → `BACKLOG item + convention edit` → `enforcement organ (Ch2)`.
 Runbook: `protocols/AI_COUNCIL_PROCESS.md` (ADR-67). The complexity router (1-file
 mechanical → conversational; 3+ files / 2+ packages → formal CC prompt;
@@ -662,7 +662,9 @@ ADRs, not edited; the unbuilt local track survives as BACKLOG **#85** (refs
 ## Governing ADRs
 
 The governing decisions, grouped by area — **curated, not exhaustive**; the complete
-ledger is `docs/decisions/README.md`. Council transcripts: `docs/decisions/transcripts/`.
+ledger is `docs/decisions/README.md`. Council transcripts: the in-hub archive
+(`docs/decisions/transcripts/`) was **deleted 2026-07-22** (operator ruling — decisions
+live in the ADRs; git history retains; the ADR-77 guard stays armed, Ch2).
 (Most-recent five are mirrored in CLAUDE.md §11.)
 
 - **ADR-27/48** — scope tagging: vocabulary retained, enforcement withdrawn (informal metadata).

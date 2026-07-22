@@ -2,8 +2,10 @@
 
 <!-- scope: meta -->
 
-Architecture decisions for `.dev-knowledge` in Michael Nygard ADR format. The `transcripts/`
-subfolder holds AI Council debate outputs that informed them.
+Architecture decisions for `.dev-knowledge` in Michael Nygard ADR format. The former
+`transcripts/` subfolder (raw AI Council debate outputs) was **deleted 2026-07-22**
+(operator ruling — decisions live in the ADRs; git history retains the transcripts).
+`archive/` holds terminal (Superseded/Deprecated) ADRs, relocated byte-identical.
 
 ## ADR Index
 
