@@ -202,6 +202,178 @@ half executed this batch: **this inventory + proposal** (the folder's own README
 already documents the queue contract; adding an in-file note would churn a file
 proposed for removal). No file touched.
 
-*(Running log continues: Phase 2b ADR audit, Phase 4 living docs, Phase 5
-ai-council, Phase 6 next-session readiness, final summary — appended below as the
-batch proceeds.)*
+## Phase 2b — ADR ARCHIVAL AUDIT — **PASS (terminal set EMPTY — nothing to move)**
+
+77 live ADR files in `docs/decisions/` (ADR-27…ADR-103, incl. two amendment files);
+`archive/` holds the 2 already-terminal ones the hygiene lane relocated (ADR-40
+Deprecated 2026-05-23 · ADR-52 Superseded-by-ADR-53). Status lines quoted verbatim in
+the retrieval record; every remaining ADR is `Accepted` except the five named below.
+Inbound-ref counts are non-zero for every ADR (12–1181 hits), so the zero-live-refs
+archival bar is met by **none** — and none is status-terminal anyway.
+
+**Named candidates (report, not moved):**
+- **ADR-45** — `Status: Explored, not adopted; ADR-42 v3.2 remains canonical authority…`
+  Dead-in-substance (v4/v5 superseded the whole v3 line) but PLAYBOOK prose refs fail
+  the zero-refs bar — exactly the shape the charter predicted. **Re-rule candidate:**
+  either add a terminal status by amendment marker + re-home the PLAYBOOK refs, or
+  ratify "explored-not-adopted stays in the live folder as a knowledge record."
+- **ADR-82** — `Status: Proposed`, yet operator-ratified canonical 2026-06-11 (#149;
+  CONTRIBUTING + ARCHITECTURE both state it). A stale status line, not a dead ADR —
+  [#242]'s retro-normalize domain (ADR-94 sanctions the in-place flip at ratification;
+  a 6-week-later retro-flip is #242's call, not a night drive-by).
+- **ADR-88 / ADR-89** — frozen `Proposed` headers, ratified by in-file amendment
+  markers (Pattern A). Known, tracked in [#242].
+- **ADR-46 / ADR-47** — `Status: Partially superseded — retained as convention, NOT
+  audit-enforced`: a hybrid status outside any enum; live by intent.
+- **Enum drift (side-finding):** CONTRIBUTING "ADR process" prescribes
+  `Accepted | Superseded | Withdrawn` — on-disk reality also uses `Proposed`,
+  `Deprecated`, `Partially superseded`, `Explored, not adopted`. The ADR status enum
+  needs the same reconcile-then-enforce treatment [#398] gives the intake enum.
+
+## Phase 2c — SYSTEMIC FINDING: the archival system has no mechanism
+
+The 2026-07-22 archive-inside-each-folder ruling is executed by hand and verified by
+nothing. What a **status-coupled validator** would have to check (build input; sibling
+of `validate_hermetization` in shape — read-only, WARN-first):
+1. **Parse status per genre** — intake: frontmatter `status:`; ADR: the `Status` line
+   (needs the per-genre CLOSED enum first — [#398] for intake, the CONTRIBUTING enum
+   reconcile above for ADRs. The enum is the blocker; the validator is trivial after).
+2. **Terminal-status ⇒ location coupling** — a terminal doc (CONSUMED/REJECTED,
+   Superseded/Deprecated) still in the live folder → WARN; a live-status doc inside
+   `archive/` → WARN (the inverse leak).
+3. **Byte-identity on move** — the relocation is sanctioned only byte-identical
+   (LESSONS-legacy precedent); validator compares git blob hashes across the move.
+4. **Index coupling** — regen-and-diff the generated indexes after any move
+   (`gen_intake_index` depth-1 already drops archived docs; decisions README rows
+   need their annotation convention checked or generated).
+5. **Ref-class-aware zero-refs bar for ADRs** — living-doc/protocol/script refs
+   block archival; immutable-record refs (audits/handoffs/JOURNAL/transcript-history)
+   do not. The validator needs that distinction or ADR-45-shaped files block forever.
+6. **Status-transition legality** — forward-only lifecycle; `consumed-by:` populated
+   ⇔ status CONSUMED (the intake #14 DRAFT-with-consumed-by edge would WARN today).
+
+## Phase 4 — LIVING-DOCS CURRENCY — **PASS** (fixed: plain drift; reported: judgment)
+
+**Fixed (commit `9a04e23c`; each with a genuine end-to-end re-read + same-day
+`last_reviewed` re-stamp 2026-07-23):**
+- `CLAUDE.md:73` — §4 transcripts destination claim → retirement record (v2.46, §12
+  folded, prose count unchanged; lockstep with `b4435fad`).
+- `ARCHITECTURE.md:644` — decision-flow transcript stage annotated (hub archive
+  deleted); `:665` — Governing-ADRs transcripts location claim → deletion record.
+  Organ rows :169/:571 stay TRUE (guard armed) — deliberately untouched.
+- `CONTRIBUTING.md:114` — ruff row still claimed `language: system` (the v2.40
+  pinned-rev conversion missed this file); `:115` — `logs/coherence-nudge.log` →
+  `COHERENCE-NUDGE.log` ([#395] lockstep miss); `:113` — stale "~1.4s" audit-health
+  timing dropped (witnessed ~3 min at the 41-check registry).
+- `docs/decisions/README.md:5` — transcripts-subfolder claim → deletion record +
+  archive/ role note.
+- `BACKLOG.md` — checked #112/#210/#361 (transcripts-guard references): all remain
+  TRUE (guard armed, zone pattern defined). No task premise falsified. LESSONS.md:
+  append-only, entries point-in-time — nothing editable, nothing false as a standing
+  rule. PLAYBOOK/ESSENTIALS: no `docs/runbooks` refs anywhere.
+**Reported (judgment — operator):**
+- **The ADR-43 / Council-routing doctrine cluster** — PLAYBOOK:950, 1052, 1858, 1907,
+  2658, 2667, 2672–2673, 2696, 2832 + `protocols/AI_COUNCIL_PROCESS.md`:171, 313, 323
+  + VISION.md:112 (untouchable this batch) all describe transcript routing into
+  `docs/decisions/transcripts/`. The mechanism (ai-council `routing.py`) still exists;
+  only the hub landing is gone. Retiring/re-scoping ADR-43 + the Council-process docs
+  is ONE deliberate re-rule, not line-fixes — flagged as a named candidate.
+- CONTRIBUTING ADR-status enum (Phase 2b side-finding above).
+- VISION.md [#368]: 33d-stale WARN stands honest, untouched per charter.
+
+## Phase 5 — ai-council CROSS-REPO AUDIT (READ-ONLY, zero writes) — **PASS**
+
+- **Sync:** `main` == `origin/main` @ `8888d9e` (0 ahead / 0 behind). Working tree
+  clean; no stashes; no linked worktrees; no MERGE_HEAD; hooksPath unset;
+  pre-commit/commit-msg/pre-push all armed (fresh, pre-commit-managed).
+- **Branches:** `chore/pre-handoff-cleanup` (checked out; == main's tip, 0 unique) ·
+  `feat/vscode-boundary-colors` (fully merged via `c35bc3e`, 0 unique — routine
+  post-merge stale local, deletable at that repo's next session; NOT deleted, zero
+  writes). Nothing unmerged, nothing dangling.
+- **Gates:** ruff clean. pytest (`-n auto`, no-cache, no-bytecode): **822 passed,
+  2 FAILED, 1 xfailed** — both pre-existing, not batch-attributable:
+  (1) `test_cli.py::test_no_persist_removes_scratch_on_success` — leaked scratch dir
+  under xdist (possible parallel-collision artifact vs genuine `--no-persist`
+  regression — unconfirmed which); (2) `test_integration.py::test_full_debate_pipeline`
+  — `ImportError: _build_all_providers` absent from `ai_council.cli` (source/test
+  drift). **Both belong on ai-council's backlog** (its repo, its tickets).
+- **CLAUDE.md region map:** 23 regions (13 owner=repo, 10 owner=hub interleaved),
+  full listing in the retrieval record. §9 prose roster == live
+  `.pre-commit-config.yaml` exactly (12 hook ids) — no drift.
+- **The ownership question:** the roster regions — `commands-repo-roster` (§7),
+  `skills-repo-roster` (§8), `hooks-repo-roster` (§9), `recent-adrs-roster` (§11) —
+  are all plain `owner=repo`, yet the hub mandates their existence + section shape;
+  only the content is repo-specific. The two-state model has no cell for
+  mandated-structure/local-content ([#370] names the adjacent third-class gap:
+  user-level `~/.claude` lines). **Filed [#400]** (S22, kill-candidate #370 — one
+  completeness ruling should absorb both cells). No other region flagged: §1-local /
+  §6-local sub-region pattern (`first-read-local`, `session-start-protocol-local`)
+  is the sanctioned escape hatch working as designed.
+
+## Phase 6 — NEXT-SESSION READINESS (cold-architect orientation)
+
+**Where the plan lives:** `docs/intake/2026-07-21-func-fleet-north-star.md` (intake
+**#16**, DRAFT — the consolidated vision; §4 feeds the polyrepo ruling, §1–§3+§5 feed
+the desired-state ADR) + BACKLOG theme **[E9]** (S24–S27 sequence, brake note at its
+head). The intake #13 plan-of-record (v4) is the older fleet-hygiene baseline — still
+OFF-CANON status, superseded in spirit by #16 but not formally; [#398] then a
+supersession pass should settle it.
+**Decisions state:** 77 live ADRs (…ADR-103), 2 archived (ADR-40, ADR-52). No further
+terminal ADRs exist (Phase 2b). Stale-status trio: ADR-82 (Proposed-but-canonical),
+ADR-88/89 (Pattern A) — [#242]. ADR-45 = the named re-rule candidate. ADR-43 +
+Council-process docs = the post-transcripts-deletion re-rule cluster (Phase 4).
+**Intake state:** 15 live docs — 6 SEED (canon, rent review due ~08-07) + #16 DRAFT
+(the spine) + two #14 DRAFT-provenance edge cases; 6 OFF-CANON statuses blocked on
+**[#398]** (reconcile-then-migrate). 3 archived (CONSUMED).
+**Open-ticket map (gating):** **[#381]** polyrepo shape ruling — P1, NEEDS-RULING,
+operator-only, its own session; **the #381 brake blocks all new fleet machinery**
+([E9] S24–S27: #382 data-model, #383, #385 all `depends-on: 381`). Independent of the
+brake: [#398] intake enum → unlocks the six migrations + the archival validator
+(Phase 2c spec above); [#242] ADR status normalization; [#397] scripts/ structure;
+[#399] v5 README.tmpl phantom claim; [#391] fleet_analytics nightly wiring; [#370] +
+**[#400]** (this batch) — the ownership-model ruling pair; [#386] awaits operator
+witness of PLAYBOOK §21; ai-council: 2 failing tests (Phase 5) to ticket in that repo.
+**What this batch changed:** merged the runbooks-collapse lane (`e490275c`, pushed);
+deleted 3 merged branches (worktrees/branches now: primary + `automation/fleet-audit`
+only); **deleted `docs/decisions/transcripts/`** (`b4435fad` — 51 files; guard kept
+armed); living-docs currency pass (`9a04e23c`); this artifact + [#400]. Intake/ADR
+archival: **zero moves** — both terminal sets verified empty.
+**The ONE next move:** the **[#381] polyrepo ruling session** — inputs: intake #16 §4
++ the 2026-07-21 read-only recon; the ADR must price (a) the unfold cost if the fold
+is wrong, (b) the Blue Yonder employer-data compliance boundary (hard constraint),
+(c) blast radius on live pre-sales work. Note [#388]: the "10–20 repo" figure is
+fabricated — the live target is 5–8+, which *weakens* the dissolution case; price
+against 5–8+. Everything in [E9] queues behind this ruling.
+
+## FINAL — one-screen summary
+
+```
+NIGHT BATCH 2026-07-22→23 — per-phase verdicts
+P1 integrate+branch-hygiene   PASS   merge e490275c pushed; 3 merged branches deleted;
+                                     unmerged reported (fleet-audit 126c untouched,
+                                     2 conformance remotes await triage); primary-only
+P2a intake archival           PASS   terminal set EMPTY (0 moves); 6 SEED+#16 LIVE;
+                                     six OFF-CANON named -> [#398]; #14 edge reported
+P2b ADR archival              PASS   terminal set EMPTY (0 moves); ADR-45 re-rule
+                                     candidate; ADR-82/88/89 status drift -> [#242]
+P2c systemic finding          DONE   6-point status-coupled-validator spec (enum first)
+P3a transcripts deletion      PASS   b4435fad — 51 files/47,748 lines (commit msg says
+                                     54/4.8MB — exact figure is 51 tracked files);
+                                     dependency check EMPTY; ADR-77 guard KEPT ARMED,
+                                     retire-path = named re-rule candidate
+P3b docs/archive              DONE   report-only: a stalled ADR-60 triage queue, second
+                                     review overdue since ~06-06; per-file proposals
+                                     recorded; deletions = operator
+P4 living-docs currency       PASS   4 files fixed @ 9a04e23c (re-read + re-stamped);
+                                     ADR-43 doctrine cluster + ADR-status enum +
+                                     VISION:112 reported for judgment
+P5 ai-council (read-only)     PASS   main==origin @ 8888d9e; gates: ruff clean, pytest
+                                     822P/2F (both pre-existing, belong on ai-council
+                                     backlog); 23 regions mapped; [#400] filed
+P6 next-session readiness     DONE   this section; substitute for the (forbidden)
+                                     handoff bundle
+Armed stops triggered: NONE. Net-new pytest failures: 0 (hub 1731/3 before and after).
+Net-new hub WARNs: 0 (verified against the P0 baseline set at close).
+The ONE thing to look at first: P6 "The ONE next move" — the [#381] polyrepo ruling.
+```
+
