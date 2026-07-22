@@ -43,6 +43,15 @@ def test_rule_a_blocks_new_docs_genre_folder():
     assert r is not None and "genre folder" in r
 
 
+def test_rule_a_blocks_collapsed_runbooks_genre():
+    # ADR-101 amendment 2026-07-22: d.i REVERSED -- `runbooks` LEFT SANCTIONED_GENRES
+    # (the one-member genre collapsed into protocols/REPO_ONBOARDING.md). Re-creating
+    # the genre is a surfaced, gated act, not a silent one.
+    assert "runbooks" not in vh.SANCTIONED_GENRES
+    r = vh.rule_a_violation("docs/runbooks/repo-onboarding.md")
+    assert r is not None and "genre folder" in r
+
+
 def test_rule_a_allows_file_under_sanctioned_dir():
     assert vh.rule_a_violation("scripts/newmod.py") is None
     assert vh.rule_a_violation("tests/test_newmod.py") is None

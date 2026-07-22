@@ -32,6 +32,19 @@ see e.g. `ai-council/protocols/README.md`).
 > universal-methodology doc. Its residence here is historical; the #327 interface-genre
 > ruling will settle its placement. No content overlap with the methodology docs above.
 
+> Note: `REPO_ONBOARDING.md` — the repo-onboarding runbook (bring a repo onto the
+> universal methodology baseline). An **operational process spec**, not a consumer
+> hub-pointer doc; collapsed here from the one-member `docs/runbooks/` genre per the
+> ADR-101 amendment 2026-07-22 (d.i reversal).
+
+**Filename casing (ADR-34, written down 2026-07-22):** every file in `protocols/` follows
+the ADR-34 file-type table row `Protocols → UPPERCASE_WITH_UNDERSCORES.md` (example:
+`HANDOFF_PROCESS.md`). The existing residents all conform — they are the de-facto pattern
+ADR-34 codified, not carve-outs — and `REPO_ONBOARDING.md` was renamed from
+`repo-onboarding.md` at its 2026-07-22 move-in to conform. (The row itself is a recorded
+carve-out from ADR-34's 2026-05-11 universal-hyphen separator amendment, acknowledged in
+that ADR's Consequences.)
+
 ---
 
 **Seed shell** (BACKLOG #314 partial): this states the genre + the hub-pointer /
