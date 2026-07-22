@@ -375,7 +375,7 @@ def test_backslash_paths_are_normalized_when_scanned():
 
 
 def test_index_referrer_is_excluded_structurally():
-    """A file naming > index_referrer_cut targets is a generated index (REGISTRY.md, a TOC).
+    """A file naming > index_referrer_cut targets is a generated index (registry.md, a TOC).
     It would give every file a uniform +1. Excluded by a structural rule, not a hand-list."""
     targets = {f"docs/f{i:03}.md" for i in range(60)}
     tokens = fa.match_tokens(targets | {"docs/INDEX.md", "docs/real.md"})

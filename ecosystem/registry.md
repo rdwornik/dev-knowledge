@@ -8,7 +8,7 @@
 > as this file.
 >
 > **The registry is two surfaces, split by audience:**
-> - **`ecosystem/REGISTRY.md` (this file) = the human registry** — name · path · purpose · status,
+> - **`ecosystem/registry.md` (this file) = the human registry** — name · path · purpose · status,
 >   hand-maintained. Add a row when a repo is created; it needs no tooling.
 > - **`ecosystem/<repo>/` + `ecosystem/index.yaml` = the machine registry** — born at methodology
 >   onboarding (`ecosystem/<repo>/state.yaml` is gitignored; `history/*.md` is tracked). `index.yaml`

@@ -17,7 +17,7 @@ fleet's two most recent cold-starts each **re-derived the governance taxonomy by
 diverged** (census `2026-07-08-fleet-consistency-census.md` Part 5): demo-prep grew its own
 `docs/intake/` + full hub docs taxonomy + own 3-digit ADRs + armed pre-commit/pre-push;
 life-architect grew a root `intake/` + `docs/decisions/` + a baseline pre-commit. Neither
-got a `ecosystem/REGISTRY.md` row automatically — the census had to draft both registration
+got a `ecosystem/registry.md` row automatically — the census had to draft both registration
 entries. #43 ("decide + author a one-step new-repo scaffold") has sat `[P3][L]` open for the
 same reason. The itch: the operator wants to say *"register project X, its purpose is Y"* and
 have the whole first-day sequence — registry row, repo scaffold, governance baseline, and the
@@ -27,7 +27,7 @@ that drift.
 ## Scenarios (+1 view)
 
 - As the operator I come to dev-knowledge and say *"register project X with purpose Y"*, and a
-  `ecosystem/REGISTRY.md` row is added (name · path · purpose · status) plus the machine-registry
+  `ecosystem/registry.md` row is added (name · path · purpose · status) plus the machine-registry
   seed (`ecosystem/<repo>/`, `index.yaml` regenerated).
 - As the operator, immediately after registration, a **repo scaffold** is produced: `git init`;
   the mandatory governance baseline (VISION / CLAUDE / ARCHITECTURE / BACKLOG per ADR-38 A5),
@@ -41,7 +41,7 @@ that drift.
 
 ## Functional requirements
 
-- **Must:** a single operator entry ("register X, purpose Y") produces the `REGISTRY.md` row + the
+- **Must:** a single operator entry ("register X, purpose Y") produces the `registry.md` row + the
   scaffold with the mandatory governance baseline + the `docs/` taxonomy including `docs/intake/` +
   a baseline pre-commit.
 - **Must:** the flow is **size-scaled** — it selects which role-chats (func / tech / developer) run
@@ -55,7 +55,7 @@ that drift.
 
 ## Acceptance criteria (ex-ante)
 
-1. Given the operator states "register `<name>` with purpose `<purpose>`", a `REGISTRY.md` row appears
+1. Given the operator states "register `<name>` with purpose `<purpose>`", a `registry.md` row appears
    (name · path · purpose · status) **and** the machine-registry seed exists (`ecosystem/<name>/`
    present, `index.yaml` regenerated) — verified by reading both surfaces.
 2. The scaffolded repo contains the mandatory governance baseline (VISION.md, CLAUDE.md,
@@ -82,9 +82,9 @@ that drift.
 - **Logical:** a new "bootstrap" seam between operator intent and a registered, scaffolded repo.
 - **Process:** collapses N hand-re-derivations into one elaborated flow; the functional role-chat is
   the first real use of the intake pipeline on a greenfield repo.
-- **Development:** `templates/new-repo-skeleton/` (from #43) + REGISTRY / machine-registry writes; no
+- **Development:** `templates/new-repo-skeleton/` (from #43) + registry.md / machine-registry writes; no
   new runtime scripts here.
-- **Physical:** touches `ecosystem/REGISTRY.md`, `ecosystem/index.yaml`, and the new repo's tree.
+- **Physical:** touches `ecosystem/registry.md`, `ecosystem/index.yaml`, and the new repo's tree.
 
 ## Open questions
 
