@@ -181,7 +181,7 @@ release-cut arc that authors the manifest, tags, and deploys.
 ## Links
 - `deploy/carrier_floor.py` (#275b constant) · `deploy/tool.py` / `deploy/contract.py` (#245/#276) ·
   `deploy/carrier_precommit.py` (#276 `detect_prune`) · `deploy/manifest-v1.2.0.yaml` (copy-source) ·
-  `deploy/release_lint.py` (C1–C8) · `docs/runbooks/repo-onboarding.md` (the onboarding half) ·
+  `deploy/release_lint.py` (C1–C8) · `protocols/REPO_ONBOARDING.md` (the onboarding half; relocated from `docs/runbooks/` per the ADR-101 amendment 2026-07-22) ·
   `docs/audits/2026-07-08-fleet-consistency-census.md` (the fleet-state evidence).
 
 ---

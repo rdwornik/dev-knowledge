@@ -68,9 +68,10 @@ SANCTIONED_TIER1_FILES: frozenset[str] = frozenset({
     "package.json", "package-lock.json", "pyproject.toml",
 })
 
-# Tier-2 -- sanctioned docs/<genre>/ folders.
+# Tier-2 -- sanctioned docs/<genre>/ folders. `runbooks` LEFT the set 2026-07-22
+# (ADR-101 amendment: d.i REVERSED -- the one-member genre collapsed into protocols/).
 SANCTIONED_GENRES: frozenset[str] = frozenset({
-    "archive", "audits", "decisions", "handoffs", "intake", "runbooks",
+    "archive", "audits", "decisions", "handoffs", "intake",
 })
 
 # --- ADR-101 section 2 + R3: the CLOSED 11-class audit-class enum ----------------------
