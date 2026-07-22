@@ -24,7 +24,7 @@ subfolder holds AI Council debate outputs that informed them.
 | ADR-37 | 2026-04-30 | Session boundary protocol — two-phase handoff (Current State + Future State) |
 | ADR-38 | 2026-04-30 | Universal repo architecture baseline — mandatory files per tier S/M/L; foundation for ADR-39/40/41; amended 2026-05-23 (A5: tier deprecation → universal baseline) + 2026-06-02 (A6: seven-file canonical set + canonical structure standard) |
 | ADR-39 | 2026-04-30 | File lifecycle governance — 6-element pattern per file (purpose/trigger/owner/grooming/boundaries/enforcement) |
-| ADR-40 | 2026-04-30 | Scale tier evaluation algorithm — logarithmic Maintainability Index pattern; 3 signals (module count, test count, TCR) |
+| ADR-40 | 2026-04-30 | Scale tier evaluation algorithm — logarithmic Maintainability Index pattern; 3 signals (module count, test count, TCR) — Deprecated 2026-05-23; relocated byte-identical to `archive/` 2026-07-22 |
 | ADR-41 | 2026-04-30 | Cross-session backlog architecture — BACKLOG.md mandate at M+ tier; no Scrum vocabulary; amended 2026-06-02 (supersession chain 47/64/65/66 + ecosystem story-map binding with proportional depth, closes #20) + 2026-07-18 (RULING-W hub→consumer write path — sanctioned worktree/branch → report) |
 | ADR-42 | 2026-05-09 | Handoff format v3 — three-stage generation flow; v3.2 = flat per-session folder, Q&A iteration loop; amended 2026-05-26 (Q5: full invariants retained + executor-gate contract + manifest integrity) |
 | ADR-43 | 2026-05-11 | Cross-project transcript routing — per-invocation, opt-in, config-driven; `target-project:` frontmatter + `--target-project` flag; `TargetResolver` in ai-council CLI |
@@ -36,7 +36,7 @@ subfolder holds AI Council debate outputs that informed them.
 | ADR-49 | 2026-05-17 | Consolidate past-recording documentation files — amends ADR-46/47 (fewer files governed) |
 | ADR-50 | 2026-05-17 | Machine-document encoding standard — governance-admission rule for machine-written content |
 | ADR-51 | 2026-05-18 | Architecture documentation convention — dedicated `ARCHITECTURE.md` mandatory for every covered repo; hybrid staleness control (auto-generated codemap + CI check + hand-written invariants); amended 2026-05-23 (tier-conditional coverage removed → universal, per the ecosystem-wide tier deprecation; cross-ref ADR-38 A5 — the "graphical at M/L, text-only at S" depth-split no longer gates on a declared tier) + 2026-07-05 (LLM-first canonical docs — Mermaid leaves canonical `ARCHITECTURE.md`, codemap → compact text (still generated), visualization = future Tier-4 surface, check #7 retired; separate file `ADR-51-amendment-2026-07-05-llm-first-canonical-docs.md`, ratified by root at Wave-2 integration) |
-| ADR-52 | 2026-05-19 | ~~AGENTS.md convention — cross-tool agent-instruction contract~~ Superseded by ADR-53 |
+| ADR-52 | 2026-05-19 | ~~AGENTS.md convention — cross-tool agent-instruction contract~~ Superseded by ADR-53 — relocated byte-identical to `archive/` 2026-07-22 |
 | ADR-53 | 2026-05-19 | CLAUDE.md as single canonical per-repo agent-instruction file — supersedes ADR-52 |
 | ADR-54 | 2026-05-19 | Codex reviewer config as global standard — canonical source at `codex/AGENTS.md`, deployed to `~/.codex/AGENTS.md`; per-repo `AGENTS.md` for repo-specific review rules only |
 | ADR-55 | 2026-05-26 | Applied-task internalization gate — replaces 4-item paraphrase gate with role+constraints citations + one applied probe (`10_GATE_PROBE.md`) + one bounded retry (closes Council Q1) |
