@@ -119,7 +119,7 @@ repos:
         name: Coherence forgotten-version-bump nudge (non-blocking)
         # Fires on a registered spec changed-without-a-version-bump (the
         # reconciliation checker's false-negative). NON-BLOCKING: always exits 0
-        # (a nudge, not a gate); appends every fire to logs/coherence-nudge.log.
+        # (a nudge, not a gate); appends every fire to logs/COHERENCE-NUDGE.log.
         # Spec set is single-sourced from validate_reconciliation._SPEC_REGISTRY.
         entry: python scripts/coherence_nudge.py
         language: system

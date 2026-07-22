@@ -58,14 +58,14 @@ phase and is NOT built here).
 
 JSONL events (FR-8/FR-13, CHECKER RUNS ONLY -- organ-wrapper emitters are a later
 carrier phase): one schema-versioned line per finding + one run summary, appended to
-the gitignored rotation-capped ``logs/parity-events.jsonl``. Emission is FAIL-OPEN in
+the gitignored rotation-capped ``logs/PARITY-EVENTS.jsonl``. Emission is FAIL-OPEN in
 whole: an emission error prints one ASCII note and never affects verdicts or the exit
 code. ``event_id`` is a deterministic content hash (replay-idempotent ingestion,
 Codex FR-07); ``mode`` separates ``actual`` from ``synthetic`` so test runs can never
 read as fleet history. Non-firing is NOT an event (FR-9 expectation-join, later phase).
 
 Layer-2 posture (ADR-28/36): reads sibling trees read-only; writes ONLY the gitignored
-``logs/FLEET-PARITY.md`` digest + ``logs/parity-events.jsonl`` under THIS repo. All
+``logs/FLEET-PARITY.md`` digest + ``logs/PARITY-EVENTS.jsonl`` under THIS repo. All
 printed output and evidence strings are ASCII (cp1252-safe stdout).
 """
 
@@ -109,7 +109,7 @@ DEFAULT_BASELINE = _REPO_ROOT / "ecosystem" / "dependency-baseline.yaml"
 DEFAULT_REGISTRY = _REPO_ROOT / "ecosystem" / "deployed-versions.yaml"
 DEFAULT_ECOSYSTEM_DIR = _REPO_ROOT / "ecosystem"
 DIGEST_PATH = _REPO_ROOT / "logs" / "FLEET-PARITY.md"
-EVENTS_PATH = _REPO_ROOT / "logs" / "parity-events.jsonl"
+EVENTS_PATH = _REPO_ROOT / "logs" / "PARITY-EVENTS.jsonl"
 EVENTS_MAX_BYTES = 5_000_000  # rotate past this; single .1 backup (os.replace, Windows-safe)
 
 # Verdict vocabulary (register grammar + extension states).
