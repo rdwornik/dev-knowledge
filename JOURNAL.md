@@ -31,7 +31,7 @@
 
 **logs/ hygiene (report-only):** no untracked litter in logs/ after removal; the one naming defect is #395 (coherence-nudge lowercase `.log` vs the UPPERCASE.md digest siblings).
 
-**Changes:** `ecosystem/doc-counts.md` (via `a6b326f1`), `docs/audits/2026-07-22-verification-...md` (new) + regenerated `docs/audits/README.md`, `BACKLOG.md` (#391–#396 + next-free), `JOURNAL.md`. Removed 2 untracked logs. No new folders, no .gitignore edit, no consumer writes, no VISION re-stamp, no handoff bundle. #386/#384 not closed.
+**Changes:** `ecosystem/doc-counts.md` (via `a6b326f1`), `docs/audits/2026-07-22-verification-...md` (new) + regenerated `docs/audits/README.md`, `BACKLOG.md` (#391–#396 + next-free), `JOURNAL.md`. Removed 2 untracked logs. No new folders, no .gitignore edit, no consumer writes, no VISION re-stamp, no handoff bundle. #386/#384 not closed. Close-lane anchored in `938b01c1` (leaf) / `423a372e` (merge); this session-anchor rides in a follow-up (a journal commit cannot name its own SHA).
 
 **Next:** operator witnesses merged §21 to close #386; #384 closes on its rot-review (#393) + the terra/coverage follow-ups. Optional: gitignore the night-batch log globs (or accept them retired now that the record is in docs/audits).
 
