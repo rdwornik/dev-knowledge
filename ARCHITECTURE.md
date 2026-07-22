@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-18
+last_reviewed: 2026-07-22
 reconciled_with: handoff-process@5.7
 status: active
 owner: Rob
@@ -190,6 +190,10 @@ local git gate.
 | `doc_structure` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #192; ADR-88 prose-shape |
 | `hooks_armed` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | **fail-closed** (FAIL on a missing/foreign `.git/hooks` gate) | RF-2 (Fable arch review 2026-07-04 §4); self-armed by the SessionStart `pre_commit install` |
 | `fleet_parity.py` → `check_fleet_parity` (audit check) | `audit.py health` (pre-commit) + `ship-gate` — blocking `ALL_CHECKS` member since [#337] ([#336] cleared the last WARN); the standalone CLI stays read-only | hub | **fail-closed** on a real divergence (FAIL: refused/must-absent/tombstone-violated; WARN→RED: undeclared/unavailable/tracked-ephemera; stale-declaration/advisory-rewarn stay advisory). The ~8s walk runs per-commit too — ship-gate-scoping is a filed follow-up | #328/#332/#337; intake #12 + RULED #14; ADR-102/103; `ecosystem/parity-surfaces.yaml` + `dependency-baseline.yaml` |
+| `residual_completeness` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (changed handoff-bundle files) | hub | **fail-closed** (FAIL on a FILL-IN region still carrying its generator placeholder; degrades to WARN on internal error; scans the working tree — the staged-blob gap is #366) | ARC-5 first enforcing mechanism; HANDOFF_PROCESS "Residual completeness"; #365/#366 |
+| `boundary_report.py` (reporter) | manual CLI | hub · read-only | fail-soft (writes `logs/BOUNDARY-DRIFT.md`; a reporter, NOT a gate — deliberately not in `ALL_CHECKS`) | #312; CLAUDE.md Form-A regions |
+| `boundary_headers.py` (generator) | manual CLI (`--check` regen-and-diff · `--coverage`; pre-commit wiring open #369) | hub | generated-not-hand-maintained (headers derived from the #312 markers via `boundary_report` imports — a hand-edit is overwritten on regen); suite-guarded at ship-gate | #352; `tests/test_boundary_headers.py` |
+| `fleet_analytics.py` (reporter) | manual CLI (nightly wiring open #391) | hub · read-only | fail-soft (writes `logs/FLEET-ANALYTICS.md`; `main()` always 0; NOT in `ALL_CHECKS`) | #384 (L5a descriptive analytics); intake #16 §3 |
 | `deploy/tool.py` + 4 carriers (`globalconfig`/`plugin`/`precommit`/`floor`) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ADR-91/92/93; PLAYBOOK §20 |
 | `floor-hash-verify` (pre-commit) + SessionStart floor guard (`.claude/check_floor_hash.py`) | consumer commit / session start | consumer (armed by `carrier_floor`) | **fail-closed** (loud on floor drift) | ADR-93 (#226) |
 | pre-commit gates (`.pre-commit-config.yaml`) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below (count in `ecosystem/doc-counts.md`) |
@@ -225,7 +229,7 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   (count in `ecosystem/doc-counts.md`; `python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
   `no_sibling_orphans`, `canonical_structure`, `amendment_coherence`, `git_backlog_drift`,
   `no_ff_merges`, `reconciled_versions`, `doc_rot`, `doc_structure`, `doc_code_edge`,
-  `safe_removal`, `doc_code_coverage_drift`, `fleet_parity`).
+  `safe_removal`, `doc_code_coverage_drift`, `fleet_parity`, `residual_completeness`).
   `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs);
   `ship-gate` = the #147 pre-ship verification-organ gate (Definition-of-shipped point 6).
   **Seam `ship-gate` vs `health`:** both reuse `ALL_CHECKS`, but `health` gates each
@@ -322,6 +326,14 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   check (FAIL-class — a toothless probe blocks `/ship`). Standalone CLI:
   `python scripts/verify_handoff_probes.py <bundle>` (#163).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
+- `scripts/validate_hermetization.py` — ADR-101 §3 tree-seal refusal gate (pre-commit,
+  prospective-only on staged ADDs; Rule A top-level/genre seal, Rule B audit-name grammar
+  + R4 casing; HUB-ONLY; fail-open-loud on git error) (#306).
+- `scripts/validate_residual_completeness.py` — handoff residual-completeness gate: a
+  changed v5 bundle file may not ship a hand-authored FILL-IN region still carrying its
+  generator placeholder. Surfaced via the `residual_completeness` audit check
+  (**FAIL-class**; ARC-5's first enforcing mechanism); honest limit — scans the working
+  tree, not the staged blob (#366).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
 - `scripts/gen_doc_counts.py` — generates the committed `ecosystem/doc-counts.md` count
   fragment (audit check-count · pre-commit gate-count · pytest collected), moved off
@@ -403,6 +415,8 @@ auto-enumerable `ALL_CHECKS` surface; the heterogeneous non-`ALL_CHECKS` remaind
 (PLAYBOOK.md), `roster-freshness` (methodology-roster vs manifest, #244 P3),
 `claude-rosters-freshness` (CLAUDE.md `.claude/generated/*` fragments vs disk, #258 phase-2),
 `audit-index-freshness` (`docs/audits/README.md` index vs `docs/audits/*`, census A-2),
+`validate-hermetization` (ADR-101 tree-seal refusal gate, #306),
+`intake-index-freshness` (`docs/intake/README.md` Contents block vs frontmatter, #307),
 `validate-backlog`, `audit-health`, `ruff` (≥0.15.5),
 `coherence-nudge` (non-blocking forgotten-version-bump nudge — exits 0 always),
 `backlog-id-on-close` + `backlog-filing-backpressure` (commit-msg — the remove-side and
@@ -539,6 +553,14 @@ and the zones where edits are blocked outright.
 governance markdown (ADR-59). **Scope tags** `<!-- scope: X -->` are informal metadata
 only (ADR-27; enforcement withdrawn ADR-48).
 
+**Archive-inside-each-folder (operator ruling 2026-07-22).** A terminal-status artifact
+relocates **byte-identical** to its own folder's `archive/` (`docs/intake/archive/` —
+CONSUMED|REJECTED; `docs/decisions/archive/` — Superseded/Deprecated ADRs); live files
+stay put. Relocation is not an edit (the LESSONS-legacy precedent); the ADR-101 genre
+seal is unaffected (an `archive/` nests *inside* a sanctioned genre). Manual for now —
+the status-coupled validator is wave work (#398 owns the intake enum first). `logs/`
+artifact naming: CLAUDE.md §9 ([#395] convention).
+
 **Zone register (ADR-75).** Exclusion/immutability/scope policy lives in one
 amendable register; **"no organ = decoration"** — every zone is backed by a
 fail-closed organ on the executing path, or it is not active:
@@ -586,6 +608,9 @@ The 06-07 cloud digest `0/0/0` while the local baseline shows one `canonical_fre
 FAIL is **not** a contradiction — different *dimension* (claims-vs-docs vs
 freshness-stamp) and *scope* (hub-self vs corp-sibling, #100). Per-tier value =
 findings-acted-on vs noise, reviewed in the funnel (PLAYBOOK "What each tier checks").
+The end-to-end **delivery loop** — the gates above in shipped sequence, with
+discharge-with-evidence at close — is PLAYBOOK §21 "The delivery loop (end-to-end)"
+(codified 2026-07-22, [#386]).
 
 **Deployed-version record (`deployed_methodology_version`; ADR-91).** Each repo's deployed
 methodology-corpus version is recorded in the committed `ecosystem/deployed-versions.yaml`

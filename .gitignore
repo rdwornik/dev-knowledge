@@ -53,8 +53,8 @@ logs/FLEET-ANALYTICS.md
 # is append-only, rotation-capped (single .1 backup), gitignored runtime per FR-8/FR-13;
 # the durable record is the JOURNAL-pasted verdict table + eventual committed digests.)
 logs/FLEET-PARITY.md
-logs/parity-events.jsonl
-logs/parity-events.jsonl.1
+logs/PARITY-EVENTS.jsonl
+logs/PARITY-EVENTS.jsonl.1
 
 # Ecosystem mutable pointers (ADR-80 mutable/durable split — high-churn pointer, not committed;
 # durable records are ecosystem/*/history/*.md + docs/audits/*.md, committed by audit.py)
@@ -70,7 +70,7 @@ logs/OVERRIDES.md
 # exits 0; this is its ephemeral append-only record, never committed; same ephemeral pattern
 # as logs/PROPOSALS-* / FLEET-HEALTH / OVERRIDES). The durable signal is the reconciled_versions
 # audit check + the eventual version bump in git history.
-logs/coherence-nudge.log
+logs/COHERENCE-NUDGE.log
 
 # Vendored Pyright langserver for the reverse-dep oracle (#193, ADR-89). The version is
 # pinned in package.json + package-lock.json (committed); the heavy node_modules tree is

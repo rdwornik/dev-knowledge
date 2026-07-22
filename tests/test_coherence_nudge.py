@@ -74,7 +74,7 @@ def _init_repo(tmp_path: Path, spec_text: str) -> Path:
 def test_process_fires_and_logs_on_changed_without_bump(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path, _v("5.2", "old body"))
     (repo / REL).write_text(_v("5.2", "substantively new body"), encoding="utf-8")
-    log = repo / "logs" / "coherence-nudge.log"
+    log = repo / "logs" / "COHERENCE-NUDGE.log"
     msg = cn.process(repo, REL, now=_NOW, log_path=log)
     assert msg is not None and "Version stayed 5.2" in msg
     assert log.exists()
@@ -85,14 +85,14 @@ def test_process_fires_and_logs_on_changed_without_bump(tmp_path: Path) -> None:
 def test_process_silent_when_version_bumped(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path, _v("5.2", "old body"))
     (repo / REL).write_text(_v("5.3", "new body"), encoding="utf-8")
-    log = repo / "logs" / "coherence-nudge.log"
+    log = repo / "logs" / "COHERENCE-NUDGE.log"
     assert cn.process(repo, REL, now=_NOW, log_path=log) is None
     assert not log.exists()
 
 
 def test_process_silent_when_unchanged(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path, _v("5.2", "same"))
-    log = repo / "logs" / "coherence-nudge.log"
+    log = repo / "logs" / "COHERENCE-NUDGE.log"
     assert cn.process(repo, REL, now=_NOW, log_path=log) is None
 
 
@@ -114,5 +114,5 @@ def test_main_exits_zero_even_on_fire(tmp_path: Path, monkeypatch) -> None:
     repo = _init_repo(tmp_path, _v("5.2", "old"))
     (repo / REL).write_text(_v("5.2", "new"), encoding="utf-8")
     monkeypatch.setattr(cn, "_REPO_ROOT", repo)
-    monkeypatch.setattr(cn, "_LOG_PATH", repo / "logs" / "coherence-nudge.log")
+    monkeypatch.setattr(cn, "_LOG_PATH", repo / "logs" / "COHERENCE-NUDGE.log")
     assert cn.main([REL]) == 0

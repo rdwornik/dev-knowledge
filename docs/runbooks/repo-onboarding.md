@@ -99,7 +99,7 @@ is hand-added.
 
 ```bash
 python scripts/audit.py repo <name> --repo-path <consumer>   # seeds ecosystem/<name>/state.yaml (gitignored)
-# add a row to ecosystem/REGISTRY.md: | <name> | <path> | <purpose> | registered · onboarded v1.2.0 |
+# add a row to ecosystem/registry.md: | <name> | <path> | <purpose> | registered · onboarded v1.2.0 |
 # ecosystem/deployed-versions.yaml gets the deployed-corpus version (written by the converge)
 python scripts/fleet_health.py                               # -> the repo appears in the roll-up
 ```

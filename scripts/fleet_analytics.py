@@ -599,7 +599,7 @@ def inbound_reference_counts(texts: dict[str, str], tokens: dict[str, str], *, c
 
     Counts DISTINCT REFERRERS, not mentions — one doc naming a path 40 times is one referrer.
 
-    Index-file contamination (REGISTRY.md, generated rosters, TOCs list every file and would
+    Index-file contamination (registry.md, generated rosters, TOCs list every file and would
     give everything a uniform +1) is handled by a STRUCTURAL rule, not a hand-list: any
     referrer naming more than `index_referrer_cut` distinct targets is an index referrer and
     is excluded from the ranked count. Self-maintaining; there is no allowlist to rot.

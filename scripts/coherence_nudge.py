@@ -13,7 +13,7 @@ Design constraints (operator ruling, prompt A):
   - NON-BLOCKING — always exit 0 (a gate WARN on every typo is a false-positive death-spiral;
     a forgotten bump is a nudge, not a gate). NOT wired into the ship-gate Finding pipeline.
   - NO escape hatch in v1 — a non-blocking nudge needs no suppression.
-  - INSTRUMENTED — every fire appends one line to logs/coherence-nudge.log. That firing-rate
+  - INSTRUMENTED — every fire appends one line to logs/COHERENCE-NUDGE.log. That firing-rate
     data is what decides v2's open questions (escape hatch? deferred-hash? promote to gate?).
 
 Spec set is single-sourced from validate_reconciliation._SPEC_REGISTRY (the same specs the
@@ -38,7 +38,7 @@ try:
 except ImportError:
     from validate_reconciliation import _SPEC_REGISTRY, spec_version_numeric, SpecSource
 
-_LOG_PATH = _REPO_ROOT / "logs" / "coherence-nudge.log"
+_LOG_PATH = _REPO_ROOT / "logs" / "COHERENCE-NUDGE.log"
 
 
 def _extract_version(text: str) -> Optional[str]:
@@ -124,7 +124,7 @@ def process(repo_root: Path, rel: str, now: Optional[datetime] = None,
     _append_log(rel, version, head_text, staged_text, now or datetime.now(), log_path)
     return (f"coherence-nudge: {rel} content changed but Version stayed {version}. "
             f"If this edit is substantive, bump the spec Version (and reconcile dependents' "
-            f"reconciled_with). Non-blocking — logged to logs/coherence-nudge.log.")
+            f"reconciled_with). Non-blocking — logged to logs/COHERENCE-NUDGE.log.")
 
 
 def main(argv: Optional[list[str]] = None) -> int:
