@@ -19,6 +19,24 @@
 
 ---
 
+### 2026-07-22 — CC (Opus 4.8): night-batch integration closed — #384 landed + both pushed, night evidence relocated to docs/audits, 6 follow-ups filed
+
+**Did:** Execution lane closing the 2026-07-22 night batch. Step-0 live-session scan clean (claude.exe=1=me; l5a transcript 682min = long closed). **Landed #384 (path A):** `fix/doc-counts-384` off main @ `09c50cc0` → `python scripts/gen_doc_counts.py --write` (the blocker: pytest_collected **1669→1733**, #384's un-run regen) → commit **`c8de7212`** → `--no-ff` merge **`a6b326f1`**. Post-fix ship-gate net-new WARN **0** (VISION [#368] freshness stays, expected, NOT re-stamped), pytest **1730/3**, ruff clean, health OK. **Pushed** `2da5da22..a6b326f1` (block-ff-push Passed) — #386 + #384 + the fix now on origin/main. **Teardown:** removed the l5a worktree (unlock→remove), deleted merged `worktree-l5a-analytics` + `docs/playbook-delivery-loop` + my `fix/doc-counts-384`. Inventory = primary + the pre-existing ai-council-handoff worktree (left per instruction).
+
+**Relocated the night evidence (my earlier placement error — logs/ is for machine-regenerated digests only; a write-once verification record is audit-class):** filed `docs/audits/2026-07-22-verification-night-batch-integration-386-384.md` (ADR-101 class **`verification`**, per the CLOSED 11-class enum in `validate_hermetization.py`; README shape line `docs/audits/README.md:3`). It absorbs the durable substance of both untracked logs (per-phase verdicts + SHAs, terra findings, rot material, the doc-counts blocker + resolution); then removed `logs/NIGHT-BATCH-2026-07-22.md` + `logs/CONTINUATION-2026-07-22.md`. Audit index regenerated.
+
+**Filed 6 follow-ups (filing-only, existing stories):** [S26] **#391** (fleet_analytics nightly-wiring — terra HIGH), **#392** (rename-alias history loss — terra MEDIUM), **#393** (corp-sca 3 rot candidates — #384 done-when), **#394** (corp-monorepo 311-file coverage gap); [S14] **#395** (logs/ `coherence-nudge.log` lowercase naming defect); [S18] **#396** (extract `scripts/gitenv.py` — GIT_* scrub in 3 places). **#397 NOT filed — premise REFUTED:** `docs/intake/README.md` is current (lists #16, 18 docs, `gen_intake_index --check` exit 0), not the "stale 17/max-15" the prompt described. Next-free → **`[#397]`**.
+
+**Result:** origin/main + local `a6b326f1` (integration pushed); this close-lane on `docs/night-batch-close` merges to main **local-only** (commit-and-STOP after the step-2 pushes, per mission). validate_backlog OK (9 themes, 27 stories, **144** tasks, 0 warnings). doc_rot clean (#391/#396 trimmed under cap). #386 and #384 both stay **OPEN** (witness / rot-review pending).
+
+**logs/ hygiene (report-only):** no untracked litter in logs/ after removal; the one naming defect is #395 (coherence-nudge lowercase `.log` vs the UPPERCASE.md digest siblings).
+
+**Changes:** `ecosystem/doc-counts.md` (via `a6b326f1`), `docs/audits/2026-07-22-verification-...md` (new) + regenerated `docs/audits/README.md`, `BACKLOG.md` (#391–#396 + next-free), `JOURNAL.md`. Removed 2 untracked logs. No new folders, no .gitignore edit, no consumer writes, no VISION re-stamp, no handoff bundle. #386/#384 not closed.
+
+**Next:** operator witnesses merged §21 to close #386; #384 closes on its rot-review (#393) + the terra/coverage follow-ups. Optional: gitignore the night-batch log globs (or accept them retired now that the record is in docs/audits).
+
+---
+
 ### 2026-07-22 — CC (Opus 4.8): [#386] delivery-loop codified into PLAYBOOK — five substances + §21 spine, terra caught 7 HIGH incl. two false ride-along premises
 
 **Did:** Codified the delivery loop that shipped 2026-07-21 (`prove-then-codify` made the write-up owed only now). Housekeeping first: pushed `main` `a31cea07..2da5da22` (`block-ff-push` Passed), deleted merged `docs/north-star-ingestion` — **left `worktree-l5a-analytics` fully untouched** (live parallel lane, operator instruction). Then five substances into PLAYBOOK on `docs/playbook-delivery-loop`, four as bold blocks inside existing subsections (no new headings, the 2026-07-19 inoculation precedent) + one new heading **§21 "The delivery loop (end-to-end)"**: (b) unfiltered live-session check → Ch8; (c) TARGET-REPO guard → Ch4 checklist + §2 skeleton; (d) prove-then-codify + the mechanism-before-act reconciliation → §4; (e) discharge-with-evidence → §8. Pointers-not-restatements throughout. Two ride-along tickets: **[#389]** prompt-lint → [E2]/[S3]; **[#390]** ADR-87 effort-contradiction + template true-up → [E1]/[S2]. **[#386] stays OPEN** — commit-and-STOP, no merge, no operator witness yet (closing it here would violate the very doctrine being written).
