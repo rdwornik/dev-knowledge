@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-12
+last_reviewed: 2026-07-23
 reconciled_with: handoff-process@5.7
 status: active
 owner: Rob
@@ -110,9 +110,9 @@ Pre-commit hooks (`.pre-commit-config.yaml`):
 | `validate-hermetization` | commit | ADR-101 tree-seal refusal gate, prospective-only on staged ADDs: blocks a new unsanctioned Tier-1 top-level dir/file-class or `docs/<genre>/` folder (Rule A) or an off-grammar `docs/audits/*.md` name (Rule B). `scripts/validate_hermetization.py`, bypass `--no-verify`. Hub-only. |
 | `intake-index-freshness` | commit | Regen-and-diff gate for the status-grouped Contents block in `docs/intake/README.md` vs `docs/intake/*.md` frontmatter `status:` (`gen_intake_index.py --check`). Hub-only. |
 | `validate-backlog` | commit | Validates the BACKLOG.md story-map structure (ADR-66). |
-| `audit-health` | commit | Runs `audit.py health` (the self-conformance checks incl. canonical-file freshness). **FAIL-level findings block the commit; WARN-level only inform.** ~1.4s. Bypass: `--no-verify`. |
-| `ruff` | commit | Lint gate — `ruff check` (version-pinned >=0.15.5, `language: system`). Blocks on violations. [#13] closed. |
-| `coherence-nudge` | commit | **Non-blocking** nudge: a registered spec changed without a version bump → stdout nudge + `logs/coherence-nudge.log`; always exits 0 (pairs with the `reconciled_versions` audit check). |
+| `audit-health` | commit | Runs `audit.py health` (the self-conformance checks incl. canonical-file freshness). **FAIL-level findings block the commit; WARN-level only inform.** Runtime scales with the check registry. Bypass: `--no-verify`. |
+| `ruff` | commit | Lint gate — `ruff check` (fleet-canonical pinned-rev `astral-sh/ruff-pre-commit` @ v0.15.5, rev == the `pyproject.toml` required-version floor). Blocks on violations. [#13] closed. |
+| `coherence-nudge` | commit | **Non-blocking** nudge: a registered spec changed without a version bump → stdout nudge + `logs/COHERENCE-NUDGE.log`; always exits 0 (pairs with the `reconciled_versions` audit check). |
 | `backlog-id-on-close` | commit-msg | Requires `[#id]` / `closes [#id]` when a commit removes a `- [#id]` task. |
 | `backlog-filing-backpressure` | commit-msg | Add-side sibling of `backlog-id-on-close`: a commit that ADDS a new BACKLOG task id must carry a `kill-candidates:` line (≥1 existing `#id`, or `none — <reason>`) — BLOCK if absent. `scripts/check_backlog_filing.py`, proposals only. Hub-only. |
 | `block-ff-push` | pre-push | Refuses a push placing a non-merge commit on `main`'s first-parent spine (a direct-to-`main` commit or a true FF merge); a `--no-ff` merge passes. Hub-only, fail-soft, bypass `git push --no-verify`. **Activate once per machine: `pre-commit install --hook-type pre-push`** (`default_install_hook_types` only wires it on a fresh install). |
