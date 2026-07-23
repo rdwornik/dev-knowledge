@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-23 — CC (Opus 4.8): handoff `2026-07-23-ai-council-architect` generated (cross-repo, worktree lane)
+
+**Did:** Generated the v5 architect handoff for **ai-council** (cross-repo, ADR-36/41 read-only on target) from worktree branch `worktree-ai-council-handoff` — commit **`e47b97ba`**. `gen_handoff.py --mode architect --repo ai-council`, then the stock hub-bound probe rows re-authored against verified-live target surfaces (the 07-21 bundle's re-binding pattern): P2 pre-commit-ids↔ARCHITECTURE hook roster, P4 drifted-closed by hand intersection, P6 live collect-count only, P7 four read-only validators as the headline substitute; **new this window** P11 (map-vs-source cli edge gap — the pending allowed-set ruling's number), P12 (id-reservation fence + dangling `refs #96` count), P13 (spike-tag local↔remote parity re-check). Residual: headline = ai-council's ARCHITECTURE allowed-set understatement held-open **deliberately** pending operator ruling; §4 = 8 next-frontier decisions (allowed-set fork, cli->boost open case, #69 P2 constraint, #97 checker build, #4 fenced amendment, renumber arc, #99 triage, #73 convention). SUPPLEMENT committed cold (+2 CC-observed addenda A/B). Probe verification: `verify_handoff_probes.verify(bundle, repo_root=<target>, cross_repo=True)` — **14/14 pass** (CLI main() resolves hub-only; the API call with target root is the correct cross-repo invocation). `validate_residual_completeness` OK.
+
+**Generation-time state (drift-reference, bundle states none):** HEAD `963999e3` on `worktree-ai-council-handoff` at main; ALL_CHECKS 31 (last `fleet_parity`).
+
+**Result:** bundle `docs/handoffs/2026-07-23-ai-council-architect/` (5 files, PASTE_THIS assembled cold — supplement not folded); all pre-commit gates passed on the bundle commit.
+
+**Changes:** `docs/handoffs/2026-07-23-ai-council-architect/` (new, 5 files); this entry.
+
+**Abandoned / deliberately not done:** no hub BACKLOG change (pure advance, nothing tracked closed); no merge to main from this worktree (/ship refuses in worktrees — operator integrates from the primary); dotfile-tokenizer defect again worked around (un-backticked P2 path), still not filed — noted in the bundle's dotfile note.
+
+**Next:** operator fills SUPPLEMENT (`supplement filled` → fold + re-assemble) or boots cold; merge `worktree-ai-council-handoff` → main from the primary; paste `PASTE_THIS.md` into the fresh ai-council architect chat.
+
 ### 2026-07-23 — CC (Opus 4.8): CONSOLIDATION — both parallel lanes merged --no-ff, [#398] CLOSED via Tier-1 gate, full worktree/branch teardown
 
 **Did:** Operator-directed consolidation from PRIMARY. Step-0 scan clean (both worktree sessions closed; the second claude.exe = ai-council, not hub-primary). No id collision ([#401] adr43 · [#402] enum, distinct). Merged serially `--no-ff`: `docs/adr43-rescope-transcripts-routing` (`eefb9f9c`, clean union) then `worktree-enum-reconcile` (`fb868199`, JOURNAL prepend-collision resolved newest-first: enum → adr43 → night-batch; append-union only). `gen_doc_counts --check`: MATCH post-merge (31/15/1736 — the #384 trap did not fire). Reconcile branch (`2802e401`): BACKLOG:9 next-free `[#400]`→`[#403]` (history-scan; synthetic `[#777]` in trip-test prose excluded) + [#401] trimmed to 2 dated blocks (clears the lane-introduced net-new doc_rot WARN). **[#398] closed** via the Tier-1 gate (`review_closures.py plan` verdict close; operator named the id in the consolidation directive) — content verified on merged main against the REAL merge SHA `fb868199` (ruled enum live in intake README, no OTHER bucket, `gen_intake_index --check` clean), done-items-leave, id gap stays; evidence: lane commits `c117a06d`→`5b8e11c0` ancestors of main. [#386]/[#401]/[#402] left OPEN per directive. Teardown: both worktrees removed + pruned, both lane branches deleted (`-d`, merge-verified).
