@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-23 — CC (Opus 4.8): SUPPLEMENT FILLED + FOLD — architect bundle `2026-07-23-dev-knowledge-architect` complete (FILLED state)
+
+**Did:** Operator pasted the outgoing architect chat's answers into `SUPPLEMENT.md` (all 6 questions substantively answered — Terraform-MODEL strategic intent, tensions, rejected options, open questions incl. the `[#381]` gate, decomposition rationale, off-repo context incl. the five-field communication contract + worktree algorithm) and said `supplement filled`. Committed the filled file (`9ab14bb7`), re-ran `assemble_paste.py`: ANSWERS folded into `PASTE_THIS.md`, cold framing flipped to FILLED in HANDOFF_BOOT/RESIDUAL/PROBES (reflow covered all 3; post-fold sweep found ZERO stale cold-framing remnants — the hand-authored FILL-INs carried none). Probes re-verified **11/11**; fold committed `3e7aea07`. Note for the incoming session: the supplement flags items (a)–(e) of Q1 as **UNFILED** — file them, don't silently absorb.
+
+**Result:** ship-gate at wrap: undispositioned WARN = the standing VISION 34d `canonical_freshness` only ([#368], operator-deliberate — discharges at the #381 session's genuine re-read per the supplement; net-new **0**). validate_backlog OK; pre-commit PASS on both commits.
+
+**Changes:** `docs/handoffs/2026-07-23-dev-knowledge-architect/` (SUPPLEMENT filled; PASTE_THIS/HANDOFF_BOOT/RESIDUAL/PROBES reflowed), `JOURNAL.md` (this entry).
+
+**Next:** operator pastes the (now FILLED) `PASTE_THIS.md` into the fresh architect chat — the §13(d) beat narrows to "anything changed since?"; push main on OK.
+
+---
+
 ### 2026-07-23 — CC (Opus 4.8): HANDOFF `2026-07-23-dev-knowledge-architect` (architect mode) — supersedes the same-day execution bundle (operator correction: architect intended)
 
 **Did:** Operator corrected the bare-`/handoff` mode read — architect (with SUPPLEMENT) was intended, not the spec default execution. Regenerated on the same chat at minimal token cost: `gen_handoff.py --mode architect` → 5-file bundle incl. `SUPPLEMENT.md` (generated + committed COLD — the sanctioned empty-ANSWERS disposition; architect is the generator's home path, `[#404]` does not fire). All four FILL-INs ported from the execution bundle, re-profiled to the planning posture (purpose = rule the frontier: `[#381]` brake, ADR-92 amendment, `[#403]` derivations, `[#402]`/`[#401]`; §4 reframed as the ruling list; §1 known-latent now cites filed `[#404]`). `PASTE_THIS.md` reassembled; probes **11/11 pass**. The execution bundle stays in place (handoffs immutable — superseded, not edited).
