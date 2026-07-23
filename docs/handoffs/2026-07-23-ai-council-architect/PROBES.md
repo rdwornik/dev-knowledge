@@ -49,9 +49,12 @@ residual §4 — is the organ that would close it.)
 hooks are **formatters that rewrite files**, which would violate the read-only contract on a
 cross-repo target. The P7 sweep calls the read-only validators directly instead.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the
-> ANSWERS region is empty → the assembler folds nothing → the incoming §13(d) operator-context beat
-> fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS are folded into `PASTE_THIS.md`, so the incoming §13(d)
+> operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*
+> **Read the ANSWERS before the residual's §4 ordering — they correct it on load-bearing points**
+> (ANSWER A splits §4 item 1: the map-vs-source gap belongs to `#97` leg (b), standalone; only the
+> `cli -> boost` open case rides the `#69`/`#92` arc. ANSWER B fixes the arc order). The supplement
+> wins on intent and priority; the residual stays authoritative on *what the defects are*.
 
 ## P1 — Orientation (the architect's **first move**, before any mechanism — §13c)
 
@@ -71,7 +74,11 @@ navigates** (§13c), not this read.
 by CC, substring-matched. Both files were **amended this window** (the boost→decide chain landed in
 VISION per the owner-C ruling; ARCHITECTURE took an eight-edit repair pass) — so the live lines, not
 any remembered ones, are the frame. **Then, before design, the operator-context beat fires (§13d) —
-FULL** (the supplement is generated empty; if the operator fills it before boot, the beat narrows).
+NARROWED** (the supplement is FILLED — ask only *"anything changed since it was written?"*).
+**P11 is unusually load-bearing this window:** ANSWER A rules that if the commissioned edge grep
+came back positive the allowed set is *factually wrong today* and the correction is immediate and
+standalone — the grep has since run (post-answers), so P11's live re-derivation is the number that
+correction starts from.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -108,8 +115,8 @@ FULL** (the supplement is generated empty; if the operator fills it before boot,
    contents (`BACKLOG.md`, `ARCHITECTURE.md`, `VISION.md`, `scripts/validate_backlog.py` all exist in
    both). This is the single most likely failure mode of a cross-repo bundle.
 2. **P1 first** — the architect cannot begin design until both orienting lines are read live and
-   substring-matched. **Then run the operator-context beat (§13d) — FULL** (the supplement is
-   generated empty; it narrows only if the operator fills it before boot). Then run P2–P13, each
+   substring-matched. **Then run the operator-context beat (§13d) — NARROWED** (the supplement is
+   FILLED — ask only *"anything changed since it was written?"*). Then run P2–P13, each
    against **live state now**.
 3. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing /
    command errored / receiver tried to answer from memory or this bundle).
@@ -129,7 +136,6 @@ FULL** (the supplement is generated empty; if the operator fills it before boot,
 6. **Bundle-shape / supplement fill-state is NOT a probe here** (the stock row pointed at the hub
    bundle dir, which is unresolvable from the target root). This bundle carries `HANDOFF_BOOT` +
    `RESIDUAL` + `PROBES` + `SUPPLEMENT` + `PASTE_THIS` and **no per-bundle README**
-   (HANDOFF_PROCESS §13); the supplement is **generated EMPTY** — if it is still empty at boot the
-   §13(d) beat fires **FULL**, and if the operator has filled it the ANSWERS fold into `PASTE_THIS.md`
-   and the beat narrows. Confirm by looking at the bundle directory in the hub — it is CC-side
-   bookkeeping, not target state.
+   (HANDOFF_PROCESS §13); the supplement is **FILLED**, so its ANSWERS are folded into
+   `PASTE_THIS.md` and the §13(d) beat **NARROWS**. Confirm by looking at the bundle directory in
+   the hub — it is CC-side bookkeeping, not target state.

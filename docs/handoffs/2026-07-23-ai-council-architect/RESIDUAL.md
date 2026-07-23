@@ -11,7 +11,14 @@
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED — its ANSWERS outrank this residual on intent and priority.** The
+> §13(d) beat NARROWS. Load-bearing corrections to read before §4: **ANSWER A** splits §4 item 1 —
+> the map-vs-source completeness gap belongs to `#97` rule-14 leg (b) and the factual allowed-set
+> correction is **immediate and standalone** (the conditional grep it names has since RUN — the
+> rule14-legs merge confirmed the edges, so the condition is met); only the `cli -> boost` open case
+> rides the `#69`/`#92` arc. **ANSWER B** fixes the arc order (checker first; `#92`→resolver→`#69`→P2
+> as ONE arc; `#27` is operator-only and must never be sequenced behind anything). The residual stays
+> authoritative on *what the defects are*.
 
 ---
 
