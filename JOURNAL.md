@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-23 — CC (Opus 4.8): CONSOLIDATION + FULL TEARDOWN — ai-council handoff lane merged, hub PROVEN-EMPTY; ai-council repo untouched (live session); [#405] filed
+
+**Did:** Operator-directed consolidation + teardown (execution/auto, keep-list pre-authorized). **Phase 0 gate:** 2× claude.exe mapped via projects-jsonl `cwd` — `38280` (start 7/22 23:49) = the LIVE ai-council-primary session `36039f7e` (first timestamp exact match; idle since 16:51 ≠ closed) → **ai-council NOT mutated**; `37480` = this hub session; the hub-worktree `ai-council-handoff` session (last write 17:02) has no third process → CLOSED, in scope. **Phase 1:** `docs/architecture-currency` verified ALREADY on main (merge `44e47b48`, branch already gone). Merged `worktree-ai-council-handoff` `--no-ff` → **`e151dcbf`** (ai-council cross-repo architect bundle, 5 files, SUPPLEMENT filled + folded, 14/14 probes vs target; JOURNAL prepend-collision resolved newest-first by commit time: hub 17:07/16:44/16:19 → lane 16:11/15:00; append-union only). Pre-commit PASS; ship-gate post-merge: sole undispositioned WARN = pre-existing `[#368]` VISION freshness (per directive: not re-stamped, not dispositioned). **Pushed** `44e47b48..e151dcbf` (block-ff-push PASS). **Strip (proven):** worktree lock pid `60728` verified DEAD → unlock/remove/prune; branches `-d`: `worktree-ai-council-handoff`, `docs/handoff-architect`, `docs/handoff-execution` (all merge-verified); `.claude/worktrees/` confirmed 0 entries → removed; `.git/worktrees/` metadata gone; no `.dev-knowledge-*` orphan dirs. KEPT: `automation/fleet-audit` (unmerged, 129 unique commits, standing ruling) + 3 remote `claude/conformance-2026-07-2{1,2,3}` (unreviewed) + main. **Phase 2 (ai-council): BLOCKED by the live session — read-only proof it is already clean:** main==origin/main, tree clean, primary-only worktree, sole branch main; nothing pending there. **Phase 3:** **[#405] filed** [P2][S] E2/S7 — session-end leftover check (no organ verifies "no leftovers"; candidates: Stop-hook hygiene leg / ship-gate leg / SessionStart reporter — NONE chosen, filing only); next-free → `[#406]`.
+
+**Result:** hub PROVEN-EMPTY (worktree list = primary only; branch -a = main + keep-list only); both 2026-07-23 architect bundles (hub + ai-council cross-repo) on main with FILLED supplements; ship-gate as above; validate_backlog OK.
+
+**Changes:** JOURNAL union (lane merge), `BACKLOG.md` (+[#405], pointer), this entry.
+
+**Abandoned / deliberately not done:** ai-council mutations (live session — gate); conformance-branch triage (keep-list, operator-owed); no organ built for [#405] (a ruling); no handoff bundle (operator triggers).
+
+**Next:** operator closes the ai-council session → its teardown can run (nothing pending found); triage the 3 conformance remotes; rule [#405].
+
+---
+
 ### 2026-07-23 — CC (Opus 4.8): SUPPLEMENT FILLED + FOLD — architect bundle `2026-07-23-dev-knowledge-architect` complete (FILLED state)
 
 **Did:** Operator pasted the outgoing architect chat's answers into `SUPPLEMENT.md` (all 6 questions substantively answered — Terraform-MODEL strategic intent, tensions, rejected options, open questions incl. the `[#381]` gate, decomposition rationale, off-repo context incl. the five-field communication contract + worktree algorithm) and said `supplement filled`. Committed the filled file (`9ab14bb7`), re-ran `assemble_paste.py`: ANSWERS folded into `PASTE_THIS.md`, cold framing flipped to FILLED in HANDOFF_BOOT/RESIDUAL/PROBES (reflow covered all 3; post-fold sweep found ZERO stale cold-framing remnants — the hand-authored FILL-INs carried none). Probes re-verified **11/11**; fold committed `3e7aea07`. Note for the incoming session: the supplement flags items (a)–(e) of Q1 as **UNFILED** — file them, don't silently absorb.
