@@ -1,9 +1,11 @@
 ---
 intake-id: 13
-status: plan-of-record-active
+status: ACCEPTED
 revision: v4
 origin: architect, 2026-07-11 session wrap
-consumed-by:
+decided-by: "operator approval at the 2026-07-11 session wrap (v4 plan-of-record)"
+disposition: deferred
+trigger: "#328 build"
 note: "the incoming sessions' comparison baseline per #301(iv) + the A-F build sequence; Phase A charter = intake #12"
 delta-note: "operator re-sequencing — Phase A0 manual template consolidation inserted before #328; plus v2's requirements-first Phase E + Council gate"
 ---

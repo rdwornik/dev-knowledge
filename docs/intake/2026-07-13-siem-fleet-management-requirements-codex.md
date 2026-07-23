@@ -1,6 +1,6 @@
 ---
 intake-id: 14
-status: DRAFT
+status: CONSUMED
 origin: "Codex (sol), operator-directed independent derivation, 2026-07-12"
 consumed-by: "2026-07-12-siem-requirements-ruled-pack.md (#14 RULED consolidation pack; this draft retained as provenance)"
 ---

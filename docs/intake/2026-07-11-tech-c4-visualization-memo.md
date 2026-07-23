@@ -1,7 +1,8 @@
 ---
 intake-id: 10
-status: input-for-deferred-work
+status: DRAFT
 origin: architect research memo (open-web research synthesis), 2026-07-11 — input for the deferred system-visualization work
+consumers: "the deferred system-visualization work (#326 ruling / #165)"
 ---
 
 > **Intake note:** Operator-accepted architect research memo; input for the deferred system-visualization work (#326 ruling / #165); recommendations narrowed by the 2026-07-11 operator ruling — ARCHITECTURE.md is CC-facing, visualization deferred wholesale.

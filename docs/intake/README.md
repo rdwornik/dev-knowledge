@@ -27,20 +27,29 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#8](2026-07-08-func-night-routines-suite.md) — Night-routines suite — the Tier-2 unattended layer as proposal classes (never new autonomy)
 - [#9](2026-07-08-func-dashboards-local-html.md) — Dashboards as local HTML — the Tier-4 human surface opens in VS Code, not the cloud
 
-### DRAFT (3)
-
-- [#14](2026-07-13-siem-fleet-management-requirements-codex.md) — Fleet-management and observability requirements — independent Codex derivation
-- [#14](2026-07-13-siem-fleet-management-requirements.md) — Fleet observability & conformance layer ("SIEM" track) — requirements and patterns
-- [#16](2026-07-21-func-fleet-north-star.md) — FLEET NORTH STAR — Consolidated Vision & Plan
-
-### OTHER (6)
+### DRAFT (2)
 
 - [#10](2026-07-11-tech-c4-visualization-memo.md) — C4 / Codemap Visualization — Architect Research Memo
-- [#11](2026-07-11-tech-fleet-divergence-register.md) — Fleet Divergence Register — Master List (operator-raised items)
+- [#16](2026-07-21-func-fleet-north-star.md) — FLEET NORTH STAR — Consolidated Vision & Plan
+
+### READY (1)
+
+- [#15](2026-07-16-satellite-onboarding-prompts.md) — Satellite onboarding prompts — ready to fire (four consumers)
+
+### ACCEPTED (3)
+
 - [#12](2026-07-11-tech-ownership-manifest.md) — Fleet Ownership Manifest (SETTLED) + Nightly Hygiene Decision Tree
 - [#13](2026-07-11-tech-plan-of-record-fleet-hygiene.md) — Plan-of-record — Fleet Hygiene System build (post 2026-07-11 session)
 - [#14](2026-07-12-siem-requirements-ruled-pack.md) — SIEM / fleet-observability requirements — RULED consolidation pack (#14)
-- [#15](2026-07-16-satellite-onboarding-prompts.md) — Satellite onboarding prompts — ready to fire (four consumers)
+
+### CONSUMED (2)
+
+- [#14](2026-07-13-siem-fleet-management-requirements-codex.md) — Fleet-management and observability requirements — independent Codex derivation
+- [#14](2026-07-13-siem-fleet-management-requirements.md) — Fleet observability & conformance layer ("SIEM" track) — requirements and patterns
+
+### SUPERSEDED (1)
+
+- [#11](2026-07-11-tech-fleet-divergence-register.md) — Fleet Divergence Register — Master List (operator-raised items)
 <!-- INTAKE-INDEX:END -->
 
 ## 1. What this folder is

@@ -1,7 +1,8 @@
 ---
 intake-id: 11
-status: superseded-pending
+status: SUPERSEDED
 origin: architect-compiled from this session's witnessed reports + the operator's standing list, 2026-07-11 — snapshot pending verification by the fleet-parity sweep
+superseded-by: "the fleet-parity sweep register (ecosystem/parity-surfaces.yaml) — named the verified successor in the intake note below"
 ---
 
 > **Intake note:** Architect-compiled master register of operator-raised divergences (23 items); snapshot — the fleet-parity sweep register is the verified successor; keep for provenance of the operator's standing list.
