@@ -183,7 +183,20 @@ Decisions that bind future sessions live in `docs/decisions/ADR-NN-topic.md`.
 
 - Numbering: next integer after highest existing ADR
 - Filename: `ADR-NN-short-kebab-topic.md`
-- Status values: `Accepted | Superseded | Withdrawn`
+- Status values: `Proposed | Accepted | Superseded | Deprecated` (reconciled against
+  on-disk reality 2026-07-23, [#398] — operator-ruled; the never-used `Withdrawn`
+  dropped, the lived-but-undeclared `Proposed` and `Deprecated` admitted)
+- Status lifecycle: `Proposed → Accepted` by editing the Status line **in place at
+  ratification** (ADR-94 Pattern B — the status line is metadata, not decision
+  content); `Superseded`/`Deprecated` are terminal — a terminal ADR relocates
+  byte-identical to `docs/decisions/archive/` (operator ruling 2026-07-22)
+- Legacy off-enum statuses on disk (named carve-outs, **not** precedent — retro-
+  normalization is deferred to [#242] with reasons): ADR-88/89 frozen `Proposed`
+  ratified by in-file markers (ADR-94's explicit operator-gated deferral); ADR-82
+  frozen `Proposed` canonical-by-waiver since 2026-06-11 (same class, [#242]'s
+  retro-normalize domain per the 2026-07-22 night-batch audit P2b); ADR-45
+  `Explored, not adopted` + ADR-46/47 `Partially superseded` (any ADR-45 flip is
+  additionally gated by [#362]'s dropped-rules disposition)
 - Minor prescription drift → amend in-place (add dated `## Amendment YYYY-MM-DD` section)
 - Intent change or reversal → new ADR or AI Council reopen
 
