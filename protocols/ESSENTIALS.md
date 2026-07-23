@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-19
+last_reviewed: 2026-07-23
 status: active
 owner: Rob
 ---
@@ -139,7 +139,7 @@ Canonical: PLAYBOOK §2 "Creating a Claude Code Prompt" (incl. "Architect output
 
 **Manual cadence:** **Friday** weekly review (PLAYBOOK §9) · **Monthly** Codex full-repo audit (PLAYBOOK §17; cadence by repo complexity).
 
-New tool/article: maturity + real-problem check; architecture-level → Council debate (PLAYBOOK §3 / §11). Council transcripts auto-route per `target-project:` — canonical: PLAYBOOK §5 "Council output convention (current state)".
+New tool/article: maturity + real-problem check; architecture-level → Council debate (PLAYBOOK §3 / §11). Council transcripts are canonical-only in `ai-council/output/` — the routed-mirror is retired (ADR-43 amendment 2026-07-23); canonical: PLAYBOOK §5 "Council output convention (canonical-only since 2026-07-22)".
 
 ---
 
