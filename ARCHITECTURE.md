@@ -208,7 +208,7 @@ The **Tier-1 closure loop** is three of these organs in a cycle:
 and-propose only; the human gate closes (ADR-70; distribution in Ch4).
 
 **The deploy subsystem** (orchestrator detail in Ch4; validators below) versions the
-methodology corpus (ADR-91) and delivers it to a consumer through the five carriers behind a
+methodology corpus (ADR-91) and delivers it to a consumer through the five carrier modules behind a
 **per-carrier verify-gate** (ADR-92) — the version record lands only if every carrier
 verifies. The `floor` carrier additionally **arms** the ADR-78 floor under **model A**
 (ADR-93): committed + two-leg hash-guarded (a SessionStart guard + the commit-time
@@ -494,10 +494,11 @@ as a persistence host **REJECT** (ADR-74; in-session repair-loop split to #126).
 ## Distribution and transfer
 
 **Chapter 4 — Distribution & transfer.** The methodology is authored in the hub and
-**carried** to where it is consumed. Five
-carriers, each with a different scope and freshness model:
+**carried** to where it is consumed. Five distribution **channels**, each with a
+different scope and freshness model (a distinct set from the deploy tool's five
+*carrier modules*, Ch2/Validators — the orchestrator bullet below maps the two):
 
-| Carrier | Scope | What it carries | Ref |
+| Channel | Scope | What it carries | Ref |
 |---|---|---|---|
 | user-layer `~/.claude` | fleet-wide (L0) | `block-onedrive`, gotchas, ROUTING, Codex config, `surface-closures`, the `--no-ff` rule | global; ADR-54 |
 | `tier1-lifecycle` plugin | repo-class | `/ship`, `/review-closures`, `propose_closures`, `validate_backlog` (marketplace install) | ADR-70/73 |
@@ -511,7 +512,7 @@ carriers, each with a different scope and freshness model:
   never author.** (PLAYBOOK "Subagents" carries this; this map agrees.)
 - **Cloud is hub-independent.** A cloud Routine clones only its own repo and consults
   no hub reference on the executing path; the private hub permanently closes ADR-71's
-  "URL-swappable later" hatch *for cloud* (ADR-72). Plugin/pre-commit carriers are
+  "URL-swappable later" hatch *for cloud* (ADR-72). The plugin/pre-commit channels are
   **inert by design** in a fresh cloud clone — not bugs.
 - **Deploy orchestrator (ADR-91/92; ADR-93 for the floor; validators in Ch2).** The five rows
   above are the *channels*; the **deploy tool** (`deploy/tool.py` + the five carriers
@@ -691,11 +692,11 @@ live in the ADRs; git history retains; the ADR-77 guard stays armed, Ch2).
 - **ADR-71/72/73** — doc-tooling source-repo distribution; cloud-Routine hub-independence; per-repo orchestration distribution (Ch4).
 - **ADR-75/77/78** — exclusion-zone register; immutable-paths zone class; child methodology floor + `methodology_surface` zone (Ch5/Ch4).
 - **ADR-76** — local fleet-baseline host (Task Scheduler → Python; no LLM on path).
-- **ADR-79** — browser methodology carrier: bundle-only; Projects deferred (Ch4).
+- **ADR-79** — browser methodology carrier: bundle-only; Projects deferred (Ch4 — the browser *channel* in today's vocabulary; "carrier" in the ADR title predates the deploy carrier-module set).
 - **ADR-84** — automation-writer isolation (Q9): both writers commit only to dedicated `automation/*` branches (never `main`); the `no_ff_merges` automation exemption removed — one rule (Ch3/Ch6).
 - **ADR-85/86/87** — session-lifecycle enforcement (deterministic session-end Stop-gate; un-gameable JOURNAL commit-SHA anchor); conformance-dashboard location (`ecosystem/conformance.md`, ADR-80 committed-generated zone); Architect↔CC equilibrium contract (conditional intent-only prompting) (Ch2/Ch6).
 - **ADR-88/89** — file-oriented dependency management (repo files are the dependency unit; declared edges held by machinery, not memory) and computed code-dependency edges (declare-what-you-cannot-compute; Pyright reverse-dependency oracle) — both Accepted 2026-06-21 (`911b561`); ADR-88/89 in-place markers (Ch5/Ch6).
-- **ADR-90/91/92/93** — doc→code resolver-allows-N (a rule declares its expected `# rule:` site count in `multi_site:`; Ch2/Validators); methodology-corpus versioning (semver + a git-tag release marker; the `deployed_methodology_version` record, Ch6); deploy-runbook doctrine (a versioned, verification-gated deploy tool + five carriers, operator-run from the hub; Ch2/Ch4); floor provisioning model A (commit + two-leg hash-guard the ADR-78 floor; Ch2 arming / Ch4 floor carrier) — Accepted.
+- **ADR-90/91/92/93** — doc→code resolver-allows-N (a rule declares its expected `# rule:` site count in `multi_site:`; Ch2/Validators); methodology-corpus versioning (semver + a git-tag release marker; the `deployed_methodology_version` record, Ch6); deploy-runbook doctrine (a versioned, verification-gated deploy tool + five carrier modules — five in reality today; ADR-92's own body still says "four hard-coded carriers", amendment owed — operator-run from the hub; Ch2/Ch4); floor provisioning model A (commit + two-leg hash-guard the ADR-78 floor; Ch2 arming / Ch4 floor carrier) — Accepted.
 - **ADR-98** — requirements-intake pipeline: functional/technical/developer modes turn operator intent into a decomposed epic set (Ch5 requirements intake).
 - **ADR-101** — hermetization: sanctioned top-level set, per-class name grammar, refusal gate (`validate_hermetization.py` pre-commit; Ch2/Ch5).
 - **ADR-102/103** — parity-surfaces axes: enforcement-gate-rev modeled separately from corpus `source_tag`; per-entry ownership `{value, reason, provenance}` classification (fleet_parity organ row, Ch2).
