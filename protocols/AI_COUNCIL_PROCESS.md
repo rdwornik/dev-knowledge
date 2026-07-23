@@ -1,18 +1,19 @@
 ---
-last_reviewed: 2026-07-07
+last_reviewed: 2026-07-23
 status: active
 owner: Rob
 ---
 
-# AI_COUNCIL_PROCESS v2.0
+# AI_COUNCIL_PROCESS v2.1
 
+<!-- version: 2.1 — 2026-07-23 (ADR-43 amendment: routed-mirror retired — transcripts canonical-only in ai-council/output/; synthesizer default gemini→openai per 2026-07-18 ruling) -->
 <!-- version: 2.0 — 2026-06-01 (ADR-67: gated loop + /council-question trigger + deterministic ADR return) -->
 <!-- version: 1.0 — 2026-05-28 (initial; companion to ARCHITECTURE.md C3 AI Council pipeline diagram) -->
 <!-- scope: meta -->
 
-Version: 2.0
-Effective: 2026-06-01
-Authority: ADR-67 (process operationalization — gated loop, this amendment); ADR-43 (cross-project transcript routing); ADR-60 (folder taxonomy, ephemeral briefs); ADR-03 (blind voting); ADR-08 (research degradation exit code); council-question-guide.md (question format)
+Version: 2.1
+Effective: 2026-07-23
+Authority: ADR-67 (process operationalization — gated loop, this amendment); ADR-43 (cross-project transcript routing; routed-mirror clause RETIRED by amendment 2026-07-23 — transcripts are canonical-only in `ai-council/output/`); ADR-60 (folder taxonomy, ephemeral briefs); ADR-03 (blind voting); ADR-08 (research degradation exit code); council-question-guide.md (question format)
 
 > **Authoritative sources.** Question format: `ai-council/docs/council-question-guide.md`.
 > Routing semantics: `docs/decisions/ADR-43_cross_project_transcript_routing.md`.
@@ -27,7 +28,7 @@ Authority: ADR-67 (process operationalization — gated loop, this amendment); A
 ## Purpose
 
 End-to-end operational lifecycle of a Council debate: from drafting a brief, to
-running the CLI, to the routed transcript, to the ADR that records the binding
+running the CLI, to the transcript, to the ADR that records the binding
 decision, to BACKLOG follow-up. Closes the "Option B" runbook gap left open
 after ADR-60 fixed *where* artifacts live but not *who does what when*.
 
@@ -119,7 +120,8 @@ authoring is the fallback when the question requires off-device or browser-only
 context not available to Claude Code.
 **Output:** a `.md` file. **Ephemeral** — never committed to a repo folder.
 Per ADR-60 amendment 2026-05-27, there is no `council-questions/` folder; the
-permanent record is the routed transcript + the ADR it informs, not the brief.
+permanent record is the canonical transcript (`ai-council/output/`) + the ADR
+it informs, not the brief.
 
 **Decision-mode format** (`pick`, `ideas`, `judge`):
 
@@ -128,7 +130,6 @@ permanent record is the routed transcript + the ADR it informs, not the brief.
 models: claude,gemini,deepseek,grok
 synthesizer: openai
 rounds: 2
-target-project: .dev-knowledge        # optional — see Stage 4 routing
 mode: pick                            # optional — usually auto-detected
 ---
 
@@ -165,10 +166,10 @@ mandatory.
 | Field            | Default                                  | Notes |
 |------------------|------------------------------------------|-------|
 | `models`         | `claude,gemini,openai,deepseek,grok`     | All 5 by default. `--lite` overrides to 3-model (claude, gemini, openai). |
-| `synthesizer`    | `gemini`                                 | Must NOT be on the panel. Default gemini is auto-excluded. Use `openai` only if gemini is forced onto the panel. |
+| `synthesizer`    | `openai`                                 | Must NOT be on the panel; the default is auto-excluded. gemini→openai ratified 2026-07-18 (operator ruling, `docs/audits/2026-07-17-synthesizer-ruling-gemini-to-openai.md` in ai-council). |
 | `rounds`         | `2`                                      | Max 2 (per ADR / debate.py policy). `1` for simple pick. |
 | `mode`           | auto-detected                            | `pick` / `ideas` / `judge` / `research` (aliases: `p/d`, `i/e`, `j/a`, `r`). Force only when auto-detect would guess wrong. |
-| `target-project` | omitted                                  | Single name string or list. Mirrors the transcript to `<dev_root>/<name>/docs/decisions/transcripts/`. See Stage 4. |
+| `target-project` | omitted                                  | **RETIRED 2026-07-22 (ADR-43 amendment 2026-07-23) — do not set.** The routed-mirror landing zones are retired; transcripts are canonical-only in `ai-council/output/`. Config-side disarm tracked [#401]. |
 | `full`           | `true` (panel default)                   | Rarely set explicitly. |
 
 Frontmatter keys recognised as "this is a Council brief" by the Downloads
@@ -243,7 +244,9 @@ What the CLI does, in order (source: `cli.main`, `runner.CouncilRunner`,
 5. **Scan inbox + Downloads**, build the file list, batch oldest-first.
 6. **For each file:**
    - `inbox.parse_file` extracts body + frontmatter and resolves `target-project`
-     names to absolute paths via `TargetResolver` (ADR-43).
+     names to absolute paths via `TargetResolver` (ADR-43). The mechanism is still
+     present in code, but routed mirrors are RETIRED as doctrine (ADR-43 amendment
+     2026-07-23) — do not set `target-project`; disarm tracked [#401].
    - **Mode resolution precedence:** CLI `--mode` > frontmatter `mode:` > default.
    - **Models / synthesizer / rounds:** CLI flags override frontmatter; mode
      config supplies max_rounds when neither is set.
@@ -254,8 +257,8 @@ What the CLI does, in order (source: `cli.main`, `runner.CouncilRunner`,
    - **Research mode:** separate code path (`research.runner.run_research`);
      no debate rounds; parallel-retrieval; file cache (`--no-cache` to skip);
      `--deep` opt-in for slower o3-deep-research.
-   - **Synthesise:** default `gemini` writes the verdict; never participates
-     on the panel.
+   - **Synthesise:** default `openai` writes the verdict (gemini→openai ratified
+     2026-07-18, operator ruling); never participates on the panel.
    - **Write canonical** transcript to `ai-council/output/council-out-YYYYMMDD-HHMMSS-topic.md`
      (always; hard failure if it can't).
    - **Mirror to targets** (best-effort) — see Stage 4.
@@ -273,19 +276,18 @@ What the operator sees during the run: per-provider health-check OK/FAIL list,
 round-by-round progress (rich progress bars; ASCII only on Windows), cost
 summary at end, transcript paths.
 
-**Gate at end of Stage 3:** `git status` in any target repo — routed
-transcripts appear as untracked files; commit them per Stage 5 *before* moving
-on to the next debate. Letting routed transcripts accumulate uncommitted is
-the same anti-pattern as the pre-ADR-43 "manual archival drift" (2+ debates
-sitting un-archived).
+**Gate at end of Stage 3 (revised 2026-07-23):** no routed transcripts are
+expected — the routed-mirror is RETIRED (ADR-43 amendment 2026-07-23). A
+`docs/decisions/transcripts/` folder appearing as untracked files in any repo
+is the [#401] re-creation hazard firing, not something to commit: do not commit
+it; disarm the config per [#401].
 
 ---
 
 ## Stage 4 — Review the verdict
 
 **Owner:** operator.
-**Inputs:** the canonical transcript at `ai-council/output/council-out-*.md`
-plus any routed mirrors.
+**Inputs:** the canonical transcript at `ai-council/output/council-out-*.md`.
 
 **Transcript structure** (source: `synthesis.synthesize` + `output.save_to_file`):
 
@@ -306,22 +308,14 @@ synthesizer summarises — the transcript carries the underlying argument.
 
 **Where the transcript lands.**
 
-- **Canonical (always):** `ai-council/output/council-out-YYYYMMDD-HHMMSS-topic.md`.
-- **Mirrored (opt-in, per-invocation):** when `target-project:` (frontmatter)
-  or `--target-project` (CLI) names a project in `settings.yaml`
-  `target_projects`, the CLI writes a byte-equivalent transcript copy to
-  `<dev_root>/<name>/docs/decisions/transcripts/council-out-YYYYMMDD-HHMMSS-topic.md`.
-  No `_metrics.json` is mirrored — transcript only.
-- **Failure mode:** mirror writes are best-effort. A failed mirror logs a
-  warning; the canonical write still succeeds. The source of truth remains
-  `ai-council/output/`.
-- **Unknown target name:** `RoutingError` at parse time, before debate runs,
-  listing all known names sorted. No silent fallback.
-
-If a debate did **not** set `target-project`, the manual archival pipeline in
-PLAYBOOK § "Council Debate Archival Protocol" is the fallback — copy the
-transcript to the appropriate target's `docs/decisions/transcripts/` and
-commit.
+- **Canonical (only):** `ai-council/output/council-out-YYYYMMDD-HHMMSS-topic.md`.
+- **Routed mirrors — RETIRED 2026-07-22 (ADR-43 amendment 2026-07-23).** The
+  former opt-in mirror (`target-project:` / `--target-project` → a byte-equivalent
+  copy in `<dev_root>/<name>/docs/decisions/transcripts/`) is retired as doctrine;
+  the hub's landing zone was deleted (`b4435fad`, operator ruling 2026-07-22). Do
+  not set `target-project`; the config-side disarm is tracked [#401]. The binding
+  record of a decision is its ADR (Stage 5) — there is no transcript archival
+  step, manual or routed; git history retains the pre-retirement routed copies.
 
 ---
 
@@ -341,13 +335,15 @@ hand-off with a placeholder."
    `Status / Context / Decision / Consequences / Alternatives considered /
    References`. The transcript is the evidence; the ADR is the canonical
    record. Reference the transcript filename in `References`.
-3. **Commit transcript + ADR** — separately or together, repo's git-discipline
-   choice. Conventional Commits: `docs(decisions): ADR-NN — [topic]`.
+3. **Commit the ADR** — no transcript lands in the target repo (routed-mirror
+   retired 2026-07-23; the canonical transcript stays in `ai-council/output/`).
+   Conventional Commits: `docs(decisions): ADR-NN — [topic]`.
 4. **Update `docs/decisions/README.md`** — add the new ADR row + any
    traceability entry. Same commit as the ADR.
 5. **Amendments not rewrites.** ADRs are immutable. If the decision needs
    revision, write a new ADR that supersedes (or amends) the prior. Never
-   edit a ratified ADR in place.
+   edit a ratified ADR in place (sole exception: the *status line* on
+   ratification, e.g. Proposed → Accepted — ADR-94; decision content never).
 
 For pick/judge modes, the ADR is a Decision record. For ideas/research modes,
 the transcript itself is the deliverable — no ADR is required unless the
@@ -390,11 +386,10 @@ committed path in the target repo (no behavior change from v1.0).
 
 | Symptom                                                            | Likely cause                                                                                                        | Fix                                                                                          |
 |--------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| `RoutingError: unknown target 'X'` at startup                      | `target-project: X` names a project not declared in `settings.yaml` `target_projects`                               | Add `X` to the opt-in list in `ai-council/config/settings.yaml`. Fail-loud is by design.    |
+| `RoutingError: unknown target 'X'` at startup                      | `target-project: X` set on the brief — the field is RETIRED (ADR-43 amendment 2026-07-23); only reachable via the retired flag | Remove `target-project:` from the brief (do not add targets — routed mirrors are retired; see [#401]). Fail-loud is by design. |
 | File in `~/Downloads/` not picked up                                | No `council` token in stem AND no recognised Council frontmatter key                                                | Rename to include `council` OR add `mode:` (or other key) to frontmatter — or move to `council_inbox/`. |
 | Health check fails for one provider                                 | Missing/expired API key, network issue, provider outage                                                              | Choose "continue with working providers" when prompted (non-research modes). Restore key after the run. |
 | Exit code `3` after `--inbox`                                       | At least one research run degraded (summarizer outage → truncation fallback per ADR-08)                              | Inspect the research report; rerun with `--no-cache` after summarizer recovers if a clean version is wanted. |
-| Routed transcript missing from target repo                          | Mirror write failed (best-effort — logged as warning, canonical still wrote)                                         | Check CLI log for warning; copy canonical to target manually via PLAYBOOK § Archival fallback. |
 | Brief archived as `FAILED_<timestamp>_<name>.md`                    | Exception during debate or routing parse                                                                             | Read CLI error; fix the brief (or routing config) and move it back from `council_inbox/archive/` to `council_inbox/`. |
 | Synthesis is biased toward the asker's pre-stated preference        | The brief leaked the asker's lean (Stage 0 / 1 bias)                                                                 | Discard the verdict; rewrite the brief per `council-question-guide.md` § Neutralizing bias; rerun. Blind voting cannot fix this. |
 | Cost surprise (debate cost > $1.00)                                 | Full panel + 2 rounds + long question. Or research `--deep` opt-in.                                                  | Use `--lite` (3-model) and/or `--rounds 1` for simpler questions. Cost gate lives in operator judgment, not policy. |
@@ -409,7 +404,7 @@ committed path in the target repo (no behavior change from v1.0).
 - **Routing decision:** `docs/decisions/ADR-43_cross_project_transcript_routing.md`.
 - **Blind voting:** `ai-council/docs/decisions/ADR-03-blind-voting.md` (tool-layer).
 - **Folder taxonomy / ephemeral briefs:** `docs/decisions/ADR-60-docs-folder-taxonomy.md`.
-- **Decision threshold + archival fallback:** `protocols/PLAYBOOK.md` § "Council debate threshold", § "Council Debate Archival Protocol", § "After a Decision".
+- **Decision threshold:** `protocols/PLAYBOOK.md` § "Council debate threshold", § "After a Decision". (The archival protocol is retired — PLAYBOOK § "Council Debate Archival Protocol (RETIRED 2026-07-22)".)
 - **Repo-artifacts-in-Claude-Code rule:** `protocols/ESSENTIALS.md` § "Repo artifacts".
 - **Gated-loop pattern (handoff analogue):** `HANDOFF_PROCESS.md` + ADR-42/55/56/57/58/62.
 - **Live code:** `ai-council/src/ai_council/{cli,inbox,routing,runner,orchestrator,debate,synthesis}.py`.
@@ -418,5 +413,6 @@ committed path in the target repo (no behavior change from v1.0).
 
 ## Section history
 
+- v2.1 (2026-07-23) — ADR-43 amendment (routed-mirror RETIRED; operator ruling 2026-07-22, hub zone deleted `b4435fad`): Purpose/Stage 3 gate/Stage 4 landing/Stage 5 step 3/frontmatter table/template example/troubleshooting/Cross-references all repointed — transcripts are canonical-only in `ai-council/output/`; `target-project:` not to be set; config disarm tracked [#401]. Re-read fixes: synthesizer default gemini→openai (2026-07-18 operator ruling), ADR-94 status-line exception added to Stage 5 item 5.
 - v2.0 (2026-06-01) — ADR-67: added Gated loop overview (6 steps, cross-domain split table, stage mapping); Stage 1 updated to `/council-question` trigger (template+gate downstream); Stage 1a Gate inserted; Stage 5 Deterministic return subsection added; Cross-references updated.
 - v1.0 (2026-05-28) — initial. Companion to ARCHITECTURE.md C3 "AI Council debate pipeline" diagram. Closes BACKLOG "AI Council Flow operationalization — lifecycle runbook" (open since 2026-05-27).
