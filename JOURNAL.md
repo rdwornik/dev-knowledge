@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-23 — CC (Opus 4.8): CONSOLIDATION — both parallel lanes merged --no-ff, [#398] CLOSED via Tier-1 gate, full worktree/branch teardown
+
+**Did:** Operator-directed consolidation from PRIMARY. Step-0 scan clean (both worktree sessions closed; the second claude.exe = ai-council, not hub-primary). No id collision ([#401] adr43 · [#402] enum, distinct). Merged serially `--no-ff`: `docs/adr43-rescope-transcripts-routing` (`eefb9f9c`, clean union) then `worktree-enum-reconcile` (`fb868199`, JOURNAL prepend-collision resolved newest-first: enum → adr43 → night-batch; append-union only). `gen_doc_counts --check`: MATCH post-merge (31/15/1736 — the #384 trap did not fire). Reconcile branch (`2802e401`): BACKLOG:9 next-free `[#400]`→`[#403]` (history-scan; synthetic `[#777]` in trip-test prose excluded) + [#401] trimmed to 2 dated blocks (clears the lane-introduced net-new doc_rot WARN). **[#398] closed** via the Tier-1 gate (`review_closures.py plan` verdict close; operator named the id in the consolidation directive) — content verified on merged main against the REAL merge SHA `fb868199` (ruled enum live in intake README, no OTHER bucket, `gen_intake_index --check` clean), done-items-leave, id gap stays; evidence: lane commits `c117a06d`→`5b8e11c0` ancestors of main. [#386]/[#401]/[#402] left OPEN per directive. Teardown: both worktrees removed + pruned, both lane branches deleted (`-d`, merge-verified).
+
+**Result:** pre-commit --all-files PASS after each merge; ship-gate undispositioned WARNs = 1 (the pre-existing VISION 34d canonical_freshness, [#368] stays honest — the [#401] doc_rot WARN was net-new and is now cleared); pushed.
+
+**Changes:** BACKLOG.md (pointer, [#401] trim, [#398] leaves), JOURNAL.md (union + this entry); merges carry the two lanes' full surfaces.
+
+**Abandoned / deliberately not done:** no handoff bundle (operator triggers); no VISION re-stamp; `automation/fleet-audit` untouched; 2 remote conformance branches left for triage.
+
+**Next:** operator: [#381] polyrepo ruling session · triage conformance remotes + nightly findings · rule [#402] naming clause · [#401] ai-council config disarm.
+
+---
+
 ### 2026-07-23 — CC (Opus 4.8): [#398] LANE (enum-reconcile worktree) — both status enums ruled + deployed, six off-canon intakes migrated, id:14 triple dissolved; commit-and-STOP
 
 **Did:** Plan-then-auto lane on `worktree-enum-reconcile` (parallel to the adr43-doctrine lane, files disjoint). Operator approved the enum shape + four semantic rulings at plan (ACCEPTED=live standing authority · #10→DRAFT · ADR enum `Proposed|Accepted|Superseded|Deprecated` · #14 provenance drafts→CONSUMED+archive) + two corrections (companion schema per the session record: `decided-by`/`disposition[active|deferred→trigger/review-date]`/`consumed-by`/`superseded-by`/`reason`; do NOT close [#398] in-lane) + one filing requirement ([#402]). **Deployed the 2026-07-19 ruled intake enum** (`SEED→DRAFT→READY→ACCEPTED|CONSUMED|SUPERSEDED|REJECTED`, SUPPLEMENT.md:68-70 — the ruled pattern won over the live one, decided-not-deployed gap closed) onto all three canon surfaces: intake README §3/§5/§6/§7 + `gen_intake_index._STATUS_ORDER` (gate-readable, test-pinned) + intake-template (`c117a06d`). **Migrated all six off-canon docs + both #14 provenance drafts** with information preserved in companion fields (`7c480281`); **archived the 3 newly-terminal docs as R100 pure renames** (`6551d363`) — live index SEED(6) DRAFT(2) READY(1) ACCEPTED(3), **no OTHER bucket**, exactly one live intake-id 14. **Reconciled the CONTRIBUTING ADR-status enum** (`33e90a70`): `Withdrawn` dropped (0 uses), `Proposed`/`Deprecated` admitted, ADR-94 Pattern-B flip mechanic + terminal→archive coupling added; ADR-45/82/88/89 all explicitly deferred to [#242] with per-ADR reasons (no ADR touched; [#362] gates ADR-45). **Lane artifact + updated P2c validator spec** (SPEC ONLY, repointed at both ruled enums) at `docs/audits/2026-07-23-technical-status-enum-reconcile.md`; W3 seed-2 pointer + R4 tech-extension marked DEAD; **[#402] filed** (naming-clause half of the ruling gets an owner; join-key hazard recorded) (`5b8e11c0`).
