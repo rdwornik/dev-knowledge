@@ -19,6 +19,32 @@
 
 ---
 
+### 2026-07-23 — CC (Opus 4.8): [ARCH CURRENCY FOLLOW-UP] — Ch4 channel/carrier vocabulary split; ADR-92 divergence made legible; 2a/2b VERIFIED-CLEAN
+
+**Did:** Same branch `docs/architecture-currency` (anchor `57d978a2`). **(1) CORRECTED:** Ch4 intro "Five carriers" → "Five distribution **channels**" + table column Carrier→Channel (the channel set ≠ the deploy carrier-module set; the chapter's own "the five rows above are the channels" sentence now agrees with its header); full-file carrier-sense sweep: :514 plugin/pre-commit → "channels" (channel sense), :211 Ch2 deploy prose → "carrier modules" (module sense), ADR-79 row keeps its title verbatim + a vocabulary-provenance note; :362 (enumerated modules), :521-525 (disambiguation para), :626 (verify-gate) verified already unambiguous. **(2a) VERIFIED-CLEAN:** the "Last updated" blockquote carries only line-leading `> ` prefixes — the suspected mid-sentence ">" is the unwrap artifact of reading a wrapped blockquote as one line. **(2b) VERIFIED-CLEAN:** ADR-98 / ADR-101 / ADR-102-103 are each their own `- **ADR-…**` list item (:699-:701), not concatenated. **(3) CORRECTED:** ADR-90/93 Governing row now states the divergence inline — five carrier modules in reality today, ADR-92's body still says "four hard-coded carriers", amendment owed; ADR-92 untouched. Note: session resumed from a HEAD-on-main state (operator checkout 14:36); branch + both prior commits verified intact before proceeding.
+
+**Result:** commit-and-STOP — NOT merged. Gates at wrap: validate_backlog OK; ship-gate undispositioned WARN = the pre-existing VISION baseline only (net-new 0); doc_structure OK.
+
+**Changes:** `ARCHITECTURE.md` (6 edit sites), `JOURNAL.md`.
+
+**Next:** operator integrates --no-ff → ADR-92 amendment call → [#403] derivations ruling.
+
+---
+
+### 2026-07-23 — CC (Opus 4.8): [ARCHITECTURE CURRENCY] LANE — verify-then-fix 7 claim classes; [#403] filed; commit-and-STOP
+
+**Did:** Operator-directed verify-then-fix on ARCHITECTURE.md claim drift (branch `docs/architecture-currency`, anchor `037d9f08`). Per-item: **(a) CARRIERS — CORRECTED, 5 sites** (:197 organ row, :208 deploy prose, :357 Validators bullet, :514 Ch4 orchestrator, :690 ADR-90/93 row): `deploy/` holds 5 carrier modules, all wired by `make_carriers` (tool.py:303) — `mesh` (#236) added everywhere; Ch4 gained the channel/carrier disambiguation (mesh = a deployable surface, NOT one of the 5 channels; "four of the five channels" stays channel-true) + the `editor-config` declared-not-implemented note (v1.4.0). **ADR-92 is the stale side too** (Decision 8 + :76 "four hand-written carriers") — REPORTED as a separate finding needing an amendment, NOT edited. ADR-91's "five carriers" = the five *channels*, consistent — no edit. **(b) CHILD REPOS — CORRECTED** (Purpose :39 + Ch1 Layer-3 row): machine registry (`discover_repos()`, state.yaml presence) = 5 children incl. **win-tooling**; treated authoritative; human registry `ecosystem/registry.md` (demo-prep, life-architect methodology-unonboarded) pointed to, not inlined. **(c) CORRECTED:** header "Last updated" 2026-06-07→2026-07-23 rolling-currency note, six-chapter provenance + git-log pointer kept. **(d) CORRECTED:** "ratified through ADR-80"→ADR-103. **(e) CORRECTED:** Ch5 archive paragraph repointed off closed [#398] → W3 seed 2 + spec `docs/audits/2026-07-23-technical-status-enum-reconcile.md` §4. **(f) CORRECTED/ADDED:** ADR-43/67 row annotated with the 2026-07-23 re-scope amendment; rows added for the inline-referenced ADR-98, ADR-101, ADR-102/103 (:192 "ADR-102/103" shorthand counts). **ADR-94: NO inline body ref → NO row** (the operator's "at minimum" guess refuted by grep — criterion is inline-referenced only). **(g) CORRECTED:** "Appendix B" is real but lives in PLAYBOOK (:3713) → qualified "PLAYBOOK Appendix B" (matches ADR-70-amendment's own citation). **[#403] filed P3/S** (doc_claims coverage gap: carrier count / child roster / Governing-ADR completeness machine-derivable but unchecked — candidate derivations named, none chosen); BACKLOG:9 next-free [#403]→[#404].
+
+**Result:** commit-and-STOP on `docs/architecture-currency` — NOT merged (operator integrates). validate_backlog OK (147 tasks); pre-commit PASS at commit; ship-gate + checks below. `last_reviewed: 2026-07-23` same-day stamp stands (no midnight crossing).
+
+**Changes:** `ARCHITECTURE.md` (7 claim classes), `BACKLOG.md` (+[#403], pointer), `JOURNAL.md`.
+
+**Abandoned / deliberately not done:** the checker build (anti-pattern — [#403] files it); ADR-92 edit (findings only); VISION untouched ([#368] honest); no fleet machinery.
+
+**Next:** operator integrates --no-ff → rules [#403] derivations → ADR-92 amendment call (the reported stale-side finding).
+
+---
+
 ### 2026-07-23 — CC (Opus 4.8): CONSOLIDATION — both parallel lanes merged --no-ff, [#398] CLOSED via Tier-1 gate, full worktree/branch teardown
 
 **Did:** Operator-directed consolidation from PRIMARY. Step-0 scan clean (both worktree sessions closed; the second claude.exe = ai-council, not hub-primary). No id collision ([#401] adr43 · [#402] enum, distinct). Merged serially `--no-ff`: `docs/adr43-rescope-transcripts-routing` (`eefb9f9c`, clean union) then `worktree-enum-reconcile` (`fb868199`, JOURNAL prepend-collision resolved newest-first: enum → adr43 → night-batch; append-union only). `gen_doc_counts --check`: MATCH post-merge (31/15/1736 — the #384 trap did not fire). Reconcile branch (`2802e401`): BACKLOG:9 next-free `[#400]`→`[#403]` (history-scan; synthetic `[#777]` in trip-test prose excluded) + [#401] trimmed to 2 dated blocks (clears the lane-introduced net-new doc_rot WARN). **[#398] closed** via the Tier-1 gate (`review_closures.py plan` verdict close; operator named the id in the consolidation directive) — content verified on merged main against the REAL merge SHA `fb868199` (ruled enum live in intake README, no OTHER bucket, `gen_intake_index --check` clean), done-items-leave, id gap stays; evidence: lane commits `c117a06d`→`5b8e11c0` ancestors of main. [#386]/[#401]/[#402] left OPEN per directive. Teardown: both worktrees removed + pruned, both lane branches deleted (`-d`, merge-verified).
