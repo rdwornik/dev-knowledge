@@ -14,9 +14,10 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-06-07` — six-chapter rewrite to the shipped reality
-> (layers · organs · automation axes · distribution · zones · verification mesh),
-> superseding the pre-ADR-80 structure (closes [#91]). Prior history:
+> Last updated: `2026-07-23` — currency lane (carrier count 4→5, registered child
+> set, governing-ADR roster through 102/103). Structure: the `2026-06-07` six-chapter
+> rewrite (layers · organs · automation axes · distribution · zones · verification
+> mesh, closes [#91]), superseded the pre-ADR-80 layout. Prior history:
 > `git log --follow ARCHITECTURE.md`.
 >
 > **How to read this doc (progressive disclosure).**
@@ -37,10 +38,12 @@ framework for all `Dev/` projects. It is **Layer 2** of the ADR-28 three-layer
 ecosystem model — passive storage and governance authority, not an execution
 engine. It holds operational protocols, ADRs, intake docs, handoffs, templates, and
 read-only validators; it prescribes conventions that child repos (corp-monorepo, ai-council,
-corp-ops, corp-sca-time-automation) must follow; it is consulted as context by
+corp-ops, corp-sca-time-automation, win-tooling — the machine-registered set, by
+`ecosystem/<repo>/state.yaml` presence; `ecosystem/registry.md` is the wider human registry)
+must follow; it is consulted as context by
 Claude Code, Codex, Cursor, and other agents. **Nothing here executes orchestration**
 — everything is read, consulted, or passively validated. The six chapters below are
-the system as built and ratified through ADR-80.
+the system as built and ratified through ADR-103.
 
 ---
 
@@ -116,7 +119,7 @@ resource** the whole system economizes — every protocol that compresses contex
 |---|---|
 | Layer 1 — browser chat (architect) | external — analysis & design |
 | **Layer 2 — `.dev-knowledge`** | **this repo** — passive storage, governance, prescription |
-| Layer 3 — projects (executor) | external — corp-monorepo, ai-council, corp-ops, corp-sca-time-automation |
+| Layer 3 — projects (executor) | external — corp-monorepo, ai-council, corp-ops, corp-sca-time-automation, win-tooling (machine registry; full human set in `ecosystem/registry.md`) |
 
 ---
 
@@ -194,7 +197,7 @@ local git gate.
 | `boundary_report.py` (reporter) | manual CLI | hub · read-only | fail-soft (writes `logs/BOUNDARY-DRIFT.md`; a reporter, NOT a gate — deliberately not in `ALL_CHECKS`) | #312; CLAUDE.md Form-A regions |
 | `boundary_headers.py` (generator) | manual CLI (`--check` regen-and-diff · `--coverage`; pre-commit wiring open #369) | hub | generated-not-hand-maintained (headers derived from the #312 markers via `boundary_report` imports — a hand-edit is overwritten on regen); suite-guarded at ship-gate | #352; `tests/test_boundary_headers.py` |
 | `fleet_analytics.py` (reporter) | manual CLI (nightly wiring open #391) | hub · read-only | fail-soft (writes `logs/FLEET-ANALYTICS.md`; `main()` always 0; NOT in `ALL_CHECKS`) | #384 (L5a descriptive analytics); intake #16 §3 |
-| `deploy/tool.py` + 4 carriers (`globalconfig`/`plugin`/`precommit`/`floor`) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ADR-91/92/93; PLAYBOOK §20 |
+| `deploy/tool.py` + 5 carriers (`globalconfig`/`plugin`/`precommit`/`floor`/`mesh`) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ADR-91/92/93; PLAYBOOK §20 |
 | `floor-hash-verify` (pre-commit) + SessionStart floor guard (`.claude/check_floor_hash.py`) | consumer commit / session start | consumer (armed by `carrier_floor`) | **fail-closed** (loud on floor drift) | ADR-93 (#226) |
 | pre-commit gates (`.pre-commit-config.yaml`) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below (count in `ecosystem/doc-counts.md`) |
 
@@ -205,7 +208,7 @@ The **Tier-1 closure loop** is three of these organs in a cycle:
 and-propose only; the human gate closes (ADR-70; distribution in Ch4).
 
 **The deploy subsystem** (orchestrator detail in Ch4; validators below) versions the
-methodology corpus (ADR-91) and delivers it to a consumer through the four carriers behind a
+methodology corpus (ADR-91) and delivers it to a consumer through the five carriers behind a
 **per-carrier verify-gate** (ADR-92) — the version record lands only if every carrier
 verifies. The `floor` carrier additionally **arms** the ADR-78 floor under **model A**
 (ADR-93): committed + two-leg hash-guarded (a SessionStart guard + the commit-time
@@ -354,8 +357,8 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   `audit.py::check_fleet_parity` calls `fleet_parity.walk()` in-process and maps blocking verdicts
   to gating Findings (`exempt:` in doc-code-edge.yaml — manifest-driven, not a doc→code rule). The
   standalone CLI is unchanged: `python scripts/fleet_parity.py --run-date YYYY-MM-DD` (#328/#337).
-- `deploy/tool.py` + `deploy/contract.py` + the four carriers (`carrier_globalconfig`,
-  `carrier_plugin`, `carrier_precommit`, `carrier_floor`) — the ADR-92 **deploy orchestrator**
+- `deploy/tool.py` + `deploy/contract.py` + the five carriers (`carrier_globalconfig`,
+  `carrier_plugin`, `carrier_precommit`, `carrier_floor`, `carrier_mesh`) — the ADR-92 **deploy orchestrator**
   (Ch4). A read-only ASSESS CLI (`deploy <repo> --target <vX.Y.Z>`) detects each carrier's
   state vs a per-tag manifest and prints a plan; `--execute` applies + **per-carrier
   verify-gates** the version record (`ecosystem/deployed-versions.yaml`, ADR-91) + stages the
@@ -466,7 +469,7 @@ the scheduled fleet baseline is *deterministic* **and** *Tier 2*.
   `state.yaml` gitignored, retained. (ADR-84; was ADR-80 §3 direct-on-`main`, wiring #125.)
 
 **Model routing (t-shirt).** Pin every fan-out stage by size: **S = Haiku · M = Sonnet
-· L/judgment = Opus** (Appendix B; ADR-70). **Unpinned fan-out is a bug** — an unpinned
+· L/judgment = Opus** (PLAYBOOK Appendix B; ADR-70). **Unpinned fan-out is a bug** — an unpinned
 subagent inherits the *main session model* (Opus 4.8), silently running the costliest
 tier. **No `fallbackModel` on a pinned stage** — a silent swap breaks evidence
 comparability across runs (ADR-80 §5).
@@ -511,12 +514,15 @@ carriers, each with a different scope and freshness model:
   "URL-swappable later" hatch *for cloud* (ADR-72). Plugin/pre-commit carriers are
   **inert by design** in a fresh cloud clone — not bugs.
 - **Deploy orchestrator (ADR-91/92; ADR-93 for the floor; validators in Ch2).** The five rows
-  above are the *channels*; the **deploy tool** (`deploy/tool.py` + the four carriers
-  `globalconfig`/`plugin`/`precommit`/`floor`) is the **versioned orchestrator across them** —
+  above are the *channels*; the **deploy tool** (`deploy/tool.py` + the five carriers
+  `globalconfig`/`plugin`/`precommit`/`floor`/`mesh`) is the **versioned orchestrator across them** —
   it reconciles **four of the five** channels (all but the browser bundle) into a consumer at a
   pinned corpus version (ADR-91), behind a per-carrier verify-gate, then records the deployed
-  version (Ch6 `deployed_methodology_version`). It is **not a sixth carrier** — it is *how* those
-  four are delivered as one gated release; the `floor` carrier also arms the floor under model A
+  version (Ch6 `deployed_methodology_version`). The `mesh` carrier (#236) deploys the
+  enforcement-mesh corpus — a deployable surface of its own, not one of the five channels;
+  a further `editor-config` carrier is manifest-declared but not yet implemented
+  (`implemented: false`, v1.4.0). The tool is **not itself a carrier** — it is *how* the
+  five are delivered as one gated release; the `floor` carrier also arms the floor under model A
   (ADR-93). Runbook PLAYBOOK §20; proven end-to-end on run #1 (ai-council → v1.0.0).
 
 **The transfer matrix is the canonical gap map.** Who carries the method, in which of
@@ -558,7 +564,9 @@ relocates **byte-identical** to its own folder's `archive/` (`docs/intake/archiv
 CONSUMED|REJECTED; `docs/decisions/archive/` — Superseded/Deprecated ADRs); live files
 stay put. Relocation is not an edit (the LESSONS-legacy precedent); the ADR-101 genre
 seal is unaffected (an `archive/` nests *inside* a sanctioned genre). Manual for now —
-the status-coupled validator is wave work (#398 owns the intake enum first). `logs/`
+the status-coupled validator is wave work (BACKLOG W3 seed 2; spec
+`docs/audits/2026-07-23-technical-status-enum-reconcile.md` §4 — the enums themselves
+are deployed, [#398] closed 2026-07-23). `logs/`
 artifact naming: CLAUDE.md §9 ([#395] convention).
 
 **Zone register (ADR-75).** Exclusion/immutability/scope policy lives in one
@@ -673,7 +681,7 @@ live in the ADRs; git history retains; the ADR-77 guard stays armed, Ch2).
 - **ADR-30** — default branch `main` for all repos.
 - **ADR-31/36/63/69** — authority model (prescriptive + conformance audit); read-only auditor; asymmetric review authority; cross-repo audit reach (Ch1/Ch6).
 - **ADR-33/34/38** — VISION universalization; filename convention; universal repo baseline (tier gating removed, A5/A6).
-- **ADR-43/67** — Council transcript routing; AI-Council process operationalization (Ch6).
+- **ADR-43/67** — Council transcript routing (re-scoped by the 2026-07-23 amendment: routed-mirror clause retired, canonical-only output in ai-council); AI-Council process operationalization (Ch6).
 - **ADR-50/51/59/60** — machine-document encoding; ARCHITECTURE convention + auto-TOC (Mermaid left canonical docs — LLM-first compact-text codemap, theme re-scoped to the visualization surface; ADR-51 amendment 2026-07-05); visual repository pattern; docs/ taxonomy.
 - **ADR-53/54** — CLAUDE.md as single canonical agent file; Codex reviewer config as global standard.
 - **ADR-61/62/82** — git worktree for parallel sessions; Handoff v4 ratification (ADR-62), superseded by v5 (ADR-82, canonical 2026-06-11).
@@ -687,7 +695,10 @@ live in the ADRs; git history retains; the ADR-77 guard stays armed, Ch2).
 - **ADR-84** — automation-writer isolation (Q9): both writers commit only to dedicated `automation/*` branches (never `main`); the `no_ff_merges` automation exemption removed — one rule (Ch3/Ch6).
 - **ADR-85/86/87** — session-lifecycle enforcement (deterministic session-end Stop-gate; un-gameable JOURNAL commit-SHA anchor); conformance-dashboard location (`ecosystem/conformance.md`, ADR-80 committed-generated zone); Architect↔CC equilibrium contract (conditional intent-only prompting) (Ch2/Ch6).
 - **ADR-88/89** — file-oriented dependency management (repo files are the dependency unit; declared edges held by machinery, not memory) and computed code-dependency edges (declare-what-you-cannot-compute; Pyright reverse-dependency oracle) — both Accepted 2026-06-21 (`911b561`); ADR-88/89 in-place markers (Ch5/Ch6).
-- **ADR-90/91/92/93** — doc→code resolver-allows-N (a rule declares its expected `# rule:` site count in `multi_site:`; Ch2/Validators); methodology-corpus versioning (semver + a git-tag release marker; the `deployed_methodology_version` record, Ch6); deploy-runbook doctrine (a versioned, verification-gated deploy tool + four carriers, operator-run from the hub; Ch2/Ch4); floor provisioning model A (commit + two-leg hash-guard the ADR-78 floor; Ch2 arming / Ch4 floor carrier) — Accepted.
+- **ADR-90/91/92/93** — doc→code resolver-allows-N (a rule declares its expected `# rule:` site count in `multi_site:`; Ch2/Validators); methodology-corpus versioning (semver + a git-tag release marker; the `deployed_methodology_version` record, Ch6); deploy-runbook doctrine (a versioned, verification-gated deploy tool + five carriers, operator-run from the hub; Ch2/Ch4); floor provisioning model A (commit + two-leg hash-guard the ADR-78 floor; Ch2 arming / Ch4 floor carrier) — Accepted.
+- **ADR-98** — requirements-intake pipeline: functional/technical/developer modes turn operator intent into a decomposed epic set (Ch5 requirements intake).
+- **ADR-101** — hermetization: sanctioned top-level set, per-class name grammar, refusal gate (`validate_hermetization.py` pre-commit; Ch2/Ch5).
+- **ADR-102/103** — parity-surfaces axes: enforcement-gate-rev modeled separately from corpus `source_tag`; per-entry ownership `{value, reason, provenance}` classification (fleet_parity organ row, Ch2).
 
 ---
 
