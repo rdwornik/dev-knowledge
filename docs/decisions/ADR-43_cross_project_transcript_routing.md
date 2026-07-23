@@ -8,6 +8,27 @@ Status: Accepted — 2026-05-11
 
 - **2026-05-11** — Schema refactor: `target_projects` simplified from `dict[str, str]` to opt-in `list[str]` + single `dev_root` config field. DRY refactor; all ADR-43 invariants preserved. Proposal: `docs/handoffs/_archive/2026-05-11_adr-43-amendment-proposal-schema-refactor.md`. Approval: `docs/handoffs/_archive/2026-05-11_adr-43-amendment-approval-schema-refactor.md`. First live invocation of ADR-43 "Amendment process" rule.
 
+- **2026-07-23 — RE-SCOPE (operator ruling 2026-07-22): routed-mirror clause RETIRED;
+  canonical-write production stands.** The hub landing zone
+  `.dev-knowledge/docs/decisions/transcripts/` was DELETED 2026-07-22 (`b4435fad`;
+  night-batch audit P3a) — council-in-ADR output will never recur; the binding record
+  of a decision is its ADR, and git history retains the routed transcripts.
+  Consequently the **routed-mirror mechanism of this ADR is retired as fleet
+  doctrine**: council transcripts no longer route into any repo's
+  `docs/decisions/transcripts/`; `target-project:` / `--target-project` are not to be
+  set. A transcript's sole home is the canonical `ai-council/output/`.
+  **This is a RE-SCOPE, not a retirement of ADR-43** — the repo-local production in
+  ai-council STANDS (canonical-first write to `output/`, fail-loud `RoutingError`
+  validation, `TargetResolver`), and this ADR still governs that behaviour plus its
+  Amendment process; retiring it wholesale would orphan live ai-council behaviour.
+  Unaffected: ai-council's repo-local `transcripts/` (`ai-local-transcripts`,
+  parity-surfaces.yaml — a different, product-owned surface). The ADR-77 immutability
+  guard on the deleted zone stays ARMED (re-creation refusal); its retirement is a
+  separate operator call. **Follow-up (tracked [#401], hub BACKLOG):** ai-council
+  removes `.dev-knowledge` from `settings.yaml` `target_projects` (+ its docs); the
+  residual mechanism gap — nothing PREVENTS CLI-side re-creation of the deleted zone —
+  is declared there as an unenforced clause.
+
 ## Context
 
 ai-council generates debate transcripts for architectural decisions
