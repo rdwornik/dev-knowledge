@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-23 — CC (Opus 4.8): HANDOFF `2026-07-23-dev-knowledge-architect` (architect mode) — supersedes the same-day execution bundle (operator correction: architect intended)
+
+**Did:** Operator corrected the bare-`/handoff` mode read — architect (with SUPPLEMENT) was intended, not the spec default execution. Regenerated on the same chat at minimal token cost: `gen_handoff.py --mode architect` → 5-file bundle incl. `SUPPLEMENT.md` (generated + committed COLD — the sanctioned empty-ANSWERS disposition; architect is the generator's home path, `[#404]` does not fire). All four FILL-INs ported from the execution bundle, re-profiled to the planning posture (purpose = rule the frontier: `[#381]` brake, ADR-92 amendment, `[#403]` derivations, `[#402]`/`[#401]`; §4 reframed as the ruling list; §1 known-latent now cites filed `[#404]`). `PASTE_THIS.md` reassembled; probes **11/11 pass**. The execution bundle stays in place (handoffs immutable — superseded, not edited).
+
+**Result:** pre-commit PASS at bundle commit `c8faf53b`; validate_backlog OK; no BACKLOG change this leg (no new id, none closed).
+
+**Changes:** `docs/handoffs/2026-07-23-dev-knowledge-architect/` (5 files, new), `JOURNAL.md` (this entry).
+
+**Next:** operator pastes `PASTE_THIS.md` (architect chat title in `HANDOFF_BOOT.md`); optional: fill `SUPPLEMENT.md` QUESTIONS → `supplement filled`; push main on OK.
+
+---
+
 ### 2026-07-23 — CC (Opus 4.8): HANDOFF `2026-07-23-dev-knowledge-execution` (execution mode) — generator SUPPLEMENT leak found + hand-corrected; [#404] filed
 
 **Did:** `/handoff` (bare → self-handoff, default execution mode; spec v5.7). The generator's **first execution-mode render** surfaced a mode-blindness defect: `gen_handoff.py` `_tokens()` selects `SUPPLEMENT_BANNER`/`P1_GATE_NOTE` by fill-state only, and `PROBES.md.tmpl` P8 unconditionally binds a bundle SUPPLEMENT path — architect framing ("SUPPLEMENT is generated EMPTY") leaked into the execution bundle and P8 FAILed `verify_handoff_probes` (missing source/target; would have REDded `handoff_probes` at ship-gate). Operator ruled **hand-fix bundle + flag defect**: 7 leakage sites corrected to the §13 execution shape (HANDOFF_BOOT ×3, RESIDUAL ×1, PROBES ×3 + gate-procedure line), P8 re-scoped to the bundle listing ∩ §13 "Bundle shape" (no dead file binding; SUPPLEMENT deliberately un-backticked — the tokenizer binds backticked tokens), `PASTE_THIS.md` reassembled via `assemble_paste.py` (sanctioned: hand-authored bundles stay bound by the §5 gate). All four FILL-INs authored (purpose / driftflags / shipped-window / frontier). **[#404] filed** [P2][S] under E1/S2 (mode-aware framing tokens + mode-conditional P8 row + per-mode render test); BACKLOG next-free [#404]→[#405].
