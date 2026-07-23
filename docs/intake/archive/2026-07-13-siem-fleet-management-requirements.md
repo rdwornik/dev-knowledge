@@ -1,6 +1,6 @@
 ---
 intake-id: 14
-status: DRAFT
+status: CONSUMED
 origin: research session (execution mode, operator-directed brief), 2026-07-12/13 overnight — intake #13 v4 Phase E Leg 0 pulled FORWARD as research-only; no decision, no tool selection
 consumed-by: "2026-07-12-siem-requirements-ruled-pack.md (#14 RULED consolidation pack; this draft retained as provenance)"
 ---

@@ -1,8 +1,8 @@
 ---
 intake-id: 15
-status: READY-TO-FIRE
+status: READY
 origin: satellite tier-rulings arc, 2026-07-16 — operator rulings recorded in ecosystem/satellite-onboarding-rulings.yaml; prompts derived from the 2026-07-13 satellite onboarding census (immutable audit), with life-architect regenerated floor-only -> FULL per the operator override
-note: onboarding EXECUTION contracts (not a decomposition intake); parked in docs/intake for the operator-chosen status + join-key traceability. READY-TO-FIRE is a descriptive status (OTHER group), consistent with existing custom-status intake docs (RULED, settled, plan-of-record-active).
+note: onboarding EXECUTION contracts (not a decomposition intake); parked in docs/intake for join-key traceability. Originally carried the descriptive status READY-TO-FIRE; migrated to READY at the [#398] enum deploy (2026-07-23) — the ready-to-fire meaning (approved, waiting to execute) is unchanged.
 ---
 
 # Satellite onboarding prompts — ready to fire (four consumers)

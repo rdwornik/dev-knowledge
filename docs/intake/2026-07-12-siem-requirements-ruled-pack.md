@@ -1,8 +1,11 @@
 ---
 intake-id: 14
-status: RULED
+status: ACCEPTED
 origin: "consolidation of the two independent #14 derivations (Fable + Codex sol), ruled 2026-07-12 (A0 seal)"
-consumed-by: "#328 build (charter requirements)"
+decided-by: "the 2026-07-12 A0 seal ruling (the RULED consolidation)"
+disposition: deferred
+trigger: "#328 build"
+consumers: "#328 build (charter requirements)"
 note: "ONE ruled pack unioning the two independent #14 SIEM/observability derivations. The two source drafts (2026-07-13-siem-fleet-management-requirements.md = Fable · -codex.md = Codex sol) are RETAINED as provenance, not deleted; this pack is the authority #328 builds against."
 ---
 

@@ -1,8 +1,10 @@
 ---
 intake-id: 12
-status: settled
+status: ACCEPTED
 origin: architect draft, 2026-07-11 — derived from the three 2026-07-11 structural reports (hub fleet-structure comparison · corp #326 leg · ai-council #326+parity leg)
-consumed-by:
+decided-by: "A0 promotion 2026-07-12 (the §9a hub-`.methodology.yaml` contract reconciliation — see note)"
+disposition: deferred
+trigger: "#328 build"
 note: "architect-drafted ownership manifest + nightly decision tree, derived from the three 2026-07-11 structural reports; SETTLED at A0 promotion 2026-07-12 with the §9a hub-`.methodology.yaml` contract reconciliation (see the Tier-1 inverse-rule note); #328's build consumes this as its FIXED charter target"
 ---
 
