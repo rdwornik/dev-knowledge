@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-07-23  
-**Generated:** 2026-07-23T11:01:35  
+**Generated:** 2026-07-23T14:47:28  
 **Repos audited:** 6  
 **Checks:** 186 total — 152 pass, 3 fail, 8 warn, 0 unavailable, 23 n/a
 
