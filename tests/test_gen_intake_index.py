@@ -77,6 +77,25 @@ def test_render_groups_in_canonical_lifecycle_order(tmp_path):
     assert "[#1](s.md) — Ess" in out
 
 
+def test_status_order_is_the_ruled_enum():
+    # The [#398]-deployed enum (2026-07-19 ruling, SUPPLEMENT.md:68-70) — the
+    # gate-readable canon a status-coupled validator will consume.
+    assert gi._STATUS_ORDER == (
+        "SEED", "DRAFT", "READY", "ACCEPTED", "CONSUMED", "SUPERSEDED", "REJECTED")
+
+
+def test_render_groups_new_states_in_lifecycle_order(tmp_path):
+    d = _make_intake_dir(tmp_path, {
+        "u.md": _doc("SUPERSEDED", "2", "Sup"),
+        "a.md": _doc("ACCEPTED", "1", "Acc"),
+        "y.md": _doc("READY", "3", "Red"),
+    })
+    out = gi.render_contents(d)
+    # READY < ACCEPTED < SUPERSEDED, and none of the ruled states leaks into OTHER.
+    assert out.index("### READY") < out.index("### ACCEPTED") < out.index("### SUPERSEDED")
+    assert "### OTHER" not in out
+
+
 def test_render_unknown_status_lands_in_loud_other_bucket(tmp_path):
     d = _make_intake_dir(tmp_path, {"x.md": _doc("BOGUS", "9", "Weird")})
     out = gi.render_contents(d)

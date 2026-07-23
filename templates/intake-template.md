@@ -1,8 +1,8 @@
 ---
 intake-id: <N>            # stable integer, next free across all history — see docs/intake/README.md §3
-status: DRAFT             # SEED | DRAFT | READY-FOR-TECHNICAL | CONSUMED (ids) | REJECTED (why)
+status: DRAFT             # SEED | DRAFT | READY | ACCEPTED (decided-by + disposition) | CONSUMED (ids) | SUPERSEDED (by) | REJECTED (reason)
 origin: <one line: who / where / when — e.g. "operator voice session, 2026-07-06">
-consumed-by: <ADR/backlog ids — leave blank until status: CONSUMED>
+consumed-by: <ADR/backlog ids or consolidating intake doc — leave blank until status: CONSUMED; other companion fields (decided-by/disposition/superseded-by/reason) per README §3>
 ---
 
 <!--
@@ -65,5 +65,6 @@ consumed-by: <ADR/backlog ids — leave blank until status: CONSUMED>
 
 ## Status
 
-<!-- One line: SEED → DRAFT → READY-FOR-TECHNICAL → CONSUMED (ADR/backlog ids) |
-     REJECTED (one-line why, kept — rejections are knowledge, don't delete). -->
+<!-- One line: SEED → DRAFT → READY → ACCEPTED (decided-by + disposition) |
+     CONSUMED (ids) | SUPERSEDED (by) |
+     REJECTED (one-line reason, kept — rejections are knowledge, don't delete). -->

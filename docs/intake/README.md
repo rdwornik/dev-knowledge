@@ -99,9 +99,22 @@ Every intake doc opens with:
 intake-id: <N>       # stable integer, next free across all history (closed ids are not reused — same discipline as BACKLOG ids)
 status: <see §5>
 origin: <one line: who / where / when — e.g. "operator voice session, 2026-07-06">
-consumed-by: <ADR/backlog ids — populate only when status: CONSUMED>
+# Companion fields — REQUIRED at their status (the "to what" of the 2026-07-19 enum ruling,
+# deployed by [#398]); leave absent at any other status:
+decided-by: <the ruling/session that accepted — only when status: ACCEPTED>
+disposition: <active | deferred — only when status: ACCEPTED; deferred REQUIRES trigger: or review-date:>
+trigger: <what un-parks a deferred ACCEPTED doc — e.g. "#328 build">
+review-date: <YYYY-MM-DD — alternative to trigger: for a deferred ACCEPTED doc>
+consumed-by: <ADR/backlog ids, or the consolidating intake doc — only when status: CONSUMED>
+superseded-by: <the successor artifact — only when status: SUPERSEDED>
+reason: <one line why — only when status: REJECTED>
 ---
 ```
+
+Optional descriptive keys (ratified at the [#398] deploy, 2026-07-23 — previously in the
+wild unschema'd): `note` (free prose), `consumers` (planned/forward consumers, legal at any
+status — distinct from `consumed-by`, which is backward-looking and CONSUMED-only),
+`revision`, `delta-note`. Any other key is off-schema.
 
 `intake-id` is permanent once assigned — it is the join key the accepting ADR and the
 resulting epic(s) cite back (§1). Don't renumber on rejection or on folder growth.
@@ -130,28 +143,49 @@ Ratified 2026-07-08. **No mass-rename** — existing intake docs keep their curr
 ## 5. Lifecycle
 
 ```
-SEED → DRAFT → READY-FOR-TECHNICAL → CONSUMED (ADR/backlog ids)
-                                    → REJECTED (one-line why, kept)
+SEED → DRAFT → READY → ACCEPTED (decided-by + disposition)   [live]
+                     → CONSUMED (consumed-by)                [terminal → archive/]
+                     → SUPERSEDED (superseded-by)            [terminal → archive/]
+                     → REJECTED (reason, kept)               [terminal → archive/]
 ```
+
+This is the enum ruled 2026-07-19 (recorded
+`docs/handoffs/2026-07-20-dev-knowledge-architect/SUPPLEMENT.md:68-70`) and deployed by
+[#398] on 2026-07-23. It **replaced** the earlier live enum
+(`SEED → DRAFT → READY-FOR-TECHNICAL → CONSUMED | REJECTED`) — the ruled pattern won
+over the deployed one, closing the decided-not-deployed gap; ratifying the six
+off-canon statuses then in the wild was explicitly rejected (migrate, never
+grandfather).
 
 - **SEED** — a pre-intake candidate dropped by a feed (§8), not yet worked by a
   functional-architect conversation. SEED docs live in **this one folder** — ADR-98's
   source ruling rejected a separate `proposals/` folder (folder proliferation is its
   own rot class; the fleet-audit lesson applies to folders same as routines).
 - **DRAFT** — a functional conversation is structuring it; not yet operator-approved.
-- **READY-FOR-TECHNICAL** — operator-approved (§6), waiting on the technical
-  architect's triage.
-- **CONSUMED (ids)** — the technical architect accepted it; the doc records which
-  ADR(s) and/or backlog epic(s) it produced (§3 `consumed-by`).
-- **REJECTED (why, kept)** — the technical architect declined it. The one-line reason
-  is recorded in the doc's Status section and the doc **stays** — rejections are
-  knowledge, not garbage; do not delete a rejected intake doc.
+- **READY** — operator-approved (§6), waiting on its consumer (renamed from
+  `READY-FOR-TECHNICAL` by the ruled enum: the wait may be on the technical
+  architect's triage or on an approved execution step firing).
+- **ACCEPTED (decided-by + disposition)** — ruled standing authority: the content was
+  accepted as a charter / plan-of-record / requirements authority. **Not archival** —
+  an ACCEPTED doc stays live and visible. `disposition: active` = being consumed now;
+  `disposition: deferred` = parked but alive (requires `trigger:` or `review-date:` —
+  the un-park condition is part of the record, not tribal memory).
+- **CONSUMED (ids)** — the doc's content flowed into what it produced; `consumed-by`
+  records the ADR(s)/epic(s) — or the consolidating intake doc, when a draft was
+  unioned into a ruled pack.
+- **SUPERSEDED** — a successor artifact replaced it; `superseded-by` names the
+  successor. Terminal.
+- **REJECTED (reason, kept)** — the technical architect declined it. The one-line
+  `reason` is recorded and the doc **stays** (archived, not deleted) — rejections are
+  knowledge, not garbage.
 
-Terminal docs (CONSUMED | REJECTED) relocate byte-identical to `docs/intake/archive/`
-(operator ruling 2026-07-22, archive-inside-each-folder); live docs stay here. The move
-is MANUAL for now — the status-coupled validator that would gate/automate it is wave
-work, not built. Archived docs drop out of the generated Contents index (depth-1 scan);
-their `intake-id` join keys stay valid at the archive path.
+Terminal docs (CONSUMED | SUPERSEDED | REJECTED) relocate byte-identical to
+`docs/intake/archive/` (operator ruling 2026-07-22, archive-inside-each-folder;
+terminal set per the [#398] deploy — ACCEPTED is deliberately NOT in it, a standing
+authority must stay visible live); live docs stay here. The move is MANUAL for now —
+the status-coupled validator that would gate/automate it is wave work, not built.
+Archived docs drop out of the generated Contents index (depth-1 scan); their
+`intake-id` join keys stay valid at the archive path.
 
 ## 6. The confirm-gate
 
@@ -163,7 +197,7 @@ ADR or epic.
 
 Conversion path for a fluid session: voice/chat ramble → CC converts the transcript
 or the functional-architect synthesis into the template shape → **operator approves
-the draft** → it lands in `docs/intake/` at DRAFT or READY-FOR-TECHNICAL. A doc that
+the draft** → it lands in `docs/intake/` at DRAFT or READY. A doc that
 hasn't cleared that approval step does not belong in this folder yet (it's still a
 transcript, not an intake doc).
 
@@ -174,8 +208,10 @@ before it's allowed to run (the fleet-audit lesson: a routine with no consumer i
 rot generator, not permanent infrastructure). For the intake scene:
 
 - **Consumer:** the technical-architect triage — accept (→ ADR and/or backlog
-  epic(s), doc goes CONSUMED with ids), defer (parked, stays visible in this folder's
-  index), or reject (recorded, doc goes REJECTED).
+  epic(s), doc goes CONSUMED with ids — or ACCEPTED with `decided-by` when the doc
+  itself becomes the standing authority), defer (parked, stays visible in this
+  folder's index — ACCEPTED + `disposition: deferred` when the parking is a ruling),
+  or reject (recorded, doc goes REJECTED with `reason`).
 - **Survival metric:** intake docs sitting unconsumed after **~1 month of operation**
   trigger a review of the scene for removal (ADR-98 §6). A folder that only
   accumulates SEED/DRAFT docs nobody triages has failed the same test a routine
