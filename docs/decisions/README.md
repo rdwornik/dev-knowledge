@@ -174,13 +174,14 @@ No `pending-council-questions.md` exists yet — pending questions are currently
 
 <!-- scope: meta -->
 
-AI Council CLI writes the canonical transcript to `ai-council/output/` and routes a copy to a
-project's `docs/decisions/transcripts/` **automatically** when a debate sets a `target-project:`
-(frontmatter) or `--target-project` (CLI), per ADR-43 (`routing.py` `TargetResolver`). Routed
-debates need no manual archival; debates that do not name a target-project still emit only to
-`ai-council/output/` and are archived manually. Canonical filename is preserved; source of truth
-remains `ai-council/output/`. Full operational detail in PLAYBOOK "Council Debate Archival
-Protocol".
+AI Council CLI writes the canonical transcript to `ai-council/output/` — the **only** landing
+zone. The former ADR-43 routed-mirror (a copy into a project's `docs/decisions/transcripts/`
+when a debate set `target-project:`) is **RETIRED** (operator ruling 2026-07-22; ADR-43
+amendment 2026-07-23; this repo's archive deleted `b4435fad` — see the note at the top of this
+index). Do not set `target-project:`; the config-side disarm in ai-council is tracked [#401].
+The binding record of a decision is its ADR; the transcript is evidence, cited by filename
+from `ai-council/output/`. Retirement detail: PLAYBOOK "Council Debate Archival Protocol
+(RETIRED 2026-07-22)".
 
 ## Related
 

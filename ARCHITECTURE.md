@@ -641,7 +641,7 @@ PLAYBOOK Part II §2; boot contract: HANDOFF_PROCESS §16.
 
 **Decision flow (how a contested need becomes binding doctrine).**
 `Council brief (ephemeral)` → `ai-council debate (5-provider, blind vote — ai-council ADR-03)`
-→ `routed transcript (target/docs/decisions/transcripts/ — ADR-43; the hub's own archive deleted 2026-07-22, operator ruling)` → `operator
+→ `canonical transcript (ai-council/output/ — the routed-mirror retired 2026-07-22, ADR-43 amendment 2026-07-23; hub archive deleted)` → `operator
 distils an ADR` → `BACKLOG item + convention edit` → `enforcement organ (Ch2)`.
 Runbook: `protocols/AI_COUNCIL_PROCESS.md` (ADR-67). The complexity router (1-file
 mechanical → conversational; 3+ files / 2+ packages → formal CC prompt;
