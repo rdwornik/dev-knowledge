@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-23 — CC (Opus 4.8): HANDOFF `2026-07-23-dev-knowledge-execution` (execution mode) — generator SUPPLEMENT leak found + hand-corrected; [#404] filed
+
+**Did:** `/handoff` (bare → self-handoff, default execution mode; spec v5.7). The generator's **first execution-mode render** surfaced a mode-blindness defect: `gen_handoff.py` `_tokens()` selects `SUPPLEMENT_BANNER`/`P1_GATE_NOTE` by fill-state only, and `PROBES.md.tmpl` P8 unconditionally binds a bundle SUPPLEMENT path — architect framing ("SUPPLEMENT is generated EMPTY") leaked into the execution bundle and P8 FAILed `verify_handoff_probes` (missing source/target; would have REDded `handoff_probes` at ship-gate). Operator ruled **hand-fix bundle + flag defect**: 7 leakage sites corrected to the §13 execution shape (HANDOFF_BOOT ×3, RESIDUAL ×1, PROBES ×3 + gate-procedure line), P8 re-scoped to the bundle listing ∩ §13 "Bundle shape" (no dead file binding; SUPPLEMENT deliberately un-backticked — the tokenizer binds backticked tokens), `PASTE_THIS.md` reassembled via `assemble_paste.py` (sanctioned: hand-authored bundles stay bound by the §5 gate). All four FILL-INs authored (purpose / driftflags / shipped-window / frontier). **[#404] filed** [P2][S] under E1/S2 (mode-aware framing tokens + mode-conditional P8 row + per-mode render test); BACKLOG next-free [#404]→[#405].
+
+**Result:** probes **11/11 pass**; `handoff_probes` [OK] at ship-gate; validate_backlog OK (148 tasks); validate_git_backlog OK; pre-commit PASS at bundle commit `0810fcd5`. Ship-gate: undispositioned WARN = the pre-existing VISION 34d `canonical_freshness` only ([#368] stays honest — net-new from this arc **0**). ALL_CHECKS 31.
+
+**Changes:** `docs/handoffs/2026-07-23-dev-knowledge-execution/` (4 files, new), `BACKLOG.md` (+[#404], pointer), `JOURNAL.md` (this entry).
+
+**Abandoned / deliberately not done:** the generator fix itself (anti-pattern to patch hub infra mid-handoff — [#404] owns it); no disposition of the VISION WARN (operator-deliberate, [#368]); no push (operator-gated).
+
+**Next:** operator pastes `PASTE_THIS.md` into a fresh chat (title in `HANDOFF_BOOT.md`); push main on OK; [#404] generator fix at the next handoff-group pass.
+
+---
+
 ### 2026-07-23 — CC (Opus 4.8): [ARCH CURRENCY FOLLOW-UP] — Ch4 channel/carrier vocabulary split; ADR-92 divergence made legible; 2a/2b VERIFIED-CLEAN
 
 **Did:** Same branch `docs/architecture-currency` (anchor `57d978a2`). **(1) CORRECTED:** Ch4 intro "Five carriers" → "Five distribution **channels**" + table column Carrier→Channel (the channel set ≠ the deploy carrier-module set; the chapter's own "the five rows above are the channels" sentence now agrees with its header); full-file carrier-sense sweep: :514 plugin/pre-commit → "channels" (channel sense), :211 Ch2 deploy prose → "carrier modules" (module sense), ADR-79 row keeps its title verbatim + a vocabulary-provenance note; :362 (enumerated modules), :521-525 (disambiguation para), :626 (verify-gate) verified already unambiguous. **(2a) VERIFIED-CLEAN:** the "Last updated" blockquote carries only line-leading `> ` prefixes — the suspected mid-sentence ">" is the unwrap artifact of reading a wrapped blockquote as one line. **(2b) VERIFIED-CLEAN:** ADR-98 / ADR-101 / ADR-102-103 are each their own `- **ADR-…**` list item (:699-:701), not concatenated. **(3) CORRECTED:** ADR-90/93 Governing row now states the divergence inline — five carrier modules in reality today, ADR-92's body still says "four hard-coded carriers", amendment owed; ADR-92 untouched. Note: session resumed from a HEAD-on-main state (operator checkout 14:36); branch + both prior commits verified intact before proceeding.
