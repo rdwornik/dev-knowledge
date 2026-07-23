@@ -404,7 +404,7 @@ committed path in the target repo (no behavior change from v1.0).
 - **Routing decision:** `docs/decisions/ADR-43_cross_project_transcript_routing.md`.
 - **Blind voting:** `ai-council/docs/decisions/ADR-03-blind-voting.md` (tool-layer).
 - **Folder taxonomy / ephemeral briefs:** `docs/decisions/ADR-60-docs-folder-taxonomy.md`.
-- **Decision threshold:** `protocols/PLAYBOOK.md` § "Council debate threshold", § "After a Decision". (The archival protocol is retired — PLAYBOOK § "Council Debate Archival Protocol (RETIRED 2026-07-22)".)
+- **Decision threshold + post-debate steps:** `protocols/PLAYBOOK.md` § "Council debate threshold", § "Post-debate protocol". (The archival protocol is retired — PLAYBOOK § "Council Debate Archival Protocol (RETIRED 2026-07-22)". The former § "After a Decision" ref was stale — no such section exists.)
 - **Repo-artifacts-in-Claude-Code rule:** `protocols/ESSENTIALS.md` § "Repo artifacts".
 - **Gated-loop pattern (handoff analogue):** `HANDOFF_PROCESS.md` + ADR-42/55/56/57/58/62.
 - **Live code:** `ai-council/src/ai_council/{cli,inbox,routing,runner,orchestrator,debate,synthesis}.py`.

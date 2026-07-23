@@ -150,8 +150,8 @@
   - [Debate question format (summary)](#debate-question-format-summary)
   - [Running the debate](#running-the-debate)
   - [Post-debate protocol](#post-debate-protocol)
-  - [Council Debate Archival Protocol](#council-debate-archival-protocol)
-  - [Council output convention (current state)](#council-output-convention-current-state)
+  - [Council Debate Archival Protocol (RETIRED 2026-07-22)](#council-debate-archival-protocol-retired-2026-07-22)
+  - [Council output convention (canonical-only since 2026-07-22)](#council-output-convention-canonical-only-since-2026-07-22)
   - [When to run Council vs single-model + critic](#when-to-run-council-vs-single-model--critic)
   - [ADR authorship paths (how an ADR gets written)](#adr-authorship-paths-how-an-adr-gets-written)
   - [Amendment vs Reopen Decision Protocol](#amendment-vs-reopen-decision-protocol)
@@ -947,7 +947,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `logs/TOKEN-LOG.md` | Claude usage snapshots | Threshold-triggered (7-day) via /session-summary | Auto when stale | Rob | Newest-first (prepend) | Universal (`.dev-knowledge` only) |
 | `ENVIRONMENT.md` | Tooling state, what's installed | Sectioned, scope-tagged | When tool adopted/deprecated | Rob, Claude Code | Living (sections updated) | Per-repo |
 | `docs/decisions/ADR-NN-*.md` | Architectural decisions | Michael Nygard format | When decision binds | Rob, future contributors | Numbered, immutable (amend in-place per ADR-29) | Per-repo |
-| `docs/decisions/transcripts/council-out-*.md` | Raw Council debate outputs (canonical; legacy `DECISION_NN_*` grandfathered in `transcripts/archive/legacy/`) | Multi-model debate transcript | When Council debate concludes (routed per ADR-43; manual fallback per §5) | Reference for ADR rationale | Numbered, immutable | Per-repo |
+| `docs/decisions/transcripts/council-out-*.md` | RETIRED 2026-07-22 (ADR-43 amendment 2026-07-23) — routed-mirror retired, hub archive deleted (`b4435fad`); transcripts are canonical-only in `ai-council/output/`; row kept for legacy context | Multi-model debate transcript | n/a | Historical reference (git history) | n/a | Removed |
 | `docs/handoffs/YYYY-MM-DD-*/` (v5.4 bundle) | Chat-to-chat session summary | Flat bundle entered via `HANDOFF_BOOT.md` (operator session entry) + CC-owned residual/probe-manifest, per HANDOFF_PROCESS v5.4 (ADR-82); legacy v4 `README.md` + `01_ROLE`…`07_ASK_BACK`, single-file, and v3.x `contents/` bundles preserved as history | When session boundary requires continuity | Next browser chat | Dated, immutable | `.dev-knowledge` only |
 | `docs/audits/YYYY-MM-DD-*.md` | Point-in-time analyses | Free-form audit | When deep analysis needed | Reference for follow-up work | Dated, immutable (mark SUPERSEDED if redone) | Per-repo |
 
@@ -1049,7 +1049,7 @@ Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are exclude
 
 **audits vs research:**
 - audits = backward-looking analysis of current state (per-repo, dated)
-- Council debates (research-mode and pick-mode) → `docs/decisions/transcripts/` (routed per ADR-43). The retired `research/` folder is no longer used (2026-05-27 ADR-60 amendment).
+- Council debates (research-mode and pick-mode) → canonical `ai-council/output/` only; the ADR records the decision (routed-mirror into `docs/decisions/transcripts/` retired 2026-07-22 per the ADR-43 amendment 2026-07-23). The retired `research/` folder is no longer used (2026-05-27 ADR-60 amendment).
 
 ### Supersession & decommissioning
 <!-- scope: meta -->
@@ -1855,7 +1855,7 @@ Three evaluation modes — pick by stakes:
 **Research debate (Scale L decision):**
 - AI Council research-mode debate (4 models, 1-2 rounds, ~$0.30-$0.50)
 - 30-60 min from brief to synthesis
-- Output: routed to `docs/decisions/transcripts/` (ADR-43; `docs/research/` retired per ADR-60 amendment 2026-05-27)
+- Output: canonical transcript in `ai-council/output/` (routed-mirror retired 2026-07-22, ADR-43 amendment 2026-07-23; `docs/research/` retired per ADR-60 amendment 2026-05-27)
 
 Decision threshold for which mode: per PLAYBOOK Section 5 "When to run Council vs single-model + critic."
 
@@ -1904,7 +1904,7 @@ Cross-link the ADR to its implementation commits; the JOURNAL entry records the 
 <!-- scope: meta -->
 
 `docs/tech-radar/` is retired (its dated research notes live directly under `docs/archive/` — there is no `docs/archive/tech-radar/` subfolder — per ADR-60; reversible if a quarterly cadence ever resumes), and `docs/research/` is retired (ADR-60 2026-05-27 amendment). With no separate radar inventory, an evaluation's record lives where its decision lives:
-- **ADRs** in `docs/decisions/` — the adopt/reject decision itself (research-mode debate transcripts route to `docs/decisions/transcripts/` per ADR-43).
+- **ADRs** in `docs/decisions/` — the adopt/reject decision itself (research-mode debate transcripts stay canonical in `ai-council/output/`; routed-mirror retired 2026-07-22 per ADR-43 amendment).
 - **BACKLOG** "Tooling & evaluation" theme — deferred tool evals carrying their reopen triggers (e.g. Kimi K2).
 - **JOURNAL** — the per-session record of what was evaluated and decided.
 
@@ -2655,54 +2655,26 @@ council-cli "REST vs GraphQL?" --full --rounds 2
 
 1. Decision is BINDING once synthesized
 2. **Distill the verdict into a committed ADR** — this is a mandatory, automated step, never a manual hand-off. Run a Claude Code prompt that: (a) verifies the next ADR number against the `docs/decisions/ADR-*.md` sequence, (b) aligns the draft to `templates/ADR-template.md`, (c) writes `docs/decisions/ADR-{NN}-{topic}.md` (hyphens per ADR-34), and (d) commits it. The browser layer drafts ADR content; it never hands over a file with a placeholder number (`NN`) or manual TODOs. A debate is not done until its ADR is committed.
-3. Archive transcript → `docs/decisions/transcripts/` (commit separately or together with ADR)
+3. Transcript stays canonical in `ai-council/output/` — no archival/copy step (routed-mirror retired 2026-07-22, ADR-43 amendment 2026-07-23)
 4. Add the ADR row and traceability entry to `docs/decisions/README.md` in the same commit
 5. Never reopen a decided topic unless new evidence appears
 
-### Council Debate Archival Protocol
+### Council Debate Archival Protocol (RETIRED 2026-07-22)
 <!-- scope: llm -->
 
-Every Council debate output MUST be archived immediately after the debate completes. Skip this and the debate is effectively lost.
+**This protocol is RETIRED** (operator ruling 2026-07-22; ADR-43 amendment 2026-07-23). The hub archive `docs/decisions/transcripts/` was deleted (`b4435fad`) and the routed-mirror mechanism retired as fleet doctrine — there is **no transcript archival step, manual or routed**. The transcript stays canonical in `ai-council/output/`; the binding record of a Council decision is its ADR ("Post-debate protocol", above). Git history retains the pre-retirement archive and the full manual pipeline this section used to carry; the ADR-77 immutability guard on the deleted zone stays armed (re-creation refusal). Config-side disarm of ai-council's routing is tracked [#401].
 
-> **Current state (updated 2026-05-26 — ADR-43 routing implemented):** Cross-project transcript routing now ships in `ai-council` (`routing.py` `TargetResolver`, ADR-43 amendment cycle 1). When a debate names a `target-project:` (frontmatter) or `--target-project` (CLI), the CLI writes the transcript to `<dev_root>/<target>/docs/decisions/transcripts/` automatically on completion — for `.dev-knowledge`-targeted debates that is `docs/decisions/transcripts/`, with **no manual archival step**. The canonical copy still lands in `ai-council/output/`; mirror writes are best-effort (a failure logs a warning, the canonical write still succeeds). Routing is **opt-in per invocation**: the manual pipeline below remains the fallback for debates that do **not** set a target-project.
-
-**Pipeline (3 steps, ~5 min):**
-
-1. **Identify target location** (`docs/research/` retired per ADR-60 amendment 2026-05-27 — all Council outputs land in `transcripts/`):
-   - Debate about .dev-knowledge itself (any mode) → `.dev-knowledge/docs/decisions/transcripts/council-out-YYYYMMDD-HHMMSS-topic.md`
-   - Debate targeting another repo → that repo's `docs/decisions/transcripts/` (routing handles this automatically when `target-project:` is set — ADR-43; this manual copy is the fallback only)
-
-2. **Copy** `ai-council/output/council-out-YYYYMMDD-HHMMSS-topic.md` to target:
-   - Decisions: keep filename as-is (`council-out-YYYYMMDD-HHMMSS-topic.md`)
-   - Research: `YYYY-MM-DD-kebab-case-slug.md`
-   - Byte-exact copy, preserve original in ai-council/output/
-
-3. **Commit** with message: `docs: archive Council #NN — [topic]`
-
-**Optional follow-up (separate commit):**
-- Pick-mode with clear decision → write ADR in `docs/decisions/` referencing transcript
-- Research-mode → no ADR, transcript/report suffices
-- Judge-mode → depends on verdict
-
-**Anti-pattern:** Accumulating 2+ un-archived debates in `ai-council/output/`. If detected, run retroactive archive before the next Council session.
-
-**Future enforcement:** possible pre-commit hook checking ai-council/output/ for files >7 days old not present in any repo's archive locations.
-
-### Council output convention (current state)
+### Council output convention (canonical-only since 2026-07-22)
 <!-- scope: meta -->
 
-AI Council CLI writes the canonical transcript to `ai-council/output/` and, when a debate sets a
-`target-project:` (frontmatter) or `--target-project` (CLI), **also routes a copy automatically**
-to `<target>/docs/decisions/transcripts/` per ADR-43 (`routing.py` `TargetResolver`; `settings.yaml`
-`target_projects` lists `.dev-knowledge`). Routed debates need **no manual archival** — the routed
-copy is the transcript file only (no `_metrics.json`), preserving the canonical
-`council-out-YYYYMMDD-HHMMSS-*.md` filename. Source of truth remains `ai-council/output/`.
-
-Routing is **opt-in per invocation** — a debate that does not name a target-project still emits only
-to `ai-council/output/` and is archived via the manual pipeline above ("Council Debate Archival
-Protocol"). Mirror writes are best-effort (failure logs a warning; the canonical write always
-succeeds), and routing depends on `settings.yaml` naming the target with a resolvable `dev_root`
-(see ADR-43; routing-fragility noted in the 2026-05-25 pipeline audit, finding D2).
+AI Council CLI writes the canonical transcript to `ai-council/output/` — the **only** landing
+zone. The former ADR-43 routed-mirror (`target-project:` / `--target-project` → a copy in
+`<target>/docs/decisions/transcripts/`) is **retired** (ADR-43 amendment 2026-07-23; operator
+ruling 2026-07-22): do **not** set `target-project`. The mechanism still exists in ai-council
+code and `settings.yaml` until [#401] lands the config-side disarm — a stray `target-project:`
+run would re-create the deleted hub folder as untracked files ([#401]'s hazard half); if that
+appears, do not commit it. The decision record is the ADR; the transcript is evidence, cited
+by filename from `ai-council/output/`.
 
 ### When to run Council vs single-model + critic
 <!-- scope: meta -->
@@ -2827,9 +2799,9 @@ When reopening:
 <!-- scope: meta -->
 <!-- version: 1.0 — 2026-04-25 -->
 
-Codex code review (OpenAI's read-only reviewer) produces findings in terminal output during a session. Without explicit archival, findings disappear when the session ends. This protocol captures Codex output as a durable artifact — analogous to Council Archival Protocol above.
+Codex code review (OpenAI's read-only reviewer) produces findings in terminal output during a session. Without explicit archival, findings disappear when the session ends. This protocol captures Codex output as a durable artifact — the durable-record discipline the (now-retired) Council Archival Protocol above used to carry for debates; a Council decision's durable record is its ADR.
 
-**Pattern parallel to Council Archival:** Council debates → `docs/decisions/transcripts/`. Codex reviews → `docs/audits/YYYY-MM-DD-codex-{slug}.md`.
+**Pattern parallel to Council record-keeping:** Council debates → their ADR (canonical transcript in `ai-council/output/`; the transcript-archival protocol is retired 2026-07-22). Codex reviews → `docs/audits/YYYY-MM-DD-codex-{slug}.md`.
 
 #### Trigger
 <!-- scope: meta -->
