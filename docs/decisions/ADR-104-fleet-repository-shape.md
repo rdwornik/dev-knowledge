@@ -6,7 +6,7 @@
 - **Related:** ADR-28 (three-layer ecosystem model — the hub is Layer 2, a governance authority that never executes), ADR-61 (separate repos parallelize freely — a consequence of the split, not its cause), ADR-41 (per-repo session ownership)
 - **Intake:** #16 (`docs/intake/2026-07-21-func-fleet-north-star.md` §4 — the polyrepo-ruling inputs; this ADR is step 2 of §6)
 - **Decommission:** none. No fold executes on this ADR. Execution is the downstream chain #382 (desired-state ADR) → #383 (execution waves) → #385 (tech-currency); a fold begins only after the precondition scan below and its own ruling.
-- **Source:** operator shape ruling 2026-07-24 (Lane A prompt, quoted verbatim below); architect fold-shape derivation; independent second derivation by `gpt-5.6-sol` run without sight of the architect draft (both reported below).
+- **Source:** operator shape ruling 2026-07-24 (Lane A prompt, quoted verbatim below); architect fold-shape derivation; independent second derivation by `gpt-5.6-sol` run without sight of the architect draft (both reported below). **Amended 2026-07-24 (same session, draft — Status held Proposed):** operator follow-on ruling (corp-monorepo OUT, incremental consolidation) recorded after the **corp-monorepo content-and-history scan** (read-only `git grep` / `git log --all`, zero mutations) discharged precondition (c) — see §2.
 
 ## Context
 
@@ -24,15 +24,25 @@ Intake #16 §4 flagged three unpriced items that MUST be in this ADR: (a) the co
 
 The compliance/employer-data boundary is **removed as a constraint on the fold shape**. This ADR records the ruling and prices it; it does not re-argue it.
 
-### 2. Execution precondition (three caveats — not objections, a gate)
+**Amendment ruling (2026-07-24, same session — supersedes the mechanism, not the verdict).** After the corp-monorepo scan (§2c below) proved the `.gitignore` disposition mechanism inoperative, the operator ruled:
 
-The ruling's `.gitignore` mechanism carries three consequences that are **not objections to the ruling** but a **precondition on any fold that relies on it**. No fold may execute until the precondition is discharged.
+> **"corp-monorepo stays OUTSIDE the fold. The remaining repos consolidate incrementally — stage by stage, verifying value after each step — not in one move."**
 
-- **(a) `.gitignore` filters tracking, not presence.** It stops *new* commits of a path; it does **not** reach content **already committed to history**. Employer material already in any repo's history stays in history regardless of a later `.gitignore` line.
-- **(b) Gitignored paths are ungoverned.** Ignored material is invisible to the fleet's governance tooling (`audit.py`, `fleet_parity.py`) — it cannot be parity-checked, freshness-checked, or edge-scanned. The ruling therefore **converts "employer material in a separate repo" into "employer material in an ungoverned zone inside a governed tree."** This is a real, stated **cost of the ruling**, not a reason to reject it.
-- **(c) The premise is unverified.** No content scan of `corp-monorepo` (or any repo) has been run, so "*if* there is any employer material" is an unverified premise. The fold shape must not be executed on an assumption about what is or isn't in a tree.
+This **supersedes the `.gitignore` disposition mechanism** and sets the execution shape (§5). It does **not** change the PARTIAL verdict (§3); the first ruling removed compliance as a constraint, and this one records that `.gitignore` cannot dispose of corp-monorepo's employer material either.
 
-**Precondition (hard gate):** before any fold executes, a **content-and-history disposition scan** produces a per-class disposition for every path and every historical object in the trees being folded — classifying each as *never-committed* (→ `.gitignore` suffices), *already-committed* (→ history rewrite, or the path stays out of the fold), *excluded*, or *governed*. The scan must also quantify the resulting ungoverned blind zone and map every remote, hook, and CI workflow to its post-fold owner. **No path or historical object may be unclassified when a fold begins.**
+### 2. Execution precondition — caveats (a)/(b) stand; (c) DISCHARGED NEGATIVE by the corp-monorepo scan
+
+Two of the ruling's `.gitignore` consequences stand as a precondition on any fold that would rely on `.gitignore`; the third — the unverified premise — has now been **verified and found FALSE for corp-monorepo**, and that finding **strikes `.gitignore` as the disposition mechanism** for the repo it was meant to cover.
+
+- **(a) `.gitignore` filters tracking, not presence.** It stops *new* commits of a path; it does **not** reach content **already committed to history**. (Confirmed decisive below.)
+- **(b) Gitignored paths are ungoverned.** Ignored material is invisible to the fleet's governance tooling (`audit.py`, `fleet_parity.py`) — it cannot be parity-checked, freshness-checked, or edge-scanned. Where `.gitignore` *is* used, ignored material is a real, stated cost; but per (c) it is **not** the mechanism for corp-monorepo.
+- **(c) DISCHARGED — the premise was unverified; it is now verified and FALSE.** A read-only content-and-history scan of `corp-monorepo` (deterministic `git grep` / `git log --all`, zero mutations, 2026-07-24) found:
+  - **104 tracked files carry ~206 real enterprise account tokens; 104/104 are already in committed history** (verified per-path via `git log --all`). **`.gitignore` reaches ZERO of them** — the ruling's original mechanism is **inoperative for every file that matters** (caveat (a), made concrete).
+  - **Volume points opposite to exposure.** What `.gitignore` *does* handle correctly is `data/_outputs/` (18 GB, 2,925 files) — **never committed, already ignored**. The bulk is in ignorable never-committed data; the *risk* is the small **tracked** surface `.gitignore` cannot touch.
+  - **The tracked material is load-bearing, not stray.** Curated account config and `client_aliases.yaml` are read by the extractor; **40 test files depend on real-account fixtures** — removing them breaks the suite.
+  - **No live exposure, no live secrets.** corp-monorepo's remote is **private, under a personal GitHub account** (operator-verified: `gh repo view rdwornik/corp-monorepo` → `isPrivate: true`) — no public exposure. The `AKIA`/`password` hits are a secret-**detector** pattern list, not credentials.
+
+**Consequence — the mechanism is struck; the disposition is exclusion.** `.gitignore` cannot dispose of corp-monorepo's employer material: it is **history-entangled** (already committed, caveat a) and **load-bearing** (removal breaks the suite). Per the amendment ruling (§1), **corp-monorepo stays OUTSIDE the fold — and the reason is history-entanglement plus a load-bearing dependency, NOT compliance** (the first ruling removed that) and **NOT a `.gitignore` fix** (the scan proved it inoperative). For any *other* repo a later stage considers, the original hard gate stands: a content-and-history disposition scan before execution — classifying every path/historical object as never-committed, already-committed, excluded, or governed — with no path or historical object unclassified when a fold begins.
 
 ### 3. The shape verdict — PARTIAL (re-derived on engineering grounds only)
 
@@ -40,9 +50,9 @@ The ruling's `.gitignore` mechanism carries three consequences that are **not ob
 
 **Did the answer change?** The *verdict* stayed PARTIAL, but the *reasoning changed entirely*, and this is the load-bearing point:
 
-- The prior PARTIAL rested mainly on the **compliance boundary** (work tree vs personal tree). The ruling removes that pillar.
-- Removing it **does not strengthen the case for a FULL fold** — the remaining engineering factors still argue against aggressive folding, and the ruling's own `.gitignore` mechanism *adds* a cost (the ungoverned zone, caveat b) that argues **specifically against folding the employer repo** into the universal tree.
-- So the shape is re-grounded on: unfold-cost asymmetry, pre-sales blast radius, the product/domain-scoping of every repo, worktree-substitutability of the leading justification, and the new ungoverned-zone cost — **not** compliance.
+- The prior PARTIAL rested mainly on the **compliance boundary** (work tree vs personal tree). The first ruling removed that pillar.
+- Removing it **does not strengthen the case for a FULL fold** — the remaining engineering factors still argue against aggressive folding. The corp-monorepo scan (§2c) then made the argument against folding the employer repo **concrete and stronger than the original hypothetical**: it is not a "would-be ungoverned zone if gitignored" — it is that `.gitignore` **cannot dispose of the material at all** (history-entangled + load-bearing), so folding corp-monorepo is precluded on engineering grounds outright.
+- **What the verdict now rests on:** unfold-cost asymmetry, pre-sales blast radius, the product/domain-scoping of every repo, worktree-substitutability of the leading justification, and — for corp-monorepo specifically — **history-entanglement + a load-bearing dependency** (§2c). It rests on **engineering cost and history-entanglement — no longer the compliance boundary, and no longer the `.gitignore` mechanism** (the scan struck it). The verdict itself is unchanged; the scan does not move it.
 
 **Live-verified cost basis** (re-derived this session; the intake's "~4,200" was verified, not inherited):
 
@@ -72,19 +82,31 @@ Run as a foundational cross-vendor check on the same inputs. **sol's verdict: PA
 - **sol's trees (5 total):** `.dev-knowledge` standalone · `ai-council` standalone · `life-architect` standalone · **Corporate tree** {`corp-monorepo`, `corp-ops`, `corp-sca-time-automation`, `demo-prep`} · **Workstation tree** {`terminal-setup`, `win-tooling`}.
 - **sol's strongest counter-argument (its own steelman):** a FULL fold uniquely deletes the entire 15,409-line estate, and worktrees already answer the isolation argument — so PARTIAL risks paying migration cost while keeping most of the fixed cross-tree machinery.
 
-**The divergence, NOT reconciled — for the architect to settle:** both land on PARTIAL, but on *aggressiveness*. **sol goes 9 → 5 trees** (confidently folding corp-ops/corp-sca into the corporate tree and creating a workstation tree for terminal-setup+win-tooling). **The architect is narrower** — corp consolidation gated on the content-scan, terminal-setup/win-tooling kept standalone absent a demonstrated shared-release benefit, trending toward the minimal defensible fold. The gap is whether to consolidate the workstation-tooling and the corp-satellite repos *now* on the operational-surface argument (sol), or to fold only the already-planned corp domain and hold the rest as governed polyrepo (architect). Both agree this is a recommendation the operator accepts, amends, or rejects.
+**The divergence — both land on PARTIAL, but on *aggressiveness*.** **sol goes 9 → 5 trees** (confidently folding corp-ops/corp-sca into the corporate tree and creating a workstation tree for terminal-setup+win-tooling). **The architect is narrower** — corp consolidation gated on the content-scan, terminal-setup/win-tooling kept standalone absent a demonstrated shared-release benefit, trending toward the minimal defensible fold. The gap is whether to consolidate the workstation-tooling and the corp-satellite repos *now* on the operational-surface argument (sol), or to fold only the already-planned corp domain and hold the rest as governed polyrepo (architect).
+
+**RESOLVED (operator ruling 2026-07-24) — sol's derivation kept on record, its aggressive fold rejected.** sol's **9 → 5 aggressive fold is NOT adopted**; the operator ruled **incremental consolidation** (§1/§5). sol's derivation stays recorded — the rejection and its reason are the point. Reason, verbatim:
+
+> *"Folding is easy, unfolding is hard — the asymmetry is the argument. Consolidate two trees, verify the value over a working week, then consolidate the next. One move forecloses the cheap correction."*
+
+Two specifics fall out: (i) corp-monorepo — which sol placed *inside* its corporate tree — is ruled **permanently outside** (§2c: history-entangled + load-bearing); (ii) **hub governance of corp-monorepo already works WITHOUT a fold** — it is a Wave-1 methodology consumer, covered by the parity walk and the audits — so its exclusion **costs no manageability**. The architect's narrower instinct and the operator's incremental ruling converge; sol's simultaneous 5-tree move is the rejected alternative, recorded here, not deleted.
+
+### 5. Execution shape (the ruled consolidation path)
+
+- **corp-monorepo is permanently outside the fold** — history-entanglement + a load-bearing dependency (§2c), governed by the hub *without* a fold (Wave-1 methodology consumer, parity walk, audits). Its exclusion costs no manageability.
+- **The remaining repos consolidate in stages** — each stage is its **own arc with its own witnessed value check** (consolidate, then verify the value before the next step), never one move. The asymmetry — folding easy, unfolding hard — is exactly why the path is staged and not atomic: one move forecloses the cheap correction.
+- **This ADR does NOT enumerate which repos pair first, nor size the stages** — that is **[#383]**'s job (execution waves). The **E9 brake holds** (no new fleet machinery, no repo moves, no history rewrites) until this ADR is **accepted and merged**.
 
 ## Consequences
 
 - **Governed polyrepo is the retained default.** The hub keeps governing all trees; the methodology layer is fold-invariant, so the hub's value is unaffected by the shape chosen.
 - **The plural-only estate is not retired by a PARTIAL fold** — only per-repo duplication within a consolidated tree is removed. The 15,409-line saving is available only at a FULL fold, which is rejected on the five factors above. This is the priced trade-off, stated plainly.
-- **The ruling introduces an ungoverned zone.** Whatever fold executes, gitignored employer material becomes invisible to `audit.py`/`fleet_parity`; the precondition scan must quantify that blind zone so the governance claims stay honest (candidate follow-up: a governed-coverage metric that reports the ignored surface).
+- **The ruled shape introduces no ungoverned zone.** The `.gitignore` disposition mechanism was **struck** (§2c — inoperative for corp-monorepo: history-entangled + load-bearing), and corp-monorepo stays a **governed** repo *outside* the fold rather than an ignored zone *inside* it. Caveat (b) reapplies only if a *future* stage proposes `.gitignore` for any material — then the precondition scan must quantify the blind zone (candidate follow-up: a governed-coverage metric that reports any ignored surface).
 - **Downstream chain is gated on this ADR's acceptance, not this draft.** #382 (desired-state schema; its matrix width is set by the ruled tree count) → #383 (execution waves, worktrees singly) → #385 (tech-currency). The E9 brake ("no new fleet machinery until the shape is ruled") holds until this ADR is **accepted and merged**.
 - **No execution here.** No repo moves, no history rewrites, no machinery. Acceptance closes `[#381]`; the first fold action is a separate ruling after the precondition scan.
 
 ## Alternatives considered
 
-- **FULL fold (all 9 → one tree) — rejected.** It is the only shape that retires the whole 15,409-line estate (sol's steelman), but: the unfold-cost asymmetry makes it a near-one-way door; it maximizes pre-sales blast radius; every repo is product/domain-scoped so the fold has no domain logic; worktrees already deliver the agent-lane isolation that was its leading justification; and the ruling's own `.gitignore` mechanism places the largest ungoverned zone inside the universal tree. The savings are real but do not clear these costs at 5–8+ repos.
+- **FULL fold (all 9 → one tree) — rejected.** It is the only shape that retires the whole 15,409-line estate (sol's steelman), but: the unfold-cost asymmetry makes it a near-one-way door; it maximizes pre-sales blast radius; every repo is product/domain-scoped so the fold has no domain logic; worktrees already deliver the agent-lane isolation that was its leading justification; and **folding corp-monorepo is precluded outright** — its employer material is history-entangled and load-bearing (§2c), so no `.gitignore` line disposes of it. The savings are real but do not clear these costs at 5–8+ repos.
 - **NO fold (status-quo polyrepo) — rejected as the stated recommendation, but it is the fallback.** The architect recommendation is *close* to it — a narrow domain consolidation over a retained polyrepo. Pure NO-fold forgoes the already-planned `demo-prep → corp` consolidation and the operational-surface reduction that a domain tree captures cheaply, so a narrow PARTIAL is preferred to strict NO.
 - **PARTIAL along the compliance boundary (the prior recommendation) — superseded by the ruling.** It drew a work tree vs a personal tree along the employer-data line; the operator's ruling removes that line, so the boundary is re-drawn on domain/blast-radius grounds instead.
 
