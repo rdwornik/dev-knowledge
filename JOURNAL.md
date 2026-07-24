@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-25 — CC (Opus 4.8): [#381] CLOSED — ADR-104 ACCEPTED + merged --no-ff; merge-SHA anchor
+
+**Merge-SHA anchor (ADR-85 / [#414] gap closed for this arc).** Operator GO given; ADR-104 accepted and merged to main `--no-ff` at **`92fabb51`** (`92fabb514a4f14e0df892292df3543aaa9d31c08`; parents `023520f0` + `6943c584`). [#381] closed via that merge (task line removed, absent from BACKLOG; closes-set == set-difference == {381}). This entry is the merge-SHA anchor — **GO given AND the exact merge SHA recorded** — closing the gap that failed three times this week (the reason [#414] exists). Anchored on `docs/lane-a-anchor`, merged `--no-ff` (established `docs/*-anchor` pattern, per `09e4d707`).
+
+**Did:** Accepted ADR-104 (Proposed→Accepted, ADR-94 status-line-only; body unchanged), removed the [#381] task line, dropped the README index Proposed prefix, regenerated `recent-adrs.md` (Accepted). The whole `docs/lane-a-381-adr` branch (ADR-104 draft `aa64def8` + amendment `224096bf` + acceptance `6943c584`) landed via the single merge `92fabb51`. **E9 brake LIFTS on this merge**; downstream chain #382 → #383 → #385 unblocked.
+
+**Watch-out (flagged, not fixed):** [S23] "Rule the repo shape…" is now an **empty story** (its only task [#381] closed) — validate_backlog emits an advisory `user story with no tasks — [S23]` WARN (non-blocking, not a ship-gate WARN). The [S23]/[E9] story header was **left in place** (removing it is beyond the acceptance instruction) — an operator ruling on retiring the completed story.
+
+**Changes:** `JOURNAL.md` (this anchor entry only).
+
+**Next:** push main; operator sequences #382 (desired-state ADR).
+
 ### 2026-07-24 — CC (Opus 4.8): LANE A AMENDMENT — ADR-104 precondition (c) discharged NEGATIVE; corp-monorepo ruled OUT; sol divergence RESOLVED
 
 **Did:** Amended ADR-104 in place on `docs/lane-a-381-adr` (Proposed draft, unmerged — a draft revision, not an immutability edit; the guard scopes to `transcripts/` only, and it never landed). Status held **Proposed**; verdict **PARTIAL unchanged**; no fold, no repo moves, no touching corp-monorepo, [#381] not closed.
