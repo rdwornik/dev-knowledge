@@ -1,6 +1,6 @@
 # ADR-104: Fleet repository shape — partial fold on engineering grounds; polyrepo mostly retained
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-07-24
 - **Decision tier:** Path A — operator ruling (the shape constraint) + architect recommendation (the shape), session 2026-07-24 (Lane A). The operator accepts, amends, or rejects the recommended shape; the ruling itself is settled.
 - **Related:** ADR-28 (three-layer ecosystem model — the hub is Layer 2, a governance authority that never executes), ADR-61 (separate repos parallelize freely — a consequence of the split, not its cause), ADR-41 (per-repo session ownership)

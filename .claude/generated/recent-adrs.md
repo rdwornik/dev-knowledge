@@ -10,4 +10,4 @@
 - ADR-101 (Accepted, 2026-07-10): Hermetization — sanctioned top-level set, per-class name grammar, refusal gate (d.i/d.ii/d.iii)
 - ADR-102 (Accepted, 2026-07-17): Parity-surfaces enforcement-gate-rev axis — gate rev modeled separately from corpus source_tag
 - ADR-103 (Accepted, 2026-07-17): Parity-surfaces ownership axis — per-entry `{value, reason, provenance}` classification adopting the ADR-102 grammar
-- ADR-104 (Proposed, 2026-07-24): Fleet repository shape — partial fold on engineering grounds; polyrepo mostly retained
+- ADR-104 (Accepted, 2026-07-24): Fleet repository shape — partial fold on engineering grounds; polyrepo mostly retained
