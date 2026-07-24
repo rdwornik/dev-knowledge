@@ -307,6 +307,23 @@ def _dup2(t1, t2):
     return DUP2.format(t1=t1, t2=t2)
 
 
+def _dupN(titles):
+    # synthetic BACKLOG with one row per title (ids #1..#N) under one story — a fixture for
+    # dedup-heuristic behaviour tests that must NOT read the mutable live BACKLOG.
+    rows = "\n".join(f"- [#{i + 1}] [P1][M] {t} · Done when: x" for i, t in enumerate(titles))
+    return (
+        "# .dev-knowledge BACKLOG\n"
+        "## Big picture\n"
+        "A short paragraph.\n"
+        "**Themes (backbone):** Theme A\n"
+        "## Theme A\n"
+        "> As a persona, I want a goal.\n"
+        "### [S1] Story one\n"
+        "So that reasons hold.\n"
+        f"{rows}\n"
+    )
+
+
 def test_near_duplicate_title_warns():
     # two tasks with near-identical action titles -> a dedup WARN naming both ids
     text = _dup2(
@@ -341,10 +358,23 @@ def test_title_tokens_strips_band_and_stopwords():
     assert toks == {"sync", "floor", "validator"}
 
 
-@pytest.mark.live_repo
-def test_live_backlog_no_spurious_dup_warn():
-    # specificity regression: the real BACKLOG has no near-duplicate pairs at the tuned
-    # threshold (max distinct-pair Jaccard is well below it) -> zero dedup WARNs
-    text = (Path(vb.__file__).resolve().parent.parent / "BACKLOG.md").read_text(encoding="utf-8")
+def test_dedup_specificity_holds_on_a_distinct_fixture():
+    # SPECIFICITY (fixture-bound; does NOT read the live BACKLOG). A heuristic-behaviour test
+    # must not depend on mutable production content: a legitimate near-duplicate filing (e.g.
+    # the ruled #409/#410/#411 night-batch triple) would otherwise turn the suite red. The
+    # live-corpus signal already lives where it belongs — validate_backlog's runtime advisory
+    # WARN, exit 0 (see test_dup_warn_is_never_a_hard_fail). Here we assert the heuristic's
+    # SPECIFICITY on a fixture: genuinely-distinct rows that share incidental domain vocabulary
+    # — including a deliberately near-boundary pair (rows 0/1 externalize distinct registries;
+    # max pairwise Jaccard ~0.545, below the 0.70 threshold) — must NOT be flagged.
+    # Teeth: this goes RED if the heuristic regresses into false positives. Witnessed by
+    # lowering _DUP_TITLE_THRESHOLD 0.70 -> 0.50 (< the 0.545 pair): the pair is then flagged
+    # and this assertion fails (see the arc's terra/verify record).
+    text = _dupN([
+        "externalize the hermetization frozenset registry into a machine-readable path pattern",
+        "externalize the parity-surface frozenset registry into a machine-readable gate pattern",
+        "render a child methodology floor bundle for the browser carrier distribution channel",
+        "wire the coherence forgotten-version-bump nudge behind a deferred-hash escape gate",
+    ])
     _, warn = _run(text)
     assert not any("possible duplicate" in w for w in warn)
