@@ -19,6 +19,36 @@
 
 ---
 
+### 2026-07-24 — CC (Opus 4.8): LANE A AMENDMENT — ADR-104 precondition (c) discharged NEGATIVE; corp-monorepo ruled OUT; sol divergence RESOLVED
+
+**Did:** Amended ADR-104 in place on `docs/lane-a-381-adr` (Proposed draft, unmerged — a draft revision, not an immutability edit; the guard scopes to `transcripts/` only, and it never landed). Status held **Proposed**; verdict **PARTIAL unchanged**; no fold, no repo moves, no touching corp-monorepo, [#381] not closed.
+
+**Operator ruling recorded (supersedes the mechanism, not the verdict):** *"corp-monorepo stays OUTSIDE the fold. The remaining repos consolidate incrementally — stage by stage, verifying value after each step — not in one move."*
+
+**Precondition (c) discharged NEGATIVE by the corp-monorepo scan** (read-only `git grep`/`git log --all`, zero mutations): 104 tracked files carry ~206 real enterprise account tokens, **104/104 already in committed history** → `.gitignore` reaches **zero** of them (mechanism **inoperative for every file that matters**). What gitignore does handle (`data/_outputs/`, 18G, 2,925 files, never committed) points opposite to exposure. Material is **load-bearing** (curated account config + `client_aliases.yaml` read by the extractor; 40 test files depend on real-account fixtures). Remote **private** under a personal GitHub account (`gh repo view rdwornik/corp-monorepo` → isPrivate true); AKIA/password hits = a detector pattern list, not live secrets. **corp-monorepo excluded on history-entanglement + load-bearing dependency — NOT compliance (already removed) and NOT gitignore (proven inoperative).**
+
+**§4 divergence RESOLVED (sol kept on record).** sol's 9→5 aggressive fold NOT adopted; operator ruled incremental. Verbatim reason recorded: *"Folding is easy, unfolding is hard — the asymmetry is the argument … One move forecloses the cheap correction."* Hub governs corp-monorepo already WITHOUT a fold (Wave-1 consumer, parity walk, audits) → exclusion costs no manageability.
+
+**Amended sections:** §1 (amendment ruling), §2 (caveat (c) → discharged NEGATIVE, `.gitignore` struck), §3 (what the verdict rests on: engineering cost + history-entanglement), §4 (RESOLVED), new **§5 Execution shape** (corp OUT; remaining repos consolidate in stages, each its own witnessed value check; no enumeration/sizing — [#383]'s job; E9 brake holds until merge). Coherence sweep of the now-struck-mechanism references in §Consequences + §Alternatives + the README index row (was "UNRECONCILED" → resolved).
+
+**Changes:** `docs/decisions/ADR-104-fleet-repository-shape.md` (amended §1–§5 + Consequences/Alternatives), `docs/decisions/README.md` (index row resolved), `JOURNAL.md` (this entry). No BACKLOG edit; [#381] stays open.
+
+**Next:** operator accepts / amends / rejects ADR-104 as amended; on accept, [#381] closes at accept-and-merge. E9 brake holds. Commit-and-STOP: NOT merged, NOT pushed.
+
+### 2026-07-24 — CC (Opus 4.8): LANE A — [#381] fleet-shape ruling → ADR-104 drafted (Proposed); Lane C merge SHA anchor-repair
+
+**Anchor-repair (rides this branch, per [#414]/LESSONS).** The Lane C merge **`023520f0`** (Merge docs/lane-c-filings, parents f3ead30b + 438887e2) was NOT anchored in JOURNAL — the Lane C entry anchored only the incident leaf SHAs `c5910486` + `f3ead30b`, because it was written before the merge existed. Operator GO for the merge was given ("GO na merge Lane C"), but the exact merge SHA was unanchored; per [#414]/LESSONS neither substitutes for the other. **This entry anchors it:** Lane C landed as merge `023520f0`, pushed to origin/main (0/0), branch `docs/lane-c-filings` deleted.
+
+**Did:** Lane A — drafted the fleet repository-shape ADR **ADR-104** (Status Proposed) for [#381] on branch `docs/lane-a-381-adr` (primary checkout, commit-and-STOP). Cites **intake #16** §4; records the operator's shape ruling **verbatim** (repos may share one tree; employer material under `.gitignore`; compliance NOT a fold constraint) and carries the three architect caveats as a named execution **PRECONDITION** (gitignore ≠ history reach · ignored = ungoverned · unverified premise → a content-and-history disposition scan gates any fold).
+
+**Shape re-derivation (engineering grounds only, compliance removed).** Verdict **PARTIAL** (not FULL, not NO). The verdict held but the reasoning changed **entirely**: the prior PARTIAL rested on the compliance boundary; removing it does NOT flip to FULL, and the ruling's own `.gitignore` mechanism ADDS the ungoverned-zone cost that argues specifically against folding the employer repo. **Live-verified cost basis** (not inherited): 15,409-line plural-only estate = 4,222 script cluster (the intake's "~4,200" **exactly**) + 4,811 deploy + 6,376 registries; only a FULL fold retires it; the methodology layer survives any fold. Architect recommends a **narrow** corp-domain consolidation.
+
+**Codex lane (sol, mandatory).** `gpt-5.6-sol` independently derived from the same inputs, WITHOUT sight of the draft (`codex exec`, read-only sandbox). sol also landed **PARTIAL** — convergent on verdict, reasoning, and the ungoverned-zone cost — but a more aggressive **9→5 trees** (corporate tree {corp-monorepo, corp-ops, corp-sca-time-automation, demo-prep} + workstation tree {terminal-setup, win-tooling}). The divergence on *aggressiveness* is surfaced **UNRECONCILED** in ADR-104 §4 for the operator.
+
+**Changes:** `docs/decisions/ADR-104-fleet-repository-shape.md` (new), `docs/decisions/README.md` (ADR-104 index row, **Proposed** prefix), `.claude/generated/recent-adrs.md` (regen 100→104), `JOURNAL.md` (this entry). **[#381] NOT closed** — closure rides the accept-and-merge.
+
+**Next:** operator accepts / amends / rejects ADR-104's shape (esp. the sol-vs-architect aggressiveness divergence) and prices intake #16 §4 item 6 first; on accept, [#381] closes at accept-and-merge. The E9 brake (no new fleet machinery) holds until then.
+
 ### 2026-07-24 — CC (Opus 4.8): LANE C filings — 9 backlog rows [#406]–[#414] + self-acting-on-main incident repaired (SHA-anchored)
 
 **Did:** Lane C filing window (branch `docs/lane-c-filings`, primary checkout, commit-and-STOP — no merge, no push). Filed [#406]–[#414]: [#406] commit-time doc_rot surfacing (operator-authored fresh, not the lost 1181-char draft; relaxed to under-1200); handoff items 1(a)-(e) as [#407] universal Python style · [#408] auto-coupled doc updates · [#409]/[#410]/[#411] three standing night batches (one row each) · [#412] subagent/workflow routing + Anthropic-organ research · [#413] colors semantics (blocked on the [#400]/[#370] ownership third cell); and [#414] the incident-family mechanism ticket. Zero build — every item is a row or an entry.
