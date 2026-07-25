@@ -19,6 +19,16 @@
 
 ---
 
+### 2026-07-25 — CC (Opus 5): merge-SHA anchor — the FILLED handoff bundle landed on main
+
+**Merge-SHA anchor (ADR-85).** Operator GO given; `docs/handoff-0725-architect` merged to main `--no-ff` at **`a2cebf47`** (`a2cebf4780f29139ffab57dcf6fc44f88034d901`; parents `1aa1fc41` + `357a15ef`). Leaves `71615bdd` · `138f9bb5` · `357a15ef`. **Closes no backlog task** — the id set-difference is empty in both directions (158 == 158), so no bracket `[#id]` and no `kill-candidates:` line were owed; the pre-merge subject scan found zero close/fix verbs.
+
+**Conflict resolution — ordering only, ZERO content edit.** `JOURNAL.md` was the sole conflicted file (verified via `--diff-filter=U`; any other conflict was a stop condition and none occurred). Both entries kept in full and ordered **newest-first by commit time**: this branch's `357a15ef` @ 16:57:42 above the ai-council anchor `71a464cd` @ 16:00:45. Net file effect: the 3 conflict markers removed, 1 blank separator line added (8946 → 8944), verified line-by-line against the conflicted copy — no prose touched on either side.
+
+**Concurrency preconditions, checked before touching main** (the discipline the two misfires today earned): unfiltered `claude.exe` enumeration resolved via transcript `cwd` across **all** `~/.claude/projects` dirs — the earlier hub-defects session silent since 19:35:43, and the one other live process resolved to `Documents\Dev\ai-council` with zero references to this repo. Only then was `git checkout main` safe.
+
+**Changes:** `JOURNAL.md` (this anchor entry).
+
 ### 2026-07-25 — CC (Opus 5): supplement FILLED and folded — `2026-07-25-dev-knowledge-architect` goes cold → FILLED
 
 **SHA anchor (ADR-85).** Two commits on `docs/handoff-0725-architect`: **`71615bdd`** (the operator-filled `SUPPLEMENT.md`, committed verbatim) - **`138f9bb5`** (the fold + cold→FILLED reflow). Addendum to this session's handoff entry below; **NOT merged, NOT pushed** — the operator holds the GO.
