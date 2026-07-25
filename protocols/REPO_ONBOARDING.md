@@ -38,7 +38,7 @@ if a command below disagrees with it, the table is what to trust.
 | `deploy/tool.py <name> --target <ver>` | positional | **NAME** — resolved against `deployed-versions.yaml`; a path aborts preflight with "not a registered consumer" |
 | `scripts/audit.py repo <name>` | positional | **NAME** |
 | `scripts/audit.py repo <name> --repo-path <consumer>` | `--repo-path` | **PATH** — overrides the stored path (bootstrap / ad-hoc) |
-| `scripts/enforcement_coverage.py --consumer <name>` | `--consumer` | **NAME** — "by registry name" |
+| `scripts/enforcement_coverage.py --consumer <name> --run-date <YYYY-MM-DD>` | `--consumer` | **NAME** — "by registry name"; `--run-date` is **required** (no wall-clock read) |
 | `deploy/floor_conformance.py --consumer <consumer>` | `--consumer` | **PATH** — the tree is cloned to a temp dir |
 | `lived_sandbox.cli observe-arc --consumer <consumer>` | `--consumer` | **PATH** (`<repo-path>`) |
 | `scripts/fleet_health.py` | — | none (whole fleet) |
@@ -84,7 +84,7 @@ reconciler; the ordered set lives in the manifest `carriers:` block.
 
 ```bash
 python scripts/audit.py health                               # -> hooks/organs healthy
-python scripts/enforcement_coverage.py --consumer <name> --fire      # -> organs FIRE
+python scripts/enforcement_coverage.py --consumer <name> --fire --run-date <YYYY-MM-DD>   # -> organs FIRE
 ```
 
 ### 3. Lifecycle command (tier1-lifecycle plugin, ADR-70)
@@ -161,7 +161,7 @@ python scripts/audit.py health                               # [hub-runnable]
 #   -> hooks_armed OK + reconciled_versions OK; exit 0
 python .claude/check_floor_hash.py --require-present   # [consumer-only] — run inside the consumer
 #   -> PASS (fails LOUD on a deleted-but-tracked floor)
-python scripts/enforcement_coverage.py --consumer <name> --fire      # [hub-runnable]
+python scripts/enforcement_coverage.py --consumer <name> --fire --run-date <YYYY-MM-DD>   # [hub-runnable]
 #   note: --fire requires --run-date (the fire_test needs a run date to stamp the synthetic arc)
 #   -> the deployed mesh organs FIRE on a real branch->edit->commit arc (Informant fire_test)
 PYTHONPATH=deploy python -m lived_sandbox.cli observe-arc --consumer <consumer>   # [hub-runnable]
