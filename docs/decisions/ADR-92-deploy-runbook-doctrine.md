@@ -89,3 +89,38 @@ The two originating AI-Council transcripts (auto-routed here via `target-project
 - ADR-70 / ADR-73 / ADR-78 / ADR-79 — the carrier set a deploy spans.
 - ADR-71 — the pre-commit `repo:/rev:` consume-pin a deploy updates.
 - ADR-88 — file-oriented dependency management (*do-not-build-is-doctrine*).
+
+---
+
+## Amendment — 2026-07-25 (carrier count: the body's "four carriers" is stale; five implemented, a sixth declared)
+
+> **In-file amendment marker (CLAUDE.md §5 item 3 / ADR-94).** The decision body above is preserved **verbatim** — nothing in it is edited. This section records a factual correction to a count the body asserts, and does not change any decision. **Operator-ruled 2026-07-25** (Lane D rulings arc); ratifies by merge, per this ADR's own "the operator ratifies by merge" convention.
+
+### What is stale
+
+Two places in the body assert a carrier count of **four**:
+
+- **Decision 8 (`:44`)** — "The current carriers (global L0 config, the `tier1-lifecycle` plugin, pinned pre-commit hooks, the per-repo floor) are implemented hand-written against a tiny interface … ship the **four** hard-coded carriers".
+- **Consequences (`:76`)** — "the **four** hand-written carriers against the `detect/apply/verify` interface".
+
+Both were accurate at ratification (2026-06-29). Neither is accurate now.
+
+### The verified current state
+
+- `deploy/tool.py` `make_carriers()` (`:315-323`) returns **five** carriers: `GlobalConfigCarrier`, `PluginCarrier`, `PrecommitCarrier`, `FloorCarrier`, and **`MeshCarrier`** — the fifth, added by the enforcement-transfer mesh work (#236).
+- `deploy/manifest-v1.4.0.yaml` declares a **sixth**, `editor-config` (order 6, component `vscode-boundary-decoration`, [#352]), explicitly **`implemented: false`** — declaration-only at this cut: the hub half is built, the consumer write-through is a later ticket.
+
+So the honest statement is: **five implemented carriers, six declared**, and the manifest — not this ADR body — is the authority on the set (Decision 7 already says the manifest "declares the complete carrier set").
+
+### What this amendment does and does not change
+
+- **Unchanged:** every decision. Decision 8's substance — a tiny hand-written `detect/apply/verify` interface, no plugin-loader, no DSL, "extract a framework only if carrier count later forces it" — stands. The count grew from four to five without forcing a framework, which is evidence *for* Decision 8, not against it.
+- **Corrected:** the literal number **four** wherever the body states it. Read it as "the then-current carriers"; read the live set off `make_carriers()` and the versioned manifest.
+
+### Why it drifted, and what now catches it
+
+The 2026-07-21 nightly conformance digest (`claude/conformance-2026-07-21`, finding **F1**, High) flagged this exact claim across five `ARCHITECTURE.md` sites **and** this ADR's Decision 8. The ARCHITECTURE half was fixed on main by `037d9f08` (2026-07-23); this ADR half was not, because the ADR is immutable and the fix required an amendment marker rather than an edit. That asymmetry is precisely the gap [#403] rules on — its adopted derivation is **carrier-set** (carrier count/list derived from `make_carriers()` keys), the one derivation that would have caught this mechanically. The fact that the finding existed, was written down, and still went half-unfixed is itself filed, as [#419].
+
+### Refs
+
+`deploy/tool.py:315-323` · `deploy/manifest-v1.4.0.yaml` (carrier `editor-config`, order 6) · ADR-91 · [#403] · [#419] · [#352] · [#236] · the 2026-07-21 nightly conformance digest F1
