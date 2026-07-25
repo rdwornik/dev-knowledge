@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-25 — CC (Opus 5): [#401] clause (b) RULED — `routing.py` PATH-REFUSAL; merge-SHA anchor
+
+**Merge-SHA anchor (ADR-85).** Operator GO given; `docs/401b-ruling` merged to main `--no-ff` at **`c5f65165`** (leaf `d46d1f07`). **[#401] does NOT close** — a ruling, not a build.
+
+**Ruled organ for clause (b):** **`routing.py` PATH-REFUSAL** — the routing component itself refuses the `.dev-knowledge` target. **Reason:** the acting component refusing at its point of use is ONE organ; extending an existing guard instead adds a SECOND organ whose only job is watching the first, and this fleet already carries registry/organ sprawl. **Rejected alternative, recorded explicitly:** extending the ADR-77 guard / hermetization gate to the emptied zone.
+
+**Scope held.** Ruling only — no build, no test, no `routing.py` edit. Clause (a) is ai-council-side and untouched by this session. [#401] closes when (a) ships in ai-council AND (b) is built per this ruling.
+
+**Threshold note.** The edit was deliberately net-constrained: the `[#401]` task line went 1189 → **1197** chars with dates held at 2, keeping it under the `doc_rot` gross-length threshold of 1200. An unconstrained addition would have self-induced a new `backlog-accretion` WARN and turned the ship-gate RED — the same self-inflicted-bloat trap that produces a disposition request instead of a fix. Existing prose was compressed to pay for the ruling text.
+
+**Changes:** `BACKLOG.md` (`[#401]` task line only), `JOURNAL.md` (this anchor entry).
+
+**Next:** teardown of the `filings-rulings` worktree and Lane D branches.
+
 ### 2026-07-25 — CC (Opus 5): Lane D merged `--no-ff`; merge-SHA anchor + the TOKEN-LOG lane anchor it was missing
 
 **Merge-SHA anchor (ADR-85).** Operator GO given; `docs/lane-d-rulings` merged to main `--no-ff` at **`27f033df`** (`27f033dfd4579f9294b278df3c5a31c2ff213193`; parents `d589844c` + `29839e9c`). Closes-set **{262, 295, 304, 339}** == the task-line set-difference, verified on both blobs before committing. Post-merge count **158 tasks** exactly as targeted: 158 at the branch point − 1 (`[#368]`, closed separately on main by Lane B) − 4 closed here + 5 filed here. Stories 27 → 26 ([S23] retired by Lane D).
