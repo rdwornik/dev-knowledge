@@ -19,6 +19,26 @@
 
 ---
 
+### 2026-07-25 — CC (Opus 5): [#368] DISCHARGED — VISION.md genuine re-read; 7 content defects fixed, then re-stamped (Lane B)
+
+**Anchor (ADR-85).** Lane B work landed on `docs/vision-reread` at **`3cbcf39c`** (`3cbcf39c18ab3c4b3507f31731b9bc8e5ba01742`), branched from main `8e2ecc80`. NOT merged, NOT pushed — no self-GO; the merge is the operator's call.
+
+**Did:** Discharged [#368], the week's sole undispositioned ship-gate WARN. It was held open deliberately — a VISION re-read was dishonest while the fleet's repository shape was unruled. ADR-104 Accepted + merged (`92fabb51`) cleared that blocking condition, so the judgement could finally be genuine. Read `VISION.md` end-to-end (163 lines) and judged the CONTENT against live state before touching the stamp. **Outcome (b): content needed edits — made them, then stamped.** Not a stamp-only bump.
+
+**Result:** 7 content defects found, every one verified against live state rather than inferred. (1) The named drift `VISION:110-113` — ai-council routed-mirror claim stale; retired by the ADR-43 2026-07-23 RE-SCOPE, landing zone deleted `b4435fad`, absent from disk. (2) `VISION:14` — "works in any folder on any machine, portable, self-contained, machine-agnostic" **false as written**, falsified by tracked artifacts (`.claude/settings.json:63` absolute marketplace path, `scripts/fleet-baseline.task.xml:37-39` Windows-only absolute paths, `ecosystem/index.yaml` 6 absolute paths, `.gitignore:61` gitignored per-repo `state.yaml`); narrowed to the layer where it holds — the methodology corpus is genuinely portable (`scripts/*.py` verified path-free), the fleet-registry/machine-automation layer is machine-bound by design. (3) `VISION:97-98` — stale roster, 4 child repos + "future repos" vs the ruled **9-repo** fleet. (4) `VISION:99-101` — added the ADR-104 fleet-shape record (governed polyrepo retained, PARTIAL fold, corp-monorepo permanently outside, remaining repos consolidate incrementally). (5) `VISION:91-92` — broken cross-reference to a non-existent ESSENTIALS "Continuous Improvement" section (lives at `ESSENTIALS:62` under "Governance frame"; canonical PLAYBOOK Ch13). (6) `VISION:133` — `audit.py` command list incomplete AND self-contradictory (listed 4 of 6; `VISION:135` already invoked `checks`, a command its own list omitted). (7) `VISION:161`/`:139` — `docs/decisions/` "ADRs + transcripts" stale, and the Vision-realized archive filename contradicted the CLAUDE.md §4 dated-artifact convention all 10 existing `docs/archive/` files follow.
+
+`last_reviewed` 2026-06-19 → 2026-07-25 rides the same commit as the corrections — the A2 gate makes that atomicity mandatory (a stamp predating the file's last edit FAILs), and CLAUDE.md §4 makes it honest. Frontmatter `version` held at 1.0 deliberately: per `VISION:139` the version denotes the Vision HORIZON generation, not an edit revision.
+
+**Verification:** `pytest -n auto` **1728 passed / 8 skipped** (exit 0) · ruff clean · validate_backlog OK (157 tasks; 4 WARNs all pre-existing) · validate_git_backlog OK · validate_doc_claims OK · validate_doc_structure OK · `boundary_headers --check` match · `gen_claude_rosters --check` clean · full pre-commit stack passed incl. audit-health.
+
+**Reported, NOT filed** (this lane files no backlog ids by contract — two findings for the operator to ticket elsewhere): (a) `protocols/ESSENTIALS.md:62` carries the reciprocal broken pointer — it says static maintenance "is a declared exception in **VISION Lifecycle**", but that text lives in VISION's **Vision** section (`VISION:28-29`), not Lifecycle; left unedited to keep the lane inside VISION.md and avoid a second freshness re-stamp. (b) `ecosystem/index.yaml` registers **6** repos while ADR-104 rules the fleet at **9** — `demo-prep`, `life-architect`, `terminal-setup` are unregistered, so fleet-wide checks silently under-cover; out of lane scope (a registry/state concern, not a VISION defect).
+
+**Abandoned:** nothing.
+
+**Codex lane:** RUN — the re-read produced substantive content edits to a governing document, which is the lane's stated trigger. terra via the codex-review doc-lane (`gpt-5.6-terra`, prose/structural profile); verdict recorded in the audit file committed on this branch.
+
+**Next:** operator reviews `docs/vision-reread` and decides the merge. Ship-gate GREEN with zero undispositioned WARNs on this branch.
+
 ### 2026-07-25 — CC (Opus 4.8): [#381] CLOSED — ADR-104 ACCEPTED + merged --no-ff; merge-SHA anchor
 
 **Merge-SHA anchor (ADR-85 / [#414] gap closed for this arc).** Operator GO given; ADR-104 accepted and merged to main `--no-ff` at **`92fabb51`** (`92fabb514a4f14e0df892292df3543aaa9d31c08`; parents `023520f0` + `6943c584`). [#381] closed via that merge (task line removed, absent from BACKLOG; closes-set == set-difference == {381}). This entry is the merge-SHA anchor — **GO given AND the exact merge SHA recorded** — closing the gap that failed three times this week (the reason [#414] exists). Anchored on `docs/lane-a-anchor`, merged `--no-ff` (established `docs/*-anchor` pattern, per `09e4d707`).
