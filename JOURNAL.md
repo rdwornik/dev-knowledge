@@ -46,6 +46,21 @@
 **One honest caveat recorded, not smoothed:** the answers state some repo-state values (a task count, a HEAD sha, an outstanding-rule total), which is **beyond the interview's why-only scope** (§13 hard scope constraint) and partially pre-answers P9/P11. Committed verbatim regardless — editing operator answers is not mine to do — with an explicit note in `PROBES.md` that the supplement is a generation-time snapshot, is never trusted over the repo, and that **the probe wins on any disagreement**. Post-fold re-verification against the `ai-council` root: **17 pass / 0 fail / 0 warn**; `validate_residual_completeness` OK.
 
 **Size warn, not suppressed:** `PASTE_THIS.md` assembles to ~77.5 KB against the assembler's 65 KB budget. The growth is the verbatim supplement itself, not re-narration creep in the CC-authored sections (the prior cross-repo bundle shipped at ~75.7 KB). Flagged rather than paid for by trimming operator content.
+### 2026-07-25 — CC (Opus 5): architect handoff bundle `2026-07-25-dev-knowledge-architect` generated
+
+**SHA anchor (ADR-85).** One commit on `docs/handoff-0725-architect`, off `19cf25dc`: **`ada52980`** (the five-file v5 architect bundle). Committed, **NOT merged, NOT pushed, no self-GO** — the operator holds the GO. No backlog task advanced or closed (the BACKLOG advisory is correctly empty).
+
+**Did.** `gen_handoff.py --mode architect` → `docs/handoffs/2026-07-25-dev-knowledge-architect/`; hand-authored the four FILL-IN regions (`purpose`, `driftflags`, `shipped`, `frontier`), then re-ran `assemble_paste.py` so `PASTE_THIS.md` carries the filled text. `SUPPLEMENT.md` written and committed **empty** — cold handoff (this session was `/clear`ed, so there is no outgoing architect chat to interview); the assembler `[skip]`s an empty ANSWERS region and the incoming §13(d) operator-context beat therefore fires FULL, which is the defined disposition, not a missing deliverable.
+
+**Result — the residual headline is a drift class no organ covers.** `[#381]` is ruled, **accepted and merged** (ADR-104 @ `92fabb51`, leaf `6943c584`), and ADR-104's own gate reads "the E9 brake holds until this ADR is **accepted and merged**" — so the brake condition is discharged. `BACKLOG.md` still asserts the opposite in prose at the `[E9]` preamble (L386, "The brake is live") and in `[#409]`/`[#410]`/`[#411]` ("breaches the [E9] brake"). `validate_doc_claims` checks counts/rosters and `validate_git_backlog` checks closed-but-present, so neither sees stale prose — it survived every gate. Consequence for the next session: `[#382]`'s `depends-on: 381` is satisfied and the `[E9]` chain head is live. Recorded as the architect's decision, **not** self-ruled here.
+
+**Result — verification.** `validate_residual_completeness` OK · `verify_handoff_probes` **11/11 pass** (P1a–P10 all bind to live state) · `validate_doc_claims` OK (4 claims) · `validate_git_backlog` OK · `audit.py ship-gate` **GREEN** (13 WARN dispositioned). Generation-time hints, for this entry only (the bundle states none of it, by the §5 anti-bluff contract): HEAD `19cf25dc` on `main` at cut; ALL_CHECKS 31.
+
+**Flagged, not fixed.** Ship-gate prints `[stale] disposition warn-doc-rot-backlog-262` — Lane D closed `[#262]` this window and left its `doc_rot` register row behind (the ADR-75 decoration rule's target, and the known close-orphans-disposition pattern). Non-blocking; removal is a deletion, so it waits on the operator as its own `chore(register)` arc. Also carried into the residual §4 as unfiled architect calls: no organ guards HEAD mutation by a concurrent session in the primary checkout (`[#417]` is adjacent, not covering), and a governing-doc arc touching one `.yaml` reads as a MIXED diff that routes to the CODE review profile, silently skipping every governing document.
+
+**Changes:** `docs/handoffs/2026-07-25-dev-knowledge-architect/` (5 new files), `JOURNAL.md` (this entry).
+
+**Next:** operator GO → merge `--no-ff` → merge-SHA anchor. Optionally `supplement filled` to fold strategic answers into `PASTE_THIS`. `[#419]` is the next session's named topic.
 
 ### 2026-07-25 — CC (Opus 5): [#401] clause (b) RULED — `routing.py` PATH-REFUSAL; merge-SHA anchor
 
