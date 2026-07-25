@@ -11,7 +11,40 @@
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
+
+> **The ANSWERS outrank this residual on intent, priority and SEQUENCING — read them before acting on
+> §4's ordering.** This residual is repo-derived; the supplement carries what only the outgoing
+> architect held. Five load-bearing corrections, so §4 is not silently followed as written:
+>
+> - **(A) Sequencing is inverted — "Unit 1.5 before Unit 2."** Two filed follow-ups change the
+>   **frozen `Finding` harness surface** (one adds a field, one changes the printer). Land them while
+>   the blast radius is four legs; at eleven it becomes a retrofit. §4 item 1 (the registry repair) is
+>   still correct as the *standalone* first move, but the harness changes come **before** any Unit-2
+>   rule building — not after, as §4 item 4 implies.
+> - **(B) The dispositioned precision-over-recall High is NOT merely "waiting on the operator"** (as
+>   §4 item 8 files it). Its revisit trigger has **already fired early**: the same repo-rooted guard is
+>   implicated in three separate failures, making it the **single highest-leverage fix in the checker**.
+>   Treat it as a live design item near the top, not queued admin.
+> - **(C) A ruling landed this window that §4 does not carry at all** — the operator ruled **CLI is the
+>   default transport for debate, API for research mode**. It exists **only in chat**: it belongs in an
+>   ADR or at minimum a ticket. It also **reframes the blind-scoring lane** (§4 item 0) from a decision
+>   into a **cost control** — measuring what the preference costs in quality, not whether it is
+>   preferred — so that lane's done-when needs rewriting. Item 0's *ordering* rule still stands
+>   unchanged: operator-only, never sequenced behind anything (it has now slipped **six consecutive
+>   windows**).
+> - **(D) An open governance question, absent from §4:** a push to `origin/main` this window came from
+>   neither CC nor the cloud session. "The operator is the serial merge gate" is **not enforced against
+>   a background pusher.**
+> - **(E) A hard execution constraint on the next arc:** in this target, **worktrees are blocked
+>   outright** — a worktree shares the primary's editable install, so pytest inside one silently tests
+>   the primary's source, and the include-file that would fix it does not exist here. Plan the arc as
+>   primary-checkout work.
+>
+> Also carried by the supplement and worth reading directly: a **do-not-relitigate list** (§3) and an
+> explicit **architect-seat calibration** — several browser-seat errors this window were all one class
+> (asserting conclusions rather than primitives), all caught downstream. Treat browser-seat pointers as
+> claims to verify. **On any number, the probes outrank both this residual and the supplement.**
 
 ---
 
