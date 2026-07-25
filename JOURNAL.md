@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-25 — CC (Opus 5): CORRECTION to the entry below — its portability conclusion is SUPERSEDED by `30a8c42b`
+
+**Supersedes one claim in the next entry** (which stands unedited — JOURNAL is append-only). That entry reports, as a live-verified result, that "the methodology corpus is genuinely portable (`scripts/*.py` verified path-free)". **That conclusion was wrong and is superseded by `30a8c42b`.** Raised as terra MEDIUM in `docs/audits/2026-07-25-codex-vision-reread-recheck.md` — the session record was still presenting a disproven conclusion as verified.
+
+**What actually happened.** The first VISION repair narrowed the false portability claim but over-claimed in the process: it asserted "protocols, ADRs, templates, and the read-only validators in `scripts/`" carry no machine-specific paths, having verified only `scripts/*.py`. The terra doc-lane (`docs/audits/2026-07-25-codex-vision-reread.md`, 1 HIGH) refuted it with live citations — `protocols/ENVIRONMENT.md:150`, `templates/prompt-template.md:20`, `docs/decisions/ADR-61-git-worktree-parallel-sessions.md:57` — all three verified present. Files already visible in the lane's own earlier grep, generalized over rather than read. Left standing, the `last_reviewed: 2026-07-25` stamp would **not** have been honest, which is precisely the failure [#368] exists to prevent.
+
+**Corrected in `30a8c42b`:** VISION now splits **doctrine** (host-independent — the conventions plus the read-only validators in `scripts/`; re-verified across ALL of `scripts/`, where the only host path is `fleet-baseline.task.xml:37-39`, which the text itself names as host-bound) from **artifacts** (not host-independent), and distinguishes *documenting* the host (`protocols/ENVIRONMENT.md`, `templates/prompt-template.md`, some ADR examples) from *depending* on it (`ecosystem/index.yaml`, the `.claude/settings.json` marketplace path, `scripts/fleet-baseline.task.xml`, gitignored `ecosystem/*/state.yaml`).
+
+**Codex round-trip:** terra HIGH → fix `30a8c42b` → terra re-review **clean on VISION.md** ("the stamp is honest, the doctrine/artifact split is appropriately narrow, `ENVIRONMENT.md` is fairly described, and the ADR-43/ADR-104 paragraphs are faithful"; 0 Critical / 0 High / 0 Low, the 1 MEDIUM being this JOURNAL record, discharged by this entry). terra also settled the one governance question the lane could not: narrowing a false descriptive claim is a factual **clarification**, NOT a Vision/Scope change requiring AI Council under `VISION:151`.
+
+**Also corrected:** the entry below asserts "Ship-gate GREEN with zero undispositioned WARNs" — written before that was run. The verified result is recorded here: ship-gate GREEN on `30a8c42b`+ (see Changes).
+
+**Changes:** `VISION.md` (`30a8c42b`), `docs/audits/2026-07-25-codex-vision-reread.md`, `docs/audits/2026-07-25-codex-vision-reread-recheck.md`, `docs/audits/README.md` (regenerated), `JOURNAL.md` (this correction).
+
+**Next:** operator reviews `docs/vision-reread` and decides the merge. Not merged, not pushed — no self-GO.
+
 ### 2026-07-25 — CC (Opus 5): [#368] DISCHARGED — VISION.md genuine re-read; 7 content defects fixed, then re-stamped (Lane B)
 
 **Anchor (ADR-85).** Lane B work landed on `docs/vision-reread` at **`3cbcf39c`** (`3cbcf39c18ab3c4b3507f31731b9bc8e5ba01742`), branched from main `8e2ecc80`. NOT merged, NOT pushed — no self-GO; the merge is the operator's call.
