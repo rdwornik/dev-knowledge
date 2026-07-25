@@ -19,6 +19,24 @@
 
 ---
 
+### 2026-07-25 — CC (Opus 5): cross-repo architect handoff generated for `ai-council` (`2026-07-25-ai-council-architect`)
+
+**Did:** `/handoff architect ai council` — generated the v5.7 architect bundle for the **`ai-council`** target, hosted in the hub per ADR-36/41 (**read-only on the target throughout**; every command run against `Dev/ai-council` was a read, and `pre-commit run --all-files` was deliberately NOT used as a probe because that repo's `normalize-headers`/`toc-generate` hooks are formatters that rewrite files). Window covered = since the 2026-07-23 bundle: six first-parent merges (`766241a` #27 scoring instrument + STEP-0 acceptance-freeze reads, `b1f3319` the FLOOR1 R1 allowed-set ruling, `b94e8d1` #97 Unit 1 claim-vs-reality checker, `6002aba` the 12-id filing batch, `1fa0054` the #97 reconciliation).
+
+**Result:** Commit **`bc3eee77`** on `docs/handoff-2026-07-25-ai-council` — five bundle files, 1071 insertions, all pre-commit gates passed; `validate_residual_completeness` OK (no unfilled FILL-IN region). **Residual headline:** the checker shipped with an **incomplete rule registry that its own green test suite structurally could not detect** — the registry test is parametrized *over the registry*, so it has no external denominator; second instance of one recurring shape (a validator checked against its own artifact, after the rule-14 leg-(a) map-vs-map vacuity). Two further live findings carried: the checker's finding set **self-replicates on every JOURNAL prepend** (so a zero-findings done-when has a moving target), and one rule is **non-deterministic across checkouts for the identical commit** (a gitignored dir present as untracked debris here, absent on a fresh clone).
+
+**Probes — the cross-repo re-binding, which is the real work of a bundle like this.** The generator's default set is hub-bound (`ALL_CHECKS`, `validate_git_backlog`, `ecosystem/doc-counts.md`, `audit.py ship-gate`) and would have FAILed `anchor-missing` on all four, since `ai-council` carries none of them. Each was re-bound to a verified-live target surface; **17 probes** total (P1a/P1b + P2–P16), of which four are new this window: **P11** registry completeness, **P12** the live finding set, **P14** the now-*dated* allowed-set snapshot vs the live AST import surface, **P15** the **uncommitted** local `gc.auto` mechanism holding four unreachable objects alive — the one load-bearing fact in that repo that is not in the repo. Every anchor was confirmed present by running its command in the target before authoring. `verify_handoff_probes` against the `ai-council` root: **17 pass / 0 fail / 0 warn**.
+
+**Two honest caveats, recorded rather than smoothed over.** (1) P11/P14 first came back `anchor-missing`: a **backticked bare `#NN` in a source cell is parsed as a markdown header anchor** by `header_tokens`, so `` `#97` ``/`` `#92` `` were looked up as headers and did not resolve. Re-worded to un-backticked prose and re-verified — degraded loudly and re-anchored, never synthesized past (§10). (2) Run from **this worktree**, `check_handoff_probes` resolves the cross-repo target as `Path(repo_path).parent / target` = `.claude/worktrees/ai-council`, which does not exist, so it degrades to a **non-gating WARN**. From the primary hub checkout the sibling resolves and the gate computes the same 17/17. Environmental — the same class as the worktree-dir deployed-version WARN; not dispositioned, not worked around.
+
+**`SUPPLEMENT.md` committed EMPTY (cold)** — the assembler prints its `ANSWERS empty … not folded` note and folds nothing, so the incoming §13(d) operator-context beat fires **FULL**. That is the defined cold disposition, not a missing deliverable.
+
+**Changes:** `docs/handoffs/2026-07-25-ai-council-architect/` (`HANDOFF_BOOT` + `RESIDUAL` + `PROBES` + `SUPPLEMENT` + `PASTE_THIS`, `bc3eee77`), `JOURNAL.md` (this entry). **No `ai-council` file was written** — cross-repo read-only held.
+
+**Untouched:** `BACKLOG.md` — this session finished no tracked task (a handoff is a session-boundary artifact, not a task advance), so no structural marker is due; the gate's BACKLOG advisory is correctly non-blocking here.
+
+**Next:** operator merges `docs/handoff-2026-07-25-ai-council` to main **from the primary checkout** (`/ship` refuses inside a worktree). Optional: fill `SUPPLEMENT.md` from the outgoing architect chat and say `supplement filled` — CC commits it verbatim and re-runs `assemble_paste.py` so the ANSWERS fold into `PASTE_THIS` and the §13(d) beat narrows.
+
 ### 2026-07-25 — CC (Opus 5): [#401] clause (b) RULED — `routing.py` PATH-REFUSAL; merge-SHA anchor
 
 **Merge-SHA anchor (ADR-85).** Operator GO given; `docs/401b-ruling` merged to main `--no-ff` at **`c5f65165`** (leaf `d46d1f07`). **[#401] does NOT close** — a ruling, not a build.
