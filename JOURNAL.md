@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-25 — CC (Opus 5): supplement FILLED and folded — `2026-07-25-dev-knowledge-architect` goes cold → FILLED
+
+**SHA anchor (ADR-85).** Two commits on `docs/handoff-0725-architect`: **`71615bdd`** (the operator-filled `SUPPLEMENT.md`, committed verbatim) - **`138f9bb5`** (the fold + cold→FILLED reflow). Addendum to this session's handoff entry below; **NOT merged, NOT pushed** — the operator holds the GO.
+
+**Did.** Operator said `supplement filled`; the ANSWERS region was non-empty and substantive across all six schema questions. Committed **verbatim** — no re-typing, no editing, nothing fabricated (§13 v5.2 lifecycle) — then re-ran `assemble_paste.py`. The ANSWERS region folded into `PASTE_THIS.md` (31,443 → 47,960 bytes); the QUESTIONS block correctly did **not** fold (verified absent — it was for the outgoing chat). The reflow flipped the cold framing in **all three** of `HANDOFF_BOOT.md` / `RESIDUAL.md` / `PROBES.md`, so the incoming §13(d) operator-context beat now **NARROWS** to *"anything changed since?"* instead of firing FULL.
+
+**Swept for the `[#422]` defect class — clean this time.** `reflow_framing` rewrites only its own `_FRAMING` block pairs by design (the RF-6 no-clobber contract), so hand-authored cold-state prose survives a fold and leaves a §8 self-contradiction **no drift-check catches** — the witnessed instance being the same-day `2026-07-25-ai-council-architect` fold, where `PROBES.md` kept five cold claims. Post-fold grep over every `supplement` reference in this bundle: **7 references, all consistently FILLED/NARROWS, zero survivors.** The sweep is the mitigation until `[#422]`'s detector exists; it is manual and therefore skippable, which is exactly why that ticket is filed.
+
+**Result — verification.** `verify_handoff_probes` **11/11 pass** (P8 pins the bundle shape *and* the live supplement fill-state, so it re-derives FILLED rather than trusting the prose) · `validate_residual_completeness` OK · all pre-commit gates passed on both commits.
+
+**Merge note for the integrator.** This branch was **already merged** to main at `1aa1fc41`; these two commits sit on top of that merge point, so the branch is behind main and main has since taken newer JOURNAL entries from other lanes. Expect a `JOURNAL.md` conflict on re-merge — resolve newest-first by commit time (the established Lane D resolution), never by dropping a side.
+
+**Changes:** `docs/handoffs/2026-07-25-dev-knowledge-architect/` (`SUPPLEMENT.md` filled; `HANDOFF_BOOT.md` / `RESIDUAL.md` / `PROBES.md` reflowed; `PASTE_THIS.md` re-assembled), `JOURNAL.md` (this entry).
+
+**Next:** operator GO → re-merge `--no-ff` → merge-SHA anchor. The paste is now the FILLED article — the next architect chat boots with the strategic *why* in hand.
+
 ### 2026-07-25 — CC (Opus 5): cross-repo architect handoff generated for `ai-council` (`2026-07-25-ai-council-architect`)
 
 **Did:** `/handoff architect ai council` — generated the v5.7 architect bundle for the **`ai-council`** target, hosted in the hub per ADR-36/41 (**read-only on the target throughout**; every command run against `Dev/ai-council` was a read, and `pre-commit run --all-files` was deliberately NOT used as a probe because that repo's `normalize-headers`/`toc-generate` hooks are formatters that rewrite files). Window covered = since the 2026-07-23 bundle: six first-parent merges (`766241a` #27 scoring instrument + STEP-0 acceptance-freeze reads, `b1f3319` the FLOOR1 R1 allowed-set ruling, `b94e8d1` #97 Unit 1 claim-vs-reality checker, `6002aba` the 12-id filing batch, `1fa0054` the #97 reconciliation).
@@ -46,6 +62,7 @@
 **One honest caveat recorded, not smoothed:** the answers state some repo-state values (a task count, a HEAD sha, an outstanding-rule total), which is **beyond the interview's why-only scope** (§13 hard scope constraint) and partially pre-answers P9/P11. Committed verbatim regardless — editing operator answers is not mine to do — with an explicit note in `PROBES.md` that the supplement is a generation-time snapshot, is never trusted over the repo, and that **the probe wins on any disagreement**. Post-fold re-verification against the `ai-council` root: **17 pass / 0 fail / 0 warn**; `validate_residual_completeness` OK.
 
 **Size warn, not suppressed:** `PASTE_THIS.md` assembles to ~77.5 KB against the assembler's 65 KB budget. The growth is the verbatim supplement itself, not re-narration creep in the CC-authored sections (the prior cross-repo bundle shipped at ~75.7 KB). Flagged rather than paid for by trimming operator content.
+
 ### 2026-07-25 — CC (Opus 5): architect handoff bundle `2026-07-25-dev-knowledge-architect` generated
 
 **SHA anchor (ADR-85).** One commit on `docs/handoff-0725-architect`, off `19cf25dc`: **`ada52980`** (the five-file v5 architect bundle). Committed, **NOT merged, NOT pushed, no self-GO** — the operator holds the GO. No backlog task advanced or closed (the BACKLOG advisory is correctly empty).
