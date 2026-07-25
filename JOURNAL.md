@@ -19,6 +19,26 @@
 
 ---
 
+### 2026-07-25 — CC (Opus 5): intake **#17** ingested (consolidation decision v2) — and the concurrency hazard fired, MISFILING the commit
+
+**SHA anchor (ADR-85).** **`96d07bd7`** — the intake ingestion. **Anchored with its disposition OPERATOR-PENDING:** this commit is misfiled (below), and if it is split or dropped, the correction is a *later* JOURNAL append, never an edit here (append-only; the `[#388]` correction-record precedent).
+
+**Did.** Ingested the operator-held `2026-07-25-consolidation-decision-v2.md` as **intake #17** at `docs/intake/2026-07-25-tech-consolidation-decision.md` (naming per `docs/intake/README.md` §4 — `tech` infix, date = origin date; next-free id verified 17 across live + archived + full git history). Body is **byte-identical** to the source, verified by `diff` (brief begins at line 79); CC added only frontmatter, an ingestion note, the MANDATORY prior-art row, and a template-section map. Nothing restated, nothing decomposed, no BACKLOG task filed by this session. Status set **ACCEPTED / disposition: active** on the #13/#14 precedent (the document header records the operator's rulings) — flagged to the operator as a one-line reversal if READY was meant. An off-schema frontmatter key (`superseded-by-note`) was caught pre-commit and corrected to the ratified `note:`.
+
+**Result — verification.** `validate_backlog` OK (9 themes, 26 stories, **158 tasks**, unchanged — the single WARN is the pre-existing #409/#410 title-overlap) · intake naming clause satisfied · `validate_hermetization` exit 0 · **no new `doc_rot` WARN** for the 170-line file · `docs/intake/README.md` Contents regenerated (`gen_intake_index.py --write`, 12 → 13 docs) · all pre-commit gates passed.
+
+**THE DEFECT — the concurrency hazard fired, and this time it did damage.** The branch `docs/intake-consolidation` was created at `1aa1fc41` as instructed. Between this session's `git add -A` and its `git commit`, a **concurrent session** ran `checkout -b docs/hub-defects-handoff-tooling` in the primary checkout (reflog: `checkout: moving from docs/intake-consolidation to docs/hub-defects-handoff-tooling`). Two consequences: (1) the commit landed on **their** branch, not `docs/intake-consolidation`, which remains empty at `1aa1fc41`; (2) `git add -A` had already swept up their **uncommitted** `BACKLOG.md` filings — **`[#421]`** (verify_handoff_probes cannot bind a repo-root dotfile) and **`[#422]`** (reflow_framing's partial cold→FILLED flip has no detector) — so `96d07bd7` carries their two task lines under this session's commit message. `git commit` then failed with `cannot lock ref 'HEAD': is at 96d07bd7 but expected 1aa1fc41` — **the commit had already succeeded**; only the ref-update of the original branch failed. Nothing is lost; the work is misfiled and cross-contaminated.
+
+**NOT repaired — deliberately.** Splitting `96d07bd7` means rewriting the head of a **live** session's branch, and `git branch -f` on `docs/intake-consolidation` would merely duplicate their BACKLOG change. Both need the operator. HEAD was left on their branch rather than swapped back — doing so would inflict the same defect in reverse. `main` is untouched at `1aa1fc41` and carries none of this.
+
+**Escalation, recorded.** This is the **second firing today** of the hazard flagged in the Lane D entry and carried into the `2026-07-25-dev-knowledge-architect` residual §4 as an unfiled architect call: *no organ guards HEAD mutation by a concurrent session in the primary checkout* (`[#417]`, dirty-tree pathspec, is adjacent but does not cover it). The first firing cost nothing because the lanes touched disjoint files; this one produced a misfiled, cross-contaminated commit. Still unfiled — filing it is decomposition, which this session was explicitly scoped out of.
+
+**A gate note, for the record.** The session-end Stop gate blocked on this commit; the `/override` path was started and then **abandoned as wrong** — the block is not a false positive, which is the skill's stated bar, so the honest repair was to write this entry.
+
+**Changes:** `docs/intake/2026-07-25-tech-consolidation-decision.md` (new), `docs/intake/README.md` (regenerated index), `JOURNAL.md` (this entry). Not mine, swept in: `BACKLOG.md` (`[#421]`, `[#422]`).
+
+**Next:** operator ruling on the misfiled commit — recommended: let the other session land `[#421]`/`[#422]` properly, then re-land the intake cleanly on `docs/intake-consolidation` and drop `96d07bd7`.
+
 ### 2026-07-25 — CC (Opus 5): cross-repo architect handoff generated for `ai-council` (`2026-07-25-ai-council-architect`)
 
 **Did:** `/handoff architect ai council` — generated the v5.7 architect bundle for the **`ai-council`** target, hosted in the hub per ADR-36/41 (**read-only on the target throughout**; every command run against `Dev/ai-council` was a read, and `pre-commit run --all-files` was deliberately NOT used as a probe because that repo's `normalize-headers`/`toc-generate` hooks are formatters that rewrite files). Window covered = since the 2026-07-23 bundle: six first-parent merges (`766241a` #27 scoring instrument + STEP-0 acceptance-freeze reads, `b1f3319` the FLOOR1 R1 allowed-set ruling, `b94e8d1` #97 Unit 1 claim-vs-reality checker, `6002aba` the 12-id filing batch, `1fa0054` the #97 reconciliation).
