@@ -19,6 +19,24 @@
 
 ---
 
+### 2026-07-25 — CC (Opus 5): [#368] CLOSED — `docs/vision-reread` merged `--no-ff`; merge-SHA anchor (Lane B)
+
+**Merge-SHA anchor (ADR-85).** Operator GO given; `docs/vision-reread` merged to main `--no-ff` at **`7f248f95`** (`7f248f95b7d535646d76113e6d363df6e5c146ce`; parents `8e2ecc80` + `5767232a`). [#368] closed via that merge — task line removed, absent from BACKLOG; closes-set == set-difference == {368}, verified by id-set comparison of both blobs before committing. This entry is the merge-SHA anchor: **GO given AND the exact merge SHA recorded.** Anchored on `docs/lane-b-anchor`, merged `--no-ff` (established `docs/*-anchor` pattern, per `60d68b29` / `09e4d707`).
+
+**Did:** Merged the four-commit Lane B branch (`3cbcf39c` VISION re-read + `9d71a41a` anchor + `30a8c42b` terra-HIGH fix + `5767232a` correction record). Terra verdict at merge: 0 Critical / 0 High / 0 Low, the single MEDIUM discharged by `5767232a`.
+
+**Two lane-gate stops before the merge, both surfaced rather than worked around:**
+
+1. **Live-session block (first GO).** A session was open on the `vision-reread` worktree — merge and teardown refused per the lane's own rule. Resolved at the second GO by an unfiltered `claude.exe` enumeration resolved via transcript cwd across **all** project dirs: 3 PIDs, all accounted for by three *other* continuously-writing dirs (primary, `filings-rulings`, `ai-council`), plus an exclusive-open (`FileShare.None`) on the vision-reread transcript that **succeeded** — no process holds a write handle. The first pass sampled only the three hub dirs and so mis-mapped the third PID; the all-dirs sweep is the correction.
+
+2. **Dirty-index merge refusal.** `git merge` refused with `Your local changes to logs/TOKEN-LOG.md would be overwritten` — a **cross-session** staged weekly `/stats` append (blob `4eab81fe`, +9 lines) left by a now-closed primary-tree session. Refusal is conservative, not substantive: `logs/TOKEN-LOG.md` is the identical blob `5929ff1f` in merge-base, main, **and** the branch — the branch never touches it, and merge-base == main. Resolved by a **byte-exact park/restore round-trip** (blob + worktree copy backed up, path restored to HEAD, merged, re-staged) — **not committed, not stashed, not swept into the merge.** Verified after: staged blob `4eab81fe`, status `M  logs/TOKEN-LOG.md`, `cmp` identical to backup. It rides its own micro-branch, owner-sequenced.
+
+**Watch-out (flagged, not fixed):** the primary-tree index carried another session's staged work across a merge. Nothing was lost here because the index is **per-worktree** and the staging session had already closed, so this session was the only writer — but that safety came from circumstance, not from a guard. A staged path that the merge would otherwise sweep in is a live cross-session hazard; [#417] (dirty-tree pathspec) is the nearest open ticket.
+
+**Changes:** `JOURNAL.md` (this anchor entry only).
+
+**Next:** full verification on main, push, worktree + branch teardown.
+
 ### 2026-07-25 — CC (Opus 5): CORRECTION to the entry below — its portability conclusion is SUPERSEDED by `30a8c42b`
 
 **Supersedes one claim in the next entry** (which stands unedited — JOURNAL is append-only). That entry reports, as a live-verified result, that "the methodology corpus is genuinely portable (`scripts/*.py` verified path-free)". **That conclusion was wrong and is superseded by `30a8c42b`.** Raised as terra MEDIUM in `docs/audits/2026-07-25-codex-vision-reread-recheck.md` — the session record was still presenting a disproven conclusion as verified.
