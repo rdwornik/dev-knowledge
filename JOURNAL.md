@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-25 — CC (Opus 5): Lane D merged `--no-ff`; merge-SHA anchor + the TOKEN-LOG lane anchor it was missing
+
+**Merge-SHA anchor (ADR-85).** Operator GO given; `docs/lane-d-rulings` merged to main `--no-ff` at **`27f033df`** (`27f033dfd4579f9294b278df3c5a31c2ff213193`; parents `d589844c` + `29839e9c`). Closes-set **{262, 295, 304, 339}** == the task-line set-difference, verified on both blobs before committing. Post-merge count **158 tasks** exactly as targeted: 158 at the branch point − 1 (`[#368]`, closed separately on main by Lane B) − 4 closed here + 5 filed here. Stories 27 → 26 ([S23] retired by Lane D).
+
+**Second anchor, for a lane this session did not run.** The `logs/TOKEN-LOG.md` weekly `/stats` append landed at **`d589844c`** (merge; leaf `bd543bdb`) and was **never anchored** — recorded here to close that gap. It was committed by the **live `ai-council` session operating in this primary checkout** at 14:30–14:32, fired by its own `/session-summary` staleness check, while this session was mid-Step-0. Content is intact: committed blob `4eab81fe` is byte-identical to the backup this session took when it parked the file through the two Lane B merges.
+
+**Conflict resolution (both pre-ruled, no others encountered).** `JOURNAL.md` — both sides kept in full, ordered newest-first by commit time, so Lane D (`d2882c84` 14:03:55) sits above the Lane B block (`f21c0fb2` 13:59:33); zero content edit, all four entry headers verified present exactly once. `docs/audits/README.md` — **regenerated** rather than hand-merged (`gen_audit_index.py --write`), because it is a generated surface behind the `audit-index-freshness` regen-and-diff gate; a hand-merge of the two competing counts (278 vs 277) would have been a fabricated number and would have failed the hook. Live truth **279**; both sides' index rows present; `--check` exits 0.
+
+**Lane D's own anchoring — verified, no repair needed.** 5 of its 7 commits are cited in its entry (`b4ac7d54`, `89ae1d1d`, `9fa8bdef`, `19b5d598`, `2945f894`). The two uncited are `d2882c84` and `29839e9c` — the anchor and addendum commits themselves, which structurally cannot cite their own SHAs.
+
+**Watch-out (flagged, not fixed):** a **live session mutated main in this primary checkout mid-arc** — branch, commit, `--no-ff`, push — between this session's state read and its next command. Nothing was lost, but only because the two lanes touched disjoint files and the intruding lane completed cleanly before this merge began. The primary checkout has no concurrency guard; [#417] (dirty-tree pathspec) is adjacent but does not cover HEAD mutation by a concurrent session.
+
+**Changes:** `JOURNAL.md` (this anchor entry only).
+
+**Next:** [#401] clause (b) ruling on its own micro-branch; then teardown.
+
 ### 2026-07-25 — CC (Opus 5): LANE D — rulings, closures, filings (`docs/lane-d-rulings`)
 
 **SHA anchor (ADR-85).** Four commits on `docs/lane-d-rulings`, off `8e2ecc80`: **`b4ac7d54`** (Part 1 filings) - **`89ae1d1d`** (Part 2 rulings) - **`9fa8bdef`** (Part 3 executions) - **`19b5d598`** (Part 4 closures). Committed, **NOT merged, NOT pushed, no self-GO** — the operator holds the GO. Sole id allocator this cycle (the parallel `vision-reread` lane files none).
