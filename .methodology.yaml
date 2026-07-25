@@ -25,6 +25,29 @@ sanctioned_divergences:
       canonical id both consumers already record as not-carried.
     review_date: 2026-10-13
 
+  # --- ADR-77 transcript-immutability guard: ARMED over a zone that no longer exists -
+  - component: adr77-transcript-guard
+    reason: >-
+      RULED 2026-07-25 (Lane D): the ADR-77 PreToolUse guard
+      (scripts/hooks/block_immutable_edits.py, wired in .claude/settings.json) STAYS
+      ARMED, and the two facts that make it look wrong are declared here rather than
+      left to be rediscovered. (1) Its zone -- docs/decisions/transcripts/** -- was
+      DELETED 2026-07-22 (operator ruling, merge b4435fad: council-in-ADR output
+      retired). The guard is therefore currently a no-op against an empty path, kept
+      armed deliberately: it is the standing refusal that re-creating the zone does
+      not silently re-open in-place editing of an immutable record, and disarming it
+      would cost more than it saves. (2) Its reach is Claude MUTATING TOOLS ONLY
+      (Edit / MultiEdit / Write / NotebookEdit -- MUTATING_TOOLS). A write via the
+      Bash or PowerShell tools (`Set-Content`, `>>`, `git checkout`) is NOT caught;
+      the module docstring says so, and this entry makes that limit a declared
+      surface rather than a footnote. Hub-local: no consumer carries a transcripts
+      zone (ADR-42 centralizes handoffs/transcripts at the hub), so no consumer
+      carries this guard. Component id maps to no v1 parity surface -- inert by the
+      Informant's own contract, declared for the review sweep. Re-read at
+      review_date: if the zone is still absent, decide keep-armed vs retire; the
+      Bash-write gap is a separate organ question, not a reason to disarm.
+    review_date: 2026-10-25
+
   # --- hub-only append-only record + authoring commands (ADR-36/42 centralization) --
   - component: token-log
     reason: >-

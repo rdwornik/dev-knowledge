@@ -23,7 +23,29 @@
 - On PATH: `claude` CLI, `pre-commit`, and a `python` that imports `pre_commit`.
 - The consumer working tree is **clean** (the deploy preflight aborts on a dirty tree).
 - The consumer will be registered in the ecosystem at Layer 5 (below).
-- Notation: `<consumer>` = the consumer repo's filesystem path; `<name>` = its short repo name.
+- Notation: `<consumer>` = the consumer repo's filesystem path; `<name>` = its registry
+  name — the `ecosystem/deployed-versions.yaml` key, which is also the short repo name.
+
+### Consumer-identifier arg form, per command ([#304])
+
+The identifier is **not uniform** across the runbook's commands: three take the registry
+NAME, three take a filesystem PATH. A literal reading of the notation key alone cannot
+predict which, so read the form off this table before substituting. It is the authority;
+if a command below disagrees with it, the table is what to trust.
+
+| Command | Consumer identifier | Form |
+|---|---|---|
+| `deploy/tool.py <name> --target <ver>` | positional | **NAME** — resolved against `deployed-versions.yaml`; a path aborts preflight with "not a registered consumer" |
+| `scripts/audit.py repo <name>` | positional | **NAME** |
+| `scripts/audit.py repo <name> --repo-path <consumer>` | `--repo-path` | **PATH** — overrides the stored path (bootstrap / ad-hoc) |
+| `scripts/enforcement_coverage.py --consumer <name> --run-date <YYYY-MM-DD>` | `--consumer` | **NAME** — "by registry name"; `--run-date` is **required** (no wall-clock read) |
+| `deploy/floor_conformance.py --consumer <consumer>` | `--consumer` | **PATH** — the tree is cloned to a temp dir |
+| `lived_sandbox.cli observe-arc --consumer <consumer>` | `--consumer` | **PATH** (`<repo-path>`) |
+| `scripts/fleet_health.py` | — | none (whole fleet) |
+| `.claude/check_floor_hash.py --require-present` | — | none (run INSIDE the consumer) |
+
+Note the collision: `--consumer` means NAME to `enforcement_coverage.py` and PATH to
+`floor_conformance.py`. Same flag, different form — that is the trap this table exists for.
 
 ---
 
@@ -37,10 +59,10 @@ Run an assess (read-only plan) first, then execute the converge:
 
 ```bash
 # read-only: preflight + detect + print the plan (no writes)
-python deploy/tool.py <consumer> --target 1.2.0
+python deploy/tool.py <name> --target 1.2.0
 # apply every needing-apply carrier, verify each, stage the consumer + write the version
 # record (destroy-confirm required before pruning any status:removed component)
-python deploy/tool.py <consumer> --target 1.2.0 --execute
+python deploy/tool.py <name> --target 1.2.0 --execute
 ```
 
 ### 1. Floor (ADR-78 / ADR-93)
@@ -62,7 +84,7 @@ reconciler; the ordered set lives in the manifest `carriers:` block.
 
 ```bash
 python scripts/audit.py health                               # -> hooks/organs healthy
-python scripts/enforcement_coverage.py --consumer <consumer> --fire   # -> organs FIRE
+python scripts/enforcement_coverage.py --consumer <name> --fire --run-date <YYYY-MM-DD>   # -> organs FIRE
 ```
 
 ### 3. Lifecycle command (tier1-lifecycle plugin, ADR-70)
@@ -139,7 +161,7 @@ python scripts/audit.py health                               # [hub-runnable]
 #   -> hooks_armed OK + reconciled_versions OK; exit 0
 python .claude/check_floor_hash.py --require-present   # [consumer-only] — run inside the consumer
 #   -> PASS (fails LOUD on a deleted-but-tracked floor)
-python scripts/enforcement_coverage.py --consumer <consumer> --fire   # [hub-runnable]
+python scripts/enforcement_coverage.py --consumer <name> --fire --run-date <YYYY-MM-DD>   # [hub-runnable]
 #   note: --fire requires --run-date (the fire_test needs a run date to stamp the synthetic arc)
 #   -> the deployed mesh organs FIRE on a real branch->edit->commit arc (Informant fire_test)
 PYTHONPATH=deploy python -m lived_sandbox.cli observe-arc --consumer <consumer>   # [hub-runnable]
