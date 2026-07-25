@@ -24,9 +24,11 @@ Entered as 14 files from `research/` and `council-questions/` (2026-05-27 taxono
 - `2026-04-24-claude-md-best-practices.md` — external research on CLAUDE.md structuring best practices
 - `2026-04-23-llm-dev-patterns-2026.md` — external Perplexity research on LLM dev patterns 2026
 
-## Promoted (2026-05-28 first review) → docs/decisions/transcripts/
+## Promoted (2026-05-28 first review) → `docs/decisions/transcripts/` (destination since DELETED)
 
-All 7 are AI Council debate outputs (identical structure to existing council-out-* files in transcripts/). Original filenames retained.
+All 7 are AI Council debate outputs (identical structure to the council-out-* files that lived in transcripts/). Original filenames retained.
+
+> **Pointer correction 2026-07-25.** The destination folder `docs/decisions/transcripts/` was **deleted 2026-07-22** (operator ruling — council-in-ADR output retired; decisions live in the ADRs, git history retains the raw transcripts; the ADR-77 guard stays armed and the folder must not be recreated — CLAUDE.md §4). The seven files below are therefore **no longer on disk**; this section is retained as the historical record of where they went, not as a live path. Recover any of them from git history.
 
 - `2026-04-27-handoff-patterns-council-research.md` — Council research debate: handoff patterns for solo developers
 - `2026-04-24-council-29-spec-kit-kiro.md` — Council debate #29: Spec Kit / Kiro spec-driven workflows
