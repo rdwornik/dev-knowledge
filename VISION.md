@@ -1,7 +1,7 @@
 ---
 version: 1.0
 owner: rob
-last_reviewed: 2026-06-19
+last_reviewed: 2026-07-25
 status: active
 ---
 
@@ -11,9 +11,17 @@ status: active
 ## Vision
 
 `.dev-knowledge` is a universal LLM-driven development guide and
-methodology framework. It works in any folder on any machine — portable,
-self-contained, machine-agnostic. It is the ecosystem's knowledge guardian
-and methodology author: it absorbs lessons from individual projects,
+methodology framework. Its **methodology corpus** — protocols, ADRs,
+templates, and the read-only validators in `scripts/` — is portable,
+self-contained, and machine-agnostic: it carries no machine-specific
+paths and applies in any folder on any machine. Its **fleet-registry and
+machine-automation layer** is deliberately bound to this machine and does
+not travel: the derived `ecosystem/index.yaml`, the marketplace path in
+`.claude/settings.json`, `scripts/fleet-baseline.task.xml` (Windows Task
+Scheduler), and the gitignored per-repo `ecosystem/*/state.yaml` all pin
+this host — a fresh clone runs the methodology but must re-seed the
+registry before the self-audit reports. It is the ecosystem's knowledge
+guardian and methodology author: it absorbs lessons from individual projects,
 universalizes them into patterns, and disseminates those patterns back as
 enforceable conventions. It also functions as auditor — verifying correct
 methodology implementation against the universal governance baseline
@@ -88,17 +96,28 @@ joining ecosystem, sustained friction in current emphasis areas.
 Core operating values (how Claude reasons, communicates, and verifies)
 live in `protocols/ESSENTIALS.md` "How Claude thinks" section. VISION
 defers to ESSENTIALS for principles — no duplication. Key principle:
-**continuous improvement** as default project posture (see ESSENTIALS
-"Continuous Improvement" section).
+**continuous improvement** as default project posture (ESSENTIALS
+"Governance frame"; canonical: PLAYBOOK Ch13 "Project-evolution posture").
 
 ## Relationships
 
-`.dev-knowledge` is the meta-layer of the ecosystem. Child repositories
-under `Dev/` (corp-monorepo, ai-council, corp-ops, corp-sca-time-automation,
-future repos) are independent projects that consume `.dev-knowledge`
-methodology and conventions. There is **no hierarchy** in the authority
-sense — only **functional roles**: `.dev-knowledge` produces methodology;
-child repos consume and feed back lessons.
+`.dev-knowledge` is the meta-layer of the ecosystem. The fleet is **nine
+git repos** (ADR-104): the hub `.dev-knowledge` plus eight child
+repositories under `Dev/` — `ai-council`, `corp-monorepo`, `corp-ops`,
+`corp-sca-time-automation`, `demo-prep`, `life-architect`,
+`terminal-setup`, `win-tooling`. The children are independent projects
+that consume `.dev-knowledge` methodology and conventions. There is **no
+hierarchy** in the authority sense — only **functional roles**:
+`.dev-knowledge` produces methodology; child repos consume and feed back
+lessons.
+
+**Fleet shape** (ADR-104, Accepted 2026-07-24): the fleet remains a
+governed **polyrepo**. The ruled shape is a **partial** fold —
+`corp-monorepo` stays permanently outside it (history-entangled employer
+material plus a load-bearing test dependency), and the remaining repos
+consolidate **incrementally**, verifying value stage by stage rather than
+in one move. No fold executes on that ADR, so the independent-repo
+relationship above is current state, not a provisional arrangement.
 
 **Pattern for child repos** (per ADR-33 universalization):
 every project under `Dev/` should have its own `VISION.md` following this
@@ -107,10 +126,14 @@ Child repo VISION files are project-specific; `.dev-knowledge` VISION is
 universal.
 
 **Special case — `ai-council`:** functions as a tool used by `.dev-knowledge`
-to generate architectural decisions. The canonical transcript stays in
-`ai-council/output/` (source of truth); a copy routes to the **target
-project's** `docs/decisions/transcripts/` when the debate names one (per ADR-43 —
-for `.dev-knowledge`-targeted debates that is `.dev-knowledge`).
+to generate architectural decisions. A transcript's **sole** home is the
+canonical `ai-council/output/`. The routed-mirror clause of ADR-43 was
+**retired 2026-07-23** (RE-SCOPE, operator ruling 2026-07-22): transcripts
+no longer route into any repo's `docs/decisions/transcripts/`, and
+`target-project:` / `--target-project` are not to be set. This hub's
+landing zone was deleted 2026-07-22 (`b4435fad`) and must not be
+recreated — the ADR-77 immutability guard stays armed. ADR-43 still
+governs ai-council's repo-local canonical-write production.
 
 ## Lifecycle
 
@@ -130,14 +153,15 @@ artifacts to detect drift:
 - Drift signal: any of above contradict VISION → trigger review
 
 **Audit support:** verification mechanism implemented via `.dev-knowledge`
-auditor (`scripts/audit.py` per ADR-36 — `health`/`repo`/`run`/`registry`
-commands, read-only). The cross-repo `run`/`repo` are manually invoked; the
-self-audit `health` (all registered `ALL_CHECKS` — count via `scripts/audit.py checks`) runs as this repo's pre-commit gate ([#69]).
+auditor (`scripts/audit.py` per ADR-36 — `health`/`repo`/`run`/`registry`/
+`ship-gate`/`checks` commands, read-only). The cross-repo `run`/`repo` are
+manually invoked; the self-audit `health` (all registered `ALL_CHECKS` — count via `scripts/audit.py checks`) runs as this repo's pre-commit gate ([#69]).
 Manual session-close verification per HANDOFF_PROCESS.md complements the tool.
 
 **Vision realized:** when current Vision becomes current state, archive
-as `docs/archive/VISION_v{N}_realized_YYYY-MM-DD.md` and propose next
-horizon. VISION file stays alive — only its content evolves.
+as `docs/archive/YYYY-MM-DD-vision-vN-realized.md` (the dated-artifact
+naming convention, CLAUDE.md §4) and propose next horizon. VISION file
+stays alive — only its content evolves.
 
 **Tier classification:** retired 2026-05-23. The repo-tier system (ADR-33
 `tier:`/`scale:` frontmatter, ADR-40 algorithmic computation) is deprecated
@@ -158,5 +182,5 @@ edit for clarifications and References section.
 - `JOURNAL.md` — session-by-session activity history (and notable-change record; replaces the retired CHANGELOG.md per ADR-49)
 - `BACKLOG.md` — cross-session pending items (per ADR-41)
 - `CONTRIBUTING.md` — branch/commit/validator conventions
-- `docs/decisions/` — architectural decisions (ADRs + transcripts)
+- `docs/decisions/` — architectural decisions (ADRs only; the `transcripts/` landing zone was deleted 2026-07-22)
 - ADR-88 — File-oriented dependency management (markdown as a design pattern): repo files are the dependency unit; coherence across the declared edge-graph is held by mechanism — a conformance harness — not by memory.
