@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-25 — CC (Opus 5): cleanup — orphaned #262 disposition cleared, [#423] filed
+
+**Merge-SHA anchor (ADR-85).** `docs/0726-cleanup` merged to main `--no-ff` at **`ac798945`** (leaf `1d8a2b5d`). Adds one task id, removes none — `kill-candidates:` carried on both the leaf and the merge.
+
+**Did — 1, register hygiene.** Removed `warn-doc-rot-backlog-262` from `ecosystem/disposition-register.yaml`. `[#262]` closed this arc (Lane D, `27f033df`), so its task line left `BACKLOG.md` and the WARN the entry suppressed can no longer fire — ship-gate had printed it as `[stale]` in every run since. Replaced with a cleared-record comment following the `warn-doc-rot-backlog-286` precedent immediately above it (ADR-75 review/remove); the register keeps the trace rather than losing it silently. **Verified by re-run: the `[stale]` line is gone**, dispositioned count unchanged at 13 (a stale entry was never among them).
+
+**Did — 2, filed `[#423]` under `[S7]`** — *the integration sequence runs on prose every time, never mechanized*. Eight steps, each earned from a real incident (live-session enumeration across ALL project dirs · merge-subject scan · `--no-ff` · JOURNAL anchor on its own branch · exit codes read directly, never via a pipe · push · `-d`-only teardown); `/ship` automates three and checks no precondition. Evidence recorded in the row: this arc lost two round-trips to prose-instruction defects — a dirty index called non-blocking when git refuses outright, and a `-d` refusal called an unmerged-work detector without the HEAD-on-main precondition that makes it one. Filing only, zero build. Row deliberately trimmed to **1196 chars** across three passes to stay under the 1200 `doc_rot` threshold, so the filing introduces no net-new WARN to disposition later.
+
+**Result — verification (exit codes read DIRECTLY, never through a pipe).** `validate_backlog` **0** (9 themes, 26 stories, **159 tasks** — 158 + 1) · `validate_git_backlog` **0** · `audit.py ship-gate` **0, GREEN**, 13 WARN dispositioned, **zero `[stale]`**. **`pytest` skipped deliberately, with the reason stated rather than silently omitted:** no code changed — one BACKLOG prose row and one YAML comment — and the full suite ran green (1733 passed, 3 skipped) on this exact tree at `89de69a6` minutes earlier.
+
+**Not fixed, reported.** The empty directory `.claude/worktrees/ai-council-handoff` still exists after a second `rmdir` attempt (`Device or resource busy`) — a process holds it as cwd. Git-side is clean (`git worktree prune` exit 0, `.git/worktrees` absent). Left alone by instruction: no force-delete, no process killed. It clears itself when that process exits.
+
+**Changes:** `ecosystem/disposition-register.yaml`, `BACKLOG.md` (one row), `JOURNAL.md` (this entry).
+
 ### 2026-07-25 — CC (Opus 5): merge-SHA anchor — the FILLED handoff bundle landed on main
 
 **Merge-SHA anchor (ADR-85).** Operator GO given; `docs/handoff-0725-architect` merged to main `--no-ff` at **`a2cebf47`** (`a2cebf4780f29139ffab57dcf6fc44f88034d901`; parents `1aa1fc41` + `357a15ef`). Leaves `71615bdd` · `138f9bb5` · `357a15ef`. **Closes no backlog task** — the id set-difference is empty in both directions (158 == 158), so no bracket `[#id]` and no `kill-candidates:` line were owed; the pre-merge subject scan found zero close/fix verbs.
