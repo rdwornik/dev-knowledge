@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-25 — CC (nightly automation, claude-sonnet-4-6): fix-live-backlog-test SHA anchor + nightly conformance review
+
+**SHA anchor (ADR-85).** Merge **`8e2ecc8`** (docs/fix-live-backlog-test, parents `29d50e4` + `618a2b2`) not covered by any JOURNAL entry — anchored here. Lane contents: `6d45df8` re-pointed `test_live_backlog_no_spurious_dup_warn` from live BACKLOG to a fixture (fixes the Lane C `#409`–`#411` main-red regression, teeth verified 0.70→0.50 flags the 0.545 pair); `618a2b2` terra codex-review clean (0 findings); `8e2ecc8` merged `--no-ff`; `[#415]` filed for the sibling live-content-test audit scope.
+
+**Did:** Ran nightly conformance review (spec-orchestration fallback path — native Workflow launcher not available in cloud). Launched V1/V2/V3 read-only verifiers in parallel; V1 completed (1 finding: fix-live-backlog-test omission — this entry resolves it). V2/V3 still in progress at JOURNAL-write time.
+
+**Result:** Conformance review in progress. Digest will be committed to this branch (`claude/conformance-2026-07-25`) at `docs/audits/2026-07-25-conformance-nightly-digest.md` once all stages complete.
+
+**Changes:** `JOURNAL.md` (this anchor entry). `docs/audits/2026-07-25-conformance-nightly-digest.md` (pending — second commit on this branch).
+
+**Next:** Await V2/V3 + skeptic + digest synthesis; write digest; commit + push; open PR.
+
 ### 2026-07-25 — CC (Opus 4.8): [#381] CLOSED — ADR-104 ACCEPTED + merged --no-ff; merge-SHA anchor
 
 **Merge-SHA anchor (ADR-85 / [#414] gap closed for this arc).** Operator GO given; ADR-104 accepted and merged to main `--no-ff` at **`92fabb51`** (`92fabb514a4f14e0df892292df3543aaa9d31c08`; parents `023520f0` + `6943c584`). [#381] closed via that merge (task line removed, absent from BACKLOG; closes-set == set-difference == {381}). This entry is the merge-SHA anchor — **GO given AND the exact merge SHA recorded** — closing the gap that failed three times this week (the reason [#414] exists). Anchored on `docs/lane-a-anchor`, merged `--no-ff` (established `docs/*-anchor` pattern, per `09e4d707`).
