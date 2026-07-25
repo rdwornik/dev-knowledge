@@ -11,16 +11,19 @@ status: active
 ## Vision
 
 `.dev-knowledge` is a universal LLM-driven development guide and
-methodology framework. Its **methodology corpus** — protocols, ADRs,
-templates, and the read-only validators in `scripts/` — is portable,
-self-contained, and machine-agnostic: it carries no machine-specific
-paths and applies in any folder on any machine. Its **fleet-registry and
-machine-automation layer** is deliberately bound to this machine and does
-not travel: the derived `ecosystem/index.yaml`, the marketplace path in
+methodology framework. Its **doctrine is host-independent**: the
+conventions it defines, and the read-only validators in `scripts/` that
+enforce them, carry no machine-specific paths and apply to any repo in any
+folder. Its **artifacts are not** — two layers bind to this host, in
+different ways. The corpus *documents* the host in places
+(`protocols/ENVIRONMENT.md` is a machine description by design;
+`templates/prompt-template.md` and some ADR examples cite absolute paths).
+The **fleet-registry and machine-automation layer** *depends* on it: the
+derived `ecosystem/index.yaml`, the marketplace path in
 `.claude/settings.json`, `scripts/fleet-baseline.task.xml` (Windows Task
-Scheduler), and the gitignored per-repo `ecosystem/*/state.yaml` all pin
-this host — a fresh clone runs the methodology but must re-seed the
-registry before the self-audit reports. It is the ecosystem's knowledge
+Scheduler), and the gitignored per-repo `ecosystem/*/state.yaml`. A fresh
+clone can apply the methodology; the fleet automation and the self-audit
+registry must be re-seeded for their host. It is the ecosystem's knowledge
 guardian and methodology author: it absorbs lessons from individual projects,
 universalizes them into patterns, and disseminates those patterns back as
 enforceable conventions. It also functions as auditor — verifying correct
