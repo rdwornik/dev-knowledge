@@ -154,14 +154,9 @@ dispositions:
   # (cleared 2026-07-08, grooming leg-c) warn-doc-rot-backlog-286 — leg-c re-scoped #286 to its
   # remaining leg (S<n> ids + validate_backlog schema extension), dropping its dated blocks below
   # the accretion threshold. Removed to avoid stale-disposition decoration (ADR-75).
-  - id: warn-doc-rot-backlog-262
-    organ: doc_rot
-    match: "BACKLOG#262"
-    ref: "#262"
-    reason: >-
-      Accretion on the child-repo codemap-migration task. Grooming leg-c (2026-07-08) ruled #262
-      KEEP untouched (cross-repo tracking; per-repo Wave-1 work), so the WARN stands; condense
-      deferred to a future currency pass. Not introduced by the grooming arc.
+  # (cleared 2026-07-25, Lane D follow-up) warn-doc-rot-backlog-262 — [#262] CLOSED this arc
+  # (Lane D, merge 27f033df), so its task line left BACKLOG.md and the WARN it suppressed can no
+  # longer fire. Removed to avoid stale-disposition decoration (ADR-75 review/remove).
   - id: warn-doc-rot-backlog-278
     organ: doc_rot
     match: "BACKLOG#278"
