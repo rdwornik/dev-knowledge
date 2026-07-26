@@ -19,6 +19,27 @@
 
 ---
 
+### 2026-07-26 (h) — CC (Opus 5): P10's whole-open-set grooming clause is not satisfiable as a boot probe
+
+**Recording only — operator-ruled. No ticket filed this window, `PROBES.md` not amended.** The finding is durable; the grooming *output* is not, and is deliberately absent below (see the disposition at the end).
+
+**The finding.** `PROBES.md` **P10** requires that, at boot, **every OPEN item** in `BACKLOG.md` be classified **live / dead / awaiting-ruling** — "no open `#id` may pass unreconciled." Ran it in full this window against live state. **The clause is not satisfiable as a probe**, and the reason is structural rather than a matter of effort.
+
+**Its two deterministic legs are sound and reproducible**, and they are the part that genuinely works:
+1. **Dead-by-shipped** — intersect the open-id set against every `closes [#id]` on `main`'s first-parent spine (full history). Mechanical, and it corroborates `validate_git_backlog` by a **second independent route** rather than restating it. Returned an empty intersection at this run.
+2. **Awaiting-ruling** — scan open task lines for ruling-blocked markers (operator-gated / unruled / needs-a-ruling / core-invariant #6). Mechanical, returned a small bounded set.
+
+**What neither leg can do.** The remaining open ids are **un-adjudicated residue, not groomed.** "Not mechanically shown dead and not marker-flagged" is a *negative* result; it is not a judgment that an item is live. Reaching a real per-id live/dead verdict means **reading each task body and checking it against current state** — that is an **arc, not a probe**, and it does not fit inside a boot gate at any plausible open-item count.
+
+**Why that matters more than the effort involved: a gate demanding unbounded judgment has only two stable states, and both are failures.** Either the receiver **rubber-stamps** it (declares the whole set groomed on the strength of the two cheap legs — which is precisely how a probe becomes fake-green, the §5 disease v5 was built to kill), or it **blocks permanently** (no session can ever honestly satisfy it, so the gate is routed around). This window it was answered honestly, which meant returning a PASS whose largest component was explicitly labelled *un-adjudicated* — an outcome that is truthful but tells you the clause is mis-shaped, because a probe whose honest answer needs a caveat that large is not measuring what it claims to.
+
+**Candidate fix, not adopted, not ticketed:** narrow P10 to its two deterministic legs (which are genuinely teeth-bearing — both are live-only, generator-excluded, and CC-checkable per §5) and route per-id adjudication to a **scheduled grooming arc**, where unbounded judgment belongs and can be paid for.
+
+**Disposition — and it is the reason this entry carries no list.** The 
+grooming table and the awaiting-ruling id set are **derived state**, cheaply re-derived by the two commands above. A prose copy here would be **stale the moment one id is ruled**, and detecting that rot costs more than regenerating the list. That is the same defect class as `ARCHITECTURE.md` asserting "ratified through ADR-103" while ADR-104/105 already bound — the failure this repo has now paid for more than once. **Findings discovered during a close are RECORDED, not chased.**
+
+---
+
 ### 2026-07-26 (g) — CC (Opus 5): supplement FILLED, folded, and reconciled against live state
 
 **Did:** Operator returned the filled architect supplement. Committed it **verbatim** at **`b3a19bba`** (217 lines, zero re-typing, zero fabrication — the v5.2 contract), then folded and reconciled at **`98193954`**. `assemble_paste.py` flipped the cold framing to FILLED in `HANDOFF_BOOT`/`RESIDUAL`/`PROBES` and folded the ANSWERS region; `PASTE_THIS` 45KB → 62KB.
