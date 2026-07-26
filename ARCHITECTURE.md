@@ -40,15 +40,20 @@ owner: Rob
 framework for all `Dev/` projects. It is **Layer 2** of the ADR-28 three-layer
 ecosystem model — passive storage and governance authority, not an execution
 engine. It holds operational protocols, ADRs, intake docs, handoffs, templates, and
-read-only validators; it prescribes conventions that child repos must follow. **Read a fleet
-count off the surface that defines it — three denominators exist and they differ by design**
-(onboarded ⊂ registered ⊂ all git repos): the **machine registry** `ecosystem/index.yaml` —
-derived from `ecosystem/<repo>/state.yaml` presence, regenerated wholesale by
-`audit.py registry update`, **never hand-edited** — carries the hub plus corp-monorepo,
-ai-council, corp-ops, corp-sca-time-automation, win-tooling; the hand-maintained **human
-registry** `ecosystem/registry.md` carries those plus the methodology-unonboarded repos; and
-**ADR-104** declares the fleet as **9 git repos**. Do not restate a number here that a surface
-already computes. It is consulted as context by
+read-only validators; it prescribes conventions that child repos must follow. **A fleet count
+is meaningless without its surface — three nest, and each is authoritative for its own
+question** (machine-registered ⊂ human-registered ⊂ all git repos):
+
+| Denominator | Authoritative surface | Answers |
+|---|---|---|
+| machine-registered | `ecosystem/index.yaml` — **derived** from `ecosystem/<repo>/state.yaml` presence, regenerated wholesale by `audit.py registry update`; **never hand-edit it** | which repos the audit machinery walks |
+| human-registered | `ecosystem/registry.md` — hand-maintained; add a row when a repo joins `Dev/` | which repos the operator tracks at all |
+| all git repos | **ADR-104** | the fleet's shape as ruled |
+
+`onboarded` is a **separate axis, not a fourth denominator** — it is `registry.md`'s Status
+column, backed by `ecosystem/deployed-versions.yaml`, and a machine-registered repo may still
+be unonboarded. Read a count off the surface that defines it; do not restate one here. It is
+consulted as context by
 Claude Code, Codex, Cursor, and other agents. **Nothing here executes orchestration**
 — everything is read, consulted, or passively validated. The six chapters below are
 the system as built and ratified through ADR-105.
@@ -127,7 +132,7 @@ resource** the whole system economizes — every protocol that compresses contex
 |---|---|
 | Layer 1 — browser chat (architect) | external — analysis & design |
 | **Layer 2 — `.dev-knowledge`** | **this repo** — passive storage, governance, prescription |
-| Layer 3 — projects (executor) | external — corp-monorepo, ai-council, corp-ops, corp-sca-time-automation, win-tooling (machine registry; full human set in `ecosystem/registry.md`) |
+| Layer 3 — projects (executor) | external — the child repos; membership is **not enumerated here** (Purpose names the three denominators and their surfaces: `ecosystem/index.yaml` machine-registered · `ecosystem/registry.md` human-registered · ADR-104 all git repos) |
 
 ---
 
@@ -175,21 +180,29 @@ this repo's `.claude/`, **plugin** = `tier1-lifecycle` (repo-class), **pre-commi
 local git gate.
 
 **Status** (added 2026-07-26 per intake #17 §5) answers a question "failure posture"
-does not: *does this organ actually run today?* — **ARMED** = wired and firing;
-**RULED-UNBUILT** = ruled into existence, not yet built (it is not in this table until
-it is; the declared-only `editor-config` carrier, `implemented: false`, is the current
-example); **RETIRED** = removed, kept only as a record. A parenthetical qualifies an
-ARMED organ whose reach is narrower than its row implies — *(no-op zone)* = armed
-against a zone that no longer exists, *(producer dead)* = firing correctly on input
-from a source that no longer runs (Ch6). An organ can be ARMED and still tell you
-nothing; read the qualifier before trusting a green.
+does not: *does this organ actually reach reality today?* — **ARMED** = present and
+invocable, and its trigger column says how it is reached; **RULED-UNBUILT** = ruled into
+existence, not yet built (it is not in this table until it is; the declared-only
+`editor-config` carrier, `implemented: false`, is the current example); **RETIRED** =
+removed, kept only as a record.
+
+ARMED is *availability*, not *automatic execution* — read it with the Trigger column. A
+parenthetical narrows it where the row would otherwise overclaim:
+
+- *(manual)* — real and invocable, but **nothing invokes it on a schedule or a gate**; it
+  runs only when a human runs it. Its automatic wiring is a named open ticket.
+- *(no-op zone)* — armed against a zone that no longer exists, so it can never fire.
+- *(stale input)* — fires correctly, on input from an upstream stage that no longer
+  produces (Ch6). The organ is healthy; what it reports is not.
+
+An organ can be ARMED and still tell you nothing. Read the qualifier before trusting it.
 
 | Organ | Trigger | Layer | Failure posture | Status | Defining ref |
 |---|---|---|---|---|---|
 | `block-onedrive.ps1` (PreToolUse) | every Bash/PowerShell/Edit/Write/NotebookEdit call (command + file_path/notebook_path) | L0 | **fail-closed** (P0) | ARMED | ADR-75, global CLAUDE.md §P0 |
 | `block_immutable_edits.py` (PreToolUse) | Claude **mutating tools only** (Edit/MultiEdit/Write/NotebookEdit) on `docs/decisions/transcripts/**` — that zone was **deleted 2026-07-22** (`b4435fad`), so the guard currently matches nothing; a Bash/PowerShell write is **not** caught | hub | fail-closed in-zone, fail-open out-of-zone | **ARMED (no-op zone)** — kept armed deliberately as the standing refusal that re-creating the zone does not silently re-open in-place editing | ADR-77 (#105); **`.methodology.yaml` `adr77-transcript-guard`** (RULED 2026-07-25, re-read at `review_date: 2026-10-25`) |
 | `fleet_health.py` (SessionStart) | session start, throttled >24h | hub · Tier-2 | fail-soft | ARMED | ADR-69/70/76 |
-| `surface_triage.ps1` (SessionStart) | session start | hub | fail-soft | **ARMED (producer dead)** | nightly outcome loop (Ch6) |
+| `surface_triage.ps1` (SessionStart) | session start | hub | fail-soft | **ARMED (stale input)** | nightly outcome loop (Ch6) |
 | `billing_leak_sentinel.ps1` (SessionStart) | session start | hub | fail-soft (WARN) | ARMED | #101 |
 | `changelog_sentinel.py` (SessionStart) | session start | hub | fail-soft | ARMED | #113 |
 | `surface-closures.ps1` (SessionStart) | session start | L0 | fail-soft | ARMED | ADR-70 (5c) |
@@ -213,9 +226,9 @@ nothing; read the qualifier before trusting a green.
 | `fleet_parity.py` → `check_fleet_parity` (audit check) | `audit.py health` (pre-commit) + `ship-gate` — blocking `ALL_CHECKS` member since [#337] ([#336] cleared the last WARN); the standalone CLI stays read-only | hub | **fail-closed** on a real divergence (FAIL: refused/must-absent/tombstone-violated; WARN→RED: undeclared/unavailable/tracked-ephemera; stale-declaration/advisory-rewarn stay advisory). The ~8s walk runs per-commit too — ship-gate-scoping is a filed follow-up | ARMED | #328/#332/#337; intake #12 + RULED #14; ADR-102/103; `ecosystem/parity-surfaces.yaml` + `dependency-baseline.yaml` |
 | `routine_consumers` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** on a declared routine whose `consumer`/`consumption_path` is missing, blank, placeholder, or duplicated. **COVERAGE BOUNDARY — green says almost nothing:** it checks ONLY BACKLOG rows carrying an ADR-105 `· routine:` marker (exactly **one** row at acceptance, [#348]). The ~30 live routines — session hooks, commit-time gates, scheduled jobs — are not BACKLOG rows, carry no marker, and are **NOT checked**; retrofit is [#426] | ARMED (scope = marked rows only) | [#419]/ADR-105 (gated at ACTIVATION, not at filing) |
 | `residual_completeness` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (changed handoff-bundle files) | hub | **fail-closed** (FAIL on a FILL-IN region still carrying its generator placeholder; degrades to WARN on internal error; scans the working tree — the staged-blob gap is #366) | ARMED | ARC-5 first enforcing mechanism; HANDOFF_PROCESS "Residual completeness"; #365/#366 |
-| `boundary_report.py` (reporter) | manual CLI | hub · read-only | fail-soft (writes `logs/BOUNDARY-DRIFT.md`; a reporter, NOT a gate — deliberately not in `ALL_CHECKS`) | ARMED | #312; CLAUDE.md Form-A regions |
-| `boundary_headers.py` (generator) | manual CLI (`--check` regen-and-diff · `--coverage`; pre-commit wiring open #369) | hub | generated-not-hand-maintained (headers derived from the #312 markers via `boundary_report` imports — a hand-edit is overwritten on regen); suite-guarded at ship-gate | ARMED | #352; `tests/test_boundary_headers.py` |
-| `fleet_analytics.py` (reporter) | manual CLI (nightly wiring open #391) | hub · read-only | fail-soft (writes `logs/FLEET-ANALYTICS.md`; `main()` always 0; NOT in `ALL_CHECKS`) | ARMED | #384 (L5a descriptive analytics); intake #16 §3 |
+| `boundary_report.py` (reporter) | manual CLI | hub · read-only | fail-soft (writes `logs/BOUNDARY-DRIFT.md`; a reporter, NOT a gate — deliberately not in `ALL_CHECKS`) | **ARMED (manual)** | #312; CLAUDE.md Form-A regions |
+| `boundary_headers.py` (generator) | manual CLI (`--check` regen-and-diff · `--coverage`; pre-commit wiring open #369) | hub | generated-not-hand-maintained (headers derived from the #312 markers via `boundary_report` imports — a hand-edit is overwritten on regen); suite-guarded at ship-gate | **ARMED (manual)** — pre-commit wiring is #369 | #352; `tests/test_boundary_headers.py` |
+| `fleet_analytics.py` (reporter) | manual CLI (nightly wiring open #391) | hub · read-only | fail-soft (writes `logs/FLEET-ANALYTICS.md`; `main()` always 0; NOT in `ALL_CHECKS`) | **ARMED (manual)** — nightly wiring is #391 | #384 (L5a descriptive analytics); intake #16 §3 |
 | `deploy/tool.py` + 5 carriers (`globalconfig`/`plugin`/`precommit`/`floor`/`mesh`) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ARMED | ADR-91/92/93; PLAYBOOK §20 |
 | `floor-hash-verify` (pre-commit) + SessionStart floor guard (`.claude/check_floor_hash.py`) | consumer commit / session start | consumer (armed by `carrier_floor`) | **fail-closed** (loud on floor drift) | ARMED | ADR-93 (#226) |
 | pre-commit gates (`.pre-commit-config.yaml`) | local commit | pre-commit · Tier-1 | **fail-closed** | ARMED | §Validators below (count in `ecosystem/doc-counts.md`) |
@@ -658,16 +671,26 @@ under a local-merge workflow was vacuous (it never fired).
 
 What that leaves, and why it is worse than a cleanly-removed loop:
 
-- **Producer: ALIVE.** The cloud Routine still emits a digest nightly onto
-  `claude/conformance-*` branches (`origin/claude/conformance-2026-07-26` exists today).
-  Nothing merges or reads them — the ADR-105 precipitating evidence: the 07-21 High
-  finding F1 was fixed on `main` by a session that never opened the branch that found it,
-  so the finding's second half went unfixed as a direct result.
-- **Triage: DEAD** since 2026-07-09 (above). No digest is diverted; no Issue is opened.
-- **Consumer: ALIVE, and asserting a falsehood.** `surface_triage.ps1` still prints
-  `[triage] N nightly finding(s) await` at every session start — currently **15 open
-  Issues, last opened 2026-06-25** — all fed by a producer that no longer runs: a live
-  consumer being told pending work exists by a dead producer. Filed as **[#428]**.
+**The two upstream stages are different organs, and only one died** — keep them apart or
+the `ARMED (stale input)` status in Ch2 reads as a contradiction:
+
+- **Stage 1, digest producer — ALIVE.** The cloud Routine still emits a digest nightly
+  onto `claude/conformance-*` branches (`origin/claude/conformance-2026-07-26` exists
+  today). Nothing merges or reads them — the ADR-105 precipitating evidence: the 07-21
+  High finding F1 was fixed on `main` by a session that never opened the branch that
+  found it, so the finding's second half went unfixed as a direct result.
+- **Stage 2, triage / Issue producer — DEAD** since 2026-07-09 (above). This is the
+  organ that turned a digest into a diverted record and an Issue. Nothing has replaced
+  it: no digest is diverted, and **no `nightly-triage` Issue has been opened since**.
+- **Stage 3, consumer — ALIVE, surfacing a frozen backlog as if it were current.**
+  `surface_triage.ps1` reads open `nightly-triage` Issues and prints
+  `[triage] N nightly finding(s) await` at every session start. Those Issues are
+  **historical artifacts of the retired Action** — currently **15 open, the newest opened
+  2026-06-25**, none of which any live organ produced or can close. The hook is healthy;
+  its input is a fossil. Filed as **[#428]**.
+
+So `ARMED (stale input)` on the Ch2 `surface_triage.ps1` row means: dead **Stage-2**
+producer, not the still-running Routine.
 
 The table below is the **retired** Action's behaviour, kept as the record of what the
 severed edge did — not as a description of anything that runs:
@@ -678,7 +701,11 @@ severed edge did — not as a description of anything that runs:
 | findings (`survived>0`) | divert the digest (it is the record, on the branch) + open a `nightly-triage` Issue |
 | anomalous (diff ≠ one ADDED digest file) | guard FAIL — nothing recorded, open an `Anomalous nightly PR` Issue |
 
-(CONTRIBUTING "Nightly outcome management"; ADR-72/76/80/84; ADR-105 §Context; [#428].)
+(ADR-72/76/80/84; ADR-105 §Context; [#428]. **Do not follow CONTRIBUTING "Nightly outcome
+management" as live guidance** — at `CONTRIBUTING.md:132-136` it still describes the Action
+in the present tense, naming the deleted `.github/workflows/nightly-conformance-triage.yml`
+as the organ that "handles the morning". That is the same severance seen from the other
+side; reconciling it is out of this window's scope and is reported, not fixed here.)
 
 **Requirements intake (upstream of decomposition; ADR-98).** Operator intent →
 `gen_handoff.py --mode functional` boots the intake-capture chat → confirm-gated intake doc in
