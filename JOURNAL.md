@@ -19,6 +19,24 @@
 
 ---
 
+### 2026-07-26 (c) — CC (Opus 5): stranded branch recovered; [#430] filed; the 1200-char ceiling BLOCKED a record
+
+**Merge-SHA anchor (ADR-85).** `docs/hub-defects-handoff-tooling` recovered to main `--no-ff` at **`d5ef97d0`** on operator GO; `docs/disposition-421-422` merged after it. Serial through the primary — this was another session's work, nothing autonomous.
+
+**Did — 1, recovered work that never reached main.** intake **#17** (`docs/intake/2026-07-25-tech-consolidation-decision.md`, 170 lines, ACCEPTED, 3 open questions R-G/R-N/R-S), `[#421]` (the `verify_handoff_probes` dotfile tokenizer), `[#422]` (`reflow_framing`'s undetected §8 self-contradiction), and the JOURNAL entry recording that `96d07bd7` was **misfiled** by a concurrent `checkout -b`. ONE conflict class as predicted — JOURNAL prepend; BACKLOG auto-merged. **Both sides kept in full**, chronological by commit time, verified byte-identical to their sources; one blank separator restored where the `=======` marker had been.
+
+**Did — 2, two dispositions under a DISTINCT reason class.** `[#421]`/`[#422]` breach 1200 as **OVERSIZED SINGLE FILINGS, explicitly NOT accretion** — one session, one day, one filing each; length is precise mechanism description, not accumulated history. Trim refused (operator ruling); other-session text is not rewritten. Precondition verified at source before writing: `reason` is **free-text** (`audit.py::_load_dispositions` validates no fields; `_match_disposition` reads only `organ`+`match`). Field set parse-identical to `#332`; shelf-life **derived** from the `#332`/`#344` +1-month precedent → `2026-08-26`. `#344` untouched — the observation that it carries this same shape under the accretion label sits in the new rows' reason text.
+
+**Did — 3, the predicate itself is mislabelled.** Recorded as a register comment, not a ticket: `validate_doc_rot` counts date **OCCURRENCES**, not **DISTINCT DAYS**, and counts dates inside **path-like tokens**. So `[#422]` — a single-day filing citing `docs/handoffs/2026-07-25-ai-council-architect/` — registers as "3 dated blocks" and trips the ACCRETION predicate although nothing accreted.
+
+**Did — 4, `[#430]` filed.** A concurrent ai-council merge (tracked root `conftest.py`, 14:53 today) reddened this repo's ship-gate mid-close. Two halves, one defect: the consumer-role template does not admit a root `conftest.py`, **and** `fleet_parity` reads live sibling-repo state, so a gate's verdict depends on state outside its subject. Dispositioned hub-side; neither ai-council's manifest nor the template was edited — both are real candidate fixes and neither was chosen by inference.
+
+**THE FINDING — the ceiling stopped being a nuisance and became a censor.** This arc hit the 1200-char `doc_rot` ceiling **six times**: the six-field marker did not fit at all; `[#428]` trimmed twice; `[#429]` twice; `[#430]` once. The **fifth** was different in kind, and it is the strongest single argument the restructure has: **`[#414]` sits at 1196 of 1200, so it could not receive the gate-bypass finding at all.** Earlier collisions cost information — a census table displaced, wording compressed. **This one prevented a record from existing.** The finding was relocated to `LESSONS.md` on operator ruling, and the reference is one-directional by necessity: the lesson cites `[#414]` as its family, but `[#414]` cannot cite back. A format that silently converts findings into non-records is not a formatting problem.
+
+**Result — verification (exit codes read DIRECTLY, never through a pipe).** See the closing verification block in the next entry's arc; `validate_backlog` **168 tasks** after `[#430]`, exactly 1 pre-existing warning; `validate_doc_rot` 5 loci, **zero undispositioned**; `ship-gate` GREEN.
+
+**Next.** `[#430]` · `[#426]` (the retrofit) · `[#421]`/`[#422]` · `[#428]` · `[#429]` · `[#424]`/`[#425]`. Branch `docs/disposition-421-422` left undeleted for next session's cleanup, per operator direction, so the ids are visible to a next-free scan first.
+
 ### 2026-07-26 (b) — CC (Opus 5): the arc MERGED and pushed; [#428] filed
 
 **Supersedes the "NOT merged" status in the entry below** — that was accurate when written and is not edited (append-only, ADR-29). Operator granted a conditional GO: merge, re-verify against the MERGED tree, push only if every gate is green, stop at the first red.
