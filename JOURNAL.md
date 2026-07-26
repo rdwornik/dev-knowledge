@@ -19,6 +19,26 @@
 
 ---
 
+### 2026-07-26 (g) — CC (Opus 5): supplement filled + folded into the `ai-council` bundle (`bf9dad37`, `bdf198d7`)
+
+**Did:** Operator relayed the outgoing `ai-council` architect chat's ANSWERS. Committed `SUPPLEMENT.md` **verbatim** (`bf9dad37` — no re-typing, no fabrication, per HANDOFF_PROCESS §13; the dated-header hook left it unmodified), re-ran `assemble_paste.py` to fold the ANSWERS region, then swept and re-verified (`bdf198d7`).
+
+**The known partial-reflow gotcha fired exactly as recorded, and it is worth n=2.** `assemble_paste`'s cold→FILLED reflow flipped **only its own framing sites** (`HANDOFF_BOOT.md`, the `RESIDUAL.md` blockquote) and left **seven hand-authored** "supplement is EMPTY / beat fires FULL" claims standing — in the BOOT purpose cell, the PROBES header blockquote, the PROBES P1 gate, and gate-procedure items 2 and 6. The bundle self-contradicted in seven places, and **no drift-check catches it**: `residual_completeness` only asserts placeholders were replaced, and the probe validator only resolves bindings. Swept by hand; verified zero remaining by grep. **Any hand-authored fill-state prose must be swept after every fold** — the reflow is not a bundle-wide operation and does not claim to be.
+
+**The ANSWERS materially corrected the residual, which is the mechanism working as designed.** Six load-bearing points folded into a new RESIDUAL corrections block: §4's ordering upgraded from "hygiene does not preempt" into a **testable sequencing rule** (discharge a non-delegable item *before* any CC lane opens — the diagnosis being that all three axis-unblockers are non-delegable while every backlog defect is CC-executable, so defect-driven ordering fills the window by construction); a **missing first act** (the window's unanchored JOURNAL tail — **structural, not drift**: an entry cannot name the SHA of the commit containing it); the queue mechanism **capped** lest it become a third consecutive methodology arc; **two inherited premises REFUTED** (the "operator ruled CLI is the default transport" claim does not survive ADR-12 §5 or the code — it was intent, not implemented state; and "worktrees blocked outright" was wrong as stated); `canonical_freshness` added to the green-without-predicate list (**it checks stamp-vs-commit-date, not content accuracy** — the doc was factually wrong for the whole period and the gate stayed green, correctly); and two items routed **to this hub**.
+
+**Two hub-side items landed on us, and one is partly discharged by entry (f).** The target's commission I asks whether two hub handoff-tooling defects were ever filed: the probe-tokenizer dotfile blindness **is** filed as `[#421]`, and entry (f) independently found a **second variant of the same tokenizer defect** (a backticked `#id` in a probe's *source* column parses as a markdown anchor and FAILs `anchor-missing`) plus **confirmed** this entry's partial-reflow defect. **Neither the second tokenizer variant nor the reflow defect is filed** — both belong on `[#421]`'s neighbourhood and need a filing decision. Separately, the commissioned fleet-methodology intake **exists only as a file in the target and must be placed in this hub's `docs/intake/` or it is lost.**
+
+**Result:** 17/17 probes bind live in cross-repo mode after the fold; `residual_completeness` OK; zero cold-state contradictions; all gates passed. **`PASTE_THIS.md` is 86733 bytes against the assembler's 65000-byte budget** — the warn fired. The excess is the verbatim supplement, which may not be trimmed; flagged rather than silently accepted.
+
+**Changes:** `docs/handoffs/2026-07-26-ai-council-architect/` (SUPPLEMENT filled verbatim; BOOT/PROBES/RESIDUAL swept; PASTE_THIS re-assembled), `JOURNAL.md` (this entry). No `ai-council` file touched. No BACKLOG task advanced or closed.
+
+**Abandoned / deliberately not done:** filing the two hub tooling defects (needs a decision on whether they fold into `[#421]` or stand alone) · placing the commissioned intake doc (it lives in the target; operator's call) · trimming `PASTE_THIS` to budget (would require editing a verbatim-committed supplement).
+
+**Next:** operator merges `docs/handoff-2026-07-26-ai-council` from the primary. Bundle is ready to paste as-is.
+
+---
+
 ### 2026-07-26 (f) — CC (Opus 5): cross-repo architect handoff for `ai-council` (`3371b1e2`)
 
 **Did:** Generated the v5 architect bundle `docs/handoffs/2026-07-26-ai-council-architect/` on `docs/handoff-2026-07-26-ai-council`, in the `ai-council-handoff` worktree. Cross-repo per ADR-36/41 — the hub hosts, `ai-council` is the subject and was **read-only throughout** (no write, no `pre-commit run`, no `check.ps1`; its formatter hooks rewrite files, which the read-only contract forbids). Five files: `HANDOFF_BOOT` + `RESIDUAL` + `PROBES` + `SUPPLEMENT` + `PASTE_THIS`, no per-bundle README.
