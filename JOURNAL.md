@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-07-26 (i) — CC (Opus 5): SHA anchor for entry (h)
+
+**Anchor only (ADR-85 session-end gate).** Entry (h) landed as **`f0153b61`** and, by design, named no SHA — it was ruled recording-only and deliberately carries no derived state, so nothing in it anchored its own commit. This entry supplies the anchor and nothing else; the precedent is the repo's existing anchor commits (`d0ccb394`, `89de69a6`).
+
+**No content, deliberately.** The finding lives in (h); repeating it here would create a second copy to keep in sync — the defect (h) itself is about. Session close-out state is unchanged: bundle complete, branch `docs/handoff-2026-07-26-architect` unmerged and unpushed, `main` level with `origin/main`, no ticket filed, `PROBES.md` untouched.
+
+---
+
 ### 2026-07-26 (h) — CC (Opus 5): P10's whole-open-set grooming clause is not satisfiable as a boot probe
 
 **Recording only — operator-ruled. No ticket filed this window, `PROBES.md` not amended.** The finding is durable; the grooming *output* is not, and is deliberately absent below (see the disposition at the end).
