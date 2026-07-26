@@ -19,6 +19,28 @@
 
 ---
 
+### 2026-07-26 (g) — CC (Opus 5): supplement FILLED, folded, and reconciled against live state
+
+**Did:** Operator returned the filled architect supplement. Committed it **verbatim** at **`b3a19bba`** (217 lines, zero re-typing, zero fabrication — the v5.2 contract), then folded and reconciled at **`98193954`**. `assemble_paste.py` flipped the cold framing to FILLED in `HANDOFF_BOOT`/`RESIDUAL`/`PROBES` and folded the ANSWERS region; `PASTE_THIS` 45KB → 62KB.
+
+**Swept the bundle after the fold, and the known defect did not bite — because there was nothing for it to bite.** `[#422]`'s partial cold→FILLED flip (the reflow rewrites only its own generator framing sites, so hand-authored "beat fires FULL" prose survives into a §8 self-contradiction) requires hand-authored cold-state prose to exist. Grepped for all three forms across the bundle: **none** — my hand-authored regions never asserted the supplement's fill state, so the three generator sites were the complete set and all three flipped. Recording the negative result because "the defect didn't fire" is only meaningful with the reason attached.
+
+**The content sweep found one real staleness, and the contract says the repo wins.** The supplement's wave-1 `MICRO-WINDOW` is described as *"prompt already delivered, awaiting paste"* — **that wave shipped this window** (`d584ff4a`; ARCHITECTURE currency through ADR-105, the organ Status column, the reserved-id release, the R1–R12 sweep, the codex-wrapper filing — JOURNAL (e)). Flagged in `RESIDUAL.md` §2 as a reconciliation block; **`SUPPLEMENT.md` was not edited** — it is carried verbatim and is advisory, never trusted over the repo, and CC does not rewrite the operator's words to make them true. Two further claims checked rather than assumed: *"one merged branch awaiting the operator's word to delete"* — **accurate**, `git branch --merged main` shows exactly one straggler (`worktree-ai-council-handoff`); and §7's instruction to **verify the live conformance-branch set rather than assume the count** — correct and left binding, so the residual states no count.
+
+**What the supplement actually carries, since it reframes the next arc.** Root cause named for the whole defect cluster: **`BACKLOG.md` is not too big, it is the WRONG DATA STRUCTURE** — one file serving five workloads (queue · dependency graph · archive · decision register · evidence store), which is why the 1200-char ceiling blocks records (evidence does not belong in a queue row) and why the `[E8]` R-table rotted (decisions do not belong in a queue file). Wave order: MICRO-WINDOW (done) → **uv adoption** (operator-approved, kills two methodology-intake defect classes at the root) → the **restructure** in two legs (per-task split via the strangler sequence + a genre lifecycle engine) → the **morning loop** (the missing audit→intake edge) → the A–J decomposition last. The adopt-vs-build question is **reopened as a three-way bake-off** (Backlog.md vs scrummd vs build-thin) decided **on pilot evidence, not in chat**. Terraform: **pattern yes, tool no** — git is already the state store. A **§7 amendment** (operator-raised) rules the accumulating nightly conformance branches **do-not-merge** (ADR-84 writer isolation) and **do-not-bulk-delete-yet** (they are the only surviving record), with a **pre-registered verdict fork** for the extraction pass so the answer cannot be rationalized after the fact.
+
+**Method rules now binding on the architect seat, each paid for this window** — recorded here because the supplement is a consumed transient: no claim about repo state without file:line evidence from a deterministic read · never present a decision table without a per-row liveness check (the recommendation lost 3/3) · **binding rulings also live in `docs/handoffs/`** · line-anchored citations rot inside their own branch, so cite by anchor text · producer ≠ reviewer, hard · session boot reconciles against `[E8]` and intake #17 *before* touching the handoff's named topic · findings discovered during a close are RECORDED, not chased.
+
+**Result:** `verify_handoff_probes` **11/11 pass, 0 fail, 0 warn** (re-run after the fold, not assumed to survive it); `validate_residual_completeness` **OK**; all 14 pre-commit gates passed on both commits. One transient `.git/index.lock` collision from a concurrent session during the (f) commit — HEAD unmoved and the file still staged, so a plain retry landed it; lock not deleted, nothing forced.
+
+**Changes:** `docs/handoffs/2026-07-26-dev-knowledge-architect/` (SUPPLEMENT filled verbatim; HANDOFF_BOOT/RESIDUAL/PROBES cold→FILLED; RESIDUAL §2 reconciliation block; PASTE_THIS re-assembled), `JOURNAL.md` (this entry).
+
+**Abandoned / deliberately not done:** no merge and no push — still operator-gated. No edit to `SUPPLEMENT.md` beyond committing what the operator pasted. Did not act on the §7 conformance-branch rulings (that is a bounded arc of its own, and RULING 2 forbids deletion before extraction). Did not re-run wave 1. `BACKLOG.md` untouched — no tracked task advanced or closed.
+
+**Next:** bundle is complete and ready to paste. On the operator's word: merge `--no-ff` + push, and `-d` the one merged straggler.
+
+---
+
 ### 2026-07-26 (f) — CC (Opus 5): architect handoff bundle cut — `2026-07-26-dev-knowledge-architect`
 
 **Did:** Cut the v5.7 §13 architect bundle on `docs/handoff-2026-07-26-architect`, anchor **`49f4e656`** (5 files, 940 insertions, no other path touched). Read the canonical spec end-to-end first rather than working from the command summary. Generated via `scripts/gen_handoff.py --mode architect`, hand-authored the four FILL-IN regions (boot `purpose`; residual `driftflags` / `shipped` / `frontier`), re-ran `scripts/assemble_paste.py`.
