@@ -200,7 +200,7 @@ An organ can be ARMED and still tell you nothing. Read the qualifier before trus
 | Organ | Trigger | Layer | Failure posture | Status | Defining ref |
 |---|---|---|---|---|---|
 | `block-onedrive.ps1` (PreToolUse) | every Bash/PowerShell/Edit/Write/NotebookEdit call (command + file_path/notebook_path) | L0 | **fail-closed** (P0) | ARMED | ADR-75, global CLAUDE.md §P0 |
-| `block_immutable_edits.py` (PreToolUse) | Claude **mutating tools only** (Edit/MultiEdit/Write/NotebookEdit) on `docs/decisions/transcripts/**` — that zone was **deleted 2026-07-22** (`b4435fad`), so the guard currently matches nothing; a Bash/PowerShell write is **not** caught | hub | fail-closed in-zone, fail-open out-of-zone | **ARMED (no-op zone)** — kept armed deliberately as the standing refusal that re-creating the zone does not silently re-open in-place editing | ADR-77 (#105); **`.methodology.yaml` `adr77-transcript-guard`** (RULED 2026-07-25, re-read at `review_date: 2026-10-25`) |
+| `block_immutable_edits.py` (PreToolUse) | Claude **mutating tools only** (Edit/MultiEdit/Write/NotebookEdit) on `docs/decisions/transcripts/**` — that zone was **deleted at `b4435fad` (2026-07-23), per the operator ruling of 2026-07-22**, so the guard currently matches nothing; a Bash/PowerShell write is **not** caught | hub | fail-closed in-zone, fail-open out-of-zone | **ARMED (no-op zone)** — kept armed deliberately as the standing refusal that re-creating the zone does not silently re-open in-place editing | ADR-77 (#105); **`.methodology.yaml` `adr77-transcript-guard`** (RULED 2026-07-25, re-read at `review_date: 2026-10-25`) |
 | `fleet_health.py` (SessionStart) | session start, throttled >24h | hub · Tier-2 | fail-soft | ARMED | ADR-69/70/76 |
 | `surface_triage.ps1` (SessionStart) | session start | hub | fail-soft | **ARMED (stale input)** | nightly outcome loop (Ch6) |
 | `billing_leak_sentinel.ps1` (SessionStart) | session start | hub | fail-soft (WARN) | ARMED | #101 |
@@ -665,9 +665,13 @@ to a raw commit-count drift signal.
 **The nightly outcome loop — BROKEN AT THE TRIAGE EDGE. Do not read the table below
 as live.** The loop had three stages: producer (cloud Routine) → triage (a GitHub
 Action) → consumer (`SessionStart: surface_triage.ps1`). **The middle stage is dead.**
-The `nightly-conformance-triage` Action was retired **2026-07-09** — `.github/` deleted
-at `82227f08`, merged to `main` at `57ae83a6` under [#255], because a PR-triggered organ
-under a local-merge workflow was vacuous (it never fired).
+The `nightly-conformance-triage` Action was retired by `82227f08` (`.github/` deleted),
+merged to `main` at `57ae83a6` under [#255], because a PR-triggered organ under a
+local-merge workflow was vacuous — it never fired. **Date, stated precisely:** both commits
+are dated **2026-07-08**; the retirement is labelled **2026-07-09** everywhere it is cited
+(`surface_triage.ps1`'s own header, [#428], ADR-105 §Context) after the `chore/session-close-0709`
+arc that carried it. The commits are the harder evidence; the 07-09 label is recorded here so the
+two are not read as a contradiction.
 
 What that leaves, and why it is worse than a cleanly-removed loop:
 
@@ -695,7 +699,7 @@ producer, not the still-running Routine.
 The table below is the **retired** Action's behaviour, kept as the record of what the
 severed edge did — not as a description of anything that runs:
 
-| Digest state | Action behaviour (RETIRED 2026-07-09) |
+| Digest state | Action behaviour (RETIRED — `82227f08`, 2026-07-08) |
 |---|---|
 | clean (`survived=0`) | divert the digest to `automation/conformance-digest` + close the PR (delete its branch) |
 | findings (`survived>0`) | divert the digest (it is the record, on the branch) + open a `nightly-triage` Issue |
