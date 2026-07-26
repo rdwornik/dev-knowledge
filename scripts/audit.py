@@ -2390,6 +2390,60 @@ def check_import_edges(repo_path: Path) -> list[Finding]:
                     f"{edge_count} @import edge(s) resolve across {file_count} file(s)")]
 
 
+# ADR-105 routine marker. Clause-scoped extraction in the established
+# _SERIALIZE_CLAUSE_RE idiom (validate_backlog.py:81) — delimiter-anchored, so a prose
+# mention of the keyword in a task body cannot register as a phantom declaration.
+_ROUTINE_MARKER_RE = re.compile(r"·\s*routine\s*:")
+_ROUTINE_FIELD_RE = re.compile(r"·\s*(consumer|consumption_path)\s*=\s*([^·]*)")
+_ROUTINE_TASK_RE = re.compile(r"^- \[#(\d+)\]")
+_ROUTINE_REQUIRED = ("consumer", "consumption_path")
+
+
+def check_routine_consumers(repo_path: Path) -> list[Finding]:
+    """[#419]/ADR-105 — a declared routine must name a `consumer` and a `consumption_path`.
+
+    COVERAGE BOUNDARY: this checks ONLY BACKLOG rows that carry an ADR-105 `· routine:`
+    marker — live hooks, commit-time gates and scheduled jobs are not BACKLOG rows, so
+    they are NOT checked here and a pass says nothing about them (retrofit: [#426]).
+
+    ADR-105 gates at ACTIVATION, not at filing: a row that merely *proposes* a routine
+    carries no marker and is correctly not checked. ADR-105 declares six fields; this
+    check gates the two that make output reach a decision — the other four
+    (trigger/scope/verified_by/review_date) are declared, not gated. A marker whose
+    `consumer` or `consumption_path` is missing or blank is a FAIL: an unconsumed
+    routine is the defect [#419] names, and a routine that cannot name a consumer is
+    retired rather than activated (the retire decision is the operator's, never this
+    check's). Read-only.
+    """
+    name = "routine_consumers"
+    backlog = Path(repo_path) / "BACKLOG.md"
+    if not backlog.exists():
+        return [Finding(name, "n/a", "no BACKLOG.md in this repo")]
+    try:
+        text = backlog.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return [Finding(name, "unavailable", f"cannot read BACKLOG.md: {exc}")]
+    bad: list[str] = []
+    declared = 0
+    for lineno, line in enumerate(text.splitlines(), 1):
+        task = _ROUTINE_TASK_RE.match(line)
+        if not task or not _ROUTINE_MARKER_RE.search(line):
+            continue
+        declared += 1
+        fields = {k: v.strip() for k, v in _ROUTINE_FIELD_RE.findall(line)}
+        missing = [f for f in _ROUTINE_REQUIRED if not fields.get(f)]
+        if missing:
+            bad.append(f"[#{task.group(1)}] line {lineno}: "
+                       f"{', '.join(missing)}".replace("|", "/"))
+    if bad:
+        return [Finding(name, "fail",
+                        "declared routine(s) with no named consumer/consumption_path: "
+                        + "; ".join(bad))]
+    return [Finding(name, "pass",
+                    f"{declared} declared routine row(s) name a consumer and a "
+                    f"consumption_path (live hooks/schedules out of scope — [#426])")]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -2423,6 +2477,7 @@ ALL_CHECKS = [
     check_doc_code_coverage_drift,
     check_import_edges,
     check_fleet_parity,   # [#337] blocking #328 fleet-parity gate (was informational)
+    check_routine_consumers,   # [#419]/ADR-105 activation gate; scope = marked rows only
 ]
 
 

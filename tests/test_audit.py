@@ -2146,7 +2146,7 @@ def test_import_edges_live_repo_passes_and_is_registered() -> None:
     f = aud.check_import_edges(Path(aud._REPO_ROOT))[0]
     assert f.status == "pass", f.evidence
     assert aud.check_import_edges in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 31  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18)
+    assert len(aud.ALL_CHECKS) == 32  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26)
 
 
 def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
@@ -2162,7 +2162,7 @@ def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
 
 def test_fleet_parity_registered_in_all_checks():
     assert "check_fleet_parity" in [c.__name__ for c in aud.ALL_CHECKS]
-    assert len(aud.ALL_CHECKS) == 31  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19)
+    assert len(aud.ALL_CHECKS) == 32  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26)
 
 
 def test_fleet_parity_findings_maps_blocking_verdicts():
@@ -2228,3 +2228,84 @@ def test_check_fleet_parity_package_mode_import():
                           capture_output=True, text=True, cwd=str(root))
     assert proc.returncode == 0, proc.stderr[-800:]
     assert proc.stdout.strip().endswith("OK"), proc.stdout + proc.stderr
+
+
+# ---------------------------------------------------------------------------
+# check_routine_consumers ([#419] / ADR-105) — the activation gate.
+# Scope is deliberately narrow: ONLY rows carrying a `· routine:` marker. A row
+# that merely proposes a routine carries no marker and must NOT be checked —
+# that is the activation-vs-filing distinction ADR-105 turns on.
+# ---------------------------------------------------------------------------
+
+_RT_MARKED = (
+    "- [#1] [P1][S] a routine that runs · Done when: x · routine: trigger=nightly "
+    "· scope=hub · consumer=the operator at boot "
+    "· consumption_path=SessionStart digest · verified_by=t · review_date=2026-08-26\n"
+)
+_RT_PROPOSAL = (
+    "- [#2] [P3][S] a PROPOSAL for a routine · Done when: it is defined "
+    "(trigger, scope, consumption path) and ruled in or out · refs ADR-105\n"
+)
+
+
+def test_routine_consumers_marked_row_with_both_fields_passes(tmp_path: Path) -> None:
+    _mk(tmp_path / "BACKLOG.md", _RT_MARKED)
+    f = aud.check_routine_consumers(tmp_path)[0]
+    assert f.status == "pass"
+    assert "1 declared routine row" in f.evidence
+
+
+def test_routine_consumers_missing_consumer_fails_naming_the_row(tmp_path: Path) -> None:
+    _mk(tmp_path / "BACKLOG.md", _RT_MARKED.replace("· consumer=the operator at boot ", ""))
+    f = aud.check_routine_consumers(tmp_path)[0]
+    assert f.status == "fail"
+    assert "[#1]" in f.evidence and "consumer" in f.evidence
+
+
+def test_routine_consumers_missing_consumption_path_fails(tmp_path: Path) -> None:
+    _mk(tmp_path / "BACKLOG.md",
+        _RT_MARKED.replace("· consumption_path=SessionStart digest ", ""))
+    f = aud.check_routine_consumers(tmp_path)[0]
+    assert f.status == "fail"
+    assert "consumption_path" in f.evidence
+
+
+def test_routine_consumers_blank_field_is_not_a_named_consumer(tmp_path: Path) -> None:
+    _mk(tmp_path / "BACKLOG.md", _RT_MARKED.replace("consumer=the operator at boot", "consumer="))
+    f = aud.check_routine_consumers(tmp_path)[0]
+    assert f.status == "fail"
+    assert "consumer" in f.evidence
+
+
+def test_routine_consumers_unmarked_proposal_is_not_checked(tmp_path: Path) -> None:
+    """ADR-105 gates at ACTIVATION, not at filing — a proposal has no artifact,
+    so it has no consumer, and demanding one would force tautology or invention."""
+    _mk(tmp_path / "BACKLOG.md", _RT_PROPOSAL)
+    f = aud.check_routine_consumers(tmp_path)[0]
+    assert f.status == "pass"
+    assert "0 declared routine row" in f.evidence
+
+
+def test_routine_consumers_prose_mention_is_not_a_phantom_declaration(tmp_path: Path) -> None:
+    _mk(tmp_path / "BACKLOG.md",
+        "- [#3] [P3][S] discusses the word routine: at length · Done when: x\n")
+    f = aud.check_routine_consumers(tmp_path)[0]
+    assert f.status == "pass"
+    assert "0 declared routine row" in f.evidence
+
+
+def test_routine_consumers_reports_every_offending_row(tmp_path: Path) -> None:
+    bad = _RT_MARKED.replace("· consumer=the operator at boot ", "")
+    _mk(tmp_path / "BACKLOG.md", bad + bad.replace("[#1]", "[#4]"))
+    f = aud.check_routine_consumers(tmp_path)[0]
+    assert f.status == "fail"
+    assert "[#1]" in f.evidence and "[#4]" in f.evidence
+
+
+def test_routine_consumers_absent_backlog_is_na(tmp_path: Path) -> None:
+    f = aud.check_routine_consumers(tmp_path)[0]
+    assert f.status == "n/a"
+
+
+def test_routine_consumers_is_registered_in_all_checks() -> None:
+    assert aud.check_routine_consumers in aud.ALL_CHECKS
