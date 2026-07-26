@@ -250,6 +250,27 @@ dispositions:
       rewritten. THE FIX IS THE FORMAT, NOT THE WORDING — docs/intake/2026-07-25-tech-consolidation-decision.md.
       review_date is the shelf-life so this does not rot into a paper suppression (ADR-75).
 
+  # (2026-07-26) EXTERNAL IN-FLIGHT condition, not a hub defect and not fixable inside this repo.
+  # fleet_parity evaluates LIVE sibling-repo state, so a concurrent merge in ai-council turned this
+  # repo's ship-gate red mid-close with no action available here. Dispositioned hub-side rather than
+  # by editing ai-council's manifest or the consumer-role template — both are real candidate fixes and
+  # neither is chosen by inference (operator ruling 2026-07-26). Tracked by [#430].
+  - id: warn-fleet-parity-ai-council-root-conftest
+    organ: fleet_parity
+    match: "ai-council root-sweep WARN-undeclared: top-level entry 'conftest.py'"
+    ref: "#430"
+    review_date: 2026-08-26
+    reason: >-
+      A sibling repo merged a TRACKED root `conftest.py` (ai-council, 2026-07-26 14:53) and the hub's
+      consumer-role root template does not admit it, so the root-sweep reports it WARN-undeclared.
+      Whether the correct fix is a per-repo manifest declaration in ai-council or an amendment to the
+      hub's consumer-role template is UNRULED — filed as [#430], which carries both halves. Surfaced —
+      NOT introduced — by this repo's close-out ship-gate: no edit inside `.dev-knowledge` can clear it,
+      because the condition lives in another repo's working tree. Keyed on the specific entry name per
+      precision-over-recall, so a DIFFERENT undeclared root entry re-surfaces and blocks. review_date is
+      the shelf-life so this does not rot into a paper suppression (ADR-75); it should clear by itself
+      once [#430] rules, at which point this entry decorates stale.
+
   # (cleared 2026-07-02, #222) warn-doc-claims-pytest-collected-architecture — #222 relocated
   # the three volatile counts to the committed-generated ecosystem/doc-counts.md, so the
   # pytest_collected claim no longer anchors in ARCHITECTURE.md (doc_claims now reconciles it
