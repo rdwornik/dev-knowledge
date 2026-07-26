@@ -139,3 +139,4 @@ exempt:
   - doc_code_coverage_drift   # self-referential (this drift-guard)
   - import_edges              # #249 @import target-exists check -- structural presence of the CLAUDE.md @import graph; not a doc->code behavioral rule
   - fleet_parity              # [#337] #328 fleet-parity gate -- manifest-driven (ecosystem/parity-surfaces.yaml), like enforcement_coverage/deployed_methodology_version; not a doc->code behavioral rule
+  - routine_consumers         # [#419]/ADR-105 activation gate -- the rule is declared in ADR-105, NOT in a `declaration_docs` file (PLAYBOOK/DEFINITION_OF_DONE/HANDOFF_PROCESS), so it sits outside the #194 doc->code scope as configured. It IS single-site (audit.py::check_routine_consumers alone), so it would QUALIFY for coverage_scope on the one-enforcement-site rule -- admitting it needs ADR-105 added to declaration_docs, which is a separate ruling, not a side effect of landing the check.

@@ -19,6 +19,45 @@
 
 ---
 
+### 2026-07-26 — CC (Opus 5): [E9] brake discharged · ADR-105 routine activation gate · [#419] given teeth
+
+**Branch `docs/0726-brake-discharge`, NOT merged.** Seven commits: `9998e9ef` (L1 brake repairs) · `f4948744` (ADR-105 + marker) · `f8fcd343` (filings) · `91ebbea3` (terra doc review) · `bd9de975` (the check) · `57d6458f` + `138e3cb2` (two rounds of sol hardening) · `32a0fc68` (sol audit record). **No merge to `main` and no push** — LESSONS 2026-07-24 requires an operator GO *and* a JOURNAL anchor, and neither substitutes; the GO has not been given. This entry anchors the arc where it stands.
+
+**Did — 1, the brake.** ADR-104 was accepted and merged at `92fabb51`, closing `[#381]`, so intake §6's "no new fleet machinery before [#381] rules" was discharged and BACKLOG had gone stale against it. Six repairs across five lines: the `[E9]` preamble, the three night-batch rows, and `[#382]`'s `depends-on: 381` gate plus its "do not fix the surface set" clause. Text repair only — **`[#382]` did not open**, and nothing was written about matrix width (ADR-104 §5 declines to size stages; that is `[#383]`'s job).
+
+**Did — 2, a defect found while repairing it.** The preamble claimed `[#382]`/`[#383]`/`[#385]` "carry explicit `depends-on` gates". They do not fire. `validate_backlog.py:78` compiles `#(\d+)`, so a bare clause parses to `[]`. Census: **8 clauses, 4 parse, 4 inert** — and the inert four are exactly the `[E9]` chain plus `[#389]`. All eleven test fixtures write the hashed form, so the suite was green on a format the file does not use. Filed as `[#424]` (the parser) and `[#425]` (the corpus), fixed neither, and corrected the preamble to say plainly that the gates are prose and do not fire. LESSONS entry: *a fixture corpus samples the format its author intended, not the format the file contains.*
+
+**Did — 3, ADR-105 (Accepted).** The six-field row shape `trigger · scope · consumer · consumption_path · verified_by · review_date`, gated at **ACTIVATION, not at filing** — both halves normative: a routine may not activate without a named consumer and consumption path (one that cannot name them is retired, not activated), **and filing a proposal without them is explicitly permitted**. That distinction was the operator's correction to an earlier filing-gate formulation, forced when the four candidate rows proved non-homogeneous: `[#348]` runs and emits output, so it can name a consumer and carries the marker; `[#409]`/`[#410]`/`[#411]` propose routines that do not exist yet, so the fields would be tautology or invention — they carry a one-clause activation-gate reference instead.
+
+**Did — 4, teeth.** `routine_consumers`, ALL_CHECKS **31 → 32**. Two adversarial passes by `gpt-5.6-sol` (invoked directly with a per-call model flag — the wrapper's code lane inherits terra from global config, which was not edited). Pass 1 found 6 real defects. Pass 2 refuted **4 of the 6 claimed closures**, including a regression worse than the original: blunt inline-code stripping erased legitimate backticked values, so `consumer=`ops-bot`` would have FAILED in a repo that uses backticks everywhere. Both passes recorded at `docs/audits/2026-07-26-codex-routine-consumers-check.md`. 27 regression tests.
+
+**Did — 5, the L0 routine census (verified, deterministic — `[#426]`'s evidence).**
+
+```
+session hooks                    12   SessionStart 6 (5 project + surface-closures GLOBAL)
+                                      Stop 3 (session_end_backpressure + claude-notify
+                                        GLOBAL + propose_closures PLUGIN)
+                                      PreToolUse 2 (block_immutable_edits + block-onedrive
+                                        GLOBAL) · Notification 1 (GLOBAL)
+commit-time gates                15   14 ids + block-ff-push (pre-push)
+scheduled / remote                3   conformance (cloud, ACTIVE, 6 unmerged branches)
+                                      nightly-triage Issues (PRODUCER DEAD)
+                                      automation/fleet-audit (STALE since 2026-07-16)
+                          TOTAL   30
+```
+
+**M4 delta, reported not reconciled: 27 → 30.** The provisional count read project-level hooks only; the global layer adds four, including a **`Notification` event class missed entirely**, and one entry was a double-count. Two findings outrank the number: the `nightly-triage` **producer is dead** (`.github/` deleted at `82227f08`, last Issue **2026-06-25**) yet 15 Issues stay open and `surface_triage.ps1` reports every session start that they "await" — a month of load for a queue nothing can add to; and that script's own header records the same class already diagnosed under #255 and never generalized.
+
+**Result — verification (exit codes read DIRECTLY, never through a pipe).** `pytest -n auto` **0** (1760 passed, 3 skipped) · `validate_backlog` **0** (**162 tasks**, exactly the contracted count; **1 warning**, the pre-existing `[#409]`/`[#410]` title overlap) · `validate_doc_rot` **byte-identical to the pre-L1 baseline** captured outside the repo — no net-new WARN · `audit.py ship-gate` **0, GREEN**, 13 WARN dispositioned, **zero `[stale]`** · ruff clean.
+
+**Abandoned / not done, deliberately.** `[#419]` **stays OPEN** — its Done-when is not met while 30 live routines are undeclared, and rewriting it to match what shipped would be closing on the easy proxy. `[#424]`/`[#425]`/`[#426]` filed, none built. Trim A cancelled entirely: **this arc deleted no backlog content**; the single `[#348]` compression relocated 349 chars to an 83-char pointer whose content survives at `89ae1d1d` and `JOURNAL.md:142`.
+
+**Honest limit.** The check governs **one row**. It says so in its own docstring, because a green result here says nothing about the 30 live routines. What landed is the citable rule and the retrofit ticket — not fleet coverage.
+
+**Next.** Operator GO to merge. Then `[#426]` (the retrofit, where the real defect lives), `[#424]`/`[#425]`, and `[#382]` — now schedulable, its gate discharged.
+
+**Changes:** `BACKLOG.md` · `docs/decisions/ADR-105-routine-consumer-declaration.md` (new) · `docs/decisions/README.md` · `.claude/generated/recent-adrs.md` · `LESSONS.md` · `scripts/audit.py` · `tests/test_audit.py` · `tests/test_doc_code_edge.py` · `ecosystem/doc-counts.md` · `ecosystem/doc-code-edge.yaml` · `docs/audits/` (2 new + index) · this JOURNAL prepend.
+
 ### 2026-07-25 — CC (Opus 5): cleanup — orphaned #262 disposition cleared, [#423] filed
 
 **Merge-SHA anchor (ADR-85).** `docs/0726-cleanup` merged to main `--no-ff` at **`ac798945`** (leaf `1d8a2b5d`). Adds one task id, removes none — `kill-candidates:` carried on both the leaf and the merge.
