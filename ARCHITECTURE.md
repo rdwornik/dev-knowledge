@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-23
+last_reviewed: 2026-07-26
 reconciled_with: handoff-process@5.7
 status: active
 owner: Rob
@@ -14,8 +14,11 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-07-23` — currency lane (carrier count 4→5, registered child
-> set, governing-ADR roster through 102/103). Structure: the `2026-06-07` six-chapter
+> Last updated: `2026-07-26` — micro-window currency lane (intake #17 §5): governing-ADR
+> roster through **105**; the fleet count repointed at the surface that computes it; the
+> organ map gained a **Status** column; Ch6's nightly loop marked **broken at the triage
+> edge**; the paid ADR-92 amendment recorded. Prior: `2026-07-23` currency lane (carrier
+> count 4→5, registered child set, roster through 102/103). Structure: the `2026-06-07` six-chapter
 > rewrite (layers · organs · automation axes · distribution · zones · verification
 > mesh, closes [#91]), superseded the pre-ADR-80 layout. Prior history:
 > `git log --follow ARCHITECTURE.md`.
@@ -37,13 +40,23 @@ owner: Rob
 framework for all `Dev/` projects. It is **Layer 2** of the ADR-28 three-layer
 ecosystem model — passive storage and governance authority, not an execution
 engine. It holds operational protocols, ADRs, intake docs, handoffs, templates, and
-read-only validators; it prescribes conventions that child repos (corp-monorepo, ai-council,
-corp-ops, corp-sca-time-automation, win-tooling — the machine-registered set, by
-`ecosystem/<repo>/state.yaml` presence; `ecosystem/registry.md` is the wider human registry)
-must follow; it is consulted as context by
+read-only validators; it prescribes conventions that child repos must follow. **A fleet count
+is meaningless without its surface — three nest, and each is authoritative for its own
+question** (machine-registered ⊂ human-registered ⊂ all git repos):
+
+| Denominator | Authoritative surface | Answers |
+|---|---|---|
+| machine-registered | `ecosystem/index.yaml` — **derived** from `ecosystem/<repo>/state.yaml` presence, regenerated wholesale by `audit.py registry update`; **never hand-edit it** | which repos the audit machinery walks |
+| human-registered | `ecosystem/registry.md` — hand-maintained; add a row when a repo joins `Dev/` | which repos the operator tracks at all |
+| all git repos | **ADR-104** | the fleet's shape as ruled |
+
+`onboarded` is a **separate axis, not a fourth denominator** — it is `registry.md`'s Status
+column, backed by `ecosystem/deployed-versions.yaml`, and a machine-registered repo may still
+be unonboarded. Read a count off the surface that defines it; do not restate one here. It is
+consulted as context by
 Claude Code, Codex, Cursor, and other agents. **Nothing here executes orchestration**
 — everything is read, consulted, or passively validated. The six chapters below are
-the system as built and ratified through ADR-103.
+the system as built and ratified through ADR-105.
 
 ---
 
@@ -119,7 +132,7 @@ resource** the whole system economizes — every protocol that compresses contex
 |---|---|
 | Layer 1 — browser chat (architect) | external — analysis & design |
 | **Layer 2 — `.dev-knowledge`** | **this repo** — passive storage, governance, prescription |
-| Layer 3 — projects (executor) | external — corp-monorepo, ai-council, corp-ops, corp-sca-time-automation, win-tooling (machine registry; full human set in `ecosystem/registry.md`) |
+| Layer 3 — projects (executor) | external — the child repos; membership is **not enumerated here** (Purpose names the three denominators and their surfaces: `ecosystem/index.yaml` machine-registered · `ecosystem/registry.md` human-registered · ADR-104 all git repos) |
 
 ---
 
@@ -166,40 +179,59 @@ whether the organ travels: **L0** = global `~/.claude` (fleet-wide), **hub** =
 this repo's `.claude/`, **plugin** = `tier1-lifecycle` (repo-class), **pre-commit** =
 local git gate.
 
-| Organ | Trigger | Layer | Failure posture | Defining ref |
-|---|---|---|---|---|
-| `block-onedrive.ps1` (PreToolUse) | every Bash/PowerShell/Edit/Write/NotebookEdit call (command + file_path/notebook_path) | L0 | **fail-closed** (P0) | ADR-75, global CLAUDE.md §P0 |
-| `block_immutable_edits.py` (PreToolUse) | Edit/Write on `docs/decisions/transcripts/**` | hub | fail-closed in-zone, fail-open out-of-zone | ADR-77 (#105) |
-| `fleet_health.py` (SessionStart) | session start, throttled >24h | hub · Tier-2 | fail-soft | ADR-69/70/76 |
-| `surface_triage.ps1` (SessionStart) | session start | hub | fail-soft | nightly outcome loop (Ch6) |
-| `billing_leak_sentinel.ps1` (SessionStart) | session start | hub | fail-soft (WARN) | #101 |
-| `changelog_sentinel.py` (SessionStart) | session start | hub | fail-soft | #113 |
-| `surface-closures.ps1` (SessionStart) | session start | L0 | fail-soft | ADR-70 (5c) |
-| `propose_closures.py` (Stop) | session end | plugin · Tier-1 | **propose-only** (never mutates BACKLOG) | ADR-70 |
-| `session_end_backpressure.py` (Stop) | session end | hub | hard-block on detected non-compliance (JOURNAL leg), fail-open on internal error (no deadlock); BACKLOG advisory | #126; ADR-85 |
-| `verify` (skill) | invoked per numbered step | hub | advisory (pytest+ruff+git) | #104 (home #9 open) |
-| `gotchas` (skill) | auto-consulted before edits | L0 | advisory | global |
-| `artifact-reader` (agent) | reading a >20k-token artifact | hub | read-only (Read/Grep/Glob) | #97 |
-| `/save`, `/handoff` (commands) | operator | hub | — | repo; ADR-82 / HANDOFF v5 |
-| `/ship`, `/review-closures` (commands) | operator | plugin (fleet-wide) | branch→`--no-ff`→clean-tree gate | git-discipline; ADR-70 |
-| `/changelog-review`, `/codex-review` | operator (push) | hub / L0 | — | #113 / ADR-54 |
-| `conformance-hub.js` (Workflow) | operator (`ultracode`) or cloud Routine | Tier-3 | read-only + skeptic + evidence-required | ADR-70 (#81) |
-| `_commit_routine_outputs` → `automation/fleet-audit` (audit.py Routine writer) | Routine/nightly durable-output commit | hub | **fail-soft** (pathspec-bounded `commit-tree`; main tree untouched, never `git add -A`) | ADR-84; #125; #254(a) |
-| `git_backlog_drift` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #90; ADR-65 |
-| `doc_claims` (audit check) | `audit.py health` — pre-commit gate (counts/lists) + full sweep (test-count) | hub | fail-soft (WARN) | #89 |
-| `no_ff_merges` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | #153; ADR-84; core-invariants #5 |
-| `handoff_probes` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** (FAIL on broken probe binding; WARN on anchor-missing/skipped) | #163; HANDOFF_PROCESS §5/§10 |
-| `doc_rot` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #140; ADR-88 FC4 (ADR-65/49/41) |
-| `doc_structure` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | #192; ADR-88 prose-shape |
-| `hooks_armed` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | **fail-closed** (FAIL on a missing/foreign `.git/hooks` gate) | RF-2 (Fable arch review 2026-07-04 §4); self-armed by the SessionStart `pre_commit install` |
-| `fleet_parity.py` → `check_fleet_parity` (audit check) | `audit.py health` (pre-commit) + `ship-gate` — blocking `ALL_CHECKS` member since [#337] ([#336] cleared the last WARN); the standalone CLI stays read-only | hub | **fail-closed** on a real divergence (FAIL: refused/must-absent/tombstone-violated; WARN→RED: undeclared/unavailable/tracked-ephemera; stale-declaration/advisory-rewarn stay advisory). The ~8s walk runs per-commit too — ship-gate-scoping is a filed follow-up | #328/#332/#337; intake #12 + RULED #14; ADR-102/103; `ecosystem/parity-surfaces.yaml` + `dependency-baseline.yaml` |
-| `residual_completeness` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (changed handoff-bundle files) | hub | **fail-closed** (FAIL on a FILL-IN region still carrying its generator placeholder; degrades to WARN on internal error; scans the working tree — the staged-blob gap is #366) | ARC-5 first enforcing mechanism; HANDOFF_PROCESS "Residual completeness"; #365/#366 |
-| `boundary_report.py` (reporter) | manual CLI | hub · read-only | fail-soft (writes `logs/BOUNDARY-DRIFT.md`; a reporter, NOT a gate — deliberately not in `ALL_CHECKS`) | #312; CLAUDE.md Form-A regions |
-| `boundary_headers.py` (generator) | manual CLI (`--check` regen-and-diff · `--coverage`; pre-commit wiring open #369) | hub | generated-not-hand-maintained (headers derived from the #312 markers via `boundary_report` imports — a hand-edit is overwritten on regen); suite-guarded at ship-gate | #352; `tests/test_boundary_headers.py` |
-| `fleet_analytics.py` (reporter) | manual CLI (nightly wiring open #391) | hub · read-only | fail-soft (writes `logs/FLEET-ANALYTICS.md`; `main()` always 0; NOT in `ALL_CHECKS`) | #384 (L5a descriptive analytics); intake #16 §3 |
-| `deploy/tool.py` + 5 carriers (`globalconfig`/`plugin`/`precommit`/`floor`/`mesh`) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ADR-91/92/93; PLAYBOOK §20 |
-| `floor-hash-verify` (pre-commit) + SessionStart floor guard (`.claude/check_floor_hash.py`) | consumer commit / session start | consumer (armed by `carrier_floor`) | **fail-closed** (loud on floor drift) | ADR-93 (#226) |
-| pre-commit gates (`.pre-commit-config.yaml`) | local commit | pre-commit · Tier-1 | **fail-closed** | §Validators below (count in `ecosystem/doc-counts.md`) |
+**Status** (added 2026-07-26 per intake #17 §5) answers a question "failure posture"
+does not: *does this organ actually reach reality today?* — **ARMED** = present and
+invocable, and its trigger column says how it is reached; **RULED-UNBUILT** = ruled into
+existence, not yet built (it is not in this table until it is; the declared-only
+`editor-config` carrier, `implemented: false`, is the current example); **RETIRED** =
+removed, kept only as a record.
+
+ARMED is *availability*, not *automatic execution* — read it with the Trigger column. A
+parenthetical narrows it where the row would otherwise overclaim:
+
+- *(manual)* — real and invocable, but **nothing invokes it on a schedule or a gate**; it
+  runs only when a human runs it. Its automatic wiring is a named open ticket.
+- *(no-op zone)* — armed against a zone that no longer exists, so it can never fire.
+- *(stale input)* — fires correctly, on input from an upstream stage that no longer
+  produces (Ch6). The organ is healthy; what it reports is not.
+
+An organ can be ARMED and still tell you nothing. Read the qualifier before trusting it.
+
+| Organ | Trigger | Layer | Failure posture | Status | Defining ref |
+|---|---|---|---|---|---|
+| `block-onedrive.ps1` (PreToolUse) | every Bash/PowerShell/Edit/Write/NotebookEdit call (command + file_path/notebook_path) | L0 | **fail-closed** (P0) | ARMED | ADR-75, global CLAUDE.md §P0 |
+| `block_immutable_edits.py` (PreToolUse) | Claude **mutating tools only** (Edit/MultiEdit/Write/NotebookEdit) on `docs/decisions/transcripts/**` — that zone was **deleted at `b4435fad` (2026-07-23), per the operator ruling of 2026-07-22**, so the guard currently matches nothing; a Bash/PowerShell write is **not** caught | hub | fail-closed in-zone, fail-open out-of-zone | **ARMED (no-op zone)** — kept armed deliberately as the standing refusal that re-creating the zone does not silently re-open in-place editing | ADR-77 (#105); **`.methodology.yaml` `adr77-transcript-guard`** (RULED 2026-07-25, re-read at `review_date: 2026-10-25`) |
+| `fleet_health.py` (SessionStart) | session start, throttled >24h | hub · Tier-2 | fail-soft | ARMED | ADR-69/70/76 |
+| `surface_triage.ps1` (SessionStart) | session start | hub | fail-soft | **ARMED (stale input)** | nightly outcome loop (Ch6) |
+| `billing_leak_sentinel.ps1` (SessionStart) | session start | hub | fail-soft (WARN) | ARMED | #101 |
+| `changelog_sentinel.py` (SessionStart) | session start | hub | fail-soft | ARMED | #113 |
+| `surface-closures.ps1` (SessionStart) | session start | L0 | fail-soft | ARMED | ADR-70 (5c) |
+| `propose_closures.py` (Stop) | session end | plugin · Tier-1 | **propose-only** (never mutates BACKLOG) | ARMED | ADR-70 |
+| `session_end_backpressure.py` (Stop) | session end | hub | hard-block on detected non-compliance (JOURNAL leg), fail-open on internal error (no deadlock); BACKLOG advisory | ARMED | #126; ADR-85 |
+| `verify` (skill) | invoked per numbered step | hub | advisory (pytest+ruff+git) | ARMED | #104 (home #9 open) |
+| `gotchas` (skill) | auto-consulted before edits | L0 | advisory | ARMED | global |
+| `artifact-reader` (agent) | reading a >20k-token artifact | hub | read-only (Read/Grep/Glob) | ARMED | #97 |
+| `/save`, `/handoff` (commands) | operator | hub | — | ARMED | repo; ADR-82 / HANDOFF v5 |
+| `/ship`, `/review-closures` (commands) | operator | plugin (fleet-wide) | branch→`--no-ff`→clean-tree gate | ARMED | git-discipline; ADR-70 |
+| `/changelog-review`, `/codex-review` | operator (push) | hub / L0 | — | ARMED | #113 / ADR-54 |
+| `conformance-hub.js` (Workflow) | operator (`ultracode`) or cloud Routine | Tier-3 | read-only + skeptic + evidence-required | ARMED | ADR-70 (#81) |
+| `_commit_routine_outputs` → `automation/fleet-audit` (audit.py Routine writer) | Routine/nightly durable-output commit | hub | **fail-soft** (pathspec-bounded `commit-tree`; main tree untouched, never `git add -A`) | ARMED | ADR-84; #125; #254(a) |
+| `git_backlog_drift` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | ARMED | #90; ADR-65 |
+| `doc_claims` (audit check) | `audit.py health` — pre-commit gate (counts/lists) + full sweep (test-count) | hub | fail-soft (WARN) | ARMED | #89 |
+| `no_ff_merges` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | ARMED | #153; ADR-84; core-invariants #5 |
+| `handoff_probes` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** (FAIL on broken probe binding; WARN on anchor-missing/skipped) | ARMED | #163; HANDOFF_PROCESS §5/§10 |
+| `doc_rot` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | ARMED | #140; ADR-88 FC4 (ADR-65/49/41) |
+| `doc_structure` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | ARMED | #192; ADR-88 prose-shape |
+| `hooks_armed` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | **fail-closed** (FAIL on a missing/foreign `.git/hooks` gate) | ARMED | RF-2 (Fable arch review 2026-07-04 §4); self-armed by the SessionStart `pre_commit install` |
+| `fleet_parity.py` → `check_fleet_parity` (audit check) | `audit.py health` (pre-commit) + `ship-gate` — blocking `ALL_CHECKS` member since [#337] ([#336] cleared the last WARN); the standalone CLI stays read-only | hub | **fail-closed** on a real divergence (FAIL: refused/must-absent/tombstone-violated; WARN→RED: undeclared/unavailable/tracked-ephemera; stale-declaration/advisory-rewarn stay advisory). The ~8s walk runs per-commit too — ship-gate-scoping is a filed follow-up | ARMED | #328/#332/#337; intake #12 + RULED #14; ADR-102/103; `ecosystem/parity-surfaces.yaml` + `dependency-baseline.yaml` |
+| `routine_consumers` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** on a declared routine whose `consumer`/`consumption_path` is missing, blank, placeholder, or duplicated. **COVERAGE BOUNDARY — green says almost nothing:** it checks ONLY BACKLOG rows carrying an ADR-105 `· routine:` marker (exactly **one** row at acceptance, [#348]). The ~30 live routines — session hooks, commit-time gates, scheduled jobs — are not BACKLOG rows, carry no marker, and are **NOT checked**; retrofit is [#426] | ARMED (scope = marked rows only) | [#419]/ADR-105 (gated at ACTIVATION, not at filing) |
+| `residual_completeness` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (changed handoff-bundle files) | hub | **fail-closed** (FAIL on a FILL-IN region still carrying its generator placeholder; degrades to WARN on internal error; scans the working tree — the staged-blob gap is #366) | ARMED | ARC-5 first enforcing mechanism; HANDOFF_PROCESS "Residual completeness"; #365/#366 |
+| `boundary_report.py` (reporter) | manual CLI | hub · read-only | fail-soft (writes `logs/BOUNDARY-DRIFT.md`; a reporter, NOT a gate — deliberately not in `ALL_CHECKS`) | **ARMED (manual)** | #312; CLAUDE.md Form-A regions |
+| `boundary_headers.py` (generator) | manual CLI (`--check` regen-and-diff · `--coverage`; pre-commit wiring open #369) | hub | generated-not-hand-maintained (headers derived from the #312 markers via `boundary_report` imports — a hand-edit is overwritten on regen); suite-guarded at ship-gate | **ARMED (manual)** — pre-commit wiring is #369 | #352; `tests/test_boundary_headers.py` |
+| `fleet_analytics.py` (reporter) | manual CLI (nightly wiring open #391) | hub · read-only | fail-soft (writes `logs/FLEET-ANALYTICS.md`; `main()` always 0; NOT in `ALL_CHECKS`) | **ARMED (manual)** — nightly wiring is #391 | #384 (L5a descriptive analytics); intake #16 §3 |
+| `deploy/tool.py` + 5 carriers (`globalconfig`/`plugin`/`precommit`/`floor`/`mesh`) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ARMED | ADR-91/92/93; PLAYBOOK §20 |
+| `floor-hash-verify` (pre-commit) + SessionStart floor guard (`.claude/check_floor_hash.py`) | consumer commit / session start | consumer (armed by `carrier_floor`) | **fail-closed** (loud on floor drift) | ARMED | ADR-93 (#226) |
+| pre-commit gates (`.pre-commit-config.yaml`) | local commit | pre-commit · Tier-1 | **fail-closed** | ARMED | §Validators below (count in `ecosystem/doc-counts.md`) |
 
 The **Tier-1 closure loop** is three of these organs in a cycle:
 `commit closes [#id]` → `Stop: propose_closures.py` writes `logs/PROPOSALS-*.md`
@@ -630,17 +662,54 @@ record lands iff every carrier verifies (ADR-92; Ch2/Ch4). The reader
 tagged+deployed → `pass` once set), surfaced via `fleet_health` — the version-aware successor
 to a raw commit-count drift signal.
 
-**The nightly outcome loop** (the GitHub Action that turns a cloud run into a
-triaged result):
+**The nightly outcome loop — BROKEN AT THE TRIAGE EDGE. Do not read the table below
+as live.** The loop had three stages: producer (cloud Routine) → triage (a GitHub
+Action) → consumer (`SessionStart: surface_triage.ps1`). **The middle stage is dead.**
+The `nightly-conformance-triage` Action was retired by `82227f08` (`.github/` deleted),
+merged to `main` at `57ae83a6` under [#255], because a PR-triggered organ under a
+local-merge workflow was vacuous — it never fired. **Date, stated precisely:** both commits
+are dated **2026-07-08**; the retirement is labelled **2026-07-09** everywhere it is cited
+(`surface_triage.ps1`'s own header, [#428], ADR-105 §Context) after the `chore/session-close-0709`
+arc that carried it. The commits are the harder evidence; the 07-09 label is recorded here so the
+two are not read as a contradiction.
 
-| Digest state | Action behaviour |
+What that leaves, and why it is worse than a cleanly-removed loop:
+
+**The two upstream stages are different organs, and only one died** — keep them apart or
+the `ARMED (stale input)` status in Ch2 reads as a contradiction:
+
+- **Stage 1, digest producer — ALIVE.** The cloud Routine still emits a digest nightly
+  onto `claude/conformance-*` branches (`origin/claude/conformance-2026-07-26` exists
+  today). Nothing merges or reads them — the ADR-105 precipitating evidence: the 07-21
+  High finding F1 was fixed on `main` by a session that never opened the branch that
+  found it, so the finding's second half went unfixed as a direct result.
+- **Stage 2, triage / Issue producer — DEAD** since 2026-07-09 (above). This is the
+  organ that turned a digest into a diverted record and an Issue. Nothing has replaced
+  it: no digest is diverted, and **no `nightly-triage` Issue has been opened since**.
+- **Stage 3, consumer — ALIVE, surfacing a frozen backlog as if it were current.**
+  `surface_triage.ps1` reads open `nightly-triage` Issues and prints
+  `[triage] N nightly finding(s) await` at every session start. Those Issues are
+  **historical artifacts of the retired Action** — currently **15 open, the newest opened
+  2026-06-25**, none of which any live organ produced or can close. The hook is healthy;
+  its input is a fossil. Filed as **[#428]**.
+
+So `ARMED (stale input)` on the Ch2 `surface_triage.ps1` row means: dead **Stage-2**
+producer, not the still-running Routine.
+
+The table below is the **retired** Action's behaviour, kept as the record of what the
+severed edge did — not as a description of anything that runs:
+
+| Digest state | Action behaviour (RETIRED — `82227f08`, 2026-07-08) |
 |---|---|
 | clean (`survived=0`) | divert the digest to `automation/conformance-digest` + close the PR (delete its branch) |
 | findings (`survived>0`) | divert the digest (it is the record, on the branch) + open a `nightly-triage` Issue |
 | anomalous (diff ≠ one ADDED digest file) | guard FAIL — nothing recorded, open an `Anomalous nightly PR` Issue |
 
-→ then `SessionStart: surface_triage.ps1` prints `[triage] N …` so the operator
-touches only findings (CONTRIBUTING "Nightly outcome management"; ADR-72/76/80/84).
+(ADR-72/76/80/84; ADR-105 §Context; [#428]. **Do not follow CONTRIBUTING "Nightly outcome
+management" as live guidance** — at `CONTRIBUTING.md:132-136` it still describes the Action
+in the present tense, naming the deleted `.github/workflows/nightly-conformance-triage.yml`
+as the organ that "handles the morning". That is the same severance seen from the other
+side; reconciling it is out of this window's scope and is reported, not fixed here.)
 
 **Requirements intake (upstream of decomposition; ADR-98).** Operator intent →
 `gen_handoff.py --mode functional` boots the intake-capture chat → confirm-gated intake doc in
@@ -696,10 +765,12 @@ live in the ADRs; git history retains; the ADR-77 guard stays armed, Ch2).
 - **ADR-84** — automation-writer isolation (Q9): both writers commit only to dedicated `automation/*` branches (never `main`); the `no_ff_merges` automation exemption removed — one rule (Ch3/Ch6).
 - **ADR-85/86/87** — session-lifecycle enforcement (deterministic session-end Stop-gate; un-gameable JOURNAL commit-SHA anchor); conformance-dashboard location (`ecosystem/conformance.md`, ADR-80 committed-generated zone); Architect↔CC equilibrium contract (conditional intent-only prompting) (Ch2/Ch6).
 - **ADR-88/89** — file-oriented dependency management (repo files are the dependency unit; declared edges held by machinery, not memory) and computed code-dependency edges (declare-what-you-cannot-compute; Pyright reverse-dependency oracle) — both Accepted 2026-06-21 (`911b561`); ADR-88/89 in-place markers (Ch5/Ch6).
-- **ADR-90/91/92/93** — doc→code resolver-allows-N (a rule declares its expected `# rule:` site count in `multi_site:`; Ch2/Validators); methodology-corpus versioning (semver + a git-tag release marker; the `deployed_methodology_version` record, Ch6); deploy-runbook doctrine (a versioned, verification-gated deploy tool + five carrier modules — five in reality today; ADR-92's own body still says "four hard-coded carriers", amendment owed — operator-run from the hub; Ch2/Ch4); floor provisioning model A (commit + two-leg hash-guard the ADR-78 floor; Ch2 arming / Ch4 floor carrier) — Accepted.
+- **ADR-90/91/92/93** — doc→code resolver-allows-N (a rule declares its expected `# rule:` site count in `multi_site:`; Ch2/Validators); methodology-corpus versioning (semver + a git-tag release marker; the `deployed_methodology_version` record, Ch6); deploy-runbook doctrine (a versioned, verification-gated deploy tool + five carrier modules — five in reality today; ADR-92's body says "four hard-coded carriers", corrected by its **2026-07-25 in-file amendment marker** (`ADR-92:95`, operator-ruled — body preserved verbatim per ADR-94; a sixth carrier `editor-config` is declared, `implemented: false`) — operator-run from the hub; Ch2/Ch4); floor provisioning model A (commit + two-leg hash-guard the ADR-78 floor; Ch2 arming / Ch4 floor carrier) — Accepted.
 - **ADR-98** — requirements-intake pipeline: functional/technical/developer modes turn operator intent into a decomposed epic set (Ch5 requirements intake).
 - **ADR-101** — hermetization: sanctioned top-level set, per-class name grammar, refusal gate (`validate_hermetization.py` pre-commit; Ch2/Ch5).
 - **ADR-102/103** — parity-surfaces axes: enforcement-gate-rev modeled separately from corpus `source_tag`; per-entry ownership `{value, reason, provenance}` classification (fleet_parity organ row, Ch2).
+- **ADR-104** — fleet repository shape: **PARTIAL fold on engineering grounds, polyrepo mostly retained** (the fleet's first shape ADR; corp-monorepo permanently OUT, incremental consolidation). Declares the fleet as 9 git repos — the widest of this file's three denominators (Purpose). **No fold executes on this ADR**; execution is the downstream chain #382 → #383 → #385. Closes [#381] — Accepted 2026-07-24.
+- **ADR-105** — routine consumer declaration: a six-field row shape, **gated at ACTIVATION not at filing**. A declared routine must name a `consumer` and a `consumption_path` (the `routine_consumers` organ row, Ch2). Answers [#419] (*we run routines whose output nobody consumes*), which stays OPEN; the live-routine retrofit is [#426] — Accepted 2026-07-26.
 
 ---
 
