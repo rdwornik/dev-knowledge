@@ -205,6 +205,51 @@ dispositions:
       Dispositioned rather than left to rot: a placeholder can never satisfy the check, so absent the
       #335 exemption it would block every ship-gate — but it is a check-precision bug, not real drift.
 
+  # (2026-07-26) #421/#422 arrived on main via the operator-authorized merge of the stranded branch
+  # docs/hub-defects-handoff-tooling. Dispositioned under a DISTINCT reason class — oversized single
+  # filing, NOT accretion — on an operator ruling that the accretion label must not absorb them.
+  #
+  # PREDICATE OBSERVATION, recorded here as a candidate fix for whoever re-reviews at review_date
+  # (deliberately NOT a seventh ticket — six were filed this session and none closed). In
+  # validate_doc_rot.py the backlog predicate is `>= _BACKLOG_DATED_BLOCKS (3) dated blocks AND
+  # > _BACKLOG_LONG_CHARS (700)` OR `> _BACKLOG_GROSS_CHARS (1200)`. Its date scan counts (a) date
+  # OCCURRENCES, not DISTINCT DAYS, and (b) dates appearing inside path-like tokens. So #422 — a
+  # single-day filing citing `docs/handoffs/2026-07-25-ai-council-architect/` plus two prose mentions
+  # of the same 2026-07-25 — registers as "3 dated blocks" and trips the ACCRETION predicate although
+  # no history has accreted. Counting distinct days, and excluding dates inside path-like tokens,
+  # would make the accretion predicate mean what its name says. Both rows below would still WARN on
+  # the gross-chars leg, which is the honest signal.
+  - id: warn-doc-rot-backlog-421
+    organ: doc_rot
+    match: "BACKLOG#421"
+    ref: "#421"
+    review_date: 2026-08-26
+    reason: >-
+      OVERSIZED SINGLE FILING — explicitly NOT accretion. One session, one day (2026-07-25), one
+      filing; its 1655 chars are a precise mechanism description (the `_FILE_RE` final-segment defect),
+      not accumulated dated history. Surfaced — NOT introduced — by the merge that recovered this row
+      from the stranded branch. Other-session task text is NOT trimmed here (A0-seal precedent, #332),
+      and trim was refused by operator ruling 2026-07-26. THE FIX IS THE FORMAT, NOT THE WORDING: a
+      1200-char row cannot hold a precise mechanism description, which is the case the restructure
+      intake makes — docs/intake/2026-07-25-tech-consolidation-decision.md, arriving in this same merge.
+      Observed, not acted on: #344 carries this same single-filing shape under the ACCRETION label, so
+      the register absorbed this class once already; that predates this session and its entry is
+      untouched. review_date is the shelf-life so this does not rot into a paper suppression (ADR-75).
+  - id: warn-doc-rot-backlog-422
+    organ: doc_rot
+    match: "BACKLOG#422"
+    ref: "#422"
+    review_date: 2026-08-26
+    reason: >-
+      OVERSIZED SINGLE FILING — explicitly NOT accretion. Same class as #421 and the same origin: one
+      session, one day (2026-07-25), one filing; its 2023 chars describe the `reflow_framing` partial
+      cold→FILLED flip and the §8 self-contradiction no drift-check catches. It additionally trips the
+      accretion predicate at "3 dated blocks", but all three are the SAME day and one is inside a path
+      token — see the predicate observation above; no history has accreted. Surfaced — NOT introduced —
+      by the recovery merge. Trim refused by operator ruling 2026-07-26; other-session text is not
+      rewritten. THE FIX IS THE FORMAT, NOT THE WORDING — docs/intake/2026-07-25-tech-consolidation-decision.md.
+      review_date is the shelf-life so this does not rot into a paper suppression (ADR-75).
+
   # (cleared 2026-07-02, #222) warn-doc-claims-pytest-collected-architecture — #222 relocated
   # the three volatile counts to the committed-generated ecosystem/doc-counts.md, so the
   # pytest_collected claim no longer anchors in ARCHITECTURE.md (doc_claims now reconciles it
