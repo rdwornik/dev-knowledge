@@ -2393,27 +2393,58 @@ def check_import_edges(repo_path: Path) -> list[Finding]:
 # ADR-105 routine marker. Clause-scoped extraction in the established
 # _SERIALIZE_CLAUSE_RE idiom (validate_backlog.py:81) — delimiter-anchored, so a prose
 # mention of the keyword in a task body cannot register as a phantom declaration.
-_ROUTINE_MARKER_RE = re.compile(r"·\s*routine\s*:")
-_ROUTINE_FIELD_RE = re.compile(r"·\s*(consumer|consumption_path)\s*=\s*([^·]*)")
+_ROUTINE_MARKER_RE = re.compile("·\\s*routine\\s*:")
+_ROUTINE_FIELD_RE = re.compile("·\\s*(consumer|consumption_path)\\s*=([^·]*)")
 _ROUTINE_TASK_RE = re.compile(r"^- \[#(\d+)\]")
 _ROUTINE_REQUIRED = ("consumer", "consumption_path")
+# A LOOKALIKE delimiter before `routine:` (bullet/interpunct variants that are NOT the
+# canonical U+00B7). Without this a mistyped marker parses as "no declaration" and fails
+# OPEN -- the exact silent-inertness class [#424]/[#425] were filed for, so this check
+# refuses to reproduce it. A bare prose "routine:" with no bullet is NOT a lookalike.
+_ROUTINE_LOOKALIKE_RE = re.compile("[•∙‧⋅·]\\s*routine\\s*:")
+_ROUTINE_INLINE_CODE_RE = re.compile(r"`[^`]*`")
+_ROUTINE_FENCE_RE = re.compile(r"^\s*```")
+# Zero-width / invisible runes that would otherwise make a blank value look "named".
+_ROUTINE_INVISIBLE = str.maketrans({c: None for c in "​‌‍﻿⁠"})
+
+
+def _routine_value_is_named(raw: str) -> bool:
+    """True only for a value that actually NAMES something.
+
+    Rejects blank, invisible-only (zero-width runes), punctuation-only (`=`), and
+    unfilled `<template placeholders>` -- ADR-105's own field template reads
+    `consumer=<who reads it>`, so a copy-pasted marker must not satisfy the gate.
+    """
+    v = raw.translate(_ROUTINE_INVISIBLE).strip()
+    if not v or (v.startswith("<") and v.endswith(">")):
+        return False
+    return any(ch.isalnum() for ch in v)
 
 
 def check_routine_consumers(repo_path: Path) -> list[Finding]:
     """[#419]/ADR-105 — a declared routine must name a `consumer` and a `consumption_path`.
 
-    COVERAGE BOUNDARY: this checks ONLY BACKLOG rows that carry an ADR-105 `· routine:`
-    marker — live hooks, commit-time gates and scheduled jobs are not BACKLOG rows, so
-    they are NOT checked here and a pass says nothing about them (retrofit: [#426]).
+    COVERAGE BOUNDARY — read before reading a green result: this checks ONLY BACKLOG
+    rows carrying an ADR-105 `· routine:` marker, which at acceptance is exactly ONE row
+    ([#348]). The ~30 live routines — session hooks, commit-time gates, scheduled jobs —
+    are not BACKLOG rows, carry no marker, and are NOT checked; a pass here says nothing
+    whatever about them (retrofit: [#426]). Green does NOT mean the fleet's routines have
+    consumers.
 
     ADR-105 gates at ACTIVATION, not at filing: a row that merely *proposes* a routine
     carries no marker and is correctly not checked. ADR-105 declares six fields; this
-    check gates the two that make output reach a decision — the other four
+    gates the two that make output reach a decision — the other four
     (trigger/scope/verified_by/review_date) are declared, not gated. A marker whose
-    `consumer` or `consumption_path` is missing or blank is a FAIL: an unconsumed
-    routine is the defect [#419] names, and a routine that cannot name a consumer is
-    retired rather than activated (the retire decision is the operator's, never this
-    check's). Read-only.
+    `consumer` or `consumption_path` is missing, blank, placeholder, or duplicated is a
+    FAIL: an unconsumed routine is the defect [#419] names, and a routine that cannot
+    name a consumer is retired rather than activated (that decision is the operator's,
+    never this check's).
+
+    Parsing is deliberately hostile to near-misses: fields are read ONLY from the suffix
+    after the marker (so prose earlier in the row cannot satisfy the gate), duplicates
+    are rejected rather than last-wins, fenced blocks and inline-code spans are stripped
+    (so a row *quoting* the marker stays a proposal), and a lookalike delimiter is
+    surfaced rather than failing open. Read-only.
     """
     name = "routine_consumers"
     backlog = Path(repo_path) / "BACKLOG.md"
@@ -2425,16 +2456,38 @@ def check_routine_consumers(repo_path: Path) -> list[Finding]:
         return [Finding(name, "unavailable", f"cannot read BACKLOG.md: {exc}")]
     bad: list[str] = []
     declared = 0
-    for lineno, line in enumerate(text.splitlines(), 1):
-        task = _ROUTINE_TASK_RE.match(line)
-        if not task or not _ROUTINE_MARKER_RE.search(line):
+    in_fence = False
+    for lineno, raw_line in enumerate(text.splitlines(), 1):
+        if _ROUTINE_FENCE_RE.match(raw_line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue                      # an example is not a declaration
+        task = _ROUTINE_TASK_RE.match(raw_line)
+        if not task:
+            continue
+        line = _ROUTINE_INLINE_CODE_RE.sub("", raw_line)   # a QUOTED marker is prose
+        marker = _ROUTINE_MARKER_RE.search(line)
+        loc = f"[#{task.group(1)}] line {lineno}"
+        if not marker:
+            if _ROUTINE_LOOKALIKE_RE.search(line):
+                bad.append(f"{loc}: lookalike delimiter before 'routine:' — a mistyped "
+                           f"marker must not fail open".replace("|", "/"))
             continue
         declared += 1
-        fields = {k: v.strip() for k, v in _ROUTINE_FIELD_RE.findall(line)}
-        missing = [f for f in _ROUTINE_REQUIRED if not fields.get(f)]
-        if missing:
-            bad.append(f"[#{task.group(1)}] line {lineno}: "
-                       f"{', '.join(missing)}".replace("|", "/"))
+        suffix = line[marker.end():]      # fields belong to the DECLARATION, not the row
+        found: dict[str, list[str]] = {}
+        for key, value in _ROUTINE_FIELD_RE.findall(suffix):
+            found.setdefault(key, []).append(value)
+        problems: list[str] = []
+        for required in _ROUTINE_REQUIRED:
+            values = found.get(required, [])
+            if len(values) > 1:
+                problems.append(f"{required} declared {len(values)}x")
+            elif not values or not _routine_value_is_named(values[0]):
+                problems.append(required)
+        if problems:
+            bad.append(f"{loc}: {', '.join(problems)}".replace("|", "/"))
     if bad:
         return [Finding(name, "fail",
                         "declared routine(s) with no named consumer/consumption_path: "

@@ -2309,3 +2309,74 @@ def test_routine_consumers_absent_backlog_is_na(tmp_path: Path) -> None:
 
 def test_routine_consumers_is_registered_in_all_checks() -> None:
     assert aud.check_routine_consumers in aud.ALL_CHECKS
+
+
+# --- adversarial regression cohort (gpt-5.6-sol review, 2026-07-26) --------------
+# Each test pins one class sol demonstrated against the first implementation. The
+# lookalike case matters most: a mistyped marker that parses as "no declaration"
+# fails OPEN -- the same silent-inertness class [#424]/[#425] were filed for.
+
+def _rt(tmp_path: Path, row: str):
+    _mk(tmp_path / "BACKLOG.md", row + "\n")
+    return aud.check_routine_consumers(tmp_path)[0]
+
+
+def test_routine_consumers_fields_before_marker_do_not_satisfy_gate(tmp_path: Path) -> None:
+    f = _rt(tmp_path, "- [#701] p · consumer=x · consumption_path=y · routine: trigger=nightly")
+    assert f.status == "fail"
+    assert "consumer" in f.evidence
+
+
+def test_routine_consumers_duplicate_field_is_rejected_not_last_wins(tmp_path: Path) -> None:
+    f = _rt(tmp_path, "- [#702] p · routine: trigger=x · consumer= · consumer=operator "
+                      "· consumption_path=boot")
+    assert f.status == "fail"
+    assert "2x" in f.evidence
+
+
+def test_routine_consumers_template_placeholder_is_not_a_named_consumer(tmp_path: Path) -> None:
+    """ADR-105's own template reads `consumer=<who reads it>` — a copy-paste must fail."""
+    f = _rt(tmp_path, "- [#703] p · routine: trigger=x · consumer=<who reads it> "
+                      "· consumption_path=<how output reaches a decision>")
+    assert f.status == "fail"
+
+
+def test_routine_consumers_punctuation_only_value_fails(tmp_path: Path) -> None:
+    f = _rt(tmp_path, "- [#704] p · routine: trigger=x · consumer== · consumption_path==")
+    assert f.status == "fail"
+
+
+def test_routine_consumers_zero_width_value_is_blank(tmp_path: Path) -> None:
+    f = _rt(tmp_path, "- [#705] p · routine: trigger=x · consumer=​ "
+                      "· consumption_path=​")
+    assert f.status == "fail"
+
+
+def test_routine_consumers_marker_in_inline_code_stays_a_proposal(tmp_path: Path) -> None:
+    """Quoting the marker must not activate the gate — the activation/filing boundary."""
+    f = _rt(tmp_path, "- [#706] proposal will later add `· routine:` · Done when: ruled in")
+    assert f.status == "pass"
+    assert "0 declared routine row" in f.evidence
+
+
+def test_routine_consumers_fenced_example_is_not_a_declaration(tmp_path: Path) -> None:
+    _mk(tmp_path / "BACKLOG.md",
+        "```\n- [#707] example · routine: trigger=nightly\n```\n")
+    f = aud.check_routine_consumers(tmp_path)[0]
+    assert f.status == "pass"
+    assert "0 declared routine row" in f.evidence
+
+
+def test_routine_consumers_lookalike_delimiter_does_not_fail_open(tmp_path: Path) -> None:
+    f = _rt(tmp_path, "- [#708] a • routine: trigger=x · consumer= · consumption_path=")
+    assert f.status == "fail"
+    assert "lookalike" in f.evidence
+
+
+def test_routine_consumers_live_backlog_governs_exactly_one_row(tmp_path: Path) -> None:
+    """Pins the stated coverage boundary against the real file (ADR-105 §4). If this
+    number moves, the ADR, the docstring and [#426] must move with it."""
+    root = Path(__file__).resolve().parents[1]
+    f = aud.check_routine_consumers(root)[0]
+    assert f.status == "pass"
+    assert "1 declared routine row" in f.evidence
