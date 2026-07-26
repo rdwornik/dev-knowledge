@@ -62,11 +62,19 @@ cross-repo target. The P7 sweep calls the read-only validators directly instead.
 is likewise **not** a probe — it is the full pytest+mypy+ruff trio, far past read-only-cheap; P6 and
 P12 call the two pieces a probe actually needs.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Unless the operator fills it before this bundle is pasted,
-> the assembler folds nothing and the incoming §13(d) operator-context beat fires **FULL** — a full
-> off-repo ask, not the narrowed *"anything changed since?"*. The residual is therefore the **only**
-> carried "why" this window, and it is repo-derived by construction: it cannot carry operator intent.
-> **The probes outrank it on every number.**
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS are folded into `PASTE_THIS.md`, so the incoming §13(d)
+> operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*
+> **Read the ANSWERS before the residual's §4 ordering — they correct it on load-bearing points**
+> (see the corrections block at the top of `RESIDUAL.md`). The supplement wins on intent, priority and
+> sequencing; the residual stays authoritative on *what the defects are*; **the probes below outrank
+> both on any number.**
+>
+> **One caution specific to this supplement.** Its answers state a number of repo-state values (a HEAD
+> sha, a test count, a checker summary line, task/theme counts, a next-free id) — beyond the
+> interview's why-only scope (§13 "hard scope constraint"). They are committed **verbatim and
+> unedited**, as the contract requires, but they are a **generation-time snapshot and are never
+> trusted over the repo**: **P3, P6, P9 and P12** still govern those numbers and must be re-derived
+> live. If a supplement value and a probe disagree, **the probe is right.**
 
 ## P1 — Orientation (the architect's **first move**, before any mechanism — §13c)
 
@@ -85,8 +93,8 @@ navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. `ARCHITECTURE.md` was amended **again** this window (a governance-roster
 reconciliation), so the live lines, not any remembered ones, are the frame. **Then, before design, the
-operator-context beat fires (§13d) — FULL** (the supplement is generated empty; there is nothing to
-narrow against).
+operator-context beat fires (§13d) — NARROWED** (the supplement is FILLED — ask only *"anything changed
+since it was written?"*).
 
 **P7, P11 and P12 are unusually load-bearing this window.** The residual's headline is that a *green
 report was published without the predicate that produced it* — several separate instances, including
@@ -134,9 +142,9 @@ claim in the residual that the quality surface is sound.**
    `scripts/validate_backlog.py` all exist in both). This is the single most likely failure mode of a
    cross-repo bundle.
 2. **P1 first** — the architect cannot begin design until both orienting lines are read live and
-   substring-matched. **Then run the operator-context beat (§13d) — FULL** (the supplement is
-   generated empty; there is nothing to narrow against). Then run P2–P16, each against **live state
-   now**.
+   substring-matched. **Then run the operator-context beat (§13d) — NARROWED** (the supplement is
+   FILLED — ask only *"anything changed since it was written?"*). Then run P2–P16, each against **live
+   state now**.
 3. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing /
    command errored / receiver tried to answer from memory or this bundle).
 4. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary
@@ -155,6 +163,6 @@ claim in the residual that the quality surface is sound.**
 6. **Bundle-shape / supplement fill-state is NOT a probe here** (the stock row pointed at the hub
    bundle dir, which is unresolvable from the target root). This bundle carries `HANDOFF_BOOT` +
    `RESIDUAL` + `PROBES` + `SUPPLEMENT` + `PASTE_THIS` and **no per-bundle README**
-   (HANDOFF_PROCESS §13); the supplement is **generated EMPTY**, so the assembler folds nothing and the
-   §13(d) beat fires **FULL**. Confirm by looking at the bundle directory in the hub — it is CC-side
-   bookkeeping, not target state.
+   (HANDOFF_PROCESS §13); the supplement is **FILLED**, so its ANSWERS are folded into `PASTE_THIS.md`
+   and the §13(d) beat **NARROWS**. Confirm by looking at the bundle directory in the hub — it is
+   CC-side bookkeeping, not target state.

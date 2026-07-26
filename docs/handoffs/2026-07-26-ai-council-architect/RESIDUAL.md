@@ -15,15 +15,56 @@
 > `.dev-knowledge` hub. Every `#id`, path, and `BACKLOG.md` reference below is **ai-council's** unless
 > explicitly marked hub. The hub is read-only-adjacent here: it hosts, it does not own these tickets.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 >
-> **Consequence, stated plainly:** this residual is **repo-derived by construction** and therefore
-> carries **no operator intent** — not the priority call, not the "why now," not anything decided in
-> chat and never written down. Last window's bundle carried a filled supplement whose ANSWERS
-> **corrected the residual on five load-bearing points**, including inverted sequencing and a ruling
-> that existed only in chat. Assume the same gap exists now and is simply unfilled. **Run the §13(d)
-> beat in full before acting on §4's ordering** — §4 is CC's best repo-derived reading, not the
-> operator's plan.
+> **The ANSWERS outrank this residual on intent, priority and SEQUENCING — read them before acting on
+> §4's ordering.** This residual is repo-derived; the supplement carries what only the outgoing
+> architect held. Six load-bearing corrections and additions, so §4 is not silently followed as written:
+>
+> - **(A) §4's ordering is right but too weak.** The supplement upgrades "hygiene does not preempt
+>   items 1–3" into a **testable sequencing rule**: *a window discharges at least one non-delegable
+>   item — operator-gated or architect-owed — **before** any CC lane opens.* Testable at close: did it?
+>   The diagnosis behind it is sharper than §4's: **all three axis-unblockers are non-delegable**, while
+>   **every** backlog defect is CC-executable — so defect-driven ordering fills the window by
+>   construction, and once a CC lane is open the architect's attention goes to directing it (which is
+>   exactly how `#103` was displaced after being explicitly promised). **Naming this is not a
+>   mechanism** — it was named last window and happened again, twice.
+> - **(B) A whole item is missing from §4: the unanchored JOURNAL tail is the next session's FIRST
+>   act** — a JOURNAL anchor for the window's last three merges. It is **structural, not drift**: an
+>   entry cannot name the SHA of the commit containing it, so every session's final commit is
+>   unanchorable by construction. Do not file it as a defect.
+> - **(C) The mechanism half is capped, deliberately.** `#102`'s ranked queue (with axis items held in
+>   its top slots) is the durable version of "axes first" — but **if it threatens to eat the window it
+>   drops**. The risk is explicit: it would become the *third consecutive* methodology arc. Open
+>   question attached: does the queue **reserve** top slots, or rank purely by priority? A purely
+>   priority-ranked queue re-creates the failure, because **every axis item is P3 and the defects are
+>   P2**.
+> - **(D) Two inherited premises are REFUTED — do not carry them forward.** The previous bundle's
+>   "the operator ruled CLI is the default transport" **does not survive the repo** (ADR-12 §5 is
+>   unamended; the code requires per-seat opt-in and no seat declares it) — it was **intent, not
+>   implemented state**, so `#27` keeps its original meaning as the authorizing gate. And "worktrees are
+>   blocked outright" was **wrong as stated**: the real constraint was the system-interpreter editable
+>   install, and this target needs no `.worktreeinclude` today. Also corrected: **`#88` has no `#92`
+>   binding** in its live ticket text — it is independently schedulable.
+> - **(E) §1's "green without its predicate" list gains a third, subtler member.**
+>   `canonical_freshness` checks **stamp-vs-commit-date, not content accuracy** — the doc was factually
+>   wrong for the whole period and the gate stayed green, *correctly*, because freshness is not
+>   accuracy. Reading "freshness gate green" as "the doc is current in substance" is reading a
+>   predicate the gate does not compute.
+> - **(F) Two hub-side items land on THIS repo, not the target.** The commissioned fleet-methodology
+>   intake **exists only as a file and must be placed in the hub's `docs/intake/` or it is lost**; and
+>   commission I asks whether two hub handoff-tooling defects were ever filed. **Partially discharged
+>   this session:** the probe-tokenizer dotfile blindness **is** filed as hub `[#421]`, and this
+>   session found a **second variant** of the same tokenizer defect (a backticked `#id` in a probe's
+>   source column is parsed as a markdown anchor) plus **confirmed** the `assemble_paste` partial
+>   cold→FILLED reflow — it flipped its own framing sites in this very bundle and left seven
+>   hand-authored ones contradicting them, swept by hand. Neither is filed yet.
+>
+> Also carried by the supplement and worth reading directly: a **do-not-relitigate list** (§3, nine
+> items with reasons) and an explicit **architect-seat calibration** — six named browser-seat errors,
+> two of which *reproduced the window's own defect class inside the auditing artifacts*. Treat
+> browser-seat pointers as claims to verify. **On any number, the probes outrank both this residual and
+> the supplement.**
 
 ---
 
@@ -122,7 +163,8 @@ best single read. This is the map only.
 > **Ordering is stated so it is not re-derived — and it is the outgoing session's explicit ruling, not
 > CC's invention.** **Hygiene does not preempt items 1–3.** Record repair, checker work and teardown
 > are the **background lane**. They are how this window filled, and that is the mistake not to repeat.
-> **This ordering is repo-derived and the supplement is empty — the §13(d) beat may correct it.**
+> **The FILLED supplement upgrades this into a testable rule — see correction (A) above: discharge a
+> non-delegable item BEFORE opening any CC lane. Read it before following the ordering below.**
 
 **1. Owner-gated — neither is CC's to decide, both have been waiting.**
    - **`#27` CLI parity — not run for the SEVENTH window.** The instrument is ready and was verified
