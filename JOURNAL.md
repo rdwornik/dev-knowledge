@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-26 (b) — CC (Opus 5): the arc MERGED and pushed; [#428] filed
+
+**Supersedes the "NOT merged" status in the entry below** — that was accurate when written and is not edited (append-only, ADR-29). Operator granted a conditional GO: merge, re-verify against the MERGED tree, push only if every gate is green, stop at the first red.
+
+**Merge-SHA anchor (ADR-85).** `docs/0726-brake-discharge` merged to main `--no-ff` at **`903638c5`**; pushed `863cb804..903638c5`. `block-ff-push` PASSED, confirming the merge sits correctly on main's first-parent spine.
+
+**Result — full gate set re-run against the MERGED tree, not the branch (exit codes read DIRECTLY).** `pytest -n auto` **0** (1760 passed, 3 skipped) · `validate_backlog` **0** (**163 tasks**, exactly 1 pre-existing warning) · `validate_doc_rot` **0** (3 loci — `#344`/`#332`/`#278`, identical to the pre-arc baseline) · `audit.py checks` **32**, unchanged · `audit.py ship-gate` **0, GREEN**, 13 dispositioned, **zero `[stale]`**.
+
+**Count reconciliation.** 162 on the branch → **163** merged. The +1 is `[#427]`, filed and merged by a concurrent session at `863cb804` while this arc was in flight (region templates carry a repo-position-dependent token-log path — unrelated). No id collision: the shared clone meant their next-free scan saw this arc's local commits and correctly took 427.
+
+**Filed `[#428]`** — *`nightly-triage` reports a dead producer to every session start* — the census's sharpest finding, kept OUT of `[#426]` because it is the inverse class: `[#426]` is routines with no declared consumer; this is a **live consumer fed a false claim by a producer that no longer runs**. Producer dead since 2026-07-09 (`.github/` deleted at `82227f08`, on no branch; last Issue 2026-06-25), 15 Issues still open and surfaced every SessionStart. Third habitat of one class in a single session, after `[#424]` (inert gates) and `[#419]` (unread branches) — and `surface_triage.ps1`'s own header shows the class was already diagnosed under #255 and fixed locally without ever being generalized. Row trimmed twice pre-commit to 1177 chars so the filing adds no net-new `doc_rot` WARN. Count **163 → 164**.
+
+**Next.** `[#426]` (the retrofit — where the real defect lives) · `[#428]` · `[#424]`/`[#425]` · `[#382]`, now schedulable with its gate discharged.
+
 ### 2026-07-26 — CC (Opus 5): [E9] brake discharged · ADR-105 routine activation gate · [#419] given teeth
 
 **Branch `docs/0726-brake-discharge`, NOT merged.** Seven commits: `9998e9ef` (L1 brake repairs) · `f4948744` (ADR-105 + marker) · `f8fcd343` (filings) · `91ebbea3` (terra doc review) · `bd9de975` (the check) · `57d6458f` + `138e3cb2` (two rounds of sol hardening) · `32a0fc68` (sol audit record). **No merge to `main` and no push** — LESSONS 2026-07-24 requires an operator GO *and* a JOURNAL anchor, and neither substitutes; the GO has not been given. This entry anchors the arc where it stands.
