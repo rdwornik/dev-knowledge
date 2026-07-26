@@ -2380,3 +2380,65 @@ def test_routine_consumers_live_backlog_governs_exactly_one_row(tmp_path: Path) 
     f = aud.check_routine_consumers(root)[0]
     assert f.status == "pass"
     assert "1 declared routine row" in f.evidence
+
+
+# --- second adversarial cohort (sol re-review, 2026-07-26) -----------------------
+# The re-review refuted the first fix: blunt inline-code STRIPPING erased legitimate
+# backticked values, a second marker lent its fields to an incomplete first one, and
+# the lookalike rule false-FAILed ordinary prose. These pin the corrected model.
+
+def test_routine_consumers_backticked_values_are_valid(tmp_path: Path) -> None:
+    """Deleting code spans erased real values — spans are now located, never removed."""
+    f = _rt(tmp_path, "- [#709] live · routine: trigger=x · consumer=`ops-bot` "
+                      "· consumption_path=`SessionStart`")
+    assert f.status == "pass"
+
+
+def test_routine_consumers_double_backtick_span_stays_a_proposal(tmp_path: Path) -> None:
+    f = _rt(tmp_path, "- [#710] proposal quotes ``· routine:`` · Done when: ruled in")
+    assert f.status == "pass"
+    assert "0 declared routine row" in f.evidence
+
+
+def test_routine_consumers_two_markers_is_ambiguous_not_borrowed(tmp_path: Path) -> None:
+    """A second marker must not lend its fields to an incomplete first declaration."""
+    f = _rt(tmp_path, "- [#717] a · routine: trigger=n · scope=A · routine: trigger=w "
+                      "· consumer=ops · consumption_path=boot")
+    assert f.status == "fail"
+    assert "ambiguous" in f.evidence
+
+
+def test_routine_consumers_lookalike_in_plain_prose_is_not_flagged(tmp_path: Path) -> None:
+    """A lookalike is only a mistyped marker when the row also carries a field= clause."""
+    f = _rt(tmp_path, "- [#714] docs compare labels: • routine: recurring; • project: one-off")
+    assert f.status == "pass"
+
+
+def test_routine_consumers_angle_autolink_is_a_valid_value(tmp_path: Path) -> None:
+    """`<mailto:…>`/`<https://…>` are autolinks, not unfilled placeholders."""
+    f = _rt(tmp_path, "- [#715] live · routine: trigger=x · consumer=<mailto:ops@example.com> "
+                      "· consumption_path=<https://intranet/runbook>")
+    assert f.status == "pass"
+
+
+def test_routine_consumers_sentinel_values_are_not_names(tmp_path: Path) -> None:
+    f = _rt(tmp_path, "- [#721] live · routine: trigger=x · consumer=TBD · consumption_path=TODO")
+    assert f.status == "fail"
+
+
+def test_routine_consumers_nested_longer_fence_is_not_closed_by_inner(tmp_path: Path) -> None:
+    _mk(tmp_path / "BACKLOG.md",
+        "````markdown\n```text\n- [#712] ex · routine: trigger=x\n```\n````\n")
+    assert aud.check_routine_consumers(tmp_path)[0].status == "pass"
+
+
+def test_routine_consumers_indented_ticks_do_not_open_a_fence(tmp_path: Path) -> None:
+    """4-space indent is an indented code literal, not a fence — must not fail open."""
+    _mk(tmp_path / "BACKLOG.md",
+        "    ```\n- [#713] live · routine: trigger=x · consumer= · consumption_path=\n")
+    assert aud.check_routine_consumers(tmp_path)[0].status == "fail"
+
+
+def test_routine_consumers_tilde_fence_is_honoured(tmp_path: Path) -> None:
+    _mk(tmp_path / "BACKLOG.md", "~~~\n- [#718] ex · routine: trigger=x\n~~~\n")
+    assert aud.check_routine_consumers(tmp_path)[0].status == "pass"
