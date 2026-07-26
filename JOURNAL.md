@@ -19,6 +19,31 @@
 
 ---
 
+### 2026-07-26 (d) — CC (Opus 5): pushed with pytest RED — a documented, operator-ruled exception
+
+**This entry exists so the exception is never mistaken for an oversight.** `main` was pushed while `pytest` was **red**, by explicit operator ruling, on proven-external provenance. The rule "push only on all-green" exists to stop US landing a regression; it does not convert an unrelated external condition into an indefinite hold on completed, verified work — and holding this push would have reproduced the exact defect the merge exists to repair: **work nobody merged**.
+
+**The failing test, named so it is greppable:** `tests/test_audit.py::test_check_fleet_parity_green_on_live_repo`. It calls `check_fleet_parity` directly and asserts `not real`, so the disposition register — which cleared the same WARN at the ship-gate — is invisible to it.
+
+**The three facts that justified the exception, each from evidence, not reasoning:**
+
+```
+1. Our merge changed NO top-level entry. The failing check is a root-sweep over the
+   top-level entry SET; that set is byte-identical at 371daefd and at HEAD. Our six
+   changed paths are all M (modified) or a nested A. We added/removed/renamed none.
+2. The failure list names ONLY ai-council's conftest.py — 1 finding; 0 naming any
+   other sibling; 0 naming this repo.
+3. Timing: ai-council merged the tracked root conftest.py at 14:53:00. Our arc's first
+   commit was 12:28:53 (2h24m earlier) and the recovery merge d5ef97d0 was 14:35:21
+   (18 min earlier). The condition POST-DATES the merge it reddens.
+```
+
+**Not done, deliberately:** no skip, no xfail, no deselect, no marker on the test; no edit to ai-council; no amendment to the consumer-role template. **The red stays visible and belongs to `[#430]`.**
+
+**THE CEILING BLOCKED A THIRD RECORD.** The 1200-char `doc_rot` ceiling was hit **seven** times this arc, and **three** of those prevented a record from existing rather than merely shaping one: `[#414]` at 1196/1200 could not receive the gate-bypass finding; `[#430]` at 1193/1200 could not receive the three-manifestations finding; `[#415]` at 1183/1200 could not receive the test-coupling evidence that is precisely its own subject. All three were relocated to `LESSONS.md`, and **all three references are one-directional** — the lessons cite the tickets, the tickets cannot cite back. A ticket that cannot hold the evidence for its own defect is not a formatting inconvenience.
+
+**Result — verification (exit codes read DIRECTLY; the background wrapper reported "exit code 0" while the captured `PYTEST_EXIT` was 1 — reading it directly is what caught this).** `audit.py ship-gate` **0, GREEN**, 16 dispositioned, zero `[stale]` · `validate_doc_rot` 5 loci, **zero undispositioned** · `validate_backlog` **168 tasks**, exactly 1 pre-existing warning · `pytest -n auto` **1** — 1 failed, 1759 passed, 3 skipped, the single failure being the external condition above.
+
 ### 2026-07-26 (c) — CC (Opus 5): stranded branch recovered; [#430] filed; the 1200-char ceiling BLOCKED a record
 
 **Merge-SHA anchor (ADR-85).** `docs/hub-defects-handoff-tooling` recovered to main `--no-ff` at **`d5ef97d0`** on operator GO; `docs/disposition-421-422` merged after it. Serial through the primary — this was another session's work, nothing autonomous.
