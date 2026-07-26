@@ -11,7 +11,7 @@
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -102,6 +102,22 @@ Detail lives in `JOURNAL.md` 2026-07-26 entries (a)–(e) and `BACKLOG.md`; this
 - **The `[E8]` preamble now carries an explicit reconciliation-debt list** (stale `CONTRIBUTING.md`
   prose describing a deleted Action in the present tense; `[#389]`/W3/W4/W6/W7 R-status text now
   stale) — enumerated rather than silently left.
+
+> **Reconciliation against the folded `SUPPLEMENT.md` — the repo wins, per §13's advisory contract.**
+> The supplement is carried **verbatim** and is **never trusted over the repo**; one of its claims has
+> since been overtaken by live state, and it is flagged here rather than edited there.
+>
+> - **Its wave-1 `MICRO-WINDOW` is described as *"prompt already delivered, awaiting paste"* — that
+>   wave has SHIPPED.** It merged this window (`ARCHITECTURE.md` currency through ADR-105, the organ
+>   Status column, the reserved-id release, the `R1`–`R12` liveness sweep, the codex-wrapper filing);
+>   see the §2 map above and JOURNAL (e). **Do not re-run it.** The supplement's wave order is
+>   otherwise unaffected — the next arc is its wave 2 (uv adoption), then the restructure.
+> - **Checked and still accurate:** *"one merged branch awaiting the operator's word to delete"*
+>   (`git branch --merged main` shows exactly one straggler). Its §7 instruction to **verify the live
+>   conformance-branch set before acting rather than assume the count** is correct and still binding —
+>   re-derive it; this bundle deliberately states no count.
+>
+> Everything else in the supplement is *why*, not state, and stands as written.
 <!-- FILL-IN:shipped END -->
 
 ---
