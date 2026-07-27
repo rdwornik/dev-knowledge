@@ -19,7 +19,7 @@
 
 ---
 
-### 2026-07-27 (b) — CC (Fable 5): [#432] uv adoption executed — ADR-106, locked gate environment, ship-gate GREEN on branch
+### 2026-07-27 (c) — CC (Fable 5): [#432] uv adoption executed — ADR-106, locked gate environment, ship-gate GREEN on branch
 
 **Did:** Execution arc [#432] on `feat/432-uv-adoption` (NOT merged — integration serialized through the operator; a second lane ran concurrently). STEP 0 corrected the [#432] scope line (the ADR is an in-scope deliverable — drafting-error fix, `42064cbb`). Survey fan-out (3 parallel read-only Haiku probes) inventoried every invocation surface. Build (`636478f7`): `pyproject.toml` gains `[project]` + `[tool.uv]` with **uv pinned exactly `==0.11.19`** (`required-version`; a uv upgrade is its own gated change), committed `uv.lock` + `.python-version` (CPython 3.12.10), dev group gains `click`/`rich`, `ruff==0.15.5` exact to match the hook rev; the #257 no-venv policy header superseded in place. All 14 local pre-commit entries, the Stop + python SessionStart hooks, and the verify skill migrated to `uv run --locked`; CONTRIBUTING setup rewritten (`uv sync --locked`, re-read end-to-end, `last_reviewed` re-stamped). **ADR-106** authored (Accepted): pin, upgrade-is-gated rule, defect classes closed (environment/test isolation + gate reproducibility), per-repo GATED fleet rollout, ai-council conftest guard stays a second leg. **ADR-101 amendment 2026-07-27** sanctions `uv.lock`/`.python-version` (lockstep frozenset + test pin, the `.methodology.yaml` precedent). Codex terra review (direct `codex exec review -m gpt-5.6-terra --base fb62c510`) found P1: legacy hook shims keep `INSTALL_PYTHON` = system python and `arm_hooks` never rebinds — fixed (`ad27e0fa`: `_stale_interpreter` check + one-time reinstall; shims now bind `.venv`). Ship-gate fresh WARNs closed by fixes, not dispositions (parity rows `root-uv-lock`/`root-python-version` `{hub: MUST, consumer: LOCAL}`; [#432] row trimmed under the doc_rot ceiling).
 
@@ -30,6 +30,20 @@
 **Abandoned:** nothing; deferred by design — plugin + hub-methodology prose surfaces migrate with the per-repo rollout (ADR-106 pt 5), `config/requirements-dev.txt` retained pending operator-approved retirement.
 
 **Next:** operator integration of `feat/432-uv-adoption` (do-not-merge honored); per-repo rollout arcs per ADR-106 pt 7.
+
+---
+
+### 2026-07-27 (b) — CC (Fable 5, worktree lane): [#434] conformance-branch extraction aggregate committed at `94b64267` + `58c5fe9a`
+
+**SHA anchor (ADR-85).** This session's commits on `worktree-434-conformance-extraction`: **`94b64267`** (the aggregate artifact `docs/audits/2026-07-27-verification-conformance-extraction-aggregate.md` + regenerated audits index) and **`58c5fe9a`** (terra doc-lane review `docs/audits/2026-07-27-codex-conformance-extraction-aggregate.md` + all four findings adopted). NOT merged — RULING 1 / brief: the operator serializes integration; no conformance branch touched or deleted (RULING 2).
+
+**Did:** [#434] execution arc, read-only over the 7 `claude/conformance-*` branches (re-verified against refs: 7, 2026-07-21→27; prior six-count wrong again). Seven parallel Haiku probes extracted every digest finding verbatim via `git show`; stdlib-only scratch aggregation (outside the repo, uncommitted); every survivor classified against live `origin/main`.
+
+**Result:** 35 raw → 21 claimed → 9 fixed-since (all via operator lanes, never via digest consumption) / 7 still-live (incl. one High: CONTRIBUTING.md:135 still presents the deleted nightly Action as live) / 2 false positives (cloud-clone history artifact `e6fa80a2`) / 3 contested. Sharp test: (a) PARTIAL YES — 07-25 flagged "ratified through ADR-103" vs ADR-104; no digest ever names ADR-105; (b) clean NO with no missed window; (c) NO — six nightlies ran inside the 18-day dead-Ch6 window, zero flagged it. Structural: the 07-26 digest baselined to 2026-06-14 ("42-day gap") — the unmerged branches break the Routine's own cross-night memory. Fork deliberately NOT ruled (operator's, pre-registered in [#434]); BACKLOG untouched (uv lane owns it this window — gate's BACKLOG line is advisory and correctly unmet).
+
+**Changes:** `docs/audits/` (+2 artifacts, README regen ×2), `JOURNAL.md` (this entry).
+
+**Next:** operator rules the [#434] fork; RULING 2 then gates branch deletion on this aggregate having landed.
 
 ---
 
