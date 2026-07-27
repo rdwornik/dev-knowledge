@@ -2564,6 +2564,27 @@ def check_routine_consumers(repo_path: Path) -> list[Finding]:
                     f"consumption_path (live hooks/schedules out of scope — [#426])")]
 
 
+def _index_worktree_divergence(repo_path: Path, *paths: str) -> tuple[str, list[str]]:
+    """Do the index and the working tree agree on `paths`? -> ("ok"|"diverged"|"unknown", …)
+
+    Any check that reads the WORKING TREE is only trustworthy while the index agrees with
+    it: otherwise a change can be staged and the working copy restored, so the check
+    validates the old bytes while the commit records the new ones. Both organs here read
+    the working tree, so both consult this first.
+
+    "unknown" (a git probe that could not complete) is NOT "ok" -- treating it as ok was
+    itself the fail-open terra found on the sixth pass. Callers block on both non-ok
+    states.
+    """
+    staged = _git(Path(repo_path), "diff", "--name-only", "--cached", "--", *paths)
+    unstaged = _git(Path(repo_path), "diff", "--name-only", "--", *paths)
+    if staged is None or unstaged is None \
+            or staged.returncode != 0 or unstaged.returncode != 0:
+        return "unknown", []
+    divergent = sorted(set(staged.stdout.split()) & set(unstaged.stdout.split()))
+    return ("diverged", divergent) if divergent else ("ok", [])
+
+
 def _load_silent_rule_baseline(repo_path: Path) -> Optional[dict]:
     """Read ecosystem/silent-rule-baseline.yaml. Returns None when absent/malformed.
 
@@ -2771,6 +2792,19 @@ def check_silent_rule_ratchet(repo_path: Path) -> list[Finding]:
         # probe's first run -- an unmeasured corpus must block, not wave the arc through.
         return [Finding("silent_rule_ratchet", "fail",
                         f"detector could not measure the corpus: {exc!r}".replace("|", "/"))]
+    # The baseline is read from the WORKING TREE while the detector measures the INDEX, so
+    # staging a raised baseline and restoring the working copy would validate the old value
+    # while committing the raised one -- defeating ratchet-down-only (terra HIGH, 6th pass).
+    # Refuse to answer unless the two agree.
+    agreement, divergent = _index_worktree_divergence(Path(repo_path),
+                                                      _srd.BASELINE_RELPATH)
+    if agreement != "ok":
+        detail = (", ".join(divergent) if divergent
+                  else "git could not compare index and working tree")
+        return [Finding("silent_rule_ratchet", "fail",
+                        (f"baseline read is untrustworthy: {detail} — stage or restore "
+                         f"{_srd.BASELINE_RELPATH} consistently, then re-run")
+                        .replace("|", "/"))]
     ref_state, previous = _target_baseline_state(Path(repo_path))
     return _ratchet_findings(live, _load_silent_rule_baseline(Path(repo_path)),
                              previous, ref_state)
@@ -2832,18 +2866,15 @@ def check_task_tree_coherence(repo_path: Path) -> list[Finding]:
     # staged BACKLOG change can be hidden by restoring the working copy before committing,
     # and the gate would bless a coherent old tree while the commit records an incoherent
     # source/tree pair. Refuse to answer rather than answer about the wrong bytes.
-    staged = _git(Path(repo_path), "diff", "--name-only", "--cached", "--",
-                  "BACKLOG.md", "tasks")
-    unstaged = _git(Path(repo_path), "diff", "--name-only", "--", "BACKLOG.md", "tasks")
-    if staged is not None and unstaged is not None \
-            and staged.returncode == 0 and unstaged.returncode == 0:
-        divergent = sorted(set(staged.stdout.split()) & set(unstaged.stdout.split()))
-        if divergent:
-            return [Finding("task_tree_coherence", "fail",
-                            ("index and working tree disagree on "
-                             + ", ".join(divergent)
-                             + " — the coherence read cannot be trusted; stage or restore "
-                               "consistently, then re-run").replace("|", "/"))]
+    # A probe that could NOT complete is not agreement (terra HIGH, 6th pass): skipping the
+    # guard on a git timeout or error reopened the exact hiding path it exists to close.
+    agreement, divergent = _index_worktree_divergence(Path(repo_path), "BACKLOG.md", "tasks")
+    if agreement != "ok":
+        detail = ("index and working tree disagree on " + ", ".join(divergent)
+                  if divergent else "git could not compare index and working tree")
+        return [Finding("task_tree_coherence", "fail",
+                        (f"{detail} — the coherence read cannot be trusted; stage or "
+                         f"restore consistently, then re-run").replace("|", "/"))]
     try:
         problems = _gtt.find_incoherences(source, out_dir)
     except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:

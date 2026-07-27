@@ -484,3 +484,34 @@ def test_ref_probe_failure_is_invalid_not_absent(tmp_path, monkeypatch):
 
     monkeypatch.setattr(aud, "_git", fake)
     assert aud._ref_baseline_state(tmp_path, "origin/main") == ("invalid", None)
+
+
+def test_staged_baseline_raise_cannot_hide_behind_the_working_copy(tmp_path, monkeypatch):
+    """terra HIGH (6th pass) — the baseline was read from the WORKING TREE while the
+    detector measures the INDEX, so staging a raised baseline and restoring the working
+    copy validated the old value while committing the raised one. The check must refuse."""
+    import subprocess
+
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    _git_tree(tmp_path, {srd.BASELINE_RELPATH:
+                         f"detector_id: {srd.DETECTOR_ID}\nbaseline: 10\n"})
+
+    target = tmp_path / srd.BASELINE_RELPATH
+    original = target.read_bytes()
+    target.write_bytes(original.replace(b"baseline: 10", b"baseline: 9999"))
+    subprocess.run(["git", "add", srd.BASELINE_RELPATH], cwd=tmp_path, check=True,
+                   capture_output=True, text=True)
+    target.write_bytes(original)                    # restore the working copy
+    findings = aud.check_silent_rule_ratchet(tmp_path)
+    assert _status(findings) == "fail", findings
+    assert "untrustworthy" in findings[0].evidence
+
+
+def test_ratchet_blocks_when_divergence_probe_fails(tmp_path, monkeypatch):
+    """An unknown answer from the git probe is not agreement — same fail-open class."""
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    monkeypatch.setattr(aud, "_git", lambda *a, **k: None)
+    monkeypatch.setattr(aud._srd, "measure", lambda _r: _measurement(1))
+    findings = aud.check_silent_rule_ratchet(tmp_path)
+    assert _status(findings) == "fail", findings
+    assert "could not compare" in findings[0].evidence

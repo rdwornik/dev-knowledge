@@ -19,6 +19,28 @@ import gen_task_tree as gtt
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
+def _git_repo(root: Path) -> Path:
+    """A committed git repo carrying the two required hub artifacts.
+
+    Needed because the check now consults index/worktree agreement BEFORE reading, so a
+    bare tmp dir short-circuits on "git could not compare" long before the path under test.
+    """
+    import subprocess
+
+    def git(*a):
+        subprocess.run(["git", *a], cwd=root, check=True, capture_output=True, text=True)
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.email", "t@example.invalid")
+    git("config", "user.name", "t")
+    (root / "BACKLOG.md").write_text("# BACKLOG\n", encoding="utf-8")
+    (root / "tasks").mkdir()
+    (root / "tasks" / ".keep").write_text("", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-qm", "fixture")
+    return root
+
+
 def _status(findings) -> str:
     assert len(findings) == 1, f"expected exactly one Finding, got {findings!r}"
     return findings[0].status
@@ -162,8 +184,7 @@ def test_artifact_read_error_fails_rather_than_warns(monkeypatch, tmp_path):
     slip past a gate documented as FAIL-class (the commit-time audit-health gate blocks
     only on `fail`). Artifact read/parse errors must FAIL."""
     monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
-    (tmp_path / "BACKLOG.md").write_text("# BACKLOG\n", encoding="utf-8")
-    (tmp_path / "tasks").mkdir()
+    _git_repo(tmp_path)
 
     def boom(_source, _out):
         raise ValueError("simulated malformed derived tree")
@@ -180,8 +201,7 @@ def test_programming_defect_is_not_laundered_into_a_status(monkeypatch, tmp_path
     import pytest
 
     monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
-    (tmp_path / "BACKLOG.md").write_text("# BACKLOG\n", encoding="utf-8")
-    (tmp_path / "tasks").mkdir()
+    _git_repo(tmp_path)
 
     def boom(_source, _out):
         raise ZeroDivisionError("programming defect")
@@ -222,3 +242,16 @@ def test_index_worktree_divergence_refuses_to_answer(tmp_path, monkeypatch):
     findings = aud.check_task_tree_coherence(tmp_path)
     assert _status(findings) == "fail", findings
     assert "index and working tree disagree" in findings[0].evidence
+
+
+def test_git_probe_failure_blocks_rather_than_skipping(tmp_path, monkeypatch):
+    """terra HIGH (6th pass) — skipping the divergence guard when the git probe could not
+    complete reopened the exact staged-content hiding path the guard exists to close. An
+    unknown answer is not agreement."""
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    (tmp_path / "BACKLOG.md").write_text("# BACKLOG\n", encoding="utf-8")
+    (tmp_path / "tasks").mkdir()
+    monkeypatch.setattr(aud, "_git", lambda *a, **k: None)
+    findings = aud.check_task_tree_coherence(tmp_path)
+    assert _status(findings) == "fail", findings
+    assert "could not compare" in findings[0].evidence
