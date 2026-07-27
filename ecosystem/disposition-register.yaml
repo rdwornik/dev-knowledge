@@ -168,6 +168,19 @@ dispositions:
       HANDOFF_PROCESS v5.7, it does not track v5.7. Declaring `reconciled_with` would assert a
       version-coupling the doc does not have. Deferred under the [#241] adjudication family;
       clears on its own when intake 18 ratifies or retires.
+  - id: warn-undeclared-intake-design-input-handoff-process
+    organ: undeclared_edges
+    match: "docs/intake/2026-07-27-func-operator-design-input-night-shift-handoff-reform.md -> handoff-process"
+    ref: "#241"
+    review_date: 2026-08-26
+    reason: >-
+      Same class as the v6-proposal row above, applying the operator's 2026-07-27 ruling rather
+      than making a new one — and a weaker coupling still. This intake is a SEED: a verbatim
+      capture of operator design input, explicitly NOT citable by prompts or contracts until
+      ratified. Its ONLY occurrence of the token is a pointer to the sibling intake filename
+      (verified: one line, the `[#435]` cross-reference) — an edge to another INTAKE, not a
+      claim about the spec, so there is no version to reconcile with. Clears when intake 18
+      ratifies or retires, at which point the pointer resolves and this decorates stale.
   - id: warn-undeclared-intake-index-handoff-process
     organ: undeclared_edges
     match: "docs/intake/README.md -> handoff-process"
