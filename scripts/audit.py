@@ -2575,13 +2575,23 @@ def _index_worktree_divergence(repo_path: Path, *paths: str) -> tuple[str, list[
     "unknown" (a git probe that could not complete) is NOT "ok" -- treating it as ok was
     itself the fail-open terra found on the sixth pass. Callers block on both non-ok
     states.
+
+    The predicate is simply "does the index differ from the working tree for any monitored
+    path", which is what `git diff -- <paths>` answers directly. An earlier version
+    INTERSECTED the staged and unstaged path lists (terra HIGH, 7th pass) and so returned
+    "ok" when DIFFERENT monitored paths diverged -- staged `BACKLOG.md` alongside a
+    regenerated-but-unstaged `tasks/` passed, letting the gate bless a coherent working
+    tree while the commit recorded only half of it. Untracked files under the monitored
+    paths count too: a newly generated task file is invisible to `git diff`, so omitting
+    it would leave the same hole for the add case.
     """
-    staged = _git(Path(repo_path), "diff", "--name-only", "--cached", "--", *paths)
     unstaged = _git(Path(repo_path), "diff", "--name-only", "--", *paths)
-    if staged is None or unstaged is None \
-            or staged.returncode != 0 or unstaged.returncode != 0:
+    untracked = _git(Path(repo_path), "ls-files", "--others", "--exclude-standard",
+                     "--", *paths)
+    if unstaged is None or untracked is None \
+            or unstaged.returncode != 0 or untracked.returncode != 0:
         return "unknown", []
-    divergent = sorted(set(staged.stdout.split()) & set(unstaged.stdout.split()))
+    divergent = sorted(set(unstaged.stdout.split()) | set(untracked.stdout.split()))
     return ("diverged", divergent) if divergent else ("ok", [])
 
 

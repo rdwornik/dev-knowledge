@@ -255,3 +255,62 @@ def test_git_probe_failure_blocks_rather_than_skipping(tmp_path, monkeypatch):
     findings = aud.check_task_tree_coherence(tmp_path)
     assert _status(findings) == "fail", findings
     assert "could not compare" in findings[0].evidence
+
+
+def test_staged_backlog_with_unstaged_tasks_is_divergence(tmp_path, monkeypatch):
+    """terra HIGH (7th pass) — the helper INTERSECTED staged and unstaged path lists, so
+    DIFFERENT monitored paths diverging returned "ok": a staged BACKLOG.md alongside a
+    regenerated-but-unstaged tasks/ blessed a coherent working tree while the commit
+    recorded only half of it, leaving a stale derived tree."""
+    import subprocess
+
+    def git(*a):
+        subprocess.run(["git", *a], cwd=tmp_path, check=True, capture_output=True, text=True)
+
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    _git_repo(tmp_path)
+    (tmp_path / "BACKLOG.md").write_text("# BACKLOG edited\n", encoding="utf-8")
+    git("add", "BACKLOG.md")
+    (tmp_path / "tasks" / ".keep").write_text("regenerated but unstaged\n", encoding="utf-8")
+
+    state, divergent = aud._index_worktree_divergence(tmp_path, "BACKLOG.md", "tasks")
+    assert state == "diverged", (state, divergent)
+    assert any("tasks/" in d for d in divergent), divergent
+    assert _status(aud.check_task_tree_coherence(tmp_path)) == "fail"
+
+
+def test_unstaged_backlog_with_staged_tasks_is_divergence(tmp_path, monkeypatch):
+    """The inverse arrangement must also be caught."""
+    import subprocess
+
+    def git(*a):
+        subprocess.run(["git", *a], cwd=tmp_path, check=True, capture_output=True, text=True)
+
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    _git_repo(tmp_path)
+    (tmp_path / "tasks" / ".keep").write_text("regenerated\n", encoding="utf-8")
+    git("add", "tasks")
+    (tmp_path / "BACKLOG.md").write_text("# BACKLOG edited but unstaged\n", encoding="utf-8")
+
+    state, divergent = aud._index_worktree_divergence(tmp_path, "BACKLOG.md", "tasks")
+    assert state == "diverged", (state, divergent)
+    assert "BACKLOG.md" in divergent, divergent
+
+
+def test_untracked_generated_task_file_counts_as_divergence(tmp_path, monkeypatch):
+    """A newly generated task file is invisible to `git diff`, so omitting untracked files
+    would leave the same hole for the ADD case."""
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    _git_repo(tmp_path)
+    (tmp_path / "tasks" / "999-brand-new.md").write_text("new\n", encoding="utf-8")
+    state, divergent = aud._index_worktree_divergence(tmp_path, "BACKLOG.md", "tasks")
+    assert state == "diverged", (state, divergent)
+    assert any("999-brand-new" in d for d in divergent), divergent
+
+
+def test_clean_tree_is_ok(tmp_path, monkeypatch):
+    """The negative case: a committed, clean tree reports agreement, so the guard does not
+    fire on every ordinary run."""
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    _git_repo(tmp_path)
+    assert aud._index_worktree_divergence(tmp_path, "BACKLOG.md", "tasks") == ("ok", [])
