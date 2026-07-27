@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-07-27 (e) — CC (Fable 5, worktree lane): arc CLOSED — terra adoptions at `2d264dfc`; entry (d)'s "pending" state is superseded
+
+**Anchor + corrective (ADR-85; terra M4).** **`2d264dfc`** — terra doc-lane review (`docs/audits/2026-07-27-codex-handoff-v6-pack.md`) + all 7 findings verified-and-adopted into both artifacts + audit §7 review record. This entry supersedes entry (d)'s completion state per the append-only discipline (correct forward, never edit history): (d) says "§5 pending / finalize + terra follow" — both have now landed (`58552081` finalize, `2d264dfc` terra). The arc is COMPLETE: audit (BW-a…h, RM-1…8, W1…9, §5 longitudinal, §7 review record) + intake #18 (A1–A11, PROPOSED) + terra record, six commits total on `worktree-handoff-review`, tree clean, NOT merged — commit-and-STOP per brief; the operator integrates serially (expect the JOURNAL prepend conflict; resolve newest-first).
+
+**Terra body-vs-counter note (recorded for [#431]'s neighbourhood):** the wrapper's severity heuristic printed all-zeros while the review body carried 3 High + 4 Medium — read the BODY, never the counter. No ticket filed (BACKLOG banned this window; files at the next serial batch with this lane's owning ticket).
+
+---
+
 ### 2026-07-27 (d) — CC (Fable 5, worktree lane): handoff-process audit + v6 proposal pack committed at `c7341275` + `8b386ee7`
 
 **SHA anchor (ADR-85).** This session's commits on `worktree-handoff-review`: **`c7341275`** (`docs/audits/2026-07-27-verification-handoff-process-audit.md` + regenerated audits index) and **`8b386ee7`** (`docs/intake/2026-07-27-tech-handoff-process-v6-proposal.md`, intake #18 PROPOSED, + regenerated intake index). *Anchor extension (same session):* **`58552081`** — the finalize commit (audit §5 longitudinal synthesis from the returned 92/93-miner + 3-sweep fan-out; findings RM-7 same-day gate lexical blindness + RM-8 slug-collision overwrite added; intake A11 gains the two matching new guards; BW-a/BW-c evidence strengthened with the LESSONS:344 ancestry + the landed (f)×2/(g)×2 duplicate letters). NOT merged — commit-and-STOP per the operator brief; integration serialized through the operator (a concurrent [#433] lane owns the primary this window).
