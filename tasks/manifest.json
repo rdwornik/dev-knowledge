@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "source": "BACKLOG.md",
-  "source_sha256": "cc4c460a822ffd4724655c42c805351e20e86417d0deddf5af9803fd8453a303",
+  "source_sha256": "a9dd4234093af5bfd2a686977e4f3c9f5be9b17b2ecad26902d6813b2aa666b6",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -93,6 +93,10 @@
     {
       "task": 421,
       "file": "421-verify-handoff-probes-cannot-bind-a-repo-root-do.md"
+    },
+    {
+      "task": 435,
+      "file": "435-steward-intake-18-handoff-process-v6-to-a-ratifi.md"
     },
     {
       "task": 422,
@@ -1064,6 +1068,12 @@
       "prose": ""
     },
     {
+      "prose": "> **Clause (b) — RULED F1 (operator, 2026-07-27; discharges the R12 fork below).** Clause (b) will be amended to **ratchet + bounded drain**: gate the GROWTH of silent rules (the ratchet — built by [#436], row-independent) *and* drain a bounded slice, rather than dispositioning all 176. The **drain row selection (scope) is still pending** the operator's pick; the drain matrix is **slice × mechanism × owner × review date**. The frozen text above is deliberately UNCHANGED — this records the ruling; the amendment lands with the row selection."
+    },
+    {
+      "prose": ""
+    },
+    {
       "prose": "#### Metric definition — the declaration test (operative; governs closure clause (b))"
     },
     {
@@ -1254,6 +1264,10 @@
     },
     {
       "prose": "So that the three items carried out of the night-audit cycle stop living only in narrative — each becomes a ticket with a done-when, rather than being rediscovered a wave later."
+    },
+    {
+      "task": 436,
+      "file": "436-silent-rule-ratchet-gate-the-growth-of-silently.md"
     },
     {
       "task": 354,

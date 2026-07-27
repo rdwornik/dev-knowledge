@@ -345,28 +345,38 @@ def _cmd_write(source_path: Path, out_dir: Path, prune: bool = False) -> int:
     return 0
 
 
-def _cmd_check(source_path: Path, out_dir: Path) -> int:
+def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
+    """The testable core of `--check`: every way the derived tree disagrees with its source.
+
+    Returns a list of human-readable problems; EMPTY means the committed tree is coherent
+    with `BACKLOG.md`. Extracted from `_cmd_check` so a consumer can get structured
+    problems instead of an exit code -- `scripts/audit.py::check_task_tree_coherence`
+    ([#433] C1) wires exactly this as a ship-gate leg, which is what turns `--check` from
+    a mode nothing invokes into an armed gate.
+
+    SCOPE, stated honestly (unchanged by the extraction): this compares the tree against
+    the CURRENT source. It does NOT detect a consistent rewrite of source and tree
+    together -- expectations are derived from the source being checked. Source integrity
+    is a separate leg (a clean `git status` on BACKLOG.md plus the manifest's
+    `source_sha256`).
+    """
     try:
         text = source_path.read_bytes().decode("utf-8")
     except OSError as exc:
-        print(f"gen_task_tree: check FAIL: cannot read source {source_path}: {exc}", file=sys.stderr)
-        return 1
+        return [f"cannot read source {source_path}: {exc}"]
     try:
         model = parse_backlog(text)
     except (ValueError, AssertionError) as exc:
-        print(f"gen_task_tree: check FAIL: parse error: {exc}", file=sys.stderr)
-        return 1
+        return [f"parse error: {exc}"]
 
     tasks = _task_rows(model)
     try:
         fname_by_id = _fname_map(tasks)
     except ValueError as exc:
-        print(f"gen_task_tree: check FAIL: {exc}", file=sys.stderr)
-        return 1
+        return [str(exc)]
 
     if not out_dir.exists():
-        print(f"gen_task_tree: check FAIL: output dir missing: {out_dir}", file=sys.stderr)
-        return 1
+        return [f"output dir missing: {out_dir}"]
 
     problems: list[str] = []
     for task in tasks:
@@ -401,6 +411,12 @@ def _cmd_check(source_path: Path, out_dir: Path) -> int:
     except (OSError, ValueError, KeyError) as exc:
         problems.append(f"reassemble_from_tree failed: {exc}")
 
+    return problems
+
+
+def _cmd_check(source_path: Path, out_dir: Path) -> int:
+    """Thin CLI printer over `find_incoherences` — behaviour and exit codes unchanged."""
+    problems = find_incoherences(source_path, out_dir)
     if problems:
         for problem in problems:
             print(f"gen_task_tree: check FAIL: {problem}", file=sys.stderr)

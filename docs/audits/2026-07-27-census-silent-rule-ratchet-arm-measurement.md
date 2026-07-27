@@ -198,3 +198,132 @@ the ratchet's baseline file has to be designed around, and neither was visible b
 
 ### Removed since the census (8)
 `AI_COUNCIL_PROCESS.md:168`, `:257` `[H]`, `:314` · `PLAYBOOK.md:2637` `[H]`, `:2645`, `:2670`, `:2673`, `:2802`
+
+---
+
+## Amendment — Disposition (D4), operator-adopted 2026-07-27
+
+Appended as an in-file amendment marker (CLAUDE.md §5 rule 3); nothing above this line is
+edited. This records what happened to the STOP verdict, not a revision of it.
+
+**Adopted semantics — D4 (architect-proposed, operator-adopted).** The census's `N_silent`
+is not recoverable by code: its regex and file filter were never recorded, which is what
+this report established. Rather than launder an unreproducible number into a gate, D4 pins
+a **detector in code** and lets it define the metric. `scripts/silent_rule_detector.py`
+(`silent-rule-v4`) is now the single source for *both* the baseline and every live count;
+the census's detector is explicitly **not** reused. The measured baseline is **428**
+normative-keyword occurrences across **56** files at `527958fb`, committed to
+`ecosystem/silent-rule-baseline.yaml` as a number plus its detector id — never a parse of
+the ledger, whose §A–D itemisation yields 182 anchors against a stated 176 (§C lists 21
+under a heading claiming 15).
+
+**What the new metric is.** A normative-keyword *occurrence* count, not a rule census: it
+cannot distinguish a rule from a mention of one in an example. It is a **proxy** for the
+pool's size, load-bearing only in its movement against a baseline measured the same way.
+It is not comparable to 176, nor to this report's 812 Pass-1 figure.
+
+**One correction this build made to the report's own detector choice.** An uppercase-only
+token set was measured first and rejected: it matched **0 of 3** of the rules adjudicated
+silent in the sampling table above — all three are written in prose case (`**Never**
+branch…`, `**must** precede`, `**must use**`). The pinned detector is therefore the
+case-insensitive `must|shall|never` variant (this report's "strict" row, net +19).
+`ecosystem/parity-surfaces.yaml` is excluded from scope for the reason this report already
+gives for excluding its rows from the delta — they are `tier:` enum values read by
+`fleet_parity`, enforced by construction; left in scope they were 120 of 148 candidate
+lines (81%), which would have made the ratchet fire when someone *added enforcement*.
+
+**Still owed, and deliberately not done here.** The three adjudicated silent rules
+(`PLAYBOOK.md:1270`, `REPO_ONBOARDING.md:92`, `REPO_ONBOARDING.md:199`) and the wider
+43-line net-new delta are **undrained** and are owed to the **drain list** — review date
+**2026-08-26** ([#356], [#358]–[#361]). The ratchet stops the pool growing; it does not
+drain it, and a green ratchet must never be read as a drained pool. The four rulings this
+report asked for remain open on their merits; D4 unblocks the *build* by changing the
+metric, and does not answer them.
+
+**Terra CODE review corrections, applied before integration (2026-07-27).** The lane's
+`gpt-5.6-terra` review returned **five HIGH** findings against the first implementation;
+all five were fixed rather than dispositioned, and the detector id was bumped
+`silent-rule-v1` -> `silent-rule-v2` because one of them changed the unit:
+
+1. **Reflow-gameable unit.** v1 counted matching LINES, so joining two rule lines lowered
+   the number without removing a rule and rewrapping one raised it without adding a rule.
+   v2 counts keyword OCCURRENCES, which is reflow-stable. Baseline re-measured 379 -> 428
+   (the same corpus, a different unit -- not growth).
+2. **Raise-guard read `HEAD`.** Once a raise was committed, HEAD *was* the new value, so
+   the guard compared the baseline against itself and passed; it also collapsed on a merge
+   commit and a detached HEAD. It now reads the integration target (`origin/main`, falling
+   back to `main`), and an unreadable target is surfaced as `raise-guard INACTIVE` in the
+   finding rather than silently skipped.
+3. **Detector failure was non-blocking.** A measurement error emitted `unavailable`, which
+   ship-gate does not block on -- an unmeasured corpus would have shipped green. Now FAIL.
+4. **Missing hub artifacts were non-blocking.** An absent `BACKLOG.md`/`tasks/` returned
+   `n/a`, so deleting the derived tree disarmed the gate that watches it. Now FAIL on the
+   hub; `n/a` is reserved for the off-hub guard.
+5. **Path exclusions were case-sensitive.** Windows can surface `templates/Archive/...`,
+   which the exclusion would then miss, making the metric differ by platform. All path and
+   ordering comparisons are casefolded.
+
+Each carries a named regression test. The residual limit terra raised and this build did
+NOT close is recorded rather than hidden: occurrences inside examples, quotations and
+already-enforced rules still count, because separating a rule from a mention of one needs
+the semantic pass the census did by hand.
+
+**Second and third terra passes (same day).** The re-review confirmed three of the five
+fixes held and found two incomplete plus one new HIGH; a third pass found two further
+fail-opens. All closed, and the detector id moved `v2` -> `v3` because the corpus
+definition changed:
+
+6. **Bootstrap did not prove absence.** "A ref resolved but reading a baseline failed" was
+   treated as first-introduction, so a target baseline that existed but was malformed (or
+   a `git show` that timed out) would have let a raised branch value pass uncompared.
+   Absence is now established positively with `git cat-file -e`, and the target state is
+   modelled explicitly as `valid` / `absent` / `invalid` / `unresolved` -- only proven
+   absence bootstraps; `invalid` FAILs and `unresolved` WARNs.
+7. **The corpus was still a filesystem walk.** A walk inherits the host's case semantics
+   and its notion of which of two casefold-colliding names exists, so the same commit could
+   enumerate a different FILE SET on Windows and on Linux -- a rule could disappear from
+   the measurement by being on the wrong OS. The corpus is now git's tracked inventory
+   (`git ls-files`), symlinks and gitlinks excluded, casefold-colliding tracked paths
+   REFUSED rather than silently resolved, and an unenumerable corpus raises instead of
+   degrading to a subset. Side effect, and a correct one: an untracked scratch draft can no
+   longer move the ratchet.
+
+Count unchanged at **428 across 56 files** through both corrections -- behaviour-preserving
+on this tree, platform-stable off it.
+
+**Fourth terra pass.** Three further HIGH findings, all closed; detector `v3` -> `v4`
+because the content source changed:
+
+8. **A failed git probe read as proven absence.** `git cat-file -e` returns non-zero for an
+   inaccessible or corrupt object exactly as for a missing path, so an unreadable target
+   baseline was classified `absent` and bootstrapped past. Absence is now proven with
+   `git ls-tree`, which exits 0 and prints nothing when the path is genuinely missing --
+   separating "not there" from "could not look". A failed lookup is `invalid` (blocking).
+9. **The first valid ref could conceal a raise over the other.** With `origin/main` at 500
+   and an ahead local `main` at 400, a branch baseline of 450 passed against 500 while
+   raising the real local target from 400. All resolved refs are now reconciled: any
+   `invalid` blocks, and the comparison uses the **minimum** valid baseline, which cannot
+   be gamed by ref ordering or divergence.
+10. **Content still came from the working tree.** `ls-files` gave canonical paths, but each
+    was re-opened from disk -- handing the bytes back to the host, where smudge filters,
+    filesystem aliases, junction/symlink ancestors and NFC/NFD-insensitive filesystems can
+    make one index measure different bytes or read one physical file twice. Content is now
+    read from the object store via `git cat-file --batch` using the index's blob ids, and
+    path-collision detection folds NFC normalization as well as case.
+
+Count unchanged at **428 across 56 files** through all four passes.
+
+**Review-loop record, stated plainly.** TEN terra passes were needed to clear the gate,
+returning 5, 3, 2, 3, 2, 2, 1, 1, 1 and 0 HIGH findings; twenty were fixed and none
+dispositioned. Passes 5-10 closed, in order: a working-tree read the index could hide a
+staged change behind (both organs); a git probe that failed open when it could not
+complete; an index/worktree predicate that INTERSECTED staged and unstaged paths and so
+missed divergence across *different* monitored paths; a raise-guard that compared numbers
+across refs without checking they came from the same detector; and a `min()` that ran
+before detector reconciliation, letting a mixed-detector state flip a migration WARN into
+a PASS. Pass 10 returned CLEAR. Every one was a fail-open in a gate
+whose entire purpose is to refuse — a metric that could be gamed by reflow, a raise-guard
+that compared a value against itself, statuses that did not block, a corpus that differed
+by platform. That an arming attempt needed ten adversarial passes is itself the
+strongest evidence for the arm-time STOP this report recorded: the first implementation
+looked correct and was not, and so did each of the next eight.

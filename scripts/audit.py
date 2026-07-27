@@ -123,6 +123,21 @@ try:
 except ImportError:
     import validate_residual_completeness as _vrc
 
+# [#436] silent-rule ratchet detector — the PINNED definition of the metric (regex + file
+# filter + detector id). Same module-import + thin-adapter shape; the check is an adapter
+# so the detector contract stays independently testable.
+try:
+    from scripts import silent_rule_detector as _srd
+except ImportError:
+    import silent_rule_detector as _srd
+
+# [#433]/C1 derived-tree coherence gate — the `tasks/` emitter, imported so the check can
+# invoke its `--check` semantics in-process rather than shelling out. Same shape.
+try:
+    from scripts import gen_task_tree as _gtt
+except ImportError:
+    import gen_task_tree as _gtt
+
 # #179 undeclared-edge scan (Fable consult #1 ruling #2, 2026-07-03) — ship-gate WARN leg; same
 # module-import + thin-adapter shape; tests monkeypatch `_sue.scan`.
 try:
@@ -2549,6 +2564,378 @@ def check_routine_consumers(repo_path: Path) -> list[Finding]:
                     f"consumption_path (live hooks/schedules out of scope — [#426])")]
 
 
+def _index_worktree_divergence(repo_path: Path, *paths: str) -> tuple[str, list[str]]:
+    """Do the index and the working tree agree on `paths`? -> ("ok"|"diverged"|"unknown", …)
+
+    Any check that reads the WORKING TREE is only trustworthy while the index agrees with
+    it: otherwise a change can be staged and the working copy restored, so the check
+    validates the old bytes while the commit records the new ones. Both organs here read
+    the working tree, so both consult this first.
+
+    "unknown" (a git probe that could not complete) is NOT "ok" -- treating it as ok was
+    itself the fail-open terra found on the sixth pass. Callers block on both non-ok
+    states.
+
+    The predicate is simply "does the index differ from the working tree for any monitored
+    path", which is what `git diff -- <paths>` answers directly. An earlier version
+    INTERSECTED the staged and unstaged path lists (terra HIGH, 7th pass) and so returned
+    "ok" when DIFFERENT monitored paths diverged -- staged `BACKLOG.md` alongside a
+    regenerated-but-unstaged `tasks/` passed, letting the gate bless a coherent working
+    tree while the commit recorded only half of it. Untracked files under the monitored
+    paths count too: a newly generated task file is invisible to `git diff`, so omitting
+    it would leave the same hole for the add case.
+    """
+    unstaged = _git(Path(repo_path), "diff", "--name-only", "--", *paths)
+    untracked = _git(Path(repo_path), "ls-files", "--others", "--exclude-standard",
+                     "--", *paths)
+    if unstaged is None or untracked is None \
+            or unstaged.returncode != 0 or untracked.returncode != 0:
+        return "unknown", []
+    divergent = sorted(set(unstaged.stdout.split()) | set(untracked.stdout.split()))
+    return ("diverged", divergent) if divergent else ("ok", [])
+
+
+def _load_silent_rule_baseline(repo_path: Path) -> Optional[dict]:
+    """Read ecosystem/silent-rule-baseline.yaml. Returns None when absent/malformed.
+
+    Fail-soft to None rather than raising: an unreadable baseline must surface as an
+    INERT gate (a visible WARN), never wedge the whole audit and never pass silently.
+    """
+    try:
+        data = yaml.safe_load(
+            (Path(repo_path) / _srd.BASELINE_RELPATH).read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+_BASELINE_REFS = ("origin/main", "main")
+
+
+def _git(repo_path: Path, *args: str) -> Optional[subprocess.CompletedProcess]:
+    """Run a git command, or None if git itself could not be invoked."""
+    try:
+        return subprocess.run(["git", *args], cwd=str(repo_path), capture_output=True,
+                              text=True, timeout=15, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def _target_baseline_state(repo_path: Path) -> tuple[str, Optional[int], Optional[str]]:
+    """The baseline on the INTEGRATION TARGET as a PROVEN state, not an inference.
+
+    Returns one of:
+      ("valid", n)      a target ref carries a well-formed baseline -- compare against it
+      ("absent", None)  a target ref RESOLVES and provably does NOT contain the file --
+                        genuine bootstrap, nothing to compare and nothing to launder
+      ("invalid", None) a target ref contains the file but it is unreadable/malformed --
+                        INDETERMINATE, must block
+      ("unresolved", None)  no target ref resolves at all -- UNVERIFIABLE, must block
+
+    Why proven rather than inferred (terra HIGH, 3rd pass 2026-07-27): the previous shape
+    asked two separate questions -- "did any ref resolve?" and "did reading a baseline
+    succeed?" -- and treated `ref resolved + read failed` as bootstrap. That is fail-open:
+    a target baseline that exists but is malformed, or a `git show` that timed out, would
+    be read as "no baseline yet" and a raised branch value would pass uncompared. Absence
+    is now established positively with `git cat-file -e`, so only real absence bootstraps.
+
+    Reading the target and NOT `HEAD` is itself the earlier fix: once a raise is committed
+    HEAD *is* the new value, so a HEAD comparison compares the baseline against itself.
+    """
+    states = [_ref_baseline_state(repo_path, ref) for ref in _BASELINE_REFS]
+    resolved = [(s, v, d) for s, v, d in states if s != "unresolved"]
+    if not resolved:
+        return "unresolved", None, None
+    if any(s == "invalid" for s, _, _ in resolved):
+        # ANY resolved-but-unreadable target makes the comparison indeterminate. Falling
+        # through to another ref would be the fail-open this shape exists to close.
+        return "invalid", None, None
+    valid = [(v, d) for s, v, d in resolved if s == "valid" and v is not None]
+    if not valid:
+        return "absent", None, None        # every resolving ref provably lacks the file
+    # Reconcile DETECTORS BEFORE any numeric comparison (terra HIGH, 9th pass). Running
+    # min() first could return the ref whose detector happens to match while a second ref
+    # sat on a different, non-commensurable scale -- and then merely changing the old
+    # detector's numbers would flip the verdict from migration-WARN to PASS.
+    detectors = {d for _v, d in valid}
+    if len(detectors) > 1:
+        return "mixed", None, None
+    # STRICTEST of the resolved targets (terra HIGH, 4th pass): returning the first valid
+    # ref let a raise hide behind the other one -- with origin/main at 500 and an ahead
+    # local main at 400, a branch value of 450 passed against 500 while raising the real
+    # local target from 400. min() cannot be gamed by ref ordering or divergence.
+    value, detector = min(valid, key=lambda pair: pair[0])
+    return "valid", value, detector
+
+
+def _ref_baseline_state(repo_path: Path, ref: str) -> tuple[str, Optional[int], Optional[str]]:
+    """One ref's baseline state: unresolved / absent / valid / invalid.
+
+    Absence is proven with `git ls-tree`, not `git cat-file -e` (terra HIGH, 4th pass).
+    `cat-file -e` returns non-zero for an inaccessible or corrupt object and for a failed
+    promisor fetch exactly as it does for a missing path, so "non-zero means absent" would
+    read an unreadable target as first-introduction and let a raise through uncompared.
+    `ls-tree` exits 0 for a resolvable ref and prints NOTHING when the path is genuinely
+    absent, which separates "not there" from "could not look".
+    """
+    rev = _git(repo_path, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
+    if rev is None or rev.returncode != 0 or not rev.stdout.strip():
+        return "unresolved", None, None
+    # Pin the resolved OID and use it for BOTH probes (terra HIGH, 5th pass). Re-reading
+    # the mutable ref NAME lets a concurrent fetch move it between the absence check and
+    # the content read, so the two could observe different commits -- and a target baseline
+    # could be classified absent against one commit while existing in another.
+    oid = rev.stdout.strip()
+    listing = _git(repo_path, "ls-tree", "--full-tree", "-z", oid,
+                   "--", _srd.BASELINE_RELPATH)
+    if listing is None or listing.returncode != 0:
+        return "invalid", None, None       # the lookup itself failed: indeterminate
+    if not listing.stdout.strip():
+        return "absent", None, None        # PROVEN absent at this commit
+    show = _git(repo_path, "show", f"{oid}:{_srd.BASELINE_RELPATH}")
+    if show is None or show.returncode != 0:
+        return "invalid", None, None       # it exists but could not be read
+    try:
+        data = yaml.safe_load(show.stdout)
+    except yaml.YAMLError:
+        return "invalid", None, None
+    if not isinstance(data, dict):
+        return "invalid", None, None
+    value = data.get("baseline")
+    if not isinstance(value, int) or isinstance(value, bool):
+        return "invalid", None, None
+    detector = data.get("detector_id")
+    if not isinstance(detector, str) or not detector:
+        # Without the target's detector id the two numbers cannot be shown commensurable,
+        # and the module's whole premise is that counts from different detectors are not
+        # comparable (terra HIGH, 8th pass). Indeterminate, so block.
+        return "invalid", None, None
+    return "valid", value, detector
+
+
+def _ratchet_findings(live: "_srd.Measurement", baseline: Optional[dict],
+                      previous: Optional[int] = None,
+                      ref_state: str = "absent",
+                      previous_detector: Optional[str] = None) -> list[Finding]:
+    """Testable core of check_silent_rule_ratchet ([#436]).
+
+    Kept pure (no filesystem, no git) so the four contract cases -- pass-at-baseline,
+    fail-above-baseline, ratchet-down accepted, baseline-raise rejected -- are pinned
+    without standing up a repo. Emits exactly ONE Finding so a #147 disposition, if one
+    is ever written, cannot suppress an unrelated concern bundled alongside.
+    """
+    name = "silent_rule_ratchet"
+    if baseline is None:
+        return [Finding(name, "warn",
+                        f"no readable {_srd.BASELINE_RELPATH} — ratchet INERT "
+                        f"(live count {live.count}); gate is not measuring anything")]
+    stamped = baseline.get("detector_id")
+    if stamped != live.detector_id:
+        return [Finding(name, "fail",
+                        (f"detector mismatch: baseline stamped {stamped!r} but live count "
+                         f"produced by {live.detector_id!r} — the two are not commensurable; "
+                         f"re-measure and re-stamp rather than comparing them")
+                        .replace("|", "/"))]
+    value = baseline.get("baseline")
+    if not isinstance(value, int) or isinstance(value, bool):
+        return [Finding(name, "fail",
+                        f"malformed baseline value {value!r} — expected an integer")]
+    if ref_state == "mixed":
+        # The two integration refs carry baselines from DIFFERENT detectors. There is no
+        # single scale to compare against, and picking either would be arbitrary — a
+        # broken target state needing human resolution, not a routine migration.
+        return [Finding(name, "fail",
+                        (f"integration refs ({', '.join(_BASELINE_REFS)}) carry baselines "
+                         f"from DIFFERENT detectors — no common scale to compare against; "
+                         f"reconcile them before the ratchet can verify anything "
+                         f"(live {live.count}, committed {value})").replace("|", "/"))]
+    if ref_state == "invalid":
+        # The target HAS a baseline but it could not be read. Indeterminate, so a raise
+        # cannot be ruled out — block rather than bootstrap past it.
+        return [Finding(name, "fail",
+                        (f"raise-guard INDETERMINATE: the baseline on the integration ref "
+                         f"exists but is unreadable or malformed, so a raise cannot be "
+                         f"ruled out (live {live.count}, committed {value})")
+                        .replace("|", "/"))]
+    if ref_state == "unresolved":
+        # No integration ref at all (no remote, shallow/detached clone, not a git tree).
+        # WARN blocks ship-gate unless explicitly dispositioned; a pass with a note would
+        # not, which was the fail-open terra found on re-review.
+        return [Finding(name, "warn",
+                        (f"raise-guard UNVERIFIABLE: no integration ref (origin/main, "
+                         f"main) resolves, so a baseline raise cannot be ruled out "
+                         f"(live {live.count}, committed {value})").replace("|", "/"))]
+    if previous is None:
+        # PROVEN absent on a resolving ref — the file is genuinely new, so there is no
+        # prior value to launder. Surfaced in the evidence, never silent.
+        guard = " [raise-guard bootstrap: baseline provably absent on the integration ref]"
+    elif previous_detector is not None and previous_detector != live.detector_id:
+        # A detector revision makes the two numbers non-commensurable, so the ratchet
+        # CANNOT verify this transition -- comparing them numerically would let a bump
+        # silently rebase the metric (terra HIGH, 8th pass). WARN blocks ship-gate unless
+        # dispositioned, which is the explicit migration path: an operator reviews the
+        # re-measurement once, deliberately, rather than a version bump waving it through.
+        return [Finding(name, "warn",
+                        (f"detector MIGRATION {previous_detector} -> {live.detector_id}: "
+                         f"the target baseline {previous} and this arc's {value} were "
+                         f"measured by different detectors and are not commensurable; the "
+                         f"ratchet cannot verify this transition — review the "
+                         f"re-measurement explicitly").replace("|", "/"))]
+    else:
+        rejection = _srd.validate_transition(old=previous, new=value)
+        if rejection is not None:
+            return [Finding(name, "fail", rejection.replace("|", "/"))]
+        guard = ""
+    if live.count > value:
+        return [Finding(name, "fail",
+                        (f"silent-rule pool GREW: live {live.count} > baseline {value} "
+                         f"(+{live.count - value}) under detector {live.detector_id} across "
+                         f"{live.files} file(s) — drain the additions or record an operator "
+                         f"ruling; the baseline does not rise on a commit")
+                        .replace("|", "/"))]
+    headroom = value - live.count
+    drained = (f"; {headroom} below baseline — ratchet-down available" if headroom else "")
+    return [Finding(name, "pass",
+                    (f"live {live.count} <= baseline {value} under detector "
+                     f"{live.detector_id} ({live.files} file(s) in scope){drained}{guard}")
+                    .replace("|", "/"))]
+
+
+def check_silent_rule_ratchet(repo_path: Path) -> list[Finding]:
+    """[#436] silent-rule ratchet — gate the GROWTH of the silently-unenforced rule pool.
+
+    Registered in ALL_CHECKS, so it is a ship-gate leg by construction (ship-gate runs
+    the full registry and reads Finding.status directly). FAIL-class: the pool growing
+    blocks the arc.
+
+    WHAT A GREEN HERE DOES AND DOES NOT MEAN -- read before trusting it. The metric is a
+    normative-keyword OCCURRENCE COUNT produced by a pinned detector
+    (scripts/silent_rule_detector.py), NOT the census's `N_silent`. It cannot distinguish a
+    rule from a mention of one in an example, and it counts keywords rather than rules. Green
+    means "the governed corpus did not accrete normative prose since the baseline" -- it
+    does NOT mean the 176-rule backlog was drained, and it says nothing about whether any
+    individual rule has a mechanism. The drain is separate work ([#356], [#358]-[#361],
+    review 2026-08-26).
+
+    Why a proxy at all: the census figure is not reproducible by code (its regex and file
+    filter were never recorded), so no check can recompute it. The 2026-07-27 arm-time
+    re-measurement stopped the build on exactly that. D4 (architect-proposed,
+    operator-adopted) resolves it by pinning a detector and letting it define the metric.
+
+    RATCHET-DOWN ONLY, enforced two ways: `validate_transition` FAILs a raise of the
+    committed baseline against its previous committed value, and this check never writes.
+    Hub-only (the detector's scope roots are hub surfaces); read-only.
+    """
+    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+        return [Finding("silent_rule_ratchet", "n/a",
+                        "hub-only — the detector's scope roots are hub governance surfaces")]
+    try:
+        live = _srd.measure(Path(repo_path))
+    except (OSError, UnicodeDecodeError, _srd.DetectorError) as exc:
+        # FAIL, not "unavailable" (terra HIGH, 2026-07-27): ship-gate blocks only on `fail`
+        # and undispositioned `warn`, so an "unavailable" detector would ship GREEN having
+        # measured nothing at all. A decode failure silently zeroed files in the arm-time
+        # probe's first run -- an unmeasured corpus must block, not wave the arc through.
+        return [Finding("silent_rule_ratchet", "fail",
+                        f"detector could not measure the corpus: {exc!r}".replace("|", "/"))]
+    # The baseline is read from the WORKING TREE while the detector measures the INDEX, so
+    # staging a raised baseline and restoring the working copy would validate the old value
+    # while committing the raised one -- defeating ratchet-down-only (terra HIGH, 6th pass).
+    # Refuse to answer unless the two agree.
+    agreement, divergent = _index_worktree_divergence(Path(repo_path),
+                                                      _srd.BASELINE_RELPATH)
+    if agreement != "ok":
+        detail = (", ".join(divergent) if divergent
+                  else "git could not compare index and working tree")
+        return [Finding("silent_rule_ratchet", "fail",
+                        (f"baseline read is untrustworthy: {detail} — stage or restore "
+                         f"{_srd.BASELINE_RELPATH} consistently, then re-run")
+                        .replace("|", "/"))]
+    ref_state, previous, previous_detector = _target_baseline_state(Path(repo_path))
+    return _ratchet_findings(live, _load_silent_rule_baseline(Path(repo_path)),
+                             previous, ref_state, previous_detector)
+
+
+def _task_tree_findings(problems: list[str], present: bool = True) -> list[Finding]:
+    """Testable core of check_task_tree_coherence ([#433] C1). Pure: takes the problem list
+    `gen_task_tree.find_incoherences` produced and maps it to a Finding."""
+    name = "task_tree_coherence"
+    if not present:
+        return [Finding(name, "n/a", "no tasks/ derived tree in this repo")]
+    if problems:
+        shown = "; ".join(problems[:6])
+        more = f" (+{len(problems) - 6} more)" if len(problems) > 6 else ""
+        return [Finding(name, "fail",
+                        (f"derived tasks/ tree is STALE vs BACKLOG.md — regenerate with "
+                         f"`gen_task_tree.py --write`: {shown}{more}").replace("|", "/"))]
+    return [Finding(name, "pass",
+                    "derived tasks/ tree coherent with BACKLOG.md "
+                    "(per-file + manifest + full reassembly)")]
+
+
+def check_task_tree_coherence(repo_path: Path) -> list[Finding]:
+    """[#433] C1 — ARM the `tasks/` derived-tree coherence gate.
+
+    Closes a gap ARCHITECTURE Ch5 named against its own "no organ = decoration" rule:
+    `gen_task_tree.py --check` existed as a MODE that nothing invoked. No pre-commit hook
+    and no audit check called it, so coherence rested entirely on one pytest case — and a
+    BACKLOG edit that skipped the suite left the tree stale at commit time. That was not
+    hypothetical: at `b4dd3e48` the committed tree had already drifted (two task files
+    stale, [#435]/[#436] missing, manifest and reassembly both mismatched).
+
+    Registered in ALL_CHECKS, so it is a ship-gate leg by construction. FAIL-class.
+
+    SCOPE (inherited from `find_incoherences`, restated so a green is not over-read): this
+    compares the tree against the CURRENT `BACKLOG.md`. It does NOT detect a consistent
+    rewrite of source and tree together — expectations are derived from the source being
+    checked. Source integrity is a separate leg (clean `git status` on BACKLOG.md plus the
+    manifest's `source_sha256`). Hub-only; read-only — it never regenerates the tree,
+    because a gate that silently fixes what it measures cannot fail.
+    """
+    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+        return [Finding("task_tree_coherence", "n/a",
+                        "hub-only — tasks/ is a hub-derived tree")]
+    root = Path(repo_path)
+    source, out_dir = root / "BACKLOG.md", root / "tasks"
+    # On the hub BOTH artifacts are required, so a missing one is a FAIL, not "n/a"
+    # (terra HIGH, 2026-07-27): returning n/a here made the newly-armed leg non-blocking
+    # precisely when its derived artifact had been deleted -- deleting tasks/ would have
+    # disarmed the gate that exists to notice tasks/ drifting. `n/a` is reserved for the
+    # off-hub guard above, which is the only case where absence is legitimate.
+    missing = [n for n, p in (("BACKLOG.md", source), ("tasks/", out_dir)) if not p.exists()]
+    if missing:
+        return [Finding("task_tree_coherence", "fail",
+                        f"required hub artifact(s) absent: {', '.join(missing)} — the "
+                        f"derived-tree gate cannot be satisfied by deleting what it checks")]
+    # The coherence read is a WORKING-TREE read, so it is only trustworthy while the index
+    # agrees with the working tree for these paths (terra HIGH, 5th pass): otherwise a
+    # staged BACKLOG change can be hidden by restoring the working copy before committing,
+    # and the gate would bless a coherent old tree while the commit records an incoherent
+    # source/tree pair. Refuse to answer rather than answer about the wrong bytes.
+    # A probe that could NOT complete is not agreement (terra HIGH, 6th pass): skipping the
+    # guard on a git timeout or error reopened the exact hiding path it exists to close.
+    agreement, divergent = _index_worktree_divergence(Path(repo_path), "BACKLOG.md", "tasks")
+    if agreement != "ok":
+        detail = ("index and working tree disagree on " + ", ".join(divergent)
+                  if divergent else "git could not compare index and working tree")
+        return [Finding("task_tree_coherence", "fail",
+                        (f"{detail} — the coherence read cannot be trusted; stage or "
+                         f"restore consistently, then re-run").replace("|", "/"))]
+    try:
+        problems = _gtt.find_incoherences(source, out_dir)
+    except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:
+        # FAIL, not warn (terra HIGH re-review, 2026-07-27). A blanket `except Exception ->
+        # warn` let malformed artifacts slip past a gate documented as FAIL-class: the
+        # commit-time audit-health gate blocks only on `fail`. These are the artifact-read
+        # and parse errors the tree can legitimately raise, and an unreadable derived tree
+        # is exactly the state this gate exists to refuse. Anything OUTSIDE this set is a
+        # programming defect and is deliberately left to propagate rather than be
+        # laundered into a passing status.
+        return [Finding("task_tree_coherence", "fail",
+                        f"derived-tree check could not complete: {exc!r}".replace("|", "/"))]
+    return _task_tree_findings(problems)
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -2583,6 +2970,8 @@ ALL_CHECKS = [
     check_import_edges,
     check_fleet_parity,   # [#337] blocking #328 fleet-parity gate (was informational)
     check_routine_consumers,   # [#419]/ADR-105 activation gate; scope = marked rows only
+    check_silent_rule_ratchet,   # [#436] D4 ratchet — gates GROWTH of the silent-rule pool
+    check_task_tree_coherence,   # [#433] C1 — arms gen_task_tree --check as a gate
 ]
 
 
