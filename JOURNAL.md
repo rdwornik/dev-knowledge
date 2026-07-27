@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-27 (b) — CC (Fable 5, worktree lane): [#434] conformance-branch extraction aggregate committed at `94b64267` + `58c5fe9a`
+
+**SHA anchor (ADR-85).** This session's commits on `worktree-434-conformance-extraction`: **`94b64267`** (the aggregate artifact `docs/audits/2026-07-27-verification-conformance-extraction-aggregate.md` + regenerated audits index) and **`58c5fe9a`** (terra doc-lane review `docs/audits/2026-07-27-codex-conformance-extraction-aggregate.md` + all four findings adopted). NOT merged — RULING 1 / brief: the operator serializes integration; no conformance branch touched or deleted (RULING 2).
+
+**Did:** [#434] execution arc, read-only over the 7 `claude/conformance-*` branches (re-verified against refs: 7, 2026-07-21→27; prior six-count wrong again). Seven parallel Haiku probes extracted every digest finding verbatim via `git show`; stdlib-only scratch aggregation (outside the repo, uncommitted); every survivor classified against live `origin/main`.
+
+**Result:** 35 raw → 21 claimed → 9 fixed-since (all via operator lanes, never via digest consumption) / 7 still-live (incl. one High: CONTRIBUTING.md:135 still presents the deleted nightly Action as live) / 2 false positives (cloud-clone history artifact `e6fa80a2`) / 3 contested. Sharp test: (a) PARTIAL YES — 07-25 flagged "ratified through ADR-103" vs ADR-104; no digest ever names ADR-105; (b) clean NO with no missed window; (c) NO — six nightlies ran inside the 18-day dead-Ch6 window, zero flagged it. Structural: the 07-26 digest baselined to 2026-06-14 ("42-day gap") — the unmerged branches break the Routine's own cross-night memory. Fork deliberately NOT ruled (operator's, pre-registered in [#434]); BACKLOG untouched (uv lane owns it this window — gate's BACKLOG line is advisory and correctly unmet).
+
+**Changes:** `docs/audits/` (+2 artifacts, README regen ×2), `JOURNAL.md` (this entry).
+
+**Next:** operator rules the [#434] fork; RULING 2 then gates branch deletion on this aggregate having landed.
+
+---
+
 ### 2026-07-27 (a) — CC (Opus 5): three lane tickets filed, four rulings recorded, merged at `153eae1a`
 
 **Did:** Execution-mode recording arc off `main`. Filed **[#432]** (uv adoption, `.dev-knowledge` only this window; fleet rollout shape is the uv arc's ADR deliverable, gated per repo) under [S18], **[#433]** (backlog bake-off pilot — Backlog.md vs scrummd vs build-thin, decided on pilot evidence rather than in chat) under [S19], and **[#434]** (conformance-branch extraction pass) under [S20]. [#434] carries the §7 rulings **verbatim** in its body: RULING 1 do-not-merge (ADR-84 writer isolation), RULING 2 do-not-bulk-delete before extraction, the pre-registered verdict fork, and the sharp named test. Opened a **Decision notes (non-ADR)** section in `docs/decisions/README.md` for the uv fleet adoption, the rtk rejection, and the pilot-precedes-contract ruling; obligation (1) of that last ruling is also recorded on the **[#382]** row so the receiving side carries it. One LESSONS entry, external-instance class.
