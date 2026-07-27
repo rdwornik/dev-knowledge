@@ -2611,31 +2611,56 @@ def _target_baseline_state(repo_path: Path) -> tuple[str, Optional[int]]:
     Reading the target and NOT `HEAD` is itself the earlier fix: once a raise is committed
     HEAD *is* the new value, so a HEAD comparison compares the baseline against itself.
     """
-    resolved_any = False
-    for ref in _BASELINE_REFS:
-        rev = _git(repo_path, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
-        if rev is None or rev.returncode != 0 or not rev.stdout.strip():
-            continue                       # this ref does not exist here; try the next
-        resolved_any = True
-        exists = _git(repo_path, "cat-file", "-e", f"{ref}:{_srd.BASELINE_RELPATH}")
-        if exists is None:
-            return "invalid", None         # git unusable mid-probe: indeterminate, block
-        if exists.returncode != 0:
-            continue                       # PROVEN absent on this ref -- try the next one
-        show = _git(repo_path, "show", f"{ref}:{_srd.BASELINE_RELPATH}")
-        if show is None or show.returncode != 0:
-            return "invalid", None         # it exists but we could not read it
-        try:
-            data = yaml.safe_load(show.stdout)
-        except yaml.YAMLError:
-            return "invalid", None
-        if not isinstance(data, dict):
-            return "invalid", None
-        value = data.get("baseline")
-        if not isinstance(value, int) or isinstance(value, bool):
-            return "invalid", None
-        return "valid", value
-    return ("absent", None) if resolved_any else ("unresolved", None)
+    states = [_ref_baseline_state(repo_path, ref) for ref in _BASELINE_REFS]
+    resolved = [(s, v) for s, v in states if s != "unresolved"]
+    if not resolved:
+        return "unresolved", None
+    if any(s == "invalid" for s, _ in resolved):
+        # ANY resolved-but-unreadable target makes the comparison indeterminate. Falling
+        # through to another ref would be the fail-open this shape exists to close.
+        return "invalid", None
+    values = [v for s, v in resolved if s == "valid" and v is not None]
+    if not values:
+        return "absent", None              # every resolving ref provably lacks the file
+    # STRICTEST of the resolved targets (terra HIGH, 4th pass): returning the first valid
+    # ref let a raise hide behind the other one -- with origin/main at 500 and an ahead
+    # local main at 400, a branch value of 450 passed against 500 while raising the real
+    # local target from 400. min() cannot be gamed by ref ordering or divergence.
+    return "valid", min(values)
+
+
+def _ref_baseline_state(repo_path: Path, ref: str) -> tuple[str, Optional[int]]:
+    """One ref's baseline state: unresolved / absent / valid / invalid.
+
+    Absence is proven with `git ls-tree`, not `git cat-file -e` (terra HIGH, 4th pass).
+    `cat-file -e` returns non-zero for an inaccessible or corrupt object and for a failed
+    promisor fetch exactly as it does for a missing path, so "non-zero means absent" would
+    read an unreadable target as first-introduction and let a raise through uncompared.
+    `ls-tree` exits 0 for a resolvable ref and prints NOTHING when the path is genuinely
+    absent, which separates "not there" from "could not look".
+    """
+    rev = _git(repo_path, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
+    if rev is None or rev.returncode != 0 or not rev.stdout.strip():
+        return "unresolved", None
+    listing = _git(repo_path, "ls-tree", "--full-tree", "-z", ref,
+                   "--", _srd.BASELINE_RELPATH)
+    if listing is None or listing.returncode != 0:
+        return "invalid", None             # the lookup itself failed: indeterminate
+    if not listing.stdout.strip():
+        return "absent", None              # PROVEN absent on this ref
+    show = _git(repo_path, "show", f"{ref}:{_srd.BASELINE_RELPATH}")
+    if show is None or show.returncode != 0:
+        return "invalid", None             # it exists but could not be read
+    try:
+        data = yaml.safe_load(show.stdout)
+    except yaml.YAMLError:
+        return "invalid", None
+    if not isinstance(data, dict):
+        return "invalid", None
+    value = data.get("baseline")
+    if not isinstance(value, int) or isinstance(value, bool):
+        return "invalid", None
+    return "valid", value
 
 
 def _ratchet_findings(live: "_srd.Measurement", baseline: Optional[dict],

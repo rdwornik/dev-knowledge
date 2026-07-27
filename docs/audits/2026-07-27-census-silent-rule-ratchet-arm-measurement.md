@@ -210,7 +210,7 @@ edited. This records what happened to the STOP verdict, not a revision of it.
 is not recoverable by code: its regex and file filter were never recorded, which is what
 this report established. Rather than launder an unreproducible number into a gate, D4 pins
 a **detector in code** and lets it define the metric. `scripts/silent_rule_detector.py`
-(`silent-rule-v3`) is now the single source for *both* the baseline and every live count;
+(`silent-rule-v4`) is now the single source for *both* the baseline and every live count;
 the census's detector is explicitly **not** reused. The measured baseline is **428**
 normative-keyword occurrences across **56** files at `527958fb`, committed to
 `ecosystem/silent-rule-baseline.yaml` as a number plus its detector id — never a parse of
@@ -290,3 +290,33 @@ definition changed:
 
 Count unchanged at **428 across 56 files** through both corrections -- behaviour-preserving
 on this tree, platform-stable off it.
+
+**Fourth terra pass.** Three further HIGH findings, all closed; detector `v3` -> `v4`
+because the content source changed:
+
+8. **A failed git probe read as proven absence.** `git cat-file -e` returns non-zero for an
+   inaccessible or corrupt object exactly as for a missing path, so an unreadable target
+   baseline was classified `absent` and bootstrapped past. Absence is now proven with
+   `git ls-tree`, which exits 0 and prints nothing when the path is genuinely missing --
+   separating "not there" from "could not look". A failed lookup is `invalid` (blocking).
+9. **The first valid ref could conceal a raise over the other.** With `origin/main` at 500
+   and an ahead local `main` at 400, a branch baseline of 450 passed against 500 while
+   raising the real local target from 400. All resolved refs are now reconciled: any
+   `invalid` blocks, and the comparison uses the **minimum** valid baseline, which cannot
+   be gamed by ref ordering or divergence.
+10. **Content still came from the working tree.** `ls-files` gave canonical paths, but each
+    was re-opened from disk -- handing the bytes back to the host, where smudge filters,
+    filesystem aliases, junction/symlink ancestors and NFC/NFD-insensitive filesystems can
+    make one index measure different bytes or read one physical file twice. Content is now
+    read from the object store via `git cat-file --batch` using the index's blob ids, and
+    path-collision detection folds NFC normalization as well as case.
+
+Count unchanged at **428 across 56 files** through all four passes.
+
+**Review-loop record, stated plainly.** Four terra passes returned 5, 3, 2 and 3 HIGH
+findings; thirteen were fixed and none dispositioned. Every one was a fail-open in a gate
+whose entire purpose is to refuse — a metric that could be gamed by reflow, a raise-guard
+that compared a value against itself, statuses that did not block, a corpus that differed
+by platform. That an arming attempt needed four adversarial passes is itself evidence for
+the arm-time STOP this report recorded: the first implementation looked correct and was
+not.

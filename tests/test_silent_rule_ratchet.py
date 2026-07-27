@@ -180,20 +180,20 @@ def test_parity_surfaces_excluded_from_scope():
     """parity-surfaces.yaml rows are `tier:` ENUM VALUES read by fleet_parity — enforced
     by construction. In scope they were 120 of 148 candidate lines (81%), so the ratchet
     would have fired on ADDING ENFORCEMENT. Pinned because that is a subtle regression."""
-    scoped = {p.relative_to(REPO_ROOT).as_posix() for p in srd.iter_scoped_files(REPO_ROOT)}
+    scoped = {rel for rel, _sha in srd.iter_scoped_files(REPO_ROOT)}
     assert "ecosystem/parity-surfaces.yaml" not in scoped
 
 
 def test_baseline_file_excluded_from_its_own_scope():
     """The baseline lives in ecosystem/*.yaml; counting its own provenance prose would
     make the metric self-referential (and self-inflating on every re-stamp)."""
-    scoped = {p.relative_to(REPO_ROOT).as_posix() for p in srd.iter_scoped_files(REPO_ROOT)}
+    scoped = {rel for rel, _sha in srd.iter_scoped_files(REPO_ROOT)}
     assert srd.BASELINE_RELPATH not in scoped
 
 
 def test_archive_paths_excluded_from_scope():
     """Retiring doctrine into archive/ is a genuine drain, so archived files are out."""
-    scoped = [p.relative_to(REPO_ROOT).as_posix() for p in srd.iter_scoped_files(REPO_ROOT)]
+    scoped = [rel for rel, _sha in srd.iter_scoped_files(REPO_ROOT)]
     assert not [r for r in scoped if "/archive/" in r or r.startswith("archive/")]
 
 
@@ -202,10 +202,10 @@ def test_measure_is_deterministic_and_sorted():
     runs cannot gate anything."""
     first, second = srd.measure(REPO_ROOT), srd.measure(REPO_ROOT)
     assert first == second
-    rels = [p.relative_to(REPO_ROOT).as_posix() for p in srd.iter_scoped_files(REPO_ROOT)]
-    # Sorted on the CASEFOLDED relpath — see iter_scoped_files: ordering has to agree
-    # across case-sensitive and case-insensitive filesystems.
-    assert rels == sorted(rels, key=str.casefold)
+    rels = [rel for rel, _sha in srd.iter_scoped_files(REPO_ROOT)]
+    # Sorted on the NFC-normalized, casefolded relpath — see iter_scoped_files: ordering
+    # has to agree across case- and normalization-insensitive filesystems.
+    assert rels == sorted(rels, key=lambda r: (srd._fold(r), r))
 
 
 def test_committed_baseline_matches_live_measurement():
@@ -372,23 +372,24 @@ def test_path_exclusions_are_case_insensitive(tmp_path):
     """terra HIGH — a differently-cased `templates/Archive/...` must still be excluded, or
     the same tree measures differently per platform."""
     _git_tree(tmp_path, {"templates/Archive/old.md": "must", "protocols/live.md": "must"})
-    rels = [p.relative_to(tmp_path).as_posix() for p in srd.iter_scoped_files(tmp_path)]
+    rels = [rel for rel, _sha in srd.iter_scoped_files(tmp_path)]
     assert "templates/Archive/old.md" not in rels, rels
     assert "protocols/live.md" in rels
 
 
 def test_detector_id_bumped_for_each_contract_change():
     """The contract says ANY clause change bumps the id, so two incompatible metrics can
-    never share a name. v1 counted lines; v2 counted occurrences; v3 takes its corpus from
-    git's tracked inventory instead of a filesystem walk."""
-    assert srd.DETECTOR_ID == "silent-rule-v3"
+    never share a name. v1 counted lines; v2 counted occurrences; v3 took its corpus from
+    git's tracked inventory instead of a filesystem walk; v4 reads CONTENT from the object
+    store too."""
+    assert srd.DETECTOR_ID == "silent-rule-v4"
 
 
 def test_enumeration_is_case_insensitive_on_extensions(tmp_path):
     """terra HIGH RE-REVIEW — a `.MD` file counted on Windows and vanished on Linux: the
     same tree, two numbers. Suffix matching is casefolded."""
     _git_tree(tmp_path, {"protocols/UPPER.MD": "must", "protocols/lower.md": "must"})
-    rels = [p.relative_to(tmp_path).as_posix() for p in srd.iter_scoped_files(tmp_path)]
+    rels = [rel for rel, _sha in srd.iter_scoped_files(tmp_path)]
     assert rels == ["protocols/lower.md", "protocols/UPPER.MD"], rels
     assert srd.measure(tmp_path).count == 2
 
@@ -409,7 +410,7 @@ def test_casefold_colliding_tracked_paths_are_refused(tmp_path):
                    capture_output=True, text=True)
     with pytest.raises(srd.DetectorError) as exc:
         srd.iter_scoped_files(tmp_path)
-    assert "casefold-colliding" in str(exc.value)
+    assert "colliding" in str(exc.value)
 
 
 def test_untracked_file_cannot_inflate_the_metric(tmp_path):
@@ -426,3 +427,60 @@ def test_non_git_tree_raises_rather_than_measuring_a_subset(tmp_path):
     than no count, because a partial count reads as a low one."""
     with pytest.raises(srd.DetectorError):
         srd.iter_scoped_files(tmp_path)
+
+
+def test_content_is_read_from_git_not_the_working_tree():
+    """terra HIGH (4th pass) — `ls-files` gave canonical PATHS but content was re-opened
+    from disk, handing the bytes back to the host (smudge filters, aliases, NFC/NFD). The
+    measurement must come from the object store the index points at."""
+    import inspect
+
+    src = inspect.getsource(srd.measure)
+    assert "_read_blobs" in src
+    assert "read_text" not in src, "content must not be re-opened from the working tree"
+
+
+def test_working_tree_edit_does_not_move_the_metric(tmp_path):
+    """The behavioural consequence: an UNCOMMITTED edit to a tracked file leaves the count
+    alone, because the metric reads the committed blob."""
+    _git_tree(tmp_path, {"protocols/live.md": "must"})
+    before = srd.measure(tmp_path).count
+    (tmp_path / "protocols" / "live.md").write_text("must must must must", encoding="utf-8")
+    assert srd.measure(tmp_path).count == before
+
+
+def test_strictest_target_baseline_wins(tmp_path, monkeypatch):
+    """terra HIGH (4th pass) — returning the FIRST valid ref let a raise hide behind the
+    other: origin/main at 500 and an ahead local main at 400 let a branch value of 450 pass
+    against 500 while raising the real local target from 400. min() closes that."""
+    calls = {"origin/main": ("valid", 500), "main": ("valid", 400)}
+    monkeypatch.setattr(aud, "_ref_baseline_state", lambda _p, ref: calls[ref])
+    assert aud._target_baseline_state(tmp_path) == ("valid", 400)
+
+
+def test_any_invalid_ref_blocks_even_if_another_is_valid(tmp_path, monkeypatch):
+    """An unreadable target must not be skipped in favour of a readable one — that is the
+    same fail-through, one ref along."""
+    calls = {"origin/main": ("invalid", None), "main": ("valid", 400)}
+    monkeypatch.setattr(aud, "_ref_baseline_state", lambda _p, ref: calls[ref])
+    assert aud._target_baseline_state(tmp_path) == ("invalid", None)
+
+
+def test_ref_probe_failure_is_invalid_not_absent(tmp_path, monkeypatch):
+    """terra HIGH (4th pass) — `git cat-file -e` returns non-zero for an INACCESSIBLE or
+    corrupt object exactly as for a missing path, so "non-zero means absent" read an
+    unreadable target as first-introduction. Absence is proven with ls-tree; a failed
+    lookup is `invalid`."""
+    import subprocess
+
+    real = aud._git
+
+    def fake(repo, *args):
+        if args[0] == "rev-parse":
+            return subprocess.CompletedProcess(args, 0, "deadbeef\n", "")
+        if args[0] == "ls-tree":
+            return subprocess.CompletedProcess(args, 128, "", "fatal: bad object")
+        return real(repo, *args)
+
+    monkeypatch.setattr(aud, "_git", fake)
+    assert aud._ref_baseline_state(tmp_path, "origin/main") == ("invalid", None)

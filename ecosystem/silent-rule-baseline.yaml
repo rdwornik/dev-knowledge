@@ -17,7 +17,7 @@
 # The detector id is load-bearing. Counts from two different detector contracts are not
 # commensurable; the check refuses to compare them rather than silently reporting drift.
 
-detector_id: silent-rule-v3
+detector_id: silent-rule-v4
 baseline: 428
 measured_at: 2026-07-27
 measured_at_sha: 527958fbf89311610bd3be65fbfcb77df1f5fe29
@@ -39,7 +39,10 @@ provenance: |
 #     baseline measured by the same detector is load-bearing.
 #
 # Detector contract summary (authoritative text: scripts/silent_rule_detector.py):
-#   corpus    git's TRACKED-file inventory (git ls-files), never a filesystem walk --
+#   corpus    git ls-files for PATHS + git cat-file for CONTENT; never the working
+#             tree -- re-opening a path hands the bytes back to the host (smudge
+#             filters, aliases, NFC/NFD) (v3->v4, terra HIGH 2026-07-27). Never a
+#             filesystem walk --
 #             a walk inherits the host's case semantics, so the same commit could
 #             measure differently per platform (v2->v3, terra HIGH 2026-07-27)
 #   scope     protocols/*.md - templates/**/*.{md,tmpl} - ecosystem/*.yaml

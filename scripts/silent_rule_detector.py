@@ -19,10 +19,15 @@ rules. Its absolute value is meaningless in isolation; only its movement
 against a baseline measured by *this same detector* is load-bearing. Do not compare it to
 176, nor to the census's 812 Pass-1 figure.
 
-DETECTOR CONTRACT (`silent-rule-v3`) -- change any clause and you MUST bump DETECTOR_ID
+DETECTOR CONTRACT (`silent-rule-v4`) -- change any clause and you MUST bump DETECTOR_ID
 --------------------------------------------------------------------------------------
-  Corpus source   git's TRACKED-file inventory (`git ls-files`), never a filesystem
-                  walk. A walk inherits the host's case semantics and its notion of which
+  Corpus source   git's TRACKED-file inventory (`git ls-files`) for the PATHS **and**
+                  git's object store (`git cat-file`) for the CONTENT -- never the working
+                  tree.  Re-opening a path from disk hands the bytes back to the host:
+                  smudge filters, filesystem aliases, junction/symlink ancestors and
+                  normalization-insensitive filesystems can make one index measure
+                  different bytes, or read one physical file twice. Reading the blob the
+                  index points at makes path list and content both git-defined. A walk inherits the host's case semantics and its notion of which
                   of two casefold-colliding names exists, so the same commit could measure
                   differently on Windows and Linux; git reports one canonical path list for
                   a tree on every platform. Symlinks and gitlinks are excluded (following
@@ -81,6 +86,7 @@ from __future__ import annotations
 import re
 import subprocess
 import sys
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -88,7 +94,7 @@ from pathlib import Path
 # check refuses to compare a live count against a baseline stamped with a different id --
 # two detectors' numbers are not commensurable, and silently comparing them is the failure
 # mode this whole module exists to prevent.
-DETECTOR_ID = "silent-rule-v3"
+DETECTOR_ID = "silent-rule-v4"
 
 BASELINE_RELPATH = "ecosystem/silent-rule-baseline.yaml"
 
@@ -117,6 +123,16 @@ EXCLUDED_RELPATHS = frozenset({BASELINE_RELPATH, "ecosystem/parity-surfaces.yaml
 _ARCHIVE_SEGMENT = "archive"
 
 
+def _fold(rel: str) -> str:
+    """Unicode-normalize then casefold a relpath, for every path comparison.
+
+    NFC normalization matters as much as casefolding (terra HIGH, 4th pass): macOS stores
+    decomposed (NFD) names while Linux and Windows typically store composed (NFC) ones, so
+    two byte-different tracked paths can be the SAME file on one host and two files on
+    another. Comparing folded forms catches that collision class too."""
+    return unicodedata.normalize("NFC", rel).casefold()
+
+
 class DetectorError(RuntimeError):
     """The corpus could not be enumerated or is ambiguous.
 
@@ -132,7 +148,7 @@ class DetectorError(RuntimeError):
 _REGULAR_BLOB_MODES = frozenset({"100644", "100755"})
 
 
-def _tracked_paths(repo_root: Path) -> list[str]:
+def _tracked_paths(repo_root: Path) -> list[tuple[str, str]]:
     """POSIX relpaths of every regular tracked file, from git's own inventory.
 
     The corpus is defined by what git TRACKS, not by what the filesystem happens to walk
@@ -154,15 +170,53 @@ def _tracked_paths(repo_root: Path) -> list[str]:
             "cannot enumerate tracked files: `git ls-files` failed "
             f"(rc={out.returncode}); the corpus is defined by git, so a non-git tree "
             "cannot be measured")
-    paths: list[str] = []
+    paths: list[tuple[str, str]] = []
     for entry in out.stdout.decode("utf-8").split("\0"):
         if not entry:
             continue
         meta, _, rel = entry.partition("\t")   # "<mode> <sha> <stage>\t<path>"
-        if not rel or meta.split(" ", 1)[0] not in _REGULAR_BLOB_MODES:
+        fields = meta.split()
+        if not rel or len(fields) < 2 or fields[0] not in _REGULAR_BLOB_MODES:
             continue
-        paths.append(rel)
+        paths.append((rel, fields[1]))         # keep the BLOB ID: content comes from git
     return paths
+
+
+def _read_blobs(repo_root: Path, shas: list[str]) -> dict[str, str]:
+    """Blob contents read from git's object store, decoded UTF-8.
+
+    Content comes from the OBJECT STORE, not the working tree (terra HIGH, 4th pass
+    2026-07-27). `git ls-files` supplied canonical paths, but re-opening each path from
+    disk handed the bytes back to the host: smudge filters, filesystem aliases, junction
+    or symlink ancestors, and NFC/NFD-insensitive filesystems can all make the same index
+    measure different bytes -- or read one physical file twice. Reading the blob the index
+    actually points at makes both the path list AND the content git-defined, so a commit
+    measures identically everywhere.
+    """
+    if not shas:
+        return {}
+    try:
+        out = subprocess.run(["git", "cat-file", "--batch"], cwd=str(repo_root),
+                             input=("\n".join(shas) + "\n").encode("utf-8"),
+                             capture_output=True, timeout=120, check=False)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise DetectorError(f"cannot read tracked blobs: {exc!r}") from exc
+    if out.returncode != 0:
+        raise DetectorError(f"cannot read tracked blobs: `git cat-file` failed "
+                            f"(rc={out.returncode})")
+    blob, pos, contents = out.stdout, 0, {}
+    for _ in shas:
+        nl = blob.find(b"\n", pos)
+        if nl < 0:
+            raise DetectorError("truncated `git cat-file --batch` stream")
+        header = blob[pos:nl].decode("utf-8", errors="replace").split()
+        if len(header) != 3 or header[1] != "blob":
+            raise DetectorError(f"unexpected object in the corpus: {' '.join(header)}")
+        size = int(header[2])
+        start = nl + 1
+        contents[header[0]] = blob[start:start + size].decode("utf-8")
+        pos = start + size + 1                 # skip the record's trailing newline
+    return contents
 
 
 def _in_scope(rel: str) -> bool:
@@ -179,8 +233,11 @@ def _in_scope(rel: str) -> bool:
     return False
 
 
-def iter_scoped_files(repo_root: Path) -> list[Path]:
-    """Every in-scope tracked file, sorted deterministically. Enumeration only -- no reads.
+def iter_scoped_files(repo_root: Path) -> list[tuple[str, str]]:
+    """Every in-scope tracked file as `(relpath, blob_sha)`, sorted deterministically.
+
+    Enumeration only -- no content reads; the blob ids let `measure` read from the object
+    store rather than the working tree.
 
     Raises DetectorError when the corpus cannot be enumerated, or when two tracked paths
     differ only by case: on a case-insensitive filesystem only one of them exists on disk,
@@ -188,31 +245,31 @@ def iter_scoped_files(repo_root: Path) -> list[Path]:
     refused rather than silently resolved.
     """
     root = Path(repo_root)
-    excluded = {r.casefold() for r in EXCLUDED_RELPATHS}
-    scoped_rels: list[str] = []
-    for rel in _tracked_paths(root):
+    excluded = {_fold(r) for r in EXCLUDED_RELPATHS}
+    scoped: list[tuple[str, str]] = []
+    for rel, sha in _tracked_paths(root):
         if not _in_scope(rel):
             continue
-        segments = rel.casefold().split("/")
+        segments = _fold(rel).split("/")
         if _ARCHIVE_SEGMENT in segments[:-1]:
             continue                      # archived doctrine is not a live governed rule
-        if rel.casefold() in excluded:
+        if _fold(rel) in excluded:
             continue                      # see the Excluded clause in the module docstring
-        scoped_rels.append(rel)
+        scoped.append((rel, sha))
 
     collisions: dict[str, list[str]] = {}
-    for rel in scoped_rels:
-        collisions.setdefault(rel.casefold(), []).append(rel)
+    for rel, _sha in scoped:
+        collisions.setdefault(_fold(rel), []).append(rel)
     ambiguous = {k: v for k, v in collisions.items() if len(v) > 1}
     if ambiguous:
         raise DetectorError(
-            "casefold-colliding tracked paths make the corpus ambiguous: "
+            "normalized-and-casefolded colliding tracked paths make the corpus ambiguous: "
             + "; ".join(", ".join(sorted(v)) for v in ambiguous.values()))
 
-    # Casefolded primary key so ordering agrees across filesystems; the raw relpath is a
+    # Folded primary key so ordering agrees across filesystems; the raw relpath is a
     # deterministic secondary key. Collisions are already refused above, so this is total.
-    scoped_rels.sort(key=lambda r: (r.casefold(), r))
-    return [root / Path(r) for r in scoped_rels]
+    scoped.sort(key=lambda item: (_fold(item[0]), item[0]))
+    return scoped
 
 
 @dataclass(frozen=True)
@@ -234,12 +291,14 @@ def measure(repo_root: Path) -> Measurement:
     Raises UnicodeDecodeError on a non-UTF-8 file rather than degrading to a partial
     count -- see the Decoding clause in the module docstring.
     """
+    entries = iter_scoped_files(repo_root)
+    blobs = _read_blobs(repo_root, [sha for _rel, sha in entries])
     total = 0
-    paths = iter_scoped_files(repo_root)
-    for path in paths:
-        text = path.read_text(encoding="utf-8")     # explicit; errors are NOT swallowed
-        total += len(TOKEN_RE.findall(text))
-    return Measurement(detector_id=DETECTOR_ID, count=total, files=len(paths))
+    for rel, sha in entries:
+        if sha not in blobs:
+            raise DetectorError(f"blob missing from the object store for {rel}")
+        total += len(TOKEN_RE.findall(blobs[sha]))
+    return Measurement(detector_id=DETECTOR_ID, count=total, files=len(entries))
 
 
 def validate_transition(old: int, new: int) -> str | None:
