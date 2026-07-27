@@ -2621,7 +2621,7 @@ def _git(repo_path: Path, *args: str) -> Optional[subprocess.CompletedProcess]:
         return None
 
 
-def _target_baseline_state(repo_path: Path) -> tuple[str, Optional[int]]:
+def _target_baseline_state(repo_path: Path) -> tuple[str, Optional[int], Optional[str]]:
     """The baseline on the INTEGRATION TARGET as a PROVEN state, not an inference.
 
     Returns one of:
@@ -2643,24 +2643,25 @@ def _target_baseline_state(repo_path: Path) -> tuple[str, Optional[int]]:
     HEAD *is* the new value, so a HEAD comparison compares the baseline against itself.
     """
     states = [_ref_baseline_state(repo_path, ref) for ref in _BASELINE_REFS]
-    resolved = [(s, v) for s, v in states if s != "unresolved"]
+    resolved = [(s, v, d) for s, v, d in states if s != "unresolved"]
     if not resolved:
-        return "unresolved", None
-    if any(s == "invalid" for s, _ in resolved):
+        return "unresolved", None, None
+    if any(s == "invalid" for s, _, _ in resolved):
         # ANY resolved-but-unreadable target makes the comparison indeterminate. Falling
         # through to another ref would be the fail-open this shape exists to close.
-        return "invalid", None
-    values = [v for s, v in resolved if s == "valid" and v is not None]
-    if not values:
-        return "absent", None              # every resolving ref provably lacks the file
+        return "invalid", None, None
+    valid = [(v, d) for s, v, d in resolved if s == "valid" and v is not None]
+    if not valid:
+        return "absent", None, None        # every resolving ref provably lacks the file
     # STRICTEST of the resolved targets (terra HIGH, 4th pass): returning the first valid
     # ref let a raise hide behind the other one -- with origin/main at 500 and an ahead
     # local main at 400, a branch value of 450 passed against 500 while raising the real
     # local target from 400. min() cannot be gamed by ref ordering or divergence.
-    return "valid", min(values)
+    value, detector = min(valid, key=lambda pair: pair[0])
+    return "valid", value, detector
 
 
-def _ref_baseline_state(repo_path: Path, ref: str) -> tuple[str, Optional[int]]:
+def _ref_baseline_state(repo_path: Path, ref: str) -> tuple[str, Optional[int], Optional[str]]:
     """One ref's baseline state: unresolved / absent / valid / invalid.
 
     Absence is proven with `git ls-tree`, not `git cat-file -e` (terra HIGH, 4th pass).
@@ -2672,7 +2673,7 @@ def _ref_baseline_state(repo_path: Path, ref: str) -> tuple[str, Optional[int]]:
     """
     rev = _git(repo_path, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
     if rev is None or rev.returncode != 0 or not rev.stdout.strip():
-        return "unresolved", None
+        return "unresolved", None, None
     # Pin the resolved OID and use it for BOTH probes (terra HIGH, 5th pass). Re-reading
     # the mutable ref NAME lets a concurrent fetch move it between the absence check and
     # the content read, so the two could observe different commits -- and a target baseline
@@ -2681,27 +2682,34 @@ def _ref_baseline_state(repo_path: Path, ref: str) -> tuple[str, Optional[int]]:
     listing = _git(repo_path, "ls-tree", "--full-tree", "-z", oid,
                    "--", _srd.BASELINE_RELPATH)
     if listing is None or listing.returncode != 0:
-        return "invalid", None             # the lookup itself failed: indeterminate
+        return "invalid", None, None       # the lookup itself failed: indeterminate
     if not listing.stdout.strip():
-        return "absent", None              # PROVEN absent at this commit
+        return "absent", None, None        # PROVEN absent at this commit
     show = _git(repo_path, "show", f"{oid}:{_srd.BASELINE_RELPATH}")
     if show is None or show.returncode != 0:
-        return "invalid", None             # it exists but could not be read
+        return "invalid", None, None       # it exists but could not be read
     try:
         data = yaml.safe_load(show.stdout)
     except yaml.YAMLError:
-        return "invalid", None
+        return "invalid", None, None
     if not isinstance(data, dict):
-        return "invalid", None
+        return "invalid", None, None
     value = data.get("baseline")
     if not isinstance(value, int) or isinstance(value, bool):
-        return "invalid", None
-    return "valid", value
+        return "invalid", None, None
+    detector = data.get("detector_id")
+    if not isinstance(detector, str) or not detector:
+        # Without the target's detector id the two numbers cannot be shown commensurable,
+        # and the module's whole premise is that counts from different detectors are not
+        # comparable (terra HIGH, 8th pass). Indeterminate, so block.
+        return "invalid", None, None
+    return "valid", value, detector
 
 
 def _ratchet_findings(live: "_srd.Measurement", baseline: Optional[dict],
                       previous: Optional[int] = None,
-                      ref_state: str = "absent") -> list[Finding]:
+                      ref_state: str = "absent",
+                      previous_detector: Optional[str] = None) -> list[Finding]:
     """Testable core of check_silent_rule_ratchet ([#436]).
 
     Kept pure (no filesystem, no git) so the four contract cases -- pass-at-baseline,
@@ -2745,6 +2753,18 @@ def _ratchet_findings(live: "_srd.Measurement", baseline: Optional[dict],
         # PROVEN absent on a resolving ref — the file is genuinely new, so there is no
         # prior value to launder. Surfaced in the evidence, never silent.
         guard = " [raise-guard bootstrap: baseline provably absent on the integration ref]"
+    elif previous_detector is not None and previous_detector != live.detector_id:
+        # A detector revision makes the two numbers non-commensurable, so the ratchet
+        # CANNOT verify this transition -- comparing them numerically would let a bump
+        # silently rebase the metric (terra HIGH, 8th pass). WARN blocks ship-gate unless
+        # dispositioned, which is the explicit migration path: an operator reviews the
+        # re-measurement once, deliberately, rather than a version bump waving it through.
+        return [Finding(name, "warn",
+                        (f"detector MIGRATION {previous_detector} -> {live.detector_id}: "
+                         f"the target baseline {previous} and this arc's {value} were "
+                         f"measured by different detectors and are not commensurable; the "
+                         f"ratchet cannot verify this transition — review the "
+                         f"re-measurement explicitly").replace("|", "/"))]
     else:
         rejection = _srd.validate_transition(old=previous, new=value)
         if rejection is not None:
@@ -2815,9 +2835,9 @@ def check_silent_rule_ratchet(repo_path: Path) -> list[Finding]:
                         (f"baseline read is untrustworthy: {detail} — stage or restore "
                          f"{_srd.BASELINE_RELPATH} consistently, then re-run")
                         .replace("|", "/"))]
-    ref_state, previous = _target_baseline_state(Path(repo_path))
+    ref_state, previous, previous_detector = _target_baseline_state(Path(repo_path))
     return _ratchet_findings(live, _load_silent_rule_baseline(Path(repo_path)),
-                             previous, ref_state)
+                             previous, ref_state, previous_detector)
 
 
 def _task_tree_findings(problems: list[str], present: bool = True) -> list[Finding]:

@@ -294,16 +294,17 @@ def test_indeterminate_target_baseline_blocks():
 
 def test_target_state_is_proven_not_inferred(tmp_path):
     """A non-git directory resolves no integration ref => 'unresolved', never 'absent'."""
-    state, value = aud._target_baseline_state(tmp_path)
-    assert (state, value) == ("unresolved", None)
+    state, value, detector = aud._target_baseline_state(tmp_path)
+    assert (state, value, detector) == ("unresolved", None, None)
 
 
 def test_target_state_on_live_repo_is_a_known_state():
     """On the live repo the state must be one of the four modelled values, with `valid`
     carrying an int — no silent fifth state."""
-    state, value = aud._target_baseline_state(REPO_ROOT)
+    state, value, detector = aud._target_baseline_state(REPO_ROOT)
     assert state in {"valid", "absent", "invalid", "unresolved"}
     assert (value is None) == (state != "valid")
+    assert (detector is None) == (state != "valid")
 
 
 def test_malformed_target_baseline_is_invalid_not_absent(tmp_path):
@@ -323,8 +324,8 @@ def test_malformed_target_baseline_is_invalid_not_absent(tmp_path):
     target.write_text("baseline: [this is not an int\n", encoding="utf-8")
     git("add", "-A")
     git("commit", "-qm", "malformed baseline on main")
-    state, value = aud._target_baseline_state(tmp_path)
-    assert (state, value) == ("invalid", None)
+    state, value, detector = aud._target_baseline_state(tmp_path)
+    assert (state, value, detector) == ("invalid", None, None)
 
 
 def test_valid_target_baseline_is_read(tmp_path):
@@ -344,7 +345,7 @@ def test_valid_target_baseline_is_read(tmp_path):
     target.write_text(f"detector_id: {srd.DETECTOR_ID}\nbaseline: 100\n", encoding="utf-8")
     git("add", "-A")
     git("commit", "-qm", "baseline on main")
-    assert aud._target_baseline_state(tmp_path) == ("valid", 100)
+    assert aud._target_baseline_state(tmp_path) == ("valid", 100, srd.DETECTOR_ID)
     # ...and a branch raising it above that value is refused.
     findings = aud._ratchet_findings(_measurement(50), _baseline(150),
                                      previous=100, ref_state="valid")
@@ -453,17 +454,19 @@ def test_strictest_target_baseline_wins(tmp_path, monkeypatch):
     """terra HIGH (4th pass) — returning the FIRST valid ref let a raise hide behind the
     other: origin/main at 500 and an ahead local main at 400 let a branch value of 450 pass
     against 500 while raising the real local target from 400. min() closes that."""
-    calls = {"origin/main": ("valid", 500), "main": ("valid", 400)}
+    calls = {"origin/main": ("valid", 500, srd.DETECTOR_ID),
+             "main": ("valid", 400, srd.DETECTOR_ID)}
     monkeypatch.setattr(aud, "_ref_baseline_state", lambda _p, ref: calls[ref])
-    assert aud._target_baseline_state(tmp_path) == ("valid", 400)
+    assert aud._target_baseline_state(tmp_path) == ("valid", 400, srd.DETECTOR_ID)
 
 
 def test_any_invalid_ref_blocks_even_if_another_is_valid(tmp_path, monkeypatch):
     """An unreadable target must not be skipped in favour of a readable one — that is the
     same fail-through, one ref along."""
-    calls = {"origin/main": ("invalid", None), "main": ("valid", 400)}
+    calls = {"origin/main": ("invalid", None, None),
+             "main": ("valid", 400, srd.DETECTOR_ID)}
     monkeypatch.setattr(aud, "_ref_baseline_state", lambda _p, ref: calls[ref])
-    assert aud._target_baseline_state(tmp_path) == ("invalid", None)
+    assert aud._target_baseline_state(tmp_path) == ("invalid", None, None)
 
 
 def test_ref_probe_failure_is_invalid_not_absent(tmp_path, monkeypatch):
@@ -483,7 +486,7 @@ def test_ref_probe_failure_is_invalid_not_absent(tmp_path, monkeypatch):
         return real(repo, *args)
 
     monkeypatch.setattr(aud, "_git", fake)
-    assert aud._ref_baseline_state(tmp_path, "origin/main") == ("invalid", None)
+    assert aud._ref_baseline_state(tmp_path, "origin/main") == ("invalid", None, None)
 
 
 def test_staged_baseline_raise_cannot_hide_behind_the_working_copy(tmp_path, monkeypatch):
@@ -515,3 +518,42 @@ def test_ratchet_blocks_when_divergence_probe_fails(tmp_path, monkeypatch):
     findings = aud.check_silent_rule_ratchet(tmp_path)
     assert _status(findings) == "fail", findings
     assert "could not compare" in findings[0].evidence
+
+
+def test_detector_migration_cannot_silently_rebase_the_metric():
+    """terra HIGH (8th pass) — the raise-guard compared NUMBERS across refs without
+    checking they came from the same detector, so bumping the detector version would let a
+    re-measurement silently rebase the metric past the ratchet-down invariant. A migration
+    must be reviewed explicitly, not waved through by a version bump."""
+    findings = aud._ratchet_findings(_measurement(9999), _baseline(9999), previous=100,
+                                     ref_state="valid", previous_detector="silent-rule-v1")
+    assert _status(findings) == "warn"
+    ev = findings[0].evidence
+    assert "MIGRATION" in ev and "silent-rule-v1" in ev and srd.DETECTOR_ID in ev
+
+
+def test_same_detector_still_compares_numerically():
+    """The migration guard must not disable the ordinary raise check."""
+    findings = aud._ratchet_findings(_measurement(50), _baseline(150), previous=100,
+                                     ref_state="valid", previous_detector=srd.DETECTOR_ID)
+    assert _status(findings) == "fail"
+    assert "reject" in findings[0].evidence.lower()
+
+
+def test_target_without_detector_id_is_invalid(tmp_path):
+    """A target baseline carrying no detector id cannot be shown commensurable with the
+    live count, so it is indeterminate rather than comparable."""
+    import subprocess
+
+    def git(*a):
+        subprocess.run(["git", *a], cwd=tmp_path, check=True, capture_output=True, text=True)
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.email", "t@example.invalid")
+    git("config", "user.name", "t")
+    target = tmp_path / srd.BASELINE_RELPATH
+    target.parent.mkdir(parents=True)
+    target.write_text("baseline: 100\n", encoding="utf-8")   # no detector_id
+    git("add", "-A")
+    git("commit", "-qm", "baseline without a detector id")
+    assert aud._target_baseline_state(tmp_path) == ("invalid", None, None)
