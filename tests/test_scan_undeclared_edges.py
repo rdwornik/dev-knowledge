@@ -108,6 +108,15 @@ def test_excluded_dir_copy_pruned(tmp_path: Path) -> None:
     assert sue.scan(tmp_path) == []
 
 
+def test_derived_tasks_tree_copy_pruned(tmp_path: Path) -> None:
+    # [#433]: the derived tasks/ tree is byte-copies of BACKLOG.md lines; the canonical
+    # edge-bearing surface is BACKLOG.md, so the copies must not double-report.
+    _spec(tmp_path)
+    _doc(tmp_path, "tasks/162-vocab-decision.md",
+         "- [#162] refs protocols/HANDOFF_PROCESS.md section 13.")
+    assert sue.scan(tmp_path) == []
+
+
 # --- fence-excluded MATCHING (the operator's non-blocking verify) ------------
 
 def test_fenced_path_ref_is_not_matched(tmp_path: Path) -> None:
