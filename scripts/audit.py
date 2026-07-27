@@ -2642,13 +2642,18 @@ def _ref_baseline_state(repo_path: Path, ref: str) -> tuple[str, Optional[int]]:
     rev = _git(repo_path, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
     if rev is None or rev.returncode != 0 or not rev.stdout.strip():
         return "unresolved", None
-    listing = _git(repo_path, "ls-tree", "--full-tree", "-z", ref,
+    # Pin the resolved OID and use it for BOTH probes (terra HIGH, 5th pass). Re-reading
+    # the mutable ref NAME lets a concurrent fetch move it between the absence check and
+    # the content read, so the two could observe different commits -- and a target baseline
+    # could be classified absent against one commit while existing in another.
+    oid = rev.stdout.strip()
+    listing = _git(repo_path, "ls-tree", "--full-tree", "-z", oid,
                    "--", _srd.BASELINE_RELPATH)
     if listing is None or listing.returncode != 0:
         return "invalid", None             # the lookup itself failed: indeterminate
     if not listing.stdout.strip():
-        return "absent", None              # PROVEN absent on this ref
-    show = _git(repo_path, "show", f"{ref}:{_srd.BASELINE_RELPATH}")
+        return "absent", None              # PROVEN absent at this commit
+    show = _git(repo_path, "show", f"{oid}:{_srd.BASELINE_RELPATH}")
     if show is None or show.returncode != 0:
         return "invalid", None             # it exists but could not be read
     try:
@@ -2737,9 +2742,9 @@ def check_silent_rule_ratchet(repo_path: Path) -> list[Finding]:
     blocks the arc.
 
     WHAT A GREEN HERE DOES AND DOES NOT MEAN -- read before trusting it. The metric is a
-    normative-candidate LINE COUNT produced by a pinned detector
-    (scripts/silent_rule_detector.py), NOT the census's `N_silent`. It cannot distinguish
-    an enforced rule from an unenforced one, and it counts lines rather than rules. Green
+    normative-keyword OCCURRENCE COUNT produced by a pinned detector
+    (scripts/silent_rule_detector.py), NOT the census's `N_silent`. It cannot distinguish a
+    rule from a mention of one in an example, and it counts keywords rather than rules. Green
     means "the governed corpus did not accrete normative prose since the baseline" -- it
     does NOT mean the 176-rule backlog was drained, and it says nothing about whether any
     individual rule has a mechanism. The drain is separate work ([#356], [#358]-[#361],
@@ -2822,6 +2827,23 @@ def check_task_tree_coherence(repo_path: Path) -> list[Finding]:
         return [Finding("task_tree_coherence", "fail",
                         f"required hub artifact(s) absent: {', '.join(missing)} — the "
                         f"derived-tree gate cannot be satisfied by deleting what it checks")]
+    # The coherence read is a WORKING-TREE read, so it is only trustworthy while the index
+    # agrees with the working tree for these paths (terra HIGH, 5th pass): otherwise a
+    # staged BACKLOG change can be hidden by restoring the working copy before committing,
+    # and the gate would bless a coherent old tree while the commit records an incoherent
+    # source/tree pair. Refuse to answer rather than answer about the wrong bytes.
+    staged = _git(Path(repo_path), "diff", "--name-only", "--cached", "--",
+                  "BACKLOG.md", "tasks")
+    unstaged = _git(Path(repo_path), "diff", "--name-only", "--", "BACKLOG.md", "tasks")
+    if staged is not None and unstaged is not None \
+            and staged.returncode == 0 and unstaged.returncode == 0:
+        divergent = sorted(set(staged.stdout.split()) & set(unstaged.stdout.split()))
+        if divergent:
+            return [Finding("task_tree_coherence", "fail",
+                            ("index and working tree disagree on "
+                             + ", ".join(divergent)
+                             + " — the coherence read cannot be trusted; stage or restore "
+                               "consistently, then re-run").replace("|", "/"))]
     try:
         problems = _gtt.find_incoherences(source, out_dir)
     except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:

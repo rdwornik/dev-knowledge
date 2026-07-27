@@ -189,3 +189,36 @@ def test_programming_defect_is_not_laundered_into_a_status(monkeypatch, tmp_path
     monkeypatch.setattr(aud._gtt, "find_incoherences", boom)
     with pytest.raises(ZeroDivisionError):
         aud.check_task_tree_coherence(tmp_path)
+
+
+def test_index_worktree_divergence_refuses_to_answer(tmp_path, monkeypatch):
+    """terra HIGH (5th pass) — the coherence read is a WORKING-TREE read, so a staged
+    BACKLOG change hidden by restoring the working copy would let the gate bless a coherent
+    OLD tree while the commit records an incoherent source/tree pair. When index and
+    working tree disagree on these paths the check refuses to answer rather than answering
+    about the wrong bytes."""
+    import subprocess
+
+    def git(*a):
+        subprocess.run(["git", *a], cwd=tmp_path, check=True, capture_output=True, text=True)
+
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    git("init", "-q", "-b", "main")
+    git("config", "user.email", "t@example.invalid")
+    git("config", "user.name", "t")
+    source = tmp_path / "BACKLOG.md"
+    shutil.copyfile(REPO_ROOT / "BACKLOG.md", source)
+    out_dir = tmp_path / "tasks"
+    out_dir.mkdir()
+    gtt.write_tree(gtt.parse_backlog(source.read_bytes().decode("utf-8")), out_dir)
+    git("add", "-A")
+    git("commit", "-qm", "coherent")
+    assert _status(aud.check_task_tree_coherence(tmp_path)) == "pass"
+
+    original = source.read_bytes()
+    source.write_bytes(original.replace(b"- [#436]", b"- [#436] STAGED-ONLY", 1))
+    git("add", "BACKLOG.md")
+    source.write_bytes(original)          # restore the working copy -- the hiding move
+    findings = aud.check_task_tree_coherence(tmp_path)
+    assert _status(findings) == "fail", findings
+    assert "index and working tree disagree" in findings[0].evidence
