@@ -557,3 +557,31 @@ def test_target_without_detector_id_is_invalid(tmp_path):
     git("add", "-A")
     git("commit", "-qm", "baseline without a detector id")
     assert aud._target_baseline_state(tmp_path) == ("invalid", None, None)
+
+
+def test_mixed_detector_refs_are_not_compared_numerically(tmp_path, monkeypatch):
+    """terra HIGH (9th pass) — min() ran BEFORE detector reconciliation, so a mixed state
+    could return the ref whose detector happened to match while another sat on a
+    non-commensurable scale; changing only the old detector's numbers then flipped the
+    verdict from migration-WARN to PASS."""
+    calls = {"origin/main": ("valid", 500, "silent-rule-v1"),
+             "main": ("valid", 400, srd.DETECTOR_ID)}
+    monkeypatch.setattr(aud, "_ref_baseline_state", lambda _p, ref: calls[ref])
+    assert aud._target_baseline_state(tmp_path) == ("mixed", None, None)
+
+
+def test_mixed_detector_state_blocks():
+    """Two integration refs on different detectors is a broken target state needing human
+    resolution — FAIL, not a routine migration WARN."""
+    findings = aud._ratchet_findings(_measurement(428), _baseline(428),
+                                     previous=None, ref_state="mixed")
+    assert _status(findings) == "fail"
+    assert "DIFFERENT detectors" in findings[0].evidence
+
+
+def test_matching_detector_refs_still_take_the_minimum(tmp_path, monkeypatch):
+    """Reconciliation must not disable the strictest-target rule when detectors agree."""
+    calls = {"origin/main": ("valid", 500, srd.DETECTOR_ID),
+             "main": ("valid", 400, srd.DETECTOR_ID)}
+    monkeypatch.setattr(aud, "_ref_baseline_state", lambda _p, ref: calls[ref])
+    assert aud._target_baseline_state(tmp_path) == ("valid", 400, srd.DETECTOR_ID)

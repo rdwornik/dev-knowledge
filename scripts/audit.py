@@ -2653,6 +2653,13 @@ def _target_baseline_state(repo_path: Path) -> tuple[str, Optional[int], Optiona
     valid = [(v, d) for s, v, d in resolved if s == "valid" and v is not None]
     if not valid:
         return "absent", None, None        # every resolving ref provably lacks the file
+    # Reconcile DETECTORS BEFORE any numeric comparison (terra HIGH, 9th pass). Running
+    # min() first could return the ref whose detector happens to match while a second ref
+    # sat on a different, non-commensurable scale -- and then merely changing the old
+    # detector's numbers would flip the verdict from migration-WARN to PASS.
+    detectors = {d for _v, d in valid}
+    if len(detectors) > 1:
+        return "mixed", None, None
     # STRICTEST of the resolved targets (terra HIGH, 4th pass): returning the first valid
     # ref let a raise hide behind the other one -- with origin/main at 500 and an ahead
     # local main at 400, a branch value of 450 passed against 500 while raising the real
@@ -2733,6 +2740,15 @@ def _ratchet_findings(live: "_srd.Measurement", baseline: Optional[dict],
     if not isinstance(value, int) or isinstance(value, bool):
         return [Finding(name, "fail",
                         f"malformed baseline value {value!r} — expected an integer")]
+    if ref_state == "mixed":
+        # The two integration refs carry baselines from DIFFERENT detectors. There is no
+        # single scale to compare against, and picking either would be arbitrary — a
+        # broken target state needing human resolution, not a routine migration.
+        return [Finding(name, "fail",
+                        (f"integration refs ({', '.join(_BASELINE_REFS)}) carry baselines "
+                         f"from DIFFERENT detectors — no common scale to compare against; "
+                         f"reconcile them before the ratchet can verify anything "
+                         f"(live {live.count}, committed {value})").replace("|", "/"))]
     if ref_state == "invalid":
         # The target HAS a baseline but it could not be read. Indeterminate, so a raise
         # cannot be ruled out — block rather than bootstrap past it.
