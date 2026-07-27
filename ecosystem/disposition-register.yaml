@@ -145,6 +145,39 @@ dispositions:
       Pre-existing prose reference ("follow HANDOFF_PROCESS v5") — version-coupled, a likely DECLARE
       outcome; deferred to [#241] rather than committing the doc to version-coupling unilaterally.
 
+  # ---- tier-2 intake edges to handoff-process, ruled 2026-07-27 (handoff-review arc) ----
+  # The handoff-process verification audit filed intake 18 — a v6 PROPOSAL pack (11 mechanism
+  # amendments A1–A11 against v5.7) — which surfaced two NEW undeclared_edges WARNs: the intake doc
+  # itself, and the generated `docs/intake/README.md` index that renders its title. Operator ruling
+  # (2026-07-27): do NOT declare `reconciled_with` on the intake. An intake PROPOSAL is a
+  # not-yet-coupled ref BY DESIGN — it proposes amendments TO v5.7, it does not track v5.7; a
+  # declaration would assert an ongoing version-coupling the doc does not have and would force a
+  # re-stamp on every future spec bump of a document whose whole purpose is to be superseded at
+  # ratification. Same shape as the #241 family (defer, don't blanket-declare) with an explicit
+  # shelf-life so it cannot rot into a paper suppression (ADR-75): both entries clear by themselves
+  # when intake 18 ratifies (proposal folds into the spec) or is rejected (intake retires), at which
+  # point they decorate stale. Keyed on the specific "<doc> -> handoff-process" pair per
+  # precision-over-recall, matching the #241 keying discipline.
+  - id: warn-undeclared-intake-v6-proposal-handoff-process
+    organ: undeclared_edges
+    match: "docs/intake/2026-07-27-tech-handoff-process-v6-proposal.md -> handoff-process"
+    ref: "#241"
+    review_date: 2026-08-26
+    reason: >-
+      An intake PROPOSAL is a not-yet-coupled ref by design — it proposes amendments to
+      HANDOFF_PROCESS v5.7, it does not track v5.7. Declaring `reconciled_with` would assert a
+      version-coupling the doc does not have. Deferred under the [#241] adjudication family;
+      clears on its own when intake 18 ratifies or retires.
+  - id: warn-undeclared-intake-index-handoff-process
+    organ: undeclared_edges
+    match: "docs/intake/README.md -> handoff-process"
+    ref: "#241"
+    review_date: 2026-08-26
+    reason: >-
+      Derived surface: the generated intake index renders the v6-proposal entry's title, so it
+      inherits the edge from a not-yet-coupled proposal. A GENERATED file cannot carry a
+      hand-authored `reconciled_with`; it clears when the underlying intake edge does.
+
   # ---- BACKLOG history-accretion bloat, ruled by grooming leg-c (2026-07-08) ----
   # The 2026-07-07 census-triage arc pushed three tasks past the doc_rot accretion threshold.
   # Grooming leg-c (2026-07-08) ruled them: #286 was re-scoped below threshold (WARN cleared, entry
