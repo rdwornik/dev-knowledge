@@ -19,6 +19,24 @@
 
 ---
 
+### 2026-07-28 (a) — CC (Opus 5): closure review — [#436] closed on operator approval; the one STRONG candidate refused as a detector false positive
+
+**SHA anchor (ADR-85).** This closure commit. Branch `chore/close-436`, base `2dca67a5`.
+
+**Did:** Ran the ADR-70 Tier-1 closure loop against `logs/PROPOSALS-2026-07-27.md` (1 STRONG + 126 WEAK, window `3c5e476b`..`2dca67a5` = ~2300 commits since 2026-06-07).
+
+**[#436] CLOSED — operator-approved (typed individually, WEAK tier), all five Done-when clauses re-verified live** rather than trusted from the build JOURNAL: (1) `check_silent_rule_ratchet` in `ALL_CHECKS` (`scripts/audit.py`); (2) both directions pinned — `test_pass_at_baseline` + `test_fail_above_baseline`; (3) baseline committed — `ecosystem/silent-rule-baseline.yaml`, `detector_id: silent-rule-v4`, `baseline: 428`; (4) ratchet direction pinned — `test_ratchet_down_accepted` + `test_baseline_raise_rejected`; (5) terra CODE review recorded — 10 `docs/audits/2026-07-27-codex-436-*.md` artifacts. Ship-gate shows the leg live and green (`live 428 <= baseline 428`). Evidence SHAs: `c64c7f9f3` (build) · `5e655cc1d` · `cec924353` · `1ea5d5e36` · `620f36cca` (terra fixes) · `4b11490ab` (wrap). **The UNDRAINED pool is not a closure blocker** — the row's own kill-candidates line rules `[#358]`–`[#362]` drain items out of scope ("none gates the growth of the pool"); an initial CC read that conflated drain-state with Done-when was wrong and was corrected before acting. No disposition register entry orphaned: the three surviving `#436` citations ([E8] clause (b), `ecosystem/doc-code-edge.yaml:142`, the baseline header) are provenance, true after closure.
+
+**The one STRONG candidate, [#370], was REFUSED — a detector false positive, not a closure.** Its sole evidence `12e6b45b7` is an id-collision RENUMBER that moved a *different* ticket off #370. `CLOSES_RE` (`plugins/tier1-lifecycle/scripts/propose_closures.py:80`) does no backtick-prose stripping, so it matched that commit's own sentence *"Verified inert: no commit carries a `closes [#370]` tag"* — the assertion that no closure exists read AS the closure. Across all history exactly one commit contains the token, and it is that backticked sentence. [#370]'s Done-when (an operator ruling on ownership-model completeness) is unmet, and [#400]/[#413] both name it as kill-candidate pending the same ruling.
+
+**The 126 WEAK were not presented for sifting.** At a 2300-commit window "a named file changed" matches 126 of 174 open tasks (72%) — activity, not completion.
+
+**Result:** `validate_backlog: OK` (9 themes, 26 stories, **174 → 173 tasks**, 1 pre-existing WARN — the #409/#410 token-overlap heuristic, untouched).
+
+**Changes:** `BACKLOG.md` ([#436] row removed, done-items-leave per ADR-65; id gap kept, nothing renumbered), `JOURNAL.md`.
+
+**Abandoned:** nothing. **Next:** the `CLOSES_RE` backtick-strip defect is unfiled and will keep re-proposing [#370] every window — operator's call whether to file or build it.
+
 ### 2026-07-27 (m) — CC (Fable 5): sol adversarial review folded into ADR-107 (prose-only arc)
 
 **SHA anchor (ADR-85).** **`f7e1ecd9`** (review artifact + index) · **`3131e000`** (the five-edit fold) · this wrap commit. Branch `docs/adr107-sol-review-fold`, base `fa3f10a3`.
