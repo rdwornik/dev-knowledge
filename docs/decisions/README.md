@@ -93,6 +93,58 @@ Architecture decisions for `.dev-knowledge` in Michael Nygard ADR format. The fo
 | ADR-104 | 2026-07-24 | Fleet **repository shape** ([#381], the fleet's first shape ADR; intake **#16** §4). Records the operator ruling (**"repos may share one tree; employer material under `.gitignore`; compliance NOT a fold constraint"**) and prices it — the ruling REMOVES the compliance boundary that was the prior recommendation's main pillar. Re-derived on engineering grounds only: verdict **PARTIAL fold** (not FULL, not NO) — the verdict held but the reasoning changed entirely; removing compliance does NOT flip to FULL, and the ruling's own `.gitignore` mechanism ADDS an **ungoverned-zone cost** (ignored paths invisible to `audit.py`/`fleet_parity`). Live-verified cost basis: **15,409-line** plural-only estate (4,222 script cluster + 4,811 deploy + 6,376 registries; the intake's "~4,200" = the script cluster exactly) — but only a FULL fold retires it, and the methodology layer survives any fold. Architect recommends a **narrow** corp-domain consolidation; **`gpt-5.6-sol`** independently derived PARTIAL too but a more aggressive **9→5 trees**. **Amended same session (draft, Status held Proposed):** the operator ruled **corp-monorepo stays OUTSIDE the fold** and **incremental consolidation** (stage by stage, verify value after each) — **resolving** the sol-vs-architect divergence (sol's 9→5 rejected, its derivation kept on record) on the asymmetry "folding is easy, unfolding is hard". **Precondition (c) discharged NEGATIVE** by a read-only corp-monorepo content/history scan: ~206 enterprise tokens across 104 tracked files, 104/104 already in committed history → `.gitignore` reaches zero of them (**mechanism struck**); material is load-bearing (40 test fixtures); remote private. corp-monorepo excluded on **history-entanglement + load-bearing dependency, NOT compliance and NOT gitignore**. Verdict PARTIAL stands. Priced at 5–8+; "10–20" not used. Downstream #382→#383→#385; E9 brake holds until accepted+merged. **Closes [#381] on acceptance** (not this draft). |
 | ADR-105 | 2026-07-26 | **Routine consumer declaration** — a six-field row shape (`trigger · scope · consumer · consumption_path · verified_by · review_date`) declared as an ADR-66 in-line clause, **gated at ACTIVATION not at filing**. Both halves normative: a routine may not ACTIVATE without a named `consumer` + `consumption_path` (one that cannot name them is **retired, not activated**), and **filing a proposal without them is explicitly permitted** — a proposal has produced no artifact, so demanding the fields would force tautology or invention. Answers **[#419]** (*we run routines whose output nobody consumes*), which **stays OPEN**: the rule + gate landed, remaining coverage pegged to **[#426]**. Precipitating evidence: six unmerged `claude/conformance-*` branches; the `nightly-triage` producer **dead since 2026-07-09** (`.github/` deleted at `82227f08`) with 15 Issues still open and nagged every session start; and `surface_triage.ps1`'s own header recording the same class already diagnosed under #255 and never generalized. **Coverage boundary, stated in the enforcing check's docstring:** governs **one row** (`[#348]`) against **30 live routines** (session hooks across global/project/plugin layers, 15 commit-time gates, 3 scheduled/remote) — none of which is a BACKLOG row, so none is checked. A green check does NOT mean the fleet's routines have consumers. Folds into **[#382]** as row-shape when it lands; creates no new registry. |
 
+## Decision notes (non-ADR)
+
+<!-- scope: meta -->
+
+Operator rulings recorded so they are **citable rather than stranded in a chat turn** — the
+addressability rule (LESSONS 2026-07-12). Each entry states the ruling and its date; the
+authority is the operator's ruling itself, not this file, and **the decision record proper
+remains the ADR**. Where a ruling's reasoned argument is a named downstream deliverable, the
+entry says so and names it.
+
+**This section does not establish a new governed record class** — no template, lifecycle, or
+authority model is defined or implied here, and none of these entries substitutes for an ADR
+that is owed. Codifying a non-ADR record class, if it is ever wanted, is its own ADR.
+
+### **uv adopted fleet-wide** — operator ruling 2026-07-26
+
+**uv is adopted fleet-wide by operator ruling 2026-07-26; it kills the environment-isolation
+and gate-reproducibility defect classes at the root.** The reasoned ADR is the uv arc's own
+deliverable, **not** this note. Rollout is **gated per repo**, never a bulk sweep;
+`.dev-knowledge` goes first ([#432]). The two defect classes are methodology-intake
+commissions **A** (environment/test isolation) and **E** (gate reproducibility).
+
+### **rtk REJECTED** — operator ruling 2026-07-26
+
+**REJECTED.** rtk advertises 60–90% token savings. **Figures below are operator-supplied with
+the ruling (2026-07-26) and are not reproduced from an artifact in this repo** — no benchmark
+output is held here, so they are recorded as the ruling's stated basis, not as repo-verified
+evidence. Measured on a paired JetBrains benchmark: **+7.6% cost at low effort, ±0% at high
+effort, quality unchanged**, while the tool's own scoreboard reported **96M tokens saved as
+the bill went up**. That gap is the whole finding: a self-reported saving is a claim about the
+tool's counterfactual, never about the bill.
+
+**Reversal condition:** a paired measurement **on our own bill**, never on the tool's
+self-report. Nothing else reopens this.
+
+### **Restructure pilots the pattern before the fleet contract** — operator ruling 2026-07-26
+
+**The backlog restructure PILOTS the schema pattern on one surface BEFORE [#382] declares the
+fleet desired-state contract.** A contract generalized from zero pilots is a guess; a contract
+generalized from one is at least grounded. Three obligations ride with it:
+
+1. **The restructure ADR feeds its schema findings into [#382]** — the pilot is an input to
+   the fleet contract, not a parallel track that diverges from it.
+2. **Its acceptance contract carries a generalization clause** — the pattern must be *shown*
+   to extend to at least one other governed surface. Shown, not asserted.
+3. **The restructure structurally closes methodology-intake commission H** (id-space and
+   decision-record hygiene) — **the directory becomes the id counter**, so next-free is a
+   property of the tree rather than a scan that unmerged branches can defeat (the [#427]
+   collision class; [#429]).
+
+Carried by [#433]; received by [#382].
+
 ## Transcript naming convention
 
 <!-- scope: meta -->
