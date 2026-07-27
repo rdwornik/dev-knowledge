@@ -97,11 +97,15 @@ Architecture decisions for `.dev-knowledge` in Michael Nygard ADR format. The fo
 
 <!-- scope: meta -->
 
-Operator rulings that are **settled and citable but not ADR-shaped** — a rejection, an
-adoption, or a sequencing constraint whose reasoned argument is a downstream deliverable
-rather than this note. One entry per ruling, newest first, each searchable by its bolded
-subject. A note here is **binding**; it is not a placeholder for an ADR that was skipped.
-When a ruling later earns a full ADR, the note stays and cites it.
+Operator rulings recorded so they are **citable rather than stranded in a chat turn** — the
+addressability rule (LESSONS 2026-07-12). Each entry states the ruling and its date; the
+authority is the operator's ruling itself, not this file, and **the decision record proper
+remains the ADR**. Where a ruling's reasoned argument is a named downstream deliverable, the
+entry says so and names it.
+
+**This section does not establish a new governed record class** — no template, lifecycle, or
+authority model is defined or implied here, and none of these entries substitutes for an ADR
+that is owed. Codifying a non-ADR record class, if it is ever wanted, is its own ADR.
 
 ### **uv adopted fleet-wide** — operator ruling 2026-07-26
 
@@ -113,11 +117,13 @@ commissions **A** (environment/test isolation) and **E** (gate reproducibility).
 
 ### **rtk REJECTED** — operator ruling 2026-07-26
 
-**REJECTED.** rtk advertises 60–90% token savings. Measured on a paired JetBrains benchmark,
-the result was **+7.6% cost at low effort and ±0% at high effort, with quality unchanged** —
-the tool's own scoreboard reported **96M tokens saved while the bill went up**. That gap is
-the whole finding: a self-reported saving is a claim about the tool's counterfactual, never
-about the bill.
+**REJECTED.** rtk advertises 60–90% token savings. **Figures below are operator-supplied with
+the ruling (2026-07-26) and are not reproduced from an artifact in this repo** — no benchmark
+output is held here, so they are recorded as the ruling's stated basis, not as repo-verified
+evidence. Measured on a paired JetBrains benchmark: **+7.6% cost at low effort, ±0% at high
+effort, quality unchanged**, while the tool's own scoreboard reported **96M tokens saved as
+the bill went up**. That gap is the whole finding: a self-reported saving is a claim about the
+tool's counterfactual, never about the bill.
 
 **Reversal condition:** a paired measurement **on our own bill**, never on the tool's
 self-report. Nothing else reopens this.
