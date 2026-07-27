@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-23
+last_reviewed: 2026-07-27
 reconciled_with: handoff-process@5.7
 status: active
 owner: Rob
@@ -65,7 +65,7 @@ This indexes commits **going forward only.** Git history is immutable — **hist
 **Enforced by a `commit-msg` hook.** `scripts/check_backlog_commit_msg.py` (pre-commit `commit-msg` stage) **fails any commit that removes a `- [#id]` task from `BACKLOG.md` without referencing that id** (`[#id]` or `closes [#id]`) in the message. A reworded task (id present before and after) does not trigger. Install it once per machine alongside the standard hooks:
 
 ```
-pre-commit install --hook-type commit-msg
+uv run pre-commit install --hook-type commit-msg
 ```
 
 **"What's been implemented" query.** Because done tasks **leave** `BACKLOG.md` (ADR-65) and git is the implementation record, the list of completed tasks with their implementing commits is:
@@ -80,17 +80,17 @@ This is the detailed implementation history the active file deliberately does no
 
 <!-- scope: meta -->
 
-Install once per machine:
+Install once per machine (uv toolchain, ADR-106 / [#432] — uv itself is pinned via `[tool.uv] required-version` in `pyproject.toml`):
 
 ```
-pip install -r config/requirements-dev.txt
-pre-commit install
+uv sync --locked
+uv run pre-commit install
 ```
 
 Run manually at any time:
 
 ```
-pre-commit run --all-files
+uv run pre-commit run --all-files
 ```
 
 ## Validators
@@ -103,7 +103,7 @@ Pre-commit hooks (`.pre-commit-config.yaml`):
 |------|-------|--------------|
 | `normalize-dated-headers` | commit | Rewrites dated-log entry headers to canonical `### YYYY-MM-DD` form. Idempotent. Auto-format style: rewrites; never fails. |
 | `codemap-freshness` | commit | Checks the ARCHITECTURE.md compact-text codemap is current vs `scripts/` (compact text since the ADR-51 amendment 2026-07-05; gate retained). |
-| `toc-freshness-playbook` | commit | Staleness check for `protocols/PLAYBOOK.md`'s TOC. Regenerate: `python -m scripts.toc.cli generate protocols/PLAYBOOK.md --write`. |
+| `toc-freshness-playbook` | commit | Staleness check for `protocols/PLAYBOOK.md`'s TOC. Regenerate: `uv run python -m scripts.toc.cli generate protocols/PLAYBOOK.md --write`. |
 | `roster-freshness` | commit | Regen-and-diff gate for `.claude/methodology-roster.md` vs `deploy/manifest-v*.yaml` (`gen_methodology_roster.py --check`); blocks a hand-edited or manifest-stale roster. Hub-only ([#244] P3). |
 | `claude-rosters-freshness` | commit | Regen-and-diff gate for the two `@`-imported CLAUDE.md fragments `.claude/generated/{commands-repo,recent-adrs}.md` (`gen_claude_rosters.py --check`); fires on the command files / ADR headers / the fragments. Hub-only ([#258] phase-2). |
 | `audit-index-freshness` | commit | Regen-and-diff gate for the generated `docs/audits/README.md` index vs `docs/audits/*.md` (`gen_audit_index.py --check`); shape-agnostic. Hub-only. |
@@ -115,14 +115,14 @@ Pre-commit hooks (`.pre-commit-config.yaml`):
 | `coherence-nudge` | commit | **Non-blocking** nudge: a registered spec changed without a version bump → stdout nudge + `logs/COHERENCE-NUDGE.log`; always exits 0 (pairs with the `reconciled_versions` audit check). |
 | `backlog-id-on-close` | commit-msg | Requires `[#id]` / `closes [#id]` when a commit removes a `- [#id]` task. |
 | `backlog-filing-backpressure` | commit-msg | Add-side sibling of `backlog-id-on-close`: a commit that ADDS a new BACKLOG task id must carry a `kill-candidates:` line (≥1 existing `#id`, or `none — <reason>`) — BLOCK if absent. `scripts/check_backlog_filing.py`, proposals only. Hub-only. |
-| `block-ff-push` | pre-push | Refuses a push placing a non-merge commit on `main`'s first-parent spine (a direct-to-`main` commit or a true FF merge); a `--no-ff` merge passes. Hub-only, fail-soft, bypass `git push --no-verify`. **Activate once per machine: `pre-commit install --hook-type pre-push`** (`default_install_hook_types` only wires it on a fresh install). |
+| `block-ff-push` | pre-push | Refuses a push placing a non-merge commit on `main`'s first-parent spine (a direct-to-`main` commit or a true FF merge); a `--no-ff` merge passes. Hub-only, fail-soft, bypass `git push --no-verify`. **Activate once per machine: `uv run pre-commit install --hook-type pre-push`** (`default_install_hook_types` only wires it on a fresh install). |
 
-`audit.py health` (the gate above) is also runnable standalone for an on-demand sweep: `python scripts/audit.py health`. It runs the self-conformance checks incl. the canonical-file **freshness** check (`last_reviewed` staleness; see PLAYBOOK); FAIL blocks a commit, WARN (e.g. the 30-day freshness backstop) only informs.
+`audit.py health` (the gate above) is also runnable standalone for an on-demand sweep: `uv run python scripts/audit.py health`. It runs the self-conformance checks incl. the canonical-file **freshness** check (`last_reviewed` staleness; see PLAYBOOK); FAIL blocks a commit, WARN (e.g. the 30-day freshness backstop) only informs.
 
 Run the auto-format hook standalone (e.g. to clean up before commit):
 
 ```
-python scripts/normalize_headers.py LESSONS.md JOURNAL.md
+uv run python scripts/normalize_headers.py LESSONS.md JOURNAL.md
 ```
 
 ## Nightly outcome management

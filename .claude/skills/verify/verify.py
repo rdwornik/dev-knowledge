@@ -21,10 +21,10 @@ def run(cmd):
 
 results = {}
 
-rc, out = run("pytest -x --tb=short")
+rc, out = run("uv run --locked pytest -x --tb=short")
 results["pytest"] = ("PASS" if rc == 0 else "FAIL", out if rc != 0 else "")
 
-rc, out = run("ruff check")
+rc, out = run("uv run --locked ruff check")
 results["ruff"] = ("PASS" if rc == 0 else "FAIL", out if rc != 0 else "")
 
 rc, out = run("git status --porcelain")

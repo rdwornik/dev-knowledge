@@ -1,19 +1,38 @@
-# Dependency-isolation policy (#257, decided 2026-07-05): this repo runs on the
-# SYSTEM Python 3.12 by design — no venv. Rationale: every enforcement surface
-# (pre-commit `language: system` hooks, plugin Stop/SessionStart hooks, /ship
-# pre-flight) invokes the system interpreter; a venv would fork interpreter
-# paths across .pre-commit-config.yaml and hook wiring for zero isolation gain
-# in a single-user, validators-only Layer-2 repo. The trade is made honest by
-# DECLARING the dev toolchain below (PEP 735) so a rebuilt machine restores it
-# reproducibly:
-#   py -m pip install --group dev        (pip >= 25.1)
+# Environment-isolation toolchain (ADR-106, [#432], operator ruling 2026-07-26):
+# this repo resolves, installs and runs its gate set through uv — the committed
+# uv.lock + .python-version declare the environment; `uv sync --locked` rebuilds
+# it reproducibly from a clean checkout. SUPERSEDES the #257 no-venv policy
+# (2026-07-05): its system-interpreter rationale inverted once the enforcement
+# surfaces (pre-commit hook entries, session hooks, verify cadence) moved onto
+# `uv run --locked`, which resolves interpreter + deps per invocation.
+#   uv sync --locked                     (dev group; the gate environment)
+#   uv sync --locked --group analytics   (adds the L5a pandas lane)
+
+[project]
+name = "dev-knowledge"
+version = "0.1.0"
+description = "Universal LLM-driven development methodology hub (Layer 2 — markdown governance + read-only validators)"
+requires-python = ">=3.12"
+
+[tool.uv]
+# Not a package: flat-layout governance repo, never built or installed — uv syncs
+# only the dependency groups (also sidesteps the setuptools flat-layout trap).
+package = false
+# uv itself is PINNED EXACTLY (ADR-106): uv is pre-1.0 and ships ~every three days
+# with behavioural drift in point releases (the 2026-07-23 release changed `--locked`
+# semantics). A uv upgrade is its OWN gated change — bump this pin and regenerate
+# uv.lock in a dedicated reviewed commit, never incidentally mid-arc.
+required-version = "==0.11.19"
+
 [dependency-groups]
 dev = [
     "pytest>=9.0",
     "pytest-xdist>=3.8",   # /ship pre-flight parallel runs (-n auto), #256
-    "ruff>=0.15.5",        # matches [tool.ruff] required-version floor
+    "ruff==0.15.5",        # EXACT == the pinned pre-commit rev (v0.15.5) so the venv ruff and the hook ruff render one verdict; [tool.ruff] required-version stays the fleet floor
     "pre-commit>=4.5",
     "pyyaml>=6.0",         # scripts/ validators (audit.py etc.)
+    "click>=8.0",          # audit.py CLI (was only in config/requirements-dev.txt)
+    "rich>=13.0",          # deploy/tool.py console output (was undeclared — global-site-packages only)
 ]
 # L5a descriptive analytics lane ([#384], intake #16 section 3). Separate group: the lane is
 # HUB-ONLY (it mines siblings read-only but runs here), so a consumer never needs it and it
@@ -22,7 +41,7 @@ dev = [
 # pandas was already installed (2.3.3) but UNDECLARED; declaring it here fixes that real
 # parity defect. PyDriller is deliberately absent -- see the D1 deviation note in
 # scripts/fleet_analytics.py.
-#   py -m pip install --group analytics
+#   uv sync --locked --group analytics
 analytics = [
     "pandas>=2.0",
 ]
@@ -41,10 +60,10 @@ markers = [
 # Full SERIAL suite — the nightly/on-demand path (#256 S3). The tiered /ship
 # pre-flight never runs this; it exists to catch what parallelism can mask
 # (xdist worker crashes, test-ordering coupling, load-sensitive timing):
-#   py -m pytest -q                  (full serial; ~9m42s wall, 2026-07-05 profile)
+#   uv run pytest -q                 (full serial; ~9m42s wall, 2026-07-05 profile)
 # Run it on demand when xdist behavior is itself suspect, or as a nightly
 # sweep (no cron wired yet — deliberate; a documented invocation is the
-# current contract). Parallel full equivalent: py -m pytest -n auto --dist worksteal -q
+# current contract). Parallel full equivalent: uv run pytest -n auto --dist worksteal -q
 
 [tool.ruff]
 # === UNIVERSAL (fleet methodology — ARC 4 leg 1, 2026-07-18) ==================

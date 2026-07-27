@@ -66,6 +66,9 @@ SANCTIONED_TIER1_FILES: frozenset[str] = frozenset({
     ".methodology.yaml",
     # build / package manifests
     "package.json", "package-lock.json", "pyproject.toml",
+    # uv toolchain (ADR-101 amendment 2026-07-27, [#432]/ADR-106): the committed
+    # dependency lockfile + interpreter pin -- same class as package-lock.json.
+    "uv.lock", ".python-version",
 })
 
 # Tier-2 -- sanctioned docs/<genre>/ folders. `runbooks` LEFT the set 2026-07-22
