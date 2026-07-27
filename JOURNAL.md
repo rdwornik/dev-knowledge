@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-27 (h) — CC (Opus 5): session-prep batch — intake #19 (verbatim design input), R12 ruled F1, [#436] filed, next architect bundle cut
+
+**SHA anchor (ADR-85).** **`43c83920`** (intake #19 + the [E8] F1 note + [#436]) · **`69b8f151`** (the `2026-07-27-dev-knowledge-architect` bundle) · **`607fee13`** (terra P2 adopted — the P3 template defect) · this wrap commit.
+
+**Did.** Everything the next architect session needs now EXISTS IN THE REPO rather than in a chat turn. **STEP 1:** `docs/handoff-review-closing-batch` deleted on the operator's word (verified `--merged` first, no force). **STEP 2:** **intake #19** filed SEED — `docs/intake/2026-07-27-func-operator-design-input-night-shift-handoff-reform.md`, carrying the operator's night-shift and handoff-reform sections **VERBATIM**. Verification was mechanical, not asserted: the landed sections were diffed line-by-line against the source — **39 and 18 non-empty lines, byte-identical in order**; the only formatting added is blank lines between paragraph and list blocks so markdown renders. The header states that section A feeds the morning-loop wave, section B the intake #18 ratification session, and that **NEITHER is citable by a prompt or contract until ratified there**. The operator's own labelling of the open-web research as *external evidence to be verified by whoever builds this, not inherited from this message* is preserved as written — a capture, not a warrant. **STEP 3:** the **F1 ruling** recorded in the `[E8]` closure-contract context (clause (b) → **ratchet + bounded drain**; drain-row selection **pending**; matrix slice × mechanism × owner × review date) with the frozen contract text deliberately unchanged, and **[#436]** filed (`silent_rule_ratchet` — registry check + ship-gate leg + committed baseline 176, FAIL above it, ratchet-down only, row-independent by construction). Module **(c) SKIPPED** — no operator row selection is quoted, so clause (b) itself is not amended. **STEP 4:** the `2026-07-27-dev-knowledge-architect` bundle cut, `SUPPLEMENT.md` left **COLD** (ANSWERS empty → the §13(d) beat fires FULL) for the browser seat to return FILLED; RESIDUAL §4 + PASTE_THIS point at [#435]/intake #18, intake #19 §B, [#436], and the [#433] spike report's K1–K5 / seven [#382] findings / viewer-REJECT + swap-out contract, **pointers only**, under a stated execution-first expectation.
+
+**Ids derived, never remembered.** Max bracketed BACKLOG id across every ref and all commit messages = 435 → **436**; max `intake-id` across disk, `archive/` and every ref = 18 → **19**.
+
+**Terra found a real one, and it was not in this bundle — it was in the template.** P3 asks how many commits `main` is ahead of/behind `origin/main`, but its verify column offered only `git status -sb`, which reports the **checked-out branch's** upstream and prints nothing at all when a branch has no upstream. A bundle consumed from its own feature branch — the documented case — could not answer its own probe and would clear onboarding anyway. Root cause: `templates/handoff/v5/PROBES.md.tmpl:70`, **inherited by 64 landed bundles**. Fixed in lockstep (template + this unlanded bundle) so no future bundle inherits it; the 64 landed bundles were deliberately **not** touched — handoff bundles are immutable (§5 rule 3), and rewriting them to fix a probe is the exact violation that rule exists to prevent. The fix states in-row *why* the extra command is required so it cannot be quietly collapsed back, and was exercised live (returns `0 0` here) rather than asserted.
+
+**Changes:** `docs/intake/` (1 new + index), `BACKLOG.md`, `docs/handoffs/2026-07-27-dev-knowledge-architect/` (new bundle), `templates/handoff/v5/PROBES.md.tmpl`, `JOURNAL.md`.
+
+**Next:** the operator returns `SUPPLEMENT.md` FILLED (committed verbatim); the architect session rules A1–A11 and the drain-row scope; [#436] builds row-independently. Still parked/pending elsewhere: R8 (corp-monorepo, operator decision), the [#434] branch deletion (separate operator word), and the ai-council ADR-11 #117 amendment marker — raised this session, not executed.
+
+---
+
 ### 2026-07-27 (g) — CC (Opus 5): serialized integration of the handoff-review arc + its closing batch; [#434] fork RULED
 
 **SHA anchor (ADR-85).** **`fc79f471`** (two disposition-register rows) · **`4e3fd990`** (the `--no-ff` merge of `worktree-handoff-review` into main, pushed) · **`b4fe60c8`** ([#435] filed, [#434] fork ruling recorded verbatim, [#428] narrowed) · this wrap commit.
