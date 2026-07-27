@@ -49,7 +49,12 @@ from typing import Optional
 # Tier-1 -- sanctioned top-level directories.
 SANCTIONED_TIER1_DIRS: frozenset[str] = frozenset({
     ".claude", ".claude-plugin", ".vscode", "codex", "config", "deploy", "docs",
-    "ecosystem", "logs", "plugins", "protocols", "scripts", "templates", "tests",
+    "ecosystem", "logs", "plugins", "protocols", "scripts",
+    # [#433] restructure strangler (ADR-101 amendment 2026-07-27): the DERIVED
+    # per-task tree emitted from BACKLOG.md by scripts/gen_task_tree.py --
+    # BACKLOG.md stays the source of truth until the flip arc.
+    "tasks",
+    "templates", "tests",
 })
 
 # Tier-1 -- sanctioned top-level FILES (the closed class members, ADR-101 section 1).

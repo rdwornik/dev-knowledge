@@ -58,6 +58,17 @@ def test_rule_a_allows_file_under_sanctioned_dir():
     assert vh.rule_a_violation("deploy/manifest-v1.4.0.yaml") is None
 
 
+def test_rule_a_allows_tasks_dir():
+    # tasks/: ADR-101 amendment 2026-07-27 ([#433]) -- the DERIVED per-task tree
+    # emitted from BACKLOG.md joined the sanctioned Tier-1 directories (the closed
+    # set grew by amendment, never a drive-by add; source of truth stays BACKLOG.md
+    # until the flip arc).
+    assert "tasks" in vh.SANCTIONED_TIER1_DIRS
+    assert vh.rule_a_violation("tasks/433-backlog-restructure.md") is None
+    assert vh.rule_a_violation("tasks/manifest.json") is None
+    assert vh.rule_a_violation("tasks/README.md") is None
+
+
 def test_rule_a_allows_sanctioned_top_level_file():
     # uv.lock + .python-version: ADR-101 amendment 2026-07-27 ([#432]/ADR-106) --
     # the uv toolchain's lockfile + interpreter pin joined the build/package class.
