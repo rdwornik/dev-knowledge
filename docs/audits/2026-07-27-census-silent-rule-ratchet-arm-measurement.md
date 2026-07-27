@@ -198,3 +198,44 @@ the ratchet's baseline file has to be designed around, and neither was visible b
 
 ### Removed since the census (8)
 `AI_COUNCIL_PROCESS.md:168`, `:257` `[H]`, `:314` · `PLAYBOOK.md:2637` `[H]`, `:2645`, `:2670`, `:2673`, `:2802`
+
+---
+
+## Amendment — Disposition (D4), operator-adopted 2026-07-27
+
+Appended as an in-file amendment marker (CLAUDE.md §5 rule 3); nothing above this line is
+edited. This records what happened to the STOP verdict, not a revision of it.
+
+**Adopted semantics — D4 (architect-proposed, operator-adopted).** The census's `N_silent`
+is not recoverable by code: its regex and file filter were never recorded, which is what
+this report established. Rather than launder an unreproducible number into a gate, D4 pins
+a **detector in code** and lets it define the metric. `scripts/silent_rule_detector.py`
+(`silent-rule-v1`) is now the single source for *both* the baseline and every live count;
+the census's detector is explicitly **not** reused. The measured baseline is **379**
+candidate lines across **56** files at `527958fb`, committed to
+`ecosystem/silent-rule-baseline.yaml` as a number plus its detector id — never a parse of
+the ledger, whose §A–D itemisation yields 182 anchors against a stated 176 (§C lists 21
+under a heading claiming 15).
+
+**What the new metric is.** A normative-candidate *line* count, not a rule census: it
+cannot distinguish an enforced rule from an unenforced one. It is a **proxy** for the
+pool's size, load-bearing only in its movement against a baseline measured the same way.
+It is not comparable to 176, nor to this report's 812 Pass-1 figure.
+
+**One correction this build made to the report's own detector choice.** An uppercase-only
+token set was measured first and rejected: it matched **0 of 3** of the rules adjudicated
+silent in the sampling table above — all three are written in prose case (`**Never**
+branch…`, `**must** precede`, `**must use**`). The pinned detector is therefore the
+case-insensitive `must|shall|never` variant (this report's "strict" row, net +19).
+`ecosystem/parity-surfaces.yaml` is excluded from scope for the reason this report already
+gives for excluding its rows from the delta — they are `tier:` enum values read by
+`fleet_parity`, enforced by construction; left in scope they were 120 of 148 candidate
+lines (81%), which would have made the ratchet fire when someone *added enforcement*.
+
+**Still owed, and deliberately not done here.** The three adjudicated silent rules
+(`PLAYBOOK.md:1270`, `REPO_ONBOARDING.md:92`, `REPO_ONBOARDING.md:199`) and the wider
+43-line net-new delta are **undrained** and are owed to the **drain list** — review date
+**2026-08-26** ([#356], [#358]–[#361]). The ratchet stops the pool growing; it does not
+drain it, and a green ratchet must never be read as a drained pool. The four rulings this
+report asked for remain open on their merits; D4 unblocks the *build* by changing the
+metric, and does not answer them.

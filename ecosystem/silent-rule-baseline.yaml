@@ -1,0 +1,48 @@
+# silent-rule-baseline.yaml -- the committed baseline for the [#436] silent-rule ratchet.
+#
+# READ THIS BEFORE CHANGING THE NUMBER
+# ------------------------------------
+# `baseline` may be LOWERED or held. It may NOT be raised. `scripts/audit.py`
+# check_silent_rule_ratchet compares the previous committed value against this one and
+# FAILs on an increase (scripts/silent_rule_detector.py::validate_transition). There is no
+# code path that raises it: lowering is a reviewed commit, raising is an operator ruling.
+#
+# DATA MODEL (deliberate, per the D4 adoption note): a NUMBER plus the DETECTOR ID that
+# produced it -- never a parse of the silent-rule ledger. The ledger cannot serve as this
+# data: parsing its sections A-D yields 182 anchors against a stated 176, because section C
+# lists 21 entries under a heading claiming 15. That is not a ledger defect (the census
+# stated 176 as a floor), but it does mean the ledger has no single machine-readable count
+# to key a gate on. See docs/audits/2026-07-27-census-silent-rule-ratchet-arm-measurement.md.
+#
+# The detector id is load-bearing. Counts from two different detector contracts are not
+# commensurable; the check refuses to compare them rather than silently reporting drift.
+
+detector_id: silent-rule-v1
+baseline: 379
+measured_at: 2026-07-27
+measured_at_sha: 527958fbf89311610bd3be65fbfcb77df1f5fe29
+measured_files: 56
+
+provenance: |
+  Baseline semantics: detector-measured at arm time. Architect-proposed 2026-07-27,
+  operator-adopted (D4), subject to revision after live testing. Historical ruling
+  reference: 176 @ 2026-07-26; floor >= 179 per
+  docs/audits/2026-07-27-census-silent-rule-ratchet-arm-measurement.md.
+
+# What the number is NOT, so a later reader does not mistake it for a census figure:
+#   * It is not the census's N_silent (176). That was a human judgment pass over ~1000
+#     candidate lines, produced by a detector whose regex and file filter were never
+#     recorded, and is therefore not reproducible by code.
+#   * It is not a count of RULES. It counts LINES carrying a normative keyword, and it
+#     cannot distinguish an enforced rule from an unenforced one.
+#   * It is therefore a PROXY for the size of the pool. Only its movement against a
+#     baseline measured by the same detector is load-bearing.
+#
+# Detector contract summary (authoritative text: scripts/silent_rule_detector.py):
+#   scope     protocols/*.md - templates/**/*.{md,tmpl} - ecosystem/*.yaml
+#   excluded  **/archive/** - this file - ecosystem/parity-surfaces.yaml (its MUST tokens
+#             are tier: enum values read by fleet_parity, i.e. enforced by construction;
+#             in scope they were 120 of 148 candidate lines and would have made the
+#             ratchet fire when someone ADDED enforcement)
+#   token     \b(?:must|shall|never)\b, case-insensitive, one count per matching line
+#   decoding  UTF-8 explicit; a decode error raises rather than degrading the count

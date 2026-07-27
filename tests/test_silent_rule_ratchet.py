@@ -1,0 +1,206 @@
+"""Coverage for the [#436] silent-rule ratchet — scripts/silent_rule_detector.py plus the
+`silent_rule_ratchet` ALL_CHECKS member in scripts/audit.py.
+
+The four contract cases the build was gated on (operator-adopted D4 semantics, 2026-07-27)
+are pinned here FIRST-CLASS and named accordingly:
+
+    pass-at-baseline        test_pass_at_baseline
+    fail-above-baseline     test_fail_above_baseline
+    ratchet-down accepted   test_ratchet_down_accepted / test_transition_allows_drain
+    baseline-raise rejected test_baseline_raise_rejected / test_transition_rejects_raise
+
+Everything else here defends the detector contract itself: the metric is only meaningful
+if the detector that produced the baseline is the detector producing the live count.
+"""
+from __future__ import annotations
+
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+
+import pytest
+
+import audit as aud
+import silent_rule_detector as srd
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _measurement(count: int, detector_id: str = srd.DETECTOR_ID, files: int = 56):
+    return srd.Measurement(detector_id=detector_id, count=count, files=files)
+
+
+def _baseline(value: int, detector_id: str = srd.DETECTOR_ID) -> dict:
+    return {"detector_id": detector_id, "baseline": value}
+
+
+def _status(findings) -> str:
+    assert len(findings) == 1, f"expected exactly one Finding, got {findings!r}"
+    return findings[0].status
+
+
+# ---------------------------------------------------------------------------
+# The four contract cases
+# ---------------------------------------------------------------------------
+
+def test_pass_at_baseline():
+    """CASE 1 — live count exactly equal to the committed baseline PASSES.
+
+    Equality is the steady state: the pool has not grown. A gate that fired here would
+    RED on its own first run, which is what the arm-time stop existed to prevent.
+    """
+    findings = aud._ratchet_findings(_measurement(379), _baseline(379))
+    assert _status(findings) == "pass"
+    assert "379" in findings[0].evidence
+
+
+def test_fail_above_baseline():
+    """CASE 2 — one candidate line above the baseline FAILS, and names both numbers."""
+    findings = aud._ratchet_findings(_measurement(380), _baseline(379))
+    assert _status(findings) == "fail"
+    ev = findings[0].evidence
+    assert "380" in ev and "379" in ev, f"evidence must name live and baseline: {ev}"
+
+
+def test_ratchet_down_accepted():
+    """CASE 3 — live BELOW the baseline passes: draining is the point, not a violation.
+
+    The check must not demand exactness, or every drained rule would break the gate.
+    """
+    findings = aud._ratchet_findings(_measurement(350), _baseline(379))
+    assert _status(findings) == "pass"
+
+
+def test_baseline_raise_rejected():
+    """CASE 4 — raising the committed baseline is rejected by the transition validator.
+
+    This is the invariant that makes it a RATCHET rather than a high-water mark: the
+    number may fall or hold, never rise. Enforced as a pure function so it is testable
+    without a git history, and consumed by the check's git-previous leg.
+    """
+    reason = srd.validate_transition(old=379, new=400)
+    assert reason is not None
+    assert "379" in reason and "400" in reason
+    assert "reject" in reason.lower()
+
+
+# ---------------------------------------------------------------------------
+# Transition validator — both directions, including the boundary
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("old,new", [(379, 379), (379, 378), (379, 0)])
+def test_transition_allows_drain(old, new):
+    """Holding steady and lowering are both legal transitions."""
+    assert srd.validate_transition(old=old, new=new) is None
+
+
+@pytest.mark.parametrize("old,new", [(379, 380), (0, 1), (100, 1000)])
+def test_transition_rejects_raise(old, new):
+    """Any increase at all is rejected — there is no tolerance band."""
+    assert srd.validate_transition(old=old, new=new) is not None
+
+
+def test_no_baseline_raising_function_exists():
+    """RATCHET-DOWN ONLY is a structural property, not a convention.
+
+    The module must expose no callable that writes or raises a baseline. If someone adds
+    one, this test names it — the escape hatch has to be a reviewed commit, never a code
+    path that quietly re-arms the gate at a higher number.
+    """
+    forbidden = [n for n in dir(srd)
+                 if any(tok in n.lower() for tok in ("write", "raise_", "set_baseline",
+                                                     "update_baseline", "bump"))]
+    assert forbidden == [], f"module exposes baseline-mutating callables: {forbidden}"
+
+
+# ---------------------------------------------------------------------------
+# Detector-contract defences
+# ---------------------------------------------------------------------------
+
+def test_detector_id_mismatch_fails_rather_than_comparing():
+    """Two detectors' counts are not commensurable — comparing them is the failure mode
+    the whole module exists to prevent, so a stamp mismatch FAILS loudly."""
+    findings = aud._ratchet_findings(_measurement(379), _baseline(379, detector_id="silent-rule-v0"))
+    assert _status(findings) == "fail"
+    assert "silent-rule-v0" in findings[0].evidence
+
+
+def test_absent_baseline_warns_and_does_not_pass_vacuously():
+    """No baseline = inert gate. That must be visible, never a silent green."""
+    findings = aud._ratchet_findings(_measurement(379), None)
+    assert _status(findings) == "warn"
+
+
+def test_malformed_baseline_value_fails():
+    """A non-integer baseline is a corrupt gate, not a zero."""
+    findings = aud._ratchet_findings(_measurement(379), {"detector_id": srd.DETECTOR_ID,
+                                                         "baseline": "many"})
+    assert _status(findings) == "fail"
+
+
+def test_detector_catches_the_three_adjudicated_silent_rules():
+    """The empirical basis for the token choice, pinned so a future 'tidy-up' cannot
+    silently narrow it back to uppercase-only.
+
+    These three lines are the rules the 2026-07-27 arm-time probe adjudicated as genuinely
+    new-and-silent. An uppercase-anchored detector matched 0 of 3 — it would have been
+    blind to the exact growth that stopped the build.
+    """
+    probes = [
+        "**Never branch, commit, or merge under a live session.**",
+        "`marketplace add` **must** precede `install`",
+        "`.gitignore` floor negations **must use the contents form**",
+    ]
+    for line in probes:
+        assert srd.TOKEN_RE.search(line), f"detector blind to a known silent rule: {line}"
+
+
+def test_parity_surfaces_excluded_from_scope():
+    """parity-surfaces.yaml rows are `tier:` ENUM VALUES read by fleet_parity — enforced
+    by construction. In scope they were 120 of 148 candidate lines (81%), so the ratchet
+    would have fired on ADDING ENFORCEMENT. Pinned because that is a subtle regression."""
+    scoped = {p.relative_to(REPO_ROOT).as_posix() for p in srd.iter_scoped_files(REPO_ROOT)}
+    assert "ecosystem/parity-surfaces.yaml" not in scoped
+
+
+def test_baseline_file_excluded_from_its_own_scope():
+    """The baseline lives in ecosystem/*.yaml; counting its own provenance prose would
+    make the metric self-referential (and self-inflating on every re-stamp)."""
+    scoped = {p.relative_to(REPO_ROOT).as_posix() for p in srd.iter_scoped_files(REPO_ROOT)}
+    assert srd.BASELINE_RELPATH not in scoped
+
+
+def test_archive_paths_excluded_from_scope():
+    """Retiring doctrine into archive/ is a genuine drain, so archived files are out."""
+    scoped = [p.relative_to(REPO_ROOT).as_posix() for p in srd.iter_scoped_files(REPO_ROOT)]
+    assert not [r for r in scoped if "/archive/" in r or r.startswith("archive/")]
+
+
+def test_measure_is_deterministic_and_sorted():
+    """Two runs agree, and enumeration order is stable — a metric that wobbles between
+    runs cannot gate anything."""
+    first, second = srd.measure(REPO_ROOT), srd.measure(REPO_ROOT)
+    assert first == second
+    rels = [p.relative_to(REPO_ROOT).as_posix() for p in srd.iter_scoped_files(REPO_ROOT)]
+    assert rels == sorted(rels)
+
+
+def test_committed_baseline_matches_live_measurement():
+    """The committed baseline must actually hold on the live repo — i.e. the gate is
+    GREEN as shipped. This is the test that would have caught arming at 176."""
+    doc = aud._load_silent_rule_baseline(REPO_ROOT)
+    assert doc is not None, f"missing {srd.BASELINE_RELPATH}"
+    assert doc["detector_id"] == srd.DETECTOR_ID
+    live = srd.measure(REPO_ROOT)
+    assert live.count <= doc["baseline"], (
+        f"live {live.count} exceeds committed baseline {doc['baseline']}")
+
+
+def test_check_registered_and_green_on_live_repo():
+    """The check is in ALL_CHECKS (so it is a ship-gate leg by construction) and passes
+    against the live hub."""
+    assert aud.check_silent_rule_ratchet in aud.ALL_CHECKS
+    findings = aud.check_silent_rule_ratchet(REPO_ROOT)
+    assert _status(findings) == "pass"
