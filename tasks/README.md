@@ -10,6 +10,10 @@
   (regen-and-diff over every task file + `manifest.json`, plus a full disk
   reassembly proving `BACKLOG.md` is byte-identically reconstructible from
   this tree)
+- **Task retired** (its line left `BACKLOG.md`, e.g. closed per ADR-65):
+  `... gen_task_tree.py --write --prune` — removes ONLY files this generator
+  emitted (provenance markers `source: BACKLOG.md` + `derived: true` gate the
+  delete); a hand-authored task-shaped file is never touched.
 
 **Layout:** one file per task — `<id>-<slug>.md`. Frontmatter carries the
 byte-exact `[#N]` id plus conservatively derived fields (`status`, `priority`,

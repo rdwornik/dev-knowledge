@@ -268,12 +268,30 @@ def _fname_map(tasks: list[TaskRow]) -> dict[int, str]:
     return fname_by_id
 
 
-def write_tree(model: Model, out_dir: Path) -> list[str]:
+def _is_generator_emitted(path: Path) -> bool:
+    """True iff the file carries BOTH provenance marker lines this generator writes
+    (`source: BACKLOG.md` + `derived: true`) inside its frontmatter. The prune path
+    (terra P1, 2026-07-27) deletes ONLY files that prove this provenance -- a
+    hand-authored task-shaped file is never touched."""
+    try:
+        text = path.read_bytes().decode("utf-8")
+    except (OSError, UnicodeDecodeError):
+        return False
+    return "\nsource: BACKLOG.md\n" in text and "\nderived: true\n" in text
+
+
+def write_tree(model: Model, out_dir: Path, prune: bool = False) -> list[str]:
     """Write every task file + manifest.json under out_dir.
 
-    NEVER deletes or truncates anything else already there: a pre-existing file
-    that looks task-shaped (matches _ORPHAN_RE) but is not part of this emission
-    set is left untouched and reported to stdout as an orphan.
+    By default NEVER deletes or truncates anything else already there: a
+    pre-existing file that looks task-shaped (matches _ORPHAN_RE) but is not part
+    of this emission set is left untouched and reported to stdout as an orphan.
+
+    With prune=True (the explicit `--write --prune` verb; terra P1 fix), a
+    task-shaped file OUTSIDE the emission set is deleted IFF it carries this
+    generator's own provenance markers (_is_generator_emitted) -- the retired-task
+    lifecycle: a task line leaving BACKLOG.md retires its derived file. A
+    task-shaped file WITHOUT the markers is still only reported, never deleted.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     tasks = _task_rows(model)
@@ -291,7 +309,11 @@ def write_tree(model: Model, out_dir: Path) -> list[str]:
     emitted = set(fname_by_id.values())
     for p in sorted(out_dir.iterdir()):
         if p.is_file() and _ORPHAN_RE.match(p.name) and p.name not in emitted:
-            print(f"gen_task_tree: orphan (not touched): {p.name}")
+            if prune and _is_generator_emitted(p):
+                p.unlink()
+                print(f"gen_task_tree: pruned retired task file: {p.name}")
+            else:
+                print(f"gen_task_tree: orphan (not touched): {p.name}")
 
     return written
 
@@ -314,10 +336,10 @@ def reassemble_from_tree(tree_dir: Path) -> str:
     return "\n".join(parts)
 
 
-def _cmd_write(source_path: Path, out_dir: Path) -> int:
+def _cmd_write(source_path: Path, out_dir: Path, prune: bool = False) -> int:
     text = source_path.read_bytes().decode("utf-8")
     model = parse_backlog(text)
-    write_tree(model, out_dir)
+    write_tree(model, out_dir, prune=prune)
     task_count = sum(1 for kind, _ in model.nodes if kind == "task")
     print(f"gen_task_tree: wrote {task_count} task file(s) + manifest to {out_dir}")
     return 0
@@ -370,7 +392,8 @@ def _cmd_check(source_path: Path, out_dir: Path) -> int:
     emitted = set(fname_by_id.values())
     for p in sorted(out_dir.iterdir()):
         if p.is_file() and _ORPHAN_RE.match(p.name) and p.name not in emitted:
-            problems.append(f"orphan task-shaped file: {p.name}")
+            problems.append(f"orphan task-shaped file: {p.name} "
+                            f"(a retired derived file is removed by --write --prune)")
 
     try:
         if reassemble_from_tree(out_dir) != text:
@@ -408,6 +431,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--write", action="store_true", help="parse source and write the task tree + manifest")
     parser.add_argument("--check", action="store_true", help="verify the on-disk tree matches the source")
     parser.add_argument("--roundtrip", action="store_true", help="verify in-memory lossless reassembly")
+    parser.add_argument("--prune", action="store_true",
+                        help="with --write: delete a retired task file that carries this "
+                             "generator's own provenance markers (never a foreign file)")
     parser.add_argument("--source", type=Path, default=None, help="source BACKLOG.md path (default: repo root)")
     parser.add_argument("--out", type=Path, default=None, help="output tree dir (default: repo root/tasks)")
     args = parser.parse_args(argv)
@@ -415,8 +441,11 @@ def main(argv: list[str] | None = None) -> int:
     source_path = args.source if args.source is not None else _DEFAULT_SOURCE
     out_dir = args.out if args.out is not None else _DEFAULT_OUT
 
+    if args.prune and not args.write:
+        print("gen_task_tree: --prune is only valid together with --write", file=sys.stderr)
+        return 2
     if args.write:
-        return _cmd_write(source_path, out_dir)
+        return _cmd_write(source_path, out_dir, prune=args.prune)
     if args.check:
         return _cmd_check(source_path, out_dir)
     if args.roundtrip:

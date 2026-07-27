@@ -161,6 +161,61 @@ def test_write_tree_never_deletes(tmp_path, capsys):
     assert "9999-stray.md" in orphan_lines[0]
 
 
+def test_prune_removes_only_generator_emitted_retired_files(tmp_path, capsys):
+    """terra P1 (2026-07-27): a task leaving BACKLOG.md retires its derived file.
+    --write --prune deletes it IFF it carries the generator's own provenance
+    markers; a hand-authored task-shaped file is NEVER deleted."""
+    out_dir = tmp_path / "tasks"
+    two_tasks = "\n".join(
+        [
+            "## [E1] Theme",
+            "",
+            "### [S1] Story",
+            "- [#1] [P1][S] **Task one** — body",
+            "- [#2] [P1][S] **Task two** — body",
+            "",
+        ]
+    )
+    gtt.write_tree(gtt.parse_backlog(two_tasks), out_dir)
+    retired_fname = gtt.task_filename(
+        next(row for kind, row in gtt.parse_backlog(two_tasks).nodes if kind == "task" and row.id == 2)
+    )
+    assert (out_dir / retired_fname).exists()
+    # a hand-authored task-shaped file WITHOUT the provenance markers
+    (out_dir / "7777-hand-authored.md").write_text("my own notes\n", encoding="utf-8", newline="\n")
+
+    one_task = "\n".join(
+        [
+            "## [E1] Theme",
+            "",
+            "### [S1] Story",
+            "- [#1] [P1][S] **Task one** — body",
+            "",
+        ]
+    )
+    gtt.write_tree(gtt.parse_backlog(one_task), out_dir, prune=True)
+
+    assert not (out_dir / retired_fname).exists()  # retired derived file pruned
+    assert (out_dir / "7777-hand-authored.md").exists()  # foreign file untouched
+    out = capsys.readouterr().out
+    assert any("pruned retired task file" in line and retired_fname in line for line in out.splitlines())
+    assert any("orphan (not touched): 7777-hand-authored.md" in line for line in out.splitlines())
+
+
+def test_prune_flag_requires_write():
+    assert gtt.main(["--prune"]) == 2
+
+
+def test_write_without_prune_keeps_retired_files(tmp_path):
+    out_dir = tmp_path / "tasks"
+    two_tasks = "## [E1] T\n\n### [S1] S\n- [#1] [P1][S] **One** — b\n- [#2] [P1][S] **Two** — b\n"
+    gtt.write_tree(gtt.parse_backlog(two_tasks), out_dir)
+    one_task = "## [E1] T\n\n### [S1] S\n- [#1] [P1][S] **One** — b\n"
+    gtt.write_tree(gtt.parse_backlog(one_task), out_dir)  # default: no prune
+    leftover = [p.name for p in out_dir.iterdir() if p.name.startswith("2-")]
+    assert leftover  # the retired derived file is still there without --prune
+
+
 def test_check_detects_body_corruption(tmp_path):
     source = tmp_path / "BACKLOG.md"
     text = "\n".join(
