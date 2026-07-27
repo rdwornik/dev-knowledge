@@ -313,10 +313,17 @@ because the content source changed:
 
 Count unchanged at **428 across 56 files** through all four passes.
 
-**Review-loop record, stated plainly.** Four terra passes returned 5, 3, 2 and 3 HIGH
-findings; thirteen were fixed and none dispositioned. Every one was a fail-open in a gate
+**Review-loop record, stated plainly.** TEN terra passes were needed to clear the gate,
+returning 5, 3, 2, 3, 2, 2, 1, 1, 1 and 0 HIGH findings; twenty were fixed and none
+dispositioned. Passes 5-10 closed, in order: a working-tree read the index could hide a
+staged change behind (both organs); a git probe that failed open when it could not
+complete; an index/worktree predicate that INTERSECTED staged and unstaged paths and so
+missed divergence across *different* monitored paths; a raise-guard that compared numbers
+across refs without checking they came from the same detector; and a `min()` that ran
+before detector reconciliation, letting a mixed-detector state flip a migration WARN into
+a PASS. Pass 10 returned CLEAR. Every one was a fail-open in a gate
 whose entire purpose is to refuse — a metric that could be gamed by reflow, a raise-guard
 that compared a value against itself, statuses that did not block, a corpus that differed
-by platform. That an arming attempt needed four adversarial passes is itself evidence for
-the arm-time STOP this report recorded: the first implementation looked correct and was
-not.
+by platform. That an arming attempt needed ten adversarial passes is itself the
+strongest evidence for the arm-time STOP this report recorded: the first implementation
+looked correct and was not, and so did each of the next eight.
