@@ -2581,69 +2581,66 @@ def _load_silent_rule_baseline(repo_path: Path) -> Optional[dict]:
 _BASELINE_REFS = ("origin/main", "main")
 
 
-def _baseline_ref_state(repo_path: Path) -> str:
-    """Why the raise-guard has no previous value: `"bootstrap"` or `"unknown"`.
+def _git(repo_path: Path, *args: str) -> Optional[subprocess.CompletedProcess]:
+    """Run a git command, or None if git itself could not be invoked."""
+    try:
+        return subprocess.run(["git", *args], cwd=str(repo_path), capture_output=True,
+                              text=True, timeout=15, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
 
-    The distinction is load-bearing (terra HIGH re-review, 2026-07-27). Treating both as a
-    silent pass was fail-open: a detached or ref-less checkout could raise the baseline and
-    ship green. But failing both would also block the commit that FIRST introduces the
-    file, which is a legitimate state.
 
-      "bootstrap" — an integration ref RESOLVES but carries no baseline file yet. The file
-                    is genuinely new; there is nothing to compare and nothing to launder.
-      "unknown"   — no integration ref resolves at all (no remote, shallow/detached clone,
-                    not a git tree). The transition is UNVERIFIABLE, which the caller turns
-                    into a blocking WARN rather than a pass.
+def _target_baseline_state(repo_path: Path) -> tuple[str, Optional[int]]:
+    """The baseline on the INTEGRATION TARGET as a PROVEN state, not an inference.
+
+    Returns one of:
+      ("valid", n)      a target ref carries a well-formed baseline -- compare against it
+      ("absent", None)  a target ref RESOLVES and provably does NOT contain the file --
+                        genuine bootstrap, nothing to compare and nothing to launder
+      ("invalid", None) a target ref contains the file but it is unreadable/malformed --
+                        INDETERMINATE, must block
+      ("unresolved", None)  no target ref resolves at all -- UNVERIFIABLE, must block
+
+    Why proven rather than inferred (terra HIGH, 3rd pass 2026-07-27): the previous shape
+    asked two separate questions -- "did any ref resolve?" and "did reading a baseline
+    succeed?" -- and treated `ref resolved + read failed` as bootstrap. That is fail-open:
+    a target baseline that exists but is malformed, or a `git show` that timed out, would
+    be read as "no baseline yet" and a raised branch value would pass uncompared. Absence
+    is now established positively with `git cat-file -e`, so only real absence bootstraps.
+
+    Reading the target and NOT `HEAD` is itself the earlier fix: once a raise is committed
+    HEAD *is* the new value, so a HEAD comparison compares the baseline against itself.
     """
+    resolved_any = False
     for ref in _BASELINE_REFS:
+        rev = _git(repo_path, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
+        if rev is None or rev.returncode != 0 or not rev.stdout.strip():
+            continue                       # this ref does not exist here; try the next
+        resolved_any = True
+        exists = _git(repo_path, "cat-file", "-e", f"{ref}:{_srd.BASELINE_RELPATH}")
+        if exists is None:
+            return "invalid", None         # git unusable mid-probe: indeterminate, block
+        if exists.returncode != 0:
+            continue                       # PROVEN absent on this ref -- try the next one
+        show = _git(repo_path, "show", f"{ref}:{_srd.BASELINE_RELPATH}")
+        if show is None or show.returncode != 0:
+            return "invalid", None         # it exists but we could not read it
         try:
-            out = subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"],
-                                 cwd=str(repo_path), capture_output=True, text=True,
-                                 timeout=15, check=False)
-        except (OSError, subprocess.SubprocessError):
-            continue
-        if out.returncode == 0 and out.stdout.strip():
-            return "bootstrap"
-    return "unknown"
-
-
-def _previous_committed_baseline(repo_path: Path) -> Optional[int]:
-    """The `baseline:` value on the INTEGRATION TARGET, for the ratchet-down-only leg.
-
-    Reads `origin/main` (falling back to local `main`) -- deliberately NOT `HEAD`. Reading
-    HEAD was a real bypass (terra HIGH, 2026-07-27): once the raise is committed, HEAD
-    *is* the new value, so the guard compared the baseline against itself and passed. It
-    also collapsed on a merge commit and on a detached HEAD. The question the ratchet
-    actually asks is "does this arc raise the baseline above what main already has?", and
-    the integration target is the only ref that answers it. Re-committing, amending, or
-    deleting-and-re-adding the file cannot launder a raise past this.
-
-    Returns None when the target ref carries no readable baseline -- a fresh clone with no
-    remote, or the commit that first introduces the file. The caller does NOT treat that as
-    a pass: it reports the raise-guard as INACTIVE in the finding's evidence, so an
-    unverifiable transition is visible rather than silently skipped.
-    """
-    for ref in _BASELINE_REFS:
-        try:
-            out = subprocess.run(
-                ["git", "show", f"{ref}:{_srd.BASELINE_RELPATH}"],
-                cwd=str(repo_path), capture_output=True, text=True, timeout=15, check=False)
-            if out.returncode != 0:
-                continue
-            data = yaml.safe_load(out.stdout)
-        except (OSError, subprocess.SubprocessError, yaml.YAMLError):
-            continue
+            data = yaml.safe_load(show.stdout)
+        except yaml.YAMLError:
+            return "invalid", None
         if not isinstance(data, dict):
-            continue
+            return "invalid", None
         value = data.get("baseline")
-        if isinstance(value, int) and not isinstance(value, bool):
-            return value
-    return None
+        if not isinstance(value, int) or isinstance(value, bool):
+            return "invalid", None
+        return "valid", value
+    return ("absent", None) if resolved_any else ("unresolved", None)
 
 
 def _ratchet_findings(live: "_srd.Measurement", baseline: Optional[dict],
                       previous: Optional[int] = None,
-                      ref_state: str = "bootstrap") -> list[Finding]:
+                      ref_state: str = "absent") -> list[Finding]:
     """Testable core of check_silent_rule_ratchet ([#436]).
 
     Kept pure (no filesystem, no git) so the four contract cases -- pass-at-baseline,
@@ -2667,18 +2664,26 @@ def _ratchet_findings(live: "_srd.Measurement", baseline: Optional[dict],
     if not isinstance(value, int) or isinstance(value, bool):
         return [Finding(name, "fail",
                         f"malformed baseline value {value!r} — expected an integer")]
+    if ref_state == "invalid":
+        # The target HAS a baseline but it could not be read. Indeterminate, so a raise
+        # cannot be ruled out — block rather than bootstrap past it.
+        return [Finding(name, "fail",
+                        (f"raise-guard INDETERMINATE: the baseline on the integration ref "
+                         f"exists but is unreadable or malformed, so a raise cannot be "
+                         f"ruled out (live {live.count}, committed {value})")
+                        .replace("|", "/"))]
+    if ref_state == "unresolved":
+        # No integration ref at all (no remote, shallow/detached clone, not a git tree).
+        # WARN blocks ship-gate unless explicitly dispositioned; a pass with a note would
+        # not, which was the fail-open terra found on re-review.
+        return [Finding(name, "warn",
+                        (f"raise-guard UNVERIFIABLE: no integration ref (origin/main, "
+                         f"main) resolves, so a baseline raise cannot be ruled out "
+                         f"(live {live.count}, committed {value})").replace("|", "/"))]
     if previous is None:
-        if ref_state != "bootstrap":
-            # UNVERIFIABLE, not benign: no integration ref resolved, so a raise cannot be
-            # ruled out. WARN blocks ship-gate unless explicitly dispositioned — a pass
-            # with a note would not, which was the fail-open terra found on re-review.
-            return [Finding(name, "warn",
-                            (f"raise-guard UNVERIFIABLE: no integration ref (origin/main, "
-                             f"main) resolves, so a baseline raise cannot be ruled out "
-                             f"(live {live.count}, committed {value})").replace("|", "/"))]
-        # Genuine bootstrap: a ref resolves but carries no baseline yet — the file is new,
-        # so there is no prior value to launder. Surfaced, not silent.
-        guard = " [raise-guard bootstrap: baseline not yet on the integration ref]"
+        # PROVEN absent on a resolving ref — the file is genuinely new, so there is no
+        # prior value to launder. Surfaced in the evidence, never silent.
+        guard = " [raise-guard bootstrap: baseline provably absent on the integration ref]"
     else:
         rejection = _srd.validate_transition(old=previous, new=value)
         if rejection is not None:
@@ -2729,15 +2734,14 @@ def check_silent_rule_ratchet(repo_path: Path) -> list[Finding]:
                         "hub-only — the detector's scope roots are hub governance surfaces")]
     try:
         live = _srd.measure(Path(repo_path))
-    except (OSError, UnicodeDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, _srd.DetectorError) as exc:
         # FAIL, not "unavailable" (terra HIGH, 2026-07-27): ship-gate blocks only on `fail`
         # and undispositioned `warn`, so an "unavailable" detector would ship GREEN having
         # measured nothing at all. A decode failure silently zeroed files in the arm-time
         # probe's first run -- an unmeasured corpus must block, not wave the arc through.
         return [Finding("silent_rule_ratchet", "fail",
                         f"detector could not measure the corpus: {exc!r}".replace("|", "/"))]
-    previous = _previous_committed_baseline(Path(repo_path))
-    ref_state = "bootstrap" if previous is not None else _baseline_ref_state(Path(repo_path))
+    ref_state, previous = _target_baseline_state(Path(repo_path))
     return _ratchet_findings(live, _load_silent_rule_baseline(Path(repo_path)),
                              previous, ref_state)
 

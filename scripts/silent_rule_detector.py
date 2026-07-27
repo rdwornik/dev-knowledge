@@ -12,17 +12,26 @@ directly, and stopped the build rather than laundering an unreproducible number 
 
 The D4 resolution (architect-proposed 2026-07-27, operator-adopted) is to stop trying to
 recover the census figure and instead **pin a detector in code and let it define the
-metric**. What this module counts is a *normative-candidate line count*: lines in the
-governed corpus carrying a normative keyword. It is a PROXY for the size of the silent-rule
-pool, not a census of it -- it cannot tell an enforced rule from an unenforced one, and it
-counts lines, not rules. Its absolute value is meaningless in isolation; only its movement
+metric**. What this module counts is *normative-keyword occurrences* in the governed,
+git-tracked corpus. It is a PROXY for the size of the silent-rule pool, not a census of it
+-- it cannot tell a rule from a mention of one in an example, and it counts keywords, not
+rules. Its absolute value is meaningless in isolation; only its movement
 against a baseline measured by *this same detector* is load-bearing. Do not compare it to
 176, nor to the census's 812 Pass-1 figure.
 
-DETECTOR CONTRACT (`silent-rule-v1`) -- change any clause and you MUST bump DETECTOR_ID
+DETECTOR CONTRACT (`silent-rule-v3`) -- change any clause and you MUST bump DETECTOR_ID
 --------------------------------------------------------------------------------------
+  Corpus source   git's TRACKED-file inventory (`git ls-files`), never a filesystem
+                  walk. A walk inherits the host's case semantics and its notion of which
+                  of two casefold-colliding names exists, so the same commit could measure
+                  differently on Windows and Linux; git reports one canonical path list for
+                  a tree on every platform. Symlinks and gitlinks are excluded (following
+                  one reads content from outside the governed corpus). An untracked draft
+                  therefore cannot inflate the metric -- the ratchet governs what is
+                  committed. Enumeration failure RAISES; it never degrades to a subset.
   Scope roots     `protocols/*.md` - `templates/**/*.{md,tmpl}` - `ecosystem/*.yaml`
-                  (the census's ruled denominator roots, ledger ruling 3)
+                  (the census's ruled denominator roots, ledger ruling 3), matched
+                  casefolded on every segment.
   Excluded, and why each exclusion is a deliberate ruling rather than convenience:
     * any path with an `archive/` segment -- archived doctrine is not a live governed
       rule, so retiring a file into `archive/` is a genuine ratchet-down, not a dodge.
@@ -57,7 +66,10 @@ DETECTOR CONTRACT (`silent-rule-v1`) -- change any clause and you MUST bump DETE
                   default (cp1252) and SILENTLY ZEROED several files before erroring --
                   a silent decode failure is the exact measurement-error class this
                   metric must not reproduce, so a decode error raises here, never passes.
-  Ordering        files sorted by POSIX relpath, so the walk is platform-stable.
+  Ordering        sorted by casefolded POSIX relpath, with the raw relpath as a total
+                  secondary key. Two tracked paths differing only by case are REFUSED
+                  outright (DetectorError): on a case-insensitive filesystem only one of
+                  them exists, so the corpus would be genuinely ambiguous.
 
 RATCHET-DOWN ONLY. There is deliberately **no** function in this module that raises a
 baseline. `validate_transition` rejects an increase, and the audit check that consumes it
@@ -67,6 +79,7 @@ is an operator ruling, not a code path.
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -75,7 +88,7 @@ from pathlib import Path
 # check refuses to compare a live count against a baseline stamped with a different id --
 # two detectors' numbers are not commensurable, and silently comparing them is the failure
 # mode this whole module exists to prevent.
-DETECTOR_ID = "silent-rule-v2"
+DETECTOR_ID = "silent-rule-v3"
 
 BASELINE_RELPATH = "ecosystem/silent-rule-baseline.yaml"
 
@@ -104,39 +117,102 @@ EXCLUDED_RELPATHS = frozenset({BASELINE_RELPATH, "ecosystem/parity-surfaces.yaml
 _ARCHIVE_SEGMENT = "archive"
 
 
-def iter_scoped_files(repo_root: Path) -> list[Path]:
-    """Every in-scope file, sorted by POSIX relpath. Pure enumeration -- no reads.
+class DetectorError(RuntimeError):
+    """The corpus could not be enumerated or is ambiguous.
 
-    All path comparisons are CASEFOLDED (terra HIGH, 2026-07-27). Windows globbing can
-    surface a differently-cased path -- `templates/Archive/...`, or the excluded YAML under
-    another casing -- and a case-sensitive `in` test would then silently INCLUDE a file the
-    contract excludes, so the same tree would measure differently on Windows and Linux. A
-    metric that is not platform-stable cannot gate anything.
+    Raised rather than degraded to a partial count: a metric measured over an unknown
+    subset of the corpus is worse than no metric, because it reads as a low number. The
+    audit check turns this into a blocking FAIL.
+    """
+
+
+# Blob modes git reports for ordinary files. 120000 is a symlink and 160000 a gitlink;
+# both are excluded -- following a symlink would read content from outside the scoped
+# corpus (or off the tree entirely), which is neither governed nor reproducible.
+_REGULAR_BLOB_MODES = frozenset({"100644", "100755"})
+
+
+def _tracked_paths(repo_root: Path) -> list[str]:
+    """POSIX relpaths of every regular tracked file, from git's own inventory.
+
+    The corpus is defined by what git TRACKS, not by what the filesystem happens to walk
+    (terra HIGH re-review, 2026-07-27). `Path.glob`/`rglob` inherits the host filesystem's
+    case semantics and its notion of which of two casefold-colliding names exists, so the
+    same commit measured on Windows and on Linux could yield different FILE SETS -- and a
+    rule could disappear from the measurement by being on the wrong OS. git reports one
+    canonical, case-exact path list for a given tree on every platform. It also means an
+    untracked scratch draft cannot inflate the metric, which is correct: the ratchet
+    governs the committed corpus.
+    """
+    try:
+        out = subprocess.run(["git", "ls-files", "-s", "-z"], cwd=str(repo_root),
+                             capture_output=True, timeout=60, check=False)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise DetectorError(f"cannot enumerate tracked files: {exc!r}") from exc
+    if out.returncode != 0:
+        raise DetectorError(
+            "cannot enumerate tracked files: `git ls-files` failed "
+            f"(rc={out.returncode}); the corpus is defined by git, so a non-git tree "
+            "cannot be measured")
+    paths: list[str] = []
+    for entry in out.stdout.decode("utf-8").split("\0"):
+        if not entry:
+            continue
+        meta, _, rel = entry.partition("\t")   # "<mode> <sha> <stage>\t<path>"
+        if not rel or meta.split(" ", 1)[0] not in _REGULAR_BLOB_MODES:
+            continue
+        paths.append(rel)
+    return paths
+
+
+def _in_scope(rel: str) -> bool:
+    """Does a POSIX relpath fall inside the scope roots? Casefolded on every segment, so
+    `Protocols/X.MD` and `protocols/x.md` are treated identically on every platform."""
+    folded = rel.casefold()
+    parts = folded.split("/")
+    for dirname, recurse, suffixes in _SCOPE_RULES:
+        if parts[0] != dirname:
+            continue
+        depth_ok = len(parts) > 1 if recurse else len(parts) == 2
+        if depth_ok and any(folded.endswith(sfx) for sfx in suffixes):
+            return True
+    return False
+
+
+def iter_scoped_files(repo_root: Path) -> list[Path]:
+    """Every in-scope tracked file, sorted deterministically. Enumeration only -- no reads.
+
+    Raises DetectorError when the corpus cannot be enumerated, or when two tracked paths
+    differ only by case: on a case-insensitive filesystem only one of them exists on disk,
+    so the corpus would be genuinely ambiguous and the count platform-dependent. That is
+    refused rather than silently resolved.
     """
     root = Path(repo_root)
     excluded = {r.casefold() for r in EXCLUDED_RELPATHS}
-    scoped: list[Path] = []
-    for dirname, recurse, suffixes in _SCOPE_RULES:
-        base = root / dirname
-        if not base.is_dir():
+    scoped_rels: list[str] = []
+    for rel in _tracked_paths(root):
+        if not _in_scope(rel):
             continue
-        for path in (base.rglob("*") if recurse else base.glob("*")):
-            if not path.is_file():
-                continue
-            if path.suffix.casefold() not in suffixes:
-                continue                  # casefolded: `.MD` counts exactly like `.md`
-            rel_parts = path.relative_to(root).parts
-            rel = path.relative_to(root).as_posix()
-            if any(part.casefold() == _ARCHIVE_SEGMENT for part in rel_parts[:-1]):
-                continue                  # archived doctrine is not a live governed rule
-            if rel.casefold() in excluded:
-                continue                  # see the Excluded clause in the module docstring
-            scoped.append(path)
-    # Casefolded primary key so ordering agrees across case-sensitive and case-insensitive
-    # filesystems; the raw relpath is a deterministic SECONDARY key so two paths differing
-    # only by case cannot tie and swap order between runs (terra HIGH re-review).
-    return sorted(scoped, key=lambda p: (p.relative_to(root).as_posix().casefold(),
-                                         p.relative_to(root).as_posix()))
+        segments = rel.casefold().split("/")
+        if _ARCHIVE_SEGMENT in segments[:-1]:
+            continue                      # archived doctrine is not a live governed rule
+        if rel.casefold() in excluded:
+            continue                      # see the Excluded clause in the module docstring
+        scoped_rels.append(rel)
+
+    collisions: dict[str, list[str]] = {}
+    for rel in scoped_rels:
+        collisions.setdefault(rel.casefold(), []).append(rel)
+    ambiguous = {k: v for k, v in collisions.items() if len(v) > 1}
+    if ambiguous:
+        raise DetectorError(
+            "casefold-colliding tracked paths make the corpus ambiguous: "
+            + "; ".join(", ".join(sorted(v)) for v in ambiguous.values()))
+
+    # Casefolded primary key so ordering agrees across filesystems; the raw relpath is a
+    # deterministic secondary key. Collisions are already refused above, so this is total.
+    scoped_rels.sort(key=lambda r: (r.casefold(), r))
+    return [root / Path(r) for r in scoped_rels]
 
 
 @dataclass(frozen=True)

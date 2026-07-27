@@ -36,6 +36,25 @@ def _baseline(value: int, detector_id: str = srd.DETECTOR_ID) -> dict:
     return {"detector_id": detector_id, "baseline": value}
 
 
+def _git_tree(root: Path, files: dict[str, str]) -> Path:
+    """A real git repo -- the corpus is git-defined (v3), so a bare tmp dir has none."""
+    import subprocess
+
+    def git(*a):
+        subprocess.run(["git", *a], cwd=root, check=True, capture_output=True, text=True)
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.email", "t@example.invalid")
+    git("config", "user.name", "t")
+    for rel, body in files.items():
+        p = root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(body, encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-qm", "fixture")
+    return root
+
+
 def _status(findings) -> str:
     assert len(findings) == 1, f"expected exactly one Finding, got {findings!r}"
     return findings[0].status
@@ -237,37 +256,99 @@ def test_raise_guard_reads_integration_target_not_head():
     baseline against itself and passed. It must read the integration target."""
     import inspect
 
-    src = inspect.getsource(aud._previous_committed_baseline)
-    assert "origin/main" in src or "_BASELINE_REFS" in src
+    src = inspect.getsource(aud._target_baseline_state)
+    assert "_BASELINE_REFS" in src
     assert "HEAD:" not in src, "raise-guard must not compare the baseline against HEAD"
     assert aud._BASELINE_REFS[0] == "origin/main"
 
 
 def test_bootstrap_raise_guard_is_surfaced_not_silent():
-    """terra HIGH — when the previous value cannot be read the guard cannot run. In the
-    BOOTSTRAP case (an integration ref resolves but carries no baseline yet) that is
-    legitimate, but it must still be visible, or 'did not run' reads like 'passed'."""
+    """terra HIGH — when there is no previous value the guard cannot run. Where absence is
+    PROVEN ("absent") that is legitimate, but it must still be visible in the evidence, or
+    'did not run' reads exactly like 'passed'."""
     findings = aud._ratchet_findings(_measurement(428), _baseline(428),
-                                     previous=None, ref_state="bootstrap")
+                                     previous=None, ref_state="absent")
     assert _status(findings) == "pass"
     assert "bootstrap" in findings[0].evidence
 
 
-def test_unverifiable_raise_guard_blocks(monkeypatch):
-    """terra HIGH RE-REVIEW — the first fix still passed (with a note) when NO integration
-    ref resolved, and ship-gate ignores notes on a passing finding. A detached or ref-less
-    checkout could therefore raise the baseline and ship green. That case must WARN, which
-    ship-gate blocks on unless explicitly dispositioned."""
+def test_unverifiable_raise_guard_blocks():
+    """terra HIGH (2nd pass) — the first fix still PASSED (with a note) when no integration
+    ref resolved, and ship-gate ignores notes on a passing finding, so a detached or
+    ref-less checkout could raise the baseline and ship green. Must WARN."""
     findings = aud._ratchet_findings(_measurement(428), _baseline(428),
-                                     previous=None, ref_state="unknown")
+                                     previous=None, ref_state="unresolved")
     assert _status(findings) == "warn"
     assert "UNVERIFIABLE" in findings[0].evidence
 
 
-def test_ref_state_distinguishes_bootstrap_from_unknown(tmp_path):
-    """A non-git directory resolves no integration ref => 'unknown', never 'bootstrap'."""
-    assert aud._baseline_ref_state(tmp_path) == "unknown"
-    assert aud._baseline_ref_state(REPO_ROOT) == "bootstrap"
+def test_indeterminate_target_baseline_blocks():
+    """terra HIGH (3rd pass) — 'ref resolved + read failed' was being treated as bootstrap.
+    A target baseline that EXISTS but is malformed or unreadable must block: a raise cannot
+    be ruled out, and bootstrapping past it is fail-open."""
+    findings = aud._ratchet_findings(_measurement(428), _baseline(428),
+                                     previous=None, ref_state="invalid")
+    assert _status(findings) == "fail"
+    assert "INDETERMINATE" in findings[0].evidence
+
+
+def test_target_state_is_proven_not_inferred(tmp_path):
+    """A non-git directory resolves no integration ref => 'unresolved', never 'absent'."""
+    state, value = aud._target_baseline_state(tmp_path)
+    assert (state, value) == ("unresolved", None)
+
+
+def test_target_state_on_live_repo_is_a_known_state():
+    """On the live repo the state must be one of the four modelled values, with `valid`
+    carrying an int — no silent fifth state."""
+    state, value = aud._target_baseline_state(REPO_ROOT)
+    assert state in {"valid", "absent", "invalid", "unresolved"}
+    assert (value is None) == (state != "valid")
+
+
+def test_malformed_target_baseline_is_invalid_not_absent(tmp_path):
+    """The precise fail-open terra named: the file EXISTS on the target ref but does not
+    parse. That must be `invalid` (blocking), never `absent` (bootstrap)."""
+    import subprocess
+
+    def git(*a):
+        subprocess.run(["git", *a], cwd=tmp_path, check=True,
+                       capture_output=True, text=True)
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.email", "t@example.invalid")
+    git("config", "user.name", "t")
+    target = tmp_path / srd.BASELINE_RELPATH
+    target.parent.mkdir(parents=True)
+    target.write_text("baseline: [this is not an int\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-qm", "malformed baseline on main")
+    state, value = aud._target_baseline_state(tmp_path)
+    assert (state, value) == ("invalid", None)
+
+
+def test_valid_target_baseline_is_read(tmp_path):
+    """The positive path: a well-formed baseline on the target ref is returned for
+    comparison, so a raise on the branch is actually caught."""
+    import subprocess
+
+    def git(*a):
+        subprocess.run(["git", *a], cwd=tmp_path, check=True,
+                       capture_output=True, text=True)
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.email", "t@example.invalid")
+    git("config", "user.name", "t")
+    target = tmp_path / srd.BASELINE_RELPATH
+    target.parent.mkdir(parents=True)
+    target.write_text(f"detector_id: {srd.DETECTOR_ID}\nbaseline: 100\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-qm", "baseline on main")
+    assert aud._target_baseline_state(tmp_path) == ("valid", 100)
+    # ...and a branch raising it above that value is refused.
+    findings = aud._ratchet_findings(_measurement(50), _baseline(150),
+                                     previous=100, ref_state="valid")
+    assert _status(findings) == "fail"
 
 
 def test_raise_guard_fails_when_previous_is_lower():
@@ -288,46 +369,60 @@ def test_metric_is_reflow_stable():
 
 
 def test_path_exclusions_are_case_insensitive(tmp_path):
-    """terra HIGH — Windows can surface `templates/Archive/...` or a differently-cased
-    excluded path; case-sensitive comparison would silently INCLUDE it, so the same tree
-    would measure differently per platform."""
-    (tmp_path / "protocols").mkdir()
-    (tmp_path / "templates" / "Archive").mkdir(parents=True)
-    (tmp_path / "ecosystem").mkdir()
-    (tmp_path / "templates" / "Archive" / "old.md").write_text("must", encoding="utf-8")
-    (tmp_path / "protocols" / "live.md").write_text("must", encoding="utf-8")
+    """terra HIGH — a differently-cased `templates/Archive/...` must still be excluded, or
+    the same tree measures differently per platform."""
+    _git_tree(tmp_path, {"templates/Archive/old.md": "must", "protocols/live.md": "must"})
     rels = [p.relative_to(tmp_path).as_posix() for p in srd.iter_scoped_files(tmp_path)]
     assert "templates/Archive/old.md" not in rels, rels
     assert "protocols/live.md" in rels
 
 
-def test_detector_id_bumped_for_v2_unit_change():
-    """The contract says a unit change bumps the id. v1 counted lines, v2 counts
-    occurrences — the ids must not be reused, or two incompatible metrics share a name."""
-    assert srd.DETECTOR_ID == "silent-rule-v2"
+def test_detector_id_bumped_for_each_contract_change():
+    """The contract says ANY clause change bumps the id, so two incompatible metrics can
+    never share a name. v1 counted lines; v2 counted occurrences; v3 takes its corpus from
+    git's tracked inventory instead of a filesystem walk."""
+    assert srd.DETECTOR_ID == "silent-rule-v3"
 
 
 def test_enumeration_is_case_insensitive_on_extensions(tmp_path):
-    """terra HIGH RE-REVIEW — `Path.glob` inherits the platform's case sensitivity, so a
-    `.MD` file counted on Windows and vanished on Linux: the same tree, two numbers.
-    Enumeration now filters on a casefolded suffix explicitly."""
-    (tmp_path / "protocols").mkdir()
-    (tmp_path / "protocols" / "UPPER.MD").write_text("must", encoding="utf-8")
-    (tmp_path / "protocols" / "lower.md").write_text("must", encoding="utf-8")
+    """terra HIGH RE-REVIEW — a `.MD` file counted on Windows and vanished on Linux: the
+    same tree, two numbers. Suffix matching is casefolded."""
+    _git_tree(tmp_path, {"protocols/UPPER.MD": "must", "protocols/lower.md": "must"})
     rels = [p.relative_to(tmp_path).as_posix() for p in srd.iter_scoped_files(tmp_path)]
     assert rels == ["protocols/lower.md", "protocols/UPPER.MD"], rels
     assert srd.measure(tmp_path).count == 2
 
 
-def test_ordering_is_total_under_casefold_collision(tmp_path):
-    """Casefolding alone leaves paths differing only by case tied, so their order could
-    swap between runs. A raw-relpath secondary key makes the sort total."""
-    (tmp_path / "protocols").mkdir()
-    for name in ("Alpha.md", "alpha.md", "ALPHA.md"):
-        try:
-            (tmp_path / "protocols" / name).write_text("must", encoding="utf-8")
-        except OSError:                        # case-insensitive FS: fewer distinct files
-            pass
-    a = [p.relative_to(tmp_path).as_posix() for p in srd.iter_scoped_files(tmp_path)]
-    b = [p.relative_to(tmp_path).as_posix() for p in srd.iter_scoped_files(tmp_path)]
-    assert a == b == sorted(a, key=lambda r: (r.casefold(), r))
+def test_casefold_colliding_tracked_paths_are_refused(tmp_path):
+    """terra HIGH (3rd pass) — a walk produced DIFFERENT FILE SETS across platforms for
+    case-colliding names, so a rule could vanish from the measurement by being on the wrong
+    OS. Rather than silently pick one, an ambiguous corpus is REFUSED."""
+    import subprocess
+
+    _git_tree(tmp_path, {"protocols/alpha.md": "must"})
+    # Add a colliding path directly to the index: on a case-insensitive filesystem the two
+    # cannot both exist on disk, which is exactly the ambiguity being refused.
+    blob = subprocess.run(["git", "hash-object", "-w", "--stdin"], cwd=tmp_path,
+                          input="must", capture_output=True, text=True, check=True).stdout.strip()
+    subprocess.run(["git", "update-index", "--add", "--cacheinfo",
+                    f"100644,{blob},protocols/Alpha.md"], cwd=tmp_path, check=True,
+                   capture_output=True, text=True)
+    with pytest.raises(srd.DetectorError) as exc:
+        srd.iter_scoped_files(tmp_path)
+    assert "casefold-colliding" in str(exc.value)
+
+
+def test_untracked_file_cannot_inflate_the_metric(tmp_path):
+    """The corpus is what git TRACKS, so a scratch draft dropped into protocols/ does not
+    move the ratchet — correct, since the ratchet governs the committed corpus."""
+    _git_tree(tmp_path, {"protocols/live.md": "must"})
+    before = srd.measure(tmp_path).count
+    (tmp_path / "protocols" / "scratch.md").write_text("must must must", encoding="utf-8")
+    assert srd.measure(tmp_path).count == before
+
+
+def test_non_git_tree_raises_rather_than_measuring_a_subset(tmp_path):
+    """A corpus that cannot be enumerated must RAISE. Degrading to a partial count is worse
+    than no count, because a partial count reads as a low one."""
+    with pytest.raises(srd.DetectorError):
+        srd.iter_scoped_files(tmp_path)

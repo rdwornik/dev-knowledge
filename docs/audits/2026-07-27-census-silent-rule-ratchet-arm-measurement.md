@@ -210,7 +210,7 @@ edited. This records what happened to the STOP verdict, not a revision of it.
 is not recoverable by code: its regex and file filter were never recorded, which is what
 this report established. Rather than launder an unreproducible number into a gate, D4 pins
 a **detector in code** and lets it define the metric. `scripts/silent_rule_detector.py`
-(`silent-rule-v2`) is now the single source for *both* the baseline and every live count;
+(`silent-rule-v3`) is now the single source for *both* the baseline and every live count;
 the census's detector is explicitly **not** reused. The measured baseline is **428**
 normative-keyword occurrences across **56** files at `527958fb`, committed to
 `ecosystem/silent-rule-baseline.yaml` as a number plus its detector id — never a parse of
@@ -267,3 +267,26 @@ Each carries a named regression test. The residual limit terra raised and this b
 NOT close is recorded rather than hidden: occurrences inside examples, quotations and
 already-enforced rules still count, because separating a rule from a mention of one needs
 the semantic pass the census did by hand.
+
+**Second and third terra passes (same day).** The re-review confirmed three of the five
+fixes held and found two incomplete plus one new HIGH; a third pass found two further
+fail-opens. All closed, and the detector id moved `v2` -> `v3` because the corpus
+definition changed:
+
+6. **Bootstrap did not prove absence.** "A ref resolved but reading a baseline failed" was
+   treated as first-introduction, so a target baseline that existed but was malformed (or
+   a `git show` that timed out) would have let a raised branch value pass uncompared.
+   Absence is now established positively with `git cat-file -e`, and the target state is
+   modelled explicitly as `valid` / `absent` / `invalid` / `unresolved` -- only proven
+   absence bootstraps; `invalid` FAILs and `unresolved` WARNs.
+7. **The corpus was still a filesystem walk.** A walk inherits the host's case semantics
+   and its notion of which of two casefold-colliding names exists, so the same commit could
+   enumerate a different FILE SET on Windows and on Linux -- a rule could disappear from
+   the measurement by being on the wrong OS. The corpus is now git's tracked inventory
+   (`git ls-files`), symlinks and gitlinks excluded, casefold-colliding tracked paths
+   REFUSED rather than silently resolved, and an unenumerable corpus raises instead of
+   degrading to a subset. Side effect, and a correct one: an untracked scratch draft can no
+   longer move the ratchet.
+
+Count unchanged at **428 across 56 files** through both corrections -- behaviour-preserving
+on this tree, platform-stable off it.
