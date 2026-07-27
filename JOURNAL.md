@@ -19,6 +19,30 @@
 
 ---
 
+### 2026-07-27 (a) — CC (Opus 5): three lane tickets filed, four rulings recorded, merged at `153eae1a`
+
+**Did:** Execution-mode recording arc off `main`. Filed **[#432]** (uv adoption, `.dev-knowledge` only this window; fleet rollout shape is the uv arc's ADR deliverable, gated per repo) under [S18], **[#433]** (backlog bake-off pilot — Backlog.md vs scrummd vs build-thin, decided on pilot evidence rather than in chat) under [S19], and **[#434]** (conformance-branch extraction pass) under [S20]. [#434] carries the §7 rulings **verbatim** in its body: RULING 1 do-not-merge (ADR-84 writer isolation), RULING 2 do-not-bulk-delete before extraction, the pre-registered verdict fork, and the sharp named test. Opened a **Decision notes (non-ADR)** section in `docs/decisions/README.md` for the uv fleet adoption, the rtk rejection, and the pilot-precedes-contract ruling; obligation (1) of that last ruling is also recorded on the **[#382]** row so the receiving side carries it. One LESSONS entry, external-instance class.
+
+**Both STEP-0 probes passed before any work, and one prompt premise did not.** ADR-104 is Accepted and merged at `92fabb51` — the [E9] brake is discharged; [#382] is the live head of the 382→383→385 chain. Recorded rather than smoothed over: that head-ness is **prose-true only**, because the chain's `depends-on` clauses are written bare and are inert under `_DEPID_RE` ([#424]). The prompt named `main` at `811a6cfb`; the true HEAD at branch time was **`1bb48896`**, one merge further along — branched off live state, not the stated SHA.
+
+**Ids derived, never remembered.** Max bracketed id across `BACKLOG.md` **and every ref including unmerged branches** (the [#429] invisibility class that caused the [#427] collision) was **431**; the synthetic `[#777]` in trip-test prose is the known false positive. Assigned 432/433/434.
+
+**Two live-state checks contradicted carried numbers, and live state won both times.** The supplement's census said **six** conformance branches and flagged the span as possibly larger — it is: **7**, `claude/conformance-2026-07-21` through `-27`, verified against refs. And the codex wrapper's severity counter printed **0/0/0/0** for a review that in fact carried 1 High, 3 Medium, 1 Low — the heuristic was believed for nothing and the body was read instead.
+
+**The review's High was self-inflicted and worth recording as a pattern.** Asked to record rulings as "decision notes", I wrote a section preamble that *legislated a record class* — binding-ness, lifecycle, ADR relationship — none of which any ruling authorized. Terra caught it as conflicting with the canonical decision-record model. Fixed by narrowing the preamble to what was actually ruled and stating explicitly that no governed record class is established. **Forward shape: recording a ruling and chartering the genre that holds it are different acts, and the second one needs its own authority.** The rtk Medium (figures presented as evidence with no artifact in-repo) was fixed by labelling them the ruling's stated basis; the [#434] Low (read-only label vs required writes) by naming the writes.
+
+**Two review findings were deliberately NOT fixed** — both would have required deciding something that is not this arc's to decide: the promised uv ADR has no owning work item ([#432] scopes it out and no uv-arc ADR ticket exists), and [#433] has no pre-registered evaluation rubric while [#434] got a verdict fork for exactly that reason. Filing a fourth ticket or authoring the rubric would both exceed the payload, so they are surfaced, not closed.
+
+**Result:** ship-gate **GREEN** at `80a6c489` — 16 WARN dispositioned, **zero `[stale]`** — run via git-bash with `PYTHONUTF8=1` (the PowerShell path reds `handoff_probes` spuriously). All 14 pre-commit gates passed on both commits. No concurrent session in this checkout at merge time (checked, not assumed). Merged `--no-ff` at **`153eae1a`**; `main` level with `origin/main`.
+
+**Changes:** `BACKLOG.md` (+3 tasks, [#382] clause), `LESSONS.md` (+1), `docs/decisions/README.md` (new Decision notes section), `docs/audits/2026-07-27-codex-lane-filings-uv-bakeoff-extraction.md` (+ regenerated audits index), `JOURNAL.md` (this entry).
+
+**Abandoned / deliberately not done:** the **R12 module is ABSENT by instruction** (unruled) — no closure contract touched. No branch deleted, including the 7 conformance branches (RULING 2 forbids deletion before extraction). Nothing filed beyond the payload.
+
+**Next:** [#432] uv adoption is the wave-order successor. The two surfaced review findings need an operator call before [#433] pilots anything.
+
+---
+
 ### 2026-07-26 (i) — CC (Opus 5): SHA anchor for entry (h)
 
 **Anchor only (ADR-85 session-end gate).** Entry (h) landed as **`f0153b61`** and, by design, named no SHA — it was ruled recording-only and deliberately carries no derived state, so nothing in it anchored its own commit. This entry supplies the anchor and nothing else; the precedent is the repo's existing anchor commits (`d0ccb394`, `89de69a6`).
