@@ -58,7 +58,10 @@ _REPO_ROOT = _SCRIPTS_DIR.parent
 # (full duplicate trees), vendored deps, and immutable/aborted/in-progress handoff
 # bundles. `archive` is matched by prefix. Mirrors the exclude sets in audit.py /
 # verify_handoff_probes.py so a duplicate copy of a dependent cannot double-report.
-_EXCLUDE_DIRS = {".git", ".claude", "node_modules", "aborted", "in-progress"}
+# `tasks` ([#433], 2026-07-27): the DERIVED per-task tree carries byte-copies of
+# BACKLOG.md lines -- BACKLOG.md is the canonical edge-bearing surface, so scanning
+# the copies would double-report every prose edge once per derived file.
+_EXCLUDE_DIRS = {".git", ".claude", "node_modules", "aborted", "in-progress", "tasks"}
 
 
 @dataclass(frozen=True)

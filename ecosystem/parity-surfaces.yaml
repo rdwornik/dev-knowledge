@@ -247,6 +247,14 @@ surfaces:
       value: conditional
       reason: ".python-version -- the uv interpreter pin (ADR-106, [#432]): MUST at the hub now; consumer adoption is per-repo GATED rollout (ADR-106 pt 7), so consumer stays LOCAL until each repo's own uv arc flips its row to MUST."
       provenance: *own-prov
+  - id: root-tasks
+    kind: path
+    tier: {hub: MUST, consumer: LOCAL}
+    probe: {type: dir_tracked, path: tasks}
+    ownership:
+      value: conditional
+      reason: "tasks/ -- the DERIVED per-task tree emitted from BACKLOG.md ([#433] strangler STEP 1-2, ADR-101 amendment 2026-07-27): MUST at the hub while the strangler runs (BACKLOG.md stays source of truth until the flip arc); consumer stays LOCAL until the restructure ADR rules fleet adoption."
+      provenance: *own-prov
   - id: root-code-workspace
     kind: path
     tier: {hub: MUST, consumer: MUST}

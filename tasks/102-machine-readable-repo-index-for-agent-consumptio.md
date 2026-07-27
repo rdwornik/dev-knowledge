@@ -1,0 +1,13 @@
+---
+id: "[#102]"
+title: "Machine-readable repo index for agent consumption"
+status: deferred
+priority: P2
+size: M
+theme: "[E7] Tooling & evaluation"
+story: "[S18] Cut session friction with better tooling"
+source: BACKLOG.md
+derived: true
+---
+
+- [#102] [P2][M] Machine-readable repo index for agent consumption — field reports ~50k-token exploratory reads replaced by ~250-token precompiled indexes; evaluate for hub + corp · verify-first: confirm claimed tools (`stacklit`, `scip-search`) actually exist before any design · Done when: a pilot index on one repo demonstrably replaces exploratory reads in a CC session · refs #89, #91, ADR-51, research transcript 2026-06-06 · context-engineering field study (InsForge) — pilot shape: a single-call repo-topology spec (~500 tokens — structure, conventions, gate names, entry points, plus a `hints` field) consumed at UNDERSTAND time; makes the ~50k→~250-token replacement target concrete · DEFER — peg: a repo whose codemap is generator-MANAGED (#262/#295 closed 2026-07-25 — flat / single-package layouts stay hand-authored by policy, so no fleet codemap migration is coming to peg on)
