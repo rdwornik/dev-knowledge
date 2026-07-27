@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-26
+last_reviewed: 2026-07-27
 reconciled_with: handoff-process@5.7
 status: active
 owner: Rob
@@ -14,7 +14,13 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-07-26` — micro-window currency lane (intake #17 §5): governing-ADR
+> Last updated: `2026-07-27` — window-close currency lane (bounded, not an audit): governing-ADR
+> roster through **106** (uv / environment isolation) and the Purpose ratification line with it;
+> Ch5 gained the **derived `tasks/` zone** ([#433]) with its honest enforcement limit — `--check`
+> is a mode, not a wired gate; the Ch2 `/ship` row records that **merge is atomic** (merge → push →
+> delete source branch). Deliberately NOT added: `silent_rule_ratchet` ([#436], ruled-unbuilt) —
+> this chapter's own Status legend keeps a RULED-UNBUILT organ *out* of the table until it is
+> built. Prior: `2026-07-26` micro-window currency lane (intake #17 §5): governing-ADR
 > roster through **105**; the fleet count repointed at the surface that computes it; the
 > organ map gained a **Status** column; Ch6's nightly loop marked **broken at the triage
 > edge**; the paid ADR-92 amendment recorded. Prior: `2026-07-23` currency lane (carrier
@@ -56,7 +62,7 @@ be unonboarded. Read a count off the surface that defines it; do not restate one
 consulted as context by
 Claude Code, Codex, Cursor, and other agents. **Nothing here executes orchestration**
 — everything is read, consulted, or passively validated. The six chapters below are
-the system as built and ratified through ADR-105.
+the system as built and ratified through ADR-106.
 
 ---
 
@@ -212,7 +218,7 @@ An organ can be ARMED and still tell you nothing. Read the qualifier before trus
 | `gotchas` (skill) | auto-consulted before edits | L0 | advisory | ARMED | global |
 | `artifact-reader` (agent) | reading a >20k-token artifact | hub | read-only (Read/Grep/Glob) | ARMED | #97 |
 | `/save`, `/handoff` (commands) | operator | hub | — | ARMED | repo; ADR-82 / HANDOFF v5 |
-| `/ship`, `/review-closures` (commands) | operator | plugin (fleet-wide) | branch→`--no-ff`→clean-tree gate | ARMED | git-discipline; ADR-70 |
+| `/ship`, `/review-closures` (commands) | operator | plugin (fleet-wide) | branch→`--no-ff`→push→**delete source branch**→clean-tree gate (merge is ATOMIC — the delete is part of the same operation, not a later decision; git-discipline) | ARMED | git-discipline; ADR-70 |
 | `/changelog-review`, `/codex-review` | operator (push) | hub / L0 | — | ARMED | #113 / ADR-54 |
 | `conformance-hub.js` (Workflow) | operator (`ultracode`) or cloud Routine | Tier-3 | read-only + skeptic + evidence-required | ARMED | ADR-70 (#81) |
 | `_commit_routine_outputs` → `automation/fleet-audit` (audit.py Routine writer) | Routine/nightly durable-output commit | hub | **fail-soft** (pathspec-bounded `commit-tree`; main tree untouched, never `git add -A`) | ARMED | ADR-84; #125; #254(a) |
@@ -602,6 +608,20 @@ the status-coupled validator is wave work (BACKLOG W3 seed 2; spec
 are deployed, [#398] closed 2026-07-23). `logs/`
 artifact naming: CLAUDE.md §9 ([#395] convention).
 
+**Derived zone — `tasks/` (ADR-101 amendment 2026-07-27; [#433] strangler STEP 1–2).** A
+174-file top-level tree of per-task `.md` files + `manifest.json`, **generated from
+`BACKLOG.md`, which remains the source of truth**. Regenerate with
+`scripts/gen_task_tree.py --write`; verify with `--check` (regen-and-diff over every task
+file + the manifest, plus a full disk reassembly proving `BACKLOG.md` is byte-identically
+reconstructible from the tree). Never hand-edit inside it; the source-of-truth flip is a
+later, separate arc gated on the restructure ADR. Because the tree is derived, it is
+**excluded from prose-edge scanning** — leaving it in double-reported every BACKLOG edge
+(#335 class). **Honest enforcement limit:** `--check` is a *mode*, not a wired gate — no
+pre-commit hook and no `audit.py` check invokes it. Coherence is held only by
+`tests/test_gen_task_tree.py::test_committed_tree_coherent_with_backlog`, so a
+`BACKLOG.md` edit that skips the suite can leave the tree stale at commit time. By this
+chapter's own "no organ = decoration" test that is a gap, not a design.
+
 **Zone register (ADR-75).** Exclusion/immutability/scope policy lives in one
 amendable register; **"no organ = decoration"** — every zone is backed by a
 fail-closed organ on the executing path, or it is not active:
@@ -771,6 +791,7 @@ live in the ADRs; git history retains; the ADR-77 guard stays armed, Ch2).
 - **ADR-102/103** — parity-surfaces axes: enforcement-gate-rev modeled separately from corpus `source_tag`; per-entry ownership `{value, reason, provenance}` classification (fleet_parity organ row, Ch2).
 - **ADR-104** — fleet repository shape: **PARTIAL fold on engineering grounds, polyrepo mostly retained** (the fleet's first shape ADR; corp-monorepo permanently OUT, incremental consolidation). Declares the fleet as 9 git repos — the widest of this file's three denominators (Purpose). **No fold executes on this ADR**; execution is the downstream chain #382 → #383 → #385. Closes [#381] — Accepted 2026-07-24.
 - **ADR-105** — routine consumer declaration: a six-field row shape, **gated at ACTIVATION not at filing**. A declared routine must name a `consumer` and a `consumption_path` (the `routine_consumers` organ row, Ch2). Answers [#419] (*we run routines whose output nobody consumes*), which stays OPEN; the live-routine retrofit is [#426] — Accepted 2026-07-26.
+- **ADR-106** — environment isolation via `uv`: pinned toolchain (`required-version == 0.11.19`, a uv upgrade is its own gated change), committed `uv.lock` + `.python-version`, and every gate invoked through `uv run --locked` so the gate environment is *declared* rather than per-machine folklore. Closes two defect classes — environment/test isolation and gate reproducibility. Fleet rollout is **gated per repo**, never a bulk sweep; the hub went first ([#432]). The ADR-101 amendment 2026-07-27 sanctions `uv.lock`/`.python-version` in the top-level set (Ch5) — Accepted 2026-07-27.
 
 ---
 
