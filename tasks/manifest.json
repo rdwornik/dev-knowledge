@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "source": "BACKLOG.md",
-  "source_sha256": "a9dd4234093af5bfd2a686977e4f3c9f5be9b17b2ecad26902d6813b2aa666b6",
+  "source_sha256": "e1b628182606d68d38be23e0c010aaca1851b14dcc8b1359c48cde1eda91f68f",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1264,10 +1264,6 @@
     },
     {
       "prose": "So that the three items carried out of the night-audit cycle stop living only in narrative — each becomes a ticket with a done-when, rather than being rediscovered a wave later."
-    },
-    {
-      "task": 436,
-      "file": "436-silent-rule-ratchet-gate-the-growth-of-silently.md"
     },
     {
       "task": 354,
