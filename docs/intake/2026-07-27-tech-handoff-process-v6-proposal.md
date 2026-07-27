@@ -8,7 +8,7 @@ note: PROPOSED pack. Every amendment is a MECHANISM (probe leg / template field 
 
 # HANDOFF_PROCESS v6 — amendment proposal pack (PROPOSED)
 
-**Evidence base:** `docs/audits/2026-07-27-verification-handoff-process-audit.md` (same arc; finding IDs BW-a…BW-h / RM-1…RM-6 / W1…W9 cited below without re-arguing them).
+**Evidence base:** `docs/audits/2026-07-27-verification-handoff-process-audit.md` (same arc; finding IDs BW-a…BW-h / RM-1…RM-8 / W1…W9 cited below without re-arguing them).
 **Reading contract:** Status PROPOSED — nothing in `protocols/` changes until the operator ratifies. Amendments are paste-ready: each **Mechanism** block contains the literal text/change to apply, executable from this intake alone. The evaluation frame is the equilibrium contract (ADR-87): every amendment states which SIDE it loads (browser emits intent/contract/off-repo inputs; CC self-loads and mechanizes the rest) and why that side is the cheap one.
 
 ## 1. Prior art (mandatory row — the intake #17 precedent)
@@ -44,7 +44,7 @@ note: PROPOSED pack. Every amendment is a MECHANISM (probe leg / template field 
 
 - **Guards:** BW-a (the upload rule lives only in a consumed transient; the outbound direction already has a codified sibling — ESSENTIALS "Scale M+ → downloadable `.md` prompt").
 - **Mechanism (paste-ready):** add to HANDOFF_PROCESS §13 (`PASTE_THIS.md` convention paragraph):
-  > `PASTE_THIS.md` is the ONLY sanctioned chat-paste artifact. Every other load-bearing artifact crossing the CC → operator → browser boundary (a report, review, aggregate, plan) travels as a FILE the operator uploads, never as chat-paste — the report-direction sibling of the ESSENTIALS Scale-M+ rule. CC states the transport at emission time ("this travels as a file").
+  > `PASTE_THIS.md` is the ONLY sanctioned chat-paste DELIVERABLE. Every other load-bearing deliverable crossing the CC → operator → browser boundary (a report, review, aggregate, plan) travels as a FILE the operator uploads, never as chat-paste — the report-direction sibling of the ESSENTIALS Scale-M+ rule. CC states the transport at emission time ("this travels as a file"). **Carve-out (unchanged §13 workflow):** the supplement interview exchange — QUESTIONS copied into the outgoing chat, ANSWERS pasted back — is a conversational relay, not a deliverable, and stays chat-paste by design.
   Plus the matching one-liner in ESSENTIALS "Architect disciplines" (the ADR-87-item-7 ladder step), and the assembler's over-budget warn text gains: "artifacts other than PASTE_THIS must not be pasted at all."
 - **Lives at:** HANDOFF_PROCESS §13 · ESSENTIALS · `scripts/assemble_paste.py` warn string.
 - **Equilibrium side:** the rule binds the operator relay, but the enforcing surface is CC's emission-time statement — CC-side, cheap because the rule already exists in the other direction and needs only mirroring.
@@ -68,7 +68,7 @@ note: PROPOSED pack. Every amendment is a MECHANISM (probe leg / template field 
 - **Mechanism (paste-ready):**
   1. **Adopt s7 §4 by reference:** land the seven-item "Multi-agent / fan-out prompt checklist" drafted verbatim in `docs/audits/2026-07-19-technical-night-s7-prompt-authoring-quality.md` §4 into PLAYBOOK §2 (fan-out shape · worktree+branch · read-only-vs-write-scope · codex lane · plan-mode basis · deliverable naming+location · close discipline). Do not re-draft; the text exists.
   2. **HANDOFF_PROCESS §13 gains one paragraph:** "Every brief or prompt that opens a lane declares its destination ex-ante: worktree name · branch (in a sanctioned lane shape, §4 grammar) · write-scope · execution MODE with basis — the §14a items 3/4/7 shape generalized beyond epic lanes. A lane inherits none of these from a prior prompt."
-  3. **Probe leg (generator):** the v5 probe-core template's branch-note becomes a checkable row — P3 extends: "state the live branch AND compare it to the bundle/brief-declared destination; mismatch = FAIL." Deterministic and live-only; the declared destination is a contract to check against, not an answer hint (the existing PROBES branch-note precedent: "re-derive… do not trust this line").
+  3. **Probe leg (generator):** the declared destination gets a NAMED, persistent field — the bundle `HANDOFF_BOOT.md` session-header table (slug · purpose · mode today) gains a **`Destination`** row (`worktree · branch · write-scope · MODE`), written by `gen_handoff.py` from its own invocation args (for an off-repo brief, the generator invocation IS where the brief's destination becomes repo-resident; a brief never committed stays out of reach — s7 gap 2, unchanged). P3 then extends: "state the live branch AND compare it to the boot-header `Destination` row; mismatch = FAIL." Deterministic and live-only; the declared destination is a contract to check against, not an answer hint (the existing PROBES branch-note precedent: "re-derive… do not trust this line").
 - **Lives at:** PLAYBOOK §2 · HANDOFF_PROCESS §13 · `templates/handoff/v5/PROBES.md.tmpl` + `scripts/gen_handoff.py`.
 - **Equilibrium side:** the browser emits one destination line (already its ADR-87 load: intent + mode); CC mechanizes the check. CC is the cheap side — one template row + one comparison.
 - **Cost:** M (spec text XS; probe leg S; the PLAYBOOK checklist is an adoption, not a build).
@@ -101,9 +101,9 @@ note: PROPOSED pack. Every amendment is a MECHANISM (probe leg / template field 
   | leg | question | binds to | CC verifies via |
   |---|---|---|---|
   | P0a | Quote live the reconciliation-debt / preamble list of the active epic theme(s) | `BACKLOG.md` `[E#]` preambles (machine-locatable headers) | read the live preamble; quote must substring-match |
-  | P0b | Quote live the plan-of-record wave/sequence line of every intake with `status: ACCEPTED, disposition: active` | `docs/intake/*.md` frontmatter (already machine-parsed by `gen_intake_index.py`) | enumerate frontmatter → read each §plan line live |
-  | P0c | State which wave/row this bundle's Purpose serves — unquotable or contradicted = FAIL | the bundle's own FILL-IN purpose vs P0a/P0b output | compare; mismatch = FAIL, route to the escalation ladder |
-  §13(c)'s opening sequence extends: **role → vision → standing topics → backlog**. No open-ended adjudication leg — per JOURNAL 07-26 (h), whole-set grooming is an arc, not a probe.
+  | P0b | Enumerate live every intake with `status: ACCEPTED, disposition: active` and quote each doc's TITLE line (its first `# ` heading) | `docs/intake/*.md` frontmatter + first heading (both machine-locatable; frontmatter already parsed by `gen_intake_index.py`) | enumerate frontmatter → quote each live title; the set and titles drift on any intake status change |
+  | P0c | State which enumerated standing authority (P0a epic theme / P0b intake) this bundle's Purpose serves — unquotable or contradicted = FAIL | the bundle's own FILL-IN purpose vs P0a/P0b output | compare; mismatch = FAIL, route to the escalation ladder |
+  §13(c)'s opening sequence extends: **role → vision → standing topics → backlog**. No open-ended adjudication leg — per JOURNAL 07-26 (h), whole-set grooming is an arc, not a probe. **Honest narrowing (terra H3):** P0b quotes titles, not wave detail — wave/sequence content is unstructured prose today and quoting it would overclaim determinism (the RM-4 law applied to this pack's own proposal). If the operator wants wave-level teeth, the intake schema first gains a required machine-locatable plan-of-record heading — an intake-schema change owned by `docs/intake/README.md`, offered as an OPTION, not assumed.
 - **Lives at:** `scripts/gen_handoff.py` + `templates/handoff/v5/PROBES.md.tmpl` · HANDOFF_PROCESS §13(c).
 - **Equilibrium side:** CC/generator — both source surfaces are already machine-parsed, so the marginal cost is a template row and two greps; the browser's share is the run-loop it already performs.
 - **Cost:** M (generator + template + validator fixture).
@@ -114,7 +114,7 @@ note: PROPOSED pack. Every amendment is a MECHANISM (probe leg / template field 
 - **Guards:** BW-h (rulings stranded in consumed transients; the Pyrefly near-reversal; s4: 4 of 6 rulings never walked the ADR-87-item-7 ladder; CC already hand-compensates by copying rules to JOURNAL).
 - **Mechanism (paste-ready):**
   1. `scripts/assemble_paste.py`, when folding a non-empty ANSWERS region, scans it for `/(BINDING|do not relitigate|MUST NOT|ruling)/i` and prints a **PROMOTION DEBT** block (stdout + appended to the `gen_handoff` JOURNAL draft): each matched line verbatim + the ladder prompt "durable home: ADR / PLAYBOOK / ESSENTIALS one-liner / carrier?" Advisory — never blocks a fold.
-  2. HANDOFF_PROCESS §5 failure-handling gains one sentence (promoting the sol-catch rule from supplement prose to spec): "A ruling-existence search that excludes `docs/handoffs/` is unsound — binding rulings also live in handoff artifacts until promoted."
+  2. HANDOFF_PROCESS §10 (failure handling) gains one sentence (promoting the sol-catch rule from supplement prose to spec): "A ruling-existence search that excludes `docs/handoffs/` is unsound — binding rulings also live in handoff artifacts until promoted."
 - **Lives at:** `scripts/assemble_paste.py` · HANDOFF_PROCESS §10 (failure handling) + §13 supplement contract.
 - **Equilibrium side:** CC/assembler — a deterministic grep at a beat that already runs; the operator sees the debt list at the exact moment the transient is consumed.
 - **Cost:** S.
