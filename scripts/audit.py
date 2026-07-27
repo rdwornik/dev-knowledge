@@ -2581,6 +2581,32 @@ def _load_silent_rule_baseline(repo_path: Path) -> Optional[dict]:
 _BASELINE_REFS = ("origin/main", "main")
 
 
+def _baseline_ref_state(repo_path: Path) -> str:
+    """Why the raise-guard has no previous value: `"bootstrap"` or `"unknown"`.
+
+    The distinction is load-bearing (terra HIGH re-review, 2026-07-27). Treating both as a
+    silent pass was fail-open: a detached or ref-less checkout could raise the baseline and
+    ship green. But failing both would also block the commit that FIRST introduces the
+    file, which is a legitimate state.
+
+      "bootstrap" — an integration ref RESOLVES but carries no baseline file yet. The file
+                    is genuinely new; there is nothing to compare and nothing to launder.
+      "unknown"   — no integration ref resolves at all (no remote, shallow/detached clone,
+                    not a git tree). The transition is UNVERIFIABLE, which the caller turns
+                    into a blocking WARN rather than a pass.
+    """
+    for ref in _BASELINE_REFS:
+        try:
+            out = subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"],
+                                 cwd=str(repo_path), capture_output=True, text=True,
+                                 timeout=15, check=False)
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if out.returncode == 0 and out.stdout.strip():
+            return "bootstrap"
+    return "unknown"
+
+
 def _previous_committed_baseline(repo_path: Path) -> Optional[int]:
     """The `baseline:` value on the INTEGRATION TARGET, for the ratchet-down-only leg.
 
@@ -2616,7 +2642,8 @@ def _previous_committed_baseline(repo_path: Path) -> Optional[int]:
 
 
 def _ratchet_findings(live: "_srd.Measurement", baseline: Optional[dict],
-                      previous: Optional[int] = None) -> list[Finding]:
+                      previous: Optional[int] = None,
+                      ref_state: str = "bootstrap") -> list[Finding]:
     """Testable core of check_silent_rule_ratchet ([#436]).
 
     Kept pure (no filesystem, no git) so the four contract cases -- pass-at-baseline,
@@ -2641,9 +2668,17 @@ def _ratchet_findings(live: "_srd.Measurement", baseline: Optional[dict],
         return [Finding(name, "fail",
                         f"malformed baseline value {value!r} — expected an integer")]
     if previous is None:
-        # Surface, never silently skip: an unverifiable transition must be visible in the
-        # evidence, or "the raise-guard didn't run" reads identically to "it passed".
-        guard = " [raise-guard INACTIVE: no baseline on origin/main or main]"
+        if ref_state != "bootstrap":
+            # UNVERIFIABLE, not benign: no integration ref resolved, so a raise cannot be
+            # ruled out. WARN blocks ship-gate unless explicitly dispositioned — a pass
+            # with a note would not, which was the fail-open terra found on re-review.
+            return [Finding(name, "warn",
+                            (f"raise-guard UNVERIFIABLE: no integration ref (origin/main, "
+                             f"main) resolves, so a baseline raise cannot be ruled out "
+                             f"(live {live.count}, committed {value})").replace("|", "/"))]
+        # Genuine bootstrap: a ref resolves but carries no baseline yet — the file is new,
+        # so there is no prior value to launder. Surfaced, not silent.
+        guard = " [raise-guard bootstrap: baseline not yet on the integration ref]"
     else:
         rejection = _srd.validate_transition(old=previous, new=value)
         if rejection is not None:
@@ -2701,8 +2736,10 @@ def check_silent_rule_ratchet(repo_path: Path) -> list[Finding]:
         # probe's first run -- an unmeasured corpus must block, not wave the arc through.
         return [Finding("silent_rule_ratchet", "fail",
                         f"detector could not measure the corpus: {exc!r}".replace("|", "/"))]
+    previous = _previous_committed_baseline(Path(repo_path))
+    ref_state = "bootstrap" if previous is not None else _baseline_ref_state(Path(repo_path))
     return _ratchet_findings(live, _load_silent_rule_baseline(Path(repo_path)),
-                             _previous_committed_baseline(Path(repo_path)))
+                             previous, ref_state)
 
 
 def _task_tree_findings(problems: list[str], present: bool = True) -> list[Finding]:
@@ -2758,9 +2795,16 @@ def check_task_tree_coherence(repo_path: Path) -> list[Finding]:
                         f"derived-tree gate cannot be satisfied by deleting what it checks")]
     try:
         problems = _gtt.find_incoherences(source, out_dir)
-    except Exception as exc:  # never wedge the gate on an internal error
-        return [Finding("task_tree_coherence", "warn",
-                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:
+        # FAIL, not warn (terra HIGH re-review, 2026-07-27). A blanket `except Exception ->
+        # warn` let malformed artifacts slip past a gate documented as FAIL-class: the
+        # commit-time audit-health gate blocks only on `fail`. These are the artifact-read
+        # and parse errors the tree can legitimately raise, and an unreadable derived tree
+        # is exactly the state this gate exists to refuse. Anything OUTSIDE this set is a
+        # programming defect and is deliberately left to propagate rather than be
+        # laundered into a passing status.
+        return [Finding("task_tree_coherence", "fail",
+                        f"derived-tree check could not complete: {exc!r}".replace("|", "/"))]
     return _task_tree_findings(problems)
 
 

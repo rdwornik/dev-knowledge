@@ -243,12 +243,31 @@ def test_raise_guard_reads_integration_target_not_head():
     assert aud._BASELINE_REFS[0] == "origin/main"
 
 
-def test_inactive_raise_guard_is_surfaced_not_silent():
-    """terra HIGH — when the previous value cannot be read the guard cannot run. That must
-    be visible in the evidence, or 'did not run' reads exactly like 'passed'."""
-    findings = aud._ratchet_findings(_measurement(428), _baseline(428), previous=None)
+def test_bootstrap_raise_guard_is_surfaced_not_silent():
+    """terra HIGH — when the previous value cannot be read the guard cannot run. In the
+    BOOTSTRAP case (an integration ref resolves but carries no baseline yet) that is
+    legitimate, but it must still be visible, or 'did not run' reads like 'passed'."""
+    findings = aud._ratchet_findings(_measurement(428), _baseline(428),
+                                     previous=None, ref_state="bootstrap")
     assert _status(findings) == "pass"
-    assert "INACTIVE" in findings[0].evidence
+    assert "bootstrap" in findings[0].evidence
+
+
+def test_unverifiable_raise_guard_blocks(monkeypatch):
+    """terra HIGH RE-REVIEW — the first fix still passed (with a note) when NO integration
+    ref resolved, and ship-gate ignores notes on a passing finding. A detached or ref-less
+    checkout could therefore raise the baseline and ship green. That case must WARN, which
+    ship-gate blocks on unless explicitly dispositioned."""
+    findings = aud._ratchet_findings(_measurement(428), _baseline(428),
+                                     previous=None, ref_state="unknown")
+    assert _status(findings) == "warn"
+    assert "UNVERIFIABLE" in findings[0].evidence
+
+
+def test_ref_state_distinguishes_bootstrap_from_unknown(tmp_path):
+    """A non-git directory resolves no integration ref => 'unknown', never 'bootstrap'."""
+    assert aud._baseline_ref_state(tmp_path) == "unknown"
+    assert aud._baseline_ref_state(REPO_ROOT) == "bootstrap"
 
 
 def test_raise_guard_fails_when_previous_is_lower():
@@ -286,3 +305,29 @@ def test_detector_id_bumped_for_v2_unit_change():
     """The contract says a unit change bumps the id. v1 counted lines, v2 counts
     occurrences — the ids must not be reused, or two incompatible metrics share a name."""
     assert srd.DETECTOR_ID == "silent-rule-v2"
+
+
+def test_enumeration_is_case_insensitive_on_extensions(tmp_path):
+    """terra HIGH RE-REVIEW — `Path.glob` inherits the platform's case sensitivity, so a
+    `.MD` file counted on Windows and vanished on Linux: the same tree, two numbers.
+    Enumeration now filters on a casefolded suffix explicitly."""
+    (tmp_path / "protocols").mkdir()
+    (tmp_path / "protocols" / "UPPER.MD").write_text("must", encoding="utf-8")
+    (tmp_path / "protocols" / "lower.md").write_text("must", encoding="utf-8")
+    rels = [p.relative_to(tmp_path).as_posix() for p in srd.iter_scoped_files(tmp_path)]
+    assert rels == ["protocols/lower.md", "protocols/UPPER.MD"], rels
+    assert srd.measure(tmp_path).count == 2
+
+
+def test_ordering_is_total_under_casefold_collision(tmp_path):
+    """Casefolding alone leaves paths differing only by case tied, so their order could
+    swap between runs. A raw-relpath secondary key makes the sort total."""
+    (tmp_path / "protocols").mkdir()
+    for name in ("Alpha.md", "alpha.md", "ALPHA.md"):
+        try:
+            (tmp_path / "protocols" / name).write_text("must", encoding="utf-8")
+        except OSError:                        # case-insensitive FS: fewer distinct files
+            pass
+    a = [p.relative_to(tmp_path).as_posix() for p in srd.iter_scoped_files(tmp_path)]
+    b = [p.relative_to(tmp_path).as_posix() for p in srd.iter_scoped_files(tmp_path)]
+    assert a == b == sorted(a, key=lambda r: (r.casefold(), r))

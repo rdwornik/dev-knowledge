@@ -155,3 +155,37 @@ def test_extraction_preserved_every_problem_path():
                   "missing manifest.json", "manifest.json differs",
                   "orphan task-shaped file", "reassemble_from_tree"):
         assert shape in src, f"problem path lost in extraction: {shape}"
+
+
+def test_artifact_read_error_fails_rather_than_warns(monkeypatch, tmp_path):
+    """terra HIGH RE-REVIEW — a blanket `except Exception -> warn` let malformed artifacts
+    slip past a gate documented as FAIL-class (the commit-time audit-health gate blocks
+    only on `fail`). Artifact read/parse errors must FAIL."""
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    (tmp_path / "BACKLOG.md").write_text("# BACKLOG\n", encoding="utf-8")
+    (tmp_path / "tasks").mkdir()
+
+    def boom(_source, _out):
+        raise ValueError("simulated malformed derived tree")
+
+    monkeypatch.setattr(aud._gtt, "find_incoherences", boom)
+    findings = aud.check_task_tree_coherence(tmp_path)
+    assert _status(findings) == "fail", findings
+    assert "could not complete" in findings[0].evidence
+
+
+def test_programming_defect_is_not_laundered_into_a_status(monkeypatch, tmp_path):
+    """Anything outside the artifact-error set is a defect and must propagate, not be
+    converted into a passing or merely-warning Finding."""
+    import pytest
+
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    (tmp_path / "BACKLOG.md").write_text("# BACKLOG\n", encoding="utf-8")
+    (tmp_path / "tasks").mkdir()
+
+    def boom(_source, _out):
+        raise ZeroDivisionError("programming defect")
+
+    monkeypatch.setattr(aud._gtt, "find_incoherences", boom)
+    with pytest.raises(ZeroDivisionError):
+        aud.check_task_tree_coherence(tmp_path)

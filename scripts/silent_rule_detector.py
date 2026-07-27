@@ -83,6 +83,18 @@ BASELINE_RELPATH = "ecosystem/silent-rule-baseline.yaml"
 # adjudicated silent rules. `only`/`required` deliberately absent.
 TOKEN_RE = re.compile(r"\b(?:must|shall|never)\b", re.IGNORECASE)
 
+# (root directory, recurse?, accepted suffixes). Enumeration is done by walking these and
+# filtering on a CASEFOLDED suffix rather than by `Path.glob("**/*.md")` (terra HIGH
+# re-review, 2026-07-27): glob inherits the platform's case sensitivity, so `NOTES.MD`
+# would be counted on Windows and skipped on Linux -- the same tree measuring two different
+# numbers. Explicit case-insensitive matching makes the corpus identical on every platform.
+_SCOPE_RULES = (
+    ("protocols", False, (".md",)),
+    ("templates", True, (".md", ".tmpl")),
+    ("ecosystem", False, (".yaml",)),
+)
+
+# Human-readable form of the same contract, for docs and error messages.
 SCOPE_GLOBS = ("protocols/*.md", "templates/**/*.md",
                "templates/**/*.tmpl", "ecosystem/*.yaml")
 
@@ -102,22 +114,29 @@ def iter_scoped_files(repo_root: Path) -> list[Path]:
     metric that is not platform-stable cannot gate anything.
     """
     root = Path(repo_root)
-    found: set[Path] = set()
-    for pattern in SCOPE_GLOBS:
-        found.update(p for p in root.glob(pattern) if p.is_file())
     excluded = {r.casefold() for r in EXCLUDED_RELPATHS}
-    scoped = []
-    for path in found:
-        rel_parts = path.relative_to(root).parts
-        rel = path.relative_to(root).as_posix()
-        if any(part.casefold() == _ARCHIVE_SEGMENT for part in rel_parts[:-1]):
-            continue                      # archived doctrine is not a live governed rule
-        if rel.casefold() in excluded:
-            continue                      # see the Excluded clause in the module docstring
-        scoped.append(path)
-    # Sort on the casefolded relpath so ordering matches across case-sensitive and
-    # case-insensitive filesystems too.
-    return sorted(scoped, key=lambda p: p.relative_to(root).as_posix().casefold())
+    scoped: list[Path] = []
+    for dirname, recurse, suffixes in _SCOPE_RULES:
+        base = root / dirname
+        if not base.is_dir():
+            continue
+        for path in (base.rglob("*") if recurse else base.glob("*")):
+            if not path.is_file():
+                continue
+            if path.suffix.casefold() not in suffixes:
+                continue                  # casefolded: `.MD` counts exactly like `.md`
+            rel_parts = path.relative_to(root).parts
+            rel = path.relative_to(root).as_posix()
+            if any(part.casefold() == _ARCHIVE_SEGMENT for part in rel_parts[:-1]):
+                continue                  # archived doctrine is not a live governed rule
+            if rel.casefold() in excluded:
+                continue                  # see the Excluded clause in the module docstring
+            scoped.append(path)
+    # Casefolded primary key so ordering agrees across case-sensitive and case-insensitive
+    # filesystems; the raw relpath is a deterministic SECONDARY key so two paths differing
+    # only by case cannot tie and swap order between runs (terra HIGH re-review).
+    return sorted(scoped, key=lambda p: (p.relative_to(root).as_posix().casefold(),
+                                         p.relative_to(root).as_posix()))
 
 
 @dataclass(frozen=True)
