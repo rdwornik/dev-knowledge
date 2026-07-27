@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-07-27 (m) — CC (Fable 5): sol adversarial review folded into ADR-107 (prose-only arc)
+
+**SHA anchor (ADR-85).** **`f7e1ecd9`** (review artifact + index) · **`3131e000`** (the five-edit fold) · this wrap commit. Branch `docs/adr107-sol-review-fold`, base `fa3f10a3`.
+
+**Did:** Committed the Codex `sol` adversarial review of ADR-107 (verdict **RATIFIABLE AFTER EDITS**) as `docs/audits/2026-07-27-codex-adversarial-review-adr-107-sol.md`, then folded its five edits into the ADR verbatim: **E1** new §4.5 mechanical viewer-activation gate (`task_viewer_contract` ship-gate leg required before any adoption); **E2** §5 finding 7 — the directory-as-counter surface stays a full seventh [#382] input, not absorbed by §6.3; **E3** §6.3 retitled RULED, NOT YET STRUCTURALLY DISCHARGED, with the narrow ADR-65 amendment (retained allocation record in `tasks/`) declared in prose AND a new header `Amends:` line; **E4** §3 no longer claims the reader surface exists — graph/`READY.md` is separately owned work under ADR-105 activation; **E5** §7.5 — [#433] does NOT close on this ADR alone. Cross-links both ways (ADR Source line ↔ artifact). One coherence edit within the sanctioned header scope: the Related line's "[#433] closes on this ADR ruling" repointed to §7.5.
+
+**Result:** ADR-107 status stays **Proposed** (ratification is the operator's act). Artifact filename carries the `codex` class token (`adversarial-review` is not in the closed ADR-101 R3 enum; sol-lane precedent 2026-07-19).
+
+**Changes:** `docs/audits/2026-07-27-codex-adversarial-review-adr-107-sol.md` (new), `docs/audits/README.md` (regen, 298→299), `docs/decisions/ADR-107-*.md` (five edits + header), `JOURNAL.md`.
+
+**Abandoned:** nothing. **Next:** operator ratification of ADR-107; the (a)–(f) follow-on tickets of §7.5 unchanged.
+
 ### 2026-07-27 (l) — CC (Opus 5): [#436] ratchet BUILT under D4 + [#433] C1 gate armed; 10 terra passes, 20 HIGH fixed
 
 **SHA anchor (ADR-85).** **`c64c7f9f`** (build: detector + baseline + both checks + tests) · **`5e655cc1`** · **`cec92435`** · **`620f36cc`** · **`7793c63a`** · **`2ccd668a`** · **`04be5084`** · **`24a32bbb`** · **`1a8ad9f5`** (the eight terra-fix commits) · this wrap commit. Branch `feat/436-silent-rule-ratchet`, base `527958fb`. Serialized arc on primary, serialize-group `audit-py`.

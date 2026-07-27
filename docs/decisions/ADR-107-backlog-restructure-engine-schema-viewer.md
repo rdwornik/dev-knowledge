@@ -3,10 +3,14 @@
 **Status:** Proposed
 **Date:** 2026-07-27
 **Decision tier:** Architecture (Path A — authored by CC from on-disk evidence only, on the strength of the operator-delegated tool ruling recorded in `BACKLOG.md` [#433]; **ratification is a separate operator act** and is NOT performed here)
-**Related:** [#433] (the carrier; closes on this ADR ruling) · [#382] (receiver of §5's schema findings) · [#383], [#385] (downstream waves) · [#424] (the `depends-on` bare-vs-hash distinction this schema must preserve raw) · [#429] (worktree provisioning — owner of the concurrent-allocation residual in §6.3) · [#436] (parallel-eligible ratchet build, disjoint files) · ADR-64 / ADR-65 / ADR-66 (the BACKLOG architecture this restructures — none superseded here) · ADR-98 (intake genre) · ADR-101 + its 2026-07-27 amendment (`tasks/` sanctioned as a derived Tier-1 tree) · ADR-104 (fleet repository shape — **landed, not reopened**) · ADR-105 (the gate-at-activation-not-at-filing precedent reused in §3 and §7)
+**Related:** [#433] (the carrier — per §7.5 it does not close on this ADR alone) · [#382] (receiver of §5's schema findings) · [#383], [#385] (downstream waves) · [#424] (the `depends-on` bare-vs-hash distinction this schema must preserve raw) · [#429] (worktree provisioning — owner of the concurrent-allocation residual in §6.3) · [#436] (parallel-eligible ratchet build, disjoint files) · ADR-64 / ADR-65 / ADR-66 (the BACKLOG architecture this restructures — none superseded here) · ADR-98 (intake genre) · ADR-101 + its 2026-07-27 amendment (`tasks/` sanctioned as a derived Tier-1 tree) · ADR-104 (fleet repository shape — **landed, not reopened**) · ADR-105 (the gate-at-activation-not-at-filing precedent reused in §3 and §7)
 **Intake:** #17 (`docs/intake/2026-07-25-tech-consolidation-decision.md` — D1 and D5 land here; §3 Fibonacci and §4 scoring are named as this ADR's content by intake §5 and are **carried forward, not ruled here**, per §7.4)
+**Amends:** ADR-65 (narrow: retained allocation record in tasks/).
 **Decommission:** none. Nothing is removed by this decision. `BACKLOG.md` remains the source of truth until the separately-contracted flip (§7).
-**Source:** Operator-delegated tool ruling 2026-07-27 recorded verbatim in the `BACKLOG.md` [#433] row (ENGINE = build-thin · VIEWER = Backlog.md piloted as a replaceable part · scrummd rejected as a dependency); pilot-precedes-contract ruling of 2026-07-26 with its three obligations (`docs/decisions/README.md` § "Restructure pilots the pattern before the fleet contract"); genre-lifecycle second leg (`docs/handoffs/2026-07-26-dev-knowledge-architect/SUPPLEMENT.md` §2(g) and §5 wave 3(b)); spike evidence `docs/audits/2026-07-27-verification-433-schema-spike.md` §1–§5.
+**Source:** Operator-delegated tool ruling 2026-07-27 recorded verbatim in the `BACKLOG.md` [#433] row (ENGINE = build-thin · VIEWER = Backlog.md piloted as a replaceable part · scrummd rejected as a dependency); pilot-precedes-contract ruling of 2026-07-26 with its three obligations (`docs/decisions/README.md` § "Restructure pilots the pattern before the fleet contract"); genre-lifecycle second leg (`docs/handoffs/2026-07-26-dev-knowledge-architect/SUPPLEMENT.md` §2(g) and §5 wave 3(b)); spike evidence `docs/audits/2026-07-27-verification-433-schema-spike.md` §1–§5. Adversarial
+review: `docs/audits/2026-07-27-codex-adversarial-review-adr-107-sol.md` (Codex sol, 2026-07-27,
+reviewed at `fa3f10a3` — verdict RATIFIABLE AFTER EDITS; its five edits E1–E5 are folded into
+this document verbatim).
 
 ## Context
 
@@ -161,11 +165,12 @@ and the slot is declared EMPTY — not vacant-pending-search.** Basis, all on di
 FAILs three criteria (above); **scrummd is REJECTED as a dependency** (bus factor 1, 0.2.x-dev
 — pattern reference only; `docs/handoffs/2026-07-27-dev-knowledge-architect/SUPPLEMENT.md` Q3),
 and the open question intake #17 §4 raised about its GPL-3.0 + single-author risk is thereby
-moot; no third candidate has any evidence in this repo. **No viewer search is scheduled.** The
-reader surface the operator actually asked for — the top-5 ready-set and the overdue-ruling
-list quoted in a fresh session's first message (intake #17 §5's exit test) — is served by our
-own generator over the fleet-owned schema, not by a third-party TUI, so an empty viewer slot
-blocks nothing that matters.
+moot; no third candidate has any evidence in this repo. No viewer search is scheduled, and the slot is
+PARKED EMPTY behind the re-entry criteria below. This does not claim that the requested
+top-five ready-set or overdue-ruling read surface already exists: `gen_task_tree.py` currently
+supplies generation, coherence checking, round-trip verification, and pruning only. The graph /
+`READY.md` reader surface remains separately owned work and must name its consumer before
+activation under ADR-105.
 
 **Re-entry criteria (a candidate enters only by satisfying all four):**
 (a) passes **K1, K2, K3** and **SCHEMA COMPOSABILITY** against a scratch copy of the real tree,
@@ -201,6 +206,14 @@ Adopted from spike §3 (hazard inventory) and §4, and binding on any future ado
    verification artifact. **The engine, tests, tree, and this ADR need zero changes** — that
    independence is the definition of "replaceable at zero architectural cost", and it is the
    clause a future session should test this decision against.
+5. Mechanical activation gate. While the viewer slot is EMPTY, no viewer is active. A future
+   viewer adoption does not take effect until the same change lands (a) a machine-readable
+   declaration of package, exact version, read-only command surface, and external
+   install-prefix requirement, and (b) an `audit.py` `task_viewer_contract` ship-gate leg
+   that FAILs unless the installed version matches the declaration, the prefix resolves
+   outside the repository, the K1–K5 verification artifact identifies that exact version,
+   and a viewer probe leaves `BACKLOG.md` and `tasks/` byte-clean. Prose evidence alone
+   cannot activate a viewer.
 
 ### 5. Seven schema findings routed to [#382] — owed either way
 
@@ -233,8 +246,13 @@ pilot having *happened*, not on this ADR's status. If this ADR is rejected or su
 6. **A split needs a residue carrier** — the manifest (ordering + non-member prose + source
    hash) is what makes one-file→many-files reversible and gateable. Any [#383] wave that
    decomposes a monolith surface budgets the same artifact, or reversibility is lost at step one.
-7. **Directory-as-id-counter: substrate built, allocation rule not built** — see §6.3, which is
-   where this ADR discharges it rather than forwarding it.
+7. Directory-as-id-counter: substrate built, allocation rule not built. The tree supplies one
+   filesystem representation per live id and duplicate-id refusal, but no next-free
+   calculation, retirement-completeness rule, or concurrent-allocation probe was built. [#382]
+   must therefore receive allocation-ledger completeness, retirement semantics, duplicate-id
+   enforcement, and concurrent-branch collision behavior as explicit desired-state contract
+   inputs. Section 6.3 may rule this surface's local mechanism, but it does not absorb or
+   discharge this seventh [#382] input.
 
 ### 6. Pilot obligations — dispositions, one by one
 
@@ -264,13 +282,13 @@ rather than remembered:
   but it **is** a precondition of [#382] declaring the fleet contract *general*, which is the
   form the original ruling gave it.
 
-**6.3 Obligation 3 — commission-H closure ("the directory becomes the id counter, so next-free
-is a property of the tree rather than a scan that unmerged branches can defeat"): RULED HERE,
-with the residual hole named.** Spike §5.7 downgraded this honestly: the tree gives every id a
-filesystem representation and refuses duplicate ids at parse — that is the **substrate** — but
-no allocation rule exists in the generator, `max` over filenames is not by itself an allocation
-rule, and no allocation probe was run. This ADR supplies the rule and states what it does not
-buy.
+**6.3 Obligation 3 — RULED, NOT YET STRUCTURALLY DISCHARGED; narrow ADR-65 amendment
+required.** For the post-flip task store, ADR-107 explicitly amends ADR-65: a task leaves the
+active queue, but a minimal allocation record retaining its opaque id and terminal status
+remains within the lifecycle-managed `tasks/` tree. Git and JOURNAL remain the full technical
+and business records. This retained allocation record is a narrow exception to ADR-65's
+no-archive-file and no-new-per-item-write rules. Commission H is structurally discharged only
+when retire-not-delete behavior and the duplicate-id ship gate are implemented and witnessed.
 
 **Witnessed live this session, on `main` at `b4dd3e48`:**
 
@@ -290,12 +308,6 @@ today, for one structural reason: ADR-65's done-items-leave, realized by the gen
 marker-gated `--write --prune`, **removes a retired task's file**, so a closed id vanishes from
 the directory and becomes re-allocable. Therefore:
 
-- **A retired task's file is RETAINED, not deleted** — a task leaving the queue is rewritten to
-  a minimal closed record, or relocated within `tasks/` by the genre-lifecycle
-  folder⇄`status` mechanism (§7.3). Every allocated id keeps exactly one filesystem
-  representation permanently. At the flip, `--prune`'s verb is re-scoped from *delete* to
-  *retire*. This is the concrete change the directory-as-counter ruling requires, and it is
-  **explicitly a flip-time change** — nothing about it is executed by this ADR.
 - **Duplicate-id detection is the enforcement**, and it already partly exists: the generator
   refuses duplicate ids at parse. At the flip, a `tasks/`-level duplicate-id check makes a
   collision a **gate failure at merge time** rather than a silent one.
@@ -361,11 +373,11 @@ event-driven re-scoring, sticky operator override, `verified_by` mandatory) are 
 explicitly denied. A ratifying operator who wants them bound in this ADR should say so; the
 alternative is a short successor ADR at the flip.
 
-**7.5 [#433]'s closure language.** **[#433] closes when this ADR rules** — its Done-when is "the
-K1–K5 spike is recorded AND an ADR records engine + viewer + swap-out contract AND the three
-obligations discharged", and all three are satisfied by this ADR plus the spike report
-(obligation 2 discharged as an *explicit non-discharge with fixed criteria and a named owner*,
-§6.2 — recorded, not silently dropped). **The remaining steps are NOT [#433]'s and must be
+**7.5 [#433]'s closure language.** [#433] does not close on this ADR alone. This ADR records
+the generalization acceptance clause and assigns its second-surface proof, but §6.2 correctly
+states that the proof does not yet exist. [#433] remains open until that obligation is
+demonstrated, or until the operator explicitly amends [#433]'s Done-when; an explicit
+non-discharge is a disposition, not a discharge. **The remaining steps are NOT [#433]'s and must be
 carried by their own tickets:** (a) arm the `tasks/` coherence gate — condition (ii) above;
 (b) the flip itself — step 3; (c) prose relocation via the propose-only lane — step 4;
 (d) the genre-lifecycle engine — the second leg; (e) the generalization clause's second surface
