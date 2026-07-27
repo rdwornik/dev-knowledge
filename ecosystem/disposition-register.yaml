@@ -174,13 +174,14 @@ dispositions:
     ref: "#241"
     review_date: 2026-08-26
     reason: >-
-      Same class as the v6-proposal row above, applying the operator's 2026-07-27 ruling rather
-      than making a new one — and a weaker coupling still. This intake is a SEED: a verbatim
-      capture of operator design input, explicitly NOT citable by prompts or contracts until
-      ratified. Its ONLY occurrence of the token is a pointer to the sibling intake filename
-      (verified: one line, the `[#435]` cross-reference) — an edge to another INTAKE, not a
-      claim about the spec, so there is no version to reconcile with. Clears when intake 18
-      ratifies or retires, at which point the pointer resolves and this decorates stale.
+      DISPOSITION STANDS, and its class is its own: this is an INTAKE -> INTAKE edge, not a
+      doc -> spec edge. The only occurrence of the token in this file is a cross-reference to the
+      sibling intake's FILENAME (`2026-07-27-tech-handoff-process-v6-proposal.md`, the [#435]
+      pointer — verified: one line). It therefore names a sibling capture, never the spec, and
+      `reconciled_with` is INAPPLICABLE BY KIND rather than deferred: there is no version edge to
+      declare, so declaring one would assert a relationship that does not exist. Distinct from the
+      two sibling rows above, which are proposal-to-spec edges deferred until ratification; this
+      one has nothing to defer. Clears when intake 18 ratifies or retires and the pointer resolves.
   - id: warn-undeclared-intake-index-handoff-process
     organ: undeclared_edges
     match: "docs/intake/README.md -> handoff-process"

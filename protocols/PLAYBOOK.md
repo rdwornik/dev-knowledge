@@ -1230,6 +1230,12 @@ case, e.g. a corp-monorepo handoff and an ai-council handoff at the same time). 
 
 **Integration authority — operator authorizes, CC-primary executes (2026-07-16 ruling).** Merge execution is delegated to the CC-primary session: on the operator's explicit **GO** (one authorization per integration), CC performs the `--no-ff` merge to `main` **from the primary checkout**, verifies (that repo's suite + — for the hub — `ship-gate` green; any failure STOPS the chain and surfaces), then completes teardown — a plain merged branch is deleted directly; a worktree branch requires the worktree to be **removed first** (a checked-out branch cannot be `-d` deleted), per the worked example below. The operator is the **authorization gate, not the executor**. Invariants unchanged: one merge to `main` at a time; integration only from the primary checkout; parallel/worktree sessions still **commit-and-STOP and never self-merge** — they hand their branch to the primary for the authorized merge.
 
+**MERGE IS ATOMIC (standing operator rule, established after three repeats — 2026-07-27).** Stated verbatim, and binding wherever a merge happens:
+
+> merge `--no-ff` + push + delete the source branch are ONE operation. A branch merged into main and pushed is deleted in the same step, without separate operator authorization. Exceptions exist only by EXPLICIT PROTECTION (currently `claude/conformance-*`); silence is not protection. A merged branch left alive is a defect, not a pending decision.
+
+This sharpens the teardown clause above from *a thing CC does* into *a thing CC may not defer*: do not ask whether to delete a branch you just merged and pushed — the delete is part of the merge already authorized. `--merged` is still verified first and nothing is force-deleted; the rule removes the **authorization round-trip**, not the safety check. The operative copy CC self-loads is `.claude/rules/git-discipline.md`; this is the doctrinal home. (Established after three repeats of the same operator correction; the mechanical backstop is a proposal, not built — see the note in that rule file's arc.)
+
 **Hub→consumer writes — the only sanctioned shape (RULING-W; ADR-36/41 amendments 2026-07-18).** The
 hub **MAY and SHOULD** write into a consumer repo for methodology/cleanup work — the read-only
 "don't-touch-consumers" guardrail is **narrowed, not revoked**. The **only sanctioned write shape** is

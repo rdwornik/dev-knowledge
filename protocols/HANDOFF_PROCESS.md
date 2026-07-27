@@ -396,6 +396,12 @@ folds it if answered):**
    answers**), and `scripts/assemble_paste.py` folds the **ANSWERS region only** into the next
    session's `PASTE_THIS.md` — **only when non-empty** (the QUESTIONS are for the outgoing browser,
    not the incoming session).
+   **What "verbatim" means, operationally (supplement + intake transport):** the **content line
+   stream is byte-identical** — every non-empty line reproduced exactly, in order, with no
+   rewording, reordering, trimming, or summarizing. **Whitespace-only additions are permitted
+   solely for markdown rendering** (e.g. a blank line before a list so it renders as a list) **and
+   MUST be reported** when the transport is reported. Anything that changes a non-empty line is not
+   verbatim, however small.
 
 **Cold-handoff disposition (the defined N/A, not a defect).** When there is **no outgoing chat** to
 ask — a cold / `/clear`ed handoff — the operator leaves ANSWERS **empty**. The empty file is **still
