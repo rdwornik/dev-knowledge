@@ -27,7 +27,7 @@ note: PROPOSED pack. Every amendment is a MECHANISM (probe leg / template field 
 
 ## 2. A1 — Truncation-visible artifacts (end-sentinel + section count)
 
-- **Guards:** BW-a (transport corrupted several pastes in one window; the browser cannot know a paste is partial).
+- **Guards:** BW-a (transport corrupted several pastes in one window; the browser cannot know a paste is partial). Class ancestry: chat-UI markdown stripping witnessed 2026-05-09 (LESSONS:344); the assembler budget warn fired twice in the final week (~77.5 KB, then 86.7 KB) — size pressure is structural, not incidental.
 - **Mechanism (paste-ready):**
   1. `scripts/assemble_paste.py` appends a terminal section to every `PASTE_THIS.md`:
      `--- \n=== END OF PASTE — {n} sections · {bytes} bytes ===`
@@ -76,7 +76,7 @@ note: PROPOSED pack. Every amendment is a MECHANISM (probe leg / template field 
 
 ## 6. A5 — JOURNAL lane-letter allocation
 
-- **Guards:** BW-c (two lanes both wrote "(b)"; the merge conflict is the current coordinator, one manual resolve per collision).
+- **Guards:** BW-c (two lanes both wrote "(b)"; the merge conflict is the current coordinator, one manual resolve per collision — and the file already carries LANDED duplicates from the 07-26 parallel windows: (f)×2, (g)×2).
 - **Mechanism (paste-ready):** lanes stop allocating letters. A lane's wrap header is `### YYYY-MM-DD (lane: <branch-name>) — …`; the letter is assigned at INTEGRATION on the primary (letters exist only on main). Convention line lands in PLAYBOOK §8 (parallel-session subsection). Build leg (optional, later): extend the existing `normalize-dated-headers` pre-commit hook to rewrite `(lane: …)` → next-free letter when committing on main — the hook already owns dated-header normalization, so this is its natural second rule.
 - **Lives at:** PLAYBOOK §8 (convention, XS now) · `normalize-dated-headers` (hook extension, S, later).
 - **Equilibrium side:** CC-side, deterministic.
@@ -141,9 +141,13 @@ note: PROPOSED pack. Every amendment is a MECHANISM (probe leg / template field 
   4. **§14a cross-refs (s4 row 1):** FILE-BOUNDARY (item 4) and Refusals (item 6) gain naming references to RULING-W (hub→consumer writes: worktree/branch → report, never direct push) and the ADR-101 two-tier new-path rule — both currently absent from the section that governs lane boundaries.
 - **Cost:** XS each. **DEFER:** per-item; each is an independently ratifiable line.
 
-## 12. A11 — Probe-tooling debt adoption pointer (no new proposal)
+## 12. A11 — Probe/generator tooling debts: three adoptions + two new guards
 
-[#421] absorbs the second tokenizer variant (backticked `#id` in a source column parses as an anchor — witnessed 07-26, unfiled at window close); [#422] gets its detector as a validator rung (grep the bundle for cold-state claims when the shared fill-state says FILLED — deterministic, the manual sweep mechanized); `verify_handoff_probes.main()` exposes the `repo_root`/`cross_repo` params `verify()` already has (the 4 false-FAILs on hand-runs of cross-repo bundles). All S-cost, all in filed territory. **DEFER = the de-facto present.**
+**Adoptions (filed territory, S-cost each; DEFER = the de-facto present):** [#421] absorbs the second tokenizer variant (backticked `#id` in a source column parses as an anchor — witnessed 07-26, unfiled at window close); [#422] gets its detector as a validator rung (grep the bundle for cold-state claims when the shared fill-state says FILLED — deterministic, mechanizing the manual sweep that failed to happen in ≥7 witnessed fold self-contradictions, audit §5.2); `verify_handoff_probes.main()` exposes the `repo_root`/`cross_repo` params `verify()` already has (the 4 false-FAILs on hand-runs of cross-repo bundles).
+
+**New guards (unfiled before this audit; guards RM-7/RM-8):**
+- **Same-day gate coverage:** `check_handoff_probes` verifies every bundle TOUCHED IN THE DIFF (and at minimum every bundle sharing the latest date), not the lexically-latest one — the 07-20 second bundle escaped the gate entirely and was verified by hand (audit RM-7). Lives: `scripts/audit.py`. Cost: S. DEFER: hand-vigilance on multi-bundle days (witnessed failing).
+- **Committed-bundle overwrite refusal:** `gen_handoff.py` refuses to write into a bundle dir that contains git-TRACKED files, and auto-suffixes (`-2`) instead — the default slug overwrote 4 committed files of a same-day bundle, caught only via `git status` (audit RM-8). Lives: `scripts/gen_handoff.py`. Cost: S. DEFER: rely on git-status vigilance (the witnessed catch was luck-shaped).
 
 ## 13. Version + ratification path
 
