@@ -17,8 +17,8 @@
 # The detector id is load-bearing. Counts from two different detector contracts are not
 # commensurable; the check refuses to compare them rather than silently reporting drift.
 
-detector_id: silent-rule-v1
-baseline: 379
+detector_id: silent-rule-v2
+baseline: 428
 measured_at: 2026-07-27
 measured_at_sha: 527958fbf89311610bd3be65fbfcb77df1f5fe29
 measured_files: 56
@@ -33,8 +33,8 @@ provenance: |
 #   * It is not the census's N_silent (176). That was a human judgment pass over ~1000
 #     candidate lines, produced by a detector whose regex and file filter were never
 #     recorded, and is therefore not reproducible by code.
-#   * It is not a count of RULES. It counts LINES carrying a normative keyword, and it
-#     cannot distinguish an enforced rule from an unenforced one.
+#   * It is not a count of RULES. It counts normative-keyword OCCURRENCES, and it
+#     cannot distinguish an enforced rule from a mention of one in an example.
 #   * It is therefore a PROXY for the size of the pool. Only its movement against a
 #     baseline measured by the same detector is load-bearing.
 #
@@ -44,5 +44,8 @@ provenance: |
 #             are tier: enum values read by fleet_parity, i.e. enforced by construction;
 #             in scope they were 120 of 148 candidate lines and would have made the
 #             ratchet fire when someone ADDED enforcement)
-#   token     \b(?:must|shall|never)\b, case-insensitive, one count per matching line
+#   token     \b(?:must|shall|never)\b, case-insensitive, one count per OCCURRENCE
+#             (not per line -- a per-line count moves under pure reflow: joining two
+#             rule lines lowers it without removing a rule, rewrapping one raises it
+#             without adding one. v1->v2 correction, terra HIGH 2026-07-27.)
 #   decoding  UTF-8 explicit; a decode error raises rather than degrading the count

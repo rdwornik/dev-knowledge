@@ -2578,23 +2578,41 @@ def _load_silent_rule_baseline(repo_path: Path) -> Optional[dict]:
     return data if isinstance(data, dict) else None
 
 
+_BASELINE_REFS = ("origin/main", "main")
+
+
 def _previous_committed_baseline(repo_path: Path) -> Optional[int]:
-    """The `baseline:` value at HEAD, for the ratchet-down-only leg. None when it cannot
-    be read (new file, shallow clone, no git) -- fail-soft: an unknown previous value
-    means the raise-check simply does not run, never that it fails open loudly."""
-    try:
-        out = subprocess.run(
-            ["git", "show", f"HEAD:{_srd.BASELINE_RELPATH}"],
-            cwd=str(repo_path), capture_output=True, text=True, timeout=15, check=False)
-        if out.returncode != 0:
-            return None
-        data = yaml.safe_load(out.stdout)
-    except (OSError, subprocess.SubprocessError, yaml.YAMLError):
-        return None
-    if not isinstance(data, dict):
-        return None
-    value = data.get("baseline")
-    return value if isinstance(value, int) and not isinstance(value, bool) else None
+    """The `baseline:` value on the INTEGRATION TARGET, for the ratchet-down-only leg.
+
+    Reads `origin/main` (falling back to local `main`) -- deliberately NOT `HEAD`. Reading
+    HEAD was a real bypass (terra HIGH, 2026-07-27): once the raise is committed, HEAD
+    *is* the new value, so the guard compared the baseline against itself and passed. It
+    also collapsed on a merge commit and on a detached HEAD. The question the ratchet
+    actually asks is "does this arc raise the baseline above what main already has?", and
+    the integration target is the only ref that answers it. Re-committing, amending, or
+    deleting-and-re-adding the file cannot launder a raise past this.
+
+    Returns None when the target ref carries no readable baseline -- a fresh clone with no
+    remote, or the commit that first introduces the file. The caller does NOT treat that as
+    a pass: it reports the raise-guard as INACTIVE in the finding's evidence, so an
+    unverifiable transition is visible rather than silently skipped.
+    """
+    for ref in _BASELINE_REFS:
+        try:
+            out = subprocess.run(
+                ["git", "show", f"{ref}:{_srd.BASELINE_RELPATH}"],
+                cwd=str(repo_path), capture_output=True, text=True, timeout=15, check=False)
+            if out.returncode != 0:
+                continue
+            data = yaml.safe_load(out.stdout)
+        except (OSError, subprocess.SubprocessError, yaml.YAMLError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        value = data.get("baseline")
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+    return None
 
 
 def _ratchet_findings(live: "_srd.Measurement", baseline: Optional[dict],
@@ -2622,10 +2640,15 @@ def _ratchet_findings(live: "_srd.Measurement", baseline: Optional[dict],
     if not isinstance(value, int) or isinstance(value, bool):
         return [Finding(name, "fail",
                         f"malformed baseline value {value!r} — expected an integer")]
-    if previous is not None:
+    if previous is None:
+        # Surface, never silently skip: an unverifiable transition must be visible in the
+        # evidence, or "the raise-guard didn't run" reads identically to "it passed".
+        guard = " [raise-guard INACTIVE: no baseline on origin/main or main]"
+    else:
         rejection = _srd.validate_transition(old=previous, new=value)
         if rejection is not None:
             return [Finding(name, "fail", rejection.replace("|", "/"))]
+        guard = ""
     if live.count > value:
         return [Finding(name, "fail",
                         (f"silent-rule pool GREW: live {live.count} > baseline {value} "
@@ -2637,7 +2660,7 @@ def _ratchet_findings(live: "_srd.Measurement", baseline: Optional[dict],
     drained = (f"; {headroom} below baseline — ratchet-down available" if headroom else "")
     return [Finding(name, "pass",
                     (f"live {live.count} <= baseline {value} under detector "
-                     f"{live.detector_id} ({live.files} file(s) in scope){drained}")
+                     f"{live.detector_id} ({live.files} file(s) in scope){drained}{guard}")
                     .replace("|", "/"))]
 
 
@@ -2672,9 +2695,11 @@ def check_silent_rule_ratchet(repo_path: Path) -> list[Finding]:
     try:
         live = _srd.measure(Path(repo_path))
     except (OSError, UnicodeDecodeError) as exc:
-        # A decode failure silently zeroed files in the arm-time probe's first run. Never
-        # let a partial or failed read read as a low count -- surface it.
-        return [Finding("silent_rule_ratchet", "unavailable",
+        # FAIL, not "unavailable" (terra HIGH, 2026-07-27): ship-gate blocks only on `fail`
+        # and undispositioned `warn`, so an "unavailable" detector would ship GREEN having
+        # measured nothing at all. A decode failure silently zeroed files in the arm-time
+        # probe's first run -- an unmeasured corpus must block, not wave the arc through.
+        return [Finding("silent_rule_ratchet", "fail",
                         f"detector could not measure the corpus: {exc!r}".replace("|", "/"))]
     return _ratchet_findings(live, _load_silent_rule_baseline(Path(repo_path)),
                              _previous_committed_baseline(Path(repo_path)))
@@ -2721,8 +2746,16 @@ def check_task_tree_coherence(repo_path: Path) -> list[Finding]:
                         "hub-only — tasks/ is a hub-derived tree")]
     root = Path(repo_path)
     source, out_dir = root / "BACKLOG.md", root / "tasks"
-    if not source.exists() or not out_dir.exists():
-        return _task_tree_findings([], present=False)
+    # On the hub BOTH artifacts are required, so a missing one is a FAIL, not "n/a"
+    # (terra HIGH, 2026-07-27): returning n/a here made the newly-armed leg non-blocking
+    # precisely when its derived artifact had been deleted -- deleting tasks/ would have
+    # disarmed the gate that exists to notice tasks/ drifting. `n/a` is reserved for the
+    # off-hub guard above, which is the only case where absence is legitimate.
+    missing = [n for n, p in (("BACKLOG.md", source), ("tasks/", out_dir)) if not p.exists()]
+    if missing:
+        return [Finding("task_tree_coherence", "fail",
+                        f"required hub artifact(s) absent: {', '.join(missing)} — the "
+                        f"derived-tree gate cannot be satisfied by deleting what it checks")]
     try:
         problems = _gtt.find_incoherences(source, out_dir)
     except Exception as exc:  # never wedge the gate on an internal error

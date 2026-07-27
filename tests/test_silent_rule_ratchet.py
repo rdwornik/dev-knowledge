@@ -51,17 +51,17 @@ def test_pass_at_baseline():
     Equality is the steady state: the pool has not grown. A gate that fired here would
     RED on its own first run, which is what the arm-time stop existed to prevent.
     """
-    findings = aud._ratchet_findings(_measurement(379), _baseline(379))
+    findings = aud._ratchet_findings(_measurement(428), _baseline(428))
     assert _status(findings) == "pass"
-    assert "379" in findings[0].evidence
+    assert "428" in findings[0].evidence
 
 
 def test_fail_above_baseline():
     """CASE 2 — one candidate line above the baseline FAILS, and names both numbers."""
-    findings = aud._ratchet_findings(_measurement(380), _baseline(379))
+    findings = aud._ratchet_findings(_measurement(429), _baseline(428))
     assert _status(findings) == "fail"
     ev = findings[0].evidence
-    assert "380" in ev and "379" in ev, f"evidence must name live and baseline: {ev}"
+    assert "429" in ev and "428" in ev, f"evidence must name live and baseline: {ev}"
 
 
 def test_ratchet_down_accepted():
@@ -69,7 +69,7 @@ def test_ratchet_down_accepted():
 
     The check must not demand exactness, or every drained rule would break the gate.
     """
-    findings = aud._ratchet_findings(_measurement(350), _baseline(379))
+    findings = aud._ratchet_findings(_measurement(400), _baseline(428))
     assert _status(findings) == "pass"
 
 
@@ -80,9 +80,9 @@ def test_baseline_raise_rejected():
     number may fall or hold, never rise. Enforced as a pure function so it is testable
     without a git history, and consumed by the check's git-previous leg.
     """
-    reason = srd.validate_transition(old=379, new=400)
+    reason = srd.validate_transition(old=428, new=500)
     assert reason is not None
-    assert "379" in reason and "400" in reason
+    assert "428" in reason and "500" in reason
     assert "reject" in reason.lower()
 
 
@@ -90,13 +90,13 @@ def test_baseline_raise_rejected():
 # Transition validator — both directions, including the boundary
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("old,new", [(379, 379), (379, 378), (379, 0)])
+@pytest.mark.parametrize("old,new", [(428, 428), (428, 427), (428, 0)])
 def test_transition_allows_drain(old, new):
     """Holding steady and lowering are both legal transitions."""
     assert srd.validate_transition(old=old, new=new) is None
 
 
-@pytest.mark.parametrize("old,new", [(379, 380), (0, 1), (100, 1000)])
+@pytest.mark.parametrize("old,new", [(428, 429), (0, 1), (100, 1000)])
 def test_transition_rejects_raise(old, new):
     """Any increase at all is rejected — there is no tolerance band."""
     assert srd.validate_transition(old=old, new=new) is not None
@@ -122,20 +122,20 @@ def test_no_baseline_raising_function_exists():
 def test_detector_id_mismatch_fails_rather_than_comparing():
     """Two detectors' counts are not commensurable — comparing them is the failure mode
     the whole module exists to prevent, so a stamp mismatch FAILS loudly."""
-    findings = aud._ratchet_findings(_measurement(379), _baseline(379, detector_id="silent-rule-v0"))
+    findings = aud._ratchet_findings(_measurement(428), _baseline(428, detector_id="silent-rule-v0"))
     assert _status(findings) == "fail"
     assert "silent-rule-v0" in findings[0].evidence
 
 
 def test_absent_baseline_warns_and_does_not_pass_vacuously():
     """No baseline = inert gate. That must be visible, never a silent green."""
-    findings = aud._ratchet_findings(_measurement(379), None)
+    findings = aud._ratchet_findings(_measurement(428), None)
     assert _status(findings) == "warn"
 
 
 def test_malformed_baseline_value_fails():
     """A non-integer baseline is a corrupt gate, not a zero."""
-    findings = aud._ratchet_findings(_measurement(379), {"detector_id": srd.DETECTOR_ID,
+    findings = aud._ratchet_findings(_measurement(428), {"detector_id": srd.DETECTOR_ID,
                                                          "baseline": "many"})
     assert _status(findings) == "fail"
 
@@ -184,7 +184,9 @@ def test_measure_is_deterministic_and_sorted():
     first, second = srd.measure(REPO_ROOT), srd.measure(REPO_ROOT)
     assert first == second
     rels = [p.relative_to(REPO_ROOT).as_posix() for p in srd.iter_scoped_files(REPO_ROOT)]
-    assert rels == sorted(rels)
+    # Sorted on the CASEFOLDED relpath — see iter_scoped_files: ordering has to agree
+    # across case-sensitive and case-insensitive filesystems.
+    assert rels == sorted(rels, key=str.casefold)
 
 
 def test_committed_baseline_matches_live_measurement():
@@ -204,3 +206,83 @@ def test_check_registered_and_green_on_live_repo():
     assert aud.check_silent_rule_ratchet in aud.ALL_CHECKS
     findings = aud.check_silent_rule_ratchet(REPO_ROOT)
     assert _status(findings) == "pass"
+
+
+# ---------------------------------------------------------------------------
+# Regression cover for the five terra HIGH findings (2026-07-27). Each names the
+# defect it pins so a later refactor cannot quietly reintroduce it.
+# ---------------------------------------------------------------------------
+
+def test_detector_failure_blocks_rather_than_shipping_green(monkeypatch):
+    """terra HIGH — a measurement failure used to emit `unavailable`, which ship-gate does
+    NOT block on (it blocks `fail` and undispositioned `warn` only). An unmeasured corpus
+    would have shipped green. It must FAIL.
+
+    Patches `aud._srd`, not the test's own `srd`: audit.py resolves the detector via
+    `from scripts import silent_rule_detector`, which is a DIFFERENT module object from a
+    bare `import silent_rule_detector` when both the repo root and scripts/ are on the
+    path. Patching the wrong one silently no-ops and the test passes vacuously.
+    """
+    def boom(_root):
+        raise UnicodeDecodeError("utf-8", b"", 0, 1, "simulated cp1252 corpus")
+
+    monkeypatch.setattr(aud._srd, "measure", boom)
+    findings = aud.check_silent_rule_ratchet(REPO_ROOT)
+    assert _status(findings) == "fail", findings
+    assert "could not measure" in findings[0].evidence
+
+
+def test_raise_guard_reads_integration_target_not_head():
+    """terra HIGH — the guard read HEAD, so once a raise was committed it compared the new
+    baseline against itself and passed. It must read the integration target."""
+    import inspect
+
+    src = inspect.getsource(aud._previous_committed_baseline)
+    assert "origin/main" in src or "_BASELINE_REFS" in src
+    assert "HEAD:" not in src, "raise-guard must not compare the baseline against HEAD"
+    assert aud._BASELINE_REFS[0] == "origin/main"
+
+
+def test_inactive_raise_guard_is_surfaced_not_silent():
+    """terra HIGH — when the previous value cannot be read the guard cannot run. That must
+    be visible in the evidence, or 'did not run' reads exactly like 'passed'."""
+    findings = aud._ratchet_findings(_measurement(428), _baseline(428), previous=None)
+    assert _status(findings) == "pass"
+    assert "INACTIVE" in findings[0].evidence
+
+
+def test_raise_guard_fails_when_previous_is_lower():
+    """The guard's positive case: a branch raising the committed baseline is blocked."""
+    findings = aud._ratchet_findings(_measurement(428), _baseline(500), previous=428)
+    assert _status(findings) == "fail"
+    assert "reject" in findings[0].evidence.lower()
+
+
+def test_metric_is_reflow_stable():
+    """terra HIGH — a per-line count moves under pure reflow: joining two rule lines lowers
+    it without removing a rule. Occurrence counting must be invariant under rewrapping."""
+    joined = "A rule that must hold. Another that shall hold. A third that never yields."
+    split = "A rule that must hold.\nAnother that shall hold.\nA third that never yields."
+    assert len(srd.TOKEN_RE.findall(joined)) == len(srd.TOKEN_RE.findall(split)) == 3
+    per_line_joined = sum(1 for ln in joined.splitlines() if srd.TOKEN_RE.search(ln))
+    assert per_line_joined == 1, "per-line counting is the gameable unit v2 replaced"
+
+
+def test_path_exclusions_are_case_insensitive(tmp_path):
+    """terra HIGH — Windows can surface `templates/Archive/...` or a differently-cased
+    excluded path; case-sensitive comparison would silently INCLUDE it, so the same tree
+    would measure differently per platform."""
+    (tmp_path / "protocols").mkdir()
+    (tmp_path / "templates" / "Archive").mkdir(parents=True)
+    (tmp_path / "ecosystem").mkdir()
+    (tmp_path / "templates" / "Archive" / "old.md").write_text("must", encoding="utf-8")
+    (tmp_path / "protocols" / "live.md").write_text("must", encoding="utf-8")
+    rels = [p.relative_to(tmp_path).as_posix() for p in srd.iter_scoped_files(tmp_path)]
+    assert "templates/Archive/old.md" not in rels, rels
+    assert "protocols/live.md" in rels
+
+
+def test_detector_id_bumped_for_v2_unit_change():
+    """The contract says a unit change bumps the id. v1 counted lines, v2 counts
+    occurrences — the ids must not be reused, or two incompatible metrics share a name."""
+    assert srd.DETECTOR_ID == "silent-rule-v2"

@@ -123,3 +123,35 @@ def test_check_is_read_only(tmp_path):
     aud._task_tree_findings(gtt.find_incoherences(source, out_dir))
     assert sorted(p.name for p in out_dir.iterdir()) == before
     assert not victim.exists()
+
+
+def test_missing_hub_artifacts_fail_rather_than_na(tmp_path, monkeypatch):
+    """terra HIGH (2026-07-27) — a missing BACKLOG.md or tasks/ returned `n/a` on the hub,
+    which ship-gate does not block on. Deleting the derived tree would therefore have
+    DISARMED the very gate that exists to notice the tree drifting. `n/a` is reserved for
+    the off-hub guard; on the hub an absent artifact is a FAIL."""
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    findings = aud.check_task_tree_coherence(tmp_path)
+    assert _status(findings) == "fail", findings
+    ev = findings[0].evidence
+    assert "BACKLOG.md" in ev and "tasks/" in ev
+
+
+def test_off_hub_is_na_not_fail(tmp_path):
+    """The off-hub guard still short-circuits: a consumer repo has no tasks/ tree and must
+    not be failed for it."""
+    findings = aud.check_task_tree_coherence(tmp_path)
+    assert _status(findings) == "n/a"
+
+
+def test_extraction_preserved_every_problem_path():
+    """terra asked whether the _cmd_check -> find_incoherences extraction dropped a path.
+    Pin the full set of problem shapes the core can still emit."""
+    import inspect
+
+    src = inspect.getsource(gtt.find_incoherences)
+    for shape in ("cannot read source", "parse error", "output dir missing",
+                  "missing task file", "task file content differs",
+                  "missing manifest.json", "manifest.json differs",
+                  "orphan task-shaped file", "reassemble_from_tree"):
+        assert shape in src, f"problem path lost in extraction: {shape}"

@@ -43,7 +43,16 @@ DETECTOR CONTRACT (`silent-rule-v1`) -- change any clause and you MUST bump DETE
                   dominant noise terms in the census token set (1068 candidate lines
                   against 379 here). This is the arm-time measurement's "strict" variant,
                   whose net delta (+19) was its cleanest signal.
-  Unit            one COUNT per matching line (a line with three keywords counts once).
+  Unit            one count per KEYWORD OCCURRENCE, not per matching line. This is
+                  deliberate and was a v1->v2 correction (terra HIGH, 2026-07-27): a
+                  per-line count is trivially moved by reflow -- joining two rule lines
+                  LOWERS it without removing a rule, and splitting or rewrapping one
+                  RAISES it without adding a rule. Occurrence counting is reflow-stable,
+                  so the metric tracks normative content rather than line breaks.
+                  RESIDUAL LIMIT, unfixed and stated rather than hidden: occurrences in
+                  examples, quotations and already-enforced rules still count. This is a
+                  proxy; distinguishing a rule from a mention of one needs the semantic
+                  pass the census did by hand, which no detector here claims to do.
   Decoding        UTF-8, explicit. The arm-time probe's first run used the platform
                   default (cp1252) and SILENTLY ZEROED several files before erroring --
                   a silent decode failure is the exact measurement-error class this
@@ -66,7 +75,7 @@ from pathlib import Path
 # check refuses to compare a live count against a baseline stamped with a different id --
 # two detectors' numbers are not commensurable, and silently comparing them is the failure
 # mode this whole module exists to prevent.
-DETECTOR_ID = "silent-rule-v1"
+DETECTOR_ID = "silent-rule-v2"
 
 BASELINE_RELPATH = "ecosystem/silent-rule-baseline.yaml"
 
@@ -84,21 +93,31 @@ _ARCHIVE_SEGMENT = "archive"
 
 
 def iter_scoped_files(repo_root: Path) -> list[Path]:
-    """Every in-scope file, sorted by POSIX relpath. Pure enumeration -- no reads."""
+    """Every in-scope file, sorted by POSIX relpath. Pure enumeration -- no reads.
+
+    All path comparisons are CASEFOLDED (terra HIGH, 2026-07-27). Windows globbing can
+    surface a differently-cased path -- `templates/Archive/...`, or the excluded YAML under
+    another casing -- and a case-sensitive `in` test would then silently INCLUDE a file the
+    contract excludes, so the same tree would measure differently on Windows and Linux. A
+    metric that is not platform-stable cannot gate anything.
+    """
     root = Path(repo_root)
     found: set[Path] = set()
     for pattern in SCOPE_GLOBS:
         found.update(p for p in root.glob(pattern) if p.is_file())
+    excluded = {r.casefold() for r in EXCLUDED_RELPATHS}
     scoped = []
     for path in found:
         rel_parts = path.relative_to(root).parts
         rel = path.relative_to(root).as_posix()
-        if _ARCHIVE_SEGMENT in rel_parts[:-1]:
+        if any(part.casefold() == _ARCHIVE_SEGMENT for part in rel_parts[:-1]):
             continue                      # archived doctrine is not a live governed rule
-        if rel in EXCLUDED_RELPATHS:
+        if rel.casefold() in excluded:
             continue                      # see the Excluded clause in the module docstring
         scoped.append(path)
-    return sorted(scoped, key=lambda p: p.relative_to(root).as_posix())
+    # Sort on the casefolded relpath so ordering matches across case-sensitive and
+    # case-insensitive filesystems too.
+    return sorted(scoped, key=lambda p: p.relative_to(root).as_posix().casefold())
 
 
 @dataclass(frozen=True)
@@ -111,7 +130,11 @@ class Measurement:
 
 
 def measure(repo_root: Path) -> Measurement:
-    """Count normative-candidate lines across the scoped corpus.
+    """Count normative-keyword OCCURRENCES across the scoped corpus.
+
+    Occurrences, not matching lines -- see the Unit clause: a per-line count moves under
+    pure reflow, which would let a rewrap raise the number without adding a rule (and a
+    join lower it without removing one).
 
     Raises UnicodeDecodeError on a non-UTF-8 file rather than degrading to a partial
     count -- see the Decoding clause in the module docstring.
@@ -120,7 +143,7 @@ def measure(repo_root: Path) -> Measurement:
     paths = iter_scoped_files(repo_root)
     for path in paths:
         text = path.read_text(encoding="utf-8")     # explicit; errors are NOT swallowed
-        total += sum(1 for line in text.splitlines() if TOKEN_RE.search(line))
+        total += len(TOKEN_RE.findall(text))
     return Measurement(detector_id=DETECTOR_ID, count=total, files=len(paths))
 
 

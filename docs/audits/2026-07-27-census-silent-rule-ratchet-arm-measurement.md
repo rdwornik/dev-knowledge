@@ -210,15 +210,15 @@ edited. This records what happened to the STOP verdict, not a revision of it.
 is not recoverable by code: its regex and file filter were never recorded, which is what
 this report established. Rather than launder an unreproducible number into a gate, D4 pins
 a **detector in code** and lets it define the metric. `scripts/silent_rule_detector.py`
-(`silent-rule-v1`) is now the single source for *both* the baseline and every live count;
-the census's detector is explicitly **not** reused. The measured baseline is **379**
-candidate lines across **56** files at `527958fb`, committed to
+(`silent-rule-v2`) is now the single source for *both* the baseline and every live count;
+the census's detector is explicitly **not** reused. The measured baseline is **428**
+normative-keyword occurrences across **56** files at `527958fb`, committed to
 `ecosystem/silent-rule-baseline.yaml` as a number plus its detector id — never a parse of
 the ledger, whose §A–D itemisation yields 182 anchors against a stated 176 (§C lists 21
 under a heading claiming 15).
 
-**What the new metric is.** A normative-candidate *line* count, not a rule census: it
-cannot distinguish an enforced rule from an unenforced one. It is a **proxy** for the
+**What the new metric is.** A normative-keyword *occurrence* count, not a rule census: it
+cannot distinguish a rule from a mention of one in an example. It is a **proxy** for the
 pool's size, load-bearing only in its movement against a baseline measured the same way.
 It is not comparable to 176, nor to this report's 812 Pass-1 figure.
 
@@ -239,3 +239,31 @@ lines (81%), which would have made the ratchet fire when someone *added enforcem
 drain it, and a green ratchet must never be read as a drained pool. The four rulings this
 report asked for remain open on their merits; D4 unblocks the *build* by changing the
 metric, and does not answer them.
+
+**Terra CODE review corrections, applied before integration (2026-07-27).** The lane's
+`gpt-5.6-terra` review returned **five HIGH** findings against the first implementation;
+all five were fixed rather than dispositioned, and the detector id was bumped
+`silent-rule-v1` -> `silent-rule-v2` because one of them changed the unit:
+
+1. **Reflow-gameable unit.** v1 counted matching LINES, so joining two rule lines lowered
+   the number without removing a rule and rewrapping one raised it without adding a rule.
+   v2 counts keyword OCCURRENCES, which is reflow-stable. Baseline re-measured 379 -> 428
+   (the same corpus, a different unit -- not growth).
+2. **Raise-guard read `HEAD`.** Once a raise was committed, HEAD *was* the new value, so
+   the guard compared the baseline against itself and passed; it also collapsed on a merge
+   commit and a detached HEAD. It now reads the integration target (`origin/main`, falling
+   back to `main`), and an unreadable target is surfaced as `raise-guard INACTIVE` in the
+   finding rather than silently skipped.
+3. **Detector failure was non-blocking.** A measurement error emitted `unavailable`, which
+   ship-gate does not block on -- an unmeasured corpus would have shipped green. Now FAIL.
+4. **Missing hub artifacts were non-blocking.** An absent `BACKLOG.md`/`tasks/` returned
+   `n/a`, so deleting the derived tree disarmed the gate that watches it. Now FAIL on the
+   hub; `n/a` is reserved for the off-hub guard.
+5. **Path exclusions were case-sensitive.** Windows can surface `templates/Archive/...`,
+   which the exclusion would then miss, making the metric differ by platform. All path and
+   ordering comparisons are casefolded.
+
+Each carries a named regression test. The residual limit terra raised and this build did
+NOT close is recorded rather than hidden: occurrences inside examples, quotations and
+already-enforced rules still count, because separating a rule from a mention of one needs
+the semantic pass the census did by hand.
