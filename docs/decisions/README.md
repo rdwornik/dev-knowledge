@@ -146,6 +146,28 @@ generalized from one is at least grounded. Three obligations ride with it:
 
 Carried by [#433]; received by [#382].
 
+### **[#434] conformance-digest fork — RULED** — operator ruling 2026-07-27
+
+The verdict fork pre-registered in [#434] is discharged on the evidence of
+`docs/audits/2026-07-27-verification-conformance-extraction-aggregate.md`. Recorded verbatim:
+
+> option (1) STAYS — the producer works within a measured boundary.
+
+Caveat to protocol, verbatim:
+
+> the scanner has a documented blind spot for structural drift — across 18 days and six nights
+> it did not detect that Ch6 described a loop whose engine was dead. Whoever builds the reader
+> either closes that class or states explicitly in the acceptance contract that it does not.
+
+> [#428] narrows to building the consumer.
+
+So the producer is **not** reshaped or retired: it works, within a boundary the aggregate
+measured rather than assumed. What is missing is the **reader** — and the caveat binds whoever
+builds it: the structural-drift blind spot is either closed, or its persistence is stated
+explicitly in that build's acceptance contract. Silence on it is not an option. Branch deletion
+remains a separate operator word (RULING 2 is discharged by the aggregate having landed, not by
+this ruling).
+
 ## Transcript naming convention
 
 <!-- scope: meta -->
