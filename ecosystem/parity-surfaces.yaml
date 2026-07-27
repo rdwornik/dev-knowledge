@@ -231,6 +231,22 @@ surfaces:
       value: methodology-generic
       reason: ".pre-commit-config.yaml -- root config mandated present fleet-wide (MUST both); methodology-owned (carries the deployed hook corpus)."
       provenance: *own-prov
+  - id: root-uv-lock
+    kind: path
+    tier: {hub: MUST, consumer: LOCAL}
+    probe: {type: path_tracked, path: uv.lock}
+    ownership:
+      value: conditional
+      reason: "uv.lock -- the committed uv dependency lockfile (ADR-106, [#432]): MUST at the hub now; consumer adoption is per-repo GATED rollout (ADR-106 pt 7), so consumer stays LOCAL until each repo's own uv arc flips its row to MUST."
+      provenance: *own-prov
+  - id: root-python-version
+    kind: path
+    tier: {hub: MUST, consumer: LOCAL}
+    probe: {type: path_tracked, path: .python-version}
+    ownership:
+      value: conditional
+      reason: ".python-version -- the uv interpreter pin (ADR-106, [#432]): MUST at the hub now; consumer adoption is per-repo GATED rollout (ADR-106 pt 7), so consumer stays LOCAL until each repo's own uv arc flips its row to MUST."
+      provenance: *own-prov
   - id: root-code-workspace
     kind: path
     tier: {hub: MUST, consumer: MUST}

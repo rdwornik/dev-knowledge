@@ -59,7 +59,10 @@ def test_rule_a_allows_file_under_sanctioned_dir():
 
 
 def test_rule_a_allows_sanctioned_top_level_file():
-    for f in ("pyproject.toml", "CLAUDE.md", ".gitignore", ".pre-commit-hooks.yaml"):
+    # uv.lock + .python-version: ADR-101 amendment 2026-07-27 ([#432]/ADR-106) --
+    # the uv toolchain's lockfile + interpreter pin joined the build/package class.
+    for f in ("pyproject.toml", "CLAUDE.md", ".gitignore", ".pre-commit-hooks.yaml",
+              "uv.lock", ".python-version"):
         assert vh.rule_a_violation(f) is None, f
 
 

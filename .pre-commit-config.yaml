@@ -21,13 +21,13 @@ repos:
     hooks:
       - id: normalize-dated-headers
         name: Normalize dated-log entry headers (auto-format)
-        entry: python scripts/normalize_headers.py
+        entry: uv run --locked python scripts/normalize_headers.py
         language: system
         types: [markdown]
         pass_filenames: true
       - id: codemap-freshness
         name: Codemap freshness check
-        entry: python -m scripts.codemap.cli check . --source-root scripts
+        entry: uv run --locked python -m scripts.codemap.cli check . --source-root scripts
         language: system
         files: '(^scripts/.*\.py$|^pyproject\.toml$|^tach\.toml$|^ARCHITECTURE\.md$)'
         pass_filenames: false
@@ -35,7 +35,7 @@ repos:
         name: PLAYBOOK.md TOC freshness check
         # Mirrors toc-freshness above. Regenerate with:
         # `python -m scripts.toc.cli generate protocols/PLAYBOOK.md --write`.
-        entry: python -m scripts.toc.cli check protocols/PLAYBOOK.md
+        entry: uv run --locked python -m scripts.toc.cli check protocols/PLAYBOOK.md
         language: system
         files: '^protocols/PLAYBOOK\.md$'
         pass_filenames: false
@@ -48,7 +48,7 @@ repos:
         # into CLAUDE.md) can no longer be hand-maintained and thus cannot rot (R3).
         # HUB-ONLY (n=1); deliberately NOT in the manifest precommit carrier — rolling
         # the generator to consumers is P6.
-        entry: python scripts/gen_methodology_roster.py --check
+        entry: uv run --locked python scripts/gen_methodology_roster.py --check
         language: system
         files: '(^deploy/manifest-v.*\.yaml$|^\.claude/methodology-roster\.md$)'
         pass_filenames: false
@@ -60,7 +60,7 @@ repos:
         # [#258] phase-1 generated them but left them ungated, so a new command file
         # or ADR (or a hand-edit) could drift the fragment silently. Fires on BOTH the
         # disk sources AND the targets, so either drift direction is caught. HUB-ONLY.
-        entry: python scripts/gen_claude_rosters.py --check
+        entry: uv run --locked python scripts/gen_claude_rosters.py --check
         language: system
         files: '(^\.claude/commands/.*\.md$|^docs/decisions/ADR-.*\.md$|^\.claude/generated/(commands-repo|recent-adrs)\.md$)'
         pass_filenames: false
@@ -72,7 +72,7 @@ repos:
         # fleet census cleared at ca9ded0 can otherwise recur). Fires on ANY docs/audits/*.md
         # (an add/edit/remove changes the index) OR the generator itself. The --check regen-and-diff
         # is shape-agnostic, so it survives #269's later count-tiered reshape. HUB-ONLY.
-        entry: python scripts/gen_audit_index.py --check
+        entry: uv run --locked python scripts/gen_audit_index.py --check
         language: system
         files: '(^docs/audits/.*\.md$|^scripts/gen_audit_index\.py$)'
         pass_filenames: false
@@ -85,7 +85,7 @@ repos:
         # CLOSED 11-class enum. Name-shape only, never date-accuracy. HUB-ONLY (the floor/plugin
         # carrier is the P6 rollout). Computes its own staged-add set → always_run. Bypass:
         # --no-verify.
-        entry: python scripts/validate_hermetization.py
+        entry: uv run --locked python scripts/validate_hermetization.py
         language: system
         always_run: true
         pass_filenames: false
@@ -96,13 +96,13 @@ repos:
         # Contents block in docs/intake/README.md against silent rot. Fires on ANY
         # docs/intake/*.md (a status change or add/remove shifts the index) OR the generator.
         # The --check regen-and-diff is shape-agnostic. HUB-ONLY.
-        entry: python scripts/gen_intake_index.py --check
+        entry: uv run --locked python scripts/gen_intake_index.py --check
         language: system
         files: '(^docs/intake/.*\.md$|^scripts/gen_intake_index\.py$)'
         pass_filenames: false
       - id: validate-backlog
         name: Validate BACKLOG.md story-map (ADR-66)
-        entry: python scripts/validate_backlog.py
+        entry: uv run --locked python scripts/validate_backlog.py
         language: system
         files: '^BACKLOG\.md$'
         pass_filenames: false
@@ -111,7 +111,7 @@ repos:
         # `audit.py health` exits 1 only on a FAIL finding (structural integrity,
         # A2 freshness, conformance); WARN-level findings (A1 30-day backstop,
         # missing last_reviewed, etc.) print but exit 0. ~1.4s. Bypass: --no-verify.
-        entry: python scripts/audit.py health
+        entry: uv run --locked python scripts/audit.py health
         language: system
         always_run: true
         pass_filenames: false
@@ -121,13 +121,13 @@ repos:
         # reconciliation checker's false-negative). NON-BLOCKING: always exits 0
         # (a nudge, not a gate); appends every fire to logs/COHERENCE-NUDGE.log.
         # Spec set is single-sourced from validate_reconciliation._SPEC_REGISTRY.
-        entry: python scripts/coherence_nudge.py
+        entry: uv run --locked python scripts/coherence_nudge.py
         language: system
         files: '^protocols/HANDOFF_PROCESS\.md$'
         pass_filenames: true
       - id: backlog-id-on-close
         name: Require [#id] when a commit removes a backlog task
-        entry: python scripts/check_backlog_commit_msg.py
+        entry: uv run --locked python scripts/check_backlog_commit_msg.py
         language: system
         stages: [commit-msg]
         always_run: true
@@ -136,7 +136,7 @@ repos:
         # Add-side sibling of backlog-id-on-close: a commit ADDING a new `- [#id]` must
         # carry a `kill-candidates:` line (BLOCK); a new L-epic lacking an intake-id earns
         # an advisory WARN (#279, ADR-98). Proposals only — never auto-removes anything.
-        entry: python scripts/check_backlog_filing.py
+        entry: uv run --locked python scripts/check_backlog_filing.py
         language: system
         stages: [commit-msg]
         always_run: true
@@ -147,7 +147,7 @@ repos:
         # (direct-to-main or true FF merge); a --no-ff merge passes. HUB-ONLY; fail-soft
         # to exit 0 on any git error. Bypass: `git push --no-verify`.
         # Activate locally once: `pre-commit install --hook-type pre-push`.
-        entry: python scripts/block_ff_push.py
+        entry: uv run --locked python scripts/block_ff_push.py
         language: system
         stages: [pre-push]
         always_run: true
