@@ -19,6 +19,28 @@
 
 ---
 
+### 2026-07-27 (j) — CC (Opus 5): [#436] ratchet arm-time re-measurement — BUILD STOPPED at the contract gate
+
+**SHA anchor (ADR-85).** **`4faac9ec`** (the measurement evidence artifact) · this wrap commit. Parallel session, commit-and-STOP: branch `docs/436-ratchet-arm-measurement` in the `ratchet` worktree; `main`/`origin/main` untouched at `b4dd3e48`, nothing pushed. Integration is serial from the primary.
+
+**The frozen contract's clause-2 STOP branch fired, so `silent_rule_ratchet` was NOT built.** The contract required a live re-measurement of N_silent *before* pinning a baseline, with three pre-committed branches (== 176 proceed · < 176 proceed lower · **> 176 stop, commit only evidence**). Measured **> 176**. No check registered, no `ALL_CHECKS` edit, no baseline file, `BACKLOG.md` untouched (clause 6 held absolutely — not one row marker moved).
+
+**Method + why the verdict is robust.** Measured HEAD `b4dd3e48` against the census SHA `bf49cbf9` with one identical **content-keyed** detector (a moved line is the same candidate; a reworded one is not) over the census's ruled roots `protocols/` + `templates/` + `ecosystem/*.yaml`, both refs read from `git ls-tree`/`git show` rather than the working tree. Net-positive at **all three** strictnesses — `+43` / `+19` / `+13` candidate lines (51 added, 8 removed), 62→63 files — so the direction is not an artifact of token choice. **A silent failure was caught and re-run:** the first probe used the platform cp1252 default and **zeroed several files** before erroring; every count is from the corrected UTF-8 run. Absolute counts are deliberately *not* compared to the census's own Pass-1 figure (812) — the census's exact regex was never recorded, so only the two-ref delta under one detector is load-bearing.
+
+**The pool grew while the ticket sat open — which is the argument for the ratchet, not against it.** `protocols/REPO_ONBOARDING.md` (249 lines) **did not exist at the census** and has never been swept: a new governed protocol file entered `protocols/` without passing the denominator. Demonstrated floor **N_silent ≥ 179** — three new rules verified unenforced *and* undeclared against live mechanisms (`PLAYBOOK.md:1270` live-session rule, zero mechanism · `REPO_ONBOARDING.md:92` marketplace ordering · `:199` `.gitignore` contents-form, restated only in `generate_floor.py`'s own docstring, so off-surface and failing the declaration test). **Four new MUST rows were checked and EXCLUDED as enforced** — the `parity-surfaces.yaml` uv/`tasks/` rows are read by `fleet_parity`, a blocking `ALL_CHECKS` member; counting them would have inflated the delta.
+
+**Two design blockers the measurement exposed, neither visible beforehand.** (1) **N_silent is not mechanically reproducible** — 176 came from a judgment pass collapsing ~1000 candidate lines to 320 rules (~17% conversion), so a live count cannot be recomputed from scratch; the ratchet must carry the census classification as committed data and measure only the delta. (2) **The ledger's itemisation cannot serve as that data as written** — parsing §A–D yields **182** anchors, not 176: §A=90, §B=68, §D=3 match their stated counts, but **§C lists 21 under a heading claiming 15**. Neither is a census defect (it stated 176 is a floor); both constrain the eventual baseline file's data model.
+
+**Clause 2 was under-specified and the resolution is reported, not buried.** "Re-measure live N_silent" only has content if anchored at the census SHA where 176 was ruled — anchoring at HEAD returns 176 *by construction*, which is the laundering the clause forbids. Anchored at `bf49cbf9`. If HEAD-anchoring was intended, the stop dissolves and the build proceeds at 176, but the 43 net-new lines escape adjudication permanently. **Operator rulings needed before [#436] can be built:** the baseline number · adjudicate-vs-grandfather the 43 · sweep `REPO_ONBOARDING.md` into the denominator · §C's 21-vs-15 discrepancy.
+
+**Carried debt left untouched, per the contract's anti-pattern.** Suite **1768 passed / 2 failed / 8 skipped** (`-n auto`, 282s) — `test_gen_task_tree::test_committed_tree_coherent_with_backlog` and `test_audit::test_check_fleet_parity_green_on_live_repo` both **reproduce at base `b4dd3e48` in a pristine detached worktree**, so neither is this lane's; the temp worktree was removed and removal verified (core-invariant #9). `audit.py health` → OK; pre-existing WARNs (doc_rot accretion, `undeclared_edges`, ai-council `conftest.py`) untouched. **BACKLOG advisory deliberately not satisfied:** [#436] was neither advanced nor closed — it is blocked pending the four rulings — and the gate exempts a pure advance that finishes nothing.
+
+**Changes:** `docs/audits/2026-07-27-census-silent-rule-ratchet-arm-measurement.md` (new), `docs/audits/README.md` (regenerated 287→288, forced by the `audit-index-freshness` gate), `JOURNAL.md`.
+
+**Next:** the operator rules the four open questions, then `[#436]` re-enters execution with a baseline the measurement can actually support. The 43-line delta is the ratchet's first drain queue either way. Codex terra review runs on this diff — now docs-only — before integration.
+
+---
+
 ### 2026-07-27 (i) — CC (Opus 5): window close — ARCHITECTURE currency, MERGE-IS-ATOMIC codified, supplement folded
 
 **SHA anchor (ADR-85).** **`aeff0c8d`** (operator ANSWERS committed verbatim) · **`c0ae98b4`** (ARCHITECTURE currency + the standing rule + verbatim definition + disposition class) · this wrap commit.
