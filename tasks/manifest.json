@@ -1,0 +1,1482 @@
+{
+  "schema": 1,
+  "source": "BACKLOG.md",
+  "source_sha256": "cc4c460a822ffd4724655c42c805351e20e86417d0deddf5af9803fd8453a303",
+  "generator": "scripts/gen_task_tree.py",
+  "nodes": [
+    {
+      "prose": "# .dev-knowledge BACKLOG"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "## Big picture"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "`.dev-knowledge` is the ecosystem's methodology brain: it absorbs lessons from every repo, universalizes them into enforced conventions, and audits the ecosystem against them — the LLM-development \"scrum master\" for all `Dev/` projects (VISION: Knowledge Guardian · Methodology Author · Auditor · Disseminator). The backlog advances that mission across eight mission themes plus one time-boxed execution arc."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**Themes (backbone) — epic ids:** [E1] Handoff continuity · [E2] Enforced governance · [E3] Lessons feedback loop · [E4] Decision management · [E5] Canonical-file integrity · [E6] Cross-repo universalization · [E7] Tooling & evaluation · [E8] ARC-5 execution (time-boxed arc, not a permanent mission theme) · [E9] Fleet Desired-State System (North Star)"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "---"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "## [E1] Handoff continuity"
+    },
+    {
+      "prose": "> As a session inheriting this repo, I want to pick up with full state and lose nothing."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S1] Match the handoff payload to the work mode"
+    },
+    {
+      "prose": "So that an architecture session inherits the big picture + vision while an execution session inherits lean task-state — one process, two payloads."
+    },
+    {
+      "task": 162,
+      "file": "162-vocab-decision.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S2] Finish the v5 handoff machinery deferred at the #149 flip"
+    },
+    {
+      "prose": "So that the canonical v5 handoff is fully implemented (generator) and mechanically verified (teeth), not just specified."
+    },
+    {
+      "task": 293,
+      "file": "293-consumer-runbook-fan-out.md"
+    },
+    {
+      "task": 298,
+      "file": "298-handoff-generator-polish.md"
+    },
+    {
+      "task": 301,
+      "file": "301-session-plan-artifact-class.md"
+    },
+    {
+      "task": 344,
+      "file": "344-session-close-gate-for-handoff-generation-consum.md"
+    },
+    {
+      "task": 350,
+      "file": "350-handoff-process-refinements.md"
+    },
+    {
+      "task": 390,
+      "file": "390-resolve-the-adr-87-effort-ownership-contradictio.md"
+    },
+    {
+      "task": 404,
+      "file": "404-gen-handoff-execution-mode-supplement-leak-mode.md"
+    },
+    {
+      "task": 421,
+      "file": "421-verify-handoff-probes-cannot-bind-a-repo-root-do.md"
+    },
+    {
+      "task": 422,
+      "file": "422-reflow-framing-s-cold-filled-flip-is-partial-by.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "---"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "## [E2] Enforced governance"
+    },
+    {
+      "prose": "> As the operator, I want load-bearing conventions enforced by tools, not memory, so they can't silently drift."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S3] Turn advisory guards into enforced gates"
+    },
+    {
+      "prose": "So that a convention can't be skipped under load (the failure mode behind real aborts)."
+    },
+    {
+      "task": 146,
+      "file": "146-de-hardcode-first-doctrine-sweep.md"
+    },
+    {
+      "task": 112,
+      "file": "112-adr-amend-helper-adr-immutable-zone-extension.md"
+    },
+    {
+      "task": 242,
+      "file": "242-adr-status-flip-coherence-check.md"
+    },
+    {
+      "task": 153,
+      "file": "153-enforcement-completeness-pass.md"
+    },
+    {
+      "task": 345,
+      "file": "345-externalize-the-adr-101-frozensets-machine-reada.md"
+    },
+    {
+      "task": 346,
+      "file": "346-persist-the-two-tier-new-path-executor-rule-into.md"
+    },
+    {
+      "task": 185,
+      "file": "185-gap-2-deterministic-gotcha-injection-guard.md"
+    },
+    {
+      "task": 188,
+      "file": "188-deny-rule-hook-completeness-audit.md"
+    },
+    {
+      "task": 349,
+      "file": "349-mechanize-session-discipline-inheritance.md"
+    },
+    {
+      "task": 353,
+      "file": "353-session-boot-contract-hardening.md"
+    },
+    {
+      "task": 389,
+      "file": "389-prompt-lint-gate-the-five-architect-fields-befor.md"
+    },
+    {
+      "task": 401,
+      "file": "401-ai-council-routing-still-armed-at-the-deleted-hu.md"
+    },
+    {
+      "task": 406,
+      "file": "406-commit-time-doc-rot-surfacing-an-over-threshold.md"
+    },
+    {
+      "task": 424,
+      "file": "424-backlog-depends-on-gates-are-inert-depid-re-requ.md"
+    },
+    {
+      "task": 425,
+      "file": "425-the-suite-is-green-on-a-format-the-file-does-not.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S4] Extend structural validation to more governance artifacts"
+    },
+    {
+      "prose": "So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck."
+    },
+    {
+      "task": 139,
+      "file": "139-merged-arc-record-verifier.md"
+    },
+    {
+      "task": 99,
+      "file": "99-fleet-health-digest-names-the-failing-check-per.md"
+    },
+    {
+      "task": 132,
+      "file": "132-organ-index-generator.md"
+    },
+    {
+      "task": 190,
+      "file": "190-general-intra-file-duplication-detector.md"
+    },
+    {
+      "task": 210,
+      "file": "210-convert-journal-wrap-no-ff-warns-from-per-instan.md"
+    },
+    {
+      "task": 234,
+      "file": "234-cross-repo-probe-validator.md"
+    },
+    {
+      "task": 277,
+      "file": "277-propose-closures-signal-repair.md"
+    },
+    {
+      "task": 296,
+      "file": "296-audit-py-repo-name-repo-path-doesn-t-persist-its.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S5] Catch spec/dependent drift mechanically, not by memory"
+    },
+    {
+      "prose": "So that \"spec bumped, dependent partially updated, caught only because a human remembered\" stops being the failure mode — machine-checkable coherence between a dependent doc and its spec."
+    },
+    {
+      "task": 169,
+      "file": "169-ungated-doc-staleness-detection.md"
+    },
+    {
+      "task": 171,
+      "file": "171-build-the-conformance-dashboard-at-ecosystem-con.md"
+    },
+    {
+      "task": 166,
+      "file": "166-doctrine-enforcement-coherence-check.md"
+    },
+    {
+      "task": 181,
+      "file": "181-coherence-v2-nudge-response.md"
+    },
+    {
+      "task": 220,
+      "file": "220-modify-semantic-drift-axis.md"
+    },
+    {
+      "task": 241,
+      "file": "241-undeclared-edge-groom.md"
+    },
+    {
+      "task": 335,
+      "file": "335-exempt-templates-from-the-reconciled-versions-ch.md"
+    },
+    {
+      "task": 408,
+      "file": "408-auto-coupled-doc-updates-closing-a-backlog-item.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S6] Know what depends on code before removing it (ADR-89 computed edges)"
+    },
+    {
+      "prose": "So that a symbol deletion can't silently break a dependent — the code analog of catching doc/spec drift."
+    },
+    {
+      "task": 218,
+      "file": "218-safe-removal-gate-m2-m3-boundary.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S7] Wire up the lifecycle hooks the workflow relies on"
+    },
+    {
+      "prose": "So that session-start/close automation actually runs instead of being wired-but-vacuous."
+    },
+    {
+      "task": 116,
+      "file": "116-hooks-hygiene.md"
+    },
+    {
+      "task": 117,
+      "file": "117-evaluate-prompt-agent-based-hooks.md"
+    },
+    {
+      "task": 170,
+      "file": "170-design-land-the-traceability-spine-adr.md"
+    },
+    {
+      "task": 189,
+      "file": "189-execute-in-claude.md"
+    },
+    {
+      "task": 310,
+      "file": "310-define-the-cold-bundle-annotation-surface-annota.md"
+    },
+    {
+      "task": 405,
+      "file": "405-session-end-leftover-check-nothing-verifies-no-l.md"
+    },
+    {
+      "task": 418,
+      "file": "418-automation-fleet-audit-records-0-10-baselines-a.md"
+    },
+    {
+      "task": 417,
+      "file": "417-check-dirty-tree-runs-with-no-pathspec-so-the-st.md"
+    },
+    {
+      "task": 414,
+      "file": "414-self-acting-on-main-incident-family-a-session-ch.md"
+    },
+    {
+      "task": 423,
+      "file": "423-the-integration-sequence-runs-on-prose-every-tim.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S8] Make hub enforcement reach consumers, not just the hub (enforcement-transfer mesh)"
+    },
+    {
+      "prose": "So that \"held by mechanism, not memory\" is true for every consumer, not only the hub — the deploy subsystem (ADR-91/92) carries the PRESENCE of the methodology to consumers but NOT its ENFORCEMENT: five hub organs (session_end_backpressure, canonical_freshness, doc_claims, git_backlog_drift, the coherence spine) are hub-only, so the founding standard is TRUE for the hub and FALSE for every consumer (proof: ai-council shipped 3 epics with JOURNAL ~1mo stale, unblocked). This epic closes that gap, stage-ordered."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "Backbone (dependency-ordered; done stages recorded here as the epic ledger — ADR-65: git is the implementation record, so the DONE stages are narrative, not live task lines):"
+    },
+    {
+      "prose": "- Stage 0 — stabilize live (ship-gate GREEN + clean tree). [DONE]"
+    },
+    {
+      "prose": "- Stage 1 — fleet blast-radius map (5 organs x 4 consumers classified from live config). [DONE]"
+    },
+    {
+      "prose": "- Stage 2 [#235] — Informant Organ: the read-only enforcement-coverage reporter that measures enforcement-in-effect (whether the gate FIRES, not presence — proven by the present-inert->absent / blocking->enforcing-local fixture pair; first live run reproduces the differentiated fleet map, 0 enforcing-local; no organ modified). [DONE 2026-07-03, feat/informant-organ, commits 99401d7/03a3280/07a061a — closed against #235]"
+    },
+    {
+      "prose": "- Stage 3 [#236 + sub-item #237] — the mesh carrier (the enforcement-transfer mechanism). Stage 4 [#238] — record + formalize. Follow-ups: Tier-2 breadth #239, audit-leg regression teeth #240. Sequenced-after (off the critical path): fleet rollout n=2+ (#221), each repo gated on the Informant's enforcing-local — only after Stage 3 is proven on n=1."
+    },
+    {
+      "prose": "- FLAG RESOLVED (architect, 2026-07-07): the arc-tracking / record-integrity fold is adjudicated — #168/#170 **co-sequence with #239/#240** (they harden the same `session_end_backpressure` organ the enforcement-transfer epic ports consumer-local in #237); #243 co-sequences there too (its #168-hard vs Fable-WARN conflict resolves at that mesh-consult). #139 **stays separate** (hub record-integrity, tangential — not folded)."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "task": 239,
+      "file": "239-follow-up.md"
+    },
+    {
+      "task": 240,
+      "file": "240-follow-up.md"
+    },
+    {
+      "task": 267,
+      "file": "267-scope-exercising-arc-extension.md"
+    },
+    {
+      "task": 289,
+      "file": "289-hub-own-the-onedrive-blue-yonder-guard.md"
+    },
+    {
+      "task": 294,
+      "file": "294-validate-backlog-deploy-carrier-path-de-hardcode.md"
+    },
+    {
+      "task": 297,
+      "file": "297-lightweight-dry-observe-arc-coverage-mode.md"
+    },
+    {
+      "task": 303,
+      "file": "303-make-seed-runbook-py-child-class-aware.md"
+    },
+    {
+      "task": 305,
+      "file": "305-add-a-verify-only-already-onboarded-re-run-mode.md"
+    },
+    {
+      "task": 308,
+      "file": "308-decide-the-verify-skill-s-canonical-home.md"
+    },
+    {
+      "task": 323,
+      "file": "323-design-question.md"
+    },
+    {
+      "task": 324,
+      "file": "324-phase-6-axis-2-carrier.md"
+    },
+    {
+      "task": 325,
+      "file": "325-carry-save-to-consumers-via-a-manifest-command-a.md"
+    },
+    {
+      "prose": "---"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "## [E3] Lessons feedback loop"
+    },
+    {
+      "prose": "> As the methodology author, I want lessons to flow back into enforced rules, not sit in an archive."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S9] Make lessons an active feedback loop, not a passive archive"
+    },
+    {
+      "prose": "So that captured lessons reach runtime rules and stay enforceable."
+    },
+    {
+      "task": 4,
+      "file": "4-build-lessons-index-json-sessionstart-retrieval.md"
+    },
+    {
+      "task": 130,
+      "file": "130-memory-hygiene-review.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S10] Codify recurring patterns into the methodology"
+    },
+    {
+      "prose": "So that observed failure-modes become written guidance instead of recurring."
+    },
+    {
+      "task": 144,
+      "file": "144-feature-dod-end-to-end-user-flow-test.md"
+    },
+    {
+      "task": 145,
+      "file": "145-codification-completeness-pass.md"
+    },
+    {
+      "task": 266,
+      "file": "266-codify-the-test-scoped-grant-language-lesson.md"
+    },
+    {
+      "task": 386,
+      "file": "386-codify-the-proven-delivery-loop-into-playbook-ow.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "---"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "## [E4] Decision management"
+    },
+    {
+      "prose": "> As a reader of 65+ ADRs, I want decisions navigable and free of silent contradiction."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S11] Keep the decision corpus navigable and contradiction-aware"
+    },
+    {
+      "prose": "So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions."
+    },
+    {
+      "task": 23,
+      "file": "23-validate-adr-frontmatter-relation-fields.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S12] Close the small ADR cross-reference + registry amendments"
+    },
+    {
+      "prose": "So that the ADR web is internally consistent."
+    },
+    {
+      "task": 19,
+      "file": "19-complete-the-adr-39-register.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "---"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "## [E5] Canonical-file integrity"
+    },
+    {
+      "prose": "> As any agent reading this repo, I want the canonical files accurate and current."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S13] Keep canonical files accurate"
+    },
+    {
+      "prose": "So that stale ground truth stops silently misleading sessions (the repo's own VISION is \"drift detected proactively\")."
+    },
+    {
+      "task": 35,
+      "file": "35-fix-the-self-owned-low-severity-cleanups.md"
+    },
+    {
+      "task": 71,
+      "file": "71-reconcile-environment-md-s-claude-directory-tree.md"
+    },
+    {
+      "task": 263,
+      "file": "263-protocols-edge-map-reconciliation-residuals.md"
+    },
+    {
+      "task": 285,
+      "file": "285-extend-hub-freshness-gating-to-playbook.md"
+    },
+    {
+      "task": 300,
+      "file": "300-hermetization-residual-d-ii.md"
+    },
+    {
+      "task": 388,
+      "file": "388-the-10-20-repo-fleet-scale-target-is-fabricated.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S14] Keep the day-to-day docs right-sized and current"
+    },
+    {
+      "prose": "So that the cheat-sheet and architecture stay scannable as conventions accrue."
+    },
+    {
+      "task": 41,
+      "file": "41-split-architecture-processes-into-process-md-if.md"
+    },
+    {
+      "task": 269,
+      "file": "269-audit-index-count-tiered-shape-freshness-hook.md"
+    },
+    {
+      "task": 213,
+      "file": "213-playbook-rule-history-condensation.md"
+    },
+    {
+      "task": 420,
+      "file": "420-does-a-top-level-docs-archive-still-make-sense.md"
+    },
+    {
+      "task": 227,
+      "file": "227-relocate-agent-framework-md-out-of-protocols.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "---"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "## [E6] Cross-repo universalization"
+    },
+    {
+      "prose": "> As the disseminator, I want every child repo to converge on the universal baseline."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S15] Converge every child repo on the universal baseline"
+    },
+    {
+      "prose": "So that \"open any repo, same layout/governance\" actually holds."
+    },
+    {
+      "task": 82,
+      "file": "82-define-per-repository-agentic-review-profiles.md"
+    },
+    {
+      "task": 320,
+      "file": "320-fleet-backup-posture.md"
+    },
+    {
+      "task": 215,
+      "file": "215-onboard-verify-methodology-in-a-new-repo.md"
+    },
+    {
+      "task": 231,
+      "file": "231-consumer-hub-feedback-report.md"
+    },
+    {
+      "task": 281,
+      "file": "281-re-peg-the-ai-council-adr-66-story-map-convergen.md"
+    },
+    {
+      "task": 282,
+      "file": "282-fleet-gitattributes-eol-normalization-parity.md"
+    },
+    {
+      "task": 283,
+      "file": "283-corp-monorepo-hybrid-classifier-json-1-08mb-dupl.md"
+    },
+    {
+      "task": 290,
+      "file": "290-floor-carrier-verify-teeth-self-heal.md"
+    },
+    {
+      "task": 416,
+      "file": "416-ai-council-architecture-md-codemap-drift-at-l23.md"
+    },
+    {
+      "task": 327,
+      "file": "327-protocols-as-interface-genre-ruling.md"
+    },
+    {
+      "task": 329,
+      "file": "329-vs-code-ownership-visualization.md"
+    },
+    {
+      "task": 331,
+      "file": "331-consumer-backlog-schema-adoption-ruling.md"
+    },
+    {
+      "task": 332,
+      "file": "332-fleet-dependency-version-parity.md"
+    },
+    {
+      "task": 334,
+      "file": "334-fleet-wide-ruff-hook-id-migration-ruff-ruff-chec.md"
+    },
+    {
+      "task": 343,
+      "file": "343-fleet-parity-ship-gate-only-scoping.md"
+    },
+    {
+      "task": 342,
+      "file": "342-fleet-parity-gate-ahead-max-fidelity-hardening.md"
+    },
+    {
+      "task": 351,
+      "file": "351-fleet-python-upgrade-ticket.md"
+    },
+    {
+      "task": 352,
+      "file": "352-versioned-vscode-region-decoration.md"
+    },
+    {
+      "task": 407,
+      "file": "407-universal-fleet-python-style-functional-vs-oop-s.md"
+    },
+    {
+      "task": 429,
+      "file": "429-worktree-provisioning-is-not-portable-across-the.md"
+    },
+    {
+      "task": 430,
+      "file": "430-consumer-template-rejects-root-conftest-py-fleet.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S16] Manage the methodology as a living thing (essence lifecycle: transfer · sync · PRUNE)"
+    },
+    {
+      "prose": "So that the consumer-facing live surface reflects CURRENT state — hub-deprecated elements get REMOVED from consumers, not accumulated (the append-only-live-surface bug; distinct from the append-only-BY-DESIGN audit trail)."
+    },
+    {
+      "task": 244,
+      "file": "244-essence-spec-lifecycle-epic.md"
+    },
+    {
+      "task": 245,
+      "file": "245-add-path-status-awareness.md"
+    },
+    {
+      "task": 276,
+      "file": "276-d2-per-consumer-waiver-honoring.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S17] Make new-repo scaffolding correct-by-default"
+    },
+    {
+      "prose": "So that a new repo inherits the full baseline in one step, not by re-derivation."
+    },
+    {
+      "task": 43,
+      "file": "43-decide.md"
+    },
+    {
+      "task": 280,
+      "file": "280-propagate-the-intake-area-to-greenfield-consumer.md"
+    },
+    {
+      "task": 315,
+      "file": "315-install-md-uniform-fleet-wide-hub-owned-deploy-c.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "---"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "## [E7] Tooling & evaluation"
+    },
+    {
+      "prose": "> As the operator, I want low-friction tooling and timely tech adoption."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S18] Cut session friction with better tooling"
+    },
+    {
+      "prose": "So that cognitive overhead per session drops."
+    },
+    {
+      "task": 102,
+      "file": "102-machine-readable-repo-index-for-agent-consumptio.md"
+    },
+    {
+      "task": 122,
+      "file": "122-retire-the-path-shim.md"
+    },
+    {
+      "task": 127,
+      "file": "127-verify-skill-failure-output-contract.md"
+    },
+    {
+      "task": 273,
+      "file": "273-changelog-review-staleness-escalation.md"
+    },
+    {
+      "task": 274,
+      "file": "274-dogfood-signal-prior-in-the-changelog-review-ado.md"
+    },
+    {
+      "task": 278,
+      "file": "278-test-suite-hygiene-epic.md"
+    },
+    {
+      "task": 317,
+      "file": "317-default-parallel-test-invocation-slow-tier-marke.md"
+    },
+    {
+      "task": 322,
+      "file": "322-fleet-dashboard.md"
+    },
+    {
+      "task": 338,
+      "file": "338-codex-review-drift-consolidation.md"
+    },
+    {
+      "task": 340,
+      "file": "340-ship-pre-flight-validator-honors-the-consumer-re.md"
+    },
+    {
+      "task": 341,
+      "file": "341-codex-producer-lane-activation-mechanism.md"
+    },
+    {
+      "task": 431,
+      "file": "431-codex-review-silently-drops-the-doc-lane-on-any.md"
+    },
+    {
+      "task": 403,
+      "file": "403-extend-doc-claims-to-architecture-s-machine-deri.md"
+    },
+    {
+      "task": 396,
+      "file": "396-extract-scripts-gitenv-py-the-git-env-scrub-is-i.md"
+    },
+    {
+      "task": 397,
+      "file": "397-scripts-target-structure-rule-on-the-mapped-grou.md"
+    },
+    {
+      "task": 412,
+      "file": "412-subagent-workflow-routing-configured-fan-out-onl.md"
+    },
+    {
+      "task": 415,
+      "file": "415-tests-must-bind-fixtures-not-live-mutable-repo-c.md"
+    },
+    {
+      "task": 432,
+      "file": "432-adopt-uv-as-the-environment-dependency-toolchain.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S19] Decide the undecided artifact/tool models"
+    },
+    {
+      "prose": "So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind."
+    },
+    {
+      "task": 126,
+      "file": "126-backpressure-loop-pattern-evaluation.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "task": 123,
+      "file": "123-routine-observability-convention-value-review.md"
+    },
+    {
+      "task": 347,
+      "file": "347-formalize-the-engineering-loop-harness-end-to-en.md"
+    },
+    {
+      "task": 387,
+      "file": "387-rewrite-the-buy-vs-build-intake-before-anything.md"
+    },
+    {
+      "task": 433,
+      "file": "433-backlog-restructure-build-thin-engine-backlog-md.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"
+    },
+    {
+      "prose": "So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer)."
+    },
+    {
+      "task": 270,
+      "file": "270-operator-load-gauge.md"
+    },
+    {
+      "task": 271,
+      "file": "271-nightly-proposal-loop.md"
+    },
+    {
+      "task": 288,
+      "file": "288-model-identity-guard-for-unattended-runs.md"
+    },
+    {
+      "task": 348,
+      "file": "348-backlog-grooming-as-a-standing-routine-not-ad-ho.md"
+    },
+    {
+      "task": 419,
+      "file": "419-we-run-routines-whose-output-nobody-consumes.md"
+    },
+    {
+      "task": 409,
+      "file": "409-standing-night-batch-code-review-formalize-as-ro.md"
+    },
+    {
+      "task": 410,
+      "file": "410-standing-night-batch-architecture-review-formali.md"
+    },
+    {
+      "task": 411,
+      "file": "411-standing-night-batch-creative-session-and-the-re.md"
+    },
+    {
+      "task": 426,
+      "file": "426-declare-consumer-consumption-path-for-every-live.md"
+    },
+    {
+      "task": 428,
+      "file": "428-nightly-triage-reports-a-dead-producer-to-every.md"
+    },
+    {
+      "task": 434,
+      "file": "434-conformance-branch-extraction-pass-one-bounded-a.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "---"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "## [E8] ARC-5 execution"
+    },
+    {
+      "prose": "> As the operator, I want ARC-5's wave map, closure contract, and unruled decisions to live somewhere that can EVOLVE as waves land — not frozen inside an immutable handoff bundle."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**Why this form (basis).** The plan of record needs a home that changes as waves land. An **ADR is the wrong form** — ADRs are immutable (CLAUDE.md §5 rule 3); only the status line is editable (ADR-94), so a wave map could never be updated in place. `BACKLOG.md` is **living / update-in-place** (§4 File lifecycle) and is already the repo's declared spec surface (\"the BACKLOG is the spec; items are tickets\"). The live schema is a story map — verified **7 themes / 20 stories / 116 tasks** at filing (ADR-66; `scripts/validate_backlog.py`). So the plan lands as a **theme + stories** here, not an ADR and not a new path. `[E8]` is marked a time-boxed arc, not a permanent mission theme, so it retires when ARC-5 closes."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**Accretion discipline.** The seven waves are recorded as the **wave map below**, not as seven pre-filed stories with placeholder tasks. Each wave's build tasks are filed **when that wave opens**, so this filing adds three carried tickets rather than a speculative +10 — which is what closure criterion (d) below requires."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**Source.** `docs/handoffs/2026-07-20-dev-knowledge-architect-arc5/` (SUPPLEMENT ANSWERS, operator-authored 2026-07-19) ∩ `docs/audits/2026-07-19-technical-night-consolidated-cycle-close.md` §3 (the nine seeds, terra-corrected). Strategic intent, verbatim: **\"AUDITS ARE OVER. ARC 5 IS EXECUTION.\"** Meta-finding the arc closes: *\"decision recorded ≠ decision enforced ≠ decision legible.\"*"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "#### Wave map W1–W7 (ordered by operator pain-priority, not dependency elegance)"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**W1 — VISIBLE BOUNDARY** (the \"colors\"; the operator's most-repeated ask). Build #329/#352: versioned `.vscode` background decoration (grey/navy, dark theme) of `owner=hub` / `owner=repo` regions, deployed fleet-wide as carrier material; plus a sweep completing RULING-S reader-visible universal-vs-repo section headers in every governed file across all three repos. **Done when:** the operator opens any governed file in any repo and SEES which lines are methodology and which are repo-personal. **Deadline:** must land before the P4a `.vscode` ruling shelf-life **2026-08-13**. **SEEDLESS** — see the seedless note below."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**W2 — STRUCTURE EQUALIZATION LEG 2** (the `assets/` folder, mypy, \"why do folders differ\"). Disposes `ai-council/assets/ruff-pre-commit.yaml` per **R1**; mypy/cache posture per **R1b**; `hub-toc-hooks` resolution (S5 §4.2 — recommended path (b): hub manifest re-scope v1.3.2 matching the hub's own retirement, then prune ai-council + retire corp's waiver); #331 ratification + `parity-surfaces.yaml` consumer-tier rows for the BACKLOG story-map schema + gate; reconcile the corp-vs-ai `validate_backlog.py` fork; corp `deployed-versions.yaml` currency (evidence for #276). **This wave carries consolidated-report seed 5** (consumer parity-surface reconciliation, S5) — mapped by CONTENT, not by label. **[#355] routes here.** **Done when:** each named divergence is either equalized or recorded as a declared, time-boxed divergence; every consumer write goes via RULING-W worktree/branch → report; changes land as manifest/template carrier material (replication-first, not one-off fixes)."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**W3 — LIFECYCLE MECHANISMS** (intake→ADR→backlog→close→DELETE — \"the process problem\"). Carries **seeds 2, 3, 4** + the #269 build. Seed 2: `validate_intake.py` HARD pre-commit gate — closed status enum (+ ratified tech-extension per **R4**), unique `intake-id` (fixes the live id:14 triple collision), required `consumed-by` on CONSUMED, machine-readable `Intake:` provenance on ADRs + citation enforcement (ADR-102/103 backfill or recorded non-intake-origin). **[#398] update (2026-07-23):** the enum is DEPLOYED (README §5 + `gen_intake_index._STATUS_ORDER` + template), the id:14 triple is dissolved, and the R4 tech-extension allowlist is DEAD (rejected by the 2026-07-19 ruling, SUPPLEMENT.md:68-70); the validator's current spec is `docs/audits/2026-07-23-technical-status-enum-reconcile.md` §4 (supersedes night-batch P2c). Seed 3: build #242 (ADR header↔README status reconciliation; ADR-88/89 frozen-Proposed case). Seed 4: `gen_grooming_worksheet.py` + an `audit.py` grooming-cadence/net-delta WARN (witnessed accretion 74→116 in 11 days, ≈3.8/day) + extend `safe_remove.py` M2/M3 as #347's sanctioned REAL-DELETION mechanism per **R3**. Plus #269 (count-tiered audit index, ADR-100). **Done when:** a seeded off-enum status, a duplicate `intake-id`, and an uncited ADR are each flagged with tests; #242 and #269 are built; the grooming worksheet + accretion WARN are live; `safe_remove.py` M2/M3 is the sanctioned deletion path."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**W4 — ARCHIVE LEGIBILITY** (the operator's archiving ask). **R2** decides the shape. Facts already true: file NAMES encode genre+date by convention (`ADR-NN-slug`, date-class-slug audits, date-genre-slug intakes); the ruled convention is stay-in-place (join keys, ADR-101 seal) with status on index surfaces. **Done when:** R2 is ruled AND its build has landed — either (a) the index/status surfaces (seeds 2/3 + #269 + the handoff-README micro-era clause) OR (b) a physical `archive/` with a genre-preserving naming rule via ADR amendment. **NOT both by default; no silent relitigating.** **SEEDLESS** — see the seedless note below."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**W5 — SESSION/WRITE GUARDS** (worktree pain; #353/#344/#349). **This wave carries consolidated-report seed 6** (session-boot + consumer-write guards, S6) — mapped by CONTENT, not by label. Per **R5**, ONE unifying organ: a HEAD-bound operator-authorization token (naming worktree + branch + allowed paths) checked by a `PreToolUse` guard, satisfying #344 Ask-2 (consumer hub-write guard), #353 (boot contract), and the S7 prompt-attestation at once. Plus S6's boot-snapshot `SessionStart` hook, the `.claude/.session-lock` HEAD-movement advisory, #349's close-discipline boot echo, and a signed integration-return token for self-merge detection. **Justification:** six recovered-not-prevented incidents, the sixth carrying a clean reflog trace (a concurrent session swapped HEAD in the primary tree mid-command during handoff generation; no guard fired). **Done when:** the organ REFUSES a witnessed unauthorized write (n≥1 witnessed refusal, not merely installed) — the incident class moves from recovered to prevented."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**W6 — CANON INOCULATION + PROMPT EQUILIBRIUM** (PLAYBOOK/handoff currency). Carries **seeds 1 and 7**. May run FIRST, in parallel, as a doc lane — file-disjoint from W1/W2. Seed 1: transcribe the four un-inoculated rulings (RULING-W · two-tier · worktree side-effect rule · consumer merge-delegation composite) into PLAYBOOK (operational) + ESSENTIALS (one-liner), grep-verified against the ADR amendments; **plus** the staged-diff CO-CHANGE checker (**[#354]**). Seed 7: the 7-item inbound prompt-spec as a PLAYBOOK §2 amendment + a handoff-time self-check probe (**R6** decides hard-probe vs soft). Plus handoff-README micro-era documentation (stage1/stage2 archive class). **Done when:** the four rulings carry PLAYBOOK + ESSENTIALS text grep-verified against their ADR amendments AND the co-change checker flags an ADR-36/41/101 amendment lacking a companion PLAYBOOK/ESSENTIALS edit. *Legibility half already landed at merge `8c913a6a`; the enforcement half is [#354].*"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**W7 — TESTING + FLEET STATE** (last, per dependency). Carries **seeds 8 and 9**. Seed 9: dynamic-test evidence gate (code-impact tier in `ship.md` or a versioned `test-harness.yaml`), **WARN-first then FAIL after two demonstrated runs**, depends-on #270; `protocols/AGENTIC_TESTING.md` as #412 config material (re-owned 2026-07-25 — #348 was decomposed to grooming-only; the configured-workflow layer this seed feeds now lives in #412). Seed 8: a scheduled `fleet_collect` PULL collector with watermarks (\"silence ≠ absence\") subsuming the two reporters; SQL/SIEM stays SHELVED until a witnessed join-pain (**R7** confirms this as the standing answer, matching the intake #14 ruling). **Done when:** the evidence gate is live WARN-first with its FAIL-after-two-runs rule recorded, `AGENTIC_TESTING.md` exists as #348 config, and the collector runs on a watermarked schedule."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "#### Seedless waves (do not read the seed list as the wave list)"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**W1 and W4 are the SEEDLESS waves** — neither is backed by a seed from the nine-seed consolidated report:"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "- **W1** is justified by **operator priority and the 2026-08-13 `.vscode` ruling shelf-life — NOT by audit evidence.** It is first because it is the most visible, deliberately (the operator's frustration is itself context: visible results per wave)."
+    },
+    {
+      "prose": "- **W4** owns no seed of its own; it **discharges W3's seeds 2/3** (index/status surfaces) if R2 lands on shape (a). If R2 lands on shape (b), W4 acquires its own build via ADR amendment."
+    },
+    {
+      "prose": "- **Seeds 5 and 6 map to W2 and W5 by CONTENT, not by label** — they are named explicitly in those waves' text above. A reader matching seed numbers to wave numbers will drop them in execution; that is why they are named rather than numbered."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "#### Closure contract (frozen — reproduced verbatim)"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "```"
+    },
+    {
+      "prose": "ARC 5 is CLOSED when and only when: (a) the ledger exists as a mechanism, four-state, over"
+    },
+    {
+      "prose": "MUST-shaped governed rules — not ADRs; (b) the silently-unenforced count strictly decreases and"
+    },
+    {
+      "prose": "everything still unenforced has moved to declared-unenforced with an owner and a review date;"
+    },
+    {
+      "prose": "(c) each shipped wave carries a frozen done-contract, a Codex review before merge, an educate"
+    },
+    {
+      "prose": "artifact with file-level before→after, and a BACKLOG structural-marker change; (d) backlog"
+    },
+    {
+      "prose": "accretion is net ≤ 0 excluding tickets minted by ARC-5's own waves, every open item adjudicated at"
+    },
+    {
+      "prose": "least once, and the accretion rate measured and reported; (e) enforcement is witnessed, not"
+    },
+    {
+      "prose": "installed — for every guard or gate shipped, a run exists in which it fired or refused; (f) the"
+    },
+    {
+      "prose": "operator confirms, per wave, in his own words, that the named pain is gone."
+    },
+    {
+      "prose": "NOT closure: waves merged, ship-gate green, tests passing, items marked done."
+    },
+    {
+      "prose": "```"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "#### Metric definition — the declaration test (operative; governs closure clause (b))"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "Closure clause (b) turns on the four-state ledger, so the boundary between `silent` and"
+    },
+    {
+      "prose": "`declared-unenforced` is load-bearing. Operator-ruled 2026-07-19, recorded verbatim:"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "```"
+    },
+    {
+      "prose": "A MUST-shaped rule counts as declared-unenforced only if the non-mechanisation clause is BOTH"
+    },
+    {
+      "prose": "on-surface -- at the rule's own file:line or its canonical PLAYBOOK/ESSENTIALS span, because"
+    },
+    {
+      "prose": "`silent` means a reader OF THE RULE cannot tell it is unenforced -- AND bound to an OPEN ticket"
+    },
+    {
+      "prose": "naming the remaining work, per ADR-81(d). Neither condition suffices alone. Without the second,"
+    },
+    {
+      "prose": "N_silent is gameable by writing 'this isn't enforced' next to every rule."
+    },
+    {
+      "prose": "```"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**Baseline — first measurement under that definition, pinned to `bf49cbf9`.** Denominator **320**"
+    },
+    {
+      "prose": "MUST-shaped rules · **N_silent 176 (55%)** · **N_enforced 130** · **N_declared 14**. Scope was"
+    },
+    {
+      "prose": "`protocols/` + `templates/` + `ecosystem/*.yaml`; `docs/decisions/` is deferred to a second sweep"
+    },
+    {
+      "prose": "([#357]), so **176 is a floor, not a total**. N_enforced is deliberately **conservative** — ~55"
+    },
+    {
+      "prose": "partial-mechanism rules (one leg gated, the rest not) are folded into `enforced`, and splitting"
+    },
+    {
+      "prose": "them strictly would raise N_silent. Controls held: the ADR-template intake-id cite rule and the"
+    },
+    {
+      "prose": "merge-delegation composite both measured `silent`; the worktree side-effect rule measured"
+    },
+    {
+      "prose": "`declared-unenforced`, having been converted out of `silent` by `8c913a6a` — the canon inoculation"
+    },
+    {
+      "prose": "working as designed, not a model failure. **Evidence** — the 176-item itemisation, the declared list, the near-misses, and the pending-#242 per-ADR table are archived at `docs/audits/2026-07-19-census-silent-rule-ledger.md`."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "#### DECISIONS — dispositioned 2026-07-26 (the \"ALL UNRULED\" claim was true at filing, false since)"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "Every decision below was **UNRULED as of its filing** (2026-07-19). The recommendations are the outgoing architect's, carried verbatim in substance; **a recommendation is not a ruling.**"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "> **Disposition sweep 2026-07-26 (intake #17 §5 micro-window).** Each row was re-verified against LIVE state, not against the filing. The table had survived at least one operator ruling by three days."
+    },
+    {
+      "prose": ">"
+    },
+    {
+      "prose": "> **Delegation authority for the four RULED rows** — and it is a delegation, not a recommendation promoting itself: the operator's 2026-07-26 micro-window execution order (intake #17 §5) instructed that rows verified still-LIVE be recorded as *\"RULED per attached recommendation — operator-delegated 2026-07-26\"*. That standing instruction is the ruling record for R1b/R3/R5/R6; the per-row cells carry the LIVE-premise verification that qualified each row for it. R8 was excluded by the same order (his own pick) and R12 has no recommendation to delegate to."
+    },
+    {
+      "prose": ">"
+    },
+    {
+      "prose": "> Outcome (final, after two review passes): **1 DEAD-OBE** (R1 — the folder it decides about no longer exists), **3 ALREADY-RULED** (R1b, R2, R4), **4 RULED by operator-delegated adoption** (R3, R5, R6, R7), **2 still open for the operator** (R8, R12). **All three already-ruled rows went AGAINST their recommendation** — R1b rejected (Pyrefly universal, not a divergence), R2 chose (b) over (a), R4 rejected outright. That is the sweep's most useful finding: where this table had a prior ruling, the recommendation lost 3 times out of 3, so an unverified recommendation is a poor predictor of the operator's call. A ruling here is **recorded, never executed** — each adopted row still needs its build."
+    },
+    {
+      "prose": ">"
+    },
+    {
+      "prose": "> **Reconciliation debt this sweep creates — the FULL list, enumerated after sol's adversarial pass found the first version incomplete.** Dependent rows still carry the pre-sweep status and were deliberately NOT reworded (out of this window's two-row edit scope): **`[#389]`** reads \"R6 … **UNRULED**; rule R6 first\" and gates its own Done-when on it · **W3 seed 2** says \"+ ratified tech-extension per **R4**\" (already self-superseded later in the same paragraph by the `[#398]` update) · **W4** says \"**R2** decides the shape\" though R2 is ruled · **W6 seed 7** says \"**R6** decides hard-probe vs soft\" · **W7 seed 9** says \"**R7** confirms\". Reconcile each when its wave opens; none is a silent contradiction now that all five are named."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "| Ref | Decision | Status (verified 2026-07-26) | Recommendation as filed (NOT a ruling) |"
+    },
+    {
+      "prose": "|---|---|---|---|"
+    },
+    {
+      "prose": "| **R1** | `assets/` disposition: (a) DISSOLVE — relocate `ruff-pre-commit.yaml` to the canonical config location, delete the folder (RULING-W leg + safe-deletion path); or (b) UNIVERSALIZE `assets/` as a fleet deployment convention | **DEAD-OBE** — the folder is gone. `ai-council/assets/` was dissolved by `6d78851e` (2026-07-21) \"dissolve vestigial assets/ and repair its two live references\"; `git ls-files assets/` is empty and no `ruff` path remains tracked. Option (a) was executed without the ruling. | **(a)** — one file, no fleet role; (b) would mint a new mandatory folder fleet-wide for no carrier need |"
+    },
+    {
+      "prose": "| **R1b** | mypy posture: declare ai-council's mypy a sanctioned divergence vs roll out fleet-wide | **ALREADY-RULED — REJECTED, against its recommendation.** Caught on sol's adversarial pass: a **BINDING** operator ruling already exists and the delegated adoption first recorded here was withdrawn as a relitigation. `docs/handoffs/2026-07-20-dev-knowledge-architect/SUPPLEMENT.md:113` heads the block \"BINDING — do not relitigate\" and `:119` reads \"Pyrefly is universal across the fleet — **NOT** a sanctioned mypy divergence\"; `PASTE_THIS.md:528` records \"mypy as a sanctioned divergence → **REJECTED by the operator**. Python stack, tooling universal → Pyrefly\". The ruling is UNIVERSALIZE, not diverge. (Method note: the first pass searched JOURNAL/LESSONS/docs-decisions and missed it — `docs/handoffs/` carries binding rulings too.) | **Declare sanctioned divergence** |"
+    },
+    {
+      "prose": "| **R2** | Archive shape: (a) INDEX-ARCHIVE — status/count-tiered index surfaces, files stay, names already carry genre; or (b) PHYSICAL `archive/` folders with a genre-preserving rename rule via ADR-98/100/101 amendments | **ALREADY-RULED 2026-07-22 — and the ruling went to (b), NOT the recommended (a).** \"**Archive-inside-each-folder** (operator ruling 2026-07-22)\" in `ARCHITECTURE.md` Ch5 (quote the heading, not a line range — this window's own edits shifted it from :563 to :595); six physical `archive/` dirs exist on disk; applied at `JOURNAL.md:548-550`. The recommendation was not followed — recorded so the divergence is not re-litigated as an open pick. | **(a)** — zero join-key breakage, builds already seeded |"
+    },
+    {
+      "prose": "| **R3** | #347 safe-deletion = `safe_remove.py` M2/M3 extension as THE sanctioned mechanism | **RULED per attached recommendation — operator-delegated 2026-07-26.** Premise verified LIVE: `safe_remove.py` exists but is **M1 only** (no M2/M3 in the file), `[#218]` carries M2/M3 and is DEFER, `[#347]` is open and unruled. Recorded, not executed. | **YES** |"
+    },
+    {
+      "prose": "| **R4** | Intake enum: ratify the 6 off-canon statuses as a documented tech-genre extension vs reclassify the docs | **ALREADY-RULED 2026-07-19 — REJECTED, against its recommendation** (reclassified from DEAD-OBE on terra review: a decision that was decided is not one overtaken by events). The 2026-07-19 ruling (`SUPPLEMENT.md:68-70`) rejected ratifying the six off-canon statuses outright; W3's `[#398]` update records \"the R4 tech-extension allowlist is DEAD\", and the ruled enum SEED→DRAFT→READY→{ACCEPTED\\|CONSUMED\\|SUPERSEDED\\|REJECTED} is deployed in `gen_intake_index._STATUS_ORDER`. | **Ratify-with-documentation** — they are functioning plan-of-record artifacts |"
+    },
+    {
+      "prose": "| **R5** | Unifying HEAD-bound authorization token as ONE organ for #344/#353/attestation, vs three separate builds | **RULED per attached recommendation — operator-delegated 2026-07-26.** Premise verified LIVE: `[#344]` and `[#353]` are both open, the unified organ is unbuilt, and the only HEAD-bound token in code is `/override`'s `logs/.session-override-token` — a different organ. Recorded, not executed. | **ONE organ** |"
+    },
+    {
+      "prose": "| **R6** | Prompt-spec: hard handoff probe vs soft self-check | **RULED per attached recommendation — operator-delegated 2026-07-26.** Premise verified LIVE, against a first-pass misread: `verify_handoff_probes.py` is the **#163 PROBES.md-teeth** validator, NOT the prompt-spec probe R6 decides. No prompt-spec probe exists (`scripts/` has no `prompt_spec`; PLAYBOOK carries no §2 prompt-spec amendment) and W6 seed 7 still reads \"**R6** decides hard-probe vs soft\". Recorded, not executed. | **Hard probe on the bundle side** — the off-repo prompt itself can't be gated; attestation covers the paste |"
+    },
+    {
+      "prose": "| **R7** | Fleet-state: confirm \"collector + reporters now, SQLite shelved\" as standing | **RULED per attached recommendation — operator-delegated 2026-07-26.** Corrected on sol's adversarial pass: this was first recorded ALREADY-RULED, but the cited authority says the opposite — `docs/intake/2026-07-12-siem-requirements-ruled-pack.md:61` explicitly retains least commitment, \"store/viewer class (SQLite vs DuckDB) … are Phase A build decisions, **not settled here**\", and FR-18 lives only in the ARCHIVED provenance draft, not the ruled pack. So the shelving genuinely was open and is ruled here by delegation. Live state already matches: reporters on disk, zero `.db`/`.sqlite` anywhere. | **Confirm** |"
+    },
+    {
+      "prose": "| **R8** | (carried, corp-side) #38 channel pick: 1 primary-direct / 2 worktree / 3 epic-dev | **UNRULED — stays that way.** The operator's own pick; four exhaustive searches across BACKLOG/JOURNAL/docs found no ruling. Explicitly NOT delegated. | *(none recorded — operator's pick)* |"
+    },
+    {
+      "prose": "| **R12** | Closure clause (b) is **not achievable in one arc** at N_silent 176 — \"everything still unenforced has moved to declared-unenforced\" would require dispositioning 176 rules. Two options: **(i) NARROW** the arc target to a bounded load-bearing slice — the 4 census escalations ([#358]–[#361]) + the 2 still-silent seed-1 rules (RULING-W, merge-delegation, [#356]) + the 49 dropped #242 guards ([#362]); or **(ii) GATE THE GROWTH** of silent rules rather than drain the pool. | **LIVE, and NOT delegable — needs the operator.** Premise verified current: `[#242]`, `[#356]`, `[#358]`–`[#362]` are all still open, N_silent 176 still stands (`BACKLOG:316`, census ledger `:111`), evidence artifact present. But **no recommendation is attached**, so there is nothing to rule by delegation — narrow-vs-gate is a genuine operator choice. | *(none attached — a recommendation is not a ruling)* |"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "> **Numbering note (2026-07-19):** the census-derived decision above is filed as **R12**, not R9 — the discrepancy below records that R9/R10/R11 never existed in the ARC-5 bundle, and minting R9 now would resurrect a ref the record says does not exist."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "> **Discrepancy recorded — the ruling set is R1–R8 (+R1b), nine picks; there is no R9, R10, or R11.** The lane prompt for this filing specified \"R1–R11\". An exhaustive search of the ARC-5 bundle (`SUPPLEMENT.md`, `PASTE_THIS.md`), all fourteen `docs/audits/2026-07-19-*` night-audit artifacts, and `JOURNAL.md` found exactly the eight R-labels above plus the R1b sub-ruling. The only `R9`/`R10`/`R11` strings in the repo belong to a **different, unrelated R-namespace** (`docs/audits/2026-06-07-methodology-transfer-audit.md`). Three rulings were **NOT invented to reach eleven** — per the filing instruction \"do not invent rulings\". If the operator holds R9–R11 off-repo, they are missing from every repo source and must be supplied."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "#### BINDING (travels verbatim; do NOT relitigate)"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "The ARC-4 rulings (RULING-W/S/PY/CF; two-tier \"compliance IS authorization\" in force now); the terra ×7 corrections as applied; sol's 4 mechanism upgrades as accepted strengthenings; **satellite wave FROZEN** until Wave-1 lessons are extracted; luna's floor-misreport corrected (consumers DO carry the floor, hash-matched — Haiku fan-out is indicative, not authoritative); E1 scope honesty (only two organs were fire-proved this run)."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**CONSIDERED + REJECTED:** SQL/SIEM now (premature per intake #14 + S8); a `coherence-nudge` extension for co-change (terra: not implementable — see [#354]); blanket new-path blocking (the two-tier rule supersedes); physical file moves for archival as the default (R2 decides; convention says stay-in-place); more audits (operator: enough)."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**DO-NOT-REDO:** the nine seeds' adjudication (terra-corrected kill-candidates stand); the 8-domain gap derivation (sol-triangulated); the ARC-4 equalization values (py311 / 120 / >=0.15.5 / minversion 9.0 — at-parity, verified); the grooming closes #306/#307/#328."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**Per-wave standing requirements** (from the closure contract, applied to every wave): a frozen acceptance contract before delegation · Codex terra review pre-merge · RULING-W for any consumer write · replication material over one-off fixes · an educate artifact with file-level before→after · one wave = one merged arc."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S21] Discharge the ARC-5 carried items that no wave has yet absorbed"
+    },
+    {
+      "prose": "So that the three items carried out of the night-audit cycle stop living only in narrative — each becomes a ticket with a done-when, rather than being rediscovered a wave later."
+    },
+    {
+      "task": 354,
+      "file": "354-w6-seed-1-recurrence-half.md"
+    },
+    {
+      "task": 356,
+      "file": "356-ruling-w-and-the-merge-delegation-composite-are.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S22] Discharge the silent-rule census findings"
+    },
+    {
+      "prose": "So that the four-state ledger's first measurement produces tickets rather than a report nobody acts on — each finding gets a done-when, and the two findings the four-state model cannot express are named as such."
+    },
+    {
+      "task": 357,
+      "file": "357-silent-rule-census-run-2.md"
+    },
+    {
+      "task": 358,
+      "file": "358-ecosystem-parity-surfaces-yaml-misdescribes-its.md"
+    },
+    {
+      "task": 359,
+      "file": "359-phantom-enforcement-protocols-handoff-process-md.md"
+    },
+    {
+      "task": 402,
+      "file": "402-intake-naming-clause-deploy-the-yyyy-mm-dd-class.md"
+    },
+    {
+      "task": 399,
+      "file": "399-templates-handoff-v5-readme-md-tmpl-phantom-sour.md"
+    },
+    {
+      "task": 360,
+      "file": "360-protocols-definition-of-done-md-106-109-expired.md"
+    },
+    {
+      "task": 361,
+      "file": "361-adr-immutability-s-real-coverage-is-declared-onl.md"
+    },
+    {
+      "task": 362,
+      "file": "362-242-carries-a-substantive-guard-loss-not-status.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "task": 363,
+      "file": "363-codex-review-routed-a-code-shaped-diff-through-t.md"
+    },
+    {
+      "task": 364,
+      "file": "364-doc-rot-s-length-cap-blocks-353-from-doing-its-j.md"
+    },
+    {
+      "task": 365,
+      "file": "365-promote-residual-completeness-from-exempt-to-cov.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "task": 366,
+      "file": "366-residual-completeness-scans-the-working-tree-not.md"
+    },
+    {
+      "task": 367,
+      "file": "367-handoff-process-held-at-version-5-7-while-gainin.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "task": 369,
+      "file": "369-wire-boundary-headers-py-check-into-pre-commit.md"
+    },
+    {
+      "task": 370,
+      "file": "370-is-the-owner-hub-owner-repo-ownership-model-two.md"
+    },
+    {
+      "task": 371,
+      "file": "371-consumer-editor-config-write-through-declared-at.md"
+    },
+    {
+      "task": 400,
+      "file": "400-ownership-model-the-hub-mandated-structure-repo.md"
+    },
+    {
+      "task": 413,
+      "file": "413-colors-semantics-visually-distinguish-global-hub.md"
+    },
+    {
+      "task": 427,
+      "file": "427-region-templates-carry-a-repo-position-dependent.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "---"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "## [E9] Fleet Desired-State System (North Star)"
+    },
+    {
+      "prose": "> As the operator, I want the fleet's desired state declared once as versioned data and mechanically reconciled, so that \"done\" stops being anyone's word and becomes a report I can read in two minutes."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**Source.** `docs/intake/2026-07-21-func-fleet-north-star.md` (intake **#16**, DRAFT) — the Layer-1 architect's consolidation of the operator's dictated vision (2026-07-20/21), the Fable vision audit, the 2026-07-21 read-only polyrepo recon, the `assets/` delivery session, and three months of session lessons. The stories below map intake §6's sequenced plan; each link unblocks the next, so the gating is expressed as `depends-on`, not as preference."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**The brake is DISCHARGED.** Intake §6's standing constraint — *no new fleet machinery before [#381] rules* — was met when **ADR-104** was accepted and merged at **`92fabb51`**, closing [#381]. S24–S27 remain sequenced: [#383] is gated on [#382], and [#385] on [#383]. **Those gates are recorded in prose and are NOT mechanically enforced** — `validate_backlog`'s `_DEPID_RE` requires a `#` and the [E9] chain's clauses are written bare, so they do not fire; see [#424]."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S24] Declare desired state once, as data, instead of as N registries"
+    },
+    {
+      "prose": "So that every check derives from one schema — a check without a schema row is the registry-sprawl anti-pattern that produced \"green that means nothing\"."
+    },
+    {
+      "task": 382,
+      "file": "382-desired-state-data-model-intake-adr.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S25] Converge surfaces in waves, with a mechanical done-signal"
+    },
+    {
+      "prose": "So that a wave closes on a report rather than on a claim — the operator stops verifying convergence by hand."
+    },
+    {
+      "task": 383,
+      "file": "383-execution-waves-per-surface.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S26] Mine our own history before predicting anything"
+    },
+    {
+      "prose": "So that \"the repo learns us\" starts as a cheap descriptive lane on real data, not as an ML platform bought ahead of the evidence."
+    },
+    {
+      "task": 391,
+      "file": "391-wire-fleet-analytics-into-a-nightly-lane-or-narr.md"
+    },
+    {
+      "task": 392,
+      "file": "392-fleet-analytics-rename-alias-loses-history-on-pa.md"
+    },
+    {
+      "task": 393,
+      "file": "393-corp-sca-rot-review-confirm-live-or-retire-3-can.md"
+    },
+    {
+      "task": 394,
+      "file": "394-analytics-coverage-gap-corp-monorepo-no-edit-rec.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "### [S27] Make tech-currency a distributed rule, not a one-off"
+    },
+    {
+      "prose": "So that a version bump researched once reaches every repo through the deploy channel instead of dying in a session."
+    },
+    {
+      "task": 385,
+      "file": "385-l4-tech-currency-lane.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "---"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**About this file** — open `.dev-knowledge` work as a story map (ADR-66): Big Picture → Theme → User Story → Task. Stories are human (goal + `So that`); tasks carry `[#id] [P][size] · Done when · refs`. Done tasks **leave** (ADR-65); git is the implementation record (`git log --grep 'closes \\[#'`). Child-repo execution items live in `docs/audits/2026-06-01-child-repo-relocation-proposal.md`. Schema: PLAYBOOK §10; machine-checked by `scripts/validate_backlog.py`."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**ai-council audit residuals (pointer, not filed here)** — the ai-council audit surfaced ai-council-owned cleanups (stale force-added `settings.local.json` pointing at dead paths; an empty `worktrees/fix/` dir; codemap/backlog-hook universalization gaps). Added 2026-07-06 (Wave-3, root adjudication 5): the relative-path pre-commit source (`repo: ../.dev-knowledge`) makes ai-council's toc-freshness gates layout-dependent — ANY out-of-layout checkout (CI, second clone, another machine) silently loses them (witnessed: the sandbox clone; measurement-3 audit) — decide pin-by-URL+rev vs documented layout constraint. Per ADR-41 routing these are filed in a dedicated ai-council session, not duplicated in the hub backlog."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**Grooming log:** git history is the record (`git log --grep 'groom'` + per-session JOURNAL). Recent: 2026-06-12 (#149 flip) · 2026-06-18 (currency pass) · 2026-06-25 (groom pass, n=2: 84→81) · 2026-07-08 (leg-c full ruling pass, operator-ratified, 124→74: 14 KILL / 27 MERGE / 2 MOVE / 9 CLOSE / 5 RE-SCOPE / 19 DEFER-peg / 2 new filings #289 #290; #110 #128 moved-to: ai-council (Wave-1)). Next quarterly: 2026-10-08."
+    },
+    {
+      "prose": ""
+    }
+  ]
+}
