@@ -169,6 +169,18 @@ explicitly in that build's acceptance contract. Silence on it is not an option. 
 remains a separate operator word (RULING 2 is discharged by the aggregate having landed, not by
 this ruling).
 
+**Branch deletion — DONE 2026-07-28 (operator word D2, given that date).** The separate word the
+paragraph above reserved was given, and all **seven** `claude/conformance-2026-07-21` … `-27`
+branches were deleted from `origin`; `git branch -a` shows **zero** conformance entries, local or
+remote. The `claude/conformance-*` protection in `.claude/rules/git-discipline.md` was not
+weakened — it did its job: deletion waited for an explicit word rather than riding the merge.
+**Durable record:** the branches carried no unique content past the aggregate, which is on `main`
+at `docs/audits/2026-07-27-codex-conformance-extraction-aggregate.md` +
+`docs/audits/2026-07-27-verification-conformance-extraction-aggregate.md` — verified present on
+`main` *before* the delete, so RULING 2's ordering (extract, then delete) held. **[#434] is
+thereby closure-eligible but NOT closed** — closure remains the operator's `/review-closures` act
+(ADR-70); the caveat above still binds whoever builds the reader.
+
 ## Transcript naming convention
 
 <!-- scope: meta -->
