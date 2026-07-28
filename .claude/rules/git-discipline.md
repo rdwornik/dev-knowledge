@@ -27,6 +27,17 @@ safety check.
 - verify: `git branch --merged main` lists nothing but `main` and explicitly protected
   branches (`claude/conformance-*`).
 
+### WORKTREE TEARDOWN IS TWO BRANCHES, NOT ONE
+
+Teardown = `git worktree remove` + `git worktree prune` + delete the **work** branch **AND** the
+`worktree-<name>` **provisioning** branch. A leftover provisioning branch is a defect, not a
+pending decision — it is the half of teardown that gets forgotten because the work branch is the
+one you were thinking about. Deletion is still gated on operator word wherever the branch is
+explicitly protected; the rule fixes *what teardown covers*, not who authorizes it.
+
+- verify: after any teardown, `git worktree list` shows no stale entry AND `git branch -a` lists
+  no `worktree-*` branch for the removed tree.
+
 ### Commit message examples
 - `docs: update PLAYBOOK S5 council debate format`
 - `docs: update ENVIRONMENT with new skills architecture`

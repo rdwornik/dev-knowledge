@@ -10,6 +10,15 @@ consumed-by:
 **Date:** 2026-07-21 · **Author:** Layer-1 browser architect · **Status:** SEED for (a) the polyrepo ruling session and (b) the desired-state intake→ADR
 **Supersedes nothing; consolidates:** the operator's dictated vision (2026-07-20/21), the Fable vision audit, the polyrepo recon brief (2026-07-21), the assets/ delivery session, and three months of session lessons.
 
+> **STATUS MARKERS ADDED 2026-07-28 — annotation only, no content rewritten.** The §5 and §6
+> tables below carry `DONE` / `IN-PROGRESS` / `NOT-STARTED` markers. Every marker is evidenced in
+> `docs/intake/2026-07-28-north-star-delta-review.md` (**DRAFT — non-citable until ratified**),
+> which pins each status to a commit sha, ADR id, or BACKLOG row read at `main` `6195d932`.
+> Tally at that pin: **6 DONE · 1 IN-PROGRESS · 8 NOT-STARTED** of 15 tracked items. **§4 is
+> superseded by ADR-104** (Accepted 2026-07-24) and **§2–§3 are routed to [#382]** — read §4 as
+> historical input to a settled ruling, never as a live recommendation. The prose is unchanged
+> from the 2026-07-21 original.
+
 ---
 
 ## 0. What shipped today (educate: change · why · what-next)
@@ -76,6 +85,13 @@ State of practice, from research: predictive quality analytics is mainstream —
 
 ## 4. The polyrepo ruling — inputs distilled (decision is the operator's, in its own session)
 
+> **SUPERSEDED 2026-07-28 (status marker — §4 prose unchanged).** The ruling session this section
+> fed **happened**: **ADR-104** *Fleet repository shape — partial fold on engineering grounds;
+> polyrepo mostly retained*, Accepted **2026-07-24**, merge `92fabb51`, closing [#381]; it cites
+> `Intake: #16 §4` as its input. Read everything below as **historical input to a settled ADR**,
+> never as a live recommendation. One item survives the supersession: fact 2's fabricated 10–20
+> figure is still uncorrected in the 3 handoff files (**[#388]**, open).
+
 The recon (2026-07-21, read-only) re-prices the bet. Facts, none of which is a decision:
 
 1. **Never argued.** 78 ADRs; zero weigh monorepo vs polyrepo. ADR-28 self-declares descriptive ("names an operating pattern already in place"). The shape entered canon as an observation.
@@ -92,27 +108,27 @@ The recon (2026-07-21, read-only) re-prices the bet. Facts, none of which is a d
 
 ## 5. Lessons codified (three months of mistakes, as design rules)
 
-1. **One data model, not N registries.** Every check derives from the schema; a check without a schema row is the registry-sprawl anti-pattern. (Kills the witnessed "green that means nothing" class: phantom enforcement, filtered review, non-distinguishing assertions, one-directional verification.)
-2. **Decide the bet before building its machinery.** The standing brake (JOURNAL.md:76) generalizes: shape rulings precede structure investment.
-3. **Prove, then codify.** Working discipline enters PLAYBOOK after it has shipped once — never as a substitute for shipping.
-4. **Witnessed, not merged.** Closure is the operator's eye or a mechanical report — never a proxy.
-5. **Adopt the model, not the tool** when the tool's substrate doesn't match (Copier → regenerate; Terraform → reconcile loop; Splunk → the data frame, not the platform).
-6. **Verify numbers before they propagate.** The 10–20 figure crossed from one audit into three handoff files in a day. Load-bearing figures get a live re-derivation before reuse.
-7. **Meta serves object.** Every session's success metric is a visible, witnessed change; planning artifacts are enablers or they are distractions.
+1. **One data model, not N registries.** Every check derives from the schema; a check without a schema row is the registry-sprawl anti-pattern. (Kills the witnessed "green that means nothing" class: phantom enforcement, filtered review, non-distinguishing assertions, one-directional verification.) — **NOT-STARTED** (vehicle [#382] open; 4 registries undissolved)
+2. **Decide the bet before building its machinery.** The standing brake (JOURNAL.md:76) generalizes: shape rulings precede structure investment. — **DONE** (brake discharged by ADR-104 @ `92fabb51`; recorded `BACKLOG.md:417`)
+3. **Prove, then codify.** Working discipline enters PLAYBOOK after it has shipped once — never as a substitute for shipping. — **DONE** (`PLAYBOOK.md:2590` + §21 @ `db878f4c`; [#386] closure-eligible, still open)
+4. **Witnessed, not merged.** Closure is the operator's eye or a mechanical report — never a proxy. — **DONE** (PLAYBOOK §21 gate 7 OPERATOR WITNESS + "Merged ≠ done" @ `db878f4c`)
+5. **Adopt the model, not the tool** when the tool's substrate doesn't match (Copier → regenerate; Terraform → reconcile loop; Splunk → the data frame, not the platform). — **IN-PROGRESS** (applied in ADR-104's partial fold; [#387] open — intake #2 still argues the rejected engine)
+6. **Verify numbers before they propagate.** The 10–20 figure crossed from one audit into three handoff files in a day. Load-bearing figures get a live re-derivation before reuse. — **NOT-STARTED** (its own worked example, [#388], is still open)
+7. **Meta serves object.** Every session's success metric is a visible, witnessed change; planning artifacts are enablers or they are distractions. — **NOT-STARTED** (the only §5 lesson with neither a rule nor a row — zero grep hits in PLAYBOOK/ESSENTIALS)
 
 ---
 
 ## 6. The plan — sequenced, each link unblocks the next
 
-| # | Step | Gate to advance | Owner |
-|---|---|---|---|
-| 1 | **Close assets/**: `git push` from ai-council main; educate = §0 of this doc | Operator pushes + confirms §0 landed | Operator / architect |
-| 2 | **Polyrepo ruling session** — inputs: recon brief + §4; price the three unpriced items first; correct 10–20→5–8 in the 3 handoff files | Operator ruling recorded as the fleet's **first shape ADR** | Operator (architect recommends) |
-| 3 | **Desired-state intake → ADR** — the §2 architecture (pydantic + networkx + pandas + regenerate/apply + state file), matrix width set by the ruling; L0 surfaces from the operator's checklist (caches, `.claude`+skills, archives, docs layout, Python parity, colours-via-carrier) | ADR accepted; schema v1 committed | Architect → CC |
-| 4 | **Execution waves per surface** — worktrees launched singly, one in focus at a time; wave-done = **the pandas report shows zero undeclared divergence** for that surface | Report-green per wave, operator reads the report | CC (architect reviews) |
-| 5 | **L5a analytics lane** — nightly PyDriller mining → hotspot/change-coupling/rot frames per repo + fleet | First frames reviewed; rot findings become tickets | CC nightly |
-| 6 | **L4 tech-currency lane** — nightly research → version-bump proposals written *into the contract* → ruled → distributed via the apply channel | First proposal flows contract→deploy end-to-end | CC nightly / operator rules |
-| 7 | **L5b predictive** — risk scoring on L5a frames | Gated: L5a shows signal volume | later |
+| # | Step | Gate to advance | Owner | Status @ 2026-07-28 |
+|---|---|---|---|---|
+| 1 | **Close assets/**: `git push` from ai-council main; educate = §0 of this doc | Operator pushes + confirms §0 landed | Operator / architect | **DONE** — `88b0876` on ai-council `origin/main` |
+| 2 | **Polyrepo ruling session** — inputs: recon brief + §4; price the three unpriced items first; correct 10–20→5–8 in the 3 handoff files | Operator ruling recorded as the fleet's **first shape ADR** | Operator (architect recommends) | **DONE** — ADR-104 Accepted 2026-07-24, merge `92fabb51`, closes [#381]. ↳ the 10–20→5–8 correction is **NOT-STARTED** ([#388] open) |
+| 3 | **Desired-state intake → ADR** — the §2 architecture (pydantic + networkx + pandas + regenerate/apply + state file), matrix width set by the ruling; L0 surfaces from the operator's checklist (caches, `.claude`+skills, archives, docs layout, Python parity, colours-via-carrier) | ADR accepted; schema v1 committed | Architect → CC | **NOT-STARTED** — [#382] open [P1][M]; no schema committed |
+| 4 | **Execution waves per surface** — worktrees launched singly, one in focus at a time; wave-done = **the pandas report shows zero undeclared divergence** for that surface | Report-green per wave, operator reads the report | CC (architect reviews) | **NOT-STARTED** — [#383] open, `depends-on: 382` |
+| 5 | **L5a analytics lane** — nightly PyDriller mining → hotspot/change-coupling/rot frames per repo + fleet | First frames reviewed; rot findings become tickets | CC nightly | **DONE** — built `5631660c`, [#384] closed @ `ffba8dd8`. **Carve-out: the *nightly* half is not true** — manual CLI only, [#391] open |
+| 6 | **L4 tech-currency lane** — nightly research → version-bump proposals written *into the contract* → ruled → distributed via the apply channel | First proposal flows contract→deploy end-to-end | CC nightly / operator rules | **NOT-STARTED** — [#385] open, doubly gated (382→383→385) |
+| 7 | **L5b predictive** — risk scoring on L5a frames | Gated: L5a shows signal volume | later | **NOT-STARTED** — no row; correctly gated, step 5 has one run |
 
 **Standing constraints across all steps:** no new fleet machinery before step 2 rules (the brake) · PLAYBOOK codification of the delivery loop rides after step 1 (prove→codify) · the buy-vs-build intake is rewritten before ingest (it argued for the rejected engine) · plan-governs: new scope files as backlog, never derails the active lane.
 
