@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-28 (c) — CC (Opus 5): closure review — [#434] closed on operator approval; the STRONG candidate refused again, now with MY OWN commit as its second false positive
+
+**SHA anchor (ADR-85).** This closure commit. Branch `chore/close-434`, base `c0b40d37`.
+
+**Did:** Ran the ADR-70 Tier-1 closure loop against `logs/PROPOSALS-2026-07-28.md` (1 STRONG + 127 WEAK). The operator invoked `/review-closures 434` — id typed individually, which is what the WEAK tier requires; nothing was bulk-approved.
+
+**[#434] CLOSED — WEAK tier, both Done-when clauses re-verified live.** The gate's WEAK evidence asserts only *"a named file changed"* (51 such commits here), so it is not a content check and was not treated as one. Verified independently: (1) **the aggregate is committed as a dated artifact** — `docs/audits/2026-07-27-verification-conformance-extraction-aggregate.md`, merge `16c5386f`, 2026-07-27, whose **§1 answers the pre-registered sharp test directly** (the 2026-07-25 digest DID flag `ARCHITECTURE.md:46` "ratified through ADR-103" while ADR-104 bound); (2) **the fork is ruled in the same window** — `docs/decisions/README.md`, merge `495b8a22`, also 2026-07-27. Same-window confirmed by comparing both merge dates, not by assuming the filenames. The last reserved precondition — RULING 2's *"branch deletion remains a separate operator word"* — was discharged this morning at `721648e1` (entry (b), R2). **Nothing orphaned:** `ecosystem/disposition-register.yaml` has no `#434` entry, and the surviving citations ([#428]'s row, ADR-107, intake #18) are provenance, true after closure. The ruling record in `docs/decisions/README.md` was updated in the same commit — the line I wrote this morning saying "closure-eligible but NOT closed" would otherwise have been stale within hours.
+
+**The STRONG candidate [#370] was REFUSED again — and it now carries a SECOND false-positive evidence commit, which is mine.** Entry (a) refused [#370] this morning on `12e6b45b7`, an id-collision renumber whose body sentence *"no commit carries a `closes [#370]` tag"* the detector read AS the closure. Today's proposals list a second evidence sha: **`d993922ef`** — my own entry-(b) commit filing **[#437]**, the ticket *for this exact defect*. Its message quotes `12e6b45b`'s sentence verbatim to document the bug, and `CLOSES_RE` matched the quotation. **The defect reproduced itself inside the ticket that describes it**, in under six hours, which is a sharper argument for [#437] than the ticket's own prose: any commit that so much as *discusses* the pattern becomes new false evidence, so the false-positive set grows every time someone writes about it. Recorded here rather than fixed — [#437] is filed, and gate-code is exactly the class [#438] says gets a design review before a build.
+
+**Result:** `validate_backlog: OK` (9 themes, 26 stories, **175 → 174 tasks**, **0 warnings**). `tasks/` regenerated to 174. Id gap kept; nothing renumbered.
+
+**Changes:** `BACKLOG.md` ([#434] row removed, done-items-leave per ADR-65), `tasks/` (regen −1), `docs/decisions/README.md` (closure recorded at the ruling's home), `JOURNAL.md`.
+
+**Abandoned:** nothing. **Next:** [#386] still looks closure-eligible (flagged in entry (b), unreviewed); [#437] remains the standing source of the [#370] re-proposal every window.
+
 ### 2026-07-28 (b) — CC (Opus 5): recording batch — [E8] clause (b) AMENDED (D1), conformance branches deleted (D2), North Star delta reviewed
 
 **SHA anchor (ADR-85).** `d993922e` ([E8] clause-(b) amendment + #409/#410 + [#437]/[#438]) · `721648e1` (branch-deletion record + teardown rule) · `bc350143` (North Star delta review) · `cd4630fa` (self-induced doc_rot trim) · this wrap commit. Branch `docs/recording-batch-2026-07-28`, base `6195d932`.
