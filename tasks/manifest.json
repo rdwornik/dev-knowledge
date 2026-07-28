@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "source": "BACKLOG.md",
-  "source_sha256": "69a3c3f1ae0a1b6109797e78fcf9a0467fb44186d33b1959bcbd1be1c3333a77",
+  "source_sha256": "d71c845556c362fee78b8be599e41a253dfe0cc8acb53287ff1d0e4d0f9fe429",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -917,10 +917,6 @@
     {
       "task": 428,
       "file": "428-nightly-triage-reports-a-dead-producer-to-every.md"
-    },
-    {
-      "task": 434,
-      "file": "434-conformance-branch-extraction-pass-one-bounded-a.md"
     },
     {
       "prose": ""

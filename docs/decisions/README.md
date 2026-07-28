@@ -177,9 +177,17 @@ weakened — it did its job: deletion waited for an explicit word rather than ri
 **Durable record:** the branches carried no unique content past the aggregate, which is on `main`
 at `docs/audits/2026-07-27-codex-conformance-extraction-aggregate.md` +
 `docs/audits/2026-07-27-verification-conformance-extraction-aggregate.md` — verified present on
-`main` *before* the delete, so RULING 2's ordering (extract, then delete) held. **[#434] is
-thereby closure-eligible but NOT closed** — closure remains the operator's `/review-closures` act
-(ADR-70); the caveat above still binds whoever builds the reader.
+`main` *before* the delete, so RULING 2's ordering (extract, then delete) held.
+
+**[#434] CLOSED 2026-07-28** — operator-approved via `/review-closures 434` (WEAK tier, id typed
+individually; never bulk-approved). Both Done-when clauses were re-verified against live state
+rather than trusted from the gate, which for a WEAK candidate asserts only that a named file
+changed: (1) the aggregate is committed as a dated artifact — `docs/audits/2026-07-27-verification-conformance-extraction-aggregate.md`
+(merge `16c5386f`, 2026-07-27), whose §1 answers the pre-registered **sharp test** directly; (2)
+the fork is ruled in the same window — this section, landed at merge `495b8a22`, also 2026-07-27.
+Removed per done-items-leave (ADR-65); the id gap stays, nothing renumbered. **The caveat above
+outlives the row** — it binds whoever builds the reader, and [#428] carries that obligation
+forward.
 
 ## Transcript naming convention
 
