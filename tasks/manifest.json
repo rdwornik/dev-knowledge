@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "b09ba84a0e974bd98aee3fa8c5f7b12a0fc635cb2ca2202f7856c3ae8247b7a4",
+  "generated_sha256": "859e66ef20dec036890c3c82a36a52862ee15f8e0b36144a690eada676759bdf",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -483,6 +483,10 @@
     {
       "task": 441,
       "file": "441-way-of-working-the-default-is-one-strong-self-co.md"
+    },
+    {
+      "task": 443,
+      "file": "443-planning-artifacts-outside-the-three-enforced-cl.md"
     },
     {
       "prose": ""
