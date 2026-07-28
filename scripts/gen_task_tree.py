@@ -377,7 +377,9 @@ def write_tree(model: Model, out_dir: Path) -> list[str]:
         for path, text in staged:
             done.append((path, path.read_bytes() if path.exists() else None))
             path.write_text(text, encoding="utf-8", newline="\n")
-    except OSError:
+    except BaseException:
+        # BaseException for the same reason as _cmd_emit_source: a Ctrl+C mid-import must
+        # not leave the authoritative tree half-rewritten (terra P1, 9th pass).
         for path, original in reversed(done):
             try:
                 if original is None:
@@ -509,7 +511,14 @@ def _cmd_emit_source(source_path: Path, out_dir: Path) -> int:
     # this command performs is now staged into one list and rolled back together.
     manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
     digest = hashlib.sha256(generated.encode("utf-8")).hexdigest()
-    current = source_path.read_bytes().decode("utf-8") if source_path.exists() else None
+    # terra P1 (9th pass): an existing output containing invalid UTF-8 made this decode
+    # raise BEFORE any write, so the one command that could REPAIR the derived artifact
+    # was the one command that could not run. Undecodable output is simply stale.
+    current: str | None
+    try:
+        current = source_path.read_bytes().decode("utf-8") if source_path.exists() else None
+    except UnicodeDecodeError:
+        current = None
 
     writes: list[tuple[Path, str]] = list(plan)
     if current != generated:
@@ -523,7 +532,12 @@ def _cmd_emit_source(source_path: Path, out_dir: Path) -> int:
         for path, text in writes:
             done.append((path, path.read_bytes() if path.exists() else None))
             path.write_text(text, encoding="utf-8", newline="\n")
-    except OSError as exc:
+    except BaseException as exc:
+        # BaseException, not OSError (terra P1, 9th pass): a Ctrl+C landing mid-write
+        # raises KeyboardInterrupt, which an `except OSError` rollback does not catch --
+        # leaving the SOURCE OF TRUTH partially written by the very handler meant to
+        # prevent that. Roll back for any interruption, then re-raise anything that is not
+        # a plain I/O error so Ctrl+C still reads as Ctrl+C.
         for path, original in reversed(done):
             try:
                 if original is None:
@@ -533,8 +547,10 @@ def _cmd_emit_source(source_path: Path, out_dir: Path) -> int:
             except OSError:
                 print(f"gen_task_tree: ROLLBACK FAILED for {path.name} — inspect the tree "
                       f"before regenerating", file=sys.stderr)
-        print(f"gen_task_tree: emit-source FAIL (rolled back, nothing changed): {exc}",
+        print(f"gen_task_tree: emit-source FAIL (rolled back, nothing changed): {exc!r}",
               file=sys.stderr)
+        if not isinstance(exc, OSError):
+            raise
         return 1
 
     refreshed = [path.name for path, _ in plan]

@@ -533,6 +533,47 @@ def test_write_import_rolls_back_a_torn_write(tmp_path, monkeypatch):
     assert after == before, "a torn import must roll back to the prior bytes"
 
 
+def test_emit_source_regenerates_over_a_non_utf8_output(tmp_path):
+    """terra P1 (9th pass) — an existing BACKLOG.md containing invalid UTF-8 made the
+    decode raise BEFORE any write, so the one command able to REPAIR the derived artifact
+    was the one command that could not run. Undecodable output is simply stale."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    expected = source.read_bytes()
+    source.write_bytes(b"\xff\xfe not valid utf-8 \xff")
+
+    assert gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)]) == 0
+    assert source.read_bytes() == expected, "regen must repair the corrupt output"
+    assert gtt.find_incoherences(source, out_dir) == []
+
+
+def test_emit_source_rolls_back_on_keyboard_interrupt(tmp_path, monkeypatch):
+    """terra P1 (9th pass) — a Ctrl+C landing mid-write raises KeyboardInterrupt, which an
+    `except OSError` rollback does not catch, leaving the SOURCE OF TRUTH partially written
+    by the very handler meant to prevent that. The interrupt must still propagate."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    for p in out_dir.iterdir():
+        if p.name.endswith(".md"):
+            p.write_text(p.read_bytes().decode("utf-8").replace("status: open", "status: x", 1),
+                         encoding="utf-8", newline="\n")
+    before = {p.name: p.read_bytes() for p in out_dir.iterdir()}
+
+    real_write_text = Path.write_text
+    calls = {"n": 0}
+
+    def interrupted(self, *a, **kw):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise KeyboardInterrupt
+        return real_write_text(self, *a, **kw)
+
+    monkeypatch.setattr(Path, "write_text", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)])
+    monkeypatch.undo()
+
+    assert {p.name: p.read_bytes() for p in out_dir.iterdir()} == before
+
+
 def test_manifest_declares_the_post_flip_direction(tmp_path):
     import json
     text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"
