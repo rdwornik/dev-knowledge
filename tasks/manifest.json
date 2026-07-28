@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "859e66ef20dec036890c3c82a36a52862ee15f8e0b36144a690eada676759bdf",
+  "generated_sha256": "92d24ba74c88440c1e8e31ca93b3864ff6bd235a145465a5e7519d5c5f490060",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -421,6 +421,10 @@
     {
       "task": 324,
       "file": "324-phase-6-axis-2-carrier.md"
+    },
+    {
+      "task": 444,
+      "file": "444-release-tier1-lifecycle-0-1-11-ship-the-437-quot.md"
     },
     {
       "task": 325,
@@ -890,7 +894,7 @@
     },
     {
       "task": 440,
-      "file": "440-make-the-tasks-id-ledger-tamper-evident.md"
+      "file": "440-make-the-tasks-id-ledger-tamper-evident-a-delete.md"
     },
     {
       "prose": ""
