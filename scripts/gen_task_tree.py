@@ -821,14 +821,17 @@ def _scan_source(out_dir: Path) -> tuple[list[str], list[str], dict | None]:
         except ValueError:
             record_body = None      # malformed record; the status leg reports it
         record_body_id = int(record_body.group(1)) if record_body else None
-        mismatched = [i for i in (record_fm_id, record_body_id)
-                      if i is not None and i != record_file_id]
-        if mismatched:
+        # PRESENT and equal, not merely "not contradicting" (terra P1, 15th pass): filtering
+        # None out meant a record with a MISSING frontmatter or body id had nothing left to
+        # compare, so `mismatched` came back empty and the corrupted record passed. Absence
+        # is not agreement -- the same lesson the index/worktree guard already learned.
+        if record_fm_id != record_file_id or record_body_id != record_file_id:
             identity.append(
-                f"retired allocation record disagrees with itself about its id: {p.name} "
-                f"(filename [#{record_file_id}], frontmatter [#{record_fm_id}], "
-                f"body [#{record_body_id}]) — a record that keeps an id spent must be "
-                f"right about which id")
+                f"retired allocation record does not state its id consistently: {p.name} "
+                f"(filename [#{record_file_id}], frontmatter "
+                f"{'[#%d]' % record_fm_id if record_fm_id is not None else 'MISSING'}, "
+                f"body {'[#%d]' % record_body_id if record_body_id is not None else 'MISSING'})"
+                f" — a record that keeps an id spent must be right about which id")
         status = frontmatter_status(record_text)
         if status not in _TERMINAL_STATUSES:
             identity.append(

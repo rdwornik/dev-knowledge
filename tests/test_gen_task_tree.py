@@ -288,7 +288,7 @@ def test_check_reds_when_a_retired_record_disagrees_about_its_own_id(tmp_path):
     (out_dir / "77-a-lying-record.md").write_text(body, encoding="utf-8", newline="\n")
 
     problems = gtt.find_incoherences(source, out_dir)
-    assert any("disagrees with itself about its id" in p for p in problems), problems
+    assert any("does not state its id consistently" in p for p in problems), problems
 
 
 def test_check_reds_on_a_retired_record_still_marked_open(tmp_path):
