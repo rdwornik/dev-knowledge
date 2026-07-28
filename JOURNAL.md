@@ -19,6 +19,34 @@
 
 ---
 
+### 2026-07-28 (b) — CC (Opus 5): recording batch — [E8] clause (b) AMENDED (D1), conformance branches deleted (D2), North Star delta reviewed
+
+**SHA anchor (ADR-85).** `d993922e` ([E8] clause-(b) amendment + #409/#410 + [#437]/[#438]) · `721648e1` (branch-deletion record + teardown rule) · `bc350143` (North Star delta review) · `cd4630fa` (self-induced doc_rot trim) · this wrap commit. Branch `docs/recording-batch-2026-07-28`, base `6195d932`.
+
+**Mode: recording.** Seven items, all RECORD-not-EXECUTE by construction. Nothing drained, no row closed, no ADR body touched, no gate code fixed.
+
+**R1 — [E8] closure clause (b) AMENDED (operator ruling D1).** The F1 note of 2026-07-27 had ruled *ratchet + bounded drain* but left the drain-row selection pending, saying explicitly "the amendment lands with the row selection". It landed: **drain slice = [#356] + [#358]–[#361]**, with **[#362]** (the 49 dropped #242 guards) named as deliberately OUT of the slice; architect prepares / operator ratifies; **review 2026-08-26**; matrix unchanged (slice × mechanism × owner × review date). The frozen contract text stays byte-unchanged — it is reproduced-verbatim, so the amendment lands as a recorded blockquote beside F1, the same convention F1 itself used. Plus the two recorded lines: **operator intent for the FULL 428-rule pool** (drained, mechanized, or *deliberately retired as no-longer-valid* — staged, wholesale classes post-flip; *"nothing expires by being forgotten"*), and the **drain-owed-now** list (`PLAYBOOK.md:1270`, `REPO_ONBOARDING.md:92`, `REPO_ONBOARDING.md:199` + the 43-line delta per the 2026-07-27 ratchet arm-measurement census) with its baseline semantics (architect-proposed 2026-07-27, operator-adopted D4, test-and-iterate).
+
+**R2 — seven `claude/conformance-*` branches DELETED on operator word D2.** The [#434] fork ruling had reserved this: *"Branch deletion remains a separate operator word."* Word given, reservation discharged. **Ordering held and was verified, not remembered** — both aggregates confirmed present on `main` via `git ls-tree` BEFORE the delete, so RULING 2's extract-then-delete sequence is satisfied by evidence and the durable record survives the branches. Verified after: `git branch -a` shows **zero** conformance entries, local or remote. The `claude/conformance-*` protection in `git-discipline.md` was not weakened — it did its job, holding the deletion until an explicit word instead of letting it ride a merge. **[#434] is closure-eligible and NOT closed** — ADR-70 reserves that for `/review-closures`.
+
+**R3 — North Star delta review (intake #20, DRAFT, non-citable until ratified).** The (i) question resolves to **ZERO**: stripping intake #16's frontmatter and diffing against the operator's local `Downloads/FLEET_NORTH_STAR_2026-07-21.md` yields one hunk — a single added blank line. §0–§6 byte-identical. **Nothing was lost in the consumption**, measured rather than eyeballed. (ii) statuses **15 items** — 7 plan steps, 7 lessons, 1 hygiene — each backed by a sha / ADR id / BACKLOG row read live: **6 DONE · 1 IN-PROGRESS · 8 NOT-STARTED**. Superseded marked: §4 → ADR-104 (`92fabb51`), §2–§3 → [#382]. Intake #16 annotated with **status markers only**; its 2026-07-21 prose is unchanged.
+
+**What the sweep surfaced.** §5 lesson 7 *"meta serves object"* is the **one item with neither a rule nor a row** (zero grep hits in PLAYBOOK/ESSENTIALS) — precisely the class the operator's driver names. **[#386] appears closure-eligible** (PLAYBOOK §21 @ `db878f4c` states all three Done-when rules) — recorded as an observation for `/review-closures`, not acted on. Step 5 **closed while half-true**: [#384] closed on frames-reviewed evidence while its "nightly lane" half was never wired ([#391] open, manual CLI only). And intake #16 is still DRAFT with an empty `consumed-by:` though two consumers have shipped ADRs.
+
+**R4 — hygiene.** #409/#410 shared a word-for-word body, so the #187 dedup heuristic read 92% overlap; differentiated by actual subject (#409 diff-facing, #410 structure-facing) with substance untouched — **WARN cleared**. Two rows filed, ids derived from a full history scan (max 436; the `[#777]` hit is the documented synthetic fixture): **[#437]** the `CLOSES_RE` backtick defect — which entry (a) above flagged as unfiled six hours earlier — and **[#438]** the gate-class posture rule. [#437]'s premise was re-verified live rather than inherited: today's proposals run still cites `12e6b45b7`, and `validate_git_backlog._strip_code_spans:87` already solves it, making this shared-core divergence rather than missing capability.
+
+**R5 — teardown rule as mechanism.** `git-discipline.md` now states that worktree teardown covers **both** branches — the work branch *and* the `worktree-<name>` provisioning branch. The provisioning half is the forgotten one because the work branch is the one you were thinking about. Carries a `verify:` line.
+
+**R6 — NOT DONE, and that is the correct outcome.** The instruction was conditional on the operator's explicit word "Accepted" accompanying the prompt. It did not. **ADR-107 stays `Proposed` and nothing was recorded** — the conditional was read as written rather than inferred from the arc's momentum.
+
+**One self-inflicted defect, caught and fixed not laundered.** The ship-gate surfaced exactly one NEW WARN and it was mine: [#437] landed at 1314 chars against the 1200 doc_rot ceiling. Trimmed to **1190** by compression only — every anchor, sha and clause survives — and deliberately **not** dispositioned: a register entry is for a WARN we accept, and accepting one manufactured by its own sibling commit would launder bloat past a gate built to catch it. Landed at 1190 rather than the 1200 boundary because the rule is `> 1200`, so a zero-char margin re-reds on the next character anyone adds.
+
+**Result.** `validate_backlog: OK` (9 themes, 26 stories, **173 → 175 tasks**, **0 warnings** — the #409/#410 WARN that entry (a) recorded as pre-existing is now gone). `tasks/` regenerated to 175. **Ship-gate GREEN** — 19 WARNs, all pre-existing and dispositioned; **nothing new**.
+
+**Changes:** `BACKLOG.md`, `tasks/` (regen +2), `docs/decisions/README.md`, `.claude/rules/git-discipline.md`, `docs/intake/2026-07-28-north-star-delta-review.md` (new), `docs/intake/2026-07-21-func-fleet-north-star.md` (status markers), `docs/intake/README.md` (regen), `JOURNAL.md`.
+
+**Abandoned:** nothing. **Next:** [#434] and [#386] both await `/review-closures`; §5 lesson 7 and the intake #16 lifecycle question are open for the operator in the delta review §6.
+
 ### 2026-07-28 (a) — CC (Opus 5): closure review — [#436] closed on operator approval; the one STRONG candidate refused as a detector false positive
 
 **SHA anchor (ADR-85).** This closure commit. Branch `chore/close-436`, base `2dca67a5`.
