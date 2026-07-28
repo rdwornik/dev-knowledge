@@ -364,14 +364,32 @@ def write_tree(model: Model, out_dir: Path) -> list[str]:
     tasks = _task_rows(model)
     fname_by_id = _fname_map(tasks)
 
-    written: list[str] = []
-    for task in tasks:
-        fname = fname_by_id[task.id]
-        (out_dir / fname).write_text(emit_task_file_text(task), encoding="utf-8", newline="\n")
-        written.append(fname)
+    # ONE transaction, like --emit-source (terra P1, 8th pass). Post-flip this rewrites the
+    # SOURCE OF TRUTH, so an I/O failure partway through would leave the authoritative tree
+    # half-rewritten or a manifest truncated -- the recovery command making things worse
+    # than the state it was run to repair.
+    staged: list[tuple[Path, str]] = [
+        (out_dir / fname_by_id[task.id], emit_task_file_text(task)) for task in tasks]
+    staged.append((out_dir / "manifest.json", render_manifest(model, fname_by_id)))
 
-    (out_dir / "manifest.json").write_text(render_manifest(model, fname_by_id), encoding="utf-8", newline="\n")
-    written.append("manifest.json")
+    done: list[tuple[Path, bytes | None]] = []
+    try:
+        for path, text in staged:
+            done.append((path, path.read_bytes() if path.exists() else None))
+            path.write_text(text, encoding="utf-8", newline="\n")
+    except OSError:
+        for path, original in reversed(done):
+            try:
+                if original is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    path.write_bytes(original)
+            except OSError:
+                print(f"gen_task_tree: ROLLBACK FAILED for {path.name} — inspect the tree",
+                      file=sys.stderr)
+        raise
+
+    written: list[str] = [path.name for path, _ in staged]
 
     emitted = set(fname_by_id.values())
     live_ids = set(fname_by_id)
@@ -637,6 +655,10 @@ def _scan_source(out_dir: Path) -> tuple[list[str], list[str], dict | None]:
         manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
     except (OSError, ValueError, UnicodeDecodeError) as exc:
         return ([f"manifest.json unreadable: {exc}"], [], None)
+    # terra P1 (8th pass): a valid-JSON root that is a list/scalar/null made `.get` raise
+    # AttributeError, crashing both the regen and the ship-gate instead of reporting.
+    if not isinstance(manifest, dict):
+        return ([f"manifest.json root is not an object: {type(manifest).__name__}"], [], None)
     if not isinstance(manifest.get("nodes"), list):
         return (["manifest.json has no 'nodes' list"], [], None)
     malformed = [p for p in (manifest_node_problem(n) for n in manifest["nodes"]) if p]
@@ -693,6 +715,15 @@ def _scan_source(out_dir: Path) -> tuple[list[str], list[str], dict | None]:
         node_id = referenced[fname]
         if body_id is None:
             identity.append(f"task file body is not a task line: {fname}")
+            continue
+        # terra P1 (8th pass): _TASK_RE validates only the FIRST line, while both the
+        # frontmatter render and reassembly preserve the whole body -- so extra physical
+        # lines rode into BACKLOG.md as prose that never passed through manifest.json,
+        # which is the authoritative carrier for every non-task line (ADR-107 §2).
+        if "\n" in body:
+            identity.append(
+                f"task file body spans multiple lines: {fname} — a task is ONE physical "
+                f"line; non-task prose belongs in manifest.json, not in a task body")
             continue
         if not (file_id == body_id == node_id):
             identity.append(
@@ -786,6 +817,8 @@ def manifest_node_problem(node: object) -> str | None:
 def _require_well_formed_nodes(manifest: dict) -> None:
     """Raise ValueError on the first malformed node — the guard for the traversal paths
     (`lineage_from_manifest`, `reassemble_from_tree`) whose callers catch ValueError."""
+    if not isinstance(manifest, dict):
+        raise ValueError(f"manifest.json root is not an object: {type(manifest).__name__}")
     nodes = manifest.get("nodes")
     if not isinstance(nodes, list):
         raise ValueError("manifest.json has no 'nodes' list")

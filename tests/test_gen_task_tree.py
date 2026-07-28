@@ -481,6 +481,58 @@ def test_emit_source_rolls_back_a_failed_backlog_write(tmp_path, monkeypatch):
         assert path.read_bytes() == original, f"{path.name} must be restored"
 
 
+@pytest.mark.parametrize("root", ["[1, 2]", "null", '"a string"', "42"])
+def test_non_object_manifest_root_is_a_controlled_failure(tmp_path, root):
+    """terra P1 (8th pass) — a valid-JSON root that is not an object made `.get` raise
+    AttributeError, crashing both the regen and the ship-gate instead of reporting."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    (out_dir / "manifest.json").write_text(root + "\n", encoding="utf-8", newline="\n")
+    problems = gtt.find_incoherences(source, out_dir)      # must not raise
+    assert any("root is not an object" in p for p in problems), problems
+    assert gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)]) == 1
+
+
+def test_check_reds_on_a_multiline_task_body(tmp_path):
+    """terra P1 (8th pass) — _TASK_RE validates only the FIRST line while the frontmatter
+    render and reassembly preserve the whole body, so extra physical lines rode into
+    BACKLOG.md as prose that never passed through manifest.json — the authoritative
+    carrier for every non-task line (ADR-107 §2)."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    task_file = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    text = task_file.read_bytes().decode("utf-8")
+    task_file.write_text(text.rstrip("\n") + "\nsmuggled prose line\n",
+                         encoding="utf-8", newline="\n")
+
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("spans multiple lines" in p for p in problems), problems
+
+
+def test_write_import_rolls_back_a_torn_write(tmp_path, monkeypatch):
+    """terra P1 (8th pass) — --write rewrites the SOURCE post-flip, so an I/O failure
+    partway through would leave the authoritative tree half-rewritten: the documented
+    recovery command making things worse than the state it was run to repair."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    before = {p.name: p.read_bytes() for p in out_dir.iterdir()}
+    assert len(before) >= 3, "need several files so the failure lands mid-loop"
+
+    real_write_text = Path.write_text
+    calls = {"n": 0}
+
+    def flaky(self, *a, **kw):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise OSError("simulated disk full")
+        return real_write_text(self, *a, **kw)
+
+    monkeypatch.setattr(Path, "write_text", flaky)
+    with pytest.raises(OSError):
+        gtt.write_tree(gtt.parse_backlog(source.read_bytes().decode("utf-8")), out_dir)
+    monkeypatch.undo()
+
+    after = {p.name: p.read_bytes() for p in out_dir.iterdir()}
+    assert after == before, "a torn import must roll back to the prior bytes"
+
+
 def test_manifest_declares_the_post_flip_direction(tmp_path):
     import json
     text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"

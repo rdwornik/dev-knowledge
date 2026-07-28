@@ -211,7 +211,9 @@ def test_every_problem_path_is_present():
                   "no 'nodes' list", "missing task file", "unreadable or malformed",
                   "frontmatter disagrees with its own body", "placement:",
                   "foreign task-shaped file", "reassemble_from_tree",
-                  "does not match what tasks/ generates", "generated_sha256"):
+                  "does not match what tasks/ generates", "generated_sha256",
+                  "root is not an object", "spans multiple lines",
+                  "same task file twice", "two ACTIVE task files"):
         assert shape in src, f"problem path lost: {shape}"
 
 
