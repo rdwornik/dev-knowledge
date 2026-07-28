@@ -1,11 +1,23 @@
 # MORNING — night batch 2026-07-28→29 (branch `claude/night-2026-07-28-prep-5my46t`)
 
 **Contract kept:** branch-only · zero merges · zero BACKLOG/`tasks/` writes · zero closures · nothing deleted.
-**Verification status: ALL claims UNVERIFIED-UNTIL-LOCAL** — cloud VM without your `~/.claude` gates, without
-the Codex lane, and with a uv-version mismatch (`0.8.17` vs the ADR-106 pin `0.11.19`), so NO pytest /
-ship-gate / pre-commit ran. Line-number anchors cite the quoted text as the real anchor. This file is
-ephemeral operator I/O — consume and delete it in the morning batch (a root add would otherwise trip
-`validate-hermetization` Rule A when committed locally; here the hook was not armed).
+**Verification status — UPGRADED post-batch** (still no `~/.claude` user-level gates, no Codex lane; your
+local run stays authoritative). The VM was repaired mid-session: uv pinned `0.11.19` installed (the shipped
+`0.8.17` shadowed it on PATH), the SHALLOW clone unshallowed (it had faked "edited 2026-07-23" freshness
+FAILs — graft-boundary artifact), pre-commit armed all 3 stages. Then, for real, through `uv run --locked`:
+**ruff clean · `gen_task_tree --check` ok · PLAYBOOK TOC ok · silent-rule ratchet 427 ≤ 428 (the draft's +2
+drained, see commit) · audit-health hard-fail-free · the last commit passed the full armed hook stack.**
+**pytest:** full run 1927 passed / 27 failed / 4 skipped (+1 deselect = the known [#430] fleet-parity red);
+after `uv sync --all-groups` (pandas group was unsynced) the 18 `test_fleet_analytics` fails all PASS;
+the residual 10 are environment-classified — git-version message text (`index.lock` wording), the isolated
+pre-commit store push, language-server absence (reverse-dep oracle ×5, safe-remove, legibility-graph,
+carrier-hooks) — re-verify locally. **ship-gate: RED on exactly 4 undispositioned WARNs, zero hard fails**
+— this file's deliberate root add (fleet_parity root-sweep), 2× sibling-repo-unavailable (no `ai-council`/
+`corp-monorepo` in the VM), and the pre-existing `reconciled_versions` malformed-stamp WARN on
+`templates/CONTRIBUTING-md-template.md`. Dispositioning is your ADR-75 call, not the night lane's.
+Line-number anchors cite the quoted text as the real anchor. This file is ephemeral operator I/O — consume
+and delete it in the morning batch (its root add trips `validate-hermetization` Rule A + the root-sweep WARN
+by design, both of which vanish with the file).
 
 ## Produced (3 artifacts, 3 commits)
 
@@ -41,4 +53,6 @@ ephemeral operator I/O — consume and delete it in the morning batch (a root ad
 4. `.vscode` word (item 1) — independent of the merges.
 5. Delete this file in the first fix-batch commit; the two audits + JOURNAL carry the record.
 
-**Tip at write time:** `1288c0e` (this file lands one commit later — the pushed tip is the branch head).
+**Tip:** see the branch head — after this file's first commit (`76d161b`) the batch added the ratchet-drain
+commit (`05efa7d9`, three normative tokens reworded in the [#441] draft, meaning unchanged) and this
+verification-status update. All artifact content above is otherwise unchanged since its cited commit.
