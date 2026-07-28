@@ -230,6 +230,83 @@ def test_lineage_from_manifest_matches_the_parser(tmp_path):
         assert (theme, story) == (row.theme, row.story), fname
 
 
+def test_check_reds_when_the_id_disagrees_across_filename_body_and_manifest(tmp_path):
+    """terra P1 (2026-07-28, 2nd pass) — the expected frontmatter was rebuilt from the
+    FILENAME alone, so editing a body's `[#N]` was invisible: expected id came from the
+    filename, matched the unchanged actual, and the emitted BACKLOG.md carried the NEW id.
+    File, manifest and document then disagreed about which id the task is, with every leg
+    green. Identity is byte-exact (ADR-107 §2) and must agree in all three places."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    assert gtt.find_incoherences(source, out_dir) == []
+
+    task_file = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    original = task_file.read_bytes().decode("utf-8")
+    task_file.write_text(original.replace("- [#1] ", "- [#500] ", 1),
+                         encoding="utf-8", newline="\n")
+
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("task id disagrees across filename/body/manifest" in p for p in problems), problems
+
+
+def test_check_reds_when_a_retired_id_is_re_issued(tmp_path):
+    """terra P1 (2nd pass) — retire-not-delete only buys an allocation ledger if a spent id
+    cannot come back. Unreferenced engine-managed files were skipped silently, so a retired
+    `1-old.md` beside a new active `1-new.md` re-issued a spent id and the gate passed —
+    defeating the exact guarantee §6.3 keeps those files for."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    active = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    # a RETIRED record (engine-managed, outside the manifest) holding the same id
+    (out_dir / "1-a-retired-record.md").write_text(
+        active.read_bytes().decode("utf-8"), encoding="utf-8", newline="\n")
+
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("re-issued" in p and "[#1]" in p for p in problems), problems
+
+
+def test_retired_record_with_a_distinct_id_stays_silent(tmp_path):
+    """The complement: retirement itself must stay silent, or every closure REDs the gate."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    active = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    body = active.read_bytes().decode("utf-8").replace("[#1]", "[#77]")
+    (out_dir / "77-a-retired-record.md").write_text(body, encoding="utf-8", newline="\n")
+    assert gtt.find_incoherences(source, out_dir) == []
+
+
+@pytest.mark.parametrize("evil", [
+    "1-../../escaped.md", "../evil.md", "sub/1-x.md", "1-x\\..\\y.md", "", 42,
+])
+def test_manifest_filename_traversal_is_refused(tmp_path, evil):
+    """terra P1 (2nd pass) — `file` values come from manifest.json, which the flip made a
+    HAND-EDITED source artifact, and refresh_task_frontmatter WRITES through them. A
+    traversing or malformed path would read and rewrite outside tasks/ during the ordinary
+    --emit-source workflow. `_ORPHAN_RE` never guarded this: it walks real dirents, not
+    manifest strings."""
+    assert gtt.manifest_filename_problem(evil) is not None
+
+
+def test_manifest_filename_accepts_a_normal_task_basename():
+    assert gtt.manifest_filename_problem("439-adr-107-strangler-step-3.md") is None
+
+
+def test_emit_source_refuses_a_traversing_manifest_path(tmp_path):
+    """End-to-end: the guard must stop the WRITE path, not just exist as a helper."""
+    import json
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
+    for node in manifest["nodes"]:
+        if "task" in node:
+            node["file"] = "1-../../escaped.md"
+            break
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                             encoding="utf-8", newline="\n")
+
+    assert gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)]) == 1
+    assert not (tmp_path.parent / "escaped.md").exists()
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("unsafe manifest" in p for p in problems), problems
+
+
 def test_manifest_declares_the_post_flip_direction(tmp_path):
     import json
     text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"

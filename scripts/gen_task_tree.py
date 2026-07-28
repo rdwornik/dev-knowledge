@@ -374,10 +374,24 @@ def write_tree(model: Model, out_dir: Path) -> list[str]:
     written.append("manifest.json")
 
     emitted = set(fname_by_id.values())
+    live_ids = set(fname_by_id)
     for p in sorted(out_dir.iterdir()):
-        if p.is_file() and _ORPHAN_RE.match(p.name) and p.name not in emitted:
-            kind = "retired allocation record" if _is_engine_managed(p) else "FOREIGN file"
-            print(f"gen_task_tree: not in the active queue, left untouched ({kind}): {p.name}")
+        if not (p.is_file() and _ORPHAN_RE.match(p.name) and p.name not in emitted):
+            continue
+        if not _is_engine_managed(p):
+            print(f"gen_task_tree: not in the active queue, left untouched (FOREIGN file): {p.name}")
+        elif _id_from_filename(p.name) in live_ids:
+            # A title edit changes the derived SLUG, so the import path writes a new
+            # filename and the old one lingers holding the SAME id. That is a rename
+            # remnant, not a retirement, and it REDs the duplicate-id ledger leg until it
+            # is removed. Said plainly rather than deleted here: nothing in this module
+            # deletes a task file post-flip (ADR-107 §6.3).
+            print(f"gen_task_tree: RENAME REMNANT — {p.name} shares id "
+                  f"[#{_id_from_filename(p.name)}] with a file just emitted under a new "
+                  f"slug. Remove it; a duplicate id REDs the coherence gate.")
+        else:
+            print(f"gen_task_tree: not in the active queue, left untouched "
+                  f"(retired allocation record): {p.name}")
 
     return written
 
@@ -393,6 +407,9 @@ def reassemble_from_tree(tree_dir: Path) -> str:
     parts: list[str] = []
     for node in manifest["nodes"]:
         if "task" in node:
+            unsafe = manifest_filename_problem(node.get("file"))
+            if unsafe:
+                raise ValueError(unsafe)
             file_text = (tree_dir / node["file"]).read_bytes().decode("utf-8")
             parts.append(extract_body(file_text))
         else:
@@ -520,15 +537,16 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
     if not isinstance(manifest.get("nodes"), list):
         return ["manifest.json has no 'nodes' list"]
 
-    referenced: set[str] = set()
+    referenced: dict[str, int] = {}
     for node in manifest["nodes"]:
         if "task" not in node:
             continue
         fname = node.get("file")
-        if not fname:
-            problems.append(f"manifest task node [#{node.get('task')}] has no 'file'")
+        unsafe = manifest_filename_problem(fname)
+        if unsafe:
+            problems.append(unsafe)
             continue
-        referenced.add(fname)
+        referenced[fname] = node["task"]
         if not (out_dir / fname).exists():
             problems.append(f"manifest references a missing task file: {fname}")
 
@@ -544,21 +562,57 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
         except (OSError, ValueError, UnicodeDecodeError) as exc:
             problems.append(f"task file unreadable or malformed: {fname} ({exc})")
             continue
+        # terra P1 (2026-07-28): the id must agree in ALL THREE places it is written.
+        # Rebuilding the expected frontmatter from the FILENAME alone made a body-id edit
+        # invisible: change a body from [#439] to [#500] and the expected frontmatter is
+        # still [#439], matches the (unchanged) actual, and the emitted BACKLOG.md carries
+        # [#500] — so the file, the manifest and the document disagree about which id this
+        # task is, and every leg passes. That is a corrupted allocation ledger, which is
+        # the one thing tasks/ exists to be trustworthy about (ADR-107 §6.3).
+        file_id = _id_from_filename(fname)
+        body_match = _TASK_RE.match(body)
+        body_id = int(body_match.group(1)) if body_match else None
+        node_id = referenced[fname]
+        if body_id is None:
+            problems.append(f"task file body is not a task line: {fname}")
+            continue
+        if not (file_id == body_id == node_id):
+            problems.append(
+                f"task id disagrees across filename/body/manifest: {fname} "
+                f"(filename [#{file_id}], body [#{body_id}], manifest [#{node_id}]) — "
+                f"identity is byte-exact and must agree in all three")
+            continue
         theme, story = lineage.get(fname, (None, None))
-        expected = emit_task_file_text(TaskRow(id=_id_from_filename(fname), raw=body,
-                                               theme=theme, story=story))
+        expected = emit_task_file_text(TaskRow(id=file_id, raw=body, theme=theme, story=story))
         if actual != expected:
             problems.append(
                 f"task file frontmatter disagrees with its own body or its manifest "
                 f"placement: {fname} (frontmatter is DERIVED — edit the body, then "
                 f"--emit-source)")
 
-    # --- retired records vs strays ----------------------------------------------
+    # --- the id ledger: retired records vs strays vs re-issued ids ---------------
+    # terra P1 (2026-07-28): retire-not-delete only buys an allocation ledger if a spent id
+    # cannot come back. Skipping unreferenced engine-managed files silently allowed exactly
+    # that -- a retired `439-old.md` alongside a new active `439-new.md` re-issued a spent
+    # id and the gate passed, defeating the guarantee §6.3 keeps those files for.
+    seen_ids: dict[int, str] = {}
+    for fname in sorted(referenced):
+        seen_ids[_id_from_filename(fname)] = fname
     for p in sorted(out_dir.iterdir()):
-        if p.is_file() and _ORPHAN_RE.match(p.name) and p.name not in referenced:
-            if not _is_engine_managed(p):
-                problems.append(f"foreign task-shaped file (not engine-managed, not in the "
-                                f"manifest): {p.name}")
+        if not (p.is_file() and _ORPHAN_RE.match(p.name) and p.name not in referenced):
+            continue
+        if not _is_engine_managed(p):
+            problems.append(f"foreign task-shaped file (not engine-managed, not in the "
+                            f"manifest): {p.name}")
+            continue
+        retired_id = _id_from_filename(p.name)
+        if retired_id in seen_ids:
+            problems.append(
+                f"id [#{retired_id}] is re-issued: retired allocation record {p.name} "
+                f"and {seen_ids[retired_id]} share it — a spent id must never be reused "
+                f"(ADR-107 §6.3)")
+        else:
+            seen_ids[retired_id] = p.name
 
     # --- leg 3: output ----------------------------------------------------------
     try:
@@ -593,8 +647,32 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
 
 
 def _id_from_filename(fname: str) -> int:
-    """`439-some-slug.md` -> 439. Filenames are generator-shaped, so this is total."""
+    """`439-some-slug.md` -> 439. Guarded by `manifest_filename_problem` at every entry."""
     return int(fname.split("-", 1)[0])
+
+
+_SAFE_TASK_FILENAME_RE = re.compile(r"^\d+-[^/\\]*\.md$")
+
+
+def manifest_filename_problem(fname: object) -> str | None:
+    """Reject a manifest `file` value that is not a plain task-file basename.
+
+    terra P1 (2026-07-28): `file` values come out of `manifest.json`, which the flip made
+    a HAND-EDITED source artifact. `refresh_task_frontmatter` writes through those values,
+    so a malformed or traversing path (`439-../../x.md`, an absolute path, a subdirectory)
+    would read and REWRITE a file outside `tasks/` during the ordinary `--emit-source`
+    workflow. The directory scan's `_ORPHAN_RE` never guarded this, because it walks real
+    dirents rather than manifest strings.
+
+    Returns a problem description, or None when the name is safe. Basename-only by
+    construction: no separator can survive the character class, so no traversal can.
+    """
+    if not isinstance(fname, str) or not fname:
+        return f"manifest task node has a non-string/empty 'file': {fname!r}"
+    if not _SAFE_TASK_FILENAME_RE.match(fname):
+        return (f"unsafe manifest 'file' value (must be a bare `<id>-<slug>.md` basename, "
+                f"no path separators): {fname!r}")
+    return None
 
 
 def lineage_from_manifest(manifest: dict) -> dict[str, tuple[str | None, str | None]]:
@@ -649,6 +727,11 @@ def refresh_task_frontmatter(out_dir: Path) -> list[str]:
     lineage = lineage_from_manifest(manifest)
     changed: list[str] = []
     for fname, (theme, story) in lineage.items():
+        # Never write through an unvalidated manifest-supplied path (terra P1): this is the
+        # one place the normal workflow REWRITES a file named by hand-edited JSON.
+        unsafe = manifest_filename_problem(fname)
+        if unsafe:
+            raise ValueError(unsafe)
         path = out_dir / fname
         if not path.exists():
             continue

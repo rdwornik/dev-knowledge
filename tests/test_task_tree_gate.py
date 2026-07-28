@@ -46,21 +46,27 @@ def _status(findings) -> str:
     return findings[0].status
 
 
-def _live_task_marker(text: str) -> str:
-    """A task-row marker guaranteed to exist in the CURRENT `BACKLOG.md`.
+def _edit_first_task_line(text: str, suffix: str) -> str:
+    """Append `suffix` to the END of the first task line found in the CURRENT BACKLOG.md.
 
-    Derived from the fixture rather than hardcoded, deliberately. These tests used to pin
+    Located from the fixture rather than hardcoded, deliberately. These tests used to pin
     the literal `- [#436]`; when that row closed and left the file the mutation became a
     silent no-op, so the gate stayed (correctly) green and three tests failed for a reason
     that had nothing to do with the gate they exercise. A fixture naming a specific id
     rots the day that id closes -- and two of the three call sites had no `assert marker
-    in text` guard, so it rotted quietly. Locating a live row keeps the mutation real for
-    any future BACKLOG state.
+    in text` guard, so it rotted quietly.
+
+    Appended to the line TAIL, also deliberately: inserting after the `[#id]` marker lands
+    ahead of the `**title**`, which changes the DERIVED SLUG and therefore the filename.
+    The import path would then emit a new filename and leave the old one holding the same
+    id — a rename remnant that (correctly) REDs the duplicate-id ledger leg, failing the
+    test for a reason it is not about. Editing the tail keeps title and filename stable.
     """
-    for line in text.split("\n"):
-        m = gtt._TASK_RE.match(line)
-        if m:
-            return f"- [#{m.group(1)}] "
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if gtt._TASK_RE.match(line):
+            lines[i] = line + suffix
+            return "\n".join(lines)
     raise AssertionError("fixture BACKLOG.md carries no task row to mutate")
 
 
@@ -86,8 +92,7 @@ def test_backlog_edit_without_regen_fails_the_leg(tmp_path):
     assert gtt.find_incoherences(source, out_dir) == [], "fixture should start coherent"
 
     text = source.read_bytes().decode("utf-8")
-    marker = _live_task_marker(text)
-    source.write_bytes(text.replace(marker, f"{marker}EDITED-WITHOUT-REGEN ", 1).encode("utf-8"))
+    source.write_bytes(_edit_first_task_line(text, " EDITED-WITHOUT-REGEN").encode("utf-8"))
 
     problems = gtt.find_incoherences(source, out_dir)
     assert problems, "a BACKLOG edit without regen must be detected"
@@ -98,8 +103,7 @@ def test_regen_after_the_edit_restores_green(tmp_path):
     """The failure is actionable, not sticky: regenerating clears it."""
     source, out_dir = _seed_tree(tmp_path)
     text = source.read_bytes().decode("utf-8")
-    marker = _live_task_marker(text)
-    source.write_bytes(text.replace(marker, f"{marker}EDITED ", 1).encode("utf-8"))
+    source.write_bytes(_edit_first_task_line(text, " EDITED").encode("utf-8"))
     assert gtt.find_incoherences(source, out_dir)
 
     gtt.write_tree(gtt.parse_backlog(source.read_bytes().decode("utf-8")), out_dir)
@@ -265,8 +269,7 @@ def test_index_worktree_divergence_refuses_to_answer(tmp_path, monkeypatch):
     assert _status(aud.check_task_tree_coherence(tmp_path)) == "pass"
 
     original = source.read_bytes()
-    marker = _live_task_marker(original.decode("utf-8")).encode("utf-8")
-    source.write_bytes(original.replace(marker, marker + b"STAGED-ONLY ", 1))
+    source.write_bytes(_edit_first_task_line(original.decode("utf-8"), " STAGED-ONLY").encode("utf-8"))
     git("add", "BACKLOG.md")
     source.write_bytes(original)          # restore the working copy -- the hiding move
     findings = aud.check_task_tree_coherence(tmp_path)
