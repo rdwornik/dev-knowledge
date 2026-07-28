@@ -353,6 +353,71 @@ def test_emit_source_writes_nothing_when_the_plan_is_invalid(tmp_path):
     assert stale.read_bytes() == before, "a failed regen must leave the source tree untouched"
 
 
+@pytest.mark.parametrize("node", [
+    {"prose": 7}, {"prose": None}, ["not", "an", "object"], 42,
+    {"task": 1, "prose": "both"}, {}, {"task": "1", "file": "1-x.md"},
+    {"task": True, "file": "1-x.md"}, {"task": 1, "file": "../escape.md"},
+])
+def test_malformed_manifest_nodes_are_rejected(node):
+    """terra P1 (6th pass) — the manifest is HAND-EDITED source now, so "valid JSON" is
+    not "valid manifest". `{"prose": 7}` raised AttributeError inside the heading walk and
+    a non-object node raised TypeError; neither is in the exception set _cmd_emit_source or
+    the audit gate catch, so a malformed source artifact CRASHED the regen and the
+    ship-gate instead of reporting a controlled failure."""
+    assert gtt.manifest_node_problem(node) is not None
+
+
+def test_well_formed_manifest_nodes_are_accepted():
+    assert gtt.manifest_node_problem({"prose": "## [E1] Theme"}) is None
+    assert gtt.manifest_node_problem({"prose": ""}) is None
+    assert gtt.manifest_node_problem({"task": 439, "file": "439-a-slug.md"}) is None
+
+
+def test_malformed_manifest_is_a_controlled_failure_not_a_crash(tmp_path):
+    """End-to-end: both the regen and the check must REPORT it, not raise."""
+    import json
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
+    manifest["nodes"].insert(0, {"prose": 7})
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                             encoding="utf-8", newline="\n")
+
+    assert gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)]) == 1
+    problems = gtt.find_incoherences(source, out_dir)   # must not raise
+    assert any("prose node value is not a string" in p for p in problems), problems
+
+
+def test_emit_source_rolls_back_a_torn_write(tmp_path, monkeypatch):
+    """terra P1 (6th pass) — planning first covers DATA errors only. A mid-loop I/O
+    failure (full disk, permissions) would still leave the source tree half-rewritten
+    while BACKLOG.md and the hash never updated, which is exactly the state the
+    plan-before-write guarantee claims to prevent."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    for p in out_dir.iterdir():                      # make EVERY task file need a refresh
+        if p.name.endswith(".md"):
+            p.write_text(p.read_bytes().decode("utf-8").replace("status: open", "status: x", 1),
+                         encoding="utf-8", newline="\n")
+    before = {p.name: p.read_bytes() for p in out_dir.iterdir() if p.name.endswith(".md")}
+    assert len(before) >= 2, "need >=2 files so the failure can land mid-loop"
+
+    real_write_text = Path.write_text
+    calls = {"n": 0}
+
+    def flaky(self, *a, **kw):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise OSError("simulated disk full")
+        return real_write_text(self, *a, **kw)
+
+    monkeypatch.setattr(Path, "write_text", flaky)
+    assert gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)]) == 1
+    monkeypatch.undo()
+
+    after = {p.name: p.read_bytes() for p in out_dir.iterdir() if p.name.endswith(".md")}
+    assert after == before, "a torn write must roll back to the prior bytes"
+
+
 def test_manifest_declares_the_post_flip_direction(tmp_path):
     import json
     text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"

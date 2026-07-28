@@ -404,6 +404,7 @@ def reassemble_from_tree(tree_dir: Path) -> str:
     its file's bytes (strict utf-8 decode), and the whole thing is '\\n'-joined.
     """
     manifest = json.loads((tree_dir / "manifest.json").read_bytes().decode("utf-8"))
+    _require_well_formed_nodes(manifest)
     parts: list[str] = []
     for node in manifest["nodes"]:
         if "task" in node:
@@ -463,8 +464,26 @@ def _cmd_emit_source(source_path: Path, out_dir: Path) -> int:
         print(f"gen_task_tree: emit-source FAIL (nothing written): {exc}", file=sys.stderr)
         return 1
 
-    for path, rendered in plan:
-        path.write_text(rendered, encoding="utf-8", newline="\n")
+    # Roll back on a mid-loop I/O failure (terra P1, 6th pass). Planning first only
+    # covers DATA errors; a full disk or a permissions change partway through would still
+    # leave the source tree half-rewritten while BACKLOG.md and the hash never updated —
+    # which is the very state the plan-before-write guarantee claims to prevent. Restore
+    # the prior bytes so a failed regen is a no-op rather than a torn write.
+    done: list[tuple[Path, bytes]] = []
+    try:
+        for path, rendered in plan:
+            done.append((path, path.read_bytes()))
+            path.write_text(rendered, encoding="utf-8", newline="\n")
+    except OSError as exc:
+        for path, original in reversed(done):
+            try:
+                path.write_bytes(original)
+            except OSError:
+                print(f"gen_task_tree: ROLLBACK FAILED for {path.name} — inspect the tree "
+                      f"before regenerating", file=sys.stderr)
+        print(f"gen_task_tree: emit-source FAIL (rolled back, nothing changed): {exc}",
+              file=sys.stderr)
+        return 1
     refreshed = [path.name for path, _ in plan]
     if refreshed:
         print(f"gen_task_tree: refreshed derived frontmatter in {len(refreshed)} task file(s)")
@@ -553,6 +572,9 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
         return [f"manifest.json unreadable: {exc}"]
     if not isinstance(manifest.get("nodes"), list):
         return ["manifest.json has no 'nodes' list"]
+    malformed = [p for p in (manifest_node_problem(n) for n in manifest["nodes"]) if p]
+    if malformed:
+        return malformed[:6]
 
     referenced: dict[str, int] = {}
     for node in manifest["nodes"]:
@@ -685,6 +707,46 @@ def _id_from_filename(fname: str) -> int:
 _SAFE_TASK_FILENAME_RE = re.compile(r"^\d+-[^/\\]*\.md$")
 
 
+def manifest_node_problem(node: object) -> str | None:
+    """Reject a manifest node that is not one of the two shapes this module writes.
+
+    terra P1 (2026-07-28, 6th pass): the manifest is HAND-EDITED source now, so "valid
+    JSON" is not "valid manifest". A `{"prose": 7}` raised AttributeError inside the
+    heading walk and a non-object node raised TypeError -- neither is in the exception set
+    `_cmd_emit_source` or `audit.py::check_task_tree_coherence` catch, so a malformed
+    source artifact CRASHED the regen and the ship-gate instead of being reported as a
+    controlled failure. audit.py deliberately lets unexpected exceptions propagate as
+    programming defects; bad hand-edited input is not one, so it must be caught here.
+
+    Returns a problem description, or None when the node is well-formed.
+    """
+    if not isinstance(node, dict):
+        return f"manifest node is not an object: {node!r}"
+    has_task, has_prose = "task" in node, "prose" in node
+    if has_task == has_prose:
+        return (f"manifest node must carry exactly one of 'task'/'prose': "
+                f"{sorted(node)!r}")
+    if has_prose:
+        if not isinstance(node["prose"], str):
+            return f"manifest prose node value is not a string: {node['prose']!r}"
+        return None
+    if not isinstance(node["task"], int) or isinstance(node["task"], bool):
+        return f"manifest task node id is not an integer: {node['task']!r}"
+    return manifest_filename_problem(node.get("file"))
+
+
+def _require_well_formed_nodes(manifest: dict) -> None:
+    """Raise ValueError on the first malformed node — the guard for the traversal paths
+    (`lineage_from_manifest`, `reassemble_from_tree`) whose callers catch ValueError."""
+    nodes = manifest.get("nodes")
+    if not isinstance(nodes, list):
+        raise ValueError("manifest.json has no 'nodes' list")
+    for node in nodes:
+        problem = manifest_node_problem(node)
+        if problem:
+            raise ValueError(problem)
+
+
 def manifest_filename_problem(fname: object) -> str | None:
     """Reject a manifest `file` value that is not a plain task-file basename.
 
@@ -721,6 +783,7 @@ def lineage_from_manifest(manifest: dict) -> dict[str, tuple[str | None, str | N
 
     Mirrors `parse_backlog`'s heading/fence rules exactly, so the two cannot disagree.
     """
+    _require_well_formed_nodes(manifest)
     lineage: dict[str, tuple[str | None, str | None]] = {}
     theme: str | None = None
     story: str | None = None
