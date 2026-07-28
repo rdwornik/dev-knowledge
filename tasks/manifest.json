@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0180115e150d7e77f59b291c97a7103b21c0a9ad03028140ac0c55f41355a165",
+  "generated_sha256": "829b208abc25a6093e7bfa70e3ea3c6811b6ffe107cd531b4f42edc8df7d8cf1",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -342,6 +342,10 @@
       "file": "437-closes-re-quoting-defect-backtick-strip-before-t.md"
     },
     {
+      "task": 442,
+      "file": "442-plugin-command-cache-staleness-cached-command-te.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -475,6 +479,10 @@
     {
       "task": 438,
       "file": "438-codify-gate-class-posture-terra-design-review-be.md"
+    },
+    {
+      "task": 441,
+      "file": "441-way-of-working-the-default-is-one-strong-self-co.md"
     },
     {
       "prose": ""
