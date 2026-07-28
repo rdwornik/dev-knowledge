@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-28 (m) — CC (Fable 5): P9 delegated closure sweep — [#437][#439][#444] closed, [#433] stays open
+
+**SHA anchor (ADR-85).** `aa16bf6a` (close commit). Branch `chore/p9-closure-sweep-437-439-444`, base `670a86ab`.
+
+**Did.** ADR-70 deviation by operator word (PROMPT P9-CLOSURE-SWEEP, 2026-07-28): "the operator delegated THIS BATCH's closure approvals to the architect lane" — BATCH-SCOPED, explicitly not a standing rule change. STEP-0 hard gate first: live plugin root resolved via the loader registry to `~\.claude\plugins\cache\dev-knowledge-methodology\tier1-lifecycle\0.1.11` (registry + in-path plugin.json both 0.1.11; 0.1.10 tombstoned). Fresh 0.1.11 scan: 0 STRONG / 132 WEAK — WEAK untouched per contract. Each close required TWO independent MET verdicts: producer verification + an adversarial read-only subagent re-deriving the Done-when from row text + live state alone.
+
+**Result.** CLOSED (flipped lifecycle: manifest node out, task file retained `status: closed`, `--emit-source` regen): [#437] — shared `closure_ids` core in both scanners, seeded quoted tags yield nothing, 110 tests green (`605d45cb`, `cb9c8bd9`, `08aff16c`); [#439] — `--emit-source` stages zero writes on the live tree, `--check` REDs seeded divergence with tests, gates green (`e53dee46`, `fa3f10a3`); [#444] — cache 0.1.11 for hub + both consumers carrying `closure_ids`, release-lint 0 FAIL, this session's STEP-0 as live witness (`f725323e`, `670a86ab`). STAYED OPEN: [#433] — two NOT-MET verdicts: ADR-107 §6.2 generalization obligation NOT DISCHARGED by design (owner [#383], open) and §6.3 ruled-not-yet-structurally-discharged; §7.5 bars closing on the ADR alone. Tool findings: the gate `plan` refuses #437 as un-proposed (its arc carries no bare closes-token — the fixed scanner behaving correctly); #440/#442/#443 appear only as WEAK churn (left open); #441 absent.
+
+**Changes:** `tasks/manifest.json` (3 nodes), `tasks/{437,439,444}-*.md` → `status: closed` (retire-not-delete, ADR-107 §6.3), `BACKLOG.md` regenerated 179→176 rows. Commit `aa16bf6a` + this wrap.
+
+**Next:** [#433] waits on the §6.2 second-surface demonstration ([#383]); [#440]–[#443] stay open, unbuilt.
+
+---
+
 ### 2026-07-28 (l) — CC (Fable 5): [#444] tier1-lifecycle 0.1.11 released — the [#437] fix reaches the version-keyed cache
 
 **SHA anchor (ADR-85).** `f725323e` (bump) · `a14de035` (terra record). Branch `chore/444-release-plugin-0-1-11`, base `cb8c7b9d`.
