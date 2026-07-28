@@ -42,14 +42,34 @@ Run them exactly as written below (with the `${CLAUDE_PLUGIN_ROOT}` prefix).
    It prints JSON `{"close": [{id,tier,evidence,line}], "skip": [{id,reason}]}`.
    Report every `skip` (with reason) to the operator — these are NOT closed.
 
-4. **Execute done-items-leave** for each item in `close`:
-   - Edit `BACKLOG.md`: `old_string` = the gate's exact `line` (plus its trailing
-     newline), `new_string` = empty — removes that one task line. Never renumber;
-     the id gap stays. If the Edit fails to match, STOP and report (do not retry
-     loosely).
+4. **Execute done-items-leave** for each item in `close`. **Which edit is correct
+   depends on the host's backlog shape — check it first**, because in a
+   source-of-truth host the direct edit is silently undone:
+
+   **First, decide the shape.** If `tasks/manifest.json` exists, the host has flipped
+   (hub, ADR-107 step 3 / [#439]): `tasks/` is the SOURCE and `BACKLOG.md` is
+   GENERATED. Otherwise the host is unflipped and `BACKLOG.md` is the source.
+
+   - **(a) UNFLIPPED host — `BACKLOG.md` is the source.** Edit `BACKLOG.md`:
+     `old_string` = the gate's exact `line` (plus its trailing newline),
+     `new_string` = empty — removes that one task line. If the Edit fails to match,
+     STOP and report (do not retry loosely).
+
+   - **(b) FLIPPED host — `tasks/` is the source.** Do **NOT** edit `BACKLOG.md`: it
+     is generated, so the coherence gate REDs the edit and the next regen restores
+     the line. Instead **retire the task**:
+     1. Remove the task's node (`{"task": N, "file": ...}`) from `tasks/manifest.json`.
+     2. **LEAVE the task file in place** — it stays as the allocation record that
+        keeps its id from being re-issued (ADR-107 §6.3, retire-not-delete). Do not
+        delete it, and do not use `--prune` (it is refused).
+     3. Regenerate: `python scripts/gen_task_tree.py --emit-source`. The row leaves
+        `BACKLOG.md` as a result, not as a separate edit.
+
+   Never renumber in either shape; the id gap stays.
    - After all approved removals, validate the host backlog if the host ships a
-     validator (e.g. `python scripts/validate_backlog.py`); otherwise re-run the
-     plugin gate `surface` to confirm the closed ids no longer appear.
+     validator (e.g. `python scripts/validate_backlog.py`); on a flipped host also
+     run `python scripts/gen_task_tree.py --check`. Otherwise re-run the plugin gate
+     `surface` to confirm the closed ids no longer appear.
 
 5. **Record + commit (ADR-65).**
    - Prepend a JOURNAL entry: which `#N` closed, by what evidence SHA, that the
