@@ -19,6 +19,28 @@
 
 ---
 
+### 2026-07-28 (i) — CC (Opus 5): the recording batch tripped `doc_rot`; compressed rather than dispositioned
+
+**SHA anchor (ADR-85).** `9ce96be8` (the fit) · `93f92ab8` (the batch it corrects) · this wrap commit. Branch `docs/recording-batch-r-fit`, base `952c10ad`.
+
+**Corrects entry (h).** That entry's Result line reads as though the post-merge ship-gate came back green. It did not: the first derivation after the merge was **RED with six new `doc_rot` WARNs** — one for every row the batch touched. (h) is append-only and stands; this is the correction.
+
+**What happened.** `doc_rot`'s backlog-accretion cap WARNs a task line over 1200 chars, or over 700 with three-or-more ISO dates. The four rows I appended dispositions to were carrying **1190 / 1167 / 1090 / 1028** chars before I touched them — between **10 and 172 chars of headroom**. There was no size of honest disposition that would have fit, and the two new rows overshot on their own. I did not measure before writing, which is the actual mistake; the cap is deterministic and was knowable up front.
+
+**Why not a disposition.** Six WARNs against a working gate, caused by my own edit in the same session, is not what the register is for — a disposition there would have recorded "this bloat is expected" about bloat I had just introduced. [#364] already tracks the underlying tension (the cap forcing either an uninformative record or a disposition on a ticket that is working correctly) and carries **no ruling**, so there was no sanctioned escape to invoke either.
+
+**What was cut.** Every ruling, anchor, non-blocking follow-up and evidence pointer from `93f92ab8` survives. What went: explanatory prose the rulings **supersede** (e.g. [#370]'s long "a third content class demonstrably exists / `owner=hub` is false / `owner=repo` is false" argument, which the ruling now states outright), and one duplicated ISO date per row. Rows land at **1070–1191**. **Titles are byte-identical across all six** — checked before writing, because a changed title emits a new slug and leaves a rename remnant that REDs the coherence gate; derived filenames and manifest nodes are untouched.
+
+**Result:** ship-gate **GREEN** (19 WARNs dispositioned, all pre-existing) · `task_tree_coherence` GREEN · `--check ok` · `validate_backlog` OK (9 themes, 26 stories, 177 tasks, 0 warnings). The five surviving `doc_rot` WARNs (#344, #421, #422, #332, #278) are the dispositioned pre-existing set.
+
+**Deviation from the arc contract:** it asked for **one** atomic merge. This is a second one — the RED surfaced only after the first merge was pushed, so the fix could not ride it. Recorded rather than smoothed over.
+
+**Changes:** `tasks/` (370, 400, 413, 437, 441, 442 bodies compressed), `BACKLOG.md` + `tasks/manifest.json` (regenerated), `JOURNAL.md`.
+
+**Next:** [#364] is the row that owns this cap-vs-record tension and is still unruled — worth pointing at the next time a row has to carry a ruling.
+
+---
+
 ### 2026-07-28 (h) — CC (Opus 5): recording batch — `owner=user` ruled, launch-shape ruled, two new rows, zero closures
 
 **SHA anchor (ADR-85).** `93f92ab8` (the recording commit) · `e53dee46` (the flip this rides on) · this wrap commit. Branch `docs/recording-batch-r`, base `5e331d73`.
