@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "source": "BACKLOG.md",
-  "source_sha256": "d71c845556c362fee78b8be599e41a253dfe0cc8acb53287ff1d0e4d0f9fe429",
+  "source_sha256": "f7d15a6a7157f07fccc4a032621543e5bfb1bfdfe2ec4e419885c35bccbc94c1",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1189,7 +1189,7 @@
       "prose": ">"
     },
     {
-      "prose": "> Outcome (final, after two review passes): **1 DEAD-OBE** (R1 — the folder it decides about no longer exists), **3 ALREADY-RULED** (R1b, R2, R4), **4 RULED by operator-delegated adoption** (R3, R5, R6, R7), **2 still open for the operator** (R8, R12). **All three already-ruled rows went AGAINST their recommendation** — R1b rejected (Pyrefly universal, not a divergence), R2 chose (b) over (a), R4 rejected outright. That is the sweep's most useful finding: where this table had a prior ruling, the recommendation lost 3 times out of 3, so an unverified recommendation is a poor predictor of the operator's call. A ruling here is **recorded, never executed** — each adopted row still needs its build."
+      "prose": "> Outcome (final, after two review passes): **1 DEAD-OBE** (R1 — the folder it decides about no longer exists), **3 ALREADY-RULED** (R1b, R2, R4), **4 RULED by operator-delegated adoption** (R3, R5, R6, R7), **1 still open for the operator** (R8 — PARKED, his own pick; **R12 discharged 2026-07-27 by the clause-(b) ruling F1 above**, so the sweep's \"2 still open\" no longer holds). **All three already-ruled rows went AGAINST their recommendation** — R1b rejected (Pyrefly universal, not a divergence), R2 chose (b) over (a), R4 rejected outright. That is the sweep's most useful finding: where this table had a prior ruling, the recommendation lost 3 times out of 3, so an unverified recommendation is a poor predictor of the operator's call. A ruling here is **recorded, never executed** — each adopted row still needs its build."
     },
     {
       "prose": ">"

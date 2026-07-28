@@ -19,6 +19,26 @@
 
 ---
 
+### 2026-07-28 (d) — CC (Opus 5): window close — architect bundle cut, [E8] sweep line reconciled; ADR-107 still Proposed for the second conditional in a row
+
+**SHA anchor (ADR-85).** `54aa400d` (H1 R12 reconciliation) · `c791bde7` (the bundle) · this wrap commit. Branch `docs/window-close-2026-07-28`, base `4911f009`.
+
+**H0 — SKIPPED, and that is the second time today.** The instruction was conditional on the operator's word "Accepted" accompanying the prompt; it did not, appearing only inside the conditional's own text. **ADR-107 stays `Proposed` and nothing was recorded.** Worth naming as a pattern rather than an incident: two prompts this window carried a ratification clause and neither carried the word, so the flip is now blocked on a word rather than on work — which is exactly what the bundle's FIRST ACTION says.
+
+**H1a — the [E8] sweep outcome line reconciled.** It still read *"2 still open for the operator (R8, R12)"* while the clause-(b) ruling F1 sat **eleven lines above it in the same record**, so the file asserted both that R12 was open and that it was discharged. One-line fix pointing at the ruling rather than restating it: 1 still open (R8 — PARKED, his own pick); R12 discharged 2026-07-27 by F1.
+
+**H1b — grep R12, and the interesting result is what I did NOT change.** Three other live hits, none contradicting the discharge, each for a different reason. `:308` is the F1 note itself. `:345` says R12 "has no recommendation to delegate to" — still true, since F1 was a **direct** operator ruling, not a delegated one; the sentence is about the delegation mechanism, not about openness. `:362` is the R12 row's status cell reading "LIVE, and NOT delegable", and its column header is literally **`Status (verified 2026-07-26)`** — a date-stamped observation that was true on its date. Editing it would rewrite a dated verification record to make a later ruling look anticipated, which is the opposite of what the record is for. Left standing. Remaining hits are in `docs/audits/*`, immutable and correct when written.
+
+**H2 — bundle `2026-07-28-dev-knowledge-architect` cut** (v5.7, architect mode, SUPPLEMENT left **COLD** so the incoming §13(d) beat fires FULL). Three RESIDUAL regions + the BOOT purpose hand-authored, `PASTE_THIS` re-assembled after the fills. §4 carries the FIRST ACTION with both preconditions **checked, not assumed** — ADR-107 `Proposed` (NOT met, stated as actual status) and the `tasks/` gate armed (met, and **witnessed**, per below); step 4 explicitly deferred to a later arc. Four open operator decisions, three dated pressures, `[#386]` re-verified still-unclosed at bundle time, and the carried-debt delta enumerated in three buckets — resolved / new / **carried unchanged** — so nothing from the 2026-07-27 bundle is silently dropped, including the cross-repo ai-council ADR-11 `#117` marker. Anti-bluff contract held in §1: no verdict, count, `[stale]`, `#id` or sha. **11/11 probes bind; zero unfilled FILL-IN regions.**
+
+**The `tasks/` coherence gate earned its precondition this window rather than being asserted into it.** It fired **twice**, in two distinct modes: an orphaned derived file after the `[#434]` closure (`--write` adds but never deletes — `--write --prune` is the closure form), and a **whole-file reassembly mismatch after a prose-only BACKLOG edit** in this very arc. That second catch is the useful one: any BACKLOG touch, prose included, makes the derived tree stale. Both blocked a commit; neither was worked around. Under `[E8]` clause (e) — *enforcement is witnessed, not installed* — that is the difference between a precondition I can claim and one the next session can rely on.
+
+**Result.** Ship-gate **GREEN**, 19 WARNs, all pre-existing and dispositioned — **nothing new**. `handoff_probes` now binds the 2026-07-28 bundle, confirming the active-bundle selection moved off the 07-27 one. Backlog unchanged at 174 tasks, 0 warnings.
+
+**Changes:** `BACKLOG.md` (one line), `tasks/` (regen, reassembly-forced), `docs/handoffs/2026-07-28-dev-knowledge-architect/` (5 files, new), `JOURNAL.md`.
+
+**Abandoned:** nothing. **Next:** the bundle is the next window's entry point — `PASTE_THIS.md` into a fresh chat. ADR-107 ratification gates the flip; `[#386]` and the `[#370]` probe-then-rule path are both queued and unreviewed.
+
 ### 2026-07-28 (c) — CC (Opus 5): closure review — [#434] closed on operator approval; the STRONG candidate refused again, now with MY OWN commit as its second false positive
 
 **SHA anchor (ADR-85).** This closure commit. Branch `chore/close-434`, base `c0b40d37`.
