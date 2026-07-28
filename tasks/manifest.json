@@ -1,11 +1,18 @@
 {
-  "schema": 1,
-  "source": "BACKLOG.md",
-  "source_sha256": "f7d15a6a7157f07fccc4a032621543e5bfb1bfdfe2ec4e419885c35bccbc94c1",
+  "schema": 2,
+  "role": "source-of-truth",
+  "generates": "BACKLOG.md",
+  "generated_sha256": "8eab477579a3919b85625a03deb14d56a974b83cf03c994c9b660552347a52c6",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
       "prose": "# .dev-knowledge BACKLOG"
+    },
+    {
+      "prose": "<!-- GENERATED FILE — do not edit directly. Source of truth: tasks/ (per-task .md bodies + manifest.json)."
+    },
+    {
+      "prose": "     Regenerate: python scripts/gen_task_tree.py --emit-source   ·   ADR-107 strangler step 3, [#439]. -->"
     },
     {
       "prose": ""
@@ -868,6 +875,14 @@
     {
       "task": 433,
       "file": "433-backlog-restructure-build-thin-engine-backlog-md.md"
+    },
+    {
+      "task": 439,
+      "file": "439-adr-107-strangler-step-3-the-source-of-truth-fli.md"
+    },
+    {
+      "task": 440,
+      "file": "440-make-the-tasks-id-ledger-tamper-evident.md"
     },
     {
       "prose": ""

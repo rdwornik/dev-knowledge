@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-27
+last_reviewed: 2026-07-28
 reconciled_with: handoff-process@5.7
 status: active
 owner: Rob
@@ -14,11 +14,16 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-07-27` — window-close currency lane (bounded, not an audit): governing-ADR
+> Last updated: `2026-07-28` — ADR-107 strangler **step 3** ([#439]): Ch5's `tasks/` zone flips
+> from **derived** to **SOURCE OF TRUTH**, with `BACKLOG.md` now generated from it
+> (`--emit-source`), `--prune` refused under retire-not-delete, and the frontmatter-honesty leg
+> recorded. The same edit retires that block's "honest enforcement limit" note, which had gone
+> stale: `--check` stopped being an unwired mode when [#433] C1 armed it as an ALL_CHECKS
+> ship-gate leg — and arming it was ADR-107 §7.2's precondition for this very flip. Prior:
+> `2026-07-27` — window-close currency lane (bounded, not an audit): governing-ADR
 > roster through **106** (uv / environment isolation) and the Purpose ratification line with it;
-> Ch5 gained the **derived `tasks/` zone** ([#433]) with its honest enforcement limit — `--check`
-> is a mode, not a wired gate; the Ch2 `/ship` row records that **merge is atomic** (merge → push →
-> delete source branch). Deliberately NOT added: `silent_rule_ratchet` ([#436], ruled-unbuilt) —
+> Ch5 gained the `tasks/` zone ([#433]); the Ch2 `/ship` row records that **merge is atomic**
+> (merge → push → delete source branch). Deliberately NOT added: `silent_rule_ratchet` ([#436], ruled-unbuilt) —
 > this chapter's own Status legend keeps a RULED-UNBUILT organ *out* of the table until it is
 > built. Prior: `2026-07-26` micro-window currency lane (intake #17 §5): governing-ADR
 > roster through **105**; the fleet count repointed at the surface that computes it; the
@@ -62,7 +67,7 @@ be unonboarded. Read a count off the surface that defines it; do not restate one
 consulted as context by
 Claude Code, Codex, Cursor, and other agents. **Nothing here executes orchestration**
 — everything is read, consulted, or passively validated. The six chapters below are
-the system as built and ratified through ADR-106.
+the system as built and ratified through ADR-107.
 
 ---
 
@@ -608,19 +613,42 @@ the status-coupled validator is wave work (BACKLOG W3 seed 2; spec
 are deployed, [#398] closed 2026-07-23). `logs/`
 artifact naming: CLAUDE.md §9 ([#395] convention).
 
-**Derived zone — `tasks/` (ADR-101 amendment 2026-07-27; [#433] strangler STEP 1–2).** A
-174-file top-level tree of per-task `.md` files + `manifest.json`, **generated from
-`BACKLOG.md`, which remains the source of truth**. Regenerate with
-`scripts/gen_task_tree.py --write`; verify with `--check` (regen-and-diff over every task
-file + the manifest, plus a full disk reassembly proving `BACKLOG.md` is byte-identically
-reconstructible from the tree). Never hand-edit inside it; the source-of-truth flip is a
-later, separate arc gated on the restructure ADR. Because the tree is derived, it is
-**excluded from prose-edge scanning** — leaving it in double-reported every BACKLOG edge
-(#335 class). **Honest enforcement limit:** `--check` is a *mode*, not a wired gate — no
-pre-commit hook and no `audit.py` check invokes it. Coherence is held only by
-`tests/test_gen_task_tree.py::test_committed_tree_coherent_with_backlog`, so a
-`BACKLOG.md` edit that skips the suite can leave the tree stale at commit time. By this
-chapter's own "no organ = decoration" test that is a gap, not a design.
+**Source zone — `tasks/` (ADR-101 amendment 2026-07-27; [#433] STEP 1–2, [#439] STEP 3).**
+A top-level tree of per-task `.md` files + `manifest.json`. Since the **2026-07-28
+source-of-truth flip** (ADR-107 §7.2, executed by [#439]) **`tasks/` IS the source of
+truth and `BACKLOG.md` is generated from it** — the arrow used to point the other way, and
+anything describing the tree as "derived" predates the flip. The source is **both**
+artifacts: each task file's **body** is the authoritative task line, while its
+**frontmatter is derived from that body**; `manifest.json` is the residue carrier holding
+every non-task prose line in order, so document structure lives there.
+
+Regenerate `BACKLOG.md` with `scripts/gen_task_tree.py --emit-source` after any edit under
+`tasks/`. `--write` still exists but runs the **import/recovery** direction (file → tree)
+and warns, because post-flip it overwrites source from a generated file. **`--prune` is
+refused**: deleting a task file would delete source and free its id for re-issue, so
+retirement drops a task's node from `manifest.json` while its file **remains as the
+allocation record** (ADR-107 §6.3, retire-not-delete). **Limit:** the gate REDs a
+re-issued id while the retired record is present, but **cannot detect that record being
+deleted** — nothing declares which files ought to exist — so the ledger is not
+tamper-evident; a tombstone record is [#440], and ADR-107 §6.3 already records the
+directory as "not complete today".
+
+`BACKLOG.md` is **not decommissioned** — it stays on disk byte-identical, so every gate
+reading it (`doc_rot`, `validate_backlog`, the commit-msg hooks, `propose_closures`) is
+unaffected by the flip. It is **excluded from prose-edge scanning** as the generated side
+(the #335 class: scanning both re-mints every BACKLOG edge twice).
+
+**Enforcement (armed, and it was a precondition of the flip, not a follow-up).**
+`audit.py::check_task_tree_coherence` ([#433] C1) invokes `gen_task_tree --check` as an
+ALL_CHECKS ship-gate leg, so this zone satisfies the chapter's "no organ = decoration"
+test. Three legs: manifest structure resolves; **every task file re-renders byte-identically
+from its own body** (frontmatter honesty — the leg the flip made necessary, since derived
+metadata sitting in a source file is otherwise editable, inert and silently wrong); and the
+full reassembly equals `BACKLOG.md` on disk. Arming preceded flipping deliberately: a stale
+*derived* tree is merely wrong, a stale *source-of-truth* tree is a corrupted record.
+**Honest scope limit:** the check compares the two artifacts against each other, so it
+cannot detect a consistent rewrite of both together; source integrity rests on a clean
+`git status` plus the manifest's `generated_sha256`.
 
 **Zone register (ADR-75).** Exclusion/immutability/scope policy lives in one
 amendable register; **"no organ = decoration"** — every zone is backed by a
@@ -792,6 +820,7 @@ live in the ADRs; git history retains; the ADR-77 guard stays armed, Ch2).
 - **ADR-104** — fleet repository shape: **PARTIAL fold on engineering grounds, polyrepo mostly retained** (the fleet's first shape ADR; corp-monorepo permanently OUT, incremental consolidation). Declares the fleet as 9 git repos — the widest of this file's three denominators (Purpose). **No fold executes on this ADR**; execution is the downstream chain #382 → #383 → #385. Closes [#381] — Accepted 2026-07-24.
 - **ADR-105** — routine consumer declaration: a six-field row shape, **gated at ACTIVATION not at filing**. A declared routine must name a `consumer` and a `consumption_path` (the `routine_consumers` organ row, Ch2). Answers [#419] (*we run routines whose output nobody consumes*), which stays OPEN; the live-routine retrofit is [#426] — Accepted 2026-07-26.
 - **ADR-106** — environment isolation via `uv`: pinned toolchain (`required-version == 0.11.19`, a uv upgrade is its own gated change), committed `uv.lock` + `.python-version`, and every gate invoked through `uv run --locked` so the gate environment is *declared* rather than per-machine folklore. Closes two defect classes — environment/test isolation and gate reproducibility. Fleet rollout is **gated per repo**, never a bulk sweep; the hub went first ([#432]). The ADR-101 amendment 2026-07-27 sanctions `uv.lock`/`.python-version` in the top-level set (Ch5) — Accepted 2026-07-27.
+- **ADR-107** — BACKLOG restructure: **build-thin engine, fleet-owned schema, viewer slot declared EMPTY**. Rules the architecture only — it authorizes no execution, and gates the source-of-truth flip on **two** preconditions (the ADR Accepted **and** the `tasks/` coherence gate armed). Both held on 2026-07-28, so **strangler step 3 executed under its own contract as [#439]**: `tasks/` became the source of truth and `BACKLOG.md` became generated (Ch5 source zone). Amends ADR-65 narrowly — a retired task keeps a minimal allocation record so its id is never re-issued (**retire, never delete**). **Step 4 (prose relocation + the genre-lifecycle leg) stays explicitly DEFERRED**, and the viewer slot stays parked empty behind four re-entry criteria; [#433] does **not** close on this ADR (§6.2's generalization obligation is undischarged) — Accepted (ratified) 2026-07-28.
 
 ---
 

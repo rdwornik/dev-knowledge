@@ -1,6 +1,6 @@
 # ADR-107: BACKLOG restructure — build-thin engine, fleet-owned schema, viewer as a replaceable part (slot declared empty)
 
-**Status:** Proposed
+**Status:** Accepted (ratified 2026-07-28 — operator word, architect session)
 **Date:** 2026-07-27
 **Decision tier:** Architecture (Path A — authored by CC from on-disk evidence only, on the strength of the operator-delegated tool ruling recorded in `BACKLOG.md` [#433]; **ratification is a separate operator act** and is NOT performed here)
 **Related:** [#433] (the carrier — per §7.5 it does not close on this ADR alone) · [#382] (receiver of §5's schema findings) · [#383], [#385] (downstream waves) · [#424] (the `depends-on` bare-vs-hash distinction this schema must preserve raw) · [#429] (worktree provisioning — owner of the concurrent-allocation residual in §6.3) · [#436] (parallel-eligible ratchet build, disjoint files) · ADR-64 / ADR-65 / ADR-66 (the BACKLOG architecture this restructures — none superseded here) · ADR-98 (intake genre) · ADR-101 + its 2026-07-27 amendment (`tasks/` sanctioned as a derived Tier-1 tree) · ADR-104 (fleet repository shape — **landed, not reopened**) · ADR-105 (the gate-at-activation-not-at-filing precedent reused in §3 and §7)
@@ -430,3 +430,34 @@ deliverable of steps 1–2, and it is what makes ratifying this ADR a low-conseq
   needs to actually be that counter.
 - **Terraform as the tool.** Rejected upstream (pattern yes, tool no — git is the state store);
   the desired-state *model* is [#382]'s, and §5 feeds it.
+
+---
+
+## Amendment — 2026-07-28 (the flip landed; §2's provenance clause and §6.3's prune mechanics describe the PRE-flip state)
+
+> **In-file amendment marker (CLAUDE.md §5 item 3 / ADR-94).** The decision body above is preserved **verbatim** — nothing in it is edited. This section records what execution changed about facts the body asserts. It changes **no decision**: every ruling above stands, including the deferrals. Landed by **[#439]** on 2026-07-28, under the ex-ante frozen contract the operator authored for step 3.
+
+### What executed
+
+Both §7.2 preconditions held on 2026-07-28 — **(i)** this ADR was ratified by operator word that day, and **(ii)** the `tasks/` coherence gate had been armed since `fa3f10a3` ([#433] C1) and witnessed firing twice — so **strangler step 3, the source-of-truth flip, executed** as its own contracted arc carried by **[#439]**, exactly as §7.5 requires ("the remaining steps are NOT [#433]'s and must be carried by their own tickets").
+
+### What is now stale in the body above, stated precisely
+
+Three passages describe the **pre-flip** arrangement and should be read as historical, not current:
+
+1. **§2, the provenance bullet** — *"every emitted file carries `source:` + `derived: true`"*. Both keys asserted that the tree was derived FROM `BACKLOG.md`; after the flip both are **false in the same breath**, because the tree is the source. They are replaced by a single honest line, `generates: BACKLOG.md`, which states the direction the tree actually stands in and doubles as the engine-managed marker. The rest of the §2 schema — filename shape, `id: "[#N]"` byte-exact, `depends-on` carried raw, body verbatim, `manifest.json` as residue carrier — is **unchanged and still normative**.
+
+2. **§4 clause 3 and §5 finding 5** — `manifest.json`'s `source_sha256` is now **`generated_sha256`**, and the manifest declares `schema: 2` with `role: source-of-truth` / `generates: BACKLOG.md`. The hash **value** is the same quantity (the sha256 of the full `BACKLOG.md` text); only its meaning flips, from *the bytes we were built from* to *the bytes we are expected to produce*. That is what makes it checkable against the file on disk rather than merely recorded.
+
+3. **§6.3, the `--write --prune` mechanics** — the body correctly reasons that ADR-65's done-items-leave, realized through prune, *"removes a retired task's file, so a closed id vanishes from the directory and becomes re-allocable"*, and treats that as the reason the directory is not yet a complete ledger. **The flip removed the mechanism rather than compensating for it:** `--prune` is now **refused**, because post-flip a task file *is* source and deleting one destroys source as well as freeing its id. Retirement is re-expressed structurally — a retired task's node leaves `manifest.json` (so it leaves the generated `BACKLOG.md`) while **its file remains** as the allocation record. This is the ADR-65 narrow amendment this ADR declared, now realized in code rather than only ruled.
+
+### What did NOT change
+
+- **Step 4 — prose relocation and the genre-lifecycle second leg — remains explicitly DEFERRED** (§7.3). The flip deliberately stopped at step 3; no body was relocated and no genre-lifecycle mechanism was built.
+- **The viewer slot remains PARKED EMPTY** (§3), behind its four re-entry criteria. No viewer was evaluated, adopted, or installed.
+- **[#433] remains OPEN** (§7.5). §6.2's generalization obligation — a *second* governed surface split by the same pattern, *shown* rather than asserted — is still undischarged, and closure remains an operator `/review-closures` act (ADR-70).
+- **§5's seven schema findings still route to [#382]**, owed either way; the flip neither discharges nor alters them.
+
+### One residual the flip narrows but does not close
+
+§6.3's **concurrent-allocation hole** is unchanged in kind: two branches can still each read the same maximum id and write differently-slugged files that git merges cleanly. What the flip adds is that a retired id no longer disappears from the directory, so the *ledger* leg of `next_free = max(id in tasks/) + 1` is now sound; the *prevention* leg remains out of scope and stays with the worktree/session-provisioning lane ([#429]).
