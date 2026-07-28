@@ -189,6 +189,14 @@ def test_residual_multi_line_paired_quotes_stay_detected():
     assert ids('she wrote "first line\ncloses [#16] second" done') == ["16"]
 
 
+def test_residual_indented_line_stays_detected():
+    # Indented lines are NOT a quoted context in commit messages (design §2
+    # non-strip list, endorsed by the terra design review; final-pass finding
+    # REJECTED-BY-DESIGN): commit bodies indent freely — d993922e indents its own
+    # filing text — so treating indent as code would hide REAL directives.
+    assert ids("body\n\n    closes [#451]\n") == ["451"]
+
+
 def test_residual_multi_line_inline_span_stays_detected():
     # inline spans are same-line only (amendment M1): an unpaired backtick must
     # never blank across lines.

@@ -255,3 +255,10 @@ across 4,163 commits). Verification notes from the same review confirming the bu
 no remaining duplicate implementation, WEAK quoted-only wiring correct, twin test
 catches one-character divergence, `0.1.10` consistent with [#444] carrying the release
 coupling.
+
+Two further terra-pinned passes (recorded verbatim with dispositions in
+`docs/audits/2026-07-28-codex-437-closure-recheck.md`): pass 2 found tilde fences
+matchable — FIXED in-arc (TDD-witnessed, both copies) — and confirmed H-A/H-B dead
+with counterexamples plus twin byte-identity; pass 3 proposed stripping indented code
+blocks — REJECTED-BY-DESIGN (the §2 non-strip list this review's own design pass
+endorsed; indent-stripping would hide real directives), made loud with a residual test.
