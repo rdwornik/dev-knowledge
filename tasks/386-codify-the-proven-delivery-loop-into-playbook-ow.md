@@ -1,7 +1,7 @@
 ---
 id: "[#386]"
 title: "Codify the proven delivery loop into PLAYBOOK (owed, post-proof)"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E3] Lessons feedback loop"

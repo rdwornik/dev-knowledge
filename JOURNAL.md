@@ -19,6 +19,24 @@
 
 ---
 
+### 2026-07-28 (g) — CC (Opus 5): [#386] CLOSED — first retirement through the post-flip path
+
+**SHA anchor (ADR-85).** `7668fa1a` (the evidence) · `e53dee46` (the flip merge this rides on) · this wrap commit. Branch `chore/close-386`, base `e53dee46`.
+
+**Did:** Operator approved **[#386]** by name via `/review-closures 386`. The gate rated it **WEAK** — its evidence list is file-touch commits, several of them from the flip arc minutes earlier (they edited `protocols/PLAYBOOK.md` for an unrelated reason), so the gate's evidence was **not** evidence the row was done. Verified the substance directly instead: PLAYBOOK **§21 "The delivery loop (end-to-end)"** states all three of the row's Done-when rules — Gate 1 **Frozen ex-ante contract**, the **Unfiltered live-session check** ("before any consumer write; transcript-cwd is authoritative"), and Gate 7 **OPERATOR WITNESS** with the normative *"**Merged ≠ done.** … A lane that stops at the merge has completed six of eight"*. Read as an index-with-pointers rather than restated doctrine, which is the sanctioned form here (resident-copy drift is the failure class this repo exists to kill), not a shortfall. Located the real authoring commit — **`7668fa1a`** (2026-07-22, *"codify the proven delivery loop — five substances + new §21 spine [#386]"*), an ancestor of HEAD. It **bracket-references** `[#386]` rather than tagging `closes`, which is precisely why the detector could only rate it WEAK.
+
+**First retirement executed through the post-flip path**, hours after the flip landed: removed the `[#386]` node from `tasks/manifest.json` (448 → 447 nodes), **kept the task file** and set its frontmatter `status: open → closed`, then `--emit-source`. The row left `BACKLOG.md` (176 → 175 tasks) as a **result** of the regen, not as an edit to it. `BACKLOG.md` was never touched by hand.
+
+**The loaded `/review-closures` command text was the PRE-FLIP version** — its step 4 still said "Edit `BACKLOG.md`". Following it literally would have RED-ed the coherence gate and been reverted by the next regen. That is exactly the defect terra found at pass 11 of the flip arc and that `52394caa` fixed in the repo's copy; the invocation loaded a stale cached copy. Flagged to the operator and the flipped procedure followed instead. **Worth noting the plugin cache can serve stale command text after a workflow change.**
+
+**Result:** `--check ok` (the retired record passes the terminal-status and self-consistency legs its own arc added) · `validate_backlog` OK (9 themes, 26 stories, **175** tasks, 0 warnings) · the gate now reports `[#386]` as `skip: not currently open`. The allocation record survives on disk carrying `id: "[#386]"` + `status: closed`, so the id stays spent.
+
+**Changes:** `tasks/manifest.json` (node removed), `tasks/386-*.md` (retained, marked terminal), `BACKLOG.md` (regenerated), `JOURNAL.md`.
+
+**Next:** 128 WEAK proposals remain unreviewed — none approved, none touched. `[#433]`, `[#439]`, `[#440]` all stay open.
+
+---
+
 ### 2026-07-28 (f) — CC (Opus 5): ADR-107 RATIFIED, then the strangler flip — `tasks/` becomes the source of truth
 
 **SHA anchor (ADR-85).** `096364ac` (ratification) · `5c8a9d6d` (the flip) · `b23442e0` (last terra fix) · this wrap commit. Branch `feat/adr107-strangler-flip-step3`, base `9f5697a3`.
