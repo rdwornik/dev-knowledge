@@ -1,7 +1,7 @@
 ---
 id: "[#439]"
 title: "ADR-107 strangler STEP 3 — the source-of-truth flip"
-status: open
+status: closed
 priority: P1
 size: M
 theme: "[E7] Tooling & evaluation"

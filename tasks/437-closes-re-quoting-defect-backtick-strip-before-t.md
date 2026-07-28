@@ -1,7 +1,7 @@
 ---
 id: "[#437]"
 title: "`CLOSES_RE` quoting defect — backtick-strip before the closure regex"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E2] Enforced governance"
