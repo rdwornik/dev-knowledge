@@ -46,6 +46,24 @@ def _status(findings) -> str:
     return findings[0].status
 
 
+def _live_task_marker(text: str) -> str:
+    """A task-row marker guaranteed to exist in the CURRENT `BACKLOG.md`.
+
+    Derived from the fixture rather than hardcoded, deliberately. These tests used to pin
+    the literal `- [#436]`; when that row closed and left the file the mutation became a
+    silent no-op, so the gate stayed (correctly) green and three tests failed for a reason
+    that had nothing to do with the gate they exercise. A fixture naming a specific id
+    rots the day that id closes -- and two of the three call sites had no `assert marker
+    in text` guard, so it rotted quietly. Locating a live row keeps the mutation real for
+    any future BACKLOG state.
+    """
+    for line in text.split("\n"):
+        m = gtt._TASK_RE.match(line)
+        if m:
+            return f"- [#{m.group(1)}] "
+    raise AssertionError("fixture BACKLOG.md carries no task row to mutate")
+
+
 def _seed_tree(tmp_path: Path) -> tuple[Path, Path]:
     """A minimal repo-shaped fixture: real BACKLOG.md + a freshly generated tasks/ tree."""
     source = tmp_path / "BACKLOG.md"
@@ -68,9 +86,8 @@ def test_backlog_edit_without_regen_fails_the_leg(tmp_path):
     assert gtt.find_incoherences(source, out_dir) == [], "fixture should start coherent"
 
     text = source.read_bytes().decode("utf-8")
-    marker = "- [#436]"
-    assert marker in text, "fixture BACKLOG.md must carry the [#436] row"
-    source.write_bytes(text.replace(marker, "- [#436] EDITED-WITHOUT-REGEN", 1).encode("utf-8"))
+    marker = _live_task_marker(text)
+    source.write_bytes(text.replace(marker, f"{marker}EDITED-WITHOUT-REGEN ", 1).encode("utf-8"))
 
     problems = gtt.find_incoherences(source, out_dir)
     assert problems, "a BACKLOG edit without regen must be detected"
@@ -81,7 +98,8 @@ def test_regen_after_the_edit_restores_green(tmp_path):
     """The failure is actionable, not sticky: regenerating clears it."""
     source, out_dir = _seed_tree(tmp_path)
     text = source.read_bytes().decode("utf-8")
-    source.write_bytes(text.replace("- [#436]", "- [#436] EDITED", 1).encode("utf-8"))
+    marker = _live_task_marker(text)
+    source.write_bytes(text.replace(marker, f"{marker}EDITED ", 1).encode("utf-8"))
     assert gtt.find_incoherences(source, out_dir)
 
     gtt.write_tree(gtt.parse_backlog(source.read_bytes().decode("utf-8")), out_dir, prune=True)
@@ -236,7 +254,8 @@ def test_index_worktree_divergence_refuses_to_answer(tmp_path, monkeypatch):
     assert _status(aud.check_task_tree_coherence(tmp_path)) == "pass"
 
     original = source.read_bytes()
-    source.write_bytes(original.replace(b"- [#436]", b"- [#436] STAGED-ONLY", 1))
+    marker = _live_task_marker(original.decode("utf-8")).encode("utf-8")
+    source.write_bytes(original.replace(marker, marker + b"STAGED-ONLY ", 1))
     git("add", "BACKLOG.md")
     source.write_bytes(original)          # restore the working copy -- the hiding move
     findings = aud.check_task_tree_coherence(tmp_path)
