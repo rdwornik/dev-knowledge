@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "source": "BACKLOG.md",
-  "source_sha256": "e1b628182606d68d38be23e0c010aaca1851b14dcc8b1359c48cde1eda91f68f",
+  "source_sha256": "26a1c43855ba5206441f60d0e3b741ca13603b9eb91e2363f31b731def9ec135",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -331,6 +331,10 @@
       "file": "423-the-integration-sequence-runs-on-prose-every-tim.md"
     },
     {
+      "task": 437,
+      "file": "437-closes-re-quoting-defect-backtick-strip-before-t.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -464,6 +468,10 @@
     {
       "task": 386,
       "file": "386-codify-the-proven-delivery-loop-into-playbook-ow.md"
+    },
+    {
+      "task": 438,
+      "file": "438-codify-gate-class-posture-terra-design-review-be.md"
     },
     {
       "prose": ""
@@ -1069,6 +1077,24 @@
     },
     {
       "prose": "> **Clause (b) — RULED F1 (operator, 2026-07-27; discharges the R12 fork below).** Clause (b) will be amended to **ratchet + bounded drain**: gate the GROWTH of silent rules (the ratchet — built by [#436], row-independent) *and* drain a bounded slice, rather than dispositioning all 176. The **drain row selection (scope) is still pending** the operator's pick; the drain matrix is **slice × mechanism × owner × review date**. The frozen text above is deliberately UNCHANGED — this records the ruling; the amendment lands with the row selection."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "> **Clause (b) — AMENDED (operator ruling D1, 2026-07-28; lands the F1 row selection above).** The frozen contract text stays verbatim — this blockquote is the amendment of record. Clause (b) is discharged by **ratchet + bounded drain**: the ratchet ([#436], BUILT — merge `6195d932`) gates the GROWTH of silent rules, and the **drain slice is [#356] + [#358]–[#361]** (the two still-silent seed-1 rules + the four census escalations; [#362]'s 49 dropped #242 guards are NOT in the slice). **Architect prepares / operator ratifies.** **Review date 2026-08-26.** Matrix unchanged: slice × mechanism × owner × review date. **Recorded, never executed** — this selects the slice; no drain is performed by this entry."
+    },
+    {
+      "prose": ">"
+    },
+    {
+      "prose": "> **Operator intent (2026-07-28):** the FULL silent-rule pool (428 @ detector `silent-rule-v4`) is to be dispositioned over time — drained, mechanized, or DELIBERATELY RETIRED as no-longer-valid; staged, wholesale classes post-flip. **Nothing expires by being forgotten.**"
+    },
+    {
+      "prose": ">"
+    },
+    {
+      "prose": "> **Drain-owed now:** `PLAYBOOK.md:1270`, `REPO_ONBOARDING.md:92`, `REPO_ONBOARDING.md:199` + the 43-line delta per `docs/audits/2026-07-27-census-silent-rule-ratchet-arm-measurement.md`, review **2026-08-26**. **Baseline semantics:** architect-proposed 2026-07-27, operator-adopted (D4), test-and-iterate."
     },
     {
       "prose": ""
