@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "92d24ba74c88440c1e8e31ca93b3864ff6bd235a145465a5e7519d5c5f490060",
+  "generated_sha256": "9053bdef052c68c45d7da5aa6a4251d25d3d461fdd7467c238d6b232896bb526",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -338,10 +338,6 @@
       "file": "423-the-integration-sequence-runs-on-prose-every-tim.md"
     },
     {
-      "task": 437,
-      "file": "437-closes-re-quoting-defect-backtick-strip-before-t.md"
-    },
-    {
       "task": 442,
       "file": "442-plugin-command-cache-staleness-cached-command-te.md"
     },
@@ -421,10 +417,6 @@
     {
       "task": 324,
       "file": "324-phase-6-axis-2-carrier.md"
-    },
-    {
-      "task": 444,
-      "file": "444-release-tier1-lifecycle-0-1-11-ship-the-437-quot.md"
     },
     {
       "task": 325,
@@ -887,10 +879,6 @@
     {
       "task": 433,
       "file": "433-backlog-restructure-build-thin-engine-backlog-md.md"
-    },
-    {
-      "task": 439,
-      "file": "439-adr-107-strangler-step-3-the-source-of-truth-fli.md"
     },
     {
       "task": 440,

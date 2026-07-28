@@ -1,7 +1,7 @@
 ---
 id: "[#444]"
 title: "Release tier1-lifecycle 0.1.11 — ship the [#437] quoting fix to the version-keyed plugin cache"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E2] Enforced governance"
