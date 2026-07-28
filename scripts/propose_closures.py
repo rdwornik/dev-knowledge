@@ -62,6 +62,7 @@ CLOSES_RE = re.compile(r"\b(?:closes?|closed|fixes?|fixed)\s+\[#(\d+)\]", re.I)
 # double-quoted spans.
 _STRIP_RES = (
     re.compile(r"```.*?```", re.S),      # fenced block (multi-line by nature)
+    re.compile(r"~~~.*?~~~", re.S),      # tilde fence — the other CommonMark delimiter
     re.compile(r"(`+)[^`\r\n]*?\1"),     # inline span, same line, equal-length runs
     re.compile(r"^[ \t]*>.*$", re.M),    # block-quote line (quoted ruling/doc text)
     re.compile(r'"[^"\r\n]*"'),          # straight-double-quoted span, same line

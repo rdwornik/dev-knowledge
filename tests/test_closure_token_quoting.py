@@ -116,6 +116,15 @@ def test_fenced_block_never_matches():
     assert ids("body\n```\nfeat: x, closes [#12]\n```\ntail") == []
 
 
+def test_tilde_fenced_block_never_matches():
+    # ~~~ is a valid CommonMark fence delimiter (terra recheck HIGH)
+    assert ids("body\n~~~\ncloses [#8]\n~~~\ntail") == []
+
+
+def test_unpaired_tilde_fence_cannot_hide_a_real_directive():
+    assert ids("~~~\nquoted\ncloses [#9]") == ["9"]
+
+
 def test_block_quote_line_never_matches():
     assert ids("> the merge said closes [#13] but was reverted") == []
 
