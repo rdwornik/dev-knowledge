@@ -19,6 +19,26 @@
 
 ---
 
+### 2026-07-28 (k) — CC (Fable 5): [#437] shared closure-token core — quoting contexts dead, gate-class arc under [#438] posture
+
+**SHA anchor (ADR-85).** `08aff16c` (gate-GREEN HEAD) · design `3b2142be` · impl `605d45cb` · H-A/H-B `583ec527`. Branch `fix/437-closure-token-shared-core`, base `31fe0e01`.
+
+**Did.** The P7 arc end-to-end: design note FIRST (terra design review before any build — the [#438] posture's second production run), then TDD (41 tests witnessed failing pre-fix), then `strip_quoted_contexts` + `closure_ids` as the ONE shared detection core in `propose_closures`, consumed by `validate_git_backlog` (its duplicate `_strip_code` lever DELETED) and hand-mirrored into the plugin twin under a new byte-parity test (the `test_validate_backlog_twin_parity` precedent — the missing guard that let `:51` and `:80` diverge from `:87` unnoticed). Both live reproductions dead: `12e6b45b` and the self-matching filing commit `d993922e` yield no closure signal; real directives (incl. `close`/mid-sentence/multi forms from history) unaffected.
+
+**Review loop (4 passes, every finding fixed or dispositioned).** Design pass (terra): 2H/2M all accepted — plugin cache rollout, `(sha,id)` sweep provenance, multi-line scope declaration, parity-test mechanics. Diff pass 1 (sol, lane default): 2 HIGH, both REAL and TDD-fixed — whitespace stripping SYNTHESIZED directives the raw text never had (now a NUL barrier) and double-backtick spans survived (now equal-length-run pairing). Terra recheck: tilde fences — fixed. Terra final: indented code blocks — REJECTED-BY-DESIGN (the §2 non-strip list the design review itself endorsed; indent-stripping hides real directives), residual test added. Records: `2026-07-28-technical-437-closure-token-design.md` (3 amendment markers), `-codex-437-closure-design/-diff/-recheck.md`.
+
+**Build-discovery (terra H1 reversal).** The amended design's in-arc `plugin.json` bump is NOT executable: release-lint C4 pins `anchors.plugin_version` in EVERY manifest against live `plugin.json` and the suite lints historic v1.1.0/v1.2.0 live — the bump alone turned 5 tests red (bare main verified green in a scratch worktree, removed after). Reverted; the release act is **[#444]** (S8, P2): until it ships, every live session — hub included, cache verified at `0.1.10` — still runs the un-stripped scanner.
+
+**Sweep (H2 discipline).** Full history, `(sha,id)` occurrence provenance, re-derived after every semantics change: 10 dropped occurrences, each individually reviewed as quoted-context prose (the known #370 pair, plus #5/#57/#77/#80/#235/#355 convention-quoting), 0 real directives lost, 0 synthesized, 4,163 commits.
+
+**Result:** pytest **1954 passed** + the known external [#430] red only (reproduced on bare main) · ship-gate **GREEN** (19 dispositioned WARNs, none new) · `gen_task_tree --check ok` · ruff clean. Ride-alongs: #440 rename remnant removed per the generator's procedure (`ae55ff8b` retitled without regen), `doc-counts` pytest_collected 1903→1958.
+
+**Changes:** `scripts/propose_closures.py`, `scripts/validate_git_backlog.py`, `plugins/tier1-lifecycle/scripts/propose_closures.py`, `tests/` (2 new files, 51 tests), `BACKLOG.md` (+[#444]), `tasks/`, `docs/audits/` (4 artifacts + index), `ecosystem/doc-counts.md`, `JOURNAL.md`.
+
+**Next:** [#444] is the live residue — the plugin release act that actually ships this fix to the version-keyed cache. [#437] closure is the operator's `/review-closures` call: its Done-when (shared helper + seeded quoted tag yields no proposal, with tests) is met in-code on this branch.
+
+---
+
 ### 2026-07-28 (j) — CC (Opus 5): intake #20 ratified, #16 parked ACCEPTED/deferred, lesson 7 recorded as context
 
 **SHA anchor (ADR-85).** `ae55ff8b` (the ruling batch) · this wrap commit. Branch `docs/intake-20-ratification`, base `4aebc514`.
