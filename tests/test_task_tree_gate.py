@@ -219,7 +219,7 @@ def test_every_problem_path_is_present():
                   "root is not an object", "spans multiple lines",
                   "same task file twice", "two ACTIVE task files",
                   "is a TASK row", "spans multiple physical lines",
-                  "not marked terminal"):
+                  "not marked terminal", "disagrees with itself about its id"):
         assert shape in src, f"problem path lost: {shape}"
 
 

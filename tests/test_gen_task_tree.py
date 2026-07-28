@@ -274,6 +274,23 @@ def test_retired_record_with_a_distinct_id_stays_silent(tmp_path):
     assert gtt.find_incoherences(source, out_dir) == []
 
 
+def test_check_reds_when_a_retired_record_disagrees_about_its_own_id(tmp_path):
+    """terra P1 (14th pass) — retired records were trusted on FILENAME alone while active
+    files had all three ids cross-checked. A retired `77-old.md` whose body and frontmatter
+    say [#78] registered 77 as spent while actually holding 78, so an active [#78] was not
+    caught as re-issued. A record whose whole job is keeping an id spent must be right
+    about which id."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    active = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    body = (active.read_bytes().decode("utf-8")
+            .replace("[#1]", "[#78]")                       # body + frontmatter say 78
+            .replace("status: open", "status: closed", 1))
+    (out_dir / "77-a-lying-record.md").write_text(body, encoding="utf-8", newline="\n")
+
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("disagrees with itself about its id" in p for p in problems), problems
+
+
 def test_check_reds_on_a_retired_record_still_marked_open(tmp_path):
     """terra P1 (13th pass) — pass 12 made "mark it terminal" a documented INSTRUCTION but
     not an enforced one, which by this repo's own "no organ = decoration" rule is prose. An

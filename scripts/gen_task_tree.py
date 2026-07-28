@@ -100,12 +100,19 @@ _PROVENANCE_LINE = f"{_PROVENANCE_KEY}: BACKLOG.md"
 # "no organ = decoration" rule: a retirement convention with no gate is prose.
 _TERMINAL_STATUSES = ("closed", "retired", "superseded")
 _FM_STATUS_RE = re.compile(r"^status: (.+)$", re.MULTILINE)
+_FM_ID_RE = re.compile(r'^id: "\[#(\d+)\]"$', re.MULTILINE)
 
 
 def frontmatter_status(file_text: str) -> str | None:
     """The `status:` value declared in a task file's frontmatter, or None if absent."""
     m = _FM_STATUS_RE.search(file_text)
     return m.group(1).strip() if m else None
+
+
+def frontmatter_id(file_text: str) -> int | None:
+    """The `id:` declared in a task file's frontmatter, or None if absent/malformed."""
+    m = _FM_ID_RE.search(file_text)
+    return int(m.group(1)) if m else None
 
 
 @dataclass(frozen=True)
@@ -801,7 +808,28 @@ def _scan_source(out_dir: Path) -> tuple[list[str], list[str], dict | None]:
             identity.append(f"foreign task-shaped file (not engine-managed, not in the "
                             f"manifest): {p.name}")
             continue
-        status = frontmatter_status(p.read_bytes().decode("utf-8", errors="replace"))
+        record_text = p.read_bytes().decode("utf-8", errors="replace")
+        # terra P1 (14th pass): a retired record was trusted on its FILENAME alone while
+        # active files had all three ids cross-checked. A retired `77-old.md` whose body
+        # and frontmatter say [#78] registered 77 as spent while actually holding 78 -- so
+        # an active [#78] was not caught as re-issued, and the ledger silently drifted. A
+        # record whose whole job is to keep an id spent must be right about WHICH id.
+        record_file_id = _id_from_filename(p.name)
+        record_fm_id = frontmatter_id(record_text)
+        try:
+            record_body = _TASK_RE.match(extract_body(record_text))
+        except ValueError:
+            record_body = None      # malformed record; the status leg reports it
+        record_body_id = int(record_body.group(1)) if record_body else None
+        mismatched = [i for i in (record_fm_id, record_body_id)
+                      if i is not None and i != record_file_id]
+        if mismatched:
+            identity.append(
+                f"retired allocation record disagrees with itself about its id: {p.name} "
+                f"(filename [#{record_file_id}], frontmatter [#{record_fm_id}], "
+                f"body [#{record_body_id}]) — a record that keeps an id spent must be "
+                f"right about which id")
+        status = frontmatter_status(record_text)
         if status not in _TERMINAL_STATUSES:
             identity.append(
                 f"retired allocation record is not marked terminal: {p.name} "
