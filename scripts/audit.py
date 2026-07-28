@@ -2858,23 +2858,28 @@ def check_silent_rule_ratchet(repo_path: Path) -> list[Finding]:
 
 def _task_tree_findings(problems: list[str], present: bool = True) -> list[Finding]:
     """Testable core of check_task_tree_coherence ([#433] C1). Pure: takes the problem list
-    `gen_task_tree.find_incoherences` produced and maps it to a Finding."""
+    `gen_task_tree.find_incoherences` produced and maps it to a Finding.
+
+    Direction flipped by [#439] (ADR-107 step 3): `tasks/` is the SOURCE OF TRUTH and
+    `BACKLOG.md` is the generated side, so the remedy named in a failure is
+    `--emit-source` (tree -> file), not `--write` (file -> tree, now the import path).
+    """
     name = "task_tree_coherence"
     if not present:
-        return [Finding(name, "n/a", "no tasks/ derived tree in this repo")]
+        return [Finding(name, "n/a", "no tasks/ source tree in this repo")]
     if problems:
         shown = "; ".join(problems[:6])
         more = f" (+{len(problems) - 6} more)" if len(problems) > 6 else ""
         return [Finding(name, "fail",
-                        (f"derived tasks/ tree is STALE vs BACKLOG.md — regenerate with "
-                         f"`gen_task_tree.py --write`: {shown}{more}").replace("|", "/"))]
+                        (f"BACKLOG.md is STALE vs the tasks/ source of truth — regenerate "
+                         f"with `gen_task_tree.py --emit-source`: {shown}{more}").replace("|", "/"))]
     return [Finding(name, "pass",
-                    "derived tasks/ tree coherent with BACKLOG.md "
-                    "(per-file + manifest + full reassembly)")]
+                    "BACKLOG.md coherent with the tasks/ source of truth "
+                    "(structure + frontmatter honesty + full reassembly)")]
 
 
 def check_task_tree_coherence(repo_path: Path) -> list[Finding]:
-    """[#433] C1 — ARM the `tasks/` derived-tree coherence gate.
+    """[#433] C1 — the `tasks/` coherence gate. [#439] — flipped to the post-flip direction.
 
     Closes a gap ARCHITECTURE Ch5 named against its own "no organ = decoration" rule:
     `gen_task_tree.py --check` existed as a MODE that nothing invoked. No pre-commit hook
@@ -2883,30 +2888,40 @@ def check_task_tree_coherence(repo_path: Path) -> list[Finding]:
     hypothetical: at `b4dd3e48` the committed tree had already drifted (two task files
     stale, [#435]/[#436] missing, manifest and reassembly both mismatched).
 
+    ARMING THIS GATE WAS A PRECONDITION OF THE FLIP, not a follow-up to it (ADR-107 §7.2
+    condition (ii)): a stale DERIVED tree is merely wrong, whereas a stale SOURCE-OF-TRUTH
+    tree is a corrupted record. Since [#439] the pair is inverted — `tasks/` is the source
+    and `BACKLOG.md` is generated — so this leg now asks "does the committed BACKLOG.md
+    equal what the tree generates, and does every task file's frontmatter still agree with
+    its own body?" Both artifacts are still required, and the index/worktree guard still
+    covers both paths, because either one going stale is the same corruption.
+
     Registered in ALL_CHECKS, so it is a ship-gate leg by construction. FAIL-class.
 
     SCOPE (inherited from `find_incoherences`, restated so a green is not over-read): this
-    compares the tree against the CURRENT `BACKLOG.md`. It does NOT detect a consistent
-    rewrite of source and tree together — expectations are derived from the source being
-    checked. Source integrity is a separate leg (clean `git status` on BACKLOG.md plus the
-    manifest's `source_sha256`). Hub-only; read-only — it never regenerates the tree,
-    because a gate that silently fixes what it measures cannot fail.
+    compares the two artifacts against EACH OTHER. It does NOT detect a consistent rewrite
+    of both together — the expectation is derived from the tree being checked. Source
+    integrity is a separate leg (clean `git status` plus the manifest's `generated_sha256`
+    pinning which output bytes the tree claims to produce). Hub-only; read-only — it never
+    regenerates anything, because a gate that silently fixes what it measures cannot fail.
     """
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
         return [Finding("task_tree_coherence", "n/a",
-                        "hub-only — tasks/ is a hub-derived tree")]
+                        "hub-only — tasks/ is a hub-owned tree")]
     root = Path(repo_path)
     source, out_dir = root / "BACKLOG.md", root / "tasks"
     # On the hub BOTH artifacts are required, so a missing one is a FAIL, not "n/a"
     # (terra HIGH, 2026-07-27): returning n/a here made the newly-armed leg non-blocking
-    # precisely when its derived artifact had been deleted -- deleting tasks/ would have
+    # precisely when one of its artifacts had been deleted -- deleting tasks/ would have
     # disarmed the gate that exists to notice tasks/ drifting. `n/a` is reserved for the
-    # off-hub guard above, which is the only case where absence is legitimate.
+    # off-hub guard above, which is the only case where absence is legitimate. Post-flip
+    # ([#439]) an absent tasks/ is strictly worse than it was: it is the SOURCE that has
+    # gone missing, not a regenerable derivative.
     missing = [n for n, p in (("BACKLOG.md", source), ("tasks/", out_dir)) if not p.exists()]
     if missing:
         return [Finding("task_tree_coherence", "fail",
                         f"required hub artifact(s) absent: {', '.join(missing)} — the "
-                        f"derived-tree gate cannot be satisfied by deleting what it checks")]
+                        f"coherence gate cannot be satisfied by deleting what it checks")]
     # The coherence read is a WORKING-TREE read, so it is only trustworthy while the index
     # agrees with the working tree for these paths (terra HIGH, 5th pass): otherwise a
     # staged BACKLOG change can be hidden by restoring the working copy before committing,

@@ -1,11 +1,18 @@
 {
-  "schema": 1,
-  "source": "BACKLOG.md",
-  "source_sha256": "25f3c65b00b84ec9580efcec3f3927d1b0776b401551e81f6e8c03be2d5943d0",
+  "schema": 2,
+  "role": "source-of-truth",
+  "generates": "BACKLOG.md",
+  "generated_sha256": "74368397868bb0d36b7359582ff6f8d7bd6a6aabe1ad7c41fe6e97ac6facadbf",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
       "prose": "# .dev-knowledge BACKLOG"
+    },
+    {
+      "prose": "<!-- GENERATED FILE — do not edit directly. Source of truth: tasks/ (per-task .md bodies + manifest.json)."
+    },
+    {
+      "prose": "     Regenerate: python scripts/gen_task_tree.py --emit-source   ·   ADR-107 strangler step 3, [#439]. -->"
     },
     {
       "prose": ""

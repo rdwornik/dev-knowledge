@@ -1,4 +1,8 @@
-"""Coverage for scripts/gen_task_tree.py ([#433] BACKLOG restructure strangler STEP 1-2)."""
+"""Coverage for scripts/gen_task_tree.py.
+
+[#433] STEP 1-2 (the verbatim split + byte-identity proofs) and [#439] STEP 3 (the
+source-of-truth flip: tasks/ is the source, BACKLOG.md is generated).
+"""
 from __future__ import annotations
 
 import os
@@ -41,6 +45,110 @@ def test_committed_tree_coherent_with_backlog():
         pytest.skip("tasks/ not yet generated (module 3 commits it)")
     text = BACKLOG.read_bytes().decode("utf-8")
     assert gtt.reassemble_from_tree(TREE) == text
+
+
+# --- [#439] the flip -------------------------------------------------------------
+
+def test_emit_source_regenerates_backlog_byte_identically(tmp_path):
+    """THE post-flip acceptance test, and the inverse of the STEP 1-2 one above: the tree
+    is the source, so emitting must reproduce the live BACKLOG.md bytes exactly."""
+    raw = BACKLOG.read_bytes()
+    out_dir = tmp_path / "tasks"
+    gtt.write_tree(gtt.parse_backlog(raw.decode("utf-8")), out_dir)
+    target = tmp_path / "BACKLOG.md"
+    assert gtt.main(["--emit-source", "--source", str(target), "--out", str(out_dir)]) == 0
+    assert target.read_bytes() == raw
+
+
+def test_emit_source_is_idempotent_and_leaves_a_current_file_alone(tmp_path):
+    """A no-op regen must not rewrite the file: an mtime-only churn would show up as a
+    working-tree diff and trip the coherence gate's index/worktree guard for no reason."""
+    text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"
+    out_dir, target = tmp_path / "tasks", tmp_path / "BACKLOG.md"
+    gtt.write_tree(gtt.parse_backlog(text), out_dir)
+    assert gtt.main(["--emit-source", "--source", str(target), "--out", str(out_dir)]) == 0
+    first = target.stat().st_mtime_ns
+    assert gtt.main(["--emit-source", "--source", str(target), "--out", str(out_dir)]) == 0
+    assert target.stat().st_mtime_ns == first, "a current file must not be rewritten"
+
+
+def test_emit_source_refuses_when_the_source_tree_is_missing(tmp_path):
+    """Fail-closed: with no manifest there is no source of truth, so refuse rather than
+    write an empty or half-built BACKLOG.md over a good one."""
+    target = tmp_path / "BACKLOG.md"
+    target.write_bytes(b"# real content\n")
+    assert gtt.main(["--emit-source", "--source", str(target),
+                     "--out", str(tmp_path / "nope")]) == 1
+    assert target.read_bytes() == b"# real content\n", "must not clobber on refusal"
+
+
+def test_check_reds_when_backlog_diverges_from_the_tree(tmp_path):
+    """The flipped direction: the TREE is the expectation now."""
+    text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"
+    out_dir, source = tmp_path / "tasks", tmp_path / "BACKLOG.md"
+    source.write_bytes(text.encode("utf-8"))
+    gtt.write_tree(gtt.parse_backlog(text), out_dir)
+    assert gtt.find_incoherences(source, out_dir) == []
+
+    source.write_bytes((text + "a hand edit to the generated file\n").encode("utf-8"))
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("does not match what tasks/ generates" in p for p in problems), problems
+    assert gtt.main(["--check", "--source", str(source), "--out", str(out_dir)]) == 1
+
+
+def test_check_reds_on_frontmatter_that_disagrees_with_its_body(tmp_path):
+    """The leg the flip made necessary. Frontmatter is DERIVED from the body, so in a
+    source-of-truth file it is editable, inert, and — without this check — silently wrong.
+    A hand-edited `status:` must RED rather than sit there looking authoritative."""
+    text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"
+    out_dir, source = tmp_path / "tasks", tmp_path / "BACKLOG.md"
+    source.write_bytes(text.encode("utf-8"))
+    gtt.write_tree(gtt.parse_backlog(text), out_dir)
+    assert gtt.find_incoherences(source, out_dir) == []
+
+    task_file = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    original = task_file.read_bytes().decode("utf-8")
+    task_file.write_text(original.replace("status: open", "status: done", 1),
+                         encoding="utf-8", newline="\n")
+
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("frontmatter disagrees with its own body" in p for p in problems), problems
+
+
+def test_check_reds_when_the_manifest_references_a_missing_file(tmp_path):
+    text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"
+    out_dir, source = tmp_path / "tasks", tmp_path / "BACKLOG.md"
+    source.write_bytes(text.encode("utf-8"))
+    gtt.write_tree(gtt.parse_backlog(text), out_dir)
+    next(p for p in out_dir.iterdir() if p.name.startswith("1-")).unlink()
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("missing task file" in p for p in problems), problems
+
+
+def test_task_files_carry_the_post_flip_provenance(tmp_path):
+    """`source: BACKLOG.md` + `derived: true` were TRUE pre-flip and FALSE after it. The
+    tree is the source now, so it says what it generates instead of what it came from."""
+    text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"
+    out_dir = tmp_path / "tasks"
+    gtt.write_tree(gtt.parse_backlog(text), out_dir)
+    body = next(p for p in out_dir.iterdir()
+                if p.name.startswith("1-")).read_bytes().decode("utf-8")
+    assert "generates: BACKLOG.md" in body
+    assert "derived: true" not in body
+    assert "source: BACKLOG.md" not in body
+
+
+def test_manifest_declares_the_post_flip_direction(tmp_path):
+    import json
+    text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"
+    out_dir = tmp_path / "tasks"
+    gtt.write_tree(gtt.parse_backlog(text), out_dir)
+    manifest = json.loads((out_dir / "manifest.json").read_bytes().decode("utf-8"))
+    assert manifest["schema"] == 2
+    assert manifest["role"] == "source-of-truth"
+    assert manifest["generates"] == "BACKLOG.md"
+    assert "generated_sha256" in manifest
+    assert "source_sha256" not in manifest, "schema-1 key must not linger with flipped meaning"
 
 
 def test_live_parse_structural_properties():
@@ -156,64 +264,61 @@ def test_write_tree_never_deletes(tmp_path, capsys):
     assert (out_dir / "notes.txt").read_text(encoding="utf-8") == "notes\n"
 
     out = capsys.readouterr().out
-    orphan_lines = [line for line in out.splitlines() if "orphan (not touched):" in line]
-    assert len(orphan_lines) == 1
-    assert "9999-stray.md" in orphan_lines[0]
+    untouched = [line for line in out.splitlines() if "left untouched" in line]
+    assert len(untouched) == 1
+    assert "9999-stray.md" in untouched[0]
+    # post-flip ([#439]) the report classifies: this one carries no provenance marker
+    assert "FOREIGN file" in untouched[0]
 
 
-def test_prune_removes_only_generator_emitted_retired_files(tmp_path, capsys):
-    """terra P1 (2026-07-27): a task leaving BACKLOG.md retires its derived file.
-    --write --prune deletes it IFF it carries the generator's own provenance
-    markers; a hand-authored task-shaped file is NEVER deleted."""
-    out_dir = tmp_path / "tasks"
-    two_tasks = "\n".join(
-        [
-            "## [E1] Theme",
-            "",
-            "### [S1] Story",
-            "- [#1] [P1][S] **Task one** — body",
-            "- [#2] [P1][S] **Task two** — body",
-            "",
-        ]
-    )
-    gtt.write_tree(gtt.parse_backlog(two_tasks), out_dir)
-    retired_fname = gtt.task_filename(
-        next(row for kind, row in gtt.parse_backlog(two_tasks).nodes if kind == "task" and row.id == 2)
-    )
-    assert (out_dir / retired_fname).exists()
-    # a hand-authored task-shaped file WITHOUT the provenance markers
-    (out_dir / "7777-hand-authored.md").write_text("my own notes\n", encoding="utf-8", newline="\n")
-
-    one_task = "\n".join(
-        [
-            "## [E1] Theme",
-            "",
-            "### [S1] Story",
-            "- [#1] [P1][S] **Task one** — body",
-            "",
-        ]
-    )
-    gtt.write_tree(gtt.parse_backlog(one_task), out_dir, prune=True)
-
-    assert not (out_dir / retired_fname).exists()  # retired derived file pruned
-    assert (out_dir / "7777-hand-authored.md").exists()  # foreign file untouched
-    out = capsys.readouterr().out
-    assert any("pruned retired task file" in line and retired_fname in line for line in out.splitlines())
-    assert any("orphan (not touched): 7777-hand-authored.md" in line for line in out.splitlines())
-
-
-def test_prune_flag_requires_write():
+def test_prune_is_refused_after_the_flip():
+    """[#439] — --prune deleted retired task files. Post-flip those files ARE the source,
+    so deleting one destroys source AND frees its id for re-issue, which is precisely what
+    ADR-107 §6.3's retire-not-delete rule forbids. The verb refuses rather than lingering
+    as a footgun, with or without --write."""
     assert gtt.main(["--prune"]) == 2
+    assert gtt.main(["--write", "--prune"]) == 2
 
 
-def test_write_without_prune_keeps_retired_files(tmp_path):
+def test_retirement_keeps_the_file_and_stays_silent(tmp_path, capsys):
+    """ADR-107 §6.3 retire-not-delete, realized: a task leaving the QUEUE drops out of
+    manifest.json, and its file REMAINS as the allocation record that keeps its id spent.
+    The coherence check must treat that as normal — if retirement RED-ed the gate, every
+    closure would break the build."""
     out_dir = tmp_path / "tasks"
-    two_tasks = "## [E1] T\n\n### [S1] S\n- [#1] [P1][S] **One** — b\n- [#2] [P1][S] **Two** — b\n"
-    gtt.write_tree(gtt.parse_backlog(two_tasks), out_dir)
-    one_task = "## [E1] T\n\n### [S1] S\n- [#1] [P1][S] **One** — b\n"
-    gtt.write_tree(gtt.parse_backlog(one_task), out_dir)  # default: no prune
-    leftover = [p.name for p in out_dir.iterdir() if p.name.startswith("2-")]
-    assert leftover  # the retired derived file is still there without --prune
+    source = tmp_path / "BACKLOG.md"
+    two = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n- [#2] [P1][S] **Two** — b\n"
+    source.write_bytes(two.encode("utf-8"))
+    gtt.write_tree(gtt.parse_backlog(two), out_dir)
+    retired = gtt.task_filename(
+        next(r for k, r in gtt.parse_backlog(two).nodes if k == "task" and r.id == 2))
+    assert (out_dir / retired).exists()
+
+    # retire [#2]: it leaves the queue, its file stays put
+    one = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"
+    source.write_bytes(one.encode("utf-8"))
+    gtt.write_tree(gtt.parse_backlog(one), out_dir)
+
+    assert (out_dir / retired).exists(), "retire-not-delete: the allocation record must survive"
+    assert gtt.find_incoherences(source, out_dir) == [], \
+        "a retired allocation record is legitimate and must not RED the gate"
+    assert "retired allocation record" in capsys.readouterr().out
+
+
+def test_foreign_task_shaped_file_is_reported_not_silently_kept(tmp_path):
+    """The flip side of the test above: silence is only for OUR retired records. A
+    task-shaped file with no provenance marker is foreign and must still be surfaced,
+    or 'retired' becomes a hiding place for anything."""
+    out_dir = tmp_path / "tasks"
+    source = tmp_path / "BACKLOG.md"
+    text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"
+    source.write_bytes(text.encode("utf-8"))
+    gtt.write_tree(gtt.parse_backlog(text), out_dir)
+    assert gtt.find_incoherences(source, out_dir) == []
+
+    (out_dir / "7777-hand-authored.md").write_text("my own notes\n", encoding="utf-8", newline="\n")
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("foreign" in p.lower() and "7777" in p for p in problems), problems
 
 
 def test_check_detects_body_corruption(tmp_path):

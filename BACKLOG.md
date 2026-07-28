@@ -1,4 +1,6 @@
 # .dev-knowledge BACKLOG
+<!-- GENERATED FILE — do not edit directly. Source of truth: tasks/ (per-task .md bodies + manifest.json).
+     Regenerate: python scripts/gen_task_tree.py --emit-source   ·   ADR-107 strangler step 3, [#439]. -->
 
 ## Big picture
 

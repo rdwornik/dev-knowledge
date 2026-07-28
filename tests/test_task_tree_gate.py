@@ -102,7 +102,7 @@ def test_regen_after_the_edit_restores_green(tmp_path):
     source.write_bytes(text.replace(marker, f"{marker}EDITED ", 1).encode("utf-8"))
     assert gtt.find_incoherences(source, out_dir)
 
-    gtt.write_tree(gtt.parse_backlog(source.read_bytes().decode("utf-8")), out_dir, prune=True)
+    gtt.write_tree(gtt.parse_backlog(source.read_bytes().decode("utf-8")), out_dir)
     assert gtt.find_incoherences(source, out_dir) == []
     assert _status(aud._task_tree_findings([])) == "pass"
 
@@ -116,19 +116,22 @@ def test_missing_task_file_is_detected(tmp_path):
     assert any("missing task file" in p for p in problems), problems
 
 
-def test_orphan_task_file_is_detected(tmp_path):
-    """A retired row leaving its derived file behind — the `--write --prune` lifecycle."""
+def test_unreferenced_foreign_task_file_is_detected(tmp_path):
+    """Post-flip ([#439]) an unreferenced task-shaped file is only legitimate when it is
+    OUR retired allocation record. This one carries no provenance marker, so it is foreign
+    and must still be surfaced — otherwise 'retired' becomes a hiding place."""
     source, out_dir = _seed_tree(tmp_path)
     (out_dir / "999-a-task-that-no-longer-exists.md").write_bytes(b"---\nid: \"[#999]\"\n---\n")
     problems = gtt.find_incoherences(source, out_dir)
-    assert any("orphan" in p for p in problems), problems
+    assert any("foreign" in p.lower() for p in problems), problems
 
 
-def test_missing_output_dir_is_a_problem_not_a_crash(tmp_path):
+def test_missing_source_tree_is_a_problem_not_a_crash(tmp_path):
+    """Post-flip the absent directory is the SOURCE, not a regenerable derivative."""
     source = tmp_path / "BACKLOG.md"
     shutil.copyfile(REPO_ROOT / "BACKLOG.md", source)
     problems = gtt.find_incoherences(source, tmp_path / "tasks")
-    assert problems and "output dir missing" in problems[0]
+    assert problems and "source tree missing" in problems[0]
 
 
 def test_cli_check_still_exits_nonzero_on_drift(tmp_path, capsys):
@@ -184,17 +187,24 @@ def test_off_hub_is_na_not_fail(tmp_path):
     assert _status(findings) == "n/a"
 
 
-def test_extraction_preserved_every_problem_path():
+def test_every_problem_path_is_present():
     """terra asked whether the _cmd_check -> find_incoherences extraction dropped a path.
-    Pin the full set of problem shapes the core can still emit."""
+    Pin the full set of problem shapes the core can emit.
+
+    Rewritten at the [#439] flip: the shapes changed with the direction. The pre-flip set
+    described a tree checked against a file ("task file content differs",
+    "manifest.json differs", "orphan task-shaped file"); the post-flip set describes a
+    FILE checked against a tree, plus the frontmatter-honesty leg the flip made necessary.
+    This test is a coverage ratchet, so it is updated deliberately, never relaxed.
+    """
     import inspect
 
     src = inspect.getsource(gtt.find_incoherences)
-    for shape in ("cannot read source", "parse error", "output dir missing",
-                  "missing task file", "task file content differs",
-                  "missing manifest.json", "manifest.json differs",
-                  "orphan task-shaped file", "reassemble_from_tree"):
-        assert shape in src, f"problem path lost in extraction: {shape}"
+    for shape in ("source tree missing", "missing manifest.json", "manifest.json unreadable",
+                  "no 'nodes' list", "missing task file", "unreadable or malformed",
+                  "frontmatter disagrees with its own body", "foreign task-shaped file",
+                  "reassemble_from_tree", "does not match what tasks/ generates"):
+        assert shape in src, f"problem path lost: {shape}"
 
 
 def test_artifact_read_error_fails_rather_than_warns(monkeypatch, tmp_path):

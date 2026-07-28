@@ -1,22 +1,56 @@
 #!/usr/bin/env python
-"""gen_task_tree.py -- [#433] BACKLOG restructure strangler STEP 1-2.
+"""gen_task_tree.py -- [#433] STEP 1-2 (split) / [#439] STEP 3 (the flip).
 
-Deterministic splitter/emitter for BACKLOG.md: parses the file into a lossless
-line model, emits a per-task file tree under tasks/ (one frontmattered .md per
-task) plus a tasks/manifest.json structure manifest, and reassembles BACKLOG.md
-BYTE-IDENTICALLY from that tree.
+THE DERIVATION RUNS TREE -> FILE. `tasks/` is the SOURCE OF TRUTH; `BACKLOG.md`
+is GENERATED from it. That direction was flipped by [#439] on 2026-07-28 under
+ADR-107 §7.2, once both of its preconditions held (the ADR Accepted, and the
+tasks/ coherence gate armed and witnessed firing). Before the flip the arrow
+pointed the other way, and most of this module's history assumes that; read
+`--write` in particular with the flip in mind (see below).
 
-This is a gen_* family committed-generated-zone writer (ADR-80 pattern, same
-posture as gen_audit_index.py): it writes ONLY under the output tree, and only
-when invoked with --write. It NEVER deletes anything on disk -- a stray file
-under the output tree that looks task-shaped is reported, never touched.
+The source of truth is TWO artifacts, and both are load-bearing:
+  * `tasks/<id>-<slug>.md` -- one frontmattered file per task. The BODY is the
+    task's own BACKLOG line, verbatim, and is the authoritative text. The
+    FRONTMATTER is DERIVED FROM THAT BODY (id/title/status/priority/... are all
+    parsed out of the line), so editing frontmatter changes nothing on its own --
+    `find_incoherences` REFUSES a file whose frontmatter disagrees with what its
+    own body derives, precisely so that inert-looking metadata cannot rot into a
+    quiet lie. Edit the body; the frontmatter follows.
+  * `tasks/manifest.json` -- the residue carrier: every non-task prose line of
+    BACKLOG.md, in order, interleaved with task-node pointers. It carries the
+    document's STRUCTURE, so ordering, headings and narrative live here. This is
+    what makes one-file->many-files reversible (ADR-107 §5 finding 6).
 
-BACKLOG.md remains the single source of truth until a later flip arc retires
-it in favor of the tree; this module only builds the derived, disposable side.
+`BACKLOG.md` is NOT decommissioned by the flip (ADR-107 "Decommission: none").
+It stays on disk, byte-identical, and every other gate that reads it -- doc_rot,
+validate_backlog, the commit-msg hooks, propose_closures -- keeps working
+unchanged against it. What changed is only which side of the pair is the
+expectation and which is the output.
+
+CLI verbs, by direction:
+  --emit-source   tree -> BACKLOG.md. THE NORMAL POST-FLIP REGEN. Run it after
+                  any edit under tasks/.
+  --check         verifies BACKLOG.md on disk equals what the tree generates,
+                  and that every task file's frontmatter matches its own body.
+                  Read-only; armed as an audit.py ship-gate leg ([#433] C1).
+  --roundtrip     in-memory lossless proof over the generated text.
+  --write         BACKLOG.md -> tree. THE IMPORT/RECOVERY DIRECTION, deliberately
+                  kept (it is how the tree was bootstrapped and how it would be
+                  rebuilt), but post-flip it OVERWRITES SOURCE FROM A DERIVED
+                  FILE and therefore warns loudly. It is not the normal path.
+  --prune         REFUSED post-flip. Deleting a task file now deletes source, and
+                  ADR-107 §6.3 rules retire-not-delete: a retired task leaves the
+                  QUEUE by dropping out of manifest.json while its file REMAINS as
+                  the allocation record that keeps its id from being re-issued.
+
 Reassembly is byte-identical BY CONSTRUCTION (the line model preserves every
-original physical line verbatim) and is ASSERTED at parse time (parse_backlog
-refuses to return a model that does not reassemble back to its own input), and
-re-verified by the --roundtrip / --check CLI verbs against disk state.
+original physical line verbatim), ASSERTED at parse time (parse_backlog refuses
+to return a model that does not reassemble back to its own input), and
+re-verified by --roundtrip / --check against disk state.
+
+Layer-2 posture is unchanged (ADR-28/36): this writes only BACKLOG.md and the
+tasks/ tree, drives no state in any other repo, and never deletes a file it did
+not emit.
 """
 
 from __future__ import annotations
@@ -50,6 +84,14 @@ _TITLE_STRIP_RE = re.compile(r"^- \[#\d+\] (?:\[P\d\](?:\[[SML]\])?)?\s*(.*)$")
 _TITLE_FALLBACK_DELIMS = (" — ", " (", ": ", " · ")
 
 _ORPHAN_RE = re.compile(r"^\d+-.*\.md$")
+
+# Post-flip provenance ([#439]). Pre-flip each task file carried `source: BACKLOG.md`
+# + `derived: true`; both became FALSE at the flip -- these files are the source now,
+# and BACKLOG.md is the derived side. One honest line replaces the pair, and it doubles
+# as the engine-managed marker: a task-shaped file carrying it is ours (a retired
+# allocation record or a live task), one without it is foreign and is never touched.
+_PROVENANCE_KEY = "generates"
+_PROVENANCE_LINE = f"{_PROVENANCE_KEY}: BACKLOG.md"
 
 
 @dataclass(frozen=True)
@@ -188,9 +230,17 @@ def emit_task_file_text(task: TaskRow) -> str:
     """Render one task's frontmattered .md file text.
 
     Fixed key order (id, title, status, priority?, size?, theme?, story?,
-    serialize-group?, depends-on?, source, derived); optional keys are omitted
-    when their deriver returns None (or, for theme/story, when the TaskRow field
+    serialize-group?, depends-on?, generates); optional keys are omitted when
+    their deriver returns None (or, for theme/story, when the TaskRow field
     itself is None).
+
+    This is also the ORACLE for frontmatter honesty post-flip ([#439]): every
+    key above except theme/story is a pure function of `task.raw`, so re-rendering
+    a file from its own body must reproduce the file byte-for-byte. `--check`
+    asserts exactly that, which is what stops a hand-edited `status:` from sitting
+    in a source-of-truth file meaning nothing. theme/story come from the task's
+    position in the manifest, not from its line, so they are supplied by the
+    caller rather than re-derived.
     """
     lines = ["---", f'id: "[#{task.id}]"']
     lines.append(f"title: {json.dumps(derive_title(task.raw), ensure_ascii=False)}")
@@ -211,8 +261,7 @@ def emit_task_file_text(task: TaskRow) -> str:
     depends_on = derive_depends_on(task.raw)
     if depends_on is not None:
         lines.append(f"depends-on: {json.dumps(depends_on, ensure_ascii=False)}")
-    lines.append("source: BACKLOG.md")
-    lines.append("derived: true")
+    lines.append(_PROVENANCE_LINE)
     lines.append("---")
     lines.append("")
     lines.append(task.raw)
@@ -234,7 +283,16 @@ def extract_body(file_text: str) -> str:
 
 
 def render_manifest(model: Model, fname_by_id: dict[int, str]) -> str:
-    """tasks/manifest.json text: schema + source hash + one entry per node, in order."""
+    """tasks/manifest.json text: schema + output hash + one entry per node, in order.
+
+    Schema 2 ([#439]) states the post-flip direction. Schema 1 read
+    `source: BACKLOG.md` / `source_sha256`, which described the tree as derived FROM
+    that file; after the flip the arrow points the other way, so the keys name what
+    this manifest GENERATES. The hash VALUE is unchanged in kind -- it is still the
+    sha256 of the reassembled BACKLOG.md text -- but its meaning flips from "the
+    bytes we were built from" to "the bytes we are expected to produce", which is
+    what makes it checkable against the file on disk.
+    """
     nodes_out: list[dict[str, object]] = []
     for kind, payload in model.nodes:
         if kind == "task":
@@ -242,9 +300,10 @@ def render_manifest(model: Model, fname_by_id: dict[int, str]) -> str:
         else:
             nodes_out.append({"prose": payload})
     manifest = {
-        "schema": 1,
-        "source": "BACKLOG.md",
-        "source_sha256": hashlib.sha256(model.source_text.encode("utf-8")).hexdigest(),
+        "schema": 2,
+        "role": "source-of-truth",
+        "generates": "BACKLOG.md",
+        "generated_sha256": hashlib.sha256(model.source_text.encode("utf-8")).hexdigest(),
         "generator": "scripts/gen_task_tree.py",
         "nodes": nodes_out,
     }
@@ -268,30 +327,38 @@ def _fname_map(tasks: list[TaskRow]) -> dict[int, str]:
     return fname_by_id
 
 
-def _is_generator_emitted(path: Path) -> bool:
-    """True iff the file carries BOTH provenance marker lines this generator writes
-    (`source: BACKLOG.md` + `derived: true`) inside its frontmatter. The prune path
-    (terra P1, 2026-07-27) deletes ONLY files that prove this provenance -- a
-    hand-authored task-shaped file is never touched."""
+def _is_engine_managed(path: Path) -> bool:
+    """True iff the file carries this engine's provenance line in its frontmatter.
+
+    Post-flip ([#439]) this no longer gates a DELETION path -- nothing deletes task
+    files any more (ADR-107 §6.3, retire-not-delete). It gates CLASSIFICATION: a
+    task-shaped file under tasks/ that is not referenced by the manifest is either
+    a RETIRED allocation record (ours, legitimate, keeps its id from being re-issued)
+    or a foreign file that wandered in. The marker is what tells those apart, so a
+    retirement stays silent while a stray still gets reported.
+    """
     try:
         text = path.read_bytes().decode("utf-8")
     except (OSError, UnicodeDecodeError):
         return False
-    return "\nsource: BACKLOG.md\n" in text and "\nderived: true\n" in text
+    return f"\n{_PROVENANCE_LINE}\n" in text
 
 
-def write_tree(model: Model, out_dir: Path, prune: bool = False) -> list[str]:
-    """Write every task file + manifest.json under out_dir.
+def write_tree(model: Model, out_dir: Path) -> list[str]:
+    """Write every task file + manifest.json under out_dir -- the IMPORT direction.
 
-    By default NEVER deletes or truncates anything else already there: a
-    pre-existing file that looks task-shaped (matches _ORPHAN_RE) but is not part
-    of this emission set is left untouched and reported to stdout as an orphan.
+    Post-flip ([#439]) this rebuilds the SOURCE OF TRUTH from the generated file, so
+    it is the bootstrap/recovery path, not the routine one; `_cmd_write` warns before
+    calling it. It remains here deliberately: it is how the tree was first built, how
+    it would be rebuilt from a BACKLOG.md restored out of git, and how the flip itself
+    re-stamped 175 files onto the new provenance.
 
-    With prune=True (the explicit `--write --prune` verb; terra P1 fix), a
-    task-shaped file OUTSIDE the emission set is deleted IFF it carries this
-    generator's own provenance markers (_is_generator_emitted) -- the retired-task
-    lifecycle: a task line leaving BACKLOG.md retires its derived file. A
-    task-shaped file WITHOUT the markers is still only reported, never deleted.
+    It NEVER deletes anything. A task-shaped file outside the emission set is reported
+    and left alone -- and post-flip that set includes legitimately RETIRED allocation
+    records, so the report distinguishes them (ours, expected) from strays (foreign).
+    The prune path is gone: it deleted retired task files, which after the flip means
+    deleting source and re-opening a spent id for re-issue, exactly what ADR-107 §6.3
+    forbids.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     tasks = _task_rows(model)
@@ -309,11 +376,8 @@ def write_tree(model: Model, out_dir: Path, prune: bool = False) -> list[str]:
     emitted = set(fname_by_id.values())
     for p in sorted(out_dir.iterdir()):
         if p.is_file() and _ORPHAN_RE.match(p.name) and p.name not in emitted:
-            if prune and _is_generator_emitted(p):
-                p.unlink()
-                print(f"gen_task_tree: pruned retired task file: {p.name}")
-            else:
-                print(f"gen_task_tree: orphan (not touched): {p.name}")
+            kind = "retired allocation record" if _is_engine_managed(p) else "FOREIGN file"
+            print(f"gen_task_tree: not in the active queue, left untouched ({kind}): {p.name}")
 
     return written
 
@@ -336,82 +400,184 @@ def reassemble_from_tree(tree_dir: Path) -> str:
     return "\n".join(parts)
 
 
-def _cmd_write(source_path: Path, out_dir: Path, prune: bool = False) -> int:
+def _cmd_write(source_path: Path, out_dir: Path) -> int:
+    """IMPORT: BACKLOG.md -> tree. Warns, because post-flip this overwrites source."""
+    print(f"gen_task_tree: WARNING -- --write rebuilds the SOURCE OF TRUTH ({out_dir}) "
+          f"from {source_path.name}, which is a GENERATED file since the [#439] flip. "
+          f"Any edit made under tasks/ but not yet emitted will be overwritten. The "
+          f"routine post-flip regen is --emit-source (tree -> BACKLOG.md).", file=sys.stderr)
     text = source_path.read_bytes().decode("utf-8")
     model = parse_backlog(text)
-    write_tree(model, out_dir, prune=prune)
+    write_tree(model, out_dir)
     task_count = sum(1 for kind, _ in model.nodes if kind == "task")
-    print(f"gen_task_tree: wrote {task_count} task file(s) + manifest to {out_dir}")
+    print(f"gen_task_tree: imported {task_count} task file(s) + manifest into {out_dir}")
     return 0
 
 
-def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
-    """The testable core of `--check`: every way the derived tree disagrees with its source.
+def _cmd_emit_source(source_path: Path, out_dir: Path) -> int:
+    """THE NORMAL POST-FLIP REGEN: tree -> BACKLOG.md.
 
-    Returns a list of human-readable problems; EMPTY means the committed tree is coherent
-    with `BACKLOG.md`. Extracted from `_cmd_check` so a consumer can get structured
-    problems instead of an exit code -- `scripts/audit.py::check_task_tree_coherence`
-    ([#433] C1) wires exactly this as a ship-gate leg, which is what turns `--check` from
-    a mode nothing invokes into an armed gate.
-
-    SCOPE, stated honestly (unchanged by the extraction): this compares the tree against
-    the CURRENT source. It does NOT detect a consistent rewrite of source and tree
-    together -- expectations are derived from the source being checked. Source integrity
-    is a separate leg (a clean `git status` on BACKLOG.md plus the manifest's
-    `source_sha256`).
+    Writes only when the bytes actually change, so a no-op regen leaves mtime alone
+    and does not manufacture a diff for the coherence gate's index/worktree guard to
+    trip over.
     """
+    if not (out_dir / "manifest.json").exists():
+        print(f"gen_task_tree: emit-source FAIL: no manifest at {out_dir / 'manifest.json'} "
+              f"-- the source of truth is missing, refusing to write {source_path.name}",
+              file=sys.stderr)
+        return 1
     try:
-        text = source_path.read_bytes().decode("utf-8")
-    except OSError as exc:
-        return [f"cannot read source {source_path}: {exc}"]
-    try:
-        model = parse_backlog(text)
-    except (ValueError, AssertionError) as exc:
-        return [f"parse error: {exc}"]
+        generated = reassemble_from_tree(out_dir)
+    except (OSError, ValueError, KeyError) as exc:
+        print(f"gen_task_tree: emit-source FAIL: {exc}", file=sys.stderr)
+        return 1
 
-    tasks = _task_rows(model)
-    try:
-        fname_by_id = _fname_map(tasks)
-    except ValueError as exc:
-        return [str(exc)]
+    current = source_path.read_bytes().decode("utf-8") if source_path.exists() else None
+    if current == generated:
+        print(f"gen_task_tree: {source_path.name} already current ({_task_count(out_dir)} task(s))")
+        return 0
+    source_path.write_text(generated, encoding="utf-8", newline="\n")
+    print(f"gen_task_tree: regenerated {source_path.name} from {out_dir} "
+          f"({_task_count(out_dir)} task(s))")
+    return 0
 
+
+def _task_count(out_dir: Path) -> int:
+    """How many task nodes the manifest carries (0 if it cannot be read)."""
+    try:
+        manifest = json.loads((out_dir / "manifest.json").read_bytes().decode("utf-8"))
+    except (OSError, ValueError, KeyError):
+        return 0
+    return sum(1 for node in manifest.get("nodes", []) if "task" in node)
+
+
+def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
+    """The testable core of `--check`: every way BACKLOG.md disagrees with its source tree.
+
+    POST-FLIP DIRECTION ([#439]). The tree is the expectation and `BACKLOG.md` is the
+    thing being checked -- the inverse of the pre-flip contract, where the tree was
+    checked against the file. Returns a list of human-readable problems; EMPTY means
+    the committed `BACKLOG.md` is exactly what `tasks/` generates.
+
+    `scripts/audit.py::check_task_tree_coherence` ([#433] C1) wires this as a ship-gate
+    leg, which is what makes it an armed gate rather than a mode nothing invokes.
+
+    Three independent legs, because they fail in different ways:
+      1. STRUCTURE -- the manifest reads, and every task node it references resolves to
+         a file on disk that parses.
+      2. FRONTMATTER HONESTY -- each task file re-renders byte-identically from its own
+         body. This leg is NEW at the flip and it is the one that earns its keep: the
+         frontmatter is derived from the body, so in a source-of-truth file it would
+         otherwise be editable, inert, and silently wrong. Catching it here is what lets
+         the schema keep derived fields at all.
+      3. OUTPUT -- the full reassembly equals the bytes of `BACKLOG.md` on disk.
+
+    A task-shaped file the manifest does NOT reference is not a problem when it carries
+    our provenance marker: that is a RETIRED allocation record, which ADR-107 §6.3
+    requires the tree to keep so its id is never re-issued. An unreferenced file WITHOUT
+    the marker is foreign and is reported.
+
+    SCOPE, stated honestly: this compares two artifacts against each other. It does NOT
+    detect a consistent rewrite of both together, because the expectation is derived from
+    the tree being checked. That is why source integrity remains a separate leg -- a clean
+    `git status`, plus the manifest's `generated_sha256` pinning which output bytes this
+    tree claims to produce.
+    """
     if not out_dir.exists():
-        return [f"output dir missing: {out_dir}"]
-
-    problems: list[str] = []
-    for task in tasks:
-        fname = fname_by_id[task.id]
-        disk_path = out_dir / fname
-        if not disk_path.exists():
-            problems.append(f"missing task file: {fname}")
-            continue
-        expected = emit_task_file_text(task)
-        actual = disk_path.read_bytes().decode("utf-8")
-        if actual != expected:
-            problems.append(f"task file content differs from expected: {fname}")
-
-    expected_manifest = render_manifest(model, fname_by_id)
+        return [f"source tree missing: {out_dir}"]
     manifest_path = out_dir / "manifest.json"
     if not manifest_path.exists():
-        problems.append("missing manifest.json")
-    else:
-        actual_manifest = manifest_path.read_bytes().decode("utf-8")
-        if actual_manifest != expected_manifest:
-            problems.append("manifest.json differs from expected")
+        return [f"missing manifest.json in {out_dir} — the source of truth has no structure record"]
 
-    emitted = set(fname_by_id.values())
-    for p in sorted(out_dir.iterdir()):
-        if p.is_file() and _ORPHAN_RE.match(p.name) and p.name not in emitted:
-            problems.append(f"orphan task-shaped file: {p.name} "
-                            f"(a retired derived file is removed by --write --prune)")
+    problems: list[str] = []
 
+    # --- leg 1: structure -------------------------------------------------------
     try:
-        if reassemble_from_tree(out_dir) != text:
-            problems.append("reassemble_from_tree(out_dir) does not match source text")
+        manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
+    except (OSError, ValueError, UnicodeDecodeError) as exc:
+        return [f"manifest.json unreadable: {exc}"]
+    if not isinstance(manifest.get("nodes"), list):
+        return ["manifest.json has no 'nodes' list"]
+
+    referenced: set[str] = set()
+    for node in manifest["nodes"]:
+        if "task" not in node:
+            continue
+        fname = node.get("file")
+        if not fname:
+            problems.append(f"manifest task node [#{node.get('task')}] has no 'file'")
+            continue
+        referenced.add(fname)
+        if not (out_dir / fname).exists():
+            problems.append(f"manifest references a missing task file: {fname}")
+
+    # --- leg 2: frontmatter honesty ---------------------------------------------
+    for fname in sorted(referenced):
+        path = out_dir / fname
+        if not path.exists():
+            continue  # already reported by leg 1
+        try:
+            actual = path.read_bytes().decode("utf-8")
+            body = extract_body(actual)
+        except (OSError, ValueError, UnicodeDecodeError) as exc:
+            problems.append(f"task file unreadable or malformed: {fname} ({exc})")
+            continue
+        theme, story = _frontmatter_theme_story(actual)
+        expected = emit_task_file_text(TaskRow(id=_id_from_filename(fname), raw=body,
+                                               theme=theme, story=story))
+        if actual != expected:
+            problems.append(
+                f"task file frontmatter disagrees with its own body: {fname} "
+                f"(frontmatter is DERIVED from the body — edit the body, then --emit-source)")
+
+    # --- retired records vs strays ----------------------------------------------
+    for p in sorted(out_dir.iterdir()):
+        if p.is_file() and _ORPHAN_RE.match(p.name) and p.name not in referenced:
+            if not _is_engine_managed(p):
+                problems.append(f"foreign task-shaped file (not engine-managed, not in the "
+                                f"manifest): {p.name}")
+
+    # --- leg 3: output ----------------------------------------------------------
+    try:
+        generated = reassemble_from_tree(out_dir)
     except (OSError, ValueError, KeyError) as exc:
         problems.append(f"reassemble_from_tree failed: {exc}")
+        return problems
+    try:
+        on_disk = source_path.read_bytes().decode("utf-8")
+    except OSError as exc:
+        problems.append(f"cannot read generated file {source_path}: {exc}")
+        return problems
+    if on_disk != generated:
+        problems.append(f"{source_path.name} does not match what tasks/ generates "
+                        f"(regenerate with `gen_task_tree.py --emit-source`)")
 
     return problems
+
+
+def _id_from_filename(fname: str) -> int:
+    """`439-some-slug.md` -> 439. Filenames are generator-shaped, so this is total."""
+    return int(fname.split("-", 1)[0])
+
+
+_FM_THEME_RE = re.compile(r"^theme: (.*)$", re.MULTILINE)
+_FM_STORY_RE = re.compile(r"^story: (.*)$", re.MULTILINE)
+
+
+def _frontmatter_theme_story(file_text: str) -> tuple[str | None, str | None]:
+    """Read back the two frontmatter fields that are NOT derivable from the body.
+
+    theme/story come from where the task sits under the manifest's headings, not from
+    its own line, so the honesty check cannot re-derive them and must read them back.
+    They are still covered end-to-end: if either is wrong, the reassembled document
+    puts the task under the wrong heading and leg 3 fails on the output bytes.
+    """
+    def _one(pattern: re.Pattern[str]) -> str | None:
+        m = pattern.search(file_text)
+        if m is None:
+            return None
+        return json.loads(m.group(1))
+    return _one(_FM_THEME_RE), _one(_FM_STORY_RE)
 
 
 def _cmd_check(source_path: Path, out_dir: Path) -> int:
@@ -444,28 +610,42 @@ def main(argv: list[str] | None = None) -> int:
         prog="gen_task_tree",
         description="Split/emit BACKLOG.md into a per-task file tree under tasks/ (ADR-80 gen_* pattern)",
     )
-    parser.add_argument("--write", action="store_true", help="parse source and write the task tree + manifest")
-    parser.add_argument("--check", action="store_true", help="verify the on-disk tree matches the source")
+    parser.add_argument("--emit-source", action="store_true", dest="emit_source",
+                        help="THE NORMAL REGEN: rebuild BACKLOG.md from the tasks/ tree")
+    parser.add_argument("--check", action="store_true",
+                        help="verify BACKLOG.md matches what tasks/ generates, and that every "
+                             "task file's frontmatter matches its own body")
     parser.add_argument("--roundtrip", action="store_true", help="verify in-memory lossless reassembly")
+    parser.add_argument("--write", action="store_true",
+                        help="IMPORT/RECOVERY: rebuild the tasks/ tree from BACKLOG.md. Post-flip "
+                             "this overwrites the source of truth from a generated file; it warns")
     parser.add_argument("--prune", action="store_true",
-                        help="with --write: delete a retired task file that carries this "
-                             "generator's own provenance markers (never a foreign file)")
-    parser.add_argument("--source", type=Path, default=None, help="source BACKLOG.md path (default: repo root)")
-    parser.add_argument("--out", type=Path, default=None, help="output tree dir (default: repo root/tasks)")
+                        help="REFUSED since the [#439] flip — see ADR-107 §6.3 (retire, never delete)")
+    parser.add_argument("--source", type=Path, default=None,
+                        help="BACKLOG.md path — the GENERATED file (default: repo root)")
+    parser.add_argument("--out", type=Path, default=None,
+                        help="tasks/ tree dir — the SOURCE OF TRUTH (default: repo root/tasks)")
     args = parser.parse_args(argv)
 
     source_path = args.source if args.source is not None else _DEFAULT_SOURCE
     out_dir = args.out if args.out is not None else _DEFAULT_OUT
 
-    if args.prune and not args.write:
-        print("gen_task_tree: --prune is only valid together with --write", file=sys.stderr)
+    if args.prune:
+        print("gen_task_tree: --prune is REFUSED since the [#439] source-of-truth flip.\n"
+              "  Task files are the SOURCE now, so pruning one deletes source and frees its id\n"
+              "  for re-issue. ADR-107 §6.3 rules retire-not-delete: retire a task by removing\n"
+              "  its node from tasks/manifest.json (it leaves BACKLOG.md on the next\n"
+              "  --emit-source) and LEAVE the file in place as the allocation record.",
+              file=sys.stderr)
         return 2
-    if args.write:
-        return _cmd_write(source_path, out_dir, prune=args.prune)
+    if args.emit_source:
+        return _cmd_emit_source(source_path, out_dir)
     if args.check:
         return _cmd_check(source_path, out_dir)
     if args.roundtrip:
         return _cmd_roundtrip(source_path)
+    if args.write:
+        return _cmd_write(source_path, out_dir)
 
     parser.print_usage(sys.stderr)
     return 2
