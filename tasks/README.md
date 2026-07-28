@@ -43,11 +43,19 @@ file's derived frontmatter, writes `BACKLOG.md`, and re-pins `manifest.json`'s
 
 A task leaves the **queue**, not the tree: remove its node from `manifest.json` (it then
 drops out of `BACKLOG.md` on the next `--emit-source`) and **leave its file in place**.
-The file remains as the **allocation record** that keeps its id permanently spent — which
-is what makes `next_free = max(id in tasks/) + 1` trustworthy. The coherence check treats
-an unreferenced *engine-managed* file as a legitimate retired record and stays silent; an
+The file stays as the **allocation record** for its id. The coherence check treats an
+unreferenced *engine-managed* file as a legitimate retired record and stays silent; an
 unreferenced file **without** the provenance marker is reported as foreign, so "retired"
 cannot become a hiding place.
+
+**Honest limit — the ledger is not tamper-evident.** The gate REDs a re-issued id *while
+the retired record is present* (active-vs-active and active-vs-retired are both caught).
+It does **not** detect the record's **deletion**: nothing records that a given file ought
+to exist, so deleting a retired file silently frees its id again. `next_free =
+max(id in tasks/) + 1` is therefore trustworthy against accident and against concurrent
+allocation, **not** against a deletion. ADR-107 §6.3 already states the directory "is not
+complete today" as a ledger; closing that needs an explicit tombstone record and is
+tracked as **[#440]**. Do not read a green gate as proof that no id has ever been dropped.
 
 ## Layout
 

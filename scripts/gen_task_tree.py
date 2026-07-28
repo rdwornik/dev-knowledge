@@ -524,6 +524,14 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
     requires the tree to keep so its id is never re-issued. An unreferenced file WITHOUT
     the marker is foreign and is reported.
 
+    LEDGER LIMIT, stated so a green is not over-read: id re-issue is caught while both
+    holders are PRESENT (active-vs-active, the concurrent-branch collision; and
+    active-vs-retired). Deletion of a retired record is NOT caught -- this walks files
+    that exist, and nothing declares which files ought to exist, so removing a retired
+    file silently frees its id again. Making the ledger tamper-evident needs an explicit
+    tombstone record and is [#440]; ADR-107 §6.3 already records the directory as "not
+    complete today" as a ledger.
+
     SCOPE, stated honestly: this compares two artifacts against each other. It does NOT
     detect a consistent rewrite of both together, because the expectation is derived from
     the tree being checked. That is why source integrity remains a separate leg -- a clean

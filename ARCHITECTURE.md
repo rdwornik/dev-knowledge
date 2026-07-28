@@ -627,7 +627,11 @@ Regenerate `BACKLOG.md` with `scripts/gen_task_tree.py --emit-source` after any 
 and warns, because post-flip it overwrites source from a generated file. **`--prune` is
 refused**: deleting a task file would delete source and free its id for re-issue, so
 retirement drops a task's node from `manifest.json` while its file **remains as the
-allocation record** (ADR-107 §6.3, retire-not-delete).
+allocation record** (ADR-107 §6.3, retire-not-delete). **Limit:** the gate REDs a
+re-issued id while the retired record is present, but **cannot detect that record being
+deleted** — nothing declares which files ought to exist — so the ledger is not
+tamper-evident; a tombstone record is [#440], and ADR-107 §6.3 already records the
+directory as "not complete today".
 
 `BACKLOG.md` is **not decommissioned** — it stays on disk byte-identical, so every gate
 reading it (`doc_rot`, `validate_backlog`, the commit-msg hooks, `propose_closures`) is

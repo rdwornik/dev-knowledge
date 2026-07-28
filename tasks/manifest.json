@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "74368397868bb0d36b7359582ff6f8d7bd6a6aabe1ad7c41fe6e97ac6facadbf",
+  "generated_sha256": "8eab477579a3919b85625a03deb14d56a974b83cf03c994c9b660552347a52c6",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -879,6 +879,10 @@
     {
       "task": 439,
       "file": "439-adr-107-strangler-step-3-the-source-of-truth-fli.md"
+    },
+    {
+      "task": 440,
+      "file": "440-make-the-tasks-id-ledger-tamper-evident.md"
     },
     {
       "prose": ""
