@@ -457,6 +457,21 @@ def _cmd_emit_source(source_path: Path, out_dir: Path) -> int:
     # malformed or missing task file aborts with the tree exactly as it was rather than
     # half-rewritten. Reassembly reads BODIES, which the refresh never alters, so computing
     # it from the pre-write state is equivalent to computing it after.
+    # REFUSE on identity corruption before writing anything (terra P1, 7th pass). A regen
+    # cannot fix a broken id record -- it would faithfully emit the corruption into
+    # BACKLOG.md, re-pin the hash to it, and exit 0, leaving only a LATER --check to notice
+    # what this command had already written. Stale derived frontmatter is deliberately NOT
+    # in this set: repairing it is what the regen is for.
+    broken = identity_problems(out_dir)
+    if broken:
+        print("gen_task_tree: emit-source REFUSED (nothing written) — the source tree's "
+              "identity record is incoherent, and a regen would emit the corruption:",
+              file=sys.stderr)
+        for problem in broken[:6]:
+            print(f"  - {problem}", file=sys.stderr)
+        if len(broken) > 6:
+            print(f"  (+{len(broken) - 6} more)", file=sys.stderr)
+        return 1
     try:
         plan = plan_frontmatter_refresh(out_dir)
         generated = reassemble_from_tree(out_dir)
@@ -469,41 +484,50 @@ def _cmd_emit_source(source_path: Path, out_dir: Path) -> int:
     # leave the source tree half-rewritten while BACKLOG.md and the hash never updated —
     # which is the very state the plan-before-write guarantee claims to prevent. Restore
     # the prior bytes so a failed regen is a no-op rather than a torn write.
-    done: list[tuple[Path, bytes]] = []
+    # ONE transaction over ALL THREE artifacts (terra P1, 6th + 7th pass). The 6th-pass
+    # rollback covered only the task-frontmatter writes, leaving BACKLOG.md and
+    # manifest.json — the latter now part of the SOURCE — unguarded and in-place: a failure
+    # there could leave the outputs inconsistent or the manifest truncated. Every write
+    # this command performs is now staged into one list and rolled back together.
+    manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
+    digest = hashlib.sha256(generated.encode("utf-8")).hexdigest()
+    current = source_path.read_bytes().decode("utf-8") if source_path.exists() else None
+
+    writes: list[tuple[Path, str]] = list(plan)
+    if current != generated:
+        writes.append((source_path, generated))
+    if manifest.get("generated_sha256") != digest:
+        manifest["generated_sha256"] = digest
+        writes.append((manifest_path, json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"))
+
+    done: list[tuple[Path, bytes | None]] = []
     try:
-        for path, rendered in plan:
-            done.append((path, path.read_bytes()))
-            path.write_text(rendered, encoding="utf-8", newline="\n")
+        for path, text in writes:
+            done.append((path, path.read_bytes() if path.exists() else None))
+            path.write_text(text, encoding="utf-8", newline="\n")
     except OSError as exc:
         for path, original in reversed(done):
             try:
-                path.write_bytes(original)
+                if original is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    path.write_bytes(original)
             except OSError:
                 print(f"gen_task_tree: ROLLBACK FAILED for {path.name} — inspect the tree "
                       f"before regenerating", file=sys.stderr)
         print(f"gen_task_tree: emit-source FAIL (rolled back, nothing changed): {exc}",
               file=sys.stderr)
         return 1
+
     refreshed = [path.name for path, _ in plan]
     if refreshed:
         print(f"gen_task_tree: refreshed derived frontmatter in {len(refreshed)} task file(s)")
-
-    current = source_path.read_bytes().decode("utf-8") if source_path.exists() else None
     if current != generated:
-        source_path.write_text(generated, encoding="utf-8", newline="\n")
         print(f"gen_task_tree: regenerated {source_path.name} from {out_dir} "
               f"({_task_count(out_dir)} task(s))")
     elif not refreshed:
         print(f"gen_task_tree: {source_path.name} already current ({_task_count(out_dir)} task(s))")
-
-    # re-pin the integrity hash to the bytes just emitted
-    manifest_text = manifest_path.read_bytes().decode("utf-8")
-    manifest = json.loads(manifest_text)
-    digest = hashlib.sha256(generated.encode("utf-8")).hexdigest()
-    if manifest.get("generated_sha256") != digest:
-        manifest["generated_sha256"] = digest
-        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
-                                 encoding="utf-8", newline="\n")
+    if any(path == manifest_path for path, _ in writes):
         print("gen_task_tree: re-pinned manifest generated_sha256")
     return 0
 
@@ -557,120 +581,15 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
     `git status`, plus the manifest's `generated_sha256` pinning which output bytes this
     tree claims to produce.
     """
-    if not out_dir.exists():
-        return [f"source tree missing: {out_dir}"]
-    manifest_path = out_dir / "manifest.json"
-    if not manifest_path.exists():
-        return [f"missing manifest.json in {out_dir} — the source of truth has no structure record"]
-
-    problems: list[str] = []
-
-    # --- leg 1: structure -------------------------------------------------------
-    try:
-        manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
-    except (OSError, ValueError, UnicodeDecodeError) as exc:
-        return [f"manifest.json unreadable: {exc}"]
-    if not isinstance(manifest.get("nodes"), list):
-        return ["manifest.json has no 'nodes' list"]
-    malformed = [p for p in (manifest_node_problem(n) for n in manifest["nodes"]) if p]
-    if malformed:
-        return malformed[:6]
-
-    referenced: dict[str, int] = {}
-    for node in manifest["nodes"]:
-        if "task" not in node:
-            continue
-        fname = node.get("file")
-        unsafe = manifest_filename_problem(fname)
-        if unsafe:
-            problems.append(unsafe)
-            continue
-        referenced[fname] = node["task"]
-        if not (out_dir / fname).exists():
-            problems.append(f"manifest references a missing task file: {fname}")
-
-    # --- leg 2: frontmatter honesty ---------------------------------------------
-    lineage = lineage_from_manifest(manifest)
-    for fname in sorted(referenced):
-        path = out_dir / fname
-        if not path.exists():
-            continue  # already reported by leg 1
-        try:
-            actual = path.read_bytes().decode("utf-8")
-            body = extract_body(actual)
-        except (OSError, ValueError, UnicodeDecodeError) as exc:
-            problems.append(f"task file unreadable or malformed: {fname} ({exc})")
-            continue
-        # terra P1 (2026-07-28): the id must agree in ALL THREE places it is written.
-        # Rebuilding the expected frontmatter from the FILENAME alone made a body-id edit
-        # invisible: change a body from [#439] to [#500] and the expected frontmatter is
-        # still [#439], matches the (unchanged) actual, and the emitted BACKLOG.md carries
-        # [#500] — so the file, the manifest and the document disagree about which id this
-        # task is, and every leg passes. That is a corrupted allocation ledger, which is
-        # the one thing tasks/ exists to be trustworthy about (ADR-107 §6.3).
-        file_id = _id_from_filename(fname)
-        body_match = _TASK_RE.match(body)
-        body_id = int(body_match.group(1)) if body_match else None
-        node_id = referenced[fname]
-        if body_id is None:
-            problems.append(f"task file body is not a task line: {fname}")
-            continue
-        if not (file_id == body_id == node_id):
-            problems.append(
-                f"task id disagrees across filename/body/manifest: {fname} "
-                f"(filename [#{file_id}], body [#{body_id}], manifest [#{node_id}]) — "
-                f"identity is byte-exact and must agree in all three")
-            continue
-        theme, story = lineage.get(fname, (None, None))
-        expected = emit_task_file_text(TaskRow(id=file_id, raw=body, theme=theme, story=story))
-        if actual != expected:
-            problems.append(
-                f"task file frontmatter disagrees with its own body or its manifest "
-                f"placement: {fname} (frontmatter is DERIVED — edit the body, then "
-                f"--emit-source)")
-
-    # --- the id ledger: retired records vs strays vs re-issued ids ---------------
-    # terra P1 (2026-07-28): retire-not-delete only buys an allocation ledger if a spent id
-    # cannot come back. Skipping unreferenced engine-managed files silently allowed exactly
-    # that -- a retired `439-old.md` alongside a new active `439-new.md` re-issued a spent
-    # id and the gate passed, defeating the guarantee §6.3 keeps those files for.
-    seen_ids: dict[int, str] = {}
-    for fname in sorted(referenced):
-        active_id = _id_from_filename(fname)
-        if active_id in seen_ids:
-            # terra P1 (2026-07-28, 4th pass): this is ADR-107 §6.3's OWN named
-            # requirement -- "a `tasks/`-level duplicate-id check makes a collision a gate
-            # failure at merge time rather than a silent one". It is the concurrent-branch
-            # collision the ADR records as a residual it does NOT prevent: two branches each
-            # allocate the same next-free id, write differently-slugged filenames, and git
-            # merges them cleanly. Both files can be internally consistent and every other
-            # leg passes, so without this the collision ships silently.
-            problems.append(
-                f"id [#{active_id}] is held by two ACTIVE task files: "
-                f"{seen_ids[active_id]} and {fname} — an id is allocated once "
-                f"(ADR-107 §6.3; the concurrent-branch collision this gate exists to catch)")
-        else:
-            seen_ids[active_id] = fname
-    for p in sorted(out_dir.iterdir()):
-        if not (p.is_file() and _ORPHAN_RE.match(p.name) and p.name not in referenced):
-            continue
-        if not _is_engine_managed(p):
-            problems.append(f"foreign task-shaped file (not engine-managed, not in the "
-                            f"manifest): {p.name}")
-            continue
-        retired_id = _id_from_filename(p.name)
-        if retired_id in seen_ids:
-            problems.append(
-                f"id [#{retired_id}] is re-issued: retired allocation record {p.name} "
-                f"and {seen_ids[retired_id]} share it — a spent id must never be reused "
-                f"(ADR-107 §6.3)")
-        else:
-            seen_ids[retired_id] = p.name
+    identity, stale_frontmatter, manifest = _scan_source(out_dir)
+    problems = list(identity) + list(stale_frontmatter)
+    if manifest is None:
+        return problems
 
     # --- leg 3: output ----------------------------------------------------------
     try:
         generated = reassemble_from_tree(out_dir)
-    except (OSError, ValueError, KeyError) as exc:
+    except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:
         problems.append(f"reassemble_from_tree failed: {exc}")
         return problems
     try:
@@ -685,7 +604,7 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
     # --- leg 4: the integrity pin actually pins something ------------------------
     # terra P1 (2026-07-28): schema 2 advertises `generated_sha256` as the pin on which
     # output bytes this tree claims to produce, but nothing validated it, and
-    # --emit-source did not maintain it. An unchecked, unmaintained hash is decoration —
+    # --emit-source did not maintain it. An unchecked, unmaintained hash is decoration --
     # it would drift on the first edit and still report green, which is the exact
     # "no organ = decoration" failure this repo gates against.
     declared = manifest.get("generated_sha256")
@@ -697,6 +616,135 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
                         "generates (regenerate with `gen_task_tree.py --emit-source`)")
 
     return problems
+
+
+def _scan_source(out_dir: Path) -> tuple[list[str], list[str], dict | None]:
+    """Read the source tree once and split its problems into two classes.
+
+    Returns `(identity_problems, stale_frontmatter_problems, manifest)`. The split matters
+    because `--emit-source` must REFUSE on the first class and REPAIR the second: stale
+    derived frontmatter is what a regen is for, whereas a broken id record is something a
+    regen would faithfully write out as corruption (terra P1, 7th pass). `manifest` is None
+    when the scan could not get far enough to have one.
+    """
+    if not out_dir.exists():
+        return ([f"source tree missing: {out_dir}"], [], None)
+    manifest_path = out_dir / "manifest.json"
+    if not manifest_path.exists():
+        return ([f"missing manifest.json in {out_dir} - the source of truth has no "
+                 f"structure record"], [], None)
+    try:
+        manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
+    except (OSError, ValueError, UnicodeDecodeError) as exc:
+        return ([f"manifest.json unreadable: {exc}"], [], None)
+    if not isinstance(manifest.get("nodes"), list):
+        return (["manifest.json has no 'nodes' list"], [], None)
+    malformed = [p for p in (manifest_node_problem(n) for n in manifest["nodes"]) if p]
+    if malformed:
+        return (malformed[:6], [], None)
+
+    identity: list[str] = []
+    stale: list[str] = []
+
+    # --- structure: every referenced file resolves, exactly once -----------------
+    referenced: dict[str, int] = {}
+    for node in manifest["nodes"]:
+        if "task" not in node:
+            continue
+        fname = node["file"]
+        # terra P1 (7th pass): collapsing repeats into one dict entry hid them. Reassembly
+        # emits the body at EVERY occurrence, so a file referenced twice duplicates the
+        # task line in BACKLOG.md while the ledger leg counts it once -- and the whole
+        # thing hashes and passes.
+        if fname in referenced:
+            identity.append(f"manifest references the same task file twice: {fname} "
+                            f"(reassembly would emit its body at every occurrence)")
+            continue
+        if node["task"] in referenced.values():
+            identity.append(f"manifest references id [#{node['task']}] more than once "
+                            f"(at {fname})")
+            continue
+        referenced[fname] = node["task"]
+        if not (out_dir / fname).exists():
+            identity.append(f"manifest references a missing task file: {fname}")
+
+    # --- identity + frontmatter honesty -----------------------------------------
+    lineage = lineage_from_manifest(manifest)
+    for fname in sorted(referenced):
+        path = out_dir / fname
+        if not path.exists():
+            continue  # already reported above
+        try:
+            actual = path.read_bytes().decode("utf-8")
+            body = extract_body(actual)
+        except (OSError, ValueError, UnicodeDecodeError) as exc:
+            identity.append(f"task file unreadable or malformed: {fname} ({exc})")
+            continue
+        # The id must agree in ALL THREE places it is written. Rebuilding the expected
+        # frontmatter from the FILENAME alone made a body-id edit invisible: change a body
+        # from [#439] to [#500] and the expected frontmatter is still [#439], matches the
+        # (unchanged) actual, and the emitted BACKLOG.md carries [#500] -- so the file, the
+        # manifest and the document disagree about which id this task is, and every leg
+        # passes. That is a corrupted allocation ledger, which is the one thing tasks/
+        # exists to be trustworthy about (ADR-107 6.3).
+        file_id = _id_from_filename(fname)
+        body_match = _TASK_RE.match(body)
+        body_id = int(body_match.group(1)) if body_match else None
+        node_id = referenced[fname]
+        if body_id is None:
+            identity.append(f"task file body is not a task line: {fname}")
+            continue
+        if not (file_id == body_id == node_id):
+            identity.append(
+                f"task id disagrees across filename/body/manifest: {fname} "
+                f"(filename [#{file_id}], body [#{body_id}], manifest [#{node_id}]) - "
+                f"identity is byte-exact and must agree in all three")
+            continue
+        theme, story = lineage.get(fname, (None, None))
+        expected = emit_task_file_text(TaskRow(id=file_id, raw=body, theme=theme, story=story))
+        if actual != expected:
+            stale.append(
+                f"task file frontmatter disagrees with its own body or its manifest "
+                f"placement: {fname} (frontmatter is DERIVED - edit the body, then "
+                f"--emit-source)")
+
+    # --- the id ledger: retired records vs strays vs re-issued ids ---------------
+    # terra P1: retire-not-delete only buys an allocation ledger if a spent id cannot come
+    # back. Skipping unreferenced engine-managed files silently allowed exactly that -- a
+    # retired `439-old.md` alongside a new active `439-new.md` re-issued a spent id and the
+    # gate passed, defeating the guarantee 6.3 keeps those files for.
+    seen_ids: dict[int, str] = {}
+    for fname in sorted(referenced):
+        active_id = _id_from_filename(fname)
+        if active_id in seen_ids:
+            # ADR-107 6.3's OWN named requirement -- "a `tasks/`-level duplicate-id check
+            # makes a collision a gate failure at merge time rather than a silent one". It
+            # is the concurrent-branch collision the ADR records as a residual it does NOT
+            # prevent: two branches allocate the same next-free id, write differently-
+            # slugged filenames, and git merges them cleanly.
+            identity.append(
+                f"id [#{active_id}] is held by two ACTIVE task files: "
+                f"{seen_ids[active_id]} and {fname} - an id is allocated once "
+                f"(ADR-107 6.3; the concurrent-branch collision this gate exists to catch)")
+        else:
+            seen_ids[active_id] = fname
+    for p in sorted(out_dir.iterdir()):
+        if not (p.is_file() and _ORPHAN_RE.match(p.name) and p.name not in referenced):
+            continue
+        if not _is_engine_managed(p):
+            identity.append(f"foreign task-shaped file (not engine-managed, not in the "
+                            f"manifest): {p.name}")
+            continue
+        retired_id = _id_from_filename(p.name)
+        if retired_id in seen_ids:
+            identity.append(
+                f"id [#{retired_id}] is re-issued: retired allocation record {p.name} "
+                f"and {seen_ids[retired_id]} share it - a spent id must never be reused "
+                f"(ADR-107 6.3)")
+        else:
+            seen_ids[retired_id] = p.name
+
+    return (identity, stale, manifest)
 
 
 def _id_from_filename(fname: str) -> int:
@@ -803,6 +851,25 @@ def lineage_from_manifest(manifest: dict) -> dict[str, tuple[str | None, str | N
         elif node.get("file"):
             lineage[node["file"]] = (theme, story)
     return lineage
+
+
+def identity_problems(out_dir: Path) -> list[str]:
+    """Every way the tree's IDENTITY record is incoherent — the subset a regen cannot fix.
+
+    Separated from `find_incoherences` (terra P1, 2026-07-28, 7th pass) because
+    `--emit-source` must refuse on these BEFORE writing, while it must NOT refuse on the
+    frontmatter-staleness problems, which are exactly what it exists to repair. Previously
+    the regen validated nothing: a body edited to a malformed marker, or to an id that
+    disagreed with its filename and manifest node, produced an incoherent `BACKLOG.md`,
+    an updated hash, and exit 0 — with only a LATER `--check` noticing the corruption it
+    had already written.
+
+    Covers: manifest readability and node shapes, duplicate file/id references, missing or
+    malformed task files, filename/body/manifest id agreement, and id re-issue across
+    active and retired records. Read-only.
+    """
+    problems, _, _ = _scan_source(out_dir)
+    return problems
 
 
 def plan_frontmatter_refresh(out_dir: Path) -> list[tuple[Path, str]]:

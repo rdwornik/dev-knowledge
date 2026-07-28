@@ -203,7 +203,10 @@ def test_every_problem_path_is_present():
     """
     import inspect
 
-    src = inspect.getsource(gtt.find_incoherences)
+    # The shapes live across find_incoherences + _scan_source since the [#439] 7th-pass
+    # split (identity problems, which a regen must REFUSE on, vs stale-frontmatter ones,
+    # which it repairs). Grep both, or the ratchet silently stops covering the larger half.
+    src = inspect.getsource(gtt.find_incoherences) + inspect.getsource(gtt._scan_source)
     for shape in ("source tree missing", "missing manifest.json", "manifest.json unreadable",
                   "no 'nodes' list", "missing task file", "unreadable or malformed",
                   "frontmatter disagrees with its own body", "placement:",

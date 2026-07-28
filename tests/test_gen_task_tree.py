@@ -330,7 +330,11 @@ def test_check_reds_on_duplicate_ids_among_active_files(tmp_path):
                              encoding="utf-8", newline="\n")
 
     problems = gtt.find_incoherences(source, out_dir)
-    assert any("two ACTIVE task files" in p and "[#1]" in p for p in problems), problems
+    # WHICH leg catches it is an implementation detail — after the 7th-pass split the
+    # manifest-level "id referenced more than once" check fires first, which is strictly
+    # more precise. What must hold is that the collision cannot ship.
+    assert any("[#1]" in p and ("more than once" in p or "two ACTIVE task files" in p)
+               for p in problems), problems
 
 
 def test_emit_source_writes_nothing_when_the_plan_is_invalid(tmp_path):
@@ -416,6 +420,65 @@ def test_emit_source_rolls_back_a_torn_write(tmp_path, monkeypatch):
 
     after = {p.name: p.read_bytes() for p in out_dir.iterdir() if p.name.endswith(".md")}
     assert after == before, "a torn write must roll back to the prior bytes"
+
+
+def test_check_reds_when_the_manifest_references_a_file_twice(tmp_path):
+    """terra P1 (7th pass) — collapsing repeats into one dict entry hid them. Reassembly
+    emits the body at EVERY occurrence, so a file referenced twice duplicates the task line
+    in BACKLOG.md while the ledger leg counts it once, and the whole thing hashes green."""
+    import json
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
+    dup = next(n for n in manifest["nodes"] if "task" in n)
+    manifest["nodes"].append(dict(dup))
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                             encoding="utf-8", newline="\n")
+
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("same task file twice" in p for p in problems), problems
+
+
+def test_emit_source_refuses_to_write_a_corrupt_identity(tmp_path):
+    """terra P1 (7th pass) — the regen validated nothing. A body edited to a disagreeing id
+    was written straight into BACKLOG.md, the hash re-pinned to the corruption, exit 0 —
+    and only a LATER --check noticed what the command had already done. A regen cannot fix
+    an identity break, so it must refuse rather than propagate it."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    before = source.read_bytes()
+    task_file = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    task_file.write_text(task_file.read_bytes().decode("utf-8").replace("- [#1] ", "- [#500] ", 1),
+                         encoding="utf-8", newline="\n")
+
+    assert gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)]) == 1
+    assert source.read_bytes() == before, "a refused regen must not touch BACKLOG.md"
+
+
+def test_emit_source_rolls_back_a_failed_backlog_write(tmp_path, monkeypatch):
+    """terra P1 (7th pass) — the 6th-pass rollback covered only task-frontmatter writes.
+    BACKLOG.md and manifest.json (now SOURCE) were written unguarded and in-place, so a
+    failure there could leave the artifacts inconsistent or the manifest truncated."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    manifest_path = out_dir / "manifest.json"
+    task_file = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    # a body edit: forces a frontmatter refresh AND a BACKLOG.md rewrite AND a re-pin
+    task_file.write_text(task_file.read_bytes().decode("utf-8").replace("[P1][S]", "[P3][S]", 1),
+                         encoding="utf-8", newline="\n")
+    before = {p: p.read_bytes() for p in (source, manifest_path, task_file)}
+
+    real_write_text = Path.write_text
+
+    def flaky(self, *a, **kw):
+        if self.name == source.name:            # fail exactly on the BACKLOG.md write
+            raise OSError("simulated disk full")
+        return real_write_text(self, *a, **kw)
+
+    monkeypatch.setattr(Path, "write_text", flaky)
+    assert gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)]) == 1
+    monkeypatch.undo()
+
+    for path, original in before.items():
+        assert path.read_bytes() == original, f"{path.name} must be restored"
 
 
 def test_manifest_declares_the_post_flip_direction(tmp_path):
