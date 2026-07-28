@@ -226,3 +226,32 @@ regexes compared by `.pattern` AND `.flags` (`_TWIN_REGEXES` style — covers `r
 functions by `getsource` (`_TWIN_FUNCS` style). Twin symbol list: `CLOSES_RE` +
 `_STRIP_RES` members (pattern/flags), `strip_quoted_contexts`, `closure_ids`,
 `find_strong`, `find_weak` (source).
+
+---
+
+## AMENDMENT 2026-07-28 (third marker — terra diff review, both HIGHs fixed pre-merge)
+
+Diff review `docs/audits/2026-07-28-codex-437-closure-diff.md` (@ `4ff31ff7`): verdict
+not CLEAR — 2 HIGH, both verified live and FIXED in-arc (TDD: 5 new tests witnessed
+failing first):
+
+**H-A (FIXED) — whitespace substitution SYNTHESIZED directives.** `closes "x" [#5]`
+raw-matched NOTHING, but blanking the quoted span to spaces let `CLOSES_RE`'s `\s+`
+bridge keyword and id — the strip was manufacturing closures. Fix: stripped spans are
+replaced by a non-whitespace barrier (`\x00` — NUL cannot appear in a git commit
+message), so nothing can be assembled across a removed context. Regression tests cover
+the quote / inline / block-quote / fence bridges plus the plain multi-line true
+positive (`closes\n[#5]` still matches — no quoted context involved).
+
+**H-B (FIXED) — equal-length multi-backtick runs.** `` ``closes [#99]`` `` (a standard
+quoted inline form) survived the single-backtick regex. Fix: the inline pattern pairs
+equal-length backtick runs same-line (``(`+)[^`\r\n]*?\1``), superseding the M1
+single-backtick wording above; the unpaired/cross-line fail-safes are re-asserted by
+the existing residual tests.
+
+Post-fix: the full-history sweep re-derived — the drop set is byte-identical to the
+reviewed 10-occurrence allowlist, GAINED still empty (the barrier synthesized nothing
+across 4,163 commits). Verification notes from the same review confirming the build:
+no remaining duplicate implementation, WEAK quoted-only wiring correct, twin test
+catches one-character divergence, `0.1.10` consistent with [#444] carrying the release
+coupling.

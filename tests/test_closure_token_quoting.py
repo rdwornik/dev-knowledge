@@ -186,6 +186,45 @@ def test_residual_multi_line_inline_span_stays_detected():
     assert ids("`start of span\ncloses [#11] more` tail") == ["11"]
 
 
+# --- terra diff-review H-A: stripping must never SYNTHESIZE a directive --------
+# Replacing a quoted span with whitespace can bridge `closes` and `[#N]` into a
+# match the RAW text never had. The strip must leave a non-whitespace barrier.
+
+def test_stripped_quote_span_does_not_bridge_keyword_and_id():
+    assert ids('closes "quoted" [#5]') == []
+
+
+def test_stripped_inline_span_does_not_bridge_keyword_and_id():
+    assert ids("closes `x` [#5]") == []
+
+
+def test_stripped_block_quote_line_does_not_bridge_across_lines():
+    assert ids("closes\n> quoted line\n[#5]") == []
+
+
+def test_stripped_fence_does_not_bridge_across_lines():
+    assert ids("closes\n```\nquoted\n```\n[#5]") == []
+
+
+def test_plain_multi_line_whitespace_still_matches():
+    # no quoted context involved: keyword and id separated only by REAL whitespace
+    assert ids("closes\n[#5]") == ["5"]
+
+
+# --- terra diff-review H-B: equal-length multi-backtick runs -------------------
+
+def test_double_backtick_span_never_matches():
+    assert ids("docs: explain ``closes [#99]`` convention") == []
+
+
+def test_triple_backtick_same_line_span_never_matches():
+    assert ids("docs: ```closes [#97]``` form") == []
+
+
+def test_unpaired_double_backtick_cannot_hide_a_real_directive():
+    assert ids("odd ``dangling, closes [#7]") == ["7"]
+
+
 # --- detection-core integration (find_strong / find_weak use the shared core) --
 
 def test_find_strong_ignores_quoted_only_commit():

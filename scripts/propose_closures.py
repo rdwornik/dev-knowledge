@@ -57,20 +57,29 @@ CLOSES_RE = re.compile(r"\b(?:closes?|closed|fixes?|fixed)\s+\[#(\d+)\]", re.I)
 # `096364ac` pre-amend draft quoting a doc clause). Same-line principle for inline
 # contexts (design amendment M1): pairing across lines could blank real text and
 # hide a REAL directive — the worse failure direction — so only fenced blocks span
-# lines. Order: fenced → inline code → block-quote lines → double-quoted spans.
+# lines. Inline code pairs EQUAL-LENGTH backtick runs (diff-review H-B: ``…`` is a
+# standard quoted form). Order: fenced → inline code → block-quote lines →
+# double-quoted spans.
 _STRIP_RES = (
     re.compile(r"```.*?```", re.S),      # fenced block (multi-line by nature)
-    re.compile(r"`[^`\r\n]*`"),          # inline code span, same line only
+    re.compile(r"(`+)[^`\r\n]*?\1"),     # inline span, same line, equal-length runs
     re.compile(r"^[ \t]*>.*$", re.M),    # block-quote line (quoted ruling/doc text)
     re.compile(r'"[^"\r\n]*"'),          # straight-double-quoted span, same line
     re.compile(r"“[^”\r\n]*”"),  # curly-double-quoted span “…”
 )
 
+# Stripped spans are replaced by a NON-WHITESPACE barrier, never blanks: CLOSES_RE
+# bridges its keyword and `[#N]` across `\s+`, so whitespace substitution would
+# SYNTHESIZE directives the raw text never had (diff-review H-A: `closes "x" [#5]`).
+# NUL cannot appear in a git commit message, so the barrier is collision-free.
+_STRIP_BARRIER = "\x00"
+
 
 def strip_quoted_contexts(text: str) -> str:
-    """Blank every quoted context so only plain-text directives remain matchable."""
+    """Barrier-out every quoted context so only plain-text directives remain
+    matchable — and no new match can be assembled across a stripped span."""
     for rx in _STRIP_RES:
-        text = rx.sub(" ", text)
+        text = rx.sub(_STRIP_BARRIER, text)
     return text
 
 
