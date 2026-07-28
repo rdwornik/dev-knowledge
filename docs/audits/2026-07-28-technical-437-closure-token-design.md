@@ -206,6 +206,20 @@ straight/curly pairs are not paired. New fixtures: CRLF messages, unpaired fence
 unpaired double quote, curly-quote pair, two-line inline span (stays detected —
 documented residual).
 
+**H1 build-discovery (second marker, same day — supersedes the "bump in-arc" clause
+above):** the in-arc `plugin.json` bump is NOT executable as designed. The plugin
+version is a release-lint anchor: C4 (`deploy/release_lint.py:223`) pins
+`anchors.plugin_version` — declared in EVERY manifest (`deploy/manifest-v1.4.0.yaml:100`
+back through v1.1.0, all `"0.1.10"`) — against the LIVE `plugin.json`, and the suite
+lints the HISTORIC manifests against it too (`tests/test_release_lint.py:64/:77`
+lint v1.1.0/v1.2.0 live). Witnessed: the bump alone turned 5 release-lint tests red;
+bare main green (worktree check). A plugin version bump is therefore a RELEASE ACT
+(new anchor + historic-test reconciliation + marketplace/consumer updates), out of this
+arc's reviewed scope. Disposition: bump REVERTED in-arc; the release act is filed as
+**[#444]** (S8) so the rollout H1 demands cannot rot in prose; until it ships, every
+live session — hub included (cache `…/tier1-lifecycle/0.1.10/` verified) — still runs
+the un-stripped scanner, which is exactly why [#444] is P2.
+
 **M2 — parity-test mechanics (ACCEPTED).** `inspect.getsource` cannot compare a compiled
 pattern. Follow the `test_validate_backlog_twin_parity.py` precedent split exactly:
 regexes compared by `.pattern` AND `.flags` (`_TWIN_REGEXES` style — covers `re.I`),
