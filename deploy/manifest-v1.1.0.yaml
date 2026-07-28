@@ -56,7 +56,7 @@ anchors:
   # tier1-lifecycle plugin version at this release. The plugin carrier reads
   # plugin.json live at deploy time; this pin makes the release's expected
   # plugin version durable + lintable (previously unpinned anywhere).
-  plugin_version: "0.1.10"
+  plugin_version: "0.1.11"
   # sha256 of templates/child-methodology-floor.md.tmpl (== the shipped
   # templates/child-methodology-floor.sha256 sidecar). Pins the floor bytes
   # to the release; release_lint recomputes from the template and compares

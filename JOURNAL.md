@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-28 (l) — CC (Fable 5): [#444] tier1-lifecycle 0.1.11 released — the [#437] fix reaches the version-keyed cache
+
+**SHA anchor (ADR-85).** `f725323e` (bump) · `a14de035` (terra record). Branch `chore/444-release-plugin-0-1-11`, base `cb8c7b9d`.
+
+**Did.** The P8 release arc per the sanctioned procedure (INSTALL.md:95 "Plugin source changed" row + the H1 build-discovery marker): `plugin.json` 0.1.10→0.1.11 AND the release-lint C4 anchor (`anchors.plugin_version`) in all 5 manifests in lockstep — first bump since the anchors exist (0.1.9→0.1.10 at `011d3045` predates `5d530d41`'s anchor sections), so C4's design (every manifest pinned against LIVE plugin.json, historic v1.1.0/v1.2.0 linted live) makes the 5-anchor move the reconciliation the [#444] row named. No scanner-code change — the [#437] core shipped at `605d45cb`; this arc keys the cache.
+
+**Result.** release-lint 0 FAIL ×5 manifests (v1.4.0's single WARN = C2 pre-tag, legitimate); suite 1955 passed / 1 failed = the known [#430] fleet_parity live-state red; twin parity green; ruff clean. Terra diff review pre-merge: CLEAR, zero findings all bands (`2026-07-28-codex-444-release-0-1-11.md`). Baseline witnessed pre-release: cached 0.1.10 copy has NO `strip_quoted_contexts`; `CLOSES_RE.findall` on both recorded reproductions (`12e6b45b`, `d993922e`) → `['370']`. Post-merge rollout (marketplace update + per-repo plugin update, hub + corp-monorepo + ai-council + restart) executed after integration — live-cache witness evidence in the arc report; [#444] stays OPEN until the Done-when's live-session criterion is operator-confirmed.
+
+**Changes:** `plugins/tier1-lifecycle/.claude-plugin/plugin.json`, `deploy/manifest-v{1.1.0,1.2.0,1.3.0,1.3.1,1.4.0}.yaml` (6 lines, version strings only), terra audit + index. Commits `f725323e`·`a14de035` + this wrap.
+
+**Next:** [#444] closure on operator confirmation of the live witness; [#437] unblocked for closure review.
+
+---
+
 ### 2026-07-28 (k) — CC (Fable 5): [#437] shared closure-token core — quoting contexts dead, gate-class arc under [#438] posture
 
 **SHA anchor (ADR-85).** `08aff16c` (gate-GREEN HEAD) · design `3b2142be` · impl `605d45cb` · H-A/H-B `583ec527`. Branch `fix/437-closure-token-shared-core`, base `31fe0e01`.
