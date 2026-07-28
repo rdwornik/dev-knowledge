@@ -19,6 +19,24 @@
 
 ---
 
+### 2026-07-28 (e) — CC (Opus 5): supplement folded — the 07-28 architect bundle goes cold → FILLED; §13(d) beat narrows
+
+**SHA anchor (ADR-85).** `6818b7d9` (the fold) · this wrap commit. Branch `docs/handoff-supplement-fold`, base `dac80aa6`.
+
+**Did:** Operator said *"supplement filled"*. **Verified on disk before acting** rather than taking it on trust — `SUPPLEMENT.md` 1863 → 6908 bytes with a populated `=== ANSWERS ===` block (six answers, outgoing 2026-07-27/28 browser seat). Folded via `assemble_paste.py`; `PASTE_THIS.md` 41767 → 46411 bytes. The reflow flipped the cold framing to **FILLED** in `HANDOFF_BOOT.md`, `RESIDUAL.md` and `PROBES.md`, so the incoming **§13(d) beat NARROWS** to *"anything changed since the supplement was written?"* instead of firing FULL.
+
+**Swept for the known fold hazard, and this time nothing survived it.** A reflow covers **generator-owned framing sites only**, so hand-authored *"cold / beat fires FULL"* prose can outlive a fold and leave the bundle contradicting itself — a defect this repo has seen before. Grepped every bundle file for surviving cold claims: all three prior sites (`RESIDUAL:14`, `HANDOFF_BOOT:12`, `HANDOFF_BOOT:38`) flipped correctly, and the two remaining *"beat fires (§13d)"* hits are generic protocol prose whose **very next sentence** carries the FILLED state. Checked, not assumed — the hazard is that a fold *looks* complete.
+
+**Two of the answers corroborate calls made independently this window**, which is the useful kind of confirmation because neither seat saw the other's reasoning. Answer 3 lists *"editing the date-stamped R12 status cell"* under **considered-and-rejected** — *"dated verification records are immutable; only the undated outcome line was stale — that one was fixed"* — which is exactly the H1b disposition reached here from the column header alone. Answer 4 records that **two conditional ratification instructions failed to elicit the word** and recommends the next seat ask **PLAIN, in its first message**, since conditionals demonstrably do not elicit it. That operational instruction now travels in the paste; the residual deliberately does **not** duplicate it (§2/RF-6 — the residual carries what the repo does not encode, not what the supplement already says).
+
+**RESIDUAL §4 unchanged.** The supplement adds off-repo *why*; it does not move the frontier. ADR-107 is still `Proposed`, so the FIRST ACTION's blocking precondition stands exactly as written.
+
+**Result.** 11/11 probes still bind. Ship-gate **GREEN**, 19 WARNs, all pre-existing — **nothing new**. The bundle is now warm: `PASTE_THIS.md` is the next window's entry point.
+
+**Changes:** `docs/handoffs/2026-07-28-dev-knowledge-architect/` (5 files — SUPPLEMENT filled + 3 reflowed + PASTE_THIS re-assembled), `JOURNAL.md`.
+
+**Abandoned:** nothing. **Next:** paste `PASTE_THIS.md` into a fresh chat. Per answer 4, the ADR-107 ratification question should be asked plainly in the first message rather than as a conditional clause.
+
 ### 2026-07-28 (d) — CC (Opus 5): window close — architect bundle cut, [E8] sweep line reconciled; ADR-107 still Proposed for the second conditional in a row
 
 **SHA anchor (ADR-85).** `54aa400d` (H1 R12 reconciliation) · `c791bde7` (the bundle) · this wrap commit. Branch `docs/window-close-2026-07-28`, base `4911f009`.
