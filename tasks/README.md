@@ -42,8 +42,12 @@ file's derived frontmatter, writes `BACKLOG.md`, and re-pins `manifest.json`'s
 ## Retiring a task
 
 A task leaves the **queue**, not the tree: remove its node from `manifest.json` (it then
-drops out of `BACKLOG.md` on the next `--emit-source`) and **leave its file in place**.
-The file stays as the **allocation record** for its id. The coherence check treats an
+drops out of `BACKLOG.md` on the next `--emit-source`) and **leave its file in place**,
+setting its frontmatter `status:` to a terminal value (`closed`). The file stays as the
+**allocation record** for its id, and ADR-107 §6.3 requires it to carry that terminal
+status — a closed task left `status: open` looks actionable to anything reading the tree.
+The edit is durable: once unreferenced, `--emit-source` no longer re-derives its
+frontmatter and the check no longer compares it. The coherence check treats an
 unreferenced *engine-managed* file as a legitimate retired record and stays silent; an
 unreferenced file **without** the provenance marker is reported as foreign, so "retired"
 cannot become a hiding place.

@@ -546,6 +546,48 @@ def test_emit_source_regenerates_over_a_non_utf8_output(tmp_path):
     assert gtt.find_incoherences(source, out_dir) == []
 
 
+def test_check_reds_on_a_task_row_smuggled_into_manifest_prose(tmp_path):
+    """terra P1 (12th pass) — a task-shaped line placed in a `prose` node reassembles into
+    BACKLOG.md as a REAL task row while having no managed task file, so it bypasses the id
+    ledger entirely: --check, the output hash and duplicate-id enforcement all stay green
+    over a row the tree does not know exists."""
+    import json
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
+    manifest["nodes"].append({"prose": "- [#999] [P1][S] **Smuggled** — no task file"})
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                             encoding="utf-8", newline="\n")
+
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("is a TASK row" in p for p in problems), problems
+
+
+def test_fenced_task_shaped_prose_is_still_legitimate(tmp_path):
+    """The complement — inside a fenced block `- [#N]` IS prose, which is exactly what
+    parse_backlog does. The check must not flag documentation that quotes the row format."""
+    fenced = (
+        "# T\n\n## [E1] One\n\n### [S1] Story\n- [#1] [P1][S] **A** — b\n\n"
+        "```\n- [#123] [P1][S] **Quoted example** — not a real row\n```\n"
+    )
+    source, out_dir = _seed(tmp_path, fenced)
+    assert gtt.find_incoherences(source, out_dir) == []
+
+
+def test_check_reds_on_a_multiline_prose_node(tmp_path):
+    """One node is one physical line, or the line model quietly stops being one-per-line."""
+    import json
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
+    manifest["nodes"].append({"prose": "line one\nline two"})
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                             encoding="utf-8", newline="\n")
+
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("spans multiple physical lines" in p for p in problems), problems
+
+
 def test_check_reports_rather_than_crashes_on_a_non_utf8_output(tmp_path):
     """terra P1 (10th pass) — the symmetric half of the pass-9 fix, which I applied only to
     --emit-source: --check still decoded the output under an `except OSError` handler, so

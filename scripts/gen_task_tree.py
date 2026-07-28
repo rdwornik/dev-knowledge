@@ -682,6 +682,7 @@ def _scan_source(out_dir: Path) -> tuple[list[str], list[str], dict | None]:
     if not isinstance(manifest.get("nodes"), list):
         return (["manifest.json has no 'nodes' list"], [], None)
     malformed = [p for p in (manifest_node_problem(n) for n in manifest["nodes"]) if p]
+    malformed += manifest_sequence_problems(manifest["nodes"])
     if malformed:
         return (malformed[:6], [], None)
 
@@ -834,6 +835,42 @@ def manifest_node_problem(node: object) -> str | None:
     return manifest_filename_problem(node.get("file"))
 
 
+def manifest_sequence_problems(nodes: list) -> list[str]:
+    """Sequence-aware manifest validation — what a per-node check structurally cannot see.
+
+    terra P1 (2026-07-28, 12th pass): a task-shaped line smuggled into a `prose` node
+    reassembles into `BACKLOG.md` as a real task row while having NO managed task file, so
+    it bypasses the ledger entirely — `--check`, the output hash and duplicate-id
+    enforcement all stay green over a row the tree does not know exists. Fence state makes
+    this sequence-dependent: inside a fenced block `- [#N]` IS legitimately prose (that is
+    exactly what `parse_backlog` does), so only an UNFENCED task-shaped prose line is a
+    violation.
+
+    Also rejects an embedded newline in a prose value: one node must be one physical line,
+    or the line model silently stops being one-node-per-line.
+    """
+    problems: list[str] = []
+    in_fence = False
+    for i, node in enumerate(nodes):
+        if not isinstance(node, dict) or "prose" not in node:
+            continue
+        line = node["prose"]
+        if not isinstance(line, str):
+            continue  # shape is manifest_node_problem's job
+        if "\n" in line:
+            problems.append(f"manifest prose node {i} spans multiple physical lines — one "
+                            f"node is one line")
+            continue
+        if line.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if not in_fence and _TASK_RE.match(line):
+            problems.append(
+                f"manifest prose node {i} is a TASK row: {line[:60]!r} — a task must have a "
+                f"managed task file, or it bypasses the id ledger entirely")
+    return problems
+
+
 def _require_well_formed_nodes(manifest: dict) -> None:
     """Raise ValueError on the first malformed node — the guard for the traversal paths
     (`lineage_from_manifest`, `reassemble_from_tree`) whose callers catch ValueError."""
@@ -846,6 +883,9 @@ def _require_well_formed_nodes(manifest: dict) -> None:
         problem = manifest_node_problem(node)
         if problem:
             raise ValueError(problem)
+    sequence = manifest_sequence_problems(nodes)
+    if sequence:
+        raise ValueError(sequence[0])
 
 
 def manifest_filename_problem(fname: object) -> str | None:

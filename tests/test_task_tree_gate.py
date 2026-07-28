@@ -206,14 +206,19 @@ def test_every_problem_path_is_present():
     # The shapes live across find_incoherences + _scan_source since the [#439] 7th-pass
     # split (identity problems, which a regen must REFUSE on, vs stale-frontmatter ones,
     # which it repairs). Grep both, or the ratchet silently stops covering the larger half.
-    src = inspect.getsource(gtt.find_incoherences) + inspect.getsource(gtt._scan_source)
+    src = (inspect.getsource(gtt.find_incoherences)
+           + inspect.getsource(gtt._scan_source)
+           + inspect.getsource(gtt.manifest_sequence_problems)
+           + inspect.getsource(gtt.manifest_node_problem)
+           + inspect.getsource(gtt.manifest_filename_problem))
     for shape in ("source tree missing", "missing manifest.json", "manifest.json unreadable",
                   "no 'nodes' list", "missing task file", "unreadable or malformed",
                   "frontmatter disagrees with its own body", "placement:",
                   "foreign task-shaped file", "reassemble_from_tree",
                   "does not match what tasks/ generates", "generated_sha256",
                   "root is not an object", "spans multiple lines",
-                  "same task file twice", "two ACTIVE task files"):
+                  "same task file twice", "two ACTIVE task files",
+                  "is a TASK row", "spans multiple physical lines"):
         assert shape in src, f"problem path lost: {shape}"
 
 
