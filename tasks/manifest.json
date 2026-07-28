@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "source": "BACKLOG.md",
-  "source_sha256": "f7d15a6a7157f07fccc4a032621543e5bfb1bfdfe2ec4e419885c35bccbc94c1",
+  "source_sha256": "25f3c65b00b84ec9580efcec3f3927d1b0776b401551e81f6e8c03be2d5943d0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -868,6 +868,10 @@
     {
       "task": 433,
       "file": "433-backlog-restructure-build-thin-engine-backlog-md.md"
+    },
+    {
+      "task": 439,
+      "file": "439-adr-107-strangler-step-3-the-source-of-truth-fli.md"
     },
     {
       "prose": ""
