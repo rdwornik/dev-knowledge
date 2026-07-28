@@ -546,6 +546,19 @@ def test_emit_source_regenerates_over_a_non_utf8_output(tmp_path):
     assert gtt.find_incoherences(source, out_dir) == []
 
 
+def test_check_reports_rather_than_crashes_on_a_non_utf8_output(tmp_path):
+    """terra P1 (10th pass) — the symmetric half of the pass-9 fix, which I applied only to
+    --emit-source: --check still decoded the output under an `except OSError` handler, so
+    the VERIFICATION path traceback'd on exactly the state the REGEN path had just learned
+    to repair. A corrupt output is a coherence failure to report, not an exception."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    source.write_bytes(b"\xff\xfe not valid utf-8 \xff")
+
+    problems = gtt.find_incoherences(source, out_dir)      # must not raise
+    assert any("cannot read generated file" in p for p in problems), problems
+    assert gtt.main(["--check", "--source", str(source), "--out", str(out_dir)]) == 1
+
+
 def test_emit_source_rolls_back_on_keyboard_interrupt(tmp_path, monkeypatch):
     """terra P1 (9th pass) — a Ctrl+C landing mid-write raises KeyboardInterrupt, which an
     `except OSError` rollback does not catch, leaving the SOURCE OF TRUTH partially written

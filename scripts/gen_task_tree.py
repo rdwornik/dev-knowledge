@@ -628,7 +628,11 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
         return problems
     try:
         on_disk = source_path.read_bytes().decode("utf-8")
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
+        # UnicodeDecodeError too (terra P1, 10th pass): pass 9 taught --emit-source to
+        # REPAIR a non-UTF-8 output but left --check crashing on the same state, so the
+        # verification path traceback'd on exactly the condition the regen path handles.
+        # A corrupt output is a coherence FAILURE to report, not an exception to raise.
         problems.append(f"cannot read generated file {source_path}: {exc}")
         return problems
     if on_disk != generated:
