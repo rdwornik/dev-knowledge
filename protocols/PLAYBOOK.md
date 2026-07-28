@@ -1290,21 +1290,60 @@ create them anymore.
 checkout** — *provision → use → ephemeral teardown*. Create one for a single goal, work it on
 its own branch, and remove it the moment that branch merges. It must not linger between goals.
 
-**0 — Decide: should I parallelize? (checkable — apply BEFORE provisioning)**
+**0 — Launch decision: one strong prompt on primary is the DEFAULT; worktrees are the exception ([#441])**
 
-Parallelizing costs a worktree + a serial integration pass. Reach for it only when **every
-check is YES** — otherwise do the items serially:
+<!-- DRAFT [#441] — drafted night 2026-07-28→29 on the night-prep branch; UNRATIFIED.
+     Adoption is a ruled act at the morning review; merging this branch IS the ratification act.
+     This block REPLACES the prior three-check "0 — Decide: should I parallelize?" test so the
+     corpus carries ONE launch test (the [#441] Done-when); the mapping to the old checks is
+     recorded below. NOTE for the ruling: the [#441] row cites "PLAYBOOK §8/Ch5" — the live home
+     of the ADR-61 worktree-discipline checks is THIS section (Ch8. Session boundaries); the row's
+     cite drifts, the doctrine does not. -->
 
-- **Disjoint substantive files?** Do the two items touch *different* substantive files? Shared
-  canonical files (BACKLOG / JOURNAL / PLAYBOOK / CLAUDE) do **not** disqualify a pair — they are
-  *handled*, not parallelized (see below) — but two items editing the *same substantive* file must
-  go serial.
-- **Two distinct goals, not one?** "Finish the rest of X" is **one** goal — complete it serially,
-  do not split it. Only split genuinely independent items.
-- **Each stream more than a single-file edit?** Tiny disjoint edits (a file or two, minutes each)
-  are faster done serially than provisioned + integrated. This is the one check with an irreducible
-  judgment margin; the working threshold is *more than a single-file edit per stream* — below that,
-  don't parallelize.
+**The default (operator + outgoing-seat ruling 2026-07-28):** one strong, self-contained
+prompt on the **primary** checkout. Parallelism lives **inside** the session — the
+orchestrator (Opus) fans out in-session subagents (Sonnet probes, Haiku read-only
+fan-out) and the Codex lane runs in the background — with **every git mutation serial in
+the main thread**. A second *committing session* is never the default shape; it is the
+exception below, and it costs a worktree + a serial integration pass.
+
+**The four-condition worktree test — launch a parallel committing session only when ALL
+FOUR are YES:**
+
+1. **Two substantial BUILD arcs?** Two genuinely independent build efforts — not one goal
+   split in two ("finish the rest of X" is one goal), not a build plus a doc ride-along,
+   and not tiny disjoint edits (a file or two each) that integrate slower than they run.
+2. **Zero shared gate-forced surfaces — or a contract pre-resolves them?** Surfaces a
+   gate forces both lanes through (JOURNAL entries, BACKLOG/`tasks/` rows + regen,
+   generated indexes) either aren't shared, or a written contract pre-resolves the
+   contention (pre-allocated JOURNAL letters, disjoint rows, a named `tasks/` regen
+   owner). Two lanes editing the *same substantive file* is always a NO.
+3. **Wall-clock matters?** Real calendar pressure that serial execution would miss —
+   parallelism for its own sake is not a reason.
+4. **Operator takes the serial gate?** The operator affirmatively wants two terminals AND
+   accepts serial-gate duty (authorizing integrations one at a time from the primary).
+
+**One NO = fat prompt.** No judgment margin, no partial credit: a single failed condition
+routes the work into one self-contained prompt on primary.
+
+*Evidence (the prove-then-codify basis):* the 2026-07-28 window is the shipped run of the
+default — serial fat prompts (JOURNAL (k)–(n)) with in-session fan-out + Codex background,
+zero collisions — against the 07-27/28 JOURNAL letter collisions (n=3) + leftovers from
+parallel lanes, the 07-21 operator preference, the 07-23 complaint, and exactly one clean
+parallel success (adr∥ratchet — a pair that passes the four conditions).
+
+*Mapping from the superseded three-check test:* "disjoint substantive files" → condition 2;
+"two distinct goals" + "more than a single-file edit per stream" → condition 1. Conditions
+3–4 are new — the ruled additions. Everything below this block (canonical-safe-pair,
+shared-surface handling, provisioning, seeding, integration authority, teardown) governs
+**HOW** a sanctioned parallel session runs; this block alone governs **WHETHER** one
+launches.
+
+*Open reconciliation (flagged for the intake #18 ratification, 2026-07-30):* condition 2's
+"pre-allocated JOURNAL letters" example is the row's verbatim wording; intake #18 A5 rules
+the opposite mechanism (lanes never allocate — letters assigned at integration). One of the
+two must yield at ratification; see the dossier
+`docs/audits/2026-07-29-technical-intake18-ratification-dossier.md` (pack-level finding 2).
 
 **Canonical safe pair: one code item ∥ one doc item.** Disjoint files by construction. Review
 contention is at most one-sided: the **doc** stream never needs Codex; only the **code** stream
