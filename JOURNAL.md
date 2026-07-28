@@ -19,6 +19,32 @@
 
 ---
 
+### 2026-07-28 (f) — CC (Opus 5): ADR-107 RATIFIED, then the strangler flip — `tasks/` becomes the source of truth
+
+**SHA anchor (ADR-85).** `096364ac` (ratification) · `5c8a9d6d` (the flip) · `b23442e0` (last terra fix) · this wrap commit. Branch `feat/adr107-strangler-flip-step3`, base `9f5697a3`.
+
+**Did:** Operator ratified **ADR-107** by word, which satisfied flip-precondition (i); (ii) — the `tasks/` coherence gate ARMED — had held since `fa3f10a3` and was witnessed firing twice. Both conditions met, so **strangler STEP 3 executed** under its own ex-ante frozen contract, carried by a new row **[#439]** (ADR-107 §7.5 assigns step 3 its own ticket, not [#433]'s). **The derivation now runs TREE → FILE:** `tasks/` (per-task `.md` bodies + `manifest.json`) is the SOURCE OF TRUTH; `BACKLOG.md` is GENERATED via a new `--emit-source`. `--write` demoted to import/recovery (warns); `--prune` REFUSED (deleting a task file now deletes source and frees its id — ADR-107 §6.3 retire-not-delete, realized structurally rather than only ruled). `BACKLOG.md` is **not decommissioned** (§Decommission: none) — it stays byte-identical on disk, so every gate reading it works untouched, which is what kept the flip a change of DIRECTION rather than a rewrite of every consumer.
+
+**The leg the flip made necessary.** Task frontmatter is DERIVED from the body. Pre-flip that was harmless; post-flip it sits inside the source of truth looking authoritative while changing nothing, so a hand-edited `status:` would be inert and silently wrong. `--check` now re-renders each file from its own body and REDs any disagreement — which is what lets the schema keep derived fields at all.
+
+**Step 4 was NOT touched** (§7.3 defers prose relocation + the genre-lifecycle leg), the viewer slot stays PARKED EMPTY, and **no row was closed anywhere** — closure is the operator's `/review-closures` act (ADR-70). [#433] stays open on §6.2's undischarged generalization obligation.
+
+**Result:** ship-gate **GREEN** (19 WARNs dispositioned); `task_tree_coherence` GREEN reporting the flipped direction; `--check ok`, `--roundtrip ok`; **1899 passed / 1 failed**, that one the PRE-EXISTING `test_check_fleet_parity_green_on_live_repo` (ai-council's undeclared `conftest.py`) — confirmed failing on clean `main` before this arc began, sibling-owned under ADR-36/41, and already dispositioned in the register so it does not block the gate.
+
+**Sixteen terra passes.** Codex review ran to CLEAR, and it took **16 rounds** — [#436]'s ratchet took 10, which is why [#438] exists. Every pass but the last found REAL defects that a green suite and all prior passes had missed, exactly as [#438] predicts for refusal-gate work: a gate that fails open passes every test and enforces nothing. The tail is worth recording because the shape repeated — most findings were **asymmetries**, not novel bugs: the check knew something the regen did not, then the regen knew something the check did not; active files were validated where retired records were trusted; one direction of a symmetric pair fixed and not the other. Highlights: `--emit-source` did not refresh derived frontmatter, so **the documented normal workflow could not reach green**; `generated_sha256` was advertised as an integrity pin but never validated or maintained (decoration by this repo's own rule); lineage was read back out of the file it was checking, making that leg **tautological**; and the flip **broke the Tier-1 closure lifecycle** — `/review-closures` still said to edit `BACKLOG.md`, which post-flip the gate REDs and the next regen reverts. That last one was found only at pass 11, because the first ten never looked outside the engine.
+
+**Two things I got wrong and fixed rather than hid.** (1) My ratification commit message quoted the literal phrase `Closes [#433]`, and `CLOSES_RE` matched the quotation — manufacturing a false closure signal against the one row this arc had to leave open. Amended before it left the branch. That is the live **[#437]** defect, reproduced by accident while writing *about* a closure clause. (2) I documented "mark the retired record terminal" across three surfaces and never enforced it, which by the repo's own *no organ = decoration* test is prose; terra caught it and it is now a check.
+
+**Filed, not built: [#440]** — the id ledger is **not tamper-evident**. Re-issue is caught while both holders are present, but nothing records which files ought to exist, so DELETING a retired record silently frees its id. ADR-107 §6.3 already calls the directory "not complete today"; a tombstone is a new persisted artifact with its own schema question and no retirement has yet run post-flip, so building it now would ship an unexercised mechanism. The overclaiming prose in `ARCHITECTURE`/`tasks/README` was corrected to state the limit.
+
+**Dogfooded:** [#440] was filed through the post-flip path — edited `tasks/` + a manifest node, ran `--emit-source`, never touched `BACKLOG.md`. The regen derived the placeholder's real frontmatter, rebuilt the file (175 → 176 tasks) and re-pinned the hash.
+
+**Changes:** `scripts/gen_task_tree.py` (the flip + 16 passes of hardening), `scripts/audit.py` (gate direction), `tests/test_gen_task_tree.py` + `tests/test_task_tree_gate.py` (~50 new cases; also fixed 3 tests RED on main before this arc — they pinned the closed `[#436]`), `ADR-107` (status + append-only amendment marker), `docs/decisions/README.md` (ruling record), `ARCHITECTURE.md` (Ch5 rewritten, roster → 107, `last_reviewed` re-stamped on a genuine end-to-end re-read), `tasks/README.md` (runbook rewritten), `protocols/PLAYBOOK.md` + `plugins/tier1-lifecycle/commands/review-closures.md` (closure workflow, shape-branched so consumers are unaffected), `BACKLOG.md` + `tasks/` ([#439], [#440]).
+
+**Next:** cold-state witness from clean `main` follows this merge (contract clause H). Then: **[#440]** ledger tamper-evidence · **[#438]** wants this arc's 16-pass record as evidence for codifying design-review-before-build · step 4 remains deferred and unowned.
+
+---
+
 ### 2026-07-28 (e) — CC (Opus 5): supplement folded — the 07-28 architect bundle goes cold → FILLED; §13(d) beat narrows
 
 **SHA anchor (ADR-85).** `6818b7d9` (the fold) · this wrap commit. Branch `docs/handoff-supplement-fold`, base `dac80aa6`.
