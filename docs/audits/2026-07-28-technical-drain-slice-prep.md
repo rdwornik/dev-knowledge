@@ -125,14 +125,21 @@ clause, so a clause that still reads as binding has silently lapsed. Routes to W
 **Live state (2026-07-28):** confirmed at `protocols/DEFINITION_OF_DONE.md:106-107` — the clause is verbatim
 present and the window is now 14 days past its own expiry; no successor clause found in the file or PLAYBOOK.
 
-**Proposed disposition: DELIBERATELY RETIRE** — record the freeze expired-with-reason (its ADR-85
-stabilization purpose was served; the gate's doc set survived the window) and lift the clause. **Why:** this is
-the "stale never-do-X" class the full-pool intent names explicitly; renewal would need a fresh stated reason,
-and none is on record. The operator may instead renew with a new window — that is precisely the 08-26 call;
-retire is the recommendation.
+**Proposed disposition: DELIBERATELY RETIRE — CONDITIONAL on the freeze's own data clause (terra P2,
+adopted).** The freeze was not a bare timer: ADR-85 §Decision item 6 froze the gate's doc set to "gather
+reliability/override-rate data first", and `DEFINITION_OF_DONE.md:107-109` still states that condition. Merely
+reaching 2026-07-14 does not show the purpose was met. So the 08-26 act is two-step: **(1)** check whether the
+data exists — the `/override` log (ADR-85's logged, HEAD-bound override records) and the gate's
+firing/false-positive record over the window; **(2)** if the data was gathered and shows a stable gate, retire
+the clause expired-with-reason citing it; if the data was never collected, RENEW with a new window **and** an
+owner for the collection — retiring on an empty record would be exactly the "forgetting dressed as retiring"
+failure this prep must not license. **Why retire remains the recommendation *if* step (1) passes:** an expired
+clause that still reads as binding misleads; the stale-never-do-X class is real — but only the data, not the
+date, earns it.
 
-**08-26 must re-verify:** `DEFINITION_OF_DONE.md:106-107` unchanged · no successor freeze landed elsewhere ·
-whether any doc was added to the gate set since (would change the "purpose served" premise).
+**08-26 must re-verify:** `DEFINITION_OF_DONE.md:106-109` unchanged (incl. the data clause) · the override-log
+/ gate-reliability record for the freeze window · no successor freeze landed elsewhere · whether any doc was
+added to the gate set since.
 
 ### [#361] — ADR-immutability's real coverage declared only in code
 

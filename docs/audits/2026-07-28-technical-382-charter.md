@@ -94,9 +94,10 @@
 ## 5. Dependency map
 
 ```
-[#387] buy-vs-build intake rewrite ──(ordering: rewritten BEFORE any ADR cites it;
-       │                              intake #16 §6 standing constraint)
-       v
+[#387] buy-vs-build intake rewrite ┄┄(CONDITIONAL ordering — binds ONLY IF the [#382]
+       ┆                             ADR cites intake #2; "before any ADR cites it",
+       ┆                             tasks/387:13 + intake #16 §6. NOT a dependency
+       v                             otherwise — see the ordering note below)
 [#382] desired-state ADR + schema v1     <- consumes: intake #16 §1-§3+§5 (consumer b),
        │                                    spike §5 findings 1-7, allocation obligation 3
        │  (un-parks intake #16 at BUILD start: trigger "[#382] build starts")
