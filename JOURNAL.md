@@ -19,6 +19,26 @@
 
 ---
 
+### 2026-07-28 (j) — CC (Opus 5): intake #20 ratified, #16 parked ACCEPTED/deferred, lesson 7 recorded as context
+
+**SHA anchor (ADR-85).** `ae55ff8b` (the ruling batch) · this wrap commit. Branch `docs/intake-20-ratification`, base `4aebc514`.
+
+**Did.** Executed the six 2026-07-28 operator rulings as one serial arc. Intake **#20** corrected then ratified DRAFT → **ACCEPTED** (`disposition: active`); intake **#16** → **ACCEPTED / `disposition: deferred`, `trigger: [#382] build starts`** (`consumed-by` left empty — schema-correct until CONSUMED; not archived, an ACCEPTED doc stays visible); lesson 7 appended to `LESSONS.md`; **[#443]** filed; **[#388]** ruled HOLD at P3. **Zero closures**, as the contract required.
+
+**The two corrections that were the point of the ratification.** (a) §5.3 pin-drift: [#386] is **closed** (`3ed29345`, merged `5e331d73`) — same day, but *after* #20's `6195d932` pin. Recorded as pin-drift corrected rather than rewritten: the finding was true at its pin, was deliberately left for `/review-closures` per ADR-70, and resolved exactly that way, so the drift is the finding's vindication rather than an error. (b) **F3 was not hypothetical** — `BACKLOG.md` is generated since the [#439] flip, and two of its three line citations had **already rotted**: `BACKLOG.md:159` now lands on [#263], not [#388]; `:417` has moved to `:421`. Re-anchored onto `tasks/<id>-*.md`, except the one target that is manifest prose rather than a task row, which is cited by quoted anchor text.
+
+**Cap measured before writing, not after.** Entry (i)'s lesson applied directly. [#388] sat at **1102 chars / 2 ISO dates / 98 free** — and the ruling's own suggested note text carried a **third ISO date**, which would have tripped the `>=3 dates & >700` leg *independently of* the 1200 gross cap. Fitted by the `9ce96be8` precedent (compress, never disposition self-induced bloat): the duplicate `2026-07-21` in the handoff-bundle path folded into "the companion architect handoff bundle" — all three filenames and line numbers kept — and prose ADR-104 has since superseded dropped. Landed **1182 / 2 dates**. [#443] drafted at **1303**, trimmed to **1163 / 2 dates**; a first fit at 1197 was rejected as too tight (3 chars of headroom is a trap for the next editor). `validate_doc_rot` unchanged at the same **5 pre-existing loci — zero new WARNs**.
+
+**Dedup (#16).** The 15-status marker table from `bc350143` is stripped; §5 and §6 prose restored **byte-identically** from `bc350143^` programmatically, then diffed to prove it — the only remaining delta vs the 2026-07-21 original is two banners, pure additions. The §4 SUPERSEDED banner was **kept**: it is a supersession record, not one of the 15 duplicated statuses, and the ruling deletes nothing else.
+
+**Judgment call, flagged not smoothed.** #20 §6's three open questions and §5.5 were marked **RULED** with their answers. That is beyond the literal ruling text; a ratified doc that still *asks* questions the operator has answered misleads its next reader, and ruling 4's stated purpose was precisely non-re-litigation. Rulings still live on their own surfaces — §6 is an index to them, not the authority.
+
+**Result:** `gen_task_tree --check ok` · `validate_backlog` OK (9 themes, 26 stories, **178** tasks, 0 warnings) · `task_tree_coherence` **GREEN** · `gen_intake_index` regenerated (DRAFT 4→2, ACCEPTED 4→6) · ruff clean · pytest **1899 passed**, 1 failed. The single failure is `test_check_fleet_parity_green_on_live_repo` — ai-council's tracked root `conftest.py`, the known external RED owned by **[#430]** and left deliberately unmarked by operator ruling (LESSONS 2026-07-26). It is unreachable from this repo and untouched by this branch.
+
+**Changes:** `docs/intake/` (#16, #20, generated README), `LESSONS.md`, `tasks/` (388 body, new 443, manifest), `BACKLOG.md` (regenerated), `JOURNAL.md`.
+
+**Next:** [#443] is the live residue — planning artifacts outside the three enforced classes. [#364] still owns the cap-vs-record tension and is still unruled; this arc is its second consecutive instance.
+
 ### 2026-07-28 (i) — CC (Opus 5): the recording batch tripped `doc_rot`; compressed rather than dispositioned
 
 **SHA anchor (ADR-85).** `9ce96be8` (the fit) · `93f92ab8` (the batch it corrects) · this wrap commit. Branch `docs/recording-batch-r-fit`, base `952c10ad`.
