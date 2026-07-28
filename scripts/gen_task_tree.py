@@ -93,6 +93,20 @@ _ORPHAN_RE = re.compile(r"^\d+-.*\.md$")
 _PROVENANCE_KEY = "generates"
 _PROVENANCE_LINE = f"{_PROVENANCE_KEY}: BACKLOG.md"
 
+# A RETIRED allocation record must say so. ADR-107 §6.3 requires the retained record to
+# carry its opaque id AND its terminal status; an unreferenced file still reading
+# `status: open` is a closed task that looks actionable to every consumer of the tree.
+# Enforced rather than merely documented (terra P1, 13th pass) -- this repo's own
+# "no organ = decoration" rule: a retirement convention with no gate is prose.
+_TERMINAL_STATUSES = ("closed", "retired", "superseded")
+_FM_STATUS_RE = re.compile(r"^status: (.+)$", re.MULTILINE)
+
+
+def frontmatter_status(file_text: str) -> str | None:
+    """The `status:` value declared in a task file's frontmatter, or None if absent."""
+    m = _FM_STATUS_RE.search(file_text)
+    return m.group(1).strip() if m else None
+
 
 @dataclass(frozen=True)
 class TaskRow:
@@ -787,6 +801,13 @@ def _scan_source(out_dir: Path) -> tuple[list[str], list[str], dict | None]:
             identity.append(f"foreign task-shaped file (not engine-managed, not in the "
                             f"manifest): {p.name}")
             continue
+        status = frontmatter_status(p.read_bytes().decode("utf-8", errors="replace"))
+        if status not in _TERMINAL_STATUSES:
+            identity.append(
+                f"retired allocation record is not marked terminal: {p.name} "
+                f"(status: {status!r}; expected one of {', '.join(_TERMINAL_STATUSES)}) — "
+                f"ADR-107 §6.3 requires the retained record to carry its terminal status, "
+                f"or a closed task keeps looking actionable")
         retired_id = _id_from_filename(p.name)
         if retired_id in seen_ids:
             identity.append(

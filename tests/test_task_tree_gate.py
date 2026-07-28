@@ -218,7 +218,8 @@ def test_every_problem_path_is_present():
                   "does not match what tasks/ generates", "generated_sha256",
                   "root is not an object", "spans multiple lines",
                   "same task file twice", "two ACTIVE task files",
-                  "is a TASK row", "spans multiple physical lines"):
+                  "is a TASK row", "spans multiple physical lines",
+                  "not marked terminal"):
         assert shape in src, f"problem path lost: {shape}"
 
 

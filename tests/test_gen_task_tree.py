@@ -267,9 +267,25 @@ def test_retired_record_with_a_distinct_id_stays_silent(tmp_path):
     """The complement: retirement itself must stay silent, or every closure REDs the gate."""
     source, out_dir = _seed(tmp_path, _TWO_THEMES)
     active = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
-    body = active.read_bytes().decode("utf-8").replace("[#1]", "[#77]")
+    body = (active.read_bytes().decode("utf-8")
+            .replace("[#1]", "[#77]")
+            .replace("status: open", "status: closed", 1))   # terminal, per ADR-107 §6.3
     (out_dir / "77-a-retired-record.md").write_text(body, encoding="utf-8", newline="\n")
     assert gtt.find_incoherences(source, out_dir) == []
+
+
+def test_check_reds_on_a_retired_record_still_marked_open(tmp_path):
+    """terra P1 (13th pass) — pass 12 made "mark it terminal" a documented INSTRUCTION but
+    not an enforced one, which by this repo's own "no organ = decoration" rule is prose. An
+    interrupted retirement left the record `status: open` and --check passed, so a closed
+    task went on looking actionable to every consumer of the tree."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    active = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    body = active.read_bytes().decode("utf-8").replace("[#1]", "[#78]")   # left status: open
+    (out_dir / "78-an-incomplete-retirement.md").write_text(body, encoding="utf-8", newline="\n")
+
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("not marked terminal" in p for p in problems), problems
 
 
 @pytest.mark.parametrize("evil", [
@@ -791,9 +807,19 @@ def test_retirement_keeps_the_file_and_stays_silent(tmp_path, capsys):
     gtt.write_tree(gtt.parse_backlog(one), out_dir)
 
     assert (out_dir / retired).exists(), "retire-not-delete: the allocation record must survive"
-    assert gtt.find_incoherences(source, out_dir) == [], \
-        "a retired allocation record is legitimate and must not RED the gate"
     assert "retired allocation record" in capsys.readouterr().out
+
+    # The IMPORT path leaves the record `status: open`. ADR-107 §6.3 wants it TERMINAL, and
+    # since the 13th-pass fix that is enforced rather than merely documented — so the
+    # documented retirement (manifest node out + mark terminal) is the conforming route.
+    stale = gtt.find_incoherences(source, out_dir)
+    assert any("not marked terminal" in p for p in stale), stale
+
+    rec = out_dir / retired
+    rec.write_text(rec.read_bytes().decode("utf-8").replace("status: open", "status: closed", 1),
+                   encoding="utf-8", newline="\n")
+    assert gtt.find_incoherences(source, out_dir) == [], \
+        "a properly-retired allocation record is legitimate and must not RED the gate"
 
 
 def test_foreign_task_shaped_file_is_reported_not_silently_kept(tmp_path):

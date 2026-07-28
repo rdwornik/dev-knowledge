@@ -62,7 +62,8 @@ Run them exactly as written below (with the `${CLAUDE_PLUGIN_ROOT}` prefix).
      2. **LEAVE the task file in place** — it stays as the allocation record that
         keeps its id from being re-issued (ADR-107 §6.3, retire-not-delete). Do not
         delete it, and do not use `--prune` (it is refused).
-     3. **Set that file's frontmatter `status:` to a terminal value** (`closed`).
+     3. **Set that file's frontmatter `status:` to a terminal value** — one of
+        `closed`, `retired`, `superseded`. The coherence check ENFORCES this.
         ADR-107 §6.3 requires the retained record to carry its opaque id **and its
         terminal status**; leaving it `status: open` makes a closed task look
         actionable to anything reading the tree. This edit is safe and durable:
