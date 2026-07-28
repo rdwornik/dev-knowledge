@@ -79,6 +79,37 @@ _LOGS_DIR = _REPO_ROOT / "logs"
 # `closes [#N]` (mirrors check_backlog_commit_msg.py / `git log --grep`).
 CLOSES_RE = re.compile(r"\b(?:closes?|closed|fixes?|fixed)\s+\[#(\d+)\]", re.I)
 
+# [#437] — a closes-token counts ONLY as a plain-text directive (CONTRIBUTING.md:
+# `feat: …, closes [#57]`). Occurrences inside quoting contexts are prose ABOUT the
+# convention (constant in this methodology repo) and must never read as a closure:
+# two live false positives are on record (`12e6b45b` backtick-quoted denial,
+# `096364ac` pre-amend draft quoting a doc clause). Same-line principle for inline
+# contexts (design amendment M1): pairing across lines could blank real text and
+# hide a REAL directive — the worse failure direction — so only fenced blocks span
+# lines. Order: fenced → inline code → block-quote lines → double-quoted spans.
+_STRIP_RES = (
+    re.compile(r"```.*?```", re.S),      # fenced block (multi-line by nature)
+    re.compile(r"`[^`\r\n]*`"),          # inline code span, same line only
+    re.compile(r"^[ \t]*>.*$", re.M),    # block-quote line (quoted ruling/doc text)
+    re.compile(r'"[^"\r\n]*"'),          # straight-double-quoted span, same line
+    re.compile(r"“[^”\r\n]*”"),  # curly-double-quoted span “…”
+)
+
+
+def strip_quoted_contexts(text: str) -> str:
+    """Blank every quoted context so only plain-text directives remain matchable."""
+    for rx in _STRIP_RES:
+        text = rx.sub(" ", text)
+    return text
+
+
+def closure_ids(text: str) -> list:
+    """THE closure-token detector ([#437] shared core): ids declared closed by
+    `text`, counting a token only as a plain-text directive (quoted contexts
+    stripped). Both scanners — this module's STRONG/WEAK detection and
+    validate_git_backlog.reconcile — flow through here; do not re-derive."""
+    return CLOSES_RE.findall(strip_quoted_contexts(text or ""))
+
 # A repo-relative file path token: at least one directory component + a known
 # code/doc extension. Requiring the slash is the precision lever — bare refs like
 # `ADR-35` or `coherence-audit HK-1` do not match, so WEAK stays conservative.
@@ -130,7 +161,7 @@ def find_strong(open_ids: set, commits: list) -> dict:
     """STRONG hits: id -> [(sha, subject), ...] where `closes [#id]` and id still open."""
     hits: dict = {}
     for c in commits:
-        for cid in CLOSES_RE.findall(c.message):
+        for cid in closure_ids(c.message):
             if cid in open_ids:
                 hits.setdefault(cid, []).append((c.sha, c.subject))
     return hits
@@ -143,7 +174,7 @@ def find_weak(open_tasks: dict, commits: list, strong_ids: set) -> dict:
     already STRONG (no double-listing) and commits that close anything (those are
     STRONG signal, not inferred).
     """
-    plain = [c for c in commits if not CLOSES_RE.search(c.message)]
+    plain = [c for c in commits if not closure_ids(c.message)]
     weak: dict = {}
     for cid, text in open_tasks.items():
         if cid in strong_ids:
