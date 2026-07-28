@@ -1,6 +1,6 @@
 # ADR-107: BACKLOG restructure — build-thin engine, fleet-owned schema, viewer as a replaceable part (slot declared empty)
 
-**Status:** Proposed
+**Status:** Accepted (ratified 2026-07-28 — operator word, architect session)
 **Date:** 2026-07-27
 **Decision tier:** Architecture (Path A — authored by CC from on-disk evidence only, on the strength of the operator-delegated tool ruling recorded in `BACKLOG.md` [#433]; **ratification is a separate operator act** and is NOT performed here)
 **Related:** [#433] (the carrier — per §7.5 it does not close on this ADR alone) · [#382] (receiver of §5's schema findings) · [#383], [#385] (downstream waves) · [#424] (the `depends-on` bare-vs-hash distinction this schema must preserve raw) · [#429] (worktree provisioning — owner of the concurrent-allocation residual in §6.3) · [#436] (parallel-eligible ratchet build, disjoint files) · ADR-64 / ADR-65 / ADR-66 (the BACKLOG architecture this restructures — none superseded here) · ADR-98 (intake genre) · ADR-101 + its 2026-07-27 amendment (`tasks/` sanctioned as a derived Tier-1 tree) · ADR-104 (fleet repository shape — **landed, not reopened**) · ADR-105 (the gate-at-activation-not-at-filing precedent reused in §3 and §7)
