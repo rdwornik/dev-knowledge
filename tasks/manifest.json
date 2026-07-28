@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "8eab477579a3919b85625a03deb14d56a974b83cf03c994c9b660552347a52c6",
+  "generated_sha256": "0180115e150d7e77f59b291c97a7103b21c0a9ad03028140ac0c55f41355a165",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -471,10 +471,6 @@
     {
       "task": 266,
       "file": "266-codify-the-test-scoped-grant-language-lesson.md"
-    },
-    {
-      "task": 386,
-      "file": "386-codify-the-proven-delivery-loop-into-playbook-ow.md"
     },
     {
       "task": 438,
