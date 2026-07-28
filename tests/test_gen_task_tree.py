@@ -307,6 +307,52 @@ def test_emit_source_refuses_a_traversing_manifest_path(tmp_path):
     assert any("unsafe manifest" in p for p in problems), problems
 
 
+def test_check_reds_on_duplicate_ids_among_active_files(tmp_path):
+    """terra P1 (4th pass) — ADR-107 §6.3's OWN named requirement: "a tasks/-level
+    duplicate-id check makes a collision a gate failure at merge time rather than a silent
+    one". This is the concurrent-branch collision the ADR records as a residual it does not
+    PREVENT: two branches allocate the same next-free id, write differently-slugged files,
+    and git merges them cleanly. Both can be internally consistent, so without this leg
+    every other check passes and the collision ships."""
+    import json
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    original = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    twin = out_dir / "1-a-colliding-sibling.md"
+    twin.write_text(original.read_bytes().decode("utf-8"), encoding="utf-8", newline="\n")
+
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
+    for i, node in enumerate(manifest["nodes"]):
+        if node.get("file") == original.name:
+            manifest["nodes"].insert(i + 1, {"task": 1, "file": twin.name})
+            break
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                             encoding="utf-8", newline="\n")
+
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("two ACTIVE task files" in p and "[#1]" in p for p in problems), problems
+
+
+def test_emit_source_writes_nothing_when_the_plan_is_invalid(tmp_path):
+    """terra P1 (4th pass) — rendering file-by-file-and-writing left the SOURCE OF TRUTH
+    partially mutated when a later file was missing or malformed: earlier files were
+    already rewritten, the command then failed, and the tree sat in neither the old state
+    nor the new one. Tolerable for a derived tree; not for the source. Plan fully, then
+    write."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    stale = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    # one file with STALE derived frontmatter (would be rewritten) ...
+    stale.write_text(stale.read_bytes().decode("utf-8").replace("priority: P1", "priority: P9", 1),
+                     encoding="utf-8", newline="\n")
+    before = stale.read_bytes()
+    # ... and another that is MALFORMED, so the plan must abort before any write
+    broken = next(p for p in out_dir.iterdir() if p.name.startswith("2-"))
+    broken.write_text("not a frontmattered task file at all\n", encoding="utf-8", newline="\n")
+
+    assert gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)]) == 1
+    assert stale.read_bytes() == before, "a failed regen must leave the source tree untouched"
+
+
 def test_manifest_declares_the_post_flip_direction(tmp_path):
     import json
     text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"

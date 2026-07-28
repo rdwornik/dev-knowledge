@@ -451,12 +451,21 @@ def _cmd_emit_source(source_path: Path, out_dir: Path) -> int:
               f"-- the source of truth is missing, refusing to write {source_path.name}",
               file=sys.stderr)
         return 1
+    # PLAN EVERYTHING FIRST, THEN WRITE (terra P1, 4th pass). Both the frontmatter renders
+    # and the full reassembly are computed before a single source byte is touched, so a
+    # malformed or missing task file aborts with the tree exactly as it was rather than
+    # half-rewritten. Reassembly reads BODIES, which the refresh never alters, so computing
+    # it from the pre-write state is equivalent to computing it after.
     try:
-        refreshed = refresh_task_frontmatter(out_dir)
+        plan = plan_frontmatter_refresh(out_dir)
         generated = reassemble_from_tree(out_dir)
     except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:
-        print(f"gen_task_tree: emit-source FAIL: {exc}", file=sys.stderr)
+        print(f"gen_task_tree: emit-source FAIL (nothing written): {exc}", file=sys.stderr)
         return 1
+
+    for path, rendered in plan:
+        path.write_text(rendered, encoding="utf-8", newline="\n")
+    refreshed = [path.name for path, _ in plan]
     if refreshed:
         print(f"gen_task_tree: refreshed derived frontmatter in {len(refreshed)} task file(s)")
 
@@ -597,7 +606,21 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
     # id and the gate passed, defeating the guarantee §6.3 keeps those files for.
     seen_ids: dict[int, str] = {}
     for fname in sorted(referenced):
-        seen_ids[_id_from_filename(fname)] = fname
+        active_id = _id_from_filename(fname)
+        if active_id in seen_ids:
+            # terra P1 (2026-07-28, 4th pass): this is ADR-107 §6.3's OWN named
+            # requirement -- "a `tasks/`-level duplicate-id check makes a collision a gate
+            # failure at merge time rather than a silent one". It is the concurrent-branch
+            # collision the ADR records as a residual it does NOT prevent: two branches each
+            # allocate the same next-free id, write differently-slugged filenames, and git
+            # merges them cleanly. Both files can be internally consistent and every other
+            # leg passes, so without this the collision ships silently.
+            problems.append(
+                f"id [#{active_id}] is held by two ACTIVE task files: "
+                f"{seen_ids[active_id]} and {fname} — an id is allocated once "
+                f"(ADR-107 §6.3; the concurrent-branch collision this gate exists to catch)")
+        else:
+            seen_ids[active_id] = fname
     for p in sorted(out_dir.iterdir()):
         if not (p.is_file() and _ORPHAN_RE.match(p.name) and p.name not in referenced):
             continue
@@ -711,24 +734,24 @@ def lineage_from_manifest(manifest: dict) -> dict[str, tuple[str | None, str | N
     return lineage
 
 
-def refresh_task_frontmatter(out_dir: Path) -> list[str]:
-    """Re-render every referenced task file's frontmatter from its own body + lineage.
+def plan_frontmatter_refresh(out_dir: Path) -> list[tuple[Path, str]]:
+    """PURE: compute every task file that needs its derived frontmatter re-rendered.
 
-    This is what makes `--emit-source` a complete regen of the source side rather than
-    half of one (terra P1, 2026-07-28). Frontmatter is DERIVED, so editing a task BODY —
-    changing its priority, size, status, title or dependencies — leaves the frontmatter
-    stale, and the honesty leg then REDs on the very edit the documented workflow asks for.
-    Before this, the only way back to green was `--write`, the warned recovery direction.
+    Writes nothing. Raises on the first unsafe manifest path or malformed task file, so a
+    caller learns the whole plan is invalid BEFORE touching disk.
 
-    Rewriting derived frontmatter is not a source edit: the BODY is the authority and is
-    never touched here. Returns the names of files whose bytes changed.
+    Split out from the write step (terra P1, 2026-07-28, 4th pass) because rendering
+    file-by-file-and-writing left the SOURCE OF TRUTH partially mutated when a later file
+    turned out to be missing or malformed: the earlier files had already been rewritten,
+    the command then failed, and the tree was in neither the old state nor the new one.
+    Acceptable for a derived tree; not for the source.
     """
     manifest = json.loads((out_dir / "manifest.json").read_bytes().decode("utf-8"))
     lineage = lineage_from_manifest(manifest)
-    changed: list[str] = []
+    plan: list[tuple[Path, str]] = []
     for fname, (theme, story) in lineage.items():
-        # Never write through an unvalidated manifest-supplied path (terra P1): this is the
-        # one place the normal workflow REWRITES a file named by hand-edited JSON.
+        # Never read or write through an unvalidated manifest-supplied path (terra P1):
+        # this is the one place the normal workflow REWRITES a file named by hand-edited JSON.
         unsafe = manifest_filename_problem(fname)
         if unsafe:
             raise ValueError(unsafe)
@@ -740,9 +763,21 @@ def refresh_task_frontmatter(out_dir: Path) -> list[str]:
             TaskRow(id=_id_from_filename(fname), raw=extract_body(actual),
                     theme=theme, story=story))
         if rendered != actual:
-            path.write_text(rendered, encoding="utf-8", newline="\n")
-            changed.append(fname)
-    return changed
+            plan.append((path, rendered))
+    return plan
+
+
+def refresh_task_frontmatter(out_dir: Path) -> list[str]:
+    """Plan-then-write wrapper over `plan_frontmatter_refresh`. Returns changed filenames.
+
+    Kept as the single-call form for callers that do not need to interleave the plan with
+    another validation step; `_cmd_emit_source` uses the two-phase form directly so that
+    reassembly is proven to succeed before any source file is rewritten.
+    """
+    plan = plan_frontmatter_refresh(out_dir)
+    for path, rendered in plan:
+        path.write_text(rendered, encoding="utf-8", newline="\n")
+    return [path.name for path, _ in plan]
 
 
 def _cmd_check(source_path: Path, out_dir: Path) -> int:
