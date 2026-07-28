@@ -138,6 +138,98 @@ def test_task_files_carry_the_post_flip_provenance(tmp_path):
     assert "source: BACKLOG.md" not in body
 
 
+def _seed(tmp_path, text):
+    out_dir, source = tmp_path / "tasks", tmp_path / "BACKLOG.md"
+    source.write_bytes(text.encode("utf-8"))
+    gtt.write_tree(gtt.parse_backlog(text), out_dir)
+    gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)])
+    return source, out_dir
+
+
+_TWO_THEMES = (
+    "# T\n\n## [E1] One\n\n### [S1] Story\n- [#1] [P1][S] **A** — b\n"
+    "\n## [E2] Two\n\n### [S2] Other\n- [#2] [P2][M] **B** — b\n"
+)
+
+
+def test_emit_source_refreshes_derived_frontmatter_after_a_body_edit(tmp_path):
+    """terra P1 (2026-07-28) — the documented normal workflow could not reach green.
+
+    Frontmatter is DERIVED from the body, so editing a task body (priority/size/status/
+    title/deps) left it stale and the honesty leg RED-ed on exactly the edit the workflow
+    asks for. The only escape was `--write`, the warned recovery direction. --emit-source
+    now re-renders derived frontmatter as part of the regen; the BODY is never touched.
+    """
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    assert gtt.find_incoherences(source, out_dir) == []
+
+    task_file = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    original = task_file.read_bytes().decode("utf-8")
+    task_file.write_text(original.replace("- [#1] [P1][S]", "- [#1] [P3][S]", 1),
+                         encoding="utf-8", newline="\n")
+
+    assert gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)]) == 0
+    assert gtt.find_incoherences(source, out_dir) == [], "the normal path must reach green"
+    refreshed = task_file.read_bytes().decode("utf-8")
+    assert "priority: P3" in refreshed, "derived frontmatter must follow the body"
+    assert "- [#1] [P3][S]" in source.read_bytes().decode("utf-8")
+
+
+def test_check_reds_on_a_stale_generated_sha256(tmp_path):
+    """terra P1 — schema 2 advertises generated_sha256 as an integrity pin, but nothing
+    validated it and --emit-source did not maintain it. An unchecked, unmaintained hash
+    is decoration that drifts on the first edit and still reports green."""
+    import json
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
+    manifest["generated_sha256"] = "0" * 64
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                             encoding="utf-8", newline="\n")
+
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("generated_sha256" in p for p in problems), problems
+    assert gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)]) == 0
+    assert gtt.find_incoherences(source, out_dir) == [], "--emit-source must re-pin it"
+
+
+def test_check_reds_on_lineage_stale_against_manifest_placement(tmp_path):
+    """terra P1 — theme/story were read back OUT of the task file, which made the honesty
+    check tautological for them: move a task node under a different heading and the file's
+    stale `theme:` still matched itself. Reassembly uses manifest PLACEMENT, not
+    frontmatter, so the output leg passed too and the staleness survived both legs.
+    Lineage is now derived from the manifest, which is its actual authority."""
+    import json
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    assert gtt.find_incoherences(source, out_dir) == []
+
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
+    nodes = manifest["nodes"]
+    first_task = next(i for i, n in enumerate(nodes) if "task" in n)
+    later_theme = next(i for i, n in enumerate(nodes)
+                       if i > first_task and "prose" in n and n["prose"].startswith("## [E2]"))
+    nodes.insert(later_theme, nodes.pop(first_task))
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                             encoding="utf-8", newline="\n")
+
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("manifest placement" in p for p in problems), problems
+
+
+def test_lineage_from_manifest_matches_the_parser(tmp_path):
+    """The lineage walker must agree with parse_backlog's heading/fence rules, or the
+    honesty leg and the emitted tree would disagree about where a task lives."""
+    import json
+    _, out_dir = _seed(tmp_path, _TWO_THEMES)
+    manifest = json.loads((out_dir / "manifest.json").read_bytes().decode("utf-8"))
+    lineage = gtt.lineage_from_manifest(manifest)
+    by_id = {row.id: row for kind, row in gtt.parse_backlog(_TWO_THEMES).nodes if kind == "task"}
+    for fname, (theme, story) in lineage.items():
+        row = by_id[gtt._id_from_filename(fname)]
+        assert (theme, story) == (row.theme, row.story), fname
+
+
 def test_manifest_declares_the_post_flip_direction(tmp_path):
     import json
     text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"

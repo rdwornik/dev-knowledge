@@ -417,28 +417,49 @@ def _cmd_write(source_path: Path, out_dir: Path) -> int:
 def _cmd_emit_source(source_path: Path, out_dir: Path) -> int:
     """THE NORMAL POST-FLIP REGEN: tree -> BACKLOG.md.
 
-    Writes only when the bytes actually change, so a no-op regen leaves mtime alone
-    and does not manufacture a diff for the coherence gate's index/worktree guard to
-    trip over.
+    A COMPLETE regen of the derived material, in three steps, because a half-regen left
+    the documented workflow unable to reach green (terra P1, 2026-07-28):
+      1. re-render every task file's DERIVED frontmatter from its own body + manifest
+         placement (bodies are never touched — they are the source);
+      2. write BACKLOG.md from the tree;
+      3. re-pin the manifest's `generated_sha256` to those output bytes.
+
+    Each step writes only when bytes actually change, so a no-op regen leaves mtimes
+    alone and cannot manufacture a working-tree diff for the coherence gate's
+    index/worktree guard to trip over.
     """
-    if not (out_dir / "manifest.json").exists():
-        print(f"gen_task_tree: emit-source FAIL: no manifest at {out_dir / 'manifest.json'} "
+    manifest_path = out_dir / "manifest.json"
+    if not manifest_path.exists():
+        print(f"gen_task_tree: emit-source FAIL: no manifest at {manifest_path} "
               f"-- the source of truth is missing, refusing to write {source_path.name}",
               file=sys.stderr)
         return 1
     try:
+        refreshed = refresh_task_frontmatter(out_dir)
         generated = reassemble_from_tree(out_dir)
-    except (OSError, ValueError, KeyError) as exc:
+    except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:
         print(f"gen_task_tree: emit-source FAIL: {exc}", file=sys.stderr)
         return 1
+    if refreshed:
+        print(f"gen_task_tree: refreshed derived frontmatter in {len(refreshed)} task file(s)")
 
     current = source_path.read_bytes().decode("utf-8") if source_path.exists() else None
-    if current == generated:
+    if current != generated:
+        source_path.write_text(generated, encoding="utf-8", newline="\n")
+        print(f"gen_task_tree: regenerated {source_path.name} from {out_dir} "
+              f"({_task_count(out_dir)} task(s))")
+    elif not refreshed:
         print(f"gen_task_tree: {source_path.name} already current ({_task_count(out_dir)} task(s))")
-        return 0
-    source_path.write_text(generated, encoding="utf-8", newline="\n")
-    print(f"gen_task_tree: regenerated {source_path.name} from {out_dir} "
-          f"({_task_count(out_dir)} task(s))")
+
+    # re-pin the integrity hash to the bytes just emitted
+    manifest_text = manifest_path.read_bytes().decode("utf-8")
+    manifest = json.loads(manifest_text)
+    digest = hashlib.sha256(generated.encode("utf-8")).hexdigest()
+    if manifest.get("generated_sha256") != digest:
+        manifest["generated_sha256"] = digest
+        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                                 encoding="utf-8", newline="\n")
+        print("gen_task_tree: re-pinned manifest generated_sha256")
     return 0
 
 
@@ -512,6 +533,7 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
             problems.append(f"manifest references a missing task file: {fname}")
 
     # --- leg 2: frontmatter honesty ---------------------------------------------
+    lineage = lineage_from_manifest(manifest)
     for fname in sorted(referenced):
         path = out_dir / fname
         if not path.exists():
@@ -522,13 +544,14 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
         except (OSError, ValueError, UnicodeDecodeError) as exc:
             problems.append(f"task file unreadable or malformed: {fname} ({exc})")
             continue
-        theme, story = _frontmatter_theme_story(actual)
+        theme, story = lineage.get(fname, (None, None))
         expected = emit_task_file_text(TaskRow(id=_id_from_filename(fname), raw=body,
                                                theme=theme, story=story))
         if actual != expected:
             problems.append(
-                f"task file frontmatter disagrees with its own body: {fname} "
-                f"(frontmatter is DERIVED from the body — edit the body, then --emit-source)")
+                f"task file frontmatter disagrees with its own body or its manifest "
+                f"placement: {fname} (frontmatter is DERIVED — edit the body, then "
+                f"--emit-source)")
 
     # --- retired records vs strays ----------------------------------------------
     for p in sorted(out_dir.iterdir()):
@@ -552,6 +575,20 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
         problems.append(f"{source_path.name} does not match what tasks/ generates "
                         f"(regenerate with `gen_task_tree.py --emit-source`)")
 
+    # --- leg 4: the integrity pin actually pins something ------------------------
+    # terra P1 (2026-07-28): schema 2 advertises `generated_sha256` as the pin on which
+    # output bytes this tree claims to produce, but nothing validated it, and
+    # --emit-source did not maintain it. An unchecked, unmaintained hash is decoration —
+    # it would drift on the first edit and still report green, which is the exact
+    # "no organ = decoration" failure this repo gates against.
+    declared = manifest.get("generated_sha256")
+    actual_hash = hashlib.sha256(generated.encode("utf-8")).hexdigest()
+    if declared is None:
+        problems.append("manifest.json carries no generated_sha256 (schema 2 requires it)")
+    elif declared != actual_hash:
+        problems.append("manifest.json generated_sha256 does not match what the tree "
+                        "generates (regenerate with `gen_task_tree.py --emit-source`)")
+
     return problems
 
 
@@ -560,24 +597,69 @@ def _id_from_filename(fname: str) -> int:
     return int(fname.split("-", 1)[0])
 
 
-_FM_THEME_RE = re.compile(r"^theme: (.*)$", re.MULTILINE)
-_FM_STORY_RE = re.compile(r"^story: (.*)$", re.MULTILINE)
+def lineage_from_manifest(manifest: dict) -> dict[str, tuple[str | None, str | None]]:
+    """filename -> (theme, story), derived from each task node's PLACEMENT in the manifest.
 
+    theme/story are the two frontmatter fields not derivable from a task's own line: they
+    come from which headings the task sits under. The authority for that is the manifest's
+    node ORDER, so lineage is computed here rather than read back out of the task file.
 
-def _frontmatter_theme_story(file_text: str) -> tuple[str | None, str | None]:
-    """Read back the two frontmatter fields that are NOT derivable from the body.
+    Reading it back would make the honesty check tautological for these two fields (terra
+    P1, 2026-07-28): moving a task node under a different theme in `manifest.json` would
+    leave the file's stale `theme:` matching itself and pass, while reassembly — which uses
+    manifest placement, not frontmatter — happily emits the task under the new heading. So
+    output comparison would pass too, and the stale lineage would survive both legs.
 
-    theme/story come from where the task sits under the manifest's headings, not from
-    its own line, so the honesty check cannot re-derive them and must read them back.
-    They are still covered end-to-end: if either is wrong, the reassembled document
-    puts the task under the wrong heading and leg 3 fails on the output bytes.
+    Mirrors `parse_backlog`'s heading/fence rules exactly, so the two cannot disagree.
     """
-    def _one(pattern: re.Pattern[str]) -> str | None:
-        m = pattern.search(file_text)
-        if m is None:
-            return None
-        return json.loads(m.group(1))
-    return _one(_FM_THEME_RE), _one(_FM_STORY_RE)
+    lineage: dict[str, tuple[str | None, str | None]] = {}
+    theme: str | None = None
+    story: str | None = None
+    in_fence = False
+    for node in manifest.get("nodes", []):
+        if "prose" in node:
+            line = node["prose"]
+            if line.startswith("```"):
+                in_fence = not in_fence
+                continue
+            if in_fence:
+                continue
+            if _THEME_TRIGGER_RE.match(line):
+                theme, story = line[3:], None
+            elif _STORY_TRIGGER_RE.match(line):
+                story = line[4:]
+        elif node.get("file"):
+            lineage[node["file"]] = (theme, story)
+    return lineage
+
+
+def refresh_task_frontmatter(out_dir: Path) -> list[str]:
+    """Re-render every referenced task file's frontmatter from its own body + lineage.
+
+    This is what makes `--emit-source` a complete regen of the source side rather than
+    half of one (terra P1, 2026-07-28). Frontmatter is DERIVED, so editing a task BODY —
+    changing its priority, size, status, title or dependencies — leaves the frontmatter
+    stale, and the honesty leg then REDs on the very edit the documented workflow asks for.
+    Before this, the only way back to green was `--write`, the warned recovery direction.
+
+    Rewriting derived frontmatter is not a source edit: the BODY is the authority and is
+    never touched here. Returns the names of files whose bytes changed.
+    """
+    manifest = json.loads((out_dir / "manifest.json").read_bytes().decode("utf-8"))
+    lineage = lineage_from_manifest(manifest)
+    changed: list[str] = []
+    for fname, (theme, story) in lineage.items():
+        path = out_dir / fname
+        if not path.exists():
+            continue
+        actual = path.read_bytes().decode("utf-8")
+        rendered = emit_task_file_text(
+            TaskRow(id=_id_from_filename(fname), raw=extract_body(actual),
+                    theme=theme, story=story))
+        if rendered != actual:
+            path.write_text(rendered, encoding="utf-8", newline="\n")
+            changed.append(fname)
+    return changed
 
 
 def _cmd_check(source_path: Path, out_dir: Path) -> int:

@@ -202,8 +202,9 @@ def test_every_problem_path_is_present():
     src = inspect.getsource(gtt.find_incoherences)
     for shape in ("source tree missing", "missing manifest.json", "manifest.json unreadable",
                   "no 'nodes' list", "missing task file", "unreadable or malformed",
-                  "frontmatter disagrees with its own body", "foreign task-shaped file",
-                  "reassemble_from_tree", "does not match what tasks/ generates"):
+                  "frontmatter disagrees with its own body", "placement:",
+                  "foreign task-shaped file", "reassemble_from_tree",
+                  "does not match what tasks/ generates", "generated_sha256"):
         assert shape in src, f"problem path lost: {shape}"
 
 
