@@ -11,7 +11,7 @@
 | **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->**Ratify, then flip — and rule the one item that has nowhere to live.** The window that precedes this one recorded a great deal and executed almost none of it by design, so the frontier is now unusually clean: ADR-107 sits `Proposed` with its adversarial review already folded in, and the `tasks/` coherence gate that guards the flip is not just armed but **witnessed firing twice for real** — which means the FIRST ACTION (the strangler flip, step 3, step 4 explicitly deferred) is blocked on **a word, not on work**. Beyond that, four operator decisions are queued (ADR-107 · the `[#370]` ownership ruling, best served by a short read-only `~/.claude` probe *before* ruling since one call clears three rows · intake #18 with #19 §B riding it · intake #20, which **must** rule where the North Star's *"meta serves object"* lesson lives — the only item in that doc with neither a rule nor a row). Start from **`RESIDUAL.md` §4**, which carries the frozen preconditions, the two dated pressures (**2026-08-13** `.vscode` shelf-life, **2026-08-26** drain prep + disposition cluster) and the carried-debt delta; **`BACKLOG.md`** `[E8]` (the amended closure contract) and `[E9]` (the North Star themes) are the two live theme surfaces.<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/window-close-2026-07-28`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -274,7 +274,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -395,7 +395,7 @@ the whole task-state.
 > branch is checked out so CC knows which live value to compare — **re-derive HEAD / tree / branch /
 > ahead-behind live (P3); do not trust this line.**
 >
-> > **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> > **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 >
 > **Windows note:** `audit.py checks` (P2) can crash mid-listing on a bare cp1252 PowerShell console
 > (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` (or `PYTHONIOENCODING=utf-8`); this
@@ -419,7 +419,7 @@ navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d):** the browser
 asks the operator for **off-repo** context.
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -450,3 +450,89 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
    any `[stale]` line). P8 pins the bundle shape **and the live supplement fill-state**. P10 grooms the
    whole open BACKLOG at boot (live / dead / awaiting-ruling per open `#id`). First check
    which branch is live (P3), then re-derive every load-bearing fact from the live primary source.
+
+---
+
+=== SUPPLEMENT.md ===
+
+=== ANSWERS === (outgoing 2026-07-27/28 browser seat)
+
+1. STRATEGIC INTENT — next session, way-of-working level.
+Convert ratified structure into operating reality. The methodology goal:
+governance moves from prose to GATES — this window proved the model (two
+refusal gates armed; three live catches inside 24h, two of them against
+their own builders' commits). Next window extends it: (i) FLIP as first
+action once the word "Accepted" exists — blocked on a word, not on work;
+(ii) run the first drain slice prep ([#356]+[#358]-[#361], review
+2026-08-26) as the proof that the ratchet's pool actually shrinks; (iii)
+pay the ratification debt: TWO owed sessions (intake #18 + intake #20) —
+ratification sessions are first-class work, not admin. Execution-first
+held all window and should hold again.
+
+2. TENSIONS WEIGHED — and where they landed.
+(a) Parallel-vs-serial: worktrees used exactly once, when two streams were
+GENUINELY concurrent; after integration every remaining arc shared
+serialize-group surfaces (audit.py, BACKLOG.md), so the shape became
+serial-CC + parallel-CODEX. The real second lane is Codex, not a second CC.
+(b) Fix-now vs file: CLOSES_RE defect FILED as [#437], not fixed in
+passing — even though it self-reproduces (its own filing commit is now a
+false-positive evidence sha). Scope discipline beat convenience.
+(c) Baseline precision vs honesty: D4 landed detector-owned measurement
+(silent-rule-v4, 428) over the unverifiable census 176. Architect-proposed,
+operator-adopted, test-and-iterate. The 176 stays as historical reference.
+(d) Converge-vs-stop: the 10-pass terra loop on [#436] was allowed to run
+because findings were bounded and converging (5-3-2-3-2-2-1-1-1-0); the
+lesson became [#438] (design review BEFORE build for gate-class), not a
+mid-arc abort.
+(e) Ratify-in-corridor vs evidence-first: #370 refused closure twice;
+ruling parked behind a cheap evidence probe rather than taken on the spot.
+
+3. CONSIDERED + REJECTED — do not relitigate.
+Pre-commit hooks for BOTH gates (per-machine, --no-verify bypass, no merge
+serialization — audit.py ship-gate legs won, twice). Closing #436/#434
+inside build/recording arcs (closure is the operator's /review-closures
+act, ADR-70 — held even when eligibility was obvious, and the re-verify
+discipline caught a real false positive at #370). Silently pinning 176
+(instant RED) or silently adopting the higher count (laundering). D3
+option (b) fold-into-ADR after the sol review (cost inverted: edits+re-
+review > ingest). Editing the date-stamped R12 status cell (dated
+verification records are immutable; only the undated outcome line was
+stale — that one was fixed). backlog.md-as-viewer, scrummd, rtk: rejected
+last window, unchanged.
+
+4. OPEN QUESTIONS — unresolved or deliberately deferred.
+ADR-107 ratification: TWO conditional instructions carried no word this
+window — the next seat should ask the question PLAIN, first message, not
+as a conditional clause inside a prompt (conditionals demonstrably do not
+elicit the word). #370: two-state vs third state (user-level ~/.claude);
+probe-then-rule; clears #370+#400+#413. Lesson 7 "meta serves object":
+the ONLY North Star item with no rule and no row — the question lives
+inside intake #20 and MUST be ruled at its ratification session (operator
+driver: nothing agreed gets lost). Viewer successor: PARKED EMPTY behind
+the mechanical activation gate — re-entry criteria in ADR-107 §3; do not
+reopen without them. [#382] desired-state pack: accumulating inputs by
+design (7 schema findings + allocation surface); whether it becomes
+build scope next window or keeps accumulating is an open sizing call.
+
+5. DECOMPOSITION RATIONALE — what NOT to redo.
+Every arc ran contract-first: frozen acceptance contract ex-ante, Codex
+lane named, atomic merge, closure by operator act. Do NOT redo: the five
+sol edits (folded at 2dca67a5), K1-K5 vocabulary, the viewer REJECT+park,
+the declared narrow ADR-65 amendment, the [E8] row-2 amendment + full-pool
+intent, D4 baseline semantics, the detector (silent-rule-v4 — changes are
+contract changes), the gate mechanism choices, the teardown rule. The
+task-graph shape (serial primary, at-launch worktree rule, Codex as the
+parallel lane) is proven — inherit it.
+
+6. OFF-REPO CONTEXT.
+Operator driver, load-bearing: NOTHING AGREED GETS LOST — it drove the D3
+delta review (result: zero items absent; consumption of the 2026-07-21
+local doc was faithful; that local file is now safe to archive). Operator
+intent recorded in [E8]: the FULL 428-rule pool gets dispositioned over
+time — drained, mechanized, or deliberately retired; forgetting is not a
+disposition. Operator chose wind-down over same-day flip — respect the
+sequencing, don't treat it as drift. Session lesson about the browser
+seat itself: twice a memory-based pointer lost to a mechanism (a relabel
+script that was approved-but-never-built; a cleanup queued instead of
+executed) — the next seat should verify pointers hardest, as the boot
+contract already says.

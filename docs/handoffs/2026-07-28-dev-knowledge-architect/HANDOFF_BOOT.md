@@ -9,7 +9,7 @@
 | **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->**Ratify, then flip — and rule the one item that has nowhere to live.** The window that precedes this one recorded a great deal and executed almost none of it by design, so the frontier is now unusually clean: ADR-107 sits `Proposed` with its adversarial review already folded in, and the `tasks/` coherence gate that guards the flip is not just armed but **witnessed firing twice for real** — which means the FIRST ACTION (the strangler flip, step 3, step 4 explicitly deferred) is blocked on **a word, not on work**. Beyond that, four operator decisions are queued (ADR-107 · the `[#370]` ownership ruling, best served by a short read-only `~/.claude` probe *before* ruling since one call clears three rows · intake #18 with #19 §B riding it · intake #20, which **must** rule where the North Star's *"meta serves object"* lesson lives — the only item in that doc with neither a rule nor a row). Start from **`RESIDUAL.md` §4**, which carries the frozen preconditions, the two dated pressures (**2026-08-13** `.vscode` shelf-life, **2026-08-26** drain prep + disposition cluster) and the carried-debt delta; **`BACKLOG.md`** `[E8]` (the amended closure contract) and `[E9]` (the North Star themes) are the two live theme surfaces.<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/window-close-2026-07-28`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -35,7 +35,7 @@
    `run <command>`, CC reads live `VISION.md` / `ARCHITECTURE.md` Ch1 and substring-checks. The architect
    may not begin design until it holds both orienting lines (P1's grep is a *tool* that confirms the frame
    — the **backlog navigates**, §13c).
-6. **Then the operator-context beat (§13d).** The supplement is **generated EMPTY**, so unless the operator fills it first the beat fires **FULL**: *"what off-repo context — intent, priorities, findings not in the repo, changed decisions?"*
+6. **Then the operator-context beat (§13d).** The supplement is **FILLED**; its ANSWERS are in the paste, so the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 7. Hand `RESIDUAL.md` — **drift-flags first** (the §1 headline) — then the **next-frontier decisions**
    (§4) + the **shipped-this-window** map (§2), then run the rest of `PROBES.md` (P2–P10). Any probe FAIL
    blocks onboarding (the escalation ladder). **Re-derive the drift-flag values live (P4/P6/P7/P9) — the
