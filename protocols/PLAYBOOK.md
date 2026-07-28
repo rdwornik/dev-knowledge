@@ -1304,7 +1304,7 @@ its own branch, and remove it the moment that branch merges. It must not linger 
 prompt on the **primary** checkout. Parallelism lives **inside** the session — the
 orchestrator (Opus) fans out in-session subagents (Sonnet probes, Haiku read-only
 fan-out) and the Codex lane runs in the background — with **every git mutation serial in
-the main thread**. A second *committing session* is never the default shape; it is the
+the main thread**. A second *committing session* is not the default shape; it is the
 exception below, and it costs a worktree + a serial integration pass.
 
 **The four-condition worktree test — launch a parallel committing session only when ALL
@@ -1341,8 +1341,8 @@ launches.
 
 *Open reconciliation (flagged for the intake #18 ratification, 2026-07-30):* condition 2's
 "pre-allocated JOURNAL letters" example is the row's verbatim wording; intake #18 A5 rules
-the opposite mechanism (lanes never allocate — letters assigned at integration). One of the
-two must yield at ratification; see the dossier
+the opposite mechanism (lanes do not allocate — letters assigned at integration). One of the
+two yields at ratification; see the dossier
 `docs/audits/2026-07-29-technical-intake18-ratification-dossier.md` (pack-level finding 2).
 
 **Canonical safe pair: one code item ∥ one doc item.** Disjoint files by construction. Review
