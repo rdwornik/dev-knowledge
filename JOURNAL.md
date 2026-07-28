@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-07-28 (n) — CC (Fable 5): P6 dated-pressure prep — five artifacts for the ruled sessions, zero executions
+
+**SHA anchor (ADR-85).** `b35c9090` (the five artifacts) · `577cfab6` (terra fixes). Branch `docs/p6-dated-pressure-prep`, base `eea2c1c7`.
+
+**Did.** PREP ARC by contract — artifacts only, and the boundary is stated inside every file: no drain, no disposition, no build, no closure executed. Five `docs/audits/` artifacts: **(1)** `2026-07-28-technical-drain-slice-prep.md` — the 2026-08-26 drain review input for [#356]+[#358]–[#361] ([E8] D1): per row, quoted text · live evidence · proposed disposition ∈ {drain now / mechanize instead / deliberately retire} · what 08-26 re-verifies; plus the drain-owed trio and the wholesale classes the [#439] flip made actionable. Naming disposition recorded: the prompt's `2026-08-26-drain-prep.md` fails ADR-101 Rule B — filed under today's date + `technical` class per convention. **(2)** `…-vscode-sizing-decision-surface.md` — the W1/2026-08-13 unbuilt half priced (returns to the operator): built half at manifest v1.4.0:326-346 `implemented: false`, no editor-config carrier in `make_carriers` (tool.py:303-323); ai-council carries the decoration MANUALLY since 2026-07-22 while corp has none — [#371]'s "both consumers zero highlight keys" is stale for ai-council, flagged not smoothed; three options priced, recommendation (b) split-visibility-from-mechanism. **(3)** `…-382-charter.md` — skeleton only (C5): scope/inputs/Done-when-draft/kill-criteria/dependency-map over intake #16 §1–§3+§5 (consumer b) + the 7 spike findings + the allocation obligation; states explicitly that a charter does NOT trip #16's "[#382] build starts" trigger. **(4)** `…-364-cap-option-matrix.md` — the 6-WARN incident (10–172 headroom), the compound ≥3-dates&>700 leg, and the twice-used `9ce96be8` precedent folded; four options with blast radius; recommendation 4(a)+pre-write-measure, no cap change. **(5)** `…-d-queue-0826.md` — the ruling-signalled rows re-derived live (the P10 groom's list is on no committed surface — stated, not papered over): 41 mechanical hits → adjudicated → **26** after excluding the six rows Parts 1/4 own; id + waits-for each, exclusions enumerated.
+
+**Terra lane (Part contract D).** Prompt-mode DOC review at `b35c9090`: **0 P1 / 3 P2 / 1 P3 — all four adopted and fixed** at `577cfab6`, recorded in `2026-07-28-codex-p6-prep-review.md`. The P2 that mattered most: the [#360] retire recommendation was itself "forgetting dressed as retiring" — ADR-85 froze the doc set to *gather override-rate data first* and the recommendation ignored that clause; now conditional on the data. Also: the [#387] charter edge drawn conditional, option (c) re-priced S-cross-repo, option 4(a)'s per-incident artifact cost added.
+
+**Result.** Cap discipline: zero BACKLOG/`tasks/` writes this arc (measured, nothing to fit); [#353] measured live at 1189/2 dates for the matrix. Gates: ship-gate **GREEN** (19 dispositioned WARNs, all pre-existing) · ruff clean · pytest via `-n auto` green minus the known [#430] external red (suite count in the merge record). One atomic merge (contract F).
+
+**Changes:** `docs/audits/` (5 prep artifacts + 1 codex record + regenerated README), `JOURNAL.md`.
+
+**Next.** 2026-08-13: the operator's `.vscode` sizing decision (artifact 2 is the decision surface). 2026-08-26: the drain review consumes artifacts 1 + 5. The [#382] arc opens by freezing charter §3 into its acceptance contract; [#364]/[#406] rulings have their priced options.
+
+---
+
 ### 2026-07-28 (m) — CC (Fable 5): P9 delegated closure sweep — [#437][#439][#444] closed, [#433] stays open
 
 **SHA anchor (ADR-85).** `aa16bf6a` (close commit). Branch `chore/p9-closure-sweep-437-439-444`, base `670a86ab`.
