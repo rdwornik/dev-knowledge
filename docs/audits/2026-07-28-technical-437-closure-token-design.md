@@ -165,3 +165,50 @@ re-review.
 Single atomic `--no-ff` merge; no BACKLOG row closed ([#437] stays open — closure is an
 operator `/review-closures` act); no BACKLOG prose touched (G expected N/A); JOURNAL
 single-writer letter at integration.
+
+---
+
+## AMENDMENT 2026-07-28 (same arc, post terra design review — pre-build)
+
+Terra design review `docs/audits/2026-07-28-codex-437-closure-design.md` (@ `3b2142be`):
+verdict **not CLEAR** — 2 HIGH / 2 MEDIUM. All four ACCEPTED; the design is amended as
+follows before any implementation. (In-file amendment marker per §5 rule 3 — the original
+sections above stand as reviewed; this section is the delta terra reviews next.)
+
+**H1 — plugin release path (ACCEPTED).** §5's twin edit is incomplete without the
+version-keyed-cache rollout (INSTALL.md:95): consumers execute a cached copy keyed by
+`plugin.json` version, so an unreleased twin edit leaves the false-positive scanner live
+in every installed repo. Added to the build plan: bump
+`plugins/tier1-lifecycle/.claude-plugin/plugin.json` `0.1.10 → 0.1.11` IN this arc;
+post-merge rollout = `claude plugin marketplace update dev-knowledge-methodology` +
+`claude plugin update tier1-lifecycle@dev-knowledge-methodology --scope project` (hub) +
+session restart to apply; the two installed consumers (corp-monorepo, ai-council) are
+OWED the same update — recorded as named follow-through in the arc report, not silently
+skipped.
+
+**H2 — sweep provenance (ACCEPTED).** §6's full-history sweep compares **`(sha, id)`
+occurrence pairs**, not id sets — an id-set diff cannot see a real occurrence in one
+commit masked by a quoted one in another. Every occurrence the new detector drops
+relative to raw `CLOSES_RE` is individually reviewed and listed as an explicit allowlist
+in the build report; any non-allowlisted drop = design error, stop.
+
+**M1 — multi-line quoting + delimiter edges (ACCEPTED — scope-declare + fixtures).**
+Paired **multi-line** double quotes are declared OUT of scope: pairing across lines can
+blank real text between two unrelated quote characters — that error direction HIDES a
+real directive, which is the worse failure for `git_backlog_drift` (a drift detector
+that under-reports). Every observed false positive is same-line/backtick/block-quote;
+the multi-line-quoted residual class is accepted and named. Same-line principle applied
+consistently: the inline-code regex excludes newlines (`` `[^`\r\n]*` ``) so an unpaired
+backtick can never blank across lines (the analogous hide-real-directive hazard in the
+original `_INLINE_CODE_RE`, which pairs across lines). Unicode policy: curly double
+quotes `“…”` are stripped as a same-line pair exactly like straight quotes; mixed
+straight/curly pairs are not paired. New fixtures: CRLF messages, unpaired fence,
+unpaired double quote, curly-quote pair, two-line inline span (stays detected —
+documented residual).
+
+**M2 — parity-test mechanics (ACCEPTED).** `inspect.getsource` cannot compare a compiled
+pattern. Follow the `test_validate_backlog_twin_parity.py` precedent split exactly:
+regexes compared by `.pattern` AND `.flags` (`_TWIN_REGEXES` style — covers `re.I`),
+functions by `getsource` (`_TWIN_FUNCS` style). Twin symbol list: `CLOSES_RE` +
+`_STRIP_RES` members (pattern/flags), `strip_quoted_contexts`, `closure_ids`,
+`find_strong`, `find_weak` (source).
