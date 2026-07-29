@@ -391,8 +391,12 @@ execution mode are unchanged.**
 folds it if answered):**
 
 1. On `/handoff … architect`, CC writes `docs/handoffs/<slug>/SUPPLEMENT.md` **unconditionally** from
-   `templates/handoff/v5/SUPPLEMENT.md.tmpl` — the fixed 6-question *why*-only schema below (CC MAY
-   append 1–2 session-specific items it observed as `A./B.` addenda; it adds nothing else). The file
+   `templates/handoff/v5/SUPPLEMENT.md.tmpl` — the fixed 7-question *why*-only schema below (CC MAY
+   append 1–2 session-specific items it observed as `A./B.` addenda; it adds nothing else). Question
+   7 (the ratified-in-chat register, intake #18 A6) is **capture-only** — an answer there is
+   transcription DEBT surfaced at the boundary, not canon; recording happens in the next session
+   (the recording-batch pattern, cf. `833e7f6b`), and the answer is advisory like every supplement
+   answer (never trusted over the repo). The file
    is self-documenting: an operator 3-step header, a **QUESTIONS** section for the **outgoing**
    architect chat, and an empty **ANSWERS** section below a divider line.
 2. CC commits the file (empty at first) **on the handoff branch** — so the artifact exists and is
@@ -502,6 +506,14 @@ header + the paste-pointer and does **not** repeat the walkthrough. The runbook 
 repos of the same handoff version: the #164 generator seeds/updates each repo's
 `docs/handoffs/README.md` idempotently from one source (`templates/handoff/v5/README.md.tmpl`, a
 deferred stub until #164 lands) and emits the four-file bundle — never a per-bundle README.
+
+**PLAN.md, the D3 four-state artifact (intake #18 A9).** An architect bundle MAY carry `PLAN.md` —
+the session plan, CC-authored, never pasted. Its lifecycle is **DRAFT → REVIEWED → APPROVED →
+CLOSED(outcomes)** (intake #17 D3, operator-ruled): review SLA one working day at DRAFT, then
+cold-review fires; deviations split — scope changes require a mid-session operator ruling
+(strict), order/mechanics changes require only an OUTCOMES entry with rationale (loose). The
+generator/RETROSPECTIVE build stays [#301] (peg #298); the runbook's PLAN row reconciles to
+"optional (D3 states)" at its owner's next freshness window.
 
 **`PASTE_THIS.md` convention.** Assembled by `scripts/assemble_paste.py <bundle_dir>` at handoff
 generation time; **never hand-edited**. Regenerate each handoff by re-running the assembler.
