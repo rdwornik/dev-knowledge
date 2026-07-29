@@ -11,7 +11,7 @@
 | **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->**W-D intake-#18 ratification session (2026-07-30).** Rule the handoff-process amendment pack A1–A11 to a ratification decision and settle the v5.8-vs-v6 label; the decision surface is `docs/audits/2026-07-29-technical-intake18-ratification-dossier.md`, whose per-amendment live checks and recommendations are already done — this session **rules**, it does not re-derive. Three inputs join the dossier and are not optional: (i) the **[#441] condition-2 vs A5 conflict**, left deliberately open by the 2026-07-29 adoption ruling and carried in the PLAYBOOK Ch8 *Open reconciliation* paragraph + dossier pack-finding 2 — one of the two yields here; (ii) **stale-procedure audit row 13** (`docs/audits/2026-07-29-technical-postflip-stale-procedure-audit.md`), the §14a epic-return "applies the backlog delta" clarifier, routed here as an A10-batch ride-along rather than a hotfix; (iii) the dossier's **§B rider register sequencing recommendation** — rule §B(b)'s *direction* first, then A7 / A4-item-3 as its content. Task-graph pointer: `BACKLOG.md`, the `handoff` serialize-group ([#435] owns the stewardship; [#421]/[#422]/[#344]/[#390] are its neighbours) — read the group, not a re-narration of it.<!-- FILL-IN:purpose END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/window-winddown-2026-07-29`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
@@ -274,7 +274,7 @@ materially-affected*, not per-session-gated. A wrong block exits **only** via CC
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -449,7 +449,7 @@ the whole task-state.
 > branch is checked out so CC knows which live value to compare — **re-derive HEAD / tree / branch /
 > ahead-behind live (P3); do not trust this line.**
 >
-> > **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> > **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 >
 > **Windows note:** `audit.py checks` (P2) can crash mid-listing on a bare cp1252 PowerShell console
 > (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` (or `PYTHONIOENCODING=utf-8`); this
@@ -473,7 +473,7 @@ navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d):** the browser
 asks the operator for **off-repo** context.
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -504,3 +504,61 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
    any `[stale]` line). P8 pins the bundle shape **and the live supplement fill-state**. P10 grooms the
    whole open BACKLOG at boot (live / dead / awaiting-ruling per open `#id`). First check
    which branch is live (P3), then re-derive every load-bearing fact from the live primary source.
+
+---
+
+=== SUPPLEMENT.md ===
+
+=== ANSWERS === (outgoing browser seat, 2026-07-29)
+
+Q1 STRATEGIC INTENT: Move from the structure era to the consumption era. This window made
+tasks/ the live source, the closure loop real (4 full loops), and the fat-prompt default
+doctrine (PLAYBOOK Ch8). The next session's way-of-working goal: pay the ratification debt
+— intake #18 per-amendment rulings + the v6 cut decision — so the remaining prose-held
+coordination properties (boot round-trip, JOURNAL letters, spec currency) move into
+mechanism. After that, the 2026-08-26 cluster executes dispositions at scale, and the
+[#382]→[#383]→[#385] chain is the system-implementation era (charter on main; the operator
+may pull [#382] build forward of the 08-26 sizing as a priority call).
+
+Q2 TENSIONS WEIGHED: (a) speed vs verification — operator-directed early merge (14bcb1c4)
+landed as a NAMED precedent: sanctioned only with the mandatory post-hoc verification leg;
+unshortened default stands. (b) delegation vs ADR-70 — closure sweep ran on a BATCH-SCOPED
+delegation with dual independent Done-when verdicts; a standing delegation was deliberately
+NOT created (would need an ADR-70 amendment — raise at #18 only if the operator wants it).
+(c) producer≠reviewer economics on S-size — CC-builds/terra-reviews chosen over
+Codex-producer (which would force sol). (d) cloud night lane vs absent user-level gates —
+UNVERIFIED-UNTIL-LOCAL contract, branch-only, no merges. (e) cap integrity vs record
+richness — compress-precedent used 3×, option 4(a) adopted, build at 08-26.
+
+Q3 CONSIDERED + REJECTED (do not relitigate): PLAYBOOK codification of lesson 7 as-written
+(self-blocked by prove-then-codify → LESSONS.md + [#443] chosen) · intake #16 → CONSUMED
+(archives a live spec → ACCEPTED+deferred, trigger "[#382] build starts") · in-arc plugin
+bump (half-release worse than documented lag → [#444] release act) · indented-code-block
+stripping (excluded by design, loud residual test) · [#433] closure (twice, two concordant
+NOT-MET on ADR-107 §6.2; sol E5 holds) · night work as a ROUTINE (ADR-105 + unratified
+#19 §B → one-off cloud batch under branch-only).
+
+Q4 OPEN QUESTIONS: [#441] condition-2 (pre-allocated JOURNAL letters) vs intake #18 A5
+(assign-at-integration) — named fork, decide AT #18 · A7 + A4-item-3 sequence AFTER the
+§B(b) one-round-trip-boot ruling · audit row 13 (HANDOFF_PROCESS §14a clarifier) rides the
+v6 cut · .vscode mechanism DATE + vehicle ADR ([#387]) — 08-26 · #364 4(a) build shape —
+08-26 · governs-vs-contains sub-question inside the #370 disposition · standing closure
+delegation (ADR-70 amendment): raised, undecided, operator's call.
+
+Q5 DECOMPOSITION RATIONALE / DO-NOT-REDO: the window ran serial-primary + Codex background
+with per-arc frozen A–H contracts — keep that shape (it produced 100% plan execution, zero
+process violations). Do NOT redo or re-decide: flip mechanics (live-witnessed) · shared
+closure-token core design · #20/#16 rulings · .vscode option (b) · the Ch8 four-condition
+launch test · the 12 stale-procedure fixes · everything in Q3. Next task-graph: W-D #18
+FIRST (dossier docs/audits/2026-07-29-technical-intake18-ratification-dossier.md is the
+decision surface; sol derives the v6 spec ONLY if a cut is ruled) → cross-repo RULING-W arc
+(corp .vscode copy + both e1 re-dates; corp GO already given) → 2026-08-26 cluster.
+
+Q6 OFF-REPO CONTEXT: operator escalation calibration (2026-07-28): D3/D4-class decisions
+are the ARCHITECT's lane — decide + one-line note; escalate only real forks
+(irreversibility, operator drivers, no objectively best option). Operator endorses the
+fat-prompt default live ("better quality than singles", running the browser seat on Fable)
+— recorded as [#441] evidence. Merge 14bcb1c4 authorship CONFIRMED by the operator in chat.
+Night lane environment class: Anthropic cloud VM = no ~/.claude, no Codex — every future
+night batch inherits UNVERIFIED-UNTIL-LOCAL. Operator wants night batches to continue —
+route the standing version through #19 §B at the #18 session, not ad-hoc.
