@@ -88,6 +88,17 @@ When the plugin source changes in `.dev-knowledge` (new script version, hook twe
 update), installed repos run a **stale cached copy** until the cache is refreshed. The
 plugin cache lives at `~/.claude/plugins/cache/dev-knowledge-methodology/tier1-lifecycle/`.
 
+> **Cache-lag notice — repo copy is AHEAD of the served copy (2026-07-29).** The
+> post-flip stale-procedure fix batch reworded `commands/review-closures.md` (safety-contract
+> preamble + closing guard) and the `scripts/review_closures.py` docstring so they no longer
+> describe the direct `BACKLOG.md` edit as the universal closure mechanism. **`plugin.json`
+> was deliberately NOT bumped** — it stays `0.1.11`, so `.../tier1-lifecycle/0.1.11/`
+> keeps serving the pre-fix text to live sessions until the next release runs the row-1
+> workflow below. The corrected text is documentation-only (no behaviour change) and the
+> command's step 4 already branched correctly on host shape, so the lag is a legibility
+> risk, not a correctness one. This is the [#442] class — cached command text outliving a
+> workflow change with nothing detecting it. Fold the bump into the next release act.
+
 ### Workflow reference
 
 | Situation | Command(s) | Notes |

@@ -1,18 +1,19 @@
 ---
-last_reviewed: 2026-07-23
+last_reviewed: 2026-07-29
 status: active
 owner: Rob
 ---
 
-# AI_COUNCIL_PROCESS v2.1
+# AI_COUNCIL_PROCESS v2.2
 
+<!-- version: 2.2 — 2026-07-29 (post-flip stale-procedure fix: Stage 6 BACKLOG follow-up routed through the Tier-1 closure loop + `tasks/` retirement, ADR-107 step 3) -->
 <!-- version: 2.1 — 2026-07-23 (ADR-43 amendment: routed-mirror retired — transcripts canonical-only in ai-council/output/; synthesizer default gemini→openai per 2026-07-18 ruling) -->
 <!-- version: 2.0 — 2026-06-01 (ADR-67: gated loop + /council-question trigger + deterministic ADR return) -->
 <!-- version: 1.0 — 2026-05-28 (initial; companion to ARCHITECTURE.md C3 AI Council pipeline diagram) -->
 <!-- scope: meta -->
 
-Version: 2.1
-Effective: 2026-07-23
+Version: 2.2
+Effective: 2026-07-29
 Authority: ADR-67 (process operationalization — gated loop, this amendment); ADR-43 (cross-project transcript routing; routed-mirror clause RETIRED by amendment 2026-07-23 — transcripts are canonical-only in `ai-council/output/`); ADR-60 (folder taxonomy, ephemeral briefs); ADR-03 (blind voting); ADR-08 (research degradation exit code); council-question-guide.md (question format)
 
 > **Authoritative sources.** Question format: `ai-council/docs/council-question-guide.md`.
@@ -371,10 +372,13 @@ committed path in the target repo (no behavior change from v1.0).
    ADR-60, briefs are ephemeral. Do not commit them anywhere.
 2. **JOURNAL entry** in the target repo — one entry: `Did / Result / Changes
    / Abandoned / Next`. Cite the ADR number and the transcript filename.
-3. **BACKLOG follow-up** — if the ADR closes a BACKLOG item, mark it closed
-   in the same commit (or a follow-on commit). If the ADR *opens* new
-   follow-up work (almost every architectural decision does), add the new
-   BACKLOG entry with `Refs: ADR-NN`.
+3. **BACKLOG follow-up** — if the ADR closes a queue item, route it through the
+   Tier-1 closure loop: `closes [#id]` in the commit plus the retirement per
+   `tasks/README.md` on the hub (manifest node out, terminal `status:`,
+   `--emit-source`); an unflipped consumer removes the line directly. Done items
+   **leave** — there is no "closed" status marker (ADR-65). If the ADR *opens*
+   new follow-up work (almost every architectural decision does), file it as a
+   `tasks/` add carrying `Refs: ADR-NN`.
 4. **Cross-repo propagation** — if the decision binds multiple repos (e.g.,
    ecosystem-wide convention authored in `.dev-knowledge`), the propagation
    happens via cross-repo routing artifacts, NOT via the originating repo's
@@ -413,6 +417,7 @@ committed path in the target repo (no behavior change from v1.0).
 
 ## Section history
 
+- v2.2 (2026-07-29) — post-flip stale-procedure fix batch (audit `2026-07-29-technical-postflip-stale-procedure-audit.md`, row 11): Stage 6 item 3 no longer says "mark it closed" (not the ADR-65 shape — done items leave, no status marker) and no longer implies a direct `BACKLOG.md` edit; closure now routes through the Tier-1 loop with a `tasks/` retirement on the hub (ADR-107 step 3 / [#439]), and follow-up work is filed as a `tasks/` add. Genuine end-to-end re-read; `last_reviewed` re-stamped 2026-07-29.
 - v2.1 (2026-07-23) — ADR-43 amendment (routed-mirror RETIRED; operator ruling 2026-07-22, hub zone deleted `b4435fad`): Purpose/Stage 3 gate/Stage 4 landing/Stage 5 step 3/frontmatter table/template example/troubleshooting/Cross-references all repointed — transcripts are canonical-only in `ai-council/output/`; `target-project:` not to be set; config disarm tracked [#401]. Re-read fixes: synthesizer default gemini→openai (2026-07-18 operator ruling), ADR-94 status-line exception added to Stage 5 item 5.
 - v2.0 (2026-06-01) — ADR-67: added Gated loop overview (6 steps, cross-domain split table, stage mapping); Stage 1 updated to `/council-question` trigger (template+gate downstream); Stage 1a Gate inserted; Stage 5 Deterministic return subsection added; Cross-references updated.
 - v1.0 (2026-05-28) — initial. Companion to ARCHITECTURE.md C3 "AI Council debate pipeline" diagram. Closes BACKLOG "AI Council Flow operationalization — lifecycle runbook" (open since 2026-05-27).

@@ -93,7 +93,9 @@ Classify every changelog entry *after* `last_reviewed_version` into exactly one 
    with a body summarising the bucket counts + any ADOPT/OBSOLETES flagged for the
    operator + (if written) the SEED doc's intake-id. If this run closes the #113
    Done-when ("one real post-update run produces a digest and bumps the state
-   file"), add `closes [#113]` and remove #113 from BACKLOG in the same commit.
+   file"), add `closes [#113]` and retire #113 in `tasks/` (node out + terminal
+   `status:` + `--emit-source`) in the same commit — the row leaves `BACKLOG.md`
+   as a result of the regen, never as a direct edit.
 
 8. **Report** to the operator: per-tool ranges reviewed, the bucket counts, every
    ADOPT and OBSOLETES-WORKAROUND item, and — if one was written — the intake SEED
