@@ -132,6 +132,7 @@
   - [How to choose Effort](#how-to-choose-effort)
   - [Model / effort platform doctrine (Claude Code 2.1.x)](#model--effort-platform-doctrine-claude-code-21x)
   - [Structure](#structure)
+  - [Multi-agent / fan-out prompt checklist (the browser-emitted mandate contract)](#multi-agent--fan-out-prompt-checklist-the-browser-emitted-mandate-contract)
   - [Quick-reference examples](#quick-reference-examples)
   - [Decision scope for when to write a formal prompt](#decision-scope-for-when-to-write-a-formal-prompt)
   - [Key rules](#key-rules)
@@ -677,6 +678,11 @@ The browser-chat architect never writes git commands, shell sequences, or execut
 - **Scale M+** (multi-step, multi-file, judgment needed, merge ops): Claude Code prompt as a downloadable `.md` file with full structure per this chapter.
 
 **Test:** if the operator has to edit, paraphrase, or interpret anything when copying, the format is wrong.
+
+**Report-direction sibling (intake #18 A1):** any load-bearing CC→browser report longer than one
+screen ends with `=== END — {k} sections ===` — the truncation-visibility mechanism of the paste
+END sentinel (HANDOFF_PROCESS §13), applied in the report direction; a report without its END
+line is truncated, and the reader says so and stops.
 
 Sourced from LESSONS #10 (2026-05-13). Architect-side enforcement is operator-review; mechanical enforcement on executor side via the Claude Code harness.
 
@@ -1307,7 +1313,7 @@ carried unratified through that merge; ruled ADOPTED at the following morning's 
 is live doctrine. It **replaces** the prior three-check "0 — Decide: should I parallelize?" launch test
 so the corpus carries one launch test (the mapping is recorded below). Ruling evidence: the shipped
 2026-07-28 window cited under *Evidence*, plus the operator's live endorsement of the fat-prompt
-default across the 2026-07-28→29 window itself. One item stays open — see *Open reconciliation* below.
+default across the 2026-07-28→29 window itself. One item was resolved at the intake #18 ratification (2026-07-30) — condition 2 now cites the §8 allocation convention.
 
 **The default (operator + outgoing-seat ruling 2026-07-28):** one strong, self-contained
 prompt on the **primary** checkout. Parallelism lives **inside** the session — the
@@ -1325,7 +1331,8 @@ FOUR are YES:**
 2. **Zero shared gate-forced surfaces — or a contract pre-resolves them?** Surfaces a
    gate forces both lanes through (JOURNAL entries, BACKLOG/`tasks/` rows + regen,
    generated indexes) either aren't shared, or a written contract pre-resolves the
-   contention (pre-allocated JOURNAL letters, disjoint rows, a named `tasks/` regen
+   contention (a dispatch-pre-assigned JOURNAL-letter contract (per the §8 allocation
+   convention), disjoint rows, a named `tasks/` regen
    owner). Two lanes editing the *same substantive file* is always a NO.
 3. **Wall-clock matters?** Real calendar pressure that serial execution would miss —
    parallelism for its own sake is not a reason.
@@ -1346,13 +1353,9 @@ parallel success (adr∥ratchet — a pair that passes the four conditions).
 3–4 are new — the ruled additions. Everything below this block (canonical-safe-pair,
 shared-surface handling, provisioning, seeding, integration authority, teardown) governs
 **HOW** a sanctioned parallel session runs; this block alone governs **WHETHER** one
-launches.
-
-*Open reconciliation (flagged for the intake #18 ratification, 2026-07-30):* condition 2's
-"pre-allocated JOURNAL letters" example is the row's verbatim wording; intake #18 A5 rules
-the opposite mechanism (lanes do not allocate — letters assigned at integration). One of the
-two yields at ratification; see the dossier
-`docs/audits/2026-07-29-technical-intake18-ratification-dossier.md` (pack-level finding 2).
+launches. The **content** of a sanctioned multi-agent mandate is §2's "Multi-agent / fan-out
+prompt checklist" + the HANDOFF_PROCESS §13 destination contract (intake #18 A4) — WHETHER is
+ruled here, WHAT the mandate declares is ruled there.
 
 **Canonical safe pair: one code item ∥ one doc item.** Disjoint files by construction. Review
 contention is at most one-sided: the **doc** stream never needs Codex; only the **code** stream
@@ -1369,6 +1372,11 @@ this shape first.
 - **JOURNAL: the conflict is trivial.** Each branch prepends its own newest-first entry; a merge
   conflict is just two top-of-file prepends — resolve by keeping both in timestamp order. JOURNAL
   is therefore not a real serialization blocker.
+  **The letter-allocation convention (intake #18 A5/U3, ratified 2026-07-30):** JOURNAL letters
+  are assigned **at integration**, by the primary's single writer — **lanes never allocate.** One
+  scoped exception: inside a sanctioned worktree pair (the Ch8 four-condition test passed), the
+  dispatch MAY pre-assign letters as its condition-2 contention contract; absent that written
+  dispatch contract, assign-at-integration governs.
 - **Operator is the serial gate.** Parallel branches return to the operator, who `/ship`s them **one
   at a time from the primary** — branches never self-merge in arbitrary order.
 
@@ -2502,6 +2510,47 @@ LEGEND  [A] = architect emits  ·  [CC] = CC self-loads  (per "The two lifelines
 [A]  WHAT NOT TO DO:
 - [explicit anti-patterns for this task]
 ```
+
+### Multi-agent / fan-out prompt checklist (the browser-emitted mandate contract)
+<!-- scope: hybrid -->
+
+The Structure skeleton above is single-session-shaped. A prompt that fans out to more
+than one agent, worktree, or repo (a night-audit run, an ARC-scale multi-leg mandate, a
+parallel-epic dispatch) additionally states these seven items — generalizing HANDOFF_PROCESS
+§14a's EPIC-handoff checklist to any multi-agent mandate, chat-native or generated:
+
+1. FAN-OUT SHAPE — how many agents, at which model tier each (Opus orchestrator / Sonnet
+   / Haiku, or the t-shirt pins), and whether they run parallel or serial.
+2. WORKTREE + BRANCH — the absolute path and branch name for every side-effecting agent
+   (or an explicit "no worktree — tree must be clean" fallback declaration; the #353
+   boot-contract precedent). No agent acts on an undeclared worktree.
+3. READ-ONLY vs WRITE SCOPE — per agent: read-only, or write-scoped to a named
+   file/dir set (the §14a FILE-BOUNDARY shape). Any write that crosses a repo boundary
+   MUST cite the RULING-W path (consumer worktree/branch → report; ADR-36 Amendments) —
+   never an unmediated write into a live consumer checkout.
+4. CODEX LANE — which lane (sol/terra/luna), if any, reviews each leg, named per task,
+   not as a shared risk caveat; note known quota/availability volatility if applicable.
+5. PLAN-MODE BASIS — the MODE (plan / plan-then-auto / auto-accept, per "How to choose
+   Mode") AND its basis, declared per agent/lane — no agent inherits a mode from a prior
+   prompt (§14a item 7, generalized).
+6. DELIVERABLE NAMING + LOCATION — the exact output path(s) each agent must write to and
+   the naming grammar it follows (e.g. the ADR-101 `<date>-<class>-<slug>.md` audit
+   grammar), stated ex-ante, not left to the agent to infer.
+7. CLOSE DISCIPLINE — what "done" looks like for the mandate as a whole: how per-agent
+   outputs get consolidated/integrated (serial merge from primary / operator digest /
+   `/ship`), and the escalation rule (§14a items 5-6: a genuine fork or boundary breach
+   STOPS and returns to the architect — it is never silently absorbed by an agent).
+
+Applies whenever §2 "Decision scope for when to write a formal prompt" already requires a
+formal prompt AND the mandate spans more than one agent/worktree/repo. A single-session,
+single-worktree prompt stays on the existing Structure skeleton unchanged.
+
+**Boundary with Ch8:** WHETHER a parallel *committing session* launches at all is not this
+checklist's question — that is Ch8's four-condition launch test ([#441]). This checklist governs
+the CONTENT of a multi-agent mandate once its shape is chosen; the per-lane ex-ante destination
+declaration it presumes is HANDOFF_PROCESS §13's destination contract (intake #18 A4).
+*(Adopted verbatim from the s7 draft, `docs/audits/2026-07-19-technical-night-s7-prompt-authoring-quality.md` §4,
+at the intake #18 ratification 2026-07-30 — A4 item 1.)*
 
 ### Quick-reference examples
 <!-- scope: hybrid -->

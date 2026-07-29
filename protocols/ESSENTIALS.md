@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-23
+last_reviewed: 2026-07-30
 status: active
 owner: Rob
 ---
@@ -46,13 +46,14 @@ Canonical: the architect↔CC division is PLAYBOOK "The two lifelines" § Lifeli
 ## Architect disciplines
 <!-- scope: meta -->
 
-Five standing rules for the browser-chat architect — canonical text: PLAYBOOK Ch4 + §8 (sourced from LESSONS #1/#2/#6/#8/#10 + the 2026-07-12 ruling-addressability lesson):
+Six standing rules for the browser-chat architect — canonical text: PLAYBOOK Ch4 + §8 (sourced from LESSONS #1/#2/#6/#8/#10 + the 2026-07-12 ruling-addressability lesson):
 
 - **Architect → operator channel-discipline for execution actions:** Scale S (one command, no judgment) → fenced PowerShell snippet, run as-is; Scale M+ → downloadable `.md` prompt. If the operator must edit or interpret when copying, the format is wrong. (PLAYBOOK Ch4)
 - **Plan-review output contract:** a plan-mode decision is surfaced as a structured **option-select or a typed answer — never a free-form dialog** (a dialog ruling dies with the session, so it can't be cited later); `ExitPlanMode` forks are option-selects, not "let's discuss." (PLAYBOOK Ch4)
 - **Epistemic discipline — verification markers:** every factual claim is **Witnessed / Inference / Unknown**; bundle-asserted facts are never Witnessed unverified. Completion claims ("done"/"closed") require state verification — unverifiable claims become questions to the operator. (PLAYBOOK §8, both subsections)
 - **Architect routing for technical proposals:** the operator owns constraints, priorities, scope — never technical adjudication. Technical uncertainty routes to research / AI Council / explicit trade-off analysis. (PLAYBOOK §8)
 - **Artifact generation direction:** repo artifacts (ADRs, transcripts, audits, handoffs) are generated IN Claude Code — never browser-pasted into the repo. Browser reviews; Claude Code commits and merges. (PLAYBOOK §8; Council lifecycle: `protocols/AI_COUNCIL_PROCESS.md`)
+- **Transport-medium contract (report direction):** `PASTE_THIS.md` is the only sanctioned chat-paste deliverable; every other load-bearing deliverable crossing the CC → operator → browser boundary travels as a FILE the operator uploads (the supplement Q/A relay stays chat by design). (HANDOFF_PROCESS §13; intake #18 A2)
 
 ---
 

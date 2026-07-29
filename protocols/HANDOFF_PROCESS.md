@@ -68,9 +68,12 @@ on the **forced read** (§5) to make the receiver actually open the primary sour
 
 ## 4. The thin browser boot
 
-A fresh browser chat boots from **`protocols/HANDOFF_BOOT.md`** — a ~3-line core (identity /
-one meta-rule / first-move) that replaces the heavy multi-file bundle. Everything else is
-pulled just-in-time via CC.
+A fresh browser chat boots from **`protocols/HANDOFF_BOOT.md`** — a compact boot core
+(identity / one meta-rule / first-move) plus the resident browser-role doctrine — resident
+because a CC-held file never transmits to the file-less browser — replacing the heavy
+multi-file bundle. Everything else is pulled just-in-time via CC. (A stated byte budget for
+the boot file, checked by the assembler's existing size machinery, rides the §B(b) build —
+intake #18 A10 item 2, deferred by ruling 2026-07-30.)
 
 **Browser-role delivery (load-bearing).** The browser's operating role (§7) is **resident in
 the boot file**, not left only in this spec (which CC holds and the browser never sees). If
@@ -89,7 +92,7 @@ The boot ends with an on-load acknowledgment line so a partial/missing paste is 
 
 The forced read has **teeth** when its verification **cannot be answered from the compaction
 summary** — the answer exists only in the live primary file/state at answer-time. A probe is
-teeth-bearing when all three hold:
+teeth-bearing when all four hold (the fourth — bounded-deterministic — ratified at intake #18):
 
 1. **Live-only answer** — volatile or high-entropy (a count that drifts, a sha, an exact
    line) that a summary rounds off or omits.
@@ -98,6 +101,10 @@ teeth-bearing when all three hold:
    construction, bluffable — and is rejected.)
 3. **CC-checkable** — CC re-derives the ground truth read-only from disk/git at check-time
    and compares, exactly as the existing validators do.
+4. **Bounded-deterministic** — the verification terminates in bounded mechanical steps at
+   check-time. A probe whose honest answer requires unbounded judgment over an open set is an
+   arc, not a probe, and is rejected (origin: P10, JOURNAL 2026-07-26 (h); LESSONS 2026-07-27
+   S3d).
 
 ### Probe manifest (reuses the existing read-only validators)
 
@@ -212,7 +219,9 @@ back-and-forth" rule, generalized).
 `/handoff` is **self-updating**: it pulls the **current** process + methodology **pointers**
 live at handoff time and carries **no hand-copied** process or methodology. The version/status
 it stamps is read from the live spec header, never hardcoded; the methodology it references is
-a pointer, never a copy. (Command wiring: `.claude/commands/handoff.md`.)
+a pointer, never a copy. (Command wiring: `.claude/commands/handoff.md`.) A ruling-existence
+search that excludes `docs/handoffs/` is unsound — binding rulings also live in handoff
+artifacts until promoted (intake #18 A8).
 
 **Failure handling — degrade loudly.** A probe that can't be answered → **FAIL**, routed
 through the escalation ladder (re-read the named primary source → CC verifies the fact →
@@ -312,9 +321,11 @@ operator-context beat:
   fact. See ADR-66 §Amendments (2026-06-13, ratified 2026-06-14).
 - **(c) Orientation (the vision frame) — a §5 "exact-line quote" probe; a forced-read *tool* that
   establishes the vision, not the navigation gate.** The opening sequence is **role → vision →
-  backlog**: role is set by §4, this layer establishes the vision, and **the backlog (b) is what
-  navigates** — once role and vision are in hand the architect starts from `BACKLOG.md`, not from the
-  orientation read. This is the scope-D fix, delivered the v5 way: **forced read, never a copy,
+  standing topics → backlog**: role is set by §4, this layer establishes the vision, standing
+  topics (the active epic themes + `status: ACCEPTED, disposition: active` intakes) are reconciled
+  next (intake #18 A7 — the P0 probe legs land with the §B(b) build), and **the backlog (b) is what
+  navigates** — once role, vision and standing topics are in hand the architect starts from
+  `BACKLOG.md`, not from the orientation read. This is the scope-D fix, delivered the v5 way: **forced read, never a copy,
   never a paraphrase.**
   - A plain-language "what is this project" answer is **summary-bluffable** and so fails §5's
     own bar (§5: *a probe answerable from the compaction summary is removed or hardened*).
@@ -382,8 +393,12 @@ execution mode are unchanged.**
 folds it if answered):**
 
 1. On `/handoff … architect`, CC writes `docs/handoffs/<slug>/SUPPLEMENT.md` **unconditionally** from
-   `templates/handoff/v5/SUPPLEMENT.md.tmpl` — the fixed 6-question *why*-only schema below (CC MAY
-   append 1–2 session-specific items it observed as `A./B.` addenda; it adds nothing else). The file
+   `templates/handoff/v5/SUPPLEMENT.md.tmpl` — the fixed 7-question *why*-only schema below (CC MAY
+   append 1–2 session-specific items it observed as `A./B.` addenda; it adds nothing else). Question
+   7 (the ratified-in-chat register, intake #18 A6) is **capture-only** — an answer there is
+   transcription DEBT surfaced at the boundary, not canon; recording happens in the next session
+   (the recording-batch pattern, cf. `833e7f6b`), and the answer is advisory like every supplement
+   answer (never trusted over the repo). The file
    is self-documenting: an operator 3-step header, a **QUESTIONS** section for the **outgoing**
    architect chat, and an empty **ANSWERS** section below a divider line.
 2. CC commits the file (empty at first) **on the handoff branch** — so the artifact exists and is
@@ -424,6 +439,10 @@ generator carries it unchanged):
 5. **Decomposition rationale** — why this task-graph shape; what the next session must NOT redo or
    re-decide.
 6. **Off-repo context** — intent / priorities / changed decisions / findings not in the repo.
+7. **Ratified-in-chat register** — terms, rulings, or contracts ratified in this window's chats
+   that are NOT yet recorded in the repo: the verbatim term · a one-line definition · its
+   intended durable home (BACKLOG id / ADR / LESSONS / PLAYBOOK §). "None" is a valid answer
+   (capture-only, per the schema note above — intake #18 A6).
 
 **Hard scope constraint (load-bearing — this is what keeps the supplement from becoming the v4
 disease).** The interview asks **only** the *why* above. It **never** elicits repo state, methodology,
@@ -474,6 +493,13 @@ Mode is carried by `/handoff … v5 <architect|execution>` (§10 self-updating; 
 `execution`; mode applies only in v5 mode — v4.4 has no modes). Command wiring:
 `.claude/commands/handoff.md`.
 
+**Destination contract (intake #18 A4).** Every brief or prompt that opens a lane declares its
+destination ex-ante: worktree name · branch (in a sanctioned lane shape, §4 grammar) ·
+write-scope · execution MODE with basis — the §14a items 3/4/7 shape generalized beyond epic
+lanes. A lane inherits none of these from a prior prompt. (The boot-header `Destination` row +
+its P3 comparison leg ride the §B(b) build; the multi-agent mandate-content checklist is
+PLAYBOOK §2's.)
+
 **Bundle shape (no per-bundle README — one canonical runbook).** A v5 bundle carries **four**
 files — `HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md` + `PASTE_THIS.md` — and **no README**.
 The stable operator boilerplate (who-each-file-is-for · the same-name role-file/bundle-pointer
@@ -487,6 +513,14 @@ repos of the same handoff version: the #164 generator seeds/updates each repo's
 `docs/handoffs/README.md` idempotently from one source (`templates/handoff/v5/README.md.tmpl`, a
 deferred stub until #164 lands) and emits the four-file bundle — never a per-bundle README.
 
+**PLAN.md, the D3 four-state artifact (intake #18 A9).** An architect bundle MAY carry `PLAN.md` —
+the session plan, CC-authored, never pasted. Its lifecycle is **DRAFT → REVIEWED → APPROVED →
+CLOSED(outcomes)** (intake #17 D3, operator-ruled): review SLA one working day at DRAFT, then
+cold-review fires; deviations split — scope changes require a mid-session operator ruling
+(strict), order/mechanics changes require only an OUTCOMES entry with rationale (loose). The
+generator/RETROSPECTIVE build stays [#301] (peg #298); the runbook's PLAN row reconciles to
+"optional (D3 states)" at its owner's next freshness window.
+
 **`PASTE_THIS.md` convention.** Assembled by `scripts/assemble_paste.py <bundle_dir>` at handoff
 generation time; **never hand-edited**. Regenerate each handoff by re-running the assembler.
 Manifest in order: (0) bundle `HANDOFF_BOOT.md` session-header block (slug/mode/purpose/generated-at,
@@ -498,6 +532,14 @@ extracted up to the first `## ` heading — optional; skipped if the bundle carr
 `=== <label> ===` headers. P1 orienting answers are **not** embedded — they are obtained only via
 the CC run loop (the teeth of the probe mechanism). The operator pastes `PASTE_THIS.md` as the
 single file; the browser receives the complete role + residual + probes + supplement in one shot.
+
+**Transport-medium contract (intake #18 A2).** `PASTE_THIS.md` is the ONLY sanctioned chat-paste
+DELIVERABLE. Every other load-bearing deliverable crossing the CC → operator → browser boundary
+(a report, review, aggregate, plan) travels as a FILE the operator uploads, never as chat-paste —
+the report-direction sibling of the ESSENTIALS Scale-M+ rule. CC states the transport at emission
+time ("this travels as a file"). **Carve-out (unchanged §13 workflow):** the supplement interview
+exchange — QUESTIONS copied into the outgoing chat, ANSWERS pasted back — is a conversational
+relay, not a deliverable, and stays chat-paste by design.
 
 ---
 
@@ -522,12 +564,15 @@ A scope-contract, generated per epic at lane spawn. Carries:
    absolute-path-bypasses-worktree lesson is a hard rule).
 4. **FILE-BOUNDARY** — the explicit file/dir set the lane may touch. This is the parallelism
    ruling made mechanical — two concurrent epics MUST have disjoint boundaries; a needed file
-   outside the boundary = **escalate, don't touch**.
+   outside the boundary = **escalate, don't touch**. A boundary spanning into another repo is
+   RULING-W territory (hub→consumer writes: consumer worktree/branch → report, never a direct
+   push into a live checkout — PLAYBOOK §8).
 5. **Escalation rules** — ADR-worthy fork, boundary-breach need, cross-epic dependency
    discovered → STOP, return to the architect. Everything intra-epic is the lane's own
    judgment.
 6. **Refusals** — no merge to main, no ADRs, no backlog structure, no worktree lifecycle ops,
-   no new top-level folders, no content deletion without operator ask.
+   no new top-level folders (the ADR-101 two-tier new-path rule), no cross-repo writes outside
+   the RULING-W shape, no content deletion without operator ask.
 7. **Execution MODE** — the lane's execution mode, declared ex-ante by the root
    (plan / plan-then-auto / auto-accept) with its basis. **L-sized epic stories default
    plan-first**, and **every architect prompt into the lane re-declares MODE** — a lane
@@ -549,7 +594,8 @@ The lane's closing report, **required before any merge**:
    main merges performed, JOURNAL entry on branch names session SHAs.
 
 The architect then: reviews the return vs the contract → serial merge `--no-ff` → applies the
-backlog delta → declares closure → teardown (worktree remove + prune + branch -d + orphan
+backlog delta, applied per the queue's shape (`tasks/` edit + regen on a flipped host) →
+declares closure → teardown (worktree remove + prune + branch -d + orphan
 check). **The loop closes at the root, always.**
 
 **Generator.** `templates/handoff/epic/{EPIC_BOOT,EPIC_RETURN}.md.tmpl`, emitted by
@@ -587,7 +633,7 @@ Notable: [1-2 line signal e.g. "Opus 4.7 adoption curve", "Haiku routing shift"]
 
 **Order convention:**
 - TOKEN-LOG.md: newest-first (prepend). Rationale: logs optimize for current-state scanning. (CHANGELOG.md retired — ADR-49.)
-- LESSONS.md: append-only (oldest-first). Rationale: chronological narrative; order preserves "what we learned when".
+- LESSONS.md: append-only, **newest-first** (new entries at the top of the Entries section, per the file's own header and ADR-29).
 
 New TOKEN-LOG entries go at the top (after file header, before previous newest entry). /session-summary reads the first matching `## YYYY-MM-DD` header for the staleness check.
 

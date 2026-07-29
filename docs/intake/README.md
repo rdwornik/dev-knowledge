@@ -28,22 +28,22 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#9](2026-07-08-func-dashboards-local-html.md) — Dashboards as local HTML — the Tier-4 human surface opens in VS Code, not the cloud
 - [#19](2026-07-27-func-operator-design-input-night-shift-handoff-reform.md) — operator design input 2026-07-27 (night shift + handoff reform), relayed via Layer-1 review chat
 
-### DRAFT (2)
+### DRAFT (1)
 
 - [#10](2026-07-11-tech-c4-visualization-memo.md) — C4 / Codemap Visualization — Architect Research Memo
-- [#18](2026-07-27-tech-handoff-process-v6-proposal.md) — HANDOFF_PROCESS v6 — amendment proposal pack (PROPOSED)
 
 ### READY (1)
 
 - [#15](2026-07-16-satellite-onboarding-prompts.md) — Satellite onboarding prompts — ready to fire (four consumers)
 
-### ACCEPTED (6)
+### ACCEPTED (7)
 
 - [#12](2026-07-11-tech-ownership-manifest.md) — Fleet Ownership Manifest (SETTLED) + Nightly Hygiene Decision Tree
 - [#13](2026-07-11-tech-plan-of-record-fleet-hygiene.md) — Plan-of-record — Fleet Hygiene System build (post 2026-07-11 session)
 - [#14](2026-07-12-siem-requirements-ruled-pack.md) — SIEM / fleet-observability requirements — RULED consolidation pack (#14)
 - [#16](2026-07-21-func-fleet-north-star.md) — FLEET NORTH STAR — Consolidated Vision & Plan
 - [#17](2026-07-25-tech-consolidation-decision.md) — CONSOLIDATION DECISION v2 — final form
+- [#18](2026-07-27-tech-handoff-process-v6-proposal.md) — HANDOFF_PROCESS v6 — amendment proposal pack (ACCEPTED 2026-07-30)
 - [#20](2026-07-28-north-star-delta-review.md) — North Star delta review — local 2026-07-21 doc vs in-repo intake #16
 <!-- INTAKE-INDEX:END -->
 

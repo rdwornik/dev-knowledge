@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-07-30 (a) — CC (Fable 5): intake #18 ratification applied — A1–A11 ruled + landed, record cut, [#446] filed
+
+**Did:** Applied the intake #18 ratification verdicts TDD-style on `docs/intake18-ratification` ([#435]): Phase-0 witnesses proven RED; checkpoint collected the A1/A2/A3/A6/A8/A9 verdicts; ruled edits landed — U3/A5 letter-allocation convention + [#441] re-cite + the Open-reconciliation deletion (`57e423f0`), A7 §13(c) (`918abec2`), A4 items 1–2 (`58ecb9f1`), A10 + row-13 (`ee9c38aa`), A2 (`e0528cc3`), A9+A6 (`a39f8405`), A3 enum-widened (`a2c98e95`), A1+A8 builds + 6 tests (`3cd4417a`); ratification record + the operator-ruled silent-rule baseline 428→441 (`0102f2ec`); queue advance + intake #18 → ACCEPTED + [#446] filed (`4cf8a83c`); self-induced WARNs cleared (`540acb37`); terra-review fixes — §13 Q7 enumeration + intake #18 ACCEPTED-state reconciliation (`98ba965b`).
+**Result:** all 10 witnesses GREEN; ship-gate carries exactly one finding — the ruled, expected branch-side ratchet raise-rejected vs origin/main, self-healing at merge; suite 1956 passed / 4 triaged (3 = that same expected state, 1 = the pre-existing ai-council fleet-parity WARN, not this diff).
+**Changes:** PLAYBOOK (§2 fan-out checklist, Ch8 allocation convention, Ch4 report-direction sibling, TOC), HANDOFF_PROCESS (§4/§5/§13/§14a-b/§15 — `Version: 5.7` unchanged; v6 CUT, bump rides [#446]), HANDOFF_BOOT (ack + truncation rule), ESSENTIALS (+genuine re-stamp), CLAUDE.md v2.47 + region extract (lockstep), SUPPLEMENT tmpl Q7, `assemble_paste.py` (END sentinel + promotion-debt) + 4 tests, tasks/ + BACKLOG regen, intake #18 frontmatter + index, audits record + index, `silent-rule-baseline.yaml`.
+**Abandoned:** nothing dropped — deferred legs recorded ([#446] carries A7 P0 · A4 item 3 · A10 budget · A11; U6 riders trigger-deferred in the record).
+**Next:** operator merges from primary (the baseline finding self-heals); architect adjudicates [#435] closure vs the session done-contract; the [#446] §B(b) build arc.
+
 ### 2026-07-29 (c) — CC (Opus 5): supplement fold — the outgoing seat's ANSWERS land in the 2026-07-29 architect bundle
 
 **SHA anchor (ADR-85).** `bab9233b` (fold + re-assembly). Branch `docs/fold-supplement-2026-07-29`, base `2f924424`.

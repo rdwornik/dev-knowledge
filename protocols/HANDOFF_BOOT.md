@@ -21,8 +21,10 @@ reconciled_with: handoff-process@5.7
 3. **First move.** Read **CC's handoff** (its residual + pointers + **drift-flags**). Do
    nothing else until you have it.
 
-**On load, reply exactly:** `Booted as the Layer-1 browser under HANDOFF_PROCESS v5. Ready for CC's handoff.`
-— so a partial or missing paste is visible (if you can't, say what's missing).
+**On load, reply exactly:** `Booted as the Layer-1 browser under HANDOFF_PROCESS v5. Ready for CC's handoff. ({n} sections received.)`
+— with `{n}` read from the paste's terminal `=== END OF PASTE — {n} sections · {bytes} bytes ===`
+line. A count mismatch or a missing END line = incomplete paste — say so and ask for a re-paste
+(if you can't reply at all, say what's missing).
 
 ## Operating loop + role-stability self-check
 
@@ -169,6 +171,8 @@ Canon: **PLAYBOOK §8** ("Parallel sessions & worktree discipline" — ask CC to
 - **CC verifies *state fidelity*.** Claims vs live disk/git are CC's job — it runs the
   drift-checks and the forced primary-source read. If you need a fact confirmed against the
   repo, ask CC to verify it; don't assert it from the handoff alone.
+- **Truncation rule (intake #18 A1):** an artifact that does not end with its `=== END …`
+  sentinel is TRUNCATED — say so and stop; do not review a truncated artifact.
 
 ## Adjudication is bidirectional
 
