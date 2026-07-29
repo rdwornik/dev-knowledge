@@ -377,8 +377,9 @@ committed path in the target repo (no behavior change from v1.0).
    `tasks/README.md` on the hub (manifest node out, terminal `status:`,
    `--emit-source`); an unflipped consumer removes the line directly. Done items
    **leave** — there is no "closed" status marker (ADR-65). If the ADR *opens*
-   new follow-up work (almost every architectural decision does), file it as a
-   `tasks/` add carrying `Refs: ADR-NN`.
+   new follow-up work (almost every architectural decision does), file it into the
+   target repo's queue in that repo's shape — a `tasks/` add on the hub, a direct
+   `BACKLOG.md` add on an unflipped consumer — carrying `Refs: ADR-NN`.
 4. **Cross-repo propagation** — if the decision binds multiple repos (e.g.,
    ecosystem-wide convention authored in `.dev-knowledge`), the propagation
    happens via cross-repo routing artifacts, NOT via the originating repo's
@@ -417,7 +418,7 @@ committed path in the target repo (no behavior change from v1.0).
 
 ## Section history
 
-- v2.2 (2026-07-29) — post-flip stale-procedure fix batch (audit `2026-07-29-technical-postflip-stale-procedure-audit.md`, row 11): Stage 6 item 3 no longer says "mark it closed" (not the ADR-65 shape — done items leave, no status marker) and no longer implies a direct `BACKLOG.md` edit; closure now routes through the Tier-1 loop with a `tasks/` retirement on the hub (ADR-107 step 3 / [#439]), and follow-up work is filed as a `tasks/` add. Genuine end-to-end re-read; `last_reviewed` re-stamped 2026-07-29.
+- v2.2 (2026-07-29) — post-flip stale-procedure fix batch (audit `2026-07-29-technical-postflip-stale-procedure-audit.md`, row 11): Stage 6 item 3 no longer says "mark it closed" (not the ADR-65 shape — done items leave, no status marker) and no longer implies a direct `BACKLOG.md` edit; closure now routes through the Tier-1 loop with a `tasks/` retirement on the hub (ADR-107 step 3 / [#439]), and follow-up work is filed into the target repo's queue in that repo's shape (terra H1). Genuine end-to-end re-read; `last_reviewed` re-stamped 2026-07-29.
 - v2.1 (2026-07-23) — ADR-43 amendment (routed-mirror RETIRED; operator ruling 2026-07-22, hub zone deleted `b4435fad`): Purpose/Stage 3 gate/Stage 4 landing/Stage 5 step 3/frontmatter table/template example/troubleshooting/Cross-references all repointed — transcripts are canonical-only in `ai-council/output/`; `target-project:` not to be set; config disarm tracked [#401]. Re-read fixes: synthesizer default gemini→openai (2026-07-18 operator ruling), ADR-94 status-line exception added to Stage 5 item 5.
 - v2.0 (2026-06-01) — ADR-67: added Gated loop overview (6 steps, cross-domain split table, stage mapping); Stage 1 updated to `/council-question` trigger (template+gate downstream); Stage 1a Gate inserted; Stage 5 Deterministic return subsection added; Cross-references updated.
 - v1.0 (2026-05-28) — initial. Companion to ARCHITECTURE.md C3 "AI Council debate pipeline" diagram. Closes BACKLOG "AI Council Flow operationalization — lifecycle runbook" (open since 2026-05-27).

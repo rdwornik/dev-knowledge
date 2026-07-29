@@ -211,7 +211,7 @@ When starting any new Claude Code session in `.dev-knowledge` (per ADR-41):
 
 1. Read `.dev-knowledge/BACKLOG.md`
 2. Note relevant items for current work
-3. After session, file new items (a `tasks/` add on the hub, since `BACKLOG.md` is generated there) or close via the Tier-1 closure loop — per-handoff grooming (PLAYBOOK §10). Done items **leave**; there is no status field to update (ADR-65)
+3. After session, file new items (a `tasks/` add on the hub, since `BACKLOG.md` is generated there) or close via the Tier-1 closure loop — per-handoff grooming (PLAYBOOK §10). Done items **leave** the queue: there is no `done` marker to set in it (ADR-65); a hub retirement instead sets a terminal `status:` on the retained `tasks/` record
 
 When starting a browser-2 session that consumes a handoff:
 - `05_NOW.md` references BACKLOG entry IDs for in-progress / deferred items
