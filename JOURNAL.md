@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-29 (c) — CC (Opus 5): supplement fold — the outgoing seat's ANSWERS land in the 2026-07-29 architect bundle
+
+**SHA anchor (ADR-85).** `bab9233b` (fold + re-assembly). Branch `docs/fold-supplement-2026-07-29`, base `2f924424`.
+
+**Did.** Pasted the outgoing browser seat's six ANSWERS verbatim below the supplement divider — byte-exact, the source's own line breaks kept, no rewording — and re-assembled `PASTE_THIS.md` per the fold procedure. Verified byte-identity mechanically rather than by eye: the ANSWERS region extracted with the assembler's own marker regex (53 lines / 4026 chars) is present in `PASTE_THIS.md` as an exact substring, non-ASCII intact. `verify_handoff_probes` 11/11 pass.
+
+**Result.** `reflow_framing` flipped the cold framing to FILLED in `HANDOFF_BOOT.md`, `RESIDUAL.md` and `PROBES.md`, so the §13(d) operator-context beat **NARROWS** ("anything changed since the supplement was written?") instead of firing full. Swept the bundle for surviving cold-framing prose per the known reflow limit (it covers generator sites only): the single remaining mention is the canonical `protocols/HANDOFF_BOOT.md` rule text, which is conditional and correct in **both** states — not a per-bundle claim, so nothing to fix. **Corrects entry (b) above:** its closing line "SUPPLEMENT.md committed empty (cold handoff), so the §13(d) beat fires full" was true when written and is now superseded by this fold — recorded here rather than edited there (JOURNAL is append-only).
+
+**Changes:** `docs/handoffs/2026-07-29-dev-knowledge-architect/{SUPPLEMENT,PASTE_THIS,HANDOFF_BOOT,RESIDUAL,PROBES}.md`, `JOURNAL.md`.
+
+**Next.** Unchanged from (b): the 2026-07-30 W-D intake-#18 session boots from this bundle, now carrying the outgoing seat's strategic why — the era framing, the five weighed tensions, the six do-not-relitigate rejections, and Q6's escalation calibration.
+
+---
+
 ### 2026-07-29 (b) — CC (Opus 5): window wind-down — three rulings recorded, [#441] adopted, H2 fixed, [#445] filed, bundle cut
 
 **SHA anchor (ADR-85).** `99aceb54` (rulings + H2 + [#445]) · `52e26496` (`.vscode` ruling record) · `9cd22d7d` (handoff bundle). Branch `docs/window-winddown-2026-07-29`, base `3205db7b`.
