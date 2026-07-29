@@ -18,12 +18,20 @@
 # commensurable; the check refuses to compare them rather than silently reporting drift.
 
 detector_id: silent-rule-v4
-baseline: 428
-measured_at: 2026-07-27
-measured_at_sha: 527958fbf89311610bd3be65fbfcb77df1f5fe29
+baseline: 441
+measured_at: 2026-07-30
+measured_at_sha: 3cd4417a
 measured_files: 56
 
 provenance: |
+  RAISE 428 -> 441, operator-RULED 2026-07-30 (the intake #18 ratification arc, [#435]):
+  the ruled-verbatim adopted texts (A4 checklist, A2/A9/A6/A10 staged paragraphs, U3
+  statement, A3 template extract) add exactly +14 normative-token occurrences over the
+  pre-arc live 427; line-by-line attribution + the ruling's four conditions:
+  docs/audits/2026-07-30-technical-intake18-ratification-record.md ("Silent-rule ratchet"
+  section). Until that arc merges, the branch-side check reads raise-rejected vs
+  origin/main (428) -- expected, self-healing at merge.
+  Prior baseline: 428 @ 2026-07-27 (sha 527958fbf89311610bd3be65fbfcb77df1f5fe29).
   Baseline semantics: detector-measured at arm time. Architect-proposed 2026-07-27,
   operator-adopted (D4), subject to revision after live testing. Historical ruling
   reference: 176 @ 2026-07-26; floor >= 179 per
