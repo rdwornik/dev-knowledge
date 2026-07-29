@@ -96,7 +96,7 @@ sanctioned_divergences:
       shared editor config) -- SHORT shelf-life deliberately set so the declaration
       forces the e1 revisit; note both consumers began tracking .vscode on
       2026-07-12, so the real question is now fleet-template membership.
-    review_date: 2026-08-13
+    review_date: 2026-08-26
   - component: .claude-plugin
     reason: >-
       .claude-plugin/ is the tier1-lifecycle plugin MARKETPLACE root (the source the

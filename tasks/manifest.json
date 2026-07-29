@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "f90365a3ff10145cb5b3d6bf8d11639ca8c70f01cad6e4f05fc69398b853884a",
+  "generated_sha256": "1d2ecc7ccfc5f0c4d3853ba62c9906b254cbc661716ccbc9a3450755c155dbf8",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -108,6 +108,10 @@
     {
       "task": 446,
       "file": "446-section-b-b-one-round-trip-boot-build-the-v6-ca.md"
+    },
+    {
+      "task": 447,
+      "file": "447-ratchet-raise-local-hook-bootstrap-deadlock.md"
     },
     {
       "task": 422,
