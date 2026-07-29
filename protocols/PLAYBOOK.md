@@ -1307,7 +1307,7 @@ carried unratified through that merge; ruled ADOPTED at the following morning's 
 is live doctrine. It **replaces** the prior three-check "0 — Decide: should I parallelize?" launch test
 so the corpus carries one launch test (the mapping is recorded below). Ruling evidence: the shipped
 2026-07-28 window cited under *Evidence*, plus the operator's live endorsement of the fat-prompt
-default across the 2026-07-28→29 window itself. One item stays open — see *Open reconciliation* below.
+default across the 2026-07-28→29 window itself. One item was resolved at the intake #18 ratification (2026-07-30) — condition 2 now cites the §8 allocation convention.
 
 **The default (operator + outgoing-seat ruling 2026-07-28):** one strong, self-contained
 prompt on the **primary** checkout. Parallelism lives **inside** the session — the
@@ -1325,7 +1325,8 @@ FOUR are YES:**
 2. **Zero shared gate-forced surfaces — or a contract pre-resolves them?** Surfaces a
    gate forces both lanes through (JOURNAL entries, BACKLOG/`tasks/` rows + regen,
    generated indexes) either aren't shared, or a written contract pre-resolves the
-   contention (pre-allocated JOURNAL letters, disjoint rows, a named `tasks/` regen
+   contention (a dispatch-pre-assigned JOURNAL-letter contract (per the §8 allocation
+   convention), disjoint rows, a named `tasks/` regen
    owner). Two lanes editing the *same substantive file* is always a NO.
 3. **Wall-clock matters?** Real calendar pressure that serial execution would miss —
    parallelism for its own sake is not a reason.
@@ -1348,12 +1349,6 @@ shared-surface handling, provisioning, seeding, integration authority, teardown)
 **HOW** a sanctioned parallel session runs; this block alone governs **WHETHER** one
 launches.
 
-*Open reconciliation (flagged for the intake #18 ratification, 2026-07-30):* condition 2's
-"pre-allocated JOURNAL letters" example is the row's verbatim wording; intake #18 A5 rules
-the opposite mechanism (lanes do not allocate — letters assigned at integration). One of the
-two yields at ratification; see the dossier
-`docs/audits/2026-07-29-technical-intake18-ratification-dossier.md` (pack-level finding 2).
-
 **Canonical safe pair: one code item ∥ one doc item.** Disjoint files by construction. Review
 contention is at most one-sided: the **doc** stream never needs Codex; only the **code** stream
 *might* — and only if it trips the Codex bar (3+ files or safety-critical, per ADR-54). Reach for
@@ -1369,6 +1364,11 @@ this shape first.
 - **JOURNAL: the conflict is trivial.** Each branch prepends its own newest-first entry; a merge
   conflict is just two top-of-file prepends — resolve by keeping both in timestamp order. JOURNAL
   is therefore not a real serialization blocker.
+  **The letter-allocation convention (intake #18 A5/U3, ratified 2026-07-30):** JOURNAL letters
+  are assigned **at integration**, by the primary's single writer — **lanes never allocate.** One
+  scoped exception: inside a sanctioned worktree pair (the Ch8 four-condition test passed), the
+  dispatch MAY pre-assign letters as its condition-2 contention contract; absent that written
+  dispatch contract, assign-at-integration governs.
 - **Operator is the serial gate.** Parallel branches return to the operator, who `/ship`s them **one
   at a time from the primary** — branches never self-merge in arbitrary order.
 
