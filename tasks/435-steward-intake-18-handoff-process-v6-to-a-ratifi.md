@@ -1,7 +1,7 @@
 ---
 id: "[#435]"
 title: "Steward intake #18 (handoff-process v6) to a ratification decision"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E1] Handoff continuity"

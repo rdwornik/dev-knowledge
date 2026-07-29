@@ -191,6 +191,23 @@ dispositions:
       Derived surface: the generated intake index renders the v6-proposal entry's title, so it
       inherits the edge from a not-yet-coupled proposal. A GENERATED file cannot carry a
       hand-authored `reconciled_with`; it clears when the underlying intake edge does.
+  - id: warn-undeclared-intake-orientation-handoff-process
+    organ: undeclared_edges
+    match: "docs/intake/2026-07-30-tech-browser-architect-orientation.md -> handoff-process"
+    ref: "#241"
+    review_date: 2026-08-26
+    reason: >-
+      A dated ORIENTATION SNAPSHOT is definitionally not coupled to a spec version. Intake 21
+      records what the outgoing browser seat held in its head on 2026-07-30 — it names §B(b), the
+      v6 cut and the §5 anti-bluff contract as *state of the world at that date*, and its own
+      delta table exists precisely because that state moves out from under it. Declaring
+      `reconciled_with` would assert a version-coupling the doc is designed NOT to have, and would
+      demand a re-stamp on every future spec bump of an artifact whose whole value is being a
+      fixed point in time. Same defer-don't-blanket-declare shape as the #241 family, keyed on the
+      specific "<doc> -> handoff-process" pair per the precision-over-recall discipline. Its
+      shelf-life is deliberate rather than self-clearing: unlike the proposal rows, this edge does
+      not resolve on ratification, so 2026-08-26 reviews whether a CONSUMED/archived orientation
+      snapshot should keep a live disposition at all.
 
   # ---- BACKLOG history-accretion bloat, ruled by grooming leg-c (2026-07-08) ----
   # The 2026-07-07 census-triage arc pushed three tasks past the doc_rot accretion threshold.

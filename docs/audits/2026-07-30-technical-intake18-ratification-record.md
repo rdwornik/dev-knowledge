@@ -79,3 +79,40 @@ self-healing at merge** (previous == value on `main` afterwards), reported, not 
 - Intake #18 frontmatter flipped DRAFT → ACCEPTED (`decided-by`: this session; `disposition:
   active` — consumer: the [#446] §B(b) build). Intake #19 stays SEED (only its §B(b) *direction*
   was ruled; this record carries it).
+
+---
+
+## Amendments (2026-07-30)
+
+> **In-file amendment marker** per CLAUDE.md §5 rule 3 ("supersede with a new file **or an in-file
+> amendment marker**"). The decision content above is **byte-untouched** — nothing in the verdict
+> ledger or the riders section was edited. This section records two later operator acts against
+> items this record left OPEN, so the register stays in its one convention home.
+
+**1. A3 sibling ruling — OPEN → EXECUTED.** The A3 row recorded the
+`~/.claude/rules/core-invariants.md` #5 sibling edit as an OPEN operator ruling (global infra,
+core-invariant #6; trigger: the operator's explicit go). **The go was given 2026-07-30** and the
+edit is executed. One line, no other global-infra change:
+
+- **old:** ``EVERY change — including one-line doc edits — goes branch → merge `--no-ff`; never commit direct to `main`. Branches off `main`: `feat/ fix/ docs/ chore/`.``
+- **new:** the same sentence, with `feat/ fix/ docs/ chore/` qualified as author-chosen ("these four only") and the **three machine-produced lane prefixes** added — `worktree-<name>`, `epic/<slug>`, `claude/<slug>` — plus the ratified class rule: lane branches are never self-merged and never author-invented, and a new machine-produced lane prefix enters the enum only via a recorded ruling (never silently), the enum staying the checkable surface.
+
+This mirrors the ratified A3 text already carried by the hub `CLAUDE.md` §4
+`conventions-commit-branch` region and its byte-matched
+`templates/claude-regions/conventions-commit-branch.md` extract (v2.47). The global file is
+off-repo and untracked, so its evidence is this record plus the arc's JOURNAL entry; the repo-side
+surfaces are unchanged by it.
+
+**2. U6(b) standing closure delegation — NOT ADOPTED.** The riders section recorded U6(b)
+(standing closure delegation, an ADR-70 amendment) as DEFERRED with trigger "the next
+`/review-closures` batch, operator's call". **That batch arrived 2026-07-30 and the operator
+declined the standing delegation.** Closures remain **per-batch operator words**: each closure
+batch is approved explicitly and is scoped to the batch presented. The trigger is therefore
+**spent and reset**, not still pending — it is not re-fired by the next `/review-closures` run,
+and no task row is filed (the U6 riders are record-file only, per confirmation 5).
+
+The batch that carried this ruling closed exactly one row — **[#435]**, the single typed id —
+with every other presented candidate ruled STAYS-OPEN and [#433] not re-adjudicated.
+
+**Rider U6(a) is unaffected** and stays DEFERRED with its original trigger (the next night-batch
+request).
