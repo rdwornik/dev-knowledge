@@ -31,6 +31,27 @@ _SECTION_SEP = "\n\n---\n\n"
 # bundle. A WARN, not a gate — assembly still succeeds. Tunable.
 _SIZE_WARN_BYTES = 65_000
 
+# Intake #18 A8: ruling-bearing markers in a folded ANSWERS region. A ruling stranded in a
+# consumed transient is promotion debt (BW-h) — surfaced at the exact beat the transient is
+# consumed. Advisory only; never blocks the fold.
+_PROMOTION_DEBT_RE = re.compile(r"(?i)\b(?:BINDING|do not relitigate|MUST NOT|ruling)\b")
+
+
+def _report_promotion_debt(answers: str) -> None:
+    """Print the PROMOTION DEBT block for ruling-bearing ANSWERS lines (intake #18 A8).
+
+    Each matched line is echoed verbatim with the ADR-87-item-7 ladder prompt. Stdout/stderr
+    advisory only — assembly always proceeds.
+    """
+    hits = [ln.strip() for ln in answers.splitlines() if _PROMOTION_DEBT_RE.search(ln)]
+    if not hits:
+        return
+    click.echo(f"[promotion-debt] {len(hits)} ruling-bearing line(s) in the folded ANSWERS — "
+               "durable home: ADR / PLAYBOOK / ESSENTIALS one-liner / carrier? (intake #18 A8)",
+               err=True)
+    for ln in hits:
+        click.echo(f"  | {ln}", err=True)
+
 
 def _extract_session_header(text: str) -> str:
     """Return the session-header block from a bundle HANDOFF_BOOT.md.
@@ -140,6 +161,7 @@ def main(bundle_dir: Path) -> None:
         answers = _extract_answers(supplement.read_text(encoding="utf-8"))
         if answers:
             sections.append(("SUPPLEMENT.md", answers))
+            _report_promotion_debt(answers)
         else:
             click.echo(
                 "[skip] SUPPLEMENT.md present but ANSWERS empty (cold handoff or "
@@ -153,6 +175,13 @@ def main(bundle_dir: Path) -> None:
         click.echo("[skip] SUPPLEMENT.md not found — no supplement section", err=True)
 
     body = _SECTION_SEP.join(f"=== {label} ===\n\n{content}" for label, content in sections)
+    # Terminal END sentinel (intake #18 A1): makes paste truncation VISIBLE to the browser —
+    # a paste not ending in this line is partial (BW-a). n counts the sections actually
+    # folded (the sentinel is not a section); bytes measure the body BEFORE the sentinel so
+    # the value is deterministic, never self-referential.
+    content_bytes = len(body.encode("utf-8"))
+    body = (body + _SECTION_SEP
+            + f"=== END OF PASTE — {len(sections)} sections · {content_bytes} bytes ===")
     paste_path = bundle_dir / "PASTE_THIS.md"
     paste_path.write_text(body + "\n", encoding="utf-8", newline="\n")
     size = len(body.encode("utf-8"))

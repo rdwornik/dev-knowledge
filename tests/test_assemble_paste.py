@@ -102,10 +102,12 @@ def _run(script: Path, bundle: Path) -> subprocess.CompletedProcess[str]:
 
 
 def _labels(paste: str) -> list[str]:
+    # The terminal END sentinel (intake #18 A1) is not a section — excluded here; its own
+    # tests assert it directly.
     return [
         line.removeprefix("=== ").removesuffix(" ===")
         for line in paste.splitlines()
-        if line.startswith("=== ")
+        if line.startswith("=== ") and not line.startswith("=== END OF PASTE")
     ]
 
 
@@ -134,7 +136,8 @@ def test_all_sections_in_order(tmp_path: Path) -> None:
         "SUPPLEMENT.md",
     ], f"Unexpected section order: {_labels(paste)}"
 
-    assert paste.count("\n\n---\n\n") == 4
+    # 4 between the 5 sections + 1 before the END sentinel (intake #18 A1)
+    assert paste.count("\n\n---\n\n") == 5
 
 
 # ------------------------------------------------------------------ #
@@ -395,3 +398,74 @@ def test_oversized_paste_emits_size_warn(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr   # WARN, never a gate
     assert "[warn]" in result.stderr
     assert "heavy boot" in result.stderr
+
+
+# ------------------------------------------------------------------ #
+# Test 15: END sentinel (intake #18 A1) — terminal, correct count + bytes
+# ------------------------------------------------------------------ #
+
+def test_end_sentinel_terminal_with_count_and_bytes(tmp_path: Path) -> None:
+    """PASTE_THIS.md ends with `=== END OF PASTE — {n} sections · {b} bytes ===` where n is
+    the folded-section count and b measures the body BEFORE the sentinel (deterministic,
+    never self-referential). A paste not ending in this line is visibly truncated (BW-a)."""
+    import re as _re
+
+    bundle, script = _make_bundle(tmp_path)
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    last_line = paste.rstrip("\n").splitlines()[-1]
+    m = _re.fullmatch(r"=== END OF PASTE — (\d+) sections · (\d+) bytes ===", last_line)
+    assert m, f"terminal line is not the END sentinel: {last_line!r}"
+    assert int(m.group(1)) == len(_labels(paste)), "sentinel count != folded sections"
+    body_before = paste.rstrip("\n").rsplit("\n\n---\n\n", 1)[0]
+    assert int(m.group(2)) == len(body_before.encode("utf-8")), "sentinel bytes drifted"
+
+
+# ------------------------------------------------------------------ #
+# Test 16: END sentinel excluded from the section count it reports
+# ------------------------------------------------------------------ #
+
+def test_end_sentinel_not_a_section(tmp_path: Path) -> None:
+    """The sentinel reports 4 sections on a supplement-less bundle — it never counts itself."""
+    bundle, script = _make_bundle(tmp_path, with_supplement=False)
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    assert "=== END OF PASTE — 4 sections" in paste
+
+
+# ------------------------------------------------------------------ #
+# Test 17: PROMOTION DEBT block (intake #18 A8) — advisory, verbatim lines
+# ------------------------------------------------------------------ #
+
+def test_promotion_debt_block_on_ruling_bearing_answers(tmp_path: Path) -> None:
+    """A folded ANSWERS region carrying ruling markers prints the [promotion-debt] block
+    (matched lines verbatim + the ladder prompt) and NEVER blocks the fold."""
+    answers = (
+        "General context line.\n"
+        "BINDING: letters are assigned at integration.\n"
+        "Do not relitigate the v6 label.\n"
+    )
+    bundle, script = _make_bundle(tmp_path, mode="architect", supplement_answers=answers)
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr           # advisory, never a gate
+    assert "[promotion-debt] 2 ruling-bearing line(s)" in result.stderr
+    assert "BINDING: letters are assigned at integration." in result.stderr
+    assert "Do not relitigate the v6 label." in result.stderr
+    assert "durable home: ADR / PLAYBOOK / ESSENTIALS one-liner / carrier?" in result.stderr
+
+
+# ------------------------------------------------------------------ #
+# Test 18: No PROMOTION DEBT block on marker-free answers
+# ------------------------------------------------------------------ #
+
+def test_no_promotion_debt_block_without_markers(tmp_path: Path) -> None:
+    """Marker-free ANSWERS fold silently — no [promotion-debt] noise on a normal handoff."""
+    bundle, script = _make_bundle(
+        tmp_path, mode="architect", supplement_answers="Plain strategic context only."
+    )
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    assert "[promotion-debt]" not in result.stderr

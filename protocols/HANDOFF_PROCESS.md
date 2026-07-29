@@ -219,7 +219,9 @@ back-and-forth" rule, generalized).
 `/handoff` is **self-updating**: it pulls the **current** process + methodology **pointers**
 live at handoff time and carries **no hand-copied** process or methodology. The version/status
 it stamps is read from the live spec header, never hardcoded; the methodology it references is
-a pointer, never a copy. (Command wiring: `.claude/commands/handoff.md`.)
+a pointer, never a copy. (Command wiring: `.claude/commands/handoff.md`.) A ruling-existence
+search that excludes `docs/handoffs/` is unsound — binding rulings also live in handoff
+artifacts until promoted (intake #18 A8).
 
 **Failure handling — degrade loudly.** A probe that can't be answered → **FAIL**, routed
 through the escalation ladder (re-read the named primary source → CC verifies the fact →

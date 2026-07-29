@@ -679,6 +679,11 @@ The browser-chat architect never writes git commands, shell sequences, or execut
 
 **Test:** if the operator has to edit, paraphrase, or interpret anything when copying, the format is wrong.
 
+**Report-direction sibling (intake #18 A1):** any load-bearing CC→browser report longer than one
+screen ends with `=== END — {k} sections ===` — the truncation-visibility mechanism of the paste
+END sentinel (HANDOFF_PROCESS §13), applied in the report direction; a report without its END
+line is truncated, and the reader says so and stops.
+
 Sourced from LESSONS #10 (2026-05-13). Architect-side enforcement is operator-review; mechanical enforcement on executor side via the Claude Code harness.
 
 ### Pre-send checklist
