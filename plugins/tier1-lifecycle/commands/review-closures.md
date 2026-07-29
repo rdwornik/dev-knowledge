@@ -20,8 +20,10 @@ Run them exactly as written below (with the `${CLAUDE_PLUGIN_ROOT}` prefix).
 - The gate (`review_closures.py plan`) re-verifies every approved id
   (currently open; STRONG evidence commit still exists) — trust its verdict over
   the proposals file, which may be stale.
-- You perform the BACKLOG edit (the script is read-only); use the **exact** `line`
-  the gate returns as the Edit `old_string` so the removal is exact-match.
+- You perform the closure edit (the script is read-only) — on an unflipped host the
+  exact-line `BACKLOG.md` Edit (use the gate's **exact** `line` as the Edit
+  `old_string` so the removal is exact-match); on a flipped host the step-4(b)
+  `tasks/` retirement.
 
 ## Steps
 
@@ -87,5 +89,5 @@ Run them exactly as written below (with the `${CLAUDE_PLUGIN_ROOT}` prefix).
 
 6. **Report:** closed (with evidence), skipped (with reason), untouched/unapproved.
 
-**Never** close an unapproved id, never bulk-approve WEAK, never edit BACKLOG
-without the gate's `close` verdict + exact line.
+**Never** close an unapproved id, never bulk-approve WEAK, never execute a closure
+without the gate's `close` verdict (on an unflipped host, its exact line).

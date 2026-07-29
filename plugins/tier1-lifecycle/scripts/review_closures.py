@@ -20,9 +20,10 @@ Safety contract (the first contract-driven backlog mutation):
   - Re-verify at plan time (proposals may be stale): an approved id must be
     CURRENTLY open in BACKLOG; a STRONG id must ALSO still have a live evidence
     commit. Fail re-verify -> skip + report, never close.
-  - Emits the exact verbatim task line so the agent's removal Edit is exact-match
-    (the Edit tool fails on any mismatch — a third safety net after human approval
-    and re-verify; the `backlog-id-on-close` commit-msg hook is a fourth).
+  - Emits the exact verbatim task line so the agent's removal Edit (unflipped host)
+    is exact-match (the Edit tool fails on any mismatch — a third safety net after
+    human approval and re-verify; the `backlog-id-on-close` commit-msg hook is a
+    fourth); flipped hosts use it to identify the task to retire.
 """
 
 from __future__ import annotations

@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-07-28
+> Last updated: 2026-07-29
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -1351,10 +1351,12 @@ contention is at most one-sided: the **doc** stream never needs Codex; only the 
 this shape first.
 
 **Shared canonical files are handled, not parallelized** (refines §3's serialize rule):
-- **BACKLOG: removal travels the closure loop, not the branch.** Don't have each branch delete its
-  own task line; leave the removal to the Tier-1 closure loop (`/review-closures`) after merge, so
-  two branches never contend on the same deletion. The edits §3 serializes are BACKLOG **adds /
-  grooming** (and id allocation at write-time) — not removals.
+- **BACKLOG: removal travels the closure loop, not the branch.** Don't have each branch retire its
+  own row; leave the removal to the Tier-1 closure loop (`/review-closures`) after merge, so two
+  branches never contend on the same deletion — on the hub that removal is a `tasks/` retirement
+  (manifest node out + regen), on an unflipped consumer the direct line removal. The edits §3
+  serializes are queue **adds / grooming** (and id allocation at write-time) — in `tasks/` on the
+  hub — not removals.
 - **JOURNAL: the conflict is trivial.** Each branch prepends its own newest-first entry; a merge
   conflict is just two top-of-file prepends — resolve by keeping both in timestamp order. JOURNAL
   is therefore not a real serialization blocker.
@@ -3202,7 +3204,7 @@ Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subse
 ## 10. BACKLOG Grooming Workflow
 <!-- scope: meta -->
 
-`BACKLOG.md` is the single canonical source for ALL pending items across sessions. Handoffs reference BACKLOG items by pointer (stream + title), never duplicate the queue. Per-handoff and quarterly grooming prevent the write-only graveyard anti-pattern.
+The task queue is the single canonical home for ALL pending items across sessions — on the hub `tasks/` is the source and `BACKLOG.md` its generated rendering (Layout, below); on an unflipped consumer `BACKLOG.md` is itself the source. Handoffs reference queue items by pointer (stream + title), never duplicate the queue. Per-handoff and quarterly grooming prevent the write-only graveyard anti-pattern.
 
 **Mandate:** `BACKLOG.md` is part of the universal governance baseline (ADR-38 amendment A5, 2026-05-23; ADR-41) — mandatory for every repo regardless of size. (Previously gated to M+ repos; the repo-tier system is deprecated.)
 
@@ -3253,9 +3255,9 @@ Browser 1 (departing) runs at handoff generation:
 
 1. Read current BACKLOG.md state
 2. Mark stale items (no progress in 3+ sessions) for review
-3. Prune obvious dead items (completed, no longer relevant)
+3. Flag obvious dead items (completed, no longer relevant) for the closure loop / a `tasks/` retirement — not a direct `BACKLOG.md` edit
 4. Add new items surfaced this session
-5. **Remove** completed items — they leave the file (the closing commit + the per-session JOURNAL entry are the record, ADR-65); do not leave `done` entries in place
+5. **Remove** completed items — they leave the file (the closing commit + the per-session JOURNAL entry are the record, ADR-65); do not leave `done` entries in place (on the hub: retire in `tasks/` — manifest node out, terminal `status:`, `--emit-source`; the row leaves as a result)
 6. Future State in handoff references BACKLOG items by id + title (pointers, not copy-paste)
 
 Light P1 items MAY be copy-pasted inline into Future State (acceptable at P1 only — Council Risk #2 mitigation).
@@ -3270,12 +3272,14 @@ Rob reviews full BACKLOG once per quarter (recurring quarterly cadence — sched
 3. Remove items that no longer align with VISION
 4. Groom each stream: still active? Items still actionable?
 
+Steps 1 and 3 state the **outcome**, not the edit: on the hub the removal mechanism is a `tasks/` retirement per `tasks/README.md` (manifest node out, terminal `status:`, `--emit-source`), not a direct `BACKLOG.md` edit; on an unflipped consumer it is the direct line removal.
+
 **Write-only graveyard prevention:** speculative or distant ideas route to VISION.md, not BACKLOG.md. Strict curation — actionable items only.
 
 ### Split-brain prevention
 <!-- scope: meta -->
 
-BACKLOG.md is the single source of truth. Handoffs must NOT duplicate the pending queue:
+The task queue is single-source (per §10's opening: `tasks/` on the hub, `BACKLOG.md` on unflipped consumers). Handoffs must NOT duplicate the pending queue:
 - Handoff Future State (per ADR-37, Section 8) = which BACKLOG items THIS session targets — not a parallel queue
 - ADR-32 v2.0 §4 "Pending — next session candidates": deprecated in favor of "Pending items: see BACKLOG.md" pointer
 
