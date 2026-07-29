@@ -8,7 +8,12 @@ consumers: operator ratification → the intake #17 D3 "handoff ADR" and/or a HA
 note: PROPOSED pack. Every amendment is a MECHANISM (probe leg / template field / generator or assembler beat / validator rung / hook extension), never a stronger sentence; each carries an explicit DEFER. Filed at DRAFT on the operator's explicit filing order (the arc brief); the §6 confirm-gate is satisfied for FILING by that order — CONTENT ratification is pending, which is what DRAFT means here.
 ---
 
-# HANDOFF_PROCESS v6 — amendment proposal pack (PROPOSED)
+# HANDOFF_PROCESS v6 — amendment proposal pack (ACCEPTED 2026-07-30)
+
+> **Ratification note (2026-07-30):** status ACCEPTED — per-amendment verdicts + where each landed:
+> `docs/audits/2026-07-30-technical-intake18-ratification-record.md` ([#435]; the §B(b) build +
+> deferred legs → [#446]). The PROPOSED/DRAFT framing below (reading contract, per-amendment DEFER
+> options, §13 label discussion) is the historical proposal text, retained verbatim.
 
 **Evidence base:** `docs/audits/2026-07-27-verification-handoff-process-audit.md` (same arc; finding IDs BW-a…BW-h / RM-1…RM-8 / W1…W9 cited below without re-arguing them).
 **Reading contract:** Status PROPOSED — nothing in `protocols/` changes until the operator ratifies. Amendments are paste-ready: each **Mechanism** block contains the literal text/change to apply, executable from this intake alone. The evaluation frame is the equilibrium contract (ADR-87): every amendment states which SIDE it loads (browser emits intent/contract/off-repo inputs; CC self-loads and mechanizes the rest) and why that side is the cheap one.

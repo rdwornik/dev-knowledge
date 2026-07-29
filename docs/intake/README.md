@@ -43,7 +43,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#14](2026-07-12-siem-requirements-ruled-pack.md) — SIEM / fleet-observability requirements — RULED consolidation pack (#14)
 - [#16](2026-07-21-func-fleet-north-star.md) — FLEET NORTH STAR — Consolidated Vision & Plan
 - [#17](2026-07-25-tech-consolidation-decision.md) — CONSOLIDATION DECISION v2 — final form
-- [#18](2026-07-27-tech-handoff-process-v6-proposal.md) — HANDOFF_PROCESS v6 — amendment proposal pack (PROPOSED)
+- [#18](2026-07-27-tech-handoff-process-v6-proposal.md) — HANDOFF_PROCESS v6 — amendment proposal pack (ACCEPTED 2026-07-30)
 - [#20](2026-07-28-north-star-delta-review.md) — North Star delta review — local 2026-07-21 doc vs in-repo intake #16
 <!-- INTAKE-INDEX:END -->
 

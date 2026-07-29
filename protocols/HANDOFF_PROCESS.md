@@ -439,6 +439,10 @@ generator carries it unchanged):
 5. **Decomposition rationale** — why this task-graph shape; what the next session must NOT redo or
    re-decide.
 6. **Off-repo context** — intent / priorities / changed decisions / findings not in the repo.
+7. **Ratified-in-chat register** — terms, rulings, or contracts ratified in this window's chats
+   that are NOT yet recorded in the repo: the verbatim term · a one-line definition · its
+   intended durable home (BACKLOG id / ADR / LESSONS / PLAYBOOK §). "None" is a valid answer
+   (capture-only, per the schema note above — intake #18 A6).
 
 **Hard scope constraint (load-bearing — this is what keeps the supplement from becoming the v4
 disease).** The interview asks **only** the *why* above. It **never** elicits repo state, methodology,
