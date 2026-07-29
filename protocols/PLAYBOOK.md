@@ -1093,7 +1093,7 @@ Formats in `docs/handoffs/`, all but the current one historical:
 Per Token-LOG flip 2026-04-24:
 
 - **Newest-first (prepend):** TOKEN-LOG, JOURNAL (CHANGELOG retired — §14). Rationale: logs optimize for current-state scanning. (JOURNAL flipped 2026-04-27 — original Stream B Gap #4 spec had oldest-top; amended for consistency with TOKEN-LOG/CHANGELOG.)
-- **Append-only (oldest top):** LESSONS. Rationale: chronological narrative for grandfathered learning patterns; order preserves "what we learned when" per ADR-29.
+- **Append-only, newest-first (prepend):** LESSONS — new entries at the top of the Entries section, per the file's own header and ADR-29. Rationale: append-only preserves "what we learned when"; newest-first optimizes the scan, same as the logs above. (Corrected 2026-07-30 — this line read "oldest top" until the intake #18 A10 / RM-1 sweep, which fixed `HANDOFF_PROCESS.md` §15 and missed this sibling; the file itself has been newest-first throughout.)
 - **Living (in-place updates):** README, CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT. Rationale: not logs; current state matters more than history.
 - **Immutable (dated):** ADRs, transcripts, handoffs, audits, research. Rationale: point-in-time records; supersession via new file or in-file marker.
 
