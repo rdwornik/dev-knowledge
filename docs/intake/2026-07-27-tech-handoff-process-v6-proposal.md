@@ -1,6 +1,8 @@
 ---
 intake-id: 18
-status: DRAFT
+status: ACCEPTED
+decided-by: intake #18 ratification session 2026-07-30 ([#435] — per-amendment verdicts in docs/audits/2026-07-30-technical-intake18-ratification-record.md)
+disposition: active
 origin: operator-directed audit arc, worktree handoff-review, 2026-07-27 (evidence base = the same-day verification audit; browser-witnessed seed 2026-07-26/27 folded with provenance labels)
 consumers: operator ratification → the intake #17 D3 "handoff ADR" and/or a HANDOFF_PROCESS version bump (v5.8-additive or v6 — §9 below); until then nothing in protocols/ changes
 note: PROPOSED pack. Every amendment is a MECHANISM (probe leg / template field / generator or assembler beat / validator rung / hook extension), never a stronger sentence; each carries an explicit DEFER. Filed at DRAFT on the operator's explicit filing order (the arc brief); the §6 confirm-gate is satisfied for FILING by that order — CONTENT ratification is pending, which is what DRAFT means here.

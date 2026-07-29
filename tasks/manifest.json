@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "93ef33bfeddc69ac59b4025b9166f4f7e518eefe896278804fc6ce8a044ba782",
+  "generated_sha256": "0dca331ca8474c2c6e0e1e94df207736be6a1cb18b5b466e2c12d6821212a045",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -104,6 +104,10 @@
     {
       "task": 435,
       "file": "435-steward-intake-18-handoff-process-v6-to-a-ratifi.md"
+    },
+    {
+      "task": 446,
+      "file": "446-section-b-b-one-round-trip-boot-build-the-v6-ca.md"
     },
     {
       "task": 422,
