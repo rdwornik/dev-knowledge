@@ -1,6 +1,6 @@
 ---
 id: "[#447]"
-title: "Ratchet-raise ↔ local-hook bootstrap deadlock"
+title: "Self-referential gate family — the committing act cannot satisfy the gate's own precondition"
 status: open
 priority: P3
 size: S
@@ -10,4 +10,4 @@ serialize-group: gates
 generates: BACKLOG.md
 ---
 
-- [#447] [P3][S] **Ratchet-raise ↔ local-hook bootstrap deadlock** — a commit that *raises* a gate's threshold cannot satisfy it while the hook is armed locally: `pre-commit install` arms from the config at install time, so the run reads the OLD threshold and the raising commit is judged by the value it replaces. Symmetric on the way down: a *lowering* commit passes under the old value and bites only next session. Structural: config- and hook-carried thresholds drift for exactly one commit — the one that matters. Scope is the MECHANISM, not any single threshold: either it moves to a data surface the hook re-reads per run (a raise then takes effect in its own commit), or arming joins the ratchet-raise contract and is asserted. Witnessed: a raise must be split across two commits by hand. · Done when: one commit can raise a ratchet and be judged by the raised value, with a test seeding a raise + running the gate in one transaction · refs `.pre-commit-config.yaml`, `scripts/arm_hooks.py`, `audit.py check_hooks_armed` · kill-candidates: none — no open row owns hook-arming vs threshold-currency; arming organs are asserted but their bootstrap ordering is unowned · serialize-group: gates
+- [#447] [P3][S] **Self-referential gate family — the committing act cannot satisfy the gate's own precondition** — (1) *ratchet-raise ↔ local-hook bootstrap*: `pre-commit install` arms from the config at install time, so a commit *raising* a threshold is judged by the value it replaces; symmetric down: a *lowering* commit passes under the old value, biting only next session. Structural: the two carriers drift for exactly one commit — the one that matters. Witnessed: raises get split across two commits by hand. (2) *ADR-85 JOURNAL-anchor recursion*: the anchor commit can never self-anchor; session-end gate looped to the 9-block cap 2026-07-30 (evidence: 51ab04e2). Scope is the MECHANISM: either the datum moves to a surface the gate re-reads per run, or the arming/anchoring step joins the contract and is asserted. · Done when: one commit can raise a ratchet and be judged by the raised value, and a wrap commit can satisfy its own anchor gate, with tests · refs `.pre-commit-config.yaml`, `scripts/arm_hooks.py`, `audit.py check_hooks_armed`, `scripts/session_end_backpressure.py` · kill-candidates: none — no open row owns self-referential gate preconditions · serialize-group: gates
