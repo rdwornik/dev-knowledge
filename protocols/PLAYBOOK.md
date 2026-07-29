@@ -1230,6 +1230,16 @@ case, e.g. a corp-monorepo handoff and an ai-council handoff at the same time). 
 
 **Integration authority — operator authorizes, CC-primary executes (2026-07-16 ruling).** Merge execution is delegated to the CC-primary session: on the operator's explicit **GO** (one authorization per integration), CC performs the `--no-ff` merge to `main` **from the primary checkout**, verifies (that repo's suite + — for the hub — `ship-gate` green; any failure STOPS the chain and surfaces), then completes teardown — a plain merged branch is deleted directly; a worktree branch requires the worktree to be **removed first** (a checked-out branch cannot be `-d` deleted), per the worked example below. The operator is the **authorization gate, not the executor**. Invariants unchanged: one merge to `main` at a time; integration only from the primary checkout; parallel/worktree sessions still **commit-and-STOP and never self-merge** — they hand their branch to the primary for the authorized merge.
 
+**Recorded precedent — an operator-DIRECTED shortened sequence is not a violation (2026-07-29).** At
+`14bcb1c4` the operator ordered the night-prep branch merged **ahead of** local verification, wanting to
+review the night audit from `origin` rather than off a branch. The sequence therefore ran shortened —
+merge first, verify after — and the verification leg completed post-hoc at `3205db7b` with `main` GREEN.
+Recorded as a sanctioned **operator-directed serial-gate act**, not a breach of the verify-then-teardown
+ordering above: the operator holds the authorization gate, so ordering its steps is his to do, and the
+verification leg stays **owed rather than optional**. What makes the precedent sanctioned is that the
+post-hoc leg actually ran and its verdict is on the record; the unshortened default stands for every
+integration the operator has not explicitly re-ordered.
+
 **MERGE IS ATOMIC (standing operator rule, established after three repeats — 2026-07-27).** Stated verbatim, and binding wherever a merge happens:
 
 > merge `--no-ff` + push + delete the source branch are ONE operation. A branch merged into main and pushed is deleted in the same step, without separate operator authorization. Exceptions exist only by EXPLICIT PROTECTION (currently `claude/conformance-*`); silence is not protection. A merged branch left alive is a defect, not a pending decision.
@@ -1292,13 +1302,12 @@ its own branch, and remove it the moment that branch merges. It must not linger 
 
 **0 — Launch decision: one strong prompt on primary is the DEFAULT; worktrees are the exception ([#441])**
 
-<!-- DRAFT [#441] — drafted night 2026-07-28→29 on the night-prep branch; UNRATIFIED.
-     Adoption is a ruled act at the morning review; merging this branch IS the ratification act.
-     This block REPLACES the prior three-check "0 — Decide: should I parallelize?" test so the
-     corpus carries ONE launch test (the [#441] Done-when); the mapping to the old checks is
-     recorded below. NOTE for the ruling: the [#441] row cites "PLAYBOOK §8/Ch5" — the live home
-     of the ADR-61 worktree-discipline checks is THIS section (Ch8. Session boundaries); the row's
-     cite drifts, the doctrine does not. -->
+*Ruling record — ADOPTED (operator, 2026-07-29).* Drafted on the 2026-07-28→29 night-prep branch and
+carried unratified through that merge; ruled ADOPTED at the following morning's review, so this block
+is live doctrine. It **replaces** the prior three-check "0 — Decide: should I parallelize?" launch test
+so the corpus carries one launch test (the mapping is recorded below). Ruling evidence: the shipped
+2026-07-28 window cited under *Evidence*, plus the operator's live endorsement of the fat-prompt
+default across the 2026-07-28→29 window itself. One item stays open — see *Open reconciliation* below.
 
 **The default (operator + outgoing-seat ruling 2026-07-28):** one strong, self-contained
 prompt on the **primary** checkout. Parallelism lives **inside** the session — the
@@ -3209,7 +3218,7 @@ The task queue is the single canonical home for ALL pending items across session
 **Mandate:** `BACKLOG.md` is part of the universal governance baseline (ADR-38 amendment A5, 2026-05-23; ADR-41) — mandatory for every repo regardless of size. (Previously gated to M+ repos; the repo-tier system is deprecated.)
 
 <!-- rule: governance-backlog-leave -->
-**Done-item disposition (ADR-47/65).** Done items **leave** the file on close — git history (the closing commit, located by the entry id per CONTRIBUTING) + the existing per-session JOURNAL entry are the record. **No archive file** (`BACKLOG_ARCHIVE.md` deleted 2026-05-16; CLAUDE.md §5). No collapsed stubs. Closing a backlog item adds **no** new per-item write — the per-session JOURNAL ritual already carries it.
+**Done-item disposition (ADR-47/65).** Done items **leave** the file on close — git history (the closing commit, located by the entry id per CONTRIBUTING) + the existing per-session JOURNAL entry are the record. **No archive file** (`BACKLOG_ARCHIVE.md` deleted 2026-05-16; CLAUDE.md §5). No collapsed stubs. Closing a backlog item adds **no new record-keeping surface** — the per-session JOURNAL ritual already carries it; the write a closure does make lands inside the queue's own source of truth (`tasks/` on the hub: manifest node out, terminal `status:` on the retained record; the line simply leaves on an unflipped consumer).
 
 **Filing backpressure (2026-07-08 ruling).** The add-side mirror of Done-item disposition: any commit whose `BACKLOG.md` diff **adds** a new task id must carry a `kill-candidates:` line in the commit message — either naming ≥1 existing `#id` proposed for removal, or `kill-candidates: none — <reason>`. Candidates are **proposals** routed to the operator's ruling; the gate never auto-removes or auto-closes anything. Enforced by the `backlog-filing-backpressure` commit-msg hook (`scripts/check_backlog_filing.py`, the add-side sibling of `backlog-id-on-close`), which also emits the advisory ADR-98 intake-id WARN on a new L-sized new-feature epic (#279).
 

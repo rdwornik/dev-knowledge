@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "9053bdef052c68c45d7da5aa6a4251d25d3d461fdd7467c238d6b232896bb526",
+  "generated_sha256": "ca7c60456ce0e2f70baa25896f46f33339fc4b471dc891d87a83232a9edd07b2",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -823,6 +823,10 @@
     {
       "task": 431,
       "file": "431-codex-review-silently-drops-the-doc-lane-on-any.md"
+    },
+    {
+      "task": 445,
+      "file": "445-codex-review-wrapper-path-guard-reports-success-h.md"
     },
     {
       "task": 403,
