@@ -476,6 +476,13 @@ Mode is carried by `/handoff … v5 <architect|execution>` (§10 self-updating; 
 `execution`; mode applies only in v5 mode — v4.4 has no modes). Command wiring:
 `.claude/commands/handoff.md`.
 
+**Destination contract (intake #18 A4).** Every brief or prompt that opens a lane declares its
+destination ex-ante: worktree name · branch (in a sanctioned lane shape, §4 grammar) ·
+write-scope · execution MODE with basis — the §14a items 3/4/7 shape generalized beyond epic
+lanes. A lane inherits none of these from a prior prompt. (The boot-header `Destination` row +
+its P3 comparison leg ride the §B(b) build; the multi-agent mandate-content checklist is
+PLAYBOOK §2's.)
+
 **Bundle shape (no per-bundle README — one canonical runbook).** A v5 bundle carries **four**
 files — `HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md` + `PASTE_THIS.md` — and **no README**.
 The stable operator boilerplate (who-each-file-is-for · the same-name role-file/bundle-pointer
