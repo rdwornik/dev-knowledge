@@ -515,6 +515,14 @@ extracted up to the first `## ` heading — optional; skipped if the bundle carr
 the CC run loop (the teeth of the probe mechanism). The operator pastes `PASTE_THIS.md` as the
 single file; the browser receives the complete role + residual + probes + supplement in one shot.
 
+**Transport-medium contract (intake #18 A2).** `PASTE_THIS.md` is the ONLY sanctioned chat-paste
+DELIVERABLE. Every other load-bearing deliverable crossing the CC → operator → browser boundary
+(a report, review, aggregate, plan) travels as a FILE the operator uploads, never as chat-paste —
+the report-direction sibling of the ESSENTIALS Scale-M+ rule. CC states the transport at emission
+time ("this travels as a file"). **Carve-out (unchanged §13 workflow):** the supplement interview
+exchange — QUESTIONS copied into the outgoing chat, ANSWERS pasted back — is a conversational
+relay, not a deliverable, and stays chat-paste by design.
+
 ---
 
 ## 14. Epic-lane handoffs — EPIC (§14a) + EPIC RETURN (§14b)

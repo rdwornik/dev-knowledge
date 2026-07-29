@@ -159,7 +159,8 @@ def main(bundle_dir: Path) -> None:
     click.echo(f"Written: {paste_path} ({size} bytes)")
     if size > _SIZE_WARN_BYTES:
         click.echo(f"[warn] PASTE_THIS.md is {size} bytes (> {_SIZE_WARN_BYTES}) — heavy boot; "
-                   "check for re-narration creep (RF-2/RF-6) before shipping", err=True)
+                   "check for re-narration creep (RF-2/RF-6) before shipping; artifacts other "
+                   "than PASTE_THIS must not be pasted at all (intake #18 A2)", err=True)
 
 
 if __name__ == "__main__":
