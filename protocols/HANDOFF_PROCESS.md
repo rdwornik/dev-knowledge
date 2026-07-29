@@ -68,9 +68,12 @@ on the **forced read** (§5) to make the receiver actually open the primary sour
 
 ## 4. The thin browser boot
 
-A fresh browser chat boots from **`protocols/HANDOFF_BOOT.md`** — a ~3-line core (identity /
-one meta-rule / first-move) that replaces the heavy multi-file bundle. Everything else is
-pulled just-in-time via CC.
+A fresh browser chat boots from **`protocols/HANDOFF_BOOT.md`** — a compact boot core
+(identity / one meta-rule / first-move) plus the resident browser-role doctrine — resident
+because a CC-held file never transmits to the file-less browser — replacing the heavy
+multi-file bundle. Everything else is pulled just-in-time via CC. (A stated byte budget for
+the boot file, checked by the assembler's existing size machinery, rides the §B(b) build —
+intake #18 A10 item 2, deferred by ruling 2026-07-30.)
 
 **Browser-role delivery (load-bearing).** The browser's operating role (§7) is **resident in
 the boot file**, not left only in this spec (which CC holds and the browser never sees). If
@@ -89,7 +92,7 @@ The boot ends with an on-load acknowledgment line so a partial/missing paste is 
 
 The forced read has **teeth** when its verification **cannot be answered from the compaction
 summary** — the answer exists only in the live primary file/state at answer-time. A probe is
-teeth-bearing when all three hold:
+teeth-bearing when all four hold (the fourth — bounded-deterministic — ratified at intake #18):
 
 1. **Live-only answer** — volatile or high-entropy (a count that drifts, a sha, an exact
    line) that a summary rounds off or omits.
@@ -98,6 +101,10 @@ teeth-bearing when all three hold:
    construction, bluffable — and is rejected.)
 3. **CC-checkable** — CC re-derives the ground truth read-only from disk/git at check-time
    and compares, exactly as the existing validators do.
+4. **Bounded-deterministic** — the verification terminates in bounded mechanical steps at
+   check-time. A probe whose honest answer requires unbounded judgment over an open set is an
+   arc, not a probe, and is rejected (origin: P10, JOURNAL 2026-07-26 (h); LESSONS 2026-07-27
+   S3d).
 
 ### Probe manifest (reuses the existing read-only validators)
 
@@ -531,12 +538,15 @@ A scope-contract, generated per epic at lane spawn. Carries:
    absolute-path-bypasses-worktree lesson is a hard rule).
 4. **FILE-BOUNDARY** — the explicit file/dir set the lane may touch. This is the parallelism
    ruling made mechanical — two concurrent epics MUST have disjoint boundaries; a needed file
-   outside the boundary = **escalate, don't touch**.
+   outside the boundary = **escalate, don't touch**. A boundary spanning into another repo is
+   RULING-W territory (hub→consumer writes: consumer worktree/branch → report, never a direct
+   push into a live checkout — PLAYBOOK §8).
 5. **Escalation rules** — ADR-worthy fork, boundary-breach need, cross-epic dependency
    discovered → STOP, return to the architect. Everything intra-epic is the lane's own
    judgment.
 6. **Refusals** — no merge to main, no ADRs, no backlog structure, no worktree lifecycle ops,
-   no new top-level folders, no content deletion without operator ask.
+   no new top-level folders (the ADR-101 two-tier new-path rule), no cross-repo writes outside
+   the RULING-W shape, no content deletion without operator ask.
 7. **Execution MODE** — the lane's execution mode, declared ex-ante by the root
    (plan / plan-then-auto / auto-accept) with its basis. **L-sized epic stories default
    plan-first**, and **every architect prompt into the lane re-declares MODE** — a lane
@@ -558,7 +568,8 @@ The lane's closing report, **required before any merge**:
    main merges performed, JOURNAL entry on branch names session SHAs.
 
 The architect then: reviews the return vs the contract → serial merge `--no-ff` → applies the
-backlog delta → declares closure → teardown (worktree remove + prune + branch -d + orphan
+backlog delta, applied per the queue's shape (`tasks/` edit + regen on a flipped host) →
+declares closure → teardown (worktree remove + prune + branch -d + orphan
 check). **The loop closes at the root, always.**
 
 **Generator.** `templates/handoff/epic/{EPIC_BOOT,EPIC_RETURN}.md.tmpl`, emitted by
@@ -596,7 +607,7 @@ Notable: [1-2 line signal e.g. "Opus 4.7 adoption curve", "Haiku routing shift"]
 
 **Order convention:**
 - TOKEN-LOG.md: newest-first (prepend). Rationale: logs optimize for current-state scanning. (CHANGELOG.md retired — ADR-49.)
-- LESSONS.md: append-only (oldest-first). Rationale: chronological narrative; order preserves "what we learned when".
+- LESSONS.md: append-only, **newest-first** (new entries at the top of the Entries section, per the file's own header and ADR-29).
 
 New TOKEN-LOG entries go at the top (after file header, before previous newest entry). /session-summary reads the first matching `## YYYY-MM-DD` header for the staleness check.
 
