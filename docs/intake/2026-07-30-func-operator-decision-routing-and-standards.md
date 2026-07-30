@@ -5,6 +5,8 @@ origin: operator, dictated 2026-07-30/31 in the outgoing browser-seat window; in
 consumed-by:
 ---
 
+**NOTE 2026-07-31:** §A + §B ratified by promotion → ADR-108. §C–§H remain unratified.
+
 # Operator design input — decision routing, engineering standards, and lane timeline
 
 <!-- class: func (operator design input) · status: SEED — NOT ratified; ingest per the intake
