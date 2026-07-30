@@ -169,9 +169,92 @@ def test_file_tokens_ignores_non_path_symbols():
     assert vhp.file_tokens("`ALL_CHECKS` `**N collected**` live git") == []
 
 
+def test_file_tokens_leading_dot_is_additive_only():
+    """R7 v1 ([#421] absorbed into [#446]): admitting a leading dot in the FINAL segment must
+    ADD the repo-root-dotfile bindings without changing ANY shape that already tokenized.
+
+    The negative control is the point. A bare `\\.?` (no boundary lookbehind) passes the two
+    dotfile cases but silently REGRESSES `a.audit.py` -> [] and `deploy/manifest-v1.4.0.yaml`
+    -> [], because the optional dot starts the match one character early. This test pins the
+    additive property, not just the fix."""
+    # ADDED by R7 v1 — repo-root dotfiles now keep their dot.
+    assert vhp.file_tokens("`.pre-commit-config.yaml`") == [".pre-commit-config.yaml"]
+    assert vhp.file_tokens("`.markdownlint.json`") == [".markdownlint.json"]
+    assert vhp.file_tokens("sub/.hidden.yaml") == ["sub/.hidden.yaml"]
+    # UNCHANGED — every shape that tokenized before tokenizes identically now.
+    for text, want in (
+        ("`scripts/audit.py`", ["scripts/audit.py"]),
+        ("`python scripts/audit.py checks`", ["scripts/audit.py"]),
+        ("`.claude/settings.json`", [".claude/settings.json"]),
+        ("`grep x VISION.md` then `grep y sub/OTHER.md`", ["VISION.md", "sub/OTHER.md"]),
+        # NARROWED by F4 (codex HIGH, 2026-07-31): both used to yield a MIS-PARSE — `audit.py`
+        # extracted from the middle of `a.audit.py`, and the garbage token `0.yaml` that never
+        # resolved. The whole-token boundary that closes the prefixed-dotfile hole removes both.
+        # Declared here rather than silently dropped: no real binding is lost.
+        ("a.audit.py", []),
+        ("deploy/manifest-v1.4.0.yaml", []),
+        ("`ALL_CHECKS` `**N collected**` live git", []),
+        ("`docs/intake/*.md`", []),
+    ):
+        assert vhp.file_tokens(text) == want, text
+
+
+def test_file_tokens_reject_prefixed_dotfiles():
+    """REGRESSION (codex HIGH, 2026-07-31): the leading-dot lookbehind guarded only the DOT,
+    not the start of the whole token. So a dotfile behind an absolute / URL / escaping prefix
+    still tokenized, and `_resolve_path`'s unique-basename fallback then bound it to the
+    repo-root file — a false PASS where the old regex produced a miss (FAIL, teeth intact).
+
+    `../.methodology.yaml` is the sharp case: an explicit repo ESCAPE that resolved. The
+    containment guard in `_within_repo_file` blocks the literal path, but the basename
+    fallback walked around it. A repo-relative token cannot start with `/`, `../`, or a
+    host segment, so none of these may tokenize at all."""
+    repo = Path(vhp._REPO_ROOT)
+    # (a) Not a repo-relative path at all — absolute, URL, drive-qualified, backslash escape.
+    #     These may not tokenize: there is nothing here a probe could legitimately mean.
+    for text in ("/.methodology.yaml", "https://host/.methodology.yaml",
+                 "C:/x/.methodology.yaml", "..\\.methodology.yaml"):
+        assert vhp.file_tokens(text) == [], f"still tokenizes: {text}"
+    # (b) A `..` escape DOES tokenize on purpose — an escaping locator has to be SEEN to be
+    #     FAILed; suppressing the token would turn a missing-target FAIL into a silent PASS.
+    #     It is refused at RESOLUTION instead, which is the property that actually matters.
+    for text in ("../.methodology.yaml", "../scripts/gen_task_tree.py", "../outside.md"):
+        toks = vhp.file_tokens(text)
+        assert toks, f"escape must stay visible to the FAIL rung: {text}"
+        assert [t for t in toks if vhp._resolve_path(repo, t) is not None] == [], \
+            f"escape resolved via the basename fallback: {text} -> {toks}"
+
+
+def test_file_tokens_still_bind_legitimate_dotfiles():
+    """The F4 narrowing must not undo R7 v1: a repo-ROOT dotfile and a nested dotfile under a
+    normal relative dir still bind (the frozen FR7v1 contract), and every non-dotfile shape is
+    untouched."""
+    assert vhp.file_tokens("`.pre-commit-config.yaml`") == [".pre-commit-config.yaml"]
+    assert vhp.file_tokens("`.markdownlint.json`") == [".markdownlint.json"]
+    assert vhp.file_tokens("sub/.hidden.yaml") == ["sub/.hidden.yaml"]
+    assert vhp.file_tokens("`.claude/settings.json`") == [".claude/settings.json"]
+    assert vhp.file_tokens("`python scripts/audit.py checks`") == ["scripts/audit.py"]
+    # An ESCAPE still tokenizes on purpose — it has to be SEEN to be FAILed. It is refused at
+    # resolution instead (see _resolve_path / test_resolve_rejects_path_escaping_repo_root).
+    assert vhp.file_tokens("../outside.md") == ["../outside.md"]
+    assert vhp._resolve_path(Path(vhp._REPO_ROOT), "../outside.md") is None
+
+
 def test_header_tokens_only_picks_markdown_headers():
     toks = vhp.header_tokens("`VISION.md` `## Vision`")
     assert toks == ["## Vision"]
+
+
+def test_header_tokens_reject_a_bare_ticket_id():
+    """R7 v2: a header ATX-opens (`#`x1-6 + whitespace); `#421` is a ticket id, not an anchor.
+    The old `startswith('#')` test gave a row that merely CITED a ticket a spurious
+    `anchor-missing` WARN."""
+    assert vhp.header_tokens("absorbed into `#421` this window") == []
+    assert vhp.header_tokens("`#446` `#12345`") == []
+    # Real headers, every ATX depth, still bind.
+    assert vhp.header_tokens("`# T` `## Vision` `###### Deep`") == ["# T", "## Vision", "###### Deep"]
+    # Not a header: no whitespace after the hashes.
+    assert vhp.header_tokens("`##Nospace`") == []
 
 
 def test_lead_exe_is_first_command_token():
@@ -957,3 +1040,46 @@ def test_check_degrades_loudly_when_repo_is_nested_in_another_repo(tmp_path):
     assert findings[0].status == "warn"
     assert "degraded" in findings[0].evidence.lower()
     assert "|" not in findings[0].evidence
+
+
+# --- R6 CLI mapping ([#446]) ------------------------------------------------------
+# The two load-bearing cases (the hard error, and both flags accepted) are pinned by the
+# frozen contract. These cover the surrounding contract: main() RETURNS codes and never
+# escapes as SystemExit, and the pre-R6 invocations keep working byte-for-byte.
+
+def _empty_bundle(tmp_path):
+    bundle = tmp_path / "b"
+    bundle.mkdir()
+    (bundle / "PROBES.md").write_text("no rows here\n", encoding="utf-8")
+    return bundle
+
+
+def test_main_never_raises_systemexit_on_a_usage_error(tmp_path):
+    """argparse's default is to EXIT on a usage error. main() catches that and returns the
+    code instead, so the callable stays testable and a usage mistake can never kill a caller
+    mid-run. Every one of these is a RETURN, not a raise."""
+    assert vhp.main([]) == 2                                    # missing positional
+    assert vhp.main(["--cross-repo"]) == 2                      # missing positional + no root
+    assert vhp.main([str(_empty_bundle(tmp_path)), "--nonsuch"]) == 2   # unknown option
+    assert vhp.main([str(tmp_path / "b"), "--repo-root"]) == 2   # flag missing its value
+
+
+def test_main_default_invocation_is_unchanged(tmp_path):
+    """The pre-R6 call shape — bundle dir alone — resolves against the bundle's own repo and
+    returns 0. R6 codifies the existing semantics; it must not change this path."""
+    assert vhp.main([str(_empty_bundle(tmp_path))]) == 0
+
+
+def test_main_repo_root_accepts_the_equals_form(tmp_path):
+    """`--repo-root=PATH` and `--repo-root PATH` are the same flag (argparse gives this for
+    free — pinned so a hand-rolled reparse can't silently drop it)."""
+    bundle = _empty_bundle(tmp_path)
+    assert vhp.main([str(bundle), f"--repo-root={tmp_path}"]) == 0
+    assert vhp.main([str(bundle), "--repo-root", str(tmp_path)]) == 0
+
+
+def test_main_cross_repo_without_repo_root_names_the_reason(tmp_path, capsys):
+    """R6's hard error must SAY why — a silent inference is the original false-FAIL class."""
+    assert vhp.main([str(_empty_bundle(tmp_path)), "--cross-repo"]) == 2
+    err = capsys.readouterr().err
+    assert "--repo-root" in err and "infer" in err.lower()

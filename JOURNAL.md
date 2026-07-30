@@ -19,6 +19,131 @@
 
 ---
 
+### 2026-07-31 (c) — CC (Opus 5): [#446] FIX RELEASE — all 8 review findings + 2 rulings
+
+**Did:** released fixes for all 8 codex/terra findings, RED-first, one commit each, worst-first;
+landed the two operator rulings (R-§13c single execution order; R-P0c as appended amendment A2).
+
+**Result:** frozen module **9/9 GREEN** throughout — re-run after every code fix, never touched.
+Full suite **1986 passed / 3 skipped / 2 failed**, both the same PRE-EXISTING pair proven at HEAD
+by stashing (fleet_parity ai-council `conftest.py`; routine_consumers 2-rows-vs-1). ruff clean;
+ship-gate **GREEN** (15 WARN dispositioned) via git-bash; silent-rule pool **439** (≤ 441 baseline).
+
+**Two fixes exposed defects deeper than the finding.** (1) F4's first attempt suppressed `..` in
+the tokenizer, which made an escaping locator produce NO token — turning a missing-target FAIL
+into a silent PASS. That is teeth LOSS, the exact class F4 exists to prevent; the pre-existing
+`test_resolve_rejects_path_escaping_repo_root` caught it. The shipped fix keeps escapes VISIBLE
+and refuses them at RESOLUTION, which also closed the same hole for uniquely-basenamed
+NON-dotfiles — **pre-existing on main**, not introduced by R7 v1. (2) F2's root cause was using
+tracked-ness for both the collision test and the suffix scan; existence is the right predicate for
+the suffix, and the CLI had already promised it.
+
+**Two deliberate narrowings, declared:** `a.audit.py` no longer yields `audit.py`, and
+`deploy/manifest-v1.4.0.yaml` no longer yields the garbage token `0.yaml` — both mis-parses; no
+real binding lost. Negative controls updated with the reason rather than deleted.
+
+**Deploy witness re-run** against the live (pre-v6) bundle: the F6 exempt path fires — the four
+v6-only rows report `n/a — pre-v6 bundle, row not required` and the RESULT flips from
+**BLOCKED** to **CLEARED**. Era detected structurally (0 Destination rows, 0 P0a rows), not by date.
+
+**Changes:** `templates/handoff/v5/` both templates (ferry removed, P0c narrowed) ·
+`scripts/gen_handoff.py` (existence-based suffix; `_git_status` + scrubbed git-location env;
+unknown-status refusal) · `scripts/verify_handoff_probes.py` (whole-token boundary + fallback
+guard) · `.claude/commands/handoff{,-verify}.md` · `protocols/HANDOFF_PROCESS.md` (R-§13c) ·
+`docs/audits/…v6-open-rulings.md` (A2) · ARCHITECTURE / docs/handoffs/README labels · doc-counts.
+
+**Watch:** (1) BACKLOG still untouched — nothing closed; closure adjudication remains the
+architect's act. (2) A11 staged-diff guard still NOT built and still does not fit the 1197/1200
+row; proposed row text stands from the triage. (3) The F4 fallback guard changes behaviour for
+pre-existing escape-shaped locators fleet-wide — a strictly-more-teeth change, but a behaviour
+change worth knowing at merge.
+
+**SHA anchor:** `55b07712` (fix release `2bbad24b..55b07712`, 6 commits; arc `b2265946..`).
+
+### 2026-07-31 (b) — CC (Opus 5): [#446] §13(c) seam ruled · codex review BOTH lanes · 8 findings triaged
+
+**Did:** (1) ruled the §13(c) seam left open at (a) — table order is the mechanical EMISSION
+contract, the role → vision → standing topics → backlog sequence governs the reader's CONSUMPTION
+order; one clarifying sentence, no frozen-set file touched, frozen module re-run 9/9 GREEN.
+(2) Ran the codex review before any merge.
+
+**Result — the skill path did NOT deliver the requested review.** The diff is MIXED (11 `.py` /
+16 `.md` / 3 `.yaml` / 2 `.tmpl`), so `/codex-review`'s documented path-guard filtered it to the
+CODE subset, used the code profile, and inherited the config default `gpt-5.6-sol` — terra was
+never invoked and the 18 prose files (the substance of the v6 bump) went unreviewed. Prose lane
+therefore re-run via direct `codex exec -c model=gpt-5.6-terra`. **Both lanes PAID** ([#445]:
+each named consumed files + concrete findings; neither a bare SUCCESS). Code lane 3 HIGH; prose
+lane 5 HIGH + 3 MEDIUM. **All 8 verified independently before triage — none taken at face value;
+8 accepted, 0 disputed outright.**
+
+**Two reproduced destructively in a scratch repo:** `--allow-suffix` selected an EXISTING
+untracked sibling and **overwrote its in-progress RESIDUAL.md** (contradicting the CLI's own "NEW
+sibling" promise); and a bogus inherited `GIT_DIR` made `_tracked_under` return `[]`, silently
+disarming the RM-8 refusal against a genuinely tracked bundle. The tokenizer widening was
+confirmed by old-vs-new token diff: `../.methodology.yaml` now RESOLVES where it previously
+missed — a real false-PASS class, narrower than codex framed it (needs a unique basename) but
+genuine probe weakening.
+
+**Worst finding is mine and structural:** `templates/handoff/v5/HANDOFF_BOOT.md.tmpl` still
+directs the retired per-probe ferry. I updated the two HAND-MAINTAINED docs and missed the
+GENERATOR TEMPLATE — the fix never reached the artifact the mechanism actually produces. Every
+newly generated v6 bundle would ship instructions for the transport v6 removes.
+
+**Changes:** `protocols/HANDOFF_PROCESS.md` §13(c) seam sentence · `docs/audits/`
+2026-07-30-codex-446-v6-boot-build.md (skill, sol) + -prose.md (direct, terra) + regenerated index.
+
+**Watch:** (1) NO FIXES APPLIED — triage only, per instruction; fixes land after architect review.
+(2) One finding (P0c not bounded-deterministic) is R2's adopted intake contract, not my defect —
+changing it needs a ruling. (3) One finding lands against the operator's own Step-1 seam ruling
+(terra argues gate-procedure and sequence are BOTH execution orders) — architect's call.
+(4) BACKLOG still untouched: nothing closed, closure adjudication is the architect's act.
+
+**SHA anchor:** `25b83a28` (also `7723a431` — the seam ruling; arc now `b2265946..25b83a28`).
+
+### 2026-07-31 (a) — CC (Opus 5): [#446] §B(b) BUILD — all 9 frozen items GREEN · HANDOFF_PROCESS v6.0 cut
+
+**Did:** built the §B(b) one-round-trip boot to the frozen contract (`1e93c746`, 9 items RED at
+freeze), FR by FR, one commit each, then cut the v6 bump last. Step 0 completed the freeze:
+`_R4_RULED_BUDGET = 18000`, and R4's number recorded as an APPENDED `## Amendments` A1 entry on
+the rulings artifact — NOT the in-place line rewrite the brief asked for (operator amendment:
+`docs/audits/*` is immutable, CLAUDE.md §5 rule 3; the amendment-marker form is the sanctioned
+escape).
+
+**Result:** 9/9 frozen tests GREEN **on `feat/446-boot`; `main` untouched** — merged is not done.
+Suite 1978 passed / 3 skipped / 2 failed, both pre-existing and PROVEN so by stashing to HEAD
+(fleet_parity ai-council `conftest.py`; routine_consumers 2-rows-vs-1). ship-gate **GREEN**
+(15 WARN dispositioned), run via git-bash. W1–W6 prose witnesses all flip; the anti-bluff
+invariant re-witnessed live (an `expected:` row FAILs, the identical row without it PASSes).
+Deploy witness: `/handoff-verify` dry-run against the live 2026-07-31 bundle — 10 PASS / 0 FAIL /
+5 not-run; it correctly reports the four v6-required rows as ABSENT from that pre-v6 bundle
+rather than passing them, which is the "a missing required row is not a pass" rule doing its job.
+
+**Changes:** `scripts/` gen_handoff (RM-8 refusal + `--allow-suffix`), verify_handoff_probes
+(dotfile + bare-`#` tokenizer, argparse CLI), assemble_paste (budget WARN), audit
+(`check_boot_byte_budget`, ALL_CHECKS 34→35) · `templates/handoff/v5/` P0a/P0b/P0c legs +
+Destination row + P3 operand · `.claude/commands/handoff-verify.md` (new; the only new path) ·
+`protocols/HANDOFF_PROCESS.md` **v5.7 → v6.0** + six `reconciled_with` edges swept · 4
+freshness-gated docs genuinely re-read and re-stamped · ecosystem parity/doc-code-edge/doc-counts.
+
+**Watch:** (1) the sweep is **six** edges, not the five the v5.7 entry and the v6 draft both name
+— `protocols/README.md` was undercounted; corrected in canon. (2) A11's staged-diff guard is
+NOT built and could not be parked on the row: pre-write measurement put `[#446]` at 1197/1200
+chars, so the annotation does not fit — proposed row text is surfaced at closure for architect
+adjudication instead. (3) No `[#421]` closure marker: both FR7 tests green is the precondition,
+not the closure. (4) Regenerating a COMMITTED bundle now refuses by default (ruled RM-8 intent).
+
+**SHA anchor:** `65483b39` (arc `b2265946..65483b39`, 9 commits on `feat/446-boot`).
+
+### 2026-07-30 (f) — CC (Opus 5): [#446] §B(b) — Step 0.5 merged · 7 OPEN questions RULED · frozen contract RED
+
+> **Date note:** this entry is **(f)** on 2026-07-30 (live date); the two artifacts it lands are dated **2026-07-31** because the operator supplied that date in the ruling text verbatim. Recorded rather than silently reconciled — the artifact dates are the operator's, the lane letter is the clock's.
+
+**Did:** Operator GO for a single serial merge, then two commit-and-STOP steps on a fresh build lane. **(1)** Merged `docs/446-window-step-0-5` → `main` `--no-ff` and pushed (`57c81fd5`); opened `feat/446-boot` off the new main. Night branch `claude/night-2026-07-30-boot-prep` untouched, and the merged docs branch left in place (deletion not authorized). **(2)** Committed the rulings artifact `docs/audits/2026-07-31-technical-v6-open-rulings.md` **verbatim** as ruled (`2b0b51d7`), re-verifying every cited locator live first. **(3)** Authored and froze the G-TDD contract (`1e93c746`): `tests/test_v6_frozen_contract.py` (9 tests) + the freeze record `docs/audits/2026-07-31-technical-v6-frozen-contract.md` carrying the observed RED table and the rerunnable prose witnesses W1–W6.
+**Result:** **9 failed / 0 passed at freeze**, each failing for the mechanism's absence with the failing assertion quoted per row — FR1 `handoff-verify.md` absent · FR2 P0a/P0b/P0c absent from generated PROBES.md · FR3 no `Destination` row in the boot template (P3's second operand) · FR4a no `HANDOFF_BOOT_BYTE_BUDGET` · FR4b number UNRULED · FR5 `DID NOT RAISE` (generation silently reused a dir holding a tracked file) · FR6 `--cross-repo` without `--repo-root` returned 0 · FR7v1 leading dot lost · FR7v2 backticked `#421` mis-tokenizes as a header anchor. **Anchor re-verification found zero drift** on all nine cited locators (intake `:110-112` = the P0a/P0b/P0c rows with terra-H3 at `:113`; `gen_handoff.py:436` = the `exist_ok=True` creation site; `audit.py:1575` `_select_active_bundle`; `verify_handoff_probes.py:409` signature / `:444` default call / `:54` `_FILE_RE` / `:131-133` `header_tokens`; `protocols/HANDOFF_BOOT.md` present at 16156 B; `.claude/commands/` = 4 files, no `boot.md`). **Three things surfaced that the brief did not fix, and were flagged rather than papered over:** (1) **R4's ruling text is a placeholder** — it reads `<number> bytes`, and the sol draft's own OPEN question 4 states A10 cannot close on a placeholder, so R4 restates the gap instead of closing it; committed verbatim as instructed, the number **not invented**, with `_R4_RULED_BUDGET = None` as the single pin site and **FR4b as the mechanical record of the gap** rather than a prose footnote. (2) **FR1–FR7 had no existing register** — the fleet's other `FR-<n>` series belongs to intake #14 / #328 — so **FR\<n> ≡ R\<n>** was declared and the frozen module made the register. (3) **R6's two codification halves are pre-satisfied by construction** (the `verify()` signature and the `:444` default call — R6 codifies *existing* semantics, so neither can fail honestly); both are asserted **inside** FR6, which is RED on its CLI half, so no test is green at freeze. The freeze deliberately reds the repo suite; no commit gate is blocked because `doc_claims` claim 3 is `--collect-only` and gate-skipped, and a green-suite variant was offered as a one-line-per-test `xfail(strict=True)` conversion rather than applied unasked.
+**Changes:** `main` advanced `c8490c1d`→`57c81fd5` (pushed) · new lane `feat/446-boot` · two new `docs/audits/` files + the regenerated audits index · new `tests/test_v6_frozen_contract.py` · `ecosystem/doc-counts.md` 1963→1972 collected. No canonical doc, no `tasks/` row, no `BACKLOG.md`, no disposition register touched — so **no pre-write char measurement was owed**.
+**Abandoned:** No build code — the freeze is the deliverable and STOP is the instruction; the architect reviews the frozen set before any implementation exists. R7 fallback C left unexercised (Option B frozen). No `BACKLOG.md` structural marker: this arc **advanced** `[#446]` without finishing it, which the ADR-85 advisory leg explicitly permits.
+**Next:** architect reviews the frozen set at `1e93c746` and supplies **R4's number** (the one blocker with no honest workaround) — then the build runs FR1→FR7 green, and `[#421]` closes pointing at the two FR7 tests.
+
 ### 2026-07-30 (e) — CC (Opus 5): [#446] window recon — night-lane check · G0 sizing · Step 0.5 draft
 
 > **Lane-letter note:** this entry is **(e)**, skipping **(d)**, which is taken by the night-batch entry living only on the unmerged local branch `claude/night-2026-07-30-boot-prep`. Letter chosen to avoid a collision if that lane is merged later; if it is discarded, (d) stays vacant — a cosmetic gap, deliberately preferred over an ambiguous duplicate.

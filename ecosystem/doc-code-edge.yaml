@@ -74,6 +74,7 @@ coverage_scope:
   - coherence-doc-rot          # DONE 2-site (#202) -- PLAYBOOK.md -> audit.py::check_doc_rot + validate_doc_rot.py
   - coherence-doc-structure    # DONE 2-site (#202) -- PLAYBOOK.md -> audit.py::check_doc_structure + validate_doc_structure.py
   - handoff-probes-bind        # DONE 2-site (#202) -- HANDOFF_PROCESS.md §5 -> audit.py::check_handoff_probes + verify_handoff_probes.py
+  - handoff-boot-budget        # DONE 2-site ([#446] R4) -- HANDOFF_PROCESS.md §4 -> assemble_paste.py (WARN emitter) + audit.py::check_boot_byte_budget (FAIL gate)
 
 # Multi-site expected code-site counts -- ADR-90 (resolver-allows-N), the #201 resolution. A rule
 # legitimately enforced in N `# rule:`-able code organs maps `rule-ID -> N` here; the resolver
@@ -91,6 +92,7 @@ multi_site:
   coherence-doc-rot: 2           # audit.py::check_doc_rot (adapter) + validate_doc_rot.py::scan (logic)
   coherence-doc-structure: 2     # audit.py::check_doc_structure (adapter) + validate_doc_structure.py::scan (logic)
   handoff-probes-bind: 2         # audit.py::check_handoff_probes (adapter) + verify_handoff_probes.py::verify (logic)
+  handoff-boot-budget: 2         # assemble_paste.py (WARN emitter) + audit.py::check_boot_byte_budget (FAIL gate) -- the [#446] split-site enforcement, both organs declared
 
 # Coverage drift-guard exempt-list -- #203. The ALL_CHECKS members that are NOT declared
 # doc->code behavioral rules and so owe no `# rule:` annotation: the structural/presence baseline

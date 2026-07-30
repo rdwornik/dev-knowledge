@@ -31,6 +31,7 @@ JOURNAL.md / BACKLOG.md (the operator prepends the printed draft at wrap).
 from __future__ import annotations
 
 import datetime as _dt
+import os
 import re
 import subprocess
 import sys
@@ -151,19 +152,142 @@ class _State:
 
 
 def _git(repo_root: Path, *args: str) -> str:
-    """Run a read-only git command; return stdout stripped, or "" on any error."""
+    """Run a read-only git command; return stdout stripped, or "" on any error.
+
+    Lossy by design for the STRUCTURAL callers (branch / dirty), which have a sane default
+    either way. Any caller that must distinguish "empty result" from "the command failed"
+    uses `_git_status` below — conflating those two is what silently disarmed RM-8."""
+    ok, out = _git_status(repo_root, *args)
+    return out if ok else ""
+
+
+# git's own repo-local env vars, scrubbed before any git call whose answer is about THIS repo.
+# An inherited GIT_DIR (a hook, a nested invocation) otherwise redirects the query to a FOREIGN
+# repo and the answer is silently about the wrong tree — the [#355] class, and exactly how the
+# RM-8 refusal was disarmed. Derived from git itself (never hand-listed: the first hand-written
+# version of the audit.py list omitted 8 of git's 15), cached, with a pinned fallback if git is
+# unavailable. Mirrors audit.py `_git_location_env`, the established precedent.
+_GIT_LOCATION_ENV_FALLBACK = (
+    "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX", "GIT_CONFIG", "GIT_CONFIG_COUNT",
+    "GIT_CONFIG_PARAMETERS", "GIT_GRAFT_FILE", "GIT_IMPLICIT_WORK_TREE",
+    "GIT_NO_REPLACE_OBJECTS", "GIT_REPLACE_REF_BASE", "GIT_SHALLOW_FILE",
+    "GIT_CEILING_DIRECTORIES", "GIT_NAMESPACE",
+)
+_GIT_LOCATION_ENV_CACHE: frozenset[str] | None = None
+
+
+def _git_location_env() -> frozenset[str]:
+    """git's own repo-local env-var names (+ the scoping extras). Queried once, cached."""
+    global _GIT_LOCATION_ENV_CACHE
+    if _GIT_LOCATION_ENV_CACHE is None:
+        names = set(_GIT_LOCATION_ENV_FALLBACK)
+        try:
+            p = subprocess.run(["git", "rev-parse", "--local-env-vars"], capture_output=True,
+                               text=True, timeout=30)
+            if p.returncode == 0:
+                names |= {ln.strip() for ln in p.stdout.split() if ln.strip()}
+        except (OSError, subprocess.SubprocessError):
+            pass
+        _GIT_LOCATION_ENV_CACHE = frozenset(names)
+    return _GIT_LOCATION_ENV_CACHE
+
+
+def _git_status(repo_root: Path, *args: str) -> tuple[bool, str]:
+    """Run a read-only git command in a SCRUBBED env; return `(ok, stdout-stripped)`.
+
+    `ok` is False when git is absent, errored, or timed out — so a caller can tell "the answer
+    is empty" from "there is no answer", which `_git` alone cannot. Wrapped (not inlined) so
+    tests can stub the failure mode."""
+    env = {k: v for k, v in os.environ.items() if k not in _git_location_env()}
     try:
         out = subprocess.run(["git", *args], cwd=str(repo_root), capture_output=True,
-                             text=True, timeout=30)
-        return out.stdout.strip() if out.returncode == 0 else ""
+                             text=True, timeout=30, env=env)
     except (OSError, subprocess.SubprocessError):
-        return ""
+        return (False, "")
+    return (out.returncode == 0, out.stdout.strip())
 
 
 def collect_state(repo_root: Path) -> _State:
     branch = _git(repo_root, "branch", "--show-current") or "(detached)"
     dirty = bool(_git(repo_root, "status", "--porcelain"))
     return _State(branch=branch, dirty=dirty)
+
+
+# --- RM-8 overwrite refusal (R5, [#446]) ------------------------------------
+
+class BundleCollisionError(RuntimeError):
+    """Generation refused: the target bundle directory already holds git-tracked files.
+
+    R5 (Option D, ruled 2026-07-31): the guarded target set is any bundle directory
+    containing GIT-TRACKED files — a committed bundle is an immutable artifact, so
+    re-rendering over it is a silent overwrite of shipped state. The refusal is the
+    DEFAULT; `--allow-suffix` is the explicit opt-in. Silent suffixing was rejected
+    because it converts today's collision into tomorrow's `_select_active_bundle`
+    ambiguous-FAIL (audit.py:1575)."""
+
+
+def _tracked_under(repo_root: Path, path: Path) -> list[str]:
+    """Repo-relative paths of GIT-TRACKED files under `path` ([] when none).
+
+    Raises `BundleCollisionError` when tracking status cannot be DETERMINED — see
+    `_resolve_bundle_dir`. Three outcomes, deliberately distinct (codex HIGH, 2026-07-31):
+
+      not a git repo      -> []      nothing can be tracked; generation proceeds
+      git answered, empty -> []      genuinely untracked; generation proceeds
+      git errored/absent  -> RAISE   status UNKNOWN; refusing beats guessing
+
+    The first draft returned [] for all three, so any git failure authorized the target and
+    an inherited bogus GIT_DIR silently disarmed the RM-8 refusal against a genuinely tracked
+    bundle ([#355]'s class). The env is now scrubbed via `_git_status`, so that redirection
+    cannot happen at all; this split is the belt to that braces."""
+    try:
+        rel = path.resolve().relative_to(repo_root.resolve()).as_posix()
+    except (ValueError, OSError):
+        return []                       # outside the repo -> git could not track it anyway
+    if not (repo_root / ".git").exists():
+        return []                       # not a git repo: a knowable, legitimate empty answer
+    ok, out = _git_status(repo_root, "ls-files", "--", rel)
+    if not ok:
+        raise BundleCollisionError(
+            f"refusing to generate into {path}: git could not report whether that directory "
+            f"holds tracked files, so its status could not be determined. An unknown status is "
+            f"not an empty one — proceeding could silently overwrite a committed bundle. Fix "
+            f"the git environment (an inherited GIT_DIR is the usual cause) and re-run."
+        )
+    return [ln for ln in out.splitlines() if ln.strip()]
+
+
+def _resolve_bundle_dir(repo_root: Path, bundle_root: Path, slug: str,
+                        allow_suffix: bool) -> Path:
+    """The directory this generation may write, or raise `BundleCollisionError` (R5).
+
+    Clean target (absent, or present-but-untracked — the in-flight bundle being
+    regenerated, the `--filled` reflow) -> returned unchanged, so re-rendering an
+    uncommitted bundle keeps working. Tracked target -> REFUSE by default; with
+    `allow_suffix` -> the first NONEXISTENT `-2`, `-3`, … sibling (the repo's own
+    witnessed convention, e.g. `2026-07-02-dev-knowledge-architect-2`).
+
+    The suffix scan tests EXISTENCE, not tracked-ness (codex HIGH, 2026-07-31). Scanning
+    for "no tracked files" selected an EXISTING directory holding untracked in-progress
+    work and then wrote into it — reproduced with real data loss. `--allow-suffix` promises
+    a NEW sibling, so nothing that already exists is selectable, tracked or not."""
+    target = bundle_root / slug
+    tracked = _tracked_under(repo_root, target)
+    if not tracked:
+        return target
+    if not allow_suffix:
+        raise BundleCollisionError(
+            f"refusing to generate into {target}: that bundle directory already holds "
+            f"{len(tracked)} git-tracked file(s) (e.g. {tracked[0]}). A committed bundle is "
+            f"an immutable artifact — re-rendering would silently overwrite shipped state. "
+            f"Pass a different --slug, or re-run with --allow-suffix to write a NEW sibling "
+            f"directory and leave {slug} untouched."
+        )
+    n = 2
+    while (bundle_root / f"{slug}-{n}").exists():
+        n += 1
+    return bundle_root / f"{slug}-{n}"
 
 
 def collect_hints(repo_root: Path) -> dict[str, str]:
@@ -392,12 +516,17 @@ class GenResult:
 def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str | None = None,
              repo: str | None = None, date: str | None = None, force_filled: bool | None = None,
              assemble: bool = True, bundle_root: Path | None = None,
-             epic_slug: str | None = None) -> GenResult:
+             epic_slug: str | None = None, allow_suffix: bool = False) -> GenResult:
     """Emit a v5 bundle from committed repo state. Returns the bundle dir + the JOURNAL draft.
 
     force_filled overrides the auto-detected fill-state (RF-2's `--filled`). bundle_root defaults
     to <repo_root>/docs/handoffs (overridable for tests). SUPPLEMENT.md is written only if absent
     (an operator-filled supplement is never clobbered).
+
+    RM-8 (R5, [#446]): generation REFUSES a target bundle directory that already holds
+    git-tracked files (`BundleCollisionError`, naming the directory and the escape hatch);
+    `allow_suffix=True` is the explicit opt-in that writes a fresh `-<n>` sibling instead.
+    An untracked target — the bundle being generated now — is written in place as before.
 
     mode="epic" (§14a, ADR-97) emits the epic-lane scope-contract bundle instead:
     EPIC_BOOT.md (root-authored FILL-IN contract scaffold) + PROBES.md (boundary-scoped
@@ -432,7 +561,11 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     date = date or _dt.date.today().isoformat()
     slug = slug or f"{date}-{repo.lstrip('.')}-{mode}"
     bundle_root = bundle_root or (repo_root / "docs" / "handoffs")
-    bundle_dir = bundle_root / slug
+    # RM-8 / R5: refuse a target that already holds git-tracked files (or, with the
+    # explicit opt-in, divert to a fresh sibling). `exist_ok=True` survives ONLY on the
+    # path this guard has cleared — the in-flight, not-yet-committed bundle — so the
+    # documented `--filled` re-render and the FILL-IN splice keep working.
+    bundle_dir = _resolve_bundle_dir(repo_root, bundle_root, slug, allow_suffix)
     bundle_dir.mkdir(parents=True, exist_ok=True)
 
     state = collect_state(repo_root)
@@ -504,17 +637,25 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
 @click.option("--filled/--cold", "force_filled", default=None,
               help="override the auto-detected supplement fill-state for the four framing sites")
 @click.option("--assemble/--no-assemble", default=True, help="run assemble_paste to emit PASTE_THIS.md")
+@click.option("--allow-suffix", is_flag=True, default=False,
+              help="RM-8 opt-in: when the target bundle dir already holds git-tracked files, "
+                   "write a NEW `-<n>` sibling instead of refusing (never overwrites)")
 @click.option("--emit-journal/--no-emit-journal", default=True,
               help="print the JOURNAL generation-entry DRAFT to stdout (never writes JOURNAL.md)")
 def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, date: str | None,
-         force_filled: bool | None, assemble: bool, emit_journal: bool) -> None:
+         force_filled: bool | None, assemble: bool, allow_suffix: bool, emit_journal: bool) -> None:
     """Generate a v5 handoff bundle from committed repo state."""
     state = collect_state(_REPO_ROOT)
     if state.dirty:
         click.echo("[warn] working tree is DIRTY — a v5 bundle is cut from COMMITTED state; "
                    "commit first or the probes bind to un-committed drift.", err=True)
-    res = generate(_REPO_ROOT, mode=mode, slug=slug, repo=repo, date=date, force_filled=force_filled,
-                   assemble=assemble, epic_slug=epic_slug)
+    try:
+        res = generate(_REPO_ROOT, mode=mode, slug=slug, repo=repo, date=date,
+                       force_filled=force_filled, assemble=assemble, epic_slug=epic_slug,
+                       allow_suffix=allow_suffix)
+    except BundleCollisionError as exc:
+        # RM-8: a REFUSAL, not a crash — one diagnostic line, non-zero exit, nothing written.
+        raise SystemExit(f"[error] {exc}") from exc
     click.echo(f"Generated bundle: {res.bundle_dir}  (fill-state: {'FILLED' if res.filled else 'cold'})")
     if emit_journal:
         click.echo("\n----- JOURNAL generation-entry DRAFT (prepend to JOURNAL.md at wrap; "

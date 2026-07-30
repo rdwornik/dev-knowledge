@@ -84,6 +84,13 @@ try:
 except ImportError:
     import verify_handoff_probes as _vhp
 
+# [#446] A10 item 2 / R4 — the boot byte budget lives ONCE, in the assembler that also warns
+# on it; this check reads the constant rather than re-declaring the number. Same shape.
+try:
+    from scripts import assemble_paste as _assemble_paste
+except ImportError:
+    import assemble_paste as _assemble_paste
+
 # Coherence-spine reconciliation checker — same module-import + thin-adapter shape.
 try:
     from scripts import validate_reconciliation as _vr
@@ -2951,6 +2958,45 @@ def check_task_tree_coherence(repo_path: Path) -> list[Finding]:
     return _task_tree_findings(problems)
 
 
+# rule: handoff-boot-budget
+def check_boot_byte_budget(repo_path: Path) -> list[Finding]:
+    """A10 item 2 / R4 ([#446]): `protocols/HANDOFF_BOOT.md` stays within its stated numeric
+    byte budget — 18,000 bytes, ruled 2026-07-31 (architect technical lane).
+
+    WHY A GATE AND NOT JUST A WARN (operator ruling 2026-07-31). Enforcement is split by
+    site: `assemble_paste.py` WARNs and still assembles, so an over-long boot stays
+    GENERATABLE; this check FAILs, so it stops being SHIPPABLE. The guarantee belongs in the
+    organ that blocks the merge — a warning nobody has to clear is how the 36.5 KB -> 59 KB
+    paste creep happened in the first place (the precedent that motivated a budget at all).
+
+    The budget VALUE is single-sourced from `assemble_paste.HANDOFF_BOOT_BYTE_BUDGET`, never
+    re-declared here: two organs enforcing the same rule against two different numbers is the
+    drift this pairing exists to prevent. Scope is the boot file ALONE — the per-bundle
+    session header is explicitly NOT governed by it (R4), and the assembled `PASTE_THIS.md`
+    keeps its own separate `_SIZE_WARN_BYTES` budget.
+
+    Portable: every repo with a `protocols/HANDOFF_BOOT.md` is measured. Absent file -> n/a
+    (a consumer that has not adopted the browser boot is not in breach). Read-only.
+    """
+    boot = Path(repo_path) / "protocols" / "HANDOFF_BOOT.md"
+    if not boot.exists():
+        return [Finding("boot_byte_budget", "n/a",
+                        "no protocols/HANDOFF_BOOT.md — repo has not adopted the browser boot")]
+    try:
+        size = len(boot.read_bytes())
+    except OSError as exc:
+        return [Finding("boot_byte_budget", "warn",
+                        f"could not read protocols/HANDOFF_BOOT.md: {exc!r}".replace("|", "/"))]
+    budget = _assemble_paste.HANDOFF_BOOT_BYTE_BUDGET
+    if size > budget:
+        return [Finding("boot_byte_budget", "fail",
+                        f"protocols/HANDOFF_BOOT.md is {size} bytes, over its {budget}-byte "
+                        f"budget by {size - budget} — trim the browser role file "
+                        f"(A10 item 2 / R4)")]
+    return [Finding("boot_byte_budget", "pass",
+                    f"protocols/HANDOFF_BOOT.md is {size} bytes, within its {budget}-byte budget")]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -2987,6 +3033,7 @@ ALL_CHECKS = [
     check_routine_consumers,   # [#419]/ADR-105 activation gate; scope = marked rows only
     check_silent_rule_ratchet,   # [#436] D4 ratchet — gates GROWTH of the silent-rule pool
     check_task_tree_coherence,   # [#433] C1 — arms gen_task_tree --check as a gate
+    check_boot_byte_budget,   # [#446] A10 item 2 / R4 — the gate half of the split enforcement
 ]
 
 

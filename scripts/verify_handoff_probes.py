@@ -40,6 +40,7 @@ FAIL to a gating Finding so /ship blocks; anchor-missing / skipped -> WARN.
 
 from __future__ import annotations
 
+import argparse
 import os
 import re
 import shutil
@@ -51,7 +52,46 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
 
 # A repo-relative file path token: optional dir segments + a name with a known ext.
-_FILE_RE = re.compile(r"(?:[\w.-]+/)*[\w-]+\.(?:py|md|ya?ml|toml|json|sh|ps1)")
+#
+# The final segment may carry a LEADING DOT ([#421] v1, absorbed into [#446] as R7 v1), so a
+# repo-root dotfile binds instead of losing its dot (`.pre-commit-config.yaml` used to tokenize
+# as `pre-commit-config.yaml`, which resolves to nothing). A NESTED dotfile already bound —
+# only the final segment was affected, because the dir group already admits `.`.
+#
+# TWO boundaries are needed, and the first draft shipped only the inner one (codex HIGH,
+# 2026-07-31 — F4):
+#
+#   `(?<![\w.\-/\\:])`  WHOLE-TOKEN start. A repo-relative path cannot begin mid-token, nor
+#                       after a path separator or a drive colon. Without it the dot-guard
+#                       merely shifted the match one character right, so `/.methodology.yaml`,
+#                       `https://host/.methodology.yaml` and `../.methodology.yaml` still
+#                       produced tokens whose unique-basename fallback bound them to the
+#                       repo-root file — a false PASS on an ABSOLUTE, URL, or repo-ESCAPING
+#                       locator, where the pre-[#446] regex produced a miss (FAIL, teeth kept).
+#   `(?<![\w.-])\.`     the leading dot itself, so a repo-ROOT dotfile binds (R7 v1).
+#
+# A `..` segment deliberately STILL tokenizes: an escaping locator has to be SEEN to be FAILed.
+# Suppressing it here would turn a "missing source/target" FAIL into a silent PASS (the row
+# would carry no token at all) — teeth loss, caught by
+# test_resolve_rejects_path_escaping_repo_root. Escapes are refused in `_resolve_path` instead.
+#
+# Two DELIBERATE narrowings fall out, both removing mis-parses rather than real bindings:
+# `a.audit.py` no longer yields `audit.py`, and `deploy/manifest-v1.4.0.yaml` no longer yields
+# the garbage token `0.yaml` (which never resolved). Every legitimate shape — repo-root and
+# nested dotfiles, `.claude/…`, command spans, multi-span rows — tokenizes unchanged; verified
+# across 18 shapes by tests/test_verify_handoff_probes.py::test_file_tokens_* .
+_FILE_RE = re.compile(
+    r"(?<![\w.\-/\\:])(?:[\w.-]+/)*(?:(?<![\w.-])\.)?[\w-]+\.(?:py|md|ya?ml|toml|json|sh|ps1)"
+)
+
+# A token carrying a `..` path segment is NOT a clean repo-relative path, so it may not use the
+# unique-basename fallback in `_resolve_path` (F4). The literal path is already blocked by
+# containment; without this guard the fallback walked around that block and bound `../<file>`
+# to the same-named file at the repo root — a false PASS on an explicit escape. Pre-existing
+# for uniquely-basenamed files and merely widened to dotfiles by R7 v1, so closing it here
+# fixes both. A token that NORMALIZES back inside the repo (`x/../VISION.md`) still resolves
+# via the literal path, which is correct: containment holds, and it names a real in-repo file.
+_UNCLEAN_SEGMENT_RE = re.compile(r"(?:^|/)\.\.(?:/|$)")
 
 # The four load-bearing columns a well-formed probe row must carry (non-empty).
 _LOAD_BEARING = ("question", "source", "why", "command")
@@ -128,9 +168,19 @@ def file_tokens(text: str) -> list[str]:
     return _FILE_RE.findall(text)
 
 
+# A markdown header ATX-opens with 1-6 `#` followed by whitespace ("## Vision"). A bare
+# `#<digits>` is a TICKET ID, not an anchor ([#421] v2, absorbed into [#446] as R7 v2): the
+# old `startswith("#")` test made a backticked `#421` tokenize as an anchor to resolve, so a
+# row that merely CITED a ticket earned a spurious `anchor-missing` WARN.
+_HEADER_RE = re.compile(r"^#{1,6}\s")
+
+
 def header_tokens(text: str) -> list[str]:
-    """Backtick spans that are markdown headers (`## …`) — the anchors to resolve."""
-    return [s for s in backtick_spans(text) if s.startswith("#")]
+    """Backtick spans that are markdown headers (`## …`) — the anchors to resolve.
+
+    A span is a header only when it ATX-opens (`#`x1-6 + whitespace); `#421` / `#446` are
+    ticket ids and never tokenize (R7 v2)."""
+    return [s for s in backtick_spans(text) if _HEADER_RE.match(s)]
 
 
 def lead_exe(command: str) -> str:
@@ -277,10 +327,16 @@ def _resolve_path(repo_root: Path, rel: str) -> Path | None:
     in repo_root, is-a-file, not under an excluded tree (`_within_repo_file`) — so a probe
     cannot bind to a file outside the repo (`../x.md`), a non-file, or a duplicate under
     .git/.claude/node_modules/archive*/aborted/in-progress, even by naming it directly.
-    Zero matches (a real miss) or >1 (genuinely ambiguous) -> None: teeth preserved."""
+    Zero matches (a real miss) or >1 (genuinely ambiguous) -> None: teeth preserved.
+
+    The fallback is refused for a token carrying a `..` segment (F4): containment already
+    blocks its literal path, and letting the basename fallback resolve it anyway would bind an
+    explicit repo-escape to the same-named file at the root — a false PASS."""
     direct = _within_repo_file(repo_root, repo_root / rel)
     if direct is not None:
         return direct
+    if _UNCLEAN_SEGMENT_RE.search(rel):
+        return None
     hits = [m for m in _basename_matches(repo_root, Path(rel).name)
             if _within_repo_file(repo_root, m) is not None]
     return hits[0] if len(hits) == 1 else None
@@ -434,14 +490,45 @@ def format_findings(results: list[ProbeResult]) -> str:
 
 
 def main(argv=None) -> int:
-    """Standalone CLI: `python scripts/verify_handoff_probes.py <bundle-dir>`.
-    Prints per-probe status; exits 1 if any probe FAILs, else 0."""
+    """Standalone CLI: `python scripts/verify_handoff_probes.py <bundle-dir>
+    [--repo-root PATH] [--cross-repo]`.
+
+    Prints per-probe status; returns 1 if any probe FAILs, 0 otherwise, 2 on a usage error.
+
+    R6 ([#446]) maps `verify()`'s two existing parameters onto the CLI. `--repo-root PATH`
+    resolves probe targets against a different root; `--cross-repo` marks a bundle whose
+    probes bind to a DIFFERENT (target) repo. `--cross-repo` WITHOUT `--repo-root` is a HARD
+    ERROR (return 2), never a silent root inference — inferring the root is exactly the
+    original false-FAIL class this flag pair exists to prevent.
+
+    Errors RETURN a code rather than raising SystemExit, so the callable is testable and the
+    audit adapter can never be killed by a usage mistake."""
     argv = sys.argv[1:] if argv is None else argv
-    if not argv:
-        print("usage: python scripts/verify_handoff_probes.py <bundle-dir>", file=sys.stderr)
+    parser = argparse.ArgumentParser(
+        prog="verify_handoff_probes.py",
+        description="Structurally verify that every probe in a v5 bundle's PROBES.md binds "
+                    "to live state (resolve-only; never executes a probe command).")
+    parser.add_argument("bundle_dir", help="the handoff bundle directory to verify")
+    parser.add_argument("--repo-root", default=None, metavar="PATH",
+                        help="resolve probe targets against this root (default: the repo "
+                             "containing the bundle)")
+    parser.add_argument("--cross-repo", action="store_true",
+                        help="the bundle's probes bind to a DIFFERENT (target) repo; requires "
+                             "--repo-root")
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit as exc:       # argparse exits on a usage error / -h; we RETURN instead
+        return int(exc.code or 0)
+    if args.cross_repo and args.repo_root is None:
+        print("error: --cross-repo requires --repo-root PATH (the TARGET repo root). "
+              "Refusing to infer a root: a silent inference reproduces the false-FAIL class "
+              "this flag pair exists to prevent.", file=sys.stderr)
         return 2
-    bundle = Path(argv[0])
-    results = verify(bundle)
+    bundle = Path(args.bundle_dir)
+    if args.repo_root is None and not args.cross_repo:
+        results = verify(bundle)
+    else:
+        results = verify(bundle, repo_root=args.repo_root, cross_repo=args.cross_repo)
     if not results:
         print(f"verify_handoff_probes: no probes found in {bundle}")
         return 0

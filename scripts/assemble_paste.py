@@ -31,6 +31,18 @@ _SECTION_SEP = "\n\n---\n\n"
 # bundle. A WARN, not a gate — assembly still succeeds. Tunable.
 _SIZE_WARN_BYTES = 65_000
 
+# A10 item 2 / R4 ([#446]): the stated numeric byte budget for the browser role file
+# `protocols/HANDOFF_BOOT.md` — 18,000 bytes, ruled 2026-07-31 (architect technical lane;
+# recorded as amendment A1 on docs/audits/2026-07-31-technical-v6-open-rulings.md). Live boot
+# was 16,156 B when the number was ruled, so the budget is ~11% headroom over a MEASURED file,
+# not an invented ceiling. The per-bundle session header is NOT governed by it.
+#
+# ENFORCEMENT IS SPLIT BY SITE (operator ruling 2026-07-31): this emitter WARNs and assembly
+# still succeeds; `audit.py::check_boot_byte_budget` FAILs, so the ship-gate REDs and the merge
+# blocks. The guarantee lives in the gate that blocks the merge, not in the emitter — a
+# blocking assembler would make an over-long boot un-generatable rather than un-shippable.
+HANDOFF_BOOT_BYTE_BUDGET = 18_000
+
 # Intake #18 A8: ruling-bearing markers in a folded ANSWERS region. A ruling stranded in a
 # consumed transient is promotion debt (BW-h) — surfaced at the exact beat the transient is
 # consumed. Advisory only; never blocks the fold.
@@ -149,7 +161,20 @@ def main(bundle_dir: Path) -> None:
         if not path.exists():
             click.echo(f"[error] Required source missing: {path}", err=True)
             sys.exit(1)
-        sections.append((label, path.read_text(encoding="utf-8").rstrip()))
+        text = path.read_text(encoding="utf-8")
+        # rule: handoff-boot-budget
+        # A10 item 2 / R4: the browser role file carries a stated numeric byte budget. WARN
+        # here (assembly proceeds); audit.py::check_boot_byte_budget is the FAIL-class organ
+        # that actually blocks the merge. Measured on the SOURCE file, not the assembled
+        # paste — PASTE_THIS has its own separate _SIZE_WARN_BYTES budget above.
+        if label == "protocols/HANDOFF_BOOT.md":
+            boot_bytes = len(text.encode("utf-8"))
+            if boot_bytes > HANDOFF_BOOT_BYTE_BUDGET:
+                click.echo(f"[warn] protocols/HANDOFF_BOOT.md is {boot_bytes} bytes "
+                           f"(> budget {HANDOFF_BOOT_BYTE_BUDGET}) — trim the browser role file; "
+                           "audit.py check_boot_byte_budget FAILs the ship-gate on this "
+                           "(A10 item 2 / R4)", err=True)
+        sections.append((label, text.rstrip()))
 
     # 4. SUPPLEMENT.md — the architect strategic supplement (an always-generated fillable
     #    file). Fold ONLY its filled-in ANSWERS region, and ONLY when non-empty: the

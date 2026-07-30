@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import subprocess
 import sys
 
 import pytest
@@ -30,6 +31,7 @@ _STUB_FILES = {
     "scripts/validate_git_backlog.py": "x\n",
     "scripts/validate_doc_claims.py": "x\n",
     "scripts/validate_backlog.py": "x\n",
+    "scripts/gen_task_tree.py": "x\n",     # P0a's currency assertion target (R2, [#446])
     "BACKLOG.md": "x\n",
     "protocols/HANDOFF_PROCESS.md": "# H\n\nno per-bundle README\n",
     "ecosystem/doc-counts.md": "- tests: **1 collected**\n",
@@ -69,7 +71,7 @@ def test_dogfood_no_probe_row_carries_an_answer_value(tmp_path):
     # ANTI-BLUFF BY CONSTRUCTION: no generated probe ROW may print an `expected:` answer hint
     # (the exact RF-1 regression). Re-runs every generation, so the property cannot silently rot.
     rows = _rows(_gen(tmp_path).bundle_dir)
-    assert len(rows) == 11  # P1a/P1b + P2..P10 (P10 = BACKLOG grooming, operator ruling 2026-07-17)
+    assert len(rows) == 14  # 11 -> 14: P0a/P0b/P0c standing-topic legs added (R2 / [#446], 2026-07-31); P1a/P1b + P2..P10 (P10 = BACKLOG grooming, operator ruling 2026-07-17)
     hits = [(r["id"], c) for r in rows for c in ("question", "source", "why", "command")
             if re.search(r"expected[ :]", r[c], re.IGNORECASE)]
     assert hits == [], f"generated probe rows carry answer hints: {hits}"
@@ -81,7 +83,7 @@ def test_dogfood_generated_bundle_has_no_failing_probe(tmp_path):
     # `fail`; a fail would mean a toothless/malformed/missing-source generated row.)
     res = _gen(tmp_path)
     results = vhp.verify(res.bundle_dir, repo_root=res.bundle_dir.parents[2])
-    assert len(results) == 11  # P1a/P1b + P2..P10 (P10 = BACKLOG grooming, operator ruling 2026-07-17)
+    assert len(results) == 14  # 11 -> 14: P0a/P0b/P0c standing-topic legs added (R2 / [#446], 2026-07-31); P1a/P1b + P2..P10 (P10 = BACKLOG grooming, operator ruling 2026-07-17)
     fails = [(r.probe_id, r.detail) for r in results if r.status == "fail"]
     assert fails == [], f"generated bundle has failing probes: {fails}"
 
@@ -426,3 +428,133 @@ def test_chat_title_row_in_epic_header_uses_epic_slug(tmp_path):
     boot = (b / "EPIC_BOOT.md").read_text(encoding="utf-8")
     assert "[dev-knowledge] Developer 164-handoff-generator EPIC 164 · SEQ 1" in boot
     assert "{{" not in boot
+
+
+# --- RM-8 overwrite refusal (R5 / [#446]) ----------------------------------------
+# The REFUSAL itself is pinned by the frozen contract (tests/test_v6_frozen_contract.py
+# ::test_fr5_*). These cover the halves the freeze does not: the fail-OPEN degrade
+# contract, the sanctioned in-place re-render, and the suffix-naming rule.
+
+def _git_init_commit(repo, msg="seed"):
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+    for args in (["init", "-q"], ["add", "-A"], ["commit", "-qm", msg]):
+        subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True, env=env)
+
+
+def test_untracked_bundle_dir_is_still_rendered_in_place(tmp_path):
+    """The sanctioned re-render path: a bundle dir that exists but holds NO tracked file is
+    the bundle being generated right now (or a `--filled` reflow), so RM-8 must NOT refuse it.
+    This is why `exist_ok=True` survives behind the guard rather than being deleted."""
+    repo = _stub_repo(tmp_path)
+    _git_init_commit(repo)                      # commits the stub files only...
+    slug = "0000-00-00-inflight"
+    bundle = repo / "docs" / "handoffs" / slug
+    bundle.mkdir(parents=True)                  # ...the bundle appears AFTER, so it is untracked
+    (bundle / "RESIDUAL.md").write_text("in-flight, uncommitted\n", encoding="utf-8")
+    assert gh._tracked_under(repo, bundle) == []
+    res = gh.generate(repo, mode="architect", slug=slug, repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    assert res.bundle_dir == bundle             # in place: no refusal, no suffix
+
+
+def test_refusal_survives_an_inherited_git_dir(tmp_path, monkeypatch):
+    """REGRESSION (codex HIGH, 2026-07-31): `_git` returned "" for BOTH "no tracked files" and
+    "git failed", so any git error authorized the target — an inherited bogus GIT_DIR silently
+    DISARMED the RM-8 refusal against a genuinely tracked bundle ([#355]'s class, reproduced).
+
+    Two fixes are asserted together: the git-location env is SCRUBBED (so an inherited GIT_DIR
+    cannot redirect the query at all), and tracking-status-unknown is no longer conflated with
+    nothing-tracked. Either alone leaves a hole."""
+    repo = _stub_repo(tmp_path)
+    slug = "0000-00-00-inherited"
+    bundle = repo / "docs" / "handoffs" / slug
+    bundle.mkdir(parents=True)
+    (bundle / "RESIDUAL.md").write_text("committed\n", encoding="utf-8")
+    _git_init_commit(repo)                         # the bundle IS tracked
+    monkeypatch.setenv("GIT_DIR", str(tmp_path / "nonexistent.git"))
+
+    assert gh._tracked_under(repo, bundle), "scrubbed env must still see the tracked file"
+    with pytest.raises(gh.BundleCollisionError):
+        gh.generate(repo, mode="architect", slug=slug, repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=repo / "docs" / "handoffs")
+
+
+def test_refusal_when_tracking_status_is_unknown(tmp_path, monkeypatch):
+    """A git that is PRESENT but ERRORS leaves tracking status UNKNOWN — distinct from "not a
+    git repo". Unknown refuses (conservative: an existing target may be a committed bundle);
+    not-a-repo proceeds (nothing can be tracked). Conflating the two is what F3 was."""
+    repo = _stub_repo(tmp_path)
+    slug = "0000-00-00-unknown"
+    bundle = repo / "docs" / "handoffs" / slug
+    bundle.mkdir(parents=True)
+    (bundle / "RESIDUAL.md").write_text("prior\n", encoding="utf-8")
+    _git_init_commit(repo)
+    monkeypatch.setattr(gh, "_git_status", lambda *a, **k: (None, "boom"))
+    with pytest.raises(gh.BundleCollisionError) as exc:
+        gh.generate(repo, mode="architect", slug=slug, repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=repo / "docs" / "handoffs")
+    assert "could not be determined" in str(exc.value)
+
+
+def test_refusal_degrades_open_without_git(tmp_path):
+    """Fail-OPEN degrade contract (stated at `_tracked_under`): no git repo -> nothing is
+    tracked -> generation proceeds. A generator that cannot reach git must not refuse to
+    generate; `_stub_repo` is never `git init`ed, which is exactly that environment."""
+    repo = _stub_repo(tmp_path)
+    slug = "0000-00-00-nogit"
+    bundle = repo / "docs" / "handoffs" / slug
+    bundle.mkdir(parents=True)
+    (bundle / "RESIDUAL.md").write_text("prior\n", encoding="utf-8")
+    assert gh._tracked_under(repo, bundle) == []
+    res = gh.generate(repo, mode="architect", slug=slug, repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    assert res.bundle_dir == bundle
+
+
+def test_allow_suffix_never_selects_an_existing_dir(tmp_path):
+    """REGRESSION (codex HIGH, 2026-07-31): suffix selection accepted the first sibling with no
+    TRACKED files — so an EXISTING dir holding untracked in-progress work was selected and then
+    written into, destroying it. Reproduced with real data loss before this test existed.
+
+    The contract the CLI already promised ("write a NEW `-<n>` sibling") is now the contract the
+    code keeps: only a NONEXISTENT directory is selectable. Tracked-ness is not the test —
+    existence is; an untracked in-progress bundle is exactly the thing worth not clobbering."""
+    repo = _stub_repo(tmp_path)
+    slug = "0000-00-00-collide"
+    root = repo / "docs" / "handoffs"
+    (root / slug).mkdir(parents=True)
+    (root / slug / "RESIDUAL.md").write_text(f"committed {slug}\n", encoding="utf-8")
+    _git_init_commit(repo)                       # slug is TRACKED -> collision
+    # -2 exists and is UNTRACKED: in-progress work, invisible to `git ls-files`
+    (root / f"{slug}-2").mkdir()
+    sentinel = "IN-PROGRESS UNTRACKED WORK — MUST SURVIVE\n"
+    (root / f"{slug}-2" / "RESIDUAL.md").write_text(sentinel, encoding="utf-8")
+
+    res = gh.generate(repo, mode="architect", slug=slug, repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=root, allow_suffix=True, assemble=False)
+
+    assert res.bundle_dir == root / f"{slug}-3", \
+        f"selected {res.bundle_dir.name}; an EXISTING dir is never selectable"
+    assert (root / f"{slug}-2" / "RESIDUAL.md").read_text(encoding="utf-8") == sentinel, \
+        "the untracked in-progress bundle was clobbered"
+    assert (root / slug / "RESIDUAL.md").read_text(encoding="utf-8") == f"committed {slug}\n"
+
+
+def test_allow_suffix_picks_the_next_free_sibling(tmp_path):
+    """`--allow-suffix` writes `-2`, then `-3` when `-2` already exists — the repo's own
+    witnessed convention (`2026-07-02-dev-knowledge-architect-2`). Here both colliders are
+    TRACKED; the sibling case where `-2` exists but is UNTRACKED is the regression above."""
+    repo = _stub_repo(tmp_path)
+    slug = "0000-00-00-collide"
+    root = repo / "docs" / "handoffs"
+    for name in (slug, f"{slug}-2"):
+        (root / name).mkdir(parents=True)
+        (root / name / "RESIDUAL.md").write_text(f"committed {name}\n", encoding="utf-8")
+    _git_init_commit(repo)                      # both are now TRACKED
+    res = gh.generate(repo, mode="architect", slug=slug, repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=root, allow_suffix=True, assemble=False)
+    assert res.bundle_dir == root / f"{slug}-3"
+    # neither collider was touched
+    assert (root / slug / "RESIDUAL.md").read_text(encoding="utf-8") == f"committed {slug}\n"
+    assert (root / f"{slug}-2" / "RESIDUAL.md").read_text(encoding="utf-8") == f"committed {slug}-2\n"

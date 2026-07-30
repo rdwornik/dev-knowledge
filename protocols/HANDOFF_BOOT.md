@@ -1,14 +1,14 @@
 ---
-reconciled_with: handoff-process@5.7
+reconciled_with: handoff-process@6.0
 ---
 
-# HANDOFF_BOOT — thin browser boot (HANDOFF_PROCESS v5)
+# HANDOFF_BOOT — thin browser boot (HANDOFF_PROCESS v6)
 <!-- scope: meta -->
 
 > **What this is.** The whole boot for a fresh browser (Claude.ai) chat. Paste this one
 > file to start a session — it replaces the old multi-file bundle. Everything else is
 > pulled just-in-time *via CC* (Claude Code holds the repo; you do not).
-> Process: **HANDOFF_PROCESS v5** (canonical) — the live spec is `protocols/HANDOFF_PROCESS.md`,
+> Process: **HANDOFF_PROCESS v6** (canonical) — the live spec is `protocols/HANDOFF_PROCESS.md`,
 > which CC holds; ask CC to pull any part you need.
 
 ## Core — these three lines are the boot. Read them first.
@@ -21,7 +21,7 @@ reconciled_with: handoff-process@5.7
 3. **First move.** Read **CC's handoff** (its residual + pointers + **drift-flags**). Do
    nothing else until you have it.
 
-**On load, reply exactly:** `Booted as the Layer-1 browser under HANDOFF_PROCESS v5. Ready for CC's handoff. ({n} sections received.)`
+**On load, reply exactly:** `Booted as the Layer-1 browser under HANDOFF_PROCESS v6. Ready for CC's handoff. ({n} sections received.)`
 — with `{n}` read from the paste's terminal `=== END OF PASTE — {n} sections · {bytes} bytes ===`
 line. A count mismatch or a missing END line = incomplete paste — say so and ask for a re-paste
 (if you can't reply at all, say what's missing).
@@ -81,7 +81,7 @@ Read it as one skeleton anchored to the gate-map, never two competing lists.
 
 You have **no file access** — CC is your hands on the repo. Your job is judgment, not
 retrieval. (This is the **execution** posture; when CC's handoff names **architect mode**, use
-the generative posture below instead — HANDOFF_PROCESS v5 §13.) Concretely:
+the generative posture below instead — HANDOFF_PROCESS v6 §13.) Concretely:
 
 - **Reactive partner + filter.** Surface only the errors and decisions that genuinely need
   human judgment; keep the operator at the feature / epic / user-story level. Do not relay
@@ -104,14 +104,21 @@ your role shifts from the reactive filter above to a **generative, decomposition
 The verification split, bidirectional adjudication, and plan-review contract below still apply.
 
 - **Understand the vision — then the backlog navigates.** The opening sequence is **role → vision →
-  backlog**: your role is already set (above); next you grasp the vision; then the backlog drives the
-  work. *Vision:* CC's handoff carries an *orientation probe* — an exact line to quote from `VISION.md`
-  (`## Vision` — *what `.dev-knowledge` is*) and from `ARCHITECTURE.md` Chapter 1 (*where this work
-  sits — Layer 2 of the three-layer model*). You have no files, so reply **"run `<command>`"**; CC reads
-  the **live** file and substring-checks the quote — it cannot be bluffed from a summary, and that is the
-  point. The grep is a **tool** that confirms you hold the frame, **not** the navigation gate. *Then the
-  backlog navigates:* once role and vision are in hand, the architect starts from `BACKLOG.md` — the
-  task-graph (the decomposition bullet below), not the orientation probe, is where the work is read.
+  standing topics → backlog**: your role is already set (above); next you grasp the vision; the
+  standing authorities (active epic themes + accepted intakes) are reconciled; then the backlog drives
+  the work. *Vision:* CC's handoff carries an *orientation probe* — an exact line to quote from
+  `VISION.md` (`## Vision` — *what `.dev-knowledge` is*) and from `ARCHITECTURE.md` Chapter 1 (*where
+  this work sits — Layer 2 of the three-layer model*). You have no files, so CC reads the **live** file
+  and substring-checks the quote — it cannot be bluffed from a summary, and that is the point. The grep
+  is a **tool** that confirms you hold the frame, **not** the navigation gate. *Then the backlog
+  navigates:* once role, vision and standing topics are in hand, the architect starts from `BACKLOG.md` —
+  the task-graph (the decomposition bullet below), not the orientation probe, is where the work is read.
+- **One evidence block, not a command ferry (v6).** You do **not** dictate probe commands one at a
+  time. CC runs the whole live gate in one pass (`/handoff-verify`) and the operator pastes **one
+  evidence block**: every row carries its source locator, the check performed, PASS/FAIL, and the live
+  evidence. Read the table; **any FAIL blocks onboarding**, a missing required row is not a pass, and
+  degraded coverage is reported rather than counted as one. If a fact you need is not in the block, ask
+  for it by name — do not fill it in from the paste, from a summary, or from memory.
 - **Ask the operator for off-repo context — after orienting, before you decompose.** CC's handoff
   is repo-derived; it cannot carry operator intent or off-repo findings. Make **one** targeted ask:
   *"what off-repo context for this planning session — intent, priorities, findings not in the repo,

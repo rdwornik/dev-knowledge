@@ -1,5 +1,5 @@
 ---
-description: Generate or complete a handoff per HANDOFF_PROCESS.md v5 — CC-owned residual + thin browser boot
+description: Generate or complete a handoff per HANDOFF_PROCESS.md v6 — CC-owned residual + thin browser boot
 ---
 
 Invoked by Rob saying one of:
@@ -9,7 +9,7 @@ Invoked by Rob saying one of:
 `<repo>` defaults to `.dev-knowledge` (self-handoff). A different repo name is a
 cross-repo handoff (read-only on the target — ADR-36/41).
 
-**Source of truth:** `protocols/HANDOFF_PROCESS.md` (v5, canonical). This skill is a dispatch
+**Source of truth:** `protocols/HANDOFF_PROCESS.md` (v6, canonical). This skill is a dispatch
 summary, not a substitute. Where they disagree, the spec wins — fix the divergence.
 
 ## Modes & exact invocation (operator copy-paste)
@@ -56,11 +56,13 @@ overrides the bundle folder (default `<date>-<repo>-<mode>`); `--repo` / `--date
 display name / date; `--no-assemble` skips `PASTE_THIS` (architect / execution). Consuming a
 generated bundle (booting the browser) is `docs/handoffs/README.md`.
 
-## v5 (canonical — default flow; HANDOFF_PROCESS v5 / ADR-82)
+## v5/v6 (canonical — default flow; HANDOFF_PROCESS v6 / ADR-82)
 
-HANDOFF_PROCESS **v5** is canonical at `protocols/HANDOFF_PROCESS.md` (CC-owned handoff,
+HANDOFF_PROCESS **v6** is canonical at `protocols/HANDOFF_PROCESS.md` (CC-owned handoff,
 thin browser boot, teeth-y forced read — model C) since the #149 flip (2026-06-11; v4.4
-archived to `protocols/archive/HANDOFF_PROCESS_v4.4.md`). v5 is the **default** flow.
+archived to `protocols/archive/HANDOFF_PROCESS_v4.4.md`). The v5 lineage is the **default** flow;
+**v6** (2026-07-31, [#446]) reshapes only the *transport*: one CC-side `/handoff-verify` run emits
+ONE evidence block the operator pastes once. Generation is unchanged and stays answer-free.
 
 > **v4 two-phase mechanics removed (#164 leg g).** The v5 generator (`scripts/gen_handoff.py`)
 > has replaced the old 8-file two-phase interview, so the hand-copied v4 `## Conventions` /
@@ -74,11 +76,11 @@ archived to `protocols/archive/HANDOFF_PROCESS_v4.4.md`). v5 is the **default** 
 **Self-updating — the #148(c) rule, applies to BOTH modes.** This command carries **no
 hand-copied process or methodology.** At handoff time it pulls live:
 - the **current process** — read the canonical spec header for version/status (never
-  hardcode); `protocols/HANDOFF_PROCESS.md` is the canonical v5 source of truth;
+  hardcode); `protocols/HANDOFF_PROCESS.md` is the canonical source of truth;
 - the **methodology** — as **pointers** to `PLAYBOOK` / `ESSENTIALS` / `CLAUDE.md`, never as
   copied prose (a hand-copy drifts — the `/review` vs `/codex review` class).
 
-**v5 behavior** (governed by `protocols/HANDOFF_PROCESS.md` — read it, don't restate
+**v5/v6 behavior** (governed by `protocols/HANDOFF_PROCESS.md` — read it, don't restate
 it here):
 - Emit the **residual** to `docs/handoffs/<slug>/` — un-committed reasoning + pointers +
   **drift-flags as the headline** (from `validate_doc_claims` #89 + `validate_git_backlog`
@@ -93,14 +95,14 @@ it here):
   re-narrated IDs.
 
 **Mode: `architect | execution`** (governed by `protocols/HANDOFF_PROCESS.md`
-§13 — read it, don't restate it here). v5 takes an optional mode parameter, default
+§13 — read it, don't restate it here). The generator takes an optional mode parameter, default
 `execution`, selecting the residual **profile** + browser **posture**. Parse it alongside the
 `v5` flag: `… v5` / `… v5 execution` → execution; `… v5 architect` → architect. Mode applies
-**only** in v5 mode — v4.4 has no modes. Three further generator flags exist
+**only** in the v5/v6 lineage — v4.4 has no modes. Three further generator flags exist
 (`scripts/gen_handoff.py`, not §13 residual profiles): `epic` (§14a scope-contract bundle),
 `developer` (additive alias of epic per ADR-98 — bundle header renders `epic` until the
 deferred naming flip), and `functional` (§16 one-file intake-capture boot, no probes).
-- **execution** — the four v5 emissions above, unchanged (lean residual + thin boot + probe
+- **execution** — the four emissions above, unchanged (lean residual + thin boot + probe
   manifest + pointer task-state); the browser gets the §7 reactive-filter role.
 - **architect** — re-profile the residual for a *planning* session: scope it to the planning
   "why" + the open architecture questions; task-state points at the **whole `BACKLOG.md` /
@@ -128,6 +130,17 @@ deferred naming flip), and `functional` (§16 one-file intake-capture boot, no p
   non-re-derivable *why* — never repo state / methodology / task-state — and you **never fabricate
   answers** (unanswered = committed empty). It is a **forward** brief, not the return leg above. Full
   mechanism + schema: `protocols/HANDOFF_PROCESS.md` §13 — read it, don't restate it here.
+- **Supplement ↔ the one-block boot ([#446] §B(b), v6).** The 6-question schema is **unchanged** by
+  the one-round-trip reshape, and it stays **outside** the evidence block: the supplement is the
+  operator's *forward* brief, filled **before** the next session boots, whereas the block is CC's
+  *check-time* output. What the reshape changes is how a folded answer is treated **on arrival**,
+  and the split is **narrow on purpose**: `/handoff-verify`'s `Inherited claims` row verifies only
+  a supplement answer that **asserts a repo-verifiable fact** (a count, a sha, a file's state, "X
+  landed") — those are checked CC-side against the live repo, and a contradicted one is a FAIL.
+  The supplement's *actual* payload — intent, tensions weighed, options rejected, off-repo context
+  — has **no live repo source by construction**, stays **advisory**, and is **never** failed for
+  being unverifiable. Verifying the unverifiable would make every filled supplement blocking,
+  which would invert the §13 contract that the supplement is advisory and never teeth.
 
 **Architect-mode completion output (lead-by-hand — keep it SHORT, not a dense dump).** When the
 architect bundle is ready, end with this concrete message (substitute `<slug>`):
@@ -147,7 +160,7 @@ Operator-gated, mine to run on your OK: push main; -d the merged stragglers
 
 The v4 two-phase 8-file interview mechanics that used to live here are **removed** (#164
 leg g) — see the blockquote under *v5 (canonical)* above. For the rare legacy **v4
-cross-repo** handoff (a v4 repo not yet on v5), do not re-derive the flow from memory:
+cross-repo** handoff (a v4 repo not yet on the v5/v6 lineage), do not re-derive the flow from memory:
 read the frozen spec and drive the retained templates directly.
 
 - **Spec (frozen):** `protocols/archive/HANDOFF_PROCESS_v4.4.md` — the full two-phase
@@ -157,5 +170,5 @@ read the frozen spec and drive the retained templates directly.
   (`docs/handoffs/README.md` "Format eras & navigation").
 
 Everything else (self-handoff, and every mode `architect | execution | epic | developer |
-functional`) is **v5** — governed by the sections above + `protocols/HANDOFF_PROCESS.md`.
+functional`) is **v6** — governed by the sections above + `protocols/HANDOFF_PROCESS.md`.
 
