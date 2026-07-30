@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2ef6dbf730d5ed46f20154e4ced9c00d7a2557359abcc4117b4c28d5b326b8ac",
+  "generated_sha256": "0952868d2d1264772a398f1f9f6ea5a3cbea8c1bcbb258f36ee14769d957b9e2",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -106,6 +106,10 @@
       "file": "422-reflow-framing-s-cold-filled-flip-is-partial-by.md"
     },
     {
+      "task": 449,
+      "file": "449-assembled-paste-byte-budget.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -190,6 +194,10 @@
       "file": "425-the-suite-is-green-on-a-format-the-file-does-not.md"
     },
     {
+      "task": 451,
+      "file": "451-ca-layer-edge-check-ai-council-precedent.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -229,6 +237,10 @@
     {
       "task": 296,
       "file": "296-audit-py-repo-name-repo-path-doesn-t-persist-its.md"
+    },
+    {
+      "task": 452,
+      "file": "452-433-382-dependency-is-prose-only.md"
     },
     {
       "prose": ""
@@ -507,6 +519,10 @@
     {
       "task": 23,
       "file": "23-validate-adr-frontmatter-relation-fields.md"
+    },
+    {
+      "task": 450,
+      "file": "450-per-section-intake-ratification.md"
     },
     {
       "prose": ""
