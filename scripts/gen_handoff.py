@@ -31,6 +31,7 @@ JOURNAL.md / BACKLOG.md (the operator prepends the printed draft at wrap).
 from __future__ import annotations
 
 import datetime as _dt
+import os
 import re
 import subprocess
 import sys
@@ -151,13 +152,60 @@ class _State:
 
 
 def _git(repo_root: Path, *args: str) -> str:
-    """Run a read-only git command; return stdout stripped, or "" on any error."""
+    """Run a read-only git command; return stdout stripped, or "" on any error.
+
+    Lossy by design for the STRUCTURAL callers (branch / dirty), which have a sane default
+    either way. Any caller that must distinguish "empty result" from "the command failed"
+    uses `_git_status` below — conflating those two is what silently disarmed RM-8."""
+    ok, out = _git_status(repo_root, *args)
+    return out if ok else ""
+
+
+# git's own repo-local env vars, scrubbed before any git call whose answer is about THIS repo.
+# An inherited GIT_DIR (a hook, a nested invocation) otherwise redirects the query to a FOREIGN
+# repo and the answer is silently about the wrong tree — the [#355] class, and exactly how the
+# RM-8 refusal was disarmed. Derived from git itself (never hand-listed: the first hand-written
+# version of the audit.py list omitted 8 of git's 15), cached, with a pinned fallback if git is
+# unavailable. Mirrors audit.py `_git_location_env`, the established precedent.
+_GIT_LOCATION_ENV_FALLBACK = (
+    "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX", "GIT_CONFIG", "GIT_CONFIG_COUNT",
+    "GIT_CONFIG_PARAMETERS", "GIT_GRAFT_FILE", "GIT_IMPLICIT_WORK_TREE",
+    "GIT_NO_REPLACE_OBJECTS", "GIT_REPLACE_REF_BASE", "GIT_SHALLOW_FILE",
+    "GIT_CEILING_DIRECTORIES", "GIT_NAMESPACE",
+)
+_GIT_LOCATION_ENV_CACHE: frozenset[str] | None = None
+
+
+def _git_location_env() -> frozenset[str]:
+    """git's own repo-local env-var names (+ the scoping extras). Queried once, cached."""
+    global _GIT_LOCATION_ENV_CACHE
+    if _GIT_LOCATION_ENV_CACHE is None:
+        names = set(_GIT_LOCATION_ENV_FALLBACK)
+        try:
+            p = subprocess.run(["git", "rev-parse", "--local-env-vars"], capture_output=True,
+                               text=True, timeout=30)
+            if p.returncode == 0:
+                names |= {ln.strip() for ln in p.stdout.split() if ln.strip()}
+        except (OSError, subprocess.SubprocessError):
+            pass
+        _GIT_LOCATION_ENV_CACHE = frozenset(names)
+    return _GIT_LOCATION_ENV_CACHE
+
+
+def _git_status(repo_root: Path, *args: str) -> tuple[bool, str]:
+    """Run a read-only git command in a SCRUBBED env; return `(ok, stdout-stripped)`.
+
+    `ok` is False when git is absent, errored, or timed out — so a caller can tell "the answer
+    is empty" from "there is no answer", which `_git` alone cannot. Wrapped (not inlined) so
+    tests can stub the failure mode."""
+    env = {k: v for k, v in os.environ.items() if k not in _git_location_env()}
     try:
         out = subprocess.run(["git", *args], cwd=str(repo_root), capture_output=True,
-                             text=True, timeout=30)
-        return out.stdout.strip() if out.returncode == 0 else ""
+                             text=True, timeout=30, env=env)
     except (OSError, subprocess.SubprocessError):
-        return ""
+        return (False, "")
+    return (out.returncode == 0, out.stdout.strip())
 
 
 def collect_state(repo_root: Path) -> _State:
@@ -182,19 +230,31 @@ class BundleCollisionError(RuntimeError):
 def _tracked_under(repo_root: Path, path: Path) -> list[str]:
     """Repo-relative paths of GIT-TRACKED files under `path` ([] when none).
 
-    Degrade contract (fail-OPEN, deliberate): git absent / errored / `path` outside the
-    repo -> [] -> generation proceeds, matching `collect_state`'s existing posture. A
-    generator that cannot reach git must not refuse to generate; the honest cost is that
-    the refusal is disarmed in exactly the environments where nothing is tracked anyway.
-    Known residual exposure (same class as `collect_state`, not introduced here): an
-    inherited GIT_DIR would resolve this against a FOREIGN repo — see audit.py
-    `_git_location_env` / [#355] for the scrub precedent if this ever needs hardening;
-    `generate()` is not invoked from a git hook, which is where that env leaks from."""
+    Raises `BundleCollisionError` when tracking status cannot be DETERMINED — see
+    `_resolve_bundle_dir`. Three outcomes, deliberately distinct (codex HIGH, 2026-07-31):
+
+      not a git repo      -> []      nothing can be tracked; generation proceeds
+      git answered, empty -> []      genuinely untracked; generation proceeds
+      git errored/absent  -> RAISE   status UNKNOWN; refusing beats guessing
+
+    The first draft returned [] for all three, so any git failure authorized the target and
+    an inherited bogus GIT_DIR silently disarmed the RM-8 refusal against a genuinely tracked
+    bundle ([#355]'s class). The env is now scrubbed via `_git_status`, so that redirection
+    cannot happen at all; this split is the belt to that braces."""
     try:
         rel = path.resolve().relative_to(repo_root.resolve()).as_posix()
     except (ValueError, OSError):
-        return []
-    out = _git(repo_root, "ls-files", "--", rel)
+        return []                       # outside the repo -> git could not track it anyway
+    if not (repo_root / ".git").exists():
+        return []                       # not a git repo: a knowable, legitimate empty answer
+    ok, out = _git_status(repo_root, "ls-files", "--", rel)
+    if not ok:
+        raise BundleCollisionError(
+            f"refusing to generate into {path}: git could not report whether that directory "
+            f"holds tracked files, so its status could not be determined. An unknown status is "
+            f"not an empty one — proceeding could silently overwrite a committed bundle. Fix "
+            f"the git environment (an inherited GIT_DIR is the usual cause) and re-run."
+        )
     return [ln for ln in out.splitlines() if ln.strip()]
 
 

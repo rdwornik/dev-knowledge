@@ -458,6 +458,45 @@ def test_untracked_bundle_dir_is_still_rendered_in_place(tmp_path):
     assert res.bundle_dir == bundle             # in place: no refusal, no suffix
 
 
+def test_refusal_survives_an_inherited_git_dir(tmp_path, monkeypatch):
+    """REGRESSION (codex HIGH, 2026-07-31): `_git` returned "" for BOTH "no tracked files" and
+    "git failed", so any git error authorized the target — an inherited bogus GIT_DIR silently
+    DISARMED the RM-8 refusal against a genuinely tracked bundle ([#355]'s class, reproduced).
+
+    Two fixes are asserted together: the git-location env is SCRUBBED (so an inherited GIT_DIR
+    cannot redirect the query at all), and tracking-status-unknown is no longer conflated with
+    nothing-tracked. Either alone leaves a hole."""
+    repo = _stub_repo(tmp_path)
+    slug = "0000-00-00-inherited"
+    bundle = repo / "docs" / "handoffs" / slug
+    bundle.mkdir(parents=True)
+    (bundle / "RESIDUAL.md").write_text("committed\n", encoding="utf-8")
+    _git_init_commit(repo)                         # the bundle IS tracked
+    monkeypatch.setenv("GIT_DIR", str(tmp_path / "nonexistent.git"))
+
+    assert gh._tracked_under(repo, bundle), "scrubbed env must still see the tracked file"
+    with pytest.raises(gh.BundleCollisionError):
+        gh.generate(repo, mode="architect", slug=slug, repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=repo / "docs" / "handoffs")
+
+
+def test_refusal_when_tracking_status_is_unknown(tmp_path, monkeypatch):
+    """A git that is PRESENT but ERRORS leaves tracking status UNKNOWN — distinct from "not a
+    git repo". Unknown refuses (conservative: an existing target may be a committed bundle);
+    not-a-repo proceeds (nothing can be tracked). Conflating the two is what F3 was."""
+    repo = _stub_repo(tmp_path)
+    slug = "0000-00-00-unknown"
+    bundle = repo / "docs" / "handoffs" / slug
+    bundle.mkdir(parents=True)
+    (bundle / "RESIDUAL.md").write_text("prior\n", encoding="utf-8")
+    _git_init_commit(repo)
+    monkeypatch.setattr(gh, "_git_status", lambda *a, **k: (None, "boom"))
+    with pytest.raises(gh.BundleCollisionError) as exc:
+        gh.generate(repo, mode="architect", slug=slug, repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=repo / "docs" / "handoffs")
+    assert "could not be determined" in str(exc.value)
+
+
 def test_refusal_degrades_open_without_git(tmp_path):
     """Fail-OPEN degrade contract (stated at `_tracked_under`): no git repo -> nothing is
     tracked -> generation proceeds. A generator that cannot reach git must not refuse to
