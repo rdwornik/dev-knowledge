@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-07-31 (c) — CC (Opus 5): [#446] FIX RELEASE — all 8 review findings + 2 rulings
+
+**Did:** released fixes for all 8 codex/terra findings, RED-first, one commit each, worst-first;
+landed the two operator rulings (R-§13c single execution order; R-P0c as appended amendment A2).
+
+**Result:** frozen module **9/9 GREEN** throughout — re-run after every code fix, never touched.
+Full suite **1986 passed / 3 skipped / 2 failed**, both the same PRE-EXISTING pair proven at HEAD
+by stashing (fleet_parity ai-council `conftest.py`; routine_consumers 2-rows-vs-1). ruff clean;
+ship-gate **GREEN** (15 WARN dispositioned) via git-bash; silent-rule pool **439** (≤ 441 baseline).
+
+**Two fixes exposed defects deeper than the finding.** (1) F4's first attempt suppressed `..` in
+the tokenizer, which made an escaping locator produce NO token — turning a missing-target FAIL
+into a silent PASS. That is teeth LOSS, the exact class F4 exists to prevent; the pre-existing
+`test_resolve_rejects_path_escaping_repo_root` caught it. The shipped fix keeps escapes VISIBLE
+and refuses them at RESOLUTION, which also closed the same hole for uniquely-basenamed
+NON-dotfiles — **pre-existing on main**, not introduced by R7 v1. (2) F2's root cause was using
+tracked-ness for both the collision test and the suffix scan; existence is the right predicate for
+the suffix, and the CLI had already promised it.
+
+**Two deliberate narrowings, declared:** `a.audit.py` no longer yields `audit.py`, and
+`deploy/manifest-v1.4.0.yaml` no longer yields the garbage token `0.yaml` — both mis-parses; no
+real binding lost. Negative controls updated with the reason rather than deleted.
+
+**Deploy witness re-run** against the live (pre-v6) bundle: the F6 exempt path fires — the four
+v6-only rows report `n/a — pre-v6 bundle, row not required` and the RESULT flips from
+**BLOCKED** to **CLEARED**. Era detected structurally (0 Destination rows, 0 P0a rows), not by date.
+
+**Changes:** `templates/handoff/v5/` both templates (ferry removed, P0c narrowed) ·
+`scripts/gen_handoff.py` (existence-based suffix; `_git_status` + scrubbed git-location env;
+unknown-status refusal) · `scripts/verify_handoff_probes.py` (whole-token boundary + fallback
+guard) · `.claude/commands/handoff{,-verify}.md` · `protocols/HANDOFF_PROCESS.md` (R-§13c) ·
+`docs/audits/…v6-open-rulings.md` (A2) · ARCHITECTURE / docs/handoffs/README labels · doc-counts.
+
+**Watch:** (1) BACKLOG still untouched — nothing closed; closure adjudication remains the
+architect's act. (2) A11 staged-diff guard still NOT built and still does not fit the 1197/1200
+row; proposed row text stands from the triage. (3) The F4 fallback guard changes behaviour for
+pre-existing escape-shaped locators fleet-wide — a strictly-more-teeth change, but a behaviour
+change worth knowing at merge.
+
+**SHA anchor:** `55b07712` (fix release `2bbad24b..55b07712`, 6 commits; arc `b2265946..`).
+
 ### 2026-07-31 (b) — CC (Opus 5): [#446] §13(c) seam ruled · codex review BOTH lanes · 8 findings triaged
 
 **Did:** (1) ruled the §13(c) seam left open at (a) — table order is the mechanical EMISSION
