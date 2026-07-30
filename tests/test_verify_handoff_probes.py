@@ -187,12 +187,57 @@ def test_file_tokens_leading_dot_is_additive_only():
         ("`python scripts/audit.py checks`", ["scripts/audit.py"]),
         ("`.claude/settings.json`", [".claude/settings.json"]),
         ("`grep x VISION.md` then `grep y sub/OTHER.md`", ["VISION.md", "sub/OTHER.md"]),
-        ("a.audit.py", ["audit.py"]),                      # negative control (bare \\.? -> [])
-        ("deploy/manifest-v1.4.0.yaml", ["0.yaml"]),       # negative control (bare \\.? -> [])
+        # NARROWED by F4 (codex HIGH, 2026-07-31): both used to yield a MIS-PARSE — `audit.py`
+        # extracted from the middle of `a.audit.py`, and the garbage token `0.yaml` that never
+        # resolved. The whole-token boundary that closes the prefixed-dotfile hole removes both.
+        # Declared here rather than silently dropped: no real binding is lost.
+        ("a.audit.py", []),
+        ("deploy/manifest-v1.4.0.yaml", []),
         ("`ALL_CHECKS` `**N collected**` live git", []),
         ("`docs/intake/*.md`", []),
     ):
         assert vhp.file_tokens(text) == want, text
+
+
+def test_file_tokens_reject_prefixed_dotfiles():
+    """REGRESSION (codex HIGH, 2026-07-31): the leading-dot lookbehind guarded only the DOT,
+    not the start of the whole token. So a dotfile behind an absolute / URL / escaping prefix
+    still tokenized, and `_resolve_path`'s unique-basename fallback then bound it to the
+    repo-root file — a false PASS where the old regex produced a miss (FAIL, teeth intact).
+
+    `../.methodology.yaml` is the sharp case: an explicit repo ESCAPE that resolved. The
+    containment guard in `_within_repo_file` blocks the literal path, but the basename
+    fallback walked around it. A repo-relative token cannot start with `/`, `../`, or a
+    host segment, so none of these may tokenize at all."""
+    repo = Path(vhp._REPO_ROOT)
+    # (a) Not a repo-relative path at all — absolute, URL, drive-qualified, backslash escape.
+    #     These may not tokenize: there is nothing here a probe could legitimately mean.
+    for text in ("/.methodology.yaml", "https://host/.methodology.yaml",
+                 "C:/x/.methodology.yaml", "..\\.methodology.yaml"):
+        assert vhp.file_tokens(text) == [], f"still tokenizes: {text}"
+    # (b) A `..` escape DOES tokenize on purpose — an escaping locator has to be SEEN to be
+    #     FAILed; suppressing the token would turn a missing-target FAIL into a silent PASS.
+    #     It is refused at RESOLUTION instead, which is the property that actually matters.
+    for text in ("../.methodology.yaml", "../scripts/gen_task_tree.py", "../outside.md"):
+        toks = vhp.file_tokens(text)
+        assert toks, f"escape must stay visible to the FAIL rung: {text}"
+        assert [t for t in toks if vhp._resolve_path(repo, t) is not None] == [], \
+            f"escape resolved via the basename fallback: {text} -> {toks}"
+
+
+def test_file_tokens_still_bind_legitimate_dotfiles():
+    """The F4 narrowing must not undo R7 v1: a repo-ROOT dotfile and a nested dotfile under a
+    normal relative dir still bind (the frozen FR7v1 contract), and every non-dotfile shape is
+    untouched."""
+    assert vhp.file_tokens("`.pre-commit-config.yaml`") == [".pre-commit-config.yaml"]
+    assert vhp.file_tokens("`.markdownlint.json`") == [".markdownlint.json"]
+    assert vhp.file_tokens("sub/.hidden.yaml") == ["sub/.hidden.yaml"]
+    assert vhp.file_tokens("`.claude/settings.json`") == [".claude/settings.json"]
+    assert vhp.file_tokens("`python scripts/audit.py checks`") == ["scripts/audit.py"]
+    # An ESCAPE still tokenizes on purpose — it has to be SEEN to be FAILed. It is refused at
+    # resolution instead (see _resolve_path / test_resolve_rejects_path_escaping_repo_root).
+    assert vhp.file_tokens("../outside.md") == ["../outside.md"]
+    assert vhp._resolve_path(Path(vhp._REPO_ROOT), "../outside.md") is None
 
 
 def test_header_tokens_only_picks_markdown_headers():

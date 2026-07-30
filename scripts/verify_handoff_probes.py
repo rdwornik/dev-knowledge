@@ -58,13 +58,40 @@ _REPO_ROOT = _SCRIPTS_DIR.parent
 # as `pre-commit-config.yaml`, which resolves to nothing). A NESTED dotfile already bound —
 # only the final segment was affected, because the dir group already admits `.`.
 #
-# The dot is admitted ONLY at a token boundary (`(?<![\w.-])`). A bare `\.?` would be a
-# REGRESSION, not a widening: it shifts `a.audit.py` from `audit.py` to nothing and
-# `deploy/manifest-v1.4.0.yaml` from `0.yaml` to nothing, because the optional dot greedily
-# starts the match one character early. With the lookbehind, every non-dotfile shape tokenizes
-# byte-identically to the pre-[#446] regex (verified across 15 shapes; see
-# tests/test_verify_handoff_probes.py::test_file_tokens_leading_dot_is_additive_only).
-_FILE_RE = re.compile(r"(?:[\w.-]+/)*(?:(?<![\w.-])\.)?[\w-]+\.(?:py|md|ya?ml|toml|json|sh|ps1)")
+# TWO boundaries are needed, and the first draft shipped only the inner one (codex HIGH,
+# 2026-07-31 — F4):
+#
+#   `(?<![\w.\-/\\:])`  WHOLE-TOKEN start. A repo-relative path cannot begin mid-token, nor
+#                       after a path separator or a drive colon. Without it the dot-guard
+#                       merely shifted the match one character right, so `/.methodology.yaml`,
+#                       `https://host/.methodology.yaml` and `../.methodology.yaml` still
+#                       produced tokens whose unique-basename fallback bound them to the
+#                       repo-root file — a false PASS on an ABSOLUTE, URL, or repo-ESCAPING
+#                       locator, where the pre-[#446] regex produced a miss (FAIL, teeth kept).
+#   `(?<![\w.-])\.`     the leading dot itself, so a repo-ROOT dotfile binds (R7 v1).
+#
+# A `..` segment deliberately STILL tokenizes: an escaping locator has to be SEEN to be FAILed.
+# Suppressing it here would turn a "missing source/target" FAIL into a silent PASS (the row
+# would carry no token at all) — teeth loss, caught by
+# test_resolve_rejects_path_escaping_repo_root. Escapes are refused in `_resolve_path` instead.
+#
+# Two DELIBERATE narrowings fall out, both removing mis-parses rather than real bindings:
+# `a.audit.py` no longer yields `audit.py`, and `deploy/manifest-v1.4.0.yaml` no longer yields
+# the garbage token `0.yaml` (which never resolved). Every legitimate shape — repo-root and
+# nested dotfiles, `.claude/…`, command spans, multi-span rows — tokenizes unchanged; verified
+# across 18 shapes by tests/test_verify_handoff_probes.py::test_file_tokens_* .
+_FILE_RE = re.compile(
+    r"(?<![\w.\-/\\:])(?:[\w.-]+/)*(?:(?<![\w.-])\.)?[\w-]+\.(?:py|md|ya?ml|toml|json|sh|ps1)"
+)
+
+# A token carrying a `..` path segment is NOT a clean repo-relative path, so it may not use the
+# unique-basename fallback in `_resolve_path` (F4). The literal path is already blocked by
+# containment; without this guard the fallback walked around that block and bound `../<file>`
+# to the same-named file at the repo root — a false PASS on an explicit escape. Pre-existing
+# for uniquely-basenamed files and merely widened to dotfiles by R7 v1, so closing it here
+# fixes both. A token that NORMALIZES back inside the repo (`x/../VISION.md`) still resolves
+# via the literal path, which is correct: containment holds, and it names a real in-repo file.
+_UNCLEAN_SEGMENT_RE = re.compile(r"(?:^|/)\.\.(?:/|$)")
 
 # The four load-bearing columns a well-formed probe row must carry (non-empty).
 _LOAD_BEARING = ("question", "source", "why", "command")
@@ -300,10 +327,16 @@ def _resolve_path(repo_root: Path, rel: str) -> Path | None:
     in repo_root, is-a-file, not under an excluded tree (`_within_repo_file`) — so a probe
     cannot bind to a file outside the repo (`../x.md`), a non-file, or a duplicate under
     .git/.claude/node_modules/archive*/aborted/in-progress, even by naming it directly.
-    Zero matches (a real miss) or >1 (genuinely ambiguous) -> None: teeth preserved."""
+    Zero matches (a real miss) or >1 (genuinely ambiguous) -> None: teeth preserved.
+
+    The fallback is refused for a token carrying a `..` segment (F4): containment already
+    blocks its literal path, and letting the basename fallback resolve it anyway would bind an
+    explicit repo-escape to the same-named file at the root — a false PASS."""
     direct = _within_repo_file(repo_root, repo_root / rel)
     if direct is not None:
         return direct
+    if _UNCLEAN_SEGMENT_RE.search(rel):
+        return None
     hits = [m for m in _basename_matches(repo_root, Path(rel).name)
             if _within_repo_file(repo_root, m) is not None]
     return hits[0] if len(hits) == 1 else None
