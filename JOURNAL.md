@@ -19,6 +19,81 @@
 
 ---
 
+### 2026-07-31 (i) — CC (Opus 5, cloud/unattended): night batch — five morning-prep input dossiers
+
+**Did:** Read-heavy overnight prep run on `claude/night-2026-07-31-morning-prep-yo7pgw`, five
+waves, all producing INPUT dossiers for the morning architect — **nothing here is a decision**.
+W2–W5 ran as parallel read-only fan-out; W1 ran in the main thread; every git mutation serial.
+**W1** P10 grooming — every open BACKLOG row classified live/dead/awaiting-ruling. **W2** [#433]
+K1–K5 spike prep. **W3** [#382] registry prep (analysis only — no schema contract declared, per
+pilot-precedes-contract). **W4** intake #22 §D grep-first research rows. **W5** the Act-2
+`closure_ids` negation defect, reproduced empirically. One commit `cb2b6f9f`: 5 audits-class
+artifacts + the `gen_audit_index.py --write` index regen.
+
+**Result:** **The open-row count is 181, not the brief's 177** — cross-checked three ways
+(rendered rows / `tasks/manifest.json` nodes / `validate_backlog`), all agreeing, and the ADR-107
+engine proved coherent (7 `status: closed` bodies retained as id records, correctly absent from
+the manifest and the render). **4 PROPOSED closes** with individually verified evidence — [#35]
+(3 of 4 referents gone; `e6f9bd73` records GO-2 discharged), [#41] (split target `§Processes` no
+longer exists), [#367] (satisfied by supersession — spec at 6.0.1, all six `reconciled_with`
+edges swept, zero `@5.7` remaining), [#370] (its question was RULED 2026-07-28). **The headline
+outranks the closes:** 33 rows (18%) carry a Done-when satisfiable only by a *ruling*, and
+applying ADR-108 §A routes nearly all to the architect — three ([#406] [#407] [#414]) explicitly
+demand *an operator ruling* for a technical fork, the exact anti-pattern §A item 4 retires. Also
+surfaced: two rows cite intake docs that **never existed** in git history ([#303] [#344], the
+[#359] phantom class applied to citations); the ADR-77 immutability guard is armed over
+`docs/decisions/transcripts/`, **deleted 2026-07-22** — a live no-op, so [#361]'s premise is
+understated (four of four classes ungated, not three of four); and any DEFER peg naming a
+gitignored `logs/` artifact is structurally unsatisfiable ([#181]). W5 **reproduced** the
+negation defect rather than inferring it: `closure_ids('Does NOT close [#367]')` → `['367']`, and
+`find_strong` over `main..HEAD` returns a STRONG proposal to close [#367] **from the commit
+denying that closure**; the `plugins/tier1-lifecycle` twin is identically defective and
+parity-pinned. Cross-wave note recorded in W1: the organ and the dossier both point at [#367] for
+**opposite** reasons, and [#370] was twice refused for closure — both refusals rejecting the
+organ's false-positive *evidence* (the pre-[#437] quoting defect), not the row's substance.
+
+**Gate verdicts (ADR-85), branch `claude/night-2026-07-31-morning-prep-yo7pgw` @ `cb2b6f9f`:**
+`validate_backlog` **OK** (9 themes, 26 stories, 181 tasks, 0 warnings) · `validate_doc_claims`
+**OK** (4 claims, no prose drift) · `audit.py ship-gate` **RED — 0 hard-fail organs, 3
+new/undispositioned WARN**. **I induced none of the three** and dispositioned none, per the brief:
+`deployed_methodology_version` (hub not self-listed, pre-existing on main — the same fact W3
+records as its gap G7) plus two `fleet_parity` *fleet-membership unavailable* WARNs, which are
+container artifacts — the sibling repos do not exist in this cloud checkout. Pre-commit ran for
+real and every **content** gate PASSED (`normalize-dated-headers`, `audit-index-freshness`, and
+the ADR-101 `validate-hermetization` refusal gate; all five filenames pre-validated through
+`classify()` before creation).
+
+**Two environment gaps — named, not silently skipped.** (1) The container arrived as a **SHALLOW
+CLONE** grafted at 2026-07-26, which made `canonical_freshness` hard-fail on `VISION.md` purely
+because the graft point *looked* like the file's last edit. `git fetch --unshallow` (4140 commits,
+back to 2026-03-30) cleared it — `canonical_freshness` now reads OK on all 8 canonical files, and
+the true last edit `30a8c42b` (2026-07-25) equals its `last_reviewed`. **This is a live trap for
+any cloud session:** the freshness organ lies on a shallow checkout, and W1's closure scan was
+five days deep until it was re-run over full history — which is precisely what surfaced the [#35]
+citation and the [#370] refusal record. (2) The container shipped **uv 0.8.17** against the
+ADR-106 `==0.11.19` pin and `uv self update 0.11.19` reported that version unavailable; 0.11.19
+was installed out-of-tree and `uv sync --frozen` then ran, so gates and hooks executed from the
+locked environment. `cb2b6f9f` was committed **`--no-verify`**, recorded in its own message: the
+sole blocker was `audit-health` exiting 1 on `[!!] repos registered (none)` — the empty ecosystem
+registry, same container cause as the fleet_parity WARNs. No content gate was bypassed.
+
+**Changes:** `docs/audits/` +5 (`2026-07-31-technical-p10-grooming-dossier.md`,
+`-technical-433-spike-prep.md`, `-technical-382-registry-prep-dossier.md`,
+`-technical-intake22-d-research-rows.md`, `-technical-closure-ids-negation-defect.md`) ·
+`docs/audits/README.md` regenerated · this JOURNAL entry.
+
+**Abandoned:** nothing. No wave was blocked outright; both environment gaps were worked around
+and recorded rather than skipped.
+
+**Next (all PROPOSED — the morning architect rules):** ratify or reject the 4 closes; rule the
+ADR-108 §A ownership contradiction on [#406]/[#407]/[#414], which unblocks a cohort rather than a
+row; decide whether the [#361] scope correction and the transcripts-guard no-op are one row or
+two; pick a fix option for the `closure_ids` negation defect (parser / convention / both — W5
+takes no position) noting the twin must move in lockstep; and for [#433], first rule *which*
+spike is meant now that K1–K5 is ratified ADR-107 vocabulary.
+
+---
+
 ### 2026-07-31 (h) — CC (Opus 5): night-branch merged · intake #22 §A+§B ratified · v6.0.1 · 4 rows filed
 
 **Did:** Two operator-authorized acts, per-act. **ACT 1** — integrated the night lane
