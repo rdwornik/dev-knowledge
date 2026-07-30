@@ -128,6 +128,14 @@ deferred naming flip), and `functional` (§16 one-file intake-capture boot, no p
   non-re-derivable *why* — never repo state / methodology / task-state — and you **never fabricate
   answers** (unanswered = committed empty). It is a **forward** brief, not the return leg above. Full
   mechanism + schema: `protocols/HANDOFF_PROCESS.md` §13 — read it, don't restate it here.
+- **Supplement ↔ the one-block boot ([#446] §B(b), v6).** The 6-question schema is **unchanged** by
+  the one-round-trip reshape, and it stays **outside** the evidence block: the supplement is the
+  operator's *forward* brief, filled **before** the next session boots, whereas the block is CC's
+  *check-time* output. What the reshape changes is how a folded answer is treated **on arrival** — a
+  supplement answer is an **inherited claim**, so it is never trusted on its face. `/handoff-verify`
+  carries an `Inherited claims` row and verifies each one CC-side against the live repo;
+  unverifiable or contradicted = FAIL, the same ladder as any other row. Same advisory-never-teeth
+  contract as before, now with a mechanical counterpart instead of a convention.
 
 **Architect-mode completion output (lead-by-hand — keep it SHORT, not a dense dump).** When the
 architect bundle is ready, end with this concrete message (substitute `<slug>`):
