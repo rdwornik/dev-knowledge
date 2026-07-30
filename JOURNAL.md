@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-07-31 (e) — CC (Opus 5): outgoing handoff — the FIRST LIVE v6 bundle; it falsified a claim
+
+**Did:** generated the closing handoff for the next architect window —
+`docs/handoffs/2026-07-31-dev-knowledge-architect-2`, the first bundle ever cut, filled and
+assembled under **HANDOFF_PROCESS v6.0**.
+
+**Result — the mechanism works, and using it found what reading it did not.** RM-8 refused the
+tracked `2026-07-31-...` dir with a diagnostic naming the collider and the escape hatch (correct
+dogfood, witnessed). The new bundle is v6-shaped and proves it: `Destination` row present and
+FILLED (4 fields), P0a/P0b/P0c emitted, **zero** per-probe ferry lines in any file, assembler
+byte-budget warn correctly ABSENT (boot 16,840 ≤ 18,000). `verify_handoff_probes` on the fresh
+bundle: **14 probes, 14 pass, 0 fail, 0 warn, rc=0**. Assembled `PASTE_THIS.md` = **47,672 bytes**,
+5 sections, END sentinel intact, well under the 65,000 warn threshold.
+
+**THE FIND — the live exercise falsified my own seal record.** The generated SUPPLEMENT visibly
+carried **seven** questions. Intake #18 **A6 was already BUILT** at `a39f8405` during the [#435]
+ratification, before this arc opened — so entry (d)'s "A6 NOT BUILT, carried forward" was WRONG.
+The intake record is corrected **in place and visibly** (the error kept, not quietly deleted), and
+the same check found two live sites still asserting the stale count in `.claude/commands/handoff.md`
+— **one of them written during this very arc** — now 6→7. The `6-question` wording surviving in
+HANDOFF_PROCESS §Section-history is CORRECT as history and deliberately untouched. This is the
+argument for live exercise over dry-run in one instance: I had read the A6 material twice and still
+had it wrong; generating one bundle settled it.
+
+**Second self-catch:** the first assembled paste leaked two values I had written into the residual
+— the seal merge sha (which **equalled live HEAD**, i.e. P3's own answer) and a `177 tasks` count.
+Both removed; the `shipped` FILL-IN says "by #id + ADR", not by sha. Final sweep: live HEAD absent
+from the paste, zero answer-hint rows, zero count/verdict leaks. The three surviving shas
+(`5b3895dc` night-branch tip, `7f8a0473` the v6 merge, `a39f8405` A6 provenance) are destination /
+provenance pointers that no probe asks for.
+
+**Register check done BEFORE the residual, in the files (grep, not recall):** all three
+chat-ratified items are **unlanded** — the GREEN-on-branch/GREEN-on-main honesty split, the
+authorized-integration-act framing, and closure-polarity (present only in immutable audits and the
+prior window's bundle; `tasks/447-*.md` is open and does not mention it). Each is carried in
+`RESIDUAL.md` §4 as named transcription debt with its target home.
+
+**Changes:** new bundle (5 files) · `.claude/commands/handoff.md` 6→7-question ×2 ·
+`docs/intake/2026-07-27-tech-handoff-process-v6-proposal.md` A6 record corrected · this entry.
+
+**Watch:** (1) The bundle's own `Destination` branch field reads `main`, which is **not** a
+sanctioned lane shape — P3 will PASS at boot and FAIL once the next seat branches. Surfaced in
+`RESIDUAL.md` §4 as a **spec question** (boot destination vs lane), not patched. (2) Night branch
+`claude/night-2026-07-30-boot-prep` still UNTOUCHED. (3) Nothing merged — operator is the serial
+gate.
+
+**SHA anchor:** this commit (the bundle); prior window merges are anchored in entry (d).
+
 ### 2026-07-31 (d) — CC (Opus 5): [#446] MERGED to main · v6.0 IN EFFECT · window SEALED
 
 **Did:** operator GO — merged `feat/446-boot` to `main` via `--no-ff` (**merge `7f8a0473`**, 22
