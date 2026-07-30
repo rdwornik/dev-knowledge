@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-07-31 (d) — CC (Opus 5): [#446] MERGED to main · v6.0 IN EFFECT · window SEALED
+
+**Did:** operator GO — merged `feat/446-boot` to `main` via `--no-ff` (**merge `7f8a0473`**, 22
+commits), pushed, then sealed the window (Step 10).
+
+**Result — the honesty split CLOSES here.** Ship-gate **GREEN ON MAIN** (15 WARN dispositioned,
+run via git-bash); frozen module **9/9 on main**; `Version: 6.0` live; `validate_reconciliation`
+7 edges / **0 mismatches**. The v6 one-round-trip boot is no longer branch-local — it is the
+mechanism in effect. Pre-merge W1–W6 + the anti-bluff witness re-run verbatim and reported; W5
+stated honestly (`exist_ok=True` still greps — the guard-not-delete interpretation, with the
+refusal proven by the frozen test, not by that grep).
+
+**Closures (architect-adjudicated).** [#446] CLOSED — Done-when met on every leg. [#421] CLOSED,
+pointing at `test_fr7_v1_file_re_binds_repo_root_dotfiles` + `test_fr7_v2_header_tokens_ignores_a_bare_id`.
+Both retired the ADR-107 way: manifest node out, task FILE kept with `status: closed`. Pre-write
+measurement per row, as instructed — and it BOUND: [#446] was 1197/1200 and [#421] 1157/1200, so
+the closure clauses did not fit and the now-served build narrative was condensed instead (1197→1059,
+1157→952). No detail lost: it lives in the merge commit, the two audits, and entries (a)–(c).
+
+**Filed:** **[#448]** — the A11 staged-diff guard, verbatim triage text, P2/S, serialize-group
+audit-py. Next free id is **448, not 778**: the raw history max is inflated by test fixtures and a
+documented synthetic `[#777]` trip-test false positive; `tasks/` filenames are the real counter
+(ADR-107 "directory as id counter"). **A6** recorded NOT-BUILT at its intake-#18 owner with the
+reason (outside the frozen register) and a pickup pointer. **[#441]** ADR-61 leg untouched this
+arc — Ch8 was not in the diff; it stays named, no discharge claimed.
+
+**LESSONS:** three one-liners appended — (a) one predicate answering two questions is a defect
+shape; (b) suppressing a bad token converts FAIL to silent PASS, refuse at resolution; (c) mixed
+code+prose diffs need BOTH Codex lanes.
+
+**Changes:** merge `7f8a0473` · tasks/ (446+421 retired, 448 added) + manifest + regenerated
+BACKLOG.md · docs/intake/…v6-proposal.md (A6 record) · LESSONS.md ×3 · doc-counts (35 checks,
+1991 tests) · branches `docs/446-window-step-0-5` + `feat/446-boot` deleted (both fully merged).
+
+**Watch:** (1) night branch `claude/night-2026-07-30-boot-prep` **UNTOUCHED** at `5b3895dc` — its
+ADR-105 consumption is next window's decision. (2) The F4 resolver guard changes behaviour for
+escape-shaped locators fleet-wide — strictly more teeth, now live on main. (3) First LIVE v6
+exercise is this window's closing handoff; the dry-run is witnessed but a real bundle has not
+booted through it yet.
+
+**SHA anchor:** `7f8a0473` (the merge).
+
 ### 2026-07-31 (c) — CC (Opus 5): [#446] FIX RELEASE — all 8 review findings + 2 rulings
 
 **Did:** released fixes for all 8 codex/terra findings, RED-first, one commit each, worst-first;
