@@ -51,7 +51,19 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
 
 # A repo-relative file path token: optional dir segments + a name with a known ext.
-_FILE_RE = re.compile(r"(?:[\w.-]+/)*[\w-]+\.(?:py|md|ya?ml|toml|json|sh|ps1)")
+#
+# The final segment may carry a LEADING DOT ([#421] v1, absorbed into [#446] as R7 v1), so a
+# repo-root dotfile binds instead of losing its dot (`.pre-commit-config.yaml` used to tokenize
+# as `pre-commit-config.yaml`, which resolves to nothing). A NESTED dotfile already bound —
+# only the final segment was affected, because the dir group already admits `.`.
+#
+# The dot is admitted ONLY at a token boundary (`(?<![\w.-])`). A bare `\.?` would be a
+# REGRESSION, not a widening: it shifts `a.audit.py` from `audit.py` to nothing and
+# `deploy/manifest-v1.4.0.yaml` from `0.yaml` to nothing, because the optional dot greedily
+# starts the match one character early. With the lookbehind, every non-dotfile shape tokenizes
+# byte-identically to the pre-[#446] regex (verified across 15 shapes; see
+# tests/test_verify_handoff_probes.py::test_file_tokens_leading_dot_is_additive_only).
+_FILE_RE = re.compile(r"(?:[\w.-]+/)*(?:(?<![\w.-])\.)?[\w-]+\.(?:py|md|ya?ml|toml|json|sh|ps1)")
 
 # The four load-bearing columns a well-formed probe row must carry (non-empty).
 _LOAD_BEARING = ("question", "source", "why", "command")
@@ -128,9 +140,19 @@ def file_tokens(text: str) -> list[str]:
     return _FILE_RE.findall(text)
 
 
+# A markdown header ATX-opens with 1-6 `#` followed by whitespace ("## Vision"). A bare
+# `#<digits>` is a TICKET ID, not an anchor ([#421] v2, absorbed into [#446] as R7 v2): the
+# old `startswith("#")` test made a backticked `#421` tokenize as an anchor to resolve, so a
+# row that merely CITED a ticket earned a spurious `anchor-missing` WARN.
+_HEADER_RE = re.compile(r"^#{1,6}\s")
+
+
 def header_tokens(text: str) -> list[str]:
-    """Backtick spans that are markdown headers (`## …`) — the anchors to resolve."""
-    return [s for s in backtick_spans(text) if s.startswith("#")]
+    """Backtick spans that are markdown headers (`## …`) — the anchors to resolve.
+
+    A span is a header only when it ATX-opens (`#`x1-6 + whitespace); `#421` / `#446` are
+    ticket ids and never tokenize (R7 v2)."""
+    return [s for s in backtick_spans(text) if _HEADER_RE.match(s)]
 
 
 def lead_exe(command: str) -> str:
