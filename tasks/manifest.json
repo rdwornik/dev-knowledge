@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "3405b138a8e26efafb42a80d82c6da1f75518f8a578dec64581c9711f44f99fe",
+  "generated_sha256": "2d8a96931b651c5f6de09d23a33f4965aa510e2af87aef1dbe149ffc288e921d",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1528,7 +1528,7 @@
       "prose": ""
     },
     {
-      "prose": "**Grooming log:** git history is the record (`git log --grep 'groom'` + per-session JOURNAL). Recent: 2026-06-12 (#149 flip) · 2026-06-18 (currency pass) · 2026-06-25 (groom pass, n=2: 84→81) · 2026-07-08 (leg-c full ruling pass, operator-ratified, 124→74: 14 KILL / 27 MERGE / 2 MOVE / 9 CLOSE / 5 RE-SCOPE / 19 DEFER-peg / 2 new filings #289 #290; #110 #128 moved-to: ai-council (Wave-1)). Next quarterly: 2026-10-08."
+      "prose": "**Grooming log:** git history is the record (`git log --grep 'groom'` + per-session JOURNAL). Recent: 2026-06-12 (#149 flip) · 2026-06-18 (currency pass) · 2026-06-25 (groom pass, n=2: 84→81) · 2026-07-08 (leg-c full ruling pass, operator-ratified, 124→74: 14 KILL / 27 MERGE / 2 MOVE / 9 CLOSE / 5 RE-SCOPE / 19 DEFER-peg / 2 new filings #289 #290; #110 #128 moved-to: ai-council (Wave-1)) · 2026-07-30 (per-handoff lightweight groom, arc 0731-g0-groom: 6 doc_rot accretion rows condensed — #344 #421 #422 #332 #278 #426, no live obligation dropped; 5 warn-doc-rot dispositions retired; ADR-105 night-batch routine activated on #426). Next quarterly: 2026-10-08."
     },
     {
       "prose": ""

@@ -221,41 +221,34 @@ dispositions:
   # (cleared 2026-07-25, Lane D follow-up) warn-doc-rot-backlog-262 — [#262] CLOSED this arc
   # (Lane D, merge 27f033df), so its task line left BACKLOG.md and the WARN it suppressed can no
   # longer fire. Removed to avoid stale-disposition decoration (ADR-75 review/remove).
-  - id: warn-doc-rot-backlog-278
-    organ: doc_rot
-    match: "BACKLOG#278"
-    ref: "#278"
-    reason: >-
-      Accretion on the test-suite-hygiene epic. Grooming leg-c (2026-07-08) ruled #278 a PROMOTE
-      (P3->P2, evidence-backed), not a condense, so the WARN stands; condense deferred to the
-      epic's own build. Not introduced by the grooming arc.
+  # (cleared 2026-07-30, arc 0731-g0-groom) warn-doc-rot-backlog-278 — the condense that leg-c
+  # deferred to "the epic's own build" was executed by the G0 groom instead (operator ruling
+  # 2026-07-30): row 1516 -> 1174 chars, 3 -> 2 date occurrences, below both thresholds. The
+  # verbatim intake-#3 UAT ACs, the PRECONDITION and the doc-#3 non-goal constraints were all
+  # preserved; only census/narrative prose was compressed (git history retains it). Removed to
+  # avoid stale-disposition decoration (ADR-75).
   # (2026-07-13) #332/#333/#334 surfaced by the A0-seal ship-gate — the first full ship-gate run
   # since they were filed 2026-07-12. #334 (own, self-authored this session) was TRIMMED under the
   # threshold, not dispositioned; #332/#333 are other sessions' load-bearing tasks — disposition
   # (do not condense other sessions' text), with a review_date shelf-life (operator ruling, A0 seal).
-  - id: warn-doc-rot-backlog-332
-    organ: doc_rot
-    match: "BACKLOG#332"
-    ref: "#332"
-    review_date: 2026-08-13
-    reason: >-
-      Surfaced — NOT introduced — by the A0-seal ship-gate (first full ship-gate since #332 was
-      filed 2026-07-12). Load-bearing recently-filed dependency-version-parity task; condensation
-      deferred to #332's own build. Other-session task text is NOT trimmed here (operator ruling,
-      A0 seal); review_date is the shelf-life so this does not rot into a paper suppression (ADR-75).
+  # (cleared 2026-07-30, arc 0731-g0-groom) warn-doc-rot-backlog-332 — condensed under the G0
+  # ruling (operator 2026-07-30), which SUPERSEDES the A0-seal "other-session task text is NOT
+  # trimmed here" ruling for this row. It tripped only the dated-blocks leg (1137 chars, already
+  # under the gross cap, 4 date occurrences); reduced to 1117 chars / 1 date occurrence by
+  # de-duplicating repeated citations of the same two days. Done-when, refs, kill-candidates and
+  # the ARC-A "STAYS OPEN, clause-1 unbuilt" status were all preserved. This row's 2026-08-13
+  # review_date was one of the two fleet-wide DUE-SOON deadlines; clearing it early retires that
+  # deadline. Removed to avoid stale-disposition decoration (ADR-75).
   # (2026-07-18) #344 surfaced by the ai-council P6-handoff integration ship-gate — the session-close-gate
   # task (renumbered from the #343 cross-session collision; main owns #343 = fleet_parity ship-gate scoping).
-  - id: warn-doc-rot-backlog-344
-    organ: doc_rot
-    match: "BACKLOG#344"
-    ref: "#344"
-    review_date: 2026-08-18
-    reason: >-
-      Surfaced — NOT introduced — by the ai-council P6-handoff integration ship-gate. Load-bearing
-      NEEDS-RULING task (Ask 1 session-close gate + Ask 2 consumer hub-write guard; awaits an operator
-      ruling per core-invariant #6); condensation deferred to #344's own ruling/build. Other-session
-      task text is NOT trimmed here (A0-seal precedent, #332); review_date is the shelf-life so this
-      does not rot into a paper suppression (ADR-75).
+  # (cleared 2026-07-30, arc 0731-g0-groom) warn-doc-rot-backlog-344 — condensed under the G0
+  # ruling (operator 2026-07-30), which SUPERSEDES the A0-seal no-trim precedent for this row:
+  # 1753 -> 1186 chars, 3 -> 1 date occurrences. The row stays NEEDS-RULING and both asks survive
+  # intact — Ask 1's (a)/(b)/(c) criteria, Ask 2's guard scope and hub-ruling-token condition, the
+  # Done-when, and every ref (incl. core-invariants #5/#6) are unchanged; only the witnessed-failure
+  # narrative was dropped to git history. Note the register itself had flagged #344 as carrying the
+  # single-filing shape under an accretion label (see the #421 entry's closing observation) — that
+  # mislabel is now moot for this row. Removed to avoid stale-disposition decoration (ADR-75).
   - id: warn-reconciled-versions-contributing-template
     organ: reconciled_versions
     match: "templates/CONTRIBUTING-md-template.md"
@@ -283,36 +276,32 @@ dispositions:
   # no history has accreted. Counting distinct days, and excluding dates inside path-like tokens,
   # would make the accretion predicate mean what its name says. Both rows below would still WARN on
   # the gross-chars leg, which is the honest signal.
-  - id: warn-doc-rot-backlog-421
-    organ: doc_rot
-    match: "BACKLOG#421"
-    ref: "#421"
-    review_date: 2026-08-26
-    reason: >-
-      OVERSIZED SINGLE FILING — explicitly NOT accretion. One session, one day (2026-07-25), one
-      filing; its 1655 chars are a precise mechanism description (the `_FILE_RE` final-segment defect),
-      not accumulated dated history. Surfaced — NOT introduced — by the merge that recovered this row
-      from the stranded branch. Other-session task text is NOT trimmed here (A0-seal precedent, #332),
-      and trim was refused by operator ruling 2026-07-26. THE FIX IS THE FORMAT, NOT THE WORDING: a
-      1200-char row cannot hold a precise mechanism description, which is the case the restructure
-      intake makes — docs/intake/2026-07-25-tech-consolidation-decision.md, arriving in this same merge.
-      Observed, not acted on: #344 carries this same single-filing shape under the ACCRETION label, so
-      the register absorbed this class once already; that predates this session and its entry is
-      untouched. review_date is the shelf-life so this does not rot into a paper suppression (ADR-75).
-  - id: warn-doc-rot-backlog-422
-    organ: doc_rot
-    match: "BACKLOG#422"
-    ref: "#422"
-    review_date: 2026-08-26
-    reason: >-
-      OVERSIZED SINGLE FILING — explicitly NOT accretion. Same class as #421 and the same origin: one
-      session, one day (2026-07-25), one filing; its 2023 chars describe the `reflow_framing` partial
-      cold→FILLED flip and the §8 self-contradiction no drift-check catches. It additionally trips the
-      accretion predicate at "3 dated blocks", but all three are the SAME day and one is inside a path
-      token — see the predicate observation above; no history has accreted. Surfaced — NOT introduced —
-      by the recovery merge. Trim refused by operator ruling 2026-07-26; other-session text is not
-      rewritten. THE FIX IS THE FORMAT, NOT THE WORDING — docs/intake/2026-07-25-tech-consolidation-decision.md.
-      review_date is the shelf-life so this does not rot into a paper suppression (ADR-75).
+  # (cleared 2026-07-30, arc 0731-g0-groom) warn-doc-rot-backlog-421 — RULING SUPERSESSION, recorded
+  # explicitly: the 2026-07-26 operator ruling REFUSED a trim of this row ("the fix is the format, not
+  # the wording"). The 2026-07-30 G0 ruling authorized the trim, so the later ruling governs and the
+  # earlier refusal is superseded, not contradicted silently. Row 1655 -> 1157 chars. The trim did not
+  # merely reword: [#421] is being ABSORBED into [#446] as a leg this window, so the row was re-framed
+  # to its absorption status rather than polished — the mechanism, the repo-root-dotfile-only scope, the
+  # second tokenizer variant, and a Done-when that now admits "or re-deferred by ruling inside [#446]"
+  # all survive. The format critique remains valid and unaddressed by this groom; its home is the
+  # restructure intake (docs/intake/2026-07-25-tech-consolidation-decision.md), not this register.
+  # Removed to avoid stale-disposition decoration (ADR-75).
+  #
+  # (cleared 2026-07-30, arc 0731-g0-groom) warn-doc-rot-backlog-422 — same supersession as #421
+  # (2026-07-26 refusal -> 2026-07-30 G0 authorization). Row 2023 -> 1199 chars and 3 -> 0 date
+  # occurrences. Preserved verbatim in substance: the RF-6 "precision is deliberate" finding, the
+  # "defect is the missing detector, not the narrow replace" framing, the explicit DO-NOT-widen
+  # constraint, and the seed-a-cold-claim-in-PROBES.md Done-when. Only the witnessed-instance detail
+  # and one ref path went to git history. Removed to avoid stale-disposition decoration (ADR-75).
+  #
+  # STANDING PREDICATE NOTE (retained after the two rows above cleared — the observation outlived its
+  # anchor and was CONFIRMED empirically by the 0731-g0-groom trims). In validate_doc_rot.py the
+  # backlog predicate counts date OCCURRENCES, not DISTINCT DAYS, and counts dates inside path-like
+  # tokens. #422 was the proof case: a single-day filing citing `docs/handoffs/2026-07-25-…/` plus two
+  # prose mentions of that same day registered as "3 dated blocks" and tripped the ACCRETION leg
+  # although no history had accreted. Counting distinct days, and excluding dates inside path tokens,
+  # would make the accretion predicate mean what its name says. Deliberately NOT filed as a ticket
+  # here (no row is opened by a groom arc); it is a candidate fix for whoever next touches the checker.
 
   # (2026-07-26) EXTERNAL IN-FLIGHT condition, not a hub defect and not fixable inside this repo.
   # fleet_parity evaluates LIVE sibling-repo state, so a concurrent merge in ai-council turned this
