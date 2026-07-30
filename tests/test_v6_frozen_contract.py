@@ -45,7 +45,13 @@ _COMMANDS = _REPO / ".claude" / "commands"
 # placeholder" (its OPEN question 4). So the ruled value is pinned here, in ONE place, and
 # `test_fr4b_ruled_budget_is_pinned` stays RED until the architect supplies it. Do NOT
 # invent a number to turn FR4b green.
-_R4_RULED_BUDGET: int | None = None
+#
+# RULED 2026-07-31 (architect technical lane): 18,000 bytes. The rulings artifact records it
+# as an APPENDED amendment (A1), not an in-place rewrite of the committed R4 placeholder line
+# — `docs/audits/*` is immutable (CLAUDE.md §5 rule 3); `tests/` is not, so this pin moves in
+# place. Live boot at freeze was 16,156 B, so the number is headroom over a measured file,
+# never invented here.
+_R4_RULED_BUDGET: int | None = 18000
 
 # --- shared stub repo (mirrors tests/test_gen_handoff.py's harness) ---------------
 

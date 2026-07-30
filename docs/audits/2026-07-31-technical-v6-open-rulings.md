@@ -14,3 +14,7 @@ R5 — RM-8: Option D. Target: any bundle directory containing git-tracked files
 R6 — repo_root/cross_repo: codify the existing semantics — verify(bundle_path, repo_root=None, cross_repo=False), :444 default call intact. CLI: --repo-root PATH, --cross-repo; --cross-repo without --repo-root is a HARD ERROR. No silent root inference — that reproduces the original false-FAIL class.
 
 R7 — [#421] absorption: Option B, both variants fixed inside the [#446] leg: (v1) _FILE_RE :54 dot-in-final-segment so repo-root dotfiles bind; (v2) header_tokens :131-133 bare-# so backticked #421 does not tokenize. Each variant gets a RED-first pytest in the frozen set; absorption acceptance = both tests green + [#421] closed pointing at them. Fallback C is permitted ONLY if terra review rules v1 outside [#446]'s file scope — and then the new owning row must exist BEFORE [#421] closes (the [#447] closure-polarity lesson, applied forward).
+
+## Amendments
+
+A1 (2026-07-31): R4 resolved — 18,000 bytes on protocols/HANDOFF_BOOT.md, mechanically enforced; A10 closes against this number only. RULED architect technical lane. The per-bundle session header is NOT governed by A10.
