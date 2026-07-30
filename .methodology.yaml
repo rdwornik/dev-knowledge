@@ -61,6 +61,15 @@ sanctioned_divergences:
       (ADR-36; ADR-42 centralizes handoffs -- docs/handoffs/ is INVERSE-forbidden in
       consumers, so the generating command has no consumer home either).
     review_date: 2026-10-13
+  - component: command-handoff-verify
+    reason: >-
+      /handoff-verify is HUB-ONLY for exactly the reason /handoff is (above), not as a
+      separate judgment: it CONSUMES a bundle under docs/handoffs/, which is
+      INVERSE-forbidden in consumers, so the checker has no consumer home either. It is
+      the v6 answer-producing counterpart to /handoff's answer-free generation
+      (HANDOFF_PROCESS v6 SS5; R1 / [#446]) and travels with that pair -- if the
+      docs/handoffs INVERSE ever lifts, both commands move together, not this one alone.
+    review_date: 2026-10-13
   - component: command-save
     reason: >-
       /save is a hub-local authoring convenience (fleet-parity register c1, lean

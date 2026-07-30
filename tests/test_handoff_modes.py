@@ -9,7 +9,9 @@ artifact" return channel are actually PRESENT in the v5 spec / boot / command �
 that PLAYBOOK pointerizes rather than re-describes them. They go RED on silent drift.
 """
 
+import re
 from pathlib import Path
+
 import pytest
 
 pytestmark = pytest.mark.live_repo  # whole file asserts live protocol/command docs
@@ -113,12 +115,15 @@ def test_command_carries_mode_param() -> None:
     assert "v5 architect" in cmd
 
 
-def test_command_coupled_surface_is_v5() -> None:
-    """Post-#149 flip: the command's coupled-surface declaration (read by audit.py
-    check_amendment_coherence) names v5 — v5 is canonical. Was the v4-untouched parallel-ship
-    guard; inverted at the flip so it now guards the canonical v5 declaration."""
+def test_command_coupled_surface_is_canonical_major() -> None:
+    """The command's coupled-surface declaration (read by audit.py check_amendment_coherence)
+    names the CANONICAL major. Post-#149 flip that was v5; [#446] cut v6, and the declaration
+    moved with it — check_amendment_coherence FAILs the straggler otherwise, which is how this
+    drift was caught. Derived from the live spec header, never hardcoded twice."""
+    spec = _read("protocols/HANDOFF_PROCESS.md")
+    major = re.search(r"^Version:\s*(\d+)\.", spec, re.MULTILINE).group(1)
     cmd = _read(".claude/commands/handoff.md")
-    assert "per HANDOFF_PROCESS.md v5" in cmd
+    assert f"per HANDOFF_PROCESS.md v{major}" in cmd
 
 
 # --- PLAYBOOK §8: pointerize, do NOT re-describe -------------------------------

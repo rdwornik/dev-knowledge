@@ -1,9 +1,10 @@
 ---
-last_reviewed: 2026-07-10
-reconciled_with: handoff-process@5.7
+last_reviewed: 2026-07-31
+reconciled_with: handoff-process@6.0
 ---
 <!-- scope: meta -->
-<!-- CANONICAL OPERATOR RUNBOOK for HANDOFF_PROCESS v5 bundles.
+<!-- CANONICAL OPERATOR RUNBOOK for HANDOFF_PROCESS v6 bundles (v5 bundles too — see the
+     pre-v6 note under "The run loop").
      This is the ONE place the stable operator boilerplate lives — the file-roles, the
      walkthrough, the run loop, the diagram, the rationale. v5 bundles deliberately carry NO
      per-bundle README; each bundle's session-specific header (slug + purpose + mode) lives in
@@ -19,14 +20,14 @@ reconciled_with: handoff-process@5.7
 
 > **Read this top to bottom.** Together with a bundle's own `HANDOFF_BOOT.md` (which names *this*
 > session's slug, purpose, and mode), it is everything you need to boot a fresh browser (Claude.ai)
-> session for any v5 handoff. **Start at the bundle's `HANDOFF_BOOT.md`** — it sends you here for
+> session for any v5 or v6 handoff. **Start at the bundle's `HANDOFF_BOOT.md`** — it sends you here for
 > the process and tells you which file to paste first.
 
 > **To *generate* a handoff** (which mode, what exactly to type): **PLAYBOOK §8 "How to hand
 > off"** is the single invocation runbook. **This file is the other half** — how to *consume* a
 > generated bundle (boot a fresh browser from it).
 
-A v5 handoff is a small folder under `docs/handoffs/{YYYY-MM-DD}-{slug}/` with **four** files —
+A v5/v6 handoff is a small folder under `docs/handoffs/{YYYY-MM-DD}-{slug}/` with **four** files —
 `HANDOFF_BOOT.md`, `RESIDUAL.md`, `PROBES.md`, and `PASTE_THIS.md` (architect-mode bundles also carry a
 `SUPPLEMENT.md` — always generated, fillable; see *The strategic supplement* below; current bundles also
 carry a `PLAN.md` — the operator-ratified session plan, #301, CC-authored, never pasted) — plus this runbook
@@ -62,14 +63,16 @@ Steps marked **[architect only]** are skipped in **execution** mode (the lean de
 1. **Paste the boot payload.** Open a fresh Claude.ai chat and paste the full contents of
    **`PASTE_THIS.md`** (the one file — it inlines the role file, residual, probes, and supplement).
 2. **Wait for the acknowledgment.** The browser replies with one boot line
-   (`Booted as the Layer-1 browser under HANDOFF_PROCESS v5. Ready for CC's handoff.`). If it
+   (`Booted as the Layer-1 browser under HANDOFF_PROCESS v6. Ready for CC's handoff.`). If it
    can't produce that line, your paste was incomplete — re-paste.
 3. **Say "architect mode."** *[architect only]* Tell the browser this is an architect-mode session,
    so it plans and decomposes rather than just reacting. (It can also read this off `RESIDUAL.md`,
    but say it.)
-4. **Do P1 (orientation).** `PASTE_THIS.md` already contains `PROBES.md`; direct the browser to start
-   with **P1** — in architect mode the **orientation** probe (it surfaces the two lines that say what
-   this project is and where the work sits). This uses **the run loop** (below).
+4. **Do P0 + P1 (standing topics, then orientation).** `PASTE_THIS.md` already contains `PROBES.md`.
+   **P0** (v6 bundles) reconciles the standing authorities — the active epic themes and the accepted
+   intakes — and checks this bundle's own Purpose against them. **P1** is the **orientation** probe
+   (the two lines that say what this project is and where the work sits). This uses **the run loop**
+   (below).
 5. **Answer the beat.** *[architect only]* The browser asks you **one** question about *off-repo*
    context — what you're trying to do this session, priorities, anything not written down in the
    repo, decisions that changed. Answer it, then continue. (This is the one thing the handoff itself
@@ -77,14 +80,16 @@ Steps marked **[architect only]** are skipped in **execution** mode (the lean de
 6. **Work the drift-flags.** Direct the browser to the **`RESIDUAL.md`** section (already in the
    paste). Its **drift-flags come first** — read those; they are where reality and the written record
    disagree.
-7. **Finish the probes (P2–P7).** Work the rest of the **same** `PROBES.md` section from step 4 —
+7. **Finish the remaining probes.** Work the rest of the **same** `PROBES.md` section from step 4 —
    again via the run loop. When every probe passes, the browser is **onboarded** and you start work.
+   **Any FAIL blocks onboarding** — do not start work around a failing probe.
 
 > **Everything is in the single paste.** Because `PASTE_THIS.md` inlines every section, you do not
 > hand files one at a time — you walk the browser through the sequence (orient → beat → residual →
 > finish probes), directing it to each inlined section in turn. `PROBES.md` is **one** section worked
-> in two parts: **P1** (orientation) first, then **P2–P7** after the beat and residual — there is no
-> second probes file. (Execution mode works the probes straight through — no separate orientation half.)
+> in two parts: the **P0/P1** opening (standing topics, then orientation) first, then the remaining
+> probes after the beat and residual — there is no second probes file. (Execution mode works the probes
+> straight through — no separate orientation half.)
 
 ## The strategic supplement (architect mode) — capture this session's "why"
 
@@ -108,13 +113,25 @@ off-repo context live via its one operator-context question. Full mechanism:
 
 ## The run loop (how steps 4 and 7 actually work)
 
-The browser has **no access to the repo**, so for each probe it can't read a file — it replies
-**`run <command>`** (e.g. `run python scripts/audit.py checks`). You (or CC) run that command, paste
-the result back, and the browser checks the answer against it.
+The browser has **no access to the repo**, so it cannot read a file for any probe. Since **v6**
+(the one-round-trip boot) that no longer costs you a round trip per probe: you ask CC to run
+**`/handoff-verify`**, it runs the *whole* gate against live state in one pass, and it emits **one
+evidence block**. You paste that block **once**, and the browser reads the table.
+
+Each row carries its source locator, the check performed, PASS/FAIL, and the live evidence. **Any
+FAIL blocks onboarding**; a missing required row is not a pass; degraded coverage (a tool absent, a
+moved anchor) is reported rather than counted as a pass.
 
 **Why it's built this way:** the bundle deliberately ships **no answers** — only each probe's
 question and the command that produces the answer. The only way to answer is to read **live**
-repo/git state, so a stale summary can't bluff its way through. (Full rationale below.)
+repo/git state, so a stale summary can't bluff its way through. v6 changes the **transport count**,
+never the proof threshold: the answers are still re-derived live at check-time, they are just
+gathered once instead of ferried one at a time. (Full rationale below.)
+
+> **Pre-v6 bundles.** A bundle generated before the v6 cut has no `Destination` row and no P0 legs,
+> and its probes were built for the per-probe ferry. Run it the old way — the browser replies
+> **`run <command>`** and you paste each result back. Bundles are immutable artifacts; they are
+> judged by the era they were cut in, never retro-fitted.
 
 ## The sequence at a glance
 
@@ -125,12 +142,12 @@ repo/git state, so a stale summary can't bluff its way through. (Full rationale 
 flowchart TD
     A["1 · Paste PASTE_THIS.md<br/>(the single self-contained boot payload)"] --> B["2 · Browser acks the boot line"]
     B --> C["3 · Say: architect mode<br/>(architect only)"]
-    C --> D["4 · Do P1 (orientation) · in the paste"]
+    C --> D["4 · Do P0 (standing topics) + P1 (orientation) · in the paste"]
     D --> E["5 · Answer the beat · one off-repo question<br/>(architect only)"]
     E --> F["6 · RESIDUAL drift-flags first · in the paste"]
-    F --> G["7 · Finish the SAME probes · P2–P7"]
+    F --> G["7 · Finish the SAME probes · the rest"]
     G --> H(["Onboarded — start work"])
-    D -. "run loop: browser says 'run the command' · you run it · paste the result back" .-> D
+    D -. "run loop: v6 = one /handoff-verify evidence block · pre-v6 = per-probe run/paste" .-> D
     G -. "run loop (same as step 4)" .-> G
     classDef probe fill:#e8e8ff,stroke:#4444aa,stroke-width:2px;
     class D,G probe;

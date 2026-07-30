@@ -1,6 +1,6 @@
 ---
-last_reviewed: 2026-07-28
-reconciled_with: handoff-process@5.7
+last_reviewed: 2026-07-31
+reconciled_with: handoff-process@6.0
 status: active
 owner: Rob
 ---
@@ -357,14 +357,16 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   landed: `build_edge_index` (the derived **rebuildable index** — rebuilt from source each scan, no
   hand-maintained manifest, ADR-88 P3) + `scan_structural_integrity` (**L1**: dangling / `code_orphan` =
   code→nonexistent-rule / duplicate), proven on a fixture; the live check now also surfaces `code_orphan`.
-  Hub-only; read-only; live on 12 rules per the ADR-89 OQ1 naming convention (the #194 cohort-1 five +
+  Hub-only; read-only; live on 13 rules per the ADR-89 OQ1 naming convention (the #194 cohort-1 five +
   the #201 governance trio + the #202 Tier-3 quartet — `coherence-doc-claims`/`-rot`/`-structure` +
-  `handoff-probes-bind`), the multi-organ ones resolved via **resolver-allows-N / ADR-90**: a rule
+  `handoff-probes-bind` — + `handoff-boot-budget`, the [#446] R4 split-site pair), the multi-organ ones resolved via **resolver-allows-N / ADR-90**: a rule
   enforced in N code organs declares its expected `# rule:` count in `multi_site:`. Check in
   `audit.py::check_doc_code_edge`.
-- `scripts/verify_handoff_probes.py` — handoff-probe teeth: every probe in the latest v5
+- `scripts/verify_handoff_probes.py` — handoff-probe teeth: every probe in the latest
   `PROBES.md` bundle binds to live state, by STRUCTURAL resolvability (resolve-only — no
-  subprocess; Critical Rule #4). Mechanizes the manual v5 probe-gate (HANDOFF_PROCESS §5/§10):
+  subprocess; Critical Rule #4). It proves each row BINDS; the v6 `/handoff-verify` command RUNS
+  the rows at check-time — two organs, not interchangeable, because Layer 2 never executes.
+  Mechanizes the manual probe-gate (HANDOFF_PROCESS §5/§10):
   malformed row / missing source-or-command target → FAIL, row-scoped `expected[ :]`
   answer-hint → FAIL (the v5.4 anti-bluff rung — a probe that ships its answer is bluffable
   by construction), reworded `#`-anchor → WARN
@@ -772,7 +774,7 @@ distils an ADR` → `BACKLOG item + convention edit` → `enforcement organ (Ch2
 Runbook: `protocols/AI_COUNCIL_PROCESS.md` (ADR-67). The complexity router (1-file
 mechanical → conversational; 3+ files / 2+ packages → formal CC prompt;
 architecture/contested → Council) is PLAYBOOK "Project complexity bands"; degraded
-context → Handoff v5 (`protocols/HANDOFF_PROCESS.md`, ADR-82).
+context → Handoff v6 (`protocols/HANDOFF_PROCESS.md`, ADR-82).
 
 **ADR-68 supersession note (the night-agent).** ADR-68 specified a **local**
 mechanism — Windows Task Scheduler → headless `claude -p` review → morning briefing,

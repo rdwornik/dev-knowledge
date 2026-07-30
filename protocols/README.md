@@ -1,5 +1,5 @@
 ---
-reconciled_with: handoff-process@5.7
+reconciled_with: handoff-process@6.0
 ---
 
 # protocols/ — canonical universal-methodology genre (hub)
@@ -16,7 +16,7 @@ consumer):
 - `ESSENTIALS.md` — Rob's universal working style (summarizes PLAYBOOK, does not copy it)
 - `PLAYBOOK.md` — universal protocols; the full methodology reference
 - `AGENT_FRAMEWORK.md` — agent / subagent operating framework
-- `HANDOFF_PROCESS.md` — the handoff protocol (v5; CC-owned residual + probe manifest)
+- `HANDOFF_PROCESS.md` — the handoff protocol (v6; CC-owned residual + probe manifest, one-round-trip boot)
 - `HANDOFF_BOOT.md` — the thin browser-chat boot entry
 - `SESSION_SETUP.md` — session bootstrap / environment wiring
 - `ENVIRONMENT.md` — the `~/.claude/` runtime + machine environment contract

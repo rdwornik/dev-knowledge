@@ -1,13 +1,22 @@
-# HANDOFF_PROCESS v5
+# HANDOFF_PROCESS v6
 <!-- scope: meta -->
 
-Version: 5.7
+Version: 6.0
 Status: stable
-Effective: 2026-06-11 (canonical)
-Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149)
+Effective: 2026-06-11 (canonical); v6 cut 2026-07-31
+Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149).
+v6 reshape: intake #19 §B(b), ADOPTED at the intake #18 ratification ([#435]); the seven open
+questions closed by `docs/audits/2026-07-31-technical-v6-open-rulings.md` R1..R7 and built under
+[#446].
 Supersedes: HANDOFF_PROCESS v4.4 (archived at `protocols/archive/HANDOFF_PROCESS_v4.4.md`),
 and the heavy-bundle delivery ADR-79 mandated.
 Authority: this protocol is the single canonical source of truth for handoff mechanics.
+
+> **What v6 changes.** One CC-side command runs the whole live gate and emits **one evidence
+> block**; the operator pastes **once**. Everything the v5.7 teeth required is still required —
+> the reshape changes the **transport count, not the proof threshold** (§5). The bundle stays
+> **answer-free**. Added with it: the A7 standing-topic legs (P0a/P0b/P0c), the A4 `Destination`
+> boot-header row and its P3 comparison, the A10 boot byte budget, and the A11 guards.
 
 > **Why a rewrite.** v4 treats a handoff as onboarding a new chat with a heavy 8-file
 > teaching bundle pasted into a browser. The 2026-06-10 lesson named the load-bearing
@@ -127,17 +136,48 @@ teeth-bearing when all four hold (the fourth — bounded-deterministic — ratif
 | **Ship-gate read-back** | `audit.py ship-gate` ∩ `ecosystem/disposition-register.yaml` | the GREEN/RED verdict, the dispositioned-WARN **count**, and any `[stale]` line are computed at answer-time over live git ∩ `main`-history; a new direct-on-`main` commit re-REDs it — the values are absent from the bundle, so do **not** trust the residual's headline. Folds the former **drift-flag set** + **freshness witness** probes: `git_backlog_drift` and `canonical_freshness` are both `ALL_CHECKS` members, so running the gate re-derives them and prints their evidence inline | `python scripts/audit.py ship-gate` (read the final GREEN/RED verdict + the disposition count + any `[stale]` line) |
 | **Pointer round-trip** | the live `PLAYBOOK` section a pointer names | re-narration is outlawed (§2/§3); the answer exists only by opening it | read the live section; compare |
 
-### Who runs it (the file-access reality)
+### Who runs it — the one-round-trip boot (v6; U1 / R1)
 
-The browser has **no file access**, so the teeth are enforced at the **CC ↔ primary-source**
-boundary. CC ships the probe manifest in the handoff (questions + locators + commands, no
-answers). The browser, lacking files, **must respond "run `<command>`"** for any live probe —
-which *surfaces* the off-bundle dependency rather than hiding it. CC runs each verification
-command against **live state at check-time**, re-derives ground truth, and emits PASS/FAIL.
-**Any FAIL blocks onboarding** (the escalation ladder, §10). The reconciliation in one line:
-"force the receiver to open the primary source" becomes "**force CC to re-derive every
-load-bearing fact from the live primary source at check-time, and block onboarding on any
-mismatch.**"
+The **proof boundary is unchanged**: the browser has **no file access**, so the teeth are
+enforced at the **CC ↔ primary-source** boundary. CC ships the probe manifest in the handoff
+(questions + locators + commands, **no answers**).
+
+What v6 changes is the **transport**. Through v5.7 the browser answered `run <command>` for each
+probe and the operator ferried each command and its output back — one round trip per probe. In
+v6, **one CC-side command** (`/handoff-verify`, R1) runs every verification against live state at
+check-time, performs the orientation reads, verifies inherited claims, runs the P0a/P0b/P0c
+standing-topic legs and the P3 destination comparison, and emits **exactly one evidence block**.
+The operator pastes it **once**; the browser consumes the table instead of dictating commands one
+at a time.
+
+The evidence block is **check-time command output**, not a generation-time answer embedded in a
+bundle. The bundle continues to ship questions, source locators and exact verification commands
+without answers, so the v5.7 answer-free invariant survives the reshape intact — what is removed
+is operator ferrying, not proof.
+
+**The checker is a COMMAND, not a `scripts/` validator, by necessity.** Running the probe commands
+is *execution*, which Layer 2 does not do (Critical Rule #4; ADR-28/36) — the reason
+`scripts/verify_handoff_probes.py` is resolve-only. The gate therefore has two organs and they are
+not interchangeable: `verify_handoff_probes.py` proves each row **binds** to live state
+(structural, read-only, gates `/ship`), and `/handoff-verify` **runs** them (CC-side, at
+check-time). Neither substitutes for the other.
+
+**Why a separate command and not a `/handoff --verify` flag (R1).** `/handoff` generates and is
+answer-**free** by construction; `/handoff-verify` checks and is answer-**producing**. Those are
+opposite contracts; one surface holding both recouples the ferry and the proof, which is the
+boundary this section exists to protect. `/handoff` does not grow a verify flag, and `/boot` stays
+archived.
+
+**Evidence-block contract.** One block, one table. Every row reports its **source locator**, the
+**check performed**, **PASS/FAIL**, and the **live evidence** the browser needs. The required rows
+are the five manifest probes above, both architect orientation reads, inherited claims,
+P0a/P0b/P0c, and P3. **Any FAIL blocks onboarding** (the escalation ladder, §10). **A missing
+required row is not a pass**, and **no required row may be deferred to a second block or another
+ferry turn.** Degraded coverage is reported, not silently counted as a pass.
+
+The reconciliation in one line is unchanged from v5: "force the receiver to open the primary
+source" becomes "**force CC to re-derive every load-bearing fact from the live primary source at
+check-time, and block onboarding on any mismatch.**"
 
 ### Empirical proof is a promotion gate (operator ruling)
 
@@ -241,6 +281,29 @@ a synthesized pass. An infra hiccup (git absent) → reported as *skipped* (degr
 visible), never silently counted as pass. Silent truncation or fabrication is the failure mode
 to avoid: degrade loudly.
 
+### Generation + verification guards (v6; intake #18 A11)
+
+- **Overwrite refusal at the creation site (R5).** Generation **refuses** a target bundle
+  directory that already holds **git-tracked** files, with a diagnostic naming the colliding
+  directory and the escape hatch; `--allow-suffix` is the explicit opt-in that writes a fresh
+  `-<n>` sibling. Silent suffixing was rejected because it converts today's collision into
+  tomorrow's ambiguous-active-bundle FAIL. A directory that exists but holds **no** tracked file
+  is the bundle being generated now — it is written in place, so the `--filled` re-render and
+  the FILL-IN splice are unaffected. The check degrades **open** (git absent or unreachable →
+  nothing is tracked → generation proceeds): a generator that cannot reach git does not refuse
+  to generate.
+- **Verification callable + CLI (R6).** `verify(bundle_path, repo_root=None, cross_repo=False)`
+  is the codified signature, mapped onto the CLI as `--repo-root PATH` and `--cross-repo`.
+  **`--cross-repo` without `--repo-root` is a hard error**, not a silent root inference —
+  inferring the root reproduces the original false-FAIL class.
+- **Probe tokenizer (R7, absorbing [#421]).** A repo-root **dotfile** binds as a probe target
+  (`.pre-commit-config.yaml` keeps its leading dot), and a backticked **ticket id** (`` `#421` ``)
+  is not mistaken for a markdown anchor — a header ATX-opens with `#`×1–6 plus whitespace. Both
+  are precision fixes: they add a binding and remove a false anchor class, and neither widens
+  what the resolver accepts.
+
+Each A11 leg lands with a test or is re-deferred by ruling; no leg completes by silent omission.
+
 ---
 
 ## 11. Promotion record (v5 → canonical, 2026-06-11)
@@ -333,9 +396,8 @@ operator-context beat:
 - **(c) Orientation (the vision frame) — a §5 "exact-line quote" probe; a forced-read *tool* that
   establishes the vision, not the navigation gate.** The opening sequence is **role → vision →
   standing topics → backlog**: role is set by §4, this layer establishes the vision, standing
-  topics (the active epic themes + `status: ACCEPTED, disposition: active` intakes) are reconciled
-  next (intake #18 A7 — the P0 probe legs land with the §B(b) build), and **the backlog (b) is what
-  navigates** — once role, vision and standing topics are in hand the architect starts from
+  topics (the active epic themes + `status: ACCEPTED` intakes) are reconciled next, and **the
+  backlog (b) is what navigates** — once role, vision and standing topics are in hand the architect starts from
   `BACKLOG.md`, not from the orientation read. This is the scope-D fix, delivered the v5 way: **forced read, never a copy,
   never a paraphrase.**
   - A plain-language "what is this project" answer is **summary-bluffable** and so fails §5's
@@ -354,6 +416,35 @@ operator-context beat:
     proceed without the live orienting line in hand — **with zero content copied**; the
     no-re-narration rule (§2/§3) and the no-bluff rule (§5) both hold. This is the layer the v5
     execution bundle lacked.
+- **(c′) Standing-topic reconciliation — the P0 legs (v6; intake #18 A7, ruled R2).** The
+  standing authorities are reconciled **mechanically**, not by convention. This was §13 prose
+  through v5.7 and it failed three consecutive windows: *a rule with no probe has no teeth.* The
+  generated `PROBES.md` therefore emits three legs, **above P1**:
+  - **P0a** — quote, substring-exact, the theme-preamble line of each active `[E#]` epic theme in
+    `BACKLOG.md`, **and** confirm the generated backlog is **current** (`python
+    scripts/gen_task_tree.py --check` exits 0). The currency assertion is not optional garnish:
+    `BACKLOG.md` is *generated* since [#436], so a probe that can pass on stale generated content
+    is bluffable.
+  - **P0b** — enumerate live every `docs/intake/*.md` carrying `status: ACCEPTED` and quote each
+    doc's **TITLE line only**. **Honest narrowing (terra H3):** wave/sequence detail stays
+    unquoted, because it is unstructured prose today and quoting it would overclaim determinism.
+    Wave-level teeth require the intake schema to first gain a required machine-locatable
+    plan-of-record heading — an intake-schema change owned by `docs/intake/README.md`, offered as
+    an option, not assumed.
+  - **P0c** — name which enumerated authority **this bundle's own Purpose** serves; unquotable
+    against the P0a/P0b enumeration, or contradicted by it, is a **FAIL**.
+
+  **Deterministic legs only** (the RM-4 / S3d boundedness law, §5 condition 4): there is no
+  open-ended adjudication leg, because whole-set grooming is an **arc, not a probe**.
+- **(c″) The `Destination` row and P3 (v6; intake #18 A4 item 3, ruled R3).** Every lane-opening
+  boot header carries a `Destination` row declaring **ex-ante**: worktree · branch (in a sanctioned
+  lane shape) · write-scope · execution MODE with basis. **A lane inherits none of it from a prior
+  prompt.** Only the **branch** field has a mechanical counterpart: `PROBES.md` **P3** compares it
+  against live `git branch --show-current`, and a mismatch is a **FAIL** — the lane is not where the
+  handoff sent it. Worktree, write-scope and MODE-basis stay **prose and carry no probe leg**: a leg
+  with no mechanical counterpart cannot fail honestly, and one that cannot fail honestly discredits
+  the whole block. The three prose fields are FILL-IN regions, so a bundle shipped with an unfilled
+  `Destination` is blocked by the residual-completeness gate.
 - **(d) Operator-context beat — one targeted ask for off-repo context; after orienting, before
   design begins.** CC's handoff is **repo-derived** and structurally cannot carry operator intent
   or off-repo findings, so once the orienting lines are in hand the architect makes **one** targeted
@@ -839,3 +930,42 @@ intake↔epic edge stays **advisory until n=2** intake docs are consumed end-to-
   `check-against-spec` (compressed sweep — the change is additive §16 + one §14 sentence);
   freshness-gated dependents genuinely re-read + restamped. Major stays 5. Refs ADR-98,
   #268 (Arc 2 intake-scene build).
+- **v5.7 → v6.0** (2026-07-31) — **the one-round-trip boot.** Intake #19 §B(b), ADOPTED at the
+  intake #18 ratification ([#435]); the seven open questions closed by
+  `docs/audits/2026-07-31-technical-v6-open-rulings.md` R1..R7 (R4's number recorded as its
+  amendment A1) and built under [#446] against a RED-first frozen contract
+  (`tests/test_v6_frozen_contract.py`, 9 items, frozen at `1e93c746` before any build code).
+  **Major moves 5 → 6** because §5's transport contract is reshaped, not extended.
+  **§5 "Who runs it" replaced (R1 / U1).** One CC-side command (`/handoff-verify`) runs the
+    whole live gate at check-time and emits **exactly one evidence block**; the operator pastes
+    once and the browser consumes the table, instead of answering `run <command>` per probe. The
+    proof boundary, the four teeth conditions, the probe manifest, the empirical promotion gate
+    and the structural anti-bluff contract all carry forward **unchanged** — the reshape changes
+    the **transport count, not the proof threshold**. Recorded with it: the checker is a
+    COMMAND and not a `scripts/` validator by necessity (Critical Rule #4), so the gate has
+    two non-interchangeable organs — `verify_handoff_probes.py` proves rows BIND, `/handoff-verify`
+    RUNS them.
+  **§13 (c′) standing-topic legs (R2 / A7).** P0a/P0b/P0c emit above P1: live `[E#]` theme
+    preambles **plus** a `gen_task_tree --check` currency assertion (BACKLOG.md is generated
+    post-[#436], so a probe that can pass on stale generated content is bluffable), live
+    `status: ACCEPTED` intakes quoted by TITLE only (terra-H3 honest narrowing), and a
+    Purpose-vs-authority check whose unquotable/contradicted outcome is FAIL.
+  **§13 (c″) `Destination` row + P3 (R3 / A4 item 3).** The boot header declares worktree ·
+    branch · write-scope · MODE-with-basis ex-ante; only the **branch** field gets a probe leg
+    (P3 compares it to live `git branch --show-current`; mismatch = FAIL). The other three stay
+    prose deliberately: a leg with no mechanical counterpart cannot fail honestly.
+  **§4 boot byte budget (R4 / A10 item 2).** 18,000 bytes, **split enforcement** — the
+    assembler WARNs (stays generatable), `audit.py::check_boot_byte_budget` FAILs (stops being
+    shippable). Declared as the `handoff-boot-budget` doc→code edge (2 organs, ADR-90 multi_site).
+  **§10 A11 guards (R5/R6/R7).** RM-8 overwrite refusal at the creation site with an
+    `--allow-suffix` opt-in and a stated fail-open degrade; the `verify(bundle_path, repo_root,
+    cross_repo)` CLI mapping with `--cross-repo`-sans-`--repo-root` a hard error; and the [#421]
+    tokenizer absorption (repo-root dotfiles bind; a backticked ticket id is not an anchor).
+  **Coupled atomic move (this commit):** `CONTRIBUTING.md` stamp v5.7→v6.0 and **six**
+  `reconciled_with` edges @5.7→@6.0 — `ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`,
+  `docs/handoffs/README.md`, `protocols/HANDOFF_BOOT.md`, `protocols/README.md`. **Six, not
+  five:** the v5.7 entry above and the v6 spec draft both name five; `protocols/README.md` was
+  undercounted, corrected here. Freshness-gated dependents genuinely re-read + re-stamped; the
+  browser boot's ferry paragraph and the operator runbook's run-loop rewritten (with an explicit
+  pre-v6 note — bundles are immutable and judged by their own era). Refs intake #19 §B(b),
+  intake #18 (A4/A7/A10/A11), [#435], [#446], [#421].
