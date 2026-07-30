@@ -50,14 +50,16 @@ The **standing authorities** a session reconciles against before it plans: the l
 themes and the live accepted intakes. This was a §13 prose rule and it failed three consecutive
 windows — *a rule with no probe has no teeth* — so it is mechanized here. **Deterministic legs
 only** (the RM-4 / S3d boundedness law): there is no open-ended adjudication leg, because
-whole-set grooming is an **arc, not a probe** (JOURNAL 2026-07-26 (h)). Same contract as every
-row below: question + source-locator + command, **no answer**.
+whole-set grooming is an **arc, not a probe** (JOURNAL 2026-07-26 (h)). P0c is narrowed to a
+**name-match** for exactly that reason (amendment A2): "does the Purpose *serve* this authority"
+is a judgment a probe cannot terminate on, and a leg that cannot fail honestly discredits the
+block. Same contract as every row below: question + source-locator + command, **no answer**.
 
 | # | Probe (question) | Binds to (primary source) | Why a summary can't answer it | CC verifies via |
 |---|---|---|---|---|
 | P0a | Quote, **substring-exact**, the theme-preamble line of each **active** `[E#]` epic theme in `BACKLOG.md` — **and** separately confirm the generated backlog is **CURRENT**, not stale. | `BACKLOG.md` `[E#]` theme headers + the preamble line under each | the preamble set drifts on any theme edit, and `BACKLOG.md` is GENERATED since [#436] — a probe that can pass on stale generated content is bluffable, so currency is asserted mechanically, not assumed | `grep -A1 '^## \[E' BACKLOG.md` → each quote substring-matches the live preamble (a paraphrase is a FAIL); **then** `python scripts/gen_task_tree.py --check` exits 0 — a non-zero exit is a FAIL (currency — R2's second assertion) |
 | P0b | Enumerate, live, every doc under `docs/intake/` whose frontmatter carries `status: ACCEPTED`, and quote each one's **TITLE line** (its first level-1 `#`-heading). **Titles only.** | `docs/intake/*.md` frontmatter + first heading; area definition at `docs/intake/README.md` | the accepted set and its titles drift on any intake status change; neither the set nor any title appears in this bundle | `grep -l '^status: ACCEPTED' docs/intake/*.md` then read each hit's first heading line |
-| P0c | Which enumerated standing authority — a P0a epic theme, or a P0b accepted intake — does **this bundle's own Purpose** serve? Unquotable against that enumeration, or contradicted by it → **FAIL**, route to the escalation ladder. | this bundle's `docs/handoffs/{{SLUG}}/HANDOFF_BOOT.md` Purpose ∩ the live P0a/P0b output | the Purpose is hand-authored per bundle and the authorities are live; whether they agree is computable only after P0a and P0b have both been run | `sed -n '/FILL-IN:purpose/,+1p' docs/handoffs/{{SLUG}}/HANDOFF_BOOT.md` → name the authority it serves; unquotable or contradicted = FAIL |
+| P0c | Does **this bundle's own Purpose** NAME at least one authority present in the P0a/P0b enumeration? **No match = FAIL**, route to the escalation ladder. (Whether the Purpose genuinely *serves* that authority is an architect judgment, deliberately outside the mechanical check — amendment A2.) | this bundle's `docs/handoffs/{{SLUG}}/HANDOFF_BOOT.md` Purpose ∩ the live P0a/P0b output | the Purpose is hand-authored per bundle and the authorities are live, so the name-match is computable only after P0a and P0b have both been run | `sed -n '/FILL-IN:purpose/,+1p' docs/handoffs/{{SLUG}}/HANDOFF_BOOT.md` → check it names an authority the P0a/P0b output enumerates; no match = FAIL |
 
 **Honest narrowing (terra H3).** P0b quotes **titles**, not wave/sequence detail: wave content is
 unstructured prose today, so quoting it would overclaim determinism (the RM-4 law applied to this

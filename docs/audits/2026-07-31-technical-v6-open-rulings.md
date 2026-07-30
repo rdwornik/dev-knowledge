@@ -18,3 +18,5 @@ R7 — [#421] absorption: Option B, both variants fixed inside the [#446] leg: (
 ## Amendments
 
 A1 (2026-07-31): R4 resolved — 18,000 bytes on protocols/HANDOFF_BOOT.md, mechanically enforced; A10 closes against this number only. RULED architect technical lane. The per-bundle session header is NOT governed by A10.
+
+A2 (2026-07-31): R2/P0c honest-narrowed — the mechanical check is: bundle Purpose NAMES ≥1 authority present in the P0a/P0b enumeration (no match = FAIL); the serves-judgment remains architect-side. Grounds: R3 doctrine — a leg that cannot fail honestly discredits the block.

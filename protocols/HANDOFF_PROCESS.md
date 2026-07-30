@@ -37,7 +37,7 @@ CC (Claude Code, Layer-3, has file access) **owns and initiates** the handoff. T
 CC is your junior." The three-layer invariants (ADR-28) are unchanged; what changes is *who
 initiates*, since CC is the only actor holding live repo state.
 
-| Actor | In v5 |
+| Actor | In v5/v6 |
 |---|---|
 | **CC** (Layer 3) | Stateful executor. Generates the handoff from inside the repo; runs the drift-checks + state read; runs the teeth-y forced read; verifies **state fidelity**. |
 | **Browser** (Layer 1) | Thin reactive architect. Boots from `HANDOFF_BOOT.md`; verifies the **artifact**; filters CC output to the operator; research; exception-handler; launch-config for genuine forks. |
@@ -395,15 +395,21 @@ operator-context beat:
   fact. See ADR-66 §Amendments (2026-06-13, ratified 2026-06-14).
 - **(c) Orientation (the vision frame) — a §5 "exact-line quote" probe; a forced-read *tool* that
   establishes the vision, not the navigation gate.** The opening sequence is **role → vision →
-  standing topics → backlog**: role is set by §4, this layer establishes the vision, standing
-  topics (the active epic themes + `status: ACCEPTED` intakes) are reconciled next, and **the
-  backlog (b) is what navigates** — once role, vision and standing topics are in hand the architect starts from
-  `BACKLOG.md`, not from the orientation read. This is the scope-D fix, delivered the v5 way: **forced read, never a copy,
-  never a paraphrase.** **Sequence vs. placement (ruled 2026-07-31).** This sequence governs the
-  reader's **consumption order**, not row placement: the P0 legs are *emitted* above P1 (the
-  mechanical emission contract, pinned by the frozen contract), while the reader still takes
-  role → vision → standing topics → backlog. The two do not conflict — one orders the table, the
-  other orders the reading.
+  standing topics → backlog** as an *interpretation* frame: role is set by §4, this layer
+  establishes the vision, the standing topics (the active epic themes + `status: ACCEPTED`
+  intakes) are reconciled, and **the backlog (b) is what navigates** — once role, vision and
+  standing topics are in hand the architect starts from `BACKLOG.md`, not from the orientation
+  read. This is the scope-D fix, delivered the v5 way: **forced read, never a copy, never a
+  paraphrase.**
+
+  > **ONE execution order (ruled 2026-07-31).** The **table order is the execution order**: the
+  > gate runs `P0 → P1 → the remaining rows`, exactly as `PROBES.md` emits them, and
+  > `/handoff-verify` runs them in that order in a single pass. The
+  > role → vision → standing topics → backlog sequence above is **subordinate to it** — it
+  > governs how the architect *reads and weighs the results* in the produced evidence block, not
+  > when anything runs. Where the two could be read as competing instructions, the table order
+  > wins. (This supersedes the 2026-07-31 "emission vs. reading" formulation, which left two
+  > apparent execution orders standing — terra HIGH: an operator cannot follow both.)
   - A plain-language "what is this project" answer is **summary-bluffable** and so fails §5's
     own bar (§5: *a probe answerable from the compaction summary is removed or hardened*).
     Re-narrating VISION into the handoff is equally barred (§2/§3). Orientation is therefore

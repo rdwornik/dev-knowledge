@@ -205,10 +205,13 @@ exist; each produces its own single paste and **skips this walkthrough entirely*
 
 ## Format eras & navigation
 
-The bundle shape changed over time. Current bundles are **v5**; older eras are archived, not
-deleted.
+The bundle shape changed over time. Current bundles are **v6**; **v5** is the immediately prior
+era (same four files — v6 reshapes the transport, not the bundle shape); older eras are archived,
+not deleted.
 
-- **v5 (canonical, 2026-06-11 → )** — `HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md` + `PASTE_THIS.md`
+- **v6 (canonical, 2026-07-31 → )** — the v5 four-file shape plus the `Destination` boot-header
+  row and the P0 standing-topic legs; consumed via ONE `/handoff-verify` evidence block.
+- **v5 (prior era, 2026-06-11 → 2026-07-31)** — `HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md` + `PASTE_THIS.md`
   (no per-bundle README; this runbook serves them all). The operator pastes the single assembled
   `PASTE_THIS.md`. Spec: `protocols/HANDOFF_PROCESS.md` (§13 bundle shape).
 - **v4 (2026-05-29 → 2026-06-10)** — eight-file teaching sequence (`01_ROLE`…`07_ASK_BACK` + a

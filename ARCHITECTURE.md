@@ -222,7 +222,7 @@ An organ can be ARMED and still tell you nothing. Read the qualifier before trus
 | `verify` (skill) | invoked per numbered step | hub | advisory (pytest+ruff+git) | ARMED | #104 (home #9 open) |
 | `gotchas` (skill) | auto-consulted before edits | L0 | advisory | ARMED | global |
 | `artifact-reader` (agent) | reading a >20k-token artifact | hub | read-only (Read/Grep/Glob) | ARMED | #97 |
-| `/save`, `/handoff` (commands) | operator | hub | — | ARMED | repo; ADR-82 / HANDOFF v5 |
+| `/save`, `/handoff`, `/handoff-verify` (commands) | operator | hub | — | ARMED | repo; ADR-82 / HANDOFF v6 |
 | `/ship`, `/review-closures` (commands) | operator | plugin (fleet-wide) | branch→`--no-ff`→push→**delete source branch**→clean-tree gate (merge is ATOMIC — the delete is part of the same operation, not a later decision; git-discipline) | ARMED | git-discipline; ADR-70 |
 | `/changelog-review`, `/codex-review` | operator (push) | hub / L0 | — | ARMED | #113 / ADR-54 |
 | `conformance-hub.js` (Workflow) | operator (`ultracode`) or cloud Routine | Tier-3 | read-only + skeptic + evidence-required | ARMED | ADR-70 (#81) |

@@ -133,11 +133,14 @@ deferred naming flip), and `functional` (§16 one-file intake-capture boot, no p
 - **Supplement ↔ the one-block boot ([#446] §B(b), v6).** The 6-question schema is **unchanged** by
   the one-round-trip reshape, and it stays **outside** the evidence block: the supplement is the
   operator's *forward* brief, filled **before** the next session boots, whereas the block is CC's
-  *check-time* output. What the reshape changes is how a folded answer is treated **on arrival** — a
-  supplement answer is an **inherited claim**, so it is never trusted on its face. `/handoff-verify`
-  carries an `Inherited claims` row and verifies each one CC-side against the live repo;
-  unverifiable or contradicted = FAIL, the same ladder as any other row. Same advisory-never-teeth
-  contract as before, now with a mechanical counterpart instead of a convention.
+  *check-time* output. What the reshape changes is how a folded answer is treated **on arrival**,
+  and the split is **narrow on purpose**: `/handoff-verify`'s `Inherited claims` row verifies only
+  a supplement answer that **asserts a repo-verifiable fact** (a count, a sha, a file's state, "X
+  landed") — those are checked CC-side against the live repo, and a contradicted one is a FAIL.
+  The supplement's *actual* payload — intent, tensions weighed, options rejected, off-repo context
+  — has **no live repo source by construction**, stays **advisory**, and is **never** failed for
+  being unverifiable. Verifying the unverifiable would make every filled supplement blocking,
+  which would invert the §13 contract that the supplement is advisory and never teeth.
 
 **Architect-mode completion output (lead-by-hand — keep it SHORT, not a dense dump).** When the
 architect bundle is ready, end with this concrete message (substitute `<slug>`):
