@@ -17,9 +17,16 @@
 | **Chat title** | `{{CHAT_TITLE}}` — name the fresh browser chat this (bump `SEQ` per parallel chat) |
 | **Mode** | **{{MODE}}** (HANDOFF_PROCESS §13 — {{MODE_SCOPE}}) |
 | **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->_(fill: one-line session purpose — what the next session should achieve; ~3 sentences + a `BACKLOG.md` pointer, no re-narration)_<!-- FILL-IN:purpose END --> |
+| **Destination** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->_(fill: worktree name, or `none (primary tree)`)_<!-- FILL-IN:dest-worktree END --> · branch `{{BRANCH}}` · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; PROSE, deliberately outside P3) -->_(fill: what this lane may write)_<!-- FILL-IN:dest-scope END --> · MODE **{{MODE}}** — basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, per ADR-87 item 5; PROSE, deliberately outside P3) -->_(fill: why this mode)_<!-- FILL-IN:dest-mode-basis END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `{{BRANCH}}`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
 {{SUPPLEMENT_BANNER}}
+
+> **The `Destination` row is declared ex-ante — a lane inherits none of it from a prior prompt.**
+> Only its **branch** field has a mechanical counterpart: `PROBES.md` **P3** compares it against
+> live `git branch --show-current`, and a mismatch is a FAIL. Worktree, write-scope and MODE-basis
+> stay **prose** and deliberately carry no probe leg — a leg with no mechanical counterpart cannot
+> fail honestly, and one that cannot fail honestly discredits the whole block (R3).
 
 > **Anti-bluff in effect (read `PROBES.md` header).** This bundle **withholds every probe answer
 > value** by construction — no counts, SHAs, dates, verdicts, or orienting lines. The withholding IS
