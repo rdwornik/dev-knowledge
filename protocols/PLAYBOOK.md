@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-07-29
+> Last updated: 2026-07-30
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -96,6 +96,7 @@
   - [The shallow-clone false-positive class](#the-shallow-clone-false-positive-class)
   - [Cloud-session hub-independence (self-containment)](#cloud-session-hub-independence-self-containment)
   - [What every routine must meet (the operational standard)](#what-every-routine-must-meet-the-operational-standard)
+  - [Night-batch work — the morning-loop wave from the night side](#night-batch-work--the-morning-loop-wave-from-the-night-side)
 - [Ch12. Definition of done (organs)](#ch12-definition-of-done-organs)
   - [Definition of shipped (closure gate)](#definition-of-shipped-closure-gate)
 - [Ch13. Continuous Improvement](#ch13-continuous-improvement)
@@ -1781,6 +1782,34 @@ A recurring unattended review — local or cloud — graduates to "standard" onl
 5. **Fail-soft + catch-up posture** — a missed run is tolerated by design: catch-up on next opportunity (local: Task Scheduler "run as soon as possible after a missed start", ADR-76; cloud: the next scheduled night), surfaced at the next SessionStart. No alerting, no wake-from-sleep.
 6. **Funnel-review as the consuming contract** — findings are *proposals*; the operator's morning funnel ratifies before anything binds, and records per-routine findings-acted-on vs noise (#123). A routine with no funnel consumer is not deployed.
 7. **Evidence gate: n=2 before graduation** — a new routine pattern is codified into this standard only after **two real runs** demonstrate it end-to-end (ADR-74 Footnote B meta-rule). The nightly conformance routine cleared this gate (n=1 red 2026-06-06 → triaged → n=2 clean 2026-06-07, both PR'd into `main`); #84 is the codification that consumed it.
+
+### Night-batch work — the morning-loop wave from the night side
+<!-- scope: meta -->
+
+> **Provenance:** source intake #19 **§A** (night shift), U6(a) rider — trigger fired 2026-07-30 (the 2026-07-30→31 night batch ran); landed by arc `0731-g0-groom`. Note the rider is cited as "§B" on four upstream surfaces; the content is **§A** — see that arc's JOURNAL entry.
+
+Distinct from everything above in this chapter: the subsections above govern a **scheduled cloud Routine** (cron-triggered, self-contained, Action-mediated). This governs an **operator-requested night batch** — an interactive orchestrating session that fans out, then stops. Both are unattended writing; only the batch has a human who asked for it that evening.
+
+A night batch is not a new project. It is the morning-loop wave seen from the night side, and existing doctrine already governs most of it: model routing by t-shirt size ("T-shirt model pins"; Appendix B), unattended-writer branch isolation (ADR-84), the Tier-3 propose-only rule, and ADR-105's rule that a routine may not activate without a named consumer. What night work adds is executable, not doctrinal.
+
+**The hard rule: nothing merges unattended.** The night produces proposals and evidence; the morning is the operator plus ONE report. A night lane is branch-only — it does not merge, does not push, does not edit canon, does not close a row, and does not issue a ruling. Every output is UNVERIFIED-UNTIL-LOCAL until a local gate run confirms it. This is the existing propose-only doctrine, stated where it gets tested.
+
+**Three organs a night batch needs** (intake #19 §A items (a)–(c)):
+
+1. a **HOST** — no CI exists, so nightly work runs on the operator's machine or a cloud Routine;
+2. a **NIGHT-JOB REGISTRY** — each job declares trigger, scope, consumer, consumption path (the ADR-105 six-field shape, which also converts `[#426]` from a 30-item retrofit into one field per job);
+3. a **MORNING RATIFICATION SURFACE** — the consumer whose absence is the root of `[#419]`.
+
+**Shape of a batch.** Opus orchestrates; Sonnet runs bounded probes; Haiku runs read-only fan-out. **Every git mutation stays serial in the orchestrating thread** — parallel writers on one tree corrupt each other. Producer ≠ reviewer holds: an agent that did not write the artifact is less biased toward it. Each workstream lands **one dated report** carrying a named `consumer` and `consumption_path` (ADR-105 discipline), and reports are reports — a night batch does not create standing planning artifacts (`[#443]` rent rule).
+
+**Isolation.** Parallel runs sharing one home directory corrupt each other's session state; each needs its own. A night lane names its branch in a sanctioned machine-produced lane shape (`claude/<slug>`, CLAUDE.md §4) and is not self-merged.
+
+**Honest-limits requirement.** A night report states what it did **not** check. A batch reporting only findings, with no statement of coverage limits, is not a completed batch.
+
+**Two beats learned from the first witnessed batch** (2026-07-30→31, n=1 — this shape has **not** cleared the n=2 evidence gate above, so it is a recorded practice, not yet a graduated standard):
+
+- **Report what you did not check.** The batch's ruled-out lists (e.g. a QA leg that disproved CRLF corruption, byte-vs-char miscounting and sentinel spoofing) were as decision-useful as its findings, and cheaper to act on than a padded finding list.
+- **A read-only mandate needs a leftover sweep.** One workstream wrote a working file into the repo root despite an explicit read-only brief. The mandate alone did not prevent it; the cleanup beat is what caught it (CLAUDE.md §5 #9 no-leftovers, applied per-workstream rather than per-session).
 
 ---
 

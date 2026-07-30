@@ -116,3 +116,39 @@ with every other presented candidate ruled STAYS-OPEN and [#433] not re-adjudica
 
 **Rider U6(a) is unaffected** and stays DEFERRED with its original trigger (the next night-batch
 request).
+
+## Amendment (2026-07-30, second marker) — U6(a): trigger FIRED, and a citation erratum
+
+> Same in-file amendment convention as the section above (CLAUDE.md §5 rule 3). The verdict ledger
+> and the riders section remain **byte-untouched**; this marker records a later act and corrects a
+> pointer, not a decision. Landed by arc `0731-g0-groom`.
+
+**1. U6(a) trigger FIRED — rider actionable, content still unratified.** The riders section set
+U6(a)'s trigger as "the next night-batch request". **That request arrived 2026-07-30** and the
+batch ran (branch `claude/night-2026-07-30-boot-prep`, four workstream reports, branch-only, no
+merge). The trigger is therefore **spent**; the rider is actionable. Trigger-fire is **not**
+ratification — the standing night-batch section was drafted, reviewed, and landed in
+`protocols/PLAYBOOK.md` Ch11 under the operator's 2026-07-30 G0/home ruling, and the ADR-105
+activation record landed as a six-field clause on `[#426]`. Both cite this marker for provenance.
+
+**2. CITATION ERRATUM — the rider's section pointer is wrong: it is §A, not §B.** The riders
+section (item (a), above) reads "intake #19 **§B** standing night-batch section". The cited
+document's actual structure disagrees:
+`docs/intake/2026-07-27-func-operator-design-input-night-shift-handoff-reform.md` carries
+`## SECTION A — night shift` and `## SECTION B — handoff reform`, and its own frontmatter `note:`
+states *"Section A feeds the morning-loop wave; section B feeds the intake #18 ratification
+session."* The night-shift content the rider describes — the HOST / NIGHT-JOB REGISTRY / MORNING
+RATIFICATION SURFACE items and the `nothing merges unattended` hard rule — is entirely in **§A**.
+**Read U6(a) as "intake #19 §A".**
+
+Scope of this erratum, stated precisely so it does not over-reach: it corrects **only** the U6(a)
+rider's pointer. Every **other** `intake #19 §B` citation in this record and elsewhere is
+**CORRECT and untouched** — in particular U1's "intake #19 **§B(b)** direction" and `[#446]`'s
+`§B(b)` framing genuinely refer to §B (handoff reform), whose item (b) is the one-round-trip boot.
+
+The same mis-citation appears on three further surfaces, none of which is edited in place because
+all three are **immutable classes** under CLAUDE.md §5 rule 3 —
+`docs/audits/2026-07-30-technical-v6-spec-sol-draft.md` (audit) and the merged
+`docs/handoffs/2026-07-31-dev-knowledge-architect/{PASTE_THIS,RESIDUAL}.md` (handoffs). They
+inherit this correction **by reference**: this record is the authoritative rider ledger, so a
+reader resolving U6(a) lands here. Recorded rather than propagated by edit.
