@@ -19,6 +19,40 @@
 
 ---
 
+### 2026-07-31 (a) — CC (Opus 5): [#446] §B(b) BUILD — all 9 frozen items GREEN · HANDOFF_PROCESS v6.0 cut
+
+**Did:** built the §B(b) one-round-trip boot to the frozen contract (`1e93c746`, 9 items RED at
+freeze), FR by FR, one commit each, then cut the v6 bump last. Step 0 completed the freeze:
+`_R4_RULED_BUDGET = 18000`, and R4's number recorded as an APPENDED `## Amendments` A1 entry on
+the rulings artifact — NOT the in-place line rewrite the brief asked for (operator amendment:
+`docs/audits/*` is immutable, CLAUDE.md §5 rule 3; the amendment-marker form is the sanctioned
+escape).
+
+**Result:** 9/9 frozen tests GREEN **on `feat/446-boot`; `main` untouched** — merged is not done.
+Suite 1978 passed / 3 skipped / 2 failed, both pre-existing and PROVEN so by stashing to HEAD
+(fleet_parity ai-council `conftest.py`; routine_consumers 2-rows-vs-1). ship-gate **GREEN**
+(15 WARN dispositioned), run via git-bash. W1–W6 prose witnesses all flip; the anti-bluff
+invariant re-witnessed live (an `expected:` row FAILs, the identical row without it PASSes).
+Deploy witness: `/handoff-verify` dry-run against the live 2026-07-31 bundle — 10 PASS / 0 FAIL /
+5 not-run; it correctly reports the four v6-required rows as ABSENT from that pre-v6 bundle
+rather than passing them, which is the "a missing required row is not a pass" rule doing its job.
+
+**Changes:** `scripts/` gen_handoff (RM-8 refusal + `--allow-suffix`), verify_handoff_probes
+(dotfile + bare-`#` tokenizer, argparse CLI), assemble_paste (budget WARN), audit
+(`check_boot_byte_budget`, ALL_CHECKS 34→35) · `templates/handoff/v5/` P0a/P0b/P0c legs +
+Destination row + P3 operand · `.claude/commands/handoff-verify.md` (new; the only new path) ·
+`protocols/HANDOFF_PROCESS.md` **v5.7 → v6.0** + six `reconciled_with` edges swept · 4
+freshness-gated docs genuinely re-read and re-stamped · ecosystem parity/doc-code-edge/doc-counts.
+
+**Watch:** (1) the sweep is **six** edges, not the five the v5.7 entry and the v6 draft both name
+— `protocols/README.md` was undercounted; corrected in canon. (2) A11's staged-diff guard is
+NOT built and could not be parked on the row: pre-write measurement put `[#446]` at 1197/1200
+chars, so the annotation does not fit — proposed row text is surfaced at closure for architect
+adjudication instead. (3) No `[#421]` closure marker: both FR7 tests green is the precondition,
+not the closure. (4) Regenerating a COMMITTED bundle now refuses by default (ruled RM-8 intent).
+
+**SHA anchor:** `65483b39` (arc `b2265946..65483b39`, 9 commits on `feat/446-boot`).
+
 ### 2026-07-30 (f) — CC (Opus 5): [#446] §B(b) — Step 0.5 merged · 7 OPEN questions RULED · frozen contract RED
 
 > **Date note:** this entry is **(f)** on 2026-07-30 (live date); the two artifacts it lands are dated **2026-07-31** because the operator supplied that date in the ruling text verbatim. Recorded rather than silently reconciled — the artifact dates are the operator's, the lane letter is the clock's.
