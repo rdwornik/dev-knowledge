@@ -19,6 +19,115 @@
 
 ---
 
+### 2026-07-31 (g) — CC (Opus 5): intake #22 ingested (SEED) · SUPPLEMENT re-authored by the architect
+
+**Did:** two close-out acts in one lane. (1) Ingested the operator's design input as **intake #22,
+SEED**. (2) **Regenerated the closing bundle's SUPPLEMENT ANSWERS wholesale** from
+architect-authored text.
+
+**ACT 1 — ingest.** Located the source by search, not assumption: two matches in Downloads, newest
+won (`OPERATOR-INTAKE-DRAFT_decision-routing-and-standards (1).md`, 7,337 B). **Both verification
+gates checked before copying** — first line matched the expected header exactly, and the
+frontmatter comment carried `status: SEED — NOT ratified`. Copied **byte-identical** (sha256
+`75cad53a…` verified src==dst). Next free intake id grepped across live + archive + full git
+history: **22** (ids 1–21 consumed). Landed at
+`docs/intake/2026-07-30-func-operator-decision-routing-and-standards.md`, sections **A–I** intact,
+indexed under SEED. **NOT ratified** — §I.3 makes that the next window's first ruling batch.
+
+**Two deviations from the literal instruction, both stated not silent.** (a) *Filename*: the
+instruction said `<id>-operator-…`; the intake area definition §4 mandates
+`YYYY-MM-DD-{func|tech}-slug.md` with the **origin** date, and the operator invoked "per the intake
+convention". Followed the convention; trivially renameable if the literal form was meant. (b)
+*Frontmatter*: a strictly verbatim copy carries only HTML-comment frontmatter, so
+`gen_intake_index` read **MISSING-ID** and bucketed it under OTHER — losing the `intake-id` join
+key that the accepting ADR/backlog row needs at ratification. Added the YAML schema block as a
+**wrapper above byte-identical content** (body sha256 unchanged, asserted). Zero edits to the
+operator's words.
+
+**ACT 2 — SUPPLEMENT re-authored.** The ANSWERS region was replaced **wholesale**; the previous
+executor-drafted fill was **discarded, not merged**. That defect is itself now on the record as
+**register item 5**: the close instruction had delegated a judgment artifact to the executor, the
+operator caught it, and the standing rule is that **SUPPLEMENT answers are architect-authored while
+the executor supplies verified facts only** — codification owed (HANDOFF_PROCESS §13 + PLAYBOOK).
+`RESIDUAL.md` §4 widened 3 → **5** transcription-debt items to match (adding the decision-routing
+boundary, which ratifies via intake §A, and supplement authorship).
+
+**Bundle re-verified after both acts:** 14 probes / 14 pass / 0 fail, **rc=0**; zero answer-hint
+rows; **live HEAD absent** from the paste; no count/verdict leaks; all FILL-IN regions filled;
+`PASTE_THIS.md` **49,982 bytes**, 5 sections, END sentinel intact. `audit health: OK`. The A8
+promotion-debt detector fired advisory on one folded line — working as designed, non-blocking.
+
+**Changes:** `docs/intake/2026-07-30-func-operator-decision-routing-and-standards.md` (new, #22
+SEED) + regenerated intake index · bundle `SUPPLEMENT.md` / `RESIDUAL.md` / `PASTE_THIS.md` · this
+entry.
+
+**Watch:** intake #22 is **SEED and non-citable until ratified** — repo wins on conflict, per its
+own header. Nothing merged; the operator is the serial gate.
+
+**SHA anchor:** `6c567b04` (entry (f), this session).
+
+### 2026-07-31 (f) — CC (Opus 5): anchor for the outgoing-handoff commit
+
+Anchor-only entry. Entry (e) wrote its SHA anchor as "this commit (the bundle)" — a
+self-reference a commit cannot resolve about itself, which is the ADR-85 recursion recorded in
+LESSONS 2026-07-30 ([#447]). Naming it here instead, which is what the gate actually asks for.
+
+**SHA anchor:** `68d767db` — `docs(handoff): 2026-07-31 architect-2 — the FIRST LIVE v6 bundle;
+A6 record corrected` (branch `docs/handoff-2026-07-31-architect-2`, unmerged; the operator is the
+serial gate).
+
+BACKLOG deliberately untouched: this slice closed nothing. The window's closures ([#446], [#421])
+and the new row ([#448]) landed in the seal merge and are already on `main` — a pure advance
+needs no structural marker (DEFINITION_OF_DONE 'BACKLOG').
+
+### 2026-07-31 (e) — CC (Opus 5): outgoing handoff — the FIRST LIVE v6 bundle; it falsified a claim
+
+**Did:** generated the closing handoff for the next architect window —
+`docs/handoffs/2026-07-31-dev-knowledge-architect-2`, the first bundle ever cut, filled and
+assembled under **HANDOFF_PROCESS v6.0**.
+
+**Result — the mechanism works, and using it found what reading it did not.** RM-8 refused the
+tracked `2026-07-31-...` dir with a diagnostic naming the collider and the escape hatch (correct
+dogfood, witnessed). The new bundle is v6-shaped and proves it: `Destination` row present and
+FILLED (4 fields), P0a/P0b/P0c emitted, **zero** per-probe ferry lines in any file, assembler
+byte-budget warn correctly ABSENT (boot 16,840 ≤ 18,000). `verify_handoff_probes` on the fresh
+bundle: **14 probes, 14 pass, 0 fail, 0 warn, rc=0**. Assembled `PASTE_THIS.md` = **47,672 bytes**,
+5 sections, END sentinel intact, well under the 65,000 warn threshold.
+
+**THE FIND — the live exercise falsified my own seal record.** The generated SUPPLEMENT visibly
+carried **seven** questions. Intake #18 **A6 was already BUILT** at `a39f8405` during the [#435]
+ratification, before this arc opened — so entry (d)'s "A6 NOT BUILT, carried forward" was WRONG.
+The intake record is corrected **in place and visibly** (the error kept, not quietly deleted), and
+the same check found two live sites still asserting the stale count in `.claude/commands/handoff.md`
+— **one of them written during this very arc** — now 6→7. The `6-question` wording surviving in
+HANDOFF_PROCESS §Section-history is CORRECT as history and deliberately untouched. This is the
+argument for live exercise over dry-run in one instance: I had read the A6 material twice and still
+had it wrong; generating one bundle settled it.
+
+**Second self-catch:** the first assembled paste leaked two values I had written into the residual
+— the seal merge sha (which **equalled live HEAD**, i.e. P3's own answer) and a `177 tasks` count.
+Both removed; the `shipped` FILL-IN says "by #id + ADR", not by sha. Final sweep: live HEAD absent
+from the paste, zero answer-hint rows, zero count/verdict leaks. The three surviving shas
+(`5b3895dc` night-branch tip, `7f8a0473` the v6 merge, `a39f8405` A6 provenance) are destination /
+provenance pointers that no probe asks for.
+
+**Register check done BEFORE the residual, in the files (grep, not recall):** all three
+chat-ratified items are **unlanded** — the GREEN-on-branch/GREEN-on-main honesty split, the
+authorized-integration-act framing, and closure-polarity (present only in immutable audits and the
+prior window's bundle; `tasks/447-*.md` is open and does not mention it). Each is carried in
+`RESIDUAL.md` §4 as named transcription debt with its target home.
+
+**Changes:** new bundle (5 files) · `.claude/commands/handoff.md` 6→7-question ×2 ·
+`docs/intake/2026-07-27-tech-handoff-process-v6-proposal.md` A6 record corrected · this entry.
+
+**Watch:** (1) The bundle's own `Destination` branch field reads `main`, which is **not** a
+sanctioned lane shape — P3 will PASS at boot and FAIL once the next seat branches. Surfaced in
+`RESIDUAL.md` §4 as a **spec question** (boot destination vs lane), not patched. (2) Night branch
+`claude/night-2026-07-30-boot-prep` still UNTOUCHED. (3) Nothing merged — operator is the serial
+gate.
+
+**SHA anchor:** this commit (the bundle); prior window merges are anchored in entry (d).
+
 ### 2026-07-31 (d) — CC (Opus 5): [#446] MERGED to main · v6.0 IN EFFECT · window SEALED
 
 **Did:** operator GO — merged `feat/446-boot` to `main` via `--no-ff` (**merge `7f8a0473`**, 22

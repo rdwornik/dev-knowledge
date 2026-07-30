@@ -116,7 +116,7 @@ deferred naming flip), and `functional` (§16 one-file intake-capture boot, no p
   emit **no** new *return-leg* artifact.
 - **architect — strategic supplement (always-generated fillable file; §13 "Architect strategic
   supplement").** **Always write `docs/handoffs/<slug>/SUPPLEMENT.md`** (architect mode,
-  **unconditionally**) from `templates/handoff/v5/SUPPLEMENT.md.tmpl` — the fixed 6-question *why*-only
+  **unconditionally**) from `templates/handoff/v5/SUPPLEMENT.md.tmpl` — the fixed 7-question *why*-only
   schema interpolated with the bundle's slug/repo/date (you MAY append 1–2 session-specific items you
   observed as `A./B.` addenda after Q6; add nothing else). The file is **self-documenting + fillable**:
   an operator 3-step header, a **QUESTIONS** section for the **outgoing** architect chat, and an empty
@@ -130,7 +130,7 @@ deferred naming flip), and `functional` (§16 one-file intake-capture boot, no p
   non-re-derivable *why* — never repo state / methodology / task-state — and you **never fabricate
   answers** (unanswered = committed empty). It is a **forward** brief, not the return leg above. Full
   mechanism + schema: `protocols/HANDOFF_PROCESS.md` §13 — read it, don't restate it here.
-- **Supplement ↔ the one-block boot ([#446] §B(b), v6).** The 6-question schema is **unchanged** by
+- **Supplement ↔ the one-block boot ([#446] §B(b), v6).** The 7-question schema is **unchanged** by
   the one-round-trip reshape, and it stays **outside** the evidence block: the supplement is the
   operator's *forward* brief, filled **before** the next session boots, whereas the block is CC's
   *check-time* output. What the reshape changes is how a folded answer is treated **on arrival**,

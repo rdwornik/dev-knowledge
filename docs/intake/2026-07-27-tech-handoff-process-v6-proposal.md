@@ -100,14 +100,17 @@ note: PROPOSED pack. Every amendment is a MECHANISM (probe leg / template field 
 - **Equilibrium side:** **deliberately browser-side** — the one load only that side can carry (ADR-87: off-repo inputs are the browser's to emit; at ratification time the chat is the sole holder of a chat-born term). Cheap because the fill→fold→JOURNAL pipeline already exists end-to-end; this is one question riding built machinery.
 - **Cost:** XS.
 - **DEFER option:** keep relying on ad-hoc recording batches — accepts an unbounded chat-only interval for operator-ratified vocabulary.
-- **[#446] window record (2026-07-31): NOT BUILT.** The §B(b) carrier arc shipped the R1..R7 pack
-  and stamped v6.0 (merge `7f8a0473`); A6 was **outside** that frozen register — the frozen contract
-  `tests/test_v6_frozen_contract.py` is the arc's authority, and A6 has no item in it. Building it
-  unasked would have been untested scope. **Ownership stays here** (this intake, A6); it is
-  unblocked and independent of v6 — the supplement schema is untouched by the one-round-trip
-  reshape, so the 7th question can land whenever the operator calls it. Pointer for whoever picks
-  it up: `templates/handoff/v5/SUPPLEMENT.md.tmpl` QUESTIONS + HANDOFF_PROCESS §13's schema
-  paragraph (the "fixed 6-question schema" count moves to 7), plus the capture-only scope note.
+- **[#446] window record — CORRECTED 2026-07-31.** An earlier line here claimed A6 was NOT
+  BUILT and carried forward. **That was wrong, and the error is kept visible rather than quietly
+  deleted.** A6 had ALREADY LANDED at `a39f8405` during the [#435] ratification — before the
+  §B(b) build arc opened: `templates/handoff/v5/SUPPLEMENT.md.tmpl` carries question 7 and
+  HANDOFF_PROCESS §13 states the **7**-question schema with its capture-only scope note. **A6 is
+  DONE.** How the error was caught is the part worth recording: the first LIVE v6 handoff
+  generated a bundle whose SUPPLEMENT visibly had seven questions, contradicting the record —
+  *using* the mechanism falsified a claim that reading about it had not. The same check found two
+  live sites still asserting the old count in `.claude/commands/handoff.md` (one of them written
+  during this very arc), now corrected to 7; the `6-question` wording surviving in
+  HANDOFF_PROCESS §Section-history is CORRECT as history and is deliberately left alone.
 
 ## 8. A7 — Standing-topic reconciliation probe (P0 class)
 
