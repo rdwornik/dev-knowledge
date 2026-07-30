@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import subprocess
 import sys
 
 import pytest
@@ -426,3 +427,65 @@ def test_chat_title_row_in_epic_header_uses_epic_slug(tmp_path):
     boot = (b / "EPIC_BOOT.md").read_text(encoding="utf-8")
     assert "[dev-knowledge] Developer 164-handoff-generator EPIC 164 · SEQ 1" in boot
     assert "{{" not in boot
+
+
+# --- RM-8 overwrite refusal (R5 / [#446]) ----------------------------------------
+# The REFUSAL itself is pinned by the frozen contract (tests/test_v6_frozen_contract.py
+# ::test_fr5_*). These cover the halves the freeze does not: the fail-OPEN degrade
+# contract, the sanctioned in-place re-render, and the suffix-naming rule.
+
+def _git_init_commit(repo, msg="seed"):
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+    for args in (["init", "-q"], ["add", "-A"], ["commit", "-qm", msg]):
+        subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True, env=env)
+
+
+def test_untracked_bundle_dir_is_still_rendered_in_place(tmp_path):
+    """The sanctioned re-render path: a bundle dir that exists but holds NO tracked file is
+    the bundle being generated right now (or a `--filled` reflow), so RM-8 must NOT refuse it.
+    This is why `exist_ok=True` survives behind the guard rather than being deleted."""
+    repo = _stub_repo(tmp_path)
+    _git_init_commit(repo)                      # commits the stub files only...
+    slug = "0000-00-00-inflight"
+    bundle = repo / "docs" / "handoffs" / slug
+    bundle.mkdir(parents=True)                  # ...the bundle appears AFTER, so it is untracked
+    (bundle / "RESIDUAL.md").write_text("in-flight, uncommitted\n", encoding="utf-8")
+    assert gh._tracked_under(repo, bundle) == []
+    res = gh.generate(repo, mode="architect", slug=slug, repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    assert res.bundle_dir == bundle             # in place: no refusal, no suffix
+
+
+def test_refusal_degrades_open_without_git(tmp_path):
+    """Fail-OPEN degrade contract (stated at `_tracked_under`): no git repo -> nothing is
+    tracked -> generation proceeds. A generator that cannot reach git must not refuse to
+    generate; `_stub_repo` is never `git init`ed, which is exactly that environment."""
+    repo = _stub_repo(tmp_path)
+    slug = "0000-00-00-nogit"
+    bundle = repo / "docs" / "handoffs" / slug
+    bundle.mkdir(parents=True)
+    (bundle / "RESIDUAL.md").write_text("prior\n", encoding="utf-8")
+    assert gh._tracked_under(repo, bundle) == []
+    res = gh.generate(repo, mode="architect", slug=slug, repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    assert res.bundle_dir == bundle
+
+
+def test_allow_suffix_picks_the_next_free_sibling(tmp_path):
+    """`--allow-suffix` writes `-2`, then `-3` when `-2` is itself tracked — the repo's own
+    witnessed convention (`2026-07-02-dev-knowledge-architect-2`). Each candidate is
+    collision-checked, so the opt-in can never land on a committed bundle either."""
+    repo = _stub_repo(tmp_path)
+    slug = "0000-00-00-collide"
+    root = repo / "docs" / "handoffs"
+    for name in (slug, f"{slug}-2"):
+        (root / name).mkdir(parents=True)
+        (root / name / "RESIDUAL.md").write_text(f"committed {name}\n", encoding="utf-8")
+    _git_init_commit(repo)                      # both are now TRACKED
+    res = gh.generate(repo, mode="architect", slug=slug, repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=root, allow_suffix=True, assemble=False)
+    assert res.bundle_dir == root / f"{slug}-3"
+    # neither collider was touched
+    assert (root / slug / "RESIDUAL.md").read_text(encoding="utf-8") == f"committed {slug}\n"
+    assert (root / f"{slug}-2" / "RESIDUAL.md").read_text(encoding="utf-8") == f"committed {slug}-2\n"

@@ -166,6 +166,67 @@ def collect_state(repo_root: Path) -> _State:
     return _State(branch=branch, dirty=dirty)
 
 
+# --- RM-8 overwrite refusal (R5, [#446]) ------------------------------------
+
+class BundleCollisionError(RuntimeError):
+    """Generation refused: the target bundle directory already holds git-tracked files.
+
+    R5 (Option D, ruled 2026-07-31): the guarded target set is any bundle directory
+    containing GIT-TRACKED files — a committed bundle is an immutable artifact, so
+    re-rendering over it is a silent overwrite of shipped state. The refusal is the
+    DEFAULT; `--allow-suffix` is the explicit opt-in. Silent suffixing was rejected
+    because it converts today's collision into tomorrow's `_select_active_bundle`
+    ambiguous-FAIL (audit.py:1575)."""
+
+
+def _tracked_under(repo_root: Path, path: Path) -> list[str]:
+    """Repo-relative paths of GIT-TRACKED files under `path` ([] when none).
+
+    Degrade contract (fail-OPEN, deliberate): git absent / errored / `path` outside the
+    repo -> [] -> generation proceeds, matching `collect_state`'s existing posture. A
+    generator that cannot reach git must not refuse to generate; the honest cost is that
+    the refusal is disarmed in exactly the environments where nothing is tracked anyway.
+    Known residual exposure (same class as `collect_state`, not introduced here): an
+    inherited GIT_DIR would resolve this against a FOREIGN repo — see audit.py
+    `_git_location_env` / [#355] for the scrub precedent if this ever needs hardening;
+    `generate()` is not invoked from a git hook, which is where that env leaks from."""
+    try:
+        rel = path.resolve().relative_to(repo_root.resolve()).as_posix()
+    except (ValueError, OSError):
+        return []
+    out = _git(repo_root, "ls-files", "--", rel)
+    return [ln for ln in out.splitlines() if ln.strip()]
+
+
+def _resolve_bundle_dir(repo_root: Path, bundle_root: Path, slug: str,
+                        allow_suffix: bool) -> Path:
+    """The directory this generation may write, or raise `BundleCollisionError` (R5).
+
+    Clean target (absent, or present-but-untracked — the in-flight bundle being
+    regenerated, the `--filled` reflow) -> returned unchanged, so re-rendering an
+    uncommitted bundle keeps working. Tracked target -> REFUSE by default; with
+    `allow_suffix` -> the next free `-2`, `-3`, … sibling (the repo's own witnessed
+    convention, e.g. `2026-07-02-dev-knowledge-architect-2`), itself collision-checked."""
+    target = bundle_root / slug
+    tracked = _tracked_under(repo_root, target)
+    if not tracked:
+        return target
+    if not allow_suffix:
+        raise BundleCollisionError(
+            f"refusing to generate into {target}: that bundle directory already holds "
+            f"{len(tracked)} git-tracked file(s) (e.g. {tracked[0]}). A committed bundle is "
+            f"an immutable artifact — re-rendering would silently overwrite shipped state. "
+            f"Pass a different --slug, or re-run with --allow-suffix to write a NEW sibling "
+            f"directory and leave {slug} untouched."
+        )
+    n = 2
+    while True:
+        cand = bundle_root / f"{slug}-{n}"
+        if not _tracked_under(repo_root, cand):
+            return cand
+        n += 1
+
+
 def collect_hints(repo_root: Path) -> dict[str, str]:
     """Best-effort generation-time drift-reference VALUES — for the JOURNAL draft ONLY.
 
@@ -392,12 +453,17 @@ class GenResult:
 def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str | None = None,
              repo: str | None = None, date: str | None = None, force_filled: bool | None = None,
              assemble: bool = True, bundle_root: Path | None = None,
-             epic_slug: str | None = None) -> GenResult:
+             epic_slug: str | None = None, allow_suffix: bool = False) -> GenResult:
     """Emit a v5 bundle from committed repo state. Returns the bundle dir + the JOURNAL draft.
 
     force_filled overrides the auto-detected fill-state (RF-2's `--filled`). bundle_root defaults
     to <repo_root>/docs/handoffs (overridable for tests). SUPPLEMENT.md is written only if absent
     (an operator-filled supplement is never clobbered).
+
+    RM-8 (R5, [#446]): generation REFUSES a target bundle directory that already holds
+    git-tracked files (`BundleCollisionError`, naming the directory and the escape hatch);
+    `allow_suffix=True` is the explicit opt-in that writes a fresh `-<n>` sibling instead.
+    An untracked target — the bundle being generated now — is written in place as before.
 
     mode="epic" (§14a, ADR-97) emits the epic-lane scope-contract bundle instead:
     EPIC_BOOT.md (root-authored FILL-IN contract scaffold) + PROBES.md (boundary-scoped
@@ -432,7 +498,11 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     date = date or _dt.date.today().isoformat()
     slug = slug or f"{date}-{repo.lstrip('.')}-{mode}"
     bundle_root = bundle_root or (repo_root / "docs" / "handoffs")
-    bundle_dir = bundle_root / slug
+    # RM-8 / R5: refuse a target that already holds git-tracked files (or, with the
+    # explicit opt-in, divert to a fresh sibling). `exist_ok=True` survives ONLY on the
+    # path this guard has cleared — the in-flight, not-yet-committed bundle — so the
+    # documented `--filled` re-render and the FILL-IN splice keep working.
+    bundle_dir = _resolve_bundle_dir(repo_root, bundle_root, slug, allow_suffix)
     bundle_dir.mkdir(parents=True, exist_ok=True)
 
     state = collect_state(repo_root)
@@ -504,17 +574,25 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
 @click.option("--filled/--cold", "force_filled", default=None,
               help="override the auto-detected supplement fill-state for the four framing sites")
 @click.option("--assemble/--no-assemble", default=True, help="run assemble_paste to emit PASTE_THIS.md")
+@click.option("--allow-suffix", is_flag=True, default=False,
+              help="RM-8 opt-in: when the target bundle dir already holds git-tracked files, "
+                   "write a NEW `-<n>` sibling instead of refusing (never overwrites)")
 @click.option("--emit-journal/--no-emit-journal", default=True,
               help="print the JOURNAL generation-entry DRAFT to stdout (never writes JOURNAL.md)")
 def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, date: str | None,
-         force_filled: bool | None, assemble: bool, emit_journal: bool) -> None:
+         force_filled: bool | None, assemble: bool, allow_suffix: bool, emit_journal: bool) -> None:
     """Generate a v5 handoff bundle from committed repo state."""
     state = collect_state(_REPO_ROOT)
     if state.dirty:
         click.echo("[warn] working tree is DIRTY — a v5 bundle is cut from COMMITTED state; "
                    "commit first or the probes bind to un-committed drift.", err=True)
-    res = generate(_REPO_ROOT, mode=mode, slug=slug, repo=repo, date=date, force_filled=force_filled,
-                   assemble=assemble, epic_slug=epic_slug)
+    try:
+        res = generate(_REPO_ROOT, mode=mode, slug=slug, repo=repo, date=date,
+                       force_filled=force_filled, assemble=assemble, epic_slug=epic_slug,
+                       allow_suffix=allow_suffix)
+    except BundleCollisionError as exc:
+        # RM-8: a REFUSAL, not a crash — one diagnostic line, non-zero exit, nothing written.
+        raise SystemExit(f"[error] {exc}") from exc
     click.echo(f"Generated bundle: {res.bundle_dir}  (fill-state: {'FILLED' if res.filled else 'cold'})")
     if emit_journal:
         click.echo("\n----- JOURNAL generation-entry DRAFT (prepend to JOURNAL.md at wrap; "
