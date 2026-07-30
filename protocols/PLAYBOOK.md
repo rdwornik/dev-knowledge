@@ -687,6 +687,9 @@ line is truncated, and the reader says so and stops.
 
 Sourced from LESSONS #10 (2026-05-13). Architect-side enforcement is operator-review; mechanical enforcement on executor side via the Claude Code harness.
 
+**Authorized integration act (transcribed 2026-07-31, [#446] window).** Merging to `main` is an
+operator-authorized act, granted per-act, not agent judgment.
+
 ### Pre-send checklist
 <!-- scope: meta -->
 
@@ -1088,6 +1091,11 @@ Formats in `docs/handoffs/`, all but the current one historical:
 - **v4 bundle (2026-05-29 → v5 flip 2026-06-11; historical)** — flat `docs/handoffs/<slug>/` = `README.md` + `01_ROLE`…`07_ASK_BACK`, generated from source via a two-phase flow. **Superseded by v5**; existing bundles preserved as history, never regenerated.
 - **v5 handoff (current)** — CC-owned: a lean **residual** + **probe manifest** under `docs/handoffs/<slug>/`, plus a thin browser boot (`protocols/HANDOFF_BOOT.md`) that replaces the multi-file bundle. Generated from live state at handoff time; teeth-y forced primary-source read. Full structure in `HANDOFF_PROCESS.md` §2–§5.
 
+**Supplement authorship (transcribed 2026-07-31, [#446] window).** `SUPPLEMENT.md` answers are
+**architect-authored**; the executor supplies verified facts only. The executor may gather, quote
+and check — it does not compose the strategic answer, because the supplement is where judgment
+travels between seats, and judgment sourced from the seat that did the work is not a second opinion.
+
 ### Order conventions
 <!-- scope: meta -->
 
@@ -1149,6 +1157,14 @@ episodes since 2026-06-05, each fixed **after** the fact, **none prevented**.
 Stop-only (wrong lifecycle phase) and no boot-time organ exists — the boot-snapshot + PreToolUse
 refusal is [#353]'s open build. Until it lands, the rule is upheld by the executor, so apply it
 deliberately at every mid-session order.
+
+**A claim of green names WHERE it is green (transcribed 2026-07-31, [#446] window).** Branch-green
+is not done — **done is post-merge green on `main`.** A gate set that passes on a feature branch
+proves the arc is internally consistent; it does not prove the arc composes with everything that
+landed on `main` while the branch was open. The two states are routinely different (a merge can
+surface a WARN neither parent carried), so "ship-gate GREEN" is an incomplete sentence: say
+**GREEN-on-branch** or **GREEN-on-main** and mean it. Report the weaker one when both are known;
+a branch-green reading does not stand in for the post-merge verification a done-when asks for.
 
 ### Stop-signs (recognize and act)
 <!-- scope: meta -->

@@ -476,6 +476,9 @@ supplement is the defined cold-handoff disposition; see *Architect strategic sup
 - **(e) Open architecture questions** travel as residual — the design decisions not yet made,
   surfaced (not buried) so the next session resumes the design rather than rediscovering it.
 
+**Authorized integration act (transcribed 2026-07-31, [#446] window).** Merging to `main` is an
+operator-authorized act, granted per-act, not agent judgment.
+
 **Browser posture — generative / decompositional** (resident in `HANDOFF_BOOT.md`, §4 — the
 posture must reach the file-less browser). Distinct from §7's reactive execution-filter: the
 architect **drives decomposition** (turns the architecture into the task-graph), **holds the
@@ -500,6 +503,9 @@ options rejected — originates in the **browser** (Layer 1), but the residual i
 **always-generated, self-documenting, fillable file**, committed on the handoff branch, folded into
 the next session **only if answered**. **Architect-mode-additive only; the v5 model (§§1–12) and
 execution mode are unchanged.**
+
+**Authorship (transcribed 2026-07-31, [#446] window).** SUPPLEMENT answers are
+**architect-authored**; the executor supplies verified facts only.
 
 **The lifecycle (CC generates the file; the operator fills it async; CC commits it; the assembler
 folds it if answered):**
