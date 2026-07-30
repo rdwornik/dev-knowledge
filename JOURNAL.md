@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-07-31 (h) — CC (Opus 5): night-branch merged · intake #22 §A+§B ratified · v6.0.1 · 4 rows filed
+
+**Did:** Two operator-authorized acts, per-act. **ACT 1** — integrated the night lane
+`claude/night-2026-07-30-boot-prep` into `main` `--no-ff` (`f2ae0a80`) after resolving the two
+predicted conflicts and parking the merge for an explicit GO. **ACT 2** — one docs lane
+`docs/2026-07-31-ratification-batch`, commit-and-STOP, five commits: ADR-108 ratifying intake #22
+§A+§B (`09eb57c4`) · the RESIDUAL §4 transcription debts (`645822ba`) · HANDOFF_PROCESS
+6.0→**6.0.1** with the §13(c″) `Destination` amendment (`64893913`) · candidate rows
+[#449]–[#452] (`6bfa544f`) · the first-live-v6 verification report (`f2ed2648`).
+
+**Result:** ACT 1 landed **GREEN-on-main** — ship-gate GREEN (15 WARN, all dispositioned),
+`validate_backlog` OK, `validate_doc_claims` OK; the 6 branch-side `doc_rot` WARNs **did not
+recur** and no new undispositioned WARN appeared, so nothing was dispositioned. Conflict
+resolution was proved additive: **zero deletions against either parent** on `JOURNAL.md`; the
+audits index was resolved by **regeneration**, not hand-splice (322+4 = 326, union verified 8/8).
+ACT 2's ratification is by **PROMOTION** — the intake `status:` field is doc-level, so it cannot
+say "§A/§B ruled, §C–§H not"; the intake stays SEED and ADR-108 is the citable home. The §13(c″)
+ruling resolves the seam entry (e) recorded as *"Watch (1)"* and left unpatched: the branch field
+means **BOOT DESTINATION** compared once by P3 at boot, so `main` is legal for a primary-tree
+architect seat. Version bump carried its **coupled atomic move** (CONTRIBUTING stamp + all six
+`reconciled_with` edges), each dependent checked before its edge moved — all verdicts
+*not-relevant*, no dependent prose changed, and no freshness re-stamp was owed (stamps already
+read 2026-07-31, ahead of both today and last-commit).
+
+**Changes:** `docs/decisions/ADR-108-*` (new) + README row + `.claude/generated/recent-adrs.md` ·
+`protocols/PLAYBOOK.md` (Ch4/Ch6/Ch8) · `protocols/HANDOFF_PROCESS.md` (§13 ×3 + Version +
+Section history) · `CONTRIBUTING.md` · `ARCHITECTURE.md`/`CLAUDE.md`/`docs/handoffs/README.md`/
+`protocols/HANDOFF_BOOT.md`/`protocols/README.md` (edge only) · `tasks/447` + `tasks/449`–`452` +
+manifest + BACKLOG regen · `docs/audits/2026-07-31-verification-first-live-v6-boot-report.md` (new)
++ audits index · intake #22 NOTE.
+
+**Abandoned:** nothing silently. **Three gate collisions hit and drained at the source rather
+than dispositioned:** (1) `silent_rule_ratchet` BLOCKED the debts commit (live 442 > baseline 441)
+— the new prose carried three "never" tokens against 2 slack; drained by rewording to "not",
+back to 439. (2) The [#447] closure-polarity append did not fit — the row measured **1195/1200**
+— so narrative was condensed under the G0 precedent, preserving Done-when/refs/kill-candidates
+verbatim (1196/1200). (3) Three of the four new rows overran the 1200 cap on first draft and were
+condensed **before** regen. **Two brief premises corrected rather than transcribed:** the report's
+commissioned filename carried **no CLOSED-enum class token** and is refused by
+`validate_hermetization` Rule B (verified via `classify()`), so it landed as
+`…-verification-first-live-v6-boot-report.md` with the ADR-101 citation in-header; and the brief's
+**"16/16 PASS"** is **not corroborated** — the live bundle's `PROBES.md` carries **14** rows and
+`handoff_probes` independently reports 14 binding, so 14 is recorded and 16 flagged as
+unreconciled. [#452] was filed as a NEW row after testing the brief's cross-reference condition:
+neither `tasks/433` nor `tasks/382` carries a `depends-on` clause **at all**, so [#424] (which
+owns clauses that fail to *parse*) cannot close over it.
+
+**Next:** operator merges this branch (nothing pushed). **Ship-gate is RED-on-branch by one
+self-induced false positive** — this session's own commit message wrote *"Does NOT close
+[#367]"*, which `closure_ids` reads as a closure token; reproduced exactly, and the remedy is
+backticking or avoiding the token. It is **expected to clear on main**: the detector is
+`--first-parent`, so branch-internal text drops out by design — **verified empirically**, not
+asserted, by merging into a throwaway clone where `validate_git_backlog` reported OK. Not
+dispositioned and not rewritten (history rewrite is the operator's call).
+
 ### 2026-07-31 (g) — CC (Opus 5): intake #22 ingested (SEED) · SUPPLEMENT re-authored by the architect
 
 **Did:** two close-out acts in one lane. (1) Ingested the operator's design input as **intake #22,
