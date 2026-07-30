@@ -71,9 +71,20 @@ on the **forced read** (§5) to make the receiver actually open the primary sour
 A fresh browser chat boots from **`protocols/HANDOFF_BOOT.md`** — a compact boot core
 (identity / one meta-rule / first-move) plus the resident browser-role doctrine — resident
 because a CC-held file never transmits to the file-less browser — replacing the heavy
-multi-file bundle. Everything else is pulled just-in-time via CC. (A stated byte budget for
-the boot file, checked by the assembler's existing size machinery, rides the §B(b) build —
-intake #18 A10 item 2, deferred by ruling 2026-07-30.)
+multi-file bundle. Everything else is pulled just-in-time via CC.
+
+<!-- rule: handoff-boot-budget -->
+**Boot byte budget (intake #18 A10 item 2; R4, ruled 2026-07-31).** `protocols/HANDOFF_BOOT.md`
+carries a stated numeric byte budget of **18,000 bytes** — headroom over the file as measured
+when the number was ruled (16,156 B), not an invented ceiling. The **per-bundle session header
+is not governed by it**, and the assembled `PASTE_THIS.md` keeps its own separate size budget.
+**Enforcement is split by site** (operator ruling 2026-07-31): `scripts/assemble_paste.py` emits
+a named `[warn]` and still assembles, so an over-long boot stays *generatable*;
+`scripts/audit.py::check_boot_byte_budget` is FAIL-class and registered in `ALL_CHECKS`, so an
+over-long boot stops being *shippable* — the guarantee sits in the organ that blocks the merge,
+because a warning nobody has to clear is how the 36.5 KB → 59 KB paste creep happened. The
+budget value is single-sourced at `assemble_paste.HANDOFF_BOOT_BYTE_BUDGET`; the gate reads it
+rather than re-declaring the number.
 
 **Browser-role delivery (load-bearing).** The browser's operating role (§7) is **resident in
 the boot file**, not left only in this spec (which CC holds and the browser never sees). If

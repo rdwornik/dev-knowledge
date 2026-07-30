@@ -246,12 +246,12 @@ def test_edge_check_registered_and_resolves_starter_set():
     multi-organ ones via ADR-90 -- each resolve doc<->code; the edge is REAL + advisory (never
     FAILs)."""
     assert aud.check_doc_code_edge in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 34  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 28 -> 29: check_import_edges (#249, 2026-07-06); 29 -> 28: check #7 retired (ADR-51 amend. 2026-07-05); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27
+    assert len(aud.ALL_CHECKS) == 35  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 28 -> 29: check_import_edges (#249, 2026-07-06); 29 -> 28: check #7 retired (ADR-51 amend. 2026-07-05); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31)
     findings = aud.check_doc_code_edge(Path(aud._REPO_ROOT))
     assert all(f.status != "fail" for f in findings)        # advisory: never FAIL
     assert len(findings) == 1
     assert findings[0].status == "pass"
-    assert "13 doc" in findings[0].evidence                 # 5 cohort-1 + trio + Tier-3 quartet + governance-backlog-story-id (#286)
+    assert "14 doc" in findings[0].evidence                 # 5 cohort-1 + trio + Tier-3 quartet + governance-backlog-story-id (#286) + handoff-boot-budget ([#446] R4)
     assert "resolved" in findings[0].evidence
 
 
@@ -711,7 +711,7 @@ def test_coverage_drift_guard_registered_and_clean_on_live_repo():
     """The drift-guard is in ALL_CHECKS (count 28) and PASSES on the live repo: every member is
     either coverage_scope-annotated or exempt (the post-#203 end-state)."""
     assert aud.check_doc_code_coverage_drift in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 34  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 28 -> 29: check_import_edges (#249, 2026-07-06); 29 -> 28: check #7 retired (ADR-51 amend. 2026-07-05); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27
+    assert len(aud.ALL_CHECKS) == 35  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 28 -> 29: check_import_edges (#249, 2026-07-06); 29 -> 28: check #7 retired (ADR-51 amend. 2026-07-05); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31)
     findings = aud.check_doc_code_coverage_drift(Path(aud._REPO_ROOT))
     assert len(findings) == 1
     assert findings[0].status == "pass", findings[0].evidence

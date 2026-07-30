@@ -2146,7 +2146,7 @@ def test_import_edges_live_repo_passes_and_is_registered() -> None:
     f = aud.check_import_edges(Path(aud._REPO_ROOT))[0]
     assert f.status == "pass", f.evidence
     assert aud.check_import_edges in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 34  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27
+    assert len(aud.ALL_CHECKS) == 35  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31)
 
 
 def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
@@ -2162,7 +2162,7 @@ def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
 
 def test_fleet_parity_registered_in_all_checks():
     assert "check_fleet_parity" in [c.__name__ for c in aud.ALL_CHECKS]
-    assert len(aud.ALL_CHECKS) == 34  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27
+    assert len(aud.ALL_CHECKS) == 35  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31)
 
 
 def test_fleet_parity_findings_maps_blocking_verdicts():
@@ -2442,3 +2442,56 @@ def test_routine_consumers_indented_ticks_do_not_open_a_fence(tmp_path: Path) ->
 def test_routine_consumers_tilde_fence_is_honoured(tmp_path: Path) -> None:
     _mk(tmp_path / "BACKLOG.md", "~~~\n- [#718] ex · routine: trigger=x\n~~~\n")
     assert aud.check_routine_consumers(tmp_path)[0].status == "pass"
+
+
+# --- [#446] A10 item 2 / R4 — boot byte budget (the FAIL half of the split site) ---------
+
+def _boot(tmp_path: Path, nbytes: int) -> Path:
+    _mk(tmp_path / "protocols" / "HANDOFF_BOOT.md", "x" * nbytes)
+    return tmp_path
+
+
+def test_boot_byte_budget_fires_over_budget(tmp_path: Path) -> None:
+    """FIRE test, not a wiring test: an over-budget boot produces a FAIL naming BOTH numbers
+    and the overshoot, so the diagnostic says how much to trim rather than just 'too big'."""
+    budget = aud._assemble_paste.HANDOFF_BOOT_BYTE_BUDGET
+    f = aud.check_boot_byte_budget(_boot(tmp_path, budget + 25))[0]
+    assert f.status == "fail"
+    assert str(budget) in f.evidence and str(budget + 25) in f.evidence
+    assert "by 25" in f.evidence
+
+
+def test_boot_byte_budget_passes_at_exactly_the_budget(tmp_path: Path) -> None:
+    """The budget is a ceiling, not an exclusive bound — `size > budget` fails, `==` passes.
+    Pinned because an off-by-one here silently narrows a ruled number."""
+    budget = aud._assemble_paste.HANDOFF_BOOT_BYTE_BUDGET
+    assert aud.check_boot_byte_budget(_boot(tmp_path, budget))[0].status == "pass"
+
+
+def test_boot_byte_budget_absent_boot_is_na(tmp_path: Path) -> None:
+    """A consumer that has not adopted the browser boot is not in breach — n/a, never a fail
+    (the check is portable, so it runs against every repo in the fleet sweep)."""
+    assert aud.check_boot_byte_budget(tmp_path)[0].status == "n/a"
+
+
+def test_boot_byte_budget_registered_and_green_on_live_repo() -> None:
+    """Registered in ALL_CHECKS (so it is a ship-gate leg by construction) and PASSing live."""
+    assert aud.check_boot_byte_budget in aud.ALL_CHECKS
+    f = aud.check_boot_byte_budget(Path(aud._REPO_ROOT))[0]
+    assert f.status == "pass", f.evidence
+
+
+def test_boot_byte_budget_is_single_sourced_from_the_assembler() -> None:
+    """R4's number lives in ONE place. Two organs enforcing one rule against two different
+    numbers is exactly the drift this pairing exists to prevent, so the gate READS the
+    assembler's constant — this pins that it is not re-declared in audit.py."""
+    import assemble_paste as ap
+    # NOT an identity assertion: audit.py's dual-import shape (`from scripts import x` /
+    # `import x`) legitimately yields two module OBJECTS for one file, so `is` would pin an
+    # import accident rather than the rule. What matters is that both resolve to the same
+    # NUMBER and that audit.py declares none of its own.
+    assert aud._assemble_paste.__file__ == ap.__file__ or \
+        Path(aud._assemble_paste.__file__).resolve() == Path(ap.__file__).resolve()
+    assert aud._assemble_paste.HANDOFF_BOOT_BYTE_BUDGET == ap.HANDOFF_BOOT_BYTE_BUDGET == 18_000
+    src = Path(aud._REPO_ROOT, "scripts", "audit.py").read_text(encoding="utf-8")
+    assert "18_000" not in src and "18000" not in src
