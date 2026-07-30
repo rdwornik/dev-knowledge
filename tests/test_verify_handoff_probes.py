@@ -995,3 +995,46 @@ def test_check_degrades_loudly_when_repo_is_nested_in_another_repo(tmp_path):
     assert findings[0].status == "warn"
     assert "degraded" in findings[0].evidence.lower()
     assert "|" not in findings[0].evidence
+
+
+# --- R6 CLI mapping ([#446]) ------------------------------------------------------
+# The two load-bearing cases (the hard error, and both flags accepted) are pinned by the
+# frozen contract. These cover the surrounding contract: main() RETURNS codes and never
+# escapes as SystemExit, and the pre-R6 invocations keep working byte-for-byte.
+
+def _empty_bundle(tmp_path):
+    bundle = tmp_path / "b"
+    bundle.mkdir()
+    (bundle / "PROBES.md").write_text("no rows here\n", encoding="utf-8")
+    return bundle
+
+
+def test_main_never_raises_systemexit_on_a_usage_error(tmp_path):
+    """argparse's default is to EXIT on a usage error. main() catches that and returns the
+    code instead, so the callable stays testable and a usage mistake can never kill a caller
+    mid-run. Every one of these is a RETURN, not a raise."""
+    assert vhp.main([]) == 2                                    # missing positional
+    assert vhp.main(["--cross-repo"]) == 2                      # missing positional + no root
+    assert vhp.main([str(_empty_bundle(tmp_path)), "--nonsuch"]) == 2   # unknown option
+    assert vhp.main([str(tmp_path / "b"), "--repo-root"]) == 2   # flag missing its value
+
+
+def test_main_default_invocation_is_unchanged(tmp_path):
+    """The pre-R6 call shape — bundle dir alone — resolves against the bundle's own repo and
+    returns 0. R6 codifies the existing semantics; it must not change this path."""
+    assert vhp.main([str(_empty_bundle(tmp_path))]) == 0
+
+
+def test_main_repo_root_accepts_the_equals_form(tmp_path):
+    """`--repo-root=PATH` and `--repo-root PATH` are the same flag (argparse gives this for
+    free — pinned so a hand-rolled reparse can't silently drop it)."""
+    bundle = _empty_bundle(tmp_path)
+    assert vhp.main([str(bundle), f"--repo-root={tmp_path}"]) == 0
+    assert vhp.main([str(bundle), "--repo-root", str(tmp_path)]) == 0
+
+
+def test_main_cross_repo_without_repo_root_names_the_reason(tmp_path, capsys):
+    """R6's hard error must SAY why — a silent inference is the original false-FAIL class."""
+    assert vhp.main([str(_empty_bundle(tmp_path)), "--cross-repo"]) == 2
+    err = capsys.readouterr().err
+    assert "--repo-root" in err and "infer" in err.lower()

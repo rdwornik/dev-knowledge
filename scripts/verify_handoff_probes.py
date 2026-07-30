@@ -40,6 +40,7 @@ FAIL to a gating Finding so /ship blocks; anchor-missing / skipped -> WARN.
 
 from __future__ import annotations
 
+import argparse
 import os
 import re
 import shutil
@@ -456,14 +457,45 @@ def format_findings(results: list[ProbeResult]) -> str:
 
 
 def main(argv=None) -> int:
-    """Standalone CLI: `python scripts/verify_handoff_probes.py <bundle-dir>`.
-    Prints per-probe status; exits 1 if any probe FAILs, else 0."""
+    """Standalone CLI: `python scripts/verify_handoff_probes.py <bundle-dir>
+    [--repo-root PATH] [--cross-repo]`.
+
+    Prints per-probe status; returns 1 if any probe FAILs, 0 otherwise, 2 on a usage error.
+
+    R6 ([#446]) maps `verify()`'s two existing parameters onto the CLI. `--repo-root PATH`
+    resolves probe targets against a different root; `--cross-repo` marks a bundle whose
+    probes bind to a DIFFERENT (target) repo. `--cross-repo` WITHOUT `--repo-root` is a HARD
+    ERROR (return 2), never a silent root inference — inferring the root is exactly the
+    original false-FAIL class this flag pair exists to prevent.
+
+    Errors RETURN a code rather than raising SystemExit, so the callable is testable and the
+    audit adapter can never be killed by a usage mistake."""
     argv = sys.argv[1:] if argv is None else argv
-    if not argv:
-        print("usage: python scripts/verify_handoff_probes.py <bundle-dir>", file=sys.stderr)
+    parser = argparse.ArgumentParser(
+        prog="verify_handoff_probes.py",
+        description="Structurally verify that every probe in a v5 bundle's PROBES.md binds "
+                    "to live state (resolve-only; never executes a probe command).")
+    parser.add_argument("bundle_dir", help="the handoff bundle directory to verify")
+    parser.add_argument("--repo-root", default=None, metavar="PATH",
+                        help="resolve probe targets against this root (default: the repo "
+                             "containing the bundle)")
+    parser.add_argument("--cross-repo", action="store_true",
+                        help="the bundle's probes bind to a DIFFERENT (target) repo; requires "
+                             "--repo-root")
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit as exc:       # argparse exits on a usage error / -h; we RETURN instead
+        return int(exc.code or 0)
+    if args.cross_repo and args.repo_root is None:
+        print("error: --cross-repo requires --repo-root PATH (the TARGET repo root). "
+              "Refusing to infer a root: a silent inference reproduces the false-FAIL class "
+              "this flag pair exists to prevent.", file=sys.stderr)
         return 2
-    bundle = Path(argv[0])
-    results = verify(bundle)
+    bundle = Path(args.bundle_dir)
+    if args.repo_root is None and not args.cross_repo:
+        results = verify(bundle)
+    else:
+        results = verify(bundle, repo_root=args.repo_root, cross_repo=args.cross_repo)
     if not results:
         print(f"verify_handoff_probes: no probes found in {bundle}")
         return 0
