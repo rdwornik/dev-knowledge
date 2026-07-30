@@ -399,7 +399,11 @@ operator-context beat:
   topics (the active epic themes + `status: ACCEPTED` intakes) are reconciled next, and **the
   backlog (b) is what navigates** — once role, vision and standing topics are in hand the architect starts from
   `BACKLOG.md`, not from the orientation read. This is the scope-D fix, delivered the v5 way: **forced read, never a copy,
-  never a paraphrase.**
+  never a paraphrase.** **Sequence vs. placement (ruled 2026-07-31).** This sequence governs the
+  reader's **consumption order**, not row placement: the P0 legs are *emitted* above P1 (the
+  mechanical emission contract, pinned by the frozen contract), while the reader still takes
+  role → vision → standing topics → backlog. The two do not conflict — one orders the table, the
+  other orders the reading.
   - A plain-language "what is this project" answer is **summary-bluffable** and so fails §5's
     own bar (§5: *a probe answerable from the compaction summary is removed or hardened*).
     Re-narrating VISION into the handoff is equally barred (§2/§3). Orientation is therefore
