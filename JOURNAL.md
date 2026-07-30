@@ -19,6 +19,20 @@
 
 ---
 
+### 2026-07-31 (f) — CC (Opus 5): anchor for the outgoing-handoff commit
+
+Anchor-only entry. Entry (e) wrote its SHA anchor as "this commit (the bundle)" — a
+self-reference a commit cannot resolve about itself, which is the ADR-85 recursion recorded in
+LESSONS 2026-07-30 ([#447]). Naming it here instead, which is what the gate actually asks for.
+
+**SHA anchor:** `68d767db` — `docs(handoff): 2026-07-31 architect-2 — the FIRST LIVE v6 bundle;
+A6 record corrected` (branch `docs/handoff-2026-07-31-architect-2`, unmerged; the operator is the
+serial gate).
+
+BACKLOG deliberately untouched: this slice closed nothing. The window's closures ([#446], [#421])
+and the new row ([#448]) landed in the seal merge and are already on `main` — a pure advance
+needs no structural marker (DEFINITION_OF_DONE 'BACKLOG').
+
 ### 2026-07-31 (e) — CC (Opus 5): outgoing handoff — the FIRST LIVE v6 bundle; it falsified a claim
 
 **Did:** generated the closing handoff for the next architect window —
