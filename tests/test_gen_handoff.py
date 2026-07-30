@@ -473,10 +473,39 @@ def test_refusal_degrades_open_without_git(tmp_path):
     assert res.bundle_dir == bundle
 
 
+def test_allow_suffix_never_selects_an_existing_dir(tmp_path):
+    """REGRESSION (codex HIGH, 2026-07-31): suffix selection accepted the first sibling with no
+    TRACKED files — so an EXISTING dir holding untracked in-progress work was selected and then
+    written into, destroying it. Reproduced with real data loss before this test existed.
+
+    The contract the CLI already promised ("write a NEW `-<n>` sibling") is now the contract the
+    code keeps: only a NONEXISTENT directory is selectable. Tracked-ness is not the test —
+    existence is; an untracked in-progress bundle is exactly the thing worth not clobbering."""
+    repo = _stub_repo(tmp_path)
+    slug = "0000-00-00-collide"
+    root = repo / "docs" / "handoffs"
+    (root / slug).mkdir(parents=True)
+    (root / slug / "RESIDUAL.md").write_text(f"committed {slug}\n", encoding="utf-8")
+    _git_init_commit(repo)                       # slug is TRACKED -> collision
+    # -2 exists and is UNTRACKED: in-progress work, invisible to `git ls-files`
+    (root / f"{slug}-2").mkdir()
+    sentinel = "IN-PROGRESS UNTRACKED WORK — MUST SURVIVE\n"
+    (root / f"{slug}-2" / "RESIDUAL.md").write_text(sentinel, encoding="utf-8")
+
+    res = gh.generate(repo, mode="architect", slug=slug, repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=root, allow_suffix=True, assemble=False)
+
+    assert res.bundle_dir == root / f"{slug}-3", \
+        f"selected {res.bundle_dir.name}; an EXISTING dir is never selectable"
+    assert (root / f"{slug}-2" / "RESIDUAL.md").read_text(encoding="utf-8") == sentinel, \
+        "the untracked in-progress bundle was clobbered"
+    assert (root / slug / "RESIDUAL.md").read_text(encoding="utf-8") == f"committed {slug}\n"
+
+
 def test_allow_suffix_picks_the_next_free_sibling(tmp_path):
-    """`--allow-suffix` writes `-2`, then `-3` when `-2` is itself tracked — the repo's own
-    witnessed convention (`2026-07-02-dev-knowledge-architect-2`). Each candidate is
-    collision-checked, so the opt-in can never land on a committed bundle either."""
+    """`--allow-suffix` writes `-2`, then `-3` when `-2` already exists — the repo's own
+    witnessed convention (`2026-07-02-dev-knowledge-architect-2`). Here both colliders are
+    TRACKED; the sibling case where `-2` exists but is UNTRACKED is the regression above."""
     repo = _stub_repo(tmp_path)
     slug = "0000-00-00-collide"
     root = repo / "docs" / "handoffs"

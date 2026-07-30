@@ -205,8 +205,13 @@ def _resolve_bundle_dir(repo_root: Path, bundle_root: Path, slug: str,
     Clean target (absent, or present-but-untracked — the in-flight bundle being
     regenerated, the `--filled` reflow) -> returned unchanged, so re-rendering an
     uncommitted bundle keeps working. Tracked target -> REFUSE by default; with
-    `allow_suffix` -> the next free `-2`, `-3`, … sibling (the repo's own witnessed
-    convention, e.g. `2026-07-02-dev-knowledge-architect-2`), itself collision-checked."""
+    `allow_suffix` -> the first NONEXISTENT `-2`, `-3`, … sibling (the repo's own
+    witnessed convention, e.g. `2026-07-02-dev-knowledge-architect-2`).
+
+    The suffix scan tests EXISTENCE, not tracked-ness (codex HIGH, 2026-07-31). Scanning
+    for "no tracked files" selected an EXISTING directory holding untracked in-progress
+    work and then wrote into it — reproduced with real data loss. `--allow-suffix` promises
+    a NEW sibling, so nothing that already exists is selectable, tracked or not."""
     target = bundle_root / slug
     tracked = _tracked_under(repo_root, target)
     if not tracked:
@@ -220,11 +225,9 @@ def _resolve_bundle_dir(repo_root: Path, bundle_root: Path, slug: str,
             f"directory and leave {slug} untouched."
         )
     n = 2
-    while True:
-        cand = bundle_root / f"{slug}-{n}"
-        if not _tracked_under(repo_root, cand):
-            return cand
+    while (bundle_root / f"{slug}-{n}").exists():
         n += 1
+    return bundle_root / f"{slug}-{n}"
 
 
 def collect_hints(repo_root: Path) -> dict[str, str]:
