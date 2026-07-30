@@ -19,10 +19,11 @@
 <!-- scope: meta -->
 
 > **Contract.** Each probe ships a **question + source-locator + verification command** and **no
-> answer**. The browser has no file access, so for every probe it must reply **"run `<command>`"** —
-> surfacing the off-bundle dependency instead of bluffing it. **CC** runs each command against **live
-> state at check-time**, re-derives ground truth, and records PASS/FAIL. **Any FAIL blocks
-> onboarding.** Degrade loudly: a moved anchor → WARN `anchor-missing`, re-anchor (never a synthesized
+> answer**. The browser has no file access, so the answers reach it one way only: **CC** runs every
+> command against **live state at check-time** via `/handoff-verify`, re-derives ground truth, and
+> emits **one evidence block** carrying each row's PASS/FAIL and live evidence. The operator pastes
+> that block once (HANDOFF_PROCESS §5 — the v6 one-round-trip boot). **Any FAIL blocks onboarding**,
+> and a missing required row is not a pass. Degrade loudly: a moved anchor → WARN `anchor-missing`, re-anchor (never a synthesized
 > pass); git/tooling absent → reported *skipped* (degraded coverage visible), never counted as pass.
 >
 > **Anti-bluff (HANDOFF_PROCESS §5 — a probe that bakes its answer is bluffable, rejected).** This
@@ -69,9 +70,9 @@ offered as an option, not assumed.
 A plain-language "what is this project" is **summary-bluffable** and so fails §5's own bar; a copy of
 VISION into the handoff is barred (§2/§3). So orientation is a **forced exact-line read**: the line
 enters the session **only** by CC reading the **live** primary source, and the quote must match as a
-**substring** (never a paraphrase). The browser has no files → it replies **"run `<command>`"**; CC
-reads live and substring-checks. The grep is a **tool** that confirms the frame — **the backlog
-navigates** (§13c), not this read.
+**substring** (never a paraphrase). The browser has no files, so CC reads live and substring-checks,
+and the result arrives in the evidence block. The grep is a **tool** that confirms the frame — **the
+backlog navigates** (§13c), not this read.
 
 | # | Probe (question) | Binds to (primary source) | Why a summary can't answer it | CC verifies via |
 |---|---|---|---|---|
@@ -99,10 +100,10 @@ asks the operator for **off-repo** context.
 
 ## Gate procedure (CC)
 
-1. **P0 first, then P1** — reconcile the standing authorities (P0a/P0b) and check this bundle's
-   own Purpose against them (P0c) before the orienting reads; the architect then cannot begin
-   design until both orienting lines are read live and substring-matched. **Then run the
-   operator-context beat (§13d).** Then run P2–P10, each against **live state now**.
+1. **Run the whole gate in one pass** (`/handoff-verify`), in table order: **P0 first, then P1**,
+   then the remaining rows — every row against **live state now**. Table order IS the execution order. The
+   architect cannot begin design until both orienting lines are read live and substring-matched.
+   **The operator-context beat (§13d) fires after the block is in hand.**
 2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing /
    command errored / receiver tried to answer from memory or this bundle).
 3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary
