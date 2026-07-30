@@ -1,7 +1,7 @@
 ---
 id: "[#421]"
 title: "`verify_handoff_probes` cannot bind a repo-root dotfile — the tokenizer drops the leading dot"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E1] Handoff continuity"
@@ -10,4 +10,4 @@ serialize-group: handoff
 generates: BACKLOG.md
 ---
 
-- [#421] [P2][S] **`verify_handoff_probes` cannot bind a repo-root dotfile — the tokenizer drops the leading dot** — **ABSORBED into [#446] as a leg** (intake #18 A11); this row tracks the defect until that arc lands or re-defers it by ruling. Mechanism (VERIFIED): `_FILE_RE` (`scripts/verify_handoff_probes.py:54`) admits a dot in its directory alternation but not in the final segment, so a backticked `` `.pre-commit-config.yaml` `` tokenizes dot-stripped and the probe FAILs `anchor-missing` though the file exists. Scope is the repo-root dotfile ONLY — a dot-*directory* path binds. A second variant (a backticked `#id` parsing as a header anchor via `header_tokens`) rides the same absorption · Done when: a probe row citing a backticked repo-root dotfile resolves and passes, with a test pinning `.pre-commit-config.yaml` and a dot-directory regression guard — OR the leg is re-deferred by ruling inside [#446] · refs `scripts/verify_handoff_probes.py:54` `_FILE_RE`, `file_tokens`, `header_tokens`, protocols/HANDOFF_PROCESS.md §5, #446 · kill-candidates: none — #404 is a disjoint defect; no open task owns the tokenizer · serialize-group: handoff
+- [#421] [P2][S] **`verify_handoff_probes` cannot bind a repo-root dotfile — the tokenizer drops the leading dot** — ABSORBED into [#446] as R7 Option B (intake #18 A11), BOTH variants: `_FILE_RE` dropped the dot in the FINAL path segment, and `header_tokens` mis-read a backticked `#id` as a markdown anchor. · Done when: a probe row citing a backticked repo-root dotfile resolves and passes, with a test pinning `.pre-commit-config.yaml` and a dot-directory regression guard — **MET** · refs `scripts/verify_handoff_probes.py` `_FILE_RE`/`header_tokens`, protocols/HANDOFF_PROCESS.md §5, #446 · kill-candidates: none · serialize-group: handoff · **CLOSED 2026-07-31** (architect-adjudicated, merge `7f8a0473`), pointing at the two RED-first frozen tests `test_fr7_v1_file_re_binds_repo_root_dotfiles` + `test_fr7_v2_header_tokens_ignores_a_bare_id`. Hardened past original scope by codex F4: whole-token boundary + the resolver's `..` fallback guard.

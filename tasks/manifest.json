@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2d8a96931b651c5f6de09d23a33f4965aa510e2af87aef1dbe149ffc288e921d",
+  "generated_sha256": "58051a997f6ab16ab726280d5e34655d95d9a8a2e9414eb912dbbced8ec0c2f6",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -96,14 +96,6 @@
     {
       "task": 404,
       "file": "404-gen-handoff-execution-mode-supplement-leak-mode.md"
-    },
-    {
-      "task": 421,
-      "file": "421-verify-handoff-probes-cannot-bind-a-repo-root-do.md"
-    },
-    {
-      "task": 446,
-      "file": "446-section-b-b-one-round-trip-boot-build-the-v6-ca.md"
     },
     {
       "task": 447,
@@ -1414,6 +1406,10 @@
     {
       "task": 427,
       "file": "427-region-templates-carry-a-repo-position-dependent.md"
+    },
+    {
+      "task": 448,
+      "file": "448-a11-staged-diff-guard-cover-every-candidate-bun.md"
     },
     {
       "prose": ""
