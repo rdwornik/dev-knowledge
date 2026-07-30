@@ -43,6 +43,27 @@
 > is Python's stdout encoding, shell-independent, so git-bash does **not** avoid it. `ship-gate` (P7)
 > can false-RED on `handoff_probes` under PowerShell — **verify in git-bash.**
 
+## P0 — Standing-topic reconciliation (emitted **above** P1 — A7 / R2)
+
+The **standing authorities** a session reconciles against before it plans: the live epic
+themes and the live accepted intakes. This was a §13 prose rule and it failed three consecutive
+windows — *a rule with no probe has no teeth* — so it is mechanized here. **Deterministic legs
+only** (the RM-4 / S3d boundedness law): there is no open-ended adjudication leg, because
+whole-set grooming is an **arc, not a probe** (JOURNAL 2026-07-26 (h)). Same contract as every
+row below: question + source-locator + command, **no answer**.
+
+| # | Probe (question) | Binds to (primary source) | Why a summary can't answer it | CC verifies via |
+|---|---|---|---|---|
+| P0a | Quote, **substring-exact**, the theme-preamble line of each **active** `[E#]` epic theme in `BACKLOG.md` — **and** separately confirm the generated backlog is **CURRENT**, not stale. | `BACKLOG.md` `[E#]` theme headers + the preamble line under each | the preamble set drifts on any theme edit, and `BACKLOG.md` is GENERATED since [#436] — a probe that can pass on stale generated content is bluffable, so currency is asserted mechanically, not assumed | `grep -A1 '^## \[E' BACKLOG.md` → each quote substring-matches the live preamble (a paraphrase is a FAIL); **then** `python scripts/gen_task_tree.py --check` exits 0 — a non-zero exit is a FAIL (currency — R2's second assertion) |
+| P0b | Enumerate, live, every doc under `docs/intake/` whose frontmatter carries `status: ACCEPTED`, and quote each one's **TITLE line** (its first level-1 `#`-heading). **Titles only.** | `docs/intake/*.md` frontmatter + first heading; area definition at `docs/intake/README.md` | the accepted set and its titles drift on any intake status change; neither the set nor any title appears in this bundle | `grep -l '^status: ACCEPTED' docs/intake/*.md` then read each hit's first heading line |
+| P0c | Which enumerated standing authority — a P0a epic theme, or a P0b accepted intake — does **this bundle's own Purpose** serve? Unquotable against that enumeration, or contradicted by it → **FAIL**, route to the escalation ladder. | this bundle's `docs/handoffs/{{SLUG}}/HANDOFF_BOOT.md` Purpose ∩ the live P0a/P0b output | the Purpose is hand-authored per bundle and the authorities are live; whether they agree is computable only after P0a and P0b have both been run | `sed -n '/FILL-IN:purpose/,+1p' docs/handoffs/{{SLUG}}/HANDOFF_BOOT.md` → name the authority it serves; unquotable or contradicted = FAIL |
+
+**Honest narrowing (terra H3).** P0b quotes **titles**, not wave/sequence detail: wave content is
+unstructured prose today, so quoting it would overclaim determinism (the RM-4 law applied to this
+row's own design). Wave-level teeth require the intake schema to first gain a required,
+machine-locatable plan-of-record heading — an intake-schema change owned by `docs/intake/README.md`,
+offered as an option, not assumed.
+
 ## P1 — Orientation (the architect's **first move**, before any mechanism — §13c)
 
 A plain-language "what is this project" is **summary-bluffable** and so fails §5's own bar; a copy of
@@ -78,14 +99,15 @@ asks the operator for **off-repo** context.
 
 ## Gate procedure (CC)
 
-1. **P1 first** — the architect cannot begin design until both orienting lines are read live and
-   substring-matched. **Then run the operator-context beat (§13d).** Then run P2–P10, each against
-   **live state now**.
+1. **P0 first, then P1** — reconcile the standing authorities (P0a/P0b) and check this bundle's
+   own Purpose against them (P0c) before the orienting reads; the architect then cannot begin
+   design until both orienting lines are read live and substring-matched. **Then run the
+   operator-context beat (§13d).** Then run P2–P10, each against **live state now**.
 2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing /
    command errored / receiver tried to answer from memory or this bundle).
 3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary
    source → CC re-derives the fact → abort if still unmet).
-4. Probes P2–P10 are *designed to move* between generation and check-time — that is the point. **Answer
+4. Probes P0a–P10 are *designed to move* between generation and check-time — that is the point. **Answer
    values are deliberately absent (§5)**: the pass criterion is **"answered from the live source,"**
    never "matches a remembered number." P7 is the headline (GREEN/RED + dispositioned-WARN count +
    any `[stale]` line). P8 pins the bundle shape **and the live supplement fill-state**. P10 grooms the
