@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-07-31 (b) — CC (Opus 5): [#446] §13(c) seam ruled · codex review BOTH lanes · 8 findings triaged
+
+**Did:** (1) ruled the §13(c) seam left open at (a) — table order is the mechanical EMISSION
+contract, the role → vision → standing topics → backlog sequence governs the reader's CONSUMPTION
+order; one clarifying sentence, no frozen-set file touched, frozen module re-run 9/9 GREEN.
+(2) Ran the codex review before any merge.
+
+**Result — the skill path did NOT deliver the requested review.** The diff is MIXED (11 `.py` /
+16 `.md` / 3 `.yaml` / 2 `.tmpl`), so `/codex-review`'s documented path-guard filtered it to the
+CODE subset, used the code profile, and inherited the config default `gpt-5.6-sol` — terra was
+never invoked and the 18 prose files (the substance of the v6 bump) went unreviewed. Prose lane
+therefore re-run via direct `codex exec -c model=gpt-5.6-terra`. **Both lanes PAID** ([#445]:
+each named consumed files + concrete findings; neither a bare SUCCESS). Code lane 3 HIGH; prose
+lane 5 HIGH + 3 MEDIUM. **All 8 verified independently before triage — none taken at face value;
+8 accepted, 0 disputed outright.**
+
+**Two reproduced destructively in a scratch repo:** `--allow-suffix` selected an EXISTING
+untracked sibling and **overwrote its in-progress RESIDUAL.md** (contradicting the CLI's own "NEW
+sibling" promise); and a bogus inherited `GIT_DIR` made `_tracked_under` return `[]`, silently
+disarming the RM-8 refusal against a genuinely tracked bundle. The tokenizer widening was
+confirmed by old-vs-new token diff: `../.methodology.yaml` now RESOLVES where it previously
+missed — a real false-PASS class, narrower than codex framed it (needs a unique basename) but
+genuine probe weakening.
+
+**Worst finding is mine and structural:** `templates/handoff/v5/HANDOFF_BOOT.md.tmpl` still
+directs the retired per-probe ferry. I updated the two HAND-MAINTAINED docs and missed the
+GENERATOR TEMPLATE — the fix never reached the artifact the mechanism actually produces. Every
+newly generated v6 bundle would ship instructions for the transport v6 removes.
+
+**Changes:** `protocols/HANDOFF_PROCESS.md` §13(c) seam sentence · `docs/audits/`
+2026-07-30-codex-446-v6-boot-build.md (skill, sol) + -prose.md (direct, terra) + regenerated index.
+
+**Watch:** (1) NO FIXES APPLIED — triage only, per instruction; fixes land after architect review.
+(2) One finding (P0c not bounded-deterministic) is R2's adopted intake contract, not my defect —
+changing it needs a ruling. (3) One finding lands against the operator's own Step-1 seam ruling
+(terra argues gate-procedure and sequence are BOTH execution orders) — architect's call.
+(4) BACKLOG still untouched: nothing closed, closure adjudication is the architect's act.
+
+**SHA anchor:** `25b83a28` (also `7723a431` — the seam ruling; arc now `b2265946..25b83a28`).
+
 ### 2026-07-31 (a) — CC (Opus 5): [#446] §B(b) BUILD — all 9 frozen items GREEN · HANDOFF_PROCESS v6.0 cut
 
 **Did:** built the §B(b) one-round-trip boot to the frozen contract (`1e93c746`, 9 items RED at
