@@ -1,7 +1,7 @@
 # HANDOFF_PROCESS v6
 <!-- scope: meta -->
 
-Version: 6.0
+Version: 6.0.1
 Status: stable
 Effective: 2026-06-11 (canonical); v6 cut 2026-07-31
 Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149).
@@ -446,15 +446,24 @@ operator-context beat:
 
   **Deterministic legs only** (the RM-4 / S3d boundedness law, §5 condition 4): there is no
   open-ended adjudication leg, because whole-set grooming is an **arc, not a probe**.
-- **(c″) The `Destination` row and P3 (v6; intake #18 A4 item 3, ruled R3).** Every lane-opening
-  boot header carries a `Destination` row declaring **ex-ante**: worktree · branch (in a sanctioned
-  lane shape) · write-scope · execution MODE with basis. **A lane inherits none of it from a prior
-  prompt.** Only the **branch** field has a mechanical counterpart: `PROBES.md` **P3** compares it
-  against live `git branch --show-current`, and a mismatch is a **FAIL** — the lane is not where the
-  handoff sent it. Worktree, write-scope and MODE-basis stay **prose and carry no probe leg**: a leg
-  with no mechanical counterpart cannot fail honestly, and one that cannot fail honestly discredits
-  the whole block. The three prose fields are FILL-IN regions, so a bundle shipped with an unfilled
-  `Destination` is blocked by the residual-completeness gate.
+- **(c″) The `Destination` row and P3 (v6; intake #18 A4 item 3, ruled R3; branch-field semantics
+  amended 2026-07-31 — architect technical ruling, revertable).** Every lane-opening
+  boot header carries a `Destination` row declaring **ex-ante**: worktree · branch · write-scope ·
+  execution MODE with basis. **A lane inherits none of it from a prior prompt.** The **branch**
+  field means **BOOT DESTINATION** — where the seat lands when it boots, not where its work is
+  eventually committed. `PROBES.md` **P3** compares it against live `git branch --show-current`
+  **once, at boot**, and a mismatch is a **FAIL** — the lane is not where the handoff sent it.
+  Because the field is a boot destination, **`main` is a legal value** for a primary-tree architect
+  seat, which boots on `main` and branches per act thereafter; reading the field as a work-branch
+  declaration would make P3 a false positive against that sanctioned workflow. **Lane branches are
+  declared at delegation, not in the boot header** — a seat that later opens a `docs/…` or `epic/…`
+  lane declares it in the delegating brief, and P3 does not re-fire against it. Worktree,
+  write-scope and MODE-basis stay **prose and carry no probe leg**: a leg with no mechanical
+  counterpart cannot fail honestly, and one that cannot fail honestly discredits the whole block.
+  **Honest limits (night-dossier Q3):** worktree MAY gain an optional mechanical leg
+  (`git rev-parse --show-toplevel`); write-scope and MODE are **declared-for-audit, not
+  machine-checked**. The three prose fields are FILL-IN regions, so a bundle shipped with an
+  unfilled `Destination` is blocked by the residual-completeness gate.
 - **(d) Operator-context beat — one targeted ask for off-repo context; after orienting, before
   design begins.** CC's handoff is **repo-derived** and structurally cannot carry operator intent
   or off-repo findings, so once the orienting lines are in hand the architect makes **one** targeted
@@ -612,9 +621,10 @@ Mode is carried by `/handoff … v5 <architect|execution>` (§10 self-updating; 
 `.claude/commands/handoff.md`.
 
 **Destination contract (intake #18 A4).** Every brief or prompt that opens a lane declares its
-destination ex-ante: worktree name · branch (in a sanctioned lane shape, §4 grammar) ·
-write-scope · execution MODE with basis — the §14a items 3/4/7 shape generalized beyond epic
-lanes. A lane inherits none of these from a prior prompt. (The boot-header `Destination` row +
+destination ex-ante: worktree name · branch (the **boot destination** — where the seat lands at
+boot; see §13(c″), amended 2026-07-31, under which `main` is legal for a primary-tree architect
+seat) · write-scope · execution MODE with basis — the §14a items 3/4/7 shape generalized beyond
+epic lanes. A lane inherits none of these from a prior prompt. (The boot-header `Destination` row +
 its P3 comparison leg ride the §B(b) build; the multi-agent mandate-content checklist is
 PLAYBOOK §2's.)
 
@@ -985,3 +995,25 @@ intake↔epic edge stays **advisory until n=2** intake docs are consumed end-to-
   browser boot's ferry paragraph and the operator runbook's run-loop rewritten (with an explicit
   pre-v6 note — bundles are immutable and judged by their own era). Refs intake #19 §B(b),
   intake #18 (A4/A7/A10/A11), [#435], [#446], [#421].
+- v6.0 → v6.0.1 (2026-07-31, §13(c″) `Destination` branch-field semantics — architect technical
+  ruling, revertable) — **Version → 6.0.1** (first patch bump; clarifying, no new mechanism). The
+  branch field is defined as the **BOOT DESTINATION** — where the seat lands at boot, compared
+  **once** by P3 at boot — rather than the lane the work eventually commits to. Consequences made
+  explicit: **`main` is a legal value** for a primary-tree architect seat (which boots on `main`
+  and branches per act), and **lane branches are declared at delegation**, not in the boot header,
+  so P3 does not re-fire against them. Resolves the seam witnessed and left unpatched in the
+  2026-07-31 (e) bundle — recorded in `JOURNAL.md` "Watch (1)": *"the bundle's own `Destination`
+  branch field reads `main`, which is not a sanctioned lane shape — P3 will PASS at boot and FAIL
+  once the next seat branches"* — surfaced there as a spec question rather than patched. **Honest
+  limits added per the night-dossier Q3 recommendation:** worktree MAY gain an optional mechanical
+  leg (`git rev-parse --show-toplevel`); write-scope and MODE stay **declared-for-audit, not
+  machine-checked**. **Second in-spec site reconciled in the same commit:** the §13 *Destination
+  contract (intake #18 A4)* paragraph also read "branch (in a sanctioned lane shape, §4 grammar)"
+  and would have left the spec self-contradicting. **Coupled atomic move (this commit):**
+  `CONTRIBUTING.md` stamp v6.0→v6.0.1 and the **six** `reconciled_with` edges @6.0→@6.0.1
+  (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/handoffs/README.md`,
+  `protocols/HANDOFF_BOOT.md`, `protocols/README.md`). Each dependent was checked against the
+  change before its edge moved: none asserts the branch-field semantics (the two `Destination`
+  mentions in `CONTRIBUTING.md` and `docs/handoffs/README.md` are descriptive), so every verdict
+  is *not-relevant* and no dependent prose changed. Freshness stamps already read 2026-07-31, so
+  no re-stamp was owed or faked. Does **not** close [#367] (the general held-version mechanism).

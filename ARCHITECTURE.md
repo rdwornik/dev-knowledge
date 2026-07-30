@@ -1,6 +1,6 @@
 ---
 last_reviewed: 2026-07-31
-reconciled_with: handoff-process@6.0
+reconciled_with: handoff-process@6.0.1
 status: active
 owner: Rob
 ---
