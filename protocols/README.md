@@ -1,5 +1,5 @@
 ---
-reconciled_with: handoff-process@6.0
+reconciled_with: handoff-process@6.0.1
 ---
 
 # protocols/ — canonical universal-methodology genre (hub)

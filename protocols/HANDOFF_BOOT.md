@@ -1,5 +1,5 @@
 ---
-reconciled_with: handoff-process@6.0
+reconciled_with: handoff-process@6.0.1
 ---
 
 # HANDOFF_BOOT — thin browser boot (HANDOFF_PROCESS v6)
