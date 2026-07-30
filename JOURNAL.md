@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-07-31 (g) — CC (Opus 5): intake #22 ingested (SEED) · SUPPLEMENT re-authored by the architect
+
+**Did:** two close-out acts in one lane. (1) Ingested the operator's design input as **intake #22,
+SEED**. (2) **Regenerated the closing bundle's SUPPLEMENT ANSWERS wholesale** from
+architect-authored text.
+
+**ACT 1 — ingest.** Located the source by search, not assumption: two matches in Downloads, newest
+won (`OPERATOR-INTAKE-DRAFT_decision-routing-and-standards (1).md`, 7,337 B). **Both verification
+gates checked before copying** — first line matched the expected header exactly, and the
+frontmatter comment carried `status: SEED — NOT ratified`. Copied **byte-identical** (sha256
+`75cad53a…` verified src==dst). Next free intake id grepped across live + archive + full git
+history: **22** (ids 1–21 consumed). Landed at
+`docs/intake/2026-07-30-func-operator-decision-routing-and-standards.md`, sections **A–I** intact,
+indexed under SEED. **NOT ratified** — §I.3 makes that the next window's first ruling batch.
+
+**Two deviations from the literal instruction, both stated not silent.** (a) *Filename*: the
+instruction said `<id>-operator-…`; the intake area definition §4 mandates
+`YYYY-MM-DD-{func|tech}-slug.md` with the **origin** date, and the operator invoked "per the intake
+convention". Followed the convention; trivially renameable if the literal form was meant. (b)
+*Frontmatter*: a strictly verbatim copy carries only HTML-comment frontmatter, so
+`gen_intake_index` read **MISSING-ID** and bucketed it under OTHER — losing the `intake-id` join
+key that the accepting ADR/backlog row needs at ratification. Added the YAML schema block as a
+**wrapper above byte-identical content** (body sha256 unchanged, asserted). Zero edits to the
+operator's words.
+
+**ACT 2 — SUPPLEMENT re-authored.** The ANSWERS region was replaced **wholesale**; the previous
+executor-drafted fill was **discarded, not merged**. That defect is itself now on the record as
+**register item 5**: the close instruction had delegated a judgment artifact to the executor, the
+operator caught it, and the standing rule is that **SUPPLEMENT answers are architect-authored while
+the executor supplies verified facts only** — codification owed (HANDOFF_PROCESS §13 + PLAYBOOK).
+`RESIDUAL.md` §4 widened 3 → **5** transcription-debt items to match (adding the decision-routing
+boundary, which ratifies via intake §A, and supplement authorship).
+
+**Bundle re-verified after both acts:** 14 probes / 14 pass / 0 fail, **rc=0**; zero answer-hint
+rows; **live HEAD absent** from the paste; no count/verdict leaks; all FILL-IN regions filled;
+`PASTE_THIS.md` **49,982 bytes**, 5 sections, END sentinel intact. `audit health: OK`. The A8
+promotion-debt detector fired advisory on one folded line — working as designed, non-blocking.
+
+**Changes:** `docs/intake/2026-07-30-func-operator-decision-routing-and-standards.md` (new, #22
+SEED) + regenerated intake index · bundle `SUPPLEMENT.md` / `RESIDUAL.md` / `PASTE_THIS.md` · this
+entry.
+
+**Watch:** intake #22 is **SEED and non-citable until ratified** — repo wins on conflict, per its
+own header. Nothing merged; the operator is the serial gate.
+
+**SHA anchor:** `6c567b04` (entry (f), this session).
+
 ### 2026-07-31 (f) — CC (Opus 5): anchor for the outgoing-handoff commit
 
 Anchor-only entry. Entry (e) wrote its SHA anchor as "this commit (the bundle)" — a

@@ -375,10 +375,11 @@ decide the shape before decomposing.
 6. **08-26 cluster entry gate** — the **§3.2-vs-[#364]-4(a) cap conflict** is unresolved, and
    the *split-or-not* first call is still unmade. Both are entry conditions for that cluster.
 
-### Transcription debt — three chat-ratified items, VERIFIED unlanded
+### Transcription debt — five chat-ratified items, VERIFIED unlanded
 
 Checked live in the files this window (grep, not recall) — **none has reached canon**, so each
-is promotion debt with a named target home (intake #18 A8: a ruling stranded in a consumed
+is promotion debt with a named target home (items (d) and (e) were ratified later in the same
+window and are recorded here at the same bar) (intake #18 A8: a ruling stranded in a consumed
 transient is debt):
 
 - **(a) The GREEN-on-branch vs GREEN-on-main honesty split** — zero hits in `PLAYBOOK`,
@@ -390,6 +391,17 @@ transient is debt):
   window's bundle/supplement. `tasks/447-*.md` is **open** and its row does **not** mention
   polarity. Target home: the **[#447] row** (it currently covers only the ratchet/bootstrap
   deadlock family).
+- **(d) The decision-routing boundary** — the operator rules FUNCTIONAL questions; the architect
+  decides / records / reverts TECHNICAL ones in its own lane; the Council distills contested ones.
+  Exercised live and enforced by the operator mid-window. Target home: **ratifies via the ingested
+  intake §A** (`docs/intake/2026-07-30-func-operator-decision-routing-and-standards.md`, **#22
+  SEED** — ingested this close, NOT ratified; §I.3 makes ratification the next window's first
+  ruling batch).
+- **(e) Supplement authorship** — SUPPLEMENT answers are **architect-authored**; the executor
+  supplies **verified facts only**. The defect occurred in THIS bundle: the close instruction
+  delegated the fill to the executor, the operator caught it, and the ANSWERS were re-authored
+  wholesale. Target home: **a HANDOFF_PROCESS §13 one-liner + PLAYBOOK**. Codification is owed —
+  the correction happened, the rule is still unwritten.
 
 ### One seam this bundle itself surfaces
 
@@ -520,55 +532,70 @@ The operator has **filled** the supplement, so its ANSWERS are in the paste and 
 
 === SUPPLEMENT.md ===
 
-**1. Strategic intent.** Next window should *use* v6 and report how it behaved, then take
-**[#382]** — whose pull-forward was declined last window and is now due. The mechanism arc is
-finished; extending it further without live evidence would be building on one dry run.
+**1. Strategic intent.** Boot THROUGH v6 live and report how it behaved — the window opens by
+producing the mechanism's first real evidence, including the `Destination=main` question it already
+surfaced. Then ratify the ingested operator intake **§A (decision routing)** + **§B (standing
+standards)** as XS rulings — they codify the boundary the operator enforced mid-window, so
+ratification is **transcription, not debate**. Then **[#382]** under **§E**'s functional
+requirement, ratified alongside, so the chain closes against operator intent, not only technical
+Done-whens. Way-of-working goal: **the operator states functional requirements; the harness
+implements.**
 
-**2. Tensions weighed.** (a) *Literal instruction vs. working mechanism* — the build brief said
-"remove `exist_ok=True`", which would have broken two legitimate re-render paths; I guarded
-creation instead and said so. Landed, and the reviewer did not dispute it. (b) *Emitter vs. gate
-for the byte budget* — split by site, because a warning nobody must clear is how the paste crept
-36.5→59 KB. (c) *Hiding a bad token vs. refusing it* — the sharpest one; see Q3.
+**2. Tensions weighed.** (a) *Literal instruction vs working mechanism* — "remove `exist_ok=True`"
+would have broken two sanctioned re-render paths; guarded creation landed, declared, undisputed.
+(b) *Emitter vs gate for the byte budget* — split by site; a warning nobody must clear is how the
+paste once crept 36.5→59 KB. (c) *Suppress vs refuse for bad tokens* — the sharpest: suppression
+converts FAIL into silent PASS; refusal at resolution landed. (d) *Executor-drafted vs
+architect-authored judgment artifacts* — surfaced by this supplement's own first fill; ruled:
+**judgment artifacts are architect-authored, the executor supplies verified facts.** Register
+item 5.
 
-**3. Considered + rejected.** Suppressing `..` in the probe tokenizer (F4 attempt 1): **rejected
-after it was written**, because it converted an escaping locator's FAIL into a silent PASS. A
-pre-existing test caught it; nothing in the review did. Also rejected: exempting the new
-`boot_byte_budget` check from the doc→code registry (dishonest — HANDOFF_PROCESS is already a
-declaration doc, so a real edge existed); and trimming a neighbouring BACKLOG row to make the
-closure clauses fit (condensed the served build narrative instead).
+**3. Considered + rejected.** Suppressing `..` in the tokenizer — rejected *after* being written: a
+**pre-existing test, not the review, caught it** (the lattice out-earned the reviewer). Exempting
+`boot_byte_budget` from the doc→code registry — dishonest; a real edge existed. Trimming a
+neighbouring BACKLOG row to fit closure clauses — condensed own narrative instead. Treating the
+night dossier's "not genuinely open" verdicts as authority — every ruling was still pinned against
+live sources; **INPUT-NOT-AUTHORITY held under pressure.**
 
-**4. Open questions.** (a) Does the `Destination` row mean *boot destination* or *lane*? This
-bundle's own field reads `main`, which is not a sanctioned lane shape — first live evidence, see
-`RESIDUAL.md` §4. (b) The night branch's ADR-105 consumption — a decision, not a task. (c) The
-08-26 cluster's §3.2-vs-[#364]-4(a) cap conflict, and the split-or-not first call. (d) P0c is
-narrowed to a name-match (amendment A2); whether a *serves*-judgment ever gets a mechanical form
-is open.
+**4. Open questions.** (a) `Destination` row: **boot destination or lane?** This bundle's own field
+reads `main` — not a sanctioned lane shape; first live v6 evidence, `RESIDUAL.md` §4. (b) Night
+branch **ADR-105 consumption** — a decision, not a task. (c) **08-26 entry gate**
+(§3.2-vs-[#364]-4(a)) + the split call, now with intake **§F** ("backlog must shrink") arriving as
+the cluster's pending functional requirement. (d) **P0c**: narrowed to name-match (A2); whether a
+*serves*-judgment ever gets a mechanical form stays open. (e) **Intake ratification batch** + **§D**
+research rows (repomix / pyadr / copier — **grep-first**) + **§C/§H**: the grok shadow and the
+portability probe are **ONE first arc**.
 
-**5. Decomposition rationale.** The arc ran worst-first, one commit per FR, frozen tests re-run
-after each — so any regression had exactly one candidate cause. The v6 version bump was held to
-LAST deliberately: nothing reaches `main` claiming a contract the build has not shipped.
+**5. Decomposition rationale.** Worst-first, one commit per FR, frozen set re-run after each — one
+candidate cause per regression; the version bump held to **LAST** so nothing reached `main` claiming
+an unshipped contract. **Do NOT redo or re-decide:** R1–R7 with amendments **A1/A2**, the **F1–F8**
+fix set, closures **[#446]/[#421]**, the intake's **§I sequencing** (re-affirmed by the outgoing
+seat, zero amendments), and the **A6 correction** — it is now repo fact.
 
-**6. Off-repo context.** The operator was the serial gate throughout and authorized the merge
-explicitly; nothing merged on my judgment. Two review lanes were needed because the skill's
-path-guard reviews only the code subset of a mixed diff — budget for both next time.
+**6. Off-repo context.** The operator was the serial gate throughout; every merge **per-act
+authorized**, none on agent judgment. Mixed diffs need **BOTH Codex lanes** (skill path-guard = code
+subset only) — budget both. The operator's design input is **ingested as SEED this close**; its
+§A/§B mirror rulings the operator already exercised live in this window. The **supplement-authorship
+defect happened HERE and was operator-caught**: the close instruction delegated the fill to the
+executor; corrected by wholesale re-authoring — **codification owed** (register item 5).
 
-**7. Ratified-in-chat register.** Three items ratified in this window's chats, **verified live as
-NOT in the repo** (grep, not recall) — each is capture-only debt, recorded here and enumerated
-with target homes in `RESIDUAL.md` §4:
-- **GREEN-on-branch vs GREEN-on-main honesty split** — a claim of green names *where* it is green;
-  branch-green is not done. Target: **PLAYBOOK Ch8** or a LESSONS one-liner.
-- **Authorized integration act** — merging is an operator-authorized act, not an agent judgment
-  call, and the authorization is per-act. Target: **PLAYBOOK Ch4 + HANDOFF_PROCESS §13**.
-- **Closure polarity** — a new owning row exists BEFORE the absorbed row closes. Target: the
-  **[#447] row** (currently only the ratchet/bootstrap-deadlock family; `tasks/447-*.md` is open
-  and does not mention polarity).
+**7. Ratified-in-chat register** — verified live as **NOT in repo**; capture-only debt with target
+homes:
+1. **GREEN-on-branch vs GREEN-on-main honesty split** — a claim of green names *where*; branch-green
+   is not done. → **PLAYBOOK Ch8** or **LESSONS**.
+2. **Authorized integration act** — merging is operator-authorized, **per-act**, never agent
+   judgment. → **PLAYBOOK Ch4 + HANDOFF_PROCESS §13**.
+3. **Closure polarity** — the new owning row exists **BEFORE** the absorbed row closes. → the
+   **[#447] row** (currently ratchet-family only; polarity unmentioned).
+4. **Decision-routing boundary** — operator rules functional, architect decides-records-reverts
+   technical, Council distills contested. → **ratifies via the ingested intake §A**.
+5. **Supplement authorship** — SUPPLEMENT answers are **architect-authored**; the executor supplies
+   **verified facts only**. → **HANDOFF_PROCESS §13 one-liner + PLAYBOOK**.
 
-**Also recorded here because this window falsified it:** the [#446] seal claimed intake **A6 was
-not built**. It was — at `a39f8405`, before the arc. The first live v6 bundle exposed it by
-generating a SUPPLEMENT with seven questions. The intake record is corrected in place, and two
-stale `6-question` claims in `.claude/commands/handoff.md` (one written during this arc) are
-fixed. Using the mechanism falsified what reading it had not.
+Also on record: the **A6 claim was falsified by first live use** (built at `a39f8405`; the intake
+record and two stale `6-question` claims corrected) — **using the mechanism falsified what reading
+it had not.**
 
 ---
 
-=== END OF PASTE — 5 sections · 47614 bytes ===
+=== END OF PASTE — 5 sections · 49924 bytes ===

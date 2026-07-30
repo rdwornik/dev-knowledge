@@ -94,10 +94,11 @@ decide the shape before decomposing.
 6. **08-26 cluster entry gate** — the **§3.2-vs-[#364]-4(a) cap conflict** is unresolved, and
    the *split-or-not* first call is still unmade. Both are entry conditions for that cluster.
 
-### Transcription debt — three chat-ratified items, VERIFIED unlanded
+### Transcription debt — five chat-ratified items, VERIFIED unlanded
 
 Checked live in the files this window (grep, not recall) — **none has reached canon**, so each
-is promotion debt with a named target home (intake #18 A8: a ruling stranded in a consumed
+is promotion debt with a named target home (items (d) and (e) were ratified later in the same
+window and are recorded here at the same bar) (intake #18 A8: a ruling stranded in a consumed
 transient is debt):
 
 - **(a) The GREEN-on-branch vs GREEN-on-main honesty split** — zero hits in `PLAYBOOK`,
@@ -109,6 +110,17 @@ transient is debt):
   window's bundle/supplement. `tasks/447-*.md` is **open** and its row does **not** mention
   polarity. Target home: the **[#447] row** (it currently covers only the ratchet/bootstrap
   deadlock family).
+- **(d) The decision-routing boundary** — the operator rules FUNCTIONAL questions; the architect
+  decides / records / reverts TECHNICAL ones in its own lane; the Council distills contested ones.
+  Exercised live and enforced by the operator mid-window. Target home: **ratifies via the ingested
+  intake §A** (`docs/intake/2026-07-30-func-operator-decision-routing-and-standards.md`, **#22
+  SEED** — ingested this close, NOT ratified; §I.3 makes ratification the next window's first
+  ruling batch).
+- **(e) Supplement authorship** — SUPPLEMENT answers are **architect-authored**; the executor
+  supplies **verified facts only**. The defect occurred in THIS bundle: the close instruction
+  delegated the fill to the executor, the operator caught it, and the ANSWERS were re-authored
+  wholesale. Target home: **a HANDOFF_PROCESS §13 one-liner + PLAYBOOK**. Codification is owed —
+  the correction happened, the rule is still unwritten.
 
 ### One seam this bundle itself surfaces
 
