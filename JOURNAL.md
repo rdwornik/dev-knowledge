@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-07-31 (w) — CC (Opus 5, local): P3 BLOCKED the 2026-08-01 bundle — amendment + generator fix (boot destination vs generation branch)
+
+**Did:** Ran `/handoff-verify` on the finalized 2026-08-01 bundle: **14 PASS / 1 FAIL — ONBOARDING
+BLOCKED**. The FAIL is **P3**: the boot header's `Destination` row declared branch
+`docs/2026-08-01-handoff-skeleton` — the bundle's **own generation branch**, which MERGE IS ATOMIC
+deleted at finalize (`git rev-parse --verify` → *"fatal: Needed a single revision"*), so P3 compared
+live `main` against a **dead ref**. The gate earned its keep: the bundle was otherwise clean and the
+defect was invisible to every other row. Operator-authorized repair, two legs on one branch. **(a)
+Amendment** — the sanctioned in-file marker on the bundle's `HANDOFF_BOOT.md` (§5 rule 3: never
+edited in place; the original value is preserved *inside* the marker), correcting the field to
+`main` per HANDOFF_PROCESS **§13(c″)** v6.0.1 — the field is the **BOOT DESTINATION**, and `main` is
+legal for a primary-tree architect seat. The row's own write-scope prose already said this seat
+boots on `main`, so the row had been self-contradictory since generation. **(b) Mechanism**
+(ADR-108 §A, architect-ruled, RED-first) — root cause was **one token answering two questions**, the
+LESSONS 2026-07-31 [#446]-F2 shape exactly: `templates/handoff/v5/HANDOFF_BOOT.md.tmpl` used
+`{{BRANCH}}` for BOTH the `Generated at` pointer (*which branch was this cut on* — correct) and the
+`Destination` row (*where does the seat land* — wrong). Fix: a distinct `BOOT_DESTINATION` token
+pinned to `main` for primary-tree v5 modes; `{{BRANCH}}` kept where it answers its own question.
+Epic lanes unaffected (they declare destination in `EPIC_BOOT`, §14a, separate template).
+
+**Result:** RED reproduced the defect verbatim before the fix
+(`assert 'docs/2026-08-01-handoff-skeleton' != 'docs/2026-08-01-handoff-skeleton'`) while the
+companion `Generated at` test passed **unchanged** — proving the two questions were *separated*, not
+the one answer *relocated*. Both halves are now pinned so a future collapse back to one token fails
+loudly. Full suite **2070 passed** (+2 new), the two standing [#457] REDs unchanged, nothing new.
+Two derived artifacts moved with the sources rather than being left to rot: `PASTE_THIS.md`
+re-assembled (51,454 → 52,119 B) so the paste cannot contradict the amended header — judged
+in-scope because it is generated, and flagged to the operator — and `ecosystem/doc-counts.md`
+regenerated for the two new tests (2073 → 2075), catching the exact self-induced-WARN miss the
+2026-07-31 LESSONS entry names before it reached the gate. **SHA anchor: `5fc6b8ab`.**
+
+**In flight at write time (recorded, not predicted):** the standing-rule **terra review** of this
+diff was still running when this entry was written; its verdict and any folded findings are
+recorded at the merge, not guessed here. The merge, GREEN-on-main gates, push, and the **required
+15/15 `/handoff-verify` re-run** are the remaining legs — nothing is reported clean until that
+re-run returns `ONBOARDING CLEARED`.
+
+**Changes:** `scripts/gen_handoff.py` (`BOOT_DESTINATION` token + the two-questions docstring) ·
+`templates/handoff/v5/HANDOFF_BOOT.md.tmpl` (Destination row + token-inventory comment) ·
+`tests/test_gen_handoff.py` (+2 RED-first tests) ·
+`docs/handoffs/2026-08-01-dev-knowledge-architect/{HANDOFF_BOOT.md,PASTE_THIS.md}` ·
+`ecosystem/doc-counts.md` · this JOURNAL entry. **No BACKLOG row moved** — this defect was found and
+closed inside the same arc, so there is nothing pending to reflect (the gate's BACKLOG leg is
+advisory and correctly silent on a finish-in-arc fix).
+
+---
+
 ### 2026-07-31 (v) — CC (Fable 5 → Opus 5, local): 2026-08-01 bundle FINALIZED — supplement folded, paste assembled, bundle merged
 
 **Did:** FINAL ACT part 2, operator-authorized including the bundle-branch merge. **(a)** Filled
