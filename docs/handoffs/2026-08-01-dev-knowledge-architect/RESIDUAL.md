@@ -72,6 +72,13 @@ in `JOURNAL.md` entries (l)–(s) and the audits named below; this is the map on
   cross-repo citation.
 - **LESSONS append:** *push is part of the act it verifies* — this act's own miss, named rather
   than quietly repaired.
+- **Night-material resolution (2026-07-31 night, operator-authorized in full):** the three
+  `claude/conformance-*` digests merged to `main` oldest-first (preserve-then-delete) and the
+  branches deleted origin-side; their live findings absorbed the same night — ARCHITECTURE
+  ADR-currency fixed, **[#462]** (terminal-setup membership gap) filed, uv-pin HIGH confirmed
+  owned by [#453] item (2). `automation/fleet-audit` deep-reviewed read-only (98 commits, 36
+  digests): **[#463]/[#464]/[#465]** filed, **[#460]** rewritten from open question to a recorded
+  recommendation. The fleet-audit branch itself is untouched — report-only.
 - **Audit artifacts** (all in `docs/audits/`, 2026-07-31): the **ladder evidence pack**
   (`verification-382-ladder-evidence` — L0–L5 answered from `main` with an anchor per level, plus
   the night-routine census and the six metrics), the **arc educate report**
@@ -103,28 +110,26 @@ open indefinitely.**
 
 ### Open decisions the next window inherits (each needs a ruling, not a build)
 
-1. **The three `claude/conformance-*` branches — retirement was HELD this window, deliberately.**
-   The operator ruled deletion; CC stopped before touching them because the stop-condition in the
-   brief fired. Each branch carries exactly **one** file — a dated
-   `docs/audits/*-conformance-nightly-digest.md`, an ADR-101 sanctioned audit class and therefore
-   an immutable durable record — and **none of the three exists on `main`** (main's nightly-digest
-   series stops mid-June). They are **not regenerable**: a conformance digest is a point-in-time
-   review, and re-running the reviewer today reviews *today's* repo, not the one being described;
-   one of them encodes a multi-night delta table that cannot be reconstructed at all. Two of their
-   MEDIUM findings are **still live and unabsorbed on `main`** (verified this window). The obvious
-   resolution — **merge the three digests to `main` first, then delete the branches** — satisfies
-   MERGE IS ATOMIC *and* preserves the records, but it is an operator call, not CC's.
-2. **[#460] — the night-routine question, and it gates more than itself.** The
-   `ecosystem/*/history/` dailies are **write-only telemetry with no consumer** (zero readers
-   across `scripts/`/`deploy/`/`plugins/`). The decision (keep with a declared consumer / aggregate
-   / stop) **blocks the reconcile-loop step**: putting the divergence report on a cadence before
-   this is answered would install a *second* producer nobody reads — the identical defect, one
-   layer up. Sequence [#460] before any scheduling work.
-3. **[#459] — ARCHITECTURE prose, with a real sub-question.** The new organ class
-   (`ecosystem/schema/` + the loader/report pair) is absent from `ARCHITECTURE.md`. The prose leg
-   is easy; the ruling inside it is not: `ecosystem/schema/` sits **outside** the codemap's
-   `--source-root scripts` scope, so the same edit must rule whether the source-root widens or the
-   schema package is declared out-of-codemap **with a reason**.
+1. **The three `claude/conformance-*` branches — RESOLVED 2026-07-31 night, operator-authorized.**
+   Merged to `main` oldest-first (preserve-then-delete; the three digests now live in
+   `docs/audits/`, index regenerated), branches deleted origin-side. Their live findings were
+   absorbed the same night: the ARCHITECTURE ADR-currency line fixed, **[#462]** filed for the
+   terminal-setup membership gap, the uv-pin HIGH confirmed already owned by [#453] item (2).
+   Nothing here awaits a ruling.
+2. **[#460] — now carries a RECORDED RECOMMENDATION; the ruling is still the operator's.** The
+   2026-07-31 night deep review read all 98 unread `automation/fleet-audit` commits: the lane
+   detects real defects — nine still live today, absorbed as **[#463]** (win-tooling debt),
+   **[#464]** (corp-*/ai-council drift), **[#465]** (the writer's own integrity defects) — but its
+   branch-commit leg has been **dead since 2026-07-16** and nothing noticed. Recommendation on the
+   row: stop the branch lane, keep the SessionStart digest, add a persistence-triage consumer
+   (ADR-105). The sequencing constraint stands: rule [#460] before putting the divergence report
+   on any cadence.
+3. **[#459] — ARCHITECTURE prose, NARROWED 2026-07-31 night.** The ADR-currency leg landed (the
+   Purpose line reads "through ADR-109"; Governing ADRs carries ADR-108 + ADR-109 bullets). What
+   remains is the organ-class prose: `ecosystem/schema/` + the loader/report pair are still absent
+   from Ch2/Ch6, and the ruling inside it is not trivial — `ecosystem/schema/` sits **outside**
+   the codemap's `--source-root scripts` scope, so the same edit must rule whether the source-root
+   widens or the schema package is declared out-of-codemap **with a reason**.
 4. **Does the divergence report earn a durable artifact and a declared consumer?** Today it prints
    to stdout on human invocation only — nothing schedules it, nothing reads it, no artifact is
    committed. Under ADR-105 it cannot *activate* without a named consumer + consumption_path. That
@@ -134,11 +139,12 @@ open indefinitely.**
    accepted Criticals; CC built). **Every line of shipped code was written by Claude.** The probe
    the operator specified — one full arc with a non-Claude builder — remains unrun, with three debt
    items recorded verbatim in the §C/§H artifact.
-6. **Two conformance findings sitting unabsorbed** (verified against live `main` this window, not
-   merely quoted): `ARCHITECTURE.md`'s "ratified through ADR-107" claim is stale now that ADR-108
-   and ADR-109 have landed, and `terminal-setup` appears in `VISION.md` and ADR-104 as a fleet repo
-   but is **absent from `ecosystem/registry.md`** — a fleet-membership gap that the [#382] registry
-   census could not see precisely because `registry.md` does not list it.
+6. **RESOLVED 2026-07-31 night — both former unabsorbed conformance findings are absorbed.** The
+   ARCHITECTURE "through ADR-107" line now reads ADR-109 (with Governing bullets), and the
+   terminal-setup gap is **[#462]** — deliberately reframed for **[#383] wave 1**: per ADR-109 §2
+   `registry.md` loses authority, so the fix is the wave-1 desired-state member set carrying the
+   full ADR-104 declaration (census method: declaration diffed against machine surfaces), not a
+   hand-added registry row. The structural lesson is in the row.
 
 ### The honest ceiling, so the next window does not re-estimate it
 
