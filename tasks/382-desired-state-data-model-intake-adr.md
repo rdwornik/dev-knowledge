@@ -1,7 +1,7 @@
 ---
 id: "[#382]"
 title: "Desired-state data model: intake → ADR"
-status: open
+status: closed
 priority: P1
 size: M
 theme: "[E9] Fleet Desired-State System (North Star)"

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "3f6bbb0014e75697c5fc281831622680dea4af56509c51c21b396b5e8d054136",
+  "generated_sha256": "99e2804986ab79bea41d39c9f4bd01dfa1d3954a519d1c2b96de04cb7913f9f4",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1470,10 +1470,6 @@
     },
     {
       "prose": "So that every check derives from one schema — a check without a schema row is the registry-sprawl anti-pattern that produced \"green that means nothing\"."
-    },
-    {
-      "task": 382,
-      "file": "382-desired-state-data-model-intake-adr.md"
     },
     {
       "task": 459,
