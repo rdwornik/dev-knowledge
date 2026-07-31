@@ -19,6 +19,40 @@
 
 ---
 
+### 2026-07-31 (x) — CC (Opus 5, local): terra verdict recorded, Destination fix MERGED, bundle re-verified
+
+**Did:** Closed the review leg entry (w) left in flight, under the architect's timeout rule.
+**Attempt 1** (full mechanism diff: generator + template + tests + amendment) launched **20:01:11**,
+produced no output for 43 minutes and was killed **20:44:39** — no verdict, no output file.
+**Attempt 2**, rescoped per the ruling to the **template + test** diff only, launched **20:44:58**
+and returned **20:46:08** — 70 seconds. The named no-verdict exception was therefore **NOT invoked**;
+a real review stands behind this diff. **Verdict: no Critical/High findings**, on all three questions
+asked: the RED-first tests genuinely falsify the defect (the old one-token rendering makes
+`Destination` equal the generation branch and fails the first assertion); the paired assertions
+force `Destination == main` while `Generated at` keeps the generation branch, so a semantic
+regression back to one shared token fails loudly; and **no remaining v5 site uses one token for both
+meanings**. Scope honesty: attempt 2 did **not** re-read the `gen_handoff.py` hunk (2 lines: the
+constant + the token entry), which the ruling excluded — it is covered by the two tests and by the
+live end-to-end generation check below.
+
+**Corroborating finding from the CC-side audit (not terra's):** **epic mode already had this
+separation right** — `EPIC_BOOT.md.tmpl` renders the destination from `{{EPIC_BRANCH}}` and uses
+`{{BRANCH}}` explicitly for *"bundle generated on"*. So the v5 boot template was the **lone
+outlier**, not a design-wide gap; the fix converges v5 onto a pattern the epic lane already
+encoded. Live end-to-end check on a throwaway repo generated from branch
+`docs/2026-08-02-handoff-skeleton`: `Destination.branch` → `main`, `Generated at` → the lane branch.
+
+**Result:** merged to main. The amended bundle re-verified **15/15 PASS — ONBOARDING CLEARED**;
+P3 now compares live `main` against a `Destination` field that reads `main`. Gates GREEN-on-main,
+pushed 0/0. Recorded tension, not hidden: the amendment marker does change the row's *rendered*
+value (original preserved inside the marker + git history) — the alternative, leaving the dead
+branch in the field with the correction elsewhere, would leave P3 failing permanently and defeat
+the amendment's purpose.
+
+**Changes:** this JOURNAL entry + the merge. SHA anchors: `5fc6b8ab` (fix), `a489402f` (entry w).
+
+---
+
 ### 2026-07-31 (w) — CC (Opus 5, local): P3 BLOCKED the 2026-08-01 bundle — amendment + generator fix (boot destination vs generation branch)
 
 **Did:** Ran `/handoff-verify` on the finalized 2026-08-01 bundle: **14 PASS / 1 FAIL — ONBOARDING
