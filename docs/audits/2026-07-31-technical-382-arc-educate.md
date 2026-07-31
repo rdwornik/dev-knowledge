@@ -45,15 +45,19 @@ CC's own.
 
 ## W4 — divergence report (so what)
 
-The operator's two-minute read exists. The live render: **174 conform · 3 diverge · 14
+The operator's two-minute read exists. The live render: **185 conform · 3 diverge · 3
 declared · 219 n/a** — and the 3 diverges are precisely the real, previously-invisible
 gaps (ai-council deployed 1.3.1 against the declared 1.4.0 target — the G11 gap that had
 no field anywhere; corp-ops and corp-sca ruled `full` with nothing deployed — the C3 gap
 between a ruling and a state file that never referenced each other). corp-monorepo's
 sanctioned gap renders **declared**, not red — the report distinguishes "diverged" from
 "diverged with a ruling behind it", which is the entire point of the declaration layer.
-"Conform" is defined in the report's own limits block as *no divergence declared or
-observable hub-side* — never as a probe result; fleet_parity keeps the probes.
+The review loop moved these numbers before merge: terra's W4 pass (6 High, all accepted)
+caught 11 FALSE-declared cells (repo tier rows equal to their role baseline are not
+departures), made the gate-ahead declaration self-invalidate once its tag is reached, and
+narrowed the C3 verdict to ruled-full repos only. "Conform" is defined in the report's own
+limits block as *no divergence DECLARED* — the declaration layer, never a probe result;
+observational joins await the G9 crosswalk (#383); fleet_parity keeps the probes.
 
 ## §C verdict — grok shadow vs terra (one artifact: 2026-07-31-technical-382-w2-grok-shadow-ab.md)
 
