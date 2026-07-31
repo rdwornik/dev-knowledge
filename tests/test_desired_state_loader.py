@@ -11,6 +11,13 @@ read-only against the fleet — zero files written.
 
 Fixtures reproduce the registry-prep dossier conflicts C1–C8
 (docs/audits/2026-07-31-technical-382-registry-prep-dossier.md §i.4).
+
+POST-FREEZE AMENDMENTS (recorded — terra W3 review 2026-07-31,
+docs/audits/2026-07-31-codex-382-w3-loader.md): fixture Path cells gained the live
+backtick grammar (H2 — the fixture under-reproduced the disk); the roles test
+strengthened to forbid ANY parity-sourced lifecycle assertion on non-hub repos (H3);
+the live read-only leg hardened (H6 — checked git calls + byte snapshots of all
+seven inputs). The components/selector tests are the review-driven RED-first batch.
 """
 
 from __future__ import annotations
@@ -39,12 +46,12 @@ REGISTRY_MD = """# Fleet registry
 
 | Repo | Path | Purpose | Status |
 |------|------|---------|--------|
-| `.dev-knowledge` | C:\\Dev\\.dev-knowledge | Methodology hub | source (hub — methodology origin) |
-| `ai-council` | C:\\Dev\\ai-council | Council engine | registered · onboarded (v1.2.0) |
-| `corp-monorepo` | C:\\Dev\\corp-monorepo | Corp work | registered · onboarded (v1.2.0) |
-| `corp-ops` | C:\\Dev\\corp-ops | Ops | registered · unonboarded |
-| `corp-sca-time-automation` | C:\\Dev\\corp-sca | SCA | registered · unonboarded (floor-carrying) |
-| `win-tooling` | C:\\Dev\\win-tooling | Windows tooling | registered · methodology-unonboarded |
+| `.dev-knowledge` | `C:\\Dev\\.dev-knowledge` | Methodology hub | source (hub — methodology origin) |
+| `ai-council` | `C:\\Dev\\ai-council` | Council engine | registered · onboarded (v1.2.0) |
+| `corp-monorepo` | `C:\\Dev\\corp-monorepo` | Corp work | registered · onboarded (v1.2.0) |
+| `corp-ops` | `C:\\Dev\\corp-ops` | Ops | registered · unonboarded |
+| `corp-sca-time-automation` | `C:\\Dev\\corp-sca` | SCA | registered · unonboarded (floor-carrying) |
+| `win-tooling` | `C:\\Dev\\win-tooling` | Windows tooling | registered · methodology-unonboarded |
 """
 
 DEPLOYED_VERSIONS = """repos:
@@ -150,6 +157,14 @@ repos:
 
 MANIFEST_YAML = """methodology_version: "1.4.0"
 source_tag: v1.4.0
+components:
+  - id: block-ff-push
+    kind: hook
+    carrier: hub-hooks
+    status: active
+  - id: verify-skill
+    kind: skill
+    status: active
 """
 
 
@@ -268,6 +283,7 @@ def test_c6_join_on_name_path_carried(fleet_dir):
     fm = _load(fleet_dir)
     ai = _repo(fm, "ai-council")
     assert ai.path is not None and ai.path.endswith("ai-council")
+    assert "`" not in ai.path  # terra H2: the live table wraps paths in backticks
     hub = _repo(fm, ".dev-knowledge")
     assert hub.id == ".dev-knowledge"  # leading dot byte-exact
 
@@ -301,12 +317,39 @@ def test_c8_index_file_not_rewritten(fleet_dir):
 # --- roles, tier mapping, manifest anchors ----------------------------------------------
 
 def test_roles_load_but_do_not_bear_lifecycle(fleet_dir):
+    # AMENDED post-freeze (terra H3): non-hub roles carry NO parity lifecycle assertion
+    # at all — D2 makes role non-lifecycle-bearing except hub→source.
     fm = _load(fleet_dir)
-    assert _repo(fm, ".dev-knowledge").role == "hub"
-    ai = _repo(fm, "ai-council")
-    assert ai.role == "consumer"
-    assert not any(a.source_surface == "parity" and a.semantics != "role-classification"
-                   for a in ai.assertions)
+    hub = _repo(fm, ".dev-knowledge")
+    assert hub.role == "hub"
+    assert any(a.source_surface == "parity" and a.mapped_stage == "source"
+               for a in hub.assertions)
+    for rid in ("ai-council", "corp-ops"):
+        r = _repo(fm, rid)
+        assert r.role is not None
+        assert not any(a.source_surface == "parity" for a in r.assertions)
+
+
+def test_unknown_tier_selector_raises(fleet_dir):
+    """terra H1: a tier key that is neither a fleet repo id nor a role token is a
+    loud error, never a silently-loaded 'repository'."""
+    p = fleet_dir / "ecosystem" / "parity-surfaces.yaml"
+    p.write_text(p.read_text(encoding="utf-8").replace(
+        "tier: {hub: MUST, consumer: MUST, corp-monorepo: LOCAL}",
+        "tier: {hub: MUST, consumr: MUST}"), encoding="utf-8")
+    with pytest.raises(ValueError, match="consumr"):
+        _load(fleet_dir)
+
+
+def test_components_populated_from_manifest(fleet_dir):
+    """terra CRITICAL: the §E query spine populates from the manifest declarations
+    (population bound, D3); assignments stay empty because NOTHING declares a
+    per-repo component assignment — deriving one from role would invent data."""
+    fm = _load(fleet_dir)
+    ids = {c.id for c in fm.desired.components}
+    assert ids == {"block-ff-push", "verify-skill"}
+    assert all(c.ownership == "hub" for c in fm.desired.components)
+    assert fm.desired.assignments == ()
 
 
 def test_tier_map_becomes_applicability_repo_overrides_role(fleet_dir):
@@ -328,14 +371,23 @@ def test_manifest_cut_loaded(fleet_dir):
 
 @pytest.mark.live_repo
 def test_live_repo_loads_clean_and_writes_nothing():
+    # AMENDED post-freeze (terra H6): checked git calls + byte snapshots of all seven
+    # inputs — an unchecked empty-stdout pair could false-pass the read-only claim.
     import subprocess
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    dirty_before = subprocess.run(["git", "status", "--porcelain"], cwd=root,
-                                  capture_output=True, text=True).stdout
+    seven = ["ecosystem/registry.md", "ecosystem/index.yaml",
+             "ecosystem/deployed-versions.yaml", "ecosystem/parity-surfaces.yaml",
+             "ecosystem/satellite-onboarding-rulings.yaml", ".methodology.yaml",
+             "deploy/manifest-v1.4.0.yaml"]
+    bytes_before = {p: open(os.path.join(root, p), "rb").read() for p in seven}
+    st = subprocess.run(["git", "status", "--porcelain"], cwd=root,
+                        capture_output=True, text=True, check=True)
     fm = _loader().load_fleet_model(root)
-    dirty_after = subprocess.run(["git", "status", "--porcelain"], cwd=root,
-                                 capture_output=True, text=True).stdout
-    assert dirty_after == dirty_before  # zero files written
+    st2 = subprocess.run(["git", "status", "--porcelain"], cwd=root,
+                         capture_output=True, text=True, check=True)
+    assert st2.stdout == st.stdout
+    for p in seven:
+        assert open(os.path.join(root, p), "rb").read() == bytes_before[p], p
     members = _loader().resolve_fleet_members(fm.desired)
     assert set(members) == {".dev-knowledge", "ai-council", "corp-monorepo",
                             "corp-ops", "corp-sca-time-automation"}
@@ -344,3 +396,5 @@ def test_live_repo_loads_clean_and_writes_nothing():
     assert any(d.kind == "gate-rev-ahead" and d.gate_tag_raw == "v1.3.1"
                for d in fm.desired.divergences)
     assert fm.observed.generated_raw is not None  # C8 stamp surfaced from the live rollup
+    assert len(fm.desired.components) > 0  # terra CRITICAL: the live manifest declares components
+    assert all("`" not in (r.path or "") for r in fm.desired.repos)  # terra H2 on live rows

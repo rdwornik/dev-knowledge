@@ -31,6 +31,7 @@ if str(_ROOT) not in sys.path:
 from ecosystem.schema.desired_state import (  # noqa: E402
     ApplicabilityRule,
     AuditFinding,
+    ComponentSpec,
     DeclaredDivergence,
     DeployedState,
     FleetDesiredState,
@@ -50,6 +51,7 @@ from ecosystem.schema.desired_state import (  # noqa: E402
     Role,
     SourceRecord,
     Surface,
+    lifecycle_from_parity_role,
 )
 
 MANIFEST_NAME = "manifest-v1.4.0.yaml"
@@ -108,12 +110,15 @@ def _registry_stage(status: str) -> LifecycleStage:
 
 
 def parse_registry_md(text: str) -> dict[str, dict[str, str]]:
-    """The hand-maintained markdown table → {repo id: {path, purpose, status}}."""
+    """The hand-maintained markdown table → {repo id: {path, purpose, status}}.
+    The live Path cell wraps the path in backticks (terra H2) — stripped here so the
+    model holds a usable path; byte fidelity lives at the source-envelope level (D4)."""
     rows: dict[str, dict[str, str]] = {}
     for line in text.splitlines():
         m = re.match(r"^\|\s*`([^`]+)`\s*\|([^|]*)\|([^|]*)\|([^|]*)\|\s*$", line)
         if m:
-            rows[m.group(1)] = {"path": m.group(2).strip(), "purpose": m.group(3).strip(),
+            path = m.group(2).strip().strip("`").strip()
+            rows[m.group(1)] = {"path": path, "purpose": m.group(3).strip(),
                                 "status": m.group(4).strip()}
     return rows
 
@@ -123,17 +128,27 @@ def _prov_refs(items: list[dict]) -> tuple[ProvenanceRef, ...]:
                  for i in items or ())
 
 
-def _applicability(tier: dict) -> tuple[ApplicabilityRule, ...]:
+def _applicability(tier: dict, fleet_ids: set[str]) -> tuple[ApplicabilityRule, ...]:
     """The role-or-repo-keyed tier map → typed rules (D5); repo-id keys type as
-    `repository` (they override role rows by the parity contract's own grammar)."""
+    `repository` (they override role rows by the parity contract's own grammar).
+    Classification is fleet-ids-first (terra H1): a repo named like a role token
+    stays a repository; a key matching NEITHER set is a loud error, never a
+    silently-loaded selector."""
     rules = []
     for key, posture in (tier or {}).items():
-        kind = "role" if key in _ROLE_TOKENS else "repository"
+        if key in fleet_ids:
+            kind = "repository"
+        elif key in _ROLE_TOKENS:
+            kind = "role"
+        else:
+            raise ValueError(f"tier selector {key!r} is neither a fleet repo id nor a "
+                             f"role token ({sorted(_ROLE_TOKENS)})")
         rules.append(ApplicabilityRule(selector_kind=kind, selector=key, posture=posture))
     return tuple(rules)
 
 
 def _load_surfaces(parity: dict) -> tuple[tuple[Surface, ...], tuple[DeclaredDivergence, ...]]:
+    fleet_ids = set(parity.get("fleet", {}))
     surfaces, divergences = [], []
     for row in parity.get("surfaces", ()):
         gra_refs = []
@@ -151,8 +166,11 @@ def _load_surfaces(parity: dict) -> tuple[tuple[Surface, ...], tuple[DeclaredDiv
         jn = row.get("join")
         surfaces.append(Surface(
             id=row["id"], kind=row["kind"],
-            applicability=_applicability(row.get("tier", {})),
-            tier_raw=yaml.safe_dump(row.get("tier", {}), default_flow_style=True).strip(),
+            applicability=_applicability(row.get("tier", {}), fleet_ids),
+            # value-faithful re-serialization (insertion order kept), NOT a byte span —
+            # byte-exact raw lives at the per-source envelope level (D4; terra H4 recorded)
+            tier_raw=yaml.safe_dump(row.get("tier", {}), default_flow_style=True,
+                                    sort_keys=False).strip(),
             probe=Probe(**row["probe"]),
             ownership=Ownership(value=own["value"], reason=str(own["reason"]).strip(),
                                 provenance=_prov_refs(own.get("provenance"))),
@@ -170,6 +188,11 @@ def _load_surfaces(parity: dict) -> tuple[tuple[Surface, ...], tuple[DeclaredDiv
 
 
 def _load_waivers(methodology: dict) -> tuple[DeclaredDivergence, ...]:
+    """Every sanctioned_divergences entry loads as a parity-waiver DECLARATION.
+    `effect="waive"` is the mechanism's effect CLASS (the schema's kind→effect map),
+    not a liveness claim — whether a surface actually consumes a declaration via
+    `waiver_component` is the matched/unmatched JOIN, which belongs to the divergence
+    report (W4) that holds both sides (terra H5, dispositioned)."""
     out = []
     for entry in methodology.get("sanctioned_divergences", ()):
         out.append(DeclaredDivergence(
@@ -178,6 +201,22 @@ def _load_waivers(methodology: dict) -> tuple[DeclaredDivergence, ...]:
             provenance=Provenance(reason=str(entry["reason"]).strip()),
             review_date=entry.get("review_date"),
         ))
+    return tuple(out)
+
+
+def _load_components(manifest: dict) -> tuple[ComponentSpec, ...]:
+    """terra CRITICAL (D3): the §E query spine populates from the manifest's component
+    declarations — the population bound. `assignments` stays EMPTY by absence of
+    declaration: no source declares a per-repo component assignment (carriers are
+    role-scoped), and deriving one from role would invent data."""
+    out = []
+    for comp in manifest.get("components", ()):
+        extras = {k: v for k, v in comp.items() if k not in ("id", "kind")}
+        note = ", ".join(f"{k}={v}" for k, v in sorted(extras.items()) if not isinstance(v, (dict, list)))
+        out.append(ComponentSpec(
+            id=str(comp["id"]), kind=comp["kind"], ownership="hub",
+            provenance=Provenance(reason=f"deploy/{MANIFEST_NAME} component"
+                                         + (f" ({note})" if note else ""))))
     return tuple(out)
 
 
@@ -211,11 +250,13 @@ def _assemble_repos(registry: dict, deployed: dict, fleet_roles: dict,
         if rid in fleet_roles:
             membership.add(SRC_PARITY)
             role = fleet_roles[rid]["role"]
-            assertions.append(LifecycleAssertion(
-                source_surface="parity", semantics="role-classification",
-                raw_value=role,
-                mapped_stage=(LifecycleStage.source if role == "hub"
-                              else LifecycleStage.unonboarded)))
+            # D2 (terra H3): role is NOT lifecycle-bearing — only hub→source yields
+            # an assertion; consumer/pre-deploy carry no deployment evidence.
+            stage = lifecycle_from_parity_role(role)
+            if stage is not None:
+                assertions.append(LifecycleAssertion(
+                    source_surface="parity", semantics="role-classification",
+                    raw_value=role, mapped_stage=stage))
         if rid in rulings:
             membership.add(SRC_RULINGS)
             ruling = rulings[rid]
@@ -284,6 +325,7 @@ def load_fleet_model(repo_root: str | Path) -> FleetModel:
                               index.get("repos", [])),
         surfaces=surfaces,
         divergences=gate_divergences + _load_waivers(methodology),
+        components=_load_components(manifest),
         manifest=ManifestCut(methodology_version=str(manifest["methodology_version"]),
                              source_tag=str(manifest["source_tag"])),
         sources=_SOURCE_RECORDS,
