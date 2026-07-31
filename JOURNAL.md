@@ -19,6 +19,42 @@
 
 ---
 
+### 2026-07-31 (s) — CC (Fable 5 → Opus 5, local): [#382] CLOSED — W4 merged, closure executed, hygiene + ladder evidence landed
+
+**Did:** W4 merged (`0708590f`) — but the chained command pushed BEFORE the gate verdict was read
+(`ship-gate` prints RED while exiting 0, so `&&` could not enforce "GREEN required"); repaired in
+its own cycle `ee77c298` (doc-counts re-pin, [#458] date de-dup, [#459] filed from the
+ARCHITECTURE fold-in check — grep-verified ZERO mention of `ecosystem/schema/` + the loader/report
+pair, so the prose leg was filed rather than edited under freshness discipline). The lesson is
+recorded in LESSONS, not buried: **push is part of the act it verifies**. **[#382] CLOSED** on
+operator confirmation under ADR-70: retire-not-delete (`0acc3328` → `f7abe228`) — task file kept
+with `status: closed`, manifest node out, `--prune` untouched; detector verified clean (0 hits for
+382, 0 strong proposals). Branch hygiene: `claude/night-2026-07-31-morning-prep-yo7pgw` was fully
+merged and is **deleted on origin**; the four unmerged branches are REPORTED not touched
+(`automation/fleet-audit` 98 ahead — holds the fleet-audit dailies that never reach main by
+design; three `claude/conformance-*` — EXPLICITLY PROTECTED by `.claude/rules/git-discipline.md`).
+Night-routine census + the L0–L5 ladder evidence pack landed (`9fa4105f`).
+
+**Result:** main **`9fa4105f`**, GREEN (ship-gate 15 dispositioned, validate_backlog OK 185 rows,
+doc_claims OK 4/4), pushed 0/0. Headline finding: the `ecosystem/*/history/` dailies are
+**write-only telemetry, no consumer** — zero readers across `scripts/`/`deploy/`/`plugins/`; the
+night lane is NOT recurring as a repo-declared mechanism (no `.github/workflows`, no committed
+scheduler; the machine-local `fleet-baseline` task runs the SYSTEM python, not `uv`, and its output
+trail stops 2026-07-16). Two brief figures corrected rather than absorbed: net backlog delta is
+**+3** (4 filed, 1 closed, 181→185 incl. this pack's two), not +6; grok's "81/81 surfaces" was
+disk-refuted to 1. SHA anchors this session: `0acc3328`, `f7abe228`, `d47c94a1`, `9fa4105f`.
+
+**Changes:** `tasks/382-*.md` (terminal status) + manifest + `BACKLOG.md` · `LESSONS.md`
+(push-ordering lesson) · `docs/audits/2026-07-31-verification-382-ladder-evidence.md` (new) +
+index · `tasks/{457,458,459,460,461}-*.md` (new rows) · this JOURNAL entry.
+
+**Abandoned:** nothing.
+
+**Next:** [E9] frontier is **[#383]** wave 1, which carries the ADR-109 §4 / ADR-107 §6.2
+generalization discharge. Inheritance: [#457] (two standing test failures), [#458] + the push
+lesson, [#459] (ARCHITECTURE prose + codemap scope), [#460] (night-routine keep/aggregate/stop),
+[#461] (mechanize the six metrics), §H builder debt, intake #22 §C/§D/§F residue.
+
 ### 2026-07-31 (r) — CC (Fable 5, local): [#382] W4 boundary — terra 6/6 accepted, report semantics hardened, arc docs landed; commit-and-STOP
 
 **Did:** Closed the W4 review loop. terra returned 6 High — ALL accepted, and they were real:
