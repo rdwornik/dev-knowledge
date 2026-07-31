@@ -19,6 +19,38 @@
 
 ---
 
+### 2026-07-31 (n) — CC (Fable 5, local): [#382] W2 boundary — reviews triaged, 49/49 GREEN, §C/§H artifact landed; commit-and-STOP
+
+**Did:** Closed the W2 review loop. terra (1 Critical + 7 High) and the grok shadow
+(2C/5H/9M/5L, wall 335s, same diff) both triaged explicitly — accepted findings fixed
+RED-first (**26 review-driven tests witnessed failing before the fix**, `1b964e4e`), rejected
+ones dispositioned with reasons (per-row byte envelopes stay loader-level per D4; cross-kind
+dedup stays an ADR open point; grok's "81/81" count corrected to 1 on disk-verify). Load-
+bearing catches: grok C1/C2 (RefKind `audit` + dict-shaped Surface sparse fields — both would
+have broken W3's loader against real parity yaml), terra CRITICAL (the §7 D1/D3 root
+under-build — components/assignments/lineage/FleetModel now exist). Three frozen assertions
+amended post-freeze per terra H3/H7, recorded in the test-file docstring. The single §C/§H
+artifact landed (`docs/audits/2026-07-31-technical-382-w2-grok-shadow-ab.md`): lanes
+complementary, cost leg inconclusive (no token pricing exposed); portability of
+derivation+review lanes witnessed, builder-lane probe recorded as open §H debt (3 items).
+
+**Result:** schema tests **49/49 GREEN**, ruff clean, `audit.py health: OK`, full suite
+**2035 passed** with only the two W1-documented inherited failures (both reproduce on bare
+main; not this arc's). Tree clean, branch 4 commits + W2 docs ahead. SHA anchors this
+session: `71ba8f1a`, `2ee3376d`, `1b964e4e`.
+
+**Changes:** `ecosystem/schema/desired_state.py` (+component/lineage/FleetModel layer,
+enforcement vocab, StrictBool/StrictStr hardening, deep-frozen extras) ·
+`tests/test_desired_state_schema.py` (49 tests) · `pyproject.toml` (pydantic<3) + `uv.lock` ·
+`ecosystem/doc-counts.md` · `docs/audits/2026-07-31-codex-382-w2-schema-v1.md` +
+`2026-07-31-technical-382-w2-grok-shadow-ab.md` + index · this JOURNAL entry.
+
+**Abandoned:** nothing.
+
+**Next:** operator GO merges W2 → W3 (loader over ALL live registry sources) on a fresh
+branch cycle. Carried: the two inherited test failures need an owner ruling; §H builder-probe
+debt items live in the shadow artifact.
+
 ### 2026-07-31 (m) — CC (Fable 5, local): [#382] W2 in progress — RED witnessed, models GREEN 23/23; review lanes running
 
 **Did:** W1 acceptance act executed (ADR-109 Accepted at `b7197715`, merged `--no-ff` at
