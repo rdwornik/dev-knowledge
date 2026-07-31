@@ -19,6 +19,64 @@
 
 ---
 
+### 2026-07-31 (p) — CC (Fable 5, local): [#382] W3 boundary — terra triaged, 66/66 GREEN, live fleet loads clean; commit-and-STOP
+
+**Did:** Closed the W3 review loop. terra (1 Critical + 6 High) triaged explicitly: CRITICAL
+accepted (components now populate from the manifest declarations; assignments stay EMPTY by
+absence of declaration — recorded, not invented); H1 selectors classify fleet-ids-first with
+loud unknown-selector refusal; H2 disk-verified (live registry Path cells ARE backticked —
+the fixture under-reproduced the disk; parser strips, fixture amended); H3 was my own D2
+violation (non-hub roles synthesized 'unonboarded' assertions) — `lifecycle_from_parity_role`
+is now the one mapping; H4 partial (tier_raw keeps insertion order, documented as
+value-faithful not byte-span; D4 envelope home recorded); H5 dispositioned (effect = the
+mechanism's effect CLASS; the matched/unmatched join is W4's); H6 live read-only leg hardened
+(checked git calls + byte snapshots of all seven inputs). RED witnessed for the review batch
+(4 failed pre-fix). One process lesson: a full-suite background run raced a JOURNAL commit
+and produced a phantom GIT_DIR-test failure — clean rerun PASSES; don't run gates
+concurrently with commits in this tree.
+
+**Result:** loader 17/17 + schema 49/49 GREEN; clean full suite **2052 passed** with exactly
+the two [#457]-owned inherited failures; `audit.py health: OK`; tree clean. The live fleet
+loads end-to-end: 8-repo union, 5 resolved members, corp gate-rev-ahead DECLARED, index
+staleness surfaced, components populated. SHA anchors this session: `76713568`, `180fb9a0`,
+plus this boundary's fix/audit commits (see git log main..HEAD).
+
+**Changes:** `scripts/desired_state_loader.py` · `tests/test_desired_state_loader.py` ·
+`ecosystem/doc-counts.md` · `docs/audits/2026-07-31-codex-382-w3-loader.md` (new) +
+`docs/audits/README.md` · this JOURNAL entry.
+
+**Abandoned:** nothing.
+
+**Next:** operator GO merges W3 → W4 (pandas divergence report + arc closure docs) on the
+final cycle.
+
+### 2026-07-31 (o) — CC (Fable 5, local): W2 merged + [#457] filed + [#382] W3 in progress — loader GREEN, terra running
+
+**Did:** W2 merged on operator GO (`d163680a`, --no-ff, branch deleted; post-merge ship-gate
+GREEN, validate_backlog OK, doc_claims OK 4/4, full suite 2035 passed with only the two
+inherited failures; pushed 0/0). Inherited-failures ruling executed as its own docs mini-cycle:
+grep-first found [#430] owns the parity-VERDICT defect, so **[#457]** was filed covering only
+the unowned legs (test disposition-blindness + the routine-consumers stale pin,
+verify-before-repin), row 1151/1200, merged `356841a9`, pushed 0/0. W3 opened on a fresh
+`feat/382-desired-state-schema` cycle: **`76713568`** — 15 RED-first loader spec tests
+witnessed FAILING (C1–C8 dossier-conflict fixtures + live-repo read-only leg);
+**`180fb9a0`** — `scripts/desired_state_loader.py` lands, **15/15 GREEN including the
+live-repo leg on first contact** (the real 81-row parity yaml validates through the W2
+schema — the review-driven RefKind.audit + Join/PendingMigration fixes earned their keep);
+schema regression 49/49, ruff clean, codemap green, doc-counts 2040→2055.
+
+**Result:** wave boundary NOT yet closed — terra review of the W3 diff + the full suite are
+running; triage + boundary verification follow. SHA anchors this session: `76713568`,
+`180fb9a0`.
+
+**Changes:** `scripts/desired_state_loader.py` (new) · `tests/test_desired_state_loader.py`
+(new) · `ecosystem/doc-counts.md` · this JOURNAL entry.
+
+**Abandoned:** nothing.
+
+**Next:** terra triage → boundary gates → commit-and-STOP with clause-by-clause verification;
+operator GO merges W3 → W4 (pandas divergence report).
+
 ### 2026-07-31 (n) — CC (Fable 5, local): [#382] W2 boundary — reviews triaged, 49/49 GREEN, §C/§H artifact landed; commit-and-STOP
 
 **Did:** Closed the W2 review loop. terra (1 Critical + 7 High) and the grok shadow
