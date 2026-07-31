@@ -145,6 +145,13 @@ try:
 except ImportError:
     import gen_task_tree as _gtt
 
+# [#383] wave-1 — the docs/intake/ residue-carrier gate (ADR-109 §4's generality proof).
+# Same module-import + thin-adapter shape as the `tasks/` gate above.
+try:
+    from scripts import gen_intake_tree as _gint
+except ImportError:
+    import gen_intake_tree as _gint
+
 # #179 undeclared-edge scan (Fable consult #1 ruling #2, 2026-07-03) — ship-gate WARN leg; same
 # module-import + thin-adapter shape; tests monkeypatch `_sue.scan`.
 try:
@@ -2958,6 +2965,65 @@ def check_task_tree_coherence(repo_path: Path) -> list[Finding]:
     return _task_tree_findings(problems)
 
 
+def check_intake_tree_coherence(repo_path: Path) -> list[Finding]:
+    """[#383] wave 1 — the `docs/intake/` residue-carrier gate: ADR-109 §4's generality proof.
+
+    ADR-109 §4 (transcribing ADR-107 §6.2) withholds the fleet desired-state contract's claim
+    to GENERALITY until the engine pattern is *shown* on a second governed surface —
+    "per-item frontmattered `.md` files with byte-exact identity, a residue manifest, and a
+    green regen-and-diff round-trip — demonstrated by a committed round-trip proof, not by
+    argument". This leg is the "green regen-and-diff round-trip" half, armed so the proof is
+    a standing gate rather than a one-off run: the same "no organ = decoration" rule that
+    motivated `check_task_tree_coherence` for surface 1.
+
+    Registered in ALL_CHECKS, so it is a ship-gate leg by construction. FAIL-class.
+
+    HUB-ONLY, and the guard is the REPO IDENTITY, not the presence of `docs/intake/`
+    (verification finding, [#383] wave 1). Both corp-monorepo and ai-council DO carry a
+    `docs/intake/` while carrying no residue carrier — the carrier is hub machinery that has
+    not been distributed — so keying "adopted" off the folder would have reported a FAIL on
+    two consumer repos and manufactured a fleet gap that does not exist (the
+    enforcement-organs-are-not-homogeneous class). Off-hub is `n/a`.
+
+    On the hub BOTH artifacts are required, so a missing one is a FAIL, not `n/a` — the same
+    terra ruling the `tasks/` gate carries: a coherence gate must not be satisfiable by
+    deleting what it checks. `n/a` is reserved for the off-hub guard.
+
+    The four legs are NOT re-declared here — `gen_intake_tree.evaluate` is the single
+    definition, shared with the `--check` CLI, so the gate and the command can never disagree
+    about what coherent means. Read-only: it never regenerates anything, because a gate that
+    silently fixes what it measures cannot fail.
+    """
+    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+        return [Finding("intake_tree_coherence", "n/a",
+                        "hub-only — the docs/intake/ residue carrier is hub-owned")]
+    intake_dir = Path(repo_path) / "docs" / "intake"
+    # The coherence read is a WORKING-TREE read, so it is only trustworthy while the index
+    # agrees with the working tree for these paths (codex-review HIGH, 2026-07-31 — the
+    # `tasks/` gate carries this guard and this one did not): otherwise a staged deletion or
+    # edit under docs/intake/ can be hidden by restoring the working copy before committing,
+    # and the gate would bless a coherent working tree while the commit records an
+    # incoherent — or absent — carrier.
+    agreement, divergent = _index_worktree_divergence(Path(repo_path), "docs/intake")
+    if agreement != "ok":
+        detail = ("index and working tree disagree on " + ", ".join(divergent)
+                  if divergent else "git could not compare index and working tree")
+        return [Finding("intake_tree_coherence", "fail",
+                        (f"{detail} — the coherence read cannot be trusted; stage or "
+                         f"restore consistently, then re-run").replace("|", "/"))]
+    try:
+        verdict, reasons = _gint.evaluate(intake_dir)
+    except Exception as exc:  # noqa: BLE001 — a gate that cannot complete must not pass
+        return [Finding("intake_tree_coherence", "fail",
+                        f"intake residue-carrier check could not complete: {exc!r}"
+                        .replace("|", "/"))]
+    if verdict == _gint.OK:
+        return [Finding("intake_tree_coherence", "pass",
+                        f"intake residue carrier coherent ({reasons[0]})".replace("|", "/"))]
+    return [Finding("intake_tree_coherence", "fail",
+                    (f"{'; '.join(reasons)} — run {_gint.REMEDY}").replace("|", "/"))]
+
+
 # rule: handoff-boot-budget
 def check_boot_byte_budget(repo_path: Path) -> list[Finding]:
     """A10 item 2 / R4 ([#446]): `protocols/HANDOFF_BOOT.md` stays within its stated numeric
@@ -3033,6 +3099,7 @@ ALL_CHECKS = [
     check_routine_consumers,   # [#419]/ADR-105 activation gate; scope = marked rows only
     check_silent_rule_ratchet,   # [#436] D4 ratchet — gates GROWTH of the silent-rule pool
     check_task_tree_coherence,   # [#433] C1 — arms gen_task_tree --check as a gate
+    check_intake_tree_coherence,   # [#383] wave 1 — arms gen_intake_tree --check (ADR-109 §4)
     check_boot_byte_budget,   # [#446] A10 item 2 / R4 — the gate half of the split enforcement
 ]
 

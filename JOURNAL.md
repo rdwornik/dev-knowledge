@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-07-31 (y) — CC (Opus 5, local): [#383] wave 1 — ADR-109 §4 DISCHARGED on the docs/intake/ surface
+
+**Did:** Executed [#383] wave 1 under the operator's ex-ante frozen acceptance contract:
+discharged ADR-109 §4's generality clause by splitting a **second** governed surface with the
+same engine pattern as surface 1 (`BACKLOG.md` ↔ `tasks/`). Surface 2 is
+`docs/intake/README.md` ↔ `docs/intake/*.md` + a new `docs/intake/manifest.json` residue
+carrier. AC-1 checked first: §4 was pulled from the live ADR and diffed against its ADR-107
+§6.2 source — faithful on all four discharge legs, so no STOP was triggered.
+
+**Result:** §4 DISCHARGED. Byte-exact round-trip proven (README.md, 14,465 bytes, reassembles
+byte-for-byte) and armed as a standing ship-gate leg — `check_intake_tree_coherence`,
+`ALL_CHECKS` 35 → 36. RED witnessed before GREEN. Branch green: `health: OK` (0 FAIL, 15 WARN
+== main baseline), `validate_backlog OK`, `doc_claims` OK, both intake gates 0. Suite 2096
+passed / 3 skipped, failure set unchanged at the two standing [#457] REDs — **not** skipped,
+xfailed, or deselected (standing operator ruling; the step gate was "no NEW failures beyond
+that pair", and it caught a real regression mid-arc).
+
+**Two architect rulings shaped the build:** (1) monolith = README.md, accepted *with* the
+honest limit that the derivation ratio is INVERTED vs surface 1 — **18 item-derived lines /
+238 residue / 256 total** — recorded in both the manifest header and the §4 amendment so the
+generality claim is honest about what was shown; (2) split-only, **no flip** — [#439]'s
+source-of-truth flip was a later separate decision, so the question is FILED as **[#466]**,
+not built.
+
+**Both Codex lanes ran, and both found things:**
+- *Producer* — Codex (gpt-5.6-terra) authored the `--check` leg + audit wrapper (stdout only;
+  the global `codex/AGENTS.md` read-only rule stands). CC verification **rejected it as
+  written**: a fleet-breaking defect (the wrapper keyed "adopted" off `docs/intake/` existing,
+  which would have FAILed corp-monorepo and ai-council — both carry the folder, neither
+  carries the carrier) plus an alias collision with the existing `_git` helper. CC also
+  refactored the duplicated legs into one shared `evaluate()`.
+- *Reviewer* — the diff review returned **four HIGH** findings, each reproduced before being
+  accepted (its severity heuristic printed "High 0", which was wrong — the body had four).
+  Two were real gate holes: the gate stayed GREEN with **zero** item nodes (satisfiable by
+  deleting its own subject), and a status-only change stayed GREEN because `status` drives
+  grouping, not row text. Fixed by an item-set integrity leg + per-node projected status; that
+  fix also made TRUE a `not_captured` claim that was **false as committed**.
+
+**Changes:** `scripts/gen_intake_tree.py` (new), `scripts/gen_intake_index.py` (render_row
+extracted — one projection, shared), `scripts/audit.py` (+leg, +index/worktree guard),
+`tests/test_gen_intake_tree.py` (new, 26 cases), ADR-109 (appended §4 amendment per ADR-94 —
+body byte-unchanged), BACKLOG/[#466], `docs/audits/2026-07-31-technical-intake-split-generality-discharge.md`,
+the codex review artifact, 5 count pins, doc-code-edge exempt row, reverse-dep-oracle repins.
+
+**Abandoned:** nothing. Not done deliberately: the flip ([#466]), the `[E8]` register (§4's
+other candidate — untouched, and no claim is made about it), and one **pre-existing** defect
+observed but not repaired (`audit.py checks` crashes on cp1252 over a U+2192 glyph; reproduced
+with this arc's changes stashed — recorded in the audit artifact so it is not re-diagnosed).
+
+**Next:** operator review → merge GO. **Commit-and-STOP: not merged, not pushed** — AC-7's
+GREEN-on-main + 0/0 push is post-GO and the operator's act.
+
+**SHA anchors:** `9a75777e` (the round-trip proof the amendment cites) · `0807fbda` (§4
+DISCHARGED amendment + [#466]) · `597c81ab` (the four reviewer findings closed).
+
 ### 2026-07-31 (x) — CC (Opus 5, local): terra verdict recorded, Destination fix MERGED, bundle re-verified
 
 **Did:** Closed the review leg entry (w) left in flight, under the architect's timeout rule.

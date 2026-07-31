@@ -2146,7 +2146,7 @@ def test_import_edges_live_repo_passes_and_is_registered() -> None:
     f = aud.check_import_edges(Path(aud._REPO_ROOT))[0]
     assert f.status == "pass", f.evidence
     assert aud.check_import_edges in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 35  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31)
+    assert len(aud.ALL_CHECKS) == 36  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31)
 
 
 def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
@@ -2162,7 +2162,7 @@ def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
 
 def test_fleet_parity_registered_in_all_checks():
     assert "check_fleet_parity" in [c.__name__ for c in aud.ALL_CHECKS]
-    assert len(aud.ALL_CHECKS) == 35  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31)
+    assert len(aud.ALL_CHECKS) == 36  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31)
 
 
 def test_fleet_parity_findings_maps_blocking_verdicts():
