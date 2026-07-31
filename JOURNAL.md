@@ -19,6 +19,42 @@
 
 ---
 
+### 2026-07-31 (v) — CC (Fable 5 → Opus 5, local): 2026-08-01 bundle FINALIZED — supplement folded, paste assembled, bundle merged
+
+**Did:** FINAL ACT part 2, operator-authorized including the bundle-branch merge. **(a)** Filled
+`SUPPLEMENT.md`'s ANSWERS region with the architect-authored 7-section supplement verbatim
+(`626c51bb`); the one placeholder in §4 resolved to its else-branch — **no [#460] ruling was given
+this session**, so it records *"recommendation recorded, ruling open"* rather than inventing a
+verdict. **(b)** Assembled `PASTE_THIS.md` (`f4c3503f`). The assembler's cold→FILLED reflow fired
+across `HANDOFF_BOOT.md` / `RESIDUAL.md` / `PROBES.md`, and the post-fold sweep confirmed no
+hand-authored cold-framing prose survived it (the known reflow-covers-generator-sites-only trap):
+the two remaining "empty" hits are P8's live probe *question* and the operator boilerplate above
+the divider — neither a contradiction. Advisory `[promotion-debt]` flagged 4 ruling-bearing ANSWERS
+lines (intake #18 A8) — the register in §7 already names each home, so nothing is stranded.
+**(c)** Bundle merged to main `--no-ff` (**`ede6fc5a`**) and the branch deleted — MERGE IS ATOMIC.
+
+**Result:** probe pre-check **14/14 pass, 0 fail, 0 warn**. Budgets, both measured not asserted:
+browser role file `protocols/HANDOFF_BOOT.md` **16,842 / 18,000 B** (1,158 B headroom, 93.6% — the
+gated one: `audit.py::check_boot_byte_budget` FAILs and blocks the merge); `PASTE_THIS.md` **51,454
+/ 65,000 B** warn threshold (13,546 B headroom, 79.2% — WARN-only by design, assembly never blocks).
+Paste is clean LF, zero CR. The bundle's own session header (7,318 B) is not governed by either.
+
+**Window metric — verified open-row count, boot vs now (recorded HERE because the bundle withholds
+generation-time state by contract):** boot **177** → now **189**, **net delta +12** (17 filed:
+[#449]–[#465]; 5 closed: [#35], [#41], [#367], [#370], [#382]). Boot anchor is **`a54994a3`**, the
+merge that landed this window's incoming bundle `2026-07-31-dev-knowledge-architect-2` on main.
+Method (`grep -cE '^- \[#[0-9]+\]' BACKLOG.md`) **verified against a known-good point** before
+use: it returns 185 at `784c9562`, matching the `validate_backlog` figure entry (t) recorded there.
+The supplement's "clearly positive" is confirmed and quantified — and it is the pressure the next
+windows inherit: intake #22 §F ("backlog must shrink") enters **2026-08-26**, so a +12 window is
+the trend that has to invert, not a neutral fact.
+
+**Changes:** `docs/handoffs/2026-08-01-dev-knowledge-architect/` — `SUPPLEMENT.md` (ANSWERS filled),
+`PASTE_THIS.md` (new, assembled), `HANDOFF_BOOT.md`/`RESIDUAL.md`/`PROBES.md` (cold→FILLED reflow) ·
+this JOURNAL entry. SHA anchors: `626c51bb`, `f4c3503f`, `ede6fc5a`.
+
+---
+
 ### 2026-07-31 (u) — CC (Fable 5, local, night): NIGHT-MATERIAL RESOLVED — conformance branches merged+deleted, fleet-audit deep-reviewed, skeleton refreshed
 
 **Did:** Executed the operator's night brief (authorized in full, merges + deletions included —
