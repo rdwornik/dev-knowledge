@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-07-31 (l) — CC (Fable 5, local): [#382] W1 — ADR-109 Proposed + sol independent derivation; commit-and-STOP at the wave boundary
+
+**Did:** Opened the [E9] first build arc on `feat/382-desired-state-schema` under the
+plan-review-approved frozen contracts (amendments F1/F2). Phase A had consumed the ruled inputs
+(registry-prep dossier, ADR-107 §5/§6.2/§6.3, intake #16 §1–§3+§5, intake #22, the [#382]
+charter) and won ratification of the registry enumeration (THE FOUR + deployed-versions.yaml as
+state file) and obligation-3 discharge. W1 executed: sol (`gpt-5.6-sol` via `codex exec`)
+produced an INDEPENDENT schema-v1 derivation from the ruled inputs — CC's derivation was
+file-committed BEFORE sol's output was read (independence by ordering) — and the nine
+divergences were adjudicated explicitly in ADR-109 §7 (sol's desired/observed root split +
+lifecycle-assertion model + component layer ADOPTED with amendments; per-row envelopes REJECTED
+for per-source; sol's 16 open points each ruled or carried into the W2 spec). Fold-ins landed:
+[#344] citation gained the `ai-council` repo prefix (measured 1197/1200 — no condensing);
+intake #16's trigger fired (deferred→active, NOTE-pointer, **no CONSUMED flip per F1** — §6's
+plan spine stays live); intake #22 gained the §E→ADR-109 NOTE (stays SEED).
+
+**Result:** ADR-109 **Proposed** on branch awaiting operator GO (acceptance = status-line flip
+at merge, ADR-94). Gates at `cf45189e`: ruff clean, `audit.py health: OK`, task-tree coherent,
+intake+audits+recent-adrs indices regenerated and green through pre-commit. Full suite
+1986 passed / **2 FAILED-INHERITED** — both reproduce on bare `main` (verified by checkout):
+`test_check_fleet_parity_green_on_live_repo` (ai-council top-level `conftest.py` undeclared for
+role consumer — sibling-repo surface, WARN-level in the live gate) and
+`test_routine_consumers_live_backlog_governs_exactly_one_row` (the live check reports "2
+declared routine rows"; the test pins 1 — stale pin on main). Neither is this arc's diff;
+reported, not fixed, not dispositioned. SHA anchors this session: `15d2b569`, `1b2089a8`,
+`cf45189e`.
+
+**Changes:** `docs/decisions/ADR-109-fleet-desired-state-contract-v1.md` (new) ·
+`docs/audits/2026-07-31-technical-382-schema-derivation-sol.md` (new, immutable) ·
+`docs/decisions/README.md` + `docs/audits/README.md` + `.claude/generated/recent-adrs.md` ·
+`docs/intake/2026-07-21-func-fleet-north-star.md` + `docs/intake/2026-07-30-func-operator-decision-routing-and-standards.md` ·
+`tasks/344-*.md` + `BACKLOG.md` + `tasks/manifest.json` (regen) · this JOURNAL entry.
+
+**Abandoned:** nothing. (Deferred by design: intake #16 archive relocation — path citations in
+live rows; networkx — [#383]'s consumer.)
+
+**Next:** operator GO merges W1 + flips ADR-109 Accepted → W2 opens on a fresh branch cycle:
+RED-first tests, then `ecosystem/schema/` pydantic models (F2 authorization in the commit
+message), pydantic→dev group + uv.lock regen, terra review + grok A/B shadow on the first build
+diff (§H portability artifact; honest R7 fallback if no grok lane exists). Two inherited test
+failures need an owner ruling (not this arc): the stale routine-consumers pin and the
+ai-council conftest.py parity declaration.
+
 ### 2026-07-31 (k) — CC (Fable 5, local): post-/clear re-entry — arc verified done, gates re-run, boot-artifact hygiene
 
 **Did:** Re-entered the morning integration arc after a `/clear` wiped the prior session's report.
