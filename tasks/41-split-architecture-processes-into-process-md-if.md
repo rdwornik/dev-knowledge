@@ -1,7 +1,7 @@
 ---
 id: "[#41]"
 title: "Split ARCHITECTURE §Processes into PROCESS.md if it grows past the comfort threshold"
-status: deferred
+status: closed
 priority: P3
 size: S
 theme: "[E5] Canonical-file integrity"

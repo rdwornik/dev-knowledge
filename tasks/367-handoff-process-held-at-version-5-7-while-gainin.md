@@ -1,7 +1,7 @@
 ---
 id: "[#367]"
 title: "HANDOFF_PROCESS held at `Version: 5.7` while gaining an additive normative rule"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E8] ARC-5 execution"

@@ -1,7 +1,7 @@
 ---
 id: "[#370]"
 title: "Is the `owner=hub` / `owner=repo` ownership model two-state-complete?"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E8] ARC-5 execution"

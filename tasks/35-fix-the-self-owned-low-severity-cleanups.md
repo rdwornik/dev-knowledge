@@ -1,7 +1,7 @@
 ---
 id: "[#35]"
 title: "Fix the self-owned low-severity cleanups"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E5] Canonical-file integrity"

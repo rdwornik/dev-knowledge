@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0952868d2d1264772a398f1f9f6ea5a3cbea8c1bcbb258f36ee14769d957b9e2",
+  "generated_sha256": "bcc8f8d6323056d66308738dc4da1e988f98bf4b092e8aeac2ed5242a95ec05c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -562,10 +562,6 @@
       "prose": "So that stale ground truth stops silently misleading sessions (the repo's own VISION is \"drift detected proactively\")."
     },
     {
-      "task": 35,
-      "file": "35-fix-the-self-owned-low-severity-cleanups.md"
-    },
-    {
       "task": 71,
       "file": "71-reconcile-environment-md-s-claude-directory-tree.md"
     },
@@ -593,10 +589,6 @@
     },
     {
       "prose": "So that the cheat-sheet and architecture stay scannable as conventions accrue."
-    },
-    {
-      "task": 41,
-      "file": "41-split-architecture-processes-into-process-md-if.md"
     },
     {
       "task": 269,
@@ -1393,19 +1385,11 @@
       "file": "366-residual-completeness-scans-the-working-tree-not.md"
     },
     {
-      "task": 367,
-      "file": "367-handoff-process-held-at-version-5-7-while-gainin.md"
-    },
-    {
       "prose": ""
     },
     {
       "task": 369,
       "file": "369-wire-boundary-headers-py-check-into-pre-commit.md"
-    },
-    {
-      "task": 370,
-      "file": "370-is-the-owner-hub-owner-repo-ownership-model-two.md"
     },
     {
       "task": 371,
