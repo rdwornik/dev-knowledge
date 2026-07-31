@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-07-31 (u) — CC (Fable 5, local, night): NIGHT-MATERIAL RESOLVED — conformance branches merged+deleted, fleet-audit deep-reviewed, skeleton refreshed
+
+**Did:** Executed the operator's night brief (authorized in full, merges + deletions included —
+the brief explicitly lifts the `.claude/rules/git-discipline.md` protection on
+`claude/conformance-*` for this act). **Phase 1:** the three conformance branches merged to main
+`--no-ff` oldest-first (`bb217819` 07-29, `61757e82` 07-30, `bd08f343` 07-31 — each adds one
+immutable digest), audits index regenerated, then all three branches DELETED on origin
+(preserve-then-delete; no local copies existed). Findings absorbed, not deferred (`b2329590`):
+ARCHITECTURE Purpose line ADR-107→ADR-109 + Governing ADR-108/109 bullets (`26897400`;
+`last_reviewed` 2026-07-31 stands — narrow edit, same-day stamp), [#462] filed for the
+terminal-setup membership gap reframed as [#383] wave-1 input (per ADR-109 §2 registry.md loses
+authority — a hand-added registry row would be the wrong fix; the [#382] census could not see the
+gap because it censused registry.md itself), [#459] narrowed to organ-class prose, uv-pin HIGH
+confirmed absorbed by [#453] item (2). **Phase 2:** `automation/fleet-audit` deep review,
+READ-ONLY (98 commits / 36 digests / 185 files, 2026-06-15→07-16, orphan branch): all FAIL/WARN
+rows mechanically extracted (184), latest 14 digests read in full incl. superseded same-day git
+blobs, liveness diffed against today’s baseline dailies. Nine findings still live → absorbed
+(`13b98f22`): [#463] win-tooling onboarding debt (2 FAIL + 2 WARN unchanged since 07-11
+admission), [#464] corp-*/ai-council governance drift (five findings, 15–46 days live), [#465]
+fleet-audit writer integrity (skips emitted as `pass`, same-day overwrite silently dropped 14
+WARNs from the committed 07-13/07-16 digests, hub-detection flap, `handoff_tag_canonicity`
+self-disabled). [#460] rewritten from keep/aggregate/stop question to a RECORDED RECOMMENDATION
+(stop the already-dead branch lane — last commit 07-16; keep the SessionStart digest; add a
+persistence-triage consumer per ADR-105); decision stays the operator’s. Branch untouched —
+report-only per brief. **Phase 3:** `docs/2026-08-01-handoff-skeleton` rebased onto the new main
+(clean), RESIDUAL §2/§4 + HANDOFF_BOOT purpose/scope/mode-basis refreshed to the post-resolution
+state (`4580d3d9`, on the branch); SUPPLEMENT/ANSWERS untouched — still EMPTY, NOT finalized.
+
+**Result:** main GREEN and pushed 0/0 (verdict + SHA in the final report); branch listing now
+`main` + `automation/fleet-audit` + `docs/2026-08-01-handoff-skeleton` — the three
+`claude/conformance-*` branches are gone with their digests preserved on main. Fleet-audit
+verdict in plain words: the lane detects real defects and their value died twice — unread on the
+branch AND un-triaged in the daily digest; its durable-record leg silently stopped 15 days ago.
+SHA anchors this session: `bb217819`, `61757e82`, `bd08f343`, `b2329590`, `13b98f22`.
+
+**Changes:** `docs/audits/{2026-07-29,2026-07-30,2026-07-31}-conformance-nightly-digest.md` (new,
+via merges) + index · `ARCHITECTURE.md` (ADR-currency) · `tasks/{462,463,464,465}-*.md` (new) +
+`tasks/{459,460}-*.md` (narrow/rewrite) + manifest + `BACKLOG.md` · handoff skeleton bundle
+(branch) · this JOURNAL entry.
+
+---
+
 ### 2026-07-31 (s) — CC (Fable 5 → Opus 5, local): [#382] CLOSED — W4 merged, closure executed, hygiene + ladder evidence landed
 
 **Did:** W4 merged (`0708590f`) — but the chained command pushed BEFORE the gate verdict was read
