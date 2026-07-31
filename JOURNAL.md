@@ -19,6 +19,31 @@
 
 ---
 
+### 2026-07-31 (m) — CC (Fable 5, local): [#382] W2 in progress — RED witnessed, models GREEN 23/23; review lanes running
+
+**Did:** W1 acceptance act executed (ADR-109 Accepted at `b7197715`, merged `--no-ff` at
+`7ef40567`, branch deleted, post-merge gates GREEN on main, pushed 0/0). W2 opened on a fresh
+`feat/382-desired-state-schema` cycle: **`71ba8f1a`** — RED-first spec (23 tests witnessed
+FAILING: ModuleNotFoundError, no model code existed; pydantic>=2 into the dev group + uv.lock
+regen same commit, doc-counts 1991→2014); **`2ee3376d`** — `ecosystem/schema/` v1 models (F2
+authorization in the commit message), GREEN **23/23** with the tests byte-unchanged from the
+RED run; ruff clean; hermetization gate passed the new dir. One build defect en route: a
+`date` field shadowed `datetime.date` under deferred annotations — fixed by module-qualified
+annotations before commit.
+
+**Result:** wave boundary NOT yet closed — terra review (codex-review), grok A/B shadow of the
+same diff, and the full suite are running; findings triage + the §C/§H shadow artifact +
+clause-by-clause verification follow. SHA anchors this session: `71ba8f1a`, `2ee3376d`.
+
+**Changes:** `ecosystem/schema/{__init__,desired_state}.py` (new) ·
+`tests/test_desired_state_schema.py` (new) · `pyproject.toml` + `uv.lock` ·
+`ecosystem/doc-counts.md` · this JOURNAL entry.
+
+**Abandoned:** nothing.
+
+**Next:** triage terra findings; land the grok §C/§H artifact; full-suite verdict;
+commit-and-STOP with the frozen-contract verification.
+
 ### 2026-07-31 (l) — CC (Fable 5, local): [#382] W1 — ADR-109 Proposed + sol independent derivation; commit-and-STOP at the wave boundary
 
 **Did:** Opened the [E9] first build arc on `feat/382-desired-state-schema` under the
