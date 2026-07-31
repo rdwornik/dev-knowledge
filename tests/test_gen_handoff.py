@@ -558,3 +558,68 @@ def test_allow_suffix_picks_the_next_free_sibling(tmp_path):
     # neither collider was touched
     assert (root / slug / "RESIDUAL.md").read_text(encoding="utf-8") == f"committed {slug}\n"
     assert (root / f"{slug}-2" / "RESIDUAL.md").read_text(encoding="utf-8") == f"committed {slug}-2\n"
+
+
+# --- Destination.branch is the BOOT DESTINATION, never the generation branch ------
+# Field defect witnessed 2026-07-31: the 2026-08-01 bundle shipped
+# `Destination · branch docs/2026-08-01-handoff-skeleton` — its own GENERATION branch, which
+# MERGE IS ATOMIC then deleted at finalize, so P3 compared live `main` against a branch that no
+# longer existed and blocked onboarding on a bundle that was otherwise clean. HANDOFF_PROCESS
+# §13(c″) (v6.0.1) defines the field as the BOOT DESTINATION — "where the seat lands when it
+# boots, not where its work is eventually committed" — and makes `main` legal for a primary-tree
+# seat. Root cause is the LESSONS 2026-07-31 shape: ONE token ({{BRANCH}}) answering TWO different
+# questions — "which branch was I generated on?" (Generated-at: correct) and "where does the seat
+# boot?" (Destination: wrong). Both halves are pinned below so a future merge back to one token
+# fails loudly.
+
+def _destination_branch(boot_text: str) -> str:
+    """The Destination row's branch field — P3's second operand."""
+    row = next((ln for ln in boot_text.splitlines() if ln.startswith("| **Destination**")), "")
+    assert row, "boot header carries no Destination row"
+    m = re.search(r"branch `([^`]+)`", row)
+    assert m, f"Destination row carries no branch field: {row[:160]}"
+    return m.group(1)
+
+
+def test_destination_branch_is_the_boot_destination_not_the_generation_branch(tmp_path):
+    """A bundle generated ON a feature branch must still send the seat to its BOOT DESTINATION.
+
+    Reproduces the field defect directly: generate while checked out on a `docs/…` lane branch —
+    the branch a finalize merge deletes — and assert the Destination row does NOT name it.
+    """
+    repo = _stub_repo(tmp_path)
+    _git_init_commit(repo)
+    gen_branch = "docs/2026-08-01-handoff-skeleton"      # dies at finalize (MERGE IS ATOMIC)
+    subprocess.run(["git", "checkout", "-q", "-b", gen_branch],
+                   cwd=repo, check=True, capture_output=True)
+
+    res = gh.generate(repo, mode="architect", slug="0000-00-00-dest", repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    boot = (res.bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+
+    dest = _destination_branch(boot)
+    assert dest != gen_branch, (
+        "Destination.branch names the GENERATION branch — the branch finalize deletes; "
+        "P3 then compares live `main` against a dead ref and blocks a clean bundle")
+    assert dest == "main", f"primary-tree seat must boot on `main` (§13(c″)); got `{dest}`"
+
+
+def test_generated_at_line_still_names_the_generation_branch(tmp_path):
+    """The OTHER question keeps its own answer: the `Generated at` pointer is explicitly the
+    branch that was checked out at cut time, and must NOT be collapsed into the boot destination.
+    """
+    repo = _stub_repo(tmp_path)
+    _git_init_commit(repo)
+    gen_branch = "docs/2026-08-01-handoff-skeleton"
+    subprocess.run(["git", "checkout", "-q", "-b", gen_branch],
+                   cwd=repo, check=True, capture_output=True)
+
+    res = gh.generate(repo, mode="architect", slug="0000-00-00-genat", repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    boot = (res.bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+
+    genat = next((ln for ln in boot.splitlines() if ln.startswith("| **Generated at**")), "")
+    assert genat, "boot header lost its `Generated at` row"
+    assert gen_branch in genat, (
+        "`Generated at` no longer names the generation branch — the two questions were "
+        "collapsed onto the boot destination instead of separated")

@@ -46,6 +46,17 @@ _TMPL_DIR = _REPO_ROOT / "templates" / "handoff" / "v5"
 _TMPL_DIR_EPIC = _REPO_ROOT / "templates" / "handoff" / "epic"
 _TMPL_DIR_FUNCTIONAL = _REPO_ROOT / "templates" / "handoff" / "functional"
 
+# HANDOFF_PROCESS §13(c″) (v6.0.1): the `Destination` row's branch field is the BOOT DESTINATION —
+# where the seat LANDS when it boots, not where its work is eventually committed — and `main` is
+# legal for a primary-tree seat, which boots there and branches per act thereafter.
+#
+# Deliberately NOT `state.branch`. That is a different question ("which branch was this cut on?"),
+# answered by the `Generated at` row, and answering both from one token shipped the 2026-08-01
+# bundle a Destination naming its own `docs/…` generation branch — which MERGE IS ATOMIC deleted at
+# finalize, leaving P3 to compare live `main` against a dead ref and block an otherwise-clean
+# bundle. Epic lanes declare their destination in `EPIC_BOOT` (§14a, separate template).
+_PRIMARY_TREE_BOOT_DESTINATION = "main"
+
 # Per-mode framing that is structural (never an answer value).
 _MODE = {
     "architect": {
@@ -446,13 +457,18 @@ def _splice_fill_regions(rendered: str, existing: str | None) -> str:
 def _tokens(mode: str, slug: str, repo: str, date: str, state: _State, filled: bool) -> dict[str, str]:
     """The structural / framing substitutions. NO probe-answer value appears here — only the
     session identity, the mode framing, the sanctioned {{BRANCH}} pointer, and the fill-state
-    framing. (Verified by the recurring dogfood: no rendered row carries an answer-hint.)"""
+    framing. (Verified by the recurring dogfood: no rendered row carries an answer-hint.)
+
+    {{BRANCH}} and {{BOOT_DESTINATION}} answer DIFFERENT questions and must stay separate tokens:
+    the first is "which branch was this cut on?" (the `Generated at` pointer / PROBES branch note),
+    the second is "where does the seat land at boot?" (the `Destination` row, P3's operand)."""
     return {
         "MODE": mode,
         "SLUG": slug,
         "REPO": repo,
         "DATE": date,
         "BRANCH": state.branch,
+        "BOOT_DESTINATION": _PRIMARY_TREE_BOOT_DESTINATION,
         "MODE_SCOPE": _MODE[mode]["scope"],
         "MODE_POSTURE": _MODE[mode]["posture"],
         "SUPPLEMENT_BANNER": _framing("SUPPLEMENT_BANNER", filled),
