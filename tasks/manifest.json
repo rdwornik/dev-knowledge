@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "6e094820e439549c9125268afba8cdb7973a2aac1e8b76d26f3f771faf12764c",
+  "generated_sha256": "3f6bbb0014e75697c5fc281831622680dea4af56509c51c21b396b5e8d054136",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1474,6 +1474,10 @@
     {
       "task": 382,
       "file": "382-desired-state-data-model-intake-adr.md"
+    },
+    {
+      "task": 459,
+      "file": "459-architecture-prose-desired-state-organs.md"
     },
     {
       "prose": ""
