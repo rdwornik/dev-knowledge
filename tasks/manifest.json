@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0952868d2d1264772a398f1f9f6ea5a3cbea8c1bcbb258f36ee14769d957b9e2",
+  "generated_sha256": "390a775909418d1b93ec9709e09bdc351f897823839503724e56533c0ecc1203",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -284,6 +284,10 @@
       "file": "408-auto-coupled-doc-updates-closing-a-backlog-item.md"
     },
     {
+      "task": 455,
+      "file": "455-registry-md-derived-field-drift-checker.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -348,6 +352,10 @@
     {
       "task": 442,
       "file": "442-plugin-command-cache-staleness-cached-command-te.md"
+    },
+    {
+      "task": 454,
+      "file": "454-closure-ids-negation-defect-negated-mention-reads.md"
     },
     {
       "prose": ""
@@ -525,6 +533,10 @@
       "file": "450-per-section-intake-ratification.md"
     },
     {
+      "task": 456,
+      "file": "456-ruling-blocked-cohort-sweep-adr-108-re-route.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -562,10 +574,6 @@
       "prose": "So that stale ground truth stops silently misleading sessions (the repo's own VISION is \"drift detected proactively\")."
     },
     {
-      "task": 35,
-      "file": "35-fix-the-self-owned-low-severity-cleanups.md"
-    },
-    {
       "task": 71,
       "file": "71-reconcile-environment-md-s-claude-directory-tree.md"
     },
@@ -593,10 +601,6 @@
     },
     {
       "prose": "So that the cheat-sheet and architecture stay scannable as conventions accrue."
-    },
-    {
-      "task": 41,
-      "file": "41-split-architecture-processes-into-process-md-if.md"
     },
     {
       "task": 269,
@@ -863,6 +867,10 @@
     {
       "task": 432,
       "file": "432-adopt-uv-as-the-environment-dependency-toolchain.md"
+    },
+    {
+      "task": 453,
+      "file": "453-cloud-night-run-runbook-container-gaps.md"
     },
     {
       "prose": ""
@@ -1393,19 +1401,11 @@
       "file": "366-residual-completeness-scans-the-working-tree-not.md"
     },
     {
-      "task": 367,
-      "file": "367-handoff-process-held-at-version-5-7-while-gainin.md"
-    },
-    {
       "prose": ""
     },
     {
       "task": 369,
       "file": "369-wire-boundary-headers-py-check-into-pre-commit.md"
-    },
-    {
-      "task": 370,
-      "file": "370-is-the-owner-hub-owner-repo-ownership-model-two.md"
     },
     {
       "task": 371,
