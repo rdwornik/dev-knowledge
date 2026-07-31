@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "4e3e9471e5c3a49bf444f077ff8a3e4396ca4b392d20f1c0bfb996b387b5b7ad",
+  "generated_sha256": "6e094820e439549c9125268afba8cdb7973a2aac1e8b76d26f3f771faf12764c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -495,6 +495,10 @@
     {
       "task": 438,
       "file": "438-codify-gate-class-posture-terra-design-review-be.md"
+    },
+    {
+      "task": 458,
+      "file": "458-playbook-note-gates-never-race-commits.md"
     },
     {
       "task": 441,
