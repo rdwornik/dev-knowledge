@@ -104,6 +104,16 @@ def _group(rows: list[tuple[str, str, str, str]]) -> dict[str, list[tuple[str, s
     return groups
 
 
+def render_row(intake_id: str, filename: str, title: str) -> str:
+    """ONE rendered index row. Single definition of the row format, shared with
+    gen_intake_tree.py's per-item nodes ([#383] wave 1) so the projection cannot drift
+    into two copies. A blank/missing intake-id is a schema break -> flag it LOUDLY; never
+    render a date fragment as a pseudo-id (which would read as `[2026]`, codex-review
+    2026-07-11)."""
+    label = f"#{intake_id}" if intake_id else "MISSING-ID"
+    return f"- [{label}]({filename}) — {title}"
+
+
 def render_contents(intake_dir: Path | None = None) -> str:
     """The marker-block BODY (between START/END markers), ending with a newline."""
     rows = collect_intakes(intake_dir)
@@ -115,10 +125,7 @@ def render_contents(intake_dir: Path | None = None) -> str:
             continue
         out += ["", f"### {status} ({len(g)})", ""]
         for _status, intake_id, filename, title in g:
-            # A blank/missing intake-id is a schema break -> flag it LOUDLY; never render a
-            # date fragment as a pseudo-id (which would read as `[2026]`, codex-review 2026-07-11).
-            label = f"#{intake_id}" if intake_id else "MISSING-ID"
-            out.append(f"- [{label}]({filename}) — {title}")
+            out.append(render_row(intake_id, filename, title))
     return "\n".join(out) + "\n"
 
 
