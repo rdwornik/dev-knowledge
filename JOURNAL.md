@@ -19,6 +19,75 @@
 
 ---
 
+### 2026-07-31 (j) — CC (Opus 5, local): morning integration arc — night-batch merge + architect-ratified grooming
+
+**Did:** Executed the architect's ratified review rulings (recorded 2026-07-31, ADR-108 §A
+technical lane) across three stages, operator-gated at each merge. **Stage 0** settled a contested
+claim empirically in a throwaway clone before any merge. **Stage 1a** merged the cloud night branch
+`claude/night-2026-07-31-morning-prep-yo7pgw` @ `39a697a9` into main `--no-ff` (`6b618d91`, operator
+GO #1). **Stage 1b** built this branch `docs/2026-07-31-grooming-and-reconciliation` in five logical
+commits: `a42e5fcc` (four grooming closes), `c5353d03` (row amendments), `30a63cda` (registry fix),
+`584ab835` ([#453]-[#456] filed), `d16f7120` (boot-hook dailies). No self-merge; GO #2 pending.
+
+**Result:** **Stage 0 refuted my own prior claim, on record.** I had reported that the night
+branch's `git_backlog_drift` WARN on [#367] would persist onto main after merge. It does not.
+`validate_git_backlog.py:98` scans `--first-parent`, so a `--no-ff` merge parks the dossier prose on
+the second parent, off the scanned spine: post-merge in the clone, `validate_git_backlog` read OK
+and no `git_backlog_drift` finding appeared, while [#367] was still present in BACKLOG — the
+"present" half held and the "closed" half went invisible. The Act-2 dossier-commit-prose-drops-out
+precedent was correct. Confirmed on the real merge: main is **ship-gate GREEN** at `6b618d91`.
+Separately, **none of the three WARNs the cloud run reported reproduce locally** — all three were
+sibling-less-container artifacts; the clone reproduced the `deployed_methodology_version` one purely
+by being named `stage0`, which is `repo_path.name` keying, not a main-state fact.
+
+**Four closes ratified** ([#35] [#41] [#367] [#370]), retire-not-delete per ADR-65/107 — task files
+kept as id records with terminal `status: closed`, manifest nodes dropped, BACKLOG regenerated.
+[#367] was closed on the dossier §1 supersession evidence and **explicitly not on the closure
+organ's proposal**, which reached the same id through the negation defect. **Three rows re-routed**
+to the architect lane per ADR-108 §A ([#406] [#407] [#414]); **two premises corrected** ([#433]
+K1–K5 staleness, verified independently against ADR-107:93-108 and the 2026-07-27 spike artifact;
+[#361] understatement — four of four classes ungated, the guard armed over a path deleted by
+`b4435fad`). **Registry G5 fixed** — `registry.md:25` ai-council v1.2.0 → v1.3.1 per registry.md's
+own derivation rule, with the sanctioned corp-monorepo pair deliberately untouched. **Four rows
+filed** [#453]-[#456]; 177 → 181 tasks.
+
+**One briefed item was NOT executed, on evidence.** Item 2c would have struck the [#303] and [#344]
+intake citations as phantoms. **The premise is refuted:** both files exist, in exactly the sibling
+repo each row names. `docs/intake/2026-07-10-runbook-gap-notes.md` is present in **corp-monorepo**
+(`c3d6d69`, `8f7ab02`) and carries the very §G10 heading [#303] cites;
+`docs/intake/2026-07-17-hub-feedback-session-close-gate.md` is present in **ai-council** (`9833f5c`,
+`160a960`), titled to match [#344]'s ask and dated 2026-07-17. The grooming dossier §3(a) searched
+hub history only, and my own earlier verification pass repeated that hub-only scope rather than
+catching it — a cross-repo citation cannot be refuted by a single-repo `git log --all`. Striking
+them would have deleted correct provenance and replaced it with a false statement, so both rows
+are untouched pending a re-ruling.
+
+**Three row-level deviations, all forced by the doc_rot thresholds the brief told me to respect**
+(`>1200` chars gross; OR `>=3` dates AND `>700` chars). [#406] took a shortened ADR-108 annotation
+(the briefed form landed it at exactly 1200 — passing, but zero headroom). [#407] carries 2 dates
+already, so its annotation omits the date. [#414] had 4 chars of headroom and took the
+operator→architect swap alone, with no annotation of any length able to fit; its provenance lives
+in `c5353d03` and here. Also flagged and deliberately NOT edited: [#407]'s prose still reads "the
+stance is an operator ruling, not a CC pick", which now contradicts its own re-routed Done-when —
+that sentence is substance, so it is the architect's call.
+
+**Gate verdicts, branch `docs/2026-07-31-grooming-and-reconciliation` @ `d16f7120`:** see the Stage
+1b report; every gate run without `--no-verify`, sibling repos present.
+
+**Changes:** `BACKLOG.md` + `tasks/` (4 closed, 5 amended, 4 filed, manifest re-pinned) ·
+`ecosystem/registry.md` · `ecosystem/*/history/2026-07-31.md` +3 · this JOURNAL entry.
+
+**Abandoned:** briefed item 2c ([#303]/[#344] citation strike) — not abandoned for difficulty but
+refused on evidence; the rows are correct as they stand.
+
+**Next:** operator GO #2 merges this branch. Then Stage 2 (read-only G5 verification pulls) and a
+re-ruling on 2c. Open for the architect: [#407]'s contradicting prose sentence; whether [#370]'s
+explicitly non-blocking follow-up needs a follow-on row; and whether main should carry fleet-health
+dailies at all — main's stop at 2026-06-14 (72 files) while the live 149-file stream sits on
+`automation/fleet-audit`, so `d16f7120` resumes a dormant practice rather than extending a series.
+
+---
+
 ### 2026-07-31 (i) — CC (Opus 5, cloud/unattended): night batch — five morning-prep input dossiers
 
 **Did:** Read-heavy overnight prep run on `claude/night-2026-07-31-morning-prep-yo7pgw`, five
