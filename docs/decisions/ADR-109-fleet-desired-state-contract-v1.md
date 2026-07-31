@@ -283,3 +283,57 @@ declarations and will feel sparse until carriers/manifest rows grow.
 **Cost of being wrong.** v1 writes no fleet state and creates no new persisted registry —
 being wrong costs a model revision, not a migration rollback. The schema is versioned
 (`schema_version: "1.0.0"`) precisely so v2 is a declared change, not a drift.
+
+## Amendment — 2026-07-31 (§4 DISCHARGED: the second-surface round-trip proof landed)
+
+> **In-file amendment marker (CLAUDE.md §5 item 3 / ADR-94).** The decision body above is
+> preserved **verbatim** — nothing in it is edited, including §4's generality-pending prose.
+> This section records that §4's obligation has been **met**, and by what. It changes **no
+> decision**: every ruling above stands. Landed by **[#383] wave 1** on 2026-07-31, under the
+> ex-ante frozen acceptance contract the operator authored for this wave.
+
+### What executed
+
+The second governed surface is **`docs/intake/`**, split by the same engine pattern as
+surface 1 (`BACKLOG.md` ↔ `tasks/`), at **`9a75777e`** — the committed round-trip proof §4
+requires "not by argument". Each of §4's four discharge legs, against that commit:
+
+- **Per-item frontmattered `.md` files** — `docs/intake/*.md` (18 docs), already frontmattered
+  with the `status:` enum. Untouched by the split: no file moved, no `status:` flipped, no
+  CONSUMED marker altered.
+- **Byte-exact identity** — `docs/intake/README.md` (14,465 bytes) reassembles **byte-for-byte**
+  from the residue carrier plus the on-disk intake files. Asserted at parse time (the line
+  model refuses to return a model that does not rebuild its own input) and re-verified by
+  `--roundtrip` / `--check`.
+- **A residue manifest** — `docs/intake/manifest.json`, in the §3 finding-6 shape (ordering +
+  non-member residue + hash + direction), carrying an explicit `not_captured` enumeration:
+  intake-document bodies, and the frontmatter keys present but not projected into the monolith.
+- **A green regen-and-diff round-trip** — `scripts/gen_intake_tree.py --check`, armed as
+  `audit.py::check_intake_tree_coherence` in `ALL_CHECKS` (35 → 36) so it is a standing
+  ship-gate leg rather than a one-off run. **RED was witnessed before GREEN**: a residue
+  perturbation fired all three drift legs and pinpointed the edited line; a removed carrier
+  returned exit 2; regeneration returned exit 0.
+
+### The honest limit this discharge is stated with
+
+**The derivation ratio is INVERTED relative to surface 1.** On `BACKLOG.md` the item lines
+were the majority and residue the minority; here **18** of README.md's **256** lines are
+item-derived and **238** are residue. §4's bar is a byte-exact round-trip plus a residue
+manifest — **not a derivation ratio** — so the clause is discharged; but the proof exercises
+less of the item corpus than surface 1's did, and the operator ruling that accepted this
+surface required the asymmetry be recorded rather than glossed. It is recorded here and in
+the manifest's own `honest_limit` header, so no later session inherits an over-read of what
+"general" was shown to mean.
+
+Two further limits, named not claimed away: the split projects only `intake-id`, `status`, and
+the `# ` title, so intake **bodies** are outside the round-trip (enumerated in `not_captured`,
+deliberately not hashed — that would couple the carrier to every body edit and RED the gate on
+unrelated work); and the direction is **split-only, not flipped** — README.md remains the
+hand-authored source of truth. Surface 1's flip ([#439]) was a later, separate decision, and
+§4 does not require one. A flip candidate for this surface is filed rather than built.
+
+### What this unblocks, and what it does not
+
+§4's obligation is **DISCHARGED**, so ADR-107 §6.2's generalization clause — the precondition
+on **[#382]** declaring the fleet contract *general* — is met. It does **not** close [#383]
+(wave execution continues), and it makes no claim about surfaces beyond the two now shown.
