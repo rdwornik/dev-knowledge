@@ -19,6 +19,33 @@
 
 ---
 
+### 2026-07-31 (q) — CC (Fable 5, local): W3 merged + [#382] W4 in progress — report GREEN, live fleet renders; terra running
+
+**Did:** W3 merged on operator GO (`ee176854`, gates GREEN, pushed 0/0). W4 final cycle:
+**`8ed32d0d`** — 11 RED-first report spec tests witnessed FAILING; **`7f5e8cec`** —
+`scripts/desired_state_report.py` lands, **11/11 GREEN incl. live leg** (the ruff pre-commit
+gate caught one unused import — fixed, recommitted). Live fleet renders: **174 conform ·
+3 diverge · 14 declared · 219 n/a** — the 3 diverges are the real previously-invisible gaps
+(ai-council 1.3.1-vs-target = G11; corp-ops/corp-sca ruled-full-nothing-deployed = C3);
+corp's sanctioned gap renders DECLARED. **`d62acf3d`** — [#458] filed (gates-never-race-
+commits PLAYBOOK candidate; grep-verified uncovered; PLAYBOOK edit deferred per freshness
+discipline). **`517fc524`** — arc educate report (one so-what per wave + §C/§H verdicts).
+terra's first W4 run correctly REFUSED over the untracked #458 file — committed, rerunning.
+
+**Result:** boundary NOT yet closed — terra W4 review running; triage + clean full suite +
+clause-by-clause verification follow. SHA anchors this session: `8ed32d0d`, `7f5e8cec`,
+`d62acf3d`, `517fc524`.
+
+**Changes:** `scripts/desired_state_report.py` + `tests/test_desired_state_report.py` (new) ·
+`tasks/458-*.md` + `BACKLOG.md` + manifest (regen) ·
+`docs/audits/2026-07-31-technical-382-arc-educate.md` (new) + audits README ·
+`ecosystem/doc-counts.md` · this JOURNAL entry.
+
+**Abandoned:** nothing.
+
+**Next:** terra triage → clean suite → commit-and-STOP; operator FINAL GO → merge W4 →
+managed closure of [#382] per ADR-70.
+
 ### 2026-07-31 (p) — CC (Fable 5, local): [#382] W3 boundary — terra triaged, 66/66 GREEN, live fleet loads clean; commit-and-STOP
 
 **Did:** Closed the W3 review loop. terra (1 Critical + 6 High) triaged explicitly: CRITICAL
