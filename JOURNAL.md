@@ -19,6 +19,37 @@
 
 ---
 
+### 2026-07-31 (p) — CC (Fable 5, local): [#382] W3 boundary — terra triaged, 66/66 GREEN, live fleet loads clean; commit-and-STOP
+
+**Did:** Closed the W3 review loop. terra (1 Critical + 6 High) triaged explicitly: CRITICAL
+accepted (components now populate from the manifest declarations; assignments stay EMPTY by
+absence of declaration — recorded, not invented); H1 selectors classify fleet-ids-first with
+loud unknown-selector refusal; H2 disk-verified (live registry Path cells ARE backticked —
+the fixture under-reproduced the disk; parser strips, fixture amended); H3 was my own D2
+violation (non-hub roles synthesized 'unonboarded' assertions) — `lifecycle_from_parity_role`
+is now the one mapping; H4 partial (tier_raw keeps insertion order, documented as
+value-faithful not byte-span; D4 envelope home recorded); H5 dispositioned (effect = the
+mechanism's effect CLASS; the matched/unmatched join is W4's); H6 live read-only leg hardened
+(checked git calls + byte snapshots of all seven inputs). RED witnessed for the review batch
+(4 failed pre-fix). One process lesson: a full-suite background run raced a JOURNAL commit
+and produced a phantom GIT_DIR-test failure — clean rerun PASSES; don't run gates
+concurrently with commits in this tree.
+
+**Result:** loader 17/17 + schema 49/49 GREEN; clean full suite **2052 passed** with exactly
+the two [#457]-owned inherited failures; `audit.py health: OK`; tree clean. The live fleet
+loads end-to-end: 8-repo union, 5 resolved members, corp gate-rev-ahead DECLARED, index
+staleness surfaced, components populated. SHA anchors this session: `76713568`, `180fb9a0`,
+plus this boundary's fix/audit commits (see git log main..HEAD).
+
+**Changes:** `scripts/desired_state_loader.py` · `tests/test_desired_state_loader.py` ·
+`ecosystem/doc-counts.md` · `docs/audits/2026-07-31-codex-382-w3-loader.md` (new) +
+`docs/audits/README.md` · this JOURNAL entry.
+
+**Abandoned:** nothing.
+
+**Next:** operator GO merges W3 → W4 (pandas divergence report + arc closure docs) on the
+final cycle.
+
 ### 2026-07-31 (o) — CC (Fable 5, local): W2 merged + [#457] filed + [#382] W3 in progress — loader GREEN, terra running
 
 **Did:** W2 merged on operator GO (`d163680a`, --no-ff, branch deleted; post-merge ship-gate
