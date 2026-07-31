@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "3c1e6feebbf5084517d77eb66675cc841c152cfb6b6d24160b144451261108ca",
+  "generated_sha256": "390a775909418d1b93ec9709e09bdc351f897823839503724e56533c0ecc1203",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -284,6 +284,10 @@
       "file": "408-auto-coupled-doc-updates-closing-a-backlog-item.md"
     },
     {
+      "task": 455,
+      "file": "455-registry-md-derived-field-drift-checker.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -348,6 +352,10 @@
     {
       "task": 442,
       "file": "442-plugin-command-cache-staleness-cached-command-te.md"
+    },
+    {
+      "task": 454,
+      "file": "454-closure-ids-negation-defect-negated-mention-reads.md"
     },
     {
       "prose": ""
@@ -523,6 +531,10 @@
     {
       "task": 450,
       "file": "450-per-section-intake-ratification.md"
+    },
+    {
+      "task": 456,
+      "file": "456-ruling-blocked-cohort-sweep-adr-108-re-route.md"
     },
     {
       "prose": ""
@@ -855,6 +867,10 @@
     {
       "task": 432,
       "file": "432-adopt-uv-as-the-environment-dependency-toolchain.md"
+    },
+    {
+      "task": 453,
+      "file": "453-cloud-night-run-runbook-container-gaps.md"
     },
     {
       "prose": ""
