@@ -1,6 +1,6 @@
 # ADR-109: Fleet desired-state contract v1 — schema, registry dissolution, and the §E functional requirement
 
-**Status:** Proposed (→ Accepted by operator GO at the W1 merge; status-line-only edit per ADR-94)
+**Status:** Accepted (ratified 2026-07-31 — accepted by operator GO, architect session; ADR-94 status-line-only edit)
 **Date:** 2026-07-31
 **Decision tier:** Architecture (Path A — authored by CC under the [#382] execution brief; plan
 ratified at the 2026-07-31 architect checkpoint with amendments F1/F2; **ratification is a

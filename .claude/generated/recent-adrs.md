@@ -10,4 +10,4 @@
 - ADR-106 (Accepted, 2026-07-27): Environment isolation via uv — pinned toolchain, locked gate environment, per-repo gated rollout
 - ADR-107 (Accepted, 2026-07-27): BACKLOG restructure — build-thin engine, fleet-owned schema, viewer as a replaceable part (slot declared empty)
 - ADR-108 (Accepted, 2026-07-31): Decision-routing doctrine + standing engineering standards (ratifies intake #22 §A + §B)
-- ADR-109 (Proposed, 2026-07-31): Fleet desired-state contract v1 — schema, registry dissolution, and the §E functional requirement
+- ADR-109 (Accepted, 2026-07-31): Fleet desired-state contract v1 — schema, registry dissolution, and the §E functional requirement
