@@ -67,7 +67,7 @@ be unonboarded. Read a count off the surface that defines it; do not restate one
 consulted as context by
 Claude Code, Codex, Cursor, and other agents. **Nothing here executes orchestration**
 — everything is read, consulted, or passively validated. The six chapters below are
-the system as built and ratified through ADR-107.
+the system as built and ratified through ADR-109.
 
 ---
 
@@ -823,6 +823,8 @@ live in the ADRs; git history retains; the ADR-77 guard stays armed, Ch2).
 - **ADR-105** — routine consumer declaration: a six-field row shape, **gated at ACTIVATION not at filing**. A declared routine must name a `consumer` and a `consumption_path` (the `routine_consumers` organ row, Ch2). Answers [#419] (*we run routines whose output nobody consumes*), which stays OPEN; the live-routine retrofit is [#426] — Accepted 2026-07-26.
 - **ADR-106** — environment isolation via `uv`: pinned toolchain (`required-version == 0.11.19`, a uv upgrade is its own gated change), committed `uv.lock` + `.python-version`, and every gate invoked through `uv run --locked` so the gate environment is *declared* rather than per-machine folklore. Closes two defect classes — environment/test isolation and gate reproducibility. Fleet rollout is **gated per repo**, never a bulk sweep; the hub went first ([#432]). The ADR-101 amendment 2026-07-27 sanctions `uv.lock`/`.python-version` in the top-level set (Ch5) — Accepted 2026-07-27.
 - **ADR-107** — BACKLOG restructure: **build-thin engine, fleet-owned schema, viewer slot declared EMPTY**. Rules the architecture only — it authorizes no execution, and gates the source-of-truth flip on **two** preconditions (the ADR Accepted **and** the `tasks/` coherence gate armed). Both held on 2026-07-28, so **strangler step 3 executed under its own contract as [#439]**: `tasks/` became the source of truth and `BACKLOG.md` became generated (Ch5 source zone). Amends ADR-65 narrowly — a retired task keeps a minimal allocation record so its id is never re-issued (**retire, never delete**). **Step 4 (prose relocation + the genre-lifecycle leg) stays explicitly DEFERRED**, and the viewer slot stays parked empty behind four re-entry criteria; [#433] does **not** close on this ADR (§6.2's generalization obligation is undischarged) — Accepted (ratified) 2026-07-28.
+- **ADR-108** — decision-routing doctrine + standing engineering standards (ratifies intake #22 §A + §B by **promotion**, the intake doc stays SEED): the operator rules FUNCTIONAL questions only; the architect rules TECHNICAL questions in its own lane (decide → record → revert-if-wrong; no operator option-menus); AI Council is the distillation organ for genuinely contested technical decisions. Doctrine only — no organ, no execution — Accepted 2026-07-31.
+- **ADR-109** — fleet desired-state contract v1: one typed, versioned, queryable schema (`ecosystem/schema/desired_state.py`, the Terraform *model* — declarative typed data, state in git, apply = the existing regenerate-and-diff machinery) over the hand-divergent registries; `ecosystem/registry.md` **loses authority** (§2 — file retirement is loader-wave/[#383] work; [#455] moot); intake #22 §E transcribed as the functional requirement. Downstream consumers [#383]/[#385]; ARCHITECTURE organ-class prose is [#459] — Accepted 2026-07-31.
 
 ---
 
