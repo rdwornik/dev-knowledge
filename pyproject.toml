@@ -33,6 +33,7 @@ dev = [
     "pyyaml>=6.0",         # scripts/ validators (audit.py etc.)
     "click>=8.0",          # audit.py CLI (was only in config/requirements-dev.txt)
     "rich>=13.0",          # deploy/tool.py console output (was undeclared — global-site-packages only)
+    "pydantic>=2.0",       # ADR-109 desired-state schema v1 (ecosystem/schema/, [#382] W2) — named by the operator-ratified intake #22 §E
 ]
 # L5a descriptive analytics lane ([#384], intake #16 section 3). Separate group: the lane is
 # HUB-ONLY (it mines siblings read-only but runs here), so a consumer never needs it and it
