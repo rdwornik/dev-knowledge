@@ -19,6 +19,31 @@
 
 ---
 
+### 2026-07-31 (k) — CC (Fable 5, local): post-/clear re-entry — arc verified done, gates re-run, boot-artifact hygiene
+
+**Did:** Re-entered the morning integration arc after a `/clear` wiped the prior session's report.
+Verified every briefed stage against git state instead of redoing: Stage 0/1a/1b all landed (entry
+(j) below); re-verified the item-2c refusal live (both sibling-repo intake files exist on disk).
+Re-ran the four Stage 1b gates fresh at `835e7a75`, then repaired the session-end tree per the
+backpressure hook: **`0ed63e4f`** commits the six boot-hook dailies (3 re-stamped + corp-ops,
+corp-sca-time-automation, win-tooling joining the tracked set — win-tooling is registry.md-registered,
+its state.yaml stays gitignored); **`3e3a9440`** commits the 2026-07-31 ecosystem audit report +
+regenerated audits index (the `.gitignore`-declared durable-record class, ADR-80 §3).
+
+**Result:** ship-gate **GREEN** at `3e3a9440` (15 expected dispositioned WARNs); validate_backlog
+OK (181 tasks, 0 warnings); validate_doc_claims OK (4/4); pytest collection 1991 clean. Tree clean.
+Nothing redone, no self-merge. SHA anchors this session: `0ed63e4f`, `3e3a9440`.
+
+**Changes:** `ecosystem/*/history/2026-07-31.md` ×6 · `docs/audits/2026-07-31-ecosystem-audit.md` +
+`docs/audits/README.md` · this JOURNAL entry.
+
+**Abandoned:** nothing.
+
+**Next:** operator GO #2 merges `docs/2026-07-31-grooming-and-reconciliation`; then Stage 2
+read-only G5 pulls.
+
+---
+
 ### 2026-07-31 (j) — CC (Opus 5, local): morning integration arc — night-batch merge + architect-ratified grooming
 
 **Did:** Executed the architect's ratified review rulings (recorded 2026-07-31, ADR-108 §A
