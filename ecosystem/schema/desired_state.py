@@ -25,7 +25,7 @@ import datetime
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, model_validator
 
 SCHEMA_VERSION = "1.0.0"
 
@@ -36,11 +36,31 @@ class _Contract(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
 
+def _deep_freeze(value: object) -> object:
+    """Lists become tuples recursively so frozen extras cannot be mutated in place
+    (terra H6). Dicts are left as dicts — a recorded v1 limit: dict extras are
+    read-only by convention until the loader normalizes them (W3)."""
+    if isinstance(value, list):
+        return tuple(_deep_freeze(v) for v in value)
+    if isinstance(value, dict):
+        return {k: _deep_freeze(v) for k, v in value.items()}
+    return value
+
+
 class _SourceMirror(BaseModel):
-    """Source-mirroring type: unknown keys survive our read path byte-preserved
-    (finding 2 applied to ourselves — forward-compatible with source growth)."""
+    """Source-mirroring type: unknown keys survive our read path (finding 2 applied
+    to ourselves — forward-compatible with source growth). Values are preserved as
+    PARSED data, not source bytes: byte-exact round-trip is the loader's obligation
+    at the per-source envelope level (ADR-109 §7 D4), never per-row."""
 
     model_config = ConfigDict(frozen=True, extra="allow")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _freeze_extra_containers(cls, data: object) -> object:
+        if isinstance(data, dict):
+            return {k: _deep_freeze(v) for k, v in data.items()}
+        return data
 
 
 # --- enums (closed vocabularies; every value witnessed on disk or ruled in ADR-109) -----
@@ -164,8 +184,11 @@ class IdSpace(StrEnum):
 
 
 class Enforcement(StrEnum):
-    fail_gating = "fail-gating"
-    warn_only = "warn-only"
+    """ADR-109 §6 normative tokens (terra H7/grok H4 — code had drifted to
+    fail-gating/warn-only; the ADR vocabulary wins)."""
+
+    fail = "fail"
+    warn = "warn"
     never_gates = "never-gates"
     inert = "inert"
 
@@ -183,6 +206,7 @@ class RefKind(StrEnum):
     git_commit = "git-commit"
     backlog = "backlog"
     adr = "adr"
+    audit = "audit"  # live on disk (parity-surfaces ownership provenance) — grok C1
     census = "census"
     file = "file"
     ruling = "ruling"
@@ -215,6 +239,8 @@ class ProvenanceRef(_Contract):
     ref: StrictStr
     repo: StrictStr | None = None
     actor: StrictStr | None = None
+    # dates are PARSED scalars by design (ISO-string coercion accepted) — identity
+    # fields are the opaque-verbatim class, dates are not (grok L2 disposition)
     date: datetime.date | None = None
 
 
@@ -233,6 +259,8 @@ class DeployedState(_Contract):
     version: StrictStr | None = None
     deployed_date: StrictStr | None = None  # raw scalar, not parsed — preserve-verbatim
     source_tag: StrictStr | None = None
+    consumer_pin_raw: StrictStr | None = None  # hub-side knowledge only (ADR-109 §8)
+    pin_observation_status: Literal["observed", "unavailable", "not-applicable"] = "unavailable"
 
     @model_validator(mode="after")
     def _consistent_nullness(self) -> DeployedState:
@@ -254,7 +282,10 @@ class LifecycleAssertion(_Contract):
 
 def lifecycle_from_parity_role(role: str) -> LifecycleStage | None:
     """D2 amendment: parity `role` does not map into lifecycle — `consumer`/`pre-deploy`
-    carry no deployment evidence (the over-claim class). Sole exception: hub → source."""
+    carry no deployment evidence (the over-claim class). Sole exception: hub → source.
+    An unknown token is an error, never a silent None (grok L3)."""
+    if role not in {r.value for r in Role}:
+        raise ValueError(f"unknown parity role: {role!r}")
     return LifecycleStage.source if role == Role.hub else None
 
 
@@ -263,20 +294,26 @@ class Repo(_Contract):
     path: StrictStr | None = None
     purpose: StrictStr | None = None
     role: Role | None = None
-    registered: bool = False
-    floor_carrying: bool = False
+    registered: StrictBool = False
+    floor_carrying: StrictBool = False
     assertions: tuple[LifecycleAssertion, ...] = ()
     deployed: DeployedState | None = None
-    membership: frozenset[str] = frozenset()  # which registries list this repo — C1 as data
-    status_raw: tuple[tuple[str, str], ...] = ()  # (source, verbatim status) pairs
+    membership: frozenset[StrictStr] = frozenset()  # which registries list this repo — C1 as data
+    status_raw: tuple[tuple[StrictStr, StrictStr], ...] = ()  # (source, verbatim status) pairs
 
 
 # --- surfaces (the parity-surfaces row grammar, absorbed; ADR-109 §2 item 3) ------------
 
 class Ownership(_Contract):
     value: OwnershipValue
-    reason: StrictStr
-    provenance: tuple[ProvenanceRef, ...]
+    reason: StrictStr = Field(min_length=1)
+    provenance: tuple[ProvenanceRef, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _reason_not_blank(self) -> Ownership:
+        if not self.reason.strip():
+            raise ValueError("ownership reason must be non-blank (parity grammar — grok H3)")
+        return self
 
 
 class ApplicabilityRule(_Contract):
@@ -296,20 +333,34 @@ class Probe(_SourceMirror):
     type: ProbeType
 
 
+class Join(_SourceMirror):
+    """Disk shape: `join: {manifest_component: <id>}` (grok C2)."""
+
+    manifest_component: StrictStr
+
+
+class PendingMigration(_SourceMirror):
+    """Disk shape: `pending_migration: {to, ticket}` (grok C2)."""
+
+    to: StrictStr | None = None
+    ticket: StrictStr | None = None
+
+
 class Surface(_Contract):
     id: StrictStr
     kind: SurfaceKind
     applicability: tuple[ApplicabilityRule, ...]
     probe: Probe
     ownership: Ownership  # mandatory — loader refuses absence (parity contract :63-64)
-    waivable: bool | None = None
+    tier_raw: StrictStr | None = None  # the verbatim role/repo-keyed tier block (D5)
+    waivable: StrictBool | None = None
     waiver_component: StrictStr | None = None
-    local_names: tuple[tuple[str, str], ...] = ()
+    local_names: tuple[tuple[StrictStr, StrictStr], ...] = ()  # (repo id, local name) pairs
     declared_by: StrictStr | None = None
-    declared_divergence: StrictStr | None = None  # concern_id reference (D6)
-    pending_migration: StrictStr | None = None
-    join: StrictStr | None = None
-    gate_rev_ahead: tuple[tuple[str, str], ...] = ()  # (repo id, concern_id) refs (D6)
+    declared_divergence: tuple[tuple[StrictStr, StrictStr], ...] = ()  # (repo id, expected-text)
+    pending_migration: PendingMigration | None = None
+    join: Join | None = None
+    gate_rev_ahead: tuple[tuple[StrictStr, StrictStr], ...] = ()  # (repo id, concern_id) refs (D6)
 
 
 # --- divergences (C7/G14: two suppression vocabularies + gate_rev_ahead, ONE type) ------
@@ -333,13 +384,17 @@ class DeclaredDivergence(_Contract):
         return False
 
     @model_validator(mode="after")
-    def _gate_rev_ahead_declares_only(self) -> DeclaredDivergence:
-        if self.kind == DivergenceKind.gate_rev_ahead:
-            if self.effect != DivergenceEffect.declare_only:
-                raise ValueError("gate-rev-ahead is a declaration, never a waiver (ADR-102): "
-                                 "effect must be declare-only")
-            if self.gate_tag_raw is None:
-                raise ValueError("gate-rev-ahead requires gate_tag_raw")
+    def _kind_effect_mapping(self) -> DeclaredDivergence:
+        """The full kind→effect map (terra H5): each mechanism has exactly one effect —
+        parity-waiver waives, audit-disposition suppresses, gate-rev-ahead declares."""
+        expected = {DivergenceKind.parity_waiver: DivergenceEffect.waive,
+                    DivergenceKind.audit_disposition: DivergenceEffect.suppress_warning,
+                    DivergenceKind.gate_rev_ahead: DivergenceEffect.declare_only}
+        if self.effect != expected[self.kind]:
+            raise ValueError(f"{self.kind.value} requires effect {expected[self.kind].value!r}, "
+                             f"got {self.effect.value!r}")
+        if self.kind == DivergenceKind.gate_rev_ahead and self.gate_tag_raw is None:
+            raise ValueError("gate-rev-ahead requires gate_tag_raw")
         return self
 
 
@@ -354,6 +409,7 @@ class EntityRef(_Contract):
 
 
 class Edge(_Contract):
+    id: StrictStr | None = None  # optional opaque edge identity (terra H1)
     kind: EdgeKind
     src: EntityRef
     dst: EntityRef
@@ -380,7 +436,10 @@ class AllocationRule(_Contract):
     retirement_policy: Literal["retain-allocation-record"]
     duplicate_id_policy: Literal["refuse"]
     collision_detection_stage: Literal["validation", "merge-gate"]
-    concurrent_prevention: Literal["not-provided", "externally-coordinated"]
+    # v1 permits ONLY not-provided (terra H4): "externally-coordinated" is a
+    # prevention-shaped claim with no organ behind it — widening this Literal is
+    # a schema-version change gated on [#429] delivering the organ.
+    concurrent_prevention: Literal["not-provided"]
 
 
 # --- document rows + residue (findings 3/5/6; S3d composability) ------------------------
@@ -405,8 +464,8 @@ class ResidueManifest(_Contract):
     source: StrictStr | None = None
     source_sha256: StrictStr | None = None
     schema_raw: StrictStr | None = None
-    row_order: tuple[str, ...] = ()
-    non_member_residue: tuple[str, ...] = ()
+    row_order: tuple[StrictStr, ...] = ()
+    non_member_residue: tuple[StrictStr, ...] = ()
 
     @model_validator(mode="after")
     def _direction_honesty(self) -> ResidueManifest:
@@ -418,11 +477,76 @@ class ResidueManifest(_Contract):
                 raise ValueError("source-of-truth manifest must not claim source/source_sha256 "
                                  "(false in the same breath — ADR-107 amendment)")
         else:
-            if self.source is None:
-                raise ValueError("derived manifest requires source")
+            if self.source is None or self.source_sha256 is None:
+                raise ValueError("derived manifest requires the source + source_sha256 pair "
+                                 "(finding 6 — terra H3: half a provenance pair is none)")
             if self.generates is not None:
                 raise ValueError("derived manifest must not claim generates")
         return self
+
+
+# --- components + lineage (terra CRITICAL: ADR-109 §7 D1/D3 + finding 5) ----------------
+
+class ComponentKind(StrEnum):
+    organ = "organ"
+    hook = "hook"
+    command = "command"
+    skill = "skill"
+    doc_shape = "doc-shape"
+    config = "config"
+    library = "library"
+    template = "template"
+    carrier = "carrier"
+
+
+class ComponentOwnership(StrEnum):
+    hub = "hub"
+    repo = "repo"
+    conditional = "conditional"
+
+
+class DesiredPresence(StrEnum):
+    present = "present"
+    absent = "absent"
+    local = "local"
+    ignored = "ignored"
+
+
+class ComponentSpec(_Contract):
+    """The §E query spine ("which repos have component X"). Population bound (D3):
+    components derive from existing declarations (manifest, parity) — never a new
+    hand-authored registry."""
+
+    id: StrictStr
+    kind: ComponentKind
+    ownership: ComponentOwnership
+    description: StrictStr | None = None
+    version_raw: StrictStr | None = None
+    provenance: Provenance | None = None
+
+
+class ComponentAssignment(_Contract):
+    repo_id: StrictStr
+    component_id: StrictStr
+    desired_presence: DesiredPresence
+    desired_version_raw: StrictStr | None = None
+    provenance: Provenance | None = None
+
+
+class LineageMode(StrEnum):
+    derived_from = "derived-from"
+    generates = "generates"
+
+
+class Lineage(_Contract):
+    """Finding 5 generalized: every derived/generated surface relation is a typed,
+    directed row — `derived-from` (with source semantics) or `generates` (post-flip)."""
+
+    mode: LineageMode
+    from_surface: StrictStr
+    to_surface: StrictStr
+    residue_manifest_id: StrictStr | None = None
+    provenance: Provenance | None = None
 
 
 # --- source registry metadata (finding 2 as data) ---------------------------------------
@@ -476,6 +600,14 @@ class FleetDesiredState(_Contract):
     crosswalks: tuple[Crosswalk, ...] = ()
     divergences: tuple[DeclaredDivergence, ...] = ()
     allocation_rules: tuple[AllocationRule, ...] = ()
+    components: tuple[ComponentSpec, ...] = ()
+    assignments: tuple[ComponentAssignment, ...] = ()
+    lineage: tuple[Lineage, ...] = ()
+    task_rows: tuple[TaskRow, ...] = ()
+    residue_manifests: tuple[ResidueManifest, ...] = ()
+    manifest: ManifestCut | None = None
+    # Default-empty by design (terra H2 disposition): per-source write-policy
+    # COVERAGE is the loader's obligation — it alone knows which sources it read (W3).
     sources: tuple[SourceRecord, ...] = ()
 
     @model_validator(mode="after")
@@ -495,3 +627,24 @@ class FleetDesiredState(_Contract):
         if len(ids) != len(set(ids)):
             raise ValueError("duplicate repo id in fleet")
         return self
+
+    @model_validator(mode="after")
+    def _gate_rev_refs_resolve(self) -> FleetDesiredState:
+        """grok M6: a Surface gate_rev_ahead reference is a pointer into divergences —
+        dangling means the only live payload (tag + reason + provenance) is lost."""
+        declared = {d.concern_id for d in self.divergences
+                    if d.kind == DivergenceKind.gate_rev_ahead}
+        for s in self.surfaces:
+            for _repo, concern in s.gate_rev_ahead:
+                if concern not in declared:
+                    raise ValueError(f"surface {s.id!r} references gate-rev-ahead concern "
+                                     f"{concern!r} with no matching DeclaredDivergence")
+        return self
+
+
+class FleetModel(_Contract):
+    """D1: the composition view — desired and observed stay typed apart and meet
+    only here; the divergence report (W4) consumes this, never a blended type."""
+
+    desired: FleetDesiredState
+    observed: ObservedFleetState

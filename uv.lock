@@ -76,7 +76,7 @@ analytics = [{ name = "pandas", specifier = ">=2.0" }]
 dev = [
     { name = "click", specifier = ">=8.0" },
     { name = "pre-commit", specifier = ">=4.5" },
-    { name = "pydantic", specifier = ">=2.0" },
+    { name = "pydantic", specifier = ">=2.0,<3" },
     { name = "pytest", specifier = ">=9.0" },
     { name = "pytest-xdist", specifier = ">=3.8" },
     { name = "pyyaml", specifier = ">=6.0" },
