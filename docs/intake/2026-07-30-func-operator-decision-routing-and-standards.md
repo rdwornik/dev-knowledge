@@ -7,6 +7,9 @@ consumed-by:
 
 **NOTE 2026-07-31:** §A + §B ratified by promotion → ADR-108. §C–§H remain unratified.
 
+**NOTE 2026-07-31 (2):** §E ratified by promotion → ADR-109 (the [#382] arc's functional
+requirement, transcribed verbatim there). Doc stays SEED — §C/§D/§F–§H remain open.
+
 # Operator design input — decision routing, engineering standards, and lane timeline
 
 <!-- class: func (operator design input) · status: SEED — NOT ratified; ingest per the intake

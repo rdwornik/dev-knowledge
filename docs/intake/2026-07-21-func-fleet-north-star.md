@@ -3,11 +3,17 @@ intake-id: 16
 status: ACCEPTED
 origin: Layer-1 browser architect consolidation, 2026-07-21 — consolidates the operator's dictated vision (2026-07-20/21), the Fable vision audit, the polyrepo recon brief (2026-07-21), the assets/ delivery session, and three months of session lessons
 decided-by: "operator ruling, 2026-07-28 (architect session) — accepted as a standing plan-of-record, then parked; evidence for the ruling is intake #20's per-item status sweep"
-disposition: deferred
-trigger: "[#382] build starts"
+disposition: active
 consumers: (a) the polyrepo shape-ruling session — consumes §4; (b) the desired-state ADR session — consumes §1–§3 and §5
 consumed-by:
 ---
+
+**NOTE 2026-07-31:** the `trigger: "[#382] build starts"` fired — the [#382] build arc opened
+(ADR-109); disposition flipped `deferred` → `active`. §1–§3 + §5 are consumed by ADR-109;
+§4 was consumed by ADR-104 (in-file SUPERSEDED marker). The doc is deliberately NOT flipped
+to CONSUMED: §6's plan spine remains live work (steps 4–7 open — [#383] waves, [#384] L5a,
+[#385] L4, L5b), so a doc-level CONSUMED would over-claim (F1 plan-review amendment,
+2026-07-31 — same rule as intake #22's §-level NOTE pattern).
 
 # FLEET NORTH STAR — Consolidated Vision & Plan
 **Date:** 2026-07-21 · **Author:** Layer-1 browser architect · **Status:** SEED for (a) the polyrepo ruling session and (b) the desired-state intake→ADR
