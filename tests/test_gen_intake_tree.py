@@ -213,6 +213,65 @@ def test_evaluate_reasons_are_ascii_only(tmp_path):
         assert "→" not in reason
 
 
+# --- codex-review 2026-07-31 HIGH findings, each reproduced then pinned -------
+
+def test_status_only_change_reds_the_gate(tmp_path):
+    """F4: status drives GROUPING, not row text — so reassembly alone cannot see a flip.
+    Reproduced green before the fix; the item-set leg is what closes it."""
+    d = _seeded(tmp_path)
+    _write_manifest(d)
+    (d / "a.md").write_text(_doc("ACCEPTED", "1", "Alpha"), encoding="utf-8", newline="")
+    verdict, reasons = gt.evaluate(d)
+    assert verdict == gt.DRIFT
+    assert any("projected status drift" in r for r in reasons)
+
+
+def test_carrier_with_zero_item_nodes_reds(tmp_path):
+    """F1: the gate must not be satisfiable by deleting exactly what it proves.
+    Stripping every row and regenerating produced an all-residue carrier that passed."""
+    d = _seeded(tmp_path)
+    readme = (d / "README.md").read_bytes().decode("utf-8")
+    stripped = "\n".join(ln for ln in readme.split("\n")
+                         if not ln.startswith("- [#"))
+    (d / "README.md").write_text(stripped, encoding="utf-8", newline="")
+    (d / "manifest.json").write_text(
+        gt._dump(gt.build_manifest(stripped, gt.parse_readme(stripped), d)),
+        encoding="utf-8", newline="\n")
+    verdict, reasons = gt.evaluate(d)
+    assert verdict == gt.DRIFT
+    assert any("ZERO item nodes" in r for r in reasons)
+
+
+def test_item_node_without_an_intake_doc_reds(tmp_path):
+    d = _seeded(tmp_path)
+    _write_manifest(d)
+    (d / "a.md").unlink()
+    verdict, reasons = gt.evaluate(d)
+    assert verdict == gt.DRIFT
+    assert any("no intake doc on disk" in r for r in reasons)
+
+
+def test_duplicate_item_nodes_red(tmp_path):
+    d = _seeded(tmp_path)
+    _write_manifest(d)
+    m = json.loads((d / "manifest.json").read_text(encoding="utf-8"))
+    m["nodes"].append(next(n for n in m["nodes"] if n["t"] == "item"))
+    (d / "manifest.json").write_text(json.dumps(m), encoding="utf-8", newline="\n")
+    assert any("duplicate item node" in r for r in gt.evaluate(d)[1])
+
+
+def test_audit_leg_fails_when_index_and_worktree_disagree(tmp_path, monkeypatch):
+    """F2: the working-tree read is only trustworthy while the index agrees — otherwise a
+    staged deletion under docs/intake/ is hidden by restoring the working copy."""
+    import audit as aud
+
+    monkeypatch.setattr(aud, "_index_worktree_divergence",
+                        lambda *_a, **_k: ("dirty", ["docs/intake/manifest.json"]))
+    finding = aud.check_intake_tree_coherence(Path(gt._REPO_ROOT))[0]
+    assert finding.status == "fail"
+    assert "index and working tree disagree" in finding.evidence
+
+
 # --- the contracts a proof must not quietly lose ------------------------------
 
 def test_projection_is_shared_with_gen_intake_index_not_copied():
@@ -242,9 +301,13 @@ def test_audit_leg_is_hub_only_and_na_off_hub(tmp_path):
     assert finding.status == "n/a"
 
 
-def test_audit_leg_passes_on_the_live_hub():
+def test_audit_leg_passes_on_the_live_hub(monkeypatch):
+    """Index/worktree agreement is stubbed to 'ok' deliberately: without it this asserts
+    transient git state (it REDs mid-arc while docs/intake/ edits are unstaged, which is the
+    guard working as designed) rather than the wrapper's own verdict."""
     import audit as aud
 
+    monkeypatch.setattr(aud, "_index_worktree_divergence", lambda *_a, **_k: ("ok", []))
     finding = aud.check_intake_tree_coherence(Path(gt._REPO_ROOT))[0]
     assert finding.status == "pass"
 

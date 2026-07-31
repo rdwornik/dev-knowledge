@@ -143,6 +143,19 @@ def _rows_by_filename(intake_dir: Path | None = None) -> dict[str, str]:
     }
 
 
+def _status_by_filename(intake_dir: Path | None = None) -> dict[str, str]:
+    """{filename: frontmatter status} for every intake doc.
+
+    Status is a PROJECTED key that does NOT appear in the rendered row -- it determines the
+    block's GROUPING, and the group headings are carried as residue. So a status-only change
+    moves a row between groups in the generated block while leaving the row text and every
+    residue line untouched, and reassembly alone cannot see it (codex-review HIGH, 2026-07-31,
+    reproduced before fixing: a SEED -> ACCEPTED flip changed the generated block yet left the
+    check green). Recording status per item node is what closes that hole.
+    """
+    return {filename: status for status, _id, filename, _title in collect_intakes(intake_dir)}
+
+
 def parse_readme(text: str) -> Model:
     """Classify every physical line of README.md into the ordered node stream.
 
@@ -164,9 +177,14 @@ def parse_readme(text: str) -> Model:
         nodes.append(Node("item", m.group(1)) if m else Node("line", line))
 
     model = Model(tuple(nodes))
-    # Parse-time self-check: residue is verbatim, so a pure-residue rebuild MUST equal the
-    # input. (Model.reassemble re-derives item rows from disk and so is checked separately by
-    # --roundtrip / --check; this assertion isolates the LINE MODEL itself.)
+    # Parse-time self-check, STATED FOR EXACTLY WHAT IT PROVES (codex-review HIGH,
+    # 2026-07-31: the earlier docstring claimed this refused any model that "does not
+    # reassemble to its own input", which was TAUTOLOGICAL for item nodes -- they were
+    # checked by looking their own source line back up, so a row whose re-derivation
+    # differed from disk still passed). This assertion covers the LINE MODEL only: residue is
+    # verbatim and ordering is preserved, so a pure-residue rebuild must equal the input.
+    # Whether an item node RE-DERIVES to its original row is a disk question, enforced at
+    # emit time by `_cmd_write` and at gate time by `evaluate` -- not here.
     rebuilt = "\n".join(
         node.value if node.kind == "line" else _placeholder(node, lines) for node in model.nodes
     )
@@ -212,6 +230,7 @@ def build_manifest(text: str, model: Model, intake_dir: Path | None = None) -> d
     item_nodes = [n for n in model.nodes if n.kind == "item"]
     line_nodes = [n for n in model.nodes if n.kind == "line"]
     total = len(model.nodes)
+    statuses = _status_by_filename(intake_dir)
     return {
         "schema": SCHEMA_ID,
         # DIRECTION -- which side is source. See the module docstring: split-only, not flipped.
@@ -245,13 +264,20 @@ def build_manifest(text: str, model: Model, intake_dir: Path | None = None) -> d
             "derived_lines_carried_as_residue": (
                 "The block's count line and its `### STATUS (n)` group headings are generated "
                 "by gen_intake_index but are carried here VERBATIM as residue, not re-derived. "
-                "An intake status change therefore REDs --check until README.md is "
-                "regenerated (python scripts/gen_intake_index.py --write) and this manifest "
-                "re-derived -- correct coupling, surfaced rather than hidden."),
+                "A status-only change therefore moves a row between groups WITHOUT altering "
+                "any row text or residue line, so reassembly alone cannot see it -- which is "
+                "why each item node records its projected `status` and the item-set leg "
+                "compares it against disk. That leg, not the residue, is what REDs --check on "
+                "a status change; remedy is to regenerate README.md (python "
+                "scripts/gen_intake_index.py --write) and then this carrier."),
         },
-        # ORDERING + NON-MEMBER RESIDUE -- the stream itself.
+        # ORDERING + NON-MEMBER RESIDUE -- the stream itself. An item node records the
+        # projected STATUS alongside the filename: status never appears in the row text (it
+        # drives grouping, and headings are residue), so without it a status-only change is
+        # invisible to reassembly -- see `_status_by_filename`.
         "nodes": [
-            {"t": "line", "v": n.value} if n.kind == "line" else {"t": "item", "file": n.value}
+            {"t": "line", "v": n.value} if n.kind == "line"
+            else {"t": "item", "file": n.value, "status": statuses.get(n.value, "")}
             for n in model.nodes
         ],
     }
@@ -286,7 +312,17 @@ def _cmd_write() -> int:
         print(f"error: {_SOURCE.name} not found", file=sys.stderr)
         return 2
     text = _read_source()
-    manifest = build_manifest(text, parse_readme(text))
+    model = parse_readme(text)
+    manifest = build_manifest(text, model, None)
+    # REFUSE to emit a carrier that fails its own round-trip (codex-review HIGH, 2026-07-31).
+    # `parse_readme`'s assertion covers the line model only; this is the disk-side check, and
+    # it must run BEFORE the write so a bad carrier is never persisted for `--check` to find.
+    rebuilt = model.reassemble()
+    if rebuilt != text:
+        print("gen_intake_tree: REFUSING to write -- the parsed model does not re-derive "
+              "README.md from the on-disk intake files", file=sys.stderr)
+        print(_describe_divergence(text, rebuilt), file=sys.stderr)
+        return 1
     _MANIFEST.write_text(_dump(manifest), encoding="utf-8", newline="\n")
     print(f"gen_intake_tree: wrote {_MANIFEST.relative_to(_REPO_ROOT).as_posix()} "
           f"({manifest['honest_limit']['item_derived_lines']} item node(s), "
@@ -378,6 +414,7 @@ def evaluate(intake_dir: Path | None = None) -> tuple[str, list[str]]:
         return MALFORMED, ["source or manifest cannot be derived"]
 
     reasons: list[str] = []
+    reasons += _item_set_divergences(manifest, intake_dir)
     if manifest_text != expected_manifest:
         reasons.append(
             f"manifest is stale versus README.md (expected {len(expected_manifest)} char(s), "
@@ -416,6 +453,50 @@ def _cmd_check() -> int:
         print(f"gen_intake_tree: check FAILED -- {reason}", file=sys.stderr)
     print(f"gen_intake_tree: remedy: run {REMEDY}", file=sys.stderr)
     return 2 if verdict == MALFORMED else 1
+
+
+def _item_set_divergences(manifest: dict, intake_dir: Path | None = None) -> list[str]:
+    """The ITEM-SET integrity leg: the carrier's item nodes must match `collect_intakes()`
+    ONE-FOR-ONE -- non-empty, duplicate-free, same filenames, same projected statuses.
+
+    Without this leg the gate can be satisfied by deleting exactly what it exists to prove
+    (codex-review HIGH, 2026-07-31, reproduced before fixing: stripping every item row from
+    the marker block and regenerating yields an all-residue carrier with ZERO item nodes that
+    round-trips perfectly and reports GREEN). Reassembly alone cannot catch that, because a
+    carrier with no item nodes is trivially self-consistent -- the same "a gate must not be
+    satisfiable by removing its own subject" rule the `tasks/` gate carries.
+
+    Also the only leg that sees a STATUS-only change (see `_status_by_filename`).
+    """
+    items = [n for n in manifest.get("nodes", []) if n.get("t") == "item"]
+    on_disk = _status_by_filename(intake_dir)
+    reasons: list[str] = []
+
+    if not items:
+        reasons.append(f"carrier has ZERO item nodes while {len(on_disk)} intake doc(s) are on "
+                       f"disk -- the split is not represented at all")
+        return reasons
+
+    files = [n.get("file", "") for n in items]
+    dupes = sorted({f for f in files if files.count(f) > 1})
+    if dupes:
+        reasons.append(f"duplicate item node(s): {', '.join(dupes)}")
+
+    missing = sorted(set(on_disk) - set(files))
+    extra = sorted(set(files) - set(on_disk))
+    if missing:
+        reasons.append(f"intake doc(s) on disk with no item node: {', '.join(missing)}")
+    if extra:
+        reasons.append(f"item node(s) with no intake doc on disk: {', '.join(extra)}")
+
+    drifted = sorted(
+        f"{n['file']} (carrier {n.get('status', '')!r} vs disk {on_disk[n['file']]!r})"
+        for n in items
+        if n.get("file") in on_disk and n.get("status", "") != on_disk[n["file"]]
+    )
+    if drifted:
+        reasons.append(f"projected status drift: {'; '.join(drifted)}")
+    return reasons
 
 
 def _malformed_reason(manifest: object) -> str | None:

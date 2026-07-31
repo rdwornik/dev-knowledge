@@ -2998,6 +2998,19 @@ def check_intake_tree_coherence(repo_path: Path) -> list[Finding]:
         return [Finding("intake_tree_coherence", "n/a",
                         "hub-only — the docs/intake/ residue carrier is hub-owned")]
     intake_dir = Path(repo_path) / "docs" / "intake"
+    # The coherence read is a WORKING-TREE read, so it is only trustworthy while the index
+    # agrees with the working tree for these paths (codex-review HIGH, 2026-07-31 — the
+    # `tasks/` gate carries this guard and this one did not): otherwise a staged deletion or
+    # edit under docs/intake/ can be hidden by restoring the working copy before committing,
+    # and the gate would bless a coherent working tree while the commit records an
+    # incoherent — or absent — carrier.
+    agreement, divergent = _index_worktree_divergence(Path(repo_path), "docs/intake")
+    if agreement != "ok":
+        detail = ("index and working tree disagree on " + ", ".join(divergent)
+                  if divergent else "git could not compare index and working tree")
+        return [Finding("intake_tree_coherence", "fail",
+                        (f"{detail} — the coherence read cannot be trusted; stage or "
+                         f"restore consistently, then re-run").replace("|", "/"))]
     try:
         verdict, reasons = _gint.evaluate(intake_dir)
     except Exception as exc:  # noqa: BLE001 — a gate that cannot complete must not pass
