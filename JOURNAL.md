@@ -60,6 +60,53 @@ via merges) + index · `ARCHITECTURE.md` (ADR-currency) · `tasks/{462,463,464,4
 (branch) · this JOURNAL entry.
 
 ---
+### 2026-07-31 (t) — CC (Opus 5, local): handoff SKELETON cut for the 2026-08-01 architect window; conformance-branch retirement HELD on a stop-condition
+
+**Did:** Two acts, one held. **(a) Conformance branches — STOPPED, nothing touched.** The operator
+ruled deletion of `claude/conformance-2026-07-29/-30/-31`; the rule permits it (git-discipline's
+MERGE IS ATOMIC names them EXPLICIT PROTECTION but gives no reason and gates deletion only on
+operator word), so the blocker is the CONTENT, not the rule. Each branch is one commit adding
+exactly one file — a dated `docs/audits/*-conformance-nightly-digest.md`, 169/173/191 lines — and
+**none of the three exists on `main`** (main's nightly series stops 2026-06-14). Not regenerable:
+`conformance-nightly-digest` is a sanctioned ADR-101 audit class and audits are immutable (§5 rule
+3); a digest is a point-in-time review, so re-running the reviewer reviews *today's* repo; and the
+07-31 digest encodes a 4-night persistence delta reconstructible from nothing. Findings checked
+against live main rather than trusted: the HIGH (cloud `uv 0.8.17` vs the `0.11.19` pin) is already
+absorbed by **[#453]** item 2, but two MEDIUMs are **live and unabsorbed** — `ARCHITECTURE.md:70`
+still says "ratified through ADR-107" (ADR-108 + ADR-109 have landed), and `terminal-setup` sits in
+`VISION.md` + ADR-104 as a fleet repo with **zero** presence in `ecosystem/registry.md`, a
+membership gap the [#382] census structurally could not see. Recommended to the operator: merge the
+three digests to main, THEN delete the branches. `automation/fleet-audit` untouched (fate rides
+[#460]). **(b) Handoff skeleton** `2026-08-01-dev-knowledge-architect` generated via
+`gen_handoff.py --mode architect --cold --no-assemble`: session header filled (Purpose names two
+live epic themes for the P0c match; Destination row per the 6.0.1 ruling), RESIDUAL's three regions
+drafted, SUPPLEMENT ANSWERS left EMPTY by design, PASTE_THIS deliberately NOT assembled.
+
+**Result:** skeleton committed **`ee76c412`** on `docs/2026-08-01-handoff-skeleton`, **not merged**
+— the bundle is not finalized; the architect-authored supplement arrives next. Probe pre-check
+**14/14 pass, 0 fail, 0 warn**. The `residual_completeness` gate earned its keep: it hard-failed my
+first commit attempt over four unfilled `HANDOFF_BOOT.md` header regions I had skipped.
+
+**Generation-time state — recorded HERE because the bundle withholds it by contract** (the v6
+anti-bluff rule: the browser gets these as live probe answers, never as bundle prose). Bundle cut
+from `main` at **`784c9562`**; ALL_CHECKS **35** (last `boot_byte_budget`); ship-gate GREEN with 15
+dispositioned; `validate_backlog` OK, **185 tasks**, 9 themes, 26 stories; `validate_doc_claims` OK
+4/4. **Window net backlog delta: 181 → 185 = +4** (5 ids filed — [#457], [#458], [#459], [#460],
+[#461]; 1 closed — [#382]). Two corrections stated rather than absorbed: the brief's "+8" does not
+reconcile with the verified +4, and the ladder evidence pack's "+3 / 184" was true when written but
+is stale by one row ([#461] landed in the same commit) — the pack is an immutable audit, so the
+correction lives here, not as an edit.
+
+**Changes:** `docs/handoffs/2026-08-01-dev-knowledge-architect/` ×4 (new bundle) · this JOURNAL
+entry.
+
+**Abandoned:** nothing. **Held:** the three conformance-branch deletions, pending the operator's
+preserve-or-discard call on three immutable records.
+
+**Next:** architect supplement → fold → assemble `PASTE_THIS.md` → merge the bundle branch. Then
+the conformance-branch decision, and [#383] wave 1 with the §6.2 discharge attached.
+
+---
 
 ### 2026-07-31 (s) — CC (Fable 5 → Opus 5, local): [#382] CLOSED — W4 merged, closure executed, hygiene + ladder evidence landed
 
