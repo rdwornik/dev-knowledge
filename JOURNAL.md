@@ -64,8 +64,27 @@ net **−2**, filed 0, closed 2 (#461, #462).
 **Result:** ship-gate GREEN, suite 2 failed / 2140 passed / 3 skipped — both the known [#457]
 ids. ruff clean. `[#465]` stays OPEN with legs 2–4.
 
-**Next:** [#459]'s codemap source-root question is in the STOP report for an in-chat ruling; the
-one-line prose consequence lands after it. Merge is the operator's.
+**Act 3 landed on the ruling (`bf373b13`, closes [#459]).** Operator ruled **B**: `ecosystem/schema/`
+stays OUTSIDE the codemap's `--source-root scripts`, **with the cost stated, not hidden** — the
+schema package and the loader→schema edge do not appear in the structural map, and reopening
+requires NEW evidence as a NEW row, never preference. Ch2 gained the ADR-109 organ class in one
+entry (contract · loader · report; read-only, operator-invoked, ADR-109 §8). **Why A was not a
+prose leg at all** — `--source-root` takes ONE directory (`ast_walker.py:15`), so widening needs
+multi-root support in the tool or moving the schema under `scripts/`, which ADR-109 §9 explicitly
+rejected: a code change or an ADR reopening wearing a prose leg's clothes. `last_reviewed`
+re-stamped on a genuine end-to-end re-read of all 831 lines, which is the only honest basis for
+a stamp the edit forces.
+
+**Observed, deliberately not acted on:** closing [#459] leaves story **[S24] with zero tasks** —
+[#382] and [#459] were its only two, so this is a story COMPLETING, not a defect.
+`validate_backlog` emits an advisory WARN and exits 0, gating nothing. I did not remove the story
+heading: what happens to a completed story in the ADR-66 map is a schema question, and deleting
+map structure on my own judgment at session end is the kind of unilateral call that should be a
+ruling.
+
+**Final ledger (mechanized):** 189 → **186**, net **−3**, filed 0, closed 3 (#459, #461, #462).
+
+**Next:** merge is the operator's.
 
 ### 2026-08-01 (d) — CC (Opus 5, local): [#383] wave 2 — [#462] closed, the membership blind spot mechanized, ADR-109's "5 fleet repos" gloss corrected
 
