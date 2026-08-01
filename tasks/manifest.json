@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "77af303376d7307757c5768567dac7e1952d568034f5363d67892cf2af0ec841",
+  "generated_sha256": "d06ee21436a52f6292df598a85c778c0bbb6f8cca63200c15e7e778f5999d8fe",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -853,6 +853,14 @@
       "file": "445-codex-review-wrapper-path-guard-reports-success-h.md"
     },
     {
+      "task": 469,
+      "file": "469-codex-review-code-lane-runs-an-unpinned-model.md"
+    },
+    {
+      "task": 470,
+      "file": "470-audit-py-checks-crashes-on-a-cp1252-console.md"
+    },
+    {
       "task": 403,
       "file": "403-extend-doc-claims-to-architecture-s-machine-deri.md"
     },
@@ -915,6 +923,14 @@
     {
       "task": 440,
       "file": "440-make-the-tasks-id-ledger-tamper-evident-a-delete.md"
+    },
+    {
+      "task": 467,
+      "file": "467-paste-budget-repomix-rejected-on-measurement.md"
+    },
+    {
+      "task": 468,
+      "file": "468-why-not-a-frontmatter-library-the-measured-ratio.md"
     },
     {
       "prose": ""
