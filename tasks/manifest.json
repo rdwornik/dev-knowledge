@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "ebe5f1eb141395172ee4181120086d12ebc62f6bf3393b54d8317f0acac2f96c",
+  "generated_sha256": "e5b5e45a5af12429f4eb8b7bee498189e49529745dd34c3506d443774490acec",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -948,10 +948,6 @@
     {
       "task": 419,
       "file": "419-we-run-routines-whose-output-nobody-consumes.md"
-    },
-    {
-      "task": 460,
-      "file": "460-history-dailies-write-only-no-consumer.md"
     },
     {
       "task": 461,
