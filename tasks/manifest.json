@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e5b5e45a5af12429f4eb8b7bee498189e49529745dd34c3506d443774490acec",
+  "generated_sha256": "d793c905f9513b306b4a31a36983809f94d4d78d466a48114cd0ea416ba1d4bb",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -847,10 +847,6 @@
     {
       "task": 445,
       "file": "445-codex-review-wrapper-path-guard-reports-success-h.md"
-    },
-    {
-      "task": 469,
-      "file": "469-codex-review-code-lane-runs-an-unpinned-model.md"
     },
     {
       "task": 470,
