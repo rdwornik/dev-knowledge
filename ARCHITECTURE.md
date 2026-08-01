@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-31
+last_reviewed: 2026-08-01
 reconciled_with: handoff-process@6.0.1
 status: active
 owner: Rob
@@ -14,7 +14,9 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-07-28` — ADR-107 strangler **step 3** ([#439]): Ch5's `tasks/` zone flips
+> Last updated: `2026-08-01` — [#459]: Ch2 gains the **desired-state organ class**
+> (ADR-109 contract/loader/report) and the codemap source-root question is RULED —
+> `ecosystem/schema/` stays out of scope, cost stated. Prior: `2026-07-28` — ADR-107 strangler **step 3** ([#439]): Ch5's `tasks/` zone flips
 > from **derived** to **SOURCE OF TRUTH**, with `BACKLOG.md` now generated from it
 > (`--emit-source`), `--prune` refused under retire-not-delete, and the frontmatter-honesty leg
 > recorded. The same edit retires that block's "honest enforcement limit" note, which had gone
@@ -257,6 +259,22 @@ verifies. The `floor` carrier additionally **arms** the ADR-78 floor under **mod
 (ADR-93): committed + two-leg hash-guarded (a SessionStart guard + the commit-time
 `floor-hash-verify` hook, both running the consumer's `.claude/check_floor_hash.py`), so floor
 drift fails loud. Operator-run from the hub, one consumer per invocation; runbook PLAYBOOK §20.
+
+**The desired-state organ class (ADR-109).** Three parts, one class: `ecosystem/schema/` holds
+the typed, versioned **contract** (`desired_state.py`, `schema_version: "1.0.0"`);
+`scripts/desired_state_loader.py` is the **loader** that parses the live sources into one
+validated model; `scripts/desired_state_report.py` is the **divergence report** over it. All
+read-only, all operator-invoked — no trigger, no gate, nothing converges state (ADR-109 §8:
+"Read-only, no execution engine", and the report "is not convergence"). Membership resolves
+toward `ecosystem/deployed-versions.yaml` (§2), so the report's matrix is narrower than
+ADR-104's 9-repo declaration; the [#462] `membership_agreement` check is what makes a declared
+member absent from every surface visible.
+
+`ecosystem/schema/` is deliberately outside the codemap's `--source-root scripts` scope: the
+codemap maps executables; the typed contract lives with the data it governs (ADR-109 §9). Cost
+accepted: the schema package and the loader→schema edge do not appear in the structural map.
+Revisiting requires NEW evidence (e.g. the codemap growing multi-root support) as a NEW row —
+this ruling is not reopenable by preference.
 
 **Machinery retired (C3 sweep, 2026-06-05).** `/boot` and `/evolve` archived to
 `~/.claude/archive/2026-06-05-machinery-c3/`; `CHANGELOG.md` + `BACKLOG_ARCHIVE.md`
