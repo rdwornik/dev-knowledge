@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "76245189a8d852e7a21a4bb894467c55245060eedfa86d1d6b516c595af91f3f",
+  "generated_sha256": "dfaf3ed667e6a642e44d758a267571da5bca59d4a3785dd0840df78e4cbffe96",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -859,10 +859,6 @@
     {
       "task": 470,
       "file": "470-audit-py-checks-crashes-on-a-cp1252-console.md"
-    },
-    {
-      "task": 471,
-      "file": "471-generators-inherit-platform-newline-translation.md"
     },
     {
       "task": 403,

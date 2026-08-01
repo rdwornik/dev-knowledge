@@ -1,7 +1,7 @@
 ---
 id: "[#471]"
 title: "Generators inherit platform newline translation — a Windows regen silently EMPTIES the intake carrier"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E7] Tooling & evaluation"
