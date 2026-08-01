@@ -337,3 +337,57 @@ hand-authored source of truth. Surface 1's flip ([#439]) was a later, separate d
 §4's obligation is **DISCHARGED**, so ADR-107 §6.2's generalization clause — the precondition
 on **[#382]** declaring the fleet contract *general* — is met. It does **not** close [#383]
 (wave execution continues), and it makes no claim about surfaces beyond the two now shown.
+
+## Amendment — 2026-08-01 (the Related-line matrix-width gloss corrected: **9 governs**)
+
+> **In-file amendment marker (CLAUDE.md §5 item 3 / ADR-94).** The decision body above is
+> preserved **verbatim** — nothing in it is edited, including the Related line this section
+> corrects. This section records that one **gloss** in that line misstates a ratified fact
+> from another ADR. It changes **no decision**: every ruling above stands, and the correction
+> narrows nothing and widens nothing. Landed by **[#383] wave 2 / [#462]**, under the ex-ante
+> frozen acceptance contract the operator authored for that wave, architect ruling 2026-08-01.
+
+### The gloss, and why it is wrong
+
+This ADR's **Related** line reads *"ADR-104 (matrix width — 5 fleet repos, partial fold; not
+reopened)"*. **ADR-104 ratified nine**, not five:
+
+> The fleet is **9 git repos**: the hub `.dev-knowledge` (governance authority, not a code
+> project) plus `ai-council`, `corp-monorepo`, `corp-ops`, `corp-sca-time-automation`,
+> `demo-prep`, `life-architect`, `terminal-setup`, `win-tooling`.
+
+`VISION.md` states the same nine. **The `5` is a data artifact, not a ruled tree count** — it
+is what `resolve_fleet_members` returns because §2 resolves membership toward
+`deployed-versions.yaml`, which currently carries five keys. ADR-104 explicitly **declined** to
+enumerate which repos consolidate ("This ADR does NOT enumerate which repos pair first, nor
+size the stages — that is **[#383]**'s job"), so attributing a tree count of 5 to it reads a
+loader's current output back as a ruling.
+
+Evidence at the time of this amendment, from the [#462] census (`audit.py::check_membership_agreement`):
+
+```
+declaration (ADR-104)                   9
+registry.md                             9   (terminal-setup added this wave, [#462] AC-2')
+index.yaml                              6
+deployed-versions.yaml                  5   <- the anchor resolve_fleet_members keys on
+parity-surfaces.yaml  fleet:            5
+satellite-onboarding-rulings.yaml       4
+ecosystem/<repo>/ state dirs            6
+```
+
+### What this changes — and, deliberately, what it does not
+
+- **Corrected:** the fleet declaration is **9**. Any reader taking "5 fleet repos" from the
+  Related line as the fleet's ruled size should read nine.
+- **NOT changed — `resolve_fleet_members` is not widened.** Resolving membership toward
+  `deployed-versions.yaml` is a **named §2 ruling**, not incidental code, and widening it
+  revisits that ruling. It stays as ruled; **[#472]** owns any future change.
+- **NOT changed — no `deployed-versions.yaml` entry was created for `terminal-setup`.** That
+  file's write-contract binds it to real deploys; forcing an entry would fabricate deployment
+  state for a repo that has never been deployed to. `terminal-setup` is therefore **declared
+  but not deployed**, and the census reports that as **data at PASS** — §2's own posture ("the
+  disagreement itself is carried as model data, never a load error") and §8's ("Stale derived
+  inputs are surfaced, not fixed"), not a failure to be cleared.
+- **NOT changed — the report's matrix width.** `build_matrix` still iterates
+  `resolve_fleet_members`, so the report still shows five columns. That is now a stated
+  consequence of the §2 anchor rather than an implied fleet size.

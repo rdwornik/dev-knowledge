@@ -3148,6 +3148,161 @@ def check_fleet_audit_replication(repo_path: Path) -> list[Finding]:
     return [Finding("fleet_audit_replication", status, evidence.replace("|", "/"))]
 
 
+# --- [#462] fleet-membership agreement --------------------------------------
+# The [#382] census censused `ecosystem/registry.md` ITSELF, so a member absent FROM that
+# registry was invisible BY CONSTRUCTION -- `terminal-setup` sat declared in ADR-104 and in
+# VISION while present in zero machine surfaces, caught only because three consecutive
+# nightly digests re-noticed it by hand. This organ inverts the direction: the DECLARATION is
+# the fixed point and the surfaces are diffed against it, so absence is reported rather than
+# waited for.
+#
+# The declaration is a CONSTANT, deliberately. Parsing ADR-104's prose into repo ids is a new
+# loadable declaration source -- [#472]'s scope, and its option (c) collides with ADR-109 §2
+# ("No new physical contract file is created in v1.") and §9's named rejection. A constant
+# needs no new file, no `SourceSurface` value and no loader change.
+#
+# Its honest cost, named not claimed away: the constant can drift from ADR-104:15 silently.
+# Closing that IS [#472]'s Done-when ("a ruling records how the ADR-104 declaration becomes
+# loadable"), so it is recorded there rather than half-solved here.
+ADR104_FLEET_DECLARATION = (
+    ".dev-knowledge", "ai-council", "corp-monorepo", "corp-ops",
+    "corp-sca-time-automation", "demo-prep", "life-architect", "terminal-setup",
+    "win-tooling",
+)
+
+# ADR-109 §2: membership resolves TOWARD deployed-versions.yaml -- the durable record.
+_MEMBERSHIP_ANCHOR = "deployed-versions"
+
+# Surface id -> repo-relative path. Ids reuse the loader's C1 facts vocabulary
+# (`desired_state_loader.SRC_*`) so the two organs name the same surfaces the same way.
+_MEMBERSHIP_SURFACES = (
+    ("registry-md", "ecosystem/registry.md"),
+    ("index-yaml", "ecosystem/index.yaml"),
+    ("deployed-versions", "ecosystem/deployed-versions.yaml"),
+    ("parity-surfaces", "ecosystem/parity-surfaces.yaml"),
+    ("onboarding-rulings", "ecosystem/satellite-onboarding-rulings.yaml"),
+)
+
+
+def _read_registry_members(path: Path) -> set[str]:
+    """The hand-maintained markdown table -> registered repo ids.
+
+    Twin of `desired_state_loader.parse_registry_md` (same row regex). Duplicated ON PURPOSE
+    rather than imported: that module pulls pydantic, and this check runs on the `audit-health`
+    pre-commit path where [#343] already flags per-commit cost. The duplication is held honest
+    by a test asserting both readers agree on the live file, not by a comment.
+    """
+    return set(re.findall(r"(?m)^\|\s*`([^`]+)`\s*\|[^|]*\|[^|]*\|[^|]*\|\s*$",
+                          path.read_text(encoding="utf-8")))
+
+
+def _read_surface_members(surface_id: str, path: Path) -> set[str]:
+    """Repo ids carried by one repo-keyed surface. Raises on absent/malformed -- the caller
+    turns that into a FAIL, because a gate satisfiable by deleting its input is not a gate."""
+    if surface_id == "registry-md":
+        return _read_registry_members(path)
+    doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if surface_id == "index-yaml":
+        return {str(r["name"]) for r in (doc.get("repos") or ()) if r.get("name")}
+    key = {"deployed-versions": "repos", "parity-surfaces": "fleet",
+           "onboarding-rulings": "rulings"}[surface_id]
+    return {str(k) for k in (doc.get(key) or {})}
+
+
+def classify_membership(declaration: tuple[str, ...],
+                        surfaces: dict[str, set[str]]) -> list[tuple[str, str]]:
+    """PURE: [(status, evidence)] for a fleet declaration diffed against repo-keyed surfaces.
+
+    Two directions, deliberately asymmetric:
+
+    * A repo a surface carries but the declaration does not -> FAIL, naming repo AND surface.
+      Either ADR-104 is stale or the surface is wrong; both need a human, and which surface
+      is the first question that human asks.
+    * A declared repo missing from the anchor -> reported as DATA at pass. Ruled 2026-08-01,
+      on ADR-109 §2 ("the disagreement itself is carried as model data, never a load error")
+      and §8 ("Stale derived inputs are surfaced, not fixed"). Not warn: an undispositioned
+      WARN REDs the ship-gate, which trains the operator to disposition the organ -- exactly
+      how a 46-day FAIL came to be ignored ([#460]).
+
+    ASCII-only, pipe-free evidence ([#470] + the Finding contract).
+    """
+    declared = set(declaration)
+    findings: list[tuple[str, str]] = []
+    for surface_id, members in surfaces.items():
+        for repo in sorted(members - declared):
+            findings.append(("fail",
+                             f"{surface_id} carries repo '{repo}', absent from the ADR-104 "
+                             f"fleet declaration -- an undeclared member: either the "
+                             f"declaration is stale or the surface is wrong ([#462])"))
+
+    resolved = surfaces.get(_MEMBERSHIP_ANCHOR, set())
+    where = [f"{repo} [{', '.join(s for s, m in surfaces.items() if repo in m) or 'NO SURFACE'}]"
+             for repo in declaration if repo not in resolved]
+    coverage = ", ".join(f"{s} {len(m & declared)}/{len(declared)}"
+                         for s, m in surfaces.items())
+    findings.append(("pass",
+                     f"{len(declared)} declared (ADR-104); {len(resolved & declared)} resolved "
+                     f"members ({_MEMBERSHIP_ANCHOR}); coverage {coverage}; "
+                     f"declared-but-not-deployed: {'; '.join(where) if where else 'none'}"))
+    return findings
+
+
+def check_membership_agreement(repo_path: Path, _surface_paths=None) -> list[Finding]:
+    """[#462] — the ADR-104 fleet declaration diffed against every repo-keyed machine surface.
+
+    Closes the blind spot that made [#462] invisible for months: a census keyed on one
+    registry cannot see a member missing from that registry, so this one is keyed on the
+    DECLARATION and reports per-repo per-surface presence.
+
+    HUB-ONLY by repo identity, never by artifact presence: `ecosystem/`'s registries are hub
+    machinery that was never distributed, so guarding on "does this repo have registries"
+    would report FAIL across the fleet and manufacture a gap that does not exist (the
+    enforcement-organs-are-not-homogeneous class, [#383] wave 1).
+
+    Read-only. It never regenerates a surface -- a gate that silently fixes what it measures
+    cannot fail. `resolve_fleet_members` is NOT consulted and NOT widened: that resolution is
+    a named ADR-109 §2 ruling and belongs to [#472].
+    """
+    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+        return [Finding("membership_agreement", "n/a",
+                        "hub-only -- the ecosystem/ membership surfaces are hub-owned")]
+
+    surfaces: dict[str, set[str]] = {}
+    for surface_id, rel in (_surface_paths or _MEMBERSHIP_SURFACES):
+        path = Path(repo_path) / rel
+        try:
+            surfaces[surface_id] = _read_surface_members(surface_id, path)
+        except FileNotFoundError:
+            return [Finding("membership_agreement", "fail",
+                            f"membership surface {rel} is absent -- the census cannot be "
+                            f"satisfied by deleting what it checks ([#462])")]
+        except Exception as exc:  # noqa: BLE001 -- a gate that cannot complete must not pass
+            return [Finding("membership_agreement", "fail",
+                            f"membership surface {rel} could not be read: {exc!r}"
+                            .replace("|", "/"))]
+    # Same rule as `discover_repos()` (a dir carrying state.yaml) but keyed on repo_path.
+    # NOT `discover_repos()` itself: it reads the module-global ECOSYSTEM_DIR, so reusing it
+    # would make this one surface read a DIFFERENT repo than the other five whenever the two
+    # disagree -- caught by test_health_ok_with_registered_repo, which monkeypatches exactly
+    # that global. A check that takes repo_path must honour it for every surface it reads.
+    #
+    # Guarded like the other five (terra HIGH, 2026-08-01): an unguarded `iterdir()` raises
+    # on a permission or I/O error and takes down the whole `audit.py health` run -- strictly
+    # worse than this check failing, because it denies every OTHER check its verdict too.
+    eco = Path(repo_path) / "ecosystem"
+    try:
+        surfaces["state-dirs"] = ({d.name for d in eco.iterdir()
+                                   if d.is_dir() and (d / "state.yaml").exists()}
+                                  if eco.is_dir() else set())
+    except OSError as exc:
+        return [Finding("membership_agreement", "fail",
+                        f"membership surface ecosystem/<repo>/ could not be read: {exc!r}"
+                        .replace("|", "/"))]
+
+    return [Finding("membership_agreement", status, evidence.replace("|", "/"))
+            for status, evidence in classify_membership(ADR104_FLEET_DECLARATION, surfaces)]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -3187,6 +3342,7 @@ ALL_CHECKS = [
     check_intake_tree_coherence,   # [#383] wave 1 — arms gen_intake_tree --check (ADR-109 §4)
     check_boot_byte_budget,   # [#446] A10 item 2 / R4 — the gate half of the split enforcement
     check_fleet_audit_replication,   # [#460] — ADR-80's durable record must exist off this disk
+    check_membership_agreement,   # [#462] — ADR-104's declaration vs every repo-keyed surface
 ]
 
 

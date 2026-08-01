@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d793c905f9513b306b4a31a36983809f94d4d78d466a48114cd0ea416ba1d4bb",
+  "generated_sha256": "13157b9f76ac10899cf04ab5d72a744f2594569642d689ec04d77e2aff8bc8a9",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1503,10 +1503,6 @@
     {
       "task": 383,
       "file": "383-execution-waves-per-surface.md"
-    },
-    {
-      "task": 462,
-      "file": "462-terminal-setup-absent-from-every-machine-member.md"
     },
     {
       "task": 472,

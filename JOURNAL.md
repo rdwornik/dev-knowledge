@@ -19,6 +19,101 @@
 
 ---
 
+### 2026-08-01 (d) — CC (Opus 5, local): [#383] wave 2 — [#462] closed, the membership blind spot mechanized, ADR-109's "5 fleet repos" gloss corrected
+
+**Did:** `feat/462-membership-agreement-census`, commit-and-STOP (operator is the serial gate).
+SHA anchors — `d48ebd65` (`check_membership_agreement`, RED-first), `c7c2905c` (terminal-setup
+registry row + the coupling decision), `95e86721` (ADR-109 appended amendment), `12e51c06`
+([#462] closed), `8e285499` (terra HIGH fixed), `8f81b48f` (this entry).
+
+**These are the POST-REWORD SHAs, and the correction is itself a recorded event.** All six
+commits were rebuilt (operator-approved, unpushed) to strip a literal `'"'"'` quoting artifact
+that a bash-style escape leaked into three commit messages, one of them a subject line. The
+rebuild changed every SHA — `53ec1738→d48ebd65`, `50a18278→c7c2905c`, `219424a6→95e86721`,
+`a049f661→12e51c06`, `6a0c100b→8e285499`, `a2947a80→8f81b48f` — which **invalidated this
+entry's own anchors and was caught by the ADR-85 session-end gate**, not by me. Content
+verified identical across the rebuild apart from one intended JOURNAL addition
+(`git diff backup/462-pre-reword HEAD` → `JOURNAL.md | 10 ++++++++++`). Lesson worth the ink:
+**a history rewrite silently rots every SHA citation pointing into it**, and the JOURNAL is the
+densest such citation site in the repo.
+
+**STOP #1 fired the frozen contract's own tripwire, and that was the highest-value output of
+the window.** W2-AC-1 required quoting "the ADR-104 census-method definition" verbatim.
+`grep -in census ADR-104` returns ONE hit, `:66`, in an unrelated list — **ADR-104 defines no
+census method**. The phrase traced to the architect's own handoff prose
+(`RESIDUAL.md:145-146`), an unverified premise. Three further mismatches were reported with it:
+W2-AC-2 was **provably unsatisfiable** (it demanded a declaration built only from sources on
+main that nonetheless includes `terminal-setup`, while the union of every machine surface is
+8 and excludes it); W2-AC-3/AC-4 **were [#472] verbatim**, which the same brief forbade; and
+"the wave-1 desired-state member set" names no artifact (wave 1 is spent on the `docs/intake/`
+§4 discharge). Architect re-scoped to AC-2'/AC-3'/AC-4' rather than to the letter of a contract
+that could not be met. **The lesson worth keeping: an ex-ante contract is falsifiable, and
+quoting its premises against live state before planning is what makes it so.**
+
+**Built.** `audit.py::check_membership_agreement` (ALL_CHECKS 37→38) inverts the census
+direction — the ADR-104 declaration is the fixed point, the six repo-keyed surfaces are diffed
+against it, per-repo per-surface. That closes the structural defect, not just its instance: the
+[#382] census censused `registry.md` ITSELF, so a member absent FROM that registry could not be
+found BY it. Pre-row live output read `terminal-setup [NO SURFACE]` — the blind spot, finally
+machine-reported. RED-first witnessed twice: 12/12 `AttributeError` before the build, then a
+perturbed `parity-surfaces.yaml` firing `fail` naming repo AND surface, reverted clean.
+
+**A defect the per-step gate caught rather than the reviewer.** The first draft reused
+`discover_repos()`, which reads the module-global `ECOSYSTEM_DIR` instead of the check's own
+`repo_path` — one of six surfaces silently reading a different repo than the other five. It
+surfaced as a genuine failure in `test_health_ok_with_registered_repo` (which monkeypatches
+exactly that global), was fixed by keying the read on `repo_path`, and is now pinned by a
+regression test. Reuse that ignores your parameter is not reuse.
+
+**Ruled and deliberately NOT done** — the honest half. No `deployed-versions.yaml` entry for
+`terminal-setup`: that file's write-contract binds it to real deploys and forcing one would
+fabricate deployment state for a repo never deployed to. So it reports **declared-but-not-deployed
+at PASS**, per ADR-109 §2 ("carried as model data, never a load error") and §8 ("surfaced, not
+fixed") — deliberately not WARN, since an undispositioned WARN REDs the ship-gate and trains
+the operator to disposition the organ, which is how [#460]'s 46-day FAIL came to be ignored.
+`resolve_fleet_members` NOT widened (a named ADR-109 §2 ruling, [#472]'s).
+
+**ADR-109's Related line corrected by appended marker (ADR-94):** it glossed *"ADR-104 (matrix
+width — 5 fleet repos)"*; ADR-104 ratified **nine** and explicitly declined to size the stages.
+The 5 is a data artifact of the deployed-versions anchor read back as a ruling. **9 governs.**
+
+**RESIDUAL, named not claimed away:** the declaration is a code constant, so it can drift from
+`ADR-104:15` silently. Making it loadable IS [#472]'s Done-when — recorded there, not
+half-solved here, and no new row filed because one would duplicate [#472].
+
+**Terra review — one HIGH, confirmed and fixed (`8e285499`).** `Model used: gpt-5.6-terra`,
+read off the artifact line rather than assumed. The finding: the five file-backed surfaces were
+read inside a fail-closed `try/except`, but the sixth — the `ecosystem/<repo>/` state-dir scan —
+was appended AFTER that loop and ran unguarded, so an `iterdir()` permission/IO error would
+abort the whole `audit.py health` run. **Worse than it first reads: the failure would deny every
+OTHER check its verdict, the opposite of the posture the surrounding code was written for.** It
+was introduced by my own earlier fix for the `discover_repos()` defect — a fix that moved the
+read without carrying over the error handling it moved away from. Guarded and pinned by a
+`Path.iterdir`-monkeypatching regression test. **Both defects this arc were mine, and neither
+was found by re-reading my own code** — one by the per-step gate, one by the reviewer.
+
+**Detector gap found at the STOP, recorded not filed (advisory-tier, §F).**
+`session_end_backpressure`'s BACKLOG advisory is **blind to pure-deletion closures**:
+`check_backlog_marker` matches its marker regex against `_added_lines()`, which keeps only `+`
+lines — but post-[#439] flip a closed task's row *leaves* `BACKLOG.md`, so a clean closure is a
+pure deletion and yields zero added lines. Verified here: this arc's `BACKLOG.md` diff has **0**
+added lines and the advisory fired, while [#460]'s closure (`e4d3a920`) passed only
+*incidentally*, on 2 added lines from unrelated [#461]/[#465] prose edits in the same commit.
+**The signal is inverted — the cleanest closures are the ones it cannot see.** Not filed as a
+row today; this line is the record so the next window picks it up instead of rediscovering it.
+
+**Result:** [#462] CLOSED (188 tasks, 189→188). Suite 2 failed / 2129 passed / 3 skipped — both
+failures the known [#457] ids, no new failures. ruff clean. `audit.py checks` = 38; the listing
+still dies on the pre-existing [#470] `U+2192` in `check_doc_code_edge` — confirmed NOT this
+arc's (every other first line, including the new one, is cp1252-safe).
+
+**Changes:** `scripts/audit.py` (+147), `tests/test_membership_agreement.py` (new),
+`ecosystem/registry.md` (+1 row), `ecosystem/doc-code-edge.yaml`, `ecosystem/doc-counts.md`
+(regenerated, 38 checks / 2134 tests), ADR-109 (+amendment), 4 count pins, `tasks/462-*`.
+
+**Next:** operator merge (`--no-ff`) then GREEN-on-main + push 0/0 before any DONE verdict.
+[#472] remains open and untouched in scope and in text.
+
 ### 2026-08-01 (c) — CC (Opus 5, local): [#460] replication MECHANIZED, codex wrapper pinned + LF-safe, baseline reconciled
 
 **Did:** Window-close arc on `feat/460-replication-and-close`. SHA anchors — `61496aca`
