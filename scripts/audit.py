@@ -3128,9 +3128,16 @@ def check_fleet_audit_replication(repo_path: Path) -> list[Finding]:
                         f"no local {_AUTOMATION_BRANCH} branch -- nothing to replicate")]
     remote_ref = f"refs/remotes/origin/{_AUTOMATION_BRANCH}"
     if not _run(["rev-parse", "--verify", "--quiet", remote_ref]):
-        return [Finding("fleet_audit_replication", "n/a",
-                        f"no {remote_ref} -- the branch has never been replicated, or no "
-                        f"fetch has run in this clone")]
+        # NOT n/a (codex HIGH, 2026-08-01). A local durable branch with no remote-tracking ref
+        # means this clone has no evidence the record was EVER replicated -- the strongest form
+        # of the defect, not an absence of one. Returning `n/a` here would disable the backstop
+        # in exactly the never-replicated case it exists for, and the first draft's own evidence
+        # string said "has never been replicated" while reporting `n/a`.
+        return [Finding("fleet_audit_replication", "fail",
+                        f"local {_AUTOMATION_BRANCH} exists but there is no {remote_ref} -- no "
+                        f"evidence it has EVER been replicated; ADR-80's durable record may "
+                        f"exist on ONE disk ([#460]). If this clone simply has not fetched, "
+                        f"run git fetch origin and re-check")]
 
     count = _run(["rev-list", "--count", f"{remote_ref}..refs/heads/{_AUTOMATION_BRANCH}"])
     if count is None or not count.isdigit():

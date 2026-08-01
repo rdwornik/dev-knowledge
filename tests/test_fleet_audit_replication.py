@@ -124,6 +124,50 @@ def test_alarm_is_registered_in_all_checks():
     assert a.check_fleet_audit_replication in a.ALL_CHECKS
 
 
+def test_never_replicated_is_a_failure_not_na(tmp_path, monkeypatch):
+    """Codex HIGH (2026-08-01): a local durable branch with NO remote-tracking ref is the
+    strongest form of the defect, not the absence of one.
+
+    The first draft returned `n/a` here, which disabled the backstop in exactly the
+    never-replicated case it exists for -- and its own evidence string said "has never been
+    replicated" while reporting n/a.
+    """
+    work = tmp_path / "never-pushed"
+    subprocess.run(["git", "init", "-q", str(work)], check=True)
+    _git("config", "user.email", "t@t", cwd=work)
+    _git("config", "user.name", "t", cwd=work)
+    (work / "a.md").write_text("x\n", encoding="utf-8", newline="\n")
+    _git("add", "-A", cwd=work)
+    _git("commit", "-q", "--no-verify", "-m", "record", cwd=work)
+    _git("branch", "-M", "automation/fleet-audit", cwd=work)
+
+    monkeypatch.setattr(a, "_REPO_ROOT", work)
+    findings = a.check_fleet_audit_replication(work)
+    assert [f.status for f in findings] == ["fail"], findings
+    assert "ever been replicated" in findings[0].evidence.lower(), findings[0].evidence
+
+
+def test_push_alone_refreshes_the_tracking_ref_no_fetch_needed(repo_with_remote, monkeypatch):
+    """The OTHER half of that codex HIGH, which was REFUTED and is pinned so it stays refuted.
+
+    The review claimed a successful push leaves the tracking ref stale, so the alarm would
+    eventually report lag while replication is healthy. Measured: git updates
+    refs/remotes/origin/<branch> as part of the push itself, with no fetch. Pinning it means
+    the alarm's no-network design rests on a verified git behaviour rather than an assumption.
+    """
+    monkeypatch.setattr(a, "_REPO_ROOT", repo_with_remote)
+    _advance(repo_with_remote, 2)
+    ok, detail = a._push_routine_branch(repo_with_remote)
+    assert ok, detail
+
+    ahead = subprocess.run(
+        ["git", "-C", str(repo_with_remote), "rev-list", "--count",
+         "refs/remotes/origin/automation/fleet-audit..refs/heads/automation/fleet-audit"],
+        capture_output=True, text=True,
+    ).stdout.strip()
+    assert ahead == "0", f"tracking ref stale after push (ahead={ahead}) -- no fetch was run"
+
+
 # --------------------------------------------------------------------------- the push leg
 
 
