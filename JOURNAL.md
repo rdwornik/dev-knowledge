@@ -22,8 +22,20 @@
 ### 2026-08-01 (d) — CC (Opus 5, local): [#383] wave 2 — [#462] closed, the membership blind spot mechanized, ADR-109's "5 fleet repos" gloss corrected
 
 **Did:** `feat/462-membership-agreement-census`, commit-and-STOP (operator is the serial gate).
-SHA anchors — `53ec1738` (`check_membership_agreement`, RED-first), `50a18278` (terminal-setup
-registry row + the coupling decision), `219424a6` (ADR-109 appended amendment).
+SHA anchors — `d48ebd65` (`check_membership_agreement`, RED-first), `c7c2905c` (terminal-setup
+registry row + the coupling decision), `95e86721` (ADR-109 appended amendment), `12e51c06`
+([#462] closed), `8e285499` (terra HIGH fixed), `8f81b48f` (this entry).
+
+**These are the POST-REWORD SHAs, and the correction is itself a recorded event.** All six
+commits were rebuilt (operator-approved, unpushed) to strip a literal `'"'"'` quoting artifact
+that a bash-style escape leaked into three commit messages, one of them a subject line. The
+rebuild changed every SHA — `53ec1738→d48ebd65`, `50a18278→c7c2905c`, `219424a6→95e86721`,
+`a049f661→12e51c06`, `6a0c100b→8e285499`, `a2947a80→8f81b48f` — which **invalidated this
+entry's own anchors and was caught by the ADR-85 session-end gate**, not by me. Content
+verified identical across the rebuild apart from one intended JOURNAL addition
+(`git diff backup/462-pre-reword HEAD` → `JOURNAL.md | 10 ++++++++++`). Lesson worth the ink:
+**a history rewrite silently rots every SHA citation pointing into it**, and the JOURNAL is the
+densest such citation site in the repo.
 
 **STOP #1 fired the frozen contract's own tripwire, and that was the highest-value output of
 the window.** W2-AC-1 required quoting "the ADR-104 census-method definition" verbatim.
@@ -69,7 +81,7 @@ The 5 is a data artifact of the deployed-versions anchor read back as a ruling. 
 `ADR-104:15` silently. Making it loadable IS [#472]'s Done-when — recorded there, not
 half-solved here, and no new row filed because one would duplicate [#472].
 
-**Terra review — one HIGH, confirmed and fixed (`6a0c100b`).** `Model used: gpt-5.6-terra`,
+**Terra review — one HIGH, confirmed and fixed (`8e285499`).** `Model used: gpt-5.6-terra`,
 read off the artifact line rather than assumed. The finding: the five file-backed surfaces were
 read inside a fail-closed `try/except`, but the sixth — the `ecosystem/<repo>/` state-dir scan —
 was appended AFTER that loop and ran unguarded, so an `iterdir()` permission/IO error would
