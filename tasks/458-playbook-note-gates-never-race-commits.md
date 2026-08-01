@@ -1,7 +1,7 @@
 ---
 id: "[#458]"
 title: "PLAYBOOK candidate note — gates and commits never run concurrently in one tree"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E3] Lessons feedback loop"

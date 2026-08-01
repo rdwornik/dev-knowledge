@@ -1,7 +1,7 @@
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-07-30
+> Last updated: 2026-08-01
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
@@ -1250,6 +1250,8 @@ case, e.g. a corp-monorepo handoff and an ai-council handoff at the same time). 
 **The real trigger is *committing*, not *editing* (sharpened 2026-06-07 — 2nd incident).** Same-repo parallel sessions are allowed in exactly two shapes:
 - **(a) Zero-write** — read/analysis only: no commits, no `git add`/staging, no branch ops. Any number of zero-write sessions may share one checkout safely.
 - **(b) Each committing session in its OWN worktree.** **One checkout = one committing session.** A "single commit at the end" still counts as a committing session — there is no "I'll only commit once" exception. (Why: a no-worktree session's lone commit can land on a *concurrent* session's branch, sweep its staged file, and mis-root the branch — witnessed twice, LESSONS 2026-06-07 / 2026-06-05.)
+
+**A long gate/suite run and a commit are mutually exclusive IN THE SAME TREE (witnessed 2026-07-31, the [#382] W3 boundary — JOURNAL entry (p)).** Distinct from the session-concurrency rule above, and the reason it needs its own line: this fires inside a **single** session, where the two shapes above both look satisfied. A background full-suite run raced a JOURNAL commit in the same checkout and produced a **phantom failure** — `test_check_selects_correctly_under_inherited_git_dir`, a test that spawns git, observing the tree mid-swap while pre-commit's stash/restore held it; the clean rerun PASSED with no code change. Same family as the pre-commit-stash and `GIT_DIR` gotchas, but a separate rule: **sequence the suite and the commit, or run the suite in a worktree.** Why it earns a rule rather than a footnote: a phantom RED is more expensive than a slow lane, because it invites a disposition — or a "fix" — against a defect that never existed.
 
 **Integration authority — operator authorizes, CC-primary executes (2026-07-16 ruling).** Merge execution is delegated to the CC-primary session: on the operator's explicit **GO** (one authorization per integration), CC performs the `--no-ff` merge to `main` **from the primary checkout**, verifies (that repo's suite + — for the hub — `ship-gate` green; any failure STOPS the chain and surfaces), then completes teardown — a plain merged branch is deleted directly; a worktree branch requires the worktree to be **removed first** (a checked-out branch cannot be `-d` deleted), per the worked example below. The operator is the **authorization gate, not the executor**. Invariants unchanged: one merge to `main` at a time; integration only from the primary checkout; parallel/worktree sessions still **commit-and-STOP and never self-merge** — they hand their branch to the primary for the authorized merge.
 
