@@ -171,7 +171,7 @@ def materialize_query_root(repo_root: Path, removal_set, dest: Path, base: str =
             continue  # cannot restore -> evaluate_removal records it as unverifiable
         target = dest / rel
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content, encoding="utf-8")
+        target.write_text(content, encoding="utf-8", newline="\n")
     return dest
 
 

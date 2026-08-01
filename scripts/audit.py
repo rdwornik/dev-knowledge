@@ -380,7 +380,7 @@ def load_state(repo_name: str) -> Optional[RepoState]:
 def save_state(state: RepoState) -> None:
     p = _state_path(state.name)
     p.parent.mkdir(parents=True, exist_ok=True)
-    with open(p, "w", encoding="utf-8") as fh:
+    with open(p, "w", encoding="utf-8", newline="\n") as fh:
         yaml.dump(state.to_dict(), fh, default_flow_style=False, allow_unicode=True)
 
 
@@ -3199,7 +3199,7 @@ def write_report(content: str, run_date: date, single_repo: Optional[str] = None
     else:
         filename = f"{run_date.isoformat()}-ecosystem-audit.md"
     out = AUDITS_DIR / filename
-    out.write_text(content, encoding="utf-8")
+    out.write_text(content, encoding="utf-8", newline="\n")
     return out
 
 # ---------------------------------------------------------------------------
@@ -3220,7 +3220,7 @@ def regenerate_index(states: list[RepoState]) -> None:
         "repos": [s.to_dict() for s in states],
     }
     ECOSYSTEM_INDEX.parent.mkdir(parents=True, exist_ok=True)
-    with open(ECOSYSTEM_INDEX, "w", encoding="utf-8") as fh:
+    with open(ECOSYSTEM_INDEX, "w", encoding="utf-8", newline="\n") as fh:
         yaml.dump(index, fh, default_flow_style=False, allow_unicode=True)
 
 # ---------------------------------------------------------------------------

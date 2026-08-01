@@ -19,6 +19,76 @@
 
 ---
 
+### 2026-08-01 (b) — CC (Opus 5, local): generator newline defect fixed (RED-first), A-3 groom rulings applied, first net-negative arc of the window
+
+**Did:** Closing micro-arc on `fix/generator-newlines-and-groom`. SHA anchors — `acb26d38`
+(fix + [#471] filed), `af6fa93f` ([#471] closed), `9039d2d0` ([#458]), `8636e565` ([#468]),
+`bdd7f8aa` ([#466]/[#467]), `6b158858` ([#462] split), `cae18323` ([#465]), `13d9cc16` (codex
+HIGH). Commit-and-STOP; branch not self-merged.
+
+**PRECONDITION NOT MET, and it changed the base.** The brief assumed
+`docs/filing-batch-2026-08-01` had been merged and said to branch off "the new tip". It had
+NOT been merged — `main` was still `c7af2c03`, and [#467]/[#468], which §2 asks to close,
+existed only on that branch. Branching off the filing tip instead preserved the operator's
+merge gate (self-merging was explicitly withheld last window) while keeping the work
+continuous. Flagged rather than silently reconciled.
+
+**[#471] generator newlines — filed and fixed in one arc, RED first.** The red was the real
+failure, not an approximation: `test_intake_carrier_survives_a_regenerated_index` failed with
+`assert []` — the zero-item-node carrier reproduced as a test. AST sweep (not grep) found the
+true scope. Fixed by pinning `newline="\n"`, following this repo's own
+`generate_floor._write_text_lf` precedent. **The tests are platform-independent by
+construction:** the bug only reproduces where `os.linesep` is CRLF, so a naive assertion would
+pass vacuously on Linux CI and guard nothing — the behavioural leg SIMULATES the translating
+platform, and `test_simulation_itself_reproduces_the_defect` guards the simulation so the suite
+cannot go quietly vacuous.
+
+**The codex reviewer then found a real hole in my own guard.** `_write_sites()` swept with
+`glob("*.py")` — NON-recursive — so `scripts/toc/cli.py:50` (which writes the PLAYBOOK ToC,
+the same generator class) kept its unpinned write while the guard reported GREEN. Verified
+before accepting, then fixed: 12 sites / 9 files, sweep switched to `rglob`, and a regression
+now pins the recursion itself so a refactor back to `glob()` fails loudly. A guard that misses
+a subpackage is worse than no guard, because it is believed.
+
+**Reviewer lane, recorded per the brief:** [#469]'s pin decision has not landed, so the skill
+ran as-is. **Model used = `gpt-5.6-sol`, not terra** — the diff contains `.py`, so the
+path-guard routed it to the CODE profile, which passes no model flag. [#431] + [#469]
+reproducing live in the very arc that filed [#469]. The wrapper's severity heuristic also
+printed "High 0" while the body carried one HIGH (same miscount as the [#383] wave-1 entry) —
+reading the body rather than the summary is what surfaced the finding.
+
+**Groom rulings applied**, each recorded in-row before retirement so no row closes without its
+reason: [#458] PLAYBOOK Ch8 gained the gates-never-race-commits rule (placed as its own rule,
+not folded into the session-shape list — it fires inside a *single* session); [#468] the
+why-not-a-frontmatter-library rationale landed in `gen_task_tree.py`'s docstring, co-located
+with the parser it explains, and a first draft citing a non-existent `render_task_file` was
+caught and corrected to `emit_task_file_text`; [#466] split-only ruled TERMINAL (the Done-when's
+own second branch, so it closes satisfied); [#467] the code-context trial DEFERRED until a
+consumer shows pain; [#462] SPLIT — clause 1 stays, the unsatisfiable declaration-diff becomes
+**[#472]** with its blocker recorded; [#465] took a POINTER to the L6 pack instead of the note
+that would not fit, and its skips-as-pass leg is marked LIVE-now (it sits in `audit.py` and
+corrupts every consumer, so it is not sequenced behind [#460]).
+
+**Result:** ship-gate **GREEN** (15 WARN dispositioned), `doc_claims` 4/4, `doc_rot` 0,
+`canonical_freshness` 8/8, `validate_backlog` OK (191 tasks, 0 warnings), `gen_task_tree`/
+`gen_intake_tree` checks ok, `ruff` clean, doc-counts re-pinned 2108. Suite **2103 passed /
+2 failed / 3 skipped** — exactly the two standing [#457] ids, no new failures. The fix
+verified itself in situ: index regens now leave the tree clean, where the same commands
+needed hand-normalisation twice earlier today.
+
+**§F ledger (this arc):** filed 2 ([#471], [#472]), closed 5 ([#458], [#466], [#467], [#468],
+[#471]) → 194 → **191**, net **−3**. The first net-negative arc since `5eebee91`. Window
+cumulative: 16 filed, 6 closed, 181 → 191. NOTE: the brief's "boot 189" does not match any
+measured value — this arc's base was 194 (verified against `9161fd33`); the real numbers are
+reported rather than the assumed one.
+
+**Abandoned:** nothing. Deliberately NOT done — the [#460] mechanization (no operator ruling
+relayed, so the conditional lane stayed untouched), and the CRLF in the codex wrapper's own
+output (`~/.claude/bin/codex-review.ps1` is global infra; core-invariant #6 makes that an
+operator ruling, not a unilateral edit).
+
+**Next:** merge decision on both branches; the [#460] mechanization GO; [#469]'s pin ruling.
+
 ### 2026-08-01 (a) — CC (Opus 5, local): filing batch — conformance absorbed, intake #23 filed, [#467]–[#470], [#460] REVERSED on live host evidence
 
 **Did:** Four lanes off `main` on `docs/filing-batch-2026-08-01`, serial, one commit per lane,

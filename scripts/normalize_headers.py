@@ -83,7 +83,7 @@ def normalize_file(path: Path) -> bool:
     rewritten = normalize_text(original)
     if rewritten == original:
         return False
-    path.write_text(rewritten, encoding="utf-8")
+    path.write_text(rewritten, encoding="utf-8", newline="\n")
     return True
 
 

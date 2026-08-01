@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "dfaf3ed667e6a642e44d758a267571da5bca59d4a3785dd0840df78e4cbffe96",
+  "generated_sha256": "ebe5f1eb141395172ee4181120086d12ebc62f6bf3393b54d8317f0acac2f96c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -497,10 +497,6 @@
       "file": "438-codify-gate-class-posture-terra-design-review-be.md"
     },
     {
-      "task": 458,
-      "file": "458-playbook-note-gates-never-race-commits.md"
-    },
-    {
       "task": 441,
       "file": "441-way-of-working-the-default-is-one-strong-self-co.md"
     },
@@ -923,14 +919,6 @@
     {
       "task": 440,
       "file": "440-make-the-tasks-id-ledger-tamper-evident-a-delete.md"
-    },
-    {
-      "task": 467,
-      "file": "467-paste-budget-repomix-rejected-on-measurement.md"
-    },
-    {
-      "task": 468,
-      "file": "468-why-not-a-frontmatter-library-the-measured-ratio.md"
     },
     {
       "prose": ""
@@ -1525,12 +1513,12 @@
       "file": "383-execution-waves-per-surface.md"
     },
     {
-      "task": 466,
-      "file": "466-intake-flip-candidate-post-discharge.md"
-    },
-    {
       "task": 462,
       "file": "462-terminal-setup-absent-from-every-machine-member.md"
+    },
+    {
+      "task": 472,
+      "file": "472-membership-census-diffs-declaration-vs-surfaces.md"
     },
     {
       "prose": ""

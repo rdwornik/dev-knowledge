@@ -159,7 +159,7 @@ _TARGETS: list[tuple[Path, "callable"]] = [
 def _cmd_write() -> int:
     _GENERATED_DIR.mkdir(parents=True, exist_ok=True)
     for target, renderer in _TARGETS:
-        target.write_text(renderer(), encoding="utf-8")
+        target.write_text(renderer(), encoding="utf-8", newline="\n")
         print(f"gen_claude_rosters: wrote {target.relative_to(_REPO_ROOT)}")
     return 0
 

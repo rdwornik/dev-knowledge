@@ -1,7 +1,7 @@
 ---
 id: "[#468]"
 title: "Record why the tasks/intake frontmatter parser is hand-rolled — the measured rationale is redundancy, NOT fidelity"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E7] Tooling & evaluation"

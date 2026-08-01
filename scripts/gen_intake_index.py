@@ -150,7 +150,7 @@ def _cmd_write() -> int:
         print(f"error: {_TARGET} not found", file=sys.stderr)
         return 2
     new_content = _splice(_TARGET.read_text(encoding="utf-8"), render_contents())
-    _TARGET.write_text(new_content, encoding="utf-8")
+    _TARGET.write_text(new_content, encoding="utf-8", newline="\n")
     print(f"gen_intake_index: wrote {_TARGET.relative_to(_REPO_ROOT)}")
     return 0
 

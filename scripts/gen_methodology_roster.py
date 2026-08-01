@@ -145,7 +145,7 @@ def render(manifest_path: Path) -> str:
 
 def _cmd_write() -> int:
     _TARGET.parent.mkdir(parents=True, exist_ok=True)
-    _TARGET.write_text(render(resolve_manifest_path()), encoding="utf-8")
+    _TARGET.write_text(render(resolve_manifest_path()), encoding="utf-8", newline="\n")
     print(f"gen_methodology_roster: wrote {_TARGET.relative_to(_REPO_ROOT)}")
     return 0
 
