@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-08-01 (e) — CC (Opus 5, local): Arc 2 merged, squeeze Acts 1–3 completed, [#465] leg 1 + [#461] mechanized
+
+**Did:** Arc 2 merged at `67863180` (pushed, 0/0), then `chore/eod-completion`. SHA anchors —
+`80e743aa` ([#465] leg 1), `a3f2453f` (doc_rot trim), `0216acb7` ([#461] closed).
+
+**The squeeze Acts had NOT run — verified, not assumed.** `git log 9faef8dd..main` showed only
+Arc 2's own commits, exactly as the brief suspected. Act 1 then found the tree **already
+current**: all seven generators `--check` clean, `canonical_freshness` OK (8 files),
+`doc_claims` OK, and no prose still calling ADR-109 §4 pending or the dailies unreplicated.
+ARCHITECTURE carries no numeric check-count to rot — #222 moved it to `doc-counts.md`, which is
+the decoupling working as designed.
+
+**[#465] leg 1 — a skip is no longer recorded as PASS (16 sites).** A green meaning "did not
+run" is worse than a red: a verification organ reporting success for work it never did. The
+RED-first test is **structural** — it sweeps every `ALL_CHECKS` member against a planted skip
+rather than pinning a site list — and that choice paid immediately: it found **14** live
+offenders including `fleet_parity`, which my own manual enumeration had **missed**. The 9
+hub-only ones matched the row's field evidence exactly.
+
+**Two couplings the fix exposed, and the second is the better lesson.** (1)
+`enforcement_coverage` CLASSIFIED organs by observing the buggy `pass`+hub-only signal — the
+row's "corrupts EVERY consumer" made concrete, a consumer keyed on the producer's bug. (2) My
+first blanket regex retag was **wrong**: `reconciled_versions` carries a CONDITIONAL evidence
+expression where matched edges are a genuine pass and only zero-edges is a skip. **The tests
+caught my fix, not just the original defect.** Swept the rest: 0 conditional sites remain.
+
+**Then my own [#465] annotation RED-ed the ship-gate.** The row was 1193 chars against a
+1200-char `doc_rot` cap — **seven characters of headroom** — so any annotation had to REPLACE,
+not add. Trimmed to 1197 rather than dispositioned; a self-induced WARN dispositioned is how a
+register fills with entries describing nobody's problem.
+
+**[#461] — the six metrics mechanized, and two of them deliberately carry no number.**
+`scripts/window_metrics.py`, first report committed as proof. Windows-to-cutoff is a judgment
+INPUT; drift-report runs is **not-instrumented** — `desired_state_report.main()` prints to
+stdout and writes no artifact, so a run leaves no trace to count, and printing `0` would read
+as "measured none" when the truth is "nobody counts". `None` renders NOT COMPUTED, never zero,
+pinned by a test. The row's own defect is fixed in the API: the brief's "+6" was one number
+answering three questions, so `backlog_delta` reports filed/closed/net separately.
+
+**Ledger (mechanized, not hand-counted — the first use of the new organ):** 189 → **187**,
+net **−2**, filed 0, closed 2 (#461, #462).
+
+**Result:** ship-gate GREEN, suite 2 failed / 2140 passed / 3 skipped — both the known [#457]
+ids. ruff clean. `[#465]` stays OPEN with legs 2–4.
+
+**Next:** [#459]'s codemap source-root question is in the STOP report for an in-chat ruling; the
+one-line prose consequence lands after it. Merge is the operator's.
+
 ### 2026-08-01 (d) — CC (Opus 5, local): [#383] wave 2 — [#462] closed, the membership blind spot mechanized, ADR-109's "5 fleet repos" gloss corrected
 
 **Did:** `feat/462-membership-agreement-census`, commit-and-STOP (operator is the serial gate).
