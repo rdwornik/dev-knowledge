@@ -166,7 +166,7 @@ def test_absent_consumer_all_tier1_absent_and_toc_not_false_positive(tmp_path):
 @pytest.mark.parametrize("organ", ["doc_claims", "git_backlog_drift"])
 def test_group_b_hub_scoped_demonstrated_despite_violation(tmp_path, organ):
     """The Group-B guard is DEMONSTRATED: invoked off-hub with a real violation present, the organ
-    still returns the hub-only PASS -> the reporter classifies hub-scoped from behavior, not a
+    still returns the hub-only n/a -> the reporter classifies hub-scoped from behavior, not a
     source-read of the `if repo_path != _REPO_ROOT` guard (architect ratification 2026-07-03)."""
     root = tmp_path / "consumer"
     root.mkdir()
@@ -177,10 +177,11 @@ def test_group_b_hub_scoped_demonstrated_despite_violation(tmp_path, organ):
     (root / "ARCHITECTURE.md").write_text(
         "# Arch\n\n- audit: **3 registered checks** (wrong on purpose)\n", encoding="utf-8")
 
-    # The demonstration: the organ short-circuits to pass off-hub DESPITE the violation.
+    # The demonstration: the organ short-circuits to n/a off-hub DESPITE the violation
+    # ([#465] leg 1 retagged the token; the DEMONSTRATED-not-source-read standard is unchanged).
     fn = getattr(audit, f"check_{organ}")
     findings = fn(root)
-    assert findings and all(f.status == "pass" and "hub-only" in f.evidence for f in findings)
+    assert findings and all(f.status == "n/a" and "hub-only" in f.evidence for f in findings)
 
     # The reporter derives hub-scoped from that behavior.
     verdict, evidence = ec._demonstrate_hub_scoped(organ, root)

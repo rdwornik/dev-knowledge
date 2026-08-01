@@ -647,7 +647,10 @@ def _force_reconciled_mismatch(root: Path) -> bool:
 # ---------------------------------------------------------------------------
 # Organs 4 & 5 — doc_claims / git_backlog_drift (Group B: hub-only-guarded).
 # The hub-scoped verdict is DEMONSTRATED, not source-read: invoke the organ off-hub and confirm
-# it returns the hub-only PASS. A future refactor that drops the guard flips this and is surfaced.
+# it short-circuits with the hub-only n/a. A future refactor that drops the guard flips this and
+# is surfaced. ([#465] leg 1: the observed token was `pass` until skips stopped being recorded as
+# passes -- this consumer was keyed on the producer's bug, which is what "a skip emitted as pass
+# corrupts EVERY consumer of check results" meant in practice.)
 # ---------------------------------------------------------------------------
 
 
@@ -658,8 +661,12 @@ def _ensure_scripts_on_path() -> None:
 
 def _demonstrate_hub_scoped(check_name: str, consumer_root: Path) -> tuple[str, str]:
     """Run the Group-B organ against a NON-hub repo_path and observe the guard. This converts
-    'I read the `if repo_path != _REPO_ROOT: return pass` guard' into 'I demonstrated the organ
-    returns the hub-only PASS off-hub' — the firing-not-presence standard applied at its own seam."""
+    'I read the `if repo_path != _REPO_ROOT` guard' into 'I demonstrated the organ short-circuits
+    off-hub' — the firing-not-presence standard applied at its own seam.
+
+    Observes `n/a` ([#465] leg 1). `n/a` is audit.py's own token for "ran but not applicable
+    here"; `pass` is not accepted as an alias, because tolerating both would keep the corrupted
+    signal alive in the one organ whose whole job is to verify that organs behave as classified."""
     try:
         from scripts import audit as _audit  # noqa: E402
     except ImportError:
@@ -669,9 +676,9 @@ def _demonstrate_hub_scoped(check_name: str, consumer_root: Path) -> tuple[str, 
     if fn is None:
         return (ABSENT, f"UNEXPECTED: audit.check_{check_name} not found")
     findings = fn(Path(consumer_root))
-    if findings and all(f.status == "pass" and "hub-only" in f.evidence for f in findings):
+    if findings and all(f.status == "n/a" and "hub-only" in f.evidence for f in findings):
         return (HUB_SCOPED,
-                f"demonstrated: check_{check_name} returned the hub-only PASS off-hub "
+                f"demonstrated: check_{check_name} returned the hub-only n/a off-hub "
                 f"(guard short-circuits despite any local violation)")
     # The guard did NOT short-circuit as classified — surface it, never force green.
     return (ABSENT,

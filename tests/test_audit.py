@@ -1214,7 +1214,7 @@ def test_no_sibling_orphans_degrades_without_git(
     (tmp_path / "myrepo-cadence").mkdir()  # would be an orphan if git were available
     monkeypatch.setattr(aud, "_git_registered_worktrees", lambda rp: None)
     f = aud.check_no_sibling_orphans(repo)[0]
-    assert f.status == "pass"
+    assert f.status == "unavailable"  # [#465] leg 1: could not run != verified clean
     assert "skipped" in f.evidence
 
 
@@ -1355,7 +1355,7 @@ def test_handoff_version_stamp_no_spec_passes(tmp_path: Path) -> None:
     """No protocols/HANDOFF_PROCESS.md → child-repo-safe vacuous pass."""
     (tmp_path / "ARCHITECTURE.md").write_text("# Architecture\n\nstamp 4.4\n", encoding="utf-8")
     f = aud.check_handoff_version_stamp(tmp_path)[0]
-    assert f.status == "pass"
+    assert f.status == "n/a"  # [#465] leg 1: no spec to validate != validated
     assert "nothing to validate" in f.evidence
 
 
@@ -2050,7 +2050,7 @@ def test_hooks_armed_off_hub_is_pass(tmp_path: Path, monkeypatch) -> None:
     (tmp_path / ".git" / "hooks" / "pre-push").unlink()  # unarmed, but off-hub...
     monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path / "some-other-hub"))
     f = aud.check_hooks_armed(tmp_path)[0]
-    assert f.status == "pass"
+    assert f.status == "n/a"  # [#465] leg 1: hub-only skip != pass
     assert "hub-only" in f.evidence
 
 
@@ -2204,7 +2204,7 @@ def test_fleet_parity_findings_all_benign_one_visible_summary():
 
 def test_check_fleet_parity_hub_only(tmp_path):
     out = aud.check_fleet_parity(tmp_path)                    # not the hub
-    assert len(out) == 1 and out[0].status == "pass" and "hub-only" in out[0].evidence
+    assert len(out) == 1 and out[0].status == "n/a" and "hub-only" in out[0].evidence
 
 
 def test_check_fleet_parity_green_on_live_repo():

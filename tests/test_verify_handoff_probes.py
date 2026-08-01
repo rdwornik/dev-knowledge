@@ -592,7 +592,7 @@ def test_check_passes_when_no_probe_bundle(tmp_path):
     findings = aud.check_handoff_probes(tmp_path)
     assert len(findings) == 1
     assert findings[0].check_name == "handoff_probes"
-    assert findings[0].status == "pass"
+    assert findings[0].status == "n/a"  # [#465] leg 1
 
 
 def test_check_fail_class_gates_on_a_failing_probe(tmp_path):
