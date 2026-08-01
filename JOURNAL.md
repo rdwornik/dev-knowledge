@@ -19,6 +19,68 @@
 
 ---
 
+### 2026-08-01 (d) — CC (Opus 5, local): [#383] wave 2 — [#462] closed, the membership blind spot mechanized, ADR-109's "5 fleet repos" gloss corrected
+
+**Did:** `feat/462-membership-agreement-census`, commit-and-STOP (operator is the serial gate).
+SHA anchors — `53ec1738` (`check_membership_agreement`, RED-first), `50a18278` (terminal-setup
+registry row + the coupling decision), `219424a6` (ADR-109 appended amendment).
+
+**STOP #1 fired the frozen contract's own tripwire, and that was the highest-value output of
+the window.** W2-AC-1 required quoting "the ADR-104 census-method definition" verbatim.
+`grep -in census ADR-104` returns ONE hit, `:66`, in an unrelated list — **ADR-104 defines no
+census method**. The phrase traced to the architect's own handoff prose
+(`RESIDUAL.md:145-146`), an unverified premise. Three further mismatches were reported with it:
+W2-AC-2 was **provably unsatisfiable** (it demanded a declaration built only from sources on
+main that nonetheless includes `terminal-setup`, while the union of every machine surface is
+8 and excludes it); W2-AC-3/AC-4 **were [#472] verbatim**, which the same brief forbade; and
+"the wave-1 desired-state member set" names no artifact (wave 1 is spent on the `docs/intake/`
+§4 discharge). Architect re-scoped to AC-2'/AC-3'/AC-4' rather than to the letter of a contract
+that could not be met. **The lesson worth keeping: an ex-ante contract is falsifiable, and
+quoting its premises against live state before planning is what makes it so.**
+
+**Built.** `audit.py::check_membership_agreement` (ALL_CHECKS 37→38) inverts the census
+direction — the ADR-104 declaration is the fixed point, the six repo-keyed surfaces are diffed
+against it, per-repo per-surface. That closes the structural defect, not just its instance: the
+[#382] census censused `registry.md` ITSELF, so a member absent FROM that registry could not be
+found BY it. Pre-row live output read `terminal-setup [NO SURFACE]` — the blind spot, finally
+machine-reported. RED-first witnessed twice: 12/12 `AttributeError` before the build, then a
+perturbed `parity-surfaces.yaml` firing `fail` naming repo AND surface, reverted clean.
+
+**A defect the per-step gate caught rather than the reviewer.** The first draft reused
+`discover_repos()`, which reads the module-global `ECOSYSTEM_DIR` instead of the check's own
+`repo_path` — one of six surfaces silently reading a different repo than the other five. It
+surfaced as a genuine failure in `test_health_ok_with_registered_repo` (which monkeypatches
+exactly that global), was fixed by keying the read on `repo_path`, and is now pinned by a
+regression test. Reuse that ignores your parameter is not reuse.
+
+**Ruled and deliberately NOT done** — the honest half. No `deployed-versions.yaml` entry for
+`terminal-setup`: that file's write-contract binds it to real deploys and forcing one would
+fabricate deployment state for a repo never deployed to. So it reports **declared-but-not-deployed
+at PASS**, per ADR-109 §2 ("carried as model data, never a load error") and §8 ("surfaced, not
+fixed") — deliberately not WARN, since an undispositioned WARN REDs the ship-gate and trains
+the operator to disposition the organ, which is how [#460]'s 46-day FAIL came to be ignored.
+`resolve_fleet_members` NOT widened (a named ADR-109 §2 ruling, [#472]'s).
+
+**ADR-109's Related line corrected by appended marker (ADR-94):** it glossed *"ADR-104 (matrix
+width — 5 fleet repos)"*; ADR-104 ratified **nine** and explicitly declined to size the stages.
+The 5 is a data artifact of the deployed-versions anchor read back as a ruling. **9 governs.**
+
+**RESIDUAL, named not claimed away:** the declaration is a code constant, so it can drift from
+`ADR-104:15` silently. Making it loadable IS [#472]'s Done-when — recorded there, not
+half-solved here, and no new row filed because one would duplicate [#472].
+
+**Result:** [#462] CLOSED (188 tasks, 189→188). Suite 2 failed / 2129 passed / 3 skipped — both
+failures the known [#457] ids, no new failures. ruff clean. `audit.py checks` = 38; the listing
+still dies on the pre-existing [#470] `U+2192` in `check_doc_code_edge` — confirmed NOT this
+arc's (every other first line, including the new one, is cp1252-safe).
+
+**Changes:** `scripts/audit.py` (+147), `tests/test_membership_agreement.py` (new),
+`ecosystem/registry.md` (+1 row), `ecosystem/doc-code-edge.yaml`, `ecosystem/doc-counts.md`
+(regenerated, 38 checks / 2134 tests), ADR-109 (+amendment), 4 count pins, `tasks/462-*`.
+
+**Next:** operator merge (`--no-ff`) then GREEN-on-main + push 0/0 before any DONE verdict.
+[#472] remains open and untouched in scope and in text.
+
 ### 2026-08-01 (c) — CC (Opus 5, local): [#460] replication MECHANIZED, codex wrapper pinned + LF-safe, baseline reconciled
 
 **Did:** Window-close arc on `feat/460-replication-and-close`. SHA anchors — `61496aca`
