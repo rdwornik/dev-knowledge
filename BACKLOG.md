@@ -429,8 +429,10 @@ So that the four-state ledger's first measurement produces tickets rather than a
 
 **The brake is DISCHARGED.** Intake §6's standing constraint — *no new fleet machinery before [#381] rules* — was met when **ADR-104** was accepted and merged at **`92fabb51`**, closing [#381]. S24–S27 remain sequenced: [#383] is gated on [#382], and [#385] on [#383]. **Those gates are recorded in prose and are NOT mechanically enforced** — `validate_backlog`'s `_DEPID_RE` requires a `#` and the [E9] chain's clauses are written bare, so they do not fire; see [#424].
 
-### [S24] Declare desired state once, as data, instead of as N registries
+### [S24] Declare desired state once, as data, instead of as N registries — **COMPLETED 2026-08-01**
 So that every check derives from one schema — a check without a schema row is the registry-sprawl anti-pattern that produced "green that means nothing".
+
+**COMPLETED 2026-08-01.** All tasks closed: [#382] (`0acc3328`, merged `f7abe228`) and [#459] (`bf373b13`, merged `31c80714`). The heading is RETAINED, not deleted — retire-not-delete at story level: a completed story keeps its place in the map so the [E9] sequence stays readable and its id is never re-issued, exactly as a retired task keeps its allocation record (ADR-107 §6.3). FIRST empty story on main — this marker is the precedent.
 
 ### [S25] Converge surfaces in waves, with a mechanical done-signal
 So that a wave closes on a report rather than on a claim — the operator stops verifying convergence by hand.

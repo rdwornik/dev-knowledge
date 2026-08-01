@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-08-01 (f) — CC (Opus 5, local): window CLOSED — EOD arc merged, [S24] precedent, hygiene, v6 handoff sealed
+
+**Did:** Closing flow, written at WRAP (the lesson three ADR-85 firings taught today). SHA
+anchors — `31c80714` (EOD merge), `3c050b15` ([S24] marker), `16ebdeb0` (ADR ledger),
+`80dd54d6` (handoff bundle).
+
+**Merged + torn down.** `chore/eod-completion` → main `--no-ff` at `31c80714`, pushed, 0/0.
+All merged branches deleted after `--merged` verify; origin now holds exactly **main +
+automation/fleet-audit**, no worktrees, no feature or backup refs. Open count **186**.
+
+**[S24] — the precedent, not just a marker.** Closing [#459] left the story with zero tasks
+([#382] and [#459] were its only two). Ruled: **retire-not-delete at STORY level** — the
+heading stays and gains a COMPLETED marker carrying date + closing SHAs; map structure is never
+deleted. It is ADR-107 §6.3 one level up: a retired task keeps its allocation record, a
+completed story keeps its heading. **Deleting it would have been cheaper and would have silenced
+the advisory WARN — which is exactly why it was wrong: silencing a true signal by removing what
+it describes.** First empty story on main, so this commit *is* the convention.
+
+**Hygiene: one mechanical gap, one thing deliberately left alone.** ADR-109 carries two
+amendment markers; the hand-maintained ADR ledger indexed only the first — fixed. Everything
+else verified clean and recorded as such rather than passed over silently (all seven generators
+`--check`, validate_backlog, terminal statuses, freshness, doc_claims, doc_rot). **Reported not
+fixed:** ADR-82/88/89 carry `Status: Proposed` in-file while cited elsewhere as ratified.
+Flipping a status line is mechanically trivial and *asserts a ratification event* — the exact
+claim-vs-measurement failure this window spent itself hunting, so it stays the operator's.
+
+**Handoff sealed — and two gates earned their keep on the way.** The generator **refused** to
+render into today's morning slug (a committed bundle is immutable), so the bundle took the
+sanctioned `--allow-suffix` sibling. Then `residual_completeness` **FAILED the commit**: the
+freshly generated FILL-IN regions still carried their template placeholders. Both refusals were
+the system declining to let me ship a plausible-looking artifact. Filled from live state,
+re-assembled, **14/14 probes bind**, PASTE_THIS 46,051 bytes (under the 65,000 budget). The
+architect SUPPLEMENT was pasted **verbatim** into ANSWERS — all seven questions plus the Q7
+register of four ratified-in-chat terms with their durable homes, which is the next session's
+first work.
+
+**The window's own lesson, stated once.** Four defects were written by me this window and
+**none was caught by re-reading my own code**: the per-step gate caught a module-global read, terra
+caught an unguarded `iterdir`, `git log` caught a quoting artifact, and the ADR-85 anchor caught
+the SHA rot that the fix for the artifact then caused. Mechanism over vigilance is not a slogan
+here; it is the measured result.
+
+**Result:** ship-gate GREEN, health OK, 186 tasks, suite 2 failed / 2143 passed / 3 skipped —
+both the known [#457] ids. Window ledger **189 → 186, net −3**, closed [#459] [#461] [#462].
+
+**Next:** paste `docs/handoffs/2026-08-01-dev-knowledge-architect-2/PASTE_THIS.md` into a fresh
+chat. Merge of this closing branch is the operator's.
+
 ### 2026-08-01 (e) — CC (Opus 5, local): Arc 2 merged, squeeze Acts 1–3 completed, [#465] leg 1 + [#461] mechanized
 
 **Did:** Arc 2 merged at `67863180` (pushed, 0/0), then `chore/eod-completion`. SHA anchors —

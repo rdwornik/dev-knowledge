@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0dd2bc6a8514671e0c63d0adef14afe1371cc0565e9689a80356667c17c4c4c0",
+  "generated_sha256": "30053d92c35404434fd1167350183e522a1a0ccde4a3436a58ec929f8c95dd35",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1478,10 +1478,16 @@
       "prose": ""
     },
     {
-      "prose": "### [S24] Declare desired state once, as data, instead of as N registries"
+      "prose": "### [S24] Declare desired state once, as data, instead of as N registries — **COMPLETED 2026-08-01**"
     },
     {
       "prose": "So that every check derives from one schema — a check without a schema row is the registry-sprawl anti-pattern that produced \"green that means nothing\"."
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "**COMPLETED 2026-08-01.** All tasks closed: [#382] (`0acc3328`, merged `f7abe228`) and [#459] (`bf373b13`, merged `31c80714`). The heading is RETAINED, not deleted — retire-not-delete at story level: a completed story keeps its place in the map so the [E9] sequence stays readable and its id is never re-issued, exactly as a retired task keeps its allocation record (ADR-107 §6.3). FIRST empty story on main — this marker is the precedent."
     },
     {
       "prose": ""
