@@ -69,6 +69,27 @@ The 5 is a data artifact of the deployed-versions anchor read back as a ruling. 
 `ADR-104:15` silently. Making it loadable IS [#472]'s Done-when — recorded there, not
 half-solved here, and no new row filed because one would duplicate [#472].
 
+**Terra review — one HIGH, confirmed and fixed (`6a0c100b`).** `Model used: gpt-5.6-terra`,
+read off the artifact line rather than assumed. The finding: the five file-backed surfaces were
+read inside a fail-closed `try/except`, but the sixth — the `ecosystem/<repo>/` state-dir scan —
+was appended AFTER that loop and ran unguarded, so an `iterdir()` permission/IO error would
+abort the whole `audit.py health` run. **Worse than it first reads: the failure would deny every
+OTHER check its verdict, the opposite of the posture the surrounding code was written for.** It
+was introduced by my own earlier fix for the `discover_repos()` defect — a fix that moved the
+read without carrying over the error handling it moved away from. Guarded and pinned by a
+`Path.iterdir`-monkeypatching regression test. **Both defects this arc were mine, and neither
+was found by re-reading my own code** — one by the per-step gate, one by the reviewer.
+
+**Detector gap found at the STOP, recorded not filed (advisory-tier, §F).**
+`session_end_backpressure`'s BACKLOG advisory is **blind to pure-deletion closures**:
+`check_backlog_marker` matches its marker regex against `_added_lines()`, which keeps only `+`
+lines — but post-[#439] flip a closed task's row *leaves* `BACKLOG.md`, so a clean closure is a
+pure deletion and yields zero added lines. Verified here: this arc's `BACKLOG.md` diff has **0**
+added lines and the advisory fired, while [#460]'s closure (`e4d3a920`) passed only
+*incidentally*, on 2 added lines from unrelated [#461]/[#465] prose edits in the same commit.
+**The signal is inverted — the cleanest closures are the ones it cannot see.** Not filed as a
+row today; this line is the record so the next window picks it up instead of rediscovering it.
+
 **Result:** [#462] CLOSED (188 tasks, 189→188). Suite 2 failed / 2129 passed / 3 skipped — both
 failures the known [#457] ids, no new failures. ruff clean. `audit.py checks` = 38; the listing
 still dies on the pre-existing [#470] `U+2192` in `check_doc_code_edge` — confirmed NOT this
