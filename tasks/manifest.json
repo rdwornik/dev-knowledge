@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "13157b9f76ac10899cf04ab5d72a744f2594569642d689ec04d77e2aff8bc8a9",
+  "generated_sha256": "0dd2bc6a8514671e0c63d0adef14afe1371cc0565e9689a80356667c17c4c4c0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -946,10 +946,6 @@
       "file": "419-we-run-routines-whose-output-nobody-consumes.md"
     },
     {
-      "task": 461,
-      "file": "461-mechanize-window-report-metrics.md"
-    },
-    {
       "task": 463,
       "file": "463-win-tooling-onboarding-debt-unchanged-since-admi.md"
     },
@@ -1486,10 +1482,6 @@
     },
     {
       "prose": "So that every check derives from one schema — a check without a schema row is the registry-sprawl anti-pattern that produced \"green that means nothing\"."
-    },
-    {
-      "task": 459,
-      "file": "459-architecture-prose-desired-state-organs.md"
     },
     {
       "prose": ""

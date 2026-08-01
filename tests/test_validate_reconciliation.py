@@ -191,7 +191,7 @@ def test_adapter_malformed_warns(tmp_path: Path) -> None:
 
 def test_adapter_no_edges_passes(tmp_path: Path) -> None:
     findings = aud.check_reconciled_versions(tmp_path)
-    assert len(findings) == 1 and findings[0].status == "pass"
+    assert len(findings) == 1 and findings[0].status == "n/a"  # [#465] leg 1: zero edges is a skip
 
 
 def test_adapter_registered_in_all_checks() -> None:

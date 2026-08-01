@@ -888,7 +888,7 @@ def check_no_sibling_orphans(repo_path: Path) -> list[Finding]:
     """
     registered = _git_registered_worktrees(repo_path)
     if registered is None:
-        return [Finding("no_sibling_orphans", "pass",
+        return [Finding("no_sibling_orphans", "unavailable",
                         "git unavailable or not a repo - sibling-orphan check skipped")]
     prefix = repo_path.name + "-"
     try:
@@ -896,7 +896,7 @@ def check_no_sibling_orphans(repo_path: Path) -> list[Finding]:
             p for p in repo_path.parent.iterdir()
             if p.is_dir() and p.name.startswith(prefix))
     except OSError:
-        return [Finding("no_sibling_orphans", "pass",
+        return [Finding("no_sibling_orphans", "unavailable",
                         "parent directory unreadable - sibling-orphan check skipped")]
     orphans = [
         p.name for p in siblings
@@ -993,7 +993,7 @@ def check_handoff_version_stamp(repo_path: Path) -> list[Finding]:
     """
     spec = repo_path / "protocols" / "HANDOFF_PROCESS.md"
     if not spec.exists():
-        return [Finding("handoff_version_stamp", "pass",
+        return [Finding("handoff_version_stamp", "n/a",
                         "no protocols/HANDOFF_PROCESS.md — nothing to validate")]
 
     spec_text = spec.read_text(encoding="utf-8")
@@ -1245,7 +1245,7 @@ def check_hooks_armed(repo_path: Path) -> list[Finding]:
     doc->code behavioral rule -> `exempt` in ecosystem/doc-code-edge.yaml.
     """
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
-        return [Finding("hooks_armed", "pass",
+        return [Finding("hooks_armed", "n/a",
                         "hub-only — git-hook arming check skipped (not the hub repo)")]
     try:
         if not (Path(repo_path) / ".pre-commit-config.yaml").exists():
@@ -1297,7 +1297,7 @@ def check_git_backlog_drift(repo_path: Path) -> list[Finding]:
     Detection + formatting live in scripts/validate_git_backlog.py (reused).
     """
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
-        return [Finding("git_backlog_drift", "pass",
+        return [Finding("git_backlog_drift", "n/a",
                         "hub-only — git<->backlog drift check skipped (not the hub repo)")]
     try:
         drift = _vgb.reconcile(Path(repo_path), Path(repo_path) / "BACKLOG.md")
@@ -1336,7 +1336,7 @@ def check_doc_claims(repo_path: Path) -> list[Finding]:
     Fail-soft on any error. Read-only. Logic lives in scripts/validate_doc_claims.py.
     """
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
-        return [Finding("doc_claims", "pass",
+        return [Finding("doc_claims", "n/a",
                         "hub-only — prose-vs-state check skipped (not the hub repo)")]
     try:
         results = _vdc.reconcile(Path(repo_path), len(ALL_CHECKS),
@@ -1379,7 +1379,7 @@ def check_doc_rot(repo_path: Path) -> list[Finding]:
     any error. Read-only. Logic lives in scripts/validate_doc_rot.py.
     """
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
-        return [Finding("doc_rot", "pass",
+        return [Finding("doc_rot", "n/a",
                         "hub-only — doc-rot / grooming checker skipped (not the hub repo)")]
     try:
         results = _vdr.scan(Path(repo_path))
@@ -1422,7 +1422,7 @@ def check_undeclared_edges(repo_path: Path) -> list[Finding]:
     reporter (scripts/scan_undeclared_edges.py) still surfaces the Tier-3 signals for human promotion.
     """
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
-        return [Finding("undeclared_edges", "pass",
+        return [Finding("undeclared_edges", "n/a",
                         "hub-only — undeclared-edge scan skipped (not the hub repo)")]
     try:
         cands = _sue.scan(Path(repo_path))
@@ -1464,7 +1464,7 @@ def check_doc_structure(repo_path: Path) -> list[Finding]:
     Fail-soft on any error. Read-only. Logic lives in scripts/validate_doc_structure.py.
     """
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
-        return [Finding("doc_structure", "pass",
+        return [Finding("doc_structure", "n/a",
                         "hub-only — prose structural linter skipped (not the hub repo)")]
     try:
         results = _vds.scan(Path(repo_path))
@@ -1501,7 +1501,7 @@ def check_no_ff_merges(repo_path: Path) -> list[Finding]:
     lives in scripts/validate_no_ff.py.
     """
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
-        return [Finding("no_ff_merges", "pass",
+        return [Finding("no_ff_merges", "n/a",
                         "hub-only — --no-ff guard skipped (not the hub repo)")]
     try:
         violations = _vnf.find_violations(Path(repo_path))
@@ -1713,7 +1713,7 @@ def check_handoff_probes(repo_path: Path) -> list[Finding]:
     """
     handoffs = Path(repo_path) / "docs" / "handoffs"
     if not handoffs.exists():
-        return [Finding("handoff_probes", "pass",
+        return [Finding("handoff_probes", "n/a",
                         "no docs/handoffs/ — no probe bundle to validate")]
     candidates = sorted(
         (d for d in handoffs.iterdir()
@@ -1823,9 +1823,12 @@ def check_reconciled_versions(repo_path: Path) -> list[Finding]:
     if findings:
         return findings
     n = len(results)
-    return [Finding("reconciled_versions", "pass",
-                    f"{n} reconciled_with edge(s) match live spec version(s)"
-                    if n else "no reconciled_with edges declared")]
+    # Status follows the BRANCH, not the call site ([#465] leg 1): edges that were checked and
+    # matched are a real `pass`; zero declared edges is a skip and must not borrow that pass.
+    if n:
+        return [Finding("reconciled_versions", "pass",
+                        f"{n} reconciled_with edge(s) match live spec version(s)")]
+    return [Finding("reconciled_versions", "n/a", "no reconciled_with edges declared")]
 
 
 def _load_declaration_docs(repo_path: Path) -> tuple[str, ...]:
@@ -1947,7 +1950,7 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     live in scripts/validate_doc_code_edge.py.
     """
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
-        return [Finding("doc_code_edge", "pass",
+        return [Finding("doc_code_edge", "n/a",
                         "hub-only — doc->code edge check skipped (not the hub repo)")]
     code_root = Path(repo_path) / "scripts"
     try:
@@ -1977,7 +1980,7 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
         for f in orphans]
     if not ids:
         # No doc-declared edges — but a code orphan is still a real structural defect to surface.
-        return warns or [Finding("doc_code_edge", "pass",
+        return warns or [Finding("doc_code_edge", "n/a",
                          "no doc rule-IDs in the declaration-doc registry — advisory inactive "
                          "(ecosystem/doc-code-edge.yaml)")]
     resolved = 0
@@ -2149,7 +2152,7 @@ def check_doc_code_coverage_drift(repo_path: Path) -> list[Finding]:
     curated (no single auto-enumerable registry across all mechanisms; doc-code-edge.yaml header).
     """
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
-        return [Finding("doc_code_coverage_drift", "pass",
+        return [Finding("doc_code_coverage_drift", "n/a",
                         "hub-only -- coverage drift-guard skipped (not the hub repo)")]
     try:
         scope = set(_load_coverage_scope(repo_path))
@@ -2213,7 +2216,7 @@ def check_fleet_parity(repo_path: Path) -> list[Finding]:
     per-commit audit-health gate; ship-gate-only scoping is a filed follow-up, not this arc.
     """
     if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
-        return [Finding("fleet_parity", "pass",
+        return [Finding("fleet_parity", "n/a",
                         "hub-only -- fleet-parity walk skipped (not the hub repo)")]
     try:
         try:

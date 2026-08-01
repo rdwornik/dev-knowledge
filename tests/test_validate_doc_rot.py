@@ -274,7 +274,7 @@ def test_check_skips_non_hub_repo(tmp_path):
     findings = aud.check_doc_rot(tmp_path / "some-child")
     assert len(findings) == 1
     assert findings[0].check_name == "doc_rot"
-    assert findings[0].status == "pass"
+    assert findings[0].status == "n/a"  # [#465] leg 1
     assert "hub-only" in findings[0].evidence
 
 

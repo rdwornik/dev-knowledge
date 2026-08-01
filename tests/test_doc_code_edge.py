@@ -179,7 +179,7 @@ def test_edge_check_skips_non_hub_repo(tmp_path):
     findings = aud.check_doc_code_edge(tmp_path / "some-child")
     assert len(findings) == 1
     assert findings[0].check_name == "doc_code_edge"
-    assert findings[0].status == "pass"
+    assert findings[0].status == "n/a"  # [#465] leg 1
     assert "hub-only" in findings[0].evidence
 
 
@@ -217,7 +217,7 @@ def test_edge_check_advisory_inactive_when_no_annotations(tmp_path, monkeypatch)
     _write_registry(tmp_path)
     (tmp_path / "PLAYBOOK.md").write_text("no rule tokens here\n", encoding="utf-8")
     findings = aud.check_doc_code_edge(tmp_path)
-    assert findings[0].status == "pass"
+    assert findings[0].status == "n/a"  # [#465] leg 1
     assert "advisory inactive" in findings[0].evidence
 
 
@@ -232,7 +232,7 @@ def test_edge_check_only_scans_listed_docs(tmp_path, monkeypatch):
     (tmp_path / "docs" / "adr.md").write_text(
         "example token <!-- rule: ILLUS-9 -->\n", encoding="utf-8")
     findings = aud.check_doc_code_edge(tmp_path)
-    assert findings[0].status == "pass"
+    assert findings[0].status == "n/a"  # [#465] leg 1
     assert "advisory inactive" in findings[0].evidence
 
 

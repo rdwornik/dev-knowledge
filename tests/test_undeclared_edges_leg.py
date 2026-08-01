@@ -113,7 +113,7 @@ def test_undeclared_edges_hub_only_skip(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path / "not-the-hub"))
     findings = aud.check_undeclared_edges(tmp_path)
     assert len(findings) == 1
-    assert findings[0].status == "pass"
+    assert findings[0].status == "n/a"  # [#465] leg 1
     assert "hub-only" in findings[0].evidence
 
 
