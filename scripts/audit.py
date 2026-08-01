@@ -3063,6 +3063,84 @@ def check_boot_byte_budget(repo_path: Path) -> list[Finding]:
                     f"protocols/HANDOFF_BOOT.md is {size} bytes, within its {budget}-byte budget")]
 
 
+# --- [#460] replication of the ADR-80 durable record ------------------------
+# ADR-80 promises a DURABLE record; `_commit_routine_outputs` writes it to a LOCAL branch.
+# Between 2026-07-16 and 2026-08-01 the push that made it durable was absent and 51 commits
+# accumulated on one disk unnoticed, because the push's only owner ([#254]) had closed on an
+# existence-shaped Done-when ("origin/... exists and tracks") that a single manual push
+# satisfied. The push leg (`_push_routine_branch`) fixes the mechanism; this alarm is the
+# BACKSTOP, because a push can only shout at the moment it fails while divergence PERSISTS.
+#
+# Graduated rather than binary: the routine is daily, so one or two commits of lag is a
+# transient push failure (network, credentials) and REDding the ship-gate for it would train
+# the operator to disposition the organ -- the exact way the 46-day FAIL on the fleet branch
+# came to be ignored. Past the threshold it is an outage, and ADR-80's promise is false.
+REPLICATION_LAG_FAIL_AFTER = 3
+
+
+def classify_replication_lag(ahead: int) -> tuple[str, str]:
+    """PURE: (status, evidence) for `ahead` unreplicated commits. ASCII-only evidence ([#470])."""
+    if ahead <= 0:
+        return ("pass", f"{_AUTOMATION_BRANCH} is replicated to origin (0 commits ahead)")
+    if ahead <= REPLICATION_LAG_FAIL_AFTER:
+        return ("warn", f"{_AUTOMATION_BRANCH} is {ahead} commit(s) ahead of origin -- a "
+                        f"recent push likely failed; ADR-80's durable record is behind")
+    return ("fail", f"{_AUTOMATION_BRANCH} is {ahead} commit(s) ahead of origin, over the "
+                    f"{REPLICATION_LAG_FAIL_AFTER}-commit threshold -- ADR-80 promises a "
+                    f"durable record that currently exists on ONE disk ([#460])")
+
+
+def check_fleet_audit_replication(repo_path: Path) -> list[Finding]:
+    """[#460] — is the ADR-80 durable record actually replicated to origin?
+
+    HUB-ONLY by repo identity, not by branch presence: `automation/fleet-audit` is hub
+    machinery that was never distributed, so keying off anything else would manufacture a
+    fleet gap on consumers that correctly have no such branch (the
+    enforcement-organs-are-not-homogeneous class, [#383] wave 1).
+
+    Reads the REMOTE-TRACKING ref, never the network: the check must be runnable offline and
+    inside the ship-gate without turning a verification organ into a network dependency. The
+    consequence is stated rather than hidden -- it measures lag against the last-known origin,
+    so a very stale fetch understates it. It cannot OVERstate it, which is the safe direction
+    for an alarm.
+
+    An absent branch or absent tracking ref is `n/a`, not a failure: there is nothing to
+    replicate, and a repo that has never run the routine is not in breach of ADR-80.
+    """
+    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+        return [Finding("fleet_audit_replication", "n/a",
+                        "hub-only -- automation/fleet-audit is hub-owned machinery")]
+
+    scrub = _git_location_env()
+    env = {k: v for k, v in os.environ.items() if k not in scrub}
+
+    def _run(args: list[str]) -> Optional[str]:
+        try:
+            p = subprocess.run(["git", "-C", str(repo_path), *args], capture_output=True,
+                               text=True, encoding="utf-8", errors="replace", env=env)
+        except OSError:
+            return None
+        return p.stdout.strip() if p.returncode == 0 else None
+
+    local = _run(["rev-parse", "--verify", "--quiet", f"refs/heads/{_AUTOMATION_BRANCH}"])
+    if not local:
+        return [Finding("fleet_audit_replication", "n/a",
+                        f"no local {_AUTOMATION_BRANCH} branch -- nothing to replicate")]
+    remote_ref = f"refs/remotes/origin/{_AUTOMATION_BRANCH}"
+    if not _run(["rev-parse", "--verify", "--quiet", remote_ref]):
+        return [Finding("fleet_audit_replication", "n/a",
+                        f"no {remote_ref} -- the branch has never been replicated, or no "
+                        f"fetch has run in this clone")]
+
+    count = _run(["rev-list", "--count", f"{remote_ref}..refs/heads/{_AUTOMATION_BRANCH}"])
+    if count is None or not count.isdigit():
+        return [Finding("fleet_audit_replication", "unavailable",
+                        "git rev-list failed -- replication lag not measurable here")]
+
+    status, evidence = classify_replication_lag(int(count))
+    return [Finding("fleet_audit_replication", status, evidence.replace("|", "/"))]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -3101,6 +3179,7 @@ ALL_CHECKS = [
     check_task_tree_coherence,   # [#433] C1 — arms gen_task_tree --check as a gate
     check_intake_tree_coherence,   # [#383] wave 1 — arms gen_intake_tree --check (ADR-109 §4)
     check_boot_byte_budget,   # [#446] A10 item 2 / R4 — the gate half of the split enforcement
+    check_fleet_audit_replication,   # [#460] — ADR-80's durable record must exist off this disk
 ]
 
 
@@ -3279,6 +3358,60 @@ def _restore_durable_scope(pathspecs: list) -> None:
         )
 
 
+_PUSH_TIMEOUT_S = 120
+
+
+def _push_routine_branch(repo_path: Optional[Path] = None) -> tuple[bool, str]:
+    """[#460] — replicate `automation/fleet-audit` to origin. Returns (ok, detail).
+
+    PLACEMENT: called by `_commit_routine_outputs` immediately after `update-ref`, so the
+    push belongs to the ACT THAT CREATES THE COMMIT rather than to a separate scheduler leg.
+    That is the whole lesson of [#460]: the previous push was a separate, manual organ, so it
+    could die without the writer noticing, and it did -- for 16 days. One act, one failure
+    surface. (The repo's own ratified line: "push is part of the act it verifies".)
+
+    LOUD ON FAILURE, at ERROR: the surrounding writer is deliberately fail-soft, logging
+    WARNs for its ordinary skips, so a replication failure logged at WARN would be
+    indistinguishable from "nothing to record today" -- silent success theater, which is the
+    defect class itself.
+
+    NEVER RAISES: loud must not mean fatal. Breaking the nightly routine to report a failed
+    push would trade a replication gap for a total outage. Persistence is carried by
+    `check_fleet_audit_replication`, which sees the lag on every subsequent run.
+
+    Non-interactive and bounded: GIT_TERMINAL_PROMPT=0 plus a timeout, because this runs
+    unattended under Task Scheduler where a credential prompt would hang the routine forever.
+    """
+    repo = Path(repo_path) if repo_path is not None else _REPO_ROOT
+    scrub = _git_location_env()
+    env = {k: v for k, v in os.environ.items() if k not in scrub}
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    try:
+        p = subprocess.run(
+            ["git", "-C", str(repo), "push", "origin",
+             f"refs/heads/{_AUTOMATION_BRANCH}:refs/heads/{_AUTOMATION_BRANCH}"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            env=env, timeout=_PUSH_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        detail = f"push timed out after {_PUSH_TIMEOUT_S}s"
+        logger.error("ADR-80 REPLICATION FAILED (%s): %s -- the durable record is local-only "
+                     "([#460])", _AUTOMATION_BRANCH, detail)
+        return (False, detail)
+    except OSError as exc:
+        detail = f"could not run git push: {exc!r}"
+        logger.error("ADR-80 REPLICATION FAILED (%s): %s -- the durable record is local-only "
+                     "([#460])", _AUTOMATION_BRANCH, detail)
+        return (False, detail)
+
+    if p.returncode != 0:
+        detail = (p.stderr or p.stdout or "no output").strip().replace("\n", " ")[:400]
+        logger.error("ADR-80 REPLICATION FAILED (%s): %s -- the durable record is local-only "
+                     "([#460])", _AUTOMATION_BRANCH, detail)
+        return (False, detail)
+    return (True, "pushed")
+
+
 def _commit_routine_outputs(run_date: date) -> None:
     """Capture this run's durable audit outputs onto the `automation/fleet-audit`
     branch via git plumbing — never to `main` (ADR-84 / Q9 writer isolation).
@@ -3405,6 +3538,9 @@ def _commit_routine_outputs(run_date: date) -> None:
         if ur.returncode != 0:
             logger.warning("ADR-84 commit: update-ref failed — %s", ur.stderr.strip())
             return
+        # [#460]: the commit exists on ONE disk until this runs. Replication is part of the
+        # act, not a follow-on chore — the follow-on chore is precisely what died in July.
+        _push_routine_branch(repo)
     except Exception as exc:
         logger.warning("ADR-84 commit: unexpected error — %s", exc)
     finally:
