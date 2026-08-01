@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "ebe5f1eb141395172ee4181120086d12ebc62f6bf3393b54d8317f0acac2f96c",
+  "generated_sha256": "d793c905f9513b306b4a31a36983809f94d4d78d466a48114cd0ea416ba1d4bb",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -849,10 +849,6 @@
       "file": "445-codex-review-wrapper-path-guard-reports-success-h.md"
     },
     {
-      "task": 469,
-      "file": "469-codex-review-code-lane-runs-an-unpinned-model.md"
-    },
-    {
       "task": 470,
       "file": "470-audit-py-checks-crashes-on-a-cp1252-console.md"
     },
@@ -948,10 +944,6 @@
     {
       "task": 419,
       "file": "419-we-run-routines-whose-output-nobody-consumes.md"
-    },
-    {
-      "task": 460,
-      "file": "460-history-dailies-write-only-no-consumer.md"
     },
     {
       "task": 461,
