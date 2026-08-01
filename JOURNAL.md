@@ -19,6 +19,89 @@
 
 ---
 
+### 2026-08-01 (a) — CC (Opus 5, local): filing batch — conformance absorbed, intake #23 filed, [#467]–[#470], [#460] REVERSED on live host evidence
+
+**Did:** Four lanes off `main` on `docs/filing-batch-2026-08-01`, serial, one commit per lane,
+commit-and-STOP (the operator gate: this branch is not self-merged). SHA anchors — `c7af2c03`
+(Lane 0, on main), `786fb166` · `e33712f8` · `3aab4d28` · `c5507f50` (Lanes 1–3, on branch).
+
+**Lane 0 — conformance absorption.** `claude/conformance-2026-08-01` was found unabsorbed on
+origin and run through the recorded preserve-then-delete routine (ruled 2026-07-31, git-discipline
+protection lifted by explicit operator GO): merged `--no-ff` to main (`c7af2c03`), digest verified
+present as a 189-line blob, main pushed, branch deleted on origin. Audits index regen followed on
+the filing branch (`e33712f8`, 353 → 354), the prior arc's `6a9b819e` shape — never a
+direct-to-main commit.
+
+**Lane 1 — intake #23 filed, and it is the wave-1 engine's FIRST CONSUMER.** The night batch left
+the SEED scaffold's slot **empty by design** because the operator's dictation existed only in the
+source chat; it was filled verbatim from the brief, no reconstruction. This is the first intake doc
+filed *through* `gen_intake_tree.py` since [#383] wave 1 built it — until now the engine had only
+re-derived a corpus it did not grow. It held: 19 item nodes, 238 residue lines, byte-exact
+round-trip. **The first consumer immediately surfaced a Windows-only defect in it:**
+`gen_intake_index.py` writes via `Path.write_text()` in text mode, so a Windows run rewrites
+README.md to CRLF; `gen_intake_tree.py` splits on `\n` and matches its block markers with exact
+equality, so a trailing `\r` makes `in_block` never fire and the carrier regenerates with **ZERO
+item nodes**. Caught by the item-set integrity leg added after the 2026-07-31 codex-review HIGH —
+exactly the hole it was built to cover, firing on its first real load. Worked around by
+normalizing to LF; the generator fix (`newline=""`) is surfaced, NOT taken — no code change was in
+this brief.
+
+**Lane 2 — four rows filed, one deliberately NOT filed.** Ids re-derived live (max 466; `[#777]`
+is the documented synthetic trip-test false positive), so 467–470 — one lower than the night
+draft's 467–471 because draft (b) was eliminated rather than queued. [#467] repomix REJECTED on
+measurement (the 24 anti-bluff invariants passed **vacuously** — nothing changed, so nothing could
+break); [#468] why-not-a-frontmatter-library with the TRUE rationale (redundancy, not fidelity —
+`ruamel.yaml` IS 20/20 faithful, so the expected answer was half false); [#469] and [#470] both
+**upgraded from drafted-on-absence to verified**: the night container could not read `~/.claude/`,
+this host can, and `codex-review.ps1:214-215` pins terra for the DOC lane only while the code lane
+inherits `gpt-5.6-sol` — so [#469] is sharper than drafted, not the no-op its VERIFY-FIRST marker
+allowed for. [#470]'s cp1252 crash reproduced live; the verification script itself died printing
+the finding.
+
+**Lane 3 — [#460] REVERSED, and the reversal is the window's real finding.** The recorded
+recommendation was "stop the branch lane, decommission the dead scheduled task." The night-batch
+L6 pack said in its own §0 that it had zero branch access, was a shallow clone, and had **not
+established the root cause anywhere** — and asked for a live host check before execution. This
+session is on that host. `\DevKnowledge\fleet-baseline` is State=Ready, LastTaskResult=0, 0 missed
+runs; the local branch holds **51 uninterrupted baseline commits 2026-07-17 → 2026-08-01**. The
+lane is ALIVE; Decision A would have decommissioned a working organ. What died was the one-shot
+MANUAL push, owned solely by [#254], whose Done-when read "`origin/…` exists and tracks" —
+existence-shaped, satisfied by a single push, closed 22:21:08 the same evening the last push
+landed at 18:55:17. Its stated durability goal ("baselines on one disk") was never encoded, so
+closing the row discharged the metric and left the goal unmet — and 51 commits now sit on one
+disk, the exact condition [#254] was filed to fix, reproduced 16 days after it was declared done.
+**Easy-metric false closure.** ADR-106 divergence confirmed live (system `python.exe`, not
+`uv run --locked`) — which now argues the *opposite* way: a live organ to migrate, not an oddity
+that "dies with the task". Mechanization NOT built: the brief gated it on an operator GO that was
+not appended.
+
+**Result:** ship-gate **GREEN** (15 WARN dispositioned), `health: OK`, `doc_claims` 4/4,
+`doc_rot` 0 findings, `canonical_freshness` 8/8, `validate_backlog` OK (194 tasks, 0 warnings),
+`gen_task_tree --check` ok, both intake gates ok. Suite **2096 passed / 2 failed / 3 skipped** —
+the failures are exactly the two standing [#457] ids, unchanged; no new failures. Every drafted
+row was checked against `_TASK_RE` and BOTH doc_rot thresholds *before* being written: four came
+back over the 1200-char cap and were trimmed.
+
+**Two constraints hit and reported rather than forced:** [#465] could not take the shared evidence
+note (1191/1200 chars, 9 left, and `extract_body()` gives no side-channel), and [#387]'s note had
+to be dateless (2 dated blocks at 1060 chars; a third would trip the separate ≥3-dates-AND->700
+rule). Both recorded, neither papered over.
+
+**§F ledger (window):** filed 4 rows + 1 intake doc, closed 0 → 190 → 194. Since `5eebee91`:
+10 filed, 1 closed ([#382]), then +4 → **net +13**. Intake #22 §F ("backlog must shrink") bites
+2026-08-26; this window moved away from it by design, and the Lane 4 triage table is the lever.
+
+**Changes:** `docs/intake/2026-08-01-func-distillation-and-library-first.md` (new) + intake
+README/manifest; `docs/audits/README.md` (index regen); `tasks/467`–`470` (new), `tasks/460`
+(rewritten), `tasks/382`/`387`/`463`/`464` (notes), `tasks/manifest.json`, `BACKLOG.md`.
+
+**Abandoned:** nothing. Deliberately NOT done — the [#460] mechanization (no GO), the
+`gen_intake_index.py`/`gen_audit_index.py` newline fix (code, out of brief), any Lane 4 triage
+application (the architect rules the table), and the [#468] why-not line's final placement.
+
+**Next:** architect rules the Lane 4 triage table; then the [#460] mechanization GO, and the
+generator newline defect.
+
 ### 2026-07-31 (y) — CC (Opus 5, local): [#383] wave 1 — ADR-109 §4 DISCHARGED on the docs/intake/ surface
 
 **Did:** Executed [#383] wave 1 under the operator's ex-ante frozen acceptance contract:
