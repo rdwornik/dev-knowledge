@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "9d7dd39d33bed828ae7ec5e0235f68721f807d4099cdbe73a8b315e4e3f8f7cd",
+  "generated_sha256": "45ebff0b9bf106565aad2f7d4754cc7b29d761f8b1887fed6397e588d7f43036",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1515,6 +1515,10 @@
     {
       "task": 462,
       "file": "462-terminal-setup-absent-from-every-machine-member.md"
+    },
+    {
+      "task": 472,
+      "file": "472-membership-census-diffs-declaration-vs-surfaces.md"
     },
     {
       "prose": ""
