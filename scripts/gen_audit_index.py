@@ -89,7 +89,7 @@ def render_index(audits_dir: Path | None = None) -> str:
 
 
 def _cmd_write() -> int:
-    _TARGET.write_text(render_index(), encoding="utf-8")
+    _TARGET.write_text(render_index(), encoding="utf-8", newline="\n")
     print(f"gen_audit_index: wrote {_TARGET.relative_to(_REPO_ROOT)}")
     return 0
 

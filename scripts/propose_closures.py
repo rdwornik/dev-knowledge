@@ -380,7 +380,7 @@ def open_tasks_from_backlog(text: str, parse_fn) -> dict:
 def _write_artifact(content: str) -> Path:
     _LOGS_DIR.mkdir(exist_ok=True)
     out = _LOGS_DIR / f"PROPOSALS-{date.today().isoformat()}.md"
-    out.write_text(content, encoding="utf-8")
+    out.write_text(content, encoding="utf-8", newline="\n")
     return out
 
 

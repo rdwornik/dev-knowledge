@@ -128,7 +128,7 @@ def _cmd_write(run_expensive: bool) -> int:
         return 2
     block = _render_block(run_expensive)
     new_content = _splice(_TARGET.read_text(encoding="utf-8"), block)
-    _TARGET.write_text(new_content, encoding="utf-8")
+    _TARGET.write_text(new_content, encoding="utf-8", newline="\n")
     print(f"gen_doc_counts: wrote {_TARGET.relative_to(_REPO_ROOT)}")
     return 0
 
