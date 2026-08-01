@@ -19,6 +19,79 @@
 
 ---
 
+### 2026-08-01 (c) — CC (Opus 5, local): [#460] replication MECHANIZED, codex wrapper pinned + LF-safe, baseline reconciled
+
+**Did:** Window-close arc on `feat/460-replication-and-close`. SHA anchors — `61496aca`
+(push leg + alarm, RED-first), `e4d3a920` ([#460] closed, [#461]/[#465] unblocked), `f049e3a2`
+(codex HIGH resolved), `812ee192` ([#469] closed + wrapper change record).
+
+**Lane A — [#460] built, and the alarm proved itself on reality.** Push leg placed INSIDE
+`_commit_routine_outputs` immediately after `update-ref`, argued from the code: a scheduler leg
+would be a SECOND organ that can die independently, which is exactly how the manual push died.
+LOUD at ERROR (the writer is fail-soft, so a WARN would be indistinguishable from "nothing to
+record"), never raises, non-interactive + timeout-bounded for the unattended lane. Alarm
+`check_fleet_audit_replication` registered in ALL_CHECKS 36→37, graduated 0 / 1–3 / >3, reading
+the remote-tracking ref so a verification organ never becomes a network dependency. RED-first
+with 11 tests — and then **the alarm turned `test_health_ok_with_registered_repo` RED because
+the live repo genuinely was 51 commits ahead.** Not a test bug: the organ working on first
+contact with reality. **Origin brought current: 98 → 149, ahead 0, behind 0**, through the
+`block-ff-push` hook unmodified. [#254]'s undischarged durability goal is discharged here, and
+the row says so.
+
+**The reviewer found a real hole and a wrong claim, and both were tested.** Terra returned one
+HIGH with two parts. (1) "push leaves the tracking ref stale" — **REFUTED** by measurement: git
+updates `refs/remotes/origin/...` as part of the push, no fetch (ahead 1→0). Pinned by a test so
+the refutation is not re-litigated. (2) "no tracking ref reports n/a, disabling the backstop" —
+**CONFIRMED, and mine**: a local durable branch with no remote ref is the strongest form of the
+defect, and the first draft's own evidence string said "has never been replicated" while
+returning `n/a`. Now FAIL.
+
+**Lane B — global infra, authorized.** `~/.claude/bin/codex-review.ps1`: both lanes now pin
+`gpt-5.6-terra`; the artifact frontmatter records `Model used` + `Review profile`; both writes
+made LF-safe (root cause: the header here-strings inherit the `.ps1` file's own CRLF endings).
+Verified by first real output — a `.py` diff, the exact case that previously fell through to
+sol, reported `model: gpt-5.6-terra`, artifact 0 CRLF / no BOM. Because the edit produces NO
+repo diff, it is transcribed with before/after blocks into
+`docs/audits/2026-08-01-technical-codex-wrapper-model-pin-and-lf.md` — otherwise a silent revert
+would be undetectable, the same silent-record defect [#460] names. Backup taken first. The
+severity-heuristic miscount is recorded and deliberately NOT fixed (outside the GO).
+
+**Lane C — the baseline reconciliation, and a correction to my own last report.** All three
+numbers were TRUE; they differ by TIMING, not definition:
+
+| SHA | when | BACKLOG rows | manifest nodes | task files |
+|---|---|---|---|---|
+| `5eebee91` | 07-31 12:24 | 181 | 181 | 192 |
+| `f2ccda9a` | 07-31 20:47 | 189 | 189 | 201 |
+| `4ba00a64` | 08-01 11:40 | 190 | 190 | 202 |
+| `9161fd33` | 08-01 12:58 | 194 | 194 | 206 |
+
+P9's boot evidence (21:05) sat on `f2ccda9a`, where the count **was** 189. I previously reported
+that 189 "matched no measured value" — that was wrong: I had sampled three commits and not the
+one the evidence referred to. **Canonical convention going forward: every count is quoted with
+its SHA and its definition.** The definition is `grep -cE '^- \[#[0-9]+\]' BACKLOG.md`, which
+equals the manifest task-node count at every commit measured (181/181, 189/189, 190/190,
+194/194 — they cannot drift, since BACKLOG is generated from those nodes). `tasks/` FILE count
+is NOT the open-row count and must never be used as one: it runs ~11–12 higher because retired
+allocation records are kept by ADR-107 §6.3.
+
+**Result:** ship-gate GREEN, `doc_claims` 4/4, `doc_rot` 0, `validate_backlog` OK (189 tasks),
+ruff clean, count pins re-grepped to 37 across all five sites. Suite: the two standing [#457]
+ids only.
+
+**§F ledger (window, since `5eebee91`):** filed 16 (`#457`–`#472`), closed 8 (`#382`, `#458`,
+`#460`, `#466`, `#467`, `#468`, `#469`, `#471`) → **181 → 189, net +8**. Six of the eight closes
+landed today.
+
+**Changes:** `scripts/audit.py` (push leg + alarm), `tests/test_fleet_audit_replication.py`
+(new, 13 cases), 5 count pins, `ecosystem/doc-code-edge.yaml` exempt row, `tasks/460|461|465|469`,
+two audit artifacts, `~/.claude/bin/codex-review.ps1` (out-of-repo, recorded).
+
+**Abandoned:** nothing. Deliberately NOT done — the codex severity-heuristic miscount (outside
+the GO), and [#465]'s writer-fix legs (now unblocked, next window).
+
+**Next:** architect authors the wave-2 contract; [#465] legs 2–4 and [#461] are unblocked.
+
 ### 2026-08-01 (b) — CC (Opus 5, local): generator newline defect fixed (RED-first), A-3 groom rulings applied, first net-negative arc of the window
 
 **Did:** Closing micro-arc on `fix/generator-newlines-and-groom`. SHA anchors — `acb26d38`
