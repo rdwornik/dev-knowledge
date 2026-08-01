@@ -51,6 +51,28 @@ re-verified by --roundtrip / --check against disk state.
 Layer-2 posture is unchanged (ADR-28/36): this writes only BACKLOG.md and the
 tasks/ tree, drives no state in any other repo, and never deletes a file it did
 not emit.
+
+WHY THE FRONTMATTER PARSER IS HAND-ROLLED, AND NOT WHAT YOU'D EXPECT ([#468]).
+The expected answer -- "a YAML library would break byte-exactness" -- is TRUE of
+one library and FALSE of another, so it is not the reason. Measured 2026-08-01
+over 20 real fixtures from this tree:
+  * `python-frontmatter` -- 0/20 byte-identical, with no config escape: PyYAML
+    `sort_keys=True` reorders every key, quote style is re-derived rather than
+    preserved, and `BaseHandler.format()` strips the trailing newline.
+    DISQUALIFIED on fidelity.
+  * `ruamel.yaml` -- 20/20 faithful at `width>401`. It would work.
+The actual reason is REDUNDANCY, not fidelity: this module TEMPLATES frontmatter
+fresh from the body on every emit (`emit_task_file_text`, with a fixed key order)
+instead of round-tripping it, so no parser sits on the critical path at all --
+the authoritative text is the body line, and frontmatter is output. The only
+YAML-ish READS are the narrow `frontmatter_status`/`frontmatter_id` helpers,
+which pull one scalar each. Adding a
+dependency would buy nothing that is load-bearing here. Recorded because the
+choice was previously undocumented anywhere (grep-verified: zero hits for
+`python-frontmatter`/`ruamel` in ADR-107/109, the gen_*_tree.py pair,
+docs/audits/, LESSONS, PLAYBOOK), which made a load-bearing decision look
+accidental. Full measurement:
+docs/audits/2026-08-01-technical-night-batch-l4-frontmatter-parser.md
 """
 
 from __future__ import annotations

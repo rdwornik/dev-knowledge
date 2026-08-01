@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "c4b159513476f7a5bcac426c935b123c6c3c8cd47aaa0cebf2dd64d8f8c03807",
+  "generated_sha256": "646a6923f039192f544fd5803348a29447bd04f5f65d8b549a1c51c84e6f89c9",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -923,10 +923,6 @@
     {
       "task": 467,
       "file": "467-paste-budget-repomix-rejected-on-measurement.md"
-    },
-    {
-      "task": 468,
-      "file": "468-why-not-a-frontmatter-library-the-measured-ratio.md"
     },
     {
       "prose": ""
