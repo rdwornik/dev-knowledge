@@ -47,7 +47,7 @@ def _cmd_generate(args: argparse.Namespace) -> int:
         + content[end_idx:]
     )
     try:
-        md_file.write_text(new_content, encoding="utf-8")
+        md_file.write_text(new_content, encoding="utf-8", newline="\n")
     except OSError as exc:
         print(f"error: cannot write {md_file}: {exc}", file=sys.stderr)
         return 2

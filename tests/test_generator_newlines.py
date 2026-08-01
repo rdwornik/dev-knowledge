@@ -14,7 +14,9 @@ Windows text mode does, then asserts the generator's on-disk bytes are still LF.
 that passes `newline="\\n"` survives the simulation; one that omits it does not.
 
 The source-level test is the fleet guard: it holds the invariant across every current and
-future write site in `scripts/`, so the next generator cannot reintroduce the defect.
+future write site in `scripts/` -- RECURSIVELY, subpackages included. The first version swept
+non-recursively and let `scripts/toc/cli.py` through while reporting green (codex HIGH,
+2026-08-01); `test_the_sweep_reaches_nested_script_packages` now pins the recursion itself.
 """
 
 import ast
@@ -60,10 +62,31 @@ def test_simulation_itself_reproduces_the_defect(tmp_path):
     assert target.read_bytes() == b"a\nb\n", "explicit newline= must defeat the simulation"
 
 
+def _scanned_files() -> list[Path]:
+    """Every .py under scripts/, RECURSIVELY. Subpackages are in scope -- see the regression."""
+    return sorted(_SCRIPTS.rglob("*.py"))
+
+
+def test_the_sweep_reaches_nested_script_packages():
+    """Regression for the codex HIGH (2026-08-01): the sweep was non-recursive.
+
+    The first version of this guard used glob("*.py"), which skipped scripts/toc/cli.py --
+    a generator that writes the PLAYBOOK ToC and had the very defect being swept for. The
+    guard reported GREEN while a live generator could still emit CRLF. A guard that misses a
+    subpackage is worse than no guard, because it is believed.
+    """
+    scanned = _scanned_files()
+    nested = [p for p in scanned if p.parent != _SCRIPTS]
+    assert nested, "no nested scripts/ package found -- this assertion would be vacuous"
+    assert _SCRIPTS / "toc" / "cli.py" in scanned, (
+        "scripts/toc/cli.py is not scanned -- the sweep has regressed to non-recursive glob()"
+    )
+
+
 def _write_sites() -> list[tuple[Path, int, str]]:
     """Every text-mode write in scripts/ that does NOT pin `newline=`, found by AST."""
     out: list[tuple[Path, int, str]] = []
-    for path in sorted(_SCRIPTS.glob("*.py")):
+    for path in _scanned_files():
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
