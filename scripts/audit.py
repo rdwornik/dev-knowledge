@@ -3285,10 +3285,19 @@ def check_membership_agreement(repo_path: Path, _surface_paths=None) -> list[Fin
     # would make this one surface read a DIFFERENT repo than the other five whenever the two
     # disagree -- caught by test_health_ok_with_registered_repo, which monkeypatches exactly
     # that global. A check that takes repo_path must honour it for every surface it reads.
+    #
+    # Guarded like the other five (terra HIGH, 2026-08-01): an unguarded `iterdir()` raises
+    # on a permission or I/O error and takes down the whole `audit.py health` run -- strictly
+    # worse than this check failing, because it denies every OTHER check its verdict too.
     eco = Path(repo_path) / "ecosystem"
-    surfaces["state-dirs"] = ({d.name for d in eco.iterdir()
-                               if d.is_dir() and (d / "state.yaml").exists()}
-                              if eco.is_dir() else set())
+    try:
+        surfaces["state-dirs"] = ({d.name for d in eco.iterdir()
+                                   if d.is_dir() and (d / "state.yaml").exists()}
+                                  if eco.is_dir() else set())
+    except OSError as exc:
+        return [Finding("membership_agreement", "fail",
+                        f"membership surface ecosystem/<repo>/ could not be read: {exc!r}"
+                        .replace("|", "/"))]
 
     return [Finding("membership_agreement", status, evidence.replace("|", "/"))
             for status, evidence in classify_membership(ADR104_FLEET_DECLARATION, surfaces)]

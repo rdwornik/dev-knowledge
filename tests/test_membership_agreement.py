@@ -170,6 +170,26 @@ def test_state_dirs_are_read_from_repo_path_not_the_module_global(monkeypatch, t
     assert "not-a-fleet-repo" not in findings[0].evidence
 
 
+@pytest.mark.live_repo
+def test_unreadable_state_dir_scan_fails_rather_than_raising(monkeypatch):
+    """terra HIGH 2026-08-01: an unguarded iterdir() aborts the whole `audit.py health` run.
+
+    Failing this check is the contract; taking down every OTHER check's verdict with it is
+    not -- so the state-dirs read is guarded exactly like the five file surfaces.
+    """
+    real_iterdir = Path.iterdir
+
+    def _boom(self):
+        if self.name == "ecosystem":
+            raise PermissionError(13, "Permission denied")
+        return real_iterdir(self)
+
+    monkeypatch.setattr(Path, "iterdir", _boom)
+    findings = aud.check_membership_agreement(Path(aud._REPO_ROOT))
+    assert findings[0].status == "fail"
+    assert "ecosystem/<repo>/" in findings[0].evidence
+
+
 def test_check_is_registered_as_a_ship_gate_leg():
     assert aud.check_membership_agreement in aud.ALL_CHECKS
 
