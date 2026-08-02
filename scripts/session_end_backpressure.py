@@ -356,14 +356,25 @@ _LANE_DAILY_RE = re.compile(r"^ecosystem/[^/]+/history/[^/]+$")
 
 
 def _on_lane(path: str) -> bool:
-    """True iff `path` is present on the fleet-audit lane tip (verified, not inferred).
+    """True iff the working-tree file at `path` is replicated on the fleet-audit lane tip —
+    compared by BLOB, never by name.
 
-    Fail-CLOSED: an errored/absent lane ref returns False, so the file keeps its finding. An
-    unknown replication status is not a confirmed one — silence there would hide a genuinely
-    unreplicated daily, which is the opposite of what this leg is for."""
+    PRESENCE IS NOT REPLICATION. The first cut of this check matched on `ls-tree --name-only`,
+    which excuses a file whose CONTENT the lane has never seen. That is not a near-miss, it is
+    the inverse of this leg's purpose, and it was live: on 2026-08-02 the two dailies had been
+    OVERWRITTEN in place by a later same-day run ([#465] leg 2), so the working-tree copy held
+    one digest while the lane held two entirely different ones — and the name-only check
+    silenced exactly the file that was at risk.
+
+    Fail-CLOSED: an errored/absent lane ref, or an unhashable working-tree file, returns False
+    so the finding stands. An unknown replication status is not a confirmed one."""
+    local = _git("hash-object", "--", path)
+    if local.returncode != 0 or not local.stdout.strip():
+        return False
+    blob = local.stdout.strip()
     for ref in _LANE_REFS:
-        r = _git("ls-tree", "--name-only", ref, "--", path)
-        if r.returncode == 0 and r.stdout.strip() == path:
+        r = _git("rev-parse", f"{ref}:{path}")
+        if r.returncode == 0 and r.stdout.strip() == blob:
             return True
     return False
 

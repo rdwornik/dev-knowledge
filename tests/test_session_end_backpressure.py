@@ -716,14 +716,20 @@ _LANE_DAILY = "ecosystem/.dev-knowledge/history/2026-08-02.md"
 _LANE_DAILY_2 = "ecosystem/ai-council/history/2026-08-02.md"
 
 
-def _lane_git(on_lane, status):
-    """git stub: `status` porcelain output; `ls-tree` answers from the `on_lane` set."""
+def _lane_git(on_lane, status, lane_blob=None):
+    """git stub. `status` porcelain output; the working-tree blob is always 'LOCAL'; a path in
+    `on_lane` answers with the same blob (identical) unless `lane_blob` overrides it — which
+    models a file PRESENT on the lane under a DIFFERENT content."""
     def run(*args):
         if args[0] == "status":
             return _R(status)
-        if args[0] == "ls-tree":
-            path = args[-1]
-            return _R(path + "\n" if path in on_lane else "")
+        if args[0] == "hash-object":
+            return _R("LOCAL\n")
+        if args[0] == "rev-parse":
+            path = args[1].split(":", 1)[1]
+            if path in on_lane:
+                return _R((lane_blob or "LOCAL") + "\n")
+            return _R("", 1)
         return _R("")
     return run
 
@@ -747,12 +753,26 @@ def test_stray_untracked_file_under_history_still_flags(monkeypatch):
 
 
 def test_daily_not_yet_on_the_lane_still_flags(monkeypatch):
-    """(c) The at-risk case, and the reason the check is `ls-tree` rather than a regex: a
-    daily that has NOT been replicated is exactly the one that can still be lost."""
+    """(c) The at-risk case: a daily that has NOT been replicated is exactly the one that can
+    still be lost."""
     monkeypatch.setattr(sb, "_git", _lane_git(set(), f"?? {_LANE_DAILY}\n"))
     line = sb.check_dirty_tree()
     assert line and "1 uncommitted" in line
     assert _LANE_DAILY in line
+
+
+def test_daily_on_the_lane_with_DIFFERENT_content_still_flags(monkeypatch):
+    """(c2) The hole in the first cut of this fix, found live on 2026-08-02.
+
+    Matching on the lane by NAME excuses a file whose CONTENT is not replicated. That is not a
+    near-miss, it is the inverse of the leg's purpose: the live dailies had been OVERWRITTEN in
+    place by a later same-day run ([#465] leg 2), so the working-tree copy held one digest
+    while the lane held two others — and the name-only check silenced exactly that. Presence is
+    not replication; the comparison is on the BLOB."""
+    monkeypatch.setattr(sb, "_git", _lane_git(
+        {_LANE_DAILY}, f"?? {_LANE_DAILY}\n", lane_blob="DIFFERENT"))
+    line = sb.check_dirty_tree()
+    assert line and _LANE_DAILY in line, "unreplicated CONTENT must never be excused"
 
 
 def test_lane_exclusion_applies_only_to_untracked_entries(monkeypatch):
