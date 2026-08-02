@@ -1083,3 +1083,180 @@ def test_main_cross_repo_without_repo_root_names_the_reason(tmp_path, capsys):
     assert vhp.main([str(_empty_bundle(tmp_path)), "--cross-repo"]) == 2
     err = capsys.readouterr().err
     assert "--repo-root" in err and "infer" in err.lower()
+
+
+# --- suffix-family resolution ([#473] half A) --------------------------------
+#
+# A multi-handoff day produces `<slug>`, `<slug>-2`, `<slug>-3` siblings — NORMAL operation,
+# not an error. The operator names the BASE slug from muscle memory; the gate must reach the
+# ACTIVE member anyway. Before this arc the base slug verified the STALE sibling and reported
+# a confident verdict about the wrong bundle ("green about the wrong file", the #372 class,
+# recurring here through a different door).
+
+
+def _suffix_family_repo(tmp_path):
+    """`2026-08-01-x` (added FIRST, carries a FAILING probe) + `2026-08-01-x-2` (added
+    SECOND, carries a PASSING probe). Verdict alone therefore names which was verified."""
+    _init_bundle(tmp_path, [_FAIL_MISSING], slug="2026-08-01-x")
+    repo = tmp_path / "repo"
+    sib = repo / "docs" / "handoffs" / "2026-08-01-x-2"
+    sib.mkdir(parents=True)
+    (sib / "PROBES.md").write_text(_probes_md([_PASS_SYMBOL]), encoding="utf-8")
+    run = _git_repo(repo)
+    _commit_at(run, "docs/handoffs/2026-08-01-x", "2026-07-31T17:54:31+02:00", "base")
+    _commit_at(run, ".", "2026-08-01T21:20:17+02:00", "the -2 sibling + repo files")
+    return repo
+
+
+@_needs_git
+def test_requesting_the_base_slug_resolves_to_the_active_suffixed_sibling(tmp_path):
+    """THE ACCEPTANCE TEST. The operator's verbatim prompt names the BASE slug; the gate runs
+    against `-2` and returns ITS verdict, with zero failures attributable to the resolution."""
+    repo = _suffix_family_repo(tmp_path)
+    requested = repo / "docs" / "handoffs" / "2026-08-01-x"
+
+    active, note = vhp.resolve_active_bundle(requested)
+
+    assert active.name == "2026-08-01-x-2", f"resolved to {active.name}, not the active sibling"
+    assert note and "active-bundle rule" in note
+    results = vhp.verify(active)
+    assert [r.status for r in results] == ["pass"], "the -2 bundle's own PASSING probe must run"
+
+
+@_needs_git
+def test_main_on_the_base_slug_prints_one_resolution_line_and_gates_on_the_active(tmp_path, capsys):
+    """End-to-end through the CLI the /handoff-verify command path uses: exactly ONE
+    informational line, in the specified shape, and the exit code is the ACTIVE bundle's."""
+    repo = _suffix_family_repo(tmp_path)
+    rc = vhp.main([str(repo / "docs" / "handoffs" / "2026-08-01-x")])
+    out = capsys.readouterr().out
+
+    assert rc == 0, "the active (-2) bundle passes; the stale base would have returned 1"
+    line = [ln for ln in out.splitlines() if "active-bundle rule" in ln]
+    assert len(line) == 1, f"expected exactly one resolution line, got {line}"
+    assert line[0].strip() == (
+        "resolved '2026-08-01-x' -> '2026-08-01-x-2' (active-bundle rule)")
+
+
+@_needs_git
+def test_exact_flag_verifies_the_requested_bundle_and_reports_supersession(tmp_path, capsys):
+    """`--exact` is deliberate archaeology on a superseded bundle: no resolution, and the
+    supersession is REPORTED (silence would read as 'this is the active one')."""
+    repo = _suffix_family_repo(tmp_path)
+    rc = vhp.main([str(repo / "docs" / "handoffs" / "2026-08-01-x"), "--exact"])
+    out = capsys.readouterr().out
+
+    assert rc == 1, "the requested (stale) bundle carries the FAILING probe"
+    assert "active-bundle rule" not in out, "--exact must not resolve"
+    assert "superseded" in out.lower() and "2026-08-01-x-2" in out
+
+
+@_needs_git
+def test_requesting_the_active_sibling_directly_is_a_no_op(tmp_path, capsys):
+    """Naming `-2` explicitly already IS the active bundle — no resolution line, no churn."""
+    repo = _suffix_family_repo(tmp_path)
+    assert vhp.main([str(repo / "docs" / "handoffs" / "2026-08-01-x-2")]) == 0
+    assert "active-bundle rule" not in capsys.readouterr().out
+
+
+def test_single_member_family_needs_no_git_and_is_unchanged(tmp_path):
+    """A lone bundle (the overwhelmingly common case) resolves to itself without a git call."""
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug="2026-06-12-b")
+    active, note = vhp.resolve_active_bundle(bundle)
+    assert active == bundle and note is None
+
+
+def test_suffix_family_groups_base_and_numeric_siblings_only(tmp_path):
+    """The family is `<base>` + `<base>-<n>`. A DIFFERENT slug that merely shares a prefix
+    (`-arc5`, a longer date-slug) is NOT a family member — over-grouping would resolve an
+    unrelated bundle, which is the same wrong-file failure wearing the opposite sign."""
+    _init_bundle(tmp_path, [_PASS_SYMBOL], slug="2026-08-01-x")
+    root = tmp_path / "repo" / "docs" / "handoffs"
+    for name in ("2026-08-01-x-2", "2026-08-01-x-10", "2026-08-01-x-arc5", "2026-08-01-y"):
+        (root / name).mkdir(parents=True)
+    fam = {d.name for d in vhp.sibling_family(root / "2026-08-01-x")}
+    assert fam == {"2026-08-01-x", "2026-08-01-x-2", "2026-08-01-x-10"}
+
+
+# --- locator identity ([#473] half B') ---------------------------------------
+#
+# Already-SEALED bundles carry the generator defect and are immutable, so the verifier has to
+# absorb it: when verifying bundle X, a `docs/handoffs/<other>/…` locator is interpreted
+# relative to X's OWN directory. The -2 verify run proved the blast radius — 7 self-references
+# to the un-suffixed sibling — and passed only because both bundles coincidentally shared the
+# checked values. Binding is not identity.
+
+_SELF_LOCATOR = ("P0c", "does this bundle's Purpose name a live authority",
+                 "this bundle's `docs/handoffs/2026-08-01-x/HANDOFF_BOOT.md` `## Destination`",
+                 "the Purpose is hand-authored per bundle",
+                 "`sed -n 'p' docs/handoffs/2026-08-01-x/HANDOFF_BOOT.md`")
+
+
+def _mislabelled_bundle(tmp_path):
+    """`-2` whose PROBES.md self-references the UN-SUFFIXED sibling — the sealed live defect.
+
+    Both bundles carry a HANDOFF_BOOT.md, exactly as the real pair does, and THAT is why a
+    status check alone cannot discriminate: the sibling's file exists, so the mis-pointed
+    locator binds — to the wrong bundle — and still reports `pass`. Resolving is not
+    resolving-to-the-right-thing, which is the whole "binding is not identity" point.
+
+    So the fixture keys on CONTENT: the `## Destination` anchor exists ONLY in the `-2` copy.
+    No rebase -> the row resolves the base copy and the anchor is missing (anchor-missing);
+    rebase -> it resolves `-2` and the anchor is found (pass). The verdict now names which
+    file was actually read."""
+    repo = tmp_path / "repo"
+    for rel, content in _FILES.items():
+        p = repo / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(content, encoding="utf-8")
+    base = repo / "docs" / "handoffs" / "2026-08-01-x"
+    base.mkdir(parents=True)
+    (base / "HANDOFF_BOOT.md").write_text(
+        "| **Slug** | `2026-08-01-x` |\n\n## Purpose\nthe SIBLING's boot header\n",
+        encoding="utf-8")
+    sib = repo / "docs" / "handoffs" / "2026-08-01-x-2"
+    sib.mkdir(parents=True)
+    (sib / "PROBES.md").write_text(_probes_md([_SELF_LOCATOR]), encoding="utf-8")
+    (sib / "HANDOFF_BOOT.md").write_text(
+        "| **Slug** | `2026-08-01-x` |\n\n## Destination\nbranch `main`\n", encoding="utf-8")
+    return sib
+
+
+def test_bundle_internal_locator_is_rebased_onto_the_verified_bundle(tmp_path):
+    """The locator names the sibling, whose HANDOFF_BOOT.md lacks the anchor. Without the
+    rebase the row reads the WRONG file and degrades to anchor-missing; with it, the row
+    reads the bundle actually under verification and binds."""
+    results = vhp.verify(_mislabelled_bundle(tmp_path))
+    assert [r.status for r in results] == ["pass"], [r.detail for r in results]
+
+
+def test_rebased_locator_reports_the_identity_defect(tmp_path):
+    """The rebase makes verification CORRECT; the report makes the defect VISIBLE. Silently
+    rebasing would hide a real generator bug behind a clean green."""
+    results = vhp.verify(_mislabelled_bundle(tmp_path))
+    assert results[0].locator_rebased, "identity mismatch must be recorded on the result"
+    assert "2026-08-01-x" in results[0].locator_rebased
+
+
+def test_main_surfaces_the_locator_identity_defect(tmp_path, capsys):
+    """The operator-facing CLI says it out loud, and it stays ADVISORY (exit 0)."""
+    assert vhp.main([str(_mislabelled_bundle(tmp_path)), "--exact"]) == 0
+    out = capsys.readouterr().out.lower()
+    assert "identity" in out and "2026-08-01-x" in out
+
+
+def test_locator_naming_the_verified_bundle_is_never_flagged(tmp_path):
+    """Negative control: a correctly-self-referencing bundle produces no identity note."""
+    repo = tmp_path / "repo"
+    for rel, content in _FILES.items():
+        p = repo / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(content, encoding="utf-8")
+    b = repo / "docs" / "handoffs" / "2026-08-01-x"
+    b.mkdir(parents=True)
+    (b / "PROBES.md").write_text(_probes_md([_SELF_LOCATOR]), encoding="utf-8")
+    (b / "HANDOFF_BOOT.md").write_text(
+        "| **Slug** | `2026-08-01-x` |\n\n## Destination\nbranch `main`\n", encoding="utf-8")
+    results = vhp.verify(b)
+    assert [r.status for r in results] == ["pass"]
+    assert not results[0].locator_rebased

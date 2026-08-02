@@ -76,10 +76,23 @@ def test_extract_surfaces_spec_name_mentions():
 
 @pytest.mark.live_repo
 def test_extract_surfaces_command_invocations():
-    """CLI invocations — incl. the PowerShell discovery fence — surface as commands."""
+    """CLI invocations — incl. the PowerShell discovery fence — surface as commands.
+
+    The pin moved off `Get-ChildItem` at [#473]. That fence used to read
+    `Get-ChildItem docs/handoffs/ | Sort-Object Name | Select-Object -Last 5`, i.e. it taught
+    the operator to find the current bundle by LEXICAL NAME ORDER — the exact rule [#372] and
+    [#473] both proved wrong (`-arc5` sorts last but was added first; `<slug>` sorts before
+    `<slug>-2` though the sibling is newer). The command was replaced by a git-add-date query,
+    so the old literal is deliberately gone.
+
+    The replacement pin is the fence's LANGUAGE MARKER, not another command string. `anchor`
+    truncates at ~70 chars, so any cmdlet past the first line is unpinnable anyway — and a
+    literal command is exactly what rotted here: it coupled this test to the runbook's advice
+    rather than to the property the docstring claims. Asserting the ```powershell fence
+    surfaces as a command site tests that property directly and survives the next rewording."""
     commands = _live_sites()["commands"]
     assert commands, "no command sites surfaced"
-    assert any("Get-ChildItem" in s.anchor for s in commands), "powershell fence missing"
+    assert any(s.anchor.startswith("powershell:") for s in commands), "powershell fence missing"
 
 
 @pytest.mark.live_repo

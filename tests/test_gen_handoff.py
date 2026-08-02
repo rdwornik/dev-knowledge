@@ -623,3 +623,107 @@ def test_generated_at_line_still_names_the_generation_branch(tmp_path):
     assert gen_branch in genat, (
         "`Generated at` no longer names the generation branch — the two questions were "
         "collapsed onto the boot destination instead of separated")
+
+
+# --- seal identity: internal slug == final directory name ([#473] half B) ----
+#
+# `--allow-suffix` diverts the write to `<slug>-<n>`, but the render tokens were built from
+# the REQUESTED slug, so every internal self-reference — the HANDOFF_BOOT Slug field, the
+# PROBES P0c/P3/P8 locators, PASTE_THIS's embedded command — named the SIBLING. The bundle
+# sealed pointing at a different directory, and `verify_handoff_probes` could not see it:
+# the un-suffixed path EXISTS (it is the sibling), so every row resolved pass.
+# Binding is not identity.
+
+
+def _tracked_repo(tmp_path):
+    """A stub repo whose first bundle is git-TRACKED, so a second generate() at the same slug
+    trips the RM-8 refusal and `allow_suffix` diverts to `-2` (the real-world path)."""
+    repo = _stub_repo(tmp_path)
+    root = repo / "docs" / "handoffs"
+    gh.generate(repo, mode="architect", slug="2026-08-01-t", repo=".dev-knowledge",
+                date="2026-08-01", bundle_root=root, assemble=False)
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@e.com",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@e.com"}
+    for args in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "seed"]):
+        p = subprocess.run(["git", *args], cwd=str(repo), capture_output=True, text=True, env=env)
+        assert p.returncode == 0, f"git {args}: {p.stderr}"
+    return repo, root
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not in PATH")
+def test_suffixed_bundle_derives_every_internal_reference_from_its_final_directory(tmp_path):
+    """THE DEFECT. Generate into a tracked slug with --allow-suffix; the bundle lands in `-2`
+    and NOTHING inside it may still name the un-suffixed sibling."""
+    repo, root = _tracked_repo(tmp_path)
+
+    res = gh.generate(repo, mode="architect", slug="2026-08-01-t", repo=".dev-knowledge",
+                      date="2026-08-01", bundle_root=root, assemble=False, allow_suffix=True)
+
+    assert res.bundle_dir.name == "2026-08-01-t-2", "fixture premise: the write diverted"
+    boot = (res.bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    assert "`2026-08-01-t-2`" in boot, "the Slug field must name the FINAL directory"
+    probes = (res.bundle_dir / "PROBES.md").read_text(encoding="utf-8")
+    assert "docs/handoffs/2026-08-01-t-2/" in probes, "P0c/P3/P8 locators must be suffixed"
+    for f in res.bundle_dir.iterdir():
+        body = f.read_text(encoding="utf-8")
+        assert "docs/handoffs/2026-08-01-t/" not in body, f"{f.name} still names the sibling"
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not in PATH")
+def test_suffixed_bundle_probes_resolve_against_their_own_directory(tmp_path):
+    """The end the tokens serve: the generated bundle's own probe manifest binds — verified by
+    the real validator, not by string-matching alone."""
+    repo, root = _tracked_repo(tmp_path)
+    res = gh.generate(repo, mode="architect", slug="2026-08-01-t", repo=".dev-knowledge",
+                      date="2026-08-01", bundle_root=root, assemble=False, allow_suffix=True)
+
+    results = vhp.verify(res.bundle_dir, repo_root=repo)
+    assert results, "the generated bundle must carry probes"
+    assert not [r for r in results if r.status == "fail"], [r.detail for r in results]
+    assert not [r for r in results if r.locator_rebased], \
+        "a freshly-generated bundle must need NO rebase — its locators are already its own"
+
+
+def test_seal_refuses_a_bundle_whose_internal_slug_mismatches_its_directory(tmp_path):
+    """The gate that makes the class unsealable (residual_completeness precedent): the system
+    already refuses plausible-but-wrong artifacts, and a self-mislabelled bundle is one."""
+    repo = _stub_repo(tmp_path)
+    root = repo / "docs" / "handoffs"
+    res = gh.generate(repo, mode="architect", slug="2026-08-01-t", repo=".dev-knowledge",
+                      date="2026-08-01", bundle_root=root, assemble=False)
+    boot = res.bundle_dir / "HANDOFF_BOOT.md"
+    boot.write_text(boot.read_text(encoding="utf-8")
+                    .replace("`2026-08-01-t`", "`2026-08-01-t-9`"), encoding="utf-8")
+
+    with pytest.raises(gh.BundleIdentityError) as exc:
+        gh.verify_seal_identity(res.bundle_dir)
+    assert "2026-08-01-t-9" in str(exc.value) and "2026-08-01-t" in str(exc.value)
+
+
+def test_seal_identity_accepts_a_correctly_labelled_bundle(tmp_path):
+    """Negative control — a normal generation seals without complaint."""
+    repo = _stub_repo(tmp_path)
+    res = gh.generate(repo, mode="architect", slug="2026-08-01-t", repo=".dev-knowledge",
+                      date="2026-08-01", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    gh.verify_seal_identity(res.bundle_dir)      # must not raise
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not in PATH")
+def test_generation_itself_runs_the_seal_gate(tmp_path):
+    """The gate is wired INTO generate(), not merely available to call — otherwise the defect
+    class can seal again through the exact door it used the first time."""
+    repo, root = _tracked_repo(tmp_path)
+    calls = []
+    real = gh.verify_seal_identity
+
+    def spy(bundle_dir):
+        calls.append(bundle_dir)
+        return real(bundle_dir)
+
+    gh.verify_seal_identity = spy
+    try:
+        res = gh.generate(repo, mode="architect", slug="2026-08-01-t", repo=".dev-knowledge",
+                          date="2026-08-01", bundle_root=root, assemble=False, allow_suffix=True)
+    finally:
+        gh.verify_seal_identity = real
+    assert res.bundle_dir in calls, "generate() must seal-gate the bundle it just wrote"

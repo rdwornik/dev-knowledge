@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-31
+last_reviewed: 2026-08-02
 reconciled_with: handoff-process@6.0.1
 ---
 <!-- scope: meta -->
@@ -122,6 +122,13 @@ Each row carries its source locator, the check performed, PASS/FAIL, and the liv
 FAIL blocks onboarding**; a missing required row is not a pass; degraded coverage (a tool absent, a
 moved anchor) is reported rather than counted as a pass.
 
+> **Verify resolves to the active bundle — you never need to know the suffix ([#473]).** A day with
+> more than one handoff produces `<slug>`, `<slug>-2`, … siblings; that is normal. Name **any**
+> member and the gate runs against the **active** one (newest by git-add date), printing one line —
+> `resolved '<requested>' -> '<active>' (active-bundle rule)`. Pass **`--exact`** to verify exactly
+> the bundle you named instead — deliberate archaeology on a superseded one, which then reports its
+> supersession rather than staying silent about it.
+
 **Why it's built this way:** the bundle deliberately ships **no answers** — only each probe's
 question and the command that produces the answer. The only way to answer is to read **live**
 repo/git state, so a stale summary can't bluff its way through. v6 changes the **transport count**,
@@ -220,11 +227,17 @@ not deleted.
 - **v3.2 (2026-05-09 → 2026-05-25, ADR-42)** — twelve-file flat folder. Historical.
 - **Pre-v3.2 (legacy)** — single-file `.md` and folder-v2 formats under `archive/legacy/`.
 
-Find the current session:
+Find the current session — **by git-add date, not by name** ([#473] / [#372]):
 
 ```powershell
-Get-ChildItem docs/handoffs/ | Sort-Object Name | Select-Object -Last 5
+git log --diff-filter=A --format="%ad %f" --date=short --name-only -- docs/handoffs/ |
+  Select-String 'HANDOFF_BOOT|EPIC_BOOT|FUNCTIONAL_BOOT' | Select-Object -First 5
 ```
+
+A name sort is **not** the rule and has twice picked the wrong bundle: `…-architect-arc5` sorts
+after `…-architect` yet was added a day earlier ([#372]), and `<slug>` sorts before `<slug>-2`
+while the suffixed sibling is the newer one ([#473]). You rarely need this command at all —
+`/handoff-verify` resolves the active bundle for you.
 
 ### References
 - `protocols/HANDOFF_PROCESS.md` — the operational spec (§5 teeth, §13 modes + bundle shape,
