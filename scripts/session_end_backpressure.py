@@ -337,11 +337,54 @@ def check_backlog_marker():
             f"nothing needs none (DEFINITION_OF_DONE 'BACKLOG').")
 
 
+# --- lane-owned fleet-audit dailies ([#476]) --------------------------------
+#
+# `ecosystem/<repo>/history/<daily>.md` is the ADR-80/ADR-84 durable fleet-audit record. It
+# lives on the `automation/fleet-audit` LANE and is untracked on `main` BY DESIGN (`.gitignore`
+# names these as durable records). The dirty-tree leg flagged them anyway, 4x in one session,
+# on files that session never touched — and every repair it implied was wrong: committing to
+# `main` breaks lane ownership, deleting destroys records, stashing churns files already safe
+# on origin. A guard that fires on correct state trains the operator to ignore it, which is
+# the failure mode a backpressure organ can least afford.
+#
+# The exclusion is VERIFIED, never a pattern. A blind `ecosystem/*/history/` exclude would
+# also silence the one case that genuinely needs surfacing — a daily not yet replicated, which
+# is exactly the file that can still be lost. So the path is excused only when `ls-tree` proves
+# THAT EXACT FILE is already present on the lane tip.
+_LANE_REFS = ("automation/fleet-audit", "origin/automation/fleet-audit")
+_LANE_DAILY_RE = re.compile(r"^ecosystem/[^/]+/history/[^/]+$")
+
+
+def _on_lane(path: str) -> bool:
+    """True iff `path` is present on the fleet-audit lane tip (verified, not inferred).
+
+    Fail-CLOSED: an errored/absent lane ref returns False, so the file keeps its finding. An
+    unknown replication status is not a confirmed one — silence there would hide a genuinely
+    unreplicated daily, which is the opposite of what this leg is for."""
+    for ref in _LANE_REFS:
+        r = _git("ls-tree", "--name-only", ref, "--", path)
+        if r.returncode == 0 and r.stdout.strip() == path:
+            return True
+    return False
+
+
+def _is_lane_owned_daily(status_line: str) -> bool:
+    """True iff a `git status --porcelain` line is an UNTRACKED lane-owned daily already on
+    the lane. Scoped to `??` entries: a tracked modification under `history/` is a real edit
+    to a real file and still warrants the nudge."""
+    if not status_line.startswith("??"):
+        return False
+    path = status_line[3:].strip().strip('"')
+    return bool(_LANE_DAILY_RE.match(path)) and _on_lane(path)
+
+
 def check_dirty_tree():
     r = _git("status", "--porcelain")
     if r.returncode != 0:
         return None
     changes = [ln for ln in r.stdout.splitlines() if ln.strip()]
+    # Drop lane-owned dailies only; everything beside them keeps its finding and its count.
+    changes = [ln for ln in changes if not _is_lane_owned_daily(ln)]
     if not changes:
         return None
     sample = ", ".join(ln[3:].strip() for ln in changes[:3])

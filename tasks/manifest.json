@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "380f980720415829bc7b3a78f2c924590460731b450c87755e5de53659e1e2b3",
+  "generated_sha256": "f222780b37ad3cf232193f9044625e8e36a885e666cddf5ff5021095449fb414",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -200,6 +200,10 @@
     {
       "task": 475,
       "file": "475-seal-identity-as-a-pre-commit-gate-on-bundles.md"
+    },
+    {
+      "task": 476,
+      "file": "476-backpressure-flags-lane-owned-fleet-audit-dailies.md"
     },
     {
       "prose": ""
