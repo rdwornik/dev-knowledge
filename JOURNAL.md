@@ -19,6 +19,38 @@
 
 ---
 
+### 2026-08-02 (d) — CC (Opus 5, local): [#476] reopened in effect — the lane check compared names, not content
+
+**Did:** Reviewed the uncommitted tree on operator challenge and found my own [#476] fix had a
+hole. SHA anchor `0e27f308`. Written at WRAP.
+
+**The correction.** All session long I asserted the two `ecosystem/*/history/` dailies were
+"already durably committed on origin @ ce6aa5a3" and needed no action. That rested on
+`ls-tree --name-only` — a NAME check. The content differs: the lane holds two digests
+(13:01:37, 13:04:35, 13464 B) while the working-tree copy holds one (16:59:21, 6733 B), blobs
+`ffc085ef` vs `8cd496ee`. A later same-day run had OVERWRITTEN the file in place ([#465] leg
+2, still open). So the files were NOT replicated, and [#476] — closed hours earlier — was
+silencing precisely the file at risk. Presence is not replication.
+
+**Fixed:** `_on_lane()` now compares `hash-object` against `rev-parse <ref>:<path>`, still
+fail-closed. New RED-first test reproduces the live shape (present by name, different blob).
+48 passed. The dailies flag again, correctly.
+
+**What this says about the method.** [#476] was closed on a green suite that never exercised
+the real shape — my (c) test covered "absent from the lane", not "present with different
+content". The gap was found by an operator asking why the tree was still dirty, not by any
+organ. Mechanism beats vigilance only where the mechanism actually models the failure.
+
+**Still open, needs a ruling:** the two dailies remain unreplicated and cannot be committed to
+the lane as-is — doing so would DROP the 13:01 and 13:04 entries the overwrite destroyed
+locally. That is [#465] leg 2 territory and an operator call, not a cleanup.
+
+**Changes:** `scripts/session_end_backpressure.py`, `tests/test_session_end_backpressure.py`.
+
+**Next:** rule on the daily overwrite; [#465] leg 4; then [#472] / [#383].
+
+---
+
 ### 2026-08-02 (c) — CC (Opus 5, local): three merges to main, and the backpressure false positive killed at the mechanism
 
 **Did:** Landed the [#473] arc and its follow-ons, then fixed the guard that had been firing on
