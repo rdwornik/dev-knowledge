@@ -16,7 +16,8 @@ owner: Rob
 >
 > Last updated: `2026-08-02` — [#475]: the Ch2 pre-commit gate list + Validators gain
 > `check-seal-identity` (commit-time handoff-bundle seal-identity, reusing
-> `gen_handoff.verify_seal_identity`). Prior: `2026-08-01` — [#459]: Ch2 gains the **desired-state organ class**
+> `gen_handoff.verify_seal_identity`); [#474]: the Ch5 source-zone `--write` sentence flips
+> from warn-then-rewrite to refuse-unless-`--force`. Prior: `2026-08-01` — [#459]: Ch2 gains the **desired-state organ class**
 > (ADR-109 contract/loader/report) and the codemap source-root question is RULED —
 > `ecosystem/schema/` stays out of scope, cost stated. Prior: `2026-07-28` — ADR-107 strangler **step 3** ([#439]): Ch5's `tasks/` zone flips
 > from **derived** to **SOURCE OF TRUTH**, with `BACKLOG.md` now generated from it
@@ -653,7 +654,9 @@ every non-task prose line in order, so document structure lives there.
 
 Regenerate `BACKLOG.md` with `scripts/gen_task_tree.py --emit-source` after any edit under
 `tasks/`. `--write` still exists but runs the **import/recovery** direction (file → tree)
-and warns, because post-flip it overwrites source from a generated file. **`--prune` is
+and, since [#474], **refuses against a populated `tasks/` tree** (post-flip it overwrites
+source from a generated file — warn-then-destroy inverted to warned-means-abort); `--force`
+is the loud, named escape hatch, and the clean bootstrap state is unchanged. **`--prune` is
 refused**: deleting a task file would delete source and free its id for re-issue, so
 retirement drops a task's node from `manifest.json` while its file **remains as the
 allocation record** (ADR-107 §6.3, retire-not-delete). **Limit:** the gate REDs a

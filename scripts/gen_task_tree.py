@@ -37,7 +37,9 @@ CLI verbs, by direction:
   --write         BACKLOG.md -> tree. THE IMPORT/RECOVERY DIRECTION, deliberately
                   kept (it is how the tree was bootstrapped and how it would be
                   rebuilt), but post-flip it OVERWRITES SOURCE FROM A DERIVED
-                  FILE and therefore warns loudly. It is not the normal path.
+                  FILE — so since [#474] a detected warning condition (a populated
+                  tasks/ tree) REFUSES before touching disk; --force is the loud,
+                  named escape hatch. The clean bootstrap state is unchanged.
   --prune         REFUSED post-flip. Deleting a task file now deletes source, and
                   ADR-107 §6.3 rules retire-not-delete: a retired task leaves the
                   QUEUE by dropping out of manifest.json while its file REMAINS as
@@ -481,8 +483,54 @@ def reassemble_from_tree(tree_dir: Path) -> str:
     return "\n".join(parts)
 
 
-def _cmd_write(source_path: Path, out_dir: Path) -> int:
-    """IMPORT: BACKLOG.md -> tree. Warns, because post-flip this overwrites source."""
+def write_warnings(out_dir: Path) -> list[str]:
+    """[#474] — the conditions under which --write would DESTROY source-of-truth state.
+
+    Post-flip, the import direction rebuilds `tasks/` from the GENERATED BACKLOG.md, so
+    running it against a populated tree overwrites source. Each returned string is one
+    detected condition; an empty list is the clean bootstrap/recovery state (absent or
+    empty target tree — nothing to destroy), where --write keeps its legacy behavior.
+    """
+    warnings: list[str] = []
+    if (out_dir / "manifest.json").exists():
+        warnings.append(
+            f"{out_dir / 'manifest.json'} exists -- the target is a POPULATED source-of-"
+            f"truth tree, and the import would rewrite it from the generated file")
+    task_files = ([p.name for p in sorted(out_dir.iterdir())
+                   if p.is_file() and _ORPHAN_RE.match(p.name)]
+                  if out_dir.exists() else [])
+    if task_files:
+        warnings.append(
+            f"{len(task_files)} task file(s) present under {out_dir} -- an import "
+            f"re-derives filenames from titles, which can re-slug live ids and orphan "
+            f"the originals (the [#473] incident: 17 files re-slugged by one mistaken run)")
+    return warnings
+
+
+def _cmd_write(source_path: Path, out_dir: Path, force: bool = False) -> int:
+    """IMPORT: BACKLOG.md -> tree. [#474]: a warned state ABORTS unless --force.
+
+    Post-flip this direction overwrites the SOURCE OF TRUTH from a generated file. The
+    pre-[#474] behavior -- warn on stderr, then rewrite anyway -- was warn-then-destroy:
+    the warning was vigilance, the rewrite was the defect. Now any detected warning
+    condition refuses BEFORE touching disk (non-zero exit, zero bytes changed); --force
+    is the explicit, loud escape hatch and names every condition it overrides. A clean
+    state (no conditions -- the bootstrap/recovery case) behaves exactly as before.
+    """
+    warned = write_warnings(out_dir)
+    if warned and not force:
+        print(f"gen_task_tree: --write REFUSED (nothing written) -- "
+              f"{len(warned)} warning condition(s):", file=sys.stderr)
+        for warning in warned:
+            print(f"  - {warning}", file=sys.stderr)
+        print("  The routine post-flip regen is --emit-source (tree -> BACKLOG.md).\n"
+              "  To run the import anyway, re-run with --write --force.", file=sys.stderr)
+        return 2
+    if warned:
+        print(f"gen_task_tree: --force OVERRIDE -- proceeding despite "
+              f"{len(warned)} warning condition(s):", file=sys.stderr)
+        for warning in warned:
+            print(f"  - {warning}", file=sys.stderr)
     print(f"gen_task_tree: WARNING -- --write rebuilds the SOURCE OF TRUTH ({out_dir}) "
           f"from {source_path.name}, which is a GENERATED file since the [#439] flip. "
           f"Any edit made under tasks/ but not yet emitted will be overwritten. The "
@@ -1123,14 +1171,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--roundtrip", action="store_true", help="verify in-memory lossless reassembly")
     parser.add_argument("--write", action="store_true",
                         help="IMPORT/RECOVERY: rebuild the tasks/ tree from BACKLOG.md. Post-flip "
-                             "this overwrites the source of truth from a generated file; it warns")
+                             "this overwrites the source of truth from a generated file; against "
+                             "a populated tasks/ tree it REFUSES unless --force ([#474])")
     parser.add_argument("--prune", action="store_true",
                         help="REFUSED since the [#439] flip — see ADR-107 §6.3 (retire, never delete)")
+    parser.add_argument("--force", action="store_true",
+                        help="with --write only ([#474]): override a warned refusal (populated "
+                             "tasks/ tree); loud, names every condition it overrides")
     parser.add_argument("--source", type=Path, default=None,
                         help="BACKLOG.md path — the GENERATED file (default: repo root)")
     parser.add_argument("--out", type=Path, default=None,
                         help="tasks/ tree dir — the SOURCE OF TRUTH (default: repo root/tasks)")
     args = parser.parse_args(argv)
+
+    if args.force and not args.write:
+        parser.error("--force is only meaningful with --write ([#474])")
 
     source_path = args.source if args.source is not None else _DEFAULT_SOURCE
     out_dir = args.out if args.out is not None else _DEFAULT_OUT
@@ -1150,7 +1205,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.roundtrip:
         return _cmd_roundtrip(source_path)
     if args.write:
-        return _cmd_write(source_path, out_dir)
+        return _cmd_write(source_path, out_dir, force=args.force)
 
     parser.print_usage(sys.stderr)
     return 2
