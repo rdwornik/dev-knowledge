@@ -7,7 +7,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.49 — 2026-08-02 -->
+<!-- version: 2.50 — 2026-08-02 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -167,6 +167,7 @@ Pre-commit (`.pre-commit-config.yaml`):
 - `audit-index-freshness` — regen-and-diff gate for the generated `docs/audits/README.md` index vs `docs/audits/*.md` (`gen_audit_index.py --check`; shape-agnostic — survives the #269 count-tiered reshape); guards against silent index rot (census A-2 ruling); HUB-ONLY
 - `validate-hermetization` (#306, HUB-ONLY) — ADR-101 tree-seal refusal gate, prospective-only on staged ADDs (existing files grandfathered): Rule A blocks a new unsanctioned Tier-1 top-level dir/file-class or `docs/<genre>/` folder; Rule B blocks an off-grammar/mis-cased/off-enum `docs/audits/*.md` name (ADR-101 R3/R4, name-shape only); `scripts/validate_hermetization.py`, bypass `--no-verify`
 - `intake-index-freshness` (#307, HUB-ONLY) — regen-and-diff gate for the generated status-grouped Contents block in `docs/intake/README.md` vs `docs/intake/*.md` frontmatter `status:` (`gen_intake_index.py --check`; fires on any intake status-change/add/remove or the generator; never moves a file); guards against silent index rot
+- `check-seal-identity` ([#475], HUB-ONLY) — bundle seal-identity gate at commit time: runs `gen_handoff.verify_seal_identity` (reused, not reimplemented) over the bundle dir of every staged `docs/handoffs/**` file, so a hand-renamed directory / edited Slug row / copied bundle whose internal slug names a DIFFERENT directory cannot become an immutable committed artifact (the [#473] seal-time refusal covered only the machine generation path). Fires only when such files are staged; exit 0 clean / 1 violation / 2 internal error (an error BLOCKS, never a silent pass); `scripts/check_seal_identity.py`, bypass `--no-verify`. Honest limit: catches the Slug row vs directory, not a stale P0c/P3/P8 locator inside a correctly-labelled bundle
 - `validate-backlog` — BACKLOG.md story-map schema (ADR-66)
 - `audit-health` — self-conformance gate: `audit.py health` (FAIL blocks the commit, WARN informs); added by [#69]
 - `ruff` — lint gate: `ruff check` (gate mode; blocks on violations); fleet-canonical pinned-rev hook (`astral-sh/ruff-pre-commit` @ v0.15.5, matching both consumers), rev == the `pyproject.toml` `[tool.ruff]` required-version floor (>=0.15.5); added by [#13]
@@ -219,6 +220,7 @@ Machine-enumerated (last 5 by number, from `docs/decisions/ADR-*.md` headers; re
 
 > _Entries v1.0–v2.48 condensed to git history per ADR-49/65 (info-preserving — full prior history: `git log --follow -p -- CLAUDE.md`)._
 
+- v2.50 (2026-08-02) — §9 pre-commit roster gains `check-seal-identity` ([#475]): commit-time seal-identity gate over staged `docs/handoffs/**` bundles, reusing `gen_handoff.verify_seal_identity` (the [#473] seal-time refusal's commit-time twin). Roster addition only — no doctrine moved; ARCHITECTURE Ch2 gate list updated in lockstep. L10 version 2.49→2.50.
 - v2.49 (2026-08-02) — §12 condensed to its authorized home (pre-authorized relocation; needs no new ADR, and none was written). The v2.18–v2.48 block had reached 19,017 bytes across 11 bullets — 44.6% of the file — re-read in full at every session boot. Both cited ADRs name the SAME destination and foreclose the alternative: ADR-49 — “The change record is git history (descriptive commits)”; ADR-65 §1 — “Technical record = git… **No archive file** (CLAUDE.md §5; ADR-47 ‘no ceremonial archive’)”. So the block was condensed to the git pointer §12 has used since v2.22, **not** moved into a new file — which would have violated the very ADRs authorizing the move. No content loss: nothing is deleted, every entry stays recoverable verbatim at `c30af862:CLAUDE.md` and via `git log --follow -p -- CLAUDE.md` (19,017 bytes out, byte-counted before and after). The `owner=repo` `section-history` region markers and the §12 heading are RETAINED — they are the boundary substrate `boundary_report.py` / `boundary_headers.py` key on by region `id`, not history. Also corrected the stale footer “Last updated” (2026-07-30, while v2.48 landed 07-31 — the v2.41 stale-footer precedent). L10 version 2.48→2.49. Genuine full-file end-to-end re-read from disk this session (all 12 sections confirmed accurate; §4/§5/§7/§9 claims exercised live through this morning's commits); `last_reviewed` re-stamped 2026-08-02.
 <!-- methodology:end id=section-history -->
 

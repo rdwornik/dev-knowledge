@@ -1,7 +1,7 @@
 ---
 id: "[#475]"
 title: "`verify_seal_identity` runs at generation only — a hand-edited bundle bypasses the seal check"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E2] Enforced governance"

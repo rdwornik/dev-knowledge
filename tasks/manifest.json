@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "380f980720415829bc7b3a78f2c924590460731b450c87755e5de53659e1e2b3",
+  "generated_sha256": "5007a1315942c4fa207d5f058dc4595aabb2067fb1f9ba5a6f6afd87d7aa7cb4",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -196,10 +196,6 @@
     {
       "task": 451,
       "file": "451-ca-layer-edge-check-ai-council-precedent.md"
-    },
-    {
-      "task": 475,
-      "file": "475-seal-identity-as-a-pre-commit-gate-on-bundles.md"
     },
     {
       "prose": ""
