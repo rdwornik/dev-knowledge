@@ -23,8 +23,9 @@
 
 **Did:** Pre-boot repairs from the night batch, operator GO recorded. SHA anchors —
 `6a116157` (night batch, the ADR-85 debt this entry pays), `c30af862` (its merge to main),
-then three commit-and-STOP branches: `34fe47c7` ([#465]), `b3ec5427` (§12), `a7e42a30`
-(comparator). Written at WRAP, not mid-arc.
+then the morning's four merges to main, serial and one at a time: `56f82aaf` ([#465] legs
+2+3), `7cdebe05` (PEP 440 comparator), `1aef11f3` (doc-counts 2158 repair), `2335a9e6` (§12
+condensed). Written at WRAP, not mid-arc.
 
 **Night batch merged.** Scope-checked first — 7 files, `docs/audits/` additions plus the
 mechanical `gen_audit_index.py` regen (359 → 365), nothing else — then `--no-ff` to main at
@@ -100,9 +101,23 @@ spans are **not additive and never comparable without their range**. The new win
 tracking uses this endpoint convention and must cite its range with every figure; whether §F
 should count *events* instead is F-1, the architect's ruling, not mine to make.
 
-**Result:** 4 steps landed, 3 on unmerged commit-and-STOP branches for operator merge. Tests
-2143 → 2148 passing on each branch; the only failures are the known [#457] pair, unchanged
-throughout. ship-gate GREEN on main. Open count **186** (unchanged — [#465] reworded, not closed).
+**All merged serially, one at a time, operator GO recorded.** Each merge: `--no-ff` → push →
+ship-gate GREEN (15 WARN dispositioned, tally unchanged — the primary tree's paths match, so
+the [#465] fix is a no-op here by construction; a RISING tally on a non-primary tree is the
+fix working) → doc_claims 3/3 → validate_backlog OK → suite failures exactly the two known
+[#457] ids → 0/0 → safe `-d` teardown → only then the next.
+
+**One defect the merges themselves created, caught before push.** Both test-adding branches
+independently bumped `doc-counts.md` to **2153**. I expected the second merge to CONFLICT on
+it; it did not — identical content on both sides merges clean, leaving a silently stale pin
+while main carried both test sets. Real figure **2158**, repaired on its own branch
+(`1aef11f3`) rather than committed onto main. Worth keeping: a numeric pin that two branches
+bump to the same intermediate value defeats conflict-based detection entirely — only the
+regen-and-diff check catches it.
+
+**Result:** 4 steps landed and merged. Tests 2148 → 2153 passing on main (collected 2158); the
+only failures throughout are the known [#457] pair, unchanged. ship-gate GREEN on main. Open
+count **186** (unchanged — [#465] reworded, not closed).
 
 **Changes:** `scripts/audit.py` (`_is_hub`, `resolve_repo_path`), `tests/test_hub_identity.py`
 (new), `tests/test_reverse_dep_oracle.py` (line pins re-based 303/304 → 320/321),
@@ -113,7 +128,7 @@ throughout. ship-gate GREEN on main. Open count **186** (unchanged — [#465] re
 doc_rot WARN from my own over-long [#465] rewrite (1590 chars, trimmed to 1178 under the 1200
 threshold) and a coherence `[!!]` from mid-arc unstaged state.
 
-**Next:** Operator merges the three branches. Open for the architect: [#465] leg 4 and the
+**Next:** Boot the incoming architect. Open for the architect: [#465] leg 4 and the
 last-run-wins ruling; L-B B-2 (retire the parallel SessionStart audit trigger, now named as the
 collapse source) and B-3 (`silent_rule_ratchet` FAIL at n=1); L-E E-1 (swap the remaining 5
 version-compare sites — not preempted here); L-F F-1/F-2/F-3 (the §F target number, whether the
