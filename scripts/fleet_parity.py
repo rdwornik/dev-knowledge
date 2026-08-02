@@ -85,6 +85,7 @@ from pathlib import Path
 
 import click
 import yaml
+from packaging.version import InvalidVersion, Version
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
@@ -818,27 +819,44 @@ def _probe_dep(root: Path, name: str, hub_root: Path) -> dict:
             "installed": installed, "installed_src": installed_src}
 
 
-def _version_tuple(v: str) -> tuple[int, ...]:
-    parts = []
-    for tok in v.split("."):
-        digits = "".join(ch for ch in tok if ch.isdigit())
-        if not digits:
-            break
-        parts.append(int(digits))
-    return tuple(parts) or (0,)
+def _parse_version(v: str) -> Version | None:
+    """PEP 440 parse, or None when the string is not a version.
+
+    Replaces a hand-rolled dotted-int tuple that stripped non-digits from each token
+    and so broke prerelease ordering in four distinct shapes (witnessed live, pinned
+    in tests/test_fleet_parity.py "PEP 440 version comparison"): `0.15.5rc1` absorbed
+    its suffix digits into the preceding component and sorted ABOVE the release it
+    precedes, `0.15.5-beta` dropped its suffix and sorted EQUAL to the release, and
+    `1.0.post1` / `1.0.dev1` collapsed onto the same tuple as each other and as
+    `1.0.1`. Dormant only because the fleet pins ruff at an exact release — a `>=`
+    floor is exactly where an rc build shows up (night-batch lane L-E §3).
+
+    `packaging` implements PEP 440 ordering and is already resolved in uv.lock
+    (transitively via pytest), so this costs no new distribution in the locked gate
+    environment — intake #23 library-first. The prior docstring's "no packaging dep"
+    rationale was true when written and is now stale.
+    """
+    try:
+        return Version(v)
+    except (InvalidVersion, TypeError):
+        return None
 
 
 def _satisfies(installed: str | None, recommended: str) -> bool:
-    """Tiny dotted-int comparator (no packaging dep): supports '>=X', '==X', bare 'X'
-    (as a minimum). Honest floor semantics for a WARN-only reporter."""
+    """PEP 440 comparison: supports '>=X', '==X', bare 'X' (as a minimum). Honest
+    floor semantics for a WARN-only reporter. An unparseable version on either side
+    REFUSES (False) rather than raising — one junk pin must never crash the fleet
+    walk, and refusing surfaces a WARN rather than asserting a comparison it cannot
+    make."""
     if installed is None:
         return False
     rec = recommended.strip()
-    if rec.startswith(">="):
-        return _version_tuple(installed) >= _version_tuple(rec[2:].strip())
-    if rec.startswith("=="):
-        return _version_tuple(installed) == _version_tuple(rec[2:].strip())
-    return _version_tuple(installed) >= _version_tuple(rec)
+    exact = rec.startswith("==")
+    want = rec[2:].strip() if rec.startswith((">=", "==")) else rec
+    have_v, want_v = _parse_version(installed), _parse_version(want)
+    if have_v is None or want_v is None:
+        return False
+    return have_v == want_v if exact else have_v >= want_v
 
 
 _DECLARED_VERSION_RE = re.compile(r"^(>=|==|~=|>)\s*([0-9][0-9.]*)\s*$")

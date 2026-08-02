@@ -34,6 +34,7 @@ dev = [
     "click>=8.0",          # audit.py CLI (was only in config/requirements-dev.txt)
     "rich>=13.0",          # deploy/tool.py console output (was undeclared — global-site-packages only)
     "pydantic>=2.0,<3",    # ADR-109 desired-state schema v1 (ecosystem/schema/, [#382] W2) — named by the operator-ratified intake #22 §E; <3 bound: StrictStr/extra semantics must not move under us (grok L5)
+    "packaging>=24.0",     # PEP 440 version compare in scripts/fleet_parity.py (intake #23 library-first) — was already resolved transitively via pytest and present in uv.lock; declared explicitly so the gate does not depend on a transitive edge. NO ecosystem/dependency-baseline.yaml row: fleet_parity is hub-only, so this is not a dep consumers need to operate a methodology mechanism (the pandas/analytics precedent)
 ]
 # L5a descriptive analytics lane ([#384], intake #16 section 3). Separate group: the lane is
 # HUB-ONLY (it mines siblings read-only but runs here), so a consumer never needs it and it
