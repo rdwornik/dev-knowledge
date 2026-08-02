@@ -49,6 +49,23 @@ import yaml
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.dirname(_SCRIPTS_DIR)
 
+# Hub identity, decided in ONE place. `_REPO_ROOT` is derived live from __file__ so it always
+# names THIS checkout; the `path` in ecosystem/<name>/state.yaml is absolute and committed, so
+# it names the checkout that registered the repo. When the two disagree — a worktree, a cloud
+# clone, a relocated repo — the hub resolved as not-the-hub and every hub-only check skipped
+# silently ([#465] legs 2+3: the 2026-07-21 daily fell 16 WARNs → 2, the missing 14 being
+# exactly the three hub-only checks). The comparison lives here and nowhere else so a new
+# check cannot gate slightly differently; `resolve_repo_path` keeps the inputs honest.
+HUB_REPO_NAME = ".dev-knowledge"
+
+
+def _is_hub(repo_path) -> bool:
+    """True when `repo_path` is the hub tree this audit.py belongs to."""
+    try:
+        return Path(repo_path).resolve() == Path(_REPO_ROOT).resolve()
+    except OSError:  # an unresolvable path is never the hub; never wedge a check
+        return False
+
 # Floor policy is single-sourced in generate_floor.py (the generator owns it; audit enforces).
 # Dual import: `scripts.generate_floor` for `python -m scripts.audit`; `generate_floor` for
 # `python scripts/audit.py` and the test path (scripts/ on sys.path).
@@ -395,6 +412,22 @@ def append_history(state: RepoState, run_date: date) -> None:
     lines.append("\n")
     with open(p, "a", encoding="utf-8") as fh:
         fh.writelines(lines)
+
+
+def resolve_repo_path(repo_name: str, stored_path: Optional[str]) -> Path:
+    """The tree to audit for `repo_name` — the seam where the hub finds itself.
+
+    The hub always audits the tree audit.py lives in, never the absolute path committed to
+    its state.yaml: that value is machine- and checkout-specific, so from any other tree the
+    hub failed to recognise itself and every hub-only check skipped as `n/a` ([#465]).
+    Consumers keep resolving through their stored path — for them it is the only thing that
+    says where the repo is.
+    """
+    if repo_name == HUB_REPO_NAME:
+        return Path(_REPO_ROOT)
+    if stored_path:
+        return Path(stored_path)
+    return Path(_REPO_ROOT).parent / repo_name
 
 
 def discover_repos() -> list[str]:
@@ -1244,7 +1277,7 @@ def check_hooks_armed(repo_path: Path) -> list[Finding]:
     hook in .claude/settings.json (added by the same RF-2 arc). Presence/arming infra, not a
     doc->code behavioral rule -> `exempt` in ecosystem/doc-code-edge.yaml.
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("hooks_armed", "n/a",
                         "hub-only — git-hook arming check skipped (not the hub repo)")]
     try:
@@ -1296,7 +1329,7 @@ def check_git_backlog_drift(repo_path: Path) -> list[Finding]:
     any error — a git/parse hiccup must never wedge `audit.py health`. Read-only.
     Detection + formatting live in scripts/validate_git_backlog.py (reused).
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("git_backlog_drift", "n/a",
                         "hub-only — git<->backlog drift check skipped (not the hub repo)")]
     try:
@@ -1335,7 +1368,7 @@ def check_doc_claims(repo_path: Path) -> list[Finding]:
     (pytest --collect-only) runs only off the gate (run_expensive=not _GATE_MODE).
     Fail-soft on any error. Read-only. Logic lives in scripts/validate_doc_claims.py.
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("doc_claims", "n/a",
                         "hub-only — prose-vs-state check skipped (not the hub repo)")]
     try:
@@ -1378,7 +1411,7 @@ def check_doc_rot(repo_path: Path) -> list[Finding]:
     self-claims); intra-file duplication -> #190 — both deferred, not built here. Fail-soft on
     any error. Read-only. Logic lives in scripts/validate_doc_rot.py.
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("doc_rot", "n/a",
                         "hub-only — doc-rot / grooming checker skipped (not the hub repo)")]
     try:
@@ -1421,7 +1454,7 @@ def check_undeclared_edges(repo_path: Path) -> list[Finding]:
     hide a genuine undeclared edge (a Tier-3 bare mention is not yet a confirmed edge). The standalone
     reporter (scripts/scan_undeclared_edges.py) still surfaces the Tier-3 signals for human promotion.
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("undeclared_edges", "n/a",
                         "hub-only — undeclared-edge scan skipped (not the hub repo)")]
     try:
@@ -1463,7 +1496,7 @@ def check_doc_structure(repo_path: Path) -> list[Finding]:
     failure class from #140 (history-accretion bloat) — follows its pattern, no overlap.
     Fail-soft on any error. Read-only. Logic lives in scripts/validate_doc_structure.py.
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("doc_structure", "n/a",
                         "hub-only — prose structural linter skipped (not the hub repo)")]
     try:
@@ -1500,7 +1533,7 @@ def check_no_ff_merges(repo_path: Path) -> list[Finding]:
     pre-push hook, deferred under #153). Fail-soft on any error. Read-only. Detection
     lives in scripts/validate_no_ff.py.
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("no_ff_merges", "n/a",
                         "hub-only — --no-ff guard skipped (not the hub repo)")]
     try:
@@ -1949,7 +1982,7 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     An empty/absent registry → advisory inactive (fail-soft). Read-only. Discovery + resolution
     live in scripts/validate_doc_code_edge.py.
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("doc_code_edge", "n/a",
                         "hub-only — doc->code edge check skipped (not the hub repo)")]
     code_root = Path(repo_path) / "scripts"
@@ -2151,7 +2184,7 @@ def check_doc_code_coverage_drift(repo_path: Path) -> list[Finding]:
     standalone pre-commit validators -- are NOT auto-guarded; that heterogeneous remainder stays
     curated (no single auto-enumerable registry across all mechanisms; doc-code-edge.yaml header).
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("doc_code_coverage_drift", "n/a",
                         "hub-only -- coverage drift-guard skipped (not the hub repo)")]
     try:
@@ -2215,7 +2248,7 @@ def check_fleet_parity(repo_path: Path) -> list[Finding]:
     safe). PERF ([#337] rider, 2026-07-18): the walk is ~8s and ALL_CHECKS also runs on the
     per-commit audit-health gate; ship-gate-only scoping is a filed follow-up, not this arc.
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("fleet_parity", "n/a",
                         "hub-only -- fleet-parity walk skipped (not the hub repo)")]
     try:
@@ -2298,7 +2331,7 @@ def check_enforcement_coverage(repo_path: Path) -> list[Finding]:
     baseline, a regression enforcing-local -> absent should WARN. Deferred backlog item.
     """
     name = "enforcement_coverage"
-    if Path(repo_path).resolve() == Path(_REPO_ROOT).resolve():
+    if _is_hub(repo_path):
         return [Finding(name, "n/a",
                         "hub - source of the 5 enforcement organs; per-consumer coverage is "
                         "measured by scripts/enforcement_coverage.py (read-only reporter)")]
@@ -2843,7 +2876,7 @@ def check_silent_rule_ratchet(repo_path: Path) -> list[Finding]:
     committed baseline against its previous committed value, and this check never writes.
     Hub-only (the detector's scope roots are hub surfaces); read-only.
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("silent_rule_ratchet", "n/a",
                         "hub-only — the detector's scope roots are hub governance surfaces")]
     try:
@@ -2922,7 +2955,7 @@ def check_task_tree_coherence(repo_path: Path) -> list[Finding]:
     pinning which output bytes the tree claims to produce). Hub-only; read-only — it never
     regenerates anything, because a gate that silently fixes what it measures cannot fail.
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("task_tree_coherence", "n/a",
                         "hub-only — tasks/ is a hub-owned tree")]
     root = Path(repo_path)
@@ -2997,7 +3030,7 @@ def check_intake_tree_coherence(repo_path: Path) -> list[Finding]:
     about what coherent means. Read-only: it never regenerates anything, because a gate that
     silently fixes what it measures cannot fail.
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("intake_tree_coherence", "n/a",
                         "hub-only — the docs/intake/ residue carrier is hub-owned")]
     intake_dir = Path(repo_path) / "docs" / "intake"
@@ -3110,7 +3143,7 @@ def check_fleet_audit_replication(repo_path: Path) -> list[Finding]:
     An absent branch or absent tracking ref is `n/a`, not a failure: there is nothing to
     replicate, and a repo that has never run the routine is not in breach of ADR-80.
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("fleet_audit_replication", "n/a",
                         "hub-only -- automation/fleet-audit is hub-owned machinery")]
 
@@ -3266,7 +3299,7 @@ def check_membership_agreement(repo_path: Path, _surface_paths=None) -> list[Fin
     cannot fail. `resolve_fleet_members` is NOT consulted and NOT widened: that resolution is
     a named ADR-109 §2 ruling and belongs to [#472].
     """
-    if Path(repo_path).resolve() != Path(_REPO_ROOT).resolve():
+    if not _is_hub(repo_path):
         return [Finding("membership_agreement", "n/a",
                         "hub-only -- the ecosystem/ membership surfaces are hub-owned")]
 
@@ -3764,7 +3797,7 @@ def cmd_run(repo_path: Optional[str]) -> None:
     states = []
     for name in names:
         existing = load_state(name)
-        rp = Path(existing.path) if existing else Path(_REPO_ROOT).parent / name
+        rp = resolve_repo_path(name, existing.path if existing else None)
         state = audit_repo(name, rp, run_date)
         save_state(state)
         append_history(state, run_date)
@@ -3800,12 +3833,11 @@ def cmd_repo(name: str, repo_path: Optional[str]) -> None:
     existing = load_state(name)
 
     if repo_path:
-        rp = Path(repo_path).resolve()
-    elif existing:
-        rp = Path(existing.path)
+        rp = Path(repo_path).resolve()  # explicit override wins over the resolver
     else:
-        rp = Path(_REPO_ROOT).parent / name
-        click.echo(f"No state.yaml for {name}; assuming path {rp}")
+        rp = resolve_repo_path(name, existing.path if existing else None)
+        if not existing:
+            click.echo(f"No state.yaml for {name}; assuming path {rp}")
 
     state = audit_repo(name, rp, run_date)
     save_state(state)
