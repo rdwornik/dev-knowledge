@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-08-02 (e) — CC (Opus 5, local): repo settled — dailies restored losslessly, conformance branch absorbed
+
+**Did:** Settled every outstanding item so the tree is genuinely clean rather than clean-by-
+assertion. SHA anchors — `55733ea4` (lane union commit), `24882f8c` (conformance absorption),
+and this wrap. Written at WRAP.
+
+**The dailies, restored without loss.** Neither copy was complete: the lane held the 13:01 and
+13:04 digests, the worktree held only 16:59 after the [#465] leg-2 writer OVERWROTE the file in
+place. Committing either over the other would have destroyed real records. Built the
+chronological union instead — every entry byte-preserved in canonical LF space, diffstat 54/0
+and 43/0 (**zero deletions**), 13464 → 20197 B and 7948 → 11923 B. Committed to
+`automation/fleet-audit` only (lane ownership, ADR-80/84), pushed, worktree copies updated to
+the merged content so their blobs now match the lane. The dirty-tree leg is silent for the
+right reason at last — the data is replicated, not the check weakened.
+
+**[#465] stays open, deliberately.** This repaired ONE instance of the writer defect. The
+writer is unchanged and the row text stands exactly as written; nothing was closed or advanced
+on the strength of a manual data repair.
+
+**A guard rail that earned its keep.** The first union attempt ABORTED on a byte-equality
+assertion: the checked-out lane copy was 13572 B against a 13464 B blob. Not corruption —
+checkout applies CRLF. Worth recording because `git hash-object` matched the lane blob exactly
+through that CRLF difference, which independently confirms the [#476] blob comparison is
+line-ending-safe. The union was rebuilt in canonical LF space, which is what git actually
+stores.
+
+**Conformance branch absorbed.** `claude/conformance-2026-08-02`, one commit, the 177-line
+nightly digest. Preserve-then-delete: content merged `--no-ff` and verified on main BEFORE the
+branch is deleted, never the reverse. The audits index went stale on the new file and was
+regenerated in this commit.
+
+**Changes:** `ecosystem/*/history/2026-08-02.md` (on the lane), `docs/audits/2026-08-02-conformance-nightly-digest.md`, `docs/audits/README.md`.
+
+**Abandoned:** nothing.
+
+**Next:** [#472], [#383], [#465] leg 4 and the still-open leg-2 writer defect, plus the four Q7
+lessons owed durable homes.
+
+---
+
 ### 2026-08-02 (d) — CC (Opus 5, local): [#476] reopened in effect — the lane check compared names, not content
 
 **Did:** Reviewed the uncommitted tree on operator challenge and found my own [#476] fix had a
