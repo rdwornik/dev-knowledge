@@ -19,6 +19,106 @@
 
 ---
 
+### 2026-08-02 (a) — CC (Opus 5, local): morning cleanup — night batch merged, [#465] root-caused, §12 condensed, comparator swapped, ledger reconciled
+
+**Did:** Pre-boot repairs from the night batch, operator GO recorded. SHA anchors —
+`6a116157` (night batch, the ADR-85 debt this entry pays), `c30af862` (its merge to main),
+then three commit-and-STOP branches: `34fe47c7` ([#465]), `b3ec5427` (§12), `a7e42a30`
+(comparator). Written at WRAP, not mid-arc.
+
+**Night batch merged.** Scope-checked first — 7 files, `docs/audits/` additions plus the
+mechanical `gen_audit_index.py` regen (359 → 365), nothing else — then `--no-ff` to main at
+`c30af862`, pushed, ship-gate **GREEN** (15 WARN, all dispositioned), 0/0, origin branch
+safe-deleted after `--merged` verify. Origin now holds main + `automation/fleet-audit` +
+the protected `claude/conformance-2026-08-02` (`798044ad`, untouched — explicit protection).
+
+**[#465] legs 2+3 were one bug, and the root cause is a seam, not a check.** The night batch
+proved the collapse (lane L-B §4: 2026-07-21 fell 16 WARN lines → 2, the missing 14 exactly
+the three hub-only checks). Cause: `audit_repo` is handed the absolute path **committed** in
+`ecosystem/.dev-knowledge/state.yaml`, while every hub-only check gates on
+`repo_path.resolve() != _REPO_ROOT.resolve()` with `_REPO_ROOT` derived live from `__file__`.
+On the checkout that registered the repo they agree; from **any other tree** — worktree, cloud
+clone, relocated repo — they disagree and **all 15 hub-gated checks of 38** skip as `n/a`. The
+"intermittent" tracked *which tree ran*, not chance. `health` and `ship-gate` never showed it
+because both pass `_REPO_ROOT` directly — which is exactly why the gate read GREEN while the
+nightly digest was losing a third of the audit. Fix: `resolve_repo_path()` binds the hub to
+the live tree; 16 hand-copied comparisons collapse into one `_is_hub()`.
+
+**The enumerated-list lesson bit my own test first.** The structural sweep keys on the shared
+`hub-only` marker, not the `"not the hub repo"` phrasing — the phrasing would have missed 5 of
+the 15 gated checks (`silent_rule_ratchet`, `task_tree_coherence`, `intake_tree_coherence`,
+`fleet_audit_replication`, `membership_agreement`), reproducing inside the detector the exact
+defect the detector exists to catch. Caught and fixed before commit.
+
+**[#465] updated, NOT closed.** Legs 1–3 done; leg 4 (`handoff_tag_canonicity` self-disabled)
+is open, and the same-day file collision is *not* claimed fixed — `append_history` appends
+in-tree, and a cross-tree run still last-run-wins, now **non-lossy** because the later run
+carries the full check set. Whether last-run-wins is accepted on record is the operator's
+ruling, not mine.
+
+**§12 condensed to its authorized home — destination verified, not assumed.** Both cited ADRs
+name the same one and foreclose the alternative: ADR-49 *"The change record is git history
+(descriptive commits)"*; ADR-65 §1 *"Technical record = git… **No archive file** (CLAUDE.md §5;
+ADR-47 'no ceremonial archive')"*. So the 19,017-byte block (44.6% of the file, 11 bullets)
+went to the git pointer §12 has used since v2.22 — **not** into a new file, which would have
+violated the very ADRs authorizing the move. **No new ADR needed and none written.** Content
+loss zero, byte-counted: recoverable verbatim at `c30af862:CLAUDE.md`, 32 version tokens
+(v2.17–v2.48) preserved. CLAUDE.md 42,663 → 25,100 bytes, prose 184/200 (ADR-53). Region
+markers kept — they are boundary substrate, not history (`boundary-headers --check` passes,
+15 regions, coverage 1/1).
+
+**Version comparator: four defects, not the two reported.** Witnessed live before the swap —
+`0.15.5rc1` → `(0,15,51)`, sorting **above** the release it precedes; `0.15.5-beta` → equal;
+`1.0.post1` and `1.0.dev1` collapsing onto the *same* tuple and both reading as `1.0.1`. They
+fail in opposite directions, which is worse than the single truncation the lane described.
+Replaced the parser with `packaging.version.Version` per intake #23 library-first. Measured
+rather than assumed: `packaging` was **already in `uv.lock`** transitively via pytest, so the
+lock delta is 2 lines — no new distribution — declared in `[dependency-groups] dev`, no
+`dependency-baseline.yaml` row (hub-only tool, the pandas precedent). Deliberately did **not**
+widen `_declared_ok`'s compound-specifier refusal: lane L-E read it as "silently mangled", but
+it is refuse-to-assume → WARN, a codex-round-3 reviewed decision. Guarded by a regression test
+so the swap cannot quietly overturn it.
+
+**Ledger reconciled — both numbers are true, over different spans.** Derived with
+`window_metrics.py`, not carried:
+
+- `f7abe228..a02dd111` — the **full window**, 22 arcs: 183 → 186; filed 5
+  (#463 #464 #465 #470 #472); closed 2 (#458 #459); net **+3**. This is the night report's figure.
+- `9faef8dd..a02dd111` — the **final 3 arcs only**: 189 → 186; filed 0; closed 3
+  (#459 #461 #462); net **−3**. This is the sealed window's figure.
+- `9faef8dd..67863180` — what the committed artifact `2026-08-01-technical-window-metrics.md`
+  actually measured: 189 → 188; closed 1 (#462); net **−1**. It was generated mid-window and
+  never regenerated at the close, which is why a third number is in circulation.
+
+Neither figure is wrong; the 189-vs-183 timing lesson holds. **The convention, stated because
+it is not self-evident:** `window_metrics.py` computes a **base-vs-HEAD set difference**, not an
+event count. A row filed *and* closed inside a span is invisible to both counters — the full
+window reports "closed 2" while its own first-parent spine carries five `closes [#id]` events
+(#459 #460 #461 #462 #469), because #460/#461/#462/#469 were filed inside that same window
+(`9fa4105f`, `b2329590`) and cancel. So filed/closed **understate churn**, and figures from two
+spans are **not additive and never comparable without their range**. The new window's §F
+tracking uses this endpoint convention and must cite its range with every figure; whether §F
+should count *events* instead is F-1, the architect's ruling, not mine to make.
+
+**Result:** 4 steps landed, 3 on unmerged commit-and-STOP branches for operator merge. Tests
+2143 → 2148 passing on each branch; the only failures are the known [#457] pair, unchanged
+throughout. ship-gate GREEN on main. Open count **186** (unchanged — [#465] reworded, not closed).
+
+**Changes:** `scripts/audit.py` (`_is_hub`, `resolve_repo_path`), `tests/test_hub_identity.py`
+(new), `tests/test_reverse_dep_oracle.py` (line pins re-based 303/304 → 320/321),
+`tasks/465-*` + `BACKLOG.md`, `CLAUDE.md` (§12 condensed, v2.49), `scripts/fleet_parity.py`,
+`tests/test_fleet_parity.py`, `pyproject.toml` + `uv.lock`, `docs/audits/` (6 night-batch files).
+
+**Abandoned:** Nothing. Two self-induced problems were fixed rather than dispositioned — a
+doc_rot WARN from my own over-long [#465] rewrite (1590 chars, trimmed to 1178 under the 1200
+threshold) and a coherence `[!!]` from mid-arc unstaged state.
+
+**Next:** Operator merges the three branches. Open for the architect: [#465] leg 4 and the
+last-run-wins ruling; L-B B-2 (retire the parallel SessionStart audit trigger, now named as the
+collapse source) and B-3 (`silent_rule_ratchet` FAIL at n=1); L-E E-1 (swap the remaining 5
+version-compare sites — not preempted here); L-F F-1/F-2/F-3 (the §F target number, whether the
+29 `deferred` rows count, a filing-rate cap).
+
 ### 2026-08-01 (f) — CC (Opus 5, local): window CLOSED — EOD arc merged, [S24] precedent, hygiene, v6 handoff sealed
 
 **Did:** Closing flow, written at WRAP (the lesson three ADR-85 firings taught today). SHA
