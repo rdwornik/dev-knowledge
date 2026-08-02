@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-01
+last_reviewed: 2026-08-02
 reconciled_with: handoff-process@6.0.1
 status: active
 owner: Rob
@@ -14,7 +14,9 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-08-01` — [#459]: Ch2 gains the **desired-state organ class**
+> Last updated: `2026-08-02` — [#475]: the Ch2 pre-commit gate list + Validators gain
+> `check-seal-identity` (commit-time handoff-bundle seal-identity, reusing
+> `gen_handoff.verify_seal_identity`). Prior: `2026-08-01` — [#459]: Ch2 gains the **desired-state organ class**
 > (ADR-109 contract/loader/report) and the codemap source-root question is RULED —
 > `ecosystem/schema/` stays out of scope, cost stated. Prior: `2026-07-28` — ADR-107 strangler **step 3** ([#439]): Ch5's `tasks/` zone flips
 > from **derived** to **SOURCE OF TRUTH**, with `BACKLOG.md` now generated from it
@@ -392,6 +394,12 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   check (FAIL-class — a toothless probe blocks `/ship`). Standalone CLI:
   `python scripts/verify_handoff_probes.py <bundle>` (#163).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
+- `scripts/check_seal_identity.py` — handoff-bundle seal-identity pre-commit gate ([#475]):
+  runs `gen_handoff.verify_seal_identity` (reused, one verifier) over the bundle dir of every
+  staged `docs/handoffs/**` file — the commit-time twin of the [#473] seal-time refusal, so a
+  mislabelled bundle cannot become an immutable committed artifact. Exit 0/1/2 (clean /
+  violation / internal error — an error blocks); HUB-ONLY. Honest limit: Slug-row-vs-directory
+  only, not stale P0c/P3/P8 locators inside a correctly-labelled bundle.
 - `scripts/validate_hermetization.py` — ADR-101 §3 tree-seal refusal gate (pre-commit,
   prospective-only on staged ADDs; Rule A top-level/genre seal, Rule B audit-name grammar
   + R4 casing; HUB-ONLY; fail-open-loud on git error) (#306).
@@ -483,6 +491,7 @@ auto-enumerable `ALL_CHECKS` surface; the heterogeneous non-`ALL_CHECKS` remaind
 `audit-index-freshness` (`docs/audits/README.md` index vs `docs/audits/*`, census A-2),
 `validate-hermetization` (ADR-101 tree-seal refusal gate, #306),
 `intake-index-freshness` (`docs/intake/README.md` Contents block vs frontmatter, #307),
+`check-seal-identity` (handoff-bundle seal-identity at commit time, [#475]),
 `validate-backlog`, `audit-health`, `ruff` (≥0.15.5),
 `coherence-nudge` (non-blocking forgotten-version-bump nudge — exits 0 always),
 `backlog-id-on-close` + `backlog-filing-backpressure` (commit-msg — the remove-side and

@@ -100,6 +100,18 @@ repos:
         language: system
         files: '(^docs/intake/.*\.md$|^scripts/gen_intake_index\.py$)'
         pass_filenames: false
+      - id: check-seal-identity
+        name: Bundle seal-identity gate ([#475] — verify_seal_identity at commit time)
+        # Commit-time twin of the [#473] seal-time refusal: runs gen_handoff's
+        # verify_seal_identity over the bundle dir of every staged docs/handoffs/** file,
+        # so a hand-renamed directory / edited Slug row / copied bundle cannot become an
+        # immutable committed artifact. Fires only when such files are staged (files: +
+        # pass_filenames — zero cost otherwise). Exit: 0 clean, 1 violation, 2 internal
+        # error (an error BLOCKS, never silently passes). HUB-ONLY. Bypass: --no-verify.
+        entry: uv run --locked python scripts/check_seal_identity.py
+        language: system
+        files: '^docs/handoffs/'
+        pass_filenames: true
       - id: validate-backlog
         name: Validate BACKLOG.md story-map (ADR-66)
         entry: uv run --locked python scripts/validate_backlog.py
