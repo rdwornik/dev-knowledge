@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e0d677912f0f95f2984338406dd287329ff65a1eb30ede8e6feb2f2b440111b0",
+  "generated_sha256": "9273dbf42491b25d23c1ab8ae3efe983bdccf4b9adaccf4ccfe06bd6e5278d50",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -196,6 +196,10 @@
     {
       "task": 451,
       "file": "451-ca-layer-edge-check-ai-council-precedent.md"
+    },
+    {
+      "task": 475,
+      "file": "475-seal-identity-as-a-pre-commit-gate-on-bundles.md"
     },
     {
       "prose": ""
@@ -879,6 +883,10 @@
     {
       "task": 453,
       "file": "453-cloud-night-run-runbook-container-gaps.md"
+    },
+    {
+      "task": 474,
+      "file": "474-gen-task-tree-write-import-recovery-footgun.md"
     },
     {
       "prose": ""
