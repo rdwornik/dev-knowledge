@@ -19,6 +19,83 @@
 
 ---
 
+### 2026-08-02 (b) — CC (Opus 5, local): handoff suffix siblings — the class killed on both sides, [#473] filed and closed
+
+**Did:** Ran `/handoff-verify` on the 2026-08-01 architect bundle, found the gate was verifying
+the wrong bundle, and fixed the class rather than the instance. SHA anchors — `0f5738be` (the
+fix, filing [#473]) and this wrap commit. Written at WRAP, not mid-arc. Branch
+`fix/handoff-suffix-sibling-resolution`, **commit-and-STOP — operator merges.**
+
+**What the verify run actually found.** The requested bundle
+`2026-08-01-dev-knowledge-architect` was superseded by `…-architect-2` (git-add 07-31T17:54 vs
+08-01T21:20), so the first gate run reported 26 PASS / 3 FAIL against a stale artifact — its
+lead work item [#460] had closed, along with [#459]/[#461]/[#462]. Re-run against the correct
+bundle: **26 PASS / 1 FAIL**, the one being [#465] described as "legs 2–4 open" when live state
+says legs 1–3 are DONE — staleness in the favorable direction. The operator then identified the
+root cause: the `-2` bundle's internal slug is missing its suffix.
+
+**Two defects, one class, both fixed.** (A) The active-bundle rule EXISTED —
+`audit.py::_select_active_bundle`, built for the #372 `-arc5` false-green — but
+`verify_handoff_probes` never applied it, so naming the base slug verified the stale sibling.
+It is now behavior: any family member resolves to the active one, one line printed, `--exact`
+for archaeology. The rule is imported lazily, not reimplemented; two copies is how surfaces
+drift apart. (B) `gen_handoff.generate` built render tokens from the REQUESTED slug while
+`_resolve_bundle_dir` may divert the write to `-<n>` — a one-line root cause. `slug` now
+rebinds to the final directory name, and `verify_seal_identity` refuses to seal a bundle whose
+internal slug ≠ its own directory. (B′) Sealed bundles are immutable, so the verifier rebases
+their locators at check time and reports the mismatch.
+
+**Binding is not identity — the reason this hid.** `verify_handoff_probes` proves a locator
+*binds*. The `-2` bundle self-referenced its un-suffixed sibling 7 times and verified 14/14
+GREEN, because the sibling exists and carries same-named files. It resolved — to the wrong
+bundle. The structural validator could not see it and the 14/14 read as proof. This is the
+"silent success theater" pattern the incoming bundle's Purpose names as the enemy, caught in
+the verification organ itself.
+
+**Two tests that passed for the wrong reason.** The rebase test was rewritten twice: first the
+unique-basename fallback resolved it by luck; then the sibling's file existed, so status alone
+could not discriminate. It now keys on an anchor present only in the verified bundle, so the
+verdict names WHICH file was read. Worth recording as method — a RED-first test that goes green
+on the first try deserves suspicion, not relief.
+
+**The operator-facing twin.** `docs/handoffs/README.md` told the operator to find the current
+session with `Sort-Object Name` — the exact lexical rule this arc kills, sitting in the runbook
+while the code was being fixed. Replaced with a git-add-date query. That broke
+`test_extract_surfaces_command_invocations`, which pinned the literal `Get-ChildItem`; its pin
+moved to the fence's language marker, since `anchor` truncates at ~70 chars and a literal
+command is what rotted.
+
+**Self-inflicted detour, recorded.** Ran `gen_task_tree.py --write` to regenerate BACKLOG —
+wrong direction. `--write` is IMPORT/RECOVERY (rebuilds `tasks/` FROM the generated file) and
+it re-derived 17 filenames from titles, orphaning duplicates and rewriting the manifest.
+Reverted after verifying each of the 17 had a tracked same-id counterpart (0 unsafe).
+`--emit-source` is the normal regen; the tool warned and the warning was worth reading.
+
+**Result:** acceptance test passes — the operator's verbatim base-slug prompt runs the whole
+gate against `-2`, 14 pass / 0 fail, exit 0, zero manual correction, plus an advisory naming
+the 3 mis-pointed rows (P0c/P3/P8, exactly as predicted). Full suite 2168 passed / 2 failed —
+both the OWNED [#457] REDs, inherited and witnessed on bare main 2026-07-31; zero NEW failures.
+ruff clean. doc-counts re-pinned 2158 → 2173.
+
+**Changes:** `scripts/verify_handoff_probes.py` (resolver + locator rebase + `--exact`),
+`scripts/gen_handoff.py` (slug rebind + `verify_seal_identity` on all three paths),
+`tests/test_verify_handoff_probes.py` + `tests/test_gen_handoff.py` (17 RED-first tests),
+`tests/test_coherence_enumerator.py` (pin moved), `docs/handoffs/README.md` (runbook line +
+lexical-discovery fix, re-read end-to-end and re-stamped), `.claude/commands/handoff-verify.md`,
+`tasks/473-*` + `manifest.json` + `BACKLOG.md`, `ecosystem/doc-counts.md`.
+
+**Abandoned:** nothing. The sealed `-2` bundle stays immutable — its internal-slug defect is now
+harmless, absorbed by the resolver and the rebase.
+
+**Next:** operator merges this branch. Then the [#473]-corrected queue from the `-2` bundle:
+[#472] (the live architecture question — what form a loadable ADR-104 declaration takes),
+[#383], and [#465] **leg 4 only**. Plus the four Q7 chat-ratified lessons still owed durable
+homes. Two candidates this arc surfaced and did NOT file: `--write`'s footgun (a recovery flag
+one keystroke from the normal regen) and whether `verify_seal_identity` should also run as a
+pre-commit gate on bundle files, not only at generation.
+
+---
+
 ### 2026-08-02 (a) — CC (Opus 5, local): morning cleanup — night batch merged, [#465] root-caused, §12 condensed, comparator swapped, ledger reconciled
 
 **Did:** Pre-boot repairs from the night batch, operator GO recorded. SHA anchors —

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a7074c5a4866ad7c18bc03d34e8d42dbee4f77589557dff6a3bb75ca5772cfa7",
+  "generated_sha256": "e0d677912f0f95f2984338406dd287329ff65a1eb30ede8e6feb2f2b440111b0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -108,10 +108,6 @@
     {
       "task": 449,
       "file": "449-assembled-paste-byte-budget.md"
-    },
-    {
-      "task": 473,
-      "file": "473-handoff-suffix-sibling-resolution.md"
     },
     {
       "prose": ""
