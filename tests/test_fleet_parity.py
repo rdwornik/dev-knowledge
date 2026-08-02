@@ -1312,3 +1312,70 @@ def test_git_location_env_covers_gits_own_local_env_var_list():
                  "GIT_COMMITTER_DATE", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM",
                  "GIT_SSH_COMMAND", "GIT_TERMINAL_PROMPT"):
         assert keep not in scrub, f"{keep} must NOT be scrubbed"
+
+
+# ---------------------------------------------------------------------------
+# PEP 440 version comparison (intake #23 library-first; night-batch lane L-E S3).
+#
+# The hand-rolled _version_tuple() stripped non-digits from each dot-separated
+# token, which broke prerelease ordering in FOUR distinct shapes -- witnessed live
+# before the swap, not inferred:
+#
+#   '0.15.5'      -> (0, 15, 5)
+#   '0.15.5rc1'   -> (0, 15, 51)   GREATER than the release it precedes
+#   '0.15.5-beta' -> (0, 15, 5)    EQUAL to the release
+#   '1.0.post1'   -> (1, 0, 1)  \  post and dev collapse to the SAME tuple,
+#   '1.0.dev1'    -> (1, 0, 1)  /  and both read as '1.0.1'
+#
+# Dormant today only because the fleet pins ruff at an exact release -- and a
+# `>=` floor is exactly where an rc build shows up. packaging implements PEP 440
+# ordering and is already resolved in uv.lock (transitively via pytest), so the
+# swap adds no distribution to the locked gate environment.
+# ---------------------------------------------------------------------------
+
+
+def test_prerelease_sorts_below_its_release():
+    """The headline defect: an rc must never satisfy a floor at its own release."""
+    assert fp._satisfies("0.15.5", ">=0.15.5") is True
+    assert fp._satisfies("0.15.5rc1", ">=0.15.5") is False
+    assert fp._satisfies("0.15.5-beta", ">=0.15.5") is False
+    assert fp._satisfies("0.15.5a1", ">=0.15.5") is False
+
+
+def test_post_and_dev_releases_order_correctly():
+    """post > release > dev. The tuple parser collapsed all three to (1, 0, 1)."""
+    assert fp._satisfies("1.0.post1", ">=1.0") is True
+    assert fp._satisfies("1.0.dev1", ">=1.0") is False
+    assert fp._satisfies("1.0", ">=1.0.dev1") is True
+
+
+def test_operator_semantics_are_preserved():
+    """The swap fixes ordering only -- >=, ==, and bare-as-minimum keep their meaning."""
+    assert fp._satisfies("3.9", ">=3.8") is True
+    assert fp._satisfies("3.7", ">=3.8") is False
+    assert fp._satisfies("3.8", "==3.8") is True
+    assert fp._satisfies("3.9", "==3.8") is False
+    assert fp._satisfies("3.9", "3.8") is True      # bare == minimum
+    assert fp._satisfies(None, ">=3.8") is False
+
+
+def test_unparseable_version_refuses_rather_than_raises():
+    """WARN-only reporter contract: garbage must never crash the fleet walk."""
+    assert fp._satisfies("not-a-version", ">=1.0") is False
+    assert fp._satisfies("1.0", ">=not-a-version") is False
+
+
+def test_compound_specifier_is_still_refused_not_evaluated():
+    """A DELIBERATE contract, not a defect -- guard it through the swap.
+
+    _declared_ok documents it: "v1 EVALUATES single >=/==/~=/> constraints only; any
+    other specifier shape (upper bounds, compounds, unparseable) is REFUSED-to-assume
+    -> not ok -> WARN (codex round-3: '<3.8' must never read as unpinned)". Lane L-E
+    read this as "compound specifiers silently mangled"; it is refuse-to-assume, which
+    is the safe direction. Widening it to a SpecifierSet would silently overturn a
+    reviewed decision, so the swap deliberately leaves it alone.
+    """
+    assert fp._declared_ok("foo>=1.0,<2.0", ">=1.0") is False
+    assert fp._declared_ok("foo<3.8", ">=3.8") is False
+    assert fp._declared_ok("foo>=3.8", ">=3.8") is True
+    assert fp._declared_ok("foo", ">=3.8") is True        # unpinned: presence only
