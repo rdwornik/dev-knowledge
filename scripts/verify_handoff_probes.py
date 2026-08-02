@@ -119,6 +119,110 @@ class ProbeResult:
     status: str     # 'pass' | 'fail' | 'anchor-missing' | 'skipped'
     detail: str     # evidence (pipe-free)
     bundle: str     # bundle dir name
+    # [#473] B': the ORIGINAL locator(s) this row carried that named a DIFFERENT bundle
+    # directory and were rebased onto the one under verification ("" when none). Advisory —
+    # the rebase makes the verification correct, this field makes the defect visible.
+    locator_rebased: str = ""
+
+
+# --- suffix family + active-bundle resolution ([#473] A) ---------------------
+
+# A bundle slug is `<date>-<repo>-<mode>`, optionally carrying a `-<n>` sibling suffix that
+# `gen_handoff --allow-suffix` appends for a second (third, …) handoff the same day. Only a
+# PURELY NUMERIC trailing segment is a suffix: `-arc5` and `-phase-a0` are part of the slug
+# proper, so they are their own families and are never grouped with a base slug they merely
+# prefix-match (over-grouping would resolve an UNRELATED bundle — the same wrong-file failure
+# wearing the opposite sign, pinned by test_suffix_family_groups_base_and_numeric_siblings_only).
+_SUFFIX_RE = re.compile(r"^(?P<base>.+)-(?P<n>\d+)$")
+
+
+def _family_base(name: str) -> str:
+    """The family base of a bundle dir name (`<slug>-2` -> `<slug>`; `<slug>` -> itself)."""
+    m = _SUFFIX_RE.match(name)
+    return m.group("base") if m else name
+
+
+def sibling_family(bundle_path) -> list[Path]:
+    """Every EXISTING sibling in `bundle_path`'s suffix family, sorted by name.
+
+    The family is `<base>` plus `<base>-<n>` for any n. A lone bundle yields just itself, so
+    the overwhelmingly common single-bundle case needs no git and behaves exactly as before."""
+    bundle_path = Path(bundle_path)
+    base = _family_base(bundle_path.name)
+    parent = bundle_path.parent
+    if not parent.is_dir():
+        return [bundle_path]
+    fam = [d for d in sorted(parent.iterdir(), key=lambda p: p.name)
+           if d.is_dir() and _family_base(d.name) == base]
+    return fam or [bundle_path]
+
+
+def resolve_active_bundle(bundle_path, repo_root=None) -> tuple[Path, str | None]:
+    """Resolve a REQUESTED bundle to the ACTIVE member of its suffix family.
+
+    Returns `(active_bundle, note)`; `note` is None when nothing was resolved (a lone bundle,
+    or the request already names the active member) and otherwise the single informational
+    line the caller prints.
+
+    WHY this exists ([#473], the 2nd occurrence of the class): a multi-handoff day produces
+    `<slug>`, `<slug>-2`, … siblings — NORMAL operation. The operator names the BASE slug from
+    muscle memory, and before this the gate then verified the STALE sibling and reported a
+    confident verdict about the wrong bundle. That is the #372 "green about the wrong file"
+    class recurring through a different door, so the fix is the same rule made BEHAVIOR rather
+    than advisory: the active-bundle rule already existed in `audit.py::_select_active_bundle`
+    and is REUSED here (imported lazily — audit imports this module at module scope, so a
+    top-level import would be circular) rather than reimplemented, because two copies of a
+    selection rule is how the two surfaces drift apart.
+
+    Fail-soft and never silent: an ambiguous/degraded selection returns the REQUESTED bundle
+    with a note saying so, so coverage degrades loudly instead of guessing a sibling."""
+    bundle_path = Path(bundle_path)
+    family = sibling_family(bundle_path)
+    if len(family) <= 1:
+        return bundle_path, None
+    if repo_root is None:
+        parents = bundle_path.parents
+        repo_root = parents[2] if len(parents) >= 3 else bundle_path
+    try:                                             # lazy: audit imports THIS module
+        from audit import _select_active_bundle      # noqa: PLC0415
+    except ImportError:
+        try:
+            from scripts.audit import _select_active_bundle  # noqa: PLC0415
+        except ImportError:
+            return bundle_path, ("active-bundle selection unavailable (audit.py not "
+                                 f"importable) — verifying '{bundle_path.name}' as requested")
+    active, kind, detail = _select_active_bundle(Path(repo_root), family)
+    if active is None:
+        return bundle_path, (f"active-bundle selection {kind}: {detail} — verifying "
+                             f"'{bundle_path.name}' as requested, unresolved")
+    if active.name == bundle_path.name:
+        return bundle_path, None
+    return active, f"resolved '{bundle_path.name}' -> '{active.name}' (active-bundle rule)"
+
+
+# A bundle-internal locator: `…docs/handoffs/<slug>/<rest>`. Matched anywhere in the token so
+# a locator written with or without a leading path prefix rebases identically.
+_BUNDLE_LOCATOR_RE = re.compile(
+    r"(?P<pre>(?:^|.*/)docs/handoffs)/(?P<slug>[^/]+)/(?P<rest>.+)$")
+
+
+def rebase_bundle_locator(rel: str, bundle_name: str) -> tuple[str, str]:
+    """Interpret a bundle-internal locator relative to `bundle_name`'s OWN directory.
+
+    Returns `(rebased_rel, foreign_slug)`; `foreign_slug` is "" when nothing was rewritten.
+
+    A bundle's probes are about THAT bundle, so a `docs/handoffs/<other>/…` locator inside it
+    is a self-reference that names the wrong directory — the [#473] B generator defect, sealed
+    into immutable artifacts that can never be edited. Rebasing absorbs it at check time.
+
+    This is not cosmetic. The live `-2` bundle self-referenced its un-suffixed sibling 7 times
+    (P0c/P3/P8) and verified GREEN anyway, because the sibling exists and carries same-named
+    files — so the rows bound, just to the wrong bundle. Resolving is not resolving-to-the-
+    right-thing: **binding is not identity.**"""
+    m = _BUNDLE_LOCATOR_RE.match(rel)
+    if m is None or m.group("slug") == bundle_name:
+        return rel, ""
+    return f"{m.group('pre')}/{bundle_name}/{m.group('rest')}", m.group("slug")
 
 
 # --- extractors (pure) ------------------------------------------------------
@@ -397,10 +501,19 @@ def _is_trivial_command(cmd: str) -> bool:
 
 def _classify(probe: dict, repo_root: Path, bundle: str, cross_repo: bool = False) -> ProbeResult:
     pid = probe["id"]
+    # [#473] B': every ProbeResult carries any locator-identity rebase this row needed. Built
+    # via a local factory so the field cannot be forgotten at one of the many return sites
+    # (the list is still empty at the early rungs below, which is correct — they return before
+    # any token is parsed).
+    rebased_from: list[str] = []
+
+    def _res(status: str, detail: str) -> ProbeResult:
+        return ProbeResult(pid, status, detail, bundle, "; ".join(rebased_from))
+
     # 1. malformed — any load-bearing cell empty (Why: presence only, never content).
     for col in _LOAD_BEARING:
         if not probe[col].strip():
-            return ProbeResult(pid, "fail", f"malformed: empty {col} cell", bundle)
+            return _res("fail", f"malformed: empty {col} cell")
     # 1b. anti-bluff (RF-1 / §5 cond. 2) — a ROW that bakes its answer in as an `expected:`
     #     value is bluffable and REJECTED. Scans the four load-bearing CELLS only (all
     #     non-empty by rung 1), so the PROBES preamble's own prose ABOUT `expected:` hints is
@@ -408,30 +521,44 @@ def _classify(probe: dict, repo_root: Path, bundle: str, cross_repo: bool = Fals
     #     adapter (check_handoff_probes) already maps to a gating Finding — no audit.py edit.
     for col in _LOAD_BEARING:
         if _ANSWER_HINT_RE.search(probe[col]):
-            return ProbeResult(pid, "fail",
-                               f"answer-hint: {col} cell prints an 'expected:' answer value "
-                               "(§5 anti-bluff — a probe that bakes its answer is bluffable, "
-                               "rejected)", bundle)
+            return _res("fail",
+                        f"answer-hint: {col} cell prints an 'expected:' answer value "
+                        "(§5 anti-bluff — a probe that bakes its answer is bluffable, "
+                        "rejected)")
     # 2. command must ship a runnable `backtick`-delimited command (else nothing binds).
     cmd = first_span(probe["command"])
     if not cmd:
         # a non-empty command cell with no `backtick` span ships no runnable command —
         # nothing binds to live state -> malformed (never falls through to a silent PASS).
-        return ProbeResult(pid, "fail",
-                           "malformed: command cell has no `backtick`-delimited command", bundle)
+        return _res("fail", "malformed: command cell has no `backtick`-delimited command")
     # Binding tokens: a file token (source OR any command span) or a source `#`-anchor.
     src_files = file_tokens(probe["source"])
     cmd_files = _command_file_tokens(probe["command"])
     src_anchors = header_tokens(probe["source"])
+
+    # 2b. locator identity ([#473] B'): a `docs/handoffs/<other>/…` locator inside THIS bundle
+    #     is a self-reference naming the wrong directory (the sealed generator defect). Rebase
+    #     it onto the bundle under verification BEFORE resolution — including for the anchor
+    #     rung below, which reads file CONTENT and would otherwise quote the wrong bundle.
+    def _rebase(tokens: list[str]) -> list[str]:
+        out: list[str] = []
+        for tok in tokens:
+            new, foreign = rebase_bundle_locator(tok, bundle)
+            if foreign:
+                rebased_from.append(tok)
+            out.append(new)
+        return out
+
+    src_files = _rebase(src_files)
+    cmd_files = _rebase(cmd_files)
     # 3. toothless (#207/GAP-4) — NO binding token AND a trivial command resolves nothing in
     #    live state; a resolve-only validator can't give it teeth -> FAIL, never a silent
     #    PASS on 'git is on PATH'. The AND of both conditions (frozen contract): a no-token
     #    probe with a value-bearing command (`live git` + `git rev-parse --short HEAD`) keeps
     #    its teeth via the surfaced live value and is NOT failed here.
     if not (src_files or cmd_files or src_anchors) and _is_trivial_command(cmd):
-        return ProbeResult(pid, "fail",
-                           "toothless: no file/anchor token + trivial command "
-                           "(binds to no resolvable live state)", bundle)
+        return _res("fail", "toothless: no file/anchor token + trivial command "
+                            "(binds to no resolvable live state)")
     # 4. missing source/target — source uses ALL spans; command now uses ALL spans too, so a
     #    broken path in a SECONDARY command span is caught (#207/GAP-4), not silent-passed.
     #    Cross-repo (ADR-36/41): resolve against the TARGET root; a foreign `.claude/` or
@@ -443,22 +570,21 @@ def _classify(probe: dict, repo_root: Path, bundle: str, cross_repo: bool = Fals
             if st == "resolved":
                 continue
             if st in ("excluded", "ambiguous"):
-                return ProbeResult(pid, "skipped",
-                    f"cross-repo partial: {rel} ({st}) — not resolvable by the hub validator",
-                    bundle)
-            return ProbeResult(pid, "fail", f"missing source/target: {rel}", bundle)
+                return _res("skipped",
+                    f"cross-repo partial: {rel} ({st}) — not resolvable by the hub validator")
+            return _res("fail", f"missing source/target: {rel}")
         if _resolve_path(repo_root, rel) is None:
-            return ProbeResult(pid, "fail", f"missing source/target: {rel}", bundle)
+            return _res("fail", f"missing source/target: {rel}")
     # 5. anchor — a named `#`-header must resolve in a bound (existing) source file.
     for hdr in src_anchors:
         if not _header_present(hdr, src_files, repo_root):
-            return ProbeResult(pid, "anchor-missing", f"anchor not found: {hdr}", bundle)
+            return _res("anchor-missing", f"anchor not found: {hdr}")
     # 6. tool absent -> skipped (degraded coverage visible, never a synthesized pass).
     exe = lead_exe(cmd)
     if exe and not _exe_available(exe):
-        return ProbeResult(pid, "skipped", f"tool absent: {exe}", bundle)
+        return _res("skipped", f"tool absent: {exe}")
     # 7. well-formed; a binding token resolves (or a value-bearing command); exe present.
-    return ProbeResult(pid, "pass", "binds to live state", bundle)
+    return _res("pass", "binds to live state")
 
 
 # rule: handoff-probes-bind
@@ -515,6 +641,10 @@ def main(argv=None) -> int:
     parser.add_argument("--cross-repo", action="store_true",
                         help="the bundle's probes bind to a DIFFERENT (target) repo; requires "
                              "--repo-root")
+    parser.add_argument("--exact", action="store_true",
+                        help="verify EXACTLY the named bundle, skipping active-bundle "
+                             "resolution — deliberate archaeology on a superseded bundle "
+                             "(the supersession is then reported)")
     try:
         args = parser.parse_args(argv)
     except SystemExit as exc:       # argparse exits on a usage error / -h; we RETURN instead
@@ -525,6 +655,17 @@ def main(argv=None) -> int:
               "this flag pair exists to prevent.", file=sys.stderr)
         return 2
     bundle = Path(args.bundle_dir)
+    # [#473] A: the active-bundle rule is BEHAVIOR here, not advice. Any member of a suffix
+    # family reaches the active member, so the operator never has to know the suffix exists.
+    if args.exact:
+        active, _note = resolve_active_bundle(bundle, repo_root=args.repo_root)
+        if active.name != bundle.name:
+            print(f"  note: '{bundle.name}' is SUPERSEDED by '{active.name}' — verifying the "
+                  "requested bundle anyway (--exact archaeology)")
+    else:
+        bundle, note = resolve_active_bundle(bundle, repo_root=args.repo_root)
+        if note:
+            print(note)
     if args.repo_root is None and not args.cross_repo:
         results = verify(bundle)
     else:
@@ -534,6 +675,16 @@ def main(argv=None) -> int:
         return 0
     for r in results:
         print(f"  {r.status:>14}  {r.probe_id or '-':<5} {r.detail}")
+    # [#473] B': the rebase made the verification correct; this line makes the DEFECT visible.
+    # Advisory by design — it never changes the exit code, because the bundles carrying it are
+    # immutable and already sealed, so gating on it would block onboarding on an unfixable
+    # artifact. The generator-side seal gate is what stops the class recurring.
+    rebased = [r for r in results if r.locator_rebased]
+    if rebased:
+        foreign = sorted({t for r in rebased for t in r.locator_rebased.split("; ") if t})
+        print(f"  advisory: locator identity — {len(rebased)} row(s) carry a locator naming "
+              f"another bundle; interpreted relative to '{bundle.name}' instead: "
+              + ", ".join(foreign))
     fails = sum(1 for r in results if r.status == "fail")
     warns = sum(1 for r in results if r.status in ("anchor-missing", "skipped"))
     passes = sum(1 for r in results if r.status == "pass")

@@ -45,7 +45,8 @@ What changes is the **transport count**, never the proof threshold:
 
 ```
 /handoff-verify                          # the active bundle (newest by git add date)
-/handoff-verify <bundle-dir>             # an explicit bundle
+/handoff-verify <bundle-dir>             # any member of a suffix family -> the ACTIVE member
+/handoff-verify <bundle-dir> --exact     # exactly that bundle (archaeology on a superseded one)
 ```
 
 ## Procedure
@@ -54,6 +55,21 @@ What changes is the **transport count**, never the proof threshold:
    bundle (the one being generated now) outranks every tracked one; otherwise the newest by
    **git add date**, never slug order. Two uncommitted candidates is **ambiguous → STOP and ask**;
    never silently pick one. (Same selection rule as `audit.py::_select_active_bundle`.)
+
+   **A named bundle resolves within its suffix family ([#473]).** A multi-handoff day produces
+   `<slug>`, `<slug>-2`, … siblings — normal operation. `verify_handoff_probes.py` applies the
+   active-bundle rule to **whichever member you name**, prints exactly one line
+   (`resolved '<requested>' -> '<active>' (active-bundle rule)`), and gates on the active member.
+   So the operator's habitual base slug reaches the right bundle with **no manual correction**.
+   Pass **`--exact`** to verify the named bundle itself; the supersession is then reported, never
+   left silent. **Run the whole gate against the RESOLVED bundle** — its Purpose, its supplement,
+   its inherited claims — and name the resolved slug in the evidence block's header line.
+
+   **Locator identity is absorbed, not trusted.** A bundle sealed before the [#473] generator fix
+   may carry P0c/P3/P8 locators naming a *sibling* directory. The validator rebases every
+   bundle-internal locator onto the bundle actually under verification and reports the mismatch as
+   an advisory. Read that advisory as a real defect in the artifact — a mis-pointed locator still
+   *binds* (the sibling exists), so a clean row count alone never proves the right file was read.
 2. **Structural pre-check.** Run `python scripts/verify_handoff_probes.py <bundle-dir>`. This is
    resolve-only — it proves each row *binds* to live state; it does **not** execute the probes.
    A FAIL here means the manifest itself is broken: report it and stop, rather than running a

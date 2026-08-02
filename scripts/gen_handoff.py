@@ -301,6 +301,53 @@ def _resolve_bundle_dir(repo_root: Path, bundle_root: Path, slug: str,
     return bundle_root / f"{slug}-{n}"
 
 
+class BundleIdentityError(RuntimeError):
+    """Seal refused: a bundle's own internal slug does not name its own directory.
+
+    [#473] B. A bundle that mislabels itself is a plausible-but-wrong artifact — it renders
+    cleanly, it commits cleanly, and its probe locators RESOLVE (they name a sibling that
+    exists), so nothing downstream can tell it is pointing at the wrong bundle. The system
+    already refuses this class rather than shipping it (the `residual_completeness` gate on
+    unfilled FILL-IN regions is the precedent), so the refusal belongs at seal time, where a
+    defect is still cheap. Once a bundle is committed it is immutable and the defect is
+    permanent — absorbed at check time by the verifier's locator rebase, but never fixable."""
+
+
+# The HANDOFF_BOOT / EPIC_BOOT `Slug` row: `| **Slug** | `<slug>` |`.
+_SLUG_ROW_RE = re.compile(r"^\|\s*\*\*Slug\*\*\s*\|\s*`(?P<slug>[^`]+)`\s*\|", re.MULTILINE)
+
+# The boot file each mode seals its identity in. `functional` carries no Slug row (a single
+# minimal FUNCTIONAL_BOOT.md, §16) and so is not identity-gated.
+_BOOT_FILES = ("HANDOFF_BOOT.md", "EPIC_BOOT.md")
+
+
+def verify_seal_identity(bundle_dir: Path) -> None:
+    """Refuse to seal a bundle whose internal slug != its own directory name ([#473] B).
+
+    A no-op when the bundle carries no boot file with a `Slug` row (functional mode), so the
+    gate never invents a requirement a mode does not have. Raises `BundleIdentityError`
+    otherwise — naming BOTH values, because "they disagree" without the two strings is a
+    message that cannot be acted on."""
+    bundle_dir = Path(bundle_dir)
+    for name in _BOOT_FILES:
+        boot = bundle_dir / name
+        if not boot.is_file():
+            continue
+        m = _SLUG_ROW_RE.search(boot.read_text(encoding="utf-8"))
+        if m is None:
+            continue
+        declared = m.group("slug").strip()
+        if declared != bundle_dir.name:
+            raise BundleIdentityError(
+                f"refusing to seal {bundle_dir}: its {name} declares slug '{declared}' but the "
+                f"bundle directory is '{bundle_dir.name}'. A bundle whose internal slug names a "
+                f"DIFFERENT directory points every self-reference it carries (the Slug field, "
+                f"the PROBES P0c/P3/P8 locators, the embedded /handoff-verify command) at "
+                f"another bundle — which then verifies green about the wrong file, because the "
+                f"sibling exists. Regenerate; do not hand-patch the sealed artifact."
+            )
+
+
 def collect_hints(repo_root: Path) -> dict[str, str]:
     """Best-effort generation-time drift-reference VALUES — for the JOURNAL draft ONLY.
 
@@ -583,6 +630,15 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # documented `--filled` re-render and the FILL-IN splice keep working.
     bundle_dir = _resolve_bundle_dir(repo_root, bundle_root, slug, allow_suffix)
     bundle_dir.mkdir(parents=True, exist_ok=True)
+    # [#473] B — THE FIX, and it is this one line. `_resolve_bundle_dir` may DIVERT the write
+    # to a `-<n>` sibling under `--allow-suffix`, but every render token below was built from
+    # the REQUESTED slug, so a diverted bundle sealed with all of its internal self-references
+    # — the HANDOFF_BOOT `Slug` field, the PROBES P0c/P3/P8 locators, PASTE_THIS's embedded
+    # /handoff-verify command — pointing at the SIBLING directory. Rebinding the slug to the
+    # FINAL directory name makes every downstream reference derive from where the bundle
+    # actually landed. `journal_draft` below picks this up too, so the JOURNAL entry names the
+    # real directory rather than the one that was asked for.
+    slug = bundle_dir.name
 
     state = collect_state(repo_root)
     filled = force_filled if force_filled is not None else detect_fill_state(bundle_dir)
@@ -601,6 +657,7 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
             (bundle_dir / "EPIC_RETURN.md").write_text(ret, encoding="utf-8", newline="\n")
         _render("EPIC_BOOT.md.tmpl", tokens, bundle_dir, "EPIC_BOOT.md", tmpl_dir=_TMPL_DIR_EPIC)
         _render("PROBES.md.tmpl", tokens, bundle_dir, "PROBES.md", tmpl_dir=_TMPL_DIR_EPIC)
+        verify_seal_identity(bundle_dir)                     # [#473] B seal gate
         hints = collect_hints(repo_root)
         return GenResult(bundle_dir=bundle_dir,
                          journal_draft=journal_draft(slug, date, state, hints), filled=filled)
@@ -614,6 +671,7 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
         })
         _render("FUNCTIONAL_BOOT.md.tmpl", tokens, bundle_dir, "FUNCTIONAL_BOOT.md",
                 tmpl_dir=_TMPL_DIR_FUNCTIONAL)
+        verify_seal_identity(bundle_dir)          # [#473] B — a no-op: §16 carries no Slug row
         hints = collect_hints(repo_root)
         # Never reaches the SUPPLEMENT/v5 render path below and never assembles — the
         # single FUNCTIONAL_BOOT.md file IS the bundle.
@@ -630,6 +688,9 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     _render("HANDOFF_BOOT.md.tmpl", tokens, bundle_dir, "HANDOFF_BOOT.md")
     _render("RESIDUAL.md.tmpl", tokens, bundle_dir, "RESIDUAL.md")
     _render("PROBES.md.tmpl", tokens, bundle_dir, "PROBES.md")
+    # [#473] B seal gate — BEFORE assemble_paste, so a mislabelled bundle can never reach the
+    # assembled paste (the one file the operator actually ships to the browser).
+    verify_seal_identity(bundle_dir)
 
     hints = collect_hints(repo_root)
     draft = journal_draft(slug, date, state, hints)
