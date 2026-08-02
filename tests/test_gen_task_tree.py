@@ -881,3 +881,89 @@ def test_check_detects_body_corruption(tmp_path):
 
     rc = gtt.main(["--check", "--source", str(source), "--out", str(out_dir)])
     assert rc == 1
+
+
+# --- [#474] the --write guard: warn-then-destroy inverted to warned-means-abort ----------
+def _files_snapshot(out_dir):
+    if not out_dir.exists():
+        return {}
+    return {p.name: p.read_bytes() for p in sorted(out_dir.iterdir()) if p.is_file()}
+
+
+def test_write_refuses_against_a_populated_tree(tmp_path, capsys):
+    """FR1 — a warned state ABORTS before touching the source of truth: non-zero exit,
+    warning(s) printed, ZERO bytes changed on disk (the [#473] incident class: an
+    accidental --write re-slugged 17 task filenames and orphaned the originals)."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    before_tree = _files_snapshot(out_dir)
+    before_source = source.read_bytes()
+
+    rc = gtt.main(["--write", "--source", str(source), "--out", str(out_dir)])
+    err = capsys.readouterr().err
+
+    assert rc == 2
+    assert "REFUSED" in err and "nothing written" in err
+    assert "--force" in err  # the refusal names its escape hatch
+    assert "--emit-source" in err  # ...and the routine direction
+    assert _files_snapshot(out_dir) == before_tree, "a refused --write must change zero bytes"
+    assert source.read_bytes() == before_source
+
+
+def test_default_invocation_is_nonmutating(tmp_path):
+    """FR2 — the no-flag default never mutates: byte-identical tree + source after."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    before_tree = _files_snapshot(out_dir)
+    before_source = source.read_bytes()
+
+    rc = gtt.main(["--source", str(source), "--out", str(out_dir)])
+
+    assert rc == 2  # no verb -> usage, loudly non-zero (never a silent partial action)
+    assert _files_snapshot(out_dir) == before_tree
+    assert source.read_bytes() == before_source
+
+
+def test_force_overrides_a_warned_write_and_names_the_override(tmp_path, capsys):
+    """FR3 — the escape hatch works, is loud, and NAMES what it is overriding."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    # Make the import observable: retitle task #1 so the derived filename changes.
+    source.write_bytes(_TWO_THEMES.replace("**A**", "**A retitled**").encode("utf-8"))
+
+    rc = gtt.main(["--write", "--force", "--source", str(source), "--out", str(out_dir)])
+    err = capsys.readouterr().err
+
+    assert rc == 0
+    assert "--force" in err and "OVERRIDE" in err
+    assert "manifest.json" in err  # the overridden condition is named, not just counted
+    new_files = _files_snapshot(out_dir)
+    assert any("retitled" in name for name in new_files), "the forced import must have run"
+
+
+def test_clean_state_write_is_unchanged(tmp_path, capsys):
+    """FR4 — zero warning conditions (bootstrap into an absent tree): --write behaves
+    exactly as today — same files, same bytes as a direct write_tree of the source."""
+    source = tmp_path / "BACKLOG.md"
+    source.write_bytes(_TWO_THEMES.encode("utf-8"))
+    out_dir = tmp_path / "tasks"
+
+    rc = gtt.main(["--write", "--source", str(source), "--out", str(out_dir)])
+    err = capsys.readouterr().err
+
+    assert rc == 0
+    assert "REFUSED" not in err
+    ref_dir = tmp_path / "ref"
+    gtt.write_tree(gtt.parse_backlog(_TWO_THEMES), ref_dir)
+    assert _files_snapshot(out_dir) == _files_snapshot(ref_dir)
+
+
+def test_force_without_write_is_refused_loudly():
+    """--force is only meaningful with --write; alone it must error, never no-op."""
+    with pytest.raises(SystemExit) as exc:
+        gtt.main(["--force", "--check"])
+    assert exc.value.code == 2
+
+
+def test_check_cli_contract_on_committed_state():
+    """FR5 — the handoff gate depends on `--check` exiting 0 on the committed state."""
+    if not (TREE / "manifest.json").exists():
+        pytest.skip("tasks/ not yet generated")
+    assert gtt.main(["--check"]) == 0

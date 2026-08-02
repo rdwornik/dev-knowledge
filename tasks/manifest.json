@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5007a1315942c4fa207d5f058dc4595aabb2067fb1f9ba5a6f6afd87d7aa7cb4",
+  "generated_sha256": "e0d677912f0f95f2984338406dd287329ff65a1eb30ede8e6feb2f2b440111b0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -879,10 +879,6 @@
     {
       "task": 453,
       "file": "453-cloud-night-run-runbook-container-gaps.md"
-    },
-    {
-      "task": 474,
-      "file": "474-gen-task-tree-write-import-recovery-footgun.md"
     },
     {
       "prose": ""

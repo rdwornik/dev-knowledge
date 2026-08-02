@@ -1,7 +1,7 @@
 ---
 id: "[#474]"
 title: "`gen_task_tree --write` warns, then rewrites the source of truth anyway"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E7] Tooling & evaluation"
