@@ -697,3 +697,109 @@ def test_e2e_merge_trailing_work_fires(tmp_path):
     _git_in(repo, "checkout", "-q", "main")
     _git_in(repo, "merge", "--no-ff", "-q", "-m", "merge feat/z", "feat/z")
     assert json.loads(_run_hook(repo))["decision"] == "block", "merged unjournaled work must block"
+
+
+# --- lane-owned fleet-audit dailies ([#476]) --------------------------------
+#
+# The dirty-tree leg fired 4x in one session on two files that are untracked on `main` BY
+# DESIGN: ADR-80/ADR-84 put the durable fleet-audit record on the `automation/fleet-audit`
+# lane, and `.gitignore`'s own comment names `ecosystem/*/history/*.md` as durable records.
+# Every repair the hook implied was wrong. A guard that fires on correct state trains the
+# operator to ignore it.
+#
+# The exclusion is VERIFIED, never a pattern: a path is excused only when that exact file is
+# already present on the lane tip (`ls-tree`). So the two ways this could go wrong are both
+# pinned below — a stray file under history/ must still flag, and a daily NOT yet replicated
+# must still flag, because that one really is at risk of being lost.
+
+_LANE_DAILY = "ecosystem/.dev-knowledge/history/2026-08-02.md"
+_LANE_DAILY_2 = "ecosystem/ai-council/history/2026-08-02.md"
+
+
+def _lane_git(on_lane, status):
+    """git stub: `status` porcelain output; `ls-tree` answers from the `on_lane` set."""
+    def run(*args):
+        if args[0] == "status":
+            return _R(status)
+        if args[0] == "ls-tree":
+            path = args[-1]
+            return _R(path + "\n" if path in on_lane else "")
+        return _R("")
+    return run
+
+
+def test_lane_owned_daily_present_on_the_lane_does_not_flag(monkeypatch):
+    """(a) The live false positive. Both dailies are on the lane tip -> nothing to repair."""
+    monkeypatch.setattr(sb, "_git", _lane_git(
+        {_LANE_DAILY, _LANE_DAILY_2},
+        f"?? {_LANE_DAILY}\n?? {_LANE_DAILY_2}\n"))
+    assert sb.check_dirty_tree() is None
+
+
+def test_stray_untracked_file_under_history_still_flags(monkeypatch):
+    """(b) NOT a blind pattern exclude. A file living under `history/` that the lane has
+    never seen is ordinary untracked work and must still be surfaced."""
+    stray = "ecosystem/.dev-knowledge/history/scratch-notes.md"
+    monkeypatch.setattr(sb, "_git", _lane_git({_LANE_DAILY}, f"?? {stray}\n"))
+    line = sb.check_dirty_tree()
+    assert line and "1 uncommitted" in line
+    assert stray in line
+
+
+def test_daily_not_yet_on_the_lane_still_flags(monkeypatch):
+    """(c) The at-risk case, and the reason the check is `ls-tree` rather than a regex: a
+    daily that has NOT been replicated is exactly the one that can still be lost."""
+    monkeypatch.setattr(sb, "_git", _lane_git(set(), f"?? {_LANE_DAILY}\n"))
+    line = sb.check_dirty_tree()
+    assert line and "1 uncommitted" in line
+    assert _LANE_DAILY in line
+
+
+def test_lane_exclusion_applies_only_to_untracked_entries(monkeypatch):
+    """A TRACKED modification under `history/` is a real edit to a real file and must flag
+    even when the lane also carries that path — the exclusion covers `??` only."""
+    monkeypatch.setattr(sb, "_git", _lane_git({_LANE_DAILY}, f" M {_LANE_DAILY}\n"))
+    line = sb.check_dirty_tree()
+    assert line and _LANE_DAILY in line
+
+
+def test_lane_owned_daily_does_not_mask_other_dirt(monkeypatch):
+    """The excused daily is removed from the count, not the whole finding: real dirt beside
+    it must still be reported, and reported with an honest count."""
+    monkeypatch.setattr(sb, "_git", _lane_git(
+        {_LANE_DAILY}, f"?? {_LANE_DAILY}\n M scripts/audit.py\n"))
+    line = sb.check_dirty_tree()
+    assert line and "1 uncommitted" in line, line
+    assert "scripts/audit.py" in line
+    assert _LANE_DAILY not in line
+
+
+def test_lane_exclusion_is_scoped_to_history_dirs(monkeypatch):
+    """`ecosystem/` is not blanket-excused — only `<repo>/history/<file>`. A sibling path is
+    ordinary untracked work even if the lane happens to carry it."""
+    other = "ecosystem/doc-counts.md"
+    monkeypatch.setattr(sb, "_git", _lane_git({other}, f"?? {other}\n"))
+    line = sb.check_dirty_tree()
+    assert line and other in line
+
+
+def test_lane_probe_failure_keeps_the_finding(monkeypatch):
+    """Fail-CLOSED on the probe: if `ls-tree` errors (no lane branch, git trouble), the file
+    is NOT excused. An unknown replication status is not a confirmed one — the same rule the
+    RM-8 refusal follows. Silence here would hide a genuinely unreplicated daily."""
+    def run(*args):
+        if args[0] == "status":
+            return _R(f"?? {_LANE_DAILY}\n")
+        return _R("", 1)          # ls-tree errors
+    monkeypatch.setattr(sb, "_git", run)
+    line = sb.check_dirty_tree()
+    assert line and _LANE_DAILY in line
+
+
+def test_dirty_tree_output_is_ascii(monkeypatch):
+    """ASCII output: this string is rendered into a Stop-hook JSON payload and read in a
+    terminal that has already mangled non-ASCII glyphs this session."""
+    monkeypatch.setattr(sb, "_git", _lane_git(set(), f"?? {_LANE_DAILY}\n"))
+    line = sb.check_dirty_tree()
+    assert line
+    line.encode("ascii")          # raises UnicodeEncodeError if a non-ASCII glyph crept in
