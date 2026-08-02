@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-08-02 (f) — CC (Fable 5, local): W2 mechanism pair executed — [#475] + [#474], two arcs, both merged
+
+**Did:** Executed the W2 execution prompt: two serial TDD arcs under frozen acceptance
+contracts, each branch → gates → terra review → `--no-ff` merge → push. SHA anchors —
+`087d967f` ([#475] merge), `bc0c2ada` ([#474] merge), and this wrap. Written at WRAP.
+
+**[#475] — seal identity is now a pre-commit gate.** New `scripts/check_seal_identity.py`
+hook leg (`check-seal-identity`, `files: ^docs/handoffs/`) reuses
+`gen_handoff.verify_seal_identity` — one verifier, wired where the artifact becomes
+durable. 7 RED-first tests incl. the live defect class (slug naming a sibling bundle) and a
+structural config test compiling the hook's own `files:` regex from the YAML. Live demo: a
+deliberately broken staged bundle was REJECTED (exit 1, offending file + expected identity +
+found locator all named); fixture removed, zero leftovers. CLAUDE §9 (v2.50) + ARCHITECTURE
+Ch2 in lockstep; doc-counts 16 gates.
+
+**[#474] — `--write` warn-then-destroy inverted to warned-means-abort.** `write_warnings()`
+detects a populated `tasks/` tree; `_cmd_write` refuses BEFORE touching disk (exit 2,
+conditions + `--force` escape hatch + `--emit-source` routine direction all named, zero bytes
+changed — proven live against the real 212-file tree); `--force` overrides loudly and names
+what it overrides; clean bootstrap unchanged; `--check` contract pinned. +6 tests (2 RED-first
+guards, 4 regression pins).
+
+**Result:** Both rows closed per ADR-107 §6.3 (retire-not-delete). BACKLOG 188 → 186 open
+tasks (−2, zero opens). Ship-gate GREEN after each arc; suite failure set = exactly the two
+[#457]-owned ids (2190 passed / 2195 collected); `validate_backlog` OK, `validate_git_backlog`
+OK, `gen_task_tree --check` ok; terra review body: zero findings on both arcs. 0/0 vs
+origin/main after each push. Observed en route (report line, not fixed): the 2026-08-02
+dailies were diverted onto `automation/fleet-audit` (`38a73323`) by the routine writer
+mid-session — designed behavior, nothing lost.
+
+**Changes:** `scripts/check_seal_identity.py` (new), `.pre-commit-config.yaml`,
+`scripts/gen_task_tree.py`, `tests/test_check_seal_identity.py` (new),
+`tests/test_gen_task_tree.py`, `CLAUDE.md`, `ARCHITECTURE.md`, `ecosystem/doc-counts.md`,
+`BACKLOG.md` + `tasks/` (two closures).
+
+**Abandoned:** nothing.
+
+**Next:** W1/W3/W4 remain the architect's to schedule; [#457] pair still owns the two
+expected suite failures.
+
 ### 2026-08-02 (e) — CC (Opus 5, local): repo settled — dailies restored losslessly, conformance branch absorbed
 
 **Did:** Settled every outstanding item so the tree is genuinely clean rather than clean-by-
