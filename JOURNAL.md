@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-08-02 (c) — CC (Opus 5, local): three merges to main, and the backpressure false positive killed at the mechanism
+
+**Did:** Landed the [#473] arc and its follow-ons, then fixed the guard that had been firing on
+correct state all day. SHA anchors — `27c82d40` ([#473] suffix-sibling fix), `40bad185`
+([#474]/[#475] filed), `64693e25` (doc_rot trim), `ae173251` ([#476] backpressure fix), and this
+wrap. Serial, one at a time, operator GO before each. Written at WRAP.
+
+**[#473] merged and verified ON MAIN.** The acceptance test is the evidence, not the merge:
+`verify_handoff_probes.py docs/handoffs/2026-08-01-dev-knowledge-architect` on main resolves to
+`…-architect-2`, 14 pass / 0 fail, exit 0, zero manual correction, plus the identity advisory
+naming the 3 mis-pointed rows. Ship-gate GREEN, 0/0, branch torn down after `--merged` verify.
+
+**A RED I caused, and did not disposition.** The [#474]/[#475] filing merge turned ship-gate RED:
+both new rows tripped `doc_rot` history-accretion bloat (1747 and 1604 chars against a 1200
+threshold). Both rows were mine. Self-induced bloat is TRIMMED — a disposition would have bought
+GREEN by asserting the threshold does not apply to my own prose, which is how a gate stops
+meaning anything. Trimmed to 1070/1159 with nothing load-bearing removed (`64693e25`). Lesson
+applied immediately: [#476] was measured against the threshold BEFORE committing, and took four
+trim passes to get under it.
+
+**[#476] — the guard was firing on correct state.** The dirty-tree leg flagged the two
+`ecosystem/*/history/` dailies four times in one session, on files this session never touched.
+They are lane-owned (ADR-80/ADR-84; `.gitignore` says so) and already on the `automation/fleet-audit`
+tip, so every repair the hook implied was wrong: committing to `main` breaks lane ownership,
+deleting destroys records, stashing churns files already safe on origin. The correct action was
+to do nothing, four times. **A guard that fires on correct state trains the operator to ignore
+it** — the failure mode a backpressure organ can least afford, and the reason this was worth an
+arc rather than tolerance.
+
+**Verified exclusion, never a pattern.** A blind `ecosystem/*/history/` exclude would also
+silence the one case that genuinely needs surfacing. A path is excused only when `ls-tree` proves
+that exact file is on the lane tip; the probe fails CLOSED, because an unknown replication status
+is not a confirmed one. Stray files and unreplicated dailies both still flag.
+
+**Two of my own errors, recorded.** (1) Staging with `git add -A -- ecosystem/` swept the two
+lane-owned dailies into the index — the exact act the fix exists to prevent. The commit failed on
+an unrelated gate before it landed; caught in the status readback and unstaged. A glob did that;
+an explicit file list would not have. (2) The [#476] merge subject said `closes [#476]` while the
+row was still `status: open`, which `git_backlog_drift` correctly caught as closed-but-present.
+Closed properly in this commit. Both were caught by organs, not by re-reading — which is the
+window's own "mechanism over vigilance" thesis holding up under its own test.
+
+**Changes:** `scripts/session_end_backpressure.py` (lane-owned exclusion, fail-closed probe),
+`tests/test_session_end_backpressure.py` (8 RED-first tests), `tasks/474-476` + `manifest.json` +
+`BACKLOG.md`, `ecosystem/doc-counts.md` (2158 → 2181 across the day).
+
+**Abandoned:** nothing.
+
+**Next:** the [#473]-corrected queue — [#472] (what form a loadable ADR-104 declaration takes),
+[#383], [#465] leg 4 — plus the four Q7 chat-ratified lessons still owed durable homes, and the
+two rows this arc filed but did not build ([#474] `--write` gating, [#475] seal-identity as a
+pre-commit gate).
+
+---
+
 ### 2026-08-02 (b) — CC (Opus 5, local): handoff suffix siblings — the class killed on both sides, [#473] filed and closed
 
 **Did:** Ran `/handoff-verify` on the 2026-08-01 architect bundle, found the gate was verifying
