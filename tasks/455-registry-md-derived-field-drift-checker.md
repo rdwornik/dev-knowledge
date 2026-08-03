@@ -1,7 +1,7 @@
 ---
 id: "[#455]"
 title: "`registry.md` derived-field drift checker — no organ reads the file at all"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E2] Enforced governance"
