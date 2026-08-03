@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import os
+from collections import Counter
+
 import pytest
 import subprocess
 import sys
@@ -299,6 +301,30 @@ def test_corpus_fence_fix_only_recovers_headers_and_never_drops_one() -> None:
         content = p.read_text(encoding="utf-8", errors="replace")
         legacy, fixed = _legacy_parse_headers(content), parse_headers(content)
         compared += len(legacy)
-        lost = [h for h in legacy if h not in fixed]
-        assert not lost, f"{p}: the fence fix DROPPED header(s) {lost[:3]}"
+        # MULTISET, not membership (terra HIGH, 2026-08-03). `h not in fixed` compares
+        # presence, so legacy [(2,"Foo"), (2,"Foo")] vs fixed [(2,"Foo")] passed while a real
+        # TOC row was lost — and duplicate occurrences are exactly what drives the `#foo-1`
+        # anchor numbering, so a dropped duplicate silently renumbers every later anchor.
+        lost = Counter(legacy) - Counter(fixed)
+        assert not lost, f"{p}: the fence fix DROPPED header occurrence(s) {list(lost)[:3]}"
     assert compared > 1000, f"only {compared} headers compared — proof too thin"
+
+
+def test_headers_inside_an_html_block_are_still_returned():
+    """The compatibility contract the token-gate revision broke (terra HIGH, 2026-08-03).
+
+    A `##` line inside an HTML block or an unterminated HTML comment is NOT a CommonMark
+    heading, so gating on `heading_open` tokens DROPPED these — shrinking the TOC and shifting
+    anchor numbering. The parser locates CODE RANGES instead, so raw-line behaviour outside
+    fences is preserved and this arc can only recover headers, never lose them.
+    """
+    md = "## Real\n\n<div>\n## InsideHtmlBlock\n</div>\n\n<!-- unterminated\n## InsideComment\n"
+    assert parse_headers(md) == [
+        (2, "Real"), (2, "InsideHtmlBlock"), (2, "InsideComment")]
+
+
+def test_duplicate_headers_keep_every_occurrence():
+    """Occurrence count is load-bearing: `generate_toc` numbers repeat anchors (#foo-1), so
+    losing one duplicate renumbers every later anchor in the document."""
+    md = "## Foo\n\n```\n## Fenced\n```\n\n## Foo\n\n## Foo\n"
+    assert parse_headers(md) == [(2, "Foo"), (2, "Foo"), (2, "Foo")]

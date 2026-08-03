@@ -46,6 +46,19 @@ def _display(text: str) -> str:
     return _TAG_RE.sub("", text).strip()
 
 
+def _code_line_indices(content: str) -> set[int]:
+    """0-based source lines inside a CommonMark code block (fenced or indented).
+
+    `code_block` (indented code) is included for completeness; it is a no-op for the caller,
+    since a 4-space-indented line can never match the column-anchored `_HEADER_RE` anyway.
+    """
+    idx: set[int] = set()
+    for tok in _MD.parse(content):
+        if tok.type in ("fence", "code_block") and tok.map:
+            idx.update(range(tok.map[0], tok.map[1]))
+    return idx
+
+
 def parse_headers(content: str) -> list[tuple[int, str]]:
     """Return [(level, raw_header_text), ...] for ## / ### headers.
 
@@ -62,18 +75,24 @@ def parse_headers(content: str) -> list[tuple[int, str]]:
                       inside one was harvested as real headings; likewise a 3-backtick line
                       legally nested inside a 4-backtick fence closed it early.
 
-    EXTRACTION IS DELIBERATELY UNCHANGED: `_HEADER_RE` still decides level and text, so only
-    fence correctness moves. CommonMark would also accept up to 3 leading spaces and headings
-    inside blockquotes/lists; the column-anchored regex keeps rejecting those exactly as
-    before, because widening what counts as a TOC entry is a separate decision from fixing
-    where the parser thinks it is.
+    ONLY THE FENCE DECISION MOVES. markdown_it is used to locate CODE RANGES, and `_HEADER_RE`
+    then runs over every line outside them exactly as before — so level, text, tag handling and
+    the column-0 anchor are all untouched, and the change can only RECOVER headers the toggle
+    swallowed, never drop one it found.
+
+    An earlier revision gated on markdown_it `heading_open` tokens instead, which was a wider
+    contract change than intended and was refuted in review: a `## Foo` line inside an HTML
+    block or an unterminated HTML comment is NOT a CommonMark heading, so the token gate would
+    have DROPPED entries the raw-line parser returned — shrinking a generated TOC and shifting
+    duplicate-anchor numbering. Locating code ranges avoids that entirely.
     """
     lines = _EOL_RE.split(content)
+    code = _code_line_indices(content)
     headers: list[tuple[int, str]] = []
-    for tok in _MD.parse(content):
-        if tok.type != "heading_open" or not tok.map:
+    for i, line in enumerate(lines):
+        if i in code:
             continue
-        m = _HEADER_RE.match(lines[tok.map[0]])
+        m = _HEADER_RE.match(line)
         if m:
             headers.append((len(m.group(1)), m.group(2)))
     return headers
