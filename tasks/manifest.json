@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2113375ea5cabd9d12f50ee7884bfda64a2121f3f1ffe0ff4ba29a3c5262ee82",
+  "generated_sha256": "e4fc844ba101ff93a93c0072b2cc48484b8e9a45b7c5c88db7a7ef368ae4c441",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1513,10 +1513,6 @@
     {
       "task": 383,
       "file": "383-execution-waves-per-surface.md"
-    },
-    {
-      "task": 472,
-      "file": "472-membership-census-diffs-declaration-vs-surfaces.md"
     },
     {
       "prose": ""

@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-08-04 (a) — CC (Opus 5, local): [#472] — the fleet declaration stops being reachable only by prose
+
+**Did:** ARC 1 of the window close-out — executed the ratified L-D dossier. SHA anchors:
+`8d57c9b8` (amendment + leg + tests), `d0d58549` (terra r1), `68bf6ed8` (terra r2).
+
+**Result — the drift the constant's own comment had named is now a gate.**
+
+ADR-104's line-15 enumeration gains a machine-locatable anchor
+(`declaration:start/end id=adr104-fleet-members`), appended per ADR-94 with the body untouched —
+**append-only proven mechanically: 72 insertions, 0 deletions**. The anchor form was chosen on
+the dossier's evidence, not taste: `scripts/` parses five HTML-comment grammars and **zero**
+fence info-strings. `check_membership_agreement` gains a leg reading it, so the ADR is the
+SOURCE and `ADR104_FLEET_DECLARATION` the MIRROR. The constant stays — ADR-109 §2/§9 forbid a
+new persisted declaration file — and `resolve_fleet_members` is untouched.
+
+**Landed as ONE commit** because the amendment's own text claims *"Lockstep in the SAME commit"*.
+Splitting the work would have made the ADR false at the moment it was written.
+
+**Both mirror directions pinned by name**, because a leg catching one would be green for exactly
+the half nobody tested. Direction A was additionally demonstrated live-shaped: a ghost id
+inserted into the REAL ADR made the REAL check FAIL naming it; file restored byte-identical.
+
+**Terra, two rounds, three HIGH.** (1) *The id boundary was not a boundary* — `\b` after the id
+let `id=adr104-fleet-members-v2` match, so a differently-versioned block would have been read as
+this one, and would have PASSED outright whenever its contents happened to agree. Reproduced,
+then fixed. Fenced marker EXAMPLES were also invisible; fence detection **reuses**
+`toc.generator._code_line_indices` rather than adding a second hand-rolled toggle — the 08-03 arc
+proved those wrong in four ways. (2) *Package-mode import* — **refuted as written** (no crash),
+**fixed on its point**: `scripts/` reaches `sys.path` only as a SIDE EFFECT of another import, so
+package mode worked incidentally rather than by contract. (3) *A third live line pin* — a
+NEGATIVE exclusion assertion carrying the stale number, which would have silently disarmed the
+guard it protects.
+
+**Two of my own errors, recorded rather than absorbed.** `pathlib.write_text` wrote CRLF into the
+`tasks/` file and broke the engine's provenance detection — **the gotcha already existed and I
+did not consult it**; `Last triggered` bumped to today. And I asserted "only 2 line pins are live"
+from a remembered note instead of grepping; there were three. A remembered count is not a
+measurement.
+
+**Ruling errors found (both stale by one day, neither affecting intent):** the prompt and dossier
+say the leg keeps `len(ALL_CHECKS)` at **38** — live it is **39**, and `doc-counts` agrees; the
+dossier cites the ALL_CHECKS registration at `audit.py:3381` — live **3429**. Both are downstream
+of `check_journal_spine_anchor` landing yesterday. The ruling's PROPERTY — the count must not
+move — holds and was verified: 39 before, 39 after. Operator ratified both corrections and logged
+this as the eighth premise error, the motivating example for ARC 4.
+
+**Changes:** `docs/decisions/ADR-104-*.md` (+72, −0), `docs/decisions/README.md`,
+`scripts/audit.py`, `tests/test_membership_agreement.py` (+12), `tests/test_reverse_dep_oracle.py`
+(3 pins), `tasks/472-*.md` (terminal `status: closed`), `tasks/manifest.json`, `BACKLOG.md`
+(189 → 188), `ecosystem/doc-counts.md`, 2 codex artifacts + `docs/audits/README.md`.
+
+**Abandoned:** nothing.
+
+**Next:** ARC 2 — [#465] leg 4, Codex-as-producer / CC-verifies.
+
 ### 2026-08-03 (l) — CC (Opus 5, local): six for six — the wrapper tally, cited not copied
 
 **Did:** Annotated `[#480]` with a one-line evidence pointer (`4e2fbb2f`), operator-directed at
