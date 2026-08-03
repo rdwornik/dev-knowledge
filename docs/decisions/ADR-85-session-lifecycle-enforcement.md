@@ -98,6 +98,247 @@ floor (2026-06-16 amendment) are untouched. Fix + regression tests this session
 `test_e2e_merge_delivered_journal_passes`); see the 2026-06-19 JOURNAL entry and
 `docs/audits/2026-06-19-hook-completeness-audit.md` (C1 finding).
 
+## Amendment — 2026-08-03: the obligation moves to integration, the teeth move to pre-push
+
+> **In-file amendment marker (CLAUDE.md §5 item 3 / ADR-94).** The decision body above is
+> preserved **verbatim** — nothing in it is edited, including Decision 4's `/override` text and
+> the two prior amendments. This section records a **change of mechanism**, ruled by the operator
+> on 2026-08-03 against two independent derivations (CC, sealed before `sol`; `sol` via
+> `codex exec -s read-only`, brief only). Decisions 1, 2, 5 and 6 of the body stand unchanged;
+> Decision 3's *intent* stands and its *implementation* is replaced; Decision 4's local-token
+> path is **retired** by this amendment and is superseded by §A2 below.
+
+### A0. Motivation — the sharpest available statement of the defect
+
+`_base_ref()`'s first branch prefers the branch's own upstream. So on a feature branch,
+`git push -u origin feat/x` **moves the base to `origin/feat/x` and empties `base..HEAD`**, and
+the hard leg returns None. **Re-measured at `4f3f8531`** in an isolated clone with its own bare
+origin, immediately before this amendment was written:
+
+```
+BEFORE push -u:  base=origin/main       set=['cd86ab8']  HARD=BLOCK
+AFTER  push -u:  base=origin/feat/x     set=[]           HARD=none
+```
+
+The commit is still unmerged, unreviewed and unjournaled. **The cheapest discharge available
+today is not "push to main" — it is "publish to a branch nobody reads."** Any fix that addresses
+only the merge-to-main path leaves this open, which is why the boundary itself is replaced rather
+than adjusted.
+
+### A1. D1 — the obligation is created by **integration onto `main`**, not by an authored commit
+
+An obligation arises when a first-parent spine entry lands on `main`. Authored commits on a
+feature branch create none.
+
+**Reason, and the second is decisive.** Authorship is not reliably derivable from git metadata in
+a shared checkout or a parallel lane — the 2026-07-25 override token records this gate demanding
+SHAs belonging to a *concurrent session*, where the only literal repair was to claim another
+session's commits as one's own. And an obligation over *authored commits* policed by a detector
+over *publication* is the exact shape that produced this incident. Under Decision 3's own
+un-gameability bar, **an integration event is a recorded fact; authorship is an inference.**
+
+**Cost:** ADR-85 no longer guarantees one JOURNAL record per executor session. It guarantees one
+per integrated unit. Session-level fidelity is traded for a boundary the serial merge gate can
+actually enforce.
+
+### A2. D2 — the local token path retires; `--no-verify` is the sole escape; the backstop makes it non-silent
+
+- The **Decision 4 local-token path is retired.** Local state cannot make an integration event
+  compliant. `_override_active()` and `logs/.session-override-token` cease to be a discharge.
+- The **sole escape is `git push --no-verify`** — transport-level, explicit, human-typed, and
+  pretending to be nothing else.
+- The escape is made **non-silent by an audit backstop** (§A8): an `ALL_CHECKS` leg asserting
+  every first-parent spine entry on `main` is anchored. A bypass therefore survives in the record
+  as a standing FAIL until a JOURNAL anchor lands.
+
+**Cost:** a session whose scope forbids JOURNAL edits cannot integrate debt-free; it parks, or it
+integrates and carries a visible debt until a later entry pays it. There is no longer a local
+artifact that makes non-compliance look like compliance — which is the point.
+
+### A3. D3 — the push boundary is removed **in the code as well as in the text**
+
+The 2026-06-19 amendment above is titled *"push-boundary → session-boundary fix"* and states the
+v1 implementation "took the arc as `base..HEAD` with `base = @{upstream}` … the **push** boundary,
+not the session boundary." **It narrowed only the inner walk.** `_session_shas()` still computes
+`base..HEAD` at `:167-168`, and `check_journal_sha_anchor()` returns at `:300` on an empty range
+**before** the session walk at `:302-307` ever runs. In the case the incident hit, the 2026-06-19
+fix is unreachable code.
+
+**This amendment records that as the precedent it exists not to repeat: an amendment declared a
+removal it did not deliver, and the declaration was believed for six weeks because nobody
+re-measured it.** Under this amendment the push boundary is gone from the obligation semantics
+entirely — no `@{upstream}`, no `origin/main`, no invented base.
+
+**Cost:** none to correctness. The replacement bound is supplied by git itself (§A5), so the
+disagreement between the two derivations about *what* should replace the base — a journal-wrap
+walk with a floor, versus a fixed epoch scan — dissolved rather than being adjudicated.
+
+### A4. D4 — parked-and-awaiting-operator-GO is legitimate, as a **consequence** of A1
+
+Commits sitting on a feature branch awaiting operator GO create **no obligation**, because no
+integration has occurred. This is not a new rule and needs no new machinery: it falls out of A1.
+
+**No agent-asserted marker is required anywhere** — no "parked", no "awaiting approval", no flag
+the agent sets about its own state. That satisfies the non-negotiable that Decision 3 already
+implied: nothing the agent asserts is an input to a hard check.
+
+**Cost:** ADR-85 supplies no reminder for a forgotten parked branch. Branch inventory and handoff
+discipline carry that risk, as they did before.
+
+### A5. D5 — the HARD leg lives at **pre-push, scoped to `main`**; Stop is advisory in full
+
+Both derivations reached this independently, which is the strongest signal in the adjudication.
+
+The Stop hook cannot host a hard gate: its unit is a model-turn boundary, and the host force-ends
+a turn after N consecutive blocks. **Nine identical firings on 2026-08-03 added zero enforcement
+pressure and terminated in exactly the silent auto-bypass Decision 4 forbids by name.** An organ
+that can be exhausted cannot carry teeth.
+
+At pre-push the obligation range is **the one git hands the hook** — `remote_sha..local_sha` for
+the ref being pushed. Exact, bounded by construction, no invented base, no floor, no cap. A
+refused push is simply refused; there is no retry surface to exhaust.
+
+**Cost:** compliance is collected at integration rather than immediately after authoring. A
+locally created unanchored merge needs a follow-up JOURNAL entry before it can be pushed.
+
+### A6. D6 — hard organs fail **closed**; D7 — the dirty tree never guards a hard check
+
+**D6.** A hard organ returns non-zero on internal error. `check_seal_identity.py:73-77` is the
+in-repo model — *"refusing the commit; an error is never a silent pass."* The same fix applies at
+`block_ff_push.py:205-207`, which today prints *"degraded — allowing push"* and returns 0, silently
+auto-allowing the very push it exists to refuse. The now-advisory Stop leg may fail soft, but
+**loudly** — never the silent `return 0` at `:497-498`.
+
+**Cost:** a transient git or environment failure can block an ordinary push and require explicit
+operator recovery. That is intentional friction traded for the elimination of false green.
+
+**D7.** `:297` — `if not _is_clean(): return None` — suppresses the hard leg entirely whenever any
+file is uncommitted. It was written as anti-nag ergonomics (`:56-57`: "gated to a clean tree = a
+plausible wrap, so mid-work turns are not nagged") and is **named here for the first time as a
+discharge path**: a single uncommitted file silences the gate, indistinguishably from compliance.
+No prior ADR text documents it. It survives on the advisory path only, where anti-nag is correct,
+and guards no hard check.
+
+**Cost:** none material — ADR-85 does not enforce documentation of uncommitted work, and never did.
+
+### A7. The anchored object
+
+The anchored object is the **first-parent spine entry** on `main` — the merge commit, or a direct
+commit where one exists. **Not every reachable commit.** This is consistent with the repo's
+existing spine scan (`git log --first-parent main`), with the per-shipped-unit journaling rule
+(operator ruling 2026-08-03), and with how JOURNAL entries are already written.
+
+**Definitional detail, measured — a spine entry is anchored when JOURNAL names ≥1 SHA the entry
+INTRODUCED, not the entry's own SHA.** A merge commit cannot name its own hash: the JOURNAL entry
+it carries is authored before the merge exists. Measured at `4f3f8531`, the naive "spine SHA is
+named" predicate reports **686 of 1292** spine entries unanchored *including HEAD itself*; the
+correct "introduced SHA is named" predicate (which is what Decision 3's SHA anchor and §A8's
+discharge both mean) reports a contiguous anchored run of **11** from HEAD. Any implementation
+using the naive predicate is measuring the wrong thing and will fail on its own merge.
+
+**Named residual, stated rather than hidden.** A single push carrying **multiple** shipped units
+is anchored by an entry naming ≥1 SHA in the range — so the second and later units in one push
+ride on the first unit's anchor. Under the operator's serial merge gate this is rare (one merge,
+one push). It is a known limit, filed as such in the manner of `[#475]`'s stated limit, not an
+oversight.
+
+### A8. Migration note and the dated disposition floor
+
+**The backstop.** An `ALL_CHECKS` leg walks `git log --first-parent main` and asserts every spine
+entry is anchored. **A gap is a FAIL, not a WARN** — a WARN would be dispositionable, and a
+dispositionable backstop cannot be the thing that makes `--no-verify` non-silent.
+
+**The floor, with its measurement.** Applying the §A7 predicate at `4f3f8531`: the contiguous
+anchored run from HEAD is **11 spine entries**, reaching back to `24882f8cc` (2026-08-02, *"Merge
+branch 'claude/conformance-2026-08-02'"*). The next older entry, `5d1c71f03` (2026-08-02, *"Merge
+branch 'chore/doc-counts-2182'"*), is the newest gap.
+
+> **Dated disposition floor: `24882f8cc` (2026-08-02).** Spine entries **strictly older** than
+> `24882f8cc` are dispositioned once, here, by this amendment. **Reason:** they were authored
+> under the pre-amendment contract, in which push, a dirty tree, or hook exhaustion were live and
+> undocumented discharge paths — the record they would be judged against did not exist when they
+> landed. Retro-anchoring 1,281 historical spine entries would mean writing JOURNAL entries for
+> sessions nobody attended, which manufactures record rather than keeping it.
+
+**What the floor covers, counted — so this is never later readable as "history was clean."**
+Full census at `4f3f8531`, `git log --first-parent main`, using the §A7 predicate:
+
+```
+total first-parent spine entries on main        1292
+at/above the floor (the clean contiguous run)     11
+BELOW the floor, dispositioned by this amendment 1281
+    of those, already anchored                    865
+    of those, GENUINELY UNANCHORED                416      <- 32.5% of the disposed span
+    entries introducing only themselves           311      (of which unanchored: 133)
+newest unanchored spine entry                    5d1c71f03  (2026-08-02,
+                                                 "Merge branch 'chore/doc-counts-2182'")
+```
+
+**416 spine entries below the floor carry no JOURNAL anchor at all.** The floor is not a
+statement that the history beneath it is compliant — it is an explicit decision to stop counting
+at a dated line, with the size of what is being stopped-counting recorded in the same breath. A
+future reader asking "how much was disposed of?" gets 1,281 entries, 416 of them true gaps, from
+this paragraph rather than from a re-derivation that may no longer be possible.
+
+**A floor is a recorded fact, not a bypass.** It is dated, it names its SHA, it states its reason,
+and it is written into the ADR rather than into a disposition register where it could be quietly
+extended. Nothing after `24882f8cc` is covered by it, and the floor does not move without a
+further amendment.
+
+**What changes meaning.** "The gate is silent" no longer implies "nothing is owed" — today that
+sentence conflates compliance, push, and a dirty tree. After this amendment, pre-push silence
+means *nothing unanchored is being integrated*, and backstop silence means *the spine is whole
+above the floor*. Any prior reasoning of the form "it stopped complaining, so we are clean" is
+retroactively invalid — including the 2026-08-03 afternoon arc, whose debt (`808ef911`,
+`42ff1323`) was discharged by push and later paid honestly at `476116c6`.
+
+**What is untouched.** The `--first-parent` requirement at `:268` remains load-bearing (git's
+combined merge diff would otherwise hide a branch's JOURNAL entry). The advisory BACKLOG-marker
+leg (R1) is unchanged and stays advisory. The existing `warn-no-ff-*`, `warn-doc-rot-*`,
+`warn-undeclared-*` dispositions reference other organs and are unaffected.
+
+### A9. The structurally unanchorable entry — a spine entry that introduces only itself
+
+A **non-merge** commit on the first-parent spine introduces exactly one commit: itself. Such an
+entry **cannot be anchored at push time** — no JOURNAL entry can name a SHA that does not yet
+exist when that entry is authored. This case is named here because a backstop that FAILs on it
+without an account of it would be a gate nobody can satisfy.
+
+**Is it reachable? Foreclosed going forward — verified, not assumed.** In an isolated clone with
+its own bare origin and the pre-push hook armed, a direct non-merge commit on `main` was pushed:
+
+```
+block_ff_push: REFUSED - 1 non-merge commit(s) would land on main's first-parent spine
+  FF/DIRECT  0ee919c92 (2026-08-03) direct-to-main probe (non-merge spine entry)
+  bypass: `git push --no-verify` (the audit WARN still flags it post-hoc)
+error: failed to push some refs        PUSH EXIT=1
+```
+
+The foreclosing mechanisms are core-invariant #5 (branch → `--no-ff` merge, never direct-to-main),
+`scripts/block_ff_push.py` as its pre-push *prevent* organ, and `validate_no_ff` as the post-hoc
+detect organ, enforcing from `BASELINE_DATE = 2026-06-15` **forward**.
+
+**The foreclosure is real but not absolute**, and the amendment says so rather than relying on it:
+`--no-verify` bypasses it by design, and `block_ff_push.py:205-207` currently **fails soft** —
+returning 0 and "allowing push" on any internal error — which is exactly the defect §A6 orders
+fixed. Until that fix lands, the prevent organ can be silently absent.
+
+**What the hard leg does if such an entry occurs anyway:**
+- **At pre-push**, discharge is **range-level** (§A2/FR2: a JOURNAL entry naming ≥1 SHA *in the
+  range*). A direct commit `D` followed by a second commit `E` whose JOURNAL text names `D` makes
+  the range anchored, and the push passes. There is no deadlock in the normal repair shape.
+- **A lone direct commit as the entire push range is unanchorable** and the push is refused. This
+  is correct rather than unfortunate: `block_ff_push` refuses that same push first, for the same
+  underlying reason.
+- **At the backstop** (§A8, per-entry), a self-only entry stays a reported gap until a **later**
+  JOURNAL entry names it **retroactively**. Retroactive anchoring is the only discharge available
+  to such an entry, and it is legitimate — the record is what matters, not when it was written.
+
+**Historical extent, counted.** 311 non-merge spine entries exist on `main` today, of which 133
+are unanchored. **All 311 are below the floor** — the newest is `533109f20` (2026-06-26), and the
+floor is `24882f8cc` (2026-08-02) — so none of them is live work for the backstop, and none is
+used to justify the floor's placement.
+
 ## Links
 - Council verdict: `council-out-20260616_131123-pick-council-brief-session-lifecycle-enforcement.md`
 - Coupled decisions: traceability-spine (R1), handoff-supplement (the DoD-via-handoff is process-context-in-handoff), conformance-dashboard (R2).
