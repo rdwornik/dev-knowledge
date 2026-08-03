@@ -35,6 +35,7 @@ dev = [
     "rich>=13.0",          # deploy/tool.py console output (was undeclared — global-site-packages only)
     "pydantic>=2.0,<3",    # ADR-109 desired-state schema v1 (ecosystem/schema/, [#382] W2) — named by the operator-ratified intake #22 §E; <3 bound: StrictStr/extra semantics must not move under us (grok L5)
     "packaging>=24.0",     # PEP 440 version compare in scripts/fleet_parity.py (intake #23 library-first) — was already resolved transitively via pytest and present in uv.lock; declared explicitly so the gate does not depend on a transitive edge. NO ecosystem/dependency-baseline.yaml row: fleet_parity is hub-only, so this is not a dep consumers need to operate a methodology mechanism (the pandas/analytics precedent)
+    "markdown-it-py>=4.0",  # CommonMark heading/fence identification in scripts/normalize_headers.py (library-first) — same shape as packaging above: already resolved transitively (via rich) and present in uv.lock, declared explicitly so a REWRITING hook does not ride a transitive edge. NO ecosystem/dependency-baseline.yaml row: normalize-dated-headers is HUB-ONLY — it is absent from .pre-commit-hooks.yaml and from the deploy manifest hook roster, so no consumer needs it to operate a methodology mechanism
 ]
 # L5a descriptive analytics lane ([#384], intake #16 section 3). Separate group: the lane is
 # HUB-ONLY (it mines siblings read-only but runs here), so a consumer never needs it and it

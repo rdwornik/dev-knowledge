@@ -48,6 +48,62 @@ def test_parse_frontmatter_absent_is_empty():
     assert gi._parse_frontmatter("# no frontmatter\n") == {}
 
 
+# --- the underscore blind spot (vacuous green: the parser looked at zero such keys) -------
+
+def test_parse_frontmatter_sees_underscore_keys():
+    """`_FM_KV_RE`'s key class `[a-z0-9-]` had NO underscore, so an underscore-bearing key
+    matched NOTHING and was silently dropped from a dict the docstring calls "the leading
+    ---...--- YAML frontmatter as a flat {key: value} dict".
+
+    Failing-test shape, not a baseline pin: the correct behaviour here is knowable and
+    desirable (a YAML frontmatter parser must see a legal YAML key), so the test asserts the
+    right answer and went RED, rather than freezing the wrong one.
+    """
+    fm = gi._parse_frontmatter(
+        "---\nstatus: SEED\nlast_reviewed: 2026-08-03\nreview_date: 2026-07-20\n---\n\n# t\n")
+    assert fm["status"] == "SEED"
+    assert "last_reviewed" in fm, "underscore key silently dropped"
+    assert "review_date" in fm, "underscore key silently dropped"
+
+
+def test_parse_frontmatter_covers_the_key_shapes_this_repo_actually_uses():
+    """Structural, not enumerated: the key names are DERIVED from the repo's own canonical
+    frontmatter on disk (`canonical_freshness_gate.DEFAULT_FRESHNESS_FILES`), never a
+    hand-built literal. A parser blind to a key shape the repo genuinely uses is reporting
+    on a corpus it cannot see.
+
+    Guarded against becoming vacuous itself: if the derivation yields no underscore key, the
+    test FAILS rather than passing on an empty set — the exact failure mode under repair.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(repo_root / "scripts"))
+    import canonical_freshness_gate as cfg
+
+    live_keys: set[str] = set()
+    for rel in cfg.DEFAULT_FRESHNESS_FILES:
+        p = repo_root / rel
+        if not p.exists():
+            continue
+        text = p.read_text(encoding="utf-8", errors="replace")
+        if not text.startswith("---"):
+            continue
+        for line in text.splitlines()[1:]:
+            if line.strip() == "---":
+                break
+            if ":" in line and not line.startswith((" ", "\t", "#")):
+                live_keys.add(line.split(":", 1)[0].strip())
+
+    underscored = {k for k in live_keys if "_" in k}
+    assert underscored, (
+        "derivation produced no underscore-bearing key — this test would be vacuous; "
+        f"canonical frontmatter keys found: {sorted(live_keys)}")
+
+    body = "".join(f"{k}: x\n" for k in sorted(live_keys))
+    fm = gi._parse_frontmatter(f"---\n{body}---\n\n# t\n")
+    missing = {k.lower() for k in live_keys} - fm.keys()
+    assert not missing, f"parser cannot see key shapes the repo uses: {sorted(missing)}"
+
+
 def test_collect_excludes_readme_and_reads_status(tmp_path):
     d = _make_intake_dir(tmp_path, {
         "2026-07-06-a.md": _doc("CONSUMED", "1", "Alpha"),

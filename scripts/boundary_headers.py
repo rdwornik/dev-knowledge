@@ -48,7 +48,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
-from fnmatch import fnmatch
+from fnmatch import fnmatchcase
 from pathlib import Path
 
 # The marker vocabulary is single-sourced from the #312 reporter. Importing it (rather
@@ -227,6 +227,22 @@ def _tracked_files(repo_root: Path) -> list[str]:
     return [ln for ln in proc.stdout.splitlines() if ln]
 
 
+def _matches_governed_glob(rel: str) -> bool:
+    """True iff a POSIX-separated tracked path falls under `_GOVERNED_GLOBS`.
+
+    `fnmatchcase`, never `fnmatch`. `fnmatch` normalizes case via `os.path.normcase`, which
+    is a no-op on POSIX and lowercases on Windows — so the same repository yielded a
+    DIFFERENT governed set depending on which box ran the gate, and a coverage number
+    computed on one OS was not comparable to the same number computed on another. Paths here
+    come from `git ls-files`, which is case-sensitive on every platform, so host case rules
+    were never the right authority. `fnmatchcase` is stdlib: no dependency is added.
+
+    Extracted so the match rule is one named, directly testable predicate instead of an
+    expression buried in the discovery loop.
+    """
+    return any(fnmatchcase(rel, g) for g in _GOVERNED_GLOBS)
+
+
 def discover_governed(repo_root: Path = _REPO_ROOT) -> tuple[list[Path], list[str]]:
     """(governed files, errors).
 
@@ -237,7 +253,7 @@ def discover_governed(repo_root: Path = _REPO_ROOT) -> tuple[list[Path], list[st
     found: list[Path] = []
     errors: list[str] = []
     for rel in _tracked_files(repo_root):
-        if not any(fnmatch(rel, g) for g in _GOVERNED_GLOBS):
+        if not _matches_governed_glob(rel):
             continue
         path = repo_root / rel
         try:

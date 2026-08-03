@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-08-03 (i) — CC (Opus 5, local): the vacuous-green trio — and three vacuous tests of my own
+
+**Did:** ARC 2 of the "measuring the wrong thing" prompt — three mechanisms reporting green while
+measuring nothing or measuring something other than what they claim. SHA anchors: `7cc9b183`
+(row 2), `75fce455` (row 4), `4e2c809b` (row 5), `98d973d0` + `4129b923` (terra findings closed).
+
+**Result — three fixed, and the arc turned on me.**
+
+*Row 2 — the parser that looked at zero keys.* `gen_intake_index._FM_KV_RE`'s key class
+`[a-z0-9-]` has no underscore, so every underscore-bearing key matched NOTHING and vanished from
+a dict the docstring calls YAML frontmatter. It BIT one level up:
+`gen_intake_tree._off_projection_keys` — the AC-4 residue enumeration — reported no residue for
+such a key. Fixed with `yaml.safe_load`, the call `audit.check_vision_md` already makes. Measured,
+not assumed: docs/intake/ uses `review-date` (hyphen) and carries **zero** underscore keys today,
+so nothing was masked — the green was **accidental, not earned**. The structural test (keys derived
+from the repo's own canonical frontmatter) surfaced `reconciled_with`, which I had not named.
+
+*Row 4 — a REWRITING hook editing inside code blocks.* `^``` ` plus a toggle kept the docstring's
+promise for exactly ONE fence shape and missed four: `~~~` of any length, fences indented the 3
+spaces CommonMark allows, and a 4-backtick fence closed early by the 3-backtick line it legally
+contains. The fix is an **inversion** — stop enumerating where not to rewrite (a blocklist already
+wrong four ways) and ask markdown_it which lines are headings, rewriting only those. Live corpus
+would have been rewritten in 0 files, so the defect was **latent, not an incident**.
+
+*Row 5 — a gate measuring a different thing per box.* `fnmatch` case-folds via `os.path.normcase`:
+no-op on POSIX, lowercasing on Windows. Paths come from `git ls-files`, which is case-sensitive
+everywhere, so host rules were never the right authority. `fnmatchcase`; coverage unchanged at 1/1.
+
+**Terra found three vacuous tests of mine — in the arc about vacuous tests.** Round 1: a CRITICAL
+(my fail-safe returned unchanged text with **no diagnostic**, so a rewriting hook could silently
+no-op while exiting 0 — the ADR-85 lesson from this same window, reintroduced by me) and two HIGHs
+(my case-sensitivity test was a real RED on Windows and a **vacuous PASS on Linux**, where CI runs;
+my corpus test asked the module's own helper whether the module was right, and skipped every file
+because the corpus is already clean, making **zero** assertions). Round 2 found a fourth: my
+container-prefix oracle accepted `-# text`, so a desync could pass the desync detector. All four
+reproduced and fixed. **The wrapper tally printed `0/0/0/0` all four times** over 1 CRITICAL and
+3 HIGH — read from the body every time; `[#480]` owns that gap.
+
+**The corpus refuted my own oracle twice**, and both were modelling gaps fixed properly rather than
+special-cased: markdown_it parses YAML frontmatter as a **setext heading** (underline at
+`map[1]-1`, not `map[0]+1`), and headings live inside containers (`> ### ...`). Neither is a module
+defect — `normalize_line` is anchored at `^(##|###)` — but an oracle that models them wrongly
+proves nothing.
+
+**Changes:** `scripts/gen_intake_index.py`, `scripts/normalize_headers.py`,
+`scripts/boundary_headers.py`; 4 test modules (+22 tests); `pyproject.toml` + `uv.lock`
+(`markdown-it-py>=4.0` declared — already transitive via `rich`, 2 lock lines, no resolution
+change; **hub-only** hook, so no `dependency-baseline.yaml` row and no consumer impact —
+checked against `.pre-commit-hooks.yaml` and the deploy roster, not assumed);
+`ecosystem/doc-counts.md`; 2 codex artifacts + `docs/audits/README.md`.
+
+**Abandoned:** nothing. Row 5's dead-glob leg was deliberately NOT decided — reported with a
+measured table instead. Operator ruled **REPAIR (true-glob), not REMOVE**, and out of ARC 2.
+
+**Next:** file the glob-engine row per that ruling, then ARC 3 (rows 3 and 6) — divergence proven
+first, same adversarial bar.
+
 ### 2026-08-03 (h) — CC (Opus 5, local): ADR-85 residue — a coverage probe that measured a retired organ
 
 **Did:** ARC 1 of the "measuring the wrong thing" execution prompt — the operational residue of
