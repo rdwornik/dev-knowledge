@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-08-03 (a) — CC (Opus 5, local): night batch 2026-08-03 absorbed, and the night's own environment caveat retired
+
+**Did:** Absorbed `claude/night-batch-2026-08-03-k8djp8` (preserve-then-delete) into `main`.
+Scope-checked before merging: the branch was exactly **1 commit** (`709d2d64`) ahead of `main` at
+`c7628a3e`, merge-base `c7628a3e`, 0 behind — 8 files, `+3404/-1`, **all under `docs/audits/`**
+(7 lane artifacts L-A..L-F plus the digest INDEX, and the mechanical `gen_audit_index.py` regen,
+366 -> 373 documents). Additive only: no governance surface, no BACKLOG row, no script. **Every
+finding in the batch is a PROPOSAL** — this merge promotes, closes and fixes nothing. Same
+shape as the 2026-08-02 absorb `c30af862`.
+
+**The night's largest self-declared limit is retired, by measurement.** The container carried uv
+**0.8.17** against the `pyproject.toml:25` `==0.11.19` pin, so `uv run --locked` aborted and the
+batch could exercise **no gate through its production path** — every green was "green under a
+lock-matched venv", which the digest called "the single largest limit on the night". Here uv is
+**0.11.19**; the environment was rebuilt with `uv sync --locked` plus
+`uv sync --locked --group analytics`, and the whole battery re-measured through `uv run --locked`
+on `main` at `c7628a3e` **pre-merge** — i.e. against byte-identical content. All of it
+reproduced: **ship-gate GREEN** (15 WARN dispositioned, `[stale]` = **0**); **`2 failed, 2190
+passed, 3 skipped`** in 245s with the failure set **exactly** the two `[#457]`-owned ids; 2195
+collected, matching `ecosystem/doc-counts.md:15`; `validate_backlog` OK (186 tasks),
+`validate_git_backlog` OK, `gen_task_tree --check` ok. That promotes L-A claim **6a
+UNVERIFIABLE -> CONFIRMED**, confirms **6b** as written (the container's `[stale] = 1` was
+container-caused, as L-A reasoned), and makes **4b** reproducible here as a bare count.
+
+**Result:** Recorded as an **appended follow-up** at the foot of the digest — append-only, no
+prose above it edited, per the CLAUDE §5.3 audit-immutability rule. The note is deliberately
+narrow: it retires the *environment* caveat and nothing else. The findings that were never
+environmental survive untouched and stay the architect's — HEADLINE 1 (the W2 terra review left
+no artifact anywhere, while all 88 prior codex reviews left one), HEADLINE 2's portability
+defect (`audit.py:2300` keys `deployed-versions.yaml` by repo-root basename, so a clone named
+`dev-knowledge` cannot find the `.dev-knowledge` row — same class as [#465] legs 2+3 fixed at
+`56f82aa`), HEADLINE 3 (the brief's `night-<lane>` filename pattern is refused by the live
+ADR-101 R3 enum; four lanes hit it independently and all resolved by inserting the `technical`
+class token, gate neither weakened nor bypassed), and the Run-2 observation that `[#457]` leg (i)
+fails for a reason the row does not record. Backlog arithmetic unchanged at **186**.
+
+**Changes:** `docs/audits/` +7 artifacts (`2026-08-03-technical-night-batch-digest.md`,
+`-la-w2-verification`, `-lb-groom`, `-lc-w4-staging`, `-ld-472-option-b`, `-le-library-first`,
+`-lf-rulings-prep`), `docs/audits/README.md` (generated regen), `JOURNAL.md`.
+
+**Abandoned:** nothing.
+
+**Next:** the four routed items above are this session's remaining arcs — retroactive terra
+review of the two W2 merges, the mechanical grooming closes, and the defect filings. The remote
+lane branch is deleted immediately after this push (MERGE IS ATOMIC; `claude/night-batch-*`
+carries no protection — only `claude/conformance-*` does).
+
 ### 2026-08-02 (f) — CC (Fable 5, local): W2 mechanism pair executed — [#475] + [#474], two arcs, both merged
 
 **Did:** Executed the W2 execution prompt: two serial TDD arcs under frozen acceptance
