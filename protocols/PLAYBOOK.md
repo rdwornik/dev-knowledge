@@ -845,6 +845,21 @@ The rule: a test must be able to distinguish "criterion met" from "criterion
 silently not evaluated." If it can't, it is testing the implementation, not the
 acceptance criterion.
 
+**Structural over enumerated.** Where a mechanism declares which keys, paths or globs it
+covers, derive that set from the mechanism's **own config** at test time — not as a hand-built
+literal list. A literal list agrees with the code the day it is written and
+diverges silently forever after, and the test still passes because it compares the author's
+intention with itself. Live instance: `scripts/gen_intake_index.py:44` compiles
+`_FM_KV_RE = r"^([a-z0-9-]+):\s*(.*?)\s*$"` — a frontmatter key class with **no underscore** —
+so `last_reviewed:` and `review_date:` match nothing while `status:` and `id:` match. The probe
+is green because it is looking at zero keys.
+
+**A mechanism needs its own verification.** A gate, probe or generator is not verified by
+running and reporting green — green then means only "it executed", which is not the claim it
+makes. It is verified by a test that constructs the input it claims to catch and proves it
+catches it. ADR-81 leg (e) already requires demonstrated *firing* for an enforcement organ
+(Ch12); this generalizes the same bar past enforcement to any mechanism that reports a verdict.
+
 #### Test types and when
 <!-- scope: dev -->
 
@@ -1028,6 +1043,8 @@ Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are exclude
 
 **A living doc must not accrete unbounded history past its grooming thresholds.** Four read-only sub-detectors in `scripts/validate_doc_rot.py` (surfaced via `scripts/audit.py` `doc_rot`, in `ALL_CHECKS`) flag BACKLOG inline-history accretion, per-section Section-history accretion, file-bloat vs a self-declared line budget, and grooming-cadence lapse — one **WARN** per locus, DETECT-ONLY (never condenses). Load-bearing doctrine: ADR-65 condense-to-git / ADR-49 retired changelogs / ADR-41 cadence (ADR-88 FC4). Pre-existing loci are grandfathered in the disposition register; read-only (#140).
 
+**The row carries a pointer, the record carries the record.** When a tracked row and a durable record both want the same content, the record takes the load and the row keeps a one-line pointer. This is a container rule, not a style preference: `_BACKLOG_GROSS_CHARS` caps a BACKLOG task line at 1200 chars, so a row absorbing narrative becomes physically unwritable and the failure surfaces as a doc-rot WARN at commit time rather than as a design signal. It blocked a write twice in two days in 2026-08 — `[#457]` sits at 1182 of 1200, and `[#383]` measured 1206 as its irreducible minimum before a wave record took the load. Read the ceiling as the mechanism saying the content is in the wrong container. The escape is **not** a disposition: every past `warn-doc-rot-backlog-*` entry in the register is `(cleared …)`, resolved by condensing.
+
 ### Prose structural coherence (audit check `doc_structure`)
 <!-- scope: meta -->
 <!-- rule: coherence-doc-structure -->
@@ -1101,7 +1118,7 @@ travels between seats, and judgment sourced from the seat that did the work is n
 
 Per Token-LOG flip 2026-04-24:
 
-- **Newest-first (prepend):** TOKEN-LOG, JOURNAL (CHANGELOG retired — §14). Rationale: logs optimize for current-state scanning. (JOURNAL flipped 2026-04-27 — original Stream B Gap #4 spec had oldest-top; amended for consistency with TOKEN-LOG/CHANGELOG.)
+- **Newest-first (prepend):** TOKEN-LOG, JOURNAL (CHANGELOG retired — §14). Rationale: logs optimize for current-state scanning. (JOURNAL flipped 2026-04-27 — original Stream B Gap #4 spec had oldest-top; amended for consistency with TOKEN-LOG/CHANGELOG.) **JOURNAL write cadence — the unit is the shipped merge** (operator ruling 2026-08-03): one entry per merged-and-pushed unit, not per session and not per commit. Mid-arc churn *within* one unit is the anti-pattern; a wrap-only entry across a multi-merge session is the opposite error and leaves shipped commits unanchored. Full statement and both failure modes: LESSONS 2026-08-03 "journal at wrap, not mid-arc".
 - **Append-only, newest-first (prepend):** LESSONS — new entries at the top of the Entries section, per the file's own header and ADR-29. Rationale: append-only preserves "what we learned when"; newest-first optimizes the scan, same as the logs above. (Corrected 2026-07-30 — this line read "oldest top" until the intake #18 A10 / RM-1 sweep, which fixed `HANDOFF_PROCESS.md` §15 and missed this sibling; the file itself has been newest-first throughout.)
 - **Living (in-place updates):** README, CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT. Rationale: not logs; current state matters more than history.
 - **Immutable (dated):** ADRs, transcripts, handoffs, audits, research. Rationale: point-in-time records; supersession via new file or in-file marker.
@@ -3221,6 +3238,10 @@ Bundle-asserted facts (SHAs, file counts, version pins, prior session claims) ar
 
 Sourced from LESSONS #1 (2026-05-12). Architect-side enforcement is operator review; ADR-45 Stage 3 verification provides mechanical cross-check on executor side. Companion executor-side discipline: Ch2 "LLM-LLM context transfer is back-and-forth, not unilateral" (verify inline, ask back; don't carry forward unknown).
 
+**An off-repo claim carries a locator or is marked as paraphrase.** The ladder above says what a claim *is*; this says how it is *written*. Any claim about repo state originating outside the repo — browser chat, a brief, memory of a prior session — is quoted with a locator (`path:line`, a SHA, a command's output) or explicitly labelled a paraphrase. Unlabelled, it enters the next contract as fact and is thereafter defended rather than checked. Two instances propagated into briefs across two days in 2026-08: `67863180` asserted as an ADR-109 §4 discharge (its own merge body records the "9 governs" Related-line gloss; §4 discharged once, at `1afd9579`), and "Act-1 lossless union" asserted as a repo phrase (the referent `55733ea4` unified three runs of one day inside the lane, not two lineages).
+
+**Prompt-premise pre-flight.** Every locator, path, section name and SHA in an emitted contract is verified read-only **before** the contract freezes. A frozen contract resting on an unverified premise forces the executor to choose between an unsatisfiable criterion and a silent reinterpretation — and the reinterpretation is invisible in the result. Pre-flight is a grep per locator, run once, against the tree the contract will execute in. The executor-side counterpart is STOP-and-report, not reinterpretation.
+
 ### Architect epistemic discipline: completion claims require state verification
 <!-- scope: meta -->
 
@@ -3350,6 +3371,8 @@ So that <why>.              <- the why (required, immediately under the story)
 - every **User Story** has a `So that` line **and a stable numeric `[S<n>]` id prefix** (unique across the file; a missing or duplicate `[S<n>]` hard-fails, #286);
 - **no done task** in the file — a `status:done` / `[x]` / `~~strikethrough~~` marker hard-fails (done tasks leave);
 - *(warn-only: a story with zero tasks.)*
+
+**retire-not-delete at story level.** "Done tasks leave" does **not** generalize upward. A completed **story** keeps its `### [S<n>]` heading and gains a COMPLETED marker naming the closing SHAs; it is not deleted. A task is a work item whose removal *is* the signal; a story is a map coordinate, so deleting it renumbers the operator's mental model and frees an id for reuse — the sequence stops being readable and the allocation record is lost, exactly as with a retired task that keeps its allocation record (ADR-107 §6.3). This is also why the zero-task rule above stays **warn-only**: a completed story legitimately has no tasks. Precedent: `[S24]`, the first empty story on main (`3c050b15`, merged `a02dd111`).
 
 Anti-pattern: do NOT collapse the layers back to a flat list, or re-expand a task to multi-paragraph form — goals-on-top / task-detail-below is the readability fix ADR-66 ratified; the validator guards it.
 
@@ -3607,6 +3630,7 @@ Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
 - **terra is the doctrinal default review lane** — but mind the live drift: the doc-lane pins `gpt-5.6-terra` explicitly, while the **code lane currently inherits the codex config default (`gpt-5.6-sol` as of 2026-07-16)** because the wrapper passes no `-m` flag on that path. This config-vs-doctrine drift is tracked for reconciliation (see [#333] follow-up). Choose sol or luna deliberately only when a lane's stated strength fits the task better, and say why.
 - **Doc-lane review is first-class in `/codex-review`** ([#333]): a prose diff (no code files, ≥1 `.md`/`.rst`/`.txt`) routes to the wrapper's **doc-lane** — a prose/structural profile (disposition-faithfulness, cross-doc consistency, structural integrity, template usability) pinned to `gpt-5.6-terra`. The code-only path-guard still filters markdown out of the *code* profile; mixed diffs review as code. (Ad-hoc `codex exec` remains available for one-off reads outside a diff.)
 - **Every plan names its Codex lane.** A plan / architect prompt states which lane (terra/sol/luna) + surface (code or doc, both via `/codex-review`) its review leg uses — an addressable planned decision, not an ad-hoc runtime pick (pairs with review-before-STOP, Ch12).
+- **Read the body, not the severity summary.** A reviewer's severity header is a routing hint, not a finding — and it is the part most likely to be wrong, being generated last and compressing most. Read the finding body, reproduce the claim against live state, and disposition on what you reproduced: a HIGH that does not reproduce closes as not-reproduced, and a LOW whose body names a real defect is fixed regardless of band. Acting on the summary line alone propagates the reviewer's triage error into the repo. Family: `[#431]` / `[#445]`; cross-reference the wrapper change-record audit from the terra-pin arc, where band and body disagreed.
 
 ### Codex dual-role — reviewer today, producer gated
 
