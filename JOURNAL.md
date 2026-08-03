@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-08-03 (b) — CC (Opus 5, local): the W2 terra claim, cured retroactively — two real reviews, two artifacts
+
+**Did:** Cured the unfalsifiable claim the night batch surfaced as HEADLINE 1. SHA anchors —
+`0ff8d534` (this arc's commit), on top of `2e01b399` (the 2026-08-03 (a) absorb). The
+2026-08-02 W2 report and the JOURNAL 2026-08-02 (f) entry both recorded *"terra review body:
+zero findings on both arcs"*, but **no review artifact was ever written** — L-A established the
+absence as fact (nothing under `docs/`, `logs/` or `codex/`; no review file in either arc's
+diff) while **all 88 prior codex reviews in this repo left one**, the three most recent dated
+2026-08-01. Never refuted, but **unfalsifiable** — for a gate-adjacent review, the same
+operational problem. Cured mechanically rather than by re-asserting it: two real terra runs
+against the arcs' own spans (`25e9dc7d..087d967f` and `087d967f..bc0c2ada`, each merge against
+its first parent, so the reviewed bytes are what landed).
+
+**Result: ZERO findings on both arcs**, read from the artifact BODY across all four severity
+bands — not from the wrapper's severity-mention heuristic. No disposition was required. Both
+artifacts landed at the convention the 88 priors already use
+(`docs/audits/2026-08-03-codex-{475-seal-identity-precommit-gate,474-gen-task-tree-write-guard}-retro.md`),
+the path located rather than invented, and both filenames were checked against the live ADR-101
+gate **before** staging — `rule_a_violation` and `rule_b_violation` both `None`, because `codex`
+is already in the R3 closed class enum. So HEADLINE 3's collision does not recur here. Model
+`gpt-5.6-terra` on both, pinned by the wrapper and recorded in each artifact's frontmatter —
+since `[#469]` **both** lanes pin, so the code lane these mixed diffs route to is genuinely
+terra and not an inherited config default. That pin exists because a review once requested as
+terra silently executed as something else with nothing in the artifact to say so — the same
+failure family as the claim being cured. `docs/audits/README.md` regenerated, 373 -> 375.
+
+**Three limits recorded IN the artifacts, not left to inference** — the arc's whole point is
+falsifiability, so burying them would defeat it. (1) These are **post-merge** reviews; a
+zero-findings verdict now does **not** retroactively make the 2026-08-02 claim verifiable, it
+makes the shipped state reviewed and leaves an artifact where there was none — a strictly
+narrower thing than what the W2 report asserted. (2) The **prose subset went unreviewed**: both
+diffs are mixed, and the `[#431]` path-guard filters a mixed diff to its code subset, so
+`ARCHITECTURE.md`, `CLAUDE.md`, `BACKLOG.md`, `ecosystem/doc-counts.md` and the `tasks/` rows in
+these arcs were not covered; each artifact enumerates what was and was not reviewed. (3) Each
+note is **appended under a marker**, with no codex output edited.
+
+**Changes:** `docs/audits/2026-08-03-codex-475-seal-identity-precommit-gate-retro.md` (new),
+`docs/audits/2026-08-03-codex-474-gen-task-tree-write-guard-retro.md` (new),
+`docs/audits/README.md` (generated regen), `JOURNAL.md`.
+
+**Abandoned:** nothing. **Backlog arithmetic unchanged at 186** — this arc closes no tracked
+row; it is a pure advance, so BACKLOG carries no structural marker for it.
+
+**Next:** ARC 2 (mechanical grooming closes, [#455] + [#433]) and ARC 3 (filing the night
+batch's four defect rows + the [#457] annotation). **W2 closure is the architect's to declare,
+not this session's.**
+
 ### 2026-08-03 (a) — CC (Opus 5, local): night batch 2026-08-03 absorbed, and the night's own environment caveat retired
 
 **Did:** Absorbed `claude/night-batch-2026-08-03-k8djp8` (preserve-then-delete) into `main`.
