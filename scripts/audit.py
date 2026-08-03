@@ -3256,7 +3256,15 @@ def read_adr104_declaration(path) -> list[str]:
     # pair and be read as the source while the real anchor was absent. Fence detection is the
     # corpus-proven `toc.generator` helper rather than a second hand-rolled toggle -- the
     # 2026-08-03 arc established that such toggles are wrong in at least four ways.
-    from toc.generator import _code_line_indices  # noqa: PLC0415 -- local: keeps audit import cheap
+    # Dual-import, the pattern block_ff_push already uses for validate_no_ff. Script mode
+    # (`python scripts/audit.py`) puts scripts/ on sys.path; package mode
+    # (`python -m scripts.audit`) puts the repo ROOT there. The bare import happens to resolve
+    # in package mode today only because another imported script inserts scripts/ as a SIDE
+    # EFFECT -- incidental, not a contract, and terra flagged the fragility (2026-08-04).
+    try:  # noqa: PLC0415 -- local: keeps audit's import cheap on the audit-health path
+        from toc.generator import _code_line_indices
+    except ImportError:
+        from scripts.toc.generator import _code_line_indices
     fenced = _code_line_indices(text)
 
     def _outside_fence(m) -> bool:

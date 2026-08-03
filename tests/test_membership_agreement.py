@@ -391,3 +391,23 @@ def test_declaration_anchor_ignores_a_marker_mentioned_mid_sentence(tmp_path, mo
     repo = _hub_tree(tmp_path, body)
     fails = [f for f in _decl_findings(repo) if f.status == "fail"]
     assert fails and "not found" in fails[0].evidence.lower(), [f.evidence for f in fails]
+
+
+@pytest.mark.live_repo
+def test_declaration_leg_works_under_package_mode_invocation():
+    """`python -m scripts.audit health` must reach the declaration leg (terra HIGH round 2).
+
+    Script mode puts scripts/ on sys.path; PACKAGE mode puts the repo root there. The bare
+    `from toc.generator import ...` resolved in package mode only because another imported
+    script inserts scripts/ as a SIDE EFFECT — incidental, not a contract, so a future import
+    reshuffle could turn this hub check into a ModuleNotFoundError mid-run. Exercised as a real
+    subprocess rather than by reasoning about sys.path.
+    """
+    import subprocess
+
+    root = Path(aud._REPO_ROOT)
+    r = subprocess.run([sys.executable, "-m", "scripts.audit", "health"],
+                       cwd=str(root), capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
+    assert "ModuleNotFoundError" not in (r.stdout + r.stderr), (r.stdout + r.stderr)[-400:]
+    assert "declaration source" in r.stdout, r.stdout[-400:]

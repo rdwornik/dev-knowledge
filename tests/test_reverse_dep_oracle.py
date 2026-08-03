@@ -215,7 +215,7 @@ def test_finding_headline_resolves_with_provenance():
     assert res["definition"]["line"] == 322                  # 1-based output
     assert ans["reverse_dependent_count"] >= 50              # floor (measured ~110), drift-robust
     # the declaration site is not its own reverse-dependent
-    assert {"file": "scripts/audit.py", "line": 321} not in ans["reverse_dependents"]
+    assert {"file": "scripts/audit.py", "line": 322} not in ans["reverse_dependents"]
     prov = ans["provenance"]
     assert prov["completeness"] == "complete"
     assert prov["git_rev"]
