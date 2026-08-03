@@ -119,13 +119,18 @@ def resolve_push_range(stdin_lines: list, env, protected: str = PROTECTED_REF) -
 
 def _read_stdin() -> str:
     """Native pre-push refs from stdin, or '' when stdin is a tty / already consumed
-    (the pre-commit path) — never blocks on an interactive terminal."""
-    try:
-        if sys.stdin is None or sys.stdin.isatty():
-            return ""
-        return sys.stdin.read()
-    except (OSError, ValueError):
+    (the pre-commit path) — never blocks on an interactive terminal.
+
+    A genuine READ FAILURE now RAISES rather than degrading to '' (terra CRITICAL,
+    2026-08-03; ADR-85 amendment §A6). The two states are not the same: 'no stdin' is the
+    legitimate pre-commit/tty wiring, while an OSError mid-read means the hook does not know
+    what is being pushed — and an empty string there resolves to "not a push to main" and
+    returns 0, silently allowing the exact push both gates exist to refuse. The callers'
+    outer handler turns this into exit 2.
+    """
+    if sys.stdin is None or sys.stdin.isatty():
         return ""
+    return sys.stdin.read()
 
 
 def _repo_root() -> Path:
@@ -180,14 +185,32 @@ def violations_in_range(repo: Path, rng: str, baseline: str = BASELINE_DATE) -> 
 
     Delegates to validate_no_ff.find_violations — a revision range (`remote..local`)
     is a valid `git log` positional exactly like a branch name, so the gate and the
-    detector share ONE scan, not just the leaf helpers. Read-only; fail-soft (a git
-    error returns [], never wedging a legitimate push)."""
+    detector share ONE scan, not just the leaf helpers.
+
+    THE DELEGATE IS FAIL-SOFT AND THIS GATE IS NOT (terra CRITICAL, 2026-08-03).
+    `find_violations` documents "a missing branch / non-repo / git error returns []" so it can
+    never wedge the audit-health WARN it was written for. Reused verbatim here that contract
+    makes a FAILED SCAN indistinguishable from A CLEAN ONE, and `main()` returns 0 — the
+    fail-closed posture of ADR-85 §A6 defeated one layer down. So the range is proved
+    READABLE first; a git failure raises and `main()` turns it into exit 2. The shared
+    signature is preserved (still ONE scan, ONE definition of a violation) — only the
+    unknown-vs-clean distinction is added, which the detector does not need and the gate
+    cannot do without."""
+    probe = _git(repo, "rev-list", "--count", rng)
+    if probe.returncode != 0:
+        raise RuntimeError(
+            f"could not read the push range {rng!r}: git rev-list exited "
+            f"{probe.returncode}: {probe.stderr.strip()}")
     return _vnf.find_violations(repo, branch=rng, baseline=baseline)
 
 
 def main(argv=None) -> int:
     """Refuse (1) a push that adds a non-merge commit to main; allow (0) otherwise.
-    Fail-soft to 0 on any error — a hook bug must never block a legitimate push."""
+
+    Exit codes: 0 = clean scan, allow · 1 = violation detected, refuse · 2 = internal
+    error, refuse. Fail **CLOSED** on error per the ADR-85 amendment 2026-08-03 §A6 —
+    the escape hatch is the explicit `git push --no-verify`, so an error need never
+    brick work and must never be a silent allow."""
     reconstructed = False
     try:
         repo = _repo_root()
@@ -202,9 +225,19 @@ def main(argv=None) -> int:
         if rng is None:
             return 0  # not a push to main (or a main deletion) — nothing to gate
         violations = violations_in_range(repo, rng)
-    except Exception as exc:  # noqa: BLE001 — fail-soft is the contract
-        print(f"block_ff_push: degraded ({exc}) — allowing push", file=sys.stderr)
-        return 0
+    except Exception as exc:  # noqa: BLE001 — ADR-85 amendment 2026-08-03 §A6: fail CLOSED
+        # An organ with an explicit escape hatch (`git push --no-verify`) must fail closed:
+        # a crash cannot brick work, so a silent auto-allow buys nothing and costs the
+        # invariant. This organ is the PREVENT half of core-invariant #5, and until this
+        # fix it printed "degraded — allowing push" and returned 0, silently auto-allowing
+        # the exact push it exists to refuse — which is what made ADR-85 §A9's foreclosure
+        # conditional. Model: check_seal_identity.py:73-77 ("an error is never a silent
+        # pass"). Exit 2 = internal error, distinct from 1 = detected violation.
+        print(f"block_ff_push: INTERNAL ERROR ({exc!r}) — refusing the push; an error is "
+              "never a silent allow. Fix the hook, or bypass explicitly with "
+              "`git push --no-verify` (the audit WARN still flags it post-hoc).",
+              file=sys.stderr)
+        return 2
     if not violations:
         return 0
     print(f"block_ff_push: REFUSED — {len(violations)} non-merge commit(s) would land "

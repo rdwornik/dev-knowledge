@@ -8,15 +8,23 @@ ADR-78 floor verdict defines child-visible hygiene — Q2 ruling 2026-06-07. It 
 alongside the plugin's Stop->propose_closures hook (both fire; results merge).
 
 At each turn Stop it runs DETERMINISTIC session-end hygiene checks (NO LLM judgment —
-ADR-74, ADR-85). Two output modes:
+ADR-74, ADR-85).
 
-  * HARD GATE (ADR-85) — the JOURNAL commit-SHA anchor. When it trips, the hook emits
-    `{"decision": "block", "reason": ...}` so the turn is BLOCKED and cannot stop. It
-    blocks-until-compliant (the agent satisfies it by naming a session SHA in JOURNAL.md);
-    the only manual exit is `/override [reason]` (logged, HEAD-bound — see `_override_active`).
-  * ADVISORY backpressure — BACKLOG marker (interim, ADR-85 R1), dirty tree, canonical
-    cadence. Surfaced via `hookSpecificOutput.additionalContext`. Line format:
-    `what failed -> expected -> directive`.
+**ADVISORY IN FULL since the ADR-85 amendment 2026-08-03 (§A5 / FR5).** This hook no
+longer has a HARD leg and can no longer block a turn. The JOURNAL obligation moved to
+`block_unanchored_push.py` — pre-push, scoped to `main` — for one structural reason:
+
+    A Stop hook's unit is a model-turn boundary, and the host force-ends a turn after N
+    consecutive blocks. On 2026-08-03 the hard leg fired NINE consecutive times, added
+    zero enforcement pressure, and terminated in exactly the silent auto-bypass Decision 4
+    forbids by name ("No auto-bypass-after-cap"). An organ that can be EXHAUSTED cannot
+    carry teeth. A pre-push hook cannot be exhausted: it passes, or the push fails.
+
+So all four legs — JOURNAL anchor (demoted, not deleted), BACKLOG marker (ADR-85 R1),
+dirty tree, canonical cadence — are advisory, surfaced via
+`hookSpecificOutput.additionalContext`. Line format: `what failed -> expected -> directive`.
+The §4 local-token path is likewise RETIRED (§A2 / FR3); `_override_active()` is kept inert
+and is not consulted.
 
 Stop-hook contract — CORRECTED (CC 2.1.178; code.claude.com/docs/en/hooks):
   - `{"decision":"block","reason":...}` blocks the stop (counts toward CC's block-cap, which
@@ -185,7 +193,19 @@ def _added_lines(path: str) -> str:
 
 
 def _override_active() -> bool:
-    """True iff a valid `/override` token records the CURRENT HEAD (ADR-85 §4).
+    """RETIRED (ADR-85 amendment 2026-08-03 §A2 / FR3) — no longer consulted by `main()`.
+
+    The §4 local-token discharge path is retired: local state cannot make an integration
+    event compliant, and a token that *looks* like compliance is precisely the shape the
+    amendment removes. The sole escape is now `git push --no-verify` at the transport
+    layer, made non-silent by the audit backstop (`audit.check_journal_spine_anchor`).
+
+    Kept rather than deleted so the historical tokens under `logs/` remain readable and so
+    the retirement is visible at the call site instead of being a silent absence. It has no
+    caller in this module; do not add one.
+
+    Original contract, for the record: True iff a valid `/override` token records the
+    CURRENT HEAD (ADR-85 §4).
 
     Pure read — never writes or deletes (keeps the hook a read-only validator). The token
     is HEAD-bound: it allows the gate while HEAD is unchanged and re-arms automatically the
@@ -437,8 +457,18 @@ def check_canonical_freshness():
             f"(CLAUDE 'Freshness cadence').")
 
 
-_HARD_CHECKS = (check_journal_sha_anchor,)
-_ADVISORY_CHECKS = (check_backlog_marker, check_dirty_tree, check_canonical_freshness)
+# ADR-85 amendment 2026-08-03 (§A5 / FR5): there is no HARD leg here any more. The
+# JOURNAL anchor moved to `block_unanchored_push.py` (pre-push, scoped to main), because a
+# Stop hook's unit is a model-turn boundary and the host force-ends a turn after N
+# consecutive blocks — nine identical firings on 2026-08-03 added zero enforcement pressure
+# and ended in the silent auto-bypass Decision 4 forbids by name. An organ that can be
+# exhausted cannot carry teeth, so this one carries none: every leg below is advisory.
+# `check_journal_sha_anchor` is DEMOTED, not deleted — as an advisory it still surfaces an
+# outstanding anchor while the work is local, which is the one thing a turn-boundary organ
+# is genuinely good at.
+_HARD_CHECKS = ()
+_ADVISORY_CHECKS = (check_journal_sha_anchor, check_backlog_marker, check_dirty_tree,
+                    check_canonical_freshness)
 
 
 def gather(checks):
@@ -455,22 +485,12 @@ def gather(checks):
 
 def main() -> int:
     try:
-        if _override_active():
-            return 0  # explicit, logged, HEAD-bound override -> allow (ADR-85 §4)
+        # ADR-85 amendment 2026-08-03 §A2/FR3: the local token path is RETIRED. Local state
+        # cannot make an integration event compliant, so `_override_active()` is no longer
+        # consulted here (the function is kept, inert, rather than deleted — see its
+        # docstring). The sole escape is now `git push --no-verify` at the transport layer,
+        # made non-silent by the audit backstop.
         data = _read_hook_input()
-        hard = gather(_HARD_CHECKS)
-        if hard:  # HARD GATE — block the stop; fold advisory in so nothing is lost.
-            # The hard leg IGNORES stop_hook_active (teeth): it blocks until the JOURNAL names
-            # a session SHA. Advisory findings ride inside the block reason — the turn is
-            # already kept going by the block, so surfacing them here adds no loop.
-            advisory = gather(_ADVISORY_CHECKS)
-            reason = (
-                "Session-end gate BLOCKED (deterministic; ADR-85) — repair before stopping:"
-                "\n- " + "\n- ".join(hard + advisory)
-                + "\nIf this block is wrong, exit via `/override [reason]` (logged)."
-            )
-            print(json.dumps({"decision": "block", "reason": reason}))
-            return 0
         # No hard block. additionalContext "continues the conversation" (CC v2.1.163), so a
         # standalone advisory on a PERSISTENT condition would keep the turn going every retry
         # -> the block-cap auto-overrides (the bypass ADR-85 forbids). Surface advisory
@@ -494,8 +514,15 @@ def main() -> int:
                 }))
                 return 0
         return 0  # floor / all-clear / retry -> silent, turn ends
-    except Exception:
-        return 0  # fail-soft: never wedge a stop on the hook's own error
+    except Exception as exc:  # noqa: BLE001
+        # ADR-85 amendment §A6/FR6: an ADVISORY leg may fail soft — it has no teeth to
+        # brick — but it may never fail SILENTLY. Before this fix the exception was
+        # swallowed whole and the hook rendered identically to a clean run. The teeth now
+        # live at pre-push, where the posture is the opposite (fail CLOSED).
+        print(f"session_end_backpressure: DEGRADED ({exc!r}) — advisory legs did not run. "
+              "This is not a clean result; the ADR-85 hard leg is at pre-push "
+              "(block_unanchored_push.py) and is unaffected.", file=sys.stderr)
+        return 0
 
 
 if __name__ == "__main__":

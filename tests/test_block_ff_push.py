@@ -271,10 +271,21 @@ def test_fresh_remote_push_refused(tmp_path):
 
 
 @requires_git
-def test_failsoft_on_bad_range(tmp_path):
-    # A git error inside detection degrades to [] (never wedge a legitimate push).
+def test_unreadable_range_raises_rather_than_reading_clean(tmp_path):
+    """ADR-85 amendment 2026-08-03 §A6 / FR6 — was `test_failsoft_on_bad_range`, which
+    asserted a git error degraded to `[]`.
+
+    That fail-soft is what made a FAILED scan indistinguishable from a CLEAN one: the
+    delegate `validate_no_ff.find_violations` returns `[]` on any git error by contract, and
+    `main()` then returned 0 — silently allowing the push this gate exists to refuse (terra
+    CRITICAL, 2026-08-03). The DETECTOR keeps its fail-soft contract, which it needs; the
+    GATE proves the range readable first and raises, which `main()` turns into exit 2.
+    """
     repo = _init_repo(tmp_path)
-    assert bfp.violations_in_range(repo, "nonexistent-a..nonexistent-b") == []
+    with pytest.raises(RuntimeError, match="could not read the push range"):
+        bfp.violations_in_range(repo, "nonexistent-a..nonexistent-b")
+    # The shared detector is deliberately unchanged — it must never wedge audit-health.
+    assert vnf.find_violations(repo, branch="nonexistent-a..nonexistent-b") == []
 
 
 @requires_git

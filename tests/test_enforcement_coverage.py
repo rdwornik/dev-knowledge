@@ -94,8 +94,22 @@ def test_present_but_inert_stop_hook_reports_absent(tmp_path):
     assert cell.fired is False
 
 
-def test_blocking_stop_hook_reports_enforcing_local(tmp_path):
-    """The real backpressure script, wired as the Stop hook, blocks unanchored work -> enforcing-local."""
+def test_stop_hook_no_longer_enforces_after_the_adr85_amendment(tmp_path):
+    """ADR-85 amendment 2026-08-03 §A5/FR5 — the Stop hook is ADVISORY IN FULL and therefore
+    does not fire this organ's enforcement probe any more.
+
+    Was `test_blocking_stop_hook_reports_enforcing_local`, which asserted ENFORCING_LOCAL on
+    the strength of `{"decision":"block"}`. That block is gone by design: a Stop hook's unit
+    is a model-turn boundary the host force-ends after N consecutive blocks, so it cannot
+    carry teeth. The ADR-85 teeth now live at pre-push in `block_unanchored_push.py`.
+
+    STALE MEASUREMENT, DELIBERATELY PINNED RATHER THAN HIDDEN: `_seb_fire` still probes the
+    Stop hook for a block, so the mesh now reports this organ ABSENT on every consumer. That
+    verdict is *correct about the Stop hook* and *wrong about ADR-85 coverage* — the probe
+    needs re-pointing at the pre-push organ. This test asserts today's real behaviour so the
+    gap is visible in the suite instead of silently reading as a coverage regression; the
+    re-point is filed as follow-on work, not silently patched in here.
+    """
     root = _init_consumer(tmp_path / "enforcing", {
         "JOURNAL.md": "# Journal\n\n- prior session\n",
         "scripts/session_end_backpressure.py": _REAL_SEB,
@@ -103,8 +117,8 @@ def test_blocking_stop_hook_reports_enforcing_local(tmp_path):
             'python "$CLAUDE_PROJECT_DIR/scripts/session_end_backpressure.py"'),
     })
     cell = _cell(ec.evaluate_full(root), "session_end_backpressure")
-    assert cell.verdict == ec.ENFORCING_LOCAL, cell.evidence
-    assert cell.fired is True
+    assert cell.fired is False, cell.evidence
+    assert "did NOT block" in cell.evidence or cell.verdict == ec.ABSENT
 
 
 # ---------------------------------------------------------------------------

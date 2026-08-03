@@ -401,8 +401,14 @@ def test_override_inactive_when_no_token(monkeypatch, tmp_path):
 
 # --- main() output modes ----------------------------------------------------
 
-def test_main_blocks_when_journal_sha_missing(monkeypatch, capsys):
-    monkeypatch.setattr(sb, "_override_active", lambda: False)
+def test_main_surfaces_advisory_when_journal_sha_missing(monkeypatch, capsys):
+    """ADR-85 amendment 2026-08-03 §A5/FR5 — this leg is ADVISORY now; it must NOT block.
+
+    Was `test_main_blocks_when_journal_sha_missing`, which asserted `decision: block`. The
+    teeth moved to `block_unanchored_push.py` (pre-push) because a Stop hook's unit is a
+    model-turn boundary the host force-ends after N blocks — see
+    tests/test_adr85_integration_enforcement.py::test_t3_pre_push_has_no_retry_surface.
+    """
     def log(args):
         # JOURNAL diff has no sha (hard fires); BACKLOG diff has no marker (advisory fires);
         # canon name-only empty (freshness skips)
@@ -412,12 +418,14 @@ def test_main_blocks_when_journal_sha_missing(monkeypatch, capsys):
     monkeypatch.setattr(sb, "_git", _fake_git({
         "status": _R(""), "rev-parse": _R("", 1), "rev-list": _R(_SHA + "\n"), "log": log,
     }))
+    monkeypatch.setattr(sb, "_read_hook_input", lambda: {"stop_hook_active": False})
     assert sb.main() == 0
     payload = json.loads(capsys.readouterr().out.strip())
-    assert payload["decision"] == "block"
-    assert "JOURNAL (hard)" in payload["reason"]
-    assert "BACKLOG (advisory)" in payload["reason"]   # advisory folded into the block reason
-    assert "/override" in payload["reason"]
+    assert "decision" not in payload, "the Stop hook may no longer block (FR5)"
+    ctx = payload["hookSpecificOutput"]["additionalContext"]
+    assert "JOURNAL (hard)" in ctx      # the leg's own wording is unchanged; its EFFECT is not
+    assert "BACKLOG (advisory)" in ctx
+    assert "/override" not in ctx, "the §4 token path is retired (FR3)"
 
 
 def test_main_allows_when_override_active(monkeypatch, capsys):
@@ -581,22 +589,25 @@ def test_e2e_five_paths(tmp_path):
     _git_in(repo, "checkout", "-q", "-b", "feat/x")
     foo_sha = _commit(repo, "foo.txt", "change\n", "feat: change foo")
 
-    # PATH 1 — block: commit landed, JOURNAL has no session SHA -> decision:block
-    payload = json.loads(_run_hook(repo))
-    assert payload["decision"] == "block", "commit w/o journal SHA must hard-block"
-    assert "JOURNAL (hard)" in payload["reason"]
-    assert "BACKLOG (advisory)" in payload["reason"]  # advisory rides inside the block
-    # TEETH: the hard gate must NOT honor stop_hook_active -> still blocks on a retry
-    assert json.loads(_run_hook(repo, {"stop_hook_active": True}))["decision"] == "block", \
-        "hard JOURNAL gate ignores stop_hook_active (teeth survive; only advisory fires once)"
+    # PATH 1 — ADVISORY (was: block). ADR-85 amendment 2026-08-03 §A5/FR5: this hook has no
+    # hard leg. A commit without a journal SHA surfaces an advisory and the turn still ends.
+    assert _run_hook(repo) == "", "no retry signal -> structural floor keeps it silent"
+    payload = json.loads(_run_hook(repo, {"stop_hook_active": False}))
+    assert "decision" not in payload, "the Stop hook may no longer block (FR5)"
+    ctx = payload["hookSpecificOutput"]["additionalContext"]
+    assert "JOURNAL (hard)" in ctx and "BACKLOG (advisory)" in ctx
+    # NO TEETH, and that is the point: a retry is suppressed rather than re-blocking. The
+    # exhaustion signature (9 identical blocks -> host force-end) is structurally gone.
+    assert _run_hook(repo, {"stop_hook_active": True}) == "", \
+        "advisory fires once; there is no hard leg left to ignore stop_hook_active"
 
-    # PATH 5 — override: in this genuine block state, arm a HEAD-bound token -> allow
+    # PATH 5 — RETIRED (§A2/FR3). The local token can no longer discharge anything, so an
+    # armed token changes nothing: the hook's behaviour is identical with and without it.
+    before = _run_hook(repo, {"stop_hook_active": False})
     token.write_text(json.dumps({"head": foo_sha, "reason": "e2e override"}), encoding="utf-8")
-    assert _run_hook(repo) == "", "valid HEAD-bound override token -> allow"
-    # a stale token (HEAD moved on) must NOT bypass -> still blocks
-    token.write_text(json.dumps({"head": "deadbeef" * 5, "reason": "stale"}), encoding="utf-8")
-    assert json.loads(_run_hook(repo))["decision"] == "block", "stale override must not bypass"
-    token.unlink()  # disarm before the remaining paths
+    assert _run_hook(repo, {"stop_hook_active": False}) == before, \
+        "the retired §4 token must have no effect on the hook"
+    token.unlink()
 
     # PATH 2 — pass + FLOOR: add a JOURNAL entry naming the session SHA -> hard gate clears.
     _commit(repo, "JOURNAL.md", f"### entry\nChanges: commit {foo_sha}\n", "docs: journal")
@@ -658,9 +669,13 @@ def test_e2e_cross_session_miss_blocks(tmp_path):
     s1w = _commit(repo, "a.txt", "a\n", "feat: s1 work")
     _commit(repo, "JOURNAL.md", f"### s1\nChanges: commit {s1w}\n", "docs: s1 journal")
     s2w = _commit(repo, "b.txt", "b\n", "feat: s2 work")      # shipped, NOT journaled
-    payload = json.loads(_run_hook(repo))
-    assert payload["decision"] == "block", "2nd-session-before-push uncited work must hard-block"
-    assert s2w[:7] in payload["reason"] and s1w[:7] not in payload["reason"]
+    # ADR-85 amendment 2026-08-03 §A5/FR5: ADVISORY now, not a block. The C1 boundary logic
+    # this test guards is UNCHANGED and still under test — only the leg's severity moved.
+    payload = json.loads(_run_hook(repo, {"stop_hook_active": False}))
+    assert "decision" not in payload, "the Stop hook may no longer block (FR5)"
+    ctx = payload["hookSpecificOutput"]["additionalContext"]
+    assert s2w[:7] in ctx and s1w[:7] not in ctx, \
+        "the per-session boundary walk must still name ONLY the un-journaled session's work"
 
 
 def test_e2e_cross_session_journaled_passes(tmp_path):
@@ -696,7 +711,13 @@ def test_e2e_merge_trailing_work_fires(tmp_path):
     _commit(repo, "d.txt", "d\n", "feat: unjournaled work")
     _git_in(repo, "checkout", "-q", "main")
     _git_in(repo, "merge", "--no-ff", "-q", "-m", "merge feat/z", "feat/z")
-    assert json.loads(_run_hook(repo))["decision"] == "block", "merged unjournaled work must block"
+    # ADVISORY since the ADR-85 amendment (§A5/FR5). The `--first-parent` merge-diff guard this
+    # test exists to pin is unchanged; the hard refusal for this shape now lives at pre-push
+    # (tests/test_adr85_integration_enforcement.py::test_t5_...).
+    payload = json.loads(_run_hook(repo, {"stop_hook_active": False}))
+    assert "decision" not in payload, "the Stop hook may no longer block (FR5)"
+    assert "JOURNAL (hard)" in payload["hookSpecificOutput"]["additionalContext"], \
+        "merged unjournaled work must still be SURFACED"
 
 
 # --- lane-owned fleet-audit dailies ([#476]) --------------------------------

@@ -156,10 +156,28 @@ repos:
         name: Block direct-to-main / FF push to main (#153 prevent — core-invariant #5)
         # Pre-push GATE (the PREVENT half of #5; validate_no_ff stays the WARN detector).
         # Refuses a push that would put a non-merge commit on main's first-parent spine
-        # (direct-to-main or true FF merge); a --no-ff merge passes. HUB-ONLY; fail-soft
-        # to exit 0 on any git error. Bypass: `git push --no-verify`.
+        # (direct-to-main or true FF merge); a --no-ff merge passes. HUB-ONLY.
+        # FAILS CLOSED on internal error (exit 2) per the ADR-85 amendment 2026-08-03 §A6 —
+        # it previously printed "degraded — allowing push" and returned 0, silently
+        # auto-allowing the exact push it exists to refuse. Bypass: `git push --no-verify`.
         # Activate locally once: `pre-commit install --hook-type pre-push`.
         entry: uv run --locked python scripts/block_ff_push.py
+        language: system
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+      - id: block-unanchored-push
+        name: Block a push to main carrying an unanchored spine entry (ADR-85 amend. 2026-08-03)
+        # The ADR-85 HARD leg (§A5/FR1-FR2). Refuses a push targeting main whose range
+        # carries first-parent spine entries with NO JOURNAL anchor. Discharge is
+        # range-level: a JOURNAL entry naming >=1 SHA the range INTRODUCED (a merge cannot
+        # name its own hash). Lives here and not at Stop because a Stop hook's unit is a
+        # model-turn boundary and the host force-ends a turn after N blocks — an organ that
+        # can be EXHAUSTED cannot carry teeth. HUB-ONLY; FAILS CLOSED (exit 2) on internal
+        # error. Sole escape: `git push --no-verify`, made non-silent by the audit backstop
+        # audit.py::check_journal_spine_anchor (a gap is a FAIL, not a WARN).
+        # Activate locally once: `pre-commit install --hook-type pre-push`.
+        entry: uv run --locked python scripts/block_unanchored_push.py
         language: system
         stages: [pre-push]
         always_run: true

@@ -3339,6 +3339,54 @@ def check_membership_agreement(repo_path: Path, _surface_paths=None) -> list[Fin
             for status, evidence in classify_membership(ADR104_FLEET_DECLARATION, surfaces)]
 
 
+# rule: seal-journal-spine-anchor
+def check_journal_spine_anchor(repo_path: Path) -> list[Finding]:
+    """ADR-85 amendment 2026-08-03 §A8 / FR4 — the audit BACKSTOP for the pre-push hard leg.
+
+    Walks `git log --first-parent main` and asserts every spine entry AT OR ABOVE the ADR's
+    dated disposition floor is anchored by a JOURNAL entry. **A gap is a FAIL, not a WARN**,
+    and that is load-bearing rather than stylistic: a WARN is dispositionable, and a
+    dispositionable backstop cannot be the thing that makes `git push --no-verify` non-silent.
+    The escape stays legitimate; it just stops being invisible.
+
+    The anchoring predicate is imported from `journal_anchor` -- the SAME module the pre-push
+    organ uses -- so the gate and its backstop cannot drift about what "anchored" means.
+    Predicate (§A7): a spine entry is anchored when JOURNAL names >=1 SHA the entry
+    INTRODUCED, never the entry's own SHA (a merge cannot name its own hash).
+
+    The floor is READ FROM THE RATIFIED ADR, never hardcoded and never re-derived here
+    (FR4). A floor living in a Python literal can be widened in a commit that reads like a
+    refactor; widening it in the ADR is a visible governance act. An unreadable/unparseable
+    floor is a FAIL, not a pass -- an unknown exemption boundary is not a clean one.
+
+    HUB-ONLY by repo identity: ADR-85's floor lives in this repo's ADR and consumers carry
+    neither it nor this JOURNAL shape, so scanning them would manufacture a fleet gap (the
+    enforcement-organs-are-not-homogeneous class). Read-only (Layer-2).
+    """
+    if not _is_hub(repo_path):
+        return [Finding("journal_spine_anchor", "n/a",
+                        "hub-only -- ADR-85's disposition floor and JOURNAL shape are hub-owned")]
+    try:
+        import journal_anchor as _ja
+        floor = _ja.floor_sha(repo_path)
+        journal = _ja.journal_text(repo_path)
+        gaps = _ja.unanchored_on_spine(repo_path, "main", floor, journal)
+    except Exception as exc:  # noqa: BLE001 -- FR6: an error is never a silent pass
+        return [Finding("journal_spine_anchor", "fail",
+                        f"backstop could not complete ({exc!r}) -- an unknown anchoring "
+                        "state is not a clean one (ADR-85 §A6)".replace("|", "/"))]
+    if gaps:
+        named = "; ".join(_ja.describe(repo_path, s) for s in gaps[:5])
+        more = f" (+{len(gaps) - 5} more)" if len(gaps) > 5 else ""
+        return [Finding("journal_spine_anchor", "fail",
+                        f"{len(gaps)} first-parent spine entry(ies) above the disposition "
+                        f"floor {floor[:9]} carry no JOURNAL anchor: {named}{more}"
+                        .replace("|", "/"))]
+    return [Finding("journal_spine_anchor", "pass",
+                    f"every first-parent spine entry above the ADR-85 disposition floor "
+                    f"{floor[:9]} is JOURNAL-anchored")]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -3379,6 +3427,8 @@ ALL_CHECKS = [
     check_boot_byte_budget,   # [#446] A10 item 2 / R4 — the gate half of the split enforcement
     check_fleet_audit_replication,   # [#460] — ADR-80's durable record must exist off this disk
     check_membership_agreement,   # [#462] — ADR-104's declaration vs every repo-keyed surface
+    check_journal_spine_anchor,   # ADR-85 amendment 2026-08-03 §A8/FR4 — backstop for the
+                                  # pre-push hard leg; makes `--no-verify` non-silent
 ]
 
 
