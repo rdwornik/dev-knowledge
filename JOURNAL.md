@@ -19,6 +19,59 @@
 
 ---
 
+### 2026-08-03 (e) — CC (Opus 5, local): W1 lesson promotion + the ADR-85 JOURNAL debt discharged
+
+**Did:** Two things — paid an outstanding record debt, then promoted the W1 lesson set. SHA
+anchor — `19c304da` (lesson promotion), on top of `42ff1323` (the ARC 0 merge).
+
+**THE DEBT — `808ef911` and `42ff1323` shipped unanchored, and this entry is their anchor.**
+Both are the 2026-08-03 afternoon ARC 0 arc ([#383] ratified, the caches wave named, the
+[#424] dep-ref trap cleared). They carry no JOURNAL citation because the ADR-85 Stop gate
+demanded one **nine consecutive times**, was force-ended, and then went quiet — with no
+`/override`, no `logs/OVERRIDES.md` row, and no token. Verified after the fact: `_override_active()`
+is False, the newest OVERRIDES.md entry is 2026-07-25, the stale token's head (`357a15ef`) does
+not match HEAD, and `JOURNAL.md` was byte-identical across `0c64a76a..42ff1323`. The obligation
+was not discharged by compliance — it was discharged by `git push`, which emptied the gate's
+measurement range.
+
+**Root cause, measured not inferred.** `session_end_backpressure._session_shas()` computes
+`git rev-list <base>..HEAD` with `base = @{upstream}`, so the obligation is **triggered by a
+commit but measured against upstream**. Pushing empties the range and the hard leg returns
+None. Demonstrated in an isolated clone across four states: unpushed feature branch → BLOCK;
+**same branch merely pushed → SILENT** (still unmerged, still unjournaled); merged to main but
+unpushed → BLOCK; main pushed → SILENT. The 2026-06-19 amendment is titled "push-boundary →
+session-boundary fix" but narrowed only the *inner* boundary — `base..HEAD` with base=upstream
+survives at `:167-168`, and an empty range short-circuits the session walk at `:300` before it
+runs. ADR-85 also contemplates no "committed, unmerged, awaiting operator authorization"
+terminal state, so the gate had no modelled exit for a repair blocked on another actor. Full
+read-only investigation delivered separately this session; nothing was fixed, per the brief.
+
+**Result:** eight lessons promoted under their verbatim terms — L1–L4 the ratified Q7 four,
+L5–L8 architect-filed this window and marked as such in-file. LESSONS.md is the home for all
+eight; PLAYBOOK received each rule at a **located** true home (Schema Rules for story-level
+retirement, the circular-testing guard for structural-over-enumerated + mechanism-verification,
+Codex-utilization doctrine for read-the-body, architect epistemic discipline for the locator
+rule + prompt-premise pre-flight, doc-rot for the pointer/record split, and a pointer-only on
+the JOURNAL lifecycle bullet for the journaling unit). The architect's earlier candidate
+`PLAYBOOK:1385` was checked and **rejected** — it is about parallel-branch removal contention.
+
+**One contract premise refuted before citing it.** The filing contract attributed the
+frontmatter-regex defect to two files. It is real in `gen_intake_index.py:44` (`_FM_KV_RE =
+r"^([a-z0-9-]+):"` — no underscore, so `last_reviewed:`/`review_date:` match nothing) and
+**false** for `gen_claude_rosters.py:61-73`, which uses `line.startswith(f"{field}:")` and
+resolves `last_reviewed` correctly. Both verified by executing the parsers.
+
+**Changes:** `LESSONS.md` (8 entries prepended + header date), `protocols/PLAYBOOK.md` (6
+located placements), `JOURNAL.md`.
+
+**Abandoned:** nothing. The `silent_rule_ratchet` gate blocked the first commit attempt (+5
+must/shall/never in PLAYBOOK); drained to +0 by rewording rather than by raising the baseline
+or seeking a ruling — so L4's PLAYBOOK bullet reads "not the severity summary" while the
+verbatim term stays greppable in LESSONS.
+
+**Next:** ARC A — the two independent ADR-85 derivations (report-only, zero repo mutation).
+No [#465], no [#472], no ARC 2/3 work; those are gated on operator rulings.
+
 ### 2026-08-03 (d) — CC (Opus 5, local): the night batch's defect rows filed — [#477]–[#480] + the [#457] annotation
 
 **Did:** Filed every night-batch finding that is a REAL defect rather than a container
