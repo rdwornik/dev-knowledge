@@ -19,6 +19,59 @@
 
 ---
 
+### 2026-08-03 (g) — CC (Opus 5, local): ADR-85 built — teeth at pre-push, backstop in ALL_CHECKS
+
+**Did:** Built FR1–FR8 of the ratified ADR-85 implementation contract. SHA anchors —
+`8543841f` (the build) and `e44d9737` (the six terra findings closed), on top of `7cb3d477`
+(the ratified amendment merge). FR6 landed first by instruction: `block_ff_push`'s fail-soft
+was what made §A9's foreclosure conditional, so everything else is built on an armed organ.
+
+**Result — the five discharge paths, each closed by its own mechanism, measured not asserted.**
+Pre-fix figures come from a harness run against the OLD code on isolated clones; post-fix from
+the same five scenarios against the shipped organs.
+
+```
+1 push -u on a feature branch  PRE  base origin/main->origin/feat/x, set ['2f2da63']->[], BLOCK->silent
+                               POST exit 0 before AND after push -u; same work merged to main -> exit 1 REFUSED
+2 dirty tree                   PRE  one uncommitted file flipped BLOCK->silent
+                               POST clean exit 1 / dirty exit 1 — identical
+3 block-cap exhaustion         PRE  9/9 identical blocks, stop_hook_active ignored -> host force-end
+                               POST 9 invocations exits [1], identical stderr; Stop emits no block
+4 internal error               PRE  both organs EXIT 0 (one with empty stderr)
+                               POST both EXIT 2 and name the error
+5 --no-verify (legitimate)     POST transport exit 0 AND the backstop reports the gap -> FAIL
+```
+
+**New organs:** `journal_anchor.py` (the §A7 predicate defined ONCE, imported by both organs so
+gate and backstop cannot drift), `block_unanchored_push.py` (pre-push, scoped to `main`, range =
+the one git hands the hook), `audit.check_journal_spine_anchor` (ALL_CHECKS 38→39; a gap is a
+**FAIL**, not a WARN — a WARN is dispositionable, and a dispositionable backstop cannot be what
+makes `--no-verify` visible). The floor is read **from the ADR**, never hardcoded.
+
+**Terra found six, all reproduced and all fixed — and the run demonstrated its own lesson.**
+The wrapper's heuristic printed `Critical 0 / High 0 / Medium 0 / Low 0` while the body carried
+**2 CRITICAL and 3 HIGH**. Reading the summary alone would have merged every one. Both CRITICALs
+were fail-open paths *below* the `except` that implements FR6: `_read_stdin` degrading an OSError
+to `""` (→ "not a push to main" → 0), and `violations_in_range` inheriting the detector's
+documented `[]`-on-git-error contract (→ failed scan reads as clean → 0). Terra also caught **a
+vacuous test of mine, in the arc about vacuous greens**: T6 ran `git push --no-verify` without
+installing the hook, so it would have passed against an organ that did nothing.
+
+**Two tautologies I wrote and removed before review even saw them** (`assert x in f"...{x}"`,
+`assert ... == [] or True`). Writing them in this arc is the honest thing to record.
+
+**Changes:** `scripts/journal_anchor.py`, `scripts/block_unanchored_push.py` (new);
+`scripts/block_ff_push.py`, `scripts/session_end_backpressure.py`, `scripts/audit.py`;
+`protocols/DEFINITION_OF_DONE.md`, `CLAUDE.md` (v2.51 + genuine re-read), `.pre-commit-config.yaml`,
+`ecosystem/doc-code-edge.yaml`, `ecosystem/doc-counts.md`; 4 test modules + 1 new;
+`docs/audits/2026-08-03-codex-adr85-integration-enforcement.md`.
+
+**Abandoned:** nothing. The silent-rule ratchet fired twice (+5, +4) and was drained by rewording
+both times — baseline stays 441, no ruling sought to raise it.
+
+**Next:** operator GO on the merge. Closure against the ruling's §3 goal function is the
+architect's to declare, not mine.
+
 ### 2026-08-03 (f) — CC (Opus 5, local): the ADR-85 amendment — obligation to integration, teeth to pre-push
 
 **Did:** Wrote the ADR-85 amendment from §1–§2 of the operator's adjudication + implementation
