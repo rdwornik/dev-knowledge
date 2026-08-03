@@ -1,7 +1,7 @@
 ---
 id: "[#472]"
 title: "Census must diff the ADR-104 declaration against machine surfaces — no loadable declaration source exists yet"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E9] Fleet Desired-State System (North Star)"

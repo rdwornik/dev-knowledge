@@ -37,6 +37,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -3197,9 +3198,13 @@ def check_fleet_audit_replication(repo_path: Path) -> list[Finding]:
 # ("No new physical contract file is created in v1.") and §9's named rejection. A constant
 # needs no new file, no `SourceSurface` value and no loader change.
 #
-# Its honest cost, named not claimed away: the constant can drift from ADR-104:15 silently.
-# Closing that IS [#472]'s Done-when ("a ruling records how the ADR-104 declaration becomes
-# loadable"), so it is recorded there rather than half-solved here.
+# Its honest cost, named not claimed away: the constant COULD drift from ADR-104:15 silently.
+# [#472] CLOSED that (ADR-104 amendment 2026-08-03): the ADR now carries the same nine ids inside
+# a machine-locatable `declaration:start/end id=adr104-fleet-members` anchor, and the
+# declaration-agreement leg below reads it and REDs `audit-health` on any disagreement. The
+# amendment is the SOURCE; this constant is the MIRROR the leg checks -- it stays the census
+# input (ADR-109 section 2/9 forbid a new persisted declaration file), so nothing here becomes a
+# loader. Edit one without the other and the gate names which side is stale.
 ADR104_FLEET_DECLARATION = (
     ".dev-knowledge", "ai-council", "corp-monorepo", "corp-ops",
     "corp-sca-time-automation", "demo-prep", "life-architect", "terminal-setup",
@@ -3208,6 +3213,62 @@ ADR104_FLEET_DECLARATION = (
 
 # ADR-109 §2: membership resolves TOWARD deployed-versions.yaml -- the durable record.
 _MEMBERSHIP_ANCHOR = "deployed-versions"
+
+# [#472] -- the ADR-104 declaration anchor. An HTML-comment PAIR, chosen on evidence: this repo's
+# scripts/ parses five HTML-comment grammars for content location and ZERO fence info-strings
+# (every fence handler treats a fence as a region to SKIP). `methodology:*` was rejected as
+# boundary_report's hub/repo-OWNERSHIP axis, and the UPPERCASE `X:START/END` form as the shape
+# three GENERATORS use -- putting that in an immutable ADR would falsely signal a machine may
+# rewrite the block. The fence inside the block is render decoration; the comments are the
+# contract.
+ADR104_PATH = "docs/decisions/ADR-104-fleet-repository-shape.md"
+_DECL_ANCHOR_ID = "adr104-fleet-members"
+_DECL_START_RE = re.compile(rf"<!--\s*declaration:start\s+id={_DECL_ANCHOR_ID}\b[^>]*-->")
+_DECL_END_RE = re.compile(rf"<!--\s*declaration:end\s+id={_DECL_ANCHOR_ID}\s*-->")
+
+
+class DeclarationError(RuntimeError):
+    """The ADR-104 declaration anchor is absent, duplicated, or unterminated."""
+
+
+def read_adr104_declaration(path) -> list[str]:
+    """The repo ids inside ADR-104's `declaration:start/end` anchor, in file order.
+
+    Returns a LIST, not a set: the count is part of the contract, so a duplicated line is a
+    detectable defect rather than one silently collapsed away.
+
+    Raises DeclarationError when the anchor is missing, appears more than once, or has no end
+    marker. Never degrades to an empty result -- the check's standing rule is that a gate which
+    can be satisfied by deleting what it checks is not a gate.
+    """
+    text = Path(path).read_text(encoding="utf-8")
+    starts = list(_DECL_START_RE.finditer(text))
+    ends = list(_DECL_END_RE.finditer(text))
+    if not starts:
+        raise DeclarationError(
+            f"ADR-104 declaration anchor '{_DECL_ANCHOR_ID}' not found in {ADR104_PATH} -- "
+            f"the declaration source cannot be satisfied by deleting what it checks ([#472])")
+    if len(starts) > 1:
+        raise DeclarationError(
+            f"ADR-104 declaration anchor '{_DECL_ANCHOR_ID}' appears {len(starts)} times in "
+            f"{ADR104_PATH}; exactly one is required ([#472])")
+    if not ends:
+        raise DeclarationError(
+            f"ADR-104 declaration anchor '{_DECL_ANCHOR_ID}' has a start marker with no matching "
+            f"end marker ([#472])")
+    if len(ends) > 1:
+        raise DeclarationError(
+            f"ADR-104 declaration anchor '{_DECL_ANCHOR_ID}' has {len(ends)} end markers in "
+            f"{ADR104_PATH}; exactly one is required ([#472])")
+    if ends[0].start() < starts[0].end():
+        raise DeclarationError(
+            f"ADR-104 declaration anchor '{_DECL_ANCHOR_ID}' has its end marker before its start "
+            f"marker in {ADR104_PATH} ([#472])")
+    inner = text[starts[0].end():ends[0].start()]
+    # The fence is decoration (without it markdown joins the ids into one paragraph), so fence
+    # lines are dropped and every other non-blank line is an id.
+    return [ln.strip() for ln in inner.splitlines()
+            if ln.strip() and not ln.strip().startswith("```")]
 
 # Surface id -> repo-relative path. Ids reuse the loader's C1 facts vocabulary
 # (`desired_state_loader.SRC_*`) so the two organs name the same surfaces the same way.
@@ -3283,6 +3344,51 @@ def classify_membership(declaration: tuple[str, ...],
     return findings
 
 
+def _declaration_agreement(repo_path: Path) -> list[Finding]:
+    """[#472] — ADR-104's anchored declaration vs `ADR104_FLEET_DECLARATION`.
+
+    Three assertions and nothing more:
+      1. the anchor pair exists exactly once (absent / duplicated / unterminated -> FAIL);
+      2. the ids agree with the constant as a SET **and** in COUNT, so a duplicated line is
+         caught rather than collapsed away;
+      3. nothing else -- the block is NEVER fed to `classify_membership`. The amendment is the
+         authority the constant is checked against, never the census's membership input, so
+         ADR-109 section 2 (`resolve_fleet_members` not widened) stays intact.
+
+    Drift is reported naming BOTH directions separately, because "which side is stale" is the
+    first question a human asks.
+    """
+    try:
+        declared = read_adr104_declaration(Path(repo_path) / ADR104_PATH)
+    except DeclarationError as exc:
+        return [Finding("membership_agreement", "fail", str(exc).replace("|", "/"))]
+    except OSError as exc:
+        return [Finding("membership_agreement", "fail",
+                        f"ADR-104 could not be read at {ADR104_PATH}: {exc!r}".replace("|", "/"))]
+
+    constant = list(ADR104_FLEET_DECLARATION)
+    if sorted(declared) == sorted(constant):
+        return [Finding("membership_agreement", "pass",
+                        f"declaration source: ADR-104 anchor '{_DECL_ANCHOR_ID}', "
+                        f"{len(declared)} ids, agrees with audit.ADR104_FLEET_DECLARATION")]
+
+    only_adr = sorted(Counter(declared) - Counter(constant))
+    only_const = sorted(Counter(constant) - Counter(declared))
+    parts = []
+    if only_adr:
+        parts.append(f"in the ADR amendment only: {', '.join(only_adr)}")
+    if only_const:
+        parts.append(f"in the constant only: {', '.join(only_const)}")
+    if not parts:  # same members, different counts -- a duplicated line
+        parts.append(f"same ids but different counts (ADR {len(declared)} vs constant "
+                     f"{len(constant)}); a duplicated line in the ADR amendment only")
+    return [Finding("membership_agreement", "fail",
+                    "ADR-104 declaration and audit.ADR104_FLEET_DECLARATION disagree: "
+                    + "; ".join(parts)
+                    + "; the constant and its declaring ADR have drifted -- fix whichever is "
+                      "stale, in one commit with the other ([#472])")]
+
+
 def check_membership_agreement(repo_path: Path, _surface_paths=None) -> list[Finding]:
     """[#462] — the ADR-104 fleet declaration diffed against every repo-keyed machine surface.
 
@@ -3303,6 +3409,15 @@ def check_membership_agreement(repo_path: Path, _surface_paths=None) -> list[Fin
         return [Finding("membership_agreement", "n/a",
                         "hub-only -- the ecosystem/ membership surfaces are hub-owned")]
 
+    # [#472] declaration-agreement leg. Attached HERE -- after the hub guard, before the surfaces
+    # loop -- on purpose: the constant is verified before it is handed to classify_membership, and
+    # a declaration/constant disagreement is still reported when a later surface read fails.
+    # Evaluated HERE (before the surfaces loop) per the ruled attach point, so the constant is
+    # verified before classify_membership receives it and the verdict survives an early return.
+    # Emitted LAST: output position is cosmetic, and prepending would silently re-index every
+    # caller that reads findings[0] as the census verdict.
+    decl: list[Finding] = list(_declaration_agreement(Path(repo_path)))
+
     surfaces: dict[str, set[str]] = {}
     for surface_id, rel in (_surface_paths or _MEMBERSHIP_SURFACES):
         path = Path(repo_path) / rel
@@ -3311,11 +3426,11 @@ def check_membership_agreement(repo_path: Path, _surface_paths=None) -> list[Fin
         except FileNotFoundError:
             return [Finding("membership_agreement", "fail",
                             f"membership surface {rel} is absent -- the census cannot be "
-                            f"satisfied by deleting what it checks ([#462])")]
+                            f"satisfied by deleting what it checks ([#462])")] + decl
         except Exception as exc:  # noqa: BLE001 -- a gate that cannot complete must not pass
             return [Finding("membership_agreement", "fail",
                             f"membership surface {rel} could not be read: {exc!r}"
-                            .replace("|", "/"))]
+                            .replace("|", "/"))] + decl
     # Same rule as `discover_repos()` (a dir carrying state.yaml) but keyed on repo_path.
     # NOT `discover_repos()` itself: it reads the module-global ECOSYSTEM_DIR, so reusing it
     # would make this one surface read a DIFFERENT repo than the other five whenever the two
@@ -3333,10 +3448,10 @@ def check_membership_agreement(repo_path: Path, _surface_paths=None) -> list[Fin
     except OSError as exc:
         return [Finding("membership_agreement", "fail",
                         f"membership surface ecosystem/<repo>/ could not be read: {exc!r}"
-                        .replace("|", "/"))]
+                        .replace("|", "/"))] + decl
 
     return [Finding("membership_agreement", status, evidence.replace("|", "/"))
-            for status, evidence in classify_membership(ADR104_FLEET_DECLARATION, surfaces)]
+            for status, evidence in classify_membership(ADR104_FLEET_DECLARATION, surfaces)] + decl
 
 
 # rule: seal-journal-spine-anchor

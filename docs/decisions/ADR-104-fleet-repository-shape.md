@@ -111,3 +111,75 @@ Two specifics fall out: (i) corp-monorepo — which sol placed *inside* its corp
 - **PARTIAL along the compliance boundary (the prior recommendation) — superseded by the ruling.** It drew a work tree vs a personal tree along the employer-data line; the operator's ruling removes that line, so the boundary is re-drawn on domain/blast-radius grounds instead.
 
 *Scale note: priced at the real 5–8+ repos (live fleet = 9 git repos). The "10–20 repo" figure that appeared in the 2026-07-21 audit and three handoff files is fabricated and is not used here (intake #16 §4 item 2).*
+
+## Amendment — 2026-08-03 (the fleet declaration gains a machine-locatable anchor; [#472] / ADR-94)
+
+> **In-file amendment marker (CLAUDE.md §5 item 3 / ADR-94).** The decision body above is
+> preserved **verbatim** — nothing in it is edited, including the line-15 fleet enumeration this
+> section makes machine-readable. It adds **no member, removes none, and changes no ruling**: it
+> re-states the SAME nine repos inside a delimited block a checker can locate, so the
+> enumeration stops being reachable only by prose. Landed under **[#472]**, whose Done-when is
+> *"a ruling records how the ADR-104 declaration becomes loadable without violating ADR-109 §9"*.
+
+- **Source:** [#472] (clause 2 split out of [#462], architect ruling 2026-08-01). In-file
+  amendment per **ADR-94** — an own-invariant refinement of THIS ADR's own enumeration, not a
+  new domain; the same channel ADR-101 uses to grow a closed set (`ADR-101` amendments
+  2026-07-13 / 2026-07-27 ×2).
+- **Correction of a recurring mis-citation:** the enumeration is at **line 15 of this file**, in
+  the Context section. This ADR has **no §15** — its sections are §1–§5. Cite `ADR-104:15` or
+  "the Context enumeration", never "§15".
+
+### Why an anchor, and deliberately not a new file
+
+The declaration has been machine-consumed since [#462] — as the hardcoded constant
+`ADR104_FLEET_DECLARATION` in `scripts/audit.py`, whose own comment names the gap: *"the
+constant can drift from ADR-104:15 silently."* That constant was the right call and stays: a new
+persisted declaration file is **rejected by ADR-109 §2** (*"No new physical contract file is
+created in v1"*) and again by **ADR-109 §9** (*"A new persisted desired-state file in v1 —
+rejected"*). This amendment closes the drift without crossing that bar: the ADR — already the
+authority — is made *locatable*, and the constant is checked against it.
+
+### The declaration block
+
+The block below is the ADR-104 fleet declaration in machine-locatable form. Its content is
+byte-identical to the line-15 enumeration and to `scripts/audit.py::ADR104_FLEET_DECLARATION`.
+One repo id per line; ordering is not significant; the delimiters, not the fence, are the
+contract.
+
+<!-- declaration:start id=adr104-fleet-members v=1 -->
+```
+.dev-knowledge
+ai-council
+corp-monorepo
+corp-ops
+corp-sca-time-automation
+demo-prep
+life-architect
+terminal-setup
+win-tooling
+```
+<!-- declaration:end id=adr104-fleet-members -->
+
+**Lockstep in the SAME commit** (the `ADR-101` 2026-07-13 / 2026-07-27 precedent):
+`scripts/audit.py::check_membership_agreement` gains the declaration-agreement leg that reads
+this anchor, and `tests/test_membership_agreement.py` pins both directions of the diff. Unlike
+that precedent, the lockstep here is **machine-checked, not conventional** — an edit to either
+side without the other REDs the `audit-health` gate.
+
+### What this changes — and, deliberately, what it does not
+
+- **Changed:** the fleet declaration is now locatable by a checker. A constant that drifts from
+  this ADR fails a gate instead of ageing silently.
+- **NOT changed — membership resolution.** `resolve_fleet_members` is **not** widened and this
+  block is **not** consulted for it. Resolving membership toward `deployed-versions.yaml` is a
+  named **ADR-109 §2** ruling (restated in the ADR-109 2026-08-01 amendment); this anchor is an
+  authority to *agree with*, never the census's membership input.
+- **NOT changed — no registry is created.** The block confers no authority this ADR did not
+  already hold. It is not a second source of truth: `ecosystem/`'s surfaces remain the machine
+  surfaces, and the census still diffs THEM against the declaration, not against each other.
+- **NOT changed — no new file, no new directory.** ADR-109 §2/§9 hold intact.
+- **NOT changed — `VISION.md`.** VISION states the same nine (`VISION.md:107-112`) and remains a
+  prose restatement. Binding it as a second machine surface would create exactly the second
+  source of truth this amendment refuses; if that is later wanted, it is its own ruling.
+- **NOT changed — the fold verdict, the tree count, or any §1–§5 ruling.** Nine were declared
+  before this amendment and nine after.

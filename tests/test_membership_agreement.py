@@ -128,8 +128,15 @@ def test_leg_is_hub_only_and_na_off_hub(tmp_path):
 
 @pytest.mark.live_repo
 def test_leg_passes_on_the_live_hub():
+    """Every finding is a pass on the live hub — the census verdict AND, since [#472], the
+    declaration-agreement leg. Asserted as "all pass" rather than "exactly one finding": the
+    old form pinned the check's finding COUNT, which is incidental structure, so adding a
+    legitimate second verdict read as a regression."""
     findings = aud.check_membership_agreement(Path(aud._REPO_ROOT))
-    assert [f.status for f in findings] == ["pass"], [f.evidence for f in findings]
+    assert findings, "no findings at all"
+    assert all(f.status == "pass" for f in findings), [f.evidence for f in findings]
+    assert any("declaration source" in f.evidence for f in findings), \
+        "the [#472] declaration-agreement leg did not run on the live hub"
 
 
 @pytest.mark.live_repo
@@ -166,8 +173,10 @@ def test_state_dirs_are_read_from_repo_path_not_the_module_global(monkeypatch, t
     monkeypatch.setattr(aud, "ECOSYSTEM_DIR", tmp_path / "ecosystem")
 
     findings = aud.check_membership_agreement(Path(aud._REPO_ROOT))
-    assert [f.status for f in findings] == ["pass"], [f.evidence for f in findings]
-    assert "not-a-fleet-repo" not in findings[0].evidence
+    # "all pass", not "exactly one finding" — the count is incidental structure, and since
+    # [#472] a second (declaration-agreement) verdict is legitimately present.
+    assert all(f.status == "pass" for f in findings), [f.evidence for f in findings]
+    assert not any("not-a-fleet-repo" in f.evidence for f in findings)
 
 
 @pytest.mark.live_repo
@@ -203,3 +212,134 @@ def test_inline_registry_reader_agrees_with_the_loader_parser():
     registry = Path(aud._REPO_ROOT) / "ecosystem" / "registry.md"
     loader_ids = set(dsl.parse_registry_md(registry.read_text(encoding="utf-8")))
     assert aud._read_registry_members(registry) == loader_ids
+
+
+# ---------------------------------------------------------------------------
+# [#472] — the declaration-agreement leg. ADR-104's anchored block is the SOURCE;
+# ADR104_FLEET_DECLARATION is the mirror the leg checks. Both directions pinned.
+# ---------------------------------------------------------------------------
+
+_ADR_REL = "docs/decisions/ADR-104-fleet-repository-shape.md"
+_ANCHOR_ID = "adr104-fleet-members"
+
+
+def _adr_with(ids, *, start=True, end=True, duplicate=False) -> str:
+    """A minimal ADR-104 stand-in carrying the anchored declaration block."""
+    block = "\n".join(ids)
+    s = f"<!-- declaration:start id={_ANCHOR_ID} v=1 -->"
+    e = f"<!-- declaration:end id={_ANCHOR_ID} -->"
+    body = "# ADR-104 (fixture)\n\nprose above\n\n"
+    if start:
+        body += f"{s}\n"
+    body += f"```\n{block}\n```\n"
+    if end:
+        body += f"{e}\n"
+    if duplicate:
+        body += f"\n{s}\n```\n{block}\n```\n{e}\n"
+    return body + "\nprose below\n"
+
+
+def _hub_tree(tmp_path: Path, adr_text: str) -> Path:
+    """A tmp tree `_is_hub` accepts, carrying only what the declaration leg reads.
+
+    The surfaces are deliberately absent: the leg is attached BEFORE the surfaces loop, so a
+    declaration/constant disagreement must still be reported when a later surface read fails.
+    That ordering is part of the contract, not an accident of the fixture.
+    """
+    (tmp_path / "docs" / "decisions").mkdir(parents=True)
+    (tmp_path / _ADR_REL).write_text(adr_text, encoding="utf-8", newline="\n")
+    # `_is_hub` keys on repo identity; give the tree the hub's marker files.
+    (tmp_path / "CLAUDE.md").write_text("# CLAUDE.md\n", encoding="utf-8")
+    (tmp_path / "protocols").mkdir(exist_ok=True)
+    return tmp_path
+
+
+def _decl_findings(repo: Path) -> list:
+    return [f for f in aud.check_membership_agreement(repo)
+            if "declaration" in f.evidence.lower()]
+
+
+def test_declaration_leg_passes_when_the_adr_matches_the_constant(tmp_path, monkeypatch):
+    """Baseline: the anchored block and the module constant agree -> a pass leg is emitted."""
+    monkeypatch.setattr(aud, "_is_hub", lambda _p: True)
+    repo = _hub_tree(tmp_path, _adr_with(aud.ADR104_FLEET_DECLARATION))
+    out = _decl_findings(repo)
+    assert out, "no declaration leg was emitted at all"
+    assert all(f.status != "fail" for f in out), [f.evidence for f in out]
+
+
+def test_declaration_leg_catches_an_id_MISSING_from_the_adr(tmp_path, monkeypatch):
+    """Direction 1 — the ADR is stale. Someone edits the constant and not the amendment."""
+    monkeypatch.setattr(aud, "_is_hub", lambda _p: True)
+    short = tuple(r for r in aud.ADR104_FLEET_DECLARATION if r != "win-tooling")
+    repo = _hub_tree(tmp_path, _adr_with(short))
+    fails = [f for f in _decl_findings(repo) if f.status == "fail"]
+    assert fails, "a constant carrying an id the ADR lacks did not FAIL"
+    assert "win-tooling" in fails[0].evidence
+    assert "constant only" in fails[0].evidence.lower()
+
+
+def test_declaration_leg_catches_an_id_ADDED_to_the_adr(tmp_path, monkeypatch):
+    """Direction 2 — the constant is stale. Someone amends the ADR and not the code.
+
+    Both directions are asserted separately and BY NAME: a leg that only caught one would be
+    green for exactly the half of the drift nobody happened to test.
+    """
+    monkeypatch.setattr(aud, "_is_hub", lambda _p: True)
+    longer = (*aud.ADR104_FLEET_DECLARATION, "new-repo")
+    repo = _hub_tree(tmp_path, _adr_with(longer))
+    fails = [f for f in _decl_findings(repo) if f.status == "fail"]
+    assert fails, "an ADR carrying an id the constant lacks did not FAIL"
+    assert "new-repo" in fails[0].evidence
+    assert "amendment only" in fails[0].evidence.lower()
+
+
+def test_declaration_leg_catches_a_duplicated_id(tmp_path, monkeypatch):
+    """Set equality alone would miss this: the ids must agree in COUNT as well as membership."""
+    monkeypatch.setattr(aud, "_is_hub", lambda _p: True)
+    dupe = (*aud.ADR104_FLEET_DECLARATION, "win-tooling")
+    repo = _hub_tree(tmp_path, _adr_with(dupe))
+    fails = [f for f in _decl_findings(repo) if f.status == "fail"]
+    assert fails, "a duplicated id inside the anchor did not FAIL"
+
+
+def test_declaration_leg_fails_when_the_anchor_is_deleted(tmp_path, monkeypatch):
+    """A gate satisfiable by deleting what it checks is not a gate -- the check's own rule."""
+    monkeypatch.setattr(aud, "_is_hub", lambda _p: True)
+    repo = _hub_tree(tmp_path, "# ADR-104 (fixture)\n\nno anchor here\n")
+    fails = [f for f in _decl_findings(repo) if f.status == "fail"]
+    assert fails, "a missing anchor did not FAIL"
+    assert "not found" in fails[0].evidence.lower()
+
+
+def test_declaration_leg_fails_on_a_duplicated_anchor(tmp_path, monkeypatch):
+    """Two blocks means two answers; exactly one is required."""
+    monkeypatch.setattr(aud, "_is_hub", lambda _p: True)
+    repo = _hub_tree(tmp_path, _adr_with(aud.ADR104_FLEET_DECLARATION, duplicate=True))
+    fails = [f for f in _decl_findings(repo) if f.status == "fail"]
+    assert fails, "a duplicated anchor did not FAIL"
+    assert "2 times" in fails[0].evidence or "appears" in fails[0].evidence
+
+
+def test_declaration_leg_fails_on_an_unterminated_pair(tmp_path, monkeypatch):
+    """A start with no end: the block has no boundary, so its content is undefined."""
+    monkeypatch.setattr(aud, "_is_hub", lambda _p: True)
+    repo = _hub_tree(tmp_path, _adr_with(aud.ADR104_FLEET_DECLARATION, end=False))
+    fails = [f for f in _decl_findings(repo) if f.status == "fail"]
+    assert fails, "an unterminated anchor pair did not FAIL"
+    assert "end marker" in fails[0].evidence.lower()
+
+
+def test_declaration_leg_is_hub_only(tmp_path):
+    """A consumer has no ADR-104; it must report n/a, never FAIL (the not-homogeneous rule)."""
+    out = aud.check_membership_agreement(tmp_path)
+    assert [f.status for f in out] == ["n/a"], [f.evidence for f in out]
+
+
+@pytest.mark.live_repo
+def test_live_hub_adr_anchor_agrees_with_the_constant():
+    """The lockstep, on the real files: ADR-104's anchored block == ADR104_FLEET_DECLARATION."""
+    root = Path(__file__).resolve().parent.parent
+    ids = aud.read_adr104_declaration(root / _ADR_REL)
+    assert tuple(ids) == tuple(aud.ADR104_FLEET_DECLARATION), (ids, aud.ADR104_FLEET_DECLARATION)
+    assert len(ids) == 9
