@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import pytest
 import subprocess
 import sys
 from pathlib import Path
@@ -9,7 +10,7 @@ from pathlib import Path
 SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-from toc.generator import _slugify, _display, parse_headers, generate_toc  # noqa: E402
+from toc.generator import _slugify, _display, _HEADER_RE, parse_headers, generate_toc  # noqa: E402
 from toc.check import check_toc  # noqa: E402
 
 
@@ -206,3 +207,98 @@ def test_cli_help():
     assert r.returncode == 0
     assert "generate" in r.stdout
     assert "check" in r.stdout
+
+
+# ---------------------------------------------------------------------------
+# Fence handling — the `startswith("```")` toggle diverges from CommonMark BOTH ways.
+# This generator feeds a DEPLOYED freshness hook, so a wrong header set means a wrong
+# TOC that then fails the gate (or passes with content silently missing).
+# ---------------------------------------------------------------------------
+
+def test_parse_headers_does_not_swallow_the_document_after_an_odd_fence_count():
+    """FALSE NEGATIVE — the defect that actually bites the corpus.
+
+    A closing fence may not carry an info string, so ```` ```markdown ```` after an open
+    fence is CONTENT, not a close. The naive toggle counts it anyway, ends up stuck
+    "inside a fence", and silently drops every heading in the rest of the document.
+    Measured on the live corpus this is the dominant cause: 9 of 1577 files diverge, e.g.
+    docs/handoffs/archive/2026-05-09-ai-council-audit-sync/stage1-question.md, where the
+    toggle finds 5 headings against CommonMark's 13.
+    """
+    md = (
+        "## Before\n\n"
+        "```\n"
+        "code\n"
+        "```markdown\n"      # NOT a close (info string) -> still inside the fence
+        "still code\n"
+        "```\n"              # the real close
+        "\n## After\n"
+    )
+    assert parse_headers(md) == [(2, "Before"), (2, "After")]
+
+
+def test_parse_headers_skips_tilde_fenced_content():
+    """FALSE POSITIVE — the mirror image. `~~~` is a legal CommonMark fence and the
+    toggle only knows backticks, so sample markdown inside a tilde fence is harvested as
+    real headings and lands in the generated TOC."""
+    md = "## Real\n\n~~~\n## NotAHeader\n~~~\n\n## Also Real\n"
+    assert parse_headers(md) == [(2, "Real"), (2, "Also Real")]
+
+
+def test_parse_headers_respects_a_longer_fence_wrapping_a_shorter_one():
+    """A 4-backtick fence legally contains 3-backtick lines; the toggle closes early."""
+    md = "## Real\n\n````\n```\n## NotAHeader\n```\n````\n\n## Also Real\n"
+    assert parse_headers(md) == [(2, "Real"), (2, "Also Real")]
+
+
+# ---------------------------------------------------------------------------
+# Corpus safety property: the fence fix RECOVERS headers, it never drops them.
+# ---------------------------------------------------------------------------
+
+_SKIP_PARTS = {".venv", ".git", "node_modules", "__pycache__", ".pytest_cache"}
+
+
+def _legacy_parse_headers(content: str) -> list[tuple[int, str]]:
+    """The pre-fix `startswith("```")` toggle, kept ONLY as a reference implementation for
+    the corpus comparison below. It is the thing being replaced, not a second copy in use."""
+    headers: list[tuple[int, str]] = []
+    in_fence = False
+    for line in content.splitlines():
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = _HEADER_RE.match(line)
+        if m:
+            headers.append((len(m.group(1)), m.group(2)))
+    return headers
+
+
+@pytest.mark.live_repo
+def test_corpus_fence_fix_only_recovers_headers_and_never_drops_one() -> None:
+    """The safety property, over every markdown file in the repo: switching the fence
+    decision to CommonMark may only ADD headers the toggle wrongly swallowed — it must never
+    REMOVE one the toggle correctly found.
+
+    That direction is what matters for a DEPLOYED freshness hook: a recovered header makes a
+    TOC more complete, while a lost header would silently shrink a generated TOC and the gate
+    would happily accept the smaller one as fresh.
+
+    Measured when written: 3 of 1577 files changed, all strictly gaining (+6, +8, +8), with
+    ZERO headers lost anywhere. Recovery itself is pinned deterministically by the three
+    fence-shape unit tests above rather than by a live-corpus count, so ordinary edits to
+    those documents cannot turn this into a spurious RED.
+    """
+    root = Path(__file__).resolve().parent.parent
+    files = [p for p in sorted(root.rglob("*.md")) if not _SKIP_PARTS.intersection(p.parts)]
+    assert len(files) > 100, f"corpus implausibly small ({len(files)}) — glob is wrong"
+
+    compared = 0
+    for p in files:
+        content = p.read_text(encoding="utf-8", errors="replace")
+        legacy, fixed = _legacy_parse_headers(content), parse_headers(content)
+        compared += len(legacy)
+        lost = [h for h in legacy if h not in fixed]
+        assert not lost, f"{p}: the fence fix DROPPED header(s) {lost[:3]}"
+    assert compared > 1000, f"only {compared} headers compared — proof too thin"
