@@ -1,7 +1,7 @@
 ---
 id: "[#433]"
 title: "BACKLOG restructure — build-thin ENGINE + Backlog.md VIEWER"
-status: open
+status: closed
 priority: P1
 size: M
 theme: "[E7] Tooling & evaluation"

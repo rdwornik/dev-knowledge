@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e0d677912f0f95f2984338406dd287329ff65a1eb30ede8e6feb2f2b440111b0",
+  "generated_sha256": "7cf62bfd4fb1688832625efc953f74b6f2b4d8b568d43a7b5f083e0fe9239383",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -282,10 +282,6 @@
     {
       "task": 408,
       "file": "408-auto-coupled-doc-updates-closing-a-backlog-item.md"
-    },
-    {
-      "task": 455,
-      "file": "455-registry-md-derived-field-drift-checker.md"
     },
     {
       "task": 457,
@@ -907,10 +903,6 @@
     {
       "task": 387,
       "file": "387-rewrite-the-buy-vs-build-intake-before-anything.md"
-    },
-    {
-      "task": 433,
-      "file": "433-backlog-restructure-build-thin-engine-backlog-md.md"
     },
     {
       "task": 440,

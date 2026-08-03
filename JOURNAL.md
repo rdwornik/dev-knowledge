@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-08-03 (c) — CC (Opus 5, local): two dead rows closed — [#455] + [#433], the ADR-disposal blind spot
+
+**Did:** Closed the two rows the night batch (L-B §1.3) found DEAD — work discharged by
+ratified ADRs rather than by a commit subject. SHA anchor — `aad8548e`, on top of `7c084694`
+(the 2026-08-03 (b) ARC 1 merge). **Mechanical closes only:** every judgment item in the
+grooming lane was routed back to the architect unmodified, not acted on.
+
+**Why no gate caught these.** Both disposals live in ADR prose, so **no `closes [#N]` token
+exists anywhere on the spine** and `validate_git_backlog` is silent about them **by
+construction**. That is a coverage boundary of the mechanical checker, not a validator bug —
+finding them required reading the ADRs in full, which is the read no gate performs. Both passes
+of the night's independent closure-drift scan (1286 commits, wider regex, no quote-stripping,
+113 distinct `closes [#N]` ids) agreed with the validator and were blind in the same way.
+
+**[#455] — DEAD by ratified ADR.** ADR-109 (Accepted 2026-07-31, landed `7ef40567`) states
+*"[#455] becomes moot when §2 lands"*, and §2 item 1 retires `ecosystem/registry.md` as
+authoritative outright — *"never again hand-authoritative. [#455] dissolves."* §2 has landed.
+The row's own kill-candidates reasoning was independently stale: it argued the drift stays
+unguarded because `[#382]` *"is gated behind the pilot"*, but `[#382]` closed at `f7abe228`.
+
+**[#433] — Done-when fully satisfied, leg by leg.** Spike recorded
+(`docs/audits/2026-07-27-verification-433-schema-spike.md`); ADR-107 §2/§3/§4 record engine,
+viewer and swap-out contract; obligation 1 DISCHARGED at ADR-107 §6.1; obligation 2 (§6.2
+generality) at the ADR-109 2026-07-31 amendment, landed by `[#383]` wave 1 at merge `1afd9579`
+(proof commit `9a75777e` — on that arc's branch, **not** the first-parent spine, cited as
+branch evidence); obligation 3 at ADR-109 §5. The only text still asserting otherwise is
+ADR-107's own 07-28 amendment, which **predates** the discharge and is immutable — superseded,
+not contradictory.
+
+**Recorded rather than silently carried:** `[#433]`'s row text still read *"VIEWER = Backlog.md,
+piloted as a replaceable part … swap-out contract required"*, which ADR-107 §3 **REJECTS**,
+declaring the slot EMPTY. `ARCHITECTURE.md` carried the ADR's version correctly; the BACKLOG row
+was the stale surface. The retained task file preserves that stale text as its allocation
+record — closing the row takes it out of the queue and is **not** a claim the text was ever right.
+
+**Result:** BACKLOG **186 -> 184** (−2, zero opens). Mechanics per ADR-107 §6.3 — manifest nodes
+out, both task files RETAINED with terminal `status: closed`, `--emit-source` regen,
+`generated_sha256` re-pinned by the generator. Neither id carries a disposition-register entry,
+so no orphaned `[stale]` disposition follows. Gates: **ship-gate GREEN** (15 WARN dispositioned,
+`[stale]` = 0) — it first hard-failed `task_tree_coherence` with *"index and working tree
+disagree"*, the **by-design mid-arc guard**, and went GREEN once the four files were staged
+consistently; `validate_backlog` OK (184 tasks); `validate_git_backlog` OK; `gen_task_tree
+--check` ok; `pytest -m live_repo` 62 passed.
+
+**Changes:** `BACKLOG.md` (regenerated), `tasks/manifest.json`,
+`tasks/455-registry-md-derived-field-drift-checker.md`,
+`tasks/433-backlog-restructure-build-thin-engine-backlog-md.md`, `JOURNAL.md`.
+
+**Abandoned:** nothing. **Not done, deliberately:** every architect-judgment item from the
+grooming lane — `[#383]` wave-3 scope + rewritten Done-when, the `[#472]` dossier, L-F's B-2/B-3/
+B-4 and §F candidates, L-E's library-first table, and the `[#424]` sequencing note — is pasted
+back for ruling and **not** committed.
+
+**Next:** ARC 3, filing the night batch's four defect rows plus the `[#457]` annotation.
+
 ### 2026-08-03 (b) — CC (Opus 5, local): the W2 terra claim, cured retroactively — two real reviews, two artifacts
 
 **Did:** Cured the unfalsifiable claim the night batch surfaced as HEADLINE 1. SHA anchors —
