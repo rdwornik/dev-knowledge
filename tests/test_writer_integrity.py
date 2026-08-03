@@ -193,8 +193,12 @@ def test_live_registry_has_no_unconditionally_inert_check_left(tmp_path):
     consumer.mkdir()
     out = aud.detect_unconditionally_inert_checks(
         {"hub": Path(aud._REPO_ROOT), "consumer": consumer})
-    inert = [f.evidence for f in out if "INERT" in f.evidence]
-    assert inert == [], inert
+    # EMPTY, not merely "no INERT line" (terra HIGH, 2026-08-04). Filtering for "INERT" would
+    # pass while the live registry emitted writer_integrity WARNs for an unclassified n/a, a
+    # check that raised, or a check that returned nothing — and this is the ONLY test that runs
+    # the real ALL_CHECKS through the detector, so it is where the 32 mechanically converted
+    # call sites are proven classifiable and evaluable in production shape.
+    assert [f.evidence for f in out] == [], [f.evidence for f in out]
 
 
 # ---------------------------------------------------------------------------
@@ -252,3 +256,117 @@ def test_history_first_ever_run_reports_no_retirement(tmp_path, monkeypatch):
     aud.append_history(state, date(2026, 8, 4))
     assert "retired since" not in (tmp_path / "fresh" / "history" / "2026-08-04.md").read_text(
         encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# The detector must actually RUN in production — terra HIGH, 2026-08-04.
+# A detector nothing calls is a mechanism that reports nothing, which is the
+# exact class this leg exists to remove.
+# ---------------------------------------------------------------------------
+
+def test_the_rule_is_defined_once_and_shared_by_both_callers():
+    """`detect_unconditionally_inert_checks` (test seam, runs the checks) and `cmd_run`
+    (production, reuses findings already computed) must not carry two copies of the rule."""
+    import inspect
+
+    src = inspect.getsource(aud.detect_unconditionally_inert_checks)
+    assert "classify_inert_checks(" in src, "the detector re-implements the rule"
+    # `cmd_run` is a click Command; the function body hangs off `.callback`.
+    run_src = inspect.getsource(getattr(aud.cmd_run, "callback", aud.cmd_run))
+    assert "classify_inert_checks(" in run_src, \
+        "cmd_run does not use the shared rule — the detector is not wired into production"
+
+
+def test_classify_inert_checks_matches_the_running_detector(tmp_path):
+    """Equivalence of the two paths, on the same input."""
+    def check_dead(_repo):
+        return [aud._na("dead", "SUBJECT-ABSENT", "gone")]
+
+    via_running = aud.detect_unconditionally_inert_checks({"hub": tmp_path}, [check_dead])
+    via_findings = aud.classify_inert_checks({"dead": check_dead(tmp_path)}, ["hub"])
+    assert [f.evidence for f in via_running] == [f.evidence for f in via_findings]
+
+
+def test_same_day_rerun_does_not_repeat_a_retirement_notice(tmp_path, monkeypatch):
+    """terra HIGH 2026-08-04: comparing strictly against an EARLIER DATE meant a second run on
+    the same day compared against yesterday and re-emitted a notice the first run had already
+    written — a false "retired since the previous reading" in the durable history, every rerun."""
+    from datetime import date
+
+    monkeypatch.setattr(aud, "ECOSYSTEM_DIR", tmp_path)
+    hist = tmp_path / "demo" / "history"
+    hist.mkdir(parents=True)
+    (hist / "2026-08-03.md").write_text(
+        "## 2026-08-03\n\n| Check | Status | Evidence |\n|---|---|---|\n"
+        "| kept | pass | fine |\n| doomed | n/a | nothing |\n\n", encoding="utf-8", newline="\n")
+
+    state = aud.RepoState(name="demo", path=str(tmp_path / "demo"), last_audit="2026-08-04",
+                          findings=[aud.Finding("kept", "pass", "fine")])
+    aud.append_history(state, date(2026, 8, 4))
+    aud.append_history(state, date(2026, 8, 4))          # the rerun
+    written = (hist / "2026-08-04.md").read_text(encoding="utf-8")
+    assert written.count("retired since the previous reading") == 1, written
+
+
+def test_only_the_last_reading_in_a_file_is_compared(tmp_path, monkeypatch):
+    """Unioning every appended table would resurrect names retired several readings ago and
+    suppress the notice for a check that vanished today."""
+    from datetime import date
+
+    monkeypatch.setattr(aud, "ECOSYSTEM_DIR", tmp_path)
+    hist = tmp_path / "demo" / "history"
+    hist.mkdir(parents=True)
+    (hist / "2026-08-03.md").write_text(
+        "## 2026-08-03 — a\n\n| Check | Status | Evidence |\n|---|---|---|\n"
+        "| long_gone | n/a | x |\n\n"
+        "## 2026-08-03 — b\n\n| Check | Status | Evidence |\n|---|---|---|\n"
+        "| kept | pass | fine |\n| doomed | n/a | x |\n\n", encoding="utf-8", newline="\n")
+
+    state = aud.RepoState(name="demo", path=str(tmp_path / "demo"), last_audit="2026-08-04",
+                          findings=[aud.Finding("kept", "pass", "fine")])
+    aud.append_history(state, date(2026, 8, 4))
+    written = (hist / "2026-08-04.md").read_text(encoding="utf-8")
+    assert "doomed" in written and "long_gone" not in written, written
+
+
+def test_cmd_run_actually_attaches_the_warn_to_the_hub_state(monkeypatch, tmp_path):
+    """BEHAVIOURAL proof that the detector runs in production, not a source-string match.
+
+    The sibling test greps `cmd_run` for the call; a grep passes against a call that is dead,
+    guarded off, or in an unreachable branch. This one drives `cmd_run` end to end with the
+    persistence seams captured and asserts the writer_integrity WARN actually lands on the HUB's
+    state — and, per FR-7, on no consumer's.
+    """
+    from datetime import date
+
+    saved: dict[str, aud.RepoState] = {}
+    hub, consumer = aud.HUB_REPO_NAME, "some-consumer"
+
+    def fake_audit_repo(name, _path, _run_date):
+        # Both repos see the same inert check: n/a everywhere, SUBJECT-ABSENT on the hub.
+        reason = "SUBJECT-ABSENT" if name == hub else "NOT-APPLICABLE"
+        return aud.RepoState(name=name, path=str(tmp_path / name), last_audit="2026-08-04",
+                             findings=[aud._na("zombie_check", reason, "subject is gone")])
+
+    monkeypatch.setattr(aud, "discover_repos", lambda: [hub, consumer])
+    monkeypatch.setattr(aud, "load_state", lambda _n: None)
+    monkeypatch.setattr(aud, "resolve_repo_path", lambda n, _p: tmp_path / n)
+    monkeypatch.setattr(aud, "audit_repo", fake_audit_repo)
+    monkeypatch.setattr(aud, "save_state", lambda s: saved.__setitem__(s.name, s))
+    monkeypatch.setattr(aud, "append_history", lambda *_a, **_k: None)
+    monkeypatch.setattr(aud, "generate_report", lambda *_a, **_k: "report")
+    monkeypatch.setattr(aud, "write_report", lambda *_a, **_k: tmp_path / "r.md")
+    monkeypatch.setattr(aud, "_commit_routine_outputs", lambda *_a, **_k: None)
+    monkeypatch.setattr(aud, "_today", lambda: date(2026, 8, 4), raising=False)
+
+    callback = getattr(aud.cmd_run, "callback", aud.cmd_run)
+    try:
+        callback(None)
+    except SystemExit:
+        pass  # cmd_run exits non-zero only on FAILs; WARNs must not cause one
+
+    hub_warns = [f for f in saved[hub].findings if f.check_name == "writer_integrity"]
+    assert hub_warns, "the detector's WARN never reached the hub state — it is not wired in"
+    assert "zombie_check" in hub_warns[0].evidence
+    assert [f for f in saved[consumer].findings if f.check_name == "writer_integrity"] == [], \
+        "a writer_integrity WARN was written onto a CONSUMER — that is the FR-7 fleet gap"

@@ -443,21 +443,33 @@ def save_state(state: RepoState) -> None:
 _HISTORY_ROW_RE = re.compile(r"^\|\s*([a-z0-9_]+)\s*\|")
 
 
-def _previously_reported_checks(repo_name: str, before: date) -> set[str]:
-    """Check names in the most recent history reading STRICTLY BEFORE `before`.
+def _previously_reported_checks(repo_name: str, upto: date) -> set[str]:
+    """Check names in the single most recent history READING at or before `upto`.
 
-    Derived from the history files themselves — there is deliberately no retired-check
-    registry to maintain (FR-4). Returns an empty set when there is no prior reading, which
-    correctly yields no retirement notice on a repo's first ever run.
+    Two details are load-bearing (terra HIGH, 2026-08-04):
+
+    * SAME-DAY entries count. An earlier version compared strictly against an EARLIER DATE, so
+      a second `run` on the same day compared against yesterday and re-emitted a retirement
+      notice the first run had already recorded — writing a false "retired since the previous
+      reading" into the durable history on every rerun.
+    * Only the LAST table in that file is parsed. A history file accumulates appended readings,
+      so unioning all of them would resurrect names retired several readings ago and suppress
+      the notice for a check that vanished today.
+
+    Derived from the history files themselves — there is deliberately no retired-check registry
+    to maintain (FR-4). Empty when there is no prior reading, so a repo's first ever run
+    correctly reports nothing retired rather than everything.
     """
     hist = ECOSYSTEM_DIR / repo_name / "history"
     if not hist.is_dir():
         return set()
-    prior = sorted(p for p in hist.glob("*.md") if p.stem < before.isoformat())
+    prior = sorted(p for p in hist.glob("*.md") if p.stem <= upto.isoformat())
     if not prior:
         return set()
     text = prior[-1].read_text(encoding="utf-8", errors="replace")
-    return {m.group(1) for m in (_HISTORY_ROW_RE.match(ln) for ln in text.splitlines()) if m}
+    last_reading = text.rsplit("\n## ", 1)[-1]
+    return {m.group(1) for m in (_HISTORY_ROW_RE.match(ln)
+                                 for ln in last_reading.splitlines()) if m}
 
 
 def append_history(state: RepoState, run_date: date) -> None:
@@ -3643,6 +3655,7 @@ def detect_unconditionally_inert_checks(
     is inert only on the repos it was not run against.
     """
     out: list[Finding] = []
+    by_check: dict[str, list[Finding]] = {}
     for check in (ALL_CHECKS if checks is None else checks):
         name = getattr(check, "__name__", str(check)).removeprefix("check_")
         results: list[Finding] = []
@@ -3663,9 +3676,24 @@ def detect_unconditionally_inert_checks(
                 broken = True
                 break
             results.extend(returned)
-        if broken or not results:
-            continue
+        if not broken and results:
+            by_check[name] = results
+    return out + classify_inert_checks(by_check, sorted(repo_paths))
 
+
+def classify_inert_checks(by_check: dict[str, list[Finding]],
+                          repo_names: "Sequence[str]") -> list[Finding]:
+    """THE RULE, defined once, over findings that have ALREADY been computed.
+
+    Extracted so the production path costs nothing (terra HIGH, 2026-08-04). `cmd_run` has just
+    executed every check against every repo; re-running them inside the detector would double a
+    whole fleet audit. Both callers share this function, so the daily and the test seam cannot
+    drift about what "inert" means -- the same single-definition discipline `journal_anchor`
+    uses for the ADR-85 predicate.
+    """
+    out: list[Finding] = []
+    where = ", ".join(repo_names)
+    for name, results in by_check.items():
         if any(f.status != "n/a" for f in results):
             continue  # it can say something other than n/a somewhere -- not inert
         reasons = [_na_reason(f) for f in results]
@@ -3676,7 +3704,6 @@ def detect_unconditionally_inert_checks(
             continue
         if _NA_SUBJECT_ABSENT not in reasons:
             continue  # NOT-APPLICABLE everywhere is a correct skip, not an inert check
-        where = ", ".join(sorted(repo_paths))
         out.append(Finding("writer_integrity", "warn",
                            f"{name}: UNCONDITIONALLY INERT -- every result across [{where}] is "
                            f"n/a and its subject is absent, so the check can never fire. Fix its "
@@ -4100,10 +4127,31 @@ def cmd_run(repo_path: Optional[str]) -> None:
     for name in names:
         existing = load_state(name)
         rp = resolve_repo_path(name, existing.path if existing else None)
-        state = audit_repo(name, rp, run_date)
+        states.append(audit_repo(name, rp, run_date))
+
+    # [#465] leg 4 / FR-2: the inert-check detector runs HERE, on the fleet's just-computed
+    # findings, before anything is persisted. Without this the detector would exist and never
+    # execute -- a mechanism that reports nothing because nothing calls it, which is the exact
+    # class this leg was opened to remove (terra HIGH, 2026-08-04).
+    #
+    # Fleet-scoped by construction: inertness is only meaningful across ALL repos, since a check
+    # that is n/a here and firing there is alive. The WARNs attach to the HUB's state only --
+    # this is hub-owned machinery, and writing them onto a consumer would manufacture exactly
+    # the fleet gap FR-7 forbids.
+    by_check: dict[str, list[Finding]] = {}
+    for s in states:
+        for f in s.findings:
+            by_check.setdefault(f.check_name, []).append(f)
+    inert = classify_inert_checks(by_check, sorted(s.name for s in states))
+    if inert:
+        for s in states:
+            if s.name == HUB_REPO_NAME:
+                s.findings.extend(inert)
+                break
+
+    for state in states:
         save_state(state)
         append_history(state, run_date)
-        states.append(state)
 
     report = generate_report(states, run_date, Path(_REPO_ROOT))
     out = write_report(report, run_date)
