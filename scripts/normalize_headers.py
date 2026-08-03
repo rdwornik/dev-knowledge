@@ -23,13 +23,50 @@ import re
 import sys
 from pathlib import Path
 
+from markdown_it import MarkdownIt
+
 _DATE = r"\d{4}-\d{2}-\d{2}"
 
 _DATE_ONLY = re.compile(rf"^(##|###)\s+({_DATE})\s*$")
 _DATE_WITH_PIPE = re.compile(rf"^(##|###)\s+({_DATE})\s*\|")
 _DATE_WITH_SEP = re.compile(rf"^(##|###)\s+({_DATE})(\s+[—–\-]\s+.+)$")
 
-_FENCE = re.compile(r"^```")
+# Line splitter matching markdown_it's OWN newline normalization (`\r\n | \r | \n`) exactly,
+# so our line indices and its token `map` indices cannot desync. `str.splitlines` must NOT be
+# used here: it also breaks on \x0b \x0c    , which CommonMark does not treat as line
+# boundaries, and one such character anywhere in the file would shift every index after it.
+_EOL_RE = re.compile(r"\r\n|\r|\n")
+
+_MD = MarkdownIt("commonmark")
+
+
+def _split_keep_eol(text: str) -> list[tuple[str, str]]:
+    """[(line_body, line_ending), ...] — lossless: ``"".join(b + e ...) == text``."""
+    out: list[tuple[str, str]] = []
+    pos = 0
+    for m in _EOL_RE.finditer(text):
+        out.append((text[pos:m.start()], m.group(0)))
+        pos = m.end()
+    if pos < len(text) or not out:
+        out.append((text[pos:], ""))
+    return out
+
+
+def _heading_lines(text: str) -> set[int]:
+    """0-based source lines that CommonMark says are headings.
+
+    POSITIVE IDENTIFICATION, not a blocklist of protected regions — this is the whole fix.
+    The former `^``` ` toggle tried to enumerate where NOT to rewrite and missed every fence
+    shape but one: `~~~` fences (the named defect), tilde fences of any length, fences
+    indented up to the 3 spaces CommonMark allows, and a 4-backtick fence closed early by the
+    3-backtick line it legally contains. Each miss let a REWRITING, DEPLOYED hook edit content
+    inside a code block, against its own docstring.
+
+    Asking markdown_it which lines are headings inverts that: a line is rewritten only when
+    the parser affirms it is a heading, so code blocks, indented code and HTML blocks are all
+    excluded by construction rather than by a pattern someone remembered to add.
+    """
+    return {t.map[0] for t in _MD.parse(text) if t.type == "heading_open" and t.map}
 
 
 def normalize_line(line: str) -> str:
@@ -50,30 +87,21 @@ def normalize_line(line: str) -> str:
 def normalize_text(text: str) -> str:
     """Normalize all dated-log entry headers in a markdown document.
 
-    Lines inside fenced code blocks are passed through verbatim.
+    A line is rewritten only where CommonMark says it is a heading AND the rules in
+    ``normalize_line`` match it. Everything else — code blocks fenced with any shape,
+    indented code, HTML blocks, prose — is passed through verbatim.
+
+    FAIL-SAFE: if the parse raises, the document is returned UNCHANGED. This hook rewrites
+    files in place, so an unknown document structure must produce no edit rather than an
+    edit made on a guess. The old toggle had no such posture: it silently kept rewriting.
     """
+    try:
+        headings = _heading_lines(text)
+    except Exception:  # noqa: BLE001 — a rewriter that cannot parse must not rewrite
+        return text
     out: list[str] = []
-    in_fence = False
-    # Preserve original line endings by splitting on '\n' and rejoining.
-    # splitlines(True) keeps the trailing newline characters per line.
-    for raw in text.splitlines(keepends=True):
-        # Strip the trailing newline for matching, then re-attach
-        if raw.endswith("\r\n"):
-            body, eol = raw[:-2], "\r\n"
-        elif raw.endswith("\n"):
-            body, eol = raw[:-1], "\n"
-        elif raw.endswith("\r"):
-            body, eol = raw[:-1], "\r"
-        else:
-            body, eol = raw, ""
-        if _FENCE.match(body):
-            in_fence = not in_fence
-            out.append(body + eol)
-            continue
-        if in_fence:
-            out.append(body + eol)
-            continue
-        out.append(normalize_line(body) + eol)
+    for i, (body, eol) in enumerate(_split_keep_eol(text)):
+        out.append((normalize_line(body) if i in headings else body) + eol)
     return "".join(out)
 
 
