@@ -19,6 +19,41 @@
 
 ---
 
+### 2026-08-03 (f) — CC (Opus 5, local): the ADR-85 amendment — obligation to integration, teeth to pre-push
+
+**Did:** Wrote the ADR-85 amendment from §1–§2 of the operator's adjudication + implementation
+contract. SHA anchor — `2303824b`, on top of `4f3f8531` (the ARC B merge). **Prose only; no
+code.** ARC 2 is gated on operator ratification (NC6 — no code against an unratified decision).
+
+**Result:** appended amendment, **179 insertions / 0 deletions** — the accepted body, including
+Decision 4's `/override` text and both prior amendments, is byte-identical. Form follows ADR-94
+and the ADR-109 precedent; placed before `## Links`, matching ADR-85's own ordering. Carries all
+seven decisions with named costs (A1–A6), the anchored-object definition and its residual (A7),
+and the migration note with the dated disposition floor (A8).
+
+**The judgment was closed; two measurements still had to be made.** First, the motivation finding
+was **re-measured at `4f3f8531`** rather than restated: `git push -u origin feat/x` moved the base
+from `origin/main` to `origin/feat/x` and the set from `['cd86ab8']` to `[]` — BLOCK before,
+silent after. The cheapest discharge today is *publishing to a branch nobody reads*. Second, and
+this one changes an implementation detail: **a spine entry is anchored when JOURNAL names ≥1 SHA
+the entry INTRODUCED, not the entry's own SHA** — a merge cannot name its own hash, since the
+entry it carries is authored before the merge exists. Under the naive predicate 686 of 1292 spine
+entries read unanchored *including HEAD itself*; under the correct one the contiguous anchored run
+from HEAD is 11. An FR4 backstop built on the naive predicate would fail on its own merge.
+
+**The floor is `24882f8cc` (2026-08-02)**, the oldest entry of that run of 11; the next older,
+`5d1c71f03`, is the newest gap. Entries strictly older are dispositioned once **in the ADR** — not
+in the disposition register, so the floor cannot be quietly extended — with the reason recorded:
+they landed under a contract in which push, a dirty tree and hook exhaustion were live and
+undocumented discharge paths.
+
+**Changes:** `docs/decisions/ADR-85-session-lifecycle-enforcement.md` (appended), `JOURNAL.md`.
+
+**Abandoned:** nothing. NC1–NC5 verified before the first edit; NC6 is the gate this arc opens.
+
+**Next:** STOP at the ratification gate. ARC 2 (FR1–FR8, TDD T1–T8, terra pre-merge) begins only
+on the operator's ratification of this amendment.
+
 ### 2026-08-03 (e) — CC (Opus 5, local): W1 lesson promotion + the ADR-85 JOURNAL debt discharged
 
 **Did:** Two things — paid an outstanding record debt, then promoted the W1 lesson set. SHA
