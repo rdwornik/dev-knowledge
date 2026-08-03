@@ -22,8 +22,9 @@
 ### 2026-08-03 (f) — CC (Opus 5, local): the ADR-85 amendment — obligation to integration, teeth to pre-push
 
 **Did:** Wrote the ADR-85 amendment from §1–§2 of the operator's adjudication + implementation
-contract. SHA anchor — `2303824b`, on top of `4f3f8531` (the ARC B merge). **Prose only; no
-code.** ARC 2 is gated on operator ratification (NC6 — no code against an unratified decision).
+contract. SHA anchors — `2303824b` (amendment) and `0f3e3d76` (the A8 numeric extent + the new
+§A9), on top of `4f3f8531` (the ARC B merge). **Prose only; no code.** ARC 2 is gated on operator
+ratification (NC6 — no code against an unratified decision).
 
 **Result:** appended amendment, **179 insertions / 0 deletions** — the accepted body, including
 Decision 4's `/override` text and both prior amendments, is byte-identical. Form follows ADR-94
