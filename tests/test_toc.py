@@ -12,7 +12,9 @@ from pathlib import Path
 SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-from toc.generator import _slugify, _display, _HEADER_RE, parse_headers, generate_toc  # noqa: E402
+from toc.generator import (  # noqa: E402
+    _EOL_RE, _HEADER_RE, _code_line_indices, _display, _slugify, generate_toc, parse_headers,
+)
 from toc.check import check_toc  # noqa: E402
 
 
@@ -277,20 +279,45 @@ def _legacy_parse_headers(content: str) -> list[tuple[int, str]]:
     return headers
 
 
+def _legacy_parse_headers_with_lines(content: str) -> list[tuple[int, tuple[int, str]]]:
+    """The legacy toggle, but recording each header's source line index."""
+    out: list[tuple[int, tuple[int, str]]] = []
+    in_fence = False
+    for i, line in enumerate(_EOL_RE.split(content)):
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = _HEADER_RE.match(line)
+        if m:
+            out.append((i, (len(m.group(1)), m.group(2))))
+    return out
+
+
 @pytest.mark.live_repo
-def test_corpus_fence_fix_only_recovers_headers_and_never_drops_one() -> None:
-    """The safety property, over every markdown file in the repo: switching the fence
-    decision to CommonMark may only ADD headers the toggle wrongly swallowed — it must never
-    REMOVE one the toggle correctly found.
+def test_corpus_fence_fix_never_drops_a_header_from_OUTSIDE_a_code_block() -> None:
+    """The safety property, stated correctly — and the first two versions of it were not.
 
-    That direction is what matters for a DEPLOYED freshness hook: a recovered header makes a
-    TOC more complete, while a lost header would silently shrink a generated TOC and the gate
-    would happily accept the smaller one as fresh.
+    v1 used `h not in fixed`: MEMBERSHIP, so a lost duplicate passed (terra HIGH r1). Duplicate
+    occurrences drive `#foo-1` anchor numbering, so losing one renumbers every later anchor.
 
-    Measured when written: 3 of 1577 files changed, all strictly gaining (+6, +8, +8), with
-    ZERO headers lost anywhere. Recovery itself is pinned deterministically by the three
-    fence-shape unit tests above rather than by a live-corpus count, so ordinary edits to
-    those documents cannot turn this into a spurious RED.
+    v2 used a multiset difference but asserted "never drops ANY legacy header" — which is
+    WRONG IN PRINCIPLE (terra HIGH r2). The tilde-fence fix DELIBERATELY drops legacy false
+    positives: a `##` line inside a `~~~` fence was wrongly returned before and is correctly
+    excluded now. That invariant passes today only because no live file happens to contain one,
+    and it would have REDded the moment anyone added a legal `##` inside a `~~~` fence — a
+    correct edit blocked by a test asserting the wrong thing.
+
+    The honest invariant distinguishes the two kinds of drop by WHERE the header was: a legacy
+    header on a line CommonMark places inside a code block may legitimately disappear; one from
+    outside any code block must survive. That is exactly the deployed-hook risk — a header lost
+    from real prose silently shrinks a generated TOC and the freshness gate accepts the smaller
+    one as fresh.
+
+    Measured after the fix, over 1578 files: 3 changed, all strictly gaining (+6, +8, +8), zero
+    losses of either kind. Recovery is pinned deterministically by the fence-shape unit tests
+    above, not by a live count, so ordinary edits cannot turn this into a spurious RED.
     """
     root = Path(__file__).resolve().parent.parent
     files = [p for p in sorted(root.rglob("*.md")) if not _SKIP_PARTS.intersection(p.parts)]
@@ -299,15 +326,26 @@ def test_corpus_fence_fix_only_recovers_headers_and_never_drops_one() -> None:
     compared = 0
     for p in files:
         content = p.read_text(encoding="utf-8", errors="replace")
-        legacy, fixed = _legacy_parse_headers(content), parse_headers(content)
-        compared += len(legacy)
-        # MULTISET, not membership (terra HIGH, 2026-08-03). `h not in fixed` compares
-        # presence, so legacy [(2,"Foo"), (2,"Foo")] vs fixed [(2,"Foo")] passed while a real
-        # TOC row was lost — and duplicate occurrences are exactly what drives the `#foo-1`
-        # anchor numbering, so a dropped duplicate silently renumbers every later anchor.
-        lost = Counter(legacy) - Counter(fixed)
-        assert not lost, f"{p}: the fence fix DROPPED header occurrence(s) {list(lost)[:3]}"
+        code = _code_line_indices(content)
+        outside = [h for i, h in _legacy_parse_headers_with_lines(content) if i not in code]
+        compared += len(outside)
+        lost = Counter(outside) - Counter(parse_headers(content))
+        assert not lost, (
+            f"{p}: the fence fix dropped header occurrence(s) from OUTSIDE any code block: "
+            f"{list(lost)[:3]}")
     assert compared > 1000, f"only {compared} headers compared — proof too thin"
+
+
+def test_corpus_invariant_permits_the_intended_tilde_false_positive_drop():
+    """Guards the invariant above against reverting to the over-strict v2 form: a legacy header
+    from inside a `~~~` fence MUST be droppable, and the classifier must place it inside code."""
+    md = "## Real\n\n~~~\n## FalsePositive\n~~~\n\n## Also Real\n"
+    code = _code_line_indices(md)
+    legacy = _legacy_parse_headers_with_lines(md)
+    dropped = [h for i, h in legacy if h not in parse_headers(md)]
+    assert dropped == [(2, "FalsePositive")], dropped
+    inside = [h for i, h in legacy if i in code]
+    assert inside == [(2, "FalsePositive")], "the classifier did not place it inside code"
 
 
 def test_headers_inside_an_html_block_are_still_returned():
