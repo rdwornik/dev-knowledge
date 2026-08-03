@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "cce53b42175ab0b645beb5a3647c51203f73fab07cfda7ca817eac83883ef408",
+  "generated_sha256": "31892d9d6b3fdc0aa2add1c2f72310fd5edfbc2baebd931a4cb135ceca4e512f",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -196,10 +196,6 @@
     {
       "task": 451,
       "file": "451-ca-layer-edge-check-ai-council-precedent.md"
-    },
-    {
-      "task": 479,
-      "file": "479-session-end-backpressure-swallows-internal-errors.md"
     },
     {
       "task": 480,
@@ -413,6 +409,10 @@
     {
       "task": 240,
       "file": "240-follow-up.md"
+    },
+    {
+      "task": 481,
+      "file": "481-enforcement-coverage-organ-id-names-a-retired-organ.md"
     },
     {
       "task": 267,

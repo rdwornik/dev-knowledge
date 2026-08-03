@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-08-03 (h) — CC (Opus 5, local): ADR-85 residue — a coverage probe that measured a retired organ
+
+**Did:** ARC 1 of the "measuring the wrong thing" execution prompt — the operational residue of
+the ADR-85 window. SHA anchors: `0c8647c2` (the probe repoint), `e7136bf8` (the [#479] closure),
+`0d6bcc47` ([#481] filed), `360549c6` (doc-counts regen).
+
+**Result — one closure, one defect we introduced and fixed, one global-infra correction.**
+
+`[#479]` closed as **SUPERSEDED**, on substance. Both hard organs exit 2 and name themselves
+with tests injecting failures (`7cb3d477` amendment, `8543841f` build, `e44d9737` terra fixes),
+so the obligation is discharged. But the row's literal Done-when — "assert the session is
+BLOCKED rather than released" — **died with FR5**: its subject was the Stop hook, which the
+amendment made advisory in full, so there is no session to block at that organ. Closed on
+substance and the unsatisfiability recorded in the closure, not quietly stepped around.
+
+**The defect this arc actually existed for was ours.** `enforcement_coverage._seb_fire` still
+probed the Stop hook for `{"decision":"block"}` — a block the amendment DELETED by design. So
+the probe answered ABSENT for every repo in the fleet, **including one with the ADR-85 hard leg
+fully installed**: right about the Stop hook, wrong about ADR-85 coverage. A probe with a
+constant answer measures nothing, which is the same class as the window it followed. Repointed:
+`locate` now requires the pre-commit hook whose *entry* runs `block_unanchored_push` **and**
+whose `stages` include `pre-push` (the same script left at pre-commit never sees a push, so
+stage is part of the organ's identity); `fire` drives it through git's **own** native pre-push
+stdin and asserts **two** legs — refuse the unanchored range (exit 1) *and* allow the anchored
+one (exit 0). One leg would have licensed a hook hard-wired to `sys.exit(1)`, which refuses
+every push and enforces nothing. Hub cell moved `absent` → `present-unverified`.
+
+RED-first, and the RED was the vacuity itself: `assert 'absent' == 'enforcing-local'` against a
+repo with the organ installed. The distinguishing test asserts **both** halves in ONE test —
+a pair of independent tests can both pass while the probe is constant, so only asserting the
+two verdicts *differ* pins the discrimination. Fixtures are derived, never hand-built: the hook
+declaration is lifted verbatim from the live `.pre-commit-config.yaml`, and the organ's script
+set from a transitive import walk (an enumerated list would go short on the next refactor, and
+the fire test would then fail for an *import* reason and read as "does not enforce").
+
+**Kept and filed, not buried:** `organ_id` stays `session_end_backpressure` while the probe now
+measures a pre-push organ. Operator-ratified as out of scope for a repoint (the rename touches
+the deploy manifests, `carrier_mesh`, the methodology roster and the fleet digest) and filed as
+`[#481]` with that scope written into the row.
+
+**Global infra (exception granted, operator-scoped):** `~/.claude/commands/codex-review.md`
+claimed the code lane "inherits the config default", contradicting the script's `[#469]` pin at
+`codex-review.ps1:211-219` where **both** lanes pin `gpt-5.6-terra`. A wrong description of the
+Codex lane produces wrong routing. Corrected; grep confirmed a single site.
+
+**Changes:** `scripts/enforcement_coverage.py`, `tests/test_enforcement_coverage.py` (+2 tests,
+2 ported off the Stop hook, 1 stale-measurement pin re-based onto the fix it called for);
+`BACKLOG.md`, `tasks/479-*.md` (terminal `status: superseded`), `tasks/481-*.md` (new),
+`tasks/manifest.json`, `ecosystem/doc-counts.md`; `~/.claude/commands/codex-review.md` (global).
+
+**Abandoned:** nothing. The `[#481]` row's first draft crossed the doc_rot threshold at 1341
+chars and was trimmed to 1141 — self-induced bloat, trimmed rather than dispositioned.
+
+**Next:** ARC 2 — the vacuous-green trio (`gen_intake_index` `_FM_KV_RE`, `normalize_headers`
+fenced-heading rewriting, `boundary_headers` case-sensitivity + the dead glob). Terra review
+pre-merge, findings read from the body.
+
 ### 2026-08-03 (g) — CC (Opus 5, local): ADR-85 built — teeth at pre-push, backstop in ALL_CHECKS
 
 **Did:** Built FR1–FR8 of the ratified ADR-85 implementation contract. SHA anchors —
