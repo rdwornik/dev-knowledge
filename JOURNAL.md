@@ -19,6 +19,35 @@
 
 ---
 
+### 2026-08-03 (j) — CC (Opus 5, local): the glob-engine ruling, filed not executed
+
+**Did:** Filed `[#482]` (`748e1db1`) per the operator ruling taken at the ARC 2 merge gate.
+
+**Result.** The ARC 2 report returned row 5's dead-glob leg **unanswered by instruction**, with a
+measured table instead of a verdict. The ruling: **REPAIR (true-glob), not REMOVE**, and not
+inside ARC 2 — so `4e2c809b` fixed only the case-sensitivity leg and the matching *engine* stays
+as it is until its own arc.
+
+One premise correction the ruling accepted: `.claude/**/*.md` is **not** "a dead glob matching
+nothing". It matches 11 files and **adds zero**, because `fnmatch` has no `**` and its `*`
+already crosses `/`. Over 1830 tracked files — fnmatch 1/12/11, true-glob 1/1/12, **union 13
+either way**. Neither REMOVE nor REPAIR changes today's governed set, so the choice was intent,
+not coverage. REMOVE was rejected because it leaves `.claude/*.md` silently recursive — a glob
+that reads narrower than it behaves, which is the same name-vs-measured-thing defect this window
+filed as `[#481]` rather than carried.
+
+The row's load-bearing clause is the second one: a test pinning the governed set, so a later
+`_GOVERNED_GLOBS` addition whose meaning differs under the new engine **fires** instead of
+drifting. Under true-glob semantics every future entry in that tuple means something different
+than it would today, and nothing currently notices.
+
+**Changes:** `tasks/482-*.md` (new), `tasks/manifest.json`, `BACKLOG.md` (188 → 189).
+
+**Abandoned:** nothing. Row trimmed 1278 → 1100 chars pre-commit (self-induced doc_rot bloat,
+trimmed rather than dispositioned).
+
+**Next:** ARC 3 — rows 3 and 6, divergence proven first.
+
 ### 2026-08-03 (i) — CC (Opus 5, local): the vacuous-green trio — and three vacuous tests of my own
 
 **Did:** ARC 2 of the "measuring the wrong thing" prompt — three mechanisms reporting green while
