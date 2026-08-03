@@ -20,6 +20,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -303,3 +304,75 @@ def test_layer2_path_fails_red_when_floor_hook_absent(committed_consumer_ai_coun
     _git(["commit", "-q", "-m", "strip floor hook"], committed_consumer_ai_council_like)
     with pytest.raises(fc.ConformanceError):
         fc.run_against_consumer(committed_consumer_ai_council_like)
+
+
+# ---------------------------------------------------------------------------
+# rmtree: onerror -> onexc (documented-deprecated kwarg on a py>=3.12 repo).
+# ---------------------------------------------------------------------------
+
+def test_rmtree_guarded_uses_onexc_not_the_deprecated_onerror(tmp_path, monkeypatch):
+    """THE DISTINGUISHING TEST, and it had to be chosen carefully.
+
+    The obvious test — assert no DeprecationWarning — would be VACUOUS here. Measured on
+    this interpreter (CPython 3.12.10), `shutil.rmtree` documents `onerror` as "deprecated
+    and only remains for backwards compatibility" but emits NO runtime warning, so that
+    assertion passes identically before and after the fix and proves nothing.
+
+    What genuinely differs is the call contract: `onerror` and `onexc` are distinct
+    parameters taking DIFFERENT third arguments (an exc_info 3-tuple vs an exception
+    instance). Asserting which one is passed fails before the fix and passes after.
+    """
+    seen = {}
+
+    def _fake_rmtree(path, **kwargs):
+        seen.update(kwargs)
+        seen["path"] = path
+
+    monkeypatch.setattr(fc.shutil, "rmtree", _fake_rmtree)
+    target = tmp_path / "victim"
+    target.mkdir()
+    fc._rmtree_guarded(target, tmp_path)
+
+    assert "onexc" in seen, f"rmtree was not called with onexc: {sorted(seen)}"
+    assert "onerror" not in seen, "the deprecated onerror kwarg is still being passed"
+    assert callable(seen["onexc"])
+
+
+def test_rmtree_guarded_handler_takes_an_exception_instance(tmp_path, monkeypatch):
+    """`onexc` receives the EXCEPTION, where `onerror` received an exc_info tuple. Drive the
+    captured handler with a real exception to prove the swapped callback still clears the
+    read-only bit and retries — a handler written for the old signature would be silently
+    wrong about its third argument."""
+    captured = {}
+
+    def _fake_rmtree(path, **kwargs):
+        captured["onexc"] = kwargs.get("onexc")
+
+    monkeypatch.setattr(fc.shutil, "rmtree", _fake_rmtree)
+    target = tmp_path / "victim"
+    target.mkdir()
+    fc._rmtree_guarded(target, tmp_path)
+
+    victim = tmp_path / "readonly.txt"
+    victim.write_text("x", encoding="utf-8")
+    os.chmod(victim, stat.S_IREAD)
+    calls = []
+    captured["onexc"](lambda p: calls.append(p), victim, PermissionError("denied"))
+    assert calls == [victim], "the handler did not retry the failed operation"
+    assert os.access(victim, os.W_OK), "the handler did not clear the read-only bit"
+    os.chmod(victim, stat.S_IWRITE)
+
+
+def test_rmtree_guarded_still_removes_a_read_only_tree(tmp_path):
+    """NON-REGRESSION, not a distinguishing test — stated plainly because it passes both
+    before and after the swap. Its job is to prove the kwarg change did not break the
+    behaviour the handler exists for: git packfiles are read-only on Windows, so a plain
+    rmtree raises PermissionError and the callback must clear the bit and retry."""
+    root = tmp_path / "tree"
+    (root / "inner").mkdir(parents=True)
+    f = root / "inner" / "packfile"
+    f.write_text("data", encoding="utf-8")
+    os.chmod(f, stat.S_IREAD)
+
+    fc._rmtree_guarded(root, tmp_path)
+    assert not root.exists(), "the read-only tree was not removed"
