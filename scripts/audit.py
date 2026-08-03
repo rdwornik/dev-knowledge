@@ -3223,8 +3223,17 @@ _MEMBERSHIP_ANCHOR = "deployed-versions"
 # contract.
 ADR104_PATH = "docs/decisions/ADR-104-fleet-repository-shape.md"
 _DECL_ANCHOR_ID = "adr104-fleet-members"
-_DECL_START_RE = re.compile(rf"<!--\s*declaration:start\s+id={_DECL_ANCHOR_ID}\b[^>]*-->")
-_DECL_END_RE = re.compile(rf"<!--\s*declaration:end\s+id={_DECL_ANCHOR_ID}\s*-->")
+# FULL-LINE markers with a HARD id boundary (terra HIGH, 2026-08-04). `\b` after the id was
+# wrong twice over: `-` is a non-word character, so `id=adr104-fleet-members-v2` satisfied a
+# word boundary and matched this anchor -- a differently-versioned block would have been read
+# as if it were this one. The id must now be followed by whitespace or the comment close, and
+# the marker must occupy its own line, so a marker mentioned mid-sentence is not a match either.
+_DECL_START_RE = re.compile(
+    rf"^[ \t]*<!--[ \t]*declaration:start[ \t]+id={_DECL_ANCHOR_ID}(?=[ \t]|-->)[^>]*-->[ \t]*$",
+    re.MULTILINE)
+_DECL_END_RE = re.compile(
+    rf"^[ \t]*<!--[ \t]*declaration:end[ \t]+id={_DECL_ANCHOR_ID}(?=[ \t]|-->)[ \t]*-->[ \t]*$",
+    re.MULTILINE)
 
 
 class DeclarationError(RuntimeError):
@@ -3242,8 +3251,19 @@ def read_adr104_declaration(path) -> list[str]:
     can be satisfied by deleting what it checks is not a gate.
     """
     text = Path(path).read_text(encoding="utf-8")
-    starts = list(_DECL_START_RE.finditer(text))
-    ends = list(_DECL_END_RE.finditer(text))
+    # A marker shown as an EXAMPLE inside a code fence is not the declaration (terra HIGH,
+    # 2026-08-04): without this, an incidental fenced example could supply the only matched
+    # pair and be read as the source while the real anchor was absent. Fence detection is the
+    # corpus-proven `toc.generator` helper rather than a second hand-rolled toggle -- the
+    # 2026-08-03 arc established that such toggles are wrong in at least four ways.
+    from toc.generator import _code_line_indices  # noqa: PLC0415 -- local: keeps audit import cheap
+    fenced = _code_line_indices(text)
+
+    def _outside_fence(m) -> bool:
+        return text.count("\n", 0, m.start()) not in fenced
+
+    starts = [m for m in _DECL_START_RE.finditer(text) if _outside_fence(m)]
+    ends = [m for m in _DECL_END_RE.finditer(text) if _outside_fence(m)]
     if not starts:
         raise DeclarationError(
             f"ADR-104 declaration anchor '{_DECL_ANCHOR_ID}' not found in {ADR104_PATH} -- "

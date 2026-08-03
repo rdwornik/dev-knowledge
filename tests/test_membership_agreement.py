@@ -343,3 +343,51 @@ def test_live_hub_adr_anchor_agrees_with_the_constant():
     ids = aud.read_adr104_declaration(root / _ADR_REL)
     assert tuple(ids) == tuple(aud.ADR104_FLEET_DECLARATION), (ids, aud.ADR104_FLEET_DECLARATION)
     assert len(ids) == 9
+
+
+def test_declaration_anchor_rejects_a_PREFIX_id(tmp_path, monkeypatch):
+    """terra HIGH 2026-08-04: `\b` after the id is not an id boundary.
+
+    `-` is a NON-word character, so `id=adr104-fleet-members-v2` satisfied `\b` and matched
+    this anchor -- a differently-versioned block would have been read as if it were this one,
+    silently, and could even PASS if its contents happened to match the constant.
+    """
+    body = ("# ADR-104 (fixture)\n\n"
+            "<!-- declaration:start id=adr104-fleet-members-v2 v=1 -->\n"
+            "```\nghost-repo\n```\n"
+            "<!-- declaration:end id=adr104-fleet-members-v2 -->\n")
+    monkeypatch.setattr(aud, "_is_hub", lambda _p: True)
+    repo = _hub_tree(tmp_path, body)
+    fails = [f for f in _decl_findings(repo) if f.status == "fail"]
+    assert fails, "a -v2 anchor was accepted as this declaration"
+    assert "not found" in fails[0].evidence.lower(), fails[0].evidence
+
+
+def test_declaration_anchor_ignores_a_marker_shown_inside_a_code_fence(tmp_path, monkeypatch):
+    """A marker demonstrated as an EXAMPLE is documentation, not the declaration.
+
+    The dangerous shape is not two anchors (that FAILs loudly as a duplicate) but the real
+    anchor ABSENT while a fenced example is present: the parser would then read the example
+    and report agreement or a wrong id list instead of 'anchor not found'.
+    """
+    body = ("# ADR-104 (fixture)\n\nHow to write the anchor:\n\n"
+            "```\n"
+            f"<!-- declaration:start id={_ANCHOR_ID} v=1 -->\n"
+            "example-repo\n"
+            f"<!-- declaration:end id={_ANCHOR_ID} -->\n"
+            "```\n\nthe real anchor was deleted\n")
+    monkeypatch.setattr(aud, "_is_hub", lambda _p: True)
+    repo = _hub_tree(tmp_path, body)
+    fails = [f for f in _decl_findings(repo) if f.status == "fail"]
+    assert fails, "a fenced EXAMPLE marker was read as the real declaration"
+    assert "not found" in fails[0].evidence.lower(), fails[0].evidence
+
+
+def test_declaration_anchor_ignores_a_marker_mentioned_mid_sentence(tmp_path, monkeypatch):
+    """Markers must own their line; prose quoting one inline is not an anchor."""
+    body = ("# ADR-104 (fixture)\n\n"
+            f"The anchor is written <!-- declaration:start id={_ANCHOR_ID} v=1 --> inline here.\n")
+    monkeypatch.setattr(aud, "_is_hub", lambda _p: True)
+    repo = _hub_tree(tmp_path, body)
+    fails = [f for f in _decl_findings(repo) if f.status == "fail"]
+    assert fails and "not found" in fails[0].evidence.lower(), [f.evidence for f in fails]
