@@ -414,16 +414,37 @@ def test_coverage_fails_on_a_seeded_unheadered_governed_file(tmp_path, monkeypat
 # Governed-glob matching must mean the SAME THING on every host.
 # ---------------------------------------------------------------------------
 
-def test_governed_glob_match_is_case_sensitive_on_every_host():
+def test_governed_glob_match_is_case_sensitive_on_every_host(monkeypatch):
     """`fnmatch` delegates to the HOST's case rules — case-insensitive on Windows,
     case-sensitive on Linux — so the same repo yielded a different governed set per box and
     the coverage gate measured a different thing depending on where it ran. A gate whose
     denominator is OS-dependent cannot be compared across the fleet or across CI.
 
+    HOST-INDEPENDENT BY CONSTRUCTION (terra HIGH, 2026-08-03). The first version of this test
+    just asserted that an uppercased path does not match. That is a real RED on Windows and a
+    VACUOUS PASS on Linux/macOS, where `fnmatch` is already case-sensitive — so CI could have
+    gone green with the bug fully restored. It was the arc's own defect class, one level up.
+
+    The fix is to stop depending on which host runs it: `fnmatch` case-folds by calling
+    `os.path.normcase`, so forcing `normcase` to lowercase makes EVERY platform behave like
+    Windows. Under `fnmatch` the uppercased path then matches and this test FAILS anywhere;
+    under `fnmatchcase`, `normcase` is never consulted and it passes anywhere. Behavioural,
+    not an assertion about which symbol was imported.
+
     DERIVED, not enumerated: both the positive control and the case-variant are constructed
     FROM `_GOVERNED_GLOBS` itself, so adding or changing a glob re-derives the assertion
     instead of leaving a stale hand-written literal behind.
     """
+    import os.path as _osp
+
+    monkeypatch.setattr(_osp, "normcase", str.lower)
+    # Guard the guard: if normcase is no longer the folding seam fnmatch uses, this test has
+    # stopped simulating Windows and would silently go vacuous again.
+    from fnmatch import fnmatch as _raw_fnmatch
+    assert _raw_fnmatch("CLAUDE.MD", "CLAUDE.md"), (
+        "patching os.path.normcase no longer makes fnmatch case-insensitive — the Windows "
+        "simulation is broken, so this test would prove nothing")
+
     assert bh._GOVERNED_GLOBS, "no governed globs — this test would be vacuous"
     for glob in bh._GOVERNED_GLOBS:
         literal = glob.replace("**/", "").replace("*", "x")

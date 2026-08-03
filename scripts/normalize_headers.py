@@ -91,13 +91,21 @@ def normalize_text(text: str) -> str:
     ``normalize_line`` match it. Everything else — code blocks fenced with any shape,
     indented code, HTML blocks, prose — is passed through verbatim.
 
-    FAIL-SAFE: if the parse raises, the document is returned UNCHANGED. This hook rewrites
-    files in place, so an unknown document structure must produce no edit rather than an
-    edit made on a guess. The old toggle had no such posture: it silently kept rewriting.
+    FAIL-SAFE, AND LOUD: if the parse raises, the document is returned UNCHANGED **and the
+    failure is announced on stderr**. This hook rewrites files in place, so an unknown
+    document structure must produce no edit rather than an edit made on a guess — but a
+    silent no-op is its own defect (terra CRITICAL, 2026-08-03): a dependency or API failure
+    would make the formatter quietly stop working while still reporting success, and nothing
+    would distinguish "nothing to normalize" from "I could not look". The exit code stays 0
+    because this is an auto-format hook whose documented contract is that it never
+    fails-and-asks; visibility is the fix, not a new block.
     """
     try:
         headings = _heading_lines(text)
-    except Exception:  # noqa: BLE001 — a rewriter that cannot parse must not rewrite
+    except Exception as exc:  # noqa: BLE001 — a rewriter that cannot parse must not rewrite
+        print(f"normalize_headers: PARSE FAILED ({exc!r}) — document left UNCHANGED. "
+              "No headers were normalized in this file; this is a no-op, not a clean pass.",
+              file=sys.stderr)
         return text
     out: list[str] = []
     for i, (body, eol) in enumerate(_split_keep_eol(text)):
