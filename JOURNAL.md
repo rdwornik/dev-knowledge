@@ -19,6 +19,42 @@
 
 ---
 
+### 2026-08-03 (l) — CC (Opus 5, local): six for six — the wrapper tally, cited not copied
+
+**Did:** Annotated `[#480]` with a one-line evidence pointer (`4e2fbb2f`), operator-directed at
+the ARC 3 merge gate.
+
+**Result.** Across four codex runs this window the wrapper's heuristic tally printed
+`Critical 0 / High 0 / Medium 0 / Low 0` while the bodies carried **1 CRITICAL and 5 HIGH**.
+Six for six. Every finding was read from the body, reproduced, and fixed. That is the strongest
+available evidence for `[#480]`'s premise — a review claim is trusted prose, and the one
+mechanism that summarises it is measurably unreliable.
+
+**The discipline was the instruction, not a detail.** The row gets a POINTER; the evidence stays
+in the artifacts and these JOURNAL entries. `[#480]` must not become `[#457]`-at-the-ceiling via
+its own evidence — a row that documents a measurement problem by growing until it trips the
+doc_rot gate would be its own joke.
+
+Two constraints shaped the wording, and the obvious phrasing failed both:
+- **A date in the pointer trips doc_rot.** The check counts dated *blocks*, not distinct dates
+  (`>= 3 dates & > 700`), so citing `2026-08-03-codex-...` added a third occurrence and reddened
+  the gate at 1190 chars. The glob is date-free.
+- **The obvious date-free glob was imprecise.** `*codex-arc[23]*.md` also matches
+  `2026-07-17-codex-arc3-ownership-axis.md`. A pointer resolving to the wrong record is this
+  window's own defect class, so the class was narrowed to `[tvm]` and re-run: **exactly 4 files**,
+  verified rather than assumed.
+
+Row landed at **1185/1200**. The first fitting version was 1199 — one character of margin, which
+would have made the next edit trip doc_rot for reasons unrelated to that edit. Trimmed
+deliberately rather than leaving a trap.
+
+**Changes:** `tasks/480-*.md`, `tasks/manifest.json`, `BACKLOG.md` (189 tasks, unchanged count).
+
+**Abandoned:** nothing. `[#480]` stays OPEN, annotation only — no DONE/RESOLVED/strikethrough
+marker, so the done-items-leave gate is untouched.
+
+**Next:** STOP as briefed — no `[#465]`, no `[#472]`, no `[#383]` wave execution.
+
 ### 2026-08-03 (k) — CC (Opus 5, local): mechanical adoptions — and an invariant that took three tries
 
 **Did:** ARC 3 — rows 3 and 6 of the adoption audit, gated on ARC 2 landing clean. SHA anchors:
