@@ -1,7 +1,7 @@
 ---
 id: "[#479]"
 title: "`session_end_backpressure` swallows internal errors — a broad `except: return 0` lets a crash masquerade as a pass"
-status: open
+status: superseded
 priority: P2
 size: S
 theme: "[E2] Enforced governance"
