@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-02
+last_reviewed: 2026-08-03
 reconciled_with: handoff-process@6.0.1
 status: active
 owner: Rob
@@ -7,7 +7,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.50 — 2026-08-02 -->
+<!-- version: 2.51 — 2026-08-03 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -130,7 +130,7 @@ Repo-level (`./.claude/commands/` — machine-enumerated from command-file front
 @.claude/generated/commands-repo.md
 <!-- methodology:end id=commands-repo-roster -->
 
-`/handoff` generates a handoff per `HANDOFF_PROCESS.md` v6 (ADR-82); `/handoff-verify` is its check-time counterpart — one CC-side run of the whole live gate, one evidence block (v6 §5; R1). Deployed methodology commands — `/review-closures`, `/ship`, `/override` — are enumerated in the generated roster (§9, `@`-imported); governance stays at canonical homes: ADR-70 Tier-1 + §8 / `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle" ([#76] — the hub uses the plugin's, not a hub-local duplicate) for `/review-closures` + `/ship` (the `/ship` worktree-refusal is the seed-state `LESSONS.md` 2026-06-19 lesson); ADR-85 §4 (explicit + logged, no auto-bypass — the gate's only escape) for `/override`.
+`/handoff` generates a handoff per `HANDOFF_PROCESS.md` v6 (ADR-82); `/handoff-verify` is its check-time counterpart — one CC-side run of the whole live gate, one evidence block (v6 §5; R1). Deployed methodology commands — `/review-closures`, `/ship`, `/override` — are enumerated in the generated roster (§9, `@`-imported); governance stays at canonical homes: ADR-70 Tier-1 + §8 / `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle" ([#76] — the hub uses the plugin's, not a hub-local duplicate) for `/review-closures` + `/ship` (the `/ship` worktree-refusal is the seed-state `LESSONS.md` 2026-06-19 lesson); ADR-85 §4 for `/override` — **but note the ADR-85 amendment 2026-08-03 §A2 RETIRED that local-token path**: `/override` no longer discharges the ADR-85 obligation (the Stop hook is advisory in full and has nothing to override), and the sole escape for the pre-push hard leg is `git push --no-verify`, made non-silent by the `journal_spine_anchor` audit backstop.
 
 (When to invoke each + auto-vs-manual for hooks: PLAYBOOK §"Usage protocol: which command / hook, when".)
 
@@ -221,11 +221,12 @@ Machine-enumerated (last 5 by number, from `docs/decisions/ADR-*.md` headers; re
 
 > _Entries v1.0–v2.48 condensed to git history per ADR-49/65 (info-preserving — full prior history: `git log --follow -p -- CLAUDE.md`)._
 
+- v2.51 (2026-08-03) — ADR-85 amendment 2026-08-03 built. §9 gains `block-unanchored-push` (the ADR-85 HARD leg, pre-push, scoped to main) and records `block-ff-push`'s posture change to **fail-CLOSED** (it silently auto-allowed on any internal error until this arc). The `Stop` backpressure row now says **advisory in full** — it has no hard leg and cannot block a turn. DRIFT FOUND AND FIXED BY THIS RE-READ: §7 still described ADR-85 §4 `/override` as "the gate's only escape", which the amendment §A2 retired — corrected in place, since the sole escape is now `git push --no-verify` backed by the `journal_spine_anchor` FAIL backstop. L10 version 2.50→2.51. Genuine full-file end-to-end re-read from disk this session (all 12 sections confirmed accurate; §9's roster exercised live against the shipped hooks and the §7 staleness above is the one defect it surfaced); `last_reviewed` re-stamped 2026-08-03.
 - v2.50 (2026-08-02) — §9 pre-commit roster gains `check-seal-identity` ([#475]): commit-time seal-identity gate over staged `docs/handoffs/**` bundles, reusing `gen_handoff.verify_seal_identity` (the [#473] seal-time refusal's commit-time twin). Roster addition only — no doctrine moved; ARCHITECTURE Ch2 gate list updated in lockstep. L10 version 2.49→2.50.
 - v2.49 (2026-08-02) — §12 condensed to its authorized home (pre-authorized relocation; needs no new ADR, and none was written). The v2.18–v2.48 block had reached 19,017 bytes across 11 bullets — 44.6% of the file — re-read in full at every session boot. Both cited ADRs name the SAME destination and foreclose the alternative: ADR-49 — “The change record is git history (descriptive commits)”; ADR-65 §1 — “Technical record = git… **No archive file** (CLAUDE.md §5; ADR-47 ‘no ceremonial archive’)”. So the block was condensed to the git pointer §12 has used since v2.22, **not** moved into a new file — which would have violated the very ADRs authorizing the move. No content loss: nothing is deleted, every entry stays recoverable verbatim at `c30af862:CLAUDE.md` and via `git log --follow -p -- CLAUDE.md` (19,017 bytes out, byte-counted before and after). The `owner=repo` `section-history` region markers and the §12 heading are RETAINED — they are the boundary substrate `boundary_report.py` / `boundary_headers.py` key on by region `id`, not history. Also corrected the stale footer “Last updated” (2026-07-30, while v2.48 landed 07-31 — the v2.41 stale-footer precedent). L10 version 2.48→2.49. Genuine full-file end-to-end re-read from disk this session (all 12 sections confirmed accurate; §4/§5/§7/§9 claims exercised live through this morning's commits); `last_reviewed` re-stamped 2026-08-02.
 <!-- methodology:end id=section-history -->
 
 ---
 
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-03
 **Maintained by:** Rob

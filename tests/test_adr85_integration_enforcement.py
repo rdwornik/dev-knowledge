@@ -52,8 +52,11 @@ PROTECTED_BRANCH = PROTECTED.rsplit("/", 1)[-1]
 # --- helpers ----------------------------------------------------------------
 
 def _run(repo, *args, check=True):
+    # errors="replace": the organ's refusal text carries an em-dash, and a git hook's stderr
+    # comes back through git in the console codepage on Windows — a strict utf-8 decode raises
+    # inside subprocess's reader thread and leaves stderr as None.
     return subprocess.run(["git", "-C", str(repo), *args], check=check,
-                          capture_output=True, text=True, encoding="utf-8")
+                          capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
 def _rev(repo, ref="HEAD"):
@@ -90,6 +93,23 @@ def _repo_with_remote(tmp_path):
 
 def _push_line(local_sha, remote_sha, ref=PROTECTED):
     return f"{ref} {local_sha} {ref} {remote_sha}\n"
+
+
+def _install_pre_push(repo):
+    """Wire the REAL organ as a native git pre-push hook in `repo`.
+
+    Without this a `git push --no-verify` test is vacuous — the push would succeed even if
+    the organ did nothing, so it proves nothing about the bypass (terra HIGH, 2026-08-03).
+    A native hook (rather than `pre-commit install`) keeps the test hermetic while exercising
+    the real git -> hook -> script -> stdin wiring the organ actually runs under.
+    """
+    hook = repo / ".git" / "hooks" / "pre-push"
+    hook.parent.mkdir(parents=True, exist_ok=True)
+    py = sys.executable.replace("\\", "/")
+    hook.write_text(
+        "#!/bin/sh\nexec '%s' '%s'\n" % (py, str(_BUP).replace("\\", "/")),
+        encoding="utf-8", newline="\n")
+    hook.chmod(0o755)
 
 
 def _invoke(script, repo, stdin_text, env_extra=None):
@@ -175,7 +195,8 @@ def test_t3_pre_push_has_no_retry_surface(tmp_path):
     assert len({r.stderr for r in results}) == 1, "refusal must be deterministic"
 
     # And the Stop hook can no longer emit a block at all (FR5: advisory in full).
-    assert seb._HARD_CHECKS == ()
+    # Asserted on OBSERVABLE OUTPUT only — a private-registry assertion (`_HARD_CHECKS == ()`)
+    # would pin an implementation shape rather than the FR5 criterion (terra LOW, 2026-08-03).
     stop = _invoke(_SEB, repo, '{"stop_hook_active": false}')
     assert '"decision"' not in stop.stdout, stop.stdout
     assert '"block"' not in stop.stdout, stop.stdout
@@ -275,8 +296,15 @@ def test_t6_no_verify_bypasses_transport_but_the_backstop_fails(tmp_path, monkey
     repo, _ = _repo_with_remote(tmp_path)
     floor = _rev(repo, PROTECTED_BRANCH)          # the seed is the floor
     _work, merge = _merge_branch(repo, "feat/unanchored", "Merge branch 'feat/unanchored'")
+    _install_pre_push(repo)
 
-    # Transport-level bypass succeeds.
+    # FIRST prove there is a real refusal to bypass — otherwise the --no-verify assertion
+    # below would pass against an organ that does nothing at all.
+    refused = _run(repo, "push", "-q", "origin", PROTECTED_BRANCH, check=False)
+    assert refused.returncode != 0, "the hook must refuse the unanchored push"
+    assert "REFUSED" in refused.stderr, refused.stderr
+
+    # Only now is the bypass meaningful: transport-level escape succeeds.
     out = _run(repo, "push", "--no-verify", "-q", "origin", PROTECTED_BRANCH, check=False)
     assert out.returncode == 0, out.stderr
 
@@ -379,3 +407,83 @@ def test_fr7_no_agent_asserted_state_in_the_hard_path():
     assert "_override_active" not in _called_names(bup.main)
     # And the hard organ never reads the token file at all.
     assert "session-override-token" not in inspect.getsource(bup)
+
+
+# --- terra review 2026-08-03: regressions for the four code findings --------
+
+@requires_git
+def test_stdin_read_failure_refuses_not_allows(tmp_path, monkeypatch):
+    """terra CRITICAL — `_read_stdin` degraded an OSError to '', which resolves to "not a
+    push to main" and returns 0: a silent allow on an internal failure, in both pre-push
+    organs. A read error now propagates and the outer handler refuses with exit 2.
+
+    'No stdin' (tty / pre-commit consumed it) stays a legitimate 0 — the two are different
+    states and only one of them is an error.
+    """
+    class _Boom:
+        def isatty(self):
+            return False
+
+        def read(self):
+            raise OSError("planted stdin failure")
+
+    monkeypatch.setattr(bfp.sys, "stdin", _Boom())
+    monkeypatch.setattr(bfp, "_repo_root", lambda: tmp_path)
+    assert bfp.main() == 2
+    assert bup.main() == 2
+
+
+@requires_git
+def test_scan_failure_refuses_not_allows(tmp_path, monkeypatch):
+    """terra CRITICAL — `find_violations` is fail-soft by contract (`[]` on any git error),
+    so a FAILED scan read as a CLEAN one and `main()` returned 0. The gate now proves the
+    range readable first; an unreadable range refuses."""
+    repo, remote = _repo_with_remote(tmp_path)
+    local = _rev(repo, PROTECTED_BRANCH)
+    monkeypatch.setattr(bfp, "_read_stdin", lambda: _push_line(local, remote))
+    monkeypatch.setattr(bfp, "_repo_root", lambda: repo)
+
+    class _Fail:
+        returncode = 128
+        stdout = ""
+        stderr = "fatal: bad revision"
+
+    monkeypatch.setattr(bfp, "_git", lambda *a, **k: _Fail())
+    assert bfp.main() == 2
+
+
+@requires_git
+def test_precommit_wiring_reconstructs_the_main_range(tmp_path, monkeypatch):
+    """terra HIGH — under pre-commit, stdin is consumed and only ONE ref pair is forwarded,
+    so a multi-ref / initial push could hide main and the anchor gate returned 0. It now
+    reconstructs main's range from local refs, exactly as `block_ff_push` already did."""
+    repo, _ = _repo_with_remote(tmp_path)
+    _work, merge = _merge_branch(repo, "feat/unanchored", "Merge branch 'feat/unanchored'")
+    monkeypatch.setattr(bup._bfp, "_read_stdin", lambda: "")       # pre-commit ate it
+    monkeypatch.setattr(bup._bfp, "_repo_root", lambda: repo)
+    monkeypatch.setenv("PRE_COMMIT_REMOTE_NAME", "origin")
+    monkeypatch.setenv("PRE_COMMIT_REMOTE_BRANCH", "refs/heads/other")  # main NOT forwarded
+    assert bup.main() == 1, "unanchored main work must not slip through the pre-commit wiring"
+
+
+def test_ambiguous_disposition_floor_fails_closed(tmp_path):
+    """terra HIGH — `search()` took the FIRST floor line, so a second declaration silently
+    changed which history is exempt. Two DIFFERENT floors is an ambiguous boundary and must
+    raise, not pick one."""
+    adr = tmp_path / "docs" / "decisions"
+    adr.mkdir(parents=True)
+    target = tmp_path / ja._ADR_PATH
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    target.write_text("Dated disposition floor: `24882f8cc` (2026-08-02).\n", encoding="utf-8")
+    assert ja.floor_sha(tmp_path) == "24882f8cc"
+
+    target.write_text("Dated disposition floor: `24882f8cc`\n"
+                      "Dated disposition floor: `deadbeef`\n", encoding="utf-8")
+    with pytest.raises(ja.AnchorError, match="ambiguous exemption boundary"):
+        ja.floor_sha(tmp_path)
+
+    # A repeated IDENTICAL declaration is not ambiguous — same boundary, stated twice.
+    target.write_text("Dated disposition floor: `24882f8cc`\n"
+                      "…restated: Dated disposition floor: `24882f8cc`\n", encoding="utf-8")
+    assert ja.floor_sha(tmp_path) == "24882f8cc"

@@ -81,9 +81,22 @@ def main(argv=None) -> int:
         repo = _bfp._repo_root()
         lines = _bfp.parse_stdin_lines(_bfp._read_stdin())
         rng = _bfp.resolve_push_range(lines, os.environ)
+        reconstructed = False
+        # pre-commit consumes stdin and re-exposes only ONE ref pair, so it can hide main on a
+        # multi-ref push or an empty-remote initial push. Without this, such a push carrying
+        # unanchored main work returns 0 and bypasses the hard leg (terra HIGH, 2026-08-03).
+        # block_ff_push already reconstructs main's range from local refs for exactly this
+        # case; the anchor gate has to do the same or it is weaker than its sibling on the
+        # wiring the fleet actually runs under.
+        if rng is None and not lines and _bfp._under_precommit(os.environ):
+            rng = _bfp._reconstruct_main_range(repo, os.environ)
+            reconstructed = rng is not None
         if rng is None:
             return 0  # not a push to main (or a main deletion) -- not this organ's business
-        tip = _local_tip(lines, os.environ)
+        # On the reconstructed path the tip IS local main: the forwarded ref named something
+        # else, so `_local_tip` would return None or a foreign tip and the JOURNAL would be
+        # read at the wrong revision.
+        tip = _bfp._rev_parse(repo, PROTECTED_REF) if reconstructed else _local_tip(lines, os.environ)
         journal = _ja.journal_text(repo, tip)
         entries = _ja.spine_entries(repo, rng)
         if not entries:

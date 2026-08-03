@@ -119,13 +119,18 @@ def resolve_push_range(stdin_lines: list, env, protected: str = PROTECTED_REF) -
 
 def _read_stdin() -> str:
     """Native pre-push refs from stdin, or '' when stdin is a tty / already consumed
-    (the pre-commit path) — never blocks on an interactive terminal."""
-    try:
-        if sys.stdin is None or sys.stdin.isatty():
-            return ""
-        return sys.stdin.read()
-    except (OSError, ValueError):
+    (the pre-commit path) — never blocks on an interactive terminal.
+
+    A genuine READ FAILURE now RAISES rather than degrading to '' (terra CRITICAL,
+    2026-08-03; ADR-85 amendment §A6). The two states are not the same: 'no stdin' is the
+    legitimate pre-commit/tty wiring, while an OSError mid-read means the hook does not know
+    what is being pushed — and an empty string there resolves to "not a push to main" and
+    returns 0, silently allowing the exact push both gates exist to refuse. The callers'
+    outer handler turns this into exit 2.
+    """
+    if sys.stdin is None or sys.stdin.isatty():
         return ""
+    return sys.stdin.read()
 
 
 def _repo_root() -> Path:
@@ -180,8 +185,22 @@ def violations_in_range(repo: Path, rng: str, baseline: str = BASELINE_DATE) -> 
 
     Delegates to validate_no_ff.find_violations — a revision range (`remote..local`)
     is a valid `git log` positional exactly like a branch name, so the gate and the
-    detector share ONE scan, not just the leaf helpers. Read-only; fail-soft (a git
-    error returns [], never wedging a legitimate push)."""
+    detector share ONE scan, not just the leaf helpers.
+
+    THE DELEGATE IS FAIL-SOFT AND THIS GATE IS NOT (terra CRITICAL, 2026-08-03).
+    `find_violations` documents "a missing branch / non-repo / git error returns []" so it can
+    never wedge the audit-health WARN it was written for. Reused verbatim here that contract
+    makes a FAILED SCAN indistinguishable from A CLEAN ONE, and `main()` returns 0 — the
+    fail-closed posture of ADR-85 §A6 defeated one layer down. So the range is proved
+    READABLE first; a git failure raises and `main()` turns it into exit 2. The shared
+    signature is preserved (still ONE scan, ONE definition of a violation) — only the
+    unknown-vs-clean distinction is added, which the detector does not need and the gate
+    cannot do without."""
+    probe = _git(repo, "rev-list", "--count", rng)
+    if probe.returncode != 0:
+        raise RuntimeError(
+            f"could not read the push range {rng!r}: git rev-list exited "
+            f"{probe.returncode}: {probe.stderr.strip()}")
     return _vnf.find_violations(repo, branch=rng, baseline=baseline)
 
 

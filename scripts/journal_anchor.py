@@ -83,12 +83,22 @@ def floor_sha(repo: Path) -> str:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
         raise AnchorError(f"cannot read {_ADR_PATH}: {exc!r}") from exc
-    m = _FLOOR_RE.search(text)
-    if not m:
+    # EXACTLY ONE declaration, never "the first match" (terra HIGH, 2026-08-03). With
+    # `search()` a second floor line -- an amendment that adds one without removing the old,
+    # or a malformed line beside a valid one -- silently selects whichever appears first,
+    # quietly changing which history is exempted. An ambiguous exemption boundary is not a
+    # boundary; it fails closed like a missing one.
+    found = _FLOOR_RE.findall(text)
+    if not found:
         raise AnchorError(
             f"no 'Dated disposition floor: `<sha>`' line found in {_ADR_PATH} -- the "
             "ADR-85 backstop cannot run without its ratified floor")
-    return m.group(1)
+    if len(set(found)) > 1:
+        raise AnchorError(
+            f"{len(found)} DIFFERENT disposition floors declared in {_ADR_PATH} "
+            f"({', '.join(sorted(set(found)))}) -- an ambiguous exemption boundary is not a "
+            "boundary; resolve the ADR to exactly one")
+    return found[0]
 
 
 def journal_text(repo: Path, rev: str | None = None) -> str:
